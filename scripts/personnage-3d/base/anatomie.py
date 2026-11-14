@@ -64,7 +64,7 @@ EMPLACEMENTS = {
 cherche la peau en venant de l'extérieur, dans le repère Blender (+X gauche, −Y avant, +Z haut) ; sans direction,
 l'emplacement est sur l'axe de l'os."""
 
-POING = {'main': ('r', 'Sword_Idle', 8), 'off': ('l', 'Idle_Shield_Loop', 44)}
+POING = {'main': ('r', 'Sword_Idle', 8), 'secondaire': ('l', 'Idle_Shield_Loop', 44)}
 """Par prise : le côté de la main, le clip et l'image où le poing fermé tient sa poignée."""
 DOIGTS_DU_POING = ('index', 'middle', 'ring', 'pinky')
 
@@ -89,12 +89,17 @@ AXES_DU_PERSONNAGE = Matrix(((1, 0, 0), (0, 0, -1), (0, 1, 0)))
 """Les axes glTF du personnage (+X, +Y, +Z en colonnes) dans le repère Blender."""
 
 
+def cote_de_l_os(nom):
+    """Le côté de l'os `nom`, `g` ou `d` par son suffixe `_l`/`_r`, `None` sans côté."""
+    return {'l': 'g', 'r': 'd'}.get(nom.rsplit('_', 1)[-1]) if '_' in nom else None
+
+
 def zone_de_l_os(nom):
     prefixe = nom.split('_')[0]
     if prefixe not in ZONE_DE_L_OS:
         raise RuntimeError(f'os « {nom} » : aucune zone')
     zone = ZONE_DE_L_OS[prefixe]
-    cote = {'l': 'g', 'r': 'd'}.get(nom.rsplit('_', 1)[-1]) if '_' in nom else None
+    cote = cote_de_l_os(nom)
     return f'{zone}_{cote}' if cote and f'{zone}_{cote}' in ZONES else zone
 
 
@@ -208,7 +213,7 @@ def cercle(points, axe):
 
 
 def reperes_des_prises(rig):
-    """Par prise `main` et `off`, son os et son repère dans le repère de cet os : le creux du poing fermé de son clip
+    """Par prise `main` et `secondaire`, son os et son repère dans le repère de cet os : le creux du poing fermé de son clip
     (`POING`) ; l'action du rig reste celle du dernier poing."""
     reperes, scene = {}, bpy.context.scene
     image = scene.frame_current
@@ -238,7 +243,7 @@ def reperes_des_prises(rig):
 
 
 def poser_prises(rig):
-    """Les attaches des prises `main` et `off` (`reperes_des_prises`)."""
+    """Les attaches des prises `main` et `secondaire` (`reperes_des_prises`)."""
     return {prise: {'os': os, **attache(Matrix.Identity(4), local)} for prise, (os, local) in reperes_des_prises(rig).items()}
 
 

@@ -16,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const C = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'X', name: 'X', kind: 'hero',
+    id: 'X', name: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [],
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
@@ -28,29 +28,29 @@ const C = (over: Partial<Combatant>): Combatant =>
 function setupForcedAttack() {
   seedBattleRng(7);
   const attacker = C({ id: 'A', label: 'Att', resilience: 2 });
-  const target = C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 } });
+  const target = C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 } });
   banc.setState({
     battle: { combatants: [attacker, target], log: [] } as never,
     pendingAttack: {
       attackerId: 'A', targetId: 'B', location: null,
       result: {
-        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defender',
+        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defenseur',
         defenderDefeated: false, log: 'raté',
         attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 88, success: false, sl: -4 },
       } as never,
     },
   });
-  banc.getState().jetForcerLaReussite('attack');
+  banc.getState().jetForcerLaReussite('attaque');
 }
 
 beforeEach(() => {
   banc.setState({ pendingAttack: null, battle: null });
 });
 
-describe('jetImposerLeResultat@attack — choisir la valeur du dé d’un succès forcé (RAW LDB 17 l.68)', () => {
+describe('jetImposerLeResultat@attaque — choisir la valeur du dé d’un succès forcé (RAW LDB 17 l.68)', () => {
   it('choisir un double ≤ cible (44) → Coup Critique (l’exemple Salundra)', () => {
     setupForcedAttack();
-    banc.getState().jetImposerLeResultat('attack', 44);
+    banc.getState().jetImposerLeResultat('attaque', 44);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.hit).toBe(true);
     expect(res.attackerRoll).toBe(44);
@@ -59,7 +59,7 @@ describe('jetImposerLeResultat@attack — choisir la valeur du dé d’un succè
 
   it('choisir 01 → réussite simple au DR maximal, pas de Critique', () => {
     setupForcedAttack();
-    banc.getState().jetImposerLeResultat('attack', 1);
+    banc.getState().jetImposerLeResultat('attaque', 1);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.hit).toBe(true);
     expect(res.attackerRoll).toBe(1);
@@ -70,44 +70,44 @@ describe('jetImposerLeResultat@attack — choisir la valeur du dé d’un succè
   it('valeur > cible refusée (le choix doit rester une réussite)', () => {
     setupForcedAttack();
     const avant = banc.getState().pendingAttack!.result!.attackerRoll; // dé PAR DÉFAUT (#941 : le MEILLEUR)
-    banc.getState().jetImposerLeResultat('attack', 77);
+    banc.getState().jetImposerLeResultat('attaque', 77);
     expect(banc.getState().pendingAttack!.result!.attackerRoll).toBe(avant); // inchangé
   });
 
   it('ne dépense PAS de Résilience supplémentaire (même Test)', () => {
     setupForcedAttack();
     const before = banc.getState().battle!.combatants.find((c) => c.id === 'A')!.resilience;
-    banc.getState().jetImposerLeResultat('attack', 44);
+    banc.getState().jetImposerLeResultat('attaque', 44);
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'A')!.resilience).toBe(before);
   });
 
   // Sans Résilience en cours, le MÊME verbe sert l'autre provenance du dé (option « Dés fixés », #939) :
-  // il applique bien la valeur, mais ÉVALUÉE — aucune réussite forcée, aucun `forced` posé. (L'affordance,
+  // il applique bien la valeur, mais ÉVALUÉE — aucune réussite forcée, aucun `forcee` posé. (L'affordance,
   // elle, reste gatée par l'option + le contrôle du siège : `fixed-die.test.ts`.)
   it('attaque non forcée → le dé s’applique au NATUREL, sans rien forcer', () => {
     seedBattleRng(7);
     banc.setState({
-      battle: { combatants: [C({ id: 'A', resilience: 2 }), C({ id: 'B', kind: 'enemy' })], log: [] } as never,
+      battle: { combatants: [C({ id: 'A', resilience: 2 }), C({ id: 'B', kind: 'ennemi' })], log: [] } as never,
       pendingAttack: {
         attackerId: 'A', targetId: 'B', location: null,
-        result: { hit: true, attackerRoll: 22, netSL: 2, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: '', attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 22, success: true, sl: 2 } } as never,
+        result: { hit: true, attackerRoll: 22, netSL: 2, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: '', attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 22, success: true, sl: 2 } } as never,
       },
     });
-    banc.getState().jetImposerLeResultat('attack', 44);
+    banc.getState().jetImposerLeResultat('attaque', 44);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.attackerRoll).toBe(44);
     expect(res.attackerDetail!.success).toBe(true); // 44 ≤ 45 : réussite RÉELLE du dé, pas forcée
     expect(res.attackerDetail!.sl).toBe(0); // dizaine(45) − dizaine(44) : aucun plancher de Résilience
-    expect(banc.getState().pendingAttack!.forced).toBeFalsy();
+    expect(banc.getState().pendingAttack!.forcee).toBeFalsy();
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'A')!.resilience).toBe(2);
   });
 });
 
-describe('jetImposerLeResultat@cast — même choix sur une INCANTATION forcée (parité des modales)', () => {
+describe('jetImposerLeResultat@incantation — même choix sur une INCANTATION forcée (parité des modales)', () => {
   function setupForcedCast() {
     seedBattleRng(7);
     const caster = C({ id: 'A', label: 'Mage', resilience: 2 });
-    const target = C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 } });
+    const target = C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 } });
     banc.setState({
       battle: { combatants: [caster, target], log: [] } as never,
       pendingCast: {
@@ -115,13 +115,13 @@ describe('jetImposerLeResultat@cast — même choix sur une INCANTATION forcée 
         result: { cast: false, roll: 88, target: 45, sl: -4, isCritical: false, isFumble: false, log: 'raté' },
       } as never,
     });
-    banc.getState().jetForcerLaReussite('cast');
+    banc.getState().jetForcerLaReussite('incantation');
   }
 
   it('11 (le plus bas double réussi) → Incantation Critique', () => {
     setupForcedCast();
-    expect(banc.getState().pendingCast!.forced).toBe(true);
-    banc.getState().jetImposerLeResultat('cast', 11);
+    expect(banc.getState().pendingCast!.forcee).toBe(true);
+    banc.getState().jetImposerLeResultat('incantation', 11);
     const res = banc.getState().pendingCast!.result!;
     expect(res.roll).toBe(11);
     expect(res.cast).toBe(true);
@@ -130,12 +130,12 @@ describe('jetImposerLeResultat@cast — même choix sur une INCANTATION forcée 
 
   it('01 → DR maximal (Surincantation), pas de Critique ; valeur > cible refusée', () => {
     setupForcedCast();
-    banc.getState().jetImposerLeResultat('cast', 1);
+    banc.getState().jetImposerLeResultat('incantation', 1);
     const res = banc.getState().pendingCast!.result!;
     expect(res.roll).toBe(1);
     expect(res.isCritical).toBe(false);
     expect(res.sl).toBe(4); // dizaine(45) − dizaine(01)
-    banc.getState().jetImposerLeResultat('cast', 77);
+    banc.getState().jetImposerLeResultat('incantation', 77);
     expect(banc.getState().pendingCast!.result!.roll).toBe(1); // inchangé
   });
 });
@@ -143,7 +143,7 @@ describe('jetImposerLeResultat@cast — même choix sur une INCANTATION forcée 
 describe('jetImposerLeResultat@defense — même choix sur une DÉFENSE forcée', () => {
   function setupForcedDefense() {
     seedBattleRng(7);
-    const attacker = C({ id: 'E', label: 'Orque', kind: 'enemy' });
+    const attacker = C({ id: 'E', label: 'Orque', kind: 'ennemi' });
     const defender = C({ id: 'H', label: 'Héros', resilience: 2, pos: { x: 1, y: 0 } });
     const atk = { roll: 30, target: 40, success: true, sl: 1, isDouble: false };
     banc.setState({
@@ -153,7 +153,7 @@ describe('jetImposerLeResultat@defense — même choix sur une DÉFENSE forcée'
         location: null, atk, mode: 'esquive',
         def: { roll: 95, target: 50, success: false, sl: -4, isDouble: false },
         result: {
-          hit: true, attackerRoll: 30, netSL: 5, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+          hit: true, attackerRoll: 30, netSL: 5, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
           attackerDetail: { label: 'Corps à corps', base: 40, modifier: 0, target: 40, roll: 30, success: true, sl: 1 },
           defenderDetail: { label: 'Esquive', base: 50, modifier: 0, target: 50, roll: 95, success: false, sl: -4 },
         },
@@ -163,10 +163,10 @@ describe('jetImposerLeResultat@defense — même choix sur une DÉFENSE forcée'
     banc.getState().jetForcerLaReussite('defense');
   }
 
-  it('le force pose `forced`, puis le défenseur choisit son dé (11 = double)', () => {
+  it('le force pose `forcee`, puis le défenseur choisit son dé (11 = double)', () => {
     setupForcedDefense();
     const pd = banc.getState().pendingDefense!;
-    expect(pd.forced).toBe(true);
+    expect(pd.forcee).toBe(true);
     expect(pd.result!.hit).toBe(false); // « vous l'emportez avec au moins DR +1 »
     banc.getState().jetImposerLeResultat('defense', 11);
     const after = banc.getState().pendingDefense!;

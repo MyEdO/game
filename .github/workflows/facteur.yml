@@ -1,0 +1,41 @@
+name: Facteur
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  relais:
+    if: ${{ github.event.comment.user.type != 'Bot' && startsWith(github.event.comment.body, '**') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          check-latest: true
+      - name: Relayer le courrier aux PR destinataires
+        id: relais
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ops/facteur.mjs < "$GITHUB_EVENT_PATH" >> "$GITHUB_OUTPUT"
+      - name: Se nommer en rougissant
+        if: ${{ !cancelled() && (failure() || steps.relais.outputs.pose == 'oui') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.sha }}
+          STATUT: ${{ job.status }}
+        run: |
+          RAPPORT="$RUNNER_TEMP/facteur-rapport.md"
+          echo "Run $RUN_URL sur $SHA : facteur $STATUT. Le relais refusé se lit au journal du run." > "$RAPPORT"
+          node scripts/ops/signaler-rouge.mjs --titre "Facteur rouge" --label canari --corps "$RAPPORT" --verdict "$([ "$STATUT" = success ] && echo vert || echo rouge)"

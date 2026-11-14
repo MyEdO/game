@@ -5,9 +5,9 @@
  * Se libérer/Étouffer, Test de compétence, Évaluation, Marchandage, Soin…) suit le MÊME cycle de
  * vie, jusqu'ici copié-collé par flux dans le store (~6 actions × ~10 lignes chacune) :
  *
- *   ouvrir (pending posé) → Lancer (`roll`) → Chance : relancer (`reroll`, LDB 12 : jet propre
- *   raté, 1× max) ou +1 DR (`bonusSL`, LDB 17 l.24) → Résilience : réussite garantie
- *   (`forceSuccess`, LDB 17 l.68 : AVANT le jet ou après un échec) → Appliquer / Annuler.
+ *   ouvrir (pending posé) → Lancer (`lancer`) → Chance : relancer (`relancer`, LDB 12 : jet propre
+ *   raté, 1× max) ou +1 DR (`ajouterUnDR`, LDB 17 l.24) → Résilience : réussite garantie
+ *   (`forcerLaReussite`, LDB 17 l.68 : AVANT le jet ou après un échec) → Appliquer / Annuler.
  *
  * La fabrique centralise la plomberie commune (gardes, dépense de Chance/Résilience, drapeau
  * `rerolled`, patch de re-rendu) ; chaque flux ne déclare QUE sa partie métier via `RollFlowSpec`
@@ -34,7 +34,13 @@ import { gainCorruption } from './corruptionFlow';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { PORTEURS_D_ETAPE } from './slotsDeJet';
 import { bumpSL, evaluateTest, maxForcedRoll, forcedTR, bestForcedRoll, cibleBrute, type TestResult } from '../engine/tests';
-import { applyReverse, reverseAvailable as engineReverseAvailable, reversePreview as engineReversePreview, type EvaluationDeRangee, type IssueDuDe } from '../engine/reverseToken';
+import {
+  applyReverse,
+  reverseAvailable as engineReverseAvailable,
+  reversePreview as engineReversePreview,
+  type EvaluationDeRangee,
+  type IssueDuDe,
+} from '../engine/reverseToken';
 import { clampFixedRoll } from '../engine/fixedDie';
 import { TestOutcome } from '../engine/testOutcome';
 import { canFixDie, influencesLocally } from './netOwnership';
@@ -70,7 +76,7 @@ export type FermetureDuJet =
 /** Les fermetures qui attendent une DÉCISION du joueur : le verbe se montre refusé, sa raison dite, au lieu de se taire. */
 export const FERMETURES_DITES: ReadonlySet<FermetureDuJet> = new Set<FermetureDuJet>(['declarationsDues', 'oppositionsDues', 'choixCritiqueDu', 'actionEngagee']);
 
-/** Ce qui ferme chaque verbe de jet (`null` : ouvert), clôture (`confirm`) comprise, lu par `RollFlowHandlers.fermetures`. */
+/** Ce qui ferme chaque verbe de jet (`null` : ouvert), clôture (`valider`) comprise, lu par `RollFlowHandlers.fermetures`. */
 export type FermeturesDuJet = Record<RollVerb, FermetureDuJet | null>;
 
 /** Ressources d'influence du jeteur — dérivées du `Combatant`, ou fournies en primitives par une
@@ -130,11 +136,11 @@ export function fermetureDuBonus(a: RollActorView, v: RollInfluenceView): Fermet
 /** Sombre Pacte — `LDB 19 l.17`. Fenêtre de `opDarkPact`. */
 export function fermetureDuPacte(a: RollActorView, v: RollInfluenceView): FermetureDuJet | null {
   if (!v.rolled) return 'jetNonLance';
-  return a.kind === 'hero' ? null : 'reserveAuxHeros';
+  return a.kind === 'heros' ? null : 'reserveAuxHeros';
 }
 
 /** Résilience « Je ne faillirai pas ! » — `LDB 17 l.68` : avant le jet, ou après un échec. Composée par
- *  `fermetureDuForcage`, fenêtre de `forceSuccess`. */
+ *  `fermetureDuForcage`, fenêtre de `forcerLaReussite`. */
 export function fermetureDeLaResilience(a: RollActorView, v: RollInfluenceView): FermetureDuJet | null {
   if (v.rolled && !v.failed && !v.lost) return 'jetReussi';
   return a.resilience > 0 ? null : 'sansResilience';
@@ -143,44 +149,44 @@ export function fermetureDeLaResilience(a: RollActorView, v: RollInfluenceView):
 /** Champs communs à tous les objets `pending*` gérés par la fabrique. */
 export interface PendingBase {
   rerolled?: boolean;
-  /** Réussite forcée par Résilience (LDB 17 l.68) — posé par `forceSuccess`, ouvre `setForcedRoll`. */
-  forced?: boolean;
+  /** Réussite forcée par Résilience (LDB 17 l.68) — posé par `forcerLaReussite`, ouvre `imposerLeResultat`. */
+  forcee?: boolean;
   /** MENACE à laquelle ce Test RÉSISTE (« Résistance (Menace) », LDB 10 l.1016-1020 : `maladie` /
    *  `corruption` / `mutation` / `magie` / `poison`…) — posé par le SITE qui ouvre le pending/l'étape.
-   *  Présent + talent disponible ⇒ le verbe `resist` offre l'auto-succès (1× par spec et par séance). */
+   *  Présent + talent disponible ⇒ le verbe `resister` offre l'auto-succès (1× par spec et par séance). */
   menace?: MenaceId;
   /** DÉ FIXÉ à la main (option de confort « Dés fixés », `engine/fixedDie.ts`) — PROVENANCE, pas une
    *  règle : distingue le dé saisi par le joueur (aucun coût, jet évalué au naturel) du dé CHOISI de la
-   *  Résilience (`forced`, réussite garantie). Lu par l'UI (mention « dé fixé » sur la rangée). */
+   *  Résilience (`forcee`, réussite garantie). Lu par l'UI (mention « dé fixé » sur la rangée). */
   fixed?: boolean;
 }
 
 /**
  * Résolution FORCÉE — auto-succès du MÊME mécanisme pour DEUX sources RAW.
  * Passé en 5ᵉ argument de `resolve` :
- *  - `{}`               → `forceSuccess` (Résilience, LDB 17 l.68) : le flux applique son dé PAR
+ *  - `{}`               → `forcerLaReussite` (Résilience, LDB 17 l.68) : le flux applique son dé PAR
  *                          DÉFAUT (01 → DR max, ou, en Test opposé, le jet courant forcé à l'emporter) ;
- *  - `{ roll: n }`      → `setForcedRoll` (Résilience) : le joueur a CHOISI le dé `n` (doit rester une réussite) ;
- *  - `{ sl: n }`        → `resist` (Résistance (Menace), LDB 10 l.1016-1020) : auto-succès à DR IMPOSÉ
+ *  - `{ roll: n }`      → `imposerLeResultat` (Résilience) : le joueur a CHOISI le dé `n` (doit rester une réussite) ;
+ *  - `{ sl: n }`        → `resister` (Résistance (Menace), LDB 10 l.1016-1020) : auto-succès à DR IMPOSÉ
  *                          (« utilisez votre Bonus d'Endurance comme DR pour le Test ») — pas de choix du dé.
  * Absent (`resolve` appelé sans ce paramètre) → jet NORMAL (RNG). Un seul résolveur porte donc tous
  * les cas, au lieu des dérives séparées `force`/`forceRoll` (le « code dérivé » d'avant).
  */
 export interface ForcedResolve {
   roll?: number;
-  /** DR imposé de l'auto-succès du talent Résistance (Menace) — seulement via le verbe `resist`
-   *  (`caps.resist`) ; les flux qui ne le déclarent pas ne le reçoivent jamais. */
+  /** DR imposé de l'auto-succès du talent Résistance (Menace) — seulement via le verbe `resister`
+   *  (`caps.resister`) ; les flux qui ne le déclarent pas ne le reçoivent jamais. */
   sl?: number;
   /** Le dé `roll` est FIXÉ par le joueur (option « Dés fixés »), pas choisi au titre de la Résilience :
    *  le résolveur l'évalue AU NATUREL (`evaluateTest`) — réussite, DR et double se dérivent du dé, aucune
-   *  réussite garantie ni plancher de DR. Jamais posé par `forceSuccess`/`resist`. */
+   *  réussite garantie ni plancher de DR. Jamais posé par `forcerLaReussite`/`resister`. */
   fixed?: boolean;
 }
 
 /**
  * Props du sélecteur de dé PARTAGÉ (« Je ne faillirai pas ! », LDB 17 l.68). Renvoyé par
  * `caps.picker` quand le Test forcé offre un CHOIX du dé (attaque/défense/incantation/piétinement/
- * Peur) — `null` = pas de picker (flux binaire, ou avant `forceSuccess`). Le dé choisi pilote le DR,
+ * Peur) — `null` = pas de picker (flux binaire, ou avant `forcerLaReussite`). Le dé choisi pilote le DR,
  * le Critique (11) ET la localisation inversée. Co-localisé avec `resolve` : un seul endroit connaît
  * la forme du résultat du flux.
  */
@@ -209,7 +215,7 @@ export function deDuJet(t: { roll: number; target: number; base?: number; clampe
 /**
  * Lentille de DÉRIVATION des verbes d'influence (Chance +1 DR / Résilience « Je ne faillirai pas ! » /
  * Résistance Menace). Ces règles sont GLOBALES (LDB 17 l.24/68) : quand un flux fournit sa lentille,
- * la fabrique compose `bonusSL`/`forceSuccess`/`setForcedRoll`/`resist` DEPUIS elle — la mécanique vit
+ * la fabrique compose `ajouterUnDR`/`forcerLaReussite`/`imposerLeResultat`/`resister` DEPUIS elle — la mécanique vit
  * seulement ICI, le flux ne déclare que SA FORME. Un flux sans lentille retombe sur le chemin `resolve(forced)`
  * / `bonus.derive` (repli). Le `+1 DR` passe TOUJOURS par `bumpSL`, qui n'écrit jamais `success`
  * (LDB 17 l.24 ; succès du Test : LDB 12 l.11).
@@ -271,7 +277,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * (précondition manquante : cible disparue, sort introuvable…) — AVANT toute dépense de point.
    * `actor` peut être `undefined` au premier jet (certains flux n'en ont pas besoin pour lancer).
    * `get` : accès au store pour les résolveurs qui lisent l'environnement (resolveAttack). `forced`
-   * (seulement si `caps.forced`) : Résilience — cf. `ForcedResolve`. Absent → jet normal. `p` (dernier
+   * (seulement si `caps.forcer`) : Résilience — cf. `ForcedResolve`. Absent → jet normal. `p` (dernier
    * arg) : le pending parent, pour un flux multi qui lit un contexte partagé (MONO : `slot === p`).
    */
   resolve: (s: Jeu, slot: Slot, actor: Combatant | undefined, get: Get, forced?: ForcedResolve, p?: P) => Partial<Slot> | null;
@@ -348,13 +354,13 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
     resilience?: (s: Jeu, slot: Slot, actor: Combatant | undefined, get: Get, tr: TestResult, p: P) => Partial<Slot> | null;
   };
   /**
-   * Traits déclaratifs du flux. `forced` : ce flux offre la Résilience (LDB 17 l.68, GLOBALE),
+   * Traits déclaratifs du flux. `forcer` : ce flux offre la Résilience (LDB 17 l.68, GLOBALE),
    * résolue DANS `resolve(…, forced)` — un seul résolveur porte les trois cas (jet normal,
-   * `forceSuccess` = dé par défaut, `setForcedRoll` = dé choisi). Un flux qui NE pose PAS `forced`
-   * n'offre simplement pas la Résilience (`forceSuccess`/`setForcedRoll` y sont des no-op : reload,
+   * `forcerLaReussite` = dé par défaut, `imposerLeResultat` = dé choisi). Un flux qui NE pose PAS `forcer`
+   * n'offre simplement pas la Résilience (`forcerLaReussite`/`imposerLeResultat` y sont des no-op : reload,
    * marchandage, évaluation…). Plus aucune dérive `force`/`forceRoll` séparée — cf. `ForcedResolve`.
    *
-   * `picker` : OÙ vit le dé de ce flux — PARAMÈTRE de FORME, jamais une autorisation. Mesuré après
+   * `selecteur` : OÙ vit le dé de ce flux — PARAMÈTRE de FORME, jamais une autorisation. Mesuré après
    * l'absorption du sélecteur dans `RollShell` : les flux à LENTILLE n'en déclarent PLUS (la fabrique le
    * dérive de `actorTR`/`dieTarget`) ; il ne subsiste que pour les résultats de forme PROPRE, non
    * exprimables par une lentille — attaque/défense/piétinement/coup dans le dos (`result.attackerDetail`),
@@ -363,24 +369,24 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * plus ici : l'hôte l'arbitre une seule fois, à la pose du dé.
    */
   caps?: {
-    forced?: boolean;
-    picker?: (slot: Slot, actor: Combatant | undefined) => ForcedPick | null;
+    forcer?: boolean;
+    selecteur?: (slot: Slot, actor: Combatant | undefined) => ForcedPick | null;
     /** Ce flux accepte l'auto-succès du talent Résistance (Menace) (LDB 10) : son `resolve` porte la
      *  branche `forced.sl` (DR = Bonus d'Endurance). Offert seulement sur un slot tagué `menace`. */
-    resist?: boolean;
+    resister?: boolean;
   };
   /**
    * Undo MÉTIER optionnel de l'annulation (ex. défaire-charge de l'attaque…).
    * PRÉSENT ⇒ il OWN la fermeture (il fait lui-même tous les `set`, y compris nuller le pending et
-   * avancer/nuller la cascade-hôte selon les cas) : `cancel` lui délègue tout et ne touche à rien
-   * d'autre. ABSENT ⇒ `cancel` applique le teardown par défaut (nulle le pending, et la cascade
-   * quand elle l'héberge, cf. `cancel`). */
+   * avancer/nuller la cascade-hôte selon les cas) : `annuler` lui délègue tout et ne touche à rien
+   * d'autre. ABSENT ⇒ `annuler` applique le teardown par défaut (nulle le pending, et la cascade
+   * quand elle l'héberge, cf. `annuler`). */
   onCancel?: (get: Get, set: Set, p: P) => void;
   /** Refus de l'annulation, dit au joueur (`refuserGeste`), `null` quand elle se joue. Lu avant
    *  `onCancel` et le teardown par défaut. */
   refusDAnnuler?: (s: Jeu, p: P) => string | null;
   /** Jet INITIAL métier (garde de phase, effets avant le jet, journal), symétrique d'`onCancel`.
-   *  PRÉSENT ⇒ il OWN le jet tant qu'il n'est pas lancé : `roll` lui délègue tout. ABSENT ⇒ `roll` résout par
+   *  PRÉSENT ⇒ il OWN le jet tant qu'il n'est pas lancé : `lancer` lui délègue tout. ABSENT ⇒ `lancer` résout par
    *  `spec.resolve`. */
   onRoll?: (get: Get, set: Set, p: P) => void;
   /** Le crochet du PREMIER jet d'un slot, joué au seul point d'écriture des ops (`Commit`) par tout geste qui le pose
@@ -395,13 +401,13 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
   /** MULTI : le jet de la FENÊTRE est posé, quand ce ne sont pas tous ses slots (une rangée déclarée sans Test, un
    *  Test du fuyard qui n'est pas dû). Absent : chaque slot est lancé. */
   jetPose?: (p: P) => boolean;
-  /** QUAND la fenêtre se clôt (`confirm`) et s'annule (`cancel`) : par défaut, la clôture une fois le jet posé
+  /** QUAND la fenêtre se clôt (`valider`) et s'annule (`annuler`) : par défaut, la clôture une fois le jet posé
    *  (`jetPose`) et l'annulation tant qu'aucun jet n'est lancé ; `toujours`, à tout moment de la fenêtre. Les gardes
-   *  de `cancel` et de `confirm` (`fermetures(…)`) lisent cette déclaration. */
-  clotures?: { confirm?: 'toujours'; cancel?: 'toujours' };
+   *  de `annuler` et de `valider` (`fermetures(…)`) lisent cette déclaration. */
+  clotures?: { valider?: 'toujours'; annuler?: 'toujours' };
   /** Ce qui ferme l'annulation du pending au-delà de son jet, lu sur l'état `s` (`null` : rien). Absent : rien. */
   annulation?: (p: P, s: Jeu) => FermetureDuJet | null;
-  /** Ce qui ferme la clôture (`confirm`) du jet posé, lu sur l'état `s` (`null` : rien). Absent : rien. */
+  /** Ce qui ferme la clôture (`valider`) du jet posé, lu sur l'état `s` (`null` : rien). Absent : rien. */
   cloture?: (p: P, s: Jeu) => FermetureDuJet | null;
   /** Test OPPOSÉ : le slot PERD l'opposition, jet propre réussi compris (`RollInfluenceView.lost`, LDB 17 l.68). */
   perdu?: (slot: Slot) => boolean;
@@ -409,18 +415,18 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
 
 export interface RollFlowHandlers {
   /** `pid` : id du slot ciblé (MULTI). Absent ⇒ MONO (le pending est le slot unique). */
-  roll: (get: Get, set: Set, pid?: string) => void;
-  reroll: (get: Get, set: Set, pid?: string) => void;
-  bonusSL: (get: Get, set: Set, pid?: string) => void;
+  lancer: (get: Get, set: Set, pid?: string) => void;
+  relancer: (get: Get, set: Set, pid?: string) => void;
+  ajouterUnDR: (get: Get, set: Set, pid?: string) => void;
   /** Résilience (LDB 17 l.68). Avant le jet, `auJet` encadre le geste pré-jet (`creerVerbesDeJet`) : `forcer` se passe
    *  du dé quand le flux le sait (vrai : un point dépensé), sinon le jet du flux tombe d'abord, puis il est forcé. */
-  forceSuccess: (get: Get, set: Set, pid?: string, auJet?: (forcer: () => boolean) => void) => void;
-  /** Choix du dé d'un Test forcé (no-op sans `caps.forced` ou avant `forceSuccess`). */
-  setForcedRoll: (get: Get, set: Set, roll: number, pid?: string) => void;
+  forcerLaReussite: (get: Get, set: Set, pid?: string, auJet?: (forcer: () => boolean) => void) => void;
+  /** Choix du dé d'un Test forcé (no-op sans `caps.forced` ou avant `forcerLaReussite`). */
+  imposerLeResultat: (get: Get, set: Set, roll: number, pid?: string) => void;
   /** Résistance (Menace), LDB 10 l.1016-1020 : auto-succès du premier Test qui résiste à la menace
    *  taguée sur le slot (`menace`), DR = Bonus d'Endurance, 1× par spec et par séance. No-op sans
-   *  `caps.resist`, sans tag, sans talent disponible, ou si le Test est déjà réussi. */
-  resist: (get: Get, set: Set, pid?: string) => void;
+   *  `caps.resister`, sans tag, sans talent disponible, ou si le Test est déjà réussi. */
+  resister: (get: Get, set: Set, pid?: string) => void;
   /** Ce flux sait-il RÉÉVALUER un dé saisi (option « Dés fixés ») ? Vrai ssi son ACCESSEUR DE DÉ est
    *  complet (lire où vit le dé ET réécrire l'issue re-dérivée). Faux ⇒ aucune affordance côté UI et
    *  verbe inerte côté store — jamais une réussite gratuite. */
@@ -431,7 +437,7 @@ export interface RollFlowHandlers {
   picker?: (slot: any, actor: Combatant | undefined, s?: Jeu) => ForcedPick | null;
   /** Slot CONCRET visé (MONO : le pending ; MULTI : le participant `pid`, ou le premier). Accesseur
    *  PUR en LECTURE SEULE — extraction de `locate` sans son `commit`. Il ouvre à l'UI la provenance du
-   *  slot (`forced`/`fixed`) et sa forme, sans qu'elle ait à connaître la clé de pending du flux :
+   *  slot (`forcee`/`fixed`) et sa forme, sans qu'elle ait à connaître la clé de pending du flux :
    *  c'est ce qui permet à `RollShell` de dériver le sélecteur de dé pour TOUT flux. `null` si le
    *  pending est fermé ou le `pid` inconnu. */
   slotOf: (get: Get, pid?: string) => PendingBase | null;
@@ -469,15 +475,15 @@ export interface RollFlowHandlers {
    * Renvoie TOUJOURS les lignes (le canal `'battle'` laisse le site les tisser dans son `set`).
    */
   apply(get: Get, opts?: { p?: PendingBase; ctx?: unknown }): string[];
-  cancel: (get: Get, set: Set) => void;
+  annuler: (get: Get, set: Set) => void;
   /** Sombre Pacte (LDB 19 l.17) : +1 Point de Corruption pour RELANCER un Test déjà jeté, répétable
    *  (chaque usage corrompt). Héros only. */
-  darkPact: (get: Get, set: Set, pid?: string) => void;
+  pactiser: (get: Get, set: Set, pid?: string) => void;
   /** Inversion de Test (LDB 23/LDB 10, `spec.reverse`) : CHOIX du joueur. Talent = jet raté qu'elle
    *  transformerait en réussite ; jeton = libre (réussi ou raté). No-op sans `spec.reverse`, jet non
    *  lancé, ou aucune voie applicable. */
-  reverse: (get: Get, set: Set, pid?: string) => void;
-  /** Le verbe `reverse` est-il OFFERT (Talent ET/OU jeton applicable) ? Pure (aucune consommation) —
+  inverser: (get: Get, set: Set, pid?: string) => void;
+  /** Le verbe `inverser` est-il OFFERT (Talent ET/OU jeton applicable) ? Pure (aucune consommation) —
    *  pilote l'affichage du bouton « Inverser » dans la rangée d'influence. `false` sans `spec.reverse`. */
   reverseAvailable: (get: Get<Jeu>, pid?: string) => boolean;
   /** Prévisualisation PURE de l'issue de l'inversion (dé renversé, DR, succès) — rend le choix LISIBLE
@@ -486,7 +492,7 @@ export interface RollFlowHandlers {
   reversePreview: (get: Get<Jeu>, pid?: string) => IssueDuDe | null;
   /** Ce qui FERME chaque verbe du cycle sur le slot `pid` maintenant (`null` : ouvert), d'après les gardes des ops
    *  (`opRoll`, `opReroll`, `opBonusSL`, `opDarkPact`, `opForceSuccess`, `opSetForcedRoll`, `opResist`, inversion,
-   *  annulation) et la clôture `confirm`. Sans `pid`, un flux MULTI se juge en fenêtre : son jet posé (`jetPose`), son
+   *  annulation) et la clôture `valider`. Sans `pid`, un flux MULTI se juge en fenêtre : son jet posé (`jetPose`), son
    *  annulation tant qu'aucun slot n'est lancé. PUR, lu par `verbesOuverts.ts`. */
   fermetures: (get: Get<Jeu>, pid?: string) => FermeturesDuJet;
 }
@@ -564,7 +570,7 @@ function opForceSuccess<P extends PendingBase>(
 }
 
 /** Résistance (Menace), LDB 10 l.1020 : auto-succès du premier Test qui résiste à la menace du
- *  slot — MÊME mécanisme que `forceSuccess` (le résolveur reçoit `{ sl: BE }`), autre RESSOURCE : la
+ *  slot — MÊME mécanisme que `forcerLaReussite` (le résolveur reçoit `{ sl: BE }`), autre RESSOURCE : la
  *  spec du talent, consommée 1× par séance (compteur `resistanceUsed`, remis par `restoreFortune`).
  *  Fenêtre : avant le jet comme après (`resistanceImproves` — l'auto-succès REMPLACE l'issue posée). */
 function opResist<P extends PendingBase>(
@@ -581,7 +587,7 @@ function opResist<P extends PendingBase>(
 /**
  * Dé CHOISI d'un jet. DEUX provenances, un seul mécanisme :
  *  - Résilience (LDB 17 l.68 : « au lieu de lancer les dés pour un Test, vous choisissez le résultat ») —
- *    slot `forced`, le point est déjà dépensé par `forceSuccess`, le dé doit rester une réussite ;
+ *    slot `forcee`, le point est déjà dépensé par `forcerLaReussite`, le dé doit rester une réussite ;
  *  - option de confort « Dés fixés » (`fixed`) — aucune ressource, tout le d100 est permis, l'issue est
  *    celle du dé saisi, évaluée NORMALEMENT (réussite/échec, DR, doubles réels).
  *
@@ -648,7 +654,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       return { slot, commit: (patch, opts) => {
         if (!admis(get, set, p, slot, patch, opts)) return false;
         set({
-          [spec.key]: { ...slot, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forced: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) },
+          [spec.key]: { ...slot, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forcee: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) },
           ...(opts?.touch ? touch(get()) : {}),
         } as PatchDeFlux);
         return true;
@@ -666,7 +672,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       if (!admis(get, set, p, slot, patch, opts)) return false;
       set({
         [spec.key]: spec.multi!.replace(p, slots.map((x) => x === slot
-          ? { ...x, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forced: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) }
+          ? { ...x, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forcee: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) }
           : x)),
         ...(opts?.touch ? touch(get()) : {}),
       } as PatchDeFlux);
@@ -708,7 +714,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   // et s'éteint) ; `caps.picker` reste accepté comme `read` seul (flux historique sans écrivain).
   const dieRead: ((slot: Slot, actor: Combatant | undefined, p?: P) => ForcedPick | null) | undefined =
     spec.die?.read
-    ?? spec.caps?.picker
+    ?? spec.caps?.selecteur
     ?? (L
       ? (slot: Slot, actor: Combatant | undefined) => {
           const tr = L.actorTR(slot);
@@ -735,7 +741,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   const fermetureDeLAnnulation = (s: Jeu, p: P): FermetureDuJet | null => {
     const propre = spec.annulation?.(p, s);
     if (propre) return propre;
-    const toujours = spec.clotures?.cancel === 'toujours';
+    const toujours = spec.clotures?.annuler === 'toujours';
     if (!toujours && (spec.multi ? spec.multi.slots(p).some(spec.rolled) : spec.rolled(p as unknown as Slot))) return 'jetLance';
     if (spec.refusDAnnuler?.(s, p)) return 'actionEngagee';
     if (toujours) return null;
@@ -759,18 +765,18 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     const voieOuverte = engineReverseAvailable(actor, q, cur.roll, cur.target, evaluer) && !!engineReversePreview(actor, q, cur.roll, cur.target, evaluer);
     return voieOuverte ? { actor, cur, q, evaluer } : 'sansVoieDInversion';
   };
-  /** Le dé CHOISI (Résilience, slot `forced`) ou FIXÉ (option « Dés fixés ») : un accesseur qui lit le dé du slot et
+  /** Le dé CHOISI (Résilience, slot `forcee`) ou FIXÉ (option « Dés fixés ») : un accesseur qui lit le dé du slot et
    *  sait réécrire son issue. Fenêtre de `opSetForcedRoll` ; l'option, elle, se juge au siège (`canFixDie`). */
   const fermetureDuDeChoisi = (slot: Slot, actor: Combatant | undefined, p: P): FermetureDuJet | null => {
-    if (!spec.caps?.forced) return 'nonOffert';
-    if (slot.forced && !actor) return 'sansActeur';
+    if (!spec.caps?.forcer) return 'nonOffert';
+    if (slot.forcee && !actor) return 'sansActeur';
     if (!fixable) return 'deNonFixable';
     return dieRead?.(slot, actor, p) ? null : 'jetNonLance';
   };
-  /** Résilience (LDB 17 l.68) : fenêtre UNIQUE de `forceSuccess`, lue par l'op et par `fermetures`. Avant le jet, le
+  /** Résilience (LDB 17 l.68) : fenêtre UNIQUE de `forcerLaReussite`, lue par l'op et par `fermetures`. Avant le jet, le
    *  geste force sans dé quand le flux le sait, sinon il lance puis force. */
   const fermetureDuForcage = (s: Jeu, get: Get<Jeu>, p: P, slot: Slot, actor: Combatant | undefined): FermetureDuJet | null => {
-    if (!spec.caps?.forced) return 'nonOffert';
+    if (!spec.caps?.forcer) return 'nonOffert';
     if (passive(slot, s, get, p)) return 'rangeeTemoin';
     if (!actor) return 'sansActeur';
     return fermetureDeLaResilience(actorInfluenceView(actor), { rolled: spec.rolled(slot), failed: isFailed(slot), rerolled: slot.rerolled, lost: !!spec.perdu?.(slot) });
@@ -809,9 +815,9 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       const partout = (f: FermetureDuJet): FermeturesDuJet => tableTotale(VERBES_DE_JET, () => f);
       if (!p) return partout('sansJet');
       const fenetre = !!spec.multi && pid == null;
-      const confirm = spec.clotures?.confirm === 'toujours' || jetPose(p) ? spec.cloture?.(p, s) ?? null : 'jetNonLance';
+      const valider = spec.clotures?.valider === 'toujours' || jetPose(p) ? spec.cloture?.(p, s) ?? null : 'jetNonLance';
       const slot = fenetre ? slotDe(p) : slotLu(get, p, pid);
-      if (!slot) return fenetre ? { ...partout('sansJet'), cancel: fermetureDeLAnnulation(s, p), confirm } : partout('sansJet');
+      if (!slot) return fenetre ? { ...partout('sansJet'), annuler: fermetureDeLAnnulation(s, p), valider } : partout('sansJet');
       const actor = spec.actor(s, slot, p);
       const rolled = spec.rolled(slot);
       const faits: RollInfluenceView = { rolled, failed: isFailed(slot), rerolled: slot.rerolled };
@@ -822,17 +828,17 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       const voie = voieDInversion(s, get, p, slot);
       const menace = slot.menace ?? (p as PendingBase).menace;
       return {
-        roll: fenetre ? (jetPose(p) ? 'jetLance' : null) : fermetureDuLancer(rolled),
-        reroll: impose ? 'jetImpose' : parActeur(() => fermetureDeLaRelance(vue, faits)),
-        bonusSL: parActeur(() => fermetureDuBonus(vue, faits) ?? (bonusOffert(slot) ? null : 'nonOffert')),
-        darkPact: impose ? 'jetImpose' : parActeur(() => fermetureDuPacte(vue, faits)),
-        forceSuccess: fermetureDuForcage(s, get, p, slot, actor),
+        lancer: fenetre ? (jetPose(p) ? 'jetLance' : null) : fermetureDuLancer(rolled),
+        relancer: impose ? 'jetImpose' : parActeur(() => fermetureDeLaRelance(vue, faits)),
+        ajouterUnDR: parActeur(() => fermetureDuBonus(vue, faits) ?? (bonusOffert(slot) ? null : 'nonOffert')),
+        pactiser: impose ? 'jetImpose' : parActeur(() => fermetureDuPacte(vue, faits)),
+        forcerLaReussite: fermetureDuForcage(s, get, p, slot, actor),
         // Le dé FIXÉ se juge au siège qui le pose (`canFixDie`) ; l'op ne le rejuge pas (`VerbesDeJet.jetImposerLeResultat`).
-        setForcedRoll: fermetureDuDeChoisi(slot, actor, p) ?? (!slot.forced && !canFixDie(s, actor?.id) ? 'desFixesInactifs' : null),
-        resist: !spec.caps?.resist ? 'nonOffert' : temoin ? 'rangeeTemoin' : parActeur((a) => fermetureDeLaResistance(a, menace, rolled, spec.outcome(slot))),
-        cancel: fermetureDeLAnnulation(s, p),
-        reverse: typeof voie === 'string' ? voie : null,
-        confirm: fenetre || !spec.multi ? confirm : spec.clotures?.confirm === 'toujours' || rolled ? null : 'jetNonLance',
+        imposerLeResultat: fermetureDuDeChoisi(slot, actor, p) ?? (!slot.forcee && !canFixDie(s, actor?.id) ? 'desFixesInactifs' : null),
+        resister: !spec.caps?.resister ? 'nonOffert' : temoin ? 'rangeeTemoin' : parActeur((a) => fermetureDeLaResistance(a, menace, rolled, spec.outcome(slot))),
+        annuler: fermetureDeLAnnulation(s, p),
+        inverser: typeof voie === 'string' ? voie : null,
+        valider: fenetre || !spec.multi ? valider : spec.clotures?.valider === 'toujours' || rolled ? null : 'jetNonLance',
       };
     },
     slotOf(get, pid) {
@@ -856,7 +862,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         .filter((slot) => !spec.rolled(slot) && (!duSiege || (!!(slot as { interactive?: boolean }).interactive && influencesLocally(s, multi.idOf(slot)))))
         .map((slot) => multi.idOf(slot))
         .filter((id) => !multi.refusDuSlot?.(s, id));
-      for (const id of aLancer) handlers.roll(get, set, id);
+      for (const id of aLancer) handlers.lancer(get, set, id);
     },
     // GOULOT d'acquittement des flux à fenêtre : l'issue est DÉRIVÉE de la déclaration du flux
     // (`spec.issue`), jamais composée au site. La LIGNE DE DÉ n'y est pas ré-émise : la fenêtre l'a
@@ -883,21 +889,21 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     picker: ((slot: Slot, actor: Combatant | undefined, st?: Jeu) =>
       dieRead?.(slot, actor, st ? pendingOf(st) ?? undefined : undefined) ?? null) as RollFlowHandlers['picker'],
     fixable,
-    roll(get, set, pid) {
+    lancer(get, set, pid) {
       const s = get(); const p = pendingOf(s); if (!p) return;
       if (spec.onRoll) { if (!fermetureDuLancer(jetPose(p))) spec.onRoll(get, set, p); return; }
       // PAS de garde `passive` : le jet INITIAL d'un témoin doit être résolu (auto-roll IA à l'ouverture).
       const loc = locate(set, get, p, pid); if (!loc) return;
       opRoll(spec.rolled(loc.slot), () => spec.resolve(s, loc.slot, spec.actor(s, loc.slot, p), get, undefined, p), loc.commit);
     },
-    reroll(get, set, pid) {
+    relancer(get, set, pid) {
       const s = get(); const p = pendingOf(s); if (!p) return;
       const loc = locate(set, get, p, pid); if (!loc) return;
       if (spec.jetImpose?.(loc.slot)) return;
       const actor = spec.actor(s, loc.slot, p);
       opReroll(loc.slot, actor, spec.rolled(loc.slot), isFailed(loc.slot), () => reresolveOf(s, loc.slot, actor!, get, p), get, loc.commit);
     },
-    bonusSL(get, set, pid) {
+    ajouterUnDR(get, set, pid) {
       if (!spec.bonus && !L) return;
       const s = get(); const p = pendingOf(s); if (!p) return;
       const loc = locate(set, get, p, pid); if (!loc) return;
@@ -910,7 +916,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         : () => spec.bonus!.derive(s, loc.slot, actor!, p);
       opBonusSL(actor, spec.rolled(loc.slot), allowed, derive, loc.commit);
     },
-    forceSuccess(get, set, pid, auJet) {
+    forcerLaReussite(get, set, pid, auJet) {
       const s = get(); const p = pendingOf(s); if (!p) return;
       const loc = locate(set, get, p, pid); if (!loc) return;
       const fermee = fermetureDuForcage(s, get, p, loc.slot, spec.actor(s, loc.slot, p));
@@ -919,16 +925,16 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       if (auJet && !spec.rolled(loc.slot)) auJet(() => forcer(get, set, pid));
       else forcer(get, set, pid);
     },
-    setForcedRoll(get, set, roll, pid) {
-      if (!spec.caps?.forced) return;
+    imposerLeResultat(get, set, roll, pid) {
+      if (!spec.caps?.forcer) return;
       const s = get(); const p = pendingOf(s); if (!p) return;
       const loc = locate(set, get, p, pid); if (!loc) return;
       const actor = spec.actor(s, loc.slot, p);
       const fermee = fermetureDuDeChoisi(loc.slot, actor, p);
       if (fermee) { refuserGesteDuSiege(get, set, libelleDeLaFermeture(fermee)); return; }
-      // PROVENANCE du dé : slot `forced` ⇒ Résilience (le point est déjà dépensé, le dé doit rester une
+      // PROVENANCE du dé : slot `forcee` ⇒ Résilience (le point est déjà dépensé, le dé doit rester une
       // réussite) ; sinon ⇒ « dé fixé » (option de confort).
-      const fixed = !loc.slot.forced;
+      const fixed = !loc.slot.forcee;
       // GARDE STRUCTURELLE (`fermetureDuDeChoisi`) : un dé fixé exige que le moteur sache le RÉÉVALUER (une cible
       // à confronter). `picker` EST ce contrat. Sans lui, `spec.resolve(…, {roll, fixed})` retomberait sur la branche
       // `if (forced)` du flux — auto-succès GRATUIT, saisie ignorée : le geste est refusé (cette garde tient aussi
@@ -955,10 +961,10 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       // vit le dé — jamais la valeur saisie (le résolveur peut en appliquer une autre).
       const fresh = handlers.slotOf(get, pid);
       const applied = fresh ? handlers.picker?.(fresh, actor)?.roll : undefined;
-      if (applied != null) journaliser(get, set, [actor ? t('roll.dieFixedBy', { name: actor.label, n: applied }) : t('roll.dieFixed', { n: applied })], 'info', { actorId: actor?.id });
+      if (applied != null) journaliser(get, set, [actor ? t('roll.dieFixedBy', { name: actor.label, n: applied }) : t('roll.dieFixed', { n: applied })], 'information', { actorId: actor?.id });
     },
-    resist(get, set, pid) {
-      if (!spec.caps?.resist) return;
+    resister(get, set, pid) {
+      if (!spec.caps?.resister) return;
       const s = get(); const p = pendingOf(s); if (!p) return;
       const loc = locate(set, get, p, pid); if (!loc || passive(loc.slot, s, get, p)) return;
       // Le tag `menace` vit sur le SLOT (étape de cascade, RANGÉE d'une bande) ou sur le PENDING entier
@@ -975,7 +981,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         : (sl: number) => spec.resolve(s, loc.slot, actor, get, { sl }, p);
       opResist(slot, actor, spec.rolled(loc.slot), spec.outcome(loc.slot), resolveResist, loc.commit);
     },
-    cancel(get, set) {
+    annuler(get, set) {
       const p = pendingOf(get());
       if (!p) return; // rien d'ouvert : no-op (pas d'undo à jouer, pas de cascade à toucher)
       const refus = spec.refusDAnnuler?.(get(), p);
@@ -989,14 +995,14 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       if (spec.onCancel) { spec.onCancel(get, set, p); return; }
       set({ [spec.key]: null, ...((PORTEURS_D_ETAPE as readonly string[]).includes(spec.key) ? { pendingCascade: null } : {}) } as PatchDeFlux);
     },
-    darkPact(get, set, pid) {
+    pactiser(get, set, pid) {
       const s = get(); const p = pendingOf(s); if (!p) return;
       const loc = locate(set, get, p, pid); if (!loc) return;
       if (spec.jetImpose?.(loc.slot)) return;
       const actor = spec.actor(s, loc.slot, p);
       opDarkPact(actor, spec.rolled(loc.slot), () => reresolveOf(s, loc.slot, actor!, get, p), get, set, loc.commit);
     },
-    reverse(get, set, pid) {
+    inverser(get, set, pid) {
       const s = get(); const p = pendingOf(s); if (!p) return;
       const loc = locate(set, get, p, pid); if (!loc) return;
       const voie = voieDInversion(s, get, p, loc.slot); if (typeof voie === 'string') return;
@@ -1005,7 +1011,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       loc.commit(ev.patch, { touch: true });
     },
     reverseAvailable(get, pid) {
-      return handlers.fermetures(get, pid).reverse === null;
+      return handlers.fermetures(get, pid).inverser === null;
     },
     reversePreview(get, pid) {
       const s = get(); const p = pendingOf(s); if (!p) return null;

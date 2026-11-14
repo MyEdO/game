@@ -12,12 +12,12 @@
 import type { Combatant } from './types';
 import { rule } from './policy';
 
-export type AdvantageCamp = 'allies' | 'foes';
+export type AdvantageCamp = 'allies' | 'adversaires';
 
 /** Les deux réserves d'Avantage de la bataille (AA 11 l.11). */
 export interface AdvantagePools {
   allies: number;
-  foes: number;
+  adversaires: number;
 }
 
 /** Le modèle « Avantage de groupe » (AA 11 l.5) est-il actif ? Registre `combat-aa-avantage-groupe`.
@@ -26,14 +26,14 @@ export function groupAdvantage(): boolean {
   return rule('combat-aa-avantage-groupe') === true;
 }
 
-/** Réserve d'un combattant : héros et PNJ alliés (`kind:'hero'`) → réserve des alliés ; PNJ hostile ou
- *  neutre (`enemy`/`npc`) → réserve des adversaires (AA 11 l.11-13). */
+/** Réserve d'un combattant : héros et PNJ alliés (`kind:'heros'`) → réserve des alliés ; PNJ hostile ou
+ *  neutre (`ennemi`/`pnj`) → réserve des adversaires (AA 11 l.11-13). */
 export function advantageCampOf(c: Pick<Combatant, 'kind'>): AdvantageCamp {
-  return c.kind === 'hero' ? 'allies' : 'foes';
+  return c.kind === 'heros' ? 'allies' : 'adversaires';
 }
 
 export function emptyPools(): AdvantagePools {
-  return { allies: 0, foes: 0 };
+  return { allies: 0, adversaires: 0 };
 }
 
 /** Ajoute (ou retire) `n` Avantages à la réserve `camp`, jamais sous 0. */
@@ -106,15 +106,15 @@ export function dominationTransfer(
   weightOf: (c: Combatant) => number,
 ): { dominant: AdvantageCamp | null } {
   let allies = 0;
-  let foes = 0;
+  let adversaires = 0;
   for (const c of combatants) {
     if (!active(c)) continue;
     if (advantageCampOf(c) === 'allies') allies += weightOf(c);
-    else foes += weightOf(c);
+    else adversaires += weightOf(c);
   }
-  if (allies === foes) return { dominant: null }; // égalité → arbitrage tactique du MJ, non modélisé
-  const dominant: AdvantageCamp = allies > foes ? 'allies' : 'foes';
-  const weak: AdvantageCamp = dominant === 'allies' ? 'foes' : 'allies';
+  if (allies === adversaires) return { dominant: null }; // égalité → arbitrage tactique du MJ, non modélisé
+  const dominant: AdvantageCamp = allies > adversaires ? 'allies' : 'adversaires';
+  const weak: AdvantageCamp = dominant === 'allies' ? 'adversaires' : 'allies';
   if (pools[weak] > 0) {
     pools[weak] -= 1;
     pools[dominant] += 1;

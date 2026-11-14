@@ -36,11 +36,11 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 14, y: 10 };
     E.important = true; // LDB 18 l.44 : hors Mort subite
@@ -56,7 +56,7 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
     for (let i = 0; i < 20 && banc.getState().pendingCascade; i++) {
       const pc = banc.getState().pendingCascade!;
       const cur = pc.participants[pc.cursor];
-      if (cur?.kind === 'triggeredChoice') return cur;
+      if (cur?.kind === 'choixDeclenche') return cur;
       avanceEtapeCascade(banc.getState);
     }
     return undefined;
@@ -64,7 +64,7 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
 
   const touche = (over: Partial<AttackResult>): AttackResult => ({
     hit: true, attackerRoll: 44, netSL: 4, location: 'corps',
-    damage: 6, woundsLost: 2, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'touche', ...over,
+    damage: 6, woundsLost: 2, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche', ...over,
   });
 
   it('Blessure critique de DÉPASSEMENT : Taillade joue, la munition ne se loge pas (LDB 62 l.250 ; AA 08 l.87)', () => {

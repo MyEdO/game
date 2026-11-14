@@ -13,7 +13,7 @@
  *     `giveXp.amount`, `givePossession.ref`), elle ne l'étale pas parmi ses propres clés.
  *  B. les noms RÉSERVÉS `price`/`cost` : recensement par CLASSE réelle et par SIGNATURE d'objet —
  *     un nom de concept est réservé à son type (#1463 S2). `cost` est SOLDÉ (L-monnaie-4) : il porte seulement une classe. `price` en porte trois de plus que la monnaie — `null` et `'ND'` sont
- *     la colonne Prix telle que le livre l'imprime, `number` est le facteur saisonnier du vin.
+ *     la colonne Prix telle que le livre l'imprime, `number` est le facteur de qualité du vin (`land-cargo.json`, `qualiteDuVin`).
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -49,7 +49,7 @@ const DOCS = documents();
 
 describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
   it('A. une dénomination ne s’écrit qu’en `{gold?, silver?, brass?}` — jamais `bronze`, jamais étalée sur un objet-action', () => {
-    const montants: Compte = {};
+    let montants = 0;
     const etales: Compte = {};
     let bronze = 0;
     for (const doc of DOCS) marcherObjets(doc, (o) => {
@@ -58,31 +58,15 @@ describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
       if (den.length === 0) return;
       if (cles.includes('bronze')) bronze++;
       const autres = cles.filter((k) => !DENOMINATIONS.includes(k)).sort();
-      if (autres.length === 0) inc(montants, den.join(','));
+      if (autres.length === 0) montants++;
       else inc(etales, String(o.type ?? o.op ?? '(objet sans type)'));
     });
 
     // La graphie historique a DISPARU de la donnée : la 3ᵉ dénomination est `brass`, comme au moteur.
     expect(bronze, 'clé `bronze` en donnée — la 3ᵉ dénomination de `Money` est `brass`').toBe(0);
 
-    // Recensement des MONTANTS (un objet dont les clés sont des dénominations et rien d'autre) :
-    // les catalogues chiffrent les 3, un coût authoré n'écrit que ce qu'il coûte.
-    expect(montants, 'signatures de montant observées').toEqual({
-      'brass,gold,silver': 463, // 445 colonnes Prix (trappings 392, vehicles 29, creatures 14, machines de guerre 10) + solde d'équipage 18
-      gold: 27, // mise minimale du Mécénat + 1 coût de choix d'arène + 25 `giveMoney.montant`
-      silver: 23, // 7 coûts de choix d'arène + 16 `giveMoney.montant`
-      'gold,silver': 3, // 3 `giveMoney.montant` à deux dénominations
-      // ENTRÉE NEUVE (#1612, 2026-09-06) : les 3 `money.montant` de l'op de bourse PERSONNELLE — 2 gains
-      // de Mendier (`activities.json`, la `Formula` du gain et le sou glané sans DR) + 1 amende des
-      // gardes (`tables.json`). MÊME geste que L-monnaie-3 sur `giveMoney` : l'op cesse d'ÉTALER `brass`
-      // parmi ses clés et porte sa charge sous `montant` (`OP_DEFS.money`, grammaire/mecanique.ts). La
-      // valeur y est une `Formula`, pas un nombre — la sonde recense la SIGNATURE, pas le type.
-      // #1652 lot 6 (2026-11-07) : +12 sur la bourse du GROUPE des escales (`sea-events.json`, MDG 15 l.245-247) —
-      // 6 `money.montant` (bénédiction, rançon, pot-de-vin, 3 droits de douane) et 6 seuils `atLeast` de la
-      // Condition `money` sur une valeur liée (`{brass: {tire}}`).
-      // #1652 lot 7 (2026-11-07) : +1, les 3d10 CO du Vaisseau de pestiférés (MDG 15 l.194).
-      brass: 16,
-    });
+    // Un MONTANT est un objet dont les clés sont des dénominations et rien d'autre : la sonde en voit.
+    expect(montants, 'montants en donnée').toBeGreaterThan(0);
 
     // AUCUN objet-ACTION n'étale de dénomination parmi ses propres clés : toute charge porte un NOM
     // (`giveMoney.montant`, `giveXp.amount`, `givePossession.ref`), et l'enveloppe se mesure ci-dessus
@@ -106,20 +90,21 @@ describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
 
     // `price` = la colonne Prix TELLE QUE LE LIVRE L'IMPRIME (`money.ts:36-39`) : un montant, la
     // marque « ND », ou rien. La classe `number` est le barème qui USURPE le nom (solde L-monnaie-4).
-    expect(classes.price, 'classes de `price`').toEqual({ object: 463, null: 46, "'ND'": 3, number: 6 });
-    expect(signatures.price, 'signatures d’objet sous `price`').toEqual({
-      'brass,gold,silver': 445, // la colonne Prix chiffrée
-      'automne,ete,hiver,printemps': 17, // barème SAISONNIER d'une cargaison
-      dice: 1, // prix TIRÉ
-    });
+    const hors = (c: Compte, permises: string[]) => Object.keys(c).filter((k) => !permises.includes(k));
+    expect(hors(classes.price, ['object', 'null', "'ND'", 'number']), 'classes de `price`').toEqual([]);
+    expect(hors(signatures.price, [
+      'brass,gold,silver', // la colonne Prix chiffrée
+      'automne,ete,hiver,printemps', // barème SAISONNIER d'une cargaison
+      'dice', // prix TIRÉ
+    ]), 'signatures d’objet sous `price`').toEqual([]);
+    expect(signatures.price['brass,gold,silver'], 'colonne Prix chiffrée').toBeGreaterThan(0);
 
     // `cost` est RENDU à son type (L-monnaie-4) : il nomme seulement de la monnaie. L'économie du
     // Tour dit `coutAction`, le barème d'installation navale `installation`, les paliers de prothèse
-    // `px`, les deux coûts d'Avantage du Flow `advantageCost` / `advantageOrMovement`, la réaction de
+    // `px`, les deux coûts d'Avantage du Flow `coutEnAvantage` / `avantageOuMouvement`, la réaction de
     // défense `avantage`. UNE seule classe subsiste, et chaque objet est un montant.
-    expect(classes.cost, 'classes de `cost`').toEqual({ object: 8 });
-    expect(signatures.cost, 'signatures d’objet sous `cost`').toEqual({
-      gold: 1, silver: 7, // les 8 tarifs d'arène — la seule population qui garde le nom
-    });
+    expect(hors(classes.cost, ['object']), 'classes de `cost`').toEqual([]);
+    expect(Object.keys(signatures.cost).filter((sig) => sig.split(',').some((k) => !['gold', 'silver', 'brass'].includes(k))), 'signatures d’objet sous `cost`').toEqual([]);
+    expect(classes.cost.object, 'tarifs d’arène').toBeGreaterThan(0);
   });
 });

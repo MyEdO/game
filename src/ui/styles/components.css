@@ -219,8 +219,8 @@ label.radio {
   transform: rotate(9deg);
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
 }
-.parchment-card.bad { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
-.parchment-card.ok { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
+.parchment-card.echec { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+.parchment-card.reussite { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
 .parchment-seal {
   flex: 0 0 auto;
   width: 54px;
@@ -1072,22 +1072,11 @@ button.chip:hover {
   gap: 12px;
 }
 /* RÉGLAGES AUDIO (`AudioControls`, corps du sous-écran Options — menu principal comme menu système) :
-   une ligne = gouttière d'icône + curseur qui s'étire. */
+   la rangée de la sourdine. */
 .audio-controls {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-.audio-controls input[type='range'] {
-  flex: 1;
-  padding: 0;
-}
-.audio-controls + .audio-controls {
-  margin-top: 6px;
-}
-.audio-icon {
-  width: 34px;
-  text-align: center;
 }
 
 /* Pile des ZONES DE RÉGLAGE d'une fenêtre de jet (localisation, arme, posture, surincantation) :

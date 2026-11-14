@@ -40,7 +40,7 @@ import type { CrewHire } from '../../../engine/crewMorale';
 const ROOT = join(__dirname, '../../../..');
 
 /** Clés dont la VALEUR est un effet (ou en contient) — établies par mesure sur les deux racines. */
-const CONTEXTES_D_EFFET = ['effect', 'effects', 'onEnter', 'onExit', 'reward', 'interact'];
+const CONTEXTES_D_EFFET = ['effet', 'effects', 'onEnter', 'onExit', 'reward', 'interact'];
 
 /** Les documents de chaque racine authorée, relatifs à elle : les projets livrés, et tous les `.json`
  *  de `src/data`. */
@@ -76,7 +76,7 @@ function effetsPoses(): { chemin: string; noeud: unknown }[] {
 /** Un nœud est SOUS un contexte d'effet si son chemin s'y termine, à travers les seuls indices de
  *  tableau — filtre par CHEMIN, là où `effetsPoses` propage un drapeau au fil de la descente. La
  *  liste est RÉÉCRITE ici, jamais partagée : une clé oubliée d'un côté fait diverger les ensembles. */
-const SOUS_CONTEXTE = /\.(?:effect|effects|onEnter|onExit|reward|interact)(?:\[\d+\])*$/;
+const SOUS_CONTEXTE = /\.(?:effet|effects|onEnter|onExit|reward|interact)(?:\[\d+\])*$/;
 
 /** SECONDE lecture du même corpus, par une autre route : elle doit voir le MÊME ensemble. */
 function cheminsParFiltreDeChemin(): string[] {
@@ -191,27 +191,27 @@ describe('setTime — UNE entrée, XOR STRICT `phase` ⊕ `hour` (`minute` seule
 
 describe('sceneFlowSchema — le MÊME arbre que la grammaire, feuille `do` = `Effect` de scène', () => {
   it('accepte une feuille `do` de SCÈNE (ce que le `flowSchema` de la grammaire refuse)', () => {
-    expect(sceneFlowSchema.safeParse({ kind: 'do', effect: { type: 'startCombat', encounter: 'enc-1' } }).success).toBe(true);
+    expect(sceneFlowSchema.safeParse({ kind: 'effet', effet: { type: 'startCombat', encounter: 'enc-1' } }).success).toBe(true);
   });
 
   it('accepte la feuille MÉCANIQUE `type:"ops"` — l’union `Effect` la contient', () => {
-    expect(sceneFlowSchema.safeParse({ kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: 1 }] } }).success).toBe(true);
+    expect(sceneFlowSchema.safeParse({ kind: 'effet', effet: { type: 'ops', ops: [{ op: 'heal', amount: 1 }] } }).success).toBe(true);
   });
 
   it('une feuille `do` INCONNUE est refusée, et le refus SITUE la faute', () => {
-    const r = sceneFlowSchema.safeParse({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'faisMoiUnCafe' } }] });
+    const r = sceneFlowSchema.safeParse({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'faisMoiUnCafe' } }] });
     expect(r.success).toBe(false);
-    expect(r.success ? '' : r.error.issues[0].path.join('.')).toBe('steps.0.effect.type');
+    expect(r.success ? '' : r.error.issues[0].path.join('.')).toBe('etapes.0.effet.type');
   });
 
   it('la RÉCURSION tient dans les deux sens (un Flow sous un Effect sous un Flow)', () => {
     expect(
       sceneFlowSchema.safeParse({
-        kind: 'do',
-        effect: {
+        kind: 'effet',
+        effet: {
           type: 'delayedEffect',
           afterMinutes: 60,
-          flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'journal', desc: 'boum' } }] },
+          flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'journal', desc: 'boum' } }] },
         },
       }).success,
     ).toBe(true);

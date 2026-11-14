@@ -1,6 +1,6 @@
 /**
  * FLOW — modèle + évaluation pure des Conditions (source unique, remplace condMet/temporalConditionMet)
- * + aplatissage des branches `if`/`seq`/`do`. L'exécution interactive (`test`) est testée via le store.
+ * + aplatissage des branches `si`/`sequence`/`effet`. L'exécution interactive (`test`) est testée via le store.
  */
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
@@ -82,7 +82,7 @@ describe('evalCondition — géométrie d’arène + capacités (récupération 
     expect(evalCondition({ kind: 'nearestFoe', op: '<=', value: 3 }, base)).toBe(false); // +∞ → jamais ≤
   });
   it('capability : niveau d’une CombatFeature de l’acteur (Cœur vaillant)', () => {
-    const av = { id: 'c', woundsCurrent: 10, woundsMax: 10, size: 3, advantage: 0, camp: 'party' as const, groups: [], talents: [], traits: [], conditions: {}, chars: {} as Record<string, number>, capabilities: { braveheart: 1 } };
+    const av = { id: 'c', woundsCurrent: 10, woundsMax: 10, size: 3, advantage: 0, camp: 'groupe' as const, groups: [], talents: [], traits: [], conditions: {}, chars: {} as Record<string, number>, capabilities: { braveheart: 1 } };
     expect(evalCondition({ kind: 'capability', who: 'target', id: 'braveheart' }, { ...base, target: av })).toBe(true); // défaut >= 1
     expect(evalCondition({ kind: 'capability', who: 'target', id: 'braveheart', op: '>=', value: 2 }, { ...base, target: av })).toBe(false);
     expect(evalCondition({ kind: 'capability', who: 'target', id: 'slayer' }, { ...base, target: av })).toBe(false); // capacité absente → 0
@@ -195,24 +195,24 @@ describe('flowFromEffects / flattenFlow — séquence + branches if résolues', 
   const fx = (flag: string): Effect => ({ type: 'setFlag', flag });
   it('flowFromEffects enveloppe une liste en seq de do', () => {
     const f = flowFromEffects([fx('x'), fx('y')]);
-    expect(f).toEqual({ kind: 'seq', steps: [{ kind: 'do', effect: fx('x') }, { kind: 'do', effect: fx('y') }] });
+    expect(f).toEqual({ kind: 'sequence', etapes: [{ kind: 'effet', effet: fx('x') }, { kind: 'effet', effet: fx('y') }] });
   });
   it('flattenFlow aplatit seq/do', () => {
     expect(flattenFlow(flowFromEffects([fx('x'), fx('y')]), { flags: {}, gameTime: 0 })).toEqual([fx('x'), fx('y')]);
   });
   it('flattenFlow résout les branches if contre le contexte', () => {
     const flow: Flow = {
-      kind: 'seq',
-      steps: [
-        { kind: 'do', effect: fx('start') },
-        { kind: 'if', cond: { kind: 'flag', expr: 'béni' }, then: { kind: 'do', effect: fx('heal') }, else: { kind: 'do', effect: fx('curse') } },
+      kind: 'sequence',
+      etapes: [
+        { kind: 'effet', effet: fx('start') },
+        { kind: 'si', condition: { kind: 'flag', expr: 'béni' }, alors: { kind: 'effet', effet: fx('heal') }, sinon: { kind: 'effet', effet: fx('curse') } },
       ],
     };
     expect(flattenFlow(flow, { flags: { 'béni': true }, gameTime: 0 })).toEqual([fx('start'), fx('heal')]);
     expect(flattenFlow(flow, { flags: {}, gameTime: 0 })).toEqual([fx('start'), fx('curse')]);
   });
   it('if sans else et condition fausse → rien', () => {
-    const flow: Flow = { kind: 'if', cond: { kind: 'flag', expr: 'never' }, then: { kind: 'do', effect: fx('x') } };
+    const flow: Flow = { kind: 'si', condition: { kind: 'flag', expr: 'never' }, alors: { kind: 'effet', effet: fx('x') } };
     expect(flattenFlow(flow, { flags: {}, gameTime: 0 })).toEqual([]);
   });
   it('EMPTY_FLOW est neutre', () => {
@@ -221,9 +221,9 @@ describe('flowFromEffects / flattenFlow — séquence + branches if résolues', 
 });
 
 describe('flowHasTest / flattenFlow refuse les nœuds interactifs', () => {
-  const test: Flow = { kind: 'test', test: { skill: { id: 'crochetage' }}, success: { kind: 'do', effect: { type: 'setFlag', flag: 'ouvert' } }, fail: EMPTY_FLOW };
+  const test: Flow = { kind: 'test', test: { skill: { id: 'crochetage' }}, reussite: { kind: 'effet', effet: { type: 'setFlag', flag: 'ouvert' } }, echec: EMPTY_FLOW };
   it('flowHasTest détecte un test imbriqué', () => {
-    expect(flowHasTest({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'x' } }, test] })).toBe(true);
+    expect(flowHasTest({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'x' } }, test] })).toBe(true);
     expect(flowHasTest(flowFromEffects([{ type: 'setFlag', flag: 'x' }]))).toBe(false);
   });
   it('flattenFlow lève sur un nœud test (interactif → store)', () => {

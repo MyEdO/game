@@ -37,7 +37,6 @@ const doc = document(
     tables: { label: 'Critiques par Localisation', hint: 'Cinq tables sœurs : gréement, avirons, gouvernail, coque, superstructure' },
   },
   {
-    codex: { keys: ['riverCriticalsGreement', 'riverCriticalsAvirons', 'riverCriticalsGouvernail', 'riverCriticalsCoque', 'riverCriticalsSuperstructure'] },
     edit: { niche: { categories: { riverCriticalsGreement: 'tables.greement', riverCriticalsAvirons: 'tables.avirons', riverCriticalsGouvernail: 'tables.gouvernail', riverCriticalsCoque: 'tables.coque', riverCriticalsSuperstructure: 'tables.superstructure' } } },
   },
 );

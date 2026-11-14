@@ -9,6 +9,7 @@ import { testScene } from '../scenes/test-fixture';
 import { effectiveMovement } from '../engine/encumbrance';
 import { chebyshev } from '../engine/grid';
 import { cliquerSurLeCombattant } from './combatOrParty';
+import { refusDeCharge } from './refusDuTour';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -25,12 +26,12 @@ function setup() {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   // Éloigne tous les ennemis pour libérer la grille autour du héros (couloir y=10 libre).
   let i = 0;
-  for (const e of b.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: 20 + i++, y: 20 };
+  for (const e of b.combatants.filter((c) => c.kind === 'ennemi')) e.pos = { x: 20 + i++, y: 20 };
   H.pos = { x: 6, y: 10 };
   const turn = b.order.indexOf(H.id);
   banc.setState({ battle: { ...b, turn, action: null, acted: false, movementUsed: 0, movedPreAction: false } });
@@ -44,7 +45,7 @@ describe('clic-sol implicite — tap 1 aperçu, tap 2 déplace', () => {
     const dest = { x: before.x + 2, y: before.y };
     banc.getState().cliquerLaCase(dest);
     let st = banc.getState();
-    expect(st.battle!.preview).toMatchObject({ kind: 'move', tile: dest });
+    expect(st.battle!.preview).toMatchObject({ kind: 'deplacement', tile: dest });
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(before); // pas bougé
     banc.getState().cliquerLaCase(dest);
     st = banc.getState();
@@ -58,7 +59,7 @@ describe('clic-sol implicite — tap 1 aperçu, tap 2 déplace', () => {
     const p = banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos!;
     banc.getState().cliquerLaCase({ x: p.x + 1, y: p.y });
     banc.getState().cliquerLaCase({ x: p.x + 2, y: p.y });
-    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'move', tile: { x: p.x + 2, y: p.y } });
+    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'deplacement', tile: { x: p.x + 2, y: p.y } });
     banc.getState().cliquerLaCase({ x: p.x + 30, y: p.y }); // hors de portée
     expect(banc.getState().battle!.preview).toBeNull();
   });
@@ -75,7 +76,7 @@ describe('clic-sol implicite — tap 1 aperçu, tap 2 déplace', () => {
     const { H } = setup();
     const st0 = banc.getState();
     const h = st0.battle!.combatants.find((c) => c.id === H.id)!;
-    const e = st0.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = st0.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     e.pos = { x: h.pos!.x + 1, y: h.pos!.y };
     h.engagedWith = [e.id]; e.engagedWith = [h.id];
     const at = { ...h.pos! };
@@ -93,11 +94,11 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const M = effectiveMovement(H);
     const dest = { x: p.x + M + 2, y: p.y }; // hors Marche, dans la Course
     // Spec HUD § ARBITRAGE 2026-08-19 : au-delà de la Marche, le champ ne court pas tout seul — la
-    // Course s'ARME, et son verdict voyage avec le geste (`courseArmee`), comme `confirm`.
-    banc.getState().cliquerLaCase(dest, undefined, { courseArmee: true });
-    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'run', tile: dest });
+    // Course s'ARME, et son intention voyage avec le geste (`intentionId`), comme `confirm`.
+    banc.getState().cliquerLaCase(dest, undefined, { intentionId: 'course' });
+    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'course', tile: dest });
     expect(banc.getState().pendingRun).toBeNull(); // pas encore de jet
-    banc.getState().cliquerLaCase(dest, undefined, { courseArmee: true });
+    banc.getState().cliquerLaCase(dest, undefined, { intentionId: 'course' });
     const pr = banc.getState().pendingRun;
     expect(pr).toMatchObject({ combatantId: H.id, dest });
     expect(banc.getState().battle!.preview).toBeNull();
@@ -116,21 +117,21 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
 
   it("zone de Course NOMINALE indisponible sous un mode-CASE (#198, résidus) : `battle.reachable` déjà "
     + "peuplé par Pousser/Téléportation/pose de zone ne doit pas se faire recouvrir par la Marche+Course "
-    + "normales — sinon la grille 'run' (data-tile) ratisse toute la carte au lieu du seul ensemble du mode", () => {
+    + "normales — sinon la grille 'course' (data-tile) ratisse toute la carte au lieu du seul ensemble du mode", () => {
     const { H } = setup();
     expect(computeRunReach(banc.getState).size).toBeGreaterThan(0); // témoin : hors mode-case, la Course normale s'affiche
     const b = banc.getState().battle!;
-    banc.setState({ battle: { ...b, action: 'teleport', reachable: new Map([[`${H.pos!.x},${H.pos!.y}`, 0]]) } });
+    banc.setState({ battle: { ...b, action: 'teleportation', reachable: new Map([[`${H.pos!.x},${H.pos!.y}`, 0]]) } });
     expect(computeRunReach(banc.getState).size).toBe(0);
   });
 
-  it('jetValider@run : jet généreux → arrive à destination, Action consommée', () => {
+  it('jetValider@course : jet généreux → arrive à destination, Action consommée', () => {
     const { H } = setup();
     const p = { ...banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos! };
     const M = effectiveMovement(H);
     const dest = { x: p.x + M + 2, y: p.y };
     banc.setState({ pendingRun: { combatantId: H.id, test: testDeRegle('course', 'courir'), dest, result: { success: true, roll: 10, target: 60, dr: 4, bonusCases: 2 * M } } });
-    banc.getState().jetValider('run');
+    banc.getState().jetValider('course');
     const st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(dest);
     expect(st.battle!.acted).toBe(true);
@@ -143,7 +144,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const M = effectiveMovement(H);
     const dest = { x: p.x + M + 2, y: p.y }; // coût M+2 ; budget M + 2M = 3M → reliquat 2M−2
     banc.setState({ pendingRun: { combatantId: H.id, test: testDeRegle('course', 'courir'), dest, result: { success: true, roll: 10, target: 60, dr: 4, bonusCases: 2 * M } } });
-    banc.getState().jetValider('run');
+    banc.getState().jetValider('course');
     let st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(st.battle!.runBudget).toBe(3 * M);
@@ -162,7 +163,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const dest = { x: p.x + 2 * M, y: p.y }; // demandé : 2M cases plein est
     // Jet désastreux : bonus de Course 1 seule case → budget total M+1.
     banc.setState({ pendingRun: { combatantId: H.id, test: testDeRegle('course', 'courir'), dest, result: { success: false, roll: 96, target: 60, dr: -3, bonusCases: 1 } } });
-    banc.getState().jetValider('run');
+    banc.getState().jetValider('course');
     const st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.pos).toEqual({ x: p.x + M + 1, y: p.y }); // au max du possible le long du chemin
@@ -175,11 +176,11 @@ describe('clic-ennemi implicite', () => {
     const { H } = setup();
     const st0 = banc.getState();
     const h = st0.battle!.combatants.find((c) => c.id === H.id)!;
-    const e = st0.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = st0.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     e.pos = { x: h.pos!.x + 1, y: h.pos!.y };
     h.advantage = 0;
     cliquerSurLeCombattant(banc.getState, e.id);
-    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'attack', targetId: e.id });
+    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'attaque', targetId: e.id });
     expect(banc.getState().pendingAttack).toBeNull();
     cliquerSurLeCombattant(banc.getState, e.id);
     const st = banc.getState();
@@ -192,15 +193,15 @@ describe('clic-ennemi implicite', () => {
     const { H } = setup();
     const st0 = banc.getState();
     const h = st0.battle!.combatants.find((c) => c.id === H.id)!;
-    const e = st0.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = st0.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     e.pos = { x: h.pos!.x + 2, y: h.pos!.y };
     h.advantage = 0;
     // Spec HUD § ARBITRAGE 2026-08-19 : hors d'Allonge, l'approche se DEMANDE (Charge armée) — son
-    // verdict voyage avec le geste, y compris pour l'APERÇU (le survol dit déjà la même vérité).
-    cliquerSurLeCombattant(banc.getState, e.id, { approche: true });
+    // intention voyage avec le geste, y compris pour l'APERÇU (le survol dit déjà la même vérité).
+    cliquerSurLeCombattant(banc.getState, e.id, { intentionId: 'charge' });
     expect(banc.getState().battle!.preview).toMatchObject({ kind: 'charge', targetId: e.id, adv: 1 });
     banc.abandonner();
-    cliquerSurLeCombattant(banc.getState, e.id, { approche: true });
+    cliquerSurLeCombattant(banc.getState, e.id, { intentionId: 'charge' });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     const st = banc.getState();
     const hh = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -209,31 +210,28 @@ describe('clic-ennemi implicite', () => {
     expect(st.pendingAttack?.fromCharge).toBe(true);
   });
 
-  it('Mouvement entamé, approche ARMÉE : pas de Charge — rejoindre dans la Marche restante puis attaquer, sans bonus', () => {
+  it('Mouvement entamé, Charge demandée : son offre est refusée (`refusDeCharge`) — le clic le dit, rien ne bouge', () => {
     const { H } = setup();
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 1, movedPreAction: true } });
     const st0 = banc.getState();
     const h = st0.battle!.combatants.find((c) => c.id === H.id)!;
-    const e = st0.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = st0.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     e.pos = { x: h.pos!.x + 2, y: h.pos!.y };
-    h.advantage = 0;
-    cliquerSurLeCombattant(banc.getState, e.id, { approche: true });
-    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'moveAttack', targetId: e.id });
-    banc.abandonner();
-    cliquerSurLeCombattant(banc.getState, e.id, { approche: true });
-    banc.reprendreLesEnAttente(); // joue le glissé d'approche → ouvre la frappe
+    const pos0 = { ...h.pos! };
+    cliquerSurLeCombattant(banc.getState, e.id, { confirm: true, intentionId: 'charge' });
+    banc.reprendreLesEnAttente();
     const st = banc.getState();
-    expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage).toBe(0);
-    expect(st.pendingAttack?.targetId).toBe(e.id);
-    expect(st.pendingAttack?.fromCharge).toBeUndefined();
-    expect(st.battle!.movementUsed).toBe(2); // 1 (déjà fait) + 1 (rejoindre)
+    expect(st.refus?.texte).toBe(refusDeCharge(st.battle!, st.battle!.combatants.find((c) => c.id === H.id)!));
+    expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(pos0);
+    expect(st.pendingAttack).toBeNull();
+    expect(st.battle!.movementUsed).toBe(1);
   });
 
   it('hors de portée de Charge (> 2M+1) : message, pas d’aperçu', () => {
     const { H } = setup();
     const st0 = banc.getState();
     const h = st0.battle!.combatants.find((c) => c.id === H.id)!;
-    const e = st0.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = st0.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     e.pos = { x: h.pos!.x + 12, y: h.pos!.y }; // M4 → 2M+1 = 9
     cliquerSurLeCombattant(banc.getState, e.id);
     const st = banc.getState();
@@ -245,7 +243,7 @@ describe('clic-ennemi implicite', () => {
   it('Action déjà prise (sans Frénésie) : le clic-ennemi est inerte', () => {
     const { H } = setup();
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } });
-    const e = banc.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = banc.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     cliquerSurLeCombattant(banc.getState, e.id);
     expect(banc.getState().pendingAttack).toBeNull();
     void H;

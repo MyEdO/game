@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { acheterAuMarche } from './cargaison.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng, battleRng } from './battleRng';
 import { setRule } from '../engine/policy';
 import { creditBourse } from './bourseFlow';
@@ -94,10 +94,10 @@ function findSeed(probe: (s: number) => { merchant: number; merchantSL: number }
 }
 
 describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du départage (LDB 12 l.160)', () => {
-  beforeEach(() => setRule('test-auto-bands', 'off'));
+  beforeEach(() => setRule('test-bandes-auto', 'off'));
 
   it('la porte du seam pose la Compétence NUE en `base` et laisse l’État dans la CIBLE', () => {
-    const [leader] = makePregens(idsDeTest);
+    const [leader] = tousLesHerosDeScenario(idsDeTest);
     marchandeurEmpoisonne(leader);
     setupPort([leader]);
     seedBattleRng(1);
@@ -109,7 +109,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
   });
 
   it('ACHAT, DR égal : le marchandeur Empoisonné l’emporte par sa Compétence — remise, jamais surcoût', () => {
-    const [leader] = makePregens(idsDeTest);
+    const [leader] = tousLesHerosDeScenario(idsDeTest);
     marchandeurEmpoisonne(leader);
     setupPort([leader]);
     const { seed, merchant, die, sl } = findSeed(probePort, NUE + ETAT);
@@ -120,7 +120,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
     const opened = get().pendingCascade!.participants[0] as CascadeStep;
     expect(opened.meta?.merchantValue).toBe(merchant);
     const step = { ...opened, result: { roll: die, target: opened.target!, sl, success: true } } as CascadeStep;
-    const out = applierDe('port-buy-bargain')!(get, set, step, leader, { steps: [step], index: 0 });
+    const out = applierDe('port-achat-marchandage')!(get, set, step, leader, { steps: [step], index: 0 });
     const line = resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
     expect(line).toMatch(/remise de \d+ %/);
     expect(line).not.toMatch(/surcoût/);
@@ -134,7 +134,7 @@ const convoiPossession = (ownerId: string): Possession =>
   ({ uid: LAND_CARRIER, ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }) as Possession;
 
 function setupLand(): Combatant {
-  const [leader] = makePregens(idsDeTest);
+  const [leader] = tousLesHerosDeScenario(idsDeTest);
   marchandeurEmpoisonne(leader);
   set({
     party: [leader], scene, battle: null, vessel: null,
@@ -162,7 +162,7 @@ function probeLandBuy(seed: number): { merchant: number; merchantSL: number; her
 const bargainLineOf = (): string => get().journal.find((l) => /Marchandage \(/.test(l)) ?? '';
 
 describe('#1153 L2 — MARCHÉ TERRESTRE : l’État ne se fond plus dans la grandeur du départage', () => {
-  beforeEach(() => setRule('test-auto-bands', 'off'));
+  beforeEach(() => setRule('test-bandes-auto', 'off'));
 
   it('ACHAT, DR égal : le marchandeur Empoisonné l’emporte par sa Compétence — remise, jamais surcoût', () => {
     // Ici le dé du héros est TIRÉ par le flux : on cherche la graine où il égalise déjà les DR.

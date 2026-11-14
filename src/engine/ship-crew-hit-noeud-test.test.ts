@@ -5,7 +5,7 @@
  * Contrat POSITIF, mesuré sur la donnée RÉELLE (`river-criticals.json`, `ship-criticals.json`) :
  *  1. le nœud est LU par la grammaire partagée — `noeudTest(flowSchema, { difficulteRequise: true,
  *     echecSeulServi: true })` accepte les nœuds de la base, et REFUSE nominativement un nœud sans
- *     `difficulty`, un nœud à branche de réussite peuplée, un nœud à `fail` embranché ;
+ *     `difficulty`, un nœud à branche de réussite peuplée, un nœud à `echec` embranché ;
  *  2. le porteur ne garde que ce qu'il DÉCRIT — QUI encaisse (`crewTarget`) ; il ne redit ni le
  *     sujet du jet, ni sa Difficulté, ni la conséquence ;
  *  3. un coup SANS jet n'est pas une épreuve : il porte `ops` (MSRC 07 l.82), et le XOR
@@ -61,7 +61,7 @@ const coupsResolus = () =>
 /** Marin minimal — assez pour `testValue` (Ag/I) + `applyOps` wounds (BE=3, PA=0). */
 const sailor = (id: string, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id, name: id, kind: 'npc',
+    id, name: id, kind: 'pnj',
     characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 42, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
     skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
     armour: { corps: 0 }, wounds: blessuresDeBase(40), advantage: 0, ...over,
@@ -126,8 +126,8 @@ describe('coup à l’équipage — le JET vit dans le nœud `test` du Flow (#16
       // Le PORTEUR ne redit rien du jet : ni sujet, ni Difficulté, ni conséquence.
       expect(Object.keys(hit).filter((k) => k !== 'test' && k !== 'crewTarget'), `${fichier}/${id}`).toEqual([]);
       // La branche de RÉUSSITE est vide : seul l'échec est servi.
-      expect(spellOps(hit.test.success, 'target'), `${fichier}/${id} : branche success peuplée`).toEqual([]);
-      expect(spellOps(hit.test.fail, 'target').length, `${fichier}/${id} : branche fail vide`).toBeGreaterThan(0);
+      expect(spellOps(hit.test.reussite, 'target'), `${fichier}/${id} : branche reussite peuplée`).toEqual([]);
+      expect(spellOps(hit.test.echec, 'target').length, `${fichier}/${id} : branche echec vide`).toBeGreaterThan(0);
     }
   });
 
@@ -139,8 +139,8 @@ describe('coup à l’équipage — le JET vit dans le nœud `test` du Flow (#16
     // resserrement `echecSeulServi` les refuse. On le PROUVE en les repassant au contrat NON resserré
     // (patron `disease-noeud-test.test.ts`) — sans quoi une charge malformée rendrait l'assertion VACUE.
     const sansEchecSeul = noeudTest(flowSchema, { difficulteRequise: true });
-    const reussitePeuplee = { ...noeud, success: noeud.fail };
-    const echecEmbranche = { ...noeud, fail: { kind: 'if', cond: { kind: 'flag', expr: 'x' }, then: noeud.fail } };
+    const reussitePeuplee = { ...noeud, reussite: noeud.echec };
+    const echecEmbranche = { ...noeud, echec: { kind: 'si', condition: { kind: 'flag', expr: 'x' }, alors: noeud.echec } };
     expect(sansEchecSeul.safeParse(reussitePeuplee).success, 'la charge « réussite peuplée » est INVALIDE en soi — l’assertion serait vacue').toBe(true);
     expect(sansEchecSeul.safeParse(echecEmbranche).success, 'la charge « échec embranché » est INVALIDE en soi — l’assertion serait vacue').toBe(true);
 

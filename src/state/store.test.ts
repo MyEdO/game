@@ -17,7 +17,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { campaignStart } from '../engine/clock';
 // L'état de charge vit sur l'ARME (chaque arme à distance gère son
 // rechargement et sa munition) — raccourci de FIXTURE vers l'arme à distance du combattant.
-const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ranged')!;
+const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'distance')!;
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 function reset() {
@@ -67,7 +67,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     const E: Combatant = JSON.parse(JSON.stringify(H));
     E.id = 'enemy-0';
     E.label = 'Gobelin';
-    E.kind = 'enemy';
+    E.kind = 'ennemi';
     E.fortune = 0;
     E.pos = { x: 5, y: 5 };
     const battle: BattleState = {
@@ -81,13 +81,13 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
   it('Tir rapide au CLAVIER : armer (roundStart.viser) → curseur (snapCursorToTarget) → Entrée (commitCursor) → tir', () => {
     const { H, E } = endOfRoundBattle(0);
     H.talents = [{ talentId: 'tir-rapide', times: 1 }];
-    H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
+    H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
     rangedOf(H).loaded = true; H.pos = { x: 0, y: 0 };
     E.pos = { x: 2, y: 0 }; // à portée + LdV (scène vide)
     advanceTurn(useGame.getState, useGame.setState); // → Round 2, pendingRoundStart
     seedBattleRng(1);
     // Touche T : arme la visée du tireur (source unique preemptShooterIds → roundStart.viser).
-    useGame.getState().fenetreChoisir('roundStart', 'viser', H.id);
+    useGame.getState().fenetreChoisir('debutDuRound', 'viser', H.id);
     expect(useGame.getState().preemptAiming).toBe(H.id);
     // Tab/flèches : le curseur trouve la cible valide du TIREUR (aucun actif à turn:-1 — cursorActor renvoie le tireur).
     useGame.getState().snapCursorToTarget(1);
@@ -143,7 +143,7 @@ describe('stepPartyDir — pas clavier BLOQUÉ (#792) : silence remplacé par MO
 
     let blocked = 0;
     const off = bus.on(EVT.MOVE_BLOCKED, () => { blocked += 1; });
-    useGame.getState().stepPartyDir('up');
+    useGame.getState().stepPartyDir('haut');
     off();
 
     expect(useGame.getState().partyPos).toEqual({ x: 4, y: 4 }); // aucun déplacement fantôme

@@ -1,17 +1,18 @@
 /**
- * LE CHOIX D'UNE IMAGE SUR LE DISQUE DE L'AUTEUR (#3508), par la page : la planche d'un calque de référence de l'éditeur
- * de carte (`CONTRAT.md`, section « Éditeur »).
+ * LE CHOIX D'UN FICHIER SUR LE DISQUE DU JOUEUR, par la page : la planche d'un calque de référence de l'éditeur de carte
+ * (#3508, `CONTRAT.md`, section « Éditeur »), le fichier d'export d'un héros à importer au roster (#3009, méthode
+ * `roster`).
  */
 
-/** Ouvre le choix d'une image PNG, JPEG ou WebP : un `<input type=file>` posé au document le temps du choix, marqué
- *  `data-planche`, que la recette remplit. `rendre` reçoit le contenu de l'image en base64 et son type MIME, ou deux
- *  chaînes vides si l'auteur renonce. */
-export function choisirUneImage(rendre: (contenu: string, type: string) => void): void {
+/** Ouvre le choix d'un fichier que `accepte` admet (l'attribut `accept` d'un champ de fichier) : un
+ *  `<input type=file>` posé au document le temps du choix, marqué `data-fichier`, que la recette remplit. `rendre`
+ *  reçoit le contenu du fichier en base64 et son type MIME, ou deux chaînes vides si le joueur renonce. */
+export function choisirUnFichier(accepte: string, rendre: (contenu: string, type: string) => void): void {
   const champ = document.createElement('input');
   champ.type = 'file';
-  champ.accept = 'image/png,image/jpeg,image/webp';
+  champ.accept = accepte;
   champ.hidden = true;
-  champ.dataset.planche = '';
+  champ.dataset.fichier = '';
   document.body.append(champ);
   const finir = (contenu: string, type: string) => {
     champ.remove();

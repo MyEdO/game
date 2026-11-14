@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { fixtureText } from '../i18n/fixtureText';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { evaluateTest } from '../engine/tests';
 import { seedBattleRng } from './battleRng';
-import { FLOW_HANDLERS } from './rollFlowSpecs';
-import { FLOW_VERBS } from './flowVerbs';
+import { FLOWS } from './rollFlowSpecs';
+import { FLOW_VERBS, type FlowKey } from './flowVerbs';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from './cascade.testkit';
@@ -35,7 +36,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const C = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'X', name: 'X', kind: 'hero',
+    id: 'X', name: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 35, endurance: 35, initiative: 35, agilite: 35, dexterite: 35, intelligence: 35, 'force-mentale': 35, sociabilite: 35 },
     wounds: blessuresDeBase(14), advantage: 0, conditions: [], traumas: [],
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
@@ -45,8 +46,8 @@ const C = (over: Partial<Combatant>): Combatant =>
   })) as unknown as Combatant;
 
 /** Héros « A » avec 1 Point de Chance (l'observable) ; l'ennemi « B » adjacent. */
-const hero = (over: Partial<Combatant> = {}): Combatant => C({ id: 'A', label: 'A', kind: 'hero', fortune: 1, resilience: 1, ...over });
-const foe = (over: Partial<Combatant> = {}): Combatant => C({ id: 'B', label: 'B', kind: 'enemy', fortune: 0, resilience: 0, pos: { x: 1, y: 0 }, ...over });
+const hero = (over: Partial<Combatant> = {}): Combatant => C({ id: 'A', label: 'A', kind: 'heros', fortune: 1, resilience: 1, ...over });
+const foe = (over: Partial<Combatant> = {}): Combatant => C({ id: 'B', label: 'B', kind: 'ennemi', fortune: 0, resilience: 0, pos: { x: 1, y: 0 }, ...over });
 const arena = (extra: Combatant[] = []) => ({ combatants: [hero(), foe(), ...extra], log: [] });
 
 /** Jets propres PERDANT / GAGNANT réutilisés partout (verdict `evaluateTest`, LDB 12 l.25-28). */
@@ -75,11 +76,11 @@ type Fix = { pid?: string; make: (win: boolean) => Record<string, unknown>; comp
  * pending avec un jet PERDANT (win=false) ou GAGNANT (win=true). L'`outcome` du flux DOIT lire le champ
  * qui bascule ci-dessous. Les flux absents sont documentés dans `SKIP` (fixture trop lourde/hors-jet).
  */
-const FIXTURES: Record<string, Fix> = {
+const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   // ── Attaque / défense / piétinement (issue = `attackerDetail.success` / `def.success`) ──
-  attack: { make: (win) => ({
+  attaque: { make: (win) => ({
     battle: arena(), scene: testScene(), // resolveAttack (re-résolution) lit la scène (LdV/couvert) sans garde
-    pendingAttack: { attackerId: 'A', targetId: 'B', location: null, result: { hit: win, attackerRoll: win ? 20 : 88, netSL: win ? 2 : -4, critical: false, advantageTo: win ? 'attacker' : 'defender', defenderDefeated: false, log: '', attackerDetail: atkDetail(win) } },
+    pendingAttack: { attackerId: 'A', targetId: 'B', location: null, result: { hit: win, attackerRoll: win ? 20 : 88, netSL: win ? 2 : -4, critical: false, advantageTo: win ? 'attaquant' : 'defenseur', defenderDefeated: false, log: '', attackerDetail: atkDetail(win) } },
   }) },
   defense: { make: (win) => ({
     battle: { combatants: [hero({ pos: { x: 1, y: 0 } }), foe({ pos: { x: 0, y: 0 } })], log: [] },
@@ -87,12 +88,12 @@ const FIXTURES: Record<string, Fix> = {
       attackerId: 'B', defenderId: 'A', weapon: { name: 'Gourdin', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] },
       location: null, atk: { roll: 30, target: 45, success: true, sl: 1, isDouble: false }, mode: 'esquive',
       def: win ? WIN : LOSE,
-      result: { hit: !win, attackerRoll: 30, netSL: win ? -1 : 5, critical: false, advantageTo: win ? 'defender' : 'attacker', defenderDefeated: false, log: '', attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 30, success: true, sl: 1 }, defenderDetail: { label: 'Esquive', base: 40, modifier: 0, target: 40, roll: win ? 8 : 95, success: win, sl: win ? 3 : -5 } },
+      result: { hit: !win, attackerRoll: 30, netSL: win ? -1 : 5, critical: false, advantageTo: win ? 'defenseur' : 'attaquant', defenderDefeated: false, log: '', attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 30, success: true, sl: 1 }, defenderDetail: { label: 'Esquive', base: 40, modifier: 0, target: 40, roll: win ? 8 : 95, success: win, sl: win ? 3 : -5 } },
       suite: { mode: 'machine', coup: {} },
     },
   }) },
   // ── Incantation / Focalisation / dissipation (jet propre / DR) ──
-  cast: {
+  incantation: {
     make: (win) => ({
       battle: arena(),
       pendingCast: { casterId: 'A', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: { cast: win, roll: win ? 8 : 88, target: 45, sl: win ? 3 : -4, isCritical: false, isFumble: false, log: '' } },
@@ -104,40 +105,40 @@ const FIXTURES: Record<string, Fix> = {
       pendingCast: { casterId: 'A', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: { cast: false, roll: 8, target: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
     }),
   },
-  focus: { make: (win) => ({
+  focalisation: { make: (win) => ({
     battle: arena(),
     pendingFocus: { casterId: 'A', spellId: 'drain', result: { dr: win ? 2 : 0, isCritical: false, isFumble: false, roll: win ? 8 : 95, target: 40, sl: win ? 2 : -5, log: '' } },
   }) },
-  dispel: { make: (win) => ({ battle: arena(), pendingDispel: { casterId: 'A', value: 40, result: win ? WIN : LOSE } }) },
+  dissipation: { make: (win) => ({ battle: arena(), pendingDispel: { casterId: 'A', value: 40, result: win ? WIN : LOSE } }) },
   // ── Opposés BINAIRES (issue = jet de l'ACTEUR, foe figé) ──
-  disengage: { make: (win) => ({ battle: arena(), pendingDisengage: { moverId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'success' : 'fail' } }) },
-  auContact: { make: (win) => ({ battle: arena(), pendingAuContact: { moverId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'success' : 'fail' } }) },
-  grapple: { make: (win) => ({ battle: arena(), pendingGrapple: { actorId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'success' : 'fail' } }) },
-  distraire: { make: (win) => ({ battle: arena(), pendingDistraire: { moverId: 'A', defRoll: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, atk: win ? WIN : LOSE, result: win ? 'success' : 'fail' } }) },
+  desengagement: { make: (win) => ({ battle: arena(), pendingDisengage: { moverId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
+  auContact: { make: (win) => ({ battle: arena(), pendingAuContact: { moverId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
+  empoignade: { make: (win) => ({ battle: arena(), pendingGrapple: { actorId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
+  distraire: { make: (win) => ({ battle: arena(), pendingDistraire: { moverId: 'A', defRoll: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, atk: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
   // ── Fuir (flux MULTI HÉTÉROGÈNE : slot `backstab` du frappeur 'B' — déjà résolu, il fait perdre des
   //    PB donc le Test `fuite` est dû — + slot `touche` du fuyard 'A', celui que la Chance influence) ──
-  flee: { pid: 'A', make: (win) => ({
+  fuite: { pid: 'A', make: (win) => ({
     battle: arena(),
     pendingDisengage: { moverId: 'A', foeId: 'B', fuir: { participants: [
-      { id: 'B', kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 4, woundsLost: 4, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '', attackerDetail: atkDetail(true) } },
+      { id: 'B', kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 4, woundsLost: 4, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '', attackerDetail: atkDetail(true) } },
       { id: 'A', kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: win ? WIN : LOSE },
     ] } },
   }) },
   // ── Manœuvres d'attaquant NON opposées (issue = `result.success`) ──
   battement: { make: (win) => ({ battle: arena(), pendingBattement: { attackerId: 'A', result: win ? WIN : LOSE } }) },
-  maneuver: { make: (win) => ({ battle: arena(), pendingManeuver: { attackerId: 'A', kind: 'souffle', result: win ? WIN : LOSE } }) },
+  manoeuvre: { make: (win) => ({ battle: arena(), pendingManeuver: { attackerId: 'A', kind: 'souffle', result: win ? WIN : LOSE } }) },
   // ── Course / Frénésie / Approche / Bénédiction (Test binaire) ──
-  run: { make: (win) => ({ battle: arena(), pendingRun: { combatantId: 'A', test: testDeRegle('course', 'courir'), result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, bonusCases: win ? 1 : 0 } } }) },
-  fall: { pid: 'A', make: (win) => ({ battle: arena(), pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 0 }, metres: 4, initiateurId: 'A', participants: [{ id: 'A', interactive: true, attempt: true, result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, effectiveMetres: win ? 1 : 4 } }] } }) },
-  frenzy: { make: (win) => ({ battle: arena(), pendingFrenzy: { combatantId: 'A', result: win ? WIN : LOSE } }) },
-  approach: { make: (win) => ({ battle: arena(), pendingApproach: { combatantId: 'A', test: testDeRegle('calme-d-approche', 'se-rapprocher'), result: win ? WIN : LOSE } }) },
-  ward: { make: (win) => ({ battle: arena(), pendingWard: { attackerId: 'A', result: win ? WIN : LOSE } }) },
+  course: { make: (win) => ({ battle: arena(), pendingRun: { combatantId: 'A', test: testDeRegle('course', 'courir'), result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, bonusCases: win ? 1 : 0 } } }) },
+  chute: { pid: 'A', make: (win) => ({ battle: arena(), pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 0 }, metres: 4, initiateurId: 'A', participants: [{ id: 'A', interactive: true, attempt: true, result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, effectiveMetres: win ? 1 : 4 } }] } }) },
+  frenesie: { make: (win) => ({ battle: arena(), pendingFrenzy: { combatantId: 'A', result: win ? WIN : LOSE } }) },
+  approche: { make: (win) => ({ battle: arena(), pendingApproach: { combatantId: 'A', test: testDeRegle('calme-d-approche', 'se-rapprocher'), result: win ? WIN : LOSE } }) },
+  protection: { make: (win) => ({ battle: arena(), pendingWard: { attackerId: 'A', result: win ? WIN : LOSE } }) },
   // ── Tests numériques « jet propre » (soin/rechargement/évaluation/corruption/activité/test) ──
-  reload: { make: (win) => ({ battle: arena(), pendingReload: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
-  handGate: { make: (win) => ({ battle: arena(), pendingHandGate: { attackerId: 'A', actorName: 'A', hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: win ? 8 : 95, target: 60, sl: win ? 3 : -5, success: win, pa: { attackerId: 'A', targetId: 'B', location: null, result: null }, title: 'Attaque', icon: 'action/attack' } }) },
-  heal: { make: (win) => ({ battle: arena(), pendingHeal: { healerId: 'A', mode: 'first-aid', test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
-  surgery: { make: (win) => ({ battle: arena(), pendingSurgery: { healerId: 'A', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
-  appraise: { make: (win) => ({ battle: arena(), pendingAppraise: { actorId: 'A', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
+  rechargement: { make: (win) => ({ battle: arena(), pendingReload: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
+  mainEnsanglantee: { make: (win) => ({ battle: arena(), pendingHandGate: { attackerId: 'A', hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: win ? 8 : 95, target: 60, sl: win ? 3 : -5, success: win, pa: { attackerId: 'A', targetId: 'B', location: null, result: null }, title: 'Attaque', icon: 'action/attaquer' } }) },
+  soins: { make: (win) => ({ battle: arena(), pendingHeal: { healerId: 'A', mode: 'first-aid', test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
+  chirurgie: { make: (win) => ({ battle: arena(), pendingSurgery: { healerId: 'A', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
+  evaluation: { make: (win) => ({ battle: arena(), pendingAppraise: { actorId: 'A', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   corruption: { make: (win) => ({ battle: arena(), pendingCorruption: { heroId: 'A', nature: 'spirituelle', test: testDeRegle('influences-corruptrices', 'spirituelle'),  roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   test: {
     make: (win) => ({ battle: arena(), pendingTest: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, requireSL: 0, roll: win ? 8 : 95, sl: win ? 3 : -5, success: win } }),
@@ -145,14 +146,14 @@ const FIXTURES: Record<string, Fix> = {
     // métier ne l'est pas. L'issue canonique doit rester celle du d100 (`LDB 12 l.11`).
     composite: () => ({ battle: arena(), pendingTest: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, requireSL: 3, roll: 8, sl: 1, success: false } }),
   },
-  steamSave: { make: (win) => ({ battle: arena(), pendingSteamSave: { actorId: 'A', actorName: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, scaldOps: [{ op: 'wounds', amount: 1, ignoreAP: true }], roll: win ? 8 : 95, sl: win ? 3 : -5, success: win } }) },
-  activity: { make: (win) => ({ battle: arena(), pendingActivity: { heroId: 'A', kind: 'catalog', label: 'x', skillLabel: 'x', skillValue: 40, difficulty: 'intermediaire', mod: 0, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
-  shanty: { make: (win) => ({ battle: arena(), pendingShanty: { singerId: 'A', shantyId: 'x', result: win ? WIN : LOSE } }) },
+  fuiteDeVapeur: { make: (win) => ({ battle: arena(), pendingSteamSave: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, scaldOps: [{ op: 'wounds', amount: 1, ignoreAP: true }], roll: win ? 8 : 95, sl: win ? 3 : -5, success: win } }) },
+  activite: { make: (win) => ({ battle: arena(), pendingActivity: { heroId: 'A', kind: 'catalog', label: 'x', skillLabel: 'x', skillValue: 40, difficulty: 'intermediaire', mod: 0, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
+  chansonDeMarin: { make: (win) => ({ battle: arena(), pendingShanty: { singerId: 'A', shantyId: 'x', result: win ? WIN : LOSE } }) },
   // ── Opposés « joueur vs figé » avec re-résolution dédiée (récupération / marchandage) ──
-  recover: { make: (win) => ({ battle: arena(), pendingStateRecovery: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', opposed: false, roll: win ? WIN : LOSE, netSL: win ? 3 : 0, success: win } }) },
-  bargain: { make: (win) => ({ battle: arena(), pendingBargain: { playerId: 'A', playerSkill: 40, contrepartie: { kind: 'marchand', mode: 'buy', titre: t('out.bargainTitreAchat') }, opposant: { label: 'Marchand', valeur: 40 }, roll: win ? WIN : LOSE, merchantRoll: { roll: 50, target: 40, success: false, sl: -1, isDouble: false }, result: { winner: win ? 'attacker' : 'defender', attackerWins: win, netSL: win ? 2 : -2 } } }) },
+  recuperation: { make: (win) => ({ battle: arena(), pendingStateRecovery: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', opposed: false, roll: win ? WIN : LOSE, netSL: win ? 3 : 0, success: win } }) },
+  marchandage: { make: (win) => ({ battle: arena(), pendingBargain: { playerId: 'A', playerSkill: 40, contrepartie: { kind: 'marchand', mode: 'achat', titre: t('out.bargainTitreAchat') }, opposant: { label: 'Marchand', valeur: 40 }, roll: win ? WIN : LOSE, merchantRoll: { roll: 50, target: 40, success: false, sl: -1, isDouble: false }, result: { winner: win ? 'attaquant' : 'defenseur', attackerWins: win, netSL: win ? 2 : -2 } } }) },
   // ── MULTI (participant/round/étape « A ») ──
-  counterspell: { pid: 'A', make: (win) => ({
+  contreSort: { pid: 'A', make: (win) => ({
     battle: arena(),
     pendingCast: { casterId: 'B', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: { cast: true, roll: 20, target: 45, sl: 2, isCritical: false, isFumble: false, log: '' } },
     pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { counter: win ? WIN : LOSE, dispelled: win, margin: win ? 1 : -1 } }] },
@@ -166,11 +167,11 @@ const FIXTURES: Record<string, Fix> = {
     battle: arena(),
     pendingCascade: cascadeDeTest([{ id: 'st1', kind: cleDeFixture('test'), actorId: 'A', target: 40, rollLabel: 'Test', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }], { purpose: 'combat' }),
   }) },
-  extendedTest: { pid: 'r1', make: (win) => ({
+  testEtendu: { pid: 'r1', make: (win) => ({
     battle: arena(),
-    pendingExtendedTest: { actorId: 'A', label: 'x', skillLabel: 'x', target: 40, targetDR: 5, total: 0, rounds: [{ id: 'r1', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }] },
+    pendingExtendedTest: { actorId: 'A', label: 'x', skillLabel: 'x', target: 40, drCible: 5, total: 0, rounds: [{ id: 'r1', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }] },
   }) },
-  forceDoor: { pid: 'A', make: (win) => ({
+  enfoncerLaPorte: { pid: 'A', make: (win) => ({
     battle: arena(),
     pendingForceDoor: { label: 'Porte', doorBE: 2, doorB: 6, doorBmax: 6, participants: [{ id: 'A', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, damage: win ? 4 : 0 } }] },
   }) },
@@ -178,23 +179,23 @@ const FIXTURES: Record<string, Fix> = {
   // divergent dès que l'étape est OPPOSÉE (`meta.opposed`), où `success` vient de `resolveOpposed`.
   // La fixture est donc opposante : le dé 8 est SOUS la cible et pourtant PERDANT (l'attaquant figé
   // l'emporte au DR), exactement le cas où une issue dérivée du d100 mentirait à la Chance.
-  cascadeBatch: { pid: 'A', make: (win) => ({
+  cascadeEnBande: { pid: 'A', make: (win) => ({
     battle: arena(),
     pendingCascade: cascadeDeTest([{
-      id: 'b1', kind: 'triggeredBatchTest', aggregate: 'none',
-      meta: { opposed: { aT: { roll: 20, target: 60, success: true, sl: 4, isDouble: false, base: 60 }, attackerName: 'B' } },
+      id: 'b1', kind: 'testDeclencheEnBande', aggregate: 'none',
+      meta: { opposed: { aT: { roll: 20, target: 60, success: true, sl: 4, isDouble: false, base: 60 }, attackerName: fixtureText('B') } },
       participants: [{ id: 'A', interactive: true, base: 40, target: 40, result: { roll: 8, target: 40, sl: win ? 9 : 1, success: win } }],
     }], { purpose: 'combat' }),
   }) },
 };
 
 /** Flux NON couverts par une fixture minimale — justifiés (leur `outcome` est trivial + partagé). */
-const SKIP: Record<string, string> = {
+const SKIP: Partial<Record<FlowKey, string>> = {
   etalLot: 'Lot de dés d’étal (#1426) — le flux n’a NI Chance NI Résilience (`verbs: [setForcedRoll]`) : il n’y a pas d’issue à gater. Un dé d’étal ne réussit ni n’échoue, il tombe ; son `outcome` est scellé neutre sur sa valeur, et `failed` n’a aucun consommateur.',
   cascadeTirage: 'Dé d’étape de cascade (table, dé nu) — le flux n’a NI Chance NI Résilience (`verbs: [roll, setForcedRoll]`) : un dé de table tombe sans réussir ni échouer, son `outcome` est scellé neutre sur sa valeur.',
-  fumble: 'Maladresse (LDB 14) — le flux n’a NI Chance NI Résilience (`verbs: [roll, confirm]`) : le tirage des Oups ! désigne une ligne de table, son `outcome` est scellé neutre.',
-  shipManeuver: 'Test d’équipage par rôle (MDG 14) — fixture de rôle valide lourde ; `outcome` = `cleanRollOutcome` partagé (crewRoleFlowSpec), déjà exercé par la logique numérique de forceDoor',
-  shipBattery: 'idem shipManeuver (MÊME crewRoleFlowSpec)',
+  maladresse: 'Maladresse (LDB 14) — le flux n’a NI Chance NI Résilience (`verbs: [roll, confirm]`) : le tirage des Oups ! désigne une ligne de table, son `outcome` est scellé neutre.',
+  manoeuvreDuNavire: 'Test d’équipage par rôle (MDG 14) — fixture de rôle valide lourde ; `outcome` = `cleanRollOutcome` partagé (crewRoleFlowSpec), déjà exercé par la logique numérique de forceDoor',
+  tirDeBatterie: 'idem shipManeuver (MÊME crewRoleFlowSpec)',
 };
 
 beforeEach(() => {
@@ -203,7 +204,7 @@ beforeEach(() => {
 
 describe('Issue canonique (outcome) — la Chance est gatée par l’issue RÉELLE (failed dérivé == won)', () => {
   // Les 11 flux « à risque » (issues multi-valeurs : combiné/opposé/DR/jet-propre-vs-issue) DOIVENT être couverts.
-  const REQUIRED = ['activity', 'attack', 'defense', 'cast', 'counterspell', 'opposition', 'recover', 'bargain', 'disengage', 'flee', 'focus', 'cascadeBatch'];
+  const REQUIRED: readonly FlowKey[] = ['activite', 'attaque', 'defense', 'incantation', 'contreSort', 'opposition', 'recuperation', 'marchandage', 'desengagement', 'fuite', 'focalisation', 'cascadeEnBande'];
   it('couvre tous les flux à risque (multi-valeurs)', () => {
     const missing = REQUIRED.filter((p) => !(p in FIXTURES));
     expect(missing, 'flux à risque sans fixture').toEqual([]);
@@ -217,7 +218,7 @@ describe('Issue canonique (outcome) — la Chance est gatée par l’issue RÉEL
   /** La relance de Chance (`jetRelancer`) sur le flux `flux`, la rangée `pid` posée sur un flux multi. */
   const relancer = (flux: string, pid?: string): void =>
     (banc.getState().jetRelancer as (flux: string, pid?: string) => void)(flux, pid);
-  for (const prefix of Object.keys(FLOW_VERBS)) {
+  for (const prefix of Object.keys(FLOW_VERBS) as FlowKey[]) {
     const fx = FIXTURES[prefix];
     if (!fx) {
       it.skip(`${prefix} — non piloté (${SKIP[prefix] ?? 'à couvrir'})`, () => {});
@@ -260,8 +261,8 @@ describe('Issue canonique (outcome) — la Chance est gatée par l’issue RÉEL
  * sont DÉCLARÉS ci-dessous. Pour ceux-là le contrat s'inverse : la ligne DOIT poster le verdict
  * composé, faute de quoi la coquille rouvrirait la Chance là où le seam la refuse.
  */
-const ISSUE_COMPOSEE: Record<string, string> = {
-  cascadeBatch: 'Étape de BANDE opposée (`meta.opposed`) : le verdict vient de `resolveOpposed` — un d100 '
+const ISSUE_COMPOSEE: Partial<Record<FlowKey, string>> = {
+  cascadeEnBande: 'Étape de BANDE opposée (`meta.opposed`) : le verdict vient de `resolveOpposed` — un d100 '
     + 'SOUS la cible peut perdre au DR (LDB 12 l.160). `CascadeModal` poste bien `result.success` (le '
     + 'verdict composé) sur la ligne, donc coquille et seam restent alignés.',
 };
@@ -272,7 +273,7 @@ describe('#1318 V4 — l’issue canonique est COHÉRENTE avec les chiffres qu�
     expect(inconnus, 'exception d’issue composée sans fixture — périmée ?').toEqual([]);
   });
 
-  for (const prefix of Object.keys(FLOW_VERBS)) {
+  for (const prefix of Object.keys(FLOW_VERBS) as FlowKey[]) {
     const fx = FIXTURES[prefix];
     if (!fx) continue;
     it(`${prefix} : outcome.won == evaluateTest(roll, cible), issues nominales${fx.composite ? ' + composée' : ''}`, () => {
@@ -289,7 +290,7 @@ describe('#1318 V4 — l’issue canonique est COHÉRENTE avec les chiffres qu�
         seedBattleRng(9);
         banc.setState({ battle: null } as never);
         banc.setState(state as never);
-        const o = FLOW_HANDLERS[prefix as keyof typeof FLOW_HANDLERS].outcomeOf(banc.getState, fx.pid);
+        const o = FLOWS[prefix as keyof typeof FLOWS].outcomeOf(banc.getState, fx.pid);
         expect(o, `${prefix} : l’issue canonique doit être lisible sur un pending ouvert`).not.toBeNull();
         const propre = evaluateTest(o!.roll, o!.target).success;
         if (o!.won !== propre) divergences.push(`${nom} : won=${o!.won} roll=${o!.roll} cible=${o!.target}`);

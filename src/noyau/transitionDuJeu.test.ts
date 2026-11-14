@@ -53,7 +53,7 @@ describe('transitionDuJeu — occupation des sièges', () => {
 describe('transitionDuJeu — le maximum des Blessures suit ses porteurs', () => {
   const plus3 = (): OpPassive[] => [{ op: 'attrMod', attr: 'wounds', mod: 3 }];
   /** Profil à 30 partout : B = 12 ; blessé de 2. */
-  const blesse = (id = 'c'): Combatant => blesseDeTest(10, { id, kind: 'hero' });
+  const blesse = (id = 'c'): Combatant => blesseDeTest(10, { id, kind: 'heros' });
 
   afterEach(() => resetData());
 
@@ -111,7 +111,7 @@ describe('transitionDuJeu — le maximum des Blessures suit ses porteurs', () =>
   });
 
   it('un porteur NÉ mutant (`statblockToCombatant`, LDB 85 l.245) entre dans l’état à son maximum : aucune écriture', () => {
-    setDataset('mutations', [...datasetArray('mutations'), { id: ID_DE_PORTEUR, type: 'mutations', label: 'Mutation de test', desc: '', kind: 'physique', passive: plus3() }] as never);
+    setDataset('mutations', [...datasetArray('mutations'), { id: ID_DE_PORTEUR, type: 'mutations', label: 'Mutation de test', desc: '', kind: 'physique', passive: plus3() }]);
     const ne = statblockToCombatant({ label: 'Mutant', char: {}, traits: [{ id: 'mutation', arg: ID_DE_PORTEUR }] } as unknown as CustomStatblock, 'ne', { x: 0, y: 0 });
     expect(ne.wounds.current).toBe(ne.wounds.max);
     expect(ne.wounds.max - effectiveMaxWounds({ ...ne, mutations: [] })).toBe(3);

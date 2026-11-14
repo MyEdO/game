@@ -5,14 +5,22 @@
  */
 import { Combatant, type Difficulty, type TestIds } from './types';
 import { hasSurgery } from './combatFeatures/dispatch';
-import { loseWounds, addCondition, removeCondition, reprendreConnaissance, recoveredStacks, hasSurgeryLockedCondition, syncDerivedConditions, stacks } from './conditions';
+import {
+  loseWounds,
+  addCondition,
+  removeCondition,
+  reprendreConnaissance,
+  recoveredStacks,
+  hasSurgeryLockedCondition,
+  syncDerivedConditions,
+  stacks,
+} from './conditions';
 import { hasTreatableTrauma, hasSurgeryTrauma, hasRecoverableTrauma, hasLimbAwaitingAid } from './trauma';
 import { contractDisease } from './disease';
 import { isAstoundingFailure } from './tests';
 import { rule } from './policy';
 import { t } from '../i18n';
 import type { RNG } from './dice';
-import { chebyshev } from './grid';
 import { isStructure } from './structures';
 import { possesses } from './skills';
 import { objetDuTrapping } from './items';
@@ -48,16 +56,16 @@ export function retirerUnBandage(c: Combatant): boolean {
 }
 
 /** Les actes où les Bandages agissent : LDB 09 l.260 (Blessures), LDB 74 l.41 (Hémorragie). */
-export const actePanse = (mode: HealMode): boolean => mode === 'wounds' || mode === 'bleed';
+export const actePanse = (mode: HealMode): boolean => mode === 'blessures' || mode === 'hemorragie';
 
 /** Pourquoi le Test déclaré `p.test` est refusé au soigneur pour l'acte `mode`, `null` s'il s'offre. `soigneur` `null` :
  *  un PNJ soigneur, sans fiche, qui ne jette que sa Guérison imprimée. Dextérité : LDB 74 l.41 ; Hémorragie seule ;
  *  décision de l'orchestrateur (2026-11-03, #3059) : ouverte à tout soigneur, Bandages exigés. VERDICT UNIQUE de
- *  l'ouverture (`soinDOuverture`), du choix du Test (réglage `heal.test`), du choix d'acte (réglage `heal.mode`) et de la fenêtre. */
+ *  l'ouverture (`soinDOuverture`), du choix du Test (réglage `soins.test`), du choix d'acte (réglage `soins.mode`) et de la fenêtre. */
 export function refusDuTestDeSoin(soigneur: Combatant | null, mode: HealMode, p: ParametresDeSoin): string | null {
   if (p.test === 'guerison') return soigneur && !possesses(soigneur, { id: HEAL_SKILL }) ? t('heal.raisonSansGuerison') : null;
   if (!soigneur) return t('heal.raisonDexteriteSansFiche');
-  if (mode !== 'bleed') return t('heal.raisonDexteriteHorsHemorragie');
+  if (mode !== 'hemorragie') return t('heal.raisonDexteriteHorsHemorragie');
   return p.bandages ? null : t('heal.raisonDexteriteSansBandages');
 }
 
@@ -95,34 +103,34 @@ export function soinMagiqueOperant(c: Combatant): boolean {
   return !isStructure(c) || rule('structure-soin-magique') === true;
 }
 
-/** `recovery` = Test ÉTENDU de Guérison qui rend l'usage d'un membre désactivé (« Épaule luxée »/« Genou
+/** `reeducation` = Test ÉTENDU de Guérison qui rend l'usage d'un membre désactivé (« Épaule luxée »/« Genou
  *  démis », LDB 18 l.120/179), après Aide Médicale — hors combat, cf. `medicFlow`. */
-export type HealMode = 'wounds' | 'bleed' | 'trauma' | 'surgery' | 'recovery' | 'ammo';
+export type HealMode = 'blessures' | 'hemorragie' | 'traumatisme' | 'chirurgie' | 'reeducation' | 'munition';
 
 /** Tous les modes de soin, dans l'ordre où l'infirmerie les présente. */
-export const HEAL_MODES: readonly HealMode[] = ['wounds', 'bleed', 'ammo', 'trauma', 'surgery', 'recovery'];
+export const HEAL_MODES: readonly HealMode[] = ['blessures', 'hemorragie', 'munition', 'traumatisme', 'chirurgie', 'reeducation'];
 
 /** Pourquoi `target` n'offre pas le mode de soin `mode` : la raison affichée, ou `null` (le mode s'offre).
  *  Verdict du PATIENT seul — le soigneur, l'offre et la bourse relèvent de `refusDeLActeALInfirmerie` (noyau). */
 export function raisonDeModeDeSoin(target: Combatant, mode: HealMode): string | null {
   switch (mode) {
-    case 'wounds':
+    case 'blessures':
       if (target.wounds.current >= target.wounds.max) return t('heal.raisonPleinesBlessures');
       return target.soinRencontreUtilise ? t('heal.raisonSoinDejaRecu') : null; // LDB 09 l.233
-    case 'bleed':
+    case 'hemorragie':
       return stacks(target, 'hemorragique') > 0 ? null : t('heal.raisonSansHemorragie');
-    case 'trauma':
+    case 'traumatisme':
       return hasTreatableTrauma(target) ? null : t('heal.raisonSansDechirure');
-    case 'surgery': // LDB 10 l.184, LDB 18
+    case 'chirurgie': // LDB 10 l.184, LDB 18
       return hasSurgeryTrauma(target) || hasSurgeryLockedCondition(target) ? null : t('heal.raisonSansChirurgie');
-    case 'recovery': // LDB 18 l.120/179
+    case 'reeducation': // LDB 18 l.120/179
       return hasRecoverableTrauma(target) || hasLimbAwaitingAid(target) ? null : t('heal.raisonSansMembre');
-    case 'ammo': // LDB 62 l.250
+    case 'munition': // LDB 62 l.250
       return lodgedAmmoCount(target) > 0 ? null : t('heal.raisonSansMunition');
   }
 }
 
-/** Modes disponibles pour soigner `target` : ceux dont `raisonDeModeDeSoin` est `null`. Le mode `trauma`
+/** Modes disponibles pour soigner `target` : ceux dont `raisonDeModeDeSoin` est `null`. Le mode `traumatisme`
  *  (LDB 18 l.222) est hors-combat — les consommateurs en combat le filtrent (`raisonDeModeDeSoinEnCombat`). */
 export function availableHealModes(target: Combatant): HealMode[] {
   return HEAL_MODES.filter((m) => raisonDeModeDeSoin(target, m) === null);
@@ -135,16 +143,16 @@ export function availableHealModes(target: Combatant): HealMode[] {
  *  l.250 — aucune variante AA ne couvre le retrait). SOURCE UNIQUE — combat (`combatSlice`) ET
  *  Infirmerie (`medicFlow`). */
 export function healDifficulty(mode: HealMode): Difficulty {
-  return mode === 'bleed' && rule('combat-aa-blessures') === 'aa' ? 'accessible' : 'intermediaire';
+  return mode === 'hemorragie' && rule('combat-aa-blessures') === 'aa' ? 'accessible' : 'intermediaire';
 }
 
-/** Actes IMMÉDIATS (un jet, une Action) : seuls offerts en combat et pendant une opération armée ; `trauma`,
- *  `surgery` et `recovery` sont des actes au long cours. SOURCE UNIQUE du partage. */
-const ACTES_IMMEDIATS: readonly HealMode[] = ['wounds', 'bleed', 'ammo'];
+/** Actes IMMÉDIATS (un jet, une Action) : seuls offerts en combat et pendant une opération armée ; `traumatisme`,
+ *  `chirurgie` et `reeducation` sont des actes au long cours. SOURCE UNIQUE du partage. */
+const ACTES_IMMEDIATS: readonly HealMode[] = ['blessures', 'hemorragie', 'munition'];
 export const estActeImmediat = (mode: HealMode): boolean => ACTES_IMMEDIATS.includes(mode);
 
 /** `raisonDeModeDeSoin` en combat : un mode hors-combat y est fermé. Verdict UNIQUE des gestes de soin en
- *  combat (`ouvrirLaGuerison`, réglage `heal.mode` et fenêtre du soin, `refusDuModeDuSoin`). */
+ *  combat (`ouvrirLaGuerison`, réglage `soins.mode` et fenêtre du soin, `refusDuModeDuSoin`). */
 export function raisonDeModeDeSoinEnCombat(target: Combatant, mode: HealMode): string | null {
   return estActeImmediat(mode) ? raisonDeModeDeSoin(target, mode) : t('heal.raisonHorsCombat');
 }
@@ -155,15 +163,9 @@ export function modesDOuverture(target: Combatant, soigneur: Combatant): HealMod
   return HEAL_MODES.filter((m) => raisonDeModeDeSoinEnCombat(target, m) === null && soinDOuverture(soigneur, m) !== null);
 }
 
-/** Cibles soignables atteignables par `healer`. En combat : soi + adjacents (Chebyshev ≤ 1).
- *  Hors combat : tout le `pool`. */
-export function healableTargets(healer: Combatant, pool: Combatant[], opts: { adjacency: boolean }): Combatant[] {
-  return pool.filter((t) => {
-    if (!isHealable(t)) return false;
-    if (!opts.adjacency || t.id === healer.id) return true;
-    if (!healer.pos || !t.pos) return false;
-    return chebyshev(healer.pos, t.pos) <= 1;
-  });
+/** Les cibles soignables de `pool` (`isHealable`) ; l'appelant borne `pool` à ce que `healer` atteint. */
+export function healableTargets(pool: Combatant[]): Combatant[] {
+  return pool.filter(isHealable);
 }
 
 /** Soin de Blessures (LDB 09 l.260) : succès ⇒ BI+DR (plancher 0) ; échec ⇒ si BI+DR<0, perte de

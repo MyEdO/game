@@ -13,7 +13,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
  */
 const hull = (id: string, creatureId: string, E: number, pb: number): Combatant =>
   (blessuresSurLeProfil({
-    id, name: id, kind: 'npc', creatureId, bodyShape: 'vehicule',
+    id, name: id, kind: 'pnj', creatureId, bodyShape: 'vehicule',
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
     wounds: blessuresDeBase(pb), advantage: 0, conditions: [], weapons: [],
     armour: { corps: 0 }, skills: [], talents: [],

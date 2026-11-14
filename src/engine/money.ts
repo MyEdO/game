@@ -103,6 +103,11 @@ export const enPieces = (unite: keyof Money, valeur: number): Money => ({ gold: 
  *  `standing`, celle d'UN Standing. LDB 08 l.115-119, LDB 05 l.576-578 */
 export function formuleDeRevenus(tier: StatusTier, standing = 1): string {
   const { de, unite } = gainDeStatut(tier, standing);
+  return formuleDeMonnaie(de, unite);
+}
+
+/** La formule joueur d'une somme en dés `de` de pièces `unite` (« 4d10 sous de cuivre », « 3 couronnes d'or »). */
+export function formuleDeMonnaie(de: DiceSpec, unite: keyof Money): string {
   const fixe = de.plus ?? 0;
   if (de.n === 0 && fixe === 0) return t('money.none');
   return t(`money.${unite}`, de.n > 0 ? { n: formatDice(de), s: 's' } : { n: fixe, s: fixe > 1 ? 's' : '' });

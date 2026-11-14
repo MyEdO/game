@@ -1,6 +1,6 @@
 # Warhammer Fantasy v4 — RPG tactique au tour par tour (web)
 
-Jeu de rôle vidéoludique **100 % web, en français**, type *Neverwinter Nights*, basé sur les
+Jeu de rôle vidéoludique **web d'abord, en français**, type *Neverwinter Nights*, basé sur les
 règles de **Warhammer Fantasy Roleplay 4ᵉ édition**. On contrôle un groupe de 4 aventuriers
 (créés un par un ou pré-tirés) à travers la campagne impériale **L'Ennemi Intérieur**.
 
@@ -50,14 +50,15 @@ Autres scripts : `npm test` (suite complète), `npm run build` (build de product
 ```
 src/engine/             Règles WFRP4 (pur TS, testé)
 src/data/               Base app-owned (JSON commité, éditable dans le Compendium)
-src/state/              Schéma de Scène, store Zustand, flux de jet, IA, pathfinding
+src/noyau/              Orchestration sans hôte : flux de jet, combat ; monde/ (schéma de Scène, IA, pathfinding)
+src/hote/               Commun aux hôtes du noyau ; coop/ porte le client du relay WS
+src/state/              Store Zustand, adaptateur web (sauvegardes, flux réseau)
 src/gameIso/            Rendu du monde : builders/ (géométrie pure) montée par stage/ sur le backend
                         three.js (backends/webgl/) ; catalog/ porte l'art SVG du décor ; plus
                         authoring/, detail/, fx/, pov/
 src/geometry/           Grille, projection isométrique, déplacement
 src/ui/                 Interface React (menus, créateur, HUD, éditeur, compendium)
 src/scenes/             Documents de scène et de campagne
-src/net/                Coop en ligne : client du relay WS (le Worker Cloudflare vit dans server/)
 src/audio/              Lecture de la musique et des sons (registre : src/data/sons/)
 src/i18n/               Textes français de l'interface
 ```

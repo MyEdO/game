@@ -129,10 +129,10 @@ describe('appui d’un décor posé sur un autre', () => {
 
 describe('ce que le monde lit d’un décor posé', () => {
   /** Les triangles de `v` en clés de sommets, et leurs hauteurs. */
-  const triangles = (v: VolumeDuMonde) => Array.from({ length: v.positions.length / 9 }, (_, t) => {
-    const p = Array.from(v.positions.slice(t * 9, t * 9 + 9), (n) => Math.round(n * 1000) / 1000);
+  const triangles = (v: VolumeDuMonde) => v.morceaux.flatMap((m) => Array.from({ length: m.positions.length / 9 }, (_, t) => {
+    const p = Array.from(m.positions.slice(t * 9, t * 9 + 9), (n) => Math.round(n * 1000) / 1000);
     return { cle: p.join(','), ys: [p[1], p[4], p[7]] };
-  });
+  }));
 
   it('le volume pose la lettre sur le plateau de la table, à 0,78 m', () => {
     const table = decor('table-1', 'table', 2, 1);

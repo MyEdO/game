@@ -1,4 +1,4 @@
-import { pregenParty, PREGEN, idDuPretire } from '../../data/pregens';
+import { groupeDeScenario, idDuHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { crewFormationSlots } from '../../noyau/monde/shipPostes';
 import { setEncounters } from './_shared';
@@ -9,7 +9,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * BÉLIER — PORTE (ADE II 8 « Le théâtre de la guerre » l.233) : consommateur LIVE du modèle ENGIN DE
  * SIÈGE CREWÉ — le bélier n'est PAS une arme portée en solo : c'est un EMPLACEMENT (poste `ShipPoste`,
  * `Combatant.mannedPoste`/`postes`) servi par une ÉQUIPE (Qualité `equipe`, Indice 6), exactement comme les
- * autres machines de guerre. Le SOLDAT (héros, id STABLE `pregen-101`) est le CHEF de pièce (`crewIds[0]`,
+ * autres machines de guerre. Le SOLDAT (héros, id STABLE `soldat-de-test`) est le CHEF de pièce (`crewIds[0]`,
  * seul à tirer/manier) ; 5 servants PNJ (`brute`, IA) complètent l'Équipe de 6. `applyShipPostes`
  * sert le poste au chef au début du combat (aucune action « équiper » ni loadout) — le bélier SERVI est
  * assené contre une VRAIE porte (`porte-de-ville`, structure brèchable) : le jet d'attaque se résout sur la
@@ -21,7 +21,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * l.258 : « on pousse par les flancs/l'arrière ») démarre ALIGNÉE en x avec la porte (arête N de (5,4),
  * colonne x=5 comprise dans l'empreinte 2×2 dès le départ), à 3 cases de la porte — DISTANCE À TRAVERSER
  * (Lot 2 #156, MOBILITÉ) : « roues, se déplace sur le champ de bataille » (l.256/258, vitesse non chiffrée
- * → `siege-engine-push-speed`, plafond maison 2 cases/poussée) — EXACTEMENT 2 poussées plein Nord (2 cases
+ * → `engin-de-siege-vitesse-de-poussee`, plafond maison 2 cases/poussée) — EXACTEMENT 2 poussées plein Nord (2 cases
  * puis le reliquat de 1) amènent l'empreinte au contact DIRECT de la porte (dx=0, jamais en diagonale) : la
  * démonstration reste courte, zéro dérive de trajectoire. Un gobelin défend l'autre côté de la porte (5,2).
  * `heroStart` pose le GROUPE (4 héros) en colonne à `x−1` (`lancerLeCombat`, combatSlice.ts) → le Soldat (1er
@@ -30,7 +30,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * cases de la formation, aucune sur la colonne des 3 autres héros ((3,9)/(3,10)/(3,11)) ni sur l'affût.
  */
 const RAM_CREW = [
-  idDuPretire(PREGEN.soldat), // chef de pièce (crewIds[0]) : un héros, seul à manier le bélier
+  idDuHerosDeScenario('soldat'), // chef de pièce (crewIds[0]) : un héros, seul à manier le bélier
   'enemy-siege-belier-2', 'enemy-siege-belier-3', 'enemy-siege-belier-4', 'enemy-siege-belier-5', 'enemy-siege-belier-6', // 5 servants PNJ (Équipe 6, ADE II 8 l.233)
 ];
 
@@ -75,17 +75,17 @@ function construireScene(): Scene {
         // index 1 : emplacement du bélier, trapping du sous-type `armes-de-siege`,
         // orienté vers la porte (facing 'N'), servi par l'Équipe `RAM_CREW`.
         {
-          engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
+          engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'allie',
           postes: [{ trappingId: 'belier-ade2', crewIds: [...RAM_CREW] }],
         },
         // index 2-6 : les 5 servants PNJ (IA, agissent seuls) qui complètent l'Équipe (le 6e membre = le
         // Soldat, crewIds[0] ci-dessus) — en FORMATION autour de l'affût (`crewFormationSlots`, jamais
         // éparpillés), aucun sur la colonne des 3 autres héros ni sur l'affût.
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[1], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[2], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[3], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[4], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[1], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[2], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[3], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[4], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
       ],
     },
   ]);
@@ -107,7 +107,7 @@ export const scenario: TestScenario = {
     "sur sa Force, jamais sa CC ; seule la porte encaisse des Dégâts (Atout Bélier).",
   partyNote: 'Le Soldat sert le bélier (chef de pièce) ; 5 servants PNJ complètent l’Équipe requise.',
   construire: (idNeuf) => ({
-    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
+    party: groupeDeScenario(idNeuf, 'soldat', 'chasseur', 'sorcier', 'tueur'),
     scene: construireScene(),
   }),
   autoCombat: 'siege-belier',

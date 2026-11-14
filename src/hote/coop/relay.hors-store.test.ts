@@ -2,9 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { roomWsUrl, RelayClient, RoomGuest, RoomHost } from './relay';
 import { FakeSocket, compressionFactice, minuterieDuTest, portsDuTest } from './relay.testkit';
 import { GuestSession, HostSession } from './session';
-import type { EtatDeJeu } from '../../noyau/etat';
-import { resetSceneRegistry, sceneDuRegistre } from '../../noyau/monde/registreDesScenes';
-import { buildScene } from '../../noyau/mapSpec';
 
 const BASE = 'http://localhost:8787';
 
@@ -30,17 +27,11 @@ function resumedHostSession() {
     }
   };
   const snapshot = { gameTime: 7 };
-  const campaign: NonNullable<EtatDeJeu['pendingCampaign']> = {
-    id: 'campagne', label: 'Campagne', scenes: [buildScene({ id: 'relay-depart', label: 'Départ', size: [2, 2] })], startSceneId: 'relay-depart', worldMap: null,
-    projet: { id: 'campagne' },
-  };
-  /** Chaque état reçu, et si le paquet de campagne l'a précédé (sa scène est au registre). */
-  const received: string[] = [];
-  const applySnapshot = vi.fn(() => { received.push(sceneDuRegistre('relay-depart') ? 'snapshot après paquet' : 'snapshot sans paquet'); });
+  const applySnapshot = vi.fn();
   const applyIntent = vi.fn();
   const host = new HostSession({
     build: 'test', applyIntent,
-    getSnapshot: () => ({ ...snapshot }), campagne: () => campaign,
+    getSnapshot: () => ({ ...snapshot }),
   });
   const guest = new GuestSession({ build: 'test', label: 'Anna', applySnapshot });
   roomHost.onJoin = (seat) => host.addGuest(roomHost.seatTransport(seat), seat);
@@ -62,7 +53,7 @@ function resumedHostSession() {
   }
 
   return {
-    guest, host, snapshot, received, applySnapshot, applyIntent, onHostAway,
+    guest, host, snapshot, applySnapshot, applyIntent, onHostAway,
     idle,
     seatGuest() {
       guestSocket.receive(JSON.stringify({ evt: 'seated', seat: 1, token: 'TOK1' }));
@@ -96,7 +87,6 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.useRealTimers();
-  resetSceneRegistry();
 });
 
 describe('URL de la room', () => {
@@ -125,7 +115,7 @@ describe('RelayClient (heartbeat + reconnexion)', () => {
     first.receive('pong'); // vivant
     vi.advanceTimersByTime(30_000); // plus aucun pong → le client coupe lui-même
     expect(first.closedWith).not.toBeNull();
-    expect(states).toContain('reconnecting');
+    expect(states).toContain('reconnexion');
     vi.advanceTimersByTime(1_000); // 1er retry
     expect(FakeSocket.last).not.toBe(first);
   });
@@ -188,7 +178,7 @@ describe('RoomHost (démultiplexage par siège)', () => {
 });
 
 describe('RoomGuest (Transport + reprise)', () => {
-  it('invité assis pendant la coupure hôte : host-up rétablit campagne, snapshot et intents', async () => {
+  it('invité assis pendant la coupure hôte : host-up rétablit snapshot et intents', async () => {
     const session = resumedHostSession();
     try {
       session.disconnectHost();
@@ -203,7 +193,6 @@ describe('RoomGuest (Transport + reprise)', () => {
       expect(session.applySnapshot).toHaveBeenCalledTimes(1);
       expect(session.applySnapshot).toHaveBeenCalledWith({ gameTime: 7 });
       expect(session.guest.joined).toBe(true);
-      expect(session.received).toEqual(['snapshot après paquet']);
       expect(session.onHostAway).toHaveBeenLastCalledWith(false);
       session.guest.sendIntent('terminerLeTour', []);
       await session.idle();
@@ -224,12 +213,10 @@ describe('RoomGuest (Transport + reprise)', () => {
 
       session.disconnectHost();
       session.snapshot.gameTime = 9;
-      resetSceneRegistry();
       session.resumeHost();
       await session.idle();
       expect(session.applySnapshot).toHaveBeenCalledTimes(2);
       expect(session.applySnapshot).toHaveBeenLastCalledWith({ gameTime: 9 });
-      expect(session.received).toEqual(['snapshot après paquet', 'snapshot après paquet']);
       expect(session.applyIntent).not.toHaveBeenCalled();
     } finally {
       await session.close();
@@ -265,5 +252,92 @@ describe('RoomGuest (Transport + reprise)', () => {
     expect(got).toEqual(['COUCOU']);
     rg.close();
     expect(ws.sent).toContain(JSON.stringify({ ctl: 'bye' }));
+  });
+});
+
+describe('panne des chaînes, messages illisibles (#3009)', () => {
+  it('`comprimer` lève une fois : la panne, puis l’envoi suivant part', async () => {
+    const pannes: unknown[] = [];
+    let leve = true;
+    const ports = { ...portsDuTest(undefined, (e) => pannes.push(e)), compression: { ...compressionFactice, comprimer: async (texte: string) => {
+      if (leve) { leve = false; throw new Error('comprimer'); }
+      return compressionFactice.comprimer(texte);
+    } } };
+    const rh = new RoomHost(BASE, 'ABC234', 'T', ports);
+    const ws = FakeSocket.last!;
+    ws.open();
+    const t1 = rh.seatTransport(1);
+    t1.send('x'.repeat(5000));
+    t1.send('SUIVANT');
+    await rh.idle();
+    expect(pannes.map((e) => (e as Error).message)).toEqual(['comprimer']);
+    expect(ws.sent.map((raw) => JSON.parse(raw) as unknown)).toEqual([{ to: 1, data: 'SUIVANT' }]);
+  });
+
+  it('au-delà de `WS_MAX` : la panne dit la taille, rien n’est envoyé, la console se tait', async () => {
+    const pannes: unknown[] = [];
+    const console_ = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const ports = { ...portsDuTest(undefined, (e) => pannes.push(e)), compression: { ...compressionFactice, comprimer: async () => 'z'.repeat(1_000_001) } };
+    const rg = new RoomGuest(BASE, 'ABC234', 'Anna', ports);
+    const ws = FakeSocket.last!;
+    ws.open();
+    rg.send('x'.repeat(5000));
+    await rg.idle();
+    expect(pannes).toHaveLength(1);
+    expect((pannes[0] as Error).message).toContain('1000001 o');
+    expect(ws.sent).toEqual([]);
+    expect(console_).not.toHaveBeenCalled();
+    console_.mockRestore();
+  });
+
+  it.each(['pas du json', 'null', '123', '"texte"', '[1]', JSON.stringify({ z: 'invalide' }), JSON.stringify({ from: 1, z: 'invalide' })])(
+    'message illisible %s : ni livré, ni dit à la panne, rien ne lève',
+    async (brut) => {
+      const pannes: unknown[] = [];
+      const ports = portsDuTest(undefined, (e) => pannes.push(e));
+      const rg = new RoomGuest(BASE, 'ABC234', 'Anna', ports);
+      const wsg = FakeSocket.last!;
+      const rh = new RoomHost(BASE, 'ABC234', 'T', ports);
+      const wsh = FakeSocket.last!;
+      wsg.open();
+      wsh.open();
+      const got: string[] = [];
+      rg.onMessage((d) => got.push(d));
+      rh.seatTransport(1).onMessage((d) => got.push(d));
+      wsg.receive(brut);
+      wsh.receive(brut);
+      await rg.idle();
+      await rh.idle();
+      expect(got).toEqual([]);
+      expect(pannes).toEqual([]);
+    },
+  );
+
+  it('client fermé : une enveloppe ne passe plus, un maillon en vol ne livre ni n’envoie', async () => {
+    const enVol: (() => void)[] = [];
+    const differee = <T,>(valeur: T) => new Promise<T>((r) => { enVol.push(() => r(valeur)); });
+    const rg = new RoomGuest(BASE, 'ABC234', 'Anna', { ...ports, compression: {
+      comprimer: (texte) => differee(`z:${texte}`),
+      decomprimer: (b64) => differee(b64.slice(2)),
+    } });
+    const ws = FakeSocket.last!;
+    ws.open();
+    const got: string[] = [];
+    const seated = vi.fn();
+    rg.onMessage((d) => got.push(d));
+    rg.onSeated = seated;
+    ws.receive(JSON.stringify({ z: 'z:EN VOL' }));
+    rg.send('x'.repeat(5000));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(enVol).toHaveLength(2);
+    rg.close();
+    const envoyes = ws.sent.length;
+    for (const reprendre of enVol) reprendre();
+    ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'TARD' }));
+    ws.receive(JSON.stringify({ data: 'TARD' }));
+    await rg.idle();
+    expect(got).toEqual([]);
+    expect(seated).not.toHaveBeenCalled();
+    expect(ws.sent).toHaveLength(envoyes);
   });
 });

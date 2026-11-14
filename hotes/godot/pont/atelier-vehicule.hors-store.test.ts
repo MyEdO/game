@@ -8,7 +8,7 @@ import { erreurDe, modelesCommites, servirLesModeles, suiteDe, table } from './p
 import type { VehiculeDeLAtelier } from './pont';
 import { findCouleurById } from '../../../src/noyau/index';
 
-const COMMITES = modelesCommites();
+const COMMITES = await modelesCommites();
 
 describe('le véhicule de l’atelier (`vehicule`)', () => {
   const atelier = table().appel;
@@ -70,7 +70,7 @@ describe('le véhicule de l’atelier (`vehicule`)', () => {
   });
 
   it('un engin porte la table rôle → clip de son élément', () => {
-    expect(reponse({ definition: 'canon-moyen' }).vehicule.clips).toEqual({ idle: 'repos', walk: 'marche', ranged: 'tir' });
+    expect(reponse({ definition: 'canon-moyen' }).vehicule.clips).toEqual({ repos: 'repos', marche: 'marche', tir: 'tir' });
   });
 
     it('la palette et l’emblème de son apparence', () => {

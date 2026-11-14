@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MSRC 7 */
 import { z } from 'zod';
-import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
+import { document, tableTiree } from '../grammaire/document';
 import { difficultySchema, plageSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
 
 export const file = 'river-navigation.json';
@@ -14,17 +14,17 @@ const bandRow = nommerChamps(z.strictObject({ ...plageSchema.shape, id: z.string
 
 /** `RiverWindEffect` (`src/engine/riverNavigation.ts`). */
 const riverWindEffect = nommerChamps(z.strictObject({
-  pct: z.number().optional(),
-  drift: z.boolean().optional(),
-  tack: z.boolean().optional(),
-  capsizeRisk: z.boolean().optional(),
-  riggingRisk: z.boolean().optional(),
+  pourcentage: z.number().optional(),
+  derive: z.boolean().optional(),
+  louvoyage: z.boolean().optional(),
+  risqueDeChavirage: z.boolean().optional(),
+  risqueDeGreement: z.boolean().optional(),
 }), {
-  pct: { label: 'Pourcentage' },
-  drift: { label: 'Dérive' },
-  tack: { label: 'Louvoyage' },
-  capsizeRisk: { label: 'Risque de chavirage' },
-  riggingRisk: { label: 'Risque pour le gréement' },
+  pourcentage: { label: 'Pourcentage' },
+  derive: { label: 'Dérive' },
+  louvoyage: { label: 'Louvoyage' },
+  risqueDeChavirage: { label: 'Risque de chavirage' },
+  risqueDeGreement: { label: 'Risque pour le gréement' },
 });
 
 const champs = {
@@ -51,17 +51,17 @@ const champs = {
     rightCumulativePenalty: { label: 'Pénalité cumulative de redressement' },
     source: { label: 'Source' },
   }),
-  outOfControl: nommerChamps(z.strictObject({ navPenalty: z.number(), source: sourceRefSchema }), { navPenalty: { label: 'Pénalité de Navigation' }, source: { label: 'Source' } }),
+  horsDeControle: nommerChamps(z.strictObject({ navPenalty: z.number(), source: sourceRefSchema }), { navPenalty: { label: 'Pénalité de Navigation' }, source: { label: 'Source' } }),
   echouage: nommerChamps(z.strictObject({ hullDamage: z.number(), source: sourceRefSchema }), { hullDamage: { label: 'Dégâts de coque' }, source: { label: 'Source' } }),
   temporaryRepair: nommerChamps(z.strictObject({
-    difficulty: difficultySchema,
-    charpentierPenalty: z.number(),
     woundsPerRepair: tirageSchema,
+    enduranceDifficulty: difficultySchema,
+    failDamage: tirageSchema,
     source: sourceRefSchema,
   }), {
-    difficulty: { label: 'Difficulté' },
-    charpentierPenalty: { label: 'Pénalité de Charpentier' },
     woundsPerRepair: { label: 'Blessures par réparation' },
+    enduranceDifficulty: { label: 'Difficulté du Test d’Endurance' },
+    failDamage: { label: 'Dégâts à l’échec' },
     source: { label: 'Source' },
   }),
 };
@@ -85,14 +85,13 @@ const doc = document(
     tackDifficulty: { label: 'Difficulté du louvoyage', hint: 'Difficulté du Test pour louvoyer contre le vent' },
     savoirVoiesFluvialesDR: { label: 'DR Savoir (Voies fluviales)', hint: 'Bonus de DR apporté par cette spécialisation' },
     capsize: { label: 'Chavirage', hint: 'Difficultés d’amener la voile et de redresser, pénalité cumulative' },
-    outOfControl: { label: 'Hors de contrôle', hint: 'Malus au Test de Navigation quand le bateau est hors de contrôle' },
+    horsDeControle: { label: 'Hors de contrôle', hint: 'Malus au Test de Navigation quand le bateau est hors de contrôle' },
     echouage: { label: 'Échouage', hint: 'Dégâts de coque infligés par un échouage' },
-    temporaryRepair: { label: 'Réparation temporaire', hint: 'Difficulté, malus de Charpentier, Blessures réparées par Test' },
+    temporaryRepair: { label: 'Réparation temporaire', hint: 'Blessures réparées par Test, Test d’Endurance de suivi' },
   },
-  { codex: { keys: ['riverNavigation'] }, edit: { object: 'single' } },
+  { codex: { keys: ['riverNavigation'] }, edit: { object: 'unique' } },
 );
 
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-export type RiverNavigationData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

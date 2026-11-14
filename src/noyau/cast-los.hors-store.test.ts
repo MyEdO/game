@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castSpell, overcastTargetCandidates, castOutOfSightTargetIds } from './combatFlow';
 import { ciblesHorsDeVue } from './targetingModes';
-import { pregen, PREGEN, makePregens } from '../data/pregens';
+import { herosDeScenario, tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
@@ -21,7 +21,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function wiz() {
-  const w = pregen(idsDeTest, PREGEN.sorcier);
+  const w = herosDeScenario(idsDeTest, 'sorcier');
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   w.spells = ['explosion', 'carreau', ...(w.spells ?? [])];
@@ -45,7 +45,7 @@ function setup() {
   const hidden = spawnEnemy({ ref: 'humain' }, 'e-cache', { x: 16, y: 4 });
   const battle = {
     combatants: [w, seen, hidden], order: [w.id, 'e-vu', 'e-cache'], baseOrder: [w.id, 'e-vu', 'e-cache'],
-    turn: 0, round: 1, action: 'cast', selectedSpellId: 'carreau', reachable: new Map(),
+    turn: 0, round: 1, action: 'incantation', selectedSpellId: 'carreau', reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as never;
   banc.setState({ battle, scene: wallScene(), party: [] });
@@ -75,7 +75,7 @@ describe('castSpell — Ligne de Vue (LDB 46 l.121)', () => {
 
   it('cibler un ALLIÉ derrière un mur → refusé aussi (le gate ignore l’équipe — buffs compris)', () => {
     const { w } = setup();
-    const ally = makePregens(idsDeTest).find((h) => h.id !== w.id)!;
+    const ally = tousLesHerosDeScenario(idsDeTest).find((h) => h.id !== w.id)!;
     ally.pos = { x: 16, y: 4 }; // derrière le mur
     const b = banc.getState().battle!;
     banc.setState({ battle: { ...b, combatants: [...b.combatants, ally] } });
@@ -111,7 +111,7 @@ describe('ZdE « jet puis pose » — LdV vers la case centre À LA POSE', () =>
     const pc = banc.getState().pendingCast!;
     expect(pc.zone).toMatchObject({ center: null });
     banc.setState({ pendingCast: { ...pc, result: { cast: true, roll: 11, target: 70, sl: 4, isCritical: false, isFumble: false, log: 'lancé' } as never } });
-    banc.getState().jetRegler('cast', 'carte', 'zone');
+    banc.getState().jetRegler('incantation', 'carte', 'zone');
     banc.getState().cliquerLaCase({ x: 16, y: 4 }); // centre masqué par le mur
     expect(banc.getState().journal.join('\n')).toMatch(/pas de ligne de vue/i);
     expect(banc.getState().pendingCast?.zone?.placing).toBe(true); // la pose continue
@@ -143,7 +143,7 @@ describe('castOutOfSightTargetIds — grisage du mode incantation', () => {
 });
 
 describe('ciblesHorsDeVue — le grisage que lit le survol', () => {
-  const ARC = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] } as never;
+  const ARC = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] } as never;
   /** Le combat de `setup`, en mode combat, avec `battle` et les armes de la lanceuse surchargées. */
   function poser(battle: Record<string, unknown>, armes?: 'arc') {
     const { w } = setup();
@@ -157,17 +157,17 @@ describe('ciblesHorsDeVue — le grisage que lit le survol', () => {
     poser({});
     banc.setState({ mode: 'exploration' });
     expect(ids()).toEqual([]);
-    poser({ over: 'victory' });
+    poser({ over: 'victoire' });
     expect(ids()).toEqual([]);
   });
 
   it('Incantation armée avec un sort → grisage du SORT, sans arme à distance', () => {
-    poser({ action: 'cast', selectedSpellId: 'carreau' });
+    poser({ action: 'incantation', selectedSpellId: 'carreau' });
     expect(ids()).toEqual(['e-cache']);
   });
 
   it('Incantation armée sans sort → verrou → vide', () => {
-    poser({ action: 'cast', selectedSpellId: null }, 'arc');
+    poser({ action: 'incantation', selectedSpellId: null }, 'arc');
     expect(ids()).toEqual([]);
   });
 

@@ -67,9 +67,9 @@ function entrees(corps) {
  *  - IDENTIFIANT NU (`axes: allAxes`, `cargoes: CARGO_ENTRIES as CargoEntry[]`) → cet identifiant,
  *    c'est lui que les modules importent ;
  *  - MEMBRE (`shipHullSizes: shipConstruction.standard`) → l'objet PORTEUR, vivant et importable ;
- *  - APPEL (`miscastMinor: rangeesDe<…>(miscastRawJson, 'miscast-mineure')`) → la CLÉ. Aucun binding n'existe sous
+ *  - APPEL (`imparfaiteMineure: rangeesDe<…>(miscastRawJson, 'miscast-mineure')`) → la CLÉ. Aucun binding n'existe sous
  *    le nom de la fabrique : la retenir posait un nom FANTÔME que personne n'importe, pendant que le
- *    nom réellement exporté du dataset (`miscastMinor`) sortait du vocabulaire des deux gardes.
+ *    nom réellement exporté du dataset (`imparfaiteMineure`) sortait du vocabulaire des deux gardes.
  */
 function bindingSurveille(cle, valeur) {
   const nu = valeur.match(/^([A-Za-z_$][\w$]*)\s*(?:!)?\s*(?:as\s[\s\S]*)?$/);
@@ -132,7 +132,7 @@ export function documentsDesRacinesVivantes() {
  *  seam :
  *   - l'IMPORT JSON DIRECT (`import vehiclesJson from '../data/vehicles.json'`) d'un document qui porte
  *     une clé de dataset (`documentsDesRacinesVivantes`) — le document importé EST la racine vivante
- *     que le seam mute, quel que soit le nom de sa clé (`miscast.json` porte `miscastMinor`…). Le nom
+ *     que le seam mute, quel que soit le nom de sa clé (`miscast.json` porte `imparfaiteMineure`…). Le nom
  *     local désigne alors le DOCUMENT (`'vehicles.json'`), jamais une clé devinée du nom de fichier ;
  *   - l'ALIAS NU de niveau module (`const VEHICLES_LIST = vehiclesJson as VehicleData[]`,
  *     `export const IMPERIAL_MONTHS: ImperialMonth[] = calendarMonths`) — il ne copie rien, il donne

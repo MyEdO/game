@@ -3,67 +3,50 @@
  * mini-radar par personnage, le rail de composition du groupe (#417) et les « rôles » en toutes
  * lettres des cartes (`heroRoles`, réconcilié sur `dominantAxes`).
  *
- * Formule de normalisation (MAISON — aucune règle RAW ne stat un axe de forces, cf. `axes.json`
- * `source:'maison'`) — 2e reprise 2026-07-14 (réfutation utilisateur du plancher par Caractéristiques
- * NUES : « Comment Wilhelmina Faust peut être taggée Soins alors qu'elle n'a aucune compétence, sort
- * ou talent dans la matière ? » — un plancher purement caractéristique attribue une CAPACITÉ à qui n'a
- * que l'APTITUDE, ce que le RAW interdit pour les Compétences Avancées). Le RAW tranche déjà entre les
- * deux (`docs/raw/4e/competences.md` § Compétences de Base vs Avancées) :
- *   « Les Compétences de Base peuvent faire l'objet d'un Test même si vous n'y avez pas mis
- *   d'Augmentation. Pour cela, tentez simplement un Test utilisant la Caractéristique associée. »
- *   — LDB 09 l.25
- *   « Vous ne pouvez effectuer de Test de Compétence Avancée que si vous y avez ajouté au moins une
- *   Augmentation. Si ce n'est pas le cas, vous ne pouvez pas tenter le Test de Compétence. »
- *   — LDB 09 l.30
+ * Formule (MAISON — aucune règle RAW ne stat un axe de forces, cf. `axes.json` `source:'maison'`) —
+ * 4e reprise (#3884) sur la réfutation utilisateur 2026-07-14 : « Comment Wilhelmina Faust peut être
+ * taggée Soins alors qu'elle n'a aucune compétence, sort ou talent dans la matière ? ». Une FORCE est
+ * un INVESTISSEMENT (Augmentations de Compétence, Talent de l'axe), jamais une aptitude : la
+ * Caractéristique ne fait que PONDÉRER l'investissement, elle ne le remplace pas (même une Compétence
+ * de Base, testable non formée — LDB 09 l.25 —, ne fait pas une force sans Augmentation).
  *
  *   `score = clamp01( skillPart + talentPart × TALENT_BONUS_WEIGHT )`
- *   - skillPart = la MEILLEURE (`Math.max`, un pic de spécialisation) valeur normalisée parmi les
- *     `skills` GATÉES par `possesses` (`skills.ts` — SOURCE UNIQUE de la distinction
- *     Base/Avancée, réutilisée telle quelle, jamais réimplémentée) : Compétence de Base → toujours
- *     testable (Caractéristique nue + avances éventuelles) ; Compétence Avancée SANS Augmentation →
- *     EXCLUE (contribution 0, jamais un repli sur la Caractéristique). La valeur RETENUE est
- *     `skillBaseValue` (`skills.ts` — Caractéristique EFFECTIVE + avances, SOURCE UNIQUE partagée avec
- *     la valeur de Test réelle), normalisée `(valeur − SKILL_VALUE_MIN) / SKILL_VALUE_SPAN` clampé 0..1.
- *     Repères calibrés sur les pré-tirés réels (#409) : les Tests WFRP4 en début de jeu vivent ~15
- *     (Caractéristique faible non formée) à ~70 (Caractéristique forte + belle formation) —
- *     `SKILL_VALUE_MIN = 15`, `SKILL_VALUE_SPAN = 55`.
- *   - talentPart = la meilleure contribution parmi les `talents` matchés (formule inchangée :
- *     `TALENT_BASE + TALENT_STEP × (times − 1)` plafonné 1 — un Talent est binaire, jamais « à moitié
- *     possédé », aucune ambiguïté Base/Avancée à trancher). `TALENT_BONUS_WEIGHT = 0.3` : le Talent
- *     BONIFIE le score de compétence, il ne le remplace jamais (un axe SANS compétence possédée et
- *     SANS Talent reste à 0 — « un axe expert s'allume avec la formation », jamais compensé).
+ *   - skillPart = le MEILLEUR (`Math.max`, un pic de spécialisation) `investissement × pondérateur`
+ *     parmi les `skills` de l'axe : investissement = `min(1, Augmentations / ADVANCES_PLEIN)` (0 sans
+ *     Augmentation) ; pondérateur = `CHAR_WEIGHT_MIN + (1 − CHAR_WEIGHT_MIN) × Caractéristique
+ *     normalisée` (`(Caractéristique EFFECTIVE − CHAR_MIN) / CHAR_SPAN` clampé 0..1, `skillBaseValue`
+ *     moins les Augmentations, SOURCE UNIQUE partagée avec la valeur de Test réelle). Propriété :
+ *     sans Augmentation, skillPart = 0 quelle que soit la Caractéristique.
+ *   - talentPart = la meilleure contribution parmi les `talents` matchés (`TALENT_BASE + TALENT_STEP ×
+ *     (times − 1)` plafonné 1). `TALENT_BONUS_WEIGHT = 0.3` : le Talent BONIFIE, il ne qualifie pas seul
+ *     (0.3 < `AXIS_QUALIFY_MIN`).
  *
- * `axisScore` reste NON durci (`possesses` — LDB 09 l.25 — les Compétences de Base se testent non
- * formées, c'est légitime). Le score BRUT d'une Compétence de Base nue (Caractéristique moyenne, zéro
- * avance) atterrit néanmoins dans une zone basse-mais-non-nulle (~0.25-0.45 sur les pré-tirés réels) :
- * suffisant pour un TEST, pas pour une FORCE affichée. `AXIS_QUALIFY_MIN` (3e reprise 2026-07-15, #417)
- * sépare les deux lectures : `dominantAxes`/`partyCoverage` (vitrines « forces marquées ») EXIGENT ce
- * plancher de QUALIFICATION en plus du tri décroissant — `axisScore` seul (jets, calculs internes)
- * reste inchangé. Calibré sur Wilhelmina Faust (`PREGEN.sorcier`) : Mêlée/Discrétion (Caractéristiques
- * nues, aucune avance) tombent à 0.44/0.25 — sous le seuil, écartées des « forces » — tandis que
- * Social/Savoir/Négoce (avances réelles) dépassent 0.49 et restent.
+ * `AXIS_QUALIFY_MIN` : plancher de QUALIFICATION d'une « force marquée » (`dominantAxes`/
+ * `partyCoverage`). Propriété : tout porteur sans Augmentation sur les Compétences de l'axe score au plus
+ * `TALENT_BONUS_WEIGHT`, donc sous le seuil.
  */
 import type { Combatant } from './types';
 import { skillBaseValue } from './skills';
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
-import { possesses } from './skills';
 import type { AxisData } from '../data';
 import { effectiveTalents } from './talentEffects';
 
-const SKILL_VALUE_MIN = 15;
-const SKILL_VALUE_SPAN = 55;
+const ADVANCES_PLEIN = 8;
+const CHAR_MIN = 15;
+const CHAR_SPAN = 55;
+const CHAR_WEIGHT_MIN = 0.75;
 const TALENT_BASE = 0.5;
 const TALENT_STEP = 0.1;
 const TALENT_BONUS_WEIGHT = 0.3;
 
 /** Plancher de QUALIFICATION d'un axe comme « force marquée » (vitrines `dominantAxes`/
- *  `partyCoverage` uniquement — `axisScore` brut reste non durci, cf. tête de fichier). */
+ *  `partyCoverage`), cf. tête de fichier. */
 export const AXIS_QUALIFY_MIN = 0.45;
 
 function skillContribution(hero: Combatant, ref: RefDesignee): number {
-  if (!possesses(hero, ref)) return 0;
-  const value = skillBaseValue(hero, { skill: ref });
-  return Math.max(0, Math.min(1, (value - SKILL_VALUE_MIN) / SKILL_VALUE_SPAN));
+  const advances = hero.skills.find((s) => refCouvre(ref, s))?.advances ?? 0;
+  const char = Math.max(0, Math.min(1, (skillBaseValue(hero, { skill: ref }) - advances - CHAR_MIN) / CHAR_SPAN));
+  return Math.min(1, advances / ADVANCES_PLEIN) * (CHAR_WEIGHT_MIN + (1 - CHAR_WEIGHT_MIN) * char);
 }
 
 function talentContribution(hero: Combatant, ref: RefDesignee): number {

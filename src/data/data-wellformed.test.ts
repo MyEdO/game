@@ -15,7 +15,7 @@
  *  6. FLOW PUR       — chaque `TriggeredEffect.flow` (champs `TriggeredEffect[]` du catalogue, extraits
  *                      par regex de `data/index.ts` — JAMAIS une liste de fichiers à la main) ne porte pas
  *                      une op IMPURE errante (`interruptFocus`/`breakBlade`/`delayed`, op de navire) HORS branche
- *                      `success`/`fail` d'un `test` (`flowHasImpureOpOutsideTest`, engine/flowCore) : ces
+ *                      `reussite`/`echec` d'un `test` (`flowHasImpureOpOutsideTest`, engine/flowCore) : ces
  *                      ops n'ont de hook que dans le do-loop de `runCombatFlow` avec son contexte de
  *                      branche — ailleurs, le walker pur `runPureFlowLines` (noyau/combat/flowEval) les
  *                      avalerait en silence. `grantFreeAttack` top-level reste légitime (résolu par
@@ -81,7 +81,7 @@ const FORMULA_FIELDS = [
  *  - `traits.json` : `$arg` (arg d'instance, « Venin (Difficile) ») ET `$indice` — un Trait porte les deux.
  *  - `qualities.json` : `$indice` SEUL. La branche QUALITÉ d'`effectSourcesOf` appelle `withArg(effects,
  *    undefined, indice)` : une qualité n'a pas d'arg, et un `$arg` y serait DROPPÉ en silence (`substOp`
- *    rend l'op inerte, le coût d'un `choice` resterait template → nœud non offert).
+ *    rend l'op inerte, le coût d'un `choix` resterait template → nœud non offert).
  *  Ailleurs = bug.
  *  PÉRIMÈTRE DÉCLARÉ : la porte est le FICHIER + le chemin `effects`, pas le champ ; un template posé sous
  *  un autre champ d'`effects` de ces deux fichiers passerait ici et serait DROPPÉ au runtime, pas détecté. */
@@ -122,7 +122,7 @@ function walk(node: unknown, file: string, path: string, scan: Scan): void {
     if (typeof v === 'string' && v.startsWith('$') && !isTemplate(v, file, `${path}.${k}`))
       scan.badPlaceholders.push({ file, path: `${path}.${k}`, detail: `placeholder $… non substitué : ${JSON.stringify(v)}` });
     // (6) flow pur — un champ `TriggeredEffect[]` du catalogue (effects/onHitEffects…) ne porte pas de
-    // op IMPURE errante hors branche success/fail de test (cf. en-tête).
+    // op IMPURE errante hors branche reussite/echec de test (cf. en-tête).
     if (TRIGGERED_EFFECT_FIELDS.has(k) && Array.isArray(v)) {
       v.forEach((te, i) => {
         if (te && typeof te === 'object' && 'flow' in te) {
@@ -166,7 +166,7 @@ describe('Intégrité des données src/data/*.json', () => {
   it("4bis — le périmètre de template est PAR FICHIER : `$arg` dans une qualité est un placeholder (contre-épreuve)", () => {
     const probe = (file: string, gabarit: string) => {
       const s: Scan = { parseErrors: [], unknownOps: [], badFormulas: [], badPlaceholders: [], strayImpureOps: [], strayFreeAttacks: [] };
-      walk({ effects: [{ trigger: 'onCrit', on: 'victim', flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'a-terre', durationRounds: gabarit }] } } }] }, file, '', s);
+      walk({ effects: [{ trigger: 'onCrit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'a-terre' }, durationRounds: gabarit }] } } }] }, file, '', s);
       return s.badPlaceholders;
     };
     expect(probe('traits.json', '$arg'), 'un Trait porte un `$arg` : `withArg` le substitue.').toEqual([]);
@@ -191,7 +191,7 @@ describe('Intégrité des données src/data/*.json', () => {
   it("6ter bis — la porte lit le FICHIER : un grantFreeAttack dans une manœuvre est refusé, dans un talent non (contre-épreuve)", () => {
     const probe = (file: string) => {
       const s: Scan = { parseErrors: [], unknownOps: [], badFormulas: [], badPlaceholders: [], strayImpureOps: [], strayFreeAttacks: [] };
-      walk({ effects: [{ trigger: 'onHit', on: 'self', flow: { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'grantFreeAttack', when: 'immediate' }] } } }] }, file, '', s);
+      walk({ effects: [{ trigger: 'onHit', on: 'soi', flow: { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'grantFreeAttack', when: 'immediate' }] } } }] }, file, '', s);
       return s.strayFreeAttacks;
     };
     expect(probe('maneuvers.json')).toHaveLength(1);
@@ -223,7 +223,7 @@ describe('Intégrité des données src/data/*.json', () => {
  * L'Indice est le paramètre de l'effet authoré : `effectSourcesOf` passe `withArg(effects, undefined,
  * indice)`, et un `$indice` non substitué rend le nœud porteur inerte — le 2ᵉ Hémorragique de Taillade
  * n'est jamais offert (`AA 08 l.87`), en silence. Le silence RUNTIME reste la 2ᵉ ligne
- * (`noyau/combat/triggeredTest.ts::resolveFlowChoice`, coût resté template → branche `no`) ; ici, la
+ * (`noyau/combat/triggeredTest.ts::resolveFlowChoice`, coût resté template → branche `non`) ; ici, la
  * donnée est refusée AVANT.
  *
  * RÈGLE UNIFORME, sans exception par id : la porte est « la qualité déclare `indice` », pas « la qualité
@@ -308,7 +308,7 @@ describe('États portés par un canal PASSIF — la fenêtre de Détermination e
         for (const ops of listes) {
           if (!Array.isArray(ops)) continue;
           for (const op of ops) {
-            if ((op as Record<string, unknown>)?.op === 'condition') porteurs.push({ file, id: id ?? '?', cond: String((op as Record<string, unknown>).id), window: (op as Record<string, unknown>).resolveWindow });
+            if ((op as Record<string, unknown>)?.op === 'condition') porteurs.push({ file, id: id ?? '?', cond: ((op as Record<string, unknown>).id as { id: string }).id, window: (op as Record<string, unknown>).resolveWindow });
           }
         }
       }
@@ -395,7 +395,7 @@ describe('terme `{rule}` d’une Formula — l’id résout dans le registre des
 });
 
 /** Une somme de Dégâts est UNE op `wounds` : scindée en ops sœurs de MÊME mitigation sur la même cible, chacune
- *  retrancherait BE et PA (LDB 85 l.447 ; #3060). Les branches d'un `if` sont exclusives. */
+ *  retrancherait BE et PA (LDB 85 l.447 ; #3060). Les branches d'un `si` sont exclusives. */
 describe('un Dégât = une op `wounds` par cible, mitigation et liste', () => {
   type Compte = Map<string, number>;
   const cle = (on: unknown, o: Record<string, unknown>): string => {
@@ -410,19 +410,19 @@ describe('un Dégât = une op `wounds` par cible, mitigation et liste', () => {
   };
   /** Les ops `wounds` qu'un nœud Flow joue au plus, par cible et mitigation. */
   const compte = (n: unknown): Compte => {
-    const f = n as { kind?: string; effect?: { type?: string; on?: unknown; ops?: Record<string, unknown>[] }; steps?: unknown[]; then?: unknown; else?: unknown };
-    if (f?.kind === 'do' && f.effect?.type === 'ops') {
-      return (f.effect.ops ?? []).filter((o) => o?.op === 'wounds').reduce<Compte>((m, o) => fusion(m, new Map([[cle(f.effect!.on, o), 1]]), (x, y) => x + y), new Map());
+    const f = n as { kind?: string; effet?: { type?: string; on?: unknown; ops?: Record<string, unknown>[] }; etapes?: unknown[]; alors?: unknown; sinon?: unknown };
+    if (f?.kind === 'effet' && f.effet?.type === 'ops') {
+      return (f.effet.ops ?? []).filter((o) => o?.op === 'wounds').reduce<Compte>((m, o) => fusion(m, new Map([[cle(f.effet!.on, o), 1]]), (x, y) => x + y), new Map());
     }
-    if (f?.kind === 'seq') return (f.steps ?? []).reduce<Compte>((m, s) => fusion(m, compte(s), (x, y) => x + y), new Map());
-    if (f?.kind === 'if') return fusion(compte(f.then), f.else ? compte(f.else) : new Map(), Math.max);
+    if (f?.kind === 'sequence') return (f.etapes ?? []).reduce<Compte>((m, s) => fusion(m, compte(s), (x, y) => x + y), new Map());
+    if (f?.kind === 'si') return fusion(compte(f.alors), f.sinon ? compte(f.sinon) : new Map(), Math.max);
     return new Map();
   };
   const scindes = (n: unknown, file: string, path = ''): string[] => {
     if (Array.isArray(n)) return n.flatMap((v, i) => scindes(v, file, `${path}[${i}]`));
     if (!n || typeof n !== 'object') return [];
     const o = n as Record<string, unknown>;
-    const ici = (o.kind === 'do' || o.kind === 'seq') && [...compte(o).values()].some((k) => k > 1) ? [`${file}${path}`] : [];
+    const ici = (o.kind === 'effet' || o.kind === 'sequence') && [...compte(o).values()].some((k) => k > 1) ? [`${file}${path}`] : [];
     return [...ici, ...Object.entries(o).flatMap(([k, v]) => scindes(v, file, `${path}.${k}`))];
   };
 
@@ -430,12 +430,12 @@ describe('un Dégât = une op `wounds` par cible, mitigation et liste', () => {
     expect(files.flatMap((f) => scindes(JSON.parse(readFileSync(join(DIR, f), 'utf8')), f))).toEqual([]);
   });
   it('contre-épreuve : le scan voit une somme scindée, même sous un `if` ; pas deux cibles, deux mitigations ni deux branches', () => {
-    const pas = (on: string, w: Record<string, unknown> = {}) => ({ kind: 'do', effect: { type: 'ops', on, ops: [{ op: 'wounds', amount: 4, ...w }] } });
+    const pas = (on: string, w: Record<string, unknown> = {}) => ({ kind: 'effet', effet: { type: 'ops', on, ops: [{ op: 'wounds', amount: 4, ...w }] } });
     const cond = { kind: 'always' };
-    expect(scindes({ kind: 'seq', steps: [pas('target'), pas('target')] }, 'fixture')).toEqual(['fixture']);
-    expect(scindes({ kind: 'seq', steps: [pas('target'), { kind: 'if', cond, then: pas('target') }] }, 'fixture')).toEqual(['fixture']);
-    expect(scindes({ kind: 'seq', steps: [pas('target'), pas('caster')] }, 'fixture')).toEqual([]);
-    expect(scindes({ kind: 'seq', steps: [pas('target'), pas('target', { ignoreAP: true })] }, 'fixture')).toEqual([]);
-    expect(scindes({ kind: 'if', cond, then: pas('target'), else: pas('target') }, 'fixture')).toEqual([]);
+    expect(scindes({ kind: 'sequence', etapes: [pas('target'), pas('target')] }, 'fixture')).toEqual(['fixture']);
+    expect(scindes({ kind: 'sequence', etapes: [pas('target'), { kind: 'si', condition: cond, alors: pas('target') }] }, 'fixture')).toEqual(['fixture']);
+    expect(scindes({ kind: 'sequence', etapes: [pas('target'), pas('caster')] }, 'fixture')).toEqual([]);
+    expect(scindes({ kind: 'sequence', etapes: [pas('target'), pas('target', { ignoreAP: true })] }, 'fixture')).toEqual([]);
+    expect(scindes({ kind: 'si', condition: cond, alors: pas('target'), sinon: pas('target') }, 'fixture')).toEqual([]);
   });
 });

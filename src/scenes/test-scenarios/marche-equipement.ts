@@ -97,7 +97,7 @@ const construireScene = (): Scene => buildScene({
           id: 'accueil',
           desc: 'Bonjour, voyageur. Cherchez-vous des remèdes… ou seulement à bavarder ?',
           choices: [
-            { id: 'montrez-moi-marchandises', label: 'Montrez-moi vos marchandises.', flow: flowFromEffects([{ type: 'openMerchant', entityId: 'herboriste' }]) },
+            { id: 'montrez-moi-marchandises', label: 'Montrez-moi vos marchandises.', flow: flowFromEffects([{ type: 'openMerchant', entityId: { id: 'herboriste' } }]) },
             { id: 'autre-fois-partir', label: 'Une autre fois. (Partir)' },
           ],
         },
@@ -128,7 +128,7 @@ export const scenario: TestScenario = {
   id: 'marche-equipement',
   order: 7,
   category: 'marche',
-  icon: 'scenario/market',
+  icon: 'scenario/marche',
   title: 'Marché & équipement',
   tests:
     'Acheter/Vendre + Marchander (Test opposé −10/−20/−30 %) + Évaluer (révèle la qualité cachée) + Réparer (10 %/PA) ; ' +
@@ -138,9 +138,9 @@ export const scenario: TestScenario = {
     'd’armure souple/Flexible/rigide avec échange auto, cape cosmétique, 2 sets d’armes) ; Troc (onglet du ' +
     'panneau marchand : ratio de Disponibilité, échange objet↔objet sans argent) ; Aubergiste → jeux de taverne ' +
     // NADJ 16
-    '(Effet openTavernGames, option `tavern-games` pré-activée).',
+    '(Effet openTavernGames, option `jeux-de-taverne` pré-activée).',
   partyNote: 'Négociant (épée non identifiée + maille endommagée + dague) + Maître d’armes (sac garni)',
   // Jeux de taverne pré-activés (NADJ 16) — modifiable au panneau Règles maison, comme le Voyage par Étapes.
-  rules: { 'tavern-games': true },
+  rules: { 'jeux-de-taverne': true },
   construire: (idNeuf) => ({ party: [negociant(idNeuf), maitreArmes(idNeuf)], scene: construireScene() }),
 };

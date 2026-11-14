@@ -5,5 +5,6 @@ export const sound: SoundDef = {
   id: 'gong-victoire',
   label: 'Gong de victoire',
   files: ['gong-victoire.ogg'],
+  canal: 'interface',
   volume: 0.9,
 };

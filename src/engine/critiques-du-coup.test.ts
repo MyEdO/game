@@ -7,7 +7,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 // #1595 c.6220635824, c.6221792068, c.6219992594 — le compte des Blessures critiques d'un coup.
 
 const porteur = (p: Partial<Combatant>): Combatant =>
-  (blessuresSurLeProfil({ id: 'c', label: 'Cible', kind: 'enemy', important: true, conditions: [], talents: [], skills: [], characteristics: { endurance: 30, force: 30, agilite: 30, initiative: 30, 'force-mentale': 30 }, wounds: blessuresDeBase(10), ...p }) as unknown as Combatant);
+  (blessuresSurLeProfil({ id: 'c', label: 'Cible', kind: 'ennemi', important: true, conditions: [], talents: [], skills: [], characteristics: { endurance: 30, force: 30, agilite: 30, initiative: 30, 'force-mentale': 30 }, wounds: blessuresDeBase(10), ...p }) as unknown as Combatant);
 
 const personnage = porteur({});
 const figurant = porteur({ important: false });
@@ -24,7 +24,7 @@ const compte = (
   return critiquesDuCoup(c, { ...ne, touche: coup.touche ?? true, relance: relanceLaLocalisation(c, ne, jeu), blessures: coup.lost }, jeu);
 };
 
-afterEach(() => { resetRule('combat-sudden-death'); });
+afterEach(() => { resetRule('combat-mort-subite'); });
 
 describe('porteurDeCritique — classifieur TOTAL', () => {
   it.each([
@@ -165,7 +165,7 @@ describe('critiquesDuCoup — Mort subite (LDB 18 l.44, l.46 ; AA 07 l.65, l.67 
     expect(compte(figurant, 'aa', { cc: 'double', current: 3, lost: 5 })).toEqual({ critiques: [], mortSubite: false, relance: false, blessures: 5 });
   });
   it('règle off : le figurant reçoit ses Critiques', () => {
-    setRule('combat-sudden-death', 'off');
+    setRule('combat-mort-subite', 'off');
     expect(compte(figurant, 'ldb', { cc: 'double', current: 3, lost: 5 }).critiques).toHaveLength(2);
   });
 });

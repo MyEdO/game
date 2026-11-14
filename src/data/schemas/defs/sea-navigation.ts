@@ -2,7 +2,8 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 13 l.39-351 */
 import { z } from 'zod';
 import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
-import { difficultySchema, ecartsDeCouverture, plageOuverteSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
+import { difficultySchema, ecartsDeCouverture, maisonSchema, plageOuverteSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
+import { ref } from '../grammaire/ref';
 import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 import { parseDice, totalDuDe } from '../../../engine/dice';
 
@@ -81,7 +82,7 @@ const champs = {
     source: sourceRefSchema,
     reperes: z.array(
       nommerChamps(tableRange.extend({
-        outcome: z.enum(['exact', 'ok', 'drift-minor', 'drift', 'drift-major']),
+        outcome: z.enum(['exact', 'correct', 'derive-mineure', 'derive', 'derive-majeure']),
         desc: z.string(),
         source: sourceRefSchema,
       }), {
@@ -91,8 +92,8 @@ const champs = {
         source: { label: 'Source' },
       }),
     ),
-    driftMajorBonus: z.number(),
-    driftSide: nommerChamps(z.strictObject({ tribordMax: z.number() }), { tribordMax: { label: 'Maximum vers tribord' } }),
+    bonusDeDeriveMajeure: z.number(),
+    coteDeLaDerive: nommerChamps(z.strictObject({ tribordMax: z.number() }), { tribordMax: { label: 'Maximum vers tribord' } }),
     /** MDG 13 l.326 */
     changementDeCap: tableTiree(
       nommerChamps(tableRange.extend({
@@ -114,8 +115,8 @@ const champs = {
     testsPerDay: { label: 'Tests par jour' },
     source: { label: 'Source' },
     reperes: { label: 'Repères' },
-    driftMajorBonus: { label: 'Bonus de dérive majeure' },
-    driftSide: { label: 'Côté de dérive' },
+    bonusDeDeriveMajeure: { label: 'Bonus de dérive majeure' },
+    coteDeLaDerive: { label: 'Côté de dérive' },
     changementDeCap: { label: 'Changement de cap' },
   }),
   phares: nommerChamps(z.strictObject({
@@ -138,11 +139,17 @@ const champs = {
     sansVoguerDeNuitDiviseur: z.number(),
     progressionPctParDR: z.number(),
     source: sourceRefSchema,
+    vivresDeCale: z.array(ref('trapping')).min(1),
+    tonneauDeCale: ref('trapping'),
+    maison: maisonSchema,
   }), {
     millesParJourParM: { label: 'Milles par jour et par point de Mouvement' },
     sansVoguerDeNuitDiviseur: { label: 'Diviseur sans navigation de nuit' },
     progressionPctParDR: { label: 'Progression par DR (%)' },
     source: { label: 'Source' },
+    vivresDeCale: { label: 'Vivres de la cale, dans l’ordre où l’équipage les mange', texte: { regime: 'technique' } },
+    tonneauDeCale: { label: 'Tonneau d’eau acheté pour la cale', texte: { regime: 'technique' } },
+    maison: { label: 'Arbitrage maison' },
   }),
   poursuite: nommerChamps(z.strictObject({
     distanceUnitM: z.number(),
@@ -157,43 +164,45 @@ const champs = {
     ),
     drDeltas: z.array(nommerChamps(tableRange.extend({ delta: z.number(), source: sourceRefSchema }), { ...metaDesChamps(tableRange, { exigees: true }), delta: { label: 'Variation' }, source: { label: 'Source' } })),
     lowMPenalty: z.array(nommerChamps(z.strictObject({ m: z.number(), dr: z.number(), source: sourceRefSchema }), { m: { label: 'Mouvement' }, dr: { label: 'Degrés de Réussite' }, source: { label: 'Source' } })),
+    voileSansProfil: z.number().int().min(1),
+    maison: maisonSchema,
   }), {
     distanceUnitM: { label: 'Unité de distance (m)' },
     source: { label: 'Source' },
     escapeDistances: { label: 'Distances d’échappement' },
     drDeltas: { label: 'Variations de DR' },
     lowMPenalty: { label: 'Pénalité de faible Mouvement' },
+    voileSansProfil: { label: 'Voile du Poursuivant sans profil' },
+    maison: { label: 'Arbitrage maison' },
   }),
   reparation: nommerChamps(z.strictObject({
     portCostGoldPerWound: z.number(),
     testHours: tirageSchema,
     woundsPerTest: tirageSchema,
-    charpentierPenalty: z.number(),
     lissageRepairSurcoutPct: z.number(),
     source: sourceRefSchema,
     temporaire: nommerChamps(z.strictObject({
-      difficultyMin: difficultySchema,
-      difficultyMax: difficultySchema,
-      hoursPerRepair: z.number(),
       woundsPerRepair: tirageSchema,
       failDamage: tirageSchema,
     }), {
-      difficultyMin: { label: 'Difficulté minimale' },
-      difficultyMax: { label: 'Difficulté maximale' },
-      hoursPerRepair: { label: 'Heures par réparation' },
       woundsPerRepair: { label: 'Blessures par réparation' },
       failDamage: { label: 'Dégâts à l’échec' },
     }),
     entretienCrewTestDR: z.number(),
+    constructeurLocal: z.number().int().min(1),
+    joursDePose: tirageSchema,
+    maison: maisonSchema,
   }), {
     portCostGoldPerWound: { label: 'Coût au port par Blessure (co)' },
     testHours: { label: 'Durée du Test (heures)' },
     woundsPerTest: { label: 'Blessures par Test' },
-    charpentierPenalty: { label: 'Pénalité de Charpentier' },
     lissageRepairSurcoutPct: { label: 'Surcoût de lissage (%)' },
     source: { label: 'Source' },
     temporaire: { label: 'Temporaire' },
     entretienCrewTestDR: { label: 'DR du Test d’entretien de l’équipage' },
+    constructeurLocal: { label: 'Métier (Constructeur de navires) du constructeur local' },
+    joursDePose: { label: 'Durée de pose d’une Amélioration (jours)' },
+    maison: { label: 'Arbitrage maison' },
   }),
 };
 
@@ -212,11 +221,11 @@ const doc = document(
     salissures: { label: 'Salissures de coque', hint: 'Paliers d’encrassement — pénalités de manœuvre/Navigation et coût de nettoyage' },
     orientation: { label: 'Orientation', hint: 'Repères de route et Changement de cap : issues par fourchette de DR' },
     phares: { label: 'Phares et clochers', hint: 'Portée de détection des phares, orientation par clocher' },
-    longsVoyages: { label: 'Longs voyages', hint: 'Milles par jour et par point de Mouvement, progression par DR' },
+    longsVoyages: { label: 'Longs voyages', hint: 'Milles par jour et par point de Mouvement, progression par DR, vivres et eau achetés pour la cale' },
     poursuite: { label: 'Course-poursuite', hint: "Distances d'échappement, delta de DR, pénalité à faible Mouvement" },
     reparation: { label: 'Réparations au port', hint: 'Coût, durée et rendement des réparations de coque, dont la réparation temporaire' },
   },
-  { codex: { keys: ['seaNavigation'] }, edit: { object: 'single' } },
+  { codex: { keys: ['seaNavigation'] }, edit: { object: 'unique' } },
   {
     // MDG 13 l.125, l.140 (vitesseMax) ; l.316, l.320 (reperes) ; l.320, l.326 (changementDeCap) ;
     // l.380, l.394 (drDeltas) ; l.343, l.345 (phares.voirLaLumiere) ; patron `structure-criticals.ts`.
@@ -231,7 +240,7 @@ const doc = document(
           [['orientation', 'reperes'], d.orientation?.reperes ?? [], 'ouverte', 'ouverte'],
           [['poursuite', 'drDeltas'], d.poursuite?.drDeltas ?? [], 'ouverte', 'ouverte'],
           [['phares', 'voirLaLumiere'], d.phares?.voirLaLumiere ?? [], 'ouverte', 15],
-          ...(cap && deDuCap ? [[['orientation', 'changementDeCap', 'entries'], cap.entries, totalDuDe(deDuCap, deDuCap.n), facesDuDe(deDuCap) + (d.orientation?.driftMajorBonus ?? 0)] as [string[], Bande[], number, number]] : []),
+          ...(cap && deDuCap ? [[['orientation', 'changementDeCap', 'entries'], cap.entries, totalDuDe(deDuCap, deDuCap.n), facesDuDe(deDuCap) + (d.orientation?.bonusDeDeriveMajeure ?? 0)] as [string[], Bande[], number, number]] : []),
         ];
         for (const [path, bandes, depuis, jusqua] of tables) {
           const ecarts = ecartsDeCouverture(bandes, depuis, jusqua, (b) => `la rangée n° ${bandes.indexOf(b) + 1}`);
@@ -250,4 +259,4 @@ const doc = document(
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-export type SeaNavigationData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;
+type SeaNavigationData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

@@ -11,7 +11,7 @@ import { t } from '../i18n';
 import { tilePreviewAt } from './targeting';
 import { flyReachable } from './monde/path';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 import { findSpellById } from '../data';
 import type { ActiveEffect, Combatant } from '../engine/types';
@@ -26,8 +26,8 @@ const arena = () => {
 
 /** Combat 2 héros + 2 ennemis, héros actif au centre. `over` patche le `battle`. */
 function combat(over: Record<string, unknown> = {}) {
-  const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
-  const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
+  const hero = tousLesHerosDeScenario(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
+  const ally = tousLesHerosDeScenario(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
   const e1 = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 6 }); // adjacent
   const e2 = spawnEnemy({ ref: 'humain' }, 'e2', { x: 8, y: 6 });
   const battle = {
@@ -50,47 +50,47 @@ describe('currentTargetingMode — aiguilleur unique', () => {
 
   it('mode NEUTRE → attaque', () => {
     combat();
-    expect(currentTargetingMode(banc.getState).id).toBe('attack');
+    expect(currentTargetingMode(banc.getState).id).toBe('attaque');
   });
   it('action=cast → mode cast', () => {
-    combat({ action: 'cast', selectedSpellId: 'carreau' });
-    expect(currentTargetingMode(banc.getState).id).toBe('cast');
+    combat({ action: 'incantation', selectedSpellId: 'carreau' });
+    expect(currentTargetingMode(banc.getState).id).toBe('incantation');
   });
   it('action=heal → mode soin', () => {
-    combat({ action: 'heal' });
-    expect(currentTargetingMode(banc.getState).id).toBe('heal');
+    combat({ action: 'soins' });
+    expect(currentTargetingMode(banc.getState).id).toBe('soins');
   });
   it('action=dispel → mode DISSIPATION (jamais l’attaque : le clic viserait le porteur pour le frapper)', () => {
-    combat({ action: 'dispel' });
-    expect(currentTargetingMode(banc.getState).id).toBe('dispel');
+    combat({ action: 'dissipation' });
+    expect(currentTargetingMode(banc.getState).id).toBe('dissipation');
   });
   it('action=battery → mode bordée', () => {
-    combat({ action: 'battery' });
-    expect(currentTargetingMode(banc.getState).id).toBe('battery');
+    combat({ action: 'bordee' });
+    expect(currentTargetingMode(banc.getState).id).toBe('bordee');
   });
   it('action=teleport → mode téléportation', () => {
-    combat({ action: 'teleport' });
-    expect(currentTargetingMode(banc.getState).id).toBe('teleport');
+    combat({ action: 'teleportation' });
+    expect(currentTargetingMode(banc.getState).id).toBe('teleportation');
   });
   it('pendingCleave → mode Frappe Mortelle (priorité maximale)', () => {
     combat();
     banc.setState({ pendingCleave: { attackerId: 'h1', hitIds: [], count: 0 } as never });
-    expect(currentTargetingMode(banc.getState).id).toBe('cleave');
+    expect(currentTargetingMode(banc.getState).id).toBe('frappeMortelle');
   });
   it('pendingDualStrike → mode 2ᵉ frappe', () => {
     combat();
     banc.setState({ pendingDualStrike: { attackerId: 'h1', offWeaponUid: 'x', jet: 1 } as never });
-    expect(currentTargetingMode(banc.getState).id).toBe('dual');
+    expect(currentTargetingMode(banc.getState).id).toBe('deuxArmes');
   });
   it('pendingCast.pickingTargets → mode Surincantation', () => {
     combat();
     banc.setState({ pendingCast: { casterId: 'h1', targetId: 'e1', spellId: 'carreau', missile: true, pickingTargets: true, result: { cast: true } } as never });
-    expect(currentTargetingMode(banc.getState).id).toBe('overcast');
+    expect(currentTargetingMode(banc.getState).id).toBe('surincantation');
   });
   it('pose de zone (pilonnage indirect) → mode placing-zone', () => {
     combat();
     banc.setState({ pendingSiegeAim: { gunnerId: 'h1', weaponUid: 'w', radius: 2, rangeTiles: 10 } as never });
-    expect(currentTargetingMode(banc.getState).id).toBe('placing-zone');
+    expect(currentTargetingMode(banc.getState).id).toBe('poseDeLaZone');
   });
 });
 
@@ -98,7 +98,7 @@ describe('candidates des modes à liste', () => {
   beforeEach(() => { banc.setState({ battle: null, party: [], pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null, pendingSiegeAim: null }); });
 
   it('soin : candidates = alliés que CE soigneur peut soigner (un allié blessé adjacent)', () => {
-    const { hero, ally } = combat({ action: 'heal' });
+    const { hero, ally } = combat({ action: 'soins' });
     ally.wounds.current = Math.max(0, ally.wounds.max - 4); // soignable
     hero.skills = [...hero.skills.filter((sk) => sk.id !== 'guerison'), { id: 'guerison', advances: 10, characteristic: 'intelligence' } as never];
     banc.setState({ battle: { ...banc.getState().battle! } });
@@ -108,7 +108,7 @@ describe('candidates des modes à liste', () => {
     expect(ids).not.toContain('e1'); // jamais un ennemi
   });
   it('soin : un soigneur sans Guérison ni Bandages n’a aucune candidate (LDB 09 ; LDB 74 l.41)', () => {
-    const { hero, ally } = combat({ action: 'heal' });
+    const { hero, ally } = combat({ action: 'soins' });
     ally.wounds.current = Math.max(0, ally.wounds.max - 4);
     hero.skills = hero.skills.filter((sk) => sk.id !== 'guerison');
     hero.items = hero.items?.filter((it) => it.trappingId !== 'bandages');
@@ -173,7 +173,7 @@ describe('TILE_MODES — garde structurelle : aperçu non-vide sur une tuile val
   beforeEach(() => { banc.setState({ battle: null, party: [], pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null, pendingSiegeAim: null }); });
 
   it('catalogue = teleport + push + placing-zone, chacun avec tileValidAt/commitTile/tilePreview', () => {
-    expect(TILE_MODES.map((m) => m.id).sort()).toEqual(['placing-zone', 'push', 'teleport']);
+    expect(TILE_MODES.map((m) => m.id).sort()).toEqual(['poseDeLaZone', 'poussee', 'teleportation']);
     for (const m of TILE_MODES) {
       expect(typeof m.tileValidAt).toBe('function');
       expect(typeof m.commitTile).toBe('function');
@@ -182,8 +182,8 @@ describe('TILE_MODES — garde structurelle : aperçu non-vide sur une tuile val
   });
 
   it('teleport : tilePreview non-vide (target + chemin depuis l’actif) sur une tuile de battle.reachable', () => {
-    const { hero } = combat({ action: 'teleport', reachable: new Map([['9,6', 0]]) });
-    const mode = TILE_MODES.find((m) => m.id === 'teleport')!;
+    const { hero } = combat({ action: 'teleportation', reachable: new Map([['9,6', 0]]) });
+    const mode = TILE_MODES.find((m) => m.id === 'teleportation')!;
     const pt = { x: 9, y: 6 };
     expect(mode.tileValidAt(banc.getState, hero, pt)).toBe(true);
     const pv = mode.tilePreview(banc.getState, hero, pt);
@@ -193,8 +193,8 @@ describe('TILE_MODES — garde structurelle : aperçu non-vide sur une tuile val
   });
 
   it('push : tilePreview non-vide et porte le COÛT de battle.reachable', () => {
-    const { hero } = combat({ action: 'push', reachable: new Map([['8,6', 2]]) });
-    const mode = TILE_MODES.find((m) => m.id === 'push')!;
+    const { hero } = combat({ action: 'poussee', reachable: new Map([['8,6', 2]]) });
+    const mode = TILE_MODES.find((m) => m.id === 'poussee')!;
     const pt = { x: 8, y: 6 };
     expect(mode.tileValidAt(banc.getState, hero, pt)).toBe(true);
     const pv = mode.tilePreview(banc.getState, hero, pt);
@@ -204,14 +204,14 @@ describe('TILE_MODES — garde structurelle : aperçu non-vide sur une tuile val
 
   it('placing-zone : tilePreview non-vide (au moins un libellé de badge)', () => {
     const { hero } = combat();
-    const mode = TILE_MODES.find((m) => m.id === 'placing-zone')!;
+    const mode = TILE_MODES.find((m) => m.id === 'poseDeLaZone')!;
     const pv = mode.tilePreview(banc.getState, hero, { x: 6, y: 7 });
     expect(pv).not.toBeNull();
     expect(pv!.label).toBeTruthy();
   });
 
   it('tilePreviewAt (sélecteur au survol, #198) : non-vide en mode PUSH sur une case atteignable, null en mode neutre (ATTACK n’a pas de tileValidAt)', () => {
-    combat({ action: 'push', reachable: new Map([['8,6', 1]]) });
+    combat({ action: 'poussee', reachable: new Map([['8,6', 1]]) });
     expect(tilePreviewAt(banc.getState, { x: 8, y: 6 })).not.toBeNull();
     combat({ action: null }); // mode neutre → attaque implicite, pas un mode-case
     expect(tilePreviewAt(banc.getState, { x: 7, y: 6 })).toBeNull();
@@ -219,31 +219,31 @@ describe('TILE_MODES — garde structurelle : aperçu non-vide sur une tuile val
 });
 
 /**
- * SORTIE de l'interlude `placing-zone` (#1411 P0-B) — UN mode, DEUX sources (sort de ZdE après jet,
- * pilonnage indirect de siège) : l'entrée du registre `place-zone-back` doit MORDRE pour les deux,
+ * SORTIE de l'interlude `poseDeLaZone` (#1411 P0-B) — UN mode, DEUX sources (sort de ZdE après jet,
+ * pilonnage indirect de siège) : l'entrée du registre `retour-zone` doit MORDRE pour les deux,
  * routée par `placingZoneOf` comme le commit l'est déjà (`commitPlacedZone`).
  */
-describe('interlude `placing-zone` — la sortie du registre MORD, par source', () => {
+describe('interlude `poseDeLaZone` — la sortie du registre MORD, par source', () => {
   beforeEach(() => { banc.setState({ battle: null, party: [], pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null, pendingSiegeAim: null }); });
 
   it('PILONNAGE : la sortie referme le placeur — le pending tombe et le mode avec lui', () => {
     combat({ selectedAttack: 'servir-mortier' });
     banc.setState({ pendingSiegeAim: { gunnerId: 'h1', weaponUid: 'w', radius: 2, rangeTiles: 10 } as never });
-    expect(currentTargetingMode(banc.getState).id).toBe('placing-zone');
-    banc.jouerLaCase('place-zone-back');
+    expect(currentTargetingMode(banc.getState).id).toBe('poseDeLaZone');
+    banc.jouerLaCase('retour-zone');
     expect(banc.getState().pendingSiegeAim, 'le placeur de siège doit être refermé').toBeNull();
     expect(banc.getState().battle!.selectedAttack, 'l’option « Servir … » se désarme avec lui').toBeUndefined();
-    expect(currentTargetingMode(banc.getState).id).not.toBe('placing-zone');
+    expect(currentTargetingMode(banc.getState).id).not.toBe('poseDeLaZone');
   });
 
   it('SORT de zone : la MÊME sortie revient à la modale — le jet posé n’est pas perdu', () => {
     combat();
     banc.setState({ pendingCast: { casterId: 'h1', spellId: 'carreau', result: { cast: true }, zone: { placing: true, radius: 2 } } as never });
-    expect(currentTargetingMode(banc.getState).id).toBe('placing-zone');
-    banc.jouerLaCase('place-zone-back');
+    expect(currentTargetingMode(banc.getState).id).toBe('poseDeLaZone');
+    banc.jouerLaCase('retour-zone');
     expect(banc.getState().pendingCast, 'le sort JETÉ survit : on revient à sa modale').not.toBeNull();
     expect(banc.getState().pendingCast!.zone!.placing).toBe(false);
-    expect(currentTargetingMode(banc.getState).id).not.toBe('placing-zone');
+    expect(currentTargetingMode(banc.getState).id).not.toBe('poseDeLaZone');
   });
 });
 
@@ -266,7 +266,7 @@ describe('téléportation — les cases se lisent à la clé de `flyReachable`, 
     hero.pos = { x: 6, y: 6, ...(z ? { z } : {}) };
     const scene = etage();
     const reachable = flyReachable(scene, hero.pos, 3, { blocked: new Set<string>() });
-    banc.setState({ scene, battle: { ...banc.getState().battle!, action: 'teleport', reachable } as never });
+    banc.setState({ scene, battle: { ...banc.getState().battle!, action: 'teleportation', reachable } as never });
     return { hero, reachable };
   }
 
@@ -274,14 +274,14 @@ describe('téléportation — les cases se lisent à la clé de `flyReachable`, 
     it(`z=${z} : la case du lanceur et une voisine sont VALIDES pour le mode`, () => {
       const { hero, reachable } = armer(z);
       expect(reachable.size, 'sans case atteignable, la sonde ne mesurerait rien').toBeGreaterThan(1);
-      const mode = TILE_MODES.find((m) => m.id === 'teleport')!;
+      const mode = TILE_MODES.find((m) => m.id === 'teleportation')!;
       expect(mode.tileValidAt(banc.getState, hero, { ...hero.pos! }), 'sa propre case porte la sortie « Rester sur place »').toBe(true);
       expect(mode.tileValidAt(banc.getState, hero, { x: 7, y: 6, ...(z ? { z } : {}) })).toBe(true);
     });
 
     it(`z=${z} : « Rester sur place » SORT du mode, et un clic valide TÉLÉPORTE`, () => {
       const { hero } = armer(z);
-      banc.jouerLaCase('teleport-place');
+      banc.jouerLaCase('sur-place');
       expect(banc.getState().battle!.action, 'la sortie doit désarmer la téléportation').toBeNull();
       const { hero: h2 } = armer(z);
       banc.getState().cliquerLaCase({ x: 7, y: 6, ...(z ? { z } : {}) });
@@ -312,19 +312,19 @@ describe('porte de clic — elle laisse passer l’infaisable pour qu’il soit 
 });
 
 describe('spellAffinity — HELPFUL_TARGET_OPS (#131)', () => {
-  it("Bénédiction de Sauvagerie (op cible unique critTwice, LDB 41 l.164) → 'ally'", () => {
+  it("Bénédiction de Sauvagerie (op cible unique critTwice, LDB 41 l.164) → 'allie'", () => {
     const spell = findSpellById('benediction-de-sauvagerie')!;
-    expect(spellAffinity(spell)).toBe('ally');
+    expect(spellAffinity(spell)).toBe('allie');
   });
 
-  it("Baume pour un esprit blessé (op cible unique suppressPsych, LDB 43 l.62) → 'ally'", () => {
+  it("Baume pour un esprit blessé (op cible unique suppressPsych, LDB 43 l.62) → 'allie'", () => {
     const spell = findSpellById('baume-pour-un-esprit-blesse')!;
-    expect(spellAffinity(spell)).toBe('ally');
+    expect(spellAffinity(spell)).toBe('allie');
   });
 
-  it("Malédiction de malchance (op cible unique testMod AMBIGU, amount:-10, LDB 49 l.52) reste 'any' — un malus ne doit jamais retomber en 'ally'", () => {
+  it("Malédiction de malchance (op cible unique testMod AMBIGU, amount:-10, LDB 49 l.52) reste 'tout' — un malus ne doit jamais retomber en 'allie'", () => {
     const spell = findSpellById('malediction-de-malchance')!;
-    expect(spellAffinity(spell)).toBe('any');
+    expect(spellAffinity(spell)).toBe('tout');
   });
 });
 
@@ -350,7 +350,7 @@ describe('DISPEL_MODE — le clic-token élit le PORTEUR, il n’attaque jamais'
   beforeEach(() => { banc.setState({ battle: null, party: [], pendingDispel: null, pendingAttack: null, dispelCarrierId: null }); });
 
   it('deux Sorts sur le porteur → le clic ÉLIT le porteur (aucune attaque, aucun jet ouvert)', () => {
-    const { hero, e1 } = combat({ action: 'dispel' });
+    const { hero, e1 } = combat({ action: 'dissipation' });
     hero.skills.push({ id: 'langue', spec: 'magick', advances: 0 } as never);
     porteur(e1, 2);
     cliquerSurLeCombattant(banc.getState, 'e1');
@@ -360,7 +360,7 @@ describe('DISPEL_MODE — le clic-token élit le PORTEUR, il n’attaque jamais'
   });
 
   it('UN seul Sort → commit DIRECT (un panneau à un choix serait du bruit)', () => {
-    const { hero, e1 } = combat({ action: 'dispel' });
+    const { hero, e1 } = combat({ action: 'dissipation' });
     hero.skills.push({ id: 'langue', spec: 'magick', advances: 0 } as never);
     porteur(e1, 1);
     cliquerSurLeCombattant(banc.getState, 'e1');
@@ -369,7 +369,7 @@ describe('DISPEL_MODE — le clic-token élit le PORTEUR, il n’attaque jamais'
   });
 
   it('cible SANS Sort dissipable : rien au survol, et le clic d’une SURFACE dit son refus', () => {
-    const { hero, e1, e2 } = combat({ action: 'dispel' });
+    const { hero, e1, e2 } = combat({ action: 'dissipation' });
     hero.skills.push({ id: 'langue', spec: 'magick', advances: 0 } as never);
     porteur(e1, 2);
     const mode = currentTargetingMode(banc.getState);
@@ -385,7 +385,7 @@ describe('DISPEL_MODE — le clic-token élit le PORTEUR, il n’attaque jamais'
   });
 
   it('le refus ne CONSOMME rien : ni Action, ni Mouvement, ni Avantage, ni jet ouvert', () => {
-    const { hero, e1, e2 } = combat({ action: 'dispel' });
+    const { hero, e1, e2 } = combat({ action: 'dissipation' });
     hero.skills.push({ id: 'langue', spec: 'magick', advances: 0 } as never);
     porteur(e1, 2);
     const avant = { ...banc.getState().battle! } as unknown as Record<string, unknown>;
@@ -399,7 +399,7 @@ describe('DISPEL_MODE — le clic-token élit le PORTEUR, il n’attaque jamais'
   });
 
   it('les CANDIDATS du mode (Tab/curseur) sont les porteurs, pas les ennemis', () => {
-    const { hero, e1 } = combat({ action: 'dispel' });
+    const { hero, e1 } = combat({ action: 'dissipation' });
     porteur(e1, 2);
     const mode = currentTargetingMode(banc.getState);
     expect(mode.candidates!(banc.getState, hero).map((c) => c.id)).toEqual(['e1']);

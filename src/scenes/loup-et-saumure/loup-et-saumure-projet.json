@@ -417,28 +417,28 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "if",
-         "cond": {
+         "kind": "si",
+         "condition": {
           "kind": "flag",
           "expr": "ls_commission_acceptee"
          },
-         "then": {
-          "kind": "seq",
-          "steps": [
+         "alors": {
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "openWorldMap"
             }
            }
           ]
          },
-         "else": {
-          "kind": "seq",
-          "steps": [
+         "sinon": {
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "document",
              "documentId": "document-la-passerelle-du-grimm"
             }
@@ -471,11 +471,11 @@
           "expr": "!ls_commission_acceptee"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveMoney",
              "montant": {
               "gold": 40
@@ -483,8 +483,8 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setVessel",
              "vehicleId": "loup-imperial",
              "label": "Le Grimm",
@@ -522,23 +522,23 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "ls_commission_acceptee"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setObjective",
              "id": "ls-mission",
              "desc": "Livrer le fret de Dame Kramer à Erengrad avant les glaces."
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Le Grimm est à vous. 43 âmes à bord sur 50 — un sous-effectif visible dès le départ, et une avance qui ne couvre pas le carénage."
             }
@@ -564,11 +564,11 @@
           "expr": "ls_commission_acceptee"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -606,11 +606,11 @@
          "id": "demander-benediction-navire",
          "label": "Demander la bénédiction du navire",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "ops",
              "on": "navire",
              "ops": [
@@ -622,8 +622,8 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "ls_benediction_aldo"
             }
@@ -638,11 +638,11 @@
          "id": "faire-petit-sacrifice",
          "label": "Faire un petit sacrifice (une pièce jetée à la mer)",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveMoney",
              "montant": {
               "gold": -1
@@ -650,8 +650,8 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "ops",
              "on": "navire",
              "ops": [
@@ -672,11 +672,11 @@
          "id": "faire-sacrifice-moyen",
          "label": "Faire un sacrifice moyen (une gemme de votre bourse)",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveMoney",
              "montant": {
               "gold": -20
@@ -684,8 +684,8 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "ops",
              "on": "navire",
              "ops": [
@@ -706,11 +706,11 @@
          "id": "faire-grand-sacrifice",
          "label": "Faire un grand sacrifice (une vache entière, la moitié des provisions)",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveMoney",
              "montant": {
               "gold": -50
@@ -718,8 +718,8 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "ops",
              "on": "navire",
              "ops": [
@@ -747,11 +747,11 @@
          "id": "saluer",
          "label": "Le saluer",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -859,38 +859,38 @@
             "authored": "Percer le masque de Dame Kramer : vous la soupçonnez pour la suite du voyage ; raté, elle passe pour une négociante ordinaire."
            }
           },
-          "success": {
-           "kind": "seq",
-           "steps": [
+          "reussite": {
+           "kind": "sequence",
+           "etapes": [
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "setFlag",
               "flag": "ls_kramer_soupconnee"
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "document",
               "documentId": "document-votre-intuition"
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "journal",
               "desc": "Intuition : Dame Kramer cache quelque chose."
              }
             }
            ]
           },
-          "fail": {
-           "kind": "seq",
-           "steps": [
+          "echec": {
+           "kind": "sequence",
+           "etapes": [
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "document",
               "documentId": "document-votre-intuition-2"
              }
@@ -906,11 +906,11 @@
          "id": "laisser-affaires",
          "label": "La laisser à ses affaires",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -952,11 +952,11 @@
           "expr": "!ls_chant_griet"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "ls_chant_griet"
             }
@@ -982,11 +982,11 @@
          "id": "saluer",
          "label": "La saluer",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -1039,11 +1039,11 @@
       "expr": "ls_fret_livre"
      },
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "ls-epilogue-salzenmund"
@@ -1472,150 +1472,38 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-1",
        "side": "tribord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-1"
-        },
-        {
-         "reach": null,
-         "range": null,
-         "ammoRangeMod": {
-          "mult": 0.25
-         },
-         "trappingId": "mitraille-et-poudre",
-         "label": "Mitraille et poudre",
-         "kind": "ammo",
-         "damage": {
-          "plusBF": false,
-          "flat": -5
-         },
-         "qualities": [
-          {
-           "id": "tir-de-zone",
-           "value": 5
-          }
-         ],
-         "enc": 0,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 4,
-         "uid": "ammo-mitraille-et-poudre-2"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-1"
+       "ammo": {
+        "boulet-et-poudre": 12,
+        "mitraille-et-poudre": 4
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-2",
        "side": "babord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-3"
-        },
-        {
-         "reach": null,
-         "range": null,
-         "ammoRangeMod": {
-          "mult": 0.25
-         },
-         "trappingId": "mitraille-et-poudre",
-         "label": "Mitraille et poudre",
-         "kind": "ammo",
-         "damage": {
-          "plusBF": false,
-          "flat": -5
-         },
-         "qualities": [
-          {
-           "id": "tir-de-zone",
-           "value": 5
-          }
-         ],
-         "enc": 0,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 4,
-         "uid": "ammo-mitraille-et-poudre-4"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-3"
+       "ammo": {
+        "boulet-et-poudre": 12,
+        "mitraille-et-poudre": 4
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "pierrier",
-       "uid": "poste-3",
        "side": "proue",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "balles-et-poudre-pierrier",
-         "label": "Balles et poudre pour 1 tir",
-         "kind": "ammo",
-         "damage": {
-          "plusBF": false,
-          "flat": 1
-         },
-         "qualities": [
-          {
-           "id": "empaleuse"
-          },
-          {
-           "id": "perforante"
-          },
-          {
-           "id": "tir-de-zone",
-           "value": 3
-          }
-         ],
-         "enc": 0,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 16,
-         "uid": "ammo-balles-et-poudre-pierrier-5"
-        }
-       ],
-       "ammoUid": "ammo-balles-et-poudre-pierrier-5"
+       "ammo": {
+        "balles-et-poudre-pierrier": 16
+       },
+       "selectedAmmo": {
+        "id": "balles-et-poudre-pierrier"
+       }
       }
      ]
     },
@@ -1720,93 +1608,36 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-4",
        "side": "tribord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-6"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-6"
+       "ammo": {
+        "boulet-et-poudre": 12
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-5",
        "side": "babord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-7"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-7"
+       "ammo": {
+        "boulet-et-poudre": 12
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-6",
        "side": "proue",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 8,
-         "uid": "ammo-boulet-et-poudre-8"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-8"
+       "ammo": {
+        "boulet-et-poudre": 8
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       }
      ]
     },
@@ -1932,62 +1763,62 @@
      "members": [
       {
        "entityId": "grimm",
-       "side": "ally"
+       "side": "allie"
       },
       {
        "entityId": "aldo-crew",
-       "side": "ally"
+       "side": "allie"
       },
       {
        "entityId": "griet-crew",
-       "side": "ally"
+       "side": "allie"
       },
       {
        "entityId": "cogue",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "pirate-1",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "pirate-2",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "chef-cogue",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "cogue-helm",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "cogue-gun",
-       "side": "enemy"
+       "side": "ennemi"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "ls_cogue_vaincue"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 150
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 15
@@ -1995,16 +1826,16 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setObjective",
          "id": "ls-mission",
          "desc": "Rallier Erengrad avec le fret — la Dent de Manann écartée."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La Dent de Manann amène son pavillon à mi-coque — la cogue se rend. Des épaves flottent : Séquestre à faire valoir à quai."
         }
@@ -2283,19 +2114,19 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "setObjective",
             "id": "ls-mission",
             "desc": "Ramener le Grimm et sa cargaison à Salzenmund."
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "openWorldMap"
            }
           }
@@ -2322,18 +2153,18 @@
          "id": "merci-pour-avertissement",
          "label": "Merci pour l’avertissement",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "ls_rumeur_olg"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -2369,45 +2200,45 @@
             "authored": "La coincer sur son alibi : démasquée, le sabotage du Grimm cesse ; raté, elle garde les mains libres et le navire continue de souffrir."
            }
           },
-          "success": {
-           "kind": "seq",
-           "steps": [
+          "reussite": {
+           "kind": "sequence",
+           "etapes": [
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "setFlag",
               "flag": "ls_kramer_demasquee"
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "adjustVessel",
               "saboteurDR": 0
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "document",
               "documentId": "document-kramer-demasquee"
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "journal",
               "desc": "Dame Kramer démasquée : initiée de Stromfels, saboteuse. Le sabotage cesse."
              }
             }
            ]
           },
-          "fail": {
-           "kind": "seq",
-           "steps": [
+          "echec": {
+           "kind": "sequence",
+           "etapes": [
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "document",
               "documentId": "document-la-nuit-du-chat"
              }
@@ -2423,11 +2254,11 @@
          "id": "laisser-tranquille",
          "label": "La laisser tranquille",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -2452,11 +2283,11 @@
          "id": "superviser-reparation",
          "label": "Superviser la réparation",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "extendedTest",
              "skill": {
               "id": "metier",
@@ -2464,7 +2295,7 @@
              },
              "difficulty": "intermediaire",
              "label": "Réparation temporaire du Grimm",
-             "targetDR": 5,
+             "drCible": 5,
              "flag": "ls_coque_reparee"
             }
            }
@@ -2478,11 +2309,11 @@
          "id": "plus-tard",
          "label": "Plus tard",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -2505,18 +2336,18 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "ls_fret_livre"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setObjective",
          "id": "ls-mission",
          "desc": "Vendre la laine kislevite et découvrir qui en veut à la cargaison."
@@ -2943,150 +2774,38 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-1",
        "side": "tribord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-9"
-        },
-        {
-         "reach": null,
-         "range": null,
-         "ammoRangeMod": {
-          "mult": 0.25
-         },
-         "trappingId": "mitraille-et-poudre",
-         "label": "Mitraille et poudre",
-         "kind": "ammo",
-         "damage": {
-          "plusBF": false,
-          "flat": -5
-         },
-         "qualities": [
-          {
-           "id": "tir-de-zone",
-           "value": 5
-          }
-         ],
-         "enc": 0,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 4,
-         "uid": "ammo-mitraille-et-poudre-10"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-9"
+       "ammo": {
+        "boulet-et-poudre": 12,
+        "mitraille-et-poudre": 4
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-2",
        "side": "babord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-11"
-        },
-        {
-         "reach": null,
-         "range": null,
-         "ammoRangeMod": {
-          "mult": 0.25
-         },
-         "trappingId": "mitraille-et-poudre",
-         "label": "Mitraille et poudre",
-         "kind": "ammo",
-         "damage": {
-          "plusBF": false,
-          "flat": -5
-         },
-         "qualities": [
-          {
-           "id": "tir-de-zone",
-           "value": 5
-          }
-         ],
-         "enc": 0,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 4,
-         "uid": "ammo-mitraille-et-poudre-12"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-11"
+       "ammo": {
+        "boulet-et-poudre": 12,
+        "mitraille-et-poudre": 4
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "pierrier",
-       "uid": "poste-3",
        "side": "poupe",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "balles-et-poudre-pierrier",
-         "label": "Balles et poudre pour 1 tir",
-         "kind": "ammo",
-         "damage": {
-          "plusBF": false,
-          "flat": 1
-         },
-         "qualities": [
-          {
-           "id": "empaleuse"
-          },
-          {
-           "id": "perforante"
-          },
-          {
-           "id": "tir-de-zone",
-           "value": 3
-          }
-         ],
-         "enc": 0,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 16,
-         "uid": "ammo-balles-et-poudre-pierrier-13"
-        }
-       ],
-       "ammoUid": "ammo-balles-et-poudre-pierrier-13"
+       "ammo": {
+        "balles-et-poudre-pierrier": 16
+       },
+       "selectedAmmo": {
+        "id": "balles-et-poudre-pierrier"
+       }
       }
      ]
     },
@@ -3191,93 +2910,36 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-4",
        "side": "tribord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 10,
-         "uid": "ammo-boulet-et-poudre-14"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-14"
+       "ammo": {
+        "boulet-et-poudre": 10
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-5",
        "side": "babord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 10,
-         "uid": "ammo-boulet-et-poudre-15"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-15"
+       "ammo": {
+        "boulet-et-poudre": 10
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-6",
        "side": "proue",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 8,
-         "uid": "ammo-boulet-et-poudre-16"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-16"
+       "ammo": {
+        "boulet-et-poudre": 8
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       }
      ],
      "upgrades": [
@@ -3411,62 +3073,62 @@
      "members": [
       {
        "entityId": "grimm2",
-       "side": "ally"
+       "side": "allie"
       },
       {
        "entityId": "aldo-crew-2",
-       "side": "ally"
+       "side": "allie"
       },
       {
        "entityId": "griet-crew-2",
-       "side": "ally"
+       "side": "allie"
       },
       {
        "entityId": "serpent-de-sel",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "norse-1",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "norse-2",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "olg",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "serpent-helm",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "serpent-gun",
-       "side": "enemy"
+       "side": "ennemi"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "ls_olg_vaincu"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 250
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 40
@@ -3474,8 +3136,8 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Olg Blóðsalt tombe. Le Serpent-de-Sel amène pavillon — la prise à armer, ~40 survivants à répartir sur deux coques."
         }
@@ -3483,7 +3145,7 @@
       ]
      },
      "threat": {
-      "camp": "enemies",
+      "camp": "ennemis",
       "tier": "dangereuse"
      },
      "victoryCondition": {
@@ -3718,11 +3380,11 @@
           "expr": "!ls_solde_versee"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveMoney",
              "montant": {
               "gold": 60
@@ -3730,28 +3392,28 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "ls_solde_versee"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveXp",
              "amount": 100
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "clearObjective"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Köhler verse la solde et la prime d’Olg. Le chantier attend le Grimm — carénage enfin, critiques réparés."
             }
@@ -3766,11 +3428,11 @@
          "id": "prendre-conge",
          "label": "Prendre congé",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }

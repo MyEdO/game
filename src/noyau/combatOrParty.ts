@@ -29,9 +29,11 @@ import { pointDeCase, type Pt } from './monde/path';
 import { champAttendSaFenetre } from './targetingHolder';
 
 /** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie l'ensemble que lit le jeu
- *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe. */
+ *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe et l'assaillant de la série
+ *  d'attaques subies (`serieSubie`). */
 export function touchActors(state: Jeu): PatchDeFlux {
-  return state.battle ? { battle: { ...state.battle, combatants: [...state.battle.combatants] } } : { party: [...state.party] };
+  if (state.battle) return { battle: { ...state.battle, combatants: [...state.battle.combatants] } };
+  return { party: [...state.party], ...(state.serieSubie ? { serieSubie: { ...state.serieSubie } } : {}) };
 }
 
 /**
@@ -105,7 +107,7 @@ export function combatantClickActs(get: Get, combatant: Pick<Combatant, 'id'>): 
 
 /** Le clic du champ sur le combattant `id` : `cliquerLaCase` sur sa case, le combattant désigné, et `true` ; rien sans
  *  case au combat, `false`. Le verbe se lit dans l'état AU MOMENT du clic (chez l'invité coop, il porte l'enrobage
- *  d'intention, `hote/coop/salon.ts`). */
+ *  d'intention, `reseau.ts`). */
 export function cliquerSurLeCombattant(get: Get, id: string, opts?: OptionsDuClic): boolean {
   const pos = inBattleId(get().battle, id)?.pos;
   if (!pos) return false;

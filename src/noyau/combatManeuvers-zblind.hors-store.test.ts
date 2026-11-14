@@ -1,6 +1,6 @@
 /**
  * z-blindness des manœuvres de ZONE (Souffle/Vomi/Hurlement, #798) — `combatantsWithinRadius` (défaut
- * z-aware, cf. `combatGeometry.ts`) protège déjà `resolveManeuver` (targeting `zone`/`allFoes`, sites
+ * z-aware, cf. `combatGeometry.ts`) protège déjà `resolveManeuver` (ciblage `zone`/`adversairesAutour`, sites
  * combatManeuvers.ts:410/418/432) puisque `attacker.pos`/`center.pos` PORTENT leur `z`. Le SEUL trou
  * restant : la zone de Fumée (Souffle (Fumée)) posait ses cases via `smokeZone` SANS propager le `z` du
  * centre — une case de même (x,y) à un autre étage se retrouvait donc « couverte » (`zoneCovers` compare
@@ -20,7 +20,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const mk = (id: string, kind: 'hero' | 'enemy', x: number, y: number, z: number): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', x: number, y: number, z: number): Combatant =>
   (blessuresSurLeProfil({
     id, label: id, kind, pos: { x, y, z },
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -46,8 +46,8 @@ function mountBattle(combatants: Combatant[]) {
 
 describe('resolveManeuver — zone (Souffle Fumée, z-blindness #798)', () => {
   it("la zone se pose à l'étage du centre — ne couvre PAS la même case (x,y) à un autre étage", () => {
-    const attacker = mk('atk', 'hero', 3, 5, 1);
-    const target = mk('tgt', 'enemy', 5, 5, 1); // centre = chosenTarget, étage 1
+    const attacker = mk('atk', 'heros', 3, 5, 1);
+    const target = mk('tgt', 'ennemi', 5, 5, 1); // centre = chosenTarget, étage 1
     const { get, set } = mountBattle([attacker, target]);
     resolveManeuver(get, set, attacker, souffleDuType(findManeuverById('souffle')!, 'fumee'), 0, null, 0, target);
     const zones = get().battle!.zones!;
@@ -58,8 +58,8 @@ describe('resolveManeuver — zone (Souffle Fumée, z-blindness #798)', () => {
     expect(zoneCovers(zone, { x: 5, y: 5, z: 1 })).toBe(true); // étage 1 (celui du centre) : couvert
   });
   it('BE 0 : la Fumée dure 0 Round — aucune zone posée (LDB 85 l.329, #1817)', () => {
-    const attacker = { ...mk('atk', 'hero', 3, 5, 0), characteristics: { ...mk('x', 'hero', 0, 0, 0).characteristics, endurance: 9 } } as Combatant;
-    const target = mk('tgt', 'enemy', 5, 5, 0);
+    const attacker = { ...mk('atk', 'heros', 3, 5, 0), characteristics: { ...mk('x', 'heros', 0, 0, 0).characteristics, endurance: 9 } } as Combatant;
+    const target = mk('tgt', 'ennemi', 5, 5, 0);
     const { get, set } = mountBattle([attacker, target]);
     resolveManeuver(get, set, attacker, souffleDuType(findManeuverById('souffle')!, 'fumee'), 0, null, 0, target);
     expect(get().battle!.zones).toEqual([]);

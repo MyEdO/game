@@ -15,7 +15,7 @@ import { resetCadence } from '../engine/cadence';
 import { seasonOfMonth } from '../engine/travelStages';
 import { t } from '../i18n';
 import { activeDayWeather, activeExposureSeverity } from './combatFlow';
-import { tableStepDef } from './cascade';
+import { tableSpec, tableStepDef } from './cascade';
 import { draineCascade } from './cascade.testkit';
 import { creditBourse } from './bourseFlow';
 import { sceneLieu } from './restFlow';
@@ -34,7 +34,7 @@ const get = () => banc.getState();
 const set = (e: Ecrit) => banc.setState(e);
 
 const hero = (p: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'h', label: 'Hilda', kind: 'hero',
+  id: 'h', label: 'Hilda', kind: 'heros',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
   wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -73,7 +73,7 @@ function setup(worldMap: WorldMap, departWeather?: Scene['weather'], party: Comb
 
 /** POSE le dé de Météo d'Étape (« Dés fixés ») sur la rangée `id` de la table de la saison courante. */
 function poseMeteo(id: string): void {
-  const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'stage-weather')!;
+  const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'etape-meteo')!;
   const saison = seasonOfMonth(toDate(get().gameTime).month);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
   get().jetImposerLeResultat('cascadeTirage', rangee.min, meteo.id);
@@ -81,13 +81,13 @@ function poseMeteo(id: string): void {
 
 /** Les `kind` des étapes de la NUIT de halte, couchage dehors et sans repas. */
 function etapesDeLaNuit(): string[] {
-  get().fenetreChoisir('rest', 'couchage', 'dehors', 'h'); get().fenetreChoisir('rest', 'pitance', 'rien', 'h');
-  get().fenetreValider('rest');
+  get().fenetreChoisir('repos', 'couchage', 'dehors', 'h'); get().fenetreChoisir('repos', 'pitance', 'rien', 'h');
+  get().fenetreValider('repos');
   return get().pendingCascade?.participants.map((s) => s.kind) ?? [];
 }
 
 beforeEach(() => { seedBattleRng(1); resetDesFixes(); resetCadence(); });
-afterEach(() => { resetDesFixes(); resetCadence(); resetRule('travel-etapes'); resetRule('travel-attraper-froid'); });
+afterEach(() => { resetDesFixes(); resetCadence(); resetRule('voyage-etapes'); resetRule('voyage-attraper-froid'); });
 
 describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOUR', () => {
   it('la halte nomme la route du voyage, jamais la scène de départ — relais ou bivouac', () => {
@@ -110,7 +110,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
   });
 
   it('Étapes allumées : la nuit joue l’Exposition sous la météo POSÉE du jour, pas sous celle de la scène de départ', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map(), 'clair');
     get().partirEnVoyage('r1', 'pied');
@@ -118,24 +118,24 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
     draineCascade(get);
     expect(get().pendingRest?.travelHalt).toBe(true);
     expect(activeExposureSeverity(get)).toBe('extreme');
-    expect(etapesDeLaNuit(), 'abri de fortune sous l’averse du jour').toContain('shelter');
+    expect(etapesDeLaNuit(), 'abri de fortune sous l’averse du jour').toContain('abri-de-fortune');
   });
 
   it('test opposé, Étapes allumées : beau temps posé sur la route, tempête sur la scène de départ — aucune Exposition', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map(), 'tempete');
     get().partirEnVoyage('r1', 'pied');
     poseMeteo('beau');
     draineCascade(get);
     expect(activeExposureSeverity(get)).toBe('clement');
-    expect(etapesDeLaNuit()).not.toContain('shelter');
+    expect(etapesDeLaNuit()).not.toContain('abri-de-fortune');
   });
 
   it('Étapes éteintes (défaut) : la route n’a pas de météo, la nuit lit la scène de départ (#2533 c.6071899887)', () => {
     setup(map(), 'tempete');
     get().partirEnVoyage('r1', 'pied');
-    expect(rule('travel-etapes')).toBe(false);
+    expect(rule('voyage-etapes')).toBe(false);
     expect(get().pendingRest?.travelHalt).toBe(true);
     expect(get().travelPlan?.log?.[0]?.weather).toBeUndefined();
     expect(activeExposureSeverity(get)).toBe('extreme');
@@ -144,7 +144,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
 
 describe('#2533 — interruption puis reprise à budget nul : le jour interrompu est FINI, la halte suit', () => {
   it('l’embuscade se joue sous la météo du jour ; la reprise clôt ce jour au log, puis la halte du soir', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
     get().partirEnVoyage('r1', 'pied');
@@ -173,7 +173,7 @@ describe('#2533 — interruption puis reprise à budget nul : le jour interrompu
 describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halte (2026-10-09 01:51)', () => {
   /** Interruption à pied sous l'averse (6 h marchées), victoire simulée : rend le jour interrompu. */
   function jourInterrompu(): unknown {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
     get().partirEnVoyage('r1', 'pied');
@@ -199,7 +199,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
 });
 
 describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI, une journée NEUVE part', () => {
-  afterEach(() => { resetRule('travel-allures'); });
+  afterEach(() => { resetRule('voyage-allures'); });
 
   /** Embuscade du jour, « Faire face », victoire simulée et péril d'auteur neutralisé. */
   function interromptPuisVainc(): void {
@@ -213,7 +213,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
   const brigands = [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat' as const, encounter: 'enc-brigands' }] }];
 
   it('transport (diligence), reprise le même jour : le jour interrompu entre au log, la journée neuve a sa météo', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setup(map({ km: 200, modes: ['diligence', 'pied'], perils: brigands }));
     creditBourse(get, set, 'h', { gold: 5, silver: 0, brass: 0 });
     get().partirEnVoyage('r1', 'diligence', { classeId: 'exterieur' });
@@ -223,26 +223,26 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
     get().reprendreLeVoyage();
     const log = get().travelPlan!.log!;
     expect(log, 'le jour interrompu est clos, tel quel').toEqual([jourInterrompu]);
-    expect(get().pendingCascade?.participants[0].kind, 'la journée neuve tire sa Météo d’Étape').toBe('stage-weather');
+    expect(get().pendingCascade?.participants[0].kind, 'la journée neuve tire sa Météo d’Étape').toBe('etape-meteo');
   });
 
   it('à pied, nuit passée en scène puis reprise : une carte = un jour, la journée neuve a sa météo', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setup(map({ km: 60, perils: brigands }));
     get().partirEnVoyage('r1', 'pied');
     interromptPuisVainc();
     get().offrirLeRepos({ lieu: sceneLieu(get), places: { camp: true } });
-    get().fenetreValider('rest');
+    get().fenetreValider('repos');
     draineCascade(get);
     get().reprendreLeVoyage();
     const log = get().travelPlan!.log!;
     expect(log).toHaveLength(1);
     expect(log[0].hours).toBeLessThanOrEqual(6.01);
-    expect(get().pendingCascade?.participants[0].kind).toBe('stage-weather');
+    expect(get().pendingCascade?.participants[0].kind).toBe('etape-meteo');
   });
 
   it('allure forcée, conducteur joueur : la journée neuve ouvre la Conduite d’attelage à la porte, aucun Test roulé hors porte', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     setup(map({ km: 300, modes: ['diligence', 'pied'], perils: brigands }), undefined,
       [hero({ skills: [{ id: 'conduite-d-attelage', advances: 60 }] } as Partial<Combatant>)]);
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
@@ -260,8 +260,8 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
 
 describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 08 l.141)', () => {
   function journeeSousLAverse(issue: number): string[] {
-    setRule('travel-etapes', true);
-    setRule('travel-attraper-froid', true);
+    setRule('voyage-etapes', true);
+    setRule('voyage-attraper-froid', true);
     setDesFixes(true);
     setup(map(), 'clair', [hero({ travelRole: { activityId: 'plein-air' } })]);
     get().partirEnVoyage('r1', 'pied');
@@ -274,20 +274,20 @@ describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 0
 
   it('réussite : ni Exposition de fin d’Étape, ni Exposition de nuit', () => {
     const jour = journeeSousLAverse(1);
-    expect(jour).not.toContain('stageExposure');
+    expect(jour).not.toContain('etapeExposition');
     expect(get().travelPlan!.log![0].pleinAir).toBe(true);
     expect(activeExposureSeverity(get)).toBe('clement');
     const nuit = etapesDeLaNuit();
-    expect(nuit).not.toContain('shelter');
-    expect(nuit).not.toContain('exposure');
+    expect(nuit).not.toContain('abri-de-fortune');
+    expect(nuit).not.toContain('exposition-nocturne');
   });
 
   it('test opposé, échec : les deux Expositions se jouent (LDB 18 l.328, EDOC 08 l.90)', () => {
     const jour = journeeSousLAverse(100);
-    expect(jour).toContain('stageExposure');
+    expect(jour).toContain('etapeExposition');
     expect(get().travelPlan!.log![0].pleinAir).toBeUndefined();
     expect(activeExposureSeverity(get)).toBe('extreme');
-    expect(etapesDeLaNuit()).toContain('shelter');
+    expect(etapesDeLaNuit()).toContain('abri-de-fortune');
   });
 });
 
@@ -303,7 +303,7 @@ describe('#2533 (2) — durée RÉELLE du récapitulatif : arrivée moins dépar
     setup(map());
     const t0 = get().gameTime;
     get().partirEnVoyage('r1', 'pied');
-    get().fenetreValider('rest');
+    get().fenetreValider('repos');
     draineCascade(get);
     expect(get().travelRecap?.status).toBe('arrived');
     expect(get().travelRecap?.dureeMin).toBe(get().gameTime - t0);
@@ -316,27 +316,27 @@ describe('#2533 (5) — péripéties : le dé de seuil passe par la porte des je
     setDesFixes(true);
     setup(map({ perilDie: 8 }));
     get().partirEnVoyage('r1', 'pied');
-    const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'landPeril')!;
+    const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'perilATerre')!;
     expect(seuil.worldOwner).toBe(true);
-    expect(seuil.table!.spec, 'le dé de seuil est celui de la donnée (`peripeties.json › tirageQuotidien`)').toEqual(peripetieSeuilDie());
+    expect(tableSpec(seuil.table!), 'le dé de seuil est celui de la donnée (`peripeties.json › tirageQuotidien`)').toEqual(peripetieSeuilDie());
     expect(seuil.table!.result, 'le socle ne tire pas à la place du siège qui possède le monde').toBeUndefined();
     get().jetImposerLeResultat('cascadeTirage', 3, seuil.id);
     const tire = get().pendingCascade!.participants.find((s) => s.id === seuil.id)!.table!.result!;
     expect(tire.roll).toBe(3);
-    expect(tire.lines).toEqual([t('tf.perilNone')]);
+    expect(tire.lines).toEqual([t('tf.sansPeril')]);
     draineCascade(get);
     expect(get().pendingRest?.travelHalt).toBe(true);
-    expect(get().travelPlan!.log![0].lines.some((l) => l.text === t('tf.perilNone'))).toBe(true);
+    expect(get().travelPlan!.log![0].lines.some((l) => l.text === t('tf.sansPeril'))).toBe(true);
   });
 
   it('dé posé sur le seuil : la table des péripéties s’insère, son dé passe aussi par la porte', () => {
     setDesFixes(true);
     setup(map({ perilDie: 8 }));
     get().partirEnVoyage('r1', 'pied');
-    const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'landPeril')!;
+    const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'perilATerre')!;
     get().jetImposerLeResultat('cascadeTirage', 8, seuil.id);
     get().jetValider('cascade');
-    const table = get().pendingCascade!.participants.find((s) => s.kind === 'landPerilTable')!;
+    const table = get().pendingCascade!.participants.find((s) => s.kind === 'perilATerreTable')!;
     expect(table, 'le seuil atteint insère la table des péripéties').toBeTruthy();
     expect(table.worldOwner, 'aucun acteur ne la porte : le sentinel la route au siège').toBe(true);
     expect(table.table!.result).toBeUndefined();

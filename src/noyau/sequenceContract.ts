@@ -8,7 +8,7 @@
  *  - CE FICHIER = la STRUCTURE, destinée à TOUS les systèmes (poursuite, jeux, crises de mer, et
  *    demain les gros : combat, voyage, bataille de masse s'ils l'adoptent). Trois choses, pas une de
  *    plus : un ÉTAT (`SequenceState`, générique sur sa charge utile), une FABRIQUE DE MANCHE
- *    (`SequenceDef.round`), une CLÔTURE-SOUS-ID (`SequenceDef.close`, réducteur PUR déclaré sous
+ *    (`SequenceDef.manche`), une CLÔTURE-SOUS-ID (`SequenceDef.clore`, réducteur PUR déclaré sous
  *    l'id que porte l'état — patron de la table `appliers` : l'id est la donnée, la fonction est du
  *    TS déclaré ; un état de séquence se snapshote en JSON, une closure y serait effacée en silence).
  *  - `sequenceCore.ts` = L'IMPLÉMENTATION LÉGÈRE de ce contrat : la lecture des tables, le cycle
@@ -20,6 +20,7 @@
  * vocabulaire (borne dure, issue réservée, `purpose` de fenêtre) — ce sur quoi les deux côtés
  * s'accordent.
  */
+import type { IconId } from '../data/icons';
 import type { Get, Set } from './flowTypes';
 import type { PendingCascade } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -44,7 +45,7 @@ export const SEQUENCE_MAX_ROUNDS = 50;
  *  propre borne (`SequenceParams.maxRounds`) ; celle-ci reste bornée ici, une fois pour toutes. */
 export const SEQUENCE_HARD_MAX_ROUNDS = 500;
 
-/** Issue RÉSERVÉE rendue quand la borne est atteinte — le système la reçoit dans son `settle` et
+/** Issue RÉSERVÉE rendue quand la borne est atteinte — le système la reçoit dans son `denouer` et
  *  décide ce qu'elle vaut chez lui (nul, abandon…). */
 export const SEQUENCE_BORNE = 'borne';
 
@@ -95,17 +96,17 @@ export interface SequenceParams {
 }
 
 /** ÉTAT d'une séquence EN COURS — GÉNÉRIQUE sur sa charge utile : l'orchestrateur ne lit JAMAIS
- *  `payload`, il le transporte. C'est ce qui rend la MÊME structure instanciable par une poursuite,
+ *  `chargeUtile`, il le transporte. C'est ce qui rend la MÊME structure instanciable par une poursuite,
  *  un jeu de taverne ou une crise de mer sans qu'aucun champ de l'un n'entre ici. */
 export interface SequenceState<P = unknown> {
   /** Id de la DÉFINITION déclarée (table `sequences`) — la donnée qui nomme les fonctions. */
-  def: string;
+  definition: string;
   /** Manche courante (0 = aucune encore ouverte). */
-  round: number;
+  manche: number;
   /** ACCUMULATEUR PAR CAMP — source UNIQUE des cumuls (aucun système n'en tient un second). */
-  cum: Record<string, number>;
-  params: SequenceParams;
-  payload: P;
+  cumuls: Record<string, number>;
+  parametres: SequenceParams;
+  chargeUtile: P;
   /** ABANDON DEMANDÉ (`abandonSequence`) : l'ISSUE que `closeSequenceRound` joue à la clôture de la
    *  manche, après ses étapes dues — une manche sans jet posé se ferme sans être jouée. LDB 12 l.176,
    *  NADJ 16 l.111. */
@@ -117,12 +118,12 @@ export interface SequenceState<P = unknown> {
 // eslint-disable-next-line typescript/no-empty-object-type -- #2404 : registre ouvert à l'augmentation de module (`declare module './sequenceContract'`), que seule une interface reçoit.
 export interface SequenceFamilies {}
 
-/** L'état d'une séquence EN COURS, union discriminée par `def` DÉRIVÉE de `SequenceFamilies` : ce que
+/** L'état d'une séquence EN COURS, union discriminée par `definition` DÉRIVÉE de `SequenceFamilies` : ce que
  *  `Jeu.sequence` persiste (#2404). */
 export type EtatDeSequence = { [K in keyof SequenceFamilies]: EtatDeFamille<K> }[keyof SequenceFamilies];
 
 /** L'état d'une séquence de la famille `K`. */
-export type EtatDeFamille<K extends keyof SequenceFamilies> = SequenceState<SequenceFamilies[K]> & { def: K };
+export type EtatDeFamille<K extends keyof SequenceFamilies> = SequenceState<SequenceFamilies[K]> & { definition: K };
 
 /**
  * UNE MANCHE déclarée par le système : sa fenêtre et ses étapes MINTÉES. `immediate` = aucune surface
@@ -155,31 +156,31 @@ export type EtatDeFamille<K extends keyof SequenceFamilies> = SequenceState<Sequ
  */
 export interface SequenceRound<P = unknown> {
   title: PlayerText;
-  icon?: string;
+  icon?: IconId;
   steps: readonly BuiltCascadeStep[];
   log?: string[];
   immediate?: boolean;
   /** Charge utile MISE À JOUR par l'ouverture (le système compte ce qu'il veut dans sa manche — rang
    *  de manche, phase…). Omise : inchangée. Appliquée AVANT l'ouverture de la fenêtre. */
-  payload?: P;
+  chargeUtile?: P;
 }
 
 /** VERDICT du réducteur de clôture : la séquence continue (avec son état à jour) ou s'achève sur une
- *  issue NOMMÉE par le système (`outcome`, lue par son `settle`). `cum`/`payload` omis = inchangés. */
+ *  issue NOMMÉE par le système (`issue`, lue par son `denouer`). `cumuls`/`chargeUtile` omis = inchangés. */
 export type SequenceVerdict<P> =
-  | { go: 'continue'; cum?: Record<string, number>; payload?: P; log?: string[]; roundActors?: SequenceRoundActors }
-  | { go: 'end'; outcome: string; cum?: Record<string, number>; payload?: P; log?: string[]; roundActors?: SequenceRoundActors };
+  | { suite: 'poursuivre'; cumuls?: Record<string, number>; chargeUtile?: P; log?: string[]; porteurs?: SequenceRoundActors }
+  | { suite: 'fin'; issue: string; cumuls?: Record<string, number>; chargeUtile?: P; log?: string[]; porteurs?: SequenceRoundActors };
 
 /** PORTEURS de la manche close, NOMMÉS PAR ID (un verdict se snapshote : aucune référence d'objet n'y
  *  entre). C'est sur eux que l'implémentation DÉCLENCHE les effets de manche DÉCLARÉS
  *  (`SequenceParams.rounds`) — le réducteur reste PUR, il ne mute rien lui-même. */
 export interface SequenceRoundActors {
   /** Vainqueur(s) de la MANCHE (pas de la partie) — `winner` leur est appliqué. */
-  winners?: readonly string[];
+  vainqueurs?: readonly string[];
   /** Perdant(s) de la MANCHE — ils perdent leur Avantage sous `SequenceParams.avantage`. Aucun sur une égalité. */
-  losers?: readonly string[];
+  perdants?: readonly string[];
   /** Tous les porteurs de la manche — `attrition` s'applique à ceux dont l'intervalle échoit. */
-  all?: readonly string[];
+  tous?: readonly string[];
 }
 
 /** Ce que le réducteur de clôture REÇOIT : l'état, les rangées CLOSES de la manche, et un RNG injecté
@@ -190,7 +191,7 @@ export type MancheClose = Pick<PendingCascade, 'participants'>;
 export interface SequenceCloseCtx<P> {
   get: Get;
   seq: SequenceState<P>;
-  done: MancheClose;
+  mancheClose: MancheClose;
   rng: RNG;
 }
 
@@ -211,12 +212,12 @@ export interface SequenceBoardCamp {
 export interface SequenceBoard {
   title: PlayerText;
   camps: readonly SequenceBoardCamp[];
-  round: number;
+  manche: number;
   /** (5) POT en jeu, DÉJÀ LIBELLÉ par le système (l'argent se formate chez lui, `engine/money`) —
    *  AFFICHAGE : l'UI ne convertit ni ne totalise rien. Absent : la séquence ne joue pas d'argent. */
   pot?: PlayerText;
   /** Nombre de manches PRÉVUES (phases × manches, ou borne déclarée) — absent : partie ouverte. */
-  rounds?: number;
+  manches?: number;
   /** Phase courante, déjà libellée par le système (« 1ʳᵉ mi-temps »). */
   phase?: PlayerText;
   /** UNITÉ du score, au pluriel, déjà libellée par le système (« quilles », « points », « pièces
@@ -227,26 +228,26 @@ export interface SequenceBoard {
 
 /**
  * LA DÉCLARATION D'UN SYSTÈME — les trois seules choses qu'il doit à l'orchestrateur.
- *  · `round`  : sa manche (des étapes MINTÉES — un littéral d'étape n'entre pas) ;
- *  · `close`  : son réducteur PUR sur les rangées closes (lire → juger → boucler/clore) ;
- *  · `settle` : son dénouement (bourse, combat, modale) — joué APRÈS le retrait de l'état.
+ *  · `manche`  : sa manche (des étapes MINTÉES — un littéral d'étape n'entre pas) ;
+ *  · `clore`   : son réducteur PUR sur les rangées closes (lire → juger → boucler/clore) ;
+ *  · `denouer` : son dénouement (bourse, combat, modale) — joué APRÈS le retrait de l'état.
  * Tout le reste (persistance, cycle, cumuls, borne) appartient à l'implémentation.
  */
 export interface SequenceDef<P = unknown> {
-  /** Fabrique la manche `seq.round` (déjà incrémentée). `undefined` = plus rien à ouvrir : la
+  /** Fabrique la manche `seq.manche` (déjà incrémentée). `undefined` = plus rien à ouvrir : la
    *  séquence s'éteint sans issue (aucun participant). */
-  round: (get: Get, seq: SequenceState<P>, rng: RNG) => SequenceRound<P> | undefined;
+  manche: (get: Get, seq: SequenceState<P>, rng: RNG) => SequenceRound<P> | undefined;
   /** RÉDUCTEUR de clôture : lit les rangées closes, rend le verdict. Ne mute RIEN du store. */
-  close: (ctx: SequenceCloseCtx<P>) => SequenceVerdict<P>;
+  clore: (ctx: SequenceCloseCtx<P>) => SequenceVerdict<P>;
   /** DÉNOUEMENT terminal (bourse, combat, modale de résultat) — appelé APRÈS le retrait de l'état.
-   *  `seq.round` y est la DERNIÈRE manche JOUÉE : un abandon entre deux Tests rend la manche ouverte
+   *  `seq.manche` y est la DERNIÈRE manche JOUÉE : un abandon entre deux Tests rend la manche ouverte
    *  et non jouée (`abandonSequence`). */
-  settle?: (get: Get, set: Set, seq: SequenceState<P>, outcome: string) => void;
+  denouer?: (get: Get, set: Set, seq: SequenceState<P>, issue: string) => void;
   /** TABLEAU DE MARQUE (affichage seul, PUR) — le système NOMME ses camps ; l'UI ne dérive rien. Il les
    *  nomme VIA LE CATALOGUE (fabriques t()-backed) : le littéral FR inline au flux est proscrit, avec
    *  l'angle mort et la limite v1 dits plus haut (#1318 V8b). */
-  board?: (get: Get, seq: SequenceState<P>) => SequenceBoard | undefined;
-  /** ABANDON que la séquence OFFRE au joueur — libellé court, info-bulle, et l'ISSUE que `settle`
+  tableau?: (get: Get, seq: SequenceState<P>) => SequenceBoard | undefined;
+  /** ABANDON que la séquence OFFRE au joueur — libellé court, info-bulle, et l'ISSUE que `denouer`
    *  joue. Absent : la séquence ne s'abandonne pas. */
   abandon?: (seq: SequenceState<P>) => SequenceAbandon;
 }
@@ -257,6 +258,6 @@ export interface SequenceDef<P = unknown> {
 export interface SequenceAbandon {
   label: PlayerText;
   title: PlayerText;
-  outcome: string;
+  issue: string;
   refus?: PlayerText;
 }

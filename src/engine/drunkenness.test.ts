@@ -2,7 +2,17 @@ import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
 import { makeRNG } from './dice';
-import { applyAlcoholTest, drunkPenalty, drunkCharPenalties, isDrunk, alcoholFailures, soberUpDissipate, soberUpHangover, drunkStaggers, DRUNK_CARACS } from './drunkenness';
+import {
+  applyAlcoholTest,
+  drunkPenalty,
+  drunkCharPenalties,
+  isDrunk,
+  alcoholFailures,
+  soberUpDissipate,
+  soberUpHangover,
+  drunkStaggers,
+  DRUNK_CARACS,
+} from './drunkenness';
 import { effectiveChar } from './characteristics';
 import { hasCondition } from './conditions';
 import { applyOps } from './ops';
@@ -16,7 +26,7 @@ const applyDrunkOps = (c: Combatant, ops: import('./ops').GameOp[] | undefined) 
 
 function hero(E = 30): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', name: 'Gunnar', kind: 'hero',
+    id: 'h', name: 'Gunnar', kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 30, endurance: E, initiative: 30, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], activeEffects: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

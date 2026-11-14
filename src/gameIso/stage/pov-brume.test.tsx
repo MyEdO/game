@@ -259,7 +259,7 @@ describe('POV volumique — la météo module la brume du milieu (#1247)', () =>
       <GameStage3D lecture="jeu"
         scene={s}
         mpt={mpt}
-        frame={{ mode: 'pov', partyPos: { x: 4, y: 4 }, facing: 'N', indoor, cid: null }}
+        frame={{ mode: 'subjectif', partyPos: { x: 4, y: 4 }, facing: 'N', indoor, cid: null }}
         tintAt={() => 1}
         keepEl={() => true}
         els={{ props: [] }}

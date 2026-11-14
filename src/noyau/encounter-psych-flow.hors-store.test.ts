@@ -25,7 +25,7 @@ import { ciblePsy } from '../engine/psych/ciblage';
  * CRÉATURE est COMBAT seulement → hors combat, seuls les Traits psy CIBLÉS du HÉROS se déclenchent —
  * Animosité/Haine/Préjugé/Amour/Camaraderie par leur Test propre, Phobie par le régime qu'elle CAUSE
  * (Peur, LDB 21 l.87). Depuis la VAGUE MULTI (#1117 L1) : c'est UNE cascade `purpose:'test'` de
- * BANDES — une étape `kind:'encounterPsych'` PAR ENTRÉE DE RÈGLE mise en jeu (type psy + source), et
+ * BANDES — une étape `kind:'psychologieDeRencontre'` PAR ENTRÉE DE RÈGLE mise en jeu (type psy + source), et
  * une RANGÉE (`participants`) par héros concerné, au lieu d'une étape par héros. On vérifie ce contrat.
  */
 let banc: Banc;
@@ -97,8 +97,8 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(scene([ent({ id: 'revenant', creature: { id: 'humain' }, combat: { optionals: [{ id: 'mort-vivant' }] } })]));
     const step = banc.getState().pendingCascade?.participants[0];
-    expect(step?.encounterPsych?.kind).toBe('haine');
-    expect(step?.encounterPsych?.cible).toBe(ciblePsy.groupe('mort-vivant'));
+    expect(step?.psychologieDeRencontre?.kind).toBe('haine');
+    expect(step?.psychologieDeRencontre?.cible).toBe(ciblePsy.groupe('mort-vivant'));
   });
 
   it('une Terreur ne déclenche AUCUNE cascade à la rencontre (hors combat = non hostile)', () => {
@@ -115,9 +115,9 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(c).toBeTruthy();
     expect(c.purpose).toBe('test');
     const step = c.participants[0];
-    expect(step.kind).toBe('encounterPsych');
-    expect(step.encounterPsych?.kind).toBe('animosite');
-    expect(step.encounterPsych?.cible).toBe(ciblePsy.groupe('elfe'));
+    expect(step.kind).toBe('psychologieDeRencontre');
+    expect(step.psychologieDeRencontre?.kind).toBe('animosite');
+    expect(step.psychologieDeRencontre?.cible).toBe(ciblePsy.groupe('elfe'));
     // BANDE : le jet vit sur la RANGÉE, jamais sur l'étape (contrat `aggregate:'none'`).
     expect(step.aggregate).toBe('none');
     expect(step.target).toBeUndefined();
@@ -129,7 +129,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const h = animosite('H');
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
-    banc.getState().jetLancer('cascadeBatch', h.id);
+    banc.getState().jetLancer('cascadeEnBande', h.id);
     banc.getState().jetValider('cascade');
     const hero = banc.getState().party[0];
     expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.cible === ciblePsy.groupe('elfe') && p.active === true)).toBe(true);
@@ -141,7 +141,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     h.resilience = 1;
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
-    banc.getState().jetForcerLaReussite('cascadeBatch', h.id);
+    banc.getState().jetForcerLaReussite('cascadeEnBande', h.id);
     banc.getState().jetValider('cascade');
     const hero = banc.getState().party[0];
     expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.active === true)).toBe(false);
@@ -154,7 +154,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
     const step = banc.getState().pendingCascade!.participants[0];
-    expect(step.encounterPsych?.kind).toBe('animosite');
+    expect(step.psychologieDeRencontre?.kind).toBe('animosite');
     banc.getState().depenserLaDetermination(h.id, 'immuniserALaPsychologie');
     expect(banc.getState().pendingCascade!.participants[0].participants![0].immune).toBe(true);
     banc.getState().jetValider('cascade');
@@ -174,13 +174,13 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const c = banc.getState().pendingCascade!;
     expect(c.participants.length).toBe(1);
     const band = c.participants[0];
-    expect(band.encounterPsych?.kind).toBe('animosite');
+    expect(band.psychologieDeRencontre?.kind).toBe('animosite');
     expect(band.participants?.map((p) => p.id)).toEqual([a.id, b.id]);
     // La bande n'est PRÊTE qu'une fois toutes ses rangées jouées — puis la cascade se clôt d'un coup.
-    banc.getState().jetLancer('cascadeBatch', a.id);
+    banc.getState().jetLancer('cascadeEnBande', a.id);
     banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade!.cursor).toBe(0); // rangée B pas encore jouée
-    banc.getState().jetLancer('cascadeBatch', b.id);
+    banc.getState().jetLancer('cascadeEnBande', b.id);
     banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
     const psy = banc.getState().party.map((h) => (h.psychState ?? []).filter((p) => p.type === 'animosite').length);
@@ -194,7 +194,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     banc.setState({ party: [a, b] });
     banc.getState().lancerLaScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
     const c = banc.getState().pendingCascade!;
-    expect(c.participants.map((s) => s.encounterPsych?.kind)).toEqual(['animosite', 'haine']);
+    expect(c.participants.map((s) => s.psychologieDeRencontre?.kind)).toEqual(['animosite', 'haine']);
     expect(c.participants.map((s) => s.participants?.map((p) => p.id))).toEqual([[a.id], [b.id]]);
   });
 
@@ -210,7 +210,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(band.participants![0].immune).toBe(true);
     expect(band.participants![1].immune).toBeUndefined();
     expect(band.participants![1].result).toBeNull();
-    banc.getState().jetLancer('cascadeBatch', b.id);
+    banc.getState().jetLancer('cascadeEnBande', b.id);
     banc.getState().jetValider('cascade');
     const [ha, hb] = banc.getState().party;
     expect(ha.resolve).toBe(0);
@@ -271,8 +271,8 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const c = banc.getState().pendingCascade;
     expect(c, 'aucune bande : le phobique ne teste plus rien hors combat').toBeTruthy();
     const step = c!.participants[0];
-    expect(step.kind).toBe('encounterPsych');
-    expect(step.encounterPsych).toMatchObject({ kind: 'peur', indice: 1, sourceId: 'arai', cible: ciblePsy.groupe('bete') });
+    expect(step.kind).toBe('psychologieDeRencontre');
+    expect(step.psychologieDeRencontre).toMatchObject({ kind: 'peur', indice: 1, sourceId: 'arai', cible: ciblePsy.groupe('bete') });
     expect(step.participants!.map((p) => p.id)).toEqual([h.id]);
   });
 
@@ -287,7 +287,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(rangee().base, 'base nue : Calme 60').toBe(60);
     expect(ligneDe(rangee().mods, { category: 'etats', id: 'extenue' })?.value, 'l’État est nommé sur la rangée').toBe(-30);
     expect(rangee().target, 'Calme 60 −30 Exténué, Intermédiaire').toBe(30);
-    banc.getState().jetLancer('cascadeBatch', h.id);
+    banc.getState().jetLancer('cascadeEnBande', h.id);
     expect((rangee().result as { target?: number }).target, 'le jet affronte la cible annoncée').toBe(30);
   });
 
@@ -322,7 +322,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
     const step = banc.getState().pendingCascade!.participants[0];
-    expect(step.encounterPsych).toMatchObject({ kind: 'animosite', cible: ciblePsy.groupe('elfe') });
+    expect(step.psychologieDeRencontre).toMatchObject({ kind: 'animosite', cible: ciblePsy.groupe('elfe') });
   });
 });
 
@@ -401,7 +401,7 @@ describe('encounterPsychFlow — POSSESSION de la bande (classe #1268)', () => {
   it('deux héros appelés → fenêtre PARTAGÉE ; un seul → la bande EST la sienne', () => {
     const a = timoreux('A'); a.id = 'psy-a';
     const b = timoreux('B'); b.id = 'psy-b';
-    banc.setState({ party: [a, b], pendingCascade: null, battle: null, net: { ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [b.id]: 1 } } } as never);
+    banc.setState({ party: [a, b], pendingCascade: null, battle: null, net: { ...NET0, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [b.id]: 1 } } } as never);
     openScriptedPsych(banc.getState, banc.setState, 'terreur', 2, 'Une vision', [a, b]);
     const bande = banc.getState().pendingCascade!.participants[0];
     expect(bande.participants!.map((p) => p.id)).toEqual([a.id, b.id]);
@@ -430,9 +430,9 @@ describe('encounterPsychFlow — l’étiquette de la scène, source sans PNJ (#
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(etiquetee(['richesse']));
     const step = banc.getState().pendingCascade!.participants[0];
-    expect([step.encounterPsych?.kind, step.encounterPsych?.cible, step.encounterPsych?.sourceId]).toEqual(['haine', ciblePsy.groupe('richesse'), 'scene']);
+    expect([step.psychologieDeRencontre?.kind, step.psychologieDeRencontre?.cible, step.psychologieDeRencontre?.sourceId]).toEqual(['haine', ciblePsy.groupe('richesse'), 'scene']);
     expect(step.participants?.map((p) => p.id)).toEqual([h.id]);
-    banc.getState().jetLancer('cascadeBatch', h.id);
+    banc.getState().jetLancer('cascadeEnBande', h.id);
     banc.getState().jetValider('cascade');
     expect((banc.getState().party[0].psychState ?? []).filter((p) => p.type === 'haine').map((p) => [p.cible, p.active])).toEqual([[ciblePsy.groupe('richesse'), true]]);
   });
@@ -442,7 +442,7 @@ describe('encounterPsychFlow — l’étiquette de la scène, source sans PNJ (#
     h.psychTraits = parsePsychTraits([{ id: 'effraye', arg: 'feu' }]).psychTraits;
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(etiquetee(['feu']));
-    const ep = banc.getState().pendingCascade!.participants[0].encounterPsych;
+    const ep = banc.getState().pendingCascade!.participants[0].psychologieDeRencontre;
     expect([ep?.kind, ep?.indice, ep?.sourceId, ep?.sourceName]).toEqual(['peur', 0, 'scene', 'S']);
   });
 

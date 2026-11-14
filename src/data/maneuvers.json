@@ -5,10 +5,10 @@
     "label": "Arme / griffes",
     "kind": "arme",
     "activation": "action",
-    "advantageCost": 0,
+    "coutEnAvantage": 0,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "effects": [],
     "source": {
       "book": "livre-de-base",
@@ -23,10 +23,10 @@
     "label": "Morsure",
     "kind": "morsure",
     "activation": "free",
-    "advantageCost": 1,
+    "coutEnAvantage": 1,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "effects": [],
     "source": {
       "book": "livre-de-base",
@@ -41,17 +41,17 @@
     "label": "Attaque caudale",
     "kind": "caudale",
     "activation": "free",
-    "advantageCost": 1,
+    "coutEnAvantage": 1,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "all",
             "of": [
               {
@@ -73,16 +73,20 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
                 {
                   "op": "condition",
-                  "id": "a-terre",
-                  "unlessCondition": "a-terre"
+                  "id": {
+                    "id": "a-terre"
+                  },
+                  "unlessCondition": {
+                    "id": "a-terre"
+                  }
                 }
               ]
             }
@@ -103,10 +107,10 @@
     "label": "Cornes",
     "kind": "cornes",
     "activation": "charge",
-    "advantageCost": 0,
+    "coutEnAvantage": 0,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "effects": [],
     "source": {
       "book": "livre-de-base",
@@ -121,35 +125,39 @@
     "label": "Tentacules",
     "kind": "tentacules",
     "activation": "free",
-    "advantageCost": 0,
+    "coutEnAvantage": 0,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "woundsDealt",
             "op": ">",
             "value": 0
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
                 {
                   "op": "condition",
-                  "id": "empetre",
+                  "id": {
+                    "id": "empetre"
+                  },
                   "grapple": true,
                   "escapeStrength": {
                     "charOf": "force"
                   },
-                  "unlessCondition": "empetre"
+                  "unlessCondition": {
+                    "id": "empetre"
+                  }
                 }
               ]
             }
@@ -170,23 +178,23 @@
     "label": "Langue préhensile",
     "kind": "langue",
     "activation": "free",
-    "advantageCost": 1,
+    "coutEnAvantage": 1,
     "stat": "capacite-de-tir",
     "defense": "esquive",
-    "targeting": "ranged",
+    "ciblage": "distance",
     "range": {
       "bonusOf": "endurance"
     },
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -202,14 +210,16 @@
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "empetre",
+                    "id": {
+                      "id": "empetre"
+                    },
                     "grapple": true,
                     "escapeStrength": {
                       "charOf": "force"
@@ -235,18 +245,18 @@
     "label": "Étreinte glaciale",
     "kind": "etreinte",
     "activation": "action",
-    "advantageCost": 2,
+    "coutEnAvantage": 2,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "magic": true,
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -283,41 +293,43 @@
     "label": "Regard pétrifiant",
     "kind": "regard",
     "activation": "action",
-    "advantageCost": 1,
+    "coutEnAvantage": 1,
     "stat": "capacite-de-tir",
     "defense": "init",
-    "targeting": "ranged",
-    "advantageMode": "variable",
+    "ciblage": "distance",
+    "modeDAvantage": "variable",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": ">=",
             "value": 6
           },
-          "then": {
-            "kind": "seq",
-            "steps": [
+          "alors": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "petrifie"
+                      "id": {
+                        "id": "petrifie"
+                      }
                     }
                   ]
                 }
               },
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -329,22 +341,24 @@
               }
             ]
           },
-          "else": {
-            "kind": "if",
-            "cond": {
+          "sinon": {
+            "kind": "si",
+            "condition": {
               "kind": "slThreshold",
               "op": ">=",
               "value": 2
             },
-            "then": {
-              "kind": "do",
-              "effect": {
+            "alors": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "sonne",
+                    "id": {
+                      "id": "sonne"
+                    },
                     "value": 0,
                     "valuePerSL": {
                       "every": 2,
@@ -371,10 +385,10 @@
     "label": "Souffle",
     "kind": "souffle",
     "activation": "free",
-    "advantageCost": 2,
+    "coutEnAvantage": 2,
     "stat": "capacite-de-tir",
     "defense": "esquive",
-    "targeting": "zone",
+    "ciblage": "zone",
     "range": {
       "bonusOf": "endurance",
       "plus": 20
@@ -390,10 +404,10 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -422,10 +436,10 @@
     "label": "Vomissement",
     "kind": "vomi",
     "activation": "free",
-    "advantageCost": 3,
+    "coutEnAvantage": 3,
     "stat": "capacite-de-tir",
     "defense": "esquive",
-    "targeting": "zone",
+    "ciblage": "zone",
     "range": {
       "bonusOf": "endurance"
     },
@@ -435,13 +449,13 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -462,21 +476,23 @@
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "sonne"
+                    "id": {
+                      "id": "sonne"
+                    }
                   }
                 ]
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -506,20 +522,20 @@
     "label": "Hurlement fantomatique",
     "kind": "hurlement",
     "activation": "free",
-    "advantageCost": 2,
-    "targeting": "allAround",
+    "coutEnAvantage": 2,
+    "ciblage": "toutAutour",
     "defense": "resist",
-    "advantageMode": "all",
+    "modeDAvantage": "tout",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -545,33 +561,37 @@
                 },
                 "difficulty": "accessible"
               },
-              "success": {
-                "kind": "seq",
-                "steps": []
+              "reussite": {
+                "kind": "sequence",
+                "etapes": []
               },
-              "fail": {
-                "kind": "do",
-                "effect": {
+              "echec": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "brise"
+                      "id": {
+                        "id": "brise"
+                      }
                     }
                   ]
                 }
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "assourdi",
+                    "id": {
+                      "id": "assourdi"
+                    },
                     "value": 3
                   }
                 ]
@@ -597,25 +617,27 @@
     "label": "Hurlement de la Bête indomptable",
     "kind": "hurlement",
     "activation": "free",
-    "advantageCost": 1,
-    "targeting": "allFoes",
+    "coutEnAvantage": 1,
+    "ciblage": "adversairesAutour",
     "defense": "auto",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "assourdi",
+                    "id": {
+                      "id": "assourdi"
+                    },
                     "value": 3
                   }
                 ]
@@ -629,19 +651,21 @@
                 },
                 "difficulty": "complexe"
               },
-              "success": {
-                "kind": "seq",
-                "steps": []
+              "reussite": {
+                "kind": "sequence",
+                "etapes": []
               },
-              "fail": {
-                "kind": "do",
-                "effect": {
+              "echec": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "brise",
+                      "id": {
+                        "id": "brise"
+                      },
                       "value": 3
                     }
                   ]
@@ -668,24 +692,26 @@
     "label": "Frisson paralysant",
     "kind": "etreinte",
     "activation": "action",
-    "advantageCost": 0,
+    "coutEnAvantage": 0,
     "stat": "capacite-de-combat",
     "defense": "esquive",
-    "targeting": "melee",
+    "ciblage": "melee",
     "magic": true,
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
               {
                 "op": "condition",
-                "id": "sonne",
+                "id": {
+                  "id": "sonne"
+                },
                 "valuePerSL": {
                   "every": 1,
                   "amount": 1
@@ -709,15 +735,15 @@
     "label": "Prendre forme hybride",
     "kind": "hurlement",
     "activation": "action",
-    "advantageCost": 0,
-    "targeting": "self",
+    "coutEnAvantage": 0,
+    "ciblage": "soi",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -856,15 +882,15 @@
     "label": "Reprendre forme humaine",
     "kind": "hurlement",
     "activation": "action",
-    "advantageCost": 0,
-    "targeting": "self",
+    "coutEnAvantage": 0,
+    "ciblage": "soi",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -894,10 +920,10 @@
     "label": "Piétinement",
     "kind": "pietinement",
     "activation": "free",
-    "advantageCost": 1,
+    "coutEnAvantage": 1,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "ecartDeTailleMin": 1,
     "subType": {
       "id": "bagarre"

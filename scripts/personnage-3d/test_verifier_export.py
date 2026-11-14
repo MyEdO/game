@@ -186,7 +186,7 @@ class VerificationDuReimport(Base):
     def verifier(self, **construction):
         chemin = construire(self.racine / 'animated.glb', **construction)
         manifest = self.racine / 'manifest.json'
-        manifest.write_text(json.dumps({'clips': {'idle': 'Bouge'}}), encoding='utf-8')
+        manifest.write_text(json.dumps({'clips': {'repos': 'Bouge'}}), encoding='utf-8')
         animation.verify(argparse.Namespace(verify=chemin, os=2, manifest=manifest))
         return json.loads((self.racine / 'reimport-report.json').read_text(encoding='utf-8'))
 

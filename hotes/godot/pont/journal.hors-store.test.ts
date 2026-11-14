@@ -3,12 +3,12 @@
  * s'ouvre sur sa date, une fois, dans l'ordre des jours, avant la première ligne écrite ce jour-là.
  */
 import { afterEach, describe, it, expect } from 'vitest';
-import { departDeLaCarte, drainer, table } from './pont.testkit';
+import { departDeLaCarte, drainer, table, gestesDessines } from './pont.testkit';
 import type { Bouton, Ligne } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 
 let ouvert: Pont | null = null;
-afterEach(() => { ouvert?.fermer(); ouvert = null; });
+afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
 
 describe('le journal daté par le pont', () => {
   it('le voyage écrit ses jours, chacun sa date en tête, dans l’ordre', () => {
@@ -24,7 +24,7 @@ describe('le journal daté par le pont', () => {
     const avancer = (jusqua?: string) => {
       for (let pas = 0; s.vue.projection.fenetre && s.vue.projection.fenetre.cle !== jusqua; pas++) {
         expect(pas, 'les fenêtres se vident').toBeLessThan(80);
-        const g = s.vue.zones['fenetre.gestes'];
+        const g = gestesDessines(s.vue);
         s = jouer('jouer', (g.find((x): x is Bouton => x.type === 'bouton' && x.focus) ?? g.find((x): x is Bouton => x.type === 'bouton' && !x.refus)!).jeu);
       }
     };

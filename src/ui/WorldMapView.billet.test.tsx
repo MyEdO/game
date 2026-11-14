@@ -13,7 +13,7 @@ import { WorldMapView } from './WorldMapView';
 import { BargainModal } from './BargainModal';
 import { useGame } from '../state/store';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
-import { makePregensWithWealth, PREGEN, idDuPretire } from '../data/pregens';
+import { groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';
 import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { toBrass } from '../engine/money';
 import { setRule, resetRule } from '../engine/policy';
@@ -28,13 +28,13 @@ const paquet = paquetDuJeu(diligenceCampaign);
 const get = () => useGame.getState();
 const bourse = () => toBrass(partyMoneyTotal(get));
 const NET_INITIAL = useGame.getState().net;
-const SHOWCASE: readonly string[] = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].map((s) => idDuPretire(s));
+const BOURSE_DE_FIXTURE = { gold: 0, silver: 3, brass: 4 };
 
 let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
-  setRule('test-auto-bands', 'off');
+  setRule('test-bandes-auto', 'off');
   // Préférence « réduire les animations » (`prefersReducedMotion`) : « Lancer » résout sans roulis de dés.
   vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('reduce'), media: q, addEventListener() {}, removeEventListener() {} }));
   container = document.createElement('div');
@@ -44,7 +44,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
-  resetRule('test-auto-bands');
+  resetRule('test-bandes-auto');
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   useGame.setState({ pendingBargain: null, billetEnMain: null, marchandagesDeBillet: {}, travelPlan: null, net: NET_INITIAL });
@@ -55,10 +55,10 @@ const T2 = 'route-route-principale-sept-rayons';
 
 /** Le chapitre 1 lancé avec le groupe showcase et sa bourse, monté à bord (`edo-ch1-depart`). */
 function aBord(): void {
-  const groupe = makePregensWithWealth(idsDeTest).filter((e) => SHOWCASE.includes(e.hero.id));
-  useGame.setState({ party: groupe.map((e) => e.hero) });
+  const groupe = groupeVitrineDeScenario(idsDeTest);
+  useGame.setState({ party: groupe });
   expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
-  for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
+  for (const h of groupe) creditBourse(get, useGame.setState, h.id, BOURSE_DE_FIXTURE);
   get().fenetreValider('ouverture');
   poserLeGroupe(get, useGame.setState, { x: 13, y: 31 });
   get().jouerAction('diligence-remise-charrette', 'monter-a-bord');
@@ -76,10 +76,10 @@ async function cliquer(b: Element): Promise<void> {
 
 describe('billet de la diligence — chemin du joueur', () => {
   it('Marchander → Conclure → prix négocié par place → Payer et partir → 4 × 3/- débités', async () => {
-    const groupe = makePregensWithWealth(idsDeTest).filter((e) => SHOWCASE.includes(e.hero.id));
-    useGame.setState({ party: groupe.map((e) => e.hero) });
+    const groupe = groupeVitrineDeScenario(idsDeTest);
+    useGame.setState({ party: groupe });
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
-    for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
+    for (const h of groupe) creditBourse(get, useGame.setState, h.id, BOURSE_DE_FIXTURE);
     get().fenetreValider('ouverture');
     poserLeGroupe(get, useGame.setState, { x: 13, y: 31 });
     get().jouerAction('diligence-remise-charrette', 'monter-a-bord');
@@ -147,7 +147,7 @@ describe('billet de la diligence — chemin du joueur', () => {
 
   it('coop : « Marchander » est fermé chez l’invité — l’hôte décide des départs', async () => {
     aBord();
-    useGame.setState({ net: { ...get().net, mode: 'guest', mySeat: 1 } });
+    useGame.setState({ net: { ...get().net, mode: 'invite', mySeat: 1 } });
     await act(async () => { root.render(<WorldMapView initialRouteId={T1} />); });
     await cliquer(bouton('Diligence'));
     const marchander = bouton('Marchander');

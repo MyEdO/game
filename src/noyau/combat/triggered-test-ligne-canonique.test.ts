@@ -14,7 +14,7 @@ import { refLabel } from '../../data';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
- * LIGNE des étapes produites par le canal `triggeredTest` (#1153 L3) — les quatre producteurs de ce
+ * LIGNE des étapes produites par le canal `testDeclenche` (#1153 L3) — les quatre producteurs de ce
  * module montent leur ligne par le MONTEUR CANONIQUE (`rollSeam.rollStep`). Deux grandeurs jugées
  * ensemble, aucune relue du site :
  *  1. la CIBLE, RECALCULÉE ICI depuis les jumelles du moteur — canal COMBAT pour les Tests SIMPLES
@@ -40,7 +40,7 @@ const CHARS = {
 
 function actor(p: Partial<Combatant> & { id: string }): Combatant {
   return blessuresSurLeProfil({
-    label: p.id, kind: 'hero', characteristics: { ...CHARS },
+    label: p.id, kind: 'heros', characteristics: { ...CHARS },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [{ id: 'resistance', advances: 8, characteristic: 'endurance' }],
@@ -67,7 +67,7 @@ const DIFFS: Difficulty[] = ['intermediaire', 'difficile'];
 /** PORTEUR de la sonde : un `FlowTest` de donnée n'est jamais orphelin — il est exigé par une entité,
  *  et c'est d'elle que son enjeu se DÉRIVE (#1262 V2 L6d). Les deux descripteurs ci-dessous passent
  *  donc par la MÊME porte que la production (`withDerivedStake`). */
-const PORTEUR = { kind: 'condition', id: 'empoisonne' } as const;
+const PORTEUR = { kind: 'etat', id: 'empoisonne' } as const;
 const FT: FlowTest = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister' }, PORTEUR);
 const FT_OPP: FlowTest = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister', opposed: { attacker: 'force' } }, PORTEUR);
 const BRANCHES = { onSuccess: EMPTY_FLOW, onFail: EMPTY_FLOW };

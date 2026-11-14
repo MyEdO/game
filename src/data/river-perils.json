@@ -6,7 +6,7 @@
     {
       "id": "debris",
       "label": "Débris flottants",
-      "kind": "navTest",
+      "kind": "navigation",
       "onFail": {
         "hullHits": 2,
         "damagePerHit": 10
@@ -63,7 +63,7 @@
     {
       "id": "rochers",
       "label": "Rochers",
-      "kind": "detect",
+      "kind": "perception",
       "onHit": {
         "hullDamage": 15,
         "holeChancePct": 50,
@@ -79,7 +79,7 @@
     {
       "id": "eaux-peu-profondes",
       "label": "Eaux peu profondes",
-      "kind": "detect",
+      "kind": "perception",
       "onHit": {
         "hullDamage": 5,
         "echouageChancePct": 40

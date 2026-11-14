@@ -1,4 +1,4 @@
-import { pregenParty, PREGEN } from '../../data/pregens';
+import { groupeDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
@@ -77,9 +77,9 @@ export const scenario: TestScenario = {
     'au bandeau `ObjectiveBanner`) et `delayedEffect` tire le même jour à minuit (journal + flag) — les ' +
     'deux résolus par `scheduleAt` (`engine/clock`). Dormir chez l’aubergiste (`rest`, jour par jour) fait ' +
     'avancer le temps et progresser le compte à rebours jusqu’au tir.',
-  partyNote: 'Sigmund (Soldat) · Tueur nain · Sorcier · Chasseur',
+  partyNote: 'Soldat · Tueur nain · Sorcier · Chasseur',
   construire: (idNeuf) => ({
-    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
+    party: groupeDeScenario(idNeuf, 'soldat', 'tueur', 'sorcier', 'chasseur'),
     scene: construireAuberge(),
   }),
   money: { gold: 2, silver: 0, brass: 0 }, // #668 : de quoi payer une nuit d'auberge à 4 (2 chambres privées + 4 repas ≈ 24s, LDB 66 l.13/16/28) du premier clic

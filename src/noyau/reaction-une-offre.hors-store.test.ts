@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { resolveFreeAttacks, runEnemyAI, doAttack, fileDesGratuites } from './combatFlow';
-import { combatDistance } from './monde/footprint';
+import { distanceDeContact } from './monde/footprint';
 import { addCondition } from '../engine/conditions';
 import { emitCombatEvent } from './combatEvents';
 import { battleRng } from './battleRng';
@@ -21,7 +21,8 @@ import { testScene } from '../scenes/test-fixture';
 import { traits } from '../data';
 import { setDataset } from '../data/overrides';
 import type { Combatant, Weapon } from '../engine/types';
-import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../engine/flowCore';
+import { triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -33,11 +34,11 @@ function setup() {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   b.combatants = [H, E];
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 11, y: 10 };
@@ -65,7 +66,7 @@ function ecouterLesTestsDInitiative(): { vus: string[]; fin: () => void } {
 }
 
 describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur', () => {
-  it.each(['yes', 'no'] as const)('A : une IA charge un héros MANUEL porteur de Frappe réactive — UNE offre (%s), puis le tour du chargeur reprend', (reponse) => {
+  it.each(['oui', 'non'] as const)('A : une IA charge un héros MANUEL porteur de Frappe réactive — UNE offre (%s), puis le tour du chargeur reprend', (reponse) => {
     banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.talents = [...(H.talents ?? []), { talentId: 'frappe-reactive', times: 1 }];
@@ -78,16 +79,16 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
       for (let i = 0; i < 6 && banc.enAttente() && !banc.getState().pendingCascade; i++) banc.reprendreLesEnAttente();
     }).not.toThrow();
     expect(vif(E.id).chargedThisTurn).toBe(true);
-    expect(etapes()).toEqual(['triggeredChoice']);
+    expect(etapes()).toEqual(['choixDeclenche']);
     const etapesVues = new Map<string, string>();
     banc.subscribe((st) => { for (const p of st.pendingCascade?.participants ?? []) etapesVues.set(p.id, p.kind); });
     avanceEtapeCascade(banc.getState, undefined, () => reponse);
-    if (reponse === 'yes') {
-      expect(etapeCourante()?.kind).toBe('triggeredTest');
+    if (reponse === 'oui') {
+      expect(etapeCourante()?.kind).toBe('testDeclenche');
       avanceEtapeCascade(banc.getState);
       expect(vif(H.id).freeAttacksThisTurn?.['frappe-reactive']).toBe(1);
       fermerLaSequence();
-      expect([...etapesVues.values()].filter((k) => k === 'triggeredTest')).toHaveLength(1);
+      expect([...etapesVues.values()].filter((k) => k === 'testDeclenche')).toHaveLength(1);
     } else {
       expect(banc.getState().pendingCascade).toBeNull();
       expect(vif(H.id).freeAttacksThisTurn).toBeUndefined();
@@ -127,7 +128,7 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
     expect(vif(E.id).pos).not.toEqual({ x: 13, y: 10 });
     expect(vif(E.id).advantage).toBe(avantage);
     expect(vif(E.id).chargedThisTurn).toBe(true);
-    expect(etapes()).toEqual(['triggeredChoice']);
+    expect(etapes()).toEqual(['choixDeclenche']);
   });
 
   it.each([[2, false], [4, true]] as const)('C1 : Cornes (LDB 85 l.83) — Charge à distance %i : Cornes en file = %s (l’Avantage de la Charge, LDB 15 l.37)', (d, cornes) => {
@@ -162,10 +163,10 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
     runEnemyAI(banc.getState, banc.setState, E.id);
     for (let i = 0; i < 2 && banc.enAttente() && !banc.getState().pendingCascade && !banc.getState().pendingDefense; i++) banc.reprendreLesEnAttente();
     fin();
-    expect(combatDistance(vif(E.id), vif(H.id)), 'au contact').toBeLessThanOrEqual(1);
+    expect(distanceDeContact(banc.getState().scene, vif(E.id), vif(H.id)), 'au contact').toBeLessThanOrEqual(1);
     expect(charge).toBe(false);
     expect(vif(E.id).advantage).toBe(avantage);
-    expect(etapes()).not.toContain('triggeredChoice');
+    expect(etapes()).not.toContain('choixDeclenche');
   });
 });
 
@@ -177,7 +178,7 @@ function effetsAGratuiteDeLaDonnee(): { ou: string; eff: TriggeredEffect }[] {
     if (Array.isArray(n)) { n.forEach((x, i) => parcourir(x, `${ou}[${i}]`)); return; }
     if (!n || typeof n !== 'object') return;
     const o = n as Record<string, unknown>;
-    if (typeof o.trigger === 'string' && o.flow && JSON.stringify(o.flow).includes('"grantFreeAttack"')) out.push({ ou, eff: o as unknown as TriggeredEffect });
+    if (typeof o.trigger === 'string' && o.flow && JSON.stringify(o.flow).includes('"grantFreeAttack"')) out.push({ ou, eff: triggeredEffectSchema.parse(o) });
     for (const [k, v] of Object.entries(o)) parcourir(v, `${ou}.${k}`);
   };
   for (const fichier of listerDossier(dir).filter((x: string) => x.endsWith('.json'))) parcourir(JSON.parse(readFileSync(join(dir, fichier), 'utf8')), fichier);
@@ -185,12 +186,12 @@ function effetsAGratuiteDeLaDonnee(): { ou: string; eff: TriggeredEffect }[] {
 }
 
 const MIXTE: TriggeredEffect = {
-  trigger: 'onHit', on: 'victim', attackType: 'ranged',
-  flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'empetre', value: 1 }, { op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
+  trigger: 'onHit', on: 'victime', attackType: 'distance',
+  flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empetre' }, value: 1 }, { op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
 };
 const ATOUT: TriggeredEffect = {
-  trigger: 'onHit', on: 'self',
-  flow: { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
+  trigger: 'onHit', on: 'soi',
+  flow: { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
 };
 type Porteur = 'manuel' | 'auto' | 'ennemi';
 const PORTEURS: Porteur[] = ['manuel', 'auto', 'ennemi'];
@@ -244,8 +245,8 @@ describe('#3159 — classe : le bus ne joue aucun Flow à attaque gratuite, reso
       expect(vif(porteur.id).freeAttacksThisTurn).toBeUndefined();
       expect(empetre(tiers.id) + empetre(porteur.id)).toBe(0);
       resolveFreeAttacks(banc.getState, banc.setState, porteur, eff.trigger, tiers, { weapon, attackType });
-      for (let i = 0; i < 4 && etapeCourante()?.kind === 'triggeredChoice'; i++) avanceEtapeCascade(banc.getState, undefined, () => 'yes');
-      if (etapeCourante()?.kind === 'triggeredTest') avanceEtapeCascade(banc.getState);
+      for (let i = 0; i < 4 && etapeCourante()?.kind === 'choixDeclenche'; i++) avanceEtapeCascade(banc.getState, undefined, () => 'oui');
+      if (etapeCourante()?.kind === 'testDeclenche') avanceEtapeCascade(banc.getState);
       expect(imputees(porteur.id, tiers.id)).toBeLessThanOrEqual(1);
       expect(imputees(porteur.id, tiers.id) + empetre(tiers.id), 'resolveFreeAttacks a joué le Flow').toBeGreaterThan(0);
     });
@@ -259,7 +260,7 @@ describe('#3159 — enveloppe et arme', () => {
     resolveFreeAttacks(banc.getState, banc.setState, porteur, 'onHit', tiers, { weapon, attackType: 'melee' });
     expect(empetre(tiers.id) + empetre(porteur.id)).toBe(0);
     expect(vif(porteur.id).freeAttacksThisTurn).toBeUndefined();
-    resolveFreeAttacks(banc.getState, banc.setState, porteur, 'onHit', tiers, { weapon, attackType: 'ranged' });
+    resolveFreeAttacks(banc.getState, banc.setState, porteur, 'onHit', tiers, { weapon, attackType: 'distance' });
     expect(empetre(tiers.id)).toBe(1);
     expect(empetre(porteur.id)).toBe(0);
   });
@@ -286,7 +287,7 @@ describe('#3159 — enveloppe et arme', () => {
     else porteur.talents = [...(porteur.talents ?? []), { talentId: 'assaut-feroce', times: 1 }];
     doAttack(banc.getState, banc.setState, porteur, tiers);
     fermerLaSequence();
-    expect(banc.getState().battle!.log.some((l) => l.actorId === porteur.id && l.kind === 'attack'), 'la touche principale a eu lieu').toBe(true);
+    expect(banc.getState().battle!.log.some((l) => l.actorId === porteur.id && l.kind === 'attaque'), 'la touche principale a eu lieu').toBe(true);
     const E = vif(porteur.id);
     const cles = Object.keys(vif(E.id).freeAttacksThisTurn ?? {});
     expect(cles.filter((k) => (enAtout ? k.startsWith('weapon:') : k === 'assaut-feroce'))).toHaveLength(1);

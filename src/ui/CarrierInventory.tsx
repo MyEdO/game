@@ -56,7 +56,7 @@ export interface CarrierInventoryProps {
 
 /** Groupes d'affichage du Sac (E3, langage du registre État) — chaque objet dans son PREMIER groupe. */
 const GROUPS: { label: string; pred: (it: ItemInstance) => boolean }[] = [
-  { label: 'Armes', pred: (it) => it.kind === 'melee' || it.kind === 'ranged' },
+  { label: 'Armes', pred: (it) => it.kind === 'melee' || it.kind === 'distance' },
   { label: 'Armures & protections', pred: (it) => it.kind === 'armor' || isCapeItem(it) },
   { label: 'Consommables', pred: isConsumable },
   { label: 'Divers', pred: () => true },
@@ -89,7 +89,7 @@ export function CarrierInventory({
     const quals: ReactNode = it.identified === false
       ? (it.suspectedQualities?.length ? `soupçonné : ${it.suspectedQualities.join(', ')}` : null)
       : (resolvedQuals.length ? <QualityChips qualities={resolvedQuals} /> : null);
-    if (it.kind === 'melee' || it.kind === 'ranged') {
+    if (it.kind === 'melee' || it.kind === 'distance') {
       const mech = weaponStatParts(it, force).join(' · ');
       return <>{mech}{mech && quals ? ' · ' : ''}{quals}</>;
     }
@@ -104,7 +104,7 @@ export function CarrierInventory({
     const isProsthesis = it.subType === 'protheses'; // prothèse (LDB 73, Groupe id) : se PORTE pour annuler un malus d'amputation
     const isCape = isCapeItem(it); // cape/manteau : emplacement Cape (cosmétique, onglet Combat)
     const gestes = gestesDeLObjet({ battle, party, possessions, gameTime, scene }, carrierId, it.uid);
-    const isWeaponItem = it.kind === 'melee' || it.kind === 'ranged';
+    const isWeaponItem = it.kind === 'melee' || it.kind === 'distance';
     const handLabel = isWeaponItem ? (weaponHandLabel?.(it) ?? null) : null;
     // Surbrillance « équipé » : arme tenue dans le set ACTIF (défaut `it.equipped`) ; sinon armure portée.
     const highlighted = isWeaponItem ? (weaponHighlighted ? weaponHighlighted(it) : it.equipped) : it.equipped;
@@ -122,7 +122,7 @@ export function CarrierInventory({
     if (it.identified === false) {
       badges.push(
         <span key="unid" className="chip tone-warn" title="Évaluer (ou Détecter l'artefact) pour révéler ses qualités">
-          {it.magicKnown ? (<><Icon id="action/cast" size="sm" /> Magique — non identifié</>) : (<><Icon id="nav/identify" size="sm" /> Non identifié</>)}
+          {it.magicKnown ? (<><Icon id="action/incanter" size="sm" /> Magique — non identifié</>) : (<><Icon id="navigation/identifier" size="sm" /> Non identifié</>)}
         </span>,
       );
     }
@@ -157,14 +157,14 @@ export function CarrierInventory({
               />
             )}
             {gestes.ranger?.refus && (
-              <GatedAction id={`inv-stow-${it.uid}`} label={<><Icon id="item/misc" size="sm" /> Ranger</>} enabled={false} {...raisonSi(gestes.ranger.refus)} onClick={() => {}} primary={false} btnClassName="small" />
+              <GatedAction id={`inv-stow-${it.uid}`} label={<><Icon id="objet/divers" size="sm" /> Ranger</>} enabled={false} {...raisonSi(gestes.ranger.refus)} onClick={() => {}} primary={false} btnClassName="small" />
             )}
             {gestes.ranger && !gestes.ranger.refus && (
               <MediaSelect
                 align="right"
                 triggerClassName="btn small"
                 title="Ranger dans un contenant"
-                trigger={<><Icon id="item/misc" size="sm" /> Ranger</>}
+                trigger={<><Icon id="objet/divers" size="sm" /> Ranger</>}
                 options={gestes.ranger.choix.map(({ cible: bag, libelle }) => ({
                   key: bag.uid,
                   media: <ItemIcon item={bag} size="sm" />,
@@ -175,14 +175,14 @@ export function CarrierInventory({
               />
             )}
             {gestes.donner?.refus && (
-              <GatedAction id={`inv-give-${it.uid}`} label={<><Icon id="action/pick-up" size="sm" /> Donner</>} enabled={false} {...raisonSi(gestes.donner.refus)} onClick={() => {}} primary={false} btnClassName="small" />
+              <GatedAction id={`inv-give-${it.uid}`} label={<><Icon id="action/ramasser" size="sm" /> Donner</>} enabled={false} {...raisonSi(gestes.donner.refus)} onClick={() => {}} primary={false} btnClassName="small" />
             )}
             {gestes.donner && !gestes.donner.refus && (
               <MediaSelect
                 align="right"
                 triggerClassName="btn small"
                 title="Donner cet objet à un autre porteur"
-                trigger={<><Icon id="action/pick-up" size="sm" /> Donner</>}
+                trigger={<><Icon id="action/ramasser" size="sm" /> Donner</>}
                 options={gestes.donner.choix.map(
                   ({ cible: c, libelle }): MediaOption =>
                     c.kind === 'possession'

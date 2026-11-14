@@ -19,7 +19,8 @@ import { RNG } from './dice';
 import { bonus, effectiveChar } from './characteristics';
 import { talentCorruptionThreshold } from './combatFeatures/dispatch';
 import { findTableEntry } from './tables';
-import { mutationBodyMaxForSpecies } from '../data';
+import { natureDeMutationDe, type MutationData } from '../data';
+import type { EntreeVivante } from '../data/datasets';
 import { acquerirTalent, retirerTalent } from './careerSlots';
 import { passiveCharSum } from './trauma';
 import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';
@@ -28,7 +29,7 @@ import { identiteDeCiblage } from './psych/ciblage';
 import type { OpPassive } from './ops';
 import { traitsOctroyes } from './traitOctroye';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import type { TriggeredEffect } from './flowCore';
+import { mutationKindSchema } from '../data/schemas/grammaire/valeurs';
 
 export type ExposureLevel = 'mineure' | 'moderee' | 'majeure';
 
@@ -56,42 +57,20 @@ export function corruptionEaseSteps(c: Combatant): number {
  *  décide. `toute` = Chaos non aligné (table EDOC élargie). */
 export type ChaosAlign = 'toute' | 'khorne' | 'nurgle' | 'slaanesh' | 'tzeentch';
 
-/** Mutation subie (donnée persistée ; cf. Tableaux LDB 19 l.112/140). */
-export interface Mutation {
-  /** `id` STABLE (slug) — clé de résolution runtime/données (registre, table de Corruption, rendu).
-   *  « On ne se base plus sur le label » : le `label` ne sert qu'à l'affichage. */
-  id: string;
-  label: string;
-  /** Description VERBATIM (LDB 19, colonne « Description Effet ») — affichage seul, jamais lue par le moteur.
-   *  Les mutations n'ont pas de flavor en source : c'est donc le texte d'effet littéral du livre. */
-  desc: string;
-  kind: 'physique' | 'mentale';
+/** L'ÉTAT d'exécution d'une mutation SUBIE, que l'instance porte en plus de son entrée de catalogue. */
+export interface EtatDeMutation {
   /** Jet d100 sur le tableau (traçabilité). */
   roll: number;
-  /** TOUTE la mécanique de la mutation en `GameOp[]` — MÊME vocabulaire/éditeur (GameOpEditor) que
-   *  traits et sorts : charMod/moveMod/skillMod/testMod (collecteur passif unifié engine/trauma) ;
-   *  `ap` (armure naturelle, loc absent = toutes — lue par mutationArmourBonus) ; `grantNaturalWeapon`
-   *  (arme de créature, lue par recomputeLoadout) ; `grantTrait` / `grantPsychTrait` (traits de créature
-   *  et psychologiques conférés, posés par attachMutation). Plus aucun champ ad hoc. */
-  passive?: OpPassive[];
   /** PA de mutation perdus par Localisation (Dégâts subis), compteur d'état à part du `passive` authoré, comme
    *  `damageTaken` d'une pièce d'armure. Lu par `mutationArmourBonus`. LDB 63 l.19 */
   usure?: Partial<Record<HitLocation, number>>;
-  /** Effets DÉCLENCHÉS de la mutation — MÊME vocabulaire que `TraitData.effects`/`SymptomData.effects`,
-   *  dispatchés par l'unique `fireTriggers` (aucun chemin par KIND). Sert les mutations à cadence :
-   *  Haine sporadique re-tire sa Cible à chaque `onDayStart` (EDOC 12 l.217). */
-  effects?: TriggeredEffect[];
-  /** Partie non modélisée de l'effet — verbatim, arbitrage MJ (rien d'inventé). */
-  note?: string;
-  /** Provenance livre/page — LDB 19 IMPLICITE si absent ; EXPLICITE pour les suppléments (EDO Appendice 2…). */
-  source?: { book: string; page: number };
-  /** Pointeur de SOUS-TABLE (ex. « Tête bestiale » EDOC → re-tirer sur la sous-table Tête Bestiale) :
-   *  `rollMutation` re-tire sur `${subTable}-${alignement}` (suffixe hérité de la table courante). */
-  subTable?: string;
   /** PROVENANCE, posée par `attachMutation` sur l'instance ATTACHÉE : les niveaux de Talent que son
    *  attache a effectivement acquis (`acquerirTalent` rendu `true`). `detachMutation` ne retire qu'eux. */
   talentsAcquis?: RefDesignee[];
 }
+
+/** Mutation subie (donnée persistée ; cf. Tableaux LDB 19 l.112/140) : son entrée de catalogue, écrite au régime vivant (une mutation maison du Codex la porte aussi), et son état. */
+export type Mutation = EntreeVivante<MutationData> & EtatDeMutation;
 
 // ---------------------------------------------------------------------------
 // Gains de Corruption (l.30-75)
@@ -137,45 +116,10 @@ export function isProfane(c: Combatant): boolean {
 // Dissolution du corps et de l'esprit (l.82-91)
 // ---------------------------------------------------------------------------
 
-/** Une LIGNE du Tableau « corps ou esprit » (LDB 19 l.78-81) : fourchette d100 → nature de la mutation
- *  (id STABLE 'physique'/'mentale'), `label` = l'intitulé de la ligne du Tableau (AFFICHAGE). */
-export interface MutationNatureRow {
-  min: number;
-  max: number;
-  id: 'physique' | 'mentale';
-  label: string;
-}
-
-const NATURE_ROWS = new Map<number, MutationNatureRow[]>();
-
-/** Lignes du Tableau « corps ou esprit » pour un SEUIL d100 de mutation physique — Corps `01–seuil`,
- *  Esprit au-dessus ; seuil 0 (Elfe) → la seule ligne « Esprit 01-100 ». Mémoïsées par seuil : la
- *  référence est stable (tables tirables). SOURCE UNIQUE des fourchettes de ce Tableau. */
-export function mutationNatureRowsFor(max: number): MutationNatureRow[] {
-  const cached = NATURE_ROWS.get(max);
-  if (cached) return cached;
-  const rows: MutationNatureRow[] = [
-    ...(max >= 1 ? [{ min: 1, max, id: 'physique' as const, label: 'Corps' }] : []),
-    ...(max < 100 ? [{ min: max + 1, max: 100, id: 'mentale' as const, label: 'Esprit' }] : []),
-  ];
-  NATURE_ROWS.set(max, rows);
-  return rows;
-}
-
-/** Lignes du Tableau pour l'ESPÈCE d'un personnage (`id` STABLE) — le seuil vit en DONNÉE
- *  (`SpeciesData.mutationBodyMax`, lu par `mutationBodyMaxForSpecies`). */
-export function mutationNatureRows(species: string | undefined): MutationNatureRow[] {
-  return mutationNatureRowsFor(mutationBodyMaxForSpecies(species));
-}
-
-/**
- * Corps ou esprit, selon l'espèce (`id` STABLE) et le d100 (Tableau l.78-81) — lookup sur les lignes
- * ci-dessus (`findTableEntry`, brique partagée), jamais un match sur le nom. Seuils SOURCÉS : Elfe 0,
- * Nain 5, Halfling 10, Humain 50 (LDB 19) ; Ogre 10 (ADE II « Ogres et Mutations ») ; Gnome 50 =
- * Humain (NADJ « Gnomes et Corruption »).
- */
+/** La nature de la mutation que le tirage `roll` désigne au tableau corps ou esprit de la race de l'espèce
+ *  (`id` STABLE, `natureDeMutationDe`). LDB 19 l.76-81 */
 export function mutationKindFor(species: string | undefined, roll: number): 'physique' | 'mentale' {
-  return findTableEntry(mutationNatureRows(species), roll).id;
+  return mutationKindSchema.parse(findTableEntry(natureDeMutationDe(species).entries, roll).id);
 }
 
 /** Mutations comptées par nature et leurs Limites de Corruption. LDB 19 l.87. */

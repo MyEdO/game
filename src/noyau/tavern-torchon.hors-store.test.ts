@@ -13,7 +13,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
 import { sequenceTableRow } from './sequenceCore';
@@ -46,22 +46,22 @@ function capterLeRecit(): void {
 }
 
 function partie(n: number): Combatant[] {
-  const party = makePregens(idsDeTest).slice(0, n) as Combatant[];
+  const party = tousLesHerosDeScenario(idsDeTest).slice(0, n) as Combatant[];
   banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   capterLeRecit();
-  get().jouerALaTaverne({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
+  get().jouerALaTaverne(party[0].id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
   return party;
 }
 
-const bande = () => get().pendingCascade?.participants.find((s) => s.kind === 'tavern-round');
-const payload = () => get().sequence?.payload as {
+const bande = () => get().pendingCascade?.participants.find((s) => s.kind === 'taverneRound');
+const payload = () => get().sequence?.chargeUtile as {
   throwers?: { id: string; camp: string }[];
 } | undefined;
 
 /** Pose le DR des deux rangées du lancer courant, puis clôt (et enchaîne l'étape de pinte s'il y en a une). */
 function poseLancer(drLanceur: number, drDanseur: number, drAlcool?: number): void {
   const pc = get().pendingCascade!;
-  const idx = pc.participants.findIndex((s) => s.kind === 'tavern-round');
+  const idx = pc.participants.findIndex((s) => s.kind === 'taverneRound');
   const band = pc.participants[idx];
   const rows = band.participants!.map((r) => ({
     ...r,
@@ -73,9 +73,9 @@ function poseLancer(drLanceur: number, drDanseur: number, drAlcool?: number): vo
   get().jetValider('cascade');
   // Étape de pinte APPENDÉE (lancer raté d'un héros surfacé) : elle se joue dans la MÊME fenêtre.
   const pinte = get().pendingCascade?.participants[get().pendingCascade!.cursor];
-  if (pinte?.kind === 'tavern-drink') {
+  if (pinte?.kind === 'taverneBoisson') {
     const pc2 = get().pendingCascade!;
-    const j = pc2.participants.findIndex((s) => s.kind === 'tavern-drink');
+    const j = pc2.participants.findIndex((s) => s.kind === 'taverneBoisson');
     const parts = [...pc2.participants];
     const ok = (drAlcool ?? 1) >= 0;
     parts[j] = { ...pinte, result: { roll: ok ? 11 : 99, target: pinte.target!, sl: drAlcool ?? 1, success: ok } };
@@ -162,14 +162,14 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
   });
 
   it('la pinte utilise la Résistance à l’alcool du lanceur', () => {
-    const party = makePregens(idsDeTest).slice(0, 1) as Combatant[];
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1) as Combatant[];
     party[0].characteristics.endurance = 67;
     party[0].characteristics.dexterite = 13;
     party[0].skills = [{ id: 'resistance-a-l-alcool', characteristic: 'endurance', advances: 9 }];
     banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-    get().jouerALaTaverne({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
+    get().jouerALaTaverne(party[0].id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     const pc = get().pendingCascade!;
-    const idx = pc.participants.findIndex((step) => step.kind === 'tavern-round');
+    const idx = pc.participants.findIndex((step) => step.kind === 'taverneRound');
     const band = pc.participants[idx];
     const participants = [...pc.participants];
     participants[idx] = { ...band, participants: band.participants!.map((row) => ({
@@ -178,7 +178,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     })) };
     banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
     get().jetValider('cascade');
-    const pinte = get().pendingCascade!.participants.find((step) => step.kind === 'tavern-drink')!;
+    const pinte = get().pendingCascade!.participants.find((step) => step.kind === 'taverneBoisson')!;
     expect(pinte.base).toBe(76);
     expect(pinte.target).toBe(testValue(party[0], { skill: { id: 'resistance-a-l-alcool' } }));
   });
@@ -192,12 +192,12 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
   });
 
   it('BALAYAGE FINAL (l.113) : qui n’a pas roulé sur le Tableau Ivre coûte 1 point — et qui l’a fait, non', () => {
-    const party = makePregens(idsDeTest).slice(0, 1) as Combatant[];
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1) as Combatant[];
     banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     capterLeRecit();
     // Bonus d'Endurance ramené à 1 : le premier échec de Résistance suffit à franchir le seuil d'Ivresse.
     party[0].characteristics.endurance = 19;
-    get().jouerALaTaverne({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
+    get().jouerALaTaverne(party[0].id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     poseLancer(0, 5, -2); // raté + Résistance ratée → Tableau Ivre roulé
 
     expect(get().sequence, 'tous ont lancé : la partie est finie').toBeNull();
@@ -210,8 +210,8 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     // les deux totaux sont négatifs après 24 lancers — un barème qui ajouterait, ou un compte inversé,
     // ne les produirait pas.
     const res = get().tavernGames!.result!;
-    expect(res.playerSL, 'les points d’un camp de 12 sobres passent sous zéro').toBeLessThan(0);
-    expect(res.opponentSL).toBeLessThan(0);
+    expect(res.dr.joueur, 'les points d’un camp de 12 sobres passent sous zéro').toBeLessThan(0);
+    expect(res.dr.adversaire).toBeLessThan(0);
   });
 
   /**
@@ -220,11 +220,11 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
    * donc au malus, même s'il n'a rien bu ce soir-là.
    */
   it('BALAYAGE : un lanceur DÉJÀ ivre en arrivant ne compte pas parmi les trop sobres', () => {
-    const party = makePregens(idsDeTest).slice(0, 1) as Combatant[];
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1) as Combatant[];
     party[0].drunk = { failedTests: 3, drunk: true, result: 'piece-tourne' };
     banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     capterLeRecit();
-    get().jouerALaTaverne({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
+    get().jouerALaTaverne(party[0].id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     poseLancer(7, 1); // il touche : il ne boira pas de la partie
 
     expect(get().sequence).toBeNull();
@@ -249,21 +249,21 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
 
   it('GRAINE RÉELLE (aucun DR posé) : la partie entière se déroule et se dénoue', () => {
     seedBattleRng(17);
-    const party = makePregens(idsDeTest).slice(0, 2) as Combatant[];
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[];
     banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-    get().jouerALaTaverne({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
+    get().jouerALaTaverne(party[0].id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     for (let i = 0; i < 200 && get().pendingCascade; i++) {
       const pc = get().pendingCascade!;
       const cur = pc.participants[pc.cursor];
       if (cur?.participants) {
-        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeBatch', row.id);
+        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeEnBande', row.id);
       } else if (cur && cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
       get().jetValider('cascade');
     }
     expect(get().sequence, 'la séquence est retirée').toBeNull();
     const res = get().tavernGames!.result!;
     expect(res.rounds).toBe(24);
-    expect(['player', 'opponent', 'tie']).toContain(res.winner);
+    expect(['joueur', 'adversaire', 'egalite']).toContain(res.winner);
   });
 });
 
@@ -273,7 +273,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
  * sans rien inventer au catalogue livré (une 2ᵉ entrée réelle demanderait une source, ch.16 n'en
  * donne qu'un jeu à lanceurs) :
  *  (a) la FIXTURE passe le schéma du fichier — c'est bien une entrée JSON valide, pas un objet forgé ;
- *  (b) ses PARAMÈTRES pilotent une partie RÉELLE (le flux ne lit QUE `seq.params` pour la sanction) :
+ *  (b) ses PARAMÈTRES pilotent une partie RÉELLE (le flux ne lit QUE `seq.parametres` pour la sanction) :
  *      le récit sort en toutes lettres de la fixture, et la pinte du Torchon n'y apparaît nulle part.
  * CE QUE LA SONDE NE COUVRE PAS, dit plutôt que supposé : l'effectif et les danseurs restent ceux du
  * Torchon (ils viennent de l'ENTRÉE, pas des paramètres) — la conversion entrée→paramètres, elle, est
@@ -286,7 +286,7 @@ describe('famille (10) — un 2ᵉ jeu à lanceurs est une ENTRÉE JSON, récit 
     label: 'Sonde à lanceurs',
     desc: 'Entrée de SONDE (jamais livrée au catalogue) : elle mesure qu’un 2ᵉ jeu à lanceurs se déclare.',
     skill: { id: 'projectiles', spec: 'lancer' },
-    mode: 'opposed' as const,
+    mode: 'oppose' as const,
     team: { size: 2 },
     dancers: 3,
     roundShape: 'thrower' as const,
@@ -311,13 +311,13 @@ describe('famille (10) — un 2ᵉ jeu à lanceurs est une ENTRÉE JSON, récit 
   });
 
   it('(b) ses paramètres pilotent la partie : SON récit sort, et aucune pinte n’est descendue', () => {
-    const party = makePregens(idsDeTest).slice(0, 1) as Combatant[];
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1) as Combatant[];
     banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     capterLeRecit();
-    get().jouerALaTaverne({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
+    get().jouerALaTaverne(party[0].id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     // La SANCTION jouée est celle des paramètres — ceux de la fixture, convertis par la même porte.
     const seq = get().sequence!;
-    banc.setState({ sequence: { ...seq, params: tavernParams(FIXTURE as never) } });
+    banc.setState({ sequence: { ...seq, parametres: tavernParams(FIXTURE as never) } });
     poseLancer(0, 5, -2); // lancer manqué, puis Test de sanction ÉCHOUÉ
 
     expect(recit.some((l) => l.includes('perd la face')), 'le coup manqué se raconte comme la fixture le dit').toBe(true);

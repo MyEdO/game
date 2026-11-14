@@ -20,7 +20,7 @@ const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 40, endu
 
 const mkServant = (id: string, pos: { x: number; y: number }): Combatant =>
   (blessuresSurLeProfil({
-    id, label: id, kind: 'enemy', side: 'ally', ai: true, characteristics: CHARS,
+    id, label: id, kind: 'ennemi', side: 'allie', ai: true, characteristics: CHARS,
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos,
@@ -28,7 +28,7 @@ const mkServant = (id: string, pos: { x: number; y: number }): Combatant =>
 
 const mkHull = (poste: ShipPoste, pos = { x: 5, y: 10 }): Combatant =>
   ({
-    id: 'hull', label: 'Bélier', kind: 'enemy', side: 'ally', pos, conditions: [], weapons: [],
+    id: 'hull', label: 'Bélier', kind: 'ennemi', side: 'allie', pos, conditions: [], weapons: [],
     inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste],
   }) as unknown as Combatant;
 
@@ -37,7 +37,7 @@ const mkPoste = (crewIds: string[] = []): ShipPoste =>
 
 const mkEnemyHero = (id: string, x: number, y: number): Combatant =>
   (blessuresSurLeProfil({
-    id, label: id, kind: 'hero', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
+    id, label: id, kind: 'heros', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
     characteristics: { ...CHARS, endurance: 30 }, wounds: blessuresDeBase(12), advantage: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   })) as unknown as Combatant;
@@ -77,14 +77,14 @@ describe('#196 — tenue de formation IA', () => {
     const servant = mkServant('servant-1', { x: 5, y: 11 });
     const ennemiLointain = mkEnemyHero('cible', 5, 2); // loin, hors de portée de mêlée
     const action = chooseEnemyAction(input(servant, [ennemiLointain], { holdsFormation: !!crewPosteOf('servant-1', [hull, servant]) }));
-    expect(action.kind).toBe('end'); // ne s'approche ni ne charge : tient sa case
+    expect(action.kind).toBe('fin'); // ne s'approche ni ne charge : tient sa case
   });
 
   it('CONTRÔLE NÉGATIF : un PNJ IA non-crew, dans la MÊME situation, charge normalement (move vers la cible)', () => {
     const servant = mkServant('libre', { x: 5, y: 11 });
     const ennemiLointain = mkEnemyHero('cible', 5, 2);
     const action = chooseEnemyAction(input(servant, [ennemiLointain])); // holdsFormation absent
-    expect(action.kind).toBe('move'); // comportement inchangé : approche/charge
+    expect(action.kind).toBe('deplacement'); // comportement inchangé : approche/charge
   });
 
   it('cas ENGAGÉ : le servant du crew, avec un ennemi déjà ADJACENT, attaque DEPUIS sa case (pas de move)', () => {
@@ -106,6 +106,6 @@ describe('#196 — tenue de formation IA', () => {
     const holdsFormation = !!crewPosteOf('servant-1', [hull, servant]);
     expect(holdsFormation).toBe(false);
     const action = chooseEnemyAction(input(servant, [ennemiLointain], { holdsFormation }));
-    expect(action.kind).toBe('move'); // n'est plus tenu à la formation → charge de nouveau
+    expect(action.kind).toBe('deplacement'); // n'est plus tenu à la formation → charge de nouveau
   });
 });

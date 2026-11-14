@@ -12,17 +12,17 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * Talent « Résistance (Menace) » CÂBLÉ sur les flux de jet (LDB 10 l.1016-1020) — verbe `resist` de la
+ * Talent « Résistance (Menace) » CÂBLÉ sur les flux de jet (LDB 10 l.1016-1020) — verbe `resister` de la
  * fabrique rollFlow (MÊME mécanisme d'auto-succès que la Résilience, autre ressource : 1× par spec et
  * par séance) : le Test tagué `menace` réussit d'office avec DR = Bonus d'Endurance. Le tag `menace` ET
  * la spec du talent sont des ids stables : exposition à la Corruption ('corruption'),
  * seuil → mutation ('mutation'), Contraction de fin de combat ('maladie'), opposition à un Sort ('magie').
  * Poison ('poison') = tag de DONNÉE (`FlowTest.menace` du Venin/lames empoisonnées) → couvert par les
- * étapes `triggeredTest`.
+ * étapes `testDeclenche`.
  */
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'a', label: 'A', kind: 'hero',
+    id: 'a', label: 'A', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 43, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [],
     talents: [
@@ -148,7 +148,7 @@ describe('Résistance (Mutation) — Test de SEUIL de Corruption (LDB 19 l.70)',
 });
 
 describe('Résistance (Maladie) — Contraction de fin de combat (LDB 20 l.25/51)', () => {
-  it('étape `combatEndDisease` taguée `menace: maladie` ; jetResister@cascade → réussite à DR = BE → PAS de contraction', () => {
+  it('étape `maladieDeFinDeCombat` taguée `menace: maladie` ; jetResister@cascade → réussite à DR = BE → PAS de contraction', () => {
     const a = hero({ diseaseExposure: [{ disease: 'blessure-purulente' }] });
     setBattle([a]);
     banc.setState({ party: [hero()] });
@@ -156,10 +156,10 @@ describe('Résistance (Maladie) — Contraction de fin de combat (LDB 20 l.25/51
     const p = banc.getState().pendingCascade!;
     // #1117 L4 : bande par entrée de règle — le tag `menace` et l'auto-succès vivent SUR LA RANGÉE
     // (deux porteurs d'une même bande ne partagent ni leur Talent ni leur consommation).
-    const bande = p.participants.find((s) => s.kind === 'combatEndDisease')!;
+    const bande = p.participants.find((s) => s.kind === 'maladieDeFinDeCombat')!;
     const row = bande.participants!.find((r) => r.id === a.id)!;
     expect(row.menace).toBe('maladie');
-    banc.getState().jetResister('cascadeBatch', row.id);
+    banc.getState().jetResister('cascadeEnBande', row.id);
     const rolled = banc.getState().pendingCascade!.participants
       .find((s) => s.id === bande.id)!.participants!.find((r) => r.id === a.id)!;
     expect(rolled.result).toEqual({ roll: 1, target: row.target, sl: bonus(43), success: true });
@@ -172,7 +172,7 @@ describe('Résistance (Maladie) — Contraction de fin de combat (LDB 20 l.25/51
 describe('Résistance (Magie) — opposition à un Sort (« résister aux sorts »)', () => {
   it('pendingCastOpposition tagué `menace: magie` ; jetResister@opposition → la cible RÉSISTE (DR = BE)', () => {
     const a = hero();
-    const foe = hero({ id: 'e', label: 'E', kind: 'enemy', talents: [] });
+    const foe = hero({ id: 'e', label: 'E', kind: 'ennemi', talents: [] });
     banc.setState({ party: [a] });
     setBattle([a, foe]);
     banc.setState({

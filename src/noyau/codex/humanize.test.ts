@@ -21,15 +21,15 @@ const AUCUN_ETAT: readonly EtatDeclare[] = [];
  *  contient un a laissé fuir un id BRUT. */
 const KEBAB_IDS: string[] = [
   ...etats, ...talents, ...traits, ...groups, ...maladies, ...symptoms, ...skills, ...creatures,
-].map((x) => x.id).concat(CHAR_KEYS).filter((id) => id.includes('-'));
+].map((x): string => x.id).concat(CHAR_KEYS).filter((id) => id.includes('-'));
 
 const firstKebab = (s: string): string | undefined => KEBAB_IDS.find((id) => s.includes(id));
 
-/** Conditions (nœuds `if`, gate/difficultyBy des `test`) d'un Flow. */
+/** Conditions (nœuds `si`, gate/difficultyBy des `test`) d'un Flow. */
 function collectConditions(flow: Flow): Condition[] {
   const out: Condition[] = [];
   walkFlow(flow, (n) => {
-    if (n.kind === 'if') out.push(n.cond);
+    if (n.kind === 'si') out.push(n.condition);
     if (n.kind === 'test') { if (n.test.gate) out.push(n.test.gate); for (const d of n.test.difficultyBy ?? []) out.push(d.cond); }
   });
   return out;
@@ -39,8 +39,8 @@ function collectConditions(flow: Flow): Condition[] {
 function collectOps(flow: Flow): GameOp[] {
   const out: GameOp[] = [];
   walkFlow(flow, (n) => {
-    if (n.kind !== 'do') return;
-    const e = n.effect as EffectOp;
+    if (n.kind !== 'effet') return;
+    const e = n.effet as EffectOp;
     if (e && e.type === 'ops') for (const o of e.ops) if (o.op !== 'narrative') out.push(o);
   });
   return out;
@@ -63,9 +63,9 @@ describe('humanize — registre JOUEUR', () => {
   });
 
   it('nœud `test` : la préposition s’élide devant une voyelle, jamais « Jet de Endurance »', () => {
-    const rien: Flow = { kind: 'seq', steps: [] };
-    expect(humanizeFlowSentence({ kind: 'test', test: { characteristic: 'endurance' }, success: rien, fail: rien }, AUCUN_ETAT)).toMatch(/^Jet d’Endurance : /);
-    expect(humanizeFlowSentence({ kind: 'test', test: { characteristic: 'force', opposed: { attacker: 'force' } }, success: rien, fail: rien }, AUCUN_ETAT)).toMatch(/^Jet opposé de Force : /);
+    const rien: Flow = { kind: 'sequence', etapes: [] };
+    expect(humanizeFlowSentence({ kind: 'test', test: { characteristic: 'endurance' }, reussite: rien, echec: rien }, AUCUN_ETAT)).toMatch(/^Jet d’Endurance : /);
+    expect(humanizeFlowSentence({ kind: 'test', test: { characteristic: 'force', opposed: { attacker: 'force' } }, reussite: rien, echec: rien }, AUCUN_ETAT)).toMatch(/^Jet opposé de Force : /);
   });
 
   it('op `fall` : la CHUTE dit sa table, jamais son id de table (#1657, MDG 13 l.678)', () => {
@@ -84,7 +84,7 @@ describe('humanize — registre JOUEUR', () => {
   it('humanizeCondition : négation NATURELLE poussée dans la feuille (pas de « NON( … ) »)', () => {
     const c: Condition = { kind: 'not', of: { kind: 'has', who: 'target', what: 'talent', value: 'magie-des-arcanes', spec: 'feu' } };
     expect(humanizeCondition(c, AUCUN_ETAT)).toBe('la cible ne possède pas le Talent Magie des Arcanes (Feu)');
-    const rel: Condition = { kind: 'relation', who: 'target', is: 'opponent' };
+    const rel: Condition = { kind: 'relation', who: 'target', is: 'adversaire' };
     expect(humanizeCondition(rel, AUCUN_ETAT)).toBe('la cible est un adversaire');
     // De Morgan sur any sous négation.
     const morgan: Condition = { kind: 'not', of: { kind: 'any', of: [
@@ -97,13 +97,13 @@ describe('humanize — registre JOUEUR', () => {
 
   it('humanizeCondition : dédoublonne le sujet répété dans all/any (jamais deux sujets différents)', () => {
     const same: Condition = { kind: 'all', of: [
-      { kind: 'relation', who: 'target', is: 'opponent' },
+      { kind: 'relation', who: 'target', is: 'adversaire' },
       { kind: 'not', of: { kind: 'has', who: 'target', what: 'talent', value: 'magie-des-arcanes', spec: 'feu' } },
     ] };
     expect(humanizeCondition(same, AUCUN_ETAT)).toBe('la cible est un adversaire et ne possède pas le Talent Magie des Arcanes (Feu)');
     // Sujets DIFFÉRENTS (cible / lanceur) : aucun dédoublonnage (sûreté grammaticale).
     const mixed: Condition = { kind: 'all', of: [
-      { kind: 'relation', who: 'target', is: 'opponent' },
+      { kind: 'relation', who: 'target', is: 'adversaire' },
       { kind: 'not', of: { kind: 'has', who: 'caster', what: 'trait', value: 'mort-vivant' } },
     ] };
     expect(humanizeCondition(mixed, AUCUN_ETAT)).toBe('la cible est un adversaire et le lanceur ne possède pas le Trait Mort-vivant');
@@ -136,8 +136,8 @@ describe('humanize — registre JOUEUR', () => {
   });
 
   it('`condition` et `charMod` disent leur durée propre à ses trois échelles, accordée au réel', () => {
-    expect(humanizeOp({ op: 'condition', id: 'sonne', durationHours: 2 } as GameOp)).toBe("gagne l'État *Sonné* pendant 2 heures");
-    expect(humanizeOp({ op: 'condition', id: 'sonne', durationRounds: 1 } as GameOp)).toBe("gagne l'État *Sonné* pendant 1 Round");
+    expect(humanizeOp({ op: 'condition', id: { id: 'sonne' }, durationHours: 2 } as GameOp)).toBe("gagne l'État *Sonné* pendant 2 heures");
+    expect(humanizeOp({ op: 'condition', id: { id: 'sonne' }, durationRounds: 1 } as GameOp)).toBe("gagne l'État *Sonné* pendant 1 Round");
     expect(humanizeOp({ op: 'charMod', characteristic: 'intelligence', mod: -40, durationMinutes: 30 } as GameOp)).toBe('subit -40 en Intelligence pendant 30 minutes');
   });
 
@@ -147,7 +147,7 @@ describe('humanize — registre JOUEUR', () => {
   });
 
   it('humanizeOp : État en libellé italique, jamais l’id', () => {
-    const op: GameOp = { op: 'condition', id: 'en-flammes' };
+    const op: GameOp = { op: 'condition', id: { id: 'en-flammes' } };
     expect(humanizeOp(op)).toBe("gagne l'État *En flammes*");
     expect(firstKebab(humanizeOp(op))).toBeUndefined();
   });
@@ -186,7 +186,7 @@ describe('humanize — GARDE structurelle (toutes les données réelles)', () =>
     for (const s of spells) {
       const flow = s.effects as Flow | undefined;
       if (!flow) continue;
-      // Les `narrative` (prose VERBATIM) peuvent porter un « → » de source → l'arbre if/test (le VRAI
+      // Les `narrative` (prose VERBATIM) peuvent porter un « → » de source → l'arbre si/test (le VRAI
       // risque « → » d'atelier) est couvert par la garde des DOMAINES (sans narrative). Ici : pas de
       // « NON( » structurel, et aucun id kebab par condition/op.
       const full = humanizeFlowSentence(flow, AUCUN_ETAT);

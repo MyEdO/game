@@ -22,7 +22,7 @@ const SWORD = (uid: string): Weapon => ({ uid, label: 'Épée', type: 'melee', d
 const SWORD_ITEM = (uid: string): ItemInstance => ({ uid, label: 'Épée', kind: 'melee', qualities: [] } as unknown as ItemInstance);
 
 const mkHero = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'h', label: 'H', kind: 'hero', pos: { x: 0, y: 0 }, size: 'moyenne',
+  id: 'h', label: 'H', kind: 'heros', pos: { x: 0, y: 0 }, size: 'moyenne',
   characteristics: CHARS(40), skills: [], talents: [], advantage: 0, conditions: [],
   wounds: blessuresDeBase(12),
   weapons: [SWORD('m')], items: [SWORD_ITEM('m')],
@@ -31,7 +31,7 @@ const mkHero = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProf
 }) as unknown as Combatant);
 
 const mkFoe = (id: string, over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id, label: id, kind: 'enemy', pos: { x: 1, y: 0 }, size: 'moyenne',
+  id, label: id, kind: 'ennemi', pos: { x: 1, y: 0 }, size: 'moyenne',
   characteristics: CHARS(40), skills: [], talents: [], advantage: 0, conditions: [],
   wounds: blessuresDeBase(10),
   weapons: [SWORD('e')], items: [SWORD_ITEM('e')],
@@ -57,7 +57,7 @@ beforeEach(() => { banc.setState({ gameTime: 0 }); seedBattleRng(1); });
 describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (joueur)', () => {
   it('main gatée + arme tenue dans cette main → interpose le Test de Dextérité, PAS l\'attaque directe', () => {
     const { h, f } = setup(mkHero(bleeding()), mkFoe('f'));
-    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attaquer');
     const s = banc.getState();
     expect(s.pendingHandGate).toBeTruthy();
     expect(s.pendingHandGate!.hand).toBe('main');
@@ -68,35 +68,35 @@ describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (jou
 
   it('main NON gatée → ouvre directement la cascade d\'attaque (comportement inchangé)', () => {
     const { h, f } = setup(mkHero(), mkFoe('f'));
-    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attaquer');
     const s = banc.getState();
     expect(s.pendingHandGate).toBeNull();
     expect(s.pendingAttack).toBeTruthy();
-    expect(s.pendingCascade?.participants[0].jet).toBe('attack');
+    expect(s.pendingCascade?.participants[0].jet).toBe('attaque');
   });
 
-  it('jetLancer@handGate pose un jet (délégué influençable généré) puis RÉUSSITE → l\'attaque s\'ouvre', () => {
+  it('jetLancer@mainEnsanglantee pose un jet (délégué influençable généré) puis RÉUSSITE → l\'attaque s\'ouvre', () => {
     const { h, f } = setup(mkHero(bleeding()), mkFoe('f'));
-    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
-    banc.getState().jetLancer('handGate');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attaquer');
+    banc.getState().jetLancer('mainEnsanglantee');
     expect(banc.getState().pendingHandGate!.roll).not.toBeNull();
     // Force une RÉUSSITE pour tester l'ouverture de l'attaque (le jet lui-même est aléatoire).
     const pg = banc.getState().pendingHandGate!;
     banc.setState({ pendingHandGate: { ...pg, roll: pg.target, success: true, sl: 0 } });
-    banc.getState().jetValider('handGate');
+    banc.getState().jetValider('mainEnsanglantee');
     const s = banc.getState();
     expect(s.pendingHandGate).toBeNull();
     expect(s.pendingAttack).toBeTruthy();
-    expect(s.pendingCascade?.participants[0].jet).toBe('attack'); // l'Action figée s'est ouverte
+    expect(s.pendingCascade?.participants[0].jet).toBe('attaque'); // l'Action figée s'est ouverte
     // Pas de re-gate en boucle : l'attaque est bien ouverte, pas un 2ᵉ pendingHandGate.
   });
 
   it('ÉCHEC → l\'objet glisse (disarm : loadout vidé), pas d\'attaque, Action non re-consommée', () => {
     const { h, f } = setup(mkHero(bleeding()), mkFoe('f'));
-    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attaquer');
     const pg = banc.getState().pendingHandGate!;
     banc.setState({ pendingHandGate: { ...pg, roll: 99, success: false, sl: -3 } });
-    banc.getState().jetValider('handGate');
+    banc.getState().jetValider('mainEnsanglantee');
     const s = banc.getState();
     expect(s.pendingHandGate).toBeNull();
     expect(s.pendingAttack).toBeNull(); // l'attaque n'a pas lieu
@@ -105,10 +105,10 @@ describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (jou
     expect(s.battle!.log.some((l) => /lâche/i.test(l.text))).toBe(true);
   });
 
-  it('jetAnnuler@handGate referme sans coût (avant le jet)', () => {
+  it('jetAnnuler@mainEnsanglantee referme sans coût (avant le jet)', () => {
     const { h, f } = setup(mkHero(bleeding()), mkFoe('f'));
-    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
-    banc.getState().jetAnnuler('handGate');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attaquer');
+    banc.getState().jetAnnuler('mainEnsanglantee');
     expect(banc.getState().pendingHandGate).toBeNull();
     expect(banc.getState().pendingAttack).toBeNull();
   });
@@ -145,7 +145,7 @@ describe('doAttack — l\'IA gatée joue le MÊME Test inline (résolution forc�
     // Foe gaté sur la MAIN, mais la seule arme tenue est en OFF (uid 'e', non gaté) → firedWeapon la choisit.
     const foe = mkFoe('f', { handGates: ['main'], conditions: [{ id: 'hemorragique', value: 2 }],
       weapons: [SWORD('e')], items: [SWORD_ITEM('e')],
-      loadouts: [{ id: 'loe', off: 'e' }] as never, activeLoadoutId: 'loe' } as never);
+      loadouts: [{ id: 'loe', secondaire: 'e' }] as never, activeLoadoutId: 'loe' } as never);
     const { h, f } = setup(mkHero(), foe);
     doAttack(banc.getState, banc.setState, f, h);
     const s = banc.getState();
@@ -157,8 +157,8 @@ describe('doAttack — l\'IA gatée joue le MÊME Test inline (résolution forc�
 // (« arme à distance CHARGÉE », LDB 10) répond OUI pour une arme SANS cycle de charge — elle est prête par
 // nature (rien à recharger, LDB 62 l.335) : la fixture n'a rien à poser.
 describe('runPreemptShots — le Tir rapide de l\'IA joue le MÊME Test de Main ensanglantée (AA 07 l.117)', () => {
-  const BOW = (uid: string): Weapon => ({ uid, label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] } as unknown as Weapon);
-  const BOW_ITEM = (uid: string): ItemInstance => ({ uid, label: 'Arc', kind: 'ranged', qualities: [] } as unknown as ItemInstance);
+  const BOW = (uid: string): Weapon => ({ uid, label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] } as unknown as Weapon);
+  const BOW_ITEM = (uid: string): ItemInstance => ({ uid, label: 'Arc', kind: 'distance', qualities: [] } as unknown as ItemInstance);
   const shooter = (over: Partial<Combatant> = {}): Combatant => mkFoe('f', {
     pos: { x: 2, y: 0 }, talents: [{ talentId: 'tir-rapide', times: 1 }] as never,
     weapons: [BOW('bow')], items: [BOW_ITEM('bow')], loadouts: [{ id: 'lob', main: 'bow' }] as never, activeLoadoutId: 'lob',

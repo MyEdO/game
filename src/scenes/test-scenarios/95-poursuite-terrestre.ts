@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
@@ -60,7 +60,7 @@ export const scenario: TestScenario = {
   id: 'poursuite-terrestre',
   order: 3,
   category: 'combat',
-  icon: 'scenario/travel',
+  icon: 'scenario/voyage',
   title: 'Poursuite terrestre',
   tests:
     // LDB 15 l.88-108
@@ -68,5 +68,5 @@ export const scenario: TestScenario = {
     "influençable purpose:'pursuite', UNE bande par manche — une rangée par coureur) dès l'entrée ; rattrapage " +
     '(Distance ≤ 0) bascule en combat contre les mêmes brigands, évasion (Distance ≥ 10) se dénoue au récit.',
   partyNote: 'Groupe fixe (pré-tirés)',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireScene() }),
 };

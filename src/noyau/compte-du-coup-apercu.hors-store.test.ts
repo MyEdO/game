@@ -6,7 +6,18 @@ import { applyAttackResult, attackWeaponOf, victimeDuCoup, resolveCastChain } fr
 import { draineCascade } from './cascade.testkit';
 import { toucheSauvee, hitModifiers } from './combat/hitModifiers';
 import { createHero } from '../engine/character';
-import { rederivePassiveAttack, issueAuJet, compteDuCoup, woundsAtCritLocation, apresDeviations, resolveStrayRangedHit, coupAApplique, ligneDuCoup, hitLocationByShape, type AttackResult } from '../engine/combat';
+import {
+  rederivePassiveAttack,
+  issueAuJet,
+  compteDuCoup,
+  woundsAtCritLocation,
+  apresDeviations,
+  resolveStrayRangedHit,
+  coupAApplique,
+  ligneDuCoup,
+  hitLocationByShape,
+  type AttackResult,
+} from '../engine/combat';
 import { reverseRoll } from '../engine/tests';
 import { makeRNG } from '../engine/dice';
 import { recomputeLoadout } from '../engine/items';
@@ -34,11 +45,11 @@ function auJet({ seed, roll, paTouche = 0, pieces, tenue, current = 20 }: Jet, l
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: tenue ? 0 : undefined } });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const cible = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const cible = b.combatants.find((c) => c.kind === 'ennemi')!;
   cible.items = [...(cible.items ?? []).filter((i) => i.kind !== 'armor'), ...(lieu && pieces ? pieces(lieu) : [])];
   cible.armour = { tete: 0, corps: paTouche, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
   recomputeLoadout(cible);
@@ -79,7 +90,7 @@ function apercuPuisApplication(jet: Jet, lieu: HitLocation) {
 }
 
 describe('aperçu au jet = application, par `compteDuCoup`', () => {
-  beforeEach(() => { setRule('combat-critical-deflect', false); });
+  beforeEach(() => { setRule('combat-deviation-critique', false); });
 
   it("T1 'ldb' : un double, PA différents à la touche et au lieu relancé", () => {
     const { seed, lieu } = jetRelanceHorsDuCorps(44);
@@ -117,13 +128,13 @@ describe('aperçu au jet = application, par `compteDuCoup`', () => {
     ['empoignade', (r: AttackResult, c: Combatant) => coupAApplique(r, true, c)],
     ['sauvegarde', (r: AttackResult) => toucheSauvee(r)],
     ['bouclier-anti-fleches', (r: AttackResult, c: Combatant) => {
-      const H = banc.getState().battle!.combatants.find((x) => x.kind === 'hero')!;
+      const H = banc.getState().battle!.combatants.find((x) => x.kind === 'heros')!;
       H.pos = { x: 0, y: 0 };
       c.pos = { x: 12, y: 12 };
       c.activeEffects = [{ label: 'Bouclier', bonus: 0, arrowWard: { radiusMeters: 4 } }] as unknown as Combatant['activeEffects'];
       const fleche = { ...arc, organicProjectile: true } as Weapon;
       return hitModifiers().find((h) => h.id === 'arrow-ward')!.apply({
-        get: banc.getState, set: banc.setState, attacker: H, target: c, weapon: fleche, attaque: 'ranged', res: r, sink: () => {}, ouvrirSauvegarde: () => {},
+        get: banc.getState, set: banc.setState, attacker: H, target: c, weapon: fleche, attaque: 'distance', res: r, sink: () => {}, ouvrirSauvegarde: () => {},
       });
     }],
   ] as const) it(nom + ' : un coup sans prise qui porte un critLocation ne relance pas, 0 Blessure (LDB 14 l.159 ; LDB 85 l.98 ; LDB 47)', () => {
@@ -144,7 +155,7 @@ describe('aperçu au jet = application, par `compteDuCoup`', () => {
 
 /** Chaque producteur fait naître le verdict sur la cible que le compte lit. AA 07 l.25, l.52 ; LDB 18 l.53, l.55. */
 describe('le verdict de relance naît sur la cible au compte', () => {
-  beforeEach(() => { setRule('combat-aa-blessures', 'aa'); setRule('combat-sudden-death', 'off'); });
+  beforeEach(() => { setRule('combat-aa-blessures', 'aa'); setRule('combat-mort-subite', 'off'); });
 
   for (const current of [0, 3]) it('applyHit, né au jet (rederivePassiveAttack), coup non critique, cible à ' + current + ' Blessure : le compte relit le verdict de naissance', () => {
     const { H, cible, res } = auJet({ seed: 5, roll: 37, current });
@@ -152,7 +163,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
     expect(compteDuCoup(res, epee, H, cible, 0).compte.relance).toBe(current === 0);
   });
 
-  /** Un Projectile incanté par jetLancer('cast') sans double, appliqué par la chaîne d'incantation ; rend le journal et
+  /** Un Projectile incanté par jetLancer('incantation') sans double, appliqué par la chaîne d'incantation ; rend le journal et
    *  la Localisation de touche (LDB 46). `sauve` : la cible porte Protection 1+ (LDB 85 l.278). */
   function projectile(current: number, sauve = false): { journal: string; touche: string } {
     for (let seed = 1; seed < 100; seed++) {
@@ -161,18 +172,18 @@ describe('le verdict de relance naît sur la cible au compte', () => {
       banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
       banc.getState().lancerLaScene(structuredClone(testScene()));
       banc.getState().lancerLeCombat('enc-mutants');
-      banc.getState().fenetreValider('roundStart');
+      banc.getState().fenetreValider('debutDuRound');
       banc.abandonner();
       const b = banc.getState().battle!;
-      const H = b.combatants.find((c) => c.kind === 'hero')!;
-      const cible = b.combatants.find((c) => c.kind === 'enemy')!;
+      const H = b.combatants.find((c) => c.kind === 'heros')!;
+      const cible = b.combatants.find((c) => c.kind === 'ennemi')!;
       H.spells = ['flechette'];
       H.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 30 });
       cible.wounds = blessuresDeBase(20, current, cible);
       cible.important = true;
       if (sauve) cible.traits = [...(cible.traits ?? []), { id: 'protection', value: 1 }];
       banc.setState({ pendingCast: { casterId: H.id, targetId: cible.id, spellId: 'flechette', missile: true, focused: false, result: null } as never });
-      banc.getState().jetLancer('cast');
+      banc.getState().jetLancer('incantation');
       const jet = banc.getState().pendingCast!.result!;
       if (!jet.cast || jet.isCritical || jet.isFumble) continue;
       resolveCastChain(banc.getState, banc.setState);
@@ -199,10 +210,10 @@ describe('le verdict de relance naît sur la cible au compte', () => {
   });
 });
 
-const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, qualities: [], range: 50 } as unknown as Weapon;
+const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, qualities: [], range: 50 } as unknown as Weapon;
 
-/** Touche déviée née contre la victime (LDB 14 l.106 ; LDB 14 l.116), posée au pending comme `jetLancer('attack')` la
- *  pose ; l'aperçu par l'expression de la fenêtre d'attaque (`noyau/fenetreDAttaque`), puis l'application par `jetValider('attack')`. */
+/** Touche déviée née contre la victime (LDB 14 l.106 ; LDB 14 l.116), posée au pending comme `jetLancer('attaque')` la
+ *  pose ; l'aperçu par l'expression de la fenêtre d'attaque (`noyau/fenetreDAttaque`), puis l'application par `jetValider('attaque')`. */
 function devieePuisApplication(cas: 'tas' | 'melee') {
   banc.getState().ensemencerLeTirage(3);
   const tireur = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 7 });
@@ -210,11 +221,11 @@ function devieePuisApplication(cas: 'tas' | 'melee') {
   banc.setState({ party: [tireur, allie], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const [H, A] = b.combatants.filter((c) => c.kind === 'hero');
-  const [e1, e2] = b.combatants.filter((c) => c.kind === 'enemy');
+  const [H, A] = b.combatants.filter((c) => c.kind === 'heros');
+  const [e1, e2] = b.combatants.filter((c) => c.kind === 'ennemi');
   for (const c of [A, e1, e2]) c.wounds = blessuresDeBase(20, 20, c);
   e1.important = cas === 'tas';
   e2.important = false;
@@ -226,11 +237,11 @@ function devieePuisApplication(cas: 'tas' | 'melee') {
   const battle = s.battle!;
   const target = battle.combatants.find((c) => c.id === pa.targetId)!;
   const encaisse = victimeDuCoup(battle, target, pa);
-  const { compte } = issueAuJet(encaisse, coupAApplique(res, pa.grapple, encaisse), attackWeaponOf(battle, H, target, pa), H);
+  const { compte } = issueAuJet(encaisse, coupAApplique(res, pa.grapple, encaisse), attackWeaponOf(banc.getState().scene, battle, H, target, pa), H);
   const apercu = { critiques: compte.critiques.length, blessures: compte.blessures };
   const avant = structuredClone(victime);
   const visee = structuredClone(cible);
-  banc.getState().jetValider('attack');
+  banc.getState().jetValider('attaque');
   draineCascade(banc.getState, 200, () => 1);
   const apres = (c: Combatant) => banc.getState().battle!.combatants.find((x) => x.id === c.id)!;
   const applique = { critiques: (apres(victime).criticalWounds ?? 0) - (avant.criticalWounds ?? 0), blessures: res.woundsLost ?? 0 };
@@ -249,7 +260,7 @@ describe('aperçu au jet = application, Déviation au défaut (LDB 63 l.30)', ()
 });
 
 describe("aperçu au jet = application : la touche déviée se compte sur celui qui l'encaisse", () => {
-  beforeEach(() => { setRule('combat-critical-deflect', false); });
+  beforeEach(() => { setRule('combat-deviation-critique', false); });
 
   for (const cas of ['tas', 'melee'] as const) it(`${cas} : la victime encaisse, pas la cible visée`, () => {
     const { apercu, applique, res, perdues, viseeIntacte } = devieePuisApplication(cas);

@@ -15,7 +15,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
 const hull = (E: number): Combatant => (blessuresSurLeProfil({
-  id: 'coque', name: 'Coque', kind: 'enemy',
+  id: 'coque', name: 'Coque', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
   movement: 0, wounds: blessuresDeBase(50), weapons: [], skills: [], talents: [],
 }) as unknown as Combatant);
@@ -62,13 +62,13 @@ describe('Salissures (MDG 13 l.144-159)', () => {
 });
 
 describe('Orientation — Repères & Changement de cap (MDG 13 l.307-331)', () => {
-  it('bandes de Repères : 4+ exact ; 0-3 ok ; −1/−2 mineur (sans effet la 1ʳᵉ fois) ; −3/−4 dérive ; ≤−5 dérive majeure (+2)', () => {
+  it('bandes de Repères : 4+ exact ; 0-3 correct ; −1/−2 mineur (sans effet la 1ʳᵉ fois) ; −3/−4 dérive ; ≤−5 dérive majeure (+2)', () => {
     expect(orientationOutcome(4, false)).toMatchObject({ outcome: 'exact', rollCourseChange: false });
-    expect(orientationOutcome(2, false)).toMatchObject({ outcome: 'ok', rollCourseChange: false });
-    expect(orientationOutcome(-1, false)).toMatchObject({ outcome: 'drift-minor', rollCourseChange: false });
-    expect(orientationOutcome(-2, true)).toMatchObject({ outcome: 'drift-minor', rollCourseChange: true }); // « s'il se reproduit »
-    expect(orientationOutcome(-3, false)).toMatchObject({ outcome: 'drift', rollCourseChange: true, courseChangeBonus: 0 });
-    expect(orientationOutcome(-6, false)).toMatchObject({ outcome: 'drift-major', rollCourseChange: true, courseChangeBonus: 2 });
+    expect(orientationOutcome(2, false)).toMatchObject({ outcome: 'correct', rollCourseChange: false });
+    expect(orientationOutcome(-1, false)).toMatchObject({ outcome: 'derive-mineure', rollCourseChange: false });
+    expect(orientationOutcome(-2, true)).toMatchObject({ outcome: 'derive-mineure', rollCourseChange: true }); // « s'il se reproduit »
+    expect(orientationOutcome(-3, false)).toMatchObject({ outcome: 'derive', rollCourseChange: true, courseChangeBonus: 0 });
+    expect(orientationOutcome(-6, false)).toMatchObject({ outcome: 'derive-majeure', rollCourseChange: true, courseChangeBonus: 2 });
   });
 
   it('Changement de cap : 1-3 sans conséquence ; 4-6 +10 % ; 7-9 +25 % ; 10-11 90° ; 12 demi-tour ; côté 1-5 tribord', () => {

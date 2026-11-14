@@ -37,7 +37,7 @@ function décor(
 const fouillable = (id: string, x = 0, y = 0, label?: string): SceneEntity => ({
   id, kind: 'prop', pos: { x, y }, decor: { id: 'tonneau' },
   ...(label ? { label } : {}),
-  usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
+  usable: { actions: [{ id: 'fouiller', flow: { kind: 'sequence', etapes: [] }, unique: true }] },
 });
 
 /** Le JETON d'un figurant posté — l'autre corps qu'une entité de scène reçoit du champ. Un jeton ÉMIS
@@ -83,8 +83,8 @@ describe('Halos d’interaction — QUI est un utilisable (#1176 P3-0g)', () => 
     const deux: SceneEntity = {
       id: 'coffre', kind: 'prop', pos: { x: 3, y: 4 }, decor: { id: 'tonneau' },
       usable: { actions: [
-        { id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true },
-        { id: 'ouvrir', flow: { kind: 'seq', steps: [] }, unique: true },
+        { id: 'fouiller', flow: { kind: 'sequence', etapes: [] }, unique: true },
+        { id: 'ouvrir', flow: { kind: 'sequence', etapes: [] }, unique: true },
       ] },
     };
     const els = [décor('coffre', 3, 4)];

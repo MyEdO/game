@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtLit, avanceEtapeCascade } from './cascade.testkit';
 import { applyCast, checkFocusInterruption, openCastCascade } from './combatFlow';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { createHero } from '../engine/character';
 import { findEffectTableById, refLabel, findSpellById } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';
@@ -24,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Sorcier sans Talent aléatoire (`talentsRolled: false`) : aucun tirage ne touche la FM. */
 function wiz() {
-  const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: PREGEN.sorcier, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
+  const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 707, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   return w;
@@ -70,7 +70,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
   });
 
   it('une PRIÈRE critique ne déclenche pas la mécanique (règle du ch.46, Tests de Langue)', () => {
-    const priest = pregen(idsDeTest, PREGEN.pretre);
+    const priest = herosDeScenario(idsDeTest, 'pretre');
     banc.setState({ party: [priest] as Combatant[] });
     const ben = findSpellById('benediction-de-guerison')!;
     applyCast(banc.getState, banc.setState, priest, priest, ben, critRes(true, 2), false, false);
@@ -79,7 +79,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
 
   // FOLD : le Critique de Sort ET l'Imparfaite/Colère sont des ÉTAPES de la cascade d'incantation
   // ACTIVE (comme l'attaque enchaîne Critique/Déviation), jamais une cascade séparée.
-  it('FOLD : une Imparfaite via jetValider@cast APPEND à la cascade d\'incantation (pas de cascade séparée)', () => {
+  it('FOLD : une Imparfaite via jetValider@incantation APPEND à la cascade d\'incantation (pas de cascade séparée)', () => {
     const w = wiz();
     w.spells = ['armure-aethyrique', ...(w.spells ?? [])];
     banc.setState({ party: [w] as Combatant[], pendingCast: null, pendingCascade: null });
@@ -93,17 +93,17 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
     });
     // Situation d'incantation HÔTÉE par la cascade (comme l'aurait ouverte castSpell → openCastCascade).
     openCastCascade(banc.getState, banc.setState, w);
-    expect(banc.getState().pendingCascade?.title).toBe('Incantation'); // étape jet:'cast' au curseur 0
-    banc.getState().jetValider('cast');
+    expect(banc.getState().pendingCascade?.title).toBe('Incantation'); // étape jet:'incantation' au curseur 0
+    banc.getState().jetValider('incantation');
     const c = banc.getState().pendingCascade;
     expect(banc.getState().pendingCast).toBeNull(); // le JET est clos (CastModal disparaît)
     expect(c).toBeTruthy(); // la cascade reste OUVERTE : la conséquence s'y joue
     expect(c!.title).toBe('Incantation'); // MÊME cascade (pas une « Conséquences » neuve) = le fold
     expect(c!.cursor).toBe(1); // curseur avancé au-delà de l'étape cast (cursor 0)
-    expect(c!.participants[1]?.kind).toBe('miscastTable'); // le dé du Tableau est l'étape appendue
+    expect(c!.participants[1]?.kind).toBe('tableDIncantationImparfaite'); // le dé du Tableau est l'étape appendue
     avanceEtapeCascade(banc.getState); // le dé tombe à son rang → la révélation rejoint la MÊME cascade
     expect(banc.getState().pendingCascade!.title, 'la révélation a ouvert une cascade neuve').toBe('Incantation');
-    expect(banc.getState().pendingCascade!.participants.some((s) => s.kind === 'miscast')).toBe(true);
+    expect(banc.getState().pendingCascade!.participants.some((s) => s.kind === 'incantationImparfaite')).toBe(true);
   });
 
   it('FOLD : un Sort SANS conséquence ferme la cascade d\'incantation (rien à enchaîner)', () => {
@@ -117,7 +117,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
       },
     });
     openCastCascade(banc.getState, banc.setState, w);
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     expect(banc.getState().pendingCast).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull(); // aucune conséquence → la situation se clôt
   });
@@ -130,7 +130,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     banc.setState({ party: [w] as Combatant[] });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'armure-aethyrique', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'Focalisation critique !' } } });
-    banc.getState().jetValider('focus');
+    banc.getState().jetValider('focalisation');
     const rendu = draineEtLit(banc.getState).join('\n');
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     expect(after.focus?.dr).toBeGreaterThanOrEqual(findSpellById('armure-aethyrique')!.cn ?? 0);
@@ -141,7 +141,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
   // Sous `VDM 02 l.145` (`focusCriticalDR`) : un DR bonus = BFM s'ajoute, SANS compléter au NI —
   // mesuré ici sur un Sort de NI 8 pour distinguer le delta du comportement LDB par défaut (ci-dessus).
   it('option VDM : DR bonus = Bonus de Force Mentale, sort NON complété au NI', () => {
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     const w = wiz();
     w.spells = ['manifestation-de-demon-mineur', ...(w.spells ?? [])];
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
@@ -149,12 +149,12 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.focus = { spell: 'manifestation-de-demon-mineur', dr: 1 };
     banc.setState({ party: [w] as Combatant[] });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
-    banc.getState().jetValider('focus');
+    banc.getState().jetValider('focalisation');
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     const ni = findSpellById('manifestation-de-demon-mineur')!.cn ?? 0;
     expect(after.focus?.dr).toBe(1 + 3); // 1 (DR déjà accumulé) + 3 (BFM), loin sous le NI 8
     expect(after.focus!.dr).toBeLessThan(ni);
-    resetRule('magic-vdm-incantation');
+    resetRule('magie-vdm-incantation');
   });
 
   it('Harmonisation aethyrique : pas de contrecoup sur la Focalisation Critique', () => {
@@ -164,7 +164,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.talents.push({ talentId: 'harmonisation-aethyrique', times: 1 });
     banc.setState({ party: [w] as Combatant[] });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'armure-aethyrique', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
-    banc.getState().jetValider('focus');
+    banc.getState().jetValider('focalisation');
     const j = draineEtLit(banc.getState).join('\n');
     expect(j).toMatch(/Harmonisation aethyrique/);
     expect(j).not.toMatch(/Incantation Imparfaite Mineure \(/);
@@ -174,33 +174,33 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
   // Domaine que l'incantation — la rangée « Marqué par la Magie » doit atteindre les Marques du Vent
   // FOCALISÉ. Jet figé : la graine 143 donne 88 au premier d100 (rangée 86-90 du tableau VDM).
   it('option VDM : la Focalisation Critique d’un Sort de Feu marque le lanceur (Marques d’Aqshy)', () => {
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     const w = wiz();
     w.spells = ['cauteriser'];
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     banc.setState({ party: [w] as Combatant[] });
     seedBattleRng(143);
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'cauteriser', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
-    banc.getState().jetValider('focus');
+    banc.getState().jetValider('focalisation');
     const j = draineEtLit(banc.getState).join('\n');
     expect(j).toMatch(/Marqué par la Magie/);
     const marques = findEffectTableById('vdm-marques-arcaniques-feu').entries;
     const tiree = marques.filter((r) => j.includes((r.ops[0] as { text: string }).text));
     expect(tiree, 'aucune Marque d’Aqshy dans le journal').toHaveLength(1);
-    resetRule('magic-vdm-incantation');
+    resetRule('magie-vdm-incantation');
   });
 });
 
 /**
  * Interruption de Focalisation (LDB 46 l.142-144) : le Test `interruption-de-focalisation` du focaliseur est routé
- * CADENCE-AWARE (comme tout jet héros). Héros MANUEL → étape de cascade `triggeredTest` INFLUENÇABLE
+ * CADENCE-AWARE (comme tout jet héros). Héros MANUEL → étape de cascade `testDeclenche` INFLUENÇABLE
  * (le joueur PEUT dépenser sa Chance pour garder son sort) ; ennemi / cadence auto → jet INLINE. La
  * conséquence d'échec (perte des DR + Imparfaite Mineure, op `interruptFocus`) s'exécute APRÈS le Test.
  */
 describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
   /** Place le focaliseur dans un combat minimal (un ennemi figurant) → le routage cadence s'applique. */
   function inCombat(w: Combatant, foe?: Combatant): Combatant {
-    const enemy = foe ?? ({ ...wiz(), id: 'foe', label: 'Brute', kind: 'enemy' } as Combatant);
+    const enemy = foe ?? ({ ...wiz(), id: 'foe', label: 'Brute', kind: 'ennemi' } as Combatant);
     const battle = {
       combatants: [w, enemy], order: [w.id, enemy.id], turn: 0, round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,
@@ -210,7 +210,7 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     return enemy;
   }
 
-  it('héros MANUEL frappé en Focalisation → étape de cascade triggeredTest (non lancée, influençable)', () => {
+  it('héros MANUEL frappé en Focalisation → étape de cascade testDeclenche (non lancée, influençable)', () => {
     const w = wiz();
     w.focus = { spell: 'armure-aethyrique', dr: 3 };
     inCombat(w);
@@ -218,7 +218,7 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     const c = banc.getState().pendingCascade!;
     expect(c).toBeTruthy();
     expect(c.purpose).toBe('combat');
-    const step = c.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = c.participants.find((s) => s.kind === 'testDeclenche')!;
     expect(step).toBeTruthy();
     expect(step.actorId).toBe(w.id);
     expect(step.rollLabel).toBe(refLabel('skills', testDeRegle('interruption-de-focalisation', 'maintenir').skill)); // le Test RÉEL (≠ le libellé de situation)
@@ -232,16 +232,16 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     w.focus = { spell: 'armure-aethyrique', dr: 3 };
     inCombat(w);
     checkFocusInterruption(banc.getState, banc.setState, w);
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     banc.getState().jetLancer('cascade', step.id);
-    banc.getState().jetValider('cascade'); // valide l'échec → applier `triggeredTest` → branche fail → hook
+    banc.getState().jetValider('cascade'); // valide l'échec → applier `testDeclenche` → branche fail → hook
     const h = banc.getState().battle!.combatants.find((x) => x.id === w.id)!;
     expect(h.focus).toBeUndefined(); // concentration BRISÉE : DR perdus
     // L'Imparfaite Mineure (conséquence d'échec) est appendue à la MÊME cascade : d'abord son TIRAGE
     // (étape à table), puis sa révélation une fois le dé tombé.
-    expect(banc.getState().pendingCascade!.participants.some((s) => s.kind === 'miscastTable')).toBe(true);
+    expect(banc.getState().pendingCascade!.participants.some((s) => s.kind === 'tableDIncantationImparfaite')).toBe(true);
     avanceEtapeCascade(banc.getState);
-    expect(banc.getState().pendingCascade!.participants.some((s) => s.kind === 'miscast')).toBe(true);
+    expect(banc.getState().pendingCascade!.participants.some((s) => s.kind === 'incantationImparfaite')).toBe(true);
   });
 
   it('héros MANUEL : Test `maintenir` RÉUSSI → concentration maintenue, DR conservés, aucune Imparfaite', () => {
@@ -251,16 +251,16 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     w.focus = { spell: 'armure-aethyrique', dr: 3 };
     inCombat(w);
     checkFocusInterruption(banc.getState, banc.setState, w);
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     banc.getState().jetLancer('cascade', step.id);
     banc.getState().jetValider('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.id === w.id)!;
     expect(h.focus?.dr).toBe(3); // succès : focalisation gardée
-    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'miscast') ?? false).toBe(false);
+    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'incantationImparfaite') ?? false).toBe(false);
   });
 
   it('ENNEMI focaliseur frappé → Test `interruption-de-focalisation` résolu INLINE, et son contrecoup tiré D’OFFICE', () => {
-    const foe = { ...wiz(), id: 'caster-foe', label: 'Sorcier ennemi', kind: 'enemy' } as Combatant;
+    const foe = { ...wiz(), id: 'caster-foe', label: 'Sorcier ennemi', kind: 'ennemi' } as Combatant;
     foe.characteristics['force-mentale'] = 1; // FM 1 : Test de la fiche du jeu raté → conséquence inline
     foe.focus = { spell: 'armure-aethyrique', dr: 2 };
     const w = wiz();
@@ -269,9 +269,9 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     // Aucune étape INFLUENÇABLE : le Test `maintenir` est roulé inline. Le contrecoup, lui, DÉCLARE son
     // étape à table comme partout — et le socle la résout d'office, nul siège ne tenant cet ennemi.
     const ouverte = banc.getState().pendingCascade;
-    expect(ouverte?.participants.some((s) => s.kind === 'triggeredTest') ?? false).toBe(false);
+    expect(ouverte?.participants.some((s) => s.kind === 'testDeclenche') ?? false).toBe(false);
     for (const s of ouverte?.participants ?? []) {
-      if (s.kind === 'miscastTable') expect(s.table!.result, 'table sans siège restée non tirée').toBeTruthy();
+      if (s.kind === 'tableDIncantationImparfaite') expect(s.table!.result, 'table sans siège restée non tirée').toBeTruthy();
     }
     const e = banc.getState().battle!.combatants.find((x) => x.id === foe.id)!;
     expect(e.focus).toBeUndefined(); // DR perdus inline
@@ -291,7 +291,7 @@ describe('Convergence de Domaine (+1 Avantage, l.176)', () => {
   it('2ᵉ sort du même Vent sur la même cible dans le Round → +1 Avantage au lanceur', () => {
     const w = wiz();
     const w2 = { ...wiz(), id: 'w2', label: 'Apprentie' } as Combatant;
-    const target = { ...wiz(), id: 't', label: 'Cible', kind: 'enemy' } as Combatant;
+    const target = { ...wiz(), id: 't', label: 'Cible', kind: 'ennemi' } as Combatant;
     const battle = {
       combatants: [w, w2, target], order: [w.id, w2.id, target.id], turn: 0, round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,

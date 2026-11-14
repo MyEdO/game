@@ -1,6 +1,19 @@
 /** Zones 1-7 de l'échelle — refaites en GRAND (24×16 → 32×24), layouts structurés, fouilles,
  *  rencontres enrichies. Ids/flags conservés (`arene-zoneN`, `zoneN_clear`). */
-import { scene, P, hero, resetIds, fouille, fightTrigger, zoneVictory, NUEE_DE_RATS, NUEE_DE_RATS_APPEARANCE, flowOf, testNode, remetLeDocument } from '../campagne/lib.mjs';
+import {
+  scene,
+  P,
+  hero,
+  resetIds,
+  fouille,
+  fightTrigger,
+  zoneVictory,
+  NUEE_DE_RATS,
+  NUEE_DE_RATS_APPEARANCE,
+  flowOf,
+  testNode,
+  remetLeDocument,
+} from '../campagne/lib.mjs';
 
 /** Document du paquet (`narratif.documents`, #679) lu sur la stèle des Ruines. */
 export const DOC_STELE_DES_RUINES = {
@@ -162,7 +175,7 @@ export function makeZone2() {
       {
         // Le gardien du trésor : on le SURPREND dans sa salle (embuscade des héros).
         id: 'enc-ruines-tresor',
-        surprise: 'enemies',
+        surprise: 'ennemis',
         enemies: [
           { creature: { id: 'orc' }, pos: { x: 22, y: 4 }, optionals: [{ id: 'insensible-a-la-douleur' }] },
           { creature: { id: 'gobelin' }, pos: { x: 20, y: 3 } },
@@ -238,7 +251,7 @@ export function makeZone3() {
           { skill: { id: 'resistance' }, difficulty: 'facile', label: 'Miasmes des égouts', stake: { authored: 'Tenir le coup dans l’air des égouts : sinon la Fièvre du Rongeur vous prend.' } },
           [{ type: 'journal', desc: 'L’air est irrespirable, mais vous gardez vos tripes — et votre santé.' }],
           [
-            { type: 'inflictDisease', disease: 'Fièvre du Rongeur' },
+            { type: 'inflictDisease', disease: 'fievre-du-rongeur' },
             { type: 'journal', desc: 'Quelque chose se glisse dans vos poumons avec l’odeur… La Fièvre du Rongeur couve.' },
           ],
         ),
@@ -322,7 +335,7 @@ export function makeZone4() {
             { type: 'journal', desc: 'Le fossoyeur serrait encore sa bourse : 18 pa, et rien d’attrapé.' },
           ],
           [
-            { type: 'inflictDisease', disease: 'Blessure Purulente' },
+            { type: 'inflictDisease', disease: 'blessure-purulente' },
             { type: 'journal', desc: 'Un os brisé vous entaille la paume. La plaie sent déjà mauvais…' },
           ],
         )),
@@ -350,7 +363,7 @@ export function makeZone4() {
     encounters: [
       {
         id: 'enc-zone4',
-        surprise: 'party',
+        surprise: 'groupe',
         enemies: [
           { creature: { id: 'squelette' }, pos: { x: 8, y: 3 } },
           { creature: { id: 'squelette' }, pos: { x: 16, y: 7 } },
@@ -430,7 +443,7 @@ export function makeZone5() {
         id: 'enc-zone5',
         enemies: [
           // 0 : destrier LIBRE côté héros — enfourchable (vitrine du combat monté).
-          { creature: { id: 'cheval' }, pos: { x: 6, y: 11 }, mount: true, side: 'ally' },
+          { creature: { id: 'cheval' }, pos: { x: 6, y: 11 }, mount: true, side: 'allie' },
           // 1-2 : le champion mutant, pré-monté.
           { creature: { id: 'cheval' }, pos: { x: 22, y: 4 }, mount: true },
           { creature: { id: 'mutant' }, pos: { x: 22, y: 4 }, rides: 1 },
@@ -525,7 +538,7 @@ export function makeZone6() {
     encounters: [
       {
         id: 'enc-zone6',
-        surprise: 'party',
+        surprise: 'groupe',
         enemies: [
           { creature: { id: 'gor' }, pos: { x: 14, y: 6 } },
           { creature: { id: 'gor' }, pos: { x: 20, y: 16 }, optionals: [{ id: 'armure', value: 2 }] },
@@ -593,7 +606,7 @@ export function makeZone7() {
             { type: 'journal', desc: 'Dans la soie : la besace d’une victime, potion intacte.' },
           ],
           [
-            { type: 'inflictDisease', disease: 'Infection Mineure' },
+            { type: 'inflictDisease', disease: 'infection-mineure' },
             { type: 'journal', desc: 'Quelque chose vous mord à travers la soie avant de fuir. La plaie gonfle déjà.' },
           ],
         )),

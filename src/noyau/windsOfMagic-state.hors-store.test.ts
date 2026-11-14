@@ -1,7 +1,7 @@
 /**
  * #491 — Option « Vents Tourbillonnants » (LDB 46 l.179-190), câblage STATE : tirage à l'ouverture du
  * combat (`windsOfMagicAtCombatStart`), re-tirage au Round (grain `round`, `combat/roundHooks.ts`),
- * mod injecté aux Tests d'Incantation/Focalisation (`jetLancer('cast')`/`jetLancer('focus')`), détection Seconde vue.
+ * mod injecté aux Tests d'Incantation/Focalisation (`jetLancer('incantation')`/`jetLancer('focalisation')`), détection Seconde vue.
  * Le moteur PUR (table, tirage seedé, `hasSecondeVue`) est couvert par `engine/windsOfMagic.test.ts`.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -10,7 +10,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { advanceTurn } from './combatFlow';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 
@@ -18,7 +18,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function wizardWithSecondeVue(): Combatant {
-  const w = pregen(idsDeTest, PREGEN.sorcier);
+  const w = herosDeScenario(idsDeTest, 'sorcier');
   w.skills = (w.skills as Combatant['skills']).filter((s) => s.id !== 'langue');
   w.skills.push({ id: 'langue', spec: 'magick', advances: 30 } as never);
   w.skills.push({ id: 'focalisation', spec: 'cieux', advances: 30 } as never); // domaine du sort de test (arc-de-t-essla)
@@ -34,7 +34,7 @@ function setupCombat(): void {
 }
 
 /** Cible de Test MODÉRÉE (loin du plafond `targetMax` 99 de `testPolicy`, LDB 12 l.75, option
- *  `test-over-100` désactivée) — un lanceur trop puissant écrêterait le delta du mod des Vents sous
+ *  `test-plus-de-100` désactivée) — un lanceur trop puissant écrêterait le delta du mod des Vents sous
  *  le plafond et fausserait la comparaison (`clamp`, `engine/tests.ts`). */
 function moderateCaster(): Combatant {
   const w = wizardWithSecondeVue();
@@ -114,9 +114,9 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     const battle = banc.getState().battle!;
     banc.setState({ battle: { ...battle, windsOfMagic: { roll: 5, mod, revealed: false } } });
-    const w = battle.combatants.find((c) => c.kind === 'hero')!;
+    const w = battle.combatants.find((c) => c.kind === 'heros')!;
     banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId: 'arc-de-t-essla', missile: false, focused: false, result: null } });
-    banc.getState().jetLancer('cast');
+    banc.getState().jetLancer('incantation');
     return banc.getState().pendingCast!.result!.target;
   }
 
@@ -132,11 +132,11 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     seedBattleRng(1);
     banc.getState().lancerLeCombat('enc-mutants');
     const battle = banc.getState().battle!;
-    const w = battle.combatants.find((c) => c.kind === 'hero')!;
+    const w = battle.combatants.find((c) => c.kind === 'heros')!;
     w.spells = ['arc-de-t-essla'];
     banc.setState({ battle: { ...battle, windsOfMagic: { roll: 5, mod, revealed: false } } });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'arc-de-t-essla', result: null } });
-    banc.getState().jetLancer('focus');
+    banc.getState().jetLancer('focalisation');
     return banc.getState().pendingFocus!.result!.target;
   }
 
@@ -150,7 +150,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     setupCombat();
     seedBattleRng(777);
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     // Sentinelle hors-table (1-10) : si le hook de Round tourne, elle disparaît forcément.
     banc.setState({ battle: { ...banc.getState().battle!, windsOfMagic: { roll: 999, mod: 0, revealed: false } } });
     seedBattleRng(4242);
@@ -164,7 +164,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     setupCombat();
     seedBattleRng(777);
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.setState({ battle: { ...banc.getState().battle!, windsOfMagic: { roll: 999, mod: 0, revealed: false } } });
     seedBattleRng(4242);
     banc.setState({ battle: { ...banc.getState().battle!, turn: banc.getState().battle!.order.length - 1 } });

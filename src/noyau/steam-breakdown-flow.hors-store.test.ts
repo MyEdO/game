@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { buildSeaPlan, applySteamBreakdown, resolveSteamSave, engineerOf } from './seaVoyageFlow';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import { seedBattleRng, battleRng } from './battleRng';
@@ -42,7 +42,7 @@ const entry = (id: string) => STEAM_BREAKDOWNS.find((b) => b.id === id)!;
 function steamAtSea(milesToday = 80) {
   seedBattleRng(1);
   banc.setState({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: seaMap,
@@ -117,10 +117,10 @@ describe('Panne de Vapeur — résolution first-class (MDG 12 l.313-352)', () =>
     const issue = (seed: number, pas: (total: number, r: TestResult) => number) => {
       const rng = makeRNG(seed);
       let total = 0;
-      for (let i = 0; total < force.targetDR! && i < 20; i++) total = pas(total, rollTest(valeur, force.test.difficulty, rng));
-      return total >= force.targetDR!;
+      for (let i = 0; total < force.drCible! && i < 20; i++) total = pas(total, rollTest(valeur, force.test.difficulty, rng));
+      return total >= force.drCible!;
     };
-    const cumul = (total: number, r: TestResult) => extendedTestStep(total, r, force.targetDR!).total;
+    const cumul = (total: number, r: TestResult) => extendedTestStep(total, r, force.drCible!).total;
     const seed = Array.from({ length: 500 }, (_, i) => i + 1).find((s) => issue(s, cumul) !== issue(s, (total, r) => total + Math.max(0, r.sl)));
     expect(seed, 'une graine où plancher chaque DR à 0 change l’issue').toBeDefined();
     const jBefore = get().journal.length;
@@ -146,21 +146,21 @@ describe('Panne de Vapeur — déclenchée par le Test de Progression (MDG 12 l.
   it('un 99 sous une cible au-delà de 99 est une Maladresse : la table de panne est tirée', () => {
     seedBattleRng(1);
     banc.setState({
-      party: makePregens(idsDeTest).slice(0, 3).map((h) => ({ ...h, characteristics: tableTotale(Object.keys(h.characteristics), () => 99) })),
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 3).map((h) => ({ ...h, characteristics: tableTotale(Object.keys(h.characteristics), () => 99) })),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0, pendingSteamSave: null, journal: [],
       vessel: { vehicleId: 'cogue', upgrades: [{ id: 'propulsion-a-vapeur' }], morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);
-    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     for (let i = 0; i < 30 && !get().pendingRest; i++) {
       const pc = get().pendingCascade;
-      if (!pc || pc.participants[pc.cursor]?.kind === 'crew-progression') break;
+      if (!pc || pc.participants[pc.cursor]?.kind === 'equipage-progression') break;
       avanceEtapeCascade(get);
     }
     const p = get().pendingCascade!;
     const step = p.participants[p.cursor];
-    expect(step?.kind).toBe('crew-progression');
+    expect(step?.kind).toBe('equipage-progression');
     const rows = step.participants!;
     expect(rows.length, 'la Progression a ses contributeurs').toBeGreaterThan(0);
     expect(rows[0].target!, 'la cible du contributeur dépasse la borne haute').toBeGreaterThanOrEqual(99);

@@ -1,18 +1,17 @@
-## Le seul point de contact avec la page : `globalThis.wfrpPont` par JavaScriptBridge (`hotes/godot/pont/CONTRAT.md`), dont
-## l'image que l'auteur choisit sur son disque (`choisir_une_image`), et les requêtes au serveur qui la sert (`requeter`) ;
-## ce que l'écran porte, publié à la page (`publier_l_ecran`), et ce que Godot lui expose (`exposer`).
+## Le seul point de contact avec le noyau (`hotes/godot/pont/CONTRAT.md`), par le transport de son lieu (`Transport`) : la
+## page de l'export Web (`TransportDeLaPage`) ou un processus Node (`TransportDuProcessus`) ; dont le fichier que le joueur
+## choisit sur son disque (`choisir_un_fichier`), celui qu'il y enregistre (`enregistrer_un_fichier`), la pile des couches d'une tenue (`resoudre_la_pile`), les requêtes au
+## serveur du jeu (`requeter`), ce que l'écran porte (`publier_l_ecran`, retenu dans `ecran`) et ce que Godot expose
+## (`exposer`).
 ## Un appel envoie le nom d'une méthode et une chaîne JSON, et rend la réponse décodée ; une réponse `ok: false` est un
 ## refus, que `refus` porte ; une réponse illisible ou une erreur de la page (`erreursGlobales`) est une panne.
 ## Chargé en autoload `Pont` (`project.godot`).
 class_name PontDuNoyau
 extends Node
 
-signal pret
 signal refus(message: String)
 signal panne(message: String)
 
-const INTERFACE := "wfrpPont"
-const ATTENTE_S := 10.0
 ## Le plus long silence du réseau qu'un téléchargement tolère, compté par un `Timer` en temps de l'arbre : le délai
 ## repart à chaque bloc reçu, car la durée d'un téléchargement suit la fréquence d'image (#3470).
 const SILENCE_S := 10.0
@@ -21,84 +20,166 @@ const SILENCE_S := 10.0
 ## mesurés : un GLB de base de 42 Mo s'y reçoit en une vingtaine d'images (#3470), pas en plus de 600 par 64 Kio.
 const BLOC_DE_TELECHARGEMENT := 16777216
 
-var est_web := OS.has_feature("web")
-## Si la partie à démarrer est la scène que l'éditeur a mise à l'essai (`demarrer { essai }`), plutôt que le scénario de
-## l'adresse de la page.
+## Un genre de fichier que le joueur choisit ou enregistre : `accepte`, ce que le champ de fichier de la page admet ;
+## `filtre`, celui du dialogue du système ; `type`, le type MIME du fichier remis par la page.
+const IMAGES := {accepte = "image/png,image/jpeg,image/webp", filtre = "*.png, *.jpg, *.jpeg, *.webp ; Images PNG, JPEG ou WebP"}
+const HEROS := {accepte = ".json,application/json", filtre = "*.json ; Personnage exporté", type = "application/json"}
+
+## Le paramètre (`parametre`) que la recette pose à `1` (`hotes/godot/recette.mjs`, `en_recette`).
+const PARAMETRE_DE_RECETTE := "recette"
+
+## Si la partie à démarrer est la scène que l'éditeur a mise à l'essai (`demarrer { essai }`), plutôt que le scénario du
+## paramètre `scenario`.
 var essai := false
-var _pont: JavaScriptObject = null
-## Les rappels que Godot expose à la page (`exposer`), par nom, retenus tant que la page peut les appeler.
-var _exposes := {}
+## Si la partie à ouvrir est une partie au groupe (`ouvrir`), que le joueur compose puis lance sur une campagne du jeu
+## (`lancer`), plutôt qu'un scénario de test : « Jouer » de l'accueil le pose.
+var au_groupe := false
+## Si le combat s'ouvre sur les sauvegardes à charger (`sauvegardes`), sans partie : « Reprendre » de l'accueil le pose.
+var reprise := false
+## L'emplacement de la sauvegarde que le combat charge à son ouverture (`charger`), `null` sans chargement demandé.
+var a_charger: Variant = null
+## Si une recette pilote le jeu (`PARAMETRE_DE_RECETTE`) : l'écran se publie (`publier_l_ecran`), une image ne se dessine
+## que si l'écran a changé (`OS.low_processor_usage_mode`), sans anticrénelage multiéchantillon (`Viewport.msaa_3d`), car
+## dans l'export Web chaque image tient le fil de la page où la recette lit l'écran publié et où arrive chacun de ses
+## gestes.
+var en_recette := false
+## Le dernier écran publié (`publier_l_ecran`).
+var ecran: Dictionary = {}
+var _transport: Transport
+
+
+## Ce que fait le lieu du noyau, la page ou un processus : chaque lieu, une classe qui l'étend.
+@abstract class Transport extends Node:
+	## Une panne du lieu, que la façade signale (`PontDuNoyau.panne`).
+	signal panne(message: String)
+
+	## Le lieu ouvert, au premier appel : `true` prêt, `false` sa panne signalée.
+	@abstract func ouvrir() -> bool
+
+	## Si le lieu est ouvert et vivant : un appel y reçoit sa réponse.
+	@abstract func est_ouvert() -> bool
+
+	## La réponse de `methode` sur `json` (la chaîne JSON de l'entrée, ou `null`), la chaîne JSON que rend
+	## `wfrpPont.appelerEnOctets` ; `null`, sa panne signalée.
+	@abstract func appeler(methode: String, json: Variant) -> Variant
+
+	## Les octets de la dernière réponse d'`appeler`, lus quand elle porte `octets`.
+	@abstract func octets() -> PackedByteArray
+
+	## La réponse à la pile des couches `demande`, une chaîne JSON, attendue sans tenir l'image ; `null`, sa panne
+	## signalée.
+	@abstract func resoudre_la_pile(demande: String) -> Variant
+
+	## `valeur` publiée sous `nom`, pour qui pilote le lieu.
+	@abstract func publier(nom: String, valeur: Variant) -> void
+
+	## `rappel` exposé sous `nom` à qui pilote le lieu : chaque appel lui passe son entrée, une chaîne, et `rendre`, le
+	## `Callable` qui reçoit sa réponse, une chaîne.
+	@abstract func exposer(nom: String, rappel: Callable) -> void
+
+	@abstract func adresse(relative: String) -> String
+
+	@abstract func choisir_un_fichier(genre: Dictionary) -> Dictionary
+
+	@abstract func enregistrer_un_fichier(genre: Dictionary, nom: String, texte: String) -> void
+
+	@abstract func parametre(cle: String) -> String
 
 
 func _ready() -> void:
-	set_process(est_web)
-	if est_web:
-		get_tree().create_timer(ATTENTE_S).timeout.connect(_expirer)
+	_transport = TransportDeLaPage.new() if OS.has_feature("web") else TransportDuProcessus.new()
+	_transport.panne.connect(_signaler)
+	add_child(_transport)
+	if parametre(PARAMETRE_DE_RECETTE) == "1":
+		en_recette = true
+		OS.low_processor_usage_mode = true
+		get_viewport().msaa_3d = Viewport.MSAA_DISABLED
 
 
-func _process(_delta: float) -> void:
-	_pont = JavaScriptBridge.get_interface(INTERFACE)
-	if _pont != null:
-		set_process(false)
-		pret.emit()
-
-
-func _expirer() -> void:
-	if _pont == null:
-		set_process(false)
-		_signaler("globalThis.%s reste absent après %s s : wfrp-pont.js n'est pas chargé." % [INTERFACE, ATTENTE_S])
-
-
+## Si le lieu du noyau est ouvert (`Transport.est_ouvert`).
 func est_pret() -> bool:
-	return _pont != null
+	return _transport.est_ouvert()
 
 
 ## Le pont rejoint par un écran : chaque refus rendu à `au_refus` (son message), chaque panne à `a_la_panne`, chacun abonné
-## une fois et désabonné à la libération de son objet ; `true` une fois le pont prêt, `false` (la panne signalée) hors
-## d'une page.
+## une fois et désabonné à la libération de son objet ; `true` une fois le lieu du noyau ouvert et les volumes posés
+## (`regler_les_volumes`), `false` (la panne signalée) s'il ne s'ouvre pas.
 func rejoindre(au_refus: Callable, a_la_panne: Callable) -> bool:
 	if not refus.is_connected(au_refus):
 		refus.connect(au_refus)
 	if not panne.is_connected(a_la_panne):
 		panne.connect(a_la_panne)
-	if not est_web:
-		_signaler("Cet hôte joue dans une page : son pont est `wfrp-pont.js` (export Web).")
+	if not await _transport.ouvrir():
 		return false
-	if not est_pret():
-		await pret
+	regler_les_volumes()
 	return true
 
 
-## La réponse de `methode` sur `entree` (un objet, ou `null` sans entrée) : décodée, `ok` vrai ou faux ; `{}` en panne.
+## @contrat Effets
+## Les volumes du joueur se posent sur les bus d'`AudioServer` (`projet/default_bus_layout.tres`) :
+## `PontDuNoyau.regler_les_volumes` lit la méthode `preferences` et pose sur chaque bus dont la préférence
+## `volume-<nom du bus>` existe sa valeur (de 0 à 1, `AudioServer.set_bus_volume_linear`) ; les bus `Master` et
+## `musique-jouee` n'en ont aucune. La préférence `son-coupe` coupe le bus `Master` (`AudioServer.set_bus_mute`),
+## sans toucher son volume. `rejoindre` l'appelle une fois le lieu du noyau ouvert, le panneau des réglages
+## après chaque réglage (`projet/scripts/reglages.gd`). La recette `projet/recettes/mixage.gd` le vérifie.
+
+## Le volume de chaque bus d'`AudioServer` dont la préférence `volume-<nom du bus>` existe (méthode `preferences`), posé
+## à sa valeur, et `Master` coupé à la valeur de la préférence `son-coupe` ; rien si l'appel ne rend pas `ok`.
+func regler_les_volumes() -> void:
+	var reponse := appeler("preferences")
+	if reponse.get("ok") != true:
+		return
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), reponse.preferences["son-coupe"])
+	for bus in AudioServer.bus_count:
+		var cle := "volume-%s" % AudioServer.get_bus_name(bus)
+		if reponse.preferences.has(cle):
+			AudioServer.set_bus_volume_linear(bus, reponse.preferences[cle])
+
+
+## La réponse de `methode` sur `entree` (un objet, ou `null` sans entrée) : décodée, `ok` vrai ou faux, chaque tableau
+## passé en octets recollé (`_recoller`) ; `{}` en panne.
 func appeler(methode: String, entree: Variant = null) -> Dictionary:
-	var reponse := _decoder(methode, _pont.call("appeler", methode, null if entree == null else JSON.stringify(entree)))
+	var reponse := _decoder(methode, _transport.appeler(methode, null if entree == null else JSON.stringify(entree)))
+	if reponse.has("octets"):
+		_recoller(reponse, _transport.octets())
 	if reponse.get("ok") == false:
 		refus.emit(str(reponse.erreur.message))
-	var releve := _decoder("erreursGlobales", _pont.call("appeler", "erreursGlobales"))
+	var releve := _decoder("erreursGlobales", _transport.appeler("erreursGlobales", null))
 	for e in releve.get("erreurs", []):
 		_signaler("%s (%s)" % [e.message, e.source])
 	return reponse
 
 
 ## @contrat Écran publié
-## Chaque vue mise en page, Godot pose `globalThis.wfrpEcran`. Chaque publication remplace l'objet. À l’atelier, la
-## lecture d’un clip renouvelle aussi cette publication à chaque image, après mise en page, sans remesurer `peaux`.
+## Sous une recette seulement (la page ouverte avec `?recette=1`, `PontDuNoyau.en_recette`), chaque vue mise en page,
+## Godot pose `globalThis.wfrpEcran` ; hors recette, il ne publie rien et ne calcule rien de ce qu'il publierait
+## (#3947). Chaque publication remplace l'objet. À l’atelier, la lecture d’un clip renouvelle aussi cette publication à
+## chaque image, après mise en page, sans remesurer `peaux`.
 ##
-## - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
-## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], cases: Record<"x,y,z", [x, y]>, corps:
-##   Record<string, { base: string, elements: string[], emblemes: Record<string, string>, couleurs: Record<string,
-##   Record<string, string>> }>, navires: string[] }`, plus le point de l'écran du sol de chaque case de chaque couche
-##   du plateau, les ids des navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle
-##   posé, et, par id de combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de
-## `montes`, l'id de
-##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre, la
-##   couleur d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB (`MontageDeComposition.couleurs_posees`).
-##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/end-turn`
+## - Au menu : `{ boutons: { texte, x, y }[], curseurs: { element, gauche, droite, y, valeur }[] }`, le texte et le
+##   centre de chaque bouton actif, et chaque curseur réglable du panneau des réglages (`PontDuNoyau.curseurs_a_l_ecran`).
+## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], curseurs, cases: Record<"x,y,z", [x, y]>,
+##   glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], corps: Record<string, { base: string, elements: string[],
+##   emblemes: Record<string, string>, couleurs: Record<string, Record<string, string>> }>, navires: string[] }`,
+##   plus le point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, si la caméra
+##   glisse vers un lieu ou pivote (`Monde.glisse` : publié au départ du glissé, où les points de `cases` sont encore
+##   ceux d'avant, puis à sa fin, où ils tiennent), si la vision posée se fond encore depuis celle d'avant
+##   (`VolumeDeScene.part_du_fondu` : publié à la vue qui la pose, puis à la fin du fondu), la part de l'écran où le
+##   monde se voit, que l'interface ne couvre pas (`Monde.cadre`, vide avant la première mise en page), les ids des
+##   navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle posé, et, par id de
+##   combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de `montes`, l'id de
+##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre,
+##   la couleur d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB
+##   (`MontageDeComposition.couleurs_posees`).
+##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/fin-de-tour`
 ##   pour une offre, `bouton/<clé du geste>` pour un geste de la fenêtre, `bouton/<clé du geste>/<n>` pour la n-ième
-##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids` et `retenu`, comme à l'atelier.
+##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids`, `retenu`, `ouverte` et `designe`, comme à
+##   l'atelier ; `curseurs`, comme au menu.
 ## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], saisies: { texte, x, y, element? }[],
-##   cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes, noms, calque, calque_pose } }`, chaque champ de
-##   texte éditable à l'écran, son texte et son centre (`PontDuNoyau.saisies_a_l_ecran`), le point de l'écran du sol de
+##   panneau: { valeur, contenu, page, haut, bas, boutons, saisies }, cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes,
+##   noms, calque, calque_pose } }`, chaque champ de texte éditable à l'écran, son texte et son centre
+##   (`PontDuNoyau.saisies_a_l_ecran`), le défilement du panneau d'outils, ses boutons et ses champs défilés hors de
+##   son cadre compris (`PontDuNoyau.defilement_publie`), le point de l'écran du sol de
 ##   chaque case de la couche éditée, les zones, la surcouche et le calque de la dernière réponse de `editer` (section
 ##   « Éditeur »), le nombre d'arêtes posées sur le monde, les noms posés sur le monde par case `x,y,z`, et si le calque
 ##   y est posé, sa planche lue.
@@ -170,8 +251,10 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ## d'échantillons, parce que leur texte (« Aucun », un
 ##   libellé) se répète d'une rangée à l'autre ; le préfixe `ligne/` sépare une ligne d'un point de même id. Une liste
 ##   déroulante publie aussi le texte de chaque article (`choix`), l'id de chaque article (`ids`, `null` pour un article
-##   sans id), et le rang de l'article choisi (`retenu`, -1 sans choix) : on la choisit en la cliquant, puis en
-##   descendant à son article au clavier. `lignes` porte l'élément monté
+##   sans id), le rang de l'article choisi (`retenu`, -1 sans choix), si elle est ouverte (`ouverte`) et le rang de
+##   l'article que désigne sa liste ouverte (`designe`, -1 sans lui), republiés quand elle s'ouvre, se ferme ou
+##   désigne un autre article au clavier (`suivre_les_listes`) : on la choisit en la cliquant, puis en allant à son
+##   article au clavier. `lignes` porte l'élément monté
 ##   à chaque ligne de pièce, sous la clé `<ligne>` : la `sorte` d'un sélecteur (`tete`, `coiffure`), `piece/<id>` ou
 ##   `emplacement/<id>` ; une ligne sous « Aucun » ou démontée en est absente, comme un point de `montes`. `emblemes` ne
 ##   porte que les emplacements montés dont un emblème est posé, sous l'id du point ou `ligne/<ligne>` : un emplacement
@@ -180,9 +263,16 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   (`MiseEnPage.image_voisine`, `projet/scripts/mise_en_page.gd`), la suivante de la dernière image étant la première.
 
 
-## Publie à la page ce que l'écran porte (`globalThis.wfrpEcran`), pour qui le pilote sans voir dans le canevas.
-func publier_l_ecran(ecran: Dictionary) -> void:
-	JavaScriptBridge.eval("globalThis.wfrpEcran = %s" % JSON.stringify(ecran), true)
+## Publie ce que l'écran porte, ce que rend `publie`, pour la recette qui le pilote sans voir dans le canevas : retenu
+## dans `ecran`, puis passé au lieu sous `wfrpEcran` ; rien si `publie` rend `null` (un écran qui n'est pas prêt). Hors
+## recette (`en_recette`), `publie` n'est pas appelé.
+func publier_l_ecran(publie: Callable) -> void:
+	if not en_recette:
+		return
+	var rendu: Variant = publie.call()
+	if rendu != null:
+		ecran = rendu
+		_transport.publier("wfrpEcran", rendu)
 
 
 ## @contrat Écran publié
@@ -207,18 +297,47 @@ func publier_l_ecran(ecran: Dictionary) -> void:
 ## étage non entiers, une case hors du plateau ou d'une couche qu'il n'a pas, un nombre hors de ses bornes. La recette
 ## autonome `projet/recettes/cadrage.gd` en est l'épreuve.
 
-## `rappel` exposé à la page en `globalThis.<nom>` : chaque appel de la page lui passe ses arguments en tableau.
+## `rappel` exposé au lieu sous `nom` : chaque appel lui passe son entrée, une chaîne, et `rendre`, le `Callable` qui
+## reçoit sa réponse, une chaîne.
 func exposer(nom: String, rappel: Callable) -> void:
-	_exposes[nom] = JavaScriptBridge.create_callback(rappel)
-	JavaScriptBridge.get_interface("window").set(nom, _exposes[nom])
+	_transport.exposer(nom, rappel)
 
 
-## Les boutons à l'écran sous `racines` : chaque `BaseButton` actif et visible qu'aucun défilement ne cache, son texte,
+## Sous une recette, `republier` appelé quand une liste déroulante sous `racine`, présente ou à venir, s'ouvre, se ferme
+## ou désigne un autre article au clavier : l'écran publie l'état de ses listes (`boutons_a_l_ecran`).
+func suivre_les_listes(racine: Node, republier: Callable) -> void:
+	if not en_recette:
+		return
+	var suivre := func(noeud: Node) -> void:
+		if noeud is OptionButton and racine.is_ancestor_of(noeud):
+			var articles := (noeud as OptionButton).get_popup()
+			articles.visibility_changed.connect(republier)
+			articles.id_focused.connect(func(_id: int) -> void: republier.call())
+	for liste in racine.find_children("*", "OptionButton", true, false):
+		suivre.call(liste)
+	var arbre := get_tree()
+	arbre.node_added.connect(suivre)
+	racine.tree_exited.connect(func() -> void: arbre.node_added.disconnect(suivre))
+
+
+## Le pont `pont` posé à la place de celui de l'arbre (`/root/Pont`), que chaque écran rejoint ensuite.
+static func remplacer(arbre: SceneTree, pont: PontDuNoyau) -> void:
+	var ancien := arbre.root.get_node_or_null("Pont")
+	if ancien != null:
+		arbre.root.remove_child(ancien)
+		ancien.free()
+	pont.name = "Pont"
+	arbre.root.add_child(pont)
+
+
+## Les boutons à l'écran sous `racines` : chaque `BaseButton` actif et visible qu'aucun défilement ne cache, ou, `defiles`
+## vrai, que les défilements cachent aussi, son texte,
 ## son centre, sa méta `cle` s'il la porte, et l'élément que dessine le composant qui le porte (`Zone.META` :
 ## `<type>/<id>`) s'il en porte un ; une liste déroulante, aussi le texte de chaque article (`choix`), son id (`ids`,
-## sa métadonnée) et le rang de l'article choisi (`retenu`, -1 sans choix) ; puis chaque onglet montré d'un `TabContainer` visible, son titre et le
+## sa métadonnée), le rang de l'article choisi (`retenu`, -1 sans choix), si elle est ouverte (`ouverte`) et le rang de
+## l'article que désigne sa liste ouverte (`designe`, -1 sans lui) ; puis chaque onglet montré d'un `TabContainer` visible, son titre et le
 ## centre de son onglet (`onglet`).
-static func boutons_a_l_ecran(racines: Array) -> Array:
+static func boutons_a_l_ecran(racines: Array, defiles := false) -> Array:
 	var boutons := []
 	for racine in racines:
 		for pages in racine.find_children("*", "TabContainer", true, false):
@@ -227,11 +346,11 @@ static func boutons_a_l_ecran(racines: Array) -> Array:
 				continue
 			for rang in barre.tab_count:
 				var milieu: Vector2 = barre.get_global_transform().translated_local(barre.get_tab_rect(rang).get_center()).get_origin()
-				if not barre.is_tab_hidden(rang) and a_l_ecran(barre, milieu):
+				if not barre.is_tab_hidden(rang) and (defiles or a_l_ecran(barre, milieu)):
 					boutons.append({texte = barre.get_tab_title(rang), x = milieu.x, y = milieu.y, onglet = true})
 		for bouton in racine.find_children("*", "BaseButton", true, false):
 			var centre: Vector2 = bouton.get_global_rect().get_center()
-			if bouton.is_visible_in_tree() and not bouton.disabled and a_l_ecran(bouton, centre):
+			if bouton.is_visible_in_tree() and not bouton.disabled and (defiles or a_l_ecran(bouton, centre)):
 				var publie := {texte = bouton.text, x = centre.x, y = centre.y}
 				if bouton.has_meta("cle"):
 					publie.cle = bouton.get_meta("cle")
@@ -242,24 +361,59 @@ static func boutons_a_l_ecran(racines: Array) -> Array:
 					publie.choix = range(liste.item_count).map(func(rang: int) -> String: return liste.get_item_text(rang))
 					publie.ids = range(liste.item_count).map(liste.get_item_metadata)
 					publie.retenu = liste.selected
+					publie.ouverte = liste.get_popup().visible
+					publie.designe = liste.get_popup().get_focused_item()
 				boutons.append(publie)
 	return boutons
 
 
 ## Les champs de texte à l'écran sous `racines` : chaque `LineEdit` ou `TextEdit` éditable et visible qu'aucun
-## défilement ne cache, son texte, son centre, et l'élément que dessine le composant qui le porte (`Zone.META`) s'il en
+## défilement ne cache, ou, `defiles` vrai, que les défilements cachent aussi, son texte, son centre, et l'élément que dessine le composant qui le porte (`Zone.META`) s'il en
 ## porte un.
-static func saisies_a_l_ecran(racines: Array) -> Array:
+static func saisies_a_l_ecran(racines: Array, defiles := false) -> Array:
 	var saisies := []
 	for racine in racines:
 		for champ in racine.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n is LineEdit or n is TextEdit):
 			var centre: Vector2 = champ.get_global_rect().get_center()
-			if champ.is_visible_in_tree() and champ.editable and a_l_ecran(champ, centre):
+			if champ.is_visible_in_tree() and champ.editable and (defiles or a_l_ecran(champ, centre)):
 				var publie := {texte = champ.text, x = centre.x, y = centre.y}
 				if champ.owner != null and champ.owner.has_meta(Zone.META):
 					publie.element = champ.owner.get_meta(Zone.META)
 				saisies.append(publie)
 	return saisies
+
+
+## Les curseurs à l'écran sous `racines` : la glissière (`Slider`) réglable et visible de chaque composant qui dessine
+## un élément (`Zone.META`), qu'aucun défilement ne cache, ou, `defiles` vrai, que les défilements cachent aussi, son
+## élément et sa piste (`glissiere_publiee`).
+static func curseurs_a_l_ecran(racines: Array, defiles := false) -> Array:
+	var curseurs := []
+	for racine in racines:
+		for glissiere: Slider in racine.find_children("*", "Slider", true, false):
+			if glissiere.is_visible_in_tree() and glissiere.editable and glissiere.owner != null and glissiere.owner.has_meta(Zone.META) and (defiles or a_l_ecran(glissiere, glissiere.get_global_rect().get_center())):
+				var publie := glissiere_publiee(glissiere)
+				publie.element = glissiere.owner.get_meta(Zone.META)
+				curseurs.append(publie)
+	return curseurs
+
+
+## La piste de `glissiere` à l'écran : son bord gauche, son bord droit, son milieu vertical, et sa valeur.
+static func glissiere_publiee(glissiere: Slider) -> Dictionary:
+	var cadre := glissiere.get_global_rect()
+	return {gauche = cadre.position.x, droite = cadre.end.x, y = cadre.get_center().y, valeur = glissiere.value}
+
+
+## Le défilement vertical `defilement` : sa position (`valeur`, la valeur de sa barre, `ScrollBar.value`), la hauteur
+## de son contenu (`contenu`, `Range.max_value`) et celle qu'il montre (`page`, `Range.page`), le haut et le bas de son
+## cadre à l'écran, et ses boutons et ses champs de texte, ceux qu'il cache compris, chacun publié comme à
+## l'écran, à son point de l'écran hors du cadre s'il y est (`boutons_a_l_ecran`, `saisies_a_l_ecran`).
+static func defilement_publie(defilement: ScrollContainer) -> Dictionary:
+	var cadre := defilement.get_global_rect()
+	var barre := defilement.get_v_scroll_bar()
+	return {
+		valeur = barre.value, contenu = barre.max_value, page = barre.page, haut = cadre.position.y, bas = cadre.end.y,
+		boutons = boutons_a_l_ecran([defilement], true), saisies = saisies_a_l_ecran([defilement], true),
+	}
 
 
 ## Si `point` de `controle` se voit à travers chaque défilement qui le contient.
@@ -272,14 +426,15 @@ static func a_l_ecran(controle: Control, point: Vector2) -> bool:
 	return true
 
 
-## L'adresse absolue de `relative` contre celle de la page.
+## L'adresse absolue de `relative` contre celle du serveur du jeu.
 func adresse(relative: String) -> String:
-	return str(JavaScriptBridge.eval("new URL(%s, location.href).href" % JSON.stringify(relative), true))
+	return _transport.adresse(relative)
 
 
-## Le corps de la réponse à `methode` sur `relative`, adresse relative à la page, `corps` envoyé ; vide, et une erreur à
-## `recueil`, si la requête échoue, si la réponse n'est pas un 200 (son corps dit alors pourquoi), ou si `SILENCE_S` passe
-## sans qu'un octet arrive : le minuteur `silence` repart à chaque image où HTTPRequest a lu un bloc.
+## Le corps de la réponse à `methode` sur `relative`, adresse relative au serveur du jeu (`adresse`), `corps` envoyé ;
+## vide, et une erreur à `recueil`, si la requête échoue, si la réponse n'est pas un 200 (son corps dit alors pourquoi),
+## ou si `SILENCE_S` passe sans qu'un octet arrive : le minuteur `silence` repart à chaque image où HTTPRequest a lu un
+## bloc.
 func requeter(relative: String, recueil: Array[String], methode := HTTPClient.METHOD_GET, corps := "") -> PackedByteArray:
 	var requete := HTTPRequest.new()
 	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
@@ -318,23 +473,38 @@ func requeter(relative: String, recueil: Array[String], methode := HTTPClient.ME
 	return resultat[3]
 
 
-## L'image que l'auteur choisit sur son disque (`wfrpPont.choisirUneImage`) : `{ octets, type }`, son contenu et son type
-## MIME ; `{}` s'il renonce.
-func choisir_une_image() -> Dictionary:
-	var rendue := []
-	var rappel := JavaScriptBridge.create_callback(func(args: Array) -> void: rendue.append_array(args))
-	_pont.call("choisirUneImage", rappel)
-	while rendue.is_empty():
-		await get_tree().process_frame
-	return {} if str(rendue[0]) == "" else {octets = Marshalls.base64_to_raw(str(rendue[0])), type = str(rendue[1])}
+## Le fichier du genre `genre` (`IMAGES`, `HEROS`) que le joueur choisit sur son disque : `{ octets, type }`, son contenu
+## et son type MIME ; `{}` s'il renonce.
+func choisir_un_fichier(genre: Dictionary) -> Dictionary:
+	return await _transport.choisir_un_fichier(genre)
 
 
-## Le paramètre `cle` de l'adresse de la page, `""` s'il est absent.
+## Le texte `texte` remis au joueur en fichier du genre `genre`, sous le nom `nom` : téléchargé par la page, écrit où le
+## joueur le choisit hors d'elle.
+func enregistrer_un_fichier(genre: Dictionary, nom: String, texte: String) -> void:
+	_transport.enregistrer_un_fichier(genre, nom, texte)
+
+
+## La pile des couches `demande` (`PileDemandee`, en JSON, `CONTRAT.md`, « Pile des couches ») résolue par le lieu du
+## noyau sans tenir l'image (`wfrpPont.resoudreLaPile`) : `rendre`, s'il vit encore, en reçoit la réponse décodée
+## (`PileResolue`), `{}` en panne ; un refus est signalé.
+func resoudre_la_pile(demande: String, rendre: Callable) -> void:
+	var reponse := _decoder("resoudreLaPile", await _transport.resoudre_la_pile(demande))
+	if reponse.get("ok") == false:
+		refus.emit(str(reponse.erreur.message))
+	if rendre.is_valid():
+		rendre.call(reponse)
+
+
+## Le paramètre `cle` du lancement, `""` s'il est absent.
 func parametre(cle: String) -> String:
-	return str(JavaScriptBridge.eval("new URLSearchParams(location.search).get(%s) ?? ''" % JSON.stringify(cle), true))
+	return _transport.parametre(cle)
 
 
+## La réponse brute `brut` de `methode` décodée ; `{}` en panne, celle du transport (`null`) déjà signalée.
 func _decoder(methode: String, brut: Variant) -> Dictionary:
+	if brut == null:
+		return {}
 	if typeof(brut) != TYPE_STRING:
 		_signaler("%s : réponse de type %s au lieu d'une chaîne JSON" % [methode, type_string(typeof(brut))])
 		return {}
@@ -343,6 +513,16 @@ func _decoder(methode: String, brut: Variant) -> Dictionary:
 		_signaler("%s : réponse illisible : %s" % [methode, brut.left(200)])
 		return {}
 	return decode
+
+
+## Chaque tableau d'une géométrie de `volume`, `toits` et `couronnes` de `reponse`, dont l'en-tête porte les bornes
+## `[debut, fin]` dans `octets`, remplacé par ses `Float32`.
+func _recoller(reponse: Dictionary, octets: PackedByteArray) -> void:
+	for famille in ["volume", "toits", "couronnes"]:
+		for geometrie: Dictionary in reponse[famille]:
+			for tableau in ["positions", "normales", "couleurs", "cases"]:
+				var bornes: Array = geometrie[tableau]
+				geometrie[tableau] = octets.slice(int(bornes[0]), int(bornes[1])).to_float32_array()
 
 
 func _signaler(message: String) -> void:

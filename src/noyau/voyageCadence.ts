@@ -9,6 +9,7 @@
  * INTERRUPTIONS — chaque jet de ROUTINE auto-résolu laisse sa ligne au PV DU JOUR (l'auto-pilote pilote
  * LE MÊME flux de jet, jamais un `rollTest` inline). Décision requise = modale/cascade ; routine = PV.
  */
+import type { IconId } from '../data/icons';
 import type { NightEntry } from './restFlow';
 import type { RollBreakdown } from '../engine/combat';
 import type { StakeRef } from '../data';
@@ -17,7 +18,7 @@ import type { GenreDeCascade } from './tablesPosees';
 
 /** COMMANDÉE : les Tests d'équipage de ROUTINE s'auto-résolvent (leurs lignes au PV) ; seules les
  *  décisions interrompent. JOUR-PAR-JOUR : chaque jet ouvre sa modale. */
-export type VoyageCadence = 'commande' | 'jour-par-jour';
+export type VoyageCadence = 'commande' | 'jourParJour';
 
 /** Ordres permanents d'une traversée, fixés au départ et persistés avec le `TravelPlan`. */
 export interface VoyageOrders {
@@ -37,20 +38,20 @@ export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
  * joue entier en fenêtre.
  * Mer : jets d'ÉQUIPAGE quotidiens (MDG 13 l.111) et Tests PERSONNELS de l'entretien-survie du bord
  * (MDG 13 l.203-225, 14 l.206-234). Fleuve : dé d'Exposition hydrique et son Test (MSRC 16 l.5-13).
- * L'Exposition y entre par le `kind` PROPRE à sa route (`sea-exposition`, `river-exposition`) : un ordre
- * de traversée ne commande ni la nuit de camp (`exposure`) ni un Effet de scène (`waterExposure`).
+ * L'Exposition y entre par le `kind` PROPRE à sa route (`merExposition`, `fleuveExposition`) : un ordre
+ * de traversée ne commande ni la nuit de camp (`exposition-nocturne`) ni un Effet de scène (`waterExposure`).
  * Ce qui réunit ces jets est l'ORDRE donné au départ, attendu validé en recette #1426 « Traversée
  * commandée sans fenêtre » (#1479).
  *
- * INTERROMPENT toujours (hors liste, donc fenêtre) : les CRISES (`crew-poursuite`, `crew-tourbillon`), le Test d'équipage d'un Flow (`flowCrewTest`)
- * et `crew-extermination`, `crew-embuscade` ancrée, `crew-voyage-rapide`, et tout Test dont l'échec ouvre une
+ * INTERROMPENT toujours (hors liste, donc fenêtre) : les CRISES (`equipage-poursuite`, `equipage-tourbillon`), le Test d'équipage d'un Flow (`testDEquipage`)
+ * et `equipage-extermination`, `equipage-embuscade` ancrée, `equipage-voyage-rapide`, et tout Test dont l'échec ouvre une
  * DÉCISION. Les urgences (`pendingSteamSave`), les événements de bord à choix, le conseil de bord,
  * l'atterrage et le combat sont des surfaces PROPRES : ils suspendent la boucle par eux-mêmes.
  */
 export const KINDS_SOUS_ORDRES: ReadonlySet<GenreDeCascade> = new Set<GenreDeCascade>([
-  'crew-progression', 'crew-affaler', 'crew-phare', 'crew-orientation', 'crew-entretien',
-  'sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement',
-  'river-exposition-tirage', 'river-exposition',
+  'equipage-progression', 'equipage-affaler', 'equipage-phare', 'equipage-orientation', 'equipage-entretien',
+  'mer-tonneau-expose', 'mer-tonneau-contamine', 'mer-mal-de-mer', 'mer-scorbut', 'merExposition', 'mer-epuisement',
+  'fleuveExpositionTirage', 'fleuveExposition',
 ]);
 
 /** Ce que la politique d'ordres lit de l'état — sa signature la plus ÉTROITE. */
@@ -78,7 +79,7 @@ export function voyageDayEntry(opts: {
   id: string;
   actorId?: string;
   label: string;
-  icon?: string;
+  icon?: IconId;
   d?: RollBreakdown;
   text?: string;
   tone?: NightEntry['tone'];

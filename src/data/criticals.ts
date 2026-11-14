@@ -109,7 +109,7 @@ export interface CritEscalation {
   /** « Épaule luxée » (AA 07 l.125 / LDB 18 l.120) / « Genou démis » (AA 07 l.179 / LDB 18 l.179) : le membre est
    *  DÉSACTIVÉ (séquelle portant `disable` en `ops` passives : bras `maxWeaponHands:1` / jambe `moveScale`),
    *  en attente d'Aide Médicale (`awaitingMedicalAid`). Après l'Aide Médicale, un Test ÉTENDU de Guérison
-   *  Accessible (+20) de `targetDR` DR rend l'usage du membre : la séquelle est retirée et `recoveryPenalty`
+   *  Accessible (+20) de `drCible` DR rend l'usage du membre : la séquelle est retirée et `recoveryPenalty`
    *  (charMod −10 / `moveScale` jambe, durée 1d10 jours) est posé à la cible. Instancié par
    *  `stampCriticalEscalation` (nouvelle séquelle, pas une plaie chirurgicale) ; joué à l'Infirmerie (acte
    *  « Guérison », `medicFlow`). */

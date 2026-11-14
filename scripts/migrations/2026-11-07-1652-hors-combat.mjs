@@ -61,12 +61,12 @@ function consequenceDe(e, ou) {
   };
   switch (e.kind) {
     case 'infestation': {
-      cles(['testType', 'difficulty', 'targetDR', 'spoilEncPerNight', 'diseaseChancePct', 'ratAttacks', 'ratCC', 'ratWeapon']);
+      cles(['testType', 'difficulty', 'drCible', 'spoilEncPerNight', 'diseaseChancePct', 'ratAttacks', 'ratCC', 'ratWeapon']);
       if (typeof p.testType !== 'string' || typeof p.difficulty !== 'string') arrets.push(`${ou} : params.testType/difficulty absents`);
       const pct = entier('diseaseChancePct');
       if (pct < 1 || pct > 99) arrets.push(`${ou} : params.diseaseChancePct « ${pct} » hors de 1-99`);
       return feuille('navire', [{
-        op: 'infestation', crewTestType: { id: p.testType }, difficulty: p.difficulty, targetDR: entier('targetDR'),
+        op: 'infestation', crewTestType: { id: p.testType }, difficulty: p.difficulty, drCible: entier('drCible'),
         chaqueNuit: {
           kind: 'seq',
           steps: [
@@ -109,11 +109,11 @@ function reecrire(e, consequence) {
   }
 }
 
-/** Le nœud `test` de Prière d'un Présage : sous le `if` Béni (Manann). */
+/** Le nœud `test` de Prière d'un Présage : sous le `si` Béni (Manann). */
 function testDuPresage(e, ou) {
   const c = e.consequence;
-  const test = c?.kind === 'if' && c.then?.kind === 'test' ? c.then.test : undefined;
-  if (!test || test.skill?.id !== 'priere') arrets.push(`${ou} : consequence hors de la forme if → test de Prière`);
+  const test = c?.kind === 'si' && c.alors?.kind === 'test' ? c.alors.test : undefined;
+  if (!test || test.skill?.id !== 'priere') arrets.push(`${ou} : consequence hors de la forme si → test de Prière`);
   return test;
 }
 

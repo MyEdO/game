@@ -8,7 +8,14 @@ import { catalogueSpecs, entreeOuverte, estSpecialisable, idsDe } from '../../da
 import { EMPTY_FLOW, type Condition } from '../../engine/flowCore';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
-import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
+import {
+  actorFieldSchema,
+  actorRefSchema,
+  hasWhatSchema,
+  partyWhoSchema,
+  relationOrCampSchema,
+  startleCauseSchema,
+} from '../../data/schemas/grammaire/mecanique';
 import { familleDesEffets } from '../../data/schemas/grammaire/mecanique';
 import { noeudDuChamp } from '../../data/schemas/validate';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
@@ -127,7 +134,7 @@ describe('#1694 B2 — les sélecteurs de Condition sont NOMMÉS par leur nœud 
   const CAS: [string, Condition, unknown][] = [
     ['compare (who + field)', { kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 }, actorFieldSchema],
     ['compare (acteur)', { kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 }, actorRefSchema],
-    ['relation', { kind: 'relation', who: 'target', is: 'ally' }, relationOrCampSchema],
+    ['relation', { kind: 'relation', who: 'target', is: 'allie' }, relationOrCampSchema],
     ['has', { kind: 'has', who: 'target', what: 'trait', value: 'mort-vivant' }, hasWhatSchema],
     ['startleCause', { kind: 'startleCause', is: 'noise' }, startleCauseSchema],
     ['partyDead', { kind: 'partyDead', who: 'any' }, partyWhoSchema],
@@ -146,8 +153,8 @@ describe('#1694 B2 — les sélecteurs de Condition sont NOMMÉS par leur nœud 
   }
 
   it('le résumé humain d’une Condition lit les mêmes libellés que les sélecteurs', () => {
-    expect(condSummary({ kind: 'relation', who: 'caster', is: 'opponent' }))
-      .toBe(`${libelleDeValeur(actorRefSchema, 'caster')} : ${libelleDeValeur(relationOrCampSchema, 'opponent')}`);
+    expect(condSummary({ kind: 'relation', who: 'caster', is: 'adversaire' }))
+      .toBe(`${libelleDeValeur(actorRefSchema, 'caster')} : ${libelleDeValeur(relationOrCampSchema, 'adversaire')}`);
     expect(condSummary({ kind: 'startleCause', is: 'magic' }))
       .toBe(`effarouché par ${libelleDeValeur(startleCauseSchema, 'magic')}`);
   });
@@ -241,7 +248,7 @@ describe('ConditionEditor — Cible de l’affliction en vue (psychologie)', () 
   it('l’Atelier d’un champ d’effets la lit sur la famille de son porteur : la psychologie l’admet, un trait non', () => {
     const offerte = (fichier: string) => {
       const ctx = { ...ctxDeCatalogue('declenche'), famille: familleDesEffets(noeudDuChamp(fichier, 'effects')) };
-      const flow: Flow = { kind: 'if', cond: { kind: 'foeInLoS' }, then: EMPTY_FLOW };
+      const flow: Flow = { kind: 'si', condition: { kind: 'foeInLoS' }, alors: EMPTY_FLOW };
       return renderToStaticMarkup(<FlowEditor flow={flow} ctx={ctx} onChange={() => {}} />).includes('value="cibleEnVue"');
     };
     expect(offerte('psychology.json')).toBe(true);

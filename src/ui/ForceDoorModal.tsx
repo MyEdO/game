@@ -23,13 +23,13 @@ export function ForceDoorModal() {
   const party = useGame((s) => s.party);
   const owns = useOwns(); // possession locale à l'affichage (#1262) — hook : AVANT tout retour anticipé
   const p = useGame((s) => s.pendingForceDoor);
-  const roll = useGesteDeJet('jetLancer', 'forceDoor');
-  const reroll = useGesteDeJet('jetRelancer', 'forceDoor');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'forceDoor');
-  const darkPact = useGesteDeJet('jetPactiser', 'forceDoor');
-  const force = useGesteDeJet('jetForcerLaReussite', 'forceDoor');
-  const confirm = useGesteDeJet('jetValider', 'forceDoor');
-  const cancel = useGesteDeJet('jetAnnuler', 'forceDoor');
+  const roll = useGesteDeJet('jetLancer', 'enfoncerLaPorte');
+  const reroll = useGesteDeJet('jetRelancer', 'enfoncerLaPorte');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'enfoncerLaPorte');
+  const darkPact = useGesteDeJet('jetPactiser', 'enfoncerLaPorte');
+  const force = useGesteDeJet('jetForcerLaReussite', 'enfoncerLaPorte');
+  const confirm = useGesteDeJet('jetValider', 'enfoncerLaPorte');
+  const cancel = useGesteDeJet('jetAnnuler', 'enfoncerLaPorte');
   const regler = useGame((s) => s.jetRegler);
   if (!p) return null;
   const pool = battle?.combatants ?? party;
@@ -39,7 +39,7 @@ export function ForceDoorModal() {
   const rows: BuiltRollRow[] = buildParticipantRows(p.participants, pool, {
     onRoll: roll, onReroll: reroll, onBonusSL: bonusSL, onDarkPact: darkPact, onForce: force,
     interactiveOf: (part) => owns(part.id),
-    rollLabel: <><Icon id="action/attack" size="sm" /> Frapper</>,
+    rollLabel: <><Icon id="action/attaquer" size="sm" /> Frapper</>,
     row: (part, actor, res) => {
       const arme = armeDEnfoncement(actor, part);
       const ligne = ligneDEnfoncement(actor, arme);
@@ -62,22 +62,22 @@ export function ForceDoorModal() {
         layout="seg"
         groupLabel={actor.label}
         options={[
-          { key: 'mains-nues', label: 'Mains nues', selected: !part.armeUid, onSelect: () => regler('forceDoor', 'arme', null, part.id) },
-          ...armes.map((w) => ({ key: w.uid!, label: w.label, selected: part.armeUid === w.uid, onSelect: () => regler('forceDoor', 'arme', w.uid!, part.id) })),
+          { key: 'mains-nues', label: 'Mains nues', selected: !part.armeUid, onSelect: () => regler('enfoncerLaPorte', 'arme', null, part.id) },
+          ...armes.map((w) => ({ key: w.uid!, label: w.label, selected: part.armeUid === w.uid, onSelect: () => regler('enfoncerLaPorte', 'arme', w.uid!, part.id) })),
         ]}
       />
     )];
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: cede ? 'Enfoncer !' : 'Appliquer le Round', onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: cede ? 'Enfoncer !' : 'Appliquer le Round', onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
-      flowKey="forceDoor"
-      title={<><Icon id="map-tool/door" size="sm" /> Enfoncer la porte</>}
+      flowKey="enfoncerLaPorte"
+      title={<><Icon id="outil-de-carte/porte" size="sm" /> Enfoncer la porte</>}
       subtitle={<><strong>{p.label}</strong> — Endurance {p.doorBE} · Blessures {p.doorB}/{p.doorBmax}</>}
       instruction="Chacun frappe la porte, à mains nues ou avec une arme"
       setup={choix.length ? <>{choix}</> : undefined}

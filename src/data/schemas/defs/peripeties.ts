@@ -2,13 +2,13 @@
  * Schéma de `peripeties.json` — Table des Péripéties de voyage (`Source/…/51 - Magie du Chaos.md`
  * l.210-221 — le fichier mélange 2 chapitres réels du LDB post-ré-extraction Marker, cette table
  * appartient au conseil MJ « Voyage », pas aux sorts du Chaos, #309 phase 3), document mono-table :
- * une rangée par face de son dé `die`. Son `tirageQuotidien` (un `Tirage`) est le dé lancé chaque jour de voyage,
- * dont la face `perilDie` de la route fait survenir une Péripétie. Vue TS : `Peripetie` (`src/data/peripeties.ts`).
+ * une rangée par face de son dé `die`. Son `tirageQuotidien` (`sousTirage`) est le dé lancé chaque jour de voyage,
+ * dont la face `perilDie` de la route fait survenir une Péripétie.
  */
 import { z } from 'zod';
-import { document } from '../grammaire/document';
+import { document, sousTirage } from '../grammaire/document';
 import { nommerChamps } from '../grammaire/meta';
-import { sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
+import { sourceRefSchema } from '../grammaire/valeurs';
 
 export const file = 'peripeties.json';
 export const famille = 'config';
@@ -36,13 +36,12 @@ const doc = document(
   famille,
   {
     // LDB 51 l.208
-    tirageQuotidien: tirageSchema,
+    tirageQuotidien: sousTirage,
   },
   {
     tirageQuotidien: { label: 'Tirage quotidien', hint: 'Dé lancé chaque jour de voyage : la face `perilDie` de la route fait survenir une Péripétie' },
   },
   {
-    codex: { keys: ['peripeties'] },
     edit: { niche: { categories: { peripeties: 'entries' } } },
   },
   // LDB 51 l.210

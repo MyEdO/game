@@ -13,12 +13,12 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * #248 — COUVERT DE PONT au calcul de touche. Un défenseur SERVANT un poste couvert (MSRC f.66 l.111,
  * Plat-bord = « couverture moyenne » → tir Difficile −20 ; Sabord/Murs blindés = totale −30) reçoit sa
  * classe par le MÊME chemin que le couvert de terrain (`couvertLePlusProtecteur` sur la ligne
- * `cf.coverLabel`). Le barème est le canon `coverModifier` (`engine/cover.ts`) — aucun modificateur
+ * `cf.libelleDuCouvert`). Le barème est le canon `coverModifier` (`engine/cover.ts`) — aucun modificateur
  * parallèle. Mêlée non affectée.
  */
-const bow = { name: 'Arc', type: 'ranged' } as unknown as Weapon;
+const bow = { name: 'Arc', type: 'distance' } as unknown as Weapon;
 const sword = { name: 'Épée', type: 'melee' } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', x: number): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', x: number): Combatant =>
   (blessuresSurLeProfil({ id, name: id, kind, size: 'moyenne', pos: { x, y: 5 }, conditions: [], talents: [], liveTraits: [], skills: [], weapons: [], movement: 4, loaded: true, advantage: 0,
      characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
      wounds: blessuresDeBase(12), armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } })) as unknown as Combatant;
@@ -29,13 +29,13 @@ const clearScene = (): Scene =>
 /** Coque-témoin portant un poste dont `tgt` fait partie de l'équipage (source `crewPosteOf`). Hors LdV
  *  (sans `pos`) → jamais compté comme occupant/bloqueur. `cover` absent = servant à découvert. */
 const hullServing = (cover?: 'moyenne' | 'totale', upgrades?: { id: string }[]): Combatant =>
-  ({ id: 'hull', name: 'coque', kind: 'enemy', conditions: [], wounds: { current: 30, max: 30 },
+  ({ id: 'hull', name: 'coque', kind: 'ennemi', conditions: [], wounds: { current: 30, max: 30 },
      ...(upgrades ? { creatureId: 'cogue', upgrades } : {}),
      postes: [{ crewIds: ['tgt'], cover } as unknown as ShipPoste] }) as unknown as Combatant;
 
 function envFor(weapon: Weapon, hull?: Combatant) {
-  const attacker = mk('att', 'enemy', 5); // enemy : pas de « Tir en bougeant » par défaut (bruit héros)
-  const target = mk('tgt', 'enemy', 8);
+  const attacker = mk('att', 'ennemi', 5); // enemy : pas de « Tir en bougeant » par défaut (bruit héros)
+  const target = mk('tgt', 'ennemi', 8);
   const combatants = hull ? [attacker, target, hull] : [attacker, target];
   const get = (() => ({ scene: clearScene(), battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 12 * 60 })) as unknown as Get;
   return attackEnv(get, attacker, target, weapon).env;
@@ -62,7 +62,7 @@ describe('#248 — couvert de pont raccordé au calcul de touche', () => {
 });
 
 /**
- * #1680 ligne 15 — le couvert d'une STRUCTURE D'ARÊTE arrive au JET par le même chemin (`cf.coverLabel`,
+ * #1680 ligne 15 — le couvert d'une STRUCTURE D'ARÊTE arrive au JET par le même chemin (`cf.libelleDuCouvert`,
  * barème `coverModifier`). `AA 10 l.23` : la Pénalité de Couvert d'une Structure EST la Difficulté par
  * défaut d'un assaillant qui tire sur qui s'y abrite. Les deux structures ci-dessous sont celles que la
  * Diligence porte réellement : `mur-a-ossature-en-bois` (Complexe −10, 516 arêtes) et
@@ -72,8 +72,8 @@ describe('#1680 — le couvert d’une Structure d’arête arrive au calcul de 
   /** Tireur en (5,5), cible en (8,8) : approche DIAGONALE dont un seul contournement est muré — le tir
    *  passe par l'extrémité, et l'arête N de la cible l'abrite. */
   const envAvecArete = (structure?: string, window?: boolean) => {
-    const attacker = mk('att', 'enemy', 5);
-    const target = { ...mk('tgt', 'enemy', 8), pos: { x: 8, y: 8 } } as Combatant;
+    const attacker = mk('att', 'ennemi', 5);
+    const target = { ...mk('tgt', 'ennemi', 8), pos: { x: 8, y: 8 } } as Combatant;
     const scene = { ...clearScene(), walls: structure ? [{ x: 8, y: 8, side: 'N', structure, ...(window ? { window } : {}) }] : [] } as unknown as Scene;
     const get = (() => ({ scene, battle: { combatants: [attacker, target], movementUsed: 0 }, facing: {}, gameTime: 12 * 60 })) as unknown as Get;
     return attackEnv(get, attacker, target, bow).env;
@@ -82,7 +82,7 @@ describe('#1680 — le couvert d’une Structure d’arête arrive au calcul de 
   it('mur à ossature en bois (Complexe) → ligne « Couvert (imparfaite) » à −10 au jet', () => {
     const ligne = cover(envAvecArete('mur-a-ossature-en-bois'))!;
     expect(ligne.value).toBe(-10);
-    expect(ligne.label).toBe(t('cf.coverLabel', { cover: 'imparfaite' }));
+    expect(ligne.label).toBe(t('cf.libelleDuCouvert', { cover: 'imparfaite' }));
   });
 
   it('clôture en clayonnage (Intermédiaire) → AUCUNE ligne : le canon lui donne +0', () => {

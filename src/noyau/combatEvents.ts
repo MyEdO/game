@@ -8,6 +8,9 @@
  * Les deux journalisent via le même `sink`. Module FEUILLE : n'importe RIEN de combatFlow (ré-exporté
  * par le baril) → pas de cycle. Voir docs/combat-events-coherence.md.
  *
+ * `battle` nul (coup encaissé hors bataille, #3984) : la machinerie, qui lit la bataille (`CombatHookCtx.battle`), ne
+ * joue pas ; les triggers de données jouent. `.claude/rules/moteur-et-flux.md:13`.
+ *
  * `audience` = les entités qui REÇOIVENT l'événement comme trigger de données. Défaut : `self` seul (ou
  * aucune si absent). Lifecycle « pour tout le monde » (début/fin de combat, début/fin de Round) : passer
  * la liste des combattants concernés. Réaction ciblée (à la touche, sur la victime…) : `audience: [x]`.
@@ -16,8 +19,10 @@ import { runCombatHooks, type CombatHookCtx } from './combatHooks';
 import { fireTriggers, type TriggerCtx } from './triggeredEffects';
 import type { EffectTrigger } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
+import type { BattleState } from './etat';
 
-export interface CombatEventCtx extends CombatHookCtx {
+export interface CombatEventCtx extends Omit<CombatHookCtx, 'battle'> {
+  battle: BattleState | null;
   /** Entités recevant l'événement comme trigger de DONNÉES (défaut : `self` seul, sinon aucune). */
   audience?: Combatant[];
   /** Contexte transmis aux triggers de données (victim/woundsDealt/location/attackKind/rng…). `set` est
@@ -27,8 +32,8 @@ export interface CombatEventCtx extends CombatHookCtx {
 
 /** Rend le nombre d'effets de DONNÉES exercés (passés par l'enveloppe `ciblesDeLEffet`). */
 export function emitCombatEvent(event: EffectTrigger, ctx: CombatEventCtx): number {
-  // (a) Machinerie : hooks moteur ordonnés.
-  runCombatHooks(event, ctx);
+  // (a) Machinerie : hooks moteur ordonnés, sous bataille.
+  if (ctx.battle) runCombatHooks(event, { ...ctx, battle: ctx.battle });
   // (b) Données : triggers d'entités.
   const audience = ctx.audience ?? (ctx.self ? [ctx.self] : []);
   const exercices = { n: 0 };

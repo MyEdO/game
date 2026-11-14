@@ -12,14 +12,16 @@ import { breathTypes, maneuvers, findManeuverById, findConditionById, combatStak
 import { DIFFICULTY_LABELS } from '../engine/types';
 import { souffleDuType } from '../engine/creatureAttacks';
 import { setDataset } from '../data/overrides';
+import type { EntreeVivante } from '../data/datasets';
+import { idDeFixture } from '../data/idDeFixture.testkit';
 import { makeRNG } from '../engine/dice';
 import { buildWeapon } from '../engine/items';
 import type { Combatant } from '../engine/types';
-import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../engine/flowCore';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', label: 'C', kind: 'enemy',
+  id: 'c', label: 'C', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 },
   wounds: blessuresDeBase(30), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
@@ -65,7 +67,7 @@ describe('manœuvres = donnée éditable (GameOp)', () => {
   it('ÉDITER les effects d’une ManeuverDef CHANGE la résolution (recréable depuis le Codex)', () => {
     const avant = [...maneuvers];
     const edited: TriggeredEffect[] = [
-      { trigger: 'onHit', on: 'victim', flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'empoisonne' }] } } },
+      { trigger: 'onHit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empoisonne' } }] } } },
     ];
     try {
       setDataset('maneuvers', maneuvers.map((m) => (m.id === 'souffle' ? { ...m, effects: edited } : m))); // « édition » : Empoisonné, sans Dégâts
@@ -81,12 +83,12 @@ describe('manœuvres = donnée éditable (GameOp)', () => {
 
 /** LDB 85 l.320-329 ; EDOC 13 l.237 ; MDG 16 l.226 ; LDB 16 l.70 */
 describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type', () => {
-  const TYPES: BreathTypeData[] = [
-    { id: 'perce-fixture', type: 'breath-types', label: 'Perce', ignoreAP: true, etat: 'empoisonne', rendu: { id: 'souffle' } },
-    { id: 'etourdit-fixture', type: 'breath-types', label: 'Étourdit', etat: 'sonne', rendu: { id: 'souffle' } },
-    { id: 'compose-fixture', type: 'breath-types', label: 'Perce et Étourdit', types: [{ id: 'perce-fixture' }, { id: 'etourdit-fixture' }], rendu: { id: 'souffle' } },
-    { id: 'glace-fixture', type: 'breath-types', label: 'Glace', etat: 'sonne', trancheDeBlessures: 5, rendu: { id: 'souffle' } },
-    { id: 'ronge-fixture', type: 'breath-types', label: 'Ronge', endommageLEquipement: true, rendu: { id: 'souffle' } },
+  const TYPES: EntreeVivante<BreathTypeData>[] = [
+    { id: 'perce-fixture', type: 'breath-types', label: 'Perce', ignoreAP: true, etat: idDeFixture('etat', 'empoisonne'), rendu: { id: idDeFixture('rendu', 'souffle') } },
+    { id: 'etourdit-fixture', type: 'breath-types', label: 'Étourdit', etat: idDeFixture('etat', 'sonne'), rendu: { id: idDeFixture('rendu', 'souffle') } },
+    { id: 'compose-fixture', type: 'breath-types', label: 'Perce et Étourdit', types: [{ id: idDeFixture('breathType', 'perce-fixture') }, { id: idDeFixture('breathType', 'etourdit-fixture') }], rendu: { id: idDeFixture('rendu', 'souffle') } },
+    { id: 'glace-fixture', type: 'breath-types', label: 'Glace', etat: idDeFixture('etat', 'sonne'), trancheDeBlessures: 5, rendu: { id: idDeFixture('rendu', 'souffle') } },
+    { id: 'ronge-fixture', type: 'breath-types', label: 'Ronge', endommageLEquipement: true, rendu: { id: idDeFixture('rendu', 'souffle') } },
   ];
   const souffle = (type?: string, difficulte?: 'difficile') => souffleDuType(findManeuverById('souffle')!, type, difficulte);
   const frappe = (type?: string, difficulte?: 'difficile', indice = 15, over: Partial<Combatant> = {}) => {
@@ -122,7 +124,7 @@ describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type'
   it('l’enjeu de la défense dit la règle du Type : PA ignorées, États et leur Difficulté (LDB 85 l.322-329)', () => {
     const enjeu = (type?: string, difficulte?: 'difficile') => {
       const def = souffle(type, difficulte);
-      return resolveStake(combatStakeRef('combat-maneuver-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) })).text!;
+      return resolveStake(combatStakeRef('combat-manoeuvre-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) })).text!;
     };
     const etat = (id: string) => findConditionById(id)!.label;
     expect(enjeu('texte-libre-fixture')).not.toMatch(/PA ignorées|État/);
@@ -145,7 +147,7 @@ describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type'
   it('l’enjeu dit la tranche du Froid et l’équipement rongé du Corrosif', () => {
     const enjeu = (type: string) => {
       const def = souffle(type);
-      return resolveStake(combatStakeRef('combat-maneuver-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) })).text!;
+      return resolveStake(combatStakeRef('combat-manoeuvre-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) })).text!;
     };
     expect(enjeu('glace-fixture')).toContain(`État ${findConditionById('sonne')!.label} par tranche de 5 Blessures subies (minimum 1)`);
     expect(enjeu('ronge-fixture')).toContain('toutes les Armures et Armes portées subissent 1 Dégât');

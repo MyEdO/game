@@ -59,13 +59,13 @@ export function MassBattleView() {
 function ArmyBars({ mb }: { mb: MassBattleState }) {
   return (
     <Grid min="md" stackBelow={700} className="mb-armies">
-      <ArmyBar army={mb.ally} side="ally" />
-      <ArmyBar army={mb.enemy} side="enemy" />
+      <ArmyBar army={mb.allie} side="allie" />
+      <ArmyBar army={mb.ennemi} side="ennemi" />
     </Grid>
   );
 }
 
-function ArmyBar({ army, side }: { army: MassBattleArmy; side: 'ally' | 'enemy' }) {
+function ArmyBar({ army, side }: { army: MassBattleArmy; side: 'allie' | 'ennemi' }) {
   const might = armyMight(army);
   return (
     <div className={`mb-army mb-${side} panel`}>
@@ -87,7 +87,7 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
   const scene = useGame((s) => s.scene);
   const partyZ = useGame((s) => s.partyPos.z ?? 0); // le plan suit l'étage du groupe
   const [selectedStationId, setSelectedStationId] = useState<string | undefined>(undefined);
-  const allyBonus = mb.allyMod + (mb.round === 1 ? mb.firstRoundBonus : 0);
+  const allyBonus = mb.modificateurAllie + (mb.round === 1 ? mb.firstRoundBonus : 0);
   const threatPen = massBattleThreatPenalty(mb);
   // Stations = les Scènes de la situation posées sur le plan (ancres authorées + affectation E3).
   const battleStations = battleScenesToStations(mb.situation, mb.assignment, scene);
@@ -123,7 +123,7 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
       />
       {mb.sceneDeltas.length > 0 && (
         <p className="mb-detail mb-good">
-          Ce Round : {mb.sceneDeltas.map((d) => `${d.label} (${d.side === 'ally' ? 'alliée' : 'ennemie'} ${d.amount >= 0 ? '+' : ''}${d.amount})`).join(', ')}.
+          Ce Round : {mb.sceneDeltas.map((d) => `${d.label} (${d.side === 'allie' ? 'alliée' : 'ennemie'} ${d.amount >= 0 ? '+' : ''}${d.amount})`).join(', ')}.
         </p>
       )}
 
@@ -236,17 +236,17 @@ function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Sta
 function OverPanel({ mb }: { mb: MassBattleState }) {
   const fermer = useGame((s) => s.fenetreFermer);
   const end = () => fermer('batailleDeMasse');
-  const outcomeText = mb.outcome === 'ally'
-    ? `${mb.ally.label} l'emporte !`
-    : mb.outcome === 'enemy'
-      ? `${mb.enemy.label} l'emporte.`
+  const outcomeText = mb.outcome === 'allie'
+    ? `${mb.allie.label} l'emporte !`
+    : mb.outcome === 'ennemi'
+      ? `${mb.ennemi.label} l'emporte.`
       : 'Aucun vainqueur clair.';
   return (
     <section className="panel mb-phase">
       <h3>Issue de la bataille</h3>
       <p className="mb-outcome">{outcomeText}</p>
       <p className="mb-detail">
-        Puissance finale — {mb.ally.label} : <b>{armyMight(mb.ally)}</b> · {mb.enemy.label} : <b>{armyMight(mb.enemy)}</b>.
+        Puissance finale — {mb.allie.label} : <b>{armyMight(mb.allie)}</b> · {mb.ennemi.label} : <b>{armyMight(mb.ennemi)}</b>.
         L'armée vaincue doit fuir sous peine d'être détruite.
       </p>
       <div className="bar mb-actions">

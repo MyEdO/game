@@ -36,9 +36,9 @@ describe('Talent Haine (Hérétiques) : le Test de Haine est dû face à un cult
   it('le Talent acheté ouvre le Test de Haine à la rencontre', () => {
     const h = flagellant2();
     banc.setState({ party: [h] });
-    banc.getState().acheterLeTalent(h.id, 'haine', 'heretiques');
+    banc.getState().acheterLeTalent(h.id, { id: 'haine', spec: 'heretiques' });
     expect(banc.getState().party[0].talents, 'précondition : le Talent est acquis').toContainEqual(expect.objectContaining({ talentId: 'haine', spec: 'heretiques' }));
     banc.getState().lancerLaScene(scene('s1'));
-    expect(banc.getState().pendingCascade?.participants[0].encounterPsych).toMatchObject({ kind: 'haine', sourceId: 'cultiste' });
+    expect(banc.getState().pendingCascade?.participants[0].psychologieDeRencontre).toMatchObject({ kind: 'haine', sourceId: 'cultiste' });
   });
 });

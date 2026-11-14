@@ -10,7 +10,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { findGodById, gods } from '../data';
 import { setDataset } from '../data/overrides';
 import { rollMiscast, miscastRowSource, miscastTableId } from '../engine/miscast';
@@ -30,7 +30,7 @@ beforeEach(() => {
   banc.setState({ gameTime: MAINTENANT });
 });
 
-const pretre = (): Combatant => pregen(idsDeTest, PREGEN.pretre) as Combatant;
+const pretre = (): Combatant => herosDeScenario(idsDeTest, 'pretre') as Combatant;
 
 /** Les Compétences associées au dieu du prêtre, lues dans la donnée. */
 function associees(p: Combatant): string[] {
@@ -92,7 +92,7 @@ describe('Colère des dieux — malus aux Compétences associées à la divinit�
   });
 
   it('sans divinité : la rangée est sans effet, aucun dé tiré, et le journal le dit', () => {
-    const soldat = pregen(idsDeTest, PREGEN.soldat) as Combatant;
+    const soldat = herosDeScenario(idsDeTest, 'soldat') as Combatant;
     expect(priestCult(soldat)).toBeUndefined();
     const effets = structuredClone(soldat.activeEffects ?? []);
     const { lignes } = subirLaColere(soldat, 1, 16, aucunDe);

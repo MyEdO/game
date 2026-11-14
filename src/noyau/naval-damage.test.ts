@@ -34,7 +34,7 @@ describe('Modèle naval — chaîne complète rig → localisation → Critique 
     // 2) Critique de Coque, d10=10 → « Voie d'eau en dessous de la ligne de flottaison » : Voie d'eau 4.
     const crit = rollShipCritical(loc as ShipCritKey, makeRNG(1), 10); // loc vérifié === 'coque' ci-dessus (≠ 'equipage')
     expect(crit.id).toBe('voie-d-eau-en-dessous-de-la-ligne-de-flottaison');
-    expect(crit.ops).toEqual([{ op: 'condition', id: 'voie-d-eau', value: 4 }]);
+    expect(crit.ops).toEqual([{ op: 'condition', id: { id: 'voie-d-eau' }, value: 4 }]);
 
     // 3) L'appelant applique l'effet (langue unique) → l'État NAVAL data-driven se pose sur le navire.
     applyOps(ship, crit.ops, { idNeuf: idsDeTest, rng: desDuTest });

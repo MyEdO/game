@@ -5,7 +5,7 @@ import { rowForcedDie } from '../ui/forcedDieRow';
 import { FIXTURES, FLUX, FOE, HERO } from '../noyau/inventaireDuDeFixe.testkit';
 
 /**
- * LIAISON de l'option « Dés fixés » : pour CHAQUE flux portant `setForcedRoll`, la rangée du store offre le champ
+ * LIAISON de l'option « Dés fixés » : pour CHAQUE flux portant `imposerLeResultat`, la rangée du store offre le champ
  * « dé fixé » (`rowForcedDie`). La règle du socle (dé PERDANT, valeur appliquée, dé choisi de la Résilience) se joue
  * au banc du noyau, `src/noyau/fixed-die-inventaire.hors-store.test.ts`, sur les mêmes fixtures.
  */

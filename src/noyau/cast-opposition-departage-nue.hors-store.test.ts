@@ -33,11 +33,11 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     H.pos = { x: 10, y: 10 }; E.pos = { x: 12, y: 10 };
@@ -76,7 +76,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
     expect(cast.cast, 'DR 7 = NI du Sort : l’incantation passe').toBe(true);
     expect(cast.sl).toBe(7);
     expect(cast.base, 'le lanceur porte sa nue depuis `evaluateCasting`').toBe(44);
-    banc.getState().jetValider('cast'); // ouvre l'opposition (cible IA = rangée témoin auto-roulée)
+    banc.getState().jetValider('incantation'); // ouvre l'opposition (cible IA = rangée témoin auto-roulée)
 
     // Dé de la cible FIXÉ au premier qui produit le MÊME DR que l'incantation → le départage joue.
     const de = Array.from({ length: 100 }, (_, i) => i + 1)
@@ -102,7 +102,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
     expect(REPLIS_DEUX_CIBLES.count, 'sonde inerte : la preuve ci-dessous ne vaudrait rien').toBe(temoin + 1);
 
     const avant = REPLIS_DEUX_CIBLES.count;
-    banc.getState().jetValider('cast');                     // jet témoin auto-roulé → resolveOpposed
+    banc.getState().jetValider('incantation');                     // jet témoin auto-roulé → resolveOpposed
     banc.getState().jetImposerLeResultat('opposition', 42, E.id); // dé fixé → re-opposition
     banc.getState().jetAjouterUnDR('opposition', E.id);           // +1 DR → re-opposition
     expect(REPLIS_DEUX_CIBLES.count, 'un départage de l’opposition est retombé sur les cibles').toBe(avant);

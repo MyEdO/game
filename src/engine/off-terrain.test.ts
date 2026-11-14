@@ -6,7 +6,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 /** Créature du bestiaire portant un trait à `offTerrainMod` (Créature marine / Aquatique — traits.json). */
 const seaCreature = (traitId: string, offTerrain: boolean): Combatant => (blessuresSurLeProfil({
-  id: 'c1', name: 'Bête', kind: 'enemy',
+  id: 'c1', name: 'Bête', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 0, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
   movement: 6, wounds: blessuresDeBase(20), weapons: [], skills: [], talents: [],
   traits: [{ id: traitId }],

@@ -35,3 +35,8 @@ export function ecartsDesTablesDeuxMains(tables: TablesDeuxMains, animations: Re
     ...ecartsDeClips(table, animations, `${champ}.${maniement}`),
   ]);
 }
+
+/** Les clips de la table `prisesOccupees` du manifeste absents des `animations` du GLB. */
+export function ecartsDesPrisesOccupees(prises: Readonly<Record<string, unknown>>, animations: ReadonlySet<string>): EcartDeClip[] {
+  return Object.keys(prises).flatMap((clip): EcartDeClip[] => (animations.has(clip) ? [] : [{ code: 'clip-absent', ou: `prisesOccupees.${clip}`, detail: clip }]));
+}

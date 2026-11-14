@@ -5,12 +5,12 @@
  * bradage et son transfert vers un porteur co-localisé.
  */
 import { afterEach, describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { drainer, table, gestesDessines } from './pont.testkit';
 import type { Bouton, Element, Entite, Formulaire, Saisie } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 
 let ouvert: Pont | null = null;
-afterEach(() => { ouvert?.fermer(); ouvert = null; });
+afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
 
 /** Une partie du scénario `scenario` entrée par son service `verbe` dans le marché `cle`. */
 function marche(scenario: string, verbe: string, cle: string) {
@@ -21,7 +21,7 @@ function marche(scenario: string, verbe: string, cle: string) {
   const vider = (jusqua?: string) => {
     for (let pas = 0; s.vue.projection.fenetre && s.vue.projection.fenetre.cle !== jusqua; pas++) {
       expect(pas, 'les fenêtres se vident').toBeLessThan(30);
-      const g = s.vue.zones['fenetre.gestes'];
+      const g = gestesDessines(s.vue);
       s = jouer((g.find((x): x is Bouton => x.type === 'bouton' && x.focus) ?? g.find((x): x is Bouton => x.type === 'bouton' && !x.refus)!).jeu);
     }
   };
@@ -41,16 +41,16 @@ describe('le marché de cargaison par le pont', () => {
     const { suite, jouer } = marche('commerce-fluvial', 'ouvrirLeMarche', 'marcheDeTerre');
     expect(suite.vue.disposition, 'la halle a son écran').toBe('marcheDeTerre');
     const c = corps(suite);
-    expect(c['bourse'], 'la bourse du groupe').toMatchObject({ type: 'puce', valeur: '5000 CO' });
+    expect(c['bourse'], 'la bourse du groupe : les 5000 CO du scénario et les 3d10 pistoles de Berta, Marchande (LDB 08 l.419)').toMatchObject({ type: 'puce', valeur: expect.stringMatching(/^5000 CO \d+\/–$/) });
     const offre = c['offre/laine-terre'];
-    expect([dans(offre, 'dispo'), dans(offre, 'prix')], 'son Enc et son prix').toMatchObject([{ valeur: '350 Enc' }, { valeur: '1 CO / Enc' }]);
+    expect([dans(offre, 'dispo'), dans(offre, 'prix')], 'son Enc et son prix, 1 CO les 10 Enc au livre (MSRC 13 l.91)').toMatchObject([{ valeur: '350 Enc' }, { valeur: '2/– / Enc' }]);
     expect(dans(offre, 'acheter'), 'l’achat ouvert, à composer').toMatchObject({ type: 'bouton', jeu: { type: 'fenetreChoisir', args: ['marcheDeTerre', 'offre', 'laine-terre'] }, presse: false, refus: null });
     expect(suite.vue.zones['fenetre.reglages'], 'rien à régler avant de composer').toEqual([]);
     const compose = jouer((dans(offre, 'acheter') as Bouton).jeu);
     expect(dans(corps(compose)['offre/laine-terre'], 'acheter'), 'l’achat composé, pressé').toMatchObject({ presse: true });
     const reglages = Object.fromEntries(compose.vue.zones['fenetre.reglages'].map((e) => [e.id, e]));
     expect(reglages['fenetreChoisir@marcheDeTerre#porteur'], 'chaque porteur de vrac et sa place, le retenu pressé').toMatchObject({ valeurs: [{ libelle: 'Charrette · 25/25 Enc libres', presse: true }, { libelle: 'Mule · 14/14 Enc libres', presse: false }] });
-    expect(Object.keys(reglages), 'le porteur, l’Enc, la conclusion').toEqual(['fenetreChoisir@marcheDeTerre#porteur', 'fenetreChoisir@marcheDeTerre#enc', 'fenetreChoisir@marcheDeTerre#acheter']);
+    expect(Object.keys(reglages), 'le porteur, l’Enc, la conclusion').toEqual(['fenetreChoisir@marcheDeTerre#porteur', 'fenetreChoisir@marcheDeTerre#encombrement', 'fenetreChoisir@marcheDeTerre#acheter']);
   });
 
   it('un lot acheté : son porteur et son Enc, sa vente, son bradage, son transfert vers la mule', () => {

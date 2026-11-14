@@ -26,11 +26,11 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * Patron mk()/setup() de `ranged-defense-modal.hors-store.test.ts`.
  */
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
-const bow: Weapon = { name: 'Arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [], uid: 'bw' } as unknown as Weapon;
+const bow: Weapon = { name: 'Arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [], uid: 'bw' } as unknown as Weapon;
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 
 let banc: Banc;
@@ -38,8 +38,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function setup(enemyPos: { x: number; y: number }, enemyWeapons: Weapon[], net?: Partial<NetState>) {
   seedBattleRng(7);
-  const enemy = mk('e', 'enemy', enemyPos, enemyWeapons);
-  const hero = mk('h', 'hero', { x: 0, y: 0 }, [sword]);
+  const enemy = mk('e', 'ennemi', enemyPos, enemyWeapons);
+  const hero = mk('h', 'heros', { x: 0, y: 0 }, [sword]);
   const battle: BattleState = {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -75,7 +75,7 @@ describe('#989 — surfaçage de la défense : le pilote de l’ATTAQUANT ne dé
   });
 
   it('C — SANS siège MJ, coop hôte : le héros d’un AUTRE siège surface aussi, et SON siège tient le jet', () => {
-    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, ownership: { h: 1 } });
+    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, ownership: { h: 1 } });
     expect(defenseSurfaced(banc.getState(), hero), 'seat-agnostique : le siège local ne décide pas').toBe(true);
     expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
     const s = banc.getState();
@@ -96,15 +96,15 @@ describe('#989 — surfaçage de la défense : le pilote de l’ATTAQUANT ne dé
 });
 
 describe('#989 — quadrant siège MJ : attaque PILOTÉE → la défense s’interpose sans avancer le tour', () => {
-  it('gmSeat mêlée sur héros : jetLancer@attack→jetValider@attack interpose la fenêtre ; jetValider@defense ne fait PAS avancer le tour', () => {
+  it('gmSeat mêlée sur héros : jetLancer@attaque→jetValider@attaque interpose la fenêtre ; jetValider@defense ne fait PAS avancer le tour', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
     const g = banc.getState;
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     expect(g().pendingAttack, 'la cascade d’attaque est ouverte').toBeTruthy();
-    g().jetLancer('attack');
+    g().jetLancer('attaque');
     expect(g().pendingAttack!.result!.defenderDetail, 'aucune défense roulée en silence au jet d’attaque').toBeUndefined();
     const turnBefore = g().battle!.turn;
-    g().jetValider('attack');
+    g().jetValider('attaque');
     const pd = g().pendingDefense;
     expect(pd, 'la fenêtre de défense s’interpose').toBeTruthy();
     expect(pd!.defenderId).toBe(hero.id);
@@ -120,9 +120,9 @@ describe('#989 — quadrant siège MJ : attaque PILOTÉE → la défense s’int
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
     const g = banc.getState;
     banc.setState({ battle: { ...g().battle!, turn: 1 } }); // tour du héros
-    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().jetLancer('attack');
-    g().jetValider('attack');
+    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
+    g().jetLancer('attaque');
+    g().jetValider('attaque');
     const pd = g().pendingDefense;
     expect(pd, 'l’ennemi conduit par le MJ défend lui-même').toBeTruthy();
     expect(pd!.defenderId).toBe(enemy.id);
@@ -146,10 +146,10 @@ describe('#1142 — la valeur NUE traverse la fenêtre de défense, dé POSÉ co
     enemy.advantage = 1; // +10 à l'attaque (Avantage) : la cible (55) s'écarte de la valeur nue (45)
     hero.characteristics['capacite-de-combat'] = 25; // Esquive (Agilité 40) = sa meilleure défense
     const g = banc.getState as unknown as () => Record<string, (...a: unknown[]) => void>;
-    openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().jetLancer('attack');
-    g().jetImposerLeResultat('attack', 21); // DR 3 côté attaque (cible 55)
-    g().jetValider('attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
+    g().jetLancer('attaque');
+    g().jetImposerLeResultat('attaque', 21); // DR 3 côté attaque (cible 55)
+    g().jetValider('attaque');
     const parked = banc.getState().pendingDefense!;
     expect(parked.atk.base, 'le jet d’attaque PARQUÉ garde sa valeur nue').toBe(45);
     expect(parked.mode).toBe('esquive');
@@ -165,7 +165,7 @@ describe('#1142 — la valeur NUE traverse la fenêtre de défense, dé POSÉ co
 
 describe('#989 LOT 0 — fermeture du siège MJ : `gmSeat` est PURGÉ', () => {
   it('siège MJ fermé → `net.gmSeat` null et l’ennemi repasse à l’IA (plus de modale orpheline)', () => {
-    const { enemy } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1, ownership: { h: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } });
+    const { enemy } = setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, gmSeat: 1, ownership: { h: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } });
     expect(aiDriven(banc.getState(), enemy)).toBe(false);
     banc.setState({ net: fermerLeSiege(banc.getState().net, 1) });
     const net = banc.getState().net;
@@ -175,7 +175,7 @@ describe('#989 LOT 0 — fermeture du siège MJ : `gmSeat` est PURGÉ', () => {
   });
 
   it('la fermeture d’un AUTRE siège ne touche pas le rôle MJ', () => {
-    setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1, slots: [0, 1, 2, 0], seatNames: { 1: 'MJ', 2: 'Autre' } });
+    setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, gmSeat: 1, slots: [0, 1, 2, 0], seatNames: { 1: 'MJ', 2: 'Autre' } });
     banc.setState({ net: fermerLeSiege(banc.getState().net, 2) });
     expect(banc.getState().net.gmSeat).toBe(1);
   });
@@ -188,12 +188,12 @@ describe('#989 LOT 0 — fermeture du siège MJ : `gmSeat` est PURGÉ', () => {
 function playWindow(seed: number, pa: Partial<PendingAttack>, opts?: { force?: boolean }): AttackResult {
   const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
   const g = banc.getState;
-  if (opts?.force) enemy.resilience = 1; // la Résilience est une RESSOURCE : sans point, `forceSuccess` est un no-op
+  if (opts?.force) enemy.resilience = 1; // la Résilience est une RESSOURCE : sans point, `forcerLaReussite` est un no-op
   seedBattleRng(seed);
-  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw', ...pa }, 'Attaque', 'action/attack');
+  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw', ...pa }, 'Attaque', 'action/attaquer');
   // « au lieu de lancer les dés pour un Test, vous choisissez le résultat » (LDB 17 l.68)
-  if (opts?.force) g().jetForcerLaReussite('attack'); else g().jetLancer('attack');
-  g().jetValider('attack');
+  if (opts?.force) g().jetForcerLaReussite('attaque'); else g().jetLancer('attaque');
+  g().jetValider('attaque');
   g().jetLancer('defense');
   return g().pendingDefense!.result!;
 }
@@ -216,11 +216,11 @@ describe('#989 R1 — le contexte d’opposition TRAVERSE la fenêtre (pas de D�
     const { enemy, hero } = setup({ x, y: 0 }, [bow], { gmSeat: 0 });
     const g = banc.getState;
     seedBattleRng(seed);
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'bw', ...pa }, 'Attaque', 'action/attack');
-    g().jetLancer('attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'bw', ...pa }, 'Attaque', 'action/attaquer');
+    g().jetLancer('attaque');
     const passif = g().pendingAttack!.result!;
     if (x > 1) return passif;
-    g().jetValider('attack');
+    g().jetValider('attaque');
     g().jetLancer('defense');
     g().jetImposerLeResultat('defense', 97); // LDB 18 l.53
     return g().pendingDefense!.result!;
@@ -254,7 +254,7 @@ describe('#989 R2 — Résilience « Je ne faillirai pas ! » (LDB 17 l.68) hono
 describe('#989 R3 — cadence Rapide : l’auto-résolution suit le SIÈGE propriétaire (jamais « l’hôte par défaut »)', () => {
 
   it('C — fenêtre possédée par le siège MJ : l’hôte ne l’auto-résout PAS ; le siège MJ, si', () => {
-    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1, ownership: { h: 1 } });
+    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, gmSeat: 1, ownership: { h: 1 } });
     expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
     setCadence('rapide');
     expect(willAutoResolve(banc.getState()), 'l’hôte ne roule pas la défense d’un héros du siège 1').toBe(false);
@@ -263,7 +263,7 @@ describe('#989 R3 — cadence Rapide : l’auto-résolution suit le SIÈGE propr
   });
 
   it('C bis — étape MONDE/ennemi conduit par le MJ : l’hôte ne vole pas le jet (même routage `seatOwns`)', () => {
-    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1 });
+    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, gmSeat: 1 });
     hero.aiControlled = true; // seul l'ENNEMI est surfacé → la fenêtre appartient au siège MJ
     expect(maybeOpenDefense(banc.getState, banc.setState, hero, enemy)).toBe(true);
     setCadence('rapide');
@@ -285,8 +285,8 @@ describe('#989 R4 — Maladresse du défenseur : UN helper, MÊME ordre (après 
     hero.wounds.current = wounds;
     const g = banc.getState;
     seedBattleRng(seed);
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().jetLancer('attack'); g().jetValider('attack'); g().jetLancer('defense');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
+    g().jetLancer('attaque'); g().jetValider('attaque'); g().jetLancer('defense');
     const res = g().pendingDefense!.result!;
     return { hero, res, confirm: () => g().jetValider('defense'), state: g };
   }
@@ -308,7 +308,7 @@ describe('#989 R4 — Maladresse du défenseur : UN helper, MÊME ordre (après 
   it('défenseur qui SURVIT au coup : son Oups! remonte à SON nom (contrat positif)', () => {
     const { hero, confirm, state } = playToFumble(seed, 18);
     confirm();
-    expect(state().pendingCascade?.participants.some((s) => s.jet === 'fumble' && s.actorId === hero.id)).toBe(true);
+    expect(state().pendingCascade?.participants.some((s) => s.jet === 'maladresse' && s.actorId === hero.id)).toBe(true);
   });
 
   it('l’Oups! du défenseur est appendu APRÈS les conséquences de l’attaque (ordre de référence = chemin réactif)', () => {
@@ -317,13 +317,13 @@ describe('#989 R4 — Maladresse du défenseur : UN helper, MÊME ordre (après 
     // La Blessure critique est une étape JOUÉE (tirage de sévérité, #1426) : l'Oups! du défenseur ne
     // s'appende qu'APRÈS sa résolution — on joue donc la fenêtre avant de mesurer l'ordre.
     for (let i = 0; i < 6 && state().pendingCascade
-      && !state().pendingCascade!.participants.some((s) => s.jet === 'fumble'); i++) avanceEtapeCascade(state);
+      && !state().pendingCascade!.participants.some((s) => s.jet === 'maladresse'); i++) avanceEtapeCascade(state);
     const steps = state().pendingCascade!.participants;
     // La conséquence empilée par l'attaque est l'étape « Blessure critique » (#1426 : le tirage de
     // sévérité et la décision Dévier/Subir y sont UNE fenêtre) — ou sa révélation quand le Critique
     // arrive déjà tiré. C'est APRÈS elle que l'Oups! du défenseur se pose.
-    const iCrit = steps.findIndex((s) => s.kind === 'deviation' || s.kind === 'critical');
-    const iFumble = steps.findIndex((s) => s.jet === 'fumble' && s.actorId === hero.id);
+    const iCrit = steps.findIndex((s) => s.kind === 'deviation' || s.kind === 'critique');
+    const iFumble = steps.findIndex((s) => s.jet === 'maladresse' && s.actorId === hero.id);
     expect(iCrit, 'l’attaque a bien empilé sa conséquence').toBeGreaterThanOrEqual(0);
     expect(iFumble, 'l’Oups! du défenseur est là').toBeGreaterThanOrEqual(0);
     expect(iFumble, 'appendu APRÈS l’application de l’attaque, jamais avant').toBeGreaterThan(iCrit);
@@ -334,7 +334,7 @@ describe('#989 R4 — Maladresse du défenseur : UN helper, MÊME ordre (après 
 
 describe('#989 B1 — la fenêtre du siège MJ se REND chez le MJ (cadence manuelle)', () => {
   it('ennemi conduit par le MJ : `ownsLocal` (gate d’AFFICHAGE) répond comme `intentAllowedFor`', () => {
-    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1 });
+    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, gmSeat: 1 });
     hero.aiControlled = true; // seul l'ENNEMI est surfacé → la fenêtre appartient au siège MJ
     expect(maybeOpenDefense(banc.getState, banc.setState, hero, enemy)).toBe(true);
     const s0 = banc.getState();
@@ -348,7 +348,7 @@ describe('#989 B1 — la fenêtre du siège MJ se REND chez le MJ (cadence manue
   });
 
   it('héros d’un autre siège : inchangé (le gate d’affichage reste l’ownership)', () => {
-    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, ownership: { h: 1 } });
+    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, ownership: { h: 1 } });
     expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
     expect(ownsLocal(banc.getState(), hero.id)).toBe(false);
     banc.setState({ net: { ...banc.getState().net, mySeat: 1 } });
@@ -375,10 +375,10 @@ function playForcings(seed: number, opts: { atk?: boolean; def?: boolean }) {
   const g = banc.getState;
   enemy.resilience = 1; hero.resilience = 1;
   seedBattleRng(seed);
-  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
   // Chaque forçage remplace le jet de son camp (LDB 17 l.68)
-  if (opts.atk) g().jetForcerLaReussite('attack'); else g().jetLancer('attack');
-  g().jetValider('attack');
+  if (opts.atk) g().jetForcerLaReussite('attaque'); else g().jetLancer('attaque');
+  g().jetValider('attaque');
   if (opts.def) g().jetForcerLaReussite('defense'); else g().jetLancer('defense');
   const resilienceOf = (id: string) => g().battle!.combatants.find((c) => c.id === id)!.resilience ?? 0;
   return { pd: g().pendingDefense!, atkResilience: resilienceOf('e'), defResilience: resilienceOf('h') };
@@ -393,14 +393,14 @@ function playPosed(opts: { forceAtk?: boolean; forceDef?: boolean; atkDie?: numb
   const g = banc.getState;
   enemy.resilience = 1; hero.resilience = 1;
   seedBattleRng(opts.seed ?? 3);
-  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
   // Chaque forçage remplace le jet de son camp (LDB 17 l.68)
-  if (opts.forceAtk) g().jetForcerLaReussite('attack'); else g().jetLancer('attack');
+  if (opts.forceAtk) g().jetForcerLaReussite('attaque'); else g().jetLancer('attaque');
   // « pire » = la réussite la MOINS bonne (DR naturel minimal) : sans garantie, ce dé perd l'opposition.
   const atkTarget = g().pendingAttack!.result!.attackerDetail!.target;
   const atkDie = opts.atkDie === 'pire' ? maxForcedRoll(atkTarget) : opts.atkDie;
-  if (atkDie != null) g().jetImposerLeResultat('attack', atkDie);
-  g().jetValider('attack');
+  if (atkDie != null) g().jetImposerLeResultat('attaque', atkDie);
+  g().jetValider('attaque');
   if (opts.forceDef) g().jetForcerLaReussite('defense'); else g().jetLancer('defense');
   const target = g().pendingDefense!.def!.target;
   const defDie = opts.defDie === 'pire' ? maxForcedRoll(target) : opts.defDie;
@@ -433,7 +433,7 @@ describe('#1000 — les deux camps forcent le MÊME Test opposé : les garanties
     for (const seed of [1, 2, 3, 5, 8]) {
       const { pd, atkResilience, defResilience } = playForcings(seed, { atk: true, def: true });
       expect([atkResilience, defResilience], `graine ${seed} : les deux Points sont brûlés`).toEqual([0, 0]);
-      expect(pd.forced, 'le forçage du défenseur est acquis').toBe(true);
+      expect(pd.forcee, 'le forçage du défenseur est acquis').toBe(true);
       expect(pd.result!.attackerDetail!.sl, `graine ${seed} : le DR de l’attaquant reste celui de SON dé`).toBe(pd.atk.sl);
       expect(pd.result!.defenderDetail!.sl, `graine ${seed} : le DR du défenseur reste celui de SON dé`).toBe(pd.def!.sl);
       expect(pd.def!.sl, `graine ${seed} : DR naturel du dé posé`).toBe(evaluateTest(pd.def!.roll, pd.def!.target).sl);
@@ -488,7 +488,7 @@ describe('#1000 — les deux camps forcent le MÊME Test opposé : les garanties
 
 describe('#989 B3 — Maladresse de défense d’un héros d’un AUTRE siège (coop)', () => {
   it('l’étape Oups! existe et porte le nom du héros du siège 1', () => {
-    const net = { mode: 'host' as const, mySeat: 0, ownership: { h: 1 } };
+    const net = { mode: 'hote' as const, mySeat: 0, ownership: { h: 1 } };
     let seed = 0;
     for (let sd = 1; sd <= 800 && !seed; sd++) {
       const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], net);
@@ -505,7 +505,7 @@ describe('#989 B3 — Maladresse de défense d’un héros d’un AUTRE siège (
     banc.getState().jetLancer('defense');
     banc.getState().jetValider('defense');
     const c = banc.getState().pendingCascade;
-    expect(c?.participants.some((s) => s.jet === 'fumble' && s.actorId === hero.id),
+    expect(c?.participants.some((s) => s.jet === 'maladresse' && s.actorId === hero.id),
       'le héros d’un autre siège joue SA Maladresse (surfaçage, pas affordance locale)').toBe(true);
   });
 });

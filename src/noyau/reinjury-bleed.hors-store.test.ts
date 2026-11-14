@@ -30,11 +30,11 @@ describe('#190 — réouverture par Dégât localisé au point d’application (
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.wounds = blessuresDeBase(20, 20, H); // grande réserve : pas de mort ni Critique d'overkill
     H.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 } as never;
     H.traumas = [gate];
@@ -45,7 +45,7 @@ describe('#190 — réouverture par Dégât localisé au point d’application (
   /** Touche NON-critique, sans overkill, à la localisation `loc` (2 PB perdus). */
   const hit = (loc: string): AttackResult => ({
     hit: true, attackerRoll: 40, netSL: 1, location: loc as never, damage: 2, woundsLost: 2,
-    critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+    critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
   });
 
   it('nouveau Dégât à la MÊME Localisation → +N États Hémorragique', () => {

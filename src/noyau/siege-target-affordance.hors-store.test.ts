@@ -33,11 +33,11 @@ function start(structId: string, seed = 1) {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(sceneWithStructure(structId));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
   const S = b.combatants.find((c) => c.bodyShape === 'structure')!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   // Mode neutre garanti + héros actif : l'affordance d'attaque ne vit qu'en mode neutre (action null).
   banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), action: null, acted: false } });
   return { S, H };

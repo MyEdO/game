@@ -21,7 +21,7 @@ const w = (qualities: string[], over: Partial<Weapon> = {}): Weapon =>
 
 function fighter(over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'x', label: 'X', kind: 'hero',
+    id: 'x', label: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 30, initiative: 40, agilite: 30, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -121,8 +121,8 @@ describe('Épuisante — Percutante/Dévastatrice seulement en Charge (LDB 62 l.
 
 describe('À répétition — chargeur (LDB 62 l.229/231)', () => {
   it('magazineSize lit l’Indice', () => {
-    expect(magazineSize(w(['À Répétition 4', 'Recharge 5'], { type: 'ranged' }))).toBe(4);
-    expect(magazineSize(w(['Recharge 2'], { type: 'ranged' }))).toBeUndefined();
+    expect(magazineSize(w(['À Répétition 4', 'Recharge 5'], { type: 'distance' }))).toBe(4);
+    expect(magazineSize(w(['Recharge 2'], { type: 'distance' }))).toBeUndefined();
   });
 });
 

@@ -6,7 +6,7 @@ import { applierDe } from './cascade';
 import { seedBattleRng } from './battleRng';
 import { runSeaDay, buildSeaPlan } from './seaVoyageFlow';
 import { applyCriticalToTarget } from './combatFlow';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene } from './monde/scene';
 import { resolveStake, voyageStakeRef } from '../data';
 import { monoStep } from './rollSeam';
@@ -54,7 +54,7 @@ const seaMap: WorldMap = {
 /** Trois PJ à bord, tenus par le siège local (cadence manuelle) — la condition de surfaçage — et
  *  ÉPINGLÉS sur le PONT : `greement-fluvial` vise la station (MSRC 07 l.78), pas « tout le monde ». */
 function equipage(): Combatant[] {
-  return makePregens(idsDeTest).slice(0, 3).map((h) => ({ ...h, shipStation: 'pont' }));
+  return tousLesHerosDeScenario(idsDeTest).slice(0, 3).map((h) => ({ ...h, shipStation: 'pont' }));
 }
 
 function baseState(party: Combatant[]): void {
@@ -80,9 +80,9 @@ function fleuve(party: Combatant[]): void {
   } as never);
 }
 
-/** L'étape de BANDE que l'applier `riverRigging` insère (le coup à l'équipage). */
+/** L'étape de BANDE que l'applier `fleuveGreement` insère (le coup à l'équipage). */
 const bandeDe = (steps: readonly BuiltCascadeStep[] | undefined): BuiltCascadeStep | undefined =>
-  steps?.find((s) => s.kind === 'triggeredBatchTest');
+  steps?.find((s) => s.kind === 'testDeclencheEnBande');
 
 /** Joue l'applier RÉEL du gréement en péril (note 5, l.41) sur un Test RATÉ — c'est lui qui déclenche
  *  le Coup Critique au gréement, donc le coup à l'équipage de la rangée `greement-fluvial`. L'étape
@@ -90,12 +90,12 @@ const bandeDe = (steps: readonly BuiltCascadeStep[] | undefined): BuiltCascadeSt
 function greementEnPeril(): readonly BuiltCascadeStep[] | undefined {
   const barreur = get().party[0];
   const minte = monoStep({
-    id: 'river-rigging', kind: 'riverRigging', actor: barreur, label: fixtureText('Gréement'),
+    id: 'fleuve-preserver-greement', kind: 'fleuveGreement', actor: barreur, label: fixtureText('Gréement'),
     difficulty: 'accessible', ligne: { test: { skill: { id: 'voile' } } },
-    stake: voyageStakeRef('river-rigging', { outOfControlPenalty: -20 }),
+    stake: voyageStakeRef('fleuve-preserver-greement', { malusHorsDeControle: -20 }),
   })!;
   const step = { ...minte, result: { roll: 95, target: minte.target!, success: false, sl: -5, crit: false, fumble: false } };
-  return applierDe('riverRigging')!(get, set, step, barreur, { steps: [step], index: 0 })?.insert;
+  return applierDe('fleuveGreement')!(get, set, step, barreur, { steps: [step], index: 0 })?.insert;
 }
 
 describe('#1657 B3-2 — le coup à l’équipage naît comme UNE BANDE, une rangée par siège', () => {
@@ -135,7 +135,7 @@ describe('#1657 B3-2 — le coup à l’équipage naît comme UNE BANDE, une ran
           : { roll: 98, target: p.target!, success: false, sl: -5, crit: false, fumble: false },
       })),
     };
-    applierDe('triggeredBatchTest')!(get, set, avecResultats, undefined, { steps: [avecResultats], index: 0 });
+    applierDe('testDeclencheEnBande')!(get, set, avecResultats, undefined, { steps: [avecResultats], index: 0 });
 
     const de = (id: string) => get().party.find((h) => h.id === id)!;
     for (const id of [rate.id, rate2.id]) {
@@ -155,9 +155,9 @@ describe('#1657 B3-2 — le coup à l’équipage naît comme UNE BANDE, une ran
     fleuve(party);
     const inserees = greementEnPeril()!;
     // Contrôle POSITIF de la sonde : la rangée du GRÉEMENT porte bien un coup, donc UNE bande…
-    expect(inserees.filter((s) => s.kind === 'triggeredBatchTest')).toHaveLength(1);
+    expect(inserees.filter((s) => s.kind === 'testDeclencheEnBande')).toHaveLength(1);
     // …et aucune AUTRE fenêtre n'est ouverte au passage (la Coque percée n'appelle personne).
-    expect(inserees.filter((s) => s.kind === 'triggeredBatchTest' || s.kind === 'triggeredTest')).toHaveLength(1);
+    expect(inserees.filter((s) => s.kind === 'testDeclencheEnBande' || s.kind === 'testDeclenche')).toHaveLength(1);
   });
 });
 
@@ -175,7 +175,7 @@ describe('#1657 B3-2 — COMBAT NAVAL : le coup à l’équipage part par la por
       (coque as unknown as { postes: unknown[] }).postes = [{ item: { uid: 'p1', name: 'Canon' }, side: 'tribord', crewIds: [party[0].id] }];
       banc.setState({ battle: { combatants: [coque, ...party], order: [], log: [], over: null } } as never);
       applyCriticalToTarget(coque, 'corps', 0, [], set, { get });
-      bande = get().pendingCascade?.participants.find((s) => s.kind === 'triggeredBatchTest');
+      bande = get().pendingCascade?.participants.find((s) => s.kind === 'testDeclencheEnBande');
     }
     expect(bande, 'aucune fenêtre en 200 seeds : le coup à l’équipage reste roulé en silence').toBeTruthy();
     expect(resolveStake(bande!.stake!).rule).toEqual({ category: 'shipCriticalsEquipements', id: 'canon-detache' });
@@ -206,7 +206,7 @@ describe('#1657 B3-2 — voyage MARITIME : le coup à l’équipage s’applique
       const party = equipage();
       mer(party);
       runSeaDay(get, set);
-      const trouvee = get().pendingCascade?.participants.find((s) => s.kind === 'triggeredBatchTest');
+      const trouvee = get().pendingCascade?.participants.find((s) => s.kind === 'testDeclencheEnBande');
       if (trouvee && resolveStake(trouvee.stake!).rule?.id === 'canon-detache') bande = trouvee;
     }
     expect(bande, 'aucune fenêtre en 80 seeds : le coup à l’équipage reste perdu en mer').toBeTruthy();
@@ -222,7 +222,7 @@ describe('#1657 B3-2 — voyage MARITIME : le coup à l’équipage s’applique
 describe('#1657 B3-2 — la porte SÉPARE : bande pour les sièges, inline JOURNALISÉ pour le reste', () => {
   /** Un marin PNJ : aucun siège ne le tient (il n'est pas du groupe) → voie inline. */
   const marin = (): Combatant => (blessuresSurLeProfil({
-    id: 'marin', name: 'Marin', label: 'Marin', kind: 'npc',
+    id: 'marin', name: 'Marin', label: 'Marin', kind: 'pnj',
     characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 31, dexterite: 31, intelligence: 31, 'force-mentale': 31, sociabilite: 31 },
     skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -234,13 +234,13 @@ describe('#1657 B3-2 — la porte SÉPARE : bande pour les sièges, inline JOURN
 
   it('2 porteurs TENUS + 1 PNJ : DEUX rangées en bande, le PNJ résolu inline et DIT au journal', () => {
     seedBattleRng(1);
-    const party = makePregens(idsDeTest).slice(0, 2);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
     baseState(party);
     const pnj = marin();
 
     const bande = bandeTriggeredTest(get, set, [...party, pnj], noeudGreement(), 'sonde-separation', { idNeuf: idsDeTest, rng: desDuTest, label: 'Gréement' });
     expect(bande, 'aucune bande pour les porteurs tenus').toBeTruthy();
-    expect(bande!.kind).toBe('triggeredBatchTest');
+    expect(bande!.kind).toBe('testDeclencheEnBande');
     expect(bande!.groupOwner, 'deux sièges concernés → possession de GROUPE').toBe(true);
     expect(bande!.participants!.map((p) => p.id), 'le PNJ ne prend PAS de rangée').toEqual(party.map((h) => h.id));
 
@@ -253,7 +253,7 @@ describe('#1657 B3-2 — la porte SÉPARE : bande pour les sièges, inline JOURN
   });
 
   it('`crewTarget:{poste:true}` (MDG 13 l.763) : la victime est le SERVANT tiré au sort — 30 seeds, deux postes', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     const equipage = [party[0], marin()];
     const coque = { id: 'hull', postes: [
       { item: { uid: 'p1', name: 'Canon' }, side: 'tribord', crewIds: ['marin'] },

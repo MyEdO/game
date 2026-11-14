@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { imposerLesD100 } from './battleRng.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { setRule } from '../engine/policy';
 import { emptyScene } from './monde/scene';
 import { testValue } from '../engine/skills';
@@ -14,14 +14,14 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * #2547 — Marchandage de VENTE gagné par un Négociateur, par la couture du jeu (`marchand.marchander` →
- * `jetLancer('bargain')` → `jetValider('bargain')`) : LDB 59 l.54, LDB 10 l.818 ; arbitrage #2547 (2026-10-09).
+ * `jetLancer('marchandage')` → `jetValider('marchandage')`) : LDB 59 l.54, LDB 10 l.818 ; arbitrage #2547 (2026-10-09).
  */
 const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 /** Meneur Négociateur à exactement 80 en Marchandage. */
 function negociateur(): Combatant {
-  const [h] = makePregens(idsDeTest);
+  const [h] = tousLesHerosDeScenario(idsDeTest);
   h.talents = [...h.talents.filter((t) => t.talentId !== 'negociateur'), { talentId: 'negociateur', times: 1 }];
   h.skills = h.skills.filter((s) => s.id !== 'marchandage');
   h.skills.push({ id: 'marchandage', advances: 0 } as SkillInstance);
@@ -35,13 +35,13 @@ function marchanderLaVente(joueur: number, marchand: number): void {
   sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } } as never);
   set({ party: [negociateur()], scene: sc, merchant: null, merchantStocks: {}, journal: [], pendingCascade: null, pendingBargain: null } as never);
   get().ouvrirLeMarchand('pnj');
-  get().fenetreChoisir('marchand', 'marchander', 'sell');
+  get().fenetreChoisir('marchand', 'marchander', 'vente');
   imposerLesD100(joueur, marchand);
-  get().jetLancer('bargain');
+  get().jetLancer('marchandage');
 }
 
 describe('#2547 — vente marchandée par un Négociateur (LDB 59 l.54, LDB 10 l.818)', () => {
-  beforeEach(() => setRule('test-auto-bands', 'off'));
+  beforeEach(() => setRule('test-bandes-auto', 'off'));
   afterEach(() => { vi.restoreAllMocks(); });
 
   it('gagnée sans Stupéfiant : ½ du listé, +10 % — libellé et issue retenue', () => {
@@ -50,7 +50,7 @@ describe('#2547 — vente marchandée par un Négociateur (LDB 59 l.54, LDB 10 l
     expect(pb.negotiator).toBe(true);
     expect(pb.result!.attackerWins).toBe(true);
     expect(describeBargain(pb)).toBe('Gagné (½ du prix listé, +10 %)');
-    get().jetValider('bargain');
+    get().jetValider('marchandage');
     expect(get().merchant!.bargainSell).toMatchObject({ won: true, negotiator: true });
   });
 

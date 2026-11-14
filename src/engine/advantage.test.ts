@@ -4,7 +4,7 @@ import { advantageCap, advantageCapFor, gainAdvantage, avantageApresPerte } from
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
 import { applyOps, avantageDeCampSansFiche } from './ops';
-import { TAVERN_GAMES } from './tavernGame';
+import { TAVERN_GAMES } from '../data';
 import { createHero } from './character';
 import { desDuTest } from './dice.testkit';
 
@@ -13,7 +13,7 @@ const ci = (advantage: number, I: number) =>
   ({ advantage, characteristics: { initiative: I }, conditions: [], weapons: [], activeEffects: [], liveTraits: [] }) as unknown as Combatant;
 
 describe('gainAdvantage — plafond « Limiter les Avantages » (LDB 14 l.198)', () => {
-  afterEach(() => resetRule('combat-advantage-cap'));
+  afterEach(() => resetRule('combat-plafond-avantage'));
   it('gagne n (défaut 1) et clampe au plafond (défaut 10)', () => {
     expect(advantageCap()).toBe(10);
     const a = c(0); gainAdvantage(a); expect(a.advantage).toBe(1);
@@ -24,7 +24,7 @@ describe('gainAdvantage — plafond « Limiter les Avantages » (LDB 14 l.198)',
     const a = c(5); gainAdvantage(a, 0); gainAdvantage(a, -3); expect(a.advantage).toBe(5);
   });
   it('le plafond suit la règle in-game (preuve « un seul edit »)', () => {
-    setRule('combat-advantage-cap', 5);
+    setRule('combat-plafond-avantage', 5);
     const a = c(4); gainAdvantage(a, 10); expect(a.advantage).toBe(5);
   });
 });
@@ -39,28 +39,28 @@ describe('avantageApresPerte — perte d’Avantage (LDB 14 l.219)', () => {
 });
 
 describe('Plafond d’Avantage = Bonus d’Initiative (LDB 14 l.197, règle optionnelle)', () => {
-  afterEach(() => { resetRule('combat-advantage-cap-bi'); resetRule('combat-advantage-cap'); });
+  afterEach(() => { resetRule('combat-plafond-avantage-bi'); resetRule('combat-plafond-avantage'); });
   it('off (défaut) : advantageCapFor = plafond fixe', () => {
     expect(advantageCapFor(ci(0, 45))).toBe(10);
   });
   it('on : advantageCapFor = Bonus d’Initiative (dizaines de l’Initiative), prime sur le plafond fixe', () => {
-    setRule('combat-advantage-cap-bi', true);
+    setRule('combat-plafond-avantage-bi', true);
     expect(advantageCapFor(ci(0, 45))).toBe(4); // BI = 4
     expect(advantageCapFor(ci(0, 38))).toBe(3); // BI = 3
   });
   it('gainAdvantage clampe au Bonus d’Initiative quand la règle est active', () => {
-    setRule('combat-advantage-cap-bi', true);
+    setRule('combat-plafond-avantage-bi', true);
     const a = ci(2, 45); gainAdvantage(a, 10); expect(a.advantage).toBe(4);
   });
 });
 
 /** Les verbes d'Avantage du vocabulaire d'ops (`engine/ops.ts`), joués SANS couche state (aucun hook). */
 describe('ops d’Avantage — gain additif, complétion, perte totale', () => {
-  afterEach(() => resetRule('combat-advantage-cap'));
+  afterEach(() => resetRule('combat-plafond-avantage'));
   const heros = () => { const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Lutteur', seed: 1 }); h.advantage = 0; return h; };
 
   it('`gainAdvantage` S’ADDITIONNE (NADJ 16 l.34, LDB 14 l.204-209) et s’arrête au plafond (l.198)', () => {
-    setRule('combat-advantage-cap', 3);
+    setRule('combat-plafond-avantage', 3);
     const h = heros();
     for (let i = 0; i < 2; i++) applyOps(h, [{ op: 'gainAdvantage', amount: 1 }], { idNeuf: idsDeTest, rng: desDuTest, caster: h });
     expect(h.advantage).toBe(2);

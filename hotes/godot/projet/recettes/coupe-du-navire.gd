@@ -167,10 +167,10 @@ func _coupe(montage: MontageDeVehicule, sol: float) -> void:
 
 
 ## La mer du rectangle des ponts, deux triangles par case de 2 m à la hauteur 0, chacun dans le sens trigonométrique vu
-## d'en haut comme le volume les oriente (`CONTRAT.md`, section « Monde »), et une case de pont touchée, sur le
-## monde ; bordée par la coque : de l'eau à bâbord et à tribord de la coque au maître-bau, aucune en son milieu ni dans
-## son contour, l'aire du rectangle hors de la coque, chaque morceau dans le sens de son triangle (retourné pour Godot
-## comme tout le volume), et la forme du pointeur sans elle.
+## d'en haut comme le volume les oriente (`CONTRAT.md`, section « Monde »), et une case de pont touchée, sur le monde
+## plat de deux couches de ses cases ; bordée par la coque : de l'eau à bâbord et à tribord de la coque au maître-bau,
+## aucune en son milieu ni dans son contour, l'aire du rectangle hors de la coque, chaque morceau dans le sens de son
+## triangle (retourné pour Godot comme tout le volume), et la forme du pointeur sans elle.
 func _mer(montage: MontageDeVehicule) -> void:
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	root.add_child(monde)
@@ -184,28 +184,36 @@ func _mer(montage: MontageDeVehicule) -> void:
 			for triangle in [[a, a + Vector3(0.0, 0.0, METRES_PAR_CASE), a + Vector3(METRES_PAR_CASE, 0.0, METRES_PAR_CASE)], [a, a + Vector3(METRES_PAR_CASE, 0.0, METRES_PAR_CASE), a + Vector3(METRES_PAR_CASE, 0.0, 0.0)]]:
 				for p: Vector3 in triangle:
 					positions.append_array([p.x, p.y, p.z])
-				cases.append([colonne, rangee, 0])
+				cases.append_array([colonne, rangee, 0])
 	var mer := positions.size() / 3
 	positions.append_array([20.0, 0.0, 8.0, 21.0, 0.0, 8.0, 20.0, 0.0, 9.0])
-	cases.append([0, 0, 1])
+	cases.append_array([0, 0, 1])
 	var normales: Array[float] = []
 	var couleurs: Array[float] = []
 	for i in positions.size() / 3:
 		normales.append_array([0.0, 1.0, 0.0])
 		couleurs.append_array([0.2, 0.35, 0.55, 1.0])
-	monde.poser({metresParCase = METRES_PAR_CASE, positions = positions, normales = normales, couleurs = couleurs, cases = cases,
-		surfaces = [{debut = 0, fin = mer, matiere = "terrain--eau", flottaison = "caraque"}, {debut = mer, fin = mer + 3, matiere = "terrain--planches", navire = "caraque"}],
-		hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[0.0]]}], ombre = {positions = [], normales = [], couleurs = [], cases = [], surfaces = []}})
-	var touches: int = (monde.get_node("VolumeDeScene/Volume/Corps/Forme") as CollisionShape3D).shape.get_faces().size()
+	var mer_et_pont := {cle = "sol/0/0/0", empreinte = "mer", rangee = 0, positions = positions, normales = normales, couleurs = couleurs, cases = cases,
+		surfaces = [{debut = 0, fin = mer, matiere = "terrain--eau", flottaison = "caraque"}, {debut = mer, fin = mer + 3, matiere = "terrain--planches", navire = "caraque"}]}
+	var rangees := []
+	for rangee in int(2.0 * DEMI_LONGUEUR / METRES_PAR_CASE):
+		var plate := []
+		plate.resize(int(2.0 * DEMI_LARGEUR / METRES_PAR_CASE))
+		plate.fill(0.0)
+		rangees.append(plate)
+	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = rangees}, {z = 1, rangees = rangees}], morceaux = [mer_et_pont]},
+		toits = [], couronnes = []}, {volume = [mer_et_pont], toits = [], couronnes = []})
+	var formes := monde.get_node("VolumeDeScene/Volume/Corps").get_children()
+	var touches: int = -1 if formes.size() != 1 else (formes[0] as CollisionShape3D).shape.get_faces().size()
 	if touches != 3:
-		_fautes.append("mer : la forme du pointeur porte %d sommets, attendu les 3 du pont seul" % touches)
+		_fautes.append("mer : la forme du pointeur porte %d sommets (%d formes), attendu les 3 du pont seul" % [touches, formes.size()])
 	monde.volume.border_la_mer("caraque", montage.contour_sous(0.0))
 	var volume := monde.get_node("VolumeDeScene/Volume") as Node3D
 	var coque := PackedVector2Array()
 	for point in montage.contour_sous(0.0):
 		var local := volume.to_local(Vector3(point.x, 0.0, point.y))
 		coque.append(Vector2(local.x, local.z))
-	var maillage := (monde.get_node("VolumeDeScene/Volume/Maillage") as MeshInstance3D).mesh as ArrayMesh
+	var maillage := (monde.get_node("VolumeDeScene/Volume/Morceaux").get_child(0).get_node("Vu") as MeshInstance3D).mesh as ArrayMesh
 	if maillage.get_surface_count() != 1:
 		_fautes.append("mer : %d surfaces peintes, attendu la mer seule" % maillage.get_surface_count())
 		return

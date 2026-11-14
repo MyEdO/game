@@ -1,11 +1,17 @@
 /**
  * LE SERVEUR DE L'EXPORT WEB (#3086, `pont/CONTRAT.md`, section « Atelier 3D ») : `GET modeles/listage.json` rend
- * `{ manifestes, osDesRigides, erreurs }`, les seuls manifestes validés contre leur GLB et de chacun les os qui portent
- * ses meshes rigides, en `no-store` ; `GET modeles/<fichier>` sert le fichier en `no-store`, 404 hors du dossier ou
- * absent ; une URI malformée reçoit 400 et un dossier des modèles illisible passe dans `erreurs`, le serveur continue.
- * `deposerLesModeles` (#3778) écrit les mêmes fichiers et le même listage sous `modeles/` de l'export, en statique.
+ * `{ manifestes, osDesRigides, erreurs, forme }`, les seuls manifestes validés contre leur GLB, de chacun les os qui
+ * portent ses meshes rigides et la forme `glb`, en `no-store`, calculé au lancement puis à nouveau quand un fichier du
+ * dossier change ; `GET modeles/<fichier>` sert le fichier en `no-store`,
+ * 404 hors du dossier ou absent ; une URI malformée reçoit 400 et un dossier des modèles illisible passe dans
+ * `erreurs`, le serveur continue. `deposerLesModeles` (#3778, #3946) écrit sous `modeles/` de l'export les mêmes
+ * fichiers sans les GLB ni leur fiche d'import, le même listage en forme `scene`, et fait fabriquer la scène de chaque
+ * modèle listé ; servi en `statique`, l'export rend ce dépôt.
  * Avec un dépôt (#3508, section « Éditeur ») : `GET depot/<id>` rend un projet manuscrit, prose matérialisée ;
- * `PUT depot/<id>` écrit à sa place un texte en forme dépôt de ce projet, et refuse tout autre texte sans rien écrire.
+ * `PUT depot/<id>` écrit à sa place un texte en forme dépôt de ce projet, et refuse tout autre texte sans rien écrire ;
+ * `GET source/manifest.json` et `GET source/<livre>/<NNN>.md` rendent l'index des chapitres et le texte d'un chapitre du
+ * `Source/` de ce dépôt-ci (#3606 M2g), 404 sans dépôt, export statique ou non.
+ * Sans export (le pont vivant, `vivant.mjs`), seuls `modeles/`, `depot/` et `source/` répondent.
  */
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -19,6 +25,8 @@ import { deposerLesModeles, LISTAGE } from './listage.mjs';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { cheminDuDepot } from '../../scripts/source/adresses.mjs';
+import { books } from '../../src/data';
 
 const racine = mkdtempSync(join(tmpdir(), 'servir-3086-'));
 const web = join(racine, 'web');
@@ -77,6 +85,16 @@ describe('servir', () => {
     expect(osDesRigides).toEqual({ humanoide: [], epee: ['root'], masse: ['root'] });
   });
 
+  it('un modèle déposé après le lancement entre au listage suivant', async () => {
+    const vivant = join(racine, 'vivant');
+    cpSync(modeles, vivant, { recursive: true });
+    const url = await demarrer(vivant);
+    const lister = async () => Object.keys((await (await fetch(`${url}modeles/${LISTAGE}`)).json()).manifestes).sort();
+    expect(await lister()).toEqual(['epee', 'humanoide', 'masse']);
+    deposerModeleDeTest(vivant, 'hache', { ...elementSchema3('humanoide'), cle: { apparence: 'hache' } }, GLB_D_ELEMENT);
+    expect(await lister()).toEqual(['epee', 'hache', 'humanoide', 'masse']);
+  });
+
   it('un fichier du dossier est servi en no-store', async () => {
     const r = await fetch(`${await demarrer()}modeles/epee.glb`);
     expect([r.status, r.headers.get('cache-control'), r.headers.get('content-type')]).toEqual([200, 'no-store', 'model/gltf-binary']);
@@ -93,13 +111,21 @@ describe('servir', () => {
     expect(await (await fetch(`${url}index.html`)).text()).toBe('<html></html>');
   });
 
-  it('l’export statique porte sous `modeles/` exactement ce que le serveur y sert : chaque fichier du dossier et le listage', async () => {
+  it('l’export statique porte sous `modeles/` le dossier sans ses GLB ni leur fiche d’import et le listage du serveur en forme `scene`, et fait fabriquer la scène de chaque modèle listé', async () => {
     const url = await demarrer();
     const sortie = join(racine, 'export');
-    deposerLesModeles(modeles, sortie);
-    expect(JSON.parse(readFileSync(join(sortie, 'modeles', LISTAGE), 'utf8'))).toEqual(await (await fetch(`${url}modeles/${LISTAGE}`)).json());
-    expect(listerDossier(join(sortie, 'modeles'))).toEqual([...listerDossier(modeles), LISTAGE].sort());
-    expect(new Uint8Array(readFileSync(join(sortie, 'modeles', 'epee.glb')))).toEqual(GLB_D_ELEMENT);
+    const cible = join(sortie, 'modeles');
+    writeFileSync(join(modeles, 'epee.glb.import'), '[remap]');
+    const commandes = deposerLesModeles(modeles, sortie, (aFabriquer) => aFabriquer);
+    const servi = await (await fetch(`${url}modeles/${LISTAGE}`)).json();
+    expect(servi.forme).toBe('glb');
+    expect(JSON.parse(readFileSync(join(cible, LISTAGE), 'utf8'))).toEqual({ ...servi, forme: 'scene' });
+    expect(listerDossier(cible)).toEqual([...listerDossier(modeles).filter((f) => !/\.glb(\.import)?$/.test(f)), LISTAGE].sort());
+    expect(commandes).toEqual(Object.keys(servi.manifestes).map((id) => ({ id, glb: join(modeles, `${id}.glb`), scene: join(cible, `${id}.scn`) })));
+    const statique = await servir({ web: sortie, statique: true });
+    serveurs.push(statique);
+    expect((await (await fetch(`${statique.url}modeles/${LISTAGE}`)).json()).forme).toBe('scene');
+    expect((await fetch(`${statique.url}modeles/epee.glb`)).status).toBe(404);
   });
 
   it('un dossier des modèles qui n’est pas un dossier passe dans `erreurs`, et le serveur sert la suivante', async () => {
@@ -139,8 +165,32 @@ describe('servir, le dépôt', () => {
     expect((await fetch(`${url}depot/nulle-part`)).status).toBe(404);
   });
 
+  it('sans export, seuls modeles/ et depot/ répondent, le reste reçoit 404', async () => {
+    const s = await servir({ modeles, depot });
+    serveurs.push(s);
+    const statuts = await Promise.all([`modeles/${LISTAGE}`, 'modeles/epee.glb', `depot/${id}`, 'index.html', ''].map(async (c) => (await fetch(`${s.url}${c}`)).status));
+    expect(statuts).toEqual([200, 200, 200, 404, 404]);
+  });
+
   it('sans dépôt, depot/ n’est pas servi', async () => {
     expect((await fetch(`${await demarrer()}depot/${id}`)).status).toBe(404);
+  });
+
+  it('source/ sert l’index des chapitres et le texte d’un chapitre du Source/ de ce dépôt ; un chapitre absent reçoit 404', async () => {
+    const manifeste = await fetch(`${url}source/manifest.json`);
+    expect(manifeste.status).toBe(200);
+    const [premier] = (await manifeste.json() as Record<string, { chapitres: { ch: string; fichier: string }[] }>)['livre-de-base'].chapitres;
+    const chapitre = await fetch(`${url}source/livre-de-base/${premier.ch}.md`);
+    const dir = books.find((b) => b.id === 'livre-de-base')!.dir!;
+    expect([chapitre.status, await chapitre.text()]).toEqual([200, readFileSync(cheminDuDepot(join(dir, premier.fichier)), 'utf8').replace(/\r\n?/g, '\n')]);
+    expect((await fetch(`${url}source/livre-de-base/999.md`)).status).toBe(404);
+  });
+
+  it('sans dépôt, source/ n’est pas servi, que l’export soit statique ou non', async () => {
+    const statique = await servir({ web, statique: true });
+    serveurs.push(statique);
+    const statuts = await Promise.all([await demarrer(), statique.url].flatMap((u) => ['source/manifest.json', 'source/livre-de-base/01.md'].map(async (c) => (await fetch(`${u}${c}`)).status)));
+    expect(statuts).toEqual([404, 404, 404, 404]);
   });
 
   it('PUT écrit un texte en forme dépôt du projet à sa place', async () => {

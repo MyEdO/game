@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  MANANN_BASE, applyManannFactor, addManann, rollPortEvent, rollDaysToNextEvent,
+  manannBase, applyManannFactor, addManann, rollPortEvent, rollDaysToNextEvent,
   rollRandomCargo, cargoBasePrice, rollCargoAvailability, rollMerchantSkill, buySellerDR,
   sellRelation, sellChance, offerPricePct, dumpingPricePct, opportunityTradePct,
   cargoTotalEnc, removeCargo, resolveFastVoyage, profilDuMarche, alterationsDuPort, type PortProfile, type AlterationDuMarche,
@@ -20,7 +20,7 @@ const salzenmund: PortProfile = {
 describe('Humeur de Manann (MDG 15 l.83-125)', () => {
   it('chaque facteur ne s’applique qu’UNE fois par navire (l.85)', () => {
     // Grand sacrifice : +5+2d10 → dés 3 et 4 → +12.
-    const a = applyManannFactor(MANANN_BASE, 'grand-sacrifice', seq(3, 4));
+    const a = applyManannFactor(manannBase(), 'grand-sacrifice', seq(3, 4));
     expect(a.delta).toBe(12);
     expect(a.mood.score).toBe(12);
     const b = applyManannFactor(a.mood, 'grand-sacrifice', seq(10, 10));
@@ -29,7 +29,7 @@ describe('Humeur de Manann (MDG 15 l.83-125)', () => {
   });
 
   it('facteurs négatifs : Invoquer les Puissances de la Ruine ou Stromfels = −5d10', () => {
-    const a = applyManannFactor(MANANN_BASE, 'invoquer-ruine-ou-stromfels', seq(2, 2, 2, 2, 2));
+    const a = applyManannFactor(manannBase(), 'invoquer-ruine-ou-stromfels', seq(2, 2, 2, 2, 2));
     expect(a.delta).toBe(-10);
     expect(addManann(a.mood, 7).score).toBe(-3); // delta libre d'événement
   });
@@ -99,7 +99,7 @@ describe('marché d’un port altéré (MDG 15 l.253, l.259, l.263)', () => {
   it('Rumeurs commerciales : la Demande de la cargaison croît, absente elle naît (l.259)', () => {
     const p = profilDuMarche(salzenmund, [alteration({ demande: { cargoId: 'armes', delta: 2 } }), alteration({ demande: { cargoId: 'sel', delta: 2 } })]);
     expect(p.demande).toEqual({ armes: 3, cereales: 1, sel: 2 });
-    expect(sellChance(p, 'sel', 0).target).toBeGreaterThan(sellChance(salzenmund, 'sel', 0).target);
+    expect(sellChance(p, 'sel', 0).cible).toBeGreaterThan(sellChance(salzenmund, 'sel', 0).cible);
   });
 
   it('seules les altérations du port et encore actives comptent', () => {
@@ -142,22 +142,22 @@ describe('commerce maritime (MDG 15 l.309-436)', () => {
   });
 
   it('vente (l.355-397) : relation du port au bien → nombre visé + DR du vendeur', () => {
-    // Salzenmund a « commerce » en Production → toujours 'no-produce' ; armes en Demande +1.
-    expect(sellRelation(salzenmund, 'bois-mer')).toBe('no-produce');
+    // Salzenmund a « commerce » en Production → toujours 'sansProduction' ; armes en Demande +1.
+    expect(sellRelation(salzenmund, 'bois-mer')).toBe('sansProduction');
     const armes = sellChance(salzenmund, 'armes', 500);
-    expect(armes.gossip).toBeNull();
-    expect(armes.target).toBe(80); // (4 + 1) × 10 + 30 (commerce)
-    expect(armes.sellerDR).toBe(2); // +1 no-produce/commerce, +1 Demande
+    expect(armes.ragot).toBeNull();
+    expect(armes.cible).toBe(80); // (4 + 1) × 10 + 30 (commerce)
+    expect(armes.drDuVendeur).toBe(2); // +1 sansProduction/commerce, +1 Demande
     // Port producteur SANS commerce : Ragot Complexe, Taille × 10 ; à moins de 100 milles → traité en Surplus.
     const producer: PortProfile = { taille: 3, richesse: 3, production: ['poisson-sale'] };
     const far = sellChance(producer, 'poisson-sale', 500);
-    expect(far.gossip?.difficulty).toBe('complexe');
-    expect(far.target).toBe(30);
-    expect(far.sellerDR).toBe(-2);
+    expect(far.ragot?.difficulty).toBe('complexe');
+    expect(far.cible).toBe(30);
+    expect(far.drDuVendeur).toBe(-2);
     const near = sellChance(producer, 'poisson-sale', 50);
-    expect(near.gossip?.difficulty).toBe('tresDifficile'); // l.368 : « comme … un Surplus »
-    expect(near.target).toBe(15);
-    expect(near.sellerDR).toBe(-3);
+    expect(near.ragot?.difficulty).toBe('tresDifficile'); // l.368 : « comme … un Surplus »
+    expect(near.cible).toBe(15);
+    expect(near.drDuVendeur).toBe(-3);
   });
 
   it('prix d’offre (l.374-383) : Richesse+Taille+Demande ≥ 4 → 100 % ; 2 → 75 % ; brader = 25 % (l.399)', () => {

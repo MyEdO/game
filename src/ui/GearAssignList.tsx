@@ -35,14 +35,14 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
         const quals = giveTrappingQualities(fx);
         // Le verdict du verbe (`refusDEvaluation`), mode par mode : le geste refusé reste offert, sa raison dite.
         const cible = { ...fx, label: g.label };
-        const refusEval = refusDEvaluation(party, cible, 'evaluate', jour);
-        const refusDetect = refusDEvaluation(party, cible, 'detect', jour);
+        const refusEval = refusDEvaluation(party, cible, 'evaluation', jour);
+        const refusDetect = refusDEvaluation(party, cible, 'detection', jour);
         return (
           <li key={`${g.label}-${i}`} className="gear-row">
             <span className="gear-name">
               {g.label}
               {(g.magic || aura) && (
-                <span title={unidentified ? (aura ? 'Aura magique sentie — règles non identifiées' : 'Objet magique — qualités à révéler') : 'Objet magique'}> <Icon id="action/cast" size="sm" /></span>
+                <span title={unidentified ? (aura ? 'Aura magique sentie — règles non identifiées' : 'Objet magique — qualités à révéler') : 'Objet magique'}> <Icon id="action/incanter" size="sm" /></span>
               )}
               {unidentified
                 ? <span className="gear-unid">{aura ? 'magique, non identifié' : 'non identifié'}</span>
@@ -58,7 +58,7 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
                   enabled={!refusEval}
                   {...raisonSi(refusEval)}
                   descOfferte="Évaluation (Int) : révèle les qualités cachées et estime le prix — un échec verrouille jusqu'à demain"
-                  onClick={() => onAppraise(g.uid, 'evaluate')}
+                  onClick={() => onAppraise(g.uid, 'evaluation')}
                   primary={false}
                   btnClassName="gear-act"
                 />
@@ -68,7 +68,7 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
                   enabled={!refusDetect}
                   {...raisonSi(refusDetect)}
                   descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura — une tentative par héros et par objet"
-                  onClick={() => onAppraise(g.uid, 'detect')}
+                  onClick={() => onAppraise(g.uid, 'detection')}
                   primary={false}
                   btnClassName="gear-act"
                 />

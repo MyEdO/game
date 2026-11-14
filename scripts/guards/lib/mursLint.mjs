@@ -1,6 +1,7 @@
 import { builtinRules } from 'eslint/use-at-your-own-risk'
 import interne from './interneLint.mjs'
 import couches from './couchesLint.mjs'
+import nomsParLigne from './nomsParLigneLint.mjs'
 
 /** Les murs qu'une directive au site peut éteindre (#2724) ; tout autre mur, et toute règle native de
  *  restriction, n'en admet aucune : `scripts/corpus/guards/directivesMurs.test.mjs`. */
@@ -13,9 +14,9 @@ export default {
       .map((nom) => [nom, builtinRules.get('no-restricted-syntax')]),
     ...['ordre-total-imports', 'canal-issue', 'atelier', 'minuteries-import', 'echap-import']
       .map((nom) => [nom, builtinRules.get('no-restricted-imports')]),
-    ...['stockage-web', 'minuteries-hote', 'alea-serveur', 'entropie', 'sans-hote']
+    ...['stockage-web', 'minuteries-hote', 'alea-serveur', 'entropie', 'sans-hote', 'base64-hote']
       .map((nom) => [nom, builtinRules.get('no-restricted-properties')]),
-    ...['stockage-web-global', 'minuteries', 'sans-hote-globale']
+    ...['stockage-web-global', 'minuteries', 'sans-hote-globale', 'base64']
       .map((nom) => [nom, builtinRules.get('no-restricted-globals')]),
     ['interne', interne],
     ['purete-imports', couches.purete],
@@ -24,5 +25,6 @@ export default {
     ['reexportation', couches.reexportation],
     ['suite-jouee', couches.suiteJouee],
     ['quarantaine', couches.quarantaine],
+    ['noms-par-ligne', nomsParLigne],
   ]),
 }

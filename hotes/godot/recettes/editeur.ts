@@ -3,11 +3,14 @@
  * figé par la sonde (`construire.mjs --sonde`) dans la copie du projet qu'elle importe. L'atelier figé sur les véhicules
  * et les pièces d'Amélioration du dossier des modèles (`figerLAtelier`), la campagne de l'adresse (`parametres`), et sur
  * son pont, l'Arène ouverte et la caraque posée comme Godot la joue (`GESTES`) : chaque entrée de `editer` sous la clé
- * que la recette en calcule, sa réponse ; puis les cases du pont du dessus que le monde servi touche sans les peindre
- * (`touches`), où la recette lâche son rayon.
+ * que la recette en calcule, sa réponse ; après chaque réponse qui sert un manifeste, l'entrée de `morceaux` que
+ * l'éditeur envoie alors (source `edition`, les clés dont l'empreinte posée diffère, `VolumeDeScene.manquants`) sous sa
+ * clé, sa réponse ; puis les cases du pont du dessus que les morceaux posés au dernier manifeste touchent sans les
+ * peindre (`touches`), où la recette lâche son rayon.
  */
 import type { Bouton, Choix } from '../../../src/hote/elements';
-import type { VolumeDuMonde } from '../../../src/noyau/index';
+import type { MorceauDuMonde } from '../../../src/noyau/index';
+import type { MondeDuPont } from '../pont/pont';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { figerLAtelier, type Listage } from './atelier';
 import { cleDEntree } from './vehicule';
@@ -34,7 +37,7 @@ const GESTES: readonly (string | ReturnType<typeof pointe>)[] = [
 interface Reponse {
   ok: boolean;
   vue: { zones: Record<string, (Bouton | Choix | { type: string; id: string })[]> };
-  monde?: VolumeDuMonde;
+  monde?: NonNullable<MondeDuPont['monde']>;
   navires?: Record<string, { centre: { x: number; y: number } }>;
 }
 
@@ -54,15 +57,15 @@ function boutonDe(r: Reponse, id: string): Bouton {
   return trouves[0];
 }
 
-/** Les cases `{ x, y, z }` du pont du dessus du navire servi dans `monde` : celles d'un triangle de ce navire tourné
+/** Les cases `{ x, y, z }` du pont du dessus du navire servi dans `morceaux` : celles d'un triangle de ce navire tourné
  *  vers le ciel à sa couche la plus haute, hors des colonnes où se tient un décor, que le rayon toucherait d'abord. */
-function casesDuPontDuDessus(monde: VolumeDuMonde) {
-  const triangles = monde.surfaces.flatMap(({ debut, fin, navire, matiere }) =>
-    Array.from({ length: (fin - debut) / 3 }, (_, i) => ({ t: debut / 3 + i, navire, decor: matiere.startsWith('prop--') })));
+function casesDuPontDuDessus(morceaux: readonly MorceauDuMonde[]) {
+  const triangles = morceaux.flatMap(({ surfaces, cases, normales }) => surfaces.flatMap(({ debut, fin, navire, matiere }) =>
+    Array.from({ length: (fin - debut) / 3 }, (_, i) => ({ case: cases.slice(debut + 3 * i, debut + 3 * i + 3), haut: normales[(debut + 3 * i) * 3 + 1] > 0.99, navire, decor: matiere.startsWith('prop--') }))));
   const du = triangles.filter(({ navire }) => navire !== undefined);
-  const haut = Math.max(...du.map(({ t }) => monde.cases[t][2]));
-  const decors = new Set(triangles.filter(({ decor }) => decor).map(({ t }) => `${monde.cases[t][0]},${monde.cases[t][1]}`));
-  const cles = new Set(du.filter(({ t }) => monde.cases[t][2] === haut && monde.normales[t * 9 + 1] > 0.99).map(({ t }) => monde.cases[t].join(',')));
+  const haut = Math.max(...du.map((t) => t.case[2]));
+  const decors = new Set(triangles.filter(({ decor }) => decor).map((t) => `${t.case[0]},${t.case[1]}`));
+  const cles = new Set(du.filter((t) => t.case[2] === haut && t.haut).map((t) => t.case.join(',')));
   return [...cles].filter((c) => !decors.has(c.split(',').slice(0, 2).join(','))).map((c) => {
     const [x, y, z] = c.split(',').map(Number);
     return { x, y, z };
@@ -77,22 +80,41 @@ export function figerLEditeurDuNavire(listage: Listage) {
     if (!r.ok) throw new Error(`éditeur figé : editer ${JSON.stringify(entree)} : ${JSON.stringify(r)}`);
     return r;
   };
+  /** Les morceaux posés, par clé, et les réponses de `morceaux` par clé d'entrée. */
+  const poses = new Map<string, MorceauDuMonde>();
+  const morceaux: Record<string, unknown> = {};
+  /** La réponse `r` jouée comme l'éditeur la suit : un manifeste servi, il demande les morceaux dont l'empreinte posée
+   *  diffère, s'il en manque, et pose le manifeste. */
+  const suivre = (r: Reponse): Reponse => {
+    if (!r.monde) return r;
+    const entree = { source: 'edition', volume: r.monde.morceaux.filter(({ cle, empreinte }) => poses.get(cle)?.empreinte !== empreinte).map(({ cle }) => cle), toits: [], couronnes: [] };
+    const recus = entree.volume.length ? appel('morceaux', entree) as unknown as { ok: boolean; volume: MorceauDuMonde[] } : { ok: true, volume: [] };
+    if (!recus.ok) throw new Error(`éditeur figé : morceaux ${JSON.stringify(entree)} : ${JSON.stringify(recus)}`);
+    const cle = cleDEntree(entree);
+    if (entree.volume.length && cle in morceaux && JSON.stringify(morceaux[cle]) !== JSON.stringify(recus)) throw new Error(`éditeur figé : deux réponses de morceaux sous ${cle}`);
+    if (entree.volume.length) morceaux[cle] = recus;
+    const recu = new Map(recus.volume.map((m) => [m.cle, m]));
+    const gardes = r.monde.morceaux.map(({ cle }) => recu.get(cle) ?? poses.get(cle)!);
+    poses.clear();
+    for (const m of gardes) poses.set(m.cle, m);
+    return r;
+  };
   const ouvrir = { ouvrir: 'arene' };
-  const reponses: [string, Reponse][] = [[cleDEntree(ouvrir), jouer(ouvrir)]];
+  const reponses: [string, Reponse][] = [[cleDEntree(ouvrir), suivre(jouer(ouvrir))]];
   for (const geste of GESTES) {
     const jeu = typeof geste === 'string' ? boutonDe(reponses[reponses.length - 1][1], geste).jeu : null;
-    reponses.push(jeu ? [cleDUnJeuLu(jeu), jouer(jeu)] : [cleDEntree({ edition: geste }), jouer({ edition: geste })]);
+    reponses.push(jeu ? [cleDUnJeuLu(jeu), suivre(jouer(jeu))] : [cleDEntree({ edition: geste }), suivre(jouer({ edition: geste }))]);
   }
   const servis = reponses.flatMap(([, r]) => (r.navires && Object.keys(r.navires).length ? [r.navires] : []));
   const [id] = Object.keys(servis[0]);
-  const monde = reponses[reponses.length - 1][1].monde;
-  if (!monde) throw new Error('éditeur figé : le pont du dessus choisi sans monde servi');
+  if (!reponses[reponses.length - 1][1].monde) throw new Error('éditeur figé : le pont du dessus choisi sans monde servi');
   return {
     ...fige,
     parametres: { campagne: 'arene' },
     editer: Object.fromEntries(reponses),
+    morceaux,
     pointes: GESTES.filter((g) => typeof g !== 'string'),
     navire: { id, pose: servis[0][id].centre, deplace: servis[servis.length - 1][id].centre },
-    touches: casesDuPontDuDessus(monde),
+    touches: casesDuPontDuDessus([...poses.values()]),
   };
 }

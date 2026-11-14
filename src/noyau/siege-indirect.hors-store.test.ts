@@ -32,22 +32,22 @@ const CHARS = (CT = 75) =>
 
 const mkGunner = (id: string, pos: { x: number; y: number }, CT = 75): Combatant =>
   combattantDeTest({
-    id, label: id, kind: 'hero', characteristics: CHARS(CT),
+    id, label: id, kind: 'heros', characteristics: CHARS(CT),
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos,
   });
 
 const mkCrewman = (id: string): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'npc', conditions: [], weapons: [], skills: [], talents: [], characteristics: CHARS(30) as never,
+  combattantDeTest({ id, label: id, kind: 'pnj', conditions: [], weapons: [], skills: [], talents: [], characteristics: CHARS(30) as never,
     wounds: blessuresDeBase(5) });
 
 const mkEnemy = (id: string, x: number, y: number, E = 0, wounds = 50): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
+  combattantDeTest({ id, label: id, kind: 'ennemi', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
     characteristics: { ...CHARS(0), endurance: E }, wounds: blessuresDeBase(wounds), advantage: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
 
 const mkEmplacement = (poste: ShipPoste, pos = { x: 0, y: 0 }): Combatant =>
-  combattantDeTest({ id: 'emplacement', label: 'Affût', kind: 'enemy', pos, conditions: [], weapons: [],
+  combattantDeTest({ id: 'emplacement', label: 'Affût', kind: 'ennemi', pos, conditions: [], weapons: [],
     wounds: blessuresDeBase(30), advantage: 0, postes: [poste] });
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
@@ -152,7 +152,7 @@ describe('(d) Routage data-driven — seul un engin indirect expose le ciblage d
     const s1 = mkCrewman('s1');
     const all = [mkEmplacement(poste), gunner, s1, mkEnemy('cible', 9, 5)];
     applyShipPostes(all);
-    return availableAttacks(gunner, mkBattle(all)).find((o) => o.id === 'poste');
+    return availableAttacks(banc.getState().scene, gunner, mkBattle(all)).find((o) => o.id === 'poste');
   };
 
   it('mortier (tir indirect) → l’option « Servir » porte indirect:true', () => {
@@ -209,8 +209,8 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
 
     // 3) RÉSOLUTION : le jet de tir (normal) puis l'Appliquer DÉTONENT sur la case → rayon blessé, hors rayon indemne.
     const w1 = e1.wounds.current, w2 = e2.wounds.current, wf = far.wounds.current;
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     expect(e1.wounds.current).toBeLessThan(w1);
     expect(e2.wounds.current).toBeLessThan(w2);
     expect(far.wounds.current).toBe(wf);

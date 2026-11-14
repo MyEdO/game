@@ -27,7 +27,7 @@ beforeAll(() => {
 
 function hero(id: string, label: string): Combatant {
   return blessuresSurLeProfil({
-    id, label, kind: 'hero',
+    id, label, kind: 'heros',
     characteristics: profilDeTest(),
     items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
   }) as unknown as Combatant;
@@ -37,7 +37,7 @@ const recap: ChapterRecap = {
   titre: 'Chapitre 1 — la route d’Altdorf',
   sousTitre: 'Ce que la compagnie emporte',
   px: 120,
-  chronique: [{ text: 'Atteindre Altdorf', tone: 'ok' }],
+  chronique: [{ text: 'Atteindre Altdorf', tone: 'reussite' }],
   tombes: [],
   lieux: ['Auberge La Diligence', 'Altdorf'],
 };
@@ -129,7 +129,7 @@ describe('ChapterRecapScreen (#717)', () => {
     await act(async () => inputs()[4].click());
     expect(useGame.getState().finDeSeance?.heros).toEqual({ h1: { motivation: true } });
 
-    await act(async () => useGame.setState({ net: { ...useGame.getState().net, mode: 'guest', mySeat: 1 } }));
+    await act(async () => useGame.setState({ net: { ...useGame.getState().net, mode: 'invite', mySeat: 1 } }));
     expect(inputs().every((i) => i.disabled)).toBe(true);
     expect(inputs()[0].checked, 'l’invité voit la case cochée par l’hôte').toBe(true);
     const terminer = [...container.querySelectorAll('button')].find((b) => b.textContent === 'Terminer la séance')!;
@@ -196,7 +196,7 @@ describe('ChapterRecapScreen (#717)', () => {
   it('COOP : l’invité LIT la chronique, mais « Poursuivre » porte son refus et le volet 2 reste fermé', async () => {
     useGame.setState({
       objectifsSoldes: [{ id: 'o', text: 'Atteindre Altdorf' }],
-      net: { ...useGame.getState().net, mode: 'guest', mySeat: 1 },
+      net: { ...useGame.getState().net, mode: 'invite', mySeat: 1 },
     });
     await mount();
     expect(container.textContent).toContain('Atteindre Altdorf'); // la chronique se partage à la table

@@ -8,7 +8,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 
 /** Combattant nu (aucun effet de données) — pour vérifier que la diffusion data est INERTE sans donnée. */
 const bare = (): Combatant => (blessuresSurLeProfil({
-  id: 'x', name: 'X', kind: 'enemy', characteristics: {}, skills: [], talents: [], traits: [],
+  id: 'x', name: 'X', kind: 'ennemi', characteristics: {}, skills: [], talents: [], traits: [],
   conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
   wounds: blessuresDeBase(10), advantage: 0,
 })) as unknown as Combatant;

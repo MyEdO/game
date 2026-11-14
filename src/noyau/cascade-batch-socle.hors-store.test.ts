@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -18,7 +19,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * SOCLE des BANDES de cascade (#1117, flux `cascadeBatch`) — les trois capacités qu'une rangée doit
+ * SOCLE des BANDES de cascade (#1117, flux `cascadeEnBande`) — les trois capacités qu'une rangée doit
  * offrir pour qu'une bande vaille une étape MONO :
  *  1. CHARGE UTILE par rangée (`BatchParticipant.meta`) : l'applier d'une bande lit, PAR RANGÉE, ce qui
  *     diverge d'un héros à l'autre. L'enjeu, lui, reste celui de l'ÉTAPE (la clé d'une bande EST
@@ -58,8 +59,8 @@ beforeEach(() => {
 describe('parité des VERBES : une bande offre ce qu’offre l’étape mono', () => {
   it('`cascadeBatch` expose TOUS les verbes de rangée de `cascade` (resist compris), et la bande offre la Détermination', () => {
     const mono = FLOW_VERBS.cascade.verbs as readonly string[];
-    const bande = FLOW_VERBS.cascadeBatch.verbs as readonly string[];
-    // La validation (`confirm`) est un verbe de FENÊTRE : la cascade valide l'étape, bande comprise.
+    const bande = FLOW_VERBS.cascadeEnBande.verbs as readonly string[];
+    // La validation (`valider`) est un verbe de FENÊTRE : la cascade valide l'étape, bande comprise.
     const manquants = mono.filter((v) => !estVerbeDeFenetre(v as never) && !bande.includes(v));
     expect(manquants, 'verbe de l’étape mono absent de la bande — la rangée ne peut pas jouer sa règle').toEqual([]);
     // La Psychologie ne se testant qu'en bandes, la bande offre le verbe général de la Détermination (LDB 17 l.59) :
@@ -81,8 +82,8 @@ describe('CHARGE UTILE par rangée (`meta`) — l’applier lit la donnée DE LA
         row(h2.id, { meta: { psychKind: 'peur', prevDR: 0 } }),
       ])],
     });
-    banc.getState().jetLancer('cascadeBatch', h1.id);
-    banc.getState().jetLancer('cascadeBatch', h2.id);
+    banc.getState().jetLancer('cascadeEnBande', h1.id);
+    banc.getState().jetLancer('cascadeEnBande', h2.id);
     banc.getState().jetValider('cascade');
     expect(vues[0].meta).toEqual([
       { id: 'h1', psychKind: 'peur', prevDR: 2 },
@@ -94,7 +95,7 @@ describe('CHARGE UTILE par rangée (`meta`) — l’applier lit la donnée DE LA
 describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
   const psychBand = () =>
     band('bande-psy', [row('h1'), row('h2')], {
-      combatPsych: { kind: 'peur', sourceId: 'e1', sourceName: 'Bête', indice: 2, round: 1 },
+      psychologieDeCombat: { kind: 'peur', sourceId: 'e1', sourceName: fixtureText('Bête'), indice: 2, round: 1 },
     });
 
   it('le verbe agit sur LA rangée : `immune` posé, Détermination débitée, l’autre rangée intacte', () => {
@@ -113,7 +114,7 @@ describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
     expect(banc.getState().party.find((c) => c.id === h1.id)!.resolve).toBe(1);
     expect(banc.getState().party.find((c) => c.id === h2.id)!.resolve).toBe(2);
 
-    banc.getState().jetLancer('cascadeBatch', h2.id);
+    banc.getState().jetLancer('cascadeEnBande', h2.id);
     banc.getState().jetValider('cascade');
     // L'applier de bande lit le flag PAR RANGÉE (h1 immunisé, h2 non).
     expect(vues[0].parts).toEqual([{ id: 'h1', immune: true }, { id: 'h2', immune: undefined }]);
@@ -140,7 +141,7 @@ describe('RÉSISTANCE (Menace) par rangée (LDB 10 l.1016-1020)', () => {
       title: 'Contagion', purpose: 'test',
       steps: [band('bande-menace', [row(h1.id, { menace: 'maladie' }), row(h2.id, { menace: 'maladie' })], { menace: 'maladie' })],
     });
-    banc.getState().jetResister('cascadeBatch', h1.id);
+    banc.getState().jetResister('cascadeEnBande', h1.id);
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.participants![0].result).toEqual({ roll: 1, target: 50, sl: bonus(43), success: true });
     expect(st.participants![1].result).toBeNull();
@@ -153,7 +154,7 @@ describe('RÉSISTANCE (Menace) par rangée (LDB 10 l.1016-1020)', () => {
     banc.setState({ party: [h1] });
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-nue2': spyApplier([], () => null) } });
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [band('bande-nue2', [row(h1.id)])] });
-    banc.getState().jetResister('cascadeBatch', h1.id);
+    banc.getState().jetResister('cascadeEnBande', h1.id);
     expect(banc.getState().pendingCascade!.participants[0].participants![0].result).toBeNull();
     expect(banc.getState().party[0].resistanceUsed ?? []).toEqual([]);
   });
@@ -198,13 +199,13 @@ const LOSE = (target: number) => ({ roll: 99, target, sl: -2, success: false });
 const WIN = (target: number) => ({ roll: 1, target, sl: 2, success: true });
 
 describe('SEAM `onOwnTestFailed` PAR RANGÉE — toute bande, pas seulement la Psychologie', () => {
-  it('bande de VOYAGE (`weatherResistance`, EDOC 8 l.86/127) : la rangée ratée déclenche les Crampes de SON porteur', () => {
+  it('bande de VOYAGE (`resistanceALaMeteo`, EDOC 8 l.86/127) : la rangée ratée déclenche les Crampes de SON porteur', () => {
     const h1 = bandHero('h1', { diseases: [{ ...COLIQUE }] });
     const h2 = bandHero('h2', { diseases: [{ ...COLIQUE }] });
     banc.setState({ party: [h1, h2] });
     startCascade(banc.getState, banc.setState, {
       title: 'Traversée', purpose: 'test',
-      steps: [band('weatherResistance', [row(h1.id), row(h2.id)])],
+      steps: [band('resistanceALaMeteo', [row(h1.id), row(h2.id)])],
     });
     commitRows([LOSE(50), WIN(50)]);
     const [a, b] = banc.getState().party;

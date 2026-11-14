@@ -1,7 +1,7 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 85. */
 import { z } from 'zod';
-import { charKeySchema, enumNomme, stakeFormSchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
+import { attackKindSchema, charKeySchema, enumNomme, stakeFormSchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
 import { ref } from '../grammaire/ref';
 import { document } from '../grammaire/document';
 import { triggeredEffectSchema } from '../grammaire/mecanique';
@@ -9,31 +9,12 @@ import { triggeredEffectSchema } from '../grammaire/mecanique';
 export const file = 'maneuvers.json';
 export const famille = 'entite';
 
-/** `ManeuverMeasure` (`src/data/index.ts`) — Portée/Souffle en mètres = `bonus(ref) + plus`. */
+/** Portée/Souffle en mètres (`ManeuverMeasure` en dérive, `src/data/index.ts`) = `bonus(ref) + plus`. */
 const maneuverMeasure = nommerChamps(z.strictObject({
   bonusOf: charKeySchema.optional(),
   plus: z.number().optional(),
 }), { bonusOf: { label: 'bonus de caractéristique' }, plus: { label: 'ajout' } });
 
-/**
- * FAMILLE d'attaque d'une manœuvre (`AttackKind`, `src/engine/creatureAttacks.ts`) — le libellé est
- * celui de la FAMILLE, jamais l'affichage d'une manœuvre PRÉCISE (`ManeuverDef.label`, ex. « Souffle
- * (Feu) ») : plusieurs `ManeuverDef` partagent un `kind` (6 souffles, 2 étreintes, 4 hurlements).
- */
-export const attackKindSchema = enumNomme({
-  arme: 'Arme / griffes',
-  morsure: 'Morsure',
-  caudale: 'Attaque caudale',
-  cornes: 'Cornes',
-  souffle: 'Souffle',
-  vomi: 'Vomissement',
-  tentacules: 'Tentacules',
-  etreinte: 'Étreinte',
-  regard: 'Regard pétrifiant',
-  langue: 'Langue préhensile',
-  hurlement: 'Hurlement',
-  pietinement: 'Piétinement',
-});
 
 const doc = document(
   'maneuvers',
@@ -41,11 +22,11 @@ const doc = document(
   {
     kind: attackKindSchema,
     activation: enumNomme({ action: 'Action', free: 'Gratuite (coût d’Avantage)', charge: 'À la Charge' }),
-    advantageCost: z.number(),
-    advantageMode: enumNomme({ fixed: 'Coût fixe', variable: 'Au choix (+1 DR/Av)', all: 'Tout l’Avantage' }).optional(),
+    coutEnAvantage: z.number(),
+    modeDAvantage: enumNomme({ fixe: 'Coût fixe', variable: 'Au choix (+1 DR/Av)', tout: 'Tout l’Avantage' }).optional(),
     stat: enumNomme({ 'capacite-de-combat': 'CC (mêlée)', 'capacite-de-tir': 'CT (distance)' }).optional(),
     defense: enumNomme({ esquive: 'Esquive', parade: 'Parade', init: 'Initiative', resist: 'Résistance (cible)', auto: 'Meilleure (auto)' }).optional(),
-    targeting: enumNomme({ melee: 'Mêlée', ranged: 'Distance', zone: 'Zone', allFoes: 'Tous les ennemis', allAround: 'Tout le monde alentour', self: 'Sur soi' }),
+    ciblage: enumNomme({ melee: 'Mêlée', distance: 'Distance', zone: 'Zone', adversairesAutour: 'Tous les ennemis', toutAutour: 'Tout le monde alentour', soi: 'Sur soi' }),
     range: maneuverMeasure.optional(),
     blast: maneuverMeasure.optional(),
     magic: z.boolean().optional(),
@@ -57,7 +38,7 @@ const doc = document(
     damage: weaponDamageSpecSchema.optional(),
     effects: z.array(triggeredEffectSchema),
     /** ENJEU de l'ENTRÉE (#1117) — ce que la manœuvre met en jeu, COLLÉ à ses `effects` (éditable au
-     *  Codex). Rendu par `resolveStake` et PRIORITAIRE sur le gabarit de l’enjeu `combat-maneuver-defense`. */
+     *  Codex). Rendu par `resolveStake` et PRIORITAIRE sur le gabarit de l’enjeu `combat-manoeuvre-defense`. */
     stake: z.string().optional(),
     stakeForm: stakeFormSchema.optional(),
     rendu: ref('rendu').optional(),
@@ -65,11 +46,11 @@ const doc = document(
   {
     kind: { label: 'Type d’attaque (rendu)', hint: 'Anime et illustre la manœuvre — n’entre pas dans la résolution' },
     activation: { label: 'Activation', hint: 'Action / gratuite / charge' },
-    advantageCost: { label: 'Coût en Avantage' },
-    advantageMode: { label: 'Mode de coût', hint: 'Fixe / variable / tout l’Avantage' },
+    coutEnAvantage: { label: 'Coût en Avantage' },
+    modeDAvantage: { label: 'Mode de coût', hint: 'Fixe / variable / tout l’Avantage' },
     stat: { label: 'Caractéristique de test' },
     defense: { label: 'Défense opposée' },
-    targeting: { label: 'Ciblage' },
+    ciblage: { label: 'Ciblage' },
     range: { label: 'Portée' },
     blast: { label: 'Zone d’effet' },
     magic: { label: 'Magique' },

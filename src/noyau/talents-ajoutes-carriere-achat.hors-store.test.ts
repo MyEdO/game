@@ -7,7 +7,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { buildAdvancementView } from './monde/advancement';
 import type { Combatant } from '../engine/types';
 
@@ -15,7 +15,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function soldat(over: Partial<Combatant> = {}): Combatant {
-  return { ...pregen(idsDeTest, PREGEN.soldat), xp: 500, ...over } as Combatant;
+  return { ...herosDeScenario(idsDeTest, 'soldat'), xp: 500, ...over } as Combatant;
 }
 
 const MARQUE = [{ id: 'marque-de-tzeentch' }];
@@ -27,11 +27,11 @@ beforeEach(() => {
 
 describe('acheterLeTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)', () => {
   it('porteur de la Marque de Tzeentch : la rangée d’avancement s’ACHÈTE — PX débités, Talent acquis', () => {
-    const h = soldat({ traits: [...(pregen(idsDeTest, PREGEN.soldat).traits ?? []), ...MARQUE] });
+    const h = soldat({ traits: [...(herosDeScenario(idsDeTest, 'soldat').traits ?? []), ...MARQUE] });
     expect(h.talents.some((t) => t.talentId === 'magie-des-arcanes')).toBe(false);
     expect(buildAdvancementView({ battle: null, flags: {} }, h).talents.some((r) => r.talentId === 'magie-des-arcanes' && r.spec === 'feu')).toBe(true);
     banc.setState({ party: [h] });
-    banc.getState().acheterLeTalent(h.id, 'magie-des-arcanes', 'feu');
+    banc.getState().acheterLeTalent(h.id, { id: 'magie-des-arcanes', spec: 'feu' });
     const apres = banc.getState().party[0];
     expect(apres.talents.find((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'feu')?.times).toBe(1);
     expect(apres.xp).toBe(400);
@@ -41,7 +41,7 @@ describe('acheterLeTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)',
     const h = soldat();
     expect(buildAdvancementView({ battle: null, flags: {} }, h).talents.some((r) => r.talentId === 'magie-des-arcanes')).toBe(false);
     banc.setState({ party: [h] });
-    banc.getState().acheterLeTalent(h.id, 'magie-des-arcanes', 'feu');
+    banc.getState().acheterLeTalent(h.id, { id: 'magie-des-arcanes', spec: 'feu' });
     const apres = banc.getState().party[0];
     expect(apres.talents.some((t) => t.talentId === 'magie-des-arcanes')).toBe(false);
     expect(apres.xp).toBe(500);

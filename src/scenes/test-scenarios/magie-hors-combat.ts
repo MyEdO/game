@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { pregenParty, PREGEN } from '../../data/pregens';
+import { groupeDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import { boostSkill } from './_casters';
@@ -28,16 +28,16 @@ export const scenario: TestScenario = {
   id: 'magie-hors-combat',
   order: 4,
   category: 'magie',
-  icon: 'scenario/magic-field',
+  icon: 'scenario/magie-hors-combat',
   title: 'Magie hors combat',
   tests: 'Incantation HORS COMBAT depuis la fiche : soin/bénédiction (Prêtre), Focalisation + Sort d’Arcane (Sorcier), refus des Projectiles magiques.',
-  partyNote: 'Wilhelmina (Sorcier, +Armure Aethyrique, blessée) + Frère Anselm (Prêtre)',
+  partyNote: 'Sorcier ( +Armure Aethyrique, blessée) + Prêtre (Prêtre)',
   construire: (idNeuf) => ({ party: groupe(idNeuf), scene: construireScene() }),
   // pas d'autoCombat : on teste l'incantation EN EXPLORATION (depuis la fiche de personnage).
 };
 
 function groupe(idNeuf: FabriqueDId): Combatant[] {
-  const [wiz, priest] = pregenParty(idNeuf, PREGEN.sorcier, PREGEN.pretre);
+  const [wiz, priest] = groupeDeScenario(idNeuf, 'sorcier', 'pretre');
   // Sorcier : ajoute un Sort d'Arcane FOCALISABLE (les sorts pré-tirés Fléchette/Choc sont de la
   // Magie mineure, NON focalisable) pour exercer le bouton « Focaliser » hors combat.
   if (!wiz.spells?.includes('armure-aethyrique')) wiz.spells = ['armure-aethyrique', ...(wiz.spells ?? [])];

@@ -49,8 +49,8 @@ export function CorruptionModal() {
   const rolled = pc.roll != null;
   const seuil = pc.kind === 'seuil';
   // Résistance (Menace) (LDB 10 l.1020) : exposition → 'corruption', seuil → 'mutation' (tag posé
-  // à l'ouverture). La fenêtre est le verbe `resist` du flux.
-  const resistAvail = pc.menace != null && !fermeturesDuFlux(useGame.getState(), 'corruption').resist;
+  // à l'ouverture). La fenêtre est le verbe `resister` du flux.
+  const resistAvail = pc.menace != null && !fermeturesDuFlux(useGame.getState(), 'corruption').resister;
   // La ligne que le résolveur `corruption` jette ; la nature et la cible de chaque option : `fenetreDeCorruption`.
   const l = hero ? ligneDuTestNomme(hero, pc.test) : null;
   const nature = fenetreDeCorruption(useGame.getState())?.nature ?? null;
@@ -75,14 +75,14 @@ export function CorruptionModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: 'Continuer', onClick: resolve, verbe: 'confirm' },
+    { key: 'confirmer', label: 'Continuer', onClick: resolve, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="corruption"
       stake={flowStakeRef(seuil ? 'corruption-seuil' : CORRUPTION_STAKE[pc.level ?? 'mineure'])}
-      title={seuil ? <><Icon id="nav/mutation" size="sm" /> Seuil de Corruption ({hero?.corruption ?? '?'} Points)</> : <><Icon id="nav/mutation" size="sm" /> Influence corruptrice ({libelleDeValeur(exposureLevelSchema, pc.level ?? 'mineure')})</>}
+      title={seuil ? <><Icon id="navigation/mutation" size="sm" /> Seuil de Corruption ({hero?.corruption ?? '?'} Points)</> : <><Icon id="navigation/mutation" size="sm" /> Influence corruptrice ({libelleDeValeur(exposureLevelSchema, pc.level ?? 'mineure')})</>}
       subtitle={
         <>
           <strong>{libelleOuAbsence(hero, 'heros', pc.heroId)}</strong>
@@ -103,7 +103,7 @@ export function CorruptionModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={rolled ? [recapLineOfEvent(ev('info', describeCorruption(pc, libelleOuAbsence(hero, 'heros', pc.heroId)), pc.heroId), pool)] : undefined}
+      outcome={rolled ? [recapLineOfEvent(ev('information', describeCorruption(pc, libelleOuAbsence(hero, 'heros', pc.heroId)), pc.heroId), pool)] : undefined}
       actions={actions}
     />
   );

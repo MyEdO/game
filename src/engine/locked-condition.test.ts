@@ -2,7 +2,16 @@ import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import type { Combatant, ConditionUnlock } from './types';
 import type { Condition } from './flowCore';
-import { addCondition, removeCondition, hasCondition, stacks, isConditionLocked, raisonVerrouEtat, releaseConditionLocks, hasSurgeryLockedCondition } from './conditions';
+import {
+  addCondition,
+  removeCondition,
+  hasCondition,
+  stacks,
+  isConditionLocked,
+  raisonVerrouEtat,
+  releaseConditionLocks,
+  hasSurgeryLockedCondition,
+} from './conditions';
 import { t } from '../i18n';
 import { applyOps } from './ops';
 import { CRITIQUE_DOCS } from '../data/criticals';
@@ -21,7 +30,7 @@ const rangees = () => CRITIQUE_DOCS.flatMap((d) => d.entries);
 
 function mk(): Combatant {
   return blessuresSurLeProfil({
-    id: 'x', name: 'X', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
+    id: 'x', name: 'X', kind: 'heros', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     conditions: [], activeEffects: [], skills: [], talents: [], traits: [], weapons: [], armour: [],
     wounds: blessuresDeBase(10), advantage: 0,
   }) as unknown as Combatant;
@@ -98,7 +107,7 @@ describe('Verrou d’acte de soin — unlockBy (LDB 18 : medicalAid / surgery / 
 
   it('op condition { unlockBy } : figée sur l’instance par applyOps ; un soin de sort (magie) la lève', () => {
     const c = mk();
-    applyOps(c, [{ op: 'condition', id: 'inconscient', value: 1, unlockBy: 'medicalAid' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Critique' });
+    applyOps(c, [{ op: 'condition', id: { id: 'inconscient' }, value: 1, unlockBy: 'medicalAid' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Critique' });
     expect(c.conditions.find((x) => x.id === 'inconscient')!.unlockBy).toBe('medicalAid');
     // Soin d’un SORT (ctx.sourceSpellId) = magie ⊇ Aide Médicale → l’op heal lève le verrou medicalAid.
     applyOps(c, [{ op: 'heal', amount: 1 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Bénédiction', sourceSpellId: 'benediction-soin' });
@@ -118,24 +127,24 @@ describe('Verrou d’acte de soin — unlockBy (LDB 18 : medicalAid / surgery / 
 
 describe('Données — verrous & escapeStrength câblés (RAW)', () => {
   it('Critique Tête « En plein front » (46-50) : l’op Aveuglé porte lockedUntil == 0 Hémorragique', () => {
-    const entry = rangees().find((e) => e.id === 'en-plein-front')! as { ops?: { op: string; id?: string; lockedUntil?: unknown }[] };
-    const aveugleOp = entry.ops!.find((o) => o.op === 'condition' && o.id === 'aveugle')!;
+    const entry = rangees().find((e) => e.id === 'en-plein-front')! as { ops?: { op: string; id?: { id: string }; lockedUntil?: unknown }[] };
+    const aveugleOp = entry.ops!.find((o) => o.op === 'condition' && o.id?.id === 'aveugle')!;
     expect(aveugleOp.lockedUntil).toEqual(noHemo);
   });
 
   it('Critique Corps « Hémorragie interne » (97-99) : l’op Hémorragique porte unlockBy surgery', () => {
-    const entry = rangees().find((e) => e.id === 'hemorragie-interne')! as { ops?: { op: string; id?: string; unlockBy?: string }[] };
-    const op = entry.ops!.find((o) => o.op === 'condition' && o.id === 'hemorragique')!;
+    const entry = rangees().find((e) => e.id === 'hemorragie-interne')! as { ops?: { op: string; id?: { id: string }; unlockBy?: string }[] };
+    const op = entry.ops!.find((o) => o.op === 'condition' && o.id?.id === 'hemorragique')!;
     expect(op.unlockBy).toBe('surgery');
   });
 
   it('Critiques « Aide Médicale » (œil/thorax/clavicule/épaule/genou) : unlockBy medicalAid (LDB + jumeaux AA)', () => {
-    type Op = { op: string; id?: string; unlockBy?: string };
+    type Op = { op: string; id?: { id: string }; unlockBy?: string };
     const opsOf = (id: string, cond: string): Op | undefined => {
       const e = rangees().find((x) => x.id === id)!;
-      // L'effet peut vivre dans l'effet IMMÉDIAT ou dans la branche `fail` du nœud `test` de la rangée.
-      return [...((e.ops ?? []) as Op[]), ...(spellOps(e.test?.fail, 'target') as unknown as Op[])]
-        .find((o) => o.op === 'condition' && o.id === cond);
+      // L'effet peut vivre dans l'effet IMMÉDIAT ou dans la branche `echec` du nœud `test` de la rangée.
+      return [...((e.ops ?? []) as Op[]), ...(spellOps(e.test?.echec, 'target') as unknown as Op[])]
+        .find((o) => o.op === 'condition' && o.id?.id === cond);
     };
     // œil (Aveuglé), thorax (Sonné), clavicule (Inconscient) — LDB + jumeaux AA aa-tete-41/aa-corps-91/aa-corps-96.
     expect(opsOf('blessure-majeure-a-l-il', 'aveugle')!.unlockBy).toBe('medicalAid');
@@ -154,13 +163,13 @@ describe('Données — verrous & escapeStrength câblés (RAW)', () => {
 
   it('Imparfaite « Tenue indisciplinée » (LDB 46) : Empêtré avec Force d’évasion 1d10×5', () => {
     // Adressée PAR ID stable (le libellé est de l'affichage — et il est HOMONYME entre les jeux LDB et VDM).
-    type Ligne = { id: string; label: string; ops?: { op: string; id?: string; escapeStrength?: unknown }[] };
+    type Ligne = { id: string; label: string; ops?: { op: string; id?: { id: string }; escapeStrength?: unknown }[] };
     const docs = miscastJson as unknown as { id: string; entries: Ligne[] }[];
     const mineure = docs.find((d) => d.id === 'miscast-mineure');
     if (!mineure) throw new Error('tableau « miscast-mineure » absent de miscast.json');
     const entry = mineure.entries.find((e) => e.id === 'mineure-tenue-indisciplinee')!;
     const op = entry.ops!.find((o) => o.op === 'condition')!;
-    expect(op.id).toBe('empetre');
+    expect(op.id).toEqual({ id: 'empetre' });
     // Résolution du 1d10×5 (multiple de 5, borné 5..50) via applyOps.
     for (let i = 0; i < 20; i++) {
       const c = mk();
@@ -224,14 +233,14 @@ describe('la donnée ne peut pas authorer un verrou sur un sujet non garanti (#1
   });
 
   it('un verrou sur un DRAPEAU de scène est REFUSÉ, en nommant la famille fautive', () => {
-    const res = gameOpSchema.safeParse({ op: 'condition', id: 'sonne', lockedUntil: { kind: 'flag', expr: 'porte-ouverte' } });
+    const res = gameOpSchema.safeParse({ op: 'condition', id: { id: 'sonne' }, lockedUntil: { kind: 'flag', expr: 'porte-ouverte' } });
     expect(res.success).toBe(false);
     expect(res.success ? '' : res.error.issues.map((i) => i.message).join('\n')).toContain('« flag »');
   });
 
   it('un verrou sur l’HORLOGE est REFUSÉ, même imbriqué dans un `all`', () => {
     const res = gameOpSchema.safeParse({
-      op: 'condition', id: 'sonne',
+      op: 'condition', id: { id: 'sonne' },
       lockedUntil: { kind: 'all', of: [noHemo, { kind: 'time', window: { afterHour: 6 } }] },
     });
     expect(res.success).toBe(false);

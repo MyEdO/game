@@ -25,7 +25,7 @@ const GUARD_CREATURE = 'predateur-sanglant';
 const CANCEL_FLAG = 'ghur-source-securisee';
 
 const guardian = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'gardien', label: 'Prédateur sanglant', kind: 'enemy', creatureId: GUARD_CREATURE, porteurDeFiche: { ref: GUARD_CREATURE },
+  id: 'gardien', label: 'Prédateur sanglant', kind: 'ennemi', creatureId: GUARD_CREATURE, porteurDeFiche: { ref: GUARD_CREATURE },
   characteristics: { 'capacite-de-combat': 56, 'capacite-de-tir': 0, force: 75, endurance: 62, initiative: 45, agilite: 49, dexterite: 15, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
   wounds: blessuresDeBase(104, 0), advantage: 0, conditions: [], skills: [], talents: [],
   traits: [{ id: 'gardien-eternel' }], weapons: [], armour: { corps: 0 }, pos: { x: 6, y: 6 }, dead: true,
@@ -86,7 +86,7 @@ describe('Trait Gardien éternel — reconstitution différée (op scheduleRespa
     const respawned = h.state().battle.combatants.filter((x: Combatant) => x.summon && x.creatureId === GUARD_CREATURE);
     expect(respawned).toHaveLength(1);
     expect(respawned[0].id).not.toBe('gardien'); // une nouvelle incarnation, pas le cadavre
-    expect(respawned[0].kind).toBe('enemy'); // même camp que le défunt → hostile au groupe
+    expect(respawned[0].kind).toBe('ennemi'); // même camp que le défunt → hostile au groupe
     expect(h.state().scheduledEffects).toHaveLength(0);
   });
 

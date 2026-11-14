@@ -5,7 +5,16 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { armeDeDessin, armesDEntite, armesDuCombattant } from './equipementDessine';
-import { apparencesCandidates, deciderApparencesDesArmes, emptyArmour, itemFromGive, loadoutSetActive, loadoutSetSlot, recomputeLoadout, weaponFromItem } from '../engine/items';
+import {
+  apparencesCandidates,
+  deciderApparencesDesArmes,
+  emptyArmour,
+  itemFromGive,
+  loadoutSetActive,
+  loadoutSetSlot,
+  recomputeLoadout,
+  weaponFromItem,
+} from '../engine/items';
 import { spawnEnemy } from './monde/spawn';
 import { creatures, findCreatureById } from '../data';
 import { setDataset } from '../data/overrides';
@@ -128,9 +137,9 @@ describe('armesDEntite — Indice formulé lu sur le profil du statbloc (Middenh
 
 describe('armes dessinées — mains et candidats (#2948)', () => {
   it('publie la main explicite et la prise graphique des armes sans loadout', () => {
-    expect(armeDeDessin(weaponFromItem(porte('arme-simple'), 'off')).hand).toBe('off');
+    expect(armeDeDessin(weaponFromItem(porte('arme-simple'), 'secondaire')).hand).toBe('secondaire');
     expect(armeDeDessin(weaponFromItem(porte('arme-simple'))).hand).toBe('main');
-    expect(armeDeDessin(weaponFromItem(porte('bouclier'))).hand).toBe('off');
+    expect(armeDeDessin(weaponFromItem(porte('bouclier'))).hand).toBe('secondaire');
     const deuxMains = armeDeDessin(weaponFromItem(porte('zweihander')));
     expect([deuxMains.hand, deuxMains.hands]).toEqual(['main', 2]);
   });
@@ -139,13 +148,13 @@ describe('armes dessinées — mains et candidats (#2948)', () => {
     const traits: TraitList = [{ id: 'arme', arg: 'arme-simple', value: 7 }, { id: 'arme', arg: 'dague', value: 4 }];
     const armes = renderWeaponsFromTraits(traits);
     const avant = structuredClone(armes);
-    expect(armesDuCombattant(porteur({ weapons: armes })).tenues.map((t) => t.hand)).toEqual(['main', 'off']);
+    expect(armesDuCombattant(porteur({ weapons: armes })).tenues.map((t) => t.hand)).toEqual(['main', 'secondaire']);
     expect(armes).toEqual(avant);
   });
 
   it('réserve les mains explicites sans changer l’ordre publié des armes sources', () => {
     const armes = [weaponFromItem(porte('dague')), weaponFromItem(porte('arme-simple'), 'main')];
-    expect(armesDuCombattant(porteur({ weapons: armes })).tenues.map((t) => [apparencesCandidates(t.arme), t.hand])).toEqual([[['dague'], 'off'], [['epee'], 'main']]);
+    expect(armesDuCombattant(porteur({ weapons: armes })).tenues.map((t) => [apparencesCandidates(t.arme), t.hand])).toEqual([[['dague'], 'secondaire'], [['epee'], 'main']]);
   });
 
   it('range le surplus graphique, y compris derrière une arme à deux mains', () => {
@@ -155,7 +164,7 @@ describe('armes dessinées — mains et candidats (#2948)', () => {
     expect(dessin.tenues.map((t) => [armeDeDessin(t.arme).candidats, t.hand, armeDeDessin(t.arme).hands])).toEqual([[['zweihander'], 'main', 2]]);
     expect(candidatsDe(dessin.rangees)).toEqual([['dague']]);
     const trois = armesDuCombattant(porteur({ weapons: [weaponFromItem(porte('arme-simple')), autre, weaponFromItem(porte('hache-de-lancer'))] }));
-    expect(trois.tenues.map((t) => t.hand)).toEqual(['main', 'off']);
+    expect(trois.tenues.map((t) => t.hand)).toEqual(['main', 'secondaire']);
     expect(candidatsDe(trois.rangees)).toEqual([['hache_lancer']]);
   });
 
@@ -165,8 +174,8 @@ describe('armes dessinées — mains et candidats (#2948)', () => {
     const bouclier = { ...porte('bouclier', 'bouclier_pointes'), uid: 'bouclier' };
     const c = porteur({
       items: [tenue, rangee, bouclier],
-      weapons: [weaponFromItem(tenue, 'main'), weaponFromItem(bouclier, 'off')],
-      loadouts: [{ id: 'a', main: tenue.uid, off: bouclier.uid }, { id: 'b', main: rangee.uid }],
+      weapons: [weaponFromItem(tenue, 'main'), weaponFromItem(bouclier, 'secondaire')],
+      loadouts: [{ id: 'a', main: tenue.uid, secondaire: bouclier.uid }, { id: 'b', main: rangee.uid }],
       activeLoadoutId: 'a',
     });
     const { tenues, rangees } = armesDuCombattant(c);
@@ -181,7 +190,7 @@ describe('armes dessinées — mains et candidats (#2948)', () => {
 
 describe('armes dessinées — armes rangées (#2948)', () => {
   const heros = (...ids: string[]): Combatant => {
-    const c = porteur({ kind: 'hero', items: ids.map((id) => ({ ...porte(id), uid: id })) });
+    const c = porteur({ kind: 'heros', items: ids.map((id) => ({ ...porte(id), uid: id })) });
     recomputeLoadout(c);
     return c;
   };
@@ -198,11 +207,11 @@ describe('armes dessinées — armes rangées (#2948)', () => {
     expect(rangees(c)).toEqual([['base', false], ['base', true]]);
   });
 
-  it('arme à deux mains au set actif : l’objet `off` de ce set n’est pas tenu, il est rangé', () => {
+  it('arme à deux mains au set actif : l’objet `secondaire` de ce set n’est pas tenu, il est rangé', () => {
     const c = heros('grande-hache', 'dague');
     const lo = c.loadouts![0];
     loadoutSetSlot(c, lo.id, 'main', 'grande-hache');
-    loadoutSetSlot(c, lo.id, 'off', 'dague');
+    loadoutSetSlot(c, lo.id, 'secondaire', 'dague');
     recomputeLoadout(c);
     const { tenues: tenus, rangees: ranges } = armesDuCombattant(c);
     expect(tenus.map(({ arme }) => [arme.subType, armeDeDessin(arme).hands])).toEqual([['deux-mains', 2]]);
@@ -218,7 +227,7 @@ describe('armes dessinées — armes rangées (#2948)', () => {
 
   it('un set inactif qui désigne une machine à Équipe (état de sauvegarde, sans recalcul) : la machine n’est pas rangée', () => {
     const c = porteur({
-      kind: 'hero', items: [{ ...porte('arme-simple'), uid: 'arme-simple' }, { ...porte('baliste'), uid: 'baliste' }],
+      kind: 'heros', items: [{ ...porte('arme-simple'), uid: 'arme-simple' }, { ...porte('baliste'), uid: 'baliste' }],
       loadouts: [{ id: 'a', main: 'arme-simple' }, { id: 'b', main: 'baliste' }], activeLoadoutId: 'a',
     });
     expect(rangees(c)).toEqual([['base', false]]);

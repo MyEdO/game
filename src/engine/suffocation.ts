@@ -18,7 +18,7 @@
  * effectuer un Test. À l'inverse, si vous n'avez pas eu le temps de vous préparer et que vous vous
  * retrouvez brutalement privé d'air, vous suffoquez immédiatement. » Une plongée ANTICIPÉE appelle
  * `prepareBreathHold` (pose `breathHoldSeconds = BE×10`) : tant que ce crédit dure, la suffocation ne
- * fait perdre aucune Blessure. Le crédit est décompté par Round via la règle `combat-round-seconds`
+ * fait perdre aucune Blessure. Le crédit est décompté par Round via la règle `combat-round-secondes`
  * (LDB 13 l.13 — « c'est le MJ qui décide » de la durée d'un Round ; hypothèse de calibrage 10 s,
  * non RAW). Privé d'air brutalement (`breathHoldSeconds` absent) = suffocation immédiate.
  *
@@ -40,7 +40,6 @@ import { rule } from './policy';
 import { offTerrainSuffocates } from './ops';
 import { itemCapability } from './capabilities';
 import { t } from '../i18n';
-import { chebyshev } from './grid';
 
 /** Une main porte-t-elle un contenant d'eau (Outre à eau, LDB 64 l.35 / Seau, LDB 67 l.59) ? Capacité par-OBJET
  *  `waterContainer`, NON gatée sur le port — on le sort du sac pour asperger, comme `isRation`
@@ -56,21 +55,16 @@ export function isWaterSprayTarget(target: Combatant): boolean {
   return offTerrainSuffocates(target);
 }
 
-/** Candidats ADJACENTS éligibles à « Asperger d'eau » (#497) dans le camp de l'aspergeur — MÊME
- *  filtre d'adjacence (`chebyshev` <= 1, `engine/grid.ts`) que `healableTargets`, cible = une
- *  Créature marine hors de l'eau (`isWaterSprayTarget`). */
+/** Candidats à « Asperger d'eau » (#497) dans `pool`, que l'appelant borne à ce que l'aspergeur atteint : une
+ *  Créature marine hors de l'eau (`isWaterSprayTarget`), jamais l'aspergeur. */
 export function waterSprayCandidates(active: Combatant, pool: Combatant[]): Combatant[] {
-  return pool.filter((t) => {
-    if (t.id === active.id || !isWaterSprayTarget(t)) return false;
-    if (!active.pos || !t.pos) return false;
-    return chebyshev(active.pos, t.pos) <= 1;
-  });
+  return pool.filter((t) => t.id !== active.id && isWaterSprayTarget(t));
 }
 
 /** Durée d'un Round de combat en secondes — LDB 13 l.13 : « c'est le MJ qui décide » ; hypothèse de
- *  calibrage maison (règle `combat-round-seconds`), PAS une certitude canon. Utilisée pour décompter
+ *  calibrage maison (règle `combat-round-secondes`), PAS une certitude canon. Utilisée pour décompter
  *  la rétention de souffle. */
-const secondsPerRound = (): number => Number(rule('combat-round-seconds'));
+const secondsPerRound = (): number => Number(rule('combat-round-secondes'));
 
 /** Souffle retenable sans Test (LDB 18 l.346) : Bonus d'Endurance × 10 secondes. Pur. */
 export function breathHoldSeconds(c: Combatant): number {

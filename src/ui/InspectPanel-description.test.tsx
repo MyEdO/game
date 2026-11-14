@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
 import { poserScenario } from '../state/scenarioFlow';
 import { lancerCampagne, campagneDuJeu, diligenceCampaign } from '../scenes/campaign';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { scenario } from '../scenes/test-scenarios/96-presets-edo';
 import { presetPnjById } from '../state/campaignData';
 import { mergeCreatureProfile } from '../noyau/monde/resolveursDuNarratif';
@@ -170,7 +170,7 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
     const vide = emptyScene('scene-test', 8, 8);
     vide.id = 'sc-pose';
     vide.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 1, y: 1 } });
-    const posee = placeEntity(vide, { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 5, y: 4 });
+    const posee = placeEntity(vide, { mode: 'entite', kind: 'personnage', ref: 'humain' }, { x: 5, y: 4 });
     const pose = addEnemyMember(posee.scene, '', 'humain', { x: 5, y: 4 });
     expect(pose.entityId, 'l’outil de combat enrôle le personnage posé').toBe(posee.id);
     let scene = pose.scene;
@@ -181,7 +181,7 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
           setScene={(next) => { scene = next; act(() => rendre(next)); }}
           sel={{ type: 'entity', id: pose.entityId }} setSel={() => undefined}
           enemyCreatures={[{ id: 'humain', label: 'Humain' }]} openLogic={() => undefined} resizeScene={() => undefined}
-          narratif={narratif} tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
+          narratif={narratif} tool={{ mode: 'selection' }} armZoneTiles={() => undefined} zoneFocusKey={null}
         />,
       );
       const racine = monter(<></>);
@@ -196,7 +196,7 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
       el.dispatchEvent(new Event(el instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
     });
     const titreDeFrise = (nom: string): HTMLElement | null => {
-      useGame.getState().fixerLeGroupe(makePregens(idsDeTest).slice(0, 1));
+      useGame.getState().fixerLeGroupe(tousLesHerosDeScenario(idsDeTest).slice(0, 1));
       useGame.getState().chargerLeProjet({ scenes: [scene], entryId: scene.id, narratif, projet: null });
       useGame.getState().lancerLeCombat(pose.encId, undefined, { noSurprise: true });
       useGame.setState({ inspectId: null });
@@ -387,7 +387,7 @@ describe('proseDeFiche — provenance de la Description (#2206)', () => {
 describe('DoD #2206 — la Description d’un preset de `la-diligence`, portée par le projet', () => {
   it('campagne lancée par `lancerCampagne` : la desc de SON profil, rendue par `Prose` sous `narratif.presetsPnj[1].profil.desc`', () => {
     useGame.setState(useGame.getInitialState());
-    useGame.getState().fixerLeGroupe(makePregens(idsDeTest).slice(0, 1));
+    useGame.getState().fixerLeGroupe(tousLesHerosDeScenario(idsDeTest).slice(0, 1));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign))).toBeNull();
     const gustav = sceneNpc(sceneAuPreset('edo-gustav-fondleburger'), 'pnj', presetPnjById)!;
     const desc = presetPnjById('edo-gustav-fondleburger')!.profil!.desc!;
@@ -400,7 +400,7 @@ describe('DoD #2206 — la Description d’un preset de `la-diligence`, portée 
 
   it('même chemin pour `edo-mutant-terenz` (rang 14), dont la desc cite le Codex : liens armés', () => {
     useGame.setState(useGame.getInitialState());
-    useGame.getState().fixerLeGroupe(makePregens(idsDeTest).slice(0, 1));
+    useGame.getState().fixerLeGroupe(tousLesHerosDeScenario(idsDeTest).slice(0, 1));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign))).toBeNull();
     const terenz = sceneNpc(sceneAuPreset('edo-mutant-terenz'), 'pnj', presetPnjById)!;
     const desc = presetPnjById('edo-mutant-terenz')!.profil!.desc!;

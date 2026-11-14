@@ -31,10 +31,10 @@ function engage(tourDe: 'heros' | 'creature', o: { tailleE: SizeCategory; taille
   g().ensemencerLeTirage(2);
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies[0];
   H.pos = { x: 10, y: 10 }; E.pos = { x: 11, y: 10 };
@@ -49,8 +49,8 @@ function engage(tourDe: 'heros' | 'creature', o: { tailleE: SizeCategory; taille
   return { H, E };
 }
 
-const optionDe = (c: Combatant) => availableAttacks(c, g().battle!).find((o) => o.id === PIETINEMENT.id);
-const porteOuverte = (c: Combatant) => ACTION_GATES['pietinement-gratuit']({ active: c, battle: g().battle!, gameTime: g().gameTime }).ok;
+const optionDe = (c: Combatant) => availableAttacks(banc.getState().scene, c, g().battle!).find((o) => o.id === PIETINEMENT.id);
+const porteOuverte = (c: Combatant) => ACTION_GATES['pietinement-gratuit']({ scene: banc.getState().scene, active: c, battle: g().battle!, gameTime: g().gameTime }).ok;
 
 /** L'IA de `E` joue ses gratuites ; rend le nombre de Piétinements déclarés, les Blessures infligées et le
  *  solde d'Avantage de `E` (payé moins gagné). */
@@ -85,14 +85,14 @@ describe('Piétinement : une manœuvre, une liste de gratuites', () => {
 
   it('créature plus grande SANS trait : l’option existe, au coût de la manœuvre', () => {
     const { E } = engage('creature', { tailleE: 'enorme', tailleH: 'moyenne' });
-    expect(optionDe(E)?.cost.advantage).toBe(PIETINEMENT.advantageCost);
+    expect(optionDe(E)?.cost.advantage).toBe(PIETINEMENT.coutEnAvantage);
     expect(porteOuverte(E)).toBe(true);
   });
 
   it('héros Grand face à plus petit : l’option existe, au coût de la manœuvre, nommée par elle', () => {
     const { H } = engage('heros', { tailleE: 'moyenne', tailleH: 'grande' });
     const option = optionDe(H);
-    expect(option?.cost.advantage).toBe(PIETINEMENT.advantageCost);
+    expect(option?.cost.advantage).toBe(PIETINEMENT.coutEnAvantage);
     expect(option?.label).toBe(PIETINEMENT.label);
     expect(porteOuverte(H)).toBe(true);
   });

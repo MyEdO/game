@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from '../noyau/battleRng';
 import { CascadeBody } from './CascadeModal';
 import { frozenOpposedBatchStep } from '../noyau/combat/triggeredTest';
@@ -46,9 +46,9 @@ afterEach(() => {
 
 describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () => {
   it('taverne contre la salle : la fenêtre lit « <adversaire> — Pari », dérivé de la STRUCTURE', () => {
-    const [a] = makePregens(idsDeTest).slice(0, 1) as [Combatant];
+    const [a] = tousLesHerosDeScenario(idsDeTest).slice(0, 1) as [Combatant];
     useGame.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne(a.id, { gameId: 'dominos', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
 
     const opp = get().pendingCascade!.participants[0].meta!.opposed!;
     expect(opp.test, 'le flux fige la STRUCTURE du Test adverse').toEqual({ skill: { id: 'pari' } });
@@ -66,9 +66,9 @@ describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () =
    */
   it('JOURNAL de la manche mono : les DEUX camps sont NOMMÉS, avec leur Test', () => {
     seedBattleRng(4);
-    const [a] = makePregens(idsDeTest).slice(0, 1) as [Combatant];
+    const [a] = tousLesHerosDeScenario(idsDeTest).slice(0, 1) as [Combatant];
     useGame.setState({ party: [a], journal: [] });
-    get().jouerALaTaverne({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne(a.id, { gameId: 'dominos', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
     const opp = step.meta!.opposed!;
     act(() => { get().jetLancer('cascade', step.id); });
@@ -87,12 +87,12 @@ describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () =
    * régression que ce cas verrouille.
    */
   it('alternative AUTHORÉE : la fenêtre écrit « Force/Athlétisme », jamais la dérivation seule', () => {
-    const [a, b] = makePregens(idsDeTest).slice(0, 2) as [Combatant, Combatant];
+    const [a, b] = tousLesHerosDeScenario(idsDeTest).slice(0, 2) as [Combatant, Combatant];
     useGame.setState({ party: [a, b] });
     const eff = findQualityById('destabilisante')!.effects![0];
     const choix = eff.flow;
-    if (choix?.kind !== 'choice' || choix.yes.kind !== 'test') throw new Error('la donnée de la Déstabilisante doit porter un choix → Test');
-    const ft = choix.yes.test;
+    if (choix?.kind !== 'choix' || choix.oui.kind !== 'test') throw new Error('la donnée de la Déstabilisante doit porter un choix → Test');
+    const ft = choix.oui.test;
     const aT = { roll: 42, target: 55, base: 55, sl: 1, success: true, isDouble: false };
     const step = frozenOpposedBatchStep([a], ft, { onSuccess: EMPTY_FLOW, onFail: EMPTY_FLOW }, EMPTY_FLOW, b, aT)!;
     expect(step, 'le producteur réel monte bien la bande opposée').toBeTruthy();

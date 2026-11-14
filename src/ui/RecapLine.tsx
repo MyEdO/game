@@ -7,7 +7,7 @@ import { Row } from './Layout';
 
 /**
  * RENDERER UNIQUE d'une ligne de récap structurée (#349) — icône + texte teinté par `tone` (mêmes
- * classes que le PV multijet, `.mrl-row.ok`/`.bad`, `styles/hud.css`). Consommé par `CascadeModal`
+ * classes que le PV multijet, `.mrl-row.reussite`/`.echec`, `styles/hud.css`). Consommé par `CascadeModal`
  * (note de conséquence d'étape), `TravelDayBody`/`SeaVoyageBody` (jour de voyage) et `dayCardSummary`
  * (résumé de carte, via `.text`) — UN seul rendu de ligne, pas une chaîne recomposée par surface.
  *

@@ -35,7 +35,8 @@ const METHODES = 'Méthodes'
 const SECTIONS = new Map([
   ['En-tête', 0], ['Transport', 2], ['Erreurs', 2], [METHODES, 2], ['Suite', 2], ['Vue', 2], ['Monde', 2],
   ['Éditeur', 2], ['Lumière', 2], ['Effets', 2], ['Musique', 2], ["L'écran de Godot", 2], ["Corps d'un combattant", 2],
-  ['Atelier 3D', 2], ["Gabarit d'une base", 3], ["Composition d'un personnage", 2], ['Écran publié', 2],
+  ['Atelier 3D', 2], ["Gabarit d'une base", 3], ["Composition d'un personnage", 2], ['Pile des couches', 2],
+  ['Écran publié', 2],
 ])
 
 const TAG = /^@contrat\s+(.+?)\s*$/

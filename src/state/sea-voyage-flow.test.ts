@@ -1,7 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { damageVesselHull, healVesselHull } from '../noyau/seaVoyageFlow';
 import { emptyScene } from '../noyau/monde/scene';
 import type { WorldMap } from '../noyau/worldMap';
@@ -26,14 +26,14 @@ const seaMap: WorldMap = {
 describe('#296 — state.vessel SOURCE UNIQUE de la coque de trajet (non-divergence)', () => {
   beforeEach(() => {
     set({
-      party: makePregens(idsDeTest).slice(0, 3), scene: emptyScene('port-a', 2, 2), battle: null, worldMap: seaMap, lieu: 'A',
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), scene: emptyScene('port-a', 2, 2), battle: null, worldMap: seaMap, lieu: 'A',
       travelPlan: null, pendingRest: null, pendingCascade: null, gameTime: 8 * 60,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);
   });
 
   it('la jauge de l’écran de traversée et la tuile de voyage lisent la MÊME source vive après un soin', () => {
-    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     const hull0 = get().travelPlan!.vehicle!.wounds.current;
     damageVesselHull(get, set, get().travelPlan!.vehicle!, 10);
     healVesselHull(get, set, get().travelPlan!.vehicle!, 3);

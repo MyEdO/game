@@ -9,7 +9,22 @@ import { datasetArray } from '../../data/overrides';
 import { opRow, opRows, tableRows } from './opRows';
 import { humanizeFormula, humanizeOp } from './humanize';
 import { codexLookupById } from './registry';
-import { characteristics, talents, skills, traits, psychologies, etats, trappings, maladies, symptoms, creatures, mutations, findSymptomById, effectTables, groupLabel } from '../../data';
+import {
+  characteristics,
+  talents,
+  skills,
+  traits,
+  psychologies,
+  etats,
+  trappings,
+  maladies,
+  symptoms,
+  creatures,
+  mutations,
+  findSymptomById,
+  effectTables,
+  groupLabel,
+} from '../../data';
 import type { CharKey } from '../../engine/types';
 import { psychBranchOps } from '../../engine/psychology';
 import { spellOps } from '../../engine/flowCore';
@@ -109,8 +124,8 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     { kind: 'grantPsychTrait', category: 'psychologies', build: () => opPsy.octroi(psychologies[0].id) },
     { kind: 'removePsychTrait', category: 'psychologies', build: () => opPsy.retrait(psychologies[0].id) },
     { kind: 'endPsych', category: 'psychologies', build: () => opPsy.fin(psychologies[0].id) },
-    { kind: 'condition', category: 'etats', build: () => ({ op: 'condition', id: etats[0].id }) },
-    { kind: 'removeCondition', category: 'etats', build: () => ({ op: 'removeCondition', id: etats[0].id }) },
+    { kind: 'condition', category: 'etats', build: () => ({ op: 'condition', id: { id: etats[0].id } }) },
+    { kind: 'removeCondition', category: 'etats', build: () => ({ op: 'removeCondition', id: { id: etats[0].id } }) },
     { kind: 'giveTrapping', category: 'trappings', build: () => ({ op: 'giveTrapping', trappingId: trappings[0].id }) },
     { kind: 'contractDisease', category: 'maladies', build: () => ({ op: 'contractDisease', disease: maladies[0].id }) },
     { kind: 'exposeDisease', category: 'maladies', build: () => ({ op: 'exposeDisease', disease: maladies[0].id }) },
@@ -142,7 +157,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     it('rollTable INLINE (vers-de-carie, MSRC 16 l.90-101) : 8 rangées visibles, sous-titre + ops', () => {
       const s = findSymptomById('vers-de-carie');
       expect(s?.onTick).toBeTruthy();
-      const rows = opRows(spellOps(s!.onTick!.test!.fail, 'target'));
+      const rows = opRows(spellOps(s!.onTick!.test!.echec, 'target'));
       const subs = rows.filter((r) => r.t === 'sub');
       expect(subs).toHaveLength(8);
       expect(subs.map((r) => (r as { t: 'sub'; label: string }).label)).toEqual([
@@ -207,8 +222,8 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     if (one.t === 'ref') expect(one.show).toBe('1 Blessure');
     if (two.t === 'ref') expect(two.show).toBe('2 Blessures');
 
-    const cond1 = opRow({ op: 'condition', id: etats[0].id, durationRounds: 1 });
-    const cond3 = opRow({ op: 'condition', id: etats[0].id, durationRounds: 3 });
+    const cond1 = opRow({ op: 'condition', id: { id: etats[0].id }, durationRounds: 1 });
+    const cond3 = opRow({ op: 'condition', id: { id: etats[0].id }, durationRounds: 3 });
     expect(cond1.t).toBe('ref');
     expect(cond3.t).toBe('ref');
     if (cond1.t === 'ref') expect(cond1.badge).toBe('1 Round');
@@ -219,8 +234,8 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
    *  dit pas « un État de plus par Round » — elle dit la PERSISTANCE, du même mot que le journal. */
   it('la chip d’une cause PERSISTANTE dit la persistance, là où un `perRound` nu dit « par Round »', () => {
     const [etat] = etats;
-    const nu = opRow({ op: 'condition', id: etat.id, perRound: true });
-    const persistante = opRow({ op: 'condition', id: etat.id, perRound: true, unlessCondition: etat.id, durationRounds: 3 });
+    const nu = opRow({ op: 'condition', id: { id: etat.id }, perRound: true });
+    const persistante = opRow({ op: 'condition', id: { id: etat.id }, perRound: true, unlessCondition: { id: etat.id }, durationRounds: 3 });
     expect(nu.t).toBe('ref');
     if (nu.t === 'ref') expect(nu.badge).toBe('par Round');
     expect(persistante.t).toBe('ref');
@@ -229,7 +244,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
       expect(persistante.show, 'UNE chip d’État, pas un compte').toBe(etat.label);
       expect(persistante.badge).toBe('regagné à chaque fin de Round · 3 Rounds');
     }
-    expect(humanizeOp({ op: 'condition', id: etat.id, perRound: true, unlessCondition: etat.id, durationRounds: 3 }))
+    expect(humanizeOp({ op: 'condition', id: { id: etat.id }, perRound: true, unlessCondition: { id: etat.id }, durationRounds: 3 }))
       .toBe(`gagne l'État *${etat.label}*, regagné à chaque fin de Round pendant 3 Rounds`);
   });
 
@@ -313,7 +328,7 @@ describe('pastille `charMod` — plancher et durée propre dits au producteur (E
   });
 
   it('`condition` lit la même durée propre', () => {
-    const r = opRow({ op: 'condition', id: etats[0].id, durationHours: 2 });
+    const r = opRow({ op: 'condition', id: { id: etats[0].id }, durationHours: 2 });
     expect(r.t === 'ref' ? r.badge : undefined).toBe('2 heures');
   });
 });

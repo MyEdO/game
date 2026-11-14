@@ -9,7 +9,9 @@ import type { Combatant, Difficulty, Trauma } from '../engine/types';
 import type { IdDePlaieDeLOperation } from './designations';
 import { garanti } from '../lib/garanti';
 import { rollLine, type RollLineParts } from './ligneDeJet';
-import type { FlowStakeId, StakeRef, SkillRef } from '../data';
+import { dataLabel, type FlowStakeId, type StakeRef, type SkillRef } from '../data';
+import { nomDe } from '../engine/nom';
+import type { PlayerText } from '../i18n/playerText';
 import { cibleMesuree } from '../engine/tests';
 import { partyAssisted, type SupportDetail } from '../engine/skills';
 import { bonus, effectiveChar } from '../engine/characteristics';
@@ -38,15 +40,15 @@ export interface MedicState {
   npc?: MedicNpc;
   patientId: string | null;
   /** Opération ARMÉE (Test étendu, LDB 12 l.170-174). Deux `kind`, MÊME machinerie
-   *  de passes (jet de Guérison influençable → cumul du DR) : `'surgery'` = Chirurgie d'une Blessure Critique
-   *  (Talent Chirurgie, chaque passe inflige 1d10 PB + 1 Hémorragie, LDB 10 l.184) ; `'recovery'` = Test étendu
+   *  de passes (jet de Guérison influençable → cumul du DR) : `'chirurgie'` = Chirurgie d'une Blessure Critique
+   *  (Talent Chirurgie, chaque passe inflige 1d10 PB + 1 Hémorragie, LDB 10 l.184) ; `'reeducation'` = Test étendu
    *  de Guérison qui rend l'usage d'un membre désactivé (« Épaule luxée »/« Genou démis », LDB 18 l.120/179 — aucun
    *  dégât, cible DR 6, Accessible +20, pénalité 1d10 j à la clé). */
   surgery?: {
-    kind: 'surgery' | 'recovery';
+    kind: ActeOperatoire;
     difficulty: Difficulty;
     healerId?: string;
-    healerName: string;
+    healerName: PlayerText;
     skill: number;
     /** SOUTIEN (LDB 12) des assistants, déjà fondu dans `skill` — recopié sur chaque passe (affichage). */
     support?: SupportDetail;
@@ -54,11 +56,11 @@ export interface MedicState {
     /** La Blessure Critique visée, parmi `plaiesDeLOperation` ; absente quand l'opération n'en vise aucune (verrous
      *  d'État seuls). */
     traumaUid?: IdDePlaieDeLOperation;
-    targetDR: number;
+    drCible: number;
     cumDR: number;
     /** ENJEU d'une passe (#1117) — posé à l'ARMEMENT, où le `kind` et la cible de DR sont connus :
-     *  opérer et rééduquer ne mettent pas la même chose en jeu (`stakes.json`, `surgery-roll` vs
-     *  `surgery-recovery`). Rendu par la zone de jet embarquée (`MedicModal`). */
+     *  opérer et rééduquer ne mettent pas la même chose en jeu (`stakes.json`, `chirurgie-test` vs
+     *  `chirurgie-reeducation`). Rendu par la zone de jet embarquée (`MedicModal`). */
     stake: StakeRef;
     /** Dernière passe (affichage DrBar) — absent tant qu'aucune passe n'a été tentée. */
     last?: { roll: number; sl: number };
@@ -70,22 +72,24 @@ export interface MedicState {
 /** Meilleur soigneur du groupe pour un acte (Opérer exige AUSSI le Talent Chirurgie, LDB 10 ; la récupération
  *  d'usage est un simple Test étendu de Guérison, sans Chirurgie, LDB 18 l.120/179). */
 export function bestHealerFor(party: Combatant[], act: HealMode): { actor: Combatant; value: number; support: SupportDetail } | null {
-  const pool = act === 'surgery' ? party.filter(hasSurgerySkill) : party;
+  const pool = act === 'chirurgie' ? party.filter(hasSurgerySkill) : party;
   return partyAssisted(pool, { skill: { id: HEAL_SKILL } }); // Soutien (LDB 12) : assistants de chirurgie/soin
 }
 
-/** Enjeu servi par chaque acte de soin ; `surgery`/`recovery` : celui de l'opération que l'acte arme. */
+/** Enjeu servi par chaque acte de soin ; `chirurgie`/`reeducation` : celui de l'opération que l'acte arme. */
 export const HEAL_STAKE: Record<HealMode, FlowStakeId> = {
-  wounds: 'heal-wounds', bleed: 'heal-bleed', trauma: 'heal-trauma', ammo: 'heal-ammo',
-  surgery: 'surgery-roll', recovery: 'surgery-recovery',
+  blessures: 'soin-blessures', hemorragie: 'soin-hemorragie', traumatisme: 'soin-dechirure', munition: 'soin-munition-logee',
+  chirurgie: 'chirurgie-test', reeducation: 'chirurgie-reeducation',
 };
 
 /** L'acte arme-t-il une opération étendue (`medic.surgery`) ? */
-export const estOperation = (act: HealMode): act is 'surgery' | 'recovery' => act === 'surgery' || act === 'recovery';
+/** Les actes de soin qui arment une opération au long cours (`MedicState['surgery']`). */
+export type ActeOperatoire = Extract<HealMode, 'chirurgie' | 'reeducation'>;
+export const estOperation = (act: HealMode): act is ActeOperatoire => act === 'chirurgie' || act === 'reeducation';
 
 /** Le soigneur d'un acte : `actor`, le soigneur JOUEUR, absent pour un PNJ payant (aucune fiche) — c'est lui qui
  *  permet de décomposer la valeur en Niveau de Compétence nu + composantes nommées (`rollLine`). */
-interface Soigneur { id?: string; actor?: Combatant; label: string; skill: number; intBonus: number; support?: SupportDetail }
+interface Soigneur { id?: string; actor?: Combatant; label: PlayerText; skill: number; intBonus: number; support?: SupportDetail }
 
 /** Ligne d'un jet de l'infirmerie — SOURCE UNIQUE des deux surfaces (acte `pendingHeal`, passe d'opération
  *  `pendingSurgery`), montée par le monteur canonique (`rollLine`, #1153) : la valeur est DÉCOMPOSABLE quand le
@@ -105,17 +109,17 @@ function soigneurDeLActe(s: Pick<Jeu, 'medic' | 'party'>, act: HealMode): Soigne
   const m = s.medic;
   const sg = m?.surgery;
   if (sg?.kind === act) return { id: sg.healerId, label: sg.healerName, skill: sg.skill, intBonus: sg.intBonus, support: sg.support };
-  if (m?.npc) return { id: m.npc.id, label: m.npc.label, skill: m.npc.skill.value, intBonus: m.npc.intBonus };
+  if (m?.npc) return { id: m.npc.id, label: dataLabel(m.npc.label), skill: m.npc.skill.value, intBonus: m.npc.intBonus };
   const best = bestHealerFor(s.party, act);
-  return best && { id: best.actor.id, actor: best.actor, label: best.actor.label, skill: best.value, intBonus: bonus(effectiveChar(best.actor, 'intelligence')), support: best.support };
+  return best && { id: best.actor.id, actor: best.actor, label: nomDe(best.actor), skill: best.value, intBonus: bonus(effectiveChar(best.actor, 'intelligence')), support: best.support };
 }
 
 /** Les Blessures Critiques qu'une opération de genre `act` peut viser sur `patient` : à rééduquer
  *  (`recoverableTraumas`) ou à opérer (`surgeryTraumas`). */
-const plaiesDeLActe = (patient: Combatant, act: 'surgery' | 'recovery'): Trauma[] =>
-  (act === 'recovery' ? recoverableTraumas(patient) : surgeryTraumas(patient));
+const plaiesDeLActe = (patient: Combatant, act: ActeOperatoire): Trauma[] =>
+  (act === 'reeducation' ? recoverableTraumas(patient) : surgeryTraumas(patient));
 
-/** Les Blessures Critiques que le choix `medic.plaie` ouvre, par l'`uid` que `jetValider('surgery')` lit : celles de
+/** Les Blessures Critiques que le choix `infirmerie.plaie` ouvre, par l'`uid` que `jetValider('chirurgie')` lit : celles de
  *  l'opération armée avant sa première passe, sinon celles du brouillon d'une opération ; vide sinon. */
 export function plaiesDeLOperation(s: Pick<Jeu, 'medic' | 'party' | 'pendingHeal'>): Trauma[] {
   const m = s.medic;
@@ -139,14 +143,14 @@ export function refusDeLActeALInfirmerie(s: Pick<Jeu, 'medic' | 'party' | 'pendi
   if (!patient) return t('medic.patientIntrouvable');
   const duPatient = raisonDeModeDeSoin(patient, act);
   if (duPatient || reprise) return duPatient;
-  if (act === 'recovery' && !recoverableTraumas(patient).length) return t('medic.aidRequired'); // LDB 18 l.120/179
+  if (act === 'reeducation' && !recoverableTraumas(patient).length) return t('medic.aidRequired'); // LDB 18 l.120/179
   if (m.npc) {
     const offer = m.npc.acts.find((a) => a.act === act);
     if (!offer) return t('medic.acteNonPropose', { pnj: m.npc.label });
     return offer.cost && !canAfford(totalDesBourses(s.party), toMoney(offer.cost)) ? t('medic.tooExpensive') : null;
   }
   if (bestHealerFor(s.party, act)) return null;
-  return act === 'surgery' ? t('medic.aucunChirurgien') : t('medic.aucunSoigneur');
+  return act === 'chirurgie' ? t('medic.aucunChirurgien') : t('medic.aucunSoigneur');
 }
 
 /** Le soin de l'acte `act` sur le patient courant, sans jet ni débit : son soigneur, sa ligne, sa Difficulté et, pour
@@ -157,11 +161,11 @@ export function soinDeLActe(s: Pick<Jeu, 'medic' | 'party'>, act: HealMode): Pen
   const soigneur = garanti(soigneurDeLActe(s, act), act, 'soigneur de l’acte');
   const reprise = m.surgery?.kind === act ? m.surgery : undefined;
   // Chirurgie : Intermédiaire +0 (LDB 10). Récupération d'usage : Accessible +20 (LDB 18 l.120/179).
-  const difficulty: Difficulty = reprise ? reprise.difficulty : act === 'recovery' ? 'accessible' : act === 'surgery' ? 'intermediaire' : healDifficulty(act);
+  const difficulty: Difficulty = reprise ? reprise.difficulty : act === 'reeducation' ? 'accessible' : act === 'chirurgie' ? 'intermediaire' : healDifficulty(act);
   const plaie = estOperation(act) && !reprise ? plaiesDeLActe(patient, act)[0]?.uid : undefined;
   const ligne = ligneDuSoigneur(soigneur, difficulty);
   return {
-    healerId: soigneur.id ?? 'pnj-soigneur', healerName: soigneur.label, targetId: patient.id, targetName: patient.label,
+    healerId: soigneur.id ?? 'pnj-soigneur', healerName: soigneur.label, targetId: patient.id,
     mode: act, intBonus: soigneur.intBonus, test: 'guerison', bandagesDe: null, skillValue: soigneur.skill, support: soigneur.support,
     difficulty, ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0, ...(plaie ? { plaie } : {}),
   };
@@ -193,16 +197,16 @@ export function passeDeLOperation(s: Pick<Jeu, 'medic' | 'party'>): PendingSurge
   const patient = garanti(s.party.find((h) => h.id === m.patientId), m.patientId ?? undefined, 'patient opéré');
   const ligne = ligneDuSoigneur({ skill: sg.skill, support: sg.support }, sg.difficulty);
   return {
-    healerId: sg.healerId ?? 'pnj-soigneur', healerName: sg.healerName, targetId: patient.id, targetName: patient.label,
-    intBonus: sg.intBonus, ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0, targetDR: sg.targetDR, cumDR: sg.cumDR,
+    healerId: sg.healerId ?? 'pnj-soigneur', targetId: patient.id,
+    intBonus: sg.intBonus, ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0, drCible: sg.drCible, cumDR: sg.cumDR,
   };
 }
 
 /** La cible de DR cumulé de l'opération que le brouillon `p` arme : Chirurgie, 7 (LDB 10) ; récupération d'usage,
  *  celle de la séquelle visée (LDB 18 l.120/179). Lue par l'armement et par l'enjeu du brouillon (`enjeuDuSoin`). */
-export function cibleDeLOperation(s: Pick<Jeu, 'party'>, p: Pick<PendingHeal, 'targetId' | 'plaie'>, kind: 'surgery' | 'recovery'): number {
-  if (kind === 'surgery') return 7;
+export function cibleDeLOperation(s: Pick<Jeu, 'party'>, p: Pick<PendingHeal, 'targetId' | 'plaie'>, kind: ActeOperatoire): number {
+  if (kind === 'chirurgie') return 7;
   const patient = garanti(s.party.find((h) => h.id === p.targetId), p.targetId, 'patient de l’opération');
   const aReeduquer = recoverableTraumas(patient);
-  return garanti(aReeduquer.find((x) => x.uid === p.plaie) ?? aReeduquer[0], patient.id, 'membre à rééduquer').targetDR;
+  return garanti(aReeduquer.find((x) => x.uid === p.plaie) ?? aReeduquer[0], patient.id, 'membre à rééduquer').drCible;
 }

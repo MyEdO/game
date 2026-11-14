@@ -8,8 +8,8 @@
     "mode": "rigide"
   },
   "clips": {
-    "idle": "repos",
-    "walk": "marche",
+    "repos": "repos",
+    "marche": "marche",
     "melee": "coup"
   },
   "surfaces": [

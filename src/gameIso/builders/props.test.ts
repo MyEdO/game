@@ -88,7 +88,7 @@ describe('buildProps — éléments prop du pivot', () => {
     s.layers[0].tiles[3 * 6 + 4] = 'bois'; // (4,3) : overlay à DÉCOR (overlayProp → 'arbre')
     s.entities = [
       { id: 'p1', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: REF_BILLBOARD }},
-      { id: 'p2', kind: 'prop', pos: { x: 3, y: 2 }, decor: { id: 'tente' }, facing: 'E', usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] } }, // tente 2×2 au catalogue
+      { id: 'p2', kind: 'prop', pos: { x: 3, y: 2 }, decor: { id: 'tente' }, facing: 'E', usable: { actions: [{ id: 'fouiller', flow: { kind: 'sequence', etapes: [] }, unique: true }] } }, // tente 2×2 au catalogue
       { id: 'npc', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 5, y: 5 } }, // pas un prop → ignoré
     ] as SceneEntity[];
     return s;

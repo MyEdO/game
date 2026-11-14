@@ -32,10 +32,10 @@ describe('weaponFromTrait — armement des monstres dans les Traits (FR)', () =>
   });
   it('À distance (Arbalète) +9 (60) → arbalète à distance, portée 60', () => {
     const w = weaponFromTrait({ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 })!;
-    expect(w).toMatchObject({ label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60 });
+    expect(w).toMatchObject({ label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60 });
   });
   it('À distance +8 (50) (sans type) → distance générique', () => {
-    expect(weaponFromTrait({ id: 'a-distance', value: 8, range: 50 })).toMatchObject({ type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 50 });
+    expect(weaponFromTrait({ id: 'a-distance', value: 8, range: 50 })).toMatchObject({ type: 'distance', damage: { plusBF: false, flat: 8 }, range: 50 });
   });
   it('Arme (griffes) marquée natural (donnée) → attaque NATURELLE, aucune arme dessinée', () => {
     // La détection naturelle vit dans la DONNÉE (flag `natural`), pas dans une regex au runtime →
@@ -111,7 +111,7 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
 
   it('une arbalète d’inventaire fait céder le Trait À distance : UNE arme à distance, l’objet, avec Recharge', () => {
     const c = spawnEnemy({ statblock: tireur }, 'e-tireur', { x: 0, y: 0 }, { inventaire: { arbalete: false } });
-    const ranged = c.weapons.filter((w) => w.type === 'ranged');
+    const ranged = c.weapons.filter((w) => w.type === 'distance');
     expect(ranged.map((w) => w.uid)).toEqual(['e-tireur-objet-arbalete']);
     expect(ranged[0].reload).toBeGreaterThan(0);
     expect(c.traits?.map((t) => t.id)).toEqual(['arme', 'armure']);
@@ -136,7 +136,7 @@ describe('creatureToCombatant — fidélité du profil du bestiaire (LDB 76/78)'
       optionals: [{ id: 'haine', arg: 'Sigmarites' }, { id: 'a-distance', value: 8, range: 50 }],
     });
     expect(c.traits).toContainEqual({ id: 'haine', arg: 'Sigmarites' }); // traits STRUCTURÉS au spawn (de-POC)
-    expect(c.weapons.some((w) => w.type === 'ranged' && w.damage && 'flat' in w.damage && !w.damage.plusBF && w.damage.flat === 8)).toBe(true);
+    expect(c.weapons.some((w) => w.type === 'distance' && w.damage && 'flat' in w.damage && !w.damage.plusBF && w.damage.flat === 8)).toBe(true);
     expect(c.psychTraits?.some((p) => p.type === 'haine')).toBe(true);
   });
 

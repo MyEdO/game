@@ -4,8 +4,9 @@
  * zone, ses textes déjà traduits et son ton ; un hôte range chaque type dans un composant à lui et n'écrit aucun
  * libellé. Les gestes sont des éléments aussi : chacun porte l'intention qu'il joue (`Jeu`), prête à envoyer.
  */
-import type { CreatorDraft, GesteDEdition, GesteDuBrouillon, PageDeCreation } from '../noyau/index';
+import type { CreatorDraft, GesteDEdition, GesteDuBrouillon, IdDeCouche, PageDeCreation } from '../noyau/index';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
+import type { AnySlot, SaveSlot } from './sauvegardes';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
 /** Le ton d'un élément : le nom d'une variation du thème de l'hôte. */
@@ -61,13 +62,25 @@ export type PanneauDeLHote = { fiche: FicheOuverte } | { creation: CreationOuver
  *  engager le héros dans le groupe. */
 export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engager'; args: [] } | { geste: 'page'; args: [PageDeCreation] } | GesteDuBrouillon;
 
+/** Un geste sur le roster de l'hôte : recruter au groupe le héros d'une entrée, retirer l'entrée du roster, ou
+ *  l'exporter en fichier, chacune par l'id de son héros ; demander le choix d'un fichier d'export à importer
+ *  (`importer`), puis en importer le texte (`importe`, `null` si le joueur renonce). */
+export type GesteDuRoster = { recruter: string } | { retirer: string } | { exporter: string } | { importer: true } | { importe: string | null };
+
+/** Une entrée de l'accueil de l'hôte : le jeu au groupe à composer, les sauvegardes à reprendre, le combat d'un
+ *  scénario de test, l'atelier, l'éditeur de carte. */
+export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'combat' | 'atelier' | 'editeur';
+
 /** L'intention qu'un geste joue : un verbe de la partie et ses arguments, celui d'une offre de l'actif compris
  *  (`Offre.geste`), une suite de verbes
  *  joués l'un après l'autre (un geste d'exploration : marcher jusqu'à une case, puis y agir), la fiche que l'hôte
  *  montre (`null` : aucune), qui ne touche pas la partie, un geste de la création d'un héros (`null` : la ferme), un
- *  geste de l'éditeur de carte (`editeur.ts`), ou, avant toute partie, l'id du scénario de test à démarrer
- *  (`scenarios.ts`). */
-export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string };
+ *  geste de l'éditeur de carte (`editeur.ts`), avant toute partie, l'id du scénario de test à démarrer
+ *  (`scenarios.ts`), le groupe composé, l'id de la campagne du jeu à lancer, la partie à quitter, un geste sur le
+ *  roster de l'hôte (`groupe.ts`), le panneau des sauvegardes à ouvrir ou à fermer, l'emplacement à charger ou celui
+ *  où sauvegarder (`sauvegardes.ts`), le panneau des réglages à ouvrir ou à fermer (`reglages.ts`), l'entrée de
+ *  l'accueil à suivre (`accueil.ts`), le salon à quitter (`salon.ts`). */
+export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot } | { reglages: boolean } | { accueil: EntreeDeLAccueil } | { salon: 'quitter' };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
  *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */
@@ -96,6 +109,38 @@ export type Saisie =
  *  pas. */
 export interface Formulaire { type: 'formulaire'; id: string; libelle: string; verbe: string; focus: boolean; refus: string | null; champs: Saisie[] }
 
+/**
+ * @contrat Vue
+ * Un curseur : un nombre réglé en glissant ou saisi, sans bouton (#4081).
+ */
+export interface Curseur {
+  /** `curseur`. */
+  type: 'curseur';
+  /** stable dans sa zone. */
+  id: string;
+  /** la variation du thème de son libellé. */
+  ton: Ton;
+  /** ce qu'il règle. */
+  libelle: string;
+  /** sa valeur courante. */
+  valeur: number;
+  /** sa borne basse. */
+  min: number;
+  /** sa borne haute. */
+  max: number;
+  /** l'écart entre deux valeurs voisines. */
+  pas: number;
+  /**
+   * le verbe du geste joué à chaque valeur que le joueur lui donne :
+   * `{ type: verbe, args: [...arguments, valeur] }`.
+   */
+  verbe: string;
+  /** les arguments de son geste, avant la valeur. */
+  arguments: unknown[];
+  /** pourquoi il ne se règle pas, `null` s'il se règle. */
+  refus: string | null;
+}
+
 /** Un point du plan : son nom, sa position dans le cadre du plan (0..1 sur chaque axe), son ton, et les éléments
  *  qui se posent sous lui. */
 export interface PointDuPlan { type: 'point'; id: string; nom: string; x: number; y: number; ton: Ton; elements: Element[] }
@@ -106,8 +151,21 @@ export interface TraitDuPlan { id: string; de: string; vers: string; ton: Ton }
 /** Un plan : des points nommés posés dans un cadre, et les traits qui les relient. */
 export interface Plan { type: 'plan'; id: string; points: PointDuPlan[]; traits: TraitDuPlan[] }
 
+/** Le portrait d'un combattant : son corps, celui que l'hôte monte au plateau (`combattant`, son id), vu en buste. */
+export interface Portrait { type: 'portrait'; id: string; combattant: string }
+
+/** Une icône : son id au registre des icônes (`src/data/icons`), dont l'hôte tient le dessin. */
+export interface Icone { type: 'icone'; id: string; icone: string }
+
+/** Un fond d'ambiance : son id au registre des fonds (`src/data/fonds`), dont l'hôte tient le dessin. */
+export interface Fond { type: 'fond'; id: string; fond: string }
+
+/** Un paysage : ses couches, de la plus lointaine à la plus proche, chacune l'id d'un dessin du registre des paysages
+ *  (`src/data/paysages`), dont l'hôte tient le dessin et qu'il trace l'une sur l'autre. */
+export interface Paysage { type: 'paysage'; id: string; paysage: IdDeCouche[] }
+
 /** Un élément de la vue. */
-export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Bouton | Choix | Formulaire | Saisie;
+export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Portrait | Icone | Fond | Paysage | Bouton | Choix | Curseur | Formulaire | Saisie;
 
 /** Les bornes d'une saisie de nombre sans réglage : tout entier sur 32 bits, qu'un contrôle au pas de 1 tient
  *  exactement (le pas se cale sur l'écart à la borne, en réels). */

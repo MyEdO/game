@@ -26,7 +26,7 @@ const tir = (): AttackResult => ({
   critical: false, advantageTo: null, defenderDefeated: false, log: '',
 });
 
-const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as unknown as Weapon;
+const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as unknown as Weapon;
 const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
 
 /** Ouvre le combat du scénario et POSE le Dôme par les ops du sort CURÉ (jamais une aura à la main). */
@@ -34,12 +34,12 @@ function startDome(): { sorciere: Combatant; protegee: Combatant; archer: Combat
   banc.setState({ battle: null, party: scenario.construire(idsDeTest).party });
   banc.getState().lancerLaScene(scenarioConstruit.scene);
   banc.getState().lancerLeCombat('enc-dome');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
   const sorciere = b.combatants.find((c) => c.id === 'sorciere')!;
   const protegee = b.combatants.find((c) => c.id === 'protegee')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   // Le Dôme est lancé par le VRAI chemin (`applyCast`) : c'est lui qui résout la ZdE de la ligne
   // « Cible » et la confie aux ops. Rien n'est recopié ici, ni zone ni Indice.
   const dome = findSpellById('dome')!;
@@ -62,14 +62,14 @@ describe('Dôme — la sauvegarde qu’une zone OCTROIE (LDB 47 l.410)', () => {
 
   it('le TIREUR agit d’abord en TIRANT (sinon la condition « de l’extérieur » ne se produit jamais)', () => {
     const { archer } = startDome();
-    expect(archer.weapons?.some((w) => w.type === 'ranged'), 'l’arc vient de la DONNÉE du scénario').toBe(true);
+    expect(archer.weapons?.some((w) => w.type === 'distance'), 'l’arc vient de la DONNÉE du scénario').toBe(true);
     const b = banc.getState().battle!;
     const avant = b.log.length;
     banc.setState({ battle: { ...b, turn: b.order.indexOf(archer.id), acted: false, action: null, movementUsed: 0 } });
     runEnemyAI(banc.getState, banc.setState, archer.id);
     banc.reprendreLesEnAttente();
     const lignes = banc.getState().battle!.log.slice(avant);
-    expect(lignes.some((l) => l.kind === 'shoot'), `premier acte du tireur : ${lignes.map((l) => l.text).join(' | ')}`).toBe(true);
+    expect(lignes.some((l) => l.kind === 'tir'), `premier acte du tireur : ${lignes.map((l) => l.text).join(' | ')}`).toBe(true);
   });
 
   it('TIR de l’extérieur sur la protégée : la sauvegarde s’ouvre À LA PORTE et nomme le Trait', () => {

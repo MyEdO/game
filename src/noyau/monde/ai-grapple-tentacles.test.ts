@@ -12,7 +12,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
-function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
+function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
     id, label: id, kind, pos,
     wounds: blessuresDeBase(10), weapons: [MELEE], characteristics: {} as never,
@@ -33,27 +33,27 @@ function holds(e: Combatant, hId: string): void {
 
 describe('IA — Tentacules/Langue : l’Empoignade tenue ne VERROUILLE pas la créature (LDB 85 l.405/213)', () => {
   it('Tentacules + grapplingWith → action NORMALE (pas { grapple }) : le membre tient pendant que le corps agit', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { traits: [{ id: 'tentacules', value: 9, count: 2 }] });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { traits: [{ id: 'tentacules', value: 9, count: 2 }] });
     holds(e, 'h');
-    const h = mk('h', 'hero', { x: 5, y: 6 }, { advantage: 0 }); // adjacent → la créature attaque normalement
+    const h = mk('h', 'heros', { x: 5, y: 6 }, { advantage: 0 }); // adjacent → la créature attaque normalement
     const a = chooseEnemyAction(input(e, [h], { movement: 0 }));
-    expect(a.kind).not.toBe('grapple'); // PAS verrouillée sur la lutte
-    expect(a.kind).not.toBe('recover'); // ni reléguée à « se libérer » : elle prend une vraie Action
+    expect(a.kind).not.toBe('empoignade'); // PAS verrouillée sur la lutte
+    expect(a.kind).not.toBe('liberation'); // ni reléguée à « se libérer » : elle prend une vraie Action
   });
 
   it('Langue préhensile + grapplingWith → VERROUILLÉE sur le Test opposé (pas de dérogation p.343, règle générale p.163)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { traits: [{ id: 'langue-prehensile', value: 9 }] });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { traits: [{ id: 'langue-prehensile', value: 9 }] });
     holds(e, 'h');
-    const h = mk('h', 'hero', { x: 5, y: 6 }, { advantage: 0 });
+    const h = mk('h', 'heros', { x: 5, y: 6 }, { advantage: 0 });
     const a = chooseEnemyAction(input(e, [h], { movement: 0 }));
-    expect(a).toEqual({ kind: 'grapple', targetId: 'h', resolution: 'test' }); // Langue = grappleur ordinaire, LOT B
+    expect(a).toEqual({ kind: 'empoignade', targetId: 'h', resolution: 'test' }); // Langue = grappleur ordinaire, LOT B
   });
 
   it('contraste : SANS trait tentacule/langue, l’Empoigné reste VERROUILLÉ sur le Test opposé (LOT B inchangé)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 });
     holds(e, 'h');
-    const h = mk('h', 'hero', { x: 5, y: 6 }, { advantage: 0 });
+    const h = mk('h', 'heros', { x: 5, y: 6 }, { advantage: 0 });
     const a = chooseEnemyAction(input(e, [h], { movement: 0 }));
-    expect(a).toEqual({ kind: 'grapple', targetId: 'h', resolution: 'test' });
+    expect(a).toEqual({ kind: 'empoignade', targetId: 'h', resolution: 'test' });
   });
 });

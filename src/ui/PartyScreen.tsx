@@ -1,21 +1,20 @@
 import { fabriqueLocale } from '../engine/fabriqueDId';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { emplacementsDuGroupe, nomDuSiege, siegesDeLaTable } from '../noyau/sieges';
 import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../noyau/etat';
-import { makePregensWithWealth } from '../data/pregens';
+import { pretire } from '../data/pregens';
 import { stockageDuRoster } from '../state/roster';
-import { ajouterAuRoster, chargerLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
-import { idDeRosterDuMembre, rosterExport, rosterImport, type RosterEntry } from '../noyau/persistance/roster';
+import { avisDuRoster, chargerLeRoster, fichierDuHeros, importerAuRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
+import { idDeRosterDuMembre } from '../noyau/persistance/roster';
 import type { HerosEngage } from '../noyau/creation/engagement';
-import { nommerLesRetraits } from '../noyau/persistance/elagage';
 import { PARTY_MAX } from '../noyau/monde/combatants';
-import { downloadText, fileSlug } from '../web/fileIo';
+import { downloadText } from '../web/fileIo';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
 import { publishedProjects, campagneDeLEntree } from '../state/projectLibrary';
 import { playerEntryError } from '../noyau/worldMap';
 import { Combatant } from '../engine/types';
-import { Money } from '../engine/money';
+import { Coins } from './Coins';
 import { partyCoverage } from '../engine/axes';
 import { CandidateCard, SeatCard, ActionCard, axisDataFor } from './CharCard';
 import { CharacterSheet } from './CharacterSheet';
@@ -31,7 +30,7 @@ import { HeroSheet } from './HeroSheet';
 import { MasterDetail } from './MasterDetail';
 import { Icon } from './Icon';
 import { Tabs } from './composites/Tabs';
-import { coreAxisIds } from '../data';
+import { coreAxisIds, libelleDeLaSomme, pregens } from '../data';
 import { resolveActiveAxes } from '../noyau/worldMap';
 import { listeEt, t } from '../i18n';
 import { Row, Stack } from './Layout';
@@ -77,7 +76,7 @@ export function PartyScreen() {
   const refusDeComposition = useGame(refusComposition);
   const refusDAjout = useGame((s) => refusDAjoutAuGroupe(s, undefined, s.net.mySeat));
   const setEditingHero = useGame((s) => s.setEditingHero);
-  const assignSlot = useGame((s) => s.netAssignSlot);
+  const assignSlot = useGame((s) => s.affecterLEmplacementAuSiege);
   const leave = useGame((s) => s.netLeave);
   const openPossessionsScreen = useGame((s) => s.openPossessionsScreen);
   const [campaignPick, setCampaignPick] = useState(false);
@@ -90,7 +89,7 @@ export function PartyScreen() {
   };
 
   // Le choix de campagne appartient à l'hôte (ou au solo), hors partie en cours (« Reprendre »).
-  const canPickCampaign = net.mode !== 'guest' && !inProgress;
+  const canPickCampaign = net.mode !== 'invite' && !inProgress;
   // Axes ACTIFS de la campagne (#409/#417) : `resolveActiveAxes` lit `activeAxes` sur
   // `pendingCampaign` (`ProjectDoc`, `noyau/worldMap.ts`) et retombe sur le socle `coreAxisIds`
   // si absent — SOURCE UNIQUE de ce défaut, jamais un `?? []` dispersé côté écran.
@@ -173,7 +172,7 @@ function CampaignSelect({ currentId, onClose }: { currentId: string; onClose: ()
         {refusEntree && <ChipDeRefus refus={{ message: refusEntree }} />}
         <div className="pregen-list">
           <div className="pregen-row">
-            <span className="campaign-row-name"><Icon id="scenario/arena" size="sm" /> {t('campaign.builtin')}</span>
+            <span className="campaign-row-name"><Icon id="scenario/arene" size="sm" /> {t('campaign.builtin')}</span>
             <button className="btn small btn-primary" disabled={currentId === 'arene'} onClick={() => pick(null)}>
               {currentId === 'arene' ? t('party.campaign.pick.current') : t('party.campaign.pick.choose')}
             </button>
@@ -192,7 +191,7 @@ function CampaignSelect({ currentId, onClose }: { currentId: string; onClose: ()
           ))}
           {published.map((p) => (
             <div key={p.id} className="pregen-row">
-              <span className="campaign-row-name"><Icon id="nav/campaign" size="sm" /> {p.label}</span>
+              <span className="campaign-row-name"><Icon id="navigation/campagne" size="sm" /> {p.label}</span>
               <button
                 className="btn small btn-primary"
                 disabled={currentId === p.id}
@@ -389,7 +388,7 @@ export function PartyScreenView({
   return (
     <div className="screen party-screen">
       <header className="bar">
-        {net.mode === 'guest' ? (
+        {net.mode === 'invite' ? (
           <button className="btn small" onClick={onQuitCoop}>
             {t('party.back.quit')}
           </button>
@@ -401,11 +400,11 @@ export function PartyScreenView({
         <h2>{title} ({party.length}/{PARTY_MAX})</h2>
         {onPossessions && (
           <button className="btn small" onClick={onPossessions}>
-            <Icon id="travel/mount" size="sm" /> Possessions
+            <Icon id="voyage/en-selle" size="sm" /> Possessions
           </button>
         )}
-        {net.mode === 'guest' && (
-          <span className="hint"><Icon id="ui/wait" size="sm" /> {t('party.guest.waiting')}</span>
+        {net.mode === 'invite' && (
+          <span className="hint"><Icon id="interface/attendre" size="sm" /> {t('party.guest.waiting')}</span>
         )}
       </header>
       {refus && <p className="hint party-coop-hint" role="status">{refus}</p>}
@@ -451,7 +450,7 @@ export function PartyScreenView({
                   }
                 }}
               >
-                {coop && (net.mode === 'host' && !h ? (
+                {coop && (net.mode === 'hote' && !h ? (
                   <label className="slot-owner">
                     <span>{t('party.slot.player')}</span>
                     <select value={seat} onChange={(e) => onAssignSlot(i, Number(e.target.value))}>
@@ -461,7 +460,7 @@ export function PartyScreenView({
                     </select>
                   </label>
                 ) : proprietaire !== null ? (
-                  <div className="slot-owner hint"><Icon id="nav/seat-owner" size="sm" /> {seatName(proprietaire)}{proprietaire === net.mySeat ? t('party.slot.you') : ''}</div>
+                  <div className="slot-owner hint"><Icon id="navigation/proprietaire-du-siege" size="sm" /> {seatName(proprietaire)}{proprietaire === net.mySeat ? t('party.slot.you') : ''}</div>
                 ) : null)}
                 {h ? (
                   <SeatCard
@@ -489,7 +488,7 @@ export function PartyScreenView({
                     <span className="seat-contract-badge">{t('party.acts.badge', { n: ACT_ROMAN[i] })}</span>
                     <span className="seat-empty-title">{t('party.acts.empty.title')}</span>
                     <span className="hint seat-invite">
-                      {mine ? t('party.slot.invite') : <><Icon id="ui/wait" size="sm" /> {t('party.slot.waiting', { name: seatName(seat) })}</>}
+                      {mine ? t('party.slot.invite') : <><Icon id="interface/attendre" size="sm" /> {t('party.slot.waiting', { name: seatName(seat) })}</>}
                     </span>
                     {mine && (
                       <Row className="seat-empty-actions">
@@ -508,7 +507,7 @@ export function PartyScreenView({
       </div>
       </div>
 
-      {net.mode !== 'guest' && (
+      {net.mode !== 'invite' && (
         <Row as="footer" className="party-actions">
           <p className="party-actions-summary">{partySummaryText(party, axisIds)}</p>
           <Row className="party-actions-buttons">
@@ -628,16 +627,19 @@ export function CandidatePool({
   /** Ouvre le créateur (carte-action « Créer un personnage »). */
   onCreate?: () => void;
 }) {
-  const allPregens = useState(() => makePregensWithWealth(fabriqueLocale('vivier')))[0]; // l'étal : le noyau rebâtit le pré-tiré engagé
+  // L'étal : le noyau rebâtit le pré-tiré engagé et tire sa Richesse au recrutement ; l'étal en montre la formule imprimée.
+  const allPregens = useState(() => {
+    const idNeuf = fabriqueLocale('vivier');
+    return pregens.map((d) => ({ id: d.id, hero: pretire(idNeuf, d.id), bourse: libelleDeLaSomme(d.richesse) }));
+  })[0];
   const [roster, setRoster] = useState(() => chargerLeRoster(stockageDuRoster()));
   const [tab, setTab] = useState<'roster' | 'pregens'>(roster.length ? 'roster' : 'pregens');
   const [importErr, setImportErr] = useState<string | null>(null);
   // `prendreLesTemoinsDuRoster` (`hote/roster.ts`) consomme : la prise vit dans un EFFET de montage, jamais dans un
   // initialiseur de rendu que `<React.StrictMode>` jouerait deux fois.
   useEffect(() => {
-    const temoins = prendreLesTemoinsDuRoster(stockageDuRoster());
-    if (temoins?.retire) setImportErr(t('picker.roster.retire'));
-    if (temoins?.elagage) setImportErr(t('picker.roster.elague', { liste: nommerLesRetraits(temoins.elagage) }));
+    const avis = avisDuRoster(prendreLesTemoinsDuRoster(stockageDuRoster()));
+    if (avis) setImportErr(avis);
   }, []);
   // Candidat ÉLU (déplié dans l'ACTE DE PRÉSENTATION, `DetailFrame`) — plus de modale (#417,
   // planche ratifiée d'équipe §B « la présentation intégrée au sélecteur »).
@@ -649,16 +651,18 @@ export function CandidatePool({
   const inParty = (id: string) => party.some((p) => idDeRosterDuMembre(p) === id);
   const shownPregens = hideInParty ? allPregens.filter((e) => !inParty(e.hero.id)) : allPregens;
   const shownRoster = hideInParty ? roster.filter((e) => !inParty(e.hero.id)) : roster;
-  const shownList: { hero: Combatant; wealth?: Money }[] =
-    tab === 'roster' ? shownRoster.map(({ hero, wealth }) => ({ hero, wealth })) : shownPregens.map(({ hero, wealth }) => ({ hero, wealth }));
+  const shownList: { hero: Combatant; bourse: ReactNode }[] =
+    tab === 'roster' ? shownRoster.map(({ hero, wealth }) => ({ hero, bourse: <Coins money={wealth} /> })) : shownPregens;
   const selected = shownList.find((e) => e.hero.id === selectedId) ?? shownList[0] ?? null;
 
   const removeSaved = (id: string) => {
     retirerDuRoster(stockageDuRoster(), id);
     setRoster(chargerLeRoster(stockageDuRoster()));
   };
-  const exportHero = (entry: RosterEntry) =>
-    downloadText(`wfrp4-perso-${fileSlug(entry.hero.label)}.json`, rosterExport(entry));
+  const exportHero = (id: string) => {
+    const fichier = fichierDuHeros(stockageDuRoster(), id);
+    if (fichier) downloadText(fichier.nom, fichier.texte);
+  };
   const startCreate = () => {
     if (onCreate) return onCreate();
     setEditingHero(null);
@@ -666,14 +670,13 @@ export function CandidatePool({
   };
   const onImportFile = async (file: File | undefined) => {
     if (!file) return;
-    const result = rosterImport(await file.text());
-    if (!result.entry) {
-      setImportErr(result.error);
+    const importe = importerAuRoster(stockageDuRoster(), await file.text());
+    if ('refus' in importe) {
+      setImportErr(importe.refus);
       return;
     }
-    ajouterAuRoster(stockageDuRoster(), result.entry);
     setRoster(chargerLeRoster(stockageDuRoster()));
-    setImportErr(result.retraits ? t('picker.import.elague', { liste: nommerLesRetraits(result.retraits) }) : null);
+    setImportErr(importe.avis);
     setTab('roster');
   };
 
@@ -708,22 +711,22 @@ export function CandidatePool({
                       hero={hero}
                       variant={variant}
                       recruited={inParty(hero.id)}
-                      wealth={wealth}
+                      bourse={<Coins money={wealth} />}
                       axisIds={axisIds}
                       selected={selected?.hero.id === hero.id}
                       onRecruit={() => onPick({ brouillon: draft, id: hero.id })}
                       onPresent={() => setSelectedId(hero.id)}
-                      onExport={() => exportHero({ hero, wealth, draft })}
+                      onExport={() => exportHero(hero.id)}
                       onDelete={() => removeSaved(hero.id)}
                     />
                   ))
-                : shownPregens.map(({ id, hero: h, wealth }) => (
+                : shownPregens.map(({ id, hero: h, bourse }) => (
                     <CandidateCard
                       key={h.id}
                       hero={h}
                       variant={variant}
                       recruited={inParty(h.id)}
-                      wealth={wealth}
+                      bourse={bourse}
                       axisIds={axisIds}
                       selected={selected?.hero.id === h.id}
                       onRecruit={() => onPick({ pretire: id })}
@@ -732,14 +735,14 @@ export function CandidatePool({
                   ))}
               {/* Cartes-action (même famille visuelle) : UNE carte « Créer un personnage » ; « Importer » à
                   côté, dans l'onglet Mes personnages. */}
-              <ActionCard icon="nav/new-game" label={t('picker.roster.create')} invite={t('party.create.invite')} onClick={startCreate} />
+              <ActionCard icon="navigation/nouvelle-partie" label={t('picker.roster.create')} invite={t('party.create.invite')} onClick={startCreate} />
               {tab === 'roster' && (
-                <ActionCard icon="file/import" label={t('picker.import.btn')} invite={t('party.import.invite')} title={t('picker.import.btn.title')} onClick={() => fileRef.current?.click()} />
+                <ActionCard icon="fichier/importer" label={t('picker.import.btn')} invite={t('party.import.invite')} title={t('picker.import.btn.title')} onClick={() => fileRef.current?.click()} />
               )}
             </div>
           }
           detail={
-            selected ? <CandidateDetailPane hero={selected.hero} wealth={selected.wealth} axisIds={axisIds} /> : <p className="hint">{t('picker.detail.empty')}</p>
+            selected ? <CandidateDetailPane hero={selected.hero} bourse={selected.bourse} axisIds={axisIds} /> : <p className="hint">{t('picker.detail.empty')}</p>
           }
         />
       </Stack>
@@ -759,7 +762,7 @@ export function CandidatePool({
  *  une primitive ? »). Un candidat EST un `Combatant` complet (pregen) : `HeroSheet` porte SA bande
  *  d'en-tête (identité+rose) — pas de `topper` `DetailFrame` en double. Aucun bouton dédié :
  *  le recrutement reste sur la carte de la liste (`CandidateCard`), jamais dupliqué ici. */
-function CandidateDetailPane({ hero, wealth, axisIds }: { hero: Combatant; wealth?: Money; axisIds: string[] }) {
+function CandidateDetailPane({ hero, bourse, axisIds }: { hero: Combatant; bourse: ReactNode; axisIds: string[] }) {
   const proseParts: string[] = [];
   if (hero.motivation) proseParts.push(`**${t('present.motivation')} :** ${hero.motivation}`);
   if (hero.details?.ambitionShort) proseParts.push(`« ${hero.details.ambitionShort} »`);
@@ -769,7 +772,7 @@ function CandidateDetailPane({ hero, wealth, axisIds }: { hero: Combatant; wealt
   return (
     <div className="candidate-detail-pane">
       <DetailFrame
-        sections={<HeroSheet hero={hero} axisIds={axisIds} wealth={wealth} />}
+        sections={<HeroSheet hero={hero} axisIds={axisIds} bourse={bourse} />}
         prose={prose}
       />
     </div>

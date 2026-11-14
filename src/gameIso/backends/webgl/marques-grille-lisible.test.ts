@@ -68,7 +68,7 @@ const couverture = (x: number, a: number, b: number) => Math.max(0, Math.min(x +
 const composer = (fond: number, teinte: number, alpha: number, cov: number) => fond + alpha * cov * (teinte - fond);
 
 /** Demi-côté du quad monté d'un slot, en fraction de case — lu sur la GÉOMÉTRIE, jamais redéclaré. */
-function demiCote(slot: 'walk'): number {
+function demiCote(slot: 'deplacement'): number {
   const p = buildHighlightMesh(slot, 1).geometry.getAttribute('position');
   let m = 0;
   for (let i = 0; i < p.count; i++) m = Math.max(m, Math.abs(p.getX(i)), Math.abs(p.getZ(i)));
@@ -78,8 +78,8 @@ function demiCote(slot: 'walk'): number {
 /** Profil de luminance d'une rangée de `CASES` cases surlignées, voie par voie. */
 function profil(voie: 'affine' | 'volumique'): number[] {
   const teinte = lum(rvb(WALK_TINT));
-  const alpha = SLOT_OPACITY.walk;
-  const h = voie === 'volumique' ? demiCote('walk') : 0.5;
+  const alpha = SLOT_OPACITY.deplacement;
+  const h = voie === 'volumique' ? demiCote('deplacement') : 0.5;
   const L: number[] = [];
   for (let x = 0; x < CASES * PAS_PX; x++) {
     // VOLUMIQUE : les instances d'un pool sont DISJOINTES — un échantillon du pixel appartient à une

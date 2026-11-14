@@ -25,14 +25,15 @@
  *    E minutes, −10 Nav/tour, −1 % vitesse/tour, l.101-105).
  *  - **Dangers** (l.119-166) : Débris, Barrage, Rochers, Eaux peu profondes — cf. `river-perils.json`.
  */
-import riverNavJson from '../data/river-navigation.json';
-import type { RiverNavigationData } from '../data/schemas/defs/river-navigation';
+import { riverNavigation, type RiverNavigationData } from '../data';
 import riverPerilsJson from '../data/river-perils.json';
+import { datasetDe } from '../data/datasets';
+import type * as riverPerilsDef from '../data/schemas/defs/river-perils';
 import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
-import { findTableEntry } from './tables';
+import { deDeLaTableTiree, findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, d100, parseDiceRequired, rollDice, tirer, type RNG, type Tirage } from './dice';
+import { d10, d100, rollDice, tirer, type RNG } from './dice';
 import { bonus } from './characteristics';
 import type { Combatant, Difficulty } from './types';
 import { RULE_REF } from './ruleRefs';
@@ -45,30 +46,18 @@ export type RiverWindForceId = 'calme' | 'leger' | 'modere' | 'fort' | 'tres-for
 /** Direction du vent RELATIVE au bateau (MSRC 7 l.25-33) — pas une direction cardinale (≠ mer). */
 export type RiverWindDirId = 'arriere' | 'cote' | 'contraire';
 
-/** Cellule d'EFFET DU VENT (l.29-33) : % ajouté à la vitesse, ou un cas particulier (Dérive/Louvoyer/
- *  Chavirage/Gréement en péril). `pct` absent = pas de gain de vitesse (Dérive / Très fort de côté). */
-export interface RiverWindEffect {
-  /** % de vitesse (peut être négatif : vent contraire). */
-  pct?: number;
-  /** Calme (l.29) : le bateau dérive en aval à 25 % ; Tests de Navigation −10 (note 2, l.38). */
-  drift?: boolean;
-  /** Vent de côté Modéré/Fort (note 3, l.39) : le +% n'est acquis qu'en louvoyant (Navigation Accessible +20). */
-  tack?: boolean;
-  /** Très fort de côté (note 4, l.40) : retirer la voile ou chavirer. */
-  capsizeRisk?: boolean;
-  /** Très fort contraire (note 5, l.41) : Navigation Accessible (+20) sinon Critique au gréement + dérive. */
-  riggingRisk?: boolean;
-}
+/** Cellule d'EFFET DU VENT (l.29-33). */
+export type RiverWindEffect = RiverNavigationData['windEffect'][string][RiverWindDirId];
 
 interface CritDef { driftUntilRepair?: boolean; hole?: boolean }
 
-const DATA = riverNavJson as unknown as RiverNavigationData;
+const DATA: RiverNavigationData = riverNavigation;
 
 export const riverForces = memoParVersion('riverNavigation', (): RiverWindForceId[] => DATA.windForces.entries.map((f) => f.id as RiverWindForceId));
 export const navBaseDifficulty = (): Difficulty => DATA.navBaseDifficulty;
 export const tackDifficulty = (): Difficulty => DATA.tackDifficulty;
 export const CAPSIZE = DATA.capsize;
-export const OUT_OF_CONTROL = DATA.outOfControl;
+export const OUT_OF_CONTROL = DATA.horsDeControle;
 export const TEMPORARY_REPAIR = DATA.temporaryRepair;
 export const driftPctOfSpeed = (): number => DATA.driftPctOfSpeed;
 export const driftNavPenalty = (): number => DATA.driftNavPenalty;
@@ -82,8 +71,8 @@ export const riverDirLabel = (id: RiverWindDirId): string => DATA.windDirections
 export function rollRiverWind(rng: RNG): { force: RiverWindForceId; dir: RiverWindDirId } {
   const { windForces, windDirections } = DATA;
   return {
-    force: findTableEntry(windForces.entries, rollDice(parseDiceRequired(windForces.die, 'river-navigation › windForces.die'), rng)).id as RiverWindForceId,
-    dir: findTableEntry(windDirections.entries, rollDice(parseDiceRequired(windDirections.die, 'river-navigation › windDirections.die'), rng)).id as RiverWindDirId,
+    force: findTableEntry(windForces.entries, rollDice(deDeLaTableTiree(windForces), rng)).id as RiverWindForceId,
+    dir: findTableEntry(windDirections.entries, rollDice(deDeLaTableTiree(windDirections), rng)).id as RiverWindDirId,
   };
 }
 
@@ -120,8 +109,8 @@ export function riverControlKept(navSuccess: boolean, navSL: number, savoirBonus
 
 /** Km parcourus dans la JOURNÉE : distance de base (barge M × heures, EDOC — l.15) modulée par l'effet du
  *  vent (% l.29-33) et le facteur d'Agilité (l.17). Plancher 0. PUR. */
-export function riverDayKm(baseKmPerDay: number, windPct: number, agilityFactor: number): number {
-  return Math.max(0, baseKmPerDay * (1 + windPct / 100) * agilityFactor);
+export function riverDayKm(baseKmPerDay: number, pourcentageDuVent: number, agilityFactor: number): number {
+  return Math.max(0, baseKmPerDay * (1 + pourcentageDuVent / 100) * agilityFactor);
 }
 
 /** Distance de DÉRIVE en aval (note 2, l.38 ; hors de contrôle note 5, l.41) : 25 % de la vitesse de base. PUR. */
@@ -134,10 +123,10 @@ export function riverDriftKm(baseKmPerDay: number): number {
  *  diriger le bateau subissent un malus de -20 »). Ce sont des MALUS, pas des Difficultés : la
  *  Difficulté du Test reste `navBaseDifficulty` (MSRC 7 l.15 demande le Test sans en fixer la
  *  Difficulté — le défaut Intermédiaire +0 est celui de la table, LDB 12 l.148). PUR. */
-export function navPenaltyMods(state: { drift?: boolean; outOfControl?: boolean }): ModLine[] {
+export function navPenaltyMods(state: { derive?: boolean; horsDeControle?: boolean }): ModLine[] {
   const mods: ModLine[] = [];
-  if (state.drift) mods.push({ label: t('rv.modDrift'), value: driftNavPenalty(), famille: 'circonstance', ref: RULE_REF['navigation-derive'] });
-  if (state.outOfControl) mods.push({ label: t('rv.modOutOfControl'), value: OUT_OF_CONTROL.navPenalty, famille: 'circonstance', ref: RULE_REF['navigation-greement'] });
+  if (state.derive) mods.push({ label: t('fleuve.modificateurDeDerive'), value: driftNavPenalty(), famille: 'circonstance', ref: RULE_REF['navigation-derive'] });
+  if (state.horsDeControle) mods.push({ label: t('fleuve.modificateurHorsDeControle'), value: OUT_OF_CONTROL.navPenalty, famille: 'circonstance', ref: RULE_REF['navigation-greement'] });
   return mods;
 }
 
@@ -174,7 +163,7 @@ export function holeSinkMinutes(hullEndurance: number): number {
 export function riverCritical(location: string): CritDef | undefined {
   const e = RIVER_CRIT_SET.tables[location as ShipCritKey]?.[0];
   if (!e) return undefined;
-  const hasCond = (id: string) => e.ops?.some((o) => o.op === 'condition' && o.id === id) ?? false;
+  const hasCond = (id: string) => e.ops?.some((o) => o.op === 'condition' && o.id.id === id) ?? false;
   return {
     driftUntilRepair: hasCond('derive') || undefined,
     hole: hasCond('voie-d-eau') || undefined,
@@ -183,24 +172,9 @@ export function riverCritical(location: string): CritDef | undefined {
 
 // ── Dangers (l.119-166) ──────────────────────────────────────────────────────────────────────────
 
-export type RiverPerilKind = 'navTest' | 'obstacle' | 'detect';
-export interface RiverPerilDef {
-  id: string;
-  label: string;
-  kind: RiverPerilKind;
-  /** Débris (l.125) : Test de Navigation raté → `hullHits` coups à la coque, `damagePerHit` chacun. */
-  onFail?: { hullHits: number; damagePerHit: number };
-  /** Barrage (l.128) : Endurance (`endurance`×`enduranceMult`), Blessures (`wounds`), bélier +`ramDamage`. */
-  obstacle?: { endurance: Tirage; enduranceMult: number; wounds: Tirage; ramDamage: number };
-  /** Déblayage à la main (l.128) : `objects` éléments de `encPerObject` Enc ; `encPerHour` = débit de
-   *  halage (valeur maison éditable, l.128, règle stricte 7 — le halage n'y est pas chiffré en temps). */
-  clear?: { objects: Tirage; encPerObject: Tirage; encPerHour: number };
-  /** Rochers/eaux peu profondes (l.138-144) : à l'impact, Dégâts + chances de percée/échouage. */
-  onHit?: { hullDamage: number; holeChancePct?: number; echouageChancePct?: number };
-  ref: string;
-}
-
-export const RIVER_PERILS: RiverPerilDef[] = (riverPerilsJson as { perils: RiverPerilDef[] }).perils;
+export const RIVER_PERILS = datasetDe<typeof riverPerilsDef>(riverPerilsJson).perils;
+export type RiverPerilDef = (typeof RIVER_PERILS)[number];
+export type RiverPerilKind = RiverPerilDef['kind'];
 export const findRiverPeril = (id: string): RiverPerilDef | undefined => RIVER_PERILS.find((p) => p.id === id);
 
 export interface RiverImpact {

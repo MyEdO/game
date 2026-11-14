@@ -128,8 +128,8 @@ describe('cliquet AST — une étape de SÉQUENCE qui lance dit son enjeu (#1279
   });
 
   it('FAIL-CLOSED : une bande synthétique sans enjeu est VUE muette, avec enjeu elle ne l’est pas', () => {
-    const sans = `const b = bandStep({ id: 'x', kind: 'k', icon: 'nav/dice', label: 'L', meta: { round: 1 } }, rows);`;
-    const avec = `const b = bandStep({ id: 'x', kind: 'k', icon: 'nav/dice', label: 'L', stake: combatStakeRef('tavern-game'), meta: { round: 1 } }, rows);`;
+    const sans = `const b = bandStep({ id: 'x', kind: 'k', icon: 'navigation/des', label: 'L', meta: { round: 1 } }, rows);`;
+    const avec = `const b = bandStep({ id: 'x', kind: 'k', icon: 'navigation/des', label: 'L', stake: combatStakeRef('taverne-partie'), meta: { round: 1 } }, rows);`;
     const raccourci = `const b = bandStep({ id: 'x', kind: 'k', stake }, rows);`;
     const dernier = `const b = bandStep({ id: 'x', kind: 'k', label: 'L', stake: voyageStakeRef('k') }, rows);`;
     expect(appelsDeMonteur(sans)[0]).toMatchObject({ monteur: 'bandStep', litteral: true, stake: false });

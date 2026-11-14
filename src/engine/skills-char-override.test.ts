@@ -1,7 +1,7 @@
 import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect, afterEach } from 'vitest';
 import { testValue } from './skills';
-import { setRule, resetRule, ruleDef } from './policy';
+import { setRule, surchargerUneSaisie, resetRule, ruleDef } from './policy';
 import type { Combatant } from './types';
 
 /** Combattant nu : seules les caractéristiques comptent (pas d'avances, états, passifs). */
@@ -27,30 +27,31 @@ describe('testValue — Métier (Savoir) : Int au lieu de Dex (LDB 09 l.358, rè
 });
 
 describe('testValue — Intimidation : caractéristique alternative (LDB 09 l.294, règle optionnelle)', () => {
-  afterEach(() => resetRule('test-intimidation-char'));
-  // Les valeurs jouées ici sont EXACTEMENT les `options` de l'entrée `test-intimidation-char`
+  afterEach(() => resetRule('test-intimidation-carac'));
+  // Les valeurs jouées ici sont EXACTEMENT les `options` de l'entrée `test-intimidation-carac`
   // (`reglesOptionnelles.json`) — celles que le panneau in-game écrit réellement par `setRule`.
   it('défaut F : Intimidation utilise la Force', () => {
     expect(testValue(c(), { skill: { id: 'intimidation' } })).toBe(30);
   });
   it('FM : Force Mentale', () => {
-    setRule('test-intimidation-char', 'FM');
+    setRule('test-intimidation-carac', 'FM');
     expect(testValue(c(), { skill: { id: 'intimidation' } })).toBe(60);
   });
   it('Int : Intelligence', () => {
-    setRule('test-intimidation-char', 'Int');
+    setRule('test-intimidation-carac', 'Int');
     expect(testValue(c(), { skill: { id: 'intimidation' } })).toBe(50);
   });
   it('max : la meilleure des trois (F/FM/Int) → FM ici', () => {
-    setRule('test-intimidation-char', 'max');
+    setRule('test-intimidation-carac', 'max');
     expect(testValue(c(), { skill: { id: 'intimidation' } })).toBe(60);
   });
   it('AUCUNE option du panneau n’est MORTE : chaque option écrite par `setRule` change réellement le Test', () => {
     // Le stock d'options vient du registre, jamais d'une liste recopiée : une 5ᵉ option non déclarée sur
     // l'entrée `skills.json` rougit ICI (c'est ainsi que « FM »/« Int » ont été trouvées inertes).
-    const regle = ruleDef('test-intimidation-char')!;
-    const rendu = tableTotale(regle.options ?? [], (o) => {
-      setRule('test-intimidation-char', o);
+    const regle = ruleDef('test-intimidation-carac')!;
+    if (regle.kind !== 'mode') throw new Error('test-intimidation-carac : une règle `mode`');
+    const rendu = tableTotale(regle.options, (o) => {
+      surchargerUneSaisie('test-intimidation-carac', o);
       return testValue(c(), { skill: { id: 'intimidation' } });
     });
     expect(rendu).toEqual({ F: 30, max: 60, FM: 60, Int: 50 });

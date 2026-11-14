@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { makeShowcaseParty } from '../../data/pregens';
+import { groupeVitrineDeScenario } from './_heros';
 import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
 import { areneCampaign, paquetDuJeu } from '../campaign';
 import type { TestScenario } from './_shared';
@@ -11,7 +11,7 @@ import type { TestScenario } from './_shared';
  * voyage (#T2). Point d'entrée Playwright de la recette navigateur.
  */
 function groupe(idNeuf: FabriqueDId) {
-  const party = makeShowcaseParty(idNeuf);
+  const party = groupeVitrineDeScenario(idNeuf);
   // De quoi tester voyage (rations) et marchands sans grinder la zone 1.
   for (const h of party) {
     const ration = itemFromTrappingById('ration', idNeuf, undefined, contexteDeNaissanceDObjet(h));
@@ -24,7 +24,7 @@ export const scenario: TestScenario = {
   id: 'arene',
   order: 8,
   category: 'scenarios',
-  icon: 'scenario/arena',
+  icon: 'scenario/arene',
   title: 'Arène 2.0 — le Bourg',
   tests: 'campagne vitrine complète : Bourg (bâtiments/intérieurs), échelle des 13 zones, contrats, carte du monde, marchands, fouilles',
   partyNote: 'Groupe d’arène pré-tiré (+1 ration chacun)',

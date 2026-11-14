@@ -44,7 +44,7 @@ export const finite = (n: number, fallback = 0): number => (Number.isFinite(n) ?
  * Probabilité de TOUCHER (0..1) d'une attaque, dérivée de la valeur cible RAW (base + modificateurs
  * plafonnés par `combineMods`, comme la résolution) : `P = clamp(target, 5, 95) / 100`. PUR, sans dé.
  */
-export function hitProbability(attacker: Combatant, target: Combatant, weapon: Weapon, kind: 'melee' | 'ranged', distanceTiles?: number, env?: ModLine[], metresPerTile = 2): number {
+export function hitProbability(attacker: Combatant, target: Combatant, weapon: Weapon, kind: 'melee' | 'distance', distanceTiles?: number, env?: ModLine[], metresPerTile = 2): number {
   const val = combatValue(attacker, kind, weapon);
   const mods = combineMods(attackModifiers(attacker, target, weapon, { kind, distanceTiles, env, metresPerTile }));
   const targetVal = finite(val + mods, NaN);
@@ -57,7 +57,7 @@ export function hitProbability(attacker: Combatant, target: Combatant, weapon: W
  * toucher × Blessures d'un coup MOYEN. Les Blessures réelles passent par `woundsFromHit` (BE + PA à
  * la localisation « corps », qualités d'arme) — MÊME résolveur que le combat.
  */
-export function expectedDamage(attacker: Combatant, target: Combatant, weapon: Weapon, kind: 'melee' | 'ranged', distanceTiles?: number, env?: ModLine[], metresPerTile = 2): number {
+export function expectedDamage(attacker: Combatant, target: Combatant, weapon: Weapon, kind: 'melee' | 'distance', distanceTiles?: number, env?: ModLine[], metresPerTile = 2): number {
   const p = hitProbability(attacker, target, weapon, kind, distanceTiles, env, metresPerTile);
   if (!Number.isFinite(p)) return NaN;
   const { bf, passif } = forceDuPorteur(attacker);
@@ -91,7 +91,7 @@ export function isNeutralized(h: Combatant): boolean {
 
 /** Cible neutre STABLE pour `bestAttackEV` quand aucun ennemi de référence n'existe (carac. moyennes). */
 const DUMMY_SANS_BLESSURES: Omit<Combatant, 'wounds'> = {
-  id: '__ai-dummy__', label: 'cible', kind: 'enemy',
+  id: '__ai-dummy__', label: 'cible', kind: 'ennemi',
   characteristics: tableTotale(CHAR_KEYS, () => 30),
   advantage: 0, conditions: [], weapons: [], armour: {} as ArmourPoints,
   skills: [], talents: [], movement: 4,
@@ -272,8 +272,8 @@ export function opValue(op: GameOp, caster: Combatant, subject: Combatant, ctx: 
       return marginalBuff(caster, subject, op, ctx);
     // CONTRÔLE hostile.
     case 'condition':
-      etatExige(op.id);
-      return findConditionById(op.id)?.aiThreat ?? 1;
+      etatExige(op.id.id);
+      return findConditionById(op.id.id)?.aiThreat ?? 1;
     case 'testMod':
       return op.amount < 0 ? Math.abs(op.amount) / 10 : 0;
     case 'castPenalty': case 'suffocate': case 'damageArmour': case 'damageWornGear':

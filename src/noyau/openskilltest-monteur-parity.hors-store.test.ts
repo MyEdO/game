@@ -40,7 +40,7 @@ const CHARS = {
 
 function hero(id: string, over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id, name: id, label: id, kind: 'hero',
+    id, name: id, label: id, kind: 'heros',
     characteristics: { ...CHARS },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
     skills: [], talents: [], items: [], psychState: [], engagedWith: [],
@@ -197,7 +197,7 @@ describe('openSkillTest × monteur canonique — la cible est BIT-IDENTIQUE (#11
  */
 describe('la LIGNE MONTÉE voyage jusqu’au pending (#1153 L2’ R4)', () => {
   beforeEach(() => {
-    resetRule('social-status-reaction-roll');
+    resetRule('social-reaction-au-statut');
     banc.setState({ battle: null, pendingTest: null, pendingCascade: null, travelPlan: null, scene: null, flags: {} });
   });
 
@@ -223,7 +223,7 @@ describe('la LIGNE MONTÉE voyage jusqu’au pending (#1153 L2’ R4)', () => {
   it('sous l’option « Réaction au Statut », la ligne DIT l’inversion (label et valeur de la même source)', () => {
     // d10 forcé à 9-10 par le RNG seedé : « Opinions extrêmes » inverse le modificateur. La ligne
     // affichée est CELLE qui a fait la cible — libellé et valeur ne peuvent plus diverger.
-    setRule('social-status-reaction-roll', true);
+    setRule('social-reaction-au-statut', true);
     try {
       const h = noble('h1');
       banc.setState({ party: [h] });
@@ -243,7 +243,7 @@ describe('la LIGNE MONTÉE voyage jusqu’au pending (#1153 L2’ R4)', () => {
       expect(statut.value).toBeLessThan(0);
       expect(pt!.base! + pt!.mods!.reduce((s, m) => s + m.value, 0) + DIFFICULTY_MODIFIERS[pt!.difficulty]).toBe(pt!.target);
     } finally {
-      resetRule('social-status-reaction-roll');
+      resetRule('social-reaction-au-statut');
     }
   });
 

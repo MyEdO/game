@@ -17,10 +17,10 @@ const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
 /** Table en (5,5) au cap N : abord nord déclaré (5,4). */
 const ABORD_NORD = { x: 5, y: 4 };
-const MENEUR: SeatOccupant = { kind: 'party', rang: 1 };
+const MENEUR: SeatOccupant = { kind: 'groupe', rang: 1 };
 
 const hero = (id = 'h'): Combatant =>
-  combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
+  combattantDeTest({ id, label: id.toUpperCase(), kind: 'heros', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
 function scèneDeTaverne(): Scene {
   const s = emptyScene('scene-test', 12, 12);

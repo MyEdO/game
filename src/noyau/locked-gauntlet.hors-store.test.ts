@@ -15,14 +15,14 @@ const chars = { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endu
 
 function setup(withGauntlet: boolean): { attacker: Combatant; defender: Combatant } {
   const attacker = blessuresSurLeProfil({
-    id: 'e1', name: 'Mercenaire', kind: 'enemy', characteristics: chars, wounds: blessuresDeBase(30),
+    id: 'e1', name: 'Mercenaire', kind: 'ennemi', characteristics: chars, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], pos: { x: 1, y: 0 }, size: 'moyenne',
     weapons: [{ uid: 'w1', name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     items: withGauntlet ? [objetDeTest('gantelet-verrouille', { uid: 'g1', equipped: true })] : [],
   }) as unknown as Combatant;
   const defender = blessuresSurLeProfil({
-    id: 'h1', name: 'Bretteur', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(20),
+    id: 'h1', name: 'Bretteur', kind: 'heros', characteristics: chars, wounds: blessuresDeBase(20),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], pos: { x: 0, y: 0 }, size: 'moyenne',
     weapons: [{ uid: 'd1', name: 'Rapière', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [], fate: 0, criticalWounds: 0,

@@ -65,7 +65,7 @@ comme ressource](#léquipage-comme-ressource--le-round-naval) · [`tests.md`](te
 GLOBAL −2 DR par tranche de 10 % manquant + plafond Succès Minime (`undercrewPenalty` vs `ship.crew`, branché aux
 Tests de manœuvre/batterie via `maneuverCrewTotal` et aux Tests d'équipage de VOYAGE via la cascade).
 ✅ **Seuil de succès** (l.13) : `crewTestSuccess`, source unique, le « 0 = succès » offert au MJ étant une règle
-optionnelle (`crew-test-zero-success`). ✅ saboteur −1 à −5 DR (`shipSaboteurDR`, clampé).
+optionnelle (`equipage-zero-dr-succes`). ✅ saboteur −1 à −5 DR (`shipSaboteurDR`, clampé).
 ⬜ Chansonnier (bonus de chant non chiffré par le RAW → non modélisé, OK).
 
 ---

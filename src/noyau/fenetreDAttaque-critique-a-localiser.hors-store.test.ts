@@ -26,11 +26,11 @@ function attaqueForcee(current: number) {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   H.pos = { x: 10, y: 10 };
   H.resilience = 1;
   E.pos = { x: 11, y: 10 };
@@ -39,10 +39,10 @@ function attaqueForcee(current: number) {
   banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
   cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
   seedBattleRng(3);
-  banc.getState().jetLancer('attack');
+  banc.getState().jetLancer('attaque');
   expect(banc.getState().pendingAttack!.result!.hit, 'la graine fait rater le jet').toBe(false);
-  banc.getState().jetForcerLaReussite('attack');
-  banc.getState().jetImposerLeResultat('attack', 21);
+  banc.getState().jetForcerLaReussite('attaque');
+  banc.getState().jetImposerLeResultat('attaque', 21);
   expect(banc.getState().pendingAttack!.result!.hit).toBe(true);
 }
 
@@ -51,9 +51,9 @@ describe('fenetreDAttaque.critiqueALocaliser — LDB 17 l.68', () => {
     attaqueForcee(0);
     const f = fenetreDAttaque(banc.getState())!;
     expect(f.critiqueALocaliser).not.toBeNull();
-    expect(f.critiqueALocaliser!.geste).toMatchObject({ verbe: 'jetRegler', flux: 'attack', reglage: 'localisationDuCritique' });
+    expect(f.critiqueALocaliser!.geste).toMatchObject({ verbe: 'jetRegler', flux: 'attaque', reglage: 'localisationDuCritique' });
     expect([...f.critiqueALocaliser!.options.map((o) => o.valeur)].sort()).toEqual([...LOCALISATIONS_DE_COUP].sort());
-    banc.getState().jetRegler('attack', 'localisationDuCritique', 'jambeG');
+    banc.getState().jetRegler('attaque', 'localisationDuCritique', 'jambeG');
     expect(fenetreDAttaque(banc.getState())!.critiqueALocaliser!.choisie).toBe('jambeG');
   });
 

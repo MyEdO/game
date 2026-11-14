@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { armyMight, armyStartMight, nomDArmee } from './massBattleFlow';
@@ -16,12 +16,12 @@ function battleEffect(spec: Partial<MassBattleSpec> = {}): Extract<Effect, { typ
   return {
     type: 'startMassBattle',
     battle: {
-      allyName: 'Ost du Reikland', enemyName: 'Horde de Khorne',
-      allyMight: 60, enemyMight: 40, plannedRounds: 2, terrain: 'Plaine boueuse',
+      nomDesAllies: 'Ost du Reikland', nomDesEnnemis: 'Horde de Khorne',
+      puissanceAlliee: 60, puissanceEnnemie: 40, plannedRounds: 2, terrain: 'Plaine boueuse',
       scenes: ['pluie-de-fleches', 'ligne-de-mire', 'motivation', 'charge', 'intrus'],
       situations: [['pluie-de-fleches', 'ligne-de-mire'], ['charge', 'intrus']],
       sceneEncounters: { 'pluie-de-fleches': 'enc-pluie', charge: 'enc-charge', intrus: 'enc-intrus' },
-      situationSize: 2, allyMod: 10,
+      situationSize: 2, modificateurAllie: 10,
       ...spec,
     },
   };
@@ -29,7 +29,7 @@ function battleEffect(spec: Partial<MassBattleSpec> = {}): Extract<Effect, { typ
 
 function apply(effects: Effect[]) {
   seedBattleRng(1234);
-  banc.setState({ party: pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), battle: null, massBattle: null });
+  banc.setState({ party: groupeDeScenario(idsDeTest, 'soldat', 'chasseur'), battle: null, massBattle: null });
   applyEffects(banc.getState, banc.setState, effects);
 }
 
@@ -40,8 +40,8 @@ describe('Effet startMassBattle — enregistrement dans le registre', () => {
     expect(h.group).toBe('Combat & social');
     const def = h.make();
     expect(def.type).toBe('startMassBattle');
-    expect(def.battle.allyMight).toBeTypeOf('number');
-    expect(def.battle.enemyMight).toBeTypeOf('number');
+    expect(def.battle.puissanceAlliee).toBeTypeOf('number');
+    expect(def.battle.puissanceEnnemie).toBeTypeOf('number');
   });
 });
 
@@ -61,8 +61,8 @@ describe('Effet startMassBattle — sérialisation (round-trip éditeur)', () =>
     const def = EFFECT_HANDLERS.startMassBattle.make() as Extract<Effect, { type: 'startMassBattle' }>;
     apply([def]);
     const mb = banc.getState().massBattle!;
-    expect([mb.ally.label, mb.enemy.label]).toEqual([nomDArmee(def.battle, 'ally'), nomDArmee(def.battle, 'enemy')]);
-    expect([def.battle.allyName, def.battle.enemyName]).toEqual([undefined, undefined]);
+    expect([mb.allie.label, mb.ennemi.label]).toEqual([nomDArmee(def.battle, 'allie'), nomDArmee(def.battle, 'ennemi')]);
+    expect([def.battle.nomDesAllies, def.battle.nomDesEnnemis]).toEqual([undefined, undefined]);
   });
 });
 
@@ -73,14 +73,14 @@ describe('Effet startMassBattle — appliqué par applyEffects', () => {
     const s = banc.getState();
     expect(s.screen).toBe('massBattle');
     const mb = s.massBattle!;
-    expect(mb.ally.label).toBe('Ost du Reikland');
-    expect(mb.enemy.label).toBe('Horde de Khorne');
+    expect(mb.allie.label).toBe('Ost du Reikland');
+    expect(mb.ennemi.label).toBe('Horde de Khorne');
     // L'armée = un Combattant inanimé à Blessures : PB courantes = Puissance, PB max = Puissance de départ.
-    expect(armyMight(mb.ally)).toBe(60);
-    expect(armyStartMight(mb.ally)).toBe(60);
-    expect(armyMight(mb.enemy)).toBe(40);
+    expect(armyMight(mb.allie)).toBe(60);
+    expect(armyStartMight(mb.allie)).toBe(60);
+    expect(armyMight(mb.ennemi)).toBe(40);
     expect(mb.plannedRounds).toBe(2);
-    expect(mb.allyMod).toBe(10);          // Modif. permanent (Planification) authoré
+    expect(mb.modificateurAllie).toBe(10);          // Modif. permanent (Planification) authoré
     expect(mb.situationSize).toBe(2);
   });
 
@@ -113,7 +113,7 @@ describe('Effet startMassBattle — sans catalogue ni situations (tirage aléato
 
 describe('Effet startMassBattle — validation des rencontres (refs)', () => {
   const ctx = (ids: string[]): EffectRefCtx => ({
-    sceneIds: new Set(), dialogueIds: new Set(), encounterIds: new Set(ids), entityIds: new Set(), npcSheet: () => undefined, within: () => true, walkable: () => true,
+    sceneIds: new Set(), encounterIds: new Set(ids), entityIds: new Set(), npcSheet: () => undefined, within: () => true, walkable: () => true,
   });
   it('signale une rencontre mappée inexistante et valide celles présentes', () => {
     const eff = battleEffect({ sceneEncounters: { charge: 'enc-charge', intrus: 'enc-absent' } });

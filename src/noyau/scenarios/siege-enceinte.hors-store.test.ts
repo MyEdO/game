@@ -2,7 +2,7 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { scenario } from '../../scenes/test-scenarios/siege-enceinte';
-import { combatDistance } from '../../noyau/monde/footprint';
+import { distanceDeContact } from '../../noyau/monde/footprint';
 import { lineOfSightCover } from '../../noyau/monde/lineOfSight';
 import { isWalkable, wallBetween, setStructureDown, heightAt } from '../../noyau/monde/scene';
 import { placeCombatant } from '../../noyau/monde/spawn';
@@ -162,17 +162,17 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const scene = banc.getState().scene!;
-    const hero = b.combatants.find((c) => c.kind === 'hero' && !c.aiControlled && !c.inert)!;
+    const hero = b.combatants.find((c) => c.kind === 'heros' && !c.aiControlled && !c.inert)!;
     // Placement PRODUCTION : `placeCombatant` stampe la hauteur métrique `pos.h` (= 4 m, chemin de ronde z1).
     hero.pos = { x: 8, y: MOUTH_ROW, z: 1 };          // sur le chemin de ronde, au-dessus de la courtine
     placeCombatant(hero, scene, hero.pos);            // RAFRAÎCHIT pos.h depuis le relief (4 m) — comme en production
     const foot = { x: 8, y: MOUTH_ROW - 1, h: heightAt(scene, 8, MOUTH_ROW - 1, 0) }; // assaillant au pied du mur (z=0, 0 m)
     // Δhauteur 4 m ÷ 2 m/case = 2 cases de séparation verticale → distance 2 (mêlée refusée à travers le vide).
-    expect(combatDistance(hero, { pos: foot } as never)).toBe(2);
+    expect(distanceDeContact(banc.getState().scene, hero, { pos: foot } as never)).toBe(2);
     expect(lineOfSightCover(scene, hero.pos, { x: 8, y: 10 }, []).blocked).toBe(false); // pilonne le champ
   });
 
@@ -209,11 +209,11 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const canonnier = b.combatants.find((c) => c.id === 'brg-canon')!; // mercenaire qui SERT le canon assaillant
-    expect(canonnier.weapons.some((w) => w.type === 'ranged')).toBe(true); // pièce servie au spawn (poste de l'affût)
+    expect(canonnier.weapons.some((w) => w.type === 'distance')).toBe(true); // pièce servie au spawn (poste de l'affût)
     const affutEnt = emplWithCrew('brg-canon'); // l'emplacement dont l'équipage est le mercenaire-canonnier
     const affut = b.combatants.find((c) => c.id === affutEnt.id)!;
     expect(affut.inert).toBe(true);
@@ -225,7 +225,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     const input = buildAiInput(canonnier, banc.getState);
     expect(input.structures?.some((st) => st.creatureId === 'porte-de-ville')).toBe(true); // la porte est une cible
     const action = chooseEnemyAction(input);
-    expect(action.kind).toBe('shoot');
+    expect(action.kind).toBe('tir');
     const tgt = b.combatants.find((c) => c.id === (action as { targetId: string }).targetId);
     expect(tgt && isStructure(tgt)).toBe(true); // … et c'est bien la STRUCTURE (porte) qui est visée
   });
@@ -234,7 +234,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     // Seul le drapeau change : même scène, même roster, même canonnier servant la même pièce.
     banc.setState({ battle: { ...banc.getState().battle!, siege: undefined } });
@@ -252,7 +252,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const porte = banc.getState().battle!.combatants.find(isStructure)!;
     banc.setState({
@@ -271,16 +271,16 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     // Archers défenseurs = héros pilotés par l'IA, armés d'un arc, sur le chemin de ronde (z1).
-    const archers = b.combatants.filter((c) => c.aiControlled && c.kind === 'hero' && !c.inert && !c.mannedPoste);
+    const archers = b.combatants.filter((c) => c.aiControlled && c.kind === 'heros' && !c.inert && !c.mannedPoste);
     expect(archers.length).toBe(5); // 4 archers 'A' + 1 guetteur 'G'
     for (const archer of archers) {
-      expect(archer.kind).toBe('hero');         // côté héros
+      expect(archer.kind).toBe('heros');         // côté héros
       expect(archer.aiControlled).toBe(true);    // … mais piloté par l'IA (le joueur ne le micro-gère pas)
-      expect(archer.weapons.some((w) => w.type === 'ranged')).toBe(true); // armé d'un arc
+      expect(archer.weapons.some((w) => w.type === 'distance')).toBe(true); // armé d'un arc
       expect(b.order).toContain(archer.id);      // … et l'archer allié-IA A un tour
       expect(archer.pos?.z).toBe(1);             // sur le chemin de ronde
     }
@@ -290,21 +290,21 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     expect(baliste.inert).toBe(true);
     // RAW-pur (AA 10 l.136-193) : un engin de siège n'a AUCUNE Blessure → NON-destructible. Un coup ÉNORME (999)
     // inflige 0 (immune via le garde `target.inert`) — on le neutralise en tuant l'équipage, pas en le frappant.
-    const coup: Weapon = { label: 'Canon', type: 'ranged', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'siege' }] };
+    const coup: Weapon = { label: 'Canon', type: 'distance', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'siege' }] };
     expect(woundsFromHit(coup, baliste, 'corps', 999, 0, 1, undefined)).toBe(0);
     expect(b.order).not.toContain(balisteEnt.id); // affût inerte → aucun tour
     // La pièce est SERVIE d'office par son équipage PNJ (alliée-IA) qui TIRE la pièce (pas un arc).
     const crew = b.combatants.find((c) => c.id === 'crew-baliste')!;
     expect(crew.aiControlled).toBe(true);
     expect(crew.mannedPoste?.item.trappingId).toBe('baliste');
-    expect(crew.weapons.find((w) => w.type === 'ranged')?.label).toMatch(/[Bb]aliste/); // SEULE arme à distance = la baliste
+    expect(crew.weapons.find((w) => w.type === 'distance')?.label).toMatch(/[Bb]aliste/); // SEULE arme à distance = la baliste
   });
 
   it('ÉQUIPAGE QUALIFIÉ : chaque servant a la Projectiles du Groupe de SA pièce → compte dans l’effectif (AA 10 l.230)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     // Servant de baliste (rempart) : Groupe Arbalète → qualifié → effectif ≥ 1.
@@ -335,11 +335,11 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     // Servants de REMPART (affûts du chemin de ronde, z1) : alliés pilotés par l'IA.
     const crewRempart = crewAt(1);
     expect(crewRempart.length).toBeGreaterThan(0);
-    for (const id of crewRempart) expect(by(id)).toEqual({ entityId: id, side: 'ally', ai: true });
+    for (const id of crewRempart) expect(by(id)).toEqual({ entityId: id, side: 'allie', ai: true });
     // Servants de la BATTERIE assaillante (z0) : ennemis (pas d'IA-flag → agissent comme ennemis normaux).
     const crewBatterie = crewAt(0);
     expect(crewBatterie.length).toBeGreaterThan(0);
-    for (const id of crewBatterie) expect(by(id)).toEqual({ entityId: id, side: 'enemy' });
+    for (const id of crewBatterie) expect(by(id)).toEqual({ entityId: id, side: 'ennemi' });
     // Emplacements (rempart alliés / batterie ennemis) : INERTES, enrôlés SANS `ai`.
     const empls = scenarioConstruit.scene.entities.filter((e) => e.postes?.length);
     expect(empls.length).toBe(4);
@@ -351,6 +351,6 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     // Gobelins fantassins : 6 ennemis (marqueurs 'o').
     const gobs = scenarioConstruit.scene.entities.filter((e) => e.creature?.id === 'gobelin');
     expect(gobs.length).toBe(6);
-    for (const g of gobs) expect(by(g.id)).toEqual({ entityId: g.id, side: 'enemy' });
+    for (const g of gobs) expect(by(g.id)).toEqual({ entityId: g.id, side: 'ennemi' });
   });
 });

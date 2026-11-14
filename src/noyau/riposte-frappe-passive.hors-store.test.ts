@@ -36,16 +36,16 @@ const ARM0 = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 function monte(o: { pbAttaquant: number; important?: boolean; armes?: Weapon[]; niveau?: number; traitsAttaquant?: { id: string; value?: number }[]; champion?: boolean; riposte?: boolean; traitsDefenseur?: { id: string; value?: number }[] }): void {
   seedBattleRng(5);
   const d = blessuresSurLeProfil({
-    id: 'd', name: 'd', label: 'Défenseur', kind: 'enemy', important: true, characteristics: { ...CH }, wounds: blessuresDeBase(30),
+    id: 'd', name: 'd', label: 'Défenseur', kind: 'ennemi', important: true, characteristics: { ...CH }, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: o.champion && !o.riposte ? [] : [{ talentId: 'riposte', times: o.niveau ?? 1 }], traits: [...(o.champion ? [{ id: 'champion' }] : []), ...(o.traitsDefenseur ?? [])],
     engagedWith: ['a'], pos: { x: 1, y: 0 }, size: 'moyenne', weapons: o.armes ?? [RAPIERE], armour: ARM0, items: [], criticalWounds: 0, traumas: [],
   }) as unknown as Combatant;
   const a = blessuresSurLeProfil({
-    id: 'a', name: 'a', label: 'Attaquant', kind: 'enemy', important: o.important ?? true, characteristics: { ...CH },
+    id: 'a', name: 'a', label: 'Attaquant', kind: 'ennemi', important: o.important ?? true, characteristics: { ...CH },
     wounds: blessuresDeBase(30, o.pbAttaquant), advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: o.traitsAttaquant ?? [],
     engagedWith: ['d'], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [EPEE], armour: ARM0, items: [], criticalWounds: 0, traumas: [],
   }) as unknown as Combatant;
-  const h = blessuresSurLeProfil({ ...a, id: 'h', name: 'h', label: 'Témoin', kind: 'hero', important: true, wounds: blessuresDeBase(30), engagedWith: [], pos: { x: 6, y: 6 }, traits: [] }) as unknown as Combatant;
+  const h = blessuresSurLeProfil({ ...a, id: 'h', name: 'h', label: 'Témoin', kind: 'heros', important: true, wounds: blessuresDeBase(30), engagedWith: [], pos: { x: 6, y: 6 }, traits: [] }) as unknown as Combatant;
   const battle = {
     combatants: [a, d, h], order: ['a', 'd', 'h'], baseOrder: ['a', 'd', 'h'], turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
@@ -58,7 +58,7 @@ function monte(o: { pbAttaquant: number; important?: boolean; armes?: Weapon[]; 
 
 /** Test opposé GAGNÉ par la défense, au jet `roll` (réussi sauf `success: false`), parade à `parade`. */
 const defenseGagnee = (parade: Weapon, roll = 12, success = true): AttackResult => ({
-  hit: false, attackerRoll: 64, defenderRoll: roll, netSL: 4, critical: false, advantageTo: 'defender', defenderDefeated: false, log: 'Attaquant manque Défenseur.',
+  hit: false, attackerRoll: 64, defenderRoll: roll, netSL: 4, critical: false, advantageTo: 'defenseur', defenderDefeated: false, log: 'Attaquant manque Défenseur.',
   parryWeapon: parade,
   defenderDetail: { label: 'Corps à corps', base: 60, target: 60, roll, success, sl: success ? 5 : -1, mods: [], mode: 'parade' },
   attackerDetail: { label: 'Corps à corps', base: 60, target: 60, roll: 64, success: false, sl: -1, mods: [] },
@@ -169,7 +169,7 @@ describe('frappe passive — Riposte par l’applicateur de la touche', () => {
 
 /** Test opposé GAGNÉ par une ESQUIVE au jet `roll`, DR opposé `dr`. */
 const esquiveGagnee = (roll = 12, dr = 4): AttackResult => ({
-  hit: false, attackerRoll: 64, defenderRoll: roll, netSL: dr, critical: false, advantageTo: 'defender', defenderDefeated: false, log: 'Attaquant manque Défenseur.',
+  hit: false, attackerRoll: 64, defenderRoll: roll, netSL: dr, critical: false, advantageTo: 'defenseur', defenderDefeated: false, log: 'Attaquant manque Défenseur.',
   defenderDetail: { label: 'Esquive', base: 60, target: 60, roll, success: true, sl: 5, mods: [], mode: 'esquive' },
   attackerDetail: { label: 'Corps à corps', base: 60, target: 60, roll: 64, success: false, sl: -1, mods: [] },
 } as unknown as AttackResult);
@@ -179,7 +179,7 @@ const blessures = (w: Weapon, dr = 4, roll = 12): number =>
 
 describe('frappe passive — Champion (LDB 85 l.71), arbitre c.6237601266', () => {
   it('C1 — Esquive gagnée sur un double : frappe à l’arme de main principale, sans Critique (LDB 13 l.183 ; LDB 10 l.500)', () => {
-    const secondaire = { ...HACHE, hand: 'off' } as Weapon;
+    const secondaire = { ...HACHE, hand: 'secondaire' } as Weapon;
     monte({ pbAttaquant: 30, champion: true, armes: [secondaire, EPEE] });
     expect(blessures(EPEE)).not.toBe(blessures(HACHE));
     coup(esquiveGagnee(11)); draine();
@@ -226,7 +226,7 @@ describe('frappe passive — Champion (LDB 85 l.71), arbitre c.6237601266', () =
   });
 
   it('C7 — défense gagnée contre un tir : aucune frappe du Champion (LDB 85 l.71)', () => {
-    const ARC = { ...EPEE, uid: 'arc', type: 'ranged', range: 60 } as Weapon;
+    const ARC = { ...EPEE, uid: 'arc', type: 'distance', range: 60 } as Weapon;
     monte({ pbAttaquant: 30, champion: true, armes: [EPEE] });
     applyAttackResult(g, banc.setState, cur('a'), cur('d'), ARC, esquiveGagnee(), { suite: { enchainement: { mode: 'aucun' } } }); draine();
     expect(cur('a').wounds.current).toBe(30);

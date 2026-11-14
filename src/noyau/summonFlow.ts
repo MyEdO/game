@@ -6,7 +6,7 @@
  * La créature est tirée du bestiaire (`spawnEnemy`), placée sur une case libre près du lanceur,
  * insérée dans l'initiative (juste après le lanceur) et marquée `Combatant.summon`. Elle combat
  * dans le camp du lanceur (`allyOfCaster`, par défaut) — donc CONTRÔLÉE comme un membre du groupe
- * si le lanceur est un héros (`kind: 'hero'`), ou pilotée par l'IA s'il est un ennemi — ou bien
+ * si le lanceur est un héros (`kind: 'heros'`), ou pilotée par l'IA s'il est un ennemi — ou bien
  * HOSTILE (`allyOfCaster: false` — démons « pas sous votre contrôle »). Elle se dissipe au
  * franchissement de Round une fois sa durée écoulée, ou si le lanceur tombe (`despawnIfCasterDown`,
  * minions morts-vivants liés au sorcier). Hors combat : pas de grille → effet journalisé.
@@ -100,7 +100,7 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
     return [`${caster.label} invoque ${count} × ${invoque}${hostile ? ' (hostile)' : ''} — hors combat, effet narratif (arbitrage MJ).`];
   }
   // Camp : allié = même `kind` que le lanceur (contrôlé/IA selon son camp) ; hostile = camp opposé.
-  const kind: Combatant['kind'] = hostile ? (caster.kind === 'hero' ? 'enemy' : 'hero') : caster.kind;
+  const kind: Combatant['kind'] = hostile ? (caster.kind === 'heros' ? 'ennemi' : 'heros') : caster.kind;
   const tiles = freeTilesNear(scene, battle, caster.pos, count);
   const placed: Combatant[] = [];
   for (let i = 0; i < count; i++) {
@@ -124,7 +124,7 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
   set({ battle: { ...battle } });
   if (!placed.length) return [t('summon.noRoom', { name: caster.label, ref: invoque })];
   const name = placed[0].label;
-  const tag = hostile ? t('summon.fragHostile') : kind === 'hero' ? t('summon.fragAllies') : '';
+  const tag = hostile ? t('summon.fragHostile') : kind === 'heros' ? t('summon.fragAllies') : '';
   return [t('summon.summons', { name: caster.label, n: placed.length, label: name, tag })];
 }
 

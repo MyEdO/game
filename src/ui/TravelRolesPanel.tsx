@@ -31,7 +31,7 @@ const refDe = (cle: string): RefDesignee => {
 export function TravelRolesPanel() {
   const party = useGame((s) => s.party);
   const affecterAuRoleDeMarche = useGame((s) => s.affecterAuRoleDeMarche);
-  const heroes = party.filter((h) => !h.dead && !h.outOfRencontre && h.kind === 'hero');
+  const heroes = party.filter((h) => !h.dead && !h.outOfRencontre && h.kind === 'heros');
   return (
     <PostesRoster
       title="Rôles de marche"

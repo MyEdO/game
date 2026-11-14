@@ -5,7 +5,7 @@ geste vit derrière son déclencheur.
 
 ## Ce qu'est ce projet
 
-Un **jeu de rôle vidéoludique 100 % web, en français**, type *Neverwinter Nights / Baldur's Gate*
+Un **jeu de rôle vidéoludique web d'abord, en français**, type *Neverwinter Nights / Baldur's Gate*
 (tactique tour par tour, vue isométrique), basé sur **Warhammer Fantasy Roleplay** 4e ou 5e (au
 choix) : 4 aventuriers à travers la campagne **L'Ennemi Intérieur**.
 
@@ -95,7 +95,7 @@ SANS ce préfixe sont la VO du dépôt parent — jamais lus, jamais cités ici.
 comprendre : fiche `user-doctrine-lecture-vo-campagne-pour-comprendre`. Une donnée MÉCANIQUE absente de
 la VF se prend à la VO, nombres et ids FR seulement, jamais de prose : fiche
 `user-doctrine-vo-fournit-la-donnee-mecanique-absente-de-la-vf`. Livres : **LDB** ·
-**ADE I/II** · **EDO/EDOC** · **Middenheim** · **AA** · **ZI** · **MDG** · **ACE** · **MSRC** ·
+**ADE I/II** · **EDO/EDOC** · **PDTP** · **Middenheim** · **AA** · **ZI** · **MDG** · **ACE** · **MSRC** ·
 **NADJ** · **VDM** · **HCVM** (fan : profils/sorts), chacun pour son périmètre (tout livre FR peut fournir une règle, par PASSAGE) —
 chemins et chapitres : `docs/sources-vf.md`. `src/data/*.json` est la source APP-OWNED, éditable au
 Compendium, chaque entrée taguée à sa `source`.
@@ -134,7 +134,7 @@ src/gameIso/  builders/ (géométrie PURE) → backends/webgl/ montés par stage
 src/ui/       React (RollShell, OptionChooser, editor/, creator/, compendium/)
 src/data/     base APP-OWNED (JSON commité, rien à régénérer après un clone) + exceptions manuscrites sourcées
 src/scenes/   documents de scène + campagne Arène
-src/net/      compression coop (web) · server/ = Worker Cloudflare · art-ref/ (gitignoré)
+server/       Worker Cloudflare du relay
 src/web/      services du navigateur (minuteries, stockage, fichiers)
 ```
 

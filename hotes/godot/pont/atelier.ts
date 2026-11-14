@@ -6,10 +6,10 @@
  * (`emplacementsDeRangement`), à chaque prise ceux dont un mesh pend à l'os de l'une de ses prises (`osDesRigides` du
  * listage, `asset/glb.ts` `meshes`, `asset/evaluateur/evaluer.ts` `monter`), que Godot repose du repère de leur prise
  * d'origine dans celui de la prise retenue, ou range à l'emplacement (#3319) ; ses lignes de pièce (#3086, D3), tirées de la
- * garde-robe, où vont ses éléments liés au `squelette` ou en `surface` et ses accessoires, rigides compris ; le fichier GLB de chaque élément servi
+ * garde-robe, où vont ses éléments liés au `squelette` ou en `surface` et ses accessoires, rigides compris ; les fichiers de chaque élément servi
  * (`fichiersDuModele`) et le libellé de la chose qu'il porte ; les surfaces de chaque base et de chaque élément servi
  * (`asset/surfaces.ts`), où se posent au montage la palette de la composition et les emblèmes de la garde-robe (#3111) ;
- * la table rôle → clip de chaque base et la vitesse au sol de son rôle `walk` ; chaque véhicule servi, élément sans base
+ * la table rôle → clip de chaque base et la vitesse au sol de son rôle `marche` ; chaque véhicule servi, élément sans base
  * (#2987), sous la fiche que nomme sa clé `definition` ; le rapport de l'index, dont l'élément n'est servi nulle part.
  * Monté, un véhicule porte ses pièces aux postes en vigueur (`postesEnVigueur`), celles de ses Améliorations, et cache
  * les nœuds que ses Améliorations montées ou non changent (`noeudsCaches`).
@@ -19,7 +19,21 @@ import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type M
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
-import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, findTeinteById, libelleDeCleDElement, maniementDeLaForme, pieceRacine, type EmblemeDef, type EmblemeResolu, type FireArc, type Maniement, type PosteDuVehicule } from '../../../src/noyau/index';
+import {
+  cataloguesDeComposition,
+  emplacementDePiece,
+  emplacementsDeRangement,
+  gardeRobe,
+  findTeinteById,
+  libelleDeCleDElement,
+  maniementDeLaForme,
+  pieceRacine,
+  type LigneDeGardeRobe,
+  type EmblemeResolu,
+  type FireArc,
+  type Maniement,
+  type PosteDuVehicule,
+} from '../../../src/noyau/index';
 
 /**
  * @contrat Atelier 3D
@@ -54,11 +68,12 @@ export interface ModelesDeLAtelier {
    *  ligne au plus : un accessoire `rigide` va à la ligne de son emplacement, que la base ou l'une de ses pièces
    *  l'offre (le plumet au `cimier` du casque), jamais à un point. `empreinte` vaut `glb.sha256` de la base. `clips`
    *  vaut la table rôle → clip de la base (`clips` du manifeste, « Gabarit d'une base ») et `vitesseAuSol` la vitesse
-   *  au sol en m/s de son clip du rôle `walk` (`appuis.vitesseAuSol`). */
+   *  au sol en m/s de son clip du rôle `marche` (`appuis.vitesseAuSol`). */
   bases: BaseDeLAtelier[];
-  /** le fichier, sous `modeles/`, de chaque base et de chaque élément servi, à un point, à une ligne ou en véhicule
-   *  (`fichiersDuModele(id).glb`). */
-  glb: Record<string, string>;
+  /** les fichiers, sous `modeles/`, de chaque base et de chaque élément servi, à un point, à une ligne ou en véhicule
+   *  (`fichiersDuModele`) : son GLB et la scène que l'export en fabrique. Godot demande celui que nomme la `forme` du
+   *  listage. */
+  fichiers: Record<string, { glb: string; scene: string }>;
   /** ceux de l'index (`[base-absente]`, `[cle-en-doublon]`, `[base-en-doublon]`, `[forme]`). Un manifeste qui n'est
    *  ni une base (il porte `os`, schéma `VERSION_DU_SCHEMA_DE_BASE`, `asset/manifesteDeBase.ts`) ni un élément qui
    *  nomme sa `base` (schéma 3) ou d'une catégorie sans base (`decor`, `vehicule` : `estSansBase`,
@@ -96,9 +111,10 @@ export interface ModelesDeLAtelier {
    *  `clipsDeuxMains` que joue la base qui le tient. L'import refuse une seconde prise sur un élément dont aucun mesh
    *  ne pend à l'os d'une prise de la base (`seconde-prise-sans-prise`). */
   secondesPrises: Record<string, SecondePriseDeLAtelier>;
-  /** pour chaque élément servi dont le manifeste déclare une `couche`, et pour eux seuls, les zones de sa base qu'il
-   *  couvre (`couvre`, aucune s'il n'en déclare pas) et les éléments servis qu'il masque (`masque`) : ceux dont la
-   *  couche est plus intérieure dans `COUCHES` (`asset/element.ts`, de `peau` à `manteau`), et ceux sans couche. */
+  /** pour chaque élément servi dont le manifeste déclare une `couche`, et pour eux seuls, le rang de sa couche dans
+   *  `COUCHES` (`asset/element.ts`, de `peau` à `manteau`), s'il est un accessoire, les zones de sa base qu'il couvre
+   *  (`couvre`, aucune s'il n'en déclare pas) et les éléments servis qu'il masque (`masque`) : ceux dont la couche est
+   *  plus intérieure, et ceux sans couche. */
   couches: Record<string, CoucheDeLAtelier>;
   /** les entrées `kind: 'embleme'` de la garde-robe (`src/data/garde-robe.json`, `gardeRobe` de la surface du noyau),
    *  chacune réduite à `id`, `label` et `svg`. `svg` est un document SVG complet, couleurs comprises, à `viewBox`
@@ -148,8 +164,13 @@ export interface BaseDeLAtelier {
   /** par maniement, le clip de chaque rôle qu'elle joue en tenant des deux mains un objet de ce maniement
    *  (`ManifesteDeBase.clipsDeuxMains`), vide sans table. */
   clipsDeuxMains: NonNullable<ManifesteDeBase['clipsDeuxMains']>;
-  /** la vitesse au sol en m/s du clip du rôle `walk` (`ManifesteDeBase.appuis.vitesseAuSol`). */
+  /** par clip, les prises que son geste occupe (`ManifesteDeBase.prisesOccupees`), vide sans table : Godot y range
+   *  l'objet tenu (`MontageDeComposition.poser_le_clip`). */
+  prisesOccupees: NonNullable<ManifesteDeBase['prisesOccupees']>;
+  /** la vitesse au sol en m/s du clip du rôle `marche` (`ManifesteDeBase.appuis.vitesseAuSol`). */
   vitesseAuSol: number;
+  /** les os de ses chaînes (`ManifesteDeBase.chaines`, section « Pile des couches »). */
+  osDeChaine: string[];
 }
 
 /**
@@ -218,6 +239,10 @@ export interface SecondePriseDeLAtelier {
  * La couche d'un élément au montage.
  */
 export interface CoucheDeLAtelier {
+  /** le rang de sa couche dans `COUCHES`, de la plus intérieure à la plus extérieure (section « Pile des couches »). */
+  rang: number;
+  /** vrai pour un accessoire (`categorie` de son manifeste, section « Pile des couches »). */
+  accessoire: boolean;
   /** les zones qu'il couvre. */
   couvre: readonly string[];
   /** les éléments qu'il masque. */
@@ -225,11 +250,13 @@ export interface CoucheDeLAtelier {
 }
 
 /** Un emblème offert au montage : son id, son libellé et son dessin. */
-type EmblemeDeLAtelier = Pick<EmblemeDef, 'id' | 'label' | 'svg'>;
+type EmblemeDeLAtelier = Pick<LigneDeGardeRobe<'embleme'>, 'id' | 'label' | 'svg'>;
 
 /** La `cle` du manifeste d'élément `manifeste`. */
 export const cleDe = (manifeste: unknown): Readonly<Record<string, string | undefined>> => (manifeste as ManifesteDElement).cle;
 const modeDe = (e: EntreeDeModele) => (e.brut as ManifesteDElement).liaison.mode;
+/** Le GLB du modèle `id` et la scène que l'export en fabrique (`fichiersDuModele`). */
+const formesDe = (id: string): ModelesDeLAtelier['fichiers'][string] => { const { glb, scene } = fichiersDuModele(id); return { glb, scene }; };
 /** La base de l'élément `e`, `undefined` s'il est sans base (`estSansBase`). */
 const baseDe = (e: EntreeDeModele): string | undefined => { const m = e.brut as ManifesteDElement; return 'base' in m ? m.base : undefined; };
 /** Les `nom` des surfaces `blason: true` du manifeste d'élément `manifeste`, dans l'ordre du manifeste. */
@@ -251,11 +278,11 @@ export const emblemeMonte = (embleme: EmblemeResolu | undefined, manifeste: unkn
 export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigides: Readonly<Record<string, readonly string[]>>): ModelesDeLAtelier {
   const index = indexerModeles(Object.entries(manifestes).map(([id, brut]) => ({ id, brut })));
   const elements = [...index.elements.values()];
-  const glb: Record<string, string> = {};
+  const fichiers: ModelesDeLAtelier['fichiers'] = {};
   const surfaces: Record<string, readonly Surface[]> = {};
   const libelles: Record<string, string> = {};
   const secondesPrises: Record<string, SecondePriseDeLAtelier> = {};
-  const rangs: Record<string, { rang: number; couvre: readonly string[] }> = {};
+  const rangs: Record<string, Pick<CoucheDeLAtelier, 'rang' | 'accessoire' | 'couvre'>> = {};
   const catalogues = cataloguesDeComposition();
   const libelleDuPoint = (id: string, genre: PointDAccroche['genre']): string => {
     const [racine] = id.split('#');
@@ -266,11 +293,11 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const libelleDeLAxe = (champ: 'tete' | 'coiffure'): string => catalogues.axes.find((a) => a.champ === champ)!.label;
   const servir = (servis: readonly EntreeDeModele[]): string[] =>
     servis.map(({ id, brut }) => {
-      glb[id] = fichiersDuModele(id).glb;
+      fichiers[id] = formesDe(id);
       surfaces[id] = (brut as ManifesteDElement).surfaces;
       libelles[id] = libelleDeCleDElement(cleDe(brut)) ?? id;
       const { couche, couvre } = brut as { couche?: Couche; couvre?: readonly string[] };
-      if (couche) rangs[id] = { rang: COUCHES.indexOf(couche), couvre: couvre ?? [] };
+      if (couche) rangs[id] = { rang: COUCHES.indexOf(couche), accessoire: (brut as ManifesteDElement).categorie === 'accessoire', couvre: couvre ?? [] };
       const { liaison } = brut as ManifesteDElement;
       const forme = cleDe(brut).apparence;
       if ('secondePrise' in liaison && liaison.secondePrise) secondesPrises[id] = { repere: liaison.secondePrise, maniement: (forme && maniementDeLaForme(forme)) || null };
@@ -282,7 +309,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     const estUnePiece = (e: EntreeDeModele) => modeDe(e) !== 'rigide' || (e.brut as ManifesteDElement).categorie === 'accessoire';
     const objets = deLaBase.filter((e) => !estUnePiece(e));
     const pieces = deLaBase.filter(estUnePiece);
-    glb[id] = fichiersDuModele(id).glb;
+    fichiers[id] = formesDe(id);
     surfaces[id] = m.surfaces ?? [];
     const osDesPrises = Object.values(m.prises ?? {}).map((a) => a.os);
     const pointsDe = (genre: PointDAccroche['genre'], attaches: Readonly<Record<string, Attache>>): PointDAccroche[] =>
@@ -323,17 +350,17 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
           ? [{ sorte: 'emplacement', ...choix(g.id, g.label, (e) => emplacementDe(e) === g.id) }]
           : []),
     ];
-    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, clipsDeuxMains: m.clipsDeuxMains ?? {}, vitesseAuSol: m.appuis.vitesseAuSol };
+    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, clipsDeuxMains: m.clipsDeuxMains ?? {}, prisesOccupees: m.prisesOccupees ?? {}, vitesseAuSol: m.appuis.vitesseAuSol, osDeChaine: Object.values(m.chaines).flat() };
   });
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
-  const couches = Object.fromEntries(Object.entries(rangs).map(([id, { rang, couvre }]): [string, CoucheDeLAtelier] =>
-    [id, { couvre, masque: Object.keys(libelles).filter((autre) => (rangs[autre]?.rang ?? RANG_DU_CORPS) < rang) }]));
+  const couches = Object.fromEntries(Object.entries(rangs).map(([id, couche]): [string, CoucheDeLAtelier] =>
+    [id, { ...couche, masque: Object.keys(libelles).filter((autre) => (rangs[autre]?.rang ?? RANG_DU_CORPS) < couche.rang) }]));
   const parCle = (categorie: 'vehicule' | 'amelioration', champ: 'definition' | 'amelioration') => Object.fromEntries(elements.flatMap((e) => {
     const m = e.brut as ManifesteDElement;
     return m.categorie === categorie ? [[cleDe(m)[champ]!, servir([e])[0]]] : [];
   }));
   const vehicules = Object.fromEntries(Object.entries(parCle('vehicule', 'definition')).sort(([, a], [, b]) => libelles[a].localeCompare(libelles[b], 'fr')));
-  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules, ameliorations: parCle('amelioration', 'amelioration') };
+  return { bases, fichiers, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules, ameliorations: parCle('amelioration', 'amelioration') };
 }
 
 /** Une pièce montée sur un véhicule : l'élément `vehicule` servi qui dessine sa fiche, son bord, sa position dans la

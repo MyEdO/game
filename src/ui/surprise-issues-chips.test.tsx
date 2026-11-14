@@ -43,10 +43,10 @@ const chars = (perception: number, agilite: number) =>
   ({ 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: perception,
      agilite, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30, perception }) as never;
 
-const mk = (id: string, kind: 'hero' | 'enemy', perception: number, agilite: number): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', perception: number, agilite: number): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: chars(perception, agilite), conditions: [], traumas: [],
      engagedWith: [], skills: [], talents: [], items: [], weapons: [], advantage: 0, size: 'moyenne',
-     pos: { x: kind === 'hero' ? 0 : 1, y: 0 }, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
+     pos: { x: kind === 'heros' ? 0 : 1, y: 0 }, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
 
@@ -58,8 +58,8 @@ let root: Root;
  *  = celle de TOUS les guetteurs (65 : un Test SIMPLE réussirait — seule l'OPPOSITION les fait perdre). */
 function ambush(talents: TalentInstance[] = [], guetteurs = 1, perception = 5) {
   const heroes = Array.from({ length: guetteurs }, (_, i) =>
-    ({ ...mk(i === 0 ? 'h' : `h${i + 1}`, 'hero', perception, 30), ...(i === 0 ? { talents } : {}) }) as Combatant);
-  const foe = mk('e', 'enemy', 30, 80);
+    ({ ...mk(i === 0 ? 'h' : `h${i + 1}`, 'heros', perception, 30), ...(i === 0 ? { talents } : {}) }) as Combatant);
+  const foe = mk('e', 'ennemi', 30, 80);
   const ids = [...heroes.map((h) => h.id), 'e'];
   useGame.setState({
     party: heroes,
@@ -67,13 +67,13 @@ function ambush(talents: TalentInstance[] = [], guetteurs = 1, perception = 5) {
       reachable: new Map(), movementUsed: 0, acted: false, log: [], over: null } as unknown as BattleState,
     mode: 'battle', scene: testScene(), net: SOLO as never, pendingCascade: null, pendingLogQueue: [],
   });
-  applySurprise(useGame.getState, useGame.setState, 'party');
+  applySurprise(useGame.getState, useGame.setState, 'groupe');
 }
 
 /** La BANDE : l'unique étape de Surprise que la cascade porte. */
 const bande = () => useGame.getState().pendingCascade!.participants[0];
-/** Lance la rangée d'un guetteur (flux `cascadeBatch` — un jet PAR rangée). */
-const lancer = (id: string) => act(() => { useGame.getState().jetLancer('cascadeBatch', id); });
+/** Lance la rangée d'un guetteur (flux `cascadeEnBande` — un jet PAR rangée). */
+const lancer = (id: string) => act(() => { useGame.getState().jetLancer('cascadeEnBande', id); });
 
 const render = () => act(() => { root.render(<CascadeBody />); });
 /** Le bloc des issues, tel qu'il est rendu (chips comprises). */
@@ -122,14 +122,14 @@ describe('#1117 — la Surprise DIT ses issues en chips d’ops, avant comme apr
    * ne pointait que l'État : la conséquence tenait lieu de règle.
    */
   it('le ⓘ du titre ouvre la RÈGLE d’embuscade, la chip ouvre l’État — deux portes distinctes', () => {
-    const stake = resolveStake(combatStakeRef('ambush-surprise'));
+    const stake = resolveStake(combatStakeRef('embuscade-reperer'));
     expect(stake.rule, 'le foyer du jet est la règle qui l’EXIGE, pas son issue').toEqual({ category: 'regles', id: 'embuscade-surprise' });
     // La fiche existe, et son texte est le passage du Source qui exige le Test opposé.
     const fiche = regles.find((r) => r.id === 'embuscade-surprise')!;
     expect(fiche.desc).toContain('Test opposé de **Discrétion/Perception**');
     expect(fiche.desc, 'le passage dit POURQUOI un seul embusqué tire').toContain('le Personnage ayant la Discrétion la plus faible');
     // Le Test de Vigilance, lui, garde son foyer sur le TALENT : c'est le talent qui en énonce la règle.
-    expect(resolveStake(combatStakeRef('ambush-vigilance')).rule).toEqual({ category: 'talents', id: 'vigilance' });
+    expect(resolveStake(combatStakeRef('embuscade-vigilance')).rule).toEqual({ category: 'talents', id: 'vigilance' });
   });
 
   it('APRÈS le jet perdu : le verdict est le MÊME bloc, filtré à la branche réalisée', () => {
@@ -169,7 +169,7 @@ describe('#1117 — la Surprise DIT ses issues en chips d’ops, avant comme apr
         // Surprise dit ce qu'il met en jeu (`ambushSurprise`). SEULE divergence, celle que ce test
         // mesure : la Difficulté DIFFICILE (le site réel oppose à l'Intermédiaire, où un défaut
         // d'affichage de la Difficulté passerait inaperçu).
-        { skill: { id: 'perception' }, difficulty: 'difficile', label: 'Guet', stake: combatStakeRef('ambush-surprise'),
+        { skill: { id: 'perception' }, difficulty: 'difficile', label: 'Guet', stake: combatStakeRef('embuscade-reperer'),
           opposed: { attacker: 'agilite', attackerSkill: 'discretion', attackerLabel: 'Discrétion' } },
         EMPTY_FLOW, EMPTY_FLOW,
       ),
@@ -178,7 +178,7 @@ describe('#1117 — la Surprise DIT ses issues en chips d’ops, avant comme apr
     const aT = step.meta!.opposed!.aT;
     // Oracle = la valeur de Test de l'embusqueur, LUE à sa source (`testValue`) : `aT.base` ne peut pas
     // servir de référence — un `TestResult` ne porte de valeur nue que si son producteur la POSE
-    // (LDB 12 l.160), et l'opposition de `triggeredTest` n'en pose pas.
+    // (LDB 12 l.160), et l'opposition de `testDeclenche` n'en pose pas.
     expect(aT.target, 'le pré-jet de l’embusqueur SUBIT la Difficulté (−20)').toBe(testValue(embusqueur, { skill: { id: 'discretion' }, characteristic: 'agilite' }) - 20);
 
     act(() => { useGame.getState().jetLancer('cascade', step.id); });
@@ -286,12 +286,12 @@ describe('#1117 — la Surprise est UNE bande : un jet d’embusqueur, N guetteu
     const resilienceOf = (id: string) => g().battle!.combatants.find((c) => c.id === id)!.resilience ?? 0;
     const resAvant = resilienceOf('h');
 
-    act(() => { g().jetForcerLaReussite('cascadeBatch', 'h'); });
+    act(() => { g().jetForcerLaReussite('cascadeEnBande', 'h'); });
     expect(bande().participants![0].result!.success, '« Je ne faillirai pas ! » n’a pas produit de réussite').toBe(true);
     const resApres = resilienceOf('h');
     expect(resApres, 'le point de Résilience est dépensé').toBe(resAvant - 1);
 
-    act(() => { g().jetImposerLeResultat('cascadeBatch', 11, 'h'); });
+    act(() => { g().jetImposerLeResultat('cascadeEnBande', 11, 'h'); });
     const apres = bande().participants![0].result!;
     expect(apres.roll, 'le dé CHOISI est celui appliqué').toBe(11);
     expect(apres.success, 'la réussite PAYÉE par le point de Résilience a été perdue au choix du dé').toBe(true);

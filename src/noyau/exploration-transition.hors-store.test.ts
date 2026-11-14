@@ -101,8 +101,8 @@ describe('aucun état transitoire n’entre dans l’exploré', () => {
 
 describe('coop : parité hôte / invité', () => {
   /** Joue la marche de six pas dans le noir sur un banc du siège `mode`, et rend l'exploré et les instantanés de chaque pas. */
-  const jouer = (mode: 'host' | 'guest') => surUnBancHorsTest((banc) => {
-    poser(banc, couloir('couloir'), { gameTime: MIDI, lightLevel: 0, net: { ...initialNet(), mode, mySeat: mode === 'host' ? 0 : 1 } });
+  const jouer = (mode: 'hote' | 'invite') => surUnBancHorsTest((banc) => {
+    poser(banc, couloir('couloir'), { gameTime: MIDI, lightLevel: 0, net: { ...initialNet(), mode, mySeat: mode === 'hote' ? 0 : 1 } });
     const instantanes: Record<string, unknown>[] = [];
     banc.subscribe((etat) => { instantanes.push(instantaneDeLaCoop(etat)); });
     banc.actions.cliquerLaCase({ x: 6, y: 0, z: 0 });
@@ -110,15 +110,15 @@ describe('coop : parité hôte / invité', () => {
   });
 
   it('les mêmes gestes donnent le même exploré chez l’hôte et chez l’invité', () => {
-    const hote = jouer('host');
+    const hote = jouer('hote');
     expect(hote.explore).toEqual(rangee(0, 1, 2, 3, 4, 5, 6));
-    expect(jouer('guest').explore).toEqual(hote.explore);
+    expect(jouer('invite').explore).toEqual(hote.explore);
   });
 
   it('l’invité qui applique chaque instantané de l’hôte finit sur le même exploré', () => {
-    const hote = jouer('host');
+    const hote = jouer('hote');
     const invite = surUnBancHorsTest((banc) => {
-      banc.setState({ net: { ...initialNet(), mode: 'guest', mySeat: 1 } });
+      banc.setState({ net: { ...initialNet(), mode: 'invite', mySeat: 1 } });
       for (const data of hote.instantanes) banc.setState(appliquerLInstantane(data, banc.getState()).etat);
       return explore(banc, 'couloir');
     });

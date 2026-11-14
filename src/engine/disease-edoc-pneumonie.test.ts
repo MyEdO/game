@@ -22,7 +22,7 @@ function seq(values: number[]): RNG {
 
 const hero = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h', label: 'Malade', kind: 'hero',
+    id: 'h', label: 'Malade', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -101,12 +101,12 @@ describe('Pneumonie : le Test de Résistance quotidien (EDOC 08 l.104-108)', () 
 });
 
 describe('Pneumonie : le Test quotidien passe par le canal INFLUENÇABLE de l’entretien', () => {
-  it('tickDisease(defer) : le Test est DIFFÉRÉ en étape `disease-tick` et n’est PAS roulé', () => {
+  it('tickDisease(defer) : le Test est DIFFÉRÉ en étape `maladie-test-quotidien` et n’est PAS roulé', () => {
     const c = hero({ diseases: [contractDisease('pneumonie', seq([5, 5, 5]))!] });
     const { specs, defer } = porteEntretien();
     // seq([]) : un seul jet tiré renverrait `undefined` — le moteur ne DOIT rien rouler.
     tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
-    expect(specs.map((s) => s.kind)).toEqual(['disease-tick']);
+    expect(specs.map((s) => s.kind)).toEqual(['maladie-test-quotidien']);
     expect(specs[0].difficulty).toBe('intermediaire');
     expect(specs[0].test, 'EDOC 08 l.104 — « Test de Résistance Intermédiaire (+0) »').toEqual({ skill: { id: 'resistance' } });
     expect(specs[0].base, 'aucune valeur maison : la porte la calcule').toBeUndefined();
@@ -119,12 +119,12 @@ describe('Pneumonie : le Test quotidien passe par le canal INFLUENÇABLE de l’
     const c = hero({ diseases: [contractDisease('pneumonie', seq([5, 5, 5]))!] });
     const { specs, defer } = porteEntretien();
     dailyDiseaseUpkeep(c, seq([]), defer);
-    expect(specs.map((s) => s.kind)).toEqual(['disease-tick']);
+    expect(specs.map((s) => s.kind)).toEqual(['maladie-test-quotidien']);
   });
 
   it('l’applicateur de l’étape (applyOps sur `onFail`) produit la MÊME échelle d’aggravation', () => {
     const c = hero({ diseases: [contractDisease('pneumonie', seq([5, 5, 5]))!] });
-    const onFail = spellOps(diseaseDefs()['pneumonie'].dailyTest!.test.fail, 'target');
+    const onFail = spellOps(diseaseDefs()['pneumonie'].dailyTest!.test.echec, 'target');
     applyOps(c, onFail, { idNeuf: idsDeTest, rng: seq([]) });
     expect(fievre(c).severity).toBe('grave');
     applyOps(c, onFail, { idNeuf: idsDeTest, rng: seq([]) });
@@ -133,7 +133,7 @@ describe('Pneumonie : le Test quotidien passe par le canal INFLUENÇABLE de l’
 });
 
 describe('`aggravateSymptom` : TROIS issues distinctes, jamais un booléen (EDOC 08 l.104-108)', () => {
-  const onFail = () => spellOps(diseaseDefs()['pneumonie'].dailyTest!.test.fail, 'target');
+  const onFail = () => spellOps(diseaseDefs()['pneumonie'].dailyTest!.test.echec, 'target');
 
   it('symptôme présent, PAS encore à cette sévérité → `aggrave` (et rien de l’échelon suivant)', () => {
     const c = hero({ diseases: [contractDisease('pneumonie', seq([5, 5, 5]))!] });

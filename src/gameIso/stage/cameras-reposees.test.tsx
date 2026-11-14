@@ -43,7 +43,7 @@ function écran(pov: boolean): JSX.Element {
       scene={SCENE}
       mpt={MPT}
       frame={pov
-        ? { mode: 'pov', partyPos: { x: 4, y: 4 }, facing: 'N', indoor: false, cid: null }
+        ? { mode: 'subjectif', partyPos: { x: 4, y: 4 }, facing: 'N', indoor: false, cid: null }
         : { mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 }}
       tintAt={() => 1}
       keepEl={() => true}

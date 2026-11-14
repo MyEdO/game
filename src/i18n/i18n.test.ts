@@ -42,7 +42,7 @@ describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
     // Le libellé d'un type psy CIBLÉ DÉRIVE de psychology.json (donnée app-owned, comme etats.json),
     // pas du catalogue t().
     expect(cibleLabel('animosite')!.label).toBe(psychologyLabel('animosite'));
-    expect(cibleLabel('haine')!.icon).toBe('flag/anger'); // icône du registre <Icon>, portée par la donnée
+    expect(cibleLabel('haine')!.icon).toBe('drapeau/hostilite'); // icône du registre <Icon>, portée par la donnée
   });
 
   it('garde `out.*` : aucune clé ne re-imprime le jet (roll/sl/drow, ou {target} en paire avec {roll}) — #295 Lot 0 Décision 1b/ceinture', () => {
@@ -56,11 +56,11 @@ describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
     // Juge-vision de #700, modale « Chute volontaire » à 360px : « (chute de 2 » / « m) ». Chaque clé
     // de chute est RENDUE (tous ses trous remplis par une longueur) : aucune valeur suivie d'une espace
     // ordinaire puis de « m », et celles qui disent une longueur la collent par U+00A0.
-    const cles = (Object.keys(fr) as (keyof typeof fr)[]).filter((k) => /^fall\.(modale|situation|option)\.|^eff\.fallOuverte$/.test(k));
+    const cles = (Object.keys(fr) as (keyof typeof fr)[]).filter((k) => /^fall\.(modale|situation|option)\.|^eff\.chuteOuverte$/.test(k));
     const rendus = cles.map((k) => [k, interpolate(fr[k], new Proxy({}, { get: () => 2, has: () => true }) as Record<string, number>)] as const);
     expect(rendus.filter(([, v]) => /\d[ \t]m\b/.test(v)).map(([k]) => k), 'unité orpheline possible : espace ordinaire avant « m »').toEqual([]);
     const colles = rendus.filter(([, v]) => /\d\u00a0m\b/.test(v)).map(([k]) => k);
-    expect(colles).toEqual(expect.arrayContaining(['fall.option.sauter', 'fall.option.suspendreSauter', 'fall.option.suspendreTenter', 'fall.modale.denivele', 'eff.fallOuverte']));
+    expect(colles).toEqual(expect.arrayContaining(['fall.option.sauter', 'fall.option.suspendreSauter', 'fall.option.suspendreTenter', 'fall.modale.denivele', 'eff.chuteOuverte']));
   });
 
   it('un paramètre qui nomme une entrée de donnée n’accepte que son libellé minté, jamais l’id (#3045)', () => {
@@ -71,11 +71,11 @@ describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
     // @ts-expect-error — un id de Groupe n'est pas un libellé
     void t('turn.rageHate', { name: 'n', groupe });
     // @ts-expect-error — des ids de Groupe ne sont pas un libellé
-    void t('eff.socialPsychEnvers', { mods: 'm', groupes: groupe });
+    void t('eff.psychologieSocialeEnvers', { mods: 'm', groupes: groupe });
     // @ts-expect-error — un nom de Talent écrit en dur n'est pas un libellé
-    void t('cf.fearIgnored', { name: 'n', talent: 'Sans Peur' });
+    void t('turn.fearVanquished', { name: 'n', foe: psychologyLabel(psy), talent: 'Sans Peur' });
     expect(t('turn.psychSuperseded', { name: 'n', psych: psychologyLabel(psy) })).toContain(psychologyLabel(psy));
     expect(t('turn.rageHate', { name: 'n', groupe: groupLabel(groupe) })).toContain(groupLabel(groupe));
-    expect(t('eff.socialPsychEnvers', { mods: 'm', groupes: groupesLabel([groupe]) })).toContain(groupLabel(groupe));
+    expect(t('eff.psychologieSocialeEnvers', { mods: 'm', groupes: groupesLabel([groupe]) })).toContain(groupLabel(groupe));
   });
 });

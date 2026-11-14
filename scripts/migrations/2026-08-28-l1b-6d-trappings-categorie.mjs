@@ -4,7 +4,7 @@
  *
  * MOTIF MESURÉ : sur les 441 possessions du catalogue, le champ range l'entrée dans une CATÉGORIE
  * de catalogue — mesuré melee 65 / ranged 79 / ammunition 22 / armor 17 / trapping 258. Il n'a rien
- * à voir avec le `Weapon.type` du moteur (`src/engine/types.ts`, `'melee' | 'ranged'`, persisté),
+ * à voir avec le `Weapon.type` du moteur (`src/engine/types.ts`, `'melee' | 'distance'`, persisté),
  * ni avec `ItemInstance.kind` : le pont entre les deux est `kindOf()` (`src/engine/items.ts`), une
  * TRADUCTION et jamais une recopie. Ces deux-là ne sont pas touchés.
  * `merchantFamilies.match.trappingType` est un nom de champ RÉFÉRENÇANT le champ qui meurt : il suit.
@@ -29,7 +29,7 @@ const TRAPPINGS = path.join(ROOT, 'src/data/trappings.json');
 const FAMILLES = path.join(ROOT, 'src/data/merchantFamilies.json');
 // 440→441 : Anneau d'Opsianon, EDO 11 (folio 148), #672.
 /** Vocabulaire de catégorie du CATALOGUE — `vehicle` n'a AUCUN porteur mesuré et meurt du schéma. */
-const VALEURS = new Set(['melee', 'ranged', 'ammunition', 'armor', 'trapping']);
+const VALEURS = new Set(['melee', 'distance', 'ammunition', 'armor', 'trapping']);
 
 const echecs = [];
 

@@ -23,7 +23,7 @@ const KIND = cleDeFixture('sonde-siege-invite');
 
 const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>
   combattantDeTest({
-    id, label: `Héros ${id}`, kind: 'hero',
+    id, label: `Héros ${id}`, kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     skills: [{ id: 'resistance', characteristic: 'endurance', advances: 20 }],
     conditions: [], talents: [], fortune: 1, resilience: 1,
@@ -42,7 +42,7 @@ let banc: Banc;
 /** HÔTE au siège 0 ; `H1` attribué au siège 1 (invité) — la configuration coop la plus simple. */
 function hoteAvecHerosDInvite(): void {
   banc.setState({ party: [hero('H1')] });
-  banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, ownership: { H1: 1 } } });
+  banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, ownership: { H1: 1 } } });
 }
 
 describe('#1262 — le jet du héros d’un AUTRE siège se surface (jamais roulé en silence)', () => {
@@ -77,7 +77,7 @@ describe('#1262 — le jet du héros d’un AUTRE siège se surface (jamais roul
 
   it('un héros conduit par l’IA (aiControlled) n’a AUCUN pilote : il reste inline, et le repli l’accepte', () => {
     banc.setState({ party: [hero('H1', { aiControlled: true } as Partial<Combatant>)] });
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, ownership: { H1: 1 } } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, ownership: { H1: 1 } } });
     openRoll(banc.getState, banc.setState, req('H1'), KIND);
     expect(banc.getState().pendingCascade, 'aucun pilote : aucune fenêtre').toBeNull();
     expect(applied, 'résolu d’office, conséquence appliquée').toHaveLength(1);

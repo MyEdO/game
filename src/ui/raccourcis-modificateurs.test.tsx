@@ -28,8 +28,8 @@ import { KEYBINDINGS, modsMatch, type KeyBinding, type KeyMod } from '../state/c
  *  porté par le registre. `KEYBINDINGS` est le registre de PRODUCTION, partagé par tout le fichier de
  *  test (et, `isolate: false`, par le module lui-même) : sa remise en état est STRUCTURELLE — snapshot
  *  au `beforeEach`, restauration au `afterEach`, aucun retrait à la charge d'un cas. */
-const poser = (b: Pick<KeyBinding, 'id' | 'codes'> & Partial<KeyBinding>): void => {
-  KEYBINDINGS.unshift({ labelKey: 'key.camLeft', section: 'camera', when: () => true, run: () => {}, ...b } as KeyBinding);
+const poser = (b: Pick<KeyBinding, 'codes'> & Partial<Omit<KeyBinding, 'id'>> & { id: string }): void => {
+  KEYBINDINGS.unshift({ labelKey: 'raccourci.cameraGauche', section: 'camera', when: () => true, run: () => {}, ...b } as KeyBinding);
 };
 
 /** Raccourcis du registre que cette touche (code + modificateurs tenus) désigne — la SONDE du juge. */
@@ -126,11 +126,11 @@ describe('raccourcis — les modificateurs font partie de la touche', () => {
   it('touche NUE = POSITION physique quelle que soit la COUCHE : Maj+1 reste la case 1, Alt+1 non', () => {
     // Sur AZERTY, la rangée de chiffres EST la couche Maj : « 1 » se frappe Maj+`Digit1`. Une touche
     // nue qui refuserait Maj rendrait les cases 1-8 de la grille de capacités injouables.
-    expect(candidats('Digit1', ['shift'])).toContain('hotbar-1');
-    expect(candidats('Digit1', [])).toContain('hotbar-1');
-    expect(candidats('Digit1', ['alt'])).not.toContain('hotbar-1');
-    expect(candidats('Digit1', ['ctrl'])).not.toContain('hotbar-1');
-    expect(candidats('Digit1', ['ctrl', 'alt']), 'AltGr COMPOSE un caractère, il ne frappe pas un raccourci').not.toContain('hotbar-1');
+    expect(candidats('Digit1', ['shift'])).toContain('capacite-1');
+    expect(candidats('Digit1', [])).toContain('capacite-1');
+    expect(candidats('Digit1', ['alt'])).not.toContain('capacite-1');
+    expect(candidats('Digit1', ['ctrl'])).not.toContain('capacite-1');
+    expect(candidats('Digit1', ['ctrl', 'alt']), 'AltGr COMPOSE un caractère, il ne frappe pas un raccourci').not.toContain('capacite-1');
     // Ctrl+Z reste EXACT : Ctrl+Maj+Z est une autre touche, celle du rétablissement.
     expect(candidats('KeyZ', ['ctrl'])).toEqual(['editeur-annuler']);
     expect(candidats('KeyZ', ['ctrl', 'shift'])).toEqual(['editeur-retablir-maj']);
@@ -260,7 +260,7 @@ describe('raccourcis — les modificateurs font partie de la touche', () => {
   });
 
   /**
-   * RÉVÉLER LES UTILISABLES (#1687 lot 3-II-b) — le binding de PRODUCTION `decor.reveler`, mesuré sur
+   * RÉVÉLER LES UTILISABLES (#1687 lot 3-II-b) — le binding de PRODUCTION `decor-reveler`, mesuré sur
    * le vrai registre : Alt maintenu pose l'état que les halos et les plaques de nom lisent, et il se
    * rend au relâchement comme au `blur` (Alt-Tab : la touche part sans keyup).
    */

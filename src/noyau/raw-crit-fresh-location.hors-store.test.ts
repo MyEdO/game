@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { evaluateMissile, type CastResult } from '../engine/magic';
-import { applyCoupCritiqueSec } from './combatFlow';
+import { applyCoupCritiqueSec, instantaneAvantLeCoup } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { seedBattleRng } from './battleRng';
@@ -10,6 +10,7 @@ import type { Combatant } from '../engine/types';
 import type { SpellData } from '../data';
 import { emptyScene } from './monde/scene';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { idDeFixture } from '../data/idDeFixture.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -23,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const mkTarget = (armour: Partial<Record<string, number>> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'T', name: 'Cible', kind: 'hero',
+    id: 'T', name: 'Cible', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(30), advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0, ...armour },
@@ -32,14 +33,14 @@ const mkTarget = (armour: Partial<Record<string, number>> = {}): Combatant =>
 
 const caster = (): Combatant =>
   (blessuresSurLeProfil({
-    id: 'C', name: 'Mage', kind: 'enemy',
+    id: 'C', name: 'Mage', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [], armour: {} as never,
     skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 },
   })) as unknown as Combatant;
 
 const missile = (): SpellData =>
-  ({ id: 'dard', label: 'Dard', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, missile: true, damage: 8 }) as SpellData;
+  ({ id: idDeFixture('spell', 'dard'), type: 'spells', label: 'Dard', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, missile: true, damage: 8 });
 
 const critCast: CastResult = { cast: true, roll: 50, target: 60, sl: 2, isCritical: true, isFumble: false, log: '' };
 
@@ -66,11 +67,11 @@ describe('#80 Critique de défense opposée — Localisation = 1d100 frais, déc
     seedBattleRng(7);
     const v1 = mkTarget();
     const log1: string[] = [];
-    applyCoupCritiqueSec(get, set, v1, 11, 'double', {}, log1);
+    applyCoupCritiqueSec(get, set, v1, 11, 'double', {}, log1, undefined, instantaneAvantLeCoup(v1));
     seedBattleRng(7);
     const v2 = mkTarget();
     const log2: string[] = [];
-    applyCoupCritiqueSec(get, set, v2, 99, 'double', {}, log2);
+    applyCoupCritiqueSec(get, set, v2, 99, 'double', {}, log2, undefined, instantaneAvantLeCoup(v2));
     expect(v1.criticalWounds).toBe(1); // un Critique a bien été appliqué
     expect(v1.traumas).toEqual(v2.traumas); // jet 11 ≠ 99 → Critique IDENTIQUE : la loc ne dérive plus de l’inversion
     expect(log1).toEqual(log2);
@@ -80,13 +81,13 @@ describe('#80 Critique de défense opposée — Localisation = 1d100 frais, déc
 describe('#43.2 Critique de défense opposée — HÉROS blindé : étape de déviation (LDB 63 l.30)', () => {
   it('héros victime AVEC armure → pousse une étape `self` (choix Dévier/Subir), Critique différé', () => {
     seedBattleRng(7);
-    const h = mkTarget({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 }); // id 'T', kind 'hero'
+    const h = mkTarget({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 }); // id 'T', kind 'heros'
     const battle = {
       combatants: [h], order: ['T'], baseOrder: ['T'], turn: 0, round: 1, action: null,
       selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as unknown as BattleState;
     banc.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, pendingCascade: null, pendingFateSave: null });
-    applyCoupCritiqueSec(banc.getState, banc.setState, h, 11, 'double', {}, []);
+    applyCoupCritiqueSec(banc.getState, banc.setState, h, 11, 'double', {}, [], undefined, instantaneAvantLeCoup(h));
     const dev = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'deviation')?.deviation;
     expect(dev?.mode).toBe('self'); // suspendu : choix Dévier/Subir
     expect(h.criticalWounds ?? 0).toBe(0); // Critique toujours différé à la résolution (non appliqué à ce stade)

@@ -21,7 +21,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { combatStakeRef } from '../data';
 import { monoStep } from './rollSeam';
-import { startSequence, activeSequence, sequenceCumRound, sequenceScoreOf } from './sequenceCore';
+import { startSequence, activeSequence, sequenceCumulsDeLaManche, sequenceScoreOf } from './sequenceCore';
 import { SEQUENCE_MAX_ROUNDS, type SequenceRound, type SequenceState, type SequenceVerdict } from './sequenceContract';
 import { avecLesTables, sequenceDeFixture, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
@@ -107,52 +107,52 @@ const NAVAL = 'test-crise-navale';
 
 /** Ce que le socle a REDONNÉ au domaine à chaque ouverture de manche — la preuve que l'état a persisté
  *  d'une manche à l'autre (rang, cumuls, charge navale). */
-const traceNavale: { round: number; metres: number; cum: Record<string, number> }[] = [];
+const traceNavale: { manche: number; metres: number; cumuls: Record<string, number> }[] = [];
 /** Manches ouvertes par la séquence qui ne conclut jamais (`test-boucle-infinie`). */
 let manches = 0;
 
 beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [NAVAL]: sequenceDeFixture<SeaCrisisPayload>({
-  round: (get, seq): SequenceRound<SeaCrisisPayload> | undefined => {
+  manche: (get, seq): SequenceRound<SeaCrisisPayload> | undefined => {
     const barreur = get().party[0];
     if (!barreur) return undefined;
-    traceNavale.push({ round: seq.round, metres: seq.payload.metres, cum: { ...seq.cum } });
+    traceNavale.push({ manche: seq.manche, metres: seq.chargeUtile.metres, cumuls: { ...seq.cumuls } });
     const step = monoStep({
-      id: `crise-${seq.round}`, kind: cleDeFixture('testCriseNavale'), label: fixtureText(`Manœuvre — manche ${seq.round}`),
+      id: `crise-${seq.manche}`, kind: cleDeFixture('testCriseNavale'), label: fixtureText(`Manœuvre — manche ${seq.manche}`),
       actor: barreur, difficulty: 'intermediaire', ligne: { test: { skill: { id: 'navigation' } } },
-      stake: combatStakeRef('pursuit-move', { values: { distance: seq.payload.metres, evasion: 500 } }),
+      stake: combatStakeRef('poursuite-manche', { values: { distance: seq.chargeUtile.metres, evasion: 500 } }),
     });
     if (!step) return undefined;
     return {
-      title: fixtureText(`Crise de mer — manche ${seq.round}`),
+      title: fixtureText(`Crise de mer — manche ${seq.manche}`),
       steps: [step],
       immediate: true, // aucune fenêtre à montrer dans ce harnais : le socle résout et enchaîne
-      payload: { ...seq.payload, manches: [...seq.payload.manches, seq.round] },
+      chargeUtile: { ...seq.chargeUtile, manches: [...seq.chargeUtile.manches, seq.manche] },
     };
   },
-  close: ({ seq, done }): SequenceVerdict<SeaCrisisPayload> => {
-    const dr = done.participants[0]?.result?.sl ?? 0;
+  clore: ({ seq, mancheClose }): SequenceVerdict<SeaCrisisPayload> => {
+    const dr = mancheClose.participants[0]?.result?.sl ?? 0;
     // ACCUMULATEUR PAR CAMP du socle (aucun compteur local) + FORMULE DE SCORE en donnée.
-    const { cum } = sequenceCumRound(seq, {
+    const { cumuls } = sequenceCumulsDeLaManche(seq, {
       navire: { success: dr >= 0, sl: Math.abs(dr) + 1 },
       poursuivant: { success: true, sl: 1 },
     });
-    const avance = sequenceScoreOf(seq.params.score?.navire, [cum.navire, cum.poursuivant]);
-    const payload: SeaCrisisPayload = { ...seq.payload, metres: seq.payload.metres + avance };
-    if (seq.round >= 2) return { go: 'end', outcome: 'semé', cum, payload };
-    return { go: 'continue', cum, payload };
+    const avance = sequenceScoreOf(seq.parametres.score?.navire, [cumuls.navire, cumuls.poursuivant]);
+    const chargeUtile: SeaCrisisPayload = { ...seq.chargeUtile, metres: seq.chargeUtile.metres + avance };
+    if (seq.manche >= 2) return { suite: 'fin', issue: 'semé', cumuls, chargeUtile };
+    return { suite: 'poursuivre', cumuls, chargeUtile };
   },
 }), 'test-boucle-infinie': sequenceDeFixture<{ n: number }>({
-      round: (get, seq) => {
-        manches = seq.round;
+      manche: (get, seq) => {
+        manches = seq.manche;
         const h = get().party[0];
         const step = monoStep({
-          id: `b-${seq.round}`, kind: cleDeFixture('testCriseNavale'), label: fixtureText('Boucle'), actor: h,
+          id: `b-${seq.manche}`, kind: cleDeFixture('testCriseNavale'), label: fixtureText('Boucle'), actor: h,
           difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-          stake: combatStakeRef('pursuit-move', { values: { distance: 1, evasion: 10 } }),
+          stake: combatStakeRef('poursuite-manche', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Boucle'), steps: [step], immediate: true } : undefined;
       },
-      close: () => ({ go: 'continue' }), // ne conclut JAMAIS
+      clore: () => ({ suite: 'poursuivre' }), // ne conclut JAMAIS
     }) } }); });
 
 describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 manches déroulées)', () => {
@@ -165,41 +165,41 @@ describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 m
   it('deux manches s’enchaînent, l’état PERSISTE entre elles et la charge navale traverse intacte', () => {
     traceNavale.length = 0;
     startSequence<SeaCrisisPayload>(banc.getState, banc.setState, {
-      def: NAVAL,
-      params: { target: 6, score: { navire: 'max' }, maxRounds: 4 },
-      payload: { crise: 'poursuite-navale', vessel: { hullWounds: 3 }, metres: 120, manches: [] },
+      definition: NAVAL,
+      parametres: { target: 6, score: { navire: 'max' }, maxRounds: 4 },
+      chargeUtile: { crise: 'poursuite-navale', vessel: { hullWounds: 3 }, metres: 120, manches: [] },
     });
     // DEUX manches ouvertes par le socle (la 2ᵉ sans que le domaine ne la redemande : c'est le cycle).
-    expect(traceNavale.map((t) => t.round)).toEqual([1, 2]);
+    expect(traceNavale.map((t) => t.manche)).toEqual([1, 2]);
     // La charge NAVALE a traversé la clôture : le sillage de la 1ʳᵉ manche est l'état de départ de la 2ᵉ.
     expect(traceNavale[0].metres).toBe(120);
     expect(traceNavale[1].metres).toBeGreaterThan(120);
     // …et l'accumulateur par camp aussi (vide à l'ouverture, garni à la 2ᵉ manche).
-    expect(traceNavale[0].cum).toEqual({});
-    expect(Object.keys(traceNavale[1].cum).sort()).toEqual(['navire', 'poursuivant']);
+    expect(traceNavale[0].cumuls).toEqual({});
+    expect(Object.keys(traceNavale[1].cumuls).sort()).toEqual(['navire', 'poursuivant']);
     // Issue atteinte : la séquence est retirée du slot (aucune fuite d'état entre deux crises).
     expect(activeSequence(banc.getState)).toBeNull();
   });
 
   it('l’accumulateur PAR CAMP est celui de la structure (Record générique), jamais deux compteurs jumeaux', () => {
     const seq: SequenceState<SeaCrisisPayload> = {
-      def: NAVAL, round: 1, cum: { navire: 2, poursuivant: 5 }, params: { target: 6 },
-      payload: { crise: 'poursuite-navale', vessel: { hullWounds: 0 }, metres: 0, manches: [] },
+      definition: NAVAL, manche: 1, cumuls: { navire: 2, poursuivant: 5 }, parametres: { target: 6 },
+      chargeUtile: { crise: 'poursuite-navale', vessel: { hullWounds: 0 }, metres: 0, manches: [] },
     };
-    const { cum, done } = sequenceCumRound(seq, {
+    const { cumuls, atteints } = sequenceCumulsDeLaManche(seq, {
       navire: { success: true, sl: 3 },
       poursuivant: { success: false, sl: -2 },
     });
-    expect(cum).toEqual({ navire: 5, poursuivant: 3 });
-    expect(done, 'aucun camp n’a atteint la cible de 6').toEqual([]);
-    const { done: atteint } = sequenceCumRound({ ...seq, cum: { navire: 5 } }, { navire: { success: true, sl: 1 } });
+    expect(cumuls).toEqual({ navire: 5, poursuivant: 3 });
+    expect(atteints, 'aucun camp n’a atteint la cible de 6').toEqual([]);
+    const { atteints: atteint } = sequenceCumulsDeLaManche({ ...seq, cumuls: { navire: 5 } }, { navire: { success: true, sl: 1 } });
     expect(atteint).toEqual(['navire']);
   });
 
   it('la BORNE anti-boucle est un invariant du CONTRAT, jamais un compteur par système', () => {
     expect(SEQUENCE_MAX_ROUNDS).toBe(50);
     manches = 0;
-    startSequence(banc.getState, banc.setState, { def: 'test-boucle-infinie', payload: { n: 0 } });
+    startSequence(banc.getState, banc.setState, { definition: 'test-boucle-infinie', chargeUtile: { n: 0 } });
     expect(activeSequence(banc.getState), 'la séquence s’est arrêtée').toBeNull();
     expect(manches).toBe(SEQUENCE_MAX_ROUNDS);
     // La borne se COMPTE en manches ouvertes par le socle ; elle se DIT en tours, parce que la

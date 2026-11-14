@@ -26,14 +26,14 @@ const salle = (): Scene => ({
   id: 'salle', label: 'Le relais',
   triggers: [{
     id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true,
-    flow: { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'document', documentId: 'doc-affiche' } },
-      { kind: 'do', effect: { type: 'revealClue', indiceId: 'ind-lettre', stade: 'dechiffree' } },
+    flow: { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'document', documentId: 'doc-affiche' } },
+      { kind: 'effet', effet: { type: 'revealClue', indiceId: 'ind-lettre', stade: 'dechiffree' } },
     ] },
   }],
 });
 const projet = (): ProjetEdite => ({ scenes: [salle()], worldMap: null, narratif: narratif() });
-const effets = (p: ProjetEdite) => (p.scenes[0].triggers[0].flow as { steps: { effect: unknown }[] }).steps.map((s) => s.effect);
+const effets = (p: ProjetEdite) => (p.scenes[0].triggers[0].flow as { etapes: { effet: unknown }[] }).etapes.map((s) => s.effet);
 const sain = (p: ProjetEdite) => {
   expect(fautesDeSites(sitesDuProjet(p), p.narratif), 'référence pendante').toEqual([]);
   expect(narratifSchema.safeParse(p.narratif).success, 'le narratif ne parse pas').toBe(true);

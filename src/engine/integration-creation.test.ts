@@ -9,6 +9,8 @@ import { rationCount, dailyFoodUpkeep } from './provisions';
 import { itemLabel } from './items';
 import { bonus } from './characteristics';
 import { dotationsDuHeros, emplacementsDeDotation } from './trappingChoices';
+import { adresseDeCreation } from './adresseDeCreation';
+import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
 
 /**
  * Verrouillage de l'INTÉGRATION création ↔ {Magie (Jalon 2), règles 2.5, Voyage #T2} :
@@ -53,7 +55,7 @@ describe('création ↔ règles 2.5 (registre combatFeatures, LDB 10)', () => {
 
 describe('création ↔ Voyage & Nourriture (#T2, LDB 18 l.337-343)', () => {
   it('les Rations des trappings de classe sont vues par le système de faim et consommées', () => {
-    // Classe « Ruraux » (Villageois…) : « Rations (1 jour) » dans les trappings de classe.
+    // Classe « Ruraux » (Villageois…) : rations dans les trappings de classe (LDB 05 l.568).
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'villageois', label: 'V', seed: 7 });
     const before = rationCount(h);
     expect(before).toBeGreaterThan(0); // le créateur produit des objets compatibles isRation
@@ -104,7 +106,7 @@ describe('création ↔ dotation à branches non tranchée', () => {
   const artiste = (trappingChoices?: Parameters<typeof createHero>[0]['trappingChoices']) =>
     createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'artiste', label: 'A', seed: 7, trappingChoices });
   const adresse = () =>
-    emplacementsDeDotation(dotationsDuHeros('artiste')).find((e) => e.sorte === 'branches' && e.ref.choice.some((b) => 'id' in b && b.id === 'pinceau'))!.adresse;
+    emplacementsDeDotation(dotationsDuHeros('artiste')).find((e) => e.sorte === 'branches' && e.ref.of.some((b) => 'id' in b && b.id === 'pinceau'))!.adresse;
 
   it('sans choix, aucun objet des branches n’entre au sac', () => {
     expect((artiste().items ?? []).map((i) => i.trappingId).filter((id) => BRANCHES.includes(id!))).toEqual([]);
@@ -112,5 +114,24 @@ describe('création ↔ dotation à branches non tranchée', () => {
 
   it('la branche 1 choisie donne le ciseau, et elle seule', () => {
     expect((artiste({ [adresse()]: 1 }).items ?? []).map((i) => i.trappingId).filter((id) => BRANCHES.includes(id!))).toEqual(['ciseau']);
+  });
+});
+
+/** INTÉGRATION création ↔ lot, joker de Groupe, joker à Atout : `createHero` → `resolveTrappingChoices` → `buildInventory`. */
+describe('création ↔ lot et jokers d’arme', () => {
+  const dot = adresseDeCreation.dotation;
+  const creer = (trappingChoices: Parameters<typeof createHero>[0]['trappingChoices']) =>
+    avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: CARRIERE_FIXTURE, label: 'A', seed: 7, trappingChoices }));
+
+  it('le lot choisi donne chacun de ses membres, son compte compris', () => {
+    const items = creer({ [dot([5])]: 1 }).items ?? [];
+    expect(items.filter((i) => i.trappingId === 'arc')).toHaveLength(1);
+    expect(items.filter((i) => i.trappingId === 'fleche').reduce((n, i) => n + (i.qty ?? 1), 0)).toBe(10);
+  });
+
+  it('l’arme choisie d’un joker de Groupe entre au sac ; celle d’un joker à Atout porte l’Atout choisi', () => {
+    const items = creer({ [dot([6])]: 'grande-hache', [dot([7])]: 'rapiere', [dot([7, 0])]: 'solide' }).items ?? [];
+    expect(items.some((i) => i.trappingId === 'grande-hache')).toBe(true);
+    expect(items.find((i) => i.trappingId === 'rapiere')?.qualities.map((q) => q.id)).toContain('solide');
   });
 });

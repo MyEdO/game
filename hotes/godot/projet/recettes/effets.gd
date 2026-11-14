@@ -5,21 +5,23 @@ extends SceneTree
 ## coup, et ses Blessures puis « hors de combat » montent de la cible ; une incantation canalise au lanceur puis luit sur
 ## sa cible ; un son de scène joue partout ; un souffle de feu (#3783) vole jusqu'au centre de sa zone, puis pose sa nappe
 ## de flammes sur chacune de ses cases, au son des flammes ; un soin monte de sa case ; les pas d'un déplacement sonnent
-## trois fois (#3825). Chaque son est tiré de `res://sons/`.
+## trois fois (#3825). Chaque son est tiré de `res://sons/`. Deux traits magiques de teintes différentes gardent chacun
+## la sienne, leur maille, leur traînée et leur lampe (`Effets.teinter`).
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
-const CANON := {id = "canon", fichiers = ["canon-1.ogg", "canon-2.ogg", "canon-3.ogg"], volume = 1.0}
-const EXPLOSION := {id = "explosion", fichiers = ["explosion-1.ogg", "explosion-2.ogg"], volume = 1.0}
-const INCANTATION := {id = "chant-d-incantation", fichiers = ["incantation-1.ogg", "incantation-2.ogg"], volume = 0.8}
-const PORTE := {id = "porte-ouvre", fichiers = ["porte-ouvre.ogg"], volume = 0.7}
-const PAS := {id = "pas", fichiers = ["pas-1.ogg", "pas-2.ogg", "pas-3.ogg"], volume = 0.4}
-const BLESSURES := {genre = "damage", texte = "-4", couleur = "#ffd166", critique = true}
-const HORS_DE_COMBAT := {genre = "death", texte = "✦ hors de combat", couleur = "#ff3030", critique = false}
-const SOIN := {genre = "heal", texte = "+2", couleur = "#6fce8e", critique = false}
-const SOUFFLE := {id = "souffle", fichiers = ["souffle-1.ogg", "souffle-2.ogg", "souffle-3.ogg"], volume = 0.9}
-const FLAMMES := {id = "sort-feu", fichiers = ["sort-feu-1.ogg", "sort-feu-2.ogg", "sort-feu-3.ogg"], volume = 0.85}
+const CANON := {id = "canon", fichiers = ["canon-1.ogg", "canon-2.ogg", "canon-3.ogg"], volume = 1.0, canal = "effets"}
+const EXPLOSION := {id = "explosion", fichiers = ["explosion-1.ogg", "explosion-2.ogg"], volume = 1.0, canal = "effets"}
+const INCANTATION := {id = "chant-d-incantation", fichiers = ["incantation-1.ogg", "incantation-2.ogg"], volume = 0.8, canal = "effets"}
+const PORTE := {id = "porte-ouvre", fichiers = ["porte-ouvre.ogg"], volume = 0.7, canal = "effets"}
+const PAS := {id = "pas", fichiers = ["pas-1.ogg", "pas-2.ogg", "pas-3.ogg"], volume = 0.4, canal = "effets"}
+const BLESSURES := {genre = "blessures", texte = "-4", couleur = "#ffd166", critique = true}
+const HORS_DE_COMBAT := {genre = "horsDeCombat", texte = "✦ hors de combat", couleur = "#ff3030", critique = false}
+const SOIN := {genre = "soin", texte = "+2", couleur = "#6fce8e", critique = false}
+const SOUFFLE := {id = "souffle", fichiers = ["souffle-1.ogg", "souffle-2.ogg", "souffle-3.ogg"], volume = 0.9, canal = "effets"}
+const FLAMMES := {id = "sort-feu", fichiers = ["sort-feu-1.ogg", "sort-feu-2.ogg", "sort-feu-3.ogg"], volume = 0.85, canal = "effets"}
 const CASES := [{x = 5, y = 0}, {x = 6, y = 0}, {x = 7, y = 0}]
+const TEINTES_DES_TRAITS := [Color("#3a7fd0"), Color("#c04030")]
 const EFFETS := [
 	{quoi = "coup", de = "canonnier", vers = "cible", issue = "touche", couleur = "#ffa040",
 		depart = {visuel = "eclair-de-bouche", son = CANON}, trajet = {projectile = "boulet", dureeS = 0.15, hauteurM = 0.5},
@@ -59,6 +61,7 @@ func _recetter() -> void:
 		else:
 			_attendre_le_noeud(effets, "canalisation", 1)
 			_attendre_le_noeud(effets, "halo", 1))
+	_teintes_des_traits(effets)
 	effets.child_entered_tree.connect(func(n: Node) -> void:
 		if n is AudioStreamPlayer and n.name.begins_with("son-pas"):
 			_pas += 1)
@@ -110,6 +113,23 @@ func _attendre_le_noeud(effets: Effets, nom: String, gerbes: int) -> void:
 	var emises := eclat.get_children().filter(func(n: Node) -> bool: return n is CPUParticles3D and (n as CPUParticles3D).emitting)
 	if emises.size() != gerbes:
 		_fautes.append("%s : %d gerbes émettent, attendu %d" % [nom, emises.size(), gerbes])
+
+
+## Un trait magique par teinte de `TEINTES_DES_TRAITS`, posés ensemble sous `effets` : chacun garde la sienne, sa maille
+## (sa matière effective, émission comprise), sa traînée et sa lampe.
+func _teintes_des_traits(effets: Effets) -> void:
+	var traits := TEINTES_DES_TRAITS.map(func(teinte: Color) -> Node3D: return effets.projectile_de("trait-magique", teinte))
+	for projectile: Node3D in traits:
+		effets.add_child(projectile, true)
+	for rang in traits.size():
+		var teinte: Color = TEINTES_DES_TRAITS[rang]
+		var matiere := (traits[rang].get_node("Corps/Maille") as MeshInstance3D).get_active_material(0) as StandardMaterial3D
+		var trainee := traits[rang].get_node("Corps/Trainee") as CPUParticles3D
+		var lampe := traits[rang].get_node("Corps/Lampe") as OmniLight3D
+		if matiere.albedo_color != teinte or matiere.emission != teinte or trainee.color != teinte or lampe.light_color != teinte:
+			_fautes.append("le trait magique %s ne garde pas sa teinte : maille %s, émission %s, traînée %s, lampe %s" % [teinte.to_html(false), matiere.albedo_color, matiere.emission, trainee.color, lampe.light_color])
+	for projectile: Node3D in traits:
+		projectile.free()
 
 
 ## Un flottant de chaque texte de `textes` posé sous `effets`, face à la caméra.

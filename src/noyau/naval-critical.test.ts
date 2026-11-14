@@ -20,7 +20,7 @@ const setStub = (() => {}) as never;
 /** Lecture d'état HORS bataille (aucun équipage à résoudre, aucune cascade à ouvrir). */
 const getHorsBataille = (() => ({ battle: undefined, party: [] })) as never;
 const sailor = (id: string): Combatant => (blessuresSurLeProfil({
-  id, name: id, kind: 'npc', characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
+  id, name: id, kind: 'pnj', characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
   skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
   armour: { corps: 0 }, wounds: blessuresDeBase(13), advantage: 0,
 })) as unknown as Combatant;
@@ -73,7 +73,7 @@ describe('applyCriticalToTarget — l’équipage lié (crewIds) encaisse via la
       const auteur = sailor('auteur');
       const get = (() => ({ battle: { combatants: [auteur, s, ...crew] }, party: [], pendingLogQueue: [] })) as never;
       const coup = { mode: 'melee' as const, weapon: hache, res: toucheAuJetPose(auteur, s, hache, jet, 2, { rng: makeRNG(1595) }) }; // le coup qui porte le Critique (MDG 13 l.584)
-      applyCriticalToTarget(s, 'corps', 0, [], setStub, { get, ctx: { attackerId: auteur.id, attackerKind: 'npc', weapon: hache.label, coup } });
+      applyCriticalToTarget(s, 'corps', 0, [], setStub, { get, ctx: { attackerId: auteur.id, attackerKind: 'pnj', weapon: hache.label, coup } });
       crewTouched = crew.some((c) => c.wounds.current < 13 || (c.traumas?.length ?? 0) > 0 || c.conditions.length > 0);
     }
     expect(crewTouched).toBe(true);

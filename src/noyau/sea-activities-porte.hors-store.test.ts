@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { jouerLaSemaine } from './semaineEnMer.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { withBourseMoney } from '../engine/bourse';
 import { activityById, travelActivitySpec } from '../engine/activities';
@@ -34,7 +34,7 @@ const sommeMods = (mods: ModLine[] | undefined): number => (mods ?? []).reduce((
 function freshState() {
   seedBattleRng(7);
   banc.setState({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     battle: null,
     travelPlan: null,
     travelRecap: null,
@@ -62,7 +62,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     const casc = get().pendingCascade;
     expect(casc, 'la séquence des Activités doit être ouverte (surface M)').toBeTruthy();
     expect(casc!.purpose).toBe('seaActivities');
-    const step = casc!.participants.find((s) => s.kind === 'sea-activity-chart')!;
+    const step = casc!.participants.find((s) => s.kind === 'merActiviteCarte')!;
     expect(step, 'l’étape de Cartographie doit être dans la séquence').toBeTruthy();
 
     // LITTÉRAL D'AVANT MIGRATION, recopié tel quel (seaActivities.ts:120-125 à `b29cbe51`).
@@ -71,7 +71,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     const def = activityById('cartographie')!;
     const difficulty = def.difficulty ?? 'complexe';
     const ancien = {
-      id: `sea-activity-chart-${hero.id}`, kind: 'sea-activity-chart', actorId: hero.id,
+      id: `merActiviteCarte-${hero.id}`, kind: 'merActiviteCarte', actorId: hero.id,
       label: composeRollLabel(hero, 'Cartographie', test), difficulty, rollLabel: 'Métier (Cartographe)',
       base: testValue(hero, { skill: { id: 'metier', spec: 'cartographe' } }), target: effectiveTarget(hero, test, difficulty),
       result: null, meta: { stashGold: 7 },
@@ -126,7 +126,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     const casc = get().pendingCascade;
     expect(casc, 'un seul héros tenu suffit à ouvrir la fenêtre de la semaine').toBeTruthy();
     expect(casc!.purpose).toBe('seaActivities');
-    const etapes = casc!.participants.filter((s) => s.kind === 'sea-activity-chart');
+    const etapes = casc!.participants.filter((s) => s.kind === 'merActiviteCarte');
     expect(etapes.map((s) => s.actorId).sort(), 'les DEUX Activités sont dans la MÊME séquence — aucun lot résolu à part')
       .toEqual([tenu.id, ia.id].sort());
     expect(etapes.find((s) => s.actorId === ia.id)!.result, 'personne ne la tient : son dé tombe DANS la fenêtre, visible au bilan').toBeTruthy();
@@ -149,7 +149,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
   });
 
   /**
-   * Chemin GÉNÉRIQUE (`sea-activity-generic`) : AUCUNE Activité de contexte 'mer' ne l'emprunte
+   * Chemin GÉNÉRIQUE (`merActiviteGenerique`) : AUCUNE Activité de contexte 'mer' ne l'emprunte
    * aujourd'hui (`activities.json` : les trois entrées 'mer' sont `seaChart`, `opportunityTrade` et
    * `crewTraining` — cette dernière bloquée par `seaActivityBlocked`), mais la donnée est éditable au
    * Compendium. Le `def` étant un ARGUMENT du mint, il s'exerce avec une Activité 'mer' SANS résolveur
@@ -169,8 +169,8 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     const step = avecActivite(def, () => buildSeaGenericStep(get, set, hero, def))!;
     expect(step, 'le mint doit rendre une étape (cible calculable)').toBeTruthy();
     expect(step.actorId).toBe(hero.id);
-    expect(step.kind).toBe('sea-activity-generic');
-    expect(step.id).toBe(`sea-activity-generic-${hero.id}`);
+    expect(step.kind).toBe('merActiviteGenerique');
+    expect(step.id).toBe(`merActiviteGenerique-${hero.id}`);
     expect(step.rollLabel).toBe(def.label);
     expect(step.meta).toEqual({ activityId: def.id });
     expect(step.target).toBe(spec.target);
@@ -196,7 +196,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     expect(eteint.target).toBe(travelActivitySpec(cible, def)!.target);
     expect(eteint.target).toBe(99);
 
-    setRule('test-over-100', true);
+    setRule('test-plus-de-100', true);
     const actif = avecActivite(def, () => buildSeaGenericStep(get, set, cible, def))!;
     expect(actif.target, 'le plafond se lève avec la règle').toBeGreaterThan(99);
     expect(actif.target, 'la cible est la valeur PLEINE : 80 Dex + 200 avances, Difficulté intermédiaire (+0)').toBe(280);

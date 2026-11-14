@@ -9,7 +9,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'coop/code',
+    id: 'coop/code-de-partie',
     label: 'Code de partie',
     // Écritoire à pince, lignes de code.
     svg:
@@ -18,7 +18,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M8.9 10.6 H15.1 M8.9 13.3 H15.1 M8.9 16 H12.6"/>`,
   },
   {
-    id: 'coop/invite',
+    id: 'coop/invitation',
     label: 'Lien d’invitation',
     // Deux maillons de chaîne entrelacés.
     svg:
@@ -27,7 +27,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M10.9 17.1 L9.1 18.9 C7.6 20.4 5.3 20.4 3.9 18.9 C2.4 17.4 2.4 15.1 3.9 13.6 L5.7 11.9"/>`,
   },
   {
-    id: 'coop/host',
+    id: 'coop/hote',
     label: 'Hôte',
     // Couronne à trois pointes.
     svg:
@@ -35,13 +35,13 @@ export const icons: IconFamily = [
       `<path ${KF} d="M5.4 15.7 H18.6"/>`,
   },
   {
-    id: 'coop/online',
+    id: 'coop/connecte',
     label: 'Connecté',
     // Point plein — présence active.
     svg: `<circle ${F} cx="12" cy="12" r="6"/>`,
   },
   {
-    id: 'coop/away',
+    id: 'coop/reconnexion',
     label: 'Reconnexion',
     // Anneau ouvert (spinner) — présence en reconnexion, distinct du point plein « connecté ».
     svg: `<path ${K} d="M12 5.8 C15.4 5.8 18.2 8.6 18.2 12 C18.2 15.4 15.4 18.2 12 18.2 C9 18.2 6.5 16 6 13.1"/>`,

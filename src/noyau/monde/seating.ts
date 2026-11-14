@@ -52,8 +52,8 @@ import { piedDuDecor } from './poseDuDecor';
  * simplement élagué au chargement — jamais une erreur de document.
  */
 export type SeatOccupant =
-  | { kind: 'party'; rang: number }
-  | { kind: 'entity'; entityId: string };
+  | { kind: 'groupe'; rang: number }
+  | { kind: 'entite'; entityId: string };
 
 /** Emplacement du MENEUR corporel — le seul héros qui ait un corps en exploration aujourd'hui. */
 export const RANG_MENEUR = 1;
@@ -93,7 +93,7 @@ export type SeatAssignmentResult =
 /** Deux occupants désignent-ils le même corps ? */
 function sameOccupant(a: SeatOccupant, b: SeatOccupant): boolean {
   if (a.kind !== b.kind) return false;
-  return a.kind === 'party' ? a.rang === (b as { rang: number }).rang : a.entityId === (b as { entityId: string }).entityId;
+  return a.kind === 'groupe' ? a.rang === (b as { rang: number }).rang : a.entityId === (b as { entityId: string }).entityId;
 }
 
 /** Le meuble POSÉ (entité `prop` de la scène) qui porte les places de `propId`. */
@@ -328,7 +328,7 @@ export const rangDeGroupeValide = (rang: number): boolean =>
 /** L'occupant désigne-t-il un corps RÉELLEMENT présent ? `partySize` = taille du groupe COURANT
  *  (0 hors partie, à l'éditeur) : un emplacement au-delà ne tient personne. */
 function occupantExiste(scene: Scene, occupant: SeatOccupant, partySize: number): boolean {
-  return occupant.kind === 'party'
+  return occupant.kind === 'groupe'
     ? rangDeGroupeValide(occupant.rang) && occupant.rang <= partySize
     : scene.entities.some((e) => e.id === occupant.entityId && e.kind === 'personnage');
 }
@@ -412,7 +412,7 @@ export function releaseRecomposedRanks(
 ): Scene {
   if (!scene.seatAssignments) return scene;
   return releaseUnavailableSeats(scene, (occupant) => {
-    if (occupant.kind !== 'party') return true;
+    if (occupant.kind !== 'groupe') return true;
     const corpsAvant = avant[occupant.rang - 1]?.id;
     return corpsAvant === undefined || corpsAvant === apres[occupant.rang - 1]?.id;
   });
@@ -440,7 +440,7 @@ export function seatAssignmentDefects(scene: Scene): SeatAssignmentDefect[] {
     const places = seatSlotsOf(scene, propId);
     const propPose = !!propEntity(scene, propId);
     for (const [slotId, occupant] of Object.entries(parMeuble)) {
-      const occupantId = occupant.kind === 'party' ? labelEmplacement(occupant.rang) : occupant.entityId;
+      const occupantId = occupant.kind === 'groupe' ? labelEmplacement(occupant.rang) : occupant.entityId;
       if (!propPose) { out.push({ at: propId, message: `Assise « ${propId}/${slotId} » (« ${occupantId} ») : aucun décor « ${propId} » dans la scène` }); continue; }
       const place = places.find((p) => p.slotId === slotId);
       if (!place) { out.push({ at: propId, message: `Assise « ${propId}/${slotId} » (« ${occupantId} ») : le décor « ${propId} » n'offre pas de place « ${slotId} »` }); continue; }
@@ -449,7 +449,7 @@ export function seatAssignmentDefects(scene: Scene): SeatAssignmentDefect[] {
         out.push({ at: propId, message: `Assise « ${propId}/${slotId} » (« ${occupantId} ») : aucun abord praticable ne dessert cette place (abord résolu en (${rx},${ry}), infranchissable)` });
         continue;
       }
-      if (occupant.kind === 'party') {
+      if (occupant.kind === 'groupe') {
         // Le GROUPE n'appartient pas au document : seul le RANG se vérifie. Un emplacement que
         // personne n'occupe encore n'est pas un défaut — il s'élague au chargement.
         if (!rangDeGroupeValide(occupant.rang))

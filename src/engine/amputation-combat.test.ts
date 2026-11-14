@@ -15,7 +15,7 @@ import { RULE_REF } from './ruleRefs';
 import type { Combatant, Weapon, Trauma } from './types';
 
 const w1main = { name: 'Épée', type: 'melee', hands: 1, hand: 'main', qualities: [] } as unknown as Weapon; // 1 main, DROITE (principale)
-const w1off = { name: 'Dague', type: 'melee', hands: 1, hand: 'off', qualities: [] } as unknown as Weapon;   // 1 main, GAUCHE (secondaire)
+const w1off = { name: 'Dague', type: 'melee', hands: 1, hand: 'secondaire', qualities: [] } as unknown as Weapon;   // 1 main, GAUCHE (secondaire)
 const w2 = { name: 'Espadon', type: 'melee', hands: 2, qualities: [] } as unknown as Weapon;                 // 2 mains
 
 const withTraumas = (traumas: Trauma[]): Combatant => ({ traumas } as unknown as Combatant);
@@ -24,14 +24,14 @@ const handLost = (loc: 'brasG' | 'brasD'): Trauma => ({ uid: 't2', label: '', tr
 
 describe('weaponUsesHand (LDB 18)', () => {
   it('arme à 2 mains implique les DEUX mains', () => {
-    expect(weaponUsesHand(w2, 'left')).toBe(true);
-    expect(weaponUsesHand(w2, 'right')).toBe(true);
+    expect(weaponUsesHand(w2, 'gauche')).toBe(true);
+    expect(weaponUsesHand(w2, 'droite')).toBe(true);
   });
   it('arme à 1 main : SEULEMENT la main de tenue (off = gauche, sinon droite)', () => {
-    expect(weaponUsesHand(w1main, 'right')).toBe(true);
-    expect(weaponUsesHand(w1main, 'left')).toBe(false);
-    expect(weaponUsesHand(w1off, 'left')).toBe(true);
-    expect(weaponUsesHand(w1off, 'right')).toBe(false);
+    expect(weaponUsesHand(w1main, 'droite')).toBe(true);
+    expect(weaponUsesHand(w1main, 'gauche')).toBe(false);
+    expect(weaponUsesHand(w1off, 'gauche')).toBe(true);
+    expect(weaponUsesHand(w1off, 'droite')).toBe(false);
   });
 });
 

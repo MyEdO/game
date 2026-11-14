@@ -10,7 +10,7 @@ import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import type { Weapon } from '../../engine/types';
 import type { TrappingResolver } from '../../engine/items';
-import { apparencesAdmissiblesDObjet, candidatsDApparenceDObjet, referenceDApparenceDObjet } from '../../data/apparencesObjets';
+import { apparencesAdmissiblesDObjet, candidatsDApparenceDObjet, objetsAApparenceChoisie, referenceDApparenceDObjet } from '../../data/apparencesObjets';
 import { MediaSelect } from '../MediaSelect';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 
@@ -32,8 +32,7 @@ export function ApparencesObjetsField({ appearance, onChange, weapons, resolveTr
   resolveTrapping?: TrappingResolver;
 }) {
   useVersionDesDatasets();
-  const ids = [...new Set(weapons.flatMap((w) => w.trappingId ? [w.trappingId] : []))];
-  const objets = ids.map((id) => ({ id, choices: apparencesAdmissiblesDObjet({ trappingId: id }, resolveTrapping) })).filter((o) => o.choices.length > 1);
+  const objets = objetsAApparenceChoisie(weapons, resolveTrapping).map((id) => ({ id, choices: apparencesAdmissiblesDObjet({ trappingId: id }, resolveTrapping) }));
   if (!objets.length) return null;
   return <div className="ed-field">
     <span>Apparences d’objets</span>

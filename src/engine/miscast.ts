@@ -21,7 +21,8 @@
 import { RNG, rollDice } from './dice';
 import { findTableEntry, tableOuverte, type DeDeTable } from './tables';
 import { rule } from './policy';
-import { findDomainById, combatStakeRef } from '../data';
+import { categorieDeLaNiche, findDomainById, combatStakeRef } from '../data';
+import { suiteDesEntrees } from '../data/schemas/grammaire/cle-d-espace';
 import { GameOp, Formula } from './ops';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSource, type EffectSourceKind } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -33,6 +34,7 @@ import { poserEnjeu, type Flow, type FlowTest } from './flowCore';
 import miscastJson from '../data/miscast.json';
 import { deDeTirageDe } from '../data/rangees';
 import type * as miscastDef from '../data/schemas/defs/miscast';
+import { DATASET_DE_LA_CATEGORIE, type CleDeDataset } from '../data/schemas/_cles-de-dataset.generated';
 import { memoParVersion } from '../data/versionDataset';
 
 export type MiscastSeverity = 'mineure' | 'majeure' | 'colere';
@@ -112,12 +114,12 @@ export type JsonFormula =
 type JsonOp = {
   op: string;
   // condition
-  id?: string;
+  id?: { id: string };
   value?: JsonFormula;
   durationRounds?: JsonFormula;
   /** `GameOp['condition'].perRound` / gate d'État — LITTÉRAUX (pas des formules) : recopiés tels quels. */
   perRound?: true;
-  unlessCondition?: string;
+  unlessCondition?: { id: string };
   /** `GameOp['condition'].escapeStrength` (Empêtré : force de désengagement, ex. Tenue indisciplinée
    *  LDB 46) — déjà une `Formula` runtime valide, jamais sin-paramétrée : copiée telle quelle. */
   escapeStrength?: Formula;
@@ -313,16 +315,13 @@ function buildRow(jr: JsonRow & { max: number }): Row {
 // ---------------------------------------------------------------------------
 
 /** UN DOCUMENT de `miscast.json` : une table tirable, son identité STABLE, son libellé JOUEUR, sa
- *  provenance, ses rangées, et — quand ses LIGNES sont exposées au Codex — la catégorie qui les
- *  porte. Identité et charge sont le MÊME objet : aucun pointeur ne les relie plus (#1467 L1b). */
+ *  provenance et ses rangées. Identité et charge sont le MÊME objet : aucun pointeur ne les relie plus
+ *  (#1467 L1b). La catégorie Codex de ses LIGNES se lit par `categorieDeLaNiche` (`src/data`). */
 export interface MiscastTableDef {
   id: string;
   label: string;
   /** Dé de tirage du document (`options.deDeTirage`), lu par `miscastDie`. */
   die: string;
-  /** Catégorie Codex des LIGNES de cette table (`entryCategory` de l'étape). Absente = aucune
-   *  exposition Codex de ses lignes (un renvoi vers une catégorie qui ne les contient pas serait mort). */
-  codexCategory?: string;
   /** Folio du TABLEAU source dont cette table est le tirage. */
   source: { book: string; page: number; note?: string };
   entries: JsonRow[];
@@ -342,27 +341,40 @@ export interface MiscastTableRow {
 
 /** Les tables tirables TELLES QUE LA DONNÉE les déclare (les documents de `miscast.json`) : id
  *  d'étape, rangées portées, libellé JOUEUR — sans marque de livre (`docs/charte-ui.md`) : le jeu de
- *  tables en vigueur est une RÈGLE, pas une information d'écran — et catégorie Codex de ses lignes.
+ *  tables en vigueur est une RÈGLE, pas une information d'écran.
  *  Une table de plus est un DOCUMENT de plus dans le fichier, aucune ligne de code. */
 export const MISCAST_TABLES: MiscastTableDef[] = data;
 
 const TABLE_IDS_LDB: Record<MiscastSeverity, string> = { mineure: 'miscast-mineure', majeure: 'miscast-majeure', colere: 'miscast-colere' };
 const TABLE_IDS_VDM: Record<MiscastSeverity, string> = { mineure: 'miscast-mineure-vdm', majeure: 'miscast-majeure-vdm', colere: 'miscast-colere' };
 
+/** Fichier des tables de miscast, lié par le type au `file` de son def (#3923). */
+const FICHIER_DES_MISCAST: typeof miscastDef.file = 'miscast.json';
+
+/** Catégorie Codex des LIGNES d'une table déclarée : celle de la niche `[id].entries` de son document
+ *  (`categorieDeLaNiche`, dérivée de l'exposition) ; `undefined` pour une table que le Codex n'expose pas. */
+export const categorieDesLignesDeLaTable = (tableId: string): string | undefined =>
+  categorieDeLaNiche(FICHIER_DES_MISCAST, suiteDesEntrees(tableId));
+
+/** Les datasets du seam qui portent les rangées des documents du fichier des miscast (#1667), dérivés
+ *  de `DATASET_DE_LA_CATEGORIE` : le témoin de TOUT lecteur mémoïsé de ces tables. */
+export const MISCAST_DATASETS: readonly CleDeDataset[] = Object.values(DATASET_DE_LA_CATEGORIE)
+  .filter((d) => d.fichier === FICHIER_DES_MISCAST)
+  .map((d) => d.cle);
+
 /** Rangées RUNTIME par table (ops closées sur les Points de Péché, Tests dépliés) — MÉMOÏSÉES sur
  *  les datasets de rangées du seam (#1692) : un dépliage figé à l'import faisait jouer à `rollMiscast`
  *  la rangée d'AVANT une édition au Codex pendant que `miscastRowAt` servait déjà la nouvelle — deux
- *  vérités sur le même tirage. Les deux tables VDM ne sont pas exposées au seam (3 des 5 documents le
- *  sont) : leur version ne bouge jamais, leur dépliage suit celui des trois autres. */
-const runtimeRows = memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], (): Record<string, Row[]> =>
+ *  vérités sur le même tirage. */
+const runtimeRows = memoParVersion(MISCAST_DATASETS, (): Record<string, Row[]> =>
   Object.fromEntries(MISCAST_TABLES.map((t) => [t.id, tableOuverte(t.entries).map(buildRow)])),
 );
 
 /** Id de la table d'une sévérité sous le jeu de tables EN VIGUEUR — `VDM 02 l.218-263` sous la règle
- *  optionnelle `magic-vdm-incantation`, sinon LDB 46. La Colère des dieux (Prières, LDB 40) n'est pas
+ *  optionnelle `magie-vdm-incantation`, sinon LDB 46. La Colère des dieux (Prières, LDB 40) n'est pas
  *  révisée par VDM : la même table dans les deux jeux. */
 export function miscastTableId(severity: MiscastSeverity): string {
-  return (rule('magic-vdm-incantation') === true ? TABLE_IDS_VDM : TABLE_IDS_LDB)[severity];
+  return (rule('magie-vdm-incantation') === true ? TABLE_IDS_VDM : TABLE_IDS_LDB)[severity];
 }
 
 /** Le dé de tirage d'une table déclarée — le `die` VIVANT de son document. */
@@ -371,11 +383,11 @@ export function miscastDie(tableId: string): DeDeTable {
 }
 
 /** ENTITÉ SOURCE des effets posés par une rangée tirée (`OpsCtx.source` → `ActiveEffect.source`) : la
- *  RANGÉE elle-même, dans la catégorie Codex que SA table DÉCLARE (`MiscastTableDef.codexCategory`, en
- *  donnée). Une table de plus n'ajoute aucune ligne ici. Absente quand la table n'expose pas ses lignes
+ *  RANGÉE elle-même, dans la catégorie Codex de SA table (`categorieDeLaNiche`, dérivée de
+ *  l'exposition). Une table de plus n'ajoute aucune ligne ici. Absente quand la table n'expose pas ses lignes
  *  (aucune fiche à viser : une pastille reliée à rien ne promet rien, arbitrage user 2026-07-18). */
 export function miscastRowSource(tableId: string, rowId: string): EffectSource | undefined {
-  const categorie = MISCAST_TABLES.find((t) => t.id === tableId)?.codexCategory;
+  const categorie = categorieDesLignesDeLaTable(tableId);
   return categorie && estSourceKind(categorie) ? { kind: categorie, id: rowId } : undefined;
 }
 
@@ -391,7 +403,7 @@ export function miscastRowAt(tableId: string, die: number): MiscastTableRow & { 
   return findTableEntry(miscastTableRows(tableId), die);
 }
 
-const rangeesLues = memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], (): Record<string, (MiscastTableRow & { max: number })[]> =>
+const rangeesLues = memoParVersion(MISCAST_DATASETS, (): Record<string, (MiscastTableRow & { max: number })[]> =>
   Object.fromEntries(MISCAST_TABLES.map((t) => [t.id, tableOuverte(t.entries)])));
 
 /** Les rangées d'une table déclarée telles que `findTableEntry` les lit : « 151+ » (LDB 40 l.89)
@@ -405,7 +417,7 @@ export function miscastTableRows(tableId: string): (MiscastTableRow & { max: num
 /** Jeu de tables d'Incantations Imparfaites en vigueur (dérivé des mêmes ids que les tables tirables).
  *  POINT DE LECTURE UNIQUE du delta LDB/VDM. */
 function miscastTables(): Record<MiscastSeverity, Row[]> {
-  const ids = rule('magic-vdm-incantation') === true ? TABLE_IDS_VDM : TABLE_IDS_LDB;
+  const ids = rule('magie-vdm-incantation') === true ? TABLE_IDS_VDM : TABLE_IDS_LDB;
   const rows = runtimeRows();
   return { mineure: rows[ids.mineure], majeure: rows[ids.majeure], colere: rows[ids.colere] };
 }
@@ -414,39 +426,36 @@ function miscastTables(): Record<MiscastSeverity, Row[]> {
 // mkTest — résolution par FABRIQUE (du code, pas de la donnée)
 // ---------------------------------------------------------------------------
 
-/** Enveloppe une liste de GameOps en une feuille de Flow `do` appliquée au lanceur (`on:'target'` =
+/** Enveloppe une liste de GameOps en une feuille de Flow `effet` appliquée au lanceur (`on:'target'` =
  *  le combattant qui subit la maladresse — c'est lui la « cible » du sous-Flow joué par `applyMiscast`). */
-const doOps = (ops: GameOp[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops } });
+const doOps = (ops: GameOp[]): Flow => ({ kind: 'effet', effet: { type: 'ops', on: 'target', ops } });
 
-/** Catégorie Codex de la LIGNE tirée, par table — porte (b) de `entryCategoryOf` (`src/data`) : le
- *  `kind` d'enjeu sert les trois tables, seule la sévérité dit sur laquelle la ligne vit. */
-const MISCAST_ROW_CATEGORY: Record<MiscastSeverity, string> = {
-  mineure: 'miscastMinor',
-  majeure: 'miscastMajor',
-  colere: 'miscastWrath',
-};
+/** Catégorie Codex de la LIGNE tirée sur la table d'une sévérité sous le jeu EN VIGUEUR — porte (b) de
+ *  `entryCategoryOf` (`src/data`) : celle de sa table (`categorieDesLignesDeLaTable`). */
+const categorieDesLignes = (severity: MiscastSeverity): string | undefined =>
+  categorieDesLignesDeLaTable(miscastTableId(severity));
 
 /** Construit le nœud de Flow `test` d'une entrée (« Test de X Difficulté ou onFail » ; palier
  *  `onFailHard` via Condition Flow `slThreshold ≤ dr` dans la branche d'échec — comme Lot 4b). La
- *  branche `success` est vide (le Test réussi = aucun effet). L'ENJEU (#1117) descend à la LIGNE qui
+ *  branche `reussite` est vide (le Test réussi = aucun effet). L'ENJEU (#1117) descend à la LIGNE qui
  *  exige ce Test : sa fiche est le foyer, et l'issue se lit aux chips d'ops de la branche d'échec —
  *  l'entrée de catalogue ne porte donc aucun gabarit. Forme DÉJÀ EMPLOYÉE par d'autres entrées de
- *  `stakes.json` (miscast-row-test, ambush-surprise, ambush-vigilance). */
+ *  `stakes.json` (incantation-imparfaite-ligne-test, embuscade-reperer, embuscade-vigilance). */
 function mkTest(t: NestedTest, rowId: string, severity: MiscastSeverity): Flow {
   const fail: Flow = t.onFailHard
     ? {
-        kind: 'seq',
-        steps: [
+        kind: 'sequence',
+        etapes: [
           doOps(t.onFail),
-          { kind: 'if', cond: { kind: 'slThreshold', op: '<=', value: t.onFailHard.dr }, then: doOps(t.onFailHard.ops) },
+          { kind: 'si', condition: { kind: 'slThreshold', op: '<=', value: t.onFailHard.dr }, alors: doOps(t.onFailHard.ops) },
         ],
       }
     : doOps(t.onFail);
   return {
     kind: 'test',
-    test: poserEnjeu(t.test, combatStakeRef('miscast-row-test', { entryId: rowId, entryCategory: MISCAST_ROW_CATEGORY[severity] })),
-    success: { kind: 'seq', steps: [] },
-    fail,
+    test: poserEnjeu(t.test, combatStakeRef('incantation-imparfaite-ligne-test', { entryId: rowId, entryCategory: categorieDesLignes(severity) })),
+    reussite: { kind: 'sequence', etapes: [] },
+    echec: fail,
   };
 }
 
@@ -572,8 +581,8 @@ export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, 
       label: `${row.label} : ${labels.join(' + ')}`,
       ops,
       targetOps,
-      // Deux Tests imbriqués éventuels → un `seq` joué cadence-aware en séquence (le 2ᵉ après le 1ᵉʳ).
-      ...(tests.length ? { testFlow: tests.length === 1 ? tests[0] : { kind: 'seq', steps: tests } } : {}),
+      // Deux Tests imbriqués éventuels → un `sequence` joué cadence-aware en séquence (le 2ᵉ après le 1ᵉʳ).
+      ...(tests.length ? { testFlow: tests.length === 1 ? tests[0] : { kind: 'sequence', etapes: tests } } : {}),
       rowId: row.id,
       tableRolls,
       log: `${label(severity)} (${roll}) : ${row.label} → ${labels.join(' + ')}`,

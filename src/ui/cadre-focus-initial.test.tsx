@@ -177,7 +177,7 @@ describe('repli du focus — un geste du dialogue, jamais une jauge', () => {
 
 const CARAC = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 };
 const heros = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, label: id, kind: 'hero', characteristics: { ...CARAC }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
+  (blessuresSurLeProfil({ id, name: id, label: id, kind: 'heros', characteristics: { ...CARAC }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(12, 4), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
@@ -190,7 +190,7 @@ describe('infirmerie réelle (`MedicModal`) — le focus d’un cadre n’ouvre 
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
       party: [soigneur, patient], pendingHeal: null, pendingSurgery: null, medic: null,
     } as never);
-    act(() => useGame.getState().ouvrirLeMedecin({ patientId: patient.id }));
+    act(() => useGame.getState().ouvrirLeMedecin(patient.id));
   });
   afterEach(() => {
     act(() => useGame.setState({ battle: null, party: [], pendingHeal: null, pendingSurgery: null, medic: null } as never));
@@ -217,11 +217,11 @@ describe('infirmerie réelle (`MedicModal`) — le focus d’un cadre n’ouvre 
 
   it('soin lancé puis validé : le brouillon renaît sur l’acte suivant, le focus sur l’option retenue « Guérison », sans bulle', async () => {
     act(() => root.render(<MedicModal />));
-    expect(useGame.getState().pendingHeal?.mode, 'le brouillon : les Blessures').toBe('wounds');
-    act(() => useGame.getState().jetLancer('heal')); // le « Lancer » de la coquille joue ce verbe après son frisson (`useRollFrisson`)
+    expect(useGame.getState().pendingHeal?.mode, 'le brouillon : les Blessures').toBe('blessures');
+    act(() => useGame.getState().jetLancer('soins')); // le « Lancer » de la coquille joue ce verbe après son frisson (`useRollFrisson`)
     expect(useGame.getState().pendingHeal?.roll, 'le soin est lancé').not.toBeNull();
     act(() => bouton('Appliquer').click());
-    expect(useGame.getState().pendingHeal, 'le brouillon renaît sur l’Hémorragie').toMatchObject({ mode: 'bleed', roll: null });
+    expect(useGame.getState().pendingHeal, 'le brouillon renaît sur l’Hémorragie').toMatchObject({ mode: 'hemorragie', roll: null });
     await act(async () => { await tacheSuivante(); }); // le sauvetage du cadre se lit à la tâche suivante
     expect(document.activeElement, 'le sauvetage (#2533) pose le focus sur l’option retenue du groupe révélé : le Test « Guérison »').toBe(bouton('Guérison'));
     expect(bouton('Guérison').getAttribute('aria-pressed'), 'l’option retenue').toBe('true');

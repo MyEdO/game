@@ -1,6 +1,6 @@
 ---
 name: deployer
-description: À utiliser pour déployer le jeu : en test (« déploie en test », cgauche.github.io/dev) ou en prod (cgauche.github.io/jeu, UNIQUEMENT sur demande explicite).
+description: Déployer le jeu en test (« déploie en test », /dev) ou en prod (/jeu, UNIQUEMENT sur demande explicite) ; fabriquer l'exécutable de bureau.
 ---
 <!-- GENERATED: agents:sync; source=.claude/skills/deployer/SKILL.md -->
 
@@ -39,6 +39,23 @@ gh run list --workflow=deploy.yml -L 1
 
 Depuis un fil de projet cloud, sans `gh workflow` : l'outil GitHub `actions_run_trigger` (`run_workflow`, workflow
 `deploy.yml`, la ref, `inputs: { cible }`).
+
+## Exécutable de bureau
+
+`bureau.yml` fabrique l'exécutable de bureau de l'hôte Godot sous Linux et sous Windows (`npm run godot:bureau`, qui lui
+fait jouer une partie) et garde le dossier de chaque plateforme en artefact du run (`bureau-windows-latest`,
+`bureau-ubuntu-latest`), à télécharger depuis la page du run. Il ne publie rien : aucun accord à demander. Le dossier
+porte sous `licences/` l'avis de licence de chaque œuvre tierce embarquée (Godot, Node, paquets npm des bundles,
+polices), tiré de sa source par `hotes/godot/avis.mjs` ; l'export Web le porte aussi. Un avis qui manque fait échouer
+la fabrication.
+
+```bash
+gh workflow run bureau.yml
+gh run list --workflow=bureau.yml -L 1
+```
+
+Depuis un fil de projet cloud : `actions_run_trigger` (`run_workflow`, workflow `bureau.yml`, la ref), puis
+`actions_list` (`list_workflow_run_artifacts`) pour le lien de l'artefact.
 
 ## Suivre le run
 

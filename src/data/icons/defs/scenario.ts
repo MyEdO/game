@@ -8,7 +8,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'scenario/arena',
+    id: 'scenario/arene',
     label: 'Arène',
     svg:
       `<path ${K} d="M4.4 18.8 C4.1 14.9 4.2 11.6 4.7 8.7 L7.1 8.7 L7.1 6.6 L9.7 6.6 L9.7 8.7 L14.3 8.7 L14.3 6.6 L16.9 6.6 L16.9 8.7 L19.3 8.7 C19.8 11.6 19.9 14.9 19.6 18.8"/>` +
@@ -16,7 +16,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M3.6 19.1 C9.2 18.5 14.8 18.5 20.4 19.1"/>`,
   },
   {
-    id: 'scenario/bestiary',
+    id: 'scenario/bestiaire',
     label: 'Bestiaire',
     svg:
       `<path ${F} d="M3.6 11.4 C5.8 10.6 7.9 10.1 10 9.9 C10.6 8.7 11.4 7.7 12.5 6.9 C13.9 5.9 15.6 5.2 17.7 4.9 C16.4 6 15.5 7.2 15 8.5 C16.3 8.3 17.7 8.4 19.2 8.9 C17.6 9.6 16.3 10.5 15.4 11.7 C16.7 13 17.5 14.6 17.8 16.6 C15.4 15.9 13.3 15.9 11.4 16.5 C9.9 15.9 8.6 15 7.5 13.8 L9.8 13.4 C7.7 13.2 5.6 12.5 3.6 11.4 Z"/>` +
@@ -32,14 +32,14 @@ export const icons: IconFamily = [
       `<path ${F} d="M4.9 16.8 L19.4 16.8 C18.6 19 16.2 20.2 12.1 20.2 C8 20.2 5.8 19 4.9 16.8 Z"/>`,
   },
   {
-    id: 'scenario/ambush',
+    id: 'scenario/embuscade',
     label: 'Embuscade',
     svg:
       `<path ${F} d="M13.5 12.4 L18.9 4.9 C19.4 4.2 20.1 3.8 20.7 3.8 C20.8 4.4 20.6 5.2 20.1 5.9 L15.1 13.7 Z"/>` +
       `<path ${F} d="M4.1 19.9 C3.6 17.4 4.7 15.4 6.8 15 C7.2 12.9 9.2 11.9 11.1 12.7 C13 11.7 15.3 12.6 15.9 14.7 C17.9 15 19.2 16.7 18.9 19 C19 19.3 19 19.6 18.9 19.9 Z"/>`,
   },
   {
-    id: 'scenario/training',
+    id: 'scenario/entrainement',
     label: 'Entraînement',
     svg:
       `<path ${K} d="M12 20.4 V6.9"/>` +
@@ -49,7 +49,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M9.5 20.5 H14.5"/>`,
   },
   {
-    id: 'scenario/gallery',
+    id: 'scenario/galerie',
     label: 'Galerie',
     svg:
       `<path ${K} d="M4.9 5.9 C9.6 5.4 14.4 5.4 19.1 5.9 C19.5 10 19.5 14 19.1 18.1 C14.4 18.6 9.6 18.6 4.9 18.1 C4.5 14 4.5 10 4.9 5.9 Z"/>` +
@@ -57,7 +57,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="9.7" cy="9.4" r="0.9"/>`,
   },
   {
-    id: 'scenario/magic-field',
+    id: 'scenario/magie-hors-combat',
     label: 'Magie hors combat',
     svg:
       `<circle ${K} cx="12" cy="10.3" r="5.2"/>` +
@@ -65,7 +65,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M8.3 16.6 C10.7 15.8 13.3 15.8 15.7 16.6 L16.6 18.9 C13.5 19.7 10.5 19.7 7.4 18.9 Z"/>`,
   },
   {
-    id: 'scenario/magic',
+    id: 'scenario/magie',
     label: 'Magie',
     svg:
       `<path ${F} d="M9.3 4.4 C9.8 7.3 11 8.7 13.9 9.3 C11 9.9 9.8 11.3 9.3 14.2 C8.8 11.3 7.6 9.9 4.7 9.3 C7.6 8.7 8.8 7.3 9.3 4.4 Z"/>` +
@@ -73,7 +73,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M11.5 16.1 C11.7 17.3 12.2 17.9 13.4 18.1 C12.2 18.3 11.7 18.9 11.5 20.1 C11.3 18.9 10.8 18.3 9.6 18.1 C10.8 17.9 11.3 17.3 11.5 16.1 Z"/>`,
   },
   {
-    id: 'scenario/market',
+    id: 'scenario/marche',
     label: 'Marché',
     svg:
       `<path ${F} d="M4.5 8.9 L5.5 5.7 C9.8 4.7 14.2 4.7 18.5 5.7 L19.5 8.9 C18.4 10.6 16.9 10.6 15.8 8.9 C14.7 10.6 13.2 10.6 12.1 8.9 C11 10.6 9.5 10.6 8.4 8.9 C7.3 10.6 5.8 10.6 4.5 8.9 Z"/>` +
@@ -92,7 +92,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M7.2 6.4 L4.6 5.4 M16.8 6.4 L19.4 5.4"/>`,
   },
   {
-    id: 'scenario/trap',
+    id: 'scenario/piege',
     label: 'Piège',
     svg:
       `<path ${K} d="M4.3 19.5 C9.4 18.9 14.6 18.9 19.7 19.5"/>` +
@@ -101,7 +101,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="12" cy="16.2" r="1.4"/>`,
   },
   {
-    id: 'scenario/bridge',
+    id: 'scenario/pont',
     label: 'Pont',
     svg:
       `<path ${K} d="M3.3 9.4 C9.1 8.6 14.9 8.6 20.7 9.4"/>` +
@@ -119,7 +119,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M7.2 20.5 H16.8"/>`,
   },
   {
-    id: 'scenario/travel',
+    id: 'scenario/voyage',
     label: 'Voyage',
     svg:
       `<circle ${K} cx="12" cy="12" r="7.3"/>` +
@@ -136,7 +136,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M13.9 19.9 C13.9 17.6 14.4 16.5 15.3 16.5 C16.2 16.5 16.7 17.6 16.7 19.9"/>`,
   },
   {
-    id: 'scenario/hamlet',
+    id: 'scenario/hameau',
     label: 'Hameau',
     svg:
       `<path ${F} d="M8.1 3.4 C9.1 5.1 10 6.8 10.8 8.6 L9.5 8.3 C10.4 10.1 11.2 11.9 11.9 13.8 L10.2 13.4 C10.9 15 11.5 16.6 12 18.2 C9.4 17.6 6.8 17.6 4.2 18.2 C4.7 16.6 5.3 15 6 13.4 L4.3 13.8 C5 11.9 5.8 10.1 6.7 8.3 L5.4 8.6 C6.2 6.8 7.1 5.1 8.1 3.4 Z"/>` +

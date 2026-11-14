@@ -23,8 +23,10 @@ import { navalPorts, findNavalPortById, lieuxServices } from '../../data';
 import { IconField, BackdropField, RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
 import { CouvreField } from './CouvreField';
+import { ProseField } from '../ProseField';
+import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/grammaire/campagne';
-import { idDEntropie } from '../../web/entropie';
+import { idDEntropie } from '../../hote/entropie';
 
 /** Libellés des Tailles de communauté (MSRC 13 l.44-50, indices 1-4). */
 const TAILLE_LABELS = ['Hameau', 'Village', 'Ville', 'Grande ville'];
@@ -61,6 +63,8 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
           </label>
           <IconField label="Icône" value={place.icon} onChange={(icon) => updPlace(place.id, { icon })} />
           <BackdropField label="Fond d'ambiance" value={place.backdrop?.id} onChange={(id) => updPlace(place.id, { backdrop: id === undefined ? undefined : { id } })} />
+          <ProseField label="Description" value={place.prose ?? ''} onChange={(prose) => updPlace(place.id, prose.trim() ? { prose } : { prose: undefined, source: undefined, adapteDe: undefined })} />
+          {place.prose && <ProvenanceDuTexte copie identite={`${place.id}/description`} sujet="de la description du lieu" value={place} onChange={(patch) => updPlace(place.id, patch)} />}
           <RefSelect
             label="Scène liée"
             options={scenes}
@@ -113,7 +117,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
               checked={!!place.market}
               onChange={(e) => updPlace(place.id, { market: e.target.checked ? marcheNeuf() : undefined })}
             />
-            <Icon id="merchant/cart" size="sm" /> Lieu de commerce (achat/vente de cargaison)
+            <Icon id="marchand/panier" size="sm" /> Lieu de commerce (achat/vente de cargaison)
           </label>
           {place.market && (() => {
             const mk = place.market;
@@ -162,7 +166,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
               checked={!!place.port}
               onChange={(e) => updPlace(place.id, { port: e.target.checked ? portNeuf() : undefined })}
             />
-            <Icon id="travel/anchor" size="sm" /> Port maritime (accostage, commerce, chantier)
+            <Icon id="voyage/ancre" size="sm" /> Port maritime (accostage, commerce, chantier)
           </label>
           {place.port && (() => {
             const pt = place.port;
@@ -217,11 +221,11 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                 </label>
                 <label className="ed-check">
                   <input type="checkbox" checked={!!pt.cosmopolite} onChange={(e) => updPort({ cosmopolite: e.target.checked || undefined })} />
-                  <Icon id="travel/world" size="sm" /> Grand port cosmopolite (Marienburg/Lothern, l.343 — marchands supérieurs)
+                  <Icon id="voyage/cosmopolite" size="sm" /> Grand port cosmopolite (Marienburg/Lothern, l.343 — marchands supérieurs)
                 </label>
                 <label className="ed-check">
                   <input type="checkbox" checked={!!pt.lighthouse} onChange={(e) => updPort({ lighthouse: e.target.checked || undefined })} />
-                  <Icon id="travel/lighthouse" size="sm" /> Phare à l'approche (Test de Perception de vigie à l'atterrage, MDG 13 l.333-351)
+                  <Icon id="voyage/phare" size="sm" /> Phare à l'approche (Test de Perception de vigie à l'atterrage, MDG 13 l.333-351)
                 </label>
                 <div className="mini-title">Production (colonne Produits de l'Index)</div>
                 {produitOptions(VOIE_MARITIME).map((p) => (
@@ -328,7 +332,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                         {activePoiId === poi.id ? 'Cliquez le plan pour placer…' : 'Placer sur le plan'}
                       </button>
                       <button type="button" className="btn small" onClick={() => { const next = poiList.filter((x) => x.id !== poi.id); updPlace(place.id, { poi: next.length ? next : undefined }); if (activePoiId === poi.id) setPoiSel(null); }}>
-                        <Icon id="ui/delete" size="sm" /> Retirer ce POI
+                        <Icon id="interface/supprimer" size="sm" /> Retirer ce POI
                       </button>
                     </div>
                   </div>

@@ -28,7 +28,7 @@ function jetDuPorteur(s: Jeu, id: IdDeCombattant): { psy: boolean; lance: boolea
   if (test?.actorId === id) return { psy: !!test.psychMod, lance: test.roll != null };
   const bande = bandeCourante(s);
   const rangee = bande?.participants?.find((p) => p.id === id);
-  return bande && rangee ? { psy: !!(bande.combatPsych || bande.encounterPsych), lance: !!rangee.result } : null;
+  return bande && rangee ? { psy: !!(bande.psychologieDeCombat || bande.psychologieDeRencontre), lance: !!rangee.result } : null;
 }
 
 /** Le refus de l'immunité à la Psychologie de `porteur` (LDB 17 l.59) : pendant son jet, contre la Psychologie de ce

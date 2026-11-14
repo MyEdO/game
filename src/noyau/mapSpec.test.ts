@@ -586,10 +586,10 @@ describe('buildScene — encounters (terse → entités + members)', () => {
 describe('buildScene — encounters `hidden` (embuscade : entités invisibles jusqu’au combat)', () => {
   const s = buildScene({
     id: 'h', label: 'H', size: [10, 6], terrain: 'herbe', heroStart: [1, 3],
-    encounters: [{ id: 'amb', hidden: true, surprise: 'party', enemies: [{ creature: { id: 'gobelin' }, pos: { x: 8, y: 3 } }] }],
+    encounters: [{ id: 'amb', hidden: true, surprise: 'groupe', enemies: [{ creature: { id: 'gobelin' }, pos: { x: 8, y: 3 } }] }],
   });
   it('propage `hidden` sur les entités enrôlées (combat.hiddenUntilCombat)', () => {
-    expect(s.encounters[0].surprise).toBe('party');
+    expect(s.encounters[0].surprise).toBe('groupe');
     expect(s.entities.find((e) => e.id === 'enemy-amb-0')?.combat?.hiddenUntilCombat).toBe(true);
   });
 });
@@ -599,27 +599,27 @@ describe('buildScene — encounters : marqueurs d’Avantage initial (Manœuvrab
     id: 'adv', label: 'ADV', size: [10, 6], terrain: 'herbe', heroStart: [1, 3],
     encounters: [{
       id: 'enc-menace',
-      maneuverability: 'party',
-      threat: { camp: 'enemies', tier: 'dangereuse' },
-      terrain: { camp: 'party', heavy: true },
+      maneuverability: 'groupe',
+      threat: { camp: 'ennemis', tier: 'dangereuse' },
+      terrain: { camp: 'groupe', heavy: true },
       enemies: [{ creature: { id: 'gobelin' }, pos: { x: 8, y: 3 } }],
     }],
   });
   it('la rencontre buildée porte maneuverability/threat/terrain — parité avec surprise', () => {
     const enc = s.encounters[0];
-    expect(enc.maneuverability).toBe('party');
-    expect(enc.threat).toEqual({ camp: 'enemies', tier: 'dangereuse' });
-    expect(enc.terrain).toEqual({ camp: 'party', heavy: true });
+    expect(enc.maneuverability).toBe('groupe');
+    expect(enc.threat).toEqual({ camp: 'ennemis', tier: 'dangereuse' });
+    expect(enc.terrain).toEqual({ camp: 'groupe', heavy: true });
   });
 
   it('startAdvantagePools dérive l’Avantage initial depuis la rencontre buildée (bout en bout authoring → moteur)', async () => {
     const { startAdvantagePools } = await import('./combat/advantagePool');
-    const mk = (id: string, kind: 'hero' | 'enemy') =>
+    const mk = (id: string, kind: 'heros' | 'ennemi') =>
       ({ id, kind, advantage: 0, conditions: [], talents: [], activeEffects: [], wounds: { current: 10, max: 10 } }) as unknown as Parameters<typeof startAdvantagePools>[0][number];
-    const hero = mk('h1', 'hero');
-    const foe = mk('e1', 'enemy');
-    // Manœuvrabilité 'party' (+2) + Terrain 'party' heavy (+2) côté alliés ; Menace 'enemies' dangereuse (+1) côté adverses.
-    expect(startAdvantagePools([hero, foe], false, s.encounters[0])).toEqual({ allies: 4, foes: 1 });
+    const hero = mk('h1', 'heros');
+    const foe = mk('e1', 'ennemi');
+    // Manœuvrabilité 'groupe' (+2) + Terrain 'groupe' heavy (+2) côté alliés ; Menace 'ennemis' dangereuse (+1) côté adverses.
+    expect(startAdvantagePools([hero, foe], false, s.encounters[0])).toEqual({ allies: 4, adversaires: 1 });
   });
 });
 
@@ -644,14 +644,14 @@ describe('buildScene — markerFill + emplacement hérite du z du marqueur', () 
     legend: { W: 'pierre' },
     markerFill: { B: 'W' }, // sous B : laisser 'W' (pierre marchable) au lieu d'un trou 'vide'
     relief: [{ rect: [0, 0, 3, 1], height: 4, z: 1 }],
-    bind: { B: { emplacement: 'baliste', facing: 'N', member: { enc: 'def', side: 'ally' } } },
+    bind: { B: { emplacement: 'baliste', facing: 'N', member: { enc: 'def', side: 'allie' } } },
   });
   it('l’affût est posé sur l’étage du marqueur (z1), orienté, et sa case reste marchable', () => {
     const empl = s.entities.find((e) => e.postes?.length)!;
     expect(empl.z).toBe(1); // sur le rempart, pas au sol
     expect(empl.facing).toBe('N');
     expect(layerTiles(s, 1)[0]).toBe('pierre'); // case sous B = pierre (pas 'vide')
-    expect(s.encounters.find((e) => e.id === 'def')!.members).toContainEqual({ entityId: empl.id, side: 'ally' });
+    expect(s.encounters.find((e) => e.id === 'def')!.members).toContainEqual({ entityId: empl.id, side: 'allie' });
   });
 });
 
@@ -660,8 +660,8 @@ describe('buildScene — bind enrôle les entités posées dans une rencontre', 
     id: 'bm', label: 'BM', size: [6, 2],
     levels: { z0: 'k.A...\n......' },
     bind: {
-      k: { emplacement: 'canon-petit', crew: 'crew-0', member: { enc: 'def', side: 'ally' } },
-      A: { entity: { kind: 'personnage', creature: { id: 'brute' } }, member: { enc: 'def', side: 'ally', ai: true } },
+      k: { emplacement: 'canon-petit', crew: 'crew-0', member: { enc: 'def', side: 'allie' } },
+      A: { entity: { kind: 'personnage', creature: { id: 'brute' } }, member: { enc: 'def', side: 'allie', ai: true } },
     },
     encounters: [{ id: 'def' }], // roster vide — rempli par les marqueurs bind
   });
@@ -673,8 +673,8 @@ describe('buildScene — bind enrôle les entités posées dans une rencontre', 
     const def = s.encounters.find((e) => e.id === 'def')!;
     expect(def.members).toEqual(
       expect.arrayContaining([
-        { entityId: empl.id, side: 'ally' },
-        { entityId: garde.id, side: 'ally', ai: true },
+        { entityId: empl.id, side: 'allie' },
+        { entityId: garde.id, side: 'allie', ai: true },
       ]),
     );
   });
@@ -686,13 +686,13 @@ describe('buildScene — encounters à membres PRÉ-DÉCLARÉS (roster mixte)', 
     entities: [{ id: 'pnj-1', kind: 'personnage', pos: { x: 5, y: 3 }, creature: { id: 'brute' }, label: 'Garde' }],
     encounters: [
       // terse (entité fraîche cachée) + membre référençant une entité DÉJÀ posée (visible, dialogue…)
-      { id: 'mix', enemies: [{ creature: { id: 'gobelin' }, pos: { x: 8, y: 3 } }], members: [{ entityId: 'pnj-1', side: 'ally', ai: true }] },
+      { id: 'mix', enemies: [{ creature: { id: 'gobelin' }, pos: { x: 8, y: 3 } }], members: [{ entityId: 'pnj-1', side: 'allie', ai: true }] },
     ],
   });
   it('fusionne les members terse et les members pré-déclarés, sans dupliquer l’entité existante', () => {
     expect(s.encounters[0].members).toEqual([
       { entityId: 'enemy-mix-0' },
-      { entityId: 'pnj-1', side: 'ally', ai: true },
+      { entityId: 'pnj-1', side: 'allie', ai: true },
     ]);
     expect(s.entities.find((e) => e.id === 'enemy-mix-0')?.creature?.id).toBe('gobelin');
     const pnj = s.entities.filter((e) => e.id === 'pnj-1');

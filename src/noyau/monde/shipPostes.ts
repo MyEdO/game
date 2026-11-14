@@ -11,7 +11,7 @@ import { hasWeaponGroupSkill } from '../../engine/combat';
 import { exposedCrew } from '../../engine/shipCritical';
 import { canTakeAction, isOutOfAction } from '../../engine/conditions';
 import { aRecharger } from '../../engine/weaponLoad';
-import { combatDistance, footprintN, footprintTiles } from './footprint';
+import { distanceDeContact, footprintN, footprintTiles } from './footprint';
 import { rotateDir8, DIR8_DELTA, DIR8_ORDER, DELTA_DIR8, type Dir8 } from '../../geometry/dir8';
 import { isWalkable, tileAt, type Scene } from './scene';
 import { pointDeCase, tileKey } from './path';
@@ -119,7 +119,7 @@ export function servingCrewPresent(chef: Combatant, combatants: Combatant[]): nu
   if (!poste.item.weaponGroup) return apt.length;
   const engine = mannedPosteWeapon(chef, poste);
   if (!engine) return apt.length;
-  return apt.filter((c) => hasWeaponGroupSkill(c, engine, 'ranged')).length;
+  return apt.filter((c) => hasWeaponGroupSkill(c, engine, 'distance')).length;
 }
 
 /** Un combattant qui SERVIRAIT `poste` (en deviendrait chef) possède-t-il la Compétence Projectiles APPROPRIÉE
@@ -130,7 +130,7 @@ export function servingCrewPresent(chef: Combatant, combatants: Combatant[]): nu
 export function isCrewQualified(actor: Combatant, poste: ShipPoste): boolean {
   if (!poste.item.weaponGroup) return true;
   const engine = mannedPosteWeapon(actor, poste);
-  return !engine || hasWeaponGroupSkill(actor, engine, 'ranged');
+  return !engine || hasWeaponGroupSkill(actor, engine, 'distance');
 }
 
 /** Répartition de l'équipage APTE (vivant + conscient) d'un poste pour l'AFFICHAGE (tooltip d'équipe) :
@@ -148,7 +148,7 @@ export function posteCrewSplit(poste: ShipPoste, combatants: Combatant[]): { qua
   const engine = chef ? mannedPosteWeapon(chef, poste) : undefined;
   if (!engine) return { qualified: apt, aides: [] };
   const qualified: Combatant[] = [], aides: Combatant[] = [];
-  for (const c of apt) (hasWeaponGroupSkill(c, engine, 'ranged') ? qualified : aides).push(c);
+  for (const c of apt) (hasWeaponGroupSkill(c, engine, 'distance') ? qualified : aides).push(c);
   return { qualified, aides };
 }
 
@@ -350,6 +350,16 @@ export function isPosteManned(poste: ShipPoste, combatants: Combatant[]): boolea
   return !!chef && !isOutOfAction(chef) && chef.mannedPoste?.item.uid === poste.item.uid;
 }
 
+/** Le poste d'uid `uid` et le Combattant qui le porte (coque ou emplacement), parmi `combatants` : l'uid d'une pièce
+ *  est sa place sur son porteur, unique dans la bataille (`hydratePoste`, #2907). `undefined` hors de la bataille. */
+export function posteDeLaBataille(uid: string, combatants: Combatant[]): { porteur: Combatant; poste: ShipPoste } | undefined {
+  for (const porteur of combatants) {
+    const poste = porteur.postes?.find((p) => p.item.uid === uid);
+    if (poste) return { porteur, poste };
+  }
+  return undefined;
+}
+
 /** Le poste (et sa coque/emplacement) que `id` sert comme membre d'ÉQUIPAGE d'un poste ACTIF (coque encore en
  *  action), parmi `combatants` — SOURCE UNIQUE consultée par l'IA pour tenir sa FORMATION (#196 : un servant
  *  IA d'un engin crewé — bélier, batterie de siège — ne charge ni ne s'approche seul, c'est le poste qui le
@@ -388,11 +398,11 @@ export function rechargeDuTour(
  *  d'équipe : on peut être plusieurs à servir) — `serveAtPoste` décide ensuite chef-vs-support. KIND-AGNOSTIQUE
  *  (héros/PNJ/ennemi) — SOURCE UNIQUE de la disponibilité « Servir cette pièce », consommée par l'affordance
  *  JOUEUR ET l'énumération IA. PUR. */
-export function servablePostes(actor: Combatant, combatants: Combatant[]): { hull: Combatant; poste: ShipPoste }[] {
+export function servablePostes(scene: Scene | null, actor: Combatant, combatants: Combatant[]): { hull: Combatant; poste: ShipPoste }[] {
   if (!actor.pos || isOutOfAction(actor)) return [];
   const out: { hull: Combatant; poste: ShipPoste }[] = [];
   for (const hull of combatants) {
-    if (!hull.postes?.length || !hull.pos || combatDistance(actor, hull) > 1) continue;
+    if (!hull.postes?.length || !hull.pos || distanceDeContact(scene, actor, hull) > 1) continue;
     for (const poste of hull.postes) if (!(poste.crewIds ?? []).includes(actor.id)) out.push({ hull, poste });
   }
   return out;
@@ -402,9 +412,9 @@ export function servablePostes(actor: Combatant, combatants: Combatant[]): { hul
  *  1er poste servable de `hull` pour `actor`. `undefined` si `actor` sert déjà une pièce (parité hotbar
  *  `!mannedPoste`) ou si `hull` n'offre aucun poste servable. SOURCE UNIQUE consommée par l'affordance de
  *  survol, le commit de clic et le tooltip d'équipe. PUR. */
-export function serveTargetPoste(actor: Combatant, hull: Combatant, combatants: Combatant[]): ShipPoste | undefined {
+export function serveTargetPoste(scene: Scene | null, actor: Combatant, hull: Combatant, combatants: Combatant[]): ShipPoste | undefined {
   if (actor.mannedPoste) return undefined;
-  return servablePostes(actor, combatants).find((sp) => sp.hull.id === hull.id)?.poste;
+  return servablePostes(scene, actor, combatants).find((sp) => sp.hull.id === hull.id)?.poste;
 }
 
 /**

@@ -17,16 +17,32 @@ import { z } from 'zod';
 import { validerApparenceDonnee } from '../grammaire/valeurs';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
-import { cell2Schema, chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
-import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema } from '../grammaire/mecanique';
+import {
+  cell2Schema,
+  chaosAlignSchema,
+  enumNomme,
+  exposureLevelSchema,
+  hitLocationSchema,
+  moneyPartialSchema,
+  natureDInfluenceSchema,
+} from '../grammaire/valeurs';
+import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, refuserLeVivreDuNavire } from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
 import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
-import { customStatblockSchema, ptSchema, SCENES_DU_PROJET, wallSideSchema } from './communs';
+import {
+  customStatblockSchema,
+  DIALOGUES_DE_LA_SCENE,
+  MARCHANDS_DE_LA_SCENE,
+  PERSONNAGES_DE_LA_SCENE,
+  ptSchema,
+  SCENES_DU_PROJET,
+  wallSideSchema,
+} from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
-import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest, TriggeredEffect as CoreTriggeredEffect } from '../../../engine/flowCore';
+import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
 import { dataLabel } from '../../index';
 import type { PlayerText } from '../../../i18n/playerText';
@@ -36,7 +52,7 @@ import type { PlayerText } from '../../../i18n/playerText';
 /** `DayPhaseId` (`engine/clock.ts`) — phases d'AFFICHAGE de la journée. */
 export const dayPhaseIdSchema = z.enum(['aube', 'matin', 'midi', 'apresmidi', 'crepuscule', 'soir', 'nuit']);
 /** Cible d'un effet de scène : tout le groupe, ou UN héros (`heroId`, défaut le premier). */
-export const effectTargetSchema = z.enum(['party', 'hero']);
+export const effectTargetSchema = z.enum(['groupe', 'heros']);
 /** Statbloc custom d'éditeur d'un vivant : le snapshot EST son identité. */
 const statblocDeVivantSchema = nommerChamps(z.strictObject({ custom: customStatblockSchema }), { custom: { label: "profil personnalisé" } });
 /** Source de `LivingRef` (`engine/possession.ts`) : le bestiaire (édition Codex vivante) OU un statbloc custom. */
@@ -54,7 +70,7 @@ export const favorLevelSchema = enumNomme({
   importante: 'Faveur Importante',
 });
 /** `CrewHire` (`engine/crewMorale.ts`) — un rôle d'équipage salarié et son effectif. */
-export const crewHireSchema = nommerChamps(z.strictObject({ roleId: z.string(), count: z.number() }), { roleId: { label: "rôle" , texte: { regime: "technique"} }, count: { label: "nombre" } });
+export const crewHireSchema = nommerChamps(z.strictObject({ roleId: idDe('crewRole', undefined, { nue: true }), count: z.number() }), { roleId: { label: "rôle" , texte: { regime: "technique"} }, count: { label: "nombre" } });
 /** `PursuitFoeRef` (`noyau/pursuitFlow.ts`) — adversaire de poursuite : une RÉFÉRENCE de vivant
  *  (`livingRefSchema` — bestiaire ou statbloc d'éditeur), jamais des stats recopiées. Son Mouvement et
  *  sa valeur de Test de Mouvement se LISENT sur la fiche référencée, résolus au démarrage
@@ -76,10 +92,10 @@ export const pursuitPolicySchema = nommerChamps(z.strictObject({
 }), { sacrifice: { label: "sacrifice"  }, ecartM: { label: "écart de Mouvement" }, arret: { label: "arrêt"  }, prioritaires: { label: "cibles prioritaires" , texte: { regime: "technique"} } });
 /** ADE II 8. */
 export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
-  allyName: z.string().optional(),
-  enemyName: z.string().optional(),
-  allyMight: z.number(),
-  enemyMight: z.number(),
+  nomDesAllies: z.string().optional(),
+  nomDesEnnemis: z.string().optional(),
+  puissanceAlliee: z.number(),
+  puissanceEnnemie: z.number(),
   /** ADE II 8 l.124. */
   plannedRounds: z.number().optional(),
   /** ADE II 8 l.128. */
@@ -90,8 +106,8 @@ export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
   /** Rencontres à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène → id d'encounter). */
   sceneEncounters: z.record(z.string(), z.string()).optional(),
   /** ADE II 8 l.81. */
-  allyMod: z.number().optional(),
-}), { allyName: { label: "nom des alliés" , texte: { regime: "designation"} }, enemyName: { label: "nom des ennemis" , texte: { regime: "designation"} }, allyMight: { label: "puissance alliée" }, enemyMight: { label: "puissance ennemie" }, plannedRounds: { label: "Rounds prévus" }, scenes: { label: "Scènes" , texte: { regime: "technique"} }, situations: { label: "situations" , texte: { regime: "technique"} }, situationSize: { label: "taille de situation" }, sceneEncounters: { label: "rencontres de scène" , texte: { regime: "technique"} }, allyMod: { label: "modificateur allié" } }), 'massBattle.terrain');
+  modificateurAllie: z.number().optional(),
+}), { nomDesAllies: { label: "nom des alliés" , texte: { regime: "designation"} }, nomDesEnnemis: { label: "nom des ennemis" , texte: { regime: "designation"} }, puissanceAlliee: { label: "puissance alliée" }, puissanceEnnemie: { label: "puissance ennemie" }, plannedRounds: { label: "Rounds prévus" }, scenes: { label: "Scènes" , texte: { regime: "technique"} }, situations: { label: "situations" , texte: { regime: "technique"} }, situationSize: { label: "taille de situation" }, sceneEncounters: { label: "rencontres de scène" , texte: { regime: "technique"} }, modificateurAllie: { label: "modificateur allié" } }), 'massBattle.terrain');
 
 /** `ScheduleSpec` (`engine/clock.ts`) — échéance d'horloge, résolue par `scheduleAt` (source unique
  *  de `delayedEffect` ET `setObjective`). Étalée en SHAPE : `DelayedEffect` (manuscrit, ci-dessous) la
@@ -145,7 +161,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
   trappingId: objetDonneSchema.optional(),
   custom: z.string().optional(),
   heroId: z.string().optional(),
-  qualities: z.array(z.string()).optional(),
+  qualities: z.array(idDe('quality', undefined, { nue: true })).optional(),
   identified: z.boolean().optional(),
   teinte: ref('material', undefined, 'objet').optional(),
   apparence: ref('apparence').optional(),
@@ -167,7 +183,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
 export const givePossessionSchema = nommerChamps(z.strictObject({
   type: z.literal('givePossession'),
   nature: z.enum(['bete', 'serviteur', 'vehicule']),
-  ref: z.union([refTypee(typeDePossessionSchema), statblocDeVivantSchema]),
+  ref: z.union([nommerNoeud(refTypee(typeDePossessionSchema), { label: 'Créature ou véhicule' }), statblocDeVivantSchema]),
   heroId: z.string().optional(),
 }), { type: { label: "type"  }, nature: { label: "nature"  }, ref: { label: "référence" }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
@@ -197,13 +213,13 @@ export const transitionSchema = nommerChamps(z.strictObject({ type: z.literal('t
 /** Retour à la scène précédente (sortie d'intérieur), à la case d'entrée. */
 export const transitionBackSchema = nommerChamps(z.strictObject({ type: z.literal('transitionBack') }), { type: { label: "type"  } });
 
-/** Ouvre le dialogue scripté `dialogue`. `speakerId` (optionnel) = id d'une `SceneEntity` de la
+/** Ouvre le dialogue scripté `dialogue`. `speakerId` (optionnel) désigne une `SceneEntity` de la
  *  scène courante → son PORTRAIT et son NOM (label) pour toute la session de dialogue, tant qu'un
  *  nœud ne porte pas son propre `speakerId` (cf. `DialogueNode.speakerId`). */
 export const startDialogueSchema = nommerChamps(z.strictObject({
   type: z.literal('startDialogue'),
-  dialogue: z.string(),
-  speakerId: z.string().optional(),
+  dialogue: ref(DIALOGUES_DE_LA_SCENE),
+  speakerId: ref(PERSONNAGES_DE_LA_SCENE).optional(),
 }), { type: { label: "type"  }, dialogue: { label: "dialogue" , texte: { regime: "technique"} }, speakerId: { label: "locuteur" , texte: { regime: "technique"} } });
 
 /** Ligne de journal : `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
@@ -247,9 +263,9 @@ export const setTimeSchema = nommerChamps(z
     }
   }), { type: { label: "type"  }, phase: { label: "phase"  }, hour: { label: "heure" }, minute: { label: "minute" } });
 
-/** Ouvre la boutique d'une entité marchande (par son id) — permet d'inclure le Marchand dans un
- *  dialogue (ex. choix « Montrez-moi vos marchandises »). L'entité doit porter `merchant` (#2). */
-export const openMerchantSchema = nommerChamps(z.strictObject({ type: z.literal('openMerchant'), entityId: z.string() }), { type: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } });
+/** Ouvre la boutique d'un marchand de la scène (`MARCHANDS_DE_LA_SCENE`) — permet d'inclure le Marchand dans un
+ *  dialogue (ex. choix « Montrez-moi vos marchandises »). #2 */
+export const openMerchantSchema = nommerChamps(z.strictObject({ type: z.literal('openMerchant'), entityId: ref(MARCHANDS_DE_LA_SCENE) }), { type: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } });
 
 /** Ouvre le PORT d'un lieu de la carte du monde — SCRIPTÉ (arrivée mise en scène, cinématique
  *  de quête) sur le MÊME chemin que l'accostage en mer (`openPortAt`, noyau/seaVoyageFlow) : avec profil
@@ -262,9 +278,9 @@ export const openPortSchema = nommerChamps(z.strictObject({ type: z.literal('ope
 export const medicalAidSchema = nommerChamps(z.strictObject({
   type: z.literal('medicalAid'),
   acts: z
-    .array(nommerChamps(z.strictObject({ act: z.enum(['wounds', 'bleed', 'trauma', 'surgery']), cost: moneyPartialSchema.optional() }), { act: { label: "acte"  }, cost: { label: "coût" } }))
+    .array(nommerChamps(z.strictObject({ act: z.enum(['blessures', 'hemorragie', 'traumatisme', 'chirurgie']), cost: moneyPartialSchema.optional() }), { act: { label: "acte"  }, cost: { label: "coût" } }))
     .optional(),
-  entityId: z.string(),
+  entityId: ref(PERSONNAGES_DE_LA_SCENE),
 }), { type: { label: "type"  }, acts: { label: "actes" }, entityId: { label: "entité" , texte: { regime: "technique"} } });
 
 /** LDB 17 l.41 */
@@ -302,7 +318,7 @@ export const inflictPsychologySchema = nommerChamps(z.strictObject({
 /** LDB 20 */
 export const inflictDiseaseSchema = nommerChamps(z.strictObject({
   type: z.literal('inflictDisease'),
-  disease: z.string(),
+  disease: idDe('maladie', undefined, { nue: true }),
   heroId: z.string().optional(),
 }), { type: { label: "type"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
@@ -443,7 +459,7 @@ export const learnSpellSchema = nommerChamps(z.strictObject({
  *  un PNJ hors combat n'a pas de Combatant à faire incanter — pas de pseudo-combat inventé pour ce cas
  *  (le lanceur doit alors être en combat). `targetId` absent = le lanceur (soi/zone). `mode:'jet'`
  *  (défaut) route par le flux d'incantation STANDARD (`castSpell`, cadence-aware ; modale influençable
- *  si le lanceur est piloté par un humain — jamais un jet silencieux). `mode:'forceSuccess'` = arbitrage
+ *  si le lanceur est piloté par un humain — jamais un jet silencieux). `mode:'forcerLaReussite'` = arbitrage
  *  D'AUTEUR explicite (rituel garanti, sans jet) : le sort réussit à DR = NI et son Flow se joue par le
  *  walker d'acteur, choix et paliers compris (`combatFlow.lancerLeSortGaranti`) — dérogation VOULUE,
  *  jamais un défaut. */
@@ -452,7 +468,7 @@ export const castSpellSchema = nommerChamps(z.strictObject({
   casterId: z.string(),
   spellId: sortSchema,
   targetId: z.string().optional(),
-  mode: z.enum(['jet', 'forceSuccess']).optional(),
+  mode: z.enum(['jet', 'forcerLaReussite']).optional(),
 }), { type: { label: "type"  }, casterId: { label: "lanceur" , texte: { regime: "technique"} }, spellId: { label: "sort" , texte: { regime: "technique"} }, targetId: { label: "cible" , texte: { regime: "technique"} }, mode: { label: "mode"  } });
 
 /** LDB 05 l.793-841 ; LDB 17 l.81 */
@@ -486,7 +502,7 @@ export const startPursuitSchema = nommerChamps(z.strictObject({
   policy: pursuitPolicySchema.optional(),
 }), { type: { label: "type"  }, partyRole: { label: "rôle du groupe"  }, distance: { label: "distance" }, escapeAt: { label: "distance de fuite" }, skill: { label: "Compétence" }, foes: { label: "adversaires" }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, policy: { label: "décisions de poursuite" } });
 
-/** Ouvre les JEUX DE TAVERNE (`NADJ 16`, option `tavern-games`) — à poser sur un choix de dialogue
+/** Ouvre les JEUX DE TAVERNE (`NADJ 16`, option `jeux-de-taverne`) — à poser sur un choix de dialogue
  *  d'aubergiste (« Une partie ? ») ou une entité de taverne. Sans effet si l'option est éteinte. */
 export const openTavernGamesSchema = nommerChamps(z.strictObject({ type: z.literal('openTavernGames') }), { type: { label: "type"  } });
 
@@ -508,9 +524,10 @@ export const setVesselSchema = nommerChamps(z.strictObject({
   hullMax: z.number().optional(),
   saboteurDR: z.number().optional(),
   waterLitres: z.number().optional(),
-  provisions: z.number().optional(),
+  vivre: ref('trapping').optional(),
+  provisions: z.number().int().min(0).optional(),
   crew: z.array(crewHireSchema).optional(),
-}), { type: { label: "type"  }, vehicleId: { label: "véhicule" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, provisions: { label: "provisions" }, crew: { label: "équipage" } });
+}).superRefine(refuserLeVivreDuNavire), { type: { label: "type"  }, vehicleId: { label: "véhicule" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, provisions: { label: "rations (jours-homme)" }, crew: { label: "équipage" } });
 
 /** AJUSTE le navire de campagne EXISTANT (#233) — patch des SEULS champs fournis, contrairement à
  *  `setVessel` (remplacement total : effacerait Humeur de Manann/dégâts/Moral accumulés). À poser
@@ -524,9 +541,10 @@ export const adjustVesselSchema = nommerChamps(z.strictObject({
   hullMax: z.number().optional(),
   saboteurDR: z.number().optional(),
   waterLitres: z.number().optional(),
-  provisions: z.number().optional(),
+  vivre: ref('trapping').optional(),
+  provisions: z.number().int().min(0).optional(),
   crew: z.array(crewHireSchema).optional(),
-}), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, provisions: { label: "provisions" }, crew: { label: "équipage" } });
+}).superRefine(refuserLeVivreDuNavire), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, provisions: { label: "rations (jours-homme)" }, crew: { label: "équipage" } });
 
 export const endDialogueSchema = nommerChamps(z.strictObject({ type: z.literal('endDialogue') }), { type: { label: "type"  } });
 
@@ -569,10 +587,6 @@ export type PetitePriere = { type: 'petitePriere'; heroId?: string; reward: Flow
 /** Flow de SCÈNE/campagne : la feuille `do` porte l'union `Effect` COMPLÈTE. Spécialise le `Flow<E>`
  *  générique de `engine/flowCore`. */
 export type Flow = CoreFlow<Effect>;
-
-/** Effet DÉCLENCHÉ de scène : son `flow` peut porter tout `Effect` (≠ `EffectOp`, défaut du noyau).
- *  Spécialise le `TriggeredEffect<E>` générique de `engine/flowCore`. */
-export type TriggeredEffect = CoreTriggeredEffect<Effect>;
 
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 

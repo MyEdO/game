@@ -20,7 +20,7 @@ import { draineCascade } from './cascade.testkit';
 import { openAttackCascade } from './combatFlow';
 import { gainCorruption } from './corruptionFlow';
 import { ouvrirLeMedecin } from './medicFlow';
-import { intentAllowedFor } from './netOwnership';
+import { intentAllowedFor, withActingSeat } from './netOwnership';
 import { NOM_DU_VERBE_DE_JET, type RollVerb } from './flowVerbs';
 import { modalOwnerOf } from './modalArbiter';
 import { seedBattleRng } from './battleRng';
@@ -29,6 +29,7 @@ import { testScene } from '../scenes/test-fixture';
 import { createHero } from '../engine/character';
 import type { Combatant, Weapon } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { pratiquer } from './interlude.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -37,7 +38,7 @@ const NET0 = initialNet();
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18), corruption: 0,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, ...over }) as unknown as Combatant);
@@ -48,7 +49,7 @@ const arena = (combatants: Combatant[]): BattleState =>
      movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState);
 
 /** Sièges : 0 = hôte (héros `a`), 1 = joueur (héros `b`), 2 = MJ (ennemi `e`). */
-const NET_COOP = { ...NET0, mode: 'host' as const, mySeat: 0, gmSeat: 2, ownership: { b: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Joueur', 2: 'MJ' } };
+const NET_COOP = { ...NET0, mode: 'hote' as const, mySeat: 0, gmSeat: 2, ownership: { b: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Joueur', 2: 'MJ' } };
 const NET_SOLO = { ...NET0, mode: 'local' as const, mySeat: 0, gmSeat: 0, ownership: {}, slots: [0, 0, 0, 0] };
 
 const g = () => banc.getState();
@@ -62,19 +63,19 @@ const geste = (cle: string): [string, unknown[]] => {
 /** Verdict des 3 sièges pour un geste : [hôte, joueur, MJ]. */
 const seats = (cle: string) => [0, 1, 2].map((seat) => intentAllowedFor(g(), seat, ...geste(cle)));
 
-const INFLUENCE: RollVerb[] = ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'];
-const CORRUPTION_VERBS = verbs('corruption', [...INFLUENCE, 'resist']);
-const HEAL_VERBS = verbs('heal', INFLUENCE);
-const RUN_VERBS = verbs('run', ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact']);
-const DISENGAGE_VERBS = verbs('disengage', ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll']);
-const ACTIVITY_VERBS = verbs('activity', INFLUENCE);
+const INFLUENCE: RollVerb[] = ['lancer', 'relancer', 'ajouterUnDR', 'pactiser', 'forcerLaReussite', 'imposerLeResultat'];
+const CORRUPTION_VERBS = verbs('corruption', [...INFLUENCE, 'resister']);
+const HEAL_VERBS = verbs('soins', INFLUENCE);
+const RUN_VERBS = verbs('course', ['lancer', 'relancer', 'ajouterUnDR', 'forcerLaReussite', 'imposerLeResultat', 'pactiser']);
+const DISENGAGE_VERBS = verbs('desengagement', ['relancer', 'ajouterUnDR', 'pactiser', 'forcerLaReussite', 'imposerLeResultat']);
+const ACTIVITY_VERBS = verbs('activite', INFLUENCE);
 
 describe('#1015 — sonde 1 : `corruption` sous une fenêtre PRIORITAIRE d’un autre siège', () => {
   it('le siège du CORROMPU dépense, celui de la fenêtre active non', () => {
     seedBattleRng(7);
-    const a = mk('a', 'hero', { x: 0, y: 0 }, { characteristics: { ...chars, 'force-mentale': 10, endurance: 10 } });
-    const b = mk('b', 'hero', { x: 2, y: 0 });
-    const e = mk('e', 'enemy', { x: 3, y: 0 });
+    const a = mk('a', 'heros', { x: 0, y: 0 }, { characteristics: { ...chars, 'force-mentale': 10, endurance: 10 } });
+    const b = mk('b', 'heros', { x: 2, y: 0 });
+    const e = mk('e', 'ennemi', { x: 3, y: 0 });
     banc.setState({ battle: arena([a, b, e]), mode: 'battle', scene: testScene(), net: NET_COOP, party: [] });
     // Flux RÉEL : le seuil de Corruption est franchi → `gainCorruption` POSE `pendingCorruption`.
     gainCorruption(g, banc.setState, a, 12);
@@ -82,7 +83,7 @@ describe('#1015 — sonde 1 : `corruption` sous une fenêtre PRIORITAIRE d’un 
     // …puis une fenêtre d'ATTAQUE du héros `b` (siège 1) s'ouvre PAR-DESSUS : `corruption` est la
     // dernière entrée de `MODAL_DEFS`, la cascade lui prend le owner de modale.
     banc.setState({ battle: { ...g().battle!, turn: 1 } });
-    openAttackCascade(g, banc.setState, { attackerId: 'b', targetId: 'e', location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: 'b', targetId: 'e', location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     expect(modalOwnerOf(g()), 'précondition : la fenêtre ACTIVE est celle d’un AUTRE acteur').toBe('b');
     for (const i of CORRUPTION_VERBS) {
       expect(seats(i), `${i} : la Corruption du corrompu ne se dépense que depuis SON siège`).toEqual([true, false, false]);
@@ -102,12 +103,12 @@ describe('#1015 — sonde 2 : `heal` par un SOIGNEUR PNJ (hors `actorIn`)', () =
     hero.id = 'b';
     hero.wounds = { ...hero.wounds, current: hero.wounds.max - 5 };
     banc.setState({ battle: null, mode: 'exploration', scene: testScene(), party: [hero], net: NET_COOP });
-    ouvrirLeMedecin(g, banc.setState, { patientId: 'b', npc: { id: 'medecin-de-scene', label: 'Barbier-chirurgien', skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'wounds' }] } });
+    ouvrirLeMedecin(g, banc.setState, 'b', { id: 'medecin-de-scene', label: 'Barbier-chirurgien', skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'blessures' }] });
     expect(g().pendingHeal?.healerId, 'précondition : le brouillon du soin, au PNJ de scène').toBe('medecin-de-scene');
-    for (const i of HEAL_VERBS.filter((v) => v !== 'jetLancer@heal')) expect(seats(i), `${i} : un PNJ n’a ni Chance ni Résilience à dépenser`).toEqual([false, false, false]);
+    for (const i of HEAL_VERBS.filter((v) => v !== 'jetLancer@soins')) expect(seats(i), `${i} : un PNJ n’a ni Chance ni Résilience à dépenser`).toEqual([false, false, false]);
     // Le lancer ne dépense rien : sans siège au porteur, il suit le repli universel — l'infirmerie, à tous tant
     // qu'aucun jet n'est lancé (`decideurDuSoin`).
-    expect(seats('jetLancer@heal')).toEqual([true, true, true]);
+    expect(seats('jetLancer@soins')).toEqual([true, true, true]);
   });
 });
 
@@ -115,8 +116,8 @@ describe('#1015 — sonde 3 : `run` en cadence NON manuelle', () => {
   it('Rapide puis Auto : le porteur du jet garde ses dépenses (la cadence ne redistribue rien)', () => {
     setCadence('rapide');
     expect(cadenceAuto(), 'précondition : cadence non manuelle').toBe(true);
-    const a = mk('a', 'hero', { x: 0, y: 0 });
-    const e = mk('e', 'enemy', { x: 6, y: 0 });
+    const a = mk('a', 'heros', { x: 0, y: 0 });
+    const e = mk('e', 'ennemi', { x: 6, y: 0 });
     banc.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_COOP, party: [] });
     g().ouvrirLaCourse({ x: 3, y: 0 });
     expect(g().pendingRun?.combatantId, 'précondition : la Course du héros `a` est ouverte').toBe('a');
@@ -131,8 +132,8 @@ describe('#1015 — sonde 4 : `disengage`, Test OPPOSÉ — le porteur est le MO
     seedBattleRng(3);
     // Le mover est le héros de l'HÔTE (`rompreLEngagement` exige le contrôle LOCAL de l'actif) ; son foe
     // est l'ennemi conduit par le siège MJ — deux sièges DIFFÉRENTS, ce qui rend la sonde discriminante.
-    const a = mk('a', 'hero', { x: 0, y: 0 }, { engagedWith: ['e'] });
-    const e = mk('e', 'enemy', { x: 1, y: 0 }, { engagedWith: ['a'], advantage: 0 });
+    const a = mk('a', 'heros', { x: 0, y: 0 }, { engagedWith: ['e'] });
+    const e = mk('e', 'ennemi', { x: 1, y: 0 }, { engagedWith: ['a'], advantage: 0 });
     banc.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_COOP, party: [] });
     g().rompreLEngagement();
     const pd = g().pendingDisengage!;
@@ -153,18 +154,18 @@ describe('#1015 — sonde 5 : `activity` (hors combat) — accord avec la route 
     banc.setState({ net: NET_COOP });
     g().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
-    g().pratiquerLActivite('b', 'observer-une-cible');
+    withActingSeat(1, () => pratiquer(g, 'b', 'observer-une-cible'));
     expect(g().pendingActivity?.heroId, 'précondition : l’Activité du héros `b` est ouverte').toBe('b');
-    // Route `interlude*` (1er argument = le héros visé) et route par PORTEUR nomment le même siège.
-    expect([0, 1, 2].map((s) => intentAllowedFor(g(), s, 'pratiquerLActivite', ['b']))).toEqual([false, true, false]);
+    // Route du choix de l'interlude (le héros de la rangée) et route par PORTEUR nomment le même siège.
+    expect([0, 1, 2].map((s) => intentAllowedFor(g(), s, 'fenetreChoisir', ['interlude', 'pratiquer', true, 'b']))).toEqual([false, true, false]);
     for (const i of ACTIVITY_VERBS) expect(seats(i), i).toEqual([false, true, false]);
   });
 });
 
 describe('#1015 — sonde 6 : SOLO bit-à-bit', () => {
   it('en COMBAT (Course) : le siège unique garde TOUS les verbes', () => {
-    const a = mk('a', 'hero', { x: 0, y: 0 });
-    const e = mk('e', 'enemy', { x: 6, y: 0 });
+    const a = mk('a', 'heros', { x: 0, y: 0 });
+    const e = mk('e', 'ennemi', { x: 6, y: 0 });
     banc.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_SOLO, party: [] });
     g().ouvrirLaCourse({ x: 3, y: 0 });
     expect(g().pendingRun?.combatantId).toBe('a');
@@ -179,7 +180,7 @@ describe('#1015 — sonde 6 : SOLO bit-à-bit', () => {
     banc.setState({ net: NET_SOLO });
     g().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
-    g().pratiquerLActivite('a', 'observer-une-cible');
+    pratiquer(g, 'a', 'observer-une-cible');
     expect(g().pendingActivity?.heroId).toBe('a');
     for (const i of ACTIVITY_VERBS) expect(intentAllowedFor(g(), 0, ...geste(i)), i).toBe(true);
   });

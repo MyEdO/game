@@ -125,12 +125,12 @@ describe('carte du monde — la géométrie de ses deux régimes (#1117)', () =>
 
   it('≥901px : deux colonnes — le canevas, puis l’aside BORNÉ', () => {
     expect(html.indexOf('worldmap-canvas'), 'le canevas est le PREMIER enfant').toBeLessThan(html.indexOf('worldmap-side'));
-    expect(html, 'la colonne bornée est donc la SECONDE (`side="end"`)').toContain('data-side="end"');
+    expect(html, 'la colonne bornée est donc la SECONDE (`side="fin"`)').toContain('data-side="fin"');
     const mq = '@media (min-width: 901px)';
     expect(valeur(ecran, '.worldmap-layout', mq, '--aside'), 'l’écran pose SA largeur de colonne bornée par la variable que `Split` consomme')
       .toBe('min(400px, 40vw)');
     expect(valeur(ecran, '.worldmap-layout', mq, 'grid-template-columns'), 'les colonnes appartiennent à `Split`').toBe(null);
-    expect(valeur(layout, ".split[data-side='end']", null, 'grid-template-columns'), 'la primitive lit `--aside`').toContain('var(--aside');
+    expect(valeur(layout, ".split[data-side='fin']", null, 'grid-template-columns'), 'la primitive lit `--aside`').toContain('var(--aside');
   });
 
   it('≥901px : l’aside s’ÉTIRE sur la hauteur et défile dans la sienne', () => {

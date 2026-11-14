@@ -15,9 +15,11 @@
  * modificateurs de Moral ; `findTableEntry` classe le score dans sa bande.
  */
 import crewMoraleJson from '../data/crew-morale.json';
-import { findTableEntry, tableOuverte, type BandeOuverte } from './tables';
+import type * as crewMoraleDef from '../data/schemas/defs/crew-morale';
+import { datasetDe, type DatasetDe } from '../data/datasets';
+import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { tirerSigne, type EffetSigne, type RNG } from './dice';
+import { tirerSigne, type RNG } from './dice';
 import { rollTest, easeDifficulty, ECHEC_SANS_JET } from './tests';
 import { bestForTests, refusNePeutTenter } from './skills';
 import type { PlayerText } from '../i18n/playerText';
@@ -31,40 +33,18 @@ import { effectRef, type Combatant, type Difficulty } from './types';
 import type { ModLine } from './combat';
 import type { PairedSense } from './ops';
 import { precipitationTestMods } from './seaWeather';
+import { contagiousDiseases } from './disease';
 
+const MORAL = datasetDe<typeof crewMoraleDef>(crewMoraleJson);
 /** Facteur de Moral (MODIFICATEURS DE MORAL, MDG 14). */
-export interface MoraleFactor {
-  /** id STABLE (slug) — toute réf passe par lui, jamais le `label`. */
-  id: string;
-  label: string;
-  effect: EffetSigne;
-  /** Multiplicateur de SOLDE si ce facteur est un CHOIX de paie du Conseil de bord (donnée MAISON,
-   *  cf. `payChoices`). Absent = facteur circonstanciel, pas un choix offert au capitaine. */
-  wageMul?: number;
-  /** Choix de paie mis en AVANT au Conseil de bord (action principale de la modale) — donnée MAISON,
-   *  comme `wageMul` : le tableau MDG 14 ne hiérarchise pas les lignes « La paie … ». */
-  recommendedPay?: boolean;
-}
-
+export type MoraleFactor = DatasetDe<typeof crewMoraleDef>['factors'][number];
 /** Bande d'effet du Moral (EFFETS DU MORAL, MDG 14). */
-export interface MoraleBand extends BandeOuverte {
-  id: string;
-  /** Titre de bande verbatim (MDG 14 l.187-202). */
-  label: string;
-  /** ±DR aux Tests de Commandement du capitaine. */
-  captainCmdDR: number;
-  /** ±DR à TOUS les Tests d'équipage. */
-  crewTestDR: number;
-  /** Relâche à terre : 1d100 par membre ; ≤ ce seuil → il ne revient pas (absent si aucune désertion). */
-  desertionRoll?: number;
-  /** Texte d'effet verbatim. */
-  desc: string;
-}
+export type MoraleBand = DatasetDe<typeof crewMoraleDef>['bands'][number];
 
 /** Moral de départ d'un nouvel équipage / nouveau capitaine (MDG 14). */
-export const MORALE_BASE: number = crewMoraleJson.base;
-export const MORALE_FACTORS: MoraleFactor[] = crewMoraleJson.factors as MoraleFactor[];
-export const MORALE_BANDS: MoraleBand[] = crewMoraleJson.bands as MoraleBand[];
+export const moraleBase = (): number => MORAL.base;
+export const MORALE_FACTORS = MORAL.factors;
+export const MORALE_BANDS = MORAL.bands;
 
 /** Les bandes telles que `findTableEntry` les lit (`tableOuverte`) : « 101 ou plus » et « 50 ou moins »
  *  (MDG 14 l.188, l.199) sont ouvertes. */
@@ -109,6 +89,27 @@ export function recalcMorale(current: number, activeFactorIds: string[], rng: RN
  *  tableau LIVE (édition Codex visible en direct), jamais sur un index figé au chargement. */
 export function findMoraleFactor(id: string): MoraleFactor | undefined {
   return MORALE_FACTORS.find((f) => f.id === id);
+}
+
+/** Le facteur de Moral d'une nourriture faite du seul vivre `vivre` (`vivreSeul`), s'il en est un. MDG 14 l.156, l.166 */
+export function facteurDuVivreSeul(vivre: string): MoraleFactor | undefined {
+  return MORALE_FACTORS.find((f) => f.vivreSeul?.id === vivre);
+}
+
+/** Les ids des facteurs de Moral d'une nourriture faite d'un seul vivre (`vivreSeul`). MDG 14 l.156, l.166 */
+export function facteursDeVivreSeul(): string[] {
+  return MORALE_FACTORS.filter((f) => f.vivreSeul).map((f) => f.id);
+}
+
+/** Les ids des facteurs de Moral que pose une maladie contagieuse à bord (`contagionABord`). MDG 14 l.172, l.208 */
+export function facteursDeContagionABord(): string[] {
+  return MORALE_FACTORS.filter((f) => f.contagionABord).map((f) => f.id);
+}
+
+/** Un Personnage vivant de `personnages` porte-t-il une maladie contagieuse déclarée (`contagiousDiseases`), sous la règle
+ *  maison `mer-moral-maladie-contagieuse-a-bord` ? MDG 14 l.143, l.172, l.208 */
+export function contagionABord(personnages: readonly Combatant[]): boolean {
+  return rule('mer-moral-maladie-contagieuse-a-bord') && personnages.some((p) => !p.dead && contagiousDiseases(p).length > 0);
 }
 
 /** Un CHOIX de paie du Conseil de bord : le facteur de Moral + son multiplicateur de solde. */
@@ -249,10 +250,10 @@ export function capToSuccesMinime(total: number): number { return Math.min(SUCCE
 /**
  * SUCCÈS d'un Test d'équipage à partir de son total de DR (MDG 14 l.13) — SOURCE UNIQUE : aucun
  * `total >= 1` en dur ailleurs (moteur, flux de voyage, combat, modale). La règle optionnelle
- * `crew-test-zero-success` (l.13, seconde phrase) abaisse le seuil à 0. PUR.
+ * `equipage-zero-dr-succes` (l.13, seconde phrase) abaisse le seuil à 0. PUR.
  */
 export function crewTestSuccess(total: number): boolean {
-  return total >= (rule('crew-test-zero-success') ? 0 : 1);
+  return total >= (rule('equipage-zero-dr-succes') ? 0 : 1);
 }
 
 export function undercrewPenalty(nominal: number, present: number): UndercrewPenalty {

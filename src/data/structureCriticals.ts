@@ -24,5 +24,3 @@ export const structureCriticalsDie = (): DeDeTable => deDeTirageDe<typeof critiq
 export type StructureCritEntry = RangeeDe<typeof critiquesDeStructure>;
 
 export const STRUCTURE_CRITICALS = rangeesDe<typeof critiquesDeStructure>(structureCriticalsJson);
-/** Libellé de la table (rangée de tirage `TableRollLine`). */
-export const STRUCTURE_CRITICALS_LABEL: string = structureCriticalsJson.label;

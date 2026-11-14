@@ -52,14 +52,24 @@ export const REGISTRIES = [
     idUnion: { typeName: 'IconIdGenerated', field: 'id', out: 'src/data/icones.generated.ts' },
   },
   {
-    // Bandes d'ambiance (`SceneBackdrop`) : 1 illustration stylisée = 1 fichier defs/.
-    dir: 'src/ui/backdrops/defs',
-    out: 'src/ui/backdrops/_registry.generated.ts',
-    exportName: 'backdrop',
-    arrayName: 'BACKDROP_DEFS',
-    type: 'BackdropDef',
+    // Fonds d'ambiance (dessin SVG que chaque hôte trace à ses couleurs) : 1 illustration stylisée = 1 fichier defs/.
+    dir: 'src/data/fonds/defs',
+    out: 'src/data/fonds/_registry.generated.ts',
+    exportName: 'fond',
+    arrayName: 'FOND_DEFS',
+    type: 'FondDef',
     typeFrom: './types',
     vocabulaire: { nom: 'fonds', id: 'id', libelle: 'label' },
+  },
+  {
+    // Couches de paysage (dessin SVG que l'hôte trace à ses couleurs, empilées en un paysage) : 1 famille = 1 fichier defs/.
+    dir: 'src/data/paysages/defs',
+    out: 'src/data/paysages/_registry.generated.ts',
+    exportName: 'couches',
+    arrayName: 'FAMILLES_DE_COUCHES',
+    type: 'FamilleDeCouches',
+    typeFrom: './types',
+    idUnion: { typeName: 'IdDeCoucheGenere', field: 'id', out: 'src/data/paysages.generated.ts' },
   },
   {
     // Sons (assets CC0) : 1 son (avec variantes) = 1 fichier defs/ ; vocabulaire `sons`, que désigne un effet.
@@ -127,6 +137,9 @@ export const SORTIE_FORMATS = 'src/noyau/persistance/formats.generated.ts'
 
 /** La cible de `scripts/gen-verbes.mjs` : les paramètres des verbes de la partie, que les hôtes du noyau lisent. */
 export const SORTIE_VERBES = 'src/hote/verbes.generated.ts'
+
+/** La seconde cible de `scripts/gen-verbes.mjs` : les noms de paramètre que les libellés `parametre.*` typent. */
+export const SORTIE_NOMS_DE_PARAMETRE = 'src/i18n/nomsDeParametre.generated.ts'
 
 /** La cible de `scripts/gen-combattants-de-l-etat.mjs` : les chemins des combattants de l'état, que `transitionDuJeu` lit. */
 export const SORTIE_COMBATTANTS_DE_L_ETAT = 'src/noyau/combattantsDeLEtat.generated.ts'

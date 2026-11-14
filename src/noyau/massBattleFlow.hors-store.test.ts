@@ -5,19 +5,20 @@ import { seedBattleRng, battleRng } from './battleRng';
 import { d100 } from '../engine/dice';
 import { evaluateTest } from '../engine/tests';
 import { bonus, effectiveChar } from '../engine/characteristics';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { massBattleTrackHit, armyMight, armyStartMight, battleActivityById, peutTenterAction, type MassBattleState } from './massBattleFlow';
 import { BATTLE_HAZARDS, type MassBattleSpec } from '../engine/massBattle';
 import { t } from '../i18n';
 import { initialNet } from './etat';
 import { intentAllowedFor } from './netOwnership';
-import { refusDuChoix } from './choixDeFenetre';
+import { refusDuChoixNomme } from './choixDeFenetre';
 import { fenetreDuJeu } from './combatAuto';
 import type { PendingActivity } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import { addCondition } from '../engine/conditions';
 import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { pratiquer } from './interlude.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -28,7 +29,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *  bataille SANS interlude (aucune préparation possible → Round 1 direct). */
 function start(
   spec: Partial<MassBattleSpec> = {},
-  party = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur),
+  party = groupeDeScenario(idsDeTest, 'soldat', 'chasseur'),
   opts: { interludeLeft?: number } = {},
 ) {
   seedBattleRng(1234);
@@ -38,11 +39,11 @@ function start(
     party, battle: null,
     interlude: left > 0 ? { weeks: 3, phase: 'activities', perHero } as any : null,
   });
-  banc.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3, ...spec });
+  banc.getState().amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3, ...spec });
 }
 
 /** Le groupe doté de Savoir (Guerre) — Compétence Avancée que la Planification exige (LDB 09 l.30). */
-function partyWithWarLore(party = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur)): Combatant[] {
+function partyWithWarLore(party = groupeDeScenario(idsDeTest, 'soldat', 'chasseur')): Combatant[] {
   return party.map((h) =>
     h.skills.some((s) => s.id === 'savoir' && s.spec === 'guerre' && (s.advances ?? 0) > 0)
       ? h
@@ -56,7 +57,7 @@ const leftOf = (heroId: string) => banc.getState().interlude?.perHero[heroId]?.l
 function resolveBattleTest(over: { roll: number; success: boolean; sl: number } & Record<string, unknown>) {
   const pa = banc.getState().pendingActivity!;
   banc.setState({ pendingActivity: { ...pa, ...over } });
-  banc.getState().jetValider('activity');
+  banc.getState().jetValider('activite');
 }
 
 const mbState = (): MassBattleState => banc.getState().massBattle!;
@@ -78,7 +79,7 @@ const meneurCapable = (id: string): string => {
   return (party.find((h) => peutTenterAction(h, def)) ?? party[0]).id;
 };
 /** Ouvre la préparation `id` MENÉE par `heroId`, par défaut `meneurCapable(id)`. */
-const prep = (id: string, heroId = meneurCapable(id)) => banc.getState().menerLActionDeBataille(id, heroId);
+const prep = (id: string, heroId = meneurCapable(id)) => banc.getState().menerLActionDeBataille(heroId, id);
 const pending = () => banc.getState().pendingActivity;
 
 describe('amorcerLaBataille / état', () => {
@@ -86,15 +87,15 @@ describe('amorcerLaBataille / état', () => {
     start(); // interlude ouvert (budget de préparation)
     const s = banc.getState();
     expect(s.screen).toBe('interlude'); // pas d'écran de bataille séparé : la prépa se joue dans l'interlude
-    expect(armyMight(s.massBattle!.ally)).toBe(50);
-    expect(armyMight(s.massBattle!.enemy)).toBe(55);
+    expect(armyMight(s.massBattle!.allie)).toBe(50);
+    expect(armyMight(s.massBattle!.ennemi)).toBe(55);
     expect(s.massBattle?.phase).toBe('prep');
     expect(s.massBattle?.situation).toEqual([]); // composée seulement à `engagerLaBataille`
     expect(s.massBattle?.pool.length).toBeGreaterThan(0);
   });
 
   it('sans interlude : aucune préparation possible → bataille engagée directement (écran massBattle, phase round)', () => {
-    start({}, pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    start({}, groupeDeScenario(idsDeTest, 'soldat', 'chasseur'), { interludeLeft: 0 });
     const s = banc.getState();
     expect(s.screen).toBe('massBattle');
     expect(s.massBattle?.phase).toBe('round'); // Round 1 direct (pas de prep sans budget)
@@ -103,7 +104,7 @@ describe('amorcerLaBataille / état', () => {
 
   it('refuse de s\'ouvrir en plein combat tactique', () => {
     banc.setState({ massBattle: null, battle: { combatants: [] } as any });
-    banc.getState().amorcerLaBataille({ allyMight: 40, enemyMight: 40 });
+    banc.getState().amorcerLaBataille({ puissanceAlliee: 40, puissanceEnnemie: 40 });
     expect(banc.getState().massBattle).toBeNull();
   });
 
@@ -153,11 +154,11 @@ describe('Discours inspirant (l.71)', () => {
   it('sa Difficulté est DÉRIVÉE de l’écart de Puissance (l.71), par le canal générique des Activités', () => {
     // Armée alliée devant de +30 → Test plus FACILE ; derrière de −30 → plus DUR. Le Discours n'a pas de
     // porte à lui : c'est l'entrée qui déclare `difficultyFrom`, lue à l'ouverture comme au pré-jet.
-    start({ allyMight: 70, enemyMight: 40 });
+    start({ puissanceAlliee: 70, puissanceEnnemie: 40 });
     prep('inspire');
     expect(pending()?.difficulty).toBe('facile');
 
-    start({ allyMight: 30, enemyMight: 60 });
+    start({ puissanceAlliee: 30, puissanceEnnemie: 60 });
     prep('inspire');
     expect(pending()?.difficulty).toBe('tresDifficile');
   });
@@ -170,7 +171,7 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
     expect(pending()?.activityId).toBe('planification');
     resolveBattleTest({ roll: 10, success: true, sl: 3 });
     const mb = mbState();
-    expect(mb.allyMod).toBe(10); // Succès (DR 3 < 6) → +10 (l.81)
+    expect(mb.modificateurAllie).toBe(10); // Succès (DR 3 < 6) → +10 (l.81)
     expect(mb.planned).toBe(true);
     expect(mb.activitiesDone).toContain('planification');
   });
@@ -179,7 +180,7 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
     start({}, partyWithWarLore());
     prep('planification');
     resolveBattleTest({ roll: 3, success: true, sl: 6 });
-    expect(mbState().allyMod).toBe(20);
+    expect(mbState().modificateurAllie).toBe(20);
   });
 
   it('Sabotage requiert le Repérage ; réduit la Puissance ennemie de départ (l.104-106)', () => {
@@ -194,16 +195,16 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
     // Sabotage maintenant possible : −5 sur la Puissance de DÉPART (wounds.max) ET la courante.
     prep('sabotage');
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
-    expect(armyStartMight(mbState().enemy)).toBe(50); // 55 − 5
-    expect(armyMight(mbState().enemy)).toBe(50);
+    expect(armyStartMight(mbState().ennemi)).toBe(50); // 55 − 5
+    expect(armyMight(mbState().ennemi)).toBe(50);
   });
 
   it('Rassembler des forces (l.96) : Stupéfiant → +10 de Puissance de DÉPART (le plafond suit)', () => {
-    start({ allyMight: 50 });
+    start({ puissanceAlliee: 50 });
     prep('rassembler-des-forces');
     resolveBattleTest({ roll: 3, success: true, sl: 6 });
-    expect(armyStartMight(mbState().ally)).toBe(60);
-    expect(armyMight(mbState().ally)).toBe(60);
+    expect(armyStartMight(mbState().allie)).toBe(60);
+    expect(armyMight(mbState().allie)).toBe(60);
   });
 
   it('budget UNIQUE : sans interlude ouvert, AUCUNE préparation possible (Round 1 direct)', () => {
@@ -231,7 +232,7 @@ describe('Meneur qui ne peut pas tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : re
   });
 
   it('Planification : le meneur sans Savoir (Guerre) n’est pas remplacé par celui qui l’a', () => {
-    const [soldat, chasseur] = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur);
+    const [soldat, chasseur] = groupeDeScenario(idsDeTest, 'soldat', 'chasseur');
     start({}, [partyWithWarLore([soldat])[0], chasseur]);
     prep('planification', chasseur.id);
     expect(pending()).toBeNull();
@@ -239,7 +240,7 @@ describe('Meneur qui ne peut pas tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : re
   });
 
   it('Activité SOLO : le meneur Inconscient n’est pas remplacé (Discours inspirant)', () => {
-    const [soldat, chasseur] = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur);
+    const [soldat, chasseur] = groupeDeScenario(idsDeTest, 'soldat', 'chasseur');
     start({}, [ko(soldat), chasseur]);
     prep('inspire', soldat.id);
     expect(pending()).toBeNull();
@@ -247,7 +248,7 @@ describe('Meneur qui ne peut pas tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : re
   });
 
   it('Activité COMBINÉE : le meneur hors d’état de la tenter → refus nommé (Repérage)', () => {
-    const [soldat, chasseur] = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur).map(ko);
+    const [soldat, chasseur] = groupeDeScenario(idsDeTest, 'soldat', 'chasseur').map(ko);
     start({}, [soldat, chasseur]);
     prep('reperage', soldat.id);
     expect(pending()).toBeNull();
@@ -255,7 +256,7 @@ describe('Meneur qui ne peut pas tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : re
   });
 
   it('Scène de Round : personne en état de la tenter → refus nommé (Motivation)', () => {
-    start({ situations: [['motivation']] }, pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    start({ situations: [['motivation']] }, groupeDeScenario(idsDeTest, 'soldat', 'chasseur'), { interludeLeft: 0 });
     banc.setState({ party: banc.getState().party.map(ko) });
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     expect(pending()).toBeNull();
@@ -283,9 +284,9 @@ describe('Test combiné d\'Activité (l.75/102) — un jet vs deux compétences'
     const pa = pending()!;
     expect(pa.activityId).toBe('infiltration');
     expect(pa.target2).toBeGreaterThan(0);
-    const modBefore = mbState().allyMod;
+    const modBefore = mbState().modificateurAllie;
     resolveBattleTest({ roll: 40, success: true, sl: 1, success2: false, sl2: -1, combinedLevel: 'partial' });
-    expect(mbState().allyMod).toBe(modBefore); // aucun gain
+    expect(mbState().modificateurAllie).toBe(modBefore); // aucun gain
     expect(mbState().activitiesDone).toContain('infiltration');
   });
 });
@@ -302,7 +303,7 @@ describe('Scènes cinématiques — MULTI-PJ en Soutien (l.116-118)', () => {
     expect(second).not.toBe(first);
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
     const mb = mbState();
-    expect(armyMight(mb.enemy)).toBe(55 - 10 - 10); // cumul (−10 Ligne de mire [succès → général tombe], −10 Compte à rebours)
+    expect(armyMight(mb.ennemi)).toBe(55 - 10 - 10); // cumul (−10 Ligne de mire [succès → général tombe], −10 Compte à rebours)
     expect(mb.actedHeroes).toHaveLength(2);
     expect(mb.resolvedScenes).toEqual(expect.arrayContaining(['ligne-de-mire', 'compte-a-rebours']));
   });
@@ -323,7 +324,7 @@ describe('Scènes cinématiques — MULTI-PJ en Soutien (l.116-118)', () => {
     auRound();
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     resolveBattleTest({ roll: 10, success: true, sl: 2 }); // succès simple
-    expect(armyMight(mbState().enemy)).toBe(55 - 10); // −5 (succès) −5 (général tombé)
+    expect(armyMight(mbState().ennemi)).toBe(55 - 10); // −5 (succès) −5 (général tombé)
   });
 
   it('Survol : le général ne tombe (−15) qu\'au Succès Stupéfiant (DR ≥ 6, l.217)', () => {
@@ -331,7 +332,7 @@ describe('Scènes cinématiques — MULTI-PJ en Soutien (l.116-118)', () => {
     auRound();
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'survol');
     resolveBattleTest({ roll: 5, success: true, sl: 2 }); // succès simple : pas d'approche au Corps à corps
-    expect(armyMight(mbState().enemy)).toBe(55 - 5); // −5 seulement, général debout
+    expect(armyMight(mbState().ennemi)).toBe(55 - 5); // −5 seulement, général debout
   });
 
   it('Survol : Échec Stupéfiant impose une Charge au Round suivant (l.217)', () => {
@@ -355,14 +356,14 @@ describe('Scène MENACE (Intrus l.219)', () => {
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     const pa = pending()!;
     expect(pa.target).toBe(Math.max(1, Math.min(99, pa.skillValue - 20)));
-    banc.getState().jetValider('activity');
+    banc.getState().jetValider('activite');
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'intrus', hits: 3, hitters: ['h1'] } },
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Sanguinaire', count: 3 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     expect(mbState().activeThreats).not.toContain('intrus');
     expect(mbState().resolvedScenes).toContain('intrus');
   });
@@ -389,9 +390,9 @@ describe('Scène de COMBAT — touches ET kills (l.139)', () => {
     auRound();
     const mb = mbState();
     banc.setState({ massBattle: { ...mb, combatScene: { sceneId: 'charge', hits: 0, hitters: [] } } });
-    const hero = { id: 'h1', kind: 'hero', bodyShape: 'biped' } as unknown as Combatant;
-    const foe = { id: 'e1', kind: 'enemy', bodyShape: 'biped' } as unknown as Combatant;
-    const other = { id: 'h2', kind: 'hero', bodyShape: 'biped' } as unknown as Combatant;
+    const hero = { id: 'h1', kind: 'heros', bodyShape: 'biped' } as unknown as Combatant;
+    const foe = { id: 'e1', kind: 'ennemi', bodyShape: 'biped' } as unknown as Combatant;
+    const other = { id: 'h2', kind: 'heros', bodyShape: 'biped' } as unknown as Combatant;
     const g = banc.getState; const s = banc.setState;
     massBattleTrackHit(g, s, hero, foe);
     massBattleTrackHit(g, s, hero, foe);
@@ -411,9 +412,9 @@ describe('Scène de COMBAT — touches ET kills (l.139)', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Mutant', count: 1 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     const after = mbState();
-    expect(armyMight(after.enemy)).toBe(55 - 7);
+    expect(armyMight(after.ennemi)).toBe(55 - 7);
     expect(after.combatScene).toBeUndefined();
     expect(after.resolvedScenes).toContain('charge');
     expect(banc.getState().screen).toBe('massBattle');
@@ -430,8 +431,8 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Général', count: 1 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
-    expect(armyMight(mbState().enemy)).toBe(55 - 20);
+    banc.getState().fenetreFermer('victoire');
+    expect(armyMight(mbState().ennemi)).toBe(55 - 20);
     expect(mbState().imposed).not.toContain('charge');
   });
 
@@ -444,8 +445,8 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Général', count: 1 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
-    expect(armyMight(mbState().enemy)).toBe(55 - 10);
+    banc.getState().fenetreFermer('victoire');
+    expect(armyMight(mbState().ennemi)).toBe(55 - 10);
     expect(mbState().imposed).toContain('charge');
   });
 
@@ -455,12 +456,12 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'duel', hits: 2, hitters: ['h1'] } },
-      mode: 'battle', battle: { over: 'defeat', combatants: [] } as any,
+      mode: 'battle', battle: { over: 'defaite', combatants: [] } as any,
     });
     banc.getState().fenetreFermer('repli');
     const after = mbState();
-    expect(armyMight(after.ally)).toBe(50 - 20);
-    expect(armyMight(after.enemy)).toBe(55);
+    expect(armyMight(after.allie)).toBe(50 - 20);
+    expect(armyMight(after.ennemi)).toBe(55);
     expect(after.phase).toBe('round');
     expect(after.combatScene).toBeUndefined();
     expect(after.resolvedScenes).toContain('duel');
@@ -479,8 +480,8 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Garde', count: 3 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
-    expect(armyMight(mbState().ally)).toBe(Math.min(50 + 10, 50)); // plafonné à la Puissance de départ (l.135)
+    banc.getState().fenetreFermer('victoire');
+    expect(armyMight(mbState().allie)).toBe(Math.min(50 + 10, 50)); // plafonné à la Puissance de départ (l.135)
     expect(mbState().imposed).not.toContain('charge');
   });
 
@@ -490,11 +491,11 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'percee', hits: 1, hitters: ['h1'] } },
-      mode: 'battle', battle: { over: 'defeat', combatants: [] } as any,
+      mode: 'battle', battle: { over: 'defaite', combatants: [] } as any,
     });
     banc.getState().fenetreFermer('repli');
     expect(mbState().imposed).toContain('charge');
-    expect(armyMight(mbState().ally)).toBe(50);
+    expect(armyMight(mbState().allie)).toBe(50);
     expect(mbState().phase).toBe('round');
     seedBattleRng(7);
     banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
@@ -513,7 +514,7 @@ describe('Tenez votre position (l.161) — Point de rupture + bonus cumulatif', 
     expect(pa.enemyValue).toBeGreaterThan(0); // jet opposé de l'ennemi figé
     resolveBattleTest({ roll: 10, success: true, sl: 3, enemySL: -2 });
     const mb = mbState();
-    expect(armyMight(mb.enemy)).toBe(55 - 2);
+    expect(armyMight(mb.ennemi)).toBe(55 - 2);
     expect(mb.sceneState['tenez-votre-position'].held).toBe(1);
     expect(mb.sceneState['tenez-votre-position'].breakpoint).toBe(0);
     expect(mb.imposed).toContain('tenez-votre-position');
@@ -531,14 +532,14 @@ describe('Tenez votre position (l.161) — Point de rupture + bonus cumulatif', 
     expect(mb.sceneState['tenez-votre-position'].breakpoint).toBe(12);
     expect(mb.sceneState['tenez-votre-position'].broken).toBe(true);
     expect(mb.imposed).not.toContain('tenez-votre-position');
-    expect(armyMight(mb.enemy)).toBe(55); // pas de −2 : la position n'a pas tenu
+    expect(armyMight(mb.ennemi)).toBe(55); // pas de −2 : la position n'a pas tenu
   });
 
   /** Ouvre la Scène de tenue APRÈS `heldRounds` Rounds déjà tenus. L'armée ennemie porte le solde de
    *  ces Rounds (ADE II 8 l.163 : « −2 de Puissance » par Round tenu) et son jet reçoit le bonus
    *  cumulatif de +10 par Round — la fixture est celle d'une partie réelle, pas un `held` posé nu. */
   function openHold(heldRounds: number): PendingActivity {
-    start({ situations: [['tenez-votre-position']], enemyMight: 55 - 2 * heldRounds });
+    start({ situations: [['tenez-votre-position']], puissanceEnnemie: 55 - 2 * heldRounds });
     auRound();
     const mb0 = mbState();
     banc.setState({ massBattle: { ...mb0, sceneState: { 'tenez-votre-position': { breakpoint: 0, held: heldRounds, broken: false } } } });
@@ -564,7 +565,7 @@ describe('Tenez votre position (l.161) — Point de rupture + bonus cumulatif', 
       },
     });
     seedBattleRng(SEED);
-    banc.getState().jetLancer('activity');
+    banc.getState().jetLancer('activite');
     const pa = pending()!;
     expect(pa.sl).toBe(pjSL);
     expect(pa.enemySL).toBe(0); // DR strictement égaux : seul le départage tranche
@@ -686,7 +687,7 @@ describe('Affectation explicite d\'un PJ à une action (poste ≠ auto « meille
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     const acted = pending()!.heroId;
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
-    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'compte-a-rebours', acted)).toBe(t('choix.refus.valeur'));
+    expect(refusDuChoixNomme(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'compte-a-rebours', acted)).toBe(t('choix.refus.valeur'));
     poster('compte-a-rebours', acted);
     expect(mbState().assignment).toEqual({});
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'compte-a-rebours');
@@ -696,7 +697,7 @@ describe('Affectation explicite d\'un PJ à une action (poste ≠ auto « meille
   it('(d) une Activité combinée n’est pas un poste, et le héros NOMMÉ la mène seul', () => {
     start();
     const [a, b] = banc.getState().party.map((h) => h.id);
-    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'reperage', a)).toBe(t('choix.refus.valeur'));
+    expect(refusDuChoixNomme(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'reperage', a)).toBe(t('choix.refus.valeur'));
     poster('reperage', a);
     expect(mbState().assignment).toEqual({});
     prep('reperage', b);
@@ -737,7 +738,7 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
     start({}, partyWithWarLore());
     const [a, b] = banc.getState().party.map((h) => h.id);
     expect(fenetreDuJeu(banc.getState())?.cle).toBe('interlude');
-    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'planification', a)).toBeNull();
+    expect(refusDuChoixNomme(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'planification', a)).toBeNull();
     poster('planification', a);
     banc.getState().fenetreChoisir('batailleDeMasse', 'retirerDuPoste', 'planification', a);
     poster('planification', b);
@@ -773,9 +774,9 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
   });
 
   // #257 — RAW muet (LDB 12 l.189 « apporter son soutien » / ADE II 8 l.81) : le coût d'Activité de
-  // l'assistant est un arbitrage éditable (flag `interlude-assist-costs-activity`, policy.ts).
+  // l'assistant est un arbitrage éditable (flag `interlude-assister-coute-un-creneau`, policy.ts).
   it('assistant GRATUIT par défaut : seul le meneur perd un créneau', () => {
-    resetRule('interlude-assist-costs-activity');
+    resetRule('interlude-assister-coute-un-creneau');
     start({}, partyWithWarLore());
     const [a, b] = banc.getState().party.map((h) => h.id);
     poster('planification', a, b);
@@ -786,7 +787,7 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
   });
 
   it('flag activé : chaque assistant doté d’un créneau en dépense un', () => {
-    setRule('interlude-assist-costs-activity', true);
+    setRule('interlude-assister-coute-un-creneau', true);
     try {
       start({}, partyWithWarLore());
       const [a, b] = banc.getState().party.map((h) => h.id);
@@ -796,7 +797,7 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
       expect(leftOf(a)).toBe(2); // meneur : −1
       expect(leftOf(b)).toBe(2); // assistant : −1 aussi
     } finally {
-      resetRule('interlude-assist-costs-activity');
+      resetRule('interlude-assister-coute-un-creneau');
     }
   });
 });
@@ -864,7 +865,7 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
   it('un héros ne peut faire que 3 Activités AU TOTAL (mix prépa bataille + interlude normale) — la 4ᵉ est REFUSÉE', () => {
     // GROUPE À UN SEUL HÉROS : son budget d'interlude (3) est le SEUL budget de préparation → l'épuiser
     // épuise toute la préparation (le budget est UNIQUE, l.65). Repérage réussi débloque le Sabotage.
-    start({}, partyWithWarLore(pregenParty(idsDeTest, PREGEN.soldat)));
+    start({}, partyWithWarLore(groupeDeScenario(idsDeTest, 'soldat')));
     const [hero] = banc.getState().party.map((h) => h.id);
     expect(leftOf(hero)).toBe(3);
 
@@ -880,18 +881,18 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
     expect(mbState().scouted).toBe(true);
 
     // Activité #3 : Activité d'interlude NORMALE (Revenus) → left 1→0.
-    banc.getState().pratiquerLActivite(hero, 'revenus');
+    pratiquer(banc.getState, hero, 'revenus');
     const pa = pending()!;
     expect(pa.battle).toBeUndefined(); // Activité d'interlude ordinaire (pas de bataille)
     banc.setState({ pendingActivity: { ...pa, roll: 50, success: true, sl: 1 } });
-    banc.getState().jetValider('activity');
+    banc.getState().jetValider('activite');
     expect(leftOf(hero)).toBe(0);
 
     // 4ᵉ Activité : budget épuisé → la préparation de bataille (Sabotage) est REFUSÉE (l.65).
     prep('sabotage');
     expect(pending()).toBeNull();
     // …et une Activité d'interlude normale l'est aussi (source de budget UNIQUE), refus dit.
-    banc.getState().pratiquerLActivite(hero, 'revenus');
+    pratiquer(banc.getState, hero, 'revenus');
     expect(pending()).toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe(`${banc.getState().party[0].label} n’a plus d’Activité d’interlude.`);
   });
@@ -919,8 +920,8 @@ describe('Test spectaculaire, avancement & issue (l.120/124)', () => {
     const mb = mbState();
     expect(mb.awaitingNext).toBe(true);
     expect(mb.round).toBe(1);
-    expect(armyMight(mb.ally)).toBeLessThanOrEqual(50 - 5);
-    expect(armyMight(mb.enemy)).toBeLessThanOrEqual(55 - 5);
+    expect(armyMight(mb.allie)).toBeLessThanOrEqual(50 - 5);
+    expect(armyMight(mb.ennemi)).toBeLessThanOrEqual(55 - 5);
   });
 
   it('la validation de la bataille passe au Round suivant et réinitialise l\'état par-Round', () => {
@@ -940,21 +941,21 @@ describe('Test spectaculaire, avancement & issue (l.120/124)', () => {
   });
 
   it('une armée réduite à 0 est détruite immédiatement', () => {
-    start({ plannedRounds: 5, enemyMight: 5 });
+    start({ plannedRounds: 5, puissanceEnnemie: 5 });
     auRound();
     seedBattleRng(9);
     banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
     const mb = mbState();
-    expect(armyMight(mb.enemy)).toBe(0);
+    expect(armyMight(mb.ennemi)).toBe(0);
     expect(mb.phase).toBe('over');
-    expect(mb.outcome).toBe('ally');
+    expect(mb.outcome).toBe('allie');
   });
 });
 
 describe('Modèle Combattant-armée (Blessures = Puissance)', () => {
   it('l\'armée est un Combattant INANIMÉ : PB courantes = Puissance, PB max = départ, inerte', () => {
-    start({ allyMight: 50, enemyMight: 55 });
-    const ally = mbState().ally.combatant;
+    start({ puissanceAlliee: 50, puissanceEnnemie: 55 });
+    const ally = mbState().allie.combatant;
     expect(ally.wounds.current).toBe(50);
     expect(ally.wounds.max).toBe(50);
     expect(ally.inert).toBe(true);
@@ -962,25 +963,25 @@ describe('Modèle Combattant-armée (Blessures = Puissance)', () => {
   });
 
   it('un gain de Scène est plafonné NATURELLEMENT à la Puissance de départ (l.135)', () => {
-    start({ allyMight: 50, situations: [['motivation']] });
+    start({ puissanceAlliee: 50, situations: [['motivation']] });
     auRound();
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     resolveBattleTest({ roll: 10, success: true, sl: 4 }); // +4 tenté, déjà à 50/50
-    expect(armyMight(mbState().ally)).toBe(50);
+    expect(armyMight(mbState().allie)).toBe(50);
   });
 
   it('après une perte, un gain de Scène ne remonte pas au-delà du départ', () => {
-    start({ allyMight: 50, plannedRounds: 3, situations: [['motivation'], ['motivation']] });
+    start({ puissanceAlliee: 50, plannedRounds: 3, situations: [['motivation'], ['motivation']] });
     auRound();
     seedBattleRng(7);
     banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
-    const afterClash = armyMight(mbState().ally);
+    const afterClash = armyMight(mbState().allie);
     expect(afterClash).toBeLessThan(50);
     banc.getState().fenetreValider('batailleDeMasse');
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     resolveBattleTest({ roll: 10, success: true, sl: 6 });
-    expect(armyMight(mbState().ally)).toBeLessThanOrEqual(50);
-    expect(armyMight(mbState().ally)).toBeGreaterThan(afterClash);
+    expect(armyMight(mbState().allie)).toBeLessThanOrEqual(50);
+    expect(armyMight(mbState().allie)).toBeGreaterThan(afterClash);
   });
 });
 
@@ -1019,11 +1020,11 @@ describe('Aléa & fermeture', () => {
 
   it('coop : le choix de l’aléa est à l’hôte, refusé à l’invité, dans son état comme à la route', () => {
     enRound();
-    banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: {}, slots: [0, 1, 0, 0] } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: {}, slots: [0, 1, 0, 0] } });
     const args = ['batailleDeMasse', 'alea', 'peur'];
     expect([intentAllowedFor(banc.getState(), 0, 'fenetreChoisir', args), intentAllowedFor(banc.getState(), 1, 'fenetreChoisir', args)]).toEqual([true, false]);
-    banc.setState({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1 } });
-    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'alea', 'peur')).toBe(t('choix.refus.hoteSeul'));
+    banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1 } });
+    expect(refusDuChoixNomme(banc.getState(), 'batailleDeMasse', 'alea', 'peur')).toBe(t('choix.refus.hoteSeul'));
   });
 
   it('refuse et le dit : un tirage hors Round', () => {
@@ -1033,13 +1034,13 @@ describe('Aléa & fermeture', () => {
   });
 
   it('la sortie de la bataille de masse la ferme', () => {
-    start({}, pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    start({}, groupeDeScenario(idsDeTest, 'soldat', 'chasseur'), { interludeLeft: 0 });
     banc.getState().fenetreFermer('batailleDeMasse');
     expect(banc.getState().massBattle).toBeNull();
   });
 
   it('la sortie de la bataille de masse REFUSE de clore sous un Test de bataille en cours, en le nommant (#1906)', () => {
-    start({ situations: [['motivation']] }, pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    start({ situations: [['motivation']] }, groupeDeScenario(idsDeTest, 'soldat', 'chasseur'), { interludeLeft: 0 });
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     const pa = pending()!;
     expect(pa?.battle, 'un Test de Scène est ouvert').toBeTruthy();
@@ -1066,7 +1067,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     banc.setState({ pendingActivity: { ...pa0, roll: 40, success: true, sl: 1, success2: false, sl2: -1, combinedLevel: 'partial' } });
     grant({ fortune: 1 });
     seedBattleRng(99);
-    banc.getState().jetRelancer('activity');
+    banc.getState().jetRelancer('activite');
     expect(pending()!.rerolled).toBe(true); // `failed` true pour un partiel → la relance de Chance a lieu
   });
 
@@ -1076,7 +1077,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     const pa0 = pending()!;
     banc.setState({ pendingActivity: { ...pa0, roll: 40, success: true, sl: 1, success2: false, sl2: -1, combinedLevel: 'partial' } });
     grant({ resilience: 1 });
-    banc.getState().jetForcerLaReussite('activity');
+    banc.getState().jetForcerLaReussite('activite');
     const pa = pending()!;
     expect(pa.combinedLevel).toBe('full');
     expect(pa.success2).toBe(true);
@@ -1089,7 +1090,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     banc.setState({ pendingActivity: { ...pa0, roll: 10, success: true, sl: 2, success2: true, sl2: 2, combinedLevel: 'full' } });
     grant({ resilience: 1 });
     const id = pending()!.heroId;
-    banc.getState().jetForcerLaReussite('activity');
+    banc.getState().jetForcerLaReussite('activite');
     expect(banc.getState().party.find((h) => h.id === id)!.resilience).toBe(1); // non dépensée (activityWon → null)
   });
 
@@ -1102,7 +1103,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     expect(pa0.mod).toBe(-20); // pénalité de Menace Intrus (l.219)
     expect(pa0.target).toBe(Math.max(1, Math.min(99, pa0.skillValue - 20))); // mod fondu par l'opener
     seedBattleRng(5);
-    banc.getState().jetLancer('activity');
+    banc.getState().jetLancer('activite');
     expect(pending()!.target).toBe(pa0.target); // la résolution NE l'écrase PAS par une cible sans mod
   });
 
@@ -1119,7 +1120,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     // PJ « réussi » numériquement (roll ≤ cible) MAIS l'ennemi l'emporte à l'opposition (enemySL 3 > 0).
     banc.setState({ pendingActivity: { ...pa0, roll: 20, target: 50, sl: pjSL, success: false, enemySL: 3 } });
     grant({ fortune: 1 });
-    banc.getState().jetAjouterUnDR('activity');
+    banc.getState().jetAjouterUnDR('activite');
     const pa = pending()!;
     expect(pa.sl).toBe(pjSL + 1);
     expect(pa.enemySL).toBe(2); // +1 DR au PJ → −1 au DR net de l'ennemi

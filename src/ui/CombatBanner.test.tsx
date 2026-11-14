@@ -19,11 +19,11 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const com = (id: string, label: string, kind: 'hero' | 'enemy') =>
+const com = (id: string, label: string, kind: 'heros' | 'ennemi') =>
   combattantDeTest({ id, label, kind, traumas: [], engagedWith: [] });
 
-const GUNNAR = com('gunnar', 'Gunnar', 'hero');
-const RAT = com('rat', 'Rat géant', 'enemy');
+const GUNNAR = com('gunnar', 'Gunnar', 'heros');
+const RAT = com('rat', 'Rat géant', 'ennemi');
 
 let host: HTMLDivElement;
 let root: Root;
@@ -64,8 +64,8 @@ describe('CombatBanner', () => {
 
   it('rend au plus une annonce dans la région live', () => {
     monter([
-      ev('attack', 'Ancienne ligne', 'gunnar', 'rat'),
-      ev('attack', 'Gunnar frappe Rat géant', 'gunnar', 'rat'),
+      ev('attaque', 'Ancienne ligne', 'gunnar', 'rat'),
+      ev('attaque', 'Gunnar frappe Rat géant', 'gunnar', 'rat'),
     ]);
     const html = host.innerHTML;
     expect(html).toContain('role="status" aria-live="polite" aria-atomic="true"');
@@ -75,7 +75,7 @@ describe('CombatBanner', () => {
   });
 
   it('n’annonce ni le round ni l’ordre d’initiative — ils appartiennent à la frise', () => {
-    monter([ev('attack', 'Gunnar frappe Rat géant', 'gunnar', 'rat')]);
+    monter([ev('attaque', 'Gunnar frappe Rat géant', 'gunnar', 'rat')]);
     const html = host.innerHTML;
     expect(html).not.toContain('Round');
     expect(html).not.toContain('is-round');
@@ -88,7 +88,7 @@ describe('CombatBanner', () => {
   // (`LogDrawer` y rend `battle.log`), et le refus lui-même ne va pas dans `battle.log` — il ne
   // voyagerait pas jusqu'à un invité, et n'a rien à faire dans la trace des FAITS de jeu.
   it('le REFUS passe devant le télégraphe d’une IA en cours (sinon le clic reste sans réponse)', () => {
-    monter([ev('attack', 'Gunnar frappe Rat géant', 'gunnar', 'rat')], {
+    monter([ev('attaque', 'Gunnar frappe Rat géant', 'gunnar', 'rat')], {
       actorAim: { fromId: 'rat', toId: 'gunnar', kind: 'charge' },
       refus: { texte: 'Trop loin pour marcher — armez la Course.', nonce: 1 },
     });
@@ -120,7 +120,7 @@ describe('CombatBanner', () => {
   });
 
   it('sans refus, le télégraphe de l’IA garde sa place (la priorité ne le supprime pas)', () => {
-    monter([ev('attack', 'Gunnar frappe Rat géant', 'gunnar', 'rat')], {
+    monter([ev('attaque', 'Gunnar frappe Rat géant', 'gunnar', 'rat')], {
       actorAim: { fromId: 'rat', toId: 'gunnar', kind: 'charge' },
     });
     expect(host.innerHTML).toContain('charge');

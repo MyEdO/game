@@ -51,7 +51,7 @@ function combattant(id: string, over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
     id,
     label: id,
-    kind: 'hero',
+    kind: 'heros',
     pos: { x: 0, y: 0 },
     size: 'moyenne',
     wounds: blessuresDeBase(10),
@@ -203,7 +203,7 @@ describe('identité du groupe', () => {
   it('la monture partage l’identité du cavalier en couple iso et porte la sienne en pions dissociés', () => {
     const premier = combattant('h1');
     const cavalier = combattant('h2', { mountId: 'm1' });
-    const monture = combattant('m1', { kind: 'enemy', riderId: cavalier.id });
+    const monture = combattant('m1', { kind: 'ennemi', riderId: cavalier.id });
     const population = [premier, cavalier, monture];
     const partyIds = [premier.id, cavalier.id];
     expect(combatantRingDecor(monture, partyIds, population)).toEqual(teamRingDecor(monture));
@@ -213,7 +213,7 @@ describe('identité du groupe', () => {
 
   it('un membre du groupe au rang 2 porte HERO_RING[1], quel que soit l’ordre du combat', () => {
     const premier = combattant('h1', { pos: undefined });
-    const ennemi = combattant('e1', { kind: 'enemy' });
+    const ennemi = combattant('e1', { kind: 'ennemi' });
     const second = combattant('h2');
     const population = [second, ennemi, premier];
     const partyIds = [premier.id, second.id];
@@ -235,7 +235,7 @@ describe('teamRingDecor — la décoration d’ÉQUIPE, dérivation partagée de
   });
 
   it('un ennemi porte le rouge ET le POINTILLÉ — le canal daltonien R9 de `teamShape`', () => {
-    const d = teamRingDecor(combattant('e1', { kind: 'enemy' } as Partial<Combatant>), 0);
+    const d = teamRingDecor(combattant('e1', { kind: 'ennemi' } as Partial<Combatant>), 0);
     expect(d.color).toBe(ENEMY_RING);
     expect(d.dash).toBe(teamShape(true));
     expect(dashPattern(d.dash)).toEqual({ dashPx: 5, gapPx: 3 });
@@ -254,7 +254,7 @@ describe('teamRings — la POPULATION des anneaux et leur gabarit (#1176 P3-0e)'
 
   it('un COMBATTANT posté porte l’anneau de son équipe ; le meneur hors combat le sien', () => {
     const h = combattant('h1', { pos: { x: 2, y: 3 } });
-    const e = combattant('e1', { pos: { x: 5, y: 3 }, kind: 'enemy' } as Partial<Combatant>);
+    const e = combattant('e1', { pos: { x: 5, y: 3 }, kind: 'ennemi' } as Partial<Combatant>);
     const anneaux = dynamicMarks(null, null, [jeton(h, 0), jeton(e)], { leader: combattant('lead'), heroIndex: 0, pos: { x: 9, y: 9 } }).rings;
     expect(anneaux.map((a) => a.id)).toEqual(['h1', 'e1', 'lead']);
     expect(anneaux[0].color).toBe(HERO_RING[0]);
@@ -263,7 +263,7 @@ describe('teamRings — la POPULATION des anneaux et leur gabarit (#1176 P3-0e)'
   });
 
   it('un couple MONTÉ porte UN anneau, aux pieds de la MONTURE, à la décoration du CAVALIER', () => {
-    const monture = combattant('m1', { kind: 'enemy', pos: { x: 7, y: 7 }, size: 'grande' } as Partial<Combatant>);
+    const monture = combattant('m1', { kind: 'ennemi', pos: { x: 7, y: 7 }, size: 'grande' } as Partial<Combatant>);
     const monté: TokenEl = {
       kind: 'token',
       key: 'mtd:m1',
@@ -327,7 +327,7 @@ describe('teamRings — la POPULATION des anneaux et leur gabarit (#1176 P3-0e)'
   });
 
   it('le jeton de groupe porte la décoration de son meneur publiée dans la population', () => {
-    const pnj = combattant('lead', { kind: 'npc' } as Partial<Combatant>);
+    const pnj = combattant('lead', { kind: 'pnj' } as Partial<Combatant>);
     const [anneau] = teamRings([], { leader: pnj, heroIndex: 0, pos: { x: 1, y: 1 } });
     expect({ color: anneau.color, dash: anneau.dash }).toEqual(combatantRingDecor(pnj, [], [pnj]));
   });

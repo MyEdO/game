@@ -41,14 +41,14 @@ export interface FauxData {
 test('un champ au bon NOM mais au mauvais TYPE ne compte pour aucun canal', () => {
   const f = forger('homonymes.ts', `
 export interface FauxSpell { effects?: import('../engine/flowCore').Flow<Effect> }
-export interface FauxGroup { combat?: 'melee' | 'ranged' }
+export interface FauxGroup { combat?: 'melee' | 'distance' }
 export interface FauxLibre { passive?: string }
 `)
   const { entites, typesDrapeaux } = mesurerCanaux([f])
   assert.deepEqual(entites, [])
   assert.deepEqual(typesDrapeaux, [])
   assert.equal(canalDuMembre('effects', "import('../engine/flowCore').Flow<Effect>"), null)
-  assert.equal(canalDuMembre('combat', "'melee' | 'ranged'"), null)
+  assert.equal(canalDuMembre('combat', "'melee' | 'distance'"), null)
   assert.equal(canalDuMembre('combat', "import('../engine/combatFeatures/types').CombatFeature"), 'drapeaux')
 })
 
@@ -59,4 +59,28 @@ export interface Enfant extends Parent { recover?: string }
 `)
   const { entites } = mesurerCanaux([f])
   assert.deepEqual(entites.map((e) => e.entite), ['Parent'])
+})
+
+test('un type de drapeaux INFÉRÉ d’un schéma (`z.infer<typeof S>`) prend les champs de son objet zod, dans un autre fichier', () => {
+  const schema = forger('schema.ts', `
+export const fauxCapabilitiesSchema = nommerChamps(z.strictObject({ fumbleOn9: z.boolean().optional(), crewedTeam: z.boolean().optional() }), {});
+`)
+  const entite = forger('entite.ts', `
+export type FauxCapabilities = z.infer<typeof fauxCapabilitiesSchema>;
+export interface FauxData { capabilities?: FauxCapabilities }
+`)
+  const { typesDrapeaux } = mesurerCanaux([entite, schema])
+  assert.deepEqual(typesDrapeaux.map((t) => [t.nom, t.fichier, t.champs]), [['FauxCapabilities', entite, ['fumbleOn9', 'crewedTeam']]])
+})
+
+test('un type de drapeaux en SORTIE de schéma (`z.output<typeof S>`) prend les champs de son objet zod, même sous `z.lazy`', () => {
+  const schema = forger('schema-sortie.ts', `
+export const fauxFeatureSchema = z.lazy(() => nommerChamps(z.strictObject({ offHand: nommerChamps(z.strictObject({ perLevel: z.number() }), {}).optional(), slayer: z.boolean().optional() }), {}));
+`)
+  const entite = forger('entite-sortie.ts', `
+export type CombatFeature = z.output<typeof fauxFeatureSchema>;
+export interface FauxTalent { combat?: CombatFeature }
+`)
+  const { typesDrapeaux } = mesurerCanaux([entite, schema])
+  assert.deepEqual(typesDrapeaux.map((t) => [t.nom, t.fichier, t.champs]), [['CombatFeature', entite, ['offHand', 'slayer']]])
 })

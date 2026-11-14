@@ -10,7 +10,28 @@ import { gabaritDObjet, isWeaponActive, type GabaritDObjet } from '../engine/ite
 import { MERCHANT_COL_RENDERERS } from '../noyau/colonnesDuMarchand';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
-import { libelleDeLaRepartition, sellGain, devisDeVente, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus, prixDeLigne, remiseDAchatPct, devisDuPanier, refusDAjout, coutDeReparation, refusDeReparation, optionsDeTroc, devisDeTroc, demandeDuTroc, exemplaireCede, BROUILLON_DE_TROC_VIDE, type ContexteDAchat } from '../noyau/merchantFlow';
+import {
+  libelleDeLaRepartition,
+  sellGain,
+  devisDeVente,
+  sellBuyerAvailability,
+  sellRefusal,
+  catalogEntryOf,
+  appraiseRefus,
+  prixDeLigne,
+  remiseDAchatPct,
+  devisDuPanier,
+  refusDAjout,
+  coutDeReparation,
+  refusDeReparation,
+  optionsDeTroc,
+  devisDeTroc,
+  demandeDuTroc,
+  exemplaireCede,
+  BROUILLON_DE_TROC_VIDE,
+  type ContexteDAchat,
+  type ModeDeMarche,
+} from '../noyau/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';
@@ -32,6 +53,7 @@ import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from '../state/campaignData';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { availabilitySchema } from '../data/schemas/grammaire/valeurs';
+import { VOCABULAIRES } from '../data/schemas/grammaire/vocabulaires';
 
 type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']>;
 
@@ -42,11 +64,14 @@ type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']
  *  — jamais des trappings. */
 const FAMILIES: { key: string; label: string }[] = merchantFamilies.map((f) => ({ key: f.id, label: f.label }));
 const FAMILY_COLS: Record<string, { label: string; get: (id: string) => string; emph?: boolean }[]> = Object.fromEntries(
-  merchantFamilies.map((f) => [f.id, f.columns.map((c, i) => ({ ...MERCHANT_COL_RENDERERS[c], emph: i === 0 ? true : undefined }))]),
+  merchantFamilies.map((f) => [f.id, f.columns.map((c, i) => ({ label: VOCABULAIRES.colonnesDuMarchand[c], get: MERCHANT_COL_RENDERERS[c].get, emph: i === 0 ? true : undefined }))]),
 );
 
 const TREND_CLASS: Record<string, string> = { up: 'cmp-up', down: 'cmp-down', same: '' };
 const TREND_SYM: Record<string, string> = { up: '▲', down: '▼', same: '' };
+
+/** Les onglets de l'échoppe : les deux côtés du marché, la réparation, le troc. */
+type OngletDuMarchand = ModeDeMarche | 'reparation' | 'troc';
 
 /** Présentationnel (props) — testable hors store. `initialTab`/`initialDetails`/`initialBuyView` = état de départ (SSR/test). */
 export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerName, boniment, onAddToCart, onDecCart, onRemoveCart, onClearCart, onRefuse, onPay, onAssignDist, onConfirmDist, onAddToSellCart, onRemoveSellCart, onClearSellCart, onConfirmSell, onRepair, onBargain, onAppraise, onClose, onSellHalving, troc, onSearchAvailability, refusHote = null, initialTab, initialDetails, initialBuyView, initialSellView }: {
@@ -63,7 +88,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   onDecCart: (id: string) => void;
   onRemoveCart: (id: string) => void;
   onClearCart: () => void;
-  onRefuse: (mode: 'buy' | 'sell') => void;
+  onRefuse: (mode: ModeDeMarche) => void;
   onPay: () => void;
   onAssignDist: (uid: string, heroId: string) => void;
   onConfirmDist: () => void;
@@ -72,7 +97,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   onClearSellCart: () => void;
   onConfirmSell: () => void;
   onRepair: (uid: string) => void;
-  onBargain: (mode: 'buy' | 'sell') => void;
+  onBargain: (mode: ModeDeMarche) => void;
   onAppraise: (uid: string) => void;
   onClose: () => void;
   /** « Baisse des prix » à la vente (LDB 59 l.60) — optionnel (rendu sans si absent). */
@@ -82,14 +107,14 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   troc?: { ceder: (uid: string) => void; recevoir: (id: string) => void; quantite: (n: number) => void; troquer: () => void };
   /** Recherche active de Disponibilité (LDB 59 l.50) — optionnel : le bouton n'apparaît que s'il est fourni. */
   onSearchAvailability?: () => void;
-  initialTab?: 'buy' | 'sell' | 'repair' | 'barter';
+  initialTab?: OngletDuMarchand;
   initialDetails?: string;
   initialBuyView?: 'browse' | 'cart';
   initialSellView?: 'browse' | 'cart';
   /** Refus de dépense du groupe du siège (`refusDeGesteSurLeGroupe`) — absent hors store : aucun. */
   refusHote?: string | null;
 }) {
-  const [tab, setTab] = useState<'buy' | 'sell' | 'repair' | 'barter'>(initialTab ?? 'buy');
+  const [tab, setTab] = useState<OngletDuMarchand>(initialTab ?? 'achat');
   const [buyCat, setBuyCat] = useState<string | null>(null);
   const [details, setDetails] = useState<string | null>(initialDetails ?? null);
   const [buyView, setBuyView] = useState<'browse' | 'cart'>(initialBuyView ?? 'browse');
@@ -170,7 +195,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
       .map((r): QualityInstance => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }))
       .flatMap((q) => { const info = describeQuality(q); return info ? [{ q, info }] : []; })
       .sort((a, b) => (a.info.polarite === 'defaut' ? 1 : 0) - (b.info.polarite === 'defaut' ? 1 : 0));
-    const canCompare = item.kind === 'melee' || item.kind === 'ranged' || item.kind === 'armor';
+    const canCompare = item.kind === 'melee' || item.kind === 'distance' || item.kind === 'armor';
     return (
       <div className="merch-compare preview" role="region" aria-label={`Détails ${item.label}`}>
         <div className="mc-head">
@@ -195,12 +220,12 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
 
   // Contrôle de Marchandage du panier (clair : ce qu'il fait + son effet).
   const buyHaggleControl = () => {
-    if (merchant.soured) return <span className="bargain-tag soured" title="Le marchand se méfie de votre monnaie"><Icon id="ui/forbidden" size="sm" /> Marchand méfiant — fini de marchander</span>;
-    if (merchant.bargainLocked) return <span className="bargain-tag locked" title="Vous avez déjà négocié puis quitté sans conclure ; revenez après son réassort"><Icon id="ui/lock" size="sm" /> Marchandage indisponible jusqu’au réassort</span>;
+    if (merchant.soured) return <span className="bargain-tag soured" title="Le marchand se méfie de votre monnaie"><Icon id="interface/interdit" size="sm" /> Marchand méfiant — fini de marchander</span>;
+    if (merchant.bargainLocked) return <span className="bargain-tag locked" title="Vous avez déjà négocié puis quitté sans conclure ; revenez après son réassort"><Icon id="interface/verrou" size="sm" /> Marchandage indisponible jusqu’au réassort</span>;
     if (merchant.bargainBuy == null) return (
       <>
-        <button className="btn small" onClick={() => onBargain('buy')}><Icon id="merchant/haggle" size="sm" /> Marchander le panier</button>
-        <CodexRef category="skills" id="marchandage" label="Marchandage" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+        <button className="btn small" onClick={() => onBargain('achat')}><Icon id="marchand/marchander" size="sm" /> Marchander le panier</button>
+        <CodexRef category="skills" id="marchandage" label="Marchandage" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
       </>
     );
     return merchant.bargainBuy.won
@@ -246,7 +271,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
           primary={false}
           btnClassName="small"
         />
-        <strong><Icon id="merchant/cart" size="sm" /> Panier</strong>
+        <strong><Icon id="marchand/panier" size="sm" /> Panier</strong>
       </div>
       {!cart.length ? (
         <p className="empty">— panier vide —</p>
@@ -282,12 +307,12 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
           </table>
           <div className="cart-haggle">{buyHaggleControl()}</div>
           {sealed && (
-            <p className="cart-sealed" title="Refuser ou partir sans payer : le marchand ne marchandera plus avant son réassort."><Icon id="merchant/deal" size="sm" /> Prix arrêté — vous pouvez retirer des articles, puis régler ou refuser.</p>
+            <p className="cart-sealed" title="Refuser ou partir sans payer : le marchand ne marchandera plus avant son réassort."><Icon id="marchand/marche-conclu" size="sm" /> Prix arrêté — vous pouvez retirer des articles, puis régler ou refuser.</p>
           )}
           <div className="cart-total">Total : <strong><Coins money={cartTotal} /></strong>{buyDiscount > 0 && <span className="cart-disc"> (marchandé −{buyDiscount} %)</span>}</div>
           <div className="cart-actions">
             {sealed
-              ? <button className="btn small danger" onClick={() => { onRefuse('buy'); setBuyView('browse'); }}>Refuser le marché</button>
+              ? <button className="btn small danger" onClick={() => { onRefuse('achat'); setBuyView('browse'); }}>Refuser le marché</button>
               : <button className="btn small" onClick={onClearCart}>Vider le panier</button>}
             <GatedAction
               id="merch-cart-pay"
@@ -313,14 +338,14 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
       <div className="merch-tab">
         <div className="cart-bar">
           {cartCount > 0
-            ? <><span className="cart-info"><Icon id="merchant/cart" size="sm" /> {cartCount} article{cartCount > 1 ? 's' : ''} · <Coins money={cartTotal} /></span><button className="btn small btn-primary" onClick={() => setBuyView('cart')}>Voir le panier →</button></>
-            : <span className="cart-info empty"><Icon id="merchant/cart" size="sm" /> Panier vide</span>}
+            ? <><span className="cart-info"><Icon id="marchand/panier" size="sm" /> {cartCount} article{cartCount > 1 ? 's' : ''} · <Coins money={cartTotal} /></span><button className="btn small btn-primary" onClick={() => setBuyView('cart')}>Voir le panier →</button></>
+            : <span className="cart-info empty"><Icon id="marchand/panier" size="sm" /> Panier vide</span>}
           {onSearchAvailability && (
             <>
               <button className="btn small" onClick={onSearchAvailability}>
-                <Icon id="ui/search" size="sm" /> Chercher activement (1 journée)
+                <Icon id="interface/rechercher" size="sm" /> Chercher activement (1 journée)
               </button>
-              <CodexRef category="regles" id="ragot-au-marche" label="Ragot au marché (bonus de Disponibilité)" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              <CodexRef category="regles" id="ragot-au-marche" label="Ragot au marché (bonus de Disponibilité)" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
             </>
           )}
         </div>
@@ -428,13 +453,13 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
     const heroItems = sellHeroObj?.items ?? [];
     // « équipé » = armure portée (`equipped`) OU arme tenue dans le set actif (loadout), jamais un flag d'arme.
     const isEquippedForSell = (it: ItemInstance) =>
-      it.kind === 'melee' || it.kind === 'ranged' ? !!sellHeroObj && isWeaponActive(sellHeroObj, it.uid) : !!it.equipped;
+      it.kind === 'melee' || it.kind === 'distance' ? !!sellHeroObj && isWeaponActive(sellHeroObj, it.uid) : !!it.equipped;
     return (
       <>
         <div className="cart-bar">
           {sellCart.length > 0
-            ? <><span className="cart-info"><Icon id="merchant/cart" size="sm" /> {sellCart.length} à vendre · +<Coins money={sellCartTotal} /></span><button className="btn small btn-primary" onClick={() => setSellView('cart')}>Voir le panier →</button></>
-            : <span className="cart-info empty"><Icon id="merchant/cart" size="sm" /> Rien à vendre sélectionné</span>}
+            ? <><span className="cart-info"><Icon id="marchand/panier" size="sm" /> {sellCart.length} à vendre · +<Coins money={sellCartTotal} /></span><button className="btn small btn-primary" onClick={() => setSellView('cart')}>Voir le panier →</button></>
+            : <span className="cart-info empty"><Icon id="marchand/panier" size="sm" /> Rien à vendre sélectionné</span>}
         </div>
         <Tabs
           tabs={sellHeroes.map((h) => ({ key: h.id, label: h.label, count: (h.items ?? []).length }))}
@@ -506,7 +531,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
     <>
       <div className="cart-head">
         <button className="btn small" onClick={() => setSellView('browse')}>← Continuer</button>
-        <strong><Icon id="merchant/cart" size="sm" /> Vente</strong>
+        <strong><Icon id="marchand/panier" size="sm" /> Vente</strong>
       </div>
       {!sellCartItems.length ? (
         <p className="empty">— panier de vente vide —</p>
@@ -593,7 +618,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   return (
     <ScreenShell
       className="merchant-overlay"
-      title={<><Icon id="resource/gold-purse" size="sm" /> Marchand</>}
+      title={<><Icon id="ressource/bourse" size="sm" /> Marchand</>}
       onClose={onClose}
       meta={{ money }}
       backdrop={merchant.backdrop}
@@ -604,39 +629,39 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
         <Tabs
           className="mp-tabnav"
           tabs={[
-            { key: 'buy' as const, label: 'Acheter', count: cartCount || undefined },
-            { key: 'sell' as const, label: 'Vendre', count: sellable.length || undefined },
-            { key: 'repair' as const, label: 'Réparer', count: damaged.length || undefined },
-            ...(troc ? [{ key: 'barter' as const, label: 'Troc' }] : []),
+            { key: 'achat' as const, label: 'Acheter', count: cartCount || undefined },
+            { key: 'vente' as const, label: 'Vendre', count: sellable.length || undefined },
+            { key: 'reparation' as const, label: 'Réparer', count: damaged.length || undefined },
+            ...(troc ? [{ key: 'troc' as const, label: 'Troc' }] : []),
           ]}
           active={tab}
           onChange={setTab}
         />
 
         <div className="merchant-body">
-          {tab === 'buy' && (dist ? renderDistribution() : buyView === 'cart' ? renderCart() : renderBrowse())}
+          {tab === 'achat' && (dist ? renderDistribution() : buyView === 'cart' ? renderCart() : renderBrowse())}
 
-          {tab === 'sell' && (
+          {tab === 'vente' && (
             <div className="merch-tab">
               <div className="haggle-bar">
-                {merchant.soured ? <span className="bargain-tag soured"><Icon id="ui/forbidden" size="sm" /> Marchand méfiant — fini de marchander</span>
-                  : merchant.bargainLocked ? <span className="bargain-tag locked" title="Vous avez refusé/renié un marché ; revenez après son réassort"><Icon id="ui/lock" size="sm" /> Marchandage indisponible jusqu’au réassort</span>
+                {merchant.soured ? <span className="bargain-tag soured"><Icon id="interface/interdit" size="sm" /> Marchand méfiant — fini de marchander</span>
+                  : merchant.bargainLocked ? <span className="bargain-tag locked" title="Vous avez refusé/renié un marché ; revenez après son réassort"><Icon id="interface/verrou" size="sm" /> Marchandage indisponible jusqu’au réassort</span>
                   : merchant.bargainSell == null ? (
                       <>
-                        <button className="btn small" onClick={() => onBargain('sell')}><Icon id="merchant/haggle" size="sm" /> Marchander la vente</button>
-                        <CodexRef category="skills" id="marchandage" label="Marchandage" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+                        <button className="btn small" onClick={() => onBargain('vente')}><Icon id="marchand/marchander" size="sm" /> Marchander la vente</button>
+                        <CodexRef category="skills" id="marchandage" label="Marchandage" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
                       </>
                     )
                   : <>
                       <span className={`bargain-tag ${merchant.bargainSell.won ? 'won' : ''}`}>{merchant.bargainSell.won ? '✔' : '✘'} {verdictDeVente(merchant.bargainSell)}</span>
-                      <button className="btn small danger" onClick={() => onRefuse('sell')} title="Décliner l’offre — le marchand ne marchandera plus (achat ni vente) jusqu’au réassort">Refuser l’offre</button>
+                      <button className="btn small danger" onClick={() => onRefuse('vente')} title="Décliner l’offre — le marchand ne marchandera plus (achat ni vente) jusqu’au réassort">Refuser l’offre</button>
                     </>}
               </div>
               {sellView === 'cart' ? renderSellCart() : renderSellBrowse()}
             </div>
           )}
 
-          {tab === 'repair' && (
+          {tab === 'reparation' && (
             <div className="merch-tab">
               {damaged.map(({ h, it }) => (
                 <div className="merch-row repair" key={it.uid}>
@@ -653,7 +678,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             </div>
           )}
 
-          {tab === 'barter' && renderBarter()}
+          {tab === 'troc' && renderBarter()}
         </div>
     </ScreenShell>
   );

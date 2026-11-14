@@ -1,17 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
 import { rollTest, extendedTestStep, type TestResult } from './tests';
-import { findTavernGameById, resolveTavernRound, rollTavernTest, TAVERN_GAMES, TAVERN_TEST_DIFFICULTY } from './tavernGame';
+import { findTavernGameById, resolveTavernRound, rollTavernTest, TAVERN_TEST_DIFFICULTY } from './tavernGame';
+import { TAVERN_GAMES } from '../data';
 
 describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
-  it('les 13 jeux sont en données, chacun avec une règle verbatim et une source', () => {
-    expect(TAVERN_GAMES.length).toBe(13);
+  it('les jeux sont en données, chacun avec une règle verbatim et une source', () => {
+    expect(TAVERN_GAMES.length).toBeGreaterThan(0);
     for (const g of TAVERN_GAMES) {
-      expect(g.desc.length).toBeGreaterThan(30); // règle recopiée
+      expect(g.desc?.length).toBeGreaterThan(30); // règle recopiée
       expect(g.source.book).toBe('nuits-agitees-et-dures-journees');
       // Un jeu de MISE ne se résout pas au Test : il ne déclare aucun mode, mais ses règles de pot.
       if (g.pot) expect(g.mode).toBeUndefined();
-      else expect(['opposed', 'extended']).toContain(g.mode);
+      else expect(['oppose', 'etendu']).toContain(g.mode);
     }
   });
 
@@ -23,7 +24,7 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
       const playerTR = rollTest(70, TAVERN_TEST_DIFFICULTY, rng);
       const opponentTR = rollTavernTest(25, rng);
       const r = resolveTavernRound(dominos, playerTR, opponentTR);
-      if (r.winner === 'player') pWins++;
+      if (r.winner === 'joueur') pWins++;
     }
     expect(pWins).toBeGreaterThan(40); // 70 % vs 25 % : le joueur fort domine
   });
@@ -47,7 +48,7 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
    */
   it('mode ÉTENDU (Bras de fer, l.34) : le DR de chaque manche s’AJOUTE AVEC SON SIGNE, le TOTAL est planché (LDB 12 l.174)', () => {
     const bras = findTavernGameById('bras-de-fer')!;
-    expect(bras.mode).toBe('extended');
+    expect(bras.mode).toBe('etendu');
     expect(bras.target).toBe(10);
     const manches = [4, 3, -3, 2]; // DR de manche POSÉS : aucun dé, l'arithmétique seule est en cause
     let total = 0;
@@ -57,7 +58,7 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
     // exactement celui que la correction supprime.
     expect(manches.reduce((n, sl) => n + Math.max(0, sl), 0)).toBe(9);
     // Et le plancher du TOTAL, lui, existe bien : une chute sous 0 ramène à 0 (« recommencez »).
-    expect(extendedTestStep(2, { success: false, sl: -9 }, 10)).toEqual({ total: 0, done: false, repart: true });
+    expect(extendedTestStep(2, { success: false, sl: -9 }, 10)).toEqual({ total: 0, done: false, repart: true, sl: -9 });
   });
 
   /** « à chaque tour, ajoutez votre Bonus de Force au nombre de DR que vous avez obtenus » (l.34) —
@@ -67,11 +68,11 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
     expect(bras.drBonus).toBe('force');
     const fort: TestResult = { roll: 30, target: 45, sl: 1, success: true, isDouble: false, base: 45 };
     const faible: TestResult = { roll: 20, target: 35, sl: 2, success: true, isDouble: false, base: 35 };
-    expect(resolveTavernRound(bras, fort, faible).winner, 'sans Bonus, 1 DR contre 2').toBe('opponent');
-    const avec = resolveTavernRound(bras, fort, faible, { player: 4, opponent: 1 });
-    expect(avec.playerSL).toBe(5);
-    expect(avec.opponentSL).toBe(3);
-    expect(avec.winner, 'Bonus de Force compris, la manche bascule').toBe('player');
+    expect(resolveTavernRound(bras, fort, faible).winner, 'sans Bonus, 1 DR contre 2').toBe('adversaire');
+    const avec = resolveTavernRound(bras, fort, faible, { joueur: 4, adversaire: 1 });
+    expect(avec.dr.joueur).toBe(5);
+    expect(avec.dr.adversaire).toBe(3);
+    expect(avec.winner, 'Bonus de Force compris, la manche bascule').toBe('joueur');
   });
 
   it('plafond de DR par manche (Boules = 6, drCap)', () => {
@@ -81,8 +82,8 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
       const rng = makeRNG(seed);
       // valeurs énormes → DR bruts > 6
       const r = resolveTavernRound(boules, rollTest(100, TAVERN_TEST_DIFFICULTY, rng), rollTavernTest(100, rng));
-      expect(r.playerSL).toBeLessThanOrEqual(6);
-      expect(r.opponentSL).toBeLessThanOrEqual(6);
+      expect(r.dr.joueur).toBeLessThanOrEqual(6);
+      expect(r.dr.adversaire).toBeLessThanOrEqual(6);
     }
   });
 

@@ -11,16 +11,16 @@ import { deFixe } from './dice.testkit';
 import { LOCALISATIONS_DE_COUP } from './types';
 
 const gunner = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  (blessuresSurLeProfil({ id, label: id, kind: 'npc', characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, conditions: [], wounds: blessuresDeBase(10), items: [], ...over })) as unknown as Combatant;
+  (blessuresSurLeProfil({ id, label: id, kind: 'pnj', characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, conditions: [], wounds: blessuresDeBase(10), items: [], ...over })) as unknown as Combatant;
 
-/** Pièce d'artillerie : Dégâts plats `flat`, qualités optionnelles, servie par `crewIds`. */
-const poste = (crewIds: string[], flat = 14, qualities: { id: string; value?: number }[] = []): ShipPoste =>
-  ({ side: 'tribord', item: { uid: 'gun-' + crewIds.join('') + flat, label: 'Canon', kind: 'ranged', subType: 'armes-de-siege', damage: { flat, plusBF: false }, range: 75, qualities }, crewIds }) as unknown as ShipPoste;
+/** Pièce d'artillerie `trappingId` : Dégâts plats `flat`, qualités optionnelles, servie par `crewIds`. */
+const poste = (crewIds: string[], flat = 14, qualities: { id: string; value?: number }[] = [], trappingId = 'canon-moyen'): ShipPoste =>
+  ({ side: 'tribord', item: { uid: 'gun-' + crewIds.join('') + flat, trappingId, label: 'Canon', kind: 'distance', subType: 'armes-de-siege', damage: { flat, plusBF: false }, range: 75, qualities }, crewIds }) as unknown as ShipPoste;
 
-const ship = (): Combatant => ({ id: 'ship', label: 'Navire', kind: 'npc', bodyShape: 'vehicule', conditions: [], weapons: [] }) as unknown as Combatant;
+const ship = (): Combatant => ({ id: 'ship', label: 'Navire', kind: 'pnj', bodyShape: 'vehicule', conditions: [], weapons: [] }) as unknown as Combatant;
 
 const hull = (E: number, armourCorps = 0, wounds = 90): Combatant =>
-  (blessuresSurLeProfil({ id: 'target', label: 'Coque', kind: 'enemy', bodyShape: 'vehicule', characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, armour: { corps: armourCorps }, conditions: [], wounds: blessuresDeBase(90, wounds) })) as unknown as Combatant;
+  (blessuresSurLeProfil({ id: 'target', label: 'Coque', kind: 'ennemi', bodyShape: 'vehicule', characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, armour: { corps: armourCorps }, conditions: [], wounds: blessuresDeBase(90, wounds) })) as unknown as Combatant;
 
 /** Coque À PROFIL NAVAL (`profilNavalDe`) : la cogue du schéma `vehicles`. */
 const navire = (wounds: number, blindage = 0): Combatant => ({ ...hull(40, blindage, wounds), creatureId: 'cogue' }) as Combatant;
@@ -48,7 +48,7 @@ describe('resolveVolley — la bordée RÉUTILISE le pipeline de tir (MDG 14 l.1
   });
 
   it('munition fusionnée : Dégâts de la munition s’appliquent (réutilise weaponWithAmmo)', () => {
-    const g = gunner('g1', { items: [{ uid: 'boulet', label: 'Boulet', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 4, plusBF: false }, qualities: [], qty: 5 } as never] });
+    const g = gunner('g1', { items: [{ uid: 'boulet', trappingId: 'boulet-et-poudre', label: 'Boulet', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 4, plusBF: false }, qualities: [], qty: 5 } as never] });
     const r = volee([poste(['g1'])], target(), 3, true, [g], fixed(34));
     expect(r[0].coup.damage).toBe(21); // 14 + 4 (boulet) + 3
     expect(r[0].ammo?.label).toBe('Boulet');
@@ -56,9 +56,9 @@ describe('resolveVolley — la bordée RÉUTILISE le pipeline de tir (MDG 14 l.1
 
   it('Perforante de la munition perce le Blindage de la Coque (MDG 12 l.232)', () => {
     const armored = () => navire(90, 4); // BE 4 + Blindage 4
-    const plain = volee([poste(['g1'])], armored(), 3, true, [gunner('g1')], fixed(34));
-    const perf = gunner('g1', { items: [{ uid: 'p', label: 'Carreau', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 0, plusBF: false }, qualities: [{ id: 'perforante' }], qty: 5 } as never] });
-    const r = volee([poste(['g1'])], armored(), 3, true, [perf], fixed(34));
+    const plain = volee([poste(['g1'], 14, [], 'baliste')], armored(), 3, true, [gunner('g1')], fixed(34));
+    const perf = gunner('g1', { items: [{ uid: 'p', trappingId: 'carreau-de-baliste', label: 'Carreau', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 0, plusBF: false }, qualities: [{ id: 'perforante' }], qty: 5 } as never] });
+    const r = volee([poste(['g1'], 14, [], 'baliste')], armored(), 3, true, [perf], fixed(34));
     expect(r[0].coup.woundsLost).toBeGreaterThan(plain[0].coup.woundsLost!); // Perforante réduit la PA → plus de Blessures
   });
 
@@ -93,7 +93,7 @@ describe('resolveVolley — Test d’équipage RATÉ : la bordée manque en bloc
   const POINTUE = [{ id: 'pointue' }];
 
   it('les pièces font feu (Recharge + munition consommables) mais n’infligent NI Dégâts NI Blessures', () => {
-    const g = gunner('g1', { items: [{ uid: 'boulet', label: 'Boulet', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 4, plusBF: false }, qualities: [], qty: 5 } as never] });
+    const g = gunner('g1', { items: [{ uid: 'boulet', trappingId: 'boulet-et-poudre', label: 'Boulet', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 4, plusBF: false }, qualities: [], qty: 5 } as never] });
     const r = volee([poste(['g1'])], target(), -1, false, [g], fixed(34));
     expect(r).toHaveLength(1); // la pièce a fait feu : l'appelant la décharge et consomme la munition
     expect(r[0].ammo?.uid).toBe('boulet');
@@ -136,10 +136,10 @@ describe('resolveVolley — Test d’équipage RATÉ : la bordée manque en bloc
 /**
  * Seuil de succès d'un Test d'équipage — MDG 14 l.13 : « Si le total est de 1 DR ou plus, le résultat
  * global est un succès. Le MJ peut aussi considérer un résultat de 0 comme un succès en fonction des
- * circonstances. » La seconde phrase est la règle optionnelle `crew-test-zero-success`.
+ * circonstances. » La seconde phrase est la règle optionnelle `equipage-zero-dr-succes`.
  */
 describe('crewTestSuccess — seuil de succès du Test d’équipage (MDG 14 l.13)', () => {
-  afterEach(() => resetRule('crew-test-zero-success'));
+  afterEach(() => resetRule('equipage-zero-dr-succes'));
 
   it('par défaut : 1 DR ou plus = succès, 0 = échec', () => {
     expect(crewTestSuccess(1)).toBe(true);
@@ -149,7 +149,7 @@ describe('crewTestSuccess — seuil de succès du Test d’équipage (MDG 14 l.1
   });
 
   it('règle optionnelle « 0 DR compte comme un succès » : le 0 bascule, le négatif reste un échec', () => {
-    setRule('crew-test-zero-success', true);
+    setRule('equipage-zero-dr-succes', true);
     expect(crewTestSuccess(0)).toBe(true);
     expect(crewTestSuccess(1)).toBe(true);
     expect(crewTestSuccess(-1)).toBe(false);
@@ -158,7 +158,7 @@ describe('crewTestSuccess — seuil de succès du Test d’équipage (MDG 14 l.1
   it('bordée à DR 0 : muette par défaut, portante sous l’option (les DEUX bords)', () => {
     const volleyAt0 = () => volee([poste(['g1'])], hull(40), 0, crewTestSuccess(0), [gunner('g1')], fixed(34));
     expect(volleyAt0()[0].coup.damage ?? 0).toBe(0); // défaut : 0 = échec → la bordée manque
-    setRule('crew-test-zero-success', true);
+    setRule('equipage-zero-dr-succes', true);
     expect(volleyAt0()[0].coup.damage).toBe(14); // Succès Minime : 14 + 0
     expect(volleyAt0()[0].coup.woundsLost).toBe(10); // 14 − BE 4
   });
@@ -172,7 +172,7 @@ describe('crewTestSuccess — seuil de succès du Test d’équipage (MDG 14 l.1
 describe('resolveVolley — une CRÉATURE ciblée encaisse comme sous un tir ordinaire', () => {
   const PA = 2;
   const pirate = (): Combatant =>
-    (blessuresSurLeProfil({ ...gunner('pirate', { kind: 'enemy' }), characteristics: { ...gunner('x').characteristics, endurance: 30 },
+    (blessuresSurLeProfil({ ...gunner('pirate', { kind: 'ennemi' }), characteristics: { ...gunner('x').characteristics, endurance: 30 },
       armour: { tete: PA, brasG: PA, brasD: PA, corps: PA, jambeG: PA, jambeD: PA }, wounds: blessuresDeBase(30) })) as Combatant;
   const PERCUTANTE = [{ id: 'percutante' }];
 

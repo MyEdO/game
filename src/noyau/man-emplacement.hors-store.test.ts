@@ -1,6 +1,16 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
-import { servablePostes, serveAtPoste, leaveChef, isPosteManned, applyShipPostes, servingCrewPresent, serveTargetPoste, posteCrewSplit, isCrewQualified } from './monde/shipPostes';
+import {
+  servablePostes,
+  serveAtPoste,
+  leaveChef,
+  isPosteManned,
+  applyShipPostes,
+  servingCrewPresent,
+  serveTargetPoste,
+  posteCrewSplit,
+  isCrewQualified,
+} from './monde/shipPostes';
 import { firedWeapon, resolveAttack, buildAiInput, runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import { availableAttacks } from './combatManeuvers';
 import { chooseEnemyAction, type EnemyTurnInput } from './monde/ai';
@@ -36,7 +46,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const CHARS = (CT = 75) =>
   ({ 'capacite-de-combat': 30, 'capacite-de-tir': CT, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
 
-const mkActor = (id: string, kind: 'hero' | 'npc' | 'enemy', pos: { x: number; y: number }, CT = 75): Combatant =>
+const mkActor = (id: string, kind: 'heros' | 'pnj' | 'ennemi', pos: { x: number; y: number }, CT = 75): Combatant =>
   combattantDeTest({
     id, label: id, kind, characteristics: CHARS(CT),
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [], weapons: [],
@@ -44,17 +54,17 @@ const mkActor = (id: string, kind: 'hero' | 'npc' | 'enemy', pos: { x: number; y
   });
 
 const mkCrewman = (id: string, alive = true): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'npc', conditions: [], weapons: [], skills: [], talents: [], characteristics: CHARS(30) as never,
+  combattantDeTest({ id, label: id, kind: 'pnj', conditions: [], weapons: [], skills: [], talents: [], characteristics: CHARS(30) as never,
     dead: !alive, wounds: blessuresDeBase(5, alive ? 5 : 0) });
 
 const mkEnemyTarget = (id: string, x: number, y: number, E = 30, wounds = 60): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
+  combattantDeTest({ id, label: id, kind: 'ennemi', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
     characteristics: { ...CHARS(0), endurance: E }, wounds: blessuresDeBase(wounds), advantage: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
 
 /** Emplacement AU SOL : une SceneEntity NON-navire qui PORTE la pièce (`postes`). */
 const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
-  combattantDeTest({ id: 'emplacement', label: 'Affût de baliste', kind: 'enemy', pos, conditions: [], weapons: [],
+  combattantDeTest({ id: 'emplacement', label: 'Affût de baliste', kind: 'ennemi', pos, conditions: [], weapons: [],
     inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] }); // affût RAW-pur (AA 10 l.136-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[] = [], side?: FireArc): ShipPoste =>
@@ -71,30 +81,30 @@ const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string
 // (A) DISPONIBILITÉ kind-agnostique — `servablePostes` voit un poste NON servi pour un combattant adjacent.
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 describe('(A) Disponibilité — « Servir cette pièce » est offerte à TOUT combattant adjacent (kind-agnostique)', () => {
-  it.each(['hero', 'npc', 'enemy'] as const)('un %s adjacent à un emplacement non servi → action disponible', (kind) => {
+  it.each(['heros', 'pnj', 'ennemi'] as const)('un %s adjacent à un emplacement non servi → action disponible', (kind) => {
     const poste = mkPoste('baliste');
     const actor = mkActor('actor', kind, { x: 5, y: 6 });
-    const list = servablePostes(actor, [mkEmplacement(poste), actor]);
+    const list = servablePostes(banc.getState().scene, actor, [mkEmplacement(poste), actor]);
     expect(list).toHaveLength(1);
     expect(list[0].poste.item.uid).toBe(poste.item.uid);
   });
 
   it('ADJACENCE — un combattant NON adjacent à l’emplacement → action indisponible', () => {
     const poste = mkPoste('baliste');
-    const far = mkActor('far', 'hero', { x: 5, y: 10 }); // 5 cases au sud de l'emplacement (5,5)
-    expect(servablePostes(far, [mkEmplacement(poste), far])).toHaveLength(0);
+    const far = mkActor('far', 'heros', { x: 5, y: 10 }); // 5 cases au sud de l'emplacement (5,5)
+    expect(servablePostes(banc.getState().scene, far, [mkEmplacement(poste), far])).toHaveLength(0);
   });
 
   it('POSTE SERVI — reste REJOIGNABLE en renfort (Arme d’équipe) ; pas re-offert à un membre déjà de l’équipage', () => {
     const poste = mkPoste('baliste', ['chef']);
     const emplacement = mkEmplacement(poste);
-    const chef = mkActor('chef', 'npc', { x: 5, y: 6 });
-    const other = mkActor('other', 'hero', { x: 6, y: 5 });
+    const chef = mkActor('chef', 'pnj', { x: 5, y: 6 });
+    const other = mkActor('other', 'heros', { x: 6, y: 5 });
     const all = [emplacement, chef, other];
     applyShipPostes(all); // chef devient le servant (mannedPoste posé)
     expect(isPosteManned(poste, all)).toBe(true);
-    expect(servablePostes(other, all)).toHaveLength(1); // servi, mais on peut le REJOINDRE en renfort (« on peut être plusieurs à servir »)
-    expect(servablePostes(chef, all)).toHaveLength(0); // le chef est déjà dans l’équipage → pas re-offert
+    expect(servablePostes(banc.getState().scene, other, all)).toHaveLength(1); // servi, mais on peut le REJOINDRE en renfort (« on peut être plusieurs à servir »)
+    expect(servablePostes(banc.getState().scene, chef, all)).toHaveLength(0); // le chef est déjà dans l’équipage → pas re-offert
   });
 });
 
@@ -102,28 +112,28 @@ describe('(A) Disponibilité — « Servir cette pièce » est offerte à TOUT c
 // (B) SERVICE — `serveAtPoste` : devient chef (crewIds[0]) + `mannedPoste` + arme de siège octroyée. PUR.
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 describe('(B) Service — `serveAtPoste` rend chef tout combattant (mannedPoste, crewIds[0], arme dérivée)', () => {
-  it.each(['hero', 'npc', 'enemy'] as const)('un %s sert : mannedPoste + tête d’équipage + baliste dans weapons', (kind) => {
+  it.each(['heros', 'pnj', 'ennemi'] as const)('un %s sert : mannedPoste + tête d’équipage + baliste dans weapons', (kind) => {
     const poste = mkPoste('baliste', ['s1']); // s1 présent mais ne sert pas → poste non servi
     const actor = mkActor('gunner', kind, { x: 5, y: 6 });
     serveAtPoste(actor, poste, [actor]); // s1 absent de la liste → non servi → devient CHEF
     expect(actor.mannedPoste!.item.uid).toBe(poste.item.uid);
     expect(poste.crewIds![0]).toBe('gunner'); // inséré EN TÊTE
     const w = actor.weapons.find((x) => x.uid === poste.item.uid);
-    expect(w?.type).toBe('ranged');
+    expect(w?.type).toBe('distance');
     expect(w?.subType).toBe('armes-de-siege');
   });
 
   it('le chef servant peut TIRER la pièce (firedWeapon → resolveAttack, seed fixe)', () => {
     seedBattleRng(1);
     const poste = mkPoste('baliste', ['s1']);
-    const gunner = mkActor('gunner', 'hero', { x: 5, y: 5 }, 80);
+    const gunner = mkActor('gunner', 'heros', { x: 5, y: 5 }, 80);
     gunner.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 0 }] as never;
     const s1 = mkCrewman('s1');
     s1.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 0 }] as never; // équipe COMPLÈTE et qualifiée
     const cible = mkEnemyTarget('cible', 8, 5, 30, 60);
     const all = [mkEmplacement(poste), gunner, s1, cible];
     serveAtPoste(gunner, poste, all);
-    const w = firedWeapon(gunner, cible, poste.item.uid, all);
+    const w = firedWeapon(banc.getState().scene, gunner, cible, poste.item.uid, all);
     expect(w.uid).toBe(poste.item.uid); // c'est bien la baliste servie qui tire
     const get = mkGet(groundScene(), all, { gunner: 'N' });
     const r = resolveAttack(get, gunner, cible, undefined, false, false, false, w);
@@ -140,20 +150,20 @@ describe('(C) Release — « Quitter la pièce » libère le poste pour un autre
   it('Quitter → mannedPoste retiré, id hors crewIds, arme retirée, re-servable par un autre', () => {
     const poste = mkPoste('baliste');
     const emplacement = mkEmplacement(poste);
-    const chef = mkActor('chef', 'hero', { x: 5, y: 6 });
-    const other = mkActor('other', 'enemy', { x: 6, y: 5 });
+    const chef = mkActor('chef', 'heros', { x: 5, y: 6 });
+    const other = mkActor('other', 'ennemi', { x: 6, y: 5 });
     const all = [emplacement, chef, other];
 
     serveAtPoste(chef, poste, all);
     expect(isPosteManned(poste, all)).toBe(true);
-    expect(servablePostes(other, all)).toHaveLength(1); // servi mais rejoignable en renfort
+    expect(servablePostes(banc.getState().scene, other, all)).toHaveLength(1); // servi mais rejoignable en renfort
 
     leaveChef(chef, poste, all);
     expect(chef.mannedPoste).toBeUndefined();
     expect(poste.crewIds).not.toContain('chef');
     expect(chef.weapons.some((w) => w.uid === poste.item.uid)).toBe(false);
     expect(isPosteManned(poste, all)).toBe(false);
-    expect(servablePostes(other, all)).toHaveLength(1); // libérée → un autre peut servir
+    expect(servablePostes(banc.getState().scene, other, all)).toHaveLength(1); // libérée → un autre peut servir
   });
 });
 
@@ -163,7 +173,7 @@ describe('(C) Release — « Quitter la pièce » libère le poste pour un autre
 describe('(D) Affordance joueur — store `servirLePoste` / `quitterLePoste`', () => {
   const setup = (mannedByActive = false) => {
     const poste = mkPoste('baliste', mannedByActive ? [] : ['s1']);
-    const hero = mkActor('hero', 'hero', { x: 5, y: 6 }, 80);
+    const hero = mkActor('hero', 'heros', { x: 5, y: 6 }, 80);
     const s1 = mkCrewman('s1');
     const emplacement = mkEmplacement(poste);
     if (mannedByActive) serveAtPoste(hero, poste, [emplacement, hero, s1]);
@@ -227,13 +237,13 @@ describe('(E) Affordance IA — un combattant IA adjacent PEUT servir', () => {
 
   it('`servablePostes` voit le poste pour un ENNEMI adjacent (énumération kind-agnostique)', () => {
     const poste = mkPoste('baliste');
-    const enemy = mkActor('e', 'enemy', { x: 5, y: 6 });
-    expect(servablePostes(enemy, [mkEmplacement(poste), enemy])).toHaveLength(1);
+    const enemy = mkActor('e', 'ennemi', { x: 5, y: 6 });
+    expect(servablePostes(banc.getState().scene, enemy, [mkEmplacement(poste), enemy])).toHaveLength(1);
   });
 
   it('`buildAiInput` surface les postes servables dans l’entrée de décision IA', () => {
     const poste = mkPoste('baliste');
-    const enemy = mkActor('e', 'enemy', { x: 5, y: 6 });
+    const enemy = mkActor('e', 'ennemi', { x: 5, y: 6 });
     const all = [mkEmplacement(poste), enemy, mkEnemyTarget('hero', 1, 1)];
     // (le « hero » ici est juste un combattant adverse pour peupler la scène — kind enemy ne gêne pas buildAiInput)
     banc.setState({
@@ -245,22 +255,22 @@ describe('(E) Affordance IA — un combattant IA adjacent PEUT servir', () => {
   });
 
   it('`chooseEnemyAction` PEUT retourner `manPoste` (faute d’attaque/approche jouable)', () => {
-    const enemy = mkActor('e', 'enemy', { x: 5, y: 6 });
+    const enemy = mkActor('e', 'ennemi', { x: 5, y: 6 });
     enemy.movement = 0; // immobile → aucune approche ; sans arme → aucune attaque
     const far = mkEnemyTarget('hero', 1, 1);
-    far.kind = 'hero' as never;
+    far.kind = 'heros' as never;
     const action = chooseEnemyAction(input(enemy, [far], { servablePostes: [{ hullId: 'emplacement', posteUid: 'baliste-x' }] }));
-    expect(action.kind).toBe('manPoste');
+    expect(action.kind).toBe('servirLePoste');
     expect(action).toMatchObject({ hullId: 'emplacement', posteUid: 'baliste-x' });
   });
 
   it('le tour de l’IA prend la pièce sans dépenser l’Action, puis re-décide (LDB 13 l.106, arbitrage #3595)', () => {
     const poste = mkPoste('baliste');
-    const enemy = mkActor('e', 'enemy', { x: 5, y: 6 });
+    const enemy = mkActor('e', 'ennemi', { x: 5, y: 6 });
     enemy.movement = 0; // immobile → aucune approche
     enemy.weapons = [unarmedWeapon()]; // à mains nues → aucune attaque à portée
     const hero = mkEnemyTarget('hero', 5, 10);
-    hero.kind = 'hero' as never;
+    hero.kind = 'heros' as never;
     hero.weapons = [unarmedWeapon()];
     const all = [mkEmplacement(poste), enemy, hero];
     banc.setState({
@@ -274,11 +284,11 @@ describe('(E) Affordance IA — un combattant IA adjacent PEUT servir', () => {
   });
 
   it('sans poste servable, le même ennemi immobile/désarmé passe la main (pas de candidat fantôme)', () => {
-    const enemy = mkActor('e', 'enemy', { x: 5, y: 6 });
+    const enemy = mkActor('e', 'ennemi', { x: 5, y: 6 });
     enemy.movement = 0;
     const far = mkEnemyTarget('hero', 1, 1);
-    far.kind = 'hero' as never;
-    expect(chooseEnemyAction(input(enemy, [far])).kind).toBe('end');
+    far.kind = 'heros' as never;
+    expect(chooseEnemyAction(input(enemy, [far])).kind).toBe('fin');
   });
 });
 
@@ -293,8 +303,8 @@ describe('(F) Équipe — REJOINDRE une pièce servie en renfort (chef = seul ti
 
   it('(a) un 2e adjacent REJOINT en SUPPORT : appendu APRÈS le chef, mannedPoste posé, mais SANS arme de tir', () => {
     const poste = mkPoste('baliste');
-    const chef = mkActor('chef', 'hero', { x: 5, y: 6 });
-    const renfort = mkActor('renfort', 'hero', { x: 6, y: 5 });
+    const chef = mkActor('chef', 'heros', { x: 5, y: 6 });
+    const renfort = mkActor('renfort', 'heros', { x: 6, y: 5 });
     const all = [mkEmplacement(poste), chef, renfort];
     serveAtPoste(chef, poste, all); // pièce NON servie → CHEF
     expect(poste.crewIds).toEqual(['chef']);
@@ -310,41 +320,41 @@ describe('(F) Équipe — REJOINDRE une pièce servie en renfort (chef = seul ti
 
   it('(b) effectif ≥ Indice → le chef tire NET (recharge normale) ; en sous-nombre → pénalité (recharge ×2)', () => {
     const poste = mkPoste('baliste'); // Arme d'équipe 2, Recharge 3
-    const chef = mkActor('chef', 'hero', { x: 5, y: 6 }); chef.skills = arb();
-    const renfort = mkActor('renfort', 'hero', { x: 6, y: 5 }); renfort.skills = arb();
+    const chef = mkActor('chef', 'heros', { x: 5, y: 6 }); chef.skills = arb();
+    const renfort = mkActor('renfort', 'heros', { x: 6, y: 5 }); renfort.skills = arb();
     const cible = mkEnemyTarget('cible', 9, 6);
     const all = [mkEmplacement(poste), chef, renfort, cible];
     serveAtPoste(chef, poste, all); // chef
     serveAtPoste(renfort, poste, all); // support → présents 2 = Indice 2
     expect(servingCrewPresent(chef, all)).toBe(2);
-    const wFull = firedWeapon(chef, cible, poste.item.uid, all);
+    const wFull = firedWeapon(banc.getState().scene, chef, cible, poste.item.uid, all);
     expect(wFull.reload).toBe(3); // effectif complet → recharge normale (pas de ×2)
     expect(wFull.qualities.some((q) => q.id === 'arme-d-equipe')).toBe(false); // équipage RÉEL résolu → retirée
     // le support s'en va → présents 1 < Indice 2 : sous-effectif
     leaveChef(renfort, poste, all);
     expect(servingCrewPresent(chef, all)).toBe(1);
     expect(crewedPenalty(1, 2).reloadFactor).toBe(2);
-    expect(firedWeapon(chef, cible, poste.item.uid, all).reload).toBe(6); // Recharge 3 ×2 (sous-effectif)
+    expect(firedWeapon(banc.getState().scene, chef, cible, poste.item.uid, all).reload).toBe(6); // Recharge 3 ×2 (sous-effectif)
   });
 
   it('(c) SEUL le chef (crewIds[0]) se voit offrir l’option de tir « Servir … » ; le support, non', () => {
     const poste = mkPoste('baliste');
-    const chef = mkActor('chef', 'hero', { x: 5, y: 6 });
-    const renfort = mkActor('renfort', 'hero', { x: 6, y: 5 });
+    const chef = mkActor('chef', 'heros', { x: 5, y: 6 });
+    const renfort = mkActor('renfort', 'heros', { x: 6, y: 5 });
     const all = [mkEmplacement(poste), chef, renfort];
     serveAtPoste(chef, poste, all);
     serveAtPoste(renfort, poste, all);
     recomputeLoadout(chef);
     recomputeLoadout(renfort);
     const battle = { combatants: all, acted: false } as never;
-    expect(availableAttacks(chef, battle).map((o) => o.id)).toContain('poste'); // le chef peut TIRER la pièce
-    expect(availableAttacks(renfort, battle).map((o) => o.id)).not.toContain('poste'); // le support ne tire pas
+    expect(availableAttacks(banc.getState().scene, chef, battle).map((o) => o.id)).toContain('poste'); // le chef peut TIRER la pièce
+    expect(availableAttacks(banc.getState().scene, renfort, battle).map((o) => o.id)).not.toContain('poste'); // le support ne tire pas
   });
 
   it('(d) SUCCESSION — si le chef quitte alors qu’un support reste, ce dernier devient chef (arme + crewIds[0])', () => {
     const poste = mkPoste('baliste');
-    const chef = mkActor('chef', 'hero', { x: 5, y: 6 });
-    const renfort = mkActor('renfort', 'hero', { x: 6, y: 5 });
+    const chef = mkActor('chef', 'heros', { x: 5, y: 6 });
+    const renfort = mkActor('renfort', 'heros', { x: 6, y: 5 });
     const all = [mkEmplacement(poste), chef, renfort];
     serveAtPoste(chef, poste, all);
     serveAtPoste(renfort, poste, all);
@@ -363,29 +373,29 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
   it('serveTargetPoste : pièce adjacente servable → son poste ; déjà servant ou non adjacent → undefined', () => {
     const poste = mkPoste('baliste');
     const hull = mkEmplacement(poste, { x: 5, y: 5 });
-    const hero = mkActor('hero', 'hero', { x: 5, y: 6 });
-    const far = mkActor('far', 'hero', { x: 5, y: 12 });
+    const hero = mkActor('hero', 'heros', { x: 5, y: 6 });
+    const far = mkActor('far', 'heros', { x: 5, y: 12 });
     const all = [hull, hero, far];
-    expect(serveTargetPoste(hero, hull, all)?.item.uid).toBe(poste.item.uid);
-    expect(serveTargetPoste(far, hull, all)).toBeUndefined(); // non adjacent
+    expect(serveTargetPoste(banc.getState().scene, hero, hull, all)?.item.uid).toBe(poste.item.uid);
+    expect(serveTargetPoste(banc.getState().scene, far, hull, all)).toBeUndefined(); // non adjacent
     serveAtPoste(hero, poste, all); // hero sert
-    expect(serveTargetPoste(hero, hull, all)).toBeUndefined(); // sert déjà une pièce
+    expect(serveTargetPoste(banc.getState().scene, hero, hull, all)).toBeUndefined(); // sert déjà une pièce
   });
 
-  it('servirLePoste({hullId,posteUid}) sert la pièce CIBLÉE précise (clic), pas juste la première', () => {
+  it('servirLePoste(posteUid) sert la pièce DÉSIGNÉE (clic), pas juste la première', () => {
     const posteA = mkPoste('baliste');
     const posteB = mkPoste('baliste');
     const hullA = mkEmplacement(posteA, { x: 5, y: 5 });
     hullA.id = 'hullA';
     const hullB = mkEmplacement(posteB, { x: 7, y: 6 });
     hullB.id = 'hullB';
-    const hero = mkActor('hero', 'hero', { x: 6, y: 6 }, 80); // adjacent aux DEUX
+    const hero = mkActor('hero', 'heros', { x: 6, y: 6 }, 80); // adjacent aux DEUX
     banc.setState({
       battle: { combatants: [hullA, hullB, hero], order: ['hero', 'hullA', 'hullB'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never,
       party: [hero], facing: {}, scene: groundScene() as never,
       pendingCleave: null, pendingDualStrike: null, pendingCast: null,
     });
-    banc.getState().servirLePoste({ hullId: 'hullB', posteUid: posteB.item.uid });
+    banc.getState().servirLePoste(posteB.item.uid);
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'hero')!;
     expect(h.mannedPoste!.item.uid).toBe(posteB.item.uid); // c'est bien la pièce B (ciblée) qui est servie
     expect(posteB.crewIds![0]).toBe('hero');
@@ -395,7 +405,7 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
   it('cliquerLaCase sur la pièce sert le héros actif (clic-token = action « Servir », via ATTACK_MODE)', () => {
     const poste = mkPoste('baliste');
     const hull = mkEmplacement(poste, { x: 5, y: 5 });
-    const hero = mkActor('hero', 'hero', { x: 5, y: 6 }, 80);
+    const hero = mkActor('hero', 'heros', { x: 5, y: 6 }, 80);
     banc.setState({
       battle: { combatants: [hull, hero], order: ['hero', 'emplacement'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never,
       party: [hero], facing: {}, scene: groundScene() as never,
@@ -419,8 +429,8 @@ describe('(H) Qualification — seul l’équipage avec la Projectiles du Groupe
 
   it('chef QUALIFIÉ (Arbalète) compte (=1) ; +1 renfort qualifié → effectif 2 (=Indice, plus de sous-effectif)', () => {
     const poste = mkPoste('baliste'); // baliste = Groupe Arbalète, Arme d'équipe 2
-    const chef = mkActor('chef', 'npc', { x: 5, y: 6 }); chef.skills = proj('arbalete');
-    const renfort = mkActor('renfort', 'npc', { x: 6, y: 5 }); renfort.skills = proj('arbalete');
+    const chef = mkActor('chef', 'pnj', { x: 5, y: 6 }); chef.skills = proj('arbalete');
+    const renfort = mkActor('renfort', 'pnj', { x: 6, y: 5 }); renfort.skills = proj('arbalete');
     const all = [mkEmplacement(poste), chef, renfort];
     serveAtPoste(chef, poste, all);
     expect(servingCrewPresent(chef, all)).toBe(1); // chef seul, qualifié → effectif 1/2
@@ -430,8 +440,8 @@ describe('(H) Qualification — seul l’équipage avec la Projectiles du Groupe
 
   it('renfort NON qualifié (Arc sur une baliste-Arbalète) → occupe la pièce mais N’augmente PAS l’effectif (Exemple 1, AA 10 l.253)', () => {
     const poste = mkPoste('baliste');
-    const chef = mkActor('chef', 'npc', { x: 5, y: 6 }); chef.skills = proj('arbalete');
-    const archer = mkActor('archer', 'npc', { x: 6, y: 5 }); archer.skills = proj('arc'); // mauvais Groupe
+    const chef = mkActor('chef', 'pnj', { x: 5, y: 6 }); chef.skills = proj('arbalete');
+    const archer = mkActor('archer', 'pnj', { x: 6, y: 5 }); archer.skills = proj('arc'); // mauvais Groupe
     const all = [mkEmplacement(poste), chef, archer];
     serveAtPoste(chef, poste, all);
     serveAtPoste(archer, poste, all); // rejoint en support…
@@ -444,7 +454,7 @@ describe('(H) Qualification — seul l’équipage avec la Projectiles du Groupe
 
   it('chef NON qualifié (Arc seul) → effectif 0 malgré un chef présent (le cas « Chef + 0 effectif » à expliquer)', () => {
     const poste = mkPoste('baliste');
-    const chef = mkActor('chef', 'npc', { x: 5, y: 6 }); chef.skills = proj('arc');
+    const chef = mkActor('chef', 'pnj', { x: 5, y: 6 }); chef.skills = proj('arc');
     const all = [mkEmplacement(poste), chef];
     serveAtPoste(chef, poste, all);
     expect(isPosteManned(poste, all)).toBe(true); // pièce « occupée »…
@@ -453,8 +463,8 @@ describe('(H) Qualification — seul l’équipage avec la Projectiles du Groupe
 
   it('isCrewQualified — feedback « Servir » du héros actif : vrai avec la Projectiles du Groupe, faux sinon', () => {
     const poste = mkPoste('baliste');
-    const qualifie = mkActor('q', 'hero', { x: 5, y: 6 }); qualifie.skills = proj('arbalete');
-    const profane = mkActor('p', 'hero', { x: 5, y: 6 }); profane.skills = proj('arc');
+    const qualifie = mkActor('q', 'heros', { x: 5, y: 6 }); qualifie.skills = proj('arbalete');
+    const profane = mkActor('p', 'heros', { x: 5, y: 6 }); profane.skills = proj('arc');
     expect(isCrewQualified(qualifie, poste)).toBe(true);
     expect(isCrewQualified(profane, poste)).toBe(false);
   });

@@ -42,13 +42,13 @@ describe('câblage des flux de jet — source unique FLOW_VERBS', () => {
   /**
    * INVARIANT RAW — LDB 17 l.68, « Je ne faillirai pas ! » : « au lieu de lancer les dés pour un Test,
    * vous choisissez le résultat ». Le choix du résultat EST la mécanique de la dépense de Résilience,
-   * pas une option qui l'accompagne : un flux qui offre `forceSuccess` DOIT offrir `setForcedRoll`.
+   * pas une option qui l'accompagne : un flux qui offre `forcerLaReussite` DOIT offrir `imposerLeResultat`.
    * Aucune liste d'exception : la Résilience est GLOBALE (LDB 17 l.65, « réussir là où vous auriez
    * certainement échoué »), donc tout flux qui porte un Test la porte.
    */
-  it('Résilience : tout flux à forceSuccess offre le choix du dé (setForcedRoll)', () => {
+  it('Résilience : tout flux à forcerLaReussite offre le choix du dé (imposerLeResultat)', () => {
     const sans = ENTRIES
-      .filter(([, w]) => w.verbs.includes('forceSuccess') && !w.verbs.includes('setForcedRoll'))
+      .filter(([, w]) => w.verbs.includes('forcerLaReussite') && !w.verbs.includes('imposerLeResultat'))
       .map(([prefix]) => prefix);
     expect(sans, 'flux à Résilience SANS choix du dé — déclarer son accesseur `die` puis le verbe').toEqual([]);
   });
@@ -60,13 +60,13 @@ describe('câblage des flux de jet — source unique FLOW_VERBS', () => {
     const site = (text: string) => sitesDeDelegueManuscrit({ rel: 'src/noyau/x.ts', text }, VERBES);
 
     it('voit l’appel direct du handler d’un verbe, par nom de flux ou par index', () => {
-      expect(site('const a = { annuler: () => FLOWS.activity.cancel(get, set) };')).toEqual([{ ligne: 1, texte: 'FLOWS.activity.cancel(get, set)' }]);
-      expect(site('FLOW_HANDLERS[k].setForcedRoll(get, set, 12);').map((x) => x.texte)).toEqual(['FLOW_HANDLERS[k].setForcedRoll(get, set, 12)']);
+      expect(site('const a = { annuler: () => FLOWS.activite.annuler(get, set) };')).toEqual([{ ligne: 1, texte: 'FLOWS.activite.annuler(get, set)' }]);
+      expect(site('FLOWS[k].imposerLeResultat(get, set, 12);').map((x) => x.texte)).toEqual(['FLOWS[k].imposerLeResultat(get, set, 12)']);
     });
 
     it('laisse les membres d’un handler qui ne sont pas des verbes, et le handler reçu en paramètre', () => {
-      expect(site('FLOWS.reload.apply(get, { p });')).toEqual([]);
-      expect(site('const jouer = (h: RollFlowHandlers) => h.cancel(get, set); jouer(FLOW_HANDLERS[flux]);')).toEqual([]);
+      expect(site('FLOWS.rechargement.apply(get, { p });')).toEqual([]);
+      expect(site('const jouer = (h: RollFlowHandlers) => h.annuler(get, set); jouer(FLOWS[flux]);')).toEqual([]);
     });
 
     it('le code de production n’en porte aucun', () => {

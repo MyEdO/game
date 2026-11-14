@@ -9,9 +9,9 @@
 import type { CodexRow, CodexSection } from './registry';
 import { opRows } from './opRows';
 import type { GameOp } from '../../engine/ops';
-import type { Flow, TriggeredEffect } from '../../data/schemas/defs-scenes/effets';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
-import { walkFlow } from '../../engine/flowCore';
+import { walkFlow, type TriggeredEffect } from '../../engine/flowCore';
 import { refLabel, testSkillLabel } from '../../data';
 import { statName } from '../../engine/statEntry';
 import { onLabel } from './triggerLabels';
@@ -44,29 +44,29 @@ export function careerGrantSection(ops: GameOp[] | undefined, title: string = t(
   return rows.length ? { title, layout: 'chips', rows } : null;
 }
 
-/** Résumé LISIBLE d'un Flow d'effet (conditions `if` + ops `do`, jet `test`) — réutilise
+/** Résumé LISIBLE d'un Flow d'effet (conditions `si` + ops `effet`, jet `test`) — réutilise
  *  `humanizeCondition`/`humanizeOp` (registre JOUEUR). Le Test (SIMPLE ou OPPOSÉ) n'est PLUS une op :
  *  c'est un nœud de STRUCTURE Flow (`{kind:'test'}`) décrit ci-dessous (zéro vocabulaire dupliqué). */
 function flowSummary(f: Flow, etats: readonly EtatDeclare[]): string {
   switch (f.kind) {
-    case 'do': return f.effect.type === 'ops' ? `${f.effect.ops.map(humanizeOp).join(', ')}${dureeDeLaFeuille(f.effect)}` : f.effect.type;
-    case 'seq': return f.steps.map((s) => flowSummary(s, etats)).filter(Boolean).join(' ; ');
-    case 'if': {
-      const base = t('codex.tech.si', { cond: humanizeCondition(f.cond, etats), alors: flowSummary(f.then, etats) });
-      return f.else ? `${base}${t('codex.tech.sinon', { sinon: flowSummary(f.else, etats) })}` : base;
+    case 'effet': return f.effet.type === 'ops' ? `${f.effet.ops.map(humanizeOp).join(', ')}${dureeDeLaFeuille(f.effet)}` : f.effet.type;
+    case 'sequence': return f.etapes.map((s) => flowSummary(s, etats)).filter(Boolean).join(' ; ');
+    case 'si': {
+      const base = t('codex.tech.si', { cond: humanizeCondition(f.condition, etats), alors: flowSummary(f.alors, etats) });
+      return f.sinon ? `${base}${t('codex.tech.sinon', { sinon: flowSummary(f.sinon, etats) })}` : base;
     }
     case 'test': {
       const sujet = testSkillLabel(f.test) ?? '';
       const oppose = f.test.opposed ? t('codex.tech.oppose', { attaquant: f.test.opposed.attackerLabel ?? f.test.opposed.attacker }) : '';
-      return t('codex.tech.jet', { oppose, sujet, ok: flowSummary(f.success, etats), ko: flowSummary(f.fail, etats) });
+      return t('codex.tech.jet', { oppose, sujet, ok: flowSummary(f.reussite, etats), ko: flowSummary(f.echec, etats) });
     }
-    case 'choice': {
-      const cout = coutAvantageTexte(f.advantageCost);
+    case 'choix': {
+      const cout = coutAvantageTexte(f.coutEnAvantage);
       return t('codex.tech.choix', {
         cout: cout ? t('codex.tech.choix.cout', { cout }) : '',
-        prompt: f.prompt,
-        oui: flowSummary(f.yes, etats),
-        non: flowMuet(f.no) ? '' : t('codex.tech.choix.non', { non: flowSummary(f.no!, etats) }),
+        invite: f.invite,
+        oui: flowSummary(f.oui, etats),
+        non: flowMuet(f.non) ? '' : t('codex.tech.choix.non', { non: flowSummary(f.non!, etats) }),
       });
     }
   }
@@ -92,12 +92,12 @@ export function effectsSection(effects: TriggeredEffect[] | undefined, etats: re
   return rows.length ? { title, layout: 'list', rows } : null;
 }
 
-/** Un `rollTable` se cache-t-il quelque part dans le Flow (n'importe quelle branche `do`) ? Réutilise le
+/** Un `rollTable` se cache-t-il quelque part dans le Flow (n'importe quelle branche `effet`) ? Réutilise le
  *  walker générique `walkFlow` (ref #540) — jauge s'il y a une table à EXPANSER en rangées lisibles. */
 const flowHasRollTable = (f: Flow): boolean => {
   let found = false;
   walkFlow(f, (n) => {
-    if (n.kind === 'do' && n.effect.type === 'ops' && n.effect.ops.some((o) => o.op === 'rollTable')) found = true;
+    if (n.kind === 'effet' && n.effet.type === 'ops' && n.effet.ops.some((o) => o.op === 'rollTable')) found = true;
   });
   return found;
 };
@@ -107,34 +107,34 @@ const flowHasRollTable = (f: Flow): boolean => {
  *  phrase humanisée `humanizeFlowSentence`, jamais dupliqué en chips pour les branches sans table). */
 function flowOpRows(f: Flow, etats: readonly EtatDeclare[]): CodexRow[] {
   switch (f.kind) {
-    case 'do':
-      return f.effect.type === 'ops' ? opRows(f.effect.ops) : [];
-    case 'seq':
-      return f.steps.flatMap((s) => flowOpRows(s, etats));
-    case 'if': {
+    case 'effet':
+      return f.effet.type === 'ops' ? opRows(f.effet.ops) : [];
+    case 'sequence':
+      return f.etapes.flatMap((s) => flowOpRows(s, etats));
+    case 'si': {
       const rows: CodexRow[] = [];
-      const then = flowOpRows(f.then, etats);
-      if (then.length) rows.push({ t: 'sub', label: t('codex.describe.si', { v: humanizeCondition(f.cond, etats) }) }, ...then);
-      if (f.else) {
-        const els = flowOpRows(f.else, etats);
+      const then = flowOpRows(f.alors, etats);
+      if (then.length) rows.push({ t: 'sub', label: t('codex.describe.si', { v: humanizeCondition(f.condition, etats) }) }, ...then);
+      if (f.sinon) {
+        const els = flowOpRows(f.sinon, etats);
         if (els.length) rows.push({ t: 'sub', label: t('codex.describe.sinon') }, ...els);
       }
       return rows;
     }
     case 'test': {
       const rows: CodexRow[] = [];
-      const succ = flowOpRows(f.success, etats);
+      const succ = flowOpRows(f.reussite, etats);
       if (succ.length) rows.push({ t: 'sub', label: t('codex.describe.reussite') }, ...succ);
-      const fail = flowOpRows(f.fail, etats);
+      const fail = flowOpRows(f.echec, etats);
       if (fail.length) rows.push({ t: 'sub', label: t('codex.describe.echec') }, ...fail);
       return rows;
     }
-    case 'choice': {
+    case 'choix': {
       const rows: CodexRow[] = [];
-      const yes = flowOpRows(f.yes, etats);
+      const yes = flowOpRows(f.oui, etats);
       if (yes.length) rows.push({ t: 'sub', label: t('codex.describe.oui') }, ...yes);
-      if (f.no) {
-        const no = flowOpRows(f.no, etats);
+      if (f.non) {
+        const no = flowOpRows(f.non, etats);
         if (no.length) rows.push({ t: 'sub', label: t('codex.describe.non') }, ...no);
       }
       return rows;
@@ -142,7 +142,7 @@ function flowOpRows(f: Flow, etats: readonly EtatDeclare[]): CodexRow[] {
   }
 }
 
-/** Effet MÉCANIQUE d'un Sort (`Flow` éditable : do/if/test) → section lisible (réutilise `flowSummary`).
+/** Effet MÉCANIQUE d'un Sort (`Flow` éditable : effet/si/test) → section lisible (réutilise `flowSummary`).
  *  Source unique de la projection des effets de sort au Codex (≠ desc narrative). Vide → null. */
 export function spellFlowSection(flow: Flow | undefined, etats: readonly EtatDeclare[], title: string = t('codex.describe.effetMecanique')): CodexSection | null {
   if (!flow) return null;

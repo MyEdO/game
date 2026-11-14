@@ -155,6 +155,9 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** Code porté par tout rejet dû à un rechargement de la page (voir `isNavigationError`). */
 export const TARGET_NAVIGATED = 'TARGET_NAVIGATED';
 
+/** Code porté par le rejet d'un appel en vol quand sa page plante (`brancherCdp`) : jamais une navigation, rien à rejouer. */
+export const PAGE_PLANTEE = 'PAGE_PLANTEE';
+
 /** Messages CDP émis quand le contexte de page a été recréé sous les pieds de l'appel en vol. */
 const NAV_MESSAGES = [
   /Inspected target navigated or closed/i,
@@ -283,8 +286,8 @@ export function killChromeTree(chrome, { plateforme = process.platform, executer
 
 /**
  * Filet de sécurité process-wide : tout Chrome spawné par ce module qui survivrait à un chemin
- * d'échec non couvert (SIGINT, script tiers oubliant son try/finally) est tué + son profil purgé
- * à la sortie du process — jamais de fuite silencieuse. `process.on('exit')` est SYNCHRONE : l'arrêt
+ * d'échec non couvert (script tiers oubliant son try/finally, SIGTERM d'un lanceur à délai, rendu en sortie) est tué
+ * + son profil purgé à la sortie du process — jamais de fuite silencieuse. `process.on('exit')` est SYNCHRONE : l'arrêt
  * (`killChromeTree`) et la purge (`purgerProfil`, retentée jusqu'à `ATTENTE_EXTINCTION_MS`) y attendent
  * en synchrone (`attendreSync`).
  */
@@ -307,6 +310,7 @@ export function nettoyerALaSortie(enfants, { tuer = killChromeTree, supprimer = 
   return echecs;
 }
 process.on('exit', () => { nettoyerALaSortie(activeChildren); });
+process.on('SIGTERM', () => process.exit(143));
 
 /** `resoudreChrome` sur le disque et l'environnement réels. */
 const chromeDeLaMachine = (explicite) =>
@@ -381,6 +385,27 @@ export async function waitForWsUrl(port, timeoutMs = 10000, { recuperer = fetch 
     await sleep(250);
   }
   throw new Error(`Chrome (CDP) indisponible sur le port ${port} après ${timeoutMs}ms.${dernier ? ` Dernier échec : ${dernier.message}` : ''}`, { cause: dernier ?? undefined });
+}
+
+/** Le port et l'URL WebSocket du navigateur qui tient le profil `profile`, lus dans le `DevToolsActivePort` que
+ *  Chrome lancé avec `--remote-debugging-port=0` y écrit (le port, puis le chemin du WebSocket du navigateur),
+ *  attendu `timeoutMs` au plus : un fichier absent, vide ou d'une seule ligne s'attend. */
+export async function lireDevToolsActivePort(profile, timeoutMs = 10000, { lire = (chemin) => readFileSync(chemin, 'utf8') } = {}) {
+  const fichier = join(profile, 'DevToolsActivePort');
+  const deadline = Date.now() + timeoutMs;
+  let lu = 'absent';
+  while (Date.now() < deadline) {
+    try {
+      const [ligne1 = '', ligne2 = ''] = lire(fichier).split('\n').map((l) => l.trim());
+      const port = Number(ligne1);
+      if (Number.isInteger(port) && port > 0 && ligne2.startsWith('/')) return { port, wsUrl: `ws://127.0.0.1:${port}${ligne2}` };
+      lu = JSON.stringify(`${ligne1}\n${ligne2}`.trim());
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e;
+    }
+    await sleep(250);
+  }
+  throw new Error(`Chrome (CDP) : ${fichier} sans ses deux lignes (port, chemin du WebSocket) après ${timeoutMs}ms — dernière lecture : ${lu}`);
 }
 
 /** Préfixe des profils Chrome JETABLES du kit, sous `os.tmpdir()` — la purge des orphelins le lit. */
@@ -525,13 +550,12 @@ export async function pourChaqueVue(session, fn, { reposMs = 500 } = {}) {
  * écrans. Une recette responsive passe sa vue explicitement (`pourChaqueVue`, `setMobileViewport`).
  * `args` : des drapeaux de Chrome propres à la recette (le WebGL logiciel de l'hôte Godot, `hotes/godot/recette.mjs`).
  */
-export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, port, mobile = false, timeoutMs = 10000, args = [] } = {}) {
+export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, mobile = false, timeoutMs = 10000, args = [] } = {}) {
   const lancement = chromeDeLaMachine(chromePath);
-  const cdpPort = port ?? 9222 + Math.floor(Math.random() * 2000);
   const profile = join(os.tmpdir(), nomDeProfil(process.pid));
   mkdirSync(profile, { recursive: true });
   const chrome = spawn(lancement.chemin, [
-    ...lancement.args, '--headless=new', '--mute-audio', `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`,
+    ...lancement.args, '--headless=new', '--mute-audio', '--remote-debugging-port=0', `--user-data-dir=${profile}`,
     `--window-size=${width},${height}`, '--no-first-run', '--no-default-browser-check', ...args, 'about:blank',
   ], { ...OPTIONS_SPAWN_CHROME });
   const childEntry = { chrome, profile };
@@ -540,11 +564,11 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
   // Tout échec APRÈS le spawn (avant qu'un `session` ne soit rendu à l'appelant, donc avant qu'il
   // puisse appeler `session.close()`) doit tuer ce Chrome et purger son profil ici — sinon fuite.
   try {
-    const wsUrl = await waitForWsUrl(cdpPort, timeoutMs); // même délai réglable que l’amorçage de l’app
+    const { port, wsUrl } = await lireDevToolsActivePort(profile, timeoutMs); // même délai réglable que l’amorçage de l’app
     const ws = new WebSocket(wsUrl);
     await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
 
-    const session = brancherCdp(ws, { chrome, profile, port: cdpPort });
+    const session = brancherCdp(ws, { chrome, profile, port });
 
     const { targetId } = await session.rpc('Target.createTarget', { url: 'about:blank' });
     session.targetId = targetId;
@@ -565,7 +589,7 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
      *  script). Rend `{ profilPurge }` : la purge est VÉRIFIÉE (`purgerProfil`), jamais supposée. */
     session.close = async () => {
       try {
-        await session.rpc('Target.closeTarget', { targetId: session.targetId });
+        await session.rpcNavigateur('Target.closeTarget', { targetId: session.targetId });
       } catch (e) {
         if (!cibleDejaPartie(e)) throw e;
       }
@@ -622,6 +646,8 @@ export function brancherCdp(ws, champs = {}) {
   let id = 0;
   const pending = new Map();
   const listeners = new Set();
+  let plantee = false;
+  const pagePlantee = () => Object.assign(new Error('la page a planté (Inspector.targetCrashed) : son processus de rendu est mort'), { code: PAGE_PLANTEE });
   const session = { chrome: null, listeners, sessionId: null, targetId: null, profile: null, contextCleared: false, ...champs };
   ws.addEventListener('message', (ev) => {
     const m = JSON.parse(typeof ev.data === 'string' ? ev.data : ev.data.toString());
@@ -632,6 +658,16 @@ export function brancherCdp(ws, champs = {}) {
       const { resolve, reject } = pending.get(m.id);
       pending.delete(m.id);
       if (m.error) reject(cdpError(m.error.message)); else resolve(m.result);
+    }
+    // Page PLANTÉE (son processus de rendu est mort) : Chrome ne répond plus à aucun appel adressé à sa
+    // session. Ceux en vol sont rejetés TYPÉS, ceux à venir le sont à l'envoi (`envoyer`).
+    if (m.method === 'Inspector.targetCrashed' && m.sessionId === session.sessionId) {
+      plantee = true;
+      for (const [mid, { reject, sessionId }] of pending) {
+        if (sessionId !== session.sessionId) continue;
+        pending.delete(mid);
+        reject(pagePlantee());
+      }
     }
     for (const fn of listeners) fn(m);
   });
@@ -652,10 +688,11 @@ export function brancherCdp(ws, champs = {}) {
   // tout de suite, typé comme une socket coupée.
   const envoyer = (method, params, sessionId) => new Promise((resolve, reject) => {
     if (ws.readyState !== WebSocket.OPEN) { reject(cibleFermee()); return; }
+    if (plantee && sessionId) { reject(pagePlantee()); return; }
     const mid = ++id;
     const msg = { id: mid, method, params };
     if (sessionId) msg.sessionId = sessionId;
-    pending.set(mid, { resolve, reject });
+    pending.set(mid, { resolve, reject, sessionId });
     ws.send(JSON.stringify(msg));
   });
   // Le domaine `Input` n'est émis que par `geste` et `frappe` : l'émetteur BRUT leur est remis par
@@ -1655,13 +1692,13 @@ export async function toucher(session, cible, { dureeMs = 0, defiler = true, int
  * VISIBLE, le pointeur d'abord posé là (`mouseMoved`) comme la main d'un joueur : un canevas Godot Web
  * tourne la molette au dernier point du pointeur, pas à celui de l'événement (#3086). Sans
  * `scrollIntoView` : c'est la molette qui fait défiler. Le cran est contrôlé par COUCHE : l'élément au
- * point doit être de la même couche défilante que la cible. Intention `lire` par défaut. Rend la
- * localisation.
+ * point doit être de la même couche défilante que la cible. `crans` crans tournés d'un même geste, au
+ * même point. Intention `lire` par défaut. Rend la localisation.
  */
-export async function molette(session, cible, deltaY, { deltaX = 0, intention = 'lire', delaiEntreeMs = DELAI_ENTREE } = {}) {
+export async function molette(session, cible, deltaY, { deltaX = 0, crans = 1, intention = 'lire', delaiEntreeMs = DELAI_ENTREE } = {}) {
   return geste(session, cible, { qui: 'molette', intention, defiler: false, point: 'visible', controle: 'couche', delaiEntreeMs }, async ({ x, y }, emettre) => {
     await emettre('souris', { type: 'mouseMoved', x, y });
-    await emettre('souris', { type: 'mouseWheel', x, y, deltaX, deltaY });
+    for (let n = 0; n < crans; n++) await emettre('souris', { type: 'mouseWheel', x, y, deltaX, deltaY });
   });
 }
 
@@ -1910,9 +1947,9 @@ function decrireLectureModales(l) {
 }
 
 /** OUVRE le Round en pause (« Commencer le combat » / « Commencer le round N ») par la case de phase
- *  `round-start` — le geste du joueur, au vrai bouton, jamais un `.click()` en JS. */
+ *  `debut-de-round` — le geste du joueur, au vrai bouton, jamais un `.click()` en JS. */
 export async function ouvrirRound(session) {
-  return cliquerAction(session, 'round-start', { racine: '.cc-phase' });
+  return cliquerAction(session, 'debut-de-round', { racine: '.cc-phase' });
 }
 
 /** Lecture du combat pour le pilote (`__wfrp.battle()` + `__wfrp.auto()` + fenêtre au DOM) ; `fenetre`
@@ -1930,16 +1967,16 @@ export const LECTURE_COMBAT = `(() => {
 })()`;
 
 /**
- * FINIT le tour du héros actif à la PLAQUE de fin de tour (`end-turn`) : un premier clic ARME le
+ * FINIT le tour du héros actif à la PLAQUE de fin de tour (`fin-de-tour`) : un premier clic ARME le
  * garde-fou quand l'Action n'est pas dépensée (`endTurnArmed`), le second passe la main. Rend le
  * nombre de clics émis.
  */
 export async function finDuTour(session, { pauseMs = 300 } = {}) {
-  await cliquerAction(session, 'end-turn');
+  await cliquerAction(session, 'fin-de-tour');
   await sleep(pauseMs);
   const arme = await evaluate(session, `(() => { const b = window.__wfrp.battle(); return typeof b === 'object' && !!b.endTurnArmed; })()`);
   if (!arme) return 1;
-  await cliquerAction(session, 'end-turn');
+  await cliquerAction(session, 'fin-de-tour');
   await sleep(pauseMs);
   return 2;
 }
@@ -2524,7 +2561,7 @@ function texteDeTouche(key) {
   return key === 'Enter' ? '\r' : null;
 }
 
-/** Alt GAUCHE, tel que CDP le nomme — la touche des gestes MAINTENUS du jeu (`decor.reveler`). */
+/** Alt GAUCHE, tel que CDP le nomme — la touche des gestes MAINTENUS du jeu (`decor-reveler`). */
 export const ALT = { key: 'Alt', code: 'AltLeft', windowsVirtualKeyCode: 18 };
 /** Bit de modificateur CDP pour Alt — à passer en `modifiers` aux gestes ÉMIS PENDANT le maintien. */
 export const MOD_ALT = 1;

@@ -10,12 +10,13 @@ import { etatIdsConnus } from '../../engine/conditions';
 import { t } from '../../i18n';
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
 function combatant(over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'c', label: 'c', kind: 'enemy',
+    id: 'c', label: 'c', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -51,7 +52,7 @@ describe('opValue — SOIN plafonné aux PB manquants', () => {
 
 describe('opValue — BUFF de combat = bénéfice marginal (armé > 0, désarmé = 0)', () => {
   const buff = op({ op: 'charMod', characteristic: 'capacite-de-combat', mod: 10 });
-  const ref = combatant({ id: 'h', kind: 'hero', pos: { x: 2, y: 0 } });
+  const ref = combatant({ id: 'h', kind: 'heros', pos: { x: 2, y: 0 } });
   it('subject ARMÉ → +10 CC améliore l’EV d’attaque → > 0', () => {
     expect(opValue(buff, combatant(), combatant({ id: 's', weapons: [MELEE] }), ctxOf(ref))).toBeGreaterThan(0);
   });
@@ -65,12 +66,12 @@ describe('opValue — BUFF de combat = bénéfice marginal (armé > 0, désarmé
 
 describe('opValue — CONTRÔLE (condition) = aiThreat de etats.json', () => {
   it('Sonné (op:condition) → aiThreat lu en donnée sur etats.json (6)', () => {
-    expect(opValue(op({ op: 'condition', id: 'sonne' }), combatant(), combatant({ id: 'h' }), ctxOf())).toBe(6);
+    expect(opValue(op({ op: 'condition', id: { id: 'sonne' } }), combatant(), combatant({ id: 'h' }), ctxOf())).toBe(6);
   });
   it('État CONNU sans aiThreat → 1 (contrôle mineur, jamais 0) ; id hors du registre → lève (#1463 LD.1)', () => {
     const sansMenace = etatIdsConnus().find((id) => findConditionById(id)?.aiThreat === undefined)!;
-    expect(opValue(op({ op: 'condition', id: sansMenace }), combatant(), combatant({ id: 'h' }), ctxOf())).toBe(1);
-    expect(() => opValue(op({ op: 'condition', id: 'id-hors-registre' }), combatant(), combatant({ id: 'h' }), ctxOf())).toThrow(t('etats.inconnu', { id: 'id-hors-registre' }));
+    expect(opValue(op({ op: 'condition', id: { id: sansMenace } }), combatant(), combatant({ id: 'h' }), ctxOf())).toBe(1);
+    expect(() => opValue(op({ op: 'condition', id: { id: 'id-hors-registre' } }), combatant(), combatant({ id: 'h' }), ctxOf())).toThrow(t('etats.inconnu', { id: 'id-hors-registre' }));
   });
 });
 
@@ -101,7 +102,7 @@ describe('opValue — DÉFAUT signé (longue traîne) : jamais de faux 0 silenci
 describe('oppositionDiscount — Sorts de Contact / résistés (LDB 46 l.103-105)', () => {
   const caster = () => combatant({ characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 } });
   const target = () => combatant({ id: 'h', characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 } });
-  const spell = (opposed?: SpellData['opposed']): SpellData => ({ id: 'sp', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', opposed, source: { book: 'LDB', page: 0 } } as SpellData);
+  const spell = (opposed?: SpellData['opposed']): SpellData => ({ id: idDeFixture('spell', 'sp'), type: 'spells', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', opposed, source: { book: 'LDB', page: 0 } });
 
   it('Sort de Contact (opposé) → escompte < 1', () => {
     expect(oppositionDiscount(spell({ kind: 'contact' }), caster(), target())).toBeLessThan(1);
@@ -122,7 +123,7 @@ describe('oppositionDiscount — Sorts de Contact / résistés (LDB 46 l.103-105
  * de cible (`LDB 16 l.11`), jamais absorbés par le plafond des Difficultés (`LDB 14 l.48/95`).
  */
 describe('hitProbability — chaque pion d’État coûte sa marche à l’IA (CC 40, monotone)', () => {
-  const cible = () => combatant({ id: 'B', kind: 'hero', pos: { x: 1, y: 0 } });
+  const cible = () => combatant({ id: 'B', kind: 'heros', pos: { x: 1, y: 0 } });
   const use = (pions: number) => combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [MELEE], ...(pions ? { conditions: [{ id: 'extenue', value: pions }] } : {}) } as Partial<Combatant>);
 
   it('0 à 5 pions Exténué : 0,40 → 0,05 par marches de 0,10 (plancher 5 %)', () => {

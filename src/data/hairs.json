@@ -1,208 +1,159 @@
-[
-  {
-    "id": "blond-blanc",
-    "type": "hairs",
-    "label": "Blond blanc",
-    "rand": 2,
-    "color": {
-      "humain": "Blond blanc",
-      "halfling": "Gris",
-      "nain": "Blanc",
-      "haut-elfe": "Argent",
-      "elfe-sylvain": "Bouleau argenté",
-      "gnome": "Noir",
-      "ogre": "Marron"
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Cheveux (2d10). Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40, borné par les ancres data-folio 37 et 41), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 — d'où randByRace.gnome sur « blond-roux » (6) et « brun-dore » (10) (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) ⇒ pas de randByRace.ogre (#423)."
-    }
+{
+  "id": "couleur-des-cheveux",
+  "type": "hairs",
+  "label": "Tableau de couleur des cheveux",
+  "die": "2d10",
+  "source": {
+    "book": "livre-de-base",
+    "page": 40,
+    "note": "Tableau Couleur des Cheveux. Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40 : ancres data-folio l.744 et l.773), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 — d'où randByRace.gnome sur « blond-roux » (6) et « brun-dore » (10) (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) ⇒ pas de randByRace.ogre (#423). La couleur gnome « Bond doré » (rangée « auburn ») est le verbatim source (coquille probable, conservée règle 5)."
   },
-  {
-    "id": "blond-dore",
-    "type": "hairs",
-    "label": "Blond doré",
-    "rand": 3,
-    "color": {
-      "humain": "Blond doré",
-      "halfling": "Paille",
-      "nain": "Gris",
-      "haut-elfe": "Blanc",
-      "elfe-sylvain": "Blond cendré",
-      "gnome": "Brun foncé",
-      "ogre": "Acajou"
+  "entries": [
+    {
+      "id": "blond-blanc",
+      "label": "Blond blanc",
+      "rand": 2,
+      "color": {
+        "humain": "Blond blanc",
+        "halfling": "Gris",
+        "nain": "Blanc",
+        "haut-elfe": "Argent",
+        "elfe-sylvain": "Bouleau argenté",
+        "gnome": "Noir",
+        "ogre": "Marron"
+      }
     },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Cheveux (2d10). Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40, borné par les ancres data-folio 37 et 41), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 — d'où randByRace.gnome sur « blond-roux » (6) et « brun-dore » (10) (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) ⇒ pas de randByRace.ogre (#423)."
+    {
+      "id": "blond-dore",
+      "label": "Blond doré",
+      "rand": 3,
+      "color": {
+        "humain": "Blond doré",
+        "halfling": "Paille",
+        "nain": "Gris",
+        "haut-elfe": "Blanc",
+        "elfe-sylvain": "Blond cendré",
+        "gnome": "Brun foncé",
+        "ogre": "Acajou"
+      }
+    },
+    {
+      "id": "blond-roux",
+      "label": "Blond roux",
+      "rand": 4,
+      "randByRace": {
+        "gnome": 6
+      },
+      "color": {
+        "humain": "Blond roux",
+        "halfling": "Roussâtre",
+        "nain": "Blond pâle",
+        "haut-elfe": "Blond pâle",
+        "elfe-sylvain": "Or rose",
+        "gnome": "Brun",
+        "ogre": "Blond cendré"
+      }
+    },
+    {
+      "id": "brun-dore",
+      "label": "Brun doré",
+      "rand": 7,
+      "randByRace": {
+        "gnome": 10
+      },
+      "color": {
+        "humain": "Brun doré",
+        "halfling": "Miel",
+        "nain": "Doré",
+        "haut-elfe": "Blond",
+        "elfe-sylvain": "Blond miel",
+        "gnome": "Brun pâle",
+        "ogre": "Marron clair"
+      }
+    },
+    {
+      "id": "brun-clair",
+      "label": "Brun clair",
+      "rand": 11,
+      "color": {
+        "humain": "Brun clair",
+        "halfling": "Châtaigne",
+        "nain": "Cuivre",
+        "haut-elfe": "Blond intense",
+        "elfe-sylvain": "Brun",
+        "gnome": "Auburn",
+        "ogre": "Lie de vin"
+      }
+    },
+    {
+      "id": "brun-fonce",
+      "label": "Brun foncé",
+      "rand": 14,
+      "color": {
+        "humain": "Brun foncé",
+        "halfling": "Gingembre",
+        "nain": "Bronze",
+        "haut-elfe": "Blond cuivré",
+        "elfe-sylvain": "Brun acajou",
+        "gnome": "Roux",
+        "ogre": "Marron foncé"
+      }
+    },
+    {
+      "id": "noir",
+      "label": "Noir",
+      "rand": 17,
+      "color": {
+        "humain": "Noir",
+        "halfling": "Moutarde",
+        "nain": "Brun",
+        "haut-elfe": "Blond ambré",
+        "elfe-sylvain": "Brun foncé",
+        "gnome": "Blond roux",
+        "ogre": "Noir"
+      }
+    },
+    {
+      "id": "auburn",
+      "label": "Auburn",
+      "rand": 18,
+      "color": {
+        "humain": "Auburn",
+        "halfling": "Amande",
+        "nain": "Brun foncé",
+        "haut-elfe": "Auburn",
+        "elfe-sylvain": "Brun clair",
+        "gnome": "Bond doré",
+        "ogre": "Charbon"
+      }
+    },
+    {
+      "id": "roux",
+      "label": "Roux",
+      "rand": 19,
+      "color": {
+        "humain": "Roux",
+        "halfling": "Chocolat",
+        "nain": "Brun roux",
+        "haut-elfe": "Roux",
+        "elfe-sylvain": "Ébène",
+        "gnome": "Blond platine",
+        "ogre": "Noir de jais"
+      }
+    },
+    {
+      "id": "gris",
+      "label": "Gris",
+      "rand": 20,
+      "color": {
+        "humain": "Gris",
+        "halfling": "Réglisse",
+        "nain": "Noir",
+        "haut-elfe": "Noir",
+        "elfe-sylvain": "Noir bleuté",
+        "gnome": "Blanc",
+        "ogre": "Bleu nuit"
+      }
     }
-  },
-  {
-    "id": "blond-roux",
-    "type": "hairs",
-    "label": "Blond roux",
-    "rand": 4,
-    "randByRace": {
-      "gnome": 6
-    },
-    "color": {
-      "humain": "Blond roux",
-      "halfling": "Roussâtre",
-      "nain": "Blond pâle",
-      "haut-elfe": "Blond pâle",
-      "elfe-sylvain": "Or rose",
-      "gnome": "Brun",
-      "ogre": "Blond cendré"
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Cheveux (2d10). Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40, borné par les ancres data-folio 37 et 41), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 — d'où randByRace.gnome sur « blond-roux » (6) et « brun-dore » (10) (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) ⇒ pas de randByRace.ogre (#423)."
-    }
-  },
-  {
-    "id": "brun-dore",
-    "type": "hairs",
-    "label": "Brun doré",
-    "rand": 7,
-    "randByRace": {
-      "gnome": 10
-    },
-    "color": {
-      "humain": "Brun doré",
-      "halfling": "Miel",
-      "nain": "Doré",
-      "haut-elfe": "Blond",
-      "elfe-sylvain": "Blond miel",
-      "gnome": "Brun pâle",
-      "ogre": "Marron clair"
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Cheveux (2d10). Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40, borné par les ancres data-folio 37 et 41), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 — d'où randByRace.gnome sur « blond-roux » (6) et « brun-dore » (10) (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) ⇒ pas de randByRace.ogre (#423)."
-    }
-  },
-  {
-    "id": "brun-clair",
-    "type": "hairs",
-    "label": "Brun clair",
-    "rand": 11,
-    "color": {
-      "humain": "Brun clair",
-      "halfling": "Châtaigne",
-      "nain": "Cuivre",
-      "haut-elfe": "Blond intense",
-      "elfe-sylvain": "Brun",
-      "gnome": "Auburn",
-      "ogre": "Lie de vin"
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Cheveux (2d10). Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40, borné par les ancres data-folio 37 et 41), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 — d'où randByRace.gnome sur « blond-roux » (6) et « brun-dore » (10) (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) ⇒ pas de randByRace.ogre (#423)."
-    }
-  },
-  {
-    "id": "brun-fonce",
-    "type": "hairs",
-    "label": "Brun foncé",
-    "rand": 14,
-    "color": {
-      "humain": "Brun foncé",
-      "halfling": "Gingembre",
-      "nain": "Bronze",
-      "haut-elfe": "Blond cuivré",
-      "elfe-sylvain": "Brun acajou",
-      "gnome": "Roux",
-      "ogre": "Marron foncé"
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Cheveux (2d10). Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40, borné par les ancres data-folio 37 et 41), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 — d'où randByRace.gnome sur « blond-roux » (6) et « brun-dore » (10) (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) ⇒ pas de randByRace.ogre (#423)."
-    }
-  },
-  {
-    "id": "noir",
-    "type": "hairs",
-    "label": "Noir",
-    "rand": 17,
-    "color": {
-      "humain": "Noir",
-      "halfling": "Moutarde",
-      "nain": "Brun",
-      "haut-elfe": "Blond ambré",
-      "elfe-sylvain": "Brun foncé",
-      "gnome": "Blond roux",
-      "ogre": "Noir"
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Cheveux (2d10). Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40, borné par les ancres data-folio 37 et 41), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 — d'où randByRace.gnome sur « blond-roux » (6) et « brun-dore » (10) (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) ⇒ pas de randByRace.ogre (#423)."
-    }
-  },
-  {
-    "id": "auburn",
-    "type": "hairs",
-    "label": "Auburn",
-    "rand": 18,
-    "color": {
-      "humain": "Auburn",
-      "halfling": "Amande",
-      "nain": "Brun foncé",
-      "haut-elfe": "Auburn",
-      "elfe-sylvain": "Brun clair",
-      "gnome": "Bond doré",
-      "ogre": "Charbon"
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Cheveux (2d10). Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40, borné par les ancres data-folio 37 et 41), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 — d'où randByRace.gnome sur « blond-roux » (6) et « brun-dore » (10) (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) ⇒ pas de randByRace.ogre (#423). La couleur gnome « Bond doré » est le verbatim source (coquille probable, conservée règle 5)."
-    }
-  },
-  {
-    "id": "roux",
-    "type": "hairs",
-    "label": "Roux",
-    "rand": 19,
-    "color": {
-      "humain": "Roux",
-      "halfling": "Chocolat",
-      "nain": "Brun roux",
-      "haut-elfe": "Roux",
-      "elfe-sylvain": "Ébène",
-      "gnome": "Blond platine",
-      "ogre": "Noir de jais"
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Cheveux (2d10). Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40, borné par les ancres data-folio 37 et 41), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 — d'où randByRace.gnome sur « blond-roux » (6) et « brun-dore » (10) (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) ⇒ pas de randByRace.ogre (#423)."
-    }
-  },
-  {
-    "id": "gris",
-    "type": "hairs",
-    "label": "Gris",
-    "rand": 20,
-    "color": {
-      "humain": "Gris",
-      "halfling": "Réglisse",
-      "nain": "Noir",
-      "haut-elfe": "Noir",
-      "elfe-sylvain": "Noir bleuté",
-      "gnome": "Blanc",
-      "ogre": "Bleu nuit"
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Cheveux (2d10). Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40, borné par les ancres data-folio 37 et 41), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 — d'où randByRace.gnome sur « blond-roux » (6) et « brun-dore » (10) (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) ⇒ pas de randByRace.ogre (#423)."
-    }
-  }
-]
+  ]
+}

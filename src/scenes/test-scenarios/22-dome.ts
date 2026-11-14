@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from './_heros';
 import { makeSorceress } from './_casters';
 import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
@@ -33,7 +33,7 @@ const SORTS_ILYANWE = ['dome', 'bouclier-anti-fleches', 'flechette', 'lumiere'];
 function groupe(idNeuf: FabriqueDId) {
   const sorciere = makeSorceress(idNeuf, 'sorciere', 'Ilyanwe la Voilée', { ...HERO_START });
   sorciere.spells = [...SORTS_ILYANWE];
-  const protegee = pregen(idNeuf, PREGEN.soldat);
+  const protegee = herosDeScenario(idNeuf, 'soldat');
   protegee.id = 'protegee';
   // Un nom, rien de plus : la couverture par le dôme est CALCULÉE par le moteur au moment du coup, un
   // nom qui l'écrirait la peindrait avant le lancer.
@@ -68,7 +68,7 @@ export const scenario: TestScenario = {
   id: 'dome',
   order: 20,
   category: 'magie',
-  icon: 'scenario/magic',
+  icon: 'scenario/magie',
   // LDB 47 l.410
   title: 'Dôme — la sauvegarde octroyée par une zone',
   tests:

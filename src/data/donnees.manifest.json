@@ -21,9 +21,10 @@
         },
         {
           "files": [
-            "talents.json"
+            "talents.json",
+            "talents-aleatoires.json"
           ],
-          "desc": "Talents"
+          "desc": "Talents · Tableau des Talents aléatoires (d100)"
         },
         {
           "files": [
@@ -33,9 +34,10 @@
         },
         {
           "files": [
-            "careers.json"
+            "careers.json",
+            "carrieres-aleatoires.json"
           ],
-          "desc": "Carrières"
+          "desc": "Carrières · Tableau des Classes et Carrières aléatoires (d100)"
         },
         {
           "files": [
@@ -57,9 +59,11 @@
         },
         {
           "files": [
-            "species.json"
+            "species.json",
+            "especes-aleatoires.json",
+            "mutation-nature.json"
           ],
-          "desc": "Espèces jouables + variantes régionales"
+          "desc": "Espèces jouables + variantes régionales · Tableau des Races aléatoires (d100) · Tableau corps ou esprit de la mutation, par race (d100)"
         },
         {
           "files": [
@@ -83,7 +87,7 @@
           "files": [
             "pregens.json"
           ],
-          "desc": "Personnages prétirés"
+          "desc": "Prétirés officiels : fiches imprimées figées des livres de campagne"
         },
         {
           "files": [
@@ -155,13 +159,13 @@
           "files": [
             "arcane-phenomena.json"
           ],
-          "desc": "Magie ENVIRONNEMENTALE (VDM 14, folios 189-199) : paliers de Saturation, Effets de Saturation par Vent, phénomènes arcaniques (lignes de force, pierres gardiennes, Grand Vortex, nexus, appuis arcaniques, Tempête de Magie, Corruption), tables de Corruption chaotique/nécromantique et de Flux magique — option `magic-vdm-environnementale`"
+          "desc": "Magie ENVIRONNEMENTALE (VDM 14, folios 189-199) : paliers de Saturation, Effets de Saturation par Vent, phénomènes arcaniques (lignes de force, pierres gardiennes, Grand Vortex, nexus, appuis arcaniques, Tempête de Magie, Corruption), tables de Corruption chaotique/nécromantique et de Flux magique — option `magie-vdm-environnementale`"
         },
         {
           "files": [
             "surincantation.json"
           ],
-          "desc": "TABLEAU DE SURINCANTATION (VDM 02 l.207-215, folio 23) : palier de DR dépensés sur une colonne → Cible additionnelle, Dégât en plus, Portée/ZdE/Durée multipliées — lu par `src/engine/overcast.ts` sous l'option `magic-vdm-incantation`"
+          "desc": "TABLEAU DE SURINCANTATION (VDM 02 l.207-215, folio 23) : palier de DR dépensés sur une colonne → Cible additionnelle, Dégât en plus, Portée/ZdE/Durée multipliées — lu par `src/engine/overcast.ts` sous l'option `magie-vdm-incantation`"
         }
       ]
     },
@@ -198,6 +202,24 @@
             "maneuvers.json"
           ],
           "desc": "Manœuvres (attaques spéciales : morsure, souffle…)"
+        },
+        {
+          "files": [
+            "dispersion.json"
+          ],
+          "desc": "Diagramme de Dispersion (d10)"
+        },
+        {
+          "files": [
+            "tableau-capricieux.json"
+          ],
+          "desc": "Table Capricieux (d10)"
+        },
+        {
+          "files": [
+            "reaction-au-statut.json"
+          ],
+          "desc": "Réaction au Statut (d10)"
         },
         {
           "files": [
@@ -406,9 +428,10 @@
         },
         {
           "files": [
-            "cargoes.json"
+            "cargoes.json",
+            "cargaisons-aleatoires.json"
           ],
-          "desc": "Catalogue des cargaisons, une table par voie : maritime (MDG 15) et terrestre/fluviale (MSRC 13)"
+          "desc": "Catalogue des cargaisons, maritime (MDG 15) et terrestre/fluviale (MSRC 13) · Tableau des cargaisons (d100), un document par voie et saison"
         },
         {
           "files": [
@@ -432,13 +455,13 @@
           "files": [
             "merchants.json"
           ],
-          "desc": "Archétypes de marchand (#2) — catalogue par familles `category.types`/`subTypes`, Disponibilité/Statut/`unitKinds` (bêtes/véhicules vendus, dérivés de `creatures`/`vehicles` à facette `purchase`) ; aucun archétype en dur dans le code, `merchantArchetypeById` (`data/index.ts`) indexe ce registre"
+          "desc": "Archétypes de marchand (#2) — catalogue par familles `category.types`/`subTypes`, Disponibilité/Statut/`unitKinds` (bêtes/véhicules vendus, dérivés de `creatures`/`vehicles` à facette `purchase`) ; aucun archétype en dur dans le code, `findMerchantArchetypeById` (`data/index.ts`) indexe ce registre"
         },
         {
           "files": [
             "merchantFamilies.json"
           ],
-          "desc": "Familles de PRÉSENTATION du stock marchand (onglets `ui/MerchantPanel.tsx`) — ordre d'affichage, règle de classement `match` (unit/shield/categorie/fallback) et `columns` de stats à afficher, résolues contre le registre fixe `MERCHANT_COL_RENDERERS`"
+          "desc": "Familles de PRÉSENTATION du stock marchand (onglets `ui/MerchantPanel.tsx`) — ordre d'affichage, règle de classement `match` (unit/shield/categorie/fallback) et `columns` de stats à afficher, ids du vocabulaire `colonnesDuMarchand` (`grammaire/vocabulaires.ts`)"
         }
       ]
     },

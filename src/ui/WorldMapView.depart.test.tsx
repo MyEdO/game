@@ -78,7 +78,7 @@ describe('WorldMapView — le départ lit `refusDeDepart`', () => {
   });
 
   it('en selle (EDOC 07 l.140) : les nuits en route se comptent aussi au devis', async () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     try {
       const h = marcheur();
       const palefroi: Possession = { uid: 'm1', ownerId: h.id, nature: 'bete', ref: { id: 'cheval-de-monte' }, location: { kind: 'avec-le-groupe' }, items: [] };
@@ -87,7 +87,7 @@ describe('WorldMapView — le départ lit `refusDeDepart`', () => {
       await act(async () => { enSelle.click(); });
       expect(container.textContent).toContain('Rations pour les nuits : 3 (le groupe en porte 10)');
     } finally {
-      resetRule('travel-allures');
+      resetRule('voyage-allures');
       useGame.setState({ possessions: [] });
     }
   });
@@ -105,7 +105,7 @@ describe('WorldMapView — le départ lit `refusDeDepart`', () => {
   });
 
   it('siège invité : le bouton est fermé, « L’hôte décide des départs. »', async () => {
-    useGame.setState({ net: { ...useGame.getState().net, mode: 'guest' } });
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'invite' } });
     await choisirBourgB({}, [marcheur()]);
     expect(depart().getAttribute('aria-disabled')).toBe('true');
     expect(raison()).toBe('L’hôte décide des départs.');

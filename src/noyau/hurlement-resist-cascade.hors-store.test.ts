@@ -1,7 +1,7 @@
 /**
  * PROBE — Hurlement fantomatique (LDB 85, `defense:'resist'`) sur un héros MANUEL : le « Test de
  * Résistance ou Brisé » est un nœud Flow `test` dans `def.effects` (maneuvers.json), routé par
- * `routeTriggeredTest` → étape de cascade `triggeredTest` INFLUENÇABLE. VÉRIFIE que le chemin RÉEL (attaque
+ * `routeTriggeredTest` → étape de cascade `testDeclenche` INFLUENÇABLE. VÉRIFIE que le chemin RÉEL (attaque
  * gratuite IA → `aiCreatureFreeAttacks`) : (1) ouvre l'étape influençable (Brisé DIFFÉRÉ), (2) SUSPEND
  * le tour, (3) reprend proprement à la fermeture (pas de double, pas d'orphelin).
  */
@@ -27,16 +27,16 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
     banc.setState({ party: [H1, H2] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     banc.getState().ensemencerLeTirage(2);
     const b = banc.getState().battle!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     E.traits = [{ id: 'hurlement-fantomatique' }]; E.advantage = 4; E.characteristics.initiative = 40; // portée 20 m
     E.pos = { x: 5, y: 5 };
-    for (const h of b.combatants.filter((c) => c.kind === 'hero')) {
+    for (const h of b.combatants.filter((c) => c.kind === 'heros')) {
       h.wounds = blessuresDeBase(40, 40, h);
       h.characteristics.endurance = 1; // Résistance minime → échec quasi certain → Brisé attendu sur validation
       h.skills = h.skills.filter((s) => s.id !== 'resistance');
@@ -57,13 +57,13 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
     const p = banc.getState().pendingCascade;
     expect(p, 'une cascade de Test de Résistance doit être ouverte').toBeTruthy();
     expect(p!.purpose).toBe('combat');
-    // (1) étapes `triggeredTest` influençables (Résistance), non encore lancées (result falsy).
-    const tt = p!.participants.filter((s) => s.kind === 'triggeredTest');
+    // (1) étapes `testDeclenche` influençables (Résistance), non encore lancées (result falsy).
+    const tt = p!.participants.filter((s) => s.kind === 'testDeclenche');
     expect(tt.length, 'une étape de Résistance influençable par héros vivant').toBeGreaterThanOrEqual(1);
     for (const s of tt) { expect(s.result).toBeFalsy(); expect(s.target).toBeGreaterThan(0); }
     // Brisé DIFFÉRÉ : aucun héros n'est encore Brisé (les 1d10 auto sont appliqués, pas le Brisé).
     const live = () => banc.getState().battle!.combatants;
-    for (const h of live().filter((c) => c.kind === 'hero')) {
+    for (const h of live().filter((c) => c.kind === 'heros')) {
       expect(h.conditions.some((c) => c.id === 'brise'), `${h.label} ne doit PAS être Brisé avant validation`).toBe(false);
     }
 
@@ -72,13 +72,13 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
     // (3) reprise propre : cascade fermée (pas d'orphelin).
     expect(banc.getState().pendingCascade, 'la cascade doit se fermer proprement').toBeNull();
     // Brisé appliqué sur échec de Résistance + Assourdi (continuation `after`).
-    const brise = live().filter((c) => c.kind === 'hero' && c.conditions.some((x) => x.id === 'brise'));
+    const brise = live().filter((c) => c.kind === 'heros' && c.conditions.some((x) => x.id === 'brise'));
     expect(brise.length, 'Résistance ratée → Brisé appliqué à la validation').toBeGreaterThanOrEqual(1);
   });
 
   it('après l’ATTAQUE PRINCIPALE : le Hurlement gratuit APPEND ses Tests DERRIÈRE l’étape défense — le curseur AVANCE (anti soft-lock)', () => {
-    // Séquence PRODUCTION : attaque de mêlée (étape `defenseJet` résolue) → `jetValider('defense')` →
-    // `aiCreatureFreeAttacks` → Hurlement gratuit → son nœud `test` APPEND des `triggeredTest` DERRIÈRE
+    // Séquence PRODUCTION : attaque de mêlée (étape `jetDeDefense` résolue) → `jetValider('defense')` →
+    // `aiCreatureFreeAttacks` → Hurlement gratuit → son nœud `test` APPEND des `testDeclenche` DERRIÈRE
     // la défense (via pushCombatStep, ≠ maybeOpenDefense qui REMPLACE). Sans avance du curseur, la fenêtre
     // reste bloquée sur la défense résolue (pendingDefense null → `useDefenseJetProps` rend null = vide).
     const { E } = setup();
@@ -101,7 +101,7 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
         mode: 'esquive', def: { roll: 30, target: 40, success: true, sl: 1, isDouble: false }, result,
         suite: { mode: 'machine', coup: {} },
       } as never,
-      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: H1.id }], { title: 'Défense', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: H1.id }], { title: 'Défense', purpose: 'combat' }),
     });
     banc.getState().jetValider('defense');
 
@@ -111,7 +111,7 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
     // ANTI SOFT-LOCK : le curseur n'est PAS resté sur l'étape défense résolue.
     const cur = p!.participants[p!.cursor];
     expect(cur?.jet, `le curseur ne doit pas rester sur la défense résolue (jet=${cur?.jet})`).not.toBe('defense');
-    expect(cur?.kind, 'le curseur pointe une étape RÉSOLUBLE (Test de Résistance influençable)').toBe('triggeredTest');
+    expect(cur?.kind, 'le curseur pointe une étape RÉSOLUBLE (Test de Résistance influençable)').toBe('testDeclenche');
     expect(cur?.result, 'Test de Résistance non encore lancé (influençable)').toBeFalsy();
     // La cascade porte bien le tag de reprise du tour de la créature.
     expect(p!.maneuverResume?.attackerId).toBe(E.id);

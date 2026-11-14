@@ -44,11 +44,11 @@ import { t } from '../i18n';
 import { rule } from '../engine/policy';
 
 /** Test de scène (LDB 12) : réussite / échec / réussite garantie par Résilience. Le DR figure déjà
- *  dans le breakdown au-dessus — l'issue reste une phrase courte. */
-export function describeTest(pt: PendingTest): string {
+ *  dans le breakdown au-dessus — l'issue reste une phrase courte. `name` = l'acteur. */
+export function describeTest(pt: PendingTest, name: string): string {
   if (pt.roll == null) return '';
-  if (pt.forced) return t('out.testForced', { name: pt.actorName });
-  return pt.success ? t('out.testSuccess', { name: pt.actorName }) : t('out.testFail', { name: pt.actorName });
+  if (pt.forcee) return t('out.testForced', { name });
+  return pt.success ? t('out.testSuccess', { name }) : t('out.testFail', { name });
 }
 
 /**
@@ -56,12 +56,12 @@ export function describeTest(pt: PendingTest): string {
  * mécanique nouvelle). Retourne `null` quand il n'y a rien à afficher : règle coupée, avant le jet, sans double,
  * ou sur une réussite FORCÉE par Résilience (le « double » n'a pas eu lieu sur un vrai dé). */
 export function amazingTestLabel(pt: PendingTest): { success: boolean; text: string } | null {
-  if (!rule('test-critiques-doubles') || pt.roll == null || !pt.isDouble || pt.forced) return null;
+  if (!rule('test-critiques-doubles') || pt.roll == null || !pt.isDouble || pt.forcee) return null;
   return { success: pt.success, text: pt.success ? t('out.amazingSuccess') : t('out.amazingFail') };
 }
 
 // (Psychologie EN COMBAT : PLUS de `describePsych` — l'issue des étapes de la cascade de Round est
-//  produite par l'applier 'combatPsych' (noyau/combatFlow), comme la psy de rencontre.)
+//  produite par l'applier 'psychologieDeCombat' (noyau/combatFlow), comme la psy de rencontre.)
 
 /** Psychologie À LA RENCONTRE, hors combat (couture C) : Trait ciblé social, Terreur ou Peur face à
  *  une source nommée. `name` = héros concerné. */
@@ -82,22 +82,22 @@ export function describeEncounterPsych(pe: PendingEncounterPsych, name: string):
  *  raccourcie —, dérivée des MÊMES calculs que l'application avec les MÊMES paramètres déclarés (Test, Bandages) :
  *  `cappedHealAmount` (#473 : plafond des munitions Empaleuses logées) et `arretDHemorragie` (plafond aux États
  *  portés par `target`). */
-export function describeHeal(ph: PendingHeal, target: Combatant): string {
+export function describeHeal(ph: PendingHeal, target: Combatant, name: string): string {
   if (ph.roll == null) return '';
-  const wounds = ph.mode === 'wounds';
-  const trauma = ph.mode === 'trauma';
-  const ammo = ph.mode === 'ammo';
+  const wounds = ph.mode === 'blessures';
+  const trauma = ph.mode === 'traumatisme';
+  const ammo = ph.mode === 'munition';
   const rawPreview = wounds ? healWoundsDelta(ph.intBonus, ph.sl, ph.success) : 0;
   const preview = wounds ? cappedHealAmount(target, rawPreview) : rawPreview;
   if (ph.success) {
-    if (wounds) return t('out.healWounds', { name: ph.targetName, n: preview });
-    if (trauma) return t('out.healTrauma', { name: ph.targetName, n: 1 + Math.max(0, ph.sl) });
-    if (ammo) return t('out.healAmmo', { name: ph.targetName });
-    return t('out.healBleed', { n: arretDHemorragie(target, ph.sl, true, parametresDuSoin(ph)).removed, name: ph.targetName });
+    if (wounds) return t('out.healWounds', { name, n: preview });
+    if (trauma) return t('out.healTrauma', { name, n: 1 + Math.max(0, ph.sl) });
+    if (ammo) return t('out.healAmmo', { name });
+    return t('out.healBleed', { n: arretDHemorragie(target, ph.sl, true, parametresDuSoin(ph)).removed, name });
   }
   return wounds && ph.intBonus + ph.sl < 0
-    ? t('out.healHarm', { name: ph.targetName, n: ph.intBonus + ph.sl })
-    : t('out.healNone', { name: ph.targetName });
+    ? t('out.healHarm', { name, n: ph.intBonus + ph.sl })
+    : t('out.healNone', { name });
 }
 
 /** Exposition à une Influence corruptrice (LDB 19) ou Test de seuil : issue de la popin. La VALIDATION
@@ -173,7 +173,7 @@ export function describeBargain(pb: PendingBargain): string {
   if (!won && drNet >= SL_ASTOUNDING) return t('out.bargainSuspicious', { who: pb.opposant.label });
   const c = pb.contrepartie;
   if (c.kind === 'billet') return won ? t('out.bargainWonBillet') : t('out.bargainLostBillet');
-  if (c.mode === 'sell') return verdictDeVente({ won, drNet, negotiator: pb.negotiator });
+  if (c.mode === 'vente') return verdictDeVente({ won, drNet, negotiator: pb.negotiator });
   return won ? t('out.bargainWonBuy', { discount: t('out.fragDiscount', { pct: bargainPct(won, drNet, pb.negotiator) }) }) : t('out.bargainLostBuy');
 }
 
@@ -185,22 +185,22 @@ export function verdictDeVente(o: BargainOutcome): string {
 }
 
 /** Évaluation / Détection d'artefact (LDB 59 l.41 / 10 l.310-312) : issue de la popin. La VALIDATION
- *  applique la révélation + l'estimation chiffrée à part (jetValider('appraise')). */
-export function describeAppraise(pa: PendingAppraise): string {
+ *  applique la révélation + l'estimation chiffrée à part (jetValider('evaluation')). `name` = l'évaluateur. */
+export function describeAppraise(pa: PendingAppraise, name: string): string {
   if (pa.roll == null) return '';
-  const detect = pa.mode === 'detect';
+  const detect = pa.mode === 'detection';
   if (detect) {
     return pa.success
-      ? t('out.detectSomething', { name: pa.actorName, item: pa.itemName })
-      : t('out.detectNothing', { name: pa.actorName });
+      ? t('out.detectSomething', { name, item: pa.itemName })
+      : t('out.detectNothing', { name });
   }
   return pa.success
-    ? t('out.appraiseRevealed', { name: pa.actorName, item: pa.itemName })
-    : t('out.appraiseNone', { name: pa.actorName, item: pa.itemName });
+    ? t('out.appraiseRevealed', { name, item: pa.itemName })
+    : t('out.appraiseNone', { name, item: pa.itemName });
 }
 
 /** Approche d'une source de Peur (LDB 21 l.27) : issue du Test `calme-d-approche` (popin). Le fil journalise la
- *  conséquence (gate d'approche du Tour) à part. `name` = combattant ; `sourceName` = source de Peur. */
+ *  conséquence (gate d'approche du Tour) à part. */
 export function describeApproach(pa: PendingApproach): string {
   if (!pa.result) return '';
   return pa.result.success ? t('out.approachYes') : t('out.approachNo');
@@ -235,10 +235,10 @@ export function describeStateRecovery(sr: PendingStateRecovery, name: string): s
 }
 
 /** Rechargement = Test étendu de Projectiles (LDB 62 l.335) : issue (source unique popin ↔ journal).
- *  `after` = DR cumulé après ce jet (plafond 0). `weaponName` = NOM résolu de l'arme (uid → nom à l'appel). */
-export function describeReload(pr: PendingReload, after: number, weaponName: string): string {
+ *  `after` = DR cumulé après ce jet (plafond 0). `weaponName` = NOM résolu de l'arme (uid → nom à l'appel), `name` = le tireur. */
+export function describeReload(pr: PendingReload, name: string, after: number, weaponName: string): string {
   if (pr.roll == null) return '';
-  return after >= pr.reload ? t('out.reloadDone', { weapon: weaponName }) : t('out.reload', { name: pr.actorName, weapon: weaponName, after, reload: pr.reload });
+  return after >= pr.reload ? t('out.reloadDone', { weapon: weaponName }) : t('out.reload', { name, weapon: weaponName, after, reload: pr.reload });
 }
 
 /** Focalisation = Test étendu (LDB 46) : issue de la fenêtre de jet. La PROGRESSION (DR du Round,
@@ -268,11 +268,11 @@ export function describeBattement(pb: PendingBattement, attackerName: string, fo
     : t('manv.battementFail', { name: attackerName, foe: foeName });
 }
 
-/** Distraire (LDB 10 l.364) : verdict du Test opposé Athlétisme vs Calme. Victoire (`success`) → le foe
- *  est distrait ; 'tie'/'failure' → rien. Popin = MÊME phrase que la ligne de journal (`manv.distraire*`). */
+/** Distraire (LDB 10 l.364) : verdict du Test opposé Athlétisme vs Calme. Victoire (`reussite`) → le foe
+ *  est distrait ; `egalite`/`echec` → rien. Popin = MÊME phrase que la ligne de journal (`manv.distraire*`). */
 export function describeDistraire(pd: PendingDistraire, moverName: string, foeName: string): string {
   if (pd.result == null) return '';
-  return pd.result === 'success'
+  return pd.result === 'reussite'
     ? t('manv.distraire', { name: moverName, foe: foeName })
     : t('manv.distraireFail', { name: moverName, foe: foeName });
 }
@@ -280,16 +280,16 @@ export function describeDistraire(pd: PendingDistraire, moverName: string, foeNa
 /** Désengagement (LDB 15-Dépl) — phase 'esquive' : verdict du Test opposé d'Esquive (popin). Le fil
  *  journalise la conséquence (Avantage, libération des Engagements) à part. */
 export function describeDisengage(pd: PendingDisengage): string {
-  return pd.result === 'success'
+  return pd.result === 'reussite'
     ? t('out.disengageSuccess')
-    : pd.result === 'tie'
+    : pd.result === 'egalite'
       ? t('out.disengageTie')
       : t('out.disengageFail');
 }
 
 /** Désengagement — phase 'fuir' : issue du coup dans le dos + Test `fuite`, montrée INLINE (popin).
  *  Les deux jets sont INFLUENÇABLES (slots `backstab`/`touche`) ; l'État Brisé (LDB 15 l.66) est
- *  calculé ici pour la narration, appliqué par `jetValider('flee')`. Jet manquant → issue
+ *  calculé ici pour la narration, appliqué par `jetValider('fuite')`. Jet manquant → issue
  *  indéterminée à ce stade (chaîne vide). */
 export function describeDisengageFlee(pd: PendingDisengage): string {
   const res = fleeBackstab(pd)?.result;

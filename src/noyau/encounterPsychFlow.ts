@@ -7,11 +7,12 @@
  * « Une situation = une modale » (#1117 L1) : une BANDE par entrée de règle mise en jeu — une fenêtre
  * « Animosité (Elfes) », une « Terreur »… — dont la DÉCLARATION (type psy, source, cible, Indice) vit
  * sur l'ÉTAPE et dont les héros concernés sont les RANGÉES (`BatchParticipant`, jets INDÉPENDANTS
- * `aggregate:'none'`). Le jet est le Test de Calme GÉNÉRIQUE de la bande (`FLOWS.cascadeBatch` →
+ * `aggregate:'none'`). Le jet est le Test de Calme GÉNÉRIQUE de la bande (`FLOWS.cascadeEnBande` →
  * `rollTest(Calme)`, kind-agnostique) ; la CONSÉQUENCE (psychState, Brisé de Terreur dérivé du DR)
- * vit dans l'applier `'encounterPsych'`, appliquée RANGÉE PAR RANGÉE. La Détermination (immunité,
+ * vit dans l'applier `'psychologieDeRencontre'`, appliquée RANGÉE PAR RANGÉE. La Détermination (immunité,
  * LDB 17 l.59) est offerte dans la fenêtre de la bande (`fenetreDeDetermination`), jouée par `depenserLaDetermination`.
  */
+import type { IconId } from '../data/icons';
 import type { PlayerText } from '../i18n/playerText';
 import type { Get, Set } from './flowTypes';
 import { Combatant } from '../engine/types';
@@ -19,10 +20,28 @@ import { Scene } from './monde/scene';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import { ficheDEntite, nomDIndividu } from './monde/sceneNpc';
 import { presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
+import { enEmbuscade } from './visionDuGroupe';
 import { etiquetteDeScene } from './monde/porteurs';
 import { encounterPsych } from '../engine/encounterPsych';
 import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
-import { cibleLabel, idDeSource, libelleDeSource, sourceCombattant, type SourceEnVue, PsychType, psychTest, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych, sansPeurFace } from '../engine/psychology';
+import {
+  cibleLabel,
+  idDeSource,
+  libelleDeSource,
+  sourceCombattant,
+  type SourceEnVue,
+  PsychType,
+  psychTest,
+  failConditionAmount,
+  psychResolution,
+  psychBranchOps,
+  psychBranchFlow,
+  supersededLines,
+  isPsychImmune,
+  refreshAllDefendedPsych,
+  endEncounterPsych,
+  sansPeurFace,
+} from '../engine/psychology';
 import { refLabel, combatStakeRef } from '../data';
 import { applyOps } from '../engine/ops';
 import { t } from '../i18n';
@@ -43,7 +62,7 @@ export interface PendingEncounterPsych {
   heroId: string;
   kind: PsychType;
   sourceId: string;
-  sourceName: string;
+  sourceName: PlayerText;
   indice: number;
   cible?: CiblePsy;
   result: { success: boolean; brise?: number; sl?: number } | null;
@@ -54,20 +73,20 @@ export interface PendingEncounterPsych {
  *  Un embusqueur caché n'inspire pas la Peur avant le combat. */
 export function sceneFearSources(scene: Scene, presetDe: ResolveurDePreset): Combatant[] {
   return (scene.entities ?? [])
-    .filter((e) => e.kind === 'personnage' && !e.combat?.hiddenUntilCombat)
+    .filter((e) => e.kind === 'personnage' && !enEmbuscade(e))
     .map((e) => ficheDEntite(e, presetDe));
 }
 
 /** Les sources de Peur/Terreur de la scène en cours (`sceneFearSources`) ; aucune hors scène. */
 const sourcesDeLaScene = (s: ReturnType<Get>): Combatant[] => (s.scene ? sceneFearSources(s.scene, presetDuNarratif(s.campaignNarratif)) : []);
 
-/** DÉCLARATION COMMUNE d'une bande — telle qu'elle vit sur l'ÉTAPE (`CascadeStep.encounterPsych`). */
-type PsychBandDecl = NonNullable<CascadeStep['encounterPsych']>;
+/** DÉCLARATION COMMUNE d'une bande — telle qu'elle vit sur l'ÉTAPE (`CascadeStep.psychologieDeRencontre`). */
+type PsychBandDecl = NonNullable<CascadeStep['psychologieDeRencontre']>;
 
 /** Un Test DÛ par un héros, avant regroupement : le héros, la déclaration de règle qui l'appelle, la
  *  présentation qui en découle (icône/libellé — communes à toute la bande), et Sans Peur (Ennemi), qui
  *  diverge par héros (`sansPeurFace`). */
-interface PsychDue { hero: Combatant; decl: PsychBandDecl; icon: string; label: PlayerText; sansPeur?: boolean }
+interface PsychDue { hero: Combatant; decl: PsychBandDecl; icon: IconId; label: PlayerText; sansPeur?: boolean }
 
 /** RANGÉE d'une bande : le Test de CE héros, `psychTest` (mêmes données que le combat), monté par le
  *  monteur canonique (`rollStep`) : base nue, pénalité d'États nommée (LDB 16 l.90, l.125), cible bornée. */
@@ -97,10 +116,10 @@ const psychBands = makeBandFactory<PsychDue>({
   cle: ({ decl: d }) => `${d.sourceId}|${identiteDeCiblage(d.kind, d.cible)}|${d.indice}`,
   rangee: (due) => psychRow(due.hero, due.decl.kind, !!due.sansPeur),
   situation: ({ decl: d, icon, label }, { index }) => ({
-    id: `psych-${d.kind}-${index}`, kind: 'encounterPsych', icon, label,
-    encounterPsych: d,
+    id: `psych-${d.kind}-${index}`, kind: 'psychologieDeRencontre', icon, label,
+    psychologieDeRencontre: d,
     contexte: 'psych', // ADE II 09 l.33 ; LDB 21 l.9
-    stake: combatStakeRef('encounter-psych', { entryId: d.kind, values: { indice: d.indice } }),
+    stake: combatStakeRef('rencontre-psychologie', { entryId: d.kind, values: { indice: d.indice } }),
     // Les DEUX issues, dérivées des ops que l'applier appliquera (`psychBranchOps`) : la surface
     // les rend en chips codex-liées avant le jet, et le verdict est le MÊME bloc filtré (#1117).
     meta: { onSuccess: psychBranchFlow(d, true), onFail: psychBranchFlow(d, false) },
@@ -140,20 +159,20 @@ export function openEncounterPsych(get: Get, set: Set): void {
     dues.push({
       hero, sansPeur: sansPeurFace(hero, trig.kind, src),
       decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: libelleDeSource(src), indice: trig.indice, cible: trig.cible },
-      icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
+      icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/hurlement' : 'drapeau/peur'),
       label: cl
         ? libelleDePsy(trig.kind, trig.cible, nomDIndividu(s))
-        : stepDetail(stepPsych(trig.kind, trig.indice), dataLabel(libelleDeSource(src), '?')),
+        : stepDetail(stepPsych(trig.kind, trig.indice), libelleDeSource(src) || dataLabel(undefined, '?')),
     });
   }
   const steps = psychBands(dues);
   if (!steps.length) return;
-  startCascade(get, set, { title: 'Sang-froid', icon: 'flag/fear', purpose: 'test', steps });
+  startCascade(get, set, { title: 'Sang-froid', icon: 'drapeau/peur', purpose: 'test', steps });
 }
 
 /** Ouvre la bande des Tests de Calme pour une source de PEUR/TERREUR SCÉNIQUE (Effet d'auteur
  *  `inflictPsychology` — apparition, présage, vision d'horreur), sur la MÊME machinerie que
- *  `openEncounterPsych` (applier `'encounterPsych'` partagé) — `sceneFearSources`/`encounterPsych` restent
+ *  `openEncounterPsych` (applier `'psychologieDeRencontre'` partagé) — `sceneFearSources`/`psychologieDeRencontre` restent
  *  réservés aux PNJ de la scène (Peur/Terreur EXCLUES hors combat par design, cf. `engine/encounterPsych` :
  *  cet Effet est le seul déclencheur volontaire de l'auteur, pas une ré-activation automatique). No-op en
  *  combat ou si une cascade est déjà ouverte. */
@@ -161,25 +180,25 @@ export function openScriptedPsych(get: Get, set: Set, kind: 'peur' | 'terreur', 
   const s = get();
   if (s.battle || s.pendingCascade) return;
   const sourceId = `scripted:${label}`;
-  const decl: PsychBandDecl = { kind, sourceId, sourceName: label, indice };
+  const decl: PsychBandDecl = { kind, sourceId, sourceName: dataLabel(label), indice };
   const dues: PsychDue[] = [];
   for (const hero of heroes) {
     if (hero.dead || isPsychImmune(hero)) continue;
     dues.push({
       hero, decl,
-      icon: kind === 'terreur' ? 'creature/scream' : 'flag/fear',
+      icon: kind === 'terreur' ? 'creature/hurlement' : 'drapeau/peur',
       label: stepDetail(stepPsych(kind, indice), dataLabel(label)),
     });
   }
   const steps = psychBands(dues);
   if (!steps.length) return;
-  startCascade(get, set, { title: 'Sang-froid', icon: 'flag/fear', purpose: 'test', steps });
+  startCascade(get, set, { title: 'Sang-froid', icon: 'drapeau/peur', purpose: 'test', steps });
 }
 
 /**
  * Conséquence d'un Test de Calme de rencontre POUR UNE RANGÉE : applique les `GameOp` de la branche
  * réalisée (`psychBranchOps`, dérivées de `psychology.json`) — les MÊMES ops que la surface annonce.
- * La résolution kind-agnostique (`rollTest(Calme)`) est faite par `FLOWS.cascadeBatch` ; ici on ne
+ * La résolution kind-agnostique (`rollTest(Calme)`) est faite par `FLOWS.cascadeEnBande` ; ici on ne
  * décide que de l'ISSUE et du cumul. SOURCE UNIQUE de la résolution par héros — l'applier de bande
  * l'appelle pour CHACUNE de ses rangées. Issue de modale = `describeEncounterPsych` (les lignes
  * génériques d'`applyOps` sont couvertes par ce verdict rédigé). La Terreur subie se mémorise par
@@ -194,14 +213,14 @@ function resolvePsychRow(get: Get, set: Set, hero: Combatant, ep: PsychBandDecl,
   // marqueur d'immunité lui-même : la Peur héritée d'une Terreur se pose à PLEIN Indice, NON surmontée
   // (LDB 21 l.56), sans quoi l'immunité du Round vaudrait une Peur vaincue à jamais.
   if (immune) {
-    applyOps(hero, psychBranchOps(ep, { success: true, calmeDR: ep.indice, surmontee: true }), { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'psychology', id: ep.kind } });
-    return freeCons([t('cf.psychImmune', { name: hero.label })]);
+    applyOps(hero, psychBranchOps(ep, { success: true, calmeDR: ep.indice, surmontee: true }), { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'psychologie', id: ep.kind } });
+    return freeCons([t('cf.immunitePsychologique', { name: hero.label })]);
   }
   const res = psychResolution(ep.kind); // mode + conséquences en DONNÉES (psychology.json)
   const brise = r.success ? 0 : failConditionAmount(res.failAmount, ep.indice, r.sl);
   // Le DR du jet est versé au contexte : la quantité d'État de l'échec (`valuePerSL{onFailure}` de la
   // branche) s'y résout — même arithmétique que `failConditionAmount`, une seule fois.
-  applyOps(hero, psychBranchOps(ep, { success: r.success, calmeDR: r.success ? ep.indice : 0, surmontee: r.success, sansPeur }), { idNeuf: get().forgerUnId, rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: ep.kind } });
+  applyOps(hero, psychBranchOps(ep, { success: r.success, calmeDR: r.success ? ep.indice : 0, surmontee: r.success, sansPeur }), { idNeuf: get().forgerUnId, rng: battleRng(), sl: r.sl, source: { kind: 'psychologie', id: ep.kind } });
   const pe: PendingEncounterPsych = {
     heroId: hero.id, kind: ep.kind, sourceId: ep.sourceId, sourceName: ep.sourceName, indice: ep.indice, cible: ep.cible,
     result: { success: r.success, brise, sl: r.sl },
@@ -212,7 +231,7 @@ function resolvePsychRow(get: Get, set: Set, hero: Combatant, ep: PsychBandDecl,
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['encounterPsych'] as const;
+export const GENRES_D_ETAPE = ['psychologieDeRencontre'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
@@ -220,8 +239,8 @@ export const TABLES = {
     /** Applier de BANDE : la déclaration de règle est celle de l'ÉTAPE, la conséquence se joue RANGÉE PAR
      *  RANGÉE (résultat + Détermination du porteur), et chaque verdict reste SUR SA rangée (le portrait
      *  attribue) — jamais un agrégat (`aggregate:'none'`). */
-    encounterPsych: (get, set, step) => {
-      const ep = step.encounterPsych;
+    psychologieDeRencontre: (get, set, step) => {
+      const ep = step.psychologieDeRencontre;
       if (!ep || !step.participants) return;
       for (const part of step.participants) {
         const hero = actorIn(get(), part.id);

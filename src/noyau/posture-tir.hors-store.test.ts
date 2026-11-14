@@ -28,12 +28,12 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     banc.setState({ party: [hero], screen: 'campaign' });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
+    H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never;
     H.pos = { x: 6, y: 10 };
     E.pos = { x: 12, y: 10 }; // hors de portée de contact → l'arme à distance est celle qui parle
     banc.setState({ battle: { ...banc.getState().battle!, turn: b.order.indexOf(H.id), acted: false, movementUsed: 0, movedPreAction: false } });
@@ -41,13 +41,13 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
   }
 
   const armer = () => banc.jouerLaCase('posture-tir');
-  const posturee = (id: string) => !!banc.getState().battle!.stances?.[id]?.heldGround;
+  const posturee = (id: string) => !!banc.getState().battle!.stances?.[id]?.tirImmobile;
 
   it('l’entrée du registre est VIVANTE : dispatcher + champ de posture, aucune dette déclarée', () => {
     const def = findActionById('posture-tir')!;
     expect(def.blocked, 'la posture ne se déclare plus bloquée').toBeUndefined();
     expect(def.run).toBe('basculerLaPosture');
-    expect(def.stance).toBe('heldGround');
+    expect(def.stance).toBe('tirImmobile');
   });
 
   it('la case ARME et DÉSARME la posture du combattant actif (bascule)', () => {
@@ -61,7 +61,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
 
   it('le gate PORTE SA RAISON : sans arme à distance, et une fois le Mouvement entamé', () => {
     const { H } = setup();
-    const ctx = () => ({ active: banc.getState().battle!.combatants.find((c) => c.id === H.id)!, battle: banc.getState().battle!, gameTime: banc.getState().gameTime });
+    const ctx = () => ({ scene: banc.getState().scene, active: banc.getState().battle!.combatants.find((c) => c.id === H.id)!, battle: banc.getState().battle!, gameTime: banc.getState().gameTime });
     expect(actionGate('posture-tir', ctx()).ok, 'arc en main, Mouvement intact → offerte').toBe(true);
 
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 1 } });
@@ -84,17 +84,17 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     const cible = () => banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     const pa = () => ({ attackerId: H.id, targetId: E.id, location: null, result: null });
 
-    openAttackCascade(banc.getState, banc.setState, pa(), 'Tir', 'action/shoot');
+    openAttackCascade(banc.getState, banc.setState, pa(), 'Tir', 'action/tirer');
     const mobile = banc.getState().pendingAttack!;
-    expect(mobile.heldGround, 'sans posture armée, rien n’est pré-rempli').toBeUndefined();
-    const vMobile = previewAttack(banc.getState, attaquant(), cible(), undefined, { heldGround: mobile.heldGround });
+    expect(mobile.tirImmobile, 'sans posture armée, rien n’est pré-rempli').toBeUndefined();
+    const vMobile = previewAttack(banc.getState, attaquant(), cible(), undefined, { tirImmobile: mobile.tirImmobile });
 
     banc.setState({ pendingAttack: null, pendingCascade: null }); // la fenêtre du premier tir tiendrait la main
     armer();
-    openAttackCascade(banc.getState, banc.setState, pa(), 'Tir', 'action/shoot');
+    openAttackCascade(banc.getState, banc.setState, pa(), 'Tir', 'action/tirer');
     const immobile = banc.getState().pendingAttack!;
-    expect(immobile.heldGround, 'la posture pré-armée arrive dans la fenêtre de jet').toBe(true);
-    const vImmobile = previewAttack(banc.getState, attaquant(), cible(), undefined, { heldGround: immobile.heldGround });
+    expect(immobile.tirImmobile, 'la posture pré-armée arrive dans la fenêtre de jet').toBe(true);
+    const vImmobile = previewAttack(banc.getState, attaquant(), cible(), undefined, { tirImmobile: immobile.tirImmobile });
 
     // Le chiffre est celui de la PRODUCTION : l'écart mesuré est le cran « Complexe (-10) » du tir mobile.
     expect(vImmobile.target - vMobile.target).toBe(10);
@@ -107,8 +107,8 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     const { H, E } = setup();
     armer();
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 1 } });
-    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/shoot');
-    expect(banc.getState().pendingAttack!.heldGround).toBeUndefined();
+    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/tirer');
+    expect(banc.getState().pendingAttack!.tirImmobile).toBeUndefined();
   });
 
   it('la posture ne SURVIT pas au Tour : le changement de Tour vide `stances`', () => {
@@ -119,7 +119,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     banc.getState().terminerLeTour(); // l'Action intacte : le 1er geste arme la fin du tour, le 2ᵉ la passe
     banc.getState().terminerLeTour();
     expect(banc.getState().battle!.turn).not.toBe(tour);
-    expect(banc.getState().battle!.stances?.[H.id]?.heldGround).toBeFalsy();
+    expect(banc.getState().battle!.stances?.[H.id]?.tirImmobile).toBeFalsy();
   });
 
   it('MÊLÉE : une attaque au contact ne porte JAMAIS une posture de tir', () => {
@@ -131,10 +131,10 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     h.weapons = [...h.weapons, epee];
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     e.pos = { x: 7, y: 10 }; // au contact : c'est l'épée qui parle
-    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null, weaponUid: 'ep' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null, weaponUid: 'ep' }, 'Attaque', 'action/attaquer');
     const pa = banc.getState().pendingAttack!;
-    expect(pa.heldGround, 'un pending de mêlée ne porte pas `heldGround`').toBeUndefined();
-    expect(pa.intoCrowd, 'un pending de mêlée ne porte pas `intoCrowd`').toBeUndefined();
+    expect(pa.tirImmobile, 'un pending de mêlée ne porte pas `tirImmobile`').toBeUndefined();
+    expect(pa.dansLeTas, 'un pending de mêlée ne porte pas `dansLeTas`').toBeUndefined();
   });
 });
 
@@ -149,12 +149,12 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
     banc.setState({ party: [hero], screen: 'campaign' });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] } as never;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
+    const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] } as never;
     H.weapons = [arc];
     E.weapons = [arc];
     H.pos = { x: 6, y: 10 };
@@ -167,21 +167,21 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
     const { H, E } = setup();
     const b = () => banc.getState().battle!;
     const par = (id: string) => b().combatants.find((c) => c.id === id)!;
-    expect(STANCE_BLOCK.heldGround(b(), par(H.id)), 'héros : armable').toBeNull();
-    expect(STANCE_BLOCK.heldGround(b(), par(E.id))).toBe('seul un héros décide de tenir sa position');
-    expect(STANCE_BLOCK.intoCrowd(b(), par(E.id))).toBe('seul un héros renonce à choisir sa cible');
+    expect(STANCE_BLOCK.tirImmobile(banc.getState().scene, b(), par(H.id)), 'héros : armable').toBeNull();
+    expect(STANCE_BLOCK.tirImmobile(banc.getState().scene, b(), par(E.id))).toBe('seul un héros décide de tenir sa position');
+    expect(STANCE_BLOCK.dansLeTas(banc.getState().scene, b(), par(E.id))).toBe('seul un héros renonce à choisir sa cible');
   });
 
-  it('GAIN : le tireur piloté ne brûle PAS son Mouvement, même `heldGround` posé sur le pending', () => {
+  it('GAIN : le tireur piloté ne brûle PAS son Mouvement, même `tirImmobile` posé sur le pending', () => {
     const { H, E } = setup();
     banc.setState({
       battle: { ...banc.getState().battle!, turn: banc.getState().battle!.order.indexOf(E.id), acted: false, movementUsed: 0 },
       pendingAttack: {
-        attackerId: E.id, targetId: H.id, location: null, heldGround: true,
-        result: { hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '' },
+        attackerId: E.id, targetId: H.id, location: null, tirImmobile: true,
+        result: { hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '' },
       },
     });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().battle!.movementUsed, 'aucun gain de posture → aucun Mouvement dépensé').toBe(0);
   });
 });
@@ -191,19 +191,19 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
  * l.116` (verbatim : « Si vous n'avez cure de savoir sur qui vous tirez, vous gagnez un bonus allant
  * de +20 à +60 ») : c'est un CHOIX, donc une posture de console au patron de `posture-tir`.
  */
-describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
+describe('G5 — posture « Dans le tas » (`dansLeTas`)', () => {
   /** `serre` : deux badauds AU CONTACT de la cible → groupe de 3 avec elle (seuil `crowdMod`). */
   function setup(serre: boolean) {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
     banc.setState({ party: [hero], screen: 'campaign' });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const foes = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const foes = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = foes[0];
-    H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never;
+    H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never;
     H.pos = { x: 6, y: 10 };
     E.pos = { x: 12, y: 10 };
     // Les AUTRES adversaires : collés à la cible (groupe serré) ou dispersés au loin.
@@ -214,7 +214,7 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
 
   it('gate : offerte face à un GROUPE serré, refusée (avec sa raison) sans groupe', () => {
     const nu = setup(false);
-    const ctx = (id: string) => ({ active: banc.getState().battle!.combatants.find((c) => c.id === id)!, battle: banc.getState().battle!, gameTime: banc.getState().gameTime });
+    const ctx = (id: string) => ({ scene: banc.getState().scene, active: banc.getState().battle!.combatants.find((c) => c.id === id)!, battle: banc.getState().battle!, gameTime: banc.getState().gameTime });
     const refus = actionGate('posture-tas', ctx(nu.H.id));
     expect(refus.ok).toBe(false);
     expect(refus.reason).toBe('aucun groupe serré en vue');
@@ -230,13 +230,13 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
     expect(foes.length, 'la rencontre doit fournir de quoi faire un groupe').toBeGreaterThanOrEqual(3);
 
     banc.jouerLaCase('posture-tas');
-    expect(banc.getState().battle!.stances?.[H.id]?.intoCrowd).toBe(true);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/shoot');
+    expect(banc.getState().battle!.stances?.[H.id]?.dansLeTas).toBe(true);
+    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/tirer');
     const pa = banc.getState().pendingAttack!;
-    expect(pa.intoCrowd, 'la posture pré-armée arrive dans la fenêtre de jet').toBe(true);
+    expect(pa.dansLeTas, 'la posture pré-armée arrive dans la fenêtre de jet').toBe(true);
 
     const vise = previewAttack(banc.getState, attaquant(), cible(), undefined, {});
-    const tas = previewAttack(banc.getState, attaquant(), cible(), undefined, { intoCrowd: pa.intoCrowd });
+    const tas = previewAttack(banc.getState, attaquant(), cible(), undefined, { dansLeTas: pa.dansLeTas });
     expect(tas.target - vise.target).toBe(20); // groupe de 3 à 6 → Accessible (+20)
     const ligne = ligneDe([...tas.mods, ...(tas.difficultyParts ?? [])], refDeRegle('tirer-dans-le-tas'));
     expect(ligne?.value).toBe(20);
@@ -252,28 +252,28 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
     banc.jouerLaCase('posture-tir');
     banc.jouerLaCase('posture-tas');
     const armees = () => banc.getState().battle!.stances?.[H.id] ?? {};
-    expect(armees().heldGround, 'tir immobile armé').toBe(true);
-    expect(armees().intoCrowd, '« Dans le tas » armée').toBe(true);
+    expect(armees().tirImmobile, 'tir immobile armé').toBe(true);
+    expect(armees().dansLeTas, '« Dans le tas » armée').toBe(true);
 
-    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/shoot');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/tirer');
     const pa = banc.getState().pendingAttack!;
-    expect(pa.heldGround, 'le coup part immobile').toBe(true);
+    expect(pa.tirImmobile, 'le coup part immobile').toBe(true);
     banc.setState({
-      pendingAttack: { ...pa, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '' } } as never,
+      pendingAttack: { ...pa, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '' } } as never,
     });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
 
     expect(banc.getState().battle!.movementUsed, 'le tir immobile a bien payé son Mouvement').toBeGreaterThan(0);
-    expect(armees().heldGround, 'la posture DÉPENSÉE tombe').toBeFalsy();
-    expect(armees().intoCrowd, 'la posture SANS PRIX reste armée').toBe(true);
+    expect(armees().tirImmobile, 'la posture DÉPENSÉE tombe').toBeFalsy();
+    expect(armees().dansLeTas, 'la posture SANS PRIX reste armée').toBe(true);
     banc.getState().terminerLeTour();
-    expect(banc.getState().battle!.stances?.[H.id]?.intoCrowd, 'et le Tour, lui, la vide').toBeFalsy();
+    expect(banc.getState().battle!.stances?.[H.id]?.dansLeTas, 'et le Tour, lui, la vide').toBeFalsy();
   });
 
   it('la posture se refuse hors contexte : sans groupe, le store ne l’arme pas', () => {
     const { H } = setup(false);
     banc.jouerLaCase('posture-tas');
-    expect(banc.getState().battle!.stances?.[H.id]?.intoCrowd).toBeFalsy();
+    expect(banc.getState().battle!.stances?.[H.id]?.dansLeTas).toBeFalsy();
   });
 });
 

@@ -603,15 +603,15 @@ describe('NarratifEditor — une entrée désignée par le projet : retrait refu
     entities: [{ id: 'kastor', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'pnj-kastor' }],
     triggers: [{
       id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true,
-      flow: { kind: 'seq', steps: [
-        { kind: 'do', effect: { type: 'document', documentId: 'doc-affiche' } },
-        { kind: 'do', effect: { type: 'revealClue', indiceId: 'ind-lettre', stade: 'dechiffree' } },
+      flow: { kind: 'sequence', etapes: [
+        { kind: 'effet', effet: { type: 'document', documentId: 'doc-affiche' } },
+        { kind: 'effet', effet: { type: 'revealClue', indiceId: 'ind-lettre', stade: 'dechiffree' } },
       ] },
     }],
   });
   const effets = () => {
-    const flow = lastProjet.scenes[0].triggers[0].flow as { steps: { effect: Record<string, unknown> }[] };
-    return flow.steps.map((s) => s.effect);
+    const flow = lastProjet.scenes[0].triggers[0].flow as { etapes: { effet: Record<string, unknown> }[] };
+    return flow.etapes.map((s) => s.effet);
   };
 
   for (const [onglet, bouton] of [['Documents', 'Supprimer ce document'], ['Indices', 'Supprimer cet indice'], ['PNJ', 'Supprimer ce PNJ']] as const) {
@@ -671,7 +671,7 @@ describe('NarratifEditor — onglet États de campagne (#2539)', () => {
     label: 'Le tribunal',
     triggers: [{
       id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, when: { kind: 'etat', etat: 'issue', value: 'condamne' },
-      flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'poserEtat', etat: 'issue', valeur: 'condamne' } }] },
+      flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'poserEtat', etat: 'issue', valeur: 'condamne' } }] },
     }],
   });
   const valeurs = () => [...container.querySelectorAll('label')].filter((l) => l.textContent?.includes('Id de la valeur')).map((l) => l.querySelector('input')!);
@@ -712,7 +712,7 @@ describe('NarratifEditor — onglet États de campagne (#2539)', () => {
     setValue(valeurs()[1], 'pendu');
     const t = lastProjet.scenes[0].triggers[0];
     expect(t.when).toEqual({ kind: 'etat', etat: 'issue', value: 'pendu' });
-    expect((t.flow as { steps: { effect: unknown }[] }).steps[0].effect).toEqual({ type: 'poserEtat', etat: 'issue', valeur: 'pendu' });
+    expect((t.flow as { etapes: { effet: unknown }[] }).etapes[0].effet).toEqual({ type: 'poserEtat', etat: 'issue', valeur: 'pendu' });
     click(btn('Supprimer la valeur 1'));
     expect(last.etats[0].forme).toEqual({ kind: 'enum', valeurs: [{ id: 'pendu', label: 'Condamné' }] });
   });

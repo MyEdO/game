@@ -41,16 +41,16 @@ const EMISSION: Record<string, { parUI: true } | { sansSurface: string }> = {
   // La Détermination de son porteur : la barre (`resolve-*`, `actionRegistry`), la pastille d'État et la modale du jet
   // (`DeterminationButton`, `useTestJetProps`, `CascadeModal`).
   depenserLaDetermination: { parUI: true },
-  poserLObjet: { sansSurface: 'hôte Godot : la fiche (`gestesDeLObjet`, bouton « Poser au sol ») et la barre (`drop-item`, `combat.offres`)' },
+  poserLObjet: { sansSurface: 'hôte Godot : la fiche (`gestesDeLObjet`, bouton « Poser au sol ») et la barre (`depot`, `combat.offres`)' },
   // La sortie d'une fenêtre (`modalArbiter.sortieDeLaFenetre`) : le bouton qui ferme son écran, et les sorties
   // d'interlude du balayage et de la 2ᵉ frappe (`actionRegistry.ENTREES_PAR_RUN`).
   fenetreFermer: { parUI: true },
   // La validation d'une fenêtre (`modalArbiter.validationDeLaFenetre`) : le bouton qui la valide ; pour la pause de
-  // Round, l'entrée `round-start` du registre, que le bandeau et la touche partagent (#1411 P2-A).
+  // Round, l'entrée `debut-de-round` du registre, que le bandeau et la touche partagent (#1411 P2-A).
   fenetreValider: { parUI: true },
   // Le choix d'une fenêtre (`choixDesFenetres.CHOIX_DES_FENETRES`) : le bouton de chaque valeur de son écran.
   fenetreChoisir: { parUI: true },
-  // Demande de pause au prochain Round : l'interrupteur du pied de FRISE (`raise-hand`, verbe que déclare son
+  // Demande de pause au prochain Round : l'interrupteur du pied de FRISE (`pause`, verbe que déclare son
   // entrée). Les deux sens passent par le même verbe.
   leverLaMain: { parUI: true },
   // Carnet d'enquête (#670) : l'épingle et la nouveauté vue, émises par `CarnetScreen`.
@@ -59,12 +59,9 @@ const EMISSION: Record<string, { parUI: true } | { sansSurface: string }> = {
   recruterLeHeros: { parUI: true },
   renvoyerLeHeros: { parUI: true },
   remplacerLeHeros: { parUI: true },
-  pratiquerLActivite: { parUI: true },
-  fabriquerLObjet: { parUI: true },
   commanderLObjet: { parUI: true },
   deposerALaBanque: { parUI: true },
   retirerDeLaBanque: { parUI: true },
-  suivreLEntrainement: { parUI: true },
   solderLaFaveur: { parUI: true },
   menerLActionDeBataille: { parUI: true },
   // Réglages des jets (#3368) : l'arme d'enfoncement d'une rangée de `ForceDoorModal` (EDO 11 l.93), les Bandages du

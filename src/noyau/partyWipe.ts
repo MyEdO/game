@@ -1,7 +1,7 @@
 /**
  * ANÉANTISSEMENT DU GROUPE HORS COMBAT — invariant global de non-viabilité.
  *
- * En combat, la défaite est constatée par `checkBattleOver` (`!heroesAlive` → `battle.over='defeat'`).
+ * En combat, la défaite est constatée par `checkBattleOver` (`!heroesAlive` → `battle.over='defaite'`).
  * Hors combat (entretien/faim, exposition, maladie, cascade de nuit, damnation, effets de scène), rien
  * ne constatait la non-viabilité du groupe : un groupe entier mort de faim en mer laissait le voyage
  * continuer. `checkPartyWiped` est le pendant hors-combat, appelé aux carrefours de mort hors combat
@@ -15,13 +15,16 @@
  */
 import { isOutOfAction } from '../engine/conditions';
 import type { Get, Set } from './flowTypes';
+import { rencontreEngagee } from './monde/combatants';
 import type { PendingCascade } from './pendings';
 
 /** Le groupe est-il anéanti HORS COMBAT ? Si oui, présente la défaite (drapeau `partyWiped`) et purge
  *  les flux suspendus (voyage, repos, cascades, Tests d'équipage) — jamais un écran de défaite SOUS une
- *  modale de campement/voyage. Renvoie true si la défaite est (déjà) posée. No-op en combat. */
+ *  modale de campement/voyage. Renvoie true si la défaite est (déjà) posée. No-op en combat et pendant une série
+ *  d'attaques subies. */
 export function checkPartyWiped(get: Get, set: Set): boolean {
-  if (get().battle) return false; // en combat : `checkBattleOver` gère la défaite
+  // En combat, `checkBattleOver` gère la défaite ; pendant une série d'attaques subies, sa fermeture (`fermerLaSerieSubie`).
+  if (rencontreEngagee(get())) return false;
   if (get().partyWiped) return true;
   if (!groupeNonViable(get)) return false; // au moins un héros ENCORE EN ACTION (même prédicat que la fin de bataille)
   set({
@@ -54,10 +57,13 @@ function groupeNonViable(get: Get): boolean {
 /**
  * CLÔTURE D'UNE SÉQUENCE HORS COMBAT par le pilote IMMÉDIAT (`runCascadeImmediate`) — pendant de
  * `dispatchCascadeDone`, qui constate au slot déjà rendu. Vrai = la séquence n'a PAS de dénouement
- * à enchaîner : un combat ou un slot de cascade que CE pilote a écrit (`slotALEntree` différent) a pris
- * la main (la reprise appartient à leur clôture), ou le groupe est anéanti. Sous un slot vivant, la
- * défaite n'est pas constatée ici : purger sous lui laisserait sa réconciliation le ressusciter sous
- * l'écran de défaite — sa clôture la constate (`dispatchCascadeDone`) ; le pilote, lui, n'enchaîne pas.
+ * à enchaîner : un combat a pris la main, ou le slot n'est plus celui d'entrée (`slot !== slotALEntree`),
+ * ou le groupe est anéanti. Cette branche du slot a deux usagers : le pilote sans contexte, qui ne parque
+ * rien de ce que ses appliers ouvrent ; le pilote à contexte lancé sous un slot vivant que son applier a
+ * réécrit ou remplacé sans le parquer (un append, une re-pose), où `commitStep` ne lève pas `aOuvert`. La
+ * reprise appartient à la clôture de ce qui a pris la main. Sous un slot vivant, la défaite n'est pas
+ * constatée ici : purger sous lui laisserait sa réconciliation le ressusciter sous l'écran de défaite —
+ * sa clôture la constate (`dispatchCascadeDone`) ; le pilote, lui, n'enchaîne pas.
  */
 export function clotureHorsCombat(get: Get, set: Set, slotALEntree: PendingCascade | null): boolean {
   if (get().battle) return true;

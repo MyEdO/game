@@ -21,7 +21,7 @@ export interface CompareRow {
   trend: Trend;
 }
 export interface EquipComparison {
-  slot: 'melee' | 'ranged' | 'armor' | 'shield' | 'other';
+  slot: 'melee' | 'distance' | 'armor' | 'shield' | 'other';
   /** Nom de l'objet du même emplacement déjà équipé par le héros (null = rien / mains nues). */
   currentName: string | null;
   rows: CompareRow[];
@@ -48,7 +48,7 @@ export function compareEquip(item: GabaritDObjet, hero: Combatant): EquipCompari
     };
   }
 
-  if (item.kind === 'melee' || item.kind === 'ranged') {
+  if (item.kind === 'melee' || item.kind === 'distance') {
     const cur = wielded.find((w) => w.type === item.kind && !isShieldItem(w));
     const baseline: WeaponDamageSpec | undefined = item.kind === 'melee' ? unarmedWeapon().damage : undefined; // mains nues, LDB 62 l.28
     const curDmg = cur?.damage ?? baseline;

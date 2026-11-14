@@ -42,7 +42,7 @@ export function DistraireModal() {
   const rolled = !!pd.atk;
   // Adversaires éligibles au Distraire — MÊME source que l'ouverture (`distraireFoes`).
   const foes = distraireFoes(mover, battle);
-  const winnerIndex = pd.result === 'success' ? 1 : pd.result === 'failure' ? 0 : null;
+  const winnerIndex = pd.result === 'reussite' ? 1 : pd.result === 'echec' ? 0 : null;
   const calme = ligneDuCalmeDistrait(foe);
   const athletisme = ligneDeDistraire(mover);
 
@@ -59,28 +59,28 @@ export function DistraireModal() {
     onRoll: roll,
     rerolled: !!pd.rerolled,
     // Égalité comprise : l'opposition n'est pas emportée (LDB 17 l.68).
-    lost: pd.result !== 'success',
+    lost: pd.result !== 'reussite',
     onReroll: reroll,
     onBonusSL: bonusSL,
     onDarkPact: darkPact,
     onForce: force,
   }, {
-    rollLabel: t('verbe.roll'),
+    rollLabel: t('verbe.lancer'),
   });
 
   const issue = pd.atk
-    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'dodge' : 'attack', describeDistraire(pd, mover.label, foe.label), mover.id, foe.id), battle.combatants)]
+    ? [recapLineOfEvent(ev(pd.result === 'reussite' ? 'esquive' : 'attaque', describeDistraire(pd, mover.label, foe.label), mover.id, foe.id), battle.combatants)]
     : undefined;
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="distraire"
-      stake={flowStakeRef('distraire-roll')}
+      stake={flowStakeRef('distraire-test')}
       title="Distraire"
       extra={<VsHeader actor={mover} target={foe} label="détourner son attention (Athlétisme vs Calme)" />}
       // Choix de la cible AVANT le jet (plusieurs adversaires en Ligne de vue) — OptionChooser partagé.

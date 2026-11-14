@@ -1,12 +1,20 @@
 import { flowFromEffects, testFlow } from './monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { architectureSelectionForWarning, validateScene, type Warning } from './validateScene';
 import { emptyNarratif } from './monde/campaignNarratif';
-import { resolveStake, matieresDe, findTrappingById } from '../data';
-import { emptyScene, type Scene } from './monde/scene';
+import { resolveStake, matieresDe, findTrappingById, terrains } from '../data';
+import { emptyScene, startOf, type Scene } from './monde/scene';
+import * as zones from './monde/zones';
+import { scenePlanDefects } from './planDefects';
+import { unreachableDescriptiveZones } from './mapQC';
+import { addEntity, deleteSel, paintTiles, setSceneFlags, setSceneLabel, setSceneScalaires, toggleEdgeWall } from './sceneEdit';
+import { resetData, setDataset } from '../data/overrides';
+import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 import { METRES_PER_LEVEL } from './monde/relief';
 import type { WorldMap, MapPlace } from './worldMap';
+import type { SeatAssignments } from './monde/seating';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 
 function base() {
   const s = emptyScene('scene-test', 5, 5);
@@ -406,9 +414,19 @@ describe('validateScene', () => {
     s.triggers.push({
       id: 't-2',
       rect: { x: 0, y: 0, w: 1, h: 1 },
-      flow: testFlow({ skill: { id: 'perception' }}, flowFromEffects([{ type: 'startDialogue', dialogue: 'absent' }]), EMPTY_FLOW),
+      flow: testFlow({ skill: { id: 'perception' }}, flowFromEffects([{ type: 'startDialogue', dialogue: { id: 'absent' } }]), EMPTY_FLOW),
     });
-    expect(msgs(validateScene([s])).some((m) => /dialogue inexistant/.test(m))).toBe(true);
+    expect(msgs(validateScene([s])).some((m) => m.includes('« absent » est absent du catalogue des dialogues de la scène'))).toBe(true);
+  });
+
+  it('une référence locale morte d’un effet : une faute, une seule erreur, celle du parse (#3606 M2d)', () => {
+    const erreursSur = (id: string, effet: Effect) => {
+      const s = base();
+      s.triggers.push({ id: 't-mort', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([effet]) });
+      return validateScene([s]).filter((w) => w.level === 'error' && w.message.includes(`« ${id} »`)).map((w) => w.message);
+    };
+    expect(erreursSur('dlg-fantome', { type: 'startDialogue', dialogue: { id: 'dlg-fantome' } })).toEqual([expect.stringContaining('« dlg-fantome » est absent du catalogue des dialogues de la scène')]);
+    expect(erreursSur('fantome', { type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'fantome' } })).toEqual([expect.stringContaining('« fantome » est absent du catalogue des personnages de la scène')]);
   });
 
   /**
@@ -612,7 +630,7 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
 describe('validateScene — assise authorée (`Scene.seatAssignments`)', () => {
   /** Table ronde en (2,2) cap `N` → abords : nord (2,1), est (3,2), sud (2,3), ouest (1,2). */
   const ABORD = { nord: { x: 2, y: 1 }, est: { x: 3, y: 2 }, sud: { x: 2, y: 3 }, ouest: { x: 1, y: 2 } };
-  function attable(seatAssignments: Record<string, Record<string, { kind: 'entity'; entityId: string } | { kind: 'party'; rang: number }>>, pnjPos = ABORD.nord) {
+  function attable(seatAssignments: SeatAssignments, pnjPos = ABORD.nord) {
     const s = base();
     s.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' });
     s.entities.push({ id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, pos: pnjPos });
@@ -621,39 +639,39 @@ describe('validateScene — assise authorée (`Scene.seatAssignments`)', () => {
   }
 
   it('assise saine (PNJ posé sur l’abord de sa place) = 0 avertissement', () => {
-    expect(validateScene([attable({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } })])).toEqual([]);
-    expect(validateScene([attable({ 'table-1': { 'place-4': { kind: 'entity', entityId: 'pnj-1' } } }, ABORD.ouest)])).toEqual([]);
+    expect(validateScene([attable({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-1' } } })])).toEqual([]);
+    expect(validateScene([attable({ 'table-1': { 'place-4': { kind: 'entite', entityId: 'pnj-1' } } }, ABORD.ouest)])).toEqual([]);
   });
 
   it('meuble, place et personnage inexistants portent chacun leur erreur NOMMÉE', () => {
-    const absent = attable({ 'nulle-part': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } });
+    const absent = attable({ 'nulle-part': { 'place-1': { kind: 'entite', entityId: 'pnj-1' } } });
     expect(msgs(validateScene([absent])).some((m) => /« nulle-part\/place-1 ».*« pnj-1 ».*aucun décor/.test(m))).toBe(true);
 
-    const place = attable({ 'table-1': { plafond: { kind: 'entity', entityId: 'pnj-1' } } });
+    const place = attable({ 'table-1': { plafond: { kind: 'entite', entityId: 'pnj-1' } } });
     expect(msgs(validateScene([place])).some((m) => /« table-1\/plafond ».*n'offre pas de place « plafond »/.test(m))).toBe(true);
 
-    const corps = attable({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'fantome' } } });
+    const corps = attable({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'fantome' } } });
     expect(msgs(validateScene([corps])).some((m) => /« table-1\/place-1 ».*aucun personnage « fantome »/.test(m))).toBe(true);
   });
 
   it('un PNJ assis POSÉ ailleurs que sur l’ABORD de sa place est une erreur qui dit les deux cases', () => {
-    const w = validateScene([attable({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } }, { x: 4, y: 0 })]);
+    const w = validateScene([attable({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-1' } } }, { x: 4, y: 0 })]);
     expect(w.some((x) => x.refId === 'pnj-1' && /est posé en \(4,0\) alors que l’abord de sa place est en \(2,1\)/.test(x.message))).toBe(true);
   });
 
   it('un PNJ posé sur la case du MEUBLE est REFUSÉ (l’ancienne règle inversée ne doit pas revenir)', () => {
-    const w = validateScene([attable({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } }, { x: 2, y: 2 })]);
+    const w = validateScene([attable({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-1' } } }, { x: 2, y: 2 })]);
     expect(w.some((x) => x.refId === 'pnj-1' && /est posé en \(2,2\) alors que l’abord de sa place est en \(2,1\)/.test(x.message))).toBe(true);
   });
 
   it('chaque place a SON abord : la même `pos` ne vaut pas pour deux places différentes', () => {
     // `pnj-1` posé sur l'abord NORD mais affecté à l'EST → refus nommant l'abord de l'est.
-    const w = validateScene([attable({ 'table-1': { 'place-2': { kind: 'entity', entityId: 'pnj-1' } } }, ABORD.nord)]);
+    const w = validateScene([attable({ 'table-1': { 'place-2': { kind: 'entite', entityId: 'pnj-1' } } }, ABORD.nord)]);
     expect(w.some((x) => x.refId === 'pnj-1' && /« table-1\/place-2 ».*\(2,1\).*l’abord de sa place est en \(3,2\)/.test(x.message))).toBe(true);
   });
 
   it('une place tenue par le GROUPE ne réclame aucune entité de scène', () => {
-    expect(validateScene([attable({ 'table-1': { 'place-2': { kind: 'party', rang: 1 } } })])).toEqual([]);
+    expect(validateScene([attable({ 'table-1': { 'place-2': { kind: 'groupe', rang: 1 } } })])).toEqual([]);
   });
 });
 
@@ -691,5 +709,59 @@ describe('architectureSelectionForWarning', () => {
       level: 'error', sceneId: 'scene', scope: 'entity', refId: 'e', message: 'x',
       architectureRef: { type: 'architectureBody', id: 'corps-0' },
     })).toBeNull();
+  });
+});
+
+describe('validateScene — une écriture rend les avertissements d’une validation entière (#4043)', () => {
+  afterEach(() => { resetData(); vi.restoreAllMocks(); });
+
+  /** Les retouches de l'éditeur sur la première scène de La Diligence, par ses écrivains réels, et une écriture au
+   *  catalogue des terrains par le seam (`setDataset`). */
+  const RETOUCHES: readonly [string, (s: Scene) => Scene][] = [
+    ['peindre une case', (s) => paintTiles(s, { x: 1, y: 1 }, 'dalle', 1)],
+    ['poser un mur', (s) => toggleEdgeWall(s, 5, 5, 'E', 0, 'wall')],
+    ['retirer le mur', (s) => toggleEdgeWall(s, 5, 5, 'E', 0, 'wall')],
+    ['poser une entité', (s) => addEntity(s, { id: 'pnj-sonde', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 3, y: 3 } })],
+    ['retirer l’entité', (s) => deleteSel(s, { type: 'entity', id: 'pnj-sonde' })],
+    ['renommer la scène', (s) => setSceneLabel(s, `${s.label} (retouchée)`)],
+    ['décrire', (s) => setSceneScalaires(s, { desc: 'Une description retouchée.' })],
+    ['changer la météo', (s) => setSceneScalaires(s, { weather: 'brouillard' })],
+    ['poser un drapeau', (s) => setSceneFlags(s, { sonde: true })],
+    ['écrire au catalogue des terrains', (s) => {
+      setDataset('terrains', terrains.map((t) => (t.id === 'plancher' ? { ...t, walkable: !t.walkable } : t)));
+      return s;
+    }],
+  ];
+
+  it('après chaque retouche, ceux du projet cloné (identités neuves), ordre compris', () => {
+    const projet = paquetDuJeu(diligenceCampaign);
+    let scenes = projet.scenes;
+    for (const [nom, retouche] of RETOUCHES) {
+      scenes = [retouche(scenes[0]), ...scenes.slice(1)];
+      const clone = structuredClone({ scenes, worldMap: projet.worldMap, narratif: projet.narratif });
+      expect(validateScene(scenes, projet.worldMap, projet.narratif), nom).toEqual(validateScene(clone.scenes, clone.worldMap, clone.narratif));
+    }
+  });
+
+  /** Les cases de zone que lisent les défauts de plan et les pièces inatteignables pendant `f` (`sceneZoneTiles`,
+   *  espionnée sur son namespace) : zéro si aucun des deux audits ne se refait. */
+  function auditsRefaits(f: () => void): number {
+    let n = 0;
+    const ns = zones as unknown as Record<string, unknown>;
+    const vrai = ns.sceneZoneTiles as (...a: unknown[]) => unknown;
+    vi.spyOn(ns, 'sceneZoneTiles', 'get').mockReturnValue((...a: unknown[]) => (n++, vrai(...a)));
+    f();
+    vi.restoreAllMocks();
+    return n;
+  }
+  const audits = (s: Scene) => { scenePlanDefects(s); const depart = startOf(s); if (depart) unreachableDescriptiveZones(s, depart); };
+
+  it('un libellé ne refait ni les défauts de plan ni la connexité ; une case peinte ne refait que ceux de SA scène', () => {
+    const { scenes } = paquetDuJeu(diligenceCampaign);
+    scenes.forEach(audits);
+    expect(auditsRefaits(() => audits(setSceneLabel(scenes[0], 'Renommée'))), 'nommer').toBe(0);
+    const peinte = paintTiles(scenes[0], { x: 1, y: 1 }, 'dalle', 1);
+    expect(auditsRefaits(() => audits(peinte)), 'la scène peinte se refait').toBeGreaterThan(0);
+    expect(auditsRefaits(() => scenes.slice(1).forEach(audits)), 'les autres scènes').toBe(0);
   });
 });

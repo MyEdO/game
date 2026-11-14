@@ -123,13 +123,13 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
   beforeEach(() => launch());
 
   it('partirEnVoyage(barge) OUVRE une cascade travelDay dont les étapes-jet sont influençables', () => {
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     const pc = get().pendingCascade;
     expect(pc?.purpose).toBe('travelDay'); // le jour ne s'auto-résout plus : il ouvre la cascade
     // Au moins une étape-jet influençable (Navigation) est présente dans les participants.
     const jetSteps = pc!.participants.filter((s) => s.target != null);
     expect(jetSteps.length).toBeGreaterThan(0);
-    expect(pc!.participants.some((s) => s.kind === 'riverNav')).toBe(true);
+    expect(pc!.participants.some((s) => s.kind === 'fleuveNavigation')).toBe(true);
     // La 1ʳᵉ étape porte un jet à lancer (result null tant qu'on n'a pas roulé) → INFLUENÇABLE.
     const cur = pc!.participants[pc!.cursor];
     expect(cur.target).not.toBeNull();
@@ -137,7 +137,7 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
   });
 
   it('tant que la journée est ouverte, `runRiverDays` n’en ouvre pas une seconde (aucune étape doublée)', () => {
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     const ouverte = get().pendingCascade!.participants.map((s) => s.id);
     runRiverDays(get, set);
     expect(get().pendingCascade!.participants.map((s) => s.id)).toEqual(ouverte);
@@ -156,9 +156,9 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
 
   it('sur une barque, le rameur tient la Navigation (MSRC 7 l.13)', () => {
     launch(false, 45, { modes: ['barque-fluviale' as never, 'pied'] });
-    get().partirEnVoyage('r-reik', 'barque-fluviale' as never, { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barque-fluviale' as never, { cadence: 'jourParJour' });
     const pc = get().pendingCascade!;
-    expect(pc.participants.find((s) => s.kind === 'riverNav')?.label).toBe(composeRollLabel(undefined, t('step.navigation'), { skill: { id: 'ramer' } }));
+    expect(pc.participants.find((s) => s.kind === 'fleuveNavigation')?.label).toBe(composeRollLabel(undefined, t('step.navigation'), { skill: { id: 'ramer' } }));
   });
 
   it('un pilote doté de Savoir (Voies fluviales) le voit crédité au Test de Navigation (+1 DR, l.13)', () => {
@@ -233,7 +233,7 @@ describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main'
     const pc = get().pendingCascade!;
     expect(pc.purpose, 'le pilote du jour s’arrête sur la décision, en fenêtre de JOUR').toBe('travelDay');
     const cur = pc.participants[pc.cursor];
-    expect(cur.kind).toBe('riverObstacleChoice');
+    expect(cur.kind).toBe('fleuveChoixDObstacle');
     expect(cur.options!.map((o) => o.key).sort()).toEqual(['deblayer', 'forcer']);
     expect(cur.defaultChoice, 'MSRC 7 l.128 : le choix revient aux Personnages').toBeUndefined();
     expect(get().journal.some((l) => /^Progression du jour/.test(l)), 'le jour est suspendu au choix').toBe(false);
@@ -247,8 +247,8 @@ describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main'
     get().partirEnVoyage('r-reik', 'barge');
     const pc = get().pendingCascade!;
     const choix = pc.participants[pc.cursor];
-    expect(choix.kind, 'le jour s’arrête sur la décision').toBe('riverObstacleChoice');
-    expect(pc.participants.slice(pc.cursor + 1).some((s) => s.kind === 'riverPerilCheck'), 'le péril de Débris suit la décision').toBe(true);
+    expect(choix.kind, 'le jour s’arrête sur la décision').toBe('fleuveChoixDObstacle');
+    expect(pc.participants.slice(pc.cursor + 1).some((s) => s.kind === 'fleuveTestDePeril'), 'le péril de Débris suit la décision').toBe(true);
     get().jetRegler('cascade', 'choix', 'forcer', choix.id);
     get().jetValider('cascade'); // « Valider » : le geste du joueur qui tranche
     const apres = get().pendingCascade;
@@ -316,20 +316,20 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
     expect(get().travelPlan!.vehicle!.wounds.current).toBe(48); // 60 − 12
   });
 
-  it('étape JOUEUR `riverEchouageForce` (péril Eaux peu profondes, l.142-144) : Force Intermédiaire, −Enc en circonstance (l.99)', () => {
+  it('étape JOUEUR `fleuveEchouageForce` (péril Eaux peu profondes, l.142-144) : Force Intermédiaire, −Enc en circonstance (l.99)', () => {
     launch();
     const ownerId = get().party[0].id;
     const possessions: Possession[] = [
       { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: [{ uid: 'lot-2', cargoId: 'vin-eau-de-vie', enc: 30, basePriceGold: 10 }] },
     ];
     const detect = {
-      id: 'river-peril-0', kind: 'riverPerilDetect' as const, actorId: ownerId, icon: 'nautical/tack', label: fixtureText('Détection'),
+      id: 'river-peril-0', kind: 'fleuveDetectionDePeril' as const, actorId: ownerId, icon: 'nautique/louvoyage' as const, label: fixtureText('Détection'),
       result: { roll: 99, target: 30, sl: -6, success: false }, meta: { perilId: 'eaux-peu-profondes' },
     };
     const echouage = Array.from({ length: 40 }, (_, seed) => {
       set({ possessions, travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!, journal: [] });
       seedBattleRng(seed);
-      return applierDe('riverPerilDetect')!(get, set, detect, undefined, { steps: [detect], index: 0 })?.insert?.find((s) => s.kind === 'riverEchouageForce');
+      return applierDe('fleuveDetectionDePeril')!(get, set, detect, undefined, { steps: [detect], index: 0 })?.insert?.find((s) => s.kind === 'fleuveEchouageForce');
     }).find(Boolean);
     expect(echouage, 'un échouage (40 %) sur 40 graines').toBeTruthy();
     expect(echouage!.difficulty).toBe('intermediaire');
@@ -345,7 +345,7 @@ describe('influence effective — Résilience sur un jet du jour fluvial', () =>
     // Un héros doté de points de Résilience à dépenser sur son jet du jour.
     set({ party: get().party.map((h) => (h.id === 'r-gunnar' ? { ...h, resilience: 2 } : h)) });
     seedBattleRng(7);
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     const pc = get().pendingCascade!;
     expect(pc.purpose).toBe('travelDay');
     // La 1ʳᵉ étape-jet est bien un participant influençable de la cascade.
@@ -376,15 +376,15 @@ describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur
   it('cadence JOUR-PAR-JOUR (déclarée au départ) : le dé de MONDE puis les Tests s’ouvrent en fenêtre, sans ligne de dé au journal', () => {
     launch(false, 45, { riverExposure: { source: 'aval-grande-ville-8km', mode: 'ingestion', chancePct: 100 } });
     seedBattleRng(4);
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     let g = 0;
     while (get().pendingCascade?.purpose === 'travelDay' && g++ < 200) avanceEtapeCascade(get);
     const chance = get().pendingCascade!;
-    expect(chance.participants[chance.cursor].kind, 'le dé d’auteur est joué par le siège du monde (#1426)').toBe('river-exposition-tirage');
+    expect(chance.participants[chance.cursor].kind, 'le dé d’auteur est joué par le siège du monde (#1426)').toBe('fleuveExpositionTirage');
     avanceEtapeCascade(get);
     const pc = get().pendingCascade;
     expect(pc?.purpose, 'purpose dédié : sa clôture reprend la fin du jour (#344)').toBe('riverExposure');
-    expect(pc?.participants.every((s) => s.kind === 'river-exposition')).toBe(true);
+    expect(pc?.participants.every((s) => s.kind === 'fleuveExposition')).toBe(true);
     expect(pc?.participants.length).toBe(get().party.filter((h) => !h.dead).length);
     expect(lignesDeResistance(), 'la fenêtre montre les dés : le journal ne les redit pas').toEqual([]);
   });
@@ -393,7 +393,7 @@ describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur
     // 24 km (1 jour ne suffit pas : ~plusieurs étapes de descente) avec exposition GARANTIE chaque jour.
     launch(false, 24, { riverExposure: { source: 'grande-ville-marais', mode: 'ingestion', chancePct: 100 } });
     seedBattleRng(4);
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     expect(get().pendingCascade?.purpose).toBe('travelDay');
     // Draine la cascade du JOUR puis, ENCHAÎNÉE, la cascade d'Exposition (purpose riverExposure).
     draineCascade(get);
@@ -401,7 +401,7 @@ describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur
     expect(get().pendingCascade).toBeNull();
     expect(get().pendingRest).toBeTruthy();
     // La nuit franchie, la journée SUIVANTE se ré-arme (nouvelle cascade travelDay) — le voyage repart.
-    get().fenetreValider('rest');
+    get().fenetreValider('repos');
     expect(get().pendingRest).toBeNull();
     expect(get().pendingCascade?.purpose).toBe('travelDay');
     expect(get().travelPlan?.river).toBeTruthy();
@@ -440,8 +440,8 @@ describe('entretien du jour de voyage — la Faim se résout À LA HALTE, après
     get().partirEnVoyage('r-reik', 'barge');
     draineCascade(get);
     expect(get().pendingRest).toBeTruthy();
-    for (const h of get().party) get().fenetreChoisir('rest', 'pitance', 'repas', h.id);
-    get().fenetreValider('rest');
+    for (const h of get().party) get().fenetreChoisir('repos', 'pitance', 'repas', h.id);
+    get().fenetreValider('repos');
     draineCascade(get);
     for (const h of get().party) {
       expect(h.hunger?.days ?? 0).toBe(0);
@@ -456,8 +456,8 @@ describe('entretien du jour de voyage — la Faim se résout À LA HALTE, après
     get().partirEnVoyage('r-reik', 'barge');
     draineCascade(get);
     expect(get().pendingRest).toBeTruthy();
-    for (const h of get().party) { get().fenetreChoisir('rest', 'couchage', 'dehors', h.id); get().fenetreChoisir('rest', 'pitance', 'rien', h.id); }
-    get().fenetreValider('rest');
+    for (const h of get().party) { get().fenetreChoisir('repos', 'couchage', 'dehors', h.id); get().fenetreChoisir('repos', 'pitance', 'rien', h.id); }
+    get().fenetreValider('repos');
     draineCascade(get);
     for (const h of get().party) expect(h.hunger?.days ?? 0).toBe(1);
   });
@@ -472,7 +472,7 @@ describe('descente end-to-end — le Reik jusqu\'à Altdorf (cascades jour + nui
     for (let i = 0; i < 120; i++) {
       if (!get().travelPlan && get().lieu === 'B') break;
       if (get().pendingCascade) { draineCascade(get); continue; }
-      if (get().pendingRest) { get().fenetreValider('rest'); draineCascade(get); continue; }
+      if (get().pendingRest) { get().fenetreValider('repos'); draineCascade(get); continue; }
       if (!get().travelPlan) break;
     }
     expect(get().travelPlan).toBeNull();
@@ -491,7 +491,7 @@ describe('descente end-to-end — le Reik jusqu\'à Altdorf (cascades jour + nui
  */
 describe('#270 / #1657 B3-2 — Critique au gréement : le coup à l’équipage passe par la porte', () => {
   function riggingFailStep(actorId: string) {
-    return cascadeDeTest([{ id: 'rig', kind: 'riverRigging', actorId, rollLabel: 'Voile', base: 40, target: 40,
+    return cascadeDeTest([{ id: 'rig', kind: 'fleuveGreement', actorId, rollLabel: 'Voile', base: 40, target: 40,
       result: { roll: 90, target: 40, sl: -5, success: false } }], { title: 'Journée', purpose: 'travelDay' });
   }
 
@@ -510,7 +510,7 @@ describe('#270 / #1657 B3-2 — Critique au gréement : le coup à l’équipage
     get().jetValider('cascade'); // valide l'échec → Critique au gréement
     const pc = get().pendingCascade;
     expect(pc).toBeTruthy();
-    const bande = pc!.participants.find((s) => s.kind === 'triggeredBatchTest');
+    const bande = pc!.participants.find((s) => s.kind === 'testDeclencheEnBande');
     expect(bande, 'aucune bande : le Test d’Initiative de la rangée est resté silencieux').toBeTruthy();
     expect(bande!.participants!.map((p) => p.id)).toEqual(get().party.map((x) => x.id));
     expect(bande!.participants!.every((p) => p.interactive && !p.result), 'un dé est déjà tombé').toBe(true);
@@ -542,7 +542,7 @@ describe('#270 / #1657 B3-2 — Critique au gréement : le coup à l’équipage
 /**
  * #1078 LOT C1 / #1109 — le LIBELLÉ DE LIGNE (Z5, `docs/charte-ui.md`) du Test d'évitement d'un péril
  * est la COMPÉTENCE du barreur, RÉSOLUE par la couture id→label du catalogue (`refLabel`) et portée en
- * DONNÉE jusqu'à l'applier. Avant, l'étape insérée recopiait le `rollLabel` d'un pas `riverPerilCheck`
+ * DONNÉE jusqu'à l'applier. Avant, l'étape insérée recopiait le `rollLabel` d'un pas `fleuveTestDePeril`
  * qui n'en a jamais → la ligne s'affichait sans nom de Compétence.
  */
 describe('péril fluvial — la ligne du Test d’évitement nomme la Compétence du barreur (#1109)', () => {
@@ -550,14 +550,14 @@ describe('péril fluvial — la ligne du Test d’évitement nomme la Compétenc
     launch(false, 45, { riverPerils: [{ perilId: 'debris', chancePct: 100 }] });
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
-    const check = built.steps.find((s) => s.kind === 'riverPerilCheck')!;
+    const check = built.steps.find((s) => s.kind === 'fleuveTestDePeril')!;
     expect(check, 'le pas de vérification du péril existe').toBeTruthy();
     // Barge gréée → compétence Voile (Chaland), `ship.sail.spec` ; le libellé vient du CATALOGUE, jamais d'un littéral.
     expect(check.meta?.navLabel).toBe(refLabel('skills', { id: 'voile', spec: 'chaland' }));
 
     seedBattleRng(2);
-    const out = applierDe('riverPerilCheck')!(get, set, check, undefined, { steps: [check], index: 0 });
-    const nav = out?.insert?.find((s) => s.kind === 'riverPerilNav');
+    const out = applierDe('fleuveTestDePeril')!(get, set, check, undefined, { steps: [check], index: 0 });
+    const nav = out?.insert?.find((s) => s.kind === 'fleuvePerilNavigation');
     expect(nav, 'le Test d’évitement est inséré (barreur présent, péril à 100 %)').toBeTruthy();
     expect(nav!.rollLabel).toBe(refLabel('skills', { id: 'voile', spec: 'chaland' }));
     expect(nav!.rollLabel).not.toBe(''); // la ligne ne peut plus s'afficher sans nom de Compétence
@@ -567,14 +567,14 @@ describe('péril fluvial — la ligne du Test d’évitement nomme la Compétenc
     launch(false, 45, { riverPerils: [{ perilId: 'debris', chancePct: 100 }] });
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
-    const check = built.steps.find((s) => s.kind === 'riverPerilCheck')!;
+    const check = built.steps.find((s) => s.kind === 'fleuveTestDePeril')!;
     // Fixture SANS `meta.navLabel` : le champ est optionnel, et `saves.ts` ne le remplit pas au rejeu.
     const legacy = { ...check, meta: { ...check.meta, navLabel: undefined } } as typeof check;
     expect(legacy.meta?.navLabel).toBeUndefined();
 
     seedBattleRng(2);
-    const out = applierDe('riverPerilCheck')!(get, set, legacy, undefined, { steps: [legacy], index: 0 });
-    const nav = out?.insert?.find((s) => s.kind === 'riverPerilNav');
+    const out = applierDe('fleuveTestDePeril')!(get, set, legacy, undefined, { steps: [legacy], index: 0 });
+    const nav = out?.insert?.find((s) => s.kind === 'fleuvePerilNavigation');
     expect(nav, 'le Test d’évitement s’insère aussi sur le chemin legacy').toBeTruthy();
     expect(nav!.rollLabel).toBe(refLabel('skills', { id: 'voile', spec: 'chaland' })); // dérivé du bateau EN COURS
     expect(nav!.rollLabel).not.toBe('');
@@ -589,7 +589,7 @@ describe('péril fluvial — la ligne du Test d’évitement nomme la Compétenc
  */
 describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () => {
   const capsizeStep = () => ({
-    id: 'river-capsize', kind: 'riverCapsize' as const, actorId: get().party[0].id, icon: 'nautical/wind',
+    id: 'fleuve-chavirage', kind: 'fleuveChavirage' as const, actorId: get().party[0].id, icon: 'nautique/vent' as const,
     label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
     target: 60, result: { roll: 95, target: 60, sl: -3, success: false }, interactive: true, meta: { savoir: 0 },
   });
@@ -598,8 +598,8 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     launch(false, 45);
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
     const step = capsizeStep();
-    const out = applierDe('riverCapsize')!(get, set, step, undefined, { steps: [step], index: 0 });
-    const r1 = out?.insert?.find((s) => s.kind === 'riverRighting');
+    const out = applierDe('fleuveChavirage')!(get, set, step, undefined, { steps: [step], index: 0 });
+    const r1 = out?.insert?.find((s) => s.kind === 'fleuveRedressement');
     expect(r1, 'le Round 1 du redressement est une étape INFLUENÇABLE').toBeTruthy();
     expect(r1!.difficulty).toBe('accessible'); // +20 RAW, jamais fondu dans un +N anonyme
     // Le redressement est un Test de NAVIGATION : le barreur et son Soutien sont RE-RÉSOLUS au moment
@@ -618,17 +618,17 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
     const be = 3;
     const round0 = {
-      id: 'river-capsize-right-0', kind: 'riverRighting' as const, actorId: get().party[0].id, icon: 'nautical/tack',
+      id: 'river-capsize-right-0', kind: 'fleuveRedressement' as const, actorId: get().party[0].id, icon: 'nautique/louvoyage' as const,
       label: fixtureText('Redressement du bateau — Round 1/3'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 98, target: 60, sl: -4, success: false }, interactive: true,
       meta: { rightRound: 0, rightRounds: be },
     };
-    const out0 = applierDe('riverRighting')!(get, set, round0, undefined, { steps: [round0], index: 0 });
-    const round1 = out0?.insert?.find((s) => s.kind === 'riverRighting');
+    const out0 = applierDe('fleuveRedressement')!(get, set, round0, undefined, { steps: [round0], index: 0 });
+    const round1 = out0?.insert?.find((s) => s.kind === 'fleuveRedressement');
     expect(round1, 'le Round 2 s’insère tant qu’il reste des Rounds (BE)').toBeTruthy();
     // MSRC 7 l.40
     expect(lignesDe(round1!.mods, RULE_REF['navigation-chavirage']))
-      .toEqual([{ label: t('rv.rightingCumul', { n: 2 }), value: -5, famille: 'circonstance', ref: RULE_REF['navigation-chavirage'] }]);
+      .toEqual([{ label: t('fleuve.cumulDeRedressement', { n: 2 }), value: -5, famille: 'circonstance', ref: RULE_REF['navigation-chavirage'] }]);
     const pilote2 = partyAssisted(get().party, { skill: { id: 'voile', spec: 'chaland' } })!;
     expect(round1!.target).toBe(pilote2.value + DIFFICULTY_MODIFIERS.accessible - 5);
     expect(inexplique(round1!)).toBe(0);
@@ -636,7 +636,7 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
 
     // Dernier Round (index BE−1) échoué → naufrage.
     const last = { ...round1!, meta: { ...round1!.meta, rightRound: be - 1 }, result: { roll: 99, target: 50, sl: -5, success: false } };
-    applierDe('riverRighting')!(get, set, last, undefined, { steps: [last], index: 0 });
+    applierDe('fleuveRedressement')!(get, set, last, undefined, { steps: [last], index: 0 });
     expect(get().travelPlan!.river!.sunk).toBe(true);
   });
 
@@ -644,12 +644,12 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     launch(false, 45);
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
     const round0 = {
-      id: 'river-capsize-right-0', kind: 'riverRighting' as const, actorId: get().party[0].id, icon: 'nautical/tack',
+      id: 'river-capsize-right-0', kind: 'fleuveRedressement' as const, actorId: get().party[0].id, icon: 'nautique/louvoyage' as const,
       label: fixtureText('Redressement du bateau — Round 1/3'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 12, target: 60, sl: 4, success: true }, interactive: true,
       meta: { rightRound: 0, rightRounds: 3 },
     };
-    const out = applierDe('riverRighting')!(get, set, round0, undefined, { steps: [round0], index: 0 });
+    const out = applierDe('fleuveRedressement')!(get, set, round0, undefined, { steps: [round0], index: 0 });
     expect(out?.insert ?? []).toEqual([]);
     expect(get().travelPlan!.river!.sunk).toBeFalsy();
   });
@@ -671,7 +671,7 @@ describe('Navigation du jour — Difficulté déclarée, malus NOMMÉS (#1112)',
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere' } } });
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
-    const nav = built.steps.find((s) => s.kind === 'riverNav')!;
+    const nav = built.steps.find((s) => s.kind === 'fleuveNavigation')!;
     expect(nav.difficulty).toBe('intermediaire');
     expect(malus(nav)).toEqual([]);
   });
@@ -679,11 +679,11 @@ describe('Navigation du jour — Difficulté déclarée, malus NOMMÉS (#1112)',
   it('hors de contrôle : la Difficulté RESTE celle du RAW, le −20 est une chip NOMMÉE comprise dans la cible', () => {
     launch(false, 45);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
-    set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', outOfControl: true } } });
+    set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', horsDeControle: true } } });
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
-    const nav = built.steps.find((s) => s.kind === 'riverNav')!;
+    const nav = built.steps.find((s) => s.kind === 'fleuveNavigation')!;
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est PAS une Difficulté
-    expect(malus(nav)).toEqual([{ label: t('rv.modOutOfControl'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    expect(malus(nav)).toEqual([{ label: t('fleuve.modificateurHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     // Le malus est compris dans la cible, et la ligne explique TOUT l'écart (cliquet).
     expect(inexplique(nav)).toBe(0);
   });
@@ -699,17 +699,17 @@ describe('péril fluvial — l’évitement porte les malus de dérive/hors-cont
   it('hors de contrôle : l’étape insérée porte la chip NOMMÉE et une cible qui l’inclut', () => {
     launch(false, 45, { riverPerils: [{ perilId: 'debris', chancePct: 100 }] });
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
-    set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', outOfControl: true } } });
+    set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', horsDeControle: true } } });
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
-    const check = built.steps.find((s) => s.kind === 'riverPerilCheck')!;
+    const check = built.steps.find((s) => s.kind === 'fleuveTestDePeril')!;
     seedBattleRng(2);
-    const out = applierDe('riverPerilCheck')!(get, set, check, undefined, { steps: [check], index: 0 });
-    const nav = (out?.insert ?? []).find((s) => s.kind === 'riverPerilNav')!;
-    expect(malus(nav)).toEqual([{ label: t('rv.modOutOfControl'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    const out = applierDe('fleuveTestDePeril')!(get, set, check, undefined, { steps: [check], index: 0 });
+    const nav = (out?.insert ?? []).find((s) => s.kind === 'fleuvePerilNavigation')!;
+    expect(malus(nav)).toEqual([{ label: t('fleuve.modificateurHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est pas une Difficulté
     expect(inexplique(nav), 'le malus est compris dans la cible, et TOUT l’écart est nommé').toBe(0);
     // Le Test de Navigation du JOUR et l'évitement voient le MÊME modificateur (une seule règle).
-    const dayNav = built.steps.find((s) => s.kind === 'riverNav')!;
+    const dayNav = built.steps.find((s) => s.kind === 'fleuveNavigation')!;
     expect(malus(dayNav)).toEqual(malus(nav));
   });
 
@@ -718,10 +718,10 @@ describe('péril fluvial — l’évitement porte les malus de dérive/hors-cont
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere' } } });
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
-    const check = built.steps.find((s) => s.kind === 'riverPerilCheck')!;
+    const check = built.steps.find((s) => s.kind === 'fleuveTestDePeril')!;
     seedBattleRng(2);
-    const out = applierDe('riverPerilCheck')!(get, set, check, undefined, { steps: [check], index: 0 });
-    const nav = (out?.insert ?? []).find((s) => s.kind === 'riverPerilNav')!;
+    const out = applierDe('fleuveTestDePeril')!(get, set, check, undefined, { steps: [check], index: 0 });
+    const nav = (out?.insert ?? []).find((s) => s.kind === 'fleuvePerilNavigation')!;
     expect(malus(nav)).toEqual([]);
     expect(inexplique(nav), 'cible = base + Soutien + Difficulté, rien d’anonyme').toBe(0);
   });
@@ -734,12 +734,12 @@ describe('chavirage — le compte de Rounds de redressement a un plancher (#1112
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, vehicle: { ...plan.vehicle!, characteristics: { ...plan.vehicle!.characteristics, endurance: 0 } } } });
     const step = {
-      id: 'river-capsize', kind: 'riverCapsize' as const, actorId: get().party[0].id, icon: 'nautical/wind',
+      id: 'fleuve-chavirage', kind: 'fleuveChavirage' as const, actorId: get().party[0].id, icon: 'nautique/vent' as const,
       label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 95, target: 60, sl: -3, success: false }, interactive: true, meta: { savoir: 0 },
     };
-    const out = applierDe('riverCapsize')!(get, set, step, undefined, { steps: [step], index: 0 });
-    const r1 = (out?.insert ?? []).find((s) => s.kind === 'riverRighting')!;
+    const out = applierDe('fleuveChavirage')!(get, set, step, undefined, { steps: [step], index: 0 });
+    const r1 = (out?.insert ?? []).find((s) => s.kind === 'fleuveRedressement')!;
     expect(r1.label).toContain('Round 1/1');
     expect(r1.label).not.toContain('/0');
   });
@@ -776,7 +776,7 @@ describe('enjeu des étapes de voyage — data-driven, valeurs calculées (#1117
     // c'est le trou qu'une mesure sur le seul scénario par défaut laissait passer).
     set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'fort', windDir: 'cote' } } });
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
-    const tack = built.steps.find((s) => s.kind === 'riverTack');
+    const tack = built.steps.find((s) => s.kind === 'fleuveVirementDeBord');
     expect(tack, 'le louvoyage est bien au programme du jour').toBeTruthy();
     expect(resolveStake(tack!.stake!).text).toMatch(/^Réussi : \+\d+ % de vitesse ; échec : \+0 %\.$/);
   });
@@ -786,12 +786,12 @@ describe('enjeu des étapes de voyage — data-driven, valeurs calculées (#1117
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere' } } });
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
-    const nav = built.steps.find((s) => s.kind === 'riverNav')!;
+    const nav = built.steps.find((s) => s.kind === 'fleuveNavigation')!;
     expect(resolveStake(nav.stake!).text).toMatch(/dérive \d+ km en aval \(25 % de la vitesse\)/); // km calculé, % de la donnée
   });
 
   it('le gabarit qui manque une valeur JETTE (la donnée et le flux ne divergent pas en silence)', () => {
-    expect(() => resolveStake(voyageStakeRef('river-nav'))).toThrow(/driftKm/);
+    expect(() => resolveStake(voyageStakeRef('fleuve-navigation'))).toThrow(/driftKm/);
     // FAIL-CLOSED à l'autre bout : demander l'enjeu d'un `kind` SANS gabarit JETTE — une étape muette
     // en silence est exactement ce que #1117 supprime.
     // @ts-expect-error — `kind-inexistant` n'est l'id d'aucun enjeu de voyage
@@ -826,9 +826,9 @@ describe('renvoi Codex au niveau ÉTAPE (#1117)', () => {
   });
 
   it('les fiches créées portent leur SOURCE (livre + folio + ligne)', () => {
-    // Périmètre : les fiches derrière les enjeux FLUVIAUX (`river-*`) — le catalogue d'enjeux sert aussi
+    // Périmètre : les fiches derrière les enjeux FLUVIAUX (`fleuve-*`) — le catalogue d'enjeux sert aussi
     // la mer, dont les fiches viennent d'un autre livre.
-    const ids = new Set(VOYAGE_STAKES.filter((s) => s.id.startsWith('river-')).flatMap((s) => (s.rule?.type === 'regle' ? [s.rule.id] : [])));
+    const ids = new Set(VOYAGE_STAKES.filter((s) => s.id.startsWith('fleuve-')).flatMap((s) => (s.rule?.type === 'regle' ? [s.rule.id] : [])));
     expect(ids.size, 'des étapes fluviales portent bien une fiche').toBeGreaterThan(0);
     for (const f of regles.filter((r) => ids.has(r.id))) {
       expect(f.source.book).toBe('mort-sur-le-reik-compagnon');
@@ -867,7 +867,7 @@ describe('Navigation du jour — base NUE + Soutien NOMMÉ, cible invariante (#1
     expect(picked.support.bonus, 'les camarades éligibles soutiennent (l.195)').toBeGreaterThan(0);
 
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
-    const nav = built.steps.find((s) => s.kind === 'riverNav')!;
+    const nav = built.steps.find((s) => s.kind === 'fleuveNavigation')!;
     expect(nav.actorId).toBe(lead.id);
     expect(nav.base, 'Niveau de Compétence NU (LDB 09 l.17)').toBe(nue);
     expect(soutienDe(nav), 'le Soutien est une ligne de mod NOMMÉE').toBe(picked.support.bonus);
@@ -907,7 +907,7 @@ describe('#1262 V3 Lj — journée fluviale COMMANDÉE : chaque jet mono laisse 
   it('cadence JOUR-PAR-JOUR (la fenêtre s’ouvre) : AUCUNE ligne de dé au journal — la rangée les montre', () => {
     launch();
     seedBattleRng(7);
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     expect(get().pendingCascade?.purpose).toBe('travelDay');
     draineCascade(get); // le joueur roule chaque étape DANS la fenêtre
     expect(traceLines(), 'la fenêtre a montré les dés : le journal ne les redit pas').toEqual([]);
@@ -915,10 +915,10 @@ describe('#1262 V3 Lj — journée fluviale COMMANDÉE : chaque jet mono laisse 
 });
 
 describe('#1111 — le libellé de l’étape de Navigation est celui de `composeRollLabel` (Z1)', () => {
-  it('partirEnVoyage → jour de fleuve : l’étape `riverNav` porte « Navigation (<Compétence du barreur>) » du composeur', () => {
+  it('partirEnVoyage → jour de fleuve : l’étape `fleuveNavigation` porte « Navigation (<Compétence du barreur>) » du composeur', () => {
     launch();
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
-    const nav = get().pendingCascade!.participants.find((s) => s.kind === 'riverNav')!;
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
+    const nav = get().pendingCascade!.participants.find((s) => s.kind === 'fleuveNavigation')!;
     const coque = get().travelPlan!.vehicle!;
     const competence = propulsionDuNavire(coque.creatureId, coque.upgrades, 'fluvial')!.competence;
     expect(nav.label).toBe(composeRollLabel(undefined, t('step.navigation'), { skill: competence }));
@@ -973,14 +973,14 @@ describe('#1341 — la spec d’un Test se demande par ID (la donnée en stocke 
 
   it('BOUT-EN-BOUT : l’étape de réparation du gréement porte la valeur RÉELLE du charpentier du bord', () => {
     // Le charpentier EMBARQUE (spec par id, comme la donnée) ; le gréement est brisé → `bestShipwright`
-    // monte l'étape `riverControlRepair`. Sa cible DOIT venir de Métier (Charpentier), pas de la carac nue.
+    // monte l'étape `fleuveReparationDeCommande`. Sa cible DOIT venir de Métier (Charpentier), pas de la carac nue.
     launch(false, 45);
     const bran = charpentier();
     get().fixerLeGroupe([...get().party, bran]);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, broken: true } } });
     const { steps } = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
-    const repair = steps.find((s) => s.kind === 'riverControlRepair');
+    const repair = steps.find((s) => s.kind === 'fleuveReparationDeCommande');
     expect(repair, 'gréement brisé → une étape de réparation est montée').toBeTruthy();
     // Gunnar a Métier (Construction de bateaux) 40 avances : c'est LUI le meilleur réparateur, et sa
     // valeur ne se lit que si la spec est demandée par ID.

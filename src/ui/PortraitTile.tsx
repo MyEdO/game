@@ -1,3 +1,4 @@
+import type { Equipe } from '../engine/relations';
 import type { CSSProperties } from 'react';
 import { hpColor } from '../gameIso/teamColors';
 import { teamRingDecor } from '../gameIso/builders/dynamicMarks';
@@ -38,7 +39,7 @@ export interface PortraitTileProps {
    *  (or) et du picker (sel). Réciprocité frise↔carte. */
   hovered?: boolean;
   /** Fond d'équipe derrière le portrait (vert allié / rouge ennemi). */
-  team?: 'ally' | 'enemy';
+  team?: Equipe;
   ring?: ReturnType<typeof teamRingDecor>;
   maxStates?: number;
   /** Cellule d'États à EMPREINTE STABLE (arbitrage user 2026-07-11) : rendue vide sans État pour que
@@ -62,7 +63,7 @@ export function PortraitTile({ c, variant = 'full', size = 'md', active, selecte
   const es = endState(c);
   const endMark = es ? END_STATE_VISUAL[es] : null;
   const showGauge = variant !== 'identity' && !c.inert;
-  const showPv = showGauge && c.kind === 'hero' && px >= CHAR_SIZE_PX.md;
+  const showPv = showGauge && c.kind === 'heros' && px >= CHAR_SIZE_PX.md;
   const interactif = !decoratif && !!(onClick || onInspect);
   const Boite = interactif ? 'button' : 'span';
   const inspecter = decoratif ? undefined : onInspect;
@@ -114,7 +115,7 @@ export function PortraitTile({ c, variant = 'full', size = 'md', active, selecte
             overlay
             className="ptile-gauge"
             title={showPv ? `Blessures : ${c.wounds.current}/${c.wounds.max}` : 'Blessures'}
-            format={() => (showPv ? (c.dead ? <Icon id="journal/death" size="sm" /> : `${c.wounds.current}/${c.wounds.max}`) : null)}
+            format={() => (showPv ? (c.dead ? <Icon id="journal/mort" size="sm" /> : `${c.wounds.current}/${c.wounds.max}`) : null)}
           />
         )}
         {!decoratif && <span className="ptile-name clamp">{c.label}</span>}

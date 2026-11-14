@@ -10,8 +10,10 @@
  */
 import type { FateSaveOption } from '../engine/fortune';
 import type {
-  IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation, IdDePosteDeBataille, IdDeReponseDeDialogue, IdDeSceneDeBataille,
-  IdDeTireurRapide, IdDObjet, IdDuCoupleMonte, IdDOffreDeCargaison, IdDePorteurDeCargaison, IdDeCargaison, IdDePointDInteret,
+  IdDActivite, IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeRangee, IdDeLigneDeRepartition, IdDePlaieDeLOperation,
+  IdDeQualiteDArtisanat, IdDeReponseDeDialogue, IdDEntrainement, IdDeSort, IdDeTalent, IdDeTireurRapide, IdDeTraitPsyPorte, IdDObjet, IdDObjetDuCatalogue, IdDuCoupleMonte,
+  IdDePosteDeBataille, IdDeSceneDeBataille,
+  IdDOffreDeCargaison, IdDePorteurDeCargaison, IdDeCargaison, IdDePointDInteret,
 } from './designations';
 import type { RestFood, RestLodging } from './restFlow';
 import type { ModeDeMarche } from './merchantFlow';
@@ -26,26 +28,26 @@ export const VERBE_DE_CHOIX = 'fenetreChoisir' as const satisfies keyof VerbeDeC
 
 /** Les choix de chaque fenêtre qui en a, et la forme de leur valeur. */
 export interface ChoixDesFenetres {
-  fateSave: {
-    /** LDB 17 l.29-32 ; `accept` : le héros meurt. */
-    issue: FateSaveOption | 'accept';
+  destin: {
+    /** LDB 17 l.29-32 ; `accepter` : le héros meurt. */
+    issue: FateSaveOption | 'accepter';
   };
-  renounce: {
+  renier: {
     /** LDB 17 l.67 ; `false` : la mutation se développe. */
     renier: boolean;
   };
-  mountTarget: {
+  cibleDeMonture: {
     /** LDB 14 l.181 */
     cible: IdDuCoupleMonte;
   };
-  council: {
+  conseil: {
     paie: IdDeChoixDePaie;
   };
-  shoreLeave: {
+  relacheATerre: {
     /** MDG 15 l.245 */
     accorder: boolean;
   };
-  medic: {
+  infirmerie: {
     patient: IdDeHeros;
     abandon: true;
     /** La Blessure Critique que l'opération armée, ou le brouillon d'une opération, vise (`plaiesDeLOperation`). */
@@ -59,7 +61,7 @@ export interface ChoixDesFenetres {
     /** EDO 02 l.91 */
     heros: IdDeHeros;
   };
-  seaActivities: {
+  activitesEnMer: {
     /** MDG 15 l.268 ; `null` : aucune Activité. */
     activite: IdDActiviteEnMer | null;
     /** MDG 15 l.276 */
@@ -106,27 +108,49 @@ export interface ChoixDesFenetres {
     /** LDB 59 l.64-76 */
     troquer: true;
   };
-  loot: {
+  butin: {
     /** La ligne du butin que prend le héros de la rangée. */
     ligne: IdDeLigneDeButin;
   };
-  victory: {
+  victoire: {
     /** La ligne du butin que prend le héros de la rangée. */
     ligne: IdDeLigneDeButin;
     /** ZI 13 : la créature vaincue que le groupe dépèce. */
     depecer: IdDeCreatureADepecer;
   };
-  rest: {
+  repos: {
     /** LDB 66 */
     couchage: RestLodging;
     /** LDB 66 */
     pitance: RestFood;
   };
-  roundStart: {
+  debutDuRound: {
     /** LDB 17 l.25, LDB 62 l.298-300 : le combattant qui agit en premier ce Round. */
     promouvoir: IdDeCombattantPromouvable;
     /** LDB 11 l.97-103 : le tireur dont le Tir rapide est armé ; `null` : aucun. */
     viser: IdDeTireurRapide | null;
+  };
+  interlude: {
+    /** LDB 23 l.5 : l'Activité que compose le héros de la rangée. */
+    activite: IdDActivite;
+    /** LDB 23 l.66-72 */
+    talent: IdDeTalent;
+    /** LDB 23 l.132-136 */
+    entrainement: IdDEntrainement;
+    /** LDB 23 l.74-78 : l'ouvrage d'Artisanat à engager. */
+    ouvrage: IdDObjetDuCatalogue;
+    /** LDB 23 l.95 : un Atout ou un Défaut que vise l'ouvrage. */
+    ajouterLaQualite: IdDeQualiteDArtisanat;
+    /** LDB 23 l.95 */
+    retirerLaQualite: IdDeQualiteDArtisanat;
+    /** L'arme à maîtriser ou l'artefact à étudier. */
+    objet: IdDObjet;
+    /** Le sort à mémoriser. */
+    sort: IdDeSort;
+    /** Le Trait psychologique à éliminer. */
+    traitPsychologique: IdDeTraitPsyPorte;
+    /** LDB 23 l.5 : l'Activité composée se pratique. */
+    pratiquer: true;
   };
   batailleDeMasse: {
     /** ADE II 08 l.116-118 : la Scène de la situation que les PJ engagent. */
@@ -170,7 +194,7 @@ export interface ChoixDuMarche {
   /** Le porteur qui charge l'achat. */
   porteur: IdDePorteurDeCargaison;
   /** L'Enc acheté. */
-  enc: number;
+  encombrement: number;
   acheter: true;
   vendre: IdDeCargaison;
   jeter: IdDeCargaison;
@@ -209,19 +233,20 @@ const reprenableParLHote = { effet: 'reprenable', portee: 'fenetre', qui: 'hote'
 const fige = { effet: 'fige', portee: 'fenetre', qui: 'proprietaire' } as const;
 const figeParLHote = { effet: 'fige', portee: 'fenetre', qui: 'hote' } as const;
 const duHerosParLHote = { effet: 'reprenable', portee: 'rangee', qui: 'hote' } as const;
-const marche = { offre: reprenableParLHote, porteur: reprenableParLHote, enc: reprenableParLHote, acheter: figeParLHote, vendre: figeParLHote, jeter: figeParLHote } as const;
+const figeDuHeros = { effet: 'fige', portee: 'rangee', qui: 'proprietaire' } as const;
+const marche = { offre: reprenableParLHote, porteur: reprenableParLHote, encombrement: reprenableParLHote, acheter: figeParLHote, vendre: figeParLHote, jeter: figeParLHote } as const;
 
 /** La déclaration de chaque choix, table TOTALE sur `ChoixDesFenetres`. */
 export const CHOIX_DES_FENETRES = {
-  fateSave: { issue: clot },
-  renounce: { renier: clot },
-  mountTarget: { cible: clot },
-  council: { paie: clotParLHote },
-  shoreLeave: { accorder: clotParLHote },
-  medic: { patient: reprenable, abandon: clot, plaie: reprenable },
+  destin: { issue: clot },
+  renier: { renier: clot },
+  cibleDeMonture: { cible: clot },
+  conseil: { paie: clotParLHote },
+  relacheATerre: { accorder: clotParLHote },
+  infirmerie: { patient: reprenable, abandon: clot, plaie: reprenable },
   dialogue: { reponse: clot },
   designationHeros: { heros: clot },
-  seaActivities: { activite: duHeros, investir: duHeros, cacher: duHeros },
+  activitesEnMer: { activite: duHeros, investir: duHeros, cacher: duHeros },
   // Le panier, la vente et le troc se composent au siège du propriétaire de l'échoppe (l'hôte), et dans l'état d'un
   // invité (#3059) ; ce qui touche la bourse, le stock ou les possessions est à l'hôte.
   marchand: {
@@ -231,13 +256,18 @@ export const CHOIX_DES_FENETRES = {
     payer: figeParLHote, vendre: figeParLHote, refuser: figeParLHote, marchander: figeParLHote, chercher: figeParLHote, reparer: figeParLHote,
     trocCeder: reprenable, trocRecevoir: reprenable, trocQuantite: reprenable, troquer: figeParLHote,
   },
-  loot: { ligne: duHerosParLHote },
-  victory: { ligne: duHeros, depecer: figeParLHote },
-  rest: { couchage: duHeros, pitance: duHeros },
+  butin: { ligne: duHerosParLHote },
+  victoire: { ligne: duHeros, depecer: figeParLHote },
+  repos: { couchage: duHeros, pitance: duHeros },
   // La Chance dépensée et la visée armée sont celles du combattant que la valeur nomme ; désarmer, celles du tireur armé.
-  roundStart: {
+  debutDuRound: {
     promouvoir: { ...fige, porteurDeLaValeur: (_s, valeur) => (typeof valeur === 'string' ? valeur : undefined) },
     viser: { ...reprenable, porteurDeLaValeur: (s, valeur) => (typeof valeur === 'string' ? valeur : s.preemptAiming ?? undefined) },
+  },
+  // Chaque héros compose son Activité et la pratique, à son siège.
+  interlude: {
+    activite: duHeros, talent: duHeros, entrainement: duHeros, ouvrage: duHeros, ajouterLaQualite: duHeros, retirerLaQualite: duHeros,
+    objet: duHeros, sort: duHeros, traitPsychologique: duHeros, pratiquer: figeDuHeros,
   },
   batailleDeMasse: { scene: figeParLHote, engager: figeParLHote, rallier: figeParLHote, ajouterAuPoste: duHerosParLHote, retirerDuPoste: duHerosParLHote, alea: figeParLHote },
   // La bourse, la cale et les porteurs du groupe sont à l'hôte.
@@ -250,13 +280,21 @@ export const CHOIX_DES_FENETRES = {
 /** La fenêtre `fenetre` (une donnée de frontière) a-t-elle des choix ? */
 export const estFenetreAChoix = (fenetre: unknown): fenetre is FenetreAChoix => typeof fenetre === 'string' && Object.prototype.hasOwnProperty.call(CHOIX_DES_FENETRES, fenetre);
 
-/** La déclaration du choix `axe` de la fenêtre `fenetre`, deux données de frontière ; `null` : la fenêtre ne le déclare
- *  pas. */
-export function declarationDuChoix(fenetre: unknown, axe: unknown): DeclarationDuChoix | null {
-  if (!estFenetreAChoix(fenetre) || typeof axe !== 'string') return null;
+/** L'axe `axe` (une donnée de frontière) est-il un choix de la fenêtre `fenetre` ? */
+export const estAxeDe = (fenetre: FenetreAChoix, axe: unknown): axe is AxeDuChoix =>
+  typeof axe === 'string' && Object.prototype.hasOwnProperty.call(CHOIX_DES_FENETRES[fenetre], axe);
+
+/** La déclaration du choix `axe` de la fenêtre `fenetre` ; `null` : la fenêtre ne le déclare pas. */
+export function declarationDuChoixNomme(fenetre: CleDeRegistre, axe: AxeDuChoix): DeclarationDuChoix | null {
+  if (!estFenetreAChoix(fenetre) || !estAxeDe(fenetre, axe)) return null;
   const table: Readonly<Record<string, DeclarationDuChoix>> = CHOIX_DES_FENETRES[fenetre];
-  return Object.prototype.hasOwnProperty.call(table, axe) ? table[axe] : null;
+  return table[axe];
 }
+
+/** La déclaration du choix `axe` de la fenêtre `fenetre`, deux données de frontière (`declarationDuChoixNomme`) ;
+ *  `null` : la fenêtre ne le déclare pas. */
+export const declarationDuChoix = (fenetre: unknown, axe: unknown): DeclarationDuChoix | null =>
+  (estFenetreAChoix(fenetre) && estAxeDe(fenetre, axe) ? declarationDuChoixNomme(fenetre, axe) : null);
 
 /** Les axes de la fenêtre `cle`, dans leur ordre de déclaration ; aucun pour une fenêtre qui n'en a pas. */
 export const axesDeLaFenetre = (cle: string): readonly AxeDuChoix[] => (estFenetreAChoix(cle) ? Object.keys(CHOIX_DES_FENETRES[cle]) as AxeDuChoix[] : []);
@@ -270,15 +308,15 @@ export interface VerbeDeChoix {
 /** Les arguments du verbe, union corrélée sur chaque axe : la valeur suit son axe jusque dans une intention
  *  (`Parameters<ActionsDuNoyau['fenetreChoisir']>`). */
 export type ArgumentsDuChoix = {
-  [F in FenetreAChoix]: { [A in AxeDe<F>]: [fenetre: F, axe: A, valeur: ChoixDesFenetres[F][A], pid?: IdDeHeros] }[AxeDe<F>];
+  [F in FenetreAChoix]: { [A in AxeDe<F>]: [fenetre: F, axe: A, valeur: ChoixDesFenetres[F][A], pid?: IdDeRangee] }[AxeDe<F>];
 }[FenetreAChoix];
 
 /** Le corps de chaque choix, table TOTALE sur `ChoixDesFenetres` : il reçoit la valeur, que `fenetreChoisir` n'a admise
  *  que parmi les valeurs ouvertes de l'axe (`OuvertsDuChoix`), et le héros d'un choix de rangée. */
-export type CorpsDesChoix = { readonly [F in FenetreAChoix]: { readonly [A in AxeDe<F>]: (valeur: ChoixDesFenetres[F][A], pid: IdDeHeros) => void } };
+export type CorpsDesChoix = { readonly [F in FenetreAChoix]: { readonly [A in AxeDe<F>]: (valeur: ChoixDesFenetres[F][A], pid: IdDeRangee) => void } };
 
 /** Les valeurs que l'état ouvre à chaque choix, table TOTALE sur `ChoixDesFenetres` : le réglage de l'argument
  *  `valeur` (son libellé, sa valeur courante, chaque valeur avec la raison qui la ferme, ou ses bornes), sur le héros
  *  `pid` d'un choix de rangée, que lisent le refus du verbe et les hôtes du noyau. Aucune valeur hors de ce réglage ne se
  *  joue. */
-export type OuvertsDuChoix = { readonly [F in FenetreAChoix]: { readonly [A in AxeDe<F>]: (s: Jeu, pid: IdDeHeros | undefined) => Reglage } };
+export type OuvertsDuChoix = { readonly [F in FenetreAChoix]: { readonly [A in AxeDe<F>]: (s: Jeu, pid: IdDeRangee | undefined) => Reglage } };

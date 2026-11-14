@@ -14,7 +14,7 @@ import { resetRule, setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 
 // LDB 21 l.33 — la Frénésie avec un Coup Critique dévié au jet 1, puis le balayage (Frappe mortelle).
-const H = 'pregen-101';
+const H = 'soldat-de-test';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 const g = () => banc.getState();
@@ -37,13 +37,13 @@ const defenseEchoue = (id: string) => {
 function monte() {
   lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'entrainement')!, idsDeTest));
   setRule('combat-frappe-mortelle', true);
-  setRule('combat-critical-deflect', true);
+  setRule('combat-deviation-critique', true);
   g().lancerLeCombat('enc-entrainement');
   expect(g().battle).toBeTruthy();
-  if (g().pendingRoundStart) g().fenetreValider('roundStart');
-  nePeutPasDifferer(applyEffects(g, banc.setState, [{ type: 'ops', on: 'hero', heroId: H, ops: [opPsy.pose('frenesie')] }]), 'frenesie-critique-devie');
+  if (g().pendingRoundStart) g().fenetreValider('debutDuRound');
+  nePeutPasDifferer(applyEffects(g, banc.setState, [{ type: 'ops', on: 'heros', heroId: H, ops: [opPsy.pose('frenesie')] }]), 'frenesie-critique-devie');
   banc.setState({ battle: { ...g().battle!, ...etatDeTourNeuf(), turn: g().battle!.order.indexOf(H) } });
-  const foes = g().battle!.combatants.filter((c) => c.kind !== 'hero');
+  const foes = g().battle!.combatants.filter((c) => c.kind !== 'heros');
   const gob = foes.find((f) => f.id === 'enemy-enc-entrainement-3')!;
   const man = foes.find((f) => f.id === 'enemy-enc-entrainement-0')!;
   const hero = relu(H);
@@ -54,14 +54,14 @@ function monte() {
   gob.armour = { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 };
   for (const o of foes) if (o !== gob && o !== man && o.pos && Math.abs(o.pos.x - hero.pos.x) <= 1 && Math.abs(o.pos.y - hero.pos.y) <= 1) o.pos = { x: o.pos.x + 6, y: o.pos.y };
   // Un siège MJ tient les ennemis : la Déviation se tranche à l'étape (#1426), elle suspend le coup.
-  banc.setState({ battle: { ...g().battle! }, net: { ...g().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+  banc.setState({ battle: { ...g().battle! }, net: { ...g().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
   expect(g().battle!.acted).toBe(false);
 
   g().ensemencerLeTirage(seedDuCritique());
-  openAttackCascade(g, banc.setState, { attackerId: H, targetId: gob.id, location: null, result: null }, 'Attaque', 'action/attack');
-  g().jetLancer('attack');
+  openAttackCascade(g, banc.setState, { attackerId: H, targetId: gob.id, location: null, result: null }, 'Attaque', 'action/attaquer');
+  g().jetLancer('attaque');
   expect(g().pendingAttack?.result?.critical, 'le jet 1 doit être un Coup Critique').toBe(true);
-  g().jetValider('attack');
+  g().jetValider('attaque');
   defenseEchoue(gob.id);
 
   // L'étape critique : sévérité tirée, puis « Dévier ».
@@ -78,16 +78,16 @@ function monte() {
 }
 
 describe('Frénésie + Coup Critique dévié + balayage (LDB 21 l.33)', () => {
-  afterEach(() => { resetRule('combat-frappe-mortelle'); resetRule('combat-critical-deflect'); });
+  afterEach(() => { resetRule('combat-frappe-mortelle'); resetRule('combat-deviation-critique'); });
 
   it('la restitution traverse l’étape critique, puis le maillon suivant rend `acted:false`', () => {
     const { man } = monte();
     expect(g().pendingCleave?.restitution).toEqual({ prevActed: false });
     g().frapperEnBalayage(man.id);
-    g().jetLancer('attack');
-    g().jetImposerLeResultat('attack', 21); // LDB 13 l.183
+    g().jetLancer('attaque');
+    g().jetImposerLeResultat('attaque', 21); // LDB 13 l.183
     expect(g().pendingAttack?.result?.critical, 'le 2ᵉ coup touche sans Coup Critique').toBe(false);
-    g().jetValider('attack');
+    g().jetValider('attaque');
     defenseEchoue(man.id);
     expect(g().pendingCleave ?? null).toBeNull();
     expect(g().battle!.acted).toBe(false);
@@ -96,7 +96,7 @@ describe('Frénésie + Coup Critique dévié + balayage (LDB 21 l.33)', () => {
   it('la restitution traverse l’étape critique, puis la sortie du balayage rend `acted:false`', () => {
     monte();
     expect(g().pendingCleave?.restitution).toEqual({ prevActed: false });
-    g().fenetreFermer('cleave');
+    g().fenetreFermer('frappeMortelle');
     expect(g().battle!.acted).toBe(false);
   });
 });

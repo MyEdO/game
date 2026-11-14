@@ -1,4 +1,4 @@
-import { makeShowcaseParty } from '../../data/pregens';
+import { groupeVitrineDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import type { TestScenario } from './_shared';
@@ -113,12 +113,12 @@ export const scenario: TestScenario = {
   id: 'pont-vitrine',
   order: 50,
   category: 'rendu',
-  icon: 'scenario/bridge',
+  icon: 'scenario/pont',
   title: 'Pont — vitrine',
   tests:
     'Relief métrique 100 % données (2 couches + hauteurs parallèles) : on marche SOUS le pont (couche 0, h=0) ' +
     "et DESSUS (couche 1 'planches', h=2 m) ; accès par 2 RAMPES auto-dérivées (hauteurs 0→1→2, AUCUN escalier) ; " +
     'un plateau à 1 m ; une FALAISE (rebord h=3 m / creux h=0) infranchissable à pied (surfaceLink → cliff).',
   partyNote: 'Groupe vitrine (Soldat / Tueur / Sorcier / Chasseur) — promenade libre, aucun combat.',
-  construire: (idNeuf) => ({ party: makeShowcaseParty(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: groupeVitrineDeScenario(idNeuf), scene: construireScene() }),
 };

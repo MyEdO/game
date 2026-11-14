@@ -42,13 +42,13 @@ describe('combatOrParty — base des actions joueur combat ⇄ hors combat', () 
       expect(combatantClickActs(banc.getState, ally)).toBe(false);
     });
     it('allié blessé en mode SOIN → action (le mode cible les alliés soignables)', () => {
-      const { ally } = combat({ action: 'heal' });
+      const { ally } = combat({ action: 'soins' });
       ally.wounds.current = Math.max(0, ally.wounds.max - 3); // soignable
       banc.setState({ battle: { ...banc.getState().battle! } });
       expect(combatantClickActs(banc.getState, ally)).toBe(true);
     });
     it('allié sain en mode SOIN → pas d’action (rien à soigner)', () => {
-      const { ally } = combat({ action: 'heal' });
+      const { ally } = combat({ action: 'soins' });
       expect(combatantClickActs(banc.getState, ally)).toBe(false);
     });
     it('battle absent → pas d’action', () => {

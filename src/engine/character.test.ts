@@ -1,9 +1,21 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { findSpeciesById, talentConcrete, talents, specPoolOf, firstLevel, careerLevels, species } from '../data';
+import {
+  findSpeciesById,
+  talentConcrete,
+  talents,
+  talentsAleatoires,
+  rangeesDesTalentsAleatoires,
+  specPoolOf,
+  firstLevel,
+  careerLevels,
+  species,
+} from '../data';
 import { setDataset } from '../data/overrides';
+import { findTableEntry } from './tables';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Combatant } from './types';
+import { toBrass } from './money';
 import {
   speciesSkillDefaults,
   resolveSpeciesTalents,
@@ -34,8 +46,9 @@ describe('speciesSkillDefaults — 3×+5 / 3×+3 (LDB 05 l.484)', () => {
 describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l.484)', () => {
   // Le tirage vit à l'adresse `especeTirage(PREALABLES, 0)`, quels que soient les Talents possédés : les
   // emplacements préalables non tenus portent un Talent hors du Tableau.
-  const PREALABLES = Math.max(1, ...talents.filter((t) => t.rand != null).map((t) => specPoolOf(t).length));
-  const horsTableau = talents.find((t) => t.rand == null && !specPoolOf(t).length)!;
+  const DU_TABLEAU = new Set<string>(rangeesDesTalentsAleatoires().map((r) => r.id));
+  const PREALABLES = Math.max(1, ...talents.filter((t) => DU_TABLEAU.has(t.id)).map((t) => specPoolOf(t).length));
+  const horsTableau = talents.find((t) => !DU_TABLEAU.has(t.id) && !specPoolOf(t).length)!;
   const tirage = (seed: number, possedes: RefDesignee[] = [], opts: { randomSpecPicks?: Record<string, string> } = {}) => {
     const prealables = [...possedes, ...Array.from({ length: PREALABLES - possedes.length }, () => ({ id: horsTableau.id }))];
     const out = resolveSpeciesTalentsDetail({ ...sp(), talents: [...prealables, { random: 1 }] }, { seed, ...opts });
@@ -46,7 +59,7 @@ describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l
 
   it('renvoie un talent de la table, non doublon sans Talent possédé', () => {
     const t = tirage(1);
-    expect(talents.find((x) => x.id === t.ref.id)?.rand).toBeDefined();
+    expect(DU_TABLEAU).toContain(t.ref.id);
     expect(t.doublon).toBe(false);
   });
 
@@ -69,6 +82,39 @@ describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l
     const toutes = pool.map((spec) => ({ id: tire.ref.id, spec }));
     expect(tirage(seed, toutes)).toEqual({ ref: { id: tire.ref.id, spec: specA }, doublon: true });
     expect(tirage(seed, [], { randomSpecPicks: { [ADRESSE]: specB } })).toEqual({ ref: { id: tire.ref.id, spec: specB }, doublon: false });
+  });
+
+  it('le tirage suit le `die` du document `talents-aleatoires`, jamais un d100 recopié (LDB 05 l.514 ; #3578)', () => {
+    const imprimes = [...talentsAleatoires];
+    setDataset('talentsAleatoires', imprimes.map((d) => ({ ...d, die: 'd10' })));
+    try {
+      const atteignables = new Set(Array.from({ length: 10 }, (_, i) => findTableEntry(rangeesDesTalentsAleatoires(), i + 1).id));
+      const tires = new Set(Array.from({ length: 200 }, (_, i) => tirage(i + 1).ref.id));
+      expect(tires, 'un 1d10 n’atteint que les rangées de 1 à 10').toEqual(atteignables);
+    } finally {
+      setDataset('talentsAleatoires', imprimes);
+    }
+  });
+
+  it('à graine égale, la suite des tirages est celle du d100 d’avant le document (témoin : b1acab5ac, `roll(1, 100)`)', () => {
+    // 6 tirages Reiklander, graines 1 à 12 ; « ! » = doublon.
+    const TEMOIN = [
+      'ame-pure lire-ecrire reflexes-foudroyants reflexes-foudroyants! costaud sens-aiguise(ouie)',
+      'dur-a-cuire fuite imperturbable tres-resistant bonnes-jambes noblesse',
+      'doigts-de-fee bonnes-jambes bonnes-jambes! oreille-absolue sens-de-l-orientation sens-de-l-orientation!',
+      'bonnes-jambes affable imperturbable resistance(chaos) doigts-de-fee doigts-de-fee!',
+      'ame-pure sixieme-sens tres-resistant affinite-avec-les-animaux ame-pure! ame-pure!',
+      'affinite-avec-les-animaux affable artiste(calligraphie) resistance(chaos) tres-resistant vivacite',
+      'vision-nocturne doue-en-calcul ame-pure ame-pure! sixieme-sens fuite',
+      'resistance(chaos) affable oreille-absolue resistance(corruption)! sens-aiguise(ouie) sens-de-l-orientation',
+      'sens-aiguise(ouie) ame-pure ambidextre chanceux ame-pure! tres-resistant',
+      'lire-ecrire resistance(chaos) doigts-de-fee sixieme-sens reflexes-foudroyants chanceux',
+      'doue-en-calcul tres-resistant affable maitre-artisan(alchimiste) guerrier-ne doue-en-calcul!',
+      'ame-pure vision-nocturne doigts-de-fee sixieme-sens imperturbable attirant',
+    ];
+    const suite = (seed: number) => resolveSpeciesTalentsDetail({ ...sp(), talents: [{ random: 6 }] }, { seed })
+      .map((t) => `${t.ref.id}${t.ref.spec ? `(${t.ref.spec})` : ''}${t.tirage!.doublon ? '!' : ''}`).join(' ');
+    expect(TEMOIN.map((_, i) => suite(i + 1))).toEqual(TEMOIN);
   });
 });
 
@@ -414,5 +460,33 @@ describe('répartition par défaut des 40 Augmentations de carrière (LDB 05 l.5
     const h = createHero({ idNeuf: idsDeTest, speciesId: REIK, careerId: 'archer', label: 'a', seed: 1, speciesSkillAdvances: { plus5: [], plus3: [] } });
     expect(h.skills.reduce((a, s) => a + s.advances, 0)).toBe(40);
     expect(h.skills.filter((s) => s.advances > 0)).toHaveLength(8);
+  });
+});
+
+describe('createHero — les Possessions du premier Échelon, argent, valeur et mentions comprises (LDB 05 l.572)', () => {
+  const heros = (careerId: string, speciesId = REIK, seed = 4) => createHero({ idNeuf: idsDeTest, speciesId, careerId, label: 'T', seed });
+  const bourse = (h: Combatant) => h.items!.filter((i) => i.trappingId === 'bourse');
+
+  it('le Marchand porte dans sa Bourse les 3d10 pistoles d’argent de son Échelon (LDB 08 l.419)', () => {
+    for (const seed of [1, 2, 3]) {
+      const sacs = bourse(heros('marchand', REIK, seed));
+      const pistoles = toBrass(sacs[0].money!) / 12;
+      expect([sacs.length, Number.isInteger(pistoles) && pistoles >= 3 && pistoles <= 30], String(pistoles)).toEqual([1, true]);
+    }
+  });
+
+  it('le Noble porte des bijoux valant 3d10 couronnes d’or, au prix tiré (LDB 08 l.965)', () => {
+    const bijoux = heros('noble').items!.filter((i) => i.trappingId === 'bijoux');
+    expect(bijoux).toHaveLength(1);
+    const p = bijoux[0].price!;
+    expect([p.silver, p.brass, p.gold >= 3 && p.gold <= 30], String(p.gold)).toEqual([0, 0, true]);
+  });
+
+  it('le Tueur porte la mention « Honte », sous sa nature (LDB 08 l.1474)', () => {
+    expect(heros('tueur', 'nains').mentions).toEqual([{ nature: 'intangible', label: 'Honte', nombre: 1 }]);
+  });
+
+  it('un héros sans mention n’a pas de champ `mentions`', () => {
+    expect('mentions' in heros('soldat')).toBe(false);
   });
 });

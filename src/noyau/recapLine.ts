@@ -1,28 +1,31 @@
+import type { Equipe } from '../engine/relations';
+import type { IconId } from '../data/icons';
 /**
  * VOCABULAIRE PARTAGÉ d'une ligne de récap structurée (#349) — remplace le `string` brut des
- * chroniques (récap de voyage, note de cascade). Module LEAF (zéro dépendance) pour éviter tout
+ * chroniques (récap de voyage, note de cascade). Module LEAF (aucune dépendance de valeur) pour éviter tout
  * cycle : `pendings.ts` et `rollSeam.ts` l'importent tous deux.
  *
  * `RecapTone` reprend EXACTEMENT `NightEntry.tone` (noyau/restFlow.ts, PV de nuit/jour de mer) —
- * pas un second vocabulaire : même trio 'ok'/'bad'/'info', mêmes classes CSS (`.recap-line.ok`
- * partage `--ok-bright`/`--danger-soft` avec `.mrl-row.ok`, styles/hud.css).
+ * pas un second vocabulaire : même trio 'reussite'/'echec'/'neutre', mêmes classes CSS (`.recap-line.reussite`
+ * partage `--ok-bright`/`--danger-soft` avec `.mrl-row.reussite`, styles/hud.css), et les tons d'un hôte (`Ton`,
+ * src/hote/elements.ts).
  */
-export type RecapTone = 'ok' | 'bad' | 'info';
+export type RecapTone = 'reussite' | 'echec' | 'neutre';
 
 /** Camp d'un SEGMENT de texte — même vocabulaire que la narration de combat (`NarratedSegment.team`,
  *  classes `.nm-ally`/`.nm-foe`) : les noms se colorent par camp, allié / ennemi. */
-export type RecapTeam = 'ally' | 'enemy';
+
 
 /** Un MORCEAU de la ligne : du texte, éventuellement toné par le camp qu'il nomme. Structure, jamais
  *  du JSX — le rendu (RecapLineRow) décide de la mise en forme. */
 export interface RecapSegment {
   text: string;
-  team?: RecapTeam;
+  team?: Equipe;
 }
 
 export interface RecapLine {
   text: string;
-  icon?: string;
+  icon?: IconId;
   tone?: RecapTone;
   /** Découpe TONÉE du même contenu que `text` (concaténation des `segment.text` = `text`) : porte la
    *  coloration par camp des noms. Absente → la ligne se rend en texte plat. */
@@ -43,14 +46,14 @@ export function toRecapLines(texts: string[]): RecapLine[] {
 
 /** Un ÉVÉNEMENT RACONTÉ du jour (#371 LOT « moisson n°4 ») — distinct d'une `RecapLine` : porte un
  *  RÉCIT (titre + texte verbatim de la source), pas une simple ligne de journal, et se rend en
- *  `ParchmentCard` (sceau d100 optionnel) plutôt qu'en ligne. Un jet de routine / une note de météo
+ *  `ParchmentCard` (sceau du dé optionnel) plutôt qu'en ligne. Un jet de routine / une note de météo
  *  RESTE une `RecapLine` — seul un événement qui RACONTE quelque chose (texte d'auteur/de table)
  *  mérite la carte. */
 export interface RecapEvent {
   title: string;
   text: string;
-  /** Tirage d100 ayant fait sortir l'événement — absent si l'événement est FORCÉ (recette de test)
-   *  ou d'auteur (péripétie de route, pas de d100 propre). */
+  /** Tirage ayant fait sortir l'événement — absent si l'événement est FORCÉ (recette de test)
+   *  ou d'auteur (péripétie de route, pas de tirage propre). */
   roll?: number;
   tone?: RecapTone;
 }
@@ -68,9 +71,9 @@ export interface DayPhaseDef {
 }
 
 export const DAY_PHASE_CATALOG: DayPhaseDef[] = [
-  { key: 'activites', label: 'Activités', match: (k) => k.startsWith('stagePoste') || k === 'stageAggregate' || k === 'stageExposure' },
-  { key: 'rencontre', label: 'Rencontre / Péripéties', match: (k) => k.startsWith('landPeril') },
-  { key: 'route', label: 'Route', match: (k) => k.startsWith('landForcedPace') },
+  { key: 'activites', label: 'Activités', match: (k) => k.startsWith('etapePoste') || k === 'etapeBilan' || k === 'etapeExposition' },
+  { key: 'rencontre', label: 'Rencontre / Péripéties', match: (k) => k.startsWith('perilATerre') },
+  { key: 'route', label: 'Route', match: (k) => k.startsWith('rythmeForceATerre') },
 ];
 
 /** Clé de phase d'un `kind` d'étape de cascade — `undefined` si aucune phase du catalogue ne

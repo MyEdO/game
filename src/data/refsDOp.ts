@@ -33,8 +33,8 @@ export function opWithRefValue<T>(op: T, field: string, valeur: unknown): T {
  *  (sentinelle vide), par la raison visible portée par la rangée, et par le gate pré-persist du
  *  Codex (`validateEntry`). Un nouveau champ-réf s'ajoute ICI, jamais dans une nième liste. */
 export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>> = {
-  condition: [{ field: 'id', ds: 'etats', label: 'État', required: true }],
-  removeCondition: [{ field: 'id', ds: 'etats', label: 'État', required: false }],
+  condition: [{ field: 'id.id', ds: 'etats', label: 'État', required: true }],
+  removeCondition: [{ field: 'id.id', ds: 'etats', label: 'État', required: false }],
   endPsych: [{ field: 'type.id', ds: 'psychologies', label: 'Trait psychologique', required: true, sauf: 'instance' }],
   beginPsych: [{ field: 'type.id', ds: 'psychologies', label: 'État psychologique', required: true }],
   grantPsychTrait: [{ field: 'psychType.id', ds: 'psychologies', label: 'Trait psychologique', required: true }],
@@ -53,7 +53,7 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
   aggravateSymptom: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }, { field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],
   attenuateSymptom: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }, { field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],
   grantSymptom: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }, { field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],
-  rollMutation: [{ field: 'table', ds: 'mutationTables', label: 'Table de Corruption', required: true }],
+  rollMutation: [{ field: 'table.id', ds: 'mutationTables', label: 'Table de Corruption', required: true }],
   summon: [{ field: 'ref', ds: 'creatures', label: 'Créature', required: true }],
   polymorph: [{ field: 'ref', ds: 'creatures', label: 'Créature', required: true }],
   scheduleRespawn: [{ field: 'ref', ds: 'creatures', label: 'Créature', required: true }],

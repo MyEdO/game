@@ -4,9 +4,9 @@ import { useGame } from '../state/store';
 import { Grid } from './Layout';
 import { GatedAction, raisonSi } from './GatedAction';
 import { herosDeLaSeance, type AxeDuGroupe, type AxeDuHerosDeLaSeance } from '../noyau/partyFlow';
-import { reglageDuChoixDeFenetre, refusDuChoix } from '../noyau/choixDeFenetre';
-import { refusDeLaValidation } from '../noyau/validationDeFenetre';
-import { refusDeLaSortie } from '../noyau/sortieDeFenetre';
+import { reglageDuChoixDeFenetre, refusDuChoixNomme } from '../noyau/choixDeFenetre';
+import { refusDeLaValidationNommee } from '../noyau/validationDeFenetre';
+import { refusDeLaSortieNommee } from '../noyau/sortieDeFenetre';
 import type { IdDeHeros } from '../noyau/designations';
 
 /**
@@ -18,19 +18,19 @@ import type { IdDeHeros } from '../noyau/designations';
  * du clavier comme du pointeur (contrôles désactivés), jamais une simple opacité.
  *
  * Chaque case est un choix de la fin de séance (`fenetreChoisir('finDeSeance', axe, valeur[, héros])`), lu dans le
- * noyau avec son refus (`refusDuChoix`). Les deux issues sont celles de la fenêtre `fenetre` qui porte le formulaire :
+ * noyau avec son refus (`refusDuChoixNomme`). Les deux issues sont celles de la fenêtre `fenetre` qui porte le formulaire :
  * « Terminer la séance », sa validation (`fenetreValider`) ; « Annuler », sa sortie (`fenetreFermer`), qui ne termine
  * rien — dans le récap de chapitre, elle ajourne.
  *
  * Rend le CORPS et les GESTES à part : le cadre hôte pose `gestes` dans son pied (`Modal` ou
  * `ScreenShell` `footer`).
  */
-export function useSessionEnd({ fenetre, apercu }: { fenetre: 'finDeSeance' | 'chapterRecap'; apercu?: boolean }): { corps: ReactNode; gestes: ReactNode } {
+export function useSessionEnd({ fenetre, apercu }: { fenetre: 'finDeSeance' | 'finDeChapitre'; apercu?: boolean }): { corps: ReactNode; gestes: ReactNode } {
   const party = herosDeLaSeance({ party: useGame((s) => s.party) });
   const choisir = useGame((s) => s.fenetreChoisir);
   const valider = useGame((s) => s.fenetreValider);
   const fermer = useGame((s) => s.fenetreFermer);
-  // Les cases cochées et le siège ouvrent ou ferment chaque case (`refusDuChoix`).
+  // Les cases cochées et le siège ouvrent ou ferment chaque case (`refusDuChoixNomme`).
   useGame((s) => s.finDeSeance);
   useGame((s) => s.net);
   const s = useGame.getState();
@@ -38,12 +38,12 @@ export function useSessionEnd({ fenetre, apercu }: { fenetre: 'finDeSeance' | 'c
     const coche = reglageDuChoixDeFenetre(s, 'finDeSeance', axe, pid).courant === true;
     return {
       checked: coche,
-      disabled: apercu || refusDuChoix(s, 'finDeSeance', axe, !coche, pid) != null,
+      disabled: apercu || refusDuChoixNomme(s, 'finDeSeance', axe, !coche, pid) != null,
       onChange: () => choisir('finDeSeance', axe, !coche, pid),
     };
   };
-  const refusDeTerminer = refusDeLaValidation(s, fenetre);
-  const refusDAnnuler = refusDeLaSortie(s, fenetre);
+  const refusDeTerminer = refusDeLaValidationNommee(s, fenetre);
+  const refusDAnnuler = refusDeLaSortieNommee(s, fenetre);
 
   const corps = (
     <div data-apercu={apercu ? '' : undefined} aria-hidden={apercu || undefined}>
@@ -98,7 +98,7 @@ export function useSessionEnd({ fenetre, apercu }: { fenetre: 'finDeSeance' | 'c
 export function SessionEndModal() {
   const { corps, gestes } = useSessionEnd({ fenetre: 'finDeSeance' });
   const fermer = useGame((s) => s.fenetreFermer);
-  const peutFermer = useGame((s) => refusDeLaSortie(s, 'finDeSeance') == null);
+  const peutFermer = useGame((s) => refusDeLaSortieNommee(s, 'finDeSeance') == null);
   return (
     <Modal title="Fin de séance" {...(peutFermer ? { onClose: () => fermer('finDeSeance'), backdropClose: true } : {})} footer={gestes}>
       {corps}

@@ -158,7 +158,7 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
   const chars: CharAdvanceRow[] = CHAR_KEYS.map((key) => {
     const advances = hero.charAdvances?.[key] ?? 0;
     const inCareer = inCareerChar(careerChars, key);
-    const nextCost = advanceCost(advances, 'characteristic', inCareer);
+    const nextCost = advanceCost(advances, 'caracteristique', inCareer);
     return { key, label: CHAR_LABELS[key], value: baseWithTalents(hero, key), advances, inCareer, nextCost, refus: refusDAugmentation(inCareer, CHAR_LABELS[key], nextCost) };
   });
 
@@ -169,7 +169,7 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
     const sName = byId('skill', s.id)?.label ?? s.id; // AFFICHAGE seulement
     const { statut, remise: discount } = competenceEnCarriere(hero, sSlots, designations, s.id, s.spec);
     const inCareer = statut != null;
-    const nextCost = advanceCost(s.advances, 'skill', inCareer, discount);
+    const nextCost = advanceCost(s.advances, 'competence', inCareer, discount);
     return {
       skill: { id: s.id, ...(s.spec ? { spec: s.spec } : {}) },
       label: sName,
@@ -190,7 +190,7 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
     if (knows(o.optionId, o.spec)) continue;
     if (skills.some((r) => !r.known && r.skill.id === o.optionId && memeSpecialisation(r.skill.spec, o.spec))) continue;
     const characteristic = byId('skill', o.optionId)?.characteristic ?? 'intelligence';
-    const nextCost = advanceCost(0, 'skill', true);
+    const nextCost = advanceCost(0, 'competence', true);
     skills.push({ skill: { id: o.optionId, ...(o.spec ? { spec: o.spec } : {}) }, label: o.label, characteristic, advances: 0, known: false, inCareer: true, nextCost, refus: refusPx(nextCost) });
   }
   // Emplacements de Compétence « (Au choix) » non désignés → choix de spec (désigner/apprendre).
@@ -206,10 +206,10 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
         spec,
         display: specLabel('skills', o.optionId!, spec),
         ownedAdvances: hero.skills.find((s) => s.id === o.optionId && (s.spec ?? '') === spec)?.advances ?? 0,
-        refus: refusPx(advanceCost(0, 'skill', true)),
+        refus: refusPx(advanceCost(0, 'competence', true)),
       }));
     const characteristic = byId('skill', o.optionId)?.characteristic ?? 'intelligence';
-    skillSlotsOpen.push({ slotKey: slot.key, entry: slot.entry, group: o.label, groupId: o.optionId, characteristic, options, nextCost: advanceCost(0, 'skill', true) });
+    skillSlotsOpen.push({ slotKey: slot.key, entry: slot.entry, group: o.label, groupId: o.optionId, characteristic, options, nextCost: advanceCost(0, 'competence', true) });
   }
 
   // Talents : un rang par EMPLACEMENT du niveau courant (LDB 07 l.103).
@@ -273,7 +273,7 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
 
   // Cibles de progression (LDB 07 l.137) : Niveau suivant (exige la complétion) + Niveaux inférieurs.
   // Avec l'option MJ « Sauts de Niveau » (l.140), les Niveaux supérieurs non-adjacents apparaissent aussi.
-  const gmJump = rule('advancement-career-jump') === true;
+  const gmJump = rule('progression-saut-de-niveau') === true;
   const targets: CareerTarget[] = [];
   for (const l of levels) {
     if (l.level === careerLevel) continue;

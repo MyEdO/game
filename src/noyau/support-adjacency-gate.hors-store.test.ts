@@ -15,7 +15,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * (géométrie `battle.combatants`, l.196), exclusion déclarative (`FlowTest.noSupport`, l.197).
  */
 const skilled = (id: string, pos: { x: number; y: number } | undefined, agilite = 30, advances = 1): Combatant => (blessuresSurLeProfil({
-  id, name: id, kind: 'hero', pos,
+  id, name: id, kind: 'heros', pos,
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
   wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
   skills: [{ id: 'perception', characteristic: 'agilite', advances }], talents: [],

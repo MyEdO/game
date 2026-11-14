@@ -31,7 +31,7 @@ import { HealModal } from './HealModal';
 import { MedicModal } from './MedicModal';
 import { RestModal } from './RestModal';
 import { CouncilModal } from './CouncilModal';
-// CastModal n'est plus monté ici : la situation d'incantation est une étape `jet:'cast'` de la
+// CastModal n'est plus monté ici : la situation d'incantation est une étape `jet:'incantation'` de la
 // cascade (rendue par `CascadeModal`, qui hôte `CastModal`) — cf. noyau/modalArbiter (entrée `cast` retirée).
 import { CascadeModal } from './CascadeModal';
 import { CorruptionModal } from './CorruptionModal';
@@ -45,11 +45,11 @@ import { pickActiveModalKey, voyageHubActive, type ModalKey } from '../noyau/mod
 const COMPONENT: Record<ModalKey, () => JSX.Element | null> = {
   etalLot: () => <EtalLotModal />,
   designationHeros: DesignationHerosModal,
-  fateSave: FateSaveModal, renounce: RenounceModal,
-  battement: BattementModal, distraire: DistraireModal, maneuver: ManeuverModal,
-  mountTarget: MountTargetModal, frenzy: FrenzyModal, auContact: AuContactModal, grapple: GrappleModal, approach: ApproachModal, ward: WardModal, run: RunModal, fall: FallModal, shipManeuver: ShipManeuverModal, shipBattery: ShipBatteryModal, shanty: ShantyModal, focus: FocusModal, dispel: DispelModal,
-  medic: MedicModal, rest: RestModal, council: CouncilModal, heal: HealModal, cascade: CascadeModal, reload: ReloadModal, handGate: HandGateModal, stateRecovery: StateRecoveryModal, steamSave: SteamSaveModal,
-  corruption: CorruptionModal, activity: ActivityModal,
+  destin: FateSaveModal, renier: RenounceModal,
+  battement: BattementModal, distraire: DistraireModal, manoeuvre: ManeuverModal,
+  cibleDeMonture: MountTargetModal, frenesie: FrenzyModal, auContact: AuContactModal, empoignade: GrappleModal, approche: ApproachModal, protection: WardModal, course: RunModal, chute: FallModal, manoeuvreDuNavire: ShipManeuverModal, tirDeBatterie: ShipBatteryModal, chansonDeMarin: ShantyModal, focalisation: FocusModal, dissipation: DispelModal,
+  infirmerie: MedicModal, repos: RestModal, conseil: CouncilModal, soins: HealModal, cascade: CascadeModal, rechargement: ReloadModal, mainEnsanglantee: HandGateModal, recuperation: StateRecoveryModal, fuiteDeVapeur: SteamSaveModal,
+  corruption: CorruptionModal, activite: ActivityModal,
 };
 
 /**
@@ -65,7 +65,7 @@ export function ActiveModal(): JSX.Element | null {
   if (!key) return null;
   // Cascade/nuit de voyage : l'écran-hub (`VoyageScreen`, #333) les héberge EN SON CENTRE (`CascadeBody`/
   // `RestBody embedded`) — pas de modale flottante par-dessus le hub (anti-tunnel). Hors hub, inchangé.
-  if ((key === 'cascade' || key === 'rest') && voyageHubActive(s)) return null;
+  if ((key === 'cascade' || key === 'repos') && voyageHubActive(s)) return null;
   // Cadence Rapide/Auto : si le driver va auto-résoudre cette modale, NE PAS la rendre (fini le flash
   // de quelques ms). Le BILAN voyage/nuit et les vrais choix (surincantation/Destin en Rapide) restent rendus.
   if (willAutoResolve(s)) return null;

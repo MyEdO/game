@@ -7,7 +7,7 @@
  * (`decidingSeat`) — le siège de l'intent pendant son application, jamais le seul `net.mySeat` de l'HÔTE.
  * L'intent acceptée d'un invité sur son PROPRE héros agit : le pending est posé.
  *
- * Ce test exerce la chaîne de `appliquerLIntentionDUnSiege` (celle que `netFlow` appelle), sur DEUX
+ * Ce test exerce la chaîne de `appliquerLIntentionDUnSiege` (celle que l'hôte passe à `heberger`, `hote/coop/salon.ts`), sur DEUX
  * verbes ouvreurs de la barre : `faireUnBattement` (offre `battement`, exposé par #1017) et `rompreLEngagement` (offre
  * `disengage`, d'une autre famille — la même garde les sert, ce qui prouve que la CLASSE est fermée, pas un cas).
  */
@@ -19,7 +19,7 @@ import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { initialNet } from './etat';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Combatant, Weapon } from '../engine/types';
 import { createHero } from '../engine/character';
 import { draineCascade } from './cascade.testkit';
@@ -37,7 +37,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const NET0 = initialNet();
 const chars = { 'capacite-de-combat': 55, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, talents: { talentId: string }[] = []): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, talents: { talentId: string }[] = []): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents,
      weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18), resolve: 2, fortune: 2,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
@@ -45,8 +45,8 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, t
 /** Arène coop : `h2` (héros du siège 1, Battement en poche) engagé avec `e1`, et c'est SON tour. */
 function setup(net: Record<string, unknown> = {}) {
   seedBattleRng(7);
-  const hero = mk('h2', 'hero', { x: 0, y: 0 }, [{ talentId: 'battement' }]);
-  const enemy = mk('e1', 'enemy', { x: 1, y: 0 });
+  const hero = mk('h2', 'heros', { x: 0, y: 0 }, [{ talentId: 'battement' }]);
+  const enemy = mk('e1', 'ennemi', { x: 1, y: 0 });
   (hero as unknown as { engagedWith: string[] }).engagedWith = ['e1'];
   (enemy as unknown as { engagedWith: string[] }).engagedWith = ['h2'];
   const battle: BattleState = {
@@ -57,12 +57,12 @@ function setup(net: Record<string, unknown> = {}) {
   banc.setState({
     battle, mode: 'battle', screen: 'campaign', scene: testScene(), party: [hero],
     pendingBattement: null, pendingDisengage: null, pendingCascade: null, pendingAttack: null,
-    net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1 }, slots: [1, 0, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' }, ...net },
+    net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { h2: 1 }, slots: [1, 0, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' }, ...net },
   });
   return { hero, enemy };
 }
 
-/** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle `netFlow`. */
+/** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle le salon (`hote/coop/salon.ts`). */
 const applyIntent = (seat: number, action: string, args: unknown[] = []) => appliquerLIntentionDUnSiege(banc.getState, seat, action, args);
 
 describe('#1017 — chemin intent invité : l’action AGIT, pas seulement l’allowlist', () => {
@@ -110,7 +110,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
   it('hors allowlist : ignorée en silence, sans effet ni ligne de journal', () => {
     setup();
     banc.setState({ journal: [] });
-    expect(applyIntent(1, 'setGmSeat', [1])).toBe('hors-allowlist');
+    expect(applyIntent(1, 'affecterLeSiegeMJ', [1])).toBe('hors-allowlist');
     expect(banc.getState().net.gmSeat, 'l’action hors liste a atteint le store de l’hôte').toBeUndefined();
     expect(banc.getState().journal).toEqual([]);
   });
@@ -122,9 +122,9 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
     expect(banc.getState().journal).toEqual(['Action refusée : elle ne revient pas au joueur qui l’a demandée.']);
   });
 
-  const pregen = (id: string): Combatant => ({ ...JSON.parse(JSON.stringify(makePregens(idsDeTest)[0])), id, label: id });
+  const pregen = (id: string): Combatant => ({ ...JSON.parse(JSON.stringify(tousLesHerosDeScenario(idsDeTest)[0])), id, label: id });
   const hoteEtUnInvite = () => banc.setState({
-    party: [], journal: [], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [1, 0, 0, 0] },
+    party: [], journal: [], net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [1, 0, 0, 0] },
   });
 
   it('composition : `recruterLeHeros` prend le siège du transport, jamais celui des args', () => {
@@ -137,7 +137,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
     const quatre = ['h1', 'h2', 'h3', 'h4'].map(pregen);
     banc.setState({
       party: quatre, journal: [],
-      net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [0, 0, 0, 1], ownership: { h1: 0, h2: 0, h3: 0, h4: 0 } },
+      net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [0, 0, 0, 1], ownership: { h1: 0, h2: 0, h3: 0, h4: 0 } },
     });
     expect(applyIntent(1, 'recruterLeHeros', [engage('g1')])).toBe('appliquee');
     expect(banc.getState().party.map((h) => h.id)).toEqual(['h1', 'h2', 'h3', 'h4']);
@@ -160,9 +160,9 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
   });
 
   it.each([
-    ['fenetreValider', 'roundStart', 'pendingRoundStart', { round: 2 }],
-    ['fenetreFermer', 'victory', 'pendingVictory', { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [] }],
-    ['fenetreValider', 'rest', 'pendingRest', { phase: 'setup', perHero: {}, days: 1, readyBySeat: {} }],
+    ['fenetreValider', 'debutDuRound', 'pendingRoundStart', { round: 2 }],
+    ['fenetreFermer', 'victoire', 'pendingVictory', { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [] }],
+    ['fenetreValider', 'repos', 'pendingRest', { phase: 'setup', perHero: {}, days: 1, readyBySeat: {} }],
   ] as const)('marquage : `%s(%s)` émis par le siège 1 ne marque que le siège 1, quels que soient ses args (#2439)', (verbe, fenetre, cle, pending) => {
     setup();
     banc.setState({ [cle]: pending } as never);
@@ -174,7 +174,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
 /**
  * #2903 — « Annuler » un jet, demandé par un siège : le PORTEUR du jet le referme, un autre siège ne
  * le referme pas. Contrat de possession de la clôture d'un flux de jet (`FLOW_VERBS`), joué par
- * `appliquerLIntentionDUnSiege` comme `netFlow` le joue chez l'hôte.
+ * `appliquerLIntentionDUnSiege` comme le salon le joue chez l'hôte.
  */
 describe('#2903 — Annuler un jet par intention : seul le siège du porteur referme', () => {
   /** Interlude coop : le héros du siège 1 ouvre son Activité « Revenus » par SA propre intention. */
@@ -189,18 +189,19 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
     itl.perHero[h.id] = { ...itl.perHero[h.id], fx: undefined, left: 2 };
     banc.setState({
       interlude: { ...itl },
-      net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [h.id]: 1 }, slots: [1, 0, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } },
+      net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [h.id]: 1 }, slots: [1, 0, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } },
     });
-    expect(applyIntent(1, 'pratiquerLActivite', [h.id, 'revenus'])).toBe('appliquee');
+    expect(applyIntent(1, 'fenetreChoisir', ['interlude', 'activite', 'revenus', h.id])).toBe('appliquee');
+    expect(applyIntent(1, 'fenetreChoisir', ['interlude', 'pratiquer', true, h.id])).toBe('appliquee');
     expect(banc.getState().pendingActivity?.heroId).toBe(h.id);
     return h;
   }
 
   it('Activité : un siège tiers est refusé et le jet reste ouvert ; le siège du héros le referme', () => {
     const h = activiteOuverte();
-    expect(applyIntent(2, 'jetAnnuler', ['activity'])).toBe('refusee');
+    expect(applyIntent(2, 'jetAnnuler', ['activite'])).toBe('refusee');
     expect(banc.getState().pendingActivity?.heroId, 'le jet d’autrui reste ouvert').toBe(h.id);
-    expect(applyIntent(1, 'jetAnnuler', ['activity'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetAnnuler', ['activite'])).toBe('appliquee');
     expect(banc.getState().pendingActivity).toBeNull();
   });
 
@@ -208,9 +209,9 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
     setup();
     expect(applyIntent(1, 'rompreLEngagement', [])).toBe('appliquee');
     expect(banc.getState().pendingCascade, 'l’étape hôte est ouverte').toBeTruthy();
-    expect(applyIntent(2, 'jetAnnuler', ['disengage'])).toBe('refusee');
+    expect(applyIntent(2, 'jetAnnuler', ['desengagement'])).toBe('refusee');
     expect(banc.getState().pendingDisengage, 'le choix d’autrui reste ouvert').toBeTruthy();
-    expect(applyIntent(1, 'jetAnnuler', ['disengage'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetAnnuler', ['desengagement'])).toBe('appliquee');
     expect(banc.getState().pendingDisengage).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -218,8 +219,8 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
   /** Le Désengagement ENGAGÉ (LDB 15 l.49 : l'Esquive est l'Action ; l.63 : la Fuite donne aussitôt
    *  +1 Avantage) : le siège du héros demande à renoncer, l'action le REFUSE et le dit, rien ne bouge. */
   it.each([
-    ['esquive', 'jetLancer', ['disengage']],
-    ['fuir', 'jetRegler', ['disengage', 'fuir', true]],
+    ['esquive', 'jetLancer', ['desengagement']],
+    ['fuir', 'jetRegler', ['desengagement', 'fuir', true]],
   ] as const)('Désengagement en phase %s : renoncer est refusé, visiblement, et ne change rien', (phase, geste, args) => {
     const { enemy } = setup();
     expect(applyIntent(1, 'rompreLEngagement', [])).toBe('appliquee');
@@ -227,7 +228,7 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
     const avant = banc.getState();
     expect(avant.pendingDisengage?.phase).toBe(phase);
     const avantageDuFoe = avant.battle!.combatants.find((c) => c.id === enemy.id)!.advantage;
-    expect(applyIntent(1, 'jetAnnuler', ['disengage'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetAnnuler', ['desengagement'])).toBe('appliquee');
     const apres = banc.getState();
     expect(apres.pendingDisengage, 'le Désengagement engagé reste ouvert').toBe(avant.pendingDisengage);
     expect(apres.pendingCascade, 'sa cascade-hôte aussi').toBe(avant.pendingCascade);
@@ -238,12 +239,12 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
   it('Désengagement en phase fuir, fenêtre PARTAGÉE (`groupOwner`) : un siège tiers est refusé par la possession', () => {
     setup();
     expect(applyIntent(1, 'rompreLEngagement', [])).toBe('appliquee');
-    expect(applyIntent(1, 'jetRegler', ['disengage', 'fuir', true])).toBe('appliquee');
+    expect(applyIntent(1, 'jetRegler', ['desengagement', 'fuir', true])).toBe('appliquee');
     const c = banc.getState().pendingCascade!;
     banc.setState({ pendingCascade: { ...c, participants: c.participants.map((p, i) => (i === c.cursor ? { ...p, groupOwner: true } : p)) } });
     expect(modalOwnerOf(banc.getState()), 'la fenêtre est à tous').toBe('*');
     const avant = banc.getState();
-    expect(applyIntent(2, 'jetAnnuler', ['disengage'])).toBe('refusee');
+    expect(applyIntent(2, 'jetAnnuler', ['desengagement'])).toBe('refusee');
     expect(banc.getState().pendingDisengage).toBe(avant.pendingDisengage);
     expect(banc.getState().pendingCascade).toBe(avant.pendingCascade);
   });
@@ -254,8 +255,8 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
  * possession suit le PORTEUR du jet (`jetOwner`), joué par `appliquerLIntentionDUnSiege`.
  */
 describe('#2961 — annulations et jets d’un flux mono : la possession suit le porteur du jet', () => {
-  const ANNULATIONS_NUES = ['battement', 'distraire', 'maneuver', 'run', 'shanty', 'approach', 'ward', 'reload', 'handGate', 'recover', 'focus', 'dispel', 'frenzy', 'bargain', 'appraise'].map((f) => `jetAnnuler@${f}`);
-  const AUTRES = ['jetAnnuler@auContact', 'jetAnnuler@grapple', 'jetAnnuler@cast', 'jetAnnuler@heal', 'jetAnnuler@surgery', 'jetLancer@attack', 'jetLancer@cast', 'jetLancer@disengage', 'jetLancer@auContact', 'jetLancer@grapple'];
+  const ANNULATIONS_NUES = ['battement', 'distraire', 'manoeuvre', 'course', 'chansonDeMarin', 'approche', 'protection', 'rechargement', 'mainEnsanglantee', 'recuperation', 'focalisation', 'dissipation', 'frenesie', 'marchandage', 'evaluation'].map((f) => `jetAnnuler@${f}`);
+  const AUTRES = ['jetAnnuler@auContact', 'jetAnnuler@empoignade', 'jetAnnuler@incantation', 'jetAnnuler@soins', 'jetAnnuler@chirurgie', 'jetLancer@attaque', 'jetLancer@incantation', 'jetLancer@desengagement', 'jetLancer@auContact', 'jetLancer@empoignade'];
   /** Le verbe, le flux et le porteur du geste `verbe@flux`. */
   const geste = (cle: string) => {
     const [verbe, flux] = cle.split('@') as [string, keyof typeof FLOW_VERBS];
@@ -290,27 +291,27 @@ describe('#2961 — annulations et jets d’un flux mono : la possession suit le
  */
 describe('#3311 — chaque verbe de jet, joué par un siège, suit la possession de son flux', () => {
   /** Les arguments du verbe de jet `v` sur `flux`, la rangée `pid` posée sur un flux multi (`VerbesDeJet`). */
-  const args = (flux: string, v: RollVerb, pid?: string): unknown[] => [flux, ...(v === 'setForcedRoll' ? [42] : []), ...(pid ? [pid] : [])];
+  const args = (flux: string, v: RollVerb, pid?: string): unknown[] => [flux, ...(v === 'imposerLeResultat' ? [42] : []), ...(pid ? [pid] : [])];
 
   it.each(FLOW_VERBS.test.verbs.map((v) => [NOM_DU_VERBE_DE_JET[v], v] as const))('Test (mono) : %s — le siège du testeur joue, un tiers est refusé', (_nom, v) => {
     setup();
-    const pendingTest = { actorId: 'h2', actorName: 'h2', label: 'Escalade', skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, roll: null, success: false, sl: 0, cancellable: true };
+    const pendingTest = { actorId: 'h2', label: 'Escalade', skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, roll: null, success: false, sl: 0, cancellable: true };
     banc.setState({ pendingTest } as never);
     expect(applyIntent(2, NOM_DU_VERBE_DE_JET[v], args('test', v))).toBe('refusee');
     expect(banc.getState().pendingTest).toBe(pendingTest);
     expect(applyIntent(1, NOM_DU_VERBE_DE_JET[v], args('test', v))).toBe('appliquee');
   });
 
-  it.each(FLOW_VERBS.fall.verbs.filter((v) => !estVerbeDeFenetre(v)).map((v) => [NOM_DU_VERBE_DE_JET[v], v] as const))('chute (multi) : %s — le siège du tombant joue SA rangée, l’hôte est refusé', (_nom, v) => {
+  it.each(FLOW_VERBS.chute.verbs.filter((v) => !estVerbeDeFenetre(v)).map((v) => [NOM_DU_VERBE_DE_JET[v], v] as const))('chute (multi) : %s — le siège du tombant joue SA rangée, l’hôte est refusé', (_nom, v) => {
     setup();
-    const hote = mk('h1', 'hero', { x: 0, y: 1 });
+    const hote = mk('h1', 'heros', { x: 0, y: 1 });
     const pendingFall = { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: 'h1', participants: [
       { id: 'h1', interactive: true, attempt: true, result: null },
       { id: 'h2', interactive: true, attempt: true, result: null },
     ] };
     banc.setState({ party: [...banc.getState().party, hote], pendingFall } as never);
-    expect(applyIntent(0, NOM_DU_VERBE_DE_JET[v], args('fall', v, 'h2'))).toBe('refusee');
+    expect(applyIntent(0, NOM_DU_VERBE_DE_JET[v], args('chute', v, 'h2'))).toBe('refusee');
     expect(banc.getState().pendingFall).toBe(pendingFall);
-    expect(applyIntent(1, NOM_DU_VERBE_DE_JET[v], args('fall', v, 'h2'))).toBe('appliquee');
+    expect(applyIntent(1, NOM_DU_VERBE_DE_JET[v], args('chute', v, 'h2'))).toBe('appliquee');
   });
 });

@@ -23,7 +23,7 @@ const fleau = (): Weapon => ({
 
 const CHARS = { 'capacite-de-combat': 55, 'capacite-de-tir': 35, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const combatant = (p: Partial<Combatant>): Combatant => (blessuresSurLeProfil({
-  id: 'c', name: 'X', kind: 'hero', characteristics: CHARS,
+  id: 'c', name: 'X', kind: 'heros', characteristics: CHARS,
   wounds: blessuresDeBase(20), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
   engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -61,10 +61,10 @@ describe('43.1c — Lance de cavalerie hors Charge → Arme improvisée (LDB 62 
   });
   it('résolution seedée (DR 0) : lance NON chargée = BF+1 (5) ; chargée = BF+6 + Percutante (13)', () => {
     const atk = combatant({ id: 'a', pos: { x: 0, y: 0 } });
-    const def = combatant({ id: 'd', kind: 'enemy', pos: { x: 1, y: 0 }, characteristics: { ...CHARS, 'capacite-de-combat': 5 } });
+    const def = combatant({ id: 'd', kind: 'ennemi', pos: { x: 1, y: 0 }, characteristics: { ...CHARS, 'capacite-de-combat': 5 } });
     // funnel pré-appliqué (ce que `firedWeapon` produit selon `chargedThisTurn`).
-    const impro = resolveMelee(atk, def, effectiveWeapon(lance(), { charged: false }), makeRNG(6), { defense: 'none' });
-    const full = resolveMelee({ ...atk, chargedThisTurn: true } as Combatant, def, effectiveWeapon(lance(), { charged: true }), makeRNG(6), { defense: 'none' });
+    const impro = resolveMelee(atk, def, effectiveWeapon(lance(), { charged: false }), makeRNG(6), { defense: 'aucune' });
+    const full = resolveMelee({ ...atk, chargedThisTurn: true } as Combatant, def, effectiveWeapon(lance(), { charged: true }), makeRNG(6), { defense: 'aucune' });
     expect([impro.hit, full.hit]).toEqual([true, true]);
     expect([impro.netSL, full.netSL]).toEqual([0, 0]); // même jet (seed) → DR 0 des deux côtés
     expect(impro.damage).toBe(5);  // BF4 + 1, Inoffensive annule Percutante/Empaleuse
@@ -109,12 +109,12 @@ describe('43.1b — Fléau sans la Spécialisation → Dangereuse + aucun Atout 
 
 describe('effectiveWeapon — Groupes d’Armes à distance dégradés (LDB 62 l.184/188)', () => {
   const arbalete = (): Weapon => ({
-    label: 'Arbalète', type: 'ranged', subType: 'arbalete', range: 60,
+    label: 'Arbalète', type: 'distance', subType: 'arbalete', range: 60,
     damage: { plusBF: false, flat: 12 }, qualities: [{ id: 'precise' }, { id: 'imprecise' }],
   });
 
   it('mode dégradé → tous les Atouts perdus (Précise), Défauts conservés (Imprécise)', () => {
-    const w = effectiveWeapon(arbalete(), { groupSkillMode: 'degraded' });
+    const w = effectiveWeapon(arbalete(), { groupSkillMode: 'degrade' });
     expect(w.qualities).toEqual([{ id: 'imprecise' }]);
     expect(hasQuality(w, 'precise')).toBe(false);
     expect(hasQuality(w, 'imprecise')).toBe(true);
@@ -123,12 +123,12 @@ describe('effectiveWeapon — Groupes d’Armes à distance dégradés (LDB 62 l
 
   it('mode plein → profil inchangé (même référence)', () => {
     const w = arbalete();
-    expect(effectiveWeapon(w, { groupSkillMode: 'full' })).toBe(w);
+    expect(effectiveWeapon(w, { groupSkillMode: 'complet' })).toBe(w);
   });
 
   it('mode none (aucune Spé) → profil inchangé', () => {
     const w = arbalete();
-    expect(effectiveWeapon(w, { groupSkillMode: 'none' })).toBe(w);
+    expect(effectiveWeapon(w, { groupSkillMode: 'aucun' })).toBe(w);
   });
 
   it('sans ctx.groupSkillMode → profil inchangé (non-régression)', () => {
@@ -241,7 +241,7 @@ describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et
   const batarde = (c: Combatant) => c.weapons.find((w) => w.trappingId === 'epee-batarde')!;
   const tenirLeBouclier = (c: Combatant) => {
     const lo = activeLoadout(c)!;
-    loadoutSetSlot(c, lo.id, 'off', c.items!.find((i) => i.trappingId === 'bouclier')!.uid);
+    loadoutSetSlot(c, lo.id, 'secondaire', c.items!.find((i) => i.trappingId === 'bouclier')!.uid);
     recomputeLoadout(c);
   };
 
@@ -251,7 +251,7 @@ describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et
     expect(setADeuxMains(c, activeLoadout(c)!)).toBe(false);
     tenirLeBouclier(c);
     expect(batarde(c).hands).toBe(1);
-    expect(c.weapons.some((w) => w.hand === 'off' && w.trappingId === 'bouclier')).toBe(true);
+    expect(c.weapons.some((w) => w.hand === 'secondaire' && w.trappingId === 'bouclier')).toBe(true);
     expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'base' } });
     expect(combatValue(c, 'melee', batarde(c))).toBe(65);
     expect(qualitesManiees(c, batarde(c))).toEqual(['defensive', 'devastatrice', 'epuisante', 'lente']);
@@ -274,17 +274,17 @@ describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et
   it('la seule Spé de Base : à une main, et le set par défaut lui donne le bouclier', () => {
     const c = porteur([cac('base', 10)]);
     expect(batarde(c).hands).toBe(1);
-    expect(c.weapons.some((w) => w.hand === 'off' && w.trappingId === 'bouclier')).toBe(true);
+    expect(c.weapons.some((w) => w.hand === 'secondaire' && w.trappingId === 'bouclier')).toBe(true);
     expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'base' } });
   });
 
   it('sans Corps à Corps (Base) : deux mains, la main secondaire est refusée', () => {
     const c = porteur([cac('deux-mains', 10)]);
     expect(setADeuxMains(c, activeLoadout(c)!)).toBe(true);
-    activeLoadout(c)!.off = c.items!.find((i) => i.trappingId === 'bouclier')!.uid;
+    activeLoadout(c)!.secondaire = c.items!.find((i) => i.trappingId === 'bouclier')!.uid;
     recomputeLoadout(c);
     expect(batarde(c).hands).toBe(2);
-    expect(c.weapons.some((w) => w.hand === 'off')).toBe(false);
+    expect(c.weapons.some((w) => w.hand === 'secondaire')).toBe(false);
     expect(qualitesManiees(c, batarde(c))).toEqual(['defensive', 'devastatrice']);
   });
 

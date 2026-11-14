@@ -60,7 +60,7 @@ describe('sauvegarde chargée élaguée', () => {
     const save = {
       version: FORMAT_SAVE, savedAt: '2026-10-26', sceneLabel: 'S', gameTime: 0,
       rules: { [drapeau.id]: !drapeau.default, 'regle-hors-registre': true },
-      data: { party: [combattantDeTest({ id: 'h', label: 'H', kind: 'hero', conditions: [{ id: connu, value: 1 }, { id: 'etat-hors-registre', value: 1 }] })] },
+      data: { party: [combattantDeTest({ id: 'h', label: 'H', kind: 'heros', conditions: [{ id: connu, value: 1 }, { id: 'etat-hors-registre', value: 1 }] })] },
     };
     localStorage.setItem('wfrp4.save.1', JSON.stringify(save));
     expect(useGame.getState().loadGame(1)).toBe(true);

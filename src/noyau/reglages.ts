@@ -8,8 +8,8 @@
  */
 import type { CascadeStep } from './pendings';
 import type { GesteDuJeu } from './modalArbiter';
-import { VERBE_DE_REGLAGE, declarationDuReglage, type EffetDuChoix, type FluxRegle, type ReglageDuJet } from './reglagesDuJet';
-import { declarationDuChoix } from './choixDesFenetres';
+import { VERBE_DE_REGLAGE, declarationDuReglageNomme, type EffetDuChoix, type FluxRegle, type ReglageDuJet } from './reglagesDuJet';
+import { declarationDuChoixNomme } from './choixDesFenetres';
 
 /** Une valeur qu'un argument prend : celle que le verbe reçoit, son libellé, et la raison qui la ferme (`null` :
  *  ouverte). */
@@ -46,7 +46,7 @@ export interface Reglage {
 /** L'effet du geste `g` qui choisit, réglage de jet (`jetRegler`) ou choix de fenêtre (`fenetreChoisir`), tel que sa
  *  déclaration le dit (`REGLAGES_DU_JET`, `CHOIX_DES_FENETRES`) ; `null` : le geste ne choisit pas. */
 export const effetDuGeste = (g: GesteDuJeu): EffetDuChoix | null =>
-  (g.axe ? declarationDuChoix(g.fenetre, g.axe) : g.reglage ? declarationDuReglage(g.flux, g.reglage) : null)?.effet ?? null;
+  (g.axe ? g.fenetre && declarationDuChoixNomme(g.fenetre, g.axe) : g.flux && g.reglage ? declarationDuReglageNomme(g.flux, g.reglage) : null)?.effet ?? null;
 
 /** Le geste qui règle le réglage `reglage` du jet du flux `flux` (`jetRegler`). */
 export const gesteDuReglage = (flux: FluxRegle, reglage: ReglageDuJet): GesteDuJeu => ({ verbe: VERBE_DE_REGLAGE, flux, reglage });

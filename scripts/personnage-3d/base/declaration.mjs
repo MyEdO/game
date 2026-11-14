@@ -1,5 +1,5 @@
 // LA DÉCLARATION DU CORPS D'UNE BASE (#2972, #3106), `<declaration.json>` : `base`, `porteur`, ses bornes articulaires
-// (`bornesArticulaires`, #2992), la table rôle → clip (`clips`, dont `walk`, la marche plantée et mesurée), celle des rôles tenus à deux mains (`clipsDeuxMains`, #3319) et les surfaces du corps (`surfaces`, jugées avec le manifeste, `hotes/godot/asset/surfaces.ts`), validée contre la donnée,
+// (`bornesArticulaires`, #2992), la table rôle → clip (`clips`, dont `marche`, la marche plantée et mesurée), celle des rôles tenus à deux mains (`clipsDeuxMains`, #3319), les prises que le geste de chaque clip occupe (`prisesOccupees`, #3806) et les surfaces du corps (`surfaces`, jugées avec le manifeste, `hotes/godot/asset/surfaces.ts`), validée contre la donnée,
 // lue par le module runner de Vite (`chargerAssets`, `charger.mjs`).
 import { readFileSync } from 'node:fs'
 import { chargerAssets } from '../../../hotes/godot/asset/charger.mjs'
@@ -10,21 +10,22 @@ const chargerDonnee = () =>
   (donnee ??= chargerAssets(["export { planDeBestiaire, gabarits, taillesDeLaRace } from '/src/data/index.ts';"]))
 
 /** La part déclarée du manifeste de base (`manifeste.mjs`) : `base`, `porteur`, `bornesArticulaires`, `clips` et,
- *  déclarées, `clipsDeuxMains` et `surfaces`. */
-export const champsDeclares = ({ base, porteur, bornesArticulaires, clips, clipsDeuxMains, surfaces }) => ({
-  base, porteur, bornesArticulaires, clips, ...(clipsDeuxMains === undefined ? {} : { clipsDeuxMains }), ...(surfaces === undefined ? {} : { surfaces }),
+ *  déclarées, `clipsDeuxMains`, `prisesOccupees` et `surfaces`. */
+export const champsDeclares = ({ base, porteur, bornesArticulaires, clips, clipsDeuxMains, prisesOccupees, surfaces }) => ({
+  base, porteur, bornesArticulaires, clips, ...(clipsDeuxMains === undefined ? {} : { clipsDeuxMains }),
+  ...(prisesOccupees === undefined ? {} : { prisesOccupees }), ...(surfaces === undefined ? {} : { surfaces }),
 })
 
 /** La déclaration du corps à `chemin`, jugée par `jugerDeclaration`. */
 export const lireDeclaration = (chemin, lireDonnee) => jugerDeclaration(JSON.parse(readFileSync(chemin, 'utf8')), chemin, lireDonnee)
 
-/** `declaration`, lue à `chemin`, refusée sans clip du rôle `walk` (`clips.walk`), si l'espèce du porteur n'est pas portée par
+/** `declaration`, lue à `chemin`, refusée sans clip du rôle `marche` (`clips.marche`), si l'espèce du porteur n'est pas portée par
  *  le plan de bestiaire sur la base humanoïde (#2993), si son gabarit n'existe pas dans la donnée, ou si sa Taille ou son
  *  échelle d'art diffère de celle que la donnée donne à sa race (`echelle` de l'espèce au plan). `lireDonnee` rend les
  *  lectures de la donnée (`planDeBestiaire`, `gabarits`, `taillesDeLaRace`). */
 export async function jugerDeclaration(declaration, chemin, lireDonnee = chargerDonnee) {
   const { porteur, clips } = declaration
-  if (typeof clips?.walk !== 'string') throw new Error(`${chemin} : clips.walk, nom de clip attendu`)
+  if (typeof clips?.marche !== 'string') throw new Error(`${chemin} : clips.marche, nom de clip attendu`)
   const { planDeBestiaire, gabarits, taillesDeLaRace } = await lireDonnee()
   const espece = planDeBestiaire.find((e) => e.id === porteur?.espece)
   const race = espece?.race?.id

@@ -25,7 +25,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     banc.setState({ party: [W] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     banc.getState().ensemencerLeTirage(5);
     const b = banc.getState().battle!;
@@ -33,7 +33,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     caster.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 10 });
     caster.characteristics['force-mentale'] = 40; // BFM 4
     caster.pos = { x: 5, y: 10 };
-    const T = b.combatants.filter((c) => c.kind === 'enemy')[0];
+    const T = b.combatants.filter((c) => c.kind === 'ennemi')[0];
     T.pos = { x: 10, y: 10 };
     return { caster, T };
   }
@@ -45,7 +45,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     const wall = (banc.getState().battle!.zones ?? []).find((z) => z.label === 'Mur de feu')!;
     expect(wall).toBeTruthy();
     expect(wall.rounds).toBe(4); // (BFM 4) Rounds
-    expect(wall.onCross?.some((o) => o.op === 'condition' && o.id === 'en-flammes')).toBe(true);
+    expect(wall.onCross?.some((o) => o.op === 'condition' && o.id.id === 'en-flammes')).toBe(true);
     // axe O→E → mur VERTICAL passant par la cible ; longueur : BFM 4 m + 3 paliers (+2 DR) × 4 m = 16 m → 8 cases
     expect(wall.tiles.every((t) => t.x === 10)).toBe(true);
     expect(wall.tiles).toHaveLength(8);
@@ -59,7 +59,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     applyCast(banc.getState, banc.setState, caster, T, findSpellById('foret-d-epines')!, ok, false, false);
     const zone = (banc.getState().battle!.zones ?? []).find((z) => z.label === 'Forêt d\'épines')!;
     expect(zone).toBeTruthy();
-    const empetreOp = zone.onCross?.find((o): o is Extract<GameOp, { op: 'condition' }> => o.op === 'condition' && o.id === 'empetre');
+    const empetreOp = zone.onCross?.find((o): o is Extract<GameOp, { op: 'condition' }> => o.op === 'condition' && o.id.id === 'empetre');
     expect(empetreOp?.escapeStrength).toEqual({ charOf: 'force-mentale' });
   });
 
@@ -110,7 +110,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
   });
 
   it('organicProjectile : flag maison Weapon.organicProjectile — flèches/carreaux/javelots oui, poudre/fronde/couteaux non', () => {
-    const w = (organic: boolean | undefined): Weapon => ({ label: 'x', type: 'ranged', damage: { plusBF: false, flat: 7 }, qualities: [], organicProjectile: organic } as unknown as Weapon);
+    const w = (organic: boolean | undefined): Weapon => ({ label: 'x', type: 'distance', damage: { plusBF: false, flat: 7 }, qualities: [], organicProjectile: organic } as unknown as Weapon);
     expect(organicProjectile(w(true))).toBe(true); // arc/arbalète/javelot (data trappings.json)
     expect(organicProjectile(w(false))).toBe(false);
     expect(organicProjectile(w(undefined))).toBe(false); // poudre noire/fronde/couteau de lancer : absent = non organique

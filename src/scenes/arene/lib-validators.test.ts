@@ -132,17 +132,11 @@ describe('lib.mjs — corpsValide : chaque corps dans son catalogue (coque terse
   });
 });
 
-// #222 — `poste()` émet la forme AUTHORÉE de référence `{ trappingId, uid, side, crewIds }` et valide
+// #222 — `poste()` émet la forme AUTHORÉE de référence `{ trappingId, side, crewIds }` (uid de la place, #2907) et valide
 // que `trappingId` désigne un trapping du sous-type `armes-de-siege`.
 describe('lib.mjs — poste() : forme référence #222, trappingId du sous-type armes-de-siege', () => {
-  it('une pièce d’artillerie valide → { trappingId, uid, side, crewIds }, base NON matérialisée', () => {
-    const p = poste('canon-moyen', 'tribord');
-    expect(p.trappingId).toBe('canon-moyen');
-    expect(p.side).toBe('tribord');
-    expect(p.crewIds).toEqual([]);
-    expect(typeof p.uid).toBe('string');
-    expect(p.item).toBeUndefined(); // hydratée au spawn, jamais copiée en donnée (#222)
-    expect(p.damage).toBeUndefined();
+  it('une pièce d’artillerie valide → exactement { trappingId, side, crewIds }, base hydratée au spawn', () => {
+    expect(poste('canon-moyen', 'tribord')).toStrictEqual({ trappingId: 'canon-moyen', side: 'tribord', crewIds: [] });
   });
 
   it('crewIds explicites préservés', () => {

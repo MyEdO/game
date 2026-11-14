@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
@@ -101,7 +101,7 @@ function construireScene(documents: readonly DocumentNarratif[]): Scene {
     entities: [
       {
         id: 'liasse-edo', kind: 'prop', decor: { id: 'bureau' }, pos: { x: 3, y: 2 }, label: 'Liasse de documents',
-        usable: { actions: [{ id: 'lire', label: 'Parcourir la liasse', flow: flowFromEffects([{ type: 'startDialogue', dialogue: 'dlg-liasse' }]) }] },
+        usable: { actions: [{ id: 'lire', label: 'Parcourir la liasse', flow: flowFromEffects([{ type: 'startDialogue', dialogue: { id: 'dlg-liasse' } }]) }] },
       },
     ],
     dialogues: [
@@ -128,7 +128,7 @@ export const scenario: TestScenario = {
   id: 'documents-edo',
   order: 27,
   category: 'scenarios',
-  icon: 'nav/campaign',
+  icon: 'navigation/campagne',
   title: "Documents de L'Ennemi dans l'Ombre",
   tests:
     'Registre `narratif.documents` du paquet EDO (#679) : chaque document de la liasse s’ouvre par ' +
@@ -138,6 +138,6 @@ export const scenario: TestScenario = {
   partyNote: 'Pré-tirés',
   construire: (idNeuf) => {
     const { documents } = paquetDuJeu(diligenceCampaign).narratif;
-    return { party: makePregens(idNeuf), scene: construireScene(documents), narratif: construireNarratif(documents) };
+    return { party: tousLesHerosDeScenario(idNeuf), scene: construireScene(documents), narratif: construireNarratif(documents) };
   },
 };

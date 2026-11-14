@@ -23,7 +23,7 @@ const arme = (uid: string, label: string): ItemInstance =>
 
 function combattant(id: string, p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id, label: id.toUpperCase(), kind: 'hero',
+    id, label: id.toUpperCase(), kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [lance], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -37,7 +37,7 @@ function enBataille(over: Record<string, unknown> = {}, actif: Partial<Combatant
   const a = combattant('a', { engagedWith: ['e'], grapplingWith: ['e'], ...actif });
   const b = combattant('b', { pos: { x: 3, y: 3 } });
   const e = combattant('e', {
-    kind: 'enemy', pos: { x: 2, y: 1 }, engagedWith: ['a'], grapplingWith: ['a'],
+    kind: 'ennemi', pos: { x: 2, y: 1 }, engagedWith: ['a'], grapplingWith: ['a'],
     activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
       spell: { spellId: 'malefice', ni: 2, casterId: 'sorcier', label: 'Maléfice' } }],
   } as Partial<Combatant>);
@@ -64,7 +64,7 @@ const GESTES = [
   ['ouvrirLaCourse', () => g().ouvrirLaCourse({ x: 1, y: 3 }, { path: [{ x: 1, y: 2 }, { x: 1, y: 3 }], cost: 2 })],
   ['armerLaFinDuTour', () => g().armerLaFinDuTour()],
   ['prendreLaPanoplie', () => g().prendreLaPanoplie('a', 'lo-hache')],
-  ['armerLeMode', () => g().armerLeMode('dispel')],
+  ['armerLeMode', () => g().armerLeMode('dissipation')],
   ['desarmerLeMode', () => g().desarmerLeMode()],
   ['incanterLeSort', () => g().incanterLeSort('a', 'forme-bestiale')],
   ['focaliserLeSort', () => g().focaliserLeSort('a', 'arme-aethyrique')],
@@ -73,17 +73,17 @@ const GESTES = [
 
 describe('le verdict de la barre : chaque geste refusé le dit, et ne change rien d’autre', () => {
   it.each(GESTES)('%s : en combat clos, personne n’agit', (_v, geste) => {
-    enBataille({ over: 'victory' });
+    enBataille({ over: 'victoire' });
     const avant = empreinte();
     geste();
     expect([refus(), empreinte()]).toEqual([t('barre.personneNAgit'), avant]);
   });
 
-  it.each(GESTES)('%s : l’actif n’est pas piloté', (_v, geste) => {
+  it.each(GESTES)('%s : l’actif n’est pas piloté, et hors de vue il n’est pas nommé', (_v, geste) => {
     enBataille({ order: ['e', 'a', 'b'] });
     const avant = empreinte();
     geste();
-    expect([refus(), empreinte()]).toEqual([t('barre.nonPilote', { name: 'E' }), avant]);
+    expect([refus(), empreinte()]).toEqual([t('barre.nonPilote', { name: t('vision.horsDeVue') }), avant]);
   });
 
   it.each(GESTES)('%s : une modale tient la main', (_v, geste) => {
@@ -106,7 +106,7 @@ describe('le verdict de la barre : chaque geste refusé le dit, et ne change rie
 describe('coop : un siège qui ne pilote pas l’actif est refusé, et le refus est dit', () => {
   it.each(GESTES)('%s', (_v, geste) => {
     enBataille();
-    banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { a: 1, b: 0 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { a: 1, b: 0 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } } });
     const avant = empreinte();
     geste();
     expect([refus(), empreinte()]).toEqual([t('barre.nonPilote', { name: 'A' }), avant]);
@@ -178,7 +178,7 @@ describe('admis, chaque geste joue encore', () => {
   it('ouvrirLAuContact ouvre le Test opposé', () => {
     enBataille();
     g().ouvrirLAuContact('e');
-    expect([refus() ?? null, g().pendingAuContact?.phase]).toEqual([null, 'roll']);
+    expect([refus() ?? null, g().pendingAuContact?.phase]).toEqual([null, 'jet']);
   });
 
   it('ouvrirLEmpoignade ouvre le Test opposé', () => {
@@ -207,16 +207,16 @@ describe('admis, chaque geste joue encore', () => {
 
   it('armerLeMode arme le mode, desarmerLeMode le désarme', () => {
     enBataille();
-    g().armerLeMode('dispel');
+    g().armerLeMode('dissipation');
     const arme = g().battle!.action;
     g().desarmerLeMode();
-    expect([refus() ?? null, arme, g().battle!.action]).toEqual([null, 'dispel', null]);
+    expect([refus() ?? null, arme, g().battle!.action]).toEqual([null, 'dissipation', null]);
   });
 
   it('incanterLeSort arme l’incantation', () => {
     enBataille();
     g().incanterLeSort('a', 'forme-bestiale');
-    expect([refus() ?? null, g().battle!.action, g().battle!.selectedSpellId]).toEqual([null, 'cast', 'forme-bestiale']);
+    expect([refus() ?? null, g().battle!.action, g().battle!.selectedSpellId]).toEqual([null, 'incantation', 'forme-bestiale']);
   });
 
   it('focaliserLeSort ouvre la Focalisation', () => {

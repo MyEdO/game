@@ -14,7 +14,7 @@ import { ciblePsy } from '../psych/ciblage';
 const bearer = (): Combatant => {
   const traits = [{ id: 'marque-de-khorne' }];
   return {
-    id: 'bearer', name: 'Porteur', kind: 'enemy',
+    id: 'bearer', name: 'Porteur', kind: 'ennemi',
     traits, talents: [],
     ...parsePsychTraits(traits),
   } as unknown as Combatant;
@@ -47,7 +47,7 @@ describe('Marque de Khorne — câblage (#516)', () => {
   });
 
   it('Animosité (Slaanesh) : se déclenche au contact d’un suivant de Slaanesh visible (targetedTrigger)', () => {
-    const slaaneshFollower = { id: 'foe', name: 'Suivant', kind: 'hero', groups: ['slaanesh'] } as unknown as Combatant;
+    const slaaneshFollower = { id: 'foe', name: 'Suivant', kind: 'heros', groups: ['slaanesh'] } as unknown as Combatant;
     const trig = targetedTrigger(bearer(), [sourceCombattant(slaaneshFollower)]);
     expect(trig).toEqual({ type: 'animosite', cible: ciblePsy.groupe('slaanesh'), sourceId: 'foe', indice: undefined });
   });
@@ -68,21 +68,21 @@ describe('Marque de Khorne — câblage (#516)', () => {
   it('Réciproque (MDG 07 l.250) : un suivant de Slaanesh éprouve Animosité envers le porteur VISIBLE (#516, réfutation 2b/2c)', () => {
     // Statbloc Slaanesh (Démonette, ouvertement suivante) portant l'Animosité réciproque en donnée.
     const slaaneshFollower = {
-      id: 'slaanesh-1', name: 'Démonette', kind: 'enemy', groups: [],
+      id: 'slaanesh-1', name: 'Démonette', kind: 'ennemi', groups: [],
       psychTraits: [{ type: 'animosite' as const, cible: ciblePsy.groupe('khorne') }],
     } as unknown as Combatant;
-    const marked = { id: 'khorne-1', name: 'Porteur', kind: 'hero', groups: [], traits: [{ id: 'marque-de-khorne' }] } as unknown as Combatant;
+    const marked = { id: 'khorne-1', name: 'Porteur', kind: 'heros', groups: [], traits: [{ id: 'marque-de-khorne' }] } as unknown as Combatant;
     const trig = targetedTrigger(slaaneshFollower, [sourceCombattant(marked)]);
     expect(trig).toEqual({ type: 'animosite', cible: ciblePsy.groupe('khorne'), sourceId: 'khorne-1', indice: undefined });
   });
 
   it('Réciproque : COUPÉE si la Marque est dissimulée (`hidden`, arbitrage maison MDG 07 l.250)', () => {
     const slaaneshFollower = {
-      id: 'slaanesh-1', name: 'Démonette', kind: 'enemy', groups: [],
+      id: 'slaanesh-1', name: 'Démonette', kind: 'ennemi', groups: [],
       psychTraits: [{ type: 'animosite' as const, cible: ciblePsy.groupe('khorne') }],
     } as unknown as Combatant;
     const hiddenTraits = [{ id: 'marque-de-khorne', hidden: true }];
-    const marked = { id: 'khorne-1', name: 'Porteur', kind: 'hero', groups: [], traits: hiddenTraits } as unknown as Combatant;
+    const marked = { id: 'khorne-1', name: 'Porteur', kind: 'heros', groups: [], traits: hiddenTraits } as unknown as Combatant;
     expect(hiddenGroupsOf(marked)).toEqual(['khorne']);
     expect(targetedTrigger(slaaneshFollower, [sourceCombattant(marked)])).toBeNull();
   });

@@ -29,7 +29,7 @@ describe('franchirLArete, chute — exploration, compteur des Dégâts de chute 
     const heros = ['A', 'B', 'C'].map((label, i) => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: i + 1 }));
     useGame.setState({ battle: null, party: heros, mode: 'exploration', partyPos: top, scene: cliffScene(), pendingFall: null, pendingCascade: null, journal: [] });
     g().franchirLArete(foot);
-    for (const h of heros) g().jetRegler('fall', 'tenter', false, h.id);
+    for (const h of heros) g().jetRegler('chute', 'tenter', false, h.id);
     // Le sous-titre RENDU par la fenêtre de cascade pour une étape à dé nu (`CascadeModal`, branche dé).
     const vus: unknown[] = [];
     for (let i = 0; i < 10 && g().pendingCascade; i++) {

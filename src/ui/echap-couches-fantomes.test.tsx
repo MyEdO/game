@@ -9,7 +9,7 @@
  *    Échap pour TOUTE la session : plus rien ne désarmait, plus rien n'ouvrait le menu.
  *  - `VictoryScreen` appelle ses hooks AVANT son early-return (règle des Hooks) : hors victoire, il
  *    empilait une couche dont le congédiement COMMETTAIT (la sortie de la victoire, et en coop
- *    `fenetreFermer('victory')` RÉPLIQUÉ au relais) — le 1ᵉʳ Échap de la partie validait un butin absent.
+ *    `fenetreFermer('victoire')` RÉPLIQUÉ au relais) — le 1ᵉʳ Échap de la partie validait un butin absent.
  *
  * Ce banc monte les composants PERMANENTS avec le hook clavier RÉEL : c'est le seul endroit où le
  * défaut se voit, une modale montée à la main ne le reproduit pas.
@@ -42,7 +42,7 @@ beforeEach(() => {
   resetDismissLayers();
   useGame.setState({
     screen: 'campaign', mode: 'battle', gameMenuOpen: false, dialogue: null,
-    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'hero', pos: { x: 1, y: 1 } })], movementUsed: 0, preview: null },
+    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'heros', pos: { x: 1, y: 1 } })], movementUsed: 0, preview: null },
     net: { mode: 'local', mySeat: 0 }, combatCursor: null, preemptAiming: null,
     localIntent: { actionId: 'charge' }, pendingVictory: null,
   } as never);
@@ -166,13 +166,13 @@ describe('Menu système — le focus clavier entre dans la carte (#1752)', () =>
   });
 
   it('la CLASSE entière : l’écran de victoire, lui aussi monté en permanence, prend le focus à sa révélation', () => {
-    // La boîte ne se MONTE qu'à `over === 'victory' && revealed` : elle naît APRÈS le délai de tenue du
+    // La boîte ne se MONTE qu'à `over === 'victoire' && revealed` : elle naît APRÈS le délai de tenue du
     // coup fatal (`VICTORY_REVEAL_MS`, `VictoryScreen.tsx`), bien après le premier rendu.
     vi.useFakeTimers();
     try {
       act(() => root.render(<Ecran />));
       act(() => {
-        useGame.setState({ battle: { ...useGame.getState().battle!, over: 'victory' } } as never);
+        useGame.setState({ battle: { ...useGame.getState().battle!, over: 'victoire' } } as never);
       });
       act(() => { vi.advanceTimersByTime(1000); });
       const victoire = [...host.querySelectorAll<HTMLElement>('[role="dialog"]')]

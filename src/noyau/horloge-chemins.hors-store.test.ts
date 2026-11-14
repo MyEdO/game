@@ -12,7 +12,7 @@ import { flowFromEffects } from './monde/flow';
 import { emptyScene, type Scene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { seedBattleRng } from './battleRng';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { creditBourse } from './bourseFlow';
 import { buildScene } from './mapSpec';
@@ -45,10 +45,10 @@ function scene(id: string): Scene {
 
 describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
   it('nuit du joueur (`restFlow`) : la modale de repos, Dormir, puis la cascade de nuit tirent l’échéance', () => {
-    set({ party: makePregens(idsDeTest).slice(0, 1), scene: emptyScene('scene-test', 10, 10), gameTime: campaignStart() + 20 * 60 });
+    set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), scene: emptyScene('scene-test', 10, 10), gameTime: campaignStart() + 20 * 60 });
     const t0 = armeLEcheance();
     get().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
-    get().fenetreValider('rest');
+    get().fenetreValider('repos');
     expect(get().pendingRest, 'Dormir a été refusé').toBeNull();
     draineCascade(get, 30);
     attendQueLEcheanceTire(t0);
@@ -63,7 +63,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
       ],
       routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 12, modes: ['pied'], perilDie: 0 }],
     };
-    set({ party: makePregens(idsDeTest).slice(0, 1) });
+    set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1) });
     get().chargerLeProjet({ scenes: [scene('lieu-a'), scene('lieu-b')], entryId: 'lieu-a', worldMap: carte, projet: null });
     set({ gameTime: campaignStart(), flags: {}, scheduledEffects: [] });
     const t0 = armeLEcheance();
@@ -93,7 +93,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], flags: {}, scheduledEffects: [] });
     creditBourse(get, set, gunnar.id, { gold: 500, silver: 0, brass: 0 });
     const t0 = armeLEcheance();
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     draineCascade(get, 30);
     attendQueLEcheanceTire(t0);
   });
@@ -108,12 +108,12 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
       routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
     };
     set({
-      party: makePregens(idsDeTest).slice(0, 3), worldMap: mer, lieu: 'A', gameTime: 8 * 60, lastUpkeepDay: 0, suspendedCascades: [],
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), worldMap: mer, lieu: 'A', gameTime: 8 * 60, lastUpkeepDay: 0, suspendedCascades: [],
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);
     const t0 = armeLEcheance();
-    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     draineCascade(get, 30);
     attendQueLEcheanceTire(t0);
   });

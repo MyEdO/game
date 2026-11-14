@@ -37,6 +37,6 @@ describe('scénario « Taverne — un PNJ à profil standard » (#1882)', () => 
   });
 
   it('la règle optionnelle des jeux de taverne est pré-activée', () => {
-    expect(scenario.rules).toMatchObject({ 'tavern-games': true });
+    expect(scenario.rules).toMatchObject({ 'jeux-de-taverne': true });
   });
 });

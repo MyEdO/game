@@ -2,7 +2,7 @@
  *  l'assise et la fouille de pièce (#1687). */
 import { type ActionOfferte, type CapaciteId, cleActionJouee, actionsDe, actionsAuthorees, estCapacite, estUtilisable, objetDuSol } from './monde/usable';
 import { ramasserHorsCombat } from './objetsAuSol';
-import { type SceneEntity, Scene } from './monde/scene';
+import { type SceneEntity, Scene, dialoguesDeLaScene } from './monde/scene';
 import { ouvrirDialogue } from './dialogue';
 import { placesJouables, RANG_MENEUR, seatPoseOf, releaseSeat, memeCase, type SeatPose, assignSeat } from './monde/seating';
 import { meneurDuMonde, poserCapDuGroupe } from './monde/combatants';
@@ -10,10 +10,11 @@ import { t } from '../i18n';
 import { bus, EVT } from './bus';
 import { cloturer, runFlow, flowRestant } from './combatEffects';
 import { removeEntity } from './combatPlacement';
-import { aPorteeDe, exploreMovePlan, exploreSeatPlan, optionsDeCheminDuGroupe, type ExploreMovePlan } from './monde/exploreNav';
+import { aPorteeDe, cheminsDuGroupe, exploreMovePlan, exploreSeatPlan, type ExploreMovePlan } from './monde/exploreNav';
 import { ficheDEntite, nomDEntite } from './monde/sceneNpc';
 import { entityBlockedAt } from './monde/sceneRules';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { enEmbuscade, entiteConnue, type EntreesDeLaConnaissance } from './visionDuGroupe';
 import { TIME_COST } from '../engine/timeCost';
 import { refuserGeste } from './refusVisible';
 import { porteurDExploration } from './gesteDArete';
@@ -28,7 +29,7 @@ import type { ActionGate } from './actionRegistry';
 import type { Jeu, PendingInteract } from './etat';
 import type { RefusGeste } from './gesteDArete';
 import type { RoomFocus } from './monde/rooms';
-import { cheminsDepuis, type Pt } from './monde/path';
+import type { Pt } from './monde/path';
 
 /**
  * EXÉCUTEURS des capacités d'instance (#1687) — table TOTALE keyée par le MÊME `CapaciteId` que
@@ -37,7 +38,7 @@ import { cheminsDepuis, type Pt } from './monde/path';
  */
 const JOUER_CAPACITE: Readonly<Record<CapaciteId, (get: Get, set: Set, ent: SceneEntity, scene: Scene) => void>> = {
   parler: (get, set, ent, scene) => {
-    const dlg = scene.dialogues.find((d) => d.id === ent.dialogueId?.id);
+    const dlg = ent.dialogueId && dialoguesDeLaScene(scene).get(ent.dialogueId.id);
     if (dlg) set({ dialogue: ouvrirDialogue(get(), dlg, ent.id) });
   },
   commercer: (get, _set, ent) => get().ouvrirLeMarchand(ent.id),
@@ -55,9 +56,6 @@ function placesDe(scene: Scene, entityId: string) {
 function placesLibres(scene: Scene, entityId: string) {
   return placesDe(scene, entityId).filter((p) => !scene.seatAssignments?.[entityId]?.[p.slotId]);
 }
-
-/** Un ennemi d'embuscade n'offre rien et ne s'interpelle pas en exploration. */
-const enEmbuscade = (ent: SceneEntity): boolean => !!ent.combat?.hiddenUntilCombat;
 
 /** Verdict d'une offre d'exploration : la pastille le peint, le clic s'en sert pour savoir ce qu'il peut jouer sans
  *  rien demander. Ouverte par défaut (`actionsDe` a déjà retiré l'injouable) ; seule l'assise sans place libre se
@@ -80,15 +78,17 @@ interface OffresDExplorationParPorteur {
 }
 
 /** Les offres d'exploration du champ : un porteur par entité qui offre quelque chose (`actionsDe`) à portée du groupe
- *  (`aPorteeDe`, la portée de `jouerAction`), hors embuscade ; aucune pendant un dialogue. */
-export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos' | 'flags' | 'objetsAuSol' | 'campaignNarratif'>): OffresDExplorationParPorteur[] {
+ *  (`aPorteeDe`, la portée de `jouerAction`), hors embuscade ; aucune pendant un dialogue. Le porteur d'une entité que
+ *  le groupe ne connaît pas (`entiteConnue`) porte le nom neutre `vision.horsDeVue`. */
+export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos' | 'flags' | 'objetsAuSol' | 'campaignNarratif'> & EntreesDeLaConnaissance): OffresDExplorationParPorteur[] {
   const { scene } = s;
   if (!scene || s.dialogue) return [];
   const porteurs: OffresDExplorationParPorteur[] = [];
   for (const ent of scene.entities) {
     if (enEmbuscade(ent) || !aPorteeDe(s.partyPos, ent)) continue;
     const offres = actionsDe(scene, ent, s).map((o) => ({ ...o, gate: porteDOffre(scene, ent, o.origine) }));
-    if (offres.length) porteurs.push({ porteurId: ent.id, porteurLabel: nomDEntite(ent, presetDuNarratif(s.campaignNarratif)), offres });
+    const porteurLabel = entiteConnue(s, ent) ? nomDEntite(ent, presetDuNarratif(s.campaignNarratif)) : t('vision.horsDeVue');
+    if (offres.length) porteurs.push({ porteurId: ent.id, porteurLabel, offres });
   }
   return porteurs;
 }
@@ -98,7 +98,8 @@ export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos
  * (`stage/geste.ts:entiteDuGeste`) : l'homologue hors combat d'`intentionDuClicDeCase` (`combatOrParty.ts`). Chaque
  * variante nomme les verbes que l'hôte joue : `interagir` → `interagirAvecLEntite` ; `jouer` → `jouerAction` ; `rejoindre`
  * → `poserLInteraction(pending)` puis la marche du `plan` ; `marcher` → la marche du `plan` ; `dire` → `ecrireAuJournal` ;
- * `injoignable` → le refus qui nomme la case qu'aucun chemin n'atteint (`refuserGeste`) ; `annuler` (la case du groupe)
+ * `injoignable` → le refus qui nomme la case qu'aucun chemin n'atteint, et son étage dans une scène à plusieurs couches
+ * (`refuserGeste`) ; `annuler` (la case du groupe)
  * → rien que l'abandon du pending. Toute variante hors `rejoindre` pose d'abord `poserLInteraction(null)`.
  * `null` : rien ne se joue (hors exploration, dialogue ouvert, N offres à portée que la pastille sert, entité
  * utilisable injoignable), le pending et le survol restent.
@@ -115,7 +116,7 @@ export type IntentionDExploration =
 export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string | null): IntentionDExploration | null {
   const sc = s.scene;
   if (!sc || s.mode !== 'exploration' || s.dialogue) return null;
-  const chemins = cheminsDepuis(sc, s.partyPos, optionsDeCheminDuGroupe(s.party));
+  const chemins = cheminsDuGroupe(sc, s.partyPos, s.party);
   const ent = entiteId === null ? undefined : sc.entities.find((e) => e.id === entiteId);
   // Case d'arrivée partagée avec l'aperçu de survol (`exploreMovePlan`) : escalier, abord d'une place, case
   // adjacente d'une entité, ou la case même.
@@ -123,12 +124,12 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
   const marcherOu = (sinon: IntentionDExploration): IntentionDExploration => (plan ? { kind: 'marcher', plan } : sinon);
   const sansChemin: IntentionDExploration = memeCase(s.partyPos, tuile)
     ? { kind: 'annuler' }
-    : { kind: 'injoignable', message: t('marche.aucunChemin', { x: tuile.x, y: tuile.y }) };
+    : { kind: 'injoignable', message: sc.layers.length > 1 ? t('marche.aucunCheminALEtage', { x: tuile.x, y: tuile.y, z: tuile.z ?? 0 }) : t('marche.aucunChemin', { x: tuile.x, y: tuile.y }) };
   const presetDe = presetDuNarratif(s.campaignNarratif);
   // MEUBLE À PLACES : il AJOUTE l'assise sans retirer d'affordance ; sans place servable, la chaîne des offres reprend
   // (son offre d'assise, `actionsDe`, le garde utilisable).
   if (ent?.kind === 'prop' && placesJouables(sc, ent.id).length) {
-    const assisIci = !!meneurDuMonde(s) && seatPoseOf(sc, { kind: 'party', rang: RANG_MENEUR })?.propId === ent.id;
+    const assisIci = !!meneurDuMonde(s) && seatPoseOf(sc, { kind: 'groupe', rang: RANG_MENEUR })?.propId === ent.id;
     // UNE source de « place LIBRE » : le plan d'assise, d'un seul point quand le groupe est déjà sur un abord libre.
     const place = exploreSeatPlan(sc, ent.id, chemins);
     if (assisIci || (place && place.path.length < 2)) return { kind: 'interagir', id: ent.id };
@@ -158,7 +159,7 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
 function seLeverDe(get: Get, set: Set, entityId: string): boolean {
   const { scene } = get();
   if (!scene || !meneurDuMonde(get())) return false;
-  const occupant = { kind: 'party', rang: RANG_MENEUR } as const;
+  const occupant = { kind: 'groupe', rang: RANG_MENEUR } as const;
   if (!placesDe(scene, entityId).length) return false;
   if (seatPoseOf(scene, occupant)?.propId !== entityId) return false;
   set({ scene: releaseSeat(scene, occupant) });
@@ -176,7 +177,7 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
   if (!scene || !leaderId) return;
   const places = placesDe(scene, entityId);
   if (!places.length) return;
-  const occupant = { kind: 'party', rang: RANG_MENEUR } as const;
+  const occupant = { kind: 'groupe', rang: RANG_MENEUR } as const;
   const cible = placesLibres(scene, entityId).find((p) => memeCase(p.approach, partyPos));
   if (cible) {
     // REVALIDATION ATOMIQUE dans le callback `set` : entre le choix de la place ci-dessus et
@@ -324,7 +325,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       if ('refus' in fouille) return void refuserGeste(get, set, t(fouille.refus, fouille.vars));
       // La MÊME ligne qu'il y ait des portes ou non, qu'un Test échoue ou non : seule une réussite parle.
       get().ecrireAuJournal(t('fouille.journal'));
-      cloturer(get, set, runFlow(get, set, fouilleDeLaPiece(fouille.scene, fouille.piece), t('eff.flowTitleDiscovery')), [
+      cloturer(get, set, runFlow(get, set, fouilleDeLaPiece(fouille.scene, fouille.piece), t('eff.titreDeDecouverte')), [
         { verbe: 'avancerHorloge', minutes: rule('fouille-piece-minutes') as number },
       ]);
     },

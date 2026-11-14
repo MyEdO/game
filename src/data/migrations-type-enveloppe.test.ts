@@ -88,7 +88,7 @@ const CAS: readonly Cas[] = [
     fichier: 'trappings.json',
     cleNeuve: 'categorie',
     cardinal: 441,
-    valeurs: ['melee', 'ranged', 'ammunition', 'armor', 'trapping'],
+    valeurs: ['melee', 'distance', 'ammunition', 'armor', 'trapping'],
     annexe: {
       fichier: 'merchantFamilies.json',
       contenu: Array.from({ length: 7 }, (_, i) => ({ id: `f-${i}`, match: { categorie: 'trapping' } })),

@@ -48,9 +48,9 @@ function effetsDuProjet(doc: Pick<ProjectDoc, 'scenes'>): { sceneId: string; eff
   const out: { sceneId: string; eff: Effect }[] = [];
   const marche = (flow: Flow, sceneId: string): void =>
     walkFlow(flow, (noeud) => {
-      if (noeud.kind !== 'do') return;
-      out.push({ sceneId, eff: noeud.effect });
-      for (const { flow: porte } of carriedFlows(noeud.effect)) marche(porte, sceneId);
+      if (noeud.kind !== 'effet') return;
+      out.push({ sceneId, eff: noeud.effet });
+      for (const { flow: porte } of carriedFlows(noeud.effet)) marche(porte, sceneId);
     });
   for (const sc of doc.scenes) for (const r of racinesDeFlow(sc)) marche(r.flow as Flow, sc.id);
   return out;
@@ -72,7 +72,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     const rencontres = docs.flatMap((d) => d.scenes.flatMap((sc) => sc.encounters));
     const muettes = Object.entries({
       'amélioration navale d’instance': entites.some((e) => e.upgrades?.length),
-      'coffre à munitions de poste': entites.some((e) => (e.postes ?? []).some((p) => p.ammo?.length)),
+      'coffre à munitions de poste': entites.some((e) => (e.postes ?? []).some((p) => p.ammo)),
       'équipage exposé (crewIds)': entites.some((e) => e.crewIds?.length),
       'marchand à archétype': entites.some((e) => e.merchant?.archetype),
       'CustomStatblock d’auteur': entites.some((e) => e.statblock),
@@ -131,13 +131,10 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   });
 
   /**
-   * ARMEMENT ET ÉQUIPAGE D'UNE COQUE — les contrats que le moteur naval lit sur l'authoring, relus
-   * PAR GLOB (l'id d'une amélioration d'instance, `upgrades`, se juge au parse) : un poste servable
-   * porte un coffre à munitions dont chaque pièce est une munition en quantité, sa sélection
-   * persistante (`ammoUid`) désigne une pièce RÉELLEMENT en soute (sinon `selectedAmmo` ne la retrouve
-   * pas), et un équipage exposé (`crewIds`) nomme des entités de SA scène.
+   * ÉQUIPAGE D'UNE COQUE, relu PAR GLOB : un équipage exposé (`crewIds`) nomme des entités de SA scène. Le coffre d'un
+   * poste et sa munition choisie se jugent au parse (`authoredShipPosteSchema`, `refusDeLEntite`).
    */
-  it.each(bundledFiles.map((f) => [f] as const))('%s : coques — coffres à munitions cohérents, équipage exposé résoluble', (file) => {
+  it.each(bundledFiles.map((f) => [f] as const))('%s : coques — équipage exposé résoluble', (file) => {
     const doc = parseProject(lireProjetLivre(file));
     const fautifs: string[] = [];
     for (const sc of doc.scenes) {
@@ -145,14 +142,6 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
       for (const e of sc.entities) {
         for (const id of e.crewIds ?? [])
           if (!ids.has(id)) fautifs.push(`${sc.id}:${e.id} équipage exposé « ${id} » : aucune entité de cette scène`);
-        for (const p of e.postes ?? []) {
-          for (const a of p.ammo ?? []) {
-            if (a.kind !== 'ammo') fautifs.push(`${sc.id}:${e.id}/${p.trappingId} : « ${a.uid} » n’est pas une munition`);
-            if ((a.qty ?? 0) <= 0) fautifs.push(`${sc.id}:${e.id}/${p.trappingId} : munition « ${a.uid} » en quantité nulle`);
-          }
-          if (p.ammoUid && !(p.ammo ?? []).some((a) => a.uid === p.ammoUid))
-            fautifs.push(`${sc.id}:${e.id}/${p.trappingId} : ammoUid « ${p.ammoUid} » hors du coffre`);
-        }
       }
     }
     expect(fautifs).toEqual([]);
@@ -332,7 +321,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   });
 
   it('CONTRE-PREUVE : un `style` hors de `buildings.json` est REFUSÉ À LA PORTE, qui NOMME le champ et la valeur', () => {
-    expect(buildings.some((b) => b.id === 'bourg'), '« bourg » est devenu un type de bâtiment : la contre-preuve n’a plus de sujet.').toBe(false);
+    expect(buildings.map((b) => b.id), '« bourg » est devenu un type de bâtiment : la contre-preuve n’a plus de sujet.').not.toContain('bourg');
     expect(() => parseProject(PAQUET_ARCHITECTURE(['bourg']))).toThrow(/style/);
     expect(() => parseProject(PAQUET_ARCHITECTURE(['bourg']))).toThrow(/bourg/);
   });
@@ -426,7 +415,7 @@ describe('prose de campagne SOURCÉE — copiée À L’OCTET du livre déclaré
   });
 
   it('chaque prose sourcée déclare un livre du REGISTRE et son folio', () => {
-    const ids = new Set(books.map((b) => b.id));
+    const ids = new Set<string>(books.map((b) => b.id));
     const fautives = prosesSourcees.flatMap((p) => {
       if (typeof p.source.book !== 'string' || !ids.has(p.source.book)) return [`${p.chemin} : book « ${String(p.source.book)} » absent de books.json`];
       if (typeof p.source.page !== 'number') return [`${p.chemin} : folio manquant (source.page)`];
@@ -455,7 +444,7 @@ type DocDeProvenance = Pick<ProjectDoc, 'source' | 'scenes' | 'narratif'>;
 
 /** #2001 ; #2427. */
 function fautesDeProvenance(doc: DocDeProvenance, fichier: string): string[] {
-  const livres = new Set(books.map((b) => b.id));
+  const livres = new Set<string>(books.map((b) => b.id));
   const fautes: string[] = [];
   const marche = (v: unknown, chemin: string): void => {
     if (Array.isArray(v)) return v.forEach((x, i) => marche(x, `${chemin}[${i}]`));
@@ -519,8 +508,8 @@ describe('provenance locale, références présentes résolubles et régime docu
     const doc = paquet({ ...NU, ...ADAPTE }, { ...NU, ...ADAPTE }, source);
     doc.scenes[0].triggers.push({
       id: 'bataille', rect: { x: 0, y: 0, w: 1, h: 1 },
-      flow: { kind: 'seq', steps: [{ kind: 'seq', steps: [
-        { kind: 'do', effect: { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, ...battle } } },
+      flow: { kind: 'sequence', etapes: [{ kind: 'sequence', etapes: [
+        { kind: 'effet', effet: { type: 'startMassBattle', battle: { puissanceAlliee: 50, puissanceEnnemie: 50, ...battle } } },
       ] }] },
     });
     return doc;

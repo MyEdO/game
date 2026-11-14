@@ -5,7 +5,7 @@
  * de terrain, et les VÉRITÉS DE SCÈNE (visible/surplomb/fantôme/surplomb plein). PUR et
  * projection-agnostique : géométrie en unités de GRILLE + MÈTRES (`GP`), aucune notion de caméra.
  */
-import { Scene, tileAt, isWalkable, sceneMetresPerTile, wallEnds, type CellSide } from '../scene';
+import { Scene, tileAt, isWalkable, sceneMetresPerTile, wallEnds, type CellSide, type SceneDuVolume } from '../scene';
 import { estAbsent, terrainBuilt, terrainMatiere, terrainPriority, terrainSolidHeightM } from '../terrain';
 import type { Face, FloorEl } from './types';
 import { viewedBuilder, type Viewed } from './viewTruth';
@@ -30,7 +30,7 @@ export interface EdgeBlend {
 }
 
 /** Voisins de plus haute précédence qui « débordent » sur la tuile (x,y) du niveau `z`. */
-export function edgeBlends(scene: Scene, x: number, y: number, z = 0): EdgeBlend[] {
+export function edgeBlends(scene: SceneDuVolume, x: number, y: number, z = 0): EdgeBlend[] {
   const self = terrainPriority(tileAt(scene, x, y, z));
   const out: EdgeBlend[] = [];
   for (const dir of SIDES) {
@@ -44,7 +44,7 @@ export function edgeBlends(scene: Scene, x: number, y: number, z = 0): EdgeBlend
 /** SURPLOMB : la case (x,y,z) d'une couche z>0 a-t-elle une surface MARCHABLE sur une couche INFÉRIEURE ?
  *  (un tablier de pont / une loge AU-DESSUS d'une route praticable). Si oui, le bord donnant sur le vide
  *  ne descend PAS jusqu'au sol (dalle fine + piliers), la couche du dessous reste visible/passable. */
-export function isOverhang(scene: Scene, x: number, y: number, z: number): boolean {
+export function isOverhang(scene: SceneDuVolume, x: number, y: number, z: number): boolean {
   if (z <= 0) return false;
   for (let zz = z - 1; zz >= 0; zz--) if (isWalkable(scene, x, y, zz)) return true;
   return false;
@@ -55,7 +55,7 @@ export function isOverhang(scene: Scene, x: number, y: number, z: number): boole
  *  ce n'est PAS un surplomb flottant mais la surface SUPÉRIEURE d'une structure solide → il se voit d'un
  *  étage inférieur exactement comme le bloc (opaque, jamais culé/fantôme), au lieu de disparaître et de
  *  laisser le dessus BRUT du bloc à nu quand on regarde le mur d'en bas (activeZ sous z). GÉNÉRAL. */
-export function capsSolid(scene: Scene, x: number, y: number, z: number): boolean {
+export function capsSolid(scene: SceneDuVolume, x: number, y: number, z: number): boolean {
   if (capsSolidDirect(scene, x, y, z)) return true; // (a) posé DIRECTEMENT sur un bloc plein
   if (z <= 0 || estAbsent(tileAt(scene, x, y, z))) return false;
   const { w: W, h: H } = scene.dimensions;
@@ -76,7 +76,7 @@ export function capsSolid(scene: Scene, x: number, y: number, z: number): boolea
  *  hauteur coïncidente ? Alors c'est le DESSUS de ce bloc — le bloc dessine déjà TOUTES ses parois → ce sol
  *  ne redessine AUCUNE falaise (sinon redondance + à base égale la couche z1 gagne le tri et RECOUVRE une
  *  rampe z0 de même hauteur posée devant). ⊥ du cas (b) « gatehouse » (tunnel : le sol DOIT border sa dalle). */
-export function capsSolidDirect(scene: Scene, x: number, y: number, z: number): boolean {
+export function capsSolidDirect(scene: SceneDuVolume, x: number, y: number, z: number): boolean {
   if (z <= 0 || estAbsent(tileAt(scene, x, y, z))) return false;
   const top = displayHeightAt(scene, x, y, z);
   for (let zz = z - 1; zz >= 0; zz--)
@@ -88,13 +88,13 @@ export function capsSolidDirect(scene: Scene, x: number, y: number, z: number): 
  *  propre DESSUS est REDONDANT (le sol du dessus — chemin de ronde — EST la surface) → on ne le dessine pas :
  *  deux dalles superposées « clignotent » selon le voile (l'une perçue, l'autre voilée laissant voir le
  *  dessus brut du bloc). Miroir de `capsSolid`, côté bloc. */
-function cappedAbove(scene: Scene, x: number, y: number, z: number): boolean {
+function cappedAbove(scene: SceneDuVolume, x: number, y: number, z: number): boolean {
   const top = displayHeightAt(scene, x, y, z);
   return scene.layers.some((l) => l.z > z && !estAbsent(tileAt(scene, x, y, l.z)) && displayHeightAt(scene, x, y, l.z) >= top - 0.01);
 }
 
 /** Hauteur d'AFFICHAGE de la surface INFÉRIEURE sous un surplomb (1ʳᵉ couche marchable en dessous), ou null. */
-function overhangLowerHeight(scene: Scene, x: number, y: number, z: number): number | null {
+function overhangLowerHeight(scene: SceneDuVolume, x: number, y: number, z: number): number | null {
   for (let zz = z - 1; zz >= 0; zz--) if (isWalkable(scene, x, y, zz)) return displayHeightAt(scene, x, y, zz);
   return null;
 }
@@ -144,7 +144,7 @@ function aUneCase(c: { x: number; y: number }, [a, b]: readonly [{ x: number; y:
  *  la dalle (bloc plein, culée de pont). Chaque rive reçoit un montant à chacune de ses extrémités que rien ne porte, sauf
  *  dans un angle rentrant, que la dalle reprend au-delà (une trémie), puis un montant intermédiaire là où deux appuis
  *  consécutifs sont à plus de `PORTEE_M`. Un montant va du DESSOUS de la dalle jusqu'à la surface inférieure. */
-function montantsDeLaCouche(scene: Scene, z: number): Map<string, Face[]> {
+export function montantsDeLaCouche(scene: SceneDuVolume, z: number): Map<string, Face[]> {
   const out = new Map<string, Face[]>();
   if (z <= 0) return out;
   const { w, h } = scene.dimensions;
@@ -212,7 +212,7 @@ function montantsDeLaCouche(scene: Scene, z: number): Map<string, Face[]> {
 /** Faces d'une tuile de sol, dans l'ORDRE DE PEINTURE (`piliers`, les montants de la case — `montantsDeLaCouche` —,
  *  les plus en arrière, ils tombent sous la dalle, puis parois de relief qui descendent SOUS le sol, losange de base,
  *  wedges par-dessus). null si la tuile est ABSENTE (étage non construit → transparente, on voit le dessous). */
-function floorFaces(scene: Scene, x: number, y: number, z: number, overhang: boolean, piliers: readonly Face[]): Face[] | null {
+export function floorFaces(scene: SceneDuVolume, x: number, y: number, z: number, overhang: boolean, piliers: readonly Face[]): Face[] | null {
   const terrain = tileAt(scene, x, y, z);
   if (estAbsent(terrain)) return null;
   const self = displayHeightAt(scene, x, y, z); // AFFICHAGE (bloc plein `solidHeightM` compris) — jamais lu par le combat
@@ -353,7 +353,7 @@ function floorGeometry(scene: Scene, view: FloorView | undefined): Viewed<FloorE
  *  mémoïsée (`viewedBuilder`) : un pas qui ne change que le brouillard ne re-dérive AUCUNE face — il ne
  *  bascule que la vérité de vue des sols concernés, et rend le TABLEAU PRÉCÉDENT si aucun n'a bougé. */
 export const buildFloors: (scene: Scene, visible?: ReadonlySet<string>, view?: FloorView) => FloorEl[] =
-  viewedBuilder<FloorEl, FloorView>({
+  viewedBuilder<Scene, FloorEl, FloorView>({
     derive: floorGeometry,
     key: (view) => `${view?.activeZ ?? 0}|${view?.viewZ ?? null}`,
     // Vérité VRAIE = dessiné AU-DESSUS du voile ; sur un FANTÔME c'est le surplomb PLEIN (opaque, il ne

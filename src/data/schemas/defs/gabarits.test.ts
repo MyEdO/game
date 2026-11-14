@@ -4,6 +4,7 @@
  * que ses facteurs.
  */
 import { describe, expect, it } from 'vitest';
+import type { z } from 'zod';
 import { schema } from './gabarits';
 import { schema as schemaRaces } from './raceAppearance';
 import gabaritsJson from '../../gabarits.json';
@@ -18,7 +19,7 @@ const avecRace = (champs: Record<string, unknown>): Entree[] => {
   Object.assign(humain, champs);
   return doc;
 };
-const refus = (s: typeof schema, doc: unknown): string => {
+const refus = (s: z.ZodType, doc: unknown): string => {
   const r = s.safeParse(doc);
   expect(r.success, 'le document a parsé alors qu’il devait être REFUSÉ').toBe(false);
   return r.success ? '' : r.error.issues.map((i) => i.message).join(' ');

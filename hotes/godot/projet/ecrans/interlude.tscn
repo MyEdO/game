@@ -20,7 +20,7 @@ grow_vertical = 2
 theme_type_variation = &"Fenetre"
 
 [node name="Colonne" type="VBoxContainer" parent="."]
-theme_override_constants/separation = 8
+theme_type_variation = &"PileSerree"
 
 [node name="Titre" type="VBoxContainer" parent="Colonne"]
 theme = ExtResource("2_titre")
@@ -48,8 +48,8 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Heros" type="TabContainer" parent="Colonne/Defilement"]
+theme_type_variation = &"Onglets"
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 15
 
 [node name="Zone" type="Node" parent="Colonne/Defilement/Heros"]
 script = ExtResource("1_zone")
@@ -64,8 +64,8 @@ source = "fenetre.reglages"
 [node name="Pied" type="HSeparator" parent="Colonne"]
 
 [node name="Gestes" type="HBoxContainer" parent="Colonne"]
+theme_type_variation = &"RangeeSerree"
 alignment = 2
-theme_override_constants/separation = 6
 
 [node name="Zone" type="Node" parent="Colonne/Gestes"]
 script = ExtResource("1_zone")

@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from './_heros';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
@@ -10,19 +10,19 @@ import type { TestScenario } from './_shared';
  * Le combat « complet » de référence (exploration → dialogue → 5 mutants, ch.2). Son groupe absorbe les
  * anciens micro-tests Critiques/Mort, Destin/Résilience et Guérison : dans une vraie bagarre dangereuse,
  * chacun de ces mécanismes se déclenche naturellement — pas besoin d'un scénario dédié par mécanique.
- *  - Sigmund (Soldat) garde Destin + Résilience → sauvetage par le Destin / réussite garantie.
- *  - Klein (Voleur Halfling, peu de Blessures) n'a plus aucun Destin → 0 PB mène vraiment à
+ *  - Soldat garde Destin + Résilience → sauvetage par le Destin / réussite garantie.
+ *  - Le Voleur (Voleur Halfling, peu de Blessures) n'a plus aucun Destin → 0 PB mène vraiment à
  *    À Terre → Inconscient → mort (cascade de Traumatisme).
- *  - Frère Anselm (Prêtre) sait Guérison → Action Soigner / arrêt d'Hémorragie sur un allié qui tombe.
+ *  - Prêtre (Prêtre) sait Guérison → Action Soigner / arrêt d'Hémorragie sur un allié qui tombe.
  */
 function groupe(idNeuf: FabriqueDId): Combatant[] {
-  const sigmund = pregen(idNeuf, PREGEN.soldat); // Destin/Résilience intacts (sauvetage in extremis)
-  const grunni = pregen(idNeuf, PREGEN.tueur);
-  const anselm = pregen(idNeuf, PREGEN.pretre);
+  const sigmund = herosDeScenario(idNeuf, 'soldat'); // Destin/Résilience intacts (sauvetage in extremis)
+  const grunni = herosDeScenario(idNeuf, 'tueur');
+  const anselm = herosDeScenario(idNeuf, 'pretre');
   if (!anselm.skills.some((s) => s.id === 'guerison')) {
     anselm.skills.push({ id: 'guerison', characteristic: 'intelligence', advances: 25 }); // sinon pas d'Action Soigner
   }
-  const klein = pregen(idNeuf, PREGEN.voleur); // Halfling fragile
+  const klein = herosDeScenario(idNeuf, 'voleur'); // Halfling fragile
   klein.fate = 0;
   klein.fortune = 0;
   klein.resilience = 0;
@@ -140,7 +140,7 @@ function construireScene(): Scene {
         id: 'approche',
         rect: { x: 8, y: 6, w: 3, h: 2 },
         once: true,
-        flow: flowFromEffects([{ type: 'startDialogue', dialogue: 'dlg-ambush' }]),
+        flow: flowFromEffects([{ type: 'startDialogue', dialogue: { id: 'dlg-ambush' } }]),
       },
     ],
     // VISIBLE (hidden par défaut = false) : les mutants qu'on voit se repaître SONT les combattants. L'entité
@@ -151,14 +151,14 @@ function construireScene(): Scene {
         id: 'enc-mutants',
         // Embuscade : le groupe est pris par SURPRISE (LDB 13) → la doctrine IA « embuscade » s'auto-sélectionne
         // (#127, signal État Surpris) et l'Avantage de Surprise remplit la réserve ennemie (AA 11 l.63).
-        surprise: 'party',
+        surprise: 'groupe',
         // Les mutants surgissent du COUVERT des arbres (AA 11 l.64, Terrain léger) → Avantage initial ennemi (#115).
-        terrain: { camp: 'enemies' },
+        terrain: { camp: 'ennemis' },
         enemies: [
           {
             // Chef : reste en retrait, tire à l'arbalète (À distance dans le Trait — le Trait dérive déjà
             // l'arme de RENDU via `weaponFromTrapping`, plus de `weapon:` d'authoring redondant, #145).
-            pos: { x: 17, y: 6 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'standing',
+            pos: { x: 17, y: 6 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'debout',
             label: 'Knud Cratinx',
             statblock: { type: 'statblock',
               label: 'Knud Cratinx',
@@ -167,23 +167,23 @@ function construireScene(): Scene {
             },
           },
           {
-            pos: { x: 17, y: 7 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'howling',
+            pos: { x: 17, y: 7 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'hurlement',
             label: 'Mikael',
             statblock: { type: 'statblock', label: 'Mikael', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 1 }, traits: [{ id: 'arme', value: 7, arg: 'massue' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'tete-bestiale-chien' }] },
           },
           {
-            pos: { x: 14, y: 8 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'feeding',
+            pos: { x: 14, y: 8 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'repas',
             label: 'Erik',
             statblock: { type: 'statblock', label: 'Erik', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 2 }, traits: [{ id: 'arme', value: 7, arg: 'couteau' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'pattes-chevre' }] },
           },
           {
-            pos: { x: 14, y: 7 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'standing',
+            pos: { x: 14, y: 7 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'debout',
             label: 'Johann',
             statblock: { type: 'statblock', label: 'Johann', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 4 }, traits: [{ id: 'arme', value: 7, arg: 'dague' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'tete-pointue' }] },
           },
           {
             // « Mutile l'attelage à la hache » → arme dans le Trait (type Grande hache, libellé catalogué → shape).
-            pos: { x: 12, y: 7 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'standing',
+            pos: { x: 12, y: 7 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'debout',
             label: 'Terenz',
             statblock: { type: 'statblock', label: 'Terenz', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 3 }, traits: [{ id: 'arme', value: 7, arg: 'grande-hache' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'cretin' }] },
           },
@@ -208,13 +208,13 @@ export const scenario: TestScenario = {
   id: 'embuscade',
   order: 2,
   category: 'combat',
-  icon: 'scenario/ambush',
+  icon: 'scenario/embuscade',
   title: "L'Embuscade",
   tests:
     'Combat complet exploration → dialogue → combat (5 mutants, ch.2). Y surviennent : Critiques & mort ' +
-    '(Klein, Destin 0 → cascade À Terre/Inconscient/mort), sauvetage par le Destin & Résilience (Sigmund), ' +
-    "Action Soigner & arrêt d'Hémorragie (Frère Anselm) sur un allié qui tombe.",
-  partyNote: 'Sigmund (Destin) · Tueur nain · Frère Anselm (soigneur) · Klein le Voleur (fragile, Destin 0)',
+    '(le Voleur, Destin 0 → cascade À Terre/Inconscient/mort), sauvetage par le Destin & Résilience (le Soldat), ' +
+    "Action Soigner & arrêt d'Hémorragie (Prêtre) sur un allié qui tombe.",
+  partyNote: 'Soldat (Destin) · Tueur nain · Prêtre (soigneur) · le Voleur (fragile, Destin 0)',
   construire: (idNeuf) => ({ party: groupe(idNeuf), scene: construireScene() }),
   // pas d'autoCombat : on entre en exploration, le trigger lance le dialogue puis le combat.
 };

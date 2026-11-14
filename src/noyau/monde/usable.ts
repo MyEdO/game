@@ -27,6 +27,7 @@ import { t, type MsgKey } from '../../i18n';
 import { itemLabel } from '../../engine/items';
 import type { ItemInstance } from '../../engine/types';
 import { placesJouables } from './seating';
+import { EMPTY_FLOW } from '../../engine/flowCore';
 import type { Scene, SceneEntity, ActionAuthoree } from './scene';
 
 /** Les drapeaux de jeu (`state.flags`). */
@@ -52,6 +53,15 @@ export function objetDuSol(ent: SceneEntity, objetsAuSol: EtatDesOffres['objetsA
 /** Id CANONIQUE de l'action de fouille — celui que la migration de scène a posé sur tout ancien
  *  `interact`, et celui que l'éditeur pré-arme sur un décor fouillable (`PropData.searchable`). */
 export const ACTION_FOUILLER = 'fouiller';
+
+/** L'action authorée neuve d'un décor qui porte déjà `actions` : la fouille, sous le premier identifiant que ses
+ *  actions laissent libre (`fouiller`, `fouiller-2`, `fouiller-3`…), sans enchaînement, jouable une fois. */
+export function actionNeuve(actions: readonly ActionAuthoree[]): ActionAuthoree {
+  const pris = new Set(actions.map((a) => a.id));
+  let id = ACTION_FOUILLER;
+  for (let n = 2; pris.has(id); n++) id = `${ACTION_FOUILLER}-${n}`;
+  return { id, flow: EMPTY_FLOW, unique: true };
+}
 
 /** Clé du drapeau qui ÉPUISE une action authorée `unique` sur une entité donnée. SOURCE UNIQUE :
  *  l'exécuteur la pose, le dériveur et les halos la lisent. */

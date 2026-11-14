@@ -6,7 +6,7 @@ import { CodexRef } from './compendium/CodexRef';
  * par ici (fiche, inspection, cartes) ; TOUJOURS « courant/max » — l'unité EST le composant, plus de
  * « max seul » ni de « N/M PB » divergents.
  *
- * Le badge N'EMBARQUE PAS d'icône : l'icône `resource/wounds` est le choix DÉLIBÉRÉ du site d'appel
+ * Le badge N'EMBARQUE PAS d'icône : l'icône `ressource/blessures` est le choix DÉLIBÉRÉ du site d'appel
  * (motif icône + valeur là où le contexte le veut, jamais deux — directive user 2026-07-13).
  */
 export function WoundsBadge({ wounds }: { wounds: { current: number; max: number } }) {

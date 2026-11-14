@@ -5,8 +5,8 @@ Annexe du skill `orchestrer-des-agents` (`.claude/skills/orchestrer-des-agents/S
 **7. Publication au fil de l’eau (#2626).** Le lot est l’unité de composition et de jugement ; chaque
 tête committée à CI verte se publie aussitôt par `npm run ops:publier -- --detache`, lot fini ou non.
 Commits intermédiaires `refs #N`, seul le solde clôt.
-- **Un travail suspendu hors PR** se pousse sur `wip/<N>-<sujet>`, avec un commentaire au ticket qui dit
-  où il est, ce qui est prouvé et ce qui reste, dans l'ordre.
+- **Un travail suspendu hors PR** se pousse sur `wip/<N>-<sujet>`, et son lot se rend au ticket (skill
+  `se-coordonner-entre-comptes`).
 - **Un lot = un chantier** (`npm run ops:chantier -- <N>`), même urgent pendant un train : jamais deux
   lots dans un worktree (fiche `user-doctrine-chantier-outille-sans-reinventer`). Une sonde non suivie sort de l'arbre avant `ops:publier`.
 - **Fusionner main seulement en CONFLIT, ou pour amener un fichier qu'une porte exige** (le train fusionne
@@ -17,6 +17,9 @@ Commits intermédiaires `refs #N`, seul le solde clôt.
   sous `src/` → `JUGE:`/`REFUTATION:` (+ `JUGE-VISION:` si un écran change) au message, ou dans un commit
   DESCENDANT ou le solde `.claude/soldes/ref-<N>.md` ou `<N>.md` d'un ticket cité qui NOMME son sha
   (`npm run livraison:plage`).
+- **Un conflit sur un import ou un export nommé** que le pilote de fusion `imports` (#4178) laisse se résout
+  en prenant un côté, puis `npm run lint:noms-par-ligne -- <fichier>` sur le fichier (un nom par ligne au-delà
+  de 160 caractères, `murs/noms-par-ligne`, #3821).
 - **Jamais une veille, un train ou un outil `scripts/ops/` lancé depuis un worktree où un agent édite cet
   outil** : il exécute le WIP. Publier avant de dispatcher, ou suivre par `gh pr view` ; un « train mort »
   se recoupe par le pid réel et `git ls-remote` avant toute relance.

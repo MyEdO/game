@@ -9,14 +9,14 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { useGame } from '../state/store';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { setRule, resetRule } from '../engine/policy';
 import { seedBattleRng } from '../noyau/battleRng';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
 import { scenario } from '../scenes/test-scenarios/taverne-profil-standard';
 import { TavernGameModal } from './TavernGameModal';
-import { TAVERN_GAMES, findTavernGameById } from '../engine/tavernGame';
-import { creatureLabel, profilsStandard } from '../data';
+import { findTavernGameById } from '../engine/tavernGame';
+import { creatureLabel, profilsStandard, TAVERN_GAMES } from '../data';
 import { pnjAuProfil } from '../noyau/monde/sceneNpc';
 import { tavernGameValue } from '../noyau/tavernFlow';
 import { activeSequence } from '../noyau/sequenceCore';
@@ -33,18 +33,18 @@ beforeAll(() => {
 });
 beforeEach(() => {
   useGame.setState(useGame.getInitialState(), true);
-  setRule('tavern-games', true);
+  setRule('jeux-de-taverne', true);
   seedBattleRng(7);
   const dlg = scenarioConstruit.scene.dialogues.find((d) => d.id === 'dlg-bras-de-fer')!;
   useGame.setState({
-    party: pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur),
+    party: groupeDeScenario(idsDeTest, 'soldat', 'chasseur'),
     scene: scenarioConstruit.scene,
     screen: 'campaign',
     dialogue: ouvrirDialogue(g(), dlg, PNJ),
   });
 });
 afterEach(demonterRacines);
-afterAll(() => { resetRule('tavern-games'); });
+afterAll(() => { resetRule('jeux-de-taverne'); });
 
 /** Le joueur choisit « Relever le défi. » dans le dialogue du PNJ — le geste réel. */
 const releverLeDefi = () => act(() => { g().fenetreChoisir('dialogue', 'reponse', 'relever-defi'); });
@@ -93,7 +93,7 @@ describe('Taverne — l’habitué joue une FICHE : un profil standard choisi (L
     expect(doc.body.textContent).toContain(`${elfe.label} : valeur de jeu ${tavernGameValue(elfe, jeu)} (de sa fiche).`);
     act(() => { bouton(doc, 'Jouer')!.click(); });
     const seq = activeSequence<{ opponentName: string; opponentValue: number }>(g)!;
-    expect(seq.payload).toMatchObject({ opponentName: elfe.label, opponentValue: tavernGameValue(elfe, jeu) });
+    expect(seq.chargeUtile).toMatchObject({ opponentName: elfe.label, opponentValue: tavernGameValue(elfe, jeu) });
   });
 });
 
@@ -101,7 +101,7 @@ describe('Taverne — une situation = une modale', () => {
   it('pendant la manche, seule la modale de jet est à l’écran : la table cède', () => {
     releverLeDefi();
     const [soldat] = g().party;
-    act(() => { g().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: soldat.id, opponent: { kind: 'npc', id: PNJ } }); });
+    act(() => { g().jouerALaTaverne(soldat.id, { gameId: 'bras-de-fer', opponent: { kind: 'pnj', id: PNJ } }); });
     expect(pickActiveModalKey(g()), 'l’arbitre tient la manche').toBe('cascade');
     monterRacine(<><ActiveModal /><TavernGameModal /></>);
     expect(document.querySelectorAll('.modal-overlay')).toHaveLength(1);
@@ -136,7 +136,7 @@ describe('Taverne — la mise en sous de cuivre et l’effectif de table : l’�
     expect(jouer.getAttribute('aria-disabled')).toBeNull();
     act(() => { jouer.click(); });
     const seq = activeSequence<{ stakeBrass: number; seats: unknown[] }>(g);
-    expect(seq?.payload.stakeBrass).toBe(11);
-    expect(seq?.payload.seats).toHaveLength(12);
+    expect(seq?.chargeUtile.stakeBrass).toBe(11);
+    expect(seq?.chargeUtile.seats).toHaveLength(12);
   });
 });

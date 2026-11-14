@@ -1,5 +1,4 @@
-import { makeShowcaseParty } from '../../data/pregens';
-import { gabaritDObjet } from '../../engine/items';
+import { groupeVitrineDeScenario } from './_heros';
 import type { SkillRef } from '../../data';
 import type { AuthoredShipPoste } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
@@ -12,16 +11,9 @@ import type { TestScenario } from './_shared';
 // la coque adverse est pilotée par l'IA de coque (`runShipAI` : manœuvre pour aligner sa bordée, puis feu). L'approche
 // se JOUE sur plusieurs Rounds (M du navire en Distance-points/Round, 1 point = 1 case à cette échelle).
 
-/** La munition `trappingId` du coffre du poste de rang `rang` du navire `navire` : son uid se dérive de sa place, comme
- *  celui du poste (`spawn.ts`). */
-function ammo(navire: string, rang: number, trappingId: string, qty: number) {
-  return { ...gabaritDObjet(trappingId)!, uid: `${navire}-poste-${rang}-${trappingId}`, qty };
-}
 /** Poste d'artillerie ARMÉ (coffre à boulets, MDG 12 l.410-424). L'équipage abstrait le sert d'office à la Mer. */
-function canon(navire: string, rang: number, side: 'tribord' | 'babord' | 'proue' | 'poupe'): AuthoredShipPoste {
-  const a = ammo(navire, rang, 'boulet-et-poudre', 12);
-  const m = ammo(navire, rang, 'mitraille-et-poudre', 4);
-  return { trappingId: 'canon-moyen', side, ammo: [a, m], ammoUid: a.uid };
+function canon(side: 'tribord' | 'babord' | 'proue' | 'poupe'): AuthoredShipPoste {
+  return { trappingId: 'canon-moyen', side, ammo: { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }, selectedAmmo: { id: 'boulet-et-poudre' } };
 }
 /** Marin d'équipage COMPÉTENT (passager, hors rendu à la Mer) — CustomStatblock sourcé (règle stricte 7 : aucune
  *  créature « matelot » au bestiaire → omission documentée). Le barreur tient la Voile, l'artilleur la Poudre noire. */
@@ -49,12 +41,12 @@ const construireScene = (): Scene => buildScene({
   entities: [
     // Coque ALLIÉE (le Grimm) — cap EST, deux bordées de canons moyens + une chasse de proue ; passagers = 2 marins.
     { id: 'grimm-duel', kind: 'personnage', vehicule: { id: 'loup-imperial' }, pos: { x: 3, y: 7 }, facing: 'E', label: 'Le Grimm',
-      crewIds: ['grimm-helm', 'grimm-gun'], postes: [canon('grimm-duel', 0, 'tribord'), canon('grimm-duel', 1, 'babord'), canon('grimm-duel', 2, 'proue')] } as SceneEntity,
+      crewIds: ['grimm-helm', 'grimm-gun'], postes: [canon('tribord'), canon('babord'), canon('proue')] } as SceneEntity,
     marine('grimm-helm', 'Timonier du Grimm', 3, 6, HELM),
     marine('grimm-gun', 'Maître canonnier du Grimm', 3, 8, GUN),
     // Coque ENNEMIE (cogue) — cap OUEST, deux bordées ; passagers = 2 marins pirates compétents.
     { id: 'cogue-duel', kind: 'personnage', vehicule: { id: 'cogue' }, pos: { x: 18, y: 7 }, facing: 'O', label: 'La cogue pirate',
-      crewIds: ['cogue-helm', 'cogue-gun'], postes: [canon('cogue-duel', 0, 'tribord'), canon('cogue-duel', 1, 'babord'), canon('cogue-duel', 2, 'proue')] } as SceneEntity,
+      crewIds: ['cogue-helm', 'cogue-gun'], postes: [canon('tribord'), canon('babord'), canon('proue')] } as SceneEntity,
     marine('cogue-helm', 'Barreur pirate', 18, 6, HELM),
     marine('cogue-gun', 'Canonnier pirate', 18, 8, GUN),
   ],
@@ -64,12 +56,12 @@ const construireScene = (): Scene => buildScene({
       // Reddition à mi-coque (woundsThreshold sur la COQUE ennemie) : la victoire = la reddition, pas le naufrage.
       victoryCondition: { type: 'woundsThreshold', targetId: 'cogue-duel', atOrBelowPercent: 50 },
       members: [
-        { entityId: 'grimm-duel', side: 'ally' },
-        { entityId: 'grimm-helm', side: 'ally' },
-        { entityId: 'grimm-gun', side: 'ally' },
-        { entityId: 'cogue-duel', side: 'enemy' },
-        { entityId: 'cogue-helm', side: 'enemy' },
-        { entityId: 'cogue-gun', side: 'enemy' },
+        { entityId: 'grimm-duel', side: 'allie' },
+        { entityId: 'grimm-helm', side: 'allie' },
+        { entityId: 'grimm-gun', side: 'allie' },
+        { entityId: 'cogue-duel', side: 'ennemi' },
+        { entityId: 'cogue-helm', side: 'ennemi' },
+        { entityId: 'cogue-gun', side: 'ennemi' },
       ],
     },
   ],
@@ -88,6 +80,6 @@ export const scenario: TestScenario = {
     'manœuvre pour aligner sa bordée puis fait feu. Reddition à mi-coque. Le combat naval person-scale (abordage) ' +
     'reste le scénario « Combat naval ».',
   partyNote: 'Groupe d’arène embarqué (passagers du Grimm) ; l’équipage abstrait sert les pièces',
-  construire: (idNeuf) => ({ party: makeShowcaseParty(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: groupeVitrineDeScenario(idNeuf), scene: construireScene() }),
   autoCombat: 'duel',
 };

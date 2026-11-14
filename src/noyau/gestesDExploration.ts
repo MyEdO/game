@@ -8,14 +8,14 @@
  * plus proche au plus lointain. Ce qui ne se joue pas depuis sa case se rejoint par le chemin du groupe (`exploreMovePlan`), joué par
  * le clic de sa case (`cliquerLaCase`), comme un saut.
  */
-import { aretesUtilisables } from './aretes';
-import { aretesOffertes, gesteDeDenivele, gesteDeLArete, gestesDeplacantsOuverts } from './gesteDArete';
+import { aretesUtilisables, casesADenivele } from './aretes';
+import { aretesOffertes, GESTES_DEPLACANTS, gesteDeDenivele, gesteDeLArete, gestesDeplacantsOuverts } from './gesteDArete';
 import { cheminMarchable, marcheOuverte } from './marcheDuGroupe';
 import { triggersEnJeu } from './monde/decouvertePorteSecrete';
 import { offresDExploration } from './interactionsDExploration';
-import { exploreMovePlan, optionsDeCheminDuGroupe } from './monde/exploreNav';
+import { cheminsDuGroupe, exploreMovePlan, optionsDeCheminDuGroupe } from './monde/exploreNav';
 import { memeCase } from './monde/seating';
-import { atterrissagesDeSaut, cheminsDepuis, type CheminsDepuis, type Pt } from './monde/path';
+import { atterrissagesDeSaut, type CheminsDepuis, type Pt } from './monde/path';
 import { computeStateVisible } from './visionState';
 import { flowEffects } from '../engine/flowCore';
 import { t } from '../i18n';
@@ -45,16 +45,17 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
   const { scene, partyPos } = s;
   if (!scene || s.mode !== 'exploration') return [];
   const visible = computeStateVisible(s);
-  const opts = optionsDeCheminDuGroupe(s.party);
-  const chemins = cheminsDepuis(scene, partyPos, opts);
+  const chemins = cheminsDuGroupe(scene, partyPos, s.party);
   const out: GesteDExploration[] = [];
-  for (const arete of aretesOffertes(aretesUtilisables({ scene, visible, controleur: partyPos, activeZ: partyPos.z ?? 0 }), gestesDeplacantsOuverts(s))) {
+  const z = partyPos.z ?? 0;
+  const duGroupe = aretesUtilisables({ scene, visible, controleur: partyPos, activeZ: z });
+  for (const arete of aretesOffertes(duGroupe, gestesDeplacantsOuverts(s))) {
     const geste = gesteDeLArete(s, arete);
     if (!geste) continue;
     const marche = geste.verbe === 'cliquerLaCase' ? marcheVers(s, chemins, geste.args[0]) : { gestes: [geste] };
     if (marche) out.push({ libelle: arete.libelle, gestes: marche.gestes });
   }
-  for (const a of marcheOuverte(s) ? atterrissagesDeSaut(scene, partyPos, opts) : []) {
+  for (const a of marcheOuverte(s) ? atterrissagesDeSaut(scene, partyPos, optionsDeCheminDuGroupe(s.party)) : []) {
     out.push({ libelle: t('exploration.saut', { x: a.x, y: a.y }), gestes: [{ verbe: 'cliquerLaCase', args: [a] }] });
   }
   for (const trig of triggersEnJeu(scene, () => visible)) {
@@ -76,19 +77,16 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
   if (s.worldMap && (s.lieu || s.travelPlan)) out.push({ libelle: t('exploration.carte'), gestes: [{ verbe: 'ouvrirLaCarte', args: [] }] });
   if (s.lieu && !s.travelPlan) out.push({ libelle: t('exploration.lieu'), gestes: [{ verbe: 'ouvrirLeLieu', args: [] }] });
   if (!gestesDeplacantsOuverts(s)) return out;
-  const z = partyPos.z ?? 0;
-  const bordees = new Set(aretesUtilisables({ scene, visible, controleur: partyPos, activeZ: z }).map((a) => a.cle));
+  const bordees = new Set(duGroupe.map((a) => a.cle));
   const ailleurs: (GesteDExploration & { pas: number; arete: string })[] = [];
-  for (let y = 0; y < scene.dimensions.h; y++) {
-    for (let x = 0; x < scene.dimensions.w; x++) {
-      if (x === partyPos.x && y === partyPos.y) continue;
-      for (const arete of aretesUtilisables({ scene, visible, controleur: { x, y, z }, activeZ: z })) {
-        const geste = gesteDeDenivele(arete);
-        if (!geste || bordees.has(arete.cle) || arete.ancrage.x !== x || arete.ancrage.y !== y) continue;
-        bordees.add(arete.cle);
-        const marche = marcheVers(s, chemins, arete.ancrage);
-        if (marche) ailleurs.push({ libelle: t('exploration.ailleurs', { geste: arete.libelle, x, y }), gestes: [...marche.gestes, geste], pas: marche.pas, arete: arete.libelle });
-      }
+  for (const { x, y } of casesADenivele(scene, z)) {
+    if (x === partyPos.x && y === partyPos.y) continue;
+    for (const arete of aretesUtilisables({ scene, visible, controleur: { x, y, z }, activeZ: z }, GESTES_DEPLACANTS)) {
+      const geste = gesteDeDenivele(arete);
+      if (!geste || bordees.has(arete.cle)) continue;
+      bordees.add(arete.cle);
+      const marche = marcheVers(s, chemins, arete.ancrage);
+      if (marche) ailleurs.push({ libelle: t('exploration.ailleurs', { geste: arete.libelle, x, y }), gestes: [...marche.gestes, geste], pas: marche.pas, arete: arete.libelle });
     }
   }
   const plusProches = new Map<string, GesteDExploration>();

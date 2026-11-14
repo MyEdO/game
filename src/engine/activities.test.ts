@@ -16,7 +16,8 @@ import { describe, it, expect } from 'vitest';
 import type { RNG } from './dice';
 import { toBrass } from './money';
 import { AVAILABILITIES } from './types';
-import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entrainementTutorRange, entrainementOptions, bankWithdrawOutcome, seuilDePerteBancaire, statusIncome, ACTIVITIES, activitiesFor, activityById,
+import { parseRefKey } from './careerSlots';
+import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entrainementTutorRange, entrainementOptions, cleDEntrainement, libelleDEntrainement, bankWithdrawOutcome, seuilDePerteBancaire, statusIncome, ACTIVITIES, activitiesFor, activityById,
   aggregateActivityOutcomes, STAGE_OUTCOME_AGG, type TravelActivityResult,
   defaultTravelRole, stageAssignmentFromRoles, matchOutcomes, activityAvailableAt } from './activities';
 import { byId } from '../data';
@@ -58,49 +59,49 @@ describe('apprenticeshipTutorCost — « 2D10 pistoles d’argent par 100PX » (
 
 describe('bankWithdrawOutcome — Opérations bancaires (LDB 23 l.157-159)', () => {
   it('invest : d100 ≤ Indice → faillite ; sinon capital + intérêts', () => {
-    expect(bankWithdrawOutcome('invest', 6, 6)).toBe('lost');
-    expect(bankWithdrawOutcome('invest', 6, 7)).toBe('ok');
+    expect(bankWithdrawOutcome('investir', 6, 6)).toBe('perdu');
+    expect(bankWithdrawOutcome('investir', 6, 7)).toBe('recu');
   });
   it('planque : d100 ≤ 10 → découverte ; pas d’intérêts', () => {
-    expect(bankWithdrawOutcome('stash', 0, 10)).toBe('lost');
-    expect(bankWithdrawOutcome('stash', 0, 11)).toBe('ok');
+    expect(bankWithdrawOutcome('planque', 0, 10)).toBe('perdu');
+    expect(bankWithdrawOutcome('planque', 0, 11)).toBe('recu');
   });
   it('planque liée à une Carte marine (MDG 15 l.292) : seuil de découverte 50 au lieu de 10', () => {
-    expect(bankWithdrawOutcome('stash', 50, 50)).toBe('lost');
-    expect(bankWithdrawOutcome('stash', 50, 51)).toBe('ok');
+    expect(bankWithdrawOutcome('planque', 50, 50)).toBe('perdu');
+    expect(bankWithdrawOutcome('planque', 50, 51)).toBe('recu');
   });
 });
 
 describe('seuilDePerteBancaire — le seuil affiché est celui du jet (LDB 23 l.168-170)', () => {
   it('planque 10, Carte marine 50, investissement à l’Indice borné 1-10', () => {
-    const cas = [['stash', 0, 10], ['stash', 50, 50], ['invest', 6, 6], ['invest', 15, 10], ['invest', 0, 1]] as const;
+    const cas = [['planque', 0, 10], ['planque', 50, 50], ['investir', 6, 6], ['investir', 15, 10], ['investir', 0, 1]] as const;
     for (const [kind, rate, seuil] of cas) {
       expect(seuilDePerteBancaire(kind, rate)).toBe(seuil);
-      expect(bankWithdrawOutcome(kind, rate, seuil)).toBe('lost');
-      expect(bankWithdrawOutcome(kind, rate, seuil + 1)).toBe('ok');
+      expect(bankWithdrawOutcome(kind, rate, seuil)).toBe('perdu');
+      expect(bankWithdrawOutcome(kind, rate, seuil + 1)).toBe('recu');
     }
   });
 });
 
 describe('statusIncome — « Gagner de l’argent grâce au Statut » (LDB 08 l.105-120)', () => {
   it('Bronze N : N × 2d10 sous de cuivre', () => {
-    const m = statusIncome('bronze', 2, seq([3, 4, 5, 6]), 'success'); // (3+4)+(5+6) = 18 sc
+    const m = statusIncome('bronze', 2, seq([3, 4, 5, 6]), 'reussite'); // (3+4)+(5+6) = 18 sc
     expect(toBrass(m)).toBe(18);
   });
   it('Argent N : N × 1d10 pistoles ; Or N : N couronnes', () => {
-    expect(toBrass(statusIncome('argent', 2, seq([1, 2]), 'success'))).toBe(3 * 12);
-    expect(toBrass(statusIncome('or', 3, seq([]), 'success'))).toBe(3 * 240);
+    expect(toBrass(statusIncome('argent', 2, seq([1, 2]), 'reussite'))).toBe(3 * 12);
+    expect(toBrass(statusIncome('or', 3, seq([]), 'reussite'))).toBe(3 * 240);
   });
   it('échec : la moitié ; Échec Stupéfiant : rien', () => {
-    expect(toBrass(statusIncome('argent', 1, seq([10]), 'fail'))).toBe(Math.floor((10 * 12) / 2));
-    expect(toBrass(statusIncome('or', 5, seq([]), 'astoundingFail'))).toBe(0);
+    expect(toBrass(statusIncome('argent', 1, seq([10]), 'echec'))).toBe(Math.floor((10 * 12) / 2));
+    expect(toBrass(statusIncome('or', 5, seq([]), 'echecStupefiant'))).toBe(0);
   });
 });
 
 // ── Catalogues UI (sélecteurs alimentés par la donnée — audit POC→produit) ──────────────────
-import { craftSpecOf, craftCatalog, learnableTalents, orderBlockOf, orderCatalog, tutorCostRange, metierOf } from './activities';
+import { craftSpecOf, craftCatalog, learnableTalents, learnOptionOf, orderBlockOf, orderCatalog, tutorCostRange, metierOf } from './activities';
 import { createHero } from './character';
-import { findTrappingById, skillInstanceLabel, talentConcrete, trappings } from '../data';
+import { findTrappingById, skillInstanceLabel, talentConcrete, talents, trappings } from '../data';
 import { priceToMoney } from './money';
 import { desEnSuite } from './dice.testkit';
 
@@ -197,6 +198,12 @@ describe('learnableTalents — « un Talent en dehors de votre Carrière » (ch.
     expect(deja!.xpCost).toBe(200);
     expect(fresh.tutorMinBrass).toBe(tutorCostRange(fresh.xpCost).minBrass);
     expect(tutorCostRange(250)).toEqual({ minBrass: 3 * 2 * 12, maxBrass: 3 * 20 * 12 }); // 3 tranches
+  });
+  it('learnOptionOf : l’option d’UN Talent égale celle de la liste, apprenable ou non', () => {
+    const liste = learnableTalents(hero);
+    for (const { id } of talents) expect(learnOptionOf(hero, id), id).toEqual(liste.find((o) => o.id === id));
+    expect(talents.filter(({ id }) => !learnOptionOf(hero, id)).length, 'témoin : des Talents hors liste').toBeGreaterThan(0);
+    expect(learnOptionOf(hero, 'talent-inconnu')).toBeUndefined();
   });
   it('metierOf : Compétence Métier avec avances seulement', () => {
     expect(metierOf(hero)).toBeUndefined();
@@ -321,8 +328,8 @@ describe('Convalescence — Activité d’interlude (ADE II Annexe I « Les chos
     expect(conv!.contexts).toContain('interlude');
     expect(conv!.tests).toEqual([{ skill: { id: 'calme' }, difficulty: 'tresDifficile' }]); // ADE II 09 l.33
     expect(conv!.outcomes).toEqual([ // ADE II 09 l.33
-      { on: 'success', ops: [{ op: 'removePsychTrait' }] },
-      { on: 'failure', ops: [{ op: 'grantReverseToken', skill: { id: 'calme' }, contexte: 'psych' }] },
+      { on: 'reussite', ops: [{ op: 'removePsychTrait' }] },
+      { on: 'echec', ops: [{ op: 'grantReverseToken', skill: { id: 'calme' }, contexte: 'psych' }] },
     ]);
     expect(conv!.source.book).toBe('archives-de-l-empire-2');
   });
@@ -344,7 +351,7 @@ describe('matchOutcomes — bandes d’issue par DR (ACE Annexe I)', () => {
   });
 
   it('Pénitence : échec → État Exténué ; Maladresse → Colère des dieux « à la place » (bande exclusive)', () => {
-    expect(matchOutcomes(pen, { success: false, sl: -1 }).flatMap((b) => b.ops ?? [])).toEqual([{ op: 'condition', id: 'extenue' }]);
+    expect(matchOutcomes(pen, { success: false, sl: -1 }).flatMap((b) => b.ops ?? [])).toEqual([{ op: 'condition', id: { id: 'extenue' } }]);
     const fumbled = matchOutcomes(pen, { success: false, sl: -1, fumble: true });
     expect(fumbled).toHaveLength(1);
     expect(fumbled[0].resolver).toBe('wrathOfTheGods');
@@ -449,7 +456,7 @@ describe('entrainementOptions — Compétences/Caractéristiques HORS carrière 
   it('exclut les Caractéristiques DE la carrière (Soldat : CC/End/FM), inclut les autres, PX déjà doublé hors carrière (LDB 07 l.91)', () => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const opts = entrainementOptions(h);
-    const chars = opts.filter((o) => o.kind === 'characteristic');
+    const chars = opts.filter((o) => o.kind === 'caracteristique');
     expect(chars.every((o) => !o.advanced)).toBe(true);
     // Capacité de Combat/Endurance/Force Mentale SONT de la carrière du Soldat (careerLevels.json) : absentes ici.
     expect(chars.some((o) => o.id === 'capacite-de-combat')).toBe(false);
@@ -463,12 +470,19 @@ describe('entrainementOptions — Compétences/Caractéristiques HORS carrière 
   it('marque `advanced` pour les Compétences Avancées, jamais pour une Compétence de Base', () => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const opts = entrainementOptions(h);
-    const skillOpts = opts.filter((o) => o.kind === 'skill');
+    const skillOpts = opts.filter((o) => o.kind === 'competence');
     expect(skillOpts.length).toBeGreaterThan(0);
     const advanced = skillOpts.find((o) => o.advanced);
     expect(advanced).toBeTruthy();
     expect(advanced!.tutorMaxBrass).toBe(20);
     const base = skillOpts.find((o) => !o.advanced);
     expect(base!.tutorMaxBrass).toBe(10);
+  });
+  it('nomme chaque option de sa seule clé, Caractéristique comme Compétence spécialisée', () => {
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const opts = entrainementOptions(h);
+    expect(opts.find((o) => o.id === 'sociabilite')!.label).toBe('Sociabilité');
+    expect(opts.some((o) => o.spec)).toBe(true);
+    for (const o of opts) expect(libelleDEntrainement(parseRefKey(cleDEntrainement(o)))).toBe(o.label);
   });
 });

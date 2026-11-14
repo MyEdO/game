@@ -191,10 +191,10 @@ export function SurcoucheIso({
         {mode === 'exploration' && explorePath && (hover || areteSurvolee?.portail) && <ExplorePathPreview path={explorePath} dims={dims} lift={liftOf} walking={anyWalking} />}
         {battle && <TapPreview battle={battle} activeC={activeC} dims={dims} liftOf={liftOf} myTurn={myTurn} difficulty={previewDifficulty} />}
         {battle && (
-          <AimOverlay battle={battle} hoverAim={hoverAim} anchor={reticleAnchor} dims={dims}
+          <AimOverlay scene={scene} battle={battle} hoverAim={hoverAim} anchor={reticleAnchor} dims={dims}
             pendingAttack={pendingAttack} pendingDefense={pendingDefense} pendingHeal={pendingHeal} pendingCast={pendingCast} />
         )}
-        {battle && <CrewTooltip battle={battle} hoveredId={hoveredId} myTurn={myTurn} anchor={reticleAnchor} />}
+        {battle && <CrewTooltip scene={scene} battle={battle} hoveredId={hoveredId} myTurn={myTurn} anchor={reticleAnchor} />}
         {debugLabels && <DebugMapLabels scene={scene} dims={dims} liftAt={liftAt} />}
       </g>
       {debugLabels && <DebugLegend />}

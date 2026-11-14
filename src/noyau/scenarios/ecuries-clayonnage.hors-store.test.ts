@@ -14,7 +14,7 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { isStructure } from '../../engine/structures';
 import { couvertDepuisDifficulte } from '../../engine/cover';
 import { findStructureById } from '../../data';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -91,7 +91,7 @@ function carte(): Scene {
   } as Scene;
 }
 
-const groupe = () => [pregen(idsDeTest, PREGEN.chasseur), pregen(idsDeTest, PREGEN.soldat)];
+const groupe = () => [herosDeScenario(idsDeTest, 'chasseur'), herosDeScenario(idsDeTest, 'soldat')];
 
 /** Ouvre le combat de la fixture sur une carte NEUVE et rend l'état de bataille. */
 function ouvrirCombat() {
@@ -99,7 +99,7 @@ function ouvrirCombat() {
   banc.setState({ party: groupe() });
   banc.getState().lancerLaScene(carte());
   banc.getState().lancerLeCombat(ENC);
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   return banc.getState().battle!;
 }
 type Bataille = ReturnType<typeof ouvrirCombat>;
@@ -109,7 +109,7 @@ function entreeDuTour(b: Bataille, e: Bataille['combatants'][number]) {
   return buildAiInput(e, banc.getState);
 }
 /** L'ennemi que la carte arme d'une arme à DISTANCE — nommé par son ARMEMENT, pas par son id. */
-const tireurDe = (b: Bataille) => b.combatants.filter((c) => c.kind === 'enemy' && c.weapons.some((w) => w.type === 'ranged'));
+const tireurDe = (b: Bataille) => b.combatants.filter((c) => c.kind === 'ennemi' && c.weapons.some((w) => w.type === 'distance'));
 
 describe('carte-fixture — deux stalles, une arête qui laisse voir, une qui ferme', () => {
   const sc = carte();
@@ -120,7 +120,7 @@ describe('carte-fixture — deux stalles, une arête qui laisse voir, une qui fe
     expect(structureAt(sc, GOBELIN_DERRIERE_MUR.x - 1, GOBELIN_DERRIERE_MUR.y, 'E', 0)?.structure).toBe(OSSATURE);
     // Les cases `H` du plan sont celles où `lancerLeCombat` POSE réellement le groupe — relevées sur le
     // combat ouvert, jamais recopiées de la formule de pose.
-    const poses = ouvrirCombat().combatants.filter((c) => c.kind === 'hero').map((c) => ({ x: c.pos!.x, y: c.pos!.y }));
+    const poses = ouvrirCombat().combatants.filter((c) => c.kind === 'heros').map((c) => ({ x: c.pos!.x, y: c.pos!.y }));
     expect(poses).toEqual(HEROS);
   });
 
@@ -158,7 +158,7 @@ describe('IA hors siège — aucune décision ne porte sur une structure', () =>
   /** Ouvre le combat de la fixture et rend le tour d'IA de chaque ennemi, dans l'ordre du roster. */
   const decisionsDesEnnemis = () => {
     const b = ouvrirCombat();
-    return b.combatants.filter((c) => c.kind === 'enemy').map((e) => {
+    return b.combatants.filter((c) => c.kind === 'ennemi').map((e) => {
       const input = entreeDuTour(b, e);
       const action = chooseEnemyAction(input) as { kind: string; targetId?: string; thenTargetId?: string };
       const cible = b.combatants.find((c) => c.id === (action.targetId ?? action.thenTargetId));
@@ -183,10 +183,10 @@ describe('IA hors siège — aucune décision ne porte sur une structure', () =>
   });
 
   it('l’ennemi armé d’une arme à DISTANCE TIRE sur un personnage — décision nommée, pas « une structure quelconque »', () => {
-    const tireurs = decisionsDesEnnemis().filter((l) => l.ennemi.weapons.some((w) => w.type === 'ranged'));
+    const tireurs = decisionsDesEnnemis().filter((l) => l.ennemi.weapons.some((w) => w.type === 'distance'));
     expect(tireurs.length, 'la fixture arme bien un tireur').toBe(1);
-    expect(tireurs[0].action.kind).toBe('shoot');
-    expect(tireurs[0].cible!.kind).toBe('hero');
+    expect(tireurs[0].action.kind).toBe('tir');
+    expect(tireurs[0].cible!.kind).toBe('heros');
   });
 });
 
@@ -213,7 +213,7 @@ describe('IA — le mémo de Ligne de Vue du tour est PORTEUR (clé from→to)',
 
   it('(a) `buildAiInput` pose le mémo du tour, et chaque décision servie par lui est celle du calcul direct', () => {
     const b = ouvrirCombat();
-    const ennemis = b.combatants.filter((c) => c.kind === 'enemy');
+    const ennemis = b.combatants.filter((c) => c.kind === 'ennemi');
     expect(ennemis.length).toBeGreaterThan(0);
     for (const e of ennemis) {
       const input = entreeDuTour(b, e);
@@ -227,10 +227,10 @@ describe('IA — le mémo de Ligne de Vue du tour est PORTEUR (clé from→to)',
     const tireurs = tireurDe(b);
     expect(tireurs.length, 'la fixture arme bien un tireur').toBe(1);
     const input = entreeDuTour(b, tireurs[0]);
-    expect(chooseEnemyAction(input).kind, 'mémo réel : il voit et il tire').toBe('shoot');
+    expect(chooseEnemyAction(input).kind, 'mémo réel : il voit et il tire').toBe('tir');
     /** Le mémo AVEUGLE : il répond « rien n'est visible » sans jamais consulter la carte. */
     const aveugle: LosMemo = { cover: () => ({ blocked: true, cover: 'totale' }), clear: () => false };
-    expect(chooseEnemyAction({ ...input, losMemo: aveugle }).kind, 'mémo aveugle : plus de Ligne de Vue, plus de tir').not.toBe('shoot');
+    expect(chooseEnemyAction({ ...input, losMemo: aveugle }).kind, 'mémo aveugle : plus de Ligne de Vue, plus de tir').not.toBe('tir');
   });
 
   it('(c) deux postes OPPOSÉS vers la même cible : le mémo réel les distingue, la clé amputée ressert le premier', () => {
@@ -260,7 +260,7 @@ describe('IA — le mémo de Ligne de Vue du tour est PORTEUR (clé from→to)',
 describe('scénario de recette « écuries » — armement du tireur et non-contamination', () => {
   it('arme le tireur du groupe d’une arme à DISTANCE (l’arc en main, pas la fronde rangée)', () => {
     const tireur = scenario.construire(idsDeTest).party[0];
-    expect(tireur.weapons.some((w) => w.type === 'ranged')).toBe(true);
+    expect(tireur.weapons.some((w) => w.type === 'distance')).toBe(true);
   });
 
   it('pose son groupe et ses ennemis SANS toucher la scène de campagne partagée', () => {

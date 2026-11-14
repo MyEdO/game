@@ -17,10 +17,19 @@ import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from './types';
 import type { GameOp } from './ops';
 
 /** Type d'attaque naturelle (geste + règle distincts). Sert UNIQUEMENT à l'anim/pose/icône. */
-export type AttackKind = 'arme' | 'morsure' | 'caudale' | 'cornes' | 'souffle' | 'vomi' | 'tentacules' | 'etreinte' | 'regard' | 'langue' | 'hurlement' | 'pietinement';
+export type AttackKind = ManeuverDef['kind'];
 
 /** Déclenchement RAW : action normale, gratuite (coût en Avantage), ou gratuite à la Charge. */
-export type AttackTrigger = 'action' | 'free' | 'charge';
+export type AttackTrigger = ManeuverDef['activation'];
+
+/** L'état que la COMPOSITION d'une manœuvre pose sur son entrée de catalogue (`souffleDuType`) : les valeurs
+ *  des trous de son enjeu (`stake`). Aucune entrée de `maneuvers.json` ne le porte. */
+export interface EtatDeComposition {
+  enjeu?: Record<string, string>;
+}
+
+/** Une manœuvre telle que la joue le résolveur : son entrée de catalogue, et l'état de sa composition. */
+export type ManoeuvreComposee = ManeuverDef & EtatDeComposition;
 
 export interface CreatureAttack {
   /** Clé de l'attaque parmi celles du porteur (`clesDesAttaques`) : l'id de sa manœuvre, distingué par le
@@ -37,14 +46,14 @@ export interface CreatureAttack {
   indice: number;
   /** Comment l'attaque se déclenche (dérivé de `def.activation`). */
   trigger: AttackTrigger;
-  /** Coût en Avantage de l'Attaque gratuite (dérivé de `def.advantageCost`). */
+  /** Coût en Avantage de l'Attaque gratuite (dérivé de `def.coutEnAvantage`). */
   avantage: number;
   /** Caractéristique du jet d'attaquant (capacite-de-combat mêlée / capacite-de-tir distance·zone) ;
    *  absent = pas de jet d'attaquant (Hurlement : chaque cible teste sa Résistance). */
-  stat?: 'capacite-de-combat' | 'capacite-de-tir';
-  /** Gestion de l'Avantage dépensé : `fixed` (défaut) / `variable` (Regard) / `all` (Hurlement). */
-  advantageMode?: 'fixed' | 'variable' | 'all';
-  /** Attaque de ZONE (Souffle/Vomi) — dérivé de `def.targeting === 'zone'`. */
+  stat?: ManeuverDef['stat'];
+  /** Gestion de l'Avantage dépensé : `fixe` (défaut) / `variable` (Regard) / `tout` (Hurlement). */
+  modeDAvantage?: ManeuverDef['modeDAvantage'];
+  /** Attaque de ZONE (Souffle/Vomi) — dérivé de `def.ciblage === 'zone'`. */
   aoe?: boolean;
   /** Attaque magique (Souffle, Étreinte glaciale). */
   magic?: boolean;
@@ -55,7 +64,7 @@ export interface CreatureAttack {
   /** Aspect/Type entre parenthèses (Souffle : Feu/Froid/… ; affiché au feed). */
   type?: string;
   /** La MANŒUVRE de 1ʳᵉ classe résolue (profil + effets AUTHORÉS) — source de TOUTE la résolution. */
-  def: ManeuverDef;
+  def: ManoeuvreComposee;
   /** Traits que confère l'attaque (`TraitPose.confere`). ZI 03 l.75, l.77 */
   confere?: TraitInstance[];
 }
@@ -69,7 +78,7 @@ const typesAppliques = (t: BreathTypeData): BreathTypeData[] =>
 function opsDeLaRegle(r: BreathTypeData, difficulte: Difficulty | undefined): GameOp[] {
   const value = r.trancheDeBlessures ? { value: { minimum: 1, of: { parTranche: r.trancheDeBlessures, of: { woundsDealt: true as const } } } } : {};
   return [
-    ...(r.etat ? [{ op: 'condition' as const, id: r.etat, ...value, ...(difficulte ? { difficulte } : {}) }] : []),
+    ...(r.etat ? [{ op: 'condition' as const, id: { id: r.etat }, ...value, ...(difficulte ? { difficulte } : {}) }] : []),
     ...(r.endommageLEquipement ? [{ op: 'damageWornGear' as const }] : []),
   ];
 }
@@ -98,7 +107,7 @@ interface Tranche { ops: GameOp[]; typeDeDegats?: { id: string } }
  *  Type de Dégâts, les tranches voisines d'un même Type dans une seule feuille, dans l'ordre (les règles
  *  lisent les Blessures subies, `woundsDealt`). Les Dégâts d'un Type composé n'ont pas de Type. LDB 85 l.174,
  *  l.326-328 ; EDOC 13 l.237 ; VDM 10 l.153 */
-function feuilleTypee(feuille: Flow & { kind: 'do'; effect: EffectOp }, tranches: Tranche[]): Flow {
+function feuilleTypee(feuille: Flow & { kind: 'effet'; effet: EffectOp }, tranches: Tranche[]): Flow {
   const fusion = tranches.filter((tr) => tr.ops.length).reduce<Tranche[]>((acc, tr) => {
     const der = acc[acc.length - 1];
     if (der && der.typeDeDegats?.id === tr.typeDeDegats?.id) der.ops.push(...tr.ops);
@@ -106,22 +115,22 @@ function feuilleTypee(feuille: Flow & { kind: 'do'; effect: EffectOp }, tranches
     return acc;
   }, []);
   const noeuds = fusion.map(({ ops, typeDeDegats }): Flow => {
-    const f: Flow = { ...feuille, effect: { ...feuille.effect, ops } };
-    return typeDeDegats ? { kind: 'if', cond: sansImmunite(typeDeDegats), then: f } : f;
+    const f: Flow = { ...feuille, effet: { ...feuille.effet, ops } };
+    return typeDeDegats ? { kind: 'si', condition: sansImmunite(typeDeDegats), alors: f } : f;
   });
-  return noeuds.length === 1 ? noeuds[0] : { kind: 'seq', steps: noeuds };
+  return noeuds.length === 1 ? noeuds[0] : { kind: 'sequence', etapes: noeuds };
 }
 
 /** Le Souffle `base` composé avec les règles et le rendu de son Type ; sans Type, le Souffle seul. Les
  *  règles suivent les Dégâts dans leur liste d'ops : elles lisent les Blessures subies (`woundsDealt`).
  *  LDB 85 l.320-329 ; EDOC 13 l.237 */
-export function souffleDuType(base: ManeuverDef, typeId: string | undefined, difficulte?: Difficulty): ManeuverDef {
+export function souffleDuType(base: ManeuverDef, typeId: string | undefined, difficulte?: Difficulty): ManoeuvreComposee {
   const type = findBreathTypeById(typeId);
   const regles = type ? typesAppliques(type) : [];
   const ignoreAP = regles.some((r) => r.ignoreAP);
-  const effets = (base.effects ?? []).map((e) => ({ ...e, flow: reecrireFlow(e.flow, (n) => (n.kind === 'do' && isEffectOp(n.effect) && n.effect.ops.some((o) => o.op === 'wounds')
-    ? feuilleTypee({ ...n, effect: n.effect }, [
-      { ops: n.effect.ops.map((o) => (o.op === 'wounds' && ignoreAP ? { ...o, ignoreAP: true } : o)), typeDeDegats: type?.typeDeDegats },
+  const effets = (base.effects ?? []).map((e) => ({ ...e, flow: reecrireFlow(e.flow, (n) => (n.kind === 'effet' && isEffectOp(n.effet) && n.effet.ops.some((o) => o.op === 'wounds')
+    ? feuilleTypee({ ...n, effet: n.effet }, [
+      { ops: n.effet.ops.map((o) => (o.op === 'wounds' && ignoreAP ? { ...o, ignoreAP: true } : o)), typeDeDegats: type?.typeDeDegats },
       ...regles.map((r) => ({ ops: opsDeLaRegle(r, difficulte), typeDeDegats: r.typeDeDegats })),
     ])
     : n)) }));
@@ -137,7 +146,7 @@ export function souffleDuType(base: ManeuverDef, typeId: string | undefined, dif
 
 /** La manœuvre que l'instance tire d'un octroi : composée avec son Type quand le Trait prend un Type de
  *  Souffle pour argument. LDB 85 l.322 */
-function manoeuvreDeLInstance(id: string, inst: TraitInstance): ManeuverDef | undefined {
+function manoeuvreDeLInstance(id: string, inst: TraitInstance): ManoeuvreComposee | undefined {
   const def = findManeuverById(id);
   return def && findTraitById(inst.id)?.specsSource === 'breathTypes' ? souffleDuType(def, inst.arg, inst.difficulte) : def;
 }
@@ -151,14 +160,14 @@ export function creatureAttacks(traits: TraitList): CreatureAttack[] {
   for (const inst of traits) {
     for (const g of findTraitById(inst.id)?.grantsManeuvers ?? []) {
       const def = manoeuvreDeLInstance(g.id, inst);
-      if (!def || def.ecartDeTailleMin != null || def.targeting === 'self') continue;
+      if (!def || def.ecartDeTailleMin != null || def.ciblage === 'soi') continue;
       const indice = inst.value ?? 0;
       out.push({
         cle: def.id, kind: def.kind, label: traitLisible(inst), bonus: indice, indice, type: inst.arg, def,
-        trigger: def.activation, avantage: def.advantageCost,
-        ...(def.stat ? { stat: def.stat } : {}), ...(def.advantageMode ? { advantageMode: def.advantageMode } : {}),
+        trigger: def.activation, avantage: def.coutEnAvantage,
+        ...(def.stat ? { stat: def.stat } : {}), ...(def.modeDAvantage ? { modeDAvantage: def.modeDAvantage } : {}),
         ...(inst.count != null ? { count: inst.count } : {}),
-        ...(def.targeting === 'zone' ? { aoe: true } : {}), ...(def.magic ? { magic: true } : {}),
+        ...(def.ciblage === 'zone' ? { aoe: true } : {}), ...(def.magic ? { magic: true } : {}),
         ...(def.kind === 'tentacules' ? { perTentacle: true } : {}),
         ...(inst.confere?.length ? { confere: inst.confere } : {}),
         ...(inst.value != null && findTraitById(inst.id)?.bfInclus ? { bfInclus: true as const } : {}),
@@ -187,8 +196,8 @@ export const attaqueDeCle = (traits: TraitList, cle: string): CreatureAttack | u
  *  aucune instance n'en module l'Indice. LDB 85 l.387 ; LDB 85 l.344 */
 function attaqueDEcart(def: ManeuverDef): CreatureAttack {
   return {
-    cle: def.id, kind: def.kind, label: def.label, bonus: 0, indice: 0, def, trigger: def.activation, avantage: def.advantageCost,
-    ...(def.stat ? { stat: def.stat } : {}), ...(def.advantageMode ? { advantageMode: def.advantageMode } : {}),
+    cle: def.id, kind: def.kind, label: def.label, bonus: 0, indice: 0, def, trigger: def.activation, avantage: def.coutEnAvantage,
+    ...(def.stat ? { stat: def.stat } : {}), ...(def.modeDAvantage ? { modeDAvantage: def.modeDAvantage } : {}),
   };
 }
 
@@ -204,17 +213,17 @@ export const attaqueNaturelle = (traits: TraitList, kind: string): CreatureAttac
   attaquesNaturelles(traits).find((a) => a.kind === kind);
 
 // ---------------------------------------------------------------------------
-// Capacités SUR SOI (targeting:'self') — transformation/mue/auto-buff octroyées par un trait
+// Capacités SUR SOI (ciblage:'soi') — transformation/mue/auto-buff octroyées par un trait
 // ---------------------------------------------------------------------------
 
-/** Manœuvres SUR SOI (`targeting:'self'`) octroyées par les traits de `c` (Métamorphose humain↔hybride de
+/** Manœuvres SUR SOI (`ciblage:'soi'`) octroyées par les traits de `c` (Métamorphose humain↔hybride de
  *  l'Enfant d'Ulric…). SÉPARÉ de `creatureAttacks` (orienté attaque : une manœuvre par trait). PUR. */
 export function selfManeuversOf(c: Combatant): ManeuverDef[] {
   const out: ManeuverDef[] = [];
   for (const tr of c.traits ?? [])
     for (const r of findTraitById(tr.id)?.grantsManeuvers ?? []) {
       const def = findManeuverById(r.id);
-      if (def?.targeting === 'self') out.push(def);
+      if (def?.ciblage === 'soi') out.push(def);
     }
   return out;
 }
@@ -223,7 +232,7 @@ export function selfManeuversOf(c: Combatant): ManeuverDef[] {
  *  dérivé de la DONNÉE — aucun nom d'entité en dur). */
 function formTagOf(def: ManeuverDef, opName: 'transform' | 'endTransform'): string | undefined {
   for (const e of def.effects ?? [])
-    for (const o of spellEffectOps(e.flow)) if (o.op === opName) return (o as Extract<GameOp, { op: 'transform' | 'endTransform' }>).tag;
+    for (const o of spellEffectOps(e.flow)) if ((o.op === 'transform' || o.op === 'endTransform') && o.op === opName) return o.tag;
   return undefined;
 }
 

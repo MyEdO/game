@@ -50,11 +50,11 @@ function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Comba
   banc.setState({ party: [hero] });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(opts.vivants ?? 1).forEach((e) => (e.dead = true));
   const vivants = enemies.slice(0, opts.vivants ?? 1);
   H.pos = { x: 10, y: 10 };
@@ -62,7 +62,7 @@ function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Comba
   banc.setState({ battle: { ...b }, pendingCascade: null, suspendedCascades: [] } as never);
   banc.setState({
     net: {
-      ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0],
+      ...NET0, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0],
       ...(opts.gmSeat != null ? { gmSeat: opts.gmSeat, ownership: {} } : { ownership: { [H.id]: 1 } }),
     },
   } as never);
@@ -70,14 +70,14 @@ function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Comba
 }
 
 const etapes = () => g().pendingCascade?.participants ?? [];
-const bande = () => etapes().find((s) => s.kind === 'triggeredBatchTest');
+const bande = () => etapes().find((s) => s.kind === 'testDeclencheEnBande');
 
 beforeEach(() => { seedBattleRng(4); });
 
 describe('#1262 lot 3 — une BANDE nomme son porteur (sinon sa fenêtre échoit à l’hôte seul)', () => {
   it('Surprise d’embuscade (LDB 13 l.77) : bande à UN guetteur du siège MJ → l’étape porte SON `actorId`', () => {
     const { E } = setupCoop({ gmSeat: 1 });
-    applySurprise(g, banc.setState, 'enemies'); // les héros embusquent : les guetteurs sont les ennemis
+    applySurprise(g, banc.setState, 'ennemis'); // les héros embusquent : les guetteurs sont les ennemis
 
     const step = bande();
     expect(step, 'les guetteurs conduits par le MJ forment bien une bande').toBeTruthy();
@@ -93,7 +93,7 @@ describe('#1262 lot 3 — une BANDE nomme son porteur (sinon sa fenêtre échoit
 
   it('Surprise d’embuscade : bande à DEUX guetteurs → `groupOwner` (chaque siège tient SA rangée)', () => {
     setupCoop({ gmSeat: 1, vivants: 2 });
-    applySurprise(g, banc.setState, 'enemies');
+    applySurprise(g, banc.setState, 'ennemis');
 
     const step = bande();
     expect(step!.participants).toHaveLength(2);
@@ -121,7 +121,7 @@ describe('#1262 lot 3 — une BANDE nomme son porteur (sinon sa fenêtre échoit
 describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas chez l’hôte', () => {
   /**
    * Le guetteur d'un autre siège est dans la BANDE : le producteur (`applySurprise`) compose sa bande
-   * sur la SURFACE, pas sur l'affordance locale — jamais d'étape MONO `triggeredTest` par la voie
+   * sur la SURFACE, pas sur l'affordance locale — jamais d'étape MONO `testDeclenche` par la voie
    * inline, hors de l'entrée de règle partagée (LDB 13 l.77 : UN jet d'embusqueur contre TOUS les guetteurs).
    */
   it('Surprise (LDB 13 l.67-77) : le héros de l’invité tient SA rangée dans la bande, au lieu d’un jet muet', () => {
@@ -129,11 +129,11 @@ describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas 
     expect(humanControlled(g(), H), 'chez l’hôte, il ne pilote pas ce héros…').toBe(false);
     expect(surfaceOf(g, H.id), '…mais un siège humain le tient : son jet doit remonter').toBe(true);
 
-    applySurprise(g, banc.setState, 'party'); // les ennemis embusquent : le héros est le guetteur
+    applySurprise(g, banc.setState, 'groupe'); // les ennemis embusquent : le héros est le guetteur
 
     const h = g().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(h, COND.surpris), 'aucune Surprise prononcée en silence chez l’hôte').toBe(false);
-    expect(etapes().find((s) => s.kind === 'triggeredTest'), 'plus de voie MONO : la bande le porte').toBeUndefined();
+    expect(etapes().find((s) => s.kind === 'testDeclenche'), 'plus de voie MONO : la bande le porte').toBeUndefined();
     const step = bande();
     expect(step, 'l’étape influençable existe').toBeTruthy();
     expect(step!.participants!.map((p) => p.id)).toEqual([H.id]);
@@ -159,20 +159,20 @@ describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas 
   it('porteur INCONSCIENT d’un autre siège : son étape existe quand même (#1265 — aucune harmonisation)', () => {
     const { H } = setupCoop();
     addCondition(H, COND.inconscient, 1);
-    const eff = {
-      trigger: 'onWoundLoss', on: 'self',
+    const eff: TriggeredEffect = {
+      trigger: 'onWoundLoss', on: 'soi',
       // `source` : l'entité porteuse, telle que `withSource` la tague au dispatcher — c'est d'elle que
       // l'étape DÉRIVE son enjeu (#1262 V2 L6d). Une fixture sans porteur ne serait pas le chemin réel.
-      source: { kind: 'condition', id: 'empoisonne' },
-      flow: { kind: 'test', test: { skill: 'resistance', difficulty: 'intermediaire', label: 'Tenir bon' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
-    } as unknown as TriggeredEffect;
+      source: { kind: 'etat', id: 'empoisonne' },
+      flow: { kind: 'test', test: { skill: { id: 'resistance' }, difficulty: 'intermediaire', label: 'Tenir bon' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
+    };
 
     expect(isOutOfAction(H), 'sonde inerte sans ça : le porteur DOIT être hors d’action').toBe(true);
     expect(surfaceOf(g, H.id), 'et rester surfacé — hors d’action ne veut pas dire sans joueur').toBe(true);
 
     applyTriggeredEffects(g, H, [eff], 'onWoundLoss', { rng: desDuTest, set: banc.setState });
 
-    const step = etapes().find((s) => s.kind === 'triggeredTest');
+    const step = etapes().find((s) => s.kind === 'testDeclenche');
     expect(step, 'la porte ne filtre que sur la SURFACE : l’étape est là').toBeTruthy();
     expect(step!.actorId).toBe(H.id);
     expect(step!.result, 'et rien n’a été roulé à sa place').toBeFalsy();
@@ -189,10 +189,10 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
 
     resolveFreeAttacks(g, banc.setState, H, 'onCharged', E[0]);
 
-    const choix = etapes().find((s) => s.kind === 'triggeredChoice');
+    const choix = etapes().find((s) => s.kind === 'choixDeclenche');
     expect(choix, 'la décision de l’invité n’est plus prise à sa place').toBeTruthy();
     expect(choix!.actorId).toBe(H.id);
-    expect(choix!.defaultChoice, 'Renoncer par défaut').toBe('no');
+    expect(choix!.defaultChoice, 'Renoncer par défaut').toBe('non');
     expect(modalOwnerOf(g())).toBe(H.id);
     expect(seatOwns(g(), 1, H.id)).toBe(true);
     const h = g().battle!.combatants.find((c) => c.id === H.id)!;
@@ -208,14 +208,14 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
    */
   it('dispatcher : un effet OPT-IN atteint le porteur d’un autre siège au lieu d’être jeté', () => {
     const { H } = setupCoop();
-    const eff = {
-      trigger: 'onHit', on: 'self', optional: true,
-      flow: { kind: 'test', test: { skill: 'calme', difficulty: 'intermediaire', label: 'Se ressaisir' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
-    } as unknown as TriggeredEffect;
+    const eff: TriggeredEffect = {
+      trigger: 'onHit', on: 'soi', optional: true,
+      flow: { kind: 'test', test: { skill: { id: 'calme' }, difficulty: 'intermediaire', label: 'Se ressaisir' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
+    };
 
     applyTriggeredEffects(g, H, [eff], 'onHit', { rng: desDuTest, set: banc.setState });
 
-    const choix = etapes().find((s) => s.kind === 'triggeredChoice');
+    const choix = etapes().find((s) => s.kind === 'choixDeclenche');
     expect(choix, 'le « Vous pouvez » de l’invité n’est plus filtré à l’entrée du dispatcher').toBeTruthy();
     expect(choix!.actorId).toBe(H.id);
     expect(modalOwnerOf(g())).toBe(H.id);

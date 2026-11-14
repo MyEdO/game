@@ -28,7 +28,7 @@ import { stageWeatherRows } from './travelFlow';
 // ce qu'on en LIT (l'id de table d'une nature + un alignement), jamais par un import d'effet de bord.
 import { mutationTableIdFor } from './corruptionFlow';
 import { setDataset, datasetArray, setObjectDataset, datasetObject, type ObjectDatasetKey } from '../data/overrides';
-import { marchandisesDe, findCargoById, type CargoDef } from '../engine/cargo';
+import { marchandisesDe, findCargoById, rollSeasonalCargo, type CargoDef } from '../engine/cargo';
 import { advanceCost } from '../engine/advancement';
 import { shipSizeOfLength } from '../engine/shipBuild';
 import {
@@ -45,6 +45,7 @@ import { STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladi
 import { traitLabelById } from '../engine/traits/dispatch';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
 import { versionDuDataset } from '../data/versionDataset';
+import type { EntreeVivante } from '../data/datasets';
 import { deFixe } from '../engine/dice.testkit';
 
 const TRAITS_LIVRES = [...traits];
@@ -55,12 +56,12 @@ const SAISONS_LIVREES = [...weather];
 const VEHICULES_LIVRES = [...vehicles];
 const TRAUMAS_LIVRES = [...(datasetArray('traumas') as TraumaFiche[])];
 const TABLES_MUTATION_LIVREES = [...(datasetArray('mutationTables') as MutationTable[])];
-const MISCAST_MINEURE_LIVREE = [...(datasetArray('miscastMinor') as MiscastTableRow[])];
+const MISCAST_MINEURE_LIVREE = [...(datasetArray('imparfaiteMineure') as MiscastTableRow[])];
 /** Les datasets des vues dérivées migrées (#1692) : restaurés par le seam, comme les autres. */
 const LISTES_LIVREES = tableTotale(
-  ['cargoes', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
+  ['cargoes', 'cargaisonsAleatoires', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
   (k) => structuredClone(datasetArray(k)),
-) as { [K in 'cargoes' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'stakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
+) as { [K in 'cargoes' | 'cargaisonsAleatoires' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'stakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
 const OBJETS_LIVRES = tableTotale(
   ['riverNavigation', 'seaWeather', 'disponibilite', 'seaCargo', 'landCargo'] as const, (k) => structuredClone(datasetObject(k)),
 ) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite' | 'seaCargo' | 'landCargo']: ReturnType<typeof datasetObject<K>> };
@@ -71,7 +72,7 @@ afterEach(() => {
   for (const k of Object.keys(LISTES_LIVREES) as (keyof typeof LISTES_LIVREES)[]) setDataset(k, structuredClone(LISTES_LIVREES[k]) as never);
   for (const k of Object.keys(OBJETS_LIVRES) as (keyof typeof OBJETS_LIVRES & ObjectDatasetKey)[]) setObjectDataset(k, structuredClone(OBJETS_LIVRES[k]) as never);
   setDataset('mutationTables', TABLES_MUTATION_LIVREES);
-  setDataset('miscastMinor', MISCAST_MINEURE_LIVREE);
+  setDataset('imparfaiteMineure', MISCAST_MINEURE_LIVREE);
   setDataset('weather', SAISONS_LIVREES);
   setDataset('vehicles', VEHICULES_LIVRES);
   setDataset('traumas', TRAUMAS_LIVRES);
@@ -150,7 +151,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     expect(mutationTablePlayerLabel('physique')).toBe('Tableau de Corruption physique');
     const idsAvant = mutationTableIds().length;
 
-    const neuve: MutationTable = { ...physique, id: 'table-neuve-qc', label: 'Table neuve QC' };
+    const neuve: EntreeVivante<MutationTable> = { ...physique, id: 'table-neuve-qc', label: 'Table neuve QC' };
     setDataset('mutationTables', [
       ...tables.map((t) => (t.id === 'physique'
         ? { ...t, label: 'physique révisée QC (LDB)', entries: [{ ...t.entries[0], max: 99 }, ...t.entries.slice(1)] }
@@ -173,22 +174,21 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
   it('une rangée d’Incantation Imparfaite ÉDITÉE : `rollMiscast` joue la NOUVELLE, comme `miscastRowAt`', () => {
     // `RUNTIME_ROWS` dépliait les rangées (ops closées, Tests) une fois à l'import : `rollMiscast`
     // servait le libellé d'AVANT pendant que `miscastRowAt` servait déjà le nouveau.
-    const rangees = datasetArray('miscastMinor');
+    const rangees = datasetArray('imparfaiteMineure');
     const premiere = rangees[0];
     const de = premiere.min;
     if (de === null) throw new Error('miscast-mineure : la première rangée a une borne basse ouverte');
     expect(rollMiscast('mineure', makeRNG(1), 0, undefined, de).label).toBe(premiere.label);
 
-    setDataset('miscastMinor', rangees.map((r) => (r.id === premiere.id ? { ...r, label: 'Contrecoup révisé QC' } : r)));
+    setDataset('imparfaiteMineure', rangees.map((r) => (r.id === premiere.id ? { ...r, label: 'Contrecoup révisé QC' } : r)));
 
     expect(miscastRowAt('miscast-mineure', de).label).toBe('Contrecoup révisé QC');
     expect(rollMiscast('mineure', makeRNG(1), 0, undefined, de).label).toBe('Contrecoup révisé QC');
   });
 
   it('un véhicule de voyage ÉDITÉ ou NEUF : `travelVehicles` et les libellés de mode le servent', () => {
-    // `engine/travel.ts` atteint `vehicles.json` par IMPORT JSON DIRECT + alias (`VEHICLES_LIST`) :
-    // ses transports payants et sa table de libellés étaient figés à l'import, donc une diligence
-    // renommée au Codex gardait son ancien nom à l'écran de voyage, et un véhicule neuf n'existait pas.
+    // Les transports payants et la table de libellés de `engine/travel.ts` se lisent sur le dataset vivant
+    // `vehicles` : une diligence renommée au Codex garde son nouveau nom à l'écran de voyage, un véhicule neuf y entre.
     const diligence = vehicles.find((v) => v.id === 'diligence')!;
     expect(travelModeLabels().diligence).toBe(diligence.label);
     const neuf = { ...diligence, id: 'coche-1692', label: 'Coche 1692' };
@@ -248,10 +248,21 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     }
   });
 
+  it('une marchandise NEUVE rangée dans une colonne ÉDITÉE : `rollSeasonalCargo` la tire de SA colonne seule', () => {
+    for (const voie of ['mer', 'terre'] as const) {
+      const id = `cargo-${voie}-qc-1692`;
+      expect(findCargoById(id)).toBeUndefined();
+      setDataset('cargoes', [...datasetArray('cargoes'), { ...marchandisesDe(voie)[0], id, label: `Cargo ${voie} QC` } as CargoDef]);
+      setDataset('cargaisonsAleatoires', datasetArray('cargaisonsAleatoires').map((t) => (t.voie === voie && t.saison === 'ete' ? { ...t, entries: [{ ...t.entries[0], id: id as (typeof t.entries)[number]['id'], min: 1, max: 100 }] } : t)));
+      expect(rollSeasonalCargo(voie, 'ete', deFixe(37)).label).toBe(`Cargo ${voie} QC`);
+      expect(rollSeasonalCargo(voie, 'hiver', deFixe(37)).id).not.toBe(id);
+    }
+  });
+
   it('un Coût d’Augmentation ÉDITÉ : `advanceCost` lit la NOUVELLE bande', () => {
-    expect(advanceCost(0, 'characteristic')).toBe(25);
+    expect(advanceCost(0, 'caracteristique')).toBe(25);
     setDataset('advancementCosts', datasetArray('advancementCosts').map((b, i) => (i === 0 ? { ...b, coutCarac: 99 } : b)));
-    expect(advanceCost(0, 'characteristic')).toBe(99);
+    expect(advanceCost(0, 'caracteristique')).toBe(99);
   });
 
   it('une bande de longueur de coque ÉDITÉE : `shipSizeOfLength` lit la NOUVELLE colonne « Taille »', () => {
@@ -274,7 +285,7 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(navBaseDifficulty()).toBe('difficile');
     expect(tackDifficulty()).toBe('difficile');
     expect(driftPctOfSpeed()).toBe(40);
-    expect(navPenaltyMods({ drift: true })[0].value).toBe(-30);
+    expect(navPenaltyMods({ derive: true })[0].value).toBe(-30);
     expect(capsizeRightDifficulty()).toBe('difficile');
     expect(capsizeRightCumulative()).toBe(-15);
   });
@@ -333,21 +344,21 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
 
   it('un enjeu de modale ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `stakes`', () => {
     const chanson = seaShanties[0].id;
-    const ref = () => resolveStake(flowStakeRef('shanty-roll', { entryId: chanson })).rule;
+    const ref = () => resolveStake(flowStakeRef('chanson-de-marin-test', { entryId: chanson })).rule;
     expect(ref()).toEqual({ category: 'seaShanties', id: chanson });
-    setDataset('stakes', STAKES.map((e) => (e.id === 'shanty-roll' ? { ...e, entryCategory: undefined } : e)));
+    setDataset('stakes', STAKES.map((e) => (e.id === 'chanson-de-marin-test' ? { ...e, entryCategory: undefined } : e)));
     expect(ref(), 'la catégorie d’entrée retirée au Codex reste déclarée').toEqual({ category: 'talents', id: 'chanson-de-marin' });
   });
 
   it('un enjeu de combat ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `stakes`', () => {
     const maladie = maladies[0].id;
-    const ref = () => resolveStake(combatStakeRef('combat-end-disease', { entryId: maladie })).rule;
+    const ref = () => resolveStake(combatStakeRef('combat-fin-maladie', { entryId: maladie })).rule;
     expect(ref()).toEqual({ category: 'maladies', id: maladie });
-    setDataset('stakes', STAKES.map((e) => (e.id === 'combat-end-disease' ? { ...e, entryCategory: undefined } : e)));
+    setDataset('stakes', STAKES.map((e) => (e.id === 'combat-fin-maladie' ? { ...e, entryCategory: undefined } : e)));
     expect(ref(), 'la catégorie d’entrée retirée au Codex reste déclarée').toBeUndefined();
   });
 
-  it('un Événement de bord ÉDITÉ : la table tirable `sea-board-events` sert les NOUVELLES bornes', () => {
+  it('un Événement de bord ÉDITÉ : la table tirable `evenements-de-bord` sert les NOUVELLES bornes', () => {
     const evts = datasetArray('seaBoardEvents');
     const premier = evts[0];
     expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max);
@@ -358,12 +369,12 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
   it('les règles de négoce maritime ÉDITÉES (#3433) : plafond de surcharge et bandes du Prix d’offre servis NEUFS', () => {
     const fiche = structuredClone(datasetObject('seaCargo'));
     const port = { taille: 1, richesse: 1, production: [] };
-    expect(overloadMaxEnc(100)).toBe(fiche.overload.hardCapPct);
-    expect(offerPricePct(port, 'x')).toBe(100 + fiche.sell.offerPrice.find((b) => b.min === 2)!.pct);
+    expect(overloadMaxEnc(100)).toBe(fiche.surcharge.pctPlafond);
+    expect(offerPricePct(port, 'x')).toBe(100 + fiche.vente.prixDOffre.find((b) => b.min === 2)!.pct);
     setObjectDataset('seaCargo', {
       ...fiche,
-      overload: { ...fiche.overload, hardCapPct: 175 },
-      sell: { ...fiche.sell, offerPrice: fiche.sell.offerPrice.map((b) => (b.min === 2 ? { ...b, pct: -33 } : b)) },
+      surcharge: { ...fiche.surcharge, pctPlafond: 175 },
+      vente: { ...fiche.vente, prixDOffre: fiche.vente.prixDOffre.map((b) => (b.min === 2 ? { ...b, pct: -33 } : b)) },
     });
     expect(overloadMaxEnc(100)).toBe(175);
     expect(offerPricePct(port, 'x')).toBe(67);
@@ -371,9 +382,9 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
 
   it('les règles de négoce terrestre ÉDITÉES (#3433) : lot minimal, surcoût partiel et dés du marchand servis NEUFS', () => {
     const fiche = structuredClone(datasetObject('landCargo'));
-    const { d10, plus } = fiche.buy.merchantSkill;
+    const { d10, plus } = fiche.achat.competenceDuMarchand;
     expect(rollMerchantSkill(deFixe(1))).toBe(d10 + plus);
-    setObjectDataset('landCargo', { ...fiche, buy: { ...fiche.buy, minEnc: 20, partialSurchargePct: 15, merchantSkill: { d10: d10 + 1, plus } } });
+    setObjectDataset('landCargo', { ...fiche, achat: { ...fiche.achat, encMin: 20, pctSurcoutPartiel: 15, competenceDuMarchand: { d10: d10 + 1, plus } } });
     expect(minCargoEnc()).toBe(20);
     expect(partialSurchargePct()).toBe(15);
     expect(rollMerchantSkill(deFixe(1))).toBe(d10 + 1 + plus);

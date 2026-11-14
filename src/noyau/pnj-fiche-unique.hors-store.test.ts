@@ -9,7 +9,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene, type SceneEntity } from './monde/scene';
 import { ficheDEntite, FicheAbsente, sceneNpc } from './monde/sceneNpc';
 import { jouerALaTaverne, tavernNpcOffers } from './tavernFlow';
@@ -32,7 +32,7 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 const presetPnjById = (id: string) => presetDuNarratif(get().campaignNarratif)(id);
 
 function pose(entities: SceneEntity[]): void {
-  set({ party: makePregens(idsDeTest).slice(0, 1) as Combatant[], scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null, medic: null } as never);
+  set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1) as Combatant[], scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null, medic: null } as never);
 }
 
 const GERTA: SceneEntity = { id: 'gerta', kind: 'personnage', pos: { x: 1, y: 1 }, label: 'Gerta la Rusée', creature: { id: 'humain' }, tavernGame: { id: 'dominos' } };
@@ -46,8 +46,8 @@ describe('#1882 — un PNJ, une fiche, UN nom', () => {
     const taverne = sceneNpc(get().scene, 'gerta', presetPnjById)!;
     expect(combat.label).toBe('Gerta la Rusée');
     expect(taverne.label).toBe(combat.label);
-    jouerALaTaverne(get, set, { gameId: 'dominos', challengerId: get().party[0].id, opponent: { kind: 'npc', id: 'gerta' } });
-    expect(activeSequence<{ opponentName: string }>(get)!.payload.opponentName).toBe(combat.label);
+    jouerALaTaverne(get, set, get().party[0].id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'gerta' } });
+    expect(activeSequence<{ opponentName: string }>(get)!.chargeUtile.opponentName).toBe(combat.label);
   });
 
   it('sans nom d’entité, l’individu anonyme porte le même nom tiré sur les deux chemins (#3712)', () => {
@@ -79,7 +79,7 @@ describe('#1882 — réf. de personnage MORTE : aucun mannequin, nulle part', ()
   it('taverne : le PNJ n’est pas offert, et la partie ne s’ouvre pas contre lui', () => {
     pose([MORT]);
     expect(tavernNpcOffers(get().scene, presetPnjById)).toEqual([]);
-    jouerALaTaverne(get, set, { gameId: 'dominos', challengerId: get().party[0].id, opponent: { kind: 'npc', id: 'fantome' } });
+    jouerALaTaverne(get, set, get().party[0].id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'fantome' } });
     expect(activeSequence(get)).toBeFalsy();
   });
 
@@ -90,7 +90,7 @@ describe('#1882 — réf. de personnage MORTE : aucun mannequin, nulle part', ()
 
   it('infirmerie : aucune infirmerie ne s’ouvre, le refus est DIT au journal', () => {
     pose([MORT]);
-    applyEffects(get, set, [{ type: 'medicalAid', entityId: 'fantome', acts: [{ act: 'wounds', cost: { silver: 5 } }] }]);
+    applyEffects(get, set, [{ type: 'medicalAid', entityId: { id: 'fantome' }, acts: [{ act: 'blessures', cost: { silver: 5 } }] }]);
     expect(get().medic).toBeFalsy();
     expect(get().journal.some((l) => String(l).includes('« fantome »'))).toBe(true);
   });

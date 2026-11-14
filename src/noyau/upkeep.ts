@@ -28,7 +28,7 @@
 import { battleRng } from './battleRng';
 import { tickCampaignVesselWeek } from './shipCrew';
 import { dayIndex } from '../engine/clock';
-import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal } from '../engine/provisions';
+import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal, lotPerime, rationsDeCale } from '../engine/provisions';
 import { testValue } from '../engine/skills';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { loseWounds, removeActiveEffects, syncDerivedConditions } from '../engine/conditions';
@@ -37,7 +37,7 @@ import type { NightStakeId } from '../data/index';
 import { rollStep } from './rollSeam';
 import type { ModLine } from '../engine/combat';
 import { dailyDiseaseUpkeep } from '../engine/rest';
-import { conditionLabel } from '../data';
+import { conditionLabel, refLabel } from '../data';
 import { t } from '../i18n';
 import { rule } from '../engine/policy';
 import { tickTraumaRecovery } from '../engine/trauma';
@@ -91,7 +91,24 @@ const dissipationsDHorloge: string[] = [];
  *  mer, chantier naval) dissipe ce qui est échu, y compris ceux qui n'appellent PAS `runDailyUpkeep` (le voyage terrestre et la journée de
  *  mer diffèrent l'entretien à la cascade de nuit). Les lignes attendent le prochain bilan. */
 export function purgeSurAvanceDHorloge(get: Get, set: Set): void {
-  dissipationsDHorloge.push(...purgeClockEffects(get, set));
+  dissipationsDHorloge.push(...purgeClockEffects(get, set), ...jeterLesVivresPourris(get, set));
+}
+
+/** Jette de la cale du navire de campagne les lots de vivres pourris (`lotPerime`) à l'heure de jeu, au port
+ *  comme en mer. RENVOIE les lignes, une par vivre (déjà au journal). MDG 14 l.238 ; LDB 47 l.93-97 ; #4058 */
+function jeterLesVivresPourris(get: Get, set: Set): string[] {
+  const vessel = get().vessel;
+  if (!vessel?.provisions) return [];
+  const now = get().gameTime;
+  const pourris = vessel.provisions.filter((l) => lotPerime(l, now));
+  if (!pourris.length) return [];
+  const provisions = vessel.provisions.filter((l) => !lotPerime(l, now));
+  set({ vessel: { ...vessel, provisions } });
+  const lignes = [...new Set(pourris.map((l) => l.vivre))].map((vivre) => t('eff.provisionsPourries', {
+    perdues: rationsDeCale(pourris.filter((l) => l.vivre === vivre)), vivre: refLabel('trappings', { id: vivre }), total: rationsDeCale(provisions),
+  }));
+  get().ecrireAuJournal(lignes);
+  return lignes;
 }
 
 /** Purge les effets « pour la prochaine aventure » (`ActiveEffect.duration.scale === 'adventure'` —
@@ -153,10 +170,10 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
   const party = get().party;
   const lines: string[] = [];
   let rations = 0;
-  // Accès à l'eau (LDB 18 l.340) : abondant au Reikland sauf règle `water-scarcity` ; en mer, suit les
+  // Accès à l'eau (LDB 18 l.340) : abondant au Reikland sauf règle `penurie-d-eau` ; en mer, suit les
   // tonneaux du navire (`vessel.waterLitres`) — stable sur l'entretien, calculé une fois.
   const waterLitres = get().vessel?.waterLitres;
-  const hasWater = waterLitres != null ? waterLitres > 0 : rule('water-scarcity') !== true;
+  const hasWater = waterLitres != null ? waterLitres > 0 : rule('penurie-d-eau') !== true;
   for (let d = last + 1; d <= today; d++) {
     for (const h of party) {
       if (h.dead) continue;
@@ -204,8 +221,8 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
         // cascade, jamais un jet roulé ici (sinon pré-résolu).
         defer({ kind: 'dessoulage', label: t('upkeep.sobering'), base: alc, test: alcool, difficulty: 'intermediaire' });
       }
-      // 2. Maladies (LDB 20 — jours calendaires, #T3). Règle optionnelle : désactivable (disease-mode off).
-      if (rule('disease-mode') !== 'off') lines.push(...dailyDiseaseUpkeep(h, battleRng(), defer, opts.caredFor));
+      // 2. Maladies (LDB 20 — jours calendaires, #T3). Règle optionnelle : désactivable (maladie-mode off).
+      if (rule('maladie-mode') !== 'off') lines.push(...dailyDiseaseUpkeep(h, battleRng(), defer, opts.caredFor));
       // 3. Convalescence des Blessures critiques (LDB 18 — jours calendaires, #T3).
       lines.push(...tickTraumaRecovery(h, 1, defer));
     }
@@ -216,23 +233,22 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
     lines.push(...fireClockTriggers(get, 'onDayStart', { rng: battleRng() }));
     if (d === get().lastNightDay) lines.push(...fireClockTriggers(get, 'onWake', { rng: battleRng() }));
   }
-  // Nuit forcée (maison `travel-sleep-forced`, #340) : chaque jour calendaire franchi SANS nuit jouée
+  // Nuit forcée (maison `voyage-privation-de-sommeil`, #340) : chaque jour calendaire franchi SANS nuit jouée
   // (aucun repos depuis `lastNightDay`) inflige 1 État Exténué « privation de sommeil » par héros vivant.
   // Jamais silencieux (Consequence via applyOps `condition`) ; retiré au prochain vrai sommeil (LDB 16).
-  if (rule('travel-sleep-forced') === true) {
+  if (rule('voyage-privation-de-sommeil') === true) {
     const missed = Math.max(0, today - Math.max(last, get().lastNightDay));
     if (missed > 0) {
       for (const h of party) {
         if (h.dead) continue;
         lines.push(t('upkeep.sleepDeprived', { name: h.label, n: missed, s: missed > 1 ? 's' : '' }));
-        lines.push(...applyOps(h, [{ op: 'condition', id: 'extenue', value: missed }], { idNeuf: get().forgerUnId, rng: battleRng() }));
+        lines.push(...applyOps(h, [{ op: 'condition', id: { id: 'extenue' }, value: missed }], { idNeuf: get().forgerUnId, rng: battleRng() }));
       }
     }
   }
   if (rations > 0) lines.unshift(t('upkeep.rationsUsed', { n: rations, s: rations > 1 ? 's' : '' }));
-  // Navire de campagne (MDG 14) : PAIE hebdomadaire de l'équipage salarié puis recalcul du Moral, une
-  // fois par semaine calendaire (garde interne à `tickCampaignVesselWeek` ; un saut de plusieurs jours ne
-  // recalcule qu'au franchissement de semaine). #216.
+  // Navire de campagne (MDG 14) : PAIE hebdomadaire de l'équipage salarié puis recalcul du Moral, pour
+  // CHAQUE semaine calendaire franchie depuis `lastMoraleWeek` (`tickCampaignVesselWeek`). #216, #1652.
   set({ lastUpkeepDay: today, party: [...party] }); // persiste faim/eau/maladies/convalescence AVANT le débit des gages
   lines.push(...tickCampaignVesselWeek(get, set, today, battleRng())); // débite les bourses PAR-DESSUS (lit get().party à jour)
   get().ecrireAuJournal(lines);

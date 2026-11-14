@@ -1,15 +1,18 @@
 /**
  * Client du relay coop : connexion au Worker Cloudflare (`server/`), heartbeat + reconnexion à backoff avec reprise de
  * siège par token, et compression des gros payloads (champ `z` — l'enveloppe reste en clair pour le routage par le
- * Durable Object). La plateforme s'injecte (`PortsDuRelais`) : la socket, la minuterie et la compression.
+ * Durable Object). La plateforme s'injecte (`PortsDuRelais`) : la socket, la minuterie, la compression et la panne.
  *
  * - `RelayClient`  : une connexion robuste (ping/pong, retry, fermetures 4xxx fatales).
  * - `RoomHost`     : démultiplexe l'unique socket hôte en un Transport VIRTUEL par siège —
  *                    `session.ts::addGuest` les consomme sans rien savoir du relay.
  * - `RoomGuest`    : EST un Transport (côté invité).
- * L'ordre des messages est préservé malgré la compression async : chaînes send/recv.
+ * L'ordre des messages est préservé malgré la compression async : chaînes send/recv (`enchainer`). Un client fermé ne
+ * livre ni n'envoie plus rien.
  */
 import type { Transport } from './transport';
+import type { VerrouDesMots } from '../../noyau/index';
+import { estObjet } from '../../lib/objet.mjs';
 
 /** L'URL WebSocket de la room `code` sur le relay d'URL HTTP `base`. */
 export function roomWsUrl(base: string, code: string, params: Record<string, string>): string {
@@ -34,7 +37,10 @@ export interface SocketLike {
   onerror: (() => void) | null;
 }
 export type MakeSocket = (url: string) => SocketLike;
-export type ConnState = 'connecting' | 'ok' | 'reconnecting' | 'lost';
+export type ConnState = 'connexion' | 'connecte' | 'reconnexion' | 'perdu';
+/** VERROU : un état de connexion ne prend que des mots du lexique (#3928). */
+const verrouDeConnState: VerrouDesMots<ConnState> = true;
+void verrouDeConnState;
 
 /** Un appel différé de l'hôte : `programmer` rend de quoi l'annuler. */
 export interface Minuterie {
@@ -52,6 +58,8 @@ export interface PortsDuRelais {
   socket: MakeSocket;
   minuterie: Minuterie;
   compression: Compression;
+  /** Une levée dans une chaîne send/recv, ou un message refusé ; la chaîne passe au maillon suivant. */
+  panne: (erreur: unknown) => void;
 }
 
 export interface RelayOpts {
@@ -66,7 +74,7 @@ export interface RelayOpts {
 }
 
 export class RelayClient {
-  state: ConnState = 'connecting';
+  state: ConnState = 'connexion';
   private ws: SocketLike | null = null;
   private arreterLePing: (() => void) | null = null;
   private annulerLeRetry: (() => void) | null = null;
@@ -109,7 +117,7 @@ export class RelayClient {
       this.lastPong = Date.now();
       this.retryDelay = 1000;
       this.retryStart = 0;
-      this.setState('ok');
+      this.setState('connecte');
       this.battre(ws);
     };
     ws.onmessage = (e) => {
@@ -117,13 +125,14 @@ export class RelayClient {
         this.lastPong = Date.now();
         return;
       }
-      if (typeof e.data !== 'string') return;
-      let env: Record<string, unknown>;
+      if (this.closed || typeof e.data !== 'string') return;
+      let env: unknown;
       try {
-        env = JSON.parse(e.data) as Record<string, unknown>;
+        env = JSON.parse(e.data);
       } catch {
         return;
       }
+      if (!estObjet(env)) return;
       this.opts.onEnvelope(env);
     };
     ws.onclose = (e) => {
@@ -131,7 +140,7 @@ export class RelayClient {
       this.ws = null;
       if (this.closed) return;
       if (e.code >= 4000) {
-        this.setState('lost');
+        this.setState('perdu');
         this.opts.onFatal?.(e.reason || 'Connexion refusée.');
         return;
       }
@@ -145,11 +154,11 @@ export class RelayClient {
   private scheduleRetry(): void {
     if (this.retryStart === 0) this.retryStart = Date.now();
     if (Date.now() - this.retryStart > RETRY_MAX_MS) {
-      this.setState('lost');
+      this.setState('perdu');
       this.opts.onFatal?.('Connexion perdue.');
       return;
     }
-    this.setState('reconnecting');
+    this.setState('reconnexion');
     this.annulerLeRetry = this.opts.minuterie.programmer(() => {
       this.annulerLeRetry = null;
       this.open();
@@ -158,7 +167,12 @@ export class RelayClient {
   }
 
   sendRaw(text: string): void {
-    if (this.state === 'ok') this.ws?.send(text);
+    if (!this.closed && this.state === 'connecte') this.ws?.send(text);
+  }
+
+  /** `close()` est passé : plus rien ne se livre ni ne s'envoie. */
+  get ferme(): boolean {
+    return this.closed;
   }
 
   buffered(): number {
@@ -174,16 +188,29 @@ export class RelayClient {
   }
 }
 
-/** Enveloppe un payload : clair si petit, compressé (`z`) sinon ; null si > 1 Mio (refus loggé). */
-async function packed(compression: Compression, to: number | null, data: string): Promise<Record<string, unknown> | null> {
+/** Enveloppe un payload : clair si petit, compressé (`z`) sinon ; lève au-delà de `WS_MAX`. */
+async function packed(compression: Compression, to: number | null, data: string): Promise<Record<string, unknown>> {
   const env: Record<string, unknown> = to == null ? {} : { to };
   if (data.length < COMPRESS_MIN) return { ...env, data };
   const z = await compression.comprimer(data);
-  if (z.length > WS_MAX) {
-    console.error(`[coop] message trop volumineux (${z.length} o compressés > 1 Mio) — non envoyé`);
-    return null;
-  }
+  if (z.length > WS_MAX) throw new Error(`[coop] message trop volumineux, non envoyé : ${z.length} o compressés > ${WS_MAX} o`);
   return { ...env, z };
+}
+
+/** Le texte d'une enveloppe reçue : `z` décompressé, sinon `data` ; null si illisible. */
+async function texteRecu(compression: Compression, env: Record<string, unknown>): Promise<string | null> {
+  return typeof env.z === 'string' ? compression.decomprimer(env.z) : typeof env.data === 'string' ? env.data : null;
+}
+
+/** Le maillon de `chaine` qui `produit` une valeur puis la `livre`, tant que `relay` n'est pas fermé : une levée va à
+ *  `panne`, la chaîne passe au maillon suivant. */
+function enchainer<T>(chaine: Promise<void>, relay: RelayClient, panne: (erreur: unknown) => void, produire: () => Promise<T | null>, livrer: (valeur: T) => void): Promise<void> {
+  return chaine
+    .then(async () => {
+      const valeur = await produire();
+      if (valeur != null && !relay.ferme) livrer(valeur);
+    })
+    .catch(panne);
 }
 
 /** Transport virtuel d'un siège côté hôte (recréé après la grace par `salon.ts`). */
@@ -249,22 +276,17 @@ export class RoomHost {
       this.onGone?.(Number(env.seat));
       return;
     }
-    if (typeof env.from !== 'number') return;
+    const from = env.from;
+    if (typeof from !== 'number') return;
     // Décompression SÉQUENTIELLE : l'ordre des messages d'un siège doit être préservé.
-    this.recvChain = this.recvChain.then(async () => {
-      const text = typeof env.z === 'string' ? await this.ports.compression.decomprimer(env.z) : typeof env.data === 'string' ? env.data : null;
-      if (text != null) this.transports.get(env.from as number)?.deliver(text);
-    });
+    this.recvChain = enchainer(this.recvChain, this.relay, this.ports.panne, () => texteRecu(this.ports.compression, env), (text) => this.transports.get(from)?.deliver(text));
   }
 
   /** Transport virtuel d'un siège — donné à `session.addGuest(t, seat)`. */
   seatTransport(seat: number): Transport {
     const t = new VirtualSeat(seat, (s, data) => {
       // Compression + envoi SÉQUENTIELS : un petit message ne doit pas doubler un gros en cours.
-      this.sendChain = this.sendChain.then(async () => {
-        const env = await packed(this.ports.compression, s, data);
-        if (env) this.relay.sendRaw(JSON.stringify(env));
-      });
+      this.sendChain = enchainer(this.sendChain, this.relay, this.ports.panne, () => packed(this.ports.compression, s, data), (env) => this.relay.sendRaw(JSON.stringify(env)));
     });
     this.transports.set(seat, t);
     return t;
@@ -313,12 +335,12 @@ export class RoomGuest implements Transport {
       onEnvelope: (env) => this.handle(env),
       onState: (s) => {
         this.onConnState?.(s);
-        if (s === 'reconnecting') this.wasReconnecting = true;
-        if (s === 'ok' && this.wasReconnecting) {
+        if (s === 'reconnexion') this.wasReconnecting = true;
+        if (s === 'connecte' && this.wasReconnecting) {
           this.wasReconnecting = false;
           this.onReconnected?.();
         }
-        if (s === 'lost') this.closeCb?.();
+        if (s === 'perdu') this.closeCb?.();
       },
       onFatal: (reason) => this.onFatal?.(reason),
     });
@@ -340,17 +362,11 @@ export class RoomGuest implements Transport {
       this.onReconnected?.();
       return;
     }
-    this.recvChain = this.recvChain.then(async () => {
-      const text = typeof env.z === 'string' ? await this.ports.compression.decomprimer(env.z) : typeof env.data === 'string' ? env.data : null;
-      if (text != null) this.msgCb?.(text);
-    });
+    this.recvChain = enchainer(this.recvChain, this.relay, this.ports.panne, () => texteRecu(this.ports.compression, env), (text) => this.msgCb?.(text));
   }
 
   send(data: string): void {
-    this.sendChain = this.sendChain.then(async () => {
-      const env = await packed(this.ports.compression, null, data);
-      if (env) this.relay.sendRaw(JSON.stringify(env));
-    });
+    this.sendChain = enchainer(this.sendChain, this.relay, this.ports.panne, () => packed(this.ports.compression, null, data), (env) => this.relay.sendRaw(JSON.stringify(env)));
   }
   onMessage(cb: (d: string) => void): void {
     this.msgCb = cb;

@@ -28,8 +28,18 @@
  * `domain:'structure'`), lue à l'apparence d'arête du noyau (`apparenceDArete`, `../facades`). Ce module tient
  * aussi le voisinage d'arête (`WALL_NB`), SOURCE UNIQUE relue par `walls.ts`.
  */
-import { heightAt, sceneMetresPerTile, type ArchitectureBody, type CellSide, type BuildingMass, type Scene, type WallSeg, type WallSide } from '../scene';
-import { memoByRef } from '../sceneMemo';
+import {
+  heightAt,
+  sceneMetresPerTile,
+  type ArchitectureBody,
+  type CellSide,
+  type BuildingMass,
+  type Scene,
+  type SceneDesToits,
+  type WallSeg,
+  type WallSide,
+} from '../scene';
+import { memoByRef, memoByRefDeps } from '../sceneMemo';
 import { aretesA } from '../wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../sceneEdit';
 import { roofMaterial } from './matieres';
@@ -772,7 +782,7 @@ export const WALL_NB: Record<WallSide, [number, number]> = { N: [0, -1], E: [1, 
  *  segments d'une arête, `[0]` le premier au sens du document. Mesure sur les 65 scènes livrées
  *  (37 scénarios + 4 campagnes, 3 143 murs) : ZÉRO arête porte plus d'un segment — premier et dernier
  *  sont le même mur, le verdict est celui d'ici. */
-const wallCellIndexOf = memoByRef((scene: Scene) => {
+const wallCellIndexOf = memoByRef((scene: Pick<Scene, 'walls'>) => {
   const byCell = new Map<string, WallSeg[]>();
   for (const seg of scene.walls ?? []) {
     const z = seg.z ?? 0;
@@ -788,7 +798,7 @@ const wallCellIndexOf = memoByRef((scene: Scene) => {
 /** Apparence DOMINANTE des murs bordant un ensemble de cases `x,y,z` (ordre d'id à égalité : verdict
  *  déterministe, jamais dépendant de l'ordre d'itération). */
 function dominantAppearance(
-  scene: Scene,
+  scene: Pick<Scene, 'architecture'>,
   index: { byCell: Map<string, WallSeg[]> },
   space: Iterable<string>,
 ): string | undefined {
@@ -813,7 +823,7 @@ function dominantAppearance(
  *   4. puis celle des murs du CORPS entier — un pignon prolonge SON bâtiment.
  *  `undefined` = ce corps ne porte AUCUN mur : il n'y a pas de bâti à fermer, et rien ne se peint. */
 export function closureAppearance(
-  scene: Scene,
+  scene: Pick<Scene, 'architecture' | 'walls'>,
   edges: readonly { x: number; y: number; side: WallSide; z: number }[],
   space: Iterable<string>,
   bodySpace: Iterable<string>,
@@ -875,7 +885,7 @@ const GROUPED_DETAIL_CELL_THRESHOLD = 64;
  *  qu'elle couvre (`z` = plancher sommet, `levels` niveaux DEPUIS `z` en descendant — une masse de 2
  *  niveaux à z=1 couvre z=0 ET z=1, comme l'ancien `RoofSection.roomZoneIds` authoré à la main pour un
  *  toit à étage). */
-export function massRoomZoneIds(scene: Scene, mass: BuildingMass, cells: ReadonlySet<string>): string[] {
+export function massRoomZoneIds(scene: Pick<Scene, 'effectZones'>, mass: BuildingMass, cells: ReadonlySet<string>): string[] {
   const zMin = mass.z - mass.levels + 1;
   const ids = new Set<string>();
   for (const zone of scene.effectZones ?? []) {
@@ -921,7 +931,8 @@ export function massCovers(mass: Pick<BuildingMass, 'z'>, cells: ReadonlySet<str
  *  (`cutawayForSection`, `seenSections`) : aucun second verdict n'est reposé. */
 export interface ShelterColumn { topZ: number; ceilingM: number; sectionId: string }
 
-const shelterOfScene = memoByRef((scene: Scene): ReadonlyMap<string, ShelterColumn> => {
+/** Le couvert bâti de `scene` (`shelterField`), calculé. */
+function couvertDe(scene: Scene): ReadonlyMap<string, ShelterColumn> {
   const out = new Map<string, ShelterColumn>();
   for (const nappe of resolveNappes(scene).values())
     for (const key of nappe.cells) {
@@ -934,17 +945,15 @@ const shelterOfScene = memoByRef((scene: Scene): ReadonlyMap<string, ShelterColu
       });
     }
   return out;
-});
+}
 
 /** COUVERT BÂTI de la scène, par colonne — l'agrégat de `massCovers` sur toutes les nappes
- *  (`resolveNappes`, la source unique des hauteurs de toit), mémoïsé par scène. Il ne dépend NI de la
+ *  (`resolveNappes`, la source unique des hauteurs de toit). Il ne dépend NI de la
  *  vue NI du dégagement : une nappe levée par le cutaway reste un toit, et il n'y pleut pas dessous.
- *  La mémoïsation est PAR RÉFÉRENCE de scène : tout plan modifié — l'éditeur qui retire une masse
+ *  Mémoïsé par scène et version des datasets (`memoByRef`) : tout plan modifié — l'éditeur qui retire une masse
  *  (`noyau/sceneEdit.ts`) — recalcule son couvert. Aucun mécanisme de PARTIE n'abat de masse :
  *  `structureDown` (`noyau/monde/scene.ts`) porte sur les arêtes de mur. */
-export function shelterField(scene: Scene): ReadonlyMap<string, ShelterColumn> {
-  return shelterOfScene(scene);
-}
+export const shelterField: (scene: Scene) => ReadonlyMap<string, ShelterColumn> = memoByRef(couvertDe);
 
 /** La case `x,y` est-elle SOUS COUVERT à la cote `hM` ? Sous l'égout de la nappe qui la coiffe. */
 export function isSheltered(field: ReadonlyMap<string, ShelterColumn>, x: number, y: number, hM: number): boolean {
@@ -958,6 +967,8 @@ export function isSheltered(field: ReadonlyMap<string, ShelterColumn>, x: number
 export function shelterSectionAt(field: ReadonlyMap<string, ShelterColumn>, x: number, y: number): string | null {
   return field.get(vk(Math.round(x), Math.round(y)))?.sectionId ?? null;
 }
+
+const espaceRetenu = memoByRefDeps<SceneDesToits, ClearedSpace>();
 
 /** ESPACE DÉGAGÉ par les alliés (#818), résolution UNIQUE de la scène — consommée par la loi
  *  `cutawayForSection` (`stage/architectureVisibility.ts`) pour les toits ICI et pour les murs et
@@ -988,9 +999,20 @@ export function shelterSectionAt(field: ReadonlyMap<string, ShelterColumn>, x: n
  *  le volume d'une masse dont il occupe un niveau — n'en voit AUCUNE : on ne regarde pas au travers
  *  d'un plafond (`computeVisible` ne marque jamais une case au-dessus du viewer). Le porche et le
  *  passage couvert ne sont PAS dedans : la masse les coiffe sans les enfermer, la vue y reste ouverte
- *  de tous côtés. `sight` absente ⇒ `null` : la vue n'est régie par aucune vision (éditeur, QC, POV). */
+ *  de tous côtés. `sight` absente ⇒ `null` : la vue n'est régie par aucune vision (éditeur, QC, POV).
+ *
+ *  Résolu une fois par scène, par version des datasets, par cases des alliés et par vue (`memoByRefDeps`) : ses lecteurs d'un même pas (nappes,
+ *  arêtes, couvercle) reçoivent le même espace. */
 export function clearedSpace(
-  scene: Scene,
+  scene: SceneDesToits,
+  allies: readonly { x: number; y: number; z?: number }[],
+  sight?: ReadonlySet<string>,
+): ClearedSpace {
+  return espaceRetenu(scene, [sight, ...allies.flatMap((a) => [a.x, a.y, a.z])], () => espaceDegage(scene, allies, sight));
+}
+
+function espaceDegage(
+  scene: SceneDesToits,
   allies: readonly { x: number; y: number; z?: number }[],
   sight?: ReadonlySet<string>,
 ): ClearedSpace {
@@ -1048,7 +1070,7 @@ function footInSight(z: number, cells: ReadonlySet<string>, sight: ReadonlySet<s
 /** Forme résolue + emprise + `roomZoneIds` dérivés d'une masse — calcul PARTAGÉ par `buildAuthoredRoofs`
  *  et `walls.ts` (pignons/jointures/enveloppe) : une seule dérivation, jamais deux formules qui
  *  pourraient diverger. */
-export function resolveMass(scene: Scene, mass: BuildingMass): { cells: Set<string>; shape: RoofShapeSpec; roomZoneIds: string[] } {
+export function resolveMass(scene: Pick<Scene, 'dimensions' | 'effectZones' | 'layers' | 'metresPerTile'>, mass: BuildingMass): { cells: Set<string>; shape: RoofShapeSpec; roomZoneIds: string[] } {
   const cells = massFootprintCells(mass.footprint);
   const ridge = resolveMassRidge(mass, cells);
   const pitch = sceneMetresPerTile(scene) * Math.tan((mass.pitchDeg * Math.PI) / 180);
@@ -1127,7 +1149,7 @@ function groupEaveSegs(domain: ReadonlySet<string>, group: readonly ResolvedMass
  *  les seuls bords amorçants, et UNE pente refittée sur la portée du domaine (`fittedPitchDeg`,
  *  `noyau/sceneEdit.ts` — la borne de comble #947 est celle du corps, jamais une seconde copie).
  *  `2 × profondeur` est la portée que cette borne lit : elle rapporte la montée à `portée/2`. */
-function groupField(scene: Scene, body: ArchitectureBody, group: readonly ResolvedMass[]): RoofField {
+function groupField(scene: Pick<Scene, 'metresPerTile' | 'roofDefaults'>, body: ArchitectureBody, group: readonly ResolvedMass[]): RoofField {
   const domain = new Set<string>();
   for (const r of group) for (const key of r.cells) domain.add(key);
   const segs = groupEaveSegs(domain, group);
@@ -1162,7 +1184,7 @@ const mayShareNappe = (a: ResolvedMass, b: ResolvedMass): boolean => {
   return a.mass.profile === b.mass.profile && a.mass.pitchDeg === b.mass.pitchDeg;
 };
 
-function nappesOfBody(scene: Scene, body: ArchitectureBody): MassNappe[] {
+function nappesOfBody(scene: Pick<Scene, 'dimensions' | 'effectZones' | 'layers' | 'metresPerTile' | 'roofDefaults'>, body: ArchitectureBody): MassNappe[] {
   const resolved: ResolvedMass[] = body.masses.map((mass) => ({ mass, ...resolveMass(scene, mass) }));
   const owner = new Map<string, number>();
   resolved.forEach((r, i) => { for (const key of r.cells) if (!owner.has(key)) owner.set(key, i); });
@@ -1198,19 +1220,15 @@ function nappesOfBody(scene: Scene, body: ArchitectureBody): MassNappe[] {
 /** Clé d'indexation d'une nappe — `bodyId` compris : deux corps peuvent nommer leurs masses pareil. */
 export const nappeKey = (bodyId: string, massId: string): string => `${bodyId}|${massId}`;
 
-const nappesOfScene = memoByRef((scene: Scene) => {
+/** Nappes de la scène, par `nappeKey` — SOURCE UNIQUE de la hauteur de toit : `buildRoofs` (pans et
+ *  pignons), `walls.ts` (joints de nappes) et `props.ts` (ornements de faîte) lisent LE MÊME champ,
+ *  jamais deux formules qui pourraient diverger. Mémoïsée par scène et version des datasets (`memoByRef`). */
+export const resolveNappes = memoByRef((scene: SceneDesToits): ReadonlyMap<string, MassNappe> => {
   const out = new Map<string, MassNappe>();
   for (const body of effectiveArchitecture(scene))
     for (const nappe of nappesOfBody(scene, body)) out.set(nappeKey(body.id, nappe.mass.id), nappe);
   return out;
 });
-
-/** Nappes de la scène, par `nappeKey` — SOURCE UNIQUE de la hauteur de toit : `buildRoofs` (pans et
- *  pignons), `walls.ts` (joints de nappes) et `props.ts` (ornements de faîte) lisent LE MÊME champ,
- *  jamais deux formules qui pourraient diverger. Mémoïsée par scène (`memoByRef`). */
-export function resolveNappes(scene: Scene): ReadonlyMap<string, MassNappe> {
-  return nappesOfScene(scene);
-}
 
 /** Éléments `roof` de la scène, DÉRIVÉS des masses de bâtiment. Les corps se lisent par
  *  `effectiveArchitecture` (`noyau/sceneEdit.ts`) : les masses `derived` se RECALCULENT du plan à
@@ -1221,7 +1239,7 @@ export function resolveNappes(scene: Scene): ReadonlyMap<string, MassNappe> {
  *  l'échelle de l'ESPACE HABITÉ couvert et de la MASSE vue, jamais de la travée de charpente (loi
  *  `cutawayForSection`, espace et vue résolus par `clearedSpace`), et c'est la SEULE vérité de vue
  *  portée par la règle de chaque pan (#808 : la géométrie, elle, ne bouge pas au pas). */
-function roofGeometry(scene: Scene): Viewed<RoofEl, ClearedSpace>[] {
+function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
   const out: Viewed<RoofEl, ClearedSpace>[] = [];
   const bodies = effectiveArchitecture(scene);
   const nappes = resolveNappes(scene);
@@ -1341,8 +1359,8 @@ function roofGeometry(scene: Scene): Viewed<RoofEl, ClearedSpace>[] {
  *  re-dérive AUCUNE masse — il ne rejoue que le DÉGAGEMENT, et rend le TABLEAU PRÉCÉDENT tant que
  *  l'espace dégagé ne change pas. Le dégagement est calculé UNE fois par masse et porté par TOUS ses
  *  pans : deux pans d'une même nappe ne se lèvent jamais l'un sans l'autre. */
-export const buildRoofs: (scene: Scene, view?: RoofView) => RoofEl[] = (() => {
-  const build = viewedBuilder<RoofEl, RoofView, ClearedSpace>({
+export const buildRoofs: (scene: SceneDesToits, view?: RoofView) => RoofEl[] = (() => {
+  const build = viewedBuilder<SceneDesToits, RoofEl, RoofView, ClearedSpace>({
     derive: roofGeometry,
     key: () => '', // la géométrie des nappes ne dépend d'AUCUN paramètre de vue
     context: (scene, view) => clearedSpace(scene, view?.allies ?? [], view?.sight),

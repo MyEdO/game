@@ -5,11 +5,22 @@
  * si elle ouvre un cran d'annulation, la sélection désignée, la case tracée d'une volée) et le geste en cours, que
  * l'hôte repasse au pas suivant.
  */
-import { sceneMetresPerTile, type Scene, type CellSide } from '../monde/scene';
+import { canonEdge, sceneMetresPerTile, type Scene, type CellSide } from '../monde/scene';
 import { ancreDuDecor } from '../monde/footprint';
-import { appliquerOutil, addFacadeSection, moveSel, poserLeDecorAuPoint, rectFrom, resizeSel, validerRectangle, type GesteDOutil, type Pt, type Rect } from '../sceneEdit';
+import {
+  appliquerOutil,
+  addFacadeSection,
+  moveSel,
+  poserLeDecorAuPoint,
+  rectFrom,
+  resizeSel,
+  validerRectangle,
+  type GesteDOutil,
+  type Pt,
+  type Rect,
+} from '../sceneEdit';
 import { caseDe } from '../../data/props.types';
-import { canonEdge, dansLaCarte, empriseDuPinceau, hitAt, nearestEdge, pickArchitectureEdge, pickWallEdge, type Layers, type Sel, type Tool } from '../sceneEditLecture';
+import { dansLaCarte, empriseDuPinceau, hitAt, nearestEdge, pickArchitectureEdge, pickWallEdge, type Layers, type Sel, type Tool } from '../sceneEditLecture';
 import { provenanceDesNavires } from '../planDeNavire';
 
 /** Ce que l'éditeur tient autour du geste : l'outil, la couche, le pinceau, la rencontre que l'outil de rencontre
@@ -24,7 +35,7 @@ export interface ContexteDuPointeur {
   layers: Layers;
   sel: Sel;
   terrainRect: boolean;
-  architecture: { z: number; action: 'select' | 'facade'; bodyId: string | null } | null;
+  architecture: { z: number; action: 'selection' | 'facade'; bodyId: string | null } | null;
 }
 
 /** Un point de la carte : la case visée et ses coordonnées fractionnaires de case, sur le plan de
@@ -80,7 +91,7 @@ function areteDuPoint(f: Pt): { p: Pt; side: CellSide } {
 
 /** L'arête canonique que l'outil murs viserait au point `pt` (cloison ou porte), `null` pour tout autre outil. */
 export function areteVisee(ctx: ContexteDuPointeur, pt: PointDeCarte): { x: number; y: number; side: 'N' | 'E' } | null {
-  if (ctx.tool.mode !== 'wall' || (ctx.tool.paint !== 'wall' && ctx.tool.paint !== 'door')) return null;
+  if (ctx.tool.mode !== 'arete' || (ctx.tool.paint !== 'wall' && ctx.tool.paint !== 'door')) return null;
   const { p, side } = areteDuPoint(pt.f);
   return canonEdge(p.x, p.y, side);
 }
@@ -94,9 +105,9 @@ function peindre(scene: Scene, ctx: ContexteDuPointeur, trait: Extract<GesteEnCo
   if (trait.trace.some((t) => memeCase(t, p))) return { geste: trait };
   const out = appliquerOutil(scene, ctx.tool, p, gesteDOutil(ctx));
   if (!out || out.scene === scene) return { geste: trait };
-  const emprise = ctx.tool.mode === 'erase' || ctx.tool.mode === 'zoneTiles' ? 1 : ctx.brush;
+  const emprise = ctx.tool.mode === 'gomme' || ctx.tool.mode === 'casesDeZone' ? 1 : ctx.brush;
   const trace = [...trait.trace, ...empriseDuPinceau(scene.dimensions, p, emprise).filter((c) => !trait.trace.some((t) => memeCase(t, c)))];
-  return { geste: { sorte: 'trait', cran: true, trace }, scene: out.scene, cran: ctx.tool.mode === 'erase' || !trait.cran };
+  return { geste: { sorte: 'trait', cran: true, trace }, scene: out.scene, cran: ctx.tool.mode === 'gomme' || !trait.cran };
 }
 
 const rectangle = (p: Pt): EffetDuPointeur => ({ geste: { sorte: 'rectangle', depart: p, rect: { x: p.x, y: p.y, w: 1, h: 1 } } });
@@ -139,25 +150,25 @@ export function appuyer(scene: Scene, ctx: ContexteDuPointeur, pt: PointDeCarte)
   if (!dansLaCarte(scene, p)) return { geste: null };
   const tool = ctx.tool;
   switch (tool.mode) {
-    case 'select':
+    case 'selection':
       return selectionner(scene, ctx, pt);
-    case 'tile':
+    case 'terrain':
       return ctx.terrainRect ? rectangle(p) : peindre(scene, ctx, { sorte: 'trait', cran: false, trace: [] }, p);
     case 'zone':
       return rectangle(p);
-    case 'zoneTiles':
-    case 'height':
-    case 'crenellated':
-    case 'erase':
+    case 'casesDeZone':
+    case 'hauteur':
+    case 'crenelage':
+    case 'gomme':
       return peindre(scene, ctx, { sorte: 'trait', cran: false, trace: [] }, p);
-    case 'stair':
+    case 'escalier':
       return { geste: { sorte: 'volee', dernier: p }, volee: p };
-    case 'entity':
+    case 'entite':
     case 'emplacement':
-    case 'entry':
-    case 'encounter':
-    case 'wall': {
-      const cible = tool.mode === 'wall' ? areteDuPoint(pt.f) : { p: caseDe(pt.f.x, pt.f.y), side: undefined };
+    case 'entree':
+    case 'rencontre':
+    case 'arete': {
+      const cible = tool.mode === 'arete' ? areteDuPoint(pt.f) : { p: caseDe(pt.f.x, pt.f.y), side: undefined };
       const out = appliquerOutil(scene, tool, cible.p, { ...gesteDOutil(ctx), side: cible.side, point: pt.f });
       if (!out) return { geste: null };
       return {

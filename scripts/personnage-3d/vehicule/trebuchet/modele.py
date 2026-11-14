@@ -132,7 +132,7 @@ def construire(D):
 
 
 def tir(D, gy, gz):
-    """Le clip `ranged` : la verge lâchée de `course` (degrés) par la chute du contrepoids, pendu d'aplomb à sa goupille
+    """Le clip `tir` : la verge lâchée de `course` (degrés) par la chute du contrepoids, pendu d'aplomb à sa goupille
     (`gy`, `gz` depuis l'axe), puis ramenée au treuil (`TIR`, temps de `coup`)."""
     temps, course = D["TIR"], math.radians(D["VERGE"]["course"])
     angle = lambda t: course * coup(t, temps)
@@ -141,7 +141,7 @@ def tir(D, gy, gz):
         c, s = math.cos(angle(t)), math.sin(angle(t))
         return (0, gy * c - gz * s - gy, gy * s + gz * c - gz), (0, 0, 0)
 
-    return ("ranged", "tir", sum(temps), {"verge": lambda t: ((0, 0, 0), (angle(t), 0, 0)), "contrepoids": goupille})
+    return ("tir", "tir", sum(temps), {"verge": lambda t: ((0, 0, 0), (angle(t), 0, 0)), "contrepoids": goupille})
 
 
 def elements(D):

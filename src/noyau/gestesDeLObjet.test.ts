@@ -1,21 +1,21 @@
 /**
  * LES GESTES D'UN OBJET (#3328, `gestesDeLObjet`) : chaque geste n'existe que pour l'objet qu'il touche, et se ferme
  * par le verdict que son verbe applique : en combat, `refusDInventaire` ; l'Évaluation et la Détection, `refusDEvaluation`
- * (le délai maison après une Évaluation manquée, `market-evaluation-delai-jours` ; une tentative par détecteur, LDB 10 l.336) ;
+ * (le délai maison après une Évaluation manquée, `marche-evaluation-delai-jours` ; une tentative par détecteur, LDB 10 l.336) ;
  * poser au sol, une scène où le poser (`refusDePoser`) ; le geste présent et refusé, sa raison dite.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { gestesDeLObjet } from './gestesDeLObjet';
 import { appraiseRefus, refusDeDetection } from './merchantFlow';
-import { PREGEN, pregenParty } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { t } from '../i18n';
 import type { Jeu } from './etat';
 
 /** Deux pré-tirés hors combat, au jour 3 ; `rosa`, la seconde, porte un objet non identifié (`inconnu`). */
 function partie(inconnu: { appraiseTriedDay?: number; detectTriedBy?: string[] } = {}) {
-  const party = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.apothicaire);
+  const party = groupeDeScenario(idsDeTest, 'soldat', 'apothicaire');
   const rosa = party[1];
   const pilon = rosa.items!.find((i) => i.label === 'Pilon et Mortier')!;
   Object.assign(pilon, { identified: false, ...inconnu });
@@ -36,7 +36,7 @@ describe('les gestes d’un objet', () => {
     const pilon = gestesDeLObjet(s, rosa.id, uid('Pilon et Mortier'))!;
     expect([pilon.evaluer, pilon.detecter], 'un objet non identifié s’évalue et se détecte, au verdict de l’Évaluation').toEqual([
       { refus: appraiseRefus(s.party), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier')] } },
-      { refus: refusDeDetection(s.party, rosa.items!.find((i) => i.label === 'Pilon et Mortier')!), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier'), 'detect'] } },
+      { refus: refusDeDetection(s.party, rosa.items!.find((i) => i.label === 'Pilon et Mortier')!), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier'), 'detection'] } },
     ]);
     expect(dague.poser, 'tout objet se pose, refusé sans sol où le poser')
       .toEqual({ refus: t('pf.poserSansScene', { item: 'Dague' }), geste: { verbe: 'poserLObjet', args: [uid('Dague')] } });
@@ -49,8 +49,8 @@ describe('les gestes d’un objet', () => {
     rosa.items!.find((i) => i.label === 'Pilon et Mortier')!.detectTriedBy = [rosa.id];
     const pilon = gestesDeLObjet(s, rosa.id, uid('Pilon et Mortier'))!;
     expect([pilon.evaluer, pilon.detecter?.refus]).toEqual([
-      { refus: t('mf.appraiseRetenter', { label: 'Pilon et Mortier', jours: 1 }), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier')] } },
-      t('mf.detectDejaTentee', { label: 'Pilon et Mortier' }),
+      { refus: t('mf.evaluationARetenter', { label: 'Pilon et Mortier', jours: 1 }), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier')] } },
+      t('mf.detectionDejaTentee', { label: 'Pilon et Mortier' }),
     ]);
     const veille = partie({ appraiseTriedDay: 2 });
     expect(gestesDeLObjet(veille.s, veille.rosa.id, veille.uid('Pilon et Mortier'))!.evaluer, 'tentée la veille, elle s’offre').toEqual({ refus: appraiseRefus(veille.s.party), geste: { verbe: 'evaluerLObjet', args: [veille.uid('Pilon et Mortier')] } });

@@ -117,7 +117,7 @@ func _poser_l_oeil() -> void:
 func _process(delta: float) -> void:
 	if not _active or _suspendue or not monde.clavier_libre():
 		return
-	var forces := [Input.get_action_strength(&"gauche"), Input.get_action_strength(&"droite"), Input.get_action_strength(&"avant"), Input.get_action_strength(&"arriere")]
+	var forces := monde.forces_du_clavier()
 	if forces.all(func(f: float) -> bool: return f == 0.0):
 		return
 	var vitesse := VITESSE_DE_COURSE_M_S if Input.is_action_pressed(&"courir") else VITESSE_M_S

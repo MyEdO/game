@@ -21,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 // Frappe Mortelle — balayage (LDB 14 - _GoBack.md l.9-12 + 85 l.299)
 // ---------------------------------------------------------------------------
 
-const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Partial<Combatant> = {}): Combatant =>
+const at = (kind: 'heros' | 'ennemi', id: string, x: number, y: number, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id,
     name: id,
@@ -41,17 +41,17 @@ const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Part
 
 describe('cleaveTargets — cibles de balayage adjacentes (pur)', () => {
   it('renvoie les adversaires vivants adjacents non déjà frappés ; exclut alliés, lointains, morts', () => {
-    const attacker = at('enemy', 'OGRE', 5, 5, { size: 'enorme' });
-    const adj1 = at('hero', 'H1', 5, 6); // adjacent
-    const adj2 = at('hero', 'H2', 4, 4); // adjacent (diagonale)
-    const far = at('hero', 'H3', 5, 9); // hors de portée
-    const dead = at('hero', 'H4', 6, 5, { dead: true } as Partial<Combatant>); // adjacent mais hors de combat
-    const ally = at('enemy', 'E2', 4, 5); // même camp que l'attaquant
+    const attacker = at('ennemi', 'OGRE', 5, 5, { size: 'enorme' });
+    const adj1 = at('heros', 'H1', 5, 6); // adjacent
+    const adj2 = at('heros', 'H2', 4, 4); // adjacent (diagonale)
+    const far = at('heros', 'H3', 5, 9); // hors de portée
+    const dead = at('heros', 'H4', 6, 5, { dead: true } as Partial<Combatant>); // adjacent mais hors de combat
+    const ally = at('ennemi', 'E2', 4, 5); // même camp que l'attaquant
     const battle = { combatants: [attacker, adj1, adj2, far, dead, ally] } as unknown as BattleState;
 
-    expect(cleaveTargets(battle, attacker, []).map((c) => c.id).sort()).toEqual(['H1', 'H2']);
+    expect(cleaveTargets(banc.getState().scene, battle, attacker, []).map((c) => c.id).sort()).toEqual(['H1', 'H2']);
     // une cible déjà frappée ce balayage est exclue
-    expect(cleaveTargets(battle, attacker, ['H1']).map((c) => c.id)).toEqual(['H2']);
+    expect(cleaveTargets(banc.getState().scene, battle, attacker, ['H1']).map((c) => c.id)).toEqual(['H2']);
   });
 });
 
@@ -64,7 +64,7 @@ describe('Balayage en combat (store)', () => {
     banc.setState({ party });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner(); // on pilote l'ordre nous-mêmes
     return banc.getState().battle!;
   }
@@ -72,8 +72,8 @@ describe('Balayage en combat (store)', () => {
   it('IA : un Énorme adjacent à deux héros enchaîne (Frappe Mortelle) sur le second', () => {
     banc.getState().ensemencerLeTirage(2);
     const b = setupBattle(2);
-    const heroes = b.combatants.filter((c) => c.kind === 'hero');
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const heroes = b.combatants.filter((c) => c.kind === 'heros');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = enemies[0];
     // Un seul ennemi actif (Énorme, CC élevée pour des touches fiables) ; les autres écartés.
     enemies.slice(1).forEach((e) => (e.dead = true));
@@ -107,8 +107,8 @@ describe('Balayage en combat (store)', () => {
   it('Frappe Mortelle (option, hors Taille) : un attaquant de taille NORMALE qui TUE en un coup enchaîne — rien sans la règle', () => {
     banc.getState().ensemencerLeTirage(2);
     const b = setupBattle(2);
-    const heroes = b.combatants.filter((c) => c.kind === 'hero');
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const heroes = b.combatants.filter((c) => c.kind === 'heros');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     E.size = 'moyenne'; // PAS plus grand → balayage de Taille INACTIF (res.cleave = false)
@@ -139,8 +139,8 @@ describe('Balayage en combat (store)', () => {
   it('Héros plus grand : pendingCleave s’ouvre après la touche, l’enchaînement le ferme', () => {
     banc.getState().ensemencerLeTirage(2);
     const b = setupBattle(1);
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const [E1, E2] = enemies;
     enemies.slice(2).forEach((e) => (e.dead = true));
     H.size = 'grande';
@@ -158,8 +158,8 @@ describe('Balayage en combat (store)', () => {
 
     // Touche primaire sur E1 → balayage déclenché (héros plus grand).
     cliquerSurLeCombattant(banc.getState, E1.id, { confirm: true });
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     const pc = banc.getState().pendingCleave;
     expect(pc).toBeTruthy();
     expect(pc!.hitIds).toEqual([E1.id]);
@@ -169,8 +169,8 @@ describe('Balayage en combat (store)', () => {
     const e2Before = banc.getState().battle!.combatants.find((c) => c.id === E2.id)!.wounds.current;
     banc.getState().frapperEnBalayage(E2.id);
     expect(banc.getState().pendingAttack!.cleave).toBe(true);
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().pendingCleave).toBeNull();
     expect(banc.getState().battle!.combatants.find((c) => c.id === E2.id)!.wounds.current).toBeLessThan(e2Before);
   });
@@ -178,8 +178,8 @@ describe('Balayage en combat (store)', () => {
   it('Héros plus grand, manœuvre gratuite (Morsure) : pendingCleave s’ouvre après la touche, comme pour une attaque (LDB 14 l.9, LDB 85 l.362)', () => {
     banc.getState().ensemencerLeTirage(2);
     const b = setupBattle(1);
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const [E1, E2] = enemies;
     enemies.slice(2).forEach((e) => (e.dead = true));
     H.size = 'grande';
@@ -200,9 +200,9 @@ describe('Balayage en combat (store)', () => {
     banc.getState().armerLAttaque('morsure');
     cliquerSurLeCombattant(banc.getState, E1.id, { confirm: true });
     expect(banc.getState().pendingAttack!.freeKind).toBe('morsure');
-    banc.getState().jetLancer('attack');
+    banc.getState().jetLancer('attaque');
     expect(banc.getState().pendingAttack!.result!.hit).toBe(true);
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     const pc = banc.getState().pendingCleave;
     expect(pc).toBeTruthy();
     expect(pc!.hitIds).toEqual([E1.id]);
@@ -210,8 +210,8 @@ describe('Balayage en combat (store)', () => {
 
   it('borne BCC : frapperEnBalayage refusé une fois le quota d’enchaînements atteint ; sa sortie ferme', () => {
     const b = setupBattle(1);
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E1 = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E1 = b.combatants.find((c) => c.kind === 'ennemi')!;
     // Le héros peut avoir des talents charMod (+5 CC via guerrier-né…) : vider les talents pour
     // isoler ce test du quota et rendre BCC=2 déterministe (CC=25 brut, effectiveChar=25, BCC=2).
     H.talents = [];
@@ -226,15 +226,15 @@ describe('Balayage en combat (store)', () => {
     banc.getState().frapperEnBalayage(E1.id);
     expect(banc.getState().pendingAttack).toBeNull(); // refusé : count >= BCC
 
-    banc.getState().fenetreFermer('cleave');
+    banc.getState().fenetreFermer('frappeMortelle');
     expect(banc.getState().pendingCleave).toBeNull();
   });
 
   it('en se recalant sur la case d’un mort, un Énorme dégage les plus petits sous son empreinte (LDB 85 l.373-374)', () => {
     banc.getState().ensemencerLeTirage(7);
     const b = setupBattle(2);
-    const heroes = b.combatants.filter((c) => c.kind === 'hero');
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const heroes = b.combatants.filter((c) => c.kind === 'heros');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true)); // un seul ennemi actif
     E.size = 'enorme'; // empreinte 3×3

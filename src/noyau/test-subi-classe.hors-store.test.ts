@@ -87,7 +87,7 @@ function brancheInerteIci(n: Noeud, issue: boolean): boolean {
   try {
     runCombatFlow({ get, set, target: sujet, caster: sujet, label: n.entryId,
       opsCtx: { ...opsCtx, sl: slDe(issue) } },
-    (issue ? n.node.success : n.node.fail) ?? EMPTY_FLOW);
+    (issue ? n.node.reussite : n.node.echec) ?? EMPTY_FLOW);
   } catch (e) { leve = e; }
   if (leve !== undefined) throw new Error(`ORACLE — ${String(leve)}`);
   return consequenceSurLeSujet() === avant
@@ -98,17 +98,17 @@ function brancheInerteIci(n: Noeud, issue: boolean): boolean {
 /** Toutes les `GameOp` des branches d'un nœud — la matière du prédicat de porte. */
 function opsDesBranches(f: Flow | undefined, out: GameOp[] = []): GameOp[] {
   if (!f) return out;
-  if (f.kind === 'do') { if (f.effect.type === 'ops') out.push(...f.effect.ops); return out; }
-  if (f.kind === 'seq') { f.steps.forEach((s) => opsDesBranches(s, out)); return out; }
-  if (f.kind === 'if') { opsDesBranches(f.then, out); opsDesBranches(f.else, out); return out; }
-  if (f.kind === 'test') { opsDesBranches(f.success, out); opsDesBranches(f.fail, out); return out; }
-  opsDesBranches(f.yes, out); opsDesBranches(f.no, out);
+  if (f.kind === 'effet') { if (f.effet.type === 'ops') out.push(...f.effet.ops); return out; }
+  if (f.kind === 'sequence') { f.etapes.forEach((s) => opsDesBranches(s, out)); return out; }
+  if (f.kind === 'si') { opsDesBranches(f.alors, out); opsDesBranches(f.sinon, out); return out; }
+  if (f.kind === 'test') { opsDesBranches(f.reussite, out); opsDesBranches(f.echec, out); return out; }
+  opsDesBranches(f.oui, out); opsDesBranches(f.non, out);
   return out;
 }
 
 /** PORTE d'un nœud, dérivée de ce que le nœud EST — jamais d'une liste d'ids :
  *  - il EST le jet de cycle d'une maladie (`onTick.test` d'un symptôme, `dailyTest.test` d'une maladie,
- *    `porteDeMaladie`) → la porte de l'ENTRETIEN (étape `disease-tick` de la nuit) ;
+ *    `porteDeMaladie`) → la porte de l'ENTRETIEN (étape `maladie-test-quotidien` de la nuit) ;
  *  - ses ops exigent une COQUE (une chute dont la hauteur se lit sur la taille du navire) → la porte
  *    des bandes d'équipage (`bandeTriggeredTest`) ;
  *  - il EST le Flow bu d'une possession (chemin `.consumable…`, hors greffe d'arme `onHitEffects`) →
@@ -118,7 +118,7 @@ function opsDesBranches(f: Flow | undefined, out: GameOp[] = []): GameOp[] {
 type Porte = 'maladie' | 'bande' | 'consommable' | 'generale';
 function porteDe(n: Noeud): Porte {
   if (porteDeMaladie(n)) return 'maladie';
-  const ops = [...opsDesBranches(n.node.success), ...opsDesBranches(n.node.fail)];
+  const ops = [...opsDesBranches(n.node.reussite), ...opsDesBranches(n.node.echec)];
   if (ops.some((o) => o.op === 'fall')) return 'bande';
   if (/^\.consumable/.test(n.chemin) && !n.chemin.includes('onHitEffects')) return 'consommable';
   return 'generale';
@@ -140,7 +140,7 @@ type Jouee = { jouee: boolean; poses: readonly string[] };
  *  exigent (Test ou op) et les États que ses ops `removeCondition` retirent. */
 function preparerPorte(n: Noeud): { opsCtx: OpsCtx; poses: readonly string[] } {
   const opsCtx: OpsCtx = { rng: battleRng(), idNeuf: idsDeTest, label: n.entryId, sl: -10, ...(n.source ? { source: n.source } : {}) };
-  const ops = [...opsDesBranches(n.node.success), ...opsDesBranches(n.node.fail)];
+  const ops = [...opsDesBranches(n.node.reussite), ...opsDesBranches(n.node.echec)];
   const groupes = [...(n.node.test.onlyGroups ?? []), ...ops.flatMap((o) => (o as { onlyGroups?: string[] }).onlyGroups ?? [])];
   const aRetirer = ops.flatMap((o) => (o.op === 'removeCondition' ? [o.id] : []));
   set({ party: get().party.map((c) => (c.id === 'h3' ? {
@@ -166,8 +166,8 @@ function jouerParSaPorte(n: Noeud, sujet: Combatant, issue: boolean, branchesVid
   const { opsCtx, poses } = preparerPorte(n);
   switch (porteDe(n)) {
     case 'maladie': {
-      // L'ENTRETIEN réel de la nuit : l'étape `disease-tick` reçoit l'issue imposée par un dé POSÉ. Le témoin
-      // est la MÊME nuit réussie : l'applier `disease-tick` (`noyau/restFlow.ts`) n'applique que l'échec.
+      // L'ENTRETIEN réel de la nuit : l'étape `maladie-test-quotidien` reçoit l'issue imposée par un dé POSÉ. Le témoin
+      // est la MÊME nuit réussie : l'applier `maladie-test-quotidien` (`noyau/restFlow.ts`) n'applique que l'échec.
       nuitDuMalade(get, n, 'h3', branchesVides || issue);
       return { jouee: true, poses };
     }
@@ -175,7 +175,7 @@ function jouerParSaPorte(n: Noeud, sujet: Combatant, issue: boolean, branchesVid
       // La porte des bandes REND son étape : « la couture décide où elle atterrit ». Le banc tient donc
       // le rôle de la couture — il pousse l'étape, RÉSULTATS INJECTÉS (patron `ship-crew-hit-porte`),
       // puis la joue comme un joueur (`draineCascade`, qui ne relance pas un résultat posé).
-      const node = branchesVides ? { ...n.node, success: EMPTY_FLOW, fail: EMPTY_FLOW } : n.node;
+      const node = branchesVides ? { ...n.node, reussite: EMPTY_FLOW, echec: EMPTY_FLOW } : n.node;
       const etape = bandeTriggeredTest(get, set, [get().party[2]], node, n.entryId, opsCtx);
       if (!etape) throw new Error('porte `bande` sans étape : l’issue n’a pas pu être imposée');
       pushCombatStep(set, {
@@ -252,7 +252,7 @@ describe('#1874 C0 — CLASSE : aucun nœud `test` de la donnée ne déborde sur
     banc = b;
     for (const n of noeuds) {
       for (const issue of [true, false]) {
-        const site = `${n.fichier} ${n.entryId}${n.chemin} [${issue ? 'success' : 'fail'}]`;
+        const site = `${n.fichier} ${n.entryId}${n.chemin} [${issue ? 'reussite' : 'echec'}]`;
         try {
           const reel = jouerUnSite(n, issue);
           if (!reel.jouee) { gatesFermees.push(site); continue; }

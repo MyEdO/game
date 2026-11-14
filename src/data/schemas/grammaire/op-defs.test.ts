@@ -5,14 +5,13 @@ import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { conditionSchema, gameOpSchema, OP_DEFS, OPS_NON_TYPEES, mecaniqueDe } from './mecanique';
-import { applyOps, messageRecurrenceHorloge, SELF_REF } from '../../../engine/ops';
+import { applyOps, messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine/ops';
 import { ARG_TEMPLATE, INDICE_TEMPLATE } from '../../../engine/flowCore';
 import { champsDOpASlot } from '../../../../scripts/docs/lib/slots-registre.mjs';
 import type { Combatant } from '../../../engine/types';
 import { desDuTest } from '../../../engine/dice.testkit';
 import { conditionIds } from '../../index';
 import { validateDataset } from '../validate';
-import { t } from '../../../i18n';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../../engine/combattantDeTest.testkit';
 
 describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', () => {
@@ -36,8 +35,8 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
   });
 
   it('une op NON TYPÉE garde la forme loose', () => {
-    expect(OPS_NON_TYPEES).toContain('condition');
-    expect(gameOpSchema.safeParse({ op: 'condition', id: 'inconscient', quoiQueCeSoit: 3 }).success).toBe(true);
+    expect(OPS_NON_TYPEES).toContain('statusMod');
+    expect(gameOpSchema.safeParse({ op: 'statusMod', amount: 1, quoiQueCeSoit: 3 }).success).toBe(true);
   });
 
   it('narrative est typée : texte et provenance locaux, aucun champ étranger', () => {
@@ -45,47 +44,47 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit' }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', source: { book: 'ennemi-dans-l-ombre', page: 12 } }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', adapteDe: { book: 'ennemi-dans-l-ombre', page: 14 } }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', nombre: { dice: { n: 1, sides: 10 } } }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', quoiQueCeSoit: 3 }).success).toBe(false);
   });
 
-  /** `condition` reste LOOSE, mais la combinaison que `applyOps` lève en plein combat (récurrence
-   *  comptée en Rounds vs durée d'HORLOGE) se refuse déjà AU PARSE, du MÊME message. */
-  it('une op LOOSE ne passe pas les refus mesurés : `condition` à `perRound` + durée d’horloge est refusée au PARSE', () => {
-    expect(OPS_NON_TYPEES).toContain('condition');
-    expect(gameOpSchema.safeParse({ op: 'condition', id: 'inconscient', perRound: true, durationRounds: 3 }).success).toBe(true);
+  /** La combinaison que `applyOps` lève en plein combat (récurrence comptée en Rounds vs durée d'HORLOGE)
+   *  se refuse déjà AU PARSE, du MÊME message. */
+  it('`condition` à `perRound` + durée d’horloge est refusée au PARSE', () => {
+    expect(gameOpSchema.safeParse({ op: 'condition', id: { id: 'inconscient' }, perRound: true, durationRounds: 3 }).success).toBe(true);
     for (const duree of [{ durationHours: 1 }, { durationMinutes: 30 }]) {
-      const res = gameOpSchema.safeParse({ op: 'condition', id: 'inconscient', perRound: true, ...duree });
+      const res = gameOpSchema.safeParse({ op: 'condition', id: { id: 'inconscient' }, perRound: true, ...duree });
       expect(res.success, JSON.stringify(duree)).toBe(false);
       expect(res.error!.issues.map((i) => i.path.join('.'))).toContain('perRound');
-      expect(res.error!.issues[0].message).toBe(messageRecurrenceHorloge('inconscient'));
+      expect(res.error!.issues[0].message).toBe(`GameOp « condition » : ${messageRecurrenceHorloge('inconscient')}`);
     }
     expect(() => applyOps(
-      blessuresSurLeProfil({ id: 'c', label: 'Cobaye', kind: 'hero', characteristics: {}, wounds: blessuresDeBase(5), advantage: 0, conditions: [], movement: 4, weapons: [], armour: {}, skills: [], talents: [] }) as unknown as Combatant,
-      [{ op: 'condition', id: 'inconscient', perRound: true, durationHours: 1 }],
+      blessuresSurLeProfil({ id: 'c', label: 'Cobaye', kind: 'heros', characteristics: {}, wounds: blessuresDeBase(5), advantage: 0, conditions: [], movement: 4, weapons: [], armour: {}, skills: [], talents: [] }) as unknown as Combatant,
+      [{ op: 'condition', id: { id: 'inconscient' }, perRound: true, durationHours: 1 }],
       { idNeuf: idsDeTest, rng: desDuTest },
     ), 'le PARSE et l’APPLICATION disent le même refus').toThrow(messageRecurrenceHorloge('inconscient'));
   });
 
   it('une op `condition`/`removeCondition` qui nomme un État hors du registre est refusée AU CHAMP (#1463 LD.1)', () => {
     const connu = conditionIds()[0];
-    expect(gameOpSchema.safeParse({ op: 'condition', id: connu, onlyIfCondition: connu, unlessCondition: connu }).success).toBe(true);
-    expect(gameOpSchema.safeParse({ op: 'removeCondition', id: connu }).success).toBe(true);
-    expect(gameOpSchema.safeParse({ op: 'condition', id: 'petrifie' }).success, 'un marqueur narratif est un État connu').toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'condition', id: { id: connu }, onlyIfCondition: { id: connu }, unlessCondition: { id: connu } }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'removeCondition', id: { id: connu } }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'condition', id: { id: 'petrifie' } }).success, 'un marqueur narratif est un État connu').toBe(true);
     for (const op of [
-      { op: 'condition', id: 'etat-hors-registre' },
-      { op: 'condition', id: connu, onlyIfCondition: 'etat-hors-registre' },
-      { op: 'condition', id: connu, unlessCondition: 'etat-hors-registre' },
-      { op: 'removeCondition', id: 'etat-hors-registre' },
+      { op: 'condition', id: { id: 'etat-hors-registre' } },
+      { op: 'condition', id: { id: connu }, onlyIfCondition: { id: 'etat-hors-registre' } },
+      { op: 'condition', id: { id: connu }, unlessCondition: { id: 'etat-hors-registre' } },
+      { op: 'removeCondition', id: { id: 'etat-hors-registre' } },
     ]) {
       const res = gameOpSchema.safeParse(op);
       expect(res.success, JSON.stringify(op)).toBe(false);
-      const champ = Object.keys(op).find((k) => (op as Record<string, unknown>)[k] === 'etat-hors-registre')!;
-      expect(res.error!.issues.map((i) => i.path.join('.'))).toContain(champ);
+      const champ = Object.keys(op).find((k) => ((op as Record<string, unknown>)[k] as { id?: string }).id === 'etat-hors-registre')!;
+      expect(res.error!.issues.map((i) => i.path.join('.'))).toContain(`${champ}.id`);
     }
   });
 
-  it('un `onlyGroups` de `wounds`/`condition` (ops loose) est jugé AU CHAMP : liste d’ids de Groupe connus (#1473)', () => {
-    for (const base of [{ op: 'wounds', amount: 1 }, { op: 'condition', id: conditionIds()[0] }]) {
+  it('un `onlyGroups` de `condition` est jugé AU CHAMP : liste d’ids de Groupe connus (#1473)', () => {
+    for (const base of [{ op: 'condition', id: { id: conditionIds()[0] } }]) {
       expect(gameOpSchema.safeParse({ ...base, onlyGroups: ['demon'] }).success, base.op).toBe(true);
       for (const [onlyGroups, chemin, message] of [
         [['groupe-fantome'], 'onlyGroups.0', '« groupe-fantome » est absent du catalogue des groupes (groups.json).'],
@@ -96,20 +95,26 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
         expect(res.success, `${base.op} ${JSON.stringify(onlyGroups)}`).toBe(false);
         const issue = res.error!.issues.find((i) => i.path.join('.') === chemin);
         expect(issue, `${base.op} ${JSON.stringify(onlyGroups)}`).toBeDefined();
-        if (message) expect(issue!.message).toBe(message);
+        if (message) expect(issue!.message).toBe(`GameOp « condition » : ${message}`);
       }
     }
   });
 
-  it('dialecte miscast : un État hors du registre est refusé au chargement, par le MÊME refus que les ops loose (#1473)', () => {
+  it('dialecte miscast : un État hors du registre est refusé au chargement, par la référence d’État de l’op `condition` (#1473)', () => {
     const miscast = JSON.parse(readFileSync(new URL('../../miscast.json', import.meta.url), 'utf8')) as { entries: { ops?: Record<string, unknown>[] }[] }[];
     expect(validateDataset('miscast.json', miscast)).toBeNull();
     for (const op of ['condition', 'removeCondition']) {
       const doc = structuredClone(miscast);
       const noeud = doc.flatMap((table) => table.entries).flatMap((e) => e.ops ?? []).find((o) => o.op === 'condition')!;
-      Object.assign(noeud, { op, id: 'etat-fantome' });
-      expect(validateDataset('miscast.json', doc), op).toContain(t('etats.inconnu', { id: 'etat-fantome' }));
+      Object.assign(noeud, { op, id: { id: 'etat-fantome' } });
+      expect(validateDataset('miscast.json', doc), op).toContain('« etat-fantome » est absent du catalogue des états (etats.json).');
     }
+  });
+
+  it('dialecte miscast : une op `condition` sans État est refusée au chargement', () => {
+    const doc = JSON.parse(readFileSync(new URL('../../miscast.json', import.meta.url), 'utf8')) as { entries: { ops?: Record<string, unknown>[] }[] }[];
+    delete doc.flatMap((table) => table.entries).flatMap((e) => e.ops ?? []).find((o) => o.op === 'condition')!.id;
+    expect(validateDataset('miscast.json', doc)).toContain('`condition` exige son État.');
   });
 
   it('une op inconnue des DEUX registres est NOMMÉE en erreur', () => {
@@ -141,8 +146,8 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
 
   it('`skillDRBonus` : cible EXCLUSIVE — `skill` OU `testType`, jamais les deux, jamais aucune, refus NOMMÉ', () => {
     expect(gameOpSchema.safeParse({ op: 'skillDRBonus', skill: { id: 'calme' }, bonus: 1 }).success).toBe(true);
-    expect(gameOpSchema.safeParse({ op: 'skillDRBonus', testType: 'progression-poursuite', bonus: 1 }).success).toBe(true);
-    for (const cible of [{ skill: { id: 'calme' }, testType: 'progression-poursuite' }, {}]) {
+    expect(gameOpSchema.safeParse({ op: 'skillDRBonus', testType: { id: 'progression-poursuite' }, bonus: 1 }).success).toBe(true);
+    for (const cible of [{ skill: { id: 'calme' }, testType: { id: 'progression-poursuite' } }, {}]) {
       const res = gameOpSchema.safeParse({ op: 'skillDRBonus', ...cible, bonus: 1 });
       expect(res.success).toBe(false);
       expect(res.error!.issues.map((i) => i.code)).toEqual(['invalid_union']);
@@ -170,6 +175,15 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     // Les ops de rangée sont PARSÉES : une op fantôme sous `entries` est refusée à son chemin.
     const imbriquee = gameOpSchema.safeParse({ op: 'rollTable', die: 'd10', entries: [{ min: 1, max: 10, ops: [{ op: 'contractDisease', disease: 'maladie-fantome' }] }] });
     expect(imbriquee.error!.issues.map((i) => i.path.join('.'))).toEqual(['entries.0.ops.0.disease']);
+  });
+
+  // VDM 12 l.920 ; #4095 : sous `tableId`, le dé est celui de la table.
+  it('`rollTable` à `tableId` ne porte pas de `die`, au type comme au schéma', () => {
+    // @ts-expect-error -- `die?: never` sur la variante `tableId`.
+    const op: GameOp = { op: 'rollTable', die: 'd10', tableId: 'vdm-maladie-coups-de-poing-maudits' };
+    const res = gameOpSchema.safeParse(op);
+    expect(res.success).toBe(false);
+    expect(JSON.stringify(res.error!.issues)).toMatch(/die/);
   });
 
   /** `withArg` (`noyau/triggeredEffects`) écarte l'op dont l'instance n'a pas le paramètre : seul un champ
@@ -220,7 +234,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
       expect(champs.has(k), k).toBe(true);
     }
     // `entries`/`ops`/`thresholds`/`onCross`/`perRound`/`passive` portent des ops IMBRIQUÉES (`z.lazy`) : aucun n'est un champ à slot.
-    for (const k of ['rollTable.entries', 'transform.ops', 'perRound.ops', 'rollThreshold.thresholds', 'delayed.ops', 'zone.onCross', 'zone.perRound', 'augmentWeapon.passive', 'skillDRBonus.testType']) {
+    for (const k of ['rollTable.entries', 'transform.ops', 'perRound.ops', 'rollThreshold.thresholds', 'delayed.ops', 'zone.onCross', 'zone.perRound', 'augmentWeapon.passive']) {
       expect(champs.has(k), k).toBe(false);
     }
   });

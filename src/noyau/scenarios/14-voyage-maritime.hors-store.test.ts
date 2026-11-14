@@ -10,6 +10,7 @@ import { findSpellById } from '../../data';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile } from '../../engine/magic';
 import { spellEffectOps } from '../../engine/flowCore';
 import { avanceEtapeCascade, draineCascade } from '../../noyau/cascade.testkit';
+import { lotPerime, rationsDuVivre } from '../../engine/provisions';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -30,7 +31,7 @@ function launch(seed = 1) {
 
 /** Dort à une halte de nuit (« Dormir » → cascade de nuit → reprise de la route au matin). */
 function sleepThroughHalt(): void {
-  get().fenetreValider('rest');
+  get().fenetreValider('repos');
   draineCascade(get, 80);
 }
 
@@ -47,9 +48,9 @@ function sailToPort(maxSteps = 400): string[] {
       if (k !== undefined) kinds.push(k);
       continue;
     }
-    if (get().pendingSeaActivities) { get().fenetreValider('seaActivities'); continue; }
+    if (get().pendingSeaActivities) { get().fenetreValider('activitesEnMer'); continue; }
     if (get().pendingRest) { sleepThroughHalt(); continue; }
-    if (get().pendingShoreLeave) { get().fenetreChoisir('shoreLeave', 'accorder', true); continue; } // accoste : relâche accordée par défaut (MDG 15 l.245)
+    if (get().pendingShoreLeave) { get().fenetreChoisir('relacheATerre', 'accorder', true); continue; } // accoste : relâche accordée par défaut (MDG 15 l.245)
     if (!get().travelPlan) break; // sécurité : plus de plan et pas au port → on s'arrête
   }
   return kinds;
@@ -129,7 +130,7 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
   it('appareille, enchaîne des jours de mer (Tests d’équipage + haltes) et ACCOSTE au Grand Port', () => {
     const t0 = get().gameTime;
     expect(get().scene?.id).toBe('test-mer-depart');
-    get().partirEnVoyage('route-marienburg', 'mer', { cadence: 'jour-par-jour' }); // mode MER : appareillage sur le navire de campagne
+    get().partirEnVoyage('route-marienburg', 'mer', { cadence: 'jourParJour' }); // mode MER : appareillage sur le navire de campagne
     expect(get().travelPlan?.mode).toBe('mer');
     expect(get().travelPlan?.sea).toBeTruthy();
 
@@ -139,13 +140,27 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
     expect(get().travelPlan).toBeNull();
     expect(get().lieu).toBe('p-marienburg');
     expect(get().gameTime - t0).toBeGreaterThan(24 * 60); // plus d’un jour de mer
-    expect(kinds).toContain('sea-epuisement'); // la Timonière manie la voile chaque jour navigable (MDG 13 l.111)
+    expect(kinds).toContain('mer-epuisement'); // la Timonière manie la voile chaque jour navigable (MDG 13 l.111)
     // Les Tests d’équipage de VOYAGE ont bien été joués (Progression quotidienne, Orientation).
-    expect(kinds).toContain('crew-progression');
-    expect(kinds).toContain('crew-orientation');
+    expect(kinds).toContain('equipage-progression');
+    expect(kinds).toContain('equipage-orientation');
     // La coque partie endommagée a fait l’objet d’un entretien du soir (Test d’équipage d’entretien).
-    expect(kinds).toContain('crew-entretien');
+    expect(kinds).toContain('equipage-entretien');
     expect(get().journal.join('\n')).toMatch(/Accostage|Marienburg/);
+  });
+
+  it('MDG 14 l.238 — la cale part fraîche : aucun lot n’a pourri à l’heure du lancement', () => {
+    expect(get().vessel!.provisions!.every((l) => !lotPerime(l, get().gameTime))).toBe(true);
+  });
+
+  it('#1652 — la cale passe aux biscuits de mer : le facteur de Moral est posé avant le premier recalcul hebdomadaire (MDG 14 l.143, l.166)', () => {
+    const semaine = get().vessel!.morale.lastMoraleWeek;
+    get().partirEnVoyage('route-marienburg', 'mer', { cadence: 'jourParJour' });
+    sailToPort();
+    const v = get().vessel!;
+    expect(v.morale.lastMoraleWeek).toBe(semaine);
+    expect(rationsDuVivre(v.provisions, 'nourriture-courses-journee')).toBe(0);
+    expect(v.morale.factors).toContain('nourriture-biscuits-de-mer');
   });
 
   it('à quai : l’écran Port ouvre et propose réparation + offres de commerce', () => {

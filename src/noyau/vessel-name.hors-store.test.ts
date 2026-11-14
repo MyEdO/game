@@ -43,8 +43,8 @@ describe('#230 — réconciliation combat : le nom d’instance ne touche QUE la
     ],
     dialogues: [], triggers: [], flags: {},
     encounters: [{ id: 'enc-naval', members: [
-      { entityId: 'coque-campagne', side: 'ally' },
-      { entityId: 'coque-ennemie', side: 'enemy' },
+      { entityId: 'coque-campagne', side: 'allie' },
+      { entityId: 'coque-ennemie', side: 'ennemi' },
     ] }],
   });
 

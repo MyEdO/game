@@ -27,7 +27,18 @@ import { projectedRangeAxes } from './lampMarker';
 import { gridLines } from '../../geometry/grid';
 import { type Tool, type Layers, type Sel, selRect, selZ, sameSel } from '../../noyau/sceneEditLecture';
 import type { Pt } from '../../noyau/sceneEdit';
-import { appuyer, areteVisee, glisser, planDuPointeur, relacher, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type GesteEnCours, type PointDeCarte } from '../../noyau/edition/pointeur';
+import {
+  appuyer,
+  areteVisee,
+  glisser,
+  planDuPointeur,
+  relacher,
+  saisirLaPoignee,
+  type ContexteDuPointeur,
+  type EffetDuPointeur,
+  type GesteEnCours,
+  type PointDeCarte,
+} from '../../noyau/edition/pointeur';
 import { planFocusTiles, type PlanDefectAt } from '../../noyau/planDefects';
 import { GameStage3D } from '../../gameIso/stage/GameStage3D';
 import type { ActorPose, KeepEl, TintAt } from '../../gameIso/backends/webgl/sceneMeshes';
@@ -226,7 +237,7 @@ export function EditorCanvas({
   architectureMode: boolean;
   architectureBodyId: string | null;
   architectureZ: number | null;
-  architectureAction: 'select' | 'facade';
+  architectureAction: 'selection' | 'facade';
   onArchitectureActionComplete: () => void;
   /** Calque de référence (planche décalquée) — `position` bascule SOUS/AU-DESSUS de la scène (jamais
    *  dans la Scène/un export) ; `pointerEvents: none` TOUJOURS (le calage capte le clic en amont). */
@@ -430,7 +441,7 @@ export function EditorCanvas({
   // Les AUTRES gestes ne gèlent RIEN, et n'ont aucune raison de le faire : peindre une emprise de
   // zone, déplacer une entité ou GOMMER (`eraseAt` retire une ENTITÉ, jamais du terrain) ne touche
   // aucune dépendance de la cuisson — le monde suit au tick, sans une recuisson.
-  const gelDuMonde = gesteEnCours?.sorte === 'trait' && (tool.mode === 'tile' || tool.mode === 'height' || tool.mode === 'crenellated');
+  const gelDuMonde = gesteEnCours?.sorte === 'trait' && (tool.mode === 'terrain' || tool.mode === 'hauteur' || tool.mode === 'crenelage');
   const gelDuTrait = useRef(scene);
   if (!gelDuMonde) gelDuTrait.current = scene;
   const sceneGelée = gelDuTrait.current;
@@ -507,7 +518,7 @@ export function EditorCanvas({
   // (`floorSvg` sur les `FloorEl` de la scène VIVE), pas par un losange symbolique.
   const apercuTrait = useMemo(
     () => {
-      if (tool.mode !== 'tile' || !traitCases.length) return [];
+      if (tool.mode !== 'terrain' || !traitCases.length) return [];
       const vues = new Set(traitCases.map((c) => `${c.x},${c.y}`));
       return buildFloors(scene, undefined, { activeZ: currentLayer })
         .filter((el) => el.cell.z === currentLayer && vues.has(`${el.cell.x},${el.cell.y}`))
@@ -520,7 +531,7 @@ export function EditorCanvas({
     <main className="editor-canvas-wrap" ref={wrapRef}>
       <div className="editor-iso-wrap">
         {/* MONDE VOLUMIQUE (#1176, P3-3, DEV) : le MÊME composant que le jeu, cadré par le viewBox
-            MOBILE de l'éditeur (`mode: 'viewbox'` — l'échelle se mesure sur le rendu, la CSS rétrécit
+            MOBILE de l'éditeur (`mode: 'cadre'` — l'échelle se mesure sur le rendu, la CSS rétrécit
             l'élément). Il est ÉMIS AVANT le SVG et couvre la boîte de contenu (`.iso-stage`, absolu
             inset:0 dans `.editor-iso-wrap`) : le SVG d'authoring prend son contexte d'empilement
             au-dessus (`.editor-iso-3d`). BUDGET PIXELS déclaré : le canevas couvre TOUTE la carte
@@ -531,7 +542,7 @@ export function EditorCanvas({
           scene={sceneMonde}
           lecture="auteur"
           mpt={mpt}
-          frame={{ mode: 'viewbox', dims, viewBox: { x: vb.x, y: vb.y, w: stage.w / vb.zoom, h: stage.h / vb.zoom } }}
+          frame={{ mode: 'cadre', dims, viewBox: { x: vb.x, y: vb.y, w: stage.w / vb.zoom, h: stage.h / vb.zoom } }}
           tintAt={tintAt}
           keepEl={keepEl}
           els={els3d}
@@ -801,7 +812,7 @@ export function EditorCanvas({
                         />
                       );
                     })}
-                    <IconG id="rest/camp" x={cx - 6} y={cy - 6} size={12} />
+                    <IconG id="repos/campement" x={cx - 6} y={cy - 6} size={12} />
                   </g>
                 );
               })}
@@ -830,7 +841,7 @@ export function EditorCanvas({
                         {zd.zone.label}
                       </text>
                     ) : (
-                      <IconG id={zd.zone.barrier ? 'map-tool/wall' : 'ui/warning'} x={zd.anchor.cx - 6} y={zd.anchor.cy - 6} size={12} />
+                      <IconG id={zd.zone.barrier ? 'outil-de-carte/mur' : 'interface/attention'} x={zd.anchor.cx - 6} y={zd.anchor.cy - 6} size={12} />
                     )}
                   </g>
                 );
@@ -850,7 +861,7 @@ export function EditorCanvas({
                     <path d={diamondPath(pos.x, pos.y, dims)} fill="rgba(78,195,224,0.5)" stroke={isSel ? SELECT : '#4ec3e0'} strokeWidth={isSel ? 2.5 : 1.5} />
                     {/* Icône du registre en contexte SVG (IconG, ancrée coin haut-gauche) — centrée sur la case, teinte sombre lisible sur le losange. */}
                     <g color={TEXT_INK}>
-                      <IconG id="nav/entry-point" x={cx - 6.5} y={cy - 6.5} size={13} />
+                      <IconG id="navigation/point-d-entree" x={cx - 6.5} y={cy - 6.5} size={13} />
                     </g>
                     <text x={cx} y={cy - TH / 2} textAnchor="middle" fontSize="10" fill="#bfe9f5" stroke={TEXT_INK} strokeWidth={0.4}>
                       {name}
@@ -885,7 +896,7 @@ export function EditorCanvas({
           )}
           {/* Volée en cours de TRACÉ : cases numérotées dans l'ordre du geste — aucune cote n'est
               écrite tant que le plan n'est pas validé depuis la palette. */}
-          {tool.mode === 'stair' && stairRun.length > 0 && (
+          {tool.mode === 'escalier' && stairRun.length > 0 && (
             <g pointerEvents="none">
               {stairRun.map((c, i) => (
                 <g key={`sr-${c.x}-${c.y}`}>

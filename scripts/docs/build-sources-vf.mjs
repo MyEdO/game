@@ -130,6 +130,9 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
   \`naval-traits.json\` : bouteur, murs blindés, coque de course, safran, plat-bord, allègement, gréement de
   course, fourquines), **ch.13 « Bestiaire fluvial »** (créatures), **ch.14 « Maladies transmises par
   l'eau »** (maladies/symptômes/états, \`water-exposure.json\`), véhicules fluviaux. Curation à la main.
+- **${abbr('pretires-du-pouvoir-derriere-le-trone')}** (Le Pouvoir derrière le Trône – Prétirés) = \`${dir('pretires-du-pouvoir-derriere-le-trone')}\`
+  — **document à part : les deux prétirés Erina Eberhauer et Golthog** (fiches officielles VF, arbitrage utilisateur
+  2026-11-11, verbatim au ticket #3964) ; fiches sans folio imprimé. Le Compagnon du PDT reste VO.
 - **${abbr('nuits-agitees-et-dures-journees')}** (Nuits agitées & dures journées) = \`${dir('nuits-agitees-et-dures-journees')}\` —
   autorisé 2026-07-10 (arbitrage par-passage). Périmètre constaté : **appendice I « Gnomes »**
   (espèce jouable, \`species.json\`), **« Jeux de taverne »** (\`tavernGames.json\`), des entrées de
@@ -173,7 +176,7 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
 
 - Tome 1 : \`${dir('ennemi-dans-l-ombre')}\` + \`${dir('ennemi-dans-l-ombre-compagnon')}\`.
 - Tome 2 : \`${dir('mort-sur-le-reik')}\` + \`${dir('mort-sur-le-reik-compagnon')}\`.
-- Tome 3 : \`${dir('pouvoir-derriere-le-trone')}\` (Compagnon ${book('pouvoir-derriere-le-trone-compagnon').dir ? `= \`${dir('pouvoir-derriere-le-trone-compagnon')}\`` : `${book('pouvoir-derriere-le-trone-compagnon').language === 'VF' ? 'VF connu mais' : 'VO,'} non extrait dans \`Source/\``}).
+- Tome 3 : \`${dir('pouvoir-derriere-le-trone')}\` (Compagnon VO, non extrait dans \`Source/\` ; prétirés VF = \`${dir('pretires-du-pouvoir-derriere-le-trone')}\`).
 - Suppléments VF dispo : \`${book('altdorf-couronne-de-l-empire').label}\`,
   \`${book('aventures-a-ubersreik-1').label}\` (extrait : \`${dir('aventures-a-ubersreik-1')}\`),
   \`${book('middenheim').label}\`, \`${book('nuits-agitees-et-dures-journees').label}\`,

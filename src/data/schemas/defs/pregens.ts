@@ -1,51 +1,72 @@
-/** LDB 05 l.730-736 */
+/** EDOC 16 l.421 ; MSRC 19 l.498 ; ZI 14 l.55 ; PDTP 01 l.3 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { ref } from '../grammaire/ref';
-import { champsDeChoix, metaDesChoix } from '../grammaire/choixDeCreation';
-import type { ChoixDeCreation } from '../../../engine/character';
-import { sexeSchema } from '../grammaire/valeurs';
-import { tableTotale } from '../../../lib/tableTotale';
-
-/** Les clés de choix que `pregens.json` PORTE : une clé de plus s'ajoute ici et dans la donnée. */
-const CHOIX_DES_PRETIRES = ['seed', 'careerTalent', 'speciesTalentChoices', 'pettySpells'] as const satisfies readonly (keyof ChoixDeCreation)[];
-export type ChoixDesPretires = (typeof CHOIX_DES_PRETIRES)[number];
-const desPretires = <T extends Record<ChoixDesPretires, unknown>>(table: T): Pick<T, ChoixDesPretires> =>
-  tableTotale(CHOIX_DES_PRETIRES, (k) => table[k]);
+import { messageDeRefusDeSpec, recordDIds, ref, refs, refusDeSpec } from '../grammaire/ref';
+import { charKeySchema, sexeSchema } from '../grammaire/valeurs';
+import { nommerNoeud } from '../grammaire/meta';
+import { dotationDeCatalogueSchema, dotationDeTexteSchema, sommeSchema, talentRefSchema } from '../grammaire/reference';
 
 export const file = 'pregens.json';
 export const famille = 'entite';
+
+const entier = (min: number) => z.number().int().min(min);
+const augmentations = nommerNoeud(entier(0), { nom: 'augmentations' });
+
+/** Augmentations par Compétence : un nombre, ou un nombre par spécialisation. */
+const augmentationsDesCompetences = recordDIds('skill', z.union([augmentations, z.record(z.string().min(1), augmentations)])).superRefine((v, ctx) => {
+  for (const [id, a] of Object.entries(v)) {
+    if (typeof a === 'number') continue;
+    for (const spec of Object.keys(a)) {
+      const refus = refusDeSpec('skill', id, spec);
+      if (refus) ctx.addIssue({ code: 'custom', path: [id, spec], message: messageDeRefusDeSpec('skill', id, spec, refus, false) });
+    }
+  }
+});
 
 const doc = document(
   'pregens',
   famille,
   {
     species: ref('species'),
-    career: ref('career'),
-    ...desPretires(champsDeChoix),
-    motivation: z.string(),
-    /** LDB 05 l.730-736 */
-    ambitionShort: z.string().optional(),
-    ambitionLong: z.string().optional(),
-    /** LDB 05 */
-    age: z.number().optional(),
-    /** Sexe visuel (cosmétique). Défaut 'M'. */
-    sex: sexeSchema.optional(),
+    /** Chaque carrière au Niveau atteint, la dernière actuelle (`ParcoursDeCarriere`, `engine/pnjDeCarriere.ts`). */
+    carrieres: recordDIds('career', nommerNoeud(entier(1).max(4), { nom: 'niveau' })),
+    initiales: z.record(charKeySchema, z.number().int()),
+    charAdvances: z.partialRecord(charKeySchema, entier(1)),
+    skills: augmentationsDesCompetences,
+    talents: z.array(talentRefSchema),
+    trappings: z.array(z.union([dotationDeCatalogueSchema, dotationDeTexteSchema])),
+    spells: refs('spell'),
+    fate: entier(0),
+    resilience: entier(0),
+    xp: entier(0),
+    motivation: z.string().min(1),
+    age: entier(1),
+    sex: sexeSchema,
+    /** La « Richesse de départ » imprimée. */
+    richesse: sommeSchema,
   },
   {
-    species: { label: 'Espèce', hint: 'Espèce du pré-tiré, prise au catalogue des espèces' },
-    career: { label: 'Carrière', hint: 'Carrière du pré-tiré, prise au catalogue des carrières' },
-    ...desPretires(metaDesChoix),
-    motivation: { label: 'Motivation', hint: 'Motivation du personnage (texte d’auteur)' },
-    ambitionShort: { label: 'Ambition à court terme', hint: 'Ambition à court terme affichée sur la fiche' },
-    ambitionLong: { label: 'Ambition à long terme', hint: 'Ambition à long terme affichée sur la fiche' },
-    age: { label: 'Âge', hint: 'Âge du pré-tiré ; absent sur toutes les entrées observées' },
-    sex: { label: 'Sexe', hint: 'Sexe visuel du pré-tiré (cosmétique)' },
+    species: { label: 'Espèce', hint: 'Espèce imprimée sur la fiche' },
+    carrieres: { label: 'Parcours de carrière', hint: 'Chaque carrière au Niveau atteint ; la dernière est la carrière actuelle' },
+    initiales: { label: 'Caractéristiques initiales', hint: 'La ligne « Initiales » de la fiche' },
+    charAdvances: { label: 'Augmentations de Caractéristiques', hint: 'La ligne « Augmentation » de la fiche' },
+    skills: { label: 'Compétences', hint: 'Augmentations de chaque Compétence de la fiche' },
+    talents: { label: 'Talents', hint: 'Les Talents de la fiche, à leur nombre pris' },
+    trappings: { label: 'Possessions', hint: 'Possessions, armes et armures de la fiche' },
+    spells: { label: 'Sorts', hint: 'Sorts et Prières de la fiche' },
+    fate: { label: 'Destin' },
+    resilience: { label: 'Résilience' },
+    xp: { label: 'Expérience actuelle' },
+    motivation: { label: 'Motivation' },
+    age: { label: 'Âge' },
+    sex: { label: 'Sexe', hint: 'Sexe visuel (cosmétique)' },
+    richesse: { label: 'Richesse de départ', hint: 'La somme imprimée, tirée au recrutement' },
   },
   {
     codex: { keys: ['pregens'] },
     edit: { dataset: 'pregens' },
   },
+  { exiges: ['desc', 'source'], fragmentsAdmis: ['blocs'], porteursDeProse: ['descRef'] },
 );
 
 export const schema = doc.schema;

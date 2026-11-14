@@ -19,10 +19,11 @@ import { findTableEntry } from './tables';
 import { applyOps, type GameOp } from './ops';
 import { shipHitLocation, type ShipRig, type ShipLocation } from './combat';
 import { poserEnjeu, type FlowTestNode } from './flowCore';
-import { combatStakeRef, findShipStation, type StakeRef } from '../data';
+import { categorieDeLaNiche, combatStakeRef, findShipStation, type StakeRef } from '../data';
+import { suiteAvecPas } from '../data/schemas/grammaire/cle-d-espace';
 import { hullNavalTraits, shipHasNavalTrait } from './navalTraits';
 import type { Combatant, NavalTraitRef } from './types';
-import { SHIP_CRIT_SET, RIVER_CRIT_SET, shipCritSet, type ShipCritSet, type ShipCritKey, type ShipCrewHit, type CrewTarget } from '../data/shipCriticals';
+import { SHIP_CRIT_SET, shipCritSet, type ShipCritSet, type ShipCritKey, type ShipCrewHit, type CrewTarget } from '../data/shipCriticals';
 import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 
@@ -43,22 +44,19 @@ export const shipLocationLabel = (loc: ShipLocation): PlayerText => t(SHIP_LOC_K
  *  de Localisation) + `hull.criticalTable` (jeu de Critiques). Absentes → jeu naval MDG (comportement historique). */
 export interface HullCritOpts { locationTable?: string | null; criticalTable?: string | null }
 
-/** Catégorie Codex EXACTE (`registry.ts`) d'une rangée de Critique de coque, par jeu × Localisation —
- *  jumelle de `critEntryCodexCategory` (`critical.ts`). Table CLOSE : une Localisation absente du jeu
- *  n'a pas de fiche, et l'enjeu replie alors sur le foyer du `kind` (jamais un nom inventé). */
-const SHIP_CRIT_CODEX_SEGMENT: Record<ShipCritKey, string> = {
-  avirons: 'Avirons', greement: 'Greement', coque: 'Coque', equipements: 'Equipements',
-  cargaison: 'Cargaison', gouvernail: 'Gouvernail', superstructure: 'Superstructure',
-};
-export function shipCritEntryCodexCategory(setId: string, location: ShipCritKey): string {
-  return `${setId === RIVER_CRIT_SET.id ? 'riverCriticals' : 'shipCriticals'}${SHIP_CRIT_CODEX_SEGMENT[location]}`;
+/** Catégorie Codex EXACTE d'une rangée de Critique de coque, par jeu × Localisation : celle de la niche
+ *  `tables.<Localisation>` du fichier du jeu (`categorieDeLaNiche`) — jumelle de `critEntryCodexCategory`
+ *  (`critical.ts`). Une Localisation absente du jeu n'a pas de fiche (`undefined`), et l'enjeu replie alors
+ *  sur le foyer du `kind` (jamais un nom inventé). */
+export function shipCritEntryCodexCategory(setId: string, location: ShipCritKey): string | undefined {
+  return categorieDeLaNiche(shipCritSet(setId).fichier, suiteAvecPas('tables', { champ: location }));
 }
 
 /** ENJEU (#1117) du coup à l'ÉQUIPAGE d'une rangée de Critique de coque — patron `enjeuDeRangee`
  *  (`critical.ts`) : le producteur nomme la LIGNE qui exige le jet, sa catégorie Codex se choisit au
  *  tirage parmi les 10 tables de coque (porte (b) `entryCategory`, `src/data/index.ts`). PUR. */
 function enjeuDuCoup(setId: string, location: ShipCritKey, entryId: string): StakeRef {
-  return combatStakeRef('ship-crew-hit', { entryId, entryCategory: shipCritEntryCodexCategory(setId, location) });
+  return combatStakeRef('bateau-coup-equipage', { entryId, entryCategory: shipCritEntryCodexCategory(setId, location) });
 }
 
 /** Le coup à l'équipage d'une rangée, ENJEU POSÉ sur son nœud `test` — fabrique PURE, aucun dé
@@ -161,7 +159,7 @@ export interface HullCriticalOutcome {
   hullOps: GameOp[];
   /** Localisation « Équipage » : le marin exposé qui encaisse le coup, que l'appelant résout (MDG 13 l.584). */
   marinId?: string;
-  /** Éclats : marins touchés (effet data `SHRAPNEL_HIT` déjà appliqué — le Dégât réel, mitigé BE/PA, est
+  /** Éclats : marins touchés (effet data `set.shrapnelHit` déjà appliqué — le Dégât réel, mitigé BE/PA, est
    *  journalisé par l'op `wounds` dans `lines`, pas réintrospecté ici). */
   shrapnel: { crewId: string }[];
   /** Critiques de Coque SUPPLÉMENTAIRES résolus (1d10…) — ops déjà appliqués à la coque. */

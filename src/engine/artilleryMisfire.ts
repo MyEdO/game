@@ -12,7 +12,7 @@ import { ARTILLERY_MISFIRE, type ArtilleryMisfireEntry } from '../data/artillery
 
 /** id de la table dans les tables tirables (`tablesTirables`, `noyau/combatFlow.ts`) — ÉCRITURE
  *  UNIQUE, lue par la déclaration comme par la demande de dé de la grappe d'Oups ! (`desDOups`). */
-export const TABLE_SALVE_MISFIRE = 'artillery-salve-misfire';
+export const TABLE_SALVE_MISFIRE = 'artillerie-salve-incident';
 
 export interface ArtillerySalveMisfireResolved {
   entry: ArtilleryMisfireEntry;

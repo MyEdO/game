@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
@@ -27,7 +27,7 @@ const construireVillage = (): Scene => buildScene({
       id: 'medecin', kind: 'personnage', creature: { id: 'stefan-hochen' }, label: 'Médecin Holst',
       pos: { x: 8, y: 2 }, dialogueId: { id: 'dlg-medecin' },
     },
-    // Effet `petitePriere` (LDB 25 l.22-24, option `prayer-petites`) : site sacré pour un non-Béni.
+    // Effet `petitePriere` (LDB 25 l.22-24, option `priere-petites`) : site sacré pour un non-Béni.
     {
       id: 'autel', kind: 'prop', decor: { id: 'autel' }, pos: { x: 8, y: 7 },
       usable: { actions: [{ id: 'fouiller', unique: true, consume: false,
@@ -66,8 +66,8 @@ const construireVillage = (): Scene => buildScene({
               label: 'Ouvrir son infirmaire (soins payants).',
               flow: flowFromEffects([
                 {
-                  type: 'medicalAid', entityId: 'medecin',
-                  acts: [{ act: 'wounds', cost: { silver: 5 } }, { act: 'bleed', cost: { silver: 5 } }],
+                  type: 'medicalAid', entityId: { id: 'medecin' },
+                  acts: [{ act: 'blessures', cost: { silver: 5 } }, { act: 'hemorragie', cost: { silver: 5 } }],
                 },
                 { type: 'endDialogue' },
               ]),
@@ -102,7 +102,7 @@ const construireVillage = (): Scene => buildScene({
       once: true,
       flow: flowFromEffects([
         { type: 'journal', desc: 'Une planche vermoulue cède sous votre pied — vous plongez dans la cave à provisions !' },
-        { type: 'fall', target: 'party', metres: 3, to: { x: 9, y: 6 } },
+        { type: 'fall', target: 'groupe', metres: 3, to: { x: 9, y: 6 } },
         { type: 'inflictTrauma', kind: 'dechirure', severity: 'mineur', location: 'jambeD' },
       ]),
     },
@@ -119,11 +119,11 @@ export const scenario: TestScenario = {
     'Quatre Effets d’auteur testés au moteur mais orphelins de scénario (#96/#97), chacun câblé à un ' +
     'déclencheur réel : `medicalAid` (dialogue du médecin, soins payants distincts de Guérison), ' +
     // LDB 25
-    '`petitePriere` (autel interactif, option `prayer-petites`), `ambitionLost` (dialogue du ' +
+    '`petitePriere` (autel interactif, option `priere-petites`), `ambitionLost` (dialogue du ' +
     // ADE II Annexe I ; LDB 15 ; LDB 18
     'messager), `fall`+`inflictTrauma` (trappe vermoulue, repositionnement), `openCharacterCreator` (avis ' +
     'd’enrôlement : la création s’ouvre sur un héros neuf).',
   partyNote: 'Pré-tirés',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireVillage() }),
-  rules: { 'prayer-petites': true, 'psych-acquisition-optional': true },
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireVillage() }),
+  rules: { 'priere-petites': true, 'psycho-acquisition-optionnelle': true },
 };

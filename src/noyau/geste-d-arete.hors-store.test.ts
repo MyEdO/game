@@ -79,11 +79,11 @@ function combat(scene: Scene, pos: Pt, tour: { movementUsed?: number; acted?: bo
   banc.setState({ party: [hero], net: NET0 });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const foes = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const foes = b.combatants.filter((c) => c.kind === 'ennemi');
   foes.forEach((e) => (e.dead = true));
   H.engagedWith = [];
   placeCombatant(H, scene, pos);
@@ -107,7 +107,7 @@ describe('Engagé (LDB 15 l.43-49) : les TROIS gestes refusent, et se rouvrent a
       c.agir(c.vers);
       expect(aAgi(H.id, c.de)).toBe(false);
       dit('geste.refus.engage', { name: H.label });
-      expect(resolveMovement(g, c.vers)).toEqual({ status: 'blocked', reason: 'engaged' }); // MÊME préfixe
+      expect(resolveMovement(g, c.vers)).toEqual({ status: 'bloque', reason: 'engage' }); // MÊME préfixe
       disengageFrom(H, foe);
       c.agir(c.vers);
       expect(aAgi(H.id, c.de)).toBe(true);
@@ -147,7 +147,7 @@ describe('#2190, #3611 — la case de départ se lit dans l’état : une destin
   it('intent COOP : l’allowlist le laisse passer, le store le refuse loin de l’arête — et depuis la case de l’arête il passe', () => {
     const c = CAS[2];
     const { H } = combat(c.scene(), ailleurs);
-    banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } });
+    banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } });
     expect(GUEST_INTENTS.has('franchirLArete')).toBe(true);
     expect(intentAllowedFor(g(), 1, 'franchirLArete', [c.vers])).toBe(true);
     withActingSeat(1, () => g().franchirLArete(c.vers));
@@ -234,11 +234,11 @@ describe('coûts et refus NOMMÉS (A4)', () => {
   it('chute : « Tenter » avec l’Action déjà prise → refus NOMMÉ, la modale reste au choix', () => {
     const { H } = combat(falaise(), top, { acted: true });
     g().franchirLArete(foot);
-    expect(phaseDeChute(g().pendingFall!)).toBe('choice');
-    g().jetRegler('fall', 'tenter', true, H.id);
-    expect(phaseDeChute(g().pendingFall!)).toBe('choice');
+    expect(phaseDeChute(g().pendingFall!)).toBe('choix');
+    g().jetRegler('chute', 'tenter', true, H.id);
+    expect(phaseDeChute(g().pendingFall!)).toBe('choix');
     dit('fall.actionDejaPrise', { name: H.label });
-    g().jetRegler('fall', 'tenter', false, H.id); // sauter sans Test reste permis
+    g().jetRegler('chute', 'tenter', false, H.id); // sauter sans Test reste permis
     expect(g().battle!.combatants.find((x) => x.id === H.id)!.pos).toMatchObject(foot);
     expect(g().battle!.acted).toBe(true);
   });
@@ -279,14 +279,14 @@ describe('refus du PRÉFIXE (`mobileDuTour`), dits par le geste', () => {
   const c = CAS[2];
   it('combat terminé → geste.refus.combatTermine', () => {
     const { H } = combat(c.scene(), c.de);
-    banc.setState({ battle: { ...g().battle!, over: 'victory' } });
+    banc.setState({ battle: { ...g().battle!, over: 'victoire' } });
     c.agir(c.vers);
     expect(aAgi(H.id, c.de)).toBe(false);
     dit('geste.refus.combatTermine');
   });
   it('action armée → geste.refus.ciblage', () => {
     const { H } = combat(c.scene(), c.de);
-    banc.setState({ battle: { ...g().battle!, action: 'cast' } });
+    banc.setState({ battle: { ...g().battle!, action: 'incantation' } });
     c.agir(c.vers);
     expect(aAgi(H.id, c.de)).toBe(false);
     dit('geste.refus.ciblage');
@@ -300,14 +300,14 @@ describe('refus du PRÉFIXE (`mobileDuTour`), dits par le geste', () => {
   });
   it('actif mené par un autre siège → geste.refus.pasLaMain', () => {
     const { H } = combat(c.scene(), c.de);
-    banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } });
+    banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } });
     c.agir(c.vers);
     expect(aAgi(H.id, c.de)).toBe(false);
     dit('geste.refus.pasLaMain', { name: H.label });
   });
   it('refus en combat : dit à la bannière (`refus`), jamais au seul journal', () => {
     const { H } = combat(c.scene(), c.de);
-    banc.setState({ battle: { ...g().battle!, action: 'cast' } });
+    banc.setState({ battle: { ...g().battle!, action: 'incantation' } });
     c.agir(c.vers);
     expect(aAgi(H.id, c.de)).toBe(false);
     expect(g().journal).toEqual([]);
@@ -319,9 +319,9 @@ describe('`computeMoveReach` consomme le préfixe : une action armée éteint la
   it('action nulle → cases ; action armée → aucune (comme `resolveMovement`)', () => {
     combat(croisee(), { x: 0, y: 0 });
     expect(computeMoveReach(g).size).toBeGreaterThan(0);
-    banc.setState({ battle: { ...g().battle!, action: 'cast' } });
+    banc.setState({ battle: { ...g().battle!, action: 'incantation' } });
     expect(computeMoveReach(g).size).toBe(0);
-    expect(resolveMovement(g, { x: 0, y: 1 })).toEqual({ status: 'blocked', reason: 'targeting' });
+    expect(resolveMovement(g, { x: 0, y: 1 })).toEqual({ status: 'bloque', reason: 'designation' });
   });
 });
 
@@ -349,11 +349,11 @@ describe('Test d’Escalade (LDB 15 l.57) : celui du GRIMPEUR', () => {
     banc.setState({ party: [H, S], net: NET0 });
     g().lancerLaScene(testScene());
     g().lancerLeCombat('enc-mutants');
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     const b = g().battle!;
     const cH = b.combatants.find((x) => x.id === H.id)!;
     const cS = b.combatants.find((x) => x.id === S.id)!;
-    const foes = b.combatants.filter((x) => x.kind === 'enemy');
+    const foes = b.combatants.filter((x) => x.kind === 'ennemi');
     foes.forEach((e) => { e.dead = true; e.engagedWith = []; });
     cH.engagedWith = []; cS.engagedWith = [];
     const scene = falaise({ kind: 'surface' });

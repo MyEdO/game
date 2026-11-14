@@ -1,160 +1,2388 @@
 [
   {
-    "id": "sigmund-reikhardt",
+    "id": "harbull-piedvelu",
     "type": "pregens",
-    "label": "Sigmund Reikhardt",
-    "species": {
-      "id": "humains-reiklander"
+    "label": "Harbull Piedvelu",
+    "descRef": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 1,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 1,
+          "b1": 1,
+          "sum": "c8cb5c18bcfe58c9"
+        }
+      ]
     },
-    "career": {
-      "id": "soldat"
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 113,
+      "note": "EDOC 16 l.549"
     },
-    "seed": 101,
-    "speciesTalentChoices": {
-      "espece:talents:0": {
-        "id": "perspicace"
-      }
-    },
-    "motivation": "Devoir",
-    "ambitionShort": "Survivre à la prochaine campagne",
-    "ambitionLong": "Commander sa propre compagnie"
-  },
-  {
-    "id": "grunni-pierre-de-fer",
-    "type": "pregens",
-    "label": "Grunni Pierre-de-Fer",
-    "species": {
-      "id": "nains"
-    },
-    "career": {
-      "id": "tueur"
-    },
-    "seed": 202,
-    "motivation": "Honte (Malédiction du Tueur)",
-    "ambitionShort": "Trouver une mort digne au combat",
-    "ambitionLong": "Effacer sa honte par un acte légendaire"
-  },
-  {
-    "id": "wilhelmina-faust",
-    "type": "pregens",
-    "label": "Wilhelmina Faust",
-    "species": {
-      "id": "humains-reiklander"
-    },
-    "career": {
-      "id": "sorcier"
-    },
-    "seed": 707,
-    "speciesTalentChoices": {
-      "espece:talents:0": {
-        "id": "perspicace"
-      }
-    },
-    "motivation": "Connaissance",
-    "ambitionShort": "Maîtriser un nouveau sortilège",
-    "ambitionLong": "Percer les secrets des Vents de Magie",
-    "careerTalent": {
-      "id": "magie-mineure"
-    },
-    "pettySpells": [
-      "flechette",
-      "choc"
-    ],
-    "sex": "F"
-  },
-  {
-    "id": "frere-anselm",
-    "type": "pregens",
-    "label": "Frère Anselm",
-    "species": {
-      "id": "humains-reiklander"
-    },
-    "career": {
-      "id": "pretre"
-    },
-    "seed": 808,
-    "speciesTalentChoices": {
-      "espece:talents:0": {
-        "id": "perspicace"
-      }
-    },
-    "motivation": "Foi",
-    "ambitionShort": "Protéger les fidèles sur la route",
-    "ambitionLong": "Bâtir un temple à la gloire de Sigmar",
-    "careerTalent": {
-      "id": "beni",
-      "spec": "sigmar"
-    }
-  },
-  {
-    "id": "aelindra-feuille-d-argent",
-    "type": "pregens",
-    "label": "Aelindra Feuille-d’Argent",
-    "species": {
-      "id": "elfes-sylvains"
-    },
-    "career": {
-      "id": "chasseur"
-    },
-    "seed": 303,
-    "motivation": "Nature",
-    "ambitionShort": "Pister la bête qui ravage la forêt",
-    "ambitionLong": "Préserver la forêt des intrusions humaines"
-  },
-  {
-    "id": "rosa-brandt",
-    "type": "pregens",
-    "label": "Rosa Brandt",
-    "species": {
-      "id": "humains-reiklander"
-    },
-    "career": {
-      "id": "apothicaire"
-    },
-    "seed": 404,
-    "speciesTalentChoices": {
-      "espece:talents:0": {
-        "id": "perspicace"
-      }
-    },
-    "motivation": "Connaissance",
-    "ambitionShort": "Composer un remède contre la fièvre rouge",
-    "ambitionLong": "Ouvrir son propre comptoir d’apothicaire",
-    "sex": "F"
-  },
-  {
-    "id": "klein-burger",
-    "type": "pregens",
-    "label": "Klein Bürger",
     "species": {
       "id": "halflings"
     },
-    "career": {
-      "id": "voleur"
+    "carrieres": {
+      "herboriste": 1
     },
-    "seed": 505,
-    "motivation": "Curiosité",
-    "ambitionShort": "Mettre la main sur une bourse bien garnie",
-    "ambitionLong": "Réussir le casse dont on parlera longtemps"
+    "initiales": {
+      "capacite-de-combat": 23,
+      "capacite-de-tir": 43,
+      "force": 21,
+      "endurance": 22,
+      "initiative": 25,
+      "agilite": 32,
+      "dexterite": 42,
+      "intelligence": 30,
+      "force-mentale": 54,
+      "sociabilite": 40
+    },
+    "charAdvances": {
+      "initiative": 5
+    },
+    "skills": {
+      "emprise-sur-les-animaux": 5,
+      "escalade": 5,
+      "esquive": 3,
+      "intuition": 3,
+      "perception": 10,
+      "resistance": 5,
+      "resistance-a-l-alcool": 3,
+      "survie-en-exterieur": 5,
+      "langue": {
+        "halfling": 5
+      },
+      "natation": 5,
+      "metier": {
+        "cuisinier": 5,
+        "herboriste": 10
+      },
+      "projectiles": {
+        "fronde": 2
+      },
+      "savoir": {
+        "herbes": 5
+      }
+    },
+    "talents": [
+      {
+        "id": "bon-marcheur",
+        "spec": "rural",
+        "times": 1
+      },
+      {
+        "id": "imperturbable",
+        "times": 1
+      },
+      {
+        "id": "lire-ecrire",
+        "times": 1
+      },
+      {
+        "id": "petit",
+        "times": 1
+      },
+      {
+        "id": "resistance",
+        "spec": "chaos",
+        "times": 1
+      },
+      {
+        "id": "sens-aiguise",
+        "spec": "gout",
+        "times": 1
+      },
+      {
+        "id": "vision-nocturne",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "bottes"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "cape"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "fronde"
+      },
+      {
+        "id": "projectile-de-pierre",
+        "count": {
+          "fixed": 20
+        }
+      },
+      {
+        "id": "gamelles"
+      },
+      {
+        "id": "pilon-et-mortier"
+      },
+      {
+        "id": "sac"
+      },
+      {
+        "id": "ration"
+      },
+      {
+        "id": "vetements"
+      },
+      {
+        "id": "assortiment-d-herbes"
+      }
+    ],
+    "spells": [],
+    "fate": 2,
+    "resilience": 3,
+    "xp": 0,
+    "motivation": "Curieux",
+    "age": 29,
+    "sex": "M",
+    "richesse": {
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 4,
+          "sides": 10
+        }
+      }
+    }
   },
   {
-    "id": "otto-hammerfest",
+    "id": "werner-murrmann",
     "type": "pregens",
-    "label": "Otto Hammerfest",
+    "label": "Werner Murrmann",
+    "descRef": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 2,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 2,
+          "b1": 1,
+          "sum": "d3f86f9027b69c23"
+        }
+      ]
+    },
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 113,
+      "note": "EDOC 16 l.704"
+    },
     "species": {
       "id": "humains-reiklander"
     },
-    "career": {
-      "id": "repurgateur"
+    "carrieres": {
+      "artisan": 1
     },
-    "seed": 606,
-    "speciesTalentChoices": {
-      "espece:talents:0": {
-        "id": "perspicace"
+    "initiales": {
+      "capacite-de-combat": 37,
+      "capacite-de-tir": 32,
+      "force": 43,
+      "endurance": 36,
+      "initiative": 31,
+      "agilite": 26,
+      "dexterite": 32,
+      "intelligence": 27,
+      "force-mentale": 35,
+      "sociabilite": 38
+    },
+    "charAdvances": {
+      "endurance": 5
+    },
+    "skills": {
+      "athletisme": 5,
+      "calme": 5,
+      "charme": 5,
+      "corps-a-corps": {
+        "base": 5
+      },
+      "esquive": 5,
+      "marchandage": 3,
+      "ragot": 5,
+      "resistance": 5,
+      "resistance-a-l-alcool": 5,
+      "discretion": {
+        "urbaine": 10
+      },
+      "evaluation": 3,
+      "metier": {
+        "charpentier": 5
+      },
+      "soin-aux-animaux": 3
+    },
+    "talents": [
+      {
+        "id": "affable",
+        "times": 1
+      },
+      {
+        "id": "destinee",
+        "times": 1
+      },
+      {
+        "id": "infatigable",
+        "times": 1
+      },
+      {
+        "id": "maitre-artisan",
+        "spec": "charpentier",
+        "times": 1
+      },
+      {
+        "id": "tres-fort",
+        "times": 1
+      },
+      {
+        "id": "tres-resistant",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "chiffons",
+        "count": {
+          "roll": {
+            "n": 1,
+            "sides": 10
+          }
+        }
+      },
+      {
+        "id": "hache-de-lancer",
+        "count": {
+          "fixed": 2
+        }
+      },
+      {
+        "id": "besace"
+      },
+      {
+        "id": "flasque",
+        "spec": "de tisane"
+      },
+      {
+        "id": "chapeau"
+      },
+      {
+        "id": "craie"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "heaume"
+      },
+      {
+        "id": "cape",
+        "spec": "à capuche"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "justaucorps-de-cuir"
+      },
+      {
+        "id": "vetements"
+      },
+      {
+        "id": "dejeuner"
+      }
+    ],
+    "spells": [],
+    "fate": 3,
+    "resilience": 3,
+    "xp": 0,
+    "motivation": "Dépendance à l’adrénaline",
+    "age": 20,
+    "sex": "M",
+    "richesse": {
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 4,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "wanda-weltschmertz",
+    "type": "pregens",
+    "label": "Wanda Weltschmertz",
+    "descRef": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 3,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 3,
+          "b1": 0,
+          "sum": "9c4a023a15d55805"
+        }
+      ]
+    },
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 113,
+      "note": "EDOC 16 l.855"
+    },
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "carrieres": {
+      "sorcier": 1
+    },
+    "initiales": {
+      "capacite-de-combat": 34,
+      "capacite-de-tir": 31,
+      "force": 26,
+      "endurance": 32,
+      "initiative": 33,
+      "agilite": 27,
+      "dexterite": 29,
+      "intelligence": 36,
+      "force-mentale": 29,
+      "sociabilite": 31
+    },
+    "charAdvances": {
+      "force-mentale": 5
+    },
+    "skills": {
+      "calme": 5,
+      "commandement": 5,
+      "corps-a-corps": {
+        "base": 10,
+        "armes-d-hast": 5
+      },
+      "esquive": 5,
+      "intuition": 5,
+      "perception": 5,
+      "ragot": 3,
+      "evaluation": 3,
+      "focalisation": {
+        "cieux": 5
+      },
+      "langue": {
+        "magick": 5
+      },
+      "savoir": {
+        "magie": 5,
+        "reikland": 3
       }
     },
-    "motivation": "Foi",
-    "ambitionShort": "Démasquer un hérétique",
-    "ambitionLong": "Purger une cellule de cultistes du Chaos"
+    "talents": [
+      {
+        "id": "destinee",
+        "times": 1
+      },
+      {
+        "id": "linguistique",
+        "times": 1
+      },
+      {
+        "id": "lire-ecrire",
+        "times": 1
+      },
+      {
+        "id": "magie-mineure",
+        "times": 1
+      },
+      {
+        "id": "oreille-absolue",
+        "times": 1
+      },
+      {
+        "id": "perspicace",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "baton-de-combat"
+      },
+      {
+        "id": "besace"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "grimoire"
+      },
+      {
+        "id": "necessaire-d-ecriture"
+      },
+      {
+        "id": "parchemin",
+        "count": {
+          "roll": {
+            "n": 1,
+            "sides": 10
+          }
+        }
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "text": "ingrédients de sorts"
+      }
+    ],
+    "spells": [
+      "coup-de-vent",
+      "lumiere",
+      "serrure-ouverte"
+    ],
+    "fate": 4,
+    "resilience": 3,
+    "xp": 0,
+    "motivation": "Faire ses preuves",
+    "age": 24,
+    "sex": "F",
+    "richesse": {
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 6,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "johann-dassbut",
+    "type": "pregens",
+    "label": "Johann « Dam’de nage » Dassbüt",
+    "descRef": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 4,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 4,
+          "b1": 1,
+          "sum": "a6b60ef3f7f2f262"
+        }
+      ]
+    },
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 113,
+      "note": "EDOC 16 l.1012"
+    },
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "carrieres": {
+      "batelier": 1
+    },
+    "initiales": {
+      "capacite-de-combat": 34,
+      "capacite-de-tir": 35,
+      "force": 38,
+      "endurance": 36,
+      "initiative": 45,
+      "agilite": 30,
+      "dexterite": 34,
+      "intelligence": 29,
+      "force-mentale": 31,
+      "sociabilite": 30
+    },
+    "charAdvances": {
+      "force": 5
+    },
+    "skills": {
+      "corps-a-corps": {
+        "base": 5,
+        "bagarre": 5
+      },
+      "esquive": 5,
+      "marchandage": 3,
+      "ragot": 10,
+      "resistance": 5,
+      "resistance-a-l-alcool": 5,
+      "natation": 5,
+      "langue": {
+        "wastelander": 3
+      },
+      "savoir": {
+        "reikland": 5
+      },
+      "voile": 5
+    },
+    "talents": [
+      {
+        "id": "affable",
+        "times": 1
+      },
+      {
+        "id": "destinee",
+        "times": 1
+      },
+      {
+        "id": "nageur-endurant",
+        "times": 1
+      },
+      {
+        "id": "sens-de-l-orientation",
+        "times": 1
+      },
+      {
+        "id": "tres-fort",
+        "times": 1
+      },
+      {
+        "id": "vivacite",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "arme-simple",
+        "spec": "Gaffe"
+      },
+      {
+        "id": "besace"
+      },
+      {
+        "id": "flasque",
+        "spec": "d'alcool"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "manteau"
+      },
+      {
+        "id": "perche"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "veste-de-cuir"
+      },
+      {
+        "id": "vetements"
+      }
+    ],
+    "spells": [],
+    "fate": 3,
+    "resilience": 3,
+    "xp": 0,
+    "motivation": "S’améliorer",
+    "age": 35,
+    "sex": "M",
+    "richesse": {
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 1,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "malmir-giluviel",
+    "type": "pregens",
+    "label": "Malmir Giluviel",
+    "descRef": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 5,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 5,
+          "b1": 2,
+          "sum": "eed7014f785bb16a"
+        }
+      ]
+    },
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 113,
+      "note": "EDOC 16 l.1167"
+    },
+    "species": {
+      "id": "elfes-sylvains"
+    },
+    "carrieres": {
+      "saltimbanque": 1
+    },
+    "initiales": {
+      "capacite-de-combat": 40,
+      "capacite-de-tir": 43,
+      "force": 32,
+      "endurance": 34,
+      "initiative": 55,
+      "agilite": 41,
+      "dexterite": 45,
+      "intelligence": 42,
+      "force-mentale": 42,
+      "sociabilite": 29
+    },
+    "charAdvances": {
+      "sociabilite": 5
+    },
+    "skills": {
+      "athletisme": 5,
+      "charme": 5,
+      "marchandage": 5,
+      "perception": 3,
+      "ragot": 5,
+      "survie-en-exterieur": 3,
+      "discretion": {
+        "rurale": 3
+      },
+      "divertissement": {
+        "chant": 10
+      },
+      "escamotage": 5,
+      "langue": {
+        "eltharin": 5
+      },
+      "musicien": {
+        "mandoline": 5
+      },
+      "projectiles": {
+        "arc": 5
+      },
+      "representation": {
+        "danser": 5
+      }
+    },
+    "talents": [
+      {
+        "id": "sens-aiguise",
+        "spec": "vue",
+        "times": 1
+      },
+      {
+        "id": "dur-a-cuire",
+        "times": 1
+      },
+      {
+        "id": "vision-nocturne",
+        "times": 1
+      },
+      {
+        "id": "orateur",
+        "times": 1
+      },
+      {
+        "id": "nomade",
+        "times": 1
+      },
+      {
+        "id": "tres-resistant",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "arc"
+      },
+      {
+        "id": "fleche",
+        "count": {
+          "fixed": 30
+        }
+      },
+      {
+        "id": "bol"
+      },
+      {
+        "id": "couverture"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "arme-simple"
+      },
+      {
+        "id": "instrument",
+        "spec": "Mandoline"
+      },
+      {
+        "id": "manteau"
+      },
+      {
+        "id": "ration"
+      },
+      {
+        "id": "sac"
+      },
+      {
+        "id": "sac-a-dos"
+      },
+      {
+        "id": "boite-a-amadou"
+      },
+      {
+        "id": "vetements"
+      }
+    ],
+    "spells": [],
+    "fate": 1,
+    "resilience": 1,
+    "xp": 0,
+    "motivation": "Explorer",
+    "age": 20,
+    "sex": "M",
+    "richesse": {
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 6,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "kirsten-krank",
+    "type": "pregens",
+    "label": "Kirsten Krank",
+    "descRef": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 6,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 6,
+          "b1": 2,
+          "sum": "67754302297addf1"
+        }
+      ]
+    },
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 113,
+      "note": "EDOC 16 l.1315"
+    },
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "carrieres": {
+      "voleur": 1
+    },
+    "initiales": {
+      "capacite-de-combat": 31,
+      "capacite-de-tir": 30,
+      "force": 34,
+      "endurance": 32,
+      "initiative": 38,
+      "agilite": 35,
+      "dexterite": 35,
+      "intelligence": 33,
+      "force-mentale": 29,
+      "sociabilite": 30
+    },
+    "charAdvances": {
+      "agilite": 5
+    },
+    "skills": {
+      "athletisme": 5,
+      "calme": 8,
+      "charme": 5,
+      "corps-a-corps": {
+        "base": 5
+      },
+      "escalade": 5,
+      "intuition": 5,
+      "marchandage": 3,
+      "perception": 5,
+      "ragot": 3,
+      "resistance": 5,
+      "evaluation": 5,
+      "discretion": {
+        "urbaine": 10
+      }
+    },
+    "talents": [
+      {
+        "id": "affable",
+        "times": 1
+      },
+      {
+        "id": "chat-de-gouttiere",
+        "times": 1
+      },
+      {
+        "id": "destinee",
+        "times": 1
+      },
+      {
+        "id": "reflexes-foudroyants",
+        "times": 1
+      },
+      {
+        "id": "sens-aiguise",
+        "spec": "ouie",
+        "times": 1
+      },
+      {
+        "id": "sixieme-sens",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "besace"
+      },
+      {
+        "id": "bougie",
+        "count": {
+          "fixed": 2
+        }
+      },
+      {
+        "id": "allumette",
+        "count": {
+          "roll": {
+            "n": 1,
+            "sides": 10
+          }
+        }
+      },
+      {
+        "id": "capuchon"
+      },
+      {
+        "id": "arme-simple"
+      },
+      {
+        "id": "couteau-de-lancer",
+        "count": {
+          "fixed": 3
+        }
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "pied-de-biche"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "justaucorps-de-cuir"
+      },
+      {
+        "id": "sac"
+      },
+      {
+        "id": "vetements"
+      }
+    ],
+    "spells": [],
+    "fate": 4,
+    "resilience": 2,
+    "xp": 0,
+    "motivation": "Plus maline que les autorités",
+    "age": 18,
+    "sex": "F",
+    "richesse": {
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 2,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "sigrid-sommerfeld",
+    "type": "pregens",
+    "label": "Sigrid Sommerfeld",
+    "descRef": {
+      "book": "mort-sur-le-reik-compagnon",
+      "ch": "19",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 1,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 1,
+          "b1": 0,
+          "sum": "d970ffc14720ca6a"
+        }
+      ]
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 127,
+      "note": "MSRC 19 l.635"
+    },
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "carrieres": {
+      "pretre": 1,
+      "hors-la-loi": 3
+    },
+    "initiales": {
+      "capacite-de-combat": 33,
+      "capacite-de-tir": 40,
+      "force": 31,
+      "endurance": 26,
+      "initiative": 40,
+      "agilite": 35,
+      "dexterite": 30,
+      "intelligence": 37,
+      "force-mentale": 34,
+      "sociabilite": 41
+    },
+    "charAdvances": {
+      "capacite-de-combat": 10,
+      "capacite-de-tir": 10,
+      "force": 10,
+      "endurance": 10,
+      "agilite": 2,
+      "force-mentale": 2
+    },
+    "skills": {
+      "athletisme": 6,
+      "calme": 10,
+      "charme": 3,
+      "commandement": 15,
+      "corps-a-corps": {
+        "base": 10
+      },
+      "esquive": 10,
+      "intimidation": 5,
+      "intuition": 5,
+      "marchandage": 5,
+      "pari": 5,
+      "perception": 10,
+      "resistance": 5,
+      "resistance-a-l-alcool": 5,
+      "survie-en-exterieur": 10,
+      "discretion": {
+        "rurale": 12
+      },
+      "priere": 5,
+      "projectiles": {
+        "arc": 10
+      },
+      "savoir": {
+        "region": 13,
+        "reikland": 3,
+        "theologie": 8
+      },
+      "soin-aux-animaux": 3
+    },
+    "talents": [
+      {
+        "id": "affable",
+        "times": 1
+      },
+      {
+        "id": "destinee",
+        "times": 1
+      },
+      {
+        "id": "fuite",
+        "times": 1
+      },
+      {
+        "id": "lire-ecrire",
+        "times": 1
+      },
+      {
+        "id": "nomade",
+        "times": 1
+      },
+      {
+        "id": "tireur-de-precision",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "arc"
+      },
+      {
+        "id": "fleche",
+        "count": {
+          "fixed": 12
+        }
+      },
+      {
+        "id": "vetements"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "arme-simple"
+      },
+      {
+        "id": "chemise-de-mailles"
+      },
+      {
+        "id": "heaume"
+      },
+      {
+        "id": "veste-de-cuir"
+      },
+      {
+        "id": "bouclier"
+      },
+      {
+        "id": "tente"
+      },
+      {
+        "id": "besace"
+      }
+    ],
+    "spells": [],
+    "fate": 3,
+    "resilience": 3,
+    "xp": 0,
+    "motivation": "Vengeance",
+    "age": 26,
+    "sex": "F",
+    "richesse": {
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 4,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "erina-eberhauer",
+    "type": "pregens",
+    "label": "Erina Eberhauer",
+    "descRef": {
+      "book": "pretires-du-pouvoir-derriere-le-trone",
+      "ch": "01",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 1,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 1,
+          "b1": 0,
+          "sum": "b05e448a9bf6c483"
+        }
+      ]
+    },
+    "source": {
+      "book": "pretires-du-pouvoir-derriere-le-trone",
+      "page": 1,
+      "note": "PDTP 01 l.157"
+    },
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "carrieres": {
+      "sorcier": 3
+    },
+    "initiales": {
+      "capacite-de-combat": 34,
+      "capacite-de-tir": 31,
+      "force": 30,
+      "endurance": 31,
+      "initiative": 33,
+      "agilite": 27,
+      "dexterite": 29,
+      "intelligence": 38,
+      "force-mentale": 32,
+      "sociabilite": 31
+    },
+    "charAdvances": {
+      "capacite-de-combat": 10,
+      "agilite": 10,
+      "intelligence": 10,
+      "force-mentale": 10
+    },
+    "skills": {
+      "calme": 10,
+      "commandement": 5,
+      "corps-a-corps": {
+        "base": 10,
+        "armes-d-hast": 10
+      },
+      "esquive": 10,
+      "intuition": 10,
+      "perception": 10,
+      "ragot": 3,
+      "evaluation": 3,
+      "focalisation": {
+        "feu": 10
+      },
+      "langue": {
+        "magick": 10
+      },
+      "savoir": {
+        "magick": 10,
+        "reikland": 3
+      }
+    },
+    "talents": [
+      {
+        "id": "destinee",
+        "times": 1
+      },
+      {
+        "id": "harmonisation-aethyrique",
+        "times": 1
+      },
+      {
+        "id": "linguistique",
+        "times": 1
+      },
+      {
+        "id": "lire-ecrire",
+        "times": 1
+      },
+      {
+        "id": "magie-des-arcanes",
+        "spec": "feu",
+        "times": 1
+      },
+      {
+        "id": "magie-mineure",
+        "times": 1
+      },
+      {
+        "id": "oreille-absolue",
+        "times": 1
+      },
+      {
+        "id": "perspicace",
+        "times": 1
+      },
+      {
+        "id": "seconde-vue",
+        "times": 1
+      },
+      {
+        "id": "sixieme-sens",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "baton-de-combat"
+      },
+      {
+        "text": "Besace de composants"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "vetements"
+      },
+      {
+        "id": "grimoire"
+      },
+      {
+        "id": "necessaire-d-ecriture"
+      },
+      {
+        "id": "parchemin",
+        "count": {
+          "fixed": 9
+        },
+        "spec": "vierge"
+      }
+    ],
+    "spells": [
+      "bruits",
+      "chute",
+      "coup-de-vent",
+      "eblouissant",
+      "envol",
+      "flechette",
+      "grands-feux-d-u-zhul",
+      "l-epee-ardente-de-rhuin",
+      "lumiere",
+      "serrure-ouverte",
+      "tendre-l-oreille"
+    ],
+    "fate": 3,
+    "resilience": 3,
+    "xp": 0,
+    "motivation": "Excellence",
+    "age": 24,
+    "sex": "F",
+    "richesse": {
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 5,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "golthog",
+    "type": "pregens",
+    "label": "Golthog",
+    "descRef": {
+      "book": "pretires-du-pouvoir-derriere-le-trone",
+      "ch": "01",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 2,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 2,
+          "b1": 1,
+          "sum": "48eac7c700e98224"
+        }
+      ]
+    },
+    "source": {
+      "book": "pretires-du-pouvoir-derriere-le-trone",
+      "page": 3,
+      "note": "PDTP 01 l.355"
+    },
+    "species": {
+      "id": "ogres"
+    },
+    "carrieres": {
+      "soldat": 2
+    },
+    "initiales": {
+      "capacite-de-combat": 40,
+      "capacite-de-tir": 23,
+      "force": 47,
+      "endurance": 51,
+      "initiative": 20,
+      "agilite": 27,
+      "dexterite": 22,
+      "intelligence": 19,
+      "force-mentale": 33,
+      "sociabilite": 27
+    },
+    "charAdvances": {
+      "capacite-de-combat": 5,
+      "endurance": 5,
+      "force-mentale": 5
+    },
+    "skills": {
+      "athletisme": 10,
+      "calme": 10,
+      "corps-a-corps": {
+        "base": 10,
+        "bagarre": 5,
+        "deux-mains": 20
+      },
+      "escalade": 10,
+      "esquive": 10,
+      "resistance": 10,
+      "resistance-a-l-alcool": 3,
+      "survie-en-exterieur": 3,
+      "langue": {
+        "bataille": 10
+      },
+      "musicien": {
+        "tambour": 10
+      }
+    },
+    "talents": [
+      {
+        "id": "combat-deloyal",
+        "times": 1
+      },
+      {
+        "id": "resistance",
+        "spec": "poisons-ingeres",
+        "times": 1
+      },
+      {
+        "id": "savoir-vivre",
+        "spec": "soldats",
+        "times": 1
+      },
+      {
+        "id": "massif",
+        "times": 1
+      },
+      {
+        "id": "tres-fort",
+        "times": 1
+      },
+      {
+        "id": "vice",
+        "spec": "nourriture",
+        "times": 1
+      },
+      {
+        "id": "vision-nocturne",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "cotte-de-mailles"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "heaume"
+      },
+      {
+        "id": "uniforme"
+      },
+      {
+        "id": "veste-de-cuir"
+      },
+      {
+        "id": "zweihander"
+      }
+    ],
+    "spells": [],
+    "fate": 1,
+    "resilience": 3,
+    "xp": 0,
+    "motivation": "Vengeance",
+    "age": 39,
+    "sex": "M",
+    "richesse": {
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 4,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "erich-massenbach",
+    "type": "pregens",
+    "label": "Erich Massenbach",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 2,
+          "sum": "18402ec6265766ab"
+        }
+      ]
+    },
+    "source": {
+      "book": "zoo-imperial",
+      "page": 123,
+      "note": "ZI 14 l.180"
+    },
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "carrieres": {
+      "artiste": 2
+    },
+    "initiales": {
+      "capacite-de-combat": 24,
+      "capacite-de-tir": 29,
+      "force": 31,
+      "endurance": 38,
+      "initiative": 38,
+      "agilite": 29,
+      "dexterite": 39,
+      "intelligence": 31,
+      "force-mentale": 30,
+      "sociabilite": 36
+    },
+    "charAdvances": {
+      "force": 5,
+      "initiative": 5,
+      "dexterite": 5,
+      "sociabilite": 5
+    },
+    "skills": {
+      "calme": 8,
+      "escalade": 5,
+      "intuition": 5,
+      "marchandage": 5,
+      "perception": 10,
+      "ragot": 15,
+      "resistance": 5,
+      "resistance-a-l-alcool": 5,
+      "discretion": {
+        "urbaine": 5
+      },
+      "evaluation": 8,
+      "langue": {
+        "classique": 5,
+        "tileen": 10
+      },
+      "projectiles": {
+        "arc": 5
+      },
+      "soin-aux-animaux": 3,
+      "art": {
+        "peinture": 10
+      }
+    },
+    "talents": [
+      {
+        "id": "affable",
+        "times": 1
+      },
+      {
+        "id": "ame-pure",
+        "times": 1
+      },
+      {
+        "id": "artiste",
+        "times": 1
+      },
+      {
+        "id": "destinee",
+        "times": 1
+      },
+      {
+        "id": "lire-ecrire",
+        "times": 1
+      },
+      {
+        "id": "oreille-absolue",
+        "times": 1
+      },
+      {
+        "id": "sens-aiguise",
+        "spec": "ouie",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "dague"
+      },
+      {
+        "id": "vetements",
+        "qualities": [
+          {
+            "id": "raffine"
+          }
+        ]
+      },
+      {
+        "id": "trousse-de-toilette"
+      },
+      {
+        "id": "parchemin",
+        "spec": "rames de papier"
+      },
+      {
+        "id": "necessaire-d-ecriture"
+      },
+      {
+        "id": "pinceau"
+      },
+      {
+        "id": "outils-professionnels-artiste"
+      },
+      {
+        "id": "parchemin",
+        "spec": "lettre adressée à son père (jamais envoyée)",
+        "count": {
+          "fixed": 2
+        }
+      },
+      {
+        "id": "arc-court"
+      },
+      {
+        "id": "fleche",
+        "count": {
+          "fixed": 12
+        }
+      },
+      {
+        "id": "justaucorps-de-cuir"
+      }
+    ],
+    "spells": [],
+    "fate": 4,
+    "resilience": 2,
+    "xp": 0,
+    "motivation": "Perfectionner mon art",
+    "age": 21,
+    "sex": "M",
+    "richesse": {
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 3,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "jorunn-gromsdottir",
+    "type": "pregens",
+    "label": "Jorunn Gromsdottir",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 2,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 1,
+          "b1": 0,
+          "sum": "a00aa302d1270f3d"
+        }
+      ]
+    },
+    "source": {
+      "book": "zoo-imperial",
+      "page": 125,
+      "note": "ZI 14 l.359"
+    },
+    "species": {
+      "id": "nains"
+    },
+    "carrieres": {
+      "apothicaire": 2
+    },
+    "initiales": {
+      "capacite-de-combat": 44,
+      "capacite-de-tir": 33,
+      "force": 24,
+      "endurance": 46,
+      "initiative": 31,
+      "agilite": 19,
+      "dexterite": 39,
+      "intelligence": 36,
+      "force-mentale": 55,
+      "sociabilite": 20
+    },
+    "charAdvances": {
+      "endurance": 5,
+      "dexterite": 5,
+      "intelligence": 10,
+      "sociabilite": 5
+    },
+    "skills": {
+      "calme": 5,
+      "charme": 5,
+      "corps-a-corps": {
+        "base": 3
+      },
+      "marchandage": 5,
+      "perception": 5,
+      "resistance": 5,
+      "resistance-a-l-alcool": 10,
+      "discretion": {
+        "urbaine": 5
+      },
+      "evaluation": 3,
+      "guerison": 5,
+      "langue": {
+        "classique": 5,
+        "khazalid": 5
+      },
+      "metier": {
+        "apothicaire": 10,
+        "empoisonneur": 5
+      },
+      "savoir": {
+        "chimie": 5,
+        "remedes": 10,
+        "plantes": 5
+      }
+    },
+    "talents": [
+      {
+        "id": "concocter",
+        "times": 1
+      },
+      {
+        "id": "costaud",
+        "times": 1
+      },
+      {
+        "id": "determine",
+        "times": 1
+      },
+      {
+        "id": "lire-ecrire",
+        "times": 1
+      },
+      {
+        "id": "resistance-a-la-magie",
+        "times": 1
+      },
+      {
+        "id": "vision-nocturne",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "vetements"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "besace"
+      },
+      {
+        "id": "necessaire-d-ecriture"
+      },
+      {
+        "id": "parchemin",
+        "count": {
+          "fixed": 9
+        }
+      },
+      {
+        "id": "livre",
+        "spec": "à moitié rédigé"
+      },
+      {
+        "id": "potion-de-guerison"
+      },
+      {
+        "id": "pilon-et-mortier"
+      },
+      {
+        "id": "licence-de-guilde"
+      },
+      {
+        "id": "outils-professionnels-apothicaire"
+      },
+      {
+        "id": "canne-a-peche"
+      },
+      {
+        "id": "arme-simple"
+      },
+      {
+        "id": "arbalete"
+      },
+      {
+        "id": "veste-de-cuir"
+      }
+    ],
+    "spells": [],
+    "fate": 2,
+    "resilience": 2,
+    "xp": 5,
+    "motivation": "Connaissance",
+    "age": 97,
+    "sex": "F",
+    "richesse": {
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 1,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "lynathryn-chantenuit",
+    "type": "pregens",
+    "label": "Lynathryn Chantenuit",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 3,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 2,
+          "b1": 0,
+          "sum": "0de65c56b28f7b6b"
+        }
+      ]
+    },
+    "source": {
+      "book": "zoo-imperial",
+      "page": 127,
+      "note": "ZI 14 l.490"
+    },
+    "species": {
+      "id": "elfes-sylvains"
+    },
+    "carrieres": {
+      "chasseur": 2
+    },
+    "initiales": {
+      "capacite-de-combat": 45,
+      "capacite-de-tir": 52,
+      "force": 31,
+      "endurance": 30,
+      "initiative": 55,
+      "agilite": 40,
+      "dexterite": 42,
+      "intelligence": 41,
+      "force-mentale": 38,
+      "sociabilite": 31
+    },
+    "charAdvances": {
+      "capacite-de-tir": 5,
+      "force": 5,
+      "endurance": 5,
+      "dexterite": 5
+    },
+    "skills": {
+      "calme": 5,
+      "corps-a-corps": {
+        "base": 5
+      },
+      "emprise-sur-les-animaux": 5,
+      "escalade": 10,
+      "intimidation": 3,
+      "perception": 5,
+      "resistance": 10,
+      "survie-en-exterieur": 10,
+      "discretion": {
+        "rurale": 10
+      },
+      "divertissement": {
+        "chant": 5
+      },
+      "langue": {
+        "eltharin": 5
+      },
+      "piegeage": 5,
+      "projectiles": {
+        "fronde": 5,
+        "arc": 10
+      },
+      "savoir": {
+        "betes-sauvages": 5
+      }
+    },
+    "talents": [
+      {
+        "id": "dur-a-cuire",
+        "times": 1
+      },
+      {
+        "id": "bon-marcheur",
+        "spec": "regions-boisees",
+        "times": 1
+      },
+      {
+        "id": "lire-ecrire",
+        "times": 1
+      },
+      {
+        "id": "nomade",
+        "times": 1
+      },
+      {
+        "id": "sens-aiguise",
+        "spec": "vue",
+        "times": 1
+      },
+      {
+        "id": "vision-nocturne",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "cape"
+      },
+      {
+        "id": "vetements"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "besace"
+      },
+      {
+        "id": "ration",
+        "count": {
+          "fixed": 2
+        }
+      },
+      {
+        "id": "piege-a-animaux",
+        "count": {
+          "fixed": 2
+        }
+      },
+      {
+        "id": "arc-elfique"
+      },
+      {
+        "id": "fleche",
+        "count": {
+          "fixed": 6
+        }
+      },
+      {
+        "id": "arme-simple"
+      },
+      {
+        "id": "veste-de-cuir"
+      }
+    ],
+    "spells": [],
+    "fate": 1,
+    "resilience": 1,
+    "xp": 0,
+    "motivation": "Trouver l’espoir",
+    "age": 295,
+    "sex": "M",
+    "richesse": {
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 8,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "theodosius-schreiber",
+    "type": "pregens",
+    "label": "Theodosius Schreiber",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 4,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 3,
+          "b1": 0,
+          "sum": "cf496f2058f5a10f"
+        }
+      ]
+    },
+    "source": {
+      "book": "zoo-imperial",
+      "page": 129,
+      "note": "ZI 14 l.666"
+    },
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "carrieres": {
+      "erudit": 2
+    },
+    "initiales": {
+      "capacite-de-combat": 32,
+      "capacite-de-tir": 28,
+      "force": 30,
+      "endurance": 38,
+      "initiative": 26,
+      "agilite": 31,
+      "dexterite": 31,
+      "intelligence": 42,
+      "force-mentale": 31,
+      "sociabilite": 27
+    },
+    "charAdvances": {
+      "endurance": 5,
+      "initiative": 5,
+      "intelligence": 5,
+      "force-mentale": 5
+    },
+    "skills": {
+      "calme": 5,
+      "commandement": 3,
+      "intuition": 5,
+      "marchandage": 8,
+      "pari": 5,
+      "perception": 5,
+      "ragot": 10,
+      "resistance-a-l-alcool": 5,
+      "art": {
+        "ecriture": 10
+      },
+      "corps-a-corps": {
+        "escrime": 5
+      },
+      "divertissement": {
+        "narration": 5
+      },
+      "langue": {
+        "classique": 5
+      },
+      "recherche": 5,
+      "savoir": {
+        "heraldique": 5,
+        "reikland": 3
+      }
+    },
+    "talents": [
+      {
+        "id": "destinee",
+        "times": 1
+      },
+      {
+        "id": "identite-secrete",
+        "times": 1
+      },
+      {
+        "id": "lire-ecrire",
+        "times": 1
+      },
+      {
+        "id": "noblesse",
+        "times": 1
+      },
+      {
+        "id": "noctambule",
+        "times": 1
+      },
+      {
+        "id": "perspicace",
+        "times": 1
+      },
+      {
+        "id": "sens-aiguise",
+        "spec": "ouie",
+        "times": 1
+      },
+      {
+        "id": "sixieme-sens",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "vetements"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "besace"
+      },
+      {
+        "id": "necessaire-d-ecriture"
+      },
+      {
+        "id": "parchemin",
+        "count": {
+          "fixed": 30
+        }
+      },
+      {
+        "id": "livre",
+        "spec": "de référence",
+        "count": {
+          "fixed": 2
+        }
+      },
+      {
+        "id": "sac-a-dos"
+      },
+      {
+        "id": "alcool"
+      },
+      {
+        "id": "rapiere"
+      }
+    ],
+    "spells": [],
+    "fate": 3,
+    "resilience": 3,
+    "xp": 0,
+    "motivation": "Éduquer mon prochain",
+    "age": 29,
+    "sex": "M",
+    "richesse": {
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 2,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "vasya-ghorshkov",
+    "type": "pregens",
+    "label": "Vasya Ghorshkov",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 5,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 4,
+          "b1": 0,
+          "sum": "60eed5e954f78d76"
+        }
+      ]
+    },
+    "source": {
+      "book": "zoo-imperial",
+      "page": 131,
+      "note": "ZI 14 l.817"
+    },
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "carrieres": {
+      "gladiateur": 2
+    },
+    "initiales": {
+      "capacite-de-combat": 41,
+      "capacite-de-tir": 31,
+      "force": 43,
+      "endurance": 36,
+      "initiative": 28,
+      "agilite": 34,
+      "dexterite": 25,
+      "intelligence": 31,
+      "force-mentale": 34,
+      "sociabilite": 26
+    },
+    "charAdvances": {
+      "capacite-de-combat": 5,
+      "endurance": 5,
+      "initiative": 5,
+      "agilite": 5
+    },
+    "skills": {
+      "athletisme": 5,
+      "calme": 5,
+      "corps-a-corps": {
+        "base": 12,
+        "fleau": 15
+      },
+      "emprise-sur-les-animaux": 3,
+      "esquive": 5,
+      "intimidation": 8,
+      "marchandage": 5,
+      "perception": 5,
+      "ragot": 8,
+      "resistance": 5,
+      "chevaucher": {
+        "cheval": 5
+      },
+      "divertissement": {
+        "raillerie": 5
+      },
+      "savoir": {
+        "ostermark": 5
+      }
+    },
+    "talents": [
+      {
+        "id": "destinee",
+        "times": 1
+      },
+      {
+        "id": "dur-a-cuire",
+        "times": 1
+      },
+      {
+        "id": "guerrier-ne",
+        "times": 1
+      },
+      {
+        "id": "menacant",
+        "times": 1
+      },
+      {
+        "id": "reflexes-foudroyants",
+        "times": 1
+      },
+      {
+        "id": "tres-fort",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "vetements"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "cape"
+      },
+      {
+        "id": "bandages"
+      },
+      {
+        "id": "fleau"
+      },
+      {
+        "id": "arme-simple"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "bouclier-targe"
+      },
+      {
+        "id": "justaucorps-de-cuir"
+      }
+    ],
+    "spells": [],
+    "fate": 3,
+    "resilience": 3,
+    "xp": 10,
+    "motivation": "Un bon combat",
+    "age": 25,
+    "sex": "M",
+    "richesse": {
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 2,
+          "sides": 10
+        }
+      }
+    }
+  },
+  {
+    "id": "kistiane-brockdorf",
+    "type": "pregens",
+    "label": "Kistiane Brockdorf",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apparence-et-personnalite",
+          "secOcc": 6,
+          "b0": 0,
+          "finSec": "historique",
+          "finSecOcc": 5,
+          "b1": 0,
+          "sum": "4e2ba60da9e84e7e"
+        }
+      ]
+    },
+    "source": {
+      "book": "zoo-imperial",
+      "page": 133,
+      "note": "ZI 14 l.974"
+    },
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "carrieres": {
+      "sorcier": 2
+    },
+    "initiales": {
+      "capacite-de-combat": 26,
+      "capacite-de-tir": 29,
+      "force": 25,
+      "endurance": 33,
+      "initiative": 34,
+      "agilite": 38,
+      "dexterite": 29,
+      "intelligence": 43,
+      "force-mentale": 38,
+      "sociabilite": 37
+    },
+    "charAdvances": {
+      "capacite-de-combat": 5,
+      "agilite": 5,
+      "intelligence": 5,
+      "force-mentale": 5
+    },
+    "skills": {
+      "calme": 5,
+      "charme": 3,
+      "corps-a-corps": {
+        "base": 5,
+        "armes-d-hast": 5
+      },
+      "esquive": 5,
+      "intuition": 5,
+      "marchandage": 5,
+      "perception": 8,
+      "ragot": 3,
+      "focalisation": {
+        "vie": 10
+      },
+      "langue": {
+        "magick": 10,
+        "wastelander": 3
+      },
+      "savoir": {
+        "magick": 5,
+        "reikland": 5
+      }
+    },
+    "talents": [
+      {
+        "id": "chanceux",
+        "times": 1
+      },
+      {
+        "id": "destinee",
+        "times": 1
+      },
+      {
+        "id": "harmonisation-aethyrique",
+        "times": 1
+      },
+      {
+        "id": "lire-ecrire",
+        "times": 1
+      },
+      {
+        "id": "magie-des-arcanes",
+        "spec": "vie",
+        "times": 1
+      },
+      {
+        "id": "magie-mineure",
+        "times": 1
+      },
+      {
+        "id": "oreille-absolue",
+        "times": 1
+      },
+      {
+        "id": "perspicace",
+        "times": 1
+      }
+    ],
+    "trappings": [
+      {
+        "id": "licence-magique"
+      },
+      {
+        "id": "tente"
+      },
+      {
+        "id": "sac-a-dos"
+      },
+      {
+        "id": "necessaire-d-ecriture"
+      },
+      {
+        "id": "parchemin",
+        "count": {
+          "fixed": 10
+        }
+      },
+      {
+        "id": "grimoire"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "baton-de-combat"
+      }
+    ],
+    "spells": [
+      "amitie-animale",
+      "drain",
+      "lumiere",
+      "reperes",
+      "foret-d-epines"
+    ],
+    "fate": 3,
+    "resilience": 3,
+    "xp": 5,
+    "motivation": "Montrer l’utilité de la magie",
+    "age": 29,
+    "sex": "F",
+    "richesse": {
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 3,
+          "sides": 10
+        }
+      }
+    }
   }
 ]

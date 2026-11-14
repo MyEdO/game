@@ -1,12 +1,13 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 
 import { z } from 'zod';
-import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
+import { document, tableTiree } from '../grammaire/document';
 import { refs } from '../grammaire/ref';
 import {
   difficultySchema,
   ecartsDeCouverture,
   plageSchema,
+  prixDuLivreSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
 
@@ -14,7 +15,7 @@ export const file = 'land-cargo.json';
 export const famille = 'config';
 
 
-const offerByRichesseSchema = z
+const offreParRichesseSchema = z
   .array(nommerChamps(z.strictObject({ ...plageSchema.shape, label: z.string(), pct: z.number() }), {
     ...metaDesChamps(plageSchema, { exigees: true }),
     label: { label: 'Libellé' },
@@ -25,15 +26,17 @@ const offerByRichesseSchema = z
     if (ecarts.length) {
       ctx.addIssue({
         code: 'custom',
-        message: `land-cargo.json › sell.offerByRichesse : les bandes ne couvrent pas l'Indice de richesse 1 à 5 d'un seul tenant — ${ecarts.join(' ; ')}.`,
+        message: `land-cargo.json › vente.offreParRichesse : les bandes ne couvrent pas l'Indice de richesse 1 à 5 d'un seul tenant — ${ecarts.join(' ; ')}.`,
       });
     }
   });
 
 
 const champs = {
+  /** MSRC 13 l.91 */
+  prixDuLivre: prixDuLivreSchema,
   /** MSRC 13 l.97 */
-  wineQuality: tableTiree(
+  qualiteDuVin: tableTiree(
     nommerChamps(z.strictObject({ ...plageSchema.shape, label: z.string(), price: z.number(), source: sourceRefSchema }), {
       ...metaDesChamps(plageSchema, { exigees: true }),
       label: { label: 'Libellé' },
@@ -41,45 +44,45 @@ const champs = {
       source: { label: 'Source' },
     }),
   ),
-  buy: nommerChamps(z.strictObject({
-    availabilityMultiplier: z.number(),
-    merchantSkill: nommerChamps(z.strictObject({ d10: z.number(), plus: z.number() }), { d10: { label: 'Dés à dix faces' }, plus: { label: 'Ajout' } }),
-    partialSurchargePct: z.number(),
-    minEnc: z.number(),
-    wineEvalDifficulty: difficultySchema,
-    wineEvalEasyDifficulty: difficultySchema,
-    wineAlcoholResistThreshold: z.number(),
+  achat: nommerChamps(z.strictObject({
+    multiplicateurDeDisponibilite: z.number(),
+    competenceDuMarchand: nommerChamps(z.strictObject({ d10: z.number(), plus: z.number() }), { d10: { label: 'Dés à dix faces' }, plus: { label: 'Ajout' } }),
+    pctSurcoutPartiel: z.number(),
+    encMin: z.number(),
+    difficulteEvaluationVin: difficultySchema,
+    difficulteEvaluationVinFacile: difficultySchema,
+    seuilResistanceAlcool: z.number(),
     source: sourceRefSchema,
   }), {
-    availabilityMultiplier: { label: 'Multiplicateur de disponibilité' },
-    merchantSkill: { label: 'Compétence du marchand' },
-    partialSurchargePct: { label: 'Surcoût d’achat partiel (%)' },
-    minEnc: { label: 'Encombrement minimal' },
-    wineEvalDifficulty: { label: 'Difficulté d’évaluation du vin' },
-    wineEvalEasyDifficulty: { label: 'Difficulté d’évaluation facile du vin' },
-    wineAlcoholResistThreshold: { label: 'Seuil de Résistance à l’alcool' },
+    multiplicateurDeDisponibilite: { label: 'Multiplicateur de disponibilité' },
+    competenceDuMarchand: { label: 'Compétence du marchand' },
+    pctSurcoutPartiel: { label: 'Surcoût d’achat partiel (%)' },
+    encMin: { label: 'Encombrement minimal' },
+    difficulteEvaluationVin: { label: 'Difficulté d’évaluation du vin' },
+    difficulteEvaluationVinFacile: { label: 'Difficulté d’évaluation facile du vin' },
+    seuilResistanceAlcool: { label: 'Seuil de Résistance à l’alcool' },
     source: { label: 'Source' },
   }),
-  sell: nommerChamps(z.strictObject({
-    targetPerSize: z.number(),
-    commerceBonus: z.number(),
-    dumpingPctOfBase: z.number(),
-    offerByRichesse: offerByRichesseSchema,
+  vente: nommerChamps(z.strictObject({
+    cibleParTaille: z.number(),
+    bonusDeCommerce: z.number(),
+    pctDeBradage: z.number(),
+    offreParRichesse: offreParRichesseSchema,
     source: sourceRefSchema,
   }), {
-    targetPerSize: { label: 'Cible par taille' },
-    commerceBonus: { label: 'Bonus de Commerce' },
-    dumpingPctOfBase: { label: 'Prix de bradage (% du prix de base)' },
-    offerByRichesse: { label: 'Mise à prix selon la Richesse' },
+    cibleParTaille: { label: 'Cible par taille' },
+    bonusDeCommerce: { label: 'Bonus de Commerce' },
+    pctDeBradage: { label: 'Prix de bradage (% du prix de base)' },
+    offreParRichesse: { label: 'Mise à prix selon la Richesse' },
     source: { label: 'Source' },
   }),
-  gossip: nommerChamps(z.strictObject({ difficulty: difficultySchema, mod: z.number(), source: sourceRefSchema }), {
+  ragot: nommerChamps(z.strictObject({ difficulty: difficultySchema, mod: z.number(), source: sourceRefSchema }), {
     difficulty: { label: 'Difficulté' },
     mod: { label: 'Modificateur' },
     source: { label: 'Source' },
   }),
   /** MSRC 13 l.283 */
-  rumours: tableTiree(
+  rumeurs: tableTiree(
     nommerChamps(z.strictObject({
       ...plageSchema.shape,
       biens: refs('cargo', { sousListe: 'terre' }),
@@ -103,20 +106,20 @@ const doc = document(
   famille,
   champs,
   {
-    wineQuality: {
+    prixDuLivre: { label: 'Unité du prix du livre', hint: 'Points d’Encombrement que couvre un prix de base du livre' },
+    qualiteDuVin: {
       label: 'Qualité du vin',
       hint: "Table secrète de prix du Vin/Eau-de-vie, tirée à part de la colonne saisonnière",
     },
-    buy: { label: "Règles d'achat", hint: 'Barème de Marchandage, disponibilité, seuils de dégustation du vin' },
-    sell: { label: 'Règles de vente', hint: 'Cible de production, bonus de Commerce, bradage, offre par richesse du lieu' },
-    gossip: { label: 'Ragot', hint: 'Difficulté et modificateur du Test de Ragot préalable à la vente' },
-    rumours: { label: 'Rumeurs', hint: 'Table de tirage de rumeurs commerciales' },
+    achat: { label: "Règles d'achat", hint: 'Barème de Marchandage, disponibilité, seuils de dégustation du vin' },
+    vente: { label: 'Règles de vente', hint: 'Cible de production, bonus de Commerce, bradage, offre par richesse du lieu' },
+    ragot: { label: 'Ragot', hint: 'Difficulté et modificateur du Test de Ragot préalable à la vente' },
+    rumeurs: { label: 'Rumeurs', hint: 'Table de tirage de rumeurs commerciales' },
   },
-  { codex: { keys: ['landCargo'] }, edit: { object: 'single' } },
+  { codex: { keys: ['landCargo'] }, edit: { object: 'unique' } },
 );
 
 export const schema = doc.schema;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;
-export type LandCargoData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

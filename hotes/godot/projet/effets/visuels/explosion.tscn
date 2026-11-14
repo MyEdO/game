@@ -1,0 +1,112 @@
+[gd_scene format=3]
+
+[ext_resource type="QuadMesh" path="res://effets/particule_lumineuse.tres" id="1_0g3nb"]
+[ext_resource type="QuadMesh" path="res://effets/particule_mate.tres" id="2_2yv5b"]
+
+[sub_resource type="Gradient" id="Gradient_uvtr1"]
+colors = PackedColorArray(1, 0.627451, 0.2509804, 1, 1, 0.627451, 0.2509804, 0)
+
+[sub_resource type="Gradient" id="Gradient_4yqrx"]
+colors = PackedColorArray(0.3529412, 0.33333334, 0.3137255, 0.6, 0.3529412, 0.33333334, 0.3137255, 0)
+
+[sub_resource type="Animation" id="Animation_o3q44"]
+length = 2.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Gerbe1:emitting")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Gerbe2:emitting")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Eclair:light_energy")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [6.0, 0.0]
+}
+tracks/3/type = "method"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath(".")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(2.4),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [],
+"method": &"queue_free"
+}]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_e161h"]
+_data = {
+&"eclat": SubResource("Animation_o3q44")
+}
+
+[node name="explosion" type="Node3D" unique_id=725062464]
+
+[node name="Gerbe1" type="CPUParticles3D" parent="." unique_id=1591238478]
+cast_shadow = 0
+amount = 30
+lifetime = 0.5
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+mesh = ExtResource("1_0g3nb")
+direction = Vector3(0, 1, 0)
+spread = 180.0
+gravity = Vector3(0, 0, 0)
+initial_velocity_min = 2.0
+initial_velocity_max = 5.0
+scale_amount_min = 0.8
+scale_amount_max = 1.4
+color_ramp = SubResource("Gradient_uvtr1")
+
+[node name="Gerbe2" type="CPUParticles3D" parent="." unique_id=234327612]
+cast_shadow = 0
+amount = 24
+lifetime = 2.2
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+mesh = ExtResource("2_2yv5b")
+direction = Vector3(0, 1, 0)
+spread = 90.0
+gravity = Vector3(0, 0.5, 0)
+initial_velocity_min = 0.5
+initial_velocity_max = 1.5
+scale_amount_max = 1.8
+color_ramp = SubResource("Gradient_4yqrx")
+
+[node name="Eclair" type="OmniLight3D" parent="." unique_id=304709961]
+light_color = Color(1, 0.627451, 0.2509804, 1)
+light_energy = 6.0
+omni_range = 4.0
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=77761533]
+libraries/ = SubResource("AnimationLibrary_e161h")
+autoplay = &"eclat"

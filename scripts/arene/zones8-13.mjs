@@ -1,5 +1,19 @@
 /** Zones 8-13 de l'échelle — le haut du tableau : Fosse, Caverne, Vermine, Cercle, Sépulcre, Dragon. */
-import { scene, P, NPC, hero, resetIds, fouille, fightTrigger, zoneVictory, DRAGON_DES_TENEBRES, DRAGON_DES_TENEBRES_APPEARANCE, flowOf, flagWhen, testNode } from '../campagne/lib.mjs';
+import {
+  scene,
+  P,
+  NPC,
+  hero,
+  resetIds,
+  fouille,
+  fightTrigger,
+  zoneVictory,
+  DRAGON_DES_TENEBRES,
+  DRAGON_DES_TENEBRES_APPEARANCE,
+  flowOf,
+  flagWhen,
+  testNode,
+} from '../campagne/lib.mjs';
 
 // ── Zone 8 — La Fosse (30×20, roche) : gouffres, harde du Chaos, gladiateur ALLIÉ ───────────
 
@@ -62,8 +76,8 @@ export function makeZone8() {
       {
         id: 'enc-zone8',
         enemies: [
-          // 0 : le gladiateur évadé — un ALLIÉ de scène à pied (vitrine side:'ally' hors monture).
-          { creature: { id: 'humain' }, pos: { x: 5, y: 10 }, side: 'ally', inventaire: { 'epee-batarde': false }, label: 'Gladiateur enchaîné', appearance: { tenue: 'mendiant' } },
+          // 0 : le gladiateur évadé — un ALLIÉ de scène à pied (vitrine side:'allie' hors monture).
+          { creature: { id: 'humain' }, pos: { x: 5, y: 10 }, side: 'allie', inventaire: { 'epee-batarde': false }, label: 'Gladiateur enchaîné', appearance: { tenue: 'mendiant' } },
           { creature: { id: 'gor' }, pos: { x: 14, y: 5 } },
           { creature: { id: 'gor' }, pos: { x: 22, y: 11 }, optionals: [{ id: 'armure', value: 2 }] },
           { creature: { id: 'gor' }, pos: { x: 12, y: 16 } },
@@ -194,7 +208,7 @@ export function makeZone10() {
           {
             id: 'crocheter-cage',
             label: 'Crocheter la cage.',
-            icon: 'ui/lock',
+            icon: 'interface/verrou',
             when: flagWhen('!prisonnier_libre'),
             flow: testNode(
               { skill: { id: 'crochetage' }, difficulty: 'accessible', label: 'Crocheter la cage du garde-manger', stake: { authored: 'Ouvrir la cage du colporteur : sa liberté, sa bourse de 40 pistoles et 50 XP ; raté, le crochet ripe et il reste dedans.' } },
@@ -252,7 +266,7 @@ export function makeZone10() {
       hero(2, 21),
       NPC('prisonnier', 10, 5, 'Prisonnier en cage', {
         dialogueId: { id: 'dlg-prisonnier' },
-        anim: 'cowering',
+        anim: 'tapi',
         appearance: { species: 'halflings', tenue: 'mendiant', sex: 'M' },
       }),
       P(10, 6, 'cage', { label: 'Cage du garde-manger' }),
@@ -284,7 +298,7 @@ export function makeZone10() {
         id: 'voix-cage',
         rect: { x: 7, y: 9, w: 11, h: 3 },
         once: true,
-        flow: flowOf([{ type: 'startDialogue', dialogue: 'dlg-prisonnier', speakerId: 'prisonnier' }]),
+        flow: flowOf([{ type: 'startDialogue', dialogue: { id: 'dlg-prisonnier' }, speakerId: { id: 'prisonnier' } }]),
       },
       fightTrigger('enc-zone10', { x: 12, y: 9, w: 21, h: 13 }),
     ],

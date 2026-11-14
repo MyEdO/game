@@ -6,8 +6,8 @@
  * minuteurs (Godot) rend lui-même chaque jeton ; le geste joué sur la partie vit dans `geste.ts`.
  */
 import {
-  creerPartie, etatInitialDuJeu, preferenceDef, refusDesSurcharges, valeurDEntree,
-  type Cadence, type EntreesDeLaPartie, type FabriqueDId, type LancementDeScenario, type IdDePreference, type PrefValue, type Jeton, type Partie, type Programme, type ResultatDeLAppel,
+  creerPartie, etatInitialDuJeu, preferenceDef, refusDesSurcharges, ruleOverrides, valeurDEntree,
+  type Cadence, type EntreesDeLaPartie, type EtatDeJeu, type FabriqueDId, type LancementDeScenario, type IdDePreference, type PrefValue, type Jeton, type Partie, type Programme, type ResultatDeLAppel,
 } from '../noyau/index';
 import { lancementDuScenario, type TestScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
@@ -61,6 +61,12 @@ export function nouvellesEntrees(options: { graine?: number; cadence?: unknown; 
   };
 }
 
+/** Les entrées d'une partie du jeu à la graine `graine` : les règles maison `regles`, à défaut celles en vigueur, et
+ *  la cadence et les dés fixés en vigueur aux préférences de l'hôte, que l'ouverture de la partie repose. */
+export function entreesDuJeu(graine: number, regles: Record<string, unknown> = ruleOverrides()): EntreesDeLEntete {
+  return nouvellesEntrees({ graine, regles, cadence: preferenceDef('combat-cadence')!.get(), desFixes: preferenceDef('des-fixes')!.get() });
+}
+
 /** L'en-tête d'une partie neuve, ou l'erreur de validation qui le refuse (`nouvellesEntrees`). */
 export function nouvelEntete(scenario: string, options: Parameters<typeof nouvellesEntrees>[0]): Entete {
   scenarioDeTest(scenario);
@@ -71,17 +77,20 @@ export function nouvelEntete(scenario: string, options: Parameters<typeof nouvel
 function preference(id: IdDePreference, v: unknown): PrefValue {
   const valeur = valeurDEntree(id, v);
   if (valeur === undefined) {
-    const options = preferenceDef(id)?.options;
+    const forme = preferenceDef(id);
+    const options = forme?.kind === 'mode' ? forme.options : null;
     throw new ErreurDeGeste('validation', `${id} non conforme : ${JSON.stringify(v)}${options ? ` (${options.join(', ')})` : ''}`);
   }
   return valeur;
 }
 
 /** La tenue des jetons programmés d'une partie : chaque jeton qu'un résultat programme reçoit un numéro, dans l'ordre
- *  d'arrivée (`programmes`) ; `reprendre` rejoue celui d'un numéro, une fois. */
-export function tenueDesJetons(partie: Pick<Partie, 'reprendre'>) {
+ *  d'arrivée (`programmes`), à partir de `premier` ; `reprendre` rejoue celui d'un numéro, une fois ; `suivant` : le
+ *  numéro que recevra le prochain, d'où un hôte qui ouvre une partie après l'autre fait partir la tenue de la suivante,
+ *  aucun numéro ne désignant deux jetons. */
+export function tenueDesJetons(partie: Pick<Partie, 'reprendre'>, premier = 0) {
   const tenus = new Map<number, Jeton>();
-  let suivant = 0;
+  let suivant = premier;
   return {
     programmes(resultat: ResultatDeLAppel): Programme[] {
       return resultat.evenements.flatMap((e) => {
@@ -97,41 +106,54 @@ export function tenueDesJetons(partie: Pick<Partie, 'reprendre'>) {
       tenus.delete(id);
       return partie.reprendre(jeton);
     },
+    suivant: (): number => suivant,
   };
 }
 
 /** La tenue des jetons d'une partie. */
 export type TenueDesJetons = ReturnType<typeof tenueDesJetons>;
 
-/** Une partie ouverte : la partie du noyau, la tenue de ses jetons, et le résultat du lancement de son scénario. */
-export interface PartieOuverte {
+/** Une partie au groupe : la partie du noyau et la tenue de ses jetons. */
+export interface PartieAuGroupe {
   partie: Partie;
   jetons: TenueDesJetons;
+}
+
+/** Une partie ouverte sur un lancement : la partie au groupe, et le résultat du lancement. */
+export interface PartieOuverte extends PartieAuGroupe {
   lancement: ResultatDeLAppel;
 }
 
 /** Ouvre la partie de l'en-tête : son scénario lancé par le constructeur unique du lancement (`lancementDuScenario`,
  *  `ouvrirLeLancement`). */
-export function ouvrirLaPartie(entete: Entete, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros']): PartieOuverte {
+export function ouvrirLaPartie(entete: Entete, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros'], premierJeton = 0): PartieOuverte {
   const scenario = scenarioDeTest(entete.scenario);
-  return ouvrirLeLancement(entete, (idNeuf) => lancementDuScenario(scenario, idNeuf), persisterLeHeros);
+  return ouvrirLeLancement(entete, (idNeuf) => lancementDuScenario(scenario, idNeuf), persisterLeHeros, premierJeton);
 }
 
-/** Ouvre la partie des entrées `entrees` : la partie du noyau sur l'état initial (`creerPartie`), le héros persisté par
- *  le service `persisterLeHeros` de l'hôte (`EntreesDeLaPartie`), puis le lancement que `lancement` construit aux ids de la
- *  partie (`forgerUnId`), lancé. Un lancement qui lève ferme la partie. */
-export function ouvrirLeLancement(entrees: EntreesDeLEntete, lancement: (idNeuf: FabriqueDId) => LancementDeScenario, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros']): PartieOuverte {
-  const partie = creerPartie(etatInitialDuJeu(), {
+/** Ouvre la partie des entrées `entrees` sur l'état `etat` (`creerPartie`) : l'état initial, au groupe, sans scène ni
+ *  lancement, dont le groupe se compose par les verbes du noyau avant de se lancer (`Partie.lancer`) ; ou l'état d'une
+ *  sauvegarde chargée (`chargerLaSave`). Le héros est persisté par le service `persisterLeHeros` de l'hôte
+ *  (`EntreesDeLaPartie`), ses jetons numérotés à partir de `premierJeton`. */
+export function ouvrirAuGroupe(entrees: EntreesDeLEntete, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros'], premierJeton = 0, etat: EtatDeJeu = etatInitialDuJeu()): PartieAuGroupe {
+  const partie = creerPartie(etat, {
     graine: entrees.graine,
     reglesMaison: entrees.regles,
     cadence: entrees.cadence,
     desFixes: entrees.desFixes,
     persisterLeHeros,
   });
+  return { partie, jetons: tenueDesJetons(partie, premierJeton) };
+}
+
+/** Ouvre la partie des entrées `entrees` (`ouvrirAuGroupe`), puis lance ce que `lancement` construit aux ids de la
+ *  partie (`forgerUnId`). Un lancement qui lève ferme la partie. */
+export function ouvrirLeLancement(entrees: EntreesDeLEntete, lancement: (idNeuf: FabriqueDId) => LancementDeScenario, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros'], premierJeton = 0): PartieOuverte {
+  const o = ouvrirAuGroupe(entrees, persisterLeHeros, premierJeton);
   try {
-    return { partie, jetons: tenueDesJetons(partie), lancement: partie.lancer(lancement(partie.etat().forgerUnId)) };
+    return { ...o, lancement: o.partie.lancer(lancement(o.partie.etat().forgerUnId)) };
   } catch (erreur) {
-    partie.fermer();
+    o.partie.fermer();
     throw erreur;
   }
 }

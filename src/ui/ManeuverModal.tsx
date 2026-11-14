@@ -22,15 +22,15 @@ import type { ReglagesDuJet } from '../noyau/reglagesDuJet';
 export function ManeuverModal() {
   const pm = useGame((s) => s.pendingManeuver);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'maneuver');
-  const reroll = useGesteDeJet('jetRelancer', 'maneuver');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'maneuver');
-  const darkPact = useGesteDeJet('jetPactiser', 'maneuver');
-  const force = useGesteDeJet('jetForcerLaReussite', 'maneuver');
+  const roll = useGesteDeJet('jetLancer', 'manoeuvre');
+  const reroll = useGesteDeJet('jetRelancer', 'manoeuvre');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'manoeuvre');
+  const darkPact = useGesteDeJet('jetPactiser', 'manoeuvre');
+  const force = useGesteDeJet('jetForcerLaReussite', 'manoeuvre');
   const regler = useGame((s) => s.jetRegler);
-  const setAvantage = (v: ReglagesDuJet['maneuver']['avantage']) => regler('maneuver', 'avantage', v);
-  const confirm = useGesteDeJet('jetValider', 'maneuver');
-  const cancel = useGesteDeJet('jetAnnuler', 'maneuver');
+  const setAvantage = (v: ReglagesDuJet['manoeuvre']['avantage']) => regler('manoeuvre', 'avantage', v);
+  const confirm = useGesteDeJet('jetValider', 'manoeuvre');
+  const cancel = useGesteDeJet('jetAnnuler', 'manoeuvre');
   const awaitingDefense = useGame(maneuverDefensePending);
   if (!pm || !battle) return null;
   const attacker = battle.combatants.find((c) => c.id === pm.attackerId);
@@ -43,7 +43,7 @@ export function ManeuverModal() {
   const ligne = ligneDAttaquantDeManoeuvre(attacker, a.stat ?? 'capacite-de-tir', maneuverAttackerDifficulty(pm.kind));
   const label = libelleDeManoeuvre(attacker, pm.attaque);
   // LDB 85 l.290.
-  const variable = a.advantageMode === 'variable';
+  const variable = a.modeDAvantage === 'variable';
   const avOptions: RollSegOption[] = variable
     ? Array.from({ length: Math.max(1, attacker.advantage) }, (_, i) => i + 1).map((n) => ({
         key: String(n), label: `+${n} DR`, selected: pm.avantageSpent === n, onSelect: () => setAvantage(n),
@@ -67,13 +67,13 @@ export function ManeuverModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
     confirmerLeCoup(awaitingDefense, confirm),
   ];
 
   return (
     <RollShell
-      flowKey="maneuver"
+      flowKey="manoeuvre"
       title={<><Icon id={MANEUVER_ICON[pm.kind]} /> {a.def.label}</>}
       subtitle={
         <>

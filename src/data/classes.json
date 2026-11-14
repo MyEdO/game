@@ -23,7 +23,7 @@
         "id": "besace"
       },
       {
-        "text": "Déjeuner"
+        "id": "dejeuner"
       }
     ],
     "desc": "Il s'agit communément de citoyens respectueux des lois qui vivent et travaillent dans les nombreuses villes et cités de l'Empire. Beaucoup de Citadins appartiennent à la classe moyenne et gagnent convenablement leur vie.",
@@ -60,9 +60,6 @@
         "id": "vetements"
       }
     ],
-    "remplace": {
-      "id": "riverains"
-    },
     "desc": "La Classe Côtier est une nouvelle Classe à utiliser dans **Warhammer Fantasy le Jeu de Rôle**, qui représente les Carrières suivies par les gens vivant près des littoraux du Vieux Monde. La Classe Côtier et celle des Riverains ont beaucoup en commun et certaines Carrières appartiennent aux deux Classes, par exemple Nautonier, Marin et Naufrageur.",
     "source": {
       "book": "mer-des-griffes",
@@ -75,7 +72,13 @@
     "label": "Courtisans",
     "trappings": [
       {
-        "text": "Costume luxueux"
+        "id": "vetements",
+        "spec": "costume luxueux",
+        "qualities": [
+          {
+            "id": "raffine"
+          }
+        ]
       },
       {
         "id": "dague"
@@ -87,7 +90,10 @@
         "id": "pince-a-epiler"
       },
       {
-        "id": "cure-oreille"
+        "id": "cure-oreille",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "peigne"
@@ -180,7 +186,7 @@
         "id": "necessaire-d-ecriture"
       },
       {
-        "id": "feuille-de-parchemin",
+        "id": "parchemin",
         "count": {
           "roll": {
             "n": 1,
@@ -253,7 +259,7 @@
         }
       },
       {
-        "text": "Alumette",
+        "id": "allumette",
         "count": {
           "roll": {
             "n": 1,
@@ -262,7 +268,15 @@
         }
       },
       {
-        "text": "Capuchon ou Masque"
+        "pick": 1,
+        "of": [
+          {
+            "id": "capuchon"
+          },
+          {
+            "id": "masque"
+          }
+        ]
       }
     ],
     "desc": "Principalement habitants de villes et de cités, ces personnes gagnent leur vie grâce à des actes considérés comme illégaux, ou du moins peu recommandables, sur le dos de la plupart des citoyens respectueux de la Loi. Les Roublards appartiennent tous à la classe inférieure, mais certains peuvent gagner beaucoup d'argent, bien qu'ils ne soient pas en mesure d'accéder à un statur élevé.",

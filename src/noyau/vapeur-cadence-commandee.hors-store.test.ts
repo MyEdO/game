@@ -1,12 +1,12 @@
 /**
  * FUITE DE VAPEUR EN CADENCE COMMANDÉE (#1595) — la sauvegarde d'Initiative (`pendingSteamSave`) suspend
  * la journée AVANT son reste (MDG 12 l.326-328) ; le pilote immédiat n'en clôt pas le jour en
- * parallèle : la journée se clôt UNE fois, à la reprise par la sauvegarde (`jetValider('steamSave')`).
+ * parallèle : la journée se clôt UNE fois, à la reprise par la sauvegarde (`jetValider('fuiteDeVapeur')`).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene } from './monde/scene';
 import { seedBattleRng } from './battleRng';
 import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
@@ -35,7 +35,7 @@ describe('#1595 — Fuite de vapeur sous ordres : un seul dénouement de la jour
     expect(STEAM_BREAKDOWNS.some((b) => b.id === 'fuite-de-vapeur')).toBe(true);
     seedBattleRng(GRAINE);
     set({
-      party: makePregens(idsDeTest).slice(0, 3),
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], pendingSteamSave: null, gameTime: 8 * 60, lastUpkeepDay: 0, journal: [], partyWiped: false,
@@ -48,8 +48,8 @@ describe('#1595 — Fuite de vapeur sous ordres : un seul dénouement de la jour
     const save = get().pendingSteamSave;
     expect(save, 'la Fuite de vapeur a ouvert sa sauvegarde').toBeTruthy();
     expect(halte, 'la journée ne se clôt pas sous la sauvegarde en attente').not.toHaveBeenCalled();
-    get().jetLancer('steamSave');
-    get().jetValider('steamSave');
+    get().jetLancer('fuiteDeVapeur');
+    get().jetValider('fuiteDeVapeur');
     unsub();
     expect(halte, 'la journée se clôt UNE fois, à la reprise').toHaveBeenCalledTimes(1);
   });

@@ -1,0 +1,16 @@
+[gd_resource type="Theme" load_steps=2 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
+
+[resource]
+Label/colors/font_color = Color(0.36, 0.3, 0.2, 1)
+Label/colors/font_outline_color = Color(0.847, 0.776, 0.6, 1)
+Label/constants/outline_size = 6
+Label/font_sizes/font_size = 15
+Label/fonts/font = ExtResource("1_titres")
+alerte/base_type = &"Label"
+alerte/colors/font_color = Color(0.541, 0.165, 0.102, 1)
+reussite/base_type = &"Label"
+reussite/colors/font_color = Color(0.2, 0.15, 0.1, 1)
+Plan/constants/epaisseur = 2
+Plan/constants/rayon = 5

@@ -345,7 +345,7 @@ async function monterCombat(): Promise<void> {
   await attendrePopulation();
   await act(async () => { useGame.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true }); });
   await attendreRepos('l’engagement du combat doit être servi');
-  await act(async () => { useGame.getState().fenetreValider('roundStart'); });
+  await act(async () => { useGame.getState().fenetreValider('debutDuRound'); });
   await attendreRepos('la levée de la pause de début de round doit être servie');
   await attendrePopulation();
 }
@@ -369,7 +369,7 @@ const BATTERIE: readonly Geste[] = [
     nom: 'un pas',
     monter: monterHub,
     témoin: () => JSON.stringify(useGame.getState().partyPos),
-    agir: async () => { await act(async () => { useGame.getState().stepPartyDir('up'); }); },
+    agir: async () => { await act(async () => { useGame.getState().stepPartyDir('haut'); }); },
   },
   {
     nom: 'un quart de tour',
@@ -422,7 +422,7 @@ const BATTERIE: readonly Geste[] = [
     monter: monterCombat,
     témoin: () => String(useGame.getState().hoverCombatantId ?? '—'),
     agir: async () => {
-      const ennemi = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+      const ennemi = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
       await act(async () => { useGame.getState().setHoverCombatant(ennemi.id); });
     },
   },

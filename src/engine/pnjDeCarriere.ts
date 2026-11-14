@@ -8,16 +8,30 @@
 import type { Combatant } from './types';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
 import { levelsForCareer } from '../data';
-import { acquerirTalent, availableChars, freeSlotFor, parseRefKey, prisParLesAutres, refKey, skillSlots, slotCovers, talentMaxReached, talentSlots, wildcardSpecs, type CareerSlot } from './careerSlots';
+import {
+  acquerirTalent,
+  availableChars,
+  freeSlotFor,
+  inCareerStatus,
+  parseRefKey,
+  prisParLesAutres,
+  refKey,
+  skillSlots,
+  slotCovers,
+  talentMaxReached,
+  talentSlots,
+  wildcardSpecs,
+  type CareerSlot,
+} from './careerSlots';
 import { applyTalentAcquisition, competencesAjouteesPar, deplierAjouts, talentsAjoutesALaCarriere, talentsAjoutesPar } from './talentEffects';
 import { augmenterLaCompetence } from './character';
 import { blessuresReconciliees } from './characteristics';
-import { buildInventory, contexteDeNaissanceDObjet } from './items';
+import { contexteDeNaissanceDObjet } from './items';
 import { dotationsDuPnj, emplacementsDeDotation, resolveTrappingChoices, valeursDeLEmplacement, type ChoixDeDotation } from './trappingChoices';
 import { hashSeed, makeRNG, type RNG } from './dice';
 import { statusIncome } from './activities';
 import { actorStatus } from './social';
-import { bourseOf, ensureBourseInstance } from './bourse';
+import { bourseOf, doterLePorteur, ensureBourseInstance } from './bourse';
 import { toBrass } from './money';
 import { t } from '../i18n';
 
@@ -70,13 +84,15 @@ export function talentsDuParcours(p: ParcoursDeCarriere): { niveaux: Record<stri
 }
 
 /** Les désignations des emplacements de Compétence à choix de `carriere` au Niveau `niveau` (slotKey → `refKey`) :
- *  chaque Compétence de `refs` sur le premier emplacement libre qui la couvre (`freeSlotFor`) ; `refusees`, celles
- *  qu'aucun ne prend. */
+ *  chaque Compétence de `refs` sur le premier emplacement libre qui la couvre (`freeSlotFor`), sauf celle qu'une entrée
+ *  sans choix des Niveaux 1 à `niveau` couvre déjà (`inCareerStatus` `explicit`) ; `refusees`, celles qu'aucun ne prend.
+ *  LDB 07 l.124. */
 export function designationsDeCarriere(carriere: string, niveau: number, refs: readonly RefDesignee[]): { designations: Record<string, string>; refusees: RefDesignee[] } {
   const slots = skillSlots(levelsForCareer(carriere), niveau);
   const designations: Record<string, string> = {};
   const refusees: RefDesignee[] = [];
   for (const r of refs) {
+    if (inCareerStatus(slots, designations, r.id, r.spec) === 'explicit') continue;
     const slot = freeSlotFor(slots, designations, r.id, r.spec);
     if (slot) designations[slot.key] = refKey(r.id, r.spec);
     else refusees.push(r);
@@ -173,7 +189,7 @@ function talentTire(c: Combatant, slots: CareerSlot[], ajoutes: readonly RefDesi
 
 /** Le PNJ `c`, profil de base en main, porté au parcours `p` (EDO 11 l.19) : pour chaque Niveau atteint de chaque
  *  carrière, +5 à chaque Caractéristique et Compétence disponible (R1, R2), au moins un Talent du Niveau ; puis la
- *  carrière actuelle et son Niveau (Statut, LDB 08 l.9), les dotations de ses Niveaux 1 à N en objets (R3, R4), et ses
+ *  carrière actuelle et son Niveau (Statut, LDB 08 l.9), les dotations de ses Niveaux 1 à N (R3, R4, `doterLePorteur`), et ses
  *  Blessures recalées sur le profil (`blessuresReconciliees`). Mute `c`. */
 export function porterAuParcours(c: Combatant, p: ParcoursDeCarriere): void {
   const carrieres = Object.entries(p.carrieres);
@@ -226,12 +242,12 @@ export function porterAuParcours(c: Combatant, p: ParcoursDeCarriere): void {
   const dotations = dotationsDuPnj(actuelle.id, actuelle.niveau);
   const rngDotations = fluxDuPnj(c.id, actuelle.id, 'dotations');
   let n = 0;
-  c.items = buildInventory(resolveTrappingChoices(dotations, choixCompletes(dotations, p.dotationsDeCarriere ?? {}, rngDotations)), rngDotations, () => `${c.id}-dotation-${n++}`, contexteDeNaissanceDObjet(c));
+  Object.assign(c, doterLePorteur(resolveTrappingChoices(dotations, choixCompletes(dotations, p.dotationsDeCarriere ?? {}, rngDotations)), rngDotations, () => `${c.id}-dotation-${n++}`, contexteDeNaissanceDObjet(c)));
   c.wounds = blessuresReconciliees(c);
 }
 
-/** L'argent du PNJ `c` qui n'en porte pas : la somme de son Statut (`statusIncome`), tirée sur la graine de son id, dans
- *  sa Bourse. EDO 11 l.42-46, LDB 08 l.114-118. Mute `c`. */
+/** L'argent du PNJ `c` dont la Bourse est vide, aucune dotation d'argent ne l'ayant remplie : la somme de son Statut
+ *  (`statusIncome`), tirée sur la graine de son id, dans sa Bourse. EDO 11 l.42-46, LDB 08 l.114-118. Mute `c`. */
 export function argentDuPnj(c: Combatant): void {
   if (toBrass(bourseOf(c)) > 0) return;
   const bourse = ensureBourseInstance(c, () => `${c.id}-bourse`);

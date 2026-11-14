@@ -1,0 +1,3143 @@
+[
+  {
+    "id": "humain",
+    "type": "carrieres-aleatoires",
+    "kind": "colonne",
+    "label": "Tableau des Classes et Carrières aléatoires — Humain",
+    "die": "d100",
+    "source": {
+      "book": "livre-de-base",
+      "page": 30,
+      "note": "Tableau des Classes et Carrières aléatoires, LDB 05 l.214-299"
+    },
+    "tableauDuLdb": true,
+    "entries": [
+      {
+        "id": "agitateur",
+        "min": 1,
+        "max": 1
+      },
+      {
+        "id": "artisan",
+        "min": 2,
+        "max": 3
+      },
+      {
+        "id": "bourgeois",
+        "min": 4,
+        "max": 6
+      },
+      {
+        "id": "enqueteur",
+        "min": 7,
+        "max": 7
+      },
+      {
+        "id": "marchand",
+        "min": 8,
+        "max": 8
+      },
+      {
+        "id": "mendiant",
+        "min": 9,
+        "max": 10
+      },
+      {
+        "id": "milicien",
+        "min": 11,
+        "max": 11
+      },
+      {
+        "id": "ratier",
+        "min": 12,
+        "max": 13
+      },
+      {
+        "id": "artiste",
+        "min": 14,
+        "max": 14
+      },
+      {
+        "id": "conseiller",
+        "min": 15,
+        "max": 15
+      },
+      {
+        "id": "duelliste",
+        "min": 16,
+        "max": 16
+      },
+      {
+        "id": "emissaire",
+        "min": 17,
+        "max": 17
+      },
+      {
+        "id": "espion",
+        "min": 18,
+        "max": 18
+      },
+      {
+        "id": "intendant",
+        "min": 19,
+        "max": 19
+      },
+      {
+        "id": "noble",
+        "min": 20,
+        "max": 20
+      },
+      {
+        "id": "serviteur",
+        "min": 21,
+        "max": 23
+      },
+      {
+        "id": "cavalier",
+        "min": 24,
+        "max": 25
+      },
+      {
+        "id": "chevalier",
+        "min": 26,
+        "max": 26
+      },
+      {
+        "id": "garde",
+        "min": 27,
+        "max": 28
+      },
+      {
+        "id": "gladiateur",
+        "min": 29,
+        "max": 29
+      },
+      {
+        "id": "pretre-guerrier",
+        "min": 30,
+        "max": 30
+      },
+      {
+        "id": "soldat",
+        "min": 31,
+        "max": 34
+      },
+      {
+        "id": "spadassin",
+        "min": 35,
+        "max": 35
+      },
+      {
+        "id": "chasseur-de-primes",
+        "min": 36,
+        "max": 36
+      },
+      {
+        "id": "cocher",
+        "min": 37,
+        "max": 37
+      },
+      {
+        "id": "colporteur",
+        "min": 38,
+        "max": 38
+      },
+      {
+        "id": "flagellant",
+        "min": 39,
+        "max": 40
+      },
+      {
+        "id": "messager",
+        "min": 41,
+        "max": 41
+      },
+      {
+        "id": "patrouilleur-routier",
+        "min": 42,
+        "max": 42
+      },
+      {
+        "id": "repurgateur",
+        "min": 43,
+        "max": 43
+      },
+      {
+        "id": "saltimbanque",
+        "min": 44,
+        "max": 45
+      },
+      {
+        "id": "apothicaire",
+        "min": 46,
+        "max": 46
+      },
+      {
+        "id": "erudit",
+        "min": 47,
+        "max": 48
+      },
+      {
+        "id": "ingenieur",
+        "min": 49,
+        "max": 49
+      },
+      {
+        "id": "juriste",
+        "min": 50,
+        "max": 50
+      },
+      {
+        "id": "medecin",
+        "min": 51,
+        "max": 51
+      },
+      {
+        "id": "nonne",
+        "min": 52,
+        "max": 53
+      },
+      {
+        "id": "pretre",
+        "min": 54,
+        "max": 58
+      },
+      {
+        "id": "sorcier",
+        "min": 59,
+        "max": 59
+      },
+      {
+        "id": "batelier",
+        "min": 60,
+        "max": 61
+      },
+      {
+        "id": "contrebandier",
+        "min": 62,
+        "max": 62
+      },
+      {
+        "id": "debardeur",
+        "min": 63,
+        "max": 64
+      },
+      {
+        "id": "femme-du-fleuve",
+        "min": 65,
+        "max": 67
+      },
+      {
+        "id": "marin",
+        "min": 68,
+        "max": 69
+      },
+      {
+        "id": "naufrageur",
+        "min": 70,
+        "max": 70
+      },
+      {
+        "id": "nautonier",
+        "min": 71,
+        "max": 71
+      },
+      {
+        "id": "patrouilleur-fluvial",
+        "min": 72,
+        "max": 73
+      },
+      {
+        "id": "charlatan",
+        "min": 74,
+        "max": 74
+      },
+      {
+        "id": "entremetteur",
+        "min": 75,
+        "max": 76
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 77,
+        "max": 80
+      },
+      {
+        "id": "pilleur-de-tombes",
+        "min": 81,
+        "max": 81
+      },
+      {
+        "id": "ranconneur",
+        "min": 82,
+        "max": 82
+      },
+      {
+        "id": "receleur",
+        "min": 83,
+        "max": 83
+      },
+      {
+        "id": "sorcier-dissident",
+        "min": 84,
+        "max": 84
+      },
+      {
+        "id": "voleur",
+        "min": 85,
+        "max": 87
+      },
+      {
+        "id": "bailli",
+        "min": 88,
+        "max": 88
+      },
+      {
+        "id": "chasseur",
+        "min": 89,
+        "max": 90
+      },
+      {
+        "id": "eclaireur",
+        "min": 91,
+        "max": 91
+      },
+      {
+        "id": "herboriste",
+        "min": 92,
+        "max": 92
+      },
+      {
+        "id": "mineur",
+        "min": 93,
+        "max": 93
+      },
+      {
+        "id": "mystique",
+        "min": 94,
+        "max": 94
+      },
+      {
+        "id": "sorcier-de-village",
+        "min": 95,
+        "max": 95
+      },
+      {
+        "id": "villageois",
+        "min": 96,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "halfling",
+    "type": "carrieres-aleatoires",
+    "kind": "colonne",
+    "label": "Tableau des Classes et Carrières aléatoires — Halfling",
+    "die": "d100",
+    "source": {
+      "book": "livre-de-base",
+      "page": 30,
+      "note": "Tableau des Classes et Carrières aléatoires, LDB 05 l.214-299"
+    },
+    "tableauDuLdb": true,
+    "entries": [
+      {
+        "id": "agitateur",
+        "min": 1,
+        "max": 2
+      },
+      {
+        "id": "artisan",
+        "min": 3,
+        "max": 7
+      },
+      {
+        "id": "bourgeois",
+        "min": 8,
+        "max": 10
+      },
+      {
+        "id": "enqueteur",
+        "min": 11,
+        "max": 12
+      },
+      {
+        "id": "marchand",
+        "min": 13,
+        "max": 16
+      },
+      {
+        "id": "mendiant",
+        "min": 17,
+        "max": 20
+      },
+      {
+        "id": "milicien",
+        "min": 21,
+        "max": 22
+      },
+      {
+        "id": "ratier",
+        "min": 23,
+        "max": 25
+      },
+      {
+        "id": "artiste",
+        "min": 26,
+        "max": 27
+      },
+      {
+        "id": "conseiller",
+        "min": 28,
+        "max": 28
+      },
+      {
+        "id": "emissaire",
+        "min": 29,
+        "max": 29
+      },
+      {
+        "id": "espion",
+        "min": 30,
+        "max": 30
+      },
+      {
+        "id": "intendant",
+        "min": 31,
+        "max": 32
+      },
+      {
+        "id": "serviteur",
+        "min": 33,
+        "max": 38
+      },
+      {
+        "id": "garde",
+        "min": 39,
+        "max": 40
+      },
+      {
+        "id": "gladiateur",
+        "min": 41,
+        "max": 41
+      },
+      {
+        "id": "soldat",
+        "min": 42,
+        "max": 44
+      },
+      {
+        "id": "chasseur-de-primes",
+        "min": 45,
+        "max": 45
+      },
+      {
+        "id": "cocher",
+        "min": 46,
+        "max": 47
+      },
+      {
+        "id": "colporteur",
+        "min": 48,
+        "max": 49
+      },
+      {
+        "id": "messager",
+        "min": 50,
+        "max": 51
+      },
+      {
+        "id": "patrouilleur-routier",
+        "min": 52,
+        "max": 52
+      },
+      {
+        "id": "saltimbanque",
+        "min": 53,
+        "max": 55
+      },
+      {
+        "id": "apothicaire",
+        "min": 56,
+        "max": 56
+      },
+      {
+        "id": "erudit",
+        "min": 57,
+        "max": 58
+      },
+      {
+        "id": "ingenieur",
+        "min": 59,
+        "max": 59
+      },
+      {
+        "id": "juriste",
+        "min": 60,
+        "max": 61
+      },
+      {
+        "id": "medecin",
+        "min": 62,
+        "max": 63
+      },
+      {
+        "id": "batelier",
+        "min": 64,
+        "max": 64
+      },
+      {
+        "id": "contrebandier",
+        "min": 65,
+        "max": 68
+      },
+      {
+        "id": "debardeur",
+        "min": 69,
+        "max": 71
+      },
+      {
+        "id": "femme-du-fleuve",
+        "min": 72,
+        "max": 74
+      },
+      {
+        "id": "marin",
+        "min": 75,
+        "max": 75
+      },
+      {
+        "id": "nautonier",
+        "min": 76,
+        "max": 76
+      },
+      {
+        "id": "patrouilleur-fluvial",
+        "min": 77,
+        "max": 77
+      },
+      {
+        "id": "charlatan",
+        "min": 78,
+        "max": 78
+      },
+      {
+        "id": "entremetteur",
+        "min": 79,
+        "max": 81
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 82,
+        "max": 82
+      },
+      {
+        "id": "pilleur-de-tombes",
+        "min": 83,
+        "max": 83
+      },
+      {
+        "id": "ranconneur",
+        "min": 84,
+        "max": 84
+      },
+      {
+        "id": "receleur",
+        "min": 85,
+        "max": 85
+      },
+      {
+        "id": "voleur",
+        "min": 86,
+        "max": 89
+      },
+      {
+        "id": "bailli",
+        "min": 90,
+        "max": 90
+      },
+      {
+        "id": "chasseur",
+        "min": 91,
+        "max": 92
+      },
+      {
+        "id": "eclaireur",
+        "min": 93,
+        "max": 93
+      },
+      {
+        "id": "herboriste",
+        "min": 94,
+        "max": 96
+      },
+      {
+        "id": "mineur",
+        "min": 97,
+        "max": 97
+      },
+      {
+        "id": "villageois",
+        "min": 98,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "nain",
+    "type": "carrieres-aleatoires",
+    "kind": "colonne",
+    "label": "Tableau des Classes et Carrières aléatoires — Nain",
+    "die": "d100",
+    "source": {
+      "book": "livre-de-base",
+      "page": 30,
+      "note": "Tableau des Classes et Carrières aléatoires, LDB 05 l.214-299"
+    },
+    "tableauDuLdb": true,
+    "entries": [
+      {
+        "id": "agitateur",
+        "min": 1,
+        "max": 2
+      },
+      {
+        "id": "artisan",
+        "min": 3,
+        "max": 8
+      },
+      {
+        "id": "bourgeois",
+        "min": 9,
+        "max": 14
+      },
+      {
+        "id": "enqueteur",
+        "min": 15,
+        "max": 16
+      },
+      {
+        "id": "marchand",
+        "min": 17,
+        "max": 20
+      },
+      {
+        "id": "mendiant",
+        "min": 21,
+        "max": 21
+      },
+      {
+        "id": "milicien",
+        "min": 22,
+        "max": 24
+      },
+      {
+        "id": "ratier",
+        "min": 25,
+        "max": 25
+      },
+      {
+        "id": "artiste",
+        "min": 26,
+        "max": 26
+      },
+      {
+        "id": "conseiller",
+        "min": 27,
+        "max": 28
+      },
+      {
+        "id": "duelliste",
+        "min": 29,
+        "max": 29
+      },
+      {
+        "id": "emissaire",
+        "min": 30,
+        "max": 31
+      },
+      {
+        "id": "espion",
+        "min": 32,
+        "max": 32
+      },
+      {
+        "id": "intendant",
+        "min": 33,
+        "max": 34
+      },
+      {
+        "id": "noble",
+        "min": 35,
+        "max": 35
+      },
+      {
+        "id": "serviteur",
+        "min": 36,
+        "max": 36
+      },
+      {
+        "id": "garde",
+        "min": 37,
+        "max": 39
+      },
+      {
+        "id": "gladiateur",
+        "min": 40,
+        "max": 42
+      },
+      {
+        "id": "soldat",
+        "min": 43,
+        "max": 45
+      },
+      {
+        "id": "spadassin",
+        "min": 46,
+        "max": 48
+      },
+      {
+        "id": "tueur",
+        "min": 49,
+        "max": 52
+      },
+      {
+        "id": "chasseur-de-primes",
+        "min": 53,
+        "max": 56
+      },
+      {
+        "id": "cocher",
+        "min": 57,
+        "max": 57
+      },
+      {
+        "id": "colporteur",
+        "min": 58,
+        "max": 59
+      },
+      {
+        "id": "messager",
+        "min": 60,
+        "max": 61
+      },
+      {
+        "id": "saltimbanque",
+        "min": 62,
+        "max": 63
+      },
+      {
+        "id": "apothicaire",
+        "min": 64,
+        "max": 64
+      },
+      {
+        "id": "erudit",
+        "min": 65,
+        "max": 66
+      },
+      {
+        "id": "ingenieur",
+        "min": 67,
+        "max": 69
+      },
+      {
+        "id": "juriste",
+        "min": 70,
+        "max": 71
+      },
+      {
+        "id": "medecin",
+        "min": 72,
+        "max": 72
+      },
+      {
+        "id": "batelier",
+        "min": 73,
+        "max": 74
+      },
+      {
+        "id": "contrebandier",
+        "min": 75,
+        "max": 76
+      },
+      {
+        "id": "debardeur",
+        "min": 77,
+        "max": 78
+      },
+      {
+        "id": "femme-du-fleuve",
+        "min": 79,
+        "max": 80
+      },
+      {
+        "id": "marin",
+        "min": 81,
+        "max": 81
+      },
+      {
+        "id": "naufrageur",
+        "min": 82,
+        "max": 82
+      },
+      {
+        "id": "nautonier",
+        "min": 83,
+        "max": 83
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 84,
+        "max": 86
+      },
+      {
+        "id": "ranconneur",
+        "min": 87,
+        "max": 87
+      },
+      {
+        "id": "receleur",
+        "min": 88,
+        "max": 88
+      },
+      {
+        "id": "voleur",
+        "min": 89,
+        "max": 89
+      },
+      {
+        "id": "bailli",
+        "min": 90,
+        "max": 91
+      },
+      {
+        "id": "chasseur",
+        "min": 92,
+        "max": 93
+      },
+      {
+        "id": "eclaireur",
+        "min": 94,
+        "max": 94
+      },
+      {
+        "id": "mineur",
+        "min": 95,
+        "max": 99
+      },
+      {
+        "id": "villageois",
+        "min": 100,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "gnome",
+    "type": "carrieres-aleatoires",
+    "kind": "colonne",
+    "label": "Tableau des Classes et Carrières aléatoires — Gnome",
+    "die": "d100",
+    "source": {
+      "book": "nuits-agitees-et-dures-journees",
+      "page": 87,
+      "note": "Tableau des Classes et Carrières aléatoires, NADJ 14 l.81-125 (couvre 01-96, sans Villageois) ; Villageois 97-100 maison : place déduite du trou de la VF, largeur prise à la VO, qui imprime Villager sur 4 valeurs dans une autre numérotation (Rough Nights 08 l.98, « 59–62 »)"
+    },
+    "maison": "Villageois 97-100 : la VF s’arrête à Mineur 89-96 (NADJ 14 l.125) ; rangée déduite, proposée au ticket #3578 (https://github.com/MyEdO/game/issues/3578#issuecomment-6783883265)",
+    "entries": [
+      {
+        "id": "agitateur",
+        "min": 1,
+        "max": 1
+      },
+      {
+        "id": "artisan",
+        "min": 2,
+        "max": 3
+      },
+      {
+        "id": "bourgeois",
+        "min": 4,
+        "max": 9
+      },
+      {
+        "id": "enqueteur",
+        "min": 10,
+        "max": 10
+      },
+      {
+        "id": "marchand",
+        "min": 11,
+        "max": 12
+      },
+      {
+        "id": "mendiant",
+        "min": 13,
+        "max": 13
+      },
+      {
+        "id": "milicien",
+        "min": 14,
+        "max": 14
+      },
+      {
+        "id": "ratier",
+        "min": 15,
+        "max": 15
+      },
+      {
+        "id": "artiste",
+        "min": 16,
+        "max": 16
+      },
+      {
+        "id": "conseiller",
+        "min": 17,
+        "max": 17
+      },
+      {
+        "id": "emissaire",
+        "min": 18,
+        "max": 18
+      },
+      {
+        "id": "espion",
+        "min": 19,
+        "max": 23
+      },
+      {
+        "id": "intendant",
+        "min": 24,
+        "max": 25
+      },
+      {
+        "id": "noble",
+        "min": 26,
+        "max": 26
+      },
+      {
+        "id": "serviteur",
+        "min": 27,
+        "max": 28
+      },
+      {
+        "id": "garde",
+        "min": 29,
+        "max": 29
+      },
+      {
+        "id": "pretre-guerrier",
+        "min": 30,
+        "max": 30
+      },
+      {
+        "id": "soldat",
+        "min": 31,
+        "max": 31
+      },
+      {
+        "id": "chasseur-de-primes",
+        "min": 32,
+        "max": 32
+      },
+      {
+        "id": "colporteur",
+        "min": 33,
+        "max": 38
+      },
+      {
+        "id": "messager",
+        "min": 39,
+        "max": 39
+      },
+      {
+        "id": "saltimbanque",
+        "min": 40,
+        "max": 44
+      },
+      {
+        "id": "apothicaire",
+        "min": 45,
+        "max": 45
+      },
+      {
+        "id": "juriste",
+        "min": 46,
+        "max": 46
+      },
+      {
+        "id": "erudit",
+        "min": 47,
+        "max": 48
+      },
+      {
+        "id": "medecin",
+        "min": 49,
+        "max": 50
+      },
+      {
+        "id": "pretre",
+        "min": 51,
+        "max": 51
+      },
+      {
+        "id": "sorcier",
+        "min": 52,
+        "max": 58
+      },
+      {
+        "id": "batelier",
+        "min": 59,
+        "max": 59
+      },
+      {
+        "id": "contrebandier",
+        "min": 60,
+        "max": 62
+      },
+      {
+        "id": "femme-du-fleuve",
+        "min": 63,
+        "max": 66
+      },
+      {
+        "id": "charlatan",
+        "min": 67,
+        "max": 71
+      },
+      {
+        "id": "entremetteur",
+        "min": 72,
+        "max": 73
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 74,
+        "max": 74
+      },
+      {
+        "id": "ranconneur",
+        "min": 75,
+        "max": 76
+      },
+      {
+        "id": "receleur",
+        "min": 77,
+        "max": 77
+      },
+      {
+        "id": "voleur",
+        "min": 78,
+        "max": 80
+      },
+      {
+        "id": "bailli",
+        "min": 81,
+        "max": 81
+      },
+      {
+        "id": "chasseur",
+        "min": 82,
+        "max": 83
+      },
+      {
+        "id": "eclaireur",
+        "min": 84,
+        "max": 87
+      },
+      {
+        "id": "herboriste",
+        "min": 88,
+        "max": 88
+      },
+      {
+        "id": "mineur",
+        "min": 89,
+        "max": 96
+      },
+      {
+        "id": "villageois",
+        "min": 97,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "ogre",
+    "type": "carrieres-aleatoires",
+    "kind": "colonne",
+    "label": "Tableau des Classes et Carrières aléatoires — Ogre",
+    "die": "d100",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 18,
+      "note": "Tableau des Classes et Carrières aléatoires, ADE II 02 l.128-154"
+    },
+    "entries": [
+      {
+        "id": "artisan",
+        "min": 1,
+        "max": 1
+      },
+      {
+        "id": "mendiant",
+        "min": 2,
+        "max": 3
+      },
+      {
+        "id": "milicien",
+        "min": 4,
+        "max": 9
+      },
+      {
+        "id": "ratier",
+        "min": 10,
+        "max": 11
+      },
+      {
+        "id": "serviteur",
+        "min": 12,
+        "max": 12
+      },
+      {
+        "id": "garde",
+        "min": 13,
+        "max": 19
+      },
+      {
+        "id": "gladiateur",
+        "min": 20,
+        "max": 30
+      },
+      {
+        "id": "mangeur-d-hommes",
+        "min": 31,
+        "max": 37
+      },
+      {
+        "id": "soldat",
+        "min": 38,
+        "max": 46
+      },
+      {
+        "id": "spadassin",
+        "min": 47,
+        "max": 51
+      },
+      {
+        "id": "chasseur-de-primes",
+        "min": 52,
+        "max": 54
+      },
+      {
+        "id": "colporteur",
+        "min": 55,
+        "max": 61
+      },
+      {
+        "id": "saltimbanque",
+        "min": 62,
+        "max": 64
+      },
+      {
+        "id": "boucher-ogre",
+        "min": 65,
+        "max": 65
+      },
+      {
+        "id": "debardeur",
+        "min": 66,
+        "max": 68
+      },
+      {
+        "id": "marin",
+        "min": 69,
+        "max": 69
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 70,
+        "max": 78
+      },
+      {
+        "id": "pilleur-de-tombes",
+        "min": 79,
+        "max": 82
+      },
+      {
+        "id": "ranconneur",
+        "min": 83,
+        "max": 87
+      },
+      {
+        "id": "bailli",
+        "min": 88,
+        "max": 88
+      },
+      {
+        "id": "chasseur",
+        "min": 89,
+        "max": 95
+      },
+      {
+        "id": "gardien-de-troupeaux-de-rhinox",
+        "min": 96,
+        "max": 98
+      },
+      {
+        "id": "mineur",
+        "min": 99,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "haut-elfe",
+    "type": "carrieres-aleatoires",
+    "kind": "colonne",
+    "label": "Tableau des Classes et Carrières aléatoires — Haut elfe",
+    "die": "d100",
+    "source": {
+      "book": "livre-de-base",
+      "page": 30,
+      "note": "Tableau des Classes et Carrières aléatoires, LDB 05 l.214-299"
+    },
+    "tableauDuLdb": true,
+    "entries": [
+      {
+        "id": "artisan",
+        "min": 1,
+        "max": 3
+      },
+      {
+        "id": "bourgeois",
+        "min": 4,
+        "max": 5
+      },
+      {
+        "id": "enqueteur",
+        "min": 6,
+        "max": 7
+      },
+      {
+        "id": "marchand",
+        "min": 8,
+        "max": 12
+      },
+      {
+        "id": "milicien",
+        "min": 13,
+        "max": 13
+      },
+      {
+        "id": "artiste",
+        "min": 14,
+        "max": 14
+      },
+      {
+        "id": "conseiller",
+        "min": 15,
+        "max": 16
+      },
+      {
+        "id": "duelliste",
+        "min": 17,
+        "max": 18
+      },
+      {
+        "id": "emissaire",
+        "min": 19,
+        "max": 21
+      },
+      {
+        "id": "espion",
+        "min": 22,
+        "max": 24
+      },
+      {
+        "id": "intendant",
+        "min": 25,
+        "max": 26
+      },
+      {
+        "id": "noble",
+        "min": 27,
+        "max": 29
+      },
+      {
+        "id": "cavalier",
+        "min": 30,
+        "max": 33
+      },
+      {
+        "id": "chevalier",
+        "min": 34,
+        "max": 34
+      },
+      {
+        "id": "garde",
+        "min": 35,
+        "max": 36
+      },
+      {
+        "id": "gladiateur",
+        "min": 37,
+        "max": 38
+      },
+      {
+        "id": "soldat",
+        "min": 39,
+        "max": 40
+      },
+      {
+        "id": "spadassin",
+        "min": 41,
+        "max": 41
+      },
+      {
+        "id": "chasseur-de-primes",
+        "min": 42,
+        "max": 44
+      },
+      {
+        "id": "messager",
+        "min": 45,
+        "max": 45
+      },
+      {
+        "id": "saltimbanque",
+        "min": 46,
+        "max": 48
+      },
+      {
+        "id": "apothicaire",
+        "min": 49,
+        "max": 50
+      },
+      {
+        "id": "erudit",
+        "min": 51,
+        "max": 54
+      },
+      {
+        "id": "juriste",
+        "min": 55,
+        "max": 58
+      },
+      {
+        "id": "medecin",
+        "min": 59,
+        "max": 60
+      },
+      {
+        "id": "sorcier",
+        "min": 61,
+        "max": 64
+      },
+      {
+        "id": "batelier",
+        "min": 65,
+        "max": 65
+      },
+      {
+        "id": "contrebandier",
+        "min": 66,
+        "max": 66
+      },
+      {
+        "id": "marin",
+        "min": 67,
+        "max": 81
+      },
+      {
+        "id": "charlatan",
+        "min": 82,
+        "max": 84
+      },
+      {
+        "id": "entremetteur",
+        "min": 85,
+        "max": 86
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 87,
+        "max": 89
+      },
+      {
+        "id": "chasseur",
+        "min": 90,
+        "max": 92
+      },
+      {
+        "id": "eclaireur",
+        "min": 93,
+        "max": 98
+      },
+      {
+        "id": "herboriste",
+        "min": 99,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "elfe-sylvain",
+    "type": "carrieres-aleatoires",
+    "kind": "colonne",
+    "label": "Tableau des Classes et Carrières aléatoires — Elfe sylvain",
+    "die": "d100",
+    "source": {
+      "book": "livre-de-base",
+      "page": 30,
+      "note": "Tableau des Classes et Carrières aléatoires, LDB 05 l.214-299"
+    },
+    "tableauDuLdb": true,
+    "entries": [
+      {
+        "id": "artisan",
+        "min": 1,
+        "max": 5
+      },
+      {
+        "id": "artiste",
+        "min": 6,
+        "max": 9
+      },
+      {
+        "id": "conseiller",
+        "min": 10,
+        "max": 13
+      },
+      {
+        "id": "emissaire",
+        "min": 14,
+        "max": 20
+      },
+      {
+        "id": "espion",
+        "min": 21,
+        "max": 24
+      },
+      {
+        "id": "noble",
+        "min": 25,
+        "max": 30
+      },
+      {
+        "id": "cavalier",
+        "min": 31,
+        "max": 35
+      },
+      {
+        "id": "chevalier",
+        "min": 36,
+        "max": 37
+      },
+      {
+        "id": "garde",
+        "min": 38,
+        "max": 39
+      },
+      {
+        "id": "gladiateur",
+        "min": 40,
+        "max": 41
+      },
+      {
+        "id": "soldat",
+        "min": 42,
+        "max": 45
+      },
+      {
+        "id": "chasseur-de-primes",
+        "min": 46,
+        "max": 47
+      },
+      {
+        "id": "messager",
+        "min": 48,
+        "max": 50
+      },
+      {
+        "id": "saltimbanque",
+        "min": 51,
+        "max": 55
+      },
+      {
+        "id": "erudit",
+        "min": 56,
+        "max": 56
+      },
+      {
+        "id": "sorcier",
+        "min": 57,
+        "max": 60
+      },
+      {
+        "id": "naufrageur",
+        "min": 61,
+        "max": 61
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 62,
+        "max": 67
+      },
+      {
+        "id": "chasseur",
+        "min": 68,
+        "max": 77
+      },
+      {
+        "id": "eclaireur",
+        "min": 78,
+        "max": 88
+      },
+      {
+        "id": "herboriste",
+        "min": 89,
+        "max": 95
+      },
+      {
+        "id": "mystique",
+        "min": 96,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "middenheim",
+    "type": "carrieres-aleatoires",
+    "kind": "colonne",
+    "label": "Tableau des Classes et Carrières aléatoires — Middenheimer",
+    "die": "d100",
+    "source": {
+      "book": "middenheim",
+      "page": 148,
+      "note": "Tableau des Classes et Carrières aléatoires, Middenheim 09 l.13-46 (folio 148), l.65-98 (folio 149)"
+    },
+    "tableauDuLdb": true,
+    "maison": "Seconds jets d’AA 02 l.109 et de VDM 03 l.17 étendus à cette colonne : les Carrières y sont « toutes communes à l’Empire » (AA 02 l.111) et « les Middenlanders ont le même type d’occupation que les Reiklanders » (Middenheim 09 l.51) ; proposé au ticket #3908 (https://github.com/MyEdO/game/issues/3908#issuecomment-6841841671)",
+    "entries": [
+      {
+        "id": "apothicaire",
+        "min": 1,
+        "max": 1
+      },
+      {
+        "id": "ingenieur",
+        "min": 2,
+        "max": 2
+      },
+      {
+        "id": "juriste",
+        "min": 3,
+        "max": 3
+      },
+      {
+        "id": "nonne",
+        "min": 4,
+        "max": 5
+      },
+      {
+        "id": "medecin",
+        "min": 6,
+        "max": 6
+      },
+      {
+        "id": "pretre",
+        "min": 7,
+        "max": 11
+      },
+      {
+        "id": "erudit",
+        "min": 12,
+        "max": 13
+      },
+      {
+        "id": "sorcier",
+        "min": 14,
+        "max": 14
+      },
+      {
+        "id": "agitateur",
+        "min": 15,
+        "max": 15
+      },
+      {
+        "id": "artisan",
+        "min": 16,
+        "max": 18
+      },
+      {
+        "id": "mendiant",
+        "min": 19,
+        "max": 21
+      },
+      {
+        "id": "enqueteur",
+        "min": 22,
+        "max": 22
+      },
+      {
+        "id": "marchand",
+        "min": 23,
+        "max": 24
+      },
+      {
+        "id": "ratier",
+        "min": 25,
+        "max": 26
+      },
+      {
+        "id": "bourgeois",
+        "min": 27,
+        "max": 28
+      },
+      {
+        "id": "milicien",
+        "min": 29,
+        "max": 31
+      },
+      {
+        "id": "conseiller",
+        "min": 32,
+        "max": 32
+      },
+      {
+        "id": "artiste",
+        "min": 33,
+        "max": 33
+      },
+      {
+        "id": "duelliste",
+        "min": 34,
+        "max": 34
+      },
+      {
+        "id": "emissaire",
+        "min": 35,
+        "max": 35
+      },
+      {
+        "id": "noble",
+        "min": 36,
+        "max": 36
+      },
+      {
+        "id": "serviteur",
+        "min": 37,
+        "max": 39
+      },
+      {
+        "id": "espion",
+        "min": 40,
+        "max": 40
+      },
+      {
+        "id": "intendant",
+        "min": 41,
+        "max": 41
+      },
+      {
+        "id": "bailli",
+        "min": 42,
+        "max": 42
+      },
+      {
+        "id": "sorcier-de-village",
+        "min": 43,
+        "max": 43
+      },
+      {
+        "id": "herboriste",
+        "min": 44,
+        "max": 44
+      },
+      {
+        "id": "chasseur",
+        "min": 45,
+        "max": 45
+      },
+      {
+        "id": "mineur",
+        "min": 46,
+        "max": 47
+      },
+      {
+        "id": "mystique",
+        "min": 48,
+        "max": 48
+      },
+      {
+        "id": "eclaireur",
+        "min": 49,
+        "max": 49
+      },
+      {
+        "id": "villageois",
+        "min": 50,
+        "max": 54
+      },
+      {
+        "id": "chasseur-de-primes",
+        "min": 55,
+        "max": 55
+      },
+      {
+        "id": "cocher",
+        "min": 56,
+        "max": 57
+      },
+      {
+        "id": "saltimbanque",
+        "min": 58,
+        "max": 60
+      },
+      {
+        "id": "messager",
+        "min": 61,
+        "max": 61
+      },
+      {
+        "id": "colporteur",
+        "min": 62,
+        "max": 63
+      },
+      {
+        "id": "patrouilleur-routier",
+        "min": 64,
+        "max": 64
+      },
+      {
+        "id": "repurgateur",
+        "min": 65,
+        "max": 65
+      },
+      {
+        "id": "frere-loup",
+        "min": 66,
+        "max": 68
+      },
+      {
+        "id": "contrebandier",
+        "min": 69,
+        "max": 69
+      },
+      {
+        "id": "debardeur",
+        "min": 70,
+        "max": 71
+      },
+      {
+        "id": "entremetteur",
+        "min": 72,
+        "max": 73
+      },
+      {
+        "id": "charlatan",
+        "min": 74,
+        "max": 74
+      },
+      {
+        "id": "receleur",
+        "min": 75,
+        "max": 76
+      },
+      {
+        "id": "pilleur-de-tombes",
+        "min": 77,
+        "max": 77
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 78,
+        "max": 79
+      },
+      {
+        "id": "ranconneur",
+        "min": 80,
+        "max": 82
+      },
+      {
+        "id": "voleur",
+        "min": 83,
+        "max": 86
+      },
+      {
+        "id": "sorcier-dissident",
+        "min": 87,
+        "max": 87
+      },
+      {
+        "id": "cavalier",
+        "min": 88,
+        "max": 89
+      },
+      {
+        "id": "garde",
+        "min": 90,
+        "max": 92
+      },
+      {
+        "id": "chevalier",
+        "min": 93,
+        "max": 93
+      },
+      {
+        "id": "gladiateur",
+        "min": 94,
+        "max": 94
+      },
+      {
+        "id": "spadassin",
+        "min": 95,
+        "max": 95
+      },
+      {
+        "id": "soldat",
+        "min": 96,
+        "max": 99
+      },
+      {
+        "id": "pretre-guerrier",
+        "min": 100,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "middenland",
+    "type": "carrieres-aleatoires",
+    "kind": "colonne",
+    "label": "Tableau des Classes et Carrières aléatoires — Middenlander",
+    "die": "d100",
+    "source": {
+      "book": "middenheim",
+      "page": 148,
+      "note": "Tableau des Classes et Carrières aléatoires, Middenheim 09 l.13-46 (folio 148), l.65-98 (folio 149)"
+    },
+    "tableauDuLdb": true,
+    "maison": "Seconds jets d’AA 02 l.109 et de VDM 03 l.17 étendus à cette colonne : les Carrières y sont « toutes communes à l’Empire » (AA 02 l.111) et « les Middenlanders ont le même type d’occupation que les Reiklanders » (Middenheim 09 l.51) ; proposé au ticket #3908 (https://github.com/MyEdO/game/issues/3908#issuecomment-6841841671)",
+    "entries": [
+      {
+        "id": "apothicaire",
+        "min": 1,
+        "max": 1
+      },
+      {
+        "id": "ingenieur",
+        "min": 2,
+        "max": 2
+      },
+      {
+        "id": "juriste",
+        "min": 3,
+        "max": 3
+      },
+      {
+        "id": "nonne",
+        "min": 4,
+        "max": 5
+      },
+      {
+        "id": "medecin",
+        "min": 6,
+        "max": 6
+      },
+      {
+        "id": "pretre",
+        "min": 7,
+        "max": 11
+      },
+      {
+        "id": "erudit",
+        "min": 12,
+        "max": 13
+      },
+      {
+        "id": "sorcier",
+        "min": 14,
+        "max": 14
+      },
+      {
+        "id": "agitateur",
+        "min": 15,
+        "max": 15
+      },
+      {
+        "id": "artisan",
+        "min": 16,
+        "max": 17
+      },
+      {
+        "id": "mendiant",
+        "min": 18,
+        "max": 19
+      },
+      {
+        "id": "enqueteur",
+        "min": 20,
+        "max": 20
+      },
+      {
+        "id": "marchand",
+        "min": 21,
+        "max": 21
+      },
+      {
+        "id": "ratier",
+        "min": 22,
+        "max": 23
+      },
+      {
+        "id": "bourgeois",
+        "min": 24,
+        "max": 26
+      },
+      {
+        "id": "milicien",
+        "min": 27,
+        "max": 27
+      },
+      {
+        "id": "conseiller",
+        "min": 28,
+        "max": 28
+      },
+      {
+        "id": "artiste",
+        "min": 29,
+        "max": 29
+      },
+      {
+        "id": "duelliste",
+        "min": 30,
+        "max": 30
+      },
+      {
+        "id": "emissaire",
+        "min": 31,
+        "max": 31
+      },
+      {
+        "id": "noble",
+        "min": 32,
+        "max": 32
+      },
+      {
+        "id": "serviteur",
+        "min": 33,
+        "max": 35
+      },
+      {
+        "id": "espion",
+        "min": 36,
+        "max": 36
+      },
+      {
+        "id": "intendant",
+        "min": 37,
+        "max": 37
+      },
+      {
+        "id": "bailli",
+        "min": 38,
+        "max": 38
+      },
+      {
+        "id": "sorcier-de-village",
+        "min": 39,
+        "max": 39
+      },
+      {
+        "id": "herboriste",
+        "min": 40,
+        "max": 40
+      },
+      {
+        "id": "chasseur",
+        "min": 41,
+        "max": 42
+      },
+      {
+        "id": "mineur",
+        "min": 43,
+        "max": 43
+      },
+      {
+        "id": "mystique",
+        "min": 44,
+        "max": 44
+      },
+      {
+        "id": "eclaireur",
+        "min": 45,
+        "max": 45
+      },
+      {
+        "id": "villageois",
+        "min": 46,
+        "max": 50
+      },
+      {
+        "id": "chasseur-de-primes",
+        "min": 51,
+        "max": 51
+      },
+      {
+        "id": "cocher",
+        "min": 52,
+        "max": 52
+      },
+      {
+        "id": "saltimbanque",
+        "min": 53,
+        "max": 54
+      },
+      {
+        "id": "messager",
+        "min": 55,
+        "max": 55
+      },
+      {
+        "id": "colporteur",
+        "min": 56,
+        "max": 56
+      },
+      {
+        "id": "patrouilleur-routier",
+        "min": 57,
+        "max": 57
+      },
+      {
+        "id": "repurgateur",
+        "min": 58,
+        "max": 58
+      },
+      {
+        "id": "frere-loup",
+        "min": 59,
+        "max": 60
+      },
+      {
+        "id": "batelier",
+        "min": 61,
+        "max": 62
+      },
+      {
+        "id": "nautonier",
+        "min": 63,
+        "max": 63
+      },
+      {
+        "id": "patrouilleur-fluvial",
+        "min": 64,
+        "max": 65
+      },
+      {
+        "id": "femme-du-fleuve",
+        "min": 66,
+        "max": 68
+      },
+      {
+        "id": "marin",
+        "min": 69,
+        "max": 70
+      },
+      {
+        "id": "contrebandier",
+        "min": 71,
+        "max": 71
+      },
+      {
+        "id": "debardeur",
+        "min": 72,
+        "max": 73
+      },
+      {
+        "id": "naufrageur",
+        "min": 74,
+        "max": 74
+      },
+      {
+        "id": "entremetteur",
+        "min": 75,
+        "max": 76
+      },
+      {
+        "id": "charlatan",
+        "min": 77,
+        "max": 77
+      },
+      {
+        "id": "receleur",
+        "min": 78,
+        "max": 78
+      },
+      {
+        "id": "pilleur-de-tombes",
+        "min": 79,
+        "max": 79
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 80,
+        "max": 83
+      },
+      {
+        "id": "ranconneur",
+        "min": 84,
+        "max": 84
+      },
+      {
+        "id": "voleur",
+        "min": 85,
+        "max": 87
+      },
+      {
+        "id": "sorcier-dissident",
+        "min": 88,
+        "max": 88
+      },
+      {
+        "id": "cavalier",
+        "min": 89,
+        "max": 90
+      },
+      {
+        "id": "garde",
+        "min": 91,
+        "max": 92
+      },
+      {
+        "id": "chevalier",
+        "min": 93,
+        "max": 93
+      },
+      {
+        "id": "gladiateur",
+        "min": 94,
+        "max": 94
+      },
+      {
+        "id": "spadassin",
+        "min": 95,
+        "max": 95
+      },
+      {
+        "id": "soldat",
+        "min": 96,
+        "max": 99
+      },
+      {
+        "id": "pretre-guerrier",
+        "min": 100,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "nordland",
+    "type": "carrieres-aleatoires",
+    "kind": "colonne",
+    "label": "Tableau des Classes et Carrières aléatoires — Nordlander",
+    "die": "d100",
+    "source": {
+      "book": "middenheim",
+      "page": 148,
+      "note": "Tableau des Classes et Carrières aléatoires, Middenheim 09 l.13-46 (folio 148), l.65-98 (folio 149)"
+    },
+    "tableauDuLdb": true,
+    "maison": "Seconds jets d’AA 02 l.109 et de VDM 03 l.17 étendus à cette colonne : les Carrières y sont « toutes communes à l’Empire » (AA 02 l.111) et « les Middenlanders ont le même type d’occupation que les Reiklanders » (Middenheim 09 l.51) ; proposé au ticket #3908 (https://github.com/MyEdO/game/issues/3908#issuecomment-6841841671)",
+    "entries": [
+      {
+        "id": "apothicaire",
+        "min": 1,
+        "max": 1
+      },
+      {
+        "id": "ingenieur",
+        "min": 2,
+        "max": 2
+      },
+      {
+        "id": "juriste",
+        "min": 3,
+        "max": 3
+      },
+      {
+        "id": "nonne",
+        "min": 4,
+        "max": 5
+      },
+      {
+        "id": "medecin",
+        "min": 6,
+        "max": 6
+      },
+      {
+        "id": "pretre",
+        "min": 7,
+        "max": 10
+      },
+      {
+        "id": "erudit",
+        "min": 11,
+        "max": 12
+      },
+      {
+        "id": "sorcier",
+        "min": 13,
+        "max": 13
+      },
+      {
+        "id": "agitateur",
+        "min": 14,
+        "max": 14
+      },
+      {
+        "id": "artisan",
+        "min": 15,
+        "max": 16
+      },
+      {
+        "id": "mendiant",
+        "min": 17,
+        "max": 18
+      },
+      {
+        "id": "enqueteur",
+        "min": 19,
+        "max": 19
+      },
+      {
+        "id": "marchand",
+        "min": 20,
+        "max": 20
+      },
+      {
+        "id": "ratier",
+        "min": 21,
+        "max": 22
+      },
+      {
+        "id": "bourgeois",
+        "min": 23,
+        "max": 24
+      },
+      {
+        "id": "milicien",
+        "min": 25,
+        "max": 25
+      },
+      {
+        "id": "conseiller",
+        "min": 26,
+        "max": 26
+      },
+      {
+        "id": "artiste",
+        "min": 27,
+        "max": 27
+      },
+      {
+        "id": "duelliste",
+        "min": 28,
+        "max": 28
+      },
+      {
+        "id": "emissaire",
+        "min": 29,
+        "max": 29
+      },
+      {
+        "id": "noble",
+        "min": 30,
+        "max": 30
+      },
+      {
+        "id": "serviteur",
+        "min": 31,
+        "max": 33
+      },
+      {
+        "id": "espion",
+        "min": 34,
+        "max": 34
+      },
+      {
+        "id": "intendant",
+        "min": 35,
+        "max": 35
+      },
+      {
+        "id": "bailli",
+        "min": 36,
+        "max": 36
+      },
+      {
+        "id": "sorcier-de-village",
+        "min": 37,
+        "max": 37
+      },
+      {
+        "id": "herboriste",
+        "min": 38,
+        "max": 38
+      },
+      {
+        "id": "chasseur",
+        "min": 39,
+        "max": 40
+      },
+      {
+        "id": "mineur",
+        "min": 41,
+        "max": 41
+      },
+      {
+        "id": "mystique",
+        "min": 42,
+        "max": 42
+      },
+      {
+        "id": "eclaireur",
+        "min": 43,
+        "max": 43
+      },
+      {
+        "id": "villageois",
+        "min": 44,
+        "max": 48
+      },
+      {
+        "id": "chasseur-de-primes",
+        "min": 49,
+        "max": 49
+      },
+      {
+        "id": "cocher",
+        "min": 50,
+        "max": 50
+      },
+      {
+        "id": "saltimbanque",
+        "min": 51,
+        "max": 52
+      },
+      {
+        "id": "messager",
+        "min": 53,
+        "max": 53
+      },
+      {
+        "id": "colporteur",
+        "min": 54,
+        "max": 54
+      },
+      {
+        "id": "patrouilleur-routier",
+        "min": 55,
+        "max": 55
+      },
+      {
+        "id": "repurgateur",
+        "min": 56,
+        "max": 56
+      },
+      {
+        "id": "frere-loup",
+        "min": 57,
+        "max": 58
+      },
+      {
+        "id": "batelier",
+        "min": 59,
+        "max": 60
+      },
+      {
+        "id": "nautonier",
+        "min": 61,
+        "max": 61
+      },
+      {
+        "id": "patrouilleur-fluvial",
+        "min": 62,
+        "max": 63
+      },
+      {
+        "id": "femme-du-fleuve",
+        "min": 64,
+        "max": 66
+      },
+      {
+        "id": "marin",
+        "min": 67,
+        "max": 70
+      },
+      {
+        "id": "contrebandier",
+        "min": 71,
+        "max": 72
+      },
+      {
+        "id": "debardeur",
+        "min": 73,
+        "max": 74
+      },
+      {
+        "id": "naufrageur",
+        "min": 75,
+        "max": 75
+      },
+      {
+        "id": "entremetteur",
+        "min": 76,
+        "max": 77
+      },
+      {
+        "id": "charlatan",
+        "min": 78,
+        "max": 78
+      },
+      {
+        "id": "receleur",
+        "min": 79,
+        "max": 79
+      },
+      {
+        "id": "pilleur-de-tombes",
+        "min": 80,
+        "max": 80
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 81,
+        "max": 84
+      },
+      {
+        "id": "ranconneur",
+        "min": 85,
+        "max": 85
+      },
+      {
+        "id": "voleur",
+        "min": 86,
+        "max": 87
+      },
+      {
+        "id": "sorcier-dissident",
+        "min": 88,
+        "max": 88
+      },
+      {
+        "id": "cavalier",
+        "min": 89,
+        "max": 90
+      },
+      {
+        "id": "garde",
+        "min": 91,
+        "max": 92
+      },
+      {
+        "id": "chevalier",
+        "min": 93,
+        "max": 93
+      },
+      {
+        "id": "gladiateur",
+        "min": 94,
+        "max": 94
+      },
+      {
+        "id": "spadassin",
+        "min": 95,
+        "max": 95
+      },
+      {
+        "id": "soldat",
+        "min": 96,
+        "max": 99
+      },
+      {
+        "id": "pretre-guerrier",
+        "min": 100,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "norse",
+    "type": "carrieres-aleatoires",
+    "kind": "colonne",
+    "label": "Tableau des Classes et Carrières aléatoires — Norse",
+    "die": "d100",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 57,
+      "note": "Carrières norses, MDG 07 l.271-303"
+    },
+    "entries": [
+      {
+        "id": "agitateur",
+        "min": 1,
+        "max": 2
+      },
+      {
+        "id": "artisan",
+        "min": 3,
+        "max": 6
+      },
+      {
+        "id": "marchand",
+        "min": 7,
+        "max": 8
+      },
+      {
+        "id": "mendiant",
+        "min": 9,
+        "max": 10
+      },
+      {
+        "id": "ratier",
+        "min": 11,
+        "max": 11
+      },
+      {
+        "id": "marin-cotier",
+        "min": 12,
+        "max": 19
+      },
+      {
+        "id": "naufrageur-cotier",
+        "min": 20,
+        "max": 24
+      },
+      {
+        "id": "nautonier-cotier",
+        "min": 25,
+        "max": 27
+      },
+      {
+        "id": "ratisseur-de-plages",
+        "min": 28,
+        "max": 29
+      },
+      {
+        "id": "artiste",
+        "min": 30,
+        "max": 30
+      },
+      {
+        "id": "conseiller",
+        "min": 31,
+        "max": 33
+      },
+      {
+        "id": "noble",
+        "min": 34,
+        "max": 34
+      },
+      {
+        "id": "serviteur",
+        "min": 35,
+        "max": 41
+      },
+      {
+        "id": "cavalier",
+        "min": 42,
+        "max": 44
+      },
+      {
+        "id": "gladiateur",
+        "min": 45,
+        "max": 48
+      },
+      {
+        "id": "soldat",
+        "min": 49,
+        "max": 56
+      },
+      {
+        "id": "spadassin",
+        "min": 57,
+        "max": 59
+      },
+      {
+        "id": "colporteur",
+        "min": 60,
+        "max": 62
+      },
+      {
+        "id": "messager",
+        "min": 63,
+        "max": 63
+      },
+      {
+        "id": "saltimbanque",
+        "min": 64,
+        "max": 65
+      },
+      {
+        "id": "erudit",
+        "min": 66,
+        "max": 67
+      },
+      {
+        "id": "nonne",
+        "min": 68,
+        "max": 69
+      },
+      {
+        "id": "charlatan",
+        "min": 70,
+        "max": 71
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 72,
+        "max": 74
+      },
+      {
+        "id": "sorcier-dissident",
+        "min": 75,
+        "max": 77
+      },
+      {
+        "id": "voleur",
+        "min": 78,
+        "max": 81
+      },
+      {
+        "id": "chasseur",
+        "min": 82,
+        "max": 85
+      },
+      {
+        "id": "eclaireur",
+        "min": 86,
+        "max": 88
+      },
+      {
+        "id": "herboriste",
+        "min": 89,
+        "max": 91
+      },
+      {
+        "id": "mystique",
+        "min": 92,
+        "max": 94
+      },
+      {
+        "id": "villageois",
+        "min": 95,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "cotiers-humain",
+    "type": "carrieres-aleatoires",
+    "kind": "portion",
+    "label": "Côtiers — Humain",
+    "colonne": "humain",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 64,
+      "note": "La classe Côtier, MDG 09 l.9, l.21-30"
+    },
+    "entries": [
+      {
+        "id": "artilleur-de-navire",
+        "min": 60,
+        "max": 61
+      },
+      {
+        "id": "chansonnier",
+        "min": 62,
+        "max": 62
+      },
+      {
+        "id": "marin-cotier",
+        "min": 63,
+        "max": 66
+      },
+      {
+        "id": "naufrageur-cotier",
+        "min": 67,
+        "max": 67
+      },
+      {
+        "id": "nautonier-cotier",
+        "min": 68,
+        "max": 68
+      },
+      {
+        "id": "officier",
+        "min": 69,
+        "max": 70
+      },
+      {
+        "id": "pretre-marin-de-manann",
+        "min": 71,
+        "max": 71
+      },
+      {
+        "id": "ratisseur-de-plages",
+        "min": 72,
+        "max": 73
+      }
+    ]
+  },
+  {
+    "id": "cotiers-halfling",
+    "type": "carrieres-aleatoires",
+    "kind": "portion",
+    "label": "Côtiers — Halfling",
+    "colonne": "halfling",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 64,
+      "note": "La classe Côtier, MDG 09 l.9, l.21-30"
+    },
+    "entries": [
+      {
+        "id": "artilleur-de-navire",
+        "min": 64,
+        "max": 65
+      },
+      {
+        "id": "marin-cotier",
+        "min": 66,
+        "max": 71
+      },
+      {
+        "id": "nautonier-cotier",
+        "min": 72,
+        "max": 73
+      },
+      {
+        "id": "ratisseur-de-plages",
+        "min": 74,
+        "max": 77
+      }
+    ]
+  },
+  {
+    "id": "cotiers-nain",
+    "type": "carrieres-aleatoires",
+    "kind": "portion",
+    "label": "Côtiers — Nain",
+    "colonne": "nain",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 64,
+      "note": "La classe Côtier, MDG 09 l.9, l.21-30"
+    },
+    "entries": [
+      {
+        "id": "artilleur-de-navire",
+        "min": 73,
+        "max": 75
+      },
+      {
+        "id": "marin-cotier",
+        "min": 76,
+        "max": 78
+      },
+      {
+        "id": "naufrageur-cotier",
+        "min": 79,
+        "max": 79
+      },
+      {
+        "id": "nautonier-cotier",
+        "min": 80,
+        "max": 81
+      },
+      {
+        "id": "officier",
+        "min": 82,
+        "max": 83
+      }
+    ]
+  },
+  {
+    "id": "cotiers-haut-elfe",
+    "type": "carrieres-aleatoires",
+    "kind": "portion",
+    "label": "Côtiers — Haut elfe",
+    "colonne": "haut-elfe",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 64,
+      "note": "La classe Côtier, MDG 09 l.9, l.21-30"
+    },
+    "entries": [
+      {
+        "id": "artilleur-de-navire",
+        "min": 65,
+        "max": 65
+      },
+      {
+        "id": "chansonnier",
+        "min": 66,
+        "max": 66
+      },
+      {
+        "id": "marin-cotier",
+        "min": 67,
+        "max": 76
+      },
+      {
+        "id": "nautonier-cotier",
+        "min": 77,
+        "max": 77
+      },
+      {
+        "id": "officier",
+        "min": 78,
+        "max": 81
+      }
+    ]
+  },
+  {
+    "id": "cotiers-elfe-sylvain",
+    "type": "carrieres-aleatoires",
+    "kind": "portion",
+    "label": "Côtiers — Elfe sylvain",
+    "colonne": "elfe-sylvain",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 64,
+      "note": "La classe Côtier, MDG 09 l.9, l.21-30"
+    },
+    "entries": [
+      {
+        "id": "naufrageur-cotier",
+        "min": 61,
+        "max": 61
+      }
+    ]
+  },
+  {
+    "id": "variantes-cavalier",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Jet optionnel — Cavalier",
+    "die": "d100",
+    "carriere": "cavalier",
+    "source": {
+      "book": "aux-armes",
+      "page": 9,
+      "note": "Nouvelles Carrières, Jet optionnel, AA 02 l.109-128"
+    },
+    "entries": [
+      {
+        "id": "cavalier",
+        "min": 1,
+        "max": 75
+      },
+      {
+        "id": "cavalier-leger",
+        "min": 76,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-chevalier",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Jet optionnel — Chevalier",
+    "die": "d100",
+    "carriere": "chevalier",
+    "source": {
+      "book": "aux-armes",
+      "page": 9,
+      "note": "Nouvelles Carrières, Jet optionnel, AA 02 l.109-128"
+    },
+    "entries": [
+      {
+        "id": "chevalier",
+        "min": 1,
+        "max": 55
+      },
+      {
+        "id": "chevalier-errant",
+        "min": 56,
+        "max": 65
+      },
+      {
+        "id": "chevalier-du-soleil-flamboyant",
+        "min": 66,
+        "max": 70
+      },
+      {
+        "id": "chevalier-du-loup-blanc",
+        "min": 71,
+        "max": 85
+      },
+      {
+        "id": "chevalier-panthere",
+        "min": 86,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-pretre-guerrier",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Jet optionnel — Prêtre guerrier",
+    "die": "d100",
+    "carriere": "pretre-guerrier",
+    "source": {
+      "book": "aux-armes",
+      "page": 9,
+      "note": "Nouvelles Carrières, Jet optionnel, AA 02 l.109-128"
+    },
+    "entries": [
+      {
+        "id": "pretre-guerrier",
+        "min": 1,
+        "max": 85
+      },
+      {
+        "id": "pretre-de-myrmidia",
+        "min": 86,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-soldat",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Jet optionnel — Soldat",
+    "die": "d100",
+    "carriere": "soldat",
+    "source": {
+      "book": "aux-armes",
+      "page": 9,
+      "note": "Nouvelles Carrières, Jet optionnel, AA 02 l.109-128"
+    },
+    "entries": [
+      {
+        "id": "soldat",
+        "min": 1,
+        "max": 40
+      },
+      {
+        "id": "archer",
+        "min": 41,
+        "max": 50
+      },
+      {
+        "id": "hallebardier",
+        "min": 51,
+        "max": 70
+      },
+      {
+        "id": "arquebusier",
+        "min": 71,
+        "max": 85
+      },
+      {
+        "id": "joueur-d-epee",
+        "min": 86,
+        "max": 90
+      },
+      {
+        "id": "piquier",
+        "min": 91,
+        "max": 96
+      },
+      {
+        "id": "specialiste-de-siege",
+        "min": 97,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-colporteur",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Jet optionnel — Colporteur",
+    "die": "d100",
+    "carriere": "colporteur",
+    "source": {
+      "book": "aux-armes",
+      "page": 9,
+      "note": "Nouvelles Carrières, Jet optionnel, AA 02 l.109-128"
+    },
+    "entries": [
+      {
+        "id": "colporteur",
+        "min": 1,
+        "max": 75
+      },
+      {
+        "id": "suiveur-de-camp",
+        "min": 76,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-erudit",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Jet optionnel — Érudit",
+    "die": "d100",
+    "carriere": "erudit",
+    "source": {
+      "book": "aux-armes",
+      "page": 9,
+      "note": "Nouvelles Carrières, Jet optionnel, AA 02 l.109-128"
+    },
+    "entries": [
+      {
+        "id": "erudit",
+        "min": 1,
+        "max": 85
+      },
+      {
+        "id": "cartographe",
+        "min": 86,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-ingenieur",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Jet optionnel — Ingénieur",
+    "die": "d100",
+    "carriere": "ingenieur",
+    "source": {
+      "book": "aux-armes",
+      "page": 9,
+      "note": "Nouvelles Carrières, Jet optionnel, AA 02 l.109-128"
+    },
+    "entries": [
+      {
+        "id": "ingenieur",
+        "min": 1,
+        "max": 75
+      },
+      {
+        "id": "artilleur",
+        "min": 76,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-apothicaire",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Second lancer — Apothicaire",
+    "die": "d100",
+    "carriere": "apothicaire",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 35,
+      "note": "Obtenir aléatoirement les nouvelles Carrières, Second lancer, VDM 03 l.23-31"
+    },
+    "entries": [
+      {
+        "id": "alchimiste-ordinaire",
+        "min": 1,
+        "max": 15
+      },
+      {
+        "id": "apothicaire",
+        "min": 16,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-sorcier",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Second lancer — Sorcier",
+    "die": "d100",
+    "carriere": "sorcier",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 35,
+      "note": "Obtenir aléatoirement les nouvelles Carrières, Second lancer, VDM 03 l.23-31"
+    },
+    "entries": [
+      {
+        "id": "sorcier",
+        "min": 1,
+        "max": 95
+      },
+      {
+        "id": "magister-vigilant",
+        "min": 96,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-garde",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Second lancer — Garde",
+    "die": "d100",
+    "carriere": "garde",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 35,
+      "note": "Obtenir aléatoirement les nouvelles Carrières, Second lancer, VDM 03 l.23-31"
+    },
+    "entries": [
+      {
+        "id": "bedeau",
+        "min": 1,
+        "max": 15
+      },
+      {
+        "id": "garde",
+        "min": 16,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-mystique",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Second lancer — Mystique",
+    "die": "d100",
+    "carriere": "mystique",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 35,
+      "note": "Obtenir aléatoirement les nouvelles Carrières, Second lancer, VDM 03 l.23-31"
+    },
+    "entries": [
+      {
+        "id": "devin",
+        "min": 1,
+        "max": 10
+      },
+      {
+        "id": "mystique",
+        "min": 11,
+        "max": 100
+      }
+    ]
+  }
+]

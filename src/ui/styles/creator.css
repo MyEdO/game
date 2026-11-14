@@ -337,7 +337,7 @@
   color: var(--atelier-brass-elu);
 }
 /* Losanges de l'encrier (idle ET rendu, `DieFace` — #393 P2) : le plateau `.dicewell-tray` remplace
-   les icônes `nav/dice` étriquées par le VRAI dé (`DieFace`, `src/ui/DiceRoll.tsx`), gravé de son
+   les icônes `navigation/des` étriquées par le VRAI dé (`DieFace`, `src/ui/DiceRoll.tsx`), gravé de son
    chiffre une fois posé — jamais de face inventée. La teinte DORÉE planche (`.d10` — jamais la gemme
    rouge de combat, correctif utilisateur 2026-07-14) vit dans creator-step.css
    (`.creator-step .rm-die-*`/`.dicewell-tray .rm-die-*`) ; ici seule la TAILLE des losanges.

@@ -13,15 +13,15 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  */
 const priest = (cult: string, sin: number, kind: 'beni' | 'invocation' = 'invocation'): Combatant =>
   (blessuresSurLeProfil({
-    id: 'p1', name: 'Prêtre', kind: 'hero', sinPoints: sin,
+    id: 'p1', name: 'Prêtre', kind: 'heros', sinPoints: sin,
     talents: [{ talentId: kind, spec: cult, times: 1 }],
     skills: [], characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), weapons: [], movement: 4,
   })) as unknown as Combatant;
 
-const miracle: SpellLike = { label: 'Lame de fond', ecole: 'Miracle', cn: null, desc: '', family: 'invocation' };
-const blessing: SpellLike = { label: 'Bénédiction de Bataille', ecole: 'Bénédiction', cn: null, desc: '', family: 'beni' };
-const arcane: SpellLike = { label: 'Trait', ecole: 'Sort', cn: 0, desc: '', family: 'arcane' };
+const miracle: SpellLike = { label: 'Lame de fond', ecole: 'Miracle', cn: null, family: 'invocation' };
+const blessing: SpellLike = { label: 'Bénédiction de Bataille', ecole: 'Bénédiction', cn: null, family: 'beni' };
+const arcane: SpellLike = { label: 'Trait', ecole: 'Sort', cn: 0, family: 'arcane' };
 
 describe('Gating Péché des cultes (MDG 11 l.148 — Stromfels, GodData.sinLocks)', () => {
   it('la donnée Stromfels porte le verrou RAW : Invocation ≥ 2, Béni ≥ 5', () => {

@@ -96,7 +96,7 @@ describe('coutures du héros en combat (#2312)', () => {
   });
 
   it('les handlers tirent leurs dés comme le corps de base : flux RNG inchangé', () => {
-    setRule('psych-acquisition-optional', true);
+    setRule('psycho-acquisition-optionnelle', true);
     try {
       let id = combat(); seedBattleRng(4242); jouer({ type: 'inflictDisease', disease: 'vers-de-carie', heroId: id });
       const nouvD = [cbt(id).diseases?.find((d) => d.id === 'vers-de-carie'), tirages()];
@@ -115,14 +115,14 @@ describe('coutures du héros en combat (#2312)', () => {
         id = combat(); seedBattleRng(graine); const res = traumaOnImpossibleAmbition(grp(id), battleRng());
         expect(nouvA).toEqual([res?.trait ? [res.trait] : [], tirages()]);
       }
-    } finally { resetRule('psych-acquisition-optional'); }
+    } finally { resetRule('psycho-acquisition-optionnelle'); }
   });
 
   it('faim, soif et Chance gagnée en combat reviennent au groupe à finalizeBattle', () => {
     const cas: [unknown, (c: Combatant) => unknown][] = [
       [{ type: 'inflictHunger', days: 2, target: 'party' }, (c) => c.hunger],
       [{ type: 'inflictThirst', days: 2, target: 'party' }, (c) => c.thirst],
-      [{ type: 'ops', on: 'hero', ops: [{ op: 'gainResource', resource: 'fortune', amount: 1 }] }, (c) => c.fortune],
+      [{ type: 'ops', on: 'heros', ops: [{ op: 'gainResource', resource: 'fortune', amount: 1 }] }, (c) => c.fortune],
     ];
     for (const [e, lire] of cas) {
       const id = combat();
@@ -142,7 +142,7 @@ describe('coutures du héros en combat (#2312)', () => {
     cbt(id).weapons = [];
     const avant = cbt(id).fortune ?? 0;
     expect(avant).toBeGreaterThan(0);
-    banc.getState().fenetreChoisir('roundStart', 'promouvoir', id);
+    banc.getState().fenetreChoisir('debutDuRound', 'promouvoir', id);
     expect(cbt(id).fortune).toBe(avant - 1);
     banc.setState({ pendingRoundStart: null });
     fin();
@@ -225,7 +225,7 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
   const DEPENSES: Record<string, (c: Combatant) => void> = {
     acheterLaCaracteristique: (c) => banc.getState().acheterLaCaracteristique(c.id, 'capacite-de-combat'),
     acheterLaCompetence: (c) => { const sk = buildAdvancementView(banc.getState(), c).skills.find((x) => x.known)!; banc.getState().acheterLaCompetence(c.id, sk.skill); },
-    acheterLeTalent: (c) => { const ta = buildAdvancementView(banc.getState(), c).talents.find((x) => x.talentId && !x.maxReached)!; banc.getState().acheterLeTalent(c.id, ta.talentId!, ta.spec); },
+    acheterLeTalent: (c) => { const ta = buildAdvancementView(banc.getState(), c).talents.find((x) => x.talentId && !x.maxReached)!; banc.getState().acheterLeTalent(c.id, { id: ta.talentId!, spec: ta.spec }); },
     acheterLeSort: (c) => banc.getState().acheterLeSort(c.id, learnableSpells(c).find((x) => x.cost > 0)!.spell.id),
     entrainerLaProthese: (c) => banc.getState().entrainerLaProthese(c.items!.find((i) => i.trappingId === 'fausse-jambe')!.uid),
     changerDeCarriere: (c) => banc.getState().changerDeCarriere(c.id, careers.find((x) => x.id !== c.career)!.id, 1),
@@ -256,7 +256,6 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
    *  `depense` : doit vivre dans un appel `depenserPx` ; `moteur` : la dépense pure du moteur, que seul un
    *  flux passé à `depenserPx` importe (test suivant). Clé : `fichier | ligne sans commentaire`. */
   const ECRITURES_XP: Record<string, 'depense' | 'moteur' | 'gain' | 'creation' | 'fixture' | 'type' | 'lecture'> = {
-    'src/data/index.ts | xp: number;': 'type',
     'src/data/schemas/defs/spells.ts | xp: z.number(),': 'type',
     'src/noyau/monde/advancement.ts | xp: number;': 'type',
     'src/noyau/pendings.ts | xp: number;': 'type',
@@ -266,6 +265,14 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/state/devtools.ts | xp: (amount?: number) => {': 'lecture',
     'src/state/devtools.ts | return g().party.map((h) => ({ id: h.id, label: h.label, xp: actorIn(g(), h.id)?.xp ?? 0 }));': 'lecture',
     'src/engine/character.ts | xp: opts.xpBonus ?? 0,': 'creation',
+    'src/engine/character.ts | xp: number;': 'type',
+    'src/engine/character.ts | xp: r.xp,': 'creation',
+    'src/data/pregens.ts | xp: d.xp,': 'creation',
+    'src/data/schemas/defs/pregens.ts | xp: entier(0),': 'type',
+    "src/data/schemas/defs/pregens.ts | xp: { label: 'Expérience actuelle' },": 'type',
+    'src/engine/heroDeFiche.ts | xp: number;': 'type',
+    'src/engine/heroDeFiche.ts | xp: fiche.xp,': 'creation',
+    'src/scenes/test-scenarios/_heros.ts | xp: 0,': 'fixture',
     'src/scenes/test-scenarios/magie.ts | sorc.xp = 300;': 'fixture',
     'src/scenes/test-scenarios/voyage.ts | aldric.xp = 300;': 'fixture',
     'src/engine/advancement.ts | hero.xp = (hero.xp ?? 0) - cost;': 'moteur',

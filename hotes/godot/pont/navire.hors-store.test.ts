@@ -5,14 +5,13 @@
  * aucune de leurs arêtes et coupe son modèle sous les ponts qu'il retire, et l'exploration ne le pose à aucune case.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
-import { modelesCommites, servirLesModeles, suiteDe, table, vueDe } from './pont.testkit';
-import type { VolumeDuMonde } from '../../../src/noyau/index';
+import { modelesCommites, mondeDe, morceauxDe, servirLesModeles, suiteDe, table, vueDe } from './pont.testkit';
 import { findVehicleById } from '../../../src/data';
 import { garanti } from '../../../src/lib/garanti';
 import { casesDeLAreteDePont, grilleDesPonts, MOTS_DES_PONTS } from '../../../src/data/schemas/grammaire/carte-ascii';
 import { EYE_H, MARGE_SOUS_PLAFOND_M } from '../../../src/noyau/monde/iso';
 
-const COMMITES = modelesCommites();
+const COMMITES = await modelesCommites();
 const { appel } = table();
 
 describe('la caraque posée dans la scène À bord de la caraque', () => {
@@ -30,16 +29,17 @@ describe('la caraque posée dans la scène À bord de la caraque', () => {
   });
 
   it('le monde garde le sol des ponts pour le pointage, sans le peindre ; le plateau ne dessine aucune de leurs arêtes', () => {
-    const { monde } = appel('monde') as unknown as { monde: VolumeDuMonde };
+    const monde = mondeDe(appel).monde!;
     expect(monde.hauteurs.map((h) => h.z)).toEqual([0, 1, 2, 3]);
-    expect(monde.surfaces.filter((s) => s.navire === 'caraque').length).toBeGreaterThan(0);
-    expect(monde.surfaces.filter((s) => s.navire === undefined).map((s) => s.matiere)).not.toContain('relief--pilier');
-    expect(vueDe(appel('vue')).plateau!.aretes).toEqual([]);
+    const surfaces = morceauxDe(appel, 'partie', monde).flatMap((m) => m.surfaces);
+    expect(surfaces.filter((s) => s.navire === 'caraque').length).toBeGreaterThan(0);
+    expect(surfaces.filter((s) => s.navire === undefined).map((s) => s.matiere)).not.toContain('relief--pilier');
+    expect((appel('aretes') as unknown as { aretes: unknown[] }).aretes).toEqual([]);
   });
 
   it('le monde peint la mer sur la flottaison du navire ; le navire posé par ses ponts ne tient aucune case', () => {
-    const { monde } = appel('monde') as unknown as { monde: VolumeDuMonde };
-    expect(monde.surfaces.filter((s) => s.flottaison !== undefined).map(({ matiere, flottaison }) => ({ matiere, flottaison }))).toEqual([{ matiere: 'terrain--eau', flottaison: 'caraque' }]);
+    const surfaces = morceauxDe(appel, 'partie', mondeDe(appel).monde!).flatMap((m) => m.surfaces);
+    expect(new Set(surfaces.filter((s) => s.flottaison !== undefined).map(({ matiere, flottaison }) => `${matiere} ${flottaison}`))).toEqual(new Set(['terrain--eau caraque']));
     const { projection, corps } = vueDe(appel('vue'));
     expect(Object.keys(corps.navires)).toEqual(['caraque']);
     expect(projection.exploration!.entites.liste.map((e) => e.id)).not.toContain('caraque');

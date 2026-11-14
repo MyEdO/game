@@ -3,7 +3,20 @@ import { tableTotale } from '../lib/tableTotale';
 import { t } from '../i18n';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyLeafOps, applyEffectsLoot, ouvrirChute, runFlow, checkTriggers, confierLaSuite, jouerFlowEntier, pushCombatStep, OPS_DIFFEREES, porterOpsCtx, ctxRepris } from './combatEffects';
+import {
+  applyLeafOps,
+  applyEffectsLoot,
+  ouvrirChute,
+  runFlow,
+  checkTriggers,
+  confierLaSuite,
+  jouerFlowEntier,
+  pushCombatStep,
+  revealPurpose,
+  OPS_DIFFEREES,
+  porterOpsCtx,
+  ctxRepris,
+} from './combatEffects';
 import { runPureFlowLines } from './combat/flowEval';
 import { openSequence } from './rollSeam';
 import { buildAuthorPerilSteps } from './authorPerils';
@@ -46,7 +59,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * #1508 T2 — LA CHUTE PASSE PAR LA PORTE. Les deux dés d'une chute du gréement (hauteur `2d10 m`,
  * MDG 13 l.684-688 ; Dégâts `1d10`, LDB 15 l.80) ne tombent plus SOUS `applyOps` : le moteur les
  * DEMANDE (`demandesDeDes`), le noyau les OUVRE en étapes à dé nu appendues à la séquence en
- * cours (`opsDe`/`chuteDe`), et ce qui est tombé revient à l'op par `OpsCtx.des`.
+ * cours (`operationsDe`/`chuteDe`), et ce qui est tombé revient à l'op par `OpsCtx.des`.
  *
  * Doctrine (utilisateur 2026-09-04) : « Vu que tous les jets passé par le même point d'entrée, il est
  * inutile de se demander si le jeu est configuré pour » — le site ne classe pas son dé, la porte décide.
@@ -58,7 +71,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /** Marin minimal — BE 3, PA 0, assez de PB pour encaisser 3×20 m. */
 const marin = (id: string, over: Partial<Combatant> = {}): Combatant =>
   combattantDeTest({
-    id, label: id, kind: 'npc',
+    id, label: id, kind: 'pnj',
     characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 42, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
     skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, wounds: blessuresDeBase(200), advantage: 0, ...over,
@@ -69,8 +82,8 @@ const coque = (): Combatant => combattantDeTest({ id: 'hull', bodyShape: 'vehicu
 
 /** Les ops de la branche d'ÉCHEC de « Mât brisé » (d10 = 10), telles qu'AUTHORÉES. */
 const opsDeChute = (): GameOp[] => {
-  const fail = rollShipCritical('greement', makeRNG(1), 10, SHIP_CRIT_SET).crewHit!.test!.fail as { effect: { ops: GameOp[] } };
-  return fail.effect.ops;
+  const fail = rollShipCritical('greement', makeRNG(1), 10, SHIP_CRIT_SET).crewHit!.test!.echec as { effet: { ops: GameOp[] } };
+  return fail.effet.ops;
 };
 const feuille = (ops: GameOp[]): EffectOp => ({ type: 'ops', on: 'target', ops } as unknown as EffectOp);
 
@@ -137,7 +150,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
   beforeEach(() => {
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('gabier', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()],
+      party: [marin('gabier', { kind: 'heros', shipStation: 'greement' } as Partial<Combatant>), coque()],
     });
   });
 
@@ -179,14 +192,14 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
   it('LANCÉES (jamais posées), les deux étapes mènent à la même conséquence — via le pilote de fenêtre', () => {
     banc.getState().ensemencerLeTirage(12);
     ouvrir();
-    expect(draineCascade(banc.getState)).toEqual(['opsDe', 'opsDe']);
+    expect(draineCascade(banc.getState)).toEqual(['operationsDe', 'operationsDe']);
     const perte = 200 - gabier().wounds.current;
     expect(perte, 'hauteur 2..20 m, dé 1..10, BE 3').toBeGreaterThanOrEqual(3 * 2 + 1 - BE);
     expect(perte).toBeLessThanOrEqual(3 * 20 + 10 - BE);
   });
 
   it('depuis le NID-DE-PIE (hauteur entière), UNE seule étape suffit', () => {
-    banc.setState({ party: [marin('vigie', { kind: 'hero', shipStation: 'nid-de-pie' } as Partial<Combatant>), coque()] });
+    banc.setState({ party: [marin('vigie', { kind: 'heros', shipStation: 'nid-de-pie' } as Partial<Combatant>), coque()] });
     const vigie = banc.getState().party[0];
     applyLeafOps(banc.getState, banc.setState, vigie, feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
     const st = banc.getState().pendingCascade!.participants[0];
@@ -218,7 +231,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
     applyLeafOps(banc.getState, banc.setState, matelot, feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.de!.result, 'aucun siège ne le tient : le socle le tire à l’ouverture').not.toBeNull();
-    expect(draineCascade(banc.getState)).toContain('opsDe');
+    expect(draineCascade(banc.getState)).toContain('operationsDe');
     expect(banc.getState().pendingCascade, 'la séquence se referme : les deux dés sont tombés').toBeNull();
     const apres = banc.getState().party.find((c) => c.id === 'matelot')!;
     expect(apres.wounds.current, 'la chute est bien encaissée, ses deux dés à la porte compris').toBeLessThan(200);
@@ -231,8 +244,8 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
     // ferait se relire l'un l'autre — A encaisserait la hauteur de B, et le dé montré serait jeté.
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('A', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>),
-        marin('B', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()],
+      party: [marin('A', { kind: 'heros', shipStation: 'greement' } as Partial<Combatant>),
+        marin('B', { kind: 'heros', shipStation: 'greement' } as Partial<Combatant>), coque()],
     });
     const par = (id: string) => banc.getState().party.find((c) => c.id === id)!;
     const CTX = { idNeuf: idsDeTest, rng: desDuTest, hull: coque(), now: 1000 }; // MÊME instant de jeu pour les deux feuilles
@@ -258,7 +271,7 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
   beforeEach(() => {
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('h1', { kind: 'hero' } as Partial<Combatant>), marin('h2', { kind: 'hero' } as Partial<Combatant>)],
+      party: [marin('h1', { kind: 'heros' } as Partial<Combatant>), marin('h2', { kind: 'heros' } as Partial<Combatant>)],
     });
   });
   const par = (id: string) => banc.getState().party.find((c) => c.id === id)!;
@@ -308,11 +321,11 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
     seedBattleRng(3);
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('blessé', { kind: 'hero', wounds: { current: 190, max: 200 } } as Partial<Combatant>)],
+      party: [marin('blessé', { kind: 'heros', wounds: { current: 190, max: 200 } } as Partial<Combatant>)],
     });
-    runFlow(banc.getState, banc.setState, { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'fall', target: 'party', metres: 4 } },
-      { kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'heal', amount: 50 }] } },
+    runFlow(banc.getState, banc.setState, { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } },
+      { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'heal', amount: 50 }] } },
     ] } as unknown as Flow);
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetImposerLeResultat('cascadeTirage', 8, st.id); // 3×4 + 8 − BE 3 = 17
@@ -336,14 +349,14 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     seedBattleRng(3);
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('h1', { kind: 'hero', wounds: { current: 190, max: 200 } } as Partial<Combatant>)],
+      party: [marin('h1', { kind: 'heros', wounds: { current: 190, max: 200 } } as Partial<Combatant>)],
     });
   });
 
   it('walker de SCÈNE (`runFlow`) : chute (−17) PUIS soin (+50, plafonné) → 200, jamais 183', () => {
-    const flow = { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'fall', target: 'party', metres: 4 } },
-      { kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'heal', amount: 50 }] } },
+    const flow = { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } },
+      { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'heal', amount: 50 }] } },
     ] } as unknown as Flow;
     runFlow(banc.getState, banc.setState, flow);
     expect(heros().wounds.current, 'rien du lot ne s’applique avant le dé').toBe(190);
@@ -358,9 +371,9 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
 
   it('walker de COMBAT (`runCombatFlow`) : même invariant sur une pile d’effet déclenché', () => {
     const cible = heros();
-    const flow = { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'ops', on: 'target', ops: opsDeChute() } },
-      { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'heal', amount: 50 }] } },
+    const flow = { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'ops', on: 'target', ops: opsDeChute() } },
+      { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'heal', amount: 50 }] } },
     ] } as unknown as Flow;
     banc.setState({ party: [{ ...cible, shipStation: 'nid-de-pie' } as Combatant, coque()] });
     runCombatFlow({ get: banc.getState, set: banc.setState, target: heros(), caster: heros(), label: 'Mât brisé', opsCtx: { hull: coque() } }, flow);
@@ -372,14 +385,14 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     expect(heros().wounds.current).toBe(190 - (3 * 25 + 4 - BE) + 50);
   });
 
-  // Le `seq` PLAT ci-dessus n'exerce qu'une vidange de lot. Les deux nœuds qui BRANCHENT (`if`, `test`)
+  // Le `sequence` PLAT ci-dessus n'exerce qu'une vidange de lot. Les deux nœuds qui BRANCHENT (`si`, `test`)
   // vident le lot PUIS poursuivent la pile : c'est là que le signal meurt. Le nœud courant, que le lot
   // n'a pas consommé, repart donc EN TÊTE de la continuation — il branche sur l'état que la conséquence
   // aura produit, jamais sur celui d'avant le dé.
   it('walker de SCÈNE, nœud `if` : la branche attend le dé — 200, jamais 183', () => {
-    const flow = { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'fall', target: 'party', metres: 4 } },
-      { kind: 'if', cond: { kind: 'always' }, then: { kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'heal', amount: 50 }] } } },
+    const flow = { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } },
+      { kind: 'si', condition: { kind: 'always' }, alors: { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'heal', amount: 50 }] } } },
     ] } as unknown as Flow;
     runFlow(banc.getState, banc.setState, flow);
     expect(heros().wounds.current, 'la branche ne s’évalue même pas avant le dé').toBe(190);
@@ -390,10 +403,10 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
   });
 
   it('walker de SCÈNE, nœud `test` : la modale de jet ne s’ouvre qu’APRÈS le dé de chute', () => {
-    const flow = { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'fall', target: 'party', metres: 4 } },
+    const flow = { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } },
       { kind: 'test', test: { skill: { id: 'escalade' }, difficulty: 'intermediaire' },
-        success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
+        reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
     ] } as unknown as Flow;
     banc.setState({ pendingTest: null } as never);
     runFlow(banc.getState, banc.setState, flow);
@@ -409,9 +422,9 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
   it('walker de COMBAT, nœud `if` : même invariant sur une pile d’effet déclenché', () => {
     const cible = heros();
     banc.setState({ party: [{ ...cible, shipStation: 'nid-de-pie' } as Combatant, coque()] });
-    const flow = { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'ops', on: 'target', ops: opsDeChute() } },
-      { kind: 'if', cond: { kind: 'always' }, then: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'heal', amount: 50 }] } } },
+    const flow = { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'ops', on: 'target', ops: opsDeChute() } },
+      { kind: 'si', condition: { kind: 'always' }, alors: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'heal', amount: 50 }] } } },
     ] } as unknown as Flow;
     runCombatFlow({ get: banc.getState, set: banc.setState, target: heros(), caster: heros(), label: 'Mât brisé', opsCtx: { hull: coque() } }, flow);
     expect(heros().wounds.current, 'la branche attend le dé').toBe(190);
@@ -419,6 +432,26 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     banc.getState().jetImposerLeResultat('cascadeTirage', 4, st.id);
     banc.getState().jetValider('cascade');
     expect(heros().wounds.current).toBe(190 - (3 * 25 + 4 - BE) + 50);
+  });
+
+  it('grappe à DEUX dés (gréement) : la suite attend le 2ᵉ dé, que l’applier du 1ᵉʳ a poussé (#4011 G1)', () => {
+    const cible = heros();
+    banc.setState({ party: [{ ...cible, shipStation: 'greement', wounds: blessuresDeBase(200, 100) } as Combatant, coque()] });
+    const flow = { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'ops', on: 'target', ops: opsDeChute() } },
+      { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'heal', amount: 1000 }] } },
+    ] } as unknown as Flow;
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: heros(), caster: heros(), label: 'Mât brisé', opsCtx: { hull: coque() } }, flow);
+    const hauteur = banc.getState().pendingCascade!.participants[0];
+    banc.getState().jetImposerLeResultat('cascadeTirage', 11, hauteur.id);
+    banc.getState().jetValider('cascade');
+    expect(heros().wounds.current, 'le soin attend le dé des Dégâts').toBe(100);
+    const pc = banc.getState().pendingCascade!;
+    const degats = pc.participants[pc.cursor];
+    banc.getState().jetImposerLeResultat('cascadeTirage', 4, degats.id);
+    banc.getState().jetValider('cascade');
+    // 100 − (3×11 + 4 − 3) = 66, puis +1000 → plafond 200. Soin avant le 2ᵉ dé : 200 − 34 = 166.
+    expect(heros().wounds.current).toBe(200);
   });
 });
 
@@ -433,7 +466,7 @@ describe('(vi) CONTEXTE de la feuille : la reprise applique le MÊME contexte qu
     applyOps(direct, ops(), { idNeuf: idsDeTest, rng: makeRNG(4), ...CTX(), des: new Map([[cleDeDe(0, 'degats'), 5]]) });
 
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('porte', { kind: 'hero', shipStation: 'nid-de-pie' } as Partial<Combatant>), coque()] });
+      party: [marin('porte', { kind: 'heros', shipStation: 'nid-de-pie' } as Partial<Combatant>), coque()] });
     const parLaPorte = banc.getState().party[0];
     applyLeafOps(banc.getState, banc.setState, parLaPorte, feuille(ops()), { idNeuf: idsDeTest, rng: makeRNG(4), ...CTX() });
     const st = banc.getState().pendingCascade!.participants[0];
@@ -463,7 +496,7 @@ describe('(vii) DETTE DITE : les dés d’une op IMBRIQUÉE ne passent pas encor
 
   it('`demandesDeDes` n’annonce RIEN pour la forme imbriquée, et aucune fenêtre ne s’ouvre', () => {
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('gabier', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()] });
+      party: [marin('gabier', { kind: 'heros', shipStation: 'greement' } as Partial<Combatant>), coque()] });
     const gabier = banc.getState().party[0];
     expect(demandesDeDes(imbriquee(), gabier, { idNeuf: idsDeTest, rng: desDuTest, hull: coque() }), 'niveau 1 : rien à annoncer').toEqual([]);
     applyLeafOps(banc.getState, banc.setState, gabier, feuille(imbriquee()), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
@@ -475,7 +508,7 @@ describe('(vii) DETTE DITE : les dés d’une op IMBRIQUÉE ne passent pas encor
 describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se différer', () => {
   it('un hook `OPS_CTX_HORS_CANAL` sur une feuille à dé lève, nommément', () => {
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('gabier', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()] });
+      party: [marin('gabier', { kind: 'heros', shipStation: 'greement' } as Partial<Combatant>), coque()] });
     const gabier = banc.getState().party[0];
     expect(() => applyLeafOps(banc.getState, banc.setState, gabier, feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest,
       hull: coque(), onCondition: () => {},
@@ -484,7 +517,7 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
 
   it('`onOpposingAdvantage` (`onTurnStart`) se porte et se rebâtit sur son porteur ; sans porteur, il lève', () => {
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('gabier', { kind: 'hero' } as Partial<Combatant>)] });
+      party: [marin('gabier', { kind: 'heros' } as Partial<Combatant>)] });
     const gabier = banc.getState().party[0];
     expect(ctxRepris(banc.getState, banc.setState, porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, caster: gabier }), gabier)?.onOpposingAdvantage).toBeUndefined();
     expect(() => porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, onOpposingAdvantage: () => [] })).toThrow(/onOpposingAdvantage/);
@@ -493,13 +526,13 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
   it('rebâti après un aller-retour JSON, il crédite la réserve ADVERSE du porteur ennemi (MDG 16 l.13)', () => {
     setRule('combat-aa-avantage-groupe', true);
     try {
-      const heros = marin('h1', { kind: 'hero' } as Partial<Combatant>);
-      const porteur = marin('e1', { kind: 'enemy' } as Partial<Combatant>);
-      banc.setState({ battle: { combatants: [heros, porteur], advantagePools: { allies: 0, foes: 0 } } as unknown as BattleState,
+      const heros = marin('h1', { kind: 'heros' } as Partial<Combatant>);
+      const porteur = marin('e1', { kind: 'ennemi' } as Partial<Combatant>);
+      banc.setState({ battle: { combatants: [heros, porteur], advantagePools: { allies: 0, adversaires: 0 } } as unknown as BattleState,
         pendingCascade: null, suspendedCascades: [], journal: [], party: [heros] });
       const porte = JSON.parse(JSON.stringify(porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, caster: porteur, onOpposingAdvantage: () => [] })));
       const lignes = ctxRepris(banc.getState, banc.setState, porte, heros)!.onOpposingAdvantage!(2);
-      expect(banc.getState().battle!.advantagePools, 'les alliés, camp adverse du porteur, gagnent +2').toEqual({ allies: 2, foes: 0 });
+      expect(banc.getState().battle!.advantagePools, 'les alliés, camp adverse du porteur, gagnent +2').toEqual({ allies: 2, adversaires: 0 });
       expect([heros.advantage, porteur.advantage]).toEqual([2, 0]);
       expect(lignes).toHaveLength(1);
     } finally {
@@ -514,7 +547,7 @@ describe('(ix) FIN DE COMBAT : un dé en vol n’est pas piétiné par le teardo
   beforeEach(() => {
     banc.setState({
       battle: null, pendingVictory: null, pendingCascade: null, suspendedCascades: [], journal: [], partyWiped: false,
-      party: [marin('h1', { kind: 'hero' } as Partial<Combatant>), marin('h2', { kind: 'hero' } as Partial<Combatant>)],
+      party: [marin('h1', { kind: 'heros' } as Partial<Combatant>), marin('h2', { kind: 'heros' } as Partial<Combatant>)],
     });
   });
 
@@ -525,7 +558,7 @@ describe('(ix) FIN DE COMBAT : un dé en vol n’est pas piétiné par le teardo
     ouvrirChute(banc.setState, par('h2'), 4);
     suspendActiveCascade(banc.getState, banc.setState); // ex. une journée de voyage parquée par l'abordage
     ouvrirChute(banc.setState, par('h1'), 4);
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     const enVol = banc.getState().pendingCascade!;
     expect(enVol.participants[0].actorId, 'le teardown n’a pas piétiné le dé en vol').toBe('h1');
     expect(banc.getState().suspendedCascades, 'la parquée est restée parquée').toHaveLength(1);
@@ -553,9 +586,9 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
   // était pas un et passait devant. Une `Cloture` est un VERBE SÉRIALISABLE que l'étape porte comme
   // son Flow — le socle en avait déjà un, `PendingTest.dialogueNext`, ici généralisé.
   const marinBlesse = (id: string): Combatant =>
-    marin(id, { kind: 'hero', wounds: { current: 190, max: 200 } } as Partial<Combatant>);
-  const CHUTE: Flow = { kind: 'do', effect: { type: 'fall', target: 'party', metres: 4 } } as unknown as Flow;
-  const DIT = (desc: string): Flow => ({ kind: 'do', effect: { type: 'journal', desc } } as unknown as Flow);
+    marin(id, { kind: 'heros', wounds: { current: 190, max: 200 } } as Partial<Combatant>);
+  const CHUTE: Flow = { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } } as unknown as Flow;
+  const DIT = (desc: string): Flow => ({ kind: 'effet', effet: { type: 'journal', desc } } as unknown as Flow);
   const dialogueDUnSaut = (): Dialogue => ({
     id: 'd-saut', start: { id: 'n1' },
     nodes: [
@@ -568,7 +601,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
   const dialogueDeDeuxSauts = (): Dialogue => ({
     id: 'd-deux', start: { id: 'n1' },
     nodes: [
-      { id: 'n1', desc: '.', choices: [{ id: 'sauter-deux-fois', label: 'Sauter deux fois', next: { id: 'n2' }, flow: { kind: 'seq', steps: [CHUTE, CHUTE] } }] },
+      { id: 'n1', desc: '.', choices: [{ id: 'sauter-deux-fois', label: 'Sauter deux fois', next: { id: 'n2' }, flow: { kind: 'sequence', etapes: [CHUTE, CHUTE] } }] },
       { id: 'n2', desc: 'Enfin.', choices: [{ id: 'continuer', label: 'Continuer' }] },
     ],
   } as unknown as Dialogue);
@@ -677,7 +710,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     ouvrirChute(banc.setState, banc.getState().party[0], 4);
     confierLaSuite(banc.setState, [{ verbe: 'marquerActionJouee', entityId: 'e', actionId: 'a' }]);
     confierLaSuite(banc.setState, [{ verbe: 'reprendreFlow',
-      flow: { kind: 'if', cond: { kind: 'flag', expr: cleActionJouee('e', 'a') }, then: DIT('VU'), else: DIT('PAS-VU') } as Flow }]);
+      flow: { kind: 'si', condition: { kind: 'flag', expr: cleActionJouee('e', 'a') }, alors: DIT('VU'), sinon: DIT('PAS-VU') } as Flow }]);
     poseLeDe(8);
     const j = banc.getState().journal;
     expect(j.some((l) => l.includes('PAS-VU')), 'le Flow confié APRÈS la clôture la voit jouée').toBe(false);
@@ -689,7 +722,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], flags: {}, party: [marinBlesse('h1')],
       gameTime: 600, scheduledEffects: [{ executeAt: 610, flow: CHUTE }, { executeAt: 610, flow: DIT('E2-MEME-PAS') }] });
     jouerFlowEntier(runFlow(banc.getState, banc.setState,
-      { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setTime', hour: 12 } as Effect }, DIT('X-SUITE-DU-LOT')] }));
+      { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setTime', hour: 12 } as Effect }, DIT('X-SUITE-DU-LOT')] }));
     expect(banc.getState().pendingCascade, 'la chute programmée a ouvert son dé').not.toBeNull();
     poseLeDe(8);
     const j = banc.getState().journal;
@@ -702,7 +735,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     seedBattleRng(3);
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingLoot: null, party: [marinBlesse('h1')] });
     const issue = applyEffectsLoot(banc.getState, banc.setState, [
-      { type: 'fall', target: 'party', metres: 4 } as unknown as Effect,
+      { type: 'fall', target: 'groupe', metres: 4 } as unknown as Effect,
       { type: 'giveTrapping', custom: 'Talisman-sonde' } as Effect,
     ], 'Fouille');
     expect(issue, 'le lot a rendu la main').toBe(OPS_DIFFEREES);
@@ -718,7 +751,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     seedBattleRng(3);
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingLoot: null, party: [marinBlesse('h1')] });
     jouerFlowEntier(applyEffectsLoot(banc.getState, banc.setState, [
-      { type: 'fall', target: 'party', metres: 4 } as unknown as Effect,
+      { type: 'fall', target: 'groupe', metres: 4 } as unknown as Effect,
       { type: 'giveMoney', montant: { gold: 1 } } as unknown as Effect,
       { type: 'giveTrapping', custom: 'Talisman-sonde' } as Effect,
     ], 'Fouille'));
@@ -764,7 +797,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
   // scène se racontait à l'envers. L'étape poussée pendant une application est la suite IMMÉDIATE de
   // celle qui l'a produite : elle s'insère derrière elle, et la séquence reprend après.
   const marinBlesse = (id: string): Combatant =>
-    marin(id, { kind: 'hero', wounds: { current: 190, max: 200 } } as Partial<Combatant>);
+    marin(id, { kind: 'heros', wounds: { current: 190, max: 200 } } as Partial<Combatant>);
   const route = (perils: unknown[]): MapRoute => ({ id: 'r1', perils } as unknown as MapRoute);
 
   const monte = (perils: unknown[], interruptId: InterruptionDePeril): void => {
@@ -786,7 +819,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       { label: 'Éboulement', chancePct: 100, effects: [{ type: 'fall', target: 'party', metres: 4 }] },
       { label: 'Trouvaille', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-2' }] },
     ], cleDeFixture('terre'));
-    expect(draineCascade(banc.getState)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
+    expect(draineCascade(banc.getState)).toEqual(['perilDeScene', 'chuteDe', 'perilDeScene']);
     const j = banc.getState().journal;
     const iChute = j.findIndex((l) => l.includes('Blessure'));
     const iP2 = j.findIndex((l) => l.includes('PERIL-2'));
@@ -807,7 +840,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     ], cleDeFixture('terre'));
     banc.getState().jetLancer('cascade');
     const p = banc.getState().pendingCascade!;
-    expect(p.participants.map((s) => s.kind)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
+    expect(p.participants.map((s) => s.kind)).toEqual(['perilDeScene', 'chuteDe', 'perilDeScene']);
     const j = banc.getState().journal;
     expect(j.findIndex((l) => l.includes('PERIL-2')))
       .toBeGreaterThan(j.findIndex((l) => l.includes('Blessure')));
@@ -831,7 +864,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     banc.getState().ensemencerLeTirage(7);
     const joues = runCascadeImmediate(banc.getState, banc.setState,
       buildAuthorPerilSteps(r, 'Ubersreik', cleDeFixture('terre')) as never, { title: 'Périls', purpose: 'sequence' })!;
-    expect(joues.map((s) => s.kind)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
+    expect(joues.map((s) => s.kind)).toEqual(['perilDeScene', 'chuteDe', 'perilDeScene']);
     const j = banc.getState().journal;
     expect(j.findIndex((l) => l.includes('PERIL-2')))
       .toBeGreaterThan(j.findIndex((l) => l.includes('Blessure')));
@@ -937,7 +970,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       { label: 'Jamais joué', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-APRES-ARRET' }] },
     ], SEA_PERIL_INTERRUPT);
     const joues = draineCascade(banc.getState);
-    expect(joues, 'le dé survit à la troncature ; le péril suivant, non').toEqual(['authorPeril', 'chuteDe']);
+    expect(joues, 'le dé survit à la troncature ; le péril suivant, non').toEqual(['perilDeScene', 'chuteDe']);
     expect(banc.getState().journal.some((l) => l.includes('PERIL-APRES-ARRET')), 'trajet arrêté').toBe(false);
     expect(banc.getState().party[0].wounds.current, 'la chute a encaissé').toBeLessThan(190);
   });
@@ -950,12 +983,12 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   // mesuraient pas la route du `crewHit`. Ceux-ci partent du nœud `test` AUTHORÉ.
   const BE = 3; // Endurance 31 → Bonus d'Endurance 3
 
-  const marinPoste = (id: string, station: string, kind: Combatant['kind'] = 'hero'): Combatant =>
+  const marinPoste = (id: string, station: string, kind: Combatant['kind'] = 'heros'): Combatant =>
     marin(id, { kind, shipStation: station } as Partial<Combatant>);
   /** La coque, en COMBATTANT complet : une cogue (25 m → Taille MOYENNE) qui porte le nid-de-pie.
    *  Forme entière et non littéral mince — elle traverse le bus de triggers comme n'importe quel corps. */
   const coqueMoyenne = (): Combatant => ({
-    ...marin('hull'), id: 'hull', label: 'La cogue', kind: 'npc',
+    ...marin('hull'), id: 'hull', label: 'La cogue', kind: 'pnj',
     bodyShape: 'vehicule', creatureId: 'cogue', upgrades: [{ id: 'nid-de-pie' }],
   } as unknown as Combatant);
 
@@ -967,25 +1000,25 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
 
   /** Monte la bande d'Athlétisme du `crewHit` — le geste EXACT des deux routes du jeu :
    *  combat `combatFlow.applyHullCriticalToTarget` (`pushCombatStep`) et voyage
-   *  `seaVoyageFlow.applyVesselCritical:2334` (`pushStep(…, 'travelDay')`). */
+   *  `seaVoyageFlow.applyVesselCritical` (`pushStep(…, revealPurpose('travelDay', false))`). */
   const ouvrirLaBande = (victimes: Combatant[], purpose: 'combat' | 'travelDay'): void => {
     const { test, label } = noeudCrewHit();
     const bande = (index: number) => bandeTriggeredTest(
       banc.getState, banc.setState, victimes, test, `crew-hit-${index}`, { idNeuf: idsDeTest, rng: desDuTest, label, hull: coqueMoyenne() },
     );
     if (purpose === 'combat') pushCombatStep(banc.setState, bande);
-    else pushStep(banc.setState, bande, 'travelDay');
+    else pushStep(banc.setState, bande, revealPurpose('travelDay', false));
   };
 
   /**
-   * Joue le Test de la bande — le geste de la RANGÉE (`jetLancer('cascadeBatch')`, celui du kit de fenêtre) —
+   * Joue le Test de la bande — le geste de la RANGÉE (`jetLancer('cascadeEnBande')`, celui du kit de fenêtre) —
    * puis valide l'étape. L'Athlétisme est COMPLEXE (−20) sur une Agilité 36 : la cible est 16, et le
    * rng SEEDÉ le rate. L'échec est ASSERTÉ, jamais supposé : c'est la prémisse du contrat.
    */
   const raterLeTest = (): void => {
     const p = banc.getState().pendingCascade!;
     const bande = p.participants[p.cursor];
-    for (const r of bande.participants ?? []) banc.getState().jetLancer('cascadeBatch', r.id);
+    for (const r of bande.participants ?? []) banc.getState().jetLancer('cascadeEnBande', r.id);
     const jouee = banc.getState().pendingCascade!.participants[banc.getState().pendingCascade!.cursor];
     for (const r of jouee.participants ?? []) {
       expect(r.result, `la rangée ${r.id} a bien lancé`).not.toBeNull();
@@ -1017,10 +1050,10 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
     const ott = marinPoste('ott', 'greement');
     monteLeCombat([ott]);
     ouvrirLaBande([ott], 'combat');
-    expect(etape().kind, 'la bande d’Athlétisme s’ouvre d’abord').toBe('triggeredBatchTest');
+    expect(etape().kind, 'la bande d’Athlétisme s’ouvre d’abord').toBe('testDeclencheEnBande');
     raterLeTest();
     // LE POINT : la conséquence du Test raté n'est pas une ligne, c'est un DÉ.
-    expect(etape().kind).toBe('opsDe');
+    expect(etape().kind).toBe('operationsDe');
     expect(etape().de!.spec, 'gréement d’une coque MOYENNE : 2d10 m (MDG 13 l.684)').toEqual({ n: 2, sides: 10 });
     const parId = () => banc.getState().party.find((c) => c.id === 'ott')!;
     expect(parId().wounds.current, 'RIEN encaissé tant que les dés n’ont pas parlé').toBe(200);
@@ -1036,7 +1069,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
     monteLeCombat([nissa]);
     ouvrirLaBande([nissa], 'combat');
     raterLeTest();
-    expect(etape().kind).toBe('opsDe');
+    expect(etape().kind).toBe('operationsDe');
     expect(etape().de!.spec, 'la hauteur est un entier : seuls les Dégâts se tirent').toEqual({ n: 1, sides: 10 });
     poser(6);
     const apres = banc.getState().party.find((c) => c.id === 'nissa')!;
@@ -1051,9 +1084,9 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
       party: [ott], travelPlan: { vehicle: coqueMoyenne() } as never,
     } as never);
     ouvrirLaBande([ott], 'travelDay');
-    expect(etape().kind).toBe('triggeredBatchTest');
+    expect(etape().kind).toBe('testDeclencheEnBande');
     raterLeTest();
-    expect(etape().kind, 'la mer ouvre le MÊME dé que le combat').toBe('opsDe');
+    expect(etape().kind, 'la mer ouvre le MÊME dé que le combat').toBe('operationsDe');
     expect(banc.getState().party[0].wounds.current, 'rien encaissé avant les dés').toBe(200);
     poser(9);
     poser(7);
@@ -1061,7 +1094,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   });
 
   it('(c) MARIN SANS SIÈGE : le socle tire d’office — et la chute l’ATTEINT', () => {
-    const pnj = marinPoste('matelot', 'greement', 'npc');
+    const pnj = marinPoste('matelot', 'greement', 'pnj');
     monteLeCombat([pnj], []); // enregistré au combat, tenu par PERSONNE
     banc.getState().ensemencerLeTirage(21);
     ouvrirLaBande([pnj], 'combat');
@@ -1159,7 +1192,7 @@ describe('(xv) WALKER PUR : une op à DÉ y LÈVE — aucune magnitude tirée en
   // `test` (`combatEffects.ts`, walker pur) : le walker REFUSE en nommant, il ne devine pas.
   const victime = (): Combatant => marin('ott', { shipStation: 'greement' } as Partial<Combatant>);
   const flowFall = (): Flow => ({
-    kind: 'do', effect: { type: 'ops', ops: [{ op: 'fall', hauteur: { table: { id: 'tomberDuGreement' } } } as unknown as GameOp], on: 'target' },
+    kind: 'effet', effet: { type: 'ops', ops: [{ op: 'fall', hauteur: { table: { id: 'tomberDuGreement' } } } as unknown as GameOp], on: 'target' },
   } as unknown as Flow);
 
   it('`runPureFlowLines` LÈVE en nommant la porte', () => {
@@ -1170,7 +1203,7 @@ describe('(xv) WALKER PUR : une op à DÉ y LÈVE — aucune magnitude tirée en
 
   it('un `fall` ENFOUI dans une `seq` lève aussi — le walker inspecte tout l’arbre', () => {
     const c = victime();
-    const seq = { kind: 'seq', steps: [{ kind: 'seq', steps: [flowFall()] }] } as unknown as Flow;
+    const seq = { kind: 'sequence', etapes: [{ kind: 'sequence', etapes: [flowFall()] }] } as unknown as Flow;
     expect(() => runPureFlowLines(c, c, seq, { idNeuf: idsDeTest, rng: desDuTest, hull: coque() })).toThrow(/op à DÉ|porte/);
   });
 });
@@ -1178,9 +1211,9 @@ describe('(xv) WALKER PUR : une op à DÉ y LÈVE — aucune magnitude tirée en
 describe('(xvi) #2689 — la suite d’une pile de COMBAT repart avec SA cible et SON contexte', () => {
   // Nid-de-pie : hauteur entière (25 m), un seul dé, celui des Dégâts (MDG 13 l.684-688, LDB 15 l.80).
   const vigie = (id: string, pv: number): Combatant =>
-    ({ ...marin(id, { kind: 'hero', wounds: { current: pv, max: 200 } } as Partial<Combatant>), shipStation: 'nid-de-pie' }) as Combatant;
-  const chuteSur = (on: 'caster' | 'target'): Flow => ({ kind: 'do', effect: { type: 'ops', on, ops: opsDeChute() } } as unknown as Flow);
-  const opsSurCible = (ops: unknown[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops } } as unknown as Flow);
+    ({ ...marin(id, { kind: 'heros', wounds: { current: pv, max: 200 } } as Partial<Combatant>), shipStation: 'nid-de-pie' }) as Combatant;
+  const chuteSur = (on: 'caster' | 'target'): Flow => ({ kind: 'effet', effet: { type: 'ops', on, ops: opsDeChute() } } as unknown as Flow);
+  const opsSurCible = (ops: unknown[]): Flow => ({ kind: 'effet', effet: { type: 'ops', on: 'target', ops } } as unknown as Flow);
   const poseLeDe = (v: number): void => { avanceEtapeCascade(banc.getState, () => v); };
   const pv = (id: string): number => banc.getState().party.find((c) => c.id === id)!.wounds.current;
   const PERTE = 3 * 25 + 4 - BE;
@@ -1192,7 +1225,7 @@ describe('(xvi) #2689 — la suite d’une pile de COMBAT repart avec SA cible e
     const cible = vigie('T', 100);
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], party: [c, cible, coque()] });
     runCombatFlow({ get: banc.getState, set: banc.setState, target: cible, caster: c, label: 'sonde', opsCtx: { hull: coque() } },
-      { kind: 'seq', steps: [chuteSur('caster'), opsSurCible([{ op: 'heal', amount: 50 }])] } as Flow);
+      { kind: 'sequence', etapes: [chuteSur('caster'), opsSurCible([{ op: 'heal', amount: 50 }])] } as Flow);
     poseLeDe(4);
     expect({ C: pv('C'), T: pv('T') }).toEqual({ C: 190 - PERTE, T: 150 });
   });
@@ -1201,7 +1234,7 @@ describe('(xvi) #2689 — la suite d’une pile de COMBAT repart avec SA cible e
     const h = vigie('H', 190);
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], party: [h, coque()] });
     runCombatFlow({ get: banc.getState, set: banc.setState, target: h, caster: h, label: 'sonde', opsCtx: { hull: coque(), woundsDealt: 7 } },
-      { kind: 'seq', steps: [chuteSur('target'), opsSurCible([{ op: 'wounds', amount: { woundsDealt: true }, ignoreTB: true, ignoreAP: true }])] } as Flow);
+      { kind: 'sequence', etapes: [chuteSur('target'), opsSurCible([{ op: 'wounds', amount: { woundsDealt: true }, ignoreTB: true, ignoreAP: true }])] } as Flow);
     poseLeDe(4);
     expect(pv('H')).toBe(190 - PERTE - 7);
   });
@@ -1211,8 +1244,8 @@ describe('(xvi) #2689 — la suite d’une pile de COMBAT repart avec SA cible e
     const cible = vigie('T', 100);
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], party: [c, cible, coque()] });
     runCombatFlow({ get: banc.getState, set: banc.setState, target: cible, caster: c, label: 'sonde', opsCtx: { hull: coque() } },
-      { kind: 'seq', steps: [chuteSur('caster'), opsSurCible([{ op: 'heal', amount: 50 }])] } as Flow);
-    confierLaSuite(banc.setState, [{ verbe: 'reprendreFlow', flow: { kind: 'do', effect: { type: 'journal', desc: 'MAILLON-SUIVANT' } } as unknown as Flow }]);
+      { kind: 'sequence', etapes: [chuteSur('caster'), opsSurCible([{ op: 'heal', amount: 50 }])] } as Flow);
+    confierLaSuite(banc.setState, [{ verbe: 'reprendreFlow', flow: { kind: 'effet', effet: { type: 'journal', desc: 'MAILLON-SUIVANT' } } as unknown as Flow }]);
     banc.setState({ party: banc.getState().party.filter((x) => x.id !== 'T') });
     poseLeDe(4);
     const j = banc.getState().journal;

@@ -9,7 +9,7 @@ import { makeRNG, hashSeed } from '../dice';
 import { markMutationsAtSpawn } from './dispatch';
 import { rollMutation } from '../../data/mutations';
 import { statblockToCombatant } from '../../noyau/monde/spawn';
-import creatures from '../../data/creatures.json';
+import { findCreatureById } from '../../data';
 import type { Combatant } from '../types';
 import { ciblePsy } from '../psych/ciblage';
 
@@ -19,7 +19,7 @@ import { ciblePsy } from '../psych/ciblage';
 const bearer = (): Combatant => {
   const traits = [{ id: 'marque-de-tzeentch' }];
   return {
-    id: 'bearer', name: 'Porteur', kind: 'enemy',
+    id: 'bearer', name: 'Porteur', kind: 'ennemi',
     traits, talents: [],
     ...parsePsychTraits(traits),
   } as unknown as Combatant;
@@ -41,7 +41,7 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
   });
 
   it('Animosité (Nurgle) : se déclenche au contact d’un disciple de Nurgle visible (targetedTrigger)', () => {
-    const nurgleFollower = { id: 'foe', name: 'Disciple', kind: 'hero', groups: ['nurgle'] } as unknown as Combatant;
+    const nurgleFollower = { id: 'foe', name: 'Disciple', kind: 'heros', groups: ['nurgle'] } as unknown as Combatant;
     const trig = targetedTrigger(bearer(), [sourceCombattant(nurgleFollower)]);
     expect(trig).toEqual({ type: 'animosite', cible: ciblePsy.groupe('nurgle'), sourceId: 'foe', indice: undefined });
   });
@@ -52,39 +52,39 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
 
   it('Réciproque (EDOC 13 l.522-524) : un disciple de Nurgle éprouve Animosité envers le porteur VISIBLE', () => {
     const nurgleFollower = {
-      id: 'nurgle-1', name: 'Porte-Peste', kind: 'enemy', groups: [],
+      id: 'nurgle-1', name: 'Porte-Peste', kind: 'ennemi', groups: [],
       psychTraits: [{ type: 'animosite' as const, cible: ciblePsy.groupe('tzeentch') }],
     } as unknown as Combatant;
-    const marked = { id: 'tzeentch-1', name: 'Porteur', kind: 'hero', groups: [], traits: [{ id: 'marque-de-tzeentch' }] } as unknown as Combatant;
+    const marked = { id: 'tzeentch-1', name: 'Porteur', kind: 'heros', groups: [], traits: [{ id: 'marque-de-tzeentch' }] } as unknown as Combatant;
     const trig = targetedTrigger(nurgleFollower, [sourceCombattant(marked)]);
     expect(trig).toEqual({ type: 'animosite', cible: ciblePsy.groupe('tzeentch'), sourceId: 'tzeentch-1', indice: undefined });
   });
 
   it('Réciproque : COUPÉE si la Marque est dissimulée (`hidden`, tant que la Marque de Tzeentch est visible)', () => {
     const nurgleFollower = {
-      id: 'nurgle-1', name: 'Porte-Peste', kind: 'enemy', groups: [],
+      id: 'nurgle-1', name: 'Porte-Peste', kind: 'ennemi', groups: [],
       psychTraits: [{ type: 'animosite' as const, cible: ciblePsy.groupe('tzeentch') }],
     } as unknown as Combatant;
     const hiddenTraits = [{ id: 'marque-de-tzeentch', hidden: true }];
-    const marked = { id: 'tzeentch-1', name: 'Porteur', kind: 'hero', groups: [], traits: hiddenTraits } as unknown as Combatant;
+    const marked = { id: 'tzeentch-1', name: 'Porteur', kind: 'heros', groups: [], traits: hiddenTraits } as unknown as Combatant;
     expect(hiddenGroupsOf(marked)).toEqual(['tzeentch']);
     expect(targetedTrigger(nurgleFollower, [sourceCombattant(marked)])).toBeNull();
   });
 
-  it('Réciproque : INERTE chez un disciple de Nurgle immunisé (`isPsychImmune` court-circuite `encounterPsych` avant `targetedTrigger`)', () => {
+  it('Réciproque : INERTE chez un disciple de Nurgle immunisé (`isPsychImmune` court-circuite `psychologieDeRencontre` avant `targetedTrigger`)', () => {
     const immuneNurgleFollower = {
-      id: 'nurgle-1', name: 'Porte-Peste', kind: 'enemy', groups: [], psychImmune: true,
+      id: 'nurgle-1', name: 'Porte-Peste', kind: 'ennemi', groups: [], psychImmune: true,
       psychTraits: [{ type: 'animosite' as const, cible: ciblePsy.groupe('tzeentch') }],
     } as unknown as Combatant;
-    const marked = { id: 'tzeentch-1', name: 'Porteur', kind: 'hero', groups: [], traits: [{ id: 'marque-de-tzeentch' }] } as unknown as Combatant;
+    const marked = { id: 'tzeentch-1', name: 'Porteur', kind: 'heros', groups: [], traits: [{ id: 'marque-de-tzeentch' }] } as unknown as Combatant;
     expect(isPsychImmune(immuneNurgleFollower)).toBe(true);
     expect(encounterPsych(immuneNurgleFollower, [sourceCombattant(marked)])).toBeNull(); // Animosité posée mais jamais testée
   });
 
   it('Statbloc Nurgle (Fr\'hough Mournbreath, LDB 84 l.53) : Animosité (Tzeentch) portée là où elle peut se déclencher — sans Immunité (Psychologie)', () => {
-    const hough = (creatures as any[]).find((x) => x.id === 'fr-hough-mournbreath');
-    expect(hough.traits.some((t: any) => t.id === 'immunite-psychologique')).toBe(false);
-    expect(hough.traits.some((t: any) => t.id === 'animosite' && t.arg === 'tzeentch')).toBe(true);
+    const traits = findCreatureById('fr-hough-mournbreath')?.traits ?? [];
+    expect(traits.some((t) => t.id === 'immunite-psychologique')).toBe(false);
+    expect(traits.some((t) => t.id === 'animosite' && t.arg === 'tzeentch')).toBe(true);
   });
 
   it('Les 10 Talents achetables hors-Carrière au tarif normal (grantCareerTalent, étendu aux Traits)', () => {

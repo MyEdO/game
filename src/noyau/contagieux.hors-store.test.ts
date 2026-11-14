@@ -25,7 +25,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const mk = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'x', label: 'X', kind: 'enemy',
+    id: 'x', label: 'X', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -37,37 +37,37 @@ const get = (() => ({ battle: { combatants: [] } })) as never;
 describe('Contagieux (Type) — transmission au toucher (EDO App.2 l.228-230)', () => {
   it('touche SANS perte de PB → exposition quand même (« au toucher », ≠ Infecté), avec shift −2 + instant', () => {
     const atk = mk({ traits: [{ id: 'contagieux', arg: 'fievre-du-rongeur' }] as never });
-    const vic = mk({ id: 'v', kind: 'hero' });
+    const vic = mk({ id: 'v', kind: 'heros' });
     fireTriggers(get, atk, 'onHit', { victim: vic, woundsDealt: 0 } as never);
     expect(vic.diseaseExposure).toEqual([{ disease: 'fievre-du-rongeur', difficultyShift: -2, instant: true }]);
   });
 
   it('trait posé SANS arg (Type manquant) → op droppée (aucune exposition, pas de plantage)', () => {
     const atk = mk({ traits: [{ id: 'contagieux' }] as never });
-    const vic = mk({ id: 'v', kind: 'hero' });
+    const vic = mk({ id: 'v', kind: 'heros' });
     fireTriggers(get, atk, 'onHit', { victim: vic, woundsDealt: 3 } as never);
     expect(vic.diseaseExposure ?? []).toEqual([]);
   });
 
   it('double exposition à la MÊME maladie (Maladie (Type) puis Contagieux) → fusion en gardant la PIRE', () => {
-    const vic = mk({ id: 'v', kind: 'hero' });
+    const vic = mk({ id: 'v', kind: 'heros' });
     applyOps(vic, [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }], { idNeuf: idsDeTest, rng: desDuTest });
     applyOps(vic, [{ op: 'exposeDisease', disease: 'fievre-du-rongeur', difficultyShift: -2, incubation: 'instant' }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(vic.diseaseExposure).toEqual([{ disease: 'fievre-du-rongeur', difficultyShift: -2, instant: true }]);
     // L'ordre inverse donne le même résultat (le plus dur gagne, pas le dernier).
-    const vic2 = mk({ id: 'v2', kind: 'hero' });
+    const vic2 = mk({ id: 'v2', kind: 'heros' });
     applyOps(vic2, [{ op: 'exposeDisease', disease: 'fievre-du-rongeur', difficultyShift: -2, incubation: 'instant' }], { idNeuf: idsDeTest, rng: desDuTest });
     applyOps(vic2, [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(vic2.diseaseExposure).toEqual([{ disease: 'fievre-du-rongeur', difficultyShift: -2, instant: true }]);
   });
 
   it('bilan de fin de combat : le Test de Contraction est 2 NIVEAUX plus difficile (Accessible → Complexe)', () => {
-    const a = mk({ id: 'a', label: 'A', kind: 'hero', diseaseExposure: [{ disease: 'fievre-du-rongeur', difficultyShift: -2, instant: true }] });
-    banc.setState({ battle: { combatants: [a], order: ['a'], turn: 0, round: 1, log: [], over: null } as never, party: [mk({ id: 'a', kind: 'hero' })] });
+    const a = mk({ id: 'a', label: 'A', kind: 'heros', diseaseExposure: [{ disease: 'fievre-du-rongeur', difficultyShift: -2, instant: true }] });
+    banc.setState({ battle: { combatants: [a], order: ['a'], turn: 0, round: 1, log: [], over: null } as never, party: [mk({ id: 'a', kind: 'heros' })] });
     openCombatEndCascade(banc.getState, banc.setState);
     // #1117 L4 : le Test de Contraction est une RANGÉE de la bande de son entrée de règle (Contagion),
     // et c'est la rangée qui porte la cible et l'incubation propre à CE porteur.
-    const bande = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'combatEndDisease')!;
+    const bande = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'maladieDeFinDeCombat')!;
     const row = bande.participants!.find((r) => r.id === 'a')!;
     const base = 30; // Résistance = E 30, sans avance
     expect(diseaseDefs()['fievre-du-rongeur'].contractDifficulty).toBe('accessible'); // normale : +20
@@ -78,11 +78,11 @@ describe('Contagieux (Type) — transmission au toucher (EDO App.2 l.228-230)', 
 
   it('contractée → incubation « Instantanée » : la maladie démarre ACTIVE (symptômes immédiats)', () => {
     seedBattleRng(4); // 1er d100 = 93 → Test de Contraction raté (cible 20)
-    const a = mk({ id: 'a', label: 'A', kind: 'hero', diseaseExposure: [{ disease: 'fievre-du-rongeur', difficultyShift: -2, instant: true }] });
-    banc.setState({ battle: { combatants: [a], order: ['a'], turn: 0, round: 1, log: [], over: null } as never, party: [mk({ id: 'a', kind: 'hero' })] });
+    const a = mk({ id: 'a', label: 'A', kind: 'heros', diseaseExposure: [{ disease: 'fievre-du-rongeur', difficultyShift: -2, instant: true }] });
+    banc.setState({ battle: { combatants: [a], order: ['a'], turn: 0, round: 1, log: [], over: null } as never, party: [mk({ id: 'a', kind: 'heros' })] });
     openCombatEndCascade(banc.getState, banc.setState);
-    const bande = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'combatEndDisease')!;
-    banc.getState().jetLancer('cascadeBatch', bande.participants![0].id);
+    const bande = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'maladieDeFinDeCombat')!;
+    banc.getState().jetLancer('cascadeEnBande', bande.participants![0].id);
     banc.getState().jetValider('cascade');
     const dz = a.diseases?.find((d) => d.id === 'fievre-du-rongeur');
     expect(dz).toBeTruthy();
@@ -91,12 +91,12 @@ describe('Contagieux (Type) — transmission au toucher (EDO App.2 l.228-230)', 
 
   it('SANS Contagieux (Infecté simple) : difficulté normale et incubation tirée (non-régression)', () => {
     seedBattleRng(4);
-    const a = mk({ id: 'a', label: 'A', kind: 'hero', diseaseExposure: [{ disease: 'fievre-du-rongeur' }] });
-    banc.setState({ battle: { combatants: [a], order: ['a'], turn: 0, round: 1, log: [], over: null } as never, party: [mk({ id: 'a', kind: 'hero' })] });
+    const a = mk({ id: 'a', label: 'A', kind: 'heros', diseaseExposure: [{ disease: 'fievre-du-rongeur' }] });
+    banc.setState({ battle: { combatants: [a], order: ['a'], turn: 0, round: 1, log: [], over: null } as never, party: [mk({ id: 'a', kind: 'heros' })] });
     openCombatEndCascade(banc.getState, banc.setState);
-    const bande = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'combatEndDisease')!;
+    const bande = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'maladieDeFinDeCombat')!;
     expect(bande.participants![0].target).toBe(30 + DIFFICULTY_MODIFIERS.accessible); // 50 — difficulté RAW de la maladie
-    banc.getState().jetLancer('cascadeBatch', bande.participants![0].id); // 93 → raté
+    banc.getState().jetLancer('cascadeEnBande', bande.participants![0].id); // 93 → raté
     banc.getState().jetValider('cascade');
     const dz = a.diseases?.find((d) => d.id === 'fievre-du-rongeur');
     expect(dz).toBeTruthy();

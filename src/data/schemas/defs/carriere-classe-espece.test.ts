@@ -13,11 +13,12 @@ import careerLevelsJson from '../../careerLevels.json';
 import careersJson from '../../careers.json';
 import pregensJson from '../../pregens.json';
 import activitiesJson from '../../activities.json';
+import { versDisque } from '../grammaire/prose';
 
 type Entree = Record<string, unknown>;
 
-/** Un document d'une entrée : la première du document réel, portant `cle` à `valeur`. */
-const avec = (doc: readonly Entree[], cle: string, valeur: unknown): Entree[] => [{ ...structuredClone(doc[0]), [cle]: valeur }];
+/** Le document réel, sa première entrée portant `cle` à `valeur`. */
+const avec = (doc: readonly Entree[], cle: string, valeur: unknown): Entree[] => [{ ...structuredClone(doc[0]), [cle]: valeur }, ...doc.slice(1)];
 
 const messages = (schema: z.ZodType, doc: unknown): string => {
   const r = schema.safeParse(doc);
@@ -28,8 +29,7 @@ const messages = (schema: z.ZodType, doc: unknown): string => {
 const PORTEURS = [
   { porteur: 'careerLevels.json › career', schema: schemaNiveaux, doc: careerLevelsJson, cle: 'career', connue: 'agitateur', catalogue: 'carrières' },
   { porteur: 'careers.json › class', schema: schemaCarrieres, doc: careersJson, cle: 'class', connue: 'roublards', catalogue: 'classes de carrière' },
-  { porteur: 'pregens.json › career', schema: schemaPretires, doc: pregensJson, cle: 'career', connue: 'soldat', catalogue: 'carrières' },
-  { porteur: 'pregens.json › species', schema: schemaPretires, doc: pregensJson, cle: 'species', connue: 'nains', catalogue: 'espèces' },
+  { porteur: 'pregens.json › species', schema: schemaPretires, doc: versDisque(pregensJson), cle: 'species', connue: 'nains', catalogue: 'espèces' },
 ];
 
 describe('#2968 L03 — Carrière, Classe et espèce désignées par `ref(type)`', () => {

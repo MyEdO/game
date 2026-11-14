@@ -8,7 +8,7 @@
 import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 
 /** Le genre d'un id du monde : son préfixe. */
-export type GenreDId = 'it' | 'hero' | 'pos' | 'favor' | 'depot-au-sol';
+export type GenreDId = 'it' | 'hero' | 'pos' | 'favor' | 'depot-au-sol' | 'assaillant';
 
 /** Forge l'id neuf d'un genre. */
 export type FabriqueDId = (genre: GenreDId) => string;

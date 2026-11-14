@@ -5,7 +5,7 @@ import { assignSeat, releaseSeat, type SeatAssignments, type SeatOccupant } from
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
-const NPC: SeatOccupant = { kind: 'entity', entityId: 'pnj-1' };
+const NPC: SeatOccupant = { kind: 'entite', entityId: 'pnj-1' };
 const AUTHORED_NPC_SEAT: SeatAssignments = { [PROP]: { 'place-1': NPC } };
 
 function sceneWithAssignments(seatAssignments?: SeatAssignments): Scene {
@@ -43,10 +43,10 @@ describe('SceneMutation — l’assise se persiste en OVERRIDE COMPLET', () => {
   });
 
   it('une assise INCHANGÉE (même contenu, autre ordre d’écriture) ne produit AUCUNE mutation', () => {
-    const authored = sceneWithAssignments({ [PROP]: { 'place-1': NPC, 'place-3': { kind: 'entity', entityId: 'pnj-2' } } });
+    const authored = sceneWithAssignments({ [PROP]: { 'place-1': NPC, 'place-3': { kind: 'entite', entityId: 'pnj-2' } } });
     const current: Scene = {
       ...authored,
-      seatAssignments: { [PROP]: { 'place-3': { kind: 'entity', entityId: 'pnj-2' }, 'place-1': { kind: 'entity', entityId: 'pnj-1' } } },
+      seatAssignments: { [PROP]: { 'place-3': { kind: 'entite', entityId: 'pnj-2' }, 'place-1': { kind: 'entite', entityId: 'pnj-1' } } },
     };
     expect(captureMutation(current, authored)).toBeUndefined();
   });
@@ -86,20 +86,20 @@ describe('applyMutation — élagage de l’assise quand le groupe est fourni', 
   });
 
   it('un EMPLACEMENT que le groupe n’atteint pas perd sa place ; celui qu’il atteint la garde', () => {
-    const authored = sceneWithAssignments({ [PROP]: { 'place-1': { kind: 'party', rang: 2 } } });
+    const authored = sceneWithAssignments({ [PROP]: { 'place-1': { kind: 'groupe', rang: 2 } } });
     expect(applyMutation(structuredClone(authored), undefined, 1).seatAssignments).toEqual({});
     expect(applyMutation(structuredClone(authored), undefined, 2).seatAssignments)
-      .toEqual({ [PROP]: { 'place-1': { kind: 'party', rang: 2 } } });
+      .toEqual({ [PROP]: { 'place-1': { kind: 'groupe', rang: 2 } } });
   });
 
   it('un slot que le catalogue n’offre pas est élagué, les autres survivent', () => {
-    const authored = sceneWithAssignments({ [PROP]: { 'place-1': NPC, plafond: { kind: 'entity', entityId: 'pnj-2' } } });
+    const authored = sceneWithAssignments({ [PROP]: { 'place-1': NPC, plafond: { kind: 'entite', entityId: 'pnj-2' } } });
     expect(applyMutation(structuredClone(authored), undefined, 0).seatAssignments).toEqual({ [PROP]: { 'place-1': NPC } });
   });
 
   it('SANS groupe fourni, aucun élagage : la superposition reste NUE (comportement d’origine)', () => {
-    const authored = sceneWithAssignments({ [PROP]: { 'place-1': NPC, plafond: { kind: 'entity', entityId: 'pnj-2' } } });
+    const authored = sceneWithAssignments({ [PROP]: { 'place-1': NPC, plafond: { kind: 'entite', entityId: 'pnj-2' } } });
     const out = applyMutation(structuredClone(authored), { removedEntityIds: ['pnj-1'], flags: {} });
-    expect(out.seatAssignments).toEqual({ [PROP]: { 'place-1': NPC, plafond: { kind: 'entity', entityId: 'pnj-2' } } });
+    expect(out.seatAssignments).toEqual({ [PROP]: { 'place-1': NPC, plafond: { kind: 'entite', entityId: 'pnj-2' } } });
   });
 });

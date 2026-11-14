@@ -3,7 +3,7 @@
  * chaque assertion passe par le chemin réel du moteur (`effectiveEntry` → `talentTestSLBonus`), et
  * rougit si l'on débranche la variante, la règle qui la gate, ou la ligne « Tests » qu'elle republie.
  *
- * Périmètre PROUVÉ ici : la variante `magic-vdm-incantation` de *Concocter* (`VDM 12 l.411-421`).
+ * Périmètre PROUVÉ ici : la variante `magie-vdm-incantation` de *Concocter* (`VDM 12 l.411-421`).
  * Des 8 `Empreint de (Vent)` (`VDM 13 l.461-486`, ancre `NADJ 15 l.47-53` pour Ulgu), seule la ligne
  * « Tests » est câblée — par la règle universelle de +DR de Talent (`LDB 10 l.19`), dont
  * `talentTestSLBonus` est la source unique. L'aura de +DR à 8 mètres portée par un TALENT et la
@@ -11,19 +11,19 @@
  * (`VDM 13 l.487-493`) n'a ni ligne « Tests » ni Soutien à +20 câblable.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { setRule, resetRule } from './policy';
+import { setRule, resetRule, type RegleOptionnelleId } from './policy';
 import { effectiveEntry, activeVariant } from './variants';
 import { talentTestSLBonus } from './magic';
 import { findTalentById } from '../data';
 import type { Combatant } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 afterEach(() => resetRule(RULE));
 
 function withTalents(ids: { talentId: string; times: number }[]): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', label: 'H', kind: 'hero',
+    id: 'h', label: 'H', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -35,7 +35,7 @@ describe('Concocter — variante « Règles d’incantation révisées » (VDM 1
   const concocter = () => findTalentById('concocter')!;
 
   it('règle OFF : entrée LDB strictement inchangée (aucune variante active)', () => {
-    const base = concocter() as unknown as { variants?: { when: { rule: string } }[] };
+    const base = concocter() as unknown as { variants?: { when: { rule: RegleOptionnelleId } }[] };
     expect(activeVariant(base.variants)).toBeUndefined();
     expect(effectiveEntry(concocter()).test?.raw).toBe('Savoir (Apothicaire)');
     expect(effectiveEntry(concocter()).source).toEqual({ book: 'livre-de-base', page: 135 });

@@ -1,5 +1,5 @@
 /**
- * Deltas d'incantation des Vents de Magie sous l'option `magic-vdm-incantation` :
+ * Deltas d'incantation des Vents de Magie sous l'option `magie-vdm-incantation` :
  * Influences malveillantes (`VDM 02 l.157-159`), Tableaux des Incantations Imparfaites
  * (`VDM 02 l.218-263`) et Surincantation révisée (`VDM 02 l.194-215`).
  *
@@ -9,7 +9,15 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { setRule, resetRule } from './policy';
-import { malevolentInfluenceSeverity, focusCriticalDR, dispelOwnSpellDR, malepierreDR, malepierreCharge, malepierreReserveOf, consumeMalepierre } from './magic';
+import {
+  malevolentInfluenceSeverity,
+  focusCriticalDR,
+  dispelOwnSpellDR,
+  malepierreDR,
+  malepierreCharge,
+  malepierreReserveOf,
+  consumeMalepierre,
+} from './magic';
 import type { Combatant } from './types';
 import { itemFromTrappingById } from './items';
 import { rollMiscast } from './miscast';
@@ -23,10 +31,11 @@ import {
   missileOvercastDamageBonus,
 } from './overcast';
 import { domains, findEffectTableById } from '../data';
+import { deDeLaTableTiree, facesDuDe } from './tables';
 import miscastJson from '../data/miscast.json';
 import { deFixe } from './dice.testkit';
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 
 afterEach(() => resetRule(RULE));
 
@@ -93,7 +102,8 @@ describe('Tableaux des Incantations Imparfaites — `VDM 02 l.218-263`', () => {
     for (const d of domains.filter((x) => x.tables?.arcaneMark)) {
       const ops = rollMiscast('mineure', rngOn88(), 0, d.id).ops;
       expect(ops, `${d.id} : aucune op de tirage`).toContainEqual({ op: 'rollTable', tableId: d.tables!.arcaneMark });
-      expect(findEffectTableById(d.tables!.arcaneMark).entries).toHaveLength(10);
+      const marques = findEffectTableById(d.tables!.arcaneMark);
+      expect(marques.entries).toHaveLength(facesDuDe(deDeLaTableTiree(marques)));
     }
   });
 

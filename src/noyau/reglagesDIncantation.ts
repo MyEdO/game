@@ -17,7 +17,7 @@ import { spellHasOvercastTableRoll } from '../engine/overcast';
 import { rule } from '../engine/policy';
 
 /** Les réglages de l'incantation qu'une offre ferme. */
-export type ReglageOffertDeLIncantation = Extract<ReglageDu<'cast'>, 'effetCritique' | 'formeConjuree' | 'discret' | 'jetsDeTable'>;
+export type ReglageOffertDeLIncantation = Extract<ReglageDu<'incantation'>, 'effetCritique' | 'formeConjuree' | 'discret' | 'jetsDeTable'>;
 
 /** Ce qui ferme le réglage `reglage` de l'incantation en attente là où il ne change rien au Sort ou que le moteur règle
  *  seul (`nonOffert`), et au siège qui ne pilote pas le lanceur (`rangeeTemoin`) ; `null` : il s'offre. Sans
@@ -38,7 +38,7 @@ export function offreDeLIncantation(s: Jeu, reglage: ReglageOffertDeLIncantation
     // LDB 47
     formeConjuree: () => ops.some((o) => o.op === 'grantWeapon' && o.chooseForm) && conjureFormOptions(lanceur).length > 0,
     // LDB 40 l.42
-    discret: () => castInfoIsPrayer(sort) && !!rule('prayer-conviction'),
+    discret: () => castInfoIsPrayer(sort) && !!rule('priere-conviction'),
     // EDOC 13 l.276
     jetsDeTable: () => !!jet?.cast && (pc.overcast?.duration ?? 0) > 0 && spellHasOvercastTableRoll(ops),
   } satisfies Record<ReglageOffertDeLIncantation, () => boolean>;

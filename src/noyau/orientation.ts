@@ -24,7 +24,7 @@ export function creerActionsDOrientation(get: Get, set: Set) {
         if (!c.pos) continue;
         const authored = scene?.entities.find((e) => e.id === c.id)?.facing;
         if (authored) { next[c.id] = authored; continue; }
-        const foes = battle.combatants.filter((o) => o.pos && (o.kind === 'hero') !== (c.kind === 'hero'));
+        const foes = battle.combatants.filter((o) => o.pos && (o.kind === 'heros') !== (c.kind === 'heros'));
         let best: Pt | undefined;
         let bd = Infinity;
         for (const o of foes) {

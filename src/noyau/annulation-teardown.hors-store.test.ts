@@ -1,5 +1,5 @@
 /**
- * #2961 — teardown par défaut du verbe `cancel` d'un flux de jet (`rollFlowFactory`, `cancel`) : il ferme
+ * #2961 — teardown par défaut du verbe `annuler` d'un flux de jet (`rollFlowFactory`, `annuler`) : il ferme
  * le pending du flux, et la cascade seulement quand ce pending porte l'une de ses étapes-jets
  * (`PORTEURS_D_ETAPE`). Une cascade étrangère au flux reste ouverte.
  */
@@ -15,7 +15,7 @@ const cascade = { purpose: 'combat', cursor: 0, participants: [] } as unknown as
 describe('cancel par défaut : la cascade se ferme avec le flux qu’elle héberge, jamais avec un autre', () => {
   it('flux NON hébergé (Rechargement) : son pending se ferme, la cascade ouverte à côté reste', () => {
     banc.setState({ pendingReload: { actorId: 'h1' } as unknown as Jeu['pendingReload'], pendingCascade: cascade });
-    banc.getState().jetAnnuler('reload');
+    banc.getState().jetAnnuler('rechargement');
     expect(banc.getState().pendingReload).toBeNull();
     expect(banc.getState().pendingCascade).toBe(cascade);
   });

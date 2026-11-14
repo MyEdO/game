@@ -22,7 +22,7 @@ import { dataLabel } from '../data';
 import { t } from '../i18n';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
-export const ACTIVITY_WORLD_ROLL_KIND = 'activityWorldRoll';
+export const ACTIVITY_WORLD_ROLL_KIND = 'jetDuMondeDActivite';
 
 /**
  * Les étapes de monde d'une Activité pour UN acteur, dans l'ORDRE d'authoring (l'ordre EST le flux
@@ -36,7 +36,7 @@ export function buildActivityWorldRollSteps(def: ActivityDef, actor: Combatant):
       id: `activity-world-${def.id}-${wr.id}`,
       kind: ACTIVITY_WORLD_ROLL_KIND,
       label: dataLabel(wr.label),
-      icon: 'ui/warning',
+      icon: 'interface/attention',
       // La CIBLE d'un dé de monde est un POURCENTAGE d'auteur : elle se LIT, elle ne se tire pas.
       // `formulaExpectation` est la lecture SANS RNG d'une `Formula` — exacte pour un littéral ou un
       // `{rule}`, les deux seules formes qu'un pourcentage prend (aucun rng vivant ne descend ici).
@@ -60,12 +60,12 @@ export const TABLES = {
       const h = get().party.find((x) => x.id === String(step.meta?.heroId ?? ''));
       if (!def || !wr || !h) return {};
       // ÉVITÉ : le dé garde sa ligne et la conséquence DIT l'issue (patron `authorPerils`).
-      if (!step.result.success) return { consequences: freeCons([{ text: t('out.rienNAdvient', { label: wr.label }), tone: 'info' }]) };
+      if (!step.result.success) return { consequences: freeCons([{ text: t('out.rienNAdvient', { label: wr.label }), tone: 'neutre' }]) };
       const lignes = applyOps(h, wr.ops, { idNeuf: get().forgerUnId,
-        rng: battleRng(), label: wr.label, now: get().gameTime, source: { kind: 'activity', id: def.id },
+        rng: battleRng(), label: wr.label, now: get().gameTime, source: { kind: 'activite', id: def.id },
       });
       set({ party: [...get().party] });
-      return { consequences: freeCons([{ text: wr.label, tone: 'bad' }, ...lignes.map((text) => ({ text, tone: 'bad' as const }))]) };
+      return { consequences: freeCons([{ text: wr.label, tone: 'echec' }, ...lignes.map((text) => ({ text, tone: 'echec' as const }))]) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

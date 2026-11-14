@@ -77,7 +77,7 @@ func _verifier(cas: String, legs: float, clip: String, plie: bool) -> void:
 	squelette.add_child(gabarit)
 	var absents := gabarit.poser({racine = {os = "racine", echelle = SL},
 			enfantsDe = {cuisse_g = legs, mollet_g = legs, cuisse_d = legs, mollet_d = legs}, pieds = PIEDS,
-			jambes = ["cuisse_g", "mollet_g", "cuisse_d", "mollet_d"], clipsPlantes = [MARCHE]})
+			jambes = ["cuisse_g", "mollet_g", "cuisse_d", "mollet_d"], clipsPlantes = [MARCHE], deplacementsDesOs = {}})
 	var releve := {}
 	squelette.skeleton_updated.connect(func() -> void: releve.merge(_pose(squelette), true))
 	await process_frame

@@ -60,7 +60,7 @@ function setBattle(combatants: Combatant[]): void {
   banc.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [] });
 }
 
-const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as unknown as Weapon;
+const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as unknown as Weapon;
 const touche = (): AttackResult => ({
   hit: true, attackerRoll: 30, netSL: 3, location: 'corps', damage: 6, woundsLost: 4,
   critical: false, advantageTo: null, defenderDefeated: false, log: 'touche.',
@@ -122,9 +122,9 @@ beforeEach(() => { lues = []; });
 
 describe('coup physique — le dé naît à la porte, AVANT toute mutation', () => {
   const monteDome = (): { gardien: Combatant; cible: Combatant; archer: Combatant } => {
-    const gardien = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
-    const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 } });
-    const archer = mk('enemy', 'archer', { pos: { x: 20, y: 5 } });
+    const gardien = mk('heros', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
+    const cible = mk('heros', 'couvert', { pos: { x: 6, y: 5 } });
+    const archer = mk('ennemi', 'archer', { pos: { x: 20, y: 5 } });
     setBattle([gardien, cible, archer]);
     return { gardien, cible, archer };
   };
@@ -160,9 +160,9 @@ describe('coup physique — le dé naît à la porte, AVANT toute mutation', () 
   });
 
   it('GRAPPE : le 2ᵉ dé n’existe QUE si le 1ᵉʳ a raté, et les deux lignes s’écrivent', () => {
-    const gardien = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
-    const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
-    const archer = mk('enemy', 'archer', { pos: { x: 20, y: 5 } });
+    const gardien = mk('heros', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
+    const cible = mk('heros', 'couvert', { pos: { x: 6, y: 5 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
+    const archer = mk('ennemi', 'archer', { pos: { x: 20, y: 5 } });
     setBattle([gardien, cible, archer]);
     applyAttackResult(banc.getState, banc.setState, archer, cible, arc, touche());
     expect(sauvegardesOuvertes().length, 'un seul dé ouvert à la fois : aucune grappe mintée d’avance').toBe(1);
@@ -191,8 +191,8 @@ describe('coup physique — le dé naît à la porte, AVANT toute mutation', () 
 
 describe('aucune scission par KIND de porteur (canon : la porte pousse pour tous)', () => {
   it('un démon frappé par un héros reçoit la MÊME étape, à son nom', () => {
-    const hero = mk('hero', 'hardi', { pos: { x: 0, y: 0 } });
-    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
+    const hero = mk('heros', 'hardi', { pos: { x: 0, y: 0 } });
+    const demon = mk('ennemi', 'demon', { pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
     setBattle([hero, demon]);
     const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
     const suspendu = applyAttackResult(banc.getState, banc.setState, hero, demon, epee, touche());
@@ -211,8 +211,8 @@ describe('aucune scission par KIND de porteur (canon : la porte pousse pour tous
 describe('un coup IGNORÉ ne porte aucun effet de touche (onHit des Traits de l’attaquant)', () => {
   const empetre = (c: Combatant): unknown => c.conditions.find((x) => x.id === 'empetre');
   const frappe = (de: number): Combatant => {
-    const serpent = mk('enemy', 'serpent', { pos: { x: 0, y: 0 }, traits: [{ id: 'constricteur' }] as never });
-    const demon = mk('hero', 'demon', { pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
+    const serpent = mk('ennemi', 'serpent', { pos: { x: 0, y: 0 }, traits: [{ id: 'constricteur' }] as never });
+    const demon = mk('heros', 'demon', { pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
     setBattle([serpent, demon]);
     const crocs = { label: 'Crocs', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
     applyAttackResult(banc.getState, banc.setState, serpent, demon, crocs, touche());
@@ -230,8 +230,8 @@ describe('un coup IGNORÉ ne porte aucun effet de touche (onHit des Traits de l�
 
   // LDB 85 l.75 ; LDB 85 l.134 ; LDB 14 l.159
   it.each(['ethere'] as const)('Constricteur sur une touche SANS PRISE (%s), non ignorée : Empêtré', (sansPrise) => {
-    const serpent = mk('enemy', 'serpent', { pos: { x: 0, y: 0 }, traits: [{ id: 'constricteur' }] as never });
-    const cible = mk('hero', 'cible', { pos: { x: 1, y: 0 } });
+    const serpent = mk('ennemi', 'serpent', { pos: { x: 0, y: 0 }, traits: [{ id: 'constricteur' }] as never });
+    const cible = mk('heros', 'cible', { pos: { x: 1, y: 0 } });
     setBattle([serpent, cible]);
     const crocs = { label: 'Crocs', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
     applyAttackResult(banc.getState, banc.setState, serpent, cible, crocs, { ...touche(), woundsLost: 0, damage: 0, sansPrise });
@@ -242,8 +242,8 @@ describe('un coup IGNORÉ ne porte aucun effet de touche (onHit des Traits de l�
 // LDB 62 l.307 ; LDB 85 l.98
 describe('Atout Taille : un coup IGNORÉ n’entame pas l’armure', () => {
   const frappe = (de: number): Combatant => {
-    const heros = mk('hero', 'h', { pos: { x: 0, y: 0 } });
-    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }] as never, armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
+    const heros = mk('heros', 'h', { pos: { x: 0, y: 0 } });
+    const demon = mk('ennemi', 'demon', { pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }] as never, armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
     setBattle([heros, demon]);
     const hache = { label: 'Grande hache', type: 'melee', damage: { plusBF: true, flat: 6 }, qualities: [{ id: 'taille' }] } as unknown as Weapon;
     applyAttackResult(banc.getState, banc.setState, heros, demon, hache, touche());
@@ -266,9 +266,9 @@ describe('Projectile magique — une étape PAR CIBLE, rien roulé en silence', 
     ({ id: 'dard-test', label: 'Dard', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: 1, duration: null, desc: '', source: { book: 'LDB', page: 0 }, missile: true, damage: 8 }) as never;
 
   it('un Dard sur la protégée ouvre SA sauvegarde avant toute Blessure, et le dé posé décide', () => {
-    const gardien = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
-    const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 } });
-    const mage = mk('enemy', 'mage', { pos: { x: 20, y: 5 } });
+    const gardien = mk('heros', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
+    const cible = mk('heros', 'couvert', { pos: { x: 6, y: 5 } });
+    const mage = mk('ennemi', 'mage', { pos: { x: 20, y: 5 } });
     setBattle([gardien, cible, mage]);
     const spell = missileSpell();
     const cast: CastResult = { cast: true, roll: 44, target: 60, sl: 4, isCritical: false, isFumble: false, log: '' };
@@ -286,13 +286,13 @@ describe('un dé déclaré ARRÊTE la chaîne des modifiers', () => {
   /** Cible sous Dôme, GARDÉE par un prêtre (Martyr, LDB 43 l.107) : ce modifier d'ordre 40 MUTE l'état
    *  (`loseWounds` sur le prêtre) ; il ne tourne qu'une fois, après le dé de la sauvegarde (ordre 10). */
   const monteMartyr = (): { pretre: Combatant; cible: Combatant; archer: Combatant } => {
-    const gardien = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
-    const pretre = mk('hero', 'pretre', { pos: { x: 4, y: 5 } });
-    const cible = mk('hero', 'couvert', {
+    const gardien = mk('heros', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
+    const pretre = mk('heros', 'pretre', { pos: { x: 4, y: 5 } });
+    const cible = mk('heros', 'couvert', {
       pos: { x: 6, y: 5 },
       activeEffects: ([{ label: 'Martyr', bonus: 0, martyrGuard: 'pretre' }] as unknown as Combatant['activeEffects']),
     });
-    const archer = mk('enemy', 'archer', { pos: { x: 20, y: 5 } });
+    const archer = mk('ennemi', 'archer', { pos: { x: 20, y: 5 } });
     setBattle([gardien, pretre, cible, archer]);
     return { pretre, cible, archer };
   };
@@ -315,12 +315,12 @@ describe('un dé déclaré ARRÊTE la chaîne des modifiers', () => {
   });
 
   it('PERTURBANTE (ordre 50) ne consomme pas son mode ni ne repousse avant le dé', () => {
-    const gardien = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
-    const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
+    const gardien = mk('heros', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
+    const cible = mk('heros', 'couvert', { pos: { x: 6, y: 5 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
     // Arme forgée pour le contrat, portant la qualité du CATALOGUE par son id (`src/data/qualities.json`
     // id `perturbante`, portée en donnée par le groupe d'armes `fleau`) — jamais un drapeau ad hoc.
     const baton = { label: 'Bâton', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [{ id: 'perturbante' }] } as unknown as Weapon;
-    const brute = mk('enemy', 'brute', { pos: { x: 7, y: 5 }, weapons: [baton], pushbackMode: true } as never);
+    const brute = mk('ennemi', 'brute', { pos: { x: 7, y: 5 }, weapons: [baton], pushbackMode: true } as never);
     setBattle([gardien, cible, brute]);
     applyAttackResult(banc.getState, banc.setState, brute, cible, baton, touche());
     expect(brute.pushbackMode, 'le mode Repousser n’est pas consommé tant que la touche n’est pas connue').toBe(true);
@@ -340,11 +340,11 @@ describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON é
     const fort = { ...CHARS, 'capacite-de-combat': 90 };
     const faible = tableTotale(CHAR_KEYS, () => 1); // aucune défense possible : le contrat porte sur la CHAÎNE, pas sur le jet
     const griffe = { label: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
-    const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: fort, size: 'enorme', weapons: [griffe] } as never);
-    const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: faible, aiControlled: true } as never);
-    const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: faible, aiControlled: true, traits: [demon] } as never);
-    const h3 = mk('hero', 'h3', { pos: { x: 6, y: 5 }, characteristics: faible, aiControlled: true, traits: [demon] } as never);
-    const h4 = mk('hero', 'h4', { pos: { x: 5, y: 4 }, characteristics: faible, aiControlled: true, traits: [demon] } as never);
+    const ogre = mk('ennemi', 'ogre', { pos: { x: 5, y: 5 }, characteristics: fort, size: 'enorme', weapons: [griffe] } as never);
+    const h1 = mk('heros', 'h1', { pos: { x: 5, y: 6 }, characteristics: faible, aiControlled: true } as never);
+    const h2 = mk('heros', 'h2', { pos: { x: 4, y: 5 }, characteristics: faible, aiControlled: true, traits: [demon] } as never);
+    const h3 = mk('heros', 'h3', { pos: { x: 6, y: 5 }, characteristics: faible, aiControlled: true, traits: [demon] } as never);
+    const h4 = mk('heros', 'h4', { pos: { x: 5, y: 4 }, characteristics: faible, aiControlled: true, traits: [demon] } as never);
     setBattle([ogre, h1, h2, h3, h4]);
     seedBattleRng(4); // graine où les deux enchaînements TOUCHENT (le contrat porte sur la chaîne, pas sur le jet)
     // Le balayage part de la touche sur h1 (`res.cleave`, LDB 85 l.362) : h2 puis h3 enchaînent.
@@ -377,9 +377,9 @@ describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON é
   it('ATTAQUE GRATUITE : l’Action n’est pas consommée quand la cible a une sauvegarde', () => {
     const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
     // Frappeur sûr de sa touche / démon sans défense : le contrat porte sur l'Action, pas sur le jet.
-    const frappeur = mk('hero', 'frappeur', { pos: { x: 0, y: 0 }, weapons: [epee], characteristics: { ...CHARS, 'capacite-de-combat': 90 } } as never);
+    const frappeur = mk('heros', 'frappeur', { pos: { x: 0, y: 0 }, weapons: [epee], characteristics: { ...CHARS, 'capacite-de-combat': 90 } } as never);
     const nul = tableTotale(CHAR_KEYS, () => 1);
-    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul, traits: [{ id: 'demoniaque', value: 8 }] } as never);
+    const demon = mk('ennemi', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul, traits: [{ id: 'demoniaque', value: 8 }] } as never);
     setBattle([frappeur, demon]);
     const { vu, unsub } = suitLAction(demon.id);
     try {
@@ -421,7 +421,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     return vus;
   };
 
-  beforeEach(() => setRule('combat-critical-deflect', true)); // la fenêtre de Déviation existe (règle optionnelle)
+  beforeEach(() => setRule('combat-deviation-critique', true)); // la fenêtre de Déviation existe (règle optionnelle)
 
   /** Les étapes de DÉVIATION de la séquence (même lecture que `deviation-paths.hors-store.test.ts:67`). */
   const etapesDeviation = (): CascadeStep[] =>
@@ -435,14 +435,14 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     // le MÊME coup. La suite sous contrat est l'Avantage DIFFÉRÉ du Maniement de deux armes (LDB 10
     // l.767-773) : c'est la seule dont l'effet se MESURE après les deux fenêtres (`ApplicationDuCoup.sousAttaque`).
     const gourdin = { label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as unknown as Weapon;
-    const brute = mk('enemy', 'brute', { pos: { x: 1, y: 0 }, weapons: [gourdin] });
-    const porteur = mk('hero', 'porteur', {
+    const brute = mk('ennemi', 'brute', { pos: { x: 1, y: 0 }, weapons: [gourdin] });
+    const porteur = mk('heros', 'porteur', {
       pos: { x: 0, y: 0 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 },
       wounds: { current: 3, max: 15 }, traits: [{ id: 'protection', value: 6 }],
     } as never);
     setBattle([brute, porteur]);
     // Dépassement (LDB 18 l.53) : `woundsLost` (8) > PB courants (3), `critical: false`.
-    const depassement = { ...touche(), damage: 12, woundsLost: 8, location: 'corps', advantageTo: 'attacker' } as AttackResult;
+    const depassement = { ...touche(), damage: 12, woundsLost: 8, location: 'corps', advantageTo: 'attaquant' } as AttackResult;
 
     // 1) La SAUVEGARDE s'ouvre la première, avant toute mutation.
     const suspendu = applyAttackResult(banc.getState, banc.setState, brute, porteur, gourdin, depassement,
@@ -464,7 +464,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     banc.getState().jetLancer('cascadeTirage', dev[0].id);
     const apres = etapesDeviation()[0];
     expect(apres.deviation?.mode === 'melee' ? apres.deviation.suite : undefined, 'le PLI post-dé reconduit la suite dans la `PendingDeviation`').toEqual({ deferAttackerAdvantage: true });
-    resolveDeviation(banc.getState, banc.setState, apres.deviation!, true);
+    resolveDeviation(banc.getState, banc.setState, apres.id, apres.deviation!, true);
     expect(brute.advantage, 'Avantage DIFFÉRÉ (LDB 10 l.767-773) : la reprise d’après-Déviation ne le crédite pas').toBe(0);
     expect(etapesDeviation(), 'une seule fenêtre de Critique pour ce coup').toHaveLength(1);
   });
@@ -472,35 +472,39 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
   it('BALAYAGE : un maillon qui part en DÉVIATION (sans sauvegarde) ne casse ni ne rejoue la chaîne', () => {
     const griffe = { label: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
     const demon = { id: 'demoniaque', value: 8 };
-    const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: { ...CHARS, 'capacite-de-combat': 90 }, size: 'enorme', weapons: [griffe] } as never);
-    const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), aiControlled: true } as never);
-    const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true, traits: [demon] } as never);
+    const ogre = mk('ennemi', 'ogre', { pos: { x: 5, y: 5 }, characteristics: { ...CHARS, 'capacite-de-combat': 90 }, size: 'enorme', weapons: [griffe] } as never);
+    const h1 = mk('heros', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), aiControlled: true } as never);
+    const h2 = mk('heros', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true, traits: [demon] } as never);
     // h3 n'a AUCUNE sauvegarde : son maillon suspend par la DÉVIATION (1 PB → dépassement, armure déviable).
-    const h3 = mk('hero', 'h3', blessuresSurLeProfil({ pos: { x: 6, y: 5 }, characteristics: nul(), aiControlled: true, wounds: blessuresDeBase(30, 1), armour: blindee }) as never);
-    const h4 = mk('hero', 'h4', { pos: { x: 5, y: 4 }, characteristics: nul(), aiControlled: true, traits: [demon] } as never);
-    setBattle([ogre, h1, h2, h3, h4]);
+    const h3 = mk('heros', 'h3', blessuresSurLeProfil({ pos: { x: 6, y: 5 }, characteristics: nul(), aiControlled: true, wounds: blessuresDeBase(30, 1), armour: blindee }) as never);
+    const h4 = mk('heros', 'h4', { pos: { x: 5, y: 4 }, characteristics: nul(), aiControlled: true, traits: [demon] } as never);
+    // L'œil du groupe (`visibleFrom`, `src/noyau/visionState.ts`) : un héros non piloté par l'IA, hors de portée de la chaîne.
+    const temoin = mk('heros', 'temoin', { pos: { x: 15, y: 5 } });
+    setBattle([ogre, h1, h2, h3, h4, temoin]);
     autoCleave(banc.getState, banc.setState, ogre, h1, { ...touche(), cleave: true } as AttackResult);
     derouler();
     const coups = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((t) => /^ogre touche/.test(t));
     const vu = coups.join(' | ');
-    // TROIS enchaînements (h2, h3, h4) et pas un de plus : une suite rejouée en aurait ajouté.
-    expect(coups.length, `un coup par maillon, aucun rejoué — ${vu}`).toBe(3);
+    // TROIS enchaînements (h2, h3, h4), aucun rejoué, puis la gratuite de créature du tour sur h1 : le
+    // Piétinement (LDB 85 l.387), une fois la chaîne close, dont la réussite relance le balayage sur h2
+    // (LDB 85 l.360). Pas un coup de plus.
+    expect(coups.map((t) => /^ogre touche (h\d)/.exec(t)?.[1]), `un coup par maillon, aucun rejoué — ${vu}`).toEqual(['h2', 'h3', 'h4', 'h1', 'h2']);
     expect(coups.filter((t) => /h4/.test(t)).length, `h4 est frappé UNE fois, à travers la Déviation de h3 — ${vu}`).toBe(1);
   });
 });
 
-describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(\'attack\')`/`jetValider(\'defense\')`', () => {
+describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(\'attaque\')`/`jetValider(\'defense\')`', () => {
   // Ce que ces quatre contrats tiennent : ce qui DÉPEND de l'issue du coup ne se joue plus au retour de
   // l'appel (le dé n'est pas tombé) mais à la REPRISE, une fois — la suite voyage avec le coup.
   const epee = { uid: 'm', label: 'Épée', type: 'melee', hand: 'main', hands: 1, damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
-  const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'off', hands: 1, damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
+  const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'secondaire', hands: 1, damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
   const griffe = { label: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
   const demoniaque = [{ id: 'demoniaque', value: 8 }] as never;
   const nul = (): typeof CHARS => tableTotale(CHAR_KEYS, () => 1);
 
   /** La fenêtre de défense telle que `openDefenseCascade` la pose : son étape au curseur de la séquence de combat. */
   const fenetreDeDefense = (defenseur: Combatant) =>
-    cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: defenseur.id }], { title: 'Défense', purpose: 'combat' });
+    cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: defenseur.id }], { title: 'Défense', purpose: 'combat' });
 
   /** La sauvegarde du porteur est l'étape COURANTE, et rien n'a encore bougé. */
   const sauvegardeEnCours = (porteur: Combatant): CascadeStep => {
@@ -513,13 +517,13 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
 
   it('(i) FRAPPE MORTELLE : l’enchaînement n’est armé qu’APRÈS le dé — il doit VOIR la mort', () => {
     setRule('combat-frappe-mortelle', true);
-    const heros = mk('hero', 'hardi', { pos: { x: 0, y: 0 }, weapons: [epee] } as never);
-    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque } as never);
-    const sbire = mk('enemy', 'sbire', { pos: { x: 2, y: 0 }, characteristics: nul() } as never);
+    const heros = mk('heros', 'hardi', { pos: { x: 0, y: 0 }, weapons: [epee] } as never);
+    const demon = mk('ennemi', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque } as never);
+    const sbire = mk('ennemi', 'sbire', { pos: { x: 2, y: 0 }, characteristics: nul() } as never);
     setBattle([heros, demon, sbire]);
     // Un coup qui TUE (40 PB perdus sur 30) : la Frappe Mortelle (LDB 14 l.9) n'enchaîne qu'en tuant.
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', result: { ...touche(), damage: 40, woundsLost: 40 } } as never });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     sauvegardeEnCours(demon);
     expect(banc.getState().pendingCleave, 'le balayage ne s’arme pas sur une mort qui n’a pas encore eu lieu').toBeNull();
     poser(5); // sauvegarde RATÉE (< 8) : le coup porte, le démon tombe
@@ -531,11 +535,11 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   it('(ii) MANŒUVRE GRATUITE : l’Action est rendue, et l’État n’est posé que si le coup n’est pas ignoré', () => {
     // Attaque caudale (LDB 85 l.47) : la manœuvre POSE À Terre sur une cible plus petite, en DONNÉE.
     const monte = (): { heros: Combatant; demon: Combatant } => {
-      const heros = mk('hero', 'colosse', { pos: { x: 0, y: 0 }, weapons: [epee], size: 'enorme', traits: [{ id: 'attaque-caudale', value: 9 }] } as never);
-      const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), size: 'moyenne', traits: demoniaque } as never);
+      const heros = mk('heros', 'colosse', { pos: { x: 0, y: 0 }, weapons: [epee], size: 'enorme', traits: [{ id: 'attaque-caudale', value: 9 }] } as never);
+      const demon = mk('ennemi', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), size: 'moyenne', traits: demoniaque } as never);
       setBattle([heros, demon]);
       banc.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', freeKind: 'caudale', result: touche() } as never });
-      banc.getState().jetValider('attack');
+      banc.getState().jetValider('attaque');
       return { heros, demon };
     };
     const aTerre = (c: Combatant): unknown => c.conditions.find((x) => x.id === 'a-terre');
@@ -555,35 +559,35 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   });
 
   it('(iii) MANIEMENT DE DEUX ARMES : la 2ᵉ frappe s’ouvre à la reprise, avec la valeur du Critique', () => {
-    const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
-    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */ } as never);
+    const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const demon = mk('ennemi', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */ } as never);
     setBattle([heros, demon]);
     const critique = { ...touche(), critical: true, critLocation: 'corps', attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', dualMode: true, result: critique } as never });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     sauvegardeEnCours(demon);
     expect(banc.getState().pendingDualStrike, 'aucune 2ᵉ frappe tant que le dé n’est pas tombé').toBeNull();
     poser(5); // < 8 : le coup porte, le Critique s'applique, SON étape est appendue
     const ds = banc.getState().pendingDualStrike;
     expect(ds, 'la 2ᵉ frappe s’ouvre à la reprise').not.toBeNull();
     expect(ds!.offWeaponUid, 'la main secondaire est celle du héros').toBe('o');
-    const crit = [...(banc.getState().pendingCascade?.participants ?? [])].reverse().find((s) => s.kind === 'critical');
+    const crit = [...(banc.getState().pendingCascade?.participants ?? [])].reverse().find((s) => s.kind === 'critique');
     expect(crit, 'le Critique a bien appendu SON étape à la reprise').toBeDefined();
     expect(ds!.jet, "'ldb' : le d100 nu du Coup Critique est le dé de la table (LDB 10 l.773 ; LDB 18 l.53)").toBe(crit!.reveal?.dice);
     expect(banc.getState().pendingCascade, 'la cascade reste OUVERTE : la 2ᵉ frappe s’y rendra').not.toBeNull();
   });
 
   it('(iii bis) MANIEMENT DE DEUX ARMES : la valeur est celle du Coup Critique, pas du Critique de dépassement (LDB 10 l.767-773 ; #1595 C7)', () => {
-    const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
-    const demon = mk('enemy', 'demon', blessuresSurLeProfil({ pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */, wounds: blessuresDeBase(30, 2) }) as never);
-    const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773 : un adversaire reste disponible
+    const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const demon = mk('ennemi', 'demon', blessuresSurLeProfil({ pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */, wounds: blessuresDeBase(30, 2) }) as never);
+    const voisin = mk('ennemi', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773 : un adversaire reste disponible
     setBattle([heros, demon, voisin]);
     const critique = { ...touche(), critical: true, critLocation: 'corps', attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', dualMode: true, result: critique } as never });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(etapeCourante()?.kind).toBe('sauvegarde');
     poser(5); // < 8 : le coup porte — Coup Critique PUIS dépassement (LDB 18 l.17)
-    const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+    const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critique');
     expect(crits.map((s) => s.reveal?.origine), 'les deux Blessures critiques, dans leur ordre').toEqual(['coup-critique', 'depassement']);
     expect(crits.map((s) => s.reveal?.title)).toEqual([tr('step.coupCritique'), tr('step.blessureCritique')]);
     expect(banc.getState().pendingDualStrike!.jet, "'ldb' : le d100 nu du Coup Critique (LDB 18 l.53)").toBe(crits[0].reveal?.dice);
@@ -593,17 +597,17 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   /** La 1ʳᵉ frappe d'un Maniement de deux armes, en `aa`, sur une cible à `current` Blessures, jusqu'à l'ouverture de la 2ᵉ. */
   function secondeMainEnAA(critique: boolean, current: number, cibleOver: Partial<Combatant> = {}) {
     setRule('combat-aa-blessures', 'aa');
-    const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
-    const cible = mk('enemy', 'cible', blessuresSurLeProfil({ pos: { x: 1, y: 0 }, characteristics: nul(), talents: [{ talentId: 'chanceux', times: 1 }] /* AA 07 l.67 : hors Mort subite */, wounds: blessuresDeBase(30, current), ...cibleOver }) as never);
-    const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
+    const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const cible = mk('ennemi', 'cible', blessuresSurLeProfil({ pos: { x: 1, y: 0 }, characteristics: nul(), talents: [{ talentId: 'chanceux', times: 1 }] /* AA 07 l.67 : hors Mort subite */, wounds: blessuresDeBase(30, current), ...cibleOver }) as never);
+    const voisin = mk('ennemi', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
     setBattle([heros, cible, voisin]);
     const premiere = {
       ...touche(), critical: critique, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 },
       ...(critique || current === 0 ? { critLocation: 'corps' } : {}), // LDB 18 l.53, l.55 ; AA 07 l.25
     } as AttackResult;
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: cible.id, location: 'corps', dualMode: true, result: premiere } as never });
-    banc.getState().jetValider('attack');
-    const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+    banc.getState().jetValider('attaque');
+    const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critique');
     return { crits, jet: banc.getState().pendingDualStrike?.jet };
   }
 
@@ -632,9 +636,9 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   }
 
   it('(iv) `jetValider(\'defense\')` : le maillon de balayage PARQUÉ reprend après le dé, sans balayage neuf', () => {
-    const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: { ...CHARS, 'capacite-de-combat': 90 }, size: 'enorme', weapons: [griffe] } as never);
-    const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), traits: [{ id: 'protection', value: 6 }] } as never);
-    const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true } as never);
+    const ogre = mk('ennemi', 'ogre', { pos: { x: 5, y: 5 }, characteristics: { ...CHARS, 'capacite-de-combat': 90 }, size: 'enorme', weapons: [griffe] } as never);
+    const h1 = mk('heros', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), traits: [{ id: 'protection', value: 6 }] } as never);
+    const h2 = mk('heros', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true } as never);
     setBattle([ogre, h1, h2]);
     seedBattleRng(4);
     banc.setState({
@@ -653,14 +657,16 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   it('(v) L’ENCHAÎNEMENT SE DÉCLARE : une frappe du Maniement de deux armes n’ouvre AUCUN balayage, même conduite par l’IA', () => {
     // Un héros conduit par l'IA (`aiControlled`) passe la garde `aiDriven` d'`autoCleave` ; sa frappe de
     // main directrice pose `res.cleave` (plus grand, LDB 85 l.362). C'est le SITE D'ORIGINE qui tranche :
-    // `jetValider('attack')` n'a jamais balayé sur cette branche — la queue partagée ne doit pas le faire à sa place.
-    const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague], size: 'enorme', aiControlled: true } as never);
-    const e1 = mk('enemy', 'e1', { pos: { x: 1, y: 0 }, characteristics: nul() } as never);
-    const e2 = mk('enemy', 'e2', { pos: { x: 0, y: 1 }, characteristics: nul() } as never);
-    setBattle([heros, e1, e2]);
+    // `jetValider('attaque')` n'a jamais balayé sur cette branche — la queue partagée ne doit pas le faire à sa place.
+    const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague], size: 'enorme', aiControlled: true } as never);
+    const e1 = mk('ennemi', 'e1', { pos: { x: 1, y: 0 }, characteristics: nul() } as never);
+    const e2 = mk('ennemi', 'e2', { pos: { x: 0, y: 1 }, characteristics: nul() } as never);
+    // L'œil du groupe (`visibleFrom`, `src/noyau/visionState.ts`) : un héros non piloté par l'IA, hors de portée du coup.
+    const temoin = mk('heros', 'temoin', { pos: { x: 15, y: 5 } });
+    setBattle([heros, e1, e2, temoin]);
     const coup = { ...touche(), cleave: true, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: e1.id, location: 'corps', dualMode: true, result: coup } as never });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().pendingDualStrike, 'la 2ᵉ frappe s’ouvre bien (la suite est jouée)').not.toBeNull();
     expect(banc.getState().pendingCleave, 'aucun balayage interactif n’est armé').toBeNull();
     const vu = (banc.getState().battle?.log ?? []).map((l) => l.text);
@@ -673,12 +679,12 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     // queue non suspendue d'une manœuvre gratuite est la MÊME écriture que celle de la reprise,
     // enchaînement compris (la queue inline de `applyFreeAttack` n'en jouait, elle, que la moitié).
     const monte = (voisine: boolean): { ogre: Combatant; h1: Combatant; h2: Combatant } => {
-      const ogre = mk('enemy', 'ogre', {
+      const ogre = mk('ennemi', 'ogre', {
         pos: { x: 5, y: 5 }, size: 'enorme', characteristics: { ...CHARS, 'capacite-de-combat': 90 },
         weapons: [griffe], advantage: 3, traits: [{ id: 'attaque-caudale', value: 9 }], pendingFreeAttacks: ['caudale'],
       } as never);
-      const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), aiControlled: true } as never);
-      const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true } as never);
+      const h1 = mk('heros', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), aiControlled: true } as never);
+      const h2 = mk('heros', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true } as never);
       setBattle(voisine ? [ogre, h1, h2] : [ogre, h1]);
       seedBattleRng(4);
       aiCreatureFreeAttacks(banc.getState, banc.setState, ogre);
@@ -699,9 +705,9 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   });
 
   it('(vii) La MALADRESSE du défenseur est due même sur un maillon de balayage repris (LDB 14 l.19)', () => {
-    const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: { ...CHARS, 'capacite-de-combat': 90 }, size: 'enorme', weapons: [griffe] } as never);
-    const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), weapons: [epee], traits: [{ id: 'protection', value: 6 }] } as never);
-    const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true } as never);
+    const ogre = mk('ennemi', 'ogre', { pos: { x: 5, y: 5 }, characteristics: { ...CHARS, 'capacite-de-combat': 90 }, size: 'enorme', weapons: [griffe] } as never);
+    const h1 = mk('heros', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), weapons: [epee], traits: [{ id: 'protection', value: 6 }] } as never);
+    const h2 = mk('heros', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true } as never);
     setBattle([ogre, h1, h2]);
     seedBattleRng(4);
     // Parade RATÉE sur un DOUBLE (66) : « tout Test de combat qui est un échec et dont le résultat du jet
@@ -715,11 +721,11 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     sauvegardeEnCours(h1);
     poser(5); // < 6 : le coup porte sur h1 → Maladresse DUE, puis la chaîne parquée reprend
     const etapes = banc.getState().pendingCascade?.participants ?? [];
-    expect(etapes.filter((s) => s.kind === 'fumbleJet' && s.actorId === h1.id),
+    expect(etapes.filter((s) => s.kind === 'jetDeMaladresse' && s.actorId === h1.id),
       `la Maladresse de h1 est poussée — étapes vues : ${etapes.map((s) => s.kind).join(', ')}`).toHaveLength(1);
     // La chaîne est la SUITE du coup : elle vient APRÈS la Maladresse du défenseur (`APRES_COUP`).
-    banc.getState().jetLancer('fumble');
-    banc.getState().jetValider('fumble');
+    banc.getState().jetLancer('maladresse');
+    banc.getState().jetValider('maladresse');
     const coups = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((x) => /^ogre touche/.test(x));
     expect(coups.filter((x) => /h2/.test(x)).length, `la chaîne reprend tout de même sur h2 — ${coups.join(' | ')}`).toBe(1);
   });
@@ -727,18 +733,18 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   // Frénésie (LDB 21 l.33) qui balaie (LDB 85 l.362) ; le maillon frappe un démon (LDB 85 l.98) : la
   // restitution (LDB 85 l.43) traverse l'étape de sauvegarde.
   const maillonSurDemon = (): Combatant => {
-    const heros = mk('hero', 'furieux', { pos: { x: 0, y: 0 }, weapons: [epee], psychState: [{ type: 'frenesie' }] } as never);
-    const e1 = mk('enemy', 'e1', { pos: { x: 1, y: 0 }, characteristics: nul() } as never);
-    const demon = mk('enemy', 'demon', { pos: { x: 0, y: 1 }, characteristics: nul(), traits: demoniaque } as never);
+    const heros = mk('heros', 'furieux', { pos: { x: 0, y: 0 }, weapons: [epee], psychState: [{ type: 'frenesie' }] } as never);
+    const e1 = mk('ennemi', 'e1', { pos: { x: 1, y: 0 }, characteristics: nul() } as never);
+    const demon = mk('ennemi', 'demon', { pos: { x: 0, y: 1 }, characteristics: nul(), traits: demoniaque } as never);
     setBattle([heros, e1, demon]);
     banc.setState({ pendingCleave: null, pendingDualStrike: null, pendingDefense: null });
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: e1.id, location: 'corps', result: { ...touche(), cleave: true } } as never });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().pendingCleave?.restitution, 'la chaîne de la gratuite emporte sa restitution').toEqual({ prevActed: false });
     banc.getState().frapperEnBalayage(demon.id);
     const pa = banc.getState().pendingAttack!;
     banc.setState({ pendingAttack: { ...pa, result: touche() } as never });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     return demon;
   };
 
@@ -773,11 +779,11 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   });
 
   it('(viii) TIR RAPIDE d’INTERRUPTION sur un porteur de sauvegarde : la cascade-hôte n’est pas détruite, et le tour n’avance pas', () => {
-    const arcTireur = { uid: 'a', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [], loaded: true } as unknown as Weapon;
-    const tireur = mk('hero', 'tireur', { pos: { x: 0, y: 0 }, weapons: [arcTireur], talents: [{ talentId: 'tir-rapide', times: 1 }] } as never);
+    const arcTireur = { uid: 'a', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [], loaded: true } as unknown as Weapon;
+    const tireur = mk('heros', 'tireur', { pos: { x: 0, y: 0 }, weapons: [arcTireur], talents: [{ talentId: 'tir-rapide', times: 1 }] } as never);
     // Indice 10 : la sauvegarde ne passe qu'à 10 — le dé, POSÉ D'OFFICE (aucun siège ne tient le démon
     // pendant la pause de début de Round), rate, et la reprise applique le coup.
-    const demon = mk('enemy', 'demon', { pos: { x: 3, y: 0 }, characteristics: nul(), traits: [{ id: 'protection', value: 10 }] } as never);
+    const demon = mk('ennemi', 'demon', { pos: { x: 3, y: 0 }, characteristics: nul(), traits: [{ id: 'protection', value: 10 }] } as never);
     setBattle([tireur, demon]);
     seedBattleRng(2);
     // Pause de début de Round : le tireur n'est PAS actif (l'interruption est hors de l'ordre, LDB 11 l.97-103).
@@ -787,7 +793,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     expect(pa?.interrupt, 'le tir d’interruption a bien ouvert sa cascade-hôte').toBe(true);
     banc.setState({ pendingAttack: { ...pa!, result: touche() } as never });
     const tourAvant = banc.getState().battle!.turn;
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     // Le coup a été SUSPENDU par la sauvegarde poussée DANS la cascade-hôte : refermer celle-ci d'office
     // l'aurait emportée avec le coup — le tir n'aurait JAMAIS été appliqué.
     expect(demon.wounds.current, 'le tir d’interruption s’applique, à travers sa sauvegarde').toBeLessThan(30);

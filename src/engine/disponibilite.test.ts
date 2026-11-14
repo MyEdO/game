@@ -133,10 +133,10 @@ describe('disponibilite — donnée éditable (src/data/disponibilite.json, #366
 
 /**
  * Quantité en CITÉ — LDB 59 l.34 : « les cités en possèdent autant que le MJ le juge approprié ». Le RAW
- * ne chiffre rien : la valeur est MAISON, donc éditable comme les autres (règle `market-cite-stock`).
+ * ne chiffre rien : la valeur est MAISON, donc éditable comme les autres (règle `marche-cite-stock`).
  */
-describe('quantité en Cité — règle éditable `market-cite-stock` (LDB 59 l.34, non chiffré)', () => {
-  afterEach(() => resetRule('market-cite-stock'));
+describe('quantité en Cité — règle éditable `marche-cite-stock` (LDB 59 l.34, non chiffré)', () => {
+  afterEach(() => resetRule('marche-cite-stock'));
 
   it('défaut 99 (stock pratiquement illimité), ×2 pour un objet Commun', () => {
     const cat: CatalogItem[] = [{ id: 'epee', label: 'Épée', availability: 'commune' }];
@@ -144,7 +144,7 @@ describe('quantité en Cité — règle éditable `market-cite-stock` (LDB 59 l.
   });
 
   it('surchargée : la Cité suit la valeur éditée (cité rationnée)', () => {
-    setRule('market-cite-stock', 3);
+    setRule('marche-cite-stock', 3);
     const cat: CatalogItem[] = [{ id: 'epee', label: 'Épée', availability: 'commune' }];
     expect(fullStock(cat, 'cite', makeRNG(1))[0].qty).toBe(6);
   });

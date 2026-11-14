@@ -14,6 +14,7 @@ import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray, setDataset } from '../../data/overrides';
 import { noeudDuChamp, noeudObjet } from '../../data/schemas/validate';
 import { metaDesChamps } from '../../data/schemas/grammaire/meta';
+import { findDomainById, type DomainData } from '../../data';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -28,9 +29,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-type Domaine = { id: string; label: string; windModifiers?: { when?: string[] }[] };
 
-function monter(d: Domaine) {
+function monter(d: DomainData) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -41,7 +41,7 @@ const cases = (n: number) => [...container.querySelectorAll<HTMLInputElement>(`[
 const cochees = (n: number) => cases(n).filter((c) => c.checked);
 
 describe('atelier du Codex — une liste de valeurs d’enum est un ensemble de cases', () => {
-  const avant = (datasetArray('domains') as Domaine[]).slice();
+  const avant = datasetArray('domains').slice();
   const d = avant.find((x) => (x.windModifiers?.length ?? 0) >= 2 && x.windModifiers!.every((m) => m.when?.length));
 
   it('domaine à modificateurs de vent : aucun contrôle ne reçoit de tableau, chaque rangée coche ses valeurs', () => {
@@ -63,11 +63,11 @@ describe('atelier du Codex — une liste de valeurs d’enum est un ensemble de 
       expect(cochees(1)).toEqual([]);
       expect(enregistrer().disabled, 'le vidage n’a rien émis').toBe(false);
       await act(async () => { enregistrer().click(); });
-      const posee = (datasetArray('domains') as Domaine[]).find((x) => x.id === d!.id)!;
+      const posee = findDomainById(d!.id)!;
       expect(posee.windModifiers![0].when, 'le schéma a refusé l’enregistrement, ou `when: []` a été posé').toBeUndefined();
       expect(posee.windModifiers![1].when).toEqual(d!.windModifiers![1].when);
     } finally {
-      setDataset('domains', avant as never);
+      setDataset('domains', avant);
     }
   });
 });

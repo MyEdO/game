@@ -46,12 +46,12 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
   const ambush = !!recap.then; // une embuscade ATTEND : l'acquittement déclenche le combat
   const sea = recap.mode === 'mer'; // route MARITIME : `km` porte des MILLES (cf. `routeDistanceLabel`)
   const title = ambush
-    ? <><Icon id="action/attack" size="sm" /> {t('trm.titreEmbuscade')}</>
+    ? <><Icon id="action/attaquer" size="sm" /> {t('trm.titreEmbuscade')}</>
     : recap.status === 'arrived'
-      ? <><Icon id="scenario/travel" size="sm" /> {t('trm.titreArrivee', { lieu: recap.toLabel })}</>
+      ? <><Icon id="scenario/voyage" size="sm" /> {t('trm.titreArrivee', { lieu: recap.toLabel })}</>
       : recap.status === 'interrupted'
-        ? <><Icon id="scenario/travel" size="sm" /> {t('trm.titreInterrompu')}</>
-        : <><Icon id="scenario/travel" size="sm" /> {t('trm.titreArret')}</>;
+        ? <><Icon id="scenario/voyage" size="sm" /> {t('trm.titreInterrompu')}</>
+        : <><Icon id="scenario/voyage" size="sm" /> {t('trm.titreArret')}</>;
   const kmLeft = Math.max(0, Math.round(recap.km - recap.kmDone));
   const onContinue = () => { dismiss(); ouvrirLaCarte(); };
   return (
@@ -60,10 +60,10 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
         <>
           {!ambush && <button className="btn" onClick={dismiss}>{t('trm.fermer')}</button>}
           {ambush
-            ? <button className="btn btn-primary" onClick={() => dismiss()}><Icon id="action/attack" size="sm" /> {t('trm.faireFace')}</button>
+            ? <button className="btn btn-primary" onClick={() => dismiss()}><Icon id="action/attaquer" size="sm" /> {t('trm.faireFace')}</button>
             : recap.status === 'arrived'
-              ? <button className="btn btn-primary" onClick={onContinue}><Icon id="nav/campaign" size="sm" /> {t('trm.continuer')}</button>
-              : <button className="btn btn-primary" onClick={onContinue}><Icon id="nav/campaign" size="sm" /> {t('trm.ouvrirCarte')}</button>}
+              ? <button className="btn btn-primary" onClick={onContinue}><Icon id="navigation/campagne" size="sm" /> {t('trm.continuer')}</button>
+              : <button className="btn btn-primary" onClick={onContinue}><Icon id="navigation/campagne" size="sm" /> {t('trm.ouvrirCarte')}</button>}
         </>
       }
     >

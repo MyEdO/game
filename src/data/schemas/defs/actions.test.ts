@@ -11,12 +11,12 @@ import actionsJson from '../../actions.json';
 
 /** Alvéole HÔTE minimale (une entrée de grille ordinaire) et son geste secondaire. */
 const HOTE = {
-  id: 'cast-spell', type: 'actions', label: 'Incanter', icon: 'magic/power', surface: 'grille',
+  id: 'incantation', type: 'actions', label: 'Incanter', icon: 'magie/puissance', surface: 'grille',
   gate: 'action-libre-hors-frenesie', run: 'incanterLeSort', candidates: 'sorts-du-heros', coutAction: 'action',
 } as const;
 const GESTE = {
-  id: 'focus-spell', type: 'actions', label: 'Focaliser', icon: 'flag/focus', surface: 'geste-secondaire',
-  hote: { id: 'cast-spell' }, gate: 'sort-focalisable', run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'action',
+  id: 'focalisation', type: 'actions', label: 'Focaliser', icon: 'drapeau/focalisation', surface: 'geste-secondaire',
+  hote: { id: 'incantation' }, gate: 'sort-focalisable', run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'action',
 } as const;
 
 const sans = <T extends object, K extends keyof T>(o: T, k: K): Omit<T, K> => {
@@ -34,9 +34,9 @@ describe('actions.json — un geste secondaire mène TOUJOURS à une alvéole', 
     ['m1 — geste secondaire SANS `hote` : aucune alvéole ne le porterait', [HOTE, sans(GESTE, 'hote')]],
     ['m2 — `hote` FANTÔME : l’id ne résout aucune entrée du registre', [HOTE, { ...GESTE, hote: { id: 'alveole-inexistante' } }]],
     ['m3 — `hote` lui-même geste secondaire : aucune alvéole au bout de la chaîne', [
-      HOTE, GESTE, { ...GESTE, id: 'sur-focus', hote: { id: 'focus-spell' } },
+      HOTE, GESTE, { ...GESTE, id: 'sur-focus', hote: { id: 'focalisation' } },
     ]],
-    ['m4 — `hote` porté par une entrée qui n’est PAS un geste secondaire', [{ ...HOTE, hote: { id: 'cast-spell' } }, GESTE]],
+    ['m4 — `hote` porté par une entrée qui n’est PAS un geste secondaire', [{ ...HOTE, hote: { id: 'incantation' } }, GESTE]],
     ['m5 — geste secondaire SANS `candidates` : sa population n’est pas déclarée', [HOTE, sans(GESTE, 'candidates')]],
   ];
   for (const [cas, data] of refuses)

@@ -95,6 +95,9 @@
           "sides": 10
         }
       },
+      "vivreSeul": {
+        "id": "nourriture-courses-journee"
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -257,6 +260,9 @@
           "sides": 10
         }
       },
+      "vivreSeul": {
+        "id": "ration-biscuits-de-mer"
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -353,6 +359,7 @@
           "sides": 10
         }
       },
+      "contagionABord": true,
       "source": {
         "book": "mer-des-griffes",
         "page": 124,

@@ -12,7 +12,7 @@ const scenarioConstruit = scenario.construire(idsDeTest);
  * plus AUCUNE cible (`foeKind` en face = vide) — `runEnemyAI` retournait alors SANS appeler
  * `advanceTurn` : le tour ne se termine jamais (soft-lock, reproduit en recette sur `belier-porte`).
  * Scène RÉELLE (pas une fixture synthétique) : `crewIds` du poste bélier + `brute` PNJ IA
- * (`ai:true` → `aiControlled`, `combatSlice.ts` bascule son `kind` en 'hero' car `side:'ally'`).
+ * (`ai:true` → `aiControlled`, `combatSlice.ts` bascule son `kind` en 'heros' car `side:'allie'`).
  */
 describe('un tour IA se termine TOUJOURS, même sans adversaire vivant et combat non terminé', () => {
   let banc: Banc;
@@ -22,10 +22,10 @@ describe('un tour IA se termine TOUJOURS, même sans adversaire vivant et combat
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('siege-belier');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const gobelin = b.combatants.find((c) => c.kind === 'enemy' && !c.inert)!;
+    const gobelin = b.combatants.find((c) => c.kind === 'ennemi' && !c.inert)!;
     expect(gobelin).toBeTruthy();
     gobelin.dead = true; // dernier ennemi hors de combat — la porte, elle, reste intacte (victoryCondition non remplie)
     const servant = b.combatants.find((c) => c.aiControlled)!;

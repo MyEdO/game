@@ -10,17 +10,17 @@ import { interludeCatalog, type InterludeState, type InterludeHeroState, type Ba
 import {
   blocageDeRevenus, ciblesDActivite, desEnAttente, devisDeCloture, effetBloquantLesRevenus, effetsDeLaPeriode, devisDeDepot, interludeDrawPending, refusDAcquitterUneFaveur, refusDActivite,
   refusDArtisanat, refusDeCommande, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, refusDuTirage, preJetDActivite,
-  type DevisDeDepot, type EtatDeCloture, type EtatDeDepot, type EtatDeFaveur, type EtatDInterlude, type GenreDeDepot, type PreJetDActivite,
+  brouillonDe, refusDeLaValeur, type AxeDuBrouillon, type CompositionDActivite, type DevisDeDepot, type EtatDeCloture, type EtatDeDepot, type EtatDeFaveur, type EtatDInterlude, type PreJetDActivite,
 } from '../noyau/verdictsDInterlude';
 import { totalDesBourses } from '../noyau/bourseFlow';
-import { refusDeLaValidation } from '../noyau/validationDeFenetre';
+import { refusDeLaValidationNommee } from '../noyau/validationDeFenetre';
 import { refusDOuvrirLaTaverne } from '../noyau/tavernFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, noteDeSoutien, preJetDePreparation, refusDePrepaDeBataille, type MassBattleState } from '../noyau/massBattleFlow';
 import {
-  craftCatalog, craftTarget, qualitesDArtisanat, learnableTalents, orderCatalog, bankPayout, seuilDePerteBancaire, entrainementOptions, entrainementTutorRange,
+  cleDEntrainement, craftCatalog, craftTarget, qualitesDArtisanat, learnableTalents, orderCatalog, bankPayout, seuilDePerteBancaire, entrainementOptions, entrainementTutorRange,
   activityById, testsDeLActivite,
-  type ActivityDef, type ActivityResolver, type CraftOption, type LearnOption, type EntrainementOption,
+  type ActivityDef, type ActivityResolver, type CraftOption, type GenreDeDepot, type LearnOption,
 } from '../engine/activities';
 import { nomDeSource } from '../engine/ops';
 import { DIFFICULTY_LABELS, CHAR_LABELS } from '../engine/types';
@@ -84,6 +84,32 @@ const fmt = (brass: number) => formatMoney(fromBrass(brass));
 /** Montant AFFICHÉ : le rendu coloré unique. */
 const CoinsB = ({ brass }: { brass: number }) => <Coins money={fromBrass(brass)} />;
 
+/** L'Activité `activite` que compose le héros `heroId`, ou `undefined` : il en compose une autre, ou aucune. */
+const compositionDe = (etat: EtatDInterlude, heroId: string, activite: string): CompositionDActivite | undefined => {
+  const c = etat.interlude?.perHero[heroId]?.composition;
+  return c?.activite === activite ? c : undefined;
+};
+
+/** Le refus de chaque valeur de l'axe `axe` offerte au brouillon de l'Activité `activite` du héros, celui que le choix
+ *  de la fenêtre lui donne (`refusDeLaValeur`) : l'option refusée se grise avec sa raison. */
+const refusDesValeurs = (etat: EtatDeDepot, heroId: string, activite: string, axe: AxeDuBrouillon) => {
+  const brouillon = brouillonDe(etat.interlude?.perHero[heroId]?.composition, activite);
+  return (valeur: string): string | undefined => refusDeLaValeur(etat, heroId, brouillon, axe, valeur) ?? undefined;
+};
+
+/** Compose l'Activité `activite` du héros (`fenetreChoisir('interlude', …)`) : la choisit s'il en compose une autre,
+ *  puis règle ce que `regler` choisit. */
+function useComposer(hero: Combatant, activite: string, composition: CompositionDActivite | undefined) {
+  const choisir = useGame((s) => s.fenetreChoisir);
+  return {
+    choisir,
+    composer: (regler: () => void) => {
+      if (!composition) choisir('interlude', 'activite', activite, hero.id);
+      regler();
+    },
+  };
+}
+
 /** Chip de compétence du Codex (popover desc + source) par id (+ spécialisation affichée). */
 const SkillChip = ({ skillId, show }: { skillId: string; show?: string }) => (
   <EntityRef category="skills" id={skillId} label={refLabel('skills', { id: skillId })} show={show} />
@@ -91,7 +117,7 @@ const SkillChip = ({ skillId, show }: { skillId: string; show?: string }) => (
 
 /** Vue réseau minimale pour la possession (audit M7) — sous-ensemble de `GameState['net']`. */
 export interface InterludeNet {
-  mode: 'local' | 'host' | 'guest';
+  mode: 'local' | 'hote' | 'invite';
   mySeat: number;
   ownership: Record<string, number>;
   seatNames: Record<number, string>;
@@ -107,8 +133,8 @@ export interface InterludeSeam {
   favors?: Favor[];
   /** Phase d'ouverture forcée ('activities' saute l'intro Événements). */
   phase?: 'events' | 'activities' | 'closing';
-  /** Volet OUVERT forcé (tests SSR du gabarit : pied pré-jet visible), et son choix initial (`choix` : l'id
-   *  du Talent, de l'équipement, ou la clé `kind|id|spec` de l'option d'Entraînement). */
+  /** Volet OUVERT forcé (tests SSR du gabarit : pied pré-jet visible), et l'objet à commander qu'il choisit d'abord
+   *  (`choix`) ; les autres volets lisent l'Activité que compose le héros (`InterludeHeroState.composition`). */
   openPane?: { heroId: string; pane: string; choix?: string };
   /** Catalogue d'Activités data-driven proposables ICI (contexte 'interlude' + gate `where`) —
    *  en jeu, dérivé du store (`interludeCatalog`) ; en SSR, fourni par le seam (le store SSR sert
@@ -182,12 +208,12 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   const ownerName = (id: string) => nomDuSiege(net, net.ownership[id] ?? 0);
   // La validation de l'interlude se juge sur l'état de la partie, l'interlude et le siège que le seam lui donne.
   const etatDuJeu = useGame.getState();
-  const refusClore = refusDeLaValidation({ ...etatDuJeu, interlude, net: { ...etatDuJeu.net, ...net } }, 'interlude');
+  const refusClore = refusDeLaValidationNommee({ ...etatDuJeu, interlude, net: { ...etatDuJeu.net, ...net } }, 'interlude');
   const etat: EtatDeDepot & EtatDeFaveur = { interlude, party, bank, lieu, favors };
   return (
     <div className="interlude-shell tx-ink">
       <div className="interlude-column">
-        <OrnateFrame tone="gold" className="interlude-masthead">
+        <OrnateFrame tone="or" className="interlude-masthead">
           <h1 className="display-title">{t('interlude.title')}</h1>
           <p className="subtitle">
             {interlude.weeks} semaine{interlude.weeks > 1 ? 's' : ''} de répit avant la prochaine aventure
@@ -235,21 +261,21 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
             </div>
             {bank.length > 0 && (
               <section className="interlude-hero panel">
-                <h3><Icon id="resource/gold-purse" size="sm" /> Dépôts en cours</h3>
+                <h3><Icon id="ressource/bourse" size="sm" /> Dépôts en cours</h3>
                 <BankList etat={etat} canDrive={ownsHero} />
               </section>
             )}
             {/* Jeux de taverne (NADJ 16) — délassement entre deux aventures ; affordance montrée
-                seulement si l'option `tavern-games` est active. Ne consomme pas d'Activité. */}
-            {rule('tavern-games') && <TavernGamesEntry />}
+                seulement si l'option `jeux-de-taverne` est active. Ne consomme pas d'Activité. */}
+            {rule('jeux-de-taverne') && <TavernGamesEntry />}
             <div className="interlude-close">
               <p className="interlude-warning" title={t('interlude.close.warning.title')}>
-                <Icon id="resource/gold-purse" size="sm" /> {t('interlude.close.warning')}
+                <Icon id="ressource/bourse" size="sm" /> {t('interlude.close.warning')}
               </p>
               {massBattle?.phase === 'prep'
                 /* Bataille en attente : la clôture ENGAGE la bataille (`fenetreValider('interlude')` → engagerLaBataille, C2b) —
                    le bouton de clôture porte alors ce libellé, une SEULE porte de sortie (pas de 2e écran). */
-                ? <GatedAction id="interlude-close" label={<><Icon id="action/attack" size="sm" /> {t('interlude.close.bataille')}</>}
+                ? <GatedAction id="interlude-close" label={<><Icon id="action/attaquer" size="sm" /> {t('interlude.close.bataille')}</>}
                     descOfferte={t('interlude.close.bataille.desc')} enabled={!refusClore} {...raisonSi(refusClore)} onClick={() => setPhase('closing')} />
                 : <GatedAction id="interlude-close" label={t('interlude.close.btn')} enabled={!refusClore} {...raisonSi(refusClore)} onClick={() => setPhase('closing')} />}
             </div>
@@ -298,7 +324,7 @@ function SynthBar({ heroes, interlude, money, activeId, ownsHero, ownerName }: {
             <div className="interlude-synth-meta">
               <ActivityPips st={st} />
               {!ownsHero(h.id) && (
-                <span className="interlude-owner"><Icon id="nav/seat-owner" size="sm" /> {ownerName(h.id)}</span>
+                <span className="interlude-owner"><Icon id="navigation/proprietaire-du-siege" size="sm" /> {ownerName(h.id)}</span>
               )}
               {st.revenueBrass > 0 && (
                 <span className="interlude-synth-rev" title="Revenus de la période — crédités à la reprise"><CoinsB brass={st.revenueBrass} /></span>
@@ -308,7 +334,7 @@ function SynthBar({ heroes, interlude, money, activeId, ownsHero, ownerName }: {
         );
       })}
       <div className="interlude-synth-purse" title={t('interlude.close.warning.title')}>
-        <Icon id="resource/gold-purse" />
+        <Icon id="ressource/bourse" />
         <Coins money={money} />
       </div>
     </div>
@@ -321,9 +347,9 @@ function SynthBar({ heroes, interlude, money, activeId, ownsHero, ownerName }: {
 function BattleBanner({ mb }: { mb: MassBattleState }) {
   return (
     <section className="interlude-battle-banner panel">
-      <h3><Icon id="action/attack" size="sm" /> Bataille imminente</h3>
+      <h3><Icon id="action/attaquer" size="sm" /> Bataille imminente</h3>
       <p className="interlude-detail">
-        <b>{mb.ally.label}</b> (Puissance {armyMight(mb.ally)}) contre <b>{mb.enemy.label}</b> (Puissance {armyMight(mb.enemy)}).
+        <b>{mb.allie.label}</b> (Puissance {armyMight(mb.allie)}) contre <b>{mb.ennemi.label}</b> (Puissance {armyMight(mb.ennemi)}).
         Préparez-la depuis vos Activités <em>Entre deux aventures</em> : Discours, Planification, Repérage,
         Sabotage… (max 3). « Engager la bataille » clôt l'interlude et lance les Rounds.
       </p>
@@ -337,7 +363,7 @@ function TavernGamesEntry() {
   const refus = useGame(refusDOuvrirLaTaverne);
   return (
     <section className="interlude-hero panel">
-      <h3><Icon id="nav/dice" size="sm" /> Jeux de taverne</h3>
+      <h3><Icon id="navigation/des" size="sm" /> Jeux de taverne</h3>
       <p className="interlude-detail">Un moment de détente : dés, boules, bras de fer… (Nuits agitées, ch.16).</p>
       <GatedAction id="interlude-tavern-open" label="Proposer une partie" enabled={!refus} {...raisonSi(refus)} onClick={() => open()} btnClassName="small" />
     </section>
@@ -355,22 +381,22 @@ function fxChips(etat: EtatDInterlude, st: InterludeHeroState, hero: Combatant):
   const bloquant = effetBloquantLesRevenus(etat, hero.id);
   for (const effet of effetsDeLaPeriode(etat, hero.id)) {
     const { fx } = effet;
-    if (fx.moneyPct) chips.push({ icon: 'resource/gold-purse', label: t(fx.partyWide ? 'interlude.fx.bourses' : 'interlude.fx.bourse', { pct: fx.moneyPct }) });
-    if (fx.loseActivity) chips.push({ icon: 'nav/activity', label: t('interlude.fx.moinsUneActivite') });
-    if (fx.fortuneMaxDelta) chips.push({ icon: 'resource/fortune', label: t('interlude.fx.chance', { n: fx.fortuneMaxDelta, s: fx.fortuneMaxDelta > 1 ? 's' : '' }) });
+    if (fx.moneyPct) chips.push({ icon: 'ressource/bourse', label: t(fx.partyWide ? 'interlude.fx.bourses' : 'interlude.fx.bourse', { pct: fx.moneyPct }) });
+    if (fx.loseActivity) chips.push({ icon: 'navigation/activite', label: t('interlude.fx.moinsUneActivite') });
+    if (fx.fortuneMaxDelta) chips.push({ icon: 'ressource/chance', label: t('interlude.fx.chance', { n: fx.fortuneMaxDelta, s: fx.fortuneMaxDelta > 1 ? 's' : '' }) });
     if (fx.revenuePct) {
       const pct = { sign: fx.revenuePct > 0 ? '+' : '', pct: fx.revenuePct };
-      chips.push({ icon: 'resource/gold-purse', label: fx.revenueClasses ? t('interlude.fx.revenusPour', { ...pct, classes: libellesDeClasses(fx.revenueClasses) }) : t('interlude.fx.revenus', pct) });
+      chips.push({ icon: 'ressource/bourse', label: fx.revenueClasses ? t('interlude.fx.revenusPour', { ...pct, classes: libellesDeClasses(fx.revenueClasses) }) : t('interlude.fx.revenus', pct) });
     }
     if (fx.revenueBlockedClasses) {
-      chips.push({ icon: 'resource/gold-purse', label: (bloquant?.id === effet.id ? blocageDeRevenus(etat, hero.id) : null) ?? t('interlude.fx.revenusBloquesPour', { classes: libellesDeClasses(fx.revenueBlockedClasses) }) });
+      chips.push({ icon: 'ressource/bourse', label: (bloquant?.id === effet.id ? blocageDeRevenus(etat, hero.id) : null) ?? t('interlude.fx.revenusBloquesPour', { classes: libellesDeClasses(fx.revenueBlockedClasses) }) });
     }
-    if (fx.bankPct) chips.push({ icon: 'resource/gold-purse', label: t('interlude.fx.banque', { pct: fx.bankPct }) });
-    if (fx.stashRaided) chips.push({ icon: 'ui/warning', label: t('interlude.fx.planqueDevalisee') });
-    if (fx.bankCrashCheck) chips.push({ icon: 'ui/warning', label: t('interlude.fx.faillite') });
+    if (fx.bankPct) chips.push({ icon: 'ressource/bourse', label: t('interlude.fx.banque', { pct: fx.bankPct }) });
+    if (fx.stashRaided) chips.push({ icon: 'interface/attention', label: t('interlude.fx.planqueDevalisee') });
+    if (fx.bankCrashCheck) chips.push({ icon: 'interface/attention', label: t('interlude.fx.faillite') });
   }
   // Devoir elfique : conséquence APPLIQUÉE par le flow (règle optionnelle comprise) — jamais re-dérivée ici.
-  if (st.elfDuty) chips.push({ icon: 'nav/activity', label: t('interlude.fx.devoirElfique') });
+  if (st.elfDuty) chips.push({ icon: 'navigation/activite', label: t('interlude.fx.devoirElfique') });
   return chips;
 }
 
@@ -404,7 +430,7 @@ function EventsIntro({ heroes, etat, onDone }: { heroes: Combatant[]; etat: Etat
           const ev = interludeEventFor(st.eventRoll);
           const chips = fxChips(etat, st, h);
           return (
-            <ParchmentCard key={h.id} seal={{ label: 'd100', roll: st.eventRoll }} title={ev.label}>
+            <ParchmentCard key={h.id} seal={{ label: formatDice(interludeEventDie()), roll: st.eventRoll }} title={ev.label}>
               <header className="interlude-chronicle-head">
                 <CharFrame c={h} variant="identity" size="sm" />
               </header>
@@ -466,13 +492,13 @@ const hasCoreResolver = (r?: ActivityResolver): boolean => !!r && CORE_RESOLVERS
 /** Icônes des Activités à volet dédié — les Activités du catalogue générique portent la leur
  *  en DONNÉE (`ActivityDef.icon`). */
 const PANE_ICON = {
-  revenus: 'resource/gold-purse',
-  craft: 'item/misc',
-  learn: 'nav/compendium',
-  order: 'scenario/market',
-  bank: 'resource/gold-purse',
-  identify: 'nav/identify',
-  entrainement: 'nav/compendium',
+  revenus: 'ressource/bourse',
+  craft: 'objet/divers',
+  learn: 'navigation/compendium',
+  order: 'scenario/marche',
+  bank: 'ressource/bourse',
+  identify: 'navigation/identifier',
+  entrainement: 'navigation/compendium',
 } as const;
 
 function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDrive, ownerName, pane, onPane, choix }: {
@@ -494,7 +520,7 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
   /** Volet ouvert de CE héros (état remonté à l'écran — un seul volet ouvert à la fois). */
   pane: string | null;
   onPane: (pane: string | null) => void;
-  /** Choix initial du volet ouvert (`InterludeSeam.openPane.choix`). */
+  /** L'objet à commander que choisit d'abord le volet ouvert (`InterludeSeam.openPane.choix`). */
   choix?: string;
 }) {
   // Le dé peut manquer (phase 'tirage', #942 L7) : la rangée d'événement dit alors l'attente.
@@ -525,12 +551,12 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
     pane === 'revenus' ? <RevenusPane hero={hero} etat={etat} status={status} refus={refusRevenus} desc={coreDesc('revenus')} porteur={corePorteur('revenus')} />
     : pane === 'craft' ? (hero.craft
         ? <CraftProgressPane hero={hero} etat={etat} craft={hero.craft} refus={refusOuvrage} desc={coreDesc('craft')} porteur={corePorteur('craft')} />
-        : <CraftPane hero={hero} etat={etat} mene={mene} choix={choix} desc={coreDesc('craft')} porteur={corePorteur('craft')} />)
-    : pane === 'learn' ? <LearnPane hero={hero} etat={etat} mene={mene} choix={choix} desc={coreDesc('learn')} porteur={corePorteur('learn')} />
+        : <CraftPane hero={hero} etat={etat} mene={mene} desc={coreDesc('craft')} porteur={corePorteur('craft')} />)
+    : pane === 'learn' ? <LearnPane hero={hero} etat={etat} mene={mene} desc={coreDesc('learn')} porteur={corePorteur('learn')} />
     : pane === 'order' ? <OrderPane hero={hero} etat={etat} mene={mene} choix={choix} />
     : pane === 'bank' ? <BankPane hero={hero} etat={etat} mene={mene} money={bourseOf(hero)} mecenat={mecenat} />
     : pane === 'identify' ? <IdentifyPane hero={hero} etat={etat} mene={mene} desc={coreDesc('identify')} porteur={corePorteur('identify')} />
-    : pane === 'entrainement' ? <EntrainementPane hero={hero} etat={etat} mene={mene} choix={choix} desc={coreDesc('entrainement')} porteur={corePorteur('entrainement')} />
+    : pane === 'entrainement' ? <EntrainementPane hero={hero} etat={etat} mene={mene} desc={coreDesc('entrainement')} porteur={corePorteur('entrainement')} />
     : pane === 'favor-settle' && favors.length ? <FavorSettlePane hero={hero} etat={etat} mene={mene} favors={favors} />
     : def ? (def.contexts.includes('bataille')
         ? <BattlePrepPane hero={hero} etat={etat} def={def} refus={refusAct} massBattle={massBattle} />
@@ -541,13 +567,13 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
       <h3>
         <CharFrame c={hero} variant="identity" size="sm" />
         <span className="interlude-left">
-          {!canDrive && <span className="interlude-owner"><Icon id="nav/seat-owner" size="sm" /> {ownerName ?? 'autre joueur'} · </span>}
+          {!canDrive && <span className="interlude-owner"><Icon id="navigation/proprietaire-du-siege" size="sm" /> {ownerName ?? 'autre joueur'} · </span>}
           {t('interlude.statut', { echelon: libelleDEchelon(status.tier), standing: status.standing })}
         </span>
       </h3>
       {ev
-        ? <p className="interlude-event" title={ev.desc}><Icon id="nav/dice" size="sm" /> {st.eventRoll} — {ev.label}</p>
-        : <p className="interlude-event"><Icon id="nav/dice" size="sm" /> Événement de la période : dé à poser.</p>}
+        ? <p className="interlude-event" title={ev.desc}><Icon id="navigation/des" size="sm" /> {st.eventRoll} — {ev.label}</p>
+        : <p className="interlude-event"><Icon id="navigation/des" size="sm" /> Événement de la période : dé à poser.</p>}
       <MasterDetail
         className="interlude-master"
         listLabel={`Activités de ${hero.label}`}
@@ -602,7 +628,7 @@ function ActivityList({ hero, catalog, favors, pane, onPane, canDrive, refusDe, 
     item('identify', <><Icon id={PANE_ICON.identify} size="sm" /> Identifier</>, 'Identifier'),
     item('entrainement', <><Icon id={PANE_ICON.entrainement} size="sm" /> Entraînement</>, 'Entraînement'),
     // « Acquitter une Faveur » (LDB 23 l.147/149, #509) — visible seulement si une Faveur est en cours.
-    ...(favors.length ? [item('favor-settle', <><Icon id="ui/balance" size="sm" /> Acquitter une Faveur</>, 'Acquitter une Faveur')] : []),
+    ...(favors.length ? [item('favor-settle', <><Icon id="interface/balance" size="sm" /> Acquitter une Faveur</>, 'Acquitter une Faveur')] : []),
   ];
   // Activités du catalogue SANS volet dédié : les 4 activités « socle » (Revenus/Artisanat/
   // Apprentissage/Identification, volets riches ci-dessus) et Mécénat (dans la banque) sont
@@ -623,7 +649,7 @@ function ActivityList({ hero, catalog, favors, pane, onPane, canDrive, refusDe, 
 
 /** Revenus : la formule ET le pré-jet sont lisibles AVANT d'entreprendre. LDB 08 l.105-120 */
 function RevenusPane({ hero, etat, status, refus, desc, porteur }: { hero: Combatant; etat: EtatDInterlude; status: Status; refus?: string; desc?: string; porteur?: Porteur }) {
-  const activity = useGame((s) => s.pratiquerLActivite);
+  const { choisir, composer } = useComposer(hero, 'revenus', compositionDe(etat, hero.id, 'revenus'));
   return (
     <ActivityPane
       id="pane-revenus"
@@ -639,7 +665,7 @@ function RevenusPane({ hero, etat, status, refus, desc, porteur }: { hero: Comba
           label="Entreprendre"
           enabled={!refus}
           {...refusDuVolet('pane-revenus', undefined, refus)}
-          onClick={() => activity(hero.id, 'revenus')}
+          onClick={() => composer(() => choisir('interlude', 'pratiquer', true, hero.id))}
           btnClassName="small"
         />
       }
@@ -652,7 +678,7 @@ function RevenusPane({ hero, etat, status, refus, desc, porteur }: { hero: Comba
 function CraftProgressPane({ hero, etat, craft, refus, desc, porteur }: {
   hero: Combatant; etat: EtatDInterlude; craft: NonNullable<Combatant['craft']>; refus?: string; desc?: string; porteur?: Porteur;
 }) {
-  const activity = useGame((s) => s.pratiquerLActivite);
+  const { choisir, composer } = useComposer(hero, 'craft', compositionDe(etat, hero.id, 'craft'));
   const label = findTrappingById(craft.trappingId)?.label ?? craft.trappingId;
   return (
     <ActivityPane
@@ -670,7 +696,7 @@ function CraftProgressPane({ hero, etat, craft, refus, desc, porteur }: {
           ariaLabel={`Avancer l'ouvrage — ${craft.drDone}/${craft.drTarget} DR (${DIFFICULTY_LABELS[craft.difficulty]})`}
           enabled={!refus}
           {...refusDuVolet('pane-craft', undefined, refus)}
-          onClick={() => activity(hero.id, 'craft')}
+          onClick={() => composer(() => choisir('interlude', 'pratiquer', true, hero.id))}
           btnClassName="small"
         />
       }
@@ -679,11 +705,15 @@ function CraftProgressPane({ hero, etat, craft, refus, desc, porteur }: {
 }
 
 /** Sélecteur d'équipement groupé par famille + recherche (audit B1/B3). `value`/`onChange` = `id`. */
-function TrappingSelect({ options, value, onChange, detail }: {
+function TrappingSelect({ options, value, onChange, detail, disabled, refus }: {
   options: { id: string; label: string; categorie: string; priceBrass: number }[];
   value: string;
   onChange: (v: string) => void;
   detail?: (id: string) => string;
+  /** Le choix appartient à un autre siège. */
+  disabled?: boolean;
+  /** La raison qui grise un équipement (`refusDesValeurs`). */
+  refus?: (id: string) => string | undefined;
 }) {
   const { search, setSearch, filtered } = useFilteredList(options, (o) => o.label);
   const families = useMemo(() => {
@@ -698,11 +728,11 @@ function TrappingSelect({ options, value, onChange, detail }: {
   return (
     <>
       <SearchFilterField className="interlude-search" value={search} onChange={setSearch} placeholder="Filtrer le catalogue…" ariaLabel="Filtrer le catalogue" />
-      <select className="interlude-select" value={value} onChange={(e) => onChange(e.target.value)} size={Math.min(8, Math.max(3, filtered.length))}>
+      <select className="interlude-select" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)} size={Math.min(8, Math.max(3, filtered.length))}>
         {families.map(([fam, list]) => (
           <optgroup key={fam} label={fam}>
             {list.map((o) => (
-              <option key={o.id} value={o.id}>
+              <option key={o.id} value={o.id} disabled={!!refus?.(o.id)} title={refus?.(o.id)}>
                 {o.label} — {fmt(o.priceBrass)}{detail ? ` · ${detail(o.id)}` : ''}
               </option>
             ))}
@@ -713,19 +743,21 @@ function TrappingSelect({ options, value, onChange, detail }: {
   );
 }
 
-/** Engager un Artisanat (LDB 23 l.76) : catalogue + Atouts/Défauts visés ; matériaux ¼ du prix. */
-function CraftPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant; etat: EtatDInterlude; mene?: string; choix?: string; desc?: string; porteur?: Porteur }) {
-  const craftStart = useGame((s) => s.fabriquerLObjet);
+/** Engager un Artisanat (LDB 23 l.76) : catalogue + Atouts/Défauts visés (LDB 23 l.95) ; matériaux ¼ du prix. L'ouvrage
+ *  se compose dans l'Activité du héros (`fenetreChoisir('interlude', …)`). */
+function CraftPane({ hero, etat, mene, desc, porteur }: { hero: Combatant; etat: EtatDeDepot; mene?: string; desc?: string; porteur?: Porteur }) {
+  const composition = compositionDe(etat, hero.id, 'craft');
+  const { choisir, composer } = useComposer(hero, 'craft', composition);
   const catalog = useMemo(() => craftCatalog(), []);
-  const [id, setId] = useState(choix ?? '');
-  const [atouts, setAtouts] = useState<string[]>([]);
-  const [defauts, setDefauts] = useState<string[]>([]);
+  const id = composition?.ouvrage ?? '';
+  const atouts = composition?.atouts ?? [];
+  const defauts = composition?.defauts ?? [];
   const sel: CraftOption | undefined = catalog.find((o) => o.id === id);
   const target = sel ? craftTarget(sel.tier, sel.avail, atouts.length, defauts.length) : null;
   const verdict = refusDArtisanat(etat, hero.id, sel?.id) ?? undefined;
   const banniere = mene ? undefined : verdict;
-  const toggle = (list: string[], setList: (v: string[]) => void, q: string) =>
-    setList(list.includes(q) ? list.filter((x) => x !== q) : [...list, q]);
+  // Une case cochée retire la qualité visée, une case vide l'ajoute.
+  const viser = (visee: boolean, q: string) => composer(() => choisir('interlude', visee ? 'retirerLaQualite' : 'ajouterLaQualite', q, hero.id));
   return (
     <ActivityPane
       id="pane-craft-start"
@@ -745,21 +777,21 @@ function CraftPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant
           label="Entreprendre"
           enabled={!mene && !verdict && !!sel}
           {...refusDuVolet('pane-craft-start', banniere, mene ?? t('interlude.choisir.ouvrage'))}
-          onClick={() => sel && craftStart(hero.id, sel.id, atouts, defauts)}
+          onClick={() => composer(() => choisir('interlude', 'pratiquer', true, hero.id))}
           btnClassName="small"
         />
       }
     >
-      <TrappingSelect options={catalog} value={id} onChange={setId} />
+      <TrappingSelect options={catalog} value={id} onChange={(v) => composer(() => choisir('interlude', 'ouvrage', v, hero.id))} disabled={!!mene} refus={refusDesValeurs(etat, hero.id, 'craft', 'ouvrage')} />
       <div className="interlude-craft-q">
         {qualitesDArtisanat().atouts.map((q) => (
           <label key={q} title={mdToText(craftQual(q).desc ?? '')}>
-            <input type="checkbox" checked={atouts.includes(q)} onChange={() => toggle(atouts, setAtouts, q)} /> {craftQual(q).label}
+            <input type="checkbox" checked={atouts.includes(q)} disabled={!!mene} onChange={() => viser(atouts.includes(q), q)} /> {craftQual(q).label}
           </label>
         ))}
         {qualitesDArtisanat().defauts.map((q) => (
           <label key={q} title={mdToText(craftQual(q).desc ?? '')}>
-            <input type="checkbox" checked={defauts.includes(q)} onChange={() => toggle(defauts, setDefauts, q)} /> {craftQual(q).label} (défaut)
+            <input type="checkbox" checked={defauts.includes(q)} disabled={!!mene} onChange={() => viser(defauts.includes(q), q)} /> {craftQual(q).label} (défaut)
           </label>
         ))}
       </div>
@@ -768,10 +800,12 @@ function CraftPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant
 }
 
 /** Apprentissage particulier : Talent hors carrière, PX et tuteur lus sur `learnableTalents`. LDB 23 l.66-72 */
-function LearnPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant; etat: EtatDeDepot; mene?: string; choix?: string; desc?: string; porteur?: Porteur }) {
-  const activity = useGame((s) => s.pratiquerLActivite);
+function LearnPane({ hero, etat, mene, desc, porteur }: { hero: Combatant; etat: EtatDeDepot; mene?: string; desc?: string; porteur?: Porteur }) {
+  const composition = compositionDe(etat, hero.id, 'learn');
+  const { choisir, composer } = useComposer(hero, 'learn', composition);
   const options = useMemo(() => learnableTalents(hero), [hero]);
-  const [id, setId] = useState(choix ?? '');
+  const refusDuTalent = refusDesValeurs(etat, hero.id, 'learn', 'talent');
+  const id = composition?.cibles.talentId ?? '';
   const { search, setSearch, filtered } = useFilteredList(options, (o) => o.label);
   const sel: LearnOption | undefined = options.find((o) => o.id === id);
   const xp = hero.xp ?? 0;
@@ -798,15 +832,15 @@ function LearnPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant
           label="Entreprendre"
           enabled={!mene && !verdict && !!sel}
           {...refusDuVolet('pane-learn', banniere, mene ?? t('interlude.choisir.talent'))}
-          onClick={() => sel && activity(hero.id, 'learn', { talentId: sel.id })}
+          onClick={() => composer(() => choisir('interlude', 'pratiquer', true, hero.id))}
           btnClassName="small"
         />
       }
     >
       <SearchFilterField className="interlude-search" value={search} onChange={setSearch} placeholder="Filtrer les talents…" ariaLabel="Filtrer les talents" />
-      <select className="interlude-select" value={id} onChange={(e) => setId(e.target.value)} size={Math.min(8, Math.max(3, filtered.length))}>
+      <select className="interlude-select" value={id} disabled={!!mene} onChange={(e) => composer(() => choisir('interlude', 'talent', e.target.value, hero.id))} size={Math.min(8, Math.max(3, filtered.length))}>
         {filtered.map((o) => (
-          <option key={o.id} value={o.id} title={mdToText(effectiveEntry(findTalentById(o.id))?.desc ?? '')}>
+          <option key={o.id} value={o.id} disabled={!!refusDuTalent(o.id)} title={refusDuTalent(o.id) ?? mdToText(effectiveEntry(findTalentById(o.id))?.desc ?? '')}>
             {t('interlude.option', { label: o.label, px: o.xpCost, min: fmt(o.tutorMinBrass), max: fmt(o.tutorMaxBrass) })}
           </option>
         ))}
@@ -817,16 +851,17 @@ function LearnPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant
 
 /** Entraînement : Compétence ou Caractéristique hors carrière, sans jet, PX et tuteur lus sur
  *  `entrainementOptions`. LDB 23 l.132-136 */
-function EntrainementPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant; etat: EtatDInterlude; mene?: string; choix?: string; desc?: string; porteur?: Porteur }) {
-  const entrainement = useGame((s) => s.suivreLEntrainement);
+function EntrainementPane({ hero, etat, mene, desc, porteur }: { hero: Combatant; etat: EtatDeDepot; mene?: string; desc?: string; porteur?: Porteur }) {
+  const composition = compositionDe(etat, hero.id, 'entrainement');
+  const { choisir, composer } = useComposer(hero, 'entrainement', composition);
   const options = useMemo(() => entrainementOptions(hero), [hero]);
-  const [key, setKey] = useState(choix ?? '');
-  const keyOf = (o: EntrainementOption) => `${o.kind}|${o.id}|${o.spec ?? ''}`;
+  const refusDeLOption = refusDesValeurs(etat, hero.id, 'entrainement', 'entrainement');
+  const key = composition?.entrainement ?? '';
   const { search, setSearch, filtered } = useFilteredList(options, (o) => o.label);
-  const sel = options.find((o) => keyOf(o) === key);
+  const sel = options.find((o) => cleDEntrainement(o) === key);
   const xp = hero.xp ?? 0;
   // La bannière du volet EST la raison : le bouton s'y LIE au lieu de la redire au survol.
-  const verdict = (sel ? refusDEntrainement(etat, hero.id, sel.kind, sel.id, sel.spec) : refusDActivite(etat, hero.id)) ?? undefined;
+  const verdict = (sel ? refusDEntrainement(etat, hero.id, key) : refusDActivite(etat, hero.id)) ?? undefined;
   const banniere = mene ? undefined : verdict;
   return (
     <ActivityPane
@@ -838,7 +873,7 @@ function EntrainementPane({ hero, etat, mene, choix, desc, porteur }: { hero: Co
       blocked={banniere}
       cost={sel ? <>{sel.xpCost} PX (il vous en reste {xp}) + tuteur <CoinsB brass={sel.tutorMinBrass} /> à <CoinsB brass={sel.tutorMaxBrass} /></> : undefined}
       note={sel
-        ? <>{sel.kind === 'skill' ? <SkillChip skillId={sel.id} show={sel.label} /> : sel.label} {t(sel.advanced ? 'interlude.entrainement.avancee' : 'interlude.entrainement.base', { min: fmt(sel.tutorMinBrass), max: fmt(sel.tutorMaxBrass) })}</>
+        ? <>{sel.kind === 'competence' ? <SkillChip skillId={sel.id} show={sel.label} /> : sel.label} {t(sel.advanced ? 'interlude.entrainement.avancee' : 'interlude.entrainement.base', { min: fmt(sel.tutorMinBrass), max: fmt(sel.tutorMaxBrass) })}</>
         : t('interlude.entrainement.choisir', {
             min: fmt(entrainementTutorRange(false).minBrass), max: fmt(entrainementTutorRange(false).maxBrass),
             minAvancee: fmt(entrainementTutorRange(true).minBrass), maxAvancee: fmt(entrainementTutorRange(true).maxBrass),
@@ -849,15 +884,15 @@ function EntrainementPane({ hero, etat, mene, choix, desc, porteur }: { hero: Co
           label="Entreprendre"
           enabled={!mene && !verdict && !!sel}
           {...refusDuVolet('pane-entrainement', banniere, mene ?? t('interlude.choisir.entrainement'))}
-          onClick={() => sel && entrainement(hero.id, sel.kind, sel.id, sel.spec)}
+          onClick={() => composer(() => choisir('interlude', 'pratiquer', true, hero.id))}
           btnClassName="small"
         />
       }
     >
       <SearchFilterField className="interlude-search" value={search} onChange={setSearch} placeholder="Filtrer les Compétences/Caractéristiques…" ariaLabel="Filtrer les Compétences et Caractéristiques" />
-      <select className="interlude-select" value={key} onChange={(e) => setKey(e.target.value)} size={Math.min(8, Math.max(3, filtered.length))}>
+      <select className="interlude-select" value={key} disabled={!!mene} onChange={(e) => composer(() => choisir('interlude', 'entrainement', e.target.value, hero.id))} size={Math.min(8, Math.max(3, filtered.length))}>
         {filtered.map((o) => (
-          <option key={keyOf(o)} value={keyOf(o)}>
+          <option key={cleDEntrainement(o)} value={cleDEntrainement(o)} disabled={!!refusDeLOption(cleDEntrainement(o))} title={refusDeLOption(cleDEntrainement(o))}>
             {t(o.advanced ? 'interlude.optionAvancee' : 'interlude.option', { label: o.label, px: o.xpCost, min: fmt(o.tutorMinBrass), max: fmt(o.tutorMaxBrass) })}
           </option>
         ))}
@@ -879,7 +914,7 @@ function FavorSettlePane({ hero, etat, mene, favors }: { hero: Combatant; etat: 
   return (
     <ActivityPane
       id="pane-favor"
-      icon="ui/balance"
+      icon="interface/balance"
       title="Acquitter une Faveur"
       blocked={banniereFaveur}
       note={sel
@@ -950,8 +985,8 @@ function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat:
   const amountBrass = pa * PA_PER_SC;
   const quick = (frac: number) => setAmountPa(Math.max(1, Math.floor(purseBrass * frac / PA_PER_SC)));
   const devis = (kind: GenreDeDepot) => devisDeDepot(etat, hero.id, kind, amountBrass);
-  const investir = devis('invest');
-  const planquer = devis('stash');
+  const investir = devis('investir');
+  const planquer = devis('planque');
   const mecene = devis('mecenat');
   // La planque n'a que les refus communs aux trois dépôts (Activité, bourse) : ils font la bannière.
   const banniereBourse = mene ? undefined : planquer.refus ?? undefined;
@@ -971,20 +1006,20 @@ function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat:
       actions={<>
         <GatedAction
           id="interlude-bank-invest"
-          label={<><Icon id="resource/gold-purse" size="sm" /> Investir</>}
+          label={<><Icon id="ressource/bourse" size="sm" /> Investir</>}
           ariaLabel="Investir"
           enabled={!mene && !investir.refus}
           {...raisonDuDepot(investir)}
-          onClick={() => bankDeposit(hero.id, 'invest', amountBrass)}
+          onClick={() => bankDeposit(hero.id, 'investir', amountBrass)}
           btnClassName="small"
         />
         <GatedAction
           id="interlude-bank-stash"
-          label={<><Icon id="item/misc" size="sm" /> Planquer</>}
+          label={<><Icon id="objet/divers" size="sm" /> Planquer</>}
           ariaLabel="Planquer"
           enabled={!mene && !planquer.refus}
           {...raisonDuDepot(planquer)}
-          onClick={() => bankDeposit(hero.id, 'stash', amountBrass)}
+          onClick={() => bankDeposit(hero.id, 'planque', amountBrass)}
           btnClassName="small"
         />
         {mecenat && (
@@ -1018,11 +1053,12 @@ function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat:
 
 /** Identifier un artefact : choisir un objet NON identifié du sac. ADE II 4 l.41 */
 function IdentifyPane({ hero, etat, mene, desc, porteur }: { hero: Combatant; etat: EtatDeDepot; mene?: string; desc?: string; porteur?: Porteur }) {
-  const activity = useGame((s) => s.pratiquerLActivite);
   const def = activityById('identify')!;
+  const composition = compositionDe(etat, hero.id, def.id);
+  const { choisir, composer } = useComposer(hero, def.id, composition);
   const items = ciblesDActivite(hero, def).artefacts;
-  const [choisi, setUid] = useState('');
-  const uid = choisi || items[0]?.uid || '';
+  const refusDeLObjet = refusDesValeurs(etat, hero.id, def.id, 'objet');
+  const uid = composition?.cibles.itemUid || items[0]?.uid || '';
   const verdict = refusDOuvertureDActivite(etat, hero.id, def, { itemUid: uid }) ?? undefined;
   const blocked = mene ? undefined : verdict;
   return (
@@ -1041,15 +1077,15 @@ function IdentifyPane({ hero, etat, mene, desc, porteur }: { hero: Combatant; et
           label="Entreprendre"
           enabled={!mene && !verdict}
           {...refusDuVolet('pane-identify', blocked, mene)}
-          onClick={() => activity(hero.id, def.id, { itemUid: uid })}
+          onClick={() => composer(() => { choisir('interlude', 'objet', uid, hero.id); choisir('interlude', 'pratiquer', true, hero.id); })}
           btnClassName="small"
         />
       }
     >
       {items.length > 0 && (
-        <select className="interlude-select" value={uid} onChange={(e) => setUid(e.target.value)} aria-label="Artefact à étudier">
+        <select className="interlude-select" value={uid} disabled={!!mene} onChange={(e) => composer(() => choisir('interlude', 'objet', e.target.value, hero.id))} aria-label="Artefact à étudier">
           {items.map((i) => (
-            <option key={i.uid} value={i.uid}>
+            <option key={i.uid} value={i.uid} disabled={!!refusDeLObjet(i.uid)} title={refusDeLObjet(i.uid)}>
               {i.label}{i.magicKnown ? ' ★' : ''}{i.suspectedQualities?.length ? ' (certitudes douteuses)' : ''}
             </option>
           ))}
@@ -1062,14 +1098,16 @@ function IdentifyPane({ hero, etat, mene, desc, porteur }: { hero: Combatant; et
 /** Volet d'une Activité du CATALOGUE data-driven : description VERBATIM (`<Prose>`) ; pré-jet, cibles et
  *  refus lus au noyau (`preJetDActivite`, `ciblesDActivite`, `refusDOuvertureDActivite`). */
 function CatalogPane({ hero, def, etat, mene }: { hero: Combatant; def: ActivityDef; etat: EtatDeDepot; mene?: string }) {
-  const start = useGame((s) => s.pratiquerLActivite);
-  const [targetUid, setTargetUid] = useState('');
-  const [spellId, setSpellId] = useState('');
-  const [traitChoisi, setTraitPsy] = useState('');
+  const composition = compositionDe(etat, hero.id, def.id);
+  const { choisir, composer } = useComposer(hero, def.id, composition);
   const { armes: weapons, artefacts, sorts: spellOptions, traitsPsy } = ciblesDActivite(hero, def);
-  const uid = targetUid || weapons[0]?.uid || artefacts[0]?.uid || '';
-  const spell = spellId || spellOptions[0]?.spell.id || '';
-  const traitPsy = traitChoisi || traitsPsy[0]?.cle || '';
+  const refusDeLObjet = refusDesValeurs(etat, hero.id, def.id, 'objet');
+  const refusDuTrait = refusDesValeurs(etat, hero.id, def.id, 'traitPsychologique');
+  const refusDuSort = refusDesValeurs(etat, hero.id, def.id, 'sort');
+  const uid = composition?.cibles.itemUid || weapons[0]?.uid || artefacts[0]?.uid || '';
+  const spell = composition?.cibles.spellId || spellOptions[0]?.spell.id || '';
+  const traitPsy = composition?.cibles.traitPsy || traitsPsy[0]?.cle || '';
+  const choisirLObjet = (v: string) => composer(() => choisir('interlude', 'objet', v, hero.id));
   const cible = { ...(uid ? { itemUid: uid } : {}), ...(spell ? { spellId: spell } : {}), ...(traitPsy ? { traitPsy } : {}) };
   const verdict = refusDOuvertureDActivite(etat, hero.id, def, cible) ?? undefined;
   const blocked = mene ? undefined : verdict;
@@ -1091,29 +1129,34 @@ function CatalogPane({ hero, def, etat, mene }: { hero: Combatant; def: Activity
           ariaLabel={`Entreprendre ${def.label}`}
           enabled={!mene && !verdict}
           {...refusDuVolet(`pane-catalog-${def.id}`, blocked, mene)}
-          onClick={() => start(hero.id, def.id, cible)}
+          onClick={() => composer(() => {
+            if (uid) choisir('interlude', 'objet', uid, hero.id);
+            if (spell) choisir('interlude', 'sort', spell, hero.id);
+            if (traitPsy) choisir('interlude', 'traitPsychologique', traitPsy, hero.id);
+            choisir('interlude', 'pratiquer', true, hero.id);
+          })}
           btnClassName="small"
         />
       }
     >
       {weapons.length > 0 && (
-        <select className="interlude-select" value={uid} onChange={(e) => setTargetUid(e.target.value)} aria-label="Arme à maîtriser">
-          {weapons.map((i) => <option key={i.uid} value={i.uid}>{i.label}</option>)}
+        <select className="interlude-select" value={uid} disabled={!!mene} onChange={(e) => choisirLObjet(e.target.value)} aria-label="Arme à maîtriser">
+          {weapons.map((i) => <option key={i.uid} value={i.uid} disabled={!!refusDeLObjet(i.uid)} title={refusDeLObjet(i.uid)}>{i.label}</option>)}
         </select>
       )}
       {artefacts.length > 0 && (
-        <select className="interlude-select" value={uid} onChange={(e) => setTargetUid(e.target.value)} aria-label="Objet magique à tester">
-          {artefacts.map((i) => <option key={i.uid} value={i.uid}>{i.label}{i.magicKnown ? ' ★' : ''}</option>)}
+        <select className="interlude-select" value={uid} disabled={!!mene} onChange={(e) => choisirLObjet(e.target.value)} aria-label="Objet magique à tester">
+          {artefacts.map((i) => <option key={i.uid} value={i.uid} disabled={!!refusDeLObjet(i.uid)} title={refusDeLObjet(i.uid)}>{i.label}{i.magicKnown ? ' ★' : ''}</option>)}
         </select>
       )}
       {traitsPsy.length > 0 && (
-        <select className="interlude-select" value={traitPsy} onChange={(e) => setTraitPsy(e.target.value)} aria-label="Trait psychologique à éliminer">
-          {traitsPsy.map((x) => <option key={x.cle} value={x.cle}>{libelleDePsy(x.trait.type, x.trait.cible)}</option>)}
+        <select className="interlude-select" value={traitPsy} disabled={!!mene} onChange={(e) => composer(() => choisir('interlude', 'traitPsychologique', e.target.value, hero.id))} aria-label="Trait psychologique à éliminer">
+          {traitsPsy.map((x) => <option key={x.cle} value={x.cle} disabled={!!refusDuTrait(x.cle)} title={refusDuTrait(x.cle)}>{libelleDePsy(x.trait.type, x.trait.cible)}</option>)}
         </select>
       )}
       {spellOptions.length > 0 && (
-        <select className="interlude-select" value={spell} onChange={(e) => setSpellId(e.target.value)} aria-label="Sort à mémoriser">
-          {spellOptions.map((x) => <option key={x.spell.id} value={x.spell.id}>{x.spell.label} — {x.cost} PX</option>)}
+        <select className="interlude-select" value={spell} disabled={!!mene} onChange={(e) => composer(() => choisir('interlude', 'sort', e.target.value, hero.id))} aria-label="Sort à mémoriser">
+          {spellOptions.map((x) => <option key={x.spell.id} value={x.spell.id} disabled={!!refusDuSort(x.spell.id)} title={refusDuSort(x.spell.id)}>{x.spell.label} — {x.cost} PX</option>)}
         </select>
       )}
     </ActivityPane>
@@ -1149,7 +1192,7 @@ function BattlePrepPane({ hero, etat, def, refus, massBattle: mb }: {
   }
   const blocked = mb ? refusDePrepaDeBataille(mb, hero, def) : null;
   const soutien = noteDeSoutien(def);
-  const undertake = () => battleActivity(def.id, hero.id);
+  const undertake = () => battleActivity(hero.id, def.id);
   return (
     <ActivityPane
       id={`pane-prep-${def.id}`}
@@ -1190,19 +1233,19 @@ function BankList({ etat, canDrive }: {
             key={i}
             id={`interlude-bank-withdraw-${i}`}
             label={<>
-              <Icon id={b.kind === 'invest' ? 'resource/gold-purse' : b.kind === 'mecenat' ? 'scenario/opera' : 'item/misc'} size="sm" />
+              <Icon id={b.kind === 'investir' ? 'ressource/bourse' : b.kind === 'mecenat' ? 'scenario/opera' : 'objet/divers'} size="sm" />
               {' '}{libelleOuAbsence(owner, 'heros', b.heroId)} : <CoinsB brass={b.brass} />
-              {b.kind === 'invest' && <> → <CoinsB brass={bankPayout('invest', b.brass, b.rate)} /> (Indice {b.rate})</>} — Retirer
+              {b.kind === 'investir' && <> → <CoinsB brass={bankPayout('investir', b.brass, b.rate)} /> (Indice {b.rate})</>} — Retirer
             </>}
             ariaLabel={`Retirer le dépôt de ${libelleOuAbsence(owner, 'heros', b.heroId)}`}
             enabled={!refus}
             {...raisonSi(refus)}
-            descOfferte={b.kind === 'invest'
-              ? `Retirer (1 Activité) : ${fmt(bankPayout('invest', b.brass, b.rate))} si la banque tient (faillite sur d100 ≤ ${seuilDePerteBancaire('invest', b.rate)})`
+            descOfferte={b.kind === 'investir'
+              ? `Retirer (1 Activité) : ${fmt(bankPayout('investir', b.brass, b.rate))} si la banque tient (faillite sur d100 ≤ ${seuilDePerteBancaire('investir', b.rate)})`
               // ACE 12 l.49/57-65
               : b.kind === 'mecenat'
                 ? 'Retirer le mécénat (1 Activité) : Test d’Évaluation Intermédiaire (+0) — rendu de 120 % à la perte totale'
-                : `Retirer la planque (libre) : ${fmt(b.brass)} — découverte sur d100 ≤ ${seuilDePerteBancaire('stash', b.rate)}`}
+                : `Retirer la planque (libre) : ${fmt(b.brass)} — découverte sur d100 ≤ ${seuilDePerteBancaire('planque', b.rate)}`}
             onClick={() => withdraw(b.uid)}
             primary={false}
             btnClassName="small"
@@ -1231,27 +1274,27 @@ function CloseRecap({ etat, onCancel }: { etat: EtatDeCloture; onCancel: () => v
     >
       <ul className="interlude-recap-list">
         <li>
-          <Icon id="resource/gold-purse" size="sm" /> {devis.gaspille > 0
+          <Icon id="ressource/bourse" size="sm" /> {devis.gaspille > 0
             ? <><b><CoinsB brass={devis.gaspille} /></b> {t('interlude.recap.gaspille')}</>
             : t('interlude.recap.bourseVide')}
         </li>
-        <li><Icon id="resource/gold-purse" size="sm" /> {t('interlude.recap.revenus')} <b>{devis.revenu > 0 ? <CoinsB brass={devis.revenu} /> : t('interlude.recap.aucun')}</b>.</li>
-        {devis.conserve > 0 && <li><Icon id="resource/gold-purse" size="sm" /> {t('interlude.recap.conserve')} <b><CoinsB brass={devis.conserve} /></b>.</li>}
+        <li><Icon id="ressource/bourse" size="sm" /> {t('interlude.recap.revenus')} <b>{devis.revenu > 0 ? <CoinsB brass={devis.revenu} /> : t('interlude.recap.aucun')}</b>.</li>
+        {devis.conserve > 0 && <li><Icon id="ressource/bourse" size="sm" /> {t('interlude.recap.conserve')} <b><CoinsB brass={devis.conserve} /></b>.</li>}
         {devis.commandes.length > 0 && (
-          <li><Icon id="scenario/market" size="sm" /> {t('interlude.recap.commandes', { liste: devis.commandes.map(objet).join(', ') })}</li>
+          <li><Icon id="scenario/marche" size="sm" /> {t('interlude.recap.commandes', { liste: devis.commandes.map(objet).join(', ') })}</li>
         )}
         {devis.ouvrages.length > 0 && (
-          <li><Icon id="item/misc" size="sm" /> {t('interlude.recap.ouvrages', { liste: devis.ouvrages.map((o) => `${nom(o.heroId)} (${objet(o.trappingId)})`).join(', ') })}</li>
+          <li><Icon id="objet/divers" size="sm" /> {t('interlude.recap.ouvrages', { liste: devis.ouvrages.map((o) => `${nom(o.heroId)} (${objet(o.trappingId)})`).join(', ') })}</li>
         )}
         {devis.retrogradations.map((r) => (
           <li key={r.heroId} className="interlude-blocked">
-            <Icon id="ui/warning" size="sm" /> {t('interlude.recap.retrograde', { name: nom(r.heroId), level: r.niveau })}
+            <Icon id="interface/attention" size="sm" /> {t('interlude.recap.retrograde', { name: nom(r.heroId), level: r.niveau })}
           </li>
         ))}
         {devis.lots.flatMap(({ heroId, lots }) => lots.map((lot, i) => {
           // Les ÉTATS de clôture passent par la primitive partagée (chips + popover Codex), le Standing par sa
           // ligne, nommée par la source du lot.
-          const conds = lot.ops.filter((o) => o.op === 'condition').map((o) => ({ id: o.id as ConditionId, value: typeof o.value === 'number' ? o.value : 1 }));
+          const conds = lot.ops.filter((o) => o.op === 'condition').map((o) => ({ id: o.id.id as ConditionId, value: typeof o.value === 'number' ? o.value : 1 }));
           const standing = lot.ops.reduce((n, o) => n + (o.op === 'statusMod' && typeof o.amount === 'number' ? o.amount : 0), 0);
           return (
             <Fragment key={`close-${heroId}-${i}`}>
@@ -1265,7 +1308,7 @@ function CloseRecap({ etat, onCancel }: { etat: EtatDeCloture; onCancel: () => v
           );
         }))}
         <li>
-          <Icon id="time/night" size="sm" /> {t('interlude.recap.temps', { n: devis.jours })} <GameDate time={devis.reprise} />.
+          <Icon id="temps/nuit" size="sm" /> {t('interlude.recap.temps', { n: devis.jours })} <GameDate time={devis.reprise} />.
         </li>
       </ul>
     </Modal>

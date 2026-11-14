@@ -29,14 +29,14 @@ export function repairWeaponCostBrass(item: Pick<ItemInstance, 'damage' | 'damag
 export function isRepairable(item: Pick<ItemInstance, 'kind' | 'damage' | 'damageTaken' | 'qualities'>): boolean {
   const lost = item.damageTaken ?? 0;
   if (lost <= 0) return false;
-  if (item.kind === 'melee' || item.kind === 'ranged') return !weaponImprovised(item);
+  if (item.kind === 'melee' || item.kind === 'distance') return !weaponImprovised(item);
   return item.kind === 'armor';
 }
 
 /** Coût de réparation UNIFIÉ (armure ou arme), en sous de cuivre — dispatch par `kind`. SOURCE UNIQUE
  *  du prix de réparation (armures LDB 63 l.64 · armes LDB 62 l.135), partagée par le marchand et l'UI. */
 export function itemRepairCostBrass(item: Pick<ItemInstance, 'kind' | 'pa' | 'damage' | 'damageTaken' | 'qualities'>, basePriceBrass: number): number {
-  return item.kind === 'melee' || item.kind === 'ranged'
+  return item.kind === 'melee' || item.kind === 'distance'
     ? repairWeaponCostBrass(item, basePriceBrass)
     : repairCostBrass(item, basePriceBrass);
 }

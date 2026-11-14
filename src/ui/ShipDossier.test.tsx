@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { CampaignVessel } from '../noyau/etat';
+import { lotsDeCale } from '../engine/caleDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import { ShipDossierView } from './ShipDossier';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 const hero = (id: string): Combatant => (blessuresSurLeProfil({
-  id, label: `Héros ${id}`, kind: 'hero',
+  id, label: `Héros ${id}`, kind: 'heros',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
   wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -32,7 +33,7 @@ const vessel = (): CampaignVessel => ({
 });
 
 const render = (initialTab: 'apercu' | 'cargaison' | 'equipage' = 'apercu') =>
-  renderToStaticMarkup(<ShipDossierView vessel={vessel()} party={[hero('h1'), hero('h2')]} onClose={() => {}} initialTab={initialTab} />);
+  renderToStaticMarkup(<ShipDossierView now={0} vessel={vessel()} party={[hero('h1'), hero('h2')]} onClose={() => {}} initialTab={initialTab} />);
 
 describe('ShipDossier — dossier de navire persistant (#227)', () => {
   it('en-tête : nom d’instance, type et gréement', () => {
@@ -69,6 +70,17 @@ describe('ShipDossier — dossier de navire persistant (#227)', () => {
     expect(html).toContain('Grand sacrifice à Manann'); // second facteur
   });
 
+  it('Vivres d’équipage : le total en jours-homme et le détail par vivre de la cale, dans l’ordre de la liste (MDG 14 l.245-252)', () => {
+    const html = renderToStaticMarkup(<ShipDossierView now={0} vessel={{ ...vessel(), provisions: lotsDeCale({ 'ration-biscuits-de-mer': 40, 'nourriture-courses-journee': 12 }, 0) }} party={[hero('h1')]} onClose={() => {}} initialTab="apercu" />);
+    expect(html).toContain('Vivres d’équipage : <b>52 jour(s)-homme</b>');
+    const detail = html.match(/<ul class="ship-dossier-list" aria-label="Vivres de la cale">([\s\S]*?)<\/ul>/)?.[1];
+    expect(detail?.match(/<li>[^<]*<b>\d+<\/b>/g)).toEqual([
+      '<li>Nourriture, courses/journée : <b>12</b>',
+      '<li>Ration de nourriture préservée pour un jour : <b>0</b>',
+      '<li>Ration de biscuits de mer pour un jour : <b>40</b>',
+    ]);
+  });
+
   it('État : salissures, critique de coque, sabotage, eau + autonomie, dernière traversée', () => {
     const html = render('apercu');
     expect(html).toContain('Salissures'); // niveau 2
@@ -95,8 +107,13 @@ describe('ShipDossier — dossier de navire persistant (#227)', () => {
     expect(html).toContain('Dette de paie'); // wagesOwed
   });
 
+  it('Équipage : un facteur de Moral en cours listé par son libellé et son effet en dés (MDG 14 l.166)', () => {
+    const html = renderToStaticMarkup(<ShipDossierView now={0} vessel={{ ...vessel(), morale: { score: 62, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } }} party={[]} onClose={() => {}} initialTab="equipage" />);
+    expect(html).toContain('<li>La nourriture est uniquement composée de biscuits de mer (−1d10)</li>');
+  });
+
   it('type sans facette navire : composant nul', () => {
     const notAShip = { ...vessel(), vehicleId: 'diligence' };
-    expect(renderToStaticMarkup(<ShipDossierView vessel={notAShip} party={[]} onClose={() => {}} />)).toBe('');
+    expect(renderToStaticMarkup(<ShipDossierView now={0} vessel={notAShip} party={[]} onClose={() => {}} />)).toBe('');
   });
 });

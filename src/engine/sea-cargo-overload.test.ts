@@ -13,7 +13,7 @@ describe('cargoOverload — paliers d’assiette (MDG 12 l.70-75)', () => {
       const o = cargoOverload(enc, CAP);
       expect(o.palierId).toBeNull();
       expect(o.mMod).toBe(0);
-      expect(o.manoeuvreDR).toBe(0);
+      expect(o.drDeManoeuvre).toBe(0);
       expect(o.canSail).toBe(true);
     }
   });
@@ -23,7 +23,7 @@ describe('cargoOverload — paliers d’assiette (MDG 12 l.70-75)', () => {
     const o = cargoOverload(301, CAP);
     expect(o.palierId).toBe('surcharge-1');
     expect(o.mMod).toBe(-1);
-    expect(o.manoeuvreDR).toBe(-1);
+    expect(o.drDeManoeuvre).toBe(-1);
     expect(o.canSail).toBe(true);
   });
 
@@ -32,14 +32,14 @@ describe('cargoOverload — paliers d’assiette (MDG 12 l.70-75)', () => {
     const o = cargoOverload(361, CAP);
     expect(o.palierId).toBe('surcharge-2');
     expect(o.mMod).toBe(-2);
-    expect(o.manoeuvreDR).toBe(-2);
+    expect(o.drDeManoeuvre).toBe(-2);
   });
 
   it('> 140 % → palier 3 (−3)', () => {
     const o = cargoOverload(421, CAP); // 140,3 %
     expect(o.palierId).toBe('surcharge-3');
     expect(o.mMod).toBe(-3);
-    expect(o.manoeuvreDR).toBe(-3);
+    expect(o.drDeManoeuvre).toBe(-3);
     expect(o.canSail).toBe(true);
   });
 

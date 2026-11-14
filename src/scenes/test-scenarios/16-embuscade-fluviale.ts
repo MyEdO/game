@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { makeShowcaseParty, PREGEN, idDuPretire } from '../../data/pregens';
+import { groupeVitrineDeScenario, idDuHerosDeScenario } from './_heros';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
@@ -10,11 +10,11 @@ import type { Scene } from '../../noyau/monde/scene';
 // Superstructure (l.94) frappe `{stations:['cale']}` et n'existe que si la coque porte le Trait naval
 // `cale` — la barge fluviale l'a. Les deux héros sont donc ÉPINGLÉS au pont ci-dessous ; sans épinglage
 // aucune rangée ne les désignerait (`Combatant.shipStation` n'a AUCUN défaut).
-const CREW = [idDuPretire(PREGEN.soldat), idDuPretire(PREGEN.chasseur)] as const;
+const CREW = [idDuHerosDeScenario('soldat'), idDuHerosDeScenario('chasseur')] as const;
 
 /** Le groupe de la vitrine, ses deux membres d'équipage postés SUR LE PONT (MSRC 07 l.78). */
 const groupe = (idNeuf: FabriqueDId): Combatant[] =>
-  makeShowcaseParty(idNeuf).map((h) => (CREW.includes(h.id as (typeof CREW)[number]) ? { ...h, shipStation: 'pont' } : h));
+  groupeVitrineDeScenario(idNeuf).map((h) => (CREW.includes(h.id as (typeof CREW)[number]) ? { ...h, shipStation: 'pont' } : h));
 
 /**
  * Embuscade fluviale (Mort sur le Reik – Compagnon, ch.5 + ch.12-13) — vitrine JOUABLE de la chaîne de
@@ -35,7 +35,7 @@ const construireScene = (): Scene => buildScene({
   label: 'Embuscade fluviale',
   size: [18, 12],
   terrain: 'planches',
-  heroStart: [3, 7],
+  heroStart: { x: 4, y: 6, z: 1 },
   startMessage:
     { texte: 'Le batelier hurle et pointe l’aval : « Pirates à bâbord — et quelque chose de gros remue sous l’eau ! » Une ' +
     'barque hérissée de rames fond sur la barge, son équipage prêt à l’abordage. Entre les deux coques, l’onde se ' +
@@ -55,7 +55,7 @@ const construireScene = (): Scene => buildScene({
         // index 4 = l'ANGUILLE DU REIK, dans l'eau entre les deux bateaux.
         { creature: { id: 'anguille-du-reik' }, pos: { x: 8, y: 6 }, label: 'Anguille du Reik' },
         // index 5 = la BARGE des aventuriers (coque MSRC), côté allié ; équipage exposé = 2 héros du pont.
-        { vehicule: { id: 'barge-fluviale' }, pos: { x: 3, y: 6 }, side: 'ally', label: 'Barge des aventuriers',
+        { vehicule: { id: 'barge-fluviale' }, pos: { x: 3, y: 6 }, side: 'allie', label: 'Barge des aventuriers',
           crewIds: [...CREW] },
       ],
     },

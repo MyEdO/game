@@ -32,7 +32,7 @@ function baseProps() {
   return {
     setScene: () => {},
     setSceneNoHistory: () => {},
-    tool: { mode: 'select' as const },
+    tool: { mode: 'selection' as const },
     brush: 1,
     terrainRect: false,
     encTarget: '',
@@ -49,7 +49,7 @@ function baseProps() {
     architectureMode: false,
     architectureBodyId: null,
     architectureZ: null,
-    architectureAction: 'select' as const,
+    architectureAction: 'selection' as const,
     onArchitectureActionComplete: () => {},
     traceLayer: null,
     lowerLayerOpacity: 0.22,
@@ -364,7 +364,7 @@ describe('EditorCanvas — pinceau d’EMPRISE de zone (outil `zoneTiles`)', () 
           scene={latest}
           view={view as never}
           {...baseProps()}
-          tool={{ mode: 'zoneTiles', zoneId: 'galerie', paint }}
+          tool={{ mode: 'casesDeZone', zoneId: 'galerie', paint }}
           setScene={(s) => { latest = s; render(); }}
           setSceneNoHistory={(s) => { latest = s; render(); }}
         />,
@@ -521,7 +521,7 @@ describe('EditorCanvas — une zone se dessine par ses CASES, jamais par son rec
           view={view as never}
           {...baseProps()}
           layers={DEFAULT_LAYERS}
-          tool={{ mode: 'zoneTiles', zoneId: 'galerie', paint }}
+          tool={{ mode: 'casesDeZone', zoneId: 'galerie', paint }}
           setScene={(s) => { latest = s; render(); }}
           setSceneNoHistory={(s) => { latest = s; render(); }}
         />,

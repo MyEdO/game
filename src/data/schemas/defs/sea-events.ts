@@ -102,8 +102,14 @@ const doc = document(
     },
   },
   {
-    codex: { keys: ['seaManannFactors', 'seaBoardEvents', 'seaPortEvents'] },
-    edit: { niche: { categories: { seaManannFactors: 'manann.factors', seaBoardEvents: 'boardEvents.entries', seaPortEvents: 'portEvents.entries' } } },
+    edit: {
+      niche: {
+        categories: {
+          seaManannFactors: 'manann.factors', seaBoardEvents: 'boardEvents.entries', seaPortEvents: 'portEvents.entries',
+          seaFastVoyage: 'fastVoyage.entries',
+        },
+      },
+    },
   },
   {
     // MDG 15 l.137, l.235 (boardEvents) ; l.33, l.37 (fastVoyage) ; l.129, l.243-263 (portEvents) ;

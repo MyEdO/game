@@ -3,7 +3,7 @@ import { fireTriggers, applyTriggeredEffects } from './triggeredEffects';
 import { hasCondition, COND } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
-import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../engine/flowCore';
 import { desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -17,7 +17,7 @@ import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.te
  */
 
 const mk = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
-  id: 'd', label: 'Démon', kind: 'enemy', characteristics: { endurance: 40 },
+  id: 'd', label: 'Démon', kind: 'ennemi', characteristics: { endurance: 40 },
   wounds: blessuresDeBase(12, 0),
   ...over,
 });
@@ -51,18 +51,18 @@ describe('onWoundLoss — TOUTE perte de PB (mêlée OU distance) ; le type voya
     const foe = alive({ id: 'fo', engagedWith: ['ac'] as never });
     const g = (() => ({ battle: { combatants: [acid, foe] } })) as never;
     const before = foe.wounds.current;
-    fireTriggers(g, acid, 'onWoundLoss', { attackType: 'ranged', rng: makeRNG(1) } as never);
+    fireTriggers(g, acid, 'onWoundLoss', { attackType: 'distance', rng: makeRNG(1) } as never);
     expect(foe.wounds.current).toBeLessThan(before); // aucun gate « mêlée seulement »
   });
 
   it('un effet `attackType:\'melee\'` ne réagit qu’aux pertes de MÊLÉE', () => {
     const eff: TriggeredEffect = {
-      trigger: 'onWoundLoss', on: 'self', attackType: 'melee',
-      flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'sonne', value: 1 }] } } as never,
+      trigger: 'onWoundLoss', on: 'soi', attackType: 'melee',
+      flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'sonne' }, value: 1 }] } } as never,
     };
     const g = ((c: Combatant) => () => ({ battle: { combatants: [c] } })) as never;
     const ranged = alive({ id: 'r' });
-    applyTriggeredEffects((g as (c: Combatant) => unknown)(ranged) as never, ranged, [eff], 'onWoundLoss', { rng: desDuTest, attackType: 'ranged' });
+    applyTriggeredEffects((g as (c: Combatant) => unknown)(ranged) as never, ranged, [eff], 'onWoundLoss', { rng: desDuTest, attackType: 'distance' });
     expect(hasCondition(ranged, COND.sonne)).toBe(false); // type ≠ → ignoré
     const melee = alive({ id: 'm' });
     applyTriggeredEffects((g as (c: Combatant) => unknown)(melee) as never, melee, [eff], 'onWoundLoss', { rng: desDuTest, attackType: 'melee' });

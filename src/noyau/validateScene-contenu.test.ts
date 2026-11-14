@@ -219,7 +219,7 @@ describe('un combattant de rencontre occupe SON EMPREINTE, pas seulement son anc
       id: 'ogre', kind: 'personnage', label: 'Ogre', pos,
       statblock: { type: 'statblock', label: 'Ogre', char: { B: 10 }, ...(size ? { size } : {}) },
     });
-    s.encounters.push({ id: 'renc', members: [{ entityId: 'ogre', side: 'enemy' }] });
+    s.encounters.push({ id: 'renc', members: [{ entityId: 'ogre', side: 'ennemi' }] });
     return s;
   }
 

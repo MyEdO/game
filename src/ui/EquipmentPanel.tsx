@@ -1,6 +1,17 @@
 import { useGame } from '../state/store';
 import { avecSigne, type Combatant, type HitLocation, type ItemInstance } from '../engine/types';
-import { emplacementDArmure, emplacementDeCape, itemLabel, weaponHands, compatibleAmmo, loadoutLabel, isUnarmed, setADeuxMains, paNette, type ArmourLayer } from '../engine/items';
+import {
+  emplacementDArmure,
+  emplacementDeCape,
+  itemLabel,
+  weaponHands,
+  compatibleAmmo,
+  loadoutLabel,
+  isUnarmed,
+  setADeuxMains,
+  paNette,
+  type ArmourLayer,
+} from '../engine/items';
 import { penaliteDeMainSecondaire } from '../engine/combat';
 import { CodexRef } from './compendium/CodexRef';
 import { QualityChips } from './EntityChip';
@@ -179,7 +190,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
   const items = hero.items ?? [];
   const cape = emplacementDeCape(items);
   const wornCape = cape.porte;
-  const weapons = items.filter((i) => (i.kind === 'melee' || i.kind === 'ranged') && !i.destroyed);
+  const weapons = items.filter((i) => (i.kind === 'melee' || i.kind === 'distance') && !i.destroyed);
   const force = forceDuPorteur(hero);
 
   const activeWeapons = hero.weapons.filter((w) => !isUnarmed(w));
@@ -232,7 +243,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
         <div className="eq-loc-row eq-loc-cape">
           <span className="eq-loc-head">
             <span className="eq-loc-name">Cape</span>
-            <span className="eq-loc-pa" title="Purement cosmétique — aucun effet de règles"><Icon id="action/cast" size="sm" /></span>
+            <span className="eq-loc-pa" title="Purement cosmétique — aucun effet de règles"><Icon id="action/incanter" size="sm" /></span>
           </span>
           <SlotCell
             id="eq-slot-cape"
@@ -255,11 +266,11 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
           const conjured = !!(hero.items ?? []).find((it) => it.uid === lo.main)?.conjured;
           const setActive = hero.activeLoadoutId === lo.id;
           const mainItem = weapons.find((w) => w.uid === lo.main);
-          const offItem = weapons.find((w) => w.uid === lo.off);
+          const offItem = weapons.find((w) => w.uid === lo.secondaire);
           const mainTwoHanded = setADeuxMains(hero, lo);
           // Verdict du noyau : la cellule (`null` = vider) et chaque arme candidate.
           const refusMain = (uid: string | null) => refusEmplacementDeMain({ battle }, hero, lo.id, 'main', uid);
-          const refusOff = (uid: string | null) => refusEmplacementDeMain({ battle }, hero, lo.id, 'off', uid);
+          const refusOff = (uid: string | null) => refusEmplacementDeMain({ battle }, hero, lo.id, 'secondaire', uid);
           const refusSuppression = refusDeSupprimerSet({ battle }, hero, lo.id);
           return (
             <div key={lo.id} className={`set-card ${setActive ? 'active' : ''} ${conjured ? 'conjured' : ''}`}>
@@ -290,10 +301,10 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                       item={offItem}
                       fallback={weaponFallback(offItem, conjured)}
                       refus={refusOff(null) ?? undefined}
-                      value={lo.off ?? ''}
+                      value={lo.secondaire ?? ''}
                       desc="2nde — arme de mêlée à une main, bouclier ou pistolet"
                       options={[{ key: '', label: mainTwoHanded ? '— (2 mains) —' : '— vide —' }, ...weapons.filter((w) => w.uid !== lo.main && !refusOff(w.uid)).map(weaponOpt)]}
-                      onSelect={(v) => garnirLaPanoplie(hero.id, lo.id, 'off', v || null)}
+                      onSelect={(v) => garnirLaPanoplie(hero.id, lo.id, 'secondaire', v || null)}
                     />
                     <span className="set-slot-cap">2nde <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="off-malus">{avecSigne(penaliteDeMainSecondaire(hero))}</CodexRef></span>
                   </div>
@@ -303,7 +314,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                       bouton « Activer » (juge vision 2026-07-17). */}
                   {setActive ? (
                     <span className="chip tone-warn" title="Set actif (armes en main)">
-                      <Icon id="ui/done" size="sm" /> Actif
+                      <Icon id="interface/fait" size="sm" /> Actif
                     </span>
                   ) : (
                     <GatedAction
@@ -318,7 +329,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                   )}
                   <GatedAction
                     id={`loadout-delete-${lo.id}`}
-                    label={<Icon id="ui/delete" size="sm" />}
+                    label={<Icon id="interface/supprimer" size="sm" />}
                     ariaLabel="Supprimer ce set"
                     enabled={!refusSuppression}
                     {...raisonSi(refusSuppression)}
@@ -350,7 +361,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
             <span className="muted">Mains nues</span>
           ) : (
             activeWeapons.map((w, i) => {
-              const ammo = w.type === 'ranged' ? compatibleAmmo(hero, w).reduce((s, a) => s + (a.qty ?? 0), 0) : null;
+              const ammo = w.type === 'distance' ? compatibleAmmo(hero, w).reduce((s, a) => s + (a.qty ?? 0), 0) : null;
               return (
                 <div className="weap" key={i}>
                   <ItemIcon item={w} size="sm" />
@@ -363,7 +374,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                         <span className="weap-quals"> · <QualityChips qualities={resolved.map((r) => ({ id: r.id, value: r.indice }))} /></span>
                       );
                     })()}
-                    {ammo != null && <span className="eq-ammo" title="Munitions compatibles dans le sac"> · <Icon id="item/ammo" size="sm" /> Munitions {ammo}</span>}
+                    {ammo != null && <span className="eq-ammo" title="Munitions compatibles dans le sac"> · <Icon id="objet/munition" size="sm" /> Munitions {ammo}</span>}
                   </span>
                 </div>
               );

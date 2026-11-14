@@ -17,7 +17,7 @@ export const DOC_TITRE_DE_CHAMPION = {
 const porte = (n, nom) => ({
   id: `entrer-zone${n}`,
   label: `Entrer — ${nom}.`,
-  icon: 'action/attack',
+  icon: 'action/attaquer',
   when: flagWhen(n === 1 ? '!zone1_clear' : `zone${n - 1}_clear,!zone${n}_clear`),
   flow: flowOf([{ type: 'transition', scene: { id: `arene-zone${n}` } }]),
 });
@@ -27,7 +27,7 @@ const contrat = (key, cond, propose, fait, gold, xp) => [
   {
     id: `contrat-${key}`,
     label: propose,
-    icon: 'file/document',
+    icon: 'fichier/document',
     when: flagWhen(`${cond},!contrat_${key}`),
     flow: flowOf([
       { type: 'setFlag', flag: `contrat_${key}` },
@@ -37,7 +37,7 @@ const contrat = (key, cond, propose, fait, gold, xp) => [
   {
     id: `prime-${key}`,
     label: `Toucher la prime — ${propose.replace(/^.*?: /, '')}`,
-    icon: 'resource/gold-purse',
+    icon: 'ressource/bourse',
     when: flagWhen(`contrat_${key}_fait,!contrat_${key}_paye`),
     flow: flowOf([
       { type: 'setFlag', flag: `contrat_${key}_paye` },
@@ -56,12 +56,12 @@ const dlgHub = {
       id: 'accueil',
       desc: 'Tu saignes encore ? Parfait, le sable boit tout. L’échelle t’attend — et pour les plus gourmands, j’ai des contrats au-delà de la palissade.',
       choices: [
-        { id: 'echelle-arene', label: 'L’échelle de l’arène.', icon: 'action/attack', next: { id: 'echelle' } },
-        { id: 'contrats-expedition', label: 'Les contrats d’expédition.', icon: 'file/document', next: { id: 'contrats' } },
+        { id: 'echelle-arene', label: 'L’échelle de l’arène.', icon: 'action/attaquer', next: { id: 'echelle' } },
+        { id: 'contrats-expedition', label: 'Les contrats d’expédition.', icon: 'fichier/document', next: { id: 'contrats' } },
         {
           id: 'crocheter-vieux-coffre',
           label: 'Crocheter le vieux coffre du maître.',
-          icon: 'ui/lock',
+          icon: 'interface/verrou',
           when: flagWhen('!coffre_pris'),
           flow: testNode(
             { skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter le coffre', stake: { authored: 'Forcer la serrure : 5 couronnes dans le coffre, sinon le mécanisme rouillé tient bon.' } },
@@ -76,7 +76,7 @@ const dlgHub = {
         {
           id: 'reclamer-titre-champion',
           label: 'Réclamer ton titre de CHAMPION.',
-          icon: 'scenario/arena',
+          icon: 'scenario/arene',
           when: flagWhen('zone13_clear,!champion_fete'),
           flow: flowOf([
             { type: 'setFlag', flag: 'champion_fete' },
@@ -90,7 +90,7 @@ const dlgHub = {
         {
           id: 'savourer-gloire-champion',
           label: 'Savourer ta gloire de champion.',
-          icon: 'scenario/arena',
+          icon: 'scenario/arene',
           when: flagWhen('champion_fete'),
           flow: flowOf([
             { type: 'journal', desc: 'Le maître s’incline : « CHAMPION DE L’ARÈNE ! »' },
@@ -141,7 +141,7 @@ const dlgMedecin = {
       id: 'accueil',
       desc: 'Encore vivant ? Bien. J’ai des potions, du faxtoryll pour les saignements, des membres de rechange… et la scie, si vraiment il faut OPÉRER.',
       choices: [
-        { id: 'voir-remedes-protheses', label: 'Voir les remèdes et prothèses.', icon: 'medical/aid', flow: flowOf([{ type: 'openMerchant', entityId: 'medecin' }]) },
+        { id: 'voir-remedes-protheses', label: 'Voir les remèdes et prothèses.', icon: 'medical/soins-payants', flow: flowOf([{ type: 'openMerchant', entityId: { id: 'medecin' } }]) },
         {
           id: 'passer-sur-table',
           label: 'Passer sur la table (actes payants).',
@@ -150,12 +150,12 @@ const dlgMedecin = {
           flow: flowOf([{
             type: 'medicalAid',
             acts: [
-              { act: 'wounds', cost: { silver: 4 } },
-              { act: 'bleed', cost: { silver: 4 } },
-              { act: 'trauma', cost: { silver: 5 } },
-              { act: 'surgery', cost: { silver: 6 } },
+              { act: 'blessures', cost: { silver: 4 } },
+              { act: 'hemorragie', cost: { silver: 4 } },
+              { act: 'traumatisme', cost: { silver: 5 } },
+              { act: 'chirurgie', cost: { silver: 6 } },
             ],
-            entityId: 'medecin',
+            entityId: { id: 'medecin' },
           }]),
         },
         { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
@@ -172,7 +172,7 @@ const dlgForgeron = {
       id: 'accueil',
       desc: 'Le sable bouffe le fil des lames plus vite que les monstres. Montre-moi ton acier — je vends, je rachète, je RÉPARE.',
       choices: [
-        { id: 'armes-armures-reparations', label: 'Armes, armures et réparations.', icon: 'merchant/cart', flow: flowOf([{ type: 'openMerchant', entityId: 'forgeron' }]) },
+        { id: 'armes-armures-reparations', label: 'Armes, armures et réparations.', icon: 'marchand/panier', flow: flowOf([{ type: 'openMerchant', entityId: { id: 'forgeron' } }]) },
         { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
@@ -187,7 +187,7 @@ const dlgEchoppier = {
       id: 'accueil',
       desc: 'Onguents, herbes, cordages, torches — tout ce qui manque quand la nuit tombe sur la route. Entrez, entrez : ma boutique a tout ce que le sable n’a pas encore mangé.',
       choices: [
-        { id: 'voir-etal-herbes', label: 'Voir l’étal (herbes, potions, fournitures).', icon: 'merchant/cart', flow: flowOf([{ type: 'openMerchant', entityId: 'echoppiere' }]) },
+        { id: 'voir-etal-herbes', label: 'Voir l’étal (herbes, potions, fournitures).', icon: 'marchand/panier', flow: flowOf([{ type: 'openMerchant', entityId: { id: 'echoppiere' } }]) },
         { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
@@ -202,12 +202,12 @@ const dlgTaverne = {
       id: 'accueil',
       desc: 'Bienvenue au Trophée ! Table, chambre, et de quoi remplir les sacoches — la route ne nourrit personne, prenez des RATIONS avant de voyager.',
       choices: [
-        { id: 'voir-garde-manger', label: 'Voir le garde-manger (rations, vivres, pintes).', icon: 'rest/stew', flow: flowOf([{ type: 'openMerchant', entityId: 'taverniere' }]) },
+        { id: 'voir-garde-manger', label: 'Voir le garde-manger (rations, vivres, pintes).', icon: 'repos/ragout', flow: flowOf([{ type: 'openMerchant', entityId: { id: 'taverniere' } }]) },
         {
           id: 'repas-chaud',
           // Repas de MIDI (sans dormir) : prix de groupe d'auteur — la nuit passe par la modale de Repos.
           label: 'Repas chaud pour le groupe.',
-          icon: 'rest/stew',
+          icon: 'repos/ragout',
           cost: { silver: 4 },
           flow: flowOf([{ type: 'mealParty' }, { type: 'journal', desc: 'Ragoût, pain noir et bière : le groupe est nourri pour la journée.' }]),
         },
@@ -215,10 +215,10 @@ const dlgTaverne = {
           id: 'prendre-chambres',
           // Nuit au Trophée : la modale de repos porte chambre, repas par héros et prix.
           label: 'Prendre des chambres pour la nuit.',
-          icon: 'rest/bed',
+          icon: 'repos/lit',
           flow: flowOf([{ type: 'rest', lodging: 'auberge' }]),
         },
-        { id: 'ecouter-salle', label: 'Écouter la salle.', icon: 'expedition/rumor', next: { id: 'rumeurs' } },
+        { id: 'ecouter-salle', label: 'Écouter la salle.', icon: 'expedition/rumeurs', next: { id: 'rumeurs' } },
         { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
@@ -261,13 +261,13 @@ const dlgFrere = {
         {
           id: 'recevoir-soins',
           label: 'Recevoir des soins (actes payants).',
-          icon: 'medical/aid',
-          flow: flowOf([{ type: 'medicalAid', acts: [{ act: 'wounds', cost: { silver: 5 } }, { act: 'bleed', cost: { silver: 5 } }], entityId: 'frere' }]),
+          icon: 'medical/soins-payants',
+          flow: flowOf([{ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }, { act: 'hemorragie', cost: { silver: 5 } }], entityId: { id: 'frere' } }]),
         },
         {
           id: 'recevoir-benediction',
           label: 'Recevoir la bénédiction du départ (retrouver la Chance).',
-          icon: 'faith/prayer',
+          icon: 'foi/priere',
           when: flagWhen('!benediction_recue'),
           flow: flowOf([
             { type: 'restoreFortune' },
@@ -278,14 +278,14 @@ const dlgFrere = {
         {
           id: 'faire-don',
           label: 'Faire un don au tronc.',
-          icon: 'resource/gold-purse',
+          icon: 'ressource/bourse',
           cost: { gold: 1 },
           flow: flowOf([{ type: 'journal', desc: 'La pièce sonne au fond du tronc. Frère Anselm hoche la tête, sincèrement ému.' }]),
         },
         {
           id: 'piller-tronc-offrandes',
           label: 'Piller le tronc des offrandes.',
-          icon: 'action/pick-up',
+          icon: 'action/ramasser',
           when: flagWhen('!tronc_pille'),
           flow: testNode(
             { skill: { id: 'discretion' }, difficulty: 'difficile', label: 'Piller le tronc sous l’œil de Sigmar', stake: { authored: 'Faire main basse sans être vu : 30 pistoles à la clé ; pris sur le fait, le tronc bascule et vous gagnez 1 Point de Péché.' } },
@@ -505,9 +505,9 @@ export function makeHub() {
         appearance: { species: 'humains-reiklander', tenue: 'soldat', sex: 'M' },
         inventaire: { hallebarde: false },
       }),
-      NPC('villageoise', 21, 22, 'Villageoise', { facing: 'S', dialogueId: { id: 'dlg-rumeurs' }, anim: 'standing', appearance: { species: 'humains-reiklander', tenue: 'mendiant', sex: 'F' } }),
-      NPC('villageois-1', 30, 22, 'Villageois', { anim: 'standing', appearance: { species: 'humains-reiklander', tenue: 'mendiant' } }),
-      NPC('villageois-2', 29, 17, 'Badaud', { anim: 'cowering', facing: 'E', appearance: { species: 'humains-reiklander', tenue: 'bourgeois' } }),
+      NPC('villageoise', 21, 22, 'Villageoise', { facing: 'S', dialogueId: { id: 'dlg-rumeurs' }, anim: 'debout', appearance: { species: 'humains-reiklander', tenue: 'mendiant', sex: 'F' } }),
+      NPC('villageois-1', 30, 22, 'Villageois', { anim: 'debout', appearance: { species: 'humains-reiklander', tenue: 'mendiant' } }),
+      NPC('villageois-2', 29, 17, 'Badaud', { anim: 'tapi', facing: 'E', appearance: { species: 'humains-reiklander', tenue: 'bourgeois' } }),
       P(20, 18, 'puits'),
       P(28, 16, 'coffre', { label: 'Le coffre du maître' }),
       P(19, 15, 'lampadaire'),
@@ -541,9 +541,9 @@ export function makeHub() {
         merchant: { archetype: { id: 'taverniere' } },
         appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'F' },
       }),
-      NPC('client-1', 5, 8, 'Client', { anim: 'feeding', facing: 'E', appearance: { species: 'nains', tenue: 'batelier' } }),
-      NPC('client-2', 14, 9, 'Habitué', { anim: 'standing', facing: 'O', appearance: { species: 'humains-reiklander', tenue: 'mendiant' } }),
-      NPC('client-3', 6, 10, 'Buveur', { anim: 'standing', facing: 'E', appearance: { species: 'humains-reiklander', tenue: 'soldat', sex: 'M' } }),
+      NPC('client-1', 5, 8, 'Client', { anim: 'repas', facing: 'E', appearance: { species: 'nains', tenue: 'batelier' } }),
+      NPC('client-2', 14, 9, 'Habitué', { anim: 'debout', facing: 'O', appearance: { species: 'humains-reiklander', tenue: 'mendiant' } }),
+      NPC('client-3', 6, 10, 'Buveur', { anim: 'debout', facing: 'E', appearance: { species: 'humains-reiklander', tenue: 'soldat', sex: 'M' } }),
       P(4, 4, 'feu-camp', { label: 'Âtre' }),
       P(12, 4, 'etagere'),
       P(13, 4, 'tonneau'),
@@ -563,7 +563,7 @@ export function makeHub() {
         dialogueId: { id: 'dlg-frere' },
         appearance: { species: 'humains-reiklander', tenue: 'pretre', sex: 'M' },
       }),
-      NPC('fidele', 38, 10, 'Fidèle en prière', { anim: 'praying', facing: 'N', appearance: { species: 'humains-reiklander', tenue: 'mendiant', sex: 'F' } }),
+      NPC('fidele', 38, 10, 'Fidèle en prière', { anim: 'priere', facing: 'N', appearance: { species: 'humains-reiklander', tenue: 'mendiant', sex: 'F' } }),
       P(40, 4, 'autel'),
       P(38, 4, 'chandelier'),
       P(42, 4, 'chandelier'),
@@ -583,7 +583,7 @@ export function makeHub() {
         appearance: { species: 'nains', tenue: 'artisan', sex: 'M' },
         inventaire: { 'marteau-de-guerre': false },
       }),
-      NPC('apprenti', 11, 31, 'Apprenti', { anim: 'standing', facing: 'O', appearance: { species: 'humains-reiklander', tenue: 'artisan', sex: 'M' } }),
+      NPC('apprenti', 11, 31, 'Apprenti', { anim: 'debout', facing: 'O', appearance: { species: 'humains-reiklander', tenue: 'artisan', sex: 'M' } }),
       P(4, 28, 'feu-camp', { label: 'Le foyer' }),
       P(6, 30, 'etabli', { label: 'Établi & enclume' }),
       P(4, 32, 'tonneau', { label: 'Cuve à trempe' }),
@@ -599,7 +599,7 @@ export function makeHub() {
         merchant: { archetype: { id: 'herboriste' } },
         appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'F' },
       }),
-      NPC('chaland', 44, 32, 'Chaland', { anim: 'standing', facing: 'O', appearance: { species: 'humains-reiklander', tenue: 'mendiant' } }),
+      NPC('chaland', 44, 32, 'Chaland', { anim: 'debout', facing: 'O', appearance: { species: 'humains-reiklander', tenue: 'mendiant' } }),
       P(37, 28, 'etal-marche', { label: 'Comptoir' }),
       P(45, 28, 'etagere'),
       P(38, 30, 'etagere'),

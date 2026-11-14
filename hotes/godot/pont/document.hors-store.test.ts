@@ -4,7 +4,7 @@
  * rend la conversation à la liasse.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { drainer, table, enFocus } from './pont.testkit';
 import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 
@@ -13,7 +13,7 @@ const { appel } = table();
 describe('le document par le pont', () => {
   it('lire un document de la liasse, puis le refermer', () => {
     let { suite } = drainer(appel, appel('demarrer', { scenario: 'documents-edo', graine: 7 }));
-    while (suite.vue.projection.fenetre) ({ suite } = drainer(appel, appel('jouer', suite.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu)));
+    while (suite.vue.projection.fenetre) ({ suite } = drainer(appel, appel('jouer', enFocus(suite.vue)!.jeu)));
     ({ suite } = drainer(appel, appel('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 2, y: 2 }] })));
     const parcourir = suite.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Liasse de documents : Parcourir la liasse');
     expect(parcourir, 'à portée, la liasse s’offre').toBeDefined();

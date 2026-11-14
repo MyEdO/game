@@ -8,7 +8,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 import { itemFromTrappingById, recomputeLoadout, loadWeapon } from '../engine/items';
 import { firedAttackBlock, attackWeaponOf, runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
@@ -30,7 +30,7 @@ const take = (id: string, over: Partial<ItemInstance> = {}): ItemInstance => {
 
 /** Héros RÉEL (pré-tiré) porteur d'une arme à distance (set 1) et d'une épée (set 2), arme de tir CHARGÉE. */
 function shooter(rangedId: string) {
-  const h = makePregens(idsDeTest)[0];
+  const h = tousLesHerosDeScenario(idsDeTest)[0];
   const ranged = take(rangedId);
   const epee = take('arme-simple');
   const ammo = take(rangedId === 'arbalete' ? 'carreau' : 'balle-et-poudre', { equipped: false });
@@ -39,7 +39,7 @@ function shooter(rangedId: string) {
   h.activeLoadoutId = 'lo-tir';
   h.pos = { x: 3, y: 3 };
   recomputeLoadout(h);
-  loadWeapon(h, h.weapons.find((w) => w.type === 'ranged')); // cycle de charge RÉEL (Recharge 1)
+  loadWeapon(h, h.weapons.find((w) => w.type === 'distance')); // cycle de charge RÉEL (Recharge 1)
   return h;
 }
 
@@ -61,7 +61,7 @@ const live = (id: string) => banc.getState().battle!.combatants.find((c) => c.id
 const pendingWeaponLabel = (): string => {
   const pa = banc.getState().pendingAttack!;
   const b = banc.getState().battle!;
-  return attackWeaponOf(b, live(pa.attackerId), live(pa.targetId), pa).label;
+  return attackWeaponOf(banc.getState().scene, b, live(pa.attackerId), live(pa.targetId), pa).label;
 };
 
 beforeEach(() => {
@@ -133,7 +133,7 @@ describe('set réellement DÉSARMÉ : les Mains nues reviennent', () => {
 
 describe('invariant « jamais sans arme » + statbloc', () => {
   it('sans objet NI loadout : `recomputeLoadout` rend Mains nues (aucun combattant sans arme)', () => {
-    const c = { id: 'x', label: 'X', kind: 'hero', items: [], characteristics: { force: 30, endurance: 30 } } as unknown as Combatant;
+    const c = { id: 'x', label: 'X', kind: 'heros', items: [], characteristics: { force: 30, endurance: 30 } } as unknown as Combatant;
     recomputeLoadout(c);
     expect(c.weapons.map((w) => w.label)).toEqual(['Mains nues']);
   });
@@ -148,7 +148,7 @@ describe('invariant « jamais sans arme » + statbloc', () => {
 
 describe('IA : tir pur Engagé (LDB 14 l.41)', () => {
   it('un PNJ IA au set de tir pur, Engagé, ne TIRE pas (il se replace) — plus de coup de poing automatique', () => {
-    const h = makePregens(idsDeTest)[0];
+    const h = tousLesHerosDeScenario(idsDeTest)[0];
     h.pos = { x: 3, y: 3 };
     // Un profil sans Trait Arme : celui d'un humain resterait à côté de l'arbalète (LDB 85, #3684).
     const e = spawnEnemy({ statblock: { type: 'statblock', label: 'Arbalétrier', char: { 'capacite-de-tir': 40, B: 12 } } }, 'e-tir', { x: 4, y: 3 });
@@ -156,7 +156,7 @@ describe('IA : tir pur Engagé (LDB 14 l.41)', () => {
     e.loadouts = [{ id: 'lo-tir', main: 'arbalete' }];
     e.activeLoadoutId = 'lo-tir';
     recomputeLoadout(e);
-    loadWeapon(e, e.weapons.find((w) => w.type === 'ranged'));
+    loadWeapon(e, e.weapons.find((w) => w.type === 'distance'));
     expect(e.weapons.map((w) => w.label)).toEqual(['Arbalète']); // pas de Mains nues fabriquées
     e.engagedWith = [h.id]; h.engagedWith = [e.id];
     (e as unknown as { aiDriven: boolean }).aiDriven = true;

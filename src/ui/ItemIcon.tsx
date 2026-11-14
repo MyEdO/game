@@ -11,15 +11,15 @@ import type { IconId } from '../data/icons';
 /** Id d'icône de catégorie (registre src/data/icons, famille item/*). */
 function glyphe(item: GabaritDObjet | Weapon): IconId {
   if ('kind' in item) {
-    if (item.kind === 'armor') return 'item/armour';
-    if (item.kind === 'melee' || item.kind === 'ranged') return isShieldItem(item) ? 'item/armour' : 'item/weapon';
-    if (item.kind === 'ammo') return 'item/ammo';
-    if (isCapeItem(item)) return 'item/cloak';
-    if (isConsumable(item)) return 'item/consumable';
-    return 'item/misc';
+    if (item.kind === 'armor') return 'objet/armure';
+    if (item.kind === 'melee' || item.kind === 'distance') return isShieldItem(item) ? 'objet/armure' : 'objet/arme';
+    if (item.kind === 'ammo') return 'objet/munition';
+    if (isCapeItem(item)) return 'objet/cape';
+    if (isConsumable(item)) return 'objet/consommable';
+    return 'objet/divers';
   }
   // `Weapon` (combat) : pas de champ `kind` — discriminant de l'union.
-  return isShieldItem(item) ? 'item/armour' : 'item/weapon';
+  return isShieldItem(item) ? 'objet/armure' : 'objet/arme';
 }
 
 const SIZE_PX = { sm: 24, md: 40, lg: 64 } as const;

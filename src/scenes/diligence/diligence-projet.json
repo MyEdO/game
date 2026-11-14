@@ -2,7 +2,7 @@
  "id": "la-diligence",
  "type": "projet",
  "label": "L’Ennemi Intérieur — chapitre 1 : la route d’Altdorf",
- "icon": "scenario/travel",
+ "icon": "scenario/voyage",
  "desc": "Les Personnages se forment à l’auberge-relais La Diligence, à deux jours d’Altdorf, et cherchent une place à bord d’une diligence pour la capitale.",
  "versionContenu": 2,
  "source": {
@@ -8986,25 +8986,25 @@
         "label": "Monter à bord",
         "unique": true,
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "setFlag",
             "flag": "edo-ch1-depart"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "clearObjective",
             "id": "edo-ch1-place-a-bord"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Les cochers ont enfin attelé : vous prenez place à bord de la diligence.",
             "adapteDe": {
@@ -9015,8 +9015,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "setObjective",
             "id": "edo-ch1-route",
             "desc": "Se rendre à Altdorf.",
@@ -9028,8 +9028,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "openWorldMap"
            }
           }
@@ -9052,11 +9052,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setObjective",
          "id": "edo-ch1-place-a-bord",
          "desc": "Trouver une place à bord d’une diligence pour Altdorf.",
@@ -20892,18 +20892,18 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "edo-ch1-clos"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "clearObjective",
          "id": "edo-ch1-route"
         }
@@ -21935,11 +21935,11 @@
         "id": "fouiller",
         "unique": true,
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Sous un buisson, un peu à l’écart de la diligence renversée, gît un autre corps : deux carreaux d’arbalète dans le dos, des vêtements de citadin.",
             "adapteDe": {
@@ -21950,8 +21950,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "designerHeros",
             "etat": "campagne-sosie-heros",
             "invite": "En retournant le cadavre, vous découvrez avec stupeur qu’il est le sosie de l’un d’entre vous. Lequel ?",
@@ -21963,45 +21963,45 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "document",
             "documentId": "edo-document-3-heritage"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "revealClue",
             "indiceId": "edo-ch1-indice-heritage",
             "stade": "veste"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "document",
             "documentId": "edo-document-4-affidavit"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "revealClue",
             "indiceId": "edo-ch1-indice-heritage",
             "stade": "poche"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "setFlag",
             "flag": "edo-ch1-corps-kastor-fouille"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "clearObjective",
             "id": "edo-ch1-embuscade"
            }
@@ -24597,11 +24597,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setObjective",
          "id": "edo-ch1-embuscade",
          "desc": "Examiner les lieux de l’embuscade.",
@@ -41312,7 +41312,13 @@
     "scene": {
      "id": "la-diligence"
     },
-    "icon": "scenario/hamlet"
+    "icon": "scenario/hameau",
+    "prose": "Une auberge-relais ceinte d’un mur, sur la route de Delbren, dont le portail reste ouvert pendant la journée. La cour fourmille d’activité et sent le crottin frais ; devant les écuries, deux palefreniers bouchonnent un attelage de quatre chevaux. De l’auberge s’échappent des effluves de cuisine et des éclats de rire.",
+    "adapteDe": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 13,
+     "note": "EDO 01 l.81 · l.27"
+    }
    },
    {
     "id": "route-principale",
@@ -41324,7 +41330,13 @@
     "scene": {
      "id": "route-principale-virage"
     },
-    "icon": "scenario/travel"
+    "icon": "scenario/voyage",
+    "prose": "La route de Middenheim à Altdorf, deux heures après le croisement où une borne annonçait : « Altdorf, 180 km ». Ici, la chaussée tourne entre les arbres.",
+    "adapteDe": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 20,
+     "note": "EDO 01 l.340 · EDO 02 l.13 · l.27"
+    }
    },
    {
     "id": "auberge-des-sept-rayons",
@@ -41336,7 +41348,13 @@
     "scene": {
      "id": "auberge-des-sept-rayons"
     },
-    "icon": "scenario/hamlet",
+    "icon": "scenario/hameau",
+    "prose": "Une auberge-relais liée aux Lignes du Rochet, disposée comme La Diligence. Trois diligences s’y sont arrêtées pour la nuit et les lieux sont bondés ; on y colporte toutes les rumeurs de la route.",
+    "adapteDe": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 28,
+     "note": "EDO 02 l.184 · EDO 01 l.142"
+    },
     "when": {
      "kind": "flag",
      "expr": "edo-ch1-depart"
@@ -41353,6 +41371,12 @@
      "id": "altdorf-porte-sud"
     },
     "icon": "scenario/village",
+    "prose": "Les murs blancs d’Altdorf, capitale de l’Empire, la plus grande et la plus riche de ses cités. Le Palais Impérial se dresse près du Reik et domine toute la ville. Dans les rues, on repeint une façade tandis que sa voisine tombe en ruine, et des agitateurs réclament par dizaines la venue d’un ordre nouveau. Tout le monde a quelque part où aller, et personne n’y arrive assez vite.",
+    "adapteDe": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 32,
+     "note": "EDO 03 l.5 · l.7 · l.25 · l.27"
+    },
     "when": {
      "kind": "flag",
      "expr": "edo-ch1-depart"

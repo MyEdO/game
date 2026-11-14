@@ -2,34 +2,42 @@
  * Chantier naval et dossier du navire jugés par le NOYAU (#3059, lot port) : les gestes `reparerLeNavire` et
  * `carenerLeNavire` débitent le devis `devisDeChantier` et en disent le refus ; `dossierDuNavire` compose le
  * refus d'appareiller et l'effectif présent (`shipboardSouls`). MDG 13 l.643 ; MDG 13 l.150-159 ;
- * MDG 12 l.70-75 ; MDG 14 l.238 ; MDG 12 l.195-364 ; MDG 15 l.319.
+ * MDG 12 l.70-75 ; MDG 14 l.238 ; MDG 12 l.195-364 ; MDG 15 l.319 ; MDG 12 l.230.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { imposerLesD100 } from './battleRng.testkit';
+import { REPARATION } from '../engine/seaNavigation';
+import { MINUTES_PER_DAY } from '../engine/clock';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type EtatDeJeu, type Partie } from './index';
-import { makePregens } from '../data/pregens';
-import { findVehicleById, NAVAL_TRAITS } from '../data';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
+import { findNavalTrait, findVehicleById, NAVAL_TRAITS } from '../data';
 import { emptyScene } from './monde/scene';
 import { toBrass, toMoney, add as moneyAdd, fromBrass, type Money } from '../engine/money';
 import { bourseOf, withBourseMoney } from '../engine/bourse';
 import type { CampaignVessel } from './etat';
-import { devisDeChantier, devisDAmelioration, dossierDuNavire, raisonDuRefusDAppareiller, refusDAppareiller } from './seaVoyageFlow';
+import { ameliorationsAuChantier, devisDeChantier, devisDAmelioration, dossierDuNavire, raisonDuRefusDAppareiller, refusDAppareiller } from './seaVoyageFlow';
+import { resolvePortRef } from './worldMap';
+import { PORT_A_CHANTIER, PORT_SANS_CHANTIER } from '../data/navalPorts.testkit';
 import { refusDEntrerAuPort } from './portFlow';
 import { plafondDePlanque } from './seaActivities';
 import { installCost } from '../engine/shipBuild';
 import { shipboardSouls } from './shipCrew';
+import { refusDeGesteSurLeGroupe } from './bourseFlow';
 import { t } from '../i18n';
+import { rule } from '../engine/policy';
+import { lotsDeCale } from '../engine/caleDeTest.testkit';
 
 const COGUE = findVehicleById('cogue')!;
 const navire = (patch: Partial<CampaignVessel> = {}): CampaignVessel =>
   ({ vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, ...patch }) as CampaignVessel;
 
 /** Partie à quai : un héros à la bourse `bourse`, le navire `vessel`. */
-function aQuai(vessel: CampaignVessel, bourse: Money, mode: 'local' | 'guest' = 'local', etat: Partial<EtatDeJeu> = {}): Partie {
+function aQuai(vessel: CampaignVessel, bourse: Money, mode: 'local' | 'invite' = 'local', etat: Partial<EtatDeJeu> = {}): Partie {
   const entrees: EntreesDeLaPartie = { graine: 2, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   return creerPartie({
     ...etatInitialDuJeu(),
-    party: makePregens(idsDeTest).slice(0, 1).map((h) => withBourseMoney(h, bourse, idsDeTest)),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => withBourseMoney(h, bourse, idsDeTest)),
     scene: { ...emptyScene('port', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     gameTime: 8 * 60,
     vessel,
@@ -37,6 +45,12 @@ function aQuai(vessel: CampaignVessel, bourse: Money, mode: 'local' | 'guest' = 
     ...etat,
   }, entrees);
 }
+
+/** Le groupe au lieu-port `A` (scène `port`) du catalogue `ref` (`MapPlace.port.ref`). */
+const auPort = (ref: string): Partial<EtatDeJeu> => ({
+  worldMap: { id: 'm', label: 'Mer', places: [{ id: 'A', label: 'Port', pos: { x: 0, y: 0 }, scene: { id: 'port' }, port: resolvePortRef({ ref }) }], routes: [] },
+  lieu: 'A',
+});
 
 const bourseDuGroupe = (p: Partie) => toBrass(p.etat().party.reduce((s, h) => moneyAdd(s, bourseOf(h)), fromBrass(0)));
 const B = COGUE.hull!.char.B;
@@ -82,15 +96,23 @@ describe('#3059 — chantier naval : un seul devis pour l’écran et le geste',
 describe('#3059 — dossier du navire : composé des sources du noyau', () => {
   it('cale au-delà du plafond dur : le dossier porte le refus d’appareiller du départ en mer', () => {
     const vessel = navire({ cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 2 * COGUE.ship!.capacity, basePriceGold: 10 }], crewLost: 1 });
-    const party = makePregens(idsDeTest).slice(0, 2);
-    const dossier = dossierDuNavire(vessel, party)!;
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
+    const dossier = dossierDuNavire(vessel, party, 0)!;
     expect(dossier.refusDAppareiller).toBe(raisonDuRefusDAppareiller(refusDAppareiller(vessel)!));
     expect(dossier.crewCount).toBe(shipboardSouls({ party, vessel }).crew);
     expect(dossier.crewCount).toBe(Math.max(0, (COGUE.ship!.crew ?? 0) - 1));
   });
 
+  it('MDG 14 l.238 — autonomie en vivres : un frais seul nourrit l’équipage jusqu’à sa péremption, pas au-delà', () => {
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
+    const equipage = shipboardSouls({ party, vessel: navire() }).crew;
+    const peremption = rule('mer-vivres-frais-peremption-jours');
+    const vessel = navire({ provisions: lotsDeCale({ 'nourriture-courses-journee': equipage * (peremption + 5) }, 0) });
+    expect(dossierDuNavire(vessel, party, 0)!.provisionDays).toBe(peremption);
+  });
+
   it('cale nominale : aucun refus d’appareiller', () => {
-    expect(dossierDuNavire(navire(), makePregens(idsDeTest).slice(0, 1))!.refusDAppareiller).toBeNull();
+    expect(dossierDuNavire(navire(), tousLesHerosDeScenario(idsDeTest).slice(0, 1), 0)!.refusDAppareiller).toBeNull();
   });
 });
 
@@ -102,7 +124,7 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
     const bourse = { gold: gold + 10, silver: 0, brass: 0 };
     const partie = aQuai(navire(), bourse);
     try {
-      expect(devisDAmelioration(partie.etat().vessel, trait.id, 1, bourse, null)).toMatchObject({ gold, refus: null });
+      expect(devisDAmelioration(partie.etat().vessel, trait.id, 1, bourse, null, undefined)).toMatchObject({ gold, refus: null });
       const avant = bourseDuGroupe(partie);
       partie.envoyer({ type: 'installerLAmelioration', args: [trait.id, 1] });
       expect(avant - bourseDuGroupe(partie)).toBe(toBrass(toMoney({ gold })));
@@ -116,7 +138,7 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
     const vide = { gold: 0, silver: 0, brass: 0 };
     const partie = aQuai(navire(), vide);
     try {
-      const refus = devisDAmelioration(partie.etat().vessel, trait.id, 1, vide, null).refus;
+      const refus = devisDAmelioration(partie.etat().vessel, trait.id, 1, vide, null, undefined).refus;
       expect(refus).toBe(t('sv.upgradeTooExpensive', { label: trait.label, gold }));
       partie.envoyer({ type: 'installerLAmelioration', args: [trait.id, 1] });
       expect(partie.etat().journal.some((l) => l.includes(refus!))).toBe(true);
@@ -130,7 +152,7 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
     const entrees: EntreesDeLaPartie = { graine: 2, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
     const partie = creerPartie({
       ...etatInitialDuJeu(),
-      party: makePregens(idsDeTest).slice(0, 1),
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 1),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       worldMap: { id: 'm', label: 'Mer', places: [{ id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'port-a' }, port: { taille: 4, richesse: 4, production: ['commerce-mer'] } as never }], routes: [] },
       lieu: 'A',
@@ -148,10 +170,10 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
   });
 });
 
-describe('#3059 — siège invité : les dépenses du chantier disent le refus de dépense du groupe', () => {
-  it('réparation, carénage, Amélioration et embauche refusés, rien de débité ni posé', () => {
+describe('#3059 — siège invité : les dépenses du chantier sont à l’hôte', () => {
+  it('réparation, carénage, Amélioration et embauche envoyés se refusent (`coop.hoteSeul`), rien de débité ni posé ; l’écran dit le refus de groupe', () => {
     const trait = NAVAL_TRAITS.find((tr) => tr.kind === 'amelioration' && tr.install && (installCost(tr.install, COGUE.ship!.lengthM, 1).gold ?? 0) > 0)!;
-    const partie = aQuai(navire({ wounds: { current: B - 4, max: B }, fouling: { level: 2, lastWeek: 0 } }), { gold: 10000, silver: 0, brass: 0 }, 'guest');
+    const partie = aQuai(navire({ wounds: { current: B - 4, max: B }, fouling: { level: 2, lastWeek: 0 } }), { gold: 10000, silver: 0, brass: 0 }, 'invite');
     try {
       const avant = bourseDuGroupe(partie);
       partie.envoyer({ type: 'reparerLeNavire', args: [] });
@@ -164,7 +186,8 @@ describe('#3059 — siège invité : les dépenses du chantier disent le refus d
       expect(v.fouling!.level).toBe(2);
       expect(v.upgrades ?? []).toEqual([]);
       expect(v.crew ?? []).toEqual([]);
-      expect(partie.etat().journal.filter((l) => l.includes(t('groupe.hoteSeul'))).length).toBe(4);
+      expect(partie.etat().journal.filter((l) => l === t('coop.hoteSeul')).length).toBe(4);
+      expect(refusDeGesteSurLeGroupe(partie.etat())).toBe(t('groupe.hoteSeul'));
     } finally {
       partie.fermer();
     }
@@ -175,7 +198,7 @@ describe('#3059 — siège invité : vente, bradage et Conseil disent le refus d
   it('vente et bradage au port, paie du Conseil : refusés, rien ne bouge', () => {
     const lot = { uid: 'lot-2', cargoId: 'bois-mer', enc: 10, basePriceGold: 10 };
     const port = { taille: 4, richesse: 4, production: [] as string[] } as never;
-    const partie = aQuai(navire({ cargo: [lot] }), { gold: 500, silver: 0, brass: 0 }, 'guest', {
+    const partie = aQuai(navire({ cargo: [lot] }), { gold: 500, silver: 0, brass: 0 }, 'invite', {
       port: { placeId: 'P', label: 'Port', port, offers: [] },
       pendingCouncil: { today: 7, wageBrass: 240, phase: 'choix' },
     });
@@ -183,7 +206,7 @@ describe('#3059 — siège invité : vente, bradage et Conseil disent le refus d
       const avant = bourseDuGroupe(partie);
       partie.envoyer({ type: 'fenetreChoisir', args: ['port', 'vendre', 'lot-2'] });
       partie.envoyer({ type: 'fenetreChoisir', args: ['port', 'jeter', 'lot-2'] });
-      partie.envoyer({ type: 'fenetreChoisir', args: ['council', 'paie', 'paie-reguliere'] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['conseil', 'paie', 'paie-reguliere'] });
       const s = partie.etat();
       expect(s.vessel!.cargo).toEqual([lot]);
       expect(bourseDuGroupe(partie)).toBe(avant);
@@ -240,20 +263,20 @@ describe('#3059 — escale : embauche et débarquement jugés au noyau', () => {
 
 describe('#3059 — Activités en mer : valider la semaine est une décision d’hôte (MDG 15 l.266-306)', () => {
   it('siège invité : `fenetreValider(\'seaActivities\')` refusé en tête, aucune cascade ouverte, bourses intactes', () => {
-    const heros = makePregens(idsDeTest).slice(0, 2).map((h) => withBourseMoney(h, { gold: 100, silver: 0, brass: 0 }, idsDeTest));
+    const heros = tousLesHerosDeScenario(idsDeTest).slice(0, 2).map((h) => withBourseMoney(h, { gold: 100, silver: 0, brass: 0 }, idsDeTest));
     const partie = creerPartie({
       ...etatInitialDuJeu(),
       party: heros,
       scene: { ...emptyScene('mer', 2, 2), label: 'Mer', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       gameTime: 8 * 60,
       vessel: navire(),
-      net: { ...etatInitialDuJeu().net, mode: 'guest' },
+      net: { ...etatInitialDuJeu().net, mode: 'invite' },
       pendingSeaActivities: { picks: { [heros[0].id]: { activityId: 'commerce-opportunite', investGold: 10 }, [heros[1].id]: { activityId: 'cartographie', stashGold: 5 } }, day: { kmFrom: 0, kmTo: 0, hours: 0, lines: [] } } as never,
     }, { graine: 5, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} });
     try {
       const fenetres = () => Object.entries(partie.etat()).filter(([k, v]) => k.startsWith('pending') && v).map(([k]) => k);
       const avant = fenetres();
-      partie.envoyer({ type: 'fenetreValider', args: ['seaActivities'] });
+      partie.envoyer({ type: 'fenetreValider', args: ['activitesEnMer'] });
       const s = partie.etat();
       expect(fenetres()).toEqual(avant);
       expect(s.pendingSeaActivities?.opportunityQueue, 'aucune Activité résolue').toBeUndefined();
@@ -265,7 +288,76 @@ describe('#3059 — Activités en mer : valider la semaine est une décision d�
   });
 
   it('plafond de planque : la bourse du héros (7 CO)', () => {
-    const hero = withBourseMoney(makePregens(idsDeTest)[0], { gold: 7, silver: 0, brass: 0 }, idsDeTest);
+    const hero = withBourseMoney(tousLesHerosDeScenario(idsDeTest)[0], { gold: 7, silver: 0, brass: 0 }, idsDeTest);
     expect(plafondDePlanque({ party: [hero], pendingSeaActivities: null }, hero)).toBe(7);
+  });
+});
+
+describe('#1652 — la pose d’une Amélioration fait passer sa durée (MDG 12 l.230 ; MDG 12 l.293)', () => {
+  afterEach(() => vi.restoreAllMocks());
+  const riche = { gold: 100000, silver: 0, brass: 0 };
+
+  /** Pose `traitId` sur un navire `vehicleId` à quai, d100 imposés `des` ; rend le devis et les jours passés. */
+  function poser(vehicleId: string, traitId: string, ...des: number[]) {
+    const partie = aQuai(navire({ vehicleId }), riche, 'local', auPort(PORT_A_CHANTIER));
+    try {
+      const devis = devisDAmelioration(partie.etat().vessel, traitId, 1, riche, null, PORT_A_CHANTIER);
+      imposerLesD100(...des);
+      const avant = partie.etat().gameTime;
+      partie.envoyer({ type: 'installerLAmelioration', args: [traitId, 1] });
+      expect(partie.etat().vessel!.upgrades?.map((u) => u.id)).toEqual([traitId]);
+      return { duree: devis.duree, jours: (partie.etat().gameTime - avant) / MINUTES_PER_DAY };
+    } finally {
+      partie.fermer();
+    }
+  }
+
+  it.each([
+    ['blindage-fer', 'cogue', 16], ['blindage-fer', 'caravelle-tileenne', 32],
+    ['lissage', 'cogue', 8], ['lissage', 'caravelle-tileenne', 16],
+  ] as const)('%s sur %s : le devis dit %i jours, et ils passent', (traitId, vehicleId, jours) => {
+    expect(poser(vehicleId, traitId)).toEqual({ duree: jours, jours });
+  });
+
+  it('Amélioration sans durée au livre (Ancre) : 1d10 jours, maison (`reparation.joursDePose`)', () => {
+    expect(findNavalTrait('ancre')!.install!.jours).toBeUndefined();
+    expect(poser('cogue', 'ancre', 40)).toEqual({ duree: REPARATION.joursDePose, jours: 4 });
+    expect(poser('cogue', 'ancre', 90).jours).toBe(9);
+  });
+});
+
+describe('#4052 — le Blindage ne s’installe que sur un chantier naval spécialisé (MDG 12 l.230)', () => {
+  const riche = { gold: 100000, silver: 0, brass: 0 };
+  const SANS = PORT_SANS_CHANTIER, AVEC = PORT_A_CHANTIER;
+  const auChantier = (portRef: string, traitId: string) => ameliorationsAuChantier(navire(), riche, null, portRef).find((d) => d.traitId === traitId);
+
+  it.each(['blindage-fer', 'blindage-bronze'])('%s : refusé avec sa cause dans un port sans chantier, le geste le dit, rien de posé ni débité', (traitId) => {
+    const refus = t('sv.upgradeNeedsShipyard', { label: findNavalTrait(traitId)!.label });
+    expect(auChantier(SANS, traitId)?.refus).toBe(refus);
+    const partie = aQuai(navire(), riche, 'local', auPort(SANS));
+    try {
+      const avant = bourseDuGroupe(partie);
+      partie.envoyer({ type: 'installerLAmelioration', args: [traitId, 1] });
+      expect(partie.etat().journal.some((l) => l.includes(refus))).toBe(true);
+      expect(partie.etat().vessel!.upgrades ?? []).toEqual([]);
+      expect(bourseDuGroupe(partie)).toBe(avant);
+    } finally {
+      partie.fermer();
+    }
+  });
+
+  it.each(['blindage-fer', 'blindage-bronze'])('%s : proposé et posé dans un port à chantier naval spécialisé', (traitId) => {
+    expect(auChantier(AVEC, traitId)?.refus).toBeNull();
+    const partie = aQuai(navire(), riche, 'local', auPort(AVEC));
+    try {
+      partie.envoyer({ type: 'installerLAmelioration', args: [traitId, 1] });
+      expect(partie.etat().vessel!.upgrades?.map((u) => u.id)).toEqual([traitId]);
+    } finally {
+      partie.fermer();
+    }
+  });
+
+  it.each([SANS, AVEC])('Lissage, sans exigence de chantier, reste proposé à %s', (portRef) => {
+    expect(auChantier(portRef, 'lissage')?.refus).toBeNull();
   });
 });

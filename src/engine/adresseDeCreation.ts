@@ -15,13 +15,9 @@
  * `[s]`) et tout objet intermédiaire à clés littérales ; un libellé y passe. Aucun typage simple ne le
  * refuse (un gabarit `` `dotation:${number}` `` non plus). Ces entrées ne sont sûres qu'aux minteurs.
  *
- * Trois minteurs : les fabriques de `adresseDeCreation` ; le cast de chargement du roster (`lireLeRoster`,
- * `noyau/persistance/roster.ts`), sous l'empreinte de son type (#2404) ; le cast de chargement des pré-tirés
- * (`pregens`, `data/index.ts`), qui ne lit pas ses clés. Celles-ci sont lues par `adresseLue` au PARSE
- * du schéma `parAdresse` (`data/schemas/grammaire/choixDeCreation.ts`), à chaque porte de
- * `validateDataset` (`data/schemas/validate.ts`) : les tests (`data/schema-contract.test.ts`,
- * `data/pregens.test.ts`), la sauvegarde du Compendium et le
- * boot DEV (`main.tsx` → `dev-validate.ts`).
+ * Deux minteurs : les fabriques de `adresseDeCreation` ; le cast de chargement du roster (`lireLeRoster`,
+ * `noyau/persistance/roster.ts`), sous l'empreinte de son type (#2404). Une adresse de donnée est lue par
+ * `adresseLue` au PARSE du schéma `parAdresse` (`data/schemas/grammaire/choixDeCreation.ts`).
  *
  * La GRAMMAIRE (familles, tirage sous un talent d'espèce) vit dans CE module : `deFamille` et
  * `tirageSous` répondent aux questions de famille, et le lint `murs/marques` refuse ailleurs un préfixe
@@ -51,8 +47,8 @@ export const adresseDeCreation = {
   ajout: (skillId: string): AdresseDeCreation => marquer(`ajout:${skillId}`),
   // eslint-disable-next-line murs/marques -- #1988 : fabrique, gabarit de la famille `signe` — composer l'adresse EST son corps de métier (cf. JSDoc).
   signe: (k: number): AdresseDeCreation => marquer(`signe:${k}`),
-  /** `chemin` : la position dans la liste des dotations (`dotationsDuHeros`, `dotationsDuPnj`), puis l'index de branche de chaque `{choice}`
-   *  traversé (`emplacementsDeDotation`, `engine/trappingChoices.ts`). */
+  /** `chemin` : la position dans la liste des dotations (`dotationsDuHeros`, `dotationsDuPnj`), puis l'index de branche de chaque `{pick, of}`
+   *  traversé, et le segment `0` de l'Atout au choix d'un joker (`sousEmplacements`, `engine/trappingChoices.ts`). */
   // eslint-disable-next-line murs/marques -- #1988 : fabrique, gabarit de la famille `dotation` — composer l'adresse EST son corps de métier (cf. JSDoc).
   dotation: (chemin: readonly number[]): AdresseDeCreation => marquer(`dotation:${chemin.join('.')}`),
 };

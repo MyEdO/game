@@ -165,7 +165,7 @@ export function creditOpposingAdvantage(get: Get, c: Combatant, n: number): stri
   const pools = poolsOf(battle);
   const own = advantageCampOf(c);
   if (c.advantage !== pools[own]) pools[own] = Math.max(0, c.advantage ?? 0);
-  const opposing: AdvantageCamp = own === 'allies' ? 'foes' : 'allies';
+  const opposing: AdvantageCamp = own === 'allies' ? 'adversaires' : 'allies';
   addToPool(pools, opposing, n);
   mirrorPools(pools, battle.combatants);
   return [t('turn.redoutableOpposingFeed', { name: c.label, n })];
@@ -183,12 +183,12 @@ export function roundEndAdvantageTransfer(battle: { advantagePools?: AdvantagePo
 }
 
 /** Marqueurs de rencontre (AA 11 l.47-67) qui dérivent une circonstance d'Avantage initial — `EncounterDef`
- *  les porte en camp 'party'/'enemies' (comme `surprise`) ; `startAdvantagePools` les convertit en `AdvantageCamp`. */
+ *  les porte en camp 'groupe'/'ennemis' (comme `surprise`) ; `startAdvantagePools` les convertit en `AdvantageCamp`. */
 type EncounterAdvantageMarkers = Pick<EncounterDef, 'maneuverability' | 'threat' | 'terrain'>;
 
-/** 'party'/'enemies' (naming éditeur, cf. `EncounterDef.surprise`) → `AdvantageCamp` du moteur. */
-function markerCamp(side: 'party' | 'enemies'): AdvantageCamp {
-  return side === 'party' ? 'allies' : 'foes';
+/** 'groupe'/'ennemis' (naming éditeur, cf. `EncounterDef.surprise`) → `AdvantageCamp` du moteur. */
+function markerCamp(side: 'groupe' | 'ennemis'): AdvantageCamp {
+  return side === 'groupe' ? 'allies' : 'adversaires';
 }
 
 /** Réserves de départ (AA 11 l.47-67). AUTO-dérivé de ce que le moteur/la rencontre connaissent au
@@ -196,12 +196,12 @@ function markerCamp(side: 'party' | 'enemies'): AdvantageCamp {
  *  éditables de la rencontre (`EncounterDef.maneuverability`/`.threat`/`.terrain`) — Manœuvrabilité /
  *  Menace / Terrain. Marqueur absent → circonstance non applicable pour cette rencontre. */
 export function startAdvantagePools(all: Combatant[], doSurprise: boolean, markers?: EncounterAdvantageMarkers): AdvantagePools {
-  const allies = all.filter((c) => c.kind === 'hero' && !isOutOfAction(c)).length;
-  const foes = all.filter((c) => c.kind !== 'hero' && !isOutOfAction(c)).length;
+  const allies = all.filter((c) => c.kind === 'heros' && !isOutOfAction(c)).length;
+  const foes = all.filter((c) => c.kind !== 'heros' && !isOutOfAction(c)).length;
   const circ: InitialAdvantageCircumstances = {};
   if (allies > foes && foes > 0) circ.outnumber = { camp: 'allies', ratio: allies / foes };
-  else if (foes > allies && allies > 0) circ.outnumber = { camp: 'foes', ratio: foes / allies };
-  if (doSurprise) circ.surprise = 'foes'; // l'embuscade de rencontre surprend le groupe (camp adverse)
+  else if (foes > allies && allies > 0) circ.outnumber = { camp: 'adversaires', ratio: foes / allies };
+  if (doSurprise) circ.surprise = 'adversaires'; // l'embuscade de rencontre surprend le groupe (camp adverse)
   if (markers?.maneuverability) circ.maneuverability = markerCamp(markers.maneuverability);
   if (markers?.threat) circ.threat = { camp: markerCamp(markers.threat.camp), tier: markers.threat.tier };
   if (markers?.terrain) circ.terrain = { camp: markerCamp(markers.terrain.camp), heavy: !!markers.terrain.heavy };

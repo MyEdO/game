@@ -4,7 +4,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { avanceEtapeCascade } from './cascade.testkit';
 import {
-  maybeOpenDefense, openSurfacedDefense, openAttackCascade, startDisengage, openCastCascade,
+  maybeOpenDefense, openAttackCascade, startDisengage, openCastCascade,
   openCastOpposition, shareCastStep, applyStructureCriticalToTarget, applyMiscast, resolveDeviation,
   previewCritEntry,
 } from './combatFlow';
@@ -40,22 +40,22 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const bow: Weapon = { name: 'Arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [], uid: 'bw' } as unknown as Weapon;
+const bow: Weapon = { name: 'Arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [], uid: 'bw' } as unknown as Weapon;
 
 /** Deux sièges : l'HÔTE (0) joue, le héros appartient à l'INVITÉ (1) — la seule configuration où la
  *  possession d'une fenêtre est OBSERVABLE (en local, tout siège possède tout). */
-const COOP = { mode: 'host' as const, mySeat: 0, gmSeat: undefined, ownership: { h: 1 } };
+const COOP = { mode: 'hote' as const, mySeat: 0, gmSeat: undefined, ownership: { h: 1 } };
 
 function setup(enemyPos: { x: number; y: number }, enemyWeapons: Weapon[], net: Partial<ReturnType<typeof banc.getState>['net']> = COOP) {
   seedBattleRng(7);
-  const enemy = mk('e', 'enemy', enemyPos, enemyWeapons);
-  const hero = mk('h', 'hero', { x: 0, y: 0 }, [sword]);
+  const enemy = mk('e', 'ennemi', enemyPos, enemyWeapons);
+  const hero = mk('h', 'heros', { x: 0, y: 0 }, [sword]);
   const battle: BattleState = {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -82,7 +82,7 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
     // Id DÉRIVÉ du compteur de la séquence (#1852) : une seconde défense (attaque gratuite) rejoint la
     // même séquence, et deux étapes d'un id constant y seraient in-adressables.
     expect(st.id).toBe('defense-jet-0');
-    expect(st.kind).toBe('defenseJet');
+    expect(st.kind).toBe('jetDeDefense');
     expect(st.actorId, 'le DÉFENSEUR porte l’étape').toBe(hero.id);
     expect(banc.getState().pendingCascade!.title).toBe('Défense');
   });
@@ -103,13 +103,10 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
     expect(modalOwnerOf(banc.getState())).toBe(hero.id);
   });
 
-  it('interposition du chemin PILOTÉ (`openSurfacedDefense`) : étape hôte + pending cohérents', () => {
+  it('interposition du chemin PILOTÉ (`openSurfacedDefense`) : l’attaque qu’aucun humain ne tient, jouée d’office (#3892), interpose la Défense du héros — étape hôte + pending cohérents', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    banc.getState().jetLancer('attack');
-    const pa = banc.getState().pendingAttack!;
-    banc.setState({ pendingCascade: null } as never); // la fenêtre d'attaque se ferme, la défense s'interpose
-    expect(openSurfacedDefense(banc.getState, banc.setState, enemy, hero, sword, pa)).toBe(true);
+    openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
+    expect(etape('attaque')!.committed, 'l’attaque a été lancée et validée par ses verbes').toBe(true);
     expect(banc.getState().pendingDefense).not.toBeNull();
     expect(etape('defense')!.actorId).toBe(hero.id);
   });
@@ -118,17 +115,17 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
 describe('#1262 lot 5a — ATTAQUE : l’étape hôte suit son `pendingAttack`', () => {
   it('l’étape `attack-jet` est mintée sur le pending posé, et porte l’ATTAQUANT', () => {
     const { hero, enemy } = setup({ x: 1, y: 0 }, [sword]);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     expect(banc.getState().pendingAttack).not.toBeNull();
-    const st = etape('attack')!;
+    const st = etape('attaque')!;
     expect(st.id).toBe('attack-jet-0'); // id DÉRIVÉ du compteur de la séquence d'accueil (#1852)
-    expect(st.kind).toBe('attackJet');
+    expect(st.kind).toBe('jetDAttaque');
     expect(st.actorId).toBe(hero.id);
   });
 
   it('COOP : l’attaque d’un héros de l’INVITÉ s’ouvre à SON siège', () => {
     const { hero, enemy } = setup({ x: 1, y: 0 }, [sword]);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     expect(modalOwnerOf(banc.getState())).toBe(hero.id);
     expect(seatOwns(banc.getState(), 1, hero.id)).toBe(true);
   });
@@ -141,9 +138,9 @@ describe('#1262 lot 5a — DÉSENGAGEMENT : le menu est hôté sur `pendingDisen
     enemy.engagedWith = [hero.id];
     startDisengage(banc.getState, banc.setState, hero);
     expect(banc.getState().pendingDisengage!.moverId).toBe(hero.id);
-    const st = etape('disengage')!;
+    const st = etape('desengagement')!;
     expect(st.id).toBe('disengage');
-    expect(st.kind).toBe('disengageStep');
+    expect(st.kind).toBe('desengagement');
     expect(st.actorId).toBe(hero.id);
     expect(modalOwnerOf(banc.getState()), 'COOP : le fuyard de l’invité tranche SON désengagement').toBe(hero.id);
   });
@@ -158,9 +155,9 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     const { hero, enemy } = setup({ x: 1, y: 0 }, [sword]);
     poseCast(hero.id, enemy.id);
     openCastCascade(banc.getState, banc.setState, hero);
-    const st = etape('cast')!;
-    expect(st.id).toBe(`cast-${hero.id}-0`); // id DÉRIVÉ du compteur de la séquence d'accueil (#1852)
-    expect(st.kind).toBe('cast');
+    const st = etape('incantation')!;
+    expect(st.id).toBe(`incantation-${hero.id}-0`); // id DÉRIVÉ du compteur de la séquence d'accueil (#1852)
+    expect(st.kind).toBe('incantation');
     expect(st.groupOwner).toBeUndefined();
     expect(modalOwnerOf(banc.getState()), 'COOP : la fenêtre est au siège du lanceur').toBe(hero.id);
   });
@@ -169,15 +166,15 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
     poseCast(enemy.id, hero.id);
     openCastCascade(banc.getState, banc.setState, enemy);
-    expect(etape('cast')!.groupOwner, 'posé par le mint, jamais à la main au call-site').toBe(true);
+    expect(etape('incantation')!.groupOwner, 'posé par le mint, jamais à la main au call-site').toBe(true);
     expect(modalOwnerOf(banc.getState())).toBe('*');
   });
 
   /** Deux HÉROS de sièges distincts : la cible du Sort est JOUÉE, donc sa rangée d'opposition est
    *  interactive — la seule configuration où `shareCastStep` bascule sur le chemin RÉEL. */
   function deuxHeros() {
-    const wiz = mk('h', 'hero', { x: 0, y: 0 }, [sword]);
-    const cible = mk('h2', 'hero', { x: 1, y: 0 }, [sword]);
+    const wiz = mk('h', 'heros', { x: 0, y: 0 }, [sword]);
+    const cible = mk('h2', 'heros', { x: 1, y: 0 }, [sword]);
     const battle = {
       combatants: [wiz, cible], order: [wiz.id, cible.id], baseOrder: [wiz.id, cible.id],
       turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -186,7 +183,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     banc.setState({
       battle, mode: 'battle', scene: testScene(), party: [wiz, cible],
       pendingCast: null, pendingCastOpposition: null, pendingCascade: null, suspendedCascades: [],
-      net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1 } },
+      net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { h2: 1 } },
     } as never);
     return { wiz, cible };
   }
@@ -195,13 +192,13 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     const { wiz, cible } = deuxHeros();
     banc.setState({ pendingCast: { casterId: wiz.id, targetId: cible.id, spellId: 'fauche-demon', missile: false, focused: false, result: null } } as never);
     openCastCascade(banc.getState, banc.setState, wiz);
-    // `jetLancer('cast')` pose le résultat DANS `pendingCast` (jamais sur l'étape hôte) : l'état d'avant-bascule
+    // `jetLancer('incantation')` pose le résultat DANS `pendingCast` (jamais sur l'étape hôte) : l'état d'avant-bascule
     // est donc celui d'un jet DÉJÀ lancé, pas celui d'une cascade fraîche.
     const pc0 = banc.getState().pendingCast!;
     banc.setState({ pendingCast: { ...pc0, result: { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' } } } as never);
-    const avant = { ...etape('cast')! };
+    const avant = { ...etape('incantation')! };
     expect(openCastOpposition(banc.getState, banc.setState, banc.getState().pendingCast!, [cible])).toBe(true);
-    const apres = etape('cast')!;
+    const apres = etape('incantation')!;
     expect(Object.keys(avant).filter((k) => !(k in apres)), 'aucun champ de l’étape réelle n’est perdu au remint').toEqual([]);
     expect({ ...apres, groupOwner: undefined }, 'seule la possession change').toEqual({ ...avant, groupOwner: undefined });
     expect(apres.groupOwner).toBe(true);
@@ -218,7 +215,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     banc.setState({ pendingCascade: { ...p, participants: p.participants.map((s, i) => (i === 0
       ? { ...s, result: { roll: 12, target: 60, sl: 4, success: true }, outcome: [{ text: 'déjà affiché' }], fixed: true } : s)) } } as never);
     shareCastStep(banc.getState, banc.setState, [wiz.id, cible.id], wiz.id);
-    const apres = etape('cast')! as unknown as Record<string, unknown>;
+    const apres = etape('incantation')! as unknown as Record<string, unknown>;
     expect(apres.groupOwner).toBe(true);
     expect(apres.result, 'un jet n’est jamais scellé sur l’étape hôte (il vit dans le pending)').toBeUndefined();
     expect(apres.outcome).toBeUndefined();
@@ -232,12 +229,12 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     openCastCascade(banc.getState, banc.setState, hero);
     banc.setState({ pendingCast: null } as never); // la donnée a disparu : plus rien à partager
     expect(() => shareCastStep(banc.getState, banc.setState, [hero.id, enemy.id], hero.id)).toThrow(/pendingCast/);
-    expect(etape('cast')!.groupOwner, 'l’étape n’a PAS été mutée par un chemin de secours').toBeUndefined();
+    expect(etape('incantation')!.groupOwner, 'l’étape n’a PAS été mutée par un chemin de secours').toBeUndefined();
   });
 });
 
 describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l’étape', () => {
-  it('reprise après suspension : l’étape `fumble` est mintée avec sa charge (aucun pending)', () => {
+  it('reprise après suspension : l’étape `maladresse` est mintée avec sa charge (aucun pending)', () => {
     // Graine DÉTERMINISTE d'une défense RATÉE sur un double (LDB 14 l.13), jouée sur le chemin réel.
     let seed = 0;
     for (let sd = 1; sd <= 800 && !seed; sd++) {
@@ -260,16 +257,16 @@ describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l�
     // Reprise d'une attaque SUSPENDUE par la fenêtre de Critique de la victime (`resolveDeviation` est
     // le corps de l'applier `deviation`) : c'est là que la Maladresse du défenseur s'appende.
     banc.setState({ pendingDefense: null, pendingCascade: null } as never);
-    resolveDeviation(banc.getState, banc.setState, {
+    resolveDeviation(banc.getState, banc.setState, 'cons-deviation-reprise', {
       mode: 'melee', attackerId: enemy.id, targetId: hero.id, weapon: sword, res,
       crit, decides: [], reveal: previewCritEntry(hero, crit, 'coup-critique', { attackerId: enemy.id, weapon: sword.label }), resumeAfter: false,
     }, true);
-    const st = etape('fumble');
+    const st = etape('maladresse');
     expect(st, 'la Maladresse du défenseur est une étape de la séquence').toBeTruthy();
-    expect(st!.kind).toBe('fumbleJet');
+    expect(st!.kind).toBe('jetDeMaladresse');
     expect(st!.actorId).toBe(hero.id);
-    expect(st!.fumble!.weapon.uid, 'sa charge (arme + Oups ! à tirer) vit SUR l’étape').toBe('sw');
-    expect(st!.fumble!.result).toBeNull();
+    expect(st!.maladresse!.weapon.uid, 'sa charge (arme + Oups ! à tirer) vit SUR l’étape').toBe('sw');
+    expect(st!.maladresse!.result).toBeNull();
   });
 });
 
@@ -279,9 +276,9 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     seedBattleRng(3);
     applyMiscast(banc.getState, banc.setState, hero, 'mineure');
     avanceEtapeCascade(banc.getState); // le dé du Tableau tombe à son étape → la révélation suit
-    const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'miscast')!;
+    const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'incantationImparfaite')!;
     expect(st.label).toBe('Imparfaite');
-    expect(st.icon).toBe('fire/blast');
+    expect(st.icon).toBe('feu/explosif');
     expect(st.actorId).toBe(hero.id);
     expect(st.reveal!.title, 'la CHARGE garde son titre long').toBe('Incantation Imparfaite');
     expect(st.outcome!.length).toBeGreaterThan(0);
@@ -292,24 +289,24 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     seedBattleRng(3);
     applyMiscast(banc.getState, banc.setState, hero, 'colere');
     avanceEtapeCascade(banc.getState);
-    const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'miscast')!;
+    const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'incantationImparfaite')!;
     expect(st.label).toBe('Colère des dieux');
-    expect(st.icon).toBe('magic/power');
+    expect(st.icon).toBe('magie/puissance');
   });
 
   it('Critique de Structure : table RÉSOLUE + charge riche, enjeu DESCENDU à la ligne tirée', () => {
     const { hero } = setup({ x: 1, y: 0 }, [sword]);
     seedBattleRng(11);
-    const structure = mk('s', 'enemy', { x: 2, y: 0 }, []);
+    const structure = mk('s', 'ennemi', { x: 2, y: 0 }, []);
     const log: string[] = [];
-    applyStructureCriticalToTarget(idsDeTest, banc.setState, structure, { attackerId: hero.id, attackerKind: 'hero', weapon: 'Épée' }, log, { forcedRoll: 42 });
-    const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'critical')!;
+    applyStructureCriticalToTarget(idsDeTest, banc.setState, structure, { attackerId: hero.id, attackerKind: 'heros', weapon: 'Épée' }, log, { forcedRoll: 42 });
+    const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'critique')!;
     expect(st.actorId).toBe(structure.id);
     expect(st.table!.result!.roll, 'le dé est POSÉ : la fenêtre ne le re-jette pas').toBe(42);
     expect(st.reveal!.title).toBe('Critique de Structure');
     // L'enjeu du mint est la référence de règle descendue à la ligne tirée (`stakeAtTableRow`), au champ près.
     const decl = st.table!;
-    expect(st.stake).toEqual(stakeAtTableRow(combatStakeRef('structure-critical'), { ...decl, result: undefined } as never, decl.result!));
+    expect(st.stake).toEqual(stakeAtTableRow(combatStakeRef('structure-critique'), { ...decl, result: undefined } as never, decl.result!));
     expect(st.stake!.key!.entryId, 'l’enjeu descend à la LIGNE jouée, pas au `kind`').toBeTruthy();
   });
 });

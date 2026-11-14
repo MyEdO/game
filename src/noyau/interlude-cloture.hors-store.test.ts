@@ -16,7 +16,7 @@ import { makeRNG } from '../engine/dice';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { hasCondition } from '../engine/conditions';
 import { devisDeCloture } from './verdictsDInterlude';
-import { refusDeLaValidation } from './validationDeFenetre';
+import { refusDeLaValidationNommee } from './validationDeFenetre';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 
@@ -61,7 +61,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
       interlude: { ...s.interlude!, perHero: {
         ...s.interlude!.perHero,
         [a]: { ...s.interlude!.perHero[a], didRevenus: true, revenueBrass: 120 },
-        [c]: { ...s.interlude!.perHero[c], closeOps: [{ ops: [{ op: 'condition', id: 'extenue', value: 1 }], ctx: { label: 'Faire jaser la cour' } }] },
+        [c]: { ...s.interlude!.perHero[c], closeOps: [{ ops: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], ctx: { label: 'Faire jaser la cour' } }] },
       } },
     }));
     return banc;
@@ -78,7 +78,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
       conserve: 1200,
       commandes: ['dague'],
       ouvrages: [],
-      lots: [{ heroId: c, lots: [{ ops: [{ op: 'condition', id: 'extenue', value: 1 }], ctx: { label: 'Faire jaser la cour' } }] }],
+      lots: [{ heroId: c, lots: [{ ops: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], ctx: { label: 'Faire jaser la cour' } }] }],
       jours: 14,
       reprise: 19020, // aube (05:00) du 13ᵉ jour après Hexenstag 2512, 02:00
     });
@@ -94,7 +94,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
 
   it('un invité ne clôt pas : refusé et dit, rien de changé', () => {
     const banc = groupeDeTrois();
-    banc.setState((s) => ({ net: { ...s.net, mode: 'guest' } }));
+    banc.setState((s) => ({ net: { ...s.net, mode: 'invite' } }));
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime]);
     const journal = banc.getState().journal.length;
     banc.actions.fenetreValider('interlude');
@@ -106,7 +106,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
     const banc = ouvrirLeBanc({ graine: 7, desFixes: true, etat: { party: [heros('Vétéran', 1601, 3, { gold: 2, silver: 0, brass: 0 })], scene: SCENE, lieu: 'altdorf' } });
     banc.actions.ouvrirLInterlude(2);
     expect(banc.getState().interlude?.phase, 'témoin : le tirage est ouvert').toBe('tirage');
-    expect(refusDeLaValidation(banc.getState(), 'interlude')).toBe('L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.');
+    expect(refusDeLaValidationNommee(banc.getState(), 'interlude')).toBe('L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.');
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime]);
     const journal = banc.getState().journal.length;
     banc.actions.fenetreValider('interlude');
@@ -115,7 +115,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
   });
 
   it('le tirage dénoué : la clôture est offerte à l’hôte', () => {
-    expect(refusDeLaValidation(groupeDeTrois().getState(), 'interlude')).toBeNull();
+    expect(refusDeLaValidationNommee(groupeDeTrois().getState(), 'interlude')).toBeNull();
   });
 });
 
@@ -142,11 +142,11 @@ describe('Clôture — devis = geste = oracle, sur 60 groupes tirés', () => {
       for (const id of ids) {
         const did = ri(0, 1) === 1;
         perHero[id] = { ...perHero[id], didRevenus: did, revenueBrass: did ? ri(0, 600) : 0,
-          ...(ri(0, 4) < 2 ? { closeOps: [{ ops: [{ op: 'condition', id: 'extenue', value: 1 }], ctx: { label: 'Sonde' } }] } : {}) };
+          ...(ri(0, 4) < 2 ? { closeOps: [{ ops: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], ctx: { label: 'Sonde' } }] } : {}) };
       }
       return {
         gameTime,
-        bank: ri(0, 4) < 3 ? [{ uid: 'depot-sonde', heroId: ids[0], kind: 'stash' as const, brass: ri(1, 900), rate: 0 }] : [],
+        bank: ri(0, 4) < 3 ? [{ uid: 'depot-sonde', heroId: ids[0], kind: 'planque' as const, brass: ri(1, 900), rate: 0 }] : [],
         pendingOrders: ri(0, 4) < 2 ? [{ heroId: ids[0], trappingId: 'dague' }] : [],
         party: [...s.party.map((h) => (morts.has(h.id) ? { ...h, dead: true } : h)), ...(intrus ? [intrus] : [])],
         interlude: { ...s.interlude!, perHero },

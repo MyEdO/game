@@ -39,7 +39,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
-const mk = (id: string, kind: 'hero' | 'enemy'): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi'): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [], items: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, bodyShape: 'humanoide',
@@ -62,21 +62,21 @@ function combat(hero: Combatant, enemy: Combatant): void {
 }
 
 const etapeTest = (): CascadeStep | undefined =>
-  banc.getState().pendingCascade?.participants.find((s) => s.kind === 'triggeredTest');
+  banc.getState().pendingCascade?.participants.find((s) => s.kind === 'testDeclenche');
 
 /** Applique un Critique à `loc` sur `hero`, dé de sévérité POSÉ (`forcedRoll` = le dé NATUREL). */
 function subirCritique(hero: Combatant, loc: HitLocation, deSeverite: number): void {
   const crit = resolveCritique('ldb', hero, loc, battleRng(), { forcedRoll: deSeverite });
   applyCriticalToTarget(hero, loc, 0, [], banc.setState, {
-    prerolled: crit, ctx: { attackerId: 'e', attackerKind: 'enemy' }, get: banc.getState,
+    prerolled: crit, ctx: { attackerId: 'e', attackerKind: 'ennemi' }, get: banc.getState,
   });
 }
 
 describe('#1657 B3-1 — le Test d’une Blessure critique naît comme une ÉTAPE, sur le porteur', () => {
   it('(i) héros TENU, « Nez cassé » (dé 66) : une étape de Test influençable est poussée, et son enjeu se résout', () => {
     seedBattleRng(1);
-    const hero = mk('h', 'hero');
-    combat(hero, mk('e', 'enemy'));
+    const hero = mk('h', 'heros');
+    combat(hero, mk('e', 'ennemi'));
     subirCritique(hero, 'tete', 66);
 
     const st = etapeTest();
@@ -97,8 +97,8 @@ describe('#1657 B3-1 — le Test d’une Blessure critique naît comme une ÉTAP
 
   it('(ii) la branche `fail` s’applique sur un résultat INJECTÉ dans l’étape (jamais tiré au moteur)', () => {
     seedBattleRng(1);
-    const hero = mk('h', 'hero');
-    combat(hero, mk('e', 'enemy'));
+    const hero = mk('h', 'heros');
+    combat(hero, mk('e', 'ennemi'));
     subirCritique(hero, 'tete', 66);
 
     const st = etapeTest()!;
@@ -131,7 +131,7 @@ describe('#1657 B3-1 — le Test d’une Blessure critique naît comme une ÉTAP
     const formes = new Set<string>();
     let avecNoeud = 0;
     for (let s = 1; s <= 30; s++) {
-      const crit = resolveCritique('ldb', mk('h', 'hero'), 'tete', makeRNG(s), { forcedRoll: 66 });
+      const crit = resolveCritique('ldb', mk('h', 'heros'), 'tete', makeRNG(s), { forcedRoll: 66 });
       formes.add(JSON.stringify(crit.ops));
       if (crit.testFlow) avecNoeud++;
     }
@@ -141,8 +141,8 @@ describe('#1657 B3-1 — le Test d’une Blessure critique naît comme une ÉTAP
     // Et, sur le chemin RÉEL, l'étape est POUSSÉE quelle que soit la seed du combat.
     for (let s = 1; s <= 30; s++) {
       seedBattleRng(s);
-      const hero = mk('h', 'hero');
-      combat(hero, mk('e', 'enemy'));
+      const hero = mk('h', 'heros');
+      combat(hero, mk('e', 'ennemi'));
       subirCritique(hero, 'tete', 66);
       expect(etapeTest(), `seed ${s} : aucune étape de Test poussée`).toBeTruthy();
     }
@@ -153,27 +153,27 @@ describe('#1657 B3-1 — le Test d’une Blessure critique naît comme une ÉTAP
     // exemption : c'est le SOCLE qui choisit la surface (`surfaceOf`), et le jet reste dit — le
     // journal est la seule surface d'un porteur que personne ne tient, il PORTE donc les deux lignes.
     seedBattleRng(1);
-    const enemy = mk('e', 'enemy');
-    combat(mk('h', 'hero'), enemy);
+    const enemy = mk('e', 'ennemi');
+    combat(mk('h', 'heros'), enemy);
     subirCritique(enemy, 'tete', 66);
 
     expect(etapeTest(), 'un porteur sans siège ne reçoit pas de fenêtre : la voie inline tranche').toBeFalsy();
     expect(banc.getState().pendingLogQueue.map((l) => l.line)).toEqual([
       'e — Test de Résistance Intermédiaire (+0) : 63/35 → échec (DR -3).', // valeur NUE de la porte, pas un calcul maison
-      'e reçoit 1 État Sonné.', // LDB 18 l.72 — la branche `fail`, appliquée sur l'issue de la porte
+      'e reçoit 1 État Sonné.', // LDB 18 l.72 — la branche `echec`, appliquée sur l'issue de la porte
     ]);
     expect(stacks(enemy, 'sonne')).toBe(1);
   });
 
   it('(iv) `critTrigger` — la Commotion cérébrale (LDB 18 l.74) pousse SON Test par la même porte', () => {
     seedBattleRng(1);
-    const hero = mk('h', 'hero');
+    const hero = mk('h', 'heros');
     // Séquelle DÉJÀ armée par une Commotion antérieure + l'État Exténué qui la garde active.
-    const armee = resolveCritique('ldb', mk('h', 'hero'), 'tete', makeRNG(1), { forcedRoll: 78 })
+    const armee = resolveCritique('ldb', mk('h', 'heros'), 'tete', makeRNG(1), { forcedRoll: 78 })
       .traumas.find((t) => t.critTrigger)!;
     (hero as unknown as { traumas: Trauma[] }).traumas = avecSequelles([], [armee]);
     hero.conditions.push({ id: 'extenue', value: 1 } as never);
-    combat(hero, mk('e', 'enemy'));
+    combat(hero, mk('e', 'ennemi'));
 
     // Un critique tête SUBSÉQUENT (dé 28 « Frappe à l'oreille » : la rangée n'a pas de nœud propre).
     subirCritique(hero, 'tete', 28);
@@ -205,13 +205,13 @@ describe('#1657 B3-1b — le Test d’AMPUTATION naît comme une étape, à la v
     if (!f || f.kind !== 'test') throw new Error(`noeud test attendu, recu : ${f ? f.kind : 'rien'}`);
     return f;
   };
-  const etapes = (f: Flow | undefined): Flow[] => (f && f.kind === 'seq' ? f.steps : f ? [f] : []);
+  const etapes = (f: Flow | undefined): Flow[] => (f && f.kind === 'sequence' ? f.etapes : f ? [f] : []);
 
   it('(vi) héros 2× Sonné, « Doigt sectionné » (dé 83) : la cible est celle de la PORTE, États compris', () => {
     seedBattleRng(1);
-    const hero = mk('h', 'hero');
+    const hero = mk('h', 'heros');
     addCondition(hero, 'sonne', 2); // LDB 16 l.125 : « une pénalité de -10 à tous les Tests », ×2
-    combat(hero, mk('e', 'enemy'));
+    combat(hero, mk('e', 'ennemi'));
     subirCritique(hero, 'brasD', 83); // LDB bras 81-85 « Doigt sectionné » — Amputation (Accessible)
 
     const st = etapeTest();
@@ -228,12 +228,12 @@ describe('#1657 B3-1b — le Test d’AMPUTATION naît comme une étape, à la v
 
   it('(vii) POST-RENCONTRE (l.171) : le nœud ARMÉ part par la porte à la fin du combat, jamais en silence', () => {
     seedBattleRng(1);
-    const hero = mk('h', 'hero');
+    const hero = mk('h', 'heros');
     const coupure = CRITIQUE_DOCS.flatMap((d) => d.entries).find((e) => e.id === 'coupure-a-l-orteil')!;
     // Marqueur ARMÉ par un critique antérieur (« Coupure à l'orteil » : « Une fois la rencontre terminée… »).
     (hero as unknown as { traumas: Trauma[] }).traumas =
-      avecSequelles([], resolveCritique('ldb', mk('h', 'hero'), 'jambeD', makeRNG(1), { forcedRoll: coupure.min }).traumas);
-    combat(hero, mk('e', 'enemy'));
+      avecSequelles([], resolveCritique('ldb', mk('h', 'heros'), 'jambeD', makeRNG(1), { forcedRoll: coupure.min }).traumas);
+    combat(hero, mk('e', 'ennemi'));
 
     openCombatEndCascade(banc.getState, banc.setState);
 
@@ -250,7 +250,7 @@ describe('#1657 B3-1b — le Test d’AMPUTATION naît comme une étape, à la v
 
   it('(viii) « Coupure à l’orteil » : gate RÉUSSI = rien ; gate raté puis Test raté à −2 DR = Sonné + amputation', () => {
     seedBattleRng(1);
-    const hero = mk('h', 'hero');
+    const hero = mk('h', 'heros');
     const coupure = CRITIQUE_DOCS.flatMap((d) => d.entries).find((e) => e.id === 'coupure-a-l-orteil')!;
     const gate = noeudDeTest(
       resolveCritique('ldb', hero, 'jambeD', makeRNG(1), { forcedRoll: coupure.min })
@@ -258,15 +258,15 @@ describe('#1657 B3-1b — le Test d’AMPUTATION naît comme une étape, à la v
     );
 
     // Gate RÉUSSI (l.171 : la perte n'a lieu que « sur un échec ») — aucune conséquence, pas même un État.
-    const sauf = mk('h', 'hero');
-    runPureFlowLines(sauf, sauf, gate.success, { idNeuf: idsDeTest, rng: desDuTest, sl: 3 });
+    const sauf = mk('h', 'heros');
+    runPureFlowLines(sauf, sauf, gate.reussite, { idNeuf: idsDeTest, rng: desDuTest, sl: 3 });
     expect(sauf.traumas).toEqual([]);
     expect(stacks(sauf, 'a-terre')).toBe(0);
 
     // Gate RATÉ → le Test d'Amputation (l.237) ; RATÉ à −2 DR → À Terre + Sonné + la perte de l'orteil.
-    const [interne, perte] = etapes(gate.fail);
-    const touche = mk('h', 'hero');
-    runPureFlowLines(touche, touche, noeudDeTest(interne).fail, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
+    const [interne, perte] = etapes(gate.echec);
+    const touche = mk('h', 'heros');
+    runPureFlowLines(touche, touche, noeudDeTest(interne).echec, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
     runPureFlowLines(touche, touche, perte, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
     expect(stacks(touche, 'a-terre')).toBe(1);
     expect(stacks(touche, 'sonne')).toBe(1);

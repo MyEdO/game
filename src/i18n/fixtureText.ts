@@ -7,7 +7,7 @@
  * écrire un cast au call-site. Il ne LIBÈRE RIEN d'autre : le texte qu'un test pose ici reste du
  * français écrit en dur, hors catalogue, invisible à `setLocale` — la 2ᵉ langue des harnais n'est pas
  * ouverte par ce module et ne le sera pas par lui. Un texte qui doit VIVRE à l'écran passe par un
- * minteur (`t()`, `dataLabel`, `composeRollLabel`), jamais par ici.
+ * minteur (leur liste : en-tête de `i18n/playerText.ts`), jamais par ici.
  *
  * RÈGLE D'IMPORT — fichiers de TEST uniquement (`*.test.ts(x)`, `*.test-d.ts`). Un fichier de
  * production qui l'importe, ou qui l'appelle, est ROUGE NOMINATIF, sans gel ni tolérance : les deux

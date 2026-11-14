@@ -17,7 +17,7 @@ const opsOf = (id: string) => spellOps(findSpellById(id)?.effects, 'target');
 
 function mk(over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'c', name: 'Noyé', kind: 'hero', size: 'moyenne', advantage: 0,
+    id: 'c', name: 'Noyé', kind: 'heros', size: 'moyenne', advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     conditions: [], skills: [], talents: [], traits: [], groups: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -101,19 +101,19 @@ describe('Rétention de souffle (LDB 18 l.346) : BE×10 s avant suffocation si p
     suffocationTick(c);
     expect(c.breathHoldSeconds).toBeUndefined();
   });
-  it('règle `combat-round-seconds` surchargée (LDB 13 l.13 — MJ décide) : décompte selon la surcharge', () => {
-    setRule('combat-round-seconds', 5);
+  it('règle `combat-round-secondes` surchargée (LDB 13 l.13 — MJ décide) : décompte selon la surcharge', () => {
+    setRule('combat-round-secondes', 5);
     const c = mk();
     prepareBreathHold(c); // 30 s
     suffocationTick(c); // 25 s (5 s/Round au lieu de 10)
     expect(c.breathHoldSeconds).toBe(25);
-    resetRule('combat-round-seconds');
+    resetRule('combat-round-secondes');
   });
 });
 
 describe('Créature marine hors de l’eau — pont offTerrain→suffocation (MDG 16 l.19, #477)', () => {
   const marine = (over: Partial<Combatant> = {}): Combatant => mk(blessuresSurLeProfil({
-    kind: 'enemy',
+    kind: 'ennemi',
     traits: [{ id: 'creature-marine' }],
     activeEffects: [],
     offTerrain: true,
@@ -162,12 +162,11 @@ describe('Créature marine hors de l’eau — pont offTerrain→suffocation (MD
       expect(isWaterSprayTarget(marine({ traits: [{ id: 'coriace' }] } as unknown as Partial<Combatant>))).toBe(false);
     });
 
-    it('waterSprayCandidates : cible adjacente marine hors de l’eau, jamais soi-même ni hors de portée', () => {
-      const aspergeur = mk({ id: 'a', pos: { x: 5, y: 5 } } as unknown as Partial<Combatant>);
-      const adjacente = marine({ id: 'm1', pos: { x: 6, y: 5 } } as unknown as Partial<Combatant>);
-      const loin = marine({ id: 'm2', pos: { x: 9, y: 9 } } as unknown as Partial<Combatant>);
-      const dansLeau = marine({ id: 'm3', pos: { x: 5, y: 6 }, offTerrain: false } as unknown as Partial<Combatant>);
-      const candidats = waterSprayCandidates(aspergeur, [aspergeur, adjacente, loin, dansLeau]);
+    it('waterSprayCandidates : créature marine hors de l’eau, jamais soi-même', () => {
+      const aspergeur = mk({ id: 'a' } as unknown as Partial<Combatant>);
+      const horsDeLEau = marine({ id: 'm1' } as unknown as Partial<Combatant>);
+      const dansLeau = marine({ id: 'm3', offTerrain: false } as unknown as Partial<Combatant>);
+      const candidats = waterSprayCandidates(aspergeur, [aspergeur, horsDeLEau, dansLeau]);
       expect(candidats.map((c) => c.id)).toEqual(['m1']);
     });
   });
@@ -180,7 +179,7 @@ describe('Effets curés — suffocation (lus de SpellData.effects)', () => {
   it('Ombres étrangleuses : Exténué + suffocation + incantation coupée (« ne peuvent pas parler »)', () => {
     const ops = opsOf('ombres-etrangleuses');
     expect(ops.some((o) => o.op === 'suffocate')).toBe(true);
-    expect(ops.some((o) => o.op === 'condition' && o.id === 'extenue')).toBe(true);
+    expect(ops.some((o) => o.op === 'condition' && o.id.id === 'extenue')).toBe(true);
     expect(ops.some((o) => o.op === 'castPenalty' && o.blocked)).toBe(true);
   });
   it('Transmutation de Chamon : États persistants + 1 PA + suffocation', () => {
@@ -188,7 +187,7 @@ describe('Effets curés — suffocation (lus de SpellData.effects)', () => {
     expect(ops.some((o) => o.op === 'suffocate')).toBe(true);
     expect(ops.some((o) => o.op === 'ap')).toBe(true);
     for (const name of ['aveugle', 'assourdi', 'sonne']) {
-      expect(ops.some((o) => o.op === 'condition' && o.id === name)).toBe(true);
+      expect(ops.some((o) => o.op === 'condition' && o.id.id === name)).toBe(true);
     }
   });
   it('op suffocate : pose l’effet porteur à la durée du sort', () => {

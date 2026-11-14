@@ -24,6 +24,22 @@ export function hash32(...parts: (string | number)[]): number {
   return h >>> 0;
 }
 
+/** FNV-1a 32 bits, poursuivi depuis l'empreinte `depart` (`hash32` d'un autre contenu, la base FNV sans lui), sur la
+ *  longueur de `valeurs` puis sur chacune, prise au millième (l'entier `Math.round(v · 1000)`), ses quatre octets du
+ *  plus faible au plus fort : des valeurs déjà arrondies au millième ne se confondent pas, et un tableau numérique se
+ *  hache sans passer par son texte. Retour : entier non signé ∈ [0, 2³²−1]. */
+export function hash32AuMillieme(valeurs: ArrayLike<number>, depart = 0x811c9dc5): number {
+  let h = depart;
+  for (let i = -1; i < valeurs.length; i++) {
+    const n = i < 0 ? valeurs.length : Math.round(valeurs[i] * 1000);
+    h = Math.imul(h ^ (n & 0xff), 0x01000193);
+    h = Math.imul(h ^ ((n >>> 8) & 0xff), 0x01000193);
+    h = Math.imul(h ^ ((n >>> 16) & 0xff), 0x01000193);
+    h = Math.imul(h ^ ((n >>> 24) & 0xff), 0x01000193);
+  }
+  return h >>> 0;
+}
+
 /** Flux déterministe de flottants ∈ [0,1) dérivé d'un seed 32 bits — même noyau mulberry32 que
  *  `makeRNG` (engine/dice), exposé en FLOTTANTS : l'interface `RNG.int` (entier inclusif) ne convient
  *  pas aux UV/jitters continus de l'expansion. */

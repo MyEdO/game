@@ -28,21 +28,21 @@ const CHARS = (CT = 30) => ({ 'capacite-de-combat': 30, 'capacite-de-tir': CT, f
 const proj = (spec: string, advances = 0): SkillInstance => ({ id: 'projectiles', spec, characteristic: 'capacite-de-tir', advances });
 
 const mkGunner = (id: string, pos: { x: number; y: number }, skills: SkillInstance[] = [], CT = 30): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'hero', characteristics: CHARS(CT), wounds: blessuresDeBase(12), advantage: 0,
+  (blessuresSurLeProfil({ id, name: id, kind: 'heros', characteristics: CHARS(CT), wounds: blessuresDeBase(12), advantage: 0,
     conditions: [], skills, talents: [], weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     movement: 4, pos, loaded: true })) as unknown as Combatant;
 
 const mkCrew = (id: string, skills: SkillInstance[] = [], alive = true): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'npc', conditions: [], weapons: [], skills, talents: [], characteristics: CHARS(30) as never,
+  (blessuresSurLeProfil({ id, name: id, kind: 'pnj', conditions: [], weapons: [], skills, talents: [], characteristics: CHARS(30) as never,
     dead: !alive, wounds: blessuresDeBase(5, alive ? 5 : 0) })) as unknown as Combatant;
 
 const mkEnemy = (id: string, x: number, y: number): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
+  (blessuresSurLeProfil({ id, name: id, kind: 'ennemi', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
     characteristics: { ...CHARS(0), endurance: 30 }, wounds: blessuresDeBase(60), advantage: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } })) as unknown as Combatant;
 
 const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
-  ({ id: 'emplacement', name: 'Affût', kind: 'enemy', pos, conditions: [], weapons: [], wounds: { current: 30, max: 30 },
+  ({ id: 'emplacement', name: 'Affût', kind: 'ennemi', pos, conditions: [], weapons: [], wounds: { current: 30, max: 30 },
     advantage: 0, postes: [poste] }) as unknown as Combatant;
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds });
@@ -71,9 +71,9 @@ describe('(a) Gate de compétence — Exemple 1 (l.3921) : un servant à Arc ne 
     const all = [mkEmplacement(poste), chefArb, sArc, target];
     applyShipPostes(all);
 
-    const w = firedWeapon(chefArb, target, poste.item.uid, all);
+    const w = firedWeapon(null, chefArb, target, poste.item.uid, all);
     expect(w.reload).toBe(6); // Recharge 3 ×2 (sous-effectif : 1 < Indice 2)
-    expect(combatValue(chefArb, 'ranged', w)).toBe(38); // tir à la Projectiles (Arbalète) du chef, pas 55
+    expect(combatValue(chefArb, 'distance', w)).toBe(38); // tir à la Projectiles (Arbalète) du chef, pas 55
     expect(w.qualities.some((q) => q.id === 'pointue')).toBe(false); // 1 servant valide → solo → perd ses Atouts (l.3818)
   });
 
@@ -86,7 +86,7 @@ describe('(a) Gate de compétence — Exemple 1 (l.3921) : un servant à Arc ne 
     applyShipPostes(all);
 
     expect(servingCrewPresent(chefArb, all)).toBe(2);
-    const w = firedWeapon(chefArb, target, poste.item.uid, all);
+    const w = firedWeapon(null, chefArb, target, poste.item.uid, all);
     expect(w.reload).toBe(3); // effectif complet → pas de ×2
     expect(w.qualities.some((q) => q.id === 'pointue')).toBe(true); // équipe complète → Pointue conservée
   });
@@ -105,14 +105,14 @@ describe('(b) Poudre noire — Ingénierie qualifie pour un canon (l.3816)', () 
     applyShipPostes(all);
 
     expect(servingCrewPresent(chef, all)).toBe(2); // chef (Poudre noire) + sIng (Ingénierie) ; sArb exclu
-    const w = firedWeapon(chef, mkEnemy('cible', 9, 6), poste.item.uid, all);
+    const w = firedWeapon(null, chef, mkEnemy('cible', 9, 6), poste.item.uid, all);
     expect(w.reload).toBe(4); // effectif complet (2 ≥ Indice 2) → Recharge normale
   });
 
   it('un servant à Ingénierie tire le canon à sa valeur de Projectiles (Ingénierie)', () => {
     const w = engineWeapon('canon-petit');
     const chef = mkGunner('chef', { x: 0, y: 0 }, [proj('ingenierie', 22)]);
-    expect(combatValue(chef, 'ranged', w)).toBe(52); // CT 30 + 22
+    expect(combatValue(chef, 'distance', w)).toBe(52); // CT 30 + 22
   });
 });
 
@@ -146,6 +146,6 @@ describe('(d) Non-régression — l’action « Servir » ignore la compétence 
   it('un combattant SANS aucune Projectiles, adjacent à un emplacement non servi → action disponible', () => {
     const poste = mkPoste('baliste', []);
     const noob = mkGunner('noob', { x: 5, y: 6 }, []); // aucune compétence Projectiles
-    expect(servablePostes(noob, [mkEmplacement(poste), noob])).toHaveLength(1);
+    expect(servablePostes(null, noob, [mkEmplacement(poste), noob])).toHaveLength(1);
   });
 });

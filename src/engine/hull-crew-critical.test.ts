@@ -10,7 +10,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 /** Marin minimal (Combattant de personnage) — assez pour les Éclats (`applyOps`). */
 const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id, name: id, kind: 'npc', characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
+  id, name: id, kind: 'pnj', characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
   skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
   armour: { corps: 0 }, wounds: blessuresDeBase(13), advantage: 0, ...over,
 })) as unknown as Combatant;
@@ -47,7 +47,7 @@ describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un 
     const crew = Array.from({ length: 8 }, (_, i) => sailor(`marin-${i}`));
     const r = applyHullCritical(ship, crew, 'voile', makeRNG(1), idsDeTest, 50, 8); // loc 50 → Coque ; d10 8 → Voie d'eau (Éclats 6)
     expect(r.location).toBe('coque');
-    expect(r.hullOps).toEqual([{ op: 'condition', id: 'voie-d-eau', value: 1 }]);
+    expect(r.hullOps).toEqual([{ op: 'condition', id: { id: 'voie-d-eau' }, value: 1 }]);
     expect(r.shrapnel.map((s) => s.crewId)).toEqual(['marin-0', 'marin-1', 'marin-2', 'marin-3', 'marin-4', 'marin-5']);
     // COMPORTEMENT (pas la représentation) : chaque marin touché perd 9 − BE(3) − PA(0) = 6 PB (13 → 7) ;
     // les 2 marins au-delà de l'Indice 6 restent intacts. La valeur 9 vit dans la donnée (`shrapnelHit`).

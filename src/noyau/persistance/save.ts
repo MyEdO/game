@@ -14,11 +14,14 @@
 import type { RuleValue } from '../../engine/policy';
 import { etatInitialDuJeu, initialNet, type EtatDeJeu } from '../etat';
 import { pruneSeatAssignments } from '../monde/seating';
+import { rencontreEngagee } from '../monde/combatants';
 import { reposerPaquetDeCampagne } from '../monde/registreDesScenes';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 import { FORMAT_SAVE } from './formats.generated';
 import { exigerUnRefus, parseSceneDeProjet } from '../worldMap';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
+import { EVT } from '../bus';
+import type { Evenement } from '../partie';
 
 export interface SaveMeta {
   version: string;
@@ -189,12 +192,24 @@ export function chargerLaSave(lue: SaveGame): SaveChargee {
   return { etat, regles: save.rules, retraits: rienDElague(retraits) ? null : retraits };
 }
 
-/** Pourquoi une save ne s'écrit pas : en combat (l'état tactique suspendu n'est pas un point de reprise sûr), ou
- *  demandée par un autre siège que celui de l'hôte (0, `NetState`), chez qui la save vit. */
+/** Si l'événement `e` d'un appel pose un point de reprise, que l'hôte garde à son emplacement automatique : l'arrivée
+ *  du groupe dans une autre scène de la partie en cours. */
+export const estUnPointDeReprise = (e: Evenement): boolean => e.type === 'emis' && e.evt === EVT.ARRIVEE_EN_SCENE && !e.payload.neuve;
+
+/** Pourquoi une save ne s'écrit pas : en combat ou pendant une série d'attaques subies (`serieSubie`) — l'état
+ *  tactique suspendu n'est pas un point de reprise sûr —, ou demandée par un autre siège que celui de l'hôte (0,
+ *  `NetState`), chez qui la save vit. */
 export type RefusDeSauvegarde = 'combat' | 'invite';
 
 /** La raison de ne pas écrire la save de `etat` à la demande du siège `siege`, `null` si elle s'écrit. */
-export function refusDeSauvegarde(etat: Pick<EtatDeJeu, 'battle'>, siege: number): RefusDeSauvegarde | null {
-  if (etat.battle) return 'combat';
+export function refusDeSauvegarde(etat: Pick<EtatDeJeu, 'battle' | 'serieSubie'>, siege: number): RefusDeSauvegarde | null {
+  if (rencontreEngagee(etat)) return 'combat';
   return siege === 0 ? null : 'invite';
+}
+
+/** Si le point de reprise de `etat` se garde pour le siège `siege` : la partie d'une campagne lancée
+ *  (`CampaignDoc.projet`), jamais celle d'un scénario de test ni d'un essai, et que rien ne refuse d'écrire
+ *  (`refusDeSauvegarde`). */
+export function pointDeRepriseAGarder(etat: Pick<EtatDeJeu, 'battle' | 'serieSubie' | 'campaignDoc'>, siege: number): boolean {
+  return etat.campaignDoc?.projet != null && refusDeSauvegarde(etat, siege) === null;
 }

@@ -112,9 +112,8 @@ function rendu() {
   if (FLUX.length < 10) abandon(`moins de 10 flux lus dans \`FLOW_VERBS\` (${VERBS}) — le registre a dérivé`)
 
   const CLES_FLOWS = new Set(objetExporte(S_SF, 'FLOWS', SPECS).properties.filter((p) => p.name).map((p) => p.name.getText(S_SF).replace(/^['"]|['"]$/g, '')))
-  const CLES_HANDLERS = new Set(objetExporte(S_SF, 'FLOW_HANDLERS', SPECS).properties.filter((p) => p.name).map((p) => p.name.getText(S_SF).replace(/^['"]|['"]$/g, '')))
-  const manquants = FLUX.filter((f) => !CLES_HANDLERS.has(f.cle)).map((f) => f.cle)
-  if (manquants.length) abandon(`flux sans handler dans \`FLOW_HANDLERS\` : ${manquants.join(', ')} — la garde d'exhaustivité a-t-elle sauté ?`)
+  const manquants = FLUX.filter((f) => !CLES_FLOWS.has(f.cle)).map((f) => f.cle)
+  if (manquants.length) abandon(`flux sans handler dans \`FLOWS\` : ${manquants.join(', ')} — la garde d'exhaustivité a-t-elle sauté ?`)
 
   // ── Registre des MODALES : quelles clés y sont déclarées, et sous quelle politique de Cadence ─────
 
@@ -249,8 +248,8 @@ le sous-ensemble de verbes qu'il accepte. Un geste de jet est UN verbe du noyau 
 de son premier argument se DÉRIVE de la table (\`FluxDuVerbe\`) — ajouter ou retirer un verbe d'un flux est
 **bidirectionnel** : un appel qui l'oublie casse \`tsc\`, une frontière (JSON d'un hôte, intention d'un siège) se
 le voit refuser, et le dit (\`creerVerbesDeJet\`).
-\`FLOW_HANDLERS\` (\`${SPECS}\`) y associe le handler, avec exhaustivité garantie
-(${CLES_FLOWS.size} entrées dans \`FLOWS\`, ${CLES_HANDLERS.size} dans \`FLOW_HANDLERS\`).
+\`FLOWS\` (\`${SPECS}\`) y associe le handler, clé pour clé, avec exhaustivité garantie
+(${CLES_FLOWS.size} entrées).
 
 ### Flux MONO (${MONO.length})
 
@@ -274,8 +273,8 @@ ${SANS_MODALE.length ? `Flux sans entrée propre dans \`MODAL_DEFS\` : ${SANS_MO
 2. **Entrée dans \`FLOWS\`** (\`${SPECS}\`) : \`makeRollFlow({ key, rolled, actor, resolve, outcome, … })\`.
    **Réutiliser les fabriques partagées** (§3) plutôt que réécrire les branches à la main.
 3. **Entrée dans \`FLOW_VERBS\`** (\`${VERBS}\`) : type, verbes (\`confirm\` compris), et le porteur
-   (\`jetOwner\`) ou \`pidIsActor\`. Puis l'entrée jumelle dans \`FLOW_HANDLERS\` — l'exhaustivité est
-   forcée à la compilation.
+   (\`jetOwner\`) ou \`pidIsActor\`. Une entrée de \`FLOWS\` sans flux, ou l'inverse,
+   ne compile pas.
 4. **Le corps de la clôture écrit à la main**, entrée du flux dans la table \`cloturesDe…(get, set)\` de son module
    (\`satisfies Partial<CloturesDuJet>\`), composée dans \`src/noyau/fabriquesDuNoyau.ts\` (\`satisfies CloturesDuJet\` :
    un flux sans clôture ne compile pas) — \`jetValider(flux)\` en est le seul appelant : lire le résultat, appliquer

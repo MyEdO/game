@@ -9,7 +9,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDe
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
-function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
+function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
     id, label: id, kind, pos,
     wounds: blessuresDeBase(10), weapons: [MELEE], characteristics: {} as never,
@@ -24,18 +24,18 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
 
 describe('Frénésie/Haine IA — contrainte de cible (LDB 21, P3)', () => {
   it('Haine active : vise un membre du groupe haï (pas le plus faible hors groupe)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: 'haine', cible: ciblePsy.groupe('elfe'), active: true }] });
-    const hated = mk('hated', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10), groups: ['elfe'] }); // costaud mais haï
-    const weak = mk('weak', 'hero', { x: 5, y: 4 }, { wounds: blessuresDeBase(10, 1), groups: ['humain'] }); // faible mais non haï
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: 'haine', cible: ciblePsy.groupe('elfe'), active: true }] });
+    const hated = mk('hated', 'heros', { x: 5, y: 6 }, { wounds: blessuresDeBase(10), groups: ['elfe'] }); // costaud mais haï
+    const weak = mk('weak', 'heros', { x: 5, y: 4 }, { wounds: blessuresDeBase(10, 1), groups: ['humain'] }); // faible mais non haï
     const action = chooseEnemyAction(input(e, [hated, weak]));
     const tid = (action as { targetId?: string; thenTargetId?: string }).targetId ?? (action as { thenTargetId?: string }).thenTargetId;
     expect(tid).toBe('hated');
   });
 
   it('Animosité active mais aucun membre du groupe visible → ciblage normal (le plus faible)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: 'animosite', cible: ciblePsy.groupe('elfe'), active: true }] });
-    const weak = mk('weak', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10, 1), groups: ['humain'] });
-    const tough = mk('tough', 'hero', { x: 5, y: 4 }, { wounds: blessuresDeBase(10), groups: ['humain'] });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: 'animosite', cible: ciblePsy.groupe('elfe'), active: true }] });
+    const weak = mk('weak', 'heros', { x: 5, y: 6 }, { wounds: blessuresDeBase(10, 1), groups: ['humain'] });
+    const tough = mk('tough', 'heros', { x: 5, y: 4 }, { wounds: blessuresDeBase(10), groups: ['humain'] });
     const action = chooseEnemyAction(input(e, [weak, tough]));
     const tid = (action as { targetId?: string; thenTargetId?: string }).targetId ?? (action as { thenTargetId?: string }).thenTargetId;
     expect(tid).toBe('weak'); // pas de groupe haï présent → comportement habituel
@@ -51,18 +51,18 @@ describe('Frénésie/Haine IA — contrainte de cible (LDB 21, P3)', () => {
     expect(traitAGroupe).toBeDefined();
     const pulsion = psychologies.find((p) => p.attackDR?.vs === 'group');
     expect(pulsion).toBeDefined();
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.groupe(groupe), active: true }] });
-    const membre = mk('membre', 'hero', { x: 5, y: 6 }, { traits: [{ id: traitAGroupe!.id, hidden: true }] });
-    const faible = mk('faible', 'hero', { x: 5, y: 4 }, { wounds: blessuresDeBase(10, 1) });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.groupe(groupe), active: true }] });
+    const membre = mk('membre', 'heros', { x: 5, y: 6 }, { traits: [{ id: traitAGroupe!.id, hidden: true }] });
+    const faible = mk('faible', 'heros', { x: 5, y: 4 }, { wounds: blessuresDeBase(10, 1) });
     expect(cible(chooseEnemyAction(input(e, [membre, faible])))).toBe('membre');
   });
 
   it('le vivier ne se restreint que pour une affliction dont la donnée vise le groupe (`attackDR.vs`)', () => {
     const autre = psychologies.find((p) => p.cibles && p.attackDR?.vs !== 'group');
     expect(autre).toBeDefined();
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: autre!.id as PsychType, cible: ciblePsy.groupe(groupe), active: true }] });
-    const membre = mk('membre', 'hero', { x: 5, y: 6 }, { traits: [{ id: traitAGroupe!.id }] });
-    const faible = mk('faible', 'hero', { x: 5, y: 4 }, { wounds: blessuresDeBase(10, 1) });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: autre!.id as PsychType, cible: ciblePsy.groupe(groupe), active: true }] });
+    const membre = mk('membre', 'heros', { x: 5, y: 6 }, { traits: [{ id: traitAGroupe!.id }] });
+    const faible = mk('faible', 'heros', { x: 5, y: 4 }, { wounds: blessuresDeBase(10, 1) });
     expect(cible(chooseEnemyAction(input(e, [membre, faible])))).toBe('faible');
   });
 });

@@ -17,7 +17,7 @@ const doc = document(
       nommerChamps(z.strictObject({
         id: z.string(),
         label: z.string(),
-        kind: z.enum(['navTest', 'obstacle', 'detect']),
+        kind: z.enum(['navigation', 'obstacle', 'perception']),
         /** Débris (l.125) : Test de Navigation raté → `hullHits` coups à la coque. */
         onFail: nommerChamps(z.strictObject({ hullHits: z.number(), damagePerHit: z.number() }), { hullHits: { label: 'Coups à la coque' }, damagePerHit: { label: 'Dégâts par coup' } }).optional(),
         /** Barrage (l.128) : Endurance/Blessures tirées, bélier +`ramDamage`. */
@@ -60,9 +60,9 @@ const doc = document(
       }),
     ).superRefine((perils, ctx) => {
       // Un péril qui fait LANCER dit ce que l'échec coûte : sans `onFail`, l'enjeu du Test d'évitement
-      // (`riverPerilNav`) n'aurait ni coups ni Dégâts à annoncer — le jet redeviendrait muet (#1117).
+      // (`fleuvePerilNavigation`) n'aurait ni coups ni Dégâts à annoncer — le jet redeviendrait muet (#1117).
       for (const p of perils) {
-        if (p.kind === 'navTest' && !p.onFail) {
+        if (p.kind === 'navigation' && !p.onFail) {
           ctx.addIssue({ code: 'custom', message: `${p.id} : péril à Test d'évitement sans onFail — le jet ne pourrait pas dire son enjeu` });
         }
       }
@@ -72,7 +72,6 @@ const doc = document(
   },
   { perils: { label: 'Dangers fluviaux', hint: 'Catalogue des dangers (Débris/Barrage/Rochers/Eaux peu profondes)' } },
   {
-    codex: { keys: ['riverPerils'] },
     edit: { niche: { categories: { riverPerils: 'perils' } } },
   },
 );

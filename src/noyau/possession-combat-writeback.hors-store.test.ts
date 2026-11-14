@@ -25,7 +25,7 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
     banc.setState({ party: [W] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     return banc.getState().battle!;
   }
@@ -40,7 +40,7 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
     const battle = setup();
     banc.setState({ possessions: [mule('pos-1')] });
     const combatant: Combatant = blessuresSurLeProfil({
-      ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'npc',
+      ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'pnj',
       wounds: blessuresDeBase(8, 3), dead: false,
     });
     banc.setState({ battle: { ...battle, combatants: [...battle.combatants, combatant] } });
@@ -53,7 +53,7 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
     const battle = setup();
     banc.setState({ possessions: [mule('pos-1')] });
     const combatant: Combatant = blessuresSurLeProfil({
-      ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'npc',
+      ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'pnj',
       wounds: blessuresDeBase(8, 0), dead: true,
     });
     banc.setState({ battle: { ...battle, combatants: [...battle.combatants, combatant] } });
@@ -67,7 +67,7 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
     const battle = setup();
     banc.setState({ possessions: [mule('pos-1')] });
     const combatant: Combatant = blessuresSurLeProfil({
-      ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'npc',
+      ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'pnj',
       wounds: blessuresDeBase(8), dead: false,
     });
     banc.setState({ battle: { ...battle, combatants: [...battle.combatants, combatant] } });

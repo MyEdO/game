@@ -40,7 +40,7 @@ describe('ResilienceButton — pool, le BOUTON porte sa règle (#945, #1078)', (
     expect(html).toContain('Résilience ×2');
     // L'affordance parallèle est MORTE (#1078) : plus d'icône info à côté du bouton.
     expect(html).not.toContain('ab-codex-info');
-    expect(html).not.toContain('journal/info');
+    expect(html).not.toContain('journal/information');
     // Le `CodexRef` englobant (`wrap`) ne prend AUCUNE interaction : un seul contrôle cliquable,
     // le bouton de dépense — jamais deux actions sur le même clic.
     expect(html).toContain('codex-ref');

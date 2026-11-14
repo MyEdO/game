@@ -4,27 +4,23 @@ extends PontDuNoyau
 ## Le pont figé des recettes de l'atelier (`hotes/godot/recettes/atelier.ts`) : `catalogues`, `vitrine` et `modeles`
 ## rendent leur réponse figée, toute autre méthode la réponse figée sous `fige[<méthode>]` à la clé de son entrée
 ## (`JSON.stringify`), `modeles/listage.json` le listage figé et tout autre chemin le fichier du projet, rien s'il est
-## absent (le dépôt de l'éditeur), chaque paramètre de l'adresse celui de `fige.parametres` ; il garde les entrées
-## reçues hors de ces trois, et le dernier écran publié.
+## absent (le dépôt de l'éditeur), chaque paramètre celui de `fige.parametres` ; il garde les entrées reçues hors de ces
+## trois et les chemins requêtés. Il est en recette (`en_recette`) : chaque écran publié est retenu dans `ecran`.
 
 var fige: Dictionary
 var entrees: Array[String] = []
-var ecran: Dictionary = {}
+var requetes: Array[String] = []
 
 
 func _init(lu: Dictionary) -> void:
 	fige = lu
+	en_recette = true
 
 
 ## Le pont figé `lu` posé à la place du pont de l'arbre (`/root/Pont`).
 static func poser(arbre: SceneTree, lu: Dictionary) -> PontFige:
-	var ancien := arbre.root.get_node_or_null("Pont")
-	if ancien != null:
-		arbre.root.remove_child(ancien)
-		ancien.free()
 	var pont := PontFige.new(lu)
-	pont.name = "Pont"
-	arbre.root.add_child(pont)
+	PontDuNoyau.remplacer(arbre, pont)
 	return pont
 
 
@@ -41,6 +37,7 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 
 
 func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.METHOD_GET, _corps := "") -> PackedByteArray:
+	requetes.append(relative)
 	if relative == "modeles/listage.json":
 		return JSON.stringify(fige.listage).to_utf8_buffer()
 	var chemin := "res://%s" % relative
@@ -52,7 +49,3 @@ func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.M
 
 func parametre(cle: String) -> String:
 	return str(fige.get("parametres", {}).get(cle, ""))
-
-
-func publier_l_ecran(publie: Dictionary) -> void:
-	ecran = publie

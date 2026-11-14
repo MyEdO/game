@@ -9,7 +9,7 @@
  *
  * DEUX provenances, un seul contrôle (`ForcedRollPicker`) :
  *  - **Résilience** — LDB 17 l.68 : « au lieu de lancer les dés pour un Test, vous choisissez le
- *    résultat ». Le slot est `forced` (le point est déjà dépensé par `forceSuccess`) ; le dé choisi
+ *    résultat ». Le slot est `forced` (le point est déjà dépensé par `forcerLaReussite`) ; le dé choisi
  *    doit rester une réussite (`maxForcedRoll`). INCONDITIONNEL : offert sur tout flux à Résilience,
  *    y compris un Test binaire (le dé y change le DR affiché, jamais l'issue).
  *  - **Dé fixé** — option de confort `des-fixes` (`engine/fixedDie.ts`), gatée par le prédicat
@@ -21,18 +21,18 @@
  * une à la main.
  *
  * L'écriture passe TOUJOURS par le verbe de jet `jetImposerLeResultat(flux, …)` (jamais
- * `FLOW_HANDLERS[k].setForcedRoll(get,set,…)` en direct) : c'est lui que le routage d'intents coop
+ * `FLOWS[k].setForcedRoll(get,set,…)` en direct) : c'est lui que le routage d'intents coop
  * intercepte côté invité.
  */
 import { useRef } from 'react';
-import { FLOW_HANDLERS } from '../noyau/rollFlowSpecs';
+import { FLOWS } from '../noyau/rollFlowSpecs';
 import { FLOW_VERBS, fluxAccepte } from '../noyau/flowVerbs';
 import type { FlowKey } from '../noyau/flowVerbs';
 import { canFixDie } from '../noyau/netOwnership';
 import { withPreRollFixedDie } from '../noyau/combatFlow';
 import { useGame } from '../state/store';
 import { FIXED_ROLL_MAX } from '../engine/fixedDie';
-import { liveTableDecl, liveDeDecl, plageNaturelle, specDeEtape, tableSpec } from '../noyau/cascade';
+import { liveTableDecl, liveDeDecl, plageNaturelle, tableSpec } from '../noyau/cascade';
 import type { CascadeStep } from '../noyau/pendings';
 import type { GameState } from '../state/store';
 import type { RollRowProps } from './RollRow';
@@ -97,7 +97,7 @@ export function useDieCommitRegistry(): DieCommitRegistry {
  *  porte en `rollBlocked` et ferme tous ses gestes, comme tous les verbes du slot le disent. */
 export function refusDeRangee(s: GameState, flowKey: FlowKey | undefined, pid: string | undefined): string | undefined {
   if (!flowKey || pid == null || FLOW_VERBS[flowKey].kind !== 'multi') return undefined;
-  return FLOW_HANDLERS[flowKey]?.refusDuSlot(() => s, pid) ?? undefined;
+  return FLOWS[flowKey]?.refusDuSlot(() => s, pid) ?? undefined;
 }
 
 /**
@@ -121,10 +121,10 @@ export function rowForcedDie(
 ): { forcedRoll?: RollRowProps['forcedRoll']; fixedMark?: boolean } {
   if (row.forcedRoll) return { forcedRoll: row.forcedRoll };
   if (!flowKey || row.noForcedDie || row.interactive === false) return {};
-  const flow = FLOW_HANDLERS[flowKey];
-  if (!fluxAccepte(flowKey, 'setForcedRoll')) return {};
+  const flow = FLOWS[flowKey];
+  if (!fluxAccepte(flowKey, 'imposerLeResultat')) return {};
   // Un dé ne se SAISIT que là où le socle sait le RÉÉVALUER : `fixable` = l'ACCESSEUR DE DÉ du flux est
-  // complet (lire où vit le dé, réécrire l'issue re-dérivée). Même gate côté fabrique (`setForcedRoll`).
+  // complet (lire où vit le dé, réécrire l'issue re-dérivée). Même gate côté fabrique (`imposerLeResultat`).
 
   const multi = FLOW_VERBS[flowKey].kind === 'multi';
   // Le slot se résout sur le pid RÉEL : `row.pid` quand le site scope sa clé React, sinon la `key`.
@@ -138,10 +138,10 @@ export function rowForcedDie(
   if (!flow.fixable || !flow.picker) return {};
   const pick = flow.picker(slot, row.actor, s);
   // La marque appartient au dé COURANT : une Résilience postérieure re-tire le dé, la mention s'efface.
-  const mark = !!slot.fixed && !slot.forced;
+  const mark = !!slot.fixed && !slot.forcee;
 
   // Résilience en cours : le dé CHOISI prime (le point est dépensé, l'issue reste une réussite).
-  if (slot.forced && pick) return { forcedRoll: { ...pick, onSet }, fixedMark: mark };
+  if (slot.forcee && pick) return { forcedRoll: { ...pick, onSet }, fixedMark: mark };
   if (!canFixDie(s, row.actor?.id)) return { fixedMark: mark };
   if (isRolled) return pick ? { forcedRoll: { roll: pick.roll, target: pick.target, ...(pick.max != null ? { max: pick.max } : {}), onSet, fixed: true }, fixedMark: mark } : { fixedMark: mark };
   // AVANT le jet : la saisie LANCE puis substitue — même geste pré-armé que la Résilience pré-jet (`jetForcerLaReussite`).
@@ -183,9 +183,9 @@ export function stepForcedDie(
   if (!decl) return {};
   const mark = !!step.fixed;
   if (!canFixDie(s, step.actorId)) return { fixedMark: mark };
-  // La BORNE se lit sur les DÉS résolus, quel que soit le porteur — une seule expression, deux
-  // résolutions de défaut (le dé nu porte les siens, la table donne le sien).
-  const max = plageNaturelle(step.de ? specDeEtape(decl) : tableSpec(step.table!)).max;
+  // La BORNE se lit sur les DÉS, quel que soit le porteur : le dé nu porte les siens, la table les
+  // siens (#1667).
+  const max = plageNaturelle(step.de ? step.de.spec : tableSpec(step.table!)).max;
   // Dé EFFECTIF servi au champ : le dé qui a résolu la LIGNE (table, borné au plancher par le
   // résolveur) ou le TOTAL (dé nu) — c'est la même grandeur, sous les deux noms de son porteur.
   const effective = decl.result ? ('die' in decl.result ? decl.result.die : decl.result.total) : null;

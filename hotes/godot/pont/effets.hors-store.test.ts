@@ -5,9 +5,9 @@
  * ses dés, et la vue porte la musique de la partie (#3825), les marques des États et les zones qui durent (#3834).
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table, type Reponse } from './pont.testkit';
+import { drainer, table, type Reponse, enFocus } from './pont.testkit';
+import { ambiance } from '../../../src/data';
 import { siegeEngines, type Effet, type VitrineDesEffets } from '../../../src/noyau/index';
-import type { Bouton } from '../../../src/hote/elements';
 import { clicDuCombattant, type Suite } from './pont';
 
 const { appel } = table();
@@ -20,7 +20,7 @@ function jouer(r: Reponse): Suite {
   rendus.push(...effets);
   for (let pas = 0; suite.vue.projection.fenetre; pas++) {
     expect(pas, 'les fenêtres se vident').toBeLessThan(20);
-    ({ suite, effets } = drainer(appel, appel('jouer', suite.vue.zones['fenetre.gestes'].find((x): x is Bouton => x.type === 'bouton' && x.focus)!.jeu)));
+    ({ suite, effets } = drainer(appel, appel('jouer', enFocus(suite.vue)!.jeu)));
     rendus.push(...effets);
   }
   return suite;
@@ -33,6 +33,8 @@ describe('les effets par le pont', () => {
     const vitrine = r as unknown as VitrineDesEffets;
     expect(Object.keys(vitrine.attaques).sort()).toEqual(siegeEngines().map((t) => t.id).sort());
     expect(vitrine.attaques['trebuchet-ade2']).toMatchObject({ quoi: 'coup', de: vitrine.de, vers: vitrine.vers, trajet: { projectile: 'pierre' } });
+    expect(vitrine.meteos.map((m) => m.id), 'chaque météo du catalogue (#4081)').toEqual(Object.keys(ambiance.iso.weather));
+    expect(vitrine.meteos.find((m) => m.id === 'pluie')?.meteo).toMatchObject({ pluie: { averses: [{ nombre: expect.any(Number) }] }, nappes: [], son: { id: 'pluie' } });
   });
 
   it('une charge rend le coup de l’attaquant à sa cible, son issue, son rendu et ses flottants ; le jet du joueur, ses dés ; la vue, la musique du combat', { timeout: 120_000 }, () => {

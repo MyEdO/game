@@ -46,7 +46,7 @@ function poser(combatants: Combatant[], gmSeat?: number): void {
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   banc.setState({
-    battle, mode: 'battle', scene: emptyScene('scene-test', 20, 20), party: combatants.filter((c) => c.kind === 'hero'), facing: {}, vessel: null,
+    battle, mode: 'battle', scene: emptyScene('scene-test', 20, 20), party: combatants.filter((c) => c.kind === 'heros'), facing: {}, vessel: null,
     journal: [], pendingCascade: null, suspendedCascades: [], pendingFateSave: null,
     net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat },
   } as never);
@@ -56,7 +56,7 @@ const etapes = () => (banc.getState().pendingCascade?.participants ?? []).filter
 const choix = (cle: 'devier' | 'subir') => () => cle;
 
 // ── Bordée (MDG 14 l.128) ────────────────────────────────────────────────────────────────────────
-const canon: Weapon = { label: 'Canon', type: 'ranged', damage: { plusBF: false, flat: 8 }, qualities: [] } as unknown as Weapon;
+const canon: Weapon = { label: 'Canon', type: 'distance', damage: { plusBF: false, flat: 8 }, qualities: [] } as unknown as Weapon;
 const jetDeBordee = (roll: number, sl: number): RollBreakdown => ({ label: 'Tir de batterie', base: 0, modifier: 0, target: 0, roll, success: true, sl });
 /** Double réussi : Coup Critique (LDB 13 l.183). */
 const coupCritique = (): RollBreakdown => jetDeBordee(55, 4);
@@ -65,10 +65,10 @@ const totalPA = (c: Combatant): number => Object.values(c.armour).reduce((n, pa)
 /** Une bordée sur `cible` : un tir par jet. */
 const bordee = (cible: Combatant, tirs: RollBreakdown[], gmSeat?: number): boolean => {
   seedBattleRng(424242);
-  poser([mk('hero', 'tireur', { pos: { x: 5, y: 0 } }), cible], gmSeat);
+  poser([mk('heros', 'tireur', { pos: { x: 5, y: 0 } }), cible], gmSeat);
   return jouerLesTirsDeBordee(banc.getState, banc.setState, { targetId: cible.id, actedAvant: false, tirs: tirs.map((jet) => ({ tireurId: 'tireur', weapon: canon, jet })) });
 };
-const brute = (p: Partial<Combatant> = {}): Combatant => mk('enemy', 'brute', { armour: { ...PA3 }, ...p });
+const brute = (p: Partial<Combatant> = {}): Combatant => mk('ennemi', 'brute', { armour: { ...PA3 }, ...p });
 /** PB de la brute après une bordée drainée par `cle`. */
 const pbApres = (tirs: RollBreakdown[], cle: 'devier' | 'subir'): number => {
   bordee(brute(), tirs, 0);
@@ -89,7 +89,7 @@ describe('Bordée sur un porteur tenu : la fenêtre de Déviation s’ouvre (LDB
     const tir2 = 20 - pbApres([coupSimple()], 'subir');
     expect(tir2).toBeGreaterThan(0);
     seedBattleRng(424242);
-    const coup = toucheAuJetPose(mk('hero', 'tireur'), brute(), canon, coupCritique(), 4, { rng: battleRng() });
+    const coup = toucheAuJetPose(mk('heros', 'tireur'), brute(), canon, coupCritique(), 4, { rng: battleRng() });
     expect(coup.woundsLost, '8 + DR 4 − BE 4 − PA 3').toBe(5);
     const recompte = coup.woundsLost! + 1;
     const devie = pbApres([coupCritique(), coupSimple()], 'devier');
@@ -126,7 +126,7 @@ describe('Bordée sur un porteur tenu : la fenêtre de Déviation s’ouvre (LDB
   });
 
   it('héros tenu NON déviable : étape de sévérité sans voies, puis la suite joue une fois', () => {
-    const cible = (): Combatant => mk('hero', 'h1', { pos: { x: 1, y: 0 } });
+    const cible = (): Combatant => mk('heros', 'h1', { pos: { x: 1, y: 0 } });
     expect(bordee(cible(), [coupSimple()])).toBe(false);
     const tir2 = 20 - enJeu('h1').wounds.current;
     expect(bordee(cible(), [coupCritique()])).toBe(true);
@@ -146,12 +146,12 @@ describe('Bordée sur un porteur tenu : la fenêtre de Déviation s’ouvre (LDB
 const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 /** CC réussi, DR 2, 44 en double : Coup Critique (LDB 13). */
 const jet = { label: 'CC', base: 60, modifier: 0, target: 60, roll: 44, success: true, sl: 2 };
-const marinHeros = (pb = 20): Combatant => mk('hero', 'marin', { pos: { x: 6, y: 5 }, armour: { ...PA3 }, items: [piece()], wounds: blessuresDeBase(20, pb) });
+const marinHeros = (pb = 20): Combatant => mk('heros', 'marin', { pos: { x: 6, y: 5 }, armour: { ...PA3 }, items: [piece()], wounds: blessuresDeBase(20, pb) });
 const contre = (att: Combatant, marin: Combatant): AttackResult => toucheAuJetPose(att, structuredClone(marin), hache, jet, 2, { rng: makeRNG(1595) }, false);
 
 /** Le Critique de coque à l'Équipage, porté par un coup de hache sur le navire du marin. */
 function critiqueDEquipage(marin: Combatant): { att: Combatant; nav: Combatant } {
-  const att = mk('enemy', 'att', { pos: { x: 8, y: 5 } });
+  const att = mk('ennemi', 'att', { pos: { x: 8, y: 5 } });
   const nav = spawnEnemy({ vehicule: 'cogue' }, 'nav', { x: 9, y: 5 });
   nav.crewIds = [marin.id];
   poser([att, nav, marin]);
@@ -221,7 +221,7 @@ const SEED_JAMBE_DROITE = 4;
 
 /** Le Critique de coque à l'Équipage, porté par un Projectile magique Coup Critique (LDB 46 l.30) sur la coque. */
 function critiqueDEquipageAuProjectile(marin: Combatant): { lieuDeTouche: HitLocation | undefined } {
-  const mage = mk('enemy', 'mage', { pos: { x: 8, y: 5 } });
+  const mage = mk('ennemi', 'mage', { pos: { x: 8, y: 5 } });
   const nav = spawnEnemy({ vehicule: 'cogue' }, 'nav', { x: 9, y: 5 });
   nav.crewIds = [marin.id];
   poser([mage, nav, marin]);
@@ -238,7 +238,7 @@ function critiqueDEquipageAuProjectile(marin: Combatant): { lieuDeTouche: HitLoc
 
 describe('Projectile Coup Critique redirigé sur le marin : sa Localisation relancée, relue au recompte (LDB 18 l.53, l.55 ; MDG 13 l.584)', () => {
   it('la relance se décide contre le marin à la naissance du coup, et Dévier entame la pièce de CE lieu', () => {
-    const { lieuDeTouche } = critiqueDEquipageAuProjectile(mk('hero', 'marin', { pos: { x: 6, y: 5 }, items: piecesParLieu(), armour: { ...PA3 } }));
+    const { lieuDeTouche } = critiqueDEquipageAuProjectile(mk('heros', 'marin', { pos: { x: 6, y: 5 }, items: piecesParLieu(), armour: { ...PA3 } }));
     expect(lieuDeTouche, 'la touche sur la coque porte un autre lieu que la relance').toBe('brasG');
     expect(etapes().map((s) => s.label), 'la fenêtre du marin nomme le lieu relancé').toEqual(['Blessure critique (Jambe droite)']);
     expect(draineCascade(banc.getState, 200, undefined, choix('devier'))).toEqual(['deviation']);

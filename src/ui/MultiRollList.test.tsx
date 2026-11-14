@@ -16,9 +16,9 @@ function d(over: Partial<import('../engine/combat').RollBreakdown>): import('../
 }
 
 const entries: NightEntry[] = [
-  { id: 'e1', label: 'Capitaine', group: 'Progression', icon: 'travel/anchor', d: d({}), tone: 'bad' },
-  { id: 'e2', label: 'Timonier', group: 'Progression', icon: 'travel/anchor', d: d({ roll: 12, success: true, sl: 4 }), tone: 'ok' },
-  { id: 'e3', label: 'Navigateur', group: 'Orientation', icon: 'travel/anchor', d: d({ label: 'Navigation', roll: 30, success: true, sl: 2 }), tone: 'ok' },
+  { id: 'e1', label: 'Capitaine', group: 'Progression', icon: 'voyage/ancre', d: d({}), tone: 'echec' },
+  { id: 'e2', label: 'Timonier', group: 'Progression', icon: 'voyage/ancre', d: d({ roll: 12, success: true, sl: 4 }), tone: 'reussite' },
+  { id: 'e3', label: 'Navigateur', group: 'Orientation', icon: 'voyage/ancre', d: d({ label: 'Navigation', roll: 30, success: true, sl: 2 }), tone: 'reussite' },
   { label: 'Note', text: 'jour 3/3' },
 ];
 
@@ -52,7 +52,7 @@ describe('MultiRollList — PV du jour : une bande par rubrique, une rangée par
    */
   it('l’enjeu d’une rubrique se rend UNE fois pour la bande, pas par rangée', () => {
     // Une entrée d'enjeu de VOYAGE RÉELLE (le PV du jour de mer en est le producteur) — pas un gabarit forgé.
-    const stake = voyageStakeRef('crew-progression');
+    const stake = voyageStakeRef('equipage-progression');
     const html = renderToStaticMarkup(<MultiRollList entries={entries.map((e) => (e.group === 'Progression' ? { ...e, stake } : e))} />);
     expect(html.match(/rm-stake/g) ?? [], 'un enjeu par BANDE — jamais un par contributeur').toHaveLength(1);
     // Le texte est celui de la DONNÉE, résolu par la porte unique (l'apostrophe typographique est
@@ -69,8 +69,8 @@ describe('MultiRollList — PV du jour : une bande par rubrique, une rangée par
    * seule rubrique rougirait ici, au lieu d'en taire un à l'écran.
    */
   it('INVARIANT : toutes les lignes d’une même rubrique portent le MÊME enjeu', () => {
-    const stake = voyageStakeRef('crew-progression');
-    const autre = voyageStakeRef('crew-orientation');
+    const stake = voyageStakeRef('equipage-progression');
+    const autre = voyageStakeRef('equipage-orientation');
     const mixte: NightEntry[] = [
       { id: 'a', label: 'Capitaine', group: 'Progression', d: d({}), stake },
       { id: 'b', label: 'Timonier', group: 'Progression', d: d({}), stake: autre },

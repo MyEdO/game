@@ -29,13 +29,13 @@ describe('humanizeResolveWindow — une phrase joueur par forme', () => {
 
   it('aucune fenêtre authorée : rien à dire (la phrase ne se charge pas du défaut)', () => {
     expect(humanizeResolveWindow(undefined)).toBeUndefined();
-    expect(humanizeOp({ op: 'condition', id: 'sonne' }), 'le défaut pollue toutes les chips d’État').toBe("gagne l'État *Sonné*");
+    expect(humanizeOp({ op: 'condition', id: { id: 'sonne' } }), 'le défaut pollue toutes les chips d’État').toBe("gagne l'État *Sonné*");
   });
 });
 
 describe('humanizeOp — la chip d’État PORTE sa fenêtre', () => {
   it('la phrase de l’op enchaîne l’État puis ce que la Détermination y fait', () => {
-    const dit = humanizeOp({ op: 'condition', id: 'extenue', resolveWindow: 'none' });
+    const dit = humanizeOp({ op: 'condition', id: { id: 'extenue' }, resolveWindow: 'none' });
     expect(dit).toContain("gagne l'État *Exténué*");
     expect(dit).toContain('la Détermination ne le lève pas tant que sa cause dure');
   });

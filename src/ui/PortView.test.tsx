@@ -11,6 +11,7 @@ import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import { PortHeader, EscaleTab } from './PortView';
 import { refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
+import { toMoney } from '../engine/money';
 
 // `ShoreLeaveBody` (composé par `EscaleTab`) lit l'événement en attente directement au store (SEULE
 // source, cf. VoyageScreen embedded), jamais via une prop `pendingXxx` ad hoc sur ce corps. `renderToStaticMarkup` (environnement Vitest `node`) fait passer zustand par
@@ -34,9 +35,9 @@ const vessel = (crew?: CampaignVessel['crew']): CampaignVessel => ({
 });
 const noop = () => {};
 const escaleProps = {
-  vessel: vessel(), refusHote: null,
+  vessel: vessel(), bourse: toMoney({}), refusHote: null,
   pendingShoreLeave: null,
-  onHire: noop, onDismiss: noop,
+  onHire: noop, onDismiss: noop, onAvitailler: noop,
 };
 
 describe('PortHeader — en-tête d’escale-hub (#228)', () => {
@@ -87,15 +88,15 @@ describe('EscaleTab — actions d’escale (#228)', () => {
   });
 
   it('invité (guest) : embauche désactivée', () => {
-    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })} />);
+    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'invite' } as never })} />);
     expect(html).toMatch(/Embaucher<\/button>/); // le bouton existe
     expect(html).toContain('disabled'); // et il est désactivé
   });
 
   it('invité (guest) : RELÂCHE À TERRE non résolvable localement (régression #343)', () => {
     const pendingShoreLeave = { to: { id: 'x', label: 'X', pos: { x: 0, y: 0 }, scene: { id: 's' } } };
-    seedInitial({ pendingShoreLeave, net: { ...initialNetMode, mode: 'guest' } });
-    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })} pendingShoreLeave={pendingShoreLeave} />);
+    seedInitial({ pendingShoreLeave, net: { ...initialNetMode, mode: 'invite' } });
+    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'invite' } as never })} pendingShoreLeave={pendingShoreLeave} />);
     expect(html).toContain('Accorder la relâche');
     expect(html).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Accorder la relâche/);
     expect(html).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Refuser la relâche/);

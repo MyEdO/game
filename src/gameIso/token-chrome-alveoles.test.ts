@@ -15,7 +15,7 @@ import { conditionIds } from '../data';
  * chaque ajout : une seule condition qui tombe déplaçait TOUTES les icônes déjà lues, sous le regard
  * du joueur. Les places sont désormais RÉSERVÉES (même compte que le rack du portrait) et fixes.
  */
-const ICONS = ['flag/frenzy', 'flag/defensive', 'action/aim', 'flag/focus'] as unknown as IconId[];
+const ICONS = ['drapeau/frenesie', 'drapeau/posture-defensive', 'action/viser', 'drapeau/focalisation'] as unknown as IconId[];
 
 /** Abscisses des icônes RENDUES, dans l'ordre du markup. */
 function xs(icons: readonly IconId[], iconsMore = 0): number[] {

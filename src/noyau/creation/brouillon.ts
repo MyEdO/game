@@ -26,6 +26,7 @@ import { statutDeDonnee, type Status } from '../../engine/money';
 import {
   rollSpecies,
   rollCareer,
+  rollVariante,
   validatePointBuy,
   POINT_BUY_MIN,
   POINT_BUY_MAX,
@@ -63,14 +64,35 @@ import {
 import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
-import { findSpeciesById, findTalentById, specPoolOf, careers, classes, careersForSpecies, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
+import {
+  findSpeciesById,
+  findCareerById,
+  findTalentById,
+  specPoolOf,
+  careersForSpecies,
+  carrieresTirables,
+  offreDuJet,
+  varianteDe,
+  portionDeLaColonne,
+  levelsForCareer,
+  advancementLabel,
+  refLabel,
+  findStarById,
+  celestialHouses,
+  SpeciesData,
+  CareerLevelData,
+  trappingRefLabel,
+  type AdvancementRef,
+  type CareerData,
+  type JetDeCarriere,
+} from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { generateName } from '../../engine/names';
 import { makeRNG } from '../../engine/dice';
 import { sexeSchema, type Sexe } from '../../data/schemas/grammaire/valeurs';
 
-export type CharMode = 'rolled' | 'reassigned' | 'pointBuy';
+export type CharMode = 'tire' | 'reassigne' | 'repartition';
 
 // ── Quotas d'allocation de la création (SOURCE UNIQUE : validation ET rendu les consomment) ──
 /** « Vous pouvez sélectionner 3 Compétences auxquelles ajouter 5 Augmentations à chacune » (LDB 05 l.484). */
@@ -99,11 +121,9 @@ export interface CreatorDraft
    *  AVANT de lancer les dés). Le d100 est figé par le seed : basculer re-lit le MÊME jet sur l'autre
    *  table (zéro savescum) — les jets sont donc réinitialisés au changement. */
   coastalSwap: boolean;
-  /** Jets de carrière figés (1 puis 3) ; au-delà : relances libres (0 PX, RAW l.212). Chaque jet
-   *  désigne une BORNE → `ids` = toutes les carrières de cette borne (choix libre, PX conservé). */
-  careerRolls: { roll: number; ids: string[] }[];
-  /** Nombre de relances LIBRES effectuées (annule tout bonus). */
-  careerFreeRolls: number;
+  /** Jets de carrière figés, dans l'ordre : le premier, les deux de plus, puis les relances libres. Chacun porte son
+   *  second lancer s'il a été fait ; son offre se lit par `offreDuJet`. LDB 05 l.208-212 ; AA 02 l.109-113 */
+  careerRolls: JetDeCarriere[];
   // 3) Caractéristiques
   charMode: CharMode;
   /** Les dix 2d10 TIRÉS (geste « Tirer aux dés » requis, #393 agentivité) : avant le geste, aucune
@@ -164,8 +184,7 @@ export function newDraft(seed: number): CreatorDraft {
     ignoreRestrictions: false,
     coastalSwap: false,
     careerRolls: [],
-    careerFreeRolls: 0,
-    charMode: 'rolled',
+    charMode: 'tire',
     charsRolled: false,
     charRerolls: 0,
     assignment: tableTotale(CHAR_KEYS, (_k, indice) => indice),
@@ -242,10 +261,10 @@ export const careerCharKeys = (d: CreatorDraft): CharKey[] =>
 export function rollDraftSpecies(d: CreatorDraft): CreatorDraft {
   if (d.speciesRoll) return d; // FIGÉ : pas de relance (LDB 04 — aucune n'est offerte)
   const r = rollSpecies(fluxDeCreation(d.seed, 'espece'));
-  // La borne tirée propose `ids` ; on sélectionne la 1ʳᵉ par défaut, le joueur peut choisir une autre.
+  // La rangée tirée offre `ids`, sa première choisie par défaut. LDB 04 l.91 ; ADE I 02 l.257
   return withSpecies({ ...d, speciesRoll: r }, r.ids[0]);
 }
-// +20 PX tant que l'espèce choisie appartient à la BORNE tirée (le bonus récompense le tirage, l.87).
+// Les PX du tirage d'espèce, tant que l'espèce choisie est de la rangée tirée. LDB 04 l.91
 export const speciesXp = (d: CreatorDraft): number =>
   d.speciesRoll && d.speciesRoll.ids.includes(d.speciesId) ? XP_SPECIES_ACCEPTED : 0;
 
@@ -274,38 +293,24 @@ export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
     talentsRolled: false,
     pettySpells: [],
     careerRolls: [],
-    careerFreeRolls: 0,
   };
 }
 
 // ── 2) Carrière ──
-/** Couples (Classe remplaçante, Classe remplacée) déclarés en donnée (`ClassData.remplace`,
- *  MDG 09 l.9). */
-const remplacementsDeClasse = (): { par: string; de: string }[] => classes.flatMap((k) => (k.remplace ? [{ par: k.id, de: k.remplace.id }] : []));
-
-/** La colonne `col` du tableau tire-t-elle au moins une carrière de la Classe `classe` ? */
-const colonneTireLaClasse = (col: NonNullable<SpeciesData['refCareer']>, classe: string): boolean =>
-  careers.some((c) => c.class.id === classe && c.rand?.[col] != null);
-
-/** Remplacements offerts à la colonne de l'espèce : ceux dont la colonne porte les DEUX portions (les
- *  5 colonnes du LDB). Les tables régionales (Middenheim/ADE II/NADJ) ne sont pas étendues par MDG, et
- *  la table Norse embarque déjà les variantes côtières SANS portion remplacée. Dérivé de la DONNÉE. */
-const remplacementsOfferts = (d: CreatorDraft): { par: string; de: string }[] => {
+/** Le remplacement d'une portion de la colonne (MDG 09 l.9) s'offre-t-il à cette espèce ? Oui si une
+ *  portion porte sa colonne. */
+export const coastalSwapAvailable = (d: CreatorDraft): boolean => {
   const col = draftSpecies(d)?.refCareer;
-  if (!col) return [];
-  return remplacementsDeClasse().filter(({ par, de }) => colonneTireLaClasse(col, de) && colonneTireLaClasse(col, par));
+  return col !== undefined && portionDeLaColonne(col) !== undefined;
 };
 
-/** Le remplacement Riverains → Côtiers (MDG 09 l.9) s'offre-t-il à cette espèce ? */
-export const coastalSwapAvailable = (d: CreatorDraft): boolean => remplacementsOfferts(d).length > 0;
-
-/** Table de tirage EFFECTIVE : là où la colonne porte les deux portions, la Classe remplacée et sa
- *  remplaçante ne coexistent JAMAIS dans un même tirage (remplacement, pas cumul) ; ailleurs, la colonne
- *  est déjà la bonne table (Norse : variantes côtières seules ; régionales : Riverains seuls). */
-export const careerRollPool = (d: CreatorDraft): typeof careers => {
-  const exclues = new Set(remplacementsOfferts(d).map(({ par, de }) => (d.coastalSwap ? de : par)));
-  return exclues.size ? careers.filter((c) => !exclues.has(c.class.id)) : careers;
-};
+/** Les carrières offertes au brouillon : toutes sans le filtre de race (`careersForSpecies`), sinon celles que le tirage
+ *  offre sur la table effective de son espèce, au remplacement près (`carrieresTirables`) ; aucune sans espèce. */
+export function carrieresOffertes(d: CreatorDraft): CareerData[] {
+  const sp = draftSpecies(d);
+  if (!sp) return [];
+  return d.ignoreRestrictions ? careersForSpecies(sp, true) : carrieresTirables(sp, d.coastalSwap);
+}
 
 /** Bascule Riverains ↔ Côtiers (MDG 09 l.9 : « avant de lancer les dés ») — VERROUILLÉE dès qu'un
  *  jet existe (`careerRolls` non vide) : sans cette garde, cocher/décocher effaçait les jets et
@@ -316,46 +321,64 @@ export const careerRollPool = (d: CreatorDraft): typeof careers => {
 export function withCoastalSwap(d: CreatorDraft, coastalSwap: boolean): CreatorDraft {
   if (coastalSwap === d.coastalSwap) return d;
   if (d.careerRolls.length > 0) return d;
-  return { ...d, coastalSwap, careerRolls: [], careerFreeRolls: 0 };
+  return { ...d, coastalSwap, careerRolls: [] };
 }
 
-/** Lève ou rétablit le filtre des carrières par espèce (`careersForSpecies`). */
+/** Lève ou rétablit le filtre des carrières par espèce (`carrieresOffertes`). */
 export function withIgnoreRestrictions(d: CreatorDraft, ignoreRestrictions: boolean): CreatorDraft {
   return ignoreRestrictions === d.ignoreRestrictions ? d : { ...d, ignoreRestrictions };
 }
 
+/** Nombre de jets de carrière à bonus : le premier, puis les deux de plus. LDB 05 l.210-211 */
+const JETS_DE_CARRIERE_A_BONUS = 3;
 export function rollDraftCareer(d: CreatorDraft): CreatorDraft {
   const sp = draftSpecies(d);
   if (!sp) return d; // pas de tirage de carrière sans race (l'UI empêche d'y arriver)
-  const pool = careerRollPool(d);
   const n = d.careerRolls.length;
   if (n === 0) {
-    const r = rollCareer(pool, sp, fluxDeCreation(d.seed, 'carriere'));
-    // Chaque jet désigne une borne (`ids`) ; défaut = 1ʳᵉ carrière, le joueur peut en choisir une autre.
-    return r ? withCareer({ ...d, careerRolls: [r] }, r.ids[0]) : d;
+    const r = rollCareer(sp, d.coastalSwap, fluxDeCreation(d.seed, 'carriere'));
+    return withCareer({ ...d, careerRolls: [r] }, r.id);
   }
   if (n === 1) {
-    // « Faites deux lancers de plus, ce qui porte votre total à 3 choix » (LDB 05 l.211).
+    // LDB 05 l.211
     const rng = fluxDeCreation(d.seed, 'carriere:deux-de-plus');
-    const r2 = rollCareer(pool, sp, rng);
-    const r3 = rollCareer(pool, sp, rng);
-    if (!r2 || !r3) return d;
+    const r2 = rollCareer(sp, d.coastalSwap, rng);
+    const r3 = rollCareer(sp, d.coastalSwap, rng);
     return { ...d, careerRolls: [...d.careerRolls, r2, r3] };
   }
-  // « continuez à relancer jusqu'à obtenir quelque chose qui vous plaît » (l.212) — 0 PX.
-  const r = rollCareer(pool, sp, fluxDeCreation(d.seed, 'carriere:relance', d.careerFreeRolls));
-  return r ? withCareer({ ...d, careerFreeRolls: d.careerFreeRolls + 1 }, r.ids[0]) : d;
+  // LDB 05 l.212
+  const r = rollCareer(sp, d.coastalSwap, fluxDeCreation(d.seed, 'carriere:relance', n - JETS_DE_CARRIERE_A_BONUS));
+  return withCareer({ ...d, careerRolls: [...d.careerRolls, r] }, r.id);
+}
+/** Le second lancer du jet de carrière `i`, au dé de la variante de sa carrière tirée (`varianteDe`) : il engage, sa
+ *  carrière devient celle du brouillon. Refusé si ce jet l'a déjà fait, ou si sa carrière n'a pas de variante pour
+ *  l'espèce. AA 02 l.109-113 ; VDM 03 l.17-19 */
+export function tirerLaVariante(d: CreatorDraft, i: number): CreatorDraft {
+  const sp = draftSpecies(d);
+  const jet = d.careerRolls[i];
+  const variante = sp && jet && !jet.second ? varianteDe(jet.id, sp) : undefined;
+  if (!sp || !variante) return d;
+  const tire = { ...jet, second: rollVariante(variante, fluxDeCreation(d.seed, 'carriere:variante', i)) };
+  return withCareer({ ...d, careerRolls: d.careerRolls.map((r, k) => (k === i ? tire : r)) }, offreDuJet(sp, tire)[0]);
 }
 export function careerXp(d: CreatorDraft): number {
-  if (d.careerFreeRolls > 0) return 0;
-  // +50 si la carrière choisie est dans la borne du 1ᵉʳ jet ; +25 si elle est dans l'une des 3 bornes.
-  if (d.careerRolls.length === 1 && d.careerRolls[0].ids.includes(d.careerId)) return XP_CAREER_FIRST;
-  if (d.careerRolls.length === 3 && d.careerRolls.some((r) => r.ids.includes(d.careerId))) return XP_CAREER_TOP3;
+  const sp = draftSpecies(d);
+  const n = d.careerRolls.length;
+  if (!sp || n > JETS_DE_CARRIERE_A_BONUS) return 0;
+  // AA 05 l.137
+  const borne = findCareerById(d.careerId)?.talentALaPlaceDe;
+  const borneTenue = !borne || d.careerTalent?.id !== borne.id || poolDuJoker('talent', borne).includes(d.careerTalent.spec ?? '');
+  const offert = d.careerRolls.some((r) => {
+    const offre = offreDuJet(sp, r);
+    return offre[0] === d.careerId || (borneTenue && offre.includes(d.careerId));
+  });
+  if (n === 1 && offert) return XP_CAREER_FIRST;
+  if (n === JETS_DE_CARRIERE_A_BONUS && offert) return XP_CAREER_TOP3;
   return 0;
 }
 /** PX qu'offre le prochain jet de carrière (LDB 05 l.210-212) : le 1ᵉʳ, les deux de plus, puis la relance libre. */
 export function careerXpDuProchainJet(d: CreatorDraft): number {
-  if (d.careerFreeRolls > 0 || d.careerRolls.length >= 3) return 0;
+  if (d.careerRolls.length >= JETS_DE_CARRIERE_A_BONUS) return 0;
   return d.careerRolls.length === 0 ? XP_CAREER_FIRST : XP_CAREER_TOP3;
 }
 export function withCareer(d: CreatorDraft, id: string): CreatorDraft {
@@ -394,9 +417,9 @@ export function draftChars(d: CreatorDraft): Characteristics {
   for (let i = 0; i < CHAR_KEYS.length; i++) {
     const k = CHAR_KEYS[i];
     const base = baseDEspece(sp, k);
-    if (d.charMode === 'pointBuy') out[k] = base + d.pointBuy[k];
+    if (d.charMode === 'repartition') out[k] = base + d.pointBuy[k];
     // Agentivité (#393) : avant le geste « Tirer aux dés », aucun jet n'existe — base d'espèce seule.
-    else out[k] = base + (d.charsRolled ? rolls[d.charMode === 'reassigned' ? d.assignment[k] : i] : 0);
+    else out[k] = base + (d.charsRolled ? rolls[d.charMode === 'reassigne' ? d.assignment[k] : i] : 0);
   }
   return out;
 }
@@ -408,8 +431,8 @@ export function rollDraftChars(d: CreatorDraft): CreatorDraft {
 }
 export function charsXp(d: CreatorDraft): number {
   if (!draftSpecies(d)) return 0; // page blanche : pas de bonus 2d10 tant qu'aucune race n'existe
-  if (!d.charsRolled || d.charRerolls > 0 || d.charMode === 'pointBuy') return 0;
-  return d.charMode === 'rolled' ? XP_CHARS_KEPT : XP_CHARS_REASSIGNED;
+  if (!d.charsRolled || d.charRerolls > 0 || d.charMode === 'repartition') return 0;
+  return d.charMode === 'tire' ? XP_CHARS_KEPT : XP_CHARS_REASSIGNED;
 }
 /** PX de création qu'offre la méthode `mode` une fois les dix jets tirés (LDB 05 l.337-341). */
 export const charsXpDeLaMethode = (d: CreatorDraft, mode: CharMode): number => charsXp({ ...d, charMode: mode, charsRolled: true });
@@ -676,8 +699,7 @@ export const attendSaSpec = (r: RefDesignee): boolean => r.spec == null && estSp
 
 /** Sorts de Magie mineure INCLUS au Talent (LDB 10 l.714) : quota à choisir = BFM FINAL du probe
  *  (Augmentations gratuites + talents « +5 FM » appliqués, même pipeline que createHero) — 0 sans
- *  Talent de `castingKind:'mineure'`. Délègue à `pettySpellQuotaFor` (engine, source UNIQUE — même
- *  fonction que `src/data/pregens.ts`), le probe portant déjà les talents résolus en id. */
+ *  Talent de `castingKind:'mineure'`. Délègue à `pettySpellQuotaFor` (engine, source UNIQUE), le probe portant déjà les talents résolus en id. */
 export function pettySpellQuota(d: CreatorDraft): number {
   return pettySpellQuotaFor(probeHero(d, true, true));
 }
@@ -831,20 +853,20 @@ const STEP_VALIDATORS: Record<StepId, (c: StepCtx) => string | null> = {
   species: ({ sp }) => (sp ? null : t('crea.choisirRace')),
   career: ({ d, sp, level }) => {
     if (!d.careerId) return t('crea.choisirCarriere');
-    // La carrière reste offerte à l'espèce courante, sous le filtre courant (`careersForSpecies`) : changer d'espèce
-    // ou rétablir le filtre ne laisse pas passer une carrière hors liste.
-    if (sp && !careersForSpecies(sp.refCareer, d.ignoreRestrictions).some((c) => c.id === d.careerId)) return t('crea.carriereHorsEspece');
+    // La carrière reste offerte au brouillon (`carrieresOffertes`) : changer d'espèce, rétablir le filtre ou basculer
+    // le remplacement ne laisse pas passer une carrière hors liste.
+    if (sp && !carrieresOffertes(d).some((c) => c.id === d.careerId)) return t('crea.carriereHorsEspece');
     if (!level) return t('crea.carriereSansNiveau1');
     return null;
   },
   chars: ({ d, sp }) => {
     if (!sp) return t('crea.choisirRace');
-    if (d.charMode !== 'pointBuy' && !d.charsRolled) return t('crea.tirerCaracteristiques');
-    if (d.charMode === 'pointBuy') {
+    if (d.charMode !== 'repartition' && !d.charsRolled) return t('crea.tirerCaracteristiques');
+    if (d.charMode === 'repartition') {
       const v = validatePointBuy(d.pointBuy as Record<CharKey, number>);
       if (!v.ok) return t('crea.repartitionDesPoints', { raison: v.reason });
     }
-    if (d.charMode === 'reassigned') {
+    if (d.charMode === 'reassigne') {
       const idx = CHAR_KEYS.map((k) => d.assignment[k]);
       if (new Set(idx).size !== 10) return t('crea.reassignationUnique');
     }

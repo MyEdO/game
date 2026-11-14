@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * « Tenter le Test » (chute volontaire, LDB 15 l.82) consomme l'Action (LDB 13 l.86-88) :
- * Action déjà prise → l'option porte le refus de `jetRegler('fall', 'tenter')` (`refusDuTestDeChute`,
+ * Action déjà prise → l'option porte le refus de `jetRegler('chute', 'tenter')` (`refusDuTestDeChute`,
  * `noyau/gesteDArete.ts`), éteinte ; Action libre → offerte. Afficher = agir.
  */
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
@@ -55,12 +55,12 @@ function monter(acted: boolean): void {
   act(() => root.render(<FallModal />));
 }
 
-describe('chute volontaire — l’option « Tenter » suit le verdict de `jetRegler(\'fall\', \'tenter\')`', () => {
+describe('chute volontaire — l’option « Tenter » suit le verdict de `jetRegler(\'chute\', \'tenter\')`', () => {
   it('Action déjà prise : option éteinte (aria-disabled), clic inerte', () => {
     monter(true);
     expect(tenter().getAttribute('aria-disabled')).toBe('true');
     act(() => tenter().click());
-    expect(phaseDeChute(useGame.getState().pendingFall!)).toBe('choice');
+    expect(phaseDeChute(useGame.getState().pendingFall!)).toBe('choix');
   });
 
   it('le refus SUIT le store sans nouveau rendu du parent : l’entrée en combat éteint l’option', () => {
@@ -75,7 +75,7 @@ describe('chute volontaire — l’option « Tenter » suit le verdict de `jetRe
     monter(false);
     expect(tenter().getAttribute('aria-disabled')).not.toBe('true');
     act(() => tenter().click());
-    expect(phaseDeChute(useGame.getState().pendingFall!)).toBe('roll');
+    expect(phaseDeChute(useGame.getState().pendingFall!)).toBe('jet');
   });
 });
 
@@ -86,7 +86,7 @@ describe('chute du groupe en coop (EDO 01 l.231) — chaque rangée se déclare 
   it('le siège 1 déclare pour Kurt ; la rangée du héros de l’hôte attend, sans option', () => {
     useGame.setState({
       mode: 'exploration', battle: null, party: [sauteur, compagnon],
-      net: { ...useGame.getState().net, mode: 'guest', mySeat: 1, ownership: { K: 1 } },
+      net: { ...useGame.getState().net, mode: 'invite', mySeat: 1, ownership: { K: 1 } },
       pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, participants: [
         { id: sauteur.id, interactive: true, attempt: null, result: null },
         { id: compagnon.id, interactive: true, attempt: null, result: null },

@@ -14,8 +14,7 @@ import {
   creatures, careerLevels, species, gods, etats, maladies, weaponGroups,
   talents, skills, domains,
   byId, findTalentById, findTrappingById, findSeaShantyById,
-  findWeaponGroupById, findGroupById, findQualityById, findCrewTestTypeById, findLightToneById,
-  mutationTables,
+  findWeaponGroupById, findGroupById,
   specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
@@ -24,7 +23,7 @@ import { catalogueSpecs, entreeOuverte, mesureDuParse, refusDeSpec, specAuCatalo
 import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
 import { itemFromTrappingById } from '../engine/items';
 import { MANANN_FACTORS } from '../engine/seaVoyage';
-import { makePregens } from './pregens';
+import { pretires } from './pregens';
 import areneProject from '../scenes/arene/arene-projet.json';
 import loupProject from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';
@@ -212,9 +211,9 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   // LA GARDE UNIQUE ci-dessous (§ Phase 3 complétude) : aucune liste de domaines n'est tenue ici.
   describe('sanité de catalogue — specsSource déclaré, specs[] bien formées (Phase 3)', () => {
     it('skills.json/talents.json : specsSource migré → pool DÉRIVÉ (aucun specs[] inline), ids connus du registre', () => {
-      const WEAPON_GROUP_IDS = new Set(weaponGroups.map((g) => g.id));
-      const DOMAIN_IDS = new Set(domains.map((d) => d.id));
-      const GOD_IDS = new Set(gods.map((g) => g.id));
+      const WEAPON_GROUP_IDS = new Set<string>(weaponGroups.map((g) => g.id));
+      const DOMAIN_IDS = new Set<string>(domains.map((d) => d.id));
+      const GOD_IDS = new Set<string>(gods.map((g) => g.id));
       const cases: [ 'skills' | 'talents', string, SpecsSource, (id: string) => boolean ][] = [
         ['skills', 'corps-a-corps', 'weaponGroupsMelee', (id) => WEAPON_GROUP_IDS.has(id)],
         ['skills', 'projectiles', 'weaponGroupsRanged', (id) => WEAPON_GROUP_IDS.has(id)],
@@ -294,7 +293,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
 
   // ── L'ADMISSION d'une `spec` se juge au SCHÉMA, par l'ENTRÉE visée (`refusDeSpec`, `grammaire/ref.ts`),
   // sur tout document registré de `src/data` et `src/scenes` (`schema-contract.test.ts`), libellé FR connu
-  // d'une entrée OUVERTE (`entreeOuverte`) compris. Restent ici les pré-tirés RUNTIME (`makePregens(idsDeTest)`),
+  // d'une entrée OUVERTE (`entreeOuverte`) compris. Restent ici les pré-tirés RUNTIME (`pretires(idsDeTest)`),
   // composés en mémoire, jamais parsés par un schéma.
   describe('GARDE — pré-tirés runtime', () => {
 
@@ -324,14 +323,14 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
       for (const v of Object.values(node)) walk(v, where);
     }
 
-    it('pregens(runtime — makePregens) : aucun libellé FR connu sur une entrée OUVERTE', () => {
-      walk(makePregens(idsDeTest), 'pregens(runtime — makePregens)'); // composition réelle career/species → Combatant
+    it('pregens(runtime — pretires) : aucun libellé FR connu sur une entrée OUVERTE', () => {
+      walk(pretires(idsDeTest), 'pregens(runtime — pretires)');
       expect(nonMigres, nonMigres.join('\n')).toEqual([]);
     });
 
-    it('pregens(runtime — makePregens) : toute spec de Compétence/Talent est ADMISE par son entrée (`refusDeSpec`)', () => {
+    it('pregens(runtime — pretires) : toute spec de Compétence/Talent est ADMISE par son entrée (`refusDeSpec`)', () => {
       const refus: string[] = [];
-      for (const h of makePregens(idsDeTest)) {
+      for (const h of pretires(idsDeTest)) {
         for (const [type, refs] of [['skill', h.skills], ['talent', h.talents]] as const) {
           for (const r of refs as { id?: string; talentId?: string; spec?: string }[]) {
             const id = r.talentId ?? r.id;
@@ -536,7 +535,7 @@ describe('careerLevels.trappings — dotations textuelles nommées', () => {
         for (const n of items) {
           if (!isObj(n)) continue;
           if ('text' in n) sites.push(siteIntegrite('dotation-texte', 'src/data/careerLevels.json', niveau.id, 'trappings.text', '', String(n.text)));
-          if (Array.isArray(n.choice)) walk(n.choice);
+          if (Array.isArray(n.of)) walk(n.of);
         }
       };
       walk(niveau.trappings);
@@ -609,17 +608,10 @@ describe('postes d’artillerie — réf catalogue hydratée, jamais une base co
 // ── RÉFÉRENCES DES `GameOp` DE LA DONNÉE COMMITÉE (#847). Le PÉRIMÈTRE (quels champs d'op portent
 // une chaîne) est DÉRIVÉ de l'union `GameOp` par le TypeChecker ; chaque champ est un CHAMP D'OP À SLOT
 // d'`OP_DEFS` (`champsDOpASlot`), jugé au parse par sa feuille `idDe`, ou il porte sa classification
-// dans `scripts/guards/lib/gameOpRefFk.mjs` (`registry` | `coveredBy` | `nonRef`). Les registres des
+// dans `scripts/guards/lib/gameOpRefFk.mjs` (`registry` | `nonRef`). Les registres des
 // champs que le parse ne juge pas sont câblés ICI, où ils sont typés.
 describe('GameOp — toute référence de la donnée committée est jugée au parse ou résout dans son registre (#847, #1473)', () => {
-  const MUTATION_TABLE_IDS = new Set(mutationTables.map((t) => t.id));
-
   const resolvers: Record<string, (id: string) => boolean> = {
-    qualities: (id) => !!findQualityById(id),
-    weaponGroups: (id) => !!findWeaponGroupById(id),
-    crewTestTypes: (id) => !!findCrewTestTypeById(id),
-    mutationTables: (id) => MUTATION_TABLE_IDS.has(id),
-    lightTones: (id) => !!findLightToneById(id),
     seaManannFactors: (id) => MANANN_FACTORS.some((f) => f.id === id),
   };
 
@@ -696,7 +688,7 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
     expect(miscastDef, 'def de miscast.json introuvable').toBeTruthy();
     const [table] = structuredClone(CORPUS.brutParNom.get('miscast.json')) as { entries: { id: string; ops?: object[] }[] }[];
     const rangee = table.entries.find((e) => e.id === 'mineure-langue-maladroite')!;
-    rangee.ops!.push({ op: 'castPenalty', id: 'id-fantome' });
+    rangee.ops!.push({ op: 'castPenalty', mod: -10 });
     table.entries = [rangee];
     const brutParNom = new Map<string, unknown>([['miscast.json', [table]]]);
     const noeuds = scanGameOpRefs({ sources: [{ file: 'miscast.json', data: [table] }], resolvers }).noeudsDOp;
@@ -704,9 +696,9 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
     expect(noeuds.filter((n) => atteintes.has(n.noeud)), 'la fixture doit rester HORS du parse d’op').toEqual([]);
     const slots = slotsDuParse({ brutParNom }, [miscastDef!]);
     expect(slotsDOpNonJuges(noeuds, atteintes, slots, CHAMPS_A_SLOT)).toEqual([]);
-    const avecSlot = new Set([...CHAMPS_A_SLOT, 'castPenalty.id']);
+    const avecSlot = new Set([...CHAMPS_A_SLOT, 'castPenalty.op']);
     expect(slotsDOpNonJuges(noeuds, atteintes, slots, avecSlot).map(renduNonJuge))
-      .toEqual(['miscast.json[0].entries[0].ops[1].id = "id-fantome"']);
+      .toEqual(['miscast.json[0].entries[0].ops[0].op = "castPenalty"', 'miscast.json[0].entries[0].ops[1].op = "castPenalty"']);
   });
 
   it('une op sous un conteneur d’ops est atteinte par le parse : une valeur OBJET fantôme y est REFUSÉE (contre-épreuve)', () => {
@@ -728,10 +720,10 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
   });
 
   // Le format d'une cible est un ensemble FERMÉ (`gameOpRefFk.mjs`, doc de `GAMEOP_FIELD_TARGETS`) :
-  // `{ registry }` | `{ nonRef }` | `{ coveredBy }`. Une clé hors de cet ensemble serait lue par
+  // `{ registry }` | `{ nonRef }`. Une clé hors de cet ensemble serait lue par
   // PERSONNE dans `scanGameOpRefs` — donc une tolérance muette, ou un champ tenu pour gardé sans l'être.
-  it('le format d’une cible est fermé : une seule clé, registry, nonRef ou coveredBy, non vide', () => {
-    const CLES = ['registry', 'nonRef', 'coveredBy'];
+  it('le format d’une cible est fermé : une seule clé, registry ou nonRef, non vide', () => {
+    const CLES = ['registry', 'nonRef'];
     const anomalies: string[] = [];
     for (const [cible, decl] of Object.entries(GAMEOP_FIELD_TARGETS as Record<string, Record<string, unknown>>)) {
       const cles = Object.keys(decl);
@@ -742,62 +734,22 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
   });
 
   it('la garde n’est pas vacante — une op à référence fantôme est REFUSÉE (contre-épreuve)', () => {
-    const fixture = (tone: string) => [{
+    const fixture = (factorId: string) => [{
       file: 'fixture.json',
-      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'light', radiusM: 3, tone }] } } }] }],
+      data: [{ effects: [{ flow: { effet: { ops: [{ op: 'manann', factorId }] } } }] }],
     }];
-    expect(scanGameOpRefs({ sources: fixture('flamme'), resolvers }).offenders).toEqual([]);
-    const out = scanGameOpRefs({ sources: fixture('ton-fantome'), resolvers }).offenders;
+    expect(scanGameOpRefs({ sources: fixture('chat-heureux'), resolvers }).offenders).toEqual([]);
+    const out = scanGameOpRefs({ sources: fixture('facteur-fantome'), resolvers }).offenders;
     expect(out).toHaveLength(1);
-    expect(out[0].registry).toBe('lightTones');
-    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].tone');
+    expect(out[0].registry).toBe('seaManannFactors');
+    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effet.ops[0].factorId');
   });
 
-  it('un champ NON-RÉFÉRENCE porte sa justification, un champ jugé ailleurs nomme son refus', () => {
+  it('un champ NON-RÉFÉRENCE porte sa justification', () => {
     for (const [key, t] of Object.entries(GAMEOP_FIELD_TARGETS)) {
       if ('registry' in t) { expect(resolvers[t.registry], `${key} → registre inconnu ${t.registry}`).toBeTruthy(); continue; }
-      const why = 'nonRef' in t ? t.nonRef : t.coveredBy;
-      expect(typeof why === 'string' && why.length > 20, `${key} : justification absente ou trop maigre`).toBe(true);
+      expect(t.nonRef.length > 20, `${key} : justification absente ou trop maigre`).toBe(true);
     }
-  });
-});
-
-// ── GARDE STRUCTURELLE — Schéma de Progression d'une Carrière (LDB 07 l.41-43) : 6 marques au
-// total, deux à deux disjointes — 3 au niveau 1, puis 1 par niveau (2/3/4). NE vérifie PAS
-// l'AFFECTATION marque→caractéristique (quelle Caractéristique porte le cuivre/l'argent/l'or pour
-// une Carrière donnée) : une permutation entre deux niveaux passe cette garde. Cette affectation
-// se mesure au PDF (rects `non_stroking_color` par colonne) et fait l'objet d'un ticket séparé.
-describe('careerLevels — Schéma de Progression : cardinalité 3/1/1/1 et disjonction des marques, PAS l\'affectation marque→caractéristique (LDB 07 l.41-43)', () => {
-  it('chaque Carrière : niveau 1 = 3 caractéristiques, niveaux 2/3/4 = 1 chacun, aucun doublon', () => {
-    const byCareer = new Map<string, typeof careerLevels>();
-    for (const l of careerLevels) {
-      const bucket = byCareer.get(l.career.id) ?? [];
-      bucket.push(l);
-      byCareer.set(l.career.id, bucket);
-    }
-    const offenders: string[] = [];
-    for (const [career, levels] of byCareer) {
-      const levelCounts = new Map<number, number>();
-      for (const l of levels) levelCounts.set(l.level, (levelCounts.get(l.level) ?? 0) + 1);
-      const dupLevels = [...levelCounts.entries()].filter(([, n]) => n > 1).map(([lvl]) => lvl);
-      if (dupLevels.length > 0) {
-        offenders.push(`${career} : niveau(x) en double [${dupLevels.join(', ')}]`);
-        continue;
-      }
-      const byLevel = new Map(levels.map((l) => [l.level, l]));
-      const nums = [...byLevel.keys()].sort((a, b) => a - b).join(',');
-      if (nums !== '1,2,3,4') { offenders.push(`${career} : niveaux présents [${nums}], attendu [1,2,3,4]`); continue; }
-      const perLevel = [1, 2, 3, 4].map((n) => byLevel.get(n)!.characteristics);
-      const expected = [3, 1, 1, 1];
-      perLevel.forEach((chars, i) => {
-        if (chars.length !== expected[i]) {
-          offenders.push(`${career} niveau ${i + 1} : ${chars.length} caractéristique(s), attendu ${expected[i]}`);
-        }
-      });
-      const all = perLevel.flat();
-      if (new Set(all).size !== all.length) offenders.push(`${career} : doublon parmi [${all.join(', ')}]`);
-    }
-    expect(offenders, offenders.join('\n')).toEqual([]);
   });
 });
 

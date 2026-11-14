@@ -5,20 +5,49 @@
  */
 import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
-import { fenetreDuRegistre, modalOwnerOf, horsModalByPending, sortieDeLaFenetre, validationDeLaFenetre, type GesteDeFenetreDeclare, type HorsModalDef, type QuiValideLaFenetre } from './modalArbiter';
+import {
+  fenetreDuRegistre,
+  modalOwnerOf,
+  horsModalByPending,
+  sortieDeLaFenetre,
+  validationDeLaFenetre,
+  type GesteDeFenetreDeclare,
+  type HorsModalDef,
+  type QuiValideLaFenetre,
+} from './modalArbiter';
 import { inBattleId, porteurParId } from './monde/combatants';
 import { porteurDeLObjet } from './monde/carrier';
 import { seatOwns, jetSurfaced, siegeDuHeros, worldSeat } from './sieges';
 import { targetingHolder } from './targetingHolder';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
-import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type NomDeVerbeDeJet, type RollVerb } from './flowVerbs';
+import {
+  FLOW_VERBS,
+  NOM_DU_VERBE_DE_JET,
+  VERBES_DE_JET,
+  estVerbeDeFenetre,
+  fluxAccepte,
+  rangeeFacultative,
+  type FlowVerbs,
+  type JetOwnerRef,
+  type NomDeVerbeDeJet,
+  type RollVerb,
+} from './flowVerbs';
 import type { ActionDeClasse } from './intentionsDeSiege';
 import type { PendingKey } from './stateFields';
 import { declarationDuReglage, estFluxRegle } from './reglagesDuJet';
 import { declarationDuChoix } from './choixDesFenetres';
 import { WORLD_STEP_OWNER } from './pendings';
-import type { CascadeStep, PendingAuContact, PendingBargain, PendingCast, PendingDefense, PendingDisengage, PendingDistraire, PendingGrapple } from './pendings';
+import type {
+  CascadeStep,
+  PendingAuContact,
+  PendingBargain,
+  PendingCast,
+  PendingDefense,
+  PendingDisengage,
+  PendingDistraire,
+  PendingGrapple,
+} from './pendings';
 
 /** Fenêtres HORS-modale indexées par leur `pending*` (#1016) — la possession du CLIC DE CARTE s'y
  *  prend quand `targetingHolder` désigne l'une d'elles. */
@@ -148,7 +177,7 @@ export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean 
   const { mode, mySeat } = state.net;
   if (mode === 'local') return true;
   if (actingSeat != null) return seatOwns(state, actingSeat, combatantId); // `seatOwns` traite l'absence d'acteur
-  if (!combatantId) return mode === 'host';
+  if (!combatantId) return mode === 'hote';
   return seatOwns(state, mySeat, combatantId);
 }
 
@@ -161,7 +190,7 @@ export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean 
  * clic et l'exécuter à la touche répondent par la même table de vérité. SOLO : toujours vrai.
  *
  * Il vit ICI, avec le routage, parce que ses DEUX consommateurs sont de couches différentes : la
- * fenêtre (hook `useOwnsGroupDecision`, `ui/ownership`) et les raccourcis `dialogue-choice-N`
+ * fenêtre (hook `useOwnsGroupDecision`, `ui/ownership`) et les raccourcis `dialogue-reponse-N`
  * (`state/clavier/keybindings`) — `src/state` ne peut pas lire `src/ui`.
  *
  * COUPLAGE ASSUMÉ : l'égalité route-du-dialogue ⇄ sentinel MONDE est une COÏNCIDENCE de formule, pas
@@ -195,8 +224,8 @@ export function defenseSurfaced(s: Jeu, defender: Combatant): boolean {
  * (qui a la main ICI) ; le SURFAÇAGE d'une défense, lui, passe par `defenseSurfaced` ci-dessus.
  */
 export function pilotedByHuman(s: Jeu, c: Combatant): boolean {
-  if (c.kind === 'hero') return !c.aiControlled && ownsLocal(s, c.id);
-  if (c.kind === 'enemy') return s.net.gmSeat != null; // conduit par le MJ (bac-à-sable) sinon IA
+  if (c.kind === 'heros') return !c.aiControlled && ownsLocal(s, c.id);
+  if (c.kind === 'ennemi') return s.net.gmSeat != null; // conduit par le MJ (bac-à-sable) sinon IA
   return false;
 }
 
@@ -258,17 +287,17 @@ const repondant = (id: string, result: unknown): ParticipantDeJetFige[] => [{ id
 export const JET_FIGE = {
   defense: (pd: PendingDefense): JetFige => ({ ownerId: pd.attackerId, participants: repondant(pd.defenderId, pd.result) }),
   /** Les répondants de l'incantation : l'opposition de cible et le Contre-sort. */
-  cast: (s: Pick<Jeu, 'pendingCastOpposition' | 'pendingCounterspell'>, pc: PendingCast): JetFige => ({
+  incantation: (s: Pick<Jeu, 'pendingCastOpposition' | 'pendingCounterspell'>, pc: PendingCast): JetFige => ({
     ownerId: pc.casterId,
     participants: [...(s.pendingCastOpposition?.participants ?? []), ...(s.pendingCounterspell?.participants ?? [])],
   }),
-  disengage: (pd: PendingDisengage): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.def) }),
+  desengagement: (pd: PendingDisengage): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.def) }),
   auContact: (pd: PendingAuContact): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.def) }),
-  grapple: (pd: PendingGrapple): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.actorId, pd.def) }),
+  empoignade: (pd: PendingGrapple): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.actorId, pd.def) }),
   /** Le jet figé est le Calme du foe ; la réponse, l'Athlétisme du mover (`atk`). */
   distraire: (pd: PendingDistraire): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.atk) }),
   /** L'opposant du Marchandage n'est pas un combattant. */
-  bargain: (pb: PendingBargain): JetFige => ({ ownerId: undefined, participants: repondant(pb.playerId, pb.roll ?? undefined) }),
+  marchandage: (pb: PendingBargain): JetFige => ({ ownerId: undefined, participants: repondant(pb.playerId, pb.roll ?? undefined) }),
   /** L'étape opposée d'une cascade (`meta.opposed`) : chaque rangée de sa bande, ou son acteur. */
   cascade: (step: CascadeStep): JetFige => ({
     ownerId: step.meta?.opposed?.attackerId,
@@ -287,22 +316,22 @@ export const JET_FIGE = {
  * `controlsCombatant` en dépendent ; `combatGate` le ré-exporte pour ses consommateurs historiques.)
  */
 export function aiDriven(s: Jeu, c: Combatant): boolean {
-  if (c.kind === 'enemy') return s.net.gmSeat == null; // ennemi = IA SAUF si un siège MJ le conduit
+  if (c.kind === 'ennemi') return s.net.gmSeat == null; // ennemi = IA SAUF si un siège MJ le conduit
   // PNJ allié IA (`Combatant.aiControlled`, ex. défenseur de siège) : agit SEUL même en jeu MANUEL — sans
   // attendre l'Auto-combat global. On ne pilote jamais le combattant d'un AUTRE siège (`ownsLocal`).
-  if (c.kind === 'hero' && c.aiControlled) return ownsLocal(s, c.id);
-  return c.kind === 'hero' && cadenceAutoCombat() && ownsLocal(s, c.id);
+  if (c.kind === 'heros' && c.aiControlled) return ownsLocal(s, c.id);
+  return c.kind === 'heros' && cadenceAutoCombat() && ownsLocal(s, c.id);
 }
 
 /**
  * Le siège LOCAL pilote-t-il À LA MAIN ce combattant MAINTENANT ? — prédicat UNIQUE des affordances de TOUR
  * (grille de déplacement, réticule, barre d'action, hotbar). Héros manuel → vrai ; héros Auto-combat →
  * faux ; PNJ `aiControlled` → faux ; ennemi sans MJ → faux ; ENNEMI quand le siège LOCAL porte le rôle MJ
- * → vrai (coop : `gmSeat === mySeat`) ; invocation alliée (`kind:'hero'`) → comme un héros.
+ * → vrai (coop : `gmSeat === mySeat`) ; invocation alliée (`kind:'heros'`) → comme un héros.
  */
 export function controlsCombatant(s: Jeu, c: Combatant): boolean {
   if (!pilotedByHuman(s, c) || aiDriven(s, c)) return false;
-  if (c.kind === 'hero') return true; // `pilotedByHuman` encode déjà `ownsLocal` (siège-aware)
+  if (c.kind === 'heros') return true; // `pilotedByHuman` encode déjà `ownsLocal` (siège-aware)
   // Ennemi/monde conduit par le MJ : seul le siège MJ le pilote — comparé au siège qui DÉCIDE
   // maintenant (le siège local, ou le siège AGISSANT pendant l'application de son intent).
   return s.net.mode === 'local' || s.net.gmSeat === decidingSeat(s);
@@ -337,8 +366,8 @@ export function seatInfluences(s: Jeu, seat: number, ownerId: string | undefined
   const c = porteurParId(s, ownerId);
   if (!c) return false;
   const solo = s.net.mode === 'local';
-  if (c.kind === 'hero') return !c.aiControlled && (solo || seatOwns(s, seat, c.id));
-  if (c.kind === 'enemy') return s.net.gmSeat != null && (solo || s.net.gmSeat === seat);
+  if (c.kind === 'heros') return !c.aiControlled && (solo || seatOwns(s, seat, c.id));
+  if (c.kind === 'ennemi') return s.net.gmSeat != null && (solo || s.net.gmSeat === seat);
   return false;
 }
 
@@ -373,7 +402,7 @@ export function controlsActive(state: Jeu): boolean {
   const activeId = b.order[b.turn];
   const active = inBattleId(b, activeId);
   if (!active) return true;
-  if (active.kind !== 'hero') {
+  if (active.kind !== 'heros') {
     // Actif non-héros : conduit par le siège MJ (bac-à-sable) → affordances si le siège qui DÉCIDE porte
     // le rôle MJ (le siège local, ou le siège AGISSANT pendant son intent). Sans MJ (`gmSeat` null) →
     // tour IA : vrai (l'UI est déjà inerte par ses propres verrous — inchangé). NB : le surfaçage FIN
@@ -431,8 +460,6 @@ const idArg = (a: unknown): string | undefined => (typeof a === 'string' ? a : u
 const TOUJOURS: Route = { rule: () => true };
 /** Possession du combattant désigné par le 1ᵉʳ argument. */
 const PAR_ARG0: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[0])) };
-/** Possession du combattant désigné par le 2ᵉ argument. */
-const PAR_ARG1: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[1])) };
 /** Possession du porteur de l'objet désigné par le 1ᵉʳ argument, lu dans l'état (`porteurDeLObjet`) ; objet sans
  *  porteur → personne. */
 const PAR_PORTEUR_DE_L_OBJET: Route = {
@@ -447,7 +474,7 @@ const PAR_PORTEUR_DE_L_OBJET: Route = {
  * CLIC DE CARTE pendant un ciblage détenu par une fenêtre HORS registre de modales (#1016) — c'est
  * LE chemin : le balayage et la 2ᵉ frappe (`frapperEnBalayage`/`frapperDeLaSecondeArme`) sont la machinerie du clic
  * (`targetingModes`, `MachinerieDuNoyau`), et le clic voyage par `cliquerLaCase`. Ce clic retombait sur
- * `modalOwnerOf`, qui ne consulte que `MODAL_DEFS` : sous un `fateSave` (1ʳᵉ entrée, priorité maximale) l'attaquant qui balaie était
+ * `modalOwnerOf`, qui ne consulte que `MODAL_DEFS` : sous un `destin` (1ʳᵉ entrée, priorité maximale) l'attaquant qui balaie était
  * REFUSÉ et la victime acceptée — son clic mourait ensuite dans les gardes de `cliquerLeCombattant`,
  * donc PERSONNE ne poursuivait le balayage. Tant qu'un pending hors-modale tient le ciblage
  * (`targetingHolder`, projection de `detenteurDuCiblage`, que l'aiguilleur projette aussi), le clic
@@ -518,10 +545,10 @@ const routeJet = (jet: JetOwnerRef, depense: boolean): Route => ({
 
 /** Le geste de jet `verbe` dépense-t-il une ressource du porteur ? Tous, sauf le lancer et les verbes de fenêtre
  *  (`estVerbeDeFenetre` : l'annulation et la clôture). */
-const depenseDuPorteur = (verbe: RollVerb): boolean => verbe !== 'roll' && !estVerbeDeFenetre(verbe);
+const depenseDuPorteur = (verbe: RollVerb): boolean => verbe !== 'lancer' && !estVerbeDeFenetre(verbe);
 
 /** La rangée (`pid`) d'un geste de jet : son dernier argument (`VerbesDeJet` : après le dé posé de `jetImposerLeResultat`). */
-const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => idArg(args[verbe === 'setForcedRoll' ? 2 : 1]);
+const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => idArg(args[verbe === 'imposerLeResultat' ? 2 : 1]);
 
 /**
  * Possession d'un geste de jet `verbe`, d'après le flux qu'il vise (1ᵉʳ argument) — un flux qui ne l'accepte pas :
@@ -541,7 +568,7 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
     if (!fluxAccepte(flux, verbe)) return false;
     const w: FlowVerbs = FLOW_VERBS[flux];
     if (w.kind === 'mono') return routeJet(w.jetOwner, depenseDuPorteur(verbe)).rule(s, seat, args);
-    if (flux === 'cascade' && (verbe === 'resist' || verbe === 'reverse')) return acteurDEtape(s, seat, rangeeDuGeste(verbe, args));
+    if (flux === 'cascade' && (verbe === 'resister' || verbe === 'inverser')) return acteurDEtape(s, seat, rangeeDuGeste(verbe, args));
     if (!w.pidIsActor || estVerbeDeFenetre(verbe)) return null;
     const rangee = rangeeDuGeste(verbe, args);
     if (rangee === undefined && rangeeFacultative(flux, verbe)) return true;
@@ -631,16 +658,12 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['recruterLeHeros', TOUJOURS],
     ['renvoyerLeHeros', TOUJOURS],
     ['remplacerLeHeros', TOUJOURS],
-    // Activités d'interlude (audit M7) : le 1er argument est le héros visé — son propriétaire agit
-    // (`pratiquerLActivite` = chemin UNIQUE des Activités à jet).
-    ['pratiquerLActivite', PAR_ARG0],
-    ['fabriquerLObjet', PAR_ARG0],
+    // Activités d'interlude (audit M7) : le 1er argument est le héros visé — son propriétaire agit ; composer et
+    // pratiquer une Activité se choisit au siège du héros de la rangée (`fenetreChoisir('interlude', …)`).
     ['commanderLObjet', PAR_ARG0],
     ['deposerALaBanque', PAR_ARG0],
-    ['suivreLEntrainement', PAR_ARG0],
     ['solderLaFaveur', PAR_ARG0],
-    // Préparation de bataille : le héros MENEUR est le 2ᵉ argument.
-    ['menerLActionDeBataille', PAR_ARG1],
+    ['menerLActionDeBataille', PAR_ARG0],
     // Retrait bancaire : le dépôt appartient à un héros — son propriétaire retire.
     ['retirerDeLaBanque', {
       rule: (s, seat, [depotId]) => {

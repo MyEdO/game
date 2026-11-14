@@ -55,7 +55,7 @@ function inspecteur(scene: Scene, sel: Parameters<typeof Inspector>[0]['sel']) {
       openLogic={() => undefined}
       resizeScene={() => undefined}
       narratif={emptyNarratif()}
-      tool={{ mode: 'select' }}
+      tool={{ mode: 'selection' }}
       armZoneTiles={() => undefined}
       zoneFocusKey={null}
     />,
@@ -93,7 +93,7 @@ function palette(scene: Scene) {
   return renderToStaticMarkup(
     <Palette
       scene={scene}
-      tool={{ mode: 'select' }}
+      tool={{ mode: 'selection' }}
       setTool={vi.fn()}
       brush={1}
       setBrush={vi.fn()}
@@ -111,7 +111,7 @@ function palette(scene: Scene) {
       architectureMode
       architectureBodyId="corps"
       architectureStoreyId="z0"
-      architectureAction="select"
+      architectureAction="selection"
       onArchitectureMode={vi.fn()}
       onArchitectureBody={vi.fn()}
       onArchitectureStorey={vi.fn()}

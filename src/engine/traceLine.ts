@@ -18,11 +18,13 @@
  */
 import { t, deElide } from '../i18n';
 import { DIFFICULTY_LABELS, type Difficulty } from './types';
+import type { VainqueurOppose } from './tests';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Structure LUE par le dériveur — celle qu'une rangée/étape porte déjà (`CascadeRoll`, `TestResult`). */
 export interface TraceRow {
-  /** Porteur du jet (libellé résolu). Absent → le libellé nomme déjà qui lance. */
-  who?: string;
+  /** Porteur du jet, nommé par `nomDe` (#4017). Absent → le libellé nomme déjà qui lance. */
+  who?: PlayerText;
   /** Libellé du jet (Compétence/Caractéristique testée, avec sa situation). Défaut : « Test ». */
   label?: string;
   roll: number;
@@ -38,7 +40,7 @@ export interface TraceRow {
 
 /** Un CAMP d'un Test opposé — même anatomie qu'une `TraceRow`, sans issue propre (elle est commune). */
 export type TraceSide = Omit<TraceRow, 'success' | 'issue' | 'who' | 'label' | 'sl'>
-  & { who: string; label: string; sl: number };
+  & { who: PlayerText; label: string; sl: number };
 
 /** Les DEUX jets d'une même opposition, sur UNE ligne. */
 export interface TraceOpposed {
@@ -46,7 +48,7 @@ export interface TraceOpposed {
   defender: TraceSide;
   /** Verdict de `resolveOpposed` — TROIS issues (LDB 12 l.160) : le défenseur RÉSISTE, l'attaquant
    *  L'EMPORTE, ou ÉGALITÉ parfaite (même DR ET même valeur nue) → statu quo, rien ne se passe. */
-  winner: 'attacker' | 'defender' | 'tie';
+  winner: VainqueurOppose;
   /** Verdict en clair du domaine. Défaut : résiste / l'emporte / égalité — statu quo. */
   issue?: string;
 }
@@ -78,8 +80,8 @@ export function traceLineOf(row: TraceRow | TraceOpposed): string {
  *  (`CascadeDeDecl` + `CascadeDeResult`). Ni cible ni DR : un dé nu ne se réussit pas, son TOTAL
  *  EST la conséquence. */
 export interface TraceDie {
-  /** Porteur du dé (libellé résolu). Absent → le monde tire, le libellé suffit. */
-  who?: string;
+  /** Porteur du dé, nommé par `nomDe` (#4017). Absent → le monde tire, le libellé suffit. */
+  who?: PlayerText;
   /** Ce qui se tire (« Hauteur de chute »). Défaut : « Tirage ». */
   label?: string;
   roll: number;
@@ -102,9 +104,9 @@ export function traceDieLineOf(d: TraceDie): string {
 /** Issue par DÉFAUT d'une opposition, vue du DÉFENSEUR (le jeteur) — table TOTALE sur les trois
  *  verdicts de `resolveOpposed` : aucun `winner` ne peut sortir sans phrase. */
 const OPPOSED_ISSUE_KEY: Record<TraceOpposed['winner'], 'casc.opposedResists' | 'casc.opposedPrevails' | 'casc.opposedTie'> = {
-  defender: 'casc.opposedResists',
-  attacker: 'casc.opposedPrevails',
-  tie: 'casc.opposedTie',
+  defenseur: 'casc.opposedResists',
+  attaquant: 'casc.opposedPrevails',
+  egalite: 'casc.opposedTie',
 };
 
 function opposedLine(o: TraceOpposed): string {

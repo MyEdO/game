@@ -246,18 +246,20 @@ export function testDetail(label: string, base: number, t: TestResult, mods?: Mo
   return { label, base, modifier: t.target - base, target: t.target, roll: t.roll, success: t.success, sl: t.sl, ...(mods?.length ? { mods } : {}) };
 }
 
+/** Vainqueur d'un Test opposé (LDB 12 l.160) : `egalite` = statu quo, aucun vainqueur. */
+export type VainqueurOppose = 'attaquant' | 'defenseur' | 'egalite';
+
 export interface OpposedResult {
   attacker: TestResult;
   defender: TestResult;
-  /** Vainqueur du test opposé. `tie` = statu quo (aucun vainqueur). */
-  winner: 'attacker' | 'defender' | 'tie';
-  /** Conservé pour compatibilité : true uniquement si `winner === 'attacker'`. */
+  winner: VainqueurOppose;
+  /** `true` si et seulement si `winner === 'attaquant'`. */
   attackerWins: boolean;
   /** DR net du vainqueur (sert aux dégâts en combat). */
   netSL: number;
   /** Critère qui a TRANCHÉ, en ids STABLES (LDB 12 l.160) : `dr` = les DR diffèrent ; `valeur` =
    *  DR égaux, départage sur la valeur nue (`base`, à défaut la cible) ; `egalite` = rien n'a
-   *  départagé (`winner === 'tie'`) ; `force` = victoire IMPOSÉE par une ressource/règle (Résilience
+   *  départagé (`winner === 'egalite'`) ; `force` = victoire IMPOSÉE par une ressource/règle (Résilience
    *  LDB 17 l.68), aucun départage joué. Donnée d'AFFICHAGE en aval, aucun verdict n'en dépend. */
   decidedBy: 'dr' | 'valeur' | 'egalite' | 'force';
 }
@@ -311,14 +313,14 @@ function openValues(attacker: TestResult, defender: TestResult): [number, number
 
 export function resolveOpposed(attacker: TestResult, defender: TestResult): OpposedResult {
   // LDB 12 l.160.
-  let winner: 'attacker' | 'defender' | 'tie';
+  let winner: VainqueurOppose;
   let decidedBy: OpposedResult['decidedBy'];
   const [aVal, dVal] = openValues(attacker, defender);
-  if (attacker.sl !== defender.sl) { winner = attacker.sl > defender.sl ? 'attacker' : 'defender'; decidedBy = 'dr'; }
-  else if (aVal !== dVal) { winner = aVal > dVal ? 'attacker' : 'defender'; decidedBy = 'valeur'; }
-  else { winner = 'tie'; decidedBy = 'egalite'; }
+  if (attacker.sl !== defender.sl) { winner = attacker.sl > defender.sl ? 'attaquant' : 'defenseur'; decidedBy = 'dr'; }
+  else if (aVal !== dVal) { winner = aVal > dVal ? 'attaquant' : 'defenseur'; decidedBy = 'valeur'; }
+  else { winner = 'egalite'; decidedBy = 'egalite'; }
   const netSL = Math.abs(attacker.sl - defender.sl);
-  return { attacker, defender, winner, attackerWins: winner === 'attacker', netSL, decidedBy };
+  return { attacker, defender, winner, attackerWins: winner === 'attaquant', netSL, decidedBy };
 }
 
 /**
@@ -339,8 +341,8 @@ export function resolveOpposed(attacker: TestResult, defender: TestResult): Oppo
  * quo = la branche PORTEUSE de la conséquence n'est pas prise, quel qu'en soit le camp.
  */
 export function opposedBranchSuccess(o: OpposedResult, defenderMustWin?: boolean): boolean {
-  if (o.winner === 'tie') return !defenderMustWin;
-  return o.winner !== 'attacker';
+  if (o.winner === 'egalite') return !defenderMustWin;
+  return o.winner !== 'attaquant';
 }
 
 /** RAISON du verdict d'un Test opposé, prête pour la LIGNE (Z5) du camp qui la porte — zone Z5c de
@@ -362,7 +364,7 @@ export function opposedReasons(opp: OpposedResult): [VerdictReason | undefined, 
   const [aVal, dVal] = openValues(opp.attacker, opp.defender);
   if (opp.decidedBy === 'egalite') return [{ by: 'egalite' }, { by: 'egalite' }];
   if (opp.decidedBy !== 'valeur') return [undefined, undefined];
-  return opp.winner === 'attacker'
+  return opp.winner === 'attaquant'
     ? [{ by: 'valeur', own: aVal, other: dVal }, undefined]
     : [undefined, { by: 'valeur', own: dVal, other: aVal }];
 }
@@ -418,17 +420,17 @@ export function clampTarget(raw: number, policy: TestPolicy = getTestPolicy()): 
   return target === raw ? { target } : { target, clamped: target - raw };
 }
 
-/** Un Round d'un Test ÉTENDU, cumul planché à 0. Règle optionnelle `test-extended-min-sl` lue ICI,
- *  pour tout Test étendu. LDB 12 l.170-185 */
+/** Un Round d'un Test ÉTENDU, cumul planché à 0 ; `sl` est le DR que le Round apporte au cumul. Règle
+ *  optionnelle `test-etendu-dr-minimum` lue ICI, pour tout Test étendu. LDB 12 l.170-185 */
 export function extendedTestStep(
   prev: number,
   r: { success: boolean; sl: number },
-  targetDR: number,
-): { total: number; done: boolean; repart: boolean } {
-  const sl = rule('test-extended-min-sl') ? (r.success ? Math.max(1, r.sl) : Math.min(-1, r.sl)) : r.sl;
+  drCible: number,
+): { total: number; done: boolean; repart: boolean; sl: number } {
+  const sl = rule('test-etendu-dr-minimum') ? (r.success ? Math.max(1, r.sl) : Math.min(-1, r.sl)) : r.sl;
   const brut = prev + sl;
   const total = Math.max(0, brut);
-  return { total, done: total >= targetDR, repart: brut < 0 };
+  return { total, done: total >= drCible, repart: brut < 0, sl };
 }
 
 /** Les Rounds `jets` d'un Test étendu, dans l'ordre, depuis `prev` : le Test s'arrête à la cible.
@@ -436,10 +438,10 @@ export function extendedTestStep(
 export function extendedTestSteps(
   prev: number,
   jets: readonly { success: boolean; sl: number }[],
-  targetDR: number,
+  drCible: number,
 ): { total: number; done: boolean } {
-  let cur = { total: prev, done: prev >= targetDR };
-  for (const r of jets) if (!cur.done) cur = extendedTestStep(cur.total, r, targetDR);
+  let cur = { total: prev, done: prev >= drCible };
+  for (const r of jets) if (!cur.done) cur = extendedTestStep(cur.total, r, drCible);
   return { total: cur.total, done: cur.done };
 }
 

@@ -2,7 +2,7 @@
  * DIALOGUE — ce qu'une réponse OFFRE et ce qu'elle ANNONCE viennent de sa DONNÉE (#1869).
  *
  * Des fonctions PURES (elles LISENT l'état, n'en écrivent aucun), source UNIQUE des surfaces qui servent
- * une réponse — la fenêtre (`ui/DialogueBox`), les touches `dialogue-choice-N` (`state/clavier/keybindings`) et
+ * une réponse — la fenêtre (`ui/DialogueBox`), les touches `dialogue-reponse-N` (`state/clavier/keybindings`) et
  * l'écran d'un hôte du noyau (`conversationEnVue`) :
  *  · `ouvrirDialogue` — la SEULE fabrique d'un état de conversation : tout ouvreur y passe, et la
  *    conversation naît avec sa `session`, l'id MONOTONE qui regroupe SES tours à la relecture ;
@@ -12,6 +12,7 @@
  *  · `testAnnonce` — le Test que le flux d'une réponse DÉCLENCHE, en ids STABLES (jamais un libellé
  *    recopié dans la donnée), que `libelleDuTestAnnonce` résout en libellés au registre.
  */
+import type { IconId } from '../data/icons';
 import type { CharKey, Difficulty } from '../engine/types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { canAfford, toMoney } from '../engine/money';
@@ -59,7 +60,7 @@ export function ouvrirDialogue(
 /**
  * LA CONVERSATION RÉPOND-ELLE ? Prédicat NOMMÉ, UNIQUE, de toutes les portes par lesquelles une
  * réponse se choisit — le choix `dialogue.reponse` (donc aussi l'intent coop appliqué par l'hôte) et
- * les touches `dialogue-choice-N`. Trois termes, aucun recopié ailleurs :
+ * les touches `dialogue-reponse-N`. Trois termes, aucun recopié ailleurs :
  *  · une conversation est OUVERTE ;
  *  · CE siège décide pour le groupe (décision de groupe, #1262) ;
  *  · aucune surface ne tient la main (`surfaceTientLaMain`, l'arbitre) — la conversation est CE
@@ -73,13 +74,13 @@ export function conversationRepond(s: Jeu): s is Jeu & { dialogue: EtatDialogue 
 /** `kind` de la couche que la fenêtre de conversation pose sur la pile de CE siège (`ui/DialogueBox`). */
 export const COUCHE_CONVERSATION = 'dialogue';
 
-/** Le Test qu'un flux de réponse DÉCLENCHE, en ids STABLES — `targetDR` n'est porté que par un Test
+/** Le Test qu'un flux de réponse DÉCLENCHE, en ids STABLES — `drCible` n'est porté que par un Test
  *  ÉTENDU (le DR CUMULÉ à atteindre, donnée du flux). */
 export interface TestAnnonce {
   skill?: RefDesignee;
   characteristic?: CharKey;
   difficulty: Difficulty;
-  targetDR?: number;
+  drCible?: number;
 }
 
 /** Une réponse VISIBLE du nœud courant. */
@@ -89,7 +90,7 @@ export interface ReponseDeDialogue {
   /** Rang 1..n dans la liste VISIBLE — le numéro affiché, et la touche qui l'adresse. */
   rang: number;
   label: string;
-  icon?: string;
+  icon?: IconId;
   /** Coût normalisé de la réponse payante (affiché, et payé par le choix `dialogue.reponse`). */
   cost?: ReturnType<typeof toMoney>;
   /** La réponse est-elle OFFERTE ? Verdict PARTAGÉ par le clic et par la touche. */
@@ -112,7 +113,7 @@ export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
   if (!node) return [];
   const get = () => s;
   // Contexte de Condition de SCÈNE par la couture canonique (`bourseFlow.condCtx`) : la Condition
-  // `money` y lit le total des bourses du groupe, comme les triggers et les `if` de scène.
+  // `money` y lit le total des bourses du groupe, comme les triggers et les `si` de scène.
   const cc = condCtx(get);
   const money = partyMoneyTotal(get);
   const decide = ownsGroupDecision(s);
@@ -139,30 +140,30 @@ export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
 
 /**
  * Le Test que CE flux déclenche, ou rien. Le parcours suit ce qui va RÉELLEMENT s'exécuter : une
- * `seq` dans l'ordre, un `if` par la branche que sa Condition prend, et il s'arrête au PREMIER jet
+ * `sequence` dans l'ordre, un `si` par la branche que sa Condition prend, et il s'arrête au PREMIER jet
  * rencontré — c'est le seul que le joueur déclenche en choisissant la réponse (les branches
- * `success`/`fail` d'un `test` sont APRÈS le jet ; ce qu'elles contiennent n'est pas annoncé).
+ * `reussite`/`echec` d'un `test` sont APRÈS le jet ; ce qu'elles contiennent n'est pas annoncé).
  * Un nœud `test` et un Test étendu s'annoncent par la décision de leur ouvreur (`resoudreFlowTest`, `engine/decisionDuTest`),
- * sur le contexte que l'ouvreur reçoit. Un `choice` est une DÉCISION, pas un jet.
+ * sur le contexte que l'ouvreur reçoit. Un `choix` est une DÉCISION, pas un jet.
  */
 export function testAnnonce(flow: Flow | undefined, ctx: ContexteDuTest): TestAnnonce | undefined {
   if (!flow) return undefined;
   switch (flow.kind) {
-    case 'seq':
-      return flow.steps.reduce<TestAnnonce | undefined>((trouve, step) => trouve ?? testAnnonce(step, ctx), undefined);
-    case 'if':
-      return testAnnonce(evalCondition(flow.cond, ctx.cc) ? flow.then : flow.else, ctx);
+    case 'sequence':
+      return flow.etapes.reduce<TestAnnonce | undefined>((trouve, step) => trouve ?? testAnnonce(step, ctx), undefined);
+    case 'si':
+      return testAnnonce(evalCondition(flow.condition, ctx.cc) ? flow.alors : flow.sinon, ctx);
     case 'test': {
       const decision = resoudreFlowTest(flow.test, ctx);
       return decision.joue ? { ...decision.sujet, difficulty: decision.difficulty } : undefined;
     }
-    case 'do': {
-      const e = flow.effect;
+    case 'effet': {
+      const e = flow.effet;
       if (e.type !== 'extendedTest') return undefined;
       const decision = resoudreFlowTest(e, ctx);
-      return decision.joue ? { ...decision.sujet, difficulty: decision.difficulty, targetDR: e.targetDR } : undefined;
+      return decision.joue ? { ...decision.sujet, difficulty: decision.difficulty, drCible: e.drCible } : undefined;
     }
-    case 'choice':
+    case 'choix':
       return undefined;
   }
 }
@@ -176,7 +177,7 @@ export function testAnnonce(flow: Flow | undefined, ctx: ContexteDuTest): TestAn
 export function libelleDuTestAnnonce(test: TestAnnonce): string {
   const quoi = testSkillLabel(test) ?? '';
   const diff = DIFFICULTY_LABELS[test.difficulty];
-  return test.targetDR != null ? t('dlg.testTagCumul', { quoi, diff, dr: test.targetDR }) : t('dlg.testTag', { quoi, diff });
+  return test.drCible != null ? t('dlg.testTagCumul', { quoi, diff, dr: test.drCible }) : t('dlg.testTag', { quoi, diff });
 }
 
 /** Une réponse en vue : ce qu'elle annonce (`libelleDuTestAnnonce`) et le geste qui la choisit. */

@@ -25,7 +25,6 @@ import {
   type FaceDArete,
   type WallSecret,
   isDescriptiveZone,
-  enrolledEntityIds,
   idDuCorps,
   porteAuteur,
   reposDeScene,
@@ -46,20 +45,94 @@ import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
 import type { WorldMap } from '../../noyau/worldMap';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif, objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
-import type { Settlement } from '../../engine/disponibilite';
+import type { Settlement } from '../../data/schemas/grammaire/valeurs';
 import { roleAmbiantSchema } from '../../data/schemas/grammaire/valeurs';
 import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
 import { buildingsMeta } from '../../noyau/monde/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../noyau/monde/facades';
-import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { allMusicDefs } from '../../data/sons/musique';
-import { findCreatureById, creatureLabel, lightLevels, lightTones, findPropById, matieresCouvrantes, matieresDe, structureAppearances, siegeEngines, libelleDAuteur, MERCHANT_ARCHETYPES } from '../../data';
-import { renameActionAuthoree, toitureEffective, TypeNonNomme, changePropRef, deleteSel, renameEntry, renameEffectZone, addMember, removeMember, patchMember, setEffectZoneArea, clearEffectZoneCarve, setPosteCrew, setPosteSide, setPosteEngine, editEntity, editEntityCombat, patchWall, setNorthDeg, setSceneFlags, removeSceneFlag, setSceneScalaires, setSceneLabel, renameScene, editEntry, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, patchStartMessage, setReliefDefault, patchSceneRoofDefaults, setSceneRest, patchTrigger, patchRestZone, patchZone, replaceEffectZone, patchArchitectureBody, poseToitureDuCorps, addRoofExclusion, patchRoofExclusion, removeRoofExclusion, patchArchitectureStorey, patchArchitecturePart, patchFacadeSection, setFacadeSectionZ, patchBuildingMass, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE } from '../../noyau/sceneEdit';
+import {
+  findCreatureById,
+  creatureLabel,
+  lightLevels,
+  lightTones,
+  findPropById,
+  matieresCouvrantes,
+  matieresDe,
+  structureAppearances,
+  siegeEngines,
+  libelleDAuteur,
+  MERCHANT_ARCHETYPES,
+  TAVERN_GAMES,
+} from '../../data';
+import {
+  renameActionAuthoree,
+  toitureEffective,
+  TypeNonNomme,
+  changePropRef,
+  deleteSel,
+  renameEntry,
+  renameEffectZone,
+  addMember,
+  removeMember,
+  patchMember,
+  setEffectZoneArea,
+  clearEffectZoneCarve,
+  setPosteCrew,
+  setPosteSide,
+  setPosteEngine,
+  editEntity,
+  editEntityCombat,
+  patchWall,
+  setNorthDeg,
+  setSceneFlags,
+  removeSceneFlag,
+  setSceneScalaires,
+  setSceneLabel,
+  renameScene,
+  editEntry,
+  addStation,
+  patchStation,
+  removeStation,
+  setSceneMusic,
+  setStartMessageTexte,
+  patchStartMessage,
+  setReliefDefault,
+  patchSceneRoofDefaults,
+  setSceneRest,
+  patchTrigger,
+  patchRestZone,
+  patchZone,
+  replaceEffectZone,
+  patchArchitectureBody,
+  poseToitureDuCorps,
+  addRoofExclusion,
+  patchRoofExclusion,
+  removeRoofExclusion,
+  patchArchitectureStorey,
+  patchArchitecturePart,
+  patchFacadeSection,
+  setFacadeSectionZ,
+  patchBuildingMass,
+  addFacadeFeature,
+  patchFacadeFeature,
+  removeFacadeFeature,
+  BORNES_D_OUVERTURE,
+} from '../../noyau/sceneEdit';
 import { ciblesDAncreDeBataille } from '../../noyau/massBattleFlow';
 import { hintDeValeur, libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
 import { amateurSchema } from '../../data/schemas/grammaire/valeurs';
-import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneEffectZoneSchema, sceneSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
+import {
+  entityKindSchema,
+  facadeFeatureKindSchema,
+  faceDAreteSchema,
+  roofProfileSchema,
+  sceneEffectZoneSchema,
+  sceneSchema,
+  sceneWeatherSchema,
+  type ReliefDefaults,
+} from '../../data/schemas/defs-scenes/scene';
 
 import { ApparencesObjetsField, ReglagesApparence } from './ReglagesApparence';
 import { armesDEntite, equipementDAuteurDe } from '../../noyau/equipementDessine';
@@ -67,8 +140,7 @@ import { effectCtxOf } from './EffectList';
 import { ListeDIds, RefNarrativeField } from '../compendium/refField/RefField';
 import { GameOpEditor } from './GameOpEditor';
 import { FlowEditor, TestFields } from './FlowEditor';
-import { actionsDe, ACTION_FOUILLER } from '../../noyau/monde/usable';
-import { EMPTY_FLOW } from '../../engine/flowCore';
+import { actionsDe, actionNeuve } from '../../noyau/monde/usable';
 import { StatblockEditor } from './StatblockEditor';
 import { emptyStatblock } from '../../data/valeursNeuves';
 import { CreatureProfile, OptionalTraitsPicker, SpellsField } from './OptionalTraitsPicker';
@@ -81,7 +153,7 @@ import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structure
 import { RefField } from '../compendium/refField/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Icon } from '../Icon';
-import type { IconIdInput } from '../../data/icons';
+import type { IconId } from '../../data/icons';
 import { ListRow } from '../ListRow';
 import { OptionChooser } from '../OptionChooser';
 import { LayerField, LayerChip, sceneLayerZs } from './LayerField';
@@ -153,7 +225,7 @@ function MusicSelect({ label, value, onChange }: { label: string; value: string 
   );
 }
 
-const ENT_ICON: Record<string, IconIdInput> = { heroStart: 'map-tool/start-flag', personnage: 'map-tool/npc', prop: 'map-tool/prop' };
+const ENT_ICON: Record<string, IconId> = { heroStart: 'outil-de-carte/depart', personnage: 'outil-de-carte/personnage', prop: 'outil-de-carte/decor' };
 /** Icône d'entité — un emplacement de siège (entité portant un poste) prime sur l'icône de kind. */
 const entIcon = (ent: SceneEntity): JSX.Element => (
   ent.postes?.length ? <Icon id="scenario/siege" size="sm" /> : ENT_ICON[ent.kind] ? <Icon id={ENT_ICON[ent.kind]} size="sm" /> : <>•</>
@@ -339,25 +411,25 @@ export function Inspector({
   const title = ent
     ? <>{entIcon(ent)} {nomDEntite(ent, presetDuNarratif(narratif)) ?? libelleDeValeur(entityKindSchema, ent.kind)}</>
     : selT
-        ? <><Icon id="map-tool/zone" size="sm" /> {selT.id}</>
+        ? <><Icon id="outil-de-carte/zone" size="sm" /> {selT.id}</>
         : zone
-          ? <><Icon id="rest/camp" size="sm" /> Zone de repos</>
+          ? <><Icon id="repos/campement" size="sm" /> Zone de repos</>
           : efz
-            ? <><Icon id="ui/warning" size="sm" /> {efz.label || 'Piège'}</>
+            ? <><Icon id="interface/attention" size="sm" /> {efz.label || 'Piège'}</>
             : selW
-              ? (porteAuteur(selW) ? <><Icon id="map-tool/door" size="sm" /> Porte</> : <><Icon id="map-tool/wall" size="sm" /> Cloison</>)
+              ? (porteAuteur(selW) ? <><Icon id="outil-de-carte/porte" size="sm" /> Porte</> : <><Icon id="outil-de-carte/mur" size="sm" /> Cloison</>)
               : entry
-                ? <><Icon id="nav/entry-point" size="sm" /> {sel?.type === 'entry' ? sel.id : ''}</>
+                ? <><Icon id="navigation/point-d-entree" size="sm" /> {sel?.type === 'entry' ? sel.id : ''}</>
                 : sel?.type === 'architectureBody' && architectureBody
-                  ? <><Icon id="rest/home" size="sm" /> {architectureBody.label ?? architectureBody.id}</>
+                  ? <><Icon id="repos/chez-soi" size="sm" /> {architectureBody.label ?? architectureBody.id}</>
                   : sel?.type === 'architectureStorey' && architectureStorey
-                    ? <><Icon id="rest/home" size="sm" /> {architectureStorey.id}</>
+                    ? <><Icon id="repos/chez-soi" size="sm" /> {architectureStorey.id}</>
                 : architecturePart
-                  ? <><Icon id="rest/home" size="sm" /> {architecturePart.id}</>
+                  ? <><Icon id="repos/chez-soi" size="sm" /> {architecturePart.id}</>
                   : facadeSection
-                    ? <><Icon id="map-tool/wall" size="sm" /> {facadeSection.id}</>
+                    ? <><Icon id="outil-de-carte/mur" size="sm" /> {facadeSection.id}</>
                     : roofSection
-                      ? <><Icon id="rest/home" size="sm" /> {roofSection.id}</>
+                      ? <><Icon id="repos/chez-soi" size="sm" /> {roofSection.id}</>
                 : null;
 
   return (
@@ -716,7 +788,7 @@ export function Inspector({
           )}
 
           {ent && ent.kind === 'personnage' && (
-            <Fold title={<><Icon id="action/attack" size="sm" /> Combat</>}>
+            <Fold title={<><Icon id="action/attaquer" size="sm" /> Combat</>}>
               <p className="hint">Donne à ce personnage un rôle de COMBAT : profil, traits, et rattachement à une ou plusieurs rencontres. Un embusqué reste invisible jusqu'au combat.</p>
               <label className="ed-check">
                 <input
@@ -724,7 +796,7 @@ export function Inspector({
                   checked={!!ent.combat?.hiddenUntilCombat}
                   onChange={(e) => updateSelCombat({ hiddenUntilCombat: e.target.checked || undefined })}
                 />{' '}
-                <Icon id="flag/hidden" size="sm" /> Embusqué (invisible hors combat)
+                <Icon id="drapeau/embusque" size="sm" /> Embusqué (invisible hors combat)
               </label>
               {/* #1882 : le preset SEUL porteur de fiche ne se retire pas (`PORTEURS_DU_TYPE`). */}
               <RefNarrativeField
@@ -795,16 +867,16 @@ export function Inspector({
                             checked={ent.combat?.randomChars ?? false}
                             onChange={(e) => updateSelCombat({ randomChars: e.target.checked || undefined })}
                           />{' '}
-                          <Icon id="nav/dice" size="sm" /> Caractéristiques aléatoires (LDB 77 l.108 : −10 + 2d10)
+                          <Icon id="navigation/des" size="sm" /> Caractéristiques aléatoires (LDB 77 l.108 : −10 + 2d10)
                         </label>
                       </>
                     );
                   })()}
-                  <button className="btn small" onClick={() => updateSel({ statblock: emptyStatblock(nomDEntite(ent, presetDuNarratif(narratif))) })}><Icon id="ui/settings" size="sm" /> Profil personnalisé…</button>
+                  <button className="btn small" onClick={() => updateSel({ statblock: emptyStatblock(nomDEntite(ent, presetDuNarratif(narratif))) })}><Icon id="interface/reglages" size="sm" /> Profil personnalisé…</button>
                 </>
               )}
               <div className="mini-title">Rencontres</div>
-              {scene.encounters.length === 0 && <p className="hint">Aucune rencontre — l'outil <Icon id="action/attack" size="sm" /> en crée une, ou utilisez le dock Logique.</p>}
+              {scene.encounters.length === 0 && <p className="hint">Aucune rencontre — l'outil <Icon id="action/attaquer" size="sm" /> en crée une, ou utilisez le dock Logique.</p>}
               {scene.encounters.map((enc) => {
                 const m = (enc.members ?? []).find((mm) => mm.entityId === ent.id);
                 return (
@@ -819,17 +891,17 @@ export function Inspector({
                     </label>
                     {m && (
                       <select
-                        value={m.side ?? 'enemy'}
+                        value={m.side ?? 'ennemi'}
                         onChange={(e) => {
-                          const ally = e.target.value === 'ally';
-                          setScene(patchMember(scene, enc.id, ent.id, { side: ally ? 'ally' : undefined, ai: ally ? m.ai : undefined }));
+                          const ally = e.target.value === 'allie';
+                          setScene(patchMember(scene, enc.id, ent.id, { side: ally ? 'allie' : undefined, ai: ally ? m.ai : undefined }));
                         }}
                       >
-                        <option value="enemy">Ennemi</option>
-                        <option value="ally">Allié</option>
+                        <option value="ennemi">Ennemi</option>
+                        <option value="allie">Allié</option>
                       </select>
                     )}
-                    {m?.side === 'ally' && (
+                    {m?.side === 'allie' && (
                       <label className="ed-check" title="L'allié AGIT SEUL à son tour (défenseur de siège, servant de pièce) au lieu d'être joué par le joueur.">
                         <input
                           type="checkbox"
@@ -868,7 +940,7 @@ export function Inspector({
               </Fold>
               <div className="insp-actions">
                 <button className="btn small btn-primary" onClick={() => openLogic('triggers', selT.id)}>
-                  <Icon id="ui/settings" size="sm" /> Effets ({flowEffectCount(selT.flow)})…
+                  <Icon id="interface/reglages" size="sm" /> Effets ({flowEffectCount(selT.flow)})…
                 </button>
                 <button className="btn small danger" onClick={removeSel}>
                   Supprimer
@@ -896,7 +968,7 @@ export function Inspector({
                 </div>
                 <LayerField z={zone.rect.z} layers={sceneLayerZs(scene)} onChange={(z) => setScene(patchZone(scene, sel, { z }))} />
                 <div className="ed-rest-places">
-                  {([['auberge', <><Icon id="rest/bed" size="sm" /> Auberge</>], ['maison', <><Icon id="rest/home" size="sm" /> Chez soi</>], ['camp', <><Icon id="rest/camp" size="sm" /> Camper</>]] as const).map(([k, label]) => (
+                  {([['auberge', <><Icon id="repos/lit" size="sm" /> Auberge</>], ['maison', <><Icon id="repos/chez-soi" size="sm" /> Chez soi</>], ['camp', <><Icon id="repos/campement" size="sm" /> Camper</>]] as const).map(([k, label]) => (
                     <label key={k} className="ed-check">
                       <input type="checkbox" checked={zone.places[k] ?? false} onChange={(e) => updateZone({ places: { ...zone.places, [k]: e.target.checked } })} />
                       {label}
@@ -904,7 +976,7 @@ export function Inspector({
                   ))}
                   <label className="ed-check">
                     <input type="checkbox" checked={zone.quality === 'pietre'} onChange={(e) => updateZone({ quality: e.target.checked ? 'pietre' : undefined })} />
-                    <Icon id="resource/gold-purse" size="sm" /> Piètre (½ prix, tambouille à risque)
+                    <Icon id="ressource/bourse" size="sm" /> Piètre (½ prix, tambouille à risque)
                   </label>
                 </div>
               </Fold>
@@ -999,15 +1071,15 @@ export function Inspector({
                     qu'elle en porte un (`isDescriptiveZone`) : ce n'est pas un genre à choisir, c'est l'état
                     que l'appareil ci-dessous décrit. Il s'ouvre donc sur les zones qui agissent, et se
                     présente REPLIÉ — armable en un clic — sur celles qui ne font que nommer un lieu. */}
-                <Fold key={cleZone} title={<><Icon id="ui/warning" size="sm" /> Piège / zone d'effet</>} open={!isDescriptiveZone(efz)}>
+                <Fold key={cleZone} title={<><Icon id="interface/attention" size="sm" /> Piège / zone d'effet</>} open={!isDescriptiveZone(efz)}>
                   <p className="hint">
                     Tout combattant qui TRAVERSE ou STATIONNE dans la zone y subit ce qui suit (en combat). Une
                     pièce reste un simple nom de lieu tant que rien n'est posé ici.
                   </p>
-                  <div className="mini-title"><Icon id="resource/movement" size="sm" /> À la traversée (effets mécaniques)</div>
+                  <div className="mini-title"><Icon id="ressource/mouvement" size="sm" /> À la traversée (effets mécaniques)</div>
                   <p className="hint">Dégâts mitigés BE+PA : op « Blessures », forme Dés, puis cocher « déduit BE / PA ». État entretenu : op « Poser un État » + paramètre <code>unlessCondition</code> (= le même État).</p>
                   <GameOpEditor ops={efz.onCross ?? []} onChange={(onCross) => setEfz({ ...efz, onCross: onCross.length ? onCross : undefined })} />
-                  <div className="mini-title"><Icon id="ui/wait" size="sm" /> Au stationnement (chaque round)</div>
+                  <div className="mini-title"><Icon id="interface/attendre" size="sm" /> Au stationnement (chaque round)</div>
                   <GameOpEditor ops={efz.perRound ?? []} onChange={(perRound) => setEfz({ ...efz, perRound: perRound.length ? perRound : undefined })} />
                   <label className="ed-check">
                     <input
@@ -1015,16 +1087,16 @@ export function Inspector({
                       checked={!!efz.crossTest}
                       onChange={(e) => setEfz({ ...efz, crossTest: e.target.checked ? { skill: { id: '' }, difficulty: 'intermediaire', requireSL: 0 } : undefined })}
                     />
-                    <Icon id="nav/dice" size="sm" /> Test requis pour franchir (piège/hasard GATÉ)
+                    <Icon id="navigation/des" size="sm" /> Test requis pour franchir (piège/hasard GATÉ)
                   </label>
                   {efz.crossTest && <TestFields test={efz.crossTest} onChange={(crossTest) => setEfz({ ...efz, crossTest })} />}
                   <label className="ed-check">
                     <input type="checkbox" checked={!!efz.blocksLoS} onChange={(e) => setEfz({ ...efz, blocksLoS: e.target.checked || undefined })} />
-                    <Icon id="ui/eye" size="sm" /> Masque la ligne de vue (fumée, ténèbres)
+                    <Icon id="interface/oeil" size="sm" /> Masque la ligne de vue (fumée, ténèbres)
                   </label>
                   <label className="ed-check">
                     <input type="checkbox" checked={!!efz.barrier} onChange={(e) => setEfz({ ...efz, barrier: e.target.checked ? { blockGroups: efz.barrier?.blockGroups } : undefined })} />
-                    <Icon id="mechanic/ward" size="sm" /> Barrière infranchissable (mur magique, cercle de ward)
+                    <Icon id="mecanique/protection" size="sm" /> Barrière infranchissable (mur magique, cercle de ward)
                   </label>
                   {efz.barrier && (
                     <ListeDIds
@@ -1046,7 +1118,7 @@ export function Inspector({
 
           {selW && sel?.type === 'wall' && (
             <>
-              <Fold title={porteAuteur(selW) ? <><Icon id="map-tool/door" size="sm" /> Porte</> : <><Icon id="map-tool/wall" size="sm" /> Cloison</>} open>
+              <Fold title={porteAuteur(selW) ? <><Icon id="outil-de-carte/porte" size="sm" /> Porte</> : <><Icon id="outil-de-carte/mur" size="sm" /> Cloison</>} open>
                 <p className="hint">Arête @ ({sel.x},{sel.y}) {sel.side}{sel.z ? ` · étage ${sel.z}` : ''}.</p>
                 <div className="ed-field">
                   <span>Type</span>
@@ -1055,14 +1127,14 @@ export function Inspector({
                       ▮ Cloison
                     </button>
                     <button className="btn small" aria-pressed={porteAuteur(selW)} title="Arête franchissable (porte)" onClick={() => { patchSelW({ door: true, window: undefined, shuttered: undefined, crossable: undefined, allege: undefined, suspendu: undefined }); brouillonner({ crossable: undefined, allegeVide: undefined }); }}>
-                      <Icon id="map-tool/door" size="sm" /> Porte
+                      <Icon id="outil-de-carte/porte" size="sm" /> Porte
                     </button>
                   </Row>
                 </div>
                 {porteAuteur(selW) && (
                   <label className="ed-check" title={secretAuteur(selW) ? 'Une porte secrète est fermée au départ : décochez d’abord « Porte secrète »' : undefined}>
                     <input type="checkbox" checked={!!selW.closed} disabled={!!secretAuteur(selW)} onChange={(e) => patchSelW({ closed: e.target.checked || undefined })} />
-                    <Icon id="ui/lock" size="sm" /> Fermée au départ
+                    <Icon id="interface/verrou" size="sm" /> Fermée au départ
                   </label>
                 )}
                 {porteAuteur(selW) && (
@@ -1169,7 +1241,7 @@ export function Inspector({
                     ))}
                   </select>
                 </label>
-                <p className="hint">Posée, l'arête tient (bloque vue + passage) jusqu'à être abattue en combat ; elle devient alors une brèche franchissable. « — (aucun) — » = pas de structure. La HAUTEUR d'un rempart se peint désormais à l'outil <Icon id="map-tool/height" size="sm" /> (hauteur des cases qu'il borde), plus de réglage par segment.</p>
+                <p className="hint">Posée, l'arête tient (bloque vue + passage) jusqu'à être abattue en combat ; elle devient alors une brèche franchissable. « — (aucun) — » = pas de structure. La HAUTEUR d'un rempart se peint désormais à l'outil <Icon id="outil-de-carte/hauteur" size="sm" /> (hauteur des cases qu'il borde), plus de réglage par segment.</p>
                 <div className="ed-field">
                   <span>Escaladable</span>
                   <Row>
@@ -1401,7 +1473,7 @@ function EntityPanel({
             <ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)}
               appearance={ent.appearance ?? {}}
               onChange={(appearance) => updateSel({ appearance })}
-              weapons={armesDEntite(objetDuNarratif(narratif), ent.creature?.id, equipementDAuteurDe(ent, enrolledEntityIds(scene).has(ent.id)))}
+              weapons={armesDEntite(objetDuNarratif(narratif), ent.creature?.id, equipementDAuteurDe(ent, scene))}
             />
           </Fold>
           <Fold title="Rôle (dialogue, marchand)">
@@ -1566,7 +1638,7 @@ function EntityPanel({
               checked={!!ent.light}
               onChange={(e) => updateSel({ light: e.target.checked ? lumiereAllumee(ent) : undefined })}
             />{' '}
-            <Icon id="ui/eye" size="sm" /> Source de lumière (override de l'instance — sinon rayon du type de décor)
+            <Icon id="interface/oeil" size="sm" /> Source de lumière (override de l'instance — sinon rayon du type de décor)
           </label>
           {ent.light && (
             <>
@@ -1694,7 +1766,7 @@ function UsableFields({ ent, scene, updateSel, flowCtx }: {
       ))}
       <button
         className="btn small"
-        onClick={() => poser({ actions: [...actions, { id: idActionLibre(actions), flow: EMPTY_FLOW, unique: true }] })}
+        onClick={() => poser({ actions: [...actions, actionNeuve(actions)] })}
       >
         Ajouter une action
       </button>
@@ -1710,15 +1782,6 @@ function UsableFields({ ent, scene, updateSel, flowCtx }: {
   );
 }
 
-/** Premier id LIBRE pour une action neuve : `fouiller`, puis `fouiller-2`, `fouiller-3`… L'unicité est
- *  un invariant du schéma (`usable` `refine`) — l'éditeur ne laisse donc pas l'auteur la violer au
- *  premier clic, il lui donne un id qui passe et qu'il renommera. */
-function idActionLibre(actions: readonly ActionAuthoree[]): string {
-  const pris = new Set(actions.map((a) => a.id));
-  if (!pris.has(ACTION_FOUILLER)) return ACTION_FOUILLER;
-  for (let n = 2; ; n++) if (!pris.has(`${ACTION_FOUILLER}-${n}`)) return `${ACTION_FOUILLER}-${n}`;
-}
-
 /** Emplacement de siège (poste d'artillerie éventuel) + équipage EXPOSÉ à bord + Améliorations
  *  d'INSTANCE (MDG 12) d'une coque — le poste est OPTIONNEL (une coque peut n'avoir que Blindage/
  *  Lissage, #834 audit-2 défaut 8), équipage et Améliorations restent toujours authorables EN PLACE ;
@@ -1731,7 +1794,7 @@ function EmplacementFold({ ent, scene, setScene }: { ent: SceneEntity; scene: Sc
     <Fold title={<><Icon id="scenario/siege" size="sm" /> Emplacement de siège, équipage & Améliorations</>} open>
       {poste && (
         <>
-          <p className="hint">Pièce d'artillerie servie par un équipage. Enrôlez l'emplacement ET ses servants dans une rencontre (fold <Icon id="action/attack" size="sm" /> Combat) ; au combat, le chef (1ᵉʳ servant) sert la pièce et tire.</p>
+          <p className="hint">Pièce d'artillerie servie par un équipage. Enrôlez l'emplacement ET ses servants dans une rencontre (fold <Icon id="action/attaquer" size="sm" /> Combat) ; au combat, le chef (1ᵉʳ servant) sert la pièce et tire.</p>
           <label className="ed-field">
             Engin
             <select value={poste.trappingId} onChange={(e) => setScene(setPosteEngine(scene, ent.id, e.target.value))}>
@@ -1824,7 +1887,7 @@ function ZoneTilesBrush({
   /** Conteneur défilable dans lequel le ramener — seul lui bouge. */
   port: RefObject<HTMLElement | null>;
 }) {
-  const armed = tool.mode === 'zoneTiles' && tool.zoneId === zone.id ? tool.paint : null;
+  const armed = tool.mode === 'casesDeZone' && tool.zoneId === zone.id ? tool.paint : null;
   const blockRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!focusKey || !blockRef.current || !port.current) return;
@@ -1845,14 +1908,14 @@ function ZoneTilesBrush({
         options={[
           {
             key: 'add',
-            label: <><Icon id="map-tool/paint" size="sm" /> Ajouter</>,
+            label: <><Icon id="outil-de-carte/peindre" size="sm" /> Ajouter</>,
             title: 'Peindre des cases DANS la zone',
             selected: armed === 'add',
             onSelect: () => onArm(zone.id, 'add'),
           },
           {
             key: 'remove',
-            label: <><Icon id="map-tool/erase" size="sm" /> Retirer</>,
+            label: <><Icon id="outil-de-carte/gomme" size="sm" /> Retirer</>,
             title: 'Peindre des cases HORS de la zone',
             selected: armed === 'remove',
             onSelect: () => onArm(zone.id, 'remove'),
@@ -1952,7 +2015,7 @@ function sceneContent(scene: Scene, narratif: NarratifBlock): ContentRow[] {
     const r = effectZoneRect(efz.area);
     rows.push({
       key: `zone:${efz.id}`,
-      icon: <Icon id="map-tool/zone" size="sm" />,
+      icon: <Icon id="outil-de-carte/zone" size="sm" />,
       label: efz.label || efz.id,
       at: `(${r.x},${r.y})`,
       tag: isDescriptiveZone(efz) ? undefined : 'mécanique',
@@ -1961,9 +2024,9 @@ function sceneContent(scene: Scene, narratif: NarratifBlock): ContentRow[] {
     });
   });
   for (const [name, pos] of Object.entries(scene.entryPoints ?? {}))
-    rows.push({ key: `entry:${name}`, icon: <Icon id="nav/entry-point" size="sm" />, label: name, at: `(${pos.x},${pos.y})`, tag: 'entrée', z: pos.z, sel: { type: 'entry', id: name } });
+    rows.push({ key: `entry:${name}`, icon: <Icon id="navigation/point-d-entree" size="sm" />, label: name, at: `(${pos.x},${pos.y})`, tag: 'entrée', z: pos.z, sel: { type: 'entry', id: name } });
   (scene.restZones ?? []).forEach((z, i) =>
-    rows.push({ key: `rest:${i}`, icon: <Icon id="rest/camp" size="sm" />, label: `Repos ${z.rect.w}×${z.rect.h}`, at: `(${z.rect.x},${z.rect.y})`, tag: 'repos', z: z.rect.z, sel: { type: 'restZone', idx: i } }),
+    rows.push({ key: `rest:${i}`, icon: <Icon id="repos/campement" size="sm" />, label: `Repos ${z.rect.w}×${z.rect.h}`, at: `(${z.rect.x},${z.rect.y})`, tag: 'repos', z: z.rect.z, sel: { type: 'restZone', idx: i } }),
   );
   return rows;
 }
@@ -2013,7 +2076,7 @@ function SceneProps({
   return (
     <>
       <div className="insp-head">
-        <span className="insp-title"><Icon id="file/document" size="sm" /> {scene.label || scene.id}</span>
+        <span className="insp-title"><Icon id="fichier/document" size="sm" /> {scene.label || scene.id}</span>
       </div>
       <Fold title="Identité" open>
         <EntryRename
@@ -2188,9 +2251,9 @@ function SceneProps({
         />
       </Fold>
       <Fold title="Repos sur place">
-        <p className="hint">Offre du bouton <Icon id="time/night" size="sm" /> d'exploration, pour TOUT le plan. Affinable par ZONE : outil <Icon id="map-tool/zone" size="sm" /> → Zone de repos, dessinée sur la carte et listée dans le contenu du plan.</p>
+        <p className="hint">Offre du bouton <Icon id="temps/nuit" size="sm" /> d'exploration, pour TOUT le plan. Affinable par ZONE : outil <Icon id="outil-de-carte/zone" size="sm" /> → Zone de repos, dessinée sur la carte et listée dans le contenu du plan.</p>
         <div className="ed-rest-places">
-          {([['auberge', <><Icon id="rest/bed" size="sm" /> Auberge</>], ['maison', <><Icon id="rest/home" size="sm" /> Chez soi</>], ['camp', <><Icon id="rest/camp" size="sm" /> Camper</>]] as const).map(([k, label]) => (
+          {([['auberge', <><Icon id="repos/lit" size="sm" /> Auberge</>], ['maison', <><Icon id="repos/chez-soi" size="sm" /> Chez soi</>], ['camp', <><Icon id="repos/campement" size="sm" /> Camper</>]] as const).map(([k, label]) => (
             <label key={k} className="ed-check">
               <input
                 type="checkbox"
@@ -2206,7 +2269,7 @@ function SceneProps({
               checked={scene.rest?.quality === 'pietre'}
               onChange={(e) => setScene(setSceneRest(scene, { quality: e.target.checked ? 'pietre' : undefined }))}
             />
-            <Icon id="resource/gold-purse" size="sm" /> Piètre (½ prix, tambouille à risque)
+            <Icon id="ressource/bourse" size="sm" /> Piètre (½ prix, tambouille à risque)
           </label>
         </div>
       </Fold>

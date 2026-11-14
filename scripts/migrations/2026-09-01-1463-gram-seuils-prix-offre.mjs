@@ -1,8 +1,8 @@
 /**
  * Migration #1463 L-gram-3 (vague `grammaire`) — les SEUILS du prix d'offre deviennent des FOURCHETTES.
  *
- *   `sea-cargo.json  › sell.offerPrice`      `{ sum, pct }`            → `{ min, max, pct }`
- *   `land-cargo.json › sell.offerByRichesse` `{ richesse, label, pct }` → `{ min, max, label, pct }`
+ *   `sea-cargo.json  › vente.prixDOffre`      `{ sum, pct }`            → `{ min, max, pct }`
+ *   `land-cargo.json › vente.offreParRichesse` `{ richesse, label, pct }` → `{ min, max, label, pct }`
  *
  * Les deux livres impriment une table à BANDES lue par une colonne d'entrée, et les deux étaient
  * authorées par leur seule borne BASSE, relues par un `[...t].reverse().find(v >= seuil)` à repli
@@ -112,11 +112,11 @@ function enFourchettes(table, seuilCle, ouverte, nom) {
   return table.length;
 }
 
-const bandesMer = mer.doc.sell?.offerPrice ?? [];
-const bandesTerre = terre.doc.sell?.offerByRichesse ?? [];
-const migresMer = bandesMer.some((b) => 'sum' in b) ? enFourchettes(bandesMer, 'sum', true, 'sea-cargo.json › sell.offerPrice') : 0;
+const bandesMer = mer.doc.vente?.prixDOffre ?? [];
+const bandesTerre = terre.doc.vente?.offreParRichesse ?? [];
+const migresMer = bandesMer.some((b) => 'sum' in b) ? enFourchettes(bandesMer, 'sum', true, 'sea-cargo.json › vente.prixDOffre') : 0;
 const migresTerre = bandesTerre.some((b) => 'richesse' in b)
-  ? enFourchettes(bandesTerre, 'richesse', false, 'land-cargo.json › sell.offerByRichesse')
+  ? enFourchettes(bandesTerre, 'richesse', false, 'land-cargo.json › vente.offreParRichesse')
   : 0;
 
 /** RECALAGE DES LIBELLÉS (arbitrage en tête) : le mot suit l'INDICE de la bande, pas sa position.
@@ -125,7 +125,7 @@ let libellesRecales = 0;
 for (const b of bandesTerre) {
   const attendu = LIBELLE_PAR_INDICE[b.min];
   if (attendu === undefined) {
-    arrets.push(`land-cargo.json › sell.offerByRichesse : bande d'indice ${b.min} hors de l'échelle imprimée (l.52-60 : 1 à 5)`);
+    arrets.push(`land-cargo.json › vente.offreParRichesse : bande d'indice ${b.min} hors de l'échelle imprimée (l.52-60 : 1 à 5)`);
     continue;
   }
   if (b.label !== attendu) { b.label = attendu; libellesRecales++; }
@@ -135,7 +135,7 @@ for (const b of bandesTerre) {
 const vuMer = {};
 for (const b of bandesMer) {
   if (typeof b.min !== 'number' || b.max === undefined || typeof b.pct !== 'number' || 'sum' in b) {
-    arrets.push(`sea-cargo.json › sell.offerPrice : bande ${JSON.stringify(b)} hors forme \`{min, max, pct}\``);
+    arrets.push(`sea-cargo.json › vente.prixDOffre : bande ${JSON.stringify(b)} hors forme \`{min, max, pct}\``);
     continue;
   }
   vuMer[b.min] = [b.max, b.pct];
@@ -144,7 +144,7 @@ for (const b of bandesMer) {
 const vuTerre = {};
 for (const b of bandesTerre) {
   if (typeof b.min !== 'number' || typeof b.max !== 'number' || typeof b.label !== 'string' || typeof b.pct !== 'number' || 'richesse' in b) {
-    arrets.push(`land-cargo.json › sell.offerByRichesse : bande ${JSON.stringify(b)} hors forme \`{min, max, label, pct}\``);
+    arrets.push(`land-cargo.json › vente.offreParRichesse : bande ${JSON.stringify(b)} hors forme \`{min, max, label, pct}\``);
     continue;
   }
   vuTerre[b.min] = [b.max, b.label, b.pct];
@@ -168,8 +168,8 @@ function confronter(vu, attendu, nom, cardinal, ref) {
   if (vus.length !== cardinal) arrets.push(`${nom} : cardinal ${vus.length}, attendu ${cardinal} — table CLOSE, ${ref}`);
 }
 
-confronter(vuMer, ATTENDU_MER, 'sea-cargo.json › sell.offerPrice', 4, 'MDG 15 l.378-383');
-confronter(vuTerre, ATTENDU_TERRE, 'land-cargo.json › sell.offerByRichesse', 5, 'MSRC 13 l.150-156');
+confronter(vuMer, ATTENDU_MER, 'sea-cargo.json › vente.prixDOffre', 4, 'MDG 15 l.378-383');
+confronter(vuTerre, ATTENDU_TERRE, 'land-cargo.json › vente.offreParRichesse', 5, 'MSRC 13 l.150-156');
 
 if (arrets.length) {
   console.error(`ARRÊT — ${arrets.length} anomalie(s), AUCUNE écriture :`);

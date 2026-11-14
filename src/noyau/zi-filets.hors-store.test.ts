@@ -18,7 +18,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  */
 
 const foe = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'enemy', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(10), advantage: 0,
+  (blessuresSurLeProfil({ id, name: id, kind: 'ennemi', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(10), advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     armour: {} as never, conditions: [], traits: [], talents: [], skills: [], weapons: [] as Weapon[], ...over })) as unknown as Combatant;
 
@@ -39,7 +39,7 @@ describe('Filet (Zoo Impérial p.29) — Empêtrement à la touche + libération
   it('l’arme JOUABLE du gobelin de la nuit (trait facultatif "a-distance" arg:filet) porte la qualité "filet", +0 (6)', () => {
     const w = weaponFromTrait({ id: 'a-distance', value: 0, arg: 'filet', range: 6 });
     expect(w).not.toBeNull();
-    expect(w!.type).toBe('ranged');
+    expect(w!.type).toBe('distance');
     expect(w!.range).toBe(6);
     expect(w!.damage).toEqual({ plusBF: false, flat: 0 });
     expect(w!.qualities.map((q) => q.id)).toEqual(['filet']);
@@ -86,15 +86,15 @@ describe('Filets BARBELÉS (Zoo Impérial p.29) — Dégâts ignorant l’armure
   it('la qualité "filet-barbele" existe, hérite escapeThreshold+entangleOnFail du filet ET porte struggleDamage', () => {
     const q = findQualityById('filet-barbele');
     expect(q).toBeTruthy();
-    const op = (q!.effects![0].flow as { steps: { effect: { ops: Record<string, unknown>[] } }[] }).steps[0].effect.ops[0];
-    expect(op).toMatchObject({ op: 'condition', id: 'empetre', escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 });
+    const op = (q!.effects![0].flow as { etapes: { effet: { ops: Record<string, unknown>[] } }[] }).etapes[0].effet.ops[0];
+    expect(op).toMatchObject({ op: 'condition', id: { id: 'empetre' }, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 });
   });
 
   it('à la touche : la cible gagne Empêtré avec struggleDamage FIGÉ (aucune valeur en dur au moteur — DONNÉE)', () => {
     const atk = foe('gobelin-barbele');
     const tgt = foe('cible');
     const get = mountBattle([atk, tgt]);
-    const w: Weapon = { label: 'Filet barbelé', type: 'ranged', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'filet-barbele' }] };
+    const w: Weapon = { label: 'Filet barbelé', type: 'distance', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'filet-barbele' }] };
     fireTriggers(get, atk, 'onHit', { victim: tgt, weapon: w, woundsDealt: 0, margin: 1, rng: battleRng() } as never);
     expect(empetreOf(tgt)?.struggleDamage).toBe(1);
   });
@@ -138,7 +138,7 @@ describe('Non-régression — Immobilisante GÉNÉRIQUE (LDB 62 l.258, fouet/las
     const get = mountBattle([atk, tgt]);
     const fouet = findTrappingById('fouet')!;
     expect(fouet.qualities.map((q) => q.id)).toEqual(['immobilisante']);
-    const w: Weapon = { label: 'Fouet', type: 'ranged', damage: { plusBF: true, flat: 2 }, qualities: [{ id: 'immobilisante' }] };
+    const w: Weapon = { label: 'Fouet', type: 'distance', damage: { plusBF: true, flat: 2 }, qualities: [{ id: 'immobilisante' }] };
     fireTriggers(get, atk, 'onHit', { victim: tgt, weapon: w, woundsDealt: 0, margin: 1, rng: battleRng() } as never);
     expect(empetreOf(tgt)?.escapeStrength).toBe(47);
     expect(empetreOf(tgt)?.escapeThreshold).toBeUndefined();

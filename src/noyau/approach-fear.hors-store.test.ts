@@ -2,7 +2,7 @@
  * Peur à l'approche (LDB 21 — Psychologie — l.27), Test `source-se-rapproche` de la fiche
  * `calme-d-approche`. Test SIMPLE : la source ne jette RIEN. Depuis la VAGUE MULTI (#1117 L2), les craintifs appelés par le MÊME déplacement
  * et affrontant la MÊME entrée de règle (cette source, à cet Indice) forment UNE BANDE
- * (`triggeredBatchTest`, une rangée par testeur) quand ils sont pilotés à la main ; héros AUTO / ennemi
+ * (`testDeclencheEnBande`, une rangée par testeur) quand ils sont pilotés à la main ; héros AUTO / ennemi
  * → jet inline par le même Flow. La conséquence PURE de l'échec (1 État Brisé) est une op `condition`
  * sur la branche `fail`.
  */
@@ -27,10 +27,10 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (over: Partial<Combatant>): Combatant =>
-  combattantDeTest({ id: 'h', kind: 'hero', label: 'H', pos: { x: 5, y: 5 }, conditions: [], characteristics: { 'force-mentale': 50 }, skills: [], wounds: blessuresDeBase(10),
+  combattantDeTest({ id: 'h', kind: 'heros', label: 'H', pos: { x: 5, y: 5 }, conditions: [], characteristics: { 'force-mentale': 50 }, skills: [], wounds: blessuresDeBase(10),
      psychState: [{ type: 'peur', sourceId: 'e', indice: 2, calmeDR: 0 }], ...over });
 const mover = (over: Partial<Combatant>): Combatant =>
-  combattantDeTest({ id: 'e', kind: 'enemy', label: 'Spectre', pos: { x: 6, y: 5 }, conditions: [], wounds: blessuresDeBase(10), ...over });
+  combattantDeTest({ id: 'e', kind: 'ennemi', label: 'Spectre', pos: { x: 6, y: 5 }, conditions: [], wounds: blessuresDeBase(10), ...over });
 
 /** Pose un combat minimal (héros craintifs + source de Peur), puis appelle le déclencheur. `fromPos` =
  *  la position de la source AVANT son déplacement (l'« approche » se mesure contre elle). */
@@ -43,7 +43,7 @@ function run(heroes: Combatant[], m: Combatant, fromPos: { x: number; y: number 
 }
 
 /** La bande d'Approche de la cascade courante. */
-const bande = () => banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredBatchTest')!;
+const bande = () => banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclencheEnBande')!;
 
 beforeEach(() => {
   banc.setState({ battle: null, pendingCascade: null, pendingLogQueue: [] });
@@ -68,11 +68,11 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     expect(stacks(h, COND.brise)).toBe(0); // conséquence différée
   });
 
-  it('héros MANUEL : Test `source-se-rapproche` RATÉ (jetLancer@cascadeBatch+Next) → 1 État Brisé', () => {
+  it('héros MANUEL : Test `source-se-rapproche` RATÉ (jetLancer@cascadeEnBande+Next) → 1 État Brisé', () => {
     seedBattleRng(1);
     const h = hero({ characteristics: { 'force-mentale': 1 } as never }); // FM 1 : le Test de la fiche du jeu ~imbattable à rater
     run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
-    banc.getState().jetLancer('cascadeBatch', h.id);
+    banc.getState().jetLancer('cascadeEnBande', h.id);
     banc.getState().jetValider('cascade'); // valide l’échec → branche fail → op condition `brise`
     const got = banc.getState().battle!.combatants.find((x) => x.id === h.id)!;
     expect(stacks(got, COND.brise)).toBe(1);
@@ -82,7 +82,7 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     seedBattleRng(1);
     const h = hero({ characteristics: { 'force-mentale': 100 } as never });
     run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
-    banc.getState().jetLancer('cascadeBatch', h.id);
+    banc.getState().jetLancer('cascadeEnBande', h.id);
     banc.getState().jetValider('cascade');
     const got = banc.getState().battle!.combatants.find((x) => x.id === h.id)!;
     expect(stacks(got, COND.brise)).toBe(0);
@@ -95,16 +95,16 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     run([h1, h2], mover({ pos: { x: 6, y: 6 } }), { x: 9, y: 6 }); // s’approche des deux
     const c = banc.getState().pendingCascade!;
     expect(c.purpose).toBe('combat');
-    expect(c.participants.filter((s) => s.kind === 'triggeredBatchTest')).toHaveLength(1);
+    expect(c.participants.filter((s) => s.kind === 'testDeclencheEnBande')).toHaveLength(1);
     const step = bande();
     expect(step.participants!.map((p) => p.id)).toEqual(['h1', 'h2']);
     // Test SIMPLE (LDB 21 l.27) : aucune opposition FIGÉE — la source ne jette rien, ni une fois ni N fois.
     expect(step.meta?.opposed).toBeUndefined();
     // La bande n'est PRÊTE qu'une fois ses deux rangées jouées.
-    banc.getState().jetLancer('cascadeBatch', 'h1');
+    banc.getState().jetLancer('cascadeEnBande', 'h1');
     banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade!.cursor).toBe(0);
-    banc.getState().jetLancer('cascadeBatch', 'h2');
+    banc.getState().jetLancer('cascadeEnBande', 'h2');
     banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -114,7 +114,7 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     const h1 = hero({ id: 'h1', pos: { x: 5, y: 5 } });
     const h2 = hero({ id: 'h2', pos: { x: 5, y: 7 }, psychState: [{ type: 'peur', sourceId: 'e', indice: 4, calmeDR: 0 }] as never });
     run([h1, h2], mover({ pos: { x: 6, y: 6 } }), { x: 9, y: 6 });
-    const bandes = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'triggeredBatchTest');
+    const bandes = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'testDeclencheEnBande');
     expect(bandes).toHaveLength(2);
     expect(bandes.map((s) => s.participants!.map((p) => p.id))).toEqual([['h1'], ['h2']]);
   });
@@ -159,7 +159,7 @@ describe('approachFearTrigger — l’unité est le DÉPLACEMENT COMPLET, pas le
     // La source va de (9,5) à (6,5) en passant par (8,5) puis (7,5) : trois pas, UN déplacement.
     run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
     const c = banc.getState().pendingCascade!;
-    expect(c.participants.filter((s) => s.kind === 'triggeredBatchTest')).toHaveLength(1);
+    expect(c.participants.filter((s) => s.kind === 'testDeclencheEnBande')).toHaveLength(1);
     expect(bande().participants).toHaveLength(1);
   });
 
@@ -175,13 +175,13 @@ describe('approachFearTrigger — l’unité est le DÉPLACEMENT COMPLET, pas le
     seedBattleRng(1);
     const h = hero({});
     run([h], mover({ pos: { x: 8, y: 5 } }), { x: 12, y: 5 }); // 1ᵉʳ déplacement : de 12 à 8
-    expect(banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'triggeredBatchTest')).toHaveLength(1);
+    expect(banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'testDeclencheEnBande')).toHaveLength(1);
     // 2ᵉ déplacement (Round et Tour INCHANGÉS) : la source se rapproche encore → un second Test dû.
     const b = banc.getState().battle!;
     const m = b.combatants.find((x) => x.id === 'e')!;
     m.pos = { x: 6, y: 5 };
     approachFearTrigger(banc.getState, banc.setState, m, { x: 8, y: 5 });
-    expect(banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'triggeredBatchTest')).toHaveLength(2);
+    expect(banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'testDeclencheEnBande')).toHaveLength(2);
   });
 });
 
@@ -204,10 +204,10 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const foes = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const foes = b.combatants.filter((c) => c.kind === 'ennemi');
     let i = 0;
     for (const e of foes) e.pos = { x: 20 + i++, y: 20 }; // libère le couloir y=10
     const E = foes[0];
@@ -226,7 +226,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     return { H: actorIn(banc.getState(), H.id)!, E: actorIn(banc.getState(), E.id)! };
   }
   const brise = (id: string) => stacks(banc.getState().battle!.combatants.find((c) => c.id === id)!, COND.brise);
-  const bandes = () => (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'triggeredBatchTest');
+  const bandes = () => (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'testDeclencheEnBande');
 
   it('se rapprocher PUIS agir → l’ennemi apeuré teste UNE fois, au scellement de l’Action', () => {
     const { H, E } = field();
@@ -259,11 +259,11 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
   it('CHARGE annulée avant le jet → le déplacement est défait : aucun Test', () => {
     const { H, E } = field();
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : hors Marche, l'approche se demande.
-    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, intentionId: 'charge' });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche → ouvre la frappe
     expect(banc.getState().pendingAttack?.fromCharge).toBe(true);
     expect(H.approachMoves).toHaveLength(1);
-    banc.getState().jetAnnuler('attack');
+    banc.getState().jetAnnuler('attaque');
     expect(H.approachMoves).toBeUndefined();
     advanceTurn(banc.getState, banc.setState);
     expect(brise(E.id)).toBe(0);

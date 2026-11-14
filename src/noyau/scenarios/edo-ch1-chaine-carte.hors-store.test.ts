@@ -6,7 +6,7 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from '../../scenes/test-scenarios/_heros';
 import { routesEtat, routesFrom, visiblePlaces } from '../../noyau/worldMap';
 import { reachableCells } from '../../noyau/mapQC';
 import { aPorteeDe } from '../../noyau/monde/exploreNav';
@@ -18,7 +18,7 @@ import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
 let banc: Banc;
 // Le groupe qui part : un pré-tiré (un groupe vide ne se lance pas, `refusDeLancer`).
-beforeEach(() => { banc = ouvrirLeBanc({ etat: { party: makePregens(idsDeTest).slice(0, 1) } }); });
+beforeEach(() => { banc = ouvrirLeBanc({ etat: { party: tousLesHerosDeScenario(idsDeTest).slice(0, 1) } }); });
 
 /** Désigne le sosie (EDO 02 l.91) puis ferme chaque document remis (EDO 02 l.93-95), comme le joueur : la suite du
  *  geste se joue après. */

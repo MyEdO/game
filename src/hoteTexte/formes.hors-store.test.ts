@@ -44,9 +44,9 @@ describe('un brouillon malformé se refuse à la frontière, au chemin de son ch
   it('le membre de l’union que la valeur vise rend son écart : `brouillon` qui n’est pas un objet', { timeout: 120_000 }, () => {
     refuseALaFrontiere(verbe('recruterLeHeros', { brouillon: 3 }), /recruterLeHeros : heros\.brouillon : un objet JSON /);
   });
-  it('un id en nombre sous le brouillon : `careerRolls[0].ids[0]`', { timeout: 120_000 }, () => {
-    const brouillon = { ...complet(), careerRolls: [{ roll: 3, ids: [1] }] };
-    refuseALaFrontiere(verbe('recruterLeHeros', { brouillon }), /heros\.brouillon\.careerRolls\[0\]\.ids\[0\] : une chaîne attendue/);
+  it('un id en nombre sous le brouillon : `careerRolls[0].id`', { timeout: 120_000 }, () => {
+    const brouillon = { ...complet(), careerRolls: [{ roll: 3, id: 1 }] };
+    refuseALaFrontiere(verbe('recruterLeHeros', { brouillon }), /heros\.brouillon\.careerRolls\[0\]\.id : une chaîne attendue/);
   });
 });
 
@@ -106,7 +106,7 @@ describe('la frontière lit le brouillon entier, à la forme du type du verbe', 
     expect(lire('recruterLeHeros', [{ brouillon: complet() }])).toHaveProperty('args');
   });
   it('une énumération de littéraux se refuse en nommant ses valeurs', () => {
-    expect(refus('jetLancer', ['zzz'])).toMatch(/flux : "zzz" n’est pas FluxDuVerbe \(admises : .*"attack"/);
+    expect(refus('jetLancer', ['zzz'])).toMatch(/flux : "zzz" n’est pas FluxDuVerbe \(admises : .*"attaque"/);
     expect(refus('fenetreFermer', ['zzz'])).toMatch(/fenetre : "zzz" n’est pas FenetreQuiSeFerme \(admises : /);
   });
   it('aucun brouillon légitime ne se refuse : neufs, complétés étape par étape, joués par les gestes des pages, rendus par le roster', () => {

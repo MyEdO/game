@@ -1,4 +1,5 @@
 import { type Scene, type SceneEntity, isWalkable } from './scene';
+import { memoByRefDeps } from './sceneMemo';
 import { entityBlockedAt } from './sceneRules';
 import { entitesEnCaseEtage } from './decorIndex';
 import { cheminsDepuis, walkNeighbors, type CheminsDepuis, type MoveEnv, type Pt } from './path';
@@ -90,6 +91,18 @@ export function mouvementDuGroupe(party: readonly Combatant[]): number {
  */
 export function optionsDeCheminDuGroupe(party: readonly Combatant[]): PathOpts {
   return { blocked: new Set(), jump: maxJumpTiles(mouvementDuGroupe(party)) };
+}
+
+const cheminsParScene = memoByRefDeps<Scene, CheminsDepuis>();
+
+/**
+ * LES CHEMINS DU GROUPE hors combat depuis sa case (`cheminsDepuis` sous `optionsDeCheminDuGroupe`) : ils ne tiennent
+ * qu'à la scène, à sa case et à sa portée de saut, et leur parcours sert tous ses lecteurs (le survol, le clic, les
+ * gestes d'exploration) tant qu'aucun des trois ne change.
+ */
+export function cheminsDuGroupe(scene: Scene, partyPos: Pt, party: readonly Combatant[]): CheminsDepuis {
+  const opts = optionsDeCheminDuGroupe(party);
+  return cheminsParScene(scene, [partyPos.x, partyPos.y, partyPos.z, opts.jump], () => cheminsDepuis(scene, partyPos, opts));
 }
 
 export interface ExploreMovePlan {

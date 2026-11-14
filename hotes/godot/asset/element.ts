@@ -2,7 +2,7 @@
  * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine, et sa validation contre le
  * manifeste de la base pour laquelle il se construit (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme
  * de `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements`, `silhouettes` et `postes`, et si
- * l'élément a une base (`REGLES_DES_CATEGORIES`) : sans base (décor, véhicule, #2987), il ne nomme aucune base et ses
+ * l'élément a une base (`REGLES_DES_CATEGORIES`) : sans base (décor, véhicule, Amélioration, #2987), il ne nomme aucune base et ses
  * meshes restent à la racine de sa scène ou sous ses propres nœuds ; une clé bien formée se résout contre la donnée
  * du jeu (`ecartsDeCleDElement`, surface du noyau). Ses surfaces (`surfaces.ts`) admettent le blason.
  * Un vêtement, une armure ou un accessoire offre des `emplacements`, ids de la garde-robe (`estEmplacement`, #3116), ou
@@ -19,7 +19,16 @@
  * libre des `cases` de ses ponts que son modèle rogne (`EmprisesDesCases`, #3767).
  */
 import { estObjet } from '../../../src/lib/objet.mjs';
-import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, FIRE_ARCS, matieresDeDecor, type CodeDEcartDeCle, type EmprisesDesCases, type FireArc } from '../../../src/noyau/index.ts';
+import {
+  ecartsDeCleDElement,
+  emplacementDePiece,
+  estEmplacement,
+  FIRE_ARCS,
+  matieresDeDecor,
+  type CodeDEcartDeCle,
+  type EmprisesDesCases,
+  type FireArc,
+} from '../../../src/noyau/index.ts';
 import { ecartsAuGlb, ecartsAuxMatieres, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import { estListeDeChaines, estRepere, estTriplet, rangDeCase, TOLERANCE_DES_POIDS, type EmplacementOffert, type Repere } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
@@ -234,7 +243,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
         else if (os === null || !osDeBase.includes(os)) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os ?? `l’articulation sans nom noeud ${articulation}`}, qui n’est pas un os de la base \`${nomDeBase}\``);
       }
       const seconde = (brut.liaison as Record<string, unknown>).secondePrise;
-      const osDesPrises = base?.prises ? [base.prises.main.os, base.prises.off.os] : [];
+      const osDesPrises = base?.prises ? [base.prises.main.os, base.prises.secondaire.os] : [];
       if (seconde !== undefined && !estRepere(seconde)) refus('forme', 'liaison.secondePrise', '`position` et `rotation` triplets de nombres, seuls, attendus');
       else if (seconde !== undefined && !glb.meshes.some((m) => m.os !== null && osDesPrises.includes(m.os))) refus('seconde-prise-sans-prise', 'liaison.secondePrise', `aucun mesh ne pend à l’os d’une prise de la base \`${nomDeBase}\` (${liste(osDesPrises)}) : la seconde prise n’a pas de première`);
     }

@@ -25,7 +25,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const CARAC = { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 51, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 };
 const perso = (id: string, over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id, name: id, label: id, kind: 'npc', characteristics: { ...CARAC }, pos: { x: 5, y: 5 },
+  id, name: id, label: id, kind: 'pnj', characteristics: { ...CARAC }, pos: { x: 5, y: 5 },
   skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, wounds: blessuresDeBase(13), advantage: 0, ...over,
 })) as unknown as Combatant;
@@ -41,7 +41,7 @@ const navire = (marin: Combatant): Combatant => {
 const poser = (combatants: Combatant[]): void => {
   banc.setState({
     battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [] } as never,
-    party: combatants.filter((c) => c.kind === 'hero'), scene: emptyScene('scene-test', 20, 20), travelPlan: null, facing: {}, vessel: null,
+    party: combatants.filter((c) => c.kind === 'heros'), scene: emptyScene('scene-test', 20, 20), travelPlan: null, facing: {}, vessel: null,
     journal: [], pendingCascade: null, suspendedCascades: [], pendingFateSave: null,
   } as never);
 };

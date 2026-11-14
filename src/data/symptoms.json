@@ -45,7 +45,9 @@
       "grave": [
         {
           "op": "condition",
-          "id": "inconscient",
+          "id": {
+            "id": "inconscient"
+          },
           "resolveWindow": {
             "scale": "clock",
             "minutes": {
@@ -215,22 +217,24 @@
     "effects": [
       {
         "trigger": "onOwnTestFailed",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": -2
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
                   "op": "condition",
-                  "id": "sonne"
+                  "id": {
+                    "id": "sonne"
+                  }
                 }
               ]
             }
@@ -239,7 +243,7 @@
       },
       {
         "trigger": "onOwnTestFailed",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "test",
           "test": {
@@ -252,18 +256,20 @@
               "value": -4
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
                   "op": "condition",
-                  "id": "a-terre"
+                  "id": {
+                    "id": "a-terre"
+                  }
                 }
               ]
             }
@@ -272,22 +278,24 @@
       },
       {
         "trigger": "onOwnTestFailed",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": -6
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
                   "op": "condition",
-                  "id": "inconscient"
+                  "id": {
+                    "id": "inconscient"
+                  }
                 }
               ]
             }
@@ -335,13 +343,13 @@
           },
           "difficulty": "accessible"
         },
-        "success": {
-          "kind": "seq",
-          "steps": []
+        "reussite": {
+          "kind": "sequence",
+          "etapes": []
         },
-        "fail": {
-          "kind": "do",
-          "effect": {
+        "echec": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -376,13 +384,13 @@
           },
           "difficulty": "tresFacile"
         },
-        "success": {
-          "kind": "seq",
-          "steps": []
+        "reussite": {
+          "kind": "sequence",
+          "etapes": []
         },
-        "fail": {
-          "kind": "do",
-          "effect": {
+        "echec": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -424,7 +432,9 @@
     "passive": [
       {
         "op": "condition",
-        "id": "extenue",
+        "id": {
+          "id": "extenue"
+        },
         "resolveWindow": "none"
       }
     ],
@@ -534,13 +544,13 @@
           "characteristic": "endurance",
           "difficulty": "accessible"
         },
-        "success": {
-          "kind": "seq",
-          "steps": []
+        "reussite": {
+          "kind": "sequence",
+          "etapes": []
         },
-        "fail": {
-          "kind": "do",
-          "effect": {
+        "echec": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -710,7 +720,9 @@
         },
         {
           "op": "condition",
-          "id": "sonne"
+          "id": {
+            "id": "sonne"
+          }
         }
       ]
     },

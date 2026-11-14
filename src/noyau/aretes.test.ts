@@ -7,6 +7,7 @@ import type { Combatant } from '../engine/types';
 import {
   aretesUtilisables,
   caseOpposee,
+  casesADenivele,
   libellePortail,
   LARGEUR_PRISE_ARETE,
   PRIORITE_ARETES,
@@ -254,6 +255,51 @@ describe('aretesUtilisables — le dériveur d’arêtes rend ce que les overlay
 
     expect(aretes.map((a) => a.capacite)).toEqual(['structure', 'escalade']);
     expect(PRIORITE_ARETES.indexOf('structure')).toBeLessThan(PRIORITE_ARETES.indexOf('escalade'));
+  });
+
+  it('CAPACITÉS NOMMÉES : la dérivation se borne à celles qu’on lui nomme, dans l’ordre de priorité', () => {
+    const scene = scèneÀDeuxPièces();
+    scene.walls = [...scene.walls!, { x: 1, y: 1, side: 'N', climb: { kind: 'surface' } }];
+    const ctx = { scene, visible: new Set(['1,1,0', '2,1,0', '1,0,0']), controleur: { x: 1, y: 1, z: 0 }, activeZ: 0 };
+
+    expect(aretesUtilisables(ctx).map((a) => a.capacite)).toEqual(['escalade', 'porte']);
+    expect(aretesUtilisables(ctx, ['porte']).map((a) => a.capacite)).toEqual(['porte']);
+    expect(aretesUtilisables(ctx, ['porte', 'escalade']).map((a) => a.capacite)).toEqual(['escalade', 'porte']);
+  });
+
+  it('DÉNIVELÉS : une scène changée (nouvelle référence) rend ses dénivelés, pas ceux de la précédente', () => {
+    const avant = scèneGrimpable();
+    const ctx = { visible: VU_11, controleur: { x: 1, y: 1, z: 0 }, activeZ: 0 };
+    expect(aretesUtilisables({ ...ctx, scene: avant }).map((a) => a.capacite)).toEqual(['escalade']);
+
+    const sansEchelle: Scene = { ...avant, walls: [] };
+    expect(aretesUtilisables({ ...ctx, scene: sansEchelle }), 'l’arête grimpable ôtée, plus d’escalade').toEqual([]);
+
+    const aplanie: Scene = { ...avant, layers: [{ ...avant.layers[0], height: undefined }] };
+    expect(aretesUtilisables({ ...ctx, scene: aplanie }).map((a) => a.libelle), 'le plateau aplani, on ne monte plus').toEqual(['Descendre en escalade']);
+    expect(aretesUtilisables({ ...ctx, scene: avant }).map((a) => a.libelle)).toEqual(['Escalader']);
+  });
+
+  it('DÉNIVELÉS : sur une même scène, chaque case et chaque couche du contrôleur a les siens', () => {
+    const scene = scèneDeFalaise();
+    scene.layers = [scene.layers[0], { z: 1, tiles: [...scene.layers[0].tiles] }];
+    const visible = new Set([0, 1].flatMap((z) => [0, 1, 2, 3].flatMap((y) => [0, 1, 2, 3].map((x) => `${x},${y},${z}`))));
+    const deniveles = (x: number, y: number, z: number) =>
+      aretesUtilisables({ scene, visible, controleur: { x, y, z }, activeZ: z }).map((a) => `${a.libelle} ${a.cle} depuis ${a.ancrage.x},${a.ancrage.y},${a.ancrage.z}`);
+
+    expect(deniveles(2, 0, 0)).toEqual(['Sauter en bas (4 m) 2,1,N,0 depuis 2,0,0']);
+    expect(deniveles(1, 0, 0)).toEqual(['Sauter en bas (4 m) 1,1,N,0 depuis 1,0,0']);
+    expect(deniveles(2, 2, 0), 'au pied de la corniche, rien ne descend').toEqual([]);
+    expect(deniveles(2, 0, 1), 'la couche du dessus est plane').toEqual([]);
+    expect(deniveles(2, 0, 0), 'la première case redemandée').toEqual(['Sauter en bas (4 m) 2,1,N,0 depuis 2,0,0']);
+  });
+
+  it('DÉNIVELÉS : les cases d’où part un dénivelé se relèvent couche par couche, rangée par rangée', () => {
+    const scene = scèneDeFalaise();
+    scene.layers = [scene.layers[0], { z: 1, tiles: [...scene.layers[0].tiles] }];
+
+    expect(casesADenivele(scene, 1), 'la couche du dessus est plane').toEqual([]);
+    expect(casesADenivele(scene, 0), 'le bord de la corniche').toEqual([{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }]);
   });
 
   it('BROUILLARD : une arête dont aucune extrémité n’est éclaircie n’existe pas', () => {

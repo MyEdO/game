@@ -64,19 +64,19 @@ export function BattementModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="battement"
-      stake={flowStakeRef('battement-roll')}
-      title={<><Icon id="action/attack" /> Battement</>}
+      stake={flowStakeRef('battement-test')}
+      title={<><Icon id="action/attaquer" /> Battement</>}
       /* A→B canonique (décision utilisateur 2026-08-04) : portraits + flèche annotée de la manœuvre
          — jamais une phrase « X bat l'arme de Y ». Le COÛT (l'Action) est un prérequis de ressource,
          pas un modificateur du jet : il s'annonce sur la flèche, pas sur la ligne. */
-      extra={<VsHeader actor={attacker} target={foe} label="Battement · coûte l’Action" verb="action/attack" />}
+      extra={<VsHeader actor={attacker} target={foe} label="Battement · coûte l’Action" verb="action/attaquer" />}
       /* Choix de la cible AVANT le jet (plusieurs adversaires éligibles) — OptionChooser partagé. */
       setup={
         foes.length > 1 ? (
@@ -89,7 +89,7 @@ export function BattementModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('attack', describeBattement(pb, attacker.label, foe.label), attacker.id, foe.id), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('attaque', describeBattement(pb, attacker.label, foe.label), attacker.id, foe.id), battle.combatants)] : undefined}
       actions={actions}
       onCancel={cancel}
     />

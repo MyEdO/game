@@ -29,7 +29,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mk = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'hero', characteristics: { ...chars },
+  (blessuresSurLeProfil({ id, name: id, kind: 'heros', characteristics: { ...chars },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], items: [], skills: [], talents: [], weapons: [],
     fortune: 2, resilience: 2,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 }, ...over })) as unknown as Combatant;
@@ -77,7 +77,7 @@ const singer = (): Combatant => mk('barde', {
 });
 const marin = (): Combatant => mk('marin', { skills: [{ id: 'voile', characteristic: 'agilite', advances: 10 } as SkillInstance] });
 const ship = (over: Partial<Combatant> = {}): Combatant =>
-  mk('ship', { kind: 'hero', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['barde', 'marin'], ...over });
+  mk('ship', { kind: 'heros', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['barde', 'marin'], ...over });
 
 function openShanty() {
   seedBattleRng(3);
@@ -101,8 +101,8 @@ describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
   it('réussite → l’effet couvre TOUT l’équipage (3 min + DR) ; le quart est consommé (l.40)', () => {
     openShanty();
     // Jet FORCÉ (Résilience) : succès garanti, déterministe — le flux réel passe par la même modale.
-    banc.getState().jetForcerLaReussite('shanty');
-    banc.getState().jetValider('shanty');
+    banc.getState().jetForcerLaReussite('chansonDeMarin');
+    banc.getState().jetValider('chansonDeMarin');
     const st = banc.getState();
     const crew = st.battle!.combatants.filter((c) => c.id === 'barde' || c.id === 'marin');
     for (const c of crew) expect(skillDRBonus(c, { id: 'corps-a-corps' })).toBe(1); // « +1 DR sur tout Test de Corps à corps réussi »
@@ -117,8 +117,8 @@ describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
 
   it('fin de chant sur Dégâts (l.38) : endShanty retire l’effet de TOUT l’équipage', () => {
     openShanty();
-    banc.getState().jetForcerLaReussite('shanty');
-    banc.getState().jetValider('shanty');
+    banc.getState().jetForcerLaReussite('chansonDeMarin');
+    banc.getState().jetValider('chansonDeMarin');
     const st = banc.getState();
     const bard = st.battle!.combatants.find((c) => c.id === 'barde')!;
     const lines = endShanty(banc.getState, bard);
@@ -129,8 +129,8 @@ describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
 
   it('les effets de chant portent effectId === shantyId ; endShanty retire PAR effectId (pas par libellé)', () => {
     openShanty();
-    banc.getState().jetForcerLaReussite('shanty');
-    banc.getState().jetValider('shanty');
+    banc.getState().jetForcerLaReussite('chansonDeMarin');
+    banc.getState().jetValider('chansonDeMarin');
     const st = banc.getState();
     const bard = st.battle!.combatants.find((c) => c.id === 'barde')!;
     const marinC = st.battle!.combatants.find((c) => c.id === 'marin')!;
@@ -149,8 +149,8 @@ describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
 
   it('QUART = 4 h : au quart suivant, on peut de nouveau chanter', () => {
     openShanty();
-    banc.getState().jetForcerLaReussite('shanty');
-    banc.getState().jetValider('shanty');
+    banc.getState().jetForcerLaReussite('chansonDeMarin');
+    banc.getState().jetValider('chansonDeMarin');
     banc.setState({ gameTime: QUART_MINUTES }); // quart suivant
     const bard = banc.getState().battle!.combatants.find((c) => c.id === 'barde')!;
     delete bard.singingShanty; // le chant précédent est fini
@@ -164,7 +164,7 @@ describe('« Suivez le capitaine » : captainOps sur le SEUL titulaire du rôle 
     seedBattleRng(3);
     const capitaine = mk('cap', { skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 20 } as SkillInstance] });
     const mousse = marin();
-    const hull = mk('ship', { kind: 'npc', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['cap', 'marin'] });
+    const hull = mk('ship', { kind: 'pnj', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['cap', 'marin'] });
     banc.setState({
       battle: { combatants: [hull, capitaine, mousse], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
       party: [capitaine, mousse], facing: {}, scene: null as never, gameTime: 0,

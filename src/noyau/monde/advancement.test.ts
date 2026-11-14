@@ -17,7 +17,7 @@ const hero = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id: 'h',
     name: 'H',
-    kind: 'hero',
+    kind: 'heros',
     species: 'humains-reiklander',
     career: 'agitateur',
     careerLevel: 1,

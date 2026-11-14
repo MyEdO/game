@@ -2,9 +2,10 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** LDB 46 ; VDM 02 ; LDB 40. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { suiteDesEntrees } from '../grammaire/cle-d-espace';
 import { formulaSchema, formulaSinSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
-import { idDe, ref, refOuSpec } from '../grammaire/ref';
-import { deitySkillPickSchema, exigerDuTest, flowTestSchema, MESSAGE_DUREE_DE_DIVINITE, refuserEtatsInconnus } from '../grammaire/mecanique';
+import { ref, refOuSpec } from '../grammaire/ref';
+import { deitySkillPickSchema, exigerDuTest, flowTestSchema, MESSAGE_DUREE_DE_DIVINITE, refDEtatSchema } from '../grammaire/mecanique';
 
 export const file = 'miscast.json';
 export const famille = 'entite';
@@ -17,15 +18,13 @@ export const famille = 'entite';
  */
 const jsonOpSchema = nommerChamps(z.strictObject({
   op: z.string(),
-  id: z.string().optional(),
+  /** État de l'op `condition`, recopié littéralement par `expandOp` (`engine/miscast.ts`), comme sa gate. */
+  id: refDEtatSchema.optional(),
   value: formulaSinSchema.optional(),
   durationRounds: formulaSinSchema.optional(),
   /** LDB 40 l.75 ; LDB 16 l.117. */
   perRound: z.literal(true).optional(),
-  /** Gate d'État de l'op `condition`, recopiée littéralement par `expandOp` (`engine/miscast.ts`) :
-   *  une RÉFÉRENCE à `etats.json`, donc posée par la fabrique. `id` est polymorphe dans ce dialecte
-   *  plat : il est jugé selon l'`op` de la ligne (`superRefine` ci-dessous). */
-  unlessCondition: idDe('etat').optional(),
+  unlessCondition: refDEtatSchema.optional(),
   amount: formulaSinSchema.optional(),
   /** LDB 46. */
   ignoreTB: z.boolean().optional(),
@@ -46,11 +45,11 @@ const jsonOpSchema = nommerChamps(z.strictObject({
   durationHours: formulaSinSchema.optional(),
   escapeStrength: formulaSchema.optional(),
 }).superRefine((v, ctx) => {
-  if (v.op === 'condition' || v.op === 'removeCondition') refuserEtatsInconnus(v, ['id'], ctx);
   if (v.op === 'deitySkillMod' && (v.durationHours === undefined) === (v.durationDays === undefined)) {
     ctx.addIssue({ code: 'custom', path: ['durationHours'], message: MESSAGE_DUREE_DE_DIVINITE });
   }
   if (v.op === 'deityBan' && v.durationDays === undefined) ctx.addIssue({ code: 'custom', path: ['durationDays'], message: '`deityBan` exige sa durée en jours (LDB 40 l.64).' });
+  if (v.op === 'condition' && v.id === undefined) ctx.addIssue({ code: 'custom', path: ['id'], message: '`condition` exige son État.' });
   if (v.op === 'prayerForAction' && v.durationRounds === undefined) ctx.addIssue({ code: 'custom', path: ['durationRounds'], message: '`prayerForAction` exige sa durée en Rounds (LDB 40 l.74).' });
 }), {
   op: { label: 'opération' },
@@ -115,21 +114,24 @@ export const rangee = nommerChamps(z.strictObject({
   source: { label: 'source' },
 });
 
+/** Catégorie Codex de chaque document-table → son id, dans l'ordre de la donnée. */
+const CATEGORIES = {
+  imparfaiteMineure: 'miscast-mineure', imparfaiteMajeure: 'miscast-majeure',
+  imparfaiteMineureVdm: 'miscast-mineure-vdm', imparfaiteMajeureVdm: 'miscast-majeure-vdm',
+  colereDesDieux: 'miscast-colere',
+} as const;
+
 const doc = document(
   'miscast',
   famille,
+  {},
+  {},
   {
-    /** Catégorie Codex où vivent les LIGNES de ce tableau quand elles y sont exposées. Les deux
-     *  révisions VDM n'en ont pas : le Codex n'expose que les trois tableaux du Livre de base, un
-     *  renvoi y serait mort. */
-    codexCategory: z.string().optional(),
-  },
-  {
-    codexCategory: { label: 'Catégorie Codex des lignes', hint: 'Clé de la catégorie Compendium qui expose les rangées (absente = tableau non exposé)' },
-  },
-  {
-    codex: { keys: ['miscastMinor', 'miscastMajor', 'miscastWrath'] },
-    edit: { niche: { categories: { miscastMinor: '[miscast-mineure].entries', miscastMajor: '[miscast-majeure].entries', miscastWrath: '[miscast-colere].entries' } } },
+    edit: {
+      niche: {
+        categories: Object.fromEntries(Object.entries(CATEGORIES).map(([categorie, id]) => [categorie, suiteDesEntrees(id)])),
+      },
+    },
   },
   { rangee, deDeTirage: true },
 );

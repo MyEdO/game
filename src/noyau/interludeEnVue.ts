@@ -1,55 +1,56 @@
 /**
  * L'INTERLUDE EN VUE (#3328) — ce qu'un hôte montre de l'interlude ouvert (« Entre deux aventures », LDB 22-23) : chaque
- * héros, ses Activités restantes et l'Événement de sa période, puis chacune de ses Activités écrite en verbe du noyau,
- * fermée par le verdict que son verbe applique (`verdictsDInterlude.ts`) ; une Activité qui vise une cible (un Talent,
- * un artefact, une option d'Entraînement, un objet à commander, une Faveur, une arme, un sort, un Trait psychologique)
- * offre un geste par cible ; l'ouvrage d'Artisanat qu'il peut engager et son dépôt en banque, en formulaires. Puis les
- * dépôts en banque et leur retrait. Lecteur PUR, lu par les hôtes du noyau
- * (`hote/ecran.ts`).
+ * héros, ses Activités restantes et l'Événement de sa période, puis l'Activité qu'il compose, chacun de ses choix écrit
+ * en choix de la fenêtre (`fenetreChoisir('interlude', …)`, `OUVERTS_DU_CHOIX`) et la pratique qui la conclut ; ses
+ * Activités jouées par leur verbe (Commande, Faveurs dues, préparation de bataille), une par cible, fermées par le
+ * verdict que leur verbe applique (`verdictsDInterlude.ts`) ; son dépôt en banque, en formulaire. Puis les dépôts en
+ * banque et leur retrait. Lecteur PUR, lu par les hôtes du noyau (`hote/ecran.ts`).
  */
 import type { Jeu } from './etat';
 import type { GesteDuNoyau } from './actionsDuNoyau';
 import type { Combatant } from '../engine/types';
-import { activityById, bankPayout, craftCatalog, entrainementOptions, learnableTalents, orderCatalog, qualitesDArtisanat, type ActivityDef, type CraftOption } from '../engine/activities';
-import { describeQuality } from '../engine/qualities/describe';
-import { libelleDePsy } from '../engine/psych/ciblage';
+import { bankPayout, orderCatalog, type GenreDeDepot } from '../engine/activities';
 import { bourseOf } from '../engine/bourse';
 import { formatMoney, fromBrass, PA_PER_SC, toBrass } from '../engine/money';
 import { interludeCatalog } from './interludeFlow';
 import { refusDePrepaDeBataille } from './massBattleFlow';
 import {
-  ciblesDActivite, devisDeDepot, eventLabelOf, refusDAcquitterUneFaveur, refusDActivite, refusDArtisanat, refusDeCommande, refusDEntrainement,
-  refusDeRetrait, refusDOuvertureDActivite, type CiblesChoisies, type GenreDeDepot,
+  devisDeDepot, eventLabelOf, refusDAcquitterUneFaveur, refusDActivite, refusDeCommande, refusDeRetrait,
 } from './verdictsDInterlude';
+import { auPrix, reglageDuChoixDeFenetre } from './choixDeFenetre';
+import { CHOIX_DES_FENETRES, VERBE_DE_CHOIX, type AxeDe } from './choixDesFenetres';
 import { fenetreDuJeu } from './combatAuto';
+import { libelleDuChoix } from './libelles';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
 
 /** Un geste d'interlude : son nom, le verbe qui le joue, et pourquoi il ne se joue pas maintenant (`null` s'il se joue). */
 export interface GesteDInterlude { libelle: string; geste: GesteDuNoyau; refus: string | null }
 
-/** Une Activité d'un héros : son nom, ce qui la ferme toute (`refus`), et ses gestes, un seul sans cible, un par cible
- *  sinon (`cible` : elle en vise une). */
+/** Une Activité jouée par son verbe : son nom, ce qui la ferme toute (`refus`), et ses gestes, un seul sans cible, un par
+ *  cible sinon (`cible` : elle en vise une). */
 export interface ActiviteEnVue { id: string; libelle: string; refus: string | null; cible: boolean; gestes: GesteDInterlude[] }
+
+/** Un choix de l'Activité que compose un héros : son axe, son nom, puis chaque valeur qu'il ouvre, le geste qui la prend,
+ *  ce qui la ferme, et si c'est la sienne. */
+export interface ChoixDInterlude {
+  axe: AxeDe<'interlude'>; libelle: string;
+  valeurs: { libelle: string; geste: GesteDuNoyau; refus: string | null; choisie: boolean }[];
+}
 
 /** Une valeur qu'un formulaire d'interlude offre : ce qu'elle dit, ce qu'elle vaut, pourquoi elle est refusée. */
 export interface ValeurDInterlude { libelle: string; valeur: string; refus: string | null }
-
-/** Un ouvrage d'Artisanat à engager : son verbe et le héros qu'il pose, ce qui le ferme, puis chaque ouvrage du
- *  catalogue fermé par sa raison, et les Atouts et Défauts qu'il peut viser (vides quand il est fermé). */
-export interface OuvrageAEngager { geste: GesteDuNoyau; refus: string | null; ouvrages: ValeurDInterlude[]; atouts: ValeurDInterlude[]; defauts: ValeurDInterlude[] }
 
 /** Un dépôt en banque : son verbe et le héros qu'il pose, ce qui le ferme, chaque genre de dépôt fermé par sa raison,
  *  et le montant que la bourse couvre au plus, en sous de cuivre, par pas d'une pistole. */
 export interface DepotAFaire { geste: GesteDuNoyau; refus: string | null; genres: ValeurDInterlude[]; max: number; pas: number }
 
 /** Un héros de l'interlude : ses Activités restantes sur celles qu'il a reçues, ses PX et sa bourse, que coûtent ses
- *  cibles, l'Événement de sa période (`null` tant
- *  que son dé n'est pas tombé), ses Activités, l'ouvrage qu'il peut engager (`null` : le sien est en cours) et son
- *  dépôt en banque. */
+ *  cibles, l'Événement de sa période (`null` tant que son dé n'est pas tombé), les choix de l'Activité qu'il compose et
+ *  sa pratique (`null` : il n'en compose aucune), ses Activités jouées par leur verbe, et son dépôt en banque. */
 export interface HerosDInterlude {
-  id: string; nom: string; restantes: number; recues: number; px: number; bourse: string; evenement: string | null; activites: ActiviteEnVue[];
-  ouvrage: OuvrageAEngager | null; depot: DepotAFaire;
+  id: string; nom: string; restantes: number; recues: number; px: number; bourse: string; evenement: string | null;
+  composition: ChoixDInterlude[]; pratiquer: GesteDInterlude | null; activites: ActiviteEnVue[]; depot: DepotAFaire;
 }
 
 /** L'interlude ouvert : sa durée en semaines, ses héros, ses dépôts en banque. */
@@ -57,75 +58,48 @@ export interface InterludeEnVue { semaines: number; heros: HerosDInterlude[]; de
 
 type Etat = Pick<Jeu, 'interlude' | 'party' | 'bank' | 'lieu' | 'massBattle' | 'favors'>;
 
-/** Ce qu'une cible coûte, dit avec elle : une valeur de liste ne se montre que par son libellé. */
-const auPrix = (label: string, prix: string): string => t('interlude.prix', { label, prix });
-
-const activite = (id: string): ActivityDef => garanti(activityById(id), id, 'Activité d’interlude');
-
-/** Les gestes d'une Activité du catalogue sur ses cibles (`ciblesDActivite`), la première sorte de cible qu'elle offre ;
- *  un seul geste sans cible. */
-function gestesDuCatalogue(s: Etat, h: Combatant, def: ActivityDef): { cible: boolean; gestes: GesteDInterlude[] } {
-  const { armes, artefacts, sorts, traitsPsy } = ciblesDActivite(h, def);
-  const parCible: { libelle: string; opts: CiblesChoisies }[] = [
-    ...[...armes, ...artefacts].map((i) => ({ libelle: i.label, opts: { itemUid: i.uid } })),
-    ...sorts.map((x) => ({ libelle: x.spell.label, opts: { spellId: x.spell.id } })),
-    ...traitsPsy.map((x) => ({ libelle: libelleDePsy(x.trait.type, x.trait.cible), opts: { traitPsy: x.cle } })),
-  ];
-  const geste = (libelle: string, opts?: CiblesChoisies): GesteDInterlude =>
-    ({ libelle, geste: { verbe: 'pratiquerLActivite', args: opts ? [h.id, def.id, opts] : [h.id, def.id] }, refus: refusDOuvertureDActivite(s, h.id, def, opts) });
-  return parCible.length ? { cible: true, gestes: parCible.map((c) => geste(c.libelle, c.opts)) } : { cible: false, gestes: [geste(def.label)] };
+/** Le choix `axe` de l'Activité que compose `h`, parmi ce que l'interlude lui ouvre (`OUVERTS_DU_CHOIX`). */
+function choix(s: Jeu, h: Combatant, axe: AxeDe<'interlude'>): ChoixDInterlude {
+  const r = reglageDuChoixDeFenetre(s, 'interlude', axe, h.id);
+  return {
+    axe, libelle: libelleDuChoix('interlude', axe),
+    valeurs: (r.valeurs ?? []).map((v) => ({ libelle: v.libelle, geste: { verbe: VERBE_DE_CHOIX, args: ['interlude', axe, v.valeur, h.id] }, refus: v.refus, choisie: v.valeur === r.courant })),
+  };
 }
 
-/** Les Activités du héros `h` : Revenus, l'ouvrage d'Artisanat en cours, Apprentissage, Commande, Identification,
- *  Entraînement, Faveurs dues, puis les autres Activités du catalogue de ce lieu, préparation de bataille comprise. */
+/** Les axes qui composent une Activité, hors de sa pratique. */
+const AXES_DE_COMPOSITION = (Object.keys(CHOIX_DES_FENETRES.interlude) as AxeDe<'interlude'>[]).filter((axe) => axe !== 'pratiquer');
+
+/** Les choix ouverts de l'Activité que compose `h`, et sa pratique. LDB 23 l.5 */
+function compositionDuHeros(s: Jeu, h: Combatant): Pick<HerosDInterlude, 'composition' | 'pratiquer'> {
+  const [pratique] = choix(s, h, 'pratiquer').valeurs;
+  return {
+    composition: AXES_DE_COMPOSITION.map((axe) => choix(s, h, axe)).filter((c) => c.valeurs.length > 0),
+    pratiquer: pratique ? { libelle: pratique.libelle, geste: pratique.geste, refus: pratique.refus } : null,
+  };
+}
+
+/** Les Activités de `h` que joue leur verbe : Commande, Faveurs dues, puis la préparation de bataille de ce lieu. */
 function activitesDuHeros(s: Etat, h: Combatant): ActiviteEnVue[] {
   const ferme = refusDActivite(s, h.id);
-  const simple = (id: string, libelle: string, geste: GesteDuNoyau, refus: string | null): ActiviteEnVue =>
-    ({ id, libelle, refus, cible: false, gestes: [{ libelle, geste, refus }] });
   const parCible = (id: string, libelle: string, gestes: GesteDInterlude[]): ActiviteEnVue => ({ id, libelle, refus: gestes.length ? ferme : ferme ?? t('interlude.sansCible'), cible: true, gestes });
-  const revenus = activite('revenus');
-  const learn = activite('learn');
-  const identify = activite('identify');
   const favors = (s.favors ?? []).filter((f) => f.heroId === h.id);
   return [
-    simple(revenus.id, revenus.label, { verbe: 'pratiquerLActivite', args: [h.id, revenus.id] }, refusDOuvertureDActivite(s, h.id, revenus)),
-    ...(h.craft ? [simple('craft', activite('craft').label, { verbe: 'pratiquerLActivite', args: [h.id, 'craft'] }, refusDOuvertureDActivite(s, h.id, activite('craft')))] : []),
-    parCible(learn.id, learn.label, learnableTalents(h).map((o) => ({
-      libelle: auPrix(o.label, t('interlude.px', { px: o.xpCost })), geste: { verbe: 'pratiquerLActivite', args: [h.id, learn.id, { talentId: o.id }] }, refus: refusDOuvertureDActivite(s, h.id, learn, { talentId: o.id }),
-    }))),
     parCible('order', t('interlude.commande'), orderCatalog().map((o) => ({
       libelle: auPrix(o.label, formatMoney(fromBrass(o.priceBrass))), geste: { verbe: 'commanderLObjet', args: [h.id, o.id] }, refus: refusDeCommande(s, h.id, o.id),
-    }))),
-    { id: identify.id, libelle: identify.label, refus: ferme, ...gestesDuCatalogue(s, h, identify) },
-    parCible('entrainement', activite('entrainement').label, entrainementOptions(h).map((o) => ({
-      libelle: auPrix(o.label, t('interlude.px', { px: o.xpCost })), geste: { verbe: 'suivreLEntrainement', args: o.spec === undefined ? [h.id, o.kind, o.id] : [h.id, o.kind, o.id, o.spec] }, refus: refusDEntrainement(s, h.id, o.kind, o.id, o.spec),
     }))),
     ...(favors.length ? [parCible('faveur', t('interlude.faveur'), favors.map((f) => ({
       libelle: f.owedTo, geste: { verbe: 'solderLaFaveur', args: [h.id, f.id] }, refus: refusDAcquitterUneFaveur(s, h.id, f.id),
     })))] : []),
-    ...interludeCatalog(s).filter((d) => !d.resolver || !RESOLVEURS_A_PART.has(d.resolver)).map((def): ActiviteEnVue => (def.contexts.includes('bataille')
-      ? simple(def.id, def.label, { verbe: 'menerLActionDeBataille', args: [def.id, h.id] }, ferme ?? refusDePrepaDeBataille(s.massBattle!, h, def))
-      : { id: def.id, libelle: def.label, refus: ferme, ...gestesDuCatalogue(s, h, def) })),
+    ...interludeCatalog(s).filter((d) => d.contexts.includes('bataille')).map((def): ActiviteEnVue => {
+      const refus = ferme ?? refusDePrepaDeBataille(garanti(s.massBattle, def.id, 'bataille à préparer'), h, def);
+      return { id: def.id, libelle: def.label, refus, cible: false, gestes: [{ libelle: def.label, geste: { verbe: 'menerLActionDeBataille', args: [h.id, def.id] }, refus }] };
+    }),
   ];
 }
 
-/** L'ouvrage d'Artisanat que `h` peut engager sur `catalogue` : chaque ouvrage dit ses matériaux, fermé par
- *  `refusDArtisanat` ; `null` quand le sien est en cours. LDB 23 l.74-78 */
-function ouvrageDuHeros(s: Etat, h: Combatant, catalogue: readonly CraftOption[]): OuvrageAEngager | null {
-  if (h.craft) return null;
-  const refus = refusDArtisanat(s, h.id);
-  const qualite = (id: string): ValeurDInterlude => ({ libelle: garanti(describeQuality({ id }), id, 'qualité d’artisanat').label, valeur: id, refus: null });
-  const { atouts, defauts } = qualitesDArtisanat();
-  return {
-    geste: { verbe: 'fabriquerLObjet', args: [h.id] }, refus,
-    ouvrages: refus ? [] : catalogue.map((o) => ({ libelle: auPrix(o.label, formatMoney(fromBrass(o.materialsBrass))), valeur: o.id, refus: refusDArtisanat(s, h.id, o.id) })),
-    atouts: refus ? [] : atouts.map(qualite),
-    defauts: refus ? [] : defauts.map(qualite),
-  };
-}
-
 /** Les genres d'un dépôt en banque. LDB 23 l.164-170, ACE 12 l.45-49 */
-const GENRES_DE_DEPOT: readonly GenreDeDepot[] = ['invest', 'stash', 'mecenat'];
+const GENRES_DE_DEPOT: readonly GenreDeDepot[] = ['investir', 'planque', 'mecenat'];
 
 /** Le dépôt en banque de `h` : chaque genre fermé par son devis au plus que la bourse couvre (`devisDeDepot`), le
  *  dépôt fermé par le devis d'une planque, qui ne porte que les refus communs. LDB 23 l.164-170 */
@@ -133,22 +107,18 @@ function depotDuHeros(s: Etat, h: Combatant): DepotAFaire {
   const max = Math.floor(toBrass(bourseOf(h)) / PA_PER_SC) * PA_PER_SC;
   return {
     geste: { verbe: 'deposerALaBanque', args: [h.id] },
-    refus: devisDeDepot(s, h.id, 'stash', max).refus,
+    refus: devisDeDepot(s, h.id, 'planque', max).refus,
     genres: GENRES_DE_DEPOT.map((g) => ({ libelle: t(`interlude.genre.${g}`), valeur: g, refus: devisDeDepot(s, h.id, g, max).refus })),
     max, pas: PA_PER_SC,
   };
 }
 
-/** Les résolveurs des Activités que `activitesDuHeros` offre à part : Revenus, Artisanat, Apprentissage, Identification,
- *  Entraînement, et le Mécénat, un dépôt en banque. */
-const RESOLVEURS_A_PART = new Set(['income', 'craftExtended', 'learnTalent', 'identify', 'entrainement', 'mecenat']);
-
 /** Le libellé d'un dépôt : son héros, son genre et son montant, et ce que rend un investissement. */
 export function libelleDuDepot(s: Pick<Jeu, 'party'>, d: NonNullable<Etat['bank']>[number]): string {
   const heros = garanti(s.party.find((h) => h.id === d.heroId), d.heroId, 'héros du dépôt').label;
   const montant = formatMoney(fromBrass(d.brass));
-  return d.kind === 'invest'
-    ? t('interlude.depot.invest', { heros, montant, rendu: formatMoney(fromBrass(bankPayout('invest', d.brass, d.rate))), indice: d.rate })
+  return d.kind === 'investir'
+    ? t('interlude.depot.investir', { heros, montant, rendu: formatMoney(fromBrass(bankPayout('investir', d.brass, d.rate))), indice: d.rate })
     : t(`interlude.depot.${d.kind}`, { heros, montant });
 }
 
@@ -157,14 +127,13 @@ export function libelleDuDepot(s: Pick<Jeu, 'party'>, d: NonNullable<Etat['bank'
 export function interludeEnVue(s: Jeu): InterludeEnVue | null {
   const itl = s.interlude;
   if (!itl || fenetreDuJeu(s)?.cle !== 'interlude') return null;
-  const catalogue = craftCatalog();
   return {
     semaines: itl.weeks,
     heros: s.party.filter((h) => !h.dead && itl.perHero[h.id]).map((h) => {
       const st = itl.perHero[h.id];
       return {
-        id: h.id, nom: h.label, restantes: st.left, recues: st.granted, px: h.xp ?? 0, bourse: formatMoney(bourseOf(h)), evenement: st.eventRoll == null ? null : eventLabelOf(st), activites: activitesDuHeros(s, h),
-        ouvrage: ouvrageDuHeros(s, h, catalogue), depot: depotDuHeros(s, h),
+        id: h.id, nom: h.label, restantes: st.left, recues: st.granted, px: h.xp ?? 0, bourse: formatMoney(bourseOf(h)), evenement: st.eventRoll == null ? null : eventLabelOf(st),
+        ...compositionDuHeros(s, h), activites: activitesDuHeros(s, h), depot: depotDuHeros(s, h),
       };
     }),
     depots: (s.bank ?? []).map((d) => ({ libelle: libelleDuDepot(s, d), geste: { verbe: 'retirerDeLaBanque', args: [d.uid] }, refus: refusDeRetrait(s, d.uid) })),

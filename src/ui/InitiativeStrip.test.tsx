@@ -12,7 +12,7 @@ function fixtures() {
   const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
   h.id = 'h1';
   h.initiative = 42;
-  const foe = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brigand', seed: 5 }), id: 'e1', kind: 'enemy' as Combatant['kind'], initiative: 31 };
+  const foe = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brigand', seed: 5 }), id: 'e1', kind: 'ennemi' as Combatant['kind'], initiative: 31 };
   return { h, foe };
 }
 const noop = () => {};
@@ -84,7 +84,7 @@ describe('InitiativeStrip', () => {
 
   it('un PNJ garde une carte sans fond de camp ennemi', () => {
     const { h } = fixtures();
-    const npc = { ...h, id: 'pnj', label: 'Cheval', kind: 'npc' as const };
+    const npc = { ...h, id: 'pnj', label: 'Cheval', kind: 'pnj' as const };
     const html = renderToStaticMarkup(
       <InitiativeStrip order={[npc.id]} turn={0} round={1} combatants={[npc]} over={false}
         canFirstIds={[]} onActivate={noop} onPromote={noop} hand={HAND} />,
@@ -174,7 +174,7 @@ describe('InitiativeStrip', () => {
 });
 
 /**
- * PIED DE FRISE — l'interrupteur « pause au prochain Round » (#1411 P2-A). `raise-hand` était une
+ * PIED DE FRISE — l'interrupteur « pause au prochain Round » (#1411 P2-A). `pause` était une
  * entrée du registre SANS surface : posée, la demande ne pouvait plus être retirée avant la pause
  * suivante. Elle vit ici (c'est l'enchaînement des Rounds qu'elle suspend), en interrupteur, avec un
  * refus VISIBLE quand le geste n'est pas offert (hors coop).
@@ -189,7 +189,7 @@ describe('InitiativeStrip — interrupteur de pause de Round', () => {
   };
 
   it('la frise PORTE l’entrée du registre (c’est SA surface, au même marqueur que la console)', () => {
-    expect(rendu()).toContain('data-action="raise-hand"');
+    expect(rendu()).toContain('data-action="pause"');
   });
 
   it('OFFERT : le geste est cliquable et se nomme', () => {
@@ -208,6 +208,6 @@ describe('InitiativeStrip — interrupteur de pause de Round', () => {
     const html = rendu({ reason: 'partie locale' });
     expect(html).toContain('disabled');
     expect(html).toContain('partie locale');
-    expect(html, 'la raison doit être liée au bouton (a11y), jamais un title muet').toContain('aria-describedby="raise-hand-reason"');
+    expect(html, 'la raison doit être liée au bouton (a11y), jamais un title muet').toContain('aria-describedby="pause-reason"');
   });
 });

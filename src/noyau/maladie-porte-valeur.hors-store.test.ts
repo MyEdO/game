@@ -5,7 +5,7 @@
  * « A partir du moment ou je dois faire un jet, il doit apparaitre. Y'a pas de "classe spéciale" si je
  * suis a l'initiative, que je le subit, face a un adversaire ou face a … une maladie ».
  *
- * Ce que ce fichier tient, sur le CHEMIN RÉEL du joueur (`ouvrirLeRepos` → `fenetreValider('rest')`, les DEUX bâtisseurs
+ * Ce que ce fichier tient, sur le CHEMIN RÉEL du joueur (`ouvrirLeRepos` → `fenetreValider('repos')`, les DEUX bâtisseurs
  * de la nuit, comme en jeu — jamais `deferredUpkeepSteps` appelé seul) :
  *  (i)   le Test de cycle du VER DE CARIE (MSRC 16 l.90 : « Test d'Endurance Accessible (+20) chaque
  *        jour ») est une ÉTAPE influençable dont la valeur est celle de la porte — Endurance NUE,
@@ -41,7 +41,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h1', label: 'Hilda', kind: 'hero',
+    id: 'h1', label: 'Hilda', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [{ id: 'resistance', advances: 12, characteristic: 'endurance' }], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -63,7 +63,7 @@ function rendMalade(id: string, maladie: string, jours = 0): Combatant {
 /** La nuit du joueur : auberge → « Dormir ». Rend les étapes de la cascade ouverte. */
 function dort(): CascadeStep[] {
   banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
-  banc.getState().fenetreValider('rest');
+  banc.getState().fenetreValider('repos');
   return banc.getState().pendingCascade?.participants ?? [];
 }
 
@@ -86,7 +86,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     banc.setState((s) => ({ party: [...s.party] }));
 
     const steps = dort();
-    const tick = steps.find((s) => s.kind === 'disease-tick' && (s.meta as { symptomId?: string })?.symptomId === 'vers-de-carie');
+    const tick = steps.find((s) => s.kind === 'maladie-test-quotidien' && (s.meta as { symptomId?: string })?.symptomId === 'vers-de-carie');
     expect(tick, 'le Test de cycle du ver est une ÉTAPE de la nuit (pas un jet du moteur)').toBeTruthy();
 
     const r = rangee(tick!, 'h1');
@@ -111,7 +111,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     banc.setState((s) => ({ party: [...s.party] }));
 
     const steps = dort();
-    const tick = steps.find((s) => s.kind === 'disease-tick' && (s.meta as { symptomId?: string })?.symptomId === 'fievre');
+    const tick = steps.find((s) => s.kind === 'maladie-test-quotidien' && (s.meta as { symptomId?: string })?.symptomId === 'fievre');
     expect(tick, 'la pneumonie pose SON Test quotidien en étape').toBeTruthy();
 
     const r = rangee(tick!, 'h1');
@@ -125,7 +125,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
   it('branche `fail` : la conséquence s’applique sur le résultat INJECTÉ dans l’étape, jamais sur un dé tiré ici', () => {
     rendMalade('h1', 'pneumonie', 0);
     const steps = dort();
-    const idx = steps.findIndex((s) => s.kind === 'disease-tick');
+    const idx = steps.findIndex((s) => s.kind === 'maladie-test-quotidien');
     expect(idx, 'la nuit porte le Test quotidien').toBeGreaterThanOrEqual(0);
 
     // ÉCHEC injecté sur la rangée du héros, puis validation de l'étape par la cascade.
@@ -178,7 +178,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     banc.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
     rendMalade('h1', 'pneumonie', 0);
     banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
-    banc.getState().fenetreValider('rest');
+    banc.getState().fenetreValider('repos');
     const vivant = banc.getState().pendingCascade;
     expect(vivant, 'une fenêtre de nuit est ouverte AVANT le sommeil multi-jours').toBeTruthy();
 

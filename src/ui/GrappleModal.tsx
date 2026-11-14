@@ -25,23 +25,23 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function GrappleModal() {
   const pd = useGame((s) => s.pendingGrapple);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'grapple');
-  const reroll = useGesteDeJet('jetRelancer', 'grapple');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'grapple');
-  const darkPact = useGesteDeJet('jetPactiser', 'grapple');
-  const force = useGesteDeJet('jetForcerLaReussite', 'grapple');
+  const roll = useGesteDeJet('jetLancer', 'empoignade');
+  const reroll = useGesteDeJet('jetRelancer', 'empoignade');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'empoignade');
+  const darkPact = useGesteDeJet('jetPactiser', 'empoignade');
+  const force = useGesteDeJet('jetForcerLaReussite', 'empoignade');
   const regler = useGame((s) => s.jetRegler);
-  const confirm = useGesteDeJet('jetValider', 'grapple');
-  const cancel = useGesteDeJet('jetAnnuler', 'grapple');
+  const confirm = useGesteDeJet('jetValider', 'empoignade');
+  const cancel = useGesteDeJet('jetAnnuler', 'empoignade');
   if (!pd || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pd.actorId);
   const foe = battle.combatants.find((c) => c.id === pd.foeId);
   if (!actor || !foe) return null;
   const rolled = !!pd.def;
-  const winnerIndex = pd.result === 'success' ? 1 : pd.result === 'failure' ? 0 : null;
+  const winnerIndex = pd.result === 'reussite' ? 1 : pd.result === 'echec' ? 0 : null;
   const outcome =
-    pd.result === 'success' ? `${actor.label} l'emporte — à toi de choisir.`
-    : pd.result === 'failure' ? `${foe.label} l'emporte : +1 Avantage.`
+    pd.result === 'reussite' ? `${actor.label} l'emporte — à toi de choisir.`
+    : pd.result === 'echec' ? `${foe.label} l'emporte : +1 Avantage.`
     : 'Égalité parfaite : l’Empoignade se poursuit.';
 
   // Test OPPOSÉ de Force : la Difficulté est DÉCLARÉE UNE fois pour l'opposition entière
@@ -55,7 +55,7 @@ export function GrappleModal() {
   // Rangée TÉMOIN : Force du foe, figée à l'ouverture (jamais relancée) — MASQUÉE tant que l'acteur
   // n'a pas répondu (#990 : `pd.def` est SA réponse ; le calendrier est celui de tous les jets figés).
   const foeRow = frozenOpposedRow({
-    revele: jetFigeRevele(useGame.getState(), JET_FIGE.grapple(pd)),
+    revele: jetFigeRevele(useGame.getState(), JET_FIGE.empoignade(pd)),
     row: { combatant: foe, d: foeLine.d },
   });
   // Rangée INTERACTIVE : Force de l'acteur, porteur de son cycle d'influence.
@@ -65,7 +65,7 @@ export function GrappleModal() {
     onRoll: roll,
     rerolled: !!pd.rerolled,
     // Égalité comprise : l'opposition n'est pas emportée (LDB 17 l.68).
-    lost: pd.result !== 'success',
+    lost: pd.result !== 'reussite',
     onReroll: reroll,
     onBonusSL: bonusSL,
     onDarkPact: darkPact,
@@ -75,7 +75,7 @@ export function GrappleModal() {
   });
 
   const issue = pd.def
-    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'dodge' : 'attack', outcome, actor.id, foe.id), battle.combatants)]
+    ? [recapLineOfEvent(ev(pd.result === 'reussite' ? 'esquive' : 'attaque', outcome, actor.id, foe.id), battle.combatants)]
     : undefined;
 
   if (pd.phase === 'options') {
@@ -83,9 +83,9 @@ export function GrappleModal() {
     return (
       <RollShell
         etape={pd.phase}
-        flowKey="grapple"
+        flowKey="empoignade"
         title="Empoignade"
-        extra={<VsHeader actor={actor} target={foe} label="lutte au corps à corps" verb="melee/grapple" />}
+        extra={<VsHeader actor={actor} target={foe} label="lutte au corps à corps" verb="melee/empoignade" />}
         rows={[foeRow, actorRow]}
         rolled
         winnerIndex={winnerIndex}
@@ -96,9 +96,9 @@ export function GrappleModal() {
             <OptionChooser
               layout="grid"
               options={[
-                { key: 'damage', label: <><Icon id="journal/damage" size="sm" /> Dégâts</>, primary: true, onSelect: () => regler('grapple', 'issue', 'damage'), title: 'BF + DR Dégâts, en IGNORANT tous les Points d’Armure (Localisation au lancer de Force).' },
-                { key: 'entangle', label: <><Icon id="condition/entangled" size="sm" /> Empêtrer</>, onSelect: () => regler('grapple', 'issue', 'entangle'), title: 'Conférer l’État Empêtré à l’adversaire.' },
-                { key: 'free', label: <><Icon id="melee/tumble" size="sm" /> Se libérer</>, onSelect: () => regler('grapple', 'issue', 'free'), title: 'Te défaire de ton État Empêtré, et en retirer 1 de plus par DR obtenu.' },
+                { key: 'degats', label: <><Icon id="journal/degats" size="sm" /> Dégâts</>, primary: true, onSelect: () => regler('empoignade', 'issue', 'degats'), title: 'BF + DR Dégâts, en IGNORANT tous les Points d’Armure (Localisation au lancer de Force).' },
+                { key: 'empetrer', label: <><Icon id="etat/empetre" size="sm" /> Empêtrer</>, onSelect: () => regler('empoignade', 'issue', 'empetrer'), title: 'Conférer l’État Empêtré à l’adversaire.' },
+                { key: 'liberer', label: <><Icon id="melee/roule-boule" size="sm" /> Se libérer</>, onSelect: () => regler('empoignade', 'issue', 'liberer'), title: 'Te défaire de ton État Empêtré, et en retirer 1 de plus par DR obtenu.' },
               ]}
             />
           </>
@@ -109,20 +109,20 @@ export function GrappleModal() {
   }
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
+    { key: 'abandonner', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
     // Avantage supérieur : briser l'Empoignade gratuitement (par son Mouvement) — pré-jet uniquement.
     ...(pd.canBreak
-      ? [{ key: 'break', label: "Briser l'Empoignade", onClick: () => regler('grapple', 'briser', true), title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'roll' } as RollAction]
+      ? [{ key: 'rompre', label: "Briser l'Empoignade", onClick: () => regler('empoignade', 'briser', true), title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'lancer' } as RollAction]
       : []),
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'valider', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       etape={pd.phase}
-      flowKey="grapple"
+      flowKey="empoignade"
       title="Empoignade"
-      extra={<VsHeader actor={actor} target={foe} label="lutte au corps à corps" verb="melee/grapple" />}
+      extra={<VsHeader actor={actor} target={foe} label="lutte au corps à corps" verb="melee/empoignade" />}
       rows={[foeRow, actorRow]}
       rolled={rolled}
       winnerIndex={winnerIndex}

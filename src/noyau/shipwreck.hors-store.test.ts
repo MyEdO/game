@@ -1,7 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { beginShipwreck } from './shipwreck';
 import { runSeaDay, buildSeaPlan } from './seaVoyageFlow';
 import { checkBattleOver } from './combatFlow';
@@ -68,7 +68,7 @@ function freshState() {
   seedBattleRng(1);
   resetCadence();
   banc.setState({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     battle: null,
     worldMap: seaMap,
     lieu: 'A',
@@ -84,16 +84,16 @@ function freshState() {
     suspendedCascades: [],
   } as never);
   // Bandes auto désactivées : les Tests de Natation sont pilotés par la seule valeur (déterminisme).
-  setRule('test-auto-bands', 'off');
+  setRule('test-bandes-auto', 'off');
 }
 
-afterEach(() => { resetRule('test-auto-bands'); resetRule('sea-shipwreck-swim'); resetCadence(); });
+afterEach(() => { resetRule('test-bandes-auto'); resetRule('mer-naufrage-natation'); resetCadence(); });
 
 describe('beginShipwreck — cascade de survie (héros pilotés par un humain, défaut des tests)', () => {
   beforeEach(freshState);
 
   it('mélange rescapés / noyés : navire + cargaison perdus, dénouement à l’écran, morts morts', () => {
-    setRule('sea-shipwreck-swim', 'intermediaire'); // cible = valeur (Natation)
+    setRule('mer-naufrage-natation', 'intermediaire'); // cible = valeur (Natation)
     // party[0]/[2] bons nageurs (F 200) → rescapés ; party[1] Inconscient → noyade déterministe (pas de jet).
     set({ party: [swim(get().party[0], 200), knockedOut(get().party[1]), swim(get().party[2], 200)] } as never);
     set({ travelPlan: { routeId: 'r1', fromPlaceId: 'A', toPlaceId: 'B', mode: 'mer', km: 550, kmDone: 500, hoursPerDay: 24, interrupted: false } as never });
@@ -107,7 +107,7 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
     const casc = get().pendingCascade!;
     expect(casc).toBeTruthy();
     expect(casc.participants).toHaveLength(2);
-    expect(casc.participants.every((s) => s.kind === 'shipwreckSwim' && s.rollLabel === 'Natation')).toBe(true);
+    expect(casc.participants.every((s) => s.kind === 'naufrageNatation' && s.rollLabel === 'Natation')).toBe(true);
     expect(get().party[1].dead).toBe(true); // Inconscient → noyé d'office, avant même la cascade
 
     drainSwimCascade();
@@ -125,7 +125,7 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
   });
 
   it('la Chance est dépensable sur un échec de Natation et TRANSFORME le résultat (survie)', () => {
-    setRule('sea-shipwreck-swim', 'intermediaire');
+    setRule('mer-naufrage-natation', 'intermediaire');
     const h = swim(get().party[0], 200);
     h.fortune = 1;
     h.resilience = 1;
@@ -152,7 +152,7 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
   });
 
   it('la clôture échoue le rescapé au rivage : la cascade se ferme et joue son dénouement', () => {
-    setRule('sea-shipwreck-swim', 'intermediaire');
+    setRule('mer-naufrage-natation', 'intermediaire');
     set({ party: [swim(get().party[0], 200)] } as never);
 
     beginShipwreck(get, set);
@@ -214,7 +214,7 @@ describe('#1262 V2 L4 — un jet NÉ ROULÉ sans pilote ne se force pas ; un jet
   }
 
   it('étape NÉE-ROULÉE d’un porteur non surfacé : la Résilience ne la retouche pas, aucun point dépensé', () => {
-    setRule('sea-shipwreck-swim', 'intermediaire');
+    setRule('mer-naufrage-natation', 'intermediaire');
     const { ia } = mixte();
 
     beginShipwreck(get, set);
@@ -232,7 +232,7 @@ describe('#1262 V2 L4 — un jet NÉ ROULÉ sans pilote ne se force pas ; un jet
   });
 
   it('étape VIVANTE d’un porteur surfacé : la Résilience la force et débite SON point', () => {
-    setRule('sea-shipwreck-swim', 'intermediaire');
+    setRule('mer-naufrage-natation', 'intermediaire');
     const { humain } = mixte();
 
     beginShipwreck(get, set);
@@ -260,7 +260,7 @@ describe('#1262 V2 L4 — un jet NÉ ROULÉ sans pilote ne se force pas ; un jet
    * de cascade ne s'ouvre pas). Ce test fige le verbe lui-même, pas l'affordance qui n'existe pas.
    */
   it('CADENCE : verbe OUVERT en cadence normale, FERMÉ en cadence auto (même étape, même porteur)', () => {
-    setRule('sea-shipwreck-swim', 'intermediaire');
+    setRule('mer-naufrage-natation', 'intermediaire');
     const { humain } = mixte();
     beginShipwreck(get, set);
 
@@ -268,7 +268,7 @@ describe('#1262 V2 L4 — un jet NÉ ROULÉ sans pilote ne se force pas ; un jet
     const etape = casc.participants.find((s) => s.actorId === humain)!;
     /** Échec POSÉ, identique dans les deux régimes : seule la cadence change entre les deux mesures. */
     const rate = () => set({ pendingCascade: { ...get().pendingCascade!, participants: get().pendingCascade!.participants
-      .map((s) => (s.id === etape.id ? { ...s, result: { roll: 97, target: 40, sl: -6, success: false }, forced: false } : s)) } });
+      .map((s) => (s.id === etape.id ? { ...s, result: { roll: 97, target: 40, sl: -6, success: false }, forcee: false } : s)) } });
     const resultOf = () => get().pendingCascade!.participants.find((s) => s.id === etape.id)!.result!;
 
     rate();
@@ -288,7 +288,7 @@ describe('beginShipwreck — repli IA/rafale (aucun pilote humain à bord) : inl
   beforeEach(freshState);
 
   it('cadence auto (rafale) → résolution inline, aucune modale de cascade', () => {
-    setRule('sea-shipwreck-swim', 'intermediaire');
+    setRule('mer-naufrage-natation', 'intermediaire');
     setCadence('auto'); // héros non remontés en modale (cf. noyau/netOwnership.humanControlled)
     set({ party: [swim(get().party[0], 200)] } as never);
 
@@ -305,7 +305,7 @@ describe('voyage — une coque à 0 Blessure navigue (MDG 13 l.656, l.674)', () 
   beforeEach(freshState);
 
   it('runSeaDay déroule la journée sur une coque à 0 : ni naufrage ni perte du navire', () => {
-    setRule('sea-shipwreck-swim', 'intermediaire');
+    setRule('mer-naufrage-natation', 'intermediaire');
     set({ party: get().party.map((h) => swim(h, 200)) } as never);
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
     plan.vehicle!.wounds.current = 0;
@@ -329,7 +329,7 @@ describe('beginShipwreck — cascade Possession (#618 SOCLE POSSESSIONS, dernier
   beforeEach(freshState);
 
   it('navire coulé (vehicleId=cogue) → possessions EMBARQUÉES dessus toutes destroyed ; avec-le-groupe intacte', () => {
-    setRule('sea-shipwreck-swim', 'intermediaire');
+    setRule('mer-naufrage-natation', 'intermediaire');
     set({ party: [swim(get().party[0], 200)] } as never);
     const navire: Possession = {
       uid: 'pos-navire', nature: 'navire', ownerId: get().party[0].id, location: { kind: 'avec-le-groupe' },
@@ -365,7 +365,7 @@ describe('détection en combat — coque de campagne coulée → naufrage (pas d
 
   const coqueDeCampagne = (heroes: Combatant[], coulee: boolean): Combatant => {
     const hull = vehicleCombatant(findVehicleById('cogue')!)!;
-    hull.id = 'hull-campagne'; hull.kind = 'enemy';
+    hull.id = 'hull-campagne'; hull.kind = 'ennemi';
     hull.crewIds = heroes.map((h) => h.id);
     hull.wounds = { ...hull.wounds, current: 0 };
     if (coulee) addCondition(hull, 'naufrage'); // MDG 13 l.674
@@ -387,7 +387,7 @@ describe('détection en combat — coque de campagne coulée → naufrage (pas d
   });
 
   it('checkBattleOver route l’équipage par-dessus bord vers la survie', () => {
-    setRule('sea-shipwreck-swim', 'intermediaire');
+    setRule('mer-naufrage-natation', 'intermediaire');
     const heroes = get().party.slice(0, 2).map((h) => swim(h, 200)); // bons nageurs → rescapés
     const hull = coqueDeCampagne(heroes, true);
     const battle = {

@@ -19,12 +19,12 @@ import { chebyshev } from '../../engine/grid';
 /** Élément sémantique de surbrillance : case + hauteur métrique + nature. Les clés reprennent les clés
  *  React historiques (stables entre frames). */
 export type HighlightEl = { key: string; cell: { x: number; y: number; z: number }; h: number } & (
-  | { kind: 'walk' | 'run' }
-  | { kind: 'intent' }
-  | { kind: 'team'; hero: boolean; active: boolean }
+  | { kind: 'deplacement' | 'course' }
+  | { kind: 'intention' }
+  | { kind: 'equipe'; hero: boolean; active: boolean }
   | { kind: 'zone'; smoke: boolean }
-  | { kind: 'ring'; tone: 'target' | 'ally' | 'crowd' }
-  | { kind: 'rangeBand'; tone: 'bonus' | 'neutre' | 'malus' }
+  | { kind: 'anneau'; tone: 'cible' | 'allie' | 'foule' }
+  | { kind: 'bandeDePortee'; tone: 'bonus' | 'neutre' | 'malus' }
 );
 
 /** Teinte d'une bande de portée (LDB « Les armes », modificateur `rangeBandModifier`) : dérivée de son
@@ -48,7 +48,7 @@ export interface HighlightsView {
   activeId: string | null;
   /** Cibles à anneau d'attaque (mode neutre) — null si le contexte ne les affiche pas. */
   eligibleIds: ReadonlySet<string> | null;
-  /** Cibles éligibles « tirer dans le tas » — null hors pendingAttack.intoCrowd. */
+  /** Cibles éligibles « tirer dans le tas » — null hors pendingAttack.dansLeTas. */
   crowdIds: ReadonlySet<string> | null;
   /** Candidats du mode de ciblage courant + teinte amie (soin) + déjà cochés (surincantation). */
   candidates: { ids: readonly string[]; friendly: boolean; checkedIds: ReadonlySet<string> | null } | null;
@@ -76,14 +76,14 @@ export function buildHighlights(scene: Scene, battle: BattleState, view: Highlig
   if (view.myTurn)
     for (const k of view.walkReach.keys()) {
       const [x, y, z] = parse(k);
-      out.push({ key: `h${k}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'walk' });
+      out.push({ key: `h${k}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'deplacement' });
     }
   // Zone de COURSE (LDB 15 l.79-82) au-delà de la Marche : y cliquer demandera le Test `course`.
   if (view.myTurn)
     for (const k of view.runReach.keys()) {
       if (view.walkReach.has(k)) continue;
       const [x, y, z] = parse(k);
-      out.push({ key: `r${k}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'run' });
+      out.push({ key: `r${k}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'course' });
     }
   // Teinte d'équipe des CASES occupées : allié vert / ennemi rouge / actif jaune, sur toute l'empreinte.
   for (const c of battle.combatants) {
@@ -96,7 +96,7 @@ export function buildHighlights(scene: Scene, battle: BattleState, view: Highlig
       for (let dy = 0; dy < fp; dy++) {
         const x = c.pos.x + dx, y = c.pos.y + dy;
         if (!inScene(x, y)) continue; // une empreinte N×N débordant le bord ne peint que ses cases de carte
-        out.push({ key: `tt${c.id}-${dx}-${dy}`, cell: { x, y, z: cz }, h: hAt(x, y, cz), kind: 'team', hero: c.kind === 'hero', active });
+        out.push({ key: `tt${c.id}-${dx}-${dy}`, cell: { x, y, z: cz }, h: hAt(x, y, cz), kind: 'equipe', hero: c.kind === 'heros', active });
       }
   }
   // Zones persistantes (L11) : fumée opaque / feu translucide — l'occupant voit le danger, à la
@@ -114,14 +114,14 @@ export function buildHighlights(scene: Scene, battle: BattleState, view: Highlig
     for (const c of battle.combatants) {
       if (!c.pos || !view.eligibleIds.has(c.id)) continue;
       const cz = c.pos.z ?? 0;
-      out.push({ key: `tgt-${c.id}`, cell: { x: c.pos.x, y: c.pos.y, z: cz }, h: hAt(c.pos.x, c.pos.y, cz), kind: 'ring', tone: 'target' });
+      out.push({ key: `tgt-${c.id}`, cell: { x: c.pos.x, y: c.pos.y, z: cz }, h: hAt(c.pos.x, c.pos.y, cz), kind: 'anneau', tone: 'cible' });
     }
   // « Tirer dans le tas » : cibles ÉLIGIBLES touchables au hasard.
   if (view.crowdIds)
     for (const c of battle.combatants) {
       if (!c.pos || !view.crowdIds.has(c.id)) continue;
       const cz = c.pos.z ?? 0;
-      out.push({ key: `crowd-${c.id}`, cell: { x: c.pos.x, y: c.pos.y, z: cz }, h: hAt(c.pos.x, c.pos.y, cz), kind: 'ring', tone: 'crowd' });
+      out.push({ key: `crowd-${c.id}`, cell: { x: c.pos.x, y: c.pos.y, z: cz }, h: hAt(c.pos.x, c.pos.y, cz), kind: 'anneau', tone: 'foule' });
     }
   // Cibles cliquables du MODE de ciblage courant : soin (anneau ami) / flux différés (anneau hostile,
   // déjà cochés en vert).
@@ -130,11 +130,11 @@ export function buildHighlights(scene: Scene, battle: BattleState, view: Highlig
       const t = battle.combatants.find((c) => c.id === id);
       if (!t?.pos) continue;
       const tz = t.pos.z ?? 0;
-      const tone = view.candidates.friendly || view.candidates.checkedIds?.has(id) ? 'ally' : 'target';
-      out.push({ key: `cand-${id}`, cell: { x: t.pos.x, y: t.pos.y, z: tz }, h: hAt(t.pos.x, t.pos.y, tz), kind: 'ring', tone });
+      const tone = view.candidates.friendly || view.candidates.checkedIds?.has(id) ? 'allie' : 'cible';
+      out.push({ key: `cand-${id}`, cell: { x: t.pos.x, y: t.pos.y, z: tz }, h: hAt(t.pos.x, t.pos.y, tz), kind: 'anneau', tone });
     }
   // Bandes de portée (Bout Portant→Extrême) du tireur SURVOLÉ, au sol autour de sa position — distance
-  // de Chebyshev en cases (même métrique que `combatDistance`, 1x1). Rayon = Portée×3 (hors de portée),
+  // de Chebyshev en cases (même métrique que `distanceDeCombat`, 1x1). Rayon = Portée×3 (hors de portée),
   // BORNÉ à la carte : le semis ne peint jamais hors des `scene.dimensions` (plafond = w×h cases).
   if (view.rangeBandSource) {
     const { pos, rangeM } = view.rangeBandSource;
@@ -148,7 +148,7 @@ export function buildHighlights(scene: Scene, battle: BattleState, view: Highlig
         const distanceTiles = chebyshev({ x, y }, pos);
         const tone = rangeBandTone(distanceTiles, rangeM, mpt);
         if (!tone) continue;
-        out.push({ key: `rb-${x}-${y}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'rangeBand', tone });
+        out.push({ key: `rb-${x}-${y}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'bandeDePortee', tone });
       }
   }
   // INTENTION ARMÉE (spec HUD zone 4) : la portée du geste CHOISI depuis l'interface, peinte PAR-DESSUS
@@ -156,7 +156,7 @@ export function buildHighlights(scene: Scene, battle: BattleState, view: Highlig
   // 2026-08-16). Émise en DERNIER : à case égale, elle passe au-dessus (rang du backend).
   for (const k of view.intentReach.keys()) {
     const [x, y, z] = parse(k);
-    out.push({ key: `i${k}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'intent' });
+    out.push({ key: `i${k}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'intention' });
   }
   return out;
 }

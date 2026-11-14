@@ -87,12 +87,12 @@ describe('franchirLArete, escalade — combat', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const sc = cliffScene(climb);
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true));
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    b.combatants.filter((c) => c.kind === 'ennemi').forEach((e) => (e.dead = true));
     H.engagedWith = [];
     placeCombatant(H, sc, atPos);
     banc.setState({ scene: sc, battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed: 0, acted: false, movedPreAction: false, reachable: new Map(), preview: null } });
@@ -142,7 +142,7 @@ describe('franchirLArete, escalade — combat', () => {
   it('la chute de combat (échec d’Escalade) ramène le faller nommé au pied et lui coûte des Blessures', () => {
     const { H } = setup({ kind: 'surface' }, top); // héros hissé au sommet (état optimiste)
     const before = banc.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current;
-    applyEffects(banc.getState, banc.setState, [{ type: 'fall', target: 'hero', heroId: H.id, metres: 4, to: { x: 2, y: 1, z: 0 } }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'fall', target: 'heros', heroId: H.id, metres: 4, to: { x: 2, y: 1, z: 0 } }]);
     const hc = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hc.pos).toMatchObject({ x: 2, y: 1 }); // retombé au pied
     // Le 1d10 des Dégâts tombe à la PORTE (#1508) : l'étape à dé nu appendue le montre et le pose.

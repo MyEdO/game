@@ -60,7 +60,7 @@ export function useCombatFx() {
   const push = useCallback((x: number, y: number, text: string, kind: FloatKind, crit = false, icon?: IconId) => {
     const key = ++floatId.current;
     setFloats((f) => [...f, { key, x, y, text, kind, crit, icon }]);
-    setTimeout(() => setFloats((f) => f.filter((z) => z.key !== key)), kind === 'death' ? 1300 : 900);
+    setTimeout(() => setFloats((f) => f.filter((z) => z.key !== key)), kind === 'horsDeCombat' ? 1300 : 900);
   }, []);
   // Flottants d'ÉTAT par DIFF du store : tout État gagné (Sonné, Brisé, Hémorragique…) flotte sur le
   // pion au moment où il tombe, quelle que soit la source (attaque, qualité, sort, psy, entretien).
@@ -70,7 +70,7 @@ export function useCombatFx() {
       useGame.subscribe((s) => {
         const b = s.battle;
         if (!b) { condSig.current = new Map(); return; }
-        for (const g of diffConditionGains(condSig.current, b.combatants)) push(g.x, g.y, g.text, 'condition', false, g.icon);
+        for (const g of diffConditionGains(condSig.current, b.combatants)) push(g.x, g.y, g.text, 'etat', false, g.icon);
         condSig.current = condSignature(b.combatants);
       }),
     [push],
@@ -84,25 +84,25 @@ export function useCombatFx() {
       if (!target?.pos) return;
       const { x, y } = target.pos;
       if (r.hit) {
-        if (r.woundsLost > 0) push(x, y, `-${r.woundsLost}`, 'damage', !!r.critiques);
-        else push(x, y, 'Encaissé', 'soak');
-        if (r.defenderDefeated) push(x, y, '✦ hors de combat', 'death');
+        if (r.woundsLost > 0) push(x, y, `-${r.woundsLost}`, 'blessures', !!r.critiques);
+        else push(x, y, 'Encaissé', 'encaisse');
+        if (r.defenderDefeated) push(x, y, '✦ hors de combat', 'horsDeCombat');
       } else if (r.defenderDetail) {
-        push(x, y, 'Paré / Esquivé', 'defend');
+        push(x, y, 'Paré / Esquivé', 'defense');
       } else if (r.cast !== undefined && r.hit === undefined) {
         // Incantation NON-Projectile (Bénédiction, buff, soin…) : « toucher » n'a pas de sens — un
         // succès applique des États (qui flottent déjà via diffConditionGains). Ne PAS afficher
         // « Raté » d'attaque sur un sort réussi (retour playtest 2026-06-11) ; échec → mention sobre.
-        if (!r.cast) push(x, y, 'Incantation ratée', 'miss');
+        if (!r.cast) push(x, y, 'Incantation ratée', 'rate');
       } else {
-        push(x, y, 'Raté', 'miss');
+        push(x, y, 'Raté', 'rate');
       }
     });
     const offFloat = bus.on(EVT.ANIM_FLOAT, (d: any) => {
       const b = useGame.getState().battle;
       const pos = b?.combatants.find((c) => c.id === d?.to)?.pos ?? d?.pos;
       if (!pos || !d?.text) return;
-      push(pos.x, pos.y, d.text, (d.kind as FloatKind) ?? 'condition');
+      push(pos.x, pos.y, d.text, (d.kind as FloatKind) ?? 'etat');
     });
     return () => { offImpact(); offFloat(); };
   }, []);
@@ -124,7 +124,7 @@ export function useCombatFx() {
   }, []);
   useEffect(() => {
     const off = bus.on(EVT.ANIM_ATTACK, (d: any) => {
-      if (d.kind !== 'ranged' && d.kind !== 'spell') return;
+      if (d.kind !== 'distance' && d.kind !== 'spell') return;
       const b = useGame.getState().battle;
       const from = b?.combatants.find((c) => c.id === d.from)?.pos;
       const to = b?.combatants.find((c) => c.id === d.to)?.pos;

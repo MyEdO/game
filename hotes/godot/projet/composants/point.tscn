@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 
 [node name="Point" type="VBoxContainer"]
-theme_override_constants/separation = 4
+theme_type_variation = &"PileSerree"
 
 [node name="Nom" type="Label" parent="."]
 horizontal_alignment = 1
@@ -19,7 +19,7 @@ champ = "ton"
 propriete = &"theme_type_variation"
 
 [node name="Elements" type="VBoxContainer" parent="."]
-theme_override_constants/separation = 4
+theme_type_variation = &"PileSerree"
 
 [node name="Zone" type="Node" parent="Elements"]
 script = ExtResource("2_zone")

@@ -124,7 +124,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
               checked={route.inns ?? false}
               onChange={(e) => updRoute(route.id, { inns: e.target.checked || undefined })}
             />
-            <Icon id="rest/bed" size="sm" /> Relais d'auberges (la halte de nuit propose l'auberge)
+            <Icon id="repos/lit" size="sm" /> Relais d'auberges (la halte de nuit propose l'auberge)
           </label>
           {/* ── Route MARITIME (MDG 13-15) : se voyage sur le navire de campagne (mode « mer »), km en milles ── */}
           <label className="ed-check">
@@ -135,7 +135,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
                 ? { sea: true, modes: ['mer'], seaHeading: route.seaHeading ?? 'est' }
                 : { sea: undefined, seaHeading: undefined, modes: route.modes.filter((x) => x !== 'mer') })}
             />
-            <Icon id="travel/anchor" size="sm" /> Route maritime (navire de campagne ; distance en milles)
+            <Icon id="voyage/ancre" size="sm" /> Route maritime (navire de campagne ; distance en milles)
           </label>
           {route.sea && (
             <label className="ed-field">Cap dominant (fixe le vent relatif, MDG 13 l.262-270)
@@ -213,7 +213,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
                 onChange={(effects) => updRoute(route.id, { perils: route.perils!.map((x, j) => (j === i ? { ...x, effects } : x)) })}
               />
               <button className="btn small" onClick={() => updRoute(route.id, { perils: route.perils!.filter((_, j) => j !== i) })}>
-                <Icon id="ui/delete" size="sm" /> Retirer cette péripétie
+                <Icon id="interface/supprimer" size="sm" /> Retirer cette péripétie
               </button>
             </div>
           ))}
@@ -291,7 +291,7 @@ function BilletDuVehicule({ route, map, vehicule, presets, updRoute }: {
               <Row key={id} justify="start">
                 <span>{r ? nomDe(r) : id}</span>
                 <button className="btn small" onClick={() => { const suite = billet.suite!.filter((_, j) => j !== i); patch({ suite: suite.length ? suite : undefined }); }}>
-                  <Icon id="ui/delete" size="sm" /> Retirer
+                  <Icon id="interface/supprimer" size="sm" /> Retirer
                 </button>
               </Row>
             );
@@ -327,7 +327,7 @@ function BilletDuVehicule({ route, map, vehicule, presets, updRoute }: {
                   </label>
                   {prixDe(pa.prix, (prix) => poserPaliers(paliers.map((x, j) => (j === i ? { ...x, prix } : x))), `palier ${i + 1}`)}
                   <button className="btn small" onClick={() => poserPaliers(paliers.filter((_, j) => j !== i))}>
-                    <Icon id="ui/delete" size="sm" /> Retirer ce palier
+                    <Icon id="interface/supprimer" size="sm" /> Retirer ce palier
                   </button>
                 </div>
               ))}

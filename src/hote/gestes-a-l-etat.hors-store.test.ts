@@ -7,8 +7,9 @@
  * (`proprietaireDeLaFenetre`), en mots à l'hôte texte. Un verbe de jet que son flux ferme se dessine fermé, avec ce qui
  * le ferme (`fermeturesDeLaFenetre`, #2936).
  */
-import { describe, it, expect } from 'vitest';
-import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Jeu, type Partie } from '../noyau/index';
+import { fixtureText } from '../i18n/fixtureText';
+import { describe, it, expect, vi } from 'vitest';
+import { DESIGNATIONS, creerPartie, etatInitialDuJeu, type Designation, type EntreesDeLaPartie, type Jeu, type Partie } from '../noyau/index';
 import { auContact, heroDuDuel } from '../noyau/combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { fenetreADessiner, type ArgumentDuGeste } from './gestes';
@@ -44,14 +45,14 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
   it('Début du round (dome) : promouvoir et préempter n’offrent que des héros, chacun nommé', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
       const b = etat.battle!;
-      expect(b.combatants.some((c) => c.kind !== 'hero'), 'témoin : le dome a des ennemis').toBe(true);
+      expect(b.combatants.some((c) => c.kind !== 'heros'), 'témoin : le dome a des ennemis').toBe(true);
       const camp = (id: unknown) => b.combatants.find((c) => c.id === id)?.kind;
-      const promouvoir = argumentDe(etat, 'fenetreChoisir@roundStart#promouvoir', 'valeur');
+      const promouvoir = argumentDe(etat, 'fenetreChoisir@debutDuRound#promouvoir', 'valeur');
       expect(promouvoir.saisie).toBe('choix');
       expect(promouvoir.valeurs!.length, 'témoin : un héros peut agir en premier').toBeGreaterThan(0);
-      expect(promouvoir.valeurs!.map((v) => camp(v.valeur)), 'promouvoir offre un non-héros').toEqual(promouvoir.valeurs!.map(() => 'hero'));
+      expect(promouvoir.valeurs!.map((v) => camp(v.valeur)), 'promouvoir offre un non-héros').toEqual(promouvoir.valeurs!.map(() => 'heros'));
       expect(promouvoir.valeurs!.every((v) => v.libelle === b.combatants.find((c) => c.id === v.valeur)!.label)).toBe(true);
-      expect(argumentDe(etat, 'fenetreChoisir@roundStart#viser', 'valeur').valeurs, 'sans tireur, aucune visée ne s’offre').toEqual([]);
+      expect(argumentDe(etat, 'fenetreChoisir@debutDuRound#viser', 'valeur').valeurs, 'sans tireur, aucune visée ne s’offre').toEqual([]);
       expect(fenetreADessiner(etat)!.gestes.find((g) => g.verbe === 'fenetreValider')!.rendu).toBe('bouton');
     });
   });
@@ -61,10 +62,10 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
       const victoire: Jeu = {
         ...etat,
         pendingRoundStart: null,
-        battle: { ...etat.battle!, over: 'victory' },
+        battle: { ...etat.battle!, over: 'victoire' },
         pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }, { label: 'Humain', count: 1, creatureId: 'humain' }, { label: 'Pillard', count: 2 }], harvested: [] },
       };
-      const depecer = argumentDe(victoire, 'fenetreChoisir@victory#depecer', 'valeur');
+      const depecer = argumentDe(victoire, 'fenetreChoisir@victoire#depecer', 'valeur');
       expect(depecer.saisie).toBe('choix');
       expect(depecer.valeurs!.map((v) => [v.valeur, v.libelle])).toEqual([['griffon', 'Griffon']]);
     });
@@ -76,8 +77,8 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
   /** Le duel au contact : le héros `H` face à l'ennemi `E`, les autres ennemis hors de combat. */
   function leDuel() {
     const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-    ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
+    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
+    ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
     const garde = ouverture.etat();
     ouverture.fermer();
     const { H, E, patch } = auContact(garde);
@@ -87,7 +88,7 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
 
   it('le combat monté vise le cavalier ou sa monture, rien d’autre', { timeout: 120_000 }, () => {
     const { E, etat } = leDuel();
-    const monture = etat.battle!.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
+    const monture = etat.battle!.combatants.find((c) => c.kind === 'ennemi' && c.id !== E.id)!;
     const couple: Jeu = { ...etat, pendingMountTarget: { riderId: E.id, mountId: monture.id } };
     expect(valeurs(argumentDe(couple, 'fenetreChoisir', 'valeur'))).toEqual(['choix', [[E.id, E.label], [monture.id, monture.label]]]);
   });
@@ -100,19 +101,19 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
 
   it('Victoire : attribuer et évaluer désignent une ligne du butin, l’évaluation porte sur la victoire', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
-      const victoire: Jeu = { ...etat, pendingRoundStart: null, battle: { ...etat.battle!, over: 'victory' }, pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear, defeated: [], harvested: [] } };
-      expect(lignes(argumentDe(victoire, 'fenetreChoisir@victory#ligne', 'valeur'))).toEqual(nommees);
-      expect(lignes(argumentDe(victoire, 'evaluerLObjet', 'uid'))).toEqual(nommees);
+      const victoire: Jeu = { ...etat, pendingRoundStart: null, battle: { ...etat.battle!, over: 'victoire' }, pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear, defeated: [], harvested: [] } };
+      expect(lignes(argumentDe(victoire, 'fenetreChoisir@victoire#ligne', 'valeur'))).toEqual(nommees);
+      expect(lignes(argumentDe(victoire, 'evaluerLObjet', 'aEvaluer'))).toEqual(nommees);
       const sansLigne: Jeu = { ...victoire, pendingVictory: { ...victoire.pendingVictory!, gear: [] } };
-      expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.cle), 'sans ligne ni créature à dépecer, rien à attribuer, dépecer ni évaluer').toEqual(['fenetreChoisir@victory#ligne', 'fenetreChoisir@victory#depecer', 'evaluerLObjet']);
+      expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.cle), 'sans ligne ni créature à dépecer, rien à attribuer, dépecer ni évaluer').toEqual(['fenetreChoisir@victoire#ligne', 'fenetreChoisir@victoire#depecer', 'evaluerLObjet']);
     });
   });
 
   it('Butin hors combat : attribuer désigne une ligne du butin, l’évaluation porte sur le butin', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
       const butin: Jeu = { ...etat, pendingRoundStart: null, battle: null, pendingLoot: { title: 'Coffre', gear } };
-      expect(lignes(argumentDe(butin, 'fenetreChoisir@loot#ligne', 'valeur'))).toEqual(nommees);
-      expect(lignes(argumentDe(butin, 'evaluerLObjet', 'uid'))).toEqual(nommees);
+      expect(lignes(argumentDe(butin, 'fenetreChoisir@butin#ligne', 'valeur'))).toEqual(nommees);
+      expect(lignes(argumentDe(butin, 'evaluerLObjet', 'aEvaluer'))).toEqual(nommees);
     });
   });
 
@@ -122,7 +123,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
       const manquee = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee', identified: false, appraiseTriedDay: jour } }, { uid: 'L1', label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', trappingId: 'bouclier', identified: false } }] as never;
       const butin: Jeu = { ...etat, pendingRoundStart: null, battle: null, pendingLoot: { title: 'Coffre', gear: manquee } };
       expect(butin.party.some((h) => (h.talents ?? []).some((x) => x.talentId === 'detection-d-artefact')), 'témoin : aucun détecteur').toBe(false);
-      expect(argumentDe(butin, 'evaluerLObjet', 'uid').valeurs!.map((v) => [v.valeur, v.refus])).toEqual([['L0', t('mf.appraiseRetenter', { label: 'Épée', jours: 1 })], ['L1', null]]);
+      expect(argumentDe(butin, 'evaluerLObjet', 'aEvaluer').valeurs!.map((v) => [v.valeur, v.refus])).toEqual([['L0', t('mf.evaluationARetenter', { label: 'Épée', jours: 1 })], ['L1', null]]);
     });
   });
 
@@ -132,8 +133,8 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
       const sansPoint = { ...etat, battle: { ...etat.battle!, combatants: etat.battle!.combatants.map((c) => (c.id === h2.id ? { ...c, resolve: 0 } : c)) } };
       const rangee = (id: string, result: unknown = null) => ({ id, interactive: true, base: 50, target: 50, result });
       const bande = (rangees: unknown[]): Jeu => ({ ...sansPoint, pendingRoundStart: null, pendingCascade: { title: 'Peur', cursor: 0, seq: 1, log: [], purpose: 'test', participants: [{
-        id: 'bande-peur', kind: 'combatPsych', label: 'Peur', aggregate: 'none', groupOwner: true, result: null, participants: rangees,
-        combatPsych: { kind: 'peur', sourceId: 'e1', sourceName: 'Bête', indice: 2, round: 1 },
+        id: 'bande-peur', kind: 'psychologieDeCombat', label: 'Peur', aggregate: 'none', groupOwner: true, result: null, participants: rangees,
+        psychologieDeCombat: { kind: 'peur', sourceId: 'e1', sourceName: fixtureText('Bête'), indice: 2, round: 1 },
       }] } } as never);
       const porteur = argumentDe(bande([rangee(h1.id), rangee(h2.id)]), 'depenserLaDetermination', 'combattantId');
       expect(porteur.valeurs!.map((v) => [v.valeur, v.libelle, v.refus])).toEqual([[h1.id, h1.label, null], [h2.id, h2.label, t('agate.noResolve')]]);
@@ -147,21 +148,21 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
     auDebutDuRound((etat) => {
       const plaies: Trauma[] = [{ uid: 'bras', label: 'Bras broyé', location: 'brasG', needsSurgery: true }, { uid: 'crane', label: 'Crâne fendu', location: 'tete', needsSurgery: true }, { uid: 'doigt', label: 'Doigt perdu', location: 'brasD' }];
       const patient = { ...etat.party[0], traumas: plaies };
-      const operation = { kind: 'surgery', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', targetDR: 5, cumDR: 0, stake: {} } as never;
+      const operation = { kind: 'chirurgie', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', drCible: 5, cumDR: 0, stake: {} } as never;
       const infirmerie: Jeu = { ...etat, pendingRoundStart: null, battle: null, party: [patient, ...etat.party.slice(1)], medic: { patientId: patient.id, surgery: operation } };
-      const plaie = argumentDe(infirmerie, 'fenetreChoisir@medic#plaie', 'valeur');
+      const plaie = argumentDe(infirmerie, 'fenetreChoisir@infirmerie#plaie', 'valeur');
       expect(lignes(plaie)).toEqual(['choix', [['bras', t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })], ['crane', t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })]]]);
       expect(plaie.valeur, 'la plaie visée est la valeur courante').toBe('crane');
       const choix = (cle: string) => fenetreADessiner(infirmerie)!.gestes.find((g) => g.cle === cle);
-      expect(choix('fenetreChoisir@medic#patient')?.reglage, 'le patient se reprend (`reprenable`) : une option de la fenêtre').toBe(true);
-      expect(choix('fenetreChoisir@medic#plaie')?.reglage, 'la plaie se reprend (`reprenable`)').toBe(true);
-      expect(choix('fenetreChoisir@medic#abandon')?.reglage, 'l’abandon clôt l’opération (`clot`) : un pas de la fenêtre').toBe(false);
+      expect(choix('fenetreChoisir@infirmerie#patient')?.reglage, 'le patient se reprend (`reprenable`) : une option de la fenêtre').toBe(true);
+      expect(choix('fenetreChoisir@infirmerie#plaie')?.reglage, 'la plaie se reprend (`reprenable`)').toBe(true);
+      expect(choix('fenetreChoisir@infirmerie#abandon')?.reglage, 'l’abandon clôt l’opération (`clot`) : un pas de la fenêtre').toBe(false);
     });
   });
 
   it('Conseil de bord : la paie se choisit parmi les choix ouverts, chacun nommé par son facteur', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
-      const conseil = (wageBrass: number): Jeu => ({ ...etat, battle: null, pendingRoundStart: null, vessel: { id: 'nef' } as never, pendingCouncil: { phase: 'choix', wageBrass, today: 1 } as never });
+      const conseil = (wageBrass: number): Jeu => ({ ...etat, battle: null, pendingRoundStart: null, vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } as never, pendingCouncil: { phase: 'choix', wageBrass, today: 7 } as never });
       for (const c of [conseil(0), conseil(1_000_000)]) {
         const paie = argumentDe(c, 'fenetreChoisir', 'valeur');
         expect(paie.saisie).toBe('choix');
@@ -177,11 +178,11 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
       const [a, ...autres] = etat.party;
       const semaine: Jeu = { ...etat, battle: null, pendingRoundStart: null, party: [a, ...autres.map((h) => ({ ...h, dead: true }))], vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] } as never, pendingSeaActivities: { picks: { [a.id]: { activityId: 'commerce-opportunite' } }, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } };
       const fenetre = fenetreADessiner(semaine)!;
-      expect(fenetre.gestes.map((g) => g.cle)).toEqual(['fenetreChoisir@seaActivities#activite', 'fenetreChoisir@seaActivities#investir', 'fenetreChoisir@seaActivities#cacher', 'fenetreValider@seaActivities']);
-      expect(lignes(argumentDe(semaine, 'fenetreChoisir@seaActivities#activite', 'pid')), 'le seul héros vivant').toEqual(['choix', [[a.id, a.label]]]);
-      expect(lignes(argumentDe(semaine, 'fenetreChoisir@seaActivities#investir', 'pid')), 'la mise ne s’ouvre qu’au Commerce d’opportunité').toEqual(['choix', [[a.id, a.label]]]);
-      expect(argumentDe(semaine, 'fenetreChoisir@seaActivities#cacher', 'pid').valeurs, 'aucune Cartographie : aucune planque').toEqual([]);
-      expect(fenetre.gestes.find((g) => g.cle === 'fenetreValider@seaActivities')!.rendu).toBe('bouton');
+      expect(fenetre.gestes.map((g) => g.cle)).toEqual(['fenetreChoisir@activitesEnMer#activite', 'fenetreChoisir@activitesEnMer#investir', 'fenetreChoisir@activitesEnMer#cacher', 'fenetreValider@activitesEnMer']);
+      expect(lignes(argumentDe(semaine, 'fenetreChoisir@activitesEnMer#activite', 'pid')), 'le seul héros vivant').toEqual(['choix', [[a.id, a.label]]]);
+      expect(lignes(argumentDe(semaine, 'fenetreChoisir@activitesEnMer#investir', 'pid')), 'la mise ne s’ouvre qu’au Commerce d’opportunité').toEqual(['choix', [[a.id, a.label]]]);
+      expect(argumentDe(semaine, 'fenetreChoisir@activitesEnMer#cacher', 'pid').valeurs, 'aucune Cartographie : aucune planque').toEqual([]);
+      expect(fenetre.gestes.find((g) => g.cle === 'fenetreValider@activitesEnMer')!.rendu).toBe('bouton');
     });
   });
 
@@ -232,26 +233,47 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
 
   it('attaque du duel : avant le jet, ni clôture ni dé fixé ; après, ni jet ni Localisation', { timeout: 120_000 }, () => {
     const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-    ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
+    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
+    ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
     const garde = ouverture.etat();
     ouverture.fermer();
     const { E, patch } = auContact(garde);
     const partie = creerPartie({ ...garde, ...patch }, ENTREES);
     try {
       partie.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
-      expect(geste(partie, 'jetLancer@attack')).toEqual({ ouvert: true, raison: null });
-      expect(geste(partie, 'jetRegler@attack#localisation')).toEqual({ ouvert: true, raison: null });
-      expect(geste(partie, 'jetImposerLeResultat@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
-      expect(geste(partie, 'jetValider@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
-      partie.envoyer({ type: 'jetLancer', args: ['attack'] });
-      expect(geste(partie, 'jetLancer@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
-      expect(geste(partie, 'jetAnnuler@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
-      expect(geste(partie, 'jetRegler@attack#localisation').ouvert, 'la Localisation se vise avant le jet').toBe(false);
-      expect(geste(partie, 'jetImposerLeResultat@attack')).toEqual({ ouvert: true, raison: null });
-      expect(geste(partie, 'jetValider@attack')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetLancer@attaque')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetRegler@attaque#localisation')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetImposerLeResultat@attaque')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
+      expect(geste(partie, 'jetValider@attaque')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
+      partie.envoyer({ type: 'jetLancer', args: ['attaque'] });
+      expect(geste(partie, 'jetLancer@attaque')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
+      expect(geste(partie, 'jetAnnuler@attaque')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
+      expect(geste(partie, 'jetRegler@attaque#localisation').ouvert, 'la Localisation se vise avant le jet').toBe(false);
+      expect(geste(partie, 'jetImposerLeResultat@attaque')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetValider@attaque')).toEqual({ ouvert: true, raison: null });
     } finally {
       partie.fermer();
     }
+  });
+});
+
+describe('une fenêtre nomme les ids d’une désignation sur une seule lecture de l’état (#3975)', () => {
+  it('chaque désignation lue rend son nommage une fois, qui nomme tous ses ids', () => {
+    const lectures = new Map<string, { lues: number; nommes: number }>();
+    for (const [cle, designation] of Object.entries(DESIGNATIONS) as [string, Designation][]) {
+      const nom = designation.nom;
+      vi.spyOn(designation, 'nom').mockImplementation((s) => {
+        const compte = lectures.get(cle) ?? lectures.set(cle, { lues: 0, nommes: 0 }).get(cle)!;
+        compte.lues += 1;
+        const nommer = nom(s);
+        return (id) => {
+          compte.nommes += 1;
+          return nommer(id);
+        };
+      });
+    }
+    auDebutDuRound((etat) => fenetreADessiner(etat));
+    const surUneLecture = [...lectures].filter(([, c]) => c.nommes > c.lues);
+    expect(surUneLecture.length, `lectures : ${JSON.stringify([...lectures])}`).toBeGreaterThan(0);
   });
 });

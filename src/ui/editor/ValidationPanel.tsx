@@ -24,7 +24,7 @@ function WarningRow({ w, onSelect }: { w: Warning; onSelect: (w: Warning) => voi
     <ListRow
       onClick={() => onSelect(w)}
       title={w.message}
-      label={<><Icon id="ui/warning" size="sm" /> {w.message}</>}
+      label={<><Icon id="interface/attention" size="sm" /> {w.message}</>}
     >
       <span className={`chip${w.level === 'error' ? ' tone-danger' : ''}`}>{w.level === 'error' ? 'erreur' : 'avertissement'}</span>
     </ListRow>
@@ -64,7 +64,7 @@ function ValidationScope() {
   return (
     <div className="ed-validation">
       <p className="ed-ok">
-        <Icon id="ui/done" size="sm" /> Aucun défaut détecté.
+        <Icon id="interface/fait" size="sm" /> Aucun défaut détecté.
       </p>
       <p className="ed-validation-head">Contrôlé :</p>
       <ul className="ed-validation-scope">

@@ -34,12 +34,12 @@ function engage(tourDe: 'heros' | 'creature'): { H: Combatant; E: Combatant } {
   g().ensemencerLeTirage(5);
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const [E] = b.combatants.filter((c) => c.kind === 'enemy');
-  b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const [E] = b.combatants.filter((c) => c.kind === 'ennemi');
+  b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id).forEach((e) => (e.dead = true));
   const [porteur, cible] = tourDe === 'heros' ? [H, E] : [E, H];
   porteur.traits = TRAITS;
   porteur.size = 'enorme';
@@ -56,7 +56,7 @@ function engage(tourDe: 'heros' | 'creature'): { H: Combatant; E: Combatant } {
 /** Côté attaquant : nom de l'option, du réticule et de la modale d'attaque (`attackWeaponOf`). */
 function nomsDeLAttaque(kind: string): { option: string; reticule: string; modale: string } {
   const { H, E } = engage('heros');
-  const option = availableAttacks(H, g().battle!).find((o) => o.freeKind === kind && !o.weaponUid);
+  const option = availableAttacks(banc.getState().scene, H, g().battle!).find((o) => o.freeKind === kind && !o.weaponUid);
   if (!option) throw new Error(`aucune option de gratuite « ${kind} »`);
   g().armerLAttaque(option.id);
   const ht = hoverTargeting(g, H, E);
@@ -65,7 +65,7 @@ function nomsDeLAttaque(kind: string): { option: string; reticule: string; modal
   const pa = g().pendingAttack;
   if (pa?.freeKind !== kind) throw new Error(`le clic n'a pas ouvert la gratuite « ${kind} »`);
   const b = g().battle!;
-  const modale = attackWeaponOf(b, b.combatants.find((c) => c.id === H.id)!, b.combatants.find((c) => c.id === E.id)!, pa).label;
+  const modale = attackWeaponOf(banc.getState().scene, b, b.combatants.find((c) => c.id === H.id)!, b.combatants.find((c) => c.id === E.id)!, pa).label;
   return { option: option.label, reticule: ht.title, modale };
 }
 

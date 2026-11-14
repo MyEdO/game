@@ -44,11 +44,11 @@ function setupCoop(opts: { heros?: number; invites?: number[] } = {}): { H: Comb
   banc.setState({ party });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.filter((c) => c.kind === 'hero');
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.filter((c) => c.kind === 'heros');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies.slice(0, 1);
   H.forEach((h, i) => (h.pos = { x: 10, y: 10 + i }));
@@ -56,7 +56,7 @@ function setupCoop(opts: { heros?: number; invites?: number[] } = {}): { H: Comb
   const ownership: Record<string, number> = {};
   for (const i of opts.invites ?? []) ownership[H[i].id] = 1;
   banc.setState({ battle: { ...b }, pendingCascade: null, suspendedCascades: [], pendingLogQueue: [] } as never);
-  banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership } } as never);
+  banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership } } as never);
   return { H, E };
 }
 
@@ -88,7 +88,7 @@ describe('#1117 L4 — une bande par ENTRÉE DE RÈGLE (LDB 20 l.90 ≠ l.25/l.5
 
     openCombatEndCascade(g, banc.setState);
 
-    const vues = bandes('combatEndDisease');
+    const vues = bandes('maladieDeFinDeCombat');
     expect(vues.length, 'DEUX entrées de règle = DEUX fenêtres').toBe(2);
     expect(new Set(vues.map((s) => s.id)).size, 'ids DISTINCTS — sinon la seconde fenêtre est injoignable').toBe(2);
     // Chaque bande porte UNE rangée, celle du héros — et chacune sait de quelle entrée elle vient.
@@ -112,7 +112,7 @@ describe('#1117 L4 — une bande par ENTRÉE DE RÈGLE (LDB 20 l.90 ≠ l.25/l.5
 
     openCombatEndCascade(g, banc.setState);
 
-    const vues = bandes('combatEndDisease');
+    const vues = bandes('maladieDeFinDeCombat');
     expect(vues.length).toBe(1);
     expect(vues[0].participants!.map((r) => r.id)).toEqual([H[0].id, H[1].id]);
     expect(vues[0].aggregate, 'jets INDÉPENDANTS').toBe('none');
@@ -130,7 +130,7 @@ describe('#1117 L4 — une bande par ENTRÉE DE RÈGLE (LDB 20 l.90 ≠ l.25/l.5
 
     openCombatEndCascade(g, banc.setState);
 
-    const vues = bandes('combatEndDisease');
+    const vues = bandes('maladieDeFinDeCombat');
     expect(vues.length, 'deux entrées de règle = deux fenêtres, même sans collision d’id').toBe(2);
     expect(vues.map((s) => [s.meta?.entry, s.participants!.map((r) => r.id)]))
       .toEqual([['infection', [a.id]], ['contagion', [b.id]]]);
@@ -149,7 +149,7 @@ describe('#1117 L4 — une bande par ENTRÉE DE RÈGLE (LDB 20 l.90 ≠ l.25/l.5
 
     // Reconstruit les étapes MONO dont les bandes sont issues (une par rangée), telles que la fabrique
     // les reçoit d'`openCombatEndCascade` ou d'une save.
-    const monos = bandes('combatEndDisease').flatMap((bd, i) => bd.participants!.map((r, j) => ({
+    const monos = bandes('maladieDeFinDeCombat').flatMap((bd, i) => bd.participants!.map((r, j) => ({
       id: `m${i}${j}`, kind: bd.kind, actorId: r.id, target: r.target ?? 40, rollLabel: 'Résistance',
       meta: { ...bd.meta, ...r.meta },
     })));
@@ -174,7 +174,7 @@ describe('#1117 L4 (#1262 B7) — la bande d’Exposition à la Corruption est P
 
     openCombatEndCascade(g, banc.setState);
 
-    const vues = bandes('combatEndCorruption');
+    const vues = bandes('corruptionDeFinDeCombat');
     expect(vues.length, 'l’exposition est GLOBALE (pire Degré affronté) : UNE entrée de règle').toBe(1);
     const bande = vues[0];
     expect(bande.participants!.map((r) => r.id)).toEqual([H[0].id, H[1].id]);
@@ -196,7 +196,7 @@ describe('#1117 L4 — RAFALE de seuils de Corruption (LDB 19 l.70) : une file, 
     for (const c of porteurs) c.corruption = corruptionThreshold(c);
 
     openCombatEndCascade(g, banc.setState);
-    expect(bandes('combatEndCorruption').length).toBe(1);
+    expect(bandes('corruptionDeFinDeCombat').length).toBe(1);
     jouerBande(false); // les DEUX rangées échouent → +1 Point chacune → deux seuils dus
 
     expect(porteurs.map((c) => c.corruption)).toEqual(porteurs.map((c) => corruptionThreshold(c) + 1));
@@ -234,7 +234,7 @@ describe('#1117 L4 — RAFALE de seuils de Corruption (LDB 19 l.70) : une file, 
     expect(g().pendingCorruption, 'le slot reste VIDE : le second ne double pas la fenêtre').toBeNull();
     expect(g().corruptionQueue.map((q) => q.heroId), 'la file n’a pas bougé').toEqual([H[1].id]);
 
-    g().fenetreChoisir('renounce', 'renier', true); // « Je te renie ! » : −1 Résilience, aucune mutation
+    g().fenetreChoisir('renier', 'renier', true); // « Je te renie ! » : −1 Résilience, aucune mutation
     expect(g().pendingCorruption?.heroId, 'la décision rendue, le seuil en file reçoit SA fenêtre').toBe(H[1].id);
     expect(g().pendingCorruption?.kind).toBe('seuil');
     expect(g().corruptionQueue).toEqual([]);
@@ -321,7 +321,7 @@ describe('#1117 L4 — la pénalité d’ÉTATS pèse sur la rangée, des DEUX c
     porteurs[0].conditions = [{ id: 'sonne', value: 1 }] as Combatant['conditions'];
 
     openCombatEndCascade(g, banc.setState);
-    const bande = g().pendingCascade!.participants.find((s) => s.kind === 'combatEndDisease')!;
+    const bande = g().pendingCascade!.participants.find((s) => s.kind === 'maladieDeFinDeCombat')!;
     const row = (id: string) => bande.participants!.find((r) => r.id === id)!;
 
     expect(row(H[0].id).target, 'cible = base + 60 (Très Facile) − 10 (Sonné)').toBe(row(H[0].id).base! + 50);

@@ -57,7 +57,7 @@ describe('Bonus de Force en Frénésie (LDB 21 l.33)', () => {
   it('dégâts appliqués : +1 Blessure en Frénésie au même jet', () => {
     const coup = (fr: boolean) => {
       const { c, w } = heros(fr, 'arme-simple');
-      return resolveMelee(c, combattantDeTest({ id: 't', pos: { x: 1, y: 0 } }), w, deFixe(12), { defense: 'none' });
+      return resolveMelee(c, combattantDeTest({ id: 't', pos: { x: 1, y: 0 } }), w, deFixe(12), { defense: 'aucune' });
     };
     const fr = coup(true), no = coup(false);
     expect(fr.hit && no.hit).toBe(true);
@@ -80,7 +80,7 @@ describe('Tout lecteur du Bonus de Force passe par bonusDe (LDB 21 l.33)', () =>
     const perte = (fr: boolean): number => {
       const foe = combattantDeTest({ id: 't', pos: { x: 1, y: 0 }, characteristics: { endurance: 10 } });
       foe.wounds = blessuresDeBase(30, 30, foe);
-      resolveGrappleWin(combattant(fr), foe, 'damage', 0, 50, idsDeTest);
+      resolveGrappleWin(combattant(fr), foe, 'degats', 0, 50, idsDeTest);
       return 30 - foe.wounds.current;
     };
     expect(perte(true) - perte(false)).toBe(1);
@@ -118,9 +118,9 @@ describe('Tout lecteur du Bonus de Force passe par bonusDe (LDB 21 l.33)', () =>
   it('Souffle : rayon (Bonus de Force de la cible au centre) — 5 m (3 cases) en Frénésie, 4 m (2 cases) sinon', () => {
     const surface = (fr: boolean): boolean => {
       const souffle = [{ id: 'souffle', value: 14, arg: 'feu' }];
-      const E = combattantDeTest({ id: 'e', kind: 'enemy', pos: { x: 0, y: 0 }, traits: souffle, characteristics: { endurance: 40 } });
-      const centre = combattantDeTest({ id: 'c', kind: 'hero', pos: { x: 6, y: 0 }, characteristics: { force: 40 }, conditions: [{ id: 'surpris', value: 1 }], ...frenesie(fr) });
-      const loin = combattantDeTest({ id: 'l', kind: 'hero', pos: { x: 9, y: 0 } });
+      const E = combattantDeTest({ id: 'e', kind: 'ennemi', pos: { x: 0, y: 0 }, traits: souffle, characteristics: { endurance: 40 } });
+      const centre = combattantDeTest({ id: 'c', kind: 'heros', pos: { x: 6, y: 0 }, characteristics: { force: 40 }, conditions: [{ id: 'surpris', value: 1 }], ...frenesie(fr) });
+      const loin = combattantDeTest({ id: 'l', kind: 'heros', pos: { x: 9, y: 0 } });
       const attaque = garanti(creatureAttacks(souffle).find((a) => a.kind === 'souffle'), 'souffle', 'attaque');
       banc.setState({ battle: { ...garanti(banc.getState().battle ?? { combatants: [] }, 'battle', 'banc'), combatants: [E, centre, loin] } as never,
         pendingManeuver: { attackerId: E.id, attaque: attaque.cle, targetId: centre.id, result: { success: true, sl: 2, roll: 10 } } as never });
@@ -134,7 +134,7 @@ describe('Tout lecteur du Bonus de Force passe par bonusDe (LDB 21 l.33)', () =>
 describe('Arme naturelle dont l’Indice inclut le BF : la part passive s’y ajoute (LDB 85 l.35, l.237 ; LDB 21 l.33)', () => {
   const traits = [{ id: 'arme', value: 8 }, { id: 'morsure', value: 7 }, { id: 'langue-prehensile', value: 6, range: 10 }];
   const creature = (fr: boolean): { c: Combatant; arme: Weapon } => {
-    const c = combattant(fr, { kind: 'enemy', traits });
+    const c = combattant(fr, { kind: 'ennemi', traits });
     c.weapons = weaponsFromTraits(traits);
     return { c, arme: garanti(c.weapons.find((w) => w.label === 'Arme'), 'Arme', 'arme du trait') };
   };
@@ -157,7 +157,7 @@ describe('Arme naturelle dont l’Indice inclut le BF : la part passive s’y aj
 
   it('Arme +8 et Morsure +7 : +1 Blessure appliquée en Frénésie au même jet', () => {
     for (const arme of [(fr: boolean) => creature(fr).arme, () => gratuite('morsure')]) {
-      const coup = (fr: boolean) => resolveMelee(creature(fr).c, cible(), arme(fr), deFixe(12), { defense: 'none' });
+      const coup = (fr: boolean) => resolveMelee(creature(fr).c, cible(), arme(fr), deFixe(12), { defense: 'aucune' });
       const fr = coup(true), no = coup(false);
       expect(fr.hit && no.hit).toBe(true);
       expect((fr.damage ?? 0) - (no.damage ?? 0)).toBe(1);

@@ -79,7 +79,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     const c = sick({ diseases: [dz] });
     const { specs, defer } = porteEntretien();
     tickDisease(c, 60, seq([]), defer); // 1 h écoulée → fin de durée → le Test de fin part À LA PORTE
-    expect(specs.map((s) => s.kind)).toEqual(['disease-persist']);
+    expect(specs.map((s) => s.kind)).toEqual(['maladie-persistance']);
     const log = applique(c, specs[0], { success: true }, desDuTest); // issue INJECTÉE : réussite
     expect(c.diseases).toHaveLength(0); // guérie en moins d’une journée — plus de durée « ≈ 1 jour » parasite
     expect(c.diseaseImmunities).toContain('mal-de-mer');
@@ -90,7 +90,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     // L'État *Exténué* du Malaise (LDB 20 l.188) est un op `condition` du canal PASSIF du symptôme :
     // il n'est émis que lorsque la maladie est ACTIVE. C'est ce que le collecteur montre ici ; sa
     // matérialisation sur le porteur est le socle `syncDerivedConditions` (voir `rest.hors-store.test.ts`).
-    const extenuePorte = (x: Combatant) => diseasePassiveOps(x).filter((m) => m.op.op === 'condition' && m.op.id === 'extenue').length;
+    const extenuePorte = (x: Combatant) => diseasePassiveOps(x).filter((m) => m.op.op === 'condition' && m.op.id.id === 'extenue').length;
     const c = sick({ diseases: [contractDisease('infection-mineure', seq([]), { incubation: 2, duration: 5 })!] });
     expect(extenuePorte(c)).toBe(0); // incubation = pas encore de symptômes
     const log = tickDisease(c, 2 * MINUTES_PER_DAY, seq([]), ignore);
@@ -118,8 +118,8 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     // → BP (déjà là). L'Infection Mineure s'achève. Les deux issues sont INJECTÉES.
     const { specs, defer } = porteEntretien();
     tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
-    const tick = specs.find((s) => s.kind === 'disease-tick')!;
-    const persist = specs.find((s) => s.kind === 'disease-persist')!;
+    const tick = specs.find((s) => s.kind === 'maladie-test-quotidien')!;
+    const persist = specs.find((s) => s.kind === 'maladie-persistance')!;
     applique(c, tick, { success: false }, seq([5]));
     applique(c, persist, { success: false, sl: -3 }, seq([5]));
     expect(c.diseases!.map((d) => d.id)).toEqual(['blessure-purulente']);
@@ -131,11 +131,11 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     const kinds: string[] = [];
     // seq([]) : si un seul jet était tiré, il renverrait undefined — la cascade ne DOIT rien rouler.
     const log = tickDisease(c, MINUTES_PER_DAY, seq([]), (spec) => kinds.push(spec.kind));
-    expect(kinds.sort()).toEqual(['disease-persist', 'disease-tick']); // Blessé → étape générique 'disease-tick'
+    expect(kinds.sort()).toEqual(['maladie-persistance', 'maladie-test-quotidien']); // Blessé → étape générique 'maladie-test-quotidien'
     expect(c.diseases![0].endTestPending).toBe(true); // la maladie attend la validation de son étape
     expect(log.some((l) => /guérit|persiste|Purulente|Gangrène/.test(l))).toBe(false); // RIEN pré-résolu
     // Résolution à la validation des étapes : le Test de cycle réussi serait un no-op (onFail non appliqué
-    // par l'applier `disease-tick` côté state) ; persistant réussi → guérison.
+    // par l'applier `maladie-test-quotidien` côté state) ; persistant réussi → guérison.
     applyDiseasePersist(c, 'infection-mineure', true, 2, seq([]));
     expect(c.diseases!.length).toBe(0);
   });
@@ -147,8 +147,8 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     const specs: { kind: string; meta?: Record<string, unknown> }[] = [];
     tickDisease(c, MINUTES_PER_DAY, seq([]), (spec) => specs.push(spec));
     const bySymptom = Object.fromEntries(specs.map((s) => [s.kind, s.meta?.symptomId]));
-    expect(bySymptom['disease-tick'], 'le cycle quotidien nomme SON symptôme').toBe('blesse');
-    expect(bySymptom['disease-persist'], 'la fin de Durée nomme le symptôme Persistant').toBe('persistant');
+    expect(bySymptom['maladie-test-quotidien'], 'le cycle quotidien nomme SON symptôme').toBe('blesse');
+    expect(bySymptom['maladie-persistance'], 'la fin de Durée nomme le symptôme Persistant').toBe('persistant');
   });
 
   it('persistant échec stupéfiant (−6) → Infection du Sang', () => {
@@ -158,8 +158,8 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     // Infection du Sang (sa durée = 1d10 → 5). Issues INJECTÉES.
     const { specs, defer } = porteEntretien();
     tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
-    applique(c, specs.find((s) => s.kind === 'disease-tick')!, { success: true }, desDuTest);
-    const log = applique(c, specs.find((s) => s.kind === 'disease-persist')!, { success: false, sl: -10 }, seq([5]));
+    applique(c, specs.find((s) => s.kind === 'maladie-test-quotidien')!, { success: true }, desDuTest);
+    const log = applique(c, specs.find((s) => s.kind === 'maladie-persistance')!, { success: false, sl: -10 }, seq([5]));
     expect(c.diseases!.map((d) => d.id)).toContain('infection-du-sang');
     expect(log.some((l) => /stupéfiant/.test(l))).toBe(true);
   });
@@ -237,7 +237,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
       const c = sick({ diseases: [contractDisease('infection-du-sang', seq([]), { incubation: 0, duration: 5 })!], ...over });
       const { specs, defer } = porteEntretien();
       tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
-      const tick = specs.find((s) => s.kind === 'disease-tick' && s.meta?.symptomId === 'toxine')!;
+      const tick = specs.find((s) => s.kind === 'maladie-test-quotidien' && s.meta?.symptomId === 'toxine')!;
       expect(tick, 'la Toxine doit poser SON Test à la porte').toBeTruthy();
       return { c, tick };
     };
@@ -304,7 +304,7 @@ import { passiveGlobalTestMod, passiveMods } from './trauma';
 import { applyOps } from './ops';
 
 const fullSick = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
-  id: 'p', label: 'Cobaye', kind: 'hero',
+  id: 'p', label: 'Cobaye', kind: 'heros',
   characteristics: { endurance: 40, agilite: 40, sociabilite: 35 },
   wounds: blessuresDeBase(12), items: [], diseases: [],
   ...over,
@@ -337,10 +337,10 @@ describe('MSRC 16 — Vers de carie : phase active PERSISTANTE (dégénérescenc
     const steps: { kind: string }[] = [];
     const defer = (s: { kind: string }) => steps.push(s);
     for (let d = 0; d < 6; d++) tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
-    expect(steps.filter((s) => s.kind === 'disease-tick').length).toBe(0); // < J+7 : aucun Test de cycle
+    expect(steps.filter((s) => s.kind === 'maladie-test-quotidien').length).toBe(0); // < J+7 : aucun Test de cycle
     for (let d = 0; d < 5; d++) tickDisease(c, MINUTES_PER_DAY, seq([]), defer); // J+7 → J+11
     expect(c.diseases?.length).toBe(1); // TOUJOURS active (persistentActive — pas de guérison à l'épuisement de la Durée)
-    expect(steps.filter((s) => s.kind === 'disease-tick').length).toBeGreaterThanOrEqual(5); // dégénérescence CHAQUE jour ≥ J+7
+    expect(steps.filter((s) => s.kind === 'maladie-test-quotidien').length).toBeGreaterThanOrEqual(5); // dégénérescence CHAQUE jour ≥ J+7
   });
 
   it('rollTable du symptôme (échec + DR négatif) : Initiative rongée … jusqu’à la Mort', () => {

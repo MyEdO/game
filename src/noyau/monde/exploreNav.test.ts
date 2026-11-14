@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isWalkable, type Scene, type SceneEntity } from './scene';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
-import { aPorteeDe, exploreMoveDest, exploreMovePlan, exploreSeatPlan, spawnFacing } from './exploreNav';
+import { aPorteeDe, cheminsDuGroupe, exploreMoveDest, exploreMovePlan, exploreSeatPlan, spawnFacing } from './exploreNav';
 import { chebyshev } from '../../engine/grid';
 import { seatSlotsOf } from './seating';
 import { cheminsDepuis, type Pt } from './path';
@@ -9,7 +9,7 @@ import { cheminsDepuis, type Pt } from './path';
 /** Les chemins du groupe depuis `depart`, sans case bloquée. */
 const depuis = (sc: Scene, depart: Pt) => cheminsDepuis(sc, depart, { blocked: new Set() });
 
-const emptyFlow: Flow = { kind: 'seq', steps: [] };
+const emptyFlow: Flow = { kind: 'sequence', etapes: [] };
 
 function sceneWith(entities: SceneEntity[]): Scene {
   const sc = emptyScene('scene-test', 10, 10); // grille entièrement 'herbe' (marchable)
@@ -108,7 +108,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
   };
 
   it('planifie vers l’approche du premier slot libre et atteignable', () => {
-    const scene = scèneTable({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } });
+    const scene = scèneTable({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-1' } } });
     const plan = exploreSeatPlan(scene, 'table-1', depuis(scene, { x: 8, y: 8 }));
     expect(plan).toMatchObject({ slotId: 'place-2', approach: { x: 11, y: 10 } });
     expect(plan!.path[plan!.path.length - 1]).toEqual(plan!.approach);
@@ -130,7 +130,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
   });
 
   it('toutes les places prises → null (rien à planifier)', () => {
-    const prises = Object.fromEntries(seatSlotsOf(scèneTable(), 'table-1').map((s) => [s.slotId, { kind: 'entity' as const, entityId: `pnj-${s.slotId}` }]));
+    const prises = Object.fromEntries(seatSlotsOf(scèneTable(), 'table-1').map((s) => [s.slotId, { kind: 'entite' as const, entityId: `pnj-${s.slotId}` }]));
     const sc = scèneTable({ 'table-1': prises });
     expect(exploreSeatPlan(sc, 'table-1', depuis(sc, { x: 8, y: 8 }))).toBeNull();
   });
@@ -160,7 +160,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
    */
   it('table PLEINE mais FOUILLABLE : le plan retombe sur une case adjacente, jamais sur null', () => {
     const prises = Object.fromEntries(seatSlotsOf(scèneTable(), 'table-1')
-      .map((s) => [s.slotId, { kind: 'entity' as const, entityId: `pnj-${s.slotId}` }]));
+      .map((s) => [s.slotId, { kind: 'entite' as const, entityId: `pnj-${s.slotId}` }]));
     const sc = scèneTable({ 'table-1': prises });
     (sc.entities[0] as SceneEntity).usable = { assise: true, actions: [{ id: 'fouiller', flow: emptyFlow, unique: true }] };
 
@@ -178,7 +178,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
    *  lui comme il mène au sol nu — c'est la parité que le geste avalé rompait (#1443, round 2). */
   it('table PLEINE et SANS fouille : on ne monte pas dessus, on s’en APPROCHE', () => {
     const prises = Object.fromEntries(seatSlotsOf(scèneTable(), 'table-1')
-      .map((s) => [s.slotId, { kind: 'entity' as const, entityId: `pnj-${s.slotId}` }]));
+      .map((s) => [s.slotId, { kind: 'entite' as const, entityId: `pnj-${s.slotId}` }]));
     const sc = scèneTable({ 'table-1': prises });
     const plan = exploreMovePlan(sc, { x: 10, y: 10 }, depuis(sc, { x: 5, y: 5 }));
     expect(plan, 'le clic mène quelque part').not.toBeNull();
@@ -208,7 +208,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
   });
 
   it('exploreMovePlan route le clic d’un meuble à places vers CE plan (survol et clic, une seule source)', () => {
-    const scene = scèneTable({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } });
+    const scene = scèneTable({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-1' } } });
     const seat = exploreSeatPlan(scene, 'table-1', depuis(scene, { x: 8, y: 8 }))!;
     const plan = exploreMovePlan(scene, { x: 10, y: 10 }, depuis(scene, { x: 8, y: 8 }));
     expect(plan).toMatchObject({ dest: seat.approach });
@@ -271,6 +271,19 @@ describe('exploreMovePlan — destination et chemin uniques', () => {
       path: [{ x: 0, y: 1 }, { x: 1, y: 1 }],
       portalId: '0:0,1:E:exterior:room-a',
     });
+  });
+});
+
+describe('cheminsDuGroupe — le parcours du groupe, par scène et par case', () => {
+  it('sur une même scène, les chemins partent de la case et de la couche où le groupe se tient', () => {
+    const scene = sceneWith([]);
+    scene.layers = [scene.layers[0], { z: 1, tiles: [...scene.layers[0].tiles] }];
+    const vers = (depart: Pt, but: Pt) => cheminsDuGroupe(scene, depart, []).vers(but);
+
+    expect(vers({ x: 1, y: 1 }, { x: 4, y: 1 })).toEqual([{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }]);
+    expect(vers({ x: 3, y: 1 }, { x: 4, y: 1 }), 'le groupe déplacé').toEqual([{ x: 3, y: 1 }, { x: 4, y: 1 }]);
+    expect(vers({ x: 3, y: 1, z: 1 }, { x: 4, y: 1, z: 1 }), 'le groupe monté d’une couche').toEqual([{ x: 3, y: 1, z: 1 }, { x: 4, y: 1, z: 1 }]);
+    expect(vers({ x: 1, y: 1 }, { x: 2, y: 1 }), 'revenu à sa première case').toEqual([{ x: 1, y: 1 }, { x: 2, y: 1 }]);
   });
 });
 

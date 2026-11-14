@@ -12,7 +12,7 @@ import { loseWounds, isOutOfAction, addCondition, appliquerMortSubite } from '..
 import { critiquesDuCoup, relanceLaLocalisation } from '../../engine/critical';
 import { pathTo } from '../../noyau/monde/path';
 import { moveEnv } from '../../noyau/monde/combatGeometry';
-import { combatDistance } from '../../noyau/monde/footprint';
+import { distanceDeContact } from '../../noyau/monde/footprint';
 import { placeCombatant } from '../../noyau/monde/spawn';
 import { currentTargetingMode } from '../../noyau/targetingModes';
 import type { Combatant, Weapon } from '../../engine/types';
@@ -33,7 +33,7 @@ const COGUE = 'enemy-enc-naval-0';
 function launch(seed = 7): BattleState {
   seedBattleRng(seed);
   lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scen, idsDeTest));
-  if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('roundStart');
+  if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('debutDuRound');
   return banc.getState().battle!;
 }
 
@@ -95,7 +95,7 @@ function settle(): void {
  */
 describe('resolveShipUnits — le navire est une UNITÉ (naufrage OU abordage)', () => {
   const mk = (id: string, patch: Partial<Combatant> = {}): Combatant =>
-    (blessuresSurLeProfil({ id, name: id, kind: 'enemy', wounds: blessuresDeBase(10), conditions: [], weapons: [], ...patch })) as unknown as Combatant;
+    (blessuresSurLeProfil({ id, name: id, kind: 'ennemi', wounds: blessuresDeBase(10), conditions: [], weapons: [], ...patch })) as unknown as Combatant;
 
   it('coque à 0 PB sans État naufrage → reste en jeu, l\'équipage aussi (MDG 13 l.656)', () => {
     const hull = mk('h', { bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', wounds: blessuresDeBase(50, 0), crewIds: ['a', 'b'] });
@@ -138,7 +138,7 @@ describe('Combat naval e2e — VICTOIRE par ABORDAGE', () => {
   it('le Tueur traverse jusqu\'aux pirates, les abat, et la cogue crewless est prise → victoire', () => {
     const battle = launch(11);
     const scene = banc.getState().scene!;
-    const tueur = byId(battle, 'pregen-202'); // boarder de mêlée (le Tueur du groupe d'arène)
+    const tueur = byId(battle, 'tueur-de-test'); // boarder de mêlée (le Tueur du groupe d'arène)
     const cogue = byId(battle, COGUE);
     const crewIds = [...cogue.crewIds!];
 
@@ -150,7 +150,7 @@ describe('Combat naval e2e — VICTOIRE par ABORDAGE', () => {
       const pirate = byId(battle, id);
       const path = boardOnto(battle, scene, tueur, pirate); // TRAVERSÉE : chemin réel jusqu'au contact
       expect(path, `abordage injouable : aucun chemin vers ${id}`).not.toBeNull();
-      expect(combatDistance(tueur, pirate)).toBeLessThanOrEqual(1); // ENGAGÉ
+      expect(distanceDeContact(banc.getState().scene, tueur, pirate)).toBeLessThanOrEqual(1); // ENGAGÉ
       const blows = meleeDown(tueur, pirate); // VAINCU au corps à corps
       expect(isOutOfAction(pirate), `le pirate ${id} n'est pas tombé en ${blows} coups`).toBe(true);
     }
@@ -159,7 +159,7 @@ describe('Combat naval e2e — VICTOIRE par ABORDAGE', () => {
     settle();
     const b2 = banc.getState().battle!;
     expect(isOutOfAction(byId(b2, COGUE))).toBe(true); // prise à l'abordage
-    expect(b2.over).toBe('victory');
+    expect(b2.over).toBe('victoire');
   });
 });
 
@@ -174,7 +174,7 @@ describe('Affordance de tir de pièce servie — ok / range / arc (chemin joueur
     launch(7);
     const get = () => banc.getState();
     const battle = get().battle!;
-    const gunner = battle.combatants.find((c) => c.kind === 'hero' && c.mannedPoste)!;
+    const gunner = battle.combatants.find((c) => c.kind === 'heros' && c.mannedPoste)!;
     const cogue = byId(battle, COGUE);
     const barge = byId(battle, 'enemy-enc-naval-4');
     expect(get().facing[barge.id]).toBe('N'); // cap authoré appliqué (arc tribord = plein Est)
@@ -221,14 +221,14 @@ describe('Combat naval e2e — VICTOIRE par NAUFRAGE', () => {
     const battle = launch(23);
     const cogue = byId(battle, COGUE);
     // canonnier + son pierrier SERVI (arme d'artillerie dérivée par applyShipPostes au démarrage)
-    const gunner = battle.combatants.find((c) => c.kind === 'hero' && c.mannedPoste)!;
+    const gunner = battle.combatants.find((c) => c.kind === 'heros' && c.mannedPoste)!;
     expect(gunner).toBeTruthy();
     const piece = gunner.weapons.find((w) => w.subType === 'armes-de-siege')! as Weapon;
     expect(piece).toBeTruthy();
 
     let shots = 0;
     while (cogue.wounds.current > 0 && shots < 20) {
-      const res = rederivePassiveAttack(gunner, cogue, piece, goodHit, 'ranged', { rng: makeRNG(1595) });
+      const res = rederivePassiveAttack(gunner, cogue, piece, goodHit, 'distance', { rng: makeRNG(1595) });
       if (res.hit && res.woundsLost) loseWounds(cogue, res.woundsLost);
       shots++;
     }
@@ -245,6 +245,6 @@ describe('Combat naval e2e — VICTOIRE par NAUFRAGE', () => {
     const b2 = banc.getState().battle!;
     // équipage passé par-dessus bord (outOfRencontre) → plus aucun ennemi debout → VICTOIRE
     for (const id of cogue.crewIds!) expect(isOutOfAction(byId(b2, id))).toBe(true);
-    expect(b2.over).toBe('victory');
+    expect(b2.over).toBe('victoire');
   });
 });

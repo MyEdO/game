@@ -3,7 +3,7 @@
  * Source : LDB `14 - _GoBack.md` l.75, l.76, l.82. Vit au noyau (lit la Scène) ;
  * les valeurs sont injectées dans `attackModifiers`/`defenseModifiers` via `env` (cf. combatFlow).
  */
-import type { Scene, SceneEntity } from './scene';
+import type { Scene, SceneDuVolume, SceneEntity } from './scene';
 import { isIndoor, sceneMetresPerTile } from './scene';
 import { isNight } from '../../engine/clock';
 import { ligneDeRegle } from '../../engine/reglesChiffrees';
@@ -75,16 +75,17 @@ function buildEntityBlockIndex(entities: SceneEntity[], mpt: number): Set<string
  *  ajout/retrait en production (`.filter`/`.map`/spread — jamais `.push`/`.splice` hors fixtures de
  *  test) : la clé la plus fine est le tableau lui-même. L'ÉCHELLE entre en DÉPENDANCE (`memoByRefDeps`)
  *  parce que l'empreinte dérivée en dépend (#1509) : la même liste d'entités à une autre échelle ne
- *  couvre pas les mêmes cases. */
+ *  couvre pas les mêmes cases. Le mémo est daté par la version des datasets (`memoByRef`) : solidité et empreinte se
+ *  lisent au catalogue des décors (`propIsSolid`, `propFootTiles`). */
 const entityBlockIndex = memoByRefDeps<SceneEntity[], Set<string>>();
 
 /** La case (x,y) est-elle couverte par l'empreinte d'un décor qui bloque ? Pour la walkability.
  *  Un décor ne bloque PAS — SAUF s'il est :
  *   • INTERACTIF (coffre, stèle, dépouille fouillable…) : on ne se tient pas SUR lui, on l'aborde en
- *     case adjacente (exploration P5 comme combat « Ramasser », `pickup` de `actions.json`) ; ou
+ *     case adjacente (exploration P5 comme combat « Ramasser », `ramassage` de `actions.json`) ; ou
  *   • SOLIDE par son TYPE (`props.json` `solid` : feu de camp, brasero, statue, tonneau…) : objet
  *     plein infranchissable. */
-export function entityBlockedAt(scene: Scene, x: number, y: number, z: number): boolean {
+export function entityBlockedAt(scene: SceneDuVolume, x: number, y: number, z: number): boolean {
   const mpt = sceneMetresPerTile(scene);
   return entityBlockIndex(scene.entities, [mpt], () => buildEntityBlockIndex(scene.entities, mpt)).has(`${x},${y},${z}`);
 }

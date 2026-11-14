@@ -7,7 +7,7 @@
  *
  * Chaîne mesurée ICI, de bout en bout : catalogue → `weaponFromItem` → `effectSourcesOf` (branche
  * QUALITÉ, `withArg` substitue `$indice`) → `emitCombatEvent('onCrit')` (le MÊME appel que
- * `combatFlow` fait sur un Critique) → `resolveFlowChoice` → étape de cascade `triggeredChoice` →
+ * `combatFlow` fait sur un Critique) → `resolveFlowChoice` → étape de cascade `choixDeclenche` →
  * `jetRegler('cascade', 'choix')` → dépense d'Avantage + 2ᵉ État.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -64,11 +64,11 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 };
     E.important = true; // LDB 18 l.44 : hors Mort subite
@@ -91,7 +91,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     expect(hemorragies(cible(E.id)), 'l’État automatique du Critique manque').toBe(1);
     const pc = banc.getState().pendingCascade!;
     const etape = pc.participants[pc.cursor];
-    expect(etape.kind).toBe('triggeredChoice');
+    expect(etape.kind).toBe('choixDeclenche');
     expect(etape.actorId, 'le DÉCIDEUR est le porteur de l’arme, pas la victime').toBe(H.id);
     expect(etape.options?.map((o) => o.label)).toEqual(['Ouvrir la plaie (1 Av)', 'Renoncer']);
   });
@@ -100,7 +100,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     const { H, E } = setup();
     H.advantage = 2;
     porterUnCritique(H, E, armeDuCatalogue('cimeterre'));
-    repondre('yes');
+    repondre('oui');
 
     expect(hemorragies(cible(E.id))).toBe(2);
     expect(cible(H.id)!.advantage).toBe(1);
@@ -110,7 +110,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     const { H, E } = setup();
     H.advantage = 2;
     porterUnCritique(H, E, armeDuCatalogue('cimeterre'));
-    repondre('no');
+    repondre('non');
 
     expect(hemorragies(cible(E.id))).toBe(1);
     expect(cible(H.id)!.advantage).toBe(2);
@@ -123,7 +123,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
 
     const pc = banc.getState().pendingCascade!;
     expect(pc.participants[pc.cursor].options?.[0].label).toBe('Ouvrir la plaie (2 Av)');
-    repondre('yes');
+    repondre('oui');
     expect(hemorragies(cible(E.id))).toBe(2);
     expect(cible(H.id)!.advantage).toBe(1);
   });
@@ -144,7 +144,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     const { H, E } = setup();
     H.advantage = 3;
     const sabre = sabreAPied(H, spec);
-    porterUnCritique(H, E, firedWeapon(H, E, sabre.uid));
+    porterUnCritique(H, E, firedWeapon(banc.getState().scene, H, E, sabre.uid));
 
     const pc = banc.getState().pendingCascade!;
     expect(pc.participants[pc.cursor].options?.[0].label).toBe(offre);
@@ -156,10 +156,10 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     porterUnCritique(H, E, armeDuCatalogue('cimeterre'));
 
     const pc = banc.getState().pendingCascade!;
-    const oui = pc.participants[pc.cursor].options!.find((o) => o.key === 'yes')!;
+    const oui = pc.participants[pc.cursor].options!.find((o) => o.key === 'oui')!;
     expect(oui.refus, 'le refus ne porte AUCUNE cause (elle s’affiche au survol/focus/tap, jamais inline)')
       .toBe('Avantages insuffisants : 1 requis, 0 disponible(s).');
-    repondre('yes');
+    repondre('oui');
     expect(hemorragies(cible(E.id)), 'le 2ᵉ État a été posé sans Avantage payé').toBe(1);
     expect(cible(H.id)!.advantage).toBe(0);
   });
@@ -201,7 +201,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
   /** Coup CRITIQUE gagné au Test opposé, tel qu'`applyAttackResult` le reçoit du flux d'attaque. */
   const coupCritique = (): AttackResult => ({
     hit: true, attackerRoll: 44, netSL: 4, location: 'corps', critLocation: 'corps',
-    damage: 6, woundsLost: 2, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche',
+    damage: 6, woundsLost: 2, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche',
   });
 
   /** Draine la cascade du coup jusqu'à l'étape de CHOIX de Taillade et la rend telle qu'elle s'offre. */
@@ -209,7 +209,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     for (let i = 0; i < 20 && banc.getState().pendingCascade; i++) {
       const pc = banc.getState().pendingCascade!;
       const cur = pc.participants[pc.cursor];
-      if (cur?.kind === 'triggeredChoice') return cur;
+      if (cur?.kind === 'choixDeclenche') return cur;
       avanceEtapeCascade(banc.getState);
     }
     return undefined;
@@ -226,9 +226,9 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     // LDB 13 l.123 (étape 1) : « Si vous remportez le Test, vous touchez votre adversaire et gagnez +1
     // Avantage. » — les effets du Critique (l.177) viennent après. L'offre voit donc l'Avantage crédité.
     expect(cible(H.id)!.advantage, 'l’Avantage du coup porté n’est pas crédité quand l’offre s’ouvre').toBe(1);
-    expect(etape.options?.find((o) => o.key === 'yes')?.refus,
+    expect(etape.options?.find((o) => o.key === 'oui')?.refus,
       'l’écran refuse ce que le store accepterait (abordabilité mesurée avant le crédit)').toBeUndefined();
-    repondre('yes');
+    repondre('oui');
     expect(hemorragies(cible(E.id)) - hemoAvant, 'le 2ᵉ État Hémorragique manque').toBe(1);
     expect(cible(H.id)!.advantage).toBe(0);
   });
@@ -240,9 +240,9 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     const etape = offreDeTaillade()!;
     const hemoAvant = hemorragies(cible(E.id));
     expect(cible(H.id)!.advantage).toBe(1);
-    expect(etape.options?.find((o) => o.key === 'yes')?.refus)
+    expect(etape.options?.find((o) => o.key === 'oui')?.refus)
       .toBe('Avantages insuffisants : 2 requis, 1 disponible(s).');
-    repondre('yes');
+    repondre('oui');
     expect(hemorragies(cible(E.id)) - hemoAvant, 'le 2ᵉ État a été posé sans Avantage payé').toBe(0);
     expect(cible(H.id)!.advantage).toBe(1);
   });
@@ -262,11 +262,11 @@ describe('Déstabilisante — le choix à coût LITTÉRAL reste offert et libell
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.advantage = 3;
     const arme = weaponFromItem(itemFromTrappingById('serpe-de-guerre', idsDeTest)!); // Défensive, Taille, Déstabilisante
     emitCombatEvent('onHit', {
@@ -274,7 +274,7 @@ describe('Déstabilisante — le choix à coût LITTÉRAL reste offert et libell
       triggerCtx: { victim: E, weapon: arme, location: 'corps', woundsDealt: 3, attackType: arme.type, rng: battleRng() },
     });
     const pc = banc.getState().pendingCascade!;
-    expect(pc.participants[pc.cursor].kind).toBe('triggeredChoice');
+    expect(pc.participants[pc.cursor].kind).toBe('choixDeclenche');
     expect(pc.participants[pc.cursor].options?.[0].label).toBe('Renverser (2 Av)');
   });
 });

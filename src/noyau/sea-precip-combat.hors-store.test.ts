@@ -22,8 +22,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
 
 /** MDG 13 l.185-200 · LDB 62 l.180 */
-const PISTOLET = { label: 'Pistolet', type: 'ranged', subType: 'poudre-noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [] } as unknown as Weapon;
-const ARC = { label: 'Arc', type: 'ranged', subType: 'arc', damage: { plusBF: true, flat: 3 }, range: 50, qualities: [] } as unknown as Weapon;
+const PISTOLET = { label: 'Pistolet', type: 'distance', subType: 'poudre-noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [] } as unknown as Weapon;
+const ARC = { label: 'Arc', type: 'distance', subType: 'arc', damage: { plusBF: true, flat: 3 }, range: 50, qualities: [] } as unknown as Weapon;
 
 const seaPlan = (): TravelPlan => ({
   routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'mer', hoursPerDay: 8, km: 100, kmDone: 0,
@@ -46,12 +46,12 @@ describe('Précipitations Très abondantes au combat ouvert pendant un voyage en
     banc.getState().lancerLaScene(testScene());
     banc.setState({ travelPlan: seaPlan() });
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    b.combatants.filter((c) => c.kind === 'enemy' && c !== E).forEach((c) => { c.dead = true; });
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
+    b.combatants.filter((c) => c.kind === 'ennemi' && c !== E).forEach((c) => { c.dead = true; });
     H.pos = { x: 5, y: 5 };
     E.pos = { x: 5, y: 8 };
     return { H, E };

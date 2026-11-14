@@ -14,18 +14,18 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 // RAW autorise une défense contre le tir (Protectrice 2+/Bout Portant/tireur Engagé), sinon résolution
 // simple (false). Arc portée 60 m → Bout Portant si dist×2 ≤ 6, soit ≤ 3 tuiles.
 const chars = { 'capacite-de-combat': 35, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, kind, characteristics: chars, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
-const bow: Weapon = { name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [] } as unknown as Weapon;
+const bow: Weapon = { name: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [] } as unknown as Weapon;
 const sword: Weapon = { name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 const shield: Weapon = { name: 'Bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sh', qualities: [{ id: 'protectrice', value: 2 }] } as unknown as Weapon;
 
 function setup(heroWeapons: Weapon[], enemyPos: { x: number; y: number }) {
   seedBattleRng(7);
-  const enemy = mk('e', 'enemy', enemyPos, [bow]);
-  const hero = mk('h', 'hero', { x: 0, y: 0 }, heroWeapons);
+  const enemy = mk('e', 'ennemi', enemyPos, [bow]);
+  const hero = mk('h', 'heros', { x: 0, y: 0 }, heroWeapons);
   const battle: BattleState = {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -40,7 +40,7 @@ describe('maybeOpenDefense — tir sur un héros (T3)', () => {
     const { enemy, hero } = setup([sword, shield], { x: 10, y: 0 }); // 10 tuiles : pas bout portant
     expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
     const pd = banc.getState().pendingDefense!;
-    expect(pd.weapon.type).toBe('ranged');
+    expect(pd.weapon.type).toBe('distance');
     expect(pd.modes).toEqual(['parade']);
     expect(pd.mode).toBe('parade');
     expect(pd.parryWeaponUid).toBe('sh');

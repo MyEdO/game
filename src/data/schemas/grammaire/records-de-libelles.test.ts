@@ -9,26 +9,21 @@
  * un littéral d'objet dont le JEU DE CLÉS est inclus dans les options d'un des vocabulaires atteints
  * par `DEFS_DE_DOCUMENT` (≥ 2 clés, couverture ≥ 60 % du vocabulaire) et dont les VALEURS sont du
  * texte FR ; (b) la TABLE `[{ id: '…', label: '…' }, …]` déclarée au niveau module, où l'`id` tient
- * la clé et le `label` la valeur — mêmes deux règles, mêmes seuils. La forme (b) exige que CHAQUE
+ * la clé et le `label` la valeur — même règle, mêmes seuils. La forme (b) exige que CHAQUE
  * objet de la table porte les deux champs en chaîne littérale, ce qui laisse dehors les rangées
  * d'action poussées une à une (`noyau/combatManeuvers.ts`, `out.push({ id, label, icon, … })`).
  * La table de libellés passée à `enumNomme` est le FOYER : elle est écartée par construction (littéral argument,
  * ou constante nommée passée à `enumNomme` dans le même fichier), pas par une liste de fichiers.
  *
- * Deux RÈGLES, jamais une liste d'exceptions. (1) « VALEUR = texte FR » : aucune valeur ne doit
+ * Une RÈGLE, jamais une liste d'exceptions : « VALEUR = texte FR » — aucune valeur ne doit
  * ressembler à un identifiant (point/slash/underscore, camelCase, PascalCase composé, kebab minuscule,
  * sigle d'une lettre) et au moins une doit porter une marque de texte FR (espace, accent, apostrophe,
  * mot capitalisé). Le « mot capitalisé » ne tient AUCUNE ligne du stock vivant : mesuré en neutralisant
- * `MOT_CAPITALISE`, les 8 lignes du STOCK restent VUES (aucune ne dépend de lui). Ce qu'il tient est la
- * COUVERTURE, et cela se mesure aux contrôles positifs : sans lui, les trois fixtures dont les libellés
+ * `MOT_CAPITALISE`, les 7 lignes du STOCK restent VUES (aucune ne dépend de lui). Ce qu'il tient est la
+ * COUVERTURE, et cela se mesure aux contrôles positifs : sans lui, les deux fixtures dont les libellés
  * sont des mots capitalisés NUS (sans accent, sans espace, sans apostrophe — `{ physique: 'Physique',
- * mentale: 'Mentale' }`, sa forme TABLE, et `g.ts:SEG`) cessent d'être vues ; un Record de cette forme
- * échapperait au détecteur. (2) « table de SEGMENTS DE CLÉ » : un
- * Record dont TOUTES les lectures `NOM[…]` sont des interpolations d'un gabarit qui ne fabrique QUE
- * des caractères d'identifiant ne porte pas des libellés mais des morceaux de clé — c'est ce qui
- * écarte `shipCritical.ts:SHIP_CRIT_CODEX_SEGMENT`, dont les valeurs sont concaténées en catégorie
- * Codex (`shipCritical.ts:53`), jamais affichées.
- * La règle (1) écarte aussi les tables clé→clé mesurées au design
+ * mentale: 'Mentale' }` et sa forme TABLE) cessent d'être vues ; un Record de cette forme
+ * échapperait au détecteur. Cette règle écarte aussi les tables clé→clé mesurées au design
  * (`MANEUVER_ICON`, `SHIP_LOC_KEY`, `SPEC_SOURCE_KEY`, `ALLURE_KEY`, `CRIT_TABLE_IDS`,
  * `OLD_CHARKEY_TO_NEW`, `RESOLVER_OWNER`, `STAGE_OUTCOME_AGG`, `HEADING_TO_DIR8`, `opposite`,
  * `HARVEST_SIZE_BY_CATEGORY`, `CATEGORY_BY_SOURCE_KIND`).
@@ -70,32 +65,13 @@ const estIdentifiant = (v: string): boolean => !/\s/.test(v) && (v.length < 2 ||
 const marqueFR = (v: string): boolean =>
   /\s/.test(v) || /[À-ÿ]/.test(v) || /['’]/.test(v) || MOT_CAPITALISE.test(v);
 
-/** Les gabarits d'un fichier qui ne FABRIQUENT qu'un identifiant : hors interpolations, ils ne portent
- *  que des caractères de clé (aucun espace, aucune ponctuation) — ce qui s'y colle est un morceau de
- *  clé, jamais une phrase montrée au joueur. */
-function gabaritsIdentifiants(source: string): string[] {
-  return [...source.matchAll(/`(?:[^`\\]|\\.)*`/g)]
-    .map((m) => m[0])
-    .filter((g) => g.slice(1, -1).split(/\$\{[^{}]*\}/).every((part) => /^[A-Za-z0-9_$]*$/.test(part)));
-}
-
-/** Un Record de SEGMENTS DE CLÉ : il est lu, et toutes ses lectures `NOM[…]` collent leur valeur dans
- *  un gabarit-identifiant. Critère STRUCTUREL — ni nom, ni fichier, ni liste d'exceptions. */
-function estTableDeSegments(nom: string, source: string): boolean {
-  const rx = new RegExp(`\\b${nom}\\[`, 'g');
-  const total = (source.match(rx) ?? []).length;
-  if (total === 0) return false;
-  const dansGabarits = gabaritsIdentifiants(source).reduce((n, g) => n + (g.match(rx) ?? []).length, 0);
-  return dansGabarits === total;
-}
-
 const RX_LITTERAL =
   /\{\s*((?:(?:'[^']+'|"[^"]+"|[A-Za-z_$][\w$]*)\s*:\s*(?:'[^']*'|"[^"]*"|`[^`]*`)\s*,?\s*){2,})\}/g;
 const RX_PAIRE =
   /(?:'([^']+)'|"([^"]+)"|([A-Za-z_$][\w$]*))\s*:\s*(?:'([^']*)'|"([^"]*)"|`([^`]*)`)/g;
 
 /** L'autre FORME du même faux : la TABLE `[{ id: '…', label: '…' }, …]` déclarée au niveau module —
- *  la clé du vocabulaire y est l'`id`, le libellé le `label`. Mêmes deux règles, mêmes seuils. */
+ *  la clé du vocabulaire y est l'`id`, le libellé le `label`. Même règle, mêmes seuils. */
 const RX_TABLE =
   /(?:^|\n)(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)[^=\n]*=\s*\[\s*((?:\{[^{}]*\}\s*,?\s*)+)\]/g;
 const RX_OBJET = /\{[^{}]*\}/g;
@@ -142,7 +118,6 @@ export function recordsDeLibelles(fichiers: readonly Fichier[], vocabulaires: re
       const couples = couplesIdLabel(t[2]);
       if (!couples || couples.ids.length < 2) continue;
       if (couples.labels.some(estIdentifiant) || !couples.labels.some(marqueFR)) continue;
-      if (estTableDeSegments(nom, source)) continue;
       if (!couvert(couples.ids)) continue;
       trouvailles.push(`${chemin}:${nom}`);
     }
@@ -158,7 +133,6 @@ export function recordsDeLibelles(fichiers: readonly Fichier[], vocabulaires: re
       if (argumentDEnumNomme(avant)) continue;
       const nom = /(?:const|let|var)\s+([A-Za-z_$][\w$]*)[^=]*=\s*$/.exec(avant)?.[1];
       if (nom && new RegExp('enumNomme[(]\\s*' + nom + '[^A-Za-z0-9_$]').test(source)) continue;
-      if (nom && estTableDeSegments(nom, source)) continue;
       if (!couvert(cles)) continue;
       trouvailles.push(`${chemin}:${nom ?? `ligne ${avant.split('\n').length}`}`);
     }
@@ -249,19 +223,6 @@ describe('cliquet — un libellé de valeur vit sur le NŒUD, jamais dans un Rec
       { chemin: 'c.ts', source: "const K = { physique: 'icone/physique', mentale: 'icone/mentale' };\n" },
     ];
     expect(recordsDeLibelles(copies, vocabulaires)).toEqual([]);
-  });
-
-  it('la règle « segments de clé » écarte un Record concaténé en identifiant, et elle seule', () => {
-    const colle: Fichier[] = [{
-      chemin: 'f.ts',
-      source: "const SEG = { physique: 'Physique', mentale: 'Mentale' };\nconst cat = (k) => `mutations${SEG[k]}`;\n",
-    }];
-    expect(recordsDeLibelles(colle, vocabulaires)).toEqual([]);
-    const affiche: Fichier[] = [{
-      chemin: 'g.ts',
-      source: "const SEG = { physique: 'Physique', mentale: 'Mentale' };\nconst txt = (k) => `Nature : ${SEG[k]}`;\n",
-    }];
-    expect(recordsDeLibelles(affiche, vocabulaires)).toEqual(['g.ts:SEG']);
   });
 
   it('la table passée à enumNomme est le FOYER, jamais un Record du stock', () => {

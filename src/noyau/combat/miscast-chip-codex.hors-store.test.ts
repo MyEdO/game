@@ -24,10 +24,10 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.wounds = blessuresDeBase(200, 200, H);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H };
@@ -45,8 +45,8 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
       applyMiscast(banc.getState, banc.setState, H, 'colere');
       avanceEtapeCascade(banc.getState);
       const casc = banc.getState().pendingCascade;
-      const m = casc?.participants.find((p) => p.kind === 'miscast');
-      if (m?.outcome?.some((l) => /Purifier la chair/.test(l.text)) && casc?.participants.some((p) => p.kind === 'triggeredTest')) seed = s;
+      const m = casc?.participants.find((p) => p.kind === 'incantationImparfaite');
+      if (m?.outcome?.some((l) => /Purifier la chair/.test(l.text)) && casc?.participants.some((p) => p.kind === 'testDeclenche')) seed = s;
       banc.setState({ pendingCascade: null });
     }
     expect(seed, 'aucune graine ne produit la rangée 81-87').toBeGreaterThanOrEqual(0);
@@ -56,7 +56,7 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
     applyMiscast(banc.getState, banc.setState, H, 'colere');
     avanceEtapeCascade(banc.getState);
     const p0 = banc.getState().pendingCascade!;
-    const idx = p0.participants.findIndex((s) => s.kind === 'triggeredTest');
+    const idx = p0.participants.findIndex((s) => s.kind === 'testDeclenche');
     const step = p0.participants[idx];
     banc.setState({
       pendingCascade: { ...p0, participants: p0.participants.map((s, k) => (k === idx ? { ...s, result: { roll: 99, target: step.base ?? 30, sl: -5, success: false } } : s)) },
@@ -70,6 +70,6 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
     const cause = (h.activeEffects ?? []).find((e) => e.opsPerRound);
     expect(cause, 'la cause récurrente est posée').toBeTruthy();
     expect(cause!.source, 'l’ancrage est la RANGÉE, dans la catégorie que sa table déclare')
-      .toEqual({ kind: 'miscastWrath', id: 'colere-purifier-la-chair' });
+      .toEqual({ kind: 'colereDesDieux', id: 'colere-purifier-la-chair' });
   });
 });

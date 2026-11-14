@@ -21,7 +21,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { etatInitialDuJeu } from './etat';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
 import { buildStageSteps, buildWeatherResistanceSteps } from './travelPostes';
 import { startCascade } from './cascade';
@@ -52,7 +52,7 @@ const parKind = (k: string) => etapes().find((s) => s.kind === k);
 function deuxSieges(...idsInvite: string[]): void {
   const ownership: Record<string, number> = {};
   for (const id of idsInvite) ownership[id] = 1;
-  banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership } } as never);
+  banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership } } as never);
 }
 
 function skill(c: Combatant, skillId: string, advances: number, spec?: string): void {
@@ -75,7 +75,7 @@ const seaMap: WorldMap = {
 function fraisMer(): void {
   seedBattleRng(1);
   banc.setState({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null,
     pendingRest: null, pendingCascade: null, suspendedCascades: [],
@@ -96,7 +96,7 @@ describe('#1262 V2 — la journée en MER se possède (classe #1268)', () => {
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])! });
     runSeaDay(get, set);
 
-    const choix = parKind('sea-progression-choice')!;
+    const choix = parKind('merProgressionChoix')!;
     expect(choix, 'la journée s’ouvre sur le choix de Progression').toBeTruthy();
     expect(choix.actorId, 'le choix a un PORTEUR : le barreur que la voie Navigation ferait jouer').toBeTruthy();
     expect(seatOwns(get(), 1, modalOwnerOf(get()) as string), 'la fenêtre est au siège qui tient ce barreur').toBe(true);
@@ -104,7 +104,7 @@ describe('#1262 V2 — la journée en MER se possède (classe #1268)', () => {
 
     get().jetRegler('cascade', 'choix', 'crew', choix.id);
     get().jetValider('cascade');
-    const bande = parKind('crew-progression')!;
+    const bande = parKind('equipage-progression')!;
     expect(bande, 'la voie ÉQUIPAGE insère sa bande').toBeTruthy();
     // La possession se DÉDUIT du nombre de porteurs (`bandStep`) : `groupOwner` à plusieurs, le porteur
     // à un seul. Ce qui est verrouillé ici, c'est qu'elle ne soit JAMAIS absente — l'owner `undefined`
@@ -176,8 +176,8 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     addCondition(get().party[0], COND.inconscient);
     get().partirEnVoyage('r-reik', 'barge');
     const pc = get().pendingCascade;
-    expect(pc?.participants.some((s) => s.kind === 'riverNav'), 'personne ne tient la barre : aucun Test de Navigation').not.toBe(true);
-    expect(pc?.participants[pc.cursor]?.kind, 'aucune fenêtre ne se pose sur le pas de vérification').not.toBe('riverPerilCheck');
+    expect(pc?.participants.some((s) => s.kind === 'fleuveNavigation'), 'personne ne tient la barre : aucun Test de Navigation').not.toBe(true);
+    expect(pc?.participants[pc.cursor]?.kind, 'aucune fenêtre ne se pose sur le pas de vérification').not.toBe('fleuveTestDePeril');
     expect(get().journal.length, 'la journée est allée au journal').toBeGreaterThan(0);
   });
 });
@@ -186,7 +186,7 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
 
 describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d’un INVITÉ', () => {
   it('conducteur d’un autre siège : la journée devient influençable au lieu de se rouler en silence', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     seedBattleRng(1);
     const lead = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'cocher', label: 'Lead', motivation: 'x', seed: 21, id: 't-lead' });
     skill(lead, 'conduite-d-attelage', 40);
@@ -209,7 +209,7 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
 
     get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });
 
-    const km = parKind('landForcedPace');
+    const km = parKind('rythmeForceATerre');
     expect(km, 'le Test de Conduite d’attelage s’OUVRE (le chemin synchrone le roulait sans fenêtre)').toBeTruthy();
     expect(km!.actorId).toBe(lead.id);
     expect(km!.result, 'rien n’a été roulé à sa place').toBeNull();
@@ -244,13 +244,13 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
     resetCadence();
 
     // 3. COOP — le héros est à l'INVITÉ : c'est LÀ que les deux divergent (le bug de la classe).
-    banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [h.id]: 1 } } } as never);
+    banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [h.id]: 1 } } } as never);
     expect(humanControlled(get(), h), 'l’ancien gate : « pas ma main » → jet roulé en silence').toBe(false);
     expect(surfaceOf(get, h.id), 'le nouveau : un siège humain le tient → sa fenêtre lui revient').toBe(true);
 
     // 4. ACTEUR CONDUIT PAR L'IA (aucun siège) : les deux disent FAUX — le repli inline reste le bon.
     const pnj = { ...h, id: 'tv-ia', aiControlled: true } as Combatant;
-    banc.setState({ party: [pnj], net: { ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: {} } } as never);
+    banc.setState({ party: [pnj], net: { ...NET0, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: {} } } as never);
     expect(humanControlled(get(), pnj)).toBe(false);
     expect(surfaceOf(get, pnj.id)).toBe(false);
   });
@@ -269,7 +269,7 @@ describe('#1262 V2 lot 3 — les BANDES de l’Étape se possèdent (classe #126
     } as never);
     deuxSieges(b.id); // A à l'hôte, B à l'invité
 
-    const postes = buildStageSteps(get, set, 'beau', 'ete').find((s) => s.kind === 'stagePosteBatch')!;
+    const postes = buildStageSteps(get, set, 'beau', 'ete').find((s) => s.kind === 'etapePosteEnBande')!;
     expect(postes.participants!.map((p) => p.id).sort()).toEqual([a.id, b.id].sort());
     expect(postes.groupOwner, 'deux héros postés : fenêtre PARTAGÉE').toBe(true);
     startCascade(get, set, { title: 'Étape', purpose: 'travelDay', steps: [postes] });

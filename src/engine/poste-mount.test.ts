@@ -9,7 +9,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  * active dérivée (`Weapon.mountSide`) — lu ensuite par la validation d'arc de tir. (MDG 12-13)
  */
 const gunItem: ItemInstance = {
-  uid: 'gun1', trappingId: 'pierrier', label: 'Pierrier', kind: 'ranged',
+  uid: 'gun1', trappingId: 'pierrier', label: 'Pierrier', kind: 'distance',
   damage: { plusBF: false, flat: 14 }, range: 30,
   qualities: [{ id: 'dangereuse' }, { id: 'recharge', value: 4 }],
   enc: 5, equipped: true, mountSide: 'tribord',
@@ -17,7 +17,7 @@ const gunItem: ItemInstance = {
 
 const gunner = (): Combatant =>
   (blessuresSurLeProfil({
-    id: 'cap', name: 'Chef de pièce', kind: 'enemy',
+    id: 'cap', name: 'Chef de pièce', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], talents: [], skills: [],
     armour: emptyArmour(), movement: 4, items: [{ ...gunItem }],

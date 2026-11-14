@@ -97,7 +97,7 @@ export function arcaneDomainsOf(spell: SpellData): string[] | null {
 
 /** Le sort est-il un Sort d'Arcanes du Chaos : de la Magie du Chaos, d'aucun Dieu Sombre (`gods.json`). EDOC 13 l.264-266 */
 function estArcaneDuChaos(spell: SpellData): boolean {
-  return spell.family === 'chaos' && !gods.some((g) => g.chaosSpells?.includes(spell.id));
+  return spell.family === 'chaos' && !gods.some((g) => g.chaosSpells?.some((id) => id === spell.id));
 }
 
 /** Le sort `spell` est-il d'une liste qu'ouvre le Talent de lanceur `t` ? Spec absente (« Au choix » non assigné) :
@@ -145,22 +145,22 @@ export function ritualReduction(c: Combatant, spell: { ritual?: { reduced?: Ritu
   if (!red) return null;
   for (const t of casterTalents(c)) {
     if (t.kind === 'chaos' && red.chaosMagic) return red;
-    if (t.kind === 'arcane' && t.spec != null && red.domains.includes(t.spec)) return red;
+    if (t.kind === 'arcane' && t.spec != null && red.domains.some((d) => d === t.spec)) return red;
   }
   return null;
 }
 
 /** Verdict d'apprentissage de `spell` par `c` (LDB 46 l.14-20, LDB 10, #2312). */
-export type VerdictApprentissage = 'deja-connu' | 'non-eligible' | 'ok';
+export type VerdictApprentissage = 'dejaConnu' | 'nonEligible' | 'eligible';
 
 export function verdictApprentissage(c: Combatant, spell: SpellData): VerdictApprentissage {
-  if ((c.spells ?? []).some((x) => x === spell.id)) return 'deja-connu';
-  return eligibleTalent(c, spell) ? 'ok' : 'non-eligible';
+  if ((c.spells ?? []).some((x) => x === spell.id)) return 'dejaConnu';
+  return eligibleTalent(c, spell) ? 'eligible' : 'nonEligible';
 }
 
 /**
  * Coût en PX pour APPRENDRE `spell` maintenant (LDB 10 — Talents de lanceur) ;
- * null si `verdictApprentissage` n'est pas `ok`.
+ * null si `verdictApprentissage` n'est pas `eligible`.
  *  - Bénédictions : 0 (« reçoit les six Bénédictions de son culte »).
  *  - Rituels : les PX IMPRIMÉS par la rubrique **PX d'apprentissage** (`VDM 02 l.383` : « Un
  *    lanceur de sorts peut acquérir un Rituel en dépensant le nombre de PX indiqués »), réduits
@@ -175,7 +175,7 @@ export function verdictApprentissage(c: Combatant, spell: SpellData): VerdictApp
  *    de plus (LDB 10 l.706-708), et +1 Point de Corruption dans les deux cas — appliqués par l'acheteur.
  */
 export function spellCost(c: Combatant, spell: SpellData): number | null {
-  if (verdictApprentissage(c, spell) !== 'ok') return null;
+  if (verdictApprentissage(c, spell) !== 'eligible') return null;
   if (spell.ritual) return ritualReduction(c, spell)?.xp ?? spell.ritual.xp;
   const fam = eligibleTalent(c, spell)!.kind;
   if (fam === 'beni') return 0;

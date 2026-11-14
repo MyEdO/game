@@ -29,7 +29,18 @@ import { rule } from '../engine/policy';
 import { bourseOf } from '../engine/bourse';
 import { learnableSpells, canCastFromGrimoire, carriedGrimoire, estLanceur } from '../engine/grimoire';
 import { spellSupportOf } from '../engine/spellspec';
-import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, libelleDeClasse, libelleOuAbsence } from '../data';
+import {
+  careers,
+  findSpellById,
+  findStarById,
+  spells as allSpells,
+  speciesSingular,
+  findSpeciesById,
+  findCareerById,
+  careerLabelFor,
+  libelleDeClasse,
+  libelleOuAbsence,
+} from '../data';
 import { heroStatusLabel } from './CharCard';
 import { MetalStatus } from './MetalStatus';
 import { CodexRef } from './compendium/CodexRef';
@@ -207,11 +218,11 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
           <Row>
             <GatedAction
               id="sheet-soins"
-              label={<><Icon id="journal/heal" size="sm" /> Soins</>}
+              label={<><Icon id="journal/soin" size="sm" /> Soins</>}
               enabled={!refusSoins}
               {...raisonSi(refusSoins)}
               descOfferte="Soins du groupe (Tests de Guérison) — ouvre l'infirmerie sur ce héros"
-              onClick={() => ouvrirLeMedecin({ patientId: hero.id })}
+              onClick={() => ouvrirLeMedecin(hero.id)}
               primary={false}
               btnClassName="small"
             />
@@ -292,7 +303,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
       <span className="mini-title">Sorts — incantation hors combat</span>
       {(hero.sinPoints ?? 0) > 0 && (
         <span className="muted">
-          <Icon id="ui/balance" size="sm" /> <CodexRef category="characteristics" id="peche" label="Péché">Péché : {hero.sinPoints}</CodexRef>
+          <Icon id="interface/balance" size="sm" /> <CodexRef category="characteristics" id="peche" label="Péché">Péché : {hero.sinPoints}</CodexRef>
         </span>
       )}
       <div className="spell-target">
@@ -321,7 +332,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
               <span className="spell-name">
                 <CodexRef category="spells" id={sp.id} label={sp.label}>{sp.label}</CodexRef>
                 {sp.cn != null ? ` · NI ${sp.cn}` : ''}
-                {support === 'narratif' ? (<> <Icon id="nav/rules" size="sm" /></>) : support === 'partiel' ? (<> <Icon id="ui/partial" size="sm" /></>) : ''}
+                {support === 'narratif' ? (<> <Icon id="navigation/regles-maison" size="sm" /></>) : support === 'partiel' ? (<> <Icon id="interface/partiel" size="sm" /></>) : ''}
               </span>
               {offensive ? (
                 <span className="muted" title="Projectile magique : nécessite une cible ennemie (en combat)">
@@ -333,19 +344,19 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                     <>
                       <GatedAction
                         id={`sheet-focus-${hero.id}-${sp.id}`}
-                        label={<><Icon id="flag/focus" size="sm" /> Focaliser</>}
+                        label={<><Icon id="drapeau/focalisation" size="sm" /> Focaliser</>}
                         enabled={!(refusLanceur ?? castBlockedBy(hero, 'focalisation'))}
                         {...raisonSi(refusLanceur ?? castBlockedBy(hero, 'focalisation'))}
                         primary={false}
                         btnClassName="small"
                         onClick={() => focaliserLeSort(hero.id, sp.id)}
                       />
-                      <CodexRef category="regles" id="focalisation-etendue" label="Test de Focalisation (étendu)" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+                      <CodexRef category="regles" id="focalisation-etendue" label="Test de Focalisation (étendu)" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
                     </>
                   )}
                   <GatedAction
                     id={`sheet-cast-${hero.id}-${sp.id}`}
-                    label={<><Icon id="nav/dice" size="sm" /> Lancer</>}
+                    label={<><Icon id="navigation/des" size="sm" /> Lancer</>}
                     enabled={!refusDeLancer}
                     {...raisonSi(refusDeLancer)}
                     primary={false}
@@ -360,7 +371,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
         {grimoireSpells.map(({ sp, grimoireCn }) => (
           <div className="spell-row" key={`g-${sp.label}`} title="Lecture au grimoire : sort non mémorisé de votre Domaine — deux mains, au NI de lecture indiqué.">
             <span className="spell-name">
-              <Icon id="nav/compendium" size="sm" /> <CodexRef category="spells" id={sp.id} label={sp.label}>{sp.label}</CodexRef>
+              <Icon id="navigation/compendium" size="sm" /> <CodexRef category="spells" id={sp.id} label={sp.label}>{sp.label}</CodexRef>
               {sp.cn != null && grimoireCn != null ? ` · NI ${sp.cn}→${grimoireCn}` : ''}
             </span>
             {isMagicMissile(sp) ? (
@@ -369,7 +380,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
               <Row className="spell-actions">
                 <GatedAction
                   id={`sheet-cast-grimoire-${hero.id}-${sp.id}`}
-                  label={<><Icon id="nav/compendium" size="sm" /> Lancer (grimoire)</>}
+                  label={<><Icon id="navigation/compendium" size="sm" /> Lancer (grimoire)</>}
                   enabled={!(refusLanceur ?? castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue'))}
                   {...raisonSi(refusLanceur ?? castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue'))}
                   primary={false}
@@ -392,7 +403,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
         return (
           <div className="sc-block">
             <span className="mini-title">
-              <Icon id="action/dispel" size="sm" /> Dissipation — sorts permanents actifs
+              <Icon id="action/dissiper" size="sm" /> Dissipation — sorts permanents actifs
             </span>
             <div className="spell-list">
               {dispellable.map((d) => {
@@ -404,7 +415,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                     </span>
                     <Row className="spell-actions">
                       <button className="btn small" onClick={() => dissiperLeSort(hero.id, d.spellId, d.casterId)}>
-                        <Icon id="action/dispel" size="sm" /> Dissiper
+                        <Icon id="action/dissiper" size="sm" /> Dissiper
                       </button>
                     </Row>
                   </div>
@@ -414,7 +425,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
           </div>
         );
       })()}
-      {rule('magic-composant') === true && (() => {
+      {rule('magie-composant') === true && (() => {
         // Composants d'incantation (LDB 46 l.107-113) : achetés PAR Sort d'Arcane/Domaine connu,
         // coût = NI pistoles d'argent ; absorbent le contrecoup (Imparfaite Majeure→Mineure,
         // Mineure→annulée) puis sont consumés à l'incantation. Visible seulement règle ON.
@@ -425,7 +436,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
         return (
           <div className="spell-components">
             <span className="mini-title">
-              <Icon id="magic/component" size="sm" /> Composants d'incantation
+              <Icon id="magie/composante" size="sm" /> Composants d'incantation
             </span>
             <div className="spell-list">
               {arcane.map((sp) => {
@@ -472,7 +483,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
  *  retire. LDB 14 l.78, l.138 */
 function HandPicker({ hero, it, mains }: { hero: Combatant; it: ItemInstance; mains: NonNullable<GestesDeLObjet['mains']> }) {
   const garnirLaPanoplie = useGame((s) => s.garnirLaPanoplie);
-  const { set: loId, main: { tenue: isMain, refus: refusMain }, off: { tenue: isOff, refus: refusOff } } = mains;
+  const { set: loId, main: { tenue: isMain, refus: refusMain }, secondaire: { tenue: isOff, refus: refusOff } } = mains;
   const malus = avecSigne(penaliteDeMainSecondaire(hero));
   return (
     <div className="ir-hand" title="Régler la main qui tient cette arme (set actif)">
@@ -488,14 +499,14 @@ function HandPicker({ hero, it, mains }: { hero: Combatant; it: ItemInstance; ma
           onSelect: () => garnirLaPanoplie(hero.id, loId, 'main', isMain ? null : it.uid),
         },
         {
-          key: 'off',
+          key: 'secondaire',
           label: <>2nde <em className="off-malus">{malus}</em></>,
           selected: isOff,
           // La RAISON du refus se lit au survol/focus/tap dans l'infobulle partagée (`refus`), jamais
           // par un `disabled` muet ; le `title` ne reste que pour l'option OFFERTE.
           title: refusOff ? undefined : `Main secondaire : ${malus} aux attaques de cette main`,
           refus: refusOff ?? undefined,
-          onSelect: () => garnirLaPanoplie(hero.id, loId, 'off', isOff ? null : it.uid),
+          onSelect: () => garnirLaPanoplie(hero.id, loId, 'secondaire', isOff ? null : it.uid),
         },
       ]}
     />
@@ -548,7 +559,7 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
             // E1 : état « en main » SANS jargon « set » (les sets = fonction avancée, cf. onglet Combat) —
             // on NOMME l'arme du set ACTIF Main principale / secondaire ; les autres armes n'affichent rien.
             const activeLo = (hero.loadouts ?? []).find((l) => l.id === hero.activeLoadoutId) ?? hero.loadouts?.[0];
-            return activeLo?.main === it.uid ? 'Main principale' : activeLo?.off === it.uid ? 'Main secondaire' : null;
+            return activeLo?.main === it.uid ? 'Main principale' : activeLo?.secondaire === it.uid ? 'Main secondaire' : null;
           }}
           rowExtra={(it, gestes) => (
               <>
@@ -571,7 +582,7 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                     enabled={!gestes.detecter.refus}
                     {...raisonSi(gestes.detecter.refus)}
                     descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura magique — une seule tentative par objet"
-                    onClick={() => evaluerLObjet(it.uid, 'detect')}
+                    onClick={() => evaluerLObjet(it.uid, 'detection')}
                     primary={false}
                     btnClassName="small"
                   />
@@ -748,7 +759,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             }))}
             onPick={(key, owned) => {
               const ref = parseRefKey(key);
-              if (owned) designerLeCreneau(hero.id, slot.slotKey, ref.id, ref.spec);
+              if (owned) designerLeCreneau(hero.id, slot.slotKey, ref);
               // Acheter la 1re Augmentation désigne l'emplacement (LDB 09 l.38).
               else acheterLaCompetence(hero.id, ref);
             }}
@@ -771,7 +782,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               <GatedAction
                 id={`adv-talent-${t.slotKey}`} primary={false} btnClassName="small"
                 enabled={!t.refus} {...raisonSi(t.refus)}
-                onClick={() => acheterLeTalent(hero.id, t.talentId!, t.spec)}
+                onClick={() => acheterLeTalent(hero.id, { id: t.talentId!, spec: t.spec })}
                 label={`${t.times > 0 ? '+1' : 'Acquérir'} · ${t.nextCost} PX`}
               />
             </div>
@@ -783,9 +794,9 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               refusSansChoix={refus}
               options={(t.options ?? []).map((o) => ({ key: o.refKey, display: o.display, owned: o.owned, cost: o.nextCost, maxReached: o.maxReached, refus: o.refus }))}
               onPick={(key, owned) => {
-                const { id, spec } = parseRefKey(key);
-                if (owned) designerLeCreneau(hero.id, t.slotKey, id, spec);
-                else acheterLeTalent(hero.id, id, spec);
+                const ref = parseRefKey(key);
+                if (owned) designerLeCreneau(hero.id, t.slotKey, ref);
+                else acheterLeTalent(hero.id, ref);
               }}
             />
           ),
@@ -807,7 +818,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
                 return (
                 <div className="adv-row acquire" key={spell.label} title={support !== 'mecanique' ? 'Tout ou partie de l’effet est journalisé (« arbitrage MJ ») — pas encore mécanisé.' : undefined}>
                   <span className="adv-name">
-                    <CodexRef category="spells" id={spell.id} label={spell.label}>{spell.label}</CodexRef>{support === 'narratif' ? (<> <Icon id="nav/rules" size="sm" /></>) : support === 'partiel' ? (<> <Icon id="ui/partial" size="sm" /></>) : ''}
+                    <CodexRef category="spells" id={spell.id} label={spell.label}>{spell.label}</CodexRef>{support === 'narratif' ? (<> <Icon id="navigation/regles-maison" size="sm" /></>) : support === 'partiel' ? (<> <Icon id="interface/partiel" size="sm" /></>) : ''}
                     <span className="muted"> · {spell.ecole}{spell.subType ? ` (${spell.subType})` : ''}{spell.cn != null ? ` · NI ${spell.cn}` : ''}</span>
                   </span>
                   <span className="adv-meta" />

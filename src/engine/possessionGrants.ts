@@ -4,9 +4,10 @@
  * (pas des objets de sac) : ce module les MATÉRIALISE en `PossessionInput[]`, même shape que l'Effet
  * `givePossession` (noyau/combatEffects.ts) — bête/véhicule `avec-le-groupe`, `count` respecté.
  */
-import type { TrappingRef } from '../data';
+import type { Somme, TrappingRef } from '../data';
 import type { PossessionInput } from './possession';
 import { rollDice, type DiceSpec, type RNG } from './dice';
+import { enPieces, type Money } from './money';
 
 /** Le nombre d'unités qu'une ref de dotation donne : `count.fixed`, `count.roll` par `tirer` (l'appelant y roule
  *  `rollDice` sur son `RNG`, #663), sinon 1. */
@@ -14,8 +15,13 @@ export function compteDeLaDotation(ref: TrappingRef, tirer: (de: DiceSpec) => nu
   return 'count' in ref && ref.count ? ('fixed' in ref.count ? ref.count.fixed : tirer(ref.count.roll)) : 1;
 }
 
-/** PUR — n'écrit rien, l'appelant (noyau/possessionsFlow.ts) matérialise via `ajouterLaPossession`. Ignore
- *  `{id}` (objet de sac, buildInventory) et `{text}` (flavor hors catalogue). `count.fixed` spawn N
+/** La somme `s`, son nombre de pièces tiré sur `rng` (`compteDeLaDotation`). LDB 57 */
+export function sommeTiree(s: Somme, rng: RNG): Money {
+  return enPieces(s.monnaie, compteDeLaDotation(s, (de) => rollDice(de, rng)));
+}
+
+/** PUR — n'écrit rien, l'appelant (noyau/possessionsFlow.ts) matérialise via `ajouterLaPossession`. Ne lit que
+ *  les dotations de possession `{id, type}`. `count.fixed` spawn N
  *  possessions ; `count.roll` (dé, ex. « Bateaux de patrouille » 1d10) TIRE N via le rouleur canonique
  *  (`rollDice`, `engine/dice.ts`) sur le `RNG` seedable injecté (#663) ; sans `count`, 1 possession. */
 export function possessionGrantsFromRefs(refs: TrappingRef[], ownerId: string, rng: RNG): PossessionInput[] {

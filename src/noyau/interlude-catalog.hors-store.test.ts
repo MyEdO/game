@@ -18,6 +18,9 @@ import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { hasCondition } from '../engine/conditions';
 import { spells } from '../data';
 import { testScene } from '../scenes/test-fixture';
+import { pratiquer } from './interlude.testkit';
+import { reglageDuChoixDeFenetre } from './choixDeFenetre';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -43,21 +46,25 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
   function hero() { return banc.getState().party[0]; }
   function st() { return banc.getState().interlude!.perHero[hero().id]; }
   const forceRoll = (roll: number, success: boolean, sl: number) => {
-    banc.getState().jetLancer('activity');
+    banc.getState().jetLancer('activite');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll, success, sl } });
-    banc.getState().jetValider('activity');
+    banc.getState().jetValider('activite');
   };
 
-  it('gate `where` : hors d’Altdorf (le groupe à aucun lieu), la Pénitence est indisponible', () => {
+  it('gate `where` : hors d’Altdorf (le groupe à aucun lieu), la Pénitence n’est pas offerte, et le geste est refusé', () => {
     banc.setState({ lieu: null });
-    banc.getState().pratiquerLActivite(hero().id, 'penitence');
+    const offertes = reglageDuChoixDeFenetre(banc.getState(), 'interlude', 'activite', hero().id).valeurs?.map((v) => v.valeur);
+    expect(offertes, 'témoin : le catalogue de ce lieu est offert').toContain('convalescence');
+    expect(offertes).not.toContain('penitence');
+    const journal = banc.getState().journal.length;
+    pratiquer(banc.getState, hero().id, 'penitence');
     expect(banc.getState().pendingActivity).toBeNull();
-    expect(banc.getState().journal.join('\n')).toMatch(/praticable/);
+    expect(banc.getState().journal.slice(journal)).toEqual([t('choix.refus.valeur')]);
   });
 
   it('Pénitence — succès : −1 Péché (−2 dès +4 DR), Activité consommée, note VERBATIM à l’écran', () => {
     hero().sinPoints = 3;
-    banc.getState().pratiquerLActivite(hero().id, 'penitence');
+    pratiquer(banc.getState, hero().id, 'penitence');
     const pa = banc.getState().pendingActivity;
     expect(pa?.kind).toBe('catalog');
     expect(pa?.activityId).toBe('penitence');
@@ -70,11 +77,11 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
 
   it('Pénitence — échec : Exténué DIFFÉRÉ à la clôture (posé APRÈS le repos, « premier jour de la prochaine aventure »)', () => {
     hero().sinPoints = 1;
-    banc.getState().pratiquerLActivite(hero().id, 'penitence');
+    pratiquer(banc.getState, hero().id, 'penitence');
     forceRoll(97, false, -2);
     expect(hero().sinPoints).toBe(1); // l'échec n'expie rien
     expect(hasCondition(hero(), 'extenue')).toBe(false); // rien MAINTENANT (serait dissipé au repos)
-    expect(st().closeOps).toEqual([{ ops: [{ op: 'condition', id: 'extenue' }], ctx: { label: 'Pénitence', source: { kind: 'activity', id: 'penitence' }, sl: -2 } }]);
+    expect(st().closeOps).toEqual([{ ops: [{ op: 'condition', id: { id: 'extenue' } }], ctx: { label: 'Pénitence', source: { kind: 'activite', id: 'penitence' }, sl: -2 } }]);
     const avant = banc.getState().journal.length;
     banc.getState().fenetreValider('interlude');
     expect(hasCondition(hero(), 'extenue')).toBe(true); // posé après les nuits de clôture
@@ -83,7 +90,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
 
   it('Pénitence — Maladresse : Colère des dieux « à la place » (table LDB 40, −1 Péché expié), pas d’Exténué', () => {
     hero().sinPoints = 2;
-    banc.getState().pratiquerLActivite(hero().id, 'penitence');
+    pratiquer(banc.getState, hero().id, 'penitence');
     const parquees = banc.getState().suspendedCascades.length;
     forceRoll(44, false, -1); // 44 = double raté → Maladresse
     // Le tirage sur la table de la Colère est une étape de la séquence (#1426) : c'est en la jouant
@@ -108,7 +115,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
 
   it('Tester des objets : ≥ +4 DR → étude en profondeur (identifié, Particularités révélées)', () => {
     armArtefact();
-    banc.getState().pratiquerLActivite(hero().id, 'tester-objets-magiques', { itemUid: 'art1' });
+    pratiquer(banc.getState, hero().id, 'tester-objets-magiques', { itemUid: 'art1' });
     expect(banc.getState().pendingActivity?.kind).toBe('catalog');
     forceRoll(3, true, 5);
     expect(artefact().identified).toBe(true);
@@ -118,7 +125,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
 
   it('Tester des objets : succès ≤ +3 → fonction principale (magicKnown), pas les règles complètes', () => {
     armArtefact();
-    banc.getState().pratiquerLActivite(hero().id, 'tester-objets-magiques', { itemUid: 'art1' });
+    pratiquer(banc.getState, hero().id, 'tester-objets-magiques', { itemUid: 'art1' });
     forceRoll(20, true, 2);
     expect(artefact().identified).toBe(false);
     expect(artefact().magicKnown).toBe(true);
@@ -126,7 +133,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
 
   it('Tester des objets : ≤ −4 DR → contamination : Test d’Exposition mineure à la Corruption (modale)', () => {
     armArtefact();
-    banc.getState().pratiquerLActivite(hero().id, 'tester-objets-magiques', { itemUid: 'art1' });
+    pratiquer(banc.getState, hero().id, 'tester-objets-magiques', { itemUid: 'art1' });
     forceRoll(98, false, -5);
     const pc = banc.getState().pendingCorruption;
     expect(pc?.level).toBe('mineure');
@@ -146,7 +153,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
 
   it('Entraînement : la compétence est IMPOSÉE par l’arme ; le succès inscrit la maîtrise (masteredWeapons)', () => {
     armUnusualWeapon();
-    banc.getState().pratiquerLActivite(hero().id, 'entrainement-arme-inhabituelle', { itemUid: 'wm1' });
+    pratiquer(banc.getState, hero().id, 'entrainement-arme-inhabituelle', { itemUid: 'wm1' });
     const pa = banc.getState().pendingActivity;
     expect(pa?.kind).toBe('catalog');
     expect(pa?.skillLabel).toMatch(/Corps à corps/); // arme de mêlée → CC imposé (« selon la spécialisation de l'arme »)
@@ -158,13 +165,13 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
 
   it('Entraînement : l’échec ne maîtrise rien (« attendre le prochain moment de pause ») ; arme ordinaire refusée', () => {
     armUnusualWeapon();
-    banc.getState().pratiquerLActivite(hero().id, 'entrainement-arme-inhabituelle', { itemUid: 'wm1' });
+    pratiquer(banc.getState, hero().id, 'entrainement-arme-inhabituelle', { itemUid: 'wm1' });
     forceRoll(96, false, -3);
     expect(hero().masteredWeapons ?? []).toEqual([]);
     // Une arme SANS requiresMastery n'est pas une cible d'entraînement.
-    const ordinary = hero().items!.find((i) => i.uid !== 'wm1' && (i.kind === 'melee' || i.kind === 'ranged'));
+    const ordinary = hero().items!.find((i) => i.uid !== 'wm1' && (i.kind === 'melee' || i.kind === 'distance'));
     if (ordinary) {
-      banc.getState().pratiquerLActivite(hero().id, 'entrainement-arme-inhabituelle', { itemUid: ordinary.uid });
+      pratiquer(banc.getState, hero().id, 'entrainement-arme-inhabituelle', { itemUid: ordinary.uid });
       expect(banc.getState().pendingActivity).toBeNull();
     }
   });
@@ -213,7 +220,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     h.spells = feu.slice(0, 4);
     h.xp = 500;
     banc.setState({ party: [...banc.getState().party] });
-    banc.getState().pratiquerLActivite(h.id, 'recherche-universitaire', { spellId: feu[4] });
+    pratiquer(banc.getState, h.id, 'recherche-universitaire', { spellId: feu[4] });
     const pa = banc.getState().pendingActivity;
     expect(pa?.kind).toBe('catalog');
     expect(pa?.spellId).toBe(feu[4]);
@@ -225,7 +232,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
   });
 
   it('Recherche universitaire : sans sort payant à mémoriser, l’Activité ne s’ouvre pas', () => {
-    banc.getState().pratiquerLActivite(hero().id, 'recherche-universitaire', { spellId: 'drain' });
+    pratiquer(banc.getState, hero().id, 'recherche-universitaire', { spellId: 'drain' });
     expect(banc.getState().pendingActivity).toBeNull(); // soldat sans Talent de lanceur
   });
 
@@ -233,10 +240,10 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     armArtefact();
     const h = hero();
     h.skills.push({ id: 'savoir', spec: 'magie', characteristic: 'intelligence', advances: 10 } as never);
-    banc.getState().pratiquerLActivite(h.id, 'identify', { itemUid: 'art1' }); // voie ADE II (Savoir Magie)
+    pratiquer(banc.getState, h.id, 'identify', { itemUid: 'art1' }); // voie ADE II (Savoir Magie)
     expect(banc.getState().pendingActivity?.activityId).toBe('identify');
-    banc.getState().jetAnnuler('activity');
-    banc.getState().pratiquerLActivite(h.id, 'tester-objets-magiques', { itemUid: 'art1' }); // voie ACE
+    banc.getState().jetAnnuler('activite');
+    pratiquer(banc.getState, h.id, 'tester-objets-magiques', { itemUid: 'art1' }); // voie ACE
     expect(banc.getState().pendingActivity?.kind).toBe('catalog');
   });
 });

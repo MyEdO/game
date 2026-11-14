@@ -230,13 +230,13 @@ export function possessionsByLocation(get: Get, location: PossessionLocation['ki
 export function creerActionsDesPossessions(get: Get, set: Set) {
   return {
     ajouterLaPossession: (p) => ajouterLaPossession(get, set, p),
-    renommerLaPossession: (uid, label) => renommerLaPossession(get, set, uid, label),
+    renommerLaPossession: (possessionUid, label) => renommerLaPossession(get, set, possessionUid, label),
     transmettreLaPossession: (uid, newOwnerId) => transmettreLaPossession(get, set, uid, newOwnerId),
-    remiserLaPossession: (uid) => remiserLaPossession(get, set, uid),
-    recupererLaPossession: (uid) => recupererLaPossession(get, set, uid),
-    embarquer: (uid, hostUid) => embarquer(get, set, uid, hostUid),
-    debarquer: (uid) => debarquer(get, set, uid),
-    cederLaPossession: (uid) => cederLaPossession(get, set, uid),
+    remiserLaPossession: (possessionUid) => remiserLaPossession(get, set, possessionUid),
+    recupererLaPossession: (possessionUid) => recupererLaPossession(get, set, possessionUid),
+    embarquer: (possessionUid, hostUid) => embarquer(get, set, possessionUid, hostUid),
+    debarquer: (possessionUid) => debarquer(get, set, possessionUid),
+    cederLaPossession: (possessionUid) => cederLaPossession(get, set, possessionUid),
     apprendreLeTrait: (uid, traitId) => apprendreLeTrait(get, set, uid, traitId),
   } satisfies FabriqueDuNoyau;
 }

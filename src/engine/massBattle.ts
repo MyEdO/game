@@ -13,6 +13,7 @@
  * (contextes 'bataille'/'bataille-round') dans `activities.json` — mécanique unifiée avec les Activités
  * d'interlude/voyage (bandes d'issue `outcomes` + `battle`). Aucune valeur inventée (règle 1).
  */
+import type { Equipe } from './relations';
 import {
   massBattlePowerEstimate, massBattleMightModifiers, massBattleWarMachines, massBattleStructures, massBattleHazards,
 } from '../data';
@@ -25,7 +26,7 @@ import { findTableEntry } from './tables';
 // ── Tables verbatim (`mass-battle.json`) ─────────────────────────────────────────────────────────
 
 /** Une ligne de la table d'estimation par force relative (l.26-33) : Puissance alliée/ennemie de départ. */
-export interface PowerEstimateRow { id: string; label: string; ally: number; enemy: number; example: string }
+export interface PowerEstimateRow extends Record<Equipe, number> { id: string; label: string; example: string }
 /** Un modificateur de Puissance par ASPECT d'armée (l.36-47) : ±10/±20/±30 selon équipement/Vétérans/Taille. */
 export interface MightModifierRow { id: string; label: string; mod: number; example: string }
 /** Une machine de guerre (l.235-247) — statistiques verbatim ; `siege` = porte l'Atout Siège. */
@@ -57,9 +58,9 @@ export function clampMight(m: number): number {
 
 /** Puissance de départ par la table de FORCE RELATIVE (l.24-33) : « Estimez la force du camp des
  *  Personnages par rapport à celle de leurs adversaires » → couple {allié, ennemi}. */
-export function mightFromRelation(id: string): { ally: number; enemy: number } {
+export function mightFromRelation(id: string): Record<Equipe, number> {
   const row = POWER_ESTIMATE.find((r) => r.id === id) ?? POWER_ESTIMATE[2]; // repli « De force égale »
-  return { ally: row.ally, enemy: row.enemy };
+  return { allie: row.allie, ennemi: row.ennemi };
 }
 
 /** Machine de guerre pour le calcul de Puissance (l.302-304). */
@@ -97,12 +98,12 @@ export function estimateMightFromAspects(
 /** Normalise deux Puissances BRUTES (l.34) : « Ensuite, retirez 10 aux deux armées jusqu'à ce que la
  *  Puissance soit comprise entre 0 et 100. » `decided` = « Si la différence de Puissance entre les deux
  *  Armées est supérieure à 100, l'issue du combat est déjà décidée. » (mesurée sur l'écart BRUT). */
-export function normalizeMights(rawAlly: number, rawEnemy: number): { ally: number; enemy: number; decided: boolean } {
+export function normalizeMights(rawAlly: number, rawEnemy: number): Record<Equipe, number> & { decided: boolean } {
   const decided = Math.abs(rawAlly - rawEnemy) > 100;
   let a = rawAlly;
   let b = rawEnemy;
   while (a > MIGHT_MAX || b > MIGHT_MAX) { a -= 10; b -= 10; }
-  return { ally: clampMight(a), enemy: clampMight(b), decided };
+  return { allie: clampMight(a), ennemi: clampMight(b), decided };
 }
 
 // ── Test spectaculaire de Puissance (l.120) ──────────────────────────────────────────────────────
@@ -142,13 +143,13 @@ export interface ClashResult {
  *  réduit celle de l'adverse de 10 + DR (min 5), simultanément (les deux DR sont figés AVANT réduction).
  *  Ne retourne QUE les pertes ; le flux les applique en Blessures sur chaque Combattant-armée. */
 export function resolveClash(
-  allyMight: number,
-  enemyMight: number,
-  opts: { allyMod?: number; enemyMod?: number; rng: RNG },
+  puissanceAlliee: number,
+  puissanceEnnemie: number,
+  opts: { modificateurAllie?: number; modificateurEnnemi?: number; rng: RNG },
 ): ClashResult {
   const rng = opts.rng;
-  const allyTest = rollMightTest(allyMight, opts.allyMod ?? 0, rng);
-  const enemyTest = rollMightTest(enemyMight, opts.enemyMod ?? 0, rng);
+  const allyTest = rollMightTest(puissanceAlliee, opts.modificateurAllie ?? 0, rng);
+  const enemyTest = rollMightTest(puissanceEnnemie, opts.modificateurEnnemi ?? 0, rng);
   return {
     allyTest,
     enemyTest,
@@ -250,13 +251,13 @@ export function rallyHealAmount(sl: number, enduranceBonus: number): number {
 
 // ── Issue de la bataille (l.124) ─────────────────────────────────────────────────────────────────
 
-export type BattleOutcome = 'ally' | 'enemy' | 'draw';
+export type BattleOutcome = Equipe | 'egalite';
 
 /** « À la fin des Rounds de bataille prévus, l'armée avec la Puissance la plus élevée gagne. Le côté
  *  adverse doit fuir, sous peine d'être détruit. » (l.124). Égalité → indécis. */
-export function battleOutcome(allyMight: number, enemyMight: number): BattleOutcome {
-  if (allyMight === enemyMight) return 'draw';
-  return allyMight > enemyMight ? 'ally' : 'enemy';
+export function battleOutcome(puissanceAlliee: number, puissanceEnnemie: number): BattleOutcome {
+  if (puissanceAlliee === puissanceEnnemie) return 'egalite';
+  return puissanceAlliee > puissanceEnnemie ? 'allie' : 'ennemi';
 }
 
 /** Une armée réduite à 0 est DÉTRUITE — la bataille se conclut immédiatement (l.19/124). */

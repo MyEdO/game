@@ -42,7 +42,7 @@ function bargeTo(routeId: string, destPlaceId: string, maxSteps = 60): void {
     if (!get().travelPlan && get().lieu === destPlaceId) return;
     // Les jets du JOUR fluvial (et l'exposition) sont une cascade influençable : la drainer.
     if (get().pendingCascade) { drainCascade(); continue; }
-    if (get().pendingRest) { get().fenetreValider('rest'); drainCascade(); continue; }
+    if (get().pendingRest) { get().fenetreValider('repos'); drainCascade(); continue; }
     if (!get().travelPlan) return;
   }
 }
@@ -73,8 +73,8 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     // Otto devient le plus agile du groupe : sans la porte `peutTenter`, sa Voile non augmentée l'élirait.
     banc.setState({ party: get().party.map((h) => (h.id === 'com-otto' ? { ...h, characteristics: { ...h.characteristics, agilite: 95 } } : h)) });
     drainCascade();
-    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
-    const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverNav');
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence: 'jourParJour' });
+    const barre = get().pendingCascade?.participants.find((p) => p.kind === 'fleuveNavigation');
     expect(barre?.actorId).toBe('com-gunnar');
   });
 
@@ -82,8 +82,8 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     drainCascade();
     const gunnar = get().party.find((h) => h.id === 'com-gunnar')!;
     expect(gunnar.skills.filter((k) => k.id === 'voile').map((k) => [k.spec, k.advances])).toEqual([['chaland', 40]]);
-    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
-    const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverNav');
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence: 'jourParJour' });
+    const barre = get().pendingCascade?.participants.find((p) => p.kind === 'fleuveNavigation');
     expect(barre?.base).toBe(gunnar.characteristics.agilite + 40);
   });
 });
@@ -151,7 +151,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
 
   /** Descend jusqu'à l'arrivée en dormant aux haltes et en FORÇANT chaque barrage (MSRC 7 l.128) :
    *  rend chaque fenêtre de JET rencontrée ; les décisions tranchées s'accumulent dans `decisions`. */
-  function descendre(cadence?: 'jour-par-jour', decisions: string[] = []): string[] {
+  function descendre(cadence?: 'jourParJour', decisions: string[] = []): string[] {
     drainCascade(); // l'entrée de scène du lanceur (affichage, aucun jet)
     const fenetres: string[] = [];
     get().partirEnVoyage('r-grunburg-altdorf', 'barge', cadence ? { cadence } : undefined);
@@ -164,7 +164,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
         continue;
       }
       if (p) { fenetres.push(p.purpose); break; }
-      if (get().pendingRest) get().fenetreValider('rest');
+      if (get().pendingRest) get().fenetreValider('repos');
     }
     return fenetres;
   }
@@ -190,7 +190,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
       banc.setState({ ecrireAuJournal: puits });
     }
     expect(decisions.length, 'le barrage posé est rencontré').toBeGreaterThan(0);
-    expect(new Set(decisions), 'le barrage (MSRC 7 l.128) est la seule décision de la descente').toEqual(new Set(['riverObstacleChoice']));
+    expect(new Set(decisions), 'le barrage (MSRC 7 l.128) est la seule décision de la descente').toEqual(new Set(['fleuveChoixDObstacle']));
     expect(get().lieu).toBe('p-altdorf');
     const jours = journal.filter((l) => /^Progression du jour/.test(l)).length;
     expect(jours, `journal :\n${journal.join('\n')}`).toBeGreaterThan(1);
@@ -205,6 +205,6 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
 
   it('graine 7, JOUR-PAR-JOUR : le même jour ouvre sa fenêtre', () => {
     seedBattleRng(7);
-    expect(descendre('jour-par-jour')).toEqual(['travelDay']);
+    expect(descendre('jourParJour')).toEqual(['travelDay']);
   });
 });

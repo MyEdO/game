@@ -134,7 +134,7 @@ describe('régime PROFONDEUR — pas de fuite des libellés d’enveloppe dans l
   });
 
   it('un `id` d’op de profondeur reste sa clé (jamais « Identifiant »)', () => {
-    const ops = [{ op: 'condition', id: 'extenue' }];
+    const ops = [{ op: 'condition', id: { id: 'extenue' } }];
     expect(inferFields(ops, { niveau: 'profondeur' }).find((f) => f.key === 'id')!.label).toBe('id');
     expect(libelleDuChamp('desc', { niveau: 'profondeur' })).toBe('desc');
   });

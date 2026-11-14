@@ -23,6 +23,7 @@ import type { Flow as CoreFlow, EffectOp } from '../engine/flowCore';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { testerLaTraverseeDeZone } from './combat/triggeredTest';
 import { normaliserLesAppuis } from './monde/poseDuDecor';
+import { placeCombatant } from './monde/spawn';
 
 /** Perturbante (LDB 62 l.272-274) : repousse `target` d'au plus `tiles` cases dans la direction
  *  opposée à l'attaquant (cases praticables et libres seulement). Renvoie les cases reculées. */
@@ -43,8 +44,9 @@ export function pushBackTiles(get: Get, attacker: Combatant, target: Combatant, 
     pos = next;
     moved++;
   }
-  target.pos = pos;
-  if (moved) bus.emit(EVT.ANIM_MOVE, { id: target.id, path: [{ ...target.pos }] });
+  if (!moved) return 0;
+  placeCombatant(target, scene, pos);
+  bus.emit(EVT.ANIM_MOVE, { id: target.id, path: [{ ...target.pos! }] });
   return moved;
 }
 
@@ -65,7 +67,7 @@ export function displaceSmaller(get: Get, mover: Combatant): boolean {
     if ((mover.pos.z ?? 0) !== (c.pos.z ?? 0)) continue; // pas le même étage → hors d'atteinte du mover
     if (!occupiesTile(mover.pos, footprintN(mover), c.pos.x, c.pos.y)) continue; // pas sous l'empreinte du mover
     const free = nearestFreeOutside(scene, battle, c, mover);
-    if (free) { c.pos = free; moved = true; }
+    if (free) { placeCombatant(c, scene, free); moved = true; }
   }
   return moved;
 }
@@ -122,18 +124,18 @@ export function applyZoneCrossings(get: Get, set: SetFn, mover: Combatant, path:
   if (!battle?.zones?.length || !path.length) return;
   const resolveCaster = (id?: string) => (id ? actorIn(get(), id) : undefined);
   const lines = crossZones(battle.zones, mover, path, resolveCaster, battleRng(), get().forgerUnId);
-  for (const l of lines) battle.log.push(ev('condition', l, mover.id));
+  for (const l of lines) battle.log.push(ev('etat', l, mover.id));
   if (lines.length) bus.emit(EVT.SCENE_DIRTY);
   if (mover.dead || isOutOfAction(mover)) return;
   for (const z of battle.zones) {
     if (!z.crossTest || !path.some((p) => zoneCovers(z, p))) continue;
-    if (zoneSansEffetSur(z, mover)) { battle.log.push(ev('info', t('cf.spellDomainImmune', { name: mover.label, spell: z.label }), mover.id)); continue; }
-    battle.log.push(ev('move', t('cf.zoneCross', { name: mover.label, zone: z.label }), mover.id));
+    if (zoneSansEffetSur(z, mover)) { battle.log.push(ev('information', t('cf.immuniteAuDomaine', { name: mover.label, spell: z.label }), mover.id)); continue; }
+    battle.log.push(ev('deplacement', t('cf.traverseeDeZone', { name: mover.label, zone: z.label }), mover.id));
     bus.emit(EVT.SCENE_DIRTY);
     const caster = resolveCaster(z.casterId) ?? mover;
     const flow: CoreFlow<EffectOp> = {
-      kind: 'test', test: z.crossTest, success: EMPTY_FLOW,
-      fail: z.onCross?.length ? { kind: 'do', effect: { type: 'ops', ops: z.onCross, on: 'target' } } : EMPTY_FLOW,
+      kind: 'test', test: z.crossTest, reussite: EMPTY_FLOW,
+      echec: z.onCross?.length ? { kind: 'effet', effet: { type: 'ops', ops: z.onCross, on: 'target' } } : EMPTY_FLOW,
     };
     // L'ENTITÉ qui a posé la zone voyage avec le Test : la fenêtre dit ce qui barre le passage (#1262 V2 L6d).
     testerLaTraverseeDeZone(get, set, mover, caster, flow, z.label, z.source);

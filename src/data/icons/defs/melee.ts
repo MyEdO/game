@@ -10,7 +10,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'melee/grapple',
+    id: 'melee/empoignade',
     label: 'Empoignade',
     // Deux avant-bras entrelacés en lutte.
     svg:
@@ -19,7 +19,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="12" cy="18.4" r="1.6"/>`,
   },
   {
-    id: 'melee/tumble',
+    id: 'melee/roule-boule',
     label: 'Roulé-boulé',
     // Figure en boule roulant sur elle-même.
     svg:
@@ -29,7 +29,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M4.4 19.8 C6.5 18.5 9 18 11.7 18.3"/>`,
   },
   {
-    id: 'melee/disengage',
+    id: 'melee/se-desengager',
     label: 'Se désengager',
     // Trajectoire qui revient en arrière, hors de la portée de la lame restée plantée.
     svg:
@@ -38,7 +38,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M20.6 3.4 L20.6 12.4 M18.5 12.7 L22.6 12.7"/>`,
   },
   {
-    id: 'melee/close-in',
+    id: 'melee/au-contact',
     label: 'Au contact',
     // Poing tendu qui vient au contact.
     svg:
@@ -46,7 +46,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M17.9 5.4 L19.7 3.6 M19.4 8.1 L21.7 7.6 M15.6 3.3 L15.9 1"/>`,
   },
   {
-    id: 'melee/flee',
+    id: 'melee/fuir',
     label: 'Fuir',
     // Silhouette en pleine course.
     svg:
@@ -54,7 +54,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M11.6 8.6 L14.6 10.1 L17.6 8.9 M14.6 10.1 L13.3 14.4 L16.6 18.9 M13.3 14.4 L8.7 16.3 L6.1 20.3 M13.3 14.4 L10.3 12.6 L7.3 13.4"/>`,
   },
   {
-    id: 'melee/pulled-punch',
+    id: 'melee/retenir-ses-coups',
     label: 'Retenir ses coups',
     // Poing serré levé, retenu (non létal).
     svg:
@@ -65,7 +65,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M7.4 13.6 C5.7 14.3 4.9 15.6 5 17.1"/>`,
   },
   {
-    id: 'melee/trample',
+    id: 'melee/pietinement',
     label: 'Piétinement',
     // Botte qui s'écrase au sol, impact en dessous.
     svg:

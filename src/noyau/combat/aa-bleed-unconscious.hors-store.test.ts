@@ -30,10 +30,10 @@ describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)',
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true)); // une seule source vivante → RNG déterministe
     // Hors Mort Subite, donc en jeu à 0 PB : PNJ important (LDB 18 l.46), à Talent Chanceux (AA 07 l.67).
@@ -46,7 +46,7 @@ describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)',
 
   function roundEndHooksOnly() {
     const battle = banc.getState().battle!;
-    const sink = (line: string, c?: Combatant) => battle.log.push(ev('condition', line, c?.id));
+    const sink = (line: string, c?: Combatant) => battle.log.push(ev('etat', line, c?.id));
     const ctx: CombatHookCtx = { get: banc.getState, set: banc.setState, battle, sink };
     runCombatHooks('onRoundEnd', ctx);
     return battle;

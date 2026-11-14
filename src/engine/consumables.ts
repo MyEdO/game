@@ -1,7 +1,7 @@
 /**
  * Objets consommables — drogues (LDB 71), herbes et potions (LDB 72), outils (LDB 67). L'effet est un
  * **Flow** (`TrappingData.consumable`, lu au catalogue par `consommableDe`) : MÊME structure
- * authorée que les sorts/triggers — feuilles `do` d'EffectOp, branches `if`, et nœuds `test` pour les
+ * authorée que les sorts/triggers — feuilles `effet` d'EffectOp, branches `si`, et nœuds `test` pour les
  * Tests « au boire » (Brise-cœur « Combattu avec un Test de Résistance Complexe (-10) », Belladone…),
  * résolus CADENCE-AWARE par le runner state (`noyau/consumableFlow.runConsumable`) — jamais un jet
  * silencieux de héros. Ce module ne porte que le PUR : prédicat, durée, bake.
@@ -27,11 +27,11 @@ export function consommableDe(item: Pick<ItemInstance, 'trappingId'>): Flow | un
   return item.trappingId ? findTrappingById(item.trappingId)?.consumable : undefined;
 }
 
-/** L'objet est-il un consommable utilisable ? Flow présent et NON VIDE (un `seq` sans étape = rien à
+/** L'objet est-il un consommable utilisable ? Flow présent et NON VIDE (un `sequence` sans étape = rien à
  *  boire). Sert l'icône et tout filtre « utilisable » sans Combatant sous la main. */
 export function isConsumable(item: Pick<ItemInstance, 'trappingId'>): boolean {
   const f = consommableDe(item);
-  return !!f && !(f.kind === 'seq' && f.steps.length === 0);
+  return !!f && !(f.kind === 'sequence' && f.etapes.length === 0);
 }
 
 /** Échéance d'horloge des effets durables du consommable : `now + durée résolue` (minutes/heures/jours,
@@ -53,14 +53,14 @@ export function consumableUntilTime(item: ItemInstance, now: number, target: Com
 export function bakeConsumableFlow(flow: Flow, heroId: string, untilTime: number | undefined, label: string): Flow {
   const bake = (f: Flow): Flow => {
     switch (f.kind) {
-      case 'do': {
-        const e: EffectOp = { ...f.effect, on: 'hero', heroId, label, ...(untilTime != null ? { untilTime } : {}) };
-        return { kind: 'do', effect: e };
+      case 'effet': {
+        const e: EffectOp = { ...f.effet, on: 'heros', heroId, label, ...(untilTime != null ? { untilTime } : {}) };
+        return { kind: 'effet', effet: e };
       }
-      case 'seq': return { kind: 'seq', steps: f.steps.map(bake) };
-      case 'if': return { kind: 'if', cond: f.cond, then: bake(f.then), ...(f.else ? { else: bake(f.else) } : {}) };
-      case 'test': return { kind: 'test', test: f.test, success: bake(f.success), fail: bake(f.fail) };
-      case 'choice': return { kind: 'choice', prompt: f.prompt, ...(f.advantageCost != null ? { advantageCost: f.advantageCost } : {}), ...(f.icon ? { icon: f.icon } : {}), yes: bake(f.yes), ...(f.no ? { no: bake(f.no) } : {}) };
+      case 'sequence': return { kind: 'sequence', etapes: f.etapes.map(bake) };
+      case 'si': return { kind: 'si', condition: f.condition, alors: bake(f.alors), ...(f.sinon ? { sinon: bake(f.sinon) } : {}) };
+      case 'test': return { kind: 'test', test: f.test, reussite: bake(f.reussite), echec: bake(f.echec) };
+      case 'choix': return { kind: 'choix', invite: f.invite, ...(f.coutEnAvantage != null ? { coutEnAvantage: f.coutEnAvantage } : {}), ...(f.icon ? { icon: f.icon } : {}), oui: bake(f.oui), ...(f.non ? { non: bake(f.non) } : {}) };
     }
   };
   return bake(flow);
@@ -71,6 +71,6 @@ export function bakeConsumableFlow(flow: Flow, heroId: string, untilTime: number
 export function consumableOps(flow: Flow | undefined): GameOp[] {
   if (!flow) return [];
   const out: GameOp[] = [];
-  walkFlow(flow, (n) => { if (n.kind === 'do') out.push(...n.effect.ops); });
+  walkFlow(flow, (n) => { if (n.kind === 'effet') out.push(...n.effet.ops); });
   return out;
 }

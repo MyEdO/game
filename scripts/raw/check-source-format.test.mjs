@@ -14,7 +14,7 @@ import {
   sitesDuDossier, scanDossier, scanAll, dossiersFR, formeDeLigne1, estNomDeSignet,
   comptesDeTables, balisesResiduelles, liensDIndex, regenerations,
   ecartsAuGrain, mobilierAll, rougesAuSite, titresSoudesAll, titresSoudesDuDossier, imperatifsSoudesAll, lireDossier,
-  FAMILLES, STOCK_PATH, PREFIXES_FR, SOURCE_FORMAT, ecartDuStock,
+  FAMILLES, STOCK_PATH, PREFIXES_FR, SOURCE_FORMAT, ecartDuStock, sansFolioDuDossier,
 } from './check-source-format.mjs'
 import {
   comptesParFamille, ecartDeRegeneration, entreesRegenerees, lireEntreesDeSite, naissanceEnPlace, texteDeStock, texteEnPlace,
@@ -86,6 +86,21 @@ test('sans-folio : un chapitre sans aucune ancre `data-folio` est compté ; l’
   // L'index lui-même n'a pas d'ancre et ne compte pas : sinon TOUT dossier serait hors format.
   assert.deepEqual(sitesDuDossier(DIR, [chapitreCanonique(), indexVivant([])])
     .filter((s) => s.famille === 'sans-folio'), [])
+})
+
+test('#3884 sans-folio : un livre qui DÉCLARE n’imprimer aucun folio se tait ; non déclaré, il est jugé', () => {
+  const fichiers = [{ nom: '01 - X.md', texte: '*Pages PDF 1-4*\n\n## X\n' }, indexVivant(['01 - X.md'])]
+  const liste = listePour(['01 - X.md'])
+  const sansFolio = (declare) => sitesDuDossier(DIR, fichiers, liste, declare).filter((s) => s.famille === 'sans-folio').map((s) => s.file)
+  assert.deepEqual(sansFolio(true), [])
+  assert.deepEqual(sansFolio(false), [`${DIR}/01 - X.md`])
+})
+
+test('#3884 sansFolioDuDossier : la déclaration se lit à la liste de découpe du livre servi par le dossier', () => {
+  const dirDe = (id) => String(livreExtraitDe(id).dir).split('\\').join('/')
+  assert.equal(sansFolioDuDossier(dirDe('pretires-du-pouvoir-derriere-le-trone')), true)
+  assert.equal(sansFolioDuDossier(dirDe('core-rulebook-5e')), false, 'liste sans `sansFolio`')
+  assert.equal(sansFolioDuDossier(dirDe('pretires-du-pouvoir-derriere-le-trone'), undefined, []), false, 'livre sans liste')
 })
 
 test('ancre-seule : une ancre SEULE sur sa ligne est un écart, la même INLINE ne l’est pas', () => {

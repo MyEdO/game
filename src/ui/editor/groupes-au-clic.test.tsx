@@ -24,7 +24,8 @@ import { banishNarrationSchema, hasWhatSchema } from '../../data/schemas/grammai
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { isSocialTest } from '../../engine/skills';
-import { groups, skills } from '../../data';
+import { groups, skills, type CreatureData } from '../../data';
+import type { EntreeVivante } from '../../data/datasets';
 import { CodexEdit } from './codex/CodexEdit';
 import { datasetArray, resetData, setDataset } from '../../data/overrides';
 
@@ -39,7 +40,7 @@ afterEach(() => {
 const GROUPES = [...idsDe('groupe')];
 const DECLARABLES = idsDeLaSousListe('groupe', DECLARABLE_PAR_UN_PORTEUR);
 /** Jokers et relatifs par la FORME de la donnée, jamais par la sous-liste qu'on éprouve. */
-const RELATIFS = groups.filter((g) => g.relatif).map((g) => g.id);
+const RELATIFS: string[] = groups.filter((g) => g.relatif).map((g) => g.id);
 const APPARTENANCE = GROUPES.filter((id) => !RELATIFS.includes(id));
 const JOKER = groups.find((g) => g.matchesAll)?.id;
 const [RELATIF] = RELATIFS;
@@ -121,7 +122,7 @@ describe('barrière d’une zone — `blockGroups` (cible)', () => {
           setScene={(s) => { dernier = s; setScene(s); }}
           sel={{ type: 'effectZone', id: 'zone-b' }} setSel={() => undefined}
           enemyCreatures={[]} openLogic={() => undefined} resizeScene={() => undefined}
-          narratif={emptyNarratif()} tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
+          narratif={emptyNarratif()} tool={{ mode: 'selection' }} armZoneTiles={() => undefined} zoneFocusKey={null}
         />
       );
     }
@@ -187,34 +188,33 @@ describe('Condition `has` — la valeur se choisit dans le registre de `what`', 
 });
 
 describe('atelier du Codex — listes de Groupes', () => {
-  type Entree = { id: string; grantGroups?: string[]; exceptGroups?: string[] };
   /** Monte l'atelier sur l'entrée `id` de `categorie`, ajoute une rangée à `champ`, y choisit `valeur`,
-   *  enregistre, et rend les options offertes et l'entrée posée. */
-  async function choisirAuCodex(categorie: string, ds: 'creatures' | 'groups', id: string, champ: string, valeur: string) {
+   *  enregistre, et rend les options offertes. */
+  async function choisirAuCodex(categorie: string, id: string, champ: string, valeur: string) {
     const { container } = monterRacine(<CodexEdit categoryKey={categorie} id={id} onClose={() => undefined} />);
     await cliquer(container, `Ajouter à ${champ}`);
     const offertes = options(selectNomme(container, `${champ} — valeur 1`));
     await choisir(container, `${champ} — valeur 1`, valeur);
     await act(async () => container.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!.click());
-    return { offertes, posee: (datasetArray(ds) as Entree[]).find((e) => e.id === id)! };
+    return offertes;
   }
 
   it('`grantGroups` d’une créature (porteur) : les jokers ne sont pas offerts ; l’id est posé', async () => {
-    const [modele] = datasetArray('creatures') as Entree[];
-    const banc = { ...modele, id: 'creature-de-banc', grantGroups: [] };
-    setDataset('creatures', [...datasetArray('creatures'), banc] as never);
-    const { offertes, posee } = await choisirAuCodex('creatures', 'creatures', banc.id, 'Groupes accordés', DECLARABLE);
+    const [modele] = datasetArray('creatures');
+    const banc: EntreeVivante<CreatureData> = { ...modele, id: 'creature-de-banc', grantGroups: [] };
+    setDataset('creatures', [...datasetArray('creatures'), banc]);
+    const offertes = await choisirAuCodex('creatures', banc.id, 'Groupes accordés', DECLARABLE);
     expect([...offertes].sort()).toEqual([...DECLARABLES].sort());
-    expect(posee.grantGroups).toEqual([DECLARABLE]);
+    expect(datasetArray('creatures').find((e) => e.id === banc.id)?.grantGroups).toEqual([DECLARABLE]);
   });
 
   it('`exceptGroups` d’un Groupe joker (cible) : le registre d’appartenance est offert, jokers compris, relatifs exclus ; l’id est posé', async () => {
     const banc = { id: 'joker-de-banc', type: 'groups', label: 'Joker de banc', matchesAll: true, exceptGroups: [] };
     setDataset('groups', [...datasetArray('groups'), banc] as never);
-    const { offertes, posee } = await choisirAuCodex('groups', 'groups', banc.id, 'Groupes exclus', JOKER!);
+    const offertes = await choisirAuCodex('groups', banc.id, 'Groupes exclus', JOKER!);
     expect(offertes).toContain(JOKER);
     expect(offertes).not.toContain(RELATIF);
     expect(DECLARABLES.filter((g) => !offertes.includes(g))).toEqual([]);
-    expect(posee.exceptGroups).toEqual([JOKER]);
+    expect(datasetArray('groups').find((e) => e.id === banc.id)?.exceptGroups).toEqual([JOKER]);
   });
 });

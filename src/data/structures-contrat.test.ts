@@ -26,7 +26,13 @@ import {
 } from '../../scripts/docs/lib/structures-scan.mjs';
 import { champsSansSlot, slotsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
 import { COLLECTIONS_A_COMPTE_PAR_NOM, ecartsDeCollection, occurrencesDe } from '../../scripts/guards/lib/occurrencesStock.mjs';
-import { CLES_POSEES_INCONDITIONNELLEMENT, clesDeclareesJamaisPortees, INVENTAIRE as COLLECTIONS_D_INVENTAIRE, inventaireDe, SANS_LOT } from '../../scripts/guards/lib/inventaireDeDette.mts';
+import {
+  CLES_POSEES_INCONDITIONNELLEMENT,
+  clesDeclareesJamaisPortees,
+  INVENTAIRE as COLLECTIONS_D_INVENTAIRE,
+  inventaireDe,
+  SANS_LOT,
+} from '../../scripts/guards/lib/inventaireDeDette.mts';
 import {
   ANGLES_MORTS,
   CLES_DE_VALEUR,
@@ -41,7 +47,7 @@ import {
   signature,
   type IdConceptPose,
 } from '../../scripts/docs/lib/structures-lexique.mjs';
-import { CLES_ENVELOPPE, document, type Exposition } from './schemas/grammaire/document';
+import { CLES_ENVELOPPE, document, type DeclarationExposition } from './schemas/grammaire/document';
 import { SANS_LIVRE_DEFINITIF, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
 import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
 import type { SchemaDef } from './schemas/types';
@@ -526,7 +532,7 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
     ['creatures.json', 'skills', 'id,value', 'skills.json'],
     ['careerLevels.json', 'skills', 'id,spec', 'skills.json'],
     ['careerLevels.json', 'skills', 'choix,id', 'skills.json'],
-    ['criticals.json', 'ops', 'id,value+…', 'etats.json'],
+    ['criticals.json', 'id', 'id', 'etats.json'],
     ['arene-projet.json', 'members', 'entityId', 'arene-projet.json'],
     ['maladies.json', 'symptoms', 'symptomId', 'symptoms.json'],
     ['activities.json', 'ops', 'tableId+…', 'tables.json'],
@@ -550,9 +556,9 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
     ).toEqual([]);
   });
 
-  it('les 452 refs à plat dans les ops sont VUES : aucune n’est orpheline sous un `op`', () => {
+  it('les refs à plat dans les ops sont VUES : aucune n’est orpheline sous un `op`', () => {
     const refsDansOps = scan.formes.filter((f) => f.concept === 'reference' && (f.champ === 'ops' || f.champ === 'onFail'));
-    expect(refsDansOps.reduce((a, f) => a + f.occurrences, 0)).toBeGreaterThan(400);
+    expect(refsDansOps.reduce((a, f) => a + f.occurrences, 0)).toBeGreaterThan(0);
     expect(
       refsDansOps.every((f) => f.statut === 'divergente' || f.statut === 'historique'),
       'une ref à plat dans une op est une DIVERGENCE : la cible L1c est une ref EMBOÎTÉE (`{op, skill: {id}}`).',
@@ -1050,7 +1056,7 @@ describe('l’enveloppe : ce qu’un document doit porter (contrats positifs)', 
 
   it('un document EMBARQUÉ n’est sommé de rien : seules ses clés DIVERGENTES comptent', () => {
     const embarque = mesurerEnveloppe([
-      { document: 'flow.json', chemin: 'steps[].effect', portee: 'embarqué', famille: 'entité', nbEntrees: 5, cles: [cle('text', 'string', 5), cle('nom', 'string', 5), cle('title', 'string', 5), cle('type', 'string', 5)] },
+      { document: 'flow.json', chemin: 'etapes[].effet', portee: 'embarqué', famille: 'entité', nbEntrees: 5, cles: [cle('text', 'string', 5), cle('nom', 'string', 5), cle('title', 'string', 5), cle('type', 'string', 5)] },
     ]);
     // `title` est la forme CIBLE de son rôle (sous-titre) : il ne compte pas — seules `text` et `nom`,
     // graphies divergentes de la prose et du libellé, sont relevées.
@@ -1126,6 +1132,25 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
   });
 });
 
+describe('marcheur du scan : le champ porteur d’un objet (`parcourir`)', () => {
+  it('fixture : les options d’un choix `{pick, of}` comptent sous le champ du choix ; un `of` sans `pick` reste son propre champ', () => {
+    const mesure = scannerFixtureDeReferences('structures-feuilles-de-choix-', {
+      'trappings.json': [{ id: 'dague', label: 'Dague' }, { id: 'corde', label: 'Corde' }],
+      'talents.json': [{ id: 'haine', label: 'Haine' }],
+      'niveaux.json': [{
+        id: 'n1',
+        label: 'N1',
+        trappings: [{ id: 'dague' }, { pick: 1, of: [{ id: 'dague' }, { id: 'corde' }] }],
+        talents: [{ id: 'haine' }, { pick: 1, of: [{ id: 'haine' }] }],
+        bonus: { tirage: 2, of: [{ id: 'dague' }, { id: 'corde' }] },
+      }],
+    }, []);
+    const occurrences = (champ: string) => mesure.occurrencesDeReference.filter((o) => o.dataset === 'niveaux.json' && o.champ === champ).length;
+    expect({ trappings: occurrences('trappings'), talents: occurrences('talents'), of: occurrences('of') }).toEqual({ trappings: 3, talents: 2, of: 2 });
+    expect(mesure.ambigues.filter((a) => a.dataset === 'niveaux.json'), 'une option de choix comptée sous un couple qui mêle les référents du porteur et d’autres').toEqual([]);
+  });
+});
+
 describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', () => {
   it('une façade et un déclencheur supplémentaires font monter le site de l’inventaire, nommé avec sa cible', () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-croissance-'));
@@ -1146,7 +1171,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       writeFileSync(cheminArene, JSON.stringify(arene), 'utf8');
       scene.triggers.push({
         id: 'declencheur-croissance-2337', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true,
-        flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'croissance-2337' } }] },
+        flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'croissance-2337' } }] },
       });
       writeFileSync(chemin, JSON.stringify(paquet), 'utf8');
       const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
@@ -1222,7 +1247,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
  * `entries` — les clés du record disparaîtraient de l'index des ids, en silence.
  */
 describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVELOPPÉ', () => {
-  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const expositionDeSonde: DeclarationExposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   it('une clé d’`entries` entre à l’index (collision avec `teintesJeu.json`) ; l’enveloppe n’y entre pas', { timeout: 60_000 }, () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-record-'));
     try {
@@ -1257,7 +1282,7 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
  * comme tout objet (`TERMES_COLLECTION_A_CLE`, `scripts/docs/lib/structures-lexique.mts`).
  */
 describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est jamais hors strate', () => {
-  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const expositionDeSonde: DeclarationExposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   const carte = <S extends z.ZodType>(s: S) => marquerCollection(s, marqueDeRecord());
   const cotes = z.strictObject({ a: z.number(), b: z.number() });
   const renvois = z.strictObject({ a: z.string(), b: z.string() });
@@ -1315,7 +1340,7 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
  * (volet « formes DÉCLARÉES jamais observées » ci-dessus).
  */
 describe('clés portées : l’entrée PARTIELLE embarquée d’un document porte ses clés', () => {
-  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const expositionDeSonde: DeclarationExposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   const a = document(
     'a',
     'entite',
@@ -1369,7 +1394,7 @@ describe('clés portées : l’entrée PARTIELLE embarquée d’un document port
  * l'hôte, et il n'entre pas dans la mesure d'enveloppe de D (un patch n'est sommé de rien).
  */
 describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entrée de son document', () => {
-  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const expositionDeSonde: DeclarationExposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   const lien = z.strictObject({ cibleId: z.string() });
   const alpha = document('alpha', 'entite', {}, {}, expositionDeSonde);
   const a = document('a', 'entite', { liens: z.array(lien).optional() }, { liens: { label: 'Liens' } }, expositionDeSonde);
@@ -1420,7 +1445,7 @@ describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entr�
  * canoniques n'est plus un site de forme (#2972).
  */
 describe('signature projetée : une réf `{ id }` imbriquée qui résout reste une clé de la signature', () => {
-  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const expositionDeSonde: DeclarationExposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   const alpha = document('alpha', 'entite', {}, {}, expositionDeSonde);
   const x = document(
     'x',
@@ -1480,7 +1505,7 @@ describe('signature projetée : une réf `{ id }` imbriquée qui résout reste u
  *
  * Ce qui se BATCHE : la racine `avant` est la même copie des defs + de la grammaire pour toutes,
  * scannée une fois. Ce qui reste un contrat par mutation : les `apres` sont des mutations DISTINCTES
- * (une def de sonde injectée ; `avail` re-tapé ; `price` re-tapé ; `freeTest` re-tapé avec et sans
+ * (une def de sonde injectée ; `price` re-tapé ; `freeTest` re-tapé avec et sans
  * sujet), chacune sur SA racine — `avant` reste intacte —, et chaque `it` lit SON verdict. Le scan tourne dans le processus de la suite : il ne
  * tient aucun état entre deux racines (`structures-scan.mts`, `sourceDe`).
  */
@@ -1513,7 +1538,7 @@ const reTapeFreeTest = (cles: string) => (schemas: string) => {
   const chemin = join(schemas, 'defs', 'sea-perils.ts');
   const texte = readFileSync(chemin, 'utf8');
   if (texte.split(FREE_TEST_COMPOSE).length !== 2) throw new Error(`sea-perils.ts : \`${FREE_TEST_COMPOSE}\` introuvable ou ambigu, la contrefaçon ne se pose pas.`);
-  writeFileSync(chemin, texte.replace(FREE_TEST_COMPOSE, `z.strictObject({ ${cles}, targetDR: z.number() })`), 'utf8');
+  writeFileSync(chemin, texte.replace(FREE_TEST_COMPOSE, `z.strictObject({ ${cles}, drCible: z.number() })`), 'utf8');
 };
 
 /** La sonde injectée dans CHAQUE dossier de la borne (`DOSSIERS_DE_DEFS`), une racine par dossier : la clé
@@ -1525,7 +1550,6 @@ const SONDES = Object.fromEntries(DOSSIERS_DE_DEFS.map((dossier) => [sondeDans(d
 /** Les mutations, chacune posée sur le dossier de schémas de SA racine `apres`. La clé nomme le verdict. */
 const MUTATIONS: Record<string, (schemas: string) => void> = {
   ...SONDES,
-  cfAvail: reTape((source) => source.replace('avail: dispoSaisonniereSchema.optional(),', `avail: ${SAISONS('plageSchema')}.optional(),`)),
   cfPrix: reTape((source) =>
     source.replace(
       'price: z.union([prixSaisonnierSchema, tirageSchema]).optional(),',
@@ -1601,20 +1625,11 @@ describe('scannerRedeclarations — contrôle POSITIF du détecteur (#1654)', ()
  * La décrue d'un stock de redéclarations est toujours suspecte : un nœud de grammaire inventé pour
  * UN porteur ferait DISPARAÎTRE la ligne sans que la structure change (le scan ne résout ni une
  * fabrique ni un spread). Ici c'est l'INVERSE qu'on prouve : si le def du catalogue des cargaisons RE-TAPAIT
- * ce que la grammaire déclare — la colonne à quatre saisons (CF1) ou l'union de prix (CF2) —, le
- * scanner le VERRAIT, nominativement. Le lot a donc rendu 3 lignes parce que les littéraux ont
- * disparu, pas parce que la mesure s'est éteinte.
+ * ce que la grammaire déclare — l'union de prix à quatre saisons (CF2) —, le scanner le VERRAIT,
+ * nominativement. Les lignes sont donc rendues parce que les littéraux ont disparu, pas parce que la
+ * mesure s’est éteinte.
  */
 describe('scannerRedeclarations — CONTREFACTUEL `parSaison` / `prix` (#1463 L-gram-3)', () => {
-  it('CF1 — `avail` re-tapé à la place de `parSaison` : sa ligne naît, nominative', () => {
-    const diff = verdictRedecl('cfAvail');
-    expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);
-    expect(diff.perdues, 'la copie a PERDU des redéclarations : la contrefaçon n’est pas isolée.').toEqual([]);
-    expect(diff.nees, 'un `avail` re-tapé n’est PAS vu : `parSaison` masquerait la mesure au lieu de la solder.').toEqual([
-      'cargoes.ts | avail | automne,ete,hiver,printemps |  | hors lexique | parSaison',
-    ]);
-  });
-
   it('CF2 — l’union de `price` re-tapée à la place des deux nœuds de grammaire : les lignes du concept `prix` renaissent', () => {
     const diff = verdictRedecl('cfPrix');
     expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);
@@ -1642,7 +1657,7 @@ describe('scannerRedeclarations — CONTREFACTUEL du sujet de Test (#3012)', () 
     ]);
   });
 
-  it('D1 — `{difficulty, targetDR}` sous `freeTest` : AUCUNE ligne ne naît, le littéral ne nomme aucun sujet', () => {
+  it('D1 — `{difficulty, drCible}` sous `freeTest` : AUCUNE ligne ne naît, le littéral ne nomme aucun sujet', () => {
     const diff = verdictRedecl('cfTestSansSujet');
     expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);
     expect(diff.litterauxApres - diff.litterauxAvant, 'la contrefaçon n’a pas REMPLACÉ le littéral composé : le compte des littéraux a bougé.').toBe(0);

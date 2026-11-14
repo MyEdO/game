@@ -80,7 +80,7 @@ export const FABRIQUES_D_ANALYSE = Object.freeze([
 export const SOURCES_DE_CORPUS = Object.freeze(['readCorpus'])
 
 const DERIVATIONS = new Set(['map', 'flatMap', 'filter', 'join'])
-const MEMOS = new Set(['memoByRef', 'memoByRefDeps'])
+const MEMOS = new Set(['memoByRef', 'memoByRefDeps', 'memoByDeps'])
 
 /** La primitive de DÉTENTION d'un fichier de test : module (chemin sans extension depuis la racine)
  *  et nom exporté. Son appel, importé de ce module dans un fichier de test, rend un lecteur libéré. */

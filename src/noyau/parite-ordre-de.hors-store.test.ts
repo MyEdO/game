@@ -42,7 +42,7 @@ const PA_TOTAL = 18;
 const lastCrit = (c: Combatant): string | undefined => (c.critEntriesSuffered ?? [])[(c.critEntriesSuffered ?? []).length - 1];
 /** PA d'armure naturelle d'une mutation (`ap` par Localisation) : la source d'où se dérive le PA d'un héros. LDB 19 */
 const mutationDePA = (pa: ArmourPoints): Mutation => ({
-  id: 'peau-de-test', label: 'Peau de test', desc: '', kind: 'physique', roll: 0,
+  id: 'peau-de-test', type: 'mutations', label: 'Peau de test', desc: '', kind: 'physique', roll: 0,
   passive: (Object.entries(pa) as [HitLocation, number][]).filter(([, n]) => n > 0).map(([loc, amount]) => ({ op: 'ap', loc, amount })),
 });
 const paTotalDe = (c: Combatant): number => Object.values(c.armour).reduce((s, v) => s + v, 0);
@@ -50,7 +50,7 @@ const relire = (id: string): Combatant => banc.getState().battle!.combatants.fin
 
 const critHit = (woundsLost = 2): AttackResult => ({
   hit: true, attackerRoll: 44, netSL: 4, location: 'corps', critLocation: 'corps', damage: 6, woundsLost,
-  critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche',
+  critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche',
 });
 
 function startFight(seed: number, opts: { pa?: ArmourPoints; gmSeat?: number } = {}) {
@@ -60,12 +60,12 @@ function startFight(seed: number, opts: { pa?: ArmourPoints; gmSeat?: number } =
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: opts.gmSeat } });
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   E.important = true; // LDB 18 l.44 : hors Mort subite
   const pa = opts.pa ?? SANS_PA;
   H.items = []; // aucune pièce portée à départager : le PA du héros se dérive de sa mutation, celui de l'ennemi est son profil

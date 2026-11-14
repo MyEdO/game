@@ -9,10 +9,10 @@ import { d100, d10, type RNG } from './dice';
 import { AVAILABILITIES, type Availability, type TestedAvailability } from './types';
 import { disponibilite as dispoJson } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
+import type { Settlement } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
 import { t } from '../i18n';
 
-export type Settlement = 'village' | 'ville' | 'cite';
 export interface CatalogItem { id: string; label: string; availability: Availability | null; }
 export interface StockLine { id: string; label: string; qty: number; test?: { roll: number; target: number } }
 
@@ -21,9 +21,9 @@ export const dispoPct = memoParVersion('disponibilite', () => Object.fromEntries
   dispoJson.dispoPct.map((e) => [e.availability, e.pct]),
 ) as Record<TestedAvailability, Record<Settlement, number>>);
 
-/** Quantité en Cité (LDB 59 l.34) — non chiffrée par le RAW : règle éditable `market-cite-stock`. */
+/** Quantité en Cité (LDB 59 l.34) — non chiffrée par le RAW : règle éditable `marche-cite-stock`. */
 function citeQty(): number {
-  const v = rule('market-cite-stock');
+  const v = rule('marche-cite-stock');
   return typeof v === 'number' ? v : 99;
 }
 

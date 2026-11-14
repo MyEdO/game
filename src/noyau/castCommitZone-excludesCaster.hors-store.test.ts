@@ -10,7 +10,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castCommitZone } from './combatFlow';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
@@ -21,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: 'lancé' });
 
 function caster(x: number, y: number, spellId: string, id = 'caster'): Combatant {
-  const h = pregen(idsDeTest, PREGEN.sorcier);
+  const h = herosDeScenario(idsDeTest, 'sorcier');
   h.id = id; h.label = id; h.pos = { x, y, z: 0 };
   h.wounds = blessuresDeBase(99, 99, h);
   const sk = h.skills.find((s) => s.id === 'langue');
@@ -31,19 +31,19 @@ function caster(x: number, y: number, spellId: string, id = 'caster'): Combatant
   return h;
 }
 
-const mk = (id: string, kind: 'hero' | 'enemy', x: number, y: number, wounds = 40): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', x: number, y: number, wounds = 40): Combatant =>
   (blessuresSurLeProfil({ id, label: id, name: id, kind, pos: { x, y, z: 0 }, wounds: blessuresDeBase(wounds), advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] })) as unknown as Combatant;
-const ally = (id: string, x: number, y: number, wounds = 40): Combatant => mk(id, 'hero', x, y, wounds);
+const ally = (id: string, x: number, y: number, wounds = 40): Combatant => mk(id, 'heros', x, y, wounds);
 // Ennemi hors ZdE, présent pour que le combat reste actif (une Victoire immédiate purgerait les
 // `activeEffects` de fin de combat, faussant la mesure).
-const distantFoe = (): Combatant => mk('FOE', 'enemy', 40, 40, 40);
+const distantFoe = (): Combatant => mk('FOE', 'ennemi', 40, 40, 40);
 
 function setupBattle(c: Combatant, others: Combatant[], spellId: string, missile: boolean) {
   const battle = {
     combatants: [c, ...others], order: [c.id, ...others.map((o) => o.id)], baseOrder: [c.id, ...others.map((o) => o.id)],
-    turn: 0, round: 1, action: 'cast', selectedSpellId: spellId, reachable: new Map(),
+    turn: 0, round: 1, action: 'incantation', selectedSpellId: spellId, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, zones: [],
   } as never;
   banc.setState({ battle, scene: undefined, party: [] });

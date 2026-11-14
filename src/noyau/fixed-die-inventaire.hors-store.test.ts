@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { FLOW_HANDLERS } from './rollFlowSpecs';
+import { FLOWS } from './rollFlowSpecs';
 import { FLOW_VERBS, type FlowKey, type NomDeVerbeDeJet } from './flowVerbs';
 import { fermeturesDuFlux } from './verbesOuverts';
 import type { Combatant } from '../engine/types';
@@ -12,9 +12,9 @@ import { FIXTURES, FLUX, FOE, HERO, PERDANT } from './inventaireDuDeFixe.testkit
  * L'évaluation d'un dé saisi vit dans `makeRollFlow` : elle prend la cible que l'ACCESSEUR DE DÉ du flux
  * (`RollFlowSpec.die`, ou sa dérivation depuis la lentille) désigne, l'évalue par `evaluateTest`, puis la
  * projette par le `write` du même accesseur. Aucun résolveur de flux n'est sollicité — ils traitent
- * `forced` comme un auto-succès de Résilience et rendraient une réussite GRATUITE en ignorant la saisie.
+ * `forcee` comme un auto-succès de Résilience et rendraient une réussite GRATUITE en ignorant la saisie.
  *
- * Cette garde ouvre un pending FIXTURE RÉEL pour CHAQUE flux portant `setForcedRoll` et vérifie les deux
+ * Cette garde ouvre un pending FIXTURE RÉEL pour CHAQUE flux portant `imposerLeResultat` et vérifie les deux
  * invariants du socle :
  *   1. un dé fixé PERDANT ne devient jamais une réussite ;
  *   2. la valeur APPLIQUÉE est la valeur SAISIE.
@@ -38,8 +38,8 @@ const ouvrir = (desFixes: boolean): void => {
 describe('socle du dé fixé — les flux passent TOUS par le même chemin', () => {
   beforeEach(() => ouvrir(true));
 
-  it('chaque flux portant `setForcedRoll` sait réévaluer un dé saisi (accesseur complet)', () => {
-    const sans = FLUX.filter((k) => !FLOW_HANDLERS[k].fixable);
+  it('chaque flux portant `imposerLeResultat` sait réévaluer un dé saisi (accesseur complet)', () => {
+    const sans = FLUX.filter((k) => !FLOWS[k].fixable);
     expect(sans, 'flux sans ACCESSEUR DE DÉ — déclarer `die` (ou une lentille) sur sa spec').toEqual([]);
   });
 
@@ -61,7 +61,7 @@ describe('socle du dé fixé — les flux passent TOUS par le même chemin', () 
     it(`${k} — option active, la pose est OUVERTE au siège qui contrôle le jet`, () => {
       const f = FIXTURES[k]!;
       banc.setState(f.state as never);
-      expect(fermeturesDuFlux(banc.getState(), k, f.pid).setForcedRoll, `${k} : la pose est fermée`).toBeNull();
+      expect(fermeturesDuFlux(banc.getState(), k, f.pid).imposerLeResultat, `${k} : la pose est fermée`).toBeNull();
     });
   }
 });
@@ -76,9 +76,9 @@ describe('socle du dé fixé — les flux passent TOUS par le même chemin', () 
  * Résilience perdu, réussite détruite) ; quatorze flux rendaient le sélecteur en IGNORANT la saisie.
  */
 // Le dé CHOISI est un geste de RÉSILIENCE : il n'a de sens que pour les flux qui la déclarent. Un
-// flux qui n'offre que la POSE (lot de dés d'étal : `verbs: ['setForcedRoll']`) n'a pas de
-// `forceSuccess` à appeler — l'itérer ici mesurerait un verbe qui n'existe pas.
-const FLUX_RESILIENCE = FLUX.filter((k) => (FLOW_VERBS[k].verbs as readonly string[]).includes('forceSuccess'));
+// flux qui n'offre que la POSE (lot de dés d'étal : `verbs: ['imposerLeResultat']`) n'a pas de
+// `forcerLaReussite` à appeler — l'itérer ici mesurerait un verbe qui n'existe pas.
+const FLUX_RESILIENCE = FLUX.filter((k) => (FLOW_VERBS[k].verbs as readonly string[]).includes('forcerLaReussite'));
 
 describe('socle du dé choisi (Résilience) — même chemin, politique en paramètre', () => {
   beforeEach(() => ouvrir(false));

@@ -10,11 +10,6 @@
  * est ROUGE et se NOMME.
  */
 export const TROUS_DE_VALIDATION: Readonly<Record<string, { raison: string; lot: string }>> = {
-  'scene.ts:authoredShipPosteSchema': {
-    raison:
-      'AuthoredShipPoste (engine/types.ts) porte le coffre de la pièce (`ammo: ItemInstance[]`) et `WeaponEnchant[]` : l’écrire strict aujourd’hui exigerait le schéma d’ItemInstance.',
-    lot: 'L3 #1463 — lot NAVAL (postes/artillerie MDG) : l’ItemInstance vient avec le lot possessions.',
-  },
   'narratif.ts:objets': {
     raison:
       'TrappingData EMBARQUÉ dans un preset narratif ≠ schéma de catalogue (mesuré T3-b : `type:"divers"` sans enveloppe de dataset) — le schéma de l’objet appartient au catalogue des possessions, pas au bloc narratif.',

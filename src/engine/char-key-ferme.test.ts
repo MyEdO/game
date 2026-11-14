@@ -46,9 +46,9 @@ describe('CharKey fermé — les tokens courts ne s’écrivent pas (#311, #2724
     const cavalier: NonNullable<MountIncidentEffects['riderTest']> = { test: { skill: { id: 'chevaucher' }, characteristic: 'agilite', difficulty: 'complexe' }, fallM: 2 };
     // @ts-expect-error TS2322
     const cavalierCourt: NonNullable<MountIncidentEffects['riderTest']> = { test: { skill: { id: 'chevaucher' }, characteristic: 'Ag', difficulty: 'complexe' }, fallM: 2 };
-    const physique: (typeof weatherPhysicalTestChars)[number] = 'agilite';
+    const physique: ReturnType<typeof weatherPhysicalTestChars>[number] = 'agilite';
     // @ts-expect-error TS2322
-    const physiqueCourt: (typeof weatherPhysicalTestChars)[number] = 'Ag';
+    const physiqueCourt: ReturnType<typeof weatherPhysicalTestChars>[number] = 'Ag';
     expect([profil, profilCourt, test, testCourt, cavalier, cavalierCourt, physique, physiqueCourt]).toHaveLength(8);
   });
 });
@@ -67,7 +67,7 @@ describe('les champs de donnée qui nomment une Caractéristique refusent le tok
     { nom: 'creatures.optionals[].grant[].characteristic', schema: creaturesSchema,
       fixture: (carac) => creature({ optionals: [{ note: 'swap', label: 'Octroi fixture', remove: [], grant: [{ characteristic: carac, value: 15 }] }] }) },
     { nom: 'activities.tests[].characteristic', schema: activitiesSchema,
-      fixture: (carac) => [{ id: 'activite-fixture', type: 'activities', label: 'Activité fixture', icon: 'nav/rest', contexts: ['voyage'], tests: [{ characteristic: carac }], source: SOURCE }] },
+      fixture: (carac) => [{ id: 'activite-fixture', type: 'activities', label: 'Activité fixture', icon: 'navigation/repos', contexts: ['voyage'], tests: [{ characteristic: carac }], source: SOURCE }] },
     { nom: 'miscast.entries[].test.test.characteristic', schema: miscastSchema,
       fixture: (carac) => [{ id: 'miscast-fixture', type: 'miscast', label: 'Table fixture', die: 'd100', source: SOURCE,
         entries: [{ id: 'fixture-ligne', min: 1, max: 100, label: 'Ligne fixture', test: { test: { characteristic: carac, difficulty: 'accessible' }, onFail: [] } }] }] },

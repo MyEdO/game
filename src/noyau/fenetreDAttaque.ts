@@ -10,7 +10,7 @@ import type { Jeu } from './etat';
 import { FLOWS, refusDAnnulerLAttaque } from './rollFlowSpecs';
 import { composeRollLabel, type RollLabelRef } from './rollSeam';
 import { oppositionDuCoup, type OppositionEnVue } from './jetsEnVue';
-import { combatDistance } from './monde/footprint';
+import { distanceDeCombat } from './monde/footprint';
 import { inBattleId } from './monde/combatants';
 import {
   attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense,
@@ -19,7 +19,17 @@ import {
 import { defenseDodgeMods } from './mount';
 import { LOCALISATIONS_DE_COUP, type Combatant, type Difficulty, type HitLocation, type ModLine, type Weapon } from '../engine/types';
 import type { RollBreakdown } from '../engine/combat';
-import { crowdMod, bestRangedDefense, locationLabel, peutRetenirSesCoups, attackTestOf, isHelplessTarget, issueAuJet, coupAApplique, penaliteDeMainSecondaire } from '../engine/combat';
+import {
+  crowdMod,
+  bestRangedDefense,
+  locationLabel,
+  peutRetenirSesCoups,
+  attackTestOf,
+  isHelplessTarget,
+  issueAuJet,
+  coupAApplique,
+  penaliteDeMainSecondaire,
+} from '../engine/combat';
 import { rule } from '../engine/policy';
 import { isUnarmed } from '../engine/items';
 import { isInanimate } from '../engine/structures';
@@ -95,18 +105,18 @@ export interface FenetreDAttaque {
    *  `rollFlowFactory` (`fermetureDeLaRelance`, `fermetureDuPacte`, `fermetureDeLaResilience`). */
   influences: {
     relancee: boolean;
-    /** Le Sombre Pacte est offert : le jet n'est pas imposé (`FLOWS.attack.fermetures`). */
+    /** Le Sombre Pacte est offert : le jet n'est pas imposé (`FLOWS.attaque.fermetures`). */
     sombrePacte: boolean;
     /** La rangée n'offre aucun dé forcé (`noForcedDie` du web). LDB 16 l.113 ; LDB 17 l.68 */
     sansDeForce: boolean;
-    /** L'inversion offerte et son issue (`FLOWS.attack.reversePreview`), `null` sinon. LDB 23 l.209 ; LDB 10 */
-    inversion: { apercu: ReturnType<typeof FLOWS.attack.reversePreview> } | null;
+    /** L'inversion offerte et son issue (`FLOWS.attaque.reversePreview`), `null` sinon. LDB 23 l.209 ; LDB 10 */
+    inversion: { apercu: ReturnType<typeof FLOWS.attaque.reversePreview> } | null;
   };
   /** Test opposé tranché (`oppositionDuCoup`). */
   opposition: OppositionEnVue | null;
   /** L'issue du coup, la ligne de touche du moteur (`issueAuJet`) ; `null` avant le jet ou quand une Défense
    *  surfacée va s'interposer (#1004). */
-  issue: { genre: 'crit' | 'damage' | 'attack'; ligne: string } | null;
+  issue: { genre: 'critique' | 'degats' | 'attaque'; ligne: string } | null;
   /** Une Défense surfacée va s'interposer avant l'application (`surfacedDefensePending`). */
   defenseAttendue: boolean;
   attente: string | null;
@@ -118,7 +128,7 @@ export interface FenetreDAttaque {
 
 /** Fiche Codex du NOM du jet d'attaque, même source que son libellé (`attackTestOf`) : la Caractéristique qui
  *  résout une Résolution alternative, sinon la Compétence lancée. */
-function refDuNomDuJet(attaquant: Combatant, arme: Weapon | undefined, kind: 'melee' | 'ranged'): RollLabelRef {
+function refDuNomDuJet(attaquant: Combatant, arme: Weapon | undefined, kind: 'melee' | 'distance'): RollLabelRef {
   const test = attackTestOf(attaquant, arme, kind);
   const label = testSkillLabel(test);
   return test.skill
@@ -135,33 +145,33 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const cible = inBattleId(battle, pa.targetId);
   if (!attaquant || !cible) return null;
   const get = () => s;
-  const arme = attackWeaponOf(battle, attaquant, cible, pa);
+  const arme = attackWeaponOf(s.scene, battle, attaquant, cible, pa);
   const armeTenue = !pa.freeKind;
-  const intitule = armeTenue ? libelleDuJet('attack') : arme.label;
+  const intitule = armeTenue ? libelleDuJet('attaque') : arme.label;
   const res = pa.result;
   const jete = !!res;
-  const tir = arme.type === 'ranged';
+  const tir = arme.type === 'distance';
   const auxArmes = armeTenue ? attaquant.weapons.filter((w) => !isUnarmed(w) && !!w.uid) : [];
   // LDB 14 l.78
   const penaliteSecondaire = penaliteDeMainSecondaire(attaquant);
   const victime = victimeDuCoup(battle, cible, pa);
   const coup = res ? issueAuJet(victime, coupAApplique(res, pa.grapple, victime), arme, attaquant) : null;
-  const heros = attaquant.kind === 'hero';
+  const heros = attaquant.kind === 'heros';
   // LDB 10 l.767-773
   const deuxArmesPossibles = !res && armeTenue && heros && attackModesFor(attaquant).includes('dual-wield')
     && attaquant.weapons.some((w) => w.hand === 'main' && w.type === 'melee' && (w.hands ?? 1) === 1)
-    && attaquant.weapons.some((w) => w.hand === 'off' && w.type === 'melee' && (w.hands ?? 1) === 1)
+    && attaquant.weapons.some((w) => w.hand === 'secondaire' && w.type === 'melee' && (w.hands ?? 1) === 1)
     && !pa.cleave && !pa.dualSecond;
   // LDB 14 l.106
-  const auContact = !res && tir ? crowdEligible(battle, attaquant, cible) : [];
+  const auContact = !res && tir ? crowdEligible(s.scene, battle, attaquant, cible) : [];
   const bonusDuTas = crowdMod(auContact.length);
   // LDB 14 l.70 ; l.106 ; l.116
-  const immobileALaConsole = !!battle.stances?.[attaquant.id]?.heldGround;
+  const immobileALaConsole = !!battle.stances?.[attaquant.id]?.tirImmobile;
   const raisonImmobile = !res && tir ? heldGroundStanceBlock(battle, attaquant, arme) : null;
-  const immobileSansObjet = !pa.heldGround && immobileALaConsole && !!raisonImmobile;
-  const tasALaConsole = !!battle.stances?.[attaquant.id]?.intoCrowd;
-  const raisonTas = !res && tir ? intoCrowdStanceBlock(battle, attaquant, arme, cible) : null;
-  const tasSansObjet = !pa.intoCrowd && tasALaConsole && !!raisonTas;
+  const immobileSansObjet = !pa.tirImmobile && immobileALaConsole && !!raisonImmobile;
+  const tasALaConsole = !!battle.stances?.[attaquant.id]?.dansLeTas;
+  const raisonTas = !res && tir ? intoCrowdStanceBlock(s.scene, battle, attaquant, arme, cible) : null;
+  const tasSansObjet = !pa.dansLeTas && tasALaConsole && !!raisonTas;
   // ADE II 02 l.677
   const objetSource = objetSourceDeLArme(attaquant, arme);
   const corde = !res && tir && heros && !!objetSource && itemCapability(objetSource, 'ropeMode');
@@ -169,9 +179,9 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const retenir = !res && heros && peutRetenirSesCoups(arme);
   // LDB 14 l.159
   const empoigne = !res && arme.type === 'melee' && isUnarmed(arme) && heros && peutEtreEmpoigne(cible);
-  const apercu = !res ? previewAttack(get, attaquant, cible, pa.location ?? undefined, { intoCrowd: pa.intoCrowd, heldGround: pa.heldGround, weaponUid: pa.weaponUid, harpoonRopeCut: pa.harpoonRopeCut, weapon: arme }) : null;
+  const apercu = !res ? previewAttack(get, attaquant, cible, pa.location ?? undefined, { dansLeTas: pa.dansLeTas, tirImmobile: pa.tirImmobile, weaponUid: pa.weaponUid, harpoonRopeCut: pa.harpoonRopeCut, weapon: arme }) : null;
   // LDB 13 l.135
-  const defenseAuTir = !res && tir ? bestRangedDefense(attaquant, cible, arme, combatDistance(attaquant, cible)) : undefined;
+  const defenseAuTir = !res && tir ? bestRangedDefense(attaquant, cible, arme, distanceDeCombat(attaquant, cible)) : undefined;
   const esquive = defenseDodgeMods(s, cible);
   const annonce = res
     ? undefined
@@ -179,18 +189,18 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
       ? (defenseAuTir ? previewDefense(cible, { mode: defenseAuTir.mode, parryWeapon: defenseAuTir.parryWeapon, vsWeapon: arme, dodgeMods: esquive }) : undefined)
       : isInanimate(cible) ? undefined : previewDefense(cible, { vsWeapon: arme, dodgeMods: esquive });
   const defenseAnnoncee: DefenseAnnoncee | undefined = annonce && { ...annonce, difficulte: difficultyText(annonce.difficulty) };
-  const inversion = FLOWS.attack.reverseAvailable(get) ? { apercu: FLOWS.attack.reversePreview(get) } : null;
+  const inversion = FLOWS.attaque.reverseAvailable(get) ? { apercu: FLOWS.attaque.reversePreview(get) } : null;
   const bloque = apercu && (apercu.blocked || !apercu.inRange) ? t(apercu.blocked ? 'attaque.sansLigneDeVue' : 'attaque.horsDePortee') : null;
   const defenseAttendue = !!res && surfacedDefensePending(s, attaquant, cible, arme, pa);
-  const bascule = (reglage: ReglageDu<'attack'>, active: boolean, note: string | null): BasculeNommee => ({ geste: gesteDuReglage('attack', reglage), libelle: libelleDuReglage('attack', reglage), active, note });
-  const choix = <V extends string>(reglage: ReglageDu<'attack'>, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> => ({ geste: gesteDuReglage('attack', reglage), libelle: libelleDuReglage('attack', reglage), choisie, options });
+  const bascule = (reglage: ReglageDu<'attaque'>, active: boolean, note: string | null): BasculeNommee => ({ geste: gesteDuReglage('attaque', reglage), libelle: libelleDuReglage('attaque', reglage), active, note });
+  const choix = <V extends string>(reglage: ReglageDu<'attaque'>, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> => ({ geste: gesteDuReglage('attaque', reglage), libelle: libelleDuReglage('attaque', reglage), choisie, options });
   const localisations = (l: HitLocation): { valeur: HitLocation; libelle: string } => ({ valeur: l, libelle: t('attaque.lieuVise', { lieu: locationLabel(l, cible.bodyShape) }) });
 
   return {
     attaquantId: attaquant.id,
     cibleId: cible.id,
     intitule,
-    sousTitre: composeRollLabel(attaquant, intitule, attackTestOf(attaquant, arme, tir ? 'ranged' : 'melee')),
+    sousTitre: composeRollLabel(attaquant, intitule, attackTestOf(attaquant, arme, tir ? 'distance' : 'melee')),
     arme: arme.label,
     degats: apercu ? apercu.dmg : null,
     jete,
@@ -198,30 +208,30 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     choixDArme: !res && auxArmes.length >= 2 && !pa.dualMode
       ? choix('arme', pa.weaponUid ?? arme.uid ?? null, auxArmes.map((w) => ({
           valeur: w.uid!,
-          libelle: w.hand === 'off' && penaliteSecondaire ? t('attaque.armeSecondaire', { arme: w.label, penalite: penaliteSecondaire }) : w.label,
+          libelle: w.hand === 'secondaire' && penaliteSecondaire ? t('attaque.armeSecondaire', { arme: w.label, penalite: penaliteSecondaire }) : w.label,
         })))
       : null,
     localisation: res || isInanimate(cible)
       ? null
       : choix('localisation', pa.location ?? null, [{ valeur: null, libelle: t('attaque.auHasard') }, ...LOCALISATIONS_A_L_ECRAN.map(localisations)]),
-    tirDansLeTas: !res && tir && (!!pa.intoCrowd || !raisonTas || tasSansObjet)
+    tirDansLeTas: !res && tir && (!!pa.dansLeTas || !raisonTas || tasSansObjet)
       ? {
-          armee: !!pa.intoCrowd,
+          armee: !!pa.dansLeTas,
           sansObjet: tasSansObjet,
-          etat: pa.intoCrowd
+          etat: pa.dansLeTas
             ? (bonusDuTas ? t('attaque.tas.armeeBonus', { bonus: bonusDuTas.value }) : t('attaque.tas.armee'))
             : t(tasSansObjet ? 'attaque.tas.sansObjet' : 'attaque.tas.nonArmee'),
-          note: pa.intoCrowd
+          note: pa.dansLeTas
             ? t('attaque.tas.noteArmee', { n: auContact.length })
             : tasSansObjet ? t('attaque.tas.noteSansObjet', { raison: raisonTas! }) : t('attaque.tas.noteNonArmee'),
         }
       : null,
-    tirImmobile: !res && tir && (!!pa.heldGround || (!pa.interrupt && !raisonImmobile) || immobileSansObjet)
+    tirImmobile: !res && tir && (!!pa.tirImmobile || (!pa.interrupt && !raisonImmobile) || immobileSansObjet)
       ? {
-          armee: !!pa.heldGround,
+          armee: !!pa.tirImmobile,
           sansObjet: immobileSansObjet,
-          etat: t(pa.heldGround ? 'attaque.immobile.arme' : immobileSansObjet ? 'attaque.immobile.sansObjet' : 'attaque.immobile.nonArme'),
-          note: pa.heldGround
+          etat: t(pa.tirImmobile ? 'attaque.immobile.arme' : immobileSansObjet ? 'attaque.immobile.sansObjet' : 'attaque.immobile.nonArme'),
+          note: pa.tirImmobile
             ? t('attaque.immobile.noteArme')
             : immobileSansObjet ? t('attaque.immobile.noteSansObjet', { raison: raisonImmobile! }) : t('attaque.immobile.noteNonArme'),
         }
@@ -257,18 +267,18 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
       : (!bloque && defenseAnnoncee ? { pending: defenseAnnoncee } : null),
     influences: {
       relancee: !!pa.rerolled,
-      sombrePacte: FLOWS.attack.fermetures(get).darkPact !== 'jetImpose',
+      sombrePacte: FLOWS.attaque.fermetures(get).pactiser !== 'jetImpose',
       sansDeForce: isHelplessTarget(cible),
       inversion,
     },
     opposition: res ? oppositionDuCoup(res) : null,
     issue: res && !defenseAttendue
-      ? { genre: coup?.compte.critiques.length ? 'crit' : res.hit ? 'damage' : 'attack', ligne: coup?.ligne ?? res.log }
+      ? { genre: coup?.compte.critiques.length ? 'critique' : res.hit ? 'degats' : 'attaque', ligne: coup?.ligne ?? res.log }
       : null,
     defenseAttendue,
     attente: res && defenseAttendue ? t('defense.awaiting', { cible: cible.label }) : null,
     // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
-    critiqueALocaliser: res && pa.forced && coup?.compte.relance
+    critiqueALocaliser: res && pa.forcee && coup?.compte.relance
       ? choix('localisationDuCritique', res.critLocation ?? null, LOCALISATIONS_A_L_ECRAN.map((l) => ({ valeur: l, libelle: locationLabel(l, cible.bodyShape) })))
       : null,
     annulation: refusDAnnulerLAttaque(pa),

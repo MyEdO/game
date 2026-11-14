@@ -4,7 +4,7 @@ import { findCargoEntryById } from '../engine/cargo';
 import { bulkCarriers, bulkCargoRefs, primaryCargoCarrier, type CarrierStateSlice } from '../noyau/carriers';
 import { carrierFreeEnc } from '../engine/cargo';
 import { placeById } from '../noyau/worldMap';
-import { toMoney } from '../engine/money';
+import { fromBrass, PA_PER_CO } from '../engine/money';
 import { refusDEvaluerLeVin } from '../noyau/landMarketFlow';
 import { FORMULES_DES_MARCHES, achatDeLOffre, devisDeLAchat } from '../noyau/cargaison';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
@@ -118,7 +118,7 @@ export function LandMarketView() {
                 enc={(o) => o.enc}
                 encLabel="Dispo"
                 priceLabel="Prix/Enc"
-                price={(o) => toMoney({ gold: o.basePrice })}
+                price={(o) => fromBrass(o.basePrice * PA_PER_CO)}
                 disabled={(o) => {
                   const refus = devisDe(o.cargoId).refus;
                   return refus ? { reason: refus } : false;
@@ -131,9 +131,9 @@ export function LandMarketView() {
                       <NumberField
                         variant="nu" label={`Enc à acheter — ${o.label}`}
                         min={1} max={devis.max} value={devis.enc} disabled={!!refusHote}
-                        onChange={(n) => { composer(o.cargoId); choisir('marcheDeTerre', 'enc', n); }}
+                        onChange={(n) => { composer(o.cargoId); choisir('marcheDeTerre', 'encombrement', n); }}
                       />
-                      <span className="market-offer-total">≈ <Coins money={toMoney({ gold: devis.estimationGold })} /></span>
+                      <span className="market-offer-total">≈ <Coins money={fromBrass(devis.estimationGold * PA_PER_CO)} /></span>
                       <GatedAction
                         id={`market-buy-${o.cargoId}`}
                         label="Acheter"
@@ -160,7 +160,7 @@ export function LandMarketView() {
                 label={(r) => cargoLabel(r.lot.cargoId)}
                 enc={(r) => r.lot.enc}
                 priceLabel="Prix base/Enc"
-                price={(r) => toMoney({ gold: r.lot.basePriceGold })}
+                price={(r) => fromBrass(r.lot.basePriceGold * PA_PER_CO)}
                 action={(r) => (
                   <div className="port-sell-actions">
                     <GatedAction

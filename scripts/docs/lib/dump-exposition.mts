@@ -1,7 +1,7 @@
 // Passerelle TS→JSON de l'EXPOSITION déclarée par les defs (#1472) : `scripts/docs/build-donnees.mjs`
 // tourne sous Node nu et ne peut pas importer `src/data/schemas/_registry.generated.ts` ; ce dumper,
-// lancé par `npx tsx`, écrit sur stdout la table `fichier → { codex, edit }` telle que les defs la
-// DÉCLARENT (aucune table à la main, aucune re-dérivation : la source reste `document(...)`).
+// lancé par `npx tsx`, écrit sur stdout la table `fichier → { codex, edit }` telle que `document()`
+// la pose au handle (aucune table à la main, aucune re-dérivation : la source reste `document(...)`).
 import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated';
 
 const out: Record<string, unknown> = {};

@@ -126,20 +126,20 @@ describe('Interlude — flux start/end', () => {
 
   it('en combat : refusé', () => {
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.getState().ouvrirLInterlude(1);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     expect(banc.getState().interlude).toBeNull();
   });
 
-  it('règle interlude-enabled OFF : l’effet interlude est ignoré silencieusement', () => {
-    setRule('interlude-enabled', false);
+  it('règle interlude-actif OFF : l’effet interlude est ignoré silencieusement', () => {
+    setRule('interlude-actif', false);
     applyEffects(banc.getState, banc.setState, [{ type: 'interlude', weeks: 2 }]);
     expect(banc.getState().interlude).toBeNull();
-    resetRule('interlude-enabled');
+    resetRule('interlude-actif');
   });
 
-  it('interlude-elf-duty (défaut) : un elfe ≥3 semaines perd 1 Activité (devoir)', () => {
+  it('interlude-devoir-elfique (défaut) : un elfe ≥3 semaines perd 1 Activité (devoir)', () => {
     const elf = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
     elf.species = 'hauts-elfes';
     banc.setState({ party: [elf], interlude: null });
@@ -150,8 +150,8 @@ describe('Interlude — flux start/end', () => {
     expect(st.left).toBe(Math.max(0, 3 - (ev.fx?.loseActivity ? 1 : 0) - 1)); // −1 devoir elfique
   });
 
-  it('interlude-elf-duty OFF : l’elfe garde son Activité', () => {
-    setRule('interlude-elf-duty', false);
+  it('interlude-devoir-elfique OFF : l’elfe garde son Activité', () => {
+    setRule('interlude-devoir-elfique', false);
     const elf = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
     elf.species = 'hauts-elfes';
     banc.setState({ party: [elf], interlude: null });
@@ -160,7 +160,7 @@ describe('Interlude — flux start/end', () => {
     const st = banc.getState().interlude!.perHero[elf.id];
     const ev = eventOf(st);
     expect(st.left).toBe(Math.max(0, 3 - (ev.fx?.loseActivity ? 1 : 0))); // pas de devoir
-    resetRule('interlude-elf-duty');
+    resetRule('interlude-devoir-elfique');
   });
 
   it('le devoir suit le groupe `elfe` de l’espèce (`grantGroups`), pas son id : groupe retiré → pas de devoir', () => {

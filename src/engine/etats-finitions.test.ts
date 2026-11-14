@@ -9,7 +9,7 @@ import { deFixe, desDuTest } from './dice.testkit';
 import { blessuresDeBase, blessuresSurLeProfil, profilDeTest } from './combattantDeTest.testkit';
 
 const C = (over: Partial<Combatant>): Combatant =>
-  (blessuresSurLeProfil({ id: 'c', name: 'C', kind: 'hero', conditions: [], skills: [], characteristics: profilDeTest({ endurance: 90 }), wounds: blessuresDeBase(20), advantage: 3, armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
+  (blessuresSurLeProfil({ id: 'c', name: 'C', kind: 'heros', conditions: [], skills: [], characteristics: profilDeTest({ endurance: 90 }), wounds: blessuresDeBase(20), advantage: 3, armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
 
 describe('Finitions d\'États (LDB 16)', () => {
   it('subir un État quel qu\'il soit → perte de TOUT Avantage (l.15)', () => {

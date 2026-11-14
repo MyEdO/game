@@ -30,15 +30,15 @@ function setup() {
   banc.setState({ party: [hero], screen: 'campaign' });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   let i = 0;
-  for (const e of b.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: 20 + i++, y: 20 };
+  for (const e of b.combatants.filter((c) => c.kind === 'ennemi')) e.pos = { x: 20 + i++, y: 20 };
   H.pos = { x: 6, y: 10 };
   const turn = b.order.indexOf(H.id);
   banc.setState({ battle: { ...b, turn, action: null, acted: false, movementUsed: 0, movedPreAction: false, preview: null }, localIntent: null });
-  return { H, E: b.combatants.find((c) => c.kind === 'enemy')! };
+  return { H, E: b.combatants.find((c) => c.kind === 'ennemi')! };
 }
 
 const get = () => banc.getState();
@@ -112,7 +112,7 @@ describe('(b) un MODE DE CIBLAGE garde son commit-CASE sous une intention armée
     const dest = { x: 19, y: 3 }; // très loin : jamais dans la portée peinte par l'intention
     expect(displayedReach(get).has(`${dest.x},${dest.y}`), 'témoin : la case est bien hors de la Marche').toBe(false);
     banc.jouerLaCase('mouvement');
-    banc.setState({ battle: { ...b, action: 'teleport', reachable: new Map([[`${dest.x},${dest.y}`, 1]]) } });
+    banc.setState({ battle: { ...b, action: 'teleportation', reachable: new Map([[`${dest.x},${dest.y}`, 1]]) } });
     get().cliquerLaCase(dest);
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos, 'le commit-CASE du mode n’a pas été atteint').toEqual(dest);
     expect(get().battle!.action, 'le mode ne s’est pas refermé : son commit n’a pas tourné').toBeNull();

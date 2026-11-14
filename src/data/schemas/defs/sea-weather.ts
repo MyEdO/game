@@ -1,8 +1,17 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 13 l.162-306 */
 import { z } from 'zod';
-import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
-import { difficultySchema, enumNomme, meteoMarineSchema, parSaison, plageSchema, sourceRefSchema, ventMarinSchema } from '../grammaire/valeurs';
+import { document, tableTiree } from '../grammaire/document';
+import {
+  difficultySchema,
+  enumNomme,
+  meteoMarineSchema,
+  parSaison,
+  plageSchema,
+  shipLocationSchema,
+  sourceRefSchema,
+  ventMarinSchema,
+} from '../grammaire/valeurs';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'sea-weather.json';
@@ -122,7 +131,7 @@ const champs = {
   effetDuVentGreementDelta: z.record(windAspectSchema, z.number()),
   affaler: nommerChamps(z.strictObject({
     difficulty: difficultySchema,
-    failCritLocation: z.string(),
+    failCritLocation: shipLocationSchema,
     driftPctOfSpeed: z.number(),
   }), {
     difficulty: { label: 'Difficulté' },
@@ -166,10 +175,9 @@ const doc = document(
     affaler: { label: 'Affaler les voiles', hint: 'Difficulté, localisation d’échec critique et dérive induite' },
     encalmine: { label: 'Encalminé', hint: 'Distances et DR de remorquage en absence de vent' },
   },
-  { codex: { keys: ['seaWeather'] }, edit: { object: 'single' } },
+  { codex: { keys: ['seaWeather'] }, edit: { object: 'unique' } },
 );
 
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-export type SeaWeatherData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

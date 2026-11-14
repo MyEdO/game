@@ -45,8 +45,8 @@ function refusNeuf(partie: Partie, envoyer: () => unknown): string | undefined {
 /** Le duel de `combatDeTest.testkit.ts`, ouvert : le héros est en combat. */
 function enCombat(jouer: (partie: Partie, H: Combatant) => void, patch: Partial<EtatDeJeu> | ((H: Combatant) => Partial<EtatDeJeu>) = {}): void {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-  ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
+  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
+  ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
   const garde = ouverture.etat();
   ouverture.fermer();
   const contact = auContact(garde);
@@ -74,10 +74,10 @@ describe('garnirLaPanoplie — le verdict de main (`refusEmplacementDeMain`) est
     avecPartie({ ...etatInitialDuJeu(), party: [heros] }, (partie) => {
       const lu = () => partie.etat().party[0];
       const set = activeLoadout(lu())!;
-      const attendu = refusEmplacementDeMain(partie.etat(), lu(), set.id, 'off', arc.uid);
+      const attendu = refusEmplacementDeMain(partie.etat(), lu(), set.id, 'secondaire', arc.uid);
       expect(attendu, 'un arc long n’est ni une arme de mêlée à une main ni un pistolet').toBeTruthy();
-      const appel = partie.envoyer({ type: 'garnirLaPanoplie', args: [heros.id, set.id, 'off', arc.uid] });
-      expect(activeLoadout(lu())!.off, 'l’arc a été pris en seconde main').not.toBe(arc.uid);
+      const appel = partie.envoyer({ type: 'garnirLaPanoplie', args: [heros.id, set.id, 'secondaire', arc.uid] });
+      expect(activeLoadout(lu())!.secondaire, 'l’arc a été pris en seconde main').not.toBe(arc.uid);
       expect(lignesDuJournal(appel)).toEqual([attendu]);
     });
   });
@@ -172,7 +172,7 @@ describe('gestes d’objet et de fiche en combat — un verdict par famille, cel
       const avant = structuredClone(lu().items);
       const gestes: [string, () => void][] = [
         ['evaluerLObjet', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid] })],
-        ['evaluerLObjet (detect)', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid, 'detect'] })],
+        ['evaluerLObjet (detect)', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid, 'detection'] })],
       ];
       for (const [nom, envoyer] of gestes) {
         expect(refusNeuf(partie, envoyer), `${nom} n’a pas prononcé son refus`).toBe(refusDInventaire(partie.etat()));
@@ -245,7 +245,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
       expect(dans.refus, 'témoin : la Caractéristique de carrière reste offerte').toBeNull();
       partie.envoyer({ type: 'acheterLaCaracteristique', args: [heros.id, dans.key] });
       expect(partie.etat().party[0].xp).toBe(5000 - dans.nextCost);
-    }, { ...ENTREES, reglesMaison: { 'advancement-mentor': true } });
+    }, { ...ENTREES, reglesMaison: { 'progression-mentor': true } });
   });
 
   it('à 0 PX : la vue refuse l’Augmentation au coût près, et le geste ne dépense rien', () => {
@@ -272,7 +272,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
       const lignes: [string, string | null, () => ResultatDeLAppel][] = [
         ['Caractéristique', c.refus, () => partie.envoyer({ type: 'acheterLaCaracteristique', args: [heros.id, c.key] })],
         ['Compétence', sk.refus, () => partie.envoyer({ type: 'acheterLaCompetence', args: [heros.id, sk.skill] })],
-        ['Talent', ta.refus, () => partie.envoyer({ type: 'acheterLeTalent', args: [heros.id, ta.talentId!, ta.spec] })],
+        ['Talent', ta.refus, () => partie.envoyer({ type: 'acheterLeTalent', args: [heros.id, { id: ta.talentId!, spec: ta.spec }] })],
         ['Carrière', tg.refus, () => partie.envoyer({ type: 'changerDeCarriere', args: [heros.id, tg.career, tg.level] })],
       ];
       for (const [nom, refus, envoyer] of lignes) {
@@ -307,12 +307,12 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       let ligne = buildAdvancementView(partie.etat(), partie.etat().party[0]).talents.find((r) => r.talentId && !r.maxReached)!;
       for (let pas = 0; !ligne.maxReached && pas < 10; pas++) {
-        partie.envoyer({ type: 'acheterLeTalent', args: [heros.id, ligne.talentId!, ligne.spec] });
+        partie.envoyer({ type: 'acheterLeTalent', args: [heros.id, { id: ligne.talentId!, spec: ligne.spec }] });
         ligne = buildAdvancementView(partie.etat(), partie.etat().party[0]).talents.find((r) => r.slotKey === ligne.slotKey)!;
       }
       expect(ligne.maxReached, 'témoin : le Talent a atteint son Maxi').toBe(true);
       const xp = partie.etat().party[0].xp;
-      const appel = partie.envoyer({ type: 'acheterLeTalent', args: [heros.id, ligne.talentId!, ligne.spec] });
+      const appel = partie.envoyer({ type: 'acheterLeTalent', args: [heros.id, { id: ligne.talentId!, spec: ligne.spec }] });
       expect(partie.etat().party[0].xp, 'le geste a dépensé au-delà du Maxi').toBe(xp);
       expect(lignesDuJournal(appel)).toEqual([ligne.refus]);
     });
@@ -430,7 +430,7 @@ describe('gestes de possession — le verdict (`refusGestePossession`) est celui
 describe('ouvrirLeMedecin — le verdict (`refusDeSoins`) est celui du geste', () => {
   it('en combat, l’infirmerie ne s’ouvre pas et le refus se dit (jamais un no-op muet)', () => {
     enCombat((partie, H) => {
-      partie.envoyer({ type: 'ouvrirLeMedecin', args: [{ patientId: H.id }] });
+      partie.envoyer({ type: 'ouvrirLeMedecin', args: [H.id] });
       expect(partie.etat().medic).toBeFalsy();
       expect(partie.etat().refus?.texte).toBe(t('medic.inCombat'));
     });
@@ -439,7 +439,7 @@ describe('ouvrirLeMedecin — le verdict (`refusDeSoins`) est celui du geste', (
   it('sur un héros indemne, l’infirmerie ne s’ouvre pas : le geste dit qu’il n’y a rien à soigner', () => {
     const heros = heroDuDuel();
     avecPartie({ ...etatInitialDuJeu(), party: [heros] }, (partie) => {
-      const appel = partie.envoyer({ type: 'ouvrirLeMedecin', args: [{ patientId: heros.id }] });
+      const appel = partie.envoyer({ type: 'ouvrirLeMedecin', args: [heros.id] });
       expect(partie.etat().medic, 'l’infirmerie s’est ouverte sur un héros indemne').toBeFalsy();
       expect(lignesDuJournal(appel)).toEqual([t('medic.rienASoigner', { name: heros.label })]);
       expect(refusDeSoins(partie.etat(), heros.id), 'l’écran lit le refus que rend le geste').toBe(lignesDuJournal(appel)[0]);

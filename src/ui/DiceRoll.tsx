@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { entierDEntropie } from '../web/entropie';
+import { entierDEntropie } from '../hote/entropie';
 
 /**
  * Roulis de dés — PRIMITIVE UNIQUE (#396, arbitrage user 2026-07-13/14 : « ça se lance, avec des
@@ -55,7 +55,7 @@ function useTumbleDigit(landed: boolean, real: number | null): number | null {
   return landed ? real : digit;
 }
 
-/** UN dé physique (SVG, gemme d10 — même silhouette que l'icône `nav/dice`) : le chiffre est un
+/** UN dé physique (SVG, gemme d10 — même silhouette que l'icône `navigation/des`) : le chiffre est un
  *  `<text>` DANS le même SVG que la gemme — appartient au dé, jamais un overlay HTML à côté.
  *  `n=null` (score réel inconnu à l'atterrissage) → PAS de `<text>` (dé nu) plutôt qu'un chiffre inventé.
  *  EXPORTÉ (#393 P2) : les encriers « Aux dés » du créateur (Race/Carrière) le montent debout dans

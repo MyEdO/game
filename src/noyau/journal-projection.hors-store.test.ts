@@ -23,12 +23,12 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 describe('le dériveur — patron unique de la ligne de dé', () => {
   it('porteur + DR : « qui — libellé : dé/cible → issue (DR ±n) »', () => {
-    expect(traceLineOf({ who: 'Brawn', label: 'Résistance', roll: 45, target: 60, sl: 2, success: true }))
+    expect(traceLineOf({ who: fixtureText('Brawn'), label: 'Résistance', roll: 45, target: 60, sl: 2, success: true }))
       .toBe('Brawn — Résistance : 45/60 → réussi (DR +2).');
   });
 
   it('issue du DOMAINE quand il en a une plus précise que réussi/échec', () => {
-    expect(traceLineOf({ who: 'Brawn', label: 'Faim', roll: 78, target: 30, sl: -5, success: false, issue: 'ÉCHEC' }))
+    expect(traceLineOf({ who: fixtureText('Brawn'), label: 'Faim', roll: 78, target: 30, sl: -5, success: false, issue: 'ÉCHEC' }))
       .toBe('Brawn — Faim : 78/30 → ÉCHEC (DR -5).');
   });
 
@@ -40,11 +40,11 @@ describe('le dériveur — patron unique de la ligne de dé', () => {
   });
 
   it('libellé absent → « Test » (repli du patron, jamais une ligne muette)', () => {
-    expect(traceLineOf({ who: 'Brawn', roll: 5, target: 40, sl: 3, success: true })).toContain('Brawn — Test : 5/40');
+    expect(traceLineOf({ who: fixtureText('Brawn'), roll: 5, target: 40, sl: 3, success: true })).toContain('Brawn — Test : 5/40');
   });
 
   it('Test résolu SANS fenêtre : le libellé porte la Compétence ET sa Difficulté (elle ne se lit nulle part ailleurs)', () => {
-    expect(traceLineOf({ who: 'Brawn', label: testTraceLabel('Résistance', 'difficile'), roll: 45, target: 60, sl: 2, success: true }))
+    expect(traceLineOf({ who: fixtureText('Brawn'), label: testTraceLabel('Résistance', 'difficile'), roll: 45, target: 60, sl: 2, success: true }))
       .toBe('Brawn — Test de Résistance Difficile (−20) : 45/60 → réussi (DR +2).');
   });
 
@@ -62,30 +62,30 @@ describe('le dériveur — patron unique de la ligne de dé', () => {
 
   it('forme OPPOSÉE (#1294) : DEUX jets sur UNE ligne, issue par défaut vue du DÉFENSEUR', () => {
     expect(traceLineOf({
-      attacker: { who: 'Gobelin', label: 'Force', roll: 33, target: 40, sl: 0 },
-      defender: { who: 'Brawn', label: 'Résistance', roll: 21, target: 55, sl: 3 },
-      winner: 'defender',
+      attacker: { who: fixtureText('Gobelin'), label: 'Force', roll: 33, target: 40, sl: 0 },
+      defender: { who: fixtureText('Brawn'), label: 'Résistance', roll: 21, target: 55, sl: 3 },
+      winner: 'defenseur',
     })).toBe('Gobelin (Force) 33/40 (DR +0) vs Brawn (Résistance) 21/55 (DR +3) — résiste.');
     expect(traceLineOf({
-      attacker: { who: 'Gobelin', label: 'Force', roll: 12, target: 60, sl: 4 },
-      defender: { who: 'Brawn', label: 'Résistance', roll: 51, target: 55, sl: 0 },
-      winner: 'attacker',
+      attacker: { who: fixtureText('Gobelin'), label: 'Force', roll: 12, target: 60, sl: 4 },
+      defender: { who: fixtureText('Brawn'), label: 'Résistance', roll: 51, target: 55, sl: 0 },
+      winner: 'attaquant',
     })).toBe('Gobelin (Force) 12/60 (DR +4) vs Brawn (Résistance) 51/55 (DR +0) — l’emporte.');
   });
 
   it('forme OPPOSÉE : ÉGALITÉ parfaite → la ligne DIT le statu quo (LDB 12 l.160), jamais un vainqueur', () => {
     expect(traceLineOf({
-      attacker: { who: 'Gobelin', label: 'Force', roll: 33, target: 40, sl: 1 },
-      defender: { who: 'Brawn', label: 'Résistance', roll: 21, target: 40, sl: 1 },
-      winner: 'tie',
+      attacker: { who: fixtureText('Gobelin'), label: 'Force', roll: 33, target: 40, sl: 1 },
+      defender: { who: fixtureText('Brawn'), label: 'Résistance', roll: 21, target: 40, sl: 1 },
+      winner: 'egalite',
     })).toBe('Gobelin (Force) 33/40 (DR +1) vs Brawn (Résistance) 21/40 (DR +1) — égalité, rien ne se passe.');
   });
 
   it('forme OPPOSÉE : le DR ACCORDÉ au défenseur (Piège-lame, LDB 62 l.280) reste LISIBLE en sus', () => {
     expect(traceLineOf({
-      attacker: { who: 'Gobelin', label: 'Force', roll: 33, target: 40, sl: 0 },
-      defender: { who: 'Brawn', label: 'Athlétisme', roll: 21, target: 55, sl: 3, slBonus: 1 },
-      winner: 'defender', issue: 'la lame se BRISE',
+      attacker: { who: fixtureText('Gobelin'), label: 'Force', roll: 33, target: 40, sl: 0 },
+      defender: { who: fixtureText('Brawn'), label: 'Athlétisme', roll: 21, target: 55, sl: 3, slBonus: 1 },
+      winner: 'defenseur', issue: 'la lame se BRISE',
     })).toBe('Gobelin (Force) 33/40 (DR +0) vs Brawn (Athlétisme) 21/55 (DR +3+1) — la lame se BRISE.');
   });
 });
@@ -133,7 +133,7 @@ describe('le verbe terminal `apply` — l’issue se journalise UNE fois, au gou
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     banc.setState({ party: [h] });
     const pt: PendingTest = {
-      actorId: h.id, actorName: h.label, skill: 'Athlétisme', skillValue: 50, difficulty: 'intermediaire',
+      actorId: h.id, skill: 'Athlétisme', skillValue: 50, difficulty: 'intermediaire',
       target: 50, roll: 12, success: true, sl: 3, isDouble: false, base: 50, mods: [], requireSL: 0,
     } as unknown as PendingTest;
     banc.setState({ pendingTest: pt });
@@ -143,18 +143,21 @@ describe('le verbe terminal `apply` — l’issue se journalise UNE fois, au gou
   });
 
   it('canal COMBAT (rechargement) : `apply` REND la ligne sans écrire au journal narratif (le site la tisse dans son `set`)', () => {
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+    banc.setState({ party: [h] });
     const pr: PendingReload = {
-      actorId: 'a', actorName: 'Brawn', weaponUid: 'w1', reload: 3, progressBefore: 0,
+      actorId: h.id, weaponUid: 'w1', reload: 3, progressBefore: 0,
       skillValue: 50, difficulty: 'intermediaire', roll: 12, target: 50, sl: 2, success: true,
     } as PendingReload;
-    const lines = FLOWS.reload.apply(banc.getState, { p: pr, ctx: { after: 2, weapon: 'Arquebuse' } });
+    const lines = FLOWS.rechargement.apply(banc.getState, { p: pr, ctx: { after: 2, weapon: 'Arquebuse' } });
     expect(lines).toHaveLength(1);
     expect(lines[0]).toContain('Arquebuse');
+    expect(lines[0]).toContain('Brawn');
     expect(banc.getState().journal, 'canal COMBAT : rien dans le journal narratif').toEqual([]);
   });
 
   it('aucun pending, aucune issue déclarée → aucune ligne (le verbe est inerte, jamais une ligne forgée)', () => {
-    expect(FLOWS.reload.apply(banc.getState)).toEqual([]);
-    expect(FLOWS.attack.apply(banc.getState)).toEqual([]);
+    expect(FLOWS.rechargement.apply(banc.getState)).toEqual([]);
+    expect(FLOWS.attaque.apply(banc.getState)).toEqual([]);
   });
 });

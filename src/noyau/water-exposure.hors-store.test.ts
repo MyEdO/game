@@ -108,12 +108,12 @@ describe('Effet de scène `waterExposure` — cascade + contraction DIRECTE', ()
     const h1 = hero('h1', { wounds: { current: 1, max: 12 } } as Partial<Combatant>);
     const h2 = hero('h2');
     banc.setState({ party: [h1, h2] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'waterExposure', mode: 'immersion', source: 'grande-ville-marais', target: 'party' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'waterExposure', mode: 'immersion', source: 'grande-ville-marais', target: 'groupe' }]);
     const pc = banc.getState().pendingCascade!;
     expect(pc.participants).toHaveLength(2);
     const s1 = pc.participants.find((s) => s.actorId === 'h1')!;
     const s2 = pc.participants.find((s) => s.actorId === 'h2')!;
-    expect(s1.kind).toBe('waterExposure');
+    expect(s1.kind).toBe('expositionHydrique');
     // La ligne est montée par le monteur canonique : la base est le Niveau de Compétence NU (Résistance,
     // E 42), IDENTIQUE pour les deux — ce qui les sépare s'AFFICHE au lieu de fondre dans la base.
     expect([s1.base, s2.base]).toEqual([42, 42]);
@@ -138,9 +138,9 @@ describe('Effet de scène `waterExposure` — cascade + contraction DIRECTE', ()
   it('échec de l\'étape → maladie contractée DIRECTEMENT (incubation normale, pas de second Test)', () => {
     const h = hero('h1');
     banc.setState({ party: [h] });
-    const out = applierDe('waterExposure')!(
+    const out = applierDe('expositionHydrique')!(
       banc.getState, banc.setState,
-      { id: 'w1', kind: 'waterExposure', actorId: 'h1', result: { roll: 99, target: 40, sl: -5, success: false } } as never,
+      { id: 'w1', kind: 'expositionHydrique', actorId: 'h1', result: { roll: 99, target: 40, sl: -5, success: false } } as never,
       h, { steps: [], index: 0 },
     );
     expect((h.diseases ?? []).length).toBe(1); // contractée sans Test supplémentaire
@@ -150,9 +150,9 @@ describe('Effet de scène `waterExposure` — cascade + contraction DIRECTE', ()
   it('réussite de l\'étape → rien de contracté', () => {
     const h = hero('h1');
     banc.setState({ party: [h] });
-    applierDe('waterExposure')!(
+    applierDe('expositionHydrique')!(
       banc.getState, banc.setState,
-      { id: 'w1', kind: 'waterExposure', actorId: 'h1', result: { roll: 3, target: 40, sl: 3, success: true } } as never,
+      { id: 'w1', kind: 'expositionHydrique', actorId: 'h1', result: { roll: 3, target: 40, sl: 3, success: true } } as never,
       h, { steps: [], index: 0 },
     );
     expect(h.diseases ?? []).toHaveLength(0);

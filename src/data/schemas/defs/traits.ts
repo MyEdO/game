@@ -1,7 +1,8 @@
-import { nommerChamps } from '../grammaire/meta';
+import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 /** LDB 85 */
 import { z } from 'zod';
-import { castingKindSchema, charKeySchema, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
+import { castingKindSchema, charKeySchema, enumNomme, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
+import { tableTotale } from '../../../lib/tableTotale';
 import { idDe, ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
@@ -10,19 +11,17 @@ import { mecaniqueDe, passifsDe, triggeredEffectSchema } from '../grammaire/meca
 export const file = 'traits.json';
 export const famille = 'entite';
 
-/** `TraitCapabilities` (`src/data/index.ts`) — clés OBSERVÉES dans `traits.json` (31/54 déclarées
- *  sur l'interface ; les autres appartiennent aux capabilities de qualités/symptômes ou sont réservées
- *  au bestiaire lu ailleurs). Schéma reflète l'INTERFACE complète (toutes optionnelles), pas seulement
- *  le sous-ensemble vu aujourd'hui — une future entrée peut légitimement en ajouter. */
-const traitCapabilitiesSchema = nommerChamps(z.strictObject({
+/** Source de `TraitCapabilities` (`src/data/index.ts`) et des clés de `suppressesCapabilities`. */
+export const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   bonusWoundsBE: z.boolean().optional(),
   mutationAtSpawn: mutationKindSchema.optional(),
+  /** EDOC 13 l.522-524 */
   markMutations: nommerChamps(z.strictObject({
     countDie: z.number(),
     countDivide: z.number(),
     first: mutationKindSchema,
-    mentalTable: z.string(),
-    physTable: z.string(),
+    mentalTable: idDe('mutationTable'),
+    physTable: idDe('mutationTable'),
   }), {
     countDie: { label: 'Dé du nombre' },
     countDivide: { label: 'Diviseur du nombre' },
@@ -31,13 +30,18 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
     physTable: { label: 'Table de mutations physiques' },
   }).optional(),
   swarm: z.boolean().optional(),
+  /** LDB 85 */
   naturalWeapon: nommerChamps(z.strictObject({ ranged: z.boolean().optional() }), { ranged: { label: 'À distance' } }).optional(),
+  /** LDB 85 l.182-183 */
   spellcaster: z.boolean().optional(),
+  /** LDB 85 l.233 */
   castingKind: castingKindSchema.optional(),
+  /** LDB 85 l.239 ; LDB 85 l.170 */
   undead: z.boolean().optional(),
   wardSave: z.boolean().optional(),
   damageImmunity: z.boolean().optional(),
   spellDomainImmunity: ref('domain').optional(),
+  /** LDB 85 */
   counterOnDefenseWin: z.boolean().optional(),
   counterRequiresFastParry: z.boolean().optional(),
   counterDeclaredPerLevel: z.boolean().optional(),
@@ -46,12 +50,17 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   psychImmuneIfAhead: z.boolean().optional(),
   /** LDB 21 l.33 ; `parsePsychTraits` (`engine/psych/registry.ts`) */
   psychType: idDe('psychology', { horsMarqueurs: ['psychImmune'] }).optional(),
+  /** LDB 85 l.143-144 */
   psychImmune: z.boolean().optional(),
   psychIndice: z.number().optional(),
+  /** MDG 07 l.250 */
   psychCible: idDe('groupe').optional(),
+  /** MDG 07 l.250 */
   grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
+  /** LDB 21 l.31 ; LDB 85 l.150 ; LDB 10 l.506 */
   frenzyCapable: z.boolean().optional(),
   mindless: z.boolean().optional(),
+  /** LDB 85 l.142 */
   woundsUseForce: z.boolean().optional(),
   /** LDB 85 l.314 */
   freeTrample: ref('maneuver').optional(),
@@ -60,17 +69,25 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   stupid: z.boolean().optional(),
   rage: z.boolean().optional(),
   territorial: z.boolean().optional(),
+  /** LDB 14 l.182 */
   skittishMount: z.boolean().optional(),
+  /** ADE II 8 l.296 */
   structResistant: z.boolean().optional(),
+  /** ADE II 8 l.300 */
   structImpenetrable: z.boolean().optional(),
   fly: z.boolean().optional(),
   leap: z.boolean().optional(),
   stride: z.boolean().optional(),
+  /** LDB 85 l.160-162 */
   autoClimb: z.boolean().optional(),
+  /** LDB 85 l.160-162 ; LDB 15 l.55 */
   climbFullSpeed: z.boolean().optional(),
+  /** MSRC 15 */
   noRun: z.boolean().optional(),
   seesInDark: z.boolean().optional(),
+  /** LDB 11 l.176 ; LDB 85 l.191 */
   darkSightTiles: z.number().nullable().optional(),
+  /** MSRC 15 */
   wakelessBite: z.boolean().optional(),
   /** ADE II 2 l.708 */
   encumbranceFactor: z.number().optional(),
@@ -124,6 +141,9 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   consumptionFactor: { label: 'Facteur de consommation' },
 });
 
+/** Une capacité de `traitCapabilitiesSchema`, nommée par le libellé de son champ (`suppressesCapabilities`). */
+const capaciteDeTraitSchema = enumNomme(tableTotale(traitCapabilitiesSchema.keyof().options, (cle) => metaDesChamps(traitCapabilitiesSchema, { exigees: true })[cle].label));
+
 /**
  * Champs qu'une variante réglée de `traits.json` peut republier — ceux dont la lecture PASSE par
  * `effectiveEntry` : `desc`/`source` → Codex `src/noyau/codex/registry.ts`. `capabilities`,
@@ -157,11 +177,11 @@ const doc = document(
     /** Désignateur : `careerTalentAdditions` (`engine/talentEffects.ts`), déplié à l'avancement (`noyau/monde/advancement.ts`). */
     passive: passifsDe(mecaniqueDe({ 'grantCareerTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
     capabilities: traitCapabilitiesSchema.optional(),
-    suppressesCapabilities: z.array(z.string()).optional(),
+    suppressesCapabilities: z.array(capaciteDeTraitSchema).optional(),
     aura: nommerChamps(z
       .strictObject({
         rangeChar: charKeySchema,
-        affects: z.enum(['enemies', 'allies', 'all']).optional(),
+        affects: z.enum(['ennemis', 'allies', 'tous']).optional(),
         passive: passifsDe(),
       }), {
       rangeChar: { label: 'Caractéristique de portée' },

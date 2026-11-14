@@ -80,7 +80,7 @@ function estTableTiree(v) {
  *   `mass-battle.json.powerEstimate`…) : chaque tableau est une CATÉGORIE de la même famille de
  *   table, les entrées sont les items de CES tableaux, jamais recursées plus profond (`ops`/
  *   `ranges` imbriqués ne comptent pas). Une propriété DIRECTE nœud `{ die, entries }` compte ses
- *   `entries` comme une telle catégorie (`land-cargo.json.rumours`).
+ *   `entries` comme une telle catégorie (`land-cargo.json.rumeurs`).
  * - `single` : objet de config unique — cité si sa RACINE porte `source` (convention
  *   documentée `src/data/schemas/grammaire/valeurs.ts:49-54` : "à la racine quand le dataset est un objet de config unique
  *   plutôt qu'une liste" — couvre alors TOUT le fichier, y compris les tableaux/sous-tables

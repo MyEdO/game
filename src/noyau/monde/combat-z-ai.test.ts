@@ -18,7 +18,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 const scene = () =>
   ({ id: 's', label: '', dimensions: { w: 30, h: 21 }, layers: [{ z: 0, tiles: Array(630).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [], flags: {} } as never);
 
-const C = (kind: 'hero' | 'enemy', id: string, pos: { x: number; y: number; z?: number; h?: number }): Combatant =>
+const C = (kind: 'heros' | 'ennemi', id: string, pos: { x: number; y: number; z?: number; h?: number }): Combatant =>
   (blessuresSurLeProfil({
     id, name: id, kind, pos, movement: 4,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -27,8 +27,8 @@ const C = (kind: 'hero' | 'enemy', id: string, pos: { x: number; y: number; z?: 
   })) as unknown as Combatant;
 
 function actionFor(heroH?: number) {
-  const enemy = C('enemy', 'e', { x: 2, y: 10 }); // sol (h = 0)
-  const hero = C('hero', 'h', { x: 3, y: 10, ...(heroH ? { h: heroH } : {}) }); // 2D-adjacent
+  const enemy = C('ennemi', 'e', { x: 2, y: 10 }); // sol (h = 0)
+  const hero = C('heros', 'h', { x: 3, y: 10, ...(heroH ? { h: heroH } : {}) }); // 2D-adjacent
   const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), blocked: new Set(['3,10']), movement: 4, spells: [] };
   return chooseEnemyAction(input);
 }
@@ -55,8 +55,8 @@ function etage(): Scene {
 
 function approche(z: 0 | 1) {
   const h = z ? { z, h: 4 } : {};
-  const enemy = C('enemy', 'e', { x: 1, y: 1, ...h });
-  const hero = C('hero', 'h', { x: 5, y: 1, ...h });
+  const enemy = C('ennemi', 'e', { x: 1, y: 1, ...h });
+  const hero = C('heros', 'h', { x: 5, y: 1, ...h });
   const input: EnemyTurnInput = { enemy, heroes: [hero], scene: etage(), blocked: new Set([tileKey(5, 1, z)]), movement: 4, spells: [] };
   return { hero, action: chooseEnemyAction(input) };
 }
@@ -64,7 +64,7 @@ function approche(z: 0 | 1) {
 describe('chooseEnemyAction — l’approche garde l’étage de la case atteinte (#2139)', () => {
   it('à l’étage : l’ennemi s’approche au contact du héros SUR le plancher z1', () => {
     const { hero, action } = approche(1);
-    expect(action.kind).toBe('move');
+    expect(action.kind).toBe('deplacement');
     const to = (action as { to: Pt }).to;
     expect(to.z).toBe(1);
     expect(chebyshev(to, hero.pos!)).toBe(1);
@@ -72,7 +72,7 @@ describe('chooseEnemyAction — l’approche garde l’étage de la case atteint
 
   it('opposé, au rez : la même approche rend une case au sol, sans z', () => {
     const { hero, action } = approche(0);
-    expect(action.kind).toBe('move');
+    expect(action.kind).toBe('deplacement');
     const to = (action as { to: Pt }).to;
     expect('z' in to).toBe(false);
     expect(chebyshev(to, hero.pos!)).toBe(1);
@@ -94,10 +94,10 @@ function estrade(plat: boolean): Scene {
 
 function cibleChoisie(plat: boolean) {
   const sur = plat ? {} : { h: 4 };
-  const enemy = C('enemy', 'e', { x: 1, y: 2 });
-  const haut = C('hero', 'haut', { x: 6, y: 2, ...sur });
+  const enemy = C('ennemi', 'e', { x: 1, y: 2 });
+  const haut = C('heros', 'haut', { x: 6, y: 2, ...sur });
   haut.wounds.current = 1;
-  const bas = C('hero', 'bas', { x: 1, y: 4 });
+  const bas = C('heros', 'bas', { x: 1, y: 4 });
   const input: EnemyTurnInput = { enemy, heroes: [haut, bas], scene: estrade(plat), blocked: new Set(['6,2', '1,4']), movement: 4, spells: [] };
   const action = chooseEnemyAction(input);
   return { input, haut, action, ...aiApproachPlan(input, enemy, action, makeRNG(3)) };
@@ -106,7 +106,7 @@ function cibleChoisie(plat: boolean) {
 describe('chooseEnemyAction — une case candidate se juge à SA hauteur (#2139)', () => {
   it('ennemi au sol : le héros sur l’estrade, joignable par la rampe, est frappable ce tour depuis le haut de la rampe', () => {
     const { input, haut, action, plan, ran } = cibleChoisie(false);
-    expect(action).toMatchObject({ kind: 'move', thenTargetId: 'haut' });
+    expect(action).toMatchObject({ kind: 'deplacement', thenTargetId: 'haut' });
     const to = (action as { to: Pt }).to;
     expect(heightAt(input.scene, to.x, to.y, 0)).toBe(4);
     expect(chebyshev(to, haut.pos!)).toBe(1);
@@ -117,7 +117,7 @@ describe('chooseEnemyAction — une case candidate se juge à SA hauteur (#2139)
 
   it('opposé, sans relief : même choix sur la carte plate', () => {
     const { haut, action, plan, ran } = cibleChoisie(true);
-    expect(action).toMatchObject({ kind: 'move', thenTargetId: 'haut' });
+    expect(action).toMatchObject({ kind: 'deplacement', thenTargetId: 'haut' });
     expect(chebyshev((action as { to: Pt }).to, haut.pos!)).toBe(1);
     expect(plan).toBe(action);
     expect(ran).toBeNull();
@@ -125,8 +125,8 @@ describe('chooseEnemyAction — une case candidate se juge à SA hauteur (#2139)
 });
 
 function chargeVersEstrade(plat: boolean) {
-  const enemy = C('enemy', 'e', { x: 0, y: 0 });
-  const haut = C('hero', 'haut', { x: 6, y: 2, ...(plat ? {} : { h: 4 }) });
+  const enemy = C('ennemi', 'e', { x: 0, y: 0 });
+  const haut = C('heros', 'haut', { x: 6, y: 2, ...(plat ? {} : { h: 4 }) });
   const input: EnemyTurnInput = { enemy, heroes: [haut], scene: estrade(plat), blocked: new Set(['6,2']), movement: 4, spells: [] };
   return { input, haut, ...aiApproachPlan(input, enemy, chooseEnemyAction(input), makeRNG(3)) };
 }
@@ -136,7 +136,7 @@ describe('aiApproachPlan — l’arrivée d’une Charge se mesure à la hauteur
     const { input, haut, plan, ran } = chargeVersEstrade(false);
     expect(ran).toBeNull();
     const to = (plan as { to: Pt }).to;
-    expect(plan.kind).toBe('move');
+    expect(plan.kind).toBe('deplacement');
     expect(heightAt(input.scene, to.x, to.y, 0)).toBe(4);
     expect(chebyshev(to, haut.pos!)).toBe(1);
   });
@@ -144,7 +144,7 @@ describe('aiApproachPlan — l’arrivée d’une Charge se mesure à la hauteur
   it('opposé, sans relief : la même Charge, au contact', () => {
     const { haut, plan, ran } = chargeVersEstrade(true);
     expect(ran).toBeNull();
-    expect(plan.kind).toBe('move');
+    expect(plan.kind).toBe('deplacement');
     expect(chebyshev((plan as { to: Pt }).to, haut.pos!)).toBe(1);
   });
 });

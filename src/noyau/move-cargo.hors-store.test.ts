@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { carrierById, persistCarriersCargo } from './carriers';
 import { t } from '../i18n';
 import type { WorldMap } from './worldMap';
@@ -24,7 +24,7 @@ const get = () => banc.getState();
 const map: WorldMap = { id: 'm', label: 'x', places: [{ id: 'P', label: 'Halte', pos: { x: 0, y: 0 }, scene: { id: 'halte' } }], routes: [] };
 
 function setup(muleCargo: CargoLot[], cartCargo: CargoLot[]) {
-  const party = makePregens(idsDeTest).slice(0, 1);
+  const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
   const ownerId = party[0].id;
   const possessions: Possession[] = [
     { uid: 'mule', ownerId, nature: 'bete', ref: { id: 'mule' }, location: { kind: 'avec-le-groupe' }, items: [], cargo: muleCargo }, // encPortee 14

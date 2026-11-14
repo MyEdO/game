@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { pregenParty, PREGEN } from '../../data/pregens';
+import { groupeDeScenario } from './_heros';
 import { findTrappingById, type SkillRef } from '../../data';
 import type { SceneEntity } from '../../noyau/monde/scene';
 import type { Combatant } from '../../engine/types';
@@ -25,8 +25,8 @@ import type { TestScenario } from './_shared';
  *    on le rejoint par UNE RAMPE au FLANC GAUCHE (cols 3-4, montant ≤1 m/case — le moteur en fait une pente,
  *    plus aucun escalier), DÉPORTÉE de la porte pour dégager la cour DERRIÈRE la porte (zone de mort) ;
  *  - au SUD, une COUR pavée MODESTE où démarre le groupe.
- * Combat VERTICAL : les défenseurs (couche z1, 4 m) pilonnent en contrebas et la mêlée est refusée à travers le
- * vide (`combatDistance` ajoute la séparation métrique) ; la crénelure (rendu, PAS un WallSeg) ne coupe pas la
+ * Combat VERTICAL : les défenseurs (couche z1, 4 m) tirent en contrebas ; contact et portée se mesurent par
+ * `distanceDeContact` et `distanceDeCombat` (footprint.ts) ; la crénelure (rendu, PAS un WallSeg) ne coupe pas la
  * LdV plongeante.
  *
  * TOUT est dans le `MapSpec` ci-dessous (grilles ASCII des 2 étages, recette `cells`, relief de rampe, binds de
@@ -229,21 +229,21 @@ export function spec(): MapSpec {
       // Archers défenseurs (z1, arcs) : PNJ alliés-IA (agissent seuls).
       A: {
         entity: { kind: 'personnage', creature: { id: 'brute' }, inventaire: { arc: false }, facing: 'N', z: 1, label: 'Archer du guet' },
-        member: { enc: 'assaut', side: 'ally', ai: true },
+        member: { enc: 'assaut', side: 'allie', ai: true },
       },
       // Guetteur au-dessus du tunnel de la porte (chemin de ronde continu au-dessus de la brèche).
       G: {
         entity: { kind: 'personnage', creature: { id: 'brute' }, inventaire: { arc: false }, facing: 'N', z: 1 },
-        member: { enc: 'assaut', side: 'ally', ai: true },
+        member: { enc: 'assaut', side: 'allie', ai: true },
       },
       // Pièces de REMPART : affûts INERTES (pas d'`ai`), servis par leur équipage QUALIFIÉ (crew), sur le chemin de ronde (z1).
-      B: { emplacement: 'baliste', crew: 'crew-baliste', facing: 'N', member: { enc: 'assaut', side: 'ally' } },
-      K: { emplacement: 'canon-petit', crew: 'crew-canon', facing: 'N', member: { enc: 'assaut', side: 'ally' } },
+      B: { emplacement: 'baliste', crew: 'crew-baliste', facing: 'N', member: { enc: 'assaut', side: 'allie' } },
+      K: { emplacement: 'canon-petit', crew: 'crew-canon', facing: 'N', member: { enc: 'assaut', side: 'allie' } },
       // BATTERIE assaillante (z0) : affûts INERTES servis par les mercenaires-équipage, camp ennemi.
-      k: { emplacement: 'canon-petit', crew: 'brg-canon', facing: 'S', member: { enc: 'assaut', side: 'enemy' } },
-      p: { emplacement: 'catapulte-petite', crew: 'brg-cata', facing: 'S', member: { enc: 'assaut', side: 'enemy' } },
+      k: { emplacement: 'canon-petit', crew: 'brg-canon', facing: 'S', member: { enc: 'assaut', side: 'ennemi' } },
+      p: { emplacement: 'catapulte-petite', crew: 'brg-cata', facing: 'S', member: { enc: 'assaut', side: 'ennemi' } },
       // Fantassins gobelins (z0) : assaut ennemi qui traverse le pont et s'amasse à la porte.
-      o: { entity: { kind: 'personnage', creature: { id: 'gobelin' }, facing: 'S' }, member: { enc: 'assaut', side: 'enemy' } },
+      o: { entity: { kind: 'personnage', creature: { id: 'gobelin' }, facing: 'S' }, member: { enc: 'assaut', side: 'ennemi' } },
       // CAMP assaillant (décor PUR, rangées 0-1) : tentes / braséros / étendards — POSÉS PAR L'ASCII (zéro coordonnée).
       T: { kind: 'prop', decor: { id: 'tente' } },
       F: { kind: 'prop', decor: { id: 'brasero' } },
@@ -259,10 +259,10 @@ export function spec(): MapSpec {
         // AUCUNE structure et ne brècherait jamais la porte — c'est tout le sujet du scénario.
         siege: true,
         members: [
-          { entityId: 'crew-baliste', side: 'ally', ai: true },
-          { entityId: 'crew-canon', side: 'ally', ai: true },
-          { entityId: 'brg-canon', side: 'enemy' },
-          { entityId: 'brg-cata', side: 'enemy' },
+          { entityId: 'crew-baliste', side: 'allie', ai: true },
+          { entityId: 'crew-canon', side: 'allie', ai: true },
+          { entityId: 'brg-canon', side: 'ennemi' },
+          { entityId: 'brg-cata', side: 'ennemi' },
         ],
       },
     ],
@@ -288,7 +288,7 @@ export const scenario: TestScenario = {
 };
 
 function groupe(idNeuf: FabriqueDId): Combatant[] {
-  const party = pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur);
+  const party = groupeDeScenario(idNeuf, 'soldat', 'chasseur', 'sorcier', 'tueur');
   // Le SOLDAT sait SERVIR les pièces de rempart : on lui octroie la Projectiles du Groupe de CHAQUE pièce
   // (Baliste→Arbalète, Canon→Poudre noire). Sans cette Spé, il ne COMPTE PAS dans l'effectif d'équipe
   // (AA 10 l.230) → la pièce qu'il prend tirerait en sous-effectif. Dérivé des pièces (aucun libellé en dur).

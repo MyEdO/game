@@ -19,12 +19,12 @@ describe('Blessures critiques sur un navire (MDG 13)', () => {
 
   it('effets « État » AUTHORÉS en GameOp + indices structurés (Éclats / Coque)', () => {
     // Coque : 8 → Voie d'eau 1 (Éclats 6) ; 10 → Voie d'eau 4 — effet en op condition (langue unique).
-    expect(findTableEntry(SHIP_CRITICAL_TABLES.coque, 8).ops).toEqual([{ op: 'condition', id: 'voie-d-eau', value: 1 }]);
+    expect(findTableEntry(SHIP_CRITICAL_TABLES.coque, 8).ops).toEqual([{ op: 'condition', id: { id: 'voie-d-eau' }, value: 1 }]);
     expect(findTableEntry(SHIP_CRITICAL_TABLES.coque, 8).shrapnel).toBe(6);
-    expect(findTableEntry(SHIP_CRITICAL_TABLES.coque, 10).ops).toEqual([{ op: 'condition', id: 'voie-d-eau', value: 4 }]);
+    expect(findTableEntry(SHIP_CRITICAL_TABLES.coque, 10).ops).toEqual([{ op: 'condition', id: { id: 'voie-d-eau' }, value: 4 }]);
     // Cargaison : 3-4 → En flammes 1 ; 9-10 → 3 En flammes + 1d10 Critiques Coque.
-    expect(findTableEntry(SHIP_CRITICAL_TABLES.cargaison, 3).ops).toEqual([{ op: 'condition', id: 'en-flammes-navire', value: 1 }]);
-    expect(findTableEntry(SHIP_CRITICAL_TABLES.cargaison, 10).ops).toEqual([{ op: 'condition', id: 'en-flammes-navire', value: 3 }]);
+    expect(findTableEntry(SHIP_CRITICAL_TABLES.cargaison, 3).ops).toEqual([{ op: 'condition', id: { id: 'en-flammes-navire' }, value: 1 }]);
+    expect(findTableEntry(SHIP_CRITICAL_TABLES.cargaison, 10).ops).toEqual([{ op: 'condition', id: { id: 'en-flammes-navire' }, value: 3 }]);
     expect(findTableEntry(SHIP_CRITICAL_TABLES.cargaison, 10).hullCrits).toEqual({ dice: { n: 1, sides: 10 } });
     // Gréement : 10 → Mât brisé (réf par id), Éclats 10.
     expect(findTableEntry(SHIP_CRITICAL_TABLES.greement, 10).id).toBe('mat-brise');

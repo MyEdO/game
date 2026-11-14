@@ -31,11 +31,11 @@ function payer(html: string): { present: boolean; refuse: boolean } {
   return { present: !!bouton, refuse: !!bouton?.includes('aria-disabled="true"') };
 }
 
-afterEach(() => resetRule('market-tenir-comptes'));
+afterEach(() => resetRule('marche-tenir-comptes'));
 
 describe('#3059 — MerchantPanel lit le prix du noyau', () => {
   it('Tenir les comptes : la hallebarde dans les moyens du Statut se paie bourse vide', () => {
-    setRule('market-tenir-comptes', true);
+    setRule('marche-tenir-comptes', true);
     const html = renderToStaticMarkup(
       <MerchantPanelView merchant={merchant} party={[heroAuStatutLePlusHaut()]} money={{ gold: 0, silver: 0, brass: 0 }} initialBuyView="cart" {...noop} />,
     );
@@ -44,7 +44,7 @@ describe('#3059 — MerchantPanel lit le prix du noyau', () => {
   });
 
   it('option désactivée : le prix catalogue s’affiche et la bourse vide refuse le paiement', () => {
-    setRule('market-tenir-comptes', false);
+    setRule('marche-tenir-comptes', false);
     const html = renderToStaticMarkup(
       <MerchantPanelView merchant={merchant} party={[heroAuStatutLePlusHaut()]} money={{ gold: 0, silver: 0, brass: 0 }} initialBuyView="cart" {...noop} />,
     );
@@ -66,7 +66,7 @@ describe('#3059 — MerchantPanel affiche la remise d’achat du noyau', () => {
 
 describe('#3059 — « Un de plus » se juge contre la bourse que le panier entame', () => {
   it('3 CO en bourse, une hallebarde (2 CO) au panier : la seconde est refusée', () => {
-    setRule('market-tenir-comptes', false);
+    setRule('marche-tenir-comptes', false);
     const html = renderToStaticMarkup(
       <MerchantPanelView merchant={merchant} party={[heroAuStatutLePlusHaut()]} money={{ gold: 3, silver: 0, brass: 0 }} initialBuyView="cart" {...noop} />,
     );

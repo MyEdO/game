@@ -22,11 +22,11 @@ describe('0 PB → État À Terre, MÊME sur overkill/Critique (LDB 18 l.15)', (
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     return { H, E };
   }
 
@@ -39,7 +39,7 @@ describe('0 PB → État À Terre, MÊME sur overkill/Critique (LDB 18 l.15)', (
     // Touche NON-critique mais qui dépasse les PB courants (overkill 7) → Blessure critique + À Terre.
     const res: AttackResult = {
       hit: true, attackerRoll: 40, netSL: 2, location: 'corps', damage: 10, woundsLost: 10,
-      critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+      critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
     };
     applyAttackResult(banc.getState, banc.setState, E, H, E.weapons[0], res);
     draineCascade(banc.getState); // la sévérité du Critique se tire DANS la fenêtre (#1426)
@@ -57,7 +57,7 @@ describe('0 PB → État À Terre, MÊME sur overkill/Critique (LDB 18 l.15)', (
     banc.setState({ battle: { ...banc.getState().battle! } });
     const res: AttackResult = {
       hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 5, woundsLost: 5,
-      critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+      critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
     };
     applyAttackResult(banc.getState, banc.setState, E, H, E.weapons[0], res);
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;

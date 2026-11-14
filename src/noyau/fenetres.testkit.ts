@@ -7,8 +7,17 @@
  * `fenetres-nomment-leurs-verbes.hors-store.test.ts` et `hote/gestes.hors-store.test.ts`.
  */
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie } from './index';
-import { MODAL_DEFS, HORS_MODAL, type GesteDuJeu, type HorsModalDef, type ModalDef, type VerbesDeFenetre } from './modalArbiter';
-import { FENETRE_DU_JET, JET_AUTO, SURFACES_A_ISSUE, VERBES_D_INTERACTION, gestesDeLaFenetre, gestesDeLaSurface, gestesDuJet } from './combatAuto';
+import { MODAL_DEFS, HORS_MODAL, type CleDeRegistre, type GesteDuJeu, type HorsModalDef, type ModalDef, type VerbesDeFenetre } from './modalArbiter';
+import {
+  CLES_DE_FENETRE,
+  FENETRE_DU_JET,
+  JET_AUTO,
+  SURFACES_A_ISSUE,
+  VERBES_D_INTERACTION,
+  gestesDeLaFenetre,
+  gestesDeLaSurface,
+  gestesDuJet,
+} from './combatAuto';
 import type { CascadeStep } from './pendings';
 import { FLOW_VERBS, type FlowKey } from './flowVerbs';
 import { cleDeFixture } from './noyau.testkit';
@@ -46,7 +55,7 @@ export const fenetresDuJeu = (temoin: CascadeStep): readonly Fenetre[] => [
 const SANS_RANGEE = fenetresDuJeu({ id: 'etape', kind: cleDeFixture('note') });
 
 /** Chaque clé de fenêtre que `fenetreDuJeu` peut rendre. */
-export const CLES_DES_FENETRES: ReadonlySet<string> = new Set(SANS_RANGEE.map((f) => f.cle));
+export const CLES_DES_FENETRES: readonly CleDeRegistre[] = CLES_DE_FENETRE.filter((cle) => SANS_RANGEE.some((f) => f.cle === cle));
 
 /** Chaque verbe qu'une fenêtre peut offrir. */
 export const VERBES_DES_FENETRES: ReadonlySet<string> = new Set(SANS_RANGEE.flatMap((f) => f.gestes.map((g) => g.verbe)));

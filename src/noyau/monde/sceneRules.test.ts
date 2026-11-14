@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { props } from '../../data';
+import { resetData, setDataset } from '../../data/overrides';
 import { sceneCombatModifiers, entityBlockedAt } from './sceneRules';
 import { Scene, SceneEntity, isWalkable } from './scene';
 import { attackModifiers, defenseModifiers, combineMods } from '../../engine/combat';
@@ -44,7 +46,7 @@ describe('sceneCombatModifiers — obscurité (horloge) / météo (LDB 14 l.75/7
 describe('Exemple RAW LDB 14 l.96 — « -30 plus +20 font -10 » (chaîne réelle scène → attaque)', () => {
   const mkc = (over: Partial<Combatant> = {}): Combatant =>
     (blessuresSurLeProfil({
-      id: 'x', name: 'X', kind: 'enemy',
+      id: 'x', name: 'X', kind: 'ennemi',
       characteristics: { 'capacite-de-combat': 50, force: 30, endurance: 30, agilite: 40 },
       wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -95,7 +97,7 @@ describe('entityBlockedAt — empreinte multi-cases des décors', () => {
     expect(entityBlockedAt(scene, 4, 3, 0)).toBe(false); // la charrette 2×1 ne couvrait pas cette case
   });
   it('décor INTERACTIF 1×1 (coffre fouillable) bloque sa case — on l’aborde, on ne marche pas dessus', () => {
-    const chest = { id: 'k', kind: 'prop', pos: { x: 6, y: 6 }, decor: { id: 'coffre' }, usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] } }] } } as unknown as SceneEntity;
+    const chest = { id: 'k', kind: 'prop', pos: { x: 6, y: 6 }, decor: { id: 'coffre' }, usable: { actions: [{ id: 'fouiller', flow: { kind: 'sequence', etapes: [] } }] } } as unknown as SceneEntity;
     const sc2 = { entities: [chest] } as unknown as Scene;
     expect(entityBlockedAt(sc2, 6, 6, 0)).toBe(true);
     expect(entityBlockedAt(sc2, 7, 6, 0)).toBe(false); // adjacent libre (fouille P5 / Ramasser en combat)
@@ -146,6 +148,15 @@ describe('isWalkable — intègre l’empreinte des décors', () => {
   });
   it('une case libre reste walkable', () => {
     expect(isWalkable(scene, 0, 0)).toBe(true);
+  });
+  it('la solidité se lit au catalogue VIVANT des décors : une charrette rendue non solide à l’atelier libère ses cases', () => {
+    try {
+      expect(isWalkable(scene, 1, 0)).toBe(false);
+      setDataset('props', props.map((p) => (p.id === 'charrette' ? { ...p, solid: false } : p)));
+      expect(isWalkable(scene, 1, 0)).toBe(true);
+    } finally {
+      resetData();
+    }
   });
 });
 

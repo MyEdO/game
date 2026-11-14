@@ -21,10 +21,10 @@ describe('Désengagement après avoir attaqué (option A — LDB 15 l.47)', () =
     banc.getState().ensemencerLeTirage(3);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.engagedWith = [E.id]; E.engagedWith = [H.id];
     H.advantage = 2; E.advantage = 0;
     const turn = st.battle!.order.indexOf(H.id);
@@ -37,7 +37,7 @@ describe('Désengagement après avoir attaqué (option A — LDB 15 l.47)', () =
     expect(pd!.canSacrifice).toBe(true);
     expect(pd!.refusEsquive).toBe(t('agate.actionSpent')); // Esquive indisponible (coûte l'Action, LDB 15 l.49) → pas de boucle infinie
 
-    banc.getState().jetRegler('disengage', 'sacrifier', true);
+    banc.getState().jetRegler('desengagement', 'sacrifier', true);
     st = banc.getState();
     expect(st.battle!.action).toBeNull(); expect(st.battle!.reachable.size).toBeGreaterThan(0); // mouvement libre rouvert (budget posé)
     expect(st.battle!.acted).toBe(true); // l'option A NE consomme PAS l'Action (préservée)

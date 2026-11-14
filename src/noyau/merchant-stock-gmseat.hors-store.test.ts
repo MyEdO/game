@@ -1,7 +1,7 @@
 /**
  * #273 dernier volet — stocks marchands routés par la porte du seam de jet : local sans MJ → tirage
  * INLINE inchangé (zéro friction) ; siège MJ (`net.gmSeat`) → tirage VISIBLE (étape de cascade
- * `merchant-stock`, jamais silencieux). Le RNG SEEDÉ reste identique quelle que soit la surface.
+ * `stockDuMarchand`, jamais silencieux). Le RNG SEEDÉ reste identique quelle que soit la surface.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -41,7 +41,7 @@ describe('#273 dernier volet — policy de la porte sur le stock marchand', () =
     const s = banc.getState();
     expect(s.merchant).toBeNull(); // pas ouvert tant que le MJ n'a pas validé
     expect(s.pendingCascade).not.toBeNull();
-    expect(s.pendingCascade!.participants[0].kind).toBe('merchant-stock');
+    expect(s.pendingCascade!.participants[0].kind).toBe('stockDuMarchand');
   });
 
   it('siège MJ : « Continuer » applique la MÊME persistance (merchantStocks) et ouvre le panneau', () => {

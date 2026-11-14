@@ -27,11 +27,12 @@
  * Blessures par réparation, puis Test d'Endurance par jour de voyage et à chaque Manœuvre — chaque
  * échec inflige 1d10−4 Dégâts. Lissage : réparation +50 % sinon perte du bénéfice (ch.12 l.295).
  */
-import shipConstructionJson from '../data/ship-construction.json';
+import { shipConstruction } from '../data';
 import steamBreakdownJson from '../data/steam-breakdown.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { roll, rollDice, type RNG, type Tirage } from './dice';
+import { rollDice, tirer, type RNG, type Tirage } from './dice';
+import { REPARATION } from './seaNavigation';
 import { deDeTirageDe, rangeesDe } from '../data/rangees';
 import type * as panneDeVapeur from '../data/schemas/defs/steam-breakdown';
 import { rollTest } from './tests';
@@ -41,7 +42,7 @@ import type { CibleEtendue } from '../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findVehicleById } from '../data';
 import { profilNavalDe } from './coque';
-import type { ShipSize, NavalInstall, InstallBand } from '../data';
+import type { ShipSize, NavalInstall, InstallBand, InstallBareme } from '../data';
 import type { ProfilDePropulsion } from '../data/schemas/grammaire/valeurs';
 import type { Combatant, NavalTraitRef, VehicleData } from './types';
 import type { ShipRig } from './combat';
@@ -98,41 +99,14 @@ export function propulsionDuNavire(vehicleId: string | undefined, upgrades: Nava
   return { ...conception, rig };
 }
 
-export interface StandardShipRow {
-  size: ShipSize;
-  costGold: number;
-  crew: number;
-  sail?: ProfilDePropulsion;
-  oars?: ProfilDePropulsion;
-  /** Colonne « Taille » du tableau standard (ch.12 l.122-129), en mètres ; `max: null` = la bande
-   *  FINALE, que le livre imprime « 81+ » (l.129). */
-  lengthM: { min: number; max: number | null };
-  e: number;
-  b: number;
-  capacity: number;
-}
-
-export interface SpeedTrait { id: string; label: string; mMod: number; capacityPct: number; manDR: number; costPct: number }
-interface ManRow { manDR: number; costPct: number }
-interface ConstructionTraitRule { id: string; maxLevel: number; costPctPerLevel: number; ePerLevel?: number; bPctPerLevel?: number; capacityPctPerLevel?: number }
-
-const DATA = shipConstructionJson as unknown as {
-  standard: StandardShipRow[];
-  propulsion: { secondaryMalus: number; secondaryMinM: number };
-  manoeuvrability: ManRow[];
-  speedTraits: SpeedTrait[];
-  constructionTraits: ConstructionTraitRule[];
-};
-
-
 /** La colonne « Taille » (ch.12 l.122-129) telle que `findTableEntry` la lit — `tableOuverte`
  *  (`./tables`) est le tronc commun des tables dont la bande FINALE est ouverte (ici « 81+ », l.129).
  *  Triée par borne basse : les DEUX bornes étant authorées, l'ordre des rangées au Codex ne décide
  *  plus du résultat. La contiguïté, elle, est tenue en donnée (`ecartsDeCouverture`,
  *  `src/data/schemas/defs/ship-construction.ts`). */
-const standardLookup = memoParVersion('shipHullSizes', () => tableOuverte(
-  [...DATA.standard].sort((a, b) => a.lengthM.min - b.lengthM.min).map((row) => ({ ...row.lengthM, size: row.size })),
-));
+const standardLookup = memoParVersion('shipHullSizes', () =>
+  tableOuverte(shipConstruction.standard.map((row) => ({ ...row.lengthM, size: row.size }))).sort((a, b) => a.min - b.min),
+);
 
 /**
  * Taille MDG d'un navire d'après sa LONGUEUR (tableau standard, ch.12 l.120-129 : 1-10 m Minuscule …
@@ -198,12 +172,12 @@ export interface ShipBuildResult {
 /** Construit un navire par les 4 étapes RAW (ch.12 l.108-164) + Traits de construction (l.167-193).
  *  Les % de coût s'appliquent tous AU COÛT DE BASE (« ajoutez 10 % au coût de base ») → additifs. PUR. */
 export function buildShip(spec: ShipBuildSpec): ShipBuildResult {
-  const std = DATA.standard.find((r) => r.size === spec.size)!;
-  const speed = DATA.speedTraits.find((s) => s.id === (spec.speedTraitId ?? 'moyen')) ?? DATA.speedTraits[3];
-  const manChoice = DATA.manoeuvrability.find((m) => m.manDR === (spec.manDR ?? 0)) ?? { manDR: 0, costPct: 0 };
+  const std = shipConstruction.standard.find((r) => r.size === spec.size)!;
+  const speed = shipConstruction.speedTraits.find((s) => s.id === (spec.speedTraitId ?? 'moyen')) ?? shipConstruction.speedTraits[3];
+  const manChoice = shipConstruction.manoeuvrability.find((m) => m.manDR === (spec.manDR ?? 0)) ?? { manDR: 0, costPct: 0 };
 
   // Étape 2 — propulsion principale : l'autre méthode M −2, min 3 (l.133) ; supprimée si non gardée.
-  const adjust = (m: number) => Math.max(DATA.propulsion.secondaryMinM, m - DATA.propulsion.secondaryMalus);
+  const adjust = (m: number) => Math.max(shipConstruction.propulsion.secondaryMinM, m - shipConstruction.propulsion.secondaryMalus);
   let sail = std.sail ? { ...std.sail } : undefined;
   let oars = std.oars ? { ...std.oars } : undefined;
   if (spec.primary === 'voile' && oars) oars = spec.secondary ? { ...oars, m: adjust(oars.m) } : undefined;
@@ -220,7 +194,7 @@ export function buildShip(spec: ShipBuildSpec): ShipBuildResult {
 
   const traits = (spec.traits ?? []).filter((t) => t.level > 0);
   for (const t of traits) {
-    const rule = DATA.constructionTraits.find((r) => r.id === t.id);
+    const rule = shipConstruction.constructionTraits.find((r) => r.id === t.id);
     if (!rule) continue;
     const level = Math.min(t.level, rule.maxLevel);
     costPct += rule.costPctPerLevel * level;
@@ -239,7 +213,7 @@ export function buildShip(spec: ShipBuildSpec): ShipBuildResult {
     capacity: Math.max(0, Math.round(std.capacity * (1 + capacityPct / 100))),
     crew: std.crew,
     costGold: Math.round(std.costGold * (1 + costPct / 100)),
-    traits: traits.map((t) => ({ id: t.id, level: Math.min(t.level, DATA.constructionTraits.find((r) => r.id === t.id)?.maxLevel ?? t.level) })),
+    traits: traits.map((t) => ({ id: t.id, level: Math.min(t.level, shipConstruction.constructionTraits.find((r) => r.id === t.id)?.maxLevel ?? t.level) })),
   };
 }
 
@@ -252,12 +226,12 @@ function bandValue(bands: InstallBand[], lengthM: number): number {
   return bands.length ? bands[bands.length - 1].value : 0;
 }
 
-/** Coût (CO) ou poids (Enc) d'installation d'une Amélioration : palier de LONGUEUR × multiplicateur
+/** Coût (CO), poids (Enc) ou durée de pose (jours) d'installation d'une Amélioration : palier de LONGUEUR × multiplicateur
  *  `per:'5m'` (« par tranche de 5 mètres de Taille », l.225/289 — tranches ENTAMÉES comptées) ou
  *  `per:'unite'` (× `units`). `'modele'` (Embarcation de bord) → `null` : le prix est celui du modèle
- *  embarqué, résolu par l'appelant. PUR. */
+ *  embarqué, résolu par l'appelant ; sur la durée, l'appelant retombe sur `REPARATION.joursDePose`. PUR. */
 export function installAmount(
-  part: NonNullable<NavalInstall['installation']>,
+  part: InstallBareme,
   lengthM: number,
   units = 1,
 ): number | null {
@@ -281,31 +255,18 @@ export function installCost(install: NavalInstall, lengthM: number, units = 1): 
 
 export interface RepairTick { roll: number; target: number; success: boolean; wounds: number; hours: number; costGold: number }
 
-/** UNE passe de réparation au PORT (l.643 : « 1 CO par Blessure restaurée. Chaque Test réussi prend
- *  1d10 heures de travail et restaure 1d10 Blessures ») — `skillValue` = Métier (Constructeur de
- *  navires), ou Métier (Charpentier) déjà pénalisé de −10 par l'appelant (l.641). `lissage` : le coût
- *  monte de 50 % (ch.12 l.295). PUR (RNG injecté). */
+/** Prix au port de `wounds` Blessures restaurées, coque lissée ou non. MDG 13 l.643 ; MDG 12 l.295 */
+export const prixDeLaReparation = (wounds: number, lissage: boolean): number =>
+  wounds * REPARATION.portCostGoldPerWound * (lissage ? 1 + REPARATION.lissageRepairSurcoutPct / 100 : 1);
+
+/** UNE passe de réparation au PORT : Test de Métier (Constructeur de navires) à `skillValue`, ou de Métier
+ *  (Charpentier) déjà pénalisé par l'appelant. MDG 13 l.641-643 ; MDG 12 l.295. PUR (RNG injecté). */
 export function rollPortRepair(skillValue: number, woundsMissing: number, rng: RNG, opts: { lissage?: boolean; difficulty?: Difficulty } = {}): RepairTick {
   const t = rollTest(skillValue, opts.difficulty ?? DIFFICULTE_PAR_DEFAUT, rng);
-  const hours = roll(1, 10, rng);
+  const hours = tirer(REPARATION.testHours, rng);
   if (!t.success) return { roll: t.roll, target: t.target, success: false, wounds: 0, hours, costGold: 0 };
-  const wounds = Math.min(woundsMissing, roll(1, 10, rng));
-  const costGold = wounds * (opts.lissage ? 1.5 : 1);
-  return { roll: t.roll, target: t.target, success: true, wounds, hours, costGold };
-}
-
-/** UNE réparation TEMPORAIRE en mer (l.647-649) : Complexe (−10) à Très Difficile (−30) selon les
- *  conditions ; réussie → 1 heure, 1d10 Blessures. Le navire devra tester son Endurance par jour de
- *  voyage et à chaque Manœuvre (l.651) — suivi par l'appelant (`temporaryPatched`). PUR. */
-export function rollTemporaryRepair(skillValue: number, woundsMissing: number, difficulty: Difficulty, rng: RNG): RepairTick {
-  const t = rollTest(skillValue, difficulty, rng);
-  return { roll: t.roll, target: t.target, success: t.success, wounds: t.success ? Math.min(woundsMissing, roll(1, 10, rng)) : 0, hours: 1, costGold: 0 };
-}
-
-/** Dégâts d'une réparation temporaire qui CÈDE (l.651 : « Chaque Test raté inflige 1d10–4 Dégâts »),
- *  plancher 0. PUR. */
-export function temporaryRepairFailureDamage(rng: RNG): number {
-  return Math.max(0, roll(1, 10, rng) - 4);
+  const wounds = Math.min(woundsMissing, tirer(REPARATION.woundsPerTest, rng));
+  return { roll: t.roll, target: t.target, success: true, wounds, hours, costGold: prixDeLaReparation(wounds, !!opts.lissage) };
 }
 
 // ── Panne de Vapeur (MDG 12 l.313-352) ────────────────────────────────────────────────────────

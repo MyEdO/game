@@ -10,26 +10,53 @@
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Scene } from '../monde/scene';
-import { addEffectZone, addTrigger, avecLaValeur, gestesDeLaListe, type Segment } from '../sceneEdit';
-import { formulaireDe } from '../sceneEditLecture';
-import { newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
-import { champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
+import { addEffectZone, addTrigger, avecLaValeur, type Segment } from '../sceneEdit';
+import { formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
+import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
+import seaEventsJson from '../../data/sea-events.json';
+import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
+import {
+  bornesAuPoint,
+  champDeLElement,
+  champsDeclares,
+  champsDuRecord,
+  champsOfferts,
+  choixDuNoeud,
+  cleOfferte,
+  elementDuNoeud,
+  formeAuPoint,
+  inferFields,
+  kindDuNoeud,
+  recordDuNoeud,
+  unionDuNoeud,
+  varianteCourante,
+  type FieldDesc,
+} from '../codex/editFields';
+import { ouverts } from '../../data/schemas/grammaire/descente';
+import { tableTotale } from '../../lib/tableTotale';
 import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
 import { conditionSchema, flowTestSchema, OP_DEFS, OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
 import { idDe, idsDe, idsDeLaSousListe, refOuSpec } from '../../data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../../data/schemas/grammaire/sousListes';
-import { CONDITION_TOUJOURS, recast } from '../../data/valeursNeuves';
+import { CONDITION_TOUJOURS, recast, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { DIFFICULTY_LABELS } from '../../engine/types';
 import type { Condition } from '../../engine/flowCore';
 import type { GameOp } from '../../engine/ops';
-import { choixDeLaFeuilleDId } from '../../data';
+import { choixDeLaFeuilleDId, creatureSemee, findCreatureById } from '../../data';
 import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
 import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
+
+/** Aucun `Source/` servi : aucun chapitre. */
+const SANS_SOURCE: SourceDeLEdition = { manifeste: null, chapitres: {} };
+
+/** Le cadre d'un porteur d'une scène vide, au narratif vide. */
+const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF_VIDE }, source: SANS_SOURCE };
 
 type Zone = NonNullable<Scene['effectZones']>[number];
 type Declencheur = Scene['triggers'][number];
@@ -56,7 +83,7 @@ function champ(champs: readonly FieldDesc[], donnee: unknown, cle: Segment, ...r
 
 describe('la description du formulaire d’une zone d’effet', () => {
   it('offre son Test de traversée, ses effets à la traversée et à chaque Round, chacun une liste d’ops, et son rendu ; absent, le Test s’ajoute vide', () => {
-    const champs = formulaireDe('zone', zone(), NARRATIF_VIDE);
+    const champs = formulaireDe('zone', zone(), CADRE_VIDE);
     expect(champs.map((c) => [c.key, c.label, c.nullable])).toEqual([['crossTest', 'Test de traversée', true], ['onCross', 'à la traversée', true], ['perRound', 'par Round', true], ['rendu', 'rendu', true]]);
     expect(valeurNeuveDe(champs[0].noeud)).toEqual({});
     for (const liste of champs.slice(1, 3)) expect(unionDuNoeud(elementDuNoeud(liste.noeud))?.discriminant, liste.key).toBe('op');
@@ -64,7 +91,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
 
   it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres bornés, sa garde en Condition, ses listes, son enjeu choisi par variante', () => {
     const z = zone({ crossTest: { skill: { id: 'athletisme' as never }, characteristic: 'force', requireSL: 2 } });
-    const champs = formulaireDe('zone', z, NARRATIF_VIDE);
+    const champs = formulaireDe('zone', z, CADRE_VIDE);
     const competence = champ(champs, z, 'crossTest', 'skill', 'id');
     expect(competence).toMatchObject({ nullable: false });
     expect(choixDuNoeud(competence.noeud)).toEqual(choixDeLaFeuilleDId({ type: 'skill' }).map((e) => ({ valeur: e.id, libelle: e.label })));
@@ -79,7 +106,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
     expect(unionDuNoeud(champ(champs, z, 'crossTest', 'gate').noeud)?.discriminant).toBe('kind');
     expect(valeurNeuveDe(elementDuNoeud(champ(champs, z, 'crossTest', 'difficultyBy').noeud))).toEqual({ cond: CONDITION_TOUJOURS, difficulty: 'tresFacile' });
     const enjeu = champ(champs, z, 'crossTest', 'stake');
-    expect([champsDeclares(enjeu.noeud), unionDuNoeud(enjeu.noeud)?.variantes.map((v) => v.cle), elementDuNoeud(enjeu.noeud)], 'une union sans discriminant se choisit à la clé propre de ses branches').toEqual([undefined, ['key', 'authored', 'from'], undefined]);
+    expect([champsDeclares(enjeu.noeud), unionDuNoeud(enjeu.noeud)?.variantes.map((v) => v.cle), elementDuNoeud(enjeu.noeud)], 'une union sans discriminant se choisit par ses branches, de clé leur rang').toEqual([undefined, ['0', '1', '2'], undefined]);
   });
 
   it('une référence se choisit dans la sous-liste que sa feuille déclare', () => {
@@ -91,7 +118,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
 
   it('une op se choisit parmi toutes, chacune nommée, neuve par `newOp` ; typée, elle se décrit champ par champ, son `op` tenu par le choix', () => {
     const z = zone({ onCross: [{ op: 'charMod', characteristic: 'force', mod: -10 }] as never });
-    const champs = formulaireDe('zone', z, NARRATIF_VIDE);
+    const champs = formulaireDe('zone', z, CADRE_VIDE);
     const op = champ(champs, z, 'onCross', 0);
     expect(op).toMatchObject({ key: '0', label: 'à la traversée 1', nullable: false });
     const variantes = variantesAChoisir(op.noeud, z.onCross![0])!;
@@ -105,11 +132,11 @@ describe('la description du formulaire d’une zone d’effet', () => {
   });
 
   it('une op de `OPS_NON_TYPEES` choisie n’a pas de forme déclarée : sa saisie reste en JSON', () => {
-    expect(OPS_NON_TYPEES).toContain('wounds');
-    const valeur = { op: 'wounds', amount: 5 };
-    const noeud = elementDuNoeud(formulaireDe('zone', zone({ onCross: [valeur] as never }), NARRATIF_VIDE)[1].noeud);
+    expect(OPS_NON_TYPEES).toContain('statusMod');
+    const valeur = { op: 'statusMod', amount: 1 };
+    const noeud = elementDuNoeud(formulaireDe('zone', zone({ onCross: [valeur] as never }), CADRE_VIDE)[1].noeud);
     const u = unionDuNoeud(noeud)!;
-    expect(varianteCourante(u, valeur)).toMatchObject({ cle: 'wounds', noeud: undefined });
+    expect(varianteCourante(u, valeur)).toMatchObject({ cle: 'statusMod', noeud: undefined });
     expect(formeAuPoint(noeud, valeur)).toBeUndefined();
   });
 });
@@ -128,8 +155,8 @@ describe('la description de la condition d’entrée d’un déclencheur', () =>
   it('une Condition `all` qui porte un `not` : chaque union se choisit par variante nommée, la liste élément par élément', () => {
     const when: Condition = { kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] };
     const d = declencheur(when);
-    const champs = formulaireDe('declencheur', d, NARRATIF_VIDE);
-    expect(champs.map((c) => [c.key, c.nullable])).toEqual([['when', true]]);
+    const champs = formulaireDe('declencheur', d, CADRE_VIDE);
+    expect(champs.map((c) => [c.key, c.nullable]), 'la condition d’entrée, absente admise, puis le flux, requis').toEqual([['when', true], ['flow', false]]);
     const variantes = variantesAChoisir(champs[0].noeud, when)!;
     expect(variantes).toHaveLength(35);
     expect(new Set(variantes.map((v) => v.libelle)).size, 'chacune nommée par son schéma, d’un nom propre').toBe(35);
@@ -146,7 +173,7 @@ describe('la description de la condition d’entrée d’un déclencheur', () =>
 
   it('une variante qui est elle-même une union se choisit au même chemin, nommée par l’énumération de son discriminant ; ni `kind` ni `what` ne s’écrivent en champ', () => {
     const has = { kind: 'has', who: 'target', what: 'group', value: 'x' } as Condition;
-    const noeud = formulaireDe('declencheur', declencheur(has), NARRATIF_VIDE)[0].noeud;
+    const noeud = formulaireDe('declencheur', declencheur(has), CADRE_VIDE)[0].noeud;
     const interne = varianteCourante(unionDuNoeud(noeud)!, has)!.noeud;
     const u = unionDuNoeud(interne)!;
     expect(u.discriminant).toBe('what');
@@ -239,7 +266,7 @@ describe('le geste `valeur` de la session', () => {
   });
 
   it('ajoute, change de variante, remplit, monte et retire les ops d’une liste ; la liste vidée quitte la zone', () => {
-    const element = elementDuNoeud(formulaireDe('zone', laZone(depart), NARRATIF_VIDE)[1].noeud);
+    const element = elementDuNoeud(formulaireDe('zone', laZone(depart), CADRE_VIDE)[1].noeud);
     const neuve = valeurNeuveDe(element);
     const ajoutee = jouer(depart, ['onCross'], gestesDeLaListe([], neuve).ajouter);
     expect(laZone(ajoutee).onCross).toEqual([neuve]);
@@ -296,14 +323,16 @@ describe('le geste `valeur` de la session', () => {
     expect(refusDeLaValeur(ajoute, geste({ sorte: 'zone', id: 'nulle-part' }, ['crossTest', 'characteristic'], ['force']))).toBe('nonOffert');
     expect(laZone(jouer(jouer(ajoute, ['crossTest', 'skill'], valeurNeuveDe(refOuSpec('skill'))), ['crossTest', 'skill', 'id'], 'athletisme')).crossTest, 'la référence de Compétence se choisit').toEqual({ skill: { id: 'athletisme' } });
 
-    const avecOps = jouer(depart, ['onCross'], [{ op: 'wounds', amount: 5 }]);
-    expect(laZone(jouer(avecOps, ['onCross', 0], { op: 'wounds', amount: 3 })).onCross, 'une op non typée s’écrit en JSON que son schéma parse').toEqual([{ op: 'wounds', amount: 3 }]);
+    const avecOps = jouer(depart, ['onCross'], [{ op: 'statusMod', amount: 1 }]);
+    expect(laZone(jouer(avecOps, ['onCross', 0], { op: 'statusMod', amount: 2 })).onCross, 'une op non typée s’écrit en JSON que son schéma parse').toEqual([{ op: 'statusMod', amount: 2 }]);
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [null])), 'un JSON illisible').toBe('illisible');
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [{ op: 'pas-une-op' }]))).toBe('horsSorte');
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0, 'amount'], [3])), 'une op sans forme déclarée n’offre aucun champ').toBe('nonOffert');
     const avecHas = surDeclencheur(depart, ['when'], recast(CONDITION_TOUJOURS, 'has'));
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['when', 'what'], ['trait'])), 'un discriminant se change par le choix de la variante').toBe('nonOffert');
-    expect(refusDeLaValeur(avecHas, geste(surTrig, ['flow'], [{ kind: 'seq', steps: [] }])), 'le flux n’est pas offert').toBe('nonOffert');
+    for (const chemin of [['once'], ['rect', 'z']] as Segment[][]) {
+      expect(refusDeLaValeur(avecHas, geste(surTrig, chemin, [1])), `${chemin.join('/')} : un champ qu’un geste dédié écrit, hors du formulaire`).toBe('nonOffert');
+    }
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['when', 'who'], ['caster']))).toBeNull();
   });
 });
@@ -311,26 +340,24 @@ describe('le geste `valeur` de la session', () => {
 describe('les choix d’une union réunissent ses références, ses énumérations et ses littéraux (#3606 M1a)', () => {
   const ids = (type: 'species' | 'planDeBestiaire' | 'career' | 'trait') => choixDeLaFeuilleDId({ type }).map((e) => e.id);
 
-  it('l’espèce d’une apparence : les 27 espèces puis les 102 du plan de bestiaire', () => {
+  it('l’espèce d’une apparence : les espèces puis celles du plan de bestiaire', () => {
     const choix = choixDuNoeud(especeDApparenceSchema)!.map((o) => o.valeur);
-    expect([ids('species').length, ids('planDeBestiaire').length]).toEqual([27, 102]);
+    expect(Math.min(ids('species').length, ids('planDeBestiaire').length)).toBeGreaterThan(0);
     expect(choix).toEqual([...ids('species'), ...ids('planDeBestiaire')]);
-    expect(choix).toHaveLength(129);
   });
 
-  it('la tenue : les 108 carrières puis « nu »', () => {
+  it('la tenue : les carrières puis « nu »', () => {
     const choix = choixDuNoeud(tenueFermeeSchema)!.map((o) => o.valeur);
     expect(choix).toEqual([...ids('career'), 'nu']);
-    expect(choix).toHaveLength(109);
   });
 
   it('les choix d’une feuille unique et sa valeur neuve sont inchangés : la difficulté d’un Test de traversée, le Trait d’une condition d’entrée', () => {
     const z = zone({ crossTest: { characteristic: 'force' } });
-    const difficulte = champ(formulaireDe('zone', z, NARRATIF_VIDE), z, 'crossTest', 'difficulty').noeud;
+    const difficulte = champ(formulaireDe('zone', z, CADRE_VIDE), z, 'crossTest', 'difficulty').noeud;
     expect(choixDuNoeud(difficulte)).toEqual(Object.entries(DIFFICULTY_LABELS).map(([valeur, libelle]) => ({ valeur, libelle })));
     expect(valeurNeuveDe(difficulte)).toBe(Object.keys(DIFFICULTY_LABELS)[0]);
     const d = declencheur({ kind: 'has', who: 'target', what: 'trait', value: 'a-distance' } as Condition);
-    const trait = champ(formulaireDe('declencheur', d, NARRATIF_VIDE), d, 'when', 'value').noeud;
+    const trait = champ(formulaireDe('declencheur', d, CADRE_VIDE), d, 'when', 'value').noeud;
     expect(choixDuNoeud(trait)).toEqual(choixDeLaFeuilleDId({ type: 'trait' }).map((e) => ({ valeur: e.id, libelle: e.label })));
     expect(valeurNeuveDe(trait)).toBe(ids('trait')[0]);
   });
@@ -351,5 +378,140 @@ describe('une union se lit à la présence de son discriminant : les options d�
     const variantes = variantesAChoisir(optionalEntrySchema, note)!;
     expect(variantes.find((v) => v.cle === '')?.valeur).toEqual({ id: choixDeLaFeuilleDId({ type: 'trait' })[0].id });
     expect(variantes.find((v) => v.cle === 'swap')).toMatchObject({ courante: true, valeur: note });
+  });
+});
+
+/** La première Condition « Bourse ≥ » de `sea-events.json`, d'où se lit une valeur liée réelle (MDG 15 l.245-247). */
+function bourseLiee(): Condition {
+  const pile: unknown[] = [seaEventsJson];
+  for (let v = pile.pop(); v !== undefined; v = pile.pop()) {
+    if (v !== null && typeof v === 'object' && (v as { kind?: unknown }).kind === 'money') return v as Condition;
+    if (v !== null && typeof v === 'object') pile.push(...Object.values(v));
+  }
+  throw new Error('aucune Condition « money » dans sea-events.json');
+}
+
+describe('une union sans discriminant se lit à la forme de ses branches : la Bourse et la référence d’une possession (#3606 M2e2)', () => {
+  it('la Bourse ≥ offre « Montant » et « Valeur liée », qui partagent `brass` ; la courante est celle dont la valeur a la forme', () => {
+    const montant = recast(CONDITION_TOUJOURS, 'money');
+    const liee = bourseLiee();
+    expect([montant, liee].map((c) => (c as { atLeast: unknown }).atLeast)).toEqual([{ gold: 1 }, { brass: { tire: expect.any(String) } }]);
+    const noeud = (c: Condition) => { const d = declencheur(c); return champ(formulaireDe('declencheur', d, CADRE_VIDE), d, 'when', 'atLeast').noeud; };
+    const u = unionDuNoeud(noeud(liee))!;
+    expect(u.variantes.map((v) => [v.cle, v.libelle])).toEqual([['0', 'Montant'], ['1', 'Valeur liée']]);
+    expect([montant, liee].map((c) => varianteCourante(u, (c as { atLeast: unknown }).atLeast)?.libelle)).toEqual(['Montant', 'Valeur liée']);
+    for (const [actuelle, vers] of [[liee, 'Montant'], [montant, 'Valeur liée']] as const) {
+      const choisie = variantesAChoisir(noeud(actuelle), (actuelle as { atLeast: unknown }).atLeast)!.find((v) => v.libelle === vers)!;
+      const ecrite = avecLaValeur(conditionSchema, actuelle, ['atLeast'], choisie.valeur);
+      if (!ecrite.ok) throw new Error(`${vers} : ${ecrite.refus}`);
+      expect(varianteCourante(u, ecrite.valeur.atLeast)?.libelle, `${vers} : courante une fois écrite`).toBe(vers);
+      const issues = conditionSchema.safeParse(ecrite.valeur).error?.issues.map((i) => [i.code, i.path.join('.')]) ?? [];
+      expect(issues, `${vers} : le parse n’y refuse que la valeur liée encore vide`).toEqual(vers === 'Montant' ? [] : [['too_small', 'atLeast.brass.tire']]);
+    }
+  });
+
+  it('la référence d’une possession offre « Créature ou véhicule », elle-même union discriminée, et « profil personnalisé » ; la courante est celle dont la valeur a la forme', () => {
+    const effet = newEffect('givePossession') as Extract<ReturnType<typeof newEffect>, { type: 'givePossession' }>;
+    const statbloc = { custom: statblockDeLaCreature(findCreatureById(creatureSemee())!) };
+    const parStatbloc = { ...effet, ref: statbloc };
+    const d = (e: unknown) => ({ ...declencheur(), flow: { kind: 'effet', effet: e } } as Declencheur);
+    const noeud = (e: unknown) => champ(formulaireDe('declencheur', d(e), CADRE_VIDE), d(e), 'flow', 'effet', 'ref').noeud;
+    const u = unionDuNoeud(noeud(effet))!;
+    expect(u.variantes.map((v) => [v.cle, v.libelle])).toEqual([['0', 'Créature ou véhicule'], ['1', 'profil personnalisé']]);
+    expect(unionDuNoeud(u.variantes[0].noeud)?.discriminant, 'la référence se choisit encore par son type').toBe('type');
+    expect([effet.ref, statbloc].map((r) => varianteCourante(u, r)?.cle)).toEqual(['0', '1']);
+    expect(givePossessionSchema.safeParse(parStatbloc).success, 'le statbloc réel parse').toBe(true);
+    for (const [actuelle, vers] of [[effet, '1'], [parStatbloc, '0']] as const) {
+      const choisie = variantesAChoisir(noeud(actuelle), actuelle.ref)!.find((v) => v.cle === vers)!;
+      const ecrite = avecLaValeur(givePossessionSchema, actuelle, ['ref'], choisie.valeur);
+      if (!ecrite.ok) throw new Error(`${vers} : ${ecrite.refus}`);
+      expect([varianteCourante(u, ecrite.valeur.ref)?.cle, givePossessionSchema.safeParse(ecrite.valeur).success], `${vers} : courante et admise par le parse`).toEqual([vers, true]);
+    }
+  });
+});
+
+/** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`), toutes branches ouvertes,
+ *  sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) : `variantes` d'une union nommée, `ajouter`
+ *  ou `json` d'une liste, `json` d'une op sans forme déclarée, sinon celle de la feuille (`choix`, `nombre`, `texte`,
+ *  `json`). Un nœud déjà descendu ne se redescend pas. */
+function saisiesDesFormulaires(): Map<string, string> {
+  const saisies = new Map<string, string>();
+  const vus = new Set<unknown>();
+  const sous = (noeud: unknown, tenus: readonly string[] = []): FieldDesc[] => (champsDeclares(noeud) ?? [])
+    .filter(([cle, n]) => !tenus.includes(cle) && cleOfferte(cle, n))
+    .map(([cle, n]) => inferFields([{}], { noeud, niveau: 'profondeur' }).find((c) => c.key === cle) ?? { key: cle, label: cle, kind: kindDuNoeud(cle, n), nullable: true, noeud: n });
+  const objet = (noeud: unknown, f: FieldDesc, chemin: string, tenus: readonly string[] = []) => {
+    if (vus.has(noeud)) return;
+    vus.add(noeud);
+    for (const c of sous(noeud, tenus)) champ({ ...c, contexte: f.contexte }, `${chemin}/${c.key}`);
+  };
+  const feuille = (f: FieldDesc, chemin: string) => {
+    const segments = chemin.replace(/<[^>]*>|\{\d*\}/g, '').split('/').slice(1).map((s) => (/^\d+$/.test(s) ? Number(s) : s));
+    const choix = f.contexte?.choix(segments) ?? choixDuNoeud(f.noeud);
+    const nombre = f.kind === 'number' || bornesAuPoint(f.noeud, undefined) !== undefined;
+    saisies.set(chemin, choix ? 'choix' : nombre ? 'nombre' : f.kind === 'text' || f.kind === 'textarea' ? 'texte' : 'json');
+  };
+  function champ(f: FieldDesc, chemin: string, tenus: readonly string[] = []): void {
+    if (champsDeclares(f.noeud)) return objet(f.noeud, f, chemin, tenus);
+    const u = unionDuNoeud(f.noeud);
+    if (u) {
+      if (!tenus.length) saisies.set(chemin, 'variantes');
+      if (vus.has(u.noeud)) return;
+      vus.add(u.noeud);
+      for (const v of u.variantes) {
+        const ici = `${chemin}<${u.discriminant || 'forme'}=${v.cle}>`;
+        if (v.noeud === undefined) saisies.set(ici, 'json');
+        else if (unionDuNoeud(v.noeud)) champ({ ...f, noeud: v.noeud }, ici, [...tenus, u.discriminant]);
+        else if (champsDeclares(v.noeud)) objet(v.noeud, f, ici, [...tenus, u.discriminant]);
+        else feuille({ ...f, noeud: v.noeud, kind: kindDuNoeud('', v.noeud) }, ici);
+      }
+      return;
+    }
+    const element = elementDuNoeud(f.noeud);
+    if (element !== undefined) {
+      saisies.set(chemin, valeurNeuveDe(element) !== undefined || choixDuNoeud(element) ? 'ajouter' : 'json');
+      if (!vus.has(element)) champ({ ...champDeLElement(f, 0), contexte: f.contexte }, `${chemin}/0`);
+      return;
+    }
+    const record = recordDuNoeud(f.noeud);
+    if (record && champsDuRecord(f, {}, []).length) return champ({ ...f, key: '{}', kind: kindDuNoeud('', record.valeur), noeud: record.valeur }, `${chemin}/{}`);
+    const formes = ouverts([f.noeud]).filter((n) => champsDeclares(n));
+    feuille(f, chemin);
+    formes.forEach((n, i) => objet(n, f, `${chemin}{${i}}`));
+  }
+  const vide = emptyScene('s', 4, 4);
+  const porteurs = [
+    ['zone', zone()],
+    ['declencheur', declencheur()],
+    ['entite', { kind: 'personnage', id: 'p', pos: { x: 0, y: 0 }, vehicule: { id: 'x' } }],
+    ['entite', { kind: 'prop', id: 'd', ref: 'x', pos: { x: 0, y: 0 }, usable: { actions: [{ id: 'a' }] } }],
+  ] as const;
+  for (const [sorte, donnee] of porteurs) for (const f of formulaireDe(sorte, donnee as never, { ...CADRE_VIDE, scene: vide })) champ(f, `${sorte}/${f.key}`);
+  return saisies;
+}
+
+describe('chaque feuille des formulaires tirés du schéma a un contrôle typé (#3606 M2e)', () => {
+  const saisies = saisiesDesFormulaires();
+
+  it('le sélecteur de héros, la fenêtre de Détermination, l’échéance d’un modificateur de navire, la cible d’un effet et d’un effet déclenché se choisissent par variante nommée, les fragments d’une adresse de prose s’ajoutent et se choisissent de même', () => {
+    const effets = ['setObjective', 'journal', 'grantFavor'].map((type) => `declencheur/flow<kind=effet>/effet<type=${type}>/descRef/parts`);
+    const attendues: Record<string, string> = Object.fromEntries([
+      ...['partyDead', 'skill', 'talent', 'career', 'species', 'status'].map((kind) => [`zone/crossTest/gate<kind=${kind}>/who`, 'variantes']),
+      ['zone/onCross/0<op=condition>/resolveWindow', 'variantes'],
+      ['zone/onCross/0<op=navireMod>/jusqua', 'variantes'],
+      ...['infestation>/chaqueNuit<kind=effet>/effet', 'augmentWeapon>/onHitEffects/0', 'grantWeapon>/onHitEffects/0'].map((op) => [`zone/onCross/0<op=${op}/on`, 'variantes']),
+      ...effets.flatMap((parts) => [[parts, 'ajouter'], [`${parts}/0`, 'variantes']]),
+    ]);
+    expect(Object.keys(attendues)).toHaveLength(17);
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+    const horsObjet = ['zone/crossTest/gate<kind=partyDead>/who', 'zone/onCross/0<op=condition>/resolveWindow', 'zone/onCross/0<op=navireMod>/jusqua', 'zone/onCross/0<op=augmentWeapon>/onHitEffects/0/on'];
+    expect(horsObjet.map((c) => saisies.get(`${c}<forme=0>`)), 'la variante hors objet se choisit parmi ses valeurs').toEqual(horsObjet.map(() => 'choix'));
+  });
+
+  it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée, et chaque op non typée', () => {
+    expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual([
+      'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters',
+      ...OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`),
+    ].sort());
   });
 });

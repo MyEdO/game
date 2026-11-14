@@ -25,7 +25,7 @@ const LAND_MS = 1100;
  * même visibles) ; pendant `landed`, referme immédiatement (impatience assumée).
  *
  * Critère mécanique (arbitrage user 2026-07-13/14) : tout ce qui RE-TIRE les dés (jet initial,
- * relance de Chance, relance de Sombre Pacte — `rollFlowFactory.reroll`/`darkPact`, tous deux
+ * relance de Chance, relance de Sombre Pacte — `rollFlowFactory.relancer`/`pactiser`, tous deux
  * `reresolveOf` = un nouveau jet RNG) roule ; tout ce qui AJUSTE un résultat déjà lancé sans le
  * relancer (Chance « +1 DR » = `bumpSL`, Résilience/Résistance/Détermination = dé CHOISI ou DR
  * imposé, jamais RNG) ne roule pas.

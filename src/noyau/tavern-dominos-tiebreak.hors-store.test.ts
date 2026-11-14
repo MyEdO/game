@@ -5,13 +5,15 @@
  *
  * La clause du jeu remplace le départage général (NADJ 16 l.105 ; #1921 c.6233078802) : à DR égal, la valeur ne départage pas.
  */
+import { nomDe } from '../engine/nom';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
-import { findTavernGameById, TAVERN_GAMES, TAVERN_FAST_RULE } from '../engine/tavernGame';
+import { findTavernGameById, TAVERN_FAST_RULE } from '../engine/tavernGame';
+import { TAVERN_GAMES } from '../data';
 import { setRule } from '../engine/policy';
 import { resolveSequenceTie, closeSequenceRound, sequenceVolleyRounds } from './sequenceCore';
 import { type EtatDeFamille, type MancheClose } from './sequenceContract';
@@ -25,20 +27,20 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** L'adversaire au profil standard, nommé comme `jouerALaTaverne` le nomme (`opponentActor.label`). */
-const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
+const NOM_HABITUE = nomDe(pnjAuProfil('humain', HABITUE)!);
 
 const get = () => banc.getState();
 
 function heros(): Combatant {
-  return makePregens(idsDeTest)[0] as Combatant;
+  return tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
 }
 
 /** Séquence de partie en cours, telle que `jouerALaTaverne` la pose. */
 function partie(tieBreak: DepartageDeSequence | undefined, challengerId: string): EtatDeFamille<typeof TAVERN_SEQUENCE> {
   return {
-    def: TAVERN_SEQUENCE, round: 1, cum: {},
-    params: { ...(tieBreak ? { tieBreak } : {}) },
-    payload: { gameId: 'dominos', challengerId, opponentValue: 40, opponentName: NOM_HABITUE, stakeBrass: 0 },
+    definition: TAVERN_SEQUENCE, manche: 1, cumuls: {},
+    parametres: { ...(tieBreak ? { tieBreak } : {}) },
+    chargeUtile: { gameId: 'dominos', challengerId, opponentValue: 40, opponentName: NOM_HABITUE, stakeBrass: 0 },
   };
 }
 
@@ -78,7 +80,7 @@ describe('Les dominos — NADJ 16 l.105', () => {
     expect(findTavernGameById('dominos')?.difficulty, 'portée à la racine du jeu').toBe('accessible');
     const a = heros();
     banc.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne(a.id, { gameId: 'dominos', opponent: { kind: 'profil', id: 'humain' } });
     const etape = get().pendingCascade!.participants[0];
     expect(etape.difficulty, 'le challenger').toBe('accessible');
     const aT = etape.meta!.opposed!.aT!;
@@ -90,62 +92,62 @@ describe('Les dominos — NADJ 16 l.105', () => {
     expect(findTavernGameById('dominos')?.tieBreak).toBe('units-lowest');
     const a = heros();
     banc.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
-    expect(get().sequence?.params.tieBreak).toBe('units-lowest');
+    get().jouerALaTaverne(a.id, { gameId: 'dominos', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    expect(get().sequence?.parametres.tieBreak).toBe('units-lowest');
   });
 
   it('à DR ÉGAL, le dé d’unités le plus BAS gagne — même contre la valeur la plus HAUTE', () => {
-    expect(issue('units-lowest', { roll: 22, nue: 30, sl: 2 }, { roll: 27, nue: 60, sl: 2 }), '2 contre 7, valeur 30 contre 60').toBe('player');
-    expect(issue('units-lowest', { roll: 27, nue: 60, sl: 2 }, { roll: 22, nue: 30, sl: 2 }), '7 contre 2, valeur 60 contre 30').toBe('opponent');
+    expect(issue('units-lowest', { roll: 22, nue: 30, sl: 2 }, { roll: 27, nue: 60, sl: 2 }), '2 contre 7, valeur 30 contre 60').toBe('joueur');
+    expect(issue('units-lowest', { roll: 27, nue: 60, sl: 2 }, { roll: 22, nue: 30, sl: 2 }), '7 contre 2, valeur 60 contre 30').toBe('adversaire');
   });
 
   it('sans départage, le résultat dit les DR des deux camps', () => {
-    expect(issue('units-lowest', { roll: 22, nue: 30, sl: 3 }, { roll: 27, nue: 60, sl: 1 })).toBe('player');
+    expect(issue('units-lowest', { roll: 22, nue: 30, sl: 3 }, { roll: 27, nue: 60, sl: 1 })).toBe('joueur');
     expect(get().tavernGames?.result?.detail).toBe('DR 3 contre 1');
   });
 
   it('le départage se DIT : le résultat et le journal nomment le dé d’unités de chacun', () => {
-    expect(issue('units-lowest', { roll: 22, nue: 30, sl: 2 }, { roll: 27, nue: 60, sl: 2 })).toBe('player');
+    expect(issue('units-lowest', { roll: 22, nue: 30, sl: 2 }, { roll: 27, nue: 60, sl: 2 })).toBe('joueur');
     expect(get().tavernGames?.result?.detail).toBe('DR 2 contre 2 — À DR égal, dé d’unités 2 contre 7 : le plus bas l’emporte');
     expect(get().journal.some((l) => l.includes('dé d’unités 2 contre 7')), 'le journal le dit').toBe(true);
   });
 
   it('à DR ÉGAL et unités égales, la valeur ne départage pas : la manche reste nulle', () => {
-    expect(issue('units-lowest', { roll: 23, nue: 60, sl: 2 }, { roll: 33, nue: 30, sl: 2 })).toBe('tie');
+    expect(issue('units-lowest', { roll: 23, nue: 60, sl: 2 }, { roll: 33, nue: 30, sl: 2 })).toBe('egalite');
   });
 
   it('le DR décide AVANT la clause : le plus haut DR gagne, quelles que soient les unités', () => {
-    expect(issue('units-lowest', { roll: 19, nue: 40, sl: 3 }, { roll: 30, nue: 40, sl: 2 })).toBe('player');
+    expect(issue('units-lowest', { roll: 19, nue: 40, sl: 3 }, { roll: 30, nue: 40, sl: 2 })).toBe('joueur');
   });
 
   it('SANS clause (régime rapide, NADJ 16 l.11), le départage général s’applique : la valeur la plus haute (LDB 12 l.160)', () => {
     setRule(TAVERN_FAST_RULE, true);
     expect(findTavernGameById('dominos')?.tieBreak, 'le régime rapide ne joue pas la clause').toBeUndefined();
-    expect(issue(undefined, { roll: 22, nue: 30, sl: 2 }, { roll: 27, nue: 60, sl: 2 })).toBe('opponent');
+    expect(issue(undefined, { roll: 22, nue: 30, sl: 2 }, { roll: 27, nue: 60, sl: 2 })).toBe('adversaire');
   });
 
   it('LE RÉDUCTEUR : à dé d’unités 3 contre 7, c’est le PLUS BAS qui gagne', () => {
     expect(resolveSequenceTie('units-lowest', { roll: 23, sl: 2 }, { roll: 47, sl: 2 })).toBe('a');
     expect(resolveSequenceTie('units-lowest', { roll: 47, sl: 2 }, { roll: 23, sl: 2 })).toBe('b');
-    expect(resolveSequenceTie('units-lowest', { roll: 33, sl: 2 }, { roll: 63, sl: 2 }), 'mêmes unités : rien ne départage').toBe('tie');
+    expect(resolveSequenceTie('units-lowest', { roll: 33, sl: 2 }, { roll: 63, sl: 2 }), 'mêmes unités : rien ne départage').toBe('egalite');
     expect(resolveSequenceTie('units-lowest', { roll: 100, sl: 0 }, { roll: 41, sl: 0 }), 'un d100 de 100 a 0 pour dé d’unités').toBe('a');
   });
 
   /** Toute entrée `opposed` ouvre la MÊME séquence, paramétrée par sa SEULE donnée. */
   it('ZÉRO CÉRÉMONIE : toute entrée `opposed` du catalogue ouvre la séquence, paramétrée par sa SEULE donnée', () => {
     const a = heros();
-    for (const jeu of TAVERN_GAMES.filter((g) => g.mode === 'opposed')) {
+    for (const jeu of TAVERN_GAMES.filter((g) => g.mode === 'oppose')) {
       banc.setState({ party: [a], sequence: null, pendingCascade: null, tavernGames: null });
-      get().jouerALaTaverne({ gameId: jeu.id, challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, ...(jeu.team ? { allyProfil: 'elfe-haut-et-sylvain' } : {}) });
+      get().jouerALaTaverne(a.id, { gameId: jeu.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, ...(jeu.team ? { allyProfil: 'elfe-haut-et-sylvain' } : {}) });
       const seq = get().sequence;
-      expect(seq?.def, `${jeu.id} : même orchestrateur pour tous`).toBe(TAVERN_SEQUENCE);
-      expect(seq?.params, jeu.id).toEqual({
+      expect(seq?.definition, `${jeu.id} : même orchestrateur pour tous`).toBe(TAVERN_SEQUENCE);
+      expect(seq?.parametres, jeu.id).toEqual({
         ...(jeu.tieBreak ? { tieBreak: jeu.tieBreak } : {}),
         ...(jeu.drCap != null ? { drCap: jeu.drCap } : {}),
         ...(jeu.roundOps ? { rounds: jeu.roundOps } : {}),
         ...(jeu.phases ? { phases: jeu.phases } : {}),
         ...(jeu.scoreThreshold != null ? { scoreThreshold: jeu.scoreThreshold } : {}),
-        ...(jeu.campScore ? { score: { player: jeu.campScore, opponent: jeu.campScore } } : {}),
+        ...(jeu.campScore ? { score: { joueur: jeu.campScore, adversaire: jeu.campScore } } : {}),
         ...(jeu.table ? { table: jeu.table } : {}),
         ...(jeu.drBonus ? { drBonus: jeu.drBonus } : {}),
         ...(jeu.avantage ? { avantage: true } : {}),

@@ -10,7 +10,7 @@ import { CHEMINS_ADRESSES } from './chemins-adresses';
 import { porteurDeRangee, type Porteur } from './porteur';
 import { adressesDesEntreesEmbarquees } from '../../data/schemas/grammaire/document';
 import { projetSchema } from '../../data/schemas/defs-scenes/projet';
-import { pregen, PREGEN } from '../../data/pregens';
+import { HEROS_DE_SCENARIO, herosDeScenario, type RoleDeScenario } from '../../scenes/test-scenarios/_heros';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { cheminsProseNommee } from '../../../scripts/guards/lib/proseNommee.mjs';
 import { detenteur } from '../../lib/detenteur.testkit';
@@ -32,8 +32,8 @@ function porteursEmis(): Porteur[] {
       if (it.statblock) balaye(it.statblock.traits, entree);
     }
   }
-  for (const key of Object.keys(PREGEN) as (keyof typeof PREGEN)[]) {
-    for (const s of combatantSections(pregen(idsDeTest, PREGEN[key]))) balaye(s.rows);
+  for (const key of Object.keys(HEROS_DE_SCENARIO) as RoleDeScenario[]) {
+    for (const s of combatantSections(herosDeScenario(idsDeTest, key))) balaye(s.rows);
   }
   return acc;
 }

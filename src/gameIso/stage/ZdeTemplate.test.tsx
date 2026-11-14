@@ -6,7 +6,7 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it } from 'vitest';
 import { useGame } from '../../state/store';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 import type { BattleState } from '../../noyau/etat';
 import type { Dims } from '../../geometry/iso';
 import { ZdeTemplate } from './ZdeTemplate';
@@ -26,7 +26,7 @@ afterEach(() => useGame.setState({ battle: vierge.battle, scene: vierge.scene, m
 
 /** Un servant en (2,0) arme un pilonnage de rayon 1, sans cap de portée ; rend le gabarit peint sous `hover`. */
 function peindre(hover: { x: number; y: number }): string {
-  const w = pregen(idsDeTest, PREGEN.sorcier);
+  const w = herosDeScenario(idsDeTest, 'sorcier');
   w.pos = { x: 2, y: 0 };
   const battle = { combatants: [w], order: [w.id], baseOrder: [w.id], turn: 0, round: 1, action: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState;
   const pendingSiegeAim = { gunnerId: w.id, weaponUid: 'canon', radius: 1, rangeTiles: null };

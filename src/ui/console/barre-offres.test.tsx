@@ -29,7 +29,7 @@ const CHARS = {
 /** Un porteur nu : ni arme, ni objet, ni Compétence, ni talent — seule sa situation compte. */
 const porteur = (id: string, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id, label: id, name: id, kind: 'hero', pos: { x: 5, y: 5 }, size: 'moyenne', characteristics: CHARS,
+    id, label: id, name: id, kind: 'heros', pos: { x: 5, y: 5 }, size: 'moyenne', characteristics: CHARS,
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [], items: [],
     skills: [], talents: [], armour: {}, movement: 4, loaded: true, ...over,
   })) as unknown as Combatant;
@@ -38,13 +38,13 @@ const porteur = (id: string, over: Partial<Combatant> = {}): Combatant =>
 const poste = (): ShipPoste =>
   ({
     side: 'tribord', loaded: false, reloadProgress: 0, crewIds: ['gunner'],
-    item: { uid: 'canon', label: 'Canon moyen', type: 'ranged', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] },
+    item: { uid: 'canon', label: 'Canon moyen', type: 'distance', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] },
   }) as unknown as ShipPoste;
 
 /** La coque du groupe (`vehicles.json`, facette `hull`), active, servie par son artilleur. */
 function coque(): Combatant {
   const hull = vehicleCombatant(findVehicleById('bateau-de-patrouille')!)!;
-  return Object.assign(hull, { id: 'ship', kind: 'hero', pos: { x: 5, y: 5 }, crewIds: ['gunner'], postes: [poste()] });
+  return Object.assign(hull, { id: 'ship', kind: 'heros', pos: { x: 5, y: 5 }, crewIds: ['gunner'], postes: [poste()] });
 }
 
 /** Le combat de l'actif `actif` (en tête d'ordre), avec `autres`. */
@@ -55,7 +55,7 @@ const combat = (actif: Combatant, autres: Combatant[]): BattleState =>
     acted: false, runBudget: 4, log: [], over: null, crewActed: {},
   }) as unknown as BattleState;
 
-const adversaire = () => porteur('e1', { kind: 'enemy', pos: { x: 9, y: 9 } });
+const adversaire = () => porteur('e1', { kind: 'ennemi', pos: { x: 9, y: 9 } });
 
 /** Les quatre porteurs nommés : l'actif et son combat. */
 const FIXTURES: Record<string, () => BattleState> = {
@@ -67,26 +67,26 @@ const FIXTURES: Record<string, () => BattleState> = {
 
 /** Le corps et la défense : offerts à tout porteur, fermés pour une coque (`fantassin`) ; la Détermination ; la fin
  *  de tour. */
-const CORPS = ['course', 'mouvement', 'defend'];
+const CORPS = ['course', 'mouvement', 'defensive'];
 /** Cumuler l'Avantage par Intuition et Survie en extérieur, Compétences de base que tout porteur possède (LDB 09
  *  l.305-308) : une offre par Compétence (`competences-avantage`). */
-const AVANTAGE = ['gain-advantage', 'gain-advantage'];
-const DETERMINATION = ['resolve-psych-immune', 'resolve-ignore-crit'];
-const FIN = ['undo-move', 'end-turn', 'raise-hand'];
+const AVANTAGE = ['avantage', 'avantage'];
+const DETERMINATION = ['determination-psychologie', 'determination-critique'];
+const FIN = ['annulation-deplacement', 'fin-de-tour', 'pause'];
 
 /** L'énumération attendue par porteur, dans l'ordre du registre (`actions.json`). L'attaque et la Charge sont
  *  celles d'un fantassin ; le geste d'état, celui de sa situation ; les cases navales, celles de la coque, qui
  *  sert aussi sa pièce de bord (`pieces-servables`). */
 const ATTENDU: Record<string, string[]> = {
   'à pied': ['attaque', 'charge', ...CORPS, ...AVANTAGE, ...DETERMINATION, ...FIN],
-  'en selle': ['attaque', 'charge', ...CORPS, ...AVANTAGE, ...DETERMINATION, 'dismount', ...FIN],
-  'à un poste': ['attaque', 'charge', ...CORPS, ...AVANTAGE, ...DETERMINATION, 'leave-poste', ...FIN],
-  'une coque de navire': [...CORPS, ...DETERMINATION, 'man-poste', 'maneuver-ship', 'battery', 'sing-shanty', 'ship-reload', ...FIN],
+  'en selle': ['attaque', 'charge', ...CORPS, ...AVANTAGE, ...DETERMINATION, 'pied-a-terre', ...FIN],
+  'à un poste': ['attaque', 'charge', ...CORPS, ...AVANTAGE, ...DETERMINATION, 'abandon-poste', ...FIN],
+  'une coque de navire': [...CORPS, ...DETERMINATION, 'service-poste', 'manoeuvre-du-navire', 'bordee', 'chanson-de-marin', 'rechargement-piece', ...FIN],
 };
 
 const enumeration = (battle: BattleState) => {
   const active = battle.combatants[0];
-  return offresDeLActif({ active, battle, netMode: 'local', gameTime: useGame.getState().gameTime, state: useGame.getState() }).map((o) => o.actionId);
+  return offresDeLActif({ scene: useGame.getState().scene, active, battle, netMode: 'local', gameTime: useGame.getState().gameTime, state: useGame.getState() }).map((o) => o.actionId);
 };
 
 describe('l’énumérateur rend exactement les offres pertinentes du porteur', () => {
@@ -114,13 +114,13 @@ const casesDeLaBarre = () =>
   new Set([...host.querySelectorAll('.combat-console [data-action]')].map((c) => c.getAttribute('data-action')!));
 
 /** Les cases que la SITUATION ouvre : gestes d'état et cases navales. */
-const DE_SITUATION = ['dismount', 'leave-poste', 'maneuver-ship', 'battery', 'sing-shanty', 'ship-reload'];
+const DE_SITUATION = ['pied-a-terre', 'abandon-poste', 'manoeuvre-du-navire', 'bordee', 'chanson-de-marin', 'rechargement-piece'];
 
 describe('la barre de la console lit l’énumérateur', () => {
   it.each(Object.keys(FIXTURES))('%s : une case n’existe que pour une offre, et chaque offre de situation a sa case', (nom) => {
     const battle = FIXTURES[nom]();
     act(() => {
-      useGame.setState({ party: battle.combatants.filter((c) => c.kind === 'hero'), scene: emptyScene('scene-test', 20, 20), battle });
+      useGame.setState({ party: battle.combatants.filter((c) => c.kind === 'heros'), scene: emptyScene('scene-test', 20, 20), battle });
     });
     act(() => { root.render(<CombatConsole />); });
     expect(host.querySelector('.combat-console')!.getAttribute('data-forme'), 'témoin : la barre est ouverte').toBe('complete');

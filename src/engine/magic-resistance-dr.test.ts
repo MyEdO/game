@@ -17,11 +17,11 @@ import {
 import type { Combatant } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const VDM = 'magic-vdm-incantation';
+const VDM = 'magie-vdm-incantation';
 
 function mk(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'c', label: 'Sujet', kind: 'hero',
+    id: 'c', label: 'Sujet', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 42, sociabilite: 30 },
     wounds: blessuresDeBase(14), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -37,9 +37,9 @@ const projectile = { label: 'Trait d’essai', type: 'Magie des Arcanes', missil
 const cast = (sl: number, niRequired = 1): CastResult => ({ cast: true, roll: 44, target: 60, sl, isCritical: false, isFumble: false, niRequired, log: 'jet' });
 
 const caster = mk({ id: 'w', label: 'Mage' }); // BFM 4
-const nu = () => mk({ id: 't', kind: 'enemy' }); // BE 3, aucune PA, aucune résistance
-const trait2 = (over: Partial<Combatant> = {}) => mk({ id: 't', kind: 'enemy', traits: [{ id: 'resistance-a-la-magie', value: 2 }], ...over });
-const talent = (times: number, over: Partial<Combatant> = {}) => mk({ id: 't', kind: 'enemy', talents: [{ talentId: 'resistance-a-la-magie', times }], ...over });
+const nu = () => mk({ id: 't', kind: 'ennemi' }); // BE 3, aucune PA, aucune résistance
+const trait2 = (over: Partial<Combatant> = {}) => mk({ id: 't', kind: 'ennemi', traits: [{ id: 'resistance-a-la-magie', value: 2 }], ...over });
+const talent = (times: number, over: Partial<Combatant> = {}) => mk({ id: 't', kind: 'ennemi', talents: [{ talentId: 'resistance-a-la-magie', times }], ...over });
 
 afterEach(() => resetRule(VDM));
 
@@ -100,7 +100,7 @@ describe('#1007 — sonde du juge : les 6 divergences mesurées (BFM 4 / BE 3 / 
     const r = evaluateMissile(caster, trait2({ armour: ap(6) }), projectile as never, cast(3));
     expect(r.damage).toBe(9); // 4 + (3−2) + 4
     expect(r.woundsLost).toBe(1); // max(1, 9 − (3 + 6)) — LDB 13 l.155-163
-    const temoin = evaluateMissile(caster, mk({ id: 't', kind: 'enemy', armour: ap(6) }), projectile as never, cast(3));
+    const temoin = evaluateMissile(caster, mk({ id: 't', kind: 'ennemi', armour: ap(6) }), projectile as never, cast(3));
     expect(temoin.woundsLost).toBe(2); // 11 − 9 : la résistance retire bien 1 Blessure, pas 2
   });
 

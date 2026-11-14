@@ -37,7 +37,7 @@ import { blessuresDeBase, blessuresSurLeProfil, profilDeTest } from '../engine/c
 const TEXTES_DU_CATALOGUE = import.meta.glob<string>('../data/*.json', { eager: true, query: '?raw', import: 'default' });
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const mk = (id: string, kind: 'hero' | 'enemy', o: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
+const mk = (id: string, kind: 'heros' | 'ennemi', o: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id, label: id, kind, advantage: 0, conditions: [], characteristics: profilDeTest(), psychState: [], psychTraits: [],
   groups: [], weapons: [MELEE], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...o,
 }) as Combatant);
@@ -64,24 +64,24 @@ describe('vise — un individu ne vise que le combattant de son id', () => {
 
   it('quelle que soit la lecture, et jamais un autre porteur des mêmes Groupes', () => {
     for (const lecture of ['appartenance', 'percu'] as const) {
-      expect(vise(cible, sourceCombattant(mk('p', 'enemy', { groups: [groupe.id] })), lecture, mk('o', 'hero'))).toBe(true);
-      expect(vise(cible, sourceCombattant(mk('q', 'enemy', { groups: [groupe.id] })), lecture, mk('o', 'hero'))).toBe(false);
+      expect(vise(cible, sourceCombattant(mk('p', 'ennemi', { groups: [groupe.id] })), lecture, mk('o', 'heros'))).toBe(true);
+      expect(vise(cible, sourceCombattant(mk('q', 'ennemi', { groups: [groupe.id] })), lecture, mk('o', 'heros'))).toBe(false);
     }
   });
 
   it('un interlocuteur, décrit par ses seuls Groupes, n’est jamais un individu', () => {
-    expect(vise(cible, { genre: 'interlocuteur', groups: [groupe.id] }, 'percu', mk('o', 'hero'))).toBe(false);
+    expect(vise(cible, { genre: 'interlocuteur', groups: [groupe.id] }, 'percu', mk('o', 'heros'))).toBe(false);
   });
 });
 
 describe('le combat : déclencheur, +1 DR, immunité', () => {
   it('le Trait se déclenche à la vue de l’individu, d’une seule instance, et non à celle d’un homonyme de Groupe', () => {
-    const obs = mk('o', 'hero', { psychTraits: [{ type: mixte!.id as PsychType, cible: ciblePsy.individu('p') }] });
-    expect(targetedTrigger(obs, [sourceCombattant(mk('q', 'enemy', { groups: [groupe.id] }))])).toBeNull();
-    const tt = targetedTrigger(obs, [sourceCombattant(mk('q', 'enemy')), sourceCombattant(mk('p', 'enemy'))]);
+    const obs = mk('o', 'heros', { psychTraits: [{ type: mixte!.id as PsychType, cible: ciblePsy.individu('p') }] });
+    expect(targetedTrigger(obs, [sourceCombattant(mk('q', 'ennemi', { groups: [groupe.id] }))])).toBeNull();
+    const tt = targetedTrigger(obs, [sourceCombattant(mk('q', 'ennemi')), sourceCombattant(mk('p', 'ennemi'))]);
     expect(tt).toMatchObject({ sourceId: 'p', cible: ciblePsy.individu('p') });
     obs.psychState = [{ type: tt!.type, cible: tt!.cible, sourceId: tt!.sourceId, active: true }];
-    expect(targetedTrigger(obs, [sourceCombattant(mk('p', 'enemy'))])).toBeNull();
+    expect(targetedTrigger(obs, [sourceCombattant(mk('p', 'ennemi'))])).toBeNull();
   });
 
   it('deux individus, ou un individu et un Groupe, sont deux identités', () => {
@@ -94,20 +94,20 @@ describe('le combat : déclencheur, +1 DR, immunité', () => {
   });
 
   it('+DR d’attaque contre l’individu seul (LDB 21 l.41)', () => {
-    const att = mk('a', 'enemy', { psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('p'), active: true }] });
-    expect(psychDRAdjust(att, mk('p', 'hero'))).toBe(pulsion!.attackDR!.amount);
-    expect(psychDRAdjust(att, mk('q', 'hero'))).toBe(0);
+    const att = mk('a', 'ennemi', { psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('p'), active: true }] });
+    expect(psychDRAdjust(att, mk('p', 'heros'))).toBe(pulsion!.attackDR!.amount);
+    expect(psychDRAdjust(att, mk('q', 'heros'))).toBe(0);
   });
 
   it('immunité causée par l’individu seul (LDB 21 l.41)', () => {
     const canal = immunisant!.immuneToFromTarget![0];
-    const self = mk('s', 'hero', { psychState: [{ type: immunisant!.id as PsychType, cible: ciblePsy.individu('p'), active: true }] });
-    expect(psychImmuneToFrom(self, sourceCombattant(mk('p', 'enemy')), canal)).toBe(true);
-    expect(psychImmuneToFrom(self, sourceCombattant(mk('q', 'enemy')), canal)).toBe(false);
+    const self = mk('s', 'heros', { psychState: [{ type: immunisant!.id as PsychType, cible: ciblePsy.individu('p'), active: true }] });
+    expect(psychImmuneToFrom(self, sourceCombattant(mk('p', 'ennemi')), canal)).toBe(true);
+    expect(psychImmuneToFrom(self, sourceCombattant(mk('q', 'ennemi')), canal)).toBe(false);
   });
 
   it('malus social contenu : l’interlocuteur d’un Test social n’a pas d’id, un individu ne s’y applique pas', () => {
-    const tester = mk('t', 'hero', { psychTraits: [{ type: contenu!.id as PsychType, cible: ciblePsy.individu('p') }] });
+    const tester = mk('t', 'heros', { psychTraits: [{ type: contenu!.id as PsychType, cible: ciblePsy.individu('p') }] });
     expect(socialPsychMod(tester, [groupe.id])).toBe(0);
   });
 });
@@ -139,7 +139,7 @@ describe('le statbloc de scène à `@id` (EDOC 11 l.648), jusqu’à la rencontr
     const pnj = ficheDEntite(scene.entities[0], presetDe);
     const nomme = ficheDEntite(scene.entities[1], presetDe);
     expect(encounterPsych(pnj, [sourceCombattant(nomme)])).toMatchObject({ sourceId: 'p', cible: ciblePsy.individu('p') });
-    expect(encounterPsych(pnj, [sourceCombattant(mk('autre', 'hero', { groups: [groupe.id] }))])).toBeNull();
+    expect(encounterPsych(pnj, [sourceCombattant(mk('autre', 'heros', { groups: [groupe.id] }))])).toBeNull();
   });
 
   it('`validateScene` refuse un individu qu’aucun personnage de la scène ne porte', () => {
@@ -157,8 +157,8 @@ describe('le statbloc de scène à `@id` (EDOC 11 l.648), jusqu’à la rencontr
   });
 
   it('le Test de Calme qu’il déclenche pose l’affliction envers l’individu, et lui seul', () => {
-    const obs = mk('o', 'hero', { psychTraits: parsePsychTraits([pose('@p')]).psychTraits });
-    const tt = targetedTrigger(obs, [sourceCombattant(mk('p', 'enemy'))])!;
+    const obs = mk('o', 'heros', { psychTraits: parsePsychTraits([pose('@p')]).psychTraits });
+    const tt = targetedTrigger(obs, [sourceCombattant(mk('p', 'ennemi'))])!;
     applyOps(obs, psychBranchOps({ kind: tt.type, sourceId: tt.sourceId, cible: tt.cible, indice: 0 }, { success: false }), { idNeuf: idsDeTest, rng: makeRNG(1) });
     expect(obs.psychState).toMatchObject([{ type: mixte!.id, cible: ciblePsy.individu('p'), active: true }]);
   });
@@ -212,7 +212,7 @@ describe('l’op psy de donnée : sa Cible est un Groupe, dans tout document', (
     const personnage = scene.entities[0].id;
     scene.entities.push({ id: 'pnj-cible', kind: 'personnage', pos: { x: 1, y: 1 }, statblock: statblocAvec(`@${personnage}`) });
     expect(projetDoc.schema.safeParse(projet).success).toBe(true);
-    scene.triggers.push({ id: 'pose-cible', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'grantPsychTrait', psychType: { id: mixte!.id }, cible: { personnage } }] } } });
+    scene.triggers.push({ id: 'pose-cible', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'grantPsychTrait', psychType: { id: mixte!.id }, cible: { personnage } }] } } });
     expect(projetDoc.schema.safeParse(projet).success).toBe(false);
   });
 
@@ -234,34 +234,34 @@ describe('le vivier de l’IA : la pulsion vise l’individu, de tout `kind`', (
   });
 
   it('`ciblesDePulsion` rend les combattants en action visés par une affliction active à pulsion, alliés compris', () => {
-    const e = mk('e', 'enemy', { psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('allie'), active: true }] });
-    const allie = mk('allie', 'enemy');
-    const autre = mk('autre', 'enemy');
-    expect(ciblesDePulsion(e, [e, allie, autre, mk('h', 'hero')]).map((c) => c.id)).toEqual(['allie']);
+    const e = mk('e', 'ennemi', { psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('allie'), active: true }] });
+    const allie = mk('allie', 'ennemi');
+    const autre = mk('autre', 'ennemi');
+    expect(ciblesDePulsion(e, [e, allie, autre, mk('h', 'heros')]).map((c) => c.id)).toEqual(['allie']);
     expect(ciblesDePulsion(e, [{ ...allie, dead: true }])).toEqual([]);
-    expect(ciblesDePulsion(mk('calme', 'enemy'), [allie])).toEqual([]);
+    expect(ciblesDePulsion(mk('calme', 'ennemi'), [allie])).toEqual([]);
   });
 
   it('un PNJ s’en prend au combattant de son propre `kind` que vise sa pulsion', () => {
-    const e = mk('e', 'enemy', { pos: { x: 5, y: 5 }, psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('allie'), active: true }] });
-    const heros = mk('h', 'hero', { pos: { x: 5, y: 4 }, wounds: blessuresDeBase(10, 1) });
-    const allie = mk('allie', 'enemy', { pos: { x: 5, y: 6 } });
+    const e = mk('e', 'ennemi', { pos: { x: 5, y: 5 }, psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('allie'), active: true }] });
+    const heros = mk('h', 'heros', { pos: { x: 5, y: 4 }, wounds: blessuresDeBase(10, 1) });
+    const allie = mk('allie', 'ennemi', { pos: { x: 5, y: 6 } });
     const action = chooseEnemyAction(input(e, [heros], { ciblesDePulsion: [allie] }));
     const cible = (action as { targetId?: string; thenTargetId?: string }).targetId ?? (action as { thenTargetId?: string }).thenTargetId;
     expect(cible).toBe('allie');
   });
   it('`adversairesDe` : les héros, puis les cibles de pulsion placées, sans doublon', () => {
-    const h = mk('h', 'hero', { pos: { x: 1, y: 1 } });
-    const allie = mk('allie', 'enemy', { pos: { x: 2, y: 2 } });
-    expect(adversairesDe({ heroes: [h], ciblesDePulsion: [allie, h, mk('sans-pos', 'enemy')] }).map((c) => c.id)).toEqual(['h', 'allie']);
+    const h = mk('h', 'heros', { pos: { x: 1, y: 1 } });
+    const allie = mk('allie', 'ennemi', { pos: { x: 2, y: 2 } });
+    expect(adversairesDe({ heroes: [h], ciblesDePulsion: [allie, h, mk('sans-pos', 'ennemi')] }).map((c) => c.id)).toEqual(['h', 'allie']);
   });
 
   it('`aiApproachPlan` juge la Charge au contact de la cible de pulsion, non du premier héros', () => {
     const characteristics = tableTotale(CHAR_KEYS, () => 30);
     const loin = emptyScene('s', 40, 40);
-    const e = mk('e', 'enemy', { characteristics, pos: { x: 5, y: 5 }, psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('allie'), active: true }] });
-    const allie = mk('allie', 'enemy', { characteristics, pos: { x: 5, y: 12 } });
-    const h = mk('h', 'hero', { characteristics, pos: { x: 30, y: 30 } });
+    const e = mk('e', 'ennemi', { characteristics, pos: { x: 5, y: 5 }, psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('allie'), active: true }] });
+    const allie = mk('allie', 'ennemi', { characteristics, pos: { x: 5, y: 12 } });
+    const h = mk('h', 'heros', { characteristics, pos: { x: 30, y: 30 } });
     const entree: EnemyTurnInput = { enemy: e, heroes: [h], ciblesDePulsion: [allie], scene: loin, blocked: new Set(['5,12', '30,30']), movement: 4, spells: [] };
     const r = aiApproachPlan(entree, e, chooseEnemyAction(entree), makeRNG(1));
     expect((r.plan as { thenTargetId?: string }).thenTargetId).toBe('allie');
@@ -273,7 +273,7 @@ describe('le nom d’un individu, et la Cible persistée', () => {
   it('`nomDIndividu` lit le groupe, puis la bataille, puis les entités de la scène', () => {
     const scene = emptyScene('s', 4, 4);
     scene.entities.push({ id: 'pnj', kind: 'personnage', label: 'Nom de scène', pos: { x: 1, y: 1 }, creature: { id: 'humain' } });
-    const nom = nomDIndividu({ party: [mk('h', 'hero', { label: 'Héros' })], battle: { combatants: [mk('c', 'enemy', { label: 'Combattant' })] } as never, scene, campaignNarratif: null });
+    const nom = nomDIndividu({ party: [mk('h', 'heros', { label: 'Héros' })], battle: { combatants: [mk('c', 'ennemi', { label: 'Combattant' })] } as never, scene, campaignNarratif: null });
     expect([nom('h'), nom('c'), nom('pnj'), nom('absent')]).toEqual(['Héros', 'Combattant', 'Nom de scène', undefined]);
     expect(libelleDeCible(ciblePsy.individu('pnj'), nom)).toBe('Nom de scène');
   });

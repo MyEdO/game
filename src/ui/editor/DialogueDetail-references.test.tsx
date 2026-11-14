@@ -81,7 +81,7 @@ const dialogue = (): Dialogue => ({
 const scene = (): Scene => ({
   ...emptyScene('scene-test', 8, 8),
   entities: [{ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, label: 'Aubergiste', dialogueId: { id: 'd1' } } as SceneEntity],
-  triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'startDialogue', dialogue: 'd1' } }] } }],
+  triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'startDialogue', dialogue: { id: 'd1' } } }] } }],
   dialogues: [dialogue()],
 });
 
@@ -92,7 +92,7 @@ describe('atelier de dialogue — aucune référence pendante (#3059)', () => {
     renommer(champDuDialogue(), 'd-auberge');
     expect(sceneVue.dialogues.map((d) => d.id)).toEqual(['d-auberge']);
     expect(sceneVue.entities[0].dialogueId).toEqual({ id: 'd-auberge' });
-    expect(sceneVue.triggers[0].flow).toEqual({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'startDialogue', dialogue: 'd-auberge' } }] });
+    expect(sceneVue.triggers[0].flow).toEqual({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'startDialogue', dialogue: { id: 'd-auberge' } } }] });
     expect(fautesDeDialogue(sceneVue)).toEqual([]);
   });
 

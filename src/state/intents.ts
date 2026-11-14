@@ -17,32 +17,12 @@ export const CLASSE_DES_ACTIONS_DE_L_ADAPTATEUR = {
   setSheetTab: 'local', setSheetScroll: 'local', setSheetId: 'local', setSheetAlarmsSeen: 'local',
   setEditingHero: 'local', openPossessionsScreen: 'local', closePossessionsScreen: 'local',
   // ═══ hôte : persistance et session réseau ═══
-  // `net*` de session : le client gère SA connexion ; l'attribution de sièges et le rôle MJ sont
-  // hôte-autoritaires.
+  // `net*` de session : le client gère SA connexion.
   saveGame: 'hôte', loadGame: 'hôte', importGame: 'hôte',
   netHostStart: 'local', netJoin: 'local', netLeave: 'local',
-  netAssign: 'hôte', netAssignSlot: 'hôte', setGmSeat: 'hôte',
   // La campagne choisie au menu (`pendingCampaign`), avant tout siège.
   setPendingCampaign: 'hôte',
   // ── Vue et curseur clavier (registre `state/clavier/keybindings.ts`) ─────────────────────────────────
   rotateCam: 'local', toggleViewMode: 'local', togglePov: 'local', setReveler: 'local', moveCursor: 'local',
   snapCursorToTarget: 'local', commitCursor: 'local', stepPartyDir: 'local',
 } as const satisfies TableDeLAdaptateur;
-
-/** Args JSON-sûrs pour un intent : les handlers React passent parfois l'ÉVÉNEMENT en argument
- *  (`onClick={action}`) — circulaire, il ferait échouer la sérialisation et PERDRAIT l'intent
- *  (bug trouvé à l'audit coop : « Appliquer » d'invité muet). On TRONQUE la queue non
- *  sérialisable (l'événement est toujours en dernier) sans toucher aux vrais arguments. */
-export function sanitizeIntentArgs(args: unknown[]): unknown[] {
-  const jsonSafe = (v: unknown) => {
-    try {
-      JSON.stringify(v);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-  const out = [...args];
-  while (out.length && (!jsonSafe(out[out.length - 1]) || typeof out[out.length - 1] === 'function')) out.pop();
-  return out;
-}

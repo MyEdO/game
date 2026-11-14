@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { battleRng, seedBattleRng } from './battleRng';
-import { applyAttackResult, applyCast, applyCoupCritiqueSec, resolveAttack } from './combatFlow';
+import { applyAttackResult, applyCast, applyCoupCritiqueSec, instantaneAvantLeCoup, resolveAttack } from './combatFlow';
 import type { CritChoice } from '../engine/magic';
 import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascade.testkit';
 import { createHero } from '../engine/character';
@@ -21,6 +21,7 @@ import { t as tr } from '../i18n';
 import { locationLabel, type Combatant, type ItemInstance, type Weapon } from '../engine/types';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { markFixedDie } from './fixedDieMark';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -38,14 +39,14 @@ interface Coup { seed?: number; roll?: number; double?: boolean; current?: numbe
 function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false, arme = epee, retenu = false, vehicule, grapple = false }: Coup = {}) {
   banc.getState().ensemencerLeTirage(seed);
   const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
-  banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: tenu ? 'host' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined } });
+  banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: tenu ? 'hote' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined } });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const ennemis = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const ennemis = b.combatants.filter((c) => c.kind === 'ennemi');
   if (vehicule) b.combatants[b.combatants.indexOf(ennemis[0])] = ennemis[0] = spawnEnemy({ vehicule }, ennemis[0].id, ennemis[0].pos!);
   const [cible, pretre] = ennemis;
   pretre.items = (pretre.items ?? []).filter((i) => i.kind !== 'armor');
@@ -71,7 +72,7 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   for (let i = 0; i < 200 && banc.getState().pendingCascade; i++) {
     const p = banc.getState().pendingCascade!;
     const etape = p.participants[p.cursor];
-    if (etape?.kind === 'critical') origines.push(etape.reveal?.origine);
+    if (etape?.kind === 'critique') origines.push(etape.reveal?.origine);
     if (etape?.kind === 'deviation') offres.set(etape.id, !!etape.options?.some((o) => o.key === 'devier'));
     const k = avanceEtapeCascade(banc.getState, () => de, choisir);
     if (k !== undefined) kinds.push(k);
@@ -159,13 +160,13 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(totalPA(cible)).toBe(6);
     expect(kinds).toEqual([]);
-    expect(banc.getState().battle!.log.map((l) => l.text)).not.toContain(tr('cf.deflect', { name: cible.label }));
+    expect(banc.getState().battle!.log.map((l) => l.text)).not.toContain(tr('cf.critiqueDevieSurLArmure', { name: cible.label }));
   });
 
   it("Mort subite : le Critique d'un Test opposé ne frappe pas le figurant (LDB 14 l.3 ; LDB 18 l.44)", () => {
     const { H, cible } = coupQuiDepasse(false, { pa: 1, endurance: 10 });
     const log: string[] = [];
-    applyCoupCritiqueSec(banc.getState, banc.setState, cible, 44, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log);
+    applyCoupCritiqueSec(banc.getState, banc.setState, cible, 44, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H, instantaneAvantLeCoup(cible));
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(totalPA(cible)).toBe(6);
     expect(banc.getState().pendingCascade ?? null).toBeNull();
@@ -254,14 +255,14 @@ describe('Bâclée : la casse suit le Coup Critique, dévié, subi ou ignoré (L
   it('Bâclée seule, le porteur dévie : la pièce casse, la Déviation est jouée, aucun Critique', () => {
     const { cible } = coup({ roll: 44, current: 20, tenu: true, choisir: () => 'devier', pieces: [piece(['bacle'], 1)] });
     expect(casse(cible, 'p1')).toBe(true);
-    expect(journal()).toContain(tr('cf.deflect', { name: cible.label }));
+    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: cible.label }));
     expect(cible.criticalWounds ?? 0).toBe(0);
   });
 
   it('Bâclée seule, le porteur refuse : la pièce casse, le Critique est subi', () => {
     const { res, cible } = coup({ roll: 44, current: 20, tenu: true, choisir: () => 'subir', pieces: [piece(['bacle'], 1)] });
     expect(casse(cible, 'p1')).toBe(true);
-    expect(journal()).toContain(tr('cf.shoddyBreaks', { name: cible.label, loc: locationLabel(res.critLocation!, cible.bodyShape) }));
+    expect(journal()).toContain(tr('cf.bacleeSeBrise', { name: cible.label, loc: locationLabel(res.critLocation!, cible.bodyShape) }));
     expect(cible.criticalWounds).toBe(1);
   });
 
@@ -325,7 +326,7 @@ describe('Bâclée : la casse suit le Coup Critique, dévié, subi ou ignoré (L
 
   it('R1 : la Bâclée dévie son propre Coup Critique, puis casse (LDB 60 l.50 ; LDB 63 l.30 ; #1595 c.6228496170 R1)', () => {
     const { cible } = coup({ roll: 44, current: 1, tenu: true, choisir: () => 'devier', pieces: [piece(['bacle'], 1)] });
-    expect(journal()).toContain(tr('cf.deflect', { name: cible.label }));
+    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: cible.label }));
     expect(cible.criticalWounds, 'le dépassement reste').toBe(1);
     expect(casse(cible, 'p1')).toBe(true);
   });
@@ -392,7 +393,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
 
   /** Le Carreau en Incantation critique au jet `roll`, sur la cible tenue à 1 PB sous `pieces(Localisation de touche)`, Critiques subis. */
   function carreauSur(roll: number, pieces: (touche: string) => ItemInstance[]) {
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
     const { mage, cible } = carreauEnCombat();
     const sort = findSpellById('carreau')!;
     const touche = evaluateMissile(mage, cible, sort, { ...incantationCritique, roll });
@@ -429,10 +430,10 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
 
   /** Le Critique d'un Test opposé au double `roll` sur la cible sous Bâclée et Impénétrable, Déviation coupée. */
   function oppose(roll: number) {
-    setRule('combat-critical-deflect', false);
+    setRule('combat-deviation-critique', false);
     const { H, cible } = coup({ roll: 45, double: false, current: 20, pieces: [bacle, impenetrable()] });
     const log: string[] = [];
-    applyCoupCritiqueSec(banc.getState, banc.setState, cible, roll, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log);
+    applyCoupCritiqueSec(banc.getState, banc.setState, cible, roll, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H, instantaneAvantLeCoup(cible));
     return { cible, log };
   }
 
@@ -467,12 +468,12 @@ function carreauEnCombat(): { mage: Combatant; cible: Combatant } {
   banc.setState({ party: [w], battle: null, pendingCast: null, pendingCascade: null, suspendedCascades: [] });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   banc.getState().ensemencerLeTirage(7);
   const b = banc.getState().battle!;
   const mage = b.combatants.find((c) => c.label === 'W')!;
-  const cible = b.combatants.find((c) => c.kind === 'enemy')!;
+  const cible = b.combatants.find((c) => c.kind === 'ennemi')!;
   mage.pos = { x: 10, y: 10 };
   cible.pos = { x: 12, y: 10 };
   cible.items = (cible.items ?? []).filter((i) => i.kind !== 'armor');
@@ -494,7 +495,7 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     const apres = banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
     expect(apres.criticalWounds ?? 0).toBe(0);
     expect(totalPA(apres)).toBe(6);
-    expect(kinds.filter((k) => k === 'deviation' || k === 'critical')).toEqual([]);
+    expect(kinds.filter((k) => k === 'deviation' || k === 'critique')).toEqual([]);
     expect(hasCondition(apres, 'inconscient')).toBe(true);
   });
 
@@ -546,7 +547,7 @@ describe("'aa' : l'Incantation critique d'un Projectile sur une cible debout (LD
 
   it("cible sans Chanceux : le journal dit l'effet choisi, jamais une Blessure critique", () => {
     projectileDebout(false, 'critique');
-    expect(journal()).toContain(tr('cf.castCritical'));
+    expect(journal()).toContain(tr('cf.incantationCritique'));
     expect(journal().filter((l) => /blessure critique/i.test(l))).toEqual([]);
   });
 });
@@ -577,7 +578,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
   function lance(prepare: (cible: Combatant, autre: Combatant) => void = () => {}, opts: { surincante?: boolean; sort?: SpellData } = {}) {
     banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     const { mage, cible } = carreauEnCombat();
-    const autre = banc.getState().battle!.combatants.filter((c) => c.kind === 'enemy')[1];
+    const autre = banc.getState().battle!.combatants.filter((c) => c.kind === 'ennemi')[1];
     autre.pos = { x: 12, y: 11 };
     debout(cible); debout(autre);
     prepare(cible, autre);
@@ -610,7 +611,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
   });
 
   it("immunité de Domaine (Manifestation de Ghur) : une émission, sans Blessure ni Critique", () => {
-    const bete = { ...findSpellById('carreau')!, domainId: { id: 'bete' } };
+    const bete = { ...findSpellById('carreau')!, domainId: { id: 'bete' } as const };
     const { emis, cible } = lance((c) => { c.traits = [...(c.traits ?? []), { id: 'manifestation-de-ghur' }] as never; }, { sort: bete });
     expect(emis).toEqual([{ phase: 'applyCast', to: cible.id, critiques: 0, woundsLost: 0, cwAuMoment: 0 }]);
   });
@@ -664,7 +665,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
     setRule('combat-aa-blessures', 'aa');
     const { auJet, emis, cible } = emisDuCoup(aaChanceux('devier'));
     expect(auJet.woundsLost, 'le coup fait passer à 0').toBeGreaterThanOrEqual(1);
-    expect(journal()).toContain(tr('cf.deflect', { name: cible.label }));
+    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: cible.label }));
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(casse(cible, 'p1')).toBe(true);
     expect(emis).toEqual([0]);
@@ -680,13 +681,13 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
   it("'ldb', cible importante, double 33 dévié : `critiques: 0`", () => {
     const { auJet, emis, cible } = emisDuCoup({ roll: 33, current: 18, pa: 2, tenu: true, choisir: () => 'devier' });
     expect(auJet.critical).toBe(true);
-    expect(journal()).toContain(tr('cf.deflect', { name: cible.label }));
+    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: cible.label }));
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(emis).toEqual([0]);
   });
 
   it("Projectile en Incantation critique, Critique dévié : `ANIM_ATTACK` émet `critiques: 0`", () => {
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
     const { mage, cible } = carreauEnCombat();
     cible.important = true;
     cible.items = [...(cible.items ?? []), piece([], 2)];
@@ -702,7 +703,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
     } finally { lache(); }
     const apres = banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
     expect(kinds).toContain('deviation');
-    expect(journal()).toContain(tr('cf.deflect', { name: apres.label }));
+    expect(journal()).toContain(markFixedDie(tr('cf.critiqueDevieSurLArmure', { name: apres.label })));
     expect(apres.criticalWounds ?? 0).toBe(0);
     expect(emis).toEqual([0]);
   });
@@ -768,7 +769,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
   /** Le Carreau en Incantation critique, effet `effet`, sur la cible tenue par le siège MJ, debout à 20 PB sous 2 PA ;
    *  ses lignes de touche après `applyCast`, puis après la cascade drainée au dé 50 et au choix `choix`. */
   function carreau(effet: CritChoice, o: { choix?: 'devier' | 'subir'; demoniaque?: number } = {}) {
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
     const { mage, cible } = carreauEnCombat();
     cible.important = true;
     cible.items = [...(cible.items ?? []), piece([], 2)];
@@ -789,7 +790,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
 
   it('Critique dévié : une ligne, à la Localisation et aux Blessures appliquées, sans marque Critique', () => {
     const r = carreau('critique', { choix: 'devier' });
-    expect(journal()).toContain(tr('cf.deflect', { name: r.apres.label }));
+    expect(journal()).toContain(markFixedDie(tr('cf.critiqueDevieSurLArmure', { name: r.apres.label })));
     expect(r.finale.critiques).toBe(0);
     expect(r.lignes).toHaveLength(1);
     expect(r.lignes[0]).toContain(`(${tr('touche.nouvelleLocalisation', { lieu: locationLabel(r.finale.location!, r.apres.bodyShape) })})`);
@@ -821,18 +822,18 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
 
 describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime porte la phrase de la déviation', () => {
 
-  const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] } as unknown as Weapon;
+  const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] } as unknown as Weapon;
 
   it('une touche au hasard : la phrase du tas et la ligne de la victime, une fois chacune', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
     banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     banc.getState().lancerLaScene(structuredClone(testScene()));
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const [cible, voisin, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const [cible, voisin, ...autres] = b.combatants.filter((c) => c.kind === 'ennemi');
     H.pos = { x: 10, y: 10 };
     cible.pos = { x: 13, y: 10 };
     voisin.pos = { x: 13, y: 11 };
@@ -857,11 +858,11 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     banc.getState().lancerLaScene(structuredClone(testScene()));
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const [tireur, voisin, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const [tireur, voisin, ...autres] = b.combatants.filter((c) => c.kind === 'ennemi');
     H.pos = { x: 10, y: 10 };
     voisin.pos = { x: 11, y: 10 };
     tireur.pos = { x: 14, y: 10 };
@@ -878,7 +879,7 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     applyAttackResult(banc.getState, banc.setState, tireur, victim!, weapon, res);
     draineCascade(banc.getState, 200, () => 50);
     const texte = journal().join('\n');
-    expect(texte.split(tr('cf.strayMelee', { name: voisin.label })).length - 1).toBe(1);
+    expect(texte.split(tr('cf.touchePerdueEnMelee', { name: voisin.label })).length - 1).toBe(1);
     expect(texte.split(`${tireur.label} touche ${voisin.label}`).length - 1).toBe(1);
   });
 });

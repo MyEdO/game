@@ -33,7 +33,7 @@ beforeAll(() => {
 });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 };
-const mk = (kind: 'hero' | 'enemy', over: Partial<Combatant> = {}): Combatant =>
+const mk = (kind: 'heros' | 'ennemi', over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({ id: 'a', name: 'A', label: 'A', kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [],
      skills: [], talents: [], items: [], weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 },
      wounds: blessuresDeBase(10), resilience: 2, fortune: 2, species: 'humains-reiklander', bodyShape: 'humanoide',
@@ -69,24 +69,24 @@ const posJet = (actor: Combatant, d = RATE, over: Record<string, unknown> = {}) 
 
 describe('#1318 V4 — toute affordance d’influence RENDUE est exécutable', () => {
   it('héros, jet RATÉ, Chance et Résilience en réserve : les trois verbes sont offerts', () => {
-    const b = boutons(posJet(mk('hero')));
+    const b = boutons(posJet(mk('heros')));
     expect(b.some((t) => /Relancer/.test(t)), 'Chance (LDB 17 l.23)').toBe(true);
     expect(b.some((t) => /Pacte/.test(t)), 'Sombre Pacte (LDB 19 l.17)').toBe(true);
     expect(b.some((t) => /Résilience/.test(t)), 'Je ne faillirai pas ! (LDB 17 l.68)').toBe(true);
   });
 
   it('acteur NON-héros : aucun bouton Pacte — `opDarkPact` refuse (LDB 19 l.17, héros seuls)', () => {
-    const b = boutons(posJet(mk('enemy')));
+    const b = boutons(posJet(mk('ennemi')));
     expect(b.some((t) => /Pacte/.test(t))).toBe(false);
   });
 
   it('héros SANS Point de Chance ni relance gratuite : aucun bouton Relancer', () => {
-    const b = boutons(posJet(mk('hero', { fortune: 0 } as Partial<Combatant>)));
+    const b = boutons(posJet(mk('heros', { fortune: 0 } as Partial<Combatant>)));
     expect(b.some((t) => /Relancer/.test(t))).toBe(false);
   });
 
   it('relance GRATUITE (Bénédiction de Chance, LDB 41) : Relancer offert même à 0 Point de Chance', () => {
-    const beni = mk('hero', { fortune: 0,
+    const beni = mk('heros', { fortune: 0,
       activeEffects: [{ label: 'Bénédiction de Chance', bonus: 0, duration: { scale: 'rounds', left: 6 }, freeReroll: true }],
     } as unknown as Partial<Combatant>);
     const b = boutons(posJet(beni));
@@ -94,30 +94,30 @@ describe('#1318 V4 — toute affordance d’influence RENDUE est exécutable', (
   });
 
   it('relance DÉJÀ consommée (LDB 12 l.40) : plus de Relancer, le Pacte reste (LDB 19 l.17)', () => {
-    const b = boutons(posJet(mk('hero'), RATE, { rerolled: true }));
+    const b = boutons(posJet(mk('heros'), RATE, { rerolled: true }));
     expect(b.some((t) => /Relancer/.test(t))).toBe(false);
     expect(b.some((t) => /Pacte/.test(t))).toBe(true);
   });
 
   it('jet RÉUSSI : ni Relancer (Chance = jet raté) ni Résilience, mais le Pacte OUI (V3)', () => {
-    const b = boutons(posJet(mk('hero'), REUSSI));
+    const b = boutons(posJet(mk('heros'), REUSSI));
     expect(b.some((t) => /Relancer/.test(t))).toBe(false);
     expect(b.some((t) => /Résilience/.test(t))).toBe(false);
     expect(b.some((t) => /Pacte/.test(t))).toBe(true);
   });
 
   it('jet réussi mais OPPOSITION perdue : la Résilience reste offerte (LDB 17 l.68, « vous l’emportez »)', () => {
-    const b = boutons(posJet(mk('hero'), REUSSI, { winner: 'lose' }));
+    const b = boutons(posJet(mk('heros'), REUSSI, { winner: 'lose' }));
     expect(b.some((t) => /Résilience/.test(t))).toBe(true);
   });
 
   it('aucune Résilience en réserve : aucun bouton Résilience sur un jet raté', () => {
-    const b = boutons(posJet(mk('hero', { resilience: 0 } as Partial<Combatant>)));
+    const b = boutons(posJet(mk('heros', { resilience: 0 } as Partial<Combatant>)));
     expect(b.some((t) => /Résilience/.test(t))).toBe(false);
   });
 
   it('le flux n’OFFRE pas le verbe (aucun handler) : rien n’est rendu, même fenêtre ouverte', () => {
-    const nu = { actor: mk('hero'), row: { combatant: mk('hero'), d: RATE }, rolled: true, interactive: true,
+    const nu = { actor: mk('heros'), row: { combatant: mk('heros'), d: RATE }, rolled: true, interactive: true,
       rollFrisson: false, onReroll: noop } as Parameters<typeof RollRow>[0];
     const b = boutons(nu);
     expect(b.some((t) => /Relancer/.test(t)), 'la Chance, elle, est offerte').toBe(true);
@@ -126,21 +126,21 @@ describe('#1318 V4 — toute affordance d’influence RENDUE est exécutable', (
   });
 
   it('jet MASQUÉ (#990) : aucune affordance — elles dériveraient du verdict que le dé cache', () => {
-    const b = boutons(posJet(mk('hero'), { ...RATE, mask: 'roll' }));
+    const b = boutons(posJet(mk('heros'), { ...RATE, mask: 'roll' }));
     expect(b).toEqual([]);
   });
 
   /** POOLS DISTINCTS (LDB 17 l.59 vs l.68) : la Détermination ne se gate JAMAIS sur la Résilience —
    *  ni sur sa réserve, ni sur sa fenêtre. Mesuré aux deux bornes qui les faisaient diverger. */
   it('Détermination : offerte à 0 Résilience — pool DISTINCT (LDB 17 l.59), jamais gatée par la Résilience', () => {
-    const b = boutons(posJet(mk('hero', { resilience: 0 } as Partial<Combatant>), RATE,
+    const b = boutons(posJet(mk('heros', { resilience: 0 } as Partial<Combatant>), RATE,
       { determination: { resolve: 2, onResolve: noop } }));
     expect(b.some((t) => /Détermination/.test(t))).toBe(true);
     expect(b.some((t) => /Résilience/.test(t)), 'la Résilience, elle, est bien éteinte').toBe(false);
   });
 
   it('Détermination : offerte sur un jet RÉUSSI — sa fenêtre n’est pas celle de la Résilience', () => {
-    const b = boutons(posJet(mk('hero'), REUSSI, { determination: { resolve: 1, onResolve: noop } }));
+    const b = boutons(posJet(mk('heros'), REUSSI, { determination: { resolve: 1, onResolve: noop } }));
     expect(b.some((t) => /Détermination/.test(t))).toBe(true);
     expect(b.some((t) => /Résilience/.test(t))).toBe(false);
   });
@@ -167,7 +167,7 @@ describe('#1318 V4 — issue métier défavorable sur un TEST réussi : rien d�
   });
 
   it('incantation — DR sous le NI (LDB 46 l.22-24) : ni Relancer ni Résilience', () => {
-    const h = mk('hero', { id: 'A', label: 'A' } as Partial<Combatant>);
+    const h = mk('heros', { id: 'A', label: 'A' } as Partial<Combatant>);
     useGame.setState({
       ...arene(h),
       pendingCast: { casterId: 'A', targetId: 'A', spellId: 'drain', missile: false, focused: false,
@@ -180,12 +180,12 @@ describe('#1318 V4 — issue métier défavorable sur un TEST réussi : rien d�
     expect(b.some((t) => /Résilience/.test(t)), 'le Test est RÉUSSI : la Résilience ne s’offre pas (LDB 17 l.68)').toBe(false);
     // (b) le SEAM refuse aussi — l'affordance absente n'était pas une règle perdue.
     const avant = useGame.getState().battle!.combatants[0].fortune;
-    act(() => { useGame.getState().jetRelancer('cast'); });
+    act(() => { useGame.getState().jetRelancer('incantation'); });
     expect(useGame.getState().battle!.combatants[0].fortune, 'aucun Point de Chance débité').toBe(avant);
   });
 
   it('Test de compétence — seuil de DR exigé manqué (`requireSL`) : ni Relancer ni Résilience', () => {
-    const h = mk('hero', { id: 'A', label: 'A' } as Partial<Combatant>);
+    const h = mk('heros', { id: 'A', label: 'A' } as Partial<Combatant>);
     useGame.setState({
       ...arene(h),
       // d100 RÉUSSI (8 ≤ 40), seuil de DR exigé (3) manqué → `success` composé à false.

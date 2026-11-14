@@ -19,14 +19,33 @@ import { interludeCatalog } from '../noyau/interludeFlow';
 import { refusDeRevenus, refusDOuvertureDActivite } from '../noyau/verdictsDInterlude';
 import { setRule, resetRule } from '../engine/policy';
 import { interludeEventFor } from '../data/interludeEvents';
+import { sousLeDe } from '../data/deDeLaTable.testkit';
 import { InterludeScreen, type InterludeSeam } from './InterludeScreen';
 import { ciblePsy } from '../engine/psych/ciblage';
-import { ACTIVITIES, activityById, craftCatalog, craftSpecOf, entrainementOptions, learnableTalents, metierOf, orderCatalog } from '../engine/activities';
+import {
+  ACTIVITIES,
+  activityById,
+  cleDEntrainement,
+  craftCatalog,
+  craftSpecOf,
+  entrainementOptions,
+  learnableTalents,
+  metierOf,
+  orderCatalog,
+} from '../engine/activities';
 import careers from '../data/careers.json';
 import { findTrappingById } from '../data';
 import type { Combatant } from '../engine/types';
 import { avecActivite } from '../engine/activiteMer.testkit';
 import { testValue } from '../engine/skills';
+import { pratiquer } from '../noyau/interlude.testkit';
+import type { ArgumentsDuChoix } from '../noyau/choixDesFenetres';
+
+/** Compose l'Activité `activite` du héros, puis chaque choix `axes` de sa composition (`fenetreChoisir('interlude', …)`). */
+const composer = (heroId: string, activite: string, ...axes: [ArgumentsDuChoix[1], ArgumentsDuChoix[2]][]): void => {
+  useGame.getState().fenetreChoisir('interlude', 'activite', activite, heroId);
+  for (const [axe, valeur] of axes) useGame.getState().fenetreChoisir(...(['interlude', axe, valeur, heroId] as ArgumentsDuChoix));
+};
 
 /** Texte NU d'un rendu statique : balises retirées, entités HTML de React décodées — pour confronter
  *  un texte de DONNÉE (apostrophes comprises) au markup rendu. */
@@ -42,6 +61,12 @@ const mdToPlain = (html: string) => html
 const raisonDId = (html: string, id: string) => mdToPlain(html.match(new RegExp(`id="${id}">([^<]*)</p>`))?.[1] ?? '') || undefined;
 /** La balise du bouton d'entrée `key` FERMÉE (liée à sa raison), ou `undefined`. */
 const entreeFermee = (html: string, key: string) => html.match(new RegExp(`<button[^>]*aria-describedby="interlude-act-${key}-reason"[^>]*>`))?.[0];
+/** La raison qui grise l'option `valeur` d'un volet, ou `undefined` quand elle est ouverte. */
+const raisonDeLOption = (html: string, valeur: string): string | undefined => {
+  const option = html.match(new RegExp(`<option[^>]*value="${valeur.replace(/[|]/g, '\\|')}"[^>]*>`))?.[0];
+  expect(option, `l’option ${valeur} est rendue`).toBeDefined();
+  return option!.includes('disabled=""') ? mdToPlain(option!.match(/title="([^"]*)"/)?.[1] ?? '') : undefined;
+};
 /** La raison accessible de l'entrée `key`, ou `undefined` si elle est ouverte. */
 const raisonDe = (html: string, key: string) => raisonDId(html, `interlude-act-${key}-reason`);
 
@@ -74,6 +99,14 @@ describe('InterludeScreen — refonte LOT 6', () => {
     expect(html).toContain('Événement'); // hint de phase
     expect(html).toContain('Passer aux Activités');
     expect(html).not.toContain('Clore'); // pas de clôture sur la phase d'intro
+  });
+
+  it('le sceau de la chronique dit le dé de la table des Événements', () => {
+    const seam = buildSeam();
+    sousLeDe('interludeEvents', 'd10', () => {
+      const html = renderToStaticMarkup(<InterludeScreen seam={seam} />);
+      expect(html).toContain('<span class="parchment-seal-label">1d10</span>');
+    });
   });
 
   it('phase « tirage » (#942 L7) : le héros dont le dé n’est pas posé ATTEND — ni plantage, ni dé menteur, ni Activités ouvertes', () => {
@@ -262,7 +295,7 @@ describe('InterludeScreen — refonte LOT 6', () => {
     } };
     const html = mdToPlain(renderToStaticMarkup(<InterludeScreen seam={{
       ...seam, party, interlude, phase: 'closing', gameTime: 120, // Hexenstag 2512, 2 h : la première nuit s'achève à l'aube du même jour
-      bank: [{ uid: 'depot-1', heroId: a.id, kind: 'stash', brass: 36, rate: 0 }], pendingOrders: [{ heroId: a.id, trappingId: 'dague' }],
+      bank: [{ uid: 'depot-1', heroId: a.id, kind: 'planque', brass: 36, rate: 0 }], pendingOrders: [{ heroId: a.id, trappingId: 'dague' }],
     }} />));
     expect(html.slice(html.indexOf('Clore l\'interlude ?'))).toBe(
       'Clore l\'interlude ? 1 CO 5/– seront dépensés, bus, pariés ou donnés — en totalité. '
@@ -285,7 +318,7 @@ describe('InterludeScreen — coop (audit M7) : chacun mène SES héros', () => 
       <InterludeScreen seam={{
         ...seam,
         phase: 'activities',
-        net: { mode: 'guest', mySeat: 1, ownership: { [a.id]: 0, [b.id]: 1 }, seatNames: { 0: 'Hôte', 1: 'Moi' } },
+        net: { mode: 'invite', mySeat: 1, ownership: { [a.id]: 0, [b.id]: 1 }, seatNames: { 0: 'Hôte', 1: 'Moi' } },
       }} />,
     );
     expect(html).toContain('interlude-owner'); // le héros de l'hôte porte son propriétaire (vignette + carte)
@@ -302,7 +335,7 @@ describe('InterludeScreen — coop (audit M7) : chacun mène SES héros', () => 
       <InterludeScreen seam={{
         ...seam,
         phase: 'activities',
-        net: { mode: 'host', mySeat: 0, ownership: { [a.id]: 0, [b.id]: 1 }, seatNames: { 0: 'Hôte', 1: 'Antoine' } },
+        net: { mode: 'hote', mySeat: 0, ownership: { [a.id]: 0, [b.id]: 1 }, seatNames: { 0: 'Hôte', 1: 'Antoine' } },
       }} />,
     );
     expect(html).toContain('Antoine');
@@ -427,7 +460,7 @@ describe('InterludeScreen — Punchausen (AA 12 l.45-49) : le volet et le flux J
     const zones = [...html.matchAll(/class="rm-roll-diff">(.*?)<\/span><\/span>/g)].map((m) => m[1].replace(/<[^>]*>/g, ''));
     expect(zones, 'Divertissement, voie retenue — et PAS la voie Charme (−10)').toEqual(['Intermédiaire (+0)']);
 
-    useGame.getState().pratiquerLActivite(hero.id, 'punchausen');
+    pratiquer(useGame.getState, hero.id, 'punchausen');
     const pa = useGame.getState().pendingActivity!;
     expect(pa.chosenSkill?.id).toBe('divertissement'); // même voie que le volet
     expect(pa.difficulty).toBe('intermediaire');
@@ -445,7 +478,7 @@ describe('InterludeScreen — préparation de bataille : « Entreprendre » suit
       ? { ...h, skills: [...h.skills.filter((s) => s.id !== 'savoir'), { id: 'savoir', spec: 'guerre', characteristic: 'intelligence' as const, advances: savoirGuerre }] }
       : h));
     useGame.setState({ party });
-    useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    useGame.getState().amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     const s = useGame.getState();
     const catalog = interludeCatalog(s);
     return renderToStaticMarkup(
@@ -476,7 +509,7 @@ describe('InterludeScreen — l’entrée d’Activité lit le verdict du noyau 
   it('sans Activité restante : les entrées qui en consomment disent la raison du noyau, l’engagement d’Artisanat reste ouvert', () => {
     const seam = buildSeam(1);
     const hero = seam.party[0]; // Vétéran
-    for (let i = 0; i < 3 && useGame.getState().interlude!.perHero[hero.id].left > 0; i++) useGame.getState().deposerALaBanque(hero.id, 'stash', 10);
+    for (let i = 0; i < 3 && useGame.getState().interlude!.perHero[hero.id].left > 0; i++) useGame.getState().deposerALaBanque(hero.id, 'planque', 10);
     const s = useGame.getState();
     expect(s.interlude!.perHero[hero.id].left, 'témoin : plus aucune Activité').toBe(0);
     const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities' }} />);
@@ -486,7 +519,7 @@ describe('InterludeScreen — l’entrée d’Activité lit le verdict du noyau 
     expect(raisonDe(html, 'craft'), 'engager un Artisanat ne consomme pas d’Activité').toBeUndefined();
     expect(entreeFermee(html, 'revenus')).toContain('aria-disabled="true"');
     // Retirer une planque ne consomme pas d'Activité (`refusDeRetrait`) : le bouton reste ouvert.
-    expect(s.bank[0]?.kind, 'témoin : une planque est déposée').toBe('stash');
+    expect(s.bank[0]?.kind, 'témoin : une planque est déposée').toBe('planque');
     expect(html).toMatch(/<button(?![^>]*aria-disabled)[^>]*aria-label="Retirer le dépôt de Vétéran"/);
     expect(html).not.toContain('id="interlude-bank-withdraw-0-reason"');
   });
@@ -573,25 +606,23 @@ describe('InterludeScreen — abordabilité (#3059 S4) : chaque volet payant lit
   const lieeALaBanniere = (html: string, paneId: string) =>
     expect(html.match(/<button[^>]*>/g)?.some((b) => b.includes('aria-disabled="true"') && b.includes(`aria-describedby="${paneId}-blocked"`)), paneId).toBe(true);
 
-  it('Apprentissage : PX insuffisants, la bannière dit la raison du geste', () => {
+  it('Apprentissage : PX insuffisants, le Talent se grise de la raison du geste', () => {
     const seam = buildSeam();
     const hero = seam.party[0];
     useGame.getState().party[0].xp = 50;
-    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: hero.id, pane: 'learn', choix: 'chanceux' } }} />);
-    expect(raisonDId(html, 'pane-learn-blocked')).toBe('Vétéran : PX insuffisants (100).');
-    lieeALaBanniere(html, 'pane-learn');
-    expect(raisonDuGeste(() => useGame.getState().pratiquerLActivite(hero.id, 'learn', { talentId: 'chanceux' }))).toEqual(['Vétéran : PX insuffisants (100).']);
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: hero.id, pane: 'learn' } }} />);
+    expect(raisonDeLOption(html, 'chanceux')).toBe('Vétéran : PX insuffisants (100).');
+    expect(raisonDuGeste(() => pratiquer(useGame.getState, hero.id, 'learn', { talentId: 'chanceux' }))).toEqual(['Vétéran : PX insuffisants (100).']);
   });
 
   it('Entraînement : bourse sous le tuteur le moins cher, même raison au volet et au geste', () => {
     const seam = buildSeam();
     const hero = seam.party[0];
     viderLaBourse(hero.id);
-    const opt = entrainementOptions(useGame.getState().party[0]).find((o) => o.kind === 'characteristic')!;
-    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: hero.id, pane: 'entrainement', choix: `${opt.kind}|${opt.id}|` } }} />);
-    expect(raisonDId(html, 'pane-entrainement-blocked')).toBe('Vétéran : la bourse ne couvre même pas le tuteur le moins cher (1 sc).');
-    lieeALaBanniere(html, 'pane-entrainement');
-    expect(raisonDuGeste(() => useGame.getState().suivreLEntrainement(hero.id, opt.kind, opt.id, opt.spec))).toEqual([raisonDId(html, 'pane-entrainement-blocked')]);
+    const opt = entrainementOptions(useGame.getState().party[0]).find((o) => o.kind === 'caracteristique')!;
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: hero.id, pane: 'entrainement' } }} />);
+    expect(raisonDeLOption(html, cleDEntrainement(opt))).toBe('Vétéran : la bourse ne couvre même pas le tuteur le moins cher (1 sc).');
+    expect(raisonDuGeste(() => pratiquer(useGame.getState, hero.id, 'entrainement', { entrainement: cleDEntrainement(opt) }))).toEqual([raisonDeLOption(html, cleDEntrainement(opt))]);
   });
 
   it('Commande : prix hors de la bourse, même raison au volet et au geste', () => {
@@ -611,11 +642,10 @@ describe('InterludeScreen — abordabilité (#3059 S4) : chaque volet payant lit
     const forgeron = seam.party[1];
     viderLaBourse(forgeron.id);
     const ouvrage = craftCatalog()[0];
-    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: forgeron.id, pane: 'craft', choix: ouvrage.id } }} />);
-    const banniere = raisonDId(html, 'pane-craft-start-blocked');
-    expect(banniere).toMatch(/^Matériaux trop chers \(.+\) pour la bourse de Forgeron\.$/);
-    lieeALaBanniere(html, 'pane-craft-start');
-    expect(raisonDuGeste(() => useGame.getState().fabriquerLObjet(forgeron.id, ouvrage.id, [], []))).toEqual([banniere]);
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: forgeron.id, pane: 'craft' } }} />);
+    const raison = raisonDeLOption(html, ouvrage.id);
+    expect(raison).toMatch(/^Matériaux trop chers \(.+\) pour la bourse de Forgeron\.$/);
+    expect(raisonDuGeste(() => pratiquer(useGame.getState, forgeron.id, 'craft', { ouvrage: ouvrage.id }))).toEqual([raison]);
   });
 
   it('Banque, Bronze à la bourse courte : chaque dépôt dit SON refus, comme son geste', () => {
@@ -627,8 +657,8 @@ describe('InterludeScreen — abordabilité (#3059 S4) : chaque volet payant lit
     expect(raisonDId(html, 'pane-bank-blocked'), 'la bannière : la bourse').toBe('La bourse de Forgeron ne couvre pas ce dépôt.');
     expect(raisonDId(html, 'interlude-bank-invest-reason'), 'Investir : le Statut').toBe('Forgeron : investir en banque exige le Statut Argent ou Or.');
     expect(raisonDId(html, 'interlude-bank-mecenat-reason'), 'Mécénat : le lieu').toBe('Le Mécénat ne se pratique pas ici.');
-    expect(raisonDuGeste(() => useGame.getState().deposerALaBanque(forgeron.id, 'invest', 120))).toEqual(['Forgeron : investir en banque exige le Statut Argent ou Or.']);
-    expect(raisonDuGeste(() => useGame.getState().deposerALaBanque(forgeron.id, 'stash', 120))).toEqual(['La bourse de Forgeron ne couvre pas ce dépôt.']);
+    expect(raisonDuGeste(() => useGame.getState().deposerALaBanque(forgeron.id, 'investir', 120))).toEqual(['Forgeron : investir en banque exige le Statut Argent ou Or.']);
+    expect(raisonDuGeste(() => useGame.getState().deposerALaBanque(forgeron.id, 'planque', 120))).toEqual(['La bourse de Forgeron ne couvre pas ce dépôt.']);
     expect(raisonDuGeste(() => useGame.getState().deposerALaBanque(forgeron.id, 'mecenat', 120))).toEqual(['Le Mécénat ne se pratique pas ici.']);
   });
 
@@ -644,7 +674,7 @@ describe('InterludeScreen — abordabilité (#3059 S4) : chaque volet payant lit
     const avant = useGame.getState().bank.length;
     const bourse = () => toBrass(bourseOf(useGame.getState().party.find((h) => h.id === forgeron.id)!));
     const bourseAvant = bourse();
-    useGame.getState().deposerALaBanque(forgeron.id, 'stash', 120);
+    useGame.getState().deposerALaBanque(forgeron.id, 'planque', 120);
     expect(useGame.getState().bank.slice(avant).map((d) => d.brass), 'le geste dépose ce que le volet annonce').toEqual([96]);
     expect(bourseAvant - bourse(), 'la bourse paie le montant saisi').toBe(120);
   });
@@ -676,7 +706,7 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
     const raison = 'Vétéran n’a aucun Point de Péché à expier. Pénitence ne lui apporterait rien en cas de réussite.';
     expect(raisonDId(html, 'pane-catalog-penitence-blocked')).toBe(raison);
     fermeeEtLiee(html, 'pane-catalog-penitence');
-    expect(raisonDuGeste(() => useGame.getState().pratiquerLActivite(seam.party[0].id, 'penitence'))).toEqual([raison]);
+    expect(raisonDuGeste(() => pratiquer(useGame.getState, seam.party[0].id, 'penitence'))).toEqual([raison]);
   });
 
   it('Tester des objets magiques sans objet : même raison au volet et au geste', () => {
@@ -685,7 +715,7 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
     const raison = 'Aucun objet non identifié dans le sac de Vétéran.';
     expect(raisonDId(html, 'pane-catalog-tester-objets-magiques-blocked')).toBe(raison);
     fermeeEtLiee(html, 'pane-catalog-tester-objets-magiques');
-    expect(raisonDuGeste(() => useGame.getState().pratiquerLActivite(seam.party[0].id, 'tester-objets-magiques'))).toEqual([raison]);
+    expect(raisonDuGeste(() => pratiquer(useGame.getState, seam.party[0].id, 'tester-objets-magiques'))).toEqual([raison]);
   });
 
   it('Convalescence : la liste du volet porte chaque INSTANCE de Trait psychologique du héros, l’action est offerte', () => {
@@ -740,14 +770,14 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
     expect(raisonDuGeste(() => useGame.getState().solderLaFaveur(heroId, 'favor-1'))).toEqual([raison]);
   });
 
-  it('Soutien d’une préparation : la note est la décision du noyau (`interlude-assist-costs-activity`)', () => {
+  it('Soutien d’une préparation : la note est la décision du noyau (`interlude-assister-coute-un-creneau`)', () => {
     const note = (cout: boolean) => {
-      setRule('interlude-assist-costs-activity', cout);
+      setRule('interlude-assister-coute-un-creneau', cout);
       try {
         const seam = buildSeam();
-        useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+        useGame.getState().amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
         return mdToPlain(renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'planification')} />));
-      } finally { resetRule('interlude-assist-costs-activity'); }
+      } finally { resetRule('interlude-assister-coute-un-creneau'); }
     };
     expect(note(false)).toContain('Les autres PJ peuvent prêter leur Soutien, gratuitement.');
     expect(note(true)).toContain('Les autres PJ peuvent prêter leur Soutien — chacun y dépense un créneau.');
@@ -756,16 +786,16 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
   it('préparation déjà faite : la bannière dit le refus du geste', () => {
     const seam = buildSeam();
     const heroId = seam.party[0].id;
-    useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
-    useGame.getState().menerLActionDeBataille('inspire', heroId);
+    useGame.getState().amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
+    useGame.getState().menerLActionDeBataille(heroId, 'inspire');
     useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 20, success: true, sl: 2 } });
-    useGame.getState().jetValider('activity');
+    useGame.getState().jetValider('activite');
     expect(useGame.getState().massBattle?.activitiesDone, 'témoin : le Discours est fait').toContain('inspire');
     const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'inspire')} />);
     const raison = 'Déjà réalisée cette bataille (Activité non répétable).';
     expect(raisonDId(html, 'pane-prep-inspire-blocked')).toBe(raison);
     fermeeEtLiee(html, 'pane-prep-inspire');
-    expect(raisonDuGeste(() => useGame.getState().menerLActionDeBataille('inspire', heroId))).toEqual([raison]);
+    expect(raisonDuGeste(() => useGame.getState().menerLActionDeBataille(heroId, 'inspire'))).toEqual([raison]);
   });
 });
 
@@ -781,13 +811,13 @@ describe('InterludeScreen — chaque volet affiche le pré-jet du noyau (#3059 S
     const seam = buildSeam();
     const party = seam.party.map((h, i) => ({ ...h, skills: [...h.skills.filter((s) => s.id !== 'savoir'), { id: 'savoir', spec: 'guerre', characteristic: 'intelligence' as const, advances: i === 0 ? 10 : 5 }] }));
     useGame.setState({ party });
-    useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    useGame.getState().amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     for (const h of party) useGame.getState().fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', 'planification', h.id);
     const s = useGame.getState();
     const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, party, phase: 'activities', catalog: interludeCatalog(s), massBattle: s.massBattle, openPane: { heroId: party[0].id, pane: 'planification' } }} />);
     expect(ligneDePreJet(html)).toContain('46 +10 = 56');
     expect(ligneDePreJet(html)).toContain('Soutien');
-    useGame.getState().menerLActionDeBataille('planification', party[0].id);
+    useGame.getState().menerLActionDeBataille(party[0].id, 'planification');
     expect(useGame.getState().pendingActivity!.target).toBe(56);
   });
 
@@ -795,10 +825,11 @@ describe('InterludeScreen — chaque volet affiche le pré-jet du noyau (#3059 S
     const seam = buildSeam();
     const party = [{ ...seam.party[0], conditions: [{ id: 'extenue' as const, value: 1 }] }, seam.party[1]];
     useGame.setState({ party });
-    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, party, phase: 'activities', openPane: { heroId: party[0].id, pane: 'learn', choix: 'chanceux' } }} />);
+    composer(party[0].id, 'learn', ['talent', 'chanceux']);
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: useGame.getState().interlude!, party, phase: 'activities', openPane: { heroId: party[0].id, pane: 'learn' } }} />);
     expect(ligneDePreJet(html)).toContain('36 −30 = 6');
     expect(ligneDePreJet(html)).toContain('−10 Exténué');
-    useGame.getState().pratiquerLActivite(party[0].id, 'learn', { talentId: 'chanceux' });
+    pratiquer(useGame.getState, party[0].id, 'learn', { talentId: 'chanceux' });
     expect(useGame.getState().pendingActivity!.skillValue).toBe(26);
   });
 
@@ -824,18 +855,18 @@ describe('InterludeScreen — la porte de chaque volet dédié est celle du gest
     h.xp = 2000;
     if (n === 1) h.conditions = [{ id: 'inconscient', value: 1 }];
     const seam = buildSeam(3, [h]);
-    const voir = (pane: string, choix?: string) => {
+    const voir = (pane: string) => {
       const s = useGame.getState();
-      return renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: s.interlude!, party: s.party, phase: 'activities', openPane: { heroId: h.id, pane, ...(choix ? { choix } : {}) } }} />);
+      return renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: s.interlude!, party: s.party, phase: 'activities', openPane: { heroId: h.id, pane } }} />);
     };
     const geste = (id: string, cibles = {}) => refusDOuvertureDActivite(useGame.getState(), h.id, activityById(id)!, cibles) ?? undefined;
     // L'entrée de la liste se lit volet FERMÉ : une entrée ouverte reste refermable, sans raison.
     expect(raisonDe(voir('bank'), 'revenus'), 'Revenus').toBe(geste('revenus'));
     const talent = learnableTalents(useGame.getState().party[0])[0];
-    if (talent) expect(raisonDId(voir('learn', talent.id), 'pane-learn-blocked'), 'Apprentissage').toBe(geste('learn', { talentId: talent.id }));
+    if (talent) expect(raisonDeLOption(voir('learn'), talent.id), 'Apprentissage').toBe(geste('learn', { talentId: talent.id }));
     const ouvrage = craftCatalog().find((o) => { const t = findTrappingById(o.id); return t && craftSpecOf(t); });
     if (n === 0 && metierOf(useGame.getState().party[0]) && ouvrage) {
-      useGame.getState().fabriquerLObjet(h.id, ouvrage.id, [], []);
+      pratiquer(useGame.getState, h.id, 'craft', { ouvrage: ouvrage.id });
       if (useGame.getState().party[0].craft) expect(raisonDe(voir('bank'), 'craft'), 'ouvrage en cours').toBe(geste('craft'));
     }
   });

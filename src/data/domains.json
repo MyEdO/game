@@ -60,16 +60,16 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "all",
             "of": [
               {
                 "kind": "relation",
                 "who": "target",
-                "is": "opponent"
+                "is": "adversaire"
               },
               {
                 "kind": "not",
@@ -83,15 +83,17 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
                 {
                   "op": "condition",
-                  "id": "en-flammes"
+                  "id": {
+                    "id": "en-flammes"
+                  }
                 }
               ]
             }
@@ -136,16 +138,16 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "all",
             "of": [
               {
                 "kind": "relation",
                 "who": "target",
-                "is": "opponent"
+                "is": "adversaire"
               },
               {
                 "kind": "not",
@@ -159,15 +161,17 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
                 {
                   "op": "condition",
-                  "id": "aveugle"
+                  "id": {
+                    "id": "aveugle"
+                  }
                 }
               ]
             }
@@ -176,10 +180,10 @@
       },
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "any",
             "of": [
               {
@@ -208,9 +212,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -315,16 +319,16 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "all",
             "of": [
               {
                 "kind": "relation",
                 "who": "target",
-                "is": "opponent"
+                "is": "adversaire"
               },
               {
                 "kind": "not",
@@ -372,15 +376,17 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
                 {
                   "op": "condition",
-                  "id": "extenue"
+                  "id": {
+                    "id": "extenue"
+                  }
                 }
               ]
             }
@@ -455,10 +461,10 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "not",
             "of": {
               "kind": "any",
@@ -490,20 +496,24 @@
               ]
             }
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
                 {
                   "op": "removeCondition",
-                  "id": "extenue",
+                  "id": {
+                    "id": "extenue"
+                  },
                   "value": 99
                 },
                 {
                   "op": "removeCondition",
-                  "id": "hemorragique",
+                  "id": {
+                    "id": "hemorragique"
+                  },
                   "value": 99
                 }
               ]
@@ -513,10 +523,10 @@
       },
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "any",
             "of": [
               {
@@ -533,9 +543,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -636,12 +646,12 @@
       {
         "trigger": "onHit",
         "on": {
-          "near": "victim",
+          "near": "victime",
           "radiusMeters": 2
         },
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "not",
             "of": {
               "kind": "has",
@@ -651,9 +661,9 @@
               "spec": "cieux"
             }
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [

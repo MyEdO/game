@@ -7,7 +7,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 /** Combattant minimal (Ag 45 → Bonus d'Agilité 4). */
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'h', label: 'T', kind: 'hero',
+  id: 'h', label: 'T', kind: 'heros',
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 45, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
   wounds: blessuresDeBase(12), advantage: 0, conditions: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -56,12 +56,12 @@ describe('incomingAttackLines — le modificateur imposé à l’attaquant, à l
       .toEqual([{ label: refLabel('traits', { id: 'parasite' }), value: -10, famille: 'circonstance', ref: { category: 'traits', id: 'parasite' } }]);
   });
   it('Nuée : +40 au tir (l.253), rien en mêlée', () => {
-    expect(incomingAttackLines(mk({ traits: [{ id: 'nuee' }] }), 'ranged'))
+    expect(incomingAttackLines(mk({ traits: [{ id: 'nuee' }] }), 'distance'))
       .toEqual([{ label: refLabel('traits', { id: 'nuee' }), value: 40, famille: 'circonstance', ref: { category: 'traits', id: 'nuee' } }]);
     expect(incomingAttackLines(mk({ traits: [{ id: 'nuee' }] }), 'melee')).toEqual([]);
   });
   it('aucun effet à distance pour Parasité, ni sans trait', () => {
-    expect(incomingAttackLines(mk({ traits: [{ id: 'parasite' }] }), 'ranged')).toEqual([]);
+    expect(incomingAttackLines(mk({ traits: [{ id: 'parasite' }] }), 'distance')).toEqual([]);
     expect(incomingAttackLines(mk(), 'melee')).toEqual([]);
   });
 });

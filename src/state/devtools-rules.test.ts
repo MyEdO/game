@@ -24,23 +24,23 @@ describe('__wfrp.rules(id, null) — la remise à zéro purge le PERSISTÉ, pas 
   });
 
   it('une règle cochée AU PANNEAU (persistée) est PURGÉE du localStorage', () => {
-    auPanneau('tavern-games-rapides', true);
-    expect(JSON.parse(localStorage.getItem(KEY)!)['tavern-games-rapides'], 'le panneau persiste').toBe(true);
+    auPanneau('jeux-de-taverne-rapides', true);
+    expect(JSON.parse(localStorage.getItem(KEY)!)['jeux-de-taverne-rapides'], 'le panneau persiste').toBe(true);
 
-    buildApi().rules('tavern-games-rapides', null);
+    buildApi().rules('jeux-de-taverne-rapides', null);
 
-    expect(rule('tavern-games-rapides'), 'défaut RAW retrouvé en mémoire').toBe(false);
-    expect(JSON.parse(localStorage.getItem(KEY)!)['tavern-games-rapides'], 'et rien ne ressuscite au run suivant').toBeUndefined();
+    expect(rule('jeux-de-taverne-rapides'), 'défaut RAW retrouvé en mémoire').toBe(false);
+    expect(JSON.parse(localStorage.getItem(KEY)!)['jeux-de-taverne-rapides'], 'et rien ne ressuscite au run suivant').toBeUndefined();
   });
 
   it('EN COMBAT, la remise à zéro est REFUSÉE et DIT sa raison (même verrou que le panneau)', () => {
-    auPanneau('tavern-games-rapides', true);
+    auPanneau('jeux-de-taverne-rapides', true);
     useGame.setState({ battle: { over: null } as never });
 
-    const dit = buildApi().rules('tavern-games-rapides', null);
+    const dit = buildApi().rules('jeux-de-taverne-rapides', null);
 
     expect(typeof dit === 'string' && dit.length > 0, 'le helper rend la raison au lieu de mentir').toBe(true);
-    expect(rule('tavern-games-rapides'), 'rien n’a bougé').toBe(true);
-    expect(JSON.parse(localStorage.getItem(KEY)!)['tavern-games-rapides']).toBe(true);
+    expect(rule('jeux-de-taverne-rapides'), 'rien n’a bougé').toBe(true);
+    expect(JSON.parse(localStorage.getItem(KEY)!)['jeux-de-taverne-rapides']).toBe(true);
   });
 });

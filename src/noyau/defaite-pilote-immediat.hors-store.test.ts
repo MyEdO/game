@@ -8,11 +8,12 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { buildSeaPlan, runSeaDay, continueSeaDayAfterCascade } from './seaVoyageFlow';
 import { runCascadeImmediate } from './cascade';
 import { checkPartyWiped } from './partyWipe';
 import { setCadence } from '../engine/cadence';
+import type { VoyageCadence } from './voyageCadence';
 import { buildRiverPlan, runRiverDays } from './riverVoyageFlow';
 import { creditBourse } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
@@ -32,7 +33,6 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
-type Cadence = 'commande' | 'jour-par-jour';
 
 const aTerre = (party: Combatant[]): Combatant[] => party.map((h) => ({ ...h, conditions: [{ id: 'inconscient', value: 1 }] }));
 const issue = () => ({ partyWiped: get().partyWiped, travelPlan: get().travelPlan, pendingRest: get().pendingRest });
@@ -47,10 +47,10 @@ const seaMap: WorldMap = {
   routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 } as never;
 
-function journeeDeMer(cadence: Cadence): void {
+function journeeDeMer(cadence: VoyageCadence): void {
   seedBattleRng(1);
   set({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null,
     pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
@@ -62,7 +62,7 @@ function journeeDeMer(cadence: Cadence): void {
   draineCascade(get, 80);
 }
 
-function journeeDeFleuve(cadence: Cadence): void {
+function journeeDeFleuve(cadence: VoyageCadence): void {
   seedBattleRng(7);
   const g = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
   for (const [id, adv] of [['ramer', 50], ['voile', 45]] as const) g.skills.push({ id, characteristic: skillCharacteristicById(id), advances: adv } as never);
@@ -83,7 +83,7 @@ function journeeDeFleuve(cadence: Cadence): void {
 }
 
 describe('#1595 — un groupe à terre est vaincu, quel que soit le pilote de sa journée', () => {
-  for (const cadence of ['commande', 'jour-par-jour'] as const) {
+  for (const cadence of ['commande', 'jourParJour'] as const) {
     it(`mer, cadence ${cadence} : défaite, voyage et halte purgés`, () => {
       journeeDeMer(cadence);
       expect(issue()).toEqual(DEFAITE);
@@ -99,7 +99,7 @@ describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet
   it('sauvegarde confirmée, aucun Test de reste du jour : défaite, voyage et halte purgés', () => {
     seedBattleRng(1);
     set({
-      party: makePregens(idsDeTest).slice(0, 3),
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
@@ -107,8 +107,8 @@ describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet
     } as never);
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0] as never, { cadence: 'commande' })!, party: aTerre(get().party) });
     const h = get().party[0];
-    set({ pendingSteamSave: { actorId: h.id, actorName: h.label, skillValue: 40, target: 40, difficulty: 'intermediaire', scaldOps: [], roll: 5, success: true, sl: 3 } });
-    get().jetValider('steamSave');
+    set({ pendingSteamSave: { actorId: h.id, skillValue: 40, target: 40, difficulty: 'intermediaire', scaldOps: [], roll: 5, success: true, sl: 3 } });
+    get().jetValider('fuiteDeVapeur');
     expect(issue()).toEqual(DEFAITE);
     expect(get().party.flatMap((x) => x.diseases ?? []), 'la clôture du jour s’est jouée avant la défaite').toEqual([]);
   });
@@ -116,7 +116,7 @@ describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet
 
 describe('#1595 — le pilote immédiat s’arrête sur un groupe anéanti EN VOL', () => {
   it('l’étape 1 anéantit le groupe : l’étape 2 n’est jamais appliquée, retour `undefined`', () => {
-    set({ battle: null, pendingCascade: null, suspendedCascades: [], partyWiped: false, journal: [], party: makePregens(idsDeTest).slice(0, 2) } as never);
+    set({ battle: null, pendingCascade: null, suspendedCascades: [], partyWiped: false, journal: [], party: tousLesHerosDeScenario(idsDeTest).slice(0, 2) } as never);
     const vus: string[] = [];
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, sondeWipe: (g, s, step) => {
       vus.push(step.id);
@@ -135,7 +135,7 @@ describe('#1595 — relâche à terre résolue sur place : un groupe à terre n�
   it('désertion en surface I, groupe à terre : défaite, et l’accostage n’est jamais finalisé', () => {
     seedBattleRng(1);
     set({
-      party: makePregens(idsDeTest).slice(0, 3),
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null, pendingShoreLeave: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
@@ -149,7 +149,7 @@ describe('#1595 — relâche à terre résolue sur place : un groupe à terre n�
 
     set({ party: aTerre(get().party) });
     setCadence('rapide');
-    get().fenetreChoisir('shoreLeave', 'accorder', true);
+    get().fenetreChoisir('relacheATerre', 'accorder', true);
 
     expect(get().partyWiped).toBe(true);
     expect(get().journal.some((l) => l.includes('Événement de port')), 'aucun événement de port sous l’écran de défaite').toBe(false);

@@ -16,12 +16,12 @@ const shooter = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id: 'A',
     name: 'Tireur',
-    kind: 'hero',
+    kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 55, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12),
     advantage: 0,
     conditions: [],
-    weapons: [{ name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }],
+    weapons: [{ name: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [],
     talents: [],
@@ -31,7 +31,7 @@ const shooter = (over: Partial<Combatant> = {}): Combatant =>
   })) as unknown as Combatant;
 
 const target = (over: Partial<Combatant> = {}): Combatant =>
-  ({ ...shooter({ id: 'B', label: 'Cible', kind: 'enemy', weapons: [], pos: { x: 5, y: 0 } }), ...over }) as Combatant;
+  ({ ...shooter({ id: 'B', label: 'Cible', kind: 'ennemi', weapons: [], pos: { x: 5, y: 0 } }), ...over }) as Combatant;
 
 function scene(w: number, tiles?: Record<string, string>): Scene {
   const grid = new Array(w).fill('herbe');
@@ -94,12 +94,12 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)?.value).toBe(-10);
   });
 
-  it('héros qui tire IMMOBILE (heldGround) → pas de pénalité « Tir en bougeant »', () => {
+  it('héros qui tire IMMOBILE (tirImmobile) → pas de pénalité « Tir en bougeant »', () => {
     seedBattleRng(1);
     const s = scene(7);
     const a = shooter();
     const b = target({ pos: { x: 6, y: 0 } });
-    const r = resolveAttack(mkGet(s, [a, b]), a, b, undefined, undefined, undefined, true); // heldGround = true
+    const r = resolveAttack(mkGet(s, [a, b]), a, b, undefined, undefined, undefined, true); // tirImmobile = true
     expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)).toBeUndefined();
   });
 
@@ -109,7 +109,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const s = scene(7);
     const a = shooter({ conditions: [{ id: 'empetre', value: 1 }] });
     const b = target({ pos: { x: 6, y: 0 } });
-    const r = resolveAttack(mkGet(s, [a, b]), a, b); // pas de heldGround, mais Mouvement nul
+    const r = resolveAttack(mkGet(s, [a, b]), a, b); // pas de tirImmobile, mais Mouvement nul
     expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)).toBeUndefined();
   });
 });
@@ -137,7 +137,7 @@ describe('resolveAttack — Allonge en mêlée (RAW-3, LDB 62 l.163/164)', () =>
 
 describe('strayShotVictim — tir dévié vers un allié (LDB 14 l.116)', () => {
   const att = shooter();
-  const ally = { id: 'ALLY', kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [] } as unknown as Combatant;
+  const ally = { id: 'ALLY', kind: 'heros', wounds: { current: 10, max: 10 }, conditions: [] } as unknown as Combatant;
   const tgt = target({ pos: { x: 6, y: 0 }, engagedWith: ['ALLY'] });
   const battle = { combatants: [att, tgt, ally] } as any;
   const miss = (roll: number, t: number) => ({ hit: false, attackerRoll: roll, attackerDetail: { target: t } }) as any;
@@ -146,7 +146,7 @@ describe('strayShotVictim — tir dévié vers un allié (LDB 14 l.116)', () => 
     expect(strayShotVictim(miss(40, 30), att, tgt, battle, makeRNG(1))?.id).toBe('ALLY'); // 40 ≤ 30+20
   });
   it('trois alliés Engagés : la victime est tirée au hasard, deux graines, deux victimes', () => {
-    const allie = (id: string) => ({ id, kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [] }) as unknown as Combatant;
+    const allie = (id: string) => ({ id, kind: 'heros', wounds: { current: 10, max: 10 }, conditions: [] }) as unknown as Combatant;
     const trois = [allie('A1'), allie('A2'), allie('A3')];
     const cible = target({ pos: { x: 6, y: 0 }, engagedWith: ['A1', 'A2', 'A3'] });
     const b = { combatants: [att, cible, ...trois] } as any;

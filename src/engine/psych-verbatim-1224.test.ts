@@ -15,7 +15,15 @@
  * `containedSocialMod`) et les résolveurs génériques — aucune entité nommée dans le moteur.
  */
 import { describe, it, expect } from 'vitest';
-import { fearSourceFor, psychImmuneToFrom, refreshDefendedPsych, targetedTrigger, targetCausedSourcesFor, psychBranchOps, sourceCombattant } from './psychology';
+import {
+  fearSourceFor,
+  psychImmuneToFrom,
+  refreshDefendedPsych,
+  targetedTrigger,
+  targetCausedSourcesFor,
+  psychBranchOps,
+  sourceCombattant,
+} from './psychology';
 import { socialPsychMod, socialPsychLabel } from './skills';
 import { findPsychologyById } from '../data';
 import type { Combatant } from './types';
@@ -26,9 +34,9 @@ import { blessuresDeBase } from './combattantDeTest.testkit';
 const C = (o: Partial<Combatant>): Combatant => o as unknown as Combatant;
 
 /** Observateur nu : ni Taille effrayante, ni Indice de statbloc — seuls ses Traits psy parlent. */
-const obs = (o: Partial<Combatant>): Combatant => C({ id: 'obs', kind: 'hero', size: 'moyenne', ...o });
+const obs = (o: Partial<Combatant>): Combatant => C({ id: 'obs', kind: 'heros', size: 'moyenne', ...o });
 const bete = (o: Partial<Combatant> = {}): Combatant =>
-  C({ id: 'f', kind: 'enemy', size: 'moyenne', groups: ['homme-bete'], ...o });
+  C({ id: 'f', kind: 'ennemi', size: 'moyenne', groups: ['homme-bete'], ...o });
 
 describe('#1224 écart 1 — Phobie : l’objet du Trait CAUSE la Peur (LDB 21 l.87)', () => {
   it('la donnée porte le régime, pas le moteur : `targetCauses` = Peur d’Indice 1 par défaut', () => {
@@ -76,7 +84,7 @@ describe('#1224 écart 1 — Phobie : l’objet du Trait CAUSE la Peur (LDB 21 l
 
 describe('#1224 écarts 2 & 3 — immunités par CANAL (LDB 21 l.41 / l.75)', () => {
   /** L'aimé, présent aux côtés du porteur : « tant que vous défendez les êtres aimés » (l.75). */
-  const aime = C({ id: 'a', kind: 'hero', groups: ['humain'], wounds: blessuresDeBase(10), conditions: [] });
+  const aime = C({ id: 'a', kind: 'heros', groups: ['humain'], wounds: blessuresDeBase(10), conditions: [] });
 
   it('Haine : le canal Peur du groupe haï — jamais la Terreur, jamais un autre groupe', () => {
     expect(findPsychologyById('haine')?.immuneToFromTarget).toEqual(['peur']);

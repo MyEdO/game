@@ -23,7 +23,7 @@ import { lignesDe } from './lib/monoTable.mjs';
 import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const CIBLE = 'targetDR';
+const CIBLE = 'drCible';
 
 /** `avant` → `targetDR` sur `porteur`, au même rang. `exigee` : le porteur doit porter l'une des deux. */
 function renommer(porteur, avant, ou, fautes, { exigee = true } = {}) {

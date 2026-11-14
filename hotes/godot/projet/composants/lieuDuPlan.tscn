@@ -1,0 +1,16 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+
+[node name="Lieu" type="Label"]
+horizontal_alignment = 1
+
+[node name="nom" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "nom"
+
+[node name="ton" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+

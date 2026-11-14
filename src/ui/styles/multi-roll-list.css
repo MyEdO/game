@@ -10,5 +10,5 @@
 .mrl-roll .rm-roll-block { min-width: 0; }
 .mrl-label { font-size: 12px; color: var(--muted); }
 .mrl-text { font-size: 12.5px; }
-.mrl-row.bad .mrl-label, .mrl-row.bad .mrl-text { color: var(--danger-soft); }
-.mrl-row.ok .mrl-label, .mrl-row.ok .mrl-text { color: var(--ok-bright); }
+.mrl-row.echec .mrl-label, .mrl-row.echec .mrl-text { color: var(--danger-soft); }
+.mrl-row.reussite .mrl-label, .mrl-row.reussite .mrl-text { color: var(--ok-bright); }

@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import type { CustomStatblock } from '../../engine/statblock';
 import type { MapSpec } from '../../noyau/mapSpec';
@@ -245,12 +245,12 @@ function construireScene(): Scene {
             type: 'delayedEffect', afterMinutes: 10,
             // Séquence d'échéance : ambiance + souffle des pétards, PUIS un Test de Perception (le vol de Glimbrin).
             flow: {
-              kind: 'seq',
-              steps: [
-                { kind: 'do', effect: { type: 'journal', desc: 'Près de l’allée centrale, la lueur d’une mèche embrase la pénombre…' } },
-                { kind: 'do', effect: { type: 'setLight', level: 0.8 } },
-                { kind: 'do', effect: { type: 'zoneBlast', center: { x: 9, y: 8 }, radius: 1, ops: [{ op: 'wounds', amount: 2 }] } },
-                { kind: 'do', effect: { type: 'journal', desc: 'Une volée de pétards éclate sur le siège du professeur Pakker ! Le spectacle s’interrompt dans les cris — mais sans panique. Dans le brouhaha, une petite silhouette se faufile sous son fauteuil…' } },
+              kind: 'sequence',
+              etapes: [
+                { kind: 'effet', effet: { type: 'journal', desc: 'Près de l’allée centrale, la lueur d’une mèche embrase la pénombre…' } },
+                { kind: 'effet', effet: { type: 'setLight', level: 0.8 } },
+                { kind: 'effet', effet: { type: 'zoneBlast', center: { x: 9, y: 8 }, radius: 1, ops: [{ op: 'wounds', amount: 2 }] } },
+                { kind: 'effet', effet: { type: 'journal', desc: 'Une volée de pétards éclate sur le siège du professeur Pakker ! Le spectacle s’interrompt dans les cris — mais sans panique. Dans le brouhaha, une petite silhouette se faufile sous son fauteuil…' } },
                 testFlow(
                   {
                     skill: { id: 'perception' }, difficulty: 'difficile', label: 'Repérer le voleur dans le brouhaha',
@@ -274,7 +274,7 @@ function construireScene(): Scene {
             type: 'delayedEffect', afterMinutes: 60, cancelFlag: 'bombeDesamorcee',
             flow: flowFromEffects([
               { type: 'journal', desc: 'UNE EXPLOSION DÉCHIRE L’ANTICHAMBRE DE LA LOGE ROYALE !' },
-              { type: 'zoneBlast', center: { x: 10, y: 14 }, radius: 6, ops: [{ op: 'wounds', amount: { dice: { n: 1, sides: 10, plus: 15 } } }, { op: 'condition', id: 'en-flammes' }] },
+              { type: 'zoneBlast', center: { x: 10, y: 14 }, radius: 6, ops: [{ op: 'wounds', amount: { dice: { n: 1, sides: 10, plus: 15 } } }, { op: 'condition', id: { id: 'en-flammes' } }] },
             ]),
           },
         ]),
@@ -316,5 +316,5 @@ export const scenario: TestScenario = {
     '→ zoneBlast, désamorçage facilité par la Poudre noire, cancelFlag), pétards + vol des clés par Glimbrin ' +
     '(Test caché à deux issues), étudiants saboteurs (combat optionnel), dialogue gaté de la Comtesse, PX canoniques.',
   partyNote: 'Pré-tirés',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireScene() }),
 };

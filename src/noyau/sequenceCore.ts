@@ -11,7 +11,7 @@
  *  - la PERSISTANCE de l'état entre les manches (slot `sequence`, snapshoté avec la partie) ;
  *  - le CYCLE ouvrir→clore→rouvrir : l'ouverture par les mints (`openSequence` — un littéral d'étape
  *    n'entre pas) et la résolution IMMÉDIATE quand aucune fenêtre n'est à montrer ;
- *  - l'ACCUMULATEUR PAR CAMP (`cum: Record<camp, total>` + `sequenceCumStep`, qui délègue au Test
+ *  - l'ACCUMULATEUR PAR CAMP (`cumuls: Record<camp, total>` + `sequenceCumulDuCamp`, qui délègue au Test
  *    étendu canonique `extendedTestStep`) — jamais un `cumPlayer`/`cumOpponent` recopié par jeu ;
  *  - la FORMULE DE SCORE par camp (`TablesDuJeu.scoresDeSequence`, paramétrée par la donnée : `min` pour les
  *    poursuivis, `max` pour les poursuivants, `sum` pour une équipe) ;
@@ -42,7 +42,16 @@ import type { CascadeStep, PendingCascade } from './pendings';
 import type {
   SequenceAbandon, SequenceBoard, SequenceRoundActors,
 } from './sequenceContract';
-import type { SequenceTableRow, SequencePotRow, SequencePotTurn, SequencePotOutcome, SequenceVolleyRow, SequenceVolleyRules, SequenceThrowTurn, SequenceThrowOutcome } from '../engine/sequenceVocab';
+import type {
+  SequenceTableRow,
+  SequencePotRow,
+  SequencePotTurn,
+  SequencePotOutcome,
+  SequenceVolleyRow,
+  SequenceVolleyRules,
+  SequenceThrowTurn,
+  SequenceThrowOutcome,
+} from '../engine/sequenceVocab';
 import { actorIn } from './monde/combatants';
 import { battleRng } from './battleRng';
 import { t } from '../i18n';
@@ -50,11 +59,12 @@ import { t } from '../i18n';
 import { tablesPosees, type FragmentDeTables, type PartDeTable } from './tablesPosees';
 import type { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../engine/sequenceVocab';
 
-/** La définition d'un id, déclarée par son module de DOMAINE (`TablesDuJeu.sequences`), ou `undefined`
- *  (état restauré d'une save dont l'id n'est plus une famille du jeu, famille de fixture d'un test).
- *  LECTEUR OUVERT : l'id vient de l'état, et le cycle ne lit jamais la charge utile (`SequenceDef<never>`). */
-export function sequenceDefOf(id: string): SequenceDef<never> | undefined {
-  return (tablesPosees().sequences as unknown as Readonly<Record<string, SequenceDef<never> | undefined>>)[id];
+/** La définition de la séquence `seq`, déclarée par son module de DOMAINE (`TablesDuJeu.sequences`) sous son
+ *  `definition`, ou `undefined` (état restauré d'une save dont l'id n'est plus une famille du jeu, famille de
+ *  fixture d'un test). LECTEUR OUVERT : l'id vient de l'état ; la définition rangée sous un id reçoit la charge
+ *  utile de cet id, ce que la table keyée par `definition` porte et que le type ne corrèle pas. */
+export function sequenceDefOf<P>(seq: { readonly definition: string; readonly chargeUtile: P }): SequenceDef<P> | undefined {
+  return (tablesPosees().sequences as unknown as Readonly<Record<string, SequenceDef<P> | undefined>>)[seq.definition];
 }
 
 /* ── FAMILLE (3) : FORMULE DE SCORE PAR CAMP ─────────────────────────────────────────────────────
@@ -82,7 +92,7 @@ export interface SequenceTieSide {
   roll: number;
   sl: number;
 }
-export type SequenceTieBreak = (a: SequenceTieSide, b: SequenceTieSide) => 'a' | 'b' | 'tie';
+export type SequenceTieBreak = (a: SequenceTieSide, b: SequenceTieSide) => 'a' | 'b' | 'egalite';
 
 /** Le récit du départage DÉCLARÉ (ce qu'il a lu de chaque camp) — `undefined` s'il n'en tient pas. */
 export function recitDuDepartage(departage: string | undefined, a: SequenceTieSide, b: SequenceTieSide): string | undefined {
@@ -91,9 +101,9 @@ export function recitDuDepartage(departage: string | undefined, a: SequenceTieSi
 }
 
 /** Départage une égalité selon le nom DÉCLARÉ. Aucun (ou inconnu) : l'égalité reste. */
-export function resolveSequenceTie(departage: string | undefined, a: SequenceTieSide, b: SequenceTieSide): 'a' | 'b' | 'tie' {
+export function resolveSequenceTie(departage: string | undefined, a: SequenceTieSide, b: SequenceTieSide): 'a' | 'b' | 'egalite' {
   const fn = departage ? tablesPosees().departages[departage]?.departage : undefined;
-  return fn ? fn(a, b) : 'tie';
+  return fn ? fn(a, b) : 'egalite';
 }
 
 /* ── FAMILLE (5) : MISE, POT, ABANDON, ÉLIMINATION ───────────────────────────────────────────
@@ -192,27 +202,27 @@ export function sequenceVolleyRounds(rules: SequenceVolleyRules, lanceurs: numbe
 /** Un pas de cumul POUR UN CAMP — délègue au Test étendu canonique (`extendedTestStep`, LDB 12
  *  l.170-179 : le DR du Round s'ajoute, le total est planché à 0, `done` à la cible). Le socle
  *  l'appelle UNE FOIS PAR CAMP sur le MÊME état : plus aucun jeu ne tient deux compteurs jumeaux. */
-export function sequenceCumStep<P>(
+export function sequenceCumulDuCamp<P>(
   seq: SequenceState<P>,
   camp: string,
   r: { success: boolean; sl: number },
 ): { total: number; done: boolean } {
-  return extendedTestStep(seq.cum[camp] ?? 0, r, seq.params.target ?? Number.POSITIVE_INFINITY);
+  return extendedTestStep(seq.cumuls[camp] ?? 0, r, seq.parametres.target ?? Number.POSITIVE_INFINITY);
 }
 
 /** Les cumuls de TOUS les camps après leur manche — un seul appel, un Record neuf. */
-export function sequenceCumRound<P>(
+export function sequenceCumulsDeLaManche<P>(
   seq: SequenceState<P>,
   rounds: Record<string, { success: boolean; sl: number }>,
-): { cum: Record<string, number>; done: string[] } {
-  const cum: Record<string, number> = { ...seq.cum };
-  const done: string[] = [];
+): { cumuls: Record<string, number>; atteints: string[] } {
+  const cumuls: Record<string, number> = { ...seq.cumuls };
+  const atteints: string[] = [];
   for (const [camp, r] of Object.entries(rounds)) {
-    const step = sequenceCumStep(seq, camp, r);
-    cum[camp] = step.total;
-    if (step.done) done.push(camp);
+    const step = sequenceCumulDuCamp(seq, camp, r);
+    cumuls[camp] = step.total;
+    if (step.done) atteints.push(camp);
   }
-  return { cum, done };
+  return { cumuls, atteints };
 }
 
 /* ── FAMILLE (2) : TABLE DE SCORE PAR PLAGE DE DR ────────────────────────────────────────────────
@@ -273,7 +283,7 @@ export function sequenceRoundOps<P>(
   targets: SequenceRoundActors,
   conclut = false,
 ): string[] {
-  const decl = seq.params.rounds ?? {};
+  const decl = seq.parametres.rounds ?? {};
   const porteur = (id: string): Combatant | undefined => actorIn(get(), id);
   const lines: string[] = [];
   const appliquer = (ops: readonly GameOp[] | undefined, ids: readonly string[] | undefined): void => {
@@ -283,15 +293,15 @@ export function sequenceRoundOps<P>(
       if (c) lines.push(...applyOps(c, [...ops], { idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...campAdvantageHooks(get) }));
     }
   };
-  appliquer(decl.winner, targets.winners);
-  if (seq.params.avantage && !groupAdvantage()) {
-    appliquer(PERTE_DU_TOUR, targets.losers);
-    appliquer(DECROISSANCE_DU_TOUR, (targets.all ?? []).filter((id) => !targets.winners?.includes(id) && !targets.losers?.includes(id)));
+  appliquer(decl.winner, targets.vainqueurs);
+  if (seq.parametres.avantage && !groupAdvantage()) {
+    appliquer(PERTE_DU_TOUR, targets.perdants);
+    appliquer(DECROISSANCE_DU_TOUR, (targets.tous ?? []).filter((id) => !targets.vainqueurs?.includes(id) && !targets.perdants?.includes(id)));
   }
   if (decl.attrition?.length && !conclut) {
-    for (const id of targets.all ?? []) {
+    for (const id of targets.tous ?? []) {
       const c = porteur(id);
-      const every = c ? sequenceAttritionEvery(seq.params, c) : 0;
+      const every = c ? sequenceAttritionEvery(seq.parametres, c) : 0;
       if (c && every > 0 && round % every === 0) lines.push(...applyOps(c, [...decl.attrition], { idNeuf: get().forgerUnId, rng: battleRng(), caster: c }));
     }
   }
@@ -326,7 +336,7 @@ export function sequencePhaseOf(params: SequenceParams, round: number): {
 export function sequenceBoardOf(get: Get): SequenceBoard | null {
   const seq = activeSequence(get);
   if (!seq) return null;
-  return sequenceDefOf(seq.def)?.board?.(get, seq as SequenceState<never>) ?? null;
+  return sequenceDefOf(seq)?.tableau?.(get, seq) ?? null;
 }
 
 /* ── LE CYCLE : ouvrir → clore → rouvrir/dénouer ─────────────────────────────────────────────────*/
@@ -344,19 +354,19 @@ function borneOf(params: SequenceParams): number {
 }
 
 /**
- * DÉMARRE une séquence : pose son état PUIS ouvre la 1ʳᵉ manche. `def` doit être déclarée (un id
+ * DÉMARRE une séquence : pose son état PUIS ouvre la 1ʳᵉ manche. `definition` doit être déclarée (un id
  * inconnu ne pose rien — mieux vaut aucune séquence qu'une séquence qu'aucun réducteur ne clôt).
  */
 export function startSequence<P>(
   get: Get, set: Set,
-  init: { def: string; params?: SequenceParams; payload: P; cum?: Record<string, number> },
+  init: { definition: string; parametres?: SequenceParams; chargeUtile: P; cumuls?: Record<string, number> },
 ): void {
-  if (!sequenceDefOf(init.def)) {
-    console.error(`[sequence] définition « ${init.def} » inconnue — aucune séquence ouverte.`);
+  if (!sequenceDefOf(init)) {
+    console.error(`[sequence] définition « ${init.definition} » inconnue — aucune séquence ouverte.`);
     return;
   }
   const state: SequenceState<P> = {
-    def: init.def, round: 0, cum: init.cum ?? {}, params: init.params ?? {}, payload: init.payload,
+    definition: init.definition, manche: 0, cumuls: init.cumuls ?? {}, parametres: init.parametres ?? {}, chargeUtile: init.chargeUtile,
   };
   set({ sequence: state as EtatDeSequence });
   openSequenceRound(get, set);
@@ -367,24 +377,24 @@ export function activeSequence<P>(get: Get<Jeu>): SequenceState<P> | null {
   return (get().sequence as SequenceState<P> | null) ?? null;
 }
 
-/** Met à jour la charge utile de la séquence en cours (le domaine possède `payload`, pas le socle). */
-export function setSequencePayload<P>(get: Get, set: Set, payload: P): void {
+/** Met à jour la charge utile de la séquence en cours (le domaine possède `chargeUtile`, pas le socle). */
+export function setSequenceChargeUtile<P>(get: Get, set: Set, chargeUtile: P): void {
   const seq = activeSequence<P>(get);
   if (!seq) return;
-  set({ sequence: { ...seq, payload } as EtatDeSequence });
+  set({ sequence: { ...seq, chargeUtile } as EtatDeSequence });
 }
 
 /**
  * Met à jour l'ACCUMULATEUR PAR CAMP de la séquence en cours EN COURS DE MANCHE — la porte du socle
  * pour ce que le réducteur de clôture ne peut pas rendre : une étape APPENDÉE à la fenêtre (la
  * sanction d'un lanceur, `SequenceParams.throwerPenalty`) compte AVANT que la manche ne se close, et
- * son applier n'a pas de verdict à rendre. Jumelle de `setSequencePayload`, sur le champ que possède
+ * son applier n'a pas de verdict à rendre. Jumelle de `setSequenceChargeUtile`, sur le champ que possède
  * le SOCLE : c'est ce qui évite qu'un système ne se remette à tenir son compteur dans sa charge utile.
  */
-export function setSequenceCum(get: Get, set: Set, cum: Record<string, number>): void {
+export function setSequenceCumuls(get: Get, set: Set, cumuls: Record<string, number>): void {
   const seq = activeSequence(get);
   if (!seq) return;
-  set({ sequence: { ...seq, cum } as EtatDeSequence });
+  set({ sequence: { ...seq, cumuls } as EtatDeSequence });
 }
 
 /** Retire la séquence en cours (dénouement, abandon) — sans dénouer : l'appelant joue sa suite. */
@@ -401,14 +411,14 @@ export function clearSequence(set: Set): void {
 export function openSequenceRound(get: Get, set: Set): void {
   const seq = activeSequence(get);
   if (!seq) return;
-  const def = sequenceDefOf(seq.def);
+  const def = sequenceDefOf(seq);
   if (!def) { clearSequence(set); return; }
-  const next = { ...seq, round: seq.round + 1 } as EtatDeSequence;
+  const next: SequenceState = { ...seq, manche: seq.manche + 1 };
   const rng = battleRng();
-  const manche = def.round(get, next as never, rng);
+  const manche = def.manche(get, next, rng);
   if (!manche || !manche.steps.length) { clearSequence(set); return; }
-  if (manche.payload !== undefined) next.payload = manche.payload;
-  set({ sequence: next });
+  if (manche.chargeUtile !== undefined) next.chargeUtile = manche.chargeUtile;
+  set({ sequence: next as EtatDeSequence });
   // Résolue sur place (manche `immediate`, ou porte rendue en branche I) : la manche se CLÔT ici ; une
   // fenêtre ouverte ou un pilote interrompu (`undefined`) laisse la clôture à `dispatchCascadeDone`.
   const resolues = manche.immediate
@@ -430,42 +440,42 @@ export function openSequenceRound(get: Get, set: Set): void {
  * (cumuls/charge), puis ROUVRE ou DÉNOUE. La BORNE est tenue ICI, une fois pour tous les jeux : un
  * verdict « continue » à la borne devient une fin sur l'issue réservée `SEQUENCE_BORNE`.
  */
-export function closeSequenceRound(get: Get, set: Set, done: MancheClose): void {
+export function closeSequenceRound(get: Get, set: Set, mancheClose: MancheClose): void {
   const seq = activeSequence(get);
   if (!seq) return;
-  const def = sequenceDefOf(seq.def);
+  const def = sequenceDefOf(seq);
   if (!def) { clearSequence(set); return; }
   // Manche ABANDONNÉE avant tout jet (LDB 12 l.176) : elle n'est pas jouée — aucun réducteur, et le
   // dénouement compte les manches jouées, celle-ci exclue.
-  if (seq.abandon !== undefined && !done.participants.some(jetPose)) {
+  if (seq.abandon !== undefined && !mancheClose.participants.some(jetPose)) {
     clearSequence(set);
-    def.settle?.(get, set, { ...seq, round: seq.round - 1 } as never, seq.abandon);
+    def.denouer?.(get, set, { ...seq, manche: seq.manche - 1 }, seq.abandon);
     return;
   }
-  const verdict = def.close({ get, seq: seq as never, done, rng: battleRng() });
-  const apres = {
+  const verdict = def.clore({ get, seq, mancheClose, rng: battleRng() });
+  const apres: SequenceState = {
     ...seq,
-    ...(verdict.cum ? { cum: verdict.cum } : {}),
-    ...(verdict.payload !== undefined ? { payload: verdict.payload } : {}),
-  } as EtatDeSequence;
-  const borne = verdict.go === 'continue' && apres.round >= borneOf(apres.params);
+    ...(verdict.cumuls ? { cumuls: verdict.cumuls } : {}),
+    ...(verdict.chargeUtile !== undefined ? { chargeUtile: verdict.chargeUtile } : {}),
+  };
+  const borne = verdict.suite === 'poursuivre' && apres.manche >= borneOf(apres.parametres);
   // EFFETS DE MANCHE (famille 4) : le socle DÉCLENCHE ce que la donnée déclare, sur les porteurs que
   // le verdict NOMME — le réducteur du domaine, lui, ne mute rien. La manche qui CONCLUT (verdict de
   // fin, ou borne atteinte) est dite comme telle : l'attrition ne frappe que les manches qui passent.
-  const effets = verdict.roundActors
-    ? sequenceRoundOps(get, apres as SequenceState, apres.round, verdict.roundActors, verdict.go === 'end' || borne)
+  const effets = verdict.porteurs
+    ? sequenceRoundOps(get, apres, apres.manche, verdict.porteurs, verdict.suite === 'fin' || borne)
     : [];
   for (const l of [...(verdict.log ?? []), ...effets]) get().ecrireAuJournal(l);
   // Fin de la séquence : son issue, sinon l'abandon demandé (`SequenceState.abandon`), sinon la borne.
-  const outcome = verdict.go === 'end' ? verdict.outcome : seq.abandon ?? (borne ? SEQUENCE_BORNE : undefined);
+  const outcome = verdict.suite === 'fin' ? verdict.issue : seq.abandon ?? (borne ? SEQUENCE_BORNE : undefined);
   if (outcome === undefined) {
-    set({ sequence: apres });
+    set({ sequence: apres as EtatDeSequence });
     openSequenceRound(get, set);
     return;
   }
-  if (outcome === SEQUENCE_BORNE) get().ecrireAuJournal(t('seq.borne', { max: borneOf(apres.params) }));
+  if (outcome === SEQUENCE_BORNE) get().ecrireAuJournal(t('seq.borne', { max: borneOf(apres.parametres) }));
   clearSequence(set);
-  def.settle?.(get, set, apres as never, outcome);
+  def.denouer?.(get, set, apres, outcome);
 }
 
 /** Un jet de l'étape est POSÉ : Test, table ou dé résolu ; sur une bande, les rangées INTERACTIVES
@@ -495,7 +505,7 @@ export function sequenceAbandonEtatOf(get: Get<Jeu>): SequenceAbandon | null {
   const seq = activeSequence(get);
   const pc = get().pendingCascade;
   if (!seq || pc?.purpose !== SEQUENCE_PURPOSE) return null;
-  const abandon = sequenceDefOf(seq.def)?.abandon?.(seq as SequenceState<never>);
+  const abandon = sequenceDefOf(seq)?.abandon?.(seq);
   if (!abandon) return null;
   if (seq.abandon !== undefined) return { ...abandon, refus: t('seq.abandonDemande') };
   if (abandon.refus !== undefined) return abandon;
@@ -521,7 +531,7 @@ export function abandonSequence(get: Get, set: Set): void {
   const seq = activeSequence(get);
   const abandon = sequenceAbandonOf(get);
   if (!seq || !abandon) return;
-  set({ sequence: { ...seq, abandon: abandon.outcome } as EtatDeSequence });
+  set({ sequence: { ...seq, abandon: abandon.issue } as EtatDeSequence });
 }
 
 /** Le geste du joueur qui rapproche la clôture d'une manche dont l'abandon est DEMANDÉ : `'suivant'`
@@ -546,13 +556,13 @@ export const TABLES = {
   } satisfies PartDeTable<'scoresDeSequence', typeof SCORES_DE_SEQUENCE>,
   departages: {
     /** L'égalité reste une égalité. */
-    nul: { departage: () => 'tie' },
+    nul: { departage: () => 'egalite' },
     /** « les joueurs comparent le résultat de leur dé d'unités pour ce Test. Celui qui a le nombre le
      *  plus bas gagne » (NADJ 16 l.105). Le chiffre des unités d'un d100 : 100 → 0. */
     'units-lowest': { departage: (a, b) => {
       const ua = a.roll % 10;
       const ub = b.roll % 10;
-      return ua < ub ? 'a' : ub < ua ? 'b' : 'tie';
+      return ua < ub ? 'a' : ub < ua ? 'b' : 'egalite';
     }, recit: (a, b) => t('sequence.departageUnites', { mien: a.roll % 10, sien: b.roll % 10 }) },
   } satisfies PartDeTable<'departages', typeof DEPARTAGES>,
   effetsDePot: {

@@ -65,7 +65,7 @@ const décor = (id: string, x: number): BillboardPropEl => ({
  *  (résolution et rejet) sur le même écran. */
 const DEUX_PROCHES: SceneBillboardEls = { props: [décor('près1', GROUPE.x + 1), décor('près2', GROUPE.x + 2)] };
 
-const cadrePov = (): StageFrame => ({ mode: 'pov', partyPos: GROUPE, facing: 'N', indoor: false, cid: null });
+const cadrePov = (): StageFrame => ({ mode: 'subjectif', partyPos: GROUPE, facing: 'N', indoor: false, cid: null });
 
 let root: Root | null = null;
 let hôte: HTMLDivElement | null = null;

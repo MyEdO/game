@@ -39,7 +39,7 @@ const CHARS = {
 
 function hero(id: string, agilite = 45): Combatant {
   return blessuresSurLeProfil({
-    id, name: id, label: id, kind: 'hero',
+    id, name: id, label: id, kind: 'heros',
     characteristics: { ...CHARS, agilite },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
     skills: [{ id: 'athletisme', characteristic: 'agilite', advances: 5 }],
@@ -99,7 +99,7 @@ describe('enjeu d’un jet HÔTÉ — annoncé à la phase de DÉCISION (#1262 V
   });
 
   it('même zone pour un enjeu de CATALOGUE (le relais ne connaît pas la provenance)', () => {
-    const v = ouvrir(combatStakeRef('climb-test', { values: { metres: 4 } }));
+    const v = ouvrir(combatStakeRef('escalade-test', { values: { metres: 4 } }));
     expect(ecran(v)).toContain('4 m de chute');
   });
 

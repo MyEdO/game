@@ -35,7 +35,7 @@ export const PILOTE_CASCADE_RATCHET = [
   { fichier: 'src/noyau/rest-flow.hors-store.test.ts', ref: 'fn:walkCascade', occurrence: 1 },
   { fichier: 'src/noyau/rest-flow.hors-store.test.ts', ref: 'fn:walkCascadeAbriFails', occurrence: 1 },
   { fichier: 'src/noyau/rest-flow.hors-store.test.ts', ref: 'fn:walkNightChain', occurrence: 1 },
-  { fichier: 'src/noyau/sea-voyage-flow.hors-store.test.ts', ref: 'it:la Vigie SOURDE n’est PAS pénalisée au Test de Perception du phare (sense "vue" posé par kind "crew-phare")', occurrence: 1 },
+  { fichier: 'src/noyau/sea-voyage-flow.hors-store.test.ts', ref: 'it:la Vigie SOURDE n’est PAS pénalisée au Test de Perception du phare (sense "vue" posé par kind "equipage-phare")', occurrence: 1 },
   { fichier: 'src/noyau/sea-voyage-flow.hors-store.test.ts', ref: 'it:un équipage qui chante : base nue, chip de la chanson, cible fondue — aucun résidu', occurrence: 1 },
   { fichier: 'src/noyau/sea-voyage-flow.hors-store.test.ts', ref: 'it:voie « Navigation » : une base SOUTENUE qui franchit le plafond NOMME son écrêtage', occurrence: 1 },
   { fichier: 'src/noyau/sea-voyage-flow.hors-store.test.ts', ref: 'it:« Navigation » retenue → un Test MONO de Voile/Ramer, et la journée continue pareil', occurrence: 1 },

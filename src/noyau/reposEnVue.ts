@@ -1,7 +1,7 @@
 /**
- * LE REPOS EN VUE (#3328) — ce qu'un hôte montre de la nuit à régler (`rest`, LDB 66) : la nuit, son lieu et sa durée,
+ * LE REPOS EN VUE (#3328) — ce qu'un hôte montre de la nuit à régler (`repos`, LDB 66) : la nuit, son lieu et sa durée,
  * le temps qu'il fait, puis chaque dormeur, son couchage et sa pitance parmi ce que le lieu lui offre, chacun écrit en
- * choix de la fenêtre (`fenetreChoisir('rest', …)`, `OUVERTS_DU_CHOIX`), et ce qui l'attend cette nuit ; enfin la note
+ * choix de la fenêtre (`fenetreChoisir('repos', …)`, `OUVERTS_DU_CHOIX`), et ce qui l'attend cette nuit ; enfin la note
  * de la halte et la bourse qui la paie.
  * Lecteur PUR, lu par les hôtes du noyau (`hote/ecran.ts`).
  */
@@ -13,7 +13,7 @@ import { refusDeRecuperation } from '../engine/rest';
 import { formatMoney, toBrass } from '../engine/money';
 import { fenetreDuJeu } from './combatAuto';
 import { activeExposureSeverity, nuitDispenseeParPleinAir } from './combatFlow';
-import { nightTitle, noteDAubergeCouverte, restCost } from './restFlow';
+import { nightTitle, noteDAubergeCouverte, restCost, toitDeLaNuit, type ToitDeLaNuit } from './restFlow';
 import { reglageDuChoixDeFenetre } from './choixDeFenetre';
 import { VERBE_DE_CHOIX, type AxeDe } from './choixDesFenetres';
 import { totalDesBourses } from './bourseFlow';
@@ -24,23 +24,24 @@ import { t } from '../i18n';
 export interface ChoixDeRepos { libelle: string; valeurs: { libelle: string; geste: GesteDuNoyau; choisie: boolean }[] }
 
 /** Un dormeur : son couchage, sa pitance, et ce qui l'attend cette nuit. */
-export interface DormeurEnVue { id: string; nom: string; couchage: ChoixDeRepos; pitance: ChoixDeRepos; alertes: string[] }
+export interface DormeurEnVue { id: string; couchage: ChoixDeRepos; pitance: ChoixDeRepos; alertes: string[] }
 
-/** La nuit à régler : son titre, le temps qu'il fait (`null` : clément), ses dormeurs, et sa note (`null` : gratuite),
- *  couverte ou non par les bourses du groupe. */
+/** La nuit à régler : son titre, son toit, le temps qu'il fait (`null` : clément), ses dormeurs, et sa note (`null` :
+ *  gratuite), couverte ou non par les bourses du groupe. */
 export interface ReposEnVue {
   nuit: string;
+  toit: ToitDeLaNuit;
   temps: { texte: string; alerte: boolean } | null;
   dormeurs: DormeurEnVue[];
   note: { texte: string; couverte: boolean } | null;
 }
 
 /** Le choix `axe` du dormeur `h`, parmi ce que la nuit lui ouvre (`OUVERTS_DU_CHOIX`). */
-function choix(s: Jeu, h: Combatant, axe: AxeDe<'rest'>): ChoixDeRepos {
-  const r = reglageDuChoixDeFenetre(s, 'rest', axe, h.id);
+function choix(s: Jeu, h: Combatant, axe: AxeDe<'repos'>): ChoixDeRepos {
+  const r = reglageDuChoixDeFenetre(s, 'repos', axe, h.id);
   return {
-    libelle: libelleDuChoix('rest', axe),
-    valeurs: (r.valeurs ?? []).map((v) => ({ libelle: v.libelle, geste: { verbe: VERBE_DE_CHOIX, args: ['rest', axe, v.valeur, h.id] }, choisie: v.valeur === r.courant })),
+    libelle: libelleDuChoix('repos', axe),
+    valeurs: (r.valeurs ?? []).map((v) => ({ libelle: v.libelle, geste: { verbe: VERBE_DE_CHOIX, args: ['repos', axe, v.valeur, h.id] }, choisie: v.valeur === r.courant })),
   };
 }
 
@@ -56,16 +57,17 @@ function tempsDeLaNuit(s: Jeu): ReposEnVue['temps'] {
 /** La nuit à régler, `null` hors de la fenêtre du repos. PUR. */
 export function reposEnVue(s: Jeu): ReposEnVue | null {
   const p = s.pendingRest;
-  if (!p || fenetreDuJeu(s)?.cle !== 'rest') return null;
+  if (!p || fenetreDuJeu(s)?.cle !== 'repos') return null;
   const expositions = exposureTestCount(activeExposureSeverity(() => s), exposureShelterFromTent(s.party));
   const cout = restCost(p, s.party);
   return {
     nuit: [`${nightTitle(p, s.party)} — ${p.lieu}`, ...(p.days > 1 ? [t('rf.nuits', { n: p.days })] : []), ...(p.quality === 'pietre' ? [t('rf.pietre')] : [])].join(' · '),
+    toit: toitDeLaNuit(p, s.party),
     temps: tempsDeLaNuit(s),
     dormeurs: s.party.filter((h) => !h.dead && p.perHero[h.id]).map((h) => {
       const { lodging, food } = p.perHero[h.id];
       return {
-        id: h.id, nom: h.label,
+        id: h.id,
         couchage: choix(s, h, 'couchage'),
         pitance: choix(s, h, 'pitance'),
         alertes: [

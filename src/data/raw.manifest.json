@@ -21,7 +21,7 @@
     "id": "4e/bestiaire#l-argent-des-pnj-edo",
     "type": "raw.manifest",
     "label": "L'argent des PNJ (EDO)",
-    "bloque": "`careerLevels.json` écrit en texte l'argent d'une dotation (« Pistoles d'argent » du Marchand 1, « 50 pistoles d'argent » du Colporteur 4, EDO 11 l.44) : aucun objet ne le porte, `argentDuPnj` tire donc la bourse de ce PNJ"
+    "bloque": "`creatures.json` écrit en texte l'argent de quatre profils nommés (« 1 CO » d'Eusapia Balacanon, « 2d10 pistoles d'argent » d'Isrogdal l'Empressé, EDO 11 l.44) : un spawn de créature ne lit pas ses `trappings`, cet argent n'est donc pas matérialisé"
   },
   {
     "id": "4e/magie#seconde-vue",
@@ -97,7 +97,7 @@
     "type": "raw.manifest",
     "label": "Humeur de Manann et événements en mer (MDG)",
     "ticket": "#1652",
-    "bloque": "Événements de bord dont la donnée est posée mais que le flux ne joue pas : nombre d'initiés du Culte de la personnalité (l.154-155), second d10 qu'aucune règle ne lit et qu'aucun texte du livre ne raconte (l'allégeance, premier d10, est tirée), attaques des rats de l'Infestation sur une étape à DR négatif de l'Extermination (1d10 attaques, CC 35 et Arme +5 pour les rats géants, CC 25 et Arme +4 pour les rats, l.162-164, l.177-178 ; fièvre du rongeur pour qui est blessé par les rats géants, l.164) : aucune porte de jet ne joue une attaque subie hors combat, Némésis (l.148-149), rencontre de scénario qu'aucune campagne n'authore, commerce avec les Autres voyageurs (l.205-208) : aucun marché ne s'ouvre en mer, la rumeur et les dangers signalés sont joués. Événements d'escale : cargaison cachée du Contrôle à quai (l.247), qu'aucune mécanique ne cache (toute la cargaison est déclarée, valeur maison), La tache noire (l.251-252), capitaine ennemi de scénario qu'aucune campagne n'authore, comme la Némésis, Constructeur itinérant (l.255) : le chantier de l'escale répare sans Test (MDG 13 l.643) et pose une Amélioration sans délai, donc Métier (Charpentier 72, Constructeur de navires 68, Tailleur 63) et 1d10 jours par travail n'ont aucun lecteur, découverte du Passager clandestin au bout de 1d10 jours (l.258), Offre de mission (l.261) : aucune commission de transport (colis, port de destination tiré, 200 CO à la livraison), Bonne pêche (l.262) : aucun achat de vivres à l'escale (les vivres de la cale ne se réapprovisionnent pas, les rations des héros s'achètent chez un marchand au prix du catalogue)"
+    "bloque": "L'équipage, un effectif, n'a pas d'état de maladie : il ne contracte pas le scorbut, la soupe de chou de la cale n'a pas de mangeur (MDG 14 l.230, l.271), et « La maladie fait rage au sein de l'équipage » (MDG 14 l.172) ne lit que les maladies contagieuses des Personnages (MDG 14 l.208), #4243."
   },
   {
     "id": "4e/maladies#maladie-type",
@@ -111,7 +111,7 @@
     "type": "raw.manifest",
     "label": "Test d'incantation",
     "ticket": "#1456",
-    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:60`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
+    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:90`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
   },
   {
     "id": "4e/activites#tableau-des-evenements-d100",
@@ -154,5 +154,19 @@
     "type": "raw.manifest",
     "label": "Règles propres des Types de Souffle du Zoo impérial",
     "ticket": "#3272"
+  },
+  {
+    "id": "4e/deplacement#rencontres-d-etape",
+    "type": "raw.manifest",
+    "label": "Rencontres d'Étape",
+    "ticket": "#4005",
+    "bloque": "Seule la rangée Voyage tranquille (EDOC 08 l.198) est jouée. Rangées à effet de règle non jouées : EDOC 08 l.194, l.195, l.197, l.213, l.215, l.225, l.227, l.228, l.230, l.231, l.232, l.233. Issues déclarées sans lecteur : `rencontres-edoc.json` `extraActivity` (l.195), `skipStage` (l.197), `worsenWeather` (l.230). Rangées renvoyées au MJ sans arbitrage : EDOC 08 l.192, l.193, l.196, l.207-212, l.214, l.216, l.226, l.229."
+  },
+  {
+    "id": "4e/deplacement#phase-d-arrivee",
+    "type": "raw.manifest",
+    "label": "Phase d'arrivée",
+    "ticket": "#4155",
+    "bloque": "Jouée : EDOC 09 l.21. Non jouées : EDOC 09 l.19, l.23."
   }
 ]

@@ -6,7 +6,8 @@
 import { useGame } from './store';
 import { reglerUnePreference } from '../hote/preferences';
 import { preferenceDef, type IdDePreference, type PrefValue } from '../noyau/preferences';
-import { stockageWeb } from '../web/stockageWeb';
+import { stockageWeb } from '../hote/stockageWeb';
+import { appliquerLaCoupure, reappliquerLeVolumeDeLaMusique } from '../audio/engine';
 
 /** L'effet d'un changement JOUEUR sur le store, par préférence (jamais au chargement). */
 const EFFETS: Record<IdDePreference, () => void> = {
@@ -16,6 +17,14 @@ const EFFETS: Record<IdDePreference, () => void> = {
   // La valeur vit hors du store (module feuille) : une modale de jet DÉJÀ ouverte ne se re-rendrait pas. On touche
   // la tranche `net`, celle à laquelle `RollShell` s'abonne pour son sélecteur de dé.
   'des-fixes': () => useGame.setState((s) => ({ net: { ...s.net } })),
+  // La musique en cours s'arrête, ou la sélection courante reprend.
+  'son-coupe': appliquerLaCoupure,
+  // La musique en cours joue déjà : son volume se réapplique.
+  'volume-musique': reappliquerLeVolumeDeLaMusique,
+  // Le volume d'un son se lit à chaque lecture (`audio/engine.ts`) : rien à rafraîchir.
+  'volume-ambiance': () => {},
+  'volume-effets': () => {},
+  'volume-interface': () => {},
 };
 
 /** COUTURE UNIQUE d'écriture JOUEUR : écrit, persiste, puis joue l'effet déclaré pour l'entrée. */

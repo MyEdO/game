@@ -13,37 +13,37 @@ const mk = (p: Partial<ItemInstance>): ItemInstance =>
 const html = (item: ItemInstance | Weapon) => renderToStaticMarkup(<ItemIcon item={item} />);
 
 describe('ItemIcon : le glyphe de la catégorie de l’objet', () => {
-  it('arme du catalogue → item/weapon', () => {
-    expect(html(itemFromTrappingById('hallebarde', idsDeTest)!)).toContain(iconSvg('item/weapon'));
+  it('arme du catalogue → objet/arme', () => {
+    expect(html(itemFromTrappingById('hallebarde', idsDeTest)!)).toContain(iconSvg('objet/arme'));
   });
 
-  it('arme de combat hors catalogue (`Weapon`) → item/weapon', () => {
+  it('arme de combat hors catalogue (`Weapon`) → objet/arme', () => {
     const w: Weapon = { label: 'Masse', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [] };
-    expect(html(w)).toContain(iconSvg('item/weapon'));
+    expect(html(w)).toContain(iconSvg('objet/arme'));
   });
 
-  it('bouclier → item/armour', () => {
-    expect(html(itemFromTrappingById('bouclier', idsDeTest)!)).toContain(iconSvg('item/armour'));
+  it('bouclier → objet/armure', () => {
+    expect(html(itemFromTrappingById('bouclier', idsDeTest)!)).toContain(iconSvg('objet/armure'));
   });
 
-  it('armure → item/armour', () => {
-    expect(html(itemFromTrappingById('plastron', idsDeTest)!)).toContain(iconSvg('item/armour'));
+  it('armure → objet/armure', () => {
+    expect(html(itemFromTrappingById('plastron', idsDeTest)!)).toContain(iconSvg('objet/armure'));
   });
 
-  it('munition → item/ammo', () => {
-    expect(html(mk({ kind: 'ammo', label: 'Flèches' }))).toContain(iconSvg('item/ammo'));
+  it('munition → objet/munition', () => {
+    expect(html(mk({ kind: 'ammo', label: 'Flèches' }))).toContain(iconSvg('objet/munition'));
   });
 
-  it('cape → item/cloak', () => {
-    expect(html(itemFromTrappingById('cape', idsDeTest)!)).toContain(iconSvg('item/cloak'));
+  it('cape → objet/cape', () => {
+    expect(html(itemFromTrappingById('cape', idsDeTest)!)).toContain(iconSvg('objet/cape'));
   });
 
-  it('consommable (Flow du catalogue) → item/consumable', () => {
+  it('consommable (Flow du catalogue) → objet/consommable', () => {
     const potion = mk({ kind: 'misc', label: 'Potion de guérison', trappingId: 'potion-de-guerison' }); // Flow lu au catalogue
-    expect(html(potion)).toContain(iconSvg('item/consumable'));
+    expect(html(potion)).toContain(iconSvg('objet/consommable'));
   });
 
-  it('objet divers → item/misc', () => {
-    expect(html(mk({ kind: 'misc', label: 'Corde', desc: 'Trois mètres de corde.' }))).toContain(iconSvg('item/misc'));
+  it('objet divers → objet/divers', () => {
+    expect(html(mk({ kind: 'misc', label: 'Corde', desc: 'Trois mètres de corde.' }))).toContain(iconSvg('objet/divers'));
   });
 });

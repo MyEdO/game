@@ -29,7 +29,7 @@ export function TestScenariosScreen() {
         large
         header={<MenuCardHead
           lead={<button type="button" className="btn small btn-ghost menu-back" onClick={() => setScreen('menu')}>
-            <Icon id="ui/undo" size="sm" /> Retour
+            <Icon id="interface/revenir" size="sm" /> Retour
           </button>}
           title="Scénarios de test"
           sub="Chaque scénario fixe un groupe et une scène adaptée à ce qu'on vérifie."

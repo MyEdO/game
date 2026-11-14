@@ -22,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function hero(id: string, xp: number, over: Partial<Combatant> = {}): Combatant {
   return combattantDeTest({
-    id, label: id.toUpperCase(), kind: 'hero', xp,
+    id, label: id.toUpperCase(), kind: 'heros', xp,
     characteristics: {} as Combatant['characteristics'],
     items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
     ...over,
@@ -90,7 +90,7 @@ describe('deriveChapterRecap — le récap est une DIFFÉRENCE, pas un journal (
       party: [hero('h1', 0)], lieux: ['Altdorf'],
     });
     expect(r.chronique.map((l) => l.text)).toEqual(['Atteindre Altdorf']);
-    expect(r.chronique[0].tone).toBe('ok');
+    expect(r.chronique[0].tone).toBe('reussite');
     expect(r.lieux).toEqual(['Altdorf']);
   });
 });
@@ -157,11 +157,11 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
     applyEffects(get, set, [{ type: 'clearObjective', id: 'obj-1' }]);
     applyEffects(get, set, [{ type: 'setFlag', flag: 'chapitre-clos', value: true }]);
     expect(get().pendingChapterRecap?.chronique).toEqual([
-      { text: 'Atteindre Altdorf', icon: 'map-tool/start-flag', tone: 'ok', paquet: true },
+      { text: 'Atteindre Altdorf', icon: 'outil-de-carte/depart', tone: 'reussite', paquet: true },
     ]);
     expect(get().finDeSeance, 'le récap ouvre sa fin de séance, aucune case cochée').toEqual({ heros: {}, groupe: {} });
 
-    banc.getState().fenetreValider('chapterRecap');
+    banc.getState().fenetreValider('finDeChapitre');
     expect(get().finDeSeance).toBeNull();
     expect(get().clotureConsommee).toBe(true);
 
@@ -177,7 +177,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
   it('une partie NEUVE rouvre la clôture (le fait meurt avec l’état, il ne se traîne pas)', () => {
     banc.setState({ party: [hero('h1', 10)], campaignNarratif: narratifClos });
     applyEffects(get, set, [{ type: 'setFlag', flag: 'chapitre-clos', value: true }]);
-    banc.getState().fenetreValider('chapterRecap');
+    banc.getState().fenetreValider('finDeChapitre');
     expect(get().clotureConsommee).toBe(true);
 
     banc.getState().lancerLaScene(testScene());
@@ -186,7 +186,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
 });
 
 describe('cadre de campagne en COOP — l’invité VOIT, l’hôte TOURNE LA PAGE (#717)', () => {
-  const guest = () => banc.setState({ net: { ...get().net, mode: 'guest', mySeat: 1 } });
+  const guest = () => banc.setState({ net: { ...get().net, mode: 'invite', mySeat: 1 } });
 
   it('chez l’invité, les trois gestes du cadre sont INERTES (aucune mutation locale)', () => {
     banc.setState({
@@ -201,10 +201,10 @@ describe('cadre de campagne en COOP — l’invité VOIT, l’hôte TOURNE LA PA
     expect(get().pendingOuverture?.titre).toBe('T');
     expect(get().chapitreDepuis).toBeNull();
 
-    banc.getState().fenetreFermer('chapterRecap');
+    banc.getState().fenetreFermer('finDeChapitre');
     expect(get().pendingChapterRecap?.titre).toBe('C');
 
-    banc.getState().fenetreValider('chapterRecap');
+    banc.getState().fenetreValider('finDeChapitre');
     expect(get().pendingChapterRecap?.titre).toBe('C');
     expect(get().objectifsSoldes).toEqual([{ id: 'o', text: 'Atteindre Altdorf' }]);
     expect(get().clotureConsommee).toBe(false);

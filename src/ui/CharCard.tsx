@@ -1,11 +1,10 @@
 import type { ReactNode } from 'react';
 import { Combatant } from '../engine/types';
-import { Money, libelleDEchelon } from '../engine/money';
+import { libelleDEchelon } from '../engine/money';
 import { actorStatus } from '../engine/social';
 import { OrnateFrame } from './Ornaments';
 import { Icon } from './Icon';
-import type { IconIdInput } from '../data/icons';
-import { Coins } from './Coins';
+import type { IconId } from '../data/icons';
 import { RoseAxes, type RoseAxisValue } from './RoseAxes';
 import { MetalStatus } from './MetalStatus';
 import { WaxSeal } from './WaxSeal';
@@ -147,7 +146,7 @@ function PresentHandle({ hero, onPresent, className, children }: { hero: Combata
 export function CandidateCard({
   hero,
   variant = 'gallery',
-  wealth,
+  bourse,
   recruited,
   selected,
   axisIds,
@@ -158,7 +157,8 @@ export function CandidateCard({
 }: {
   hero: Combatant;
   variant?: 'gallery' | 'remplacement';
-  wealth?: Money;
+  /** Bourse affichée : le montant (`Coins`), ou la formule imprimée d'un pré-tiré avant son tirage. */
+  bourse?: ReactNode;
   /** Déjà dans le groupe (modale de remplacement) → bouton « Déjà choisi » désactivé. */
   recruited?: boolean;
   /** Candidat déplié dans le détail (bordure or « en lecture », #417). */
@@ -179,8 +179,8 @@ export function CandidateCard({
         <CardIdentity hero={hero} />
       </PresentHandle>
       <CardLore hero={hero} axisIds={axisIds} />
-      {wealth != null && (
-        <span className="candidate-wealth hint">{t('picker.hero.purse')} <Coins money={wealth} /></span>
+      {bourse != null && (
+        <span className="candidate-wealth hint">{t('picker.hero.purse')} {bourse}</span>
       )}
       <Row className="candidate-actions">
         <GatedAction
@@ -195,12 +195,12 @@ export function CandidateCard({
           <span className="candidate-tools">
             {onExport && (
               <button className="btn small ghost" onClick={onExport} title={t('picker.hero.export.title')} aria-label={t('picker.hero.export')}>
-                <Icon id="file/export" size="sm" />
+                <Icon id="fichier/exporter" size="sm" />
               </button>
             )}
             {onDelete && (
               <button className="btn small ghost danger" onClick={onDelete} title={t('picker.hero.delete')} aria-label={t('picker.hero.delete')}>
-                <Icon id="ui/delete" size="sm" />
+                <Icon id="interface/supprimer" size="sm" />
               </button>
             )}
           </span>
@@ -256,7 +256,7 @@ export function SeatCard({
 
 /** Carte-action du vivier (même famille visuelle que la carte de candidat) : créer / importer, avec
  *  une ligne d'invite pour ne pas être une icône dans le vide. */
-export function ActionCard({ icon, label, invite, onClick, title }: { icon: IconIdInput; label: string; invite?: string; onClick: () => void; title?: string }) {
+export function ActionCard({ icon, label, invite, onClick, title }: { icon: IconId; label: string; invite?: string; onClick: () => void; title?: string }) {
   return (
     // `btn` (canon) : la carte-action EST un bouton — styles de carte surchargés par `.candidate-action-card`.
     <button type="button" className="btn candidate-action-card" onClick={onClick} title={title}>

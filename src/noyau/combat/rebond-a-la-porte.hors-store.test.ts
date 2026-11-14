@@ -59,7 +59,7 @@ function lancerLaChaine(caster: Combatant, cible: Combatant, sl = 4): void {
 
 /** Cible mourante à 1 PB : toute touche la « réduit à 0 Blessure ». */
 const mourant = (id: string, x: number, over: Partial<Combatant> = {}): Combatant =>
-  mk('enemy', id, blessuresSurLeProfil({ pos: { x, y: 0 }, wounds: blessuresDeBase(8, 1), ...over }));
+  mk('ennemi', id, blessuresSurLeProfil({ pos: { x, y: 0 }, wounds: blessuresDeBase(8, 1), ...over }));
 
 /** L'étape ouverte pour ce porteur, telle que la porte la nomme (`pushDie` suffixe l'index d'append). */
 const etapeDe = (kind: string, actorId: string) =>
@@ -78,9 +78,9 @@ const rebonds = (): number => lu().match(/rebondit sur/g)?.length ?? 0;
 describe('LDB 47 l.340 — le rebond attend la fenêtre de SAUVEGARDE de la cible', () => {
   /** Dard chaîné sur une cible qui SAUVE (`LDB 85 l.98`, Indice 6) ; la voisine est à 1 case. */
   function poser() {
-    const mage = mk('hero', 'mage', { pos: { x: 0, y: 0 } });
+    const mage = mk('heros', 'mage', { pos: { x: 0, y: 0 } });
     const c1 = mourant('c1', 2, { traits: [{ id: 'demoniaque', value: 6 }] as never });
-    const c2 = mk('enemy', 'c2', { pos: { x: 3, y: 0 } });
+    const c2 = mk('ennemi', 'c2', { pos: { x: 3, y: 0 } });
     setBattle([mage, c1, c2]);
     lancerLaChaine(mage, c1);
     return { mage, c1, c2 };
@@ -117,12 +117,12 @@ describe('LDB 47 l.340 — le rebond attend la fenêtre de SAUVEGARDE de la cibl
 describe('LDB 63 l.30 — le rebond attend l’issue de la DÉVIATION CRITIQUE de la cible', () => {
   /** Cible TENUE par un siège humain (héros non piloté) et BLINDÉE : le Critique lui est OFFERT. */
   function poser() {
-    const mage = mk('enemy', 'mage', { pos: { x: 0, y: 0 } });
-    const h1 = mk('hero', 'h1', {
+    const mage = mk('ennemi', 'mage', { pos: { x: 0, y: 0 } });
+    const h1 = mk('heros', 'h1', {
       pos: { x: 2, y: 0 }, wounds: blessuresDeBase(8, 1),
       armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 },
     });
-    const h2 = mk('hero', 'h2', { pos: { x: 3, y: 0 } });
+    const h2 = mk('heros', 'h2', { pos: { x: 3, y: 0 } });
     setBattle([mage, h1, h2]);
     lancerLaChaine(mage, h1, 6);
     return { mage, h1, h2 };
@@ -148,10 +148,10 @@ describe('LDB 63 l.30 — le rebond attend l’issue de la DÉVIATION CRITIQUE d
 
 describe('LDB 47 l.340 — la chaîne complète survit à une fenêtre en son milieu', () => {
   it('(c) chaîne de 3 : la 2ᵉ cible suspend, résolue → la 3ᵉ est touchée, sans doublon', () => {
-    const mage = mk('hero', 'mage', { pos: { x: 0, y: 0 } });
+    const mage = mk('heros', 'mage', { pos: { x: 0, y: 0 } });
     const c1 = mourant('c1', 2);
     const c2 = mourant('c2', 3, { traits: [{ id: 'demoniaque', value: 6 }] as never });
-    const c3 = mk('enemy', 'c3', { pos: { x: 4, y: 0 } });
+    const c3 = mk('ennemi', 'c3', { pos: { x: 4, y: 0 } });
     setBattle([mage, c1, c2, c3]);
     lancerLaChaine(mage, c1);
     expect(c1.wounds.current, 'la 1ʳᵉ cible tombe sans fenêtre').toBe(0);
@@ -166,7 +166,7 @@ describe('LDB 47 l.340 — la chaîne complète survit à une fenêtre en son mi
   });
 
   it('(c) « un nombre maximum de fois égal à votre Bonus de Force Mentale » : BFM 1 → un seul rebond', () => {
-    const mage = mk('hero', 'mage', { pos: { x: 0, y: 0 }, characteristics: { ...CHARS, 'force-mentale': 10 } as never });
+    const mage = mk('heros', 'mage', { pos: { x: 0, y: 0 }, characteristics: { ...CHARS, 'force-mentale': 10 } as never });
     const c1 = mourant('c1', 2);
     const c2 = mourant('c2', 3);
     const c3 = mourant('c3', 4);
@@ -185,9 +185,9 @@ describe('LDB 85 l.302 / LDB 10 l.1026 — « infligeant de nouveau les MÊMES D
     // cible » : la cible d'un rebond est HORS de cette zone — elle est SA propre zone.
     const jouer = (resistante: boolean): number => {
       seedBattleRng(1);
-      const mage = mk('hero', 'mage', { pos: { x: 0, y: 0 } });
+      const mage = mk('heros', 'mage', { pos: { x: 0, y: 0 } });
       const c1 = mourant('c1', 2, resistante ? { talents: [{ talentId: 'resistance-a-la-magie', times: 1 }] as never } : {});
-      const c2 = mk('enemy', 'c2', { pos: { x: 3, y: 0 } });
+      const c2 = mk('ennemi', 'c2', { pos: { x: 3, y: 0 } });
       setBattle([mage, c1, c2]);
       lancerLaChaine(mage, c1);
       draineCascade(banc.getState);
@@ -201,10 +201,10 @@ describe('LDB 85 l.302 / LDB 10 l.1026 — « infligeant de nouveau les MÊMES D
   it('(e) depuis la REPRISE : le DR réduit de la 1ʳᵉ cible ne suit pas le Projectile', () => {
     const jouer = (resistante: boolean): number => {
       seedBattleRng(1);
-      const mage = mk('hero', 'mage', { pos: { x: 0, y: 0 } });
+      const mage = mk('heros', 'mage', { pos: { x: 0, y: 0 } });
       const c1 = mourant('c1', 2, { traits: [{ id: 'demoniaque', value: 6 }] as never,
         ...(resistante ? { talents: [{ talentId: 'resistance-a-la-magie', times: 1 }] as never } : {}) });
-      const c2 = mk('enemy', 'c2', { pos: { x: 3, y: 0 } });
+      const c2 = mk('ennemi', 'c2', { pos: { x: 3, y: 0 } });
       setBattle([mage, c1, c2]); lancerLaChaine(mage, c1);
       poserLeDe('c1', 5); draineCascade(banc.getState);
       expect(c1.wounds.current).toBe(0); expect(rebonds()).toBe(1);

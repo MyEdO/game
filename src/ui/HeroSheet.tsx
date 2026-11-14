@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { CHAR_KEYS, CHAR_LABELS, type Combatant, type CharKey } from '../engine/types';
-import type { Money } from '../engine/money';
 import { dominantAxes } from '../engine/axes';
 import { effectiveChar } from '../engine/characteristics';
 import { effectiveSkillCharKey, testValue, testValueSplit } from '../engine/skills';
@@ -8,7 +7,6 @@ import { effectiveTalents } from '../engine/talentEffects';
 import { itemLabel } from '../engine/items';
 import { castInfoIsPrayer } from '../engine/magic';
 import { coreAxisIds, findSpellById, byId, skillInstanceLabel } from '../data';
-import { Coins } from './Coins';
 import { Icon } from './Icon';
 import { CharStatsGrid } from './CharStatsGrid';
 import { DetailIdentity } from './DetailFrame';
@@ -67,7 +65,7 @@ export function HeroSheet({
   hero,
   axisIds = coreAxisIds(),
   header = true,
-  wealth,
+  bourse,
   pending,
   statAnnotations,
   sections = HERO_SHEET_SECTIONS,
@@ -81,8 +79,9 @@ export function HeroSheet({
   /** Bande d'en-tête identité+statut+rose — `false` quand l'appelant porte déjà sa propre
    *  alcôve (fiche vivante du créateur, alcôve grande à part). */
   header?: boolean;
-  /** Bourse — chip dans la bande d'en-tête (ignoré si `header={false}`). */
-  wealth?: Money;
+  /** Bourse — chip dans la bande d'en-tête (ignoré si `header={false}`) : le montant (`Coins`), ou la formule imprimée
+   *  d'un pré-tiré avant son tirage. */
+  bourse?: ReactNode;
   /** Roadmap PROSPECTIVE par rubrique (chips pointillées `RoadmapChip`, étapes ULTÉRIEURES du
    *  créateur) : Compétences/Possessions REMPLACENT le contenu vif quand elles sont fournies (masque
    *  un défaut moteur prématuré) ; Talents s'AJOUTE après les talents déjà réels (les talents
@@ -130,7 +129,7 @@ export function HeroSheet({
               sub={heroSubtitle(hero)}
               meta={<>
                 <MetalStatus status={heroStatusLabel(hero)} size="chip" />
-                {wealth != null && <span className="chip">{t('picker.hero.purse')} <Coins money={wealth} /></span>}
+                {bourse != null && <span className="chip">{t('picker.hero.purse')} {bourse}</span>}
               </>}
             />
           </div>
@@ -150,10 +149,10 @@ export function HeroSheet({
 
       {has('derived') && (
         <div className="hero-sheet-derived">
-          {derivedFields.includes('wounds') && <span><Icon id="resource/wounds" size="sm" /> Blessures <b>{hero.wounds.max}</b></span>}
-          {derivedFields.includes('movement') && <span><Icon id="resource/movement" size="sm" /> Mouvement <b>{hero.movement}</b></span>}
-          {derivedFields.includes('fate') && <span><Icon id="resource/fate" size="sm" /> Destin <b>{hero.fate ?? '—'}</b> · Chance <b>{hero.fortune ?? '—'}</b></span>}
-          {derivedFields.includes('resilience') && <span><Icon id="resource/resilience" size="sm" /> Résilience <b>{hero.resilience ?? '—'}</b> · Détermination <b>{hero.resolve ?? '—'}</b></span>}
+          {derivedFields.includes('wounds') && <span><Icon id="ressource/blessures" size="sm" /> Blessures <b>{hero.wounds.max}</b></span>}
+          {derivedFields.includes('movement') && <span><Icon id="ressource/mouvement" size="sm" /> Mouvement <b>{hero.movement}</b></span>}
+          {derivedFields.includes('fate') && <span><Icon id="ressource/destin" size="sm" /> Destin <b>{hero.fate ?? '—'}</b> · Chance <b>{hero.fortune ?? '—'}</b></span>}
+          {derivedFields.includes('resilience') && <span><Icon id="ressource/resilience" size="sm" /> Résilience <b>{hero.resilience ?? '—'}</b> · Détermination <b>{hero.resolve ?? '—'}</b></span>}
         </div>
       )}
 

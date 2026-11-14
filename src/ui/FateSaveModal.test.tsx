@@ -16,7 +16,7 @@ import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/c
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const HERO = blessuresSurLeProfil({
-  id: 'H', name: 'H', label: 'Héros', kind: 'hero', fate: 2,
+  id: 'H', name: 'H', label: 'Héros', kind: 'heros', fate: 2,
   characteristics: profilDeTest({ endurance: 40 }), wounds: blessuresDeBase(12, 0), advantage: 0,
   conditions: [], traumas: [], resilience: 2, fortune: 0, weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -25,6 +25,7 @@ const HERO = blessuresSurLeProfil({
 
 let host: HTMLDivElement;
 let root: Root;
+const GROUPE = useGame.getState().party;
 
 beforeEach(() => {
   host = document.createElement('div');
@@ -34,13 +35,13 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   host.remove();
-  useGame.setState({ pendingFateSave: null, battle: null });
+  useGame.setState({ pendingFateSave: null, battle: null, party: GROUPE });
 });
 
 const texte = (e: Element) => (e.textContent ?? '').trim();
 
 function monter(source: 'hit' | 'slow') {
-  useGame.setState({ battle: { combatants: [HERO] } as never, pendingFateSave: { heroId: 'H', source } });
+  useGame.setState({ battle: { combatants: [HERO] } as never, pendingFateSave: source === 'hit' ? { heroId: 'H', source, avantLeCoup: structuredClone(HERO) } : { heroId: 'H', source } });
   act(() => root.render(<FateSaveModal />));
   const corps = host.querySelector('.modal-body')!;
   const pied = host.querySelector('.cadre-pied');
@@ -85,5 +86,18 @@ describe('FateSave — LDB 17 l.29 : deux options au corps, le refus au pied', (
     const coup = regle('hit');
     expect(coup).toMatch(/Règle/);
     expect(regle('slow')).toBe(coup);
+  });
+});
+
+describe('FateSave hors bataille (#3892) : le héros lu au groupe', () => {
+  it('la modale s’affiche pour un héros du groupe, et l’issue choisie lève la suspension', () => {
+    const heros = structuredClone(HERO);
+    useGame.setState({ battle: null, party: [heros], pendingFateSave: { heroId: 'H', source: 'hit', avantLeCoup: structuredClone(heros) } });
+    act(() => root.render(<FateSaveModal />));
+    const option = [...host.querySelectorAll('.modal-body button')].find((b) => texte(b) === 'Comment ça a pu rater ?') as HTMLButtonElement;
+    expect(option).toBeDefined();
+    act(() => option.click());
+    expect(useGame.getState().pendingFateSave).toBeNull();
+    expect(heros.fate).toBe(1);
   });
 });

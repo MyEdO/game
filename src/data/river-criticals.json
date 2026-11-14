@@ -20,7 +20,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "derive",
+            "id": {
+              "id": "derive"
+            },
             "value": 1
           }
         ],
@@ -36,13 +38,13 @@
               "characteristic": "initiative",
               "difficulty": "intermediaire"
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -53,7 +55,9 @@
                   },
                   {
                     "op": "condition",
-                    "id": "empetre",
+                    "id": {
+                      "id": "empetre"
+                    },
                     "value": 1
                   }
                 ],
@@ -74,7 +78,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "derive",
+            "id": {
+              "id": "derive"
+            },
             "value": 1
           }
         ],
@@ -105,7 +111,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "gouvernail-brise",
+            "id": {
+              "id": "gouvernail-brise"
+            },
             "value": 1
           }
         ],
@@ -136,7 +144,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "voie-d-eau",
+            "id": {
+              "id": "voie-d-eau"
+            },
             "value": 1
           }
         ],
@@ -161,13 +171,13 @@
               "characteristic": "initiative",
               "difficulty": "intermediaire"
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {

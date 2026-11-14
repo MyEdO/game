@@ -2,7 +2,7 @@
  "id": "arene",
  "type": "projet",
  "label": "L’Arène",
- "icon": "scenario/arena",
+ "icon": "scenario/arene",
  "versionContenu": 1,
  "maison": "bac à sable de combat authoré pour le jeu — aucun livre ne publie cette arène ; les créatures, armes et règles qu'elle compose portent chacune sa propre source",
  "narratif": {
@@ -501,18 +501,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "hallebarde"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Une hallebarde réglementaire dort sur le râtelier. Elle est à vous."
            }
@@ -694,11 +694,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone1"
         }
@@ -731,11 +731,11 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "silver": 8
@@ -743,29 +743,29 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 100
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone1_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La Cour : vaincue ! Retournez voir le maître d’arène."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -2904,7 +2904,7 @@
      "dialogueId": {
       "id": "dlg-rumeurs"
      },
-     "anim": "standing",
+     "anim": "debout",
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "mendiant",
@@ -2922,7 +2922,7 @@
       "y": 22
      },
      "label": "Villageois",
-     "anim": "standing",
+     "anim": "debout",
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "mendiant"
@@ -2939,7 +2939,7 @@
       "y": 17
      },
      "label": "Badaud",
-     "anim": "cowering",
+     "anim": "tapi",
      "facing": "E",
      "appearance": {
       "species": "humains-reiklander",
@@ -3166,7 +3166,7 @@
       "y": 8
      },
      "label": "Client",
-     "anim": "feeding",
+     "anim": "repas",
      "facing": "E",
      "appearance": {
       "species": "nains",
@@ -3184,7 +3184,7 @@
       "y": 9
      },
      "label": "Habitué",
-     "anim": "standing",
+     "anim": "debout",
      "facing": "O",
      "appearance": {
       "species": "humains-reiklander",
@@ -3202,7 +3202,7 @@
       "y": 10
      },
      "label": "Buveur",
-     "anim": "standing",
+     "anim": "debout",
      "facing": "E",
      "appearance": {
       "species": "humains-reiklander",
@@ -3368,7 +3368,7 @@
       "y": 10
      },
      "label": "Fidèle en prière",
-     "anim": "praying",
+     "anim": "priere",
      "facing": "N",
      "appearance": {
       "species": "humains-reiklander",
@@ -3529,7 +3529,7 @@
       "y": 31
      },
      "label": "Apprenti",
-     "anim": "standing",
+     "anim": "debout",
      "facing": "O",
      "appearance": {
       "species": "humains-reiklander",
@@ -3654,7 +3654,7 @@
       "y": 32
      },
      "label": "Chaland",
-     "anim": "standing",
+     "anim": "debout",
      "facing": "O",
      "appearance": {
       "species": "humains-reiklander",
@@ -3768,7 +3768,7 @@
         {
          "id": "echelle-arene",
          "label": "L’échelle de l’arène.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "next": {
           "id": "echelle"
          }
@@ -3776,7 +3776,7 @@
         {
          "id": "contrats-expedition",
          "label": "Les contrats d’expédition.",
-         "icon": "file/document",
+         "icon": "fichier/document",
          "next": {
           "id": "contrats"
          }
@@ -3784,7 +3784,7 @@
         {
          "id": "crocheter-vieux-coffre",
          "label": "Crocheter le vieux coffre du maître.",
-         "icon": "ui/lock",
+         "icon": "interface/verrou",
          "when": {
           "kind": "flag",
           "expr": "!coffre_pris"
@@ -3801,19 +3801,19 @@
             "authored": "Forcer la serrure : 5 couronnes dans le coffre, sinon le mécanisme rouillé tient bon."
            }
           },
-          "success": {
-           "kind": "seq",
-           "steps": [
+          "reussite": {
+           "kind": "sequence",
+           "etapes": [
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "setFlag",
               "flag": "coffre_pris"
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "giveMoney",
               "montant": {
                "gold": 5
@@ -3821,20 +3821,20 @@
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "journal",
               "desc": "Le coffre cède : 5 couronnes !"
              }
             }
            ]
           },
-          "fail": {
-           "kind": "seq",
-           "steps": [
+          "echec": {
+           "kind": "sequence",
+           "etapes": [
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "journal",
               "desc": "Le mécanisme rouillé résiste — peut-être plus tard."
              }
@@ -3846,52 +3846,52 @@
         {
          "id": "reclamer-titre-champion",
          "label": "Réclamer ton titre de CHAMPION.",
-         "icon": "scenario/arena",
+         "icon": "scenario/arene",
          "when": {
           "kind": "flag",
           "expr": "zone13_clear,!champion_fete"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "champion_fete"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveXp",
              "amount": 300
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Le Maître s’incline, et tout le Bourg avec lui : « CHAMPION DE L’ARÈNE ! »"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "document",
              "documentId": "document-titre-de-champion-de-l-arene"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "interlude",
              "weeks": 2
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -3901,24 +3901,24 @@
         {
          "id": "savourer-gloire-champion",
          "label": "Savourer ta gloire de champion.",
-         "icon": "scenario/arena",
+         "icon": "scenario/arene",
          "when": {
           "kind": "flag",
           "expr": "champion_fete"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Le maître s’incline : « CHAMPION DE L’ARÈNE ! »"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -3929,11 +3929,11 @@
          "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -3949,17 +3949,17 @@
         {
          "id": "entrer-zone1",
          "label": "Entrer — La Cour (échauffement).",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "!zone1_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone1"
@@ -3972,17 +3972,17 @@
         {
          "id": "entrer-zone2",
          "label": "Entrer — Les Ruines.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone1_clear,!zone2_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone2"
@@ -3995,17 +3995,17 @@
         {
          "id": "entrer-zone3",
          "label": "Entrer — Les Égouts.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone2_clear,!zone3_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone3"
@@ -4018,17 +4018,17 @@
         {
          "id": "entrer-zone4",
          "label": "Entrer — Le Charnier.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone3_clear,!zone4_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone4"
@@ -4041,17 +4041,17 @@
         {
          "id": "entrer-zone5",
          "label": "Entrer — Les Lices.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone4_clear,!zone5_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone5"
@@ -4064,17 +4064,17 @@
         {
          "id": "entrer-zone6",
          "label": "Entrer — Le Marais.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone5_clear,!zone6_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone6"
@@ -4087,17 +4087,17 @@
         {
          "id": "entrer-zone7",
          "label": "Entrer — Le Nid.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone6_clear,!zone7_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone7"
@@ -4110,17 +4110,17 @@
         {
          "id": "entrer-zone8",
          "label": "Entrer — La Fosse.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone7_clear,!zone8_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone8"
@@ -4133,17 +4133,17 @@
         {
          "id": "entrer-zone9",
          "label": "Entrer — La Caverne du Troll.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone8_clear,!zone9_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone9"
@@ -4156,17 +4156,17 @@
         {
          "id": "entrer-zone10",
          "label": "Entrer — Le Nid de Vermine.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone9_clear,!zone10_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone10"
@@ -4179,17 +4179,17 @@
         {
          "id": "entrer-zone11",
          "label": "Entrer — Le Cercle Maudit.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone10_clear,!zone11_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone11"
@@ -4202,17 +4202,17 @@
         {
          "id": "entrer-zone12",
          "label": "Entrer — Le Sépulcre.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone11_clear,!zone12_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone12"
@@ -4225,17 +4225,17 @@
         {
          "id": "entrer-zone13",
          "label": "Entrer — L’Antre du Dragon.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone12_clear,!zone13_clear"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "transition",
              "scene": {
               "id": "arene-zone13"
@@ -4261,24 +4261,24 @@
         {
          "id": "contrat-foret",
          "label": "La Vieille Futaie : des hommes-bêtes ont dressé un camp — et la bande de Bella la Noire détrousse les convois.",
-         "icon": "file/document",
+         "icon": "fichier/document",
          "when": {
           "kind": "flag",
           "expr": "zone4_clear,!contrat_foret"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "contrat_foret"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Contrat accepté — ouvrez la carte du monde pour voyager. Méfie-toi : la futaie a des yeux."
             }
@@ -4289,24 +4289,24 @@
         {
          "id": "prime-foret",
          "label": "Toucher la prime — des hommes-bêtes ont dressé un camp — et la bande de Bella la Noire détrousse les convois.",
-         "icon": "resource/gold-purse",
+         "icon": "ressource/bourse",
          "when": {
           "kind": "flag",
           "expr": "contrat_foret_fait,!contrat_foret_paye"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "contrat_foret_paye"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveMoney",
              "montant": {
               "gold": 3
@@ -4314,15 +4314,15 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveXp",
              "amount": 160
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Le Maître compte les couronnes sans sourciller. « Du travail propre. »"
             }
@@ -4333,24 +4333,24 @@
         {
          "id": "contrat-marais",
          "label": "La Tourbière Noire : quelque chose de FABRIQUÉ y traîne les voyageurs sous l’eau.",
-         "icon": "file/document",
+         "icon": "fichier/document",
          "when": {
           "kind": "flag",
           "expr": "zone6_clear,!contrat_marais"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "contrat_marais"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Contrat accepté — ouvrez la carte du monde pour voyager. Reste sur les pontons."
             }
@@ -4361,24 +4361,24 @@
         {
          "id": "prime-marais",
          "label": "Toucher la prime — quelque chose de FABRIQUÉ y traîne les voyageurs sous l’eau.",
-         "icon": "resource/gold-purse",
+         "icon": "ressource/bourse",
          "when": {
           "kind": "flag",
           "expr": "contrat_marais_fait,!contrat_marais_paye"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "contrat_marais_paye"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveMoney",
              "montant": {
               "gold": 4
@@ -4386,15 +4386,15 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveXp",
              "amount": 200
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Le Maître compte les couronnes sans sourciller. « Du travail propre. »"
             }
@@ -4405,24 +4405,24 @@
         {
          "id": "contrat-village",
          "label": "Felsbach : le village ne répond plus depuis un mois. Brûle ce qui marche encore.",
-         "icon": "file/document",
+         "icon": "fichier/document",
          "when": {
           "kind": "flag",
           "expr": "zone8_clear,!contrat_village"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "contrat_village"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Contrat accepté — ouvrez la carte du monde pour voyager. Ne bois pas l’eau du puits."
             }
@@ -4433,24 +4433,24 @@
         {
          "id": "prime-village",
          "label": "Toucher la prime — le village ne répond plus depuis un mois. Brûle ce qui marche encore.",
-         "icon": "resource/gold-purse",
+         "icon": "ressource/bourse",
          "when": {
           "kind": "flag",
           "expr": "contrat_village_fait,!contrat_village_paye"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "contrat_village_paye"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveMoney",
              "montant": {
               "gold": 5
@@ -4458,15 +4458,15 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveXp",
              "amount": 240
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Le Maître compte les couronnes sans sourciller. « Du travail propre. »"
             }
@@ -4498,15 +4498,17 @@
         {
          "id": "voir-remedes-protheses",
          "label": "Voir les remèdes et prothèses.",
-         "icon": "medical/aid",
+         "icon": "medical/soins-payants",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "openMerchant",
-             "entityId": "medecin"
+             "entityId": {
+              "id": "medecin"
+             }
             }
            }
           ]
@@ -4517,39 +4519,41 @@
          "label": "Passer sur la table (actes payants).",
          "icon": "medical/scalpel",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "medicalAid",
              "acts": [
               {
-               "act": "wounds",
+               "act": "blessures",
                "cost": {
                 "silver": 4
                }
               },
               {
-               "act": "bleed",
+               "act": "hemorragie",
                "cost": {
                 "silver": 4
                }
               },
               {
-               "act": "trauma",
+               "act": "traumatisme",
                "cost": {
                 "silver": 5
                }
               },
               {
-               "act": "surgery",
+               "act": "chirurgie",
                "cost": {
                 "silver": 6
                }
               }
              ],
-             "entityId": "medecin"
+             "entityId": {
+              "id": "medecin"
+             }
             }
            }
           ]
@@ -4559,11 +4563,11 @@
          "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -4595,11 +4599,11 @@
          "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -4616,18 +4620,18 @@
          "id": "merci-conseil",
          "label": "« Merci du conseil. »",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Le garde : hurlements nocturnes dans la Futaie, Felsbach éteint depuis un mois."
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -4666,11 +4670,11 @@
          "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -4687,18 +4691,18 @@
          "id": "interessant",
          "label": "« Intéressant… »",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Rumeur du lavoir : le coffre « sans valeur » du Maître, et la bénédiction de Frère Anselm avant le combat."
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -4729,15 +4733,17 @@
         {
          "id": "voir-garde-manger",
          "label": "Voir le garde-manger (rations, vivres, pintes).",
-         "icon": "rest/stew",
+         "icon": "repos/ragout",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "openMerchant",
-             "entityId": "taverniere"
+             "entityId": {
+              "id": "taverniere"
+             }
             }
            }
           ]
@@ -4746,22 +4752,22 @@
         {
          "id": "repas-chaud",
          "label": "Repas chaud pour le groupe.",
-         "icon": "rest/stew",
+         "icon": "repos/ragout",
          "cost": {
           "silver": 4
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "mealParty"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Ragoût, pain noir et bière : le groupe est nourri pour la journée."
             }
@@ -4772,13 +4778,13 @@
         {
          "id": "prendre-chambres",
          "label": "Prendre des chambres pour la nuit.",
-         "icon": "rest/bed",
+         "icon": "repos/lit",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "rest",
              "lodging": "auberge"
             }
@@ -4789,7 +4795,7 @@
         {
          "id": "ecouter-salle",
          "label": "Écouter la salle.",
-         "icon": "expedition/rumor",
+         "icon": "expedition/rumeurs",
          "next": {
           "id": "rumeurs"
          }
@@ -4798,11 +4804,11 @@
          "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -4846,18 +4852,18 @@
          "id": "bon-savoir",
          "label": "« Bon à savoir. »",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Rumeur du Trophée : personne n’a passé la 13e porte — le Maître NOURRIT quelque chose là-dessous."
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -4881,18 +4887,18 @@
          "id": "merci-tuyau",
          "label": "« Merci du tuyau. »",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Rumeur du Trophée : la diligence de Felsbach a disparu — la Futaie détrousse les convois."
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -4923,29 +4929,31 @@
         {
          "id": "recevoir-soins",
          "label": "Recevoir des soins (actes payants).",
-         "icon": "medical/aid",
+         "icon": "medical/soins-payants",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "medicalAid",
              "acts": [
               {
-               "act": "wounds",
+               "act": "blessures",
                "cost": {
                 "silver": 5
                }
               },
               {
-               "act": "bleed",
+               "act": "hemorragie",
                "cost": {
                 "silver": 5
                }
               }
              ],
-             "entityId": "frere"
+             "entityId": {
+              "id": "frere"
+             }
             }
            }
           ]
@@ -4954,30 +4962,30 @@
         {
          "id": "recevoir-benediction",
          "label": "Recevoir la bénédiction du départ (retrouver la Chance).",
-         "icon": "faith/prayer",
+         "icon": "foi/priere",
          "when": {
           "kind": "flag",
           "expr": "!benediction_recue"
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "restoreFortune"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "setFlag",
              "flag": "benediction_recue"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Frère Anselm trace la comète sur vos fronts : la Chance vous revient."
             }
@@ -4988,16 +4996,16 @@
         {
          "id": "faire-don",
          "label": "Faire un don au tronc.",
-         "icon": "resource/gold-purse",
+         "icon": "ressource/bourse",
          "cost": {
           "gold": 1
          },
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "La pièce sonne au fond du tronc. Frère Anselm hoche la tête, sincèrement ému."
             }
@@ -5008,7 +5016,7 @@
         {
          "id": "piller-tronc-offrandes",
          "label": "Piller le tronc des offrandes.",
-         "icon": "action/pick-up",
+         "icon": "action/ramasser",
          "when": {
           "kind": "flag",
           "expr": "!tronc_pille"
@@ -5025,19 +5033,19 @@
             "authored": "Faire main basse sans être vu : 30 pistoles à la clé ; pris sur le fait, le tronc bascule et vous gagnez 1 Point de Péché."
            }
           },
-          "success": {
-           "kind": "seq",
-           "steps": [
+          "reussite": {
+           "kind": "sequence",
+           "etapes": [
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "setFlag",
               "flag": "tronc_pille"
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "giveMoney",
               "montant": {
                "silver": 30
@@ -5045,34 +5053,34 @@
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "journal",
               "desc": "Trente pistoles d’offrandes glissent dans votre poche. Personne n’a rien vu. Sauf, peut-être, Sigmar."
              }
             }
            ]
           },
-          "fail": {
-           "kind": "seq",
-           "steps": [
+          "echec": {
+           "kind": "sequence",
+           "etapes": [
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "setFlag",
               "flag": "tronc_pille"
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "giveSin",
               "amount": 1
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "journal",
               "desc": "Le tronc bascule avec fracas — le regard de Frère Anselm vous transperce. La honte (et le Péché) vous colle à la peau."
              }
@@ -5085,11 +5093,11 @@
          "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -5113,15 +5121,17 @@
         {
          "id": "armes-armures-reparations",
          "label": "Armes, armures et réparations.",
-         "icon": "merchant/cart",
+         "icon": "marchand/panier",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "openMerchant",
-             "entityId": "forgeron"
+             "entityId": {
+              "id": "forgeron"
+             }
             }
            }
           ]
@@ -5131,11 +5141,11 @@
          "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -5159,15 +5169,17 @@
         {
          "id": "voir-etal-herbes",
          "label": "Voir l’étal (herbes, potions, fournitures).",
-         "icon": "merchant/cart",
+         "icon": "marchand/panier",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "openMerchant",
-             "entityId": "echoppiere"
+             "entityId": {
+              "id": "echoppiere"
+             }
             }
            }
           ]
@@ -5177,11 +5189,11 @@
          "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -5203,11 +5215,11 @@
       "h": 2
      },
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "openWorldMap"
         }
        }
@@ -5223,11 +5235,11 @@
       "h": 1
      },
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Les portes de l’arène sont barrées de l’intérieur — elles ne s’ouvrent que sur ordre du Maître d’arène (place centrale)."
         }
@@ -7391,18 +7403,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "document",
             "documentId": "document-stele-des-ruines"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "La stèle parle d’une garnison brûlée une nuit de Geheimnisnacht…"
            }
@@ -7430,11 +7442,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveMoney",
             "montant": {
              "gold": 3
@@ -7442,15 +7454,15 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "bouclier"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Le coffre de la garnison : 3 co et un bouclier frappé du Comte Palatin."
            }
@@ -7610,11 +7622,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone2"
         }
@@ -7632,11 +7644,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-ruines-tresor"
         }
@@ -7666,11 +7678,11 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "silver": 12
@@ -7678,29 +7690,29 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 120
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone2_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Les Ruines : nettoyées ! (La salle au trésor, au nord-est, n’a pas dit son dernier mot.)"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -7724,20 +7736,20 @@
        "entityId": "enemy-enc-ruines-tresor-2"
       }
      ],
-     "surprise": "enemies",
+     "surprise": "ennemis",
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 50
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Le gardien du trésor est tombé — la salle est à vous. Fouillez le coffre !"
         }
@@ -8436,11 +8448,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveMoney",
             "montant": {
              "silver": 12
@@ -8448,8 +8460,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "L’égoutier n’avait plus besoin de sa paie : 12 pa."
            }
@@ -8615,31 +8627,31 @@
         "authored": "Tenir le coup dans l’air des égouts : sinon la Fièvre du Rongeur vous prend."
        }
       },
-      "success": {
-       "kind": "seq",
-       "steps": [
+      "reussite": {
+       "kind": "sequence",
+       "etapes": [
         {
-         "kind": "do",
-         "effect": {
+         "kind": "effet",
+         "effet": {
           "type": "journal",
           "desc": "L’air est irrespirable, mais vous gardez vos tripes — et votre santé."
          }
         }
        ]
       },
-      "fail": {
-       "kind": "seq",
-       "steps": [
+      "echec": {
+       "kind": "sequence",
+       "etapes": [
         {
-         "kind": "do",
-         "effect": {
+         "kind": "effet",
+         "effet": {
           "type": "inflictDisease",
-          "disease": "Fièvre du Rongeur"
+          "disease": "fievre-du-rongeur"
          }
         },
         {
-         "kind": "do",
-         "effect": {
+         "kind": "effet",
+         "effet": {
           "type": "journal",
           "desc": "Quelque chose se glisse dans vos poumons avec l’odeur… La Fièvre du Rongeur couve."
          }
@@ -8658,11 +8670,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone3"
         }
@@ -8695,11 +8707,11 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "silver": 16
@@ -8707,29 +8719,29 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 140
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone3_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Les Égouts : purgés ! Remontez respirer au Bourg."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -9537,12 +9549,12 @@
            "authored": "Fouiller sans se blesser : 18 pistoles dans la bourse du fossoyeur, sinon une Blessure Purulente."
           }
          },
-         "success": {
-          "kind": "seq",
-          "steps": [
+         "reussite": {
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveMoney",
              "montant": {
               "silver": 18
@@ -9550,27 +9562,27 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Le fossoyeur serrait encore sa bourse : 18 pa, et rien d’attrapé."
             }
            }
           ]
          },
-         "fail": {
-          "kind": "seq",
-          "steps": [
+         "echec": {
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "inflictDisease",
-             "disease": "Blessure Purulente"
+             "disease": "blessure-purulente"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Un os brisé vous entaille la paume. La plaie sent déjà mauvais…"
             }
@@ -9599,18 +9611,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "chemise-de-mailles"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Sous les os : une chemise de mailles, intacte. Les morts n’en font rien."
            }
@@ -9719,18 +9731,18 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setTime",
          "phase": "crepuscule"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Le jour décline sur le charnier — les ombres s’allongent entre les cryptes."
         }
@@ -9748,11 +9760,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone4"
         }
@@ -9787,13 +9799,13 @@
        "entityId": "enemy-enc-zone4-6"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 1
@@ -9801,35 +9813,35 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 160
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone4_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Le Charnier : recouché ! Mais certaines images ne s’oublient pas…"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "inflictNightmares"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -10544,18 +10556,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "lance-de-cavalerie"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Une lance de cavalerie de tournoi — parfaite depuis une selle."
            }
@@ -10679,11 +10691,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone5"
         }
@@ -10698,7 +10710,7 @@
      "members": [
       {
        "entityId": "enemy-enc-zone5-0",
-       "side": "ally",
+       "side": "allie",
        "mount": true
       },
       {
@@ -10722,11 +10734,11 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 1,
@@ -10735,29 +10747,29 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 180
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone5_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Les Lices : remportées sous la pluie ! Le Bourg parle déjà de votre charge."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -11818,18 +11830,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "faxtoryll"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Les fontes du cavalier disparu contenaient du faxtoryll — encore sec."
            }
@@ -11857,11 +11869,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveMoney",
             "montant": {
              "silver": 10
@@ -11869,8 +11881,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Sous le banc de nage : une bourse oubliée (10 pa)."
            }
@@ -11980,11 +11992,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone6"
         }
@@ -12019,13 +12031,13 @@
        "entityId": "enemy-enc-zone6-6"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 2
@@ -12033,29 +12045,29 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 200
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone6_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Le Marais : la harde est brisée — et son Fimir avec. Le brouillard se lève enfin."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -12854,38 +12866,38 @@
            "authored": "Ouvrir la soie sans se faire mordre : une potion de guérison intacte, sinon une Infection Mineure."
           }
          },
-         "success": {
-          "kind": "seq",
-          "steps": [
+         "reussite": {
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveTrapping",
              "trappingId": "potion-de-guerison"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Dans la soie : la besace d’une victime, potion intacte."
             }
            }
           ]
          },
-         "fail": {
-          "kind": "seq",
-          "steps": [
+         "echec": {
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "inflictDisease",
-             "disease": "Infection Mineure"
+             "disease": "infection-mineure"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Quelque chose vous mord à travers la soie avant de fuir. La plaie gonfle déjà."
             }
@@ -12914,11 +12926,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveMoney",
             "montant": {
              "silver": 24
@@ -12926,8 +12938,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Le cocon rend une bourse poisseuse : 24 pa."
            }
@@ -12977,18 +12989,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "bonnet-de-fou"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Des chapeaux moirés de Bonnet de fou — l’apothicaire en donnerait cher."
            }
@@ -13060,18 +13072,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "arc"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Le chasseur n’aura plus besoin de son arc. Sa corde est encore bonne."
            }
@@ -13193,11 +13205,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone7"
         }
@@ -13233,11 +13245,11 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 2,
@@ -13246,29 +13258,29 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 220
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone7_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Le Nid : brûlé ! La vouivre ne sifflera plus sous l’arène."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -14072,11 +14084,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveMoney",
             "montant": {
              "silver": 16
@@ -14084,8 +14096,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "La cage du gladiateur — sa solde y était cachée : 16 pa, qu’il vous abandonne."
            }
@@ -14202,11 +14214,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone8"
         }
@@ -14221,7 +14233,7 @@
      "members": [
       {
        "entityId": "enemy-enc-zone8-0",
-       "side": "ally"
+       "side": "allie"
       },
       {
        "entityId": "enemy-enc-zone8-1"
@@ -14243,11 +14255,11 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 3
@@ -14255,29 +14267,29 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 240
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone8_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La Fosse : le Minotaure est tombé ! Le gladiateur vous salue et disparaît par le tunnel des bêtes."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -15163,18 +15175,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "potion-de-vitalite"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveMoney",
             "montant": {
              "silver": 14
@@ -15182,8 +15194,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Au fond du brouet : une fiole scellée (potion de vitalité !) et 14 pa qui n’ont pas fondu."
            }
@@ -15211,11 +15223,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveMoney",
             "montant": {
              "gold": 4
@@ -15223,15 +15235,15 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "grande-hache"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Le magot : 4 co et une grande hache au fil intact. L’Ogre ne comptera plus rien."
            }
@@ -15337,11 +15349,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone9"
         }
@@ -15359,11 +15371,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-caverne-ogre"
         }
@@ -15390,11 +15402,11 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 3,
@@ -15403,29 +15415,29 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 260
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone9_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La Caverne : le Troll est resté à terre (cette fois pour de bon). L’alcôve du fond vous tend les bras…"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -15444,18 +15456,18 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 60
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "L’Ogre s’effondre en travers de son feu. Le magot n’attend plus que vous."
         }
@@ -16346,7 +16358,7 @@
      "dialogueId": {
       "id": "dlg-prisonnier"
      },
-     "anim": "cowering",
+     "anim": "tapi",
      "appearance": {
       "species": "halflings",
       "tenue": "mendiant",
@@ -16528,18 +16540,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "lotus-noir"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "De la contrebande skavenne : un sachet de lotus noir. À manier avec des gants."
            }
@@ -16703,7 +16715,7 @@
         {
          "id": "crocheter-cage",
          "label": "Crocheter la cage.",
-         "icon": "ui/lock",
+         "icon": "interface/verrou",
          "when": {
           "kind": "flag",
           "expr": "!prisonnier_libre"
@@ -16720,19 +16732,19 @@
             "authored": "Ouvrir la cage du colporteur : sa liberté, sa bourse de 40 pistoles et 50 XP ; raté, le crochet ripe et il reste dedans."
            }
           },
-          "success": {
-           "kind": "seq",
-           "steps": [
+          "reussite": {
+           "kind": "sequence",
+           "etapes": [
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "setFlag",
               "flag": "prisonnier_libre"
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "giveMoney",
               "montant": {
                "silver": 40
@@ -16740,33 +16752,33 @@
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "giveXp",
               "amount": 50
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "journal",
               "desc": "Le colporteur halfling s’extrait de la cage, vous fourre sa bourse (40 pa) dans les mains et détale vers la surface."
              }
             },
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "endDialogue"
              }
             }
            ]
           },
-          "fail": {
-           "kind": "seq",
-           "steps": [
+          "echec": {
+           "kind": "sequence",
+           "etapes": [
             {
-             "kind": "do",
-             "effect": {
+             "kind": "effet",
+             "effet": {
               "type": "journal",
               "desc": "La serrure est grossière mais voilée — le crochet ripe. Réessayez."
              }
@@ -16779,11 +16791,11 @@
          "id": "revenir-te-chercher",
          "label": "« On revient te chercher. » (Plus tard.)",
          "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "endDialogue"
             }
            }
@@ -16806,14 +16818,18 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startDialogue",
-         "dialogue": "dlg-prisonnier",
-         "speakerId": "prisonnier"
+         "dialogue": {
+          "id": "dlg-prisonnier"
+         },
+         "speakerId": {
+          "id": "prisonnier"
+         }
         }
        }
       ]
@@ -16829,11 +16845,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone10"
         }
@@ -16875,11 +16891,11 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 4
@@ -16887,29 +16903,29 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 280
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone10_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Le Nid de Vermine : enfumé ! Les terriers resteront silencieux… un temps."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -17896,25 +17912,25 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "grimoire"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "learnSpell",
             "spell": "eblouissant"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Le grimoire du célébrant — votre sorcier en déchiffre déjà un charme (Éblouissant) ; le reste se lira au calme."
            }
@@ -18062,19 +18078,19 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "corruptionExposure",
          "level": "mineure",
          "nature": "spirituelle"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "L’idole noire CHANTE dans vos crânes — une influence corruptrice à l’état pur."
         }
@@ -18092,11 +18108,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone11"
         }
@@ -18138,11 +18154,11 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 5
@@ -18150,29 +18166,29 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 300
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone11_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Le Cercle Maudit : le chant s’est tu. L’idole n’est plus qu’une pierre — fouillez le coffre du célébrant."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -19082,11 +19098,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "epee-batarde",
             "qualities": [
@@ -19097,8 +19113,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Entre les mains du gisant : une épée bâtarde au fil GLACIAL. Quelque chose dort dans cet acier — faites-la évaluer."
            }
@@ -19207,18 +19223,18 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setTime",
          "phase": "nuit"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La porte claque derrière vous. Dans le Sépulcre, il est TOUJOURS minuit."
         }
@@ -19236,11 +19252,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone12"
         }
@@ -19276,11 +19292,11 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 6
@@ -19288,35 +19304,35 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 320
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone12_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Le Sépulcre : le seigneur est recouché, ses gens dispersés. Son épée, elle, ne dort pas — fouillez le sarcophage."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "inflictNightmares"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -20685,12 +20701,12 @@
            "authored": "Prendre l’or sans un tintement : 8 couronnes ; un seul bruit et le dragon se réveille — combat."
           }
          },
-         "success": {
-          "kind": "seq",
-          "steps": [
+         "reussite": {
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveMoney",
              "montant": {
               "gold": 8
@@ -20698,27 +20714,27 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Huit couronnes glissées sans un tintement. Le dragon ronfle toujours."
             }
            }
           ]
          },
-         "fail": {
-          "kind": "seq",
-          "steps": [
+         "echec": {
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "UNE PIÈCE TINTE. L’œil du dragon s’ouvre — d’or en fusion."
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "startCombat",
              "encounter": "enc-zone13"
             }
@@ -20747,11 +20763,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveMoney",
             "montant": {
              "gold": 6
@@ -20759,15 +20775,15 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "arc-elfique"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Dans le coffre d’un pillard digéré : 6 co et un arc elfique que le feu n’a jamais mordu."
            }
@@ -20918,11 +20934,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-zone13"
         }
@@ -20955,11 +20971,11 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 10
@@ -20967,29 +20983,29 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 450
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "zone13_clear"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "LE DRAGON EST TOMBÉ. L’arène entière retient son souffle — puis HURLE. Allez réclamer votre titre au Maître !"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "transition",
          "scene": {
           "id": "arene-hub"
@@ -22313,18 +22329,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "racine-de-terre"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "De la racine de terre, fraîche — l’apothicaire du Bourg en redemande."
            }
@@ -22352,18 +22368,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "faxtoryll"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Du faxtoryll sauvage : de quoi étancher une mauvaise plaie."
            }
@@ -22437,11 +22453,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveMoney",
             "montant": {
              "gold": 5
@@ -22449,8 +22465,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "rapiere",
             "qualities": [
@@ -22459,8 +22475,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Le coffre de Bella : 5 co… et une rapière de duelliste, raffinée, prise à quelque noble détroussé."
            }
@@ -22680,11 +22696,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-foret-harde"
         }
@@ -22702,11 +22718,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-foret-bande"
         }
@@ -22744,20 +22760,20 @@
        "entityId": "enemy-enc-foret-harde-7"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 120
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La harde de lisière est dispersée. Plus profond, une fumée monte du camp des brigands…"
         }
@@ -22782,25 +22798,25 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "contrat_foret_fait"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 160
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Bella la Noire est tombée, sa bande éparpillée. CONTRAT REMPLI — le Maître paiera. (Le coffre du camp est à vous ; retour par la carte du monde.)"
         }
@@ -23947,18 +23963,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveTrapping",
             "trappingId": "corde"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveMoney",
             "montant": {
              "silver": 8
@@ -23966,8 +23982,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "La barque du tourbier : une bonne corde et 8 pa dans une boîte à amadou."
            }
@@ -24006,12 +24022,12 @@
            "authored": "Faire les poches du noyé sans y laisser sa santé : 22 pistoles, sinon une Infection Mineure."
           }
          },
-         "success": {
-          "kind": "seq",
-          "steps": [
+         "reussite": {
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "giveMoney",
              "montant": {
               "silver": 22
@@ -24019,27 +24035,27 @@
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "Le noyé voyageait riche : 22 pa, que la tourbe lui pardonne."
             }
            }
           ]
          },
-         "fail": {
-          "kind": "seq",
-          "steps": [
+         "echec": {
+          "kind": "sequence",
+          "etapes": [
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "inflictDisease",
-             "disease": "Infection Mineure"
+             "disease": "infection-mineure"
             }
            },
            {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
              "type": "journal",
              "desc": "L’eau morte vous entre par une écorchure. Ça gratte. Ça GRATTE."
             }
@@ -24133,11 +24149,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-marais"
         }
@@ -24163,27 +24179,27 @@
        "entityId": "enemy-enc-marais-3"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "contrat_marais_fait"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 180
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 3
@@ -24191,8 +24207,8 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La chose FABRIQUÉE a cessé de se recoudre. CONTRAT REMPLI — la tourbière redevient juste sinistre. (Retour par la carte du monde.)"
         }
@@ -25212,11 +25228,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveMoney",
             "montant": {
              "silver": 26
@@ -25224,8 +25240,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Les économies d’une famille qui ne reviendra pas : 26 pa. Elles serviront à les venger."
            }
@@ -25253,18 +25269,18 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "document",
             "documentId": "document-journal-du-prevot-de-felsbach"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Le journal du prévôt : la peste est venue du PUITS. Le Maître voudra lire ça."
            }
@@ -25387,31 +25403,31 @@
         "authored": "Encaisser les miasmes du puits : sinon la Courante Galopante se déclare."
        }
       },
-      "success": {
-       "kind": "seq",
-       "steps": [
+      "reussite": {
+       "kind": "sequence",
+       "etapes": [
         {
-         "kind": "do",
-         "effect": {
+         "kind": "effet",
+         "effet": {
           "type": "journal",
           "desc": "L’odeur du puits vous plie en deux — mais rien ne s’accroche. Cette eau a TUÉ le village."
          }
         }
        ]
       },
-      "fail": {
-       "kind": "seq",
-       "steps": [
+      "echec": {
+       "kind": "sequence",
+       "etapes": [
         {
-         "kind": "do",
-         "effect": {
+         "kind": "effet",
+         "effet": {
           "type": "inflictDisease",
-          "disease": "Courante Galopante"
+          "disease": "courante-galopante"
          }
         },
         {
-         "kind": "do",
-         "effect": {
+         "kind": "effet",
+         "effet": {
           "type": "journal",
           "desc": "Les miasmes du puits vous prennent à la gorge. Votre ventre gargouille déjà sinistrement…"
          }
@@ -25430,11 +25446,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "startCombat",
          "encounter": "enc-village"
         }
@@ -25467,25 +25483,25 @@
       }
      ],
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "contrat_village_fait"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 200
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Felsbach repose enfin. CONTRAT REMPLI — rapportez le journal du prévôt au Maître. (Retour par la carte du monde.)"
         }
@@ -26688,11 +26704,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "giveMoney",
             "montant": {
              "silver": 9
@@ -26700,8 +26716,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Le postillon de la diligence perdue. Sa sacoche : 9 pa et une lettre illisible."
            }
@@ -26802,20 +26818,20 @@
        "entityId": "enemy-enc-embuscade-3"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 80
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "silver": 15
@@ -26823,8 +26839,8 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Les détrousseurs sont détroussés (15 pa). Reprenez la route par la carte du monde."
         }
@@ -26867,7 +26883,7 @@
     "scene": {
      "id": "arene-exp-foret"
     },
-    "icon": "scenario/hamlet"
+    "icon": "scenario/hameau"
    },
    {
     "id": "marais",
@@ -26879,7 +26895,7 @@
     "scene": {
      "id": "arene-exp-marais"
     },
-    "icon": "scenario/trap"
+    "icon": "scenario/piege"
    },
    {
     "id": "village",
@@ -26891,7 +26907,7 @@
     "scene": {
      "id": "arene-exp-village"
     },
-    "icon": "journal/death"
+    "icon": "journal/mort"
    }
   ],
   "routes": [

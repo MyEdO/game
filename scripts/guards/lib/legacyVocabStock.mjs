@@ -35,13 +35,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-08-23",
   },
   {
-    fichier: "src/engine/provisions.ts",
-    motif: "rétro-compat",
-    ancre: "de cale (le port avitaille les deux). Absent = seuls les héros comptent (rétro-compat). */",
-    lot: "L4",
-    date: "2026-08-23",
-  },
-  {
     fichier: "src/engine/trauma.ts",
     motif: "legacy",
     ancre: "Omis (tests/legacy) ⇒ pas de décompte (séquelle permanente jusqu'à traitement explicite). */",
@@ -189,13 +182,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/schemas/grammaire/reference.ts",
-    motif: "désormais",
-    ancre: "seconde graphie de la même chose, que rien ne lisait — elle est désormais REFUSÉE au parse. */",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/variants-integrity.test.ts",
     motif: "désormais",
     ancre: "désormais adoptés : aucun ne se lit plus au nœud zod. */",
@@ -220,13 +206,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/engine/combat.ts",
     motif: "désormais",
     ancre: "*Groupées* — chaque Spécialisation (désormais un `spec` = id de Groupe, cf. `SkillData.specsSource`)",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/engine/combatFeatures/types.ts",
-    motif: "désormais",
-    ancre: "(Le +DR de Talent — Menaçant → Intimidation — est désormais la règle UNIVERSELLE `talentTestSLBonus`",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
@@ -499,7 +478,7 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/i18n/messages/fr.ts",
     motif: "désormais",
-    ancre: "arrivé le premier sous `rv.loc*` ; le moteur en porte désormais les HUIT, la navigation",
+    ancre: "arrivé le premier sous `fleuve.localisation*` ; le moteur en porte désormais les HUIT, la navigation",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
@@ -749,20 +728,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/ui/RollShell.test.tsx",
-    motif: "désormais",
-    ancre: "(Le préfixe 🎲 est désormais l'icône <Icon id=\"nav/dice\"> — on vérifie le libellé texte.)",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/RollShell.test.tsx",
-    motif: "désormais",
-    ancre: "l'accole désormais elle-même, dérivé de la MÊME entrée d'enjeu que la phrase.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/ui/ShipStationsPanel.tsx",
     motif: "désormais",
     ancre: "suit désormais cette règle (arbitrage user 2026-09-04) : les stations n'y sont plus l'exception.",
@@ -828,7 +793,7 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/ui/echap-intention-consomme.test.tsx",
     motif: "désormais",
-    ancre: "désarme, et les suivants — l'intention désormais nulle — retombent sur `toggle-menu`.",
+    ancre: "désarme, et les suivants — l'intention désormais nulle — retombent sur `menu-ouvrir`.",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

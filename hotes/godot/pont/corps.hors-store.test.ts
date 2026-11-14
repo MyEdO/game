@@ -10,7 +10,7 @@ import { modelesCommites, servirLesModeles, suiteDe, table, vueDe } from './pont
 import type { CombattantProjete } from '../../../src/hote/projection';
 import type { VueDuPont } from './pont';
 
-const COMMITES = modelesCommites();
+const COMMITES = await modelesCommites();
 
 const { appel } = table();
 const servir = (manifestes: Record<string, unknown>) => servirLesModeles(appel, COMMITES, manifestes);
@@ -23,7 +23,7 @@ describe('le corps des combattants dans la vue', () => {
   beforeAll(() => {
     ({ vue } = suiteDe(appel('demarrer', { scenario: 'bestiaire', graine: 7 })));
     dessines = vue.projection.combat!.voisins.liste;
-    heros = dessines.find((c) => c.id === 'pregen-101')!;
+    heros = dessines.find((c) => c.id === 'soldat-de-test')!;
     sansPortee = dessines.find((c) => c.portee === null)!;
   });
 

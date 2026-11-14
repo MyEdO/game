@@ -39,7 +39,7 @@ describe('creatureEquip — dérivation traits → armes (source unique de l’a
   it('trait « À distance (Arbalète) +9 (60) » → arme à distance nommée', () => {
     const w = weaponFromTrait(t({ id: 'a-distance', arg: 'Arbalète', value: 9, range: 60 }));
     expect(w?.label).toBe('Arbalète');
-    expect(w?.type).toBe('ranged');
+    expect(w?.type).toBe('distance');
   });
 
   it('trait « À distance » SANS Indice de Dégâts → pas une arme jouable (RAW) → null', () => {
@@ -49,7 +49,7 @@ describe('creatureEquip — dérivation traits → armes (source unique de l’a
   it('trait « À distance » d\'arg CATALOGUE (id migré `arbalete`, specsSource weaponsRanged) → hérite forme/qualités/Recharge du trapping', () => {
     const w = weaponFromTrait(t({ id: 'a-distance', arg: 'arbalete', value: 9, range: 60 }));
     expect(w?.label).toBe('Arbalète'); // libellé du catalogue, jamais l'id brut
-    expect(w?.type).toBe('ranged');
+    expect(w?.type).toBe('distance');
     expect(w?.trappingId).toBe('arbalete');
     expect(formeResolue(w!)).toBe('arbalete'); // #2967
     expect(w?.reload).toBe(1); // Recharge 1 dérivée de la Qualité du trapping (LDB 62 l.333)
@@ -128,7 +128,7 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
 
   it('une Possession de tir : arme COMPLÈTE du catalogue (Dégâts, Portée, Groupe, identité, mains), la cible atteignable', () => {
     const w = parPossession('arc')!;
-    expect([w.label, w.type, formeResolue(w), w.damage, w.range, w.subType, w.trappingId, w.hands]).toEqual(['Arc', 'ranged', 'arc', { plusBF: true, flat: 3 }, 50, 'arc', 'arc', 2]);
+    expect([w.label, w.type, formeResolue(w), w.damage, w.range, w.subType, w.trappingId, w.hands]).toEqual(['Arc', 'distance', 'arc', { plusBF: true, flat: 3 }, 50, 'arc', 'arc', 2]);
     expect(rangeBandModifier(10, effectiveWeaponRange(w, undefined, 3)!, 2)).not.toBeNull(); // 10 cases = 20 m ≤ 50 m
   });
 

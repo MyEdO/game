@@ -22,9 +22,9 @@ const heros = (seed: number, crocheteur = false) => {
   return h;
 };
 const etendu = (over: Partial<TestEtendu> = {}): TestEtendu =>
-  ({ type: 'extendedTest', characteristic: 'force', difficulty: 'difficile', label: 'Forcer la grille', targetDR: 3, flag: 'cede', ...over });
-const seul = (e: TestEtendu): Flow => ({ kind: 'do', effect: e });
-const puis = (e: TestEtendu): Flow => ({ kind: 'seq', steps: [seul(e), { kind: 'do', effect: { type: 'setFlag', flag: 'apres' } }] });
+  ({ type: 'extendedTest', characteristic: 'force', difficulty: 'difficile', label: 'Forcer la grille', drCible: 3, flag: 'cede', ...over });
+const seul = (e: TestEtendu): Flow => ({ kind: 'effet', effet: e });
+const puis = (e: TestEtendu): Flow => ({ kind: 'sequence', etapes: [seul(e), { kind: 'effet', effet: { type: 'setFlag', flag: 'apres' } }] });
 const annonce = (e: TestEtendu) => testAnnonce(seul(e), { cc: condCtx(get), groupe: get().party });
 
 /** La cible d'un Round que l'applier ouvre pour `e`, l'état rendu tel qu'avant. */
@@ -47,7 +47,7 @@ describe('Test étendu — la décision de `resoudreFlowTest`', () => {
   ] as const)('annonce == applier sous `easierIf` — %s', (_cas, crocheteur, attendue) => {
     banc.setState({ party: [heros(1), heros(2, crocheteur)] });
     const dit = annonce(allege);
-    expect(dit).toEqual({ characteristic: 'force', difficulty: attendue, targetDR: 3 });
+    expect(dit).toEqual({ characteristic: 'force', difficulty: attendue, drCible: 3 });
     expect(cibleOuverte(allege), 'la cible jouée est celle d’un Test déclaré à la Difficulté annoncée').toBe(cibleOuverte(etendu({ difficulty: dit!.difficulty })));
   });
 

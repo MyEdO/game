@@ -11,7 +11,7 @@ import type { RollActorView, RollInfluenceView } from '../noyau/rollFlowFactory'
 const noop = () => {};
 /** Jet POSÉ et RATÉ, jamais relancé — la fenêtre de la Chance (LDB 17 l.23 + LDB 12 l.40). */
 const RATE: RollInfluenceView = { rolled: true, failed: true };
-const av = (fortune: number, freeReroll = false): RollActorView => ({ kind: 'hero', fortune, resilience: 0, freeReroll });
+const av = (fortune: number, freeReroll = false): RollActorView => ({ kind: 'heros', fortune, resilience: 0, freeReroll });
 
 describe('ChanceButtons — compteur de pool sur « Relancer » (#945)', () => {
   it('Relancer payant : « Relancer ×N », N = Points de Chance restants', () => {

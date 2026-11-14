@@ -1,5 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { traumaById, dechirureFractureFicheId, traumaRecoveryDays, tickTraumaRecovery, applyFractureEnd, treatTrauma, hasTreatableTrauma, traumaSkillPenalty, hasSurgeryTrauma, removeSurgicalTrauma, amputationWoundDesc, avecSequelles } from './trauma';
+import {
+  traumaById,
+  dechirureFractureFicheId,
+  traumaRecoveryDays,
+  tickTraumaRecovery,
+  applyFractureEnd,
+  treatTrauma,
+  hasTreatableTrauma,
+  traumaSkillPenalty,
+  hasSurgeryTrauma,
+  removeSurgicalTrauma,
+  amputationWoundDesc,
+  avecSequelles,
+} from './trauma';
 import type { HitLocation } from './types';
 import type { UpkeepDeferTest } from './types';
 const tk = (k: 'dechirure' | 'fracture', sv: 'mineur' | 'majeur', loc: HitLocation, opts?: { be?: number; d10?: number }) => traumaById(dechirureFractureFicheId(k, sv, loc), opts, loc);
@@ -9,7 +22,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 const C = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'c', label: 'C', kind: 'hero', conditions: [], skills: [],
+    id: 'c', label: 'C', kind: 'heros', conditions: [], skills: [],
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), advantage: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -19,7 +32,7 @@ const C = (over: Partial<Combatant>): Combatant =>
 
 /** LA PORTE, côté test : `tickTraumaRecovery` ne roule plus le Test de fin de fracture (#1657 B3-3) —
  *  il le DIFFÈRE. `finDeFracture` INJECTE l'issue par la MÊME route que l'applier de nuit
- *  `trauma-fracture` (`noyau/restFlow.ts` → `applyFractureEnd`). */
+ *  `convalescence-fracture` (`noyau/restFlow.ts` → `applyFractureEnd`). */
 function porteFracture(): { specs: Parameters<UpkeepDeferTest>[0][]; defer: UpkeepDeferTest } {
   const specs: Parameters<UpkeepDeferTest>[0][] = [];
   return { specs, defer: (s) => { specs.push(s); } };
@@ -75,7 +88,7 @@ describe('Convalescence des Blessures critiques (LDB 18)', () => {
     const { specs: collected, defer } = porteFracture();
     tickTraumaRecovery(c, 1, defer);
     expect(collected[0]?.test, 'LDB 18 l.202 — « Test de Résistance »').toEqual({ skill: { id: 'resistance' } });
-    expect(collected[0]?.kind).toBe('trauma-fracture'); // Test de fin DIFFÉRÉ en étape
+    expect(collected[0]?.kind).toBe('convalescence-fracture'); // Test de fin DIFFÉRÉ en étape
     expect(c.traumas!.length).toBe(0); // la fracture est retirée (résolution déférée)
     expect(c.criticalWounds).toBe(0);
     // Échec à la validation → séquelle permanente ajoutée.

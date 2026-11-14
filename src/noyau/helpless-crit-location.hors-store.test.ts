@@ -16,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * dépenser de Résilience. LDB 17 l.68 : « Si vous infligez un Coup Critique, vous pouvez choisir
  * la Localisation atteinte, plutôt que de la laisser au hasard. » `helplessTest` (combat.ts) force
  * déjà succès+Critique ; il ne restait qu'à débloquer le picker de Localisation EXISTANT
- * (réglage `attack.localisationDuCritique`, gated par `pendingAttack.forced`) pour l'attaquant qui PILOTE. L'IA
+ * (réglage `attaque.localisationDuCritique`, gated par `pendingAttack.forcee`) pour l'attaquant qui PILOTE. L'IA
  * (`doAttack`) ne passe jamais par `pendingAttack` : aucun choix, tirage inchangé.
  */
 describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LDB 17 l.68)', () => {
@@ -29,11 +29,11 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 }; // adjacent → frappe directe, pas de charge/approche
     E.wounds = blessuresDeBase(30, 30, E);
@@ -48,18 +48,18 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     E.conditions = [{ id: 'inconscient', value: 1 }];
     E.important = true; // LDB 18 l.44 : hors Mort subite
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    // Débloqué DÈS la déclaration (avant tout jet) : même mécanisme que la Résilience (`pa.forced`),
+    // Débloqué DÈS la déclaration (avant tout jet) : même mécanisme que la Résilience (`pa.forcee`),
     // mais gratuit — cf. LDB 16 l.113 « sans avoir à dépenser un Point de Résilience ».
-    expect(banc.getState().pendingAttack?.forced).toBe(true);
-    banc.getState().jetLancer('attack');
+    expect(banc.getState().pendingAttack?.forcee).toBe(true);
+    banc.getState().jetLancer('attaque');
     const pa = banc.getState().pendingAttack!;
     expect(pa.result?.critical).toBe(true); // helplessTest (combat.ts) : Critique déjà forcé (inchangé par #124)
-    // AVANT #124, réglage `attack.localisationDuCritique` était bloqué par le garde `!pa.forced` (combatSlice.ts) :
+    // AVANT #124, réglage `attaque.localisationDuCritique` était bloqué par le garde `!pa.forcee` (combatSlice.ts) :
     // la Localisation restait un tirage au hasard malgré le Critique forcé.
-    banc.getState().jetRegler('attack', 'localisationDuCritique', 'jambeG');
+    banc.getState().jetRegler('attaque', 'localisationDuCritique', 'jambeG');
     expect(banc.getState().pendingAttack!.result!.critLocation).toBe('jambeG');
     const resRef = banc.getState().pendingAttack!.result!; // même objet, muté en place par applyAttackResult
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(resRef.location).toBe('jambeG'); // la Localisation CHOISIE est celle réellement résolue, pas un re-tirage
   });
 

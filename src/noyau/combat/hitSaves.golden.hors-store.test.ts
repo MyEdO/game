@@ -29,7 +29,7 @@ const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endu
 
 const hero = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h1', label: 'Hardi', kind: 'hero', characteristics: CHARS,
+    id: 'h1', label: 'Hardi', kind: 'heros', characteristics: CHARS,
     wounds: blessuresDeBase(15), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [], fate: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -38,7 +38,7 @@ const hero = (p: Partial<Combatant>): Combatant =>
 
 const enemy = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'e1', label: 'Démon', kind: 'enemy', characteristics: CHARS,
+    id: 'e1', label: 'Démon', kind: 'ennemi', characteristics: CHARS,
     wounds: blessuresDeBase(20), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 1, y: 0 }, size: 'moyenne',
     weapons: [{ label: 'Griffes', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as Weapon], items: [],
@@ -83,9 +83,9 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
       {
         "before": 20,
         "lines": [
-          "info:Démon — Sauvegarde : dé 8 → 8.",
-          "attack:Hardi touche le Démon.",
-          "info:Démon ignore le coup — sauvegarde 1d10 : 8 ≥ Démoniaque (8+).",
+          "information:Démon — Sauvegarde : dé 8 → 8.",
+          "attaque:Hardi touche le Démon.",
+          "information:Démon ignore le coup — sauvegarde 1d10 : 8 ≥ Démoniaque (8+).",
         ],
         "lues": [
           "Démon — Sauvegarde : dé 8 → 8.",
@@ -105,7 +105,7 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
     const warden = hero({ id: 'w', label: 'Mage', pos: { x: 5, y: 5 }, activeEffects: [{ domeWard: { radiusMeters: 4, ward: { id: 'protection', value: 6 } } }] as unknown as Combatant['activeEffects'] });
     const target = hero({ id: 'h1', label: 'Couvert', pos: { x: 6, y: 5 }, wounds: blessuresDeBase(15) });
     const shooter = enemy({ id: 'e1', label: 'Tireur', pos: { x: 20, y: 5 } });
-    const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as Weapon;
+    const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as Weapon;
     setBattle([warden, target, shooter]);
     const before = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!.wounds.current;
     const suspended = applyAttackResult(banc.getState, banc.setState, shooter, target, bow, meleeHit());
@@ -118,8 +118,8 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
       {
         "before": 15,
         "lines": [
-          "shoot:Hardi touche le Démon.",
-          "info:Couvert ignore le coup — sauvegarde 1d10 : 7 ≥ Protection (6+) du Dôme.",
+          "tir:Hardi touche le Démon.",
+          "information:Couvert ignore le coup — sauvegarde 1d10 : 7 ≥ Protection (6+) du Dôme.",
         ],
         "lues": [
           "Hardi touche le Démon.",
@@ -144,7 +144,7 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
         ...(avecTrait ? { traits: [{ id: 'protection', value: 1 }] } : {}),
       }) as Partial<Combatant>);
       const shooter = enemy({ id: 'e1', label: 'Tireur', pos: { x: 20, y: 5 } });
-      const arc: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [], organicProjectile: true } as unknown as Weapon;
+      const arc: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [], organicProjectile: true } as unknown as Weapon;
       setBattle([warden, target, shooter]);
       applyAttackResult(banc.getState, banc.setState, shooter, target, arc, meleeHit());
       return { pb: banc.getState().battle!.combatants.find((c) => c.id === 'h1')!.wounds.current, rng: battleRng().int(1, 1_000_000) };

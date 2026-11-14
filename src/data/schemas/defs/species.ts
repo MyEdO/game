@@ -2,16 +2,15 @@ import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `species.json` — dérivé du contenu RÉEL (script d'inventaire) et de
  * `SpeciesData` (`src/data/index.ts`). `skills`/`talents` = emplacements d'avancement
- * (`grammaire/avancement.ts`), `baseChar` = `Partial<Record<CharKey, number>>`. Mêmes petites formes
+ * (`grammaire/avancement.ts`), `baseChar` = une valeur par `CharKey`. Mêmes petites formes
  * partagées que `careerLevels.ts`, PROMUES dans `grammaire/avancement.ts`, `grammaire/reference.ts`
- * (Ref/TraitPose) et `grammaire/valeurs.ts` (CharKey). `mutationBodyMax` est ABSENT sur une partie des
- * entrées : optionnel, conforme à l'interface.
+ * (Ref/TraitPose) et `grammaire/valeurs.ts` (CharKey).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { charKeySchema, raceKeySchema, refCareerIdSchema } from '../grammaire/valeurs';
+import { charKeySchema, raceKeySchema } from '../grammaire/valeurs';
 import { traitInstanceSchema } from '../grammaire/reference';
-import { ref, refs } from '../grammaire/ref';
+import { idDe, ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { avancement } from '../grammaire/avancement';
 
@@ -26,11 +25,10 @@ const doc = document(
     family: z.string(),
     /** Variante régionale/sous-espèce — absente pour l'espèce nominale. */
     variant: z.string().optional(),
-    /** id STABLE — colonne d'espèce des tables Âge/Taille/Yeux/Cheveux (`raceKeySchema`, #313). */
+    /** LDB 04 l.93 ; LDB 05 l.701-768 */
     refChar: raceKeySchema,
-    /** id STABLE — colonne du Tableau des Classes et Carrières aléatoires (`refCareerIdSchema`, #313). */
-    refCareer: refCareerIdSchema,
-    rand: z.number(),
+    /** LDB 05 l.214 */
+    refCareer: idDe('carrieresAleatoires', 'colonne'),
     movement: z.number(),
     fate: nommerChamps(z.strictObject({ fate: z.number(), resilience: z.number(), extra: z.number() }), {
       fate: { label: 'Destin' },
@@ -46,15 +44,13 @@ const doc = document(
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }),
     /** LDB 77 l.7 */
     profilStandard: ref('creature').optional(),
-    /** LDB 19 l.78-81 */
-    mutationBodyMax: z.number().optional(),
     /** Trait RACIAL de l'espèce (#572) — MÊME `TraitPose` que le bestiaire (Ogre `{id:'ogre'}`,
      *  encombrance/consommation ×2 ; la Taille est portée par le TALENT Massif/Petit, pas ici).
      *  Absent (26/27 observées) = aucun trait racial mécanique. */
     traits: z.array(traitInstanceSchema).optional(),
     /** VDM 02 l.190 ; LDB 46 l.177 */
     arcaneDomainsBonusOf: charKeySchema.optional(),
-    /** NADJ 14 l.5 */
+    /** NADJ 14 l.5 ; ADE II 02 l.110 */
     gatedByRule: ref('regleOptionnelle').optional(),
   },
   {
@@ -62,10 +58,9 @@ const doc = document(
     variant: { label: 'Variante', hint: 'Variante régionale/sous-espèce' },
     refChar: {
       label: 'Colonne d’apparence',
-      hint: 'Détermine la colonne des tables Âge/Taille/Yeux/Cheveux consultées à la création',
+      hint: 'Race de l’espèce : sa rangée du Tableau des Races aléatoires et sa colonne des tables Âge/Taille/Yeux/Cheveux',
     },
     refCareer: { label: 'Colonne du Tableau des Carrières' },
-    rand: { label: 'Seuil aléatoire (d100)' },
     movement: { label: 'Mouvement' },
     fate: { label: 'Destin / Résilience' },
     baseChar: { label: 'Caractéristiques de base' },
@@ -76,7 +71,6 @@ const doc = document(
       label: 'Profil standard',
       hint: 'LDB 77 l.7 — fiche du bestiaire d’un PNJ ordinaire de l’espèce',
     },
-    mutationBodyMax: { label: 'Seuil de mutation physique' },
     traits: { label: 'Traits raciaux' },
     arcaneDomainsBonusOf: { label: 'Bonus de Domaines arcaniques', hint: 'Relève le plafond de Domaines tenus' },
     gatedByRule: {
@@ -88,7 +82,7 @@ const doc = document(
     codex: { keys: ['races'] },
     edit: { dataset: 'species' },
   },
-  { exiges: ['source'] },
+  { exiges: ['source'], espace: { discriminant: 'refChar' } },
 );
 
 export const schema = doc.schema;

@@ -1,6 +1,12 @@
 import { correspondGlob } from '../../guards/lib/lister.mjs'
 import { MOTIF_CATALOGUES } from '../../raw/motif-catalogues.mjs'
-import { SORTIES as SORTIES_DU_REGISTRE, SORTIE_FORMATS as SORTIE_DES_FORMATS, SORTIE_VERBES as SORTIE_DES_VERBES, SORTIE_COMBATTANTS_DE_L_ETAT } from './cibles-registres.mjs'
+import {
+  SORTIES as SORTIES_DU_REGISTRE,
+  SORTIE_FORMATS as SORTIE_DES_FORMATS,
+  SORTIE_VERBES as SORTIE_DES_VERBES,
+  SORTIE_NOMS_DE_PARAMETRE,
+  SORTIE_COMBATTANTS_DE_L_ETAT,
+} from './cibles-registres.mjs'
 
 /** Les cibles LITTÉRALES (sans joker) de `cibles` : celles dont la présence se mesure sur le disque. PURE. */
 export const ciblesLitterales = (cibles) => cibles.filter((cible) => !cible.includes('*'))
@@ -16,7 +22,7 @@ export const ciblesLitterales = (cibles) => cibles.filter((cible) => !cible.incl
 export const GENERATORS = Object.freeze([
   { runner: 'node', script: 'scripts/gen-registry.mjs', targets: SORTIES_DU_REGISTRE },
   { runner: 'node', script: 'scripts/gen-formats.mjs', targets: [SORTIE_DES_FORMATS] },
-  { runner: 'node', script: 'scripts/gen-verbes.mjs', targets: [SORTIE_DES_VERBES] },
+  { runner: 'node', script: 'scripts/gen-verbes.mjs', targets: [SORTIE_DES_VERBES, SORTIE_NOMS_DE_PARAMETRE] },
   { runner: 'node', script: 'scripts/gen-combattants-de-l-etat.mjs', targets: [SORTIE_COMBATTANTS_DE_L_ETAT] },
   { runner: 'node', script: 'scripts/raw/build-atlas-index.mjs', targets: ['docs/raw/atlas.generated.md'] },
   { runner: 'node', script: 'scripts/raw/build-catalogs.mjs', targets: [MOTIF_CATALOGUES] },

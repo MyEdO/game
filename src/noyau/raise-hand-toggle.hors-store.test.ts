@@ -1,5 +1,5 @@
 /**
- * PAUSE AU PROCHAIN ROUND (`raise-hand`, #1411 P2-A) — INTERRUPTEUR par SIÈGE : la demande est une
+ * PAUSE AU PROCHAIN ROUND (`pause`, #1411 P2-A) — INTERRUPTEUR par SIÈGE : la demande est une
  * liste de sièges (`battle.handRaisedBy`), et chacun n'y pose et n'en retire que la SIENNE. Le siège
  * n'est pas un argument : il vient du transport (`decidingSeat`/`withActingSeat`), donc un client ne
  * peut ni signer la demande d'un autre ni la lui retirer. L'état vit dans `battle` : il voyage dans
@@ -19,13 +19,13 @@ import { findActionById } from '../data/index';
 import { serializeMessage, parseMessage } from '../hote/coop/protocol';
 import type { Combatant } from '../engine/types';
 
-function combat(mode: 'local' | 'host' | 'guest' = 'host') {
+function combat(mode: 'local' | 'hote' | 'invite' = 'hote') {
   const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 4 });
   h.id = 'h1';
   h.pos = { x: 2, y: 2 };
   banc.setState({
     party: [h], scene: emptyScene('scene-test'), screen: 'campaign',
-    net: { ...banc.getState().net, mode, mySeat: mode === 'guest' ? 1 : 0, ownership: { h1: 0 }, seatNames: { 0: 'L’hôte' } },
+    net: { ...banc.getState().net, mode, mySeat: mode === 'invite' ? 1 : 0, ownership: { h1: 0 }, seatNames: { 0: 'L’hôte' } },
     battle: {
       combatants: [h], order: ['h1'], baseOrder: ['h1'], turn: 0, round: 3,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,
@@ -37,31 +37,31 @@ function combat(mode: 'local' | 'host' | 'guest' = 'host') {
 
 const battle = () => banc.getState().battle!;
 const mains = () => battle().handRaisedBy ?? [];
-const ctx = (): Parameters<typeof actionGate>[1] => ({ active: battle().combatants[0] as Combatant, battle: battle(), netMode: banc.getState().net.mode, gameTime: banc.getState().gameTime });
+const ctx = (): Parameters<typeof actionGate>[1] => ({ scene: banc.getState().scene, active: battle().combatants[0] as Combatant, battle: battle(), netMode: banc.getState().net.mode, gameTime: banc.getState().gameTime });
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-describe('raise-hand — interrupteur, jamais un latch', () => {
+describe('pause — interrupteur, jamais un latch', () => {
   it('l’aller POSE la demande, le retour la RETIRE — par la MÊME entrée de registre', () => {
     combat();
-    banc.jouerLaCase('raise-hand');
+    banc.jouerLaCase('pause');
     expect(mains(), 'la demande n’a pas été posée').toEqual([0]);
-    banc.jouerLaCase('raise-hand');
+    banc.jouerLaCase('pause');
     expect(mains(), 'le retrait n’a rien retiré : la demande reste un latch').toEqual([]);
     // … et l'aller-retour est REJOUABLE (aucun verrou de tour).
-    banc.jouerLaCase('raise-hand');
+    banc.jouerLaCase('pause');
     expect(mains()).toEqual([0]);
   });
 
   it('le retrait est GRATUIT : il ne dépense ni Action ni Mouvement, et se dit au journal', () => {
     combat();
-    banc.jouerLaCase('raise-hand');
-    banc.jouerLaCase('raise-hand');
+    banc.jouerLaCase('pause');
+    banc.jouerLaCase('pause');
     expect(battle().acted, 'le retrait a dépensé l’Action').toBe(false);
     expect(battle().movementUsed, 'le retrait a dépensé du Mouvement').toBe(0);
     expect(battle().log.length, 'la pose et son retrait se disent tous deux au journal').toBe(2);
-    expect(findActionById('raise-hand')!.coutAction).toBe('aucun');
+    expect(findActionById('pause')!.coutAction).toBe('aucun');
   });
 
   it('un retrait SANS demande en cours est inerte (aucune ligne de journal fantôme)', () => {
@@ -73,21 +73,21 @@ describe('raise-hand — interrupteur, jamais un latch', () => {
 
   it('HORS COOP : le geste est REFUSÉ avec sa raison (le verdict du registre, pas un silence)', () => {
     combat('local');
-    const v = actionGate('raise-hand', ctx());
+    const v = actionGate('pause', ctx());
     expect(v.ok).toBe(false);
     expect(v.reason, 'un refus muet ne peut pas s’afficher au point du geste').toBeTruthy();
-    banc.jouerLaCase('raise-hand');
+    banc.jouerLaCase('pause');
     expect(mains(), 'l’offre refusée a levé la main').toEqual([]);
     expect(banc.getState().refus?.texte, 'l’offre refusée ne dit pas la raison de son gate').toBe(v.reason);
   });
 
   it('EN COOP : le geste est offert (témoin du refus ci-dessus)', () => {
-    combat('host');
-    expect(actionGate('raise-hand', ctx()).ok).toBe(true);
+    combat('hote');
+    expect(actionGate('pause', ctx()).ok).toBe(true);
   });
 });
 
-describe('raise-hand — la demande porte SON siège (l’annulation gratuite vaut pour SON geste)', () => {
+describe('pause — la demande porte SON siège (l’annulation gratuite vaut pour SON geste)', () => {
   it('un siège TIERS ne retire pas la main d’un autre ; le sien seul répond', () => {
     combat();
     withActingSeat(1, () => banc.getState().leverLaMain(true));
@@ -116,7 +116,7 @@ describe('raise-hand — la demande porte SON siège (l’annulation gratuite va
   });
 });
 
-describe('raise-hand — routage réseau : les DEUX sens voyagent par le MÊME verbe', () => {
+describe('pause — routage réseau : les DEUX sens voyagent par le MÊME verbe', () => {
   it('`leverLaMain` est exposé à l’invité et routé nominativement, dans les deux sens (le siège marque le SIEN)', () => {
     combat();
     expect(GUEST_INTENTS.has('leverLaMain'), 'jamais atteignable par un invité').toBe(true);

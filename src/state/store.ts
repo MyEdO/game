@@ -10,12 +10,12 @@ import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
 import * as netFlow from './netFlow';
-import { netAssign, netAssignSlot, setGmSeat } from '../hote/coop/salon';
 import { stockageDesSauvegardes } from './saves';
-import { ecrireLaSauvegarde, lireLaSauvegarde, AUTO_SLOT, type SaveSlot, type AnySlot } from '../hote/sauvegardes';
-import { chargerLaSave, lireSave, refusDeSauvegarde, snapshotSave, type ObsoleteCause, type RefusDeSauvegarde, type SaveGame } from '../noyau/persistance/save';
+import { ecrireLaSauvegarde, lireLaSauvegarde, AUTO_SLOT, MESSAGE_DU_REFUS, type SaveSlot, type AnySlot } from '../hote/sauvegardes';
+import { chargerLaSave, lireSave, refusDeSauvegarde, snapshotSave, type ObsoleteCause, type SaveGame } from '../noyau/persistance/save';
 import type { RetraitsDElagage } from '../noyau/persistance/elagage';
 import { loadKeyOverrides, saveKeyOverrides } from './keybindingsPrefs';
+import type { IdDeRaccourci } from './clavier/keybindings';
 import { transitionDuJeu } from '../noyau/transitionDuJeu';
 import type { CodexFocus } from './codexFocus';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
@@ -27,8 +27,9 @@ import { pasAligneDuGroupe } from '../noyau/marcheDuGroupe';
 import { bus, EVT } from '../noyau/bus';
 import { brancherLeJeu } from '../noyau/branchement';
 import { creerActionsDuNoyau } from '../noyau/fabriquesDuNoyau';
-import { graineDEntropie } from '../web/entropie';
+import { graineDEntropie } from '../hote/entropie';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
 import { etatInitialDuJeu, type EtatDeJeu, type Ecran } from '../noyau/etat';
 import type { JeuDuNoyau } from '../noyau/machinerieDuNoyau';
 import { seedBattleRng } from '../noyau/battleRng';
@@ -44,9 +45,6 @@ function applyLoadedSave(set: RemplacerLEtat, lue: SaveGame): void {
   loadRuleOverrides(regles);
   bus.emit(EVT.SCENE_DIRTY);
 }
-
-/** Le message au journal d'une sauvegarde refusée, par raison. */
-export const MESSAGE_DU_REFUS = { combat: 'store.saveInBattle', invite: 'store.saveInvite' } as const satisfies Record<RefusDeSauvegarde, string>;
 
 export interface EtatDeLAdaptateur {
   /** Codex : entrée ciblée à l'ouverture (depuis un `CodexRef`, keyée par `id`), null = page d'accueil. */
@@ -76,7 +74,7 @@ export interface EtatDeLAdaptateur {
   debugRoofCut: boolean;
   /** Décalage manuel de la caméra (caméra libre tactique) ; remis à zéro au refocus (changement de tour). */
   camPan: { x: number; y: number };
-  /** RÉVÉLATION des utilisables (Alt maintenu, binding `decor.reveler`) : état de TOUCHE, jamais une
+  /** RÉVÉLATION des utilisables (Alt maintenu, binding `decor-reveler`) : état de TOUCHE, jamais une
    *  préférence — il vaut ce que vaut la touche à l'instant, se rend au relâchement comme au `blur`
    *  (`relacherTout`), et n'entre dans aucune sauvegarde. */
   reveler: boolean;
@@ -114,7 +112,7 @@ export interface EtatDeLAdaptateur {
   /** Héros en cours de MODIFICATION dans le créateur (bouton « Modifier » d'un emplacement) :
    *  l'id du Combatant à mettre à jour EN PLACE ; null = création normale d'un nouveau héros. */
   editingHeroId: string | null;
-  /** Menu système plein écran (pause) ouvert — commuté par Échap (binding `toggle-menu`) et le bouton ☰. */
+  /** Menu système plein écran (pause) ouvert — commuté par Échap (binding `menu-ouvrir`) et le bouton ☰. */
   gameMenuOpen: boolean;
   /** Ids qu'une sauvegarde CHARGÉE a perdus à l'élagage (`chargerLaSave`, #1463 LD.1), nommés au joueur par
    *  `ui/RetraitsDeChargement` ; null = rien à dire. */
@@ -151,20 +149,15 @@ export interface ActionsDeLAdaptateur {
   /** Efface le curseur (la souris reprend la main, ou geste « annuler »). */
   clearCursor: () => void;
   setHovered: (id: string | null) => void;
-  setKeyBinding: (id: string, code: string) => void;
+  setKeyBinding: (id: IdDeRaccourci, code: string) => void;
   resetKeyBindings: () => void;
 
   setScreen: (s: Ecran) => void;
   setEditingHero: (id: string | null) => void;
-  /** Crée une room sur le relay → code 6 chars dans `net.roomCode`. false = service injoignable. */
-  netHostStart: (name: string) => Promise<boolean>;
+  /** Crée une room sur le relay → code 6 chars dans `net.roomCode`. Résout null s'il héberge, sinon le message d'erreur à afficher. */
+  netHostStart: (name: string) => Promise<string | null>;
   /** Rejoint une room par code. Résout null si connecté, sinon le message d'erreur à afficher. */
   netJoin: (code: string, name: string) => Promise<string | null>;
-  netAssign: (heroId: string, seat: number) => void;
-  /** Pose/retire le rôle MJ (bac-à-sable) : `seat` conduit les ennemis + le monde, `null` = IA. */
-  setGmSeat: (seat: number | null) => void;
-  /** Attribue un EMPLACEMENT (0-3) de l'écran d'équipe à un siège (hôte). */
-  netAssignSlot: (slot: number, seat: number) => void;
   netLeave: () => void;
   /** Sauvegarde la partie dans un slot localStorage (Jalon 5), sauf `refusDeSauvegarde`. */
   saveGame: (slot: SaveSlot) => boolean;
@@ -293,12 +286,9 @@ export const useGame = create<GameState>((set, get) => ({
   openPossessionsScreen: (uid) => set({ possessionsScreen: { uid: uid ?? null } }),
   closePossessionsScreen: () => set({ possessionsScreen: null }),
 
-  netHostStart: (name) => netFlow.salon.heberger(get, set, name),
-  netJoin: (code, name) => netFlow.salon.rejoindre(get, set, (data) => netFlow.applyNetSnapshot(set, data), code, name),
-  netAssign: (heroId, seat) => netAssign(get, set, heroId, seat),
-  setGmSeat: (seat) => setGmSeat(get, set, seat),
-  netAssignSlot: (slot, seat) => netAssignSlot(get, set, slot, seat),
-  netLeave: () => netFlow.salon.quitter(set),
+  netHostStart: (name) => netFlow.salon.heberger(get, (action, args, siege) => appliquerLIntentionDUnSiege(get, siege, action, args), name),
+  netJoin: (code, name) => netFlow.salon.rejoindre(get, (data) => netFlow.applyNetSnapshot(set, data), code, name),
+  netLeave: () => netFlow.salon.quitter(get),
 
   // ── Sauvegarde / chargement (Jalon 5) — `noyau/persistance/save.ts` ──
   saveGame: (slot) => {

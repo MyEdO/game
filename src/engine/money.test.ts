@@ -1,5 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { toBrass, fromBrass, add, subtract, canAfford, formatMoney, spellMoney, priceToMoney, statusBudgetBrass, withinStatusBudget, parseStatus, formuleDeRevenus } from './money';
+import {
+  toBrass,
+  fromBrass,
+  add,
+  subtract,
+  canAfford,
+  formatMoney,
+  spellMoney,
+  priceToMoney,
+  statusBudgetBrass,
+  withinStatusBudget,
+  parseStatus,
+  formuleDeRevenus,
+} from './money';
 
 describe('« Tenir les comptes » — budget par Statut (LDB 59 l.9-11)', () => {
   it('statusBudgetBrass : Bronze N = N sous, Argent N = N pistoles, Or N = N couronnes', () => {

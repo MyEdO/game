@@ -5,7 +5,7 @@
  * `removeCondition`), les verrous de Critique levés par un acte de soin (LDB 18), les expirations
  * d'État à durée de sort, et l'interprète inline des maladies. Ce n'est PAS tout le moteur : d'autres
  * émetteurs journalisent des États sans notifier (Exécuté/Inconscient de `conditions.ts`, `healing`,
- * `exposure`, `suffocation`, `travel`…). Ils seront branchés PAR FAMILLES en V8d-B/C ; leur reste à
+ * `exposition-nocturne`, `suffocation`, `travel`…). Ils seront branchés PAR FAMILLES en V8d-B/C ; leur reste à
  * faire se lit au cliquet `src/condition-event-counter.test.ts`. N'héritez donc AUCUN contrat total
  * de cette sonde.
  *
@@ -31,7 +31,7 @@ const seq = (values: number[]): RNG => desEnSuite(values);
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', label: 'Cobaye', kind: 'hero',
+    id: 'h', label: 'Cobaye', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 35 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -50,7 +50,7 @@ function withSpy(run: (emit: (e: ConditionChange) => void) => string[]): { lines
 describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () => {
   it('applique Sonné : la notification porte id + sens + porteur (aucun libellé)', () => {
     const c = hero();
-    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'condition', id: COND.sonne }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit }));
+    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'condition', id: { id: COND.sonne } }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit }));
     expect(seen).toEqual([{ stateId: COND.sonne, change: 'gain', targetId: 'h' }]);
     expect(lines).toHaveLength(1);
     expect(seen[0].stateId).not.toContain(' '); // un id, jamais « Sonné »
@@ -58,22 +58,22 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
 
   it('les QUATRE formes de pose (nue, Rounds, horloge, perRound) notifient chacune UNE fois', () => {
     const forms = [
-      { op: 'condition' as const, id: COND.sonne },
-      { op: 'condition' as const, id: COND.aveugle, durationRounds: 3 },
-      { op: 'condition' as const, id: COND.empetre, durationMinutes: 30 },
-      { op: 'condition' as const, id: COND.extenue, perRound: true },
+      { op: 'condition' as const, id: { id: COND.sonne } },
+      { op: 'condition' as const, id: { id: COND.aveugle }, durationRounds: 3 },
+      { op: 'condition' as const, id: { id: COND.empetre }, durationMinutes: 30 },
+      { op: 'condition' as const, id: { id: COND.extenue }, perRound: true },
     ];
     for (const o of forms) {
       const c = hero();
       const { lines, seen } = withSpy((emit) => applyOps(c, [o], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit, now: 0 }));
       expect(lines, `forme ${JSON.stringify(o)}`).toHaveLength(1);
-      expect(seen, `forme ${JSON.stringify(o)}`).toEqual([{ stateId: o.id, change: 'gain', targetId: 'h' }]);
+      expect(seen, `forme ${JSON.stringify(o)}`).toEqual([{ stateId: o.id.id, change: 'gain', targetId: 'h' }]);
     }
   });
 
   it("`perRound` notifie à l'ANNONCE, sans poser d'État : le canal appareille une LIGNE, pas un delta", () => {
     const c = hero();
-    const { seen } = withSpy((emit) => applyOps(c, [{ op: 'condition', id: COND.extenue, perRound: true }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit }));
+    const { seen } = withSpy((emit) => applyOps(c, [{ op: 'condition', id: { id: COND.extenue }, perRound: true }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit }));
     expect(seen).toEqual([{ stateId: COND.extenue, change: 'gain', targetId: 'h' }]);
     // Le porteur ne porte RIEN encore : les poses réelles tomberont à chaque fin de Round (op re-jouée)
     // et notifieront chacune la leur. Un consommateur qui compterait les `gain` double-compterait.
@@ -83,7 +83,7 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
   it("op 'removeCondition' notifie une PERTE du même id", () => {
     const c = hero();
     addCondition(c, COND.extenue, 2);
-    const { seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.extenue }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit }));
+    const { seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: { id: COND.extenue } }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit }));
     expect(seen).toEqual([{ stateId: COND.extenue, change: 'loss', targetId: 'h' }]);
   });
 
@@ -91,7 +91,7 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
   it("op 'removeCondition' de valeur 2 sur UN seul pion : la ligne dit 1, et une seule perte sort", () => {
     const c = hero();
     addCondition(c, COND.empoisonne, 1);
-    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.empoisonne, value: 2 }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit }));
+    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: { id: COND.empoisonne }, value: 2 }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit }));
     expect(lines).toEqual(['Cobaye retire 1 État Empoisonné.']);
     expect(seen).toEqual([{ stateId: COND.empoisonne, change: 'loss', targetId: 'h' }]);
     expect(hasCondition(c, COND.empoisonne)).toBe(false);
@@ -102,14 +102,14 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
   it("op 'removeCondition' sur un État VERROUILLÉ : ni ligne, ni perte", () => {
     const c = hero({ wounds: blessuresDeBase(12, 0) });
     addCondition(c, COND.aTerre, 1); // verrou de TYPE : 0 Blessure (LDB 18 l.15)
-    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.aTerre }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit }));
+    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: { id: COND.aTerre } }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit }));
     expect(hasCondition(c, COND.aTerre), 'la sonde ne mesurerait rien si le verrou ne tenait pas').toBe(true);
     expect(lines, 'le journal annonce un retrait qui n’a pas eu lieu').toEqual([]);
     expect(seen, 'le canal notifie une perte qui n’a pas eu lieu').toEqual([]);
 
     // TÉMOIN — le même État, verrou TOMBÉ (1 Blessure) : la ligne ET la perte sortent.
     c.wounds.current = 1;
-    const ok = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.aTerre }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit }));
+    const ok = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: { id: COND.aTerre } }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: emit }));
     expect(hasCondition(c, COND.aTerre)).toBe(false);
     expect(ok.lines).toHaveLength(1);
     expect(ok.seen).toEqual([{ stateId: COND.aTerre, change: 'loss', targetId: 'h' }]);
@@ -131,11 +131,11 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
 
 describe('PARITÉ STRICTE des lignes — le canal est additif, il ne touche à aucun texte', () => {
   const OPS = [
-    [{ op: 'condition' as const, id: COND.sonne, value: 2 }],
-    [{ op: 'condition' as const, id: COND.aveugle, durationRounds: 3 }],
-    [{ op: 'condition' as const, id: COND.empetre, durationMinutes: 30 }],
-    [{ op: 'condition' as const, id: COND.extenue, perRound: true }],
-    [{ op: 'removeCondition' as const, id: COND.extenue }],
+    [{ op: 'condition' as const, id: { id: COND.sonne }, value: 2 }],
+    [{ op: 'condition' as const, id: { id: COND.aveugle }, durationRounds: 3 }],
+    [{ op: 'condition' as const, id: { id: COND.empetre }, durationMinutes: 30 }],
+    [{ op: 'condition' as const, id: { id: COND.extenue }, perRound: true }],
+    [{ op: 'removeCondition' as const, id: { id: COND.extenue } }],
     [{ op: 'removeCondition' as const }],
   ];
 
@@ -149,8 +149,8 @@ describe('PARITÉ STRICTE des lignes — le canal est additif, il ne touche à a
   });
 
   it("l'ÉTAT du combattant est lui aussi identique (le canal n'applique rien)", () => {
-    const sans = hero(); applyOps(sans, [{ op: 'condition', id: COND.sonne, value: 2 }], { idNeuf: idsDeTest, rng: desDuTest });
-    const avec = hero(); applyOps(avec, [{ op: 'condition', id: COND.sonne, value: 2 }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: () => {} });
+    const sans = hero(); applyOps(sans, [{ op: 'condition', id: { id: COND.sonne }, value: 2 }], { idNeuf: idsDeTest, rng: desDuTest });
+    const avec = hero(); applyOps(avec, [{ op: 'condition', id: { id: COND.sonne }, value: 2 }], { idNeuf: idsDeTest, rng: desDuTest, onCondition: () => {} });
     expect(avec.conditions).toEqual(sans.conditions);
   });
 });
@@ -192,7 +192,7 @@ describe('sites HORS applyOps — paramètre `emit` (LDB 18 verrous, durées de 
 describe('moteur PUR (aucun canal branché)', () => {
   it('tous les sites restent silencieux et fonctionnels sans hook', () => {
     const c = hero();
-    expect(applyOps(c, [{ op: 'condition', id: COND.sonne }], { idNeuf: idsDeTest, rng: desDuTest })).toHaveLength(1);
+    expect(applyOps(c, [{ op: 'condition', id: { id: COND.sonne } }], { idNeuf: idsDeTest, rng: desDuTest })).toHaveLength(1);
     expect(c.conditions.find((x) => x.id === COND.sonne)?.value).toBe(1);
     expect(() => releaseConditionLocks(c, 'magic')).not.toThrow();
     expect(() => tickDurations(c)).not.toThrow();

@@ -24,25 +24,25 @@ const at = (c: Combatant, x: number, y: number): Combatant => { c.pos = { x, y }
 
 describe('Peur — les DEUX portes du RAW (Trait LDB 85 l.264-266 / Taille LDB 85 l.381-383)', () => {
   it('TRAIT : un squelette ALLIÉ (Peur 2) est une source pour son invocateur — aucun camp', () => {
-    const necro = mk('necro', 'hero');
-    const skel = mk('skel', 'hero', { causesPeur: 2 }); // invoqué, donc du camp du lanceur
+    const necro = mk('necro', 'heros');
+    const skel = mk('skel', 'heros', { causesPeur: 2 }); // invoqué, donc du camp du lanceur
     expect(fearSourceFor(necro, sourceCombattant(skel))).toEqual({ kind: 'peur', indice: 2 });
     expect(fearSourceFor(skel, sourceCombattant(necro))).toBeNull(); // et jamais contre soi-même / une créature sans Indice
   });
 
   it('TAILLE : un allié NON agressif (cheval calme) n’effraie pas ; un adversaire de même Taille oui', () => {
-    const hero = mk('h', 'hero', { size: 'moyenne' });
-    const cheval = mk('cheval', 'hero', { size: 'grande' });
+    const hero = mk('h', 'heros', { size: 'moyenne' });
+    const cheval = mk('cheval', 'heros', { size: 'grande' });
     expect(agressifEnvers(cheval, hero)).toBe(false);
     expect(fearSourceFor(hero, sourceCombattant(cheval))).toBeNull();
-    const ogre = mk('ogre', 'enemy', { size: 'grande' }); // camp adverse = agressif par défaut
+    const ogre = mk('ogre', 'ennemi', { size: 'grande' }); // camp adverse = agressif par défaut
     expect(agressifEnvers(ogre, hero)).toBe(true);
     expect(fearSourceFor(hero, sourceCombattant(ogre))).toEqual({ kind: 'peur', indice: 1 });
   });
 
   it('TAILLE : deux alliés qui ÉCHANGENT des coups (lien Engagé SYMÉTRIQUE, LDB 13 l.169-171) sont agressifs l’un envers l’autre', () => {
-    const hero = mk('h', 'hero', { size: 'moyenne', engagedWith: ['domine'] });
-    const domine = mk('domine', 'hero', { size: 'grande', engagedWith: ['h'] });
+    const hero = mk('h', 'heros', { size: 'moyenne', engagedWith: ['domine'] });
+    const domine = mk('domine', 'heros', { size: 'grande', engagedWith: ['h'] });
     expect(agressifEnvers(domine, hero)).toBe(true);
     expect(fearSourceFor(hero, sourceCombattant(domine))).toEqual({ kind: 'peur', indice: 1 });
     // Symétrie : le héros aussi est agressif envers sa victime — sa Taille à elle reste plus grande,
@@ -52,48 +52,48 @@ describe('Peur — les DEUX portes du RAW (Trait LDB 85 l.264-266 / Taille LDB 8
   });
 
   it('TAILLE : le héros qui AGRESSE un allié Grand teste la Peur de sa victime (l’Engagement vaut des deux côtés)', () => {
-    const victime = at(mk('victime', 'hero', { size: 'grande', engagedWith: ['h'] }), 11, 10);
-    const agresseur = at(mk('h', 'hero', { size: 'moyenne', engagedWith: ['victime'] }), 10, 10);
+    const victime = at(mk('victime', 'heros', { size: 'grande', engagedWith: ['h'] }), 11, 10);
+    const agresseur = at(mk('h', 'heros', { size: 'moyenne', engagedWith: ['victime'] }), 10, 10);
     expect(collectRoundEndPsych(getOf([agresseur, victime]), agresseur, 1))
       .toEqual([{ kind: 'peur', sourceId: 'victime', sourceName: 'victime', indice: 1, prevDR: 0, sansPeur: false }]);
   });
 
   it('TAILLE : un allié FRÉNÉTIQUE ne vise que les ennemis — rien pour les siens', () => {
-    const halfelin = mk('h', 'hero', { size: 'petite' });
-    const ogre = mk('ogre', 'hero', { size: 'grande', psychState: [{ type: 'frenesie' }] as never });
+    const halfelin = mk('h', 'heros', { size: 'petite' });
+    const ogre = mk('ogre', 'heros', { size: 'grande', psychState: [{ type: 'frenesie' }] as never });
     expect(agressifEnvers(ogre, halfelin)).toBe(false);
     expect(fearSourceFor(halfelin, sourceCombattant(ogre))).toBeNull();
   });
 
   it('−1 DR (LDB 21 l.27) contre la source portée, fût-elle un allié, tant que la Peur n’est pas surmontée', () => {
-    const skel = mk('skel', 'hero', { causesPeur: 2 });
-    const necro = mk('necro', 'hero', { psychState: [{ type: 'peur', sourceId: 'skel', indice: 2, calmeDR: 0 }] as never });
+    const skel = mk('skel', 'heros', { causesPeur: 2 });
+    const necro = mk('necro', 'heros', { psychState: [{ type: 'peur', sourceId: 'skel', indice: 2, calmeDR: 0 }] as never });
     expect(psychDRAdjust(necro, skel)).toBe(-1);
-    const vaincue = mk('necro2', 'hero', { psychState: [{ type: 'peur', sourceId: 'skel', indice: 2, calmeDR: 2, surmontee: true }] as never });
+    const vaincue = mk('necro2', 'heros', { psychState: [{ type: 'peur', sourceId: 'skel', indice: 2, calmeDR: 2, surmontee: true }] as never });
     expect(psychDRAdjust(vaincue, skel)).toBe(0);
   });
 
   it('FIN DE ROUND : le Test étendu de Calme est dû face au squelette ALLIÉ ; le squelette ne teste pas contre soi', () => {
-    const necro = at(mk('necro', 'hero'), 10, 10);
-    const skel = at(mk('skel', 'hero', { causesPeur: 2 }), 11, 10);
+    const necro = at(mk('necro', 'heros'), 10, 10);
+    const skel = at(mk('skel', 'heros', { causesPeur: 2 }), 11, 10);
     const get = getOf([necro, skel]);
     expect(collectRoundEndPsych(get, necro, 1)).toEqual([{ kind: 'peur', sourceId: 'skel', sourceName: 'skel', indice: 2, prevDR: 0, sansPeur: false }]);
     expect(collectRoundEndPsych(get, skel, 1)).toEqual([]);
   });
 
   it('DÉBUT DE ROUND : une Terreur ALLIÉE (statbloc) est due ; un allié de grande Taille non agressif, non', () => {
-    const hero = at(mk('h', 'hero', { size: 'moyenne' }), 10, 10);
-    const spectre = at(mk('spectre', 'hero', { causesTerreur: 3 }), 11, 10);
+    const hero = at(mk('h', 'heros', { size: 'moyenne' }), 10, 10);
+    const spectre = at(mk('spectre', 'heros', { causesTerreur: 3 }), 11, 10);
     expect(collectRoundStartPsych(getOf([hero, spectre]), hero, 1))
       .toEqual([{ kind: 'terreur', sourceId: 'spectre', sourceName: 'spectre', indice: 3, prevDR: 0, sansPeur: false }]);
-    const geant = at(mk('geant', 'hero', { size: 'enorme' }), 11, 10); // allié calme : aucune agression
+    const geant = at(mk('geant', 'heros', { size: 'enorme' }), 11, 10); // allié calme : aucune agression
     expect(collectRoundStartPsych(getOf([hero, geant]), hero, 1)).toEqual([]);
     expect(collectRoundEndPsych(getOf([hero, geant]), hero, 1)).toEqual([]);
   });
 
   it('CAMP ADVERSE : comportement inchangé (Peur de Taille de fin de Round face à un ennemi Grand)', () => {
-    const hero = at(mk('h', 'hero', { size: 'moyenne' }), 10, 10);
-    const ogre = at(mk('ogre', 'enemy', { size: 'grande' }), 11, 10);
+    const hero = at(mk('h', 'heros', { size: 'moyenne' }), 10, 10);
+    const ogre = at(mk('ogre', 'ennemi', { size: 'grande' }), 11, 10);
     expect(collectRoundEndPsych(getOf([hero, ogre]), hero, 1))
       .toEqual([{ kind: 'peur', sourceId: 'ogre', sourceName: 'ogre', indice: 1, prevDR: 0, sansPeur: false }]);
   });

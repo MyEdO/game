@@ -8,7 +8,7 @@
     "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
   "scripts": {
-    "postinstall": "node scripts/guards/contrat-typescript.mjs && git config core.hooksPath scripts/git-hooks && git config merge.stocks.driver \"node scripts/git-hooks/merge-stocks.mjs %O %A %B %P\" && git config merge.stocks.name \"stocks de sites: fusion par groupe de site\" && node scripts/docs/build-all.mjs --code --quiet",
+    "postinstall": "node scripts/guards/contrat-typescript.mjs && git config core.hooksPath scripts/git-hooks && git config merge.stocks.driver \"node scripts/git-hooks/merge-stocks.mjs %O %A %B %P\" && git config merge.stocks.name \"stocks de sites: fusion par groupe de site\" && git config merge.imports.driver \"node scripts/git-hooks/merge-imports.mjs %O %A %B %P\" && git config merge.imports.name \"imports: fusion par ensemble des déclarations\" && node scripts/docs/build-all.mjs --code --quiet",
     "gen": "node scripts/docs/build-all.mjs --code",
     "migrations:replay": "node scripts/migrations/replay.mjs",
     "migrations:replay:head": "node scripts/migrations/replay-head.mjs",
@@ -25,6 +25,11 @@
     "hote-texte": "node scripts/hote-texte.mjs",
     "pont:godot": "node hotes/godot/construire.mjs --pont-seul",
     "godot:sonde": "node hotes/godot/construire.mjs --sonde",
+    "godot:ouvrir": "node hotes/godot/construire.mjs --ouvrir",
+    "godot:bureau": "node hotes/godot/construire.mjs --bureau --sortie dist/bureau",
+    "godot:rendus": "node hotes/godot/construire.mjs --rendus",
+    "godot:recette": "node hotes/godot/lot-de-recettes.mjs --natif --captures dist/godot-recettes --jeux combat,editeur",
+    "godot:etalons": "node hotes/godot/construire.mjs --export --sortie dist/godot && node hotes/godot/etalons.mjs --web dist/godot",
     "godot:editeur": "node hotes/godot/construire.mjs --export --sortie dist/godot && node hotes/godot/servir.mjs --web dist/godot --depot",
     "godot:importer": "node hotes/godot/importer.mjs",
     "godot:epingles": "node hotes/godot/epingles.mjs",
@@ -121,6 +126,7 @@
     "raw:reanchor-split": "node scripts/raw/reanchor-split.mjs",
     "raw:catalogs": "node scripts/raw/build-catalogs.mjs",
     "lint": "node scripts/lancer-local.mjs oxlint -- oxlint --config oxlint.config.mjs --disable-nested-config . --max-warnings 0",
+    "lint:noms-par-ligne": "node scripts/lancer-local.mjs oxlint -- oxlint --config oxlint.noms-par-ligne.config.mjs --disable-nested-config --fix",
     "server:typecheck": "npm --prefix server run typecheck",
     "relay:dev": "npm --prefix server run dev",
     "relay:deploy": "npm --prefix server run deploy",

@@ -23,7 +23,7 @@ const ignore: UpkeepDeferTest = () => {};
 
 const cobaye = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'p', label: 'Cobaye', kind: 'hero',
+    id: 'p', label: 'Cobaye', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 35 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, weapons: [], diseases: [],
@@ -39,7 +39,7 @@ describe('le cycle de maladie pose ses États par la source unique (LDB 16)', ()
     // Aucun symptôme LIVRÉ ne pose d'État non cumulable par son cycle : la sonde en déclare un dans
     // l'index que le moteur interroge (`findSymptomById`), pour que le chemin joué soit le VRAI —
     // conséquence quotidienne CERTAINE (aucun `test`), posée deux fois.
-    setDataset('symptoms', [...symptoms, { id: SONDE, label: 'Sonde', onTick: { ops: [{ op: 'condition', id: 'inconscient' }, { op: 'condition', id: 'inconscient' }] } } as never]);
+    setDataset('symptoms', [...symptoms, { id: SONDE, label: 'Sonde', onTick: { ops: [{ op: 'condition', id: { id: 'inconscient' } }, { op: 'condition', id: { id: 'inconscient' } }] } } as never]);
     const c = cobaye({
       diseases: [{ id: 'dz-sonde', phase: 'active', symptoms: [{ symptomId: SONDE }], minutesLeft: 40 * MINUTES_PER_DAY, durationMinutes: 40 * MINUTES_PER_DAY }] as never,
     });

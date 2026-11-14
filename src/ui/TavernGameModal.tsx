@@ -1,10 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../state/store';
-import { TAVERN_GAMES, findTavernGameById, tavernFastRegime, difficulteDeBase, difficulteDuJoueur, specialsApplicables, type TavernGame } from '../engine/tavernGame';
+import { findTavernGameById, tavernFastRegime, difficulteDeBase, difficulteDuJoueur, specialsApplicables, type TavernGame } from '../engine/tavernGame';
+import { TAVERN_GAMES } from '../data';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
-import { HABITUE, refusDAdversaire, refusDeJouer, refusDOuvrirLaTaverne, tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type ReglageDePartie } from '../noyau/tavernFlow';
+import {
+  HABITUE,
+  refusDAdversaire,
+  refusDeJouer,
+  refusDOuvrirLaTaverne,
+  tavernGameValue,
+  tavernPartieEnCours,
+  tavernNpcOffers,
+  type ReglageDePartie,
+  type TavernOpponent,
+} from '../noyau/tavernFlow';
 import { pnjAuProfil, sceneNpc } from '../noyau/monde/sceneNpc';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
+import type { IdDeJeuDeTaverne } from '../noyau/designations';
 import { Row } from './Layout';
 import { bourseOf } from '../engine/bourse';
 import { creatureLabel, profilsStandard, refLabel, testSkillLabel } from '../data/index';
@@ -18,7 +30,8 @@ import { GatedAction, raisonSi } from './GatedAction';
 import { t } from '../i18n';
 import { SceneBackdrop } from './SceneBackdrop';
 import { NumberField } from './NumberField';
-import { fourchette } from '../engine/tables';
+import { deDeLaTableTiree, fourchette } from '../engine/tables';
+import { formatDice } from '../engine/dice';
 import { presetPnjById } from '../state/campaignData';
 
 /** Le PROFIL STANDARD d'un figurant de la salle (`LDB 77 l.7`) et la valeur de jeu que sa fiche en dérive. */
@@ -47,9 +60,9 @@ function ChoixDeProfil({ titre, profils, choisi, onChoisir, fiche, game }: {
  * influençable Chance/Pacte/Résilience, rendue par l'arbitre `ActiveModal`) ; à son retour, le
  * réducteur de la séquence décide de la manche. Une situation = une modale : tant que l'arbitre
  * tient une modale, la table CÈDE (patron `CombatStartSplash.tsx:20-21`, `ActiveModal.tsx:66`). Le jeu présenté ici est celui du RÉGIME en vigueur
- * (`findTavernGameById` : complet, ou rapide sous la règle `tavern-games-rapides` — le formulaire
+ * (`findTavernGameById` : complet, ou rapide sous la règle `jeux-de-taverne-rapides` — le formulaire
  * n'offre alors ni mise ni table, le jeu n'en portant plus). Affiche l'issue et la mise éventuelle. Ouverte via
- * `ouvrirLesJeux` (affordance montrée seulement si l'option `tavern-games` est active).
+ * `ouvrirLesJeux` (affordance montrée seulement si l'option `jeux-de-taverne` est active).
  */
 export function TavernGameModal() {
   const state = useGame((s) => s.tavernGames);
@@ -65,9 +78,9 @@ export function TavernGameModal() {
   const refusDeRejouer = useGame(refusDOuvrirLaTaverne);
 
   const heroes = party.filter((h) => !h.dead);
-  const [gameId, setGameId] = useState(TAVERN_GAMES[0]?.id ?? '');
+  const [gameId, setGameId] = useState<IdDeJeuDeTaverne>(TAVERN_GAMES[0]?.id ?? '');
   const [challengerId, setChallengerId] = useState(heroes[0]?.id ?? '');
-  const [oppMode, setOppMode] = useState<'hero' | 'npc' | 'profil'>(heroes.length > 1 ? 'hero' : 'profil');
+  const [oppMode, setOppMode] = useState<TavernOpponent['kind']>(heroes.length > 1 ? 'heros' : 'profil');
   const [oppNpcId, setOppNpcId] = useState('');
   const [oppHeroId, setOppHeroId] = useState('');
   // L'HABITUÉ et les coéquipiers figurants jouent une FICHE : un profil standard choisi (`LDB 77 l.7`).
@@ -90,7 +103,7 @@ export function TavernGameModal() {
   // CE QUE L'AUTEUR PRESCRIT (`NADJ 04 l.72` : un jeu ET une mise de départ) : la modale s'y POSE
   // quand on choisit ce PNJ — le joueur reste libre d'en dévier, l'auteur ne fait qu'ouvrir la table.
   useEffect(() => {
-    if (oppMode !== 'npc' || !npc) return;
+    if (oppMode !== 'pnj' || !npc) return;
     setGameId(npc.gameId);
     if (npc.stakeBrass != null) setStakeBrass(npc.stakeBrass);
   }, [oppMode, npc?.id, npc?.gameId, npc?.stakeBrass]);
@@ -100,7 +113,7 @@ export function TavernGameModal() {
   const proposeur = state?.npcId;
   useEffect(() => {
     if (!proposeur) return;
-    setOppMode('npc');
+    setOppMode('pnj');
     setOppNpcId(proposeur);
   }, [proposeur]);
 
@@ -109,21 +122,21 @@ export function TavernGameModal() {
   // JEU D'ÉQUIPE (Middenball) : le groupe joue ENSEMBLE — tous ses héros sont dans le MÊME camp. Un
   // compagnon ne peut donc pas y tenir le camp d'en face, qui est celui de la salle.
   const equipe = !!game?.team;
-  const oppKind: 'hero' | 'npc' | 'profil' = equipe ? 'profil' : oppMode;
+  const oppKind: TavernOpponent['kind'] = equipe ? 'profil' : oppMode;
   const oppCandidates = heroes.filter((h) => h.id !== challengerId);
   const joueurs = Math.max(2, tablePlayers);
   // LE RÉGLAGE que « Jouer » soumet au geste — et que son verdict (`refusDeJouer`) juge.
-  const reglage: ReglageDePartie = {
-    gameId, challengerId, stakeBrass,
-    opponent: oppKind === 'hero'
-      ? { kind: 'hero', id: oppHeroId || oppCandidates[0]?.id || '' }
-      : oppKind === 'npc' ? { kind: 'npc', id: npc?.id ?? '' } : { kind: 'profil', id: profilId },
+  const partie: ReglageDePartie = {
+    gameId, stakeBrass,
+    opponent: oppKind === 'heros'
+      ? { kind: 'heros', id: oppHeroId || oppCandidates[0]?.id || '' }
+      : oppKind === 'pnj' ? { kind: 'pnj', id: npc?.id ?? '' } : { kind: 'profil', id: profilId },
     ...(equipe ? { allyProfil: allyProfilId } : {}),
     ...(game?.pot ? { tablePlayers: joueurs } : {}),
   };
-  const raison = useGame((s) => refusDeJouer(s, reglage));
-  const refusHero = useGame((s) => refusDAdversaire(s, gameId, challengerId, 'hero'));
-  const refusNpc = useGame((s) => refusDAdversaire(s, gameId, challengerId, 'npc'));
+  const raison = useGame((s) => refusDeJouer(s, challengerId, partie));
+  const refusHero = useGame((s) => refusDAdversaire(s, gameId, challengerId, 'heros'));
+  const refusNpc = useGame((s) => refusDAdversaire(s, gameId, challengerId, 'pnj'));
 
   if (!state || arbitreTientLaMain) return null;
   const result = state.result;
@@ -163,7 +176,7 @@ export function TavernGameModal() {
       <button className="btn" onClick={close}>Fermer</button>
       {/* Raison EN CLAIR (`raisonInline`) : dans une modale d'activité, le refus d'entrer en jeu est
           le seul texte qui explique l'écran — il ne se cache pas derrière un survol. */}
-      <GatedAction id="tavern-play" raisonInline label="Jouer" enabled={!raison} {...raisonSi(raison)} onClick={() => play(reglage)} />
+      <GatedAction id="tavern-play" raisonInline label="Jouer" enabled={!raison} {...raisonSi(raison)} onClick={() => play(challengerId, partie)} />
     </>
   );
 
@@ -179,8 +192,8 @@ export function TavernGameModal() {
           <p className="tavern-vs">
             <strong>{result.gameLabel}</strong> — {result.challengerName} contre {result.opponentName}
           </p>
-          <p className={`tavern-verdict ${result.winner === 'player' ? 'ok-text' : result.winner === 'opponent' ? 'ko-text' : ''}`}>
-            {result.winner === 'player' ? `✓ ${result.challengerName} l'emporte !` : result.winner === 'opponent' ? `✗ ${result.opponentName} l'emporte.` : 'Égalité.'}
+          <p className={`tavern-verdict ${result.winner === 'joueur' ? 'ok-text' : result.winner === 'adversaire' ? 'ko-text' : ''}`}>
+            {result.winner === 'joueur' ? `✓ ${result.challengerName} l'emporte !` : result.winner === 'adversaire' ? `✗ ${result.opponentName} l'emporte.` : 'Égalité.'}
           </p>
           {/* Le score dans l'unité du jeu, composé par son dénouement (`TavernGamesResult.detail`). */}
           <p className="tavern-detail">{result.detail}</p>
@@ -202,17 +215,17 @@ export function TavernGameModal() {
           </div>
           {game && (
             <>
-              <div className="tavern-desc"><Prose md={game.desc} porteur={{ type: 'tavernGames', id: game.id, chemin: 'desc' }} /></div>
+              {game.desc && <div className="tavern-desc"><Prose md={game.desc} porteur={{ type: 'tavernGames', id: game.id, chemin: 'desc' }} /></div>}
               {/* La règle affichée est le VERBATIM de la source (AGENTS.md règle 5) : on ne la coupe
                   pas au régime rapide — c'est la note ci-dessous qui DIT ce que ce régime joue. */}
               {rapide && <p className="tavern-detail muted">{t('tavern.regimeRapideNote')}</p>}
               {game.pot ? (
                 <p className="tavern-detail">
-                  Lancer : <b>{game.pot.dice.count}d{game.pot.dice.faces}</b> à chaque tour
+                  Lancer : <b>{formatDice(deDeLaTableTiree(game.pot))}</b> à chaque tour
                   {game.pot.targetRange ? ` · nombre cible ${fourchette(game.pot.targetRange.min, game.pot.targetRange.max)}` : ''}.
                 </p>
               ) : (
-                <p className="tavern-detail">Test opposé : <b>{skillLine}</b>{game.mode === 'extended' ? ` · premier à ${game.target ?? 10} DR cumulés` : ''}.</p>
+                <p className="tavern-detail">Test opposé : <b>{skillLine}</b>{game.mode === 'etendu' ? ` · premier à ${game.target ?? 10} DR cumulés` : ''}.</p>
               )}
             </>
           )}
@@ -232,15 +245,15 @@ export function TavernGameModal() {
               options={[
                 // Chaque adversaire indisponible PORTE sa cause au survol/focus/tap : « équipe » et
                 // « personne à opposer » sont deux refus différents, et un segment muet les confondait.
-                { key: 'hero', label: 'Un compagnon', selected: oppKind === 'hero', refus: refusHero ?? undefined, onSelect: () => setOppMode('hero') },
-                { key: 'npc', label: 'Un joueur de la salle', selected: oppKind === 'npc', refus: refusNpc ?? undefined, onSelect: () => setOppMode('npc') },
+                { key: 'heros', label: 'Un compagnon', selected: oppKind === 'heros', refus: refusHero ?? undefined, onSelect: () => setOppMode('heros') },
+                { key: 'pnj', label: 'Un joueur de la salle', selected: oppKind === 'pnj', refus: refusNpc ?? undefined, onSelect: () => setOppMode('pnj') },
                 { key: 'profil', label: equipe ? 'L’équipe adverse' : 'Un habitué', selected: oppKind === 'profil', onSelect: () => setOppMode('profil') },
               ]}
             />
             {equipe && (
               <p className="tavern-detail muted">{refusHero}</p>
             )}
-            {oppKind === 'npc' ? (
+            {oppKind === 'pnj' ? (
               <div className="tavern-block">
                 {/* Le PNJ joue de SA fiche : on annonce SON nom et SA valeur de jeu, dérivée par le
                     même collecteur que celle du challenger — jamais une valeur saisie. */}
@@ -252,7 +265,7 @@ export function TavernGameModal() {
                   <p className="tavern-detail">{npc.label} : valeur de jeu <b>{tavernGameValue(npcActor, game)}</b> (de sa fiche).</p>
                 )}
               </div>
-            ) : oppKind === 'hero' ? (
+            ) : oppKind === 'heros' ? (
               <Row gap="sm" align="start">
                 {oppCandidates.map((h) => (
                   <CharFrame key={h.id} c={h} variant="identity" size="xs" selected={h.id === (oppHeroId || oppCandidates[0]?.id)} onClick={() => setOppHeroId(h.id)} />

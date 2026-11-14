@@ -6,7 +6,7 @@
  * (une fois sur trois). Le registre n'élit qu'UN raccourci par événement (`useGameKeyboard::onKey`,
  * 1ᵉʳ match) — un appui isolé ne peut donc pas faire les deux. Ce qui le peut, c'est la RÉPÉTITION
  * automatique du clavier : le même appui maintenu un instant émet plusieurs `keydown`, le premier
- * désarme, et les suivants — l'intention désormais nulle — retombent sur `toggle-menu`.
+ * désarme, et les suivants — l'intention désormais nulle — retombent sur `menu-ouvrir`.
  *
  * Contrat : tant que la touche n'a pas été RELÂCHÉE, l'appui qui a désarmé garde la touche ; le menu
  * ne s'ouvre qu'à un appui NEUF, quand plus rien n'était armé.
@@ -27,11 +27,11 @@ let root: Root | null = null;
 let conteneur: HTMLDivElement | null = null;
 
 /** Combat témoin piloté par ce client, écran de jeu, aucune modale — le contexte des trois portes
- *  d'Échap (`intent-cancel`, `cursor-cancel`, `toggle-menu`). */
+ *  d'Échap (`intention-annuler`, `curseur-annuler`, `menu-ouvrir`). */
 function armer(localIntent: { actionId: string } | null) {
   useGame.setState({
     screen: 'campaign', mode: 'battle', gameMenuOpen: false, dialogue: null,
-    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'hero', pos: { x: 1, y: 1 } })], movementUsed: 0, preview: null },
+    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'heros', pos: { x: 1, y: 1 } })], movementUsed: 0, preview: null },
     net: { mode: 'local', mySeat: 0 }, combatCursor: null, preemptAiming: null, localIntent,
   } as never);
 }

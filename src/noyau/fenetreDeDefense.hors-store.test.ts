@@ -19,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const g = () => banc.getState();
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 40 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[], over: Partial<Combatant> = {}): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[], over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, ...over }) as unknown as Combatant);
@@ -30,17 +30,17 @@ const rapiere: Weapon = { name: 'Rapière', label: 'Rapière', type: 'melee', da
  *  l'ennemi a Peur du héros, qui possède Intimidation : la Parade, l'Esquive et la réaction sociale s'offrent. */
 function ouvrirLaDefense(): void {
   seedBattleRng(7);
-  const ennemi = mk('e', 'enemy', { x: 1, y: 0 }, [rapiere], { psychState: [{ type: 'peur', sourceId: 'h', calmeDR: 0 }] } as Partial<Combatant>);
-  const heros = mk('h', 'hero', { x: 0, y: 0 }, [epee], { skills: [{ id: 'intimidation', advances: 15, characteristic: 'force' }] } as Partial<Combatant>);
+  const ennemi = mk('e', 'ennemi', { x: 1, y: 0 }, [rapiere], { psychState: [{ type: 'peur', sourceId: 'h', calmeDR: 0 }] } as Partial<Combatant>);
+  const heros = mk('h', 'heros', { x: 0, y: 0 }, [epee], { skills: [{ id: 'intimidation', advances: 15, characteristic: 'force' }] } as Partial<Combatant>);
   const battle = {
     combatants: [ennemi, heros], order: [ennemi.id, heros.id], baseOrder: [ennemi.id, heros.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   banc.setState({ battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null, net: { ...initialNet(), mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
-  openAttackCascade(g, banc.setState, { attackerId: ennemi.id, targetId: heros.id, location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attack');
-  g().jetLancer('attack');
-  g().jetValider('attack');
+  openAttackCascade(g, banc.setState, { attackerId: ennemi.id, targetId: heros.id, location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attaquer');
+  g().jetLancer('attaque');
+  g().jetValider('attaque');
 }
 
 describe('fenêtre de Défense — la cible de chaque réaction est celle du jet', () => {

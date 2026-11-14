@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { makePriest, makeSorceress, makeFlagellant } from './_casters';
@@ -78,7 +78,7 @@ const construireScene = (): Scene => buildScene({
 
 /** Un dieu à miracles de combat → un Prêtre COMPLET (toutes Bénédictions + Miracles, talents de culte). */
 const PRIESTS: { id: string; label: string; cult: string; chars: Partial<Record<CharKey, number>>; pos: { x: number; y: number } }[] = [
-  { id: 'pr-sigmar', label: 'Frère Anselm, Grand Prêtre de Sigmar', cult: 'sigmar', chars: { sociabilite: 68, 'force-mentale': 60, force: 45, endurance: 45 }, pos: { x: 3, y: 4 } },
+  { id: 'pr-sigmar', label: 'Prêtre, Grand Prêtre de Sigmar', cult: 'sigmar', chars: { sociabilite: 68, 'force-mentale': 60, force: 45, endurance: 45 }, pos: { x: 3, y: 4 } },
   { id: 'pr-ulric', label: "Wulfric, Prêtre d'Ulric", cult: 'ulric', chars: { sociabilite: 66, 'force-mentale': 58, force: 48, endurance: 48 }, pos: { x: 3, y: 8 } },
   { id: 'pr-myrmidia', label: 'Valentina, Prêtresse de Myrmidia', cult: 'myrmidia', chars: { sociabilite: 64, 'force-mentale': 58, force: 44, endurance: 44 }, pos: { x: 3, y: 12 } },
   { id: 'pr-shallya', label: 'Sœur Helga, Prêtresse de Shallya', cult: 'shallya', chars: { sociabilite: 66, 'force-mentale': 60, force: 38, endurance: 42 }, pos: { x: 2, y: 16 } },
@@ -115,7 +115,7 @@ function makeMagicParty(idNeuf: FabriqueDId): Combatant[] {
 
   const flagellant = makeFlagellant(idNeuf, 'pr-flagellant', 'Konrad le Flagellant', 'ulric', { sociabilite: 60, 'force-mentale': 56, 'capacite-de-combat': 60, force: 52, endurance: 50 }, { x: 6, y: 10 });
 
-  const grunni = pregen(idNeuf, PREGEN.tueur);
+  const grunni = herosDeScenario(idNeuf, 'tueur');
   grunni.pos = { x: 6, y: 12 };
 
   return [sorc, ...priests, flagellant, grunni];
@@ -125,7 +125,7 @@ export const scenario: TestScenario = {
   id: 'magie',
   order: 3,
   category: 'magie',
-  icon: 'scenario/magic',
+  icon: 'scenario/magie',
   title: 'Magie en combat',
   tests:
     'Grande bataille magique : toutes les familles curées (invocations, drains, enchantements, zones, soins), ' +

@@ -51,7 +51,7 @@ export type ClotureApplier<K extends Cloture['verbe']> = (get: Get, set: Set, c:
 /** L'exécuteur EN COMBAT du flux d'incantation standard, pour l'Effet `castSpell` (#98). */
 export type LanceurDeSort = (get: Get, set: Set, caster: Combatant, target: Combatant, spellId: string) => void;
 
-/** Le lancer GARANTI de l'Effet `castSpell` `mode:'forceSuccess'` (#98) : rend ses lignes de journal. */
+/** Le lancer GARANTI de l'Effet `castSpell` `mode:'forcerLaReussite'` (#98) : rend ses lignes de journal. */
 export type LanceurGaranti = (get: Get, set: Set, caster: Combatant, target: Combatant, spellId: string) => string[];
 
 /** Un départage d'égalité déclaré, et le récit de ce qu'il a lu quand il en tient un. */

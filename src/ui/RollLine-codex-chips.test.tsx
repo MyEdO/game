@@ -148,8 +148,8 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
   //    « +20 Soutien » sans jamais pouvoir dire qui.
   it('chaîne RÉELLE partyAssisted → supportSplit → chip : la provenance arrive peuplée', () => {
     const party = [
-      combattantDeTest({ id: 'pregen-101', label: 'Perdita', kind: 'hero', characteristics: { force: 40 }, wounds: blessuresDeBase(10) }),
-      combattantDeTest({ id: 'pregen-102', label: 'Valentyn', kind: 'hero', characteristics: { force: 30 }, wounds: blessuresDeBase(10) }),
+      combattantDeTest({ id: 'pregen-101', label: 'Perdita', kind: 'heros', characteristics: { force: 40 }, wounds: blessuresDeBase(10) }),
+      combattantDeTest({ id: 'pregen-102', label: 'Valentyn', kind: 'heros', characteristics: { force: 30 }, wounds: blessuresDeBase(10) }),
     ];
     useGame.setState({ party, battle: null });
     const assisted = partyAssisted(party, { characteristic: 'force' })!;

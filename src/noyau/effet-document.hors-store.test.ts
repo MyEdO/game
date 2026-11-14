@@ -24,7 +24,7 @@ const narratif: NarratifBlock = {
   ],
 };
 const get = () => banc.getState();
-const remettre = (documentId: string): Flow => ({ kind: 'do', effect: { type: 'document', documentId } });
+const remettre = (documentId: string): Flow => ({ kind: 'effet', effet: { type: 'document', documentId } });
 
 function fixtureScene(): Scene {
   const s = emptyScene('scene-test', 4, 4);
@@ -66,7 +66,7 @@ describe('Effect `document` — le registre narratif atteint la modale', () => {
 
 describe('Effect `document` — chaque document se lit avant la suite', () => {
   it('`seq [3, 4]` : le 3 s’affiche ; le 4 après sa fermeture ; la suite après le 4', () => {
-    runFlow(get, banc.setState, { kind: 'seq', steps: [remettre('doc-heritage'), remettre('doc-affidavit'), { kind: 'do', effect: { type: 'setFlag', flag: 'lus' } }] });
+    runFlow(get, banc.setState, { kind: 'sequence', etapes: [remettre('doc-heritage'), remettre('doc-affidavit'), { kind: 'effet', effet: { type: 'setFlag', flag: 'lus' } }] });
     expect(get().document?.title).toBe('Document 3 : L’héritage');
     get().fenetreFermer('document');
     expect(get().document?.title).toBe('Document 4 : L’affidavit');
@@ -84,8 +84,8 @@ describe('Effect `document` — chaque document se lit avant la suite', () => {
   });
 
   it('chez l’invité, fermer ne rejoue rien : l’hôte tient le Flow', () => {
-    runFlow(get, banc.setState, { kind: 'seq', steps: [remettre('doc-heritage'), { kind: 'do', effect: { type: 'setFlag', flag: 'suite' } }] });
-    banc.setState({ net: { ...get().net, mode: 'guest' } });
+    runFlow(get, banc.setState, { kind: 'sequence', etapes: [remettre('doc-heritage'), { kind: 'effet', effet: { type: 'setFlag', flag: 'suite' } }] });
+    banc.setState({ net: { ...get().net, mode: 'invite' } });
     get().fenetreFermer('document');
     expect(get().document?.title).toBe('Document 3 : L’héritage');
     expect(get().flags.suite).toBeUndefined();

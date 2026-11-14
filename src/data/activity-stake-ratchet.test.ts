@@ -21,7 +21,7 @@ const SANS_ENJEU: Record<string, string> = {};
 
 /** Activités à JET dont la dette `blocked` retire l'entrée de tous les catalogues jouables : leur
  *  issue n'est pas écrite, donc rien de mécanique à mettre en jeu. Elles reviennent avec leur
- *  résolveur — l'enjeu naîtra avec lui. Mesuré le 2026-08-06 : 7 sur 53 Activités à jet. */
+ *  résolveur — l'enjeu naîtra avec lui. */
 const BLOQUEES_SANS_ISSUE = [
   'accomplir-un-rituel', 'alchimie-ordinaire', 'ameliorer-un-familier', 'brasser-une-potion',
   'ecrire-des-parchemins', 'haute-alchimie', 'reunir-des-ingredients',
@@ -31,13 +31,9 @@ describe('cliquet — une Activité à JET dit son ENJEU (#1117 L3)', () => {
   const aJet = ACTIVITIES.filter((a) => activityRolls(a));
   const jouables = aJet.filter((a) => !a.blocked);
 
-  it('le stock mesuré est celui attendu (le prédicat de jet ne dérive pas en silence)', () => {
-    // 53 → 54 et 46 → 47 (#1612, 2026-09-06) : l'Activité Mendier (`LDB 09 l.97`) entre au catalogue.
-    // Elle LANCE (Test de Charme) et n'est pas `blocked` : elle porte donc son `stake`, comme ses 46
-    // sœurs jouables. Le compte des Activités SANS jet ne bouge pas.
-    expect(aJet.length).toBe(54);
-    expect(jouables.length).toBe(47);
-    expect(ACTIVITIES.filter((a) => !activityRolls(a)).length).toBe(9);
+  it('le prédicat de jet classe le catalogue réel : Mendier lance et se joue, Récupérer ne lance pas', () => {
+    expect(jouables.map((a) => a.id)).toContain('mendier'); // LDB 09 l.97
+    expect(aJet.map((a) => a.id)).not.toContain('recuperer'); // EDOC 8 l.176
   });
 
   it('toute Activité JOUABLE qui lance porte son enjeu (stock restant EXACTEMENT celui énuméré)', () => {

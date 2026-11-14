@@ -21,20 +21,20 @@ import { useGesteDeJet } from './useGesteDeJet';
  * modificateur de SITUATION (Menace −20 / Planification) et Soutien multi-PJ en LIGNES de mod du
  * breakdown ; Test COMBINÉ (deux compétences, un jet) en 2ᵉ rangée témoin ; Test OPPOSÉ « Tenez votre
  * position » en rangée témoin figée de l'ennemi (winner + DR net). Le cycle d'influence reste piloté par
- * les verbes du flux `activity`.
+ * les verbes du flux `activite`.
  */
 export function ActivityModal() {
   const pa = useGame((s) => s.pendingActivity);
   const party = useGame((s) => s.party);
   const massBattle = useGame((s) => s.massBattle);
-  const roll = useGesteDeJet('jetLancer', 'activity');
-  const reroll = useGesteDeJet('jetRelancer', 'activity');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'activity');
-  const darkPact = useGesteDeJet('jetPactiser', 'activity');
-  const force = useGesteDeJet('jetForcerLaReussite', 'activity'); // Résilience (LDB 17 l.68)
-  const reverse = useGesteDeJet('jetInverser', 'activity'); // Inversion (LDB 12 l.42)
-  const cancel = useGesteDeJet('jetAnnuler', 'activity');
-  const confirm = useGesteDeJet('jetValider', 'activity');
+  const roll = useGesteDeJet('jetLancer', 'activite');
+  const reroll = useGesteDeJet('jetRelancer', 'activite');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'activite');
+  const darkPact = useGesteDeJet('jetPactiser', 'activite');
+  const force = useGesteDeJet('jetForcerLaReussite', 'activite'); // Résilience (LDB 17 l.68)
+  const reverse = useGesteDeJet('jetInverser', 'activite'); // Inversion (LDB 12 l.42)
+  const cancel = useGesteDeJet('jetAnnuler', 'activite');
+  const confirm = useGesteDeJet('jetValider', 'activite');
   if (!pa) return null;
   const actor = party.find((c) => c.id === pa.heroId);
   const rolled = pa.roll != null;
@@ -44,9 +44,9 @@ export function ActivityModal() {
   // modificateur de situation compris).
   const { base, mods: extraMods } = pa.ligne;
 
-  // « Échec » CANONIQUE : l'issue du flux `activity` (`FLOWS.activity.outcomeOf`), dont dérive aussi le
+  // « Échec » CANONIQUE : l'issue du flux `activite` (`FLOWS.activite.outcomeOf`), dont dérive aussi le
   // gating Chance/Pacte/Résilience du noyau.
-  const failed = rolled && !FLOWS.activity.outcomeOf(useGame.getState)?.won;
+  const failed = rolled && !FLOWS.activite.outcomeOf(useGame.getState)?.won;
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor,
@@ -69,8 +69,8 @@ export function ActivityModal() {
     fortune: actor?.fortune ?? 0,
     /* Test ÉTENDU (Artisanat) : barre de DR de RANGÉE — site unique `RollRow` (arbitrage user 2026-07-11). */
     extendedDr: progres ? { cum: rolled ? progres.total : pa.drBefore ?? 0, target: progres.cible } : undefined,
-    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.activity`).
-    ...(FLOWS.activity.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.activity.reversePreview(useGame.getState) } } : {}),
+    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.activite`).
+    ...(FLOWS.activite.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.activite.reversePreview(useGame.getState) } } : {}),
   });
 
   const rows: BuiltRollRow[] = [actorRow];
@@ -98,7 +98,7 @@ export function ActivityModal() {
   if (enemyT) {
     // Seul producteur de l'opposition : `openHoldScene` (`massBattleFlow.ts`), sous bataille ouverte (#1906).
     if (!massBattle) throw new Error('[activité] opposition « Tenez votre position » sans bataille de masse ouverte (#1906)');
-    const enemyName = massBattle.enemy.label;
+    const enemyName = massBattle.ennemi.label;
     // La ligne montre la grandeur qui TRANCHE à DR égal (LDB 12 l.160) : la Puissance NUE en base, le
     // bonus cumulatif des Rounds tenus (ADE II 08 l.163) en ligne de mod NOMMÉE — même patron que le
     // Soutien du PJ ci-dessus (`supportSplit`). Sans Puissance nue posée, la base reste la cible jetée.
@@ -118,13 +118,13 @@ export function ActivityModal() {
   const issue = rolled ? describeActivity(pa) : '';
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
-      flowKey="activity"
+      flowKey="activite"
       title={pa.label}
       /* Z3b : l'enjeu vient de l'ACTIVITÉ jouée (donnée éditable) — le ⓘ du titre s'accole tout seul
          (RollShell), et le foyer de règle est l'Activité elle-même à défaut d'un autre déclaré. */

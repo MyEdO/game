@@ -8,7 +8,7 @@ const KF = 'fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap=
 
 export const icons: IconFamily = [
   {
-    id: 'scene/light',
+    id: 'scene/lumiere',
     label: 'Lumière de scène',
     // Ampoule rayonnante, culot à filets.
     svg:

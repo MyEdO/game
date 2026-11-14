@@ -32,7 +32,7 @@ const SOLO = { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence
 /** Héros à Force Mentale 10 (Calme 10) : son Test de Psychologie échoue sur tout dé > 10 — l'issue
  *  d'ÉCHEC est celle que l'on mesure, et elle est déterministe avec la graine posée. */
 const hero = (): Combatant => (blessuresSurLeProfil({
-  id: 'h', name: 'h', label: 'Anselme', kind: 'hero',
+  id: 'h', name: 'h', label: 'Anselme', kind: 'heros',
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30,
     agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 10, sociabilite: 30, perception: 30 },
   conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [], weapons: [],
@@ -83,7 +83,7 @@ describe('#1189 — la bande de Psychologie DIT ses issues en chips d’ops', ()
     terreur();
     const step = bande();
     expect(branchCertainOps(step.meta?.onFail, heroNow())).toEqual([
-      { op: 'condition', id: 'brise', value: 2, valuePerSL: { every: 1, amount: 1, onFailure: true } },
+      { op: 'condition', id: { id: 'brise' }, value: 2, valuePerSL: { every: 1, amount: 1, onFailure: true } },
       opPsy.pose('peur', { indice: 2, calmeDR: 0, surmontee: false, sourceId: 'scripted:Une vision terrifiante' }),
     ]);
     expect(branchCertainOps(step.meta?.onSuccess, heroNow()), 'la réussite n’exempte que de la Terreur (LDB 21 l.56)').toEqual([
@@ -110,7 +110,7 @@ describe('#1189 — la bande de Psychologie DIT ses issues en chips d’ops', ()
     render();
     expect(ligne('Échec :'), 'la branche d’échec était annoncée AVANT le jet').toBeTruthy();
 
-    act(() => { useGame.getState().jetLancer('cascadeBatch', 'h'); });
+    act(() => { useGame.getState().jetLancer('cascadeEnBande', 'h'); });
     render();
     const res = bande().participants![0].result!;
     expect(res.success, 'Calme 10 : le Test est perdu').toBe(false);

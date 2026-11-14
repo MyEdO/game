@@ -186,11 +186,11 @@ describe('effets d’ambiance — Précipitations / Température / Visibilité (
     expect(dailyWaterLitres('chaude')).toBe(3);
     expect(dailyWaterLitres('mediane')).toBe(3); // régime de bord « 2 à 3 litres » (MDG 14 l.242)
   });
-  it('règle `sea-water-litres-mediane` surchargée (borne basse 2 L) : suit la surcharge', () => {
-    setRule('sea-water-litres-mediane', 2);
+  it('règle `mer-eau-litres-mediane` surchargée (borne basse 2 L) : suit la surcharge', () => {
+    setRule('mer-eau-litres-mediane', 2);
     expect(dailyWaterLitres('mediane')).toBe(2);
     expect(dailyWaterLitres('caniculaire')).toBe(4); // bandes déjà chiffrées : jamais affectées
-    resetRule('sea-water-litres-mediane');
+    resetRule('mer-eau-litres-mediane');
     expect(dailyWaterLitres('mediane')).toBe(3);
   });
 
@@ -206,7 +206,7 @@ describe('effets d’ambiance — Précipitations / Température / Visibilité (
 
 describe('`baseTestModLines` — les Précipitations lisent la Compétence que l’appelant déclare (MDG 13 l.185, #1936)', () => {
   const surLePont = (): Combatant => (blessuresSurLeProfil({
-    id: 'x', label: 'X', kind: 'hero', characteristics: {}, skills: [], talents: [], traits: [],
+    id: 'x', label: 'X', kind: 'heros', characteristics: {}, skills: [], talents: [], traits: [],
     conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
     wounds: blessuresDeBase(10), advantage: 0, envPrecipitation: 'tres-abondantes',
   })) as unknown as Combatant;

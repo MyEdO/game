@@ -29,7 +29,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Déclencheur `once` sur la case (x,y) au rez : son drapeau prouve que `checkTriggers` a joué. */
 const piege = (x: number, y: number): Scene['triggers'][number] =>
-  ({ id: 'rue', rect: { x, y, w: 1, h: 1 }, once: true, flow: { kind: 'seq', steps: [] } });
+  ({ id: 'rue', rect: { x, y, w: 1, h: 1 }, once: true, flow: { kind: 'sequence', etapes: [] } });
 
 /** 4×3 : la chambre (1,1) à la couche 1 (4 m), murée sur trois côtés ; croisée E de (1,1) couche 1
  *  sur la rue (2,1) au rez. */
@@ -127,12 +127,12 @@ describe('sauter par la croisée d’étage — exploration', () => {
   it('ouvre la modale de chute existante : 4 m, arrivée à la couche basse', () => {
     banc.getState().franchirLArete(dehors);
     expect(banc.getState().pendingFall).toMatchObject({ metres: 4, to: { x: 2, y: 1, z: 0 } });
-    expect(phaseDeChute(banc.getState().pendingFall!)).toBe('choice');
+    expect(phaseDeChute(banc.getState().pendingFall!)).toBe('choix');
   });
 
   it('« Sauter » : l’atterrissage passe par `deplacerLeGroupe` — le déclencheur de la rue joue', () => {
     banc.getState().franchirLArete(dehors);
-    banc.getState().jetRegler('fall', 'tenter', false, banc.getState().party[0].id);
+    banc.getState().jetRegler('chute', 'tenter', false, banc.getState().party[0].id);
     draineCascade(banc.getState);
     expect(banc.getState().partyPos).toEqual({ x: 2, y: 1, z: 0 });
     expect(banc.getState().flags.__trigger_rue).toBe(true);
@@ -141,10 +141,10 @@ describe('sauter par la croisée d’étage — exploration', () => {
   it('chute amortie à 0 m : l’atterrissage passe aussi par `deplacerLeGroupe`', () => {
     banc.getState().franchirLArete(dehors);
     const id = banc.getState().party[0].id;
-    banc.getState().jetRegler('fall', 'tenter', true, id);
+    banc.getState().jetRegler('chute', 'tenter', true, id);
     const p = banc.getState().pendingFall!;
     banc.setState({ pendingFall: { ...p, participants: p.participants.map((x) => (x.id === id ? { ...x, result: { success: true, roll: 5, target: 90, dr: 6, effectiveMetres: 0 } } : x)) } });
-    banc.getState().jetValider('fall');
+    banc.getState().jetValider('chute');
     expect(banc.getState().partyPos).toEqual({ x: 2, y: 1, z: 0 });
     expect(banc.getState().flags.__trigger_rue).toBe(true);
   });
@@ -198,11 +198,11 @@ describe('enjamber la croisée — combat', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const foes = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const foes = b.combatants.filter((c) => c.kind === 'ennemi');
     foes.forEach((e) => (e.dead = true));
     H.engagedWith = [];
     placeCombatant(H, sc, dedans);
@@ -270,7 +270,7 @@ describe('sauter par la croisée : la rue lance une rencontre', () => {
     const hero = banc.getState().party[0];
     const avant = hero.wounds.current;
     banc.getState().franchirLArete(dehors);
-    banc.getState().jetRegler('fall', 'tenter', false, hero.id);
+    banc.getState().jetRegler('chute', 'tenter', false, hero.id);
     draineCascade(banc.getState);
     const s = banc.getState();
     expect(s.battle).not.toBeNull();
@@ -292,8 +292,8 @@ describe('sauter par la croisée : la rue lance une rencontre', () => {
     banc.setState({ party: [...banc.getState().party, second] });
     const [a, b] = banc.getState().party;
     banc.getState().franchirLArete(dehors);
-    banc.getState().jetRegler('fall', 'tenter', false, a.id);
-    banc.getState().jetRegler('fall', 'tenter', false, b.id);
+    banc.getState().jetRegler('chute', 'tenter', false, a.id);
+    banc.getState().jetRegler('chute', 'tenter', false, b.id);
     draineCascade(banc.getState);
     const s = banc.getState();
     expect(s.battle).not.toBeNull();

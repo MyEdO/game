@@ -63,7 +63,18 @@
 //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, attendreSelecteur, VUE_REFERENCE, FN_NOMMER_ELEMENT } from './lib.mjs';
+import {
+  openApp,
+  evaluate,
+  setViewport,
+  sleep,
+  cliquerSelecteur,
+  resoudreModales,
+  ouvrirRound,
+  attendreSelecteur,
+  VUE_REFERENCE,
+  FN_NOMMER_ELEMENT,
+} from './lib.mjs';
 
 // Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
 // zone morte du bandeau d'objectif, dont la boîte n'excède sa tête qu'au-delà de 900px — sonder
@@ -468,7 +479,7 @@ const PROBE = `(() => {
 /**
  * Amène le combat jusqu'aux CASES du tour d'un héros (`.combat-console button.cc-cell`). Pendant la
  * pause d'initiative de début de Round, le pont ne porte que le bandeau de phase et son bouton
- * « Commencer … » (`.cc-phase [data-action='round-start']`, `src/ui/console/CombatConsole.tsx`), qui n'est PAS
+ * « Commencer … » (`.cc-phase [data-action='debut-de-round']`, `src/ui/console/CombatConsole.tsx`), qui n'est PAS
  * dans une fenêtre : `resoudreModales` ne le voit pas, et `fastForward` ne le franchit pas. Sans ce
  * clic la sonde mesurait la phase (un bouton) au lieu du pont de tour — elle ne pouvait constater
  * aucun recouvrement des cases.
@@ -506,7 +517,7 @@ async function monterLeDock(session) {
       throw new Error(`le combat n'avance plus : Round ${etat.round}, tour ${etat.tour} (${etat.actif}), phase « ${etat.phase} », `
         + `fenêtre ${etat.modale ? 'ouverte' : 'ABSENTE'}, attentes posées : ${etat.attentes.join(', ') || 'aucune'}`);
     }
-    if (await evaluate(session, `!!document.querySelector(".cc-phase [data-action='round-start']:not(:disabled)")`)) {
+    if (await evaluate(session, `!!document.querySelector(".cc-phase [data-action='debut-de-round']:not(:disabled)")`)) {
       await ouvrirRound(session);
       await sleep(900);
       await resoudreModales(session, 'ouverture de Round', { dans: '.modal-overlay' });
@@ -515,7 +526,7 @@ async function monterLeDock(session) {
     const verdict = await evaluate(session, `(() => {
       const b = window.__wfrp.store.getState().battle;
       if (!b) return 'aucun combat';
-      const id = b.order.find((x) => ((b.combatants.find((c) => c.id === x) || {}).kind) === 'hero');
+      const id = b.order.find((x) => ((b.combatants.find((c) => c.id === x) || {}).kind) === 'heros');
       return id ? window.__wfrp.turn(id) : 'aucun héros dans l ordre d initiative';
     })()`);
     console.log(`  (mise en place : premier tour tenu par un héros — ${verdict})`);

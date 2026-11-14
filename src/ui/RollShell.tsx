@@ -9,6 +9,7 @@ import { useRollFrisson } from './useRollFrisson';
 import { DiceRoll } from './DiceRoll';
 import { d100Faces } from './Dice';
 import { FLOW_VERBS, type FlowKey, type RollVerb } from '../noyau/flowVerbs';
+import type { VerrouDesMots } from '../noyau/fabriquesDuNoyau';
 import { fermeturesDuFlux } from '../noyau/verbesOuverts';
 import { FERMETURES_DITES, type FermetureDuJet } from '../noyau/rollFlowFactory';
 import { libelleDeLaFermeture } from '../noyau/libelles';
@@ -62,7 +63,7 @@ export type RollRowData = RollRowProps & {
  *  PROÉMINENCE (style) n'est PLUS choisie par l'appelant : elle se DÉDUIT du RÔLE porté par la `key`
  *  (cf. `actionTon`) — un même verbe a le même poids visuel dans toutes les modales. */
 export interface RollAction {
-  key: string;
+  key: CleDAction;
   label: ReactNode;
   onClick: () => void;
   /** Description de l'action OFFERTE. */
@@ -82,23 +83,30 @@ export interface RollAction {
 
 /** TON d'une action DÉDUIT de sa `key` (les appelants ne le choisissent plus) : abandon /
  *  secondaire = discret (`btn-ghost`) ; tout le reste (validation, progression :
- *  confirm/apply/next/finish/continue…) = primaire. Source UNIQUE de la proéminence des barres de jet,
+ *  confirmer/poursuivre/terminer…) = primaire. Source UNIQUE de la proéminence des barres de jet,
  *  exposée en STRUCTURE (`primary`, `btnClassName` : les props de `GatedAction`) — le bouton nu et
  *  `GatedAction` lisent le même objet, jamais la chaîne de classes rendue.
- *  `all`/`rollAll` (« Tout lancer ») sont SECONDAIRES (#1117, recette 2026-08-05) : voisins du
+ *  `toutResoudre`/`lancerLesRangees` (« Tout lancer ») sont SECONDAIRES (#1117, recette 2026-08-05) : voisins du
  *  « Lancer » primaire, même style, ils déclenchaient la résolution de TOUTE la séquence sans
  *  influence — la confusion a coûté la moitié d'une recette. */
-const ACTION_GHOST_KEYS = new Set(['cancel', 'break', 'ack', 'all', 'rollAll']);
+const ACTION_GHOST_KEYS: ReadonlySet<CleDAction> = new Set<CleDAction>(['abandonner', 'rompre', 'toutResoudre', 'lancerLesRangees']);
 const TON_PRIMAIRE: TonBouton = { primary: true };
 const TON_DISCRET: TonBouton = { primary: false, btnClassName: 'btn-ghost' };
-function actionTon(key: string): TonBouton {
+function actionTon(key: CleDAction): TonBouton {
   return ACTION_GHOST_KEYS.has(key) ? TON_DISCRET : TON_PRIMAIRE;
 }
 
 /** Commandes de barre NEUTRES (≠ verbes de cadence portés par les RANGÉES) présentes dans les
  *  modales : abandon / validation / progression. Toute AUTRE clé d'action doit être un verbe DÉCLARÉ
  *  du flux (`flowKey`) — sinon dérive (#211 : une action re-boulonnée hors du vocabulaire déclaré). */
-const NEUTRAL_ACTION_KEYS = new Set(['cancel', 'confirm', 'apply', 'rollAll', 'next', 'finish', 'continue', 'all', 'ack', 'break']);
+const CLES_NEUTRES = ['abandonner', 'confirmer', 'lancerLesRangees', 'poursuivre', 'terminer', 'toutResoudre', 'rompre'] as const;
+type CleNeutre = (typeof CLES_NEUTRES)[number];
+const NEUTRAL_ACTION_KEYS: ReadonlySet<string> = new Set(CLES_NEUTRES);
+/** La clé d'un bouton de la barre : une commande neutre, un verbe du cycle de jet, ou « Tout lancer » par rangées. */
+export type CleDAction = CleNeutre | RollVerb | 'lancerMesRangees';
+/** VERROU : une clé d'action ne prend que des mots du lexique (#3938). */
+const verrouDesClesDAction: VerrouDesMots<CleDAction> = true;
+void verrouDesClesDAction;
 
 /** DEV : verrouille la surface d'actions d'une modale de jet à son vocabulaire (verbes du flux +
  *  neutres). Une clé hors-vocabulaire LÈVE — le choke-point relie la barre aux verbes DÉCLARÉS. */
@@ -279,14 +287,14 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
     if (import.meta.env.DEV) throw new Error(`RollShell : le verbe « ${verbe} » n'a aucun flux qui le juge (flowKey ou RollAction.flux).`);
     return null;
   };
-  const annulable = !rolled && (flowKey ? fermeture('cancel', flowKey) === null : true);
+  const annulable = !rolled && (flowKey ? fermeture('annuler', flowKey) === null : true);
   const escGeste = disableEscClose ? undefined : (hoist.rolling || hoist.landed) ? hoist.skip : (annulable ? onCancel : undefined);
   const escClose: OnDismiss | undefined = escGeste && (() => { escGeste(); return false; });
-  // « TOUT LANCER » par rangées (`rollRows`/`rollAll` — fenêtre MULTI) : chaque rangée commet d'abord
+  // « TOUT LANCER » par rangées (`lancerMesRangees`/`lancerLesRangees` — fenêtre MULTI) : chaque rangée commet d'abord
   // SON brouillon ; celles dont la saisie a POSÉ un dé ont déjà lancé, on ne les relance pas. Les
   // autres partent par LEUR propre `onRoll` (la même fonction que leur bouton) — le verbe du domaine
   // n'est pas réinterprété, il est seulement appliqué rangée par rangée.
-  const ROLL_ALL_ROWS_KEYS = new Set(['rollRows', 'rollAll']);
+  const ROLL_ALL_ROWS_KEYS: ReadonlySet<CleDAction> = new Set<CleDAction>(['lancerMesRangees', 'lancerLesRangees']);
   const rollAllRowsWithPickedDice = (fallback: () => void) => () => {
     const rollable = rows
       .map((r, i) => ({ r, key: rowKeyOf(r, i) }))

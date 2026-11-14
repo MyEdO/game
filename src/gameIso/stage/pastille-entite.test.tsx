@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { readFileSync } from 'node:fs';
@@ -17,7 +18,7 @@ import { VH, VW } from './useStageCamera';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { itemFromTrappingById, unarmedWeapon } from '../../engine/items';
 import { ACTIONS, type ActionDef } from '../../data/index';
-import { ACTION_CANDIDATES, ACTION_PORTEURS, declarerPorteur } from '../../noyau/actionRegistry';
+import { ACTION_CANDIDATES } from '../../noyau/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 import type { Scene } from '../../noyau/monde/scene';
@@ -46,7 +47,7 @@ const CHARS = {
 
 const hero = (id: string, pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
   combattantDeTest({
-    id, label: id, kind: 'hero', pos, size: 'moyenne', characteristics: CHARS,
+    id, label: id, kind: 'heros', pos, size: 'moyenne', characteristics: CHARS,
     wounds: blessuresDeBase(12), items: [], weapons: [unarmedWeapon()], ...over, // invariant mains nues (`assertAttackWeapon`)
   });
 
@@ -143,7 +144,7 @@ function svgTémoin(el: HTMLElement): { svg: SVGSVGElement; capture: ReturnType<
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds });
 
 const mkHull = (postes: ShipPoste[], pos = { x: 4, y: 3 }): Combatant =>
-  combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'enemy', pos, inert: true, wounds: blessuresDeBase(0), postes });
+  combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'ennemi', pos, inert: true, wounds: blessuresDeBase(0), postes });
 
 /** Une scène portant un TAS d'objets ramassables adjacent au héros. */
 function sceneAvecTas(nb: number): Scene {
@@ -299,14 +300,14 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
   it('POUSSER : la pastille naît de la pièce SERVIE, arme le mode, et le re-clic le désarme (gratuit)', () => {
     const poste = mkPoste('belier-ade2', ['h1', 's1', 's2']);
     const h = hero('h1', { x: 4, y: 4 }, { mannedPoste: poste } as Partial<Combatant>);
-    const s1 = hero('s1', { x: 5, y: 4 }, { kind: 'npc' } as Partial<Combatant>);
-    const s2 = hero('s2', { x: 3, y: 4 }, { kind: 'npc' } as Partial<Combatant>);
+    const s1 = hero('s1', { x: 5, y: 4 }, { kind: 'pnj' } as Partial<Combatant>);
+    const s2 = hero('s2', { x: 3, y: 4 }, { kind: 'pnj' } as Partial<Combatant>);
     const hull = mkHull([poste], { x: 4, y: 3 });
     const el = monter({ party: [h], battle: combat([h, hull, s1, s2]) });
     const btn = boutonDe(el, 'hull')!;
     expect(btn.textContent, 'le geste de la pièce servie est Pousser').toContain('Pousser');
     act(() => btn.click());
-    expect(useGame.getState().battle!.action, 'le mode de poussée est ARMÉ').toBe('push');
+    expect(useGame.getState().battle!.action, 'le mode de poussée est ARMÉ').toBe('poussee');
     expect(useGame.getState().battle!.reachable.size, 'et sa portée est peinte').toBeGreaterThan(0);
     act(() => boutonDe(el, 'hull')!.click());
     expect(useGame.getState().battle!.action, 'annulation GRATUITE au re-clic').toBeNull();
@@ -348,14 +349,14 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
     // faisait mentir ce coût déclaré — et rendait le clic MUET.
     const poste = mkPoste('belier-ade2', ['h1', 's1', 's2']);
     const h = hero('h1', { x: 4, y: 4 }, { mannedPoste: poste, conditions: [{ id: 'sonne', stacks: 1 }] } as unknown as Partial<Combatant>);
-    const s1 = hero('s1', { x: 5, y: 4 }, { kind: 'npc' } as Partial<Combatant>);
-    const s2 = hero('s2', { x: 3, y: 4 }, { kind: 'npc' } as Partial<Combatant>);
+    const s1 = hero('s1', { x: 5, y: 4 }, { kind: 'pnj' } as Partial<Combatant>);
+    const s2 = hero('s2', { x: 3, y: 4 }, { kind: 'pnj' } as Partial<Combatant>);
     const hull = mkHull([poste], { x: 4, y: 3 });
     const el = monter({ party: [h], battle: combat([h, hull, s1, s2]) });
     const btn = boutonDe(el, 'hull')!;
     expect(btn.disabled, 'le geste reste OFFERT : le Sonné garde son Mouvement').toBe(false);
     act(() => btn.click());
-    expect(useGame.getState().battle!.action, 'et il MORD (aucun clic muet)').toBe('push');
+    expect(useGame.getState().battle!.action, 'et il MORD (aucun clic muet)').toBe('poussee');
   });
 
   it('CHEF CLOUÉ (Inconscient) : le geste est REFUSÉ AVEC SA RAISON, jamais un clic muet', () => {
@@ -363,8 +364,8 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
     // au point du geste, au lieu de laisser le dispatcher rendre en silence.
     const poste = mkPoste('belier-ade2', ['h1', 's1', 's2']);
     const h = hero('h1', { x: 4, y: 4 }, { mannedPoste: poste, conditions: [{ id: 'inconscient', stacks: 1 }] } as unknown as Partial<Combatant>);
-    const s1 = hero('s1', { x: 5, y: 4 }, { kind: 'npc' } as Partial<Combatant>);
-    const s2 = hero('s2', { x: 3, y: 4 }, { kind: 'npc' } as Partial<Combatant>);
+    const s1 = hero('s1', { x: 5, y: 4 }, { kind: 'pnj' } as Partial<Combatant>);
+    const s2 = hero('s2', { x: 3, y: 4 }, { kind: 'pnj' } as Partial<Combatant>);
     const hull = mkHull([poste], { x: 4, y: 3 });
     // Un SECOND héros debout : sans lui, le groupe entier serait hors d'action et le combat se
     // terminerait (défaite) avant qu'aucune affordance ne se peigne — ce n'est pas ce qu'on mesure.
@@ -392,7 +393,7 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
     const m = hero('m1', { x: 3, y: 4 }, { mountable: true } as Partial<Combatant>);
     const el = monter({
       party: [h], battle: combat([h, m]),
-      net: { mode: 'guest', mySeat: 1, gmSeat: null, ownership: { h1: 0 } },
+      net: { mode: 'invite', mySeat: 1, gmSeat: null, ownership: { h1: 0 } },
     });
     expect(pastille(el, 'm1'), 'le héros d’un autre joueur n’ouvre pas ses gestes ici').toBeNull();
   });
@@ -448,8 +449,8 @@ describe('Pastille d’entité HORS COMBAT — à portée elle est là, et aucun
     sc.entities.push({
       id: 'coffre', kind: 'prop', pos: { x: 4, y: 3 }, label: 'Un coffre',
       usable: { actions: [
-        { id: 'fouiller', flow: { kind: 'seq', steps: [] } },
-        { id: 'forcer', label: 'Forcer le couvercle', flow: { kind: 'seq', steps: [] } },
+        { id: 'fouiller', flow: { kind: 'sequence', etapes: [] } },
+        { id: 'forcer', label: 'Forcer le couvercle', flow: { kind: 'sequence', etapes: [] } },
       ] },
     } as never);
     return sc;
@@ -515,29 +516,29 @@ describe('Pastille d’entité HORS COMBAT — à portée elle est là, et aucun
 /**
  * LA SURFACE EST LE REGISTRE (garde structurelle de `state/action-atteignabilite.test.ts`, qui tourne
  * en `node` et ne peut mesurer qu'une lecture de source). Ici, au DOM : une entrée `pastille-entite`
- * FABRIQUÉE — avec son sélecteur et son porteur — reçoit sa pastille sans qu'aucune ligne de rendu ne
- * la nomme. Débrancher le rendeur (`TokenChromeOverlay` → `PastilleEntite`) vire cette sonde rouge.
+ * FABRIQUÉE — sur un sélecteur qu'aucune entrée ne nomme (`armes-a-distance`, son candidat espionné) et son
+ * porteur — reçoit sa pastille sans qu'aucune ligne de rendu ne la nomme. Débrancher le rendeur (`TokenChromeOverlay` → `PastilleEntite`) vire cette sonde rouge.
  */
 describe('Pastille d’entité — le REGISTRE est la surface (aucun id d’action dans le rendu)', () => {
   const FABRIQUÉE: ActionDef = {
-    id: 'geste-fabrique', label: 'Geste fabriqué', icon: 'action/mount', surface: 'pastille-entite',
-    gate: 'toujours', candidates: 'candidats-fabriques', coutAction: 'gratuit',
-  } as ActionDef;
+    id: idDeFixture('action', 'geste-fabrique'), type: 'actions', label: 'Geste fabriqué', icon: 'action/monter-en-selle', surface: 'pastille-entite',
+    gate: 'toujours', candidates: 'armes-a-distance', coutAction: 'gratuit',
+  };
 
+  let espion: { mockRestore: () => void } | undefined;
   beforeEach(() => {
-    ACTION_CANDIDATES['candidats-fabriques'] = ({ battle }) => battle.combatants.filter((c) => c.id === 'cible');
-    ACTION_PORTEURS['candidats-fabriques'] = declarerPorteur([], (c) => ({ porteurId: (c as Combatant).id, args: {} }));
+    espion = vi.spyOn(ACTION_CANDIDATES, 'armes-a-distance').mockImplementation(({ battle }) =>
+      battle.combatants.filter((c) => c.id === 'cible').map((c) => ({ uid: c.id })));
     ACTIONS.push(FABRIQUÉE);
   });
   afterEach(() => {
     ACTIONS.splice(ACTIONS.indexOf(FABRIQUÉE), 1);
-    delete ACTION_CANDIDATES['candidats-fabriques'];
-    delete ACTION_PORTEURS['candidats-fabriques'];
+    espion?.mockRestore();
   });
 
   it('une entrée FABRIQUÉE reçoit sa pastille, avec son libellé et son coût, sans code', () => {
     const h = hero('h1', { x: 3, y: 3 });
-    const cible = hero('cible', { x: 4, y: 3 }, { kind: 'enemy' } as Partial<Combatant>);
+    const cible = hero('cible', { x: 4, y: 3 }, { kind: 'ennemi' } as Partial<Combatant>);
     const el = monter({ party: [h], battle: combat([h, cible]) });
     const btn = boutonDe(el, 'cible');
     expect(btn, 'l’entité désignée par le registre porte la pastille').toBeTruthy();

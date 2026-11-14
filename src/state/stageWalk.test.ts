@@ -16,7 +16,7 @@ import { chebyshev } from '../engine/grid';
 import { pushLayer, resetDismissStack } from './dismissStack';
 import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { areneCampaign, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 
 const get = useGame.getState;
@@ -60,7 +60,7 @@ afterEach(() => {
 describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
   it('armer cent fois la même direction avant la fin du glissement ne commet QU’UN pas', () => {
     const t = traceur();
-    for (let i = 0; i < 100; i++) demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    for (let i = 0; i < 100; i++) demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     t.off();
     expect(t.cases.length, 'le ré-armement doit être inerte tant que le pas est en vol').toBe(1);
     expect(marcheEnVol()).toBe(true);
@@ -68,7 +68,7 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
 
   it('maintenir trois glissements commet EXACTEMENT trois cases adjacentes, une par STEP_MS', () => {
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     expect(t.cases.length, 'le premier pas part à l’enfoncement, sans attendre').toBe(1);
     vi.advanceTimersByTime(STEP_MS - 1);
     expect(t.cases.length, 'aucun pas ne se commet PENDANT un glissement').toBe(1);
@@ -76,7 +76,7 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
     expect(t.cases.length).toBe(2);
     vi.advanceTimersByTime(STEP_MS);
     expect(t.cases.length).toBe(3);
-    arreterMarche({ vue: 'iso', dir: 'up' });
+    arreterMarche({ vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(STEP_MS * 5);
     t.off();
     expect(t.cases.length, 'relâché : le pas en vol arrive, et rien ne s’enchaîne').toBe(3);
@@ -92,9 +92,9 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
 
   it('relâcher PENDANT un glissement laisse le pas arriver, sans pas supplémentaire', () => {
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(Math.floor(STEP_MS / 2));
-    arreterMarche({ vue: 'iso', dir: 'up' });
+    arreterMarche({ vue: 'iso', dir: 'haut' });
     const arrivee = { ...get().partyPos };
     vi.advanceTimersByTime(STEP_MS * 4);
     t.off();
@@ -105,9 +105,9 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
 
   it('changer de direction pendant le glissement : le pas SUIVANT prend la nouvelle', () => {
     const depart = { ...get().partyPos };
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     const apres1 = { ...get().partyPos };
-    demarrerMarche(get, { vue: 'iso', dir: 'right' });
+    demarrerMarche(get, { vue: 'iso', dir: 'droite' });
     expect(get().partyPos, 'ré-armer ne commet rien tout de suite').toEqual(apres1);
     vi.advanceTimersByTime(STEP_MS);
     const apres2 = { ...get().partyPos };
@@ -123,14 +123,14 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
       const apres = get().partyPos;
       return { x: apres.x - avant.x, y: apres.y - avant.y };
     };
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     const versW = pas();
-    demarrerMarche(get, { vue: 'iso', dir: 'right' }); // W reste enfoncée SOUS D
+    demarrerMarche(get, { vue: 'iso', dir: 'droite' }); // W reste enfoncée SOUS D
     const versD = pas();
     expect(versD, 'la direction pressée en dernier gagne').not.toEqual(versW);
-    arreterMarche({ vue: 'iso', dir: 'right' }); // D relâchée, W toujours tenue
+    arreterMarche({ vue: 'iso', dir: 'droite' }); // D relâchée, W toujours tenue
     expect(pas(), 'lâcher D doit rendre la marche à W, encore enfoncée').toEqual(versW);
-    arreterMarche({ vue: 'iso', dir: 'up' });
+    arreterMarche({ vue: 'iso', dir: 'haut' });
     const arret = { ...get().partyPos };
     vi.advanceTimersByTime(STEP_MS * 4);
     expect(get().partyPos, 'plus rien de tenu : arrêt sur la case').toEqual(arret);
@@ -138,10 +138,10 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
 
   it('relâcher puis re-presser aussitôt ne commet AUCUN pas hors cadence', () => {
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(Math.floor(STEP_MS / 2));
-    arreterMarche({ vue: 'iso', dir: 'up' });
-    demarrerMarche(get, { vue: 'iso', dir: 'up' }); // re-pressé EN PLEIN glissement
+    arreterMarche({ vue: 'iso', dir: 'haut' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' }); // re-pressé EN PLEIN glissement
     expect(t.cases.length, 'deux cases en moins d’un glissement').toBe(1);
     vi.advanceTimersByTime(Math.ceil(STEP_MS / 2));
     t.off();
@@ -150,9 +150,9 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
 
   it('`resetStageWalk` annule le glissement EN VOL (aucun pas orphelin du timer précédent)', () => {
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     resetStageWalk();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' }); // repart d'un glissement NEUF
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' }); // repart d'un glissement NEUF
     expect(t.cases.length).toBe(2);
     vi.advanceTimersByTime(STEP_MS);
     t.off();
@@ -160,8 +160,8 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
   });
 
   it('relâcher une AUTRE direction que celle tenue ne coupe pas la marche', () => {
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
-    arreterMarche({ vue: 'iso', dir: 'down' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
+    arreterMarche({ vue: 'iso', dir: 'bas' });
     const avant = { ...get().partyPos };
     vi.advanceTimersByTime(STEP_MS);
     expect(get().partyPos, 'la direction encore tenue doit continuer').not.toEqual(avant);
@@ -176,7 +176,7 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
  */
 describe('MUR de la scène réelle (arene-hub) — la marche bute, elle ne meurt pas', () => {
   function entrerAuHub(): void {
-    useGame.setState({ party: makePregens(idsDeTest).slice(0, 1) });
+    useGame.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1) });
     expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     useGame.setState({
       screen: 'campaign', mode: 'exploration', partyPos: { x: 25, y: 23 },
@@ -190,7 +190,7 @@ describe('MUR de la scène réelle (arene-hub) — la marche bute, elle ne meurt
     let blocages = 0;
     const off = bus.on(EVT.MOVE_BLOCKED, () => { blocages += 1; });
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(2000);
     t.off();
     off();
@@ -201,10 +201,10 @@ describe('MUR de la scène réelle (arene-hub) — la marche bute, elle ne meurt
 
   it('bloqué contre le puits, CHANGER de direction repart immédiatement (sans relâcher)', () => {
     entrerAuHub();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(1000); // contre le puits depuis un moment
     expect(get().partyPos).toEqual({ x: 21, y: 19 });
-    demarrerMarche(get, { vue: 'iso', dir: 'right' }); // 2ᵉ touche pressée, la 1ᵉʳᵉ reste tenue
+    demarrerMarche(get, { vue: 'iso', dir: 'droite' }); // 2ᵉ touche pressée, la 1ᵉʳᵉ reste tenue
     vi.advanceTimersByTime(STEP_MS);
     expect(get().partyPos, 'une direction bloquée ne doit pas condamner les autres').not.toEqual({ x: 21, y: 19 });
   });
@@ -232,7 +232,7 @@ describe('FRONTIÈRE DE SCÈNE — une marche tenue ne traverse pas la transitio
   it('trigger de transition traversé touche TENUE : aucun pas AVEUGLE dans la scène d’arrivée', () => {
     useGame.getState().chargerLeProjet({ scenes: [scenePiegee('walk-a', 'walk-b'), sceneArrivee('walk-b')], entryId: 'walk-a', projet: null });
     useGame.setState({ screen: 'campaign', mode: 'exploration', partyPos: { x: 5, y: 5 }, camRot: 0, camEdge: false, viewMode: undefined, povActive: false } as never);
-    demarrerMarche(get, { vue: 'iso', dir: 'up' }); // 1ᵉʳ pas → (4,4) → trigger → scène B
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' }); // 1ᵉʳ pas → (4,4) → trigger → scène B
     expect(useGame.getState().scene?.id, 'la transition doit avoir eu lieu').toBe('walk-b');
     const arrivee = { ...useGame.getState().partyPos };
     vi.advanceTimersByTime(500); // 3 glissements de large
@@ -241,7 +241,7 @@ describe('FRONTIÈRE DE SCÈNE — une marche tenue ne traverse pas la transitio
   });
 
   it('la frontière remet les gestes vivants à zéro par UNE couture (`resetStageGestes`)', () => {
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     expect(marcheEnVol()).toBe(true);
     resetStageGestes();
     expect(marcheEnVol(), 'la marche survit à la remise à zéro des gestes de frontière').toBe(false);
@@ -251,7 +251,7 @@ describe('FRONTIÈRE DE SCÈNE — une marche tenue ne traverse pas la transitio
 describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () => {
   it('un dialogue ouvert à la 2ᵉ case : pas de 3ᵉ case', () => {
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(STEP_MS); // 2ᵉ case
     expect(t.cases.length).toBe(2);
     useGame.setState({ dialogue: { dialogue: { id: 'd', start: { id: 'n' }, nodes: [] }, nodeId: 'n' } } as never);
@@ -264,7 +264,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
 
   it('une modale du registre (cascade) ouverte à la 2ᵉ case : pas de 3ᵉ case', () => {
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(STEP_MS);
     useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'r', kind: cleDeFixture('affichage'), actorId: 'h1' }]) });
     vi.advanceTimersByTime(STEP_MS * 4);
@@ -274,7 +274,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
 
   it('une fenêtre HORS-modale (butin) ouverte à la 2ᵉ case : pas de 3ᵉ case', () => {
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(STEP_MS);
     useGame.setState({ pendingLoot: { title: 'x', gear: [] } } as never);
     vi.advanceTimersByTime(STEP_MS * 4);
@@ -287,7 +287,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
     // fenêtre ne la montre, et le registre la déclare `tientLaMain: false`.
     useGame.setState({ pendingOrders: [{ heroId: 'h1', trappingId: 'corde' }] });
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(STEP_MS * 2);
     t.off();
     expect(t.cases.length).toBe(3);
@@ -297,9 +297,9 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
     // La modale a cédé son geste à la carte (`pendingCast.pickingTargets`) : plus de fenêtre élue,
     // mais la situation TIENT la main (`MODAL_DEFS.tientLaMain`).
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(STEP_MS);
-    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'cast' }]), pendingCast: { pickingTargets: true } as never });
+    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'incantation' }]), pendingCast: { pickingTargets: true } as never });
     vi.advanceTimersByTime(STEP_MS * 4);
     t.off();
     expect(t.cases.length).toBe(2);
@@ -307,7 +307,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
 
   it('un écran PAR SIÈGE (couche posée sur la pile de ce client) à la 2ᵉ case : pas de 3ᵉ case', () => {
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(STEP_MS);
     pushLayer({ kind: 'fiche-perso', nature: 'modale', plan: 'application', onDismiss: () => {} });
     vi.advanceTimersByTime(STEP_MS * 4);
@@ -317,7 +317,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
 
   it('un POPOVER (infobulle du codex) posé à la 2ᵉ case : la 3ᵉ case est parcourue', () => {
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(STEP_MS);
     pushLayer({ kind: 'infobulle', nature: 'popover', plan: 'application', onDismiss: () => {} });
     vi.advanceTimersByTime(STEP_MS);
@@ -327,7 +327,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
 
   it('un ÉCRAN plein-champ ouvert à la 2ᵉ case : pas de 3ᵉ case', () => {
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(STEP_MS);
     useGame.setState({ screen: 'menu' } as never);
     vi.advanceTimersByTime(STEP_MS * 4);
@@ -336,23 +336,23 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
   });
 
   it('la direction coupée par une porte exige un NOUVEAU front (même loi clavier et manette)', () => {
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(STEP_MS);
     useGame.setState({ pendingLoot: { title: 'x', gear: [] } } as never);
     vi.advanceTimersByTime(STEP_MS * 2);
     useGame.setState({ pendingLoot: null } as never); // la fenêtre se referme, la direction est TOUJOURS poussée
     const arret = { ...get().partyPos };
-    demarrerMarche(get, { vue: 'iso', dir: 'up' }); // répétition de la manette : pas un front
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' }); // répétition de la manette : pas un front
     vi.advanceTimersByTime(STEP_MS * 3);
     expect(get().partyPos, 'la marche est repartie seule sans nouvelle pression').toEqual(arret);
-    arreterMarche({ vue: 'iso', dir: 'up' }); // relâchement = le front qui rouvre
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    arreterMarche({ vue: 'iso', dir: 'haut' }); // relâchement = le front qui rouvre
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     expect(get().partyPos, 'après un vrai front, la marche doit repartir').not.toEqual(arret);
   });
 
   it('un combat ouvert à la 2ᵉ case : pas de 3ᵉ case', () => {
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     vi.advanceTimersByTime(STEP_MS);
     useGame.setState({ mode: 'battle' } as never);
     vi.advanceTimersByTime(STEP_MS * 4);
@@ -362,7 +362,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
 
   it('la BASCULE de vue coupe le maintien armé par l’autre vue (aucune marche fantôme)', () => {
     const t = traceur();
-    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    demarrerMarche(get, { vue: 'iso', dir: 'haut' });
     useGame.setState({ povActive: true } as never);
     vi.advanceTimersByTime(STEP_MS * 4);
     t.off();

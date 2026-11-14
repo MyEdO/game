@@ -7,10 +7,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { Combatant } from './types';
 import { competenceEnCarriere } from './talentEffects';
-import type { TalentData } from '../data';
 import { setDataset, datasetArray } from '../data/overrides';
 
-const TALENTS_LIVRES = [...(datasetArray('talents') as TalentData[])];
+const TALENTS_LIVRES = [...datasetArray('talents')];
 
 beforeEach(() => {
   setDataset(
@@ -24,7 +23,7 @@ afterEach(() => {
   setDataset('talents', TALENTS_LIVRES);
 });
 
-const heros = { id: 'h', kind: 'hero', skills: [], talents: [{ talentId: 'artiste', times: 1 }] } as unknown as Combatant;
+const heros = { id: 'h', kind: 'heros', skills: [], talents: [{ talentId: 'artiste', times: 1 }] } as unknown as Combatant;
 
 describe('ajout de Compétence à `choix` en liste — dépliage sur la liste', () => {
   it('admet chaque spécialisation de la liste', () => {

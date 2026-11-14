@@ -16,7 +16,7 @@ export function armeDuJetDeRecharge(pr: PendingReload, tireur: Combatant): Weapo
 }
 
 /** Progrès d'un Rechargement après son jet : DR du jet + `reloadDRBonus` du tireur, vers la cible
- *  BAKÉE du pending (`pr.reload`). Lu par `jetValider('reload')` (arme et poste) et par la fenêtre.
+ *  BAKÉE du pending (`pr.reload`). Lu par `jetValider('rechargement')` (arme et poste) et par la fenêtre.
  *  LDB 62 l.335 ; LDB 12 l.170-185 ; MDG 12 l.462 */
 export function progresDeRecharge(pr: PendingReload, tireur: Combatant | undefined): ReturnType<typeof extendedTestStep> {
   const talent = pr.success && tireur ? reloadDRBonus(tireur, armeDuJetDeRecharge(pr, tireur)) : 0;
@@ -24,7 +24,7 @@ export function progresDeRecharge(pr: PendingReload, tireur: Combatant | undefin
 }
 
 /** Progrès d'une Dissipation après son jet, depuis le cumul du lanceur sur CE Sort. Lu par
- *  `jetValider('dispel')` et par la fenêtre. LDB 46 l.160 ; VDM 02 l.182-186 ; LDB 12 l.170-185 */
+ *  `jetValider('dissipation')` et par la fenêtre. LDB 46 l.160 ; VDM 02 l.182-186 ; LDB 12 l.170-185 */
 export function progresDeDissipation(pd: PendingDispel, lanceur: Combatant): { prev: number; sl: number; step: ReturnType<typeof extendedTestStep> | null } {
   const prev = lanceur.dispel?.spellId === pd.spellId && lanceur.dispel.spellCasterId === pd.spellCasterId ? lanceur.dispel.total : 0;
   if (!pd.result) return { prev, sl: 0, step: null };
@@ -35,7 +35,7 @@ export function progresDeDissipation(pd: PendingDispel, lanceur: Combatant): { p
 /** Barre de DR d'une RANGÉE à Test étendu (Peur de combat, cartographie de voyage) : cumul APRÈS son
  *  jet par le pas que son résolveur applique, borné à la cible. Cumul propre : `pasDePeur` (Sans Peur de
  *  la rangée compris). Cumul COMMUN (`extendedDrPartage`) : les jets des rangées qui la précèdent dans
- *  `bande`, puis le sien, comme `stageAggregate`. LDB 12 l.170-185 ; LDB 21 l.25 ; LDB 10 l.1051 ; EDOC 8 l.161 */
+ *  `bande`, puis le sien, comme `etapeBilan`. LDB 12 l.170-185 ; LDB 21 l.25 ; LDB 10 l.1051 ; EDOC 8 l.161 */
 export function cumulEtenduDeRangee(part: BatchParticipant, bande: readonly BatchParticipant[]): { cum: number; target: number } | undefined {
   const target = part.extendedDrTarget;
   if (target == null) return undefined;
@@ -57,7 +57,7 @@ export function progresDActivite(pa: PendingActivity): (ReturnType<typeof extend
 }
 
 /** Progrès d'une Focalisation après son jet, depuis la réserve du lanceur sur CE Sort, vers son NI : une
- *  réussite cumule son `dr`, un échec son DR brut. Lu par `jetValider('focus')` et par la fenêtre.
+ *  réussite cumule son `dr`, un échec son DR brut. Lu par `jetValider('focalisation')` et par la fenêtre.
  *  LDB 46 l.130 ; VDM 02 l.131 ; LDB 12 l.170-185 */
 export function progresDeFocalisation(pf: PendingFocus, lanceur: Combatant, ni: number): { prev: number; step: ReturnType<typeof extendedTestStep> | null } {
   const prev = lanceur.focus?.spell === pf.spellId ? lanceur.focus.dr : 0;

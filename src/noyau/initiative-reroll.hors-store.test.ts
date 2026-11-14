@@ -18,14 +18,14 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * OFF (défaut) : l'ordre d'ouverture (baseOrder) est conservé d'un Round à l'autre.
  * ON : au franchissement de Round, l'Initiative est re-tirée et l'ordre recalculé.
  */
-describe('combat-init-reroll — relance de l’Initiative par Round (LDB 13 l.43)', () => {
+describe('combat-relancer-initiative — relance de l’Initiative par Round (LDB 13 l.43)', () => {
   function openCombat() {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     seedBattleRng(777);
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
   }
 
@@ -51,8 +51,8 @@ describe('combat-init-reroll — relance de l’Initiative par Round (LDB 13 l.4
   });
 
   it('ON : l’Initiative est re-tirée et l’ordre recalculé au Round suivant (seedé, déterministe)', () => {
-    setRule('combat-init-reroll', true);
-    setRule('combat-init-method', 'roll-i'); // la relance ne varie qu'avec une méthode ALÉATOIRE (fixed-i = no-op)
+    setRule('combat-relancer-initiative', true);
+    setRule('combat-methode-initiative', 'roll-i'); // la relance ne varie qu'avec une méthode ALÉATOIRE (fixed-i = no-op)
     openCombat();
     const round1Init = initMap();
     seedBattleRng(424242);
@@ -74,8 +74,8 @@ describe('combat-init-reroll — relance de l’Initiative par Round (LDB 13 l.4
     // structure de l'ordre re-tiré importe pour la reproductibilité de la relance.
     const norm = (order: string[]) => order.map((id) => (/(^|-)hero-\d+$/.test(id) ? 'HERO' : id));
     const run = () => {
-      setRule('combat-init-reroll', true);
-      setRule('combat-init-method', 'roll-i');
+      setRule('combat-relancer-initiative', true);
+      setRule('combat-methode-initiative', 'roll-i');
       openCombat();
       seedBattleRng(20260627);
       crossRound();

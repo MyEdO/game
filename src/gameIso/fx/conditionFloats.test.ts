@@ -3,7 +3,7 @@ import { condSignature, diffConditionGains } from './useCombatFx';
 import type { Combatant } from '../../engine/types';
 
 const C = (id: string, conditions: { id: string; value: number }[]): Combatant =>
-  ({ id, name: id, kind: 'enemy', pos: { x: 3, y: 4 }, conditions }) as unknown as Combatant;
+  ({ id, name: id, kind: 'ennemi', pos: { x: 3, y: 4 }, conditions }) as unknown as Combatant;
 
 describe('diffConditionGains — flottants d’État par diff (lisibilité)', () => {
   it('État nouveau → flottant icône + nom ; empilement → valeur affichée', () => {

@@ -11,7 +11,15 @@ import type { PlayerText } from '../i18n/playerText';
 import { itemCapability } from './capabilities';
 import { effectiveChar, bonusDe } from './characteristics';
 import { assistBonus } from './tests';
-import { testStatePenalty, testStatePenaltyParts, activeCharTestMod, activeCharTestModParts, passivePartLine, isMovementSkill, isOutOfAction } from './conditions';
+import {
+  testStatePenalty,
+  testStatePenaltyParts,
+  activeCharTestMod,
+  activeCharTestModParts,
+  passivePartLine,
+  isMovementSkill,
+  isOutOfAction,
+} from './conditions';
 import { agilityTestPenalty } from './encumbrance';
 import { traumaSkillPenalty, traumaSkillPenaltyParts, passiveSkillSum, passiveSkillParts, passiveTestMod, passiveTestModParts } from './trauma';
 import type { GameOp, PairedSense } from './ops';
@@ -350,7 +358,7 @@ export interface SupportDetail {
  *  en sous-titre. `undefined` si personne ne soutient (aucune ligne « Soutien +0 » inventée).
  *  La provenance ne porte QUE des ids : le moteur est pur, et le NOM se résout au RENDU (couture
  *  unique) — un résolveur à fournir par appelant s'oublie, et l'écran affiche
- *  alors l'id brut (recette B3a, « pregen-101 »). */
+ *  alors l'id brut (recette B3a). */
 export function soutienMod(support?: SupportDetail): ModLine | undefined {
   if (!support || support.count <= 0) return undefined;
   return {

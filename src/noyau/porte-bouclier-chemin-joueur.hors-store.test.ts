@@ -32,18 +32,18 @@ const cur = (id: string): Combatant => G().battle!.combatants.find((c) => c.id =
 function ouvreParadeAuBouclier(seed: number): void {
   seedBattleRng(seed);
   const hero = blessuresSurLeProfil({
-    id: 'd1', name: 'Héros', label: 'Héros', kind: 'hero', important: true, characteristics: chars, wounds: blessuresDeBase(30),
+    id: 'd1', name: 'Héros', label: 'Héros', kind: 'heros', important: true, characteristics: chars, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [{ talentId: 'porte-bouclier', times: 1 }], traits: [], engagedWith: ['a1'], pos: { x: 5, y: 5 },
     size: 'moyenne', weapons: [SWORD, SHIELD], armour: ARM0, items: [], fate: 0, resilience: 2, criticalWounds: 0, traumas: [],
   }) as unknown as Combatant;
   const orque = blessuresSurLeProfil({
-    id: 'a1', name: 'Orque', label: 'Orque', kind: 'enemy', important: true, characteristics: chars, wounds: blessuresDeBase(PB_ORQUE),
+    id: 'a1', name: 'Orque', label: 'Orque', kind: 'ennemi', important: true, characteristics: chars, wounds: blessuresDeBase(PB_ORQUE),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: ['d1'], pos: { x: 4, y: 5 },
     size: 'moyenne', weapons: [SWORD], items: [], criticalWounds: 0, traumas: [], armour: ARM0,
   }) as unknown as Combatant;
   const battle = {
     combatants: [hero, orque], order: ['a1', 'd1'], baseOrder: ['a1', 'd1'], turn: 0, round: 1, action: null, selectedSpellId: null,
-    reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, advantagePools: { allies: RESERVE, foes: 0 },
+    reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, advantagePools: { allies: RESERVE, adversaires: 0 },
   } as unknown as BattleState;
   S({
     battle, mode: 'battle', scene: testScene(), party: [hero], pendingDefense: null, pendingAttack: null, pendingCascade: null,
@@ -52,7 +52,7 @@ function ouvreParadeAuBouclier(seed: number): void {
   expect(maybeOpenDefense(G, S, cur('a1'), cur('d1'), SWORD, { enchainement: { mode: 'aucun' } } as never)).toBe(true);
   G().jetRegler('defense', 'reaction', 'parade');
   G().jetRegler('defense', 'armeDeParade', 'sh1');
-  G().jetRegler('defense', 'porteBouclier', 'damage');
+  G().jetRegler('defense', 'porteBouclier', 'degats');
 }
 
 /** `jetValider('defense')` puis cascade vidée ; rend les bornes des tirages `rng.int` faits pendant la frappe. */
@@ -71,7 +71,7 @@ function confirme(): string[] {
 /** Frappe du bouclier : BF 4 + Dégâts 2 + DR opposé − BE 4 (PA 0), AA 13 l.84 ; LDB 13 l.151. */
 function attendFrappe(): void {
   const res = G().pendingDefense!.result!;
-  expect(res.advantageTo).toBe('defender');
+  expect(res.advantageTo).toBe('defenseur');
   expect(res.parryWeapon?.uid).toBe('sh1');
   const netSL = res.netSL;
   const tirages = confirme();
@@ -101,9 +101,9 @@ describe('Porte-bouclier — chemin joueur, arme de parade déclarée sur tout c
   it('forçage (« Je ne faillirai pas ! ») : parade au bouclier conservée, la frappe part', () => {
     ouvreParadeAuBouclier(5);
     G().jetLancer('defense');
-    expect(G().pendingDefense!.result!.advantageTo).toBe('attacker');
+    expect(G().pendingDefense!.result!.advantageTo).toBe('attaquant');
     G().jetForcerLaReussite('defense');
-    expect(G().pendingDefense!.forced).toBe(true);
+    expect(G().pendingDefense!.forcee).toBe(true);
     attendFrappe();
   });
 });

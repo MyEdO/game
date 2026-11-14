@@ -21,12 +21,13 @@ def unitaire(x):
 
 
 def points_d_attache(b, D, robe):
-    """Le point d'épaule, en haut de la robe, et le point de hanche, sur le tronc de la base au repos."""
+    """Le point d'épaule, au milieu de la crête de la robe (`CRETE`), et le point de hanche, sur le tronc de la base au
+    repos."""
     R = robe['P'][np.unique(robe['T'])]
-    haut = R[np.abs(R[:, 0] - D['EPAULE']) < 0.015]
-    epaule = haut[np.argmax(haut[:, 2])]
+    haut = R[np.abs(R[:, 0] - D['EPAULE']) < D['TRANCHE_EPAULE']]
+    epaule = haut[haut[:, 2] >= haut[:, 2].max() - D['CRETE']].mean(axis=0)
     P = np.concatenate([b.corps(z)[0] for z in D['ZONES']])
-    flanc = P[np.abs(P[:, 2] - D['HANCHE']) < 0.01]
+    flanc = P[np.abs(P[:, 2] - D['HANCHE']) < D['TRANCHE_HANCHE']]
     hanche = np.array([flanc[:, 0].max(), (flanc[:, 1].min() + flanc[:, 1].max()) / 2, D['HANCHE']])
     return epaule, hanche
 

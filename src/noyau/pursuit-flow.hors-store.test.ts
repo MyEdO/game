@@ -47,7 +47,7 @@ function heroes() {
  *  Mouvement (`sl` imposé) — sert à tester la clôture de manche (`closeSequenceRound`) sans UI. */
 function doneRound(party: { id: string }[], sl: number): MancheClose {
   const participants: CascadeStep[] = [{
-    id: 'pursuit-1', kind: 'pursuitMove', label: fixtureText('Manche 1 — Athlétisme'), aggregate: 'none',
+    id: 'pursuit-1', kind: 'mouvementDePoursuite', label: fixtureText('Manche 1 — Athlétisme'), aggregate: 'none',
     participants: party.map((h) => ({
       id: h.id, label: 'Athlétisme', base: 40, target: 40, interactive: true,
       result: { roll: 40, target: 40, sl, success: sl >= 0 },
@@ -60,9 +60,9 @@ function doneRound(party: { id: string }[], sl: number): MancheClose {
  *  charge utile ; les formules de score de camp (l.93) sont des PARAMÈTRES, comme à l'ouverture. */
 function pursuitSeq(p: Partial<PursuitPayload> & { foes: PursuitFoe[] }): EtatDeFamille<'pursuit'> {
   return {
-    def: 'pursuit', round: p.manche ?? 1, cum: {},
-    params: { score: { fleeing: 'min', pursuers: 'max' } },
-    payload: {
+    definition: 'pursuit', manche: p.manche ?? 1, cumuls: {},
+    parametres: { score: { fleeing: 'min', pursuers: 'max' } },
+    chargeUtile: {
       partyRole: 'fleeing', distance: 4, escapeAt: 10, skill: 'athletisme',
       policy: { ...PURSUIT_POLICY_DEFAUT }, manche: 1, phase: 'course', retires: [],
       ...p,
@@ -107,7 +107,7 @@ describe('Poursuite terrestre (#95)', () => {
   });
 
   it('PORTE : une référence de créature cassée est REFUSÉE à la validation (aucune stat à lire)', () => {
-    const ctx = { sceneIds: new Set<string>(), dialogueIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set<string>(), npcSheet: () => undefined, within: () => true, walkable: () => true };
+    const ctx = { sceneIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set<string>(), npcSheet: () => undefined, within: () => true, walkable: () => true };
     const eff = (creatureId: string) => ({
       type: 'startPursuit' as const, partyRole: 'fleeing' as const, distance: 4, skill: { id: 'athletisme' },
       foes: [{ ref: { id: creatureId } }],
@@ -169,7 +169,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('COOP : le coureur d’un AUTRE siège garde SA rangée à jouer, et la manche est une fenêtre de GROUPE (#1246)', () => {
     const [a, b] = heroes();
     const net0 = banc.getState().net;
-    banc.setState({ net: { ...net0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [b.id]: 1 } } as Jeu['net'] });
+    banc.setState({ net: { ...net0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [b.id]: 1 } } as Jeu['net'] });
     banc.getState().ensemencerLeTirage(7);
     startGroundPursuit(banc.getState, banc.setState, {
       partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }],
@@ -184,14 +184,14 @@ describe('Poursuite terrestre (#95)', () => {
     expect(band.groupOwner).toBe(true);
     const s = banc.getState();
     expect(modalOwnerOf(s)).toBe('*');
-    expect(intentAllowedFor(s, 1, 'jetLancer', ['cascadeBatch', b.id]), 'l’invité roule SA rangée').toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetLancer', ['cascadeBatch', a.id]), 'l’hôte roule la sienne').toBe(true);
+    expect(intentAllowedFor(s, 1, 'jetLancer', ['cascadeEnBande', b.id]), 'l’invité roule SA rangée').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetLancer', ['cascadeEnBande', a.id]), 'l’hôte roule la sienne').toBe(true);
   });
 
   it('manche gagnée par les poursuivis (poursuivants médiocres) → Distance grimpe jusqu’à l’évasion', () => {
     banc.getState().ensemencerLeTirage(3);
     const party = heroes();
-    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 8, foes: [{ label: 'Bandit', movement: 4, skill: 1 }] }) });
+    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 8, foes: [{ label: fixtureText('Bandit'), movement: 4, skill: 1 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 6));
     expect(pursuitOf(banc.getState())).toBeNull(); // dénoué
     expect(banc.getState().journal.some((l) => l.includes('semé'))).toBe(true);
@@ -200,7 +200,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('manche gagnée par les poursuivants (proie lente) → Distance ≤ 0 : le camp poursuivi DÉCIDE (l.94)', () => {
     banc.getState().ensemencerLeTirage(4);
     const party = heroes();
-    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 2, foes: [{ label: 'Cavalier', movement: 4, skill: 95 }] }) });
+    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 2, foes: [{ label: fixtureText('Cavalier'), movement: 4, skill: 95 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, -6));
     // La poursuite n'est PAS dénouée d'office : « Les poursuivis ont alors la possibilité, pour ce Round,
     // de sacrifier le plus lent d'entre eux […], ou ils peuvent s'arrêter et les affronter » (l.94).
@@ -218,7 +218,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('manche indécise → une nouvelle manche s’ouvre (la poursuite continue)', () => {
     banc.getState().ensemencerLeTirage(5);
     const party = heroes();
-    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 5, foes: [{ label: 'Bandit', movement: 4, skill: 40 }] }) });
+    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 5, foes: [{ label: fixtureText('Bandit'), movement: 4, skill: 40 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 0));
     // Distance reste dans ]0, escapeAt[ → la poursuite n’est pas dénouée, une manche rouvre.
     expect(pursuitOf(banc.getState())).not.toBeNull();
@@ -229,9 +229,9 @@ describe('Poursuite terrestre (#95)', () => {
   it('l’abandon de la séquence reste à l’hôte : refusé au siège d’un invité, et dans l’état d’un invité', () => {
     const [, b] = heroes();
     startGroundPursuit(banc.getState, banc.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }] });
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', ownership: { [b.id]: 1 } } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', ownership: { [b.id]: 1 } } });
     expect([0, 1].filter((siege) => intentAllowedFor(banc.getState(), siege, 'jetRegler', ['cascade', 'abandon', true])), 'l’hôte seul').toEqual([0]);
-    banc.setState({ net: { ...banc.getState().net, mode: 'guest' } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'invite' } });
     banc.getState().jetRegler('cascade', 'abandon', true);
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.refus.hoteSeul'));
     expect(pursuitOf(banc.getState()), 'la poursuite continue').not.toBeNull();
@@ -264,7 +264,7 @@ describe('Poursuite terrestre (#95)', () => {
       banc.setState({ sequence: null, pendingCascade: null });
       startGroundPursuit(banc.getState, banc.setState, { distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }], ...p });
       const a = sequenceAbandonOf(banc.getState)!;
-      return [a.label, a.title, a.outcome];
+      return [a.label, a.title, a.issue];
     };
     expect(libelles({ partyRole: 'pursuing' })).toEqual(['Abandonner la poursuite', 'Le groupe renonce à traquer sa proie — la poursuite est perdue.', 'abandon']);
     expect(libelles({ partyRole: 'fleeing', encounter: 'embuscade' })).toEqual(['Abandonner la fuite', 'Le groupe cesse de fuir et fait face — les poursuivants fondent sur lui.', 'abandon']);
@@ -306,7 +306,7 @@ describe('Poursuite terrestre (#95)', () => {
     const bande = () => banc.getState().pendingCascade!.participants[0].participants!;
     const jouables = bande().filter((r) => r.interactive !== false);
     expect(jouables.length, 'deux héros, deux rangées à jouer').toBe(2);
-    banc.getState().jetLancer('cascadeBatch', jouables[0].id);
+    banc.getState().jetLancer('cascadeEnBande', jouables[0].id);
     expect(sequenceAbandonOf(banc.getState)).toBeNull();
     banc.getState().jetRegler('cascade', 'abandon', true);
     expect(pursuitOf(banc.getState()), 'la poursuite continue').not.toBeNull();
@@ -337,7 +337,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('MANCHE SUIVANTE : une manche indécise rouvre UNE bande neuve, jamais la précédente rejouée', () => {
     banc.getState().ensemencerLeTirage(5);
     const party = heroes();
-    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 5, foes: [{ label: 'Bandit', movement: 4, skill: 40 }] }) });
+    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 5, foes: [{ label: fixtureText('Bandit'), movement: 4, skill: 40 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 0));
     const casc = banc.getState().pendingCascade!;
     expect(casc.participants).toHaveLength(1);
@@ -356,9 +356,9 @@ describe('Poursuite — une manche bandifiée se possède comme la manche vive',
   /** Étape MONO de manche (une par coureur), MINTÉE : la fabrique n'accepte que des produits de la
    *  porte (#1262 V2). */
   const mono = (h: Combatant, round: string): BuiltCascadeStep => monoStep({
-    id: `pursuit-${round}-${h.id}`, kind: 'pursuitMove', actor: h, icon: 'travel/foot',
+    id: `pursuit-${round}-${h.id}`, kind: 'mouvementDePoursuite', actor: h, icon: 'voyage/a-pied',
     label: fixtureText(`Manche ${round}`), rollLabel: 'Athlétisme', difficulty: 'intermediaire',
-    montee: { base: 40, target: 40 }, stake: combatStakeRef('pursuit-move', { values: { distance: 10, evasion: 3 } }),
+    montee: { base: 40, target: 40 }, stake: combatStakeRef('poursuite-manche', { values: { distance: 10, evasion: 3 } }),
   })!;
 
   it('N coureurs → fenêtre PARTAGÉE ; un seul → la manche EST la sienne', () => {
@@ -399,10 +399,10 @@ describe('Poursuite — une manche bandifiée se possède comme la manche vive',
     expect(rangee.meta, 'ni charge de rangée').toBeUndefined();
     // …et quand l'étape en porte, elles descendent (pli du socle, jamais un oubli local).
     const avecMenace = monoStep({
-      id: `pursuit-9-${a.id}`, kind: 'pursuitMove', actor: a, label: fixtureText('Manche 9'), rollLabel: 'Athlétisme',
+      id: `pursuit-9-${a.id}`, kind: 'mouvementDePoursuite', actor: a, label: fixtureText('Manche 9'), rollLabel: 'Athlétisme',
       // Tag de catalogue quelconque : ce qui est vérifié ici est le PLI DU SOCLE (le champ descend), pas la Menace.
       difficulty: 'intermediaire', montee: { base: 40, target: 40 }, menace: 'maladie', meta: { round: 9 },
-      stake: combatStakeRef('pursuit-move', { values: { distance: 10, evasion: 3 } }),
+      stake: combatStakeRef('poursuite-manche', { values: { distance: 10, evasion: 3 } }),
     })!;
     const r2 = pursuitBands([avecMenace])[0].participants![0];
     expect(r2.menace).toBe('maladie');

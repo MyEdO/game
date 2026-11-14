@@ -12,7 +12,7 @@
  */
 import { useEffect, useState, type RefObject } from 'react';
 import { useGame } from '../../state/store';
-import { eventMods, formatCombo } from '../../state/clavier/keybindings';
+import { eventMods, formatCombo, type IdDeRaccourci } from '../../state/clavier/keybindings';
 import { useDismissLayer } from '../useDismissLayer';
 import { ecouterClavier } from './interne/ecouterClavier';
 
@@ -20,14 +20,14 @@ const CODES_MODIFICATEUR = /^(Control|Alt|Shift|Meta)(Left|Right)$/;
 
 export interface RemapDeTouche {
   /** L'id du raccourci qui attend sa touche, ou `null`. */
-  readonly enCours: string | null;
+  readonly enCours: IdDeRaccourci | null;
   /** Arme le remap du raccourci `id` (un id de `KEYBINDINGS`). */
-  readonly armer: (id: string) => void;
+  readonly armer: (id: IdDeRaccourci) => void;
 }
 
 /** @param boite la surface du remap. */
 export function useRemapDeTouche(boite: RefObject<HTMLElement | null>): RemapDeTouche {
-  const [enCours, setEnCours] = useState<string | null>(null);
+  const [enCours, setEnCours] = useState<IdDeRaccourci | null>(null);
   const setKeyBinding = useGame((s) => s.setKeyBinding);
   useDismissLayer({ kind: 'remap-de-touche', nature: 'popover', plan: 'application', boite }, () => setEnCours(null), enCours !== null);
   useEffect(() => {

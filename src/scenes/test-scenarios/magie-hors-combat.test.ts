@@ -11,11 +11,11 @@ const scenarioConstruit = scenario.construire(idsDeTest);
  *  bien les 3 cas (sort d'Arcane focalisable, bénédiction de soin, Projectile magique combat-only). */
 describe('Scénario Magie hors combat', () => {
   const party = scenario.construire(idsDeTest).party;
-  const [wiz, priest] = party; // groupe construit = [wiz, priest], ordre fixé (pregenParty)
+  const [wiz, priest] = party; // groupe construit = [wiz, priest], ordre fixé (groupeDeScenario)
 
   it('est un scénario d’EXPLORATION (pas d’autoCombat)', () => {
     expect(scenario.autoCombat).toBeUndefined();
-    expect(party.every((h) => h.kind === 'hero')).toBe(true);
+    expect(party.every((h) => h.kind === 'heros')).toBe(true);
   });
 
   it('la scène compilée (buildScene) est une arène 14×9 plate, départ héros en (2,4), sans combat', () => {

@@ -6,7 +6,16 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { ciblePsy } from '../engine/psych/ciblage';
 import { psychologies } from '../data';
 import { Combatant } from '../engine/types';
-import { EtatPanel, zoneAfflictions, ETAT_ANCHOR_CRITIQUES, ETAT_ANCHOR_MALADIES, ETAT_ANCHOR_MUTATIONS, ETAT_ANCHOR_TRAUMAS, ETAT_ANCHOR_PSYCHOLOGIE, ETAT_ANCHOR_ENCOMBREMENT } from './EtatPanel';
+import {
+  EtatPanel,
+  zoneAfflictions,
+  ETAT_ANCHOR_CRITIQUES,
+  ETAT_ANCHOR_MALADIES,
+  ETAT_ANCHOR_MUTATIONS,
+  ETAT_ANCHOR_TRAUMAS,
+  ETAT_ANCHOR_PSYCHOLOGIE,
+  ETAT_ANCHOR_ENCOMBREMENT,
+} from './EtatPanel';
 import { traumaById, consolidateAmputations, traumaCharPenalties, avecSequelles } from '../engine/trauma';
 import { useGame } from '../state/store';
 import { combattantDeTest, blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -16,7 +25,7 @@ const mkHero = (mut?: (c: Combatant) => void): Combatant => {
   const c = blessuresSurLeProfil({
     id: 'h',
     name: 'H',
-    kind: 'hero',
+    kind: 'heros',
     species: 'humains-reiklander',
     career: 'soldat',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -104,8 +113,8 @@ describe('EtatPanel', () => {
     expect(html).toContain('notch-gauge__label">Corruption<');
     expect(html).toContain('aria-valuemax="3" aria-valuenow="0"'); // actives = 0
     expect(html).toContain('aria-valuemax="3" aria-valuenow="1"'); // phys : 1 mutation physique
-    // 3 seuils d'affliction loin du seuil = neutral ; la Corruption a SON ton (`corruption`), non neutral.
-    expect((html.match(/data-tone="neutral"/g) || []).length).toBe(3);
+    // 3 seuils d'affliction loin du seuil = neutre ; la Corruption a SON ton (`corruption`), non neutre.
+    expect((html.match(/data-tone="neutre"/g) || []).length).toBe(3);
     expect(html).toContain('data-tone="corruption"');
   });
 
@@ -137,7 +146,7 @@ describe('EtatPanel', () => {
     expect(html).toContain('aria-valuemax="3" aria-valuenow="4"'); // phys = 4 > BE 3
     // Ordre de rendu : sans réserve (ni Destin ni Résilience), le 1er seuil est Critiques actives (warn)
     // avant Mutations physiques (danger).
-    const tones = [...html.matchAll(/data-tone="(neutral|warn|danger)"/g)].map((m) => m[1]);
+    const tones = [...html.matchAll(/data-tone="(neutre|warn|danger)"/g)].map((m) => m[1]);
     expect(tones[0]).toBe('warn'); // Critiques actives 2/3
     expect(tones).toContain('danger'); // Mutations physiques 4/3
   });
@@ -314,7 +323,7 @@ describe('EtatPanel', () => {
       c.conditions = [{ id: 'inconscient', value: 1 } as never];
       c.activeEffects = [{
         label: 'Purifier la chair', bonus: 0, duration: { scale: 'rounds', left: 4 },
-        opsPerRound: [{ op: 'condition', id: 'inconscient', value: 1, unlessCondition: 'inconscient' }],
+        opsPerRound: [{ op: 'condition', id: { id: 'inconscient' }, value: 1, unlessCondition: { id: 'inconscient' } }],
       } as never];
     });
     const html = renderToStaticMarkup(<EtatPanel hero={hero} />);

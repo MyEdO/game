@@ -10,6 +10,7 @@
  * par jour + Effects), cible d'embuscade du « Attaqués ! », heures de voyage/jour et plafond de
  * marche forcée au niveau carte.
  */
+import type { IconId } from '../data/icons';
 import type { Scene } from './monde/scene';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
@@ -38,8 +39,8 @@ export interface MapPlace {
   scene: { id: string };
   /** Point d'arrivée nommé dans la scène (sinon heroStart). */
   entry?: string;
-  /** Icône du médaillon (id du registre src/data/icons), défaut `nav/entry-point`. */
-  icon?: string;
+  /** Icône du médaillon (id du registre src/data/icons), défaut `navigation/point-d-entree`. */
+  icon?: IconId;
   /** Profil COMMERCIAL de port (Index des ports, MDG 15 l.439-506) — présent = ce lieu est un port
    *  maritime (commerce, événements d'escale, chantier). `lighthouse` : un phare veille sur l'approche
    *  (Test de Perception d'équipage à l'atterrage, MDG 13 l.333-351). `ref` (#217) : id de
@@ -66,6 +67,10 @@ export interface MapPlace {
   /** Bande d'ambiance du hub de ce lieu (id du registre des fonds de l'hôte) — surcharge le défaut
    *  éventuel porté par le service (`lieux-services.json`, ex. auberge). Éditable dans `WorldMapEditor`. */
   backdrop?: { id: string };
+  /** Ce que le groupe voit et sait du lieu en y arrivant, lu à l'écran du lieu. */
+  prose?: string;
+  source?: SourceRef;
+  adapteDe?: SourceRef;
   /** Le lieu EXISTE-t-il sur la carte (algèbre `Condition`, cf. `evalCondition`) — axe NŒUD du gating
    *  narratif : une destination n'apparaît qu'une fois RÉVÉLÉE par le récit (`setFlag`). Absente =
    *  toujours visible. Lue par `visiblePlaces` (le rendu et le cadrage consomment la liste FILTRÉE). */
@@ -83,8 +88,8 @@ export interface PlacePoi {
   id: string;
   label: string;
   pos: { x: number; y: number };
-  /** Icône du médaillon (id du registre `src/data/icons`), défaut `nav/entry-point`. */
-  icon?: string;
+  /** Icône du médaillon (id du registre `src/data/icons`), défaut `navigation/point-d-entree`. */
+  icon?: IconId;
   sceneId?: { id: string };
   serviceKind?: { id: string };
 }
@@ -311,7 +316,7 @@ export interface ResolvedPlaceService {
   id: string;
   category: PlaceServiceCategory;
   label: string;
-  icon?: string;
+  icon?: IconId;
   desc?: string;
   port?: NonNullable<MapPlace['port']>;
   market?: LandMarketProfile;
@@ -334,23 +339,23 @@ export interface ResolvedPlaceService {
 /** Icône (id du registre `src/data/icons`) d'un service résolu : le catalogue (`lieux-services.json`) fournit
  *  la sienne via `placeServices`, sinon un défaut générique. PUR (id → id), source unique partagée par le
  *  hub, le plan et l'aperçu d'éditeur. */
-export function serviceIcon(s: ResolvedPlaceService): string {
-  return s.icon ?? 'nav/entry-point';
+export function serviceIcon(s: ResolvedPlaceService): IconId {
+  return s.icon ?? 'navigation/point-d-entree';
 }
 
 /** Résolution GÉNÉRALE de l'icône d'un marqueur de plan (#371) : l'`icon` authoré du POI PRIME (surcharge
  *  d'auteur) ; sinon l'icône se DÉRIVE de la cible — `serviceKind` → icône du service résolu (`serviceIcon`),
- *  `sceneId` → porte. Défaut ultime `nav/entry-point`. Aucun backfill de donnée : la résolution couvre tout
+ *  `sceneId` → porte. Défaut ultime `navigation/point-d-entree`. Aucun backfill de donnée : la résolution couvre tout
  *  lieu présent et futur. PUR, source unique des marqueurs du hub, du panneau de détail et de l'éditeur. */
-export function poiIcon(poi: PlacePoi, services: ResolvedPlaceService[]): string {
+export function poiIcon(poi: PlacePoi, services: ResolvedPlaceService[]): IconId {
   if (poi.icon) return poi.icon;
   const service = poi.serviceKind;
   if (service) {
     const svc = services.find((s) => s.id === service.id);
     if (svc) return serviceIcon(svc);
   }
-  if (poi.sceneId) return 'map-tool/door';
-  return 'nav/entry-point';
+  if (poi.sceneId) return 'outil-de-carte/porte';
+  return 'navigation/point-d-entree';
 }
 
 /** id STABLE du marchand VIRTUEL d'un service de lieu (#369) : le service de catalogue (forgeron…) n'a
@@ -418,7 +423,7 @@ export function placeServices(place: MapPlace, scene?: Scene, reposIci?: RestPla
     }
   }
   // Couchage À LA POSITION du groupe (`reposIci`, camp/maison) sans auberge : service « Repos » de repli.
-  if (reposIci && !out.some((sv) => sv.category === 'auberge')) out.push({ id: 'repos', category: 'auberge', label: t('lieu.repos'), icon: 'nav/rest', rest: reposIci });
+  if (reposIci && !out.some((sv) => sv.category === 'auberge')) out.push({ id: 'repos', category: 'auberge', label: t('lieu.repos'), icon: 'navigation/repos', rest: reposIci });
   return out;
 }
 
@@ -592,7 +597,7 @@ export interface ProjectIdentite {
   type: 'projet';
   id: string;
   label: string;
-  icon?: string;
+  icon?: IconId;
   /** Numéro de CONTENU de l'auteur, jamais un numéro de forme. */
   versionContenu: number;
   desc?: string;
@@ -655,8 +660,9 @@ export function documentDeProjet(
   };
 }
 
-/** Vue TS du document PROUVÉ par `projetSchema`. La fabrique `document()` scelle ses nœuds — `z.infer`
- *  y vaut `unknown` (cf. `grammaire/document.ts`) —, la vue se pose donc ici, une fois. */
+/** Vue TS du document PROUVÉ par `projetSchema`. Le type se dérive par `DatasetDe`/`EntreeDe`
+ *  (`data/datasets.ts`) ; la vue `ProjectDoc` reste parce qu'aucun sens d'assignation ne tient entre
+ *  elle et le dérivé (`layers` optionnel au schéma, requis dans `Scene` ; `effectZones` divergent). */
 type ProjetProuve = { [K in keyof ProjectDoc]: ProjectDoc[K] };
 
 /** Étape de la porte qui a refusé : document d'un autre format ou mal formé (`projetSchema`), prose

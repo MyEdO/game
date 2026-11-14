@@ -49,24 +49,24 @@ describe('garde-fou RevealEntry — un kind déclaré = un kind émis (#942 L0)'
     const found = (src: string) => scanRevealProducers('src/x.ts', src).map((p) => `${p.forme}:${p.kind}`);
     expect(found("pushReveal(set, {\n  kind: 'round', title: 'A', lines: [],\n});")).toEqual(['1:round']);
     expect(found("env.pushReveal({ kind: 'effet', title: 'A', lines: [] });")).toEqual(['1:effet']);
-    expect(found("const r: RevealEntry = { kind: 'miscast', title: 'A', lines: [] };")).toEqual(['2:miscast']);
-    expect(found("export function f(t: X): RevealEntry {\n  return { kind: 'critical', lines: [] };\n}")).toEqual(['3:critical']);
+    expect(found("const r: RevealEntry = { kind: 'incantationImparfaite', title: 'A', lines: [] };")).toEqual(['2:incantationImparfaite']);
+    expect(found("export function f(t: X): RevealEntry {\n  return { kind: 'critique', lines: [] };\n}")).toEqual(['3:critique']);
     // Le kind d'ENTRÉE DE ZONE passe lui aussi par l'émetteur unique, sous garde du message de scène.
     // L'échantillon n'est pas RÉÉCRIT ICI : il est LU dans `entreeEnScene.ts`, donc un renommage de champ
     // ou un déplacement de l'émission rougit ce cas au lieu de laisser vivre un littéral périmé.
     const emissions = readFileSync(join(ROOT, 'src/noyau/entreeEnScene.ts'), 'utf8')
-      .split('\n').filter((l) => l.includes("kind: 'sceneEntry'")).map((l) => l.trim());
+      .split('\n').filter((l) => l.includes("kind: 'entreeEnScene'")).map((l) => l.trim());
     expect(emissions.length, 'entreeEnScene.ts doit porter les émissions d’entrée de zone').toBeGreaterThan(0);
     for (const l of emissions) {
       expect(l, 'le titre de la carte d’entrée est le LIBELLÉ de la scène visée').toMatch(/title: \w+\.label,/);
-      expect(found(l)).toEqual(['1:sceneEntry']);
+      expect(found(l)).toEqual(['1:entreeEnScene']);
     }
     // TABLEAU annoté : chaque entrée est un producteur.
     expect(found("const q: RevealEntry[] = [{ kind: 'round', lines: [] }, { kind: 'effet', lines: [] }];")).toEqual(['2:round', '2:effet']);
     // RECORD de FABRIQUES annoté par son type de retour.
     expect(found("const F: Record<string, () => RevealEntry> = { a: () => ({ kind: 'mutation', lines: [] }) };")).toEqual(['2:mutation']);
     // FLÈCHE annotée.
-    expect(found("const g = (t: X): RevealEntry => ({ kind: 'critical', lines: [] });")).toEqual(['3:critical']);
+    expect(found("const g = (t: X): RevealEntry => ({ kind: 'critique', lines: [] });")).toEqual(['3:critique']);
     // Un appel par VARIABLE n'est pas un producteur (c'est la variable annotée qui l'est).
     expect(found('pushReveal(set, entry);')).toEqual([]);
   });

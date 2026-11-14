@@ -52,7 +52,7 @@ const COUVERT_AILLEURS = new Map<string, string>([
   ['Salive anticoagulante', 'Hémorragique sur Morsure — `effects` AUTHORÉ (condition hemorragique, fireTriggers onHit)'],
   ['Hallucinogène', 'aura 2 m au début du Round → Test de FM → Sonné — `effects` AUTHORÉ (déclencheur onRoundStart near, fireTriggers)'],
   ['Forme de guerrière naïade', 'socle Peur 2 + Armure 2 à onCombatStart (grantTrait, `effects`) ; les 4 aspects tournants restent en desc (choix par Round = hook IA à câbler)'],
-  ['Capricieux', 'DR d’un Test de Sociabilité ENVERS la créature ±d10 (MSRC 15 l.151) MÉCANISÉ : modulateur `vsCapricieux` du Test social → `capriciousDR` (delta de DR, d10 seedé UNE fois dans `openSkillTest`, appliqué au DR du Test résolu par `FLOWS.test`) ; authoré sur le Test d’un dialogue mené avec la créature, comme vsGroups (Animosité) / vsStatus (Statut) le sont (le contexte social de l’interlocuteur est authoré, pas auto-injecté depuis l’entité)'],
+  ['Capricieux', 'DR d’un Test de Sociabilité ENVERS la créature ±d10 (MSRC 15 l.151) MÉCANISÉ : modulateur `vsCapricieux` du Test social → `tirerLeCapricieux` (delta de DR de la table `capricieux.json`, tirée UNE fois dans `openSkillTest`, appliqué au DR du Test résolu par `FLOWS.test`) ; authoré sur le Test d’un dialogue mené avec la créature, comme vsGroups (Animosité) / vsStatus (Statut) le sont (le contexte social de l’interlocuteur est authoré, pas auto-injecté depuis l’entité)'],
   // Psychologie — engine/psychology.ts (parsePsychTraits)
   ['Peur', 'causesPeur (parsePsychTraits)'],
   ['Terreur', 'causesTerreur (parsePsychTraits)'],
@@ -132,7 +132,7 @@ const DISPATCH = new Set<string>([
   // NE réveille PAS une proie endormie (Inconscient magique) quand CETTE créature l'attaque (morsure indolore),
   // là où toute autre attaque la réveille. Dispatché (capability lue par le modifier).
   'Salive analgésique',
-  // Métamorphose (Enfant d'Ulric, Middenheim p.116) : le trait `grantsManeuvers` DEUX manœuvres `targeting:'self'`
+  // Métamorphose (Enfant d'Ulric, Middenheim p.116) : le trait `grantsManeuvers` DEUX manœuvres `ciblage:'soi'`
   // (forme hybride / forme humaine) portant les ops `transform`/`endTransform` — bascule de profil DELTA (tableau RAW
   // VERBATIM), Traits hybrides et apparence, PERSISTANTE et réversible, au prix de DEUX Actions (loseTurn). Activée
   // par le JOUEUR via `manoeuvrerSurSoi` (hotbar). Dispatché (grantsManeuvers). Auto-transformation de l'IA à câbler.

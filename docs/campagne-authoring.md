@@ -18,7 +18,8 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
   (`src/ui/editor/Editor.tsx`, `exportDepot` ; garde `src/ui/editor/export-forme-depot.test.tsx`).
   « Fichier → Exporter JSON » télécharge l'export portable `<id du projet>-projet.json`, libellé de la
   copie de travail. Les deux passent la porte du document (`parseProject`). Tout paquet neuf se
-  déclare dans `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` (volet couverture). Modèle :
+  déclare dans `PROJETS_MANUSCRITS` de `scripts/guards/lib/projetsLivres.mjs` (volet couverture de
+  `src/scenes/generateurs-byte-stables.test.ts`). Modèle :
   `src/scenes/diligence/`.
 - **Chargement et validation** : `parseProject()` (`src/noyau/worldMap.ts`) est la porte UNIQUE — relit
   le JSON, résout les réfs sparse (ports, cf. §5), refuse un document mal formé. `validateScene()`
@@ -122,8 +123,8 @@ surplus depuis le catalogue. Des champs locaux surchargent le catalogue port par
 
 ## 6. Postes d'artillerie par référence (`poste`, #222)
 
-`poste(trappingId, side, crewIds?)` de la lib émet la forme de RÉFÉRENCE `{ trappingId, uid, side,
-crewIds }`. La base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée : elle est HYDRATÉE au spawn
+`poste(trappingId, side, crewIds?)` de la lib émet la forme de RÉFÉRENCE `{ trappingId, side,
+crewIds }` ; l'uid de la pièce se dérive de sa place sur son porteur au spawn (#2907). La base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée : elle est HYDRATÉE au spawn
 depuis `trappingId` par `hydratePoste()` (`src/engine/items.ts`). `trappingId` doit désigner une pièce
 POSABLE (trapping de sous-type `armes-de-siege`, `siegeEngines()`) sinon `throw`. `crewIds` vide = poste servable en jeu par un
 héros adjacent (`serveAtPoste()`, `src/noyau/monde/shipPostes.ts`) — aucun id de héros n'est connu à l'authoring.
@@ -379,7 +380,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   Condition et d'Effet du paquet par l'énumérateur unique `sitesDuPaquet`
   (`src/data/schemas/defs-scenes/sites-de-paquet.ts` : `when` des déclencheurs, choix, lieux, routes et
   clôture ; racines de Flow — déclencheurs, actions d'entité, choix de dialogue, `onVictory` — avec leurs
-  `if`, `gate`/`difficultyBy` de `test`, feuilles et Flows portés ; `crossTest` des zones ; périls de
+  `si`, `gate`/`difficultyBy` de `test`, feuilles et Flows portés ; `crossTest` des zones ; périls de
   route), `indices[].affaireId` et `stades[].documentId` du narratif. Une référence `etat` est en outre
   confrontée à la forme de son état (`fautesDUsageDEtat`). Tous ses lecteurs le partagent : la FK de `projetSchema` (`refsNarrativesPendantes`, scènes
   et carte), le raffinage de `narratifSchema` (références internes au narratif), le contrat des
@@ -403,7 +404,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   `documentDeProjet` (`src/noyau/worldMap.ts`) : l'éditeur y passe, et les générateurs y délèguent par
   `projectDoc` (`scripts/campagne/lib.mjs`). Les paquets committés (corpus `listerProjetsLivres`,
   `scripts/guards/lib/projetsLivres.mjs`) sont produits par un générateur, sauf ceux nommés dans
-  `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` — « La Diligence »
+  `PROJETS_MANUSCRITS` du même module — « La Diligence »
   (`src/scenes/diligence/diligence-projet.json`, doctrine `user-doctrine-campagne-jamais-generee-par-script`) ;
   tous passent `parseProject` et `validateScene` en CI (`src/scenes/bundled-projects.test.ts`).
   Un Effect `document` désigne son entrée du registre `narratif.documents` par `{ documentId }` (#679).
@@ -499,7 +500,7 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
   au lieu de le perdre. `ChapterRecapScreen` en dérive PX du chapitre, chronique, tombés en chemin et
   lieux révélés, puis enchaîne sur la fin de séance que le récap ouvre avec lui (`finDeSeance`, même
   formulaire que le menu système, `useSessionEnd`), terminée par sa validation
-  `fenetreValider('chapterRecap')`. Aucun journal parallèle n'est écrit.
+  `fenetreValider('finDeChapitre')`. Aucun journal parallèle n'est écrit.
 - **Édition.** Onglet « Cadre » du `NarratifEditor` (champs texte, pitch, ambiance, `ConditionEditor`
   pour la clôture) — le cadre est de la DONNÉE de campagne, jamais du texte au catalogue i18n.
 

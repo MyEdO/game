@@ -18,7 +18,7 @@ function combat(heroOver: Partial<Combatant> = {}) {
   H.fortune = 0; H.resolve = 0; H.resilience = 0; H.advantage = 0;
   Object.assign(H, heroOver);
   const E: Combatant = JSON.parse(JSON.stringify(H));
-  E.id = 'enemy-0'; E.label = 'Brigand'; E.kind = 'enemy'; E.fortune = 0; E.advantage = 0; E.psychState = [];
+  E.id = 'enemy-0'; E.label = 'Brigand'; E.kind = 'ennemi'; E.fortune = 0; E.advantage = 0; E.psychState = [];
   const battle: BattleState = {
     combatants: [H, E], order: [H.id, E.id], turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,

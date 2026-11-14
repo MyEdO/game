@@ -21,6 +21,7 @@
  *  - Dehors : Exposition (LDB 18 l.327-334 — engine/exposure) selon `activeExposureSeverity` (combatFlow) ;
  *  - Faim (LDB 18 l.337-343) : un héros sans pitance ne récupère pas (engine/provisions).
  */
+import type { IconId } from '../data/icons';
 import type { Combatant } from '../engine/types';
 import type { RNG } from '../engine/dice';
 import type { RollBreakdown } from '../engine/combat';
@@ -32,13 +33,31 @@ import { HEAL_SKILL } from '../engine/healing';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
 import { addCondition, loseWounds } from '../engine/conditions';
 import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, type RestRoll } from '../engine/rest';
-import { rollContraction, diseaseDefs, contagiousDiseases, contractionDue, applyContraction, applyDiseaseGangrene, diseaseTestModLines } from '../engine/disease';
+import {
+  rollContraction,
+  diseaseDefs,
+  contagiousDiseases,
+  contractionDue,
+  applyContraction,
+  applyDiseaseGangrene,
+  diseaseTestModLines,
+} from '../engine/disease';
 import { applyOps } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { type Difficulty } from '../engine/types';
 import { applyFractureEnd } from '../engine/trauma';
 import type { DeferredUpkeepTest } from './upkeep';
-import { exposureTestCount, expireOnRespite, exposureShelterFromTent, applyExposureFailure, exposureCoatMods, heaviestPossession, dropHeaviestPossession, type ExposureSeverity, type ExposureKind } from '../engine/exposure';
+import {
+  exposureTestCount,
+  expireOnRespite,
+  exposureShelterFromTent,
+  applyExposureFailure,
+  exposureCoatMods,
+  heaviestPossession,
+  dropHeaviestPossession,
+  type ExposureSeverity,
+  type ExposureKind,
+} from '../engine/exposure';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { applyForcedMarch } from '../engine/travel';
 import { startCascade, runCascadeImmediate } from './cascade';
@@ -102,7 +121,7 @@ export function routeLieu(worldMap: WorldMap, plan: { fromPlaceId: string; toPla
 export interface NightEntry {
   id?: string;
   actorId?: string;
-  icon?: string;
+  icon?: IconId;
   label: string;
   /** Jet affiché en RollLine (base + mods = cible · d100 · DR). */
   d?: RollBreakdown;
@@ -115,7 +134,7 @@ export interface NightEntry {
   tone?: RecapTone;
   /** Type de jet HÉROS de `sleepParty` (chemin EAGER — cheat `reposerLeGroupe`, clôture d'interlude) —
    *  décoratif hors de ces deux chemins. */
-  reKind?: 'recovery' | 'nightmare';
+  reKind?: 'recuperation' | 'cauchemar';
   /** Relance de Chance déjà consommée sur CETTE ligne (LDB 12 l.40 : une relance max par Test). */
   rerolled?: boolean;
   /** ENJEU du jet consigné (#1117 L1b) — la RÉFÉRENCE de donnée, jamais un texte : l'entrée de PV
@@ -201,7 +220,7 @@ export function sleepParty(
     // — branche I du seam), il ne les roule pas lui-même et ne saute aucune fenêtre qui existerait.
     const deferred: DeferredUpkeepTest[] = [];
     for (const text of runDailyUpkeep(get, set, { caredFor, fedDaily: opts.fedDaily, onDeferTest: (d) => deferred.push(d) })) {
-      entries.push({ actorId: get().party.find((h) => text.startsWith(h.label))?.id, icon: 'time/calendar', label: 'Entretien quotidien', text, tone: 'info' });
+      entries.push({ actorId: get().party.find((h) => text.startsWith(h.label))?.id, icon: 'temps/calendrier', label: 'Entretien quotidien', text, tone: 'neutre' });
     }
     const steps = nightBands(deferredUpkeepSteps(get().party, deferred));
     if (steps.length && !runCascadeImmediate(get, set, steps)) return entries;
@@ -217,22 +236,22 @@ export function sleepParty(
       entries.push({
         id: `${h.id}-${r.kind}-${ri}`,
         actorId: h.id,
-        icon: r.kind === 'recovery' ? 'rest/bed' : 'creature/scream',
-        label: r.kind === 'recovery' ? t('step.recuperation') : t('rf.nightmaresLabel'),
+        icon: r.kind === 'recuperation' ? 'repos/lit' : 'creature/hurlement',
+        label: r.kind === 'recuperation' ? t('step.recuperation') : t('rf.nightmaresLabel'),
         // Mêmes Difficultés que les étapes de la cascade de nuit (chemin influençable) — la ligne les DIT.
-        d: { label: r.kind === 'recovery' ? SKILL_RESISTANCE() : SKILL_CALME(), base: r.base, difficulty: r.kind === 'recovery' ? 'accessible' : 'facile', modifier: r.target - r.base, target: r.target, roll: r.roll, success: r.success, sl: r.sl },
-        tone: r.success ? 'ok' : 'bad',
+        d: { label: r.kind === 'recuperation' ? SKILL_RESISTANCE() : SKILL_CALME(), base: r.base, difficulty: r.kind === 'recuperation' ? 'accessible' : 'facile', modifier: r.target - r.base, target: r.target, roll: r.roll, success: r.success, sl: r.sl },
+        tone: r.success ? 'reussite' : 'echec',
         reKind: r.kind,
       });
     });
-    for (const line of log) entries.push({ actorId: h.id, icon: 'rest/bed', label: t('rf.nuit'), text: line.replace(`${h.label} `, ''), tone: 'info' });
+    for (const line of log) entries.push({ actorId: h.id, icon: 'repos/lit', label: t('rf.nuit'), text: line.replace(`${h.label} `, ''), tone: 'neutre' });
     journal.push(...log);
   }
 
   // Contagion de promiscuité (chambrée/campement — Toux et éternuements, LDB 20 l.206) : 1 Test de Contraction par nuit de repos.
-  // Règle optionnelle « Utilisation des Maladies » : désactivée si disease-mode = off.
-  for (const c of rule('disease-mode') === 'off' ? [] : runContagion(party, n, rng)) {
-    entries.push({ actorId: c.actorId, icon: 'medical/infection', label: t('rf.contagionLabel', { disease: diseaseLabel(c.dz) }), text: c.log.join(' '), tone: 'bad' });
+  // Règle optionnelle « Utilisation des Maladies » : désactivée si maladie-mode = off.
+  for (const c of rule('maladie-mode') === 'off' ? [] : runContagion(party, n, rng)) {
+    entries.push({ actorId: c.actorId, icon: 'medical/infection', label: t('rf.contagionLabel', { disease: diseaseLabel(c.dz) }), text: c.log.join(' '), tone: 'echec' });
     journal.push(...c.log);
   }
 
@@ -307,9 +326,9 @@ function buildExposureBand(party: Combatant[], camperIds: string[], count: numbe
     // (`testValue`, États compris — `LDB 16 l.125`). La pénalité maison « sans manteau » pèse SUR LA
     // CIBLE, en ligne nommée (`exposureCoatMods`), plus fondue par un helper.
     const coat = exposureCoatMods(h).mods ?? [];
-    const st = monoStep({ id: `expo-${id}`, kind: 'exposure', actor: h, label: t('step.exposition'), icon: 'rest/cold',
+    const st = monoStep({ id: `expo-${id}`, kind: 'exposition-nocturne', actor: h, label: t('step.exposition'), icon: 'repos/froid',
       rollLabel: SKILL_RESISTANCE(), difficulty: 'intermediaire',
-      stake: nightStakeRef('exposure'),
+      stake: nightStakeRef('exposition-nocturne'),
       ligne: { test: { skill: { id: 'resistance' } }, surLaCible: coat } });
     pousseSi(steps, st);
   }
@@ -338,7 +357,7 @@ const appliquerLExposition = bandeDeNuit((_get, _set, band, row, hero) => {
   // immédiate, comportement inchangé.
   const heavy = kind === 'chaleur' ? heaviestPossession(hero) : undefined;
   const drop = heavy ? choiceStep({
-    id: `${band.id}-${row.id}-drop`, kind: 'exposure-heat-drop', actorId: hero.id, icon: 'item/misc',
+    id: `${band.id}-${row.id}-drop`, kind: 'exposition-delestage', actorId: hero.id, icon: 'objet/divers',
     label: t('step.possessionLourde'),
     options: [{ key: 'jeter', label: t('opt.jeter', { quoi: heavy.label }) }, { key: 'garder', label: t('opt.garderPaquetage') }],
     defaultChoice: 'garder', // consommé par `runCascadeImmediate` (repos multi-jours) — `resolveRemainingCascade`
@@ -362,9 +381,9 @@ const appliquerLExposition = bandeDeNuit((_get, _set, band, row, hero) => {
 });
 
 /** Icône d'étape de cascade par `kind` de Test d'entretien différé. */
-const UPKEEP_STEP_ICON: Record<string, string> = {
-  faim: 'rest/feast', 'disease-tick': 'medical/infection', 'disease-gangrene': 'medical/infection', 'disease-persist': 'medical/infection',
-  'trauma-fracture': 'medical/crutch', contagion: 'medical/infection',
+const UPKEEP_STEP_ICON: Record<string, IconId> = {
+  faim: 'repos/repas-fait-maison', 'maladie-test-quotidien': 'medical/infection', 'maladie-gangrene': 'medical/infection', 'maladie-persistance': 'medical/infection',
+  'convalescence-fracture': 'medical/bequille', contagion: 'medical/infection',
 };
 
 /** Convertit les Tests d'entretien DIFFÉRÉS (`runDailyUpkeep` onDeferTest — Faim/Soif/maladie/
@@ -379,7 +398,7 @@ export function deferredUpkeepSteps(party: Combatant[], deferred: DeferredUpkeep
     const st = monoStep({ id: `${t.kind}-${t.heroId}-${startIndex + steps.length}`, kind: t.kind, actor: h, label: dataLabel(t.label),
       // La compétence se DÉRIVE des ids quand le producteur les porte (Dessoûlage = Résistance à
       // l'alcool, LDB 09 l.485) ; sans ids, le repli reste la Résistance de l'entretien (LDB 18 l.338).
-      icon: UPKEEP_STEP_ICON[t.kind] ?? 'nav/dice', rollLabel: testSkillLabel(t.test ?? {}) ?? SKILL_RESISTANCE(),
+      icon: UPKEEP_STEP_ICON[t.kind] ?? 'navigation/des', rollLabel: testSkillLabel(t.test ?? {}) ?? SKILL_RESISTANCE(),
       difficulty: t.difficulty,
       // L'ENTRÉE JOUÉE (le symptôme dû ce jour) entre dans la clé : le renvoi descend à SA fiche.
       stake: nightStakeRef(t.kind, symptomOf(t.meta as CascadeStepMeta | undefined)),
@@ -431,9 +450,9 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   for (const id of p.travelMarch ?? []) {
     const h = party.find((x) => x.id === id);
     if (!h || h.dead) continue;
-    const st = monoStep({ id: `march-${id}`, kind: 'forced-march', actor: h, label: t('step.marcheForcee'), icon: 'travel/foot',
+    const st = monoStep({ id: `march-${id}`, kind: 'marche-forcee', actor: h, label: t('step.marcheForcee'), icon: 'voyage/a-pied',
       rollLabel: SKILL_RESISTANCE(), difficulty: 'intermediaire',
-      stake: nightStakeRef('forced-march'),
+      stake: nightStakeRef('marche-forcee'),
       ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } } });
     pousseSi(steps, st);
   }
@@ -465,9 +484,9 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
     } else {
       const best = partyAssisted(party, { skill: { id: 'survie-en-exterieur' } }); // Soutien (LDB 12)
       if (best) {
-        const st = monoStep({ id: 'abri', kind: 'shelter', actor: best.actor, label: t('step.abriDeFortune'), icon: 'rest/camp',
+        const st = monoStep({ id: 'abri', kind: 'abri-de-fortune', actor: best.actor, label: t('step.abriDeFortune'), icon: 'repos/campement',
           rollLabel: refLabel('skills', { id: 'survie-en-exterieur' }), difficulty: 'intermediaire',
-          stake: nightStakeRef('shelter'),
+          stake: nightStakeRef('abri-de-fortune'),
           // `best.value` porte le Soutien FONDU : le monteur le ressort en ligne NOMMÉE (LDB 12 l.187-200),
           // et décompose le reste en Niveau de Compétence nu + composantes.
           ligne: { test: { skill: { id: 'survie-en-exterieur' } }, valeur: best.value, soutien: best.support },
@@ -478,7 +497,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
         if (count > 0) steps.push(...buildExposureBand(party, camperIds, count));
       }
     }
-    for (const h of campers) expireOnRespite(h, get().gameTime + Number(rule('exposure-expire-hours')) * 60); // dissipation maison
+    for (const h of campers) expireOnRespite(h, get().gameTime + Number(rule('exposition-dissipation-heures')) * 60); // dissipation maison
   }
 
   // Récupération + cauchemars : un jet = une étape ; sans jet (PB plein/affamé/instable) → eager.
@@ -486,9 +505,9 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
     if (h.dead) continue;
     if (needsRecoveryRoll(h)) {
       // Récupération = « Test de Résistance Accessible (+20) » (`LDB 18 l.296`) : valeur de la porte.
-      const st = monoStep({ id: `recov-${h.id}`, kind: 'recovery', actor: h, label: t('step.recuperation'), icon: 'rest/bed',
+      const st = monoStep({ id: `recov-${h.id}`, kind: 'recuperation', actor: h, label: t('step.recuperation'), icon: 'repos/lit',
         rollLabel: SKILL_RESISTANCE(), difficulty: 'accessible',
-        stake: nightStakeRef('recovery'),
+        stake: nightStakeRef('recuperation'),
         ligne: { test: { skill: { id: 'resistance' } } } });
       pousseSi(steps, st);
     } else {
@@ -498,9 +517,9 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
       if (wokeUp) log.push(t('heal.awake', { name: h.label }));
     }
     if (h.nightmares) {
-      const st = monoStep({ id: `nm-${h.id}`, kind: 'nightmare', actor: h, label: t('step.cauchemars'), icon: 'creature/scream',
+      const st = monoStep({ id: `nm-${h.id}`, kind: 'cauchemar', actor: h, label: t('step.cauchemars'), icon: 'creature/hurlement',
         rollLabel: SKILL_CALME(), difficulty: 'facile',
-        stake: nightStakeRef('nightmare'),
+        stake: nightStakeRef('cauchemar'),
         // Cauchemars = « Test de Calme Facile (+40) » (`LDB 21 l.95`) : valeur de la porte, États compris.
         ligne: { test: { skill: { id: 'calme' } } } });
       pousseSi(steps, st);
@@ -660,7 +679,7 @@ export function choixDuRepos(get: Get, set: Set) {
     set({ pendingRest: { ...p, perHero: { ...p.perHero, [pid]: { ...p.perHero[pid], ...patch } } } });
   };
   return {
-    rest: {
+    repos: {
       couchage: (lodging, pid) => regler(pid, { lodging }),
       pitance: (food, pid) => regler(pid, { food }),
     },
@@ -673,7 +692,7 @@ export function noteDAubergeCouverte(s: Pick<Jeu, 'pendingRest' | 'party'>): boo
 }
 
 /** Dormir : paie (RAW ch.66), nourrit, puis ouvre la CHAÎNE de cascades de nuit (#347, `openRestNight`). Corps de la
- *  validation du repos (`fenetreValider('rest')`), que l'hôte joue au quorum, la note couverte. */
+ *  validation du repos (`fenetreValider('repos')`), que l'hôte joue au quorum, la note couverte. */
 function dormir(get: Get, set: Set): void {
   const p = get().pendingRest!;
   const rng = battleRng();
@@ -713,15 +732,23 @@ function dormir(get: Get, set: Set): void {
   openRestNight(get, set, p, p.days, extraContagion);
 }
 
-/** Titre de la nuit — le couchage RÉELLEMENT choisi (pas l'OFFRE du lieu) : tout le monde dehors →
- *  Campement, même si une auberge était dispo (le joueur a choisi la belle étoile). Identique pour
+/** Le toit d'une nuit : l'auberge, un logis, le bord, ou le campement. */
+export type ToitDeLaNuit = 'auberge' | 'maison' | 'bord' | 'campement';
+
+/** Le toit de la nuit — le couchage RÉELLEMENT choisi (pas l'OFFRE du lieu) : tout le monde dehors →
+ *  campement, même si une auberge était dispo (le joueur a choisi la belle étoile). Identique pour
  *  toutes les nuits d'un repos multi-jours (les choix de couchage ne changent pas en cours de séjour). */
-export function nightTitle(p: PendingRest, party: Combatant[]): string {
+export function toitDeLaNuit(p: PendingRest, party: Combatant[]): ToitDeLaNuit {
   const lodgings = party.filter((h) => !h.dead && p.perHero[h.id]).map((h) => p.perHero[h.id].lodging);
-  return lodgings.some((l) => l === 'privee' || l === 'commune') ? t('rf.nightInn')
-    : lodgings.some((l) => l === 'maison') ? t('rf.nightHome')
-    : lodgings.some((l) => l === 'bord') ? t('rf.nightAboard')
-    : t('rf.nightCamp');
+  return lodgings.some((l) => l === 'privee' || l === 'commune') ? 'auberge'
+    : lodgings.some((l) => l === 'maison') ? 'maison'
+    : lodgings.some((l) => l === 'bord') ? 'bord'
+    : 'campement';
+}
+
+/** Titre de la nuit, d'après son toit (`toitDeLaNuit`). */
+export function nightTitle(p: PendingRest, party: Combatant[]): string {
+  return t(({ auberge: 'rf.nightInn', maison: 'rf.nightHome', bord: 'rf.nightAboard', campement: 'rf.nightCamp' } as const)[toitDeLaNuit(p, party)]);
 }
 
 /** Ouvre (ou enchaîne) UNE nuit de repos (#347) : reconstruit `buildNightCascade` pour CETTE nuit et
@@ -739,7 +766,7 @@ export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: nu
   const isLast = remaining <= 0;
   if (steps.length) {
     startCascade(get, set, {
-      title: nightTitle(p, get().party), icon: 'time/night', purpose: isLast && p.travelHalt ? 'travel' : 'night',
+      title: nightTitle(p, get().party), icon: 'temps/nuit', purpose: isLast && p.travelHalt ? 'travel' : 'night',
       travelHalt: isLast ? p.travelHalt : undefined, steps, log, restNights: { p, nightsLeft: remaining },
     });
   } else if (remaining > 0) {
@@ -759,13 +786,13 @@ export function continueRestNights(get: Get, set: Set, ctx: { p: PendingRest; ni
   openRestNight(get, set, ctx.p, ctx.nightsLeft, []);
 }
 
-/** Le repos se renonce hors halte de voyage (`MODAL_DEFS.rest.sortieFermee`). */
+/** Le repos se renonce hors halte de voyage (`MODAL_DEFS.repos.sortieFermee`). */
 export function sortiesDuRepos(_get: Get, set: Set) {
-  return { rest: () => set({ pendingRest: null }) } satisfies Partial<SortiesDeFenetre>;
+  return { repos: () => set({ pendingRest: null }) } satisfies Partial<SortiesDeFenetre>;
 }
 
 export function validationsDuRepos(get: Get, set: Set) {
-  return { rest: () => dormir(get, set) } satisfies Partial<ValidationsDeFenetre>;
+  return { repos: () => dormir(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 export function creerActionsDuRepos(get: Get, set: Set) {
@@ -782,16 +809,16 @@ export function creerActionsDuRepos(get: Get, set: Set) {
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
 export const GENRES_D_ETAPE = [
-  ...EXPOSURE_BAND_KINDS, 'recovery', 'nightmare', 'shelter', 'exposure-heat-drop', 'forced-march', 'faim',
-  'soif', 'dessoulage', 'dessoulage-hangover', 'trauma-fracture', 'disease-tick', 'disease-gangrene',
-  'disease-persist', 'contagion',
+  ...EXPOSURE_BAND_KINDS, 'recuperation', 'cauchemar', 'abri-de-fortune', 'exposition-delestage', 'marche-forcee', 'faim',
+  'soif', 'dessoulage', 'dessoulage-gueule-de-bois', 'convalescence-fracture', 'maladie-test-quotidien', 'maladie-gangrene',
+  'maladie-persistance', 'contagion',
 ] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   appliers: {
     ...tableTotale(EXPOSURE_BAND_KINDS, () => appliquerLExposition),
-    recovery: bandeDeNuit((_get, _set, _band, row, hero) => {
+    recuperation: bandeDeNuit((_get, _set, _band, row, hero) => {
       const before = hero.wounds.current;
       const { wokeUp } = applyRecoveryDay(hero, { sl: row.result!.sl, success: row.result!.success });
       const j: string[] = [];
@@ -801,12 +828,12 @@ export const TABLES = {
       if (wokeUp) j.push(t('heal.awake', { name: hero.label }));
       return { consequences: freeCons(j) };
     }),
-    nightmare: bandeDeNuit((_get, _set, _band, row, hero) => {
+    cauchemar: bandeDeNuit((_get, _set, _band, row, hero) => {
       if (row.result!.success) return { consequences: freeCons([t('rf.dreamless', { name: hero.label })]) };
       addCondition(hero, 'extenue'); // LDB 21 l.95 : Calme +40 raté → Exténué
       return { consequences: freeCons([t('rf.nightmareFail', { name: hero.label })]) };
     }),
-    shelter: bandeDeNuit((get, _set, _band, row, hero) => {
+    'abri-de-fortune': bandeDeNuit((get, _set, _band, row, hero) => {
       const sheltered = row.result!.success; // Survie en extérieur réussie → abri qui tient (ch.09 l.559)
       const severity = (row.meta?.severity ?? 'difficile') as ExposureSeverity;
       const camperIds = String(row.meta?.campers ?? '').split(',').filter(Boolean);
@@ -816,7 +843,7 @@ export const TABLES = {
         insert: count > 0 ? buildExposureBand(get().party, camperIds, count) : [],
       };
     }),
-    'exposure-heat-drop': (get, _set, step, hero, ctx) => {
+    'exposition-delestage': (get, _set, step, hero, ctx) => {
       if (!hero || step.chosen == null) return;
       const band = ctx.steps.find((s) => s.id === step.meta?.nextWaveOf);
       const insert = band ? nextExposureWave(get, band, ctx.steps.map((s) => (s.id === step.id ? { ...s, chosen: step.chosen } : s))) : [];
@@ -827,7 +854,7 @@ export const TABLES = {
       }
       return { consequences: freeCons(applyExposureFailure(hero, Number(step.meta?.failNumber ?? 1), battleRng(), 'chaleur').log), insert };
     },
-    'forced-march': bandeDeNuit((_get, _set, _band, row, hero) => {
+    'marche-forcee': bandeDeNuit((_get, _set, _band, row, hero) => {
       return { consequences: freeCons([applyForcedMarch(hero, row.result!.success).line]) }; // LDB 51 l.195 : échec → +Exténué
     }),
     faim: bandeDeNuit((_get, _set, _band, row, hero) => {
@@ -848,22 +875,22 @@ export const TABLES = {
       const d = soberUpDissipate(hero, row.result!.sl);
       const alcool = { skill: { id: 'resistance-a-l-alcool' }, characteristic: 'endurance' } as const;
       const hangover = monoStep({
-        id: `dessoulage-hangover-${hero.id}`, kind: 'dessoulage-hangover', actor: hero, icon: 'time/night',
+        id: `dessoulage-hangover-${hero.id}`, kind: 'dessoulage-gueule-de-bois', actor: hero, icon: 'temps/nuit',
         rollLabel: testSkillLabel(alcool) ?? SKILL_RESISTANCE(), label: t('step.gueuleDeBois'), difficulty: 'intermediaire',
-        stake: nightStakeRef('dessoulage-hangover'),
+        stake: nightStakeRef('dessoulage-gueule-de-bois'),
         ligne: { test: alcool },
         ...(band.meta?.day !== undefined ? { meta: { day: band.meta.day } } : {}),
       });
       return { consequences: freeCons(d.log), insert: hangover ? [hangover] : [] };
     }),
-    'dessoulage-hangover': bandeDeNuit((get, _set, _band, row, hero) => {
+    'dessoulage-gueule-de-bois': bandeDeNuit((get, _set, _band, row, hero) => {
       // 2ᵉ Test du dessoûlage (l.485), désormais influençable : le DR fixe la durée de la gueule de bois.
       return { consequences: freeCons(soberUpHangover(hero, get().gameTime, row.result!.sl).log) };
     }),
-    'trauma-fracture': bandeDeNuit((_get, _set, _band, row, hero) => {
+    'convalescence-fracture': bandeDeNuit((_get, _set, _band, row, hero) => {
       return { consequences: freeCons(applyFractureEnd(hero, row.result!.success, String(row.meta?.severity ?? 'mineur'), String(row.meta?.location ?? ''), String(row.meta?.traumaLabel ?? t('rf.fractureFallback')))) };
     }),
-    'disease-tick': bandeDeNuit((get, _set, _band, row, hero) => {
+    'maladie-test-quotidien': bandeDeNuit((get, _set, _band, row, hero) => {
       // Échec d'un Test de cycle quotidien → applique ses ops d'échec (`meta.opsEchec`), via applyOps. Couvre
       // les DEUX porteurs de ce canal : le Test d'un SYMPTÔME (`onTick` — Blessé → contractDisease
       // 'blessure-purulente', Toxine, Vers) ET le Test porté par la MALADIE (`DiseaseDef.dailyTest` —
@@ -874,13 +901,13 @@ export const TABLES = {
       // nombre de DR négatifs », MSRC 16 l.90) et les échelles `perSL` de ces ops.
       // La MALADIE est l'entité SOURCE de ce qu'elle inflige : tout effet actif posé par ces ops (Trait
       // octroyé, État durable) porte son ancrage de règle, donc sa fiche à l'écran.
-      const source = { kind: 'disease' as const, id: String(row.meta?.diseaseName ?? '') };
+      const source = { kind: 'maladie' as const, id: String(row.meta?.diseaseName ?? '') };
       return { consequences: freeCons(applyOps(hero, opsEchec, { idNeuf: get().forgerUnId, rng: battleRng(), sl: row.result!.sl, source })) };
     }),
-    'disease-gangrene': bandeDeNuit((_get, _set, _band, row, hero) => {
+    'maladie-gangrene': bandeDeNuit((_get, _set, _band, row, hero) => {
       return { consequences: freeCons(applyDiseaseGangrene(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, Number(row.meta?.be ?? 0))) };
     }),
-    'disease-persist': bandeDeNuit((_get, _set, _band, row, hero) => {
+    'maladie-persistance': bandeDeNuit((_get, _set, _band, row, hero) => {
       // Fin de Durée : résolution ET réconciliation des États portés par un passif (LDB 20 l.188) en UN geste —
       // `applyDiseaseEnd` (engine/rest) est le foyer unique, ici comme dans toute autre voie.
       return { consequences: freeCons(applyDiseaseEnd(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, row.result!.sl, battleRng())) };

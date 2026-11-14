@@ -32,7 +32,7 @@ function seatShape(assignments: SeatAssignments | undefined): string {
     const parMeuble = assignments![propId];
     const places = Object.keys(parMeuble).sort().map((slotId): [string, string] => {
       const o = parMeuble[slotId];
-      return [slotId, o.kind === 'party' ? `party:${o.rang}` : `entity:${o.entityId}`];
+      return [slotId, o.kind === 'groupe' ? `party:${o.rang}` : `entity:${o.entityId}`];
     });
     if (places.length) out.push([propId, places]);
   }

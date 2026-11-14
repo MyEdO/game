@@ -18,11 +18,12 @@ import { avecActivite } from '../engine/activiteMer.testkit';
 import { learnableSpells } from '../engine/grimoire';
 import { soutienMod, testValue } from '../engine/skills';
 import { findTrappingById, spells, testSkillLabel } from '../data';
-import { ciblesDActivite, preJetDActivite, refusDOuvertureDActivite, type CiblesChoisies } from './verdictsDInterlude';
+import { ciblesDActivite, preJetDActivite, refusDeLaComposition, refusDeRetrait, type CiblesChoisies } from './verdictsDInterlude';
 import { battleActivityById, battlePrepEntries, preJetDePreparation, refusDePrepaDeBataille } from './massBattleFlow';
 import careers from '../data/careers.json';
 import type { Combatant, Difficulty, ItemInstance } from '../engine/types';
 import type { ActivityDef } from '../engine/activities';
+import { pratiquer } from './interlude.testkit';
 
 const SCENE = { ...emptyScene('altdorf-centre', 2, 2), label: 'Altdorf', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] };
 
@@ -61,7 +62,7 @@ const héros = (b: Banc, id: string): Combatant => b.getState().party.find((h) =
 
 /** Les cibles que chaque Activité lit, et ce qu'elle exige d'engager avant (ouvrage, dépôt). */
 const CIBLES: Record<string, (b: Banc, heroId: string) => CiblesChoisies> = {
-  craft: (b, id) => { b.actions.fabriquerLObjet(id, craftCatalog()[0].id, [], []); return {}; },
+  craft: (b, id) => { pratiquer(b.getState, id, 'craft', { ouvrage: craftCatalog()[0].id }); return {}; },
   learn: (b, id) => ({ talentId: learnableTalents(héros(b, id))[0].id }),
   identify: () => ({ itemUid: 'art-1' }),
   'tester-objets-magiques': () => ({ itemUid: 'art-1' }),
@@ -128,7 +129,13 @@ const REVENUS_CONSEILLER = 'Marchandage';
 /** Le pré-jet rendu de la Planification soutenue : base et cible. */
 const PLANIF = { base: 46, cible: 56 };
 
-/** Ouvre `id` par le geste du catalogue : le pending posé et le pré-jet que le volet lit, sur le même état. */
+/** Le geste qui ouvre `def` : le retrait du dépôt de Mécénat (`retirerDeLaBanque`), sinon pratiquer sa composition. */
+function geste(b: Banc, heroId: string, def: ActivityDef, cibles: CiblesChoisies): void {
+  if (def.resolver === 'mecenat') b.actions.retirerDeLaBanque(cibles.depotId!);
+  else pratiquer(b.getState, heroId, def.id, cibles);
+}
+
+/** Ouvre `id` par son geste : le pending posé et le pré-jet que le volet lit, sur le même état. */
 function ouvrir(id: string, prepare?: (b: Banc) => void, seed?: number, instruit = false) {
   const h = vétéran(seed, instruit);
   const b = banc([h]);
@@ -137,7 +144,7 @@ function ouvrir(id: string, prepare?: (b: Banc) => void, seed?: number, instruit
   const def = activityById(id)!;
   const preJet = preJetDActivite(b.getState(), h.id, def, cibles);
   const journal = b.getState().journal.length;
-  b.actions.pratiquerLActivite(h.id, id, cibles);
+  geste(b, h.id, def, cibles);
   return { b, h: héros(b, h.id), preJet, pa: b.getState().pendingActivity, dit: b.getState().journal.slice(journal) };
 }
 
@@ -188,13 +195,13 @@ describe('Pré-jet d’Activité — la voie retenue est TENTABLE (LDB 09 l.30)'
 describe('Pré-jet d’Apprentissage — l’acharnement est un modificateur du Test (LDB 23 l.72)', () => {
   it('après une tentative ratée : Agilité 37, Difficile, +10 nommé', () => {
     const { b, h } = ouvrir('learn');
-    b.actions.jetLancer('activity');
+    b.actions.jetLancer('activite');
     b.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 99, success: false, sl: -2 } }));
-    b.actions.jetValider('activity');
+    b.actions.jetValider('activite');
     const talentId = learnableTalents(h)[0].id;
     expect(b.getState().interlude!.perHero[h.id].learnFails?.[talentId], 'témoin : une tentative ratée').toBe(1);
     const preJet = preJetDActivite(b.getState(), h.id, activityById('learn')!, { talentId })!;
-    b.actions.pratiquerLActivite(h.id, 'learn', { talentId });
+    pratiquer(b.getState, h.id, 'learn', { talentId });
     const pa = b.getState().pendingActivity!;
     expect({ valeur: pa.skillValue, difficulte: pa.difficulty, mod: pa.mod, modLabel: pa.modLabel })
       .toEqual({ valeur: 37, difficulte: 'difficile', mod: 10, modLabel: 'Acharnement' });
@@ -209,11 +216,11 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
     const meneur = instruit(vétéran(), 10);
     const second = instruit(withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Second', seed: 1602 }), { gold: 1, silver: 0, brass: 0 }, idsDeTest), 5);
     const b = banc([meneur, second]);
-    b.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    b.actions.amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     for (const id of [meneur.id, second.id]) b.actions.fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', 'planification', id);
     const s = b.getState();
     const { ligne } = preJetDePreparation(s, s.massBattle!, héros(b, meneur.id), battleActivityById('planification')!)!.pending;
-    b.actions.menerLActionDeBataille('planification', meneur.id);
+    b.actions.menerLActionDeBataille(meneur.id, 'planification');
     const pa = b.getState().pendingActivity!;
     expect(pa.support, 'témoin : le Second soutient').toMatchObject({ count: 1, ids: [second.id] });
     expect({ base: ligne.base, cible: ligne.target }).toEqual({ base: PLANIF.base, cible: PLANIF.cible });
@@ -233,7 +240,7 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
     const b = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [a, second], scene: SCENE } });
     b.actions.ouvrirLInterlude(4);
     draineCascade(b.getState);
-    b.actions.amorcerLaBataille({ allyMight: 40 + (i % 30), enemyMight: 55, plannedRounds: 3 });
+    b.actions.amorcerLaBataille({ puissanceAlliee: 40 + (i % 30), puissanceEnnemie: 55, plannedRounds: 3 });
     // Réservoir de modificateur posé, comme un Repérage réussi le pose (ADE II 8 l.100).
     if (i % 2) b.setState((s) => ({ massBattle: { ...s.massBattle!, planningBonus: 20 } }));
     const ecarts: string[] = [];
@@ -243,7 +250,7 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
       const pj = preJetDePreparation(s, s.massBattle!, héros(b, a.id), def);
       const refus = refusDePrepaDeBataille(s.massBattle!, héros(b, a.id), def);
       b.setState(() => ({ pendingActivity: null }));
-      b.actions.menerLActionDeBataille(def.id, a.id);
+      b.actions.menerLActionDeBataille(a.id, def.id);
       const pa = b.getState().pendingActivity;
       if (!pj || !pa) { if (refus == null) ecarts.push(`${def.id} : ouverte sans refus, pré-jet ${!!pj}, jet posé ${!!pa}`); continue; }
       const affiche = { cible: pj.pending.ligne.target, cible2: pj.ligne2?.target, difficulte: pj.pending.ligne.difficulty };
@@ -309,20 +316,20 @@ function premieresCibles(h: Combatant, def: ActivityDef): CiblesChoisies {
   return c.traitsPsy[0] ? { traitPsy: c.traitsPsy[0].cle } : {};
 }
 
-/** Ouvre `def` par le geste : refusé ⇔ aucun jet ; ouvert, le pré-jet rendu par le volet == le jet posé, cible lancée comprise. */
+/** Ouvre `def` par son geste : refusé (`refusDeLaComposition`, `refusDeRetrait`) ⇔ aucun jet ; ouvert, le pré-jet rendu par le volet == le jet posé, cible lancée comprise. */
 function confronteAuVolet(b: Banc, heroId: string, def: ActivityDef, cibles: CiblesChoisies, ecarts: string[], ctx = ''): boolean {
   const s = b.getState();
-  const refus = refusDOuvertureDActivite(s, heroId, def, cibles);
+  const refus = def.resolver === 'mecenat' ? refusDeRetrait(s, cibles.depotId!) : refusDeLaComposition(s, heroId, { activite: def.id, cibles, atouts: [], defauts: [] });
   const pj = preJetDActivite(s, heroId, def, cibles);
   b.setState(() => ({ pendingActivity: null }));
-  b.actions.pratiquerLActivite(heroId, def.id, cibles);
+  geste(b, heroId, def, cibles);
   const pa = b.getState().pendingActivity;
   if (!pa || !pj) {
     if (refus == null) ecarts.push(`${ctx} ${def.id} : ouvert sans refus, pré-jet ${!!pj}, jet posé ${!!pa}`);
     return false;
   }
   if (refus != null || pj.refus != null) ecarts.push(`${ctx} ${def.id} : jet posé malgré le refus « ${refus ?? pj.refus} »`);
-  b.actions.jetLancer('activity');
+  b.actions.jetLancer('activite');
   const lance = b.getState().pendingActivity!;
   const affiche = { test: testSkillLabel(pj.test), valeur: pj.value, difficulte: pj.ligne.difficulty, mod: pj.mods.reduce((n, m) => n + m.value, 0), cible: pj.ligne.target };
   const jet = { test: pa.skillLabel, valeur: pa.skillValue, difficulte: pa.difficulty, mod: pa.mod ?? 0, cible: lance.target };
@@ -350,7 +357,7 @@ describe('Pré-jet d’Activité — sur toute carrière et toute fiche, le vole
       const ouvrage = craftCatalog().find((o) => { const t = findTrappingById(o.id); return t && craftSpecOf(t); });
       if (metierOf(héros(b, h.id)) && ouvrage) {
         const engagement = preJetDActivite(b.getState(), h.id, activityById('craft')!, {}, { ouvrage: craftTarget(ouvrage.tier, ouvrage.avail, 0, 0) });
-        b.actions.fabriquerLObjet(h.id, ouvrage.id, [], []);
+        pratiquer(b.getState, h.id, 'craft', { ouvrage: ouvrage.id });
         if (héros(b, h.id).craft) {
           expect(preJetDActivite(b.getState(), h.id, activityById('craft')!), `v${n} engagement`).toEqual(engagement);
           // L'ouvrage engagé se lance sur le Métier qui l'a engagé (`metierOf`, LDB 23 l.76).
@@ -374,7 +381,7 @@ describe('Revenus — la Compétence de carrière se tente (LDB 08 l.110, LDB 09
     const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'conseiller', label: 'Conseiller', seed: 4001 }), { gold: 5, silver: 0, brass: 0 }, idsDeTest);
     h.skills = h.skills.map((k) => ({ ...k, advances: 0 }));
     const b = banc([h]);
-    b.actions.pratiquerLActivite(h.id, 'revenus');
+    pratiquer(b.getState, h.id, 'revenus');
     expect(b.getState().pendingActivity?.skillLabel).toBe(REVENUS_CONSEILLER);
   });
 });

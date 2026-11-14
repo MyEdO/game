@@ -21,7 +21,7 @@ describe('combatantClickActs — la fiche ouverte de l’adaptateur', () => {
 
   it('COQUE ennemie (#240) : le verdict du clic ne dépend pas de la fiche ouverte', () => {
     combat();
-    const hull = combattantDeTest({ id: 'hull1', label: 'Le Serpent de Sel', kind: 'npc', bodyShape: 'vehicule' });
+    const hull = combattantDeTest({ id: 'hull1', label: 'Le Serpent de Sel', kind: 'pnj', bodyShape: 'vehicule' });
     useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [...useGame.getState().battle!.combatants, hull] } });
     const avant = combatantClickActs(useGame.getState, hull);
     useGame.setState({ inspectId: hull.id });

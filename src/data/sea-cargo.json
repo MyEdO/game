@@ -2,26 +2,34 @@
   "id": "sea-cargo",
   "type": "sea-cargo",
   "label": "Cargaison maritime",
-  "buy": {
-    "availabilityMultiplier": 10,
-    "merchantSkill": {
+  "prixDuLivre": {
+    "encParPrix": 1,
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, table des prix (l.436)."
+    }
+  },
+  "achat": {
+    "multiplicateurDeDisponibilite": 10,
+    "competenceDuMarchand": {
       "d10": 3,
       "plus": 40
     },
-    "bigPortSkill": {
+    "competenceGrandPort": {
       "d10": 3,
       "plus": 55
     },
-    "partialPurchaseSellerDR": 1,
-    "surplusSellerDR": 1,
+    "drVendeurAchatPartiel": 1,
+    "drVendeurSurplus": 1,
     "source": {
       "book": "mer-des-griffes",
       "page": 135,
       "note": "ch.15 « Longs voyages » — COMMERCE MARITIME, Acheter (Type de cargaison/Taille/Marchandage, l.315-341)."
     }
   },
-  "sell": {
-    "offerPrice": [
+  "vente": {
+    "prixDOffre": [
       {
         "min": 1,
         "max": 1,
@@ -43,53 +51,53 @@
         "pct": 0
       }
     ],
-    "noProduceTargetPerSize": 10,
-    "commerceBonus": 30,
-    "producesGossip": {
+    "cibleParTailleSansProduction": 10,
+    "bonusDeCommerce": 30,
+    "ragotSiProduction": {
       "difficulty": "complexe",
-      "targetPerSize": 10,
-      "minMilles": 100
+      "cibleParTaille": 10,
+      "millesMin": 100
     },
-    "surplusGossip": {
+    "ragotSiSurplus": {
       "difficulty": "tresDifficile",
-      "targetPerSize": 5
+      "cibleParTaille": 5
     },
-    "sellerDR": {
-      "noProduce": 1,
-      "demand": 1,
-      "produces": -2,
+    "drDuVendeur": {
+      "sansProduction": 1,
+      "demande": 1,
+      "production": -2,
       "surplus": -3
     },
-    "dumpingPctOfBase": 25,
+    "pctDeBradage": 25,
     "source": {
       "book": "mer-des-griffes",
       "page": 136,
       "note": "ch.15 « Longs voyages » — Vendre, table Prix d’offre (l.374-383)."
     }
   },
-  "overload": {
-    "hardCapPct": 150,
+  "surcharge": {
+    "pctPlafond": 150,
     "paliers": [
       {
         "id": "surcharge-1",
-        "fromPct": 100,
+        "pctDepuis": 100,
         "label": "Surchargé",
         "mMod": -1,
-        "manoeuvreDR": -1
+        "drDeManoeuvre": -1
       },
       {
         "id": "surcharge-2",
-        "fromPct": 120,
+        "pctDepuis": 120,
         "label": "Fortement surchargé",
         "mMod": -2,
-        "manoeuvreDR": -2
+        "drDeManoeuvre": -2
       },
       {
         "id": "surcharge-3",
-        "fromPct": 140,
+        "pctDepuis": 140,
         "label": "Dangereusement surchargé",
         "mMod": -3,
-        "manoeuvreDR": -3
+        "drDeManoeuvre": -3
       }
     ],
     "source": {
@@ -99,32 +107,32 @@
     }
   },
   "opportunite": {
-    "investMaxEnc": true,
+    "encInvestiMax": true,
     "test": {
       "skill": {
         "id": "marchandage"
       },
       "difficulty": "complexe"
     },
-    "targetDR": 10,
-    "maxAttempts": 3,
+    "drCible": 10,
+    "tentativesMax": 3,
     "outcomes": [
       {
-        "on": "failure",
-        "minMissing": 6,
+        "on": "echec",
+        "manquantMin": 6,
         "pct": -100
       },
       {
-        "on": "failure",
+        "on": "echec",
         "pct": -50
       },
       {
-        "on": "success",
+        "on": "reussite",
         "pct": 10
       },
       {
-        "on": "success",
-        "minExtraDR": 6,
+        "on": "reussite",
+        "drSupplementaireMin": 6,
         "pct": 20
       }
     ],

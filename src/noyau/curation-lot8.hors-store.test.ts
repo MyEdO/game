@@ -8,7 +8,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast } from './combatFlow';
-import { pregen, pregenParty, PREGEN } from '../data/pregens';
+import { herosDeScenario, groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { findSpellById } from '../data';
 import { spellSupportOf } from '../engine/spellspec';
 import { woundsFromHit } from '../engine/combat';
@@ -54,7 +54,7 @@ describe('désambiguïsation et classification', () => {
 
 describe('Armure Aethyrique — PA temporisés', () => {
   it('pose un effet apAll, lu par effectiveArmourAt et la mitigation woundsFromHit', () => {
-    const w = pregen(idsDeTest, PREGEN.sorcier);
+    const w = herosDeScenario(idsDeTest, 'sorcier');
     banc.setState({ party: [w] as Combatant[] });
     const before = effectiveArmourAt(w, 'corps');
     applyCast(banc.getState, banc.setState, w, w, findSpellById('armure-aethyrique')!, ok(3), false, false);
@@ -67,7 +67,7 @@ describe('Armure Aethyrique — PA temporisés', () => {
 
 describe('ops de spec sur la branche Projectile (curées seulement)', () => {
   it('Drain : le LANCEUR regagne 1 PB après la touche', () => {
-    const [w, cible] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat);
+    const [w, cible] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat');
     w.wounds.current = w.wounds.max - 3;
     banc.setState({ party: [w, cible] as Combatant[] });
     const drain = findSpellById('drain')!; // Magie mineure
@@ -78,16 +78,16 @@ describe('ops de spec sur la branche Projectile (curées seulement)', () => {
   });
 
   it('Éblouissant : Aveuglé immédiat + récurrent porté par un effet actif', () => {
-    const [w, cible] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat);
+    const [w, cible] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat');
     banc.setState({ party: [w, cible] as Combatant[] });
     applyCast(banc.getState, banc.setState, w, cible, findSpellById('eblouissant')!, ok(2), false, false);
     const after = banc.getState().party.find((h) => h.id === cible.id)!;
     expect(after.conditions.find((x) => x.id === 'aveugle')?.value).toBe(1);
-    expect(after.activeEffects?.some((e) => e.opsPerRound?.some((o) => o.op === 'condition' && o.id === 'aveugle'))).toBe(true);
+    expect(after.activeEffects?.some((e) => e.opsPerRound?.some((o) => o.op === 'condition' && o.id.id === 'aveugle'))).toBe(true);
   });
 
   it('Innocence immaculée : retire 1 Point de Corruption (jamais sous 0)', () => {
-    const [p, w] = pregenParty(idsDeTest, PREGEN.pretre, PREGEN.sorcier);
+    const [p, w] = groupeDeScenario(idsDeTest, 'pretre', 'sorcier');
     w.corruption = 2;
     banc.setState({ party: [p, w] as Combatant[] });
     applyCast(banc.getState, banc.setState, p, w, findSpellById('innocence-immaculee')!, ok(1), false, false);

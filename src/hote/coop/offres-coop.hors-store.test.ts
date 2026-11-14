@@ -11,22 +11,22 @@ import { HostSession, GuestSession } from './session';
 import { ouvrirLeBanc, type Banc } from '../../noyau/banc.testkit';
 import { appliquerLIntentionDUnSiege, type IssueDIntention } from '../../noyau/intentionsDeSiege';
 import { appliquerLInstantane, instantaneDeLaCoop } from '../../noyau/coop';
-import { emettreIntentInvite } from './salon';
+import { emettreIntentInvite } from '../../noyau/reseau';
 import { activeCombatant } from '../../noyau/combatFlow';
 import { gesteDeLOffre, offreDeId } from '../../noyau/actionRegistry';
 import { testScene } from '../../scenes/test-fixture';
 import type { NetState } from '../../noyau/etat';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 import type { Combatant } from '../../engine/types';
 
 const NET: NetState = {
-  mode: 'host', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
-  connection: 'ok', hostAway: false, ownership: { L: 1 }, slots: [1, 1, 0, 0], rangs: {},
+  mode: 'hote', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
+  connection: 'connecte', hoteAbsent: false, ownership: { L: 1 }, slots: [1, 1, 0, 0], rangs: {},
 };
 
 /** Un sorcier en Langue (Magick) 60, qui connaît l'Arme aethyrique. */
 function sorcier(id: string): Combatant {
-  const h = pregen(idsDeTest, PREGEN.sorcier);
+  const h = herosDeScenario(idsDeTest, 'sorcier');
   h.id = id; h.label = id;
   h.spells = ['arme-aethyrique'];
   h.skills = [...h.skills.filter((s) => s.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 }] as typeof h.skills;
@@ -60,14 +60,14 @@ function enPause(): ReturnType<typeof table> {
 
 /** Le combat au tour du héros `id`, Action dépensée. */
 function auTourDe(t: ReturnType<typeof table>, id: string): void {
-  t.banc.getState().fenetreValider('roundStart');
-  t.envoyer('fenetreValider', ['roundStart']);
+  t.banc.getState().fenetreValider('debutDuRound');
+  t.envoyer('fenetreValider', ['debutDuRound']);
   const b = t.banc.getState().battle!;
   t.banc.setState({ battle: { ...b, turn: b.order.indexOf(id), acted: true, action: null }, pendingRoundStart: null });
 }
 
 describe('Offres en coop : le verbe de l’offre voyage', () => {
-  it('le verbe de `end-turn` de l’invité finit le tour de SON héros ; au tour d’autrui il est refusé', () => {
+  it('le verbe de `fin-de-tour` de l’invité finit le tour de SON héros ; au tour d’autrui il est refusé', () => {
     const t = enPause();
     auTourDe(t, 'L');
     expect(t.envoyer('terminerLeTour', [])).toBe('appliquee');
@@ -84,7 +84,7 @@ describe('Offres en coop : le verbe de l’offre voyage', () => {
     t.banc.setState({ battle: { ...t.banc.getState().battle!, acted: false, selectedAttack: 'autre' } });
     // Un seul jeu se branche par test : le banc joue l'invité sur l'instantané de l'hôte, puis l'hôte reprend sa place.
     const hote = { ...t.banc.getState() };
-    t.banc.setState(appliquerLInstantane(instantaneDeLaCoop(hote), { ...hote, net: { ...NET, mode: 'guest', mySeat: 1 } }).etat);
+    t.banc.setState(appliquerLInstantane(instantaneDeLaCoop(hote), { ...hote, net: { ...NET, mode: 'invite', mySeat: 1 } }).etat);
     const envoyes: [string, unknown[]][] = [];
     emettreIntentInvite(t.banc.getState, 'armerLAttaque', t.banc.getState().armerLAttaque as never, (action, args) => envoyes.push([action, args]), ['arme']);
     const invite = { ...t.banc.getState() };
@@ -102,19 +102,19 @@ describe('Offres en coop : le verbe de l’offre voyage', () => {
     expect(recu.localIntent?.actionId, 'l’instantané a écrasé l’intention locale').toBe('attaque');
   });
 
-  it('`round-start` déclare `fenetreValider` : son verbe marque le siège prêt', () => {
+  it('`debut-de-round` déclare `fenetreValider` : son verbe marque le siège prêt', () => {
     const t = enPause();
     expect(t.banc.getState().pendingRoundStart, 'témoin : la pause de Round est ouverte').toBeTruthy();
-    expect(gesteDeLOffre(t.banc.getState(), offreDeId('round-start')!)).toEqual({ verbe: 'fenetreValider', args: ['roundStart'] });
+    expect(gesteDeLOffre(t.banc.getState(), offreDeId('debut-de-round')!)).toEqual({ verbe: 'fenetreValider', args: ['debutDuRound'] });
     expect(t.banc.getState().pendingRoundStart!.readyBySeat?.[1] ?? false).toBe(false);
-    expect(t.envoyer('fenetreValider', ['roundStart'])).toBe('appliquee');
+    expect(t.envoyer('fenetreValider', ['debutDuRound'])).toBe('appliquee');
     expect(t.banc.getState().pendingRoundStart!.readyBySeat?.[1]).toBe(true);
   });
 
-  it('`raise-hand` déclare `leverLaMain` : son verbe lève la main du siège 1, hors de son tour', () => {
+  it('`pause` déclare `leverLaMain` : son verbe lève la main du siège 1, hors de son tour', () => {
     const t = enPause();
     auTourDe(t, 'H');
-    expect(gesteDeLOffre(t.banc.getState(), offreDeId('raise-hand')!)).toEqual({ verbe: 'leverLaMain', args: [true] });
+    expect(gesteDeLOffre(t.banc.getState(), offreDeId('pause')!)).toEqual({ verbe: 'leverLaMain', args: [true] });
     expect(t.envoyer('leverLaMain', [true])).toBe('appliquee');
     expect(t.banc.getState().battle!.handRaisedBy).toEqual([1]);
   });

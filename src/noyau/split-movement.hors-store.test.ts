@@ -27,12 +27,12 @@ describe('Mouvement décomposable', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     // Éloigne tous les ennemis pour libérer la grille autour du héros (couloir y=10 libre, cf. tests Charge).
     let i = 0;
-    for (const e of b.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: 20 + i++, y: 20 };
+    for (const e of b.combatants.filter((c) => c.kind === 'ennemi')) e.pos = { x: 20 + i++, y: 20 };
     H.pos = { x: 6, y: 10 };
     const turn = b.order.indexOf(H.id);
     banc.setState({ battle: { ...b, turn, action: null, acted: false, movementUsed: 0, movedPreAction: false } });
@@ -132,11 +132,11 @@ describe('Mouvement décomposable', () => {
     const { H } = setup();
     const st0 = banc.getState();
     const h = st0.battle!.combatants.find((c) => c.id === H.id)!;
-    const e = st0.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = st0.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     e.pos = { x: h.pos!.x + 3, y: h.pos!.y };
     // Après un Mouvement partiel, le plan n'est PAS une Charge (rejoindre-et-attaquer, sans bonus).
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 1, action: null } });
-    expect(attackPlan(banc.getState, h, e).kind).toBe('moveAttack');
+    expect(attackPlan(banc.getState, h, e).kind).toBe('deplacementEtAttaque');
     // Au plein Mouvement, le plan est une Charge (manœuvre pleine, portée de Course).
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 0, action: null } });
     expect(attackPlan(banc.getState, h, e).kind).toBe('charge');

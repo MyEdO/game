@@ -7,7 +7,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { intentionDuClicDeCase, jouerLeClicDeCase, jouerLeClicDuCombattant } from './combatOrParty';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 
 /** Arène d'herbe minimale (intentionDuClicDeCase dérive l'affordance d'attaque → besoin d'une scène). */
@@ -20,8 +20,8 @@ describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)',
   let banc: Banc;
   beforeEach(() => { banc = ouvrirLeBanc(); });
   function makeState() {
-    const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
-    const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
+    const hero = tousLesHerosDeScenario(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
+    const ally = tousLesHerosDeScenario(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
     const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 }); // adjacent au héros
     const battle = {
       combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],
@@ -50,7 +50,7 @@ describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)',
   it('combat terminé → null ; une case libre d’étage garde son `z`', () => {
     makeState();
     expect(intentionDuClicDeCase(banc.getState, { x: 12, y: 4, z: 1 })).toEqual({ kind: 'case', pt: { x: 12, y: 4, z: 1 } });
-    banc.setState({ battle: { ...banc.getState().battle!, over: 'victory' } as never });
+    banc.setState({ battle: { ...banc.getState().battle!, over: 'victoire' } as never });
     expect(intentionDuClicDeCase(banc.getState, { x: 12, y: 4 })).toBeNull();
   });
 
@@ -63,10 +63,10 @@ describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)',
 describe('jouerLeClicDuCombattant / jouerLeClicDeCase — le geste du clic, lu dans l’état au moment du clic', () => {
   let banc: Banc;
   beforeEach(() => { banc = ouvrirLeBanc(); });
-  /** Le verbe du champ remplacé DANS L'ÉTAT, comme l'enrobage d'intention de l'invité coop (`hote/coop/salon.ts`, `emettreIntentInvite`). */
+  /** Le verbe du champ remplacé DANS L'ÉTAT, comme l'enrobage d'intention de l'invité coop (`reseau.ts`, `transmettreLesIntentions`). */
   function poser() {
-    const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
-    const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
+    const hero = tousLesHerosDeScenario(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
+    const ally = tousLesHerosDeScenario(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
     const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 });
     const battle = {
       combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],

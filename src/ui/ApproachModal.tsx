@@ -7,6 +7,7 @@ import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeApproach } from '../noyau/flowOutcomes';
+import { nomEnVue } from '../noyau/visionDuGroupe';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { FLOWS, ligneDuTestNomme } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
@@ -20,13 +21,14 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function ApproachModal() {
   const pa = useGame((s) => s.pendingApproach);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'approach');
-  const reroll = useGesteDeJet('jetRelancer', 'approach');
-  const darkPact = useGesteDeJet('jetPactiser', 'approach');
-  const force = useGesteDeJet('jetForcerLaReussite', 'approach');
-  const reverse = useGesteDeJet('jetInverser', 'approach'); // Inversion (LDB 12 l.42)
-  const confirm = useGesteDeJet('jetValider', 'approach');
-  const cancel = useGesteDeJet('jetAnnuler', 'approach');
+  const nomDeLaSource = useGame((s) => (s.pendingApproach ? nomEnVue(s, s.pendingApproach.sourceId) : null));
+  const roll = useGesteDeJet('jetLancer', 'approche');
+  const reroll = useGesteDeJet('jetRelancer', 'approche');
+  const darkPact = useGesteDeJet('jetPactiser', 'approche');
+  const force = useGesteDeJet('jetForcerLaReussite', 'approche');
+  const reverse = useGesteDeJet('jetInverser', 'approche'); // Inversion (LDB 12 l.42)
+  const confirm = useGesteDeJet('jetValider', 'approche');
+  const cancel = useGesteDeJet('jetAnnuler', 'approche');
   if (!pa || !battle) return null;
   const c = battle.combatants.find((x) => x.id === pa.combatantId);
   if (!c) return null;
@@ -50,27 +52,27 @@ export function ApproachModal() {
   }, {
     fortune: c.fortune ?? 0,
     resilience: c.resilience ?? 0,
-    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.approach`).
-    ...(FLOWS.approach.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.approach.reversePreview(useGame.getState) } } : {}),
+    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.approche`).
+    ...(FLOWS.approche.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.approche.reversePreview(useGame.getState) } } : {}),
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
-      flowKey="approach"
-      title={<><Icon id="flag/fear" size="sm" /> Affronter sa Peur</>}
+      flowKey="approche"
+      title={<><Icon id="drapeau/peur" size="sm" /> Affronter sa Peur</>}
       subtitle={
         <>
-          <strong>{c.label}</strong> ose approcher {pa.sourceName}
+          <strong>{c.label}</strong> ose approcher {nomDeLaSource}
         </>
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('fear', describeApproach(pa), c.id, pa.sourceId), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('peur', describeApproach(pa), c.id, pa.sourceId), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

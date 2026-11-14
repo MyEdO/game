@@ -27,7 +27,7 @@ const guerrier = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id: 'A',
     label: 'Guerrier',
-    kind: 'hero',
+    kind: 'heros',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12),
     advantage: 0,
@@ -62,7 +62,7 @@ describe('G1 — la Difficulté aperçue d’un geste COMBINÉ compte l’attaqu
   const setup = () => {
     const a = guerrier({ id: 'A', pos: { x: 0, y: 0 } });
     const allie = guerrier({ id: 'ALLIE', label: 'Allié', pos: { x: 5, y: 0 } });
-    const cible = guerrier({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 6, y: 0 } });
+    const cible = guerrier({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 6, y: 0 } });
     return { a, allie, cible };
   };
 
@@ -92,12 +92,12 @@ describe('G1 — la Difficulté aperçue d’un geste COMBINÉ compte l’attaqu
 });
 
 describe('G2 — l’aperçu du geste tire la Difficulté de l’arme ÉPINGLÉE par l’option armée', () => {
-  const dague = { label: 'Dague', name: 'Dague', type: 'melee', damage: { plusBF: true, flat: 2 }, hand: 'off', qualities: [], uid: 'D1' };
+  const dague = { label: 'Dague', name: 'Dague', type: 'melee', damage: { plusBF: true, flat: 2 }, hand: 'secondaire', qualities: [], uid: 'D1' };
   const epee = { label: 'Épée', name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, hand: 'main', qualities: [], uid: 'E1' };
 
   it('l’arme de main SECONDAIRE porte sa pénalité (LDB 14 l.181) — l’arme principale non', () => {
     const a = guerrier({ weapons: [epee, dague] as unknown as Combatant['weapons'], pos: { x: 5, y: 0 } });
-    const cible = guerrier({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 6, y: 0 } });
+    const cible = guerrier({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 6, y: 0 } });
     const get = mkGet([a, cible]);
     const avecEpee = dit(apercuDuGeste(get, a, cible, { id: 'arme', label: 'Épée', weaponUid: 'E1', cost: { action: 1 } } as never));
     const avecDague = dit(apercuDuGeste(get, a, cible, { id: 'arme', label: 'Dague', weaponUid: 'D1', cost: { action: 1 } } as never));
@@ -109,7 +109,7 @@ describe('G2 — l’aperçu du geste tire la Difficulté de l’arme ÉPINGLÉE
 describe('G3 — hors cran de l’échelle, l’aperçu dit le modificateur RÉEL, comme la modale', () => {
   it('une combinaison de −15 se nomme « Combinée (−15) », jamais le cran voisin', () => {
     const a = guerrier({ pos: { x: 5, y: 0 } });
-    const cible = guerrier({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 6, y: 0 } });
+    const cible = guerrier({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 6, y: 0 } });
     const p = previewAttack(mkGet([a, cible]), a, cible);
     // On compose la même ligne que le socle, avec une circonstance hors cran.
     expect(dit({ ...p, difficulty: 'intermediaire', difficultyCombined: -15 })).toBe('Combinée (−15)');
@@ -118,7 +118,7 @@ describe('G3 — hors cran de l’échelle, l’aperçu dit le modificateur RÉE
 
   it('un aperçu sans cible atteignable (hors portée / LdV coupée) ne dit AUCUNE Difficulté', () => {
     const a = guerrier({ pos: { x: 0, y: 0 } });
-    const loin = guerrier({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 7, y: 7 } });
+    const loin = guerrier({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 7, y: 7 } });
     expect(dit(previewAttack(mkGet([a, loin]), a, loin))).toBeNull();
   });
 });
@@ -129,15 +129,15 @@ describe('G-A — le badge tap-1 ne nomme une Difficulté QUE pour un Test d’a
    *  l'aperçu tap-1 doit se taire pour la MÊME raison, par le MÊME prédicat. */
   const empoignade = () => {
     const a = guerrier({ id: 'A', pos: { x: 5, y: 0 }, grapplingWith: ['B'] } as never);
-    const b = guerrier({ id: 'B', label: 'B', kind: 'enemy', pos: { x: 6, y: 0 }, grapplingWith: ['A'] } as never);
-    const battle = { combatants: [a, b], order: ['A'], turn: 0, movementUsed: 0, acted: false, action: null, selectedAttack: 'grapple', preview: { kind: 'attack', targetId: 'B' }, log: [], reachable: new Map() };
+    const b = guerrier({ id: 'B', label: 'B', kind: 'ennemi', pos: { x: 6, y: 0 }, grapplingWith: ['A'] } as never);
+    const battle = { combatants: [a, b], order: ['A'], turn: 0, movementUsed: 0, acted: false, action: null, selectedAttack: 'grapple', preview: { kind: 'attaque', targetId: 'B' }, log: [], reachable: new Map() };
     const get = (() => ({ scene: scene(), battle, facing: {}, gameTime: 0, net: initialNet(), ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
     return { a, b, battle, get };
   };
 
   it('l’option ARMÉE est bien l’Empoignade, et le réticule n’annonce aucune Difficulté', () => {
     const { a, b, battle, get } = empoignade();
-    expect(selectedAttackOption(a, battle as never)?.targeting).toBe('grapple');
+    expect(selectedAttackOption(get().scene, a, battle as never)?.targeting).toBe('grapple');
     const ht = hoverTargeting(get, a, b);
     expect(ht.kind).toBe('ok');
     expect(ht.kind === 'ok' && ht.difficulty, 'un Test opposé de Force n’a pas de Difficulté d’arme').toBeUndefined();
@@ -150,8 +150,8 @@ describe('G-A — le badge tap-1 ne nomme une Difficulté QUE pour un Test d’a
 
   it('la frappe d’ARME, elle, en nomme une — le prédicat ne bâillonne pas tout', () => {
     const a = guerrier({ id: 'A', pos: { x: 5, y: 0 } });
-    const b = guerrier({ id: 'B', label: 'B', kind: 'enemy', pos: { x: 6, y: 0 } });
-    const battle = { combatants: [a, b], order: ['A'], turn: 0, movementUsed: 0, acted: false, action: null, preview: { kind: 'attack', targetId: 'B' }, log: [], reachable: new Map() };
+    const b = guerrier({ id: 'B', label: 'B', kind: 'ennemi', pos: { x: 6, y: 0 } });
+    const battle = { combatants: [a, b], order: ['A'], turn: 0, movementUsed: 0, acted: false, action: null, preview: { kind: 'attaque', targetId: 'B' }, log: [], reachable: new Map() };
     const get = (() => ({ scene: scene(), battle, facing: {}, gameTime: 0, net: initialNet(), ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
     expect(dit(apercuDuGeste(get, a, b, { id: 'arme', label: 'Épée', cost: { action: 1 } } as never))).toBe('Intermédiaire (+0)');
     expect(previewDifficultyOf(get)).toEqual({ difficulty: 'intermediaire' });

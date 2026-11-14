@@ -181,6 +181,11 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     ['src/ui/hud/parite-atelier-refs.tsx',"import {OP_REF_FIELDS} from '../../data/refsDOp';OP_REF_FIELDS.x;",'murs/atelier',1],
     ['src/ui/editor/codex/parite-atelier.tsx',"import {GameOpEditor} from '../../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
     ['src/ui/hud/parite-atelier.test.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
+    ['src/noyau/parite-base64.ts','export const a=btoa(x);','murs/base64',1],
+    ['hotes/godot/pont/parite-base64.ts','export const a=atob(x);','murs/base64',1],
+    ['src/web/parite-base64-hote.ts','export const a=globalThis.btoa(x);','murs/base64-hote',1],
+    ['src/lib/base64.ts','export const a=btoa(x)+atob(x);','murs/base64',0],
+    ['src/noyau/parite-base64.test.ts','export const a=btoa(x);','murs/base64',1],
     ['src/state/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',1],
     ['src/lib/parite-minuterie.ts','export const id=setInterval(f,9);','murs/minuteries',1],
     ['src/state/parite-minuterie-reference.ts','export const poser=setTimeout;','murs/minuteries',1],
@@ -328,7 +333,7 @@ test('murs/stockage-web : le stockage web nommé sous src/ est refusé, quel que
     ['src/ui/parite-sw-typeof.ts',"export const a = typeof localStorage === 'undefined';",GLOBAL],
     ['src/ui/parite-sw-window.ts','window.localStorage.clear();',PROPRIETE],
     ['src/audio/parite-sw-globalthis.ts','export const s = (globalThis as { sessionStorage?: Storage }).sessionStorage;',PROPRIETE],
-    ['src/net/parite-sw-self.ts','export const s = self.localStorage;',PROPRIETE],
+    ['src/web/parite-sw-self.ts','export const s = self.localStorage;',PROPRIETE],
     ['src/lib/parite-sw-indexe.ts',"export const s = globalThis['sessionStorage'];",PROPRIETE],
     ['src/lib/parite-sw-gabarit.ts','export const s = globalThis[`localStorage`];',PROPRIETE],
     ['src/state/parite-sw-destructure.ts','export const { localStorage: s } = window;',PROPRIETE],
@@ -474,7 +479,7 @@ test('murs/interne : la pose brute du clavier ne s’importe que sous src/ui/cla
     ['src/ui/parite-interne.test.ts',`import { ecouterClavier } from './clavier/interne/ecouterClavier';\n${QUITTER}`,1],
     ['src/ui/clavier/parite-interne-registre.ts',`import { ecouterClavier } from './interne/ecouterClavier';\n${QUITTER}`,0],
     ['src/ui/clavier/couches/parite-interne-couche.ts',`import { ecouterClavier } from '../interne/ecouterClavier';\n${QUITTER}`,0],
-    ['src/ui/parite-interne-remap.tsx',"import { useRemapDeTouche } from './clavier/remapDeTouche';\nexport const f=(r: { current: HTMLElement | null })=>useRemapDeTouche(r).armer('toggle-menu');",0],
+    ['src/ui/parite-interne-remap.tsx',"import { useRemapDeTouche } from './clavier/remapDeTouche';\nexport const f=(r: { current: HTMLElement | null })=>useRemapDeTouche(r).armer('menu-ouvrir');",0],
   ]
   const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
   for(let i=0;i<cas.length;i++) {

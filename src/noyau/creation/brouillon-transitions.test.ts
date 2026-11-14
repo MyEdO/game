@@ -19,8 +19,8 @@ const pret = () => withCareer(withSpecies(page(), 'humains-reiklander'), 'soldat
 describe('Caractéristiques : méthode et réassignation', () => {
   it('la méthode se pose ; la même méthode rend le brouillon inchangé', () => {
     const d = pret();
-    expect(withCharMode(d, 'rolled')).toBe(d);
-    expect(withCharMode(d, 'pointBuy').charMode).toBe('pointBuy');
+    expect(withCharMode(d, 'tire')).toBe(d);
+    expect(withCharMode(d, 'repartition').charMode).toBe('repartition');
   });
 
   it('réassigner échange les deux jets : l’affectation reste une permutation', () => {

@@ -62,10 +62,10 @@ export function combatHighlightsView(get: () => GameState, battle: BattleState, 
         ? new Set(validTargets(get).map((c) => c.id))
         : null,
     crowdIds: (() => {
-      if (!pendingAttack?.intoCrowd) return null;
+      if (!pendingAttack?.dansLeTas) return null;
       const atk = battle.combatants.find((c) => c.id === pendingAttack.attackerId);
       const tgt = battle.combatants.find((c) => c.id === pendingAttack.targetId);
-      return atk && tgt ? new Set(crowdEligible(battle, atk, tgt).map((v) => v.id)) : null;
+      return atk && tgt ? new Set(crowdEligible(get().scene, battle, atk, tgt).map((v) => v.id)) : null;
     })(),
     // Cibles cliquables du MODE de ciblage courant (targetingModes → MÊME source que réticule/clic).
     // C'est le MODE qui DÉCLARE s'il peint ses candidats et de quelle teinte (`anneauCandidats`) : rien
@@ -92,7 +92,7 @@ export function combatHighlightsView(get: () => GameState, battle: BattleState, 
       const c = battle.combatants.find((x) => x.id === hovered) ?? armedAttack;
       if (!c?.pos) return null;
       const weapon = attackWeapon(c.weapons, false);
-      if (!weapon || weapon.type !== 'ranged') return null; // structure/décor sans arme (porte…) — pas de bande (#203 régression)
+      if (!weapon || weapon.type !== 'distance') return null; // structure/décor sans arme (porte…) — pas de bande (#203 régression)
       const rangeM = porteeDeTir(c, weapon);
       return rangeM != null ? { pos: c.pos, rangeM } : null;
     })(),
@@ -113,5 +113,5 @@ export function tireurSurvole(battle: BattleState, hovered: string | null): stri
   const c = inBattleId(battle, hovered ?? undefined); // primitive canonique du find-par-id EN COMBAT (cliquet #279)
   if (!c?.pos) return null;
   const weapon = attackWeapon(c.weapons, false);
-  return weapon?.type === 'ranged' ? c.id : null;
+  return weapon?.type === 'distance' ? c.id : null;
 }

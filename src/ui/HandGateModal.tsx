@@ -7,6 +7,8 @@ import { Icon } from './Icon';
 import { resultLines, freeCons } from '../noyau/rollSeam';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { nomEnVue } from '../noyau/visionDuGroupe';
+import { garanti } from '../lib/garanti';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /**
@@ -19,13 +21,14 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function HandGateModal() {
   const pg = useGame((s) => s.pendingHandGate);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'handGate');
-  const reroll = useGesteDeJet('jetRelancer', 'handGate');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'handGate');
-  const darkPact = useGesteDeJet('jetPactiser', 'handGate');
-  const force = useGesteDeJet('jetForcerLaReussite', 'handGate');
-  const confirm = useGesteDeJet('jetValider', 'handGate');
-  const cancel = useGesteDeJet('jetAnnuler', 'handGate');
+  const nom = useGame((s) => (s.pendingHandGate ? nomEnVue(s, s.pendingHandGate.attackerId) : null));
+  const roll = useGesteDeJet('jetLancer', 'mainEnsanglantee');
+  const reroll = useGesteDeJet('jetRelancer', 'mainEnsanglantee');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'mainEnsanglantee');
+  const darkPact = useGesteDeJet('jetPactiser', 'mainEnsanglantee');
+  const force = useGesteDeJet('jetForcerLaReussite', 'mainEnsanglantee');
+  const confirm = useGesteDeJet('jetValider', 'mainEnsanglantee');
+  const cancel = useGesteDeJet('jetAnnuler', 'mainEnsanglantee');
   if (!pg || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pg.attackerId);
   const rolled = pg.roll != null;
@@ -51,17 +54,17 @@ export function HandGateModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
-      flowKey="handGate"
-      title={<><Icon id="condition/bleeding" size="sm" /> Main ensanglantée</>}
+      flowKey="mainEnsanglantee"
+      title={<><Icon id="etat/hemorragique" size="sm" /> Main ensanglantée</>}
       subtitle={
         <>
-          <strong>{pg.actorName}</strong> raffermit sa prise{' '}
+          <strong>{garanti(nom, pg.attackerId, 'porteur de la main ensanglantée')}</strong> raffermit sa prise{' '}
           <span className="rm-weapon">(Dextérité, Accessible +20)</span>
         </>
       }

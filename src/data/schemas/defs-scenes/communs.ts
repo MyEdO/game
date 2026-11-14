@@ -17,6 +17,17 @@ import { ID_D_ENTREE } from '../../source/dossier';
 /** Les scènes du projet, que désignent un lieu de la carte, son point d'intérêt, l'embuscade d'une route et
  *  l'effet `transition`. */
 export const SCENES_DU_PROJET = { collection: 'scenes', catalogue: 'scènes du projet' } as const satisfies PorteeLocale;
+/** Les dialogues de la scène, que désignent `entities[].dialogueId` et l'effet `startDialogue`. */
+export const DIALOGUES_DE_LA_SCENE = { collection: 'dialogues', catalogue: 'dialogues de la scène' } as const satisfies PorteeLocale;
+/** Un personnage, parmi les entités de la scène. */
+const PERSONNAGE = { champ: 'kind', vaut: 'personnage' } as const;
+/** Les personnages de la scène, que désignent le locuteur de l'effet `startDialogue` et le soigneur de l'effet
+ *  `medicalAid`. */
+export const PERSONNAGES_DE_LA_SCENE = { collection: 'entities', catalogue: 'personnages de la scène', retient: [PERSONNAGE] } as const satisfies PorteeLocale;
+/** Les marchands de la scène, les personnages qui portent `merchant`, que désigne l'effet `openMerchant`. */
+export const MARCHANDS_DE_LA_SCENE = { collection: 'entities', catalogue: 'marchands de la scène', retient: [PERSONNAGE, { champ: 'merchant' }] } as const satisfies PorteeLocale;
+/** Les portées locales qu'ouvre la scène (`sceneSchema`). */
+export const PORTEES_DE_LA_SCENE: readonly PorteeLocale[] = [DIALOGUES_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, MARCHANDS_DE_LA_SCENE];
 
 /** `Pt` (`noyau/monde/path.ts`) — case, `z` = couche d'empilement (absent = base). */
 export const ptSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, z: { label: "étage" } });
@@ -28,7 +39,7 @@ export type WallSide = z.infer<typeof wallSideSchema>;
 /** `SkillRef` (`src/data/index.ts`) — la réf de la grammaire au régime qui DÉSIGNE (`{ id }` ou
  *  `{ id, spec }`, `refOuSpec`) + la valeur de Test IMPRIMÉE ; le statbloc du bestiaire
  *  (`defs/creatures.ts`) porte, lui, des emplacements (`choix`). La FORME de sortie est
- *  ANNOTÉE (patron `AxesData`, `defs/axes.ts`) : `refOuSpec` déclare `RefASpecialisation` et n'y porte
+ *  ANNOTÉE : `refOuSpec` déclare `RefASpecialisation` et n'y porte
  *  pas l'`extra` du porteur — sans cette annotation, `value` disparaîtrait du type inferé de la scène. */
 export const competenceChiffreeSchema: z.ZodType<SkillRef> = refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }) as z.ZodType<SkillRef>;
 

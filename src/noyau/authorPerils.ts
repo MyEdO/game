@@ -33,7 +33,7 @@ import { applyEffects, applyEffectsLoot, jouerFlowEntier } from './combatEffects
 import { t } from '../i18n';
 import { tablesPosees, type FragmentDeTables, type InterruptionDePeril, type PartDeTable } from './tablesPosees';
 
-export const AUTHOR_PERIL_KIND = 'authorPeril';
+export const AUTHOR_PERIL_KIND = 'perilDeScene';
 
 /** Un péril d'auteur INTERROMPT-il le trajet ? (effet de combat ou de transition de scène). */
 export function perilInterrupts(effects: Effect[] | undefined): boolean {
@@ -59,7 +59,7 @@ export function buildAuthorPerilSteps(route: MapRoute, destLabel: string, interr
     id: `author-peril-${i}`,
     kind: AUTHOR_PERIL_KIND,
     label: dataLabel(peril.label),
-    icon: 'ui/warning',
+    icon: 'interface/attention',
     cible: Math.max(0, Math.min(100, peril.chancePct)),
     rollLabel: peril.label,
     verdict: { reussite: t('seuil.survient'), echec: t('seuil.evite') },
@@ -87,8 +87,8 @@ export const TABLES = {
       // ÉVITÉ : le dé garde sa ligne (rangée surfacée, ou trace de journal quand aucune fenêtre ne s'ouvre)
       // et la conséquence DIT l'issue. Un péril qui ne survient pas se LIT — le verrou est au test
       // (`de-monde-surface.hors-store.test.ts`, delta de journal nominatif), pas dans ce commentaire.
-      if (!step.result.success) return { consequences: freeCons([{ text: t('tf.perilAvoided', { label: peril.label }), tone: 'info' }]) };
-      const lignes: string[] = [t('tf.perilAuthor', { label: peril.label })];
+      if (!step.result.success) return { consequences: freeCons([{ text: t('tf.perilEvite', { label: peril.label }), tone: 'neutre' }]) };
+      const lignes: string[] = [t('tf.perilDAuteur', { label: peril.label })];
       if (perilInterrupts(peril.effects)) {
         set({ travelPlan: { ...get().travelPlan!, interrupted: true } });
         const suite = tablesPosees().interruptionsDePeril[String(step.meta?.interruptId ?? '')]?.(get, set, peril.effects, String(step.meta?.destLabel ?? '')) ?? [];

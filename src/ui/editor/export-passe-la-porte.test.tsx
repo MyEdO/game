@@ -18,7 +18,7 @@ import { buildApi } from '../../state/devtools';
 import { parseProject } from '../../noyau/worldMap';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { useGame } from '../../state/store';
-import { makeShowcaseParty } from '../../data/pregens';
+import { groupeVitrineDeScenario } from '../../scenes/test-scenarios/_heros';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 
 beforeAll(() => {
@@ -236,7 +236,7 @@ describe('Éditeur — « ▶ Tester » passe la MÊME porte que les autres sort
   });
 
   it('projet FAUTIF avec un groupe : le refus NOMME scène et entité, l’écran reste l’éditeur', async () => {
-    useGame.getState().fixerLeGroupe(makeShowcaseParty(idsDeTest));
+    useGame.getState().fixerLeGroupe(groupeVitrineDeScenario(idsDeTest));
     await monter(sceneSaine());
     await act(async () => { await buildApi().editorPatchEntity('p0', { decor: { id: DECOR_MORT } }); });
     const { refus, titre, ecran } = await metALEssai();
@@ -289,7 +289,7 @@ describe('Éditeur — modale « Avancé » : ce qu’on colle passe le SCHÉMA 
   it('JSON SANS `triggers` : les triggers de la scène sont CONSERVÉS, les dialogues remplacés', async () => {
     const avecTriggers: Scene = {
       ...sceneSaine(),
-      triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq', steps: [] } }],
+      triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence', etapes: [] } }],
     };
     await monter(avecTriggers);
     const { refus, scene } = await appliqueAvance('{"dialogues": []}');

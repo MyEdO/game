@@ -17,16 +17,17 @@ import {
   wildcardSpecs,
   prisParLesAutres,
   talentSlotsUpTo,
+  type EmplacementsDuNiveau,
 } from './careerSlots';
-import { CareerLevelData, levelsForCareer, specLabel } from '../data';
-import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
+import { levelsForCareer, specLabel, type CareerLevelData } from '../data';
+import { blessuresSurLeProfil, blessuresDeBase, combattantDeTest } from './combattantDeTest.testkit';
 
 
 const hero = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id: 'h',
     name: 'H',
-    kind: 'hero',
+    kind: 'heros',
     career: 'C1',
     careerLevel: 1,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -43,18 +44,18 @@ const hero = (over: Partial<Combatant> = {}): Combatant =>
 
 // Carrière factice C1 : « Sens aiguisé (Au choix) » aux niveaux 1 ET 2 (comme Érudit avec
 // Savoir) — le scénario complet de désignation se joue dessus.
-const C1: CareerLevelData[] = [
+const C1: (EmplacementsDuNiveau & Pick<CareerLevelData, 'characteristics'>)[] = [
   {
-    id: 'C1-1', type: 'careerLevels', label: 'N1', career: { id: 'C1' }, level: 1,
+    level: 1,
     skills: [{ id: 'charme' }, { id: 'savoir', choix: true }],
     talents: [{ id: 'sens-aiguise', choix: true }, { id: 'baratiner' }],
-    trappings: [], characteristics: ['force', 'endurance', 'sociabilite'], status: 'Bronze 1',
+    characteristics: ['force', 'endurance', 'sociabilite'],
   },
   {
-    id: 'C1-2', type: 'careerLevels', label: 'N2', career: { id: 'C1' }, level: 2,
+    level: 2,
     skills: [{ id: 'ragot' }, { id: 'savoir', choix: true }],
     talents: [{ id: 'sens-aiguise', choix: true }, { id: 'sociable' }],
-    trappings: [], characteristics: ['agilite'], status: 'Bronze 2',
+    characteristics: ['agilite'],
   },
 ];
 
@@ -101,7 +102,7 @@ describe('scénario complet : Sens aiguisé espèce + emplacements « (Au choix)
     const slots1 = talentSlots(C1, 1);
     designateSlot(h, 'C1', slots1[0], 'sens-aiguise', 'ouie', slots1);
     // Carrière C2 (autre carrière, même type de slot) : aucune désignation → tout est libre.
-    const C2: CareerLevelData[] = [{ ...C1[0], id: 'C2-1', career: { id: 'C2' } }];
+    const C2: EmplacementsDuNiveau[] = [C1[0]];
     const slots = talentSlots(C2, 1);
     const des = designationsFor(h, 'C2');
     expect(des).toEqual({});
@@ -111,7 +112,7 @@ describe('scénario complet : Sens aiguisé espèce + emplacements « (Au choix)
   });
 
   it('4) un slot ne peut pas désigner le libellé d\'une entrée EXPLICITE de la même carrière', () => {
-    const LV: CareerLevelData[] = [{
+    const LV: EmplacementsDuNiveau[] = [{
       ...C1[0],
       talents: [{ id: 'sens-aiguise', spec: 'vue' }, { id: 'sens-aiguise', choix: true }],
     }];
@@ -122,7 +123,7 @@ describe('scénario complet : Sens aiguisé espèce + emplacements « (Au choix)
   });
 
   it('5) joker RESTREINT « (Goût ou Toucher) » : limité à la liste', () => {
-    const LV: CareerLevelData[] = [{ ...C1[0], talents: [{ id: 'sens-aiguise', choix: ['gout', 'toucher'] }] }];
+    const LV: EmplacementsDuNiveau[] = [{ ...C1[0], talents: [{ id: 'sens-aiguise', choix: ['gout', 'toucher'] }] }];
     const slots = talentSlots(LV, 1);
     expect(inCareerStatus(slots, {}, 'sens-aiguise', 'gout')).toBe('free');
     expect(inCareerStatus(slots, {}, 'sens-aiguise', 'vue')).toBe(null);
@@ -130,6 +131,11 @@ describe('scénario complet : Sens aiguisé espèce + emplacements « (Au choix)
 });
 
 describe('Maxi des Talents (LDB 10 « Schéma des Talents »)', () => {
+  it('Maxi en Bonus de Caractéristique : lu avec les charMod permanents des Talents (LDB 10 l.17)', () => {
+    const porteur = combattantDeTest({ characteristics: { endurance: 38 }, talents: [{ talentId: 'tres-resistant', times: 1 }] });
+    expect(talentMaxById(porteur, 'dur-a-cuire')).toBe(4); // E 38 + 5 = 43
+    expect(talentMaxById({ ...porteur, talents: [] }, 'dur-a-cuire')).toBe(3);
+  });
   it('Maxi 1 (Lire/Écrire) : atteint dès la 1re acquisition', () => {
     const h = hero({ talents: [{ talentId: 'lire-ecrire', times: 1 }] });
     expect(talentMaxById(h, 'lire-ecrire')).toBe(1);

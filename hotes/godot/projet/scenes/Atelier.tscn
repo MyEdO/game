@@ -2,12 +2,12 @@
 
 [ext_resource type="Script" path="res://scripts/atelier.gd" id="1_atelier"]
 [ext_resource type="PackedScene" path="res://scenes/Lumiere.tscn" id="2_lumiere"]
-[ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="3_fond"]
 [ext_resource type="Script" path="res://scripts/marche.gd" id="4_marche"]
 [ext_resource type="Script" path="res://scripts/montage_de_composition.gd" id="5_montage"]
 [ext_resource type="Script" path="res://scripts/montage_de_vehicule.gd" id="6_vehicule"]
 [ext_resource type="Script" path="res://scripts/effets.gd" id="7_effets"]
 [ext_resource type="PackedScene" path="res://scenes/VolumeDeScene.tscn" id="8_volume"]
+[ext_resource type="PackedScene" path="res://scenes/EtatsDuCorps.tscn" id="9_etats"]
 
 [sub_resource type="StandardMaterial3D" id="Materiau_sol"]
 albedo_color = Color(0.22, 0.2, 0.18, 1)
@@ -43,6 +43,8 @@ script = ExtResource("5_montage")
 [node name="Vehicule" type="Node3D" parent="."]
 script = ExtResource("6_vehicule")
 
+[node name="Etats" parent="." instance=ExtResource("9_etats")]
+
 [node name="Echantillon" type="Node3D" parent="."]
 
 [node name="Scene" parent="Echantillon" instance=ExtResource("8_volume")]
@@ -76,20 +78,20 @@ camera = NodePath("../Orbite/Tangage/Camera")
 [node name="Interface" type="CanvasLayer" parent="."]
 
 [node name="Panneau" type="PanelContainer" parent="Interface"]
+theme_type_variation = &"Panneau"
 anchors_preset = 9
 anchor_bottom = 1.0
 offset_right = 420.0
 grow_vertical = 2
-theme_override_styles/panel = ExtResource("3_fond")
 
 [node name="Racine" type="VBoxContainer" parent="Interface/Panneau"]
+theme_type_variation = &"PileSerree"
 layout_mode = 2
-theme_override_constants/separation = 8
 
 [node name="ChoixDuModele" type="VBoxContainer" parent="Interface/Panneau/Racine"]
+theme_type_variation = &"PileSerree"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 6
 
 [node name="Onglets" type="HFlowContainer" parent="Interface/Panneau/Racine"]
 layout_mode = 2
@@ -154,9 +156,9 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Colonne" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementPersonnage"]
+theme_type_variation = &"PileSerree"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
 
 [node name="TitrePresets" type="Label" parent="Interface/Panneau/Racine/DefilementPersonnage/Colonne"]
 layout_mode = 2
@@ -215,14 +217,14 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Colonne" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementEquipement"]
+theme_type_variation = &"PileSerree"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
 
 [node name="Emplacements" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementEquipement/Colonne"]
+theme_type_variation = &"PileSerree"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 6
 
 [node name="AProduire" type="Button" parent="Interface/Panneau/Racine/DefilementEquipement/Colonne"]
 unique_name_in_owner = true
@@ -245,9 +247,9 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Colonne" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementCouleurs"]
+theme_type_variation = &"PileSerree"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
 
 [node name="AideDesCouleurs" type="Label" parent="Interface/Panneau/Racine/DefilementCouleurs/Colonne"]
 layout_mode = 2
@@ -255,9 +257,9 @@ autowrap_mode = 3
 text = "Chaque couleur teint les matières du modèle posé, et de ce qui y est monté, qui la portent ; « Par défaut » garde la matière du modèle."
 
 [node name="Couleurs" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementCouleurs/Colonne"]
+theme_type_variation = &"PileSerree"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 6
 
 [node name="DefilementAnimation" type="ScrollContainer" parent="Interface/Panneau/Racine"]
 unique_name_in_owner = true
@@ -267,9 +269,9 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Colonne" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementAnimation"]
+theme_type_variation = &"PileSerree"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
 
 [node name="TitreClip" type="Label" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne"]
 layout_mode = 2
@@ -379,9 +381,9 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Colonne" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementEffets"]
+theme_type_variation = &"PileSerree"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
 
 [node name="TitreArmes" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
 layout_mode = 2
@@ -464,6 +466,16 @@ text = "Marques des États"
 unique_name_in_owner = true
 layout_mode = 2
 
+[node name="TitreMeteos" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Météo"
+
+[node name="VitrineMeteos" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
 [node name="DefilementOutils" type="ScrollContainer" parent="Interface/Panneau/Racine"]
 unique_name_in_owner = true
 visible = false
@@ -472,9 +484,9 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Colonne" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementOutils"]
+theme_type_variation = &"PileSerree"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
 
 [node name="Recharger" type="Button" parent="Interface/Panneau/Racine/DefilementOutils/Colonne"]
 unique_name_in_owner = true

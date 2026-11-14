@@ -14,9 +14,20 @@ import type { HealMode, TestDeSoin } from '../engine/healing';
 import type { DefenseMode } from '../engine/combat';
 import type { OvercastAxis } from '../engine/overcast';
 import type { FermetureDuJet } from './rollFlowFactory';
+import type { FlowKey } from './flowVerbs';
 import type { Jeu } from './etat';
-import type { CounterDeclaration } from './pendings';
-import type { IdDAdversaireADistraire, IdDAdversaireDuBattement, IdDeChanson, IdDeCombattant, IdDeFormeConjuree, IdDeHeros, IdDeRangee, IdDObjet, IdDOptionDEtape } from './designations';
+import type { CounterDeclaration, IssueDEmpoignade, ReactionDeBouclier } from './pendings';
+import type {
+  IdDAdversaireADistraire,
+  IdDAdversaireDuBattement,
+  IdDeChanson,
+  IdDeCombattant,
+  IdDeFormeConjuree,
+  IdDeHeros,
+  IdDeRangee,
+  IdDObjet,
+  IdDOptionDEtape,
+} from './designations';
 import { offreDeLIncantation, type ReglageOffertDeLIncantation } from './reglagesDIncantation';
 import { sequenceAbandonOf } from './sequenceCore';
 
@@ -25,7 +36,7 @@ export const VERBE_DE_REGLAGE = 'jetRegler' as const satisfies keyof VerbeDeRegl
 
 /** Les réglages de chaque flux de jet qui en a, et la forme de leur valeur. */
 export interface ReglagesDuJet {
-  attack: {
+  attaque: {
     /** `null` : au hasard. */
     localisation: HitLocation | null;
     /** LDB 17 l.68 */
@@ -47,11 +58,11 @@ export interface ReglagesDuJet {
     /** `null` : la main principale. */
     armeDeParade: IdDObjet | null;
     /** AA 13 l.84 ; `null` : aucune. */
-    porteBouclier: 'damage' | 'push' | null;
+    porteBouclier: ReactionDeBouclier | null;
     /** LDB 10 l.1037 */
     riposte: boolean;
   };
-  cast: {
+  incantation: {
     /** LDB 46 l.26-32 */
     effetCritique: 'critique' | 'puissance' | 'ineluctable';
     /** LDB 47 */
@@ -80,11 +91,11 @@ export interface ReglagesDuJet {
     /** Le nombre saisi à l'étape « quantité » courante, ramené à sa plage (`clampStepAmount`). */
     quantite: number;
   };
-  counterspell: {
+  contreSort: {
     /** LDB 46 l.162 ; #1042, #1059 */
     declaration: CounterDeclaration;
   };
-  disengage: {
+  desengagement: {
     /** LDB 15 l.47 */
     sacrifier: true;
     /** LDB 15 l.59-61 */
@@ -94,19 +105,19 @@ export interface ReglagesDuJet {
     /** LDB 62 l.176 */
     issue: 'normal' | 'contact';
   };
-  grapple: {
+  empoignade: {
     /** LDB 14 l.161 */
     briser: true;
     /** LDB 14 l.161-165 */
-    issue: 'damage' | 'entangle' | 'free';
+    issue: IssueDEmpoignade;
   };
-  fall: {
+  chute: {
     /** LDB 15 l.82 ; `false` : la chute pleine, sans Test. */
     tenter: boolean;
     /** EDO 01 l.231 */
     suspendre: boolean;
   };
-  heal: {
+  soins: {
     mode: HealMode;
     /** LDB 74 l.41 */
     test: TestDeSoin;
@@ -117,11 +128,11 @@ export interface ReglagesDuJet {
     /** LDB 19 l.29 */
     nature: NatureDInfluence;
   };
-  shanty: {
+  chansonDeMarin: {
     /** MDG 09 l.32-40 */
     chanson: IdDeChanson;
   };
-  maneuver: {
+  manoeuvre: {
     /** LDB 85 l.290 */
     avantage: number;
   };
@@ -136,11 +147,11 @@ export interface ReglagesDuJet {
   test: {
     testeur: IdDeCombattant;
   };
-  shipManeuver: {
+  manoeuvreDuNavire: {
     /** MDG 13 ; crans d'octant. */
     virage: number;
   };
-  forceDoor: {
+  enfoncerLaPorte: {
     /** EDO 11 l.93 ; `null` : à mains nues. */
     arme: IdDObjet | null;
   };
@@ -190,9 +201,9 @@ const offertDuSort = (d: Omit<DeclarationDuReglage, 'offre'>, reglage: ReglageOf
 
 /** La déclaration de chaque réglage, table TOTALE sur `ReglagesDuJet`. */
 export const REGLAGES_DU_JET = {
-  attack: { localisation: avant, localisationDuCritique: apres, arme: avant, deuxArmes: avant, retenirSesCoups: avant, sansLaCorde: avant, empoigner: avant },
+  attaque: { localisation: avant, localisationDuCritique: apres, arme: avant, deuxArmes: avant, retenirSesCoups: avant, sansLaCorde: avant, empoigner: avant },
   defense: { reaction: avant, armeDeParade: avant, porteBouclier: avant, riposte: avant },
-  cast: {
+  incantation: {
     effetCritique: offertDuSort(apres, 'effetCritique'), formeConjuree: offertDuSort(horsDuJet, 'formeConjuree'),
     discret: offertDuSort(avant, 'discret'), jetsDeTable: offertDuSort(apres, 'jetsDeTable'),
     surincantationPortee: apres, surincantationZone: apres, surincantationDuree: apres, surincantationCibles: apres, surincantationDegats: apres,
@@ -204,56 +215,65 @@ export const REGLAGES_DU_JET = {
     choix: { ...horsDuJet, portee: 'rangee' },
     quantite: { ...horsDuJet, portee: 'rangee' },
   },
-  counterspell: {
+  contreSort: {
     declaration: { ...horsDuJet, portee: 'rangee', effet: 'fige', toutes: (s) => (s.pendingCounterspell?.participants ?? []).filter((x) => !x.declared && x.interactive).map((x) => x.id) },
   },
-  disengage: {
-    sacrifier: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingDisengage?.phase === 'choice' && s.pendingDisengage.canSacrifice ? null : 'nonOffert') },
-    fuir: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingDisengage?.phase === 'choice' && s.pendingDisengage.canFuir !== false ? null : 'nonOffert') },
+  desengagement: {
+    sacrifier: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingDisengage?.phase === 'choix' && s.pendingDisengage.canSacrifice ? null : 'nonOffert') },
+    fuir: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingDisengage?.phase === 'choix' && s.pendingDisengage.canFuir !== false ? null : 'nonOffert') },
   },
-  auContact: { issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingAuContact?.phase === 'choice' && s.pendingAuContact.result === 'success' ? null : 'nonOffert') } },
-  grapple: {
-    briser: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingGrapple?.phase === 'roll' && !s.pendingGrapple.def && s.pendingGrapple.canBreak ? null : 'nonOffert') },
-    issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingGrapple?.phase === 'options' && s.pendingGrapple.result === 'success' ? null : 'nonOffert') },
+  auContact: { issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingAuContact?.phase === 'choix' && s.pendingAuContact.result === 'reussite' ? null : 'nonOffert') } },
+  empoignade: {
+    briser: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingGrapple?.phase === 'jet' && !s.pendingGrapple.def && s.pendingGrapple.canBreak ? null : 'nonOffert') },
+    issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingGrapple?.phase === 'options' && s.pendingGrapple.result === 'reussite' ? null : 'nonOffert') },
   },
-  fall: {
+  chute: {
     tenter: { ...horsDuJet, portee: 'rangee', effet: 'fige' },
     suspendre: { ...horsDuJet, portee: 'rangee', effet: 'fige', offre: (s) => (s.pendingFall?.suspendu !== undefined ? null : 'nonOffert') },
   },
-  heal: {
+  soins: {
     mode: avant, test: avant,
     // LDB 74 l.41 ; `user-arbitrage-coop-inventaire-par-proprietaire-bg3`
     bandages: { ...avant, porteurDeLaValeur: (s, valeur) => (typeof valeur === 'string' ? valeur : s.pendingHeal?.bandagesDe ?? undefined) },
   },
   corruption: { nature: avant },
-  shanty: { chanson: avant },
-  maneuver: { avantage: avant },
+  chansonDeMarin: { chanson: avant },
+  manoeuvre: { avantage: avant },
   battement: { adversaire: avant },
   distraire: { adversaire: avant },
   test: { testeur: avant },
-  shipManeuver: { virage: horsDuJet },
-  forceDoor: { arme: { ...avant, portee: 'rangee' } },
+  manoeuvreDuNavire: { virage: horsDuJet },
+  enfoncerLaPorte: { arme: { ...avant, portee: 'rangee' } },
 } as const satisfies { [F in FluxRegle]: { [K in ReglageDu<F>]: DeclarationDuReglage } };
 
 /** Le réglage de la Surincantation de chaque axe. */
 export const REGLAGE_DE_L_AXE = {
   range: 'surincantationPortee', zone: 'surincantationZone', duration: 'surincantationDuree', targets: 'surincantationCibles', damage: 'surincantationDegats',
-} as const satisfies Record<OvercastAxis, ReglageDu<'cast'>>;
+} as const satisfies Record<OvercastAxis, ReglageDu<'incantation'>>;
 
 /** Le flux `flux` (une donnée de frontière) a-t-il des réglages ? */
 export const estFluxRegle = (flux: unknown): flux is FluxRegle => typeof flux === 'string' && Object.prototype.hasOwnProperty.call(REGLAGES_DU_JET, flux);
 
-/** La déclaration du réglage `reglage` du flux `flux`, deux données de frontière ; `null` : le flux ne le déclare pas. */
-export function declarationDuReglage(flux: unknown, reglage: unknown): DeclarationDuReglage | null {
-  if (!estFluxRegle(flux) || typeof reglage !== 'string') return null;
+/** Le réglage `reglage` (une donnée de frontière) est-il déclaré par un flux ? */
+const estReglageDuJet = (reglage: unknown): reglage is ReglageDuJet =>
+  typeof reglage === 'string' && Object.values(REGLAGES_DU_JET).some((table) => Object.prototype.hasOwnProperty.call(table, reglage));
+
+/** La déclaration du réglage `reglage` du flux `flux` ; `null` : le flux ne le déclare pas. */
+export function declarationDuReglageNomme(flux: FlowKey, reglage: ReglageDuJet): DeclarationDuReglage | null {
+  if (!estFluxRegle(flux)) return null;
   const table: Readonly<Record<string, DeclarationDuReglage>> = REGLAGES_DU_JET[flux];
   return Object.prototype.hasOwnProperty.call(table, reglage) ? table[reglage] : null;
 }
 
+/** La déclaration du réglage `reglage` du flux `flux`, deux données de frontière (`declarationDuReglageNomme`) ;
+ *  `null` : le flux ne le déclare pas. */
+export const declarationDuReglage = (flux: unknown, reglage: unknown): DeclarationDuReglage | null =>
+  (estFluxRegle(flux) && estReglageDuJet(reglage) ? declarationDuReglageNomme(flux, reglage) : null);
+
 /** Les réglages du flux `flux`, dans leur ordre de déclaration ; aucun pour un flux qui n'en a pas. */
 export const reglagesDuFlux = (flux: string): readonly ReglageDuJet[] => (estFluxRegle(flux) ? Object.keys(REGLAGES_DU_JET[flux]) as ReglageDuJet[] : []);
 
-/** Ce qui ferme maintenant un réglage de phase `phase`, d'après ce qui ferme le lancer de son jet (`roll`, `null` :
+/** Ce qui ferme maintenant un réglage de phase `phase`, d'après ce qui ferme le lancer de son jet (`lancer`, `null` :
  *  le dé reste à lancer) ; `null` : il se joue. */
 export function fermetureDeLaPhase(phase: PhaseDuReglage, roll: FermetureDuJet | null): FermetureDuJet | null {
   if (roll === 'sansJet') return roll;

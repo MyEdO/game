@@ -137,6 +137,56 @@ jobs:
         continue-on-error: true
         if: ${{ !cancelled() && steps.server-install.outcome == 'success' }}
         run: npm run server:typecheck
+      # L'export Web de l'hôte Godot et le lot de ses recettes dans la page (#4007), puis le même lot en natif (#3945),
+      # dont les jeux rendus sur un écran virtuel et les rechargements : `ci.yml` n'en joue que `combat` et `editeur` en
+      # natif (`godot:recette`), jamais l'export. Chrome est celui du runner.
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
+      - id: godot-export
+        continue-on-error: true
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: node hotes/godot/construire.mjs --export --sortie "$RUNNER_TEMP/godot-web"
+      # Le banc des étalons (#3935) sur ce même export : chaque planche comparée au pixel à son étalon, dans le Chromium
+      # que l'épingle nomme (`EPINGLE`, hotes/godot/planches.mjs, la version de Playwright lue à sa source), installé
+      # sous son propre `PLAYWRIGHT_BROWSERS_PATH` posé au step : les recettes gardent le Chrome du runner.
+      - id: godot-etalons
+        continue-on-error: true
+        if: ${{ !cancelled() && steps.godot-export.outcome == 'success' }}
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/chromium-epingle
+        run: |
+          npx -y "playwright@$(node --input-type=module -e "import { EPINGLE } from './hotes/godot/planches.mjs'; console.log(EPINGLE.playwright)")" install chromium
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          node hotes/godot/etalons.mjs --web "$RUNNER_TEMP/godot-web" --rapport "$RUNNER_TEMP/godot-etalons"
+      - if: ${{ !cancelled() && steps.godot-etalons.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-etalons
+          path: ${{ runner.temp }}/godot-etalons
+      - id: godot-recettes
+        continue-on-error: true
+        if: ${{ !cancelled() && steps.godot-export.outcome == 'success' }}
+        timeout-minutes: 300
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: node hotes/godot/lot-de-recettes.mjs --web "$RUNNER_TEMP/godot-web" --captures "$RUNNER_TEMP/godot-recettes"
+      - if: ${{ !cancelled() && steps.godot-recettes.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-recettes
+          path: ${{ runner.temp }}/godot-recettes
+      - id: godot-recettes-natives
+        continue-on-error: true
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        timeout-minutes: 180
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6
+          node hotes/godot/lot-de-recettes.mjs --natif --captures "$RUNNER_TEMP/godot-recettes-natives"
+      - if: ${{ !cancelled() && steps.godot-recettes-natives.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-recettes-natives
+          path: ${{ runner.temp }}/godot-recettes-natives
       # Filet des écrivains par nature (`docs:build`, `genererCode` de `build` et de la suite), comme `ci.yml`.
       - name: Arbre inchangé
         id: arbre-inchange
@@ -192,6 +242,10 @@ jobs:
             raw-check-code-refs=${{ steps.raw-check-code-refs.outcome }}
             server-install=${{ steps.server-install.outcome }}
             server-typecheck=${{ steps.server-typecheck.outcome }}
+            godot-export=${{ steps.godot-export.outcome }}
+            godot-etalons=${{ steps.godot-etalons.outcome }}
+            godot-recettes=${{ steps.godot-recettes.outcome }}
+            godot-recettes-natives=${{ steps.godot-recettes-natives.outcome }}
             arbre-inchange=${{ steps.arbre-inchange.outcome }}
             audit-stock=${{ steps.audit-stock.outcome }}
             fermetures=${{ steps.fermetures.outcome }}

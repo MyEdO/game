@@ -11,7 +11,7 @@ import { applyShipPostes } from '../../noyau/monde/shipPostes';
 import { availableAttacks } from '../../noyau/combatManeuvers';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { layerTiles, sceneMetresPerTile } from '../../noyau/monde/scene';
-import { PREGEN, idDuPretire } from '../../data/pregens';
+import { idDuHerosDeScenario } from '../../scenes/test-scenarios/_heros';
 import type { BattleState } from '../../noyau/etat';
 import type { Combatant } from '../../engine/types';
 import { presetDuNarratif } from '../monde/resolveursDuNarratif';
@@ -24,7 +24,7 @@ const presetPnjById = (id: string) => presetDuNarratif(banc.getState().campaignN
 
 /** Ids de PARTY pregen des 2 canonniers (Soldat + Chasseur) — chefs de pièce des pierriers de la barge amie.
  *  Couplage runtime `applyShipPostes` : ces ids ne changent PAS (ils réfèrent le groupe, pas la rencontre). */
-const GUNNER_IDS: readonly string[] = [idDuPretire(PREGEN.soldat), idDuPretire(PREGEN.chasseur)];
+const GUNNER_IDS: readonly string[] = [idDuHerosDeScenario('soldat'), idDuHerosDeScenario('chasseur')];
 
 const scen = testScenarios.find((s) => s.id === 'combat-naval')!;
 const scenConstruit = scen.construire(idsDeTest);
@@ -42,7 +42,7 @@ function spawnRoster(): Combatant[] {
  * La Scène est compilée par `buildScene(MapSpec)` (headless-editor) — plus aucun `arena()`+`setEncounters()`
  * impératif. Ce bloc verrouille l'ÉQUIVALENCE en jeu : mêmes dimensions, terrain 'planches', échelle 2 m/case
  * (metresPerTile non forcé → défaut), et un roster d'ennemis dont l'ORDRE d'index est load-bearing (la cogue
- * référence `enemy-enc-naval-1..3` ; la barge amie est l'index 4, côté 'ally', avec ses 2 postes de pierrier).
+ * référence `enemy-enc-naval-1..3` ; la barge amie est l'index 4, côté 'allie', avec ses 2 postes de pierrier).
  */
 describe('Scène compilée par buildScene — équivalence de map', () => {
   const scene = scenConstruit.scene;
@@ -75,7 +75,7 @@ describe('Scène compilée par buildScene — équivalence de map', () => {
 
   it('la barge amie (index 4) est côté ally, cap Nord, avec ses 2 postes de pierrier servis par les canonniers', () => {
     const members = scene.encounters.find((e) => e.id === 'enc-naval')!.members ?? [];
-    expect(members[4]).toEqual({ entityId: 'enemy-enc-naval-4', side: 'ally' });
+    expect(members[4]).toEqual({ entityId: 'enemy-enc-naval-4', side: 'allie' });
     const barge = scene.entities.find((e) => e.id === 'enemy-enc-naval-4')!;
     expect(barge.facing).toBe('N');
     expect(barge.postes).toHaveLength(2);
@@ -95,7 +95,7 @@ describe('Scénario Bataille navale — chaîne navale jouable', () => {
   it('la cogue spawn comme COQUE (vehicule, enemy, B50) liée à son ÉQUIPAGE (crewIds → vrais marins)', () => {
     const ship = spawnRoster().find((c) => c.id === 'enemy-enc-naval-0')!;
     expect(ship.bodyShape).toBe('vehicule');
-    expect(ship.kind).toBe('enemy');
+    expect(ship.kind).toBe('ennemi');
     expect(ship.creatureId).toBe('cogue');
     expect(ship.wounds.max).toBe(50);
     expect(ship.crewIds).toEqual(['enemy-enc-naval-1', 'enemy-enc-naval-2', 'enemy-enc-naval-3']);
@@ -140,9 +140,9 @@ describe('Artillerie jouable — 2 héros SERVENT un poste de pierrier (pas d’
     const battle = { combatants: all, acted: false } as unknown as BattleState;
     for (const g of gunners) {
       const w = g.weapons.find((x) => x.uid === g.mannedPoste!.item.uid);
-      expect(w?.type).toBe('ranged'); // le pierrier servi est une arme à distance
+      expect(w?.type).toBe('distance'); // le pierrier servi est une arme à distance
       expect(w?.subType).toBe('armes-de-siege');
-      const serve = availableAttacks(g, battle).find((o) => o.id === 'poste');
+      const serve = availableAttacks(banc.getState().scene, g, battle).find((o) => o.id === 'poste');
       expect(serve).toBeDefined(); // bouton « Servir le pierrier »
       expect(serve!.weaponUid).toBe(g.mannedPoste!.item.uid); // épingle le canon (≠ arme perso auto-choisie)
     }
@@ -179,7 +179,7 @@ describe('combat-naval — bordée de la barge sur un pirate, par la porte du jo
   it('Test des Artilleurs puis Feu ! : chaque pierrier tire sur le pirate, rien ne lève, aucun État naval', () => {
     seedBattleRng(7);
     lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scen, idsDeTest));
-    if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('roundStart');
+    if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('debutDuRound');
     const BARGE = 'enemy-enc-naval-4';
     const PIRATE = 'enemy-enc-naval-1';
     const pirate = () => banc.getState().battle!.combatants.find((c) => c.id === PIRATE)!;
@@ -188,8 +188,8 @@ describe('combat-naval — bordée de la barge sur un pirate, par la porte du jo
     banc.getState().ouvrirLaBordee(BARGE, PIRATE);
     const p = banc.getState().pendingShipBattery;
     expect(p, `bordée refusée : ${banc.getState().refus?.texte}`).not.toBeNull();
-    for (const x of p!.participants) if (!x.result) banc.getState().jetLancer('shipBattery', x.id);
-    expect(() => banc.getState().jetValider('shipBattery')).not.toThrow();
+    for (const x of p!.participants) if (!x.result) banc.getState().jetLancer('tirDeBatterie', x.id);
+    expect(() => banc.getState().jetValider('tirDeBatterie')).not.toThrow();
     draineCascade(banc.getState);
     const coups = banc.getState().battle!.log.slice(logAvant).filter((e) => e.targetId === PIRATE && GUNNER_IDS.includes(e.actorId ?? ''));
     expect(new Set(coups.map((e) => e.actorId)), 'un coup par pierrier servi, touché ou raté').toEqual(new Set(GUNNER_IDS));

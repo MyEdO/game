@@ -1,4 +1,4 @@
-import { makeShowcaseParty } from '../../data/pregens';
+import { groupeVitrineDeScenario } from './_heros';
 import type { AuthoredShipPoste, FireArc } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import { buildScene } from '../../noyau/mapSpec';
@@ -31,7 +31,7 @@ const construireScene = (): Scene => buildScene({
     { id: 'cogue-rendu', kind: 'personnage', vehicule: { id: 'cogue' }, pos: { x: 20, y: 5 }, facing: 'O', label: 'La cogue pirate' } as SceneEntity,
   ],
   encounters: [
-    { id: 'caraque', members: [{ entityId: CARAQUE, side: 'ally' }, { entityId: 'cogue-rendu', side: 'enemy' }] },
+    { id: 'caraque', members: [{ entityId: CARAQUE, side: 'allie' }, { entityId: 'cogue-rendu', side: 'ennemi' }] },
   ],
 });
 
@@ -45,6 +45,6 @@ export const scenario: TestScenario = {
     'Le corps d’une caraque (#2987) : l’hôte pose son élément 3D sur son empreinte, un canon à chaque poste de ses bords, '
     + 'ses sabords compris, la pièce de chaque Amélioration montée, et l’emblème « Tête de taureau rouge » sur ses voiles.',
   partyNote: 'Groupe d’arène embarqué (passagers de la caraque)',
-  construire: (idNeuf) => ({ party: makeShowcaseParty(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: groupeVitrineDeScenario(idNeuf), scene: construireScene() }),
   autoCombat: 'caraque',
 };

@@ -1,6 +1,10 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { rollShipCritical, resolveShipCriticalHit } from './shipCritical';
+import { rollShipCritical, resolveShipCriticalHit, shipCritEntryCodexCategory } from './shipCritical';
+import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
+import { exposition as expositionNavale } from '../data/schemas/defs/ship-criticals';
+import { exposition as expositionFluviale } from '../data/schemas/defs/river-criticals';
+import { suiteAvecPas } from '../data/schemas/grammaire/cle-d-espace';
 import { applyOps } from './ops';
 import { stacks } from './conditions';
 import { vehicleCombatant } from './vehicle';
@@ -15,7 +19,7 @@ describe('rollShipCritical (MDG 13) — code générique sur ship-criticals.json
     const r = rollShipCritical('coque', makeRNG(1), 8);
     expect(r.id).toBe('voie-d-eau-au-dessus-de-la-ligne-de-flottaison'); // réf par id, jamais le label
     expect(r.shrapnel).toBe(6);
-    expect(r.ops).toEqual([{ op: 'condition', id: 'voie-d-eau', value: 1 }]);
+    expect(r.ops).toEqual([{ op: 'condition', id: { id: 'voie-d-eau' }, value: 1 }]);
     const c = ship();
     applyOps(c, r.ops, { idNeuf: idsDeTest, rng: desDuTest }); // l'appelant applique → l'État NAVAL data-driven se pose
     expect(stacks(c, 'voie-d-eau')).toBe(1);
@@ -23,14 +27,14 @@ describe('rollShipCritical (MDG 13) — code générique sur ship-criticals.json
 
   it('Cargaison 3 → En flammes 1 ; Cargaison 10 → En flammes 3 + 1d10 Critiques de Coque', () => {
     const fire1 = rollShipCritical('cargaison', makeRNG(1), 3);
-    expect(fire1.ops).toEqual([{ op: 'condition', id: 'en-flammes-navire', value: 1 }]);
+    expect(fire1.ops).toEqual([{ op: 'condition', id: { id: 'en-flammes-navire' }, value: 1 }]);
     const c = ship();
     applyOps(c, fire1.ops, { idNeuf: idsDeTest, rng: desDuTest });
     expect(stacks(c, 'en-flammes-navire')).toBe(1);
 
     const boom = rollShipCritical('cargaison', makeRNG(7), 10);
     expect(boom.id).toBe('explosion-du-depot-de-munitions');
-    expect(boom.ops).toEqual([{ op: 'condition', id: 'en-flammes-navire', value: 3 }]);
+    expect(boom.ops).toEqual([{ op: 'condition', id: { id: 'en-flammes-navire' }, value: 3 }]);
     expect(boom.extraHullCrits).toBeGreaterThanOrEqual(1); // 1d10
     expect(boom.extraHullCrits).toBeLessThanOrEqual(10);
   });
@@ -68,5 +72,20 @@ describe('resolveShipCriticalHit — brain du coup critique naval (localisation 
     const h = resolveShipCriticalHit('avirons', makeRNG(1), 15, 3); // d10=3 → Avirons dégradés
     expect(h.location).toBe('avirons');
     expect(h.crit?.id).toBe('avirons-degrades');
+  });
+});
+
+describe('shipCritEntryCodexCategory — la catégorie de chaque table est celle que déclare l’exposition du jeu', () => {
+  const LOCALISATIONS: ShipCritKey[] = ['avirons', 'greement', 'coque', 'equipements', 'cargaison', 'gouvernail', 'superstructure'];
+  it.each([
+    { jeu: SHIP_CRIT_SET, exposition: expositionNavale },
+    { jeu: RIVER_CRIT_SET, exposition: expositionFluviale },
+  ])('$jeu.id', ({ jeu, exposition }) => {
+    const declarees = 'niche' in exposition.edit ? exposition.edit.niche.categories : {};
+    expect(Object.keys(declarees)).toHaveLength(5);
+    for (const loc of LOCALISATIONS) {
+      const attendue = Object.keys(declarees).find((c) => declarees[c] === suiteAvecPas('tables', { champ: loc }));
+      expect(shipCritEntryCodexCategory(jeu.id, loc), `${jeu.id}/${loc}`).toBe(attendue);
+    }
   });
 });

@@ -29,7 +29,7 @@ const objet = (over: Partial<ItemInstance>): ItemInstance => ({ uid: 'x', label:
 
 function heros(id: string, p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id, label: id.toUpperCase(), kind: 'hero',
+    id, label: id.toUpperCase(), kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -157,7 +157,7 @@ describe('marchand.reparer : chaque refus est dit', () => {
   });
   it('un objet qui ne se répare pas', () => {
     avec(objet({ uid: 'm', label: 'Corde', kind: 'misc', damageTaken: 1 }));
-    expect(dernier()).toBe(t('mf.repairIrreparable', { label: 'Corde' }));
+    expect(dernier()).toBe(t('mf.irreparable', { label: 'Corde' }));
   });
 });
 
@@ -185,7 +185,7 @@ describe('coop : le geste d’un porteur revient au siège de ce porteur, lu dan
   beforeEach(() => {
     banc.setState({
       party: [heros('a', { wounds: blessuresDeBase(12, 6), items: [potion('pa')] }), heros('b', { wounds: blessuresDeBase(12, 6), items: [potion('pb')] })],
-      net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { a: 0, b: 1 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } },
+      net: { ...initialNet(), mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { a: 0, b: 1 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } },
     });
   });
 
@@ -223,13 +223,13 @@ describe('evaluerLObjet : chaque refus est dit', () => {
   const detecteur = { talentId: 'detection-d-artefact', times: 1 };
   it('la Détection déjà tentée par chaque détecteur (LDB 10 l.336)', () => {
     banc.setState({ party: [heros('a', { talents: [detecteur], items: [objet({ uid: 'inconnu', label: 'Anneau', identified: false, detectTriedBy: ['a'] })] })] });
-    g().evaluerLObjet('inconnu', 'detect');
-    expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectDejaTentee', { label: 'Anneau' }), null]);
+    g().evaluerLObjet('inconnu', 'detection');
+    expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectionDejaTentee', { label: 'Anneau' }), null]);
   });
 
   it('un second détecteur tente encore l’artefact qu’un premier a sondé (LDB 10 l.336)', () => {
     banc.setState({ party: [heros('a', { talents: [detecteur], items: [objet({ uid: 'inconnu', label: 'Anneau', identified: false, detectTriedBy: ['a'] })] }), heros('b', { talents: [detecteur] })] });
-    g().evaluerLObjet('inconnu', 'detect');
+    g().evaluerLObjet('inconnu', 'detection');
     expect(g().pendingAppraise?.actorId).toBe('b');
   });
 });
@@ -237,7 +237,7 @@ describe('evaluerLObjet : chaque refus est dit', () => {
 describe('utiliserLObjet : chaque refus est dit', () => {
   const potion = (uid: string) => objet({ uid, label: 'Potion de guérison', trappingId: 'potion-de-guerison' });
   const enBataille = (combattants: Combatant[], over: Record<string, unknown> = {}) => banc.setState({
-    party: combattants.filter((c) => c.kind === 'hero'), refus: null,
+    party: combattants.filter((c) => c.kind === 'heros'), refus: null,
     battle: { combatants: combattants, order: combattants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], over: null, ...over } as never,
   });
   const refus = () => g().refus?.texte;
@@ -254,14 +254,14 @@ describe('utiliserLObjet : chaque refus est dit', () => {
     expect([refus(), g().battle!.combatants[1].items!.length]).toEqual([t('cs.consommableHorsDuTour', { name: 'B' }), 1]);
   });
 
-  it('en combat, l’actif n’est pas piloté', () => {
-    enBataille([heros('e1', { kind: 'enemy' }), heros('a', { items: [potion('pa')] })]);
+  it('en combat, l’actif n’est pas piloté, et hors de vue il n’est pas nommé', () => {
+    enBataille([heros('e1', { kind: 'ennemi' }), heros('a', { items: [potion('pa')] })]);
     g().utiliserLObjet('pa');
-    expect(refus()).toBe(t('barre.nonPilote', { name: 'E1' }));
+    expect(refus()).toBe(t('barre.nonPilote', { name: t('vision.horsDeVue') }));
   });
 
   it('en combat clos, personne n’agit', () => {
-    enBataille([heros('a', { wounds: blessuresDeBase(12, 6), items: [potion('pa')] })], { over: 'victory' });
+    enBataille([heros('a', { wounds: blessuresDeBase(12, 6), items: [potion('pa')] })], { over: 'victoire' });
     g().utiliserLObjet('pa');
     expect(refus()).toBe(t('barre.personneNAgit'));
   });
@@ -299,7 +299,7 @@ describe('quitterLaScene : une scène absente du registre est refusée et dite',
 describe('un héros hors de la rencontre, pendant un combat : son porteur se lit au groupe', () => {
   const enCombatSans = (absent: Combatant) => {
     const a = heros('a');
-    banc.setState({ party: [a, absent], refus: null, battle: { combatants: [structuredClone(a), heros('e1', { kind: 'enemy' })], order: ['a', 'e1'], turn: 0, round: 1, acted: false, log: [], over: null } as never });
+    banc.setState({ party: [a, absent], refus: null, battle: { combatants: [structuredClone(a), heros('e1', { kind: 'ennemi' })], order: ['a', 'e1'], turn: 0, round: 1, acted: false, log: [], over: null } as never });
   };
 
   it('poserLApparence pose l’apparence de son objet', () => {

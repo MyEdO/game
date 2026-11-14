@@ -16,7 +16,7 @@ const base = { entityId: 'p', archetype: 'armurier', settlement: 'ville' as cons
  *  lisent wounds/conditions. */
 const stubHero = (id: string, label: string, items: ItemInstance[] = []) =>
   (blessuresSurLeProfil({
-    id, label, kind: 'hero', wounds: blessuresDeBase(12, 10), conditions: [], advantage: 0,
+    id, label, kind: 'heros', wounds: blessuresDeBase(12, 10), conditions: [], advantage: 0,
     weapons: [], skills: [], items, movement: 4,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -32,7 +32,7 @@ describe('MerchantPanel (#2 — panier)', () => {
         merchant={{ ...base, stock: [{ id: 'epee', qty: 3 }], troc: { cede: { heroId: 'h', trappingId: 'hallebarde' }, recu: 'epee', quantite: 1 } }}
         party={[porteur]}
         money={{ gold: 5, silver: 0, brass: 0 }}
-        initialTab="barter"
+        initialTab="troc"
         troc={{ ceder: () => {}, recevoir: () => {}, quantite: () => {}, troquer: () => {} }}
         {...noop}
       />,
@@ -144,10 +144,10 @@ describe('MerchantPanel (#2 — panier)', () => {
       { uid: 'x', trappingId: 'dague', label: 'Dague', kind: 'melee', qualities: [], enc: 0, equipped: false },
       { uid: 'a', trappingId: 'chemise-de-mailles', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 2, qualities: [], enc: 1, equipped: true },
     ] as ItemInstance[])];
-    const sell = renderToStaticMarkup(<MerchantPanelView merchant={base} party={party} money={{ gold: 1, silver: 0, brass: 0 }} {...noop} initialTab="sell" />);
+    const sell = renderToStaticMarkup(<MerchantPanelView merchant={base} party={party} money={{ gold: 1, silver: 0, brass: 0 }} {...noop} initialTab="vente" />);
     expect(sell).toContain('Dague');
     expect(sell).toMatch(/Marchander la vente/);
-    const repair = renderToStaticMarkup(<MerchantPanelView merchant={base} party={party} money={{ gold: 1, silver: 0, brass: 0 }} {...noop} initialTab="repair" />);
+    const repair = renderToStaticMarkup(<MerchantPanelView merchant={base} party={party} money={{ gold: 1, silver: 0, brass: 0 }} {...noop} initialTab="reparation" />);
     expect(repair).toContain('Chemise de mailles');
     expect(repair).toMatch(/Réparer/);
     // marchand méfiant : plus de marchandage dans le panier
@@ -158,12 +158,12 @@ describe('MerchantPanel (#2 — panier)', () => {
 
 describe('MerchantPanel — verdicts du Marchandage (LDB 59 l.43/l.54, LDB 10 l.818 ; arbitrage #2547)', () => {
   const party = [stubHero('h', 'H')];
-  const rendu = (merchant: typeof base & Record<string, unknown>, initialTab?: 'sell') =>
+  const rendu = (merchant: typeof base & Record<string, unknown>, initialTab?: 'vente') =>
     renderToStaticMarkup(<MerchantPanelView merchant={merchant} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} initialTab={initialTab} />);
   it('vente gagnée par un Négociateur : le verdict dit la hausse, comme la popin', () => {
-    expect(rendu({ ...base, bargainSell: { won: true, drNet: 1, negotiator: true } }, 'sell')).toContain('Gagné (½ du prix listé, +10 %)');
-    expect(rendu({ ...base, bargainSell: { won: true, drNet: 6, negotiator: true } }, 'sell')).toContain('Gagné (½ du prix listé, +20 %)');
-    expect(rendu({ ...base, bargainSell: { won: false, drNet: 1, negotiator: true } }, 'sell')).toContain('Perdu (¼ du prix listé)');
+    expect(rendu({ ...base, bargainSell: { won: true, drNet: 1, negotiator: true } }, 'vente')).toContain('Gagné (½ du prix listé, +10 %)');
+    expect(rendu({ ...base, bargainSell: { won: true, drNet: 6, negotiator: true } }, 'vente')).toContain('Gagné (½ du prix listé, +20 %)');
+    expect(rendu({ ...base, bargainSell: { won: false, drNet: 1, negotiator: true } }, 'vente')).toContain('Perdu (¼ du prix listé)');
   });
   it('achat gagné, Stupéfiant + Négociateur : prix réduits de 30 %', () => {
     const html = renderToStaticMarkup(<MerchantPanelView merchant={{ ...base, cart: [{ id: 'hallebarde', qty: 1 }], bargainBuy: { won: true, drNet: 6, negotiator: true } }} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} initialBuyView="cart" />);
@@ -173,7 +173,7 @@ describe('MerchantPanel — verdicts du Marchandage (LDB 59 l.43/l.54, LDB 10 l.
 
 describe('MerchantPanel — « Évaluer » à la vente suit qui peut tenter le Test (LDB 09 l.30)', () => {
   const inconnu = { uid: 'x', trappingId: 'dague', label: 'Dague', kind: 'melee', qualities: [], enc: 0, equipped: false, identified: false } as unknown as ItemInstance;
-  const vente = (h: Combatant) => renderToStaticMarkup(<MerchantPanelView merchant={base} party={[h]} money={{ gold: 1, silver: 0, brass: 0 }} {...noop} initialTab="sell" />);
+  const vente = (h: Combatant) => renderToStaticMarkup(<MerchantPanelView merchant={base} party={[h]} money={{ gold: 1, silver: 0, brass: 0 }} {...noop} initialTab="vente" />);
   const evaluer = (html: string) => new RegExp('<button[^>]*>Évaluer</button>').exec(html)?.[0] ?? '';
 
   it('un vendeur avec une Augmentation en Évaluation : le geste est offert', () => {

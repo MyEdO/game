@@ -2,7 +2,7 @@ import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { createHero } from '../../engine/character';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import { especeDApparence } from '../../data';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from './_heros';
 import type { Combatant } from '../../engine/types';
 import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
@@ -48,13 +48,13 @@ export const scenario: TestScenario = {
   id: 'embleme-au-combat',
   order: 62,
   category: 'rendu',
-  icon: 'scenario/ambush',
+  icon: 'scenario/embuscade',
   title: 'Emblème au combat — le bouclier porte l’emblème de la donnée',
   tests:
     'Le corps de chaque combattant se compose sur la base servie (#3253) : le Porte-écu tient l’épée en main '
     + 'principale et le bouclier en main secondaire, et son apparence d’auteur nomme l’emblème « Tête de taureau rouge », '
     + 'posé sur la surface `blason` de l’élément qui monte le bouclier, comme à l’atelier. L’orc se compose sur la même base.',
   partyNote: 'Porte-écu (Soldat, épée et bouclier, emblème Tête de taureau rouge) · Chasseur',
-  construire: (idNeuf) => ({ party: [porteEcu(idNeuf), pregen(idNeuf, PREGEN.chasseur)], scene: construireScene() }),
+  construire: (idNeuf) => ({ party: [porteEcu(idNeuf), herosDeScenario(idNeuf, 'chasseur')], scene: construireScene() }),
   autoCombat: 'enc-embleme',
 };

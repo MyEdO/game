@@ -8,7 +8,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makeShowcaseParty } from '../data/pregens';
+import { groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';
 import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
 import { controlsActive } from './netOwnership';
 import { setCadence } from '../engine/cadence';
@@ -19,12 +19,12 @@ describe('Bascule de Cadence en plein combat', () => {
   beforeEach(() => { banc = ouvrirLeBanc(); });
 
   function startAtHeroTurn() {
-    banc.setState({ party: makeShowcaseParty(idsDeTest) });
+    banc.setState({ party: groupeVitrineDeScenario(idsDeTest) });
     banc.getState().lancerLaScene(embuscadeConstruit.scene);
     banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const hero = b.combatants.find((c) => c.kind === 'hero')!;
+    const hero = b.combatants.find((c) => c.kind === 'heros')!;
     // place un héros en tête → tour héros, cadence MANUELLE (l'IA n'agit pas, le combat ATTEND le joueur)
     banc.setState({ battle: { ...b, order: [hero.id, ...b.order.filter((id) => id !== hero.id)], turn: 0, action: null } });
     return hero.id;

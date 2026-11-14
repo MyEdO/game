@@ -137,7 +137,7 @@ describe('GameOpEditor — éditeur pour TOUTE op (dédié ou repli JSON)', () =
   });
 
   it('light a un éditeur dédié : rayon SAISISSABLE et ton élu dans le catalogue lightTones', () => {
-    const ops: GameOp[] = [{ op: 'light', radiusM: 7, tone: 'chandelle' }];
+    const ops: GameOp[] = [{ op: 'light', radiusM: 7, tone: { id: 'chandelle' } }];
     const html = renderToStaticMarkup(<GameOpEditor ops={ops} onChange={() => {}} />);
     expect(html).not.toContain('(JSON)'); // éditeur dédié, pas un repli
     expect(html).toContain('Rayon (m)');
@@ -201,12 +201,12 @@ describe('GameOpEditor — l’op `fall` a son champ de table (recette #1508)', 
     expect(html).not.toContain('paramètres de l’op'); // l'op a son éditeur dédié, pas le repli JSON
     expect(html).toContain('Table de hauteur');
     expect(html).toContain('— (choisir une table) —');
-    for (const t of fallTables) expect(html).toContain(`value="${t.id}"`);
-    expect(fallTables.length, 'la donnée en porte au moins une').toBeGreaterThan(0);
+    for (const t of fallTables()) expect(html).toContain(`value="${t.id}"`);
+    expect(fallTables().length, 'la donnée en porte au moins une').toBeGreaterThan(0);
   });
 
   it('un id CHOISI est relu dans l’op, et le résumé nomme la MÉCANIQUE puis la table', () => {
-    const table = fallTables[0];
+    const table = fallTables()[0];
     const choisie: GameOp = { op: 'fall', hauteur: { table: { id: table.id } } };
     expect(opSummary(choisie)).toContain('hauteur lue dans');
     expect(opSummary(choisie)).toContain(table.label);

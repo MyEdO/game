@@ -20,12 +20,12 @@ type PendingCastEnCours = NonNullable<Jeu['pendingCast']>;
 /** La zone EN POSE — le gabarit qui suit le curseur, et la fenêtre qui l'a ouverte. Choix de source
  *  seul : libellé, ancre et portée se projettent dans `combatFlow.placingZoneOf`. */
 export type ZoneEnPose =
-  | { source: 'cast'; cast: PendingCastEnCours; zone: NonNullable<PendingCastEnCours['zone']> }
+  | { source: 'incantation'; cast: PendingCastEnCours; zone: NonNullable<PendingCastEnCours['zone']> }
   | { source: 'siege'; aim: NonNullable<Jeu['pendingSiegeAim']> };
 
 export function zoneEnPose(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim'>): ZoneEnPose | null {
   const pc = s.pendingCast;
-  if (pc?.zone?.placing && !pc.zone.center) return { source: 'cast', cast: pc, zone: pc.zone };
+  if (pc?.zone?.placing && !pc.zone.center) return { source: 'incantation', cast: pc, zone: pc.zone };
   if (s.pendingSiegeAim) return { source: 'siege', aim: s.pendingSiegeAim };
   return null;
 }
@@ -58,7 +58,7 @@ const PORTEUR_PAR_GENRE = {
   surincantation: undefined,
 } as const satisfies Record<Exclude<DetenteurDuCiblage['genre'], 'zone'>, HorsModalCoveredKey | undefined>;
 const PORTEUR_PAR_ZONE = {
-  cast: undefined,
+  incantation: undefined,
   siege: 'pendingSiegeAim',
 } as const satisfies Record<ZoneEnPose['source'], HorsModalCoveredKey | undefined>;
 

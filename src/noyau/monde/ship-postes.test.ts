@@ -46,9 +46,9 @@ describe('placementPenalty — déséquilibre du poids des pièces par bord vs C
 
 describe('servingCrewPresent — servants APTES tenant le poste du chef (sous-effectif d’une Arme d’équipe)', () => {
   const sailor = (id: string, alive = true): Combatant =>
-    ({ id, name: id, kind: 'npc', conditions: [], weapons: [], dead: !alive, wounds: { current: alive ? 5 : 0, max: 5 } }) as unknown as Combatant;
+    ({ id, name: id, kind: 'pnj', conditions: [], weapons: [], dead: !alive, wounds: { current: alive ? 5 : 0, max: 5 } }) as unknown as Combatant;
   const chef = (crewIds: string[]): Combatant =>
-    ({ id: 'chef', name: 'Chef', kind: 'hero', conditions: [], weapons: [], wounds: { current: 5, max: 5 },
+    ({ id: 'chef', name: 'Chef', kind: 'heros', conditions: [], weapons: [], wounds: { current: 5, max: 5 },
       mannedPoste: { item: {}, side: 'tribord', crewIds } }) as unknown as Combatant;
 
   it('compte le chef + les servants vivants/conscients', () => {
@@ -70,7 +70,7 @@ describe('servingCrewPresent — servants APTES tenant le poste du chef (sous-ef
 // « Quitter la pièce » : l'arme du poste quitte les mains (`engine/items.lacherLArme`) ; repli `LDB 62 l.28`.
 describe('leaveChef — le chef de statbloc qui ne tenait que la pièce', () => {
   it('ne tient plus la pièce, et tient les Mains nues', () => {
-    const chef = { id: 'chef', label: 'Chef', kind: 'enemy', conditions: [], weapons: [], items: [], wounds: { current: 5, max: 5 } } as unknown as Combatant;
+    const chef = { id: 'chef', label: 'Chef', kind: 'ennemi', conditions: [], weapons: [], items: [], wounds: { current: 5, max: 5 } } as unknown as Combatant;
     const poste = hydratePoste({ trappingId: 'canon-a-repetition' } as never, 'poste-de-test');
     poste.crewIds = ['chef'];
     serveChef(chef, poste);

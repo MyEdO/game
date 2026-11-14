@@ -21,7 +21,7 @@ import { Row } from './Layout';
  * REMAPPE à la main peut créer un VRAI conflit (même touche, même contexte) — le badge est donc
  * informatif dans TOUS les cas, la garde `when` de chaque binding restant l'arbitre d'exécution.
  */
-const SECTION_ORDER: KeyBindingSection[] = ['systeme', 'pov', 'camera', 'combat', 'curseur', 'hotbar', 'exploration', 'dialogue', 'editeur'];
+const SECTION_ORDER: KeyBindingSection[] = ['systeme', 'subjectif', 'camera', 'combat', 'curseur', 'capacite', 'exploration', 'dialogue', 'editeur'];
 
 export function KeyBindingsPanel() {
   const keyOverrides = useGame((s) => s.keyOverrides);
@@ -70,7 +70,7 @@ export function KeyBindingsPanel() {
                     {bindingLabel(b)}
                     {shared && (
                       <span className="opt-key-shared" title={shared}>
-                        <Icon id="ui/warning" size="sm" />
+                        <Icon id="interface/attention" size="sm" />
                       </span>
                     )}
                   </span>

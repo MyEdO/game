@@ -91,6 +91,15 @@ describe('composerSurLaBase', () => {
     expect(composer({ humanoide }, soldat).materiaux).toEqual({});
   });
 
+  it('la corpulence efface le relief de la peau (#4002) : facteur `1 + (r − 1) × w` sur chaque surface de peau, aucun à poids nul ni sans `reliefDeCorpulence`', () => {
+    const surfaces = [{ nom: 'Peau', palette: 'peau' }, { nom: 'Cheveux', palette: 'cheveux' }];
+    const charnue = { ...humanoide, silhouettes: ['corpulence'], reliefDeCorpulence: 0.2, surfaces };
+    expect(composer({ humanoide: charnue }, { ...soldat, build: 1 }).reliefs).toEqual({ Peau: 0.2 });
+    expect(composer({ humanoide: charnue }, { ...soldat, build: 0.75 }).reliefs).toEqual({ Peau: 0.6 });
+    expect(composer({ humanoide: charnue }, { ...soldat, build: 0.5 }).reliefs).toEqual({});
+    expect(composer({ humanoide: { ...humanoide, surfaces } }, { ...soldat, build: 1 }).reliefs).toEqual({});
+  });
+
   it('une apparence variante monte l’élément qui la désigne, à défaut celui de sa racine ; sans l’un ni l’autre, le manquant garde son id', () => {
     const epee = { ...elementSchema3('humanoide'), cle: { apparence: 'epee' } };
     const epeeDeSoldat = { ...elementSchema3('humanoide'), cle: { apparence: 'epee_soldat' } };
@@ -117,14 +126,14 @@ describe('composerSurLaBase', () => {
 });
 
 describe('le pont : composer, catalogues, presetDeComposition', () => {
-  const pont = creerPont();
+  const pont = creerPont(null, null);
   const appeler = (methode: string, entree?: unknown) => JSON.parse(pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree)));
 
   it('composer se refuse avant modeles, puis compose sur une base servie', () => {
     expect(appeler('composer', { base: 'humanoide', composition: soldat }).erreur.message).toMatch(/modeles d’abord/);
     appeler('modeles', { manifestes: { humanoide }, osDesRigides: { humanoide: [] } });
     expect(appeler('composer', { base: 'autre', composition: soldat }).erreur.categorie).toBe('validation');
-    expect(Object.keys(appeler('composer', { base: 'humanoide', composition: soldat })).sort()).toEqual(['gabarit', 'manquants', 'materiaux', 'montes', 'morphes', 'ok', 'palette', 'rapport']);
+    expect(Object.keys(appeler('composer', { base: 'humanoide', composition: soldat })).sort()).toEqual(['gabarit', 'manquants', 'materiaux', 'montes', 'morphes', 'ok', 'palette', 'rapport', 'reliefs']);
   });
 
   it('un élément monté prend la palette de la teinte de sa chose portée (#3456) ; une chose sans élément, aucune', () => {
@@ -150,7 +159,7 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
   it('catalogues publie chaque champ en `{ id, label }` et ses axes, et presetDeComposition le Soldat sous son preset', () => {
     const catalogues = appeler('catalogues');
     expect(catalogues.presets.map(({ id, label }: { id: string; label: string }) => ({ id, label }))).toEqual(presets.map(({ id, label }) => ({ id, label })));
-    expect(catalogues.prises.map((c: { id: string }) => c.id)).toEqual(['main', 'off']);
+    expect(catalogues.prises.map((c: { id: string }) => c.id)).toEqual(['main', 'secondaire']);
     expect(catalogues.couleurs.map((c: { id: string }) => c.id)).toEqual([...SLOTS]);
     expect(catalogues.nuancier).toEqual(cataloguesDeComposition().nuancier);
     expect(catalogues.axes).toEqual(cataloguesDeComposition().axes);
@@ -184,11 +193,11 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
   });
 
   it('une composition absente ou fautive est refusée en validation, au chemin de la faute', () => {
-    const deuxMains = { ...soldat, prises: { main: { id: 'hallebarde' }, off: { id: 'hallebarde' } } };
+    const deuxMains = { ...soldat, prises: { main: { id: 'hallebarde' }, secondaire: { id: 'hallebarde' } } };
     expect(appeler('presetDeComposition', {}).erreur).toEqual({ categorie: 'validation', message: expect.stringContaining('presetDeComposition : composition, (racine) : ') });
     expect(appeler('presetDeComposition', { composition: deuxMains }).erreur).toEqual({
       categorie: 'validation',
-      message: 'presetDeComposition : composition, prises.off : « hallebarde » est porté deux fois : déjà par la prise main.',
+      message: 'presetDeComposition : composition, prises.secondaire : « hallebarde » est porté deux fois : déjà par la prise main.',
     });
     expect(appeler('composer', { base: 'humanoide', composition: { ...soldat, build: 2 } }).erreur).toEqual({ categorie: 'validation', message: expect.stringMatching(/^composer : composition, build : /) });
     expect(appeler('composer', { base: 'humanoide' }).erreur).toEqual({ categorie: 'validation', message: expect.stringContaining('composer : composition, (racine) : ') });

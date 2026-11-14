@@ -26,7 +26,7 @@ const traits = (o) => [
 const ranges = objets.filter((o) => o.rangement);
 const traitsDesRanges = new Set(ranges.flatMap(traits));
 const INDISCERNABLE = 'indiscernable d’un oubli';
-const portes = objets.filter((o) => !o.rangement && (o.shape || o.categorie === 'melee' || o.categorie === 'ranged'));
+const portes = objets.filter((o) => !o.rangement && (o.shape || o.categorie === 'melee' || o.categorie === 'distance'));
 const sansRangement = {};
 for (const o of portes) {
   const raison = traits(o).find((t) => !traitsDesRanges.has(t)) ?? INDISCERNABLE;

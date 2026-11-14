@@ -28,10 +28,10 @@ import { bus, EVT } from './bus';
 const DECOR_DE_L_OBJET_AU_SOL = 'bourse';
 
 /** Les objets du porteur `c`. */
-const objetsDe = (c: Carrier): ItemInstance[] => (c.kind === 'hero' ? (c.hero.items ?? []) : c.possession.items);
+const objetsDe = (c: Carrier): ItemInstance[] => (c.kind === 'heros' ? (c.hero.items ?? []) : c.possession.items);
 
 /** Le nom d'un porteur. */
-const nomDe = (c: Carrier): string => (c.kind === 'hero' ? c.hero.label : possessionLabel(c.possession));
+const nomDe = (c: Carrier): string => (c.kind === 'heros' ? c.hero.label : possessionLabel(c.possession));
 
 /** Pourquoi l'objet `uid` ne se pose pas au sol hors combat, `null` s'il se pose : en combat, l'inventaire de la fiche
  *  est fermé (`refusDInventaire`) ; personne ne le porte ; aucune scène ; son porteur n'est pas avec le groupe ; une arme
@@ -70,20 +70,20 @@ export function deposerAuSol(get: Get, set: Set, lot: ItemInstance[], pos: Pt): 
 
 /** Pose au sol l'objet `uid` et le contenu de son contenant (`lotDeLObjet`) : ils quittent leur porteur (`sansLeLot`,
  *  armes re-dérivées), l'objet déséquipé et libre, et se déposent (`deposerAuSol`). Hors combat, à la case du groupe ; en
- *  combat, à celle de l'actif qui le porte, Action gratuite (`drop-item` de `actions.json`). */
+ *  combat, à celle de l'actif qui le porte, Action gratuite (`depot` de `actions.json`). */
 export function poserLObjet(get: Get, set: Set, uid: string): void {
   const s = get();
   const refus = s.battle ? refusDePoserEnCombat(s, uid) : refusDePoser(s, uid);
   if (refus) return void refuserGeste(get, set, refus);
   const barre = etatDeLaBarre(s);
   const actif = barre.forme === 'ouverte' ? barre.active : undefined;
-  const porteur: Carrier = actif ? { kind: 'hero', hero: actif } : resolveCarrier(s, porteurDeLObjet(s, uid)!)!;
-  const porteurId = porteur.kind === 'hero' ? porteur.hero.id : porteur.possession.uid;
+  const porteur: Carrier = actif ? { kind: 'heros', hero: actif } : resolveCarrier(s, porteurDeLObjet(s, uid)!)!;
+  const porteurId = porteur.kind === 'heros' ? porteur.hero.id : porteur.possession.uid;
   const [objet, ...contenu] = lotDeLObjet(objetsDe(porteur), uid);
   const lot: ItemInstance[] = [{ ...objet, equipped: false, inside: undefined }, ...contenu.map((i) => ({ ...i, equipped: false }))];
   set((e) => ecrireLesPorteurs(e, { [porteurId]: (items) => sansLeLot(items, lot) }));
   deposerAuSol(get, set, lot, actif?.pos ?? s.partyPos);
-  journaliser(get, set, [t('pf.poser', { from: nomDe(porteur), item: itemLabel(objet) })], 'item', { actorId: porteurId });
+  journaliser(get, set, [t('pf.poser', { from: nomDe(porteur), item: itemLabel(objet) })], 'objet', { actorId: porteurId });
 }
 
 /** Le crochet d'`applyOps` qui dépose au sol, à la case du combattant, l'objet qu'il lâche (`OpsCtx.onLacher`, op
@@ -112,9 +112,9 @@ export function refusDeRamasserHorsCombat(s: Pick<Jeu, 'scene' | 'objetsAuSol' |
   return null;
 }
 
-/** Ramasse hors combat l'objet `key` posé au sol du décor `entityId` : le héros `pid` le reçoit, le meneur sans lui. */
-export function ramasserHorsCombat(get: Get, set: Set, entityId: string, key: string, pid?: string): void {
-  const receveurId = pid ?? meneurDuMonde(get())?.id;
+/** Ramasse hors combat l'objet `key` posé au sol du décor `entityId` : le héros `heroId` le reçoit, le meneur sans lui. */
+export function ramasserHorsCombat(get: Get, set: Set, entityId: string, key: string, heroId?: string): void {
+  const receveurId = heroId ?? meneurDuMonde(get())?.id;
   const refus = refusDeRamasserHorsCombat(get(), entityId, key, receveurId);
   if (refus) return void refuserGeste(get, set, refus);
   const label = ramasserDuSol(get, set, entityId, receveurId!);

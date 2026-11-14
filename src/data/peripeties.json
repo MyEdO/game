@@ -4,10 +4,7 @@
   "label": "Péripéties",
   "die": "d10",
   "tirageQuotidien": {
-    "dice": {
-      "n": 1,
-      "sides": 10
-    }
+    "die": "d10"
   },
   "source": {
     "book": "livre-de-base",

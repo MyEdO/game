@@ -27,6 +27,7 @@ import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { canFixDie } from './netOwnership';
 import { draineCascade } from './cascade.testkit';
 import type { Combatant } from '../engine/types';
+import { pratiquer } from './interlude.testkit';
 
 /** Dés d'événements CHOISIS dans la donnée (fourchettes de `interludeEvents.json`). */
 const PREVOT = 22; // « Le Prévôt arrive » — moneyPct −30
@@ -72,7 +73,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     const def = tableStepDef(INTERLUDE_EVENT_TABLE)!;
     expect(def).toBeDefined();
     expect(def.rows).toBe(INTERLUDE_EVENTS); // par RÉFÉRENCE : zéro duplication de fourchettes
-    expect(def.die).toBe(100);
+    expect(def.die).toEqual({ n: 1, sides: 100 });
     // Ligne d'affichage = le libellé + le texte de l'entrée atteinte (lookup de la donnée).
     expect(def.lines(PREVOT)).toEqual([interludeEventFor(PREVOT).label, interludeEventFor(PREVOT).desc]);
     // Sur TOUT le dé, l'id de ligne EST l'événement du lookup partagé — jamais un second chemin.
@@ -98,7 +99,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
       banc.getState().ouvrirLInterlude(2);
       // La séquence s'ouvre même sans l'option : elle se JOUE, dé par dé, au rang de chaque étape.
       expect(draineCascade(banc.getState), `seed ${seed} : étapes de la séquence`)
-        .toEqual(['interludeEvent', 'interludeEvent', 'interludePurse']);
+        .toEqual(['evenementDInterlude', 'evenementDInterlude', 'bourseDInterlude']);
       const apres = d100(battleRng());
       expect(banc.getState().pendingCascade, `seed ${seed} : la séquence ne s’est pas fermée`).toBeNull();
       expect(party.map((h) => perHeroOf(h.id).eventRoll), `seed ${seed} : événements différents`).toEqual(rolls);
@@ -125,7 +126,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     const party = groupe();
     seedBattleRng(5);
     banc.getState().ouvrirLInterlude(2);
-    expect(steps().map((s) => s.kind)).toEqual(['interludeEvent', 'interludeEvent', 'interludePurse']);
+    expect(steps().map((s) => s.kind)).toEqual(['evenementDInterlude', 'evenementDInterlude', 'bourseDInterlude']);
     expect(canFixDie(banc.getState(), party[0].id), 'option ÉTEINTE : la pose n’est pas offerte').toBe(false);
     expect(banc.getState().interlude!.phase).toBe('tirage');
     draineCascade(banc.getState);
@@ -140,12 +141,12 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     banc.getState().ouvrirLInterlude(2);
     expect(banc.getState().interlude!.phase).toBe('tirage');
     expect(banc.getState().pendingCascade!.purpose).toBe('interlude');
-    expect(steps().map((s) => s.kind)).toEqual(['interludeEvent', 'interludeEvent', 'interludePurse']);
+    expect(steps().map((s) => s.kind)).toEqual(['evenementDInterlude', 'evenementDInterlude', 'bourseDInterlude']);
     party.forEach((h, i) => {
       expect(steps()[i].actorId).toBe(h.id); // chaque héros SON étape (en coop, chaque siège pose pour les siens)
       expect(steps()[i].label, 'l’étape se nomme ; son héros, l’acteur, ne s’y redit pas').toBe('Événement');
       expect(stepInteraction(steps()[i])).toBe('table'); // dé À POSER → les deux affordances de la modale
-      expect(steps()[i].table).toMatchObject({ tableId: INTERLUDE_EVENT_TABLE, spec: { n: 1, sides: 100 } });
+      expect(steps()[i].table).toMatchObject({ tableId: INTERLUDE_EVENT_TABLE });
       expect(steps()[i].table!.result).toBeUndefined();
       // Rien n'est appliqué tant que le dé n'est pas posé.
       expect(perHeroOf(h.id).eventRoll).toBeUndefined();
@@ -211,13 +212,13 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
   it('coop : CHAQUE héros a SON étape — celle d’un autre siège n’est pas résolue à sa place', () => {
     const party = groupe();
     const net = banc.getState().net;
-    banc.setState({ net: { ...net, mode: 'guest', mySeat: 1, ownership: { [party[0].id]: 1, [party[1].id]: 0 } } });
+    banc.setState({ net: { ...net, mode: 'invite', mySeat: 1, ownership: { [party[0].id]: 1, [party[1].id]: 0 } } });
     setDesFixes(true);
     seedBattleRng(3);
     banc.getState().ouvrirLInterlude(2);
     // Les deux héros sont tenus par un siège HUMAIN (le local, un distant) : deux étapes à jouer, et
     // l'hôte ne tire pour aucun des deux. Qui VOIT quelle fenêtre appartient à `modalArbiter`, pas ici.
-    expect(steps().map((s) => s.kind)).toEqual(['interludeEvent', 'interludeEvent', 'interludePurse']);
+    expect(steps().map((s) => s.kind)).toEqual(['evenementDInterlude', 'evenementDInterlude', 'bourseDInterlude']);
     expect(steps().slice(0, 2).map((s) => s.actorId)).toEqual([party[0].id, party[1].id]);
     expect(steps().slice(0, 2).every((s) => s.table!.result === undefined), 'un dé est tombé sans siège').toBe(true);
     expect(perHeroOf(party[0].id).eventRoll).toBeUndefined();
@@ -236,12 +237,12 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     setDesFixes(true);
     banc.getState().ouvrirLInterlude(2);
     banc.setState({ journal: [] });
-    banc.getState().pratiquerLActivite(party[0].id, 'revenus');
+    pratiquer(banc.getState, party[0].id, 'revenus');
     expect(banc.getState().pendingActivity, 'Activité ouverte pendant le tirage').toBeNull();
     expect(banc.getState().journal.join('\n')).toMatch(/ne peut rien entreprendre tant que les Événements/);
     // Les autres portes d'Activité tiennent le même garde (le budget se dépense partout ailleurs aussi).
     banc.getState().commanderLObjet(party[0].id, 'dague');
-    banc.getState().deposerALaBanque(party[0].id, 'stash', 100);
+    banc.getState().deposerALaBanque(party[0].id, 'planque', 100);
     expect(banc.getState().pendingOrders).toEqual([]);
     expect(banc.getState().bank).toEqual([]);
     expect(perHeroOf(party[0].id).left, 'une Activité a été consommée pendant le tirage').toBe(2);
@@ -253,7 +254,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     banc.getState().jetValider('cascade');
     banc.getState().jetValider('cascade');
     banc.setState({ journal: [] });
-    banc.getState().pratiquerLActivite(party[0].id, 'revenus');
+    pratiquer(banc.getState, party[0].id, 'revenus');
     expect(banc.getState().pendingActivity).toBeNull();
     expect(banc.getState().journal.join('\n')).toMatch(/ne peut pas entreprendre Revenus/);
   });
@@ -292,7 +293,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     banc.getState().jetImposerLeResultat('cascadeTirage', AVERTI, steps()[1].id);
     banc.getState().jetValider('cascade');
     const bourses = banc.getState().pendingCascade!.participants[2];
-    expect(bourses.kind).toBe('interludePurse');
+    expect(bourses.kind).toBe('bourseDInterlude');
     const annonce = (bourses.outcome ?? []).map((l) => l.text);
     expect(annonce, 'le Prévôt frappe chaque bourse, dit avant d’appliquer').toEqual([expect.stringContaining('La bourse de A perd 30 %'), expect.stringContaining('La bourse de B perd 30 %')]);
     const avant = toBrass(partyMoneyTotal(banc.getState));

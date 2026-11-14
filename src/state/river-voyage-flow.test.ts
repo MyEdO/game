@@ -90,7 +90,7 @@ describe('helpers de recette — reposer la journée ne DUPLIQUE jamais les éta
     api.forceRiverCapsize();
     const ids = get().pendingCascade!.participants.map((s) => s.id);
     expect(new Set(ids).size, 'aucune clé en double après armement').toBe(ids.length);
-    expect(get().pendingCascade!.participants.some((s) => s.kind === 'riverCapsize'), 'l’étape armée est au programme').toBe(true);
+    expect(get().pendingCascade!.participants.some((s) => s.kind === 'fleuveChavirage'), 'l’étape armée est au programme').toBe(true);
   });
 
   it('le chemin JOUEUR est déjà protégé : `runRiverDays` ne rouvre rien tant qu’une cascade est ouverte', () => {

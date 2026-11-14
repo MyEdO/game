@@ -1,5 +1,5 @@
 /**
- * LA VALEUR DE LA 2ᵉ FRAPPE DU MANIEMENT DE DEUX ARMES, jouée par le noyau (`jetValider('attack')` → `jouerLaSuiteDuCoup`).
+ * LA VALEUR DE LA 2ᵉ FRAPPE DU MANIEMENT DE DEUX ARMES, jouée par le noyau (`jetValider('attaque')` → `jouerLaSuiteDuCoup`).
  * LDB 10 l.773 ; LDB 18 l.53 ; LDB 13 l.183 ; LDB 41 l.170 ; MDG 13 l.656, l.724 ; AA 10 l.114 ; #1595 c.6229354257, c.6229550544.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -38,7 +38,7 @@ const mk = (kind: Combatant['kind'], id: string, over: Partial<Combatant> = {}):
 
 const epee = { uid: 'm', label: 'Épée', type: 'melee', hand: 'main', hands: 1, damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 const rapiere = { ...epee, label: 'Rapière', qualities: [{ id: 'empaleuse' }] } as unknown as Weapon;
-const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'off', hands: 1, damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
+const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'secondaire', hands: 1, damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 const piece = (qualites: string[], pa: number): ItemInstance =>
   ({ uid: 'p1', label: 'Pièce', kind: 'armor', equipped: true, pa, locs: [...LOCALISATIONS_DE_COUP], qualities: qualites.map((id) => ({ id })) }) as unknown as ItemInstance;
 
@@ -59,12 +59,12 @@ interface Frappe {
   opsDuHeros?: GameOp[];
 }
 
-/** La 1ʳᵉ frappe d'un Maniement de deux armes, confirmée par `jetValider('attack')`. */
+/** La 1ʳᵉ frappe d'un Maniement de deux armes, confirmée par `jetValider('attaque')`. */
 function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, retenu = false, tenu = false, resoudre, opsDuHeros = [] }: Frappe) {
-  const heros = mk('hero', 'bretteur', { weapons: [arme, dague] } as never);
+  const heros = mk('heros', 'bretteur', { weapons: [arme, dague] } as never);
   applyOps(heros, opsDuHeros, { idNeuf: idsDeTest, rng: desDuTest });
-  const cible = mk('enemy', 'cible', { pos: { x: 1, y: 0 }, ...over } as never);
-  const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
+  const cible = mk('ennemi', 'cible', { pos: { x: 1, y: 0 }, ...over } as never);
+  const voisin = mk('ennemi', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
   if (pieces.length) { cible.items = structuredClone(pieces); recomputeLoadout(cible); }
   const battle = {
     combatants: [heros, cible, voisin], order: ['bretteur', 'cible', 'voisin'], baseOrder: ['bretteur', 'cible', 'voisin'],
@@ -73,14 +73,14 @@ function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, rete
   } as unknown as BattleState;
   banc.setState({
     battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [],
-    net: { ...banc.getState().net, mode: tenu ? 'host' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined },
+    net: { ...banc.getState().net, mode: tenu ? 'hote' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined },
   });
   seedBattleRng(GRAINE);
   const result = resoudre
     ? resoudre(heros, cible, arme)
     : rederivePassiveAttack(heros, cible, arme, { roll, target: 90, success: true, sl: 3, isDouble: roll % 11 === 0 } as never, 'melee', { rng: battleRng() }, 'corps', retenu);
   banc.setState({ pendingAttack: { attackerId: heros.id, targetId: cible.id, location: 'corps', dualMode: true, result } as never });
-  banc.getState().jetValider('attack');
+  banc.getState().jetValider('attaque');
   return result;
 }
 
@@ -90,7 +90,7 @@ const etapeCourante = (): CascadeStep | undefined => {
 };
 const jet = () => banc.getState().pendingDualStrike?.jet;
 const vivant = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!;
-const critiques = () => (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+const critiques = () => (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critique');
 
 /** Les d100 tirés à l'ouverture de la Seconde main sous `GRAINE`, figés : le chemin de la mort-auto consomme un tirage de moins. */
 const D100_AU_BESOIN = 53;
@@ -142,12 +142,12 @@ describe('la 2ᵉ frappe après un Coup Critique prend un d100 du tableau, jamai
   });
 
   describe('mort-auto (LDB 16 l.113)', () => {
-    beforeEach(() => setRule('combat-helpless-mode', 'mort-auto'));
+    beforeEach(() => setRule('combat-cible-inconsciente', 'mort-auto'));
 
     it('cible Inconsciente achevée : aucune table, le d100 est tiré à l’ouverture', () => {
       const res = premiereFrappe({
         roll: 0, cible: { conditions: [{ id: 'inconscient', value: 1 }] } as never,
-        resoudre: (h, c, a) => resolveMelee(h, c, a, makeRNG(3), { defense: 'none' }),
+        resoudre: (h, c, a) => resolveMelee(h, c, a, makeRNG(3), { defense: 'aucune' }),
       });
       expect(res.autoKill).toBe(true);
       expect(res.critical).toBe(true);

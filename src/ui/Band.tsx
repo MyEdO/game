@@ -31,7 +31,7 @@ export function Band({
           {onTitleClick ? (
             <button type="button" className="creator-band-title-link" onClick={onTitleClick} aria-label={titleAriaLabel}>
               {title}
-              <Icon id="nav/compendium" size="sm" className="creator-band-title-affordance" />
+              <Icon id="navigation/compendium" size="sm" className="creator-band-title-affordance" />
             </button>
           ) : (
             title

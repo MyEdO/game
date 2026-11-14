@@ -49,16 +49,16 @@ function setupCoop(withTalent = false): Combatant {
   banc.setState({ party: [hero] });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   H.pos = { x: 10, y: 10 };
   enemies[0].pos = { x: 30, y: 30 }; // loin : ni Peur de Taille ni Ligne de Vue
   banc.setState({ battle: { ...b }, pendingCascade: null, suspendedCascades: [] } as never);
-  banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } } as never);
+  banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } } as never);
   return H;
 }
 
@@ -92,7 +92,7 @@ describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ
     expect(stacks(h, COND.empoisonne), 'le dé n’est pas tombé chez l’hôte : le pion est intact').toBe(1);
     expect(hasCondition(h, COND.extenue), 'aucune conséquence de succès appliquée en silence').toBe(false);
 
-    const step = etapes().find((s) => s.kind === 'triggeredTest' && s.rollLabel === 'Résistance');
+    const step = etapes().find((s) => s.kind === 'testDeclenche' && s.rollLabel === 'Résistance');
     expect(step, 'l’étape influençable existe : le Test n’est ni perdu ni doublé').toBeTruthy();
     expect(step!.actorId).toBe(H.id);
     expect(step!.result, 'c’est la fenêtre de l’invité qui le jette').toBeFalsy();
@@ -106,10 +106,10 @@ describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ
 
     franchitLeRound();
 
-    const choix = etapes().find((s) => s.kind === 'triggeredChoice');
+    const choix = etapes().find((s) => s.kind === 'choixDeclenche');
     expect(choix, 'l’opt-in de l’invité n’est plus jeté : sa fenêtre de décision existe').toBeTruthy();
     expect(choix!.actorId).toBe(H.id);
-    expect(choix!.defaultChoice, 'Renoncer par défaut — personne ne décide à sa place').toBe('no');
+    expect(choix!.defaultChoice, 'Renoncer par défaut — personne ne décide à sa place').toBe('non');
     expect(modalOwnerOf(g())).toBe(H.id);
   });
 
@@ -143,7 +143,7 @@ describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ
 
     const h = g().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(h, COND.inconscient), 'l’hôte ne fait pas tomber le héros de l’invité sans fenêtre').toBe(false);
-    const step = etapes().find((s) => s.kind === 'aaBleedUnconscious');
+    const step = etapes().find((s) => s.kind === 'hemorragieInconscient');
     expect(step).toBeTruthy();
     expect(step!.actorId).toBe(H.id);
     expect(modalOwnerOf(g())).toBe(H.id);
@@ -162,7 +162,7 @@ describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ
 
     const h = g().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(h, COND.inconscient)).toBe(true);
-    expect(etapes().some((s) => s.kind === 'aaBleedUnconscious'), 'déjà Inconscient : aucun Test à lui soumettre').toBe(false);
+    expect(etapes().some((s) => s.kind === 'hemorragieInconscient'), 'déjà Inconscient : aucun Test à lui soumettre').toBe(false);
   });
 
   it('Durée « + » (LDB 47 l.311) : la prolongation n’est pas tentée d’office, elle devient un CHOIX du porteur', () => {
@@ -177,10 +177,10 @@ describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ
 
     const h = g().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.activeEffects!.some((e) => e.awaitingExtension), 'l’offre est encore ouverte : rien n’a été tranché chez l’hôte').toBe(true);
-    const choix = etapes().find((s) => s.kind === 'spellPlusChoice');
+    const choix = etapes().find((s) => s.kind === 'sortProlongeChoix');
     expect(choix).toBeTruthy();
     expect(choix!.actorId).toBe(H.id);
-    expect(choix!.defaultChoice).toBe('no');
+    expect(choix!.defaultChoice).toBe('non');
     expect(modalOwnerOf(g())).toBe(H.id);
     expect(seatOwns(g(), 1, H.id), 'la fenêtre est au siège 1, qui possède le porteur').toBe(true);
   });
@@ -246,7 +246,7 @@ describe('#1262 lot 4 — les producteurs mintés : la CIBLE ne bouge pas, la ba
     H.wounds.current = 0;
     addCondition(H, COND.hemorragique, 1);
 
-    const step = collectHeroRoundEndUpkeep(g, H).find((s) => s.kind === 'aaBleedUnconscious')!;
+    const step = collectHeroRoundEndUpkeep(g, H).find((s) => s.kind === 'hemorragieInconscient')!;
     expect(step, 'l’étape est produite').toBeTruthy();
     expect(step.target, 'CIBLE inchangée : celle du montage manuscrit (`base: res, target: res`)').toBe(testValue(H, { skill: { id: 'resistance' } }));
     expect(step.base, 'la base n’est plus la valeur fondue : c’est le Niveau de Compétence NU').toBeGreaterThan(step.target!);
@@ -282,12 +282,12 @@ describe('#1262 lot 4 — les producteurs mintés : la CIBLE ne bouge pas, la ba
       { label: 'Ailes de l’aigle', sourceSpellId: 'ailes-de-l-aigle', awaitingExtension: true, duration: { scale: 'rounds', left: 0 } },
     ] as Combatant['activeEffects'];
 
-    const step = collectHeroRoundEndUpkeep(g, H).find((s) => s.kind === 'spellPlusChoice')!;
+    const step = collectHeroRoundEndUpkeep(g, H).find((s) => s.kind === 'sortProlongeChoix')!;
     expect(step, 'l’étape est produite').toBeTruthy();
     expect({ target: step.target, base: step.base }, 'un choix ne lance aucun dé : ni cible ni base')
       .toEqual({ target: undefined, base: undefined });
-    expect(step.options?.map((o) => o.key)).toEqual(['yes', 'no']);
-    expect(step.defaultChoice).toBe('no');
+    expect(step.options?.map((o) => o.key)).toEqual(['oui', 'non']);
+    expect(step.defaultChoice).toBe('non');
     expect(step.meta?.sourceSpellId, 'l’effet visé reste désigné par son id STABLE (#142)').toBe('ailes-de-l-aigle');
     expect({ actorId: step.actorId, groupOwner: step.groupOwner })
       .toEqual({ actorId: H.id, groupOwner: undefined });

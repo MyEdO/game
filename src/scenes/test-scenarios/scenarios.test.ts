@@ -20,7 +20,7 @@ describe('Batterie de scénarios de test', () => {
     (_id, s) => {
       const { party, scene } = s.construire(idsDeTest);
       expect(party.length).toBeGreaterThanOrEqual(1);
-      expect(party.every((h) => h.kind === 'hero')).toBe(true);
+      expect(party.every((h) => h.kind === 'heros')).toBe(true);
       if (s.autoCombat) expect(scene.encounters.find((e) => e.id === s.autoCombat)).toBeTruthy();
     },
   );

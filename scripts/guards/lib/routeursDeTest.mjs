@@ -7,13 +7,14 @@
 //    son nœud (premier paramètre) ENTIER à une fonction — la PORTE nommée est l'appelée ; un membre qui
 //    LÈVE (`throw` à son premier niveau) est un routeur à porte `(lève)` : le fail-closed d'un hôte sans voie
 //    de jet ;
-//  - BRANCHES : un appel reçoit les DEUX branches d'un même nœud, `X.success` et `X.fail` (argument direct
+//  - BRANCHES : un appel reçoit les DEUX branches d'un même nœud, `X.reussite` et `X.echec` (argument direct
 //    ou valeur directe d'un littéral d'objet passé en argument) — la porte est l'appelée ;
-//  - INLINE : une conditionnelle choisit `X.success` ou `X.fail` — la porte est `(inline)`, le jet est
+//  - INLINE : une conditionnelle choisit `X.reussite` ou `X.echec` — la porte est `(inline)`, le jet est
 //    tombé dans le routeur lui-même.
+// Une branche que le checker résout hors du `Flow` de la marche n'est pas celle d'un nœud `test`.
 // Un site est rendu `{ file, fn, porte }`, trié et dédoublonné.
 //
-// ANGLES MORTS assumés : une branche lue seule (`X.success` puis, ailleurs, `X.fail`) ; un nœud remis entier
+// ANGLES MORTS assumés : une branche lue seule (`X.reussite` puis, ailleurs, `X.echec`) ; un nœud remis entier
 // hors d'un visiteur d'`executerFlow` (sa porte ne se voit que si les branches y sont remises ensemble) ; une
 // fonction passée en VALEUR comme membre `test` (`test: routeur`) ; un hôte lié par un autre nom qu'un import
 // nommé ou un espace de noms de `src/engine/flowCore.ts`.
@@ -24,7 +25,7 @@ import { parUnitesDeCode } from './lister.mjs';
 /** La marche d'exécution d'un Flow et son module, le FOYER des marcheurs (`src/marcheurs-de-flow-guard.test.ts`). */
 const MARCHE = { foyer: 'src/engine/flowCore.ts', fonction: 'executerFlow' };
 const APPEL_DE_LA_MARCHE = { [MARCHE.foyer]: [MARCHE.fonction] };
-const BRANCHES = new Set(['success', 'fail']);
+const BRANCHES = new Set(['reussite', 'echec']);
 
 /** Nom de la déclaration de NIVEAU MODULE qui contient `node`. @returns {string} */
 function declarationDeModule(ts, node, sf) {
@@ -38,16 +39,19 @@ function declarationDeModule(ts, node, sf) {
   return '(module)';
 }
 
-/** Récepteur d'un accès de branche `X.success` / `X.fail`, en texte ; `null` sinon. */
-function recepteurDeBranche(ts, e, sf) {
-  return ts.isPropertyAccessExpression(e) && BRANCHES.has(e.name.text) ? e.expression.getText(sf) : null;
+/** Récepteur d'un accès de branche `X.reussite` / `X.echec`, en texte ; `null` sinon, et `null` quand le checker
+ *  résout la propriété HORS du type `Flow` de la marche (les libellés `{ reussite, echec }` d'un verdict). */
+function recepteurDeBranche(ts, e, sf, checker) {
+  if (!ts.isPropertyAccessExpression(e) || !BRANCHES.has(e.name.text)) return null;
+  const declarations = checker.getSymbolAtLocation(e.name)?.declarations ?? [];
+  return declarations.some((d) => !d.resolve().getSourceFile().fileName.endsWith(`/${MARCHE.foyer}`)) ? null : e.expression.getText(sf);
 }
 
 /** Les valeurs remises portent-elles les DEUX branches d'un même récepteur ? */
-function remetLesDeuxBranches(ts, valeurs, sf) {
+function remetLesDeuxBranches(ts, valeurs, sf, checker) {
   const branchesPar = new Map();
   for (const v of valeurs) {
-    const r = recepteurDeBranche(ts, v, sf);
+    const r = recepteurDeBranche(ts, v, sf, checker);
     if (r) branchesPar.set(r, new Set([...(branchesPar.get(r) ?? []), v.name.text]));
   }
   return [...branchesPar.values()].some((b) => b.size === BRANCHES.size);
@@ -85,7 +89,7 @@ export function scanRouteursDeTest(files) {
     const contexte = contexteImports(sf, checker);
     const visit = (node) => {
       if (ts.isCallExpression(node)) {
-        if (remetLesDeuxBranches(ts, valeursRemises(ts, node), sf)) pose(rel, declarationDeModule(ts, node, sf), node.expression.getText(sf));
+        if (remetLesDeuxBranches(ts, valeursRemises(ts, node), sf, checker)) pose(rel, declarationDeModule(ts, node, sf), node.expression.getText(sf));
         const test = estAppelDeclare(node, sf, APPEL_DE_LA_MARCHE, contexte) ? membreTest(ts, node.arguments[1]) : null;
         if (test?.body) {
           const fn = declarationDeModule(ts, node, sf);
@@ -99,7 +103,7 @@ export function scanRouteursDeTest(files) {
         }
       }
       if (ts.isConditionalExpression(node)) {
-        const [a, b] = [recepteurDeBranche(ts, node.whenTrue, sf), recepteurDeBranche(ts, node.whenFalse, sf)];
+        const [a, b] = [recepteurDeBranche(ts, node.whenTrue, sf, checker), recepteurDeBranche(ts, node.whenFalse, sf, checker)];
         if (a && a === b && node.whenTrue.name.text !== node.whenFalse.name.text) pose(rel, declarationDeModule(ts, node, sf), '(inline)');
       }
       node.forEachChild(visit);

@@ -21,21 +21,21 @@ const ARM0 = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 
 /** Lanceur ARMÉ + ENTAMÉ (pour valoriser un auto-soin/healCaster), FM/Int hautes (Projectiles chiffrables). */
 const caster = (): Combatant => (blessuresSurLeProfil({
-  id: 'caster', label: 'Lanceur', kind: 'enemy',
+  id: 'caster', label: 'Lanceur', kind: 'ennemi',
   characteristics: { ...chars(40), 'force-mentale': 60, intelligence: 60 }, wounds: blessuresDeBase(14, 4),
   advantage: 0, conditions: [], weapons: [MELEE], armour: { ...ARM0 }, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 },
 }) as Combatant);
 
 /** Cible ennemie de référence — porte les `onlyGroups` requis par les ops de dégâts du sort (placement pertinent). */
 const enemyTarget = (groups: string[]): Combatant => (blessuresSurLeProfil({
-  id: 'foe', label: 'Cible', kind: 'hero', characteristics: { ...chars(30) },
+  id: 'foe', label: 'Cible', kind: 'heros', characteristics: { ...chars(30) },
   wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [MELEE], armour: { ...ARM0 },
   skills: [], talents: [], movement: 4, pos: { x: 2, y: 0 }, groups,
 }) as Combatant);
 
 /** Allié entamé (pour les sorts de soin de cible). */
 const woundedAlly = (): Combatant => (blessuresSurLeProfil({
-  id: 'ally', label: 'Allié', kind: 'enemy', characteristics: { ...chars(35) },
+  id: 'ally', label: 'Allié', kind: 'ennemi', characteristics: { ...chars(35) },
   wounds: blessuresDeBase(14, 2), advantage: 0, conditions: [], weapons: [MELEE], armour: { ...ARM0 },
   skills: [], talents: [], movement: 4, pos: { x: 1, y: 0 },
 }) as Combatant);

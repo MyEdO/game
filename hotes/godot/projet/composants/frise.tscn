@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/plan.gd" id="1_plan"]
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="2_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="3_zone"]
+[ext_resource type="Theme" path="res://art/frise.tres" id="t_frise"]
+
+[node name="Frise" type="Container"]
+custom_minimum_size = Vector2(0, 60)
+size_flags_horizontal = 3
+theme = ExtResource("t_frise")
+script = ExtResource("1_plan")
+
+[node name="points" type="Node" parent="."]
+script = ExtResource("2_liaison")
+champ = "points"
+propriete = &"points"
+
+[node name="traits" type="Node" parent="."]
+script = ExtResource("2_liaison")
+champ = "traits"
+propriete = &"traits"
+
+[node name="Zone" type="Node" parent="."]
+script = ExtResource("3_zone")
+source = "points"
+formes = PackedStringArray("point:lieuDuPlan")

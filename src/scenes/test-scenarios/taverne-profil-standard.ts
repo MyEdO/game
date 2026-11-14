@@ -1,4 +1,4 @@
-import { pregenParty, PREGEN } from '../../data/pregens';
+import { groupeDeScenario } from './_heros';
 import { findSpeciesById } from '../../data';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
@@ -49,7 +49,7 @@ function construireScene(): Scene {
             id: 'defi',
             desc: '« Un bras de fer, étranger ? Le perdant paie la tournée. »',
             choices: [
-              { id: 'relever-defi', label: 'Relever le défi.', icon: 'nav/dice', flow: flowFromEffects([{ type: 'openTavernGames' }]) },
+              { id: 'relever-defi', label: 'Relever le défi.', icon: 'navigation/des', flow: flowFromEffects([{ type: 'openTavernGames' }]) },
               { id: 'partir', label: 'Une autre fois. (Partir)', flow: flowFromEffects([{ type: 'endDialogue' }]) },
             ],
           },
@@ -63,15 +63,15 @@ export const scenario: TestScenario = {
   id: 'taverne-profil-standard',
   order: 8,
   category: 'marche',
-  icon: 'scenario/market',
+  icon: 'scenario/marche',
   title: 'Taverne — un PNJ à profil standard',
   tests:
     // LDB 77
     'Un PNJ typé par le profil standard de son espèce propose un jeu de taverne depuis son dialogue ' +
     // NADJ 16
-    '(Effet openTavernGames, option `tavern-games` pré-activée) : la table s’ouvre sur son offre et ' +
+    '(Effet openTavernGames, option `jeux-de-taverne` pré-activée) : la table s’ouvre sur son offre et ' +
     'l’opposant joue sa fiche.',
   partyNote: 'Soldat · Chasseur',
-  rules: { 'tavern-games': true },
-  construire: (idNeuf) => ({ party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur), scene: construireScene() }),
+  rules: { 'jeux-de-taverne': true },
+  construire: (idNeuf) => ({ party: groupeDeScenario(idNeuf, 'soldat', 'chasseur'), scene: construireScene() }),
 };

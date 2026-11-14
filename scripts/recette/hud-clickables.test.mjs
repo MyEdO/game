@@ -6,7 +6,16 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { JSDOM } from 'jsdom'
-import { defauts, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice, FN_REACHES, FN_NOM_ATTEINT } from './hud-clickables.mjs'
+import {
+  defauts,
+  defautsMatrice,
+  defautsMatriceGroupe,
+  defautsTactile,
+  defautsCompacite,
+  trancheMatrice,
+  FN_REACHES,
+  FN_NOM_ATTEINT,
+} from './hud-clickables.mjs'
 
 /** Mesure de COMBAT sans aucun défaut (le cas vert de référence). */
 const combat = () => ({

@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+
+[node name="Bourse" type="Label"]
+size_flags_vertical = 4
+mouse_filter = 1
+theme_type_variation = &"Bourse"
+
+[node name="valeur" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "valeur"
+
+[node name="libelle" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "libelle"
+propriete = &"tooltip_text"
+

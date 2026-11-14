@@ -242,7 +242,7 @@ describe('canEmbark — bornes de chaîne par nature (§5)', () => {
 
 describe('policy.ts — tirage LDB 77 à l’acquisition (nouvelle règle optionnelle #614)', () => {
   it('la règle existe, citée LDB 77 l.108', () => {
-    const def = ruleDef('possession-random-chars-on-acquire');
+    const def = ruleDef('possession-carac-aleatoires-a-l-acquisition');
     expect(def).toBeDefined();
     expect(def!.ref).toMatch(/LDB 77/);
   });

@@ -31,7 +31,7 @@ const MELEE = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 
 
 function combatant(p: Partial<Combatant> & { id: string; force: number }): Combatant {
   return blessuresSurLeProfil({
-    label: p.label ?? p.id, kind: p.kind ?? 'hero',
+    label: p.label ?? p.id, kind: p.kind ?? 'heros',
     characteristics: CHARS(p.force) as never,
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [MELEE], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -52,7 +52,7 @@ function setBattle(activeId: string) {
     conditions: [{ id: 'extenue', value: 1 }] as never,
   });
   const foe = combatant({
-    id: 'e', label: 'Ronce', kind: 'enemy', force: 60, pos: { x: 5, y: 5 }, movement: 0,
+    id: 'e', label: 'Ronce', kind: 'ennemi', force: 60, pos: { x: 5, y: 5 }, movement: 0,
     conditions: [{ id: 'empetre', value: 1, sourceId: 'h' }, { id: 'extenue', value: 3 }] as never,
   });
   const order = ['e', 'h'];
@@ -89,7 +89,7 @@ describe('LDB 12 l.160 — la récupération opposée de l’IA départage sur l
     runEnemyAI(banc.getState, banc.setState, 'e');
     banc.reprendreTout();
     const log = aiTurnLog();
-    expect(log.some((r) => r.id === 'e' && r.action.startsWith('recover')), 'le tour IA n’a pas joué le recover').toBe(true);
+    expect(log.some((r) => r.id === 'e' && r.action.startsWith('liberation')), 'le tour IA n’a pas joué la libération').toBe(true);
     expect(REPLIS_DEUX_CIBLES.count, 'un départage de la voie IA est retombé sur les cibles').toBe(avant);
   });
 });
@@ -108,9 +108,9 @@ describe('LDB 12 l.166 — la Difficulté de `recover` s’applique à l’ACTEU
     const nominal = (() => {
       setBattle('e');
       const foe = banc.getState().battle!.combatants.find((c) => c.id === 'e')!;
-      foe.kind = 'hero'; // acteur PILOTÉ : le flux différé (pending) est celui du joueur
+      foe.kind = 'heros'; // acteur PILOTÉ : le flux différé (pending) est celui du joueur
       banc.getState().seRemettreDeLEtat('empetre');
-      banc.getState().jetLancer('recover');
+      banc.getState().jetLancer('recuperation');
       return banc.getState().pendingStateRecovery!;
     })();
     expect([nominal.difficulty, nominal.roll!.target, nominal.opponentRoll!.target]).toEqual(['intermediaire', 30, 40]);
@@ -118,9 +118,9 @@ describe('LDB 12 l.166 — la Difficulté de `recover` s’applique à l’ACTEU
     const devie = withRecoverDifficulty('difficile', () => { // −20 (`DIFFICULTY_MODIFIERS`)
       setBattle('e');
       const foe = banc.getState().battle!.combatants.find((c) => c.id === 'e')!;
-      foe.kind = 'hero';
+      foe.kind = 'heros';
       banc.getState().seRemettreDeLEtat('empetre');
-      banc.getState().jetLancer('recover');
+      banc.getState().jetLancer('recuperation');
       return banc.getState().pendingStateRecovery!;
     });
     expect(devie.difficulty).toBe('difficile');
@@ -145,9 +145,9 @@ describe('LDB 12 l.166 — la Difficulté de `recover` s’applique à l’ACTEU
 
     const joueur = withOpposedDifficulty('difficile', () => {
       setBattle('e');
-      banc.getState().battle!.combatants.find((c) => c.id === 'e')!.kind = 'hero';
+      banc.getState().battle!.combatants.find((c) => c.id === 'e')!.kind = 'heros';
       banc.getState().seRemettreDeLEtat('empetre');
-      banc.getState().jetLancer('recover');
+      banc.getState().jetLancer('recuperation');
       return banc.getState().pendingStateRecovery!;
     });
     expect(joueur.opponentRoll!.target, 'voie joueur : entrave 40 + Difficile').toBe(20);

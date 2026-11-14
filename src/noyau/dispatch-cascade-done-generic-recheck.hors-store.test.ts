@@ -27,7 +27,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const get = () => banc.getState();
 
 const ambusher = (): Combatant =>
-  combattantDeTest({ id: 'e', kind: 'enemy', label: 'Bandit',
+  combattantDeTest({ id: 'e', kind: 'ennemi', label: 'Bandit',
     characteristics: { agilite: 40, perception: 30, endurance: 30, initiative: 30 } as never,
     wounds: blessuresDeBase(10, 0), dead: true, conditions: [], skills: [], items: [], weapons: [],
     movement: 4, advantage: 0, traits: [] });
@@ -38,7 +38,7 @@ describe('dispatchCascadeDone — re-check TOUT-PURPOSE de checkBattleOver (#345
   it('cascade purpose "test" (hypothétique) close en combat, dernier ennemi déjà mort → la Victoire s\'enchaîne (pas d\'écrasement, pas de silence)', () => {
     seedBattleRng(3);
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    const heroClone = { ...hero, kind: 'hero' as const };
+    const heroClone = { ...hero, kind: 'heros' as const };
     banc.setState({
       party: [hero],
       battle: { combatants: [heroClone, ambusher()], order: [hero.id, 'e'], turn: 0, round: 1, log: [], over: null } as never,
@@ -59,7 +59,7 @@ describe('dispatchCascadeDone — re-check TOUT-PURPOSE de checkBattleOver (#345
     // Le re-check générique doit avoir statué : combat terminé, Victoire enchaînée (le dernier ennemi
     // était déjà mort AVANT l'ouverture de la cascade hypothétique).
     expect(get().pendingCascade).toBeNull(); // pas d'écrasement silencieux : rien ne reste bloqué
-    expect(get().battle!.over).toBe('victory');
+    expect(get().battle!.over).toBe('victoire');
     expect(get().pendingVictory).toBeTruthy();
   });
 });

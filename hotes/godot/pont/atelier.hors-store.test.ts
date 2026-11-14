@@ -12,10 +12,11 @@ import { describe, expect, it } from 'vitest';
 import { baseDeTest, elementSchema3, glbDElement, vehiculeDeTest } from '../asset/modeles.testkit.ts';
 import { empreinte } from '../asset/empreinte.ts';
 import { emplacementsDeRangement, gardeRobe } from '../../../src/noyau/index';
+import { tableTotale } from '../../../src/lib/tableTotale';
 import { modelesDeLAtelier } from './atelier';
 
 const dos = { os: 'spine', position: [0, 0.1, 0], rotation: [0, 0, 0] };
-const humanoide = { ...baseDeTest('humanoide'), emplacements: { dos }, clips: { walk: 'Walk_Loop', idle: 'Idle_Loop' }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitesseAuSol: 1.25 } };
+const humanoide = { ...baseDeTest('humanoide'), emplacements: { dos }, clips: { marche: 'Walk_Loop', repos: 'Idle_Loop' }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitesseAuSol: 1.25 } };
 const epee = elementSchema3('humanoide');
 const chemise = {
   schema: 3, base: 'humanoide', categorie: 'vetement', cle: { piece: 'chemise' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: ['torse'],
@@ -47,20 +48,25 @@ describe('modelesDeLAtelier', () => {
       { id: 'dos', genre: 'emplacement', attache: dos, offertPar: undefined },
       { id: 'epaule_d', genre: 'emplacement', attache: chemise.emplacements.epaule_d, offertPar: { chemise: chemise.emplacements.epaule_d } },
       { id: 'main', genre: 'prise', attache: humanoide.prises.main, offertPar: undefined },
-      { id: 'off', genre: 'prise', attache: humanoide.prises.off, offertPar: undefined },
+      { id: 'secondaire', genre: 'prise', attache: humanoide.prises.secondaire, offertPar: undefined },
     ]);
   });
 
-  it('une base publie sa table rôle → clip et la vitesse au sol de son rôle `walk`, au gabarit neutre', () => {
-    expect([modeles.bases[0].clips, modeles.bases[0].vitesseAuSol]).toEqual([{ walk: 'Walk_Loop', idle: 'Idle_Loop' }, 1.25]);
+  it('une base publie sa table rôle → clip et la vitesse au sol de son rôle `marche`, au gabarit neutre', () => {
+    expect([modeles.bases[0].clips, modeles.bases[0].vitesseAuSol]).toEqual([{ marche: 'Walk_Loop', repos: 'Idle_Loop' }, 1.25]);
+  });
+
+  it('une base publie les os de ses chaînes (#3842)', () => {
+    expect(modelesDeLAtelier({ humanoide: { ...humanoide, chaines: { cape: ['cape_1', 'cape_2'], jupe: ['jupe_1'] } } }, { humanoide: [] }).bases[0].osDeChaine).toEqual(['cape_1', 'cape_2', 'jupe_1']);
   });
 
   it('une base sans table des rôles tenus à deux mains la publie vide (#3319)', () => {
     expect(modeles.bases[0].clipsDeuxMains).toEqual({});
+    expect(modeles.bases[0].prisesOccupees).toEqual({});
   });
 
   it('chaque point porte exactement les objets rigides de la base dont un mesh pend à son os, ni le squelette, ni la surface, ni un accessoire', () => {
-    expect(Object.fromEntries(modeles.bases[0].points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], epaule_d: ['epee'], main: ['epee'], off: ['epee'] });
+    expect(Object.fromEntries(modeles.bases[0].points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], epaule_d: ['epee'], main: ['epee'], secondaire: ['epee'] });
   });
 
   it('un objet tenu construit pour une prise est offert à chaque prise de sa base et aux emplacements où sa forme se range, jamais à un autre emplacement (#3319)', () => {
@@ -68,9 +74,9 @@ describe('modelesDeLAtelier', () => {
     expect(emplacementsDeRangement('epee')).toContain('ceinture_g');
     expect(emplacementsDeRangement('epee')).toContain('dos');
     expect(emplacementsDeRangement('epee')).not.toContain('epaule_d');
-    const mains = { ...humanoide, os: ['root', 'spine', 'main_d', 'main_g'], emplacements: { dos, ceinture_g: attache('root') }, prises: { main: attache('main_d'), off: attache('main_g') } };
+    const mains = { ...humanoide, os: ['root', 'spine', 'main_d', 'main_g'], emplacements: { dos, ceinture_g: attache('root') }, prises: { main: attache('main_d'), secondaire: attache('main_g') } };
     const base = modelesDeLAtelier({ humanoide: mains, epee, bouclier }, { humanoide: [], epee: ['main_d'], bouclier: ['spine'] }).bases[0];
-    expect(Object.fromEntries(base.points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], ceinture_g: ['epee'], main: ['epee'], off: ['epee'] });
+    expect(Object.fromEntries(base.points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], ceinture_g: ['epee'], main: ['epee'], secondaire: ['epee'] });
   });
   it('les lignes de pièce sont, dans l’ordre de la garde-robe, le sélecteur `tete`, le sélecteur `coiffure`, une bascule `piece` par pièce de vêtement ou d’armure, puis une liste `emplacement` par emplacement d’une pièce d’accessoire', () => {
     const emplacementsDAccessoire = new Set<string>(gardeRobe.flatMap((g) => (g.kind === 'piece' && g.emplacement ? [g.emplacement.id] : [])));
@@ -96,10 +102,8 @@ describe('modelesDeLAtelier', () => {
     ]);
   });
 
-  it('le GLB de chaque base et de chaque élément servi, à un point ou à une ligne, est nommé, et d’eux seuls', () => {
-    expect(modeles.glb).toEqual({
-      humanoide: 'humanoide.glb', bouclier: 'bouclier.glb', epee: 'epee.glb', chemise: 'chemise.glb', teteNaine: 'teteNaine.glb', broche: 'broche.glb',
-    });
+  it('le GLB et la scène fabriquée de chaque base et de chaque élément servi, à un point ou à une ligne, sont nommés, et d’eux seuls', () => {
+    expect(modeles.fichiers).toEqual(tableTotale(['humanoide', 'bouclier', 'epee', 'chemise', 'teteNaine', 'broche'], (id) => ({ glb: `${id}.glb`, scene: `${id}.scn` })));
   });
 
   it('chaque base et chaque élément servi, quelle que soit sa liaison, et eux seuls, donnent leurs surfaces ; une base sans `surfaces`, aucune', () => {
@@ -117,11 +121,11 @@ describe('modelesDeLAtelier', () => {
       .toEqual({ hallebarde: { repere: secondePrise, maniement: 'hampe' }, estoc: { repere: secondePrise, maniement: null } });
   });
 
-  it('chaque élément servi qui a une couche donne les zones qu’il couvre et les éléments qu’il masque, ceux de couche plus intérieure ou sans couche, et lui seul (#2972)', () => {
-    expect(modeles.couches).toEqual({ chemise: { couvre: ['torse'], masque: ['epee', 'bouclier', 'teteNaine', 'broche'] }, teteNaine: { couvre: ['tete'], masque: ['epee', 'bouclier', 'broche'] } });
+  it('chaque élément servi qui a une couche donne son rang, s’il est un accessoire, les zones qu’il couvre et les éléments qu’il masque, ceux de couche plus intérieure ou sans couche, et lui seul (#2972, #3842)', () => {
+    expect(modeles.couches).toEqual({ chemise: { rang: 2, accessoire: false, couvre: ['torse'], masque: ['epee', 'bouclier', 'teteNaine', 'broche'] }, teteNaine: { rang: 0, accessoire: false, couvre: ['tete'], masque: ['epee', 'bouclier', 'broche'] } });
     const { couvre: _, ...sansZones } = { ...broche, couche: 'tenue' };
     expect(modelesDeLAtelier({ humanoide, chemise, broche: sansZones }, { humanoide: [], chemise: ['root'], broche: ['root'] }).couches)
-      .toEqual({ chemise: { couvre: ['torse'], masque: [] }, broche: { couvre: [], masque: [] } });
+      .toEqual({ chemise: { rang: 2, accessoire: false, couvre: ['torse'], masque: [] }, broche: { rang: 2, accessoire: true, couvre: [], masque: [] } });
   });
 
   it('les emblèmes sont la sous-liste `embleme` de la garde-robe, chacun réduit à son id, son libellé et son dessin', () => {
@@ -145,7 +149,7 @@ describe('modelesDeLAtelier', () => {
     expect(sansCimier.rapport).toEqual(['[emplacement-non-offert] plumet : plumet se pose sur cimier, que ni la base `humanoide` ni aucune de ses pièces n’offre']);
     expect(sansCimier.refus).toEqual([]);
     expect(servis(sansCimier)).toEqual([]);
-    expect(sansCimier.glb).toEqual({ humanoide: 'humanoide.glb' });
+    expect(Object.keys(sansCimier.fichiers)).toEqual(['humanoide']);
     const avecCimier = modelesDeLAtelier({ humanoide, casque, plumet }, { humanoide: [], casque: [], plumet: ['spine'] });
     expect(avecCimier.rapport).toEqual([]);
     expect(avecCimier.bases[0].lignes.filter((l) => 'id' in l && l.elements.includes('plumet')).map((l) => ('id' in l ? `${l.sorte}:${l.id}` : l.sorte))).toEqual(['emplacement:cimier']);
@@ -156,7 +160,7 @@ describe('modelesDeLAtelier', () => {
   it('un véhicule, sans base, est servi sous la fiche que nomme sa `definition`, son GLB, ses surfaces et le libellé de sa fiche avec lui, même sans aucune base (#2987)', () => {
     const caraque = vehiculeDeTest('caraque');
     const seul = modelesDeLAtelier({ caraque }, { caraque: [] });
-    expect(seul).toMatchObject({ bases: [], refus: [], vehicules: { caraque: 'caraque' }, glb: { caraque: 'caraque.glb' }, surfaces: { caraque: caraque.surfaces }, libelles: { caraque: 'Caraque (MDG)' } });
+    expect(seul).toMatchObject({ bases: [], refus: [], vehicules: { caraque: 'caraque' }, fichiers: { caraque: { glb: 'caraque.glb', scene: 'caraque.scn' } }, surfaces: { caraque: caraque.surfaces }, libelles: { caraque: 'Caraque (MDG)' } });
     expect(modelesDeLAtelier({ humanoide, epee, caraque }, { humanoide: [], epee: ['root'], caraque: [] }).bases[0].points.flatMap(({ elements }) => elements)).not.toContain('caraque');
     expect(modeles.vehicules).toEqual({});
   });

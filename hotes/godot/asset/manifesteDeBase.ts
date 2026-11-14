@@ -10,12 +10,12 @@ import { tableTotale } from '../../../src/lib/tableTotale.ts';
 import { sha256 } from './empreinte.ts';
 import { lireGlb } from './glb.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
-import { estSilhouette } from './silhouettes.ts';
+import { CORPULENCE, estSilhouette } from './silhouettes.ts';
 import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
 import { ecartsAuGlb, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import type { TableDeClips, TablesDeuxMains } from './clips.ts';
 
-export const VERSION_DU_SCHEMA_DE_BASE = 6;
+export const VERSION_DU_SCHEMA_DE_BASE = 7;
 
 export const CLES_DU_GABARIT = ['legs', 'arms', 'head'] as const;
 export const PREFIXE_DES_CLES_DU_GABARIT = 'gabarit_';
@@ -36,6 +36,9 @@ export interface TableDeGabarit {
   readonly racine: string;
   /** Les bornes de `st` : `carrure_moins` atteint 1 à `min`, `carrure_plus` atteint 1 à `max`. */
   readonly st: { readonly min: number; readonly max: number };
+  /** Par silhouette de `silhouettes`, par os de `os`, la translation de la position locale de l'os, repère de son
+   *  parent, au poids 1 de la silhouette. */
+  readonly osDesSilhouettes: Readonly<Record<string, Readonly<Record<string, readonly [number, number, number]>>>>;
 }
 
 /** Les axes du vecteur de rotation d'un os depuis son repos, dans le repère de l'os au repos (`gardes/amplitude.ts`). */
@@ -54,7 +57,7 @@ export interface PorteurDeReference {
   readonly echelleDArt: number;
 }
 
-/** Les os des pieds, et la vitesse au sol en m/s du clip du rôle `walk` à la taille de construction. */
+/** Les os des pieds, et la vitesse au sol en m/s du clip du rôle `marche` à la taille de construction. */
 export interface Appuis {
   readonly pieds: readonly string[];
   readonly plusBas: readonly CandidatDAppui[];
@@ -67,6 +70,10 @@ export interface CandidatDAppui {
   readonly deltas: Readonly<Record<string, readonly [number, number, number]>>;
 }
 
+/** Les deux prises d'une base qui tient des armes. */
+export const PRISES_DE_BASE = ['main', 'secondaire'] as const;
+export type PriseDeBase = (typeof PRISES_DE_BASE)[number];
+
 export interface ManifesteDeBase {
   readonly schema: typeof VERSION_DU_SCHEMA_DE_BASE;
   readonly base: string;
@@ -76,16 +83,21 @@ export interface ManifesteDeBase {
   readonly zones: readonly string[];
   readonly emplacements: Readonly<Record<string, Attache>>;
   /** Absentes, le corps ne tient aucune arme. */
-  readonly prises?: { readonly main: Attache; readonly off: Attache };
+  readonly prises?: { readonly main: Attache; readonly secondaire: Attache };
   readonly silhouettes: readonly string[];
+  /** La force, dans [0, 1], de la normal map du corps au poids 1 de `corpulence` ; présente ssi `silhouettes` la
+   *  contient. */
+  readonly reliefDeCorpulence?: number;
   /** Propre à la base humanoïde. */
   readonly gabarit?: TableDeGabarit;
   readonly porteur: PorteurDeReference;
-  /** Le clip de chaque rôle que la base joue ; `walk` exigé. */
-  readonly clips: TableDeClips & { readonly walk: string };
+  /** Le clip de chaque rôle que la base joue ; `marche` exigé. */
+  readonly clips: TableDeClips & { readonly marche: string };
   /** Par maniement, le clip de chaque rôle que la base joue en tenant des deux mains un objet de ce maniement (#3319) ;
    *  un maniement ou un rôle absent joue celui de `clips`. */
   readonly clipsDeuxMains?: TablesDeuxMains;
+  /** Par clip, les prises que son geste occupe (#3806) ; un clip absent n'en occupe aucune. */
+  readonly prisesOccupees?: Readonly<Record<string, readonly PriseDeBase[]>>;
   readonly appuis: Appuis;
   /** Les os, hors racine, dont un clip anime la position (`gardePistesDEchelle`). */
   readonly osAPositionAnimee: readonly string[];
@@ -124,10 +136,10 @@ type Brut = Record<string, unknown>;
  * @contrat Gabarit d'une base
  * - `clips` du manifeste de base (#3253) : le clip du GLB de chaque rôle d'animation que la base joue, rôles de
  *   `ROLES_D_ANIMATION` (`src/noyau/animation.ts`), copié de la déclaration du corps
- *   (`scripts/personnage-3d/base/humanoide.json`) par `manifeste.mjs` ; le rôle `walk` est exigé
+ *   (`scripts/personnage-3d/base/humanoide.json`) par `manifeste.mjs` ; le rôle `marche` est exigé
  *   (`validerManifesteDeBase`, `forme`), un rôle hors du vocabulaire est refusé par `role-inconnu` et un clip absent
  *   du GLB par `clip-absent` (`ecartsDeClips`, `asset/clips.ts`, appliqué à la base par `validerModele`,
- *   `asset/modeles.ts`). Le clip du rôle `walk` est la marche que la construction plante et que l'évaluateur mesure ;
+ *   `asset/modeles.ts`). Le clip du rôle `marche` est la marche que la construction plante et que l'évaluateur mesure ;
  *   `appuis.vitesseAuSol` est sa vitesse au sol, en m/s, mesurée sur le corps neutre ; au gabarit, la foulée des
  *   clips plantés suit `sl` seul (`poserLeGabarit`), et cette vitesse multipliée par `echelleDeVitesse` garde les
  *   pieds plantés.
@@ -137,7 +149,7 @@ type Brut = Record<string, unknown>;
  *   `clipsDeuxMains.<maniement>.<rôle>`), copié de la déclaration du corps. La construction de la base dérive ces
  *   clips de clips à une main (`scripts/personnage-3d/base/deux_mains.py`) : corps et jambes du clip source, dos
  *   fléchi, deux bras posés par IK sur une arme tenue à la seconde prise de son maniement (`SECONDES`) ; la marche à
- *   deux mains est plantée comme celle de `walk`, aux mêmes jambes. La réponse de `modeles` le sert vide pour une
+ *   deux mains est plantée comme celle de `marche`, aux mêmes jambes. La réponse de `modeles` le sert vide pour une
  *   base sans table.
  * - `bornesArticulaires` du manifeste de base (#2992), requis : pour chaque os de `os`, par axe `x`, `y`, `z`,
  *   `[min, max]` en degrés de la composante du vecteur de rotation (axe × angle) de l'os depuis sa rotation locale de
@@ -146,9 +158,15 @@ type Brut = Record<string, unknown>;
  *   par `manifeste.mjs`, jamais mesuré à la construction. La garde `amplitude` de l'évaluateur
  *   (`asset/evaluateur/gardes/amplitude.ts`) rapporte `amplitude-hors-bornes`, le pire dépassement par clip, os et
  *   axe, sur les échantillons joués.
+ * - `prisesOccupees` du manifeste de base (#3806), optionnel : par clip, les prises (`main`, `secondaire`) que son geste occupe,
+ *   la main qui saisit ou manipule autre chose que l'objet tenu (coffre, torche, bouclier, siège, outil), copié de la
+ *   déclaration du corps ; une liste vide ou une prise inconnue donne `forme` en `prisesOccupees.<clip>`, une table
+ *   sur une base sans prises `forme` en `prisesOccupees`, un clip absent du GLB `clip-absent`. Un clip qui n'y figure
+ *   pas n'en occupe aucune. Godot range l'objet tenu sous les clips qui occupent sa prise, et l'objet tenu des deux
+ *   mains sous tout clip qui n'est pas dérivé à deux mains (`MontageDeComposition.poser_le_clip`).
  */
 
-/** La réduction de `brut` au schéma 6, ou ses écarts de forme. */
+/** La réduction de `brut` au schéma `VERSION_DU_SCHEMA_DE_BASE`, ou ses écarts de forme. */
 function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeBase[] } {
   const ecarts: EcartDeBase[] = [];
   const forme = (ou: string, detail: string) => ecarts.push({ code: 'forme', ou, detail });
@@ -202,12 +220,16 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
     return a ? [[id, a]] : [];
   }));
   const prisesBrutes = brut.prises === undefined ? undefined : objet(brut.prises, 'prises');
-  const prises: Partial<Record<'main' | 'off', Attache>> = {};
-  for (const cle of ['main', 'off'] as const) {
+  const prises: Partial<Record<'main' | 'secondaire', Attache>> = {};
+  for (const cle of PRISES_DE_BASE) {
     if (!prisesBrutes) break;
     if (prisesBrutes[cle] === undefined) ecarts.push({ code: 'prise-absente', ou: `prises.${cle}`, detail: `la prise \`${cle}\` n’est pas déclarée` });
     else prises[cle] = attache(prisesBrutes[cle], `prises.${cle}`) ?? undefined;
   }
+  const triplet = (v: unknown, ou: string): readonly [number, number, number] => {
+    if (!estTriplet(v) || !v.every(Number.isFinite)) { forme(ou, 'triplet de nombres finis attendu'); return [0, 0, 0]; }
+    return v;
+  };
   const silhouettes = liste(brut.silhouettes, 'silhouettes');
   for (const nom of silhouettes) if (nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT)) forme('silhouettes', `${nom} est une clé de gabarit, pas une silhouette`);
   const lireGabarit = (): TableDeGabarit => {
@@ -237,6 +259,11 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
       legs: liste(g.legs, 'gabarit.legs'), arms: liste(g.arms, 'gabarit.arms'), head: liste(g.head, 'gabarit.head'),
       racine: chaine(g.racine, 'gabarit.racine'),
       st: { min: nombre(st.min, 'gabarit.st.min'), max: nombre(st.max, 'gabarit.st.max') },
+      osDesSilhouettes: Object.fromEntries(Object.entries(objet(g.osDesSilhouettes, 'gabarit.osDesSilhouettes')).map(([silhouette, parOs]) => {
+        const ou = `gabarit.osDesSilhouettes.${silhouette}`;
+        if (!silhouettes.includes(silhouette)) forme(ou, `${silhouette} n’est pas une silhouette déclarée`);
+        return [silhouette, Object.fromEntries(Object.entries(objet(parOs, ou)).map(([nom, t]) => [nom, triplet(t, `${ou}.${nom}`)]))];
+      })),
     };
     if (estObjet(brut.gabarit) && estObjet(g.st) && !(gabarit.st.min < FACTEURS_NEUTRES.st && gabarit.st.max > FACTEURS_NEUTRES.st)) forme('gabarit.st', `bornes ${gabarit.st.min} et ${gabarit.st.max} : min < ${FACTEURS_NEUTRES.st} < max attendu`);
     const clesParOs = new Map<string, string>();
@@ -250,6 +277,9 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
     return gabarit;
   };
   const gabarit = brut.gabarit === undefined ? undefined : lireGabarit();
+  const reliefDeCorpulence = brut.reliefDeCorpulence === undefined ? undefined : nombre(brut.reliefDeCorpulence, 'reliefDeCorpulence');
+  if (reliefDeCorpulence !== undefined && !(reliefDeCorpulence >= 0 && reliefDeCorpulence <= 1)) forme('reliefDeCorpulence', 'nombre dans [0, 1] attendu');
+  if ((reliefDeCorpulence === undefined) === silhouettes.includes(CORPULENCE)) forme('reliefDeCorpulence', reliefDeCorpulence === undefined ? `exigé avec la silhouette ${CORPULENCE}` : `sans la silhouette ${CORPULENCE}, aucun relief`);
   const p = objet(brut.porteur, 'porteur');
   if (estObjet(brut.porteur) && (p.gabarit === undefined) !== (gabarit === undefined)) forme('porteur.gabarit', gabarit ? 'le porteur d’un corps à gabarit nomme son gabarit' : 'un corps sans table de gabarit n’a pas de gabarit de porteur');
   const porteur: PorteurDeReference = {
@@ -258,18 +288,23 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
     taille: id(p.taille, 'porteur.taille'), echelleDArt: positif(p.echelleDArt, 'porteur.echelleDArt'),
   };
   const clips = Object.fromEntries(Object.entries(objet(brut.clips, 'clips')).map(([role, nom]) => [role, chaine(nom, `clips.${role}`)]));
-  if (estObjet(brut.clips) && clips.walk === undefined) forme('clips.walk', 'le clip du rôle `walk` est exigé');
+  if (estObjet(brut.clips) && clips.marche === undefined) forme('clips.marche', 'le clip du rôle `marche` est exigé');
   const clipsDeuxMains = brut.clipsDeuxMains === undefined ? undefined
     : Object.fromEntries(Object.entries(objet(brut.clipsDeuxMains, 'clipsDeuxMains')).map(([maniement, table]) => {
       const ou = `clipsDeuxMains.${maniement}`;
       return [maniement, Object.fromEntries(Object.entries(objet(table, ou)).map(([role, nom]) => [role, chaine(nom, `${ou}.${role}`)]))];
     }));
+  const prisesOccupees = brut.prisesOccupees === undefined ? undefined
+    : Object.fromEntries(Object.entries(objet(brut.prisesOccupees, 'prisesOccupees')).map(([clip, occupees]) => {
+      const ou = `prisesOccupees.${clip}`, lues = liste(occupees, ou);
+      if (estListeDeChaines(occupees) && (!lues.length || new Set(lues).size !== lues.length || lues.some((p) => !(PRISES_DE_BASE as readonly string[]).includes(p)))) {
+        forme(ou, `liste non vide de prises distinctes parmi ${PRISES_DE_BASE.join(', ')} attendue`);
+      }
+      return [clip, lues as PriseDeBase[]];
+    }));
+  if (prisesOccupees && prisesBrutes === undefined) forme('prisesOccupees', 'une base sans prises n’en occupe aucune');
   const a = objet(brut.appuis, 'appuis');
   for (const cle of Object.keys(a)) if (!['pieds', 'plusBas', 'vitesseAuSol'].includes(cle)) forme(`appuis.${cle}`, 'champ inconnu');
-  const triplet = (v: unknown, ou: string): readonly [number, number, number] => {
-    if (!estTriplet(v) || !v.every(Number.isFinite)) { forme(ou, 'triplet de nombres finis attendu'); return [0, 0, 0]; }
-    return v;
-  };
   if (!Array.isArray(a.plusBas) || !a.plusBas.length) forme('appuis.plusBas', 'liste non vide de candidats attendue');
   const plusBas: CandidatDAppui[] = (Array.isArray(a.plusBas) ? a.plusBas : []).map((v: unknown, i: number) => {
     const ou = `appuis.plusBas.${i}`, c = objet(v, ou);
@@ -296,11 +331,11 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   ecarts.push(...(lues?.ecarts ?? []));
   const glb = objet(brut.glb, 'glb');
   const empreinte = { sha256: chaine(glb.sha256, 'glb.sha256'), octets: nombre(glb.octets, 'glb.octets') };
-  if (ecarts.length || (prisesBrutes && (!prises.main || !prises.off))) return { ecarts };
-  return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, bornesArticulaires, chaines, zones, emplacements, ...(prises.main && prises.off ? { prises: { main: prises.main, off: prises.off } } : {}), silhouettes, ...(gabarit ? { gabarit } : {}), porteur, clips: { ...clips, walk: clips.walk }, ...(clipsDeuxMains ? { clipsDeuxMains } : {}), appuis, osAPositionAnimee, ...(lues ? { surfaces: lues.surfaces } : {}), glb: empreinte } };
+  if (ecarts.length || (prisesBrutes && (!prises.main || !prises.secondaire))) return { ecarts };
+  return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, bornesArticulaires, chaines, zones, emplacements, ...(prises.main && prises.secondaire ? { prises: { main: prises.main, secondaire: prises.secondaire } } : {}), silhouettes, ...(reliefDeCorpulence === undefined ? {} : { reliefDeCorpulence }), ...(gabarit ? { gabarit } : {}), porteur, clips: { ...clips, marche: clips.marche }, ...(clipsDeuxMains ? { clipsDeuxMains } : {}), ...(prisesOccupees ? { prisesOccupees } : {}), appuis, osAPositionAnimee, ...(lues ? { surfaces: lues.surfaces } : {}), glb: empreinte } };
 }
 
-/** Le manifeste `brut` réduit au schéma 6 et validé contre le GLB de la base `octets`. */
+/** Le manifeste `brut` réduit au schéma `VERSION_DU_SCHEMA_DE_BASE` et validé contre le GLB de la base `octets`. */
 export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): VerdictDeBase {
   const { manifeste: m, ecarts } = reduire(brut);
   if (!m) return { ok: false, ecarts };
@@ -310,7 +345,8 @@ export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): Verdi
   m.os.forEach((o, i) => { if (!contenu.os.has(o)) refus('os-inconnu', `os.${i}`, `${o} n’est pas un os du GLB`); });
   const { gabarit, prises } = m;
   const osNommes: [string, string][] = [
-    ...(gabarit ? [['gabarit.racine', gabarit.racine] as [string, string], ...CLES_DU_GABARIT.flatMap((cle) => gabarit[cle].map((o, i): [string, string] => [`gabarit.${cle}.${i}`, o]))] : []),
+    ...(gabarit ? [['gabarit.racine', gabarit.racine] as [string, string], ...CLES_DU_GABARIT.flatMap((cle) => gabarit[cle].map((o, i): [string, string] => [`gabarit.${cle}.${i}`, o])),
+      ...Object.entries(gabarit.osDesSilhouettes).flatMap(([s, parOs]) => Object.keys(parOs).map((o): [string, string] => [`gabarit.osDesSilhouettes.${s}.${o}`, o]))] : []),
     ...m.appuis.pieds.map((o, i): [string, string] => [`appuis.pieds.${i}`, o]),
     ...m.appuis.plusBas.flatMap((c, i) => c.os.map((o, j): [string, string] => [`appuis.plusBas.${i}.os.${j}.nom`, o.nom])),
     ...m.osAPositionAnimee.map((o, i): [string, string] => [`osAPositionAnimee.${i}`, o]),
@@ -321,7 +357,7 @@ export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): Verdi
   for (const [id, c] of Object.entries(m.chaines)) c.forEach((o, i) => { if (!declares.has(o) || !contenu.os.has(o)) refus('chaine-sur-os-absent', `chaines.${id}.${i}`, o); });
   for (const z of m.zones) if (!contenu.zones.has(z)) refus('zone-sans-mesh', `zones`, `aucun mesh du GLB ne porte \`extras.zone = ${z}\``);
   for (const [id, e] of Object.entries(m.emplacements)) if (!declares.has(e.os) || !contenu.os.has(e.os)) refus('emplacement-sur-os-absent', `emplacements.${id}.os`, e.os);
-  if (prises) for (const cle of ['main', 'off'] as const) if (!declares.has(prises[cle].os) || !contenu.os.has(prises[cle].os)) refus('prise-absente', `prises.${cle}.os`, `${prises[cle].os} n’est pas un os de la base`);
+  if (prises) for (const cle of PRISES_DE_BASE) if (!declares.has(prises[cle].os) || !contenu.os.has(prises[cle].os)) refus('prise-absente', `prises.${cle}.os`, `${prises[cle].os} n’est pas un os de la base`);
   for (const s of m.silhouettes) {
     if (!estSilhouette(s)) refus('silhouette-inconnue', 'silhouettes', `${s} n’est pas une silhouette du gabarit`);
     if (!contenu.formes.has(s)) refus('silhouette-absente', 'silhouettes', `${s} n’est pas une shape key du GLB`);

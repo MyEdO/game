@@ -74,7 +74,7 @@ describe('B2 — REMÈDE (b) : validateEntry refuse une valeur incompatible avec
   it('MORSURE — `action.when` mal typé (même piège que `default`) → rouge', () => {
     const e = errs({
       id: 'r', label: 'R', ref: 'LDB 17 l.47', group: 'Destin', kind: 'flag', default: true,
-      action: { when: 'true', label: 'Faire', icon: 'resource/fortune', run: 'restaurerLaFortune' },
+      action: { when: 'true', label: 'Faire', icon: 'ressource/chance', run: 'restaurerLaFortune' },
     });
     expect(e.some((x) => x.startsWith('action.when : un interrupteur'))).toBe(true);
   });

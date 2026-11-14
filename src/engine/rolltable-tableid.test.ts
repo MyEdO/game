@@ -17,7 +17,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  */
 const dummy = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'x', label: 'X', kind: 'enemy', species: 'humains',
+    id: 'x', label: 'X', kind: 'ennemi', species: 'humains',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(20), advantage: 0, conditions: [], skills: [], talents: [], traits: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -89,7 +89,7 @@ describe('op rollTable — variante tableId (tables.json)', () => {
 describe('op rollMutation — durée du Sort par défaut, permanent en option (EDOC 13 l.276-277)', () => {
   it('ctx à durée → mutation attachée + ActiveEffect porteur qui la détache à l’expiration', () => {
     const c = dummy();
-    const lines = applyOps(c, [{ op: 'rollMutation', table: 'edoc-phys-nurgle' }], { idNeuf: idsDeTest, rng: fixed(1), defaultDurationRounds: 5 });
+    const lines = applyOps(c, [{ op: 'rollMutation', table: { id: 'edoc-phys-nurgle' } }], { idNeuf: idsDeTest, rng: fixed(1), defaultDurationRounds: 5 });
     expect((c.mutations ?? []).length).toBe(1);
     const eff = (c.activeEffects ?? []).filter((e) => e.grantedMutation);
     expect(eff).toHaveLength(1);
@@ -102,7 +102,7 @@ describe('op rollMutation — durée du Sort par défaut, permanent en option (E
 
   it('ctx SANS durée → mutation PERMANENTE (aucun ActiveEffect porteur) — parité chemin Corruption', () => {
     const c = dummy();
-    const lines = applyOps(c, [{ op: 'rollMutation', table: 'edoc-phys-nurgle' }], { idNeuf: idsDeTest, rng: fixed(1) });
+    const lines = applyOps(c, [{ op: 'rollMutation', table: { id: 'edoc-phys-nurgle' } }], { idNeuf: idsDeTest, rng: fixed(1) });
     expect((c.mutations ?? []).length).toBe(1);
     expect((c.activeEffects ?? []).some((e) => e.grantedMutation)).toBe(false);
     expect(lines.some((l) => /mutation permanente/.test(l))).toBe(true);
@@ -110,19 +110,19 @@ describe('op rollMutation — durée du Sort par défaut, permanent en option (E
 
   it('`duration:"permanent"` force le permanent MÊME avec un ctx à durée', () => {
     const c = dummy();
-    applyOps(c, [{ op: 'rollMutation', table: 'edoc-phys-nurgle', duration: 'permanent' }], { idNeuf: idsDeTest, rng: fixed(1), defaultDurationRounds: 5 });
+    applyOps(c, [{ op: 'rollMutation', table: { id: 'edoc-phys-nurgle' }, duration: 'permanent' }], { idNeuf: idsDeTest, rng: fixed(1), defaultDurationRounds: 5 });
     expect((c.mutations ?? []).length).toBe(1);
     expect((c.activeEffects ?? []).some((e) => e.grantedMutation)).toBe(false);
   });
 
   it('table de mutation inconnue → fail-fast', () => {
-    expect(() => applyOps(dummy(), [{ op: 'rollMutation', table: 'inexistante' }], { idNeuf: idsDeTest, rng: fixed(1) })).toThrow(/introuvable/i);
+    expect(() => applyOps(dummy(), [{ op: 'rollMutation', table: { id: 'inexistante' } }], { idNeuf: idsDeTest, rng: fixed(1) })).toThrow(/introuvable/i);
   });
 
   it('mutation TEMPORISÉE détachée à l’expiration : instance ET Trait passif retirés', () => {
     const c = dummy();
     // d100=4 → sang-acide (edoc-phys-nurgle), passif grantTrait « sang-corrosif ».
-    applyOps(c, [{ op: 'rollMutation', table: 'edoc-phys-nurgle' }], { idNeuf: idsDeTest, rng: fixed(4), defaultDurationRounds: 2 });
+    applyOps(c, [{ op: 'rollMutation', table: { id: 'edoc-phys-nurgle' } }], { idNeuf: idsDeTest, rng: fixed(4), defaultDurationRounds: 2 });
     expect((c.mutations ?? []).some((m) => m.id === 'sang-acide')).toBe(true);
     expect((c.traits ?? []).some((t) => t.id === 'sang-corrosif')).toBe(true);
     // Expiration = MÊME couture que fin de Round / horloge / dissipation (removeActiveEffects).

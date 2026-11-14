@@ -7,7 +7,7 @@
 // redit ; chaque entrée porte exactement son jeu de clés ; les pages sont croissantes (deux entrées
 // peuvent partager une page : on coupe à la LIGNE du titre, pas à la page) ; aucune entrée n'est
 // saisie deux fois ; chaque titre de fichier survit à `nomAscii` sans changer (le nom écrit sous
-// `Source/` est celui de la donnée) ; `onglets` est déclaré, bien formé et couvre chaque chapitre, `gabaritOnglet` l'accompagne ; `gabaritTitre` est déclaré et bien formé.
+// `Source/` est celui de la donnée) ; `onglets` est déclaré, bien formé et couvre chaque chapitre, `gabaritOnglet` l'accompagne ; `gabaritTitre` est déclaré et bien formé ; `sansFolio` est absent ou `true`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -252,4 +252,12 @@ test('#1739 : le `book` déclaré dans le fichier redit le nom du fichier', () =
     if (typeof brut.quoi !== 'string' || !brut.quoi.trim()) fautes.push(`${id}.json — \`quoi\` vide : un registre dit ce qu'il est`)
   }
   assert.deepEqual(fautes, [], `en-tête de liste :\n${fautes.join('\n')}`)
+})
+
+test('#3884 : `sansFolio` est ABSENT, ou `true` — une autre valeur serait une déclaration muette', () => {
+  const fautes = IDS.filter((id) => {
+    const brut = JSON.parse(readFileSync(join(DECOUPES_DIR, `${id}.json`), 'utf8'))
+    return 'sansFolio' in brut && brut.sansFolio !== true
+  })
+  assert.deepEqual(fautes, [], `\`sansFolio\` mal déclaré : ${fautes.join(', ')}`)
 })

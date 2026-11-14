@@ -7,7 +7,8 @@
 // Le CLASSEMENT que la mesure exécute sous `src/` — registres, fabriques, classifieurs, parcours — est du code du
 // détecteur : chaque module qui porte la MARQUE (`MARQUE_DE_CLASSEMENT`) voyage avec lui (#2969), comme les modules
 // `.mjs` de `src/lib/` que `scripts/` importe (`LIB_DU_DETECTEUR`, #3117). La constance
-// couvre la MESURE ; les GÉNÉRATEURS et les DÉCLARATIONS appartiennent à l'image. L'image est celle de SON commit :
+// couvre la MESURE ; les GÉNÉRATEURS et les DÉCLARATIONS appartiennent à l'image, celles que `scripts/` porte comprises
+// (`DECLARATIONS_DE_L_IMAGE`, posées par-dessus le détecteur). L'image est celle de SON commit :
 // `src/` — donnée, defs, vocabulaire `TYPES`, `OP_DEFS`, table des poses — et ses cibles de code, produites par son
 // propre `genererCode` (scripts/docs/build-all.mjs), une fois par commit, avant la pose du détecteur. Une mesure impossible sous ces
 // cibles se rejoue sous celles des générateurs du DÉTECTEUR (`comptesDuCommit`) : une borne se mesure si UNE des deux
@@ -16,7 +17,9 @@
 // et refuse la plage. Aucune ligne de message n'admet une hausse ni un plancher qui cède ; une baisse du DÉTECTEUR, plancher
 // compris, se justifie par `FAUX-POSITIF:` (`baissesDuDetecteur`).
 // ANGLES MORTS : au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711) ; une forme
-// générée que `src/` ET le détecteur lisent, changée des deux côtés de la plage, peut empêcher une mesure.
+// générée que `src/` ET le détecteur lisent, changée des deux côtés de la plage, peut empêcher une mesure. Une
+// DÉCLARATION (`DECLARATIONS_DE_L_IMAGE`) qui tait une famille, `sansFolio` posé sur une liste existante, en retire la
+// dette comme une baisse de DONNÉE, sans `FAUX-POSITIF:`.
 // L’ordinal d’un compte n’est pas l’adresse d’une valeur. Un chemin RENOMMÉ dans la plage même où sa référence se
 // relâche passe le plancher `FEUILLES_D_ID` : le chemin de la base n’existe plus à la tête, celui de la tête y naît. Le
 // renommage peut être INDIRECT : une route plus courte vers un nœud partagé change son plus court chemin
@@ -127,6 +130,9 @@ const estModulePartage = (rel: string): boolean => rel.endsWith('.mjs');
 /** Ce que l'image apporte : `src/` (donnée ET schémas), `Source/` (les chapitres que mesure `SOURCE_FORMAT`) et
  *  `docs/dossiers/` (les fiches que lit le registre `FICHIERS_DE_DOSSIER`, cible de code de `src/`). */
 const DE_L_IMAGE = ['src', 'Source', 'docs/dossiers'];
+/** Les DÉCLARATIONS de la donnée de l'image que `scripts/` porte : la liste de découpe d'un livre (son grain, `sansFolio`)
+ *  dit ce que SES chapitres de `Source/` impriment (#3884). Elles se posent de l'image PAR-DESSUS le détecteur. */
+const DECLARATIONS_DE_L_IMAGE = ['scripts/raw/decoupes'];
 /** Les fichiers TEXTE que la mesure lit ; un fichier binaire ne se pose pas. */
 const TEXTE = /\.(?:md|json|ts|tsx|mts|mjs|js|cjs|css|snap)$/;
 /** Le point d'entrée de la mesure, dans le code d'un détecteur. */
@@ -145,6 +151,12 @@ function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: 
     mkdirSync(dirname(join(dossier, rel)), { recursive: true });
     writeFileSync(join(dossier, rel), texte);
   }
+}
+
+/** Pose sous `dossier` les `DECLARATIONS_DE_L_IMAGE` de `sha` à la place de celles du détecteur. */
+function poserLesDeclarations(depot: Depot, sha: string, dossier: string): void {
+  for (const d of DECLARATIONS_DE_L_IMAGE) rmSync(join(dossier, d), { recursive: true, force: true });
+  ecrireDeLImage(depot, sha, dossier, DECLARATIONS_DE_L_IMAGE);
 }
 
 /** Un DÉTECTEUR : son nom, sa clé de mémo, et la pose de son code (`DU_DETECTEUR`, son classement) dans une image. */
@@ -240,6 +252,7 @@ function mesurerSousLesCiblesDeLImage(depot: Depot, sha: string, detecteur: Dete
   rmSync(join(image, 'scripts'), { recursive: true, force: true });
   ecrireDeLImage(depot, sha, image, [RACINE_DU_CLASSEMENT]);
   detecteur.poser(image);
+  poserLesDeclarations(depot, sha, image);
   return mesurerImage(image, configuration);
 }
 
@@ -250,6 +263,7 @@ function mesurerSousLesCiblesDuDetecteur(depot: Depot, sha: string, detecteur: D
   try {
     ecrireDeLImage(depot, sha, dossier, DE_L_IMAGE);
     detecteur.poser(dossier);
+    poserLesDeclarations(depot, sha, dossier);
     genererLesCibles(dossier, configuration);
     return mesurerImage(dossier, configuration);
   } finally {

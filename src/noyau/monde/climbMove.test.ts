@@ -37,10 +37,18 @@ describe('planClimb', () => {
     if (plan.flow.kind !== 'test') throw new Error('attendu nœud test');
     expect(plan.flow.test.skill).toEqual({ id: 'escalade' });
     expect(plan.flow.test.difficulty).toBe('intermediaire');
-    const fail = plan.flow.fail;
+    const fail = plan.flow.echec;
     // La branche d'échec déclenche un `fall` de 4 m repositionnant au pied.
-    if (fail.kind !== 'seq' || fail.steps[0]?.kind !== 'do') throw new Error('attendu seq/do');
-    expect(fail.steps[0].effect).toMatchObject({ type: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 } });
+    if (fail.kind !== 'sequence' || fail.etapes[0]?.kind !== 'effet') throw new Error('attendu seq/do');
+    expect(fail.etapes[0].effet).toMatchObject({ type: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 } });
+  });
+
+  it('paroi en DESCENTE (du sommet vers le pied) → l’échec fait chuter de 4 m au PIED, pas au sommet (#4156)', () => {
+    const plan = planClimb(cliffScene({ kind: 'surface' }), to, from, false);
+    if (plan?.kind !== 'test' || plan.flow.kind !== 'test') throw new Error('attendu test');
+    const fail = plan.flow.echec;
+    if (fail.kind !== 'sequence' || fail.etapes[0]?.kind !== 'effet') throw new Error('attendu seq/do');
+    expect(fail.etapes[0].effet).toMatchObject({ type: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 } });
   });
 
   it('paroi à difficulté éditée → le Test porte cette difficulté', () => {
@@ -68,9 +76,9 @@ describe('planClimb', () => {
   it('en combat, un faller nommé retombe seul (target hero)', () => {
     const plan = planClimb(cliffScene({ kind: 'surface' }), from, to, false, 'hero-7');
     if (plan?.kind !== 'test' || plan.flow.kind !== 'test') throw new Error('attendu test');
-    const fail = plan.flow.fail;
-    if (fail.kind !== 'seq' || fail.steps[0]?.kind !== 'do') throw new Error('attendu seq/do');
-    expect(fail.steps[0].effect).toMatchObject({ type: 'fall', target: 'hero', heroId: 'hero-7' });
+    const fail = plan.flow.echec;
+    if (fail.kind !== 'sequence' || fail.etapes[0]?.kind !== 'effet') throw new Error('attendu seq/do');
+    expect(fail.etapes[0].effet).toMatchObject({ type: 'fall', target: 'heros', heroId: 'hero-7' });
   });
 
   // Grimpant (LDB 85 l.160-162) : `autoSucceed` — aucun jet, même sur une paroi exigeant le Talent Grimpeur.

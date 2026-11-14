@@ -12,9 +12,7 @@
 //
 // LE GESTE, UN SEUL : REJOUER la chaîne canonique sur le livre — re-découpe depuis la sortie
 // Marker conservée sous `Source/_marker/`, ou ré-extraction quand cette sortie manque. Jamais un
-// remède local de chapitre. Arbitrage utilisateur du 2026-09-14, verbatim : « Il faut un format
-// unifié pour toutes les extractions, donc s'il faut rééxtraire, on rééxtrait » — fiche
-// `.claude/memory/user-doctrine-format-unifie-reextraction-permise.md`.
+// remède local de chapitre — fiche `.claude/memory/user-doctrine-format-unifie-reextraction-permise.md`.
 //
 // DEUX RÉGIMES, UNE DONNÉE. Le GRAIN d'un livre est sa LISTE DE DÉCOUPE
 // (`scripts/raw/decoupes/<id>.json`), et elle s'applique par DEUX voies : le découpeur, quand le
@@ -25,6 +23,10 @@
 //    ouverture, index. Tout écart est un ROUGE NOMMÉ, sans stock : le geste tient en une commande.
 //  — livre SANS liste : son grain n'est déclaré nulle part. Une entrée de stock par chapitre
 //    (famille `sans-decoupe`), qui sort quand le livre est mis au grain.
+//
+// LIVRE SANS FOLIO IMPRIMÉ (#3884) : la liste de découpe d'un document qui n'imprime AUCUN folio le
+// DÉCLARE (`sansFolio`, lu par `_lib.mjs#sansFolioDe`) ; la famille `sans-folio` ne juge alors aucun de
+// ses chapitres. Un livre sans cette déclaration est jugé chapitre par chapitre.
 //
 // STOCK NOMINATIF (`scripts/raw/source-format-stock.json`, régime #1711) : une ENTRÉE par
 // (famille, FICHIER, détail), clé `famille :: fichier :: ref :: occurrence`
@@ -63,9 +65,18 @@ import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { BOOKS, readText } from './_lib.mjs'
 import { cleDeSite, ecartDuVolet, phraseDeNaissance, remedeDeNaissance } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, comptesParFamille, lireEntreesDeSite, naissanceEnPlace } from '../guards/lib/stockDeSites.mjs'
-import { estSeparateur, graphieDeChapitre, graphieDuFichier, largeurDeChapitre, ligne1DePlage, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
+import {
+  estSeparateur,
+  graphieDeChapitre,
+  graphieDuFichier,
+  largeurDeChapitre,
+  ligne1DePlage,
+  numeroDuFichier,
+  plageDeLigne1,
+  titreDuFichier,
+} from '../../src/data/source/decoupe.ts'
 import { estLigneDeTitre, ouvreSur } from './lib/titres.mjs'
-import { decoupeDe, livreDuDossier, livresATitres, livresDecoupes, nomsDeLaListe, ongletsDe, REGISTRE_LIVRES } from './_lib.mjs'
+import { decoupeDe, livreDuDossier, livresATitres, livresDecoupes, nomsDeLaListe, ongletsDe, REGISTRE_LIVRES, sansFolioDe } from './_lib.mjs'
 import { exempter, exemptionsFausses, mobilierDuDossier } from './lib/mobilier.mjs'
 import { sitesDeTitresSoudes } from './lib/titres-soudes.mjs'
 import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
@@ -215,10 +226,12 @@ export function liensDIndex(texte) {
  * (mesuré le 2026-09-14 : 0 fichier hors motif sur les 20 dossiers FR). Les familles (5)
  * `html-residuel` et (7) `table-sans-separateur` balaient TOUS les `.md` du dossier, index compris ;
  * (6) `index-mort` ne lit que `00 - Index.md`.
+ * `sansFolio` : le livre déclare n'imprimer aucun folio (`_lib.mjs#sansFolioDe`) — (2) se tait.
  * @param {string} dir @param {{ nom: string, texte: string }[]} fichiers
+ * @param {object[] | null} [liste] @param {boolean} [sansFolio]
  * @returns {{ famille: string, file: string, ref: string, nombre?: number }[]}
  */
-export function sitesDuDossier(dir, fichiers, liste = null) {
+export function sitesDuDossier(dir, fichiers, liste = null, sansFolio = false) {
   const out = []
   const noms = new Set(fichiers.map((f) => f.nom))
   const chapitres = fichiers.filter((f) => numeroDuFichier(f.nom) != null)
@@ -232,7 +245,7 @@ export function sitesDuDossier(dir, fichiers, liste = null) {
   }
 
   // (2) chapitre SANS aucune ancre `data-folio` : rien n'y est adressable au folio imprimé.
-  for (const { nom, texte } of chapitres) if (!/data-folio/.test(texte)) site('sans-folio', nom, 'aucune ancre data-folio')
+  if (!sansFolio) for (const { nom, texte } of chapitres) if (!/data-folio/.test(texte)) site('sans-folio', nom, 'aucune ancre data-folio')
 
   // (3) ancres SEULES sur leur ligne : la forme « scan/folio », qui casse l'adressage au texte
   // (l'ancre ne préfixe plus le paragraphe qu'elle ouvre).
@@ -274,7 +287,7 @@ export function sitesDuDossier(dir, fichiers, liste = null) {
     }
   }
 
-  // (9) SANS DÉCOUPE : le livre n'a pas de LISTE DE DÉCOUPE (`scripts/raw/decoupes/<id>.json`), donc
+  // (9) SANS DÉCOUPE : aucune LISTE DE DÉCOUPE (`scripts/raw/decoupes/<id>.json`) pour ce livre, donc
   // le GRAIN de ses chapitres n'est déclaré nulle part et rien ne peut le confronter.
   if (liste == null) for (const { nom } of chapitres) site('sans-decoupe', nom, 'grain non déclaré')
 
@@ -350,8 +363,14 @@ export function listeDuDossier(dir, registre = REGISTRE_LIVRES, avecListe = livr
   return livre && avecListe.includes(livre.id) ? decoupeDe(livre.id) : null
 }
 
+/** Le livre servi par ce dossier DÉCLARE-t-il n'imprimer aucun folio ? Faux pour un livre sans liste. */
+export function sansFolioDuDossier(dir, registre = REGISTRE_LIVRES, avecListe = livresDecoupes()) {
+  const livre = livreDuDossier(dir, registre)
+  return livre != null && avecListe.includes(livre.id) && sansFolioDe(livre.id)
+}
+
 /** Balaie UN dossier de livre → ses sites d'écart de FORME (les familles à stock). */
-export const scanDossier = (dir) => sitesDuDossier(cheminDe(dir), lireDossier(dir), listeDuDossier(dir))
+export const scanDossier = (dir) => sitesDuDossier(cheminDe(dir), lireDossier(dir), listeDuDossier(dir), sansFolioDuDossier(dir))
 
 /** Balaie UN dossier au GRAIN — rien pour un livre sans liste de découpe. */
 export const grainDuDossier = (dir) => {

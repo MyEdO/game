@@ -1,10 +1,13 @@
 ## Une zone de l'écran (#3328, `src/hote/elements.ts`) : les éléments d'une source dessinés dans le conteneur qui la
-## porte, son parent, chacun par le composant de son type (`res://composants/<type>.tscn`, une scène sans script).
+## porte, son parent, chacun par le composant de son type (`res://composants/<type>.tscn`, une scène sans script), ou
+## par celui que la zone lui donne à cet usage (`formes`, #3935).
 ## Les éléments se réconcilient par type et par id : un élément déjà dessiné garde son nœud, un élément parti le quitte,
 ## l'ordre suit la source ; en `ajout` (un journal), un élément déjà dessiné reste tel quel et le nouveau s'ajoute au
-## pied, montré par le défilement qui le contient. Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`
-## et `Saisie` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, son geste relayé par celle-ci.
-## `masque` se cache quand aucune des zones qui le nomment n'a rien à montrer. Sous un `TabContainer`, chaque élément
+## pied, montré par le défilement qui le contient. Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`,
+## `Saisie`, `Portrait` et `Dessin` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, rangé comme une source
+## de l'écran entre les zones du composant (`ids`), son `masque` caché quand elle n'a rien à montrer, son geste relayé.
+## `masque` se cache quand aucune des zones qui le nomment n'a rien à montrer ; en `repli`, le conteneur de la zone se
+## cache quand elle n'a rien à montrer, sans la place qu'il tiendrait vide dans celui qui le range. Sous un `TabContainer`, chaque élément
 ## est un onglet, titré de son nom (`nom`, sinon `libelle`), qui ne le redit pas (son `Nom` caché) ; une zone portée par
 ## une page d'un `TabContainer` en cache l'onglet quand elle n'a rien à montrer.
 ##
@@ -21,8 +24,11 @@ signal geste(jeu: Dictionary)
 @export var source: String
 @export var ajout := false
 @export var masque: Control = null
+@export var repli := false
 ## Sans initialiseur : l'export Web de Godot 4.7 perd la valeur posée d'un `PackedStringArray` initialisé par `[]`.
 @export var ids: PackedStringArray
+## La forme d'un type d'élément dans cette zone, `<type>:<forme>` : le composant `res://composants/<forme>.tscn`.
+@export var formes: PackedStringArray
 
 const META := &"element"
 
@@ -42,7 +48,7 @@ func montrer(elements: Array) -> void:
 		if noeud != null and ajout:
 			continue
 		if noeud == null:
-			noeud = load("res://composants/%s.tscn" % e.type).instantiate()
+			noeud = load("res://composants/%s.tscn" % _forme(e.type)).instantiate()
 			noeud.set_meta(META, cle)
 			conteneur.add_child(noeud)
 		conteneur.move_child(noeud, -1)
@@ -50,8 +56,9 @@ func montrer(elements: Array) -> void:
 		if conteneur is TabContainer:
 			var onglets := conteneur as TabContainer
 			onglets.set_tab_title(onglets.get_tab_idx_from_control(noeud), str(e.nom if e.has("nom") else e.libelle))
-			if noeud.has_node("Nom"):
-				(noeud.get_node("Nom") as Control).visible = false
+			var nom := noeud.find_child("Nom", true, false) as Control
+			if nom != null:
+				nom.visible = false
 		dernier = noeud
 	if not ajout:
 		for cle in dessines:
@@ -60,9 +67,19 @@ func montrer(elements: Array) -> void:
 				dessines[cle].queue_free()
 	if ajout and dernier != null:
 		_montrer_le_pied(dernier)
+	if repli:
+		(conteneur as Control).visible = not gardes.is_empty()
 	if conteneur.get_parent() is TabContainer:
 		var pages := conteneur.get_parent() as TabContainer
 		pages.set_tab_hidden(pages.get_tab_idx_from_control(conteneur as Control), not conteneur.get_children().any(func(n: Node) -> bool: return n.has_meta(META)))
+
+
+## Le composant du type `type` dans cette zone : celui de `formes`, sinon celui de son nom.
+func _forme(type: String) -> String:
+	for forme in formes:
+		if forme.begins_with(type + ":"):
+			return forme.trim_prefix(type + ":")
+	return type
 
 
 ## La clé de l'élément `e`, que porte son composant (`META`) : son type et son id.
@@ -109,10 +126,17 @@ static func poser(racine: Node, element: Dictionary, zone: Zone) -> void:
 			enfant.poser(element)
 		elif enfant is Geste or enfant is Saisie:
 			enfant.poser(element, zone)
+		elif enfant is Portrait or enfant is Dessin:
+			enfant.poser(element)
 		elif enfant is Zone:
 			if not enfant.geste.is_connected(zone.geste.emit):
 				enfant.geste.connect(zone.geste.emit)
-			enfant.montrer(element.get(enfant.source, []))
+			var composant := enfant.get_parent()
+			while not composant.has_meta(META):
+				composant = composant.get_parent()
+			enfant.montrer(Zone.elements_de(Zone.racines(composant), enfant, element))
+			if enfant.masque != null:
+				enfant.masque.visible = enfant.get_parent().get_children().any(func(n: Node) -> bool: return n.has_meta(META))
 		else:
 			Zone.poser(enfant, element, zone)
 

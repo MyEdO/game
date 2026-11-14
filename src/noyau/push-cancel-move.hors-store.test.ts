@@ -22,17 +22,17 @@ const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 40, endu
 const mkPoste = (crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById('belier-ade2', idsDeTest)!, crewIds });
 
 const mkHull = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
-  combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'enemy', pos, conditions: [], weapons: [],
+  combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'ennemi', pos, conditions: [], weapons: [],
     inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] });
 
 const mkChef = (id: string, poste: ShipPoste, pos = { x: 5, y: 6 }): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'hero', characteristics: CHARS, wounds: blessuresDeBase(12), advantage: 0,
+  combattantDeTest({ id, label: id, kind: 'heros', characteristics: CHARS, wounds: blessuresDeBase(12), advantage: 0,
     conditions: [], skills: [], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos,
     mannedPoste: poste });
 
 const mkServant = (id: string, pos: { x: number; y: number }): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'npc', characteristics: CHARS, wounds: blessuresDeBase(8), advantage: 0,
+  combattantDeTest({ id, label: id, kind: 'pnj', characteristics: CHARS, wounds: blessuresDeBase(8), advantage: 0,
     conditions: [], skills: [], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos });
 
@@ -66,7 +66,7 @@ describe('#199 — annulerLeDeplacement défait une poussée d’engin de siège
   it('pousse d’une case : engin + chef + servants avancent, servants marqués loseNextMovement', () => {
     const { chef, hull, s1, s2 } = pushSetup();
     banc.getState().pousserLEngin();
-    expect(banc.getState().battle!.action).toBe('push');
+    expect(banc.getState().battle!.action).toBe('poussee');
     expect(banc.getState().battle!.reachable.size).toBeGreaterThan(0);
     const dest = reachDest(chef.pos!);
     banc.getState().cliquerLaCase(dest);

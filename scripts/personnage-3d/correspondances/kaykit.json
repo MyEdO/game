@@ -26,25 +26,25 @@
     "upperleg.r", "lowerleg.r", "foot.r", "toes.r"
   ],
   "clips": {
-    "idle": "Idle",
-    "walk": "Walking_A",
+    "repos": "Idle",
+    "marche": "Walking_A",
     "melee": "1H_Melee_Attack_Chop",
-    "hit": "Hit_A",
-    "death": "Death_A",
-    "parry": "Block",
-    "ranged": "1H_Ranged_Shooting",
-    "cast": "Spellcast_Shoot",
-    "dodge": "Dodge_Backward"
+    "coup": "Hit_A",
+    "mort": "Death_A",
+    "parade": "Block",
+    "tir": "1H_Ranged_Shooting",
+    "incantation": "Spellcast_Shoot",
+    "esquive": "Dodge_Backward"
   },
   "source_clips": {
-    "idle": "Unarmed_Idle",
-    "walk": "Walking_A",
+    "repos": "Unarmed_Idle",
+    "marche": "Walking_A",
     "melee": "1H_Melee_Attack_Chop",
-    "hit": "Hit_A",
-    "death": "Death_A",
-    "parry": "Block",
-    "ranged": "1H_Ranged_Shooting",
-    "cast": "Spellcast_Shoot",
-    "dodge": "Dodge_Backward"
+    "coup": "Hit_A",
+    "mort": "Death_A",
+    "parade": "Block",
+    "tir": "1H_Ranged_Shooting",
+    "incantation": "Spellcast_Shoot",
+    "esquive": "Dodge_Backward"
   }
 }

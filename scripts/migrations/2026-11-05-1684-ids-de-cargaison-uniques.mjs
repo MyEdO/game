@@ -15,7 +15,7 @@
  *
  * Le Vin maritime garde `vin` (MDG 15 l.413, l.429). Les références suivent leur catalogue :
  * `naval-ports.json` (`production`, clés de `surplus` et `demande`) vers le maritime, `land-cargo.json
- * › rumours[].biens` vers le terrestre. Renommage EN PLACE : une entrée, une référence ou une clé garde
+ * › rumeurs[].biens` vers le terrestre. Renommage EN PLACE : une entrée, une référence ou une clé garde
  * son rang. Un id absent n'est pas renommé. Un catalogue absent est toléré (doctrine #3080) : il a
  * quitté son document pour `cargoes.json` (`2026-11-05-1684-un-catalogue-des-cargaisons.mjs`).
  *
@@ -65,10 +65,10 @@ function renommerCatalogue(table, doc, fichier, arrets) {
   }
 }
 
-/** Les rumeurs de `land-cargo.json` : le tableau à l'écriture de cette migration, `rumours.entries` sous
+/** Les rumeurs de `land-cargo.json` : le tableau à l'écriture de cette migration, `rumeurs.entries` sous
  *  la forme que `2026-11-06-1667-tables-tirees-nichees.mjs` pose — une migration ANTÉRIEURE dans l'ordre
  *  lexical reconnaît la forme qu'une POSTÉRIEURE produit. */
-const rumeursDe = (doc) => (Array.isArray(doc.rumours) ? doc.rumours : doc.rumours.entries);
+const rumeursDe = (doc) => (Array.isArray(doc.rumeurs) ? doc.rumeurs : doc.rumeurs.entries);
 
 const DOCUMENTS = {
   'sea-cargo.json': (doc, f, arrets) => renommerCatalogue(MER, doc, f, arrets),
@@ -90,7 +90,7 @@ const RESTES = {
   'sea-cargo.json': (doc) => (doc.cargoes ?? []).filter((c) => MER.has(c.id)).map((c) => `cargoes › ${c.id}`),
   'land-cargo.json': (doc) => [
     ...(doc.cargoes ?? []).filter((c) => TERRE.has(c.id)).map((c) => `cargoes › ${c.id}`),
-    ...rumeursDe(doc).flatMap((r, i) => r.biens.filter((id) => TERRE.has(id)).map((id) => `rumours[${i}].biens › ${id}`)),
+    ...rumeursDe(doc).flatMap((r, i) => r.biens.filter((id) => TERRE.has(id)).map((id) => `rumeurs[${i}].biens › ${id}`)),
   ],
   'naval-ports.json': (ports) => ports.flatMap((p) => [
     ...(p.production ?? []).filter((id) => MER.has(id)).map((id) => `${p.id}.production › ${id}`),

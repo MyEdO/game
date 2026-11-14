@@ -20,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * fenêtre du défenseur surfacé ; la boucle des tireurs s'arrête sur elle et reprend à sa fermeture, et
  * le Round ne s'ouvre qu'au bout de la boucle.
  */
-const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 1 }, range: 30, qualities: [], loaded: true } as unknown as Weapon);
+const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 1 }, range: 30, qualities: [], loaded: true } as unknown as Weapon);
 const g = () => banc.getState();
 const de = (id: string): Combatant => g().battle!.combatants.find((c) => c.id === id)!;
 /** Les Tirs rapides déclenchés par `id`, comptés à leur marqueur de journal. */
@@ -30,16 +30,16 @@ const etape = () => { const c = g().pendingCascade; return c?.participants[c.cur
 /** Deux héros surfacés, deux tireurs de l'IA à Bout Portant (LDB 14 l.62 : la défense est permise).
  *  E1 a pris le talent deux fois : il tire d'abord (LDB 11 l.103). */
 function finDeRound(gmSeat?: number) {
-  const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant => {
+  const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant => {
     const c = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
     c.id = id; c.label = id; c.kind = kind; c.pos = pos; c.fortune = 0;
     c.wounds = blessuresDeBase(200, 200, c);
     return c;
   };
-  const H1 = mk('h1', 'hero', { x: 0, y: 0 });
-  const H2 = mk('h2', 'hero', { x: 0, y: 4 });
-  const E1 = mk('e1', 'enemy', { x: 1, y: 0 });
-  const E2 = mk('e2', 'enemy', { x: 1, y: 4 });
+  const H1 = mk('h1', 'heros', { x: 0, y: 0 });
+  const H2 = mk('h2', 'heros', { x: 0, y: 4 });
+  const E1 = mk('e1', 'ennemi', { x: 1, y: 0 });
+  const E2 = mk('e2', 'ennemi', { x: 1, y: 4 });
   E1.talents = [{ talentId: 'tir-rapide', times: 2 }];
   E2.talents = [{ talentId: 'tir-rapide', times: 1 }];
   E1.weapons = [ARC()]; E2.weapons = [ARC()];
@@ -60,7 +60,7 @@ describe('#997 — Tir rapide de l’IA : chaque tir ouvre la fenêtre du défen
     finDeRound();
     advanceTurn(banc.getState, banc.setState); // → Round 2, pause de début de Round
     expect(g().pendingRoundStart).not.toBeNull();
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     // 1ʳᵉ fenêtre : E1 (talent ×2) sur H1. La boucle est PARQUÉE : E2 n'a pas tiré, le Round n'est pas ouvert.
     expect(g().pendingDefense?.attackerId).toBe('e1');
     expect(g().pendingDefense?.defenderId).toBe('h1');
@@ -96,8 +96,8 @@ describe('#997 — Tir rapide du héros (`pa.interrupt`) : le défenseur surfac�
     advanceTurn(banc.getState, banc.setState);
     g().declencherLeTirPreventif('h1', 'e1');
     expect(g().pendingAttack?.interrupt).toBe(true);
-    g().jetLancer('attack');
-    g().jetValider('attack');
+    g().jetLancer('attaque');
+    g().jetValider('attaque');
     expect(g().pendingDefense?.defenderId, 'la fenêtre de E1 s’interpose').toBe('e1');
     expect(g().pendingDefense?.suite.mode).toBe('pilotee');
     g().jetLancer('defense');
@@ -118,7 +118,7 @@ describe('#997 — Tir rapide d’un tireur à gratuite de créature : la suite 
     de('e1').advantage = 3; // coût d'Avantage de la Morsure payable
     de('e2').talents = []; // E1 seul tireur : sa fenêtre fermée, la boucle finit et le Round s'ouvre
     advanceTurn(banc.getState, banc.setState);
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     expect(g().pendingDefense?.attackerId).toBe('e1');
     expect(g().pendingDefense?.weapon.uid, 'la fenêtre est celle du tir').toBe('arc');
     expect(g().pendingDefense?.atk.success, 'le tir de E1 réussit').toBe(true);
@@ -139,17 +139,17 @@ describe('#1765 — Tir rapide : la Maladresse du défenseur suspend la boucle, 
   it('H1 rate sa défense sur un double : E2 attend le dé de Maladresse, puis tire UNE fois', () => {
     finDeRound();
     advanceTurn(banc.getState, banc.setState);
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     expect(g().pendingDefense?.attackerId).toBe('e1');
     g().jetLancer('defense');
     g().jetImposerLeResultat('defense', 99); // LDB 14 l.13
     g().jetValider('defense');
-    expect(etape()?.kind, 'la Maladresse tient la main').toBe('fumbleJet');
+    expect(etape()?.kind, 'la Maladresse tient la main').toBe('jetDeMaladresse');
     expect(g().pendingDefense, 'E2 n’a pas encore sa fenêtre').toBeNull();
     expect(de('e2').loseNextAction, 'E2 n’a pas tiré').toBeFalsy();
     expect(g().battle!.turn, 'le Round attend la boucle').toBe(-1);
-    g().jetLancer('fumble');
-    g().jetValider('fumble');
+    g().jetLancer('maladresse');
+    g().jetValider('maladresse');
     expect(g().pendingDefense?.attackerId, 'la boucle reprend sur E2').toBe('e2');
     expect(tirsDe('e2'), 'E2 tire UNE fois').toBe(1);
     g().jetLancer('defense');
@@ -176,15 +176,15 @@ describe('#1765 — Tir rapide : Maladresse d’arme Bâclé+Solide, la boucle r
     }
     for (const id of ['e1', 'e2']) { de(id).talents = []; de(id).weapons = [LAME()]; }
     advanceTurn(banc.getState, banc.setState);
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     expect(g().pendingDefense?.attackerId).toBe('h1');
     expect(g().pendingDefense?.defenderId).toBe('e1');
     g().jetLancer('defense');
     g().jetImposerLeResultat('defense', 99); // LDB 14 l.13
     g().jetValider('defense');
-    expect(etape()?.kind, 'la Maladresse de E1 tient la main').toBe('fumbleJet');
-    g().jetLancer('fumble');
-    g().jetValider('fumble');
+    expect(etape()?.kind, 'la Maladresse de E1 tient la main').toBe('jetDeMaladresse');
+    g().jetLancer('maladresse');
+    g().jetValider('maladresse');
     const solide = etape();
     expect(solide?.kind, 'le dé de Sauvegarde Solide tient la main').toBe('casseDArme');
     expect(g().pendingDefense, 'H2 n’a pas encore sa fenêtre').toBeNull();
@@ -220,7 +220,7 @@ describe('#1765 — Tir rapide instantané : la sauvegarde de la cible suspend l
       de(id).traits = [{ id: 'protection', value: 10 }];
     }
     advanceTurn(banc.getState, banc.setState);
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     expect(g().pendingDefense, 'aucune fenêtre de défense : le tir est instantané').toBeNull();
     expect(tirsDe('e1'), 'E1 a tiré').toBe(1);
     const sauvegarde = etape();

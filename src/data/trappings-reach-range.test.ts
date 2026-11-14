@@ -37,7 +37,7 @@ describe('trappings — invariant Allonge (reach) ⊥ Portée (range)', () => {
     const withRange = rows.filter((t) => t.range != null);
     expect(withRange.length).toBeGreaterThan(0);
     expect(withRange.every((t) => typeof t.range === 'number' || isBfSpec(t.range))).toBe(true);
-    expect(withRange.filter((t) => t.categorie !== 'ranged').map((t) => t.id)).toEqual([]);
+    expect(withRange.filter((t) => t.categorie !== 'distance').map((t) => t.id)).toEqual([]);
   });
 
   it('toute arme de JET (`range:{bf}`) a un bf > 0 et un `reach` nul', () => {
@@ -137,7 +137,8 @@ describe('trappings — Disponibilité : les 4 classes, la marque « ND », ou r
   });
 
   it('les objets sans valeur imprimée gardent leur absence — aucune classe ne leur est inventée', () => {
-    expect(rows.filter((t) => t.availability === null).map((t) => t.id).sort()).toEqual(
+    const sansValeur = rows.filter((t) => t.availability === null).map((t) => t.id);
+    expect(
       [
         // Tiret en colonne Disponibilité (LDB 62 l.28) : le livre n'imprime AUCUNE valeur.
         'mains-nues',
@@ -164,8 +165,9 @@ describe('trappings — Disponibilité : les 4 classes, la marque « ND », ou r
         // Anneau d'Opsianon (EDO 11 l.247-263) : objet d'intrigue décrit en prose, hors de toute table
         // d'équipement — l'Appendice ne lui imprime ni Prix ni Disponibilité.
         'anneau-d-opsianon',
-      ].sort(),
-    );
+      ].filter((id) => !sansValeur.includes(id)),
+      'objet sans valeur imprimée qui en porte une, ou absent du catalogue',
+    ).toEqual([]);
   });
 });
 

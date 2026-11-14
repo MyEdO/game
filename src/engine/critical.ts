@@ -6,22 +6,24 @@
  * Le SOCLE résout la séquence, la même pour les deux jeux : lookup `findTableEntry` → jet de la
  * rangée → `onRepeat` → `traumas` → `amputation` → `stampCriticalEscalation` → `fireCritTriggers`.
  * Les FEUILLES n'adressent que ce qui diffère, déclaré une fois dans `REGIMES` : le modificateur de
- * SÉVÉRITÉ du d100 (LDB 18 l.17 ; AA 07 l.36) et le libellé de journal.
+ * SÉVÉRITÉ du jet du tableau (LDB 18 l.17 ; AA 07 l.36) et le libellé de journal.
  */
-import { d100, d10, RNG } from './dice';
+import { d100, d10, rollDice, RNG } from './dice';
 import { findTableEntry, tableOuverte } from './tables';
 import { bonus, effectiveChar } from './characteristics';
 import { hitLocationByShape, locationLabel } from './combat';
 import { BodyShape, Combatant, HitLocation } from './types';
 import {
-  CRITIQUE_DOCS, critTableKeyFor, critiqueDoc, critiqueTable,
+  CRITIQUE_DOCS, critTableKeyFor, critiqueDie, critiqueDoc, critiqueTable,
   type CritEntry, type CritTable, type CritTableKey, type JeuDeCritique,
 } from '../data/criticals';
 import { memoParVersion } from '../data/versionDataset';
 import { traumaById, traumaFicheById, stampCriticalEscalation, fireCritTriggers, type SequelleNeuve } from './trauma';
 import { rule } from './policy';
 import { EMPTY_FLOW, poserEnjeu, type Flow, type FlowTestNode } from './flowCore';
-import { combatStakeRef, type StakeRef } from '../data';
+import { categorieDeLaNiche, combatStakeRef, type StakeRef } from '../data';
+import type * as criticalsDef from '../data/schemas/defs/criticals';
+import { suiteDesEntrees } from '../data/schemas/grammaire/cle-d-espace';
 import { type GameOp } from './ops';
 import { isStructure, isEngin } from './structures';
 import { isVehicle, estNavire } from './coque';
@@ -35,12 +37,12 @@ export type { CritTableKey, JeuDeCritique };
  * `entryCategory`, `src/data/index.ts`). PUR.
  */
 function enjeuDeRangee(jeu: JeuDeCritique, location: HitLocation, entryId: string): StakeRef {
-  return combatStakeRef('crit-row-test', { entryId, entryCategory: critEntryCodexCategory(critTableKeyFor(location), jeu) });
+  return combatStakeRef('critique-ligne-test', { entryId, entryCategory: critEntryCodexCategory(critTableKeyFor(location), jeu) });
 }
 
 /**
  * Le nœud `test` d'une rangée, ENJEU POSÉ, prêt à partir par la porte — jumelle de `miscast.mkTest` :
- * une fabrique PURE, séparée du résolveur, qui ne tire AUCUN dé. Les branches `fail`/`success` sont
+ * une fabrique PURE, séparée du résolveur, qui ne tire AUCUN dé. Les branches `echec`/`reussite` sont
  * déjà en donnée ; il n'y a rien à composer, seulement l'enjeu à nommer.
  */
 function noeudDeRangee(entry: CritEntry, jeu: JeuDeCritique, location: HitLocation): FlowTestNode | undefined {
@@ -49,8 +51,8 @@ function noeudDeRangee(entry: CritEntry, jeu: JeuDeCritique, location: HitLocati
   return noeud;
 }
 
-/** Feuille `do` d'une liste d'ops — la forme Flow d'un effet, écrite une fois pour ce module. */
-const feuille = (ops: GameOp[]): Flow => ({ kind: 'do', effect: { type: 'ops', ops } });
+/** Feuille `effet` d'une liste d'ops — la forme Flow d'un effet, écrite une fois pour ce module. */
+const feuille = (ops: GameOp[]): Flow => ({ kind: 'effet', effet: { type: 'ops', ops } });
 
 /**
  * Le(s) Test(s) d'une Amputation (LDB 18 l.237), ENJEU POSÉ, prêts à partir par la porte — fabrique
@@ -60,11 +62,11 @@ const feuille = (ops: GameOp[]): Flow => ({ kind: 'do', effect: { type: 'ops', o
  *
  * Trois formes, toutes PARAMÉTRIQUES (la DONNÉE décide, le code ne branche sur aucun cas nommé) :
  *  - `loss.difficulty` (l.171) — Test ENGLOBANT dont la réussite annule tout ; son échec joue le reste ;
- *  - `loss` sans gate (l.180) — le Test l.237 détermine LUI-MÊME la perte : `amputer` dans sa `fail` ;
+ *  - `loss` sans gate (l.180) — le Test l.237 détermine LUI-MÊME la perte : `amputer` dans sa `echec` ;
  *  - sans `loss` (l.124, l.237) — la ligne fait perdre le membre quoi qu'il arrive : `amputer` suit le
  *    Test en séquence, et le Test ne décide que des États.
  * `loss.perDR` (l.180) devient `unitesPerSL {every:1, amount:1, onFailure:true}` : `ctx.sl` de la
- * branche `fail` porte le DR, `slBonus` en tire « un orteil par DR en dessous de 0 ».
+ * branche `echec` porte le DR, `slBonus` en tire « un orteil par DR en dessous de 0 ».
  *
  * Le LIBELLÉ sépare les deux Tests d'une même ligne (`entry.label` pour le gate, la plaie pour l.237) :
  * `triggeredTestStepId` keye par (porteur, libellé, Compétence) — deux « Résistance » homonymes
@@ -81,24 +83,24 @@ export function noeudAmputation(entry: CritEntry, jeu: JeuDeCritique, location: 
     ...(amp.loss?.perDR ? { unitesPerSL: { every: 1, amount: 1, onFailure: true } } : {}),
   }]);
   const etats: Flow[] = [
-    feuille([{ op: 'condition', id: 'a-terre', value: 1 }]),
-    { kind: 'if', cond: { kind: 'slThreshold', op: '<=', value: -2 }, then: feuille([{ op: 'condition', id: 'sonne', value: 1 }]) },
-    { kind: 'if', cond: { kind: 'slThreshold', op: '<=', value: -4 }, then: feuille([{ op: 'condition', id: 'inconscient', value: 1 }]) },
+    feuille([{ op: 'condition', id: { id: 'a-terre' }, value: 1 }]),
+    { kind: 'si', condition: { kind: 'slThreshold', op: '<=', value: -2 }, alors: feuille([{ op: 'condition', id: { id: 'sonne' }, value: 1 }]) },
+    { kind: 'si', condition: { kind: 'slThreshold', op: '<=', value: -4 }, alors: feuille([{ op: 'condition', id: { id: 'inconscient' }, value: 1 }]) },
   ];
   const noeud: FlowTestNode = {
     kind: 'test',
     test: poserEnjeu({ skill: { id: 'resistance' }, difficulty: amp.difficulty, label: traumaFicheById('amputation-plaie').label }, enjeu),
-    success: EMPTY_FLOW,
-    fail: { kind: 'seq', steps: perteGateeParCeTest ? [...etats, amputer] : etats },
+    reussite: EMPTY_FLOW,
+    echec: { kind: 'sequence', etapes: perteGateeParCeTest ? [...etats, amputer] : etats },
   };
   if (perteGateeParCeTest) return noeud;
-  const avecPerte: Flow = { kind: 'seq', steps: [noeud, amputer] };
+  const avecPerte: Flow = { kind: 'sequence', etapes: [noeud, amputer] };
   if (!amp.loss?.difficulty) return avecPerte;
   return {
     kind: 'test',
     test: poserEnjeu({ skill: { id: 'resistance' }, difficulty: amp.loss.difficulty, label: entry.label }, enjeu),
-    success: EMPTY_FLOW,
-    fail: avecPerte,
+    reussite: EMPTY_FLOW,
+    echec: avecPerte,
   };
 }
 
@@ -126,7 +128,7 @@ export interface CriticalResolved {
   ops: GameOp[];
   /** Le(s) Test(s) que la Blessure impose, à OUVRIR PAR LA PORTE canonique — le nœud `test` de la
    *  rangée (LDB 18 / AA 07) et ceux qu'un déclencheur de séquelle fait feu (`Trauma.critTrigger`,
-   *  LDB 18 l.74), enjeu posé. Un nœud `test` EST déjà un `Flow` ; plusieurs voyagent en `seq`, joué
+   *  LDB 18 l.74), enjeu posé. Un nœud `test` EST déjà un `Flow` ; plusieurs voyagent en `sequence`, joué
    *  en séquence par l'exécuteur. L'appelant (`noyau`) l'ouvre (`routeTriggeredTest`), le moteur ne le
    *  roule jamais — patron `MiscastResult.testFlow` (`miscast.ts`). */
   testFlow?: Flow;
@@ -135,9 +137,9 @@ export interface CriticalResolved {
   traumas: SequelleNeuve[];
   /** Texte canon (LONG TERME), DISPLAY-ONLY — jamais parsé pour de la mécanique. */
   desc: string;
-  /** Jet d100 effectif (après modificateur de sévérité). */
+  /** Jet effectif au dé du tableau (après modificateur de sévérité). */
   roll: number;
-  /** d100 lancé, avant modificateur de sévérité : « le lancer du tableau des Critiques », LDB 10 l.773 ;
+  /** Dé du tableau lancé (`critiqueDie`), avant modificateur de sévérité : « le lancer du tableau des Critiques », LDB 10 l.773 ;
    *  #1595 c.6227274650 Q3. */
   naturel: number;
   log: string;
@@ -167,15 +169,16 @@ export function critImmediateSummary(ops: GameOp[]): { woundsLost: number; condi
   for (const o of ops) {
     if (!opRestitueeParLeBandeau(o)) continue;
     if (o.op === 'wounds') woundsLost += o.amount as number;
-    else if (o.op === 'condition') conditions.push({ id: o.id, value: (o.value as number | undefined) ?? 1 }); // défaut de l'op (`applyOps`, `condition`)
+    else if (o.op === 'condition') conditions.push({ id: o.id.id, value: (o.value as number | undefined) ?? 1 }); // défaut de l'op (`applyOps`, `condition`)
   }
   return { woundsLost, conditions };
 }
 
-/** Catégorie Codex EXACTE (`registry.ts`) d'un Coup Critique, par table + jeu (LDB/Aux Armes). */
-export function critEntryCodexCategory(table: CritTableKey, jeu: JeuDeCritique): string {
-  const seg = table === 'tete' ? 'Tete' : table === 'bras' ? 'Bras' : table === 'corps' ? 'Corps' : 'Jambe';
-  return `${jeu === 'aa' ? 'aaCriticals' : 'criticals'}${seg}`;
+/** Catégorie Codex EXACTE d'un Coup Critique, par table + jeu : celle de la niche `[id].entries` de son
+ *  document (`critiqueDoc`, `categorieDeLaNiche`) ; `undefined` pour un document que le Codex n'expose pas
+ *  (aucune fiche : l'enjeu replie sur le foyer du `kind`, jamais un nom inventé). */
+export function critEntryCodexCategory(table: CritTableKey, jeu: JeuDeCritique): string | undefined {
+  return categorieDeLaNiche('criticals.json' satisfies typeof criticalsDef.file, suiteDesEntrees(critiqueDoc(jeu, table).id));
 }
 
 /** Retrouve l'entrée de Coup Critique portant cet id STABLE — un id de `critEntriesSuffered`
@@ -217,7 +220,7 @@ export function aaCriticalOffset(overkill: number): number {
 
 /** Ce qu'un JEU adresse — le reste de la résolution est au socle. */
 interface RegimeCritique {
-  /** Modificateur appliqué au d100 NATUREL avant le lookup (le plancher 01 est au socle). */
+  /** Modificateur appliqué au jet NATUREL du tableau avant le lookup (le plancher 01 est au socle). */
   severite(target: Combatant, overkill: number): number;
   /** En-tête de la ligne de journal. */
   journal: string;
@@ -428,7 +431,7 @@ export interface OptionsCritique {
   /** Bénédiction de Sauvagerie (LDB 41 l.170) : deux lancers, le porteur béni CHOISIT lequel. */
   twice?: boolean;
   /**
-   * d100 de sévérité INJECTÉ (dé de l'étape à table, dé posé, test) : c'est le dé NATUREL — le
+   * Dé de sévérité INJECTÉ (dé de l'étape à table, dé posé, test) : c'est le dé NATUREL — le
    * modificateur de sévérité du jeu reste appliqué ICI, comme sur un dé tiré. Il PRIME sur `twice`
    * (aucun dé n'est tiré) : les DEUX lancers de la Bénédiction de Sauvagerie (LDB 41 l.170 : « Quand
    * votre cible inflige par la suite des Blessures Critiques, effectuez deux lancers et choisissez le
@@ -442,9 +445,11 @@ export interface OptionsCritique {
   forcedRoll?: number;
 }
 
-/** d100 nu du tableau des Critiques. LDB 18 l.53 ; LDB 41 l.170 ; #1595 c.6229550544. */
-export function lancerDuTableau(rng: RNG, twice: boolean): number {
-  return twice ? Math.max(d100(rng), d100(rng)) : d100(rng);
+/** Lancer du tableau des Critiques de la `location` dans le `jeu`, au dé de sa table (`critiqueDie`), meilleur
+ *  de deux sous `twice`. LDB 18 l.53 ; LDB 10 l.773 ; LDB 41 l.170 ; AA 07 l.32 ; #1667. */
+export function lancerDuTableau(jeu: JeuDeCritique, location: HitLocation, rng: RNG, twice: boolean): number {
+  const de = critiqueDie(jeu, critTableKeyFor(location));
+  return twice ? Math.max(rollDice(de, rng), rollDice(de, rng)) : rollDice(de, rng);
 }
 
 /**
@@ -463,7 +468,7 @@ export function resolveCritique(
   const { overkill = 0, twice = false, forcedRoll } = options;
   const regime = regimeDe(jeu);
   const be = bonus(effectiveChar(target, 'endurance'));
-  const raw = forcedRoll ?? lancerDuTableau(rng, twice);
+  const raw = forcedRoll ?? lancerDuTableau(jeu, location, rng, twice);
   const roll = Math.max(1, raw + regime.severite(target, overkill));
   const entry = structuredClone(findTableEntry(rangeesLues(critiqueTable(jeu, location)), roll)); // repli Bras (LDB 76 l.21) si loc sans table dédiée ; #2097
   const ops: GameOp[] = [...(entry.ops ?? [])];
@@ -506,7 +511,7 @@ export function resolveCritique(
     entryId: entry.id,
     label: entry.label,
     ops,
-    ...(tests.length ? { testFlow: tests.length === 1 ? tests[0] : { kind: 'seq' as const, steps: tests } } : {}),
+    ...(tests.length ? { testFlow: tests.length === 1 ? tests[0] : { kind: 'sequence' as const, etapes: tests } } : {}),
     lethal: !!entry.lethal,
     traumas,
     desc: entry.desc,

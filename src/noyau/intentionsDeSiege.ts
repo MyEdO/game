@@ -17,16 +17,17 @@
  *  - tout autre verbe : une entrée de `CLASSE_DES_ACTIONS_DU_NOYAU` (verbes de `ActionsDuNoyau`) ou de la
  *    table de l'adaptateur (`state/intents.ts`, ses actions d'interface), tables TOTALES sur
  *    `ActionManuscrite` — une action ajoutée sans classe ne compile pas.
- * `invité` = l'invité la DEMANDE à l'hôte (`netFlow` l'enrobe) ; `hôte` = écran ou décision pilotés
- * par l'hôte ; `local` = état d'écran du client, jamais un intent. La machinerie (`MachinerieDuNoyau`) n'est pas un
- * verbe et n'a pas de classe (#3370). Chez l'invité, une action
- * hors allowlist s'exécute dans son store (`netFlow` n'enrobe que l'allowlist) ; chez l'hôte, toute
- * intention d'un siège passe par `appliquerLIntentionDUnSiege`.
+ * `invité` = l'invité la DEMANDE à l'hôte (`transmettreLesIntentions` l'enrobe, `reseau.ts`) ; `hôte` = écran ou
+ * décision pilotés par l'hôte ; `local` = état d'écran du client, jamais un intent. La machinerie (`MachinerieDuNoyau`)
+ * n'est pas un verbe et n'a pas de classe (#3370). Chez l'invité, `transmettreLesIntentions` n'enrobe que l'allowlist :
+ * par une `Partie` (`Partie.envoyer`), un verbe `hôte` ou une intention à siège se refuse (`refusChezLInvite`) ; l'action de l'état appelée
+ * sans elle se joue dans sa copie. Chez l'hôte, toute intention d'un siège passe par `appliquerLIntentionDUnSiege`.
  */
 import { coopFlowIntents, type FLOW_VERBS, type NomDeVerbeDeJet } from './flowVerbs';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { LOCALES_AU_CLIENT } from './coop';
 import type { Get } from './flowTypes';
+import type { Jeu } from './etat';
 import { intentAllowedFor, withActingSeat } from './netOwnership';
 import { t } from '../i18n';
 
@@ -100,18 +101,15 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   recruterLeHeros: 'invité', renvoyerLeHeros: 'invité', remplacerLeHeros: 'invité', epinglerLIndice: 'invité',
   marquerLesIndices: 'invité',
   // ═══ invité : INTERLUDE (LDB 23) — chaque Activité vise un héros (1er argument ou pending/dépôt),
-  // possession validée par `intentAllowedFor`. ═══
-  // `pratiquerLActivite` = chemin UNIQUE de toutes les Activités à jet (Revenus/Artisanat/Apprentissage/
-  // Identification + catalogue) ; `fabriquerLObjet` engage l'ouvrage (setup, sans jet).
-  pratiquerLActivite: 'invité', fabriquerLObjet: 'invité', commanderLObjet: 'invité',
-  deposerALaBanque: 'invité', retirerDeLaBanque: 'invité', suivreLEntrainement: 'invité', solderLaFaveur: 'invité',
+  // possession validée par `intentAllowedFor`. Composer et pratiquer une Activité : `fenetreChoisir('interlude', …)`. ═══
+  commanderLObjet: 'invité', deposerALaBanque: 'invité', retirerDeLaBanque: 'invité', solderLaFaveur: 'invité',
   // Préparation de bataille : le héros MENEUR est le 2e argument ; les postes de l'armée, partagés, restent à
   // l'hôte (`fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', …)`).
   menerLActionDeBataille: 'invité',
   // ═══ hôte / local : émis par un écran ═══
   // Élection LOCALE d'écran, hors réseau PAR CONSTRUCTION (même famille que `localIntent`) : le clic
   // qui élit le porteur du mode Dissiper n'engage rien — il ouvre le choix du Sort CHEZ CE JOUEUR.
-  // `emettreIntentInvite` (`hote/coop/salon.ts`) le joue dans le store de l'émetteur et n'envoie aucun intent ; le
+  // `emettreIntentInvite` (`reseau.ts`) le joue dans le store de l'émetteur et n'envoie aucun intent ; le
   // COMMIT, lui (`dissiperLeSort`), est exposé. Voyager le ferait naître chez l'HÔTE.
   designerLeSupport: 'local',
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
@@ -125,7 +123,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   changerDeCarriere: 'hôte', designerLeCreneau: 'hôte', entrainerLaProthese: 'hôte', acheterLaComposante: 'hôte',
   retirerLaComposante: 'hôte', ecrireLHistorique: 'hôte', rompreLaFaveur: 'hôte',
   ouvrirLeMedecin: 'hôte', evaluerLObjet: 'hôte',
-  // ── Possessions / inventaire / équipement (lot coop non ouvert) ───────────────────────────────
+  // ── Possessions / inventaire / équipement ──────────────────────────────────────────────────────
   equiperLObjet: 'hôte', rangerLObjet: 'hôte', transmettreLObjet: 'hôte', poserLApparence: 'hôte',
   garnirLaPanoplie: 'hôte', creerLaPanoplie: 'hôte', supprimerLaPanoplie: 'hôte',
   cederLaPossession: 'hôte', renommerLaPossession: 'hôte', recupererLaPossession: 'hôte',
@@ -133,9 +131,11 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ── Bourse du groupe : marché terrestre, marchand, port ───────────────────────────────────────
   ouvrirLaBoutique: 'hôte', ouvrirLeMarche: 'hôte',
   evaluerLeVin: 'hôte', deplacerLaCargaison: 'hôte', ouvrirLePort: 'hôte', reparerLeNavire: 'hôte', carenerLeNavire: 'hôte',
-  installerLAmelioration: 'hôte', recruterLEquipage: 'hôte', renvoyerLEquipage: 'hôte', recueillirLesRumeurs: 'hôte',
+  installerLAmelioration: 'hôte', recruterLEquipage: 'hôte', renvoyerLEquipage: 'hôte', avitaillerLeNavire: 'hôte', recueillirLesRumeurs: 'hôte',
   // ── Navire / rôles / conseil de bord ──────────────────────────────────────────────────────────
   affecterAuRoleABord: 'hôte', affecterALaStation: 'hôte', affecterAuRoleDeMarche: 'hôte', approvisionnerLaPiece: 'hôte',
+  // ── Sièges de la coop : l'attribution des héros, des emplacements et du rôle MJ (`noyau/sieges.ts`) ──────────
+  affecterLeHerosAuSiege: 'hôte', affecterLEmplacementAuSiege: 'hôte', affecterLeSiegeMJ: 'hôte',
   // ── Décisions de GROUPE (taverne, poursuite) ──────────────────────────────────────────────────
   jouerALaTaverne: 'hôte', ouvrirLesJeux: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
@@ -150,6 +150,16 @@ type Classes = typeof CLASSE_DES_ACTIONS_DU_NOYAU;
 /** Actions manuscrites d'une classe donnée. */
 export type ActionDeClasse<C extends ClasseCoop> = { [K in keyof Classes]: Classes[K] extends C ? K : never }[keyof Classes];
 
+/** Chez un invité, une intention qui porte un siège (#3009) ou dont le verbe est de classe `hôte` (#2895) ne se joue
+ *  pas : le texte de son refus ; `null` sinon. */
+export function refusChezLInvite(s: Pick<Jeu, 'net'>, intention: { type: string; siege?: number }): string | null {
+  if (s.net.mode !== 'invite') return null;
+  if (intention.siege !== undefined) return t('coop.siegeHoteSeul');
+  const classe: ClasseCoop | undefined = (CLASSE_DES_ACTIONS_DU_NOYAU as Readonly<Record<string, ClasseCoop>>)[intention.type];
+  if (classe !== 'hôte') return null;
+  return t('coop.hoteSeul');
+}
+
 const INVITEES = (Object.keys(CLASSE_DES_ACTIONS_DU_NOYAU) as (keyof Classes)[]).filter((a) => CLASSE_DES_ACTIONS_DU_NOYAU[a] === 'invité');
 
 /** Groupe : composition et carnet d'enquête. */
@@ -160,8 +170,7 @@ export const PARTY_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invit�
 /** Activités d'interlude. `ouvrirLInterlude` est `hôte`, et la clôture se valide par l'hôte (`fenetreValider('interlude')`) :
  *  l'hôte seul ouvre et clôt la période. */
 export const INTERLUDE_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invité'>>([
-  'pratiquerLActivite', 'fabriquerLObjet', 'commanderLObjet', 'deposerALaBanque', 'retirerDeLaBanque',
-  'suivreLEntrainement', 'solderLaFaveur', 'menerLActionDeBataille',
+  'commanderLObjet', 'deposerALaBanque', 'retirerDeLaBanque', 'solderLaFaveur', 'menerLActionDeBataille',
 ]);
 
 /** Intents manuscrits du COMBAT : la classe `invité` hors groupe et interlude. */
@@ -187,37 +196,38 @@ type Ouvreurs<C extends ClasseCoop> = readonly [ActionDeClasse<C>, ...ActionDeCl
 export type Ouverture = { parInvite?: Ouvreurs<'invité'>; parHote?: Ouvreurs<'hôte'>; interne?: SiteInterne }
   & ({ parInvite: unknown } | { parHote: unknown } | { interne: unknown });
 const OUVERTURE_DES_FLUX = {
-  attack: { parInvite: ['cliquerLaCase'] },
+  attaque: { parInvite: ['cliquerLaCase'] },
   defense: { interne: 'réaction : combatFlow.maybeOpenDefense / openSurfacedDefense' },
-  cast: { parInvite: ['cliquerLaCase', 'incanterLeSort'] },
-  disengage: { parInvite: ['rompreLEngagement'] },
+  incantation: { parInvite: ['cliquerLaCase', 'incanterLeSort'] },
+  desengagement: { parInvite: ['rompreLEngagement'] },
   auContact: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
-  grapple: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
+  empoignade: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
   battement: { parInvite: ['faireUnBattement'] },
   distraire: { parInvite: ['tenterDeDistraire'] },
-  maneuver: { parInvite: ['cliquerLaCase'] }, // manœuvre de créature : ciblage (targetingModes.attackClickCommit)
-  run: { parInvite: ['cliquerLaCase'] }, // course armée (combatSlice.cliquerLaCaseDuCombat)
-  reload: { parInvite: ['rechargerLArme'] },
+  manoeuvre: { parInvite: ['cliquerLaCase'] }, // manœuvre de créature : ciblage (targetingModes.attackClickCommit)
+  course: { parInvite: ['cliquerLaCase'] }, // course armée (combatSlice.cliquerLaCaseDuCombat)
+  rechargement: { parInvite: ['rechargerLArme'] },
   // Main ensanglantée (AA 07 l.117) : posé par l'ouverture d'attaque (interne) ET par la 2ᵉ frappe à
   // deux armes, que joue le clic du combattant.
-  handGate: { parInvite: ['cliquerLaCase'], interne: 'combatFlow.openAttackCascade (Test par Action)' },
-  recover: { parInvite: ['seRemettreDeLEtat'] },
-  focus: { parInvite: ['focaliserLeSort'] },
-  dispel: { parInvite: ['dissiperLeSort'] },
-  frenzy: { parInvite: ['entrerEnFrenesie'] },
-  approach: { parInvite: ['cliquerLaCase'] }, // gate de Peur (combatSlice.fearGateBlocks)
-  ward: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
+  mainEnsanglantee: { parInvite: ['cliquerLaCase'], interne: 'combatFlow.openAttackCascade (Test par Action)' },
+  recuperation: { parInvite: ['seRemettreDeLEtat'] },
+  focalisation: { parInvite: ['focaliserLeSort'] },
+  dissipation: { parInvite: ['dissiperLeSort'] },
+  frenesie: { parInvite: ['entrerEnFrenesie'] },
+  approche: { parInvite: ['cliquerLaCase'] }, // gate de Peur (combatSlice.fearGateBlocks)
+  protection: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
   // Combat : ciblage (targetingModes). Infirmerie : le brouillon de l'ouverture et du patient choisi (`brouillonTenu`).
-  heal: { parInvite: ['cliquerLaCase', 'fenetreChoisir'], parHote: ['ouvrirLeMedecin'] },
-  surgery: { interne: 'acteDeSoin.lancerLActeDeSoin (jetLancer d’un acte d’opération) et medicFlow.appliquerLaPasse (passe suivante)' },
+  soins: { parInvite: ['cliquerLaCase', 'fenetreChoisir'], parHote: ['ouvrirLeMedecin'] },
+  chirurgie: { interne: 'acteDeSoin.lancerLActeDeSoin (jetLancer d’un acte d’opération) et medicFlow.appliquerLaPasse (passe suivante)' },
   corruption: { interne: 'exposition/seuil : combatEffects (Effect) et corruptionFlow.gainCorruption' },
   test: { interne: 'combatEffects.openSkillTest (Effet de scène, dialogue, consommable)' },
-  steamSave: { interne: 'panne de vapeur : seaVoyageFlow.openSteamSave' },
-  activity: { parInvite: ['pratiquerLActivite'] },
+  fuiteDeVapeur: { interne: 'panne de vapeur : seaVoyageFlow.openSteamSave' },
+  // Interlude : le choix `interlude.pratiquer`, au siège du héros (`CHOIX_DES_FENETRES`).
+  activite: { parInvite: ['fenetreChoisir'] },
   // Échoppe : le choix `marchand.marchander`, que l'hôte seul joue (`CHOIX_DES_FENETRES`).
-  bargain: { parInvite: ['fenetreChoisir'] },
-  appraise: { parHote: ['evaluerLObjet'] },
-  shanty: { parInvite: ['chanterLaChanson'] },
+  marchandage: { parInvite: ['fenetreChoisir'] },
+  evaluation: { parHote: ['evaluerLObjet'] },
+  chansonDeMarin: { parInvite: ['chanterLaChanson'] },
 } as const;
 type FluxOuverts = keyof typeof OUVERTURE_DES_FLUX;
 const _ouvertureTotale: Record<FluxMono, Ouverture> & Record<Exclude<FluxOuverts, FluxMono>, never> = OUVERTURE_DES_FLUX;
@@ -233,7 +243,7 @@ export type IssueDIntention = 'hors-allowlist' | 'refusee' | 'appliquee';
  *  2. possession `intentAllowedFor` : refus au journal ;
  *  3. l'action AU NOM du siège (`withActingSeat`), seul canal du siège (`decidingSeat`) : les gardes « ce siège possède-t-il ce combattant ? »
  *     (`controlsCombatant`) jugent l'émetteur, et l'intention armée du propriétaire ne s'y lit pas
- *     (`localIntent.intentionDuProprietaire`) : seul compte le verdict joint aux args.
+ *     (`localIntent.intentionDuProprietaire`) : seule compte l'intention jointe aux args, jugée chez le propriétaire.
  */
 export function appliquerLIntentionDUnSiege(get: Get, siege: number, action: string, args: readonly unknown[]): IssueDIntention {
   if (!GUEST_INTENTS.has(action)) return 'hors-allowlist';

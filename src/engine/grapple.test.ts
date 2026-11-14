@@ -16,7 +16,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 //           qui a l'Avantage le plus IMPORTANT. »
 
 const C = (id: string, p?: Partial<Combatant>): Combatant => (blessuresSurLeProfil({
-  id, name: id, kind: 'hero',
+  id, name: id, kind: 'heros',
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
   wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
   engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [],
@@ -104,12 +104,12 @@ describe('grappleTierMod — bonus de tiers +20 / +10 (LDB 14 l.169)', () => {
   });
 });
 
-describe('Empoignade — option Dégâts en DONNÉE (GRAPPLE.win.damage) : BF + DR, tous les PA IGNORÉS (LDB 14 l.161)', () => {
+describe('Empoignade — option Dégâts en DONNÉE (GRAPPLE.win.degats) : BF + DR, tous les PA IGNORÉS (LDB 14 l.161)', () => {
   it('Dégâts = BF + DR (ctx.sl), le Bonus d’Endurance est déduit, les PA sont ignorés', () => {
     const actor = C('actor', { characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 50, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as Combatant['characteristics'] });
     const target = C('target', { characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as Combatant['characteristics'] });
     const before = target.wounds.current;
-    applyOps(target, GRAPPLE.win.damage, { idNeuf: idsDeTest, rng: desDuTest, caster: actor, sl: 3 }); // BF(5) + DR(3) = 8, − BE(3) = 5
+    applyOps(target, GRAPPLE.win.degats, { idNeuf: idsDeTest, rng: desDuTest, caster: actor, sl: 3 }); // BF(5) + DR(3) = 8, − BE(3) = 5
     expect(before - target.wounds.current).toBe(5);
   });
   it('une cible BLINDÉE subit AUTANT qu’une cible nue (PA ignorés)', () => {
@@ -119,8 +119,8 @@ describe('Empoignade — option Dégâts en DONNÉE (GRAPPLE.win.damage) : BF + 
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as Combatant['characteristics'],
       armour: { tete: 5, brasG: 5, brasD: 5, corps: 5, jambeG: 5, jambeD: 5 },
     });
-    const dn = naked.wounds.current; applyOps(naked, GRAPPLE.win.damage, { idNeuf: idsDeTest, rng: desDuTest, caster: actor, sl: 3 });
-    const da = armoured.wounds.current; applyOps(armoured, GRAPPLE.win.damage, { idNeuf: idsDeTest, rng: desDuTest, caster: actor, sl: 3 });
+    const dn = naked.wounds.current; applyOps(naked, GRAPPLE.win.degats, { idNeuf: idsDeTest, rng: desDuTest, caster: actor, sl: 3 });
+    const da = armoured.wounds.current; applyOps(armoured, GRAPPLE.win.degats, { idNeuf: idsDeTest, rng: desDuTest, caster: actor, sl: 3 });
     expect(dn - naked.wounds.current).toBe(da - armoured.wounds.current); // PA ignorés → même perte
     expect(da - armoured.wounds.current).toBe(5);
   });

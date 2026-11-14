@@ -53,11 +53,11 @@ describe('Attaque gratuite de Tentacule (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     H.pos = { x: 10, y: 10 };
@@ -86,9 +86,9 @@ describe('Attaque gratuite de Tentacule (store)', () => {
     expect(pa?.freeKind).toBe('tentacules');
     expect(pa?.weaponUid).toBe(H.weapons.find((w) => w.attackKind === 'tentacules')?.uid);
     expect(pa?.result).toBeNull(); // rien n'est tiré avant Lancer
-    banc.getState().jetLancer('attack');
+    banc.getState().jetLancer('attaque');
     expect(banc.getState().pendingAttack?.result).toBeTruthy();
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     const st = banc.getState();
     const e2 = st.battle!.combatants.find((c) => c.id === E.id)!;
     const h2 = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -97,12 +97,12 @@ describe('Attaque gratuite de Tentacule (store)', () => {
     expect(e2.wounds.current).toBeLessThan(before); // CC 95 vs Mutant : touche déterministe (seed 2)
     expect(hasCondition(e2, 'empetre')).toBe(true); // LDB 85 l.405 : Dégâts → Empêtré (État keyé par id stable)
     // 2ᵉ tentative le même tour : la mutation Tentacule n'est PLUS dans la liste d'attaques (1/tour).
-    expect(availableAttacks(h2, st.battle!).some((o) => o.id === 'tentacule')).toBe(false);
+    expect(availableAttacks(banc.getState().scene, h2, st.battle!).some((o) => o.id === 'tentacule')).toBe(false);
   });
 
   it('absente de la liste d\'attaques sans le trait Tentacules', () => {
     const { H } = setup(false);
-    expect(availableAttacks(H, banc.getState().battle!).some((o) => o.id === 'tentacule')).toBe(false);
+    expect(availableAttacks(banc.getState().scene, H, banc.getState().battle!).some((o) => o.id === 'tentacule')).toBe(false);
   });
 
   it('cible distante : la mutation Tentacule CHARGE puis frappe (approche-puis-frappe)', () => {

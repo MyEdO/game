@@ -104,15 +104,15 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     ).toEqual([]);
   });
 
-  it('une occurrence n’est ATTEINTE que si TOUTES ses cases le sont (`miscast.json › ops` : `unlessCondition` touché, `id` sans slot)', () => {
-    const touchees = occurrencesTouchees(scan, slotsAuPath('miscast.json', '[].entries[].test.onFailHard.ops[].unlessCondition'));
-    expect([...touchees].some((o) => o.dataset === 'miscast.json' && o.champ === 'ops'), 'le témoin a disparu : aucune op de `miscast.json` n’a sa case `unlessCondition` touchée.').toBe(true);
-    const temoins = new Set([...touchees].filter((o) => o.dataset === 'miscast.json' && o.champ === 'ops'));
-    const cases = [...scan.referencesParPorteur].flatMap(([porteur, cs]) => [...cs].filter(([, o]) => temoins.has(o)).map(([cle]) => ({ porteur, cle })));
+  it('une occurrence n’est ATTEINTE que si TOUTES ses cases le sont (`creatures.json › traits` : `id` touché, `arg` sans slot)', () => {
+    const touchees = new Set([...occurrencesTouchees(scan, slotsAuPath('creatures.json', '[].traits[].id'))].filter((o) => o.dataset === 'creatures.json' && o.champ === 'traits'));
+    expect(touchees.size, 'le témoin a disparu : aucun trait de `creatures.json` n’a sa case `id` touchée.').toBeGreaterThan(0);
+    const cases = [...scan.referencesParPorteur].flatMap(([porteur, cs]) => [...cs].filter(([, o]) => touchees.has(o)).map(([cle, o]) => ({ porteur, cle, o })));
     const manquantes = cases.filter((c) => !SLOTS.some((s) => s.porteur === c.porteur && s.cle === c.cle));
-    expect(manquantes.map((c) => c.cle), 'le témoin n’a plus de case sans slot : il ne prouve plus la règle « toutes les cases ».').toContain('id');
-    const atteintes = (slots: readonly Slot[]) => couplesDeReference(scan, slots).find((c) => c.dataset === 'miscast.json' && c.champ === 'ops')!.atteintes;
-    const completes = [...SLOTS, ...manquantes.map((c) => ({ ...SLOTS[0], ...c }))];
+    expect(manquantes.map((c) => c.cle), 'le témoin n’a plus de case sans slot : il ne prouve plus la règle « toutes les cases ».').toContain('arg');
+    const temoins = new Set(manquantes.map((c) => c.o));
+    const atteintes = (slots: readonly Slot[]) => couplesDeReference(scan, slots).find((c) => c.dataset === 'creatures.json' && c.champ === 'traits')!.atteintes;
+    const completes = [...SLOTS, ...manquantes.map((c) => ({ ...SLOTS[0], porteur: c.porteur, cle: c.cle }))];
     expect(atteintes(completes) - atteintes(SLOTS), 'chaque témoin, une case sans slot, ne doit compter ATTEINT qu’une fois TOUTES ses cases slots.').toBe(temoins.size);
   });
 
@@ -146,7 +146,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
   });
 
   it('RÉCURSION : un `test.skill` sous un flux de dialogue est un slot (`loup-et-saumure-projet.json › skill`, joint)', () => {
-    expect(couplesTouches(slotsAuPath('loup-et-saumure-projet.json', 'scenes[].dialogues[].nodes[].choices[].flow.steps[].effect.skill.id'))).toEqual([
+    expect(couplesTouches(slotsAuPath('loup-et-saumure-projet.json', 'scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.skill.id'))).toEqual([
       'loup-et-saumure-projet.json | skill',
     ]);
     const c = couple('loup-et-saumure-projet.json', 'skill')!;

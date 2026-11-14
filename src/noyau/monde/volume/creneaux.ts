@@ -3,11 +3,14 @@
  * qui ceinture une zone crénelée (`Layer.crenellated`), en faces du pivot, que le builder des murs
  * et le volume du monde (`./volume`) dessinent.
  */
-import type { StructureAppearanceDef, WallPart } from '../../../data/structureAppearance.types';
+import type { WallPart } from '../../../data/structureAppearance.types';
+import type { StructureAppearanceDef } from '../../../data';
+import type { EntreeVivante } from '../../../data/datasets';
 import { DIR4_ORDER, DIR8_DELTA } from '../../../geometry/dir8';
 import { isoPxToM } from '../iso';
 import { METRES_PER_LEVEL, gradeBetween } from '../relief';
-import { crenellatedAt, edgeOf, heightAt, isCrenellated, isWalkable, structureAt, wallEnds, type Scene, type WallSide } from '../scene';
+import { crenellatedAt, edgeOf, heightAt, isCrenellated, isWalkable, structureAt, tileAt, wallEnds, type SceneDuVolume, type WallSide } from '../scene';
+import { estAbsent } from '../terrain';
 import { structureAppearance } from './structures';
 import type { Face, GP } from './types';
 
@@ -17,7 +20,7 @@ type GXY = { x: number; y: number };
  *  le long de l'arête A→B. SOURCE UNIQUE : (a) le sommet d'une fortification (baseH = haut de la face pleine) ET
  *  (b) la crête de PÉRIMÈTRE d'une zone crénelée (baseH = surface de la zone). Merlons = 1 tronçon / `merlonStep`
  *  (fraction 0..1 de CETTE arête → motif périodique par case). */
-export function crownFaces(app: StructureAppearanceDef, A: GXY, B: GXY, baseH: number): Face[] {
+export function crownFaces(app: EntreeVivante<StructureAppearanceDef>, A: GXY, B: GXY, baseH: number): Face[] {
   const par = app.parapet;
   if (!par) return [];
   const at = (t: number): GXY => ({ x: A.x + (B.x - A.x) * t, y: A.y + (B.y - A.y) * t });
@@ -45,7 +48,7 @@ export interface CreteDePerimetre {
   case: { x: number; y: number; z: number };
   /** L'arête où elle se dresse (`edgeOf`), à la couche de la case. */
   arete: { x: number; y: number; side: WallSide; z: number };
-  apparence: StructureAppearanceDef;
+  apparence: EntreeVivante<StructureAppearanceDef>;
   /** Ses extrémités, à la surface de la case (`wallEnds`, `heightAt`). */
   ends: [GP, GP];
   faces: Face[];
@@ -53,9 +56,10 @@ export interface CreteDePerimetre {
 
 /** Les crêtes crénelées de `scene` : pour chaque arête de PÉRIMÈTRE d'une case crénelée (voisine de même couche NON
  *  crénelée), sa couronne (`crownFaces`) assise à la surface de la case. Merlons CEINTURANT la zone, jamais à
- *  l'intérieur. Une crête n'est PAS un `WallSeg` de scène : elle ne coupe NI le passage NI la LdV plongeante (les
- *  défenseurs tirent par-dessus). La MAÇONNERIE, elle, vient du bloc plein du sol. */
-export function cretesDePerimetre(scene: Scene): CreteDePerimetre[] {
+ *  l'intérieur. Une case crénelée sans sol (`estAbsent`) n'en porte aucune. Une crête n'est PAS un `WallSeg` de scène :
+ *  elle ne coupe NI le passage NI la LdV plongeante (les défenseurs tirent par-dessus). La MAÇONNERIE, elle, vient du
+ *  bloc plein du sol. */
+export function cretesDePerimetre(scene: SceneDuVolume): CreteDePerimetre[] {
   const { w, h } = scene.dimensions;
   const out: CreteDePerimetre[] = [];
   for (const { z, crenellated } of scene.layers) {
@@ -63,7 +67,7 @@ export function cretesDePerimetre(scene: Scene): CreteDePerimetre[] {
     for (let y = 0; y < h; y++)
       for (let x = 0; x < w; x++) {
         const appId = crenellatedAt(scene, x, y, z);
-        if (!appId) continue;
+        if (!appId || estAbsent(tileAt(scene, x, y, z))) continue;
         const surfaceH = heightAt(scene, x, y, z);
         const apparence = structureAppearance(appId);
         for (const cap of DIR4_ORDER) {

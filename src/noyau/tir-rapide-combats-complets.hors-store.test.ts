@@ -20,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * #997, #1765 — combats COMPLETS avec Tir rapide (`LDB 11 l.97-103`) dans les deux camps, sous trois
  * pilotes : IA contre IA, Auto-combat, et manuel avec Destin. Aucun combat ne se fige : chacun va au bout.
  */
-const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 6 }, range: 30, qualities: [], loaded: true } as unknown as Weapon);
+const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 6 }, range: 30, qualities: [], loaded: true } as unknown as Weapon);
 const g = () => banc.getState();
 const ouverts = () => {
   const s = g() as unknown as Record<string, unknown>;
@@ -28,16 +28,16 @@ const ouverts = () => {
 };
 
 function monte(opts: { heroAi: boolean; fate?: number; wounds?: number }) {
-  const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant => {
+  const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant => {
     const c = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
-    c.id = id; c.label = id; c.kind = kind; c.pos = pos; c.fortune = 0; c.fate = kind === 'hero' ? (opts.fate ?? 0) : 0;
+    c.id = id; c.label = id; c.kind = kind; c.pos = pos; c.fortune = 0; c.fate = kind === 'heros' ? (opts.fate ?? 0) : 0;
     c.wounds = blessuresDeBase(opts.wounds ?? 6, opts.wounds ?? 6, c);
-    if (kind === 'hero' && opts.heroAi) c.aiControlled = true;
+    if (kind === 'heros' && opts.heroAi) c.aiControlled = true;
     c.weapons = [ARC()];
     return c;
   };
-  const H1 = mk('h1', 'hero', { x: 0, y: 0 }); const H2 = mk('h2', 'hero', { x: 0, y: 4 });
-  const E1 = mk('e1', 'enemy', { x: 1, y: 0 }); const E2 = mk('e2', 'enemy', { x: 1, y: 4 });
+  const H1 = mk('h1', 'heros', { x: 0, y: 0 }); const H2 = mk('h2', 'heros', { x: 0, y: 4 });
+  const E1 = mk('e1', 'ennemi', { x: 1, y: 0 }); const E2 = mk('e2', 'ennemi', { x: 1, y: 4 });
   E1.talents = [{ talentId: 'tir-rapide', times: 2 }]; E2.talents = [{ talentId: 'tir-rapide', times: 1 }];
   H1.talents = [{ talentId: 'tir-rapide', times: 1 }];
   const battle = { combatants: [H1, H2, E1, E2], order: ['e1', 'h1', 'e2', 'h2'], turn: 3, round: 1, action: null, selectedSpellId: null,
@@ -56,18 +56,18 @@ function deroule(main: boolean, pilote = main): Issue {
     if (!s.battle || s.battle.over) return { issue: 'fin', fenetresTirRapide };
     const pd = s.pendingDefense;
     if (pd && !pd.result && pd.suite.mode === 'machine' && pd.suite.coup.enchainement?.mode === 'tirRapide') fenetresTirRapide++;
-    if (s.pendingRoundStart) { g().fenetreValider('roundStart'); continue; }
+    if (s.pendingRoundStart) { g().fenetreValider('debutDuRound'); continue; }
     if (main) {
       const surDef = !s.pendingCascade || s.pendingCascade.participants[s.pendingCascade.cursor]?.jet === 'defense';
       if (surDef && pd && !pd.result) { g().jetLancer('defense'); continue; }
       if (surDef && pd?.result) { g().jetValider('defense'); continue; }
-      if (s.pendingFateSave) { g().fenetreChoisir('fateSave', 'issue', 'negate'); if (g().pendingFateSave) g().fenetreChoisir('fateSave', 'issue', 'survive'); continue; }
+      if (s.pendingFateSave) { g().fenetreChoisir('destin', 'issue', 'eviter'); if (g().pendingFateSave) g().fenetreChoisir('destin', 'issue', 'survivre'); continue; }
       const c = s.battle.combatants.find((x) => x.id === s.battle!.order[s.battle!.turn]);
-      if (c?.kind === 'hero' && !ouverts().length && s.battle.turn >= 0) { advanceTurn(banc.getState, banc.setState); banc.avancer(100); continue; }
+      if (c?.kind === 'heros' && !ouverts().length && s.battle.turn >= 0) { advanceTurn(banc.getState, banc.setState); banc.avancer(100); continue; }
     }
     if (pilote && s.pendingCascade && s.pendingCascade.participants[s.pendingCascade.cursor]?.jet !== 'defense') {
       const c = s.pendingCascade; const cur = c.participants[c.cursor];
-      if (cur?.jet !== 'attack') avanceEtapeCascade(g);
+      if (cur?.jet !== 'attaque') avanceEtapeCascade(g);
       banc.avancer(50);
       if (g().pendingCascade !== c) continue;
     }

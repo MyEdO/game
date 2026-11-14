@@ -2,6 +2,8 @@ import shipCriticalsJson from './ship-criticals.json';
 import type { Tirage } from '../engine/dice';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import riverCriticalsJson from './river-criticals.json';
+import type * as shipCriticalsDef from './schemas/defs/ship-criticals';
+import type * as riverCriticalsDef from './schemas/defs/river-criticals';
 import type { ShipLocation } from '../engine/combat';
 import type { GameOp, Formula } from '../engine/ops';
 import type { FlowTestNode } from '../engine/flowCore';
@@ -61,11 +63,6 @@ export type ShipCritTable = ShipCritEntry[];
  *  personnage ; les Équipements n'ont pas d'enum de coque touchable hors leur propre table). */
 export type ShipCritKey = Exclude<ShipLocation, 'equipage'>;
 
-/** Effet des **Éclats** (MDG 13) infligé à CHAQUE marin touché — authoré UNE fois en `GameOp` (langue
- *  unique), plus aucun littéral « 9 Dégâts » en dur dans le moteur. Le NOMBRE de marins touchés = l'Indice
- *  `shrapnel` de l'entrée de Critique (per-entry) ; l'effet, lui, est partagé (per-règle). */
-export const SHRAPNEL_HIT = shipCriticalsJson.shrapnelHit as GameOp[];
-
 /**
  * UNE BANDE de table de hauteur de chute (« Tomber du gréement », `MDG 13 l.684-688`) : les Tailles de
  * bateau couvertes, et la hauteur PAR PRÉSENCE à bord — clé = id de `ship-stations.json`, valeur =
@@ -103,6 +100,9 @@ export interface ShipCritSet {
   die: DeDeTable | null;
   /** id STABLE du jeu — la valeur que porte `hull.criticalTable`. */
   id: string;
+  /** Fichier du jeu, racine de l'espace de ses tables (`categorieDeLaNiche`), lié par le type au `file`
+   *  de son def. */
+  fichier: typeof shipCriticalsDef.file | typeof riverCriticalsDef.file;
   /** Effet des Éclats — le SEUL jeu qui en porte est MDG (mot-clé « Éclats N », ch.13) ; MSRC ne
    *  l'emploie jamais. Absent ⇒ aucune rangée du jeu ne peut porter d'Indice, et `applyHullCritical`
    *  le dit par une anomalie nommée plutôt que par un repli muet. */
@@ -118,44 +118,40 @@ export interface ShipCritSet {
 
 /** Jeu MDG (mer, ch.13) — Éclats 9 Dégâts. */
 export const SHIP_CRIT_SET: ShipCritSet = {
-  id: shipCriticalsJson.id,
+  get id() { return shipCriticalsJson.id; },
+  fichier: 'ship-criticals.json' satisfies typeof shipCriticalsDef.file,
   get die() { return deDeLaTableTiree(shipCriticalsJson); },
-  shrapnelHit: SHRAPNEL_HIT,
-  replisSansExpose: shipCriticalsJson.replisSansExpose as { cible: ShipCritKey; maison?: string },
-  tablesDeChute: shipCriticalsJson.tablesDeChute as FallHeightTable[],
+  get shrapnelHit() { return shipCriticalsJson.shrapnelHit as GameOp[]; },
+  get replisSansExpose() { return shipCriticalsJson.replisSansExpose as { cible: ShipCritKey; maison?: string }; },
+  get tablesDeChute() { return shipCriticalsJson.tablesDeChute as FallHeightTable[]; },
   tables: SHIP_CRITICAL_TABLES,
 };
 
 /** Jeu MSRC (fleuve, ch.5) — Éclats +5 Dégâts, Localisations Gréement/Rames/Gouvernail/Coque/Superstructure. */
 export const RIVER_CRIT_SET: ShipCritSet = {
-  id: riverCriticalsJson.id,
+  get id() { return riverCriticalsJson.id; },
+  fichier: 'river-criticals.json' satisfies typeof riverCriticalsDef.file,
   die: null,
-  replisSansExpose: riverCriticalsJson.replisSansExpose as { cible: ShipCritKey; maison?: string },
+  get replisSansExpose() { return riverCriticalsJson.replisSansExpose as { cible: ShipCritKey; maison?: string }; },
   tables: riverCriticalsJson.tables as unknown as Partial<Record<ShipCritKey, ShipCritTable>>,
 };
 
-/** Registre des jeux de Critiques de coque, indexé par leur propre `id`. Ajouter un jeu = une entrée
- *  de PLUS dans cette liste (et son JSON) — aucun branchement à écrire. */
-const CRIT_SETS: Record<string, ShipCritSet> = Object.fromEntries([SHIP_CRIT_SET, RIVER_CRIT_SET].map((s) => [s.id, s]));
+/** Registre des jeux de Critiques de coque, résolus par leur propre `id` lu à l'appel. Ajouter un jeu =
+ *  une entrée de PLUS dans cette liste (et son JSON) — aucun branchement à écrire. */
+const CRIT_SETS: readonly ShipCritSet[] = [SHIP_CRIT_SET, RIVER_CRIT_SET];
 
-/** Ids des jeux de Critiques RÉELLEMENT chargés — vocabulaire fermé de `hull.criticalTable`. */
-export const SHIP_CRIT_SET_IDS = Object.keys(CRIT_SETS);
+/** Ids des jeux de Critiques RÉELLEMENT chargés, lus à l'appel — vocabulaire fermé de `hull.criticalTable`. */
+export const shipCritSetIds = (): string[] => CRIT_SETS.map((s) => s.id);
 
-/** Toutes les tables de chute des jeux CHARGÉS, indexées par leur id — un jeu qui en authore une la
- *  rend visible ici sans une ligne de code de plus. */
-const FALL_TABLES = new Map(
-  [SHIP_CRIT_SET, RIVER_CRIT_SET].flatMap((s) => (s.tablesDeChute ?? []).map((t) => [t.id, t] as const)),
-);
-
-/** Les tables de chute des jeux CHARGÉS, dans l'ordre de la donnée — CANDIDATS du champ `fall` de
- *  l'atelier. Dérivée du registre : un jeu qui en authore une l'y ajoute
- *  sans une ligne de code de plus, et l'atelier ne code aucun id. */
-export const fallTables: FallHeightTable[] = [...FALL_TABLES.values()];
+/** Les tables de chute des jeux CHARGÉS, dans l'ordre de la donnée, lues à l'appel sur l'en-tête vivant
+ *  de chaque jeu — CANDIDATS du champ `fall` de l'atelier. Dérivée du registre : un jeu qui en authore
+ *  une l'y ajoute sans une ligne de code de plus, et l'atelier ne code aucun id. */
+export const fallTables = (): FallHeightTable[] => CRIT_SETS.flatMap((s) => s.tablesDeChute ?? []);
 
 /** Table de hauteur de chute par id (op `fall`) — `undefined` si l'authoring en nomme une inconnue,
  *  que l'appelant NOMME (aucun repli muet : une chute sans hauteur ne serait pas une chute). */
 export function findFallTable(id: string): FallHeightTable | undefined {
-  return FALL_TABLES.get(id);
+  return fallTables().find((t) => t.id === id);
 }
 
 /** Résout le jeu de Critiques d'une coque par l'id de sa `criticalTable` (`hull.criticalTable`).
@@ -163,7 +159,7 @@ export function findFallTable(id: string): FallHeightTable | undefined {
  *  coque fluviale sur les tables maritimes (même coquille d'authoring que `shipHitLocation`). */
 export function shipCritSet(id?: string | null): ShipCritSet {
   if (!id) return SHIP_CRIT_SET;
-  const set = CRIT_SETS[id];
-  if (!set) throw new Error(`shipCritSet : jeu de Critiques de coque inconnu « ${id} » (attendu : ${SHIP_CRIT_SET_IDS.join(' | ')}).`);
+  const set = CRIT_SETS.find((s) => s.id === id);
+  if (!set) throw new Error(`shipCritSet : jeu de Critiques de coque inconnu « ${id} » (attendu : ${shipCritSetIds().join(' | ')}).`);
   return set;
 }

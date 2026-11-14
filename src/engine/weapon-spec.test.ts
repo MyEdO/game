@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { combatValue, defenseValue, hasWeaponGroupSkill, weaponGroupSkillMode, weaponUnmastered } from './combat';
-import type { Combatant, ItemInstance, Weapon } from './types';
+import type { Combatant, ItemInstance, Weapon, Main } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
@@ -10,7 +10,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  */
 function hero(over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', label: 'H', kind: 'hero',
+    id: 'h', label: 'H', kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -69,21 +69,21 @@ describe('combatValue — Spécialisation de Projectiles (LDB 62 l.180/184)', ()
 
   it('les Augmentations comptent pour le bon Groupe à distance', () => {
     const c = hero({ skills: [sk('arc', 18)] });
-    expect(combatValue(c, 'ranged', wpn('arc', 'ranged'))).toBe(58); // CT 40 + 18
+    expect(combatValue(c, 'distance', wpn('arc', 'distance'))).toBe(58); // CT 40 + 18
   });
 
   it('Projectiles (Poudre noire) ne s’applique pas à un Arc (l.225)', () => {
     const c = hero({ skills: [sk('poudre-noire', 18)] });
-    expect(combatValue(c, 'ranged', wpn('arc', 'ranged'))).toBe(40);
+    expect(combatValue(c, 'distance', wpn('arc', 'distance'))).toBe(40);
   });
 
   it('Projectiles (Ingénierie) couvre Poudre noire et Explosifs (l.234)', () => {
     const c = hero({ skills: [sk('ingenierie', 22)] });
-    expect(combatValue(c, 'ranged', wpn('poudre-noire', 'ranged'))).toBe(62);
-    expect(combatValue(c, 'ranged', wpn('explosifs', 'ranged'))).toBe(62);
-    expect(combatValue(c, 'ranged', wpn('poudre-noire-et-ingenierie', 'ranged'))).toBe(62);
+    expect(combatValue(c, 'distance', wpn('poudre-noire', 'distance'))).toBe(62);
+    expect(combatValue(c, 'distance', wpn('explosifs', 'distance'))).toBe(62);
+    expect(combatValue(c, 'distance', wpn('poudre-noire-et-ingenierie', 'distance'))).toBe(62);
     // mais pas un Arc
-    expect(combatValue(c, 'ranged', wpn('arc', 'ranged'))).toBe(40);
+    expect(combatValue(c, 'distance', wpn('arc', 'distance'))).toBe(40);
   });
 });
 
@@ -93,44 +93,44 @@ describe('combatValue/weaponGroupSkillMode — exceptions Groupes d’Armes à d
 
   it('Arbalète/Lancer tirés avec N’IMPORTE QUELLE Spé de Tir → bonus intégral, mode dégradé (l.184)', () => {
     const c = hero({ skills: [sk('arc', 18)] });
-    expect(combatValue(c, 'ranged', wpn('arbalete', 'ranged'))).toBe(58); // CT 40 + 18 (Compétence de Tir)
-    expect(weaponGroupSkillMode(c, wpn('arbalete', 'ranged'), 'ranged')).toBe('degraded');
-    expect(combatValue(c, 'ranged', wpn('lancer', 'ranged'))).toBe(58);
-    expect(weaponGroupSkillMode(c, wpn('lancer', 'ranged'), 'ranged')).toBe('degraded');
+    expect(combatValue(c, 'distance', wpn('arbalete', 'distance'))).toBe(58); // CT 40 + 18 (Compétence de Tir)
+    expect(weaponGroupSkillMode(c, wpn('arbalete', 'distance'), 'distance')).toBe('degrade');
+    expect(combatValue(c, 'distance', wpn('lancer', 'distance'))).toBe(58);
+    expect(weaponGroupSkillMode(c, wpn('lancer', 'distance'), 'distance')).toBe('degrade');
     // dégradé ≠ « Spé du Groupe » (AA 10 l.228-247, Qualification d'Arme d'équipe) : `hasWeaponGroupSkill`
     // reste strict — seul un match PLEIN qualifie une pièce servie.
-    expect(hasWeaponGroupSkill(c, wpn('arbalete', 'ranged'), 'ranged')).toBe(false);
+    expect(hasWeaponGroupSkill(c, wpn('arbalete', 'distance'), 'distance')).toBe(false);
   });
 
   it('Arbalète tirée avec la Spé Arbalète elle-même → mode plein (pas de dégradation)', () => {
     const c = hero({ skills: [sk('arbalete', 25)] });
-    expect(combatValue(c, 'ranged', wpn('arbalete', 'ranged'))).toBe(65);
-    expect(weaponGroupSkillMode(c, wpn('arbalete', 'ranged'), 'ranged')).toBe('full');
+    expect(combatValue(c, 'distance', wpn('arbalete', 'distance'))).toBe(65);
+    expect(weaponGroupSkillMode(c, wpn('arbalete', 'distance'), 'distance')).toBe('complet');
   });
 
   it('sans AUCUNE Spé de Projectiles → mode none, carac brute', () => {
     const c = hero({ skills: [] });
-    expect(combatValue(c, 'ranged', wpn('arbalete', 'ranged'))).toBe(40);
-    expect(weaponGroupSkillMode(c, wpn('arbalete', 'ranged'), 'ranged')).toBe('none');
-    expect(hasWeaponGroupSkill(c, wpn('arbalete', 'ranged'), 'ranged')).toBe(false);
+    expect(combatValue(c, 'distance', wpn('arbalete', 'distance'))).toBe(40);
+    expect(weaponGroupSkillMode(c, wpn('arbalete', 'distance'), 'distance')).toBe('aucun');
+    expect(hasWeaponGroupSkill(c, wpn('arbalete', 'distance'), 'distance')).toBe(false);
   });
 
   it('Ingénierie utilisée via Poudre noire → bonus intégral, mode dégradé (l.188)', () => {
     const c = hero({ skills: [sk('poudre-noire', 20)] });
-    expect(combatValue(c, 'ranged', wpn('ingenierie', 'ranged'))).toBe(60);
-    expect(weaponGroupSkillMode(c, wpn('ingenierie', 'ranged'), 'ranged')).toBe('degraded');
+    expect(combatValue(c, 'distance', wpn('ingenierie', 'distance'))).toBe(60);
+    expect(weaponGroupSkillMode(c, wpn('ingenierie', 'distance'), 'distance')).toBe('degrade');
   });
 
   it('Ingénierie utilisée via Ingénierie elle-même → mode plein', () => {
     const c = hero({ skills: [sk('ingenierie', 12)] });
-    expect(combatValue(c, 'ranged', wpn('ingenierie', 'ranged'))).toBe(52);
-    expect(weaponGroupSkillMode(c, wpn('ingenierie', 'ranged'), 'ranged')).toBe('full');
+    expect(combatValue(c, 'distance', wpn('ingenierie', 'distance'))).toBe(52);
+    expect(weaponGroupSkillMode(c, wpn('ingenierie', 'distance'), 'distance')).toBe('complet');
   });
 
   it('Poudre noire/Explosifs via Ingénierie reste SANS pénalité (non-régression, l.192)', () => {
     const c = hero({ skills: [sk('ingenierie', 22)] });
-    expect(weaponGroupSkillMode(c, wpn('poudre-noire', 'ranged'), 'ranged')).toBe('full');
-    expect(weaponGroupSkillMode(c, wpn('explosifs', 'ranged'), 'ranged')).toBe('full');
+    expect(weaponGroupSkillMode(c, wpn('poudre-noire', 'distance'), 'distance')).toBe('complet');
+    expect(weaponGroupSkillMode(c, wpn('explosifs', 'distance'), 'distance')).toBe('complet');
   });
 });
 
@@ -182,7 +182,7 @@ describe('Arme inhabituelle — maîtrise requise (ACE 12 l.17 « Entraînement 
 // #193 — Épaule luxée (LDB/AA) : « Tests effectués avec ce bras » subissent -10 pendant 1d10 jours.
 // `recoverDisabledLimb` scope le testMod{characteristic:'capacite-de-combat'} à la main du membre (weaponHand) — PAS l'autre main.
 describe('combatValue/defenseValue — testMod{characteristic} scopé par main (#193, weaponHand)', () => {
-  const withPenalty = (hand: 'main' | 'off') => hero({
+  const withPenalty = (hand: Main) => hero({
     activeEffects: [{ label: 'Épaule luxée (récupération)', bonus: 0, duration: { scale: 'permanent' }, testMod: -10, testModChar: 'capacite-de-combat', testModHand: hand }],
   });
 
@@ -194,7 +194,7 @@ describe('combatValue/defenseValue — testMod{characteristic} scopé par main (
 
   it("laisse INTACTE l'arme tenue dans L'AUTRE main (off)", () => {
     const c = withPenalty('main');
-    expect(combatValue(c, 'melee', { ...wpn('base'), hand: 'off' })).toBe(40); // pas de −10
+    expect(combatValue(c, 'melee', { ...wpn('base'), hand: 'secondaire' })).toBe(40); // pas de −10
   });
 
   it('sans arme (weapon absent, manœuvre générique) : le mod hand-scopé ne s’applique pas (info manquante)', () => {
@@ -218,9 +218,9 @@ describe('defenseValue — Esquive scopée par movementOnly (#193)', () => {
 // ACE 12 l.17-21 : la maîtrise se lit sur l'OBJET SOURCE, y compris la pièce du poste servi (`weaponLoad.objetSourceDeLArme`).
 describe('weaponUnmastered — pièce SERVIE en poste', () => {
   it('une pièce Inhabituelle non maîtrisée est non maîtrisée ; maîtrisée, elle ne l’est plus', () => {
-    const poste = { item: { uid: 'piece-1', trappingId: 'piece-rare', label: 'Pièce', kind: 'ranged', requiresMastery: true }, crewIds: ['chef'] };
+    const poste = { item: { uid: 'piece-1', trappingId: 'piece-rare', label: 'Pièce', kind: 'distance', requiresMastery: true }, crewIds: ['chef'] };
     const c = { id: 'chef', items: [], weapons: [], mannedPoste: poste } as unknown as Combatant;
-    const w = { uid: 'piece-1', label: 'Pièce', type: 'ranged', damage: { plusBF: false, flat: 8 }, qualities: [] } as unknown as Weapon;
+    const w = { uid: 'piece-1', label: 'Pièce', type: 'distance', damage: { plusBF: false, flat: 8 }, qualities: [] } as unknown as Weapon;
     expect(weaponUnmastered(c, w)).toBe(true);
     c.masteredWeapons = ['piece-rare'];
     expect(weaponUnmastered(c, w)).toBe(false);

@@ -311,7 +311,7 @@ const BUTIN = {
 };
 const RECAP = {
   titre: 'Chapitre 1 — la route d’Altdorf', sousTitre: 'Ce que la compagnie emporte', px: 120,
-  chronique: [{ text: 'Atteindre Altdorf', tone: 'ok' }], tombes: [], lieux: ['Auberge La Diligence', 'Altdorf'],
+  chronique: [{ text: 'Atteindre Altdorf', tone: 'reussite' }], tombes: [], lieux: ['Auberge La Diligence', 'Altdorf'],
 };
 
 async function main() {
@@ -463,15 +463,15 @@ async function main() {
 
       // SAUVETAGE PAR LE DESTIN d'un héros au coup fatal : décision de combat, champ lisible.
       await cadrePose(
-        `{ pendingFateSave: { heroId: window.__wfrp.battle().combatants.find((c) => c.kind === 'hero').id, source: 'hit' } }`,
+        `{ pendingFateSave: ((h) => ({ heroId: h.id, source: 'hit', avantLeCoup: structuredClone(h) }))(window.__wfrp.battle().combatants.find((c) => c.kind === 'heros')) }`,
         'Le Destin', 'sauvetage par le Destin', { cadre: true, pied: true },
       );
       await evaluate(session, `window.__game.setState({ pendingFateSave: null })`);
       await sleep(400);
 
       // FICHE EN COMBAT : la bande de groupe flotte au-dessus du voile de la fiche (#1829).
-      const heroCombat = await evaluate(session, `(window.__game.getState().battle?.combatants || []).find((c) => c.kind === 'hero')?.label ?? '(aucun héros)'`);
-      await cadrePose(`{ sheetId: (window.__game.getState().battle?.combatants || []).find((c) => c.kind === 'hero')?.id ?? null }`, heroCombat, 'fiche de personnage (combat)', { cadre: true });
+      const heroCombat = await evaluate(session, `(window.__game.getState().battle?.combatants || []).find((c) => c.kind === 'heros')?.label ?? '(aucun héros)'`);
+      await cadrePose(`{ sheetId: (window.__game.getState().battle?.combatants || []).find((c) => c.kind === 'heros')?.id ?? null }`, heroCombat, 'fiche de personnage (combat)', { cadre: true });
       await nomDePlanche('fiche de personnage (combat)');
       await evaluate(session, `window.__game.setState({ sheetId: null })`);
       await sleep(400);

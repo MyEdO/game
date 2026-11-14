@@ -6,7 +6,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
-function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
+function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
     id, label: id, kind, pos,
     wounds: blessuresDeBase(10), weapons: [MELEE], characteristics: {} as never,
@@ -21,36 +21,36 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
 
 describe('IA — auto-récupération d’État (LDB 16 l.66/l.84)', () => {
   it('En flammes : un ennemi non frénétique se roule au sol (priorité survie)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { conditions: [{ id: 'en-flammes', value: 1 }] });
-    const h = mk('h', 'hero', { x: 5, y: 6 }); // pourtant adjacent → attaquable
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { conditions: [{ id: 'en-flammes', value: 1 }] });
+    const h = mk('h', 'heros', { x: 5, y: 6 }); // pourtant adjacent → attaquable
     const action = chooseEnemyAction(input(e, [h]));
-    expect(action).toEqual({ kind: 'recover', state: 'en-flammes' });
+    expect(action).toEqual({ kind: 'liberation', state: 'en-flammes' });
   });
 
   it('En flammes + frénétique : ignore le feu et attaque (Frénésie)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { conditions: [{ id: 'en-flammes', value: 1 }], psychState: [{ type: 'frenesie' }] });
-    const h = mk('h', 'hero', { x: 5, y: 6 });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { conditions: [{ id: 'en-flammes', value: 1 }], psychState: [{ type: 'frenesie' }] });
+    const h = mk('h', 'heros', { x: 5, y: 6 });
     const action = chooseEnemyAction(input(e, [h]));
     expect(action.kind).toBe('melee');
   });
 
   it('En flammes + Immunité (Feu) : rien à éteindre, il attaque (LDB 85 l.174)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { conditions: [{ id: 'en-flammes', value: 1 }], traits: [{ id: 'immunite', arg: 'feu' }] });
-    const h = mk('h', 'hero', { x: 5, y: 6 });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { conditions: [{ id: 'en-flammes', value: 1 }], traits: [{ id: 'immunite', arg: 'feu' }] });
+    const h = mk('h', 'heros', { x: 5, y: 6 });
     const action = chooseEnemyAction(input(e, [h]));
     expect(action.kind).toBe('melee');
   });
 
   it('Empêtré (Mouvement nul) sans cible au contact : se libère plutôt que perdre son tour', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { conditions: [{ id: 'empetre', value: 1, sourceId: 'h' }] });
-    const h = mk('h', 'hero', { x: 9, y: 9 }); // loin
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { conditions: [{ id: 'empetre', value: 1, sourceId: 'h' }] });
+    const h = mk('h', 'heros', { x: 9, y: 9 }); // loin
     const action = chooseEnemyAction(input(e, [h], { movement: 0 })); // Empêtré → Mouvement 0
-    expect(action).toEqual({ kind: 'recover', state: 'empetre' });
+    expect(action).toEqual({ kind: 'liberation', state: 'empetre' });
   });
 
   it('Empêtré mais cible déjà au contact : attaque (Empêtré ne bloque pas l’Action)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { conditions: [{ id: 'empetre', value: 1, sourceId: 'h' }] });
-    const h = mk('h', 'hero', { x: 5, y: 6 }); // adjacent
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { conditions: [{ id: 'empetre', value: 1, sourceId: 'h' }] });
+    const h = mk('h', 'heros', { x: 5, y: 6 }); // adjacent
     const action = chooseEnemyAction(input(e, [h], { movement: 0 }));
     expect(action.kind).toBe('melee');
   });

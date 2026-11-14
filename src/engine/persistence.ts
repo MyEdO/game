@@ -70,7 +70,7 @@ export const REPORT_DE_COMBATTANT = {
   dispel: rencontre('cumul du Test étendu de Dissipation mené pendant la rencontre'), // LDB 46 l.158-162
   craft: PERSISTE, ritual: PERSISTE, movement: PERSISTE,
   fate: PERSISTE, fortune: PERSISTE, resilience: PERSISTE, resolve: PERSISTE, resistanceUsed: PERSISTE,
-  motivation: PERSISTE, star: PERSISTE, details: PERSISTE, criticalWounds: PERSISTE,
+  motivation: PERSISTE, mentions: PERSISTE, star: PERSISTE, details: PERSISTE, criticalWounds: PERSISTE,
   tookCriticalThisFight: rencontre(REGLE, false), // LDB 20 l.90
   critEntriesSuffered: PERSISTE,
   woundDressed: rencontre(REGLE, false), // LDB 09 l.260
@@ -120,6 +120,12 @@ export function carryOverState(c: Combatant): Partial<Combatant> {
     else if (r.sort) out[cle] = structuredClone(c[cle]);
   }
   return out as Partial<Combatant>;
+}
+
+/** Le héros du groupe `h` au sortir de la rencontre où il a vécu en `c` (`carryOverState`) : la sortie d'une bataille
+ *  (`finalizeBattle`) et celle d'une série d'attaques subies. */
+export function sortieDeRencontre(h: Combatant, c: Combatant): Combatant {
+  return { ...h, ...carryOverState(c) };
 }
 
 /** Couture d'ENTRÉE (`lancerLeCombat`) : le combattant né du héros du groupe, selon `REPORT_DE_COMBATTANT`.

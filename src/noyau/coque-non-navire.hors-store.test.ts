@@ -53,7 +53,7 @@ describe('coque routière (EDOC 07 l.334) : ni Critique, ni collision, ni IA de 
 
   it("une diligence ENNEMIE à son tour face à un navire de héros ne joue pas l'IA de navire et ne lève pas", () => {
     const nav = cogue('nav', { x: 3, y: 5 });
-    nav.kind = 'hero';
+    nav.kind = 'heros';
     const dil = diligence('dil', { x: 10, y: 5 });
     poser([nav, dil], { facing: { nav: 'E', dil: 'W' } });
     banc.setState({ battle: { ...banc.getState().battle!, turn: 1 } });

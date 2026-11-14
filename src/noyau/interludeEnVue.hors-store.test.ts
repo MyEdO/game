@@ -1,8 +1,8 @@
 /**
  * L'OUVRAGE ET LE DÉPÔT EN VUE, sans store (#3328) : `interludeEnVue` offre à un forgeron qui a de quoi payer
- * l'ouvrage d'Artisanat à engager (chaque ouvrage fermé par `refusDArtisanat`, les Atouts et Défauts visables) et le
- * dépôt en banque (chaque genre fermé par son devis, le montant que la bourse couvre) ; leurs verbes les jouent, et
- * refusent en le disant l'ouvrage ou le genre laissé vide. LDB 23 l.74-78, l.164-170
+ * l'ouvrage d'Artisanat à composer (chaque ouvrage fermé par `refusDArtisanat`, les Atouts et Défauts visables) puis à
+ * pratiquer, et le dépôt en banque (chaque genre fermé par son devis, le montant que la bourse couvre) ; leurs gestes les
+ * jouent, et refusent en le disant l'ouvrage ou le genre laissé vide. LDB 23 l.74-78, l.95, l.164-170
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
@@ -25,23 +25,33 @@ function forge() {
 }
 
 describe('l’ouvrage et le dépôt de l’interlude en vue', () => {
-  it('l’ouvrage : chaque ouvrage et ses matériaux, les Atouts et Défauts ; engagé, il cède la place à l’Artisanat', () => {
+  it('l’ouvrage : composé par les choix du forgeron, chaque ouvrage et ses matériaux, les Atouts et Défauts ; engagé, il cède la place à l’Artisanat', () => {
     const { banc, id, vue, dernier } = forge();
-    const ouvrage = vue().ouvrage!;
-    expect(ouvrage.refus, 'le forgeron peut engager un ouvrage').toBeNull();
-    expect(ouvrage.geste, 'le verbe et le héros posé').toEqual({ verbe: 'fabriquerLObjet', args: [id] });
-    const ouvert = ouvrage.ouvrages.find((o) => !o.refus)!;
+    const choix = (axe: string) => vue().composition.find((c) => c.axe === axe);
+    const activite = choix('activite')!;
+    const artisanat = activite.valeurs.find((v) => v.geste.args[2] === 'craft')!;
+    expect(artisanat, 'le forgeron peut engager un ouvrage').toMatchObject({ refus: null, choisie: false, geste: { verbe: 'fenetreChoisir', args: ['interlude', 'activite', 'craft', id] } });
+    expect(vue().pratiquer, 'rien de composé, rien à pratiquer').toBeNull();
+
+    banc.actions.fenetreChoisir('interlude', 'activite', 'craft', id);
+    expect(choix('activite')!.valeurs.find((v) => v.geste.args[2] === 'craft')!.choisie, 'l’Artisanat composé').toBe(true);
+    const ouvert = choix('ouvrage')!.valeurs.find((o) => !o.refus)!;
     expect(ouvert.libelle, 'l’ouvrage dit ses matériaux').toMatch(/ · /);
-    expect(ouvrage.atouts.length && ouvrage.defauts.length, 'des Atouts et des Défauts à viser').toBeGreaterThan(0);
+    const atout = choix('ajouterLaQualite')!.valeurs[0];
+    expect(choix('ajouterLaQualite')!.valeurs.length, 'des Atouts et des Défauts à viser').toBeGreaterThan(1);
+    expect(vue().pratiquer, 'l’ouvrage laissé vide est refusé, dit').toMatchObject({ refus: 'Choisissez un équipement du catalogue.' });
 
-    banc.actions.fabriquerLObjet(id, null as unknown as string, [], []);
+    banc.actions.fenetreChoisir('interlude', 'pratiquer', true, id);
     expect(dernier(), 'l’ouvrage laissé vide est refusé, dit').toBe('Choisissez un équipement du catalogue.');
-    expect(vue().ouvrage, 'rien d’engagé').not.toBeNull();
+    expect(banc.getState().party[0].craft, 'rien d’engagé').toBeUndefined();
 
-    banc.actions.fabriquerLObjet(id, ouvert.valeur, [ouvrage.atouts[0].valeur], []);
-    expect(banc.getState().party[0].craft, 'l’ouvrage est engagé, son Atout visé').toMatchObject({ trappingId: ouvert.valeur, atouts: [ouvrage.atouts[0].valeur] });
-    expect(vue().ouvrage, 'l’ouvrage engagé ne s’offre plus').toBeNull();
-    expect(vue().activites.some((a) => a.id === 'craft'), 'l’Artisanat en cours se poursuit').toBe(true);
+    banc.actions.fenetreChoisir(...(ouvert.geste.args as ['interlude', 'ouvrage', string, string]));
+    banc.actions.fenetreChoisir(...(atout.geste.args as ['interlude', 'ajouterLaQualite', string, string]));
+    expect(choix('retirerLaQualite')!.valeurs.map((v) => v.geste.args[2]), 'la qualité visée se retire').toEqual([atout.geste.args[2]]);
+    banc.actions.fenetreChoisir('interlude', 'pratiquer', true, id);
+    expect(banc.getState().party[0].craft, 'l’ouvrage est engagé, sa qualité visée').toMatchObject({ trappingId: ouvert.geste.args[2], atouts: [atout.geste.args[2]] });
+    expect(choix('ouvrage'), 'l’ouvrage engagé ne s’offre plus').toBeUndefined();
+    expect(vue().pratiquer, 'l’Artisanat en cours se poursuit').toMatchObject({ refus: null });
   });
 
   it('le dépôt : chaque genre fermé par son devis, le montant que la bourse couvre ; planqué, il rejoint les dépôts', () => {
@@ -49,12 +59,12 @@ describe('l’ouvrage et le dépôt de l’interlude en vue', () => {
     const depot = vue().depot;
     expect(depot, 'la bourse de 10 CO, par pistole').toMatchObject({ refus: null, geste: { verbe: 'deposerALaBanque', args: [id] }, max: 2400, pas: 12 });
     expect(depot.genres.map((g) => [g.valeur, g.refus]), 'un artisan Bronze n’investit pas, le Mécénat ne se pratique pas ici').toEqual([
-      ['invest', 'Forgeron : investir en banque exige le Statut Argent ou Or.'], ['stash', null], ['mecenat', 'Le Mécénat ne se pratique pas ici.'],
+      ['investir', 'Forgeron : investir en banque exige le Statut Argent ou Or.'], ['planque', null], ['mecenat', 'Le Mécénat ne se pratique pas ici.'],
     ]);
 
-    banc.actions.deposerALaBanque(id, null as unknown as 'stash', 120);
+    banc.actions.deposerALaBanque(id, null as unknown as 'planque', 120);
     expect(dernier(), 'le genre laissé vide est refusé, dit').toBe('Choisissez le dépôt : investir, planquer ou Mécénat.');
-    banc.actions.deposerALaBanque(id, 'stash', 120);
+    banc.actions.deposerALaBanque(id, 'planque', 120);
     expect(interludeEnVue(banc.getState())!.depots.map((d) => d.libelle), 'la planque rejoint les dépôts').toHaveLength(1);
   });
 });

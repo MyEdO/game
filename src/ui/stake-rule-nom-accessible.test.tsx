@@ -16,7 +16,7 @@ import { StakeRule, stakeRuleOf } from './StakeNote';
 import { RollShell } from './RollShell';
 import type { RollAction } from './RollShell';
 
-const stake = voyageStakeRef('river-capsize', { rounds: 3 });
+const stake = voyageStakeRef('fleuve-chavirage', { rounds: 3 });
 const FICHE = codexLookupById('regles', 'navigation-chavirage')!.label;
 
 describe('StakeRule — le ⓘ s’annonce par sa FICHE, pas par le pas qui le porte', () => {
@@ -27,7 +27,7 @@ describe('StakeRule — le ⓘ s’annonce par sa FICHE, pas par le pas qui le p
   });
 
   it('2. un pas d’un AUTRE nom ne déteint pas dessus (la coquille pose le ⓘ elle-même)', () => {
-    const actions: RollAction[] = [{ key: 'ack', label: 'Continuer', onClick: () => {} }];
+    const actions: RollAction[] = [{ key: 'confirmer', label: 'Continuer', onClick: () => {} }];
     const html = renderToStaticMarkup(
       <RollShell title="Initiative" rows={[]} rolled={false} actions={actions} stake={stake} />,
     );

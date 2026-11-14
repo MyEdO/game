@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('Dissipation permanente — Action de combat', () => {
   const langue = { id: 'langue', spec: 'magick', characteristic: 'intelligence' as const, advances: 20 };
   const mk = (id: string, spells: string[], extra: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-    id, name: id, kind: 'hero',
+    id, name: id, kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -31,7 +31,7 @@ describe('Dissipation permanente — Action de combat', () => {
     const mage = mk('mage', ['forme-bestiale']); // ids STABLES (subType Bête)
     const allie = mk('allie', ['incarnation-de-wyssan'], { pos: { x: 2, y: 1 } }); // subType Bête → même Domaine
     const cible: Combatant = mk('cible', [], {
-      kind: 'enemy', pos: { x: 5, y: 5 },
+      kind: 'ennemi', pos: { x: 5, y: 5 },
       activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 2, casterId: 'ennemi', label: 'Maléfice' } }],
     } as unknown as Combatant) as Combatant;
@@ -56,7 +56,7 @@ describe('Dissipation permanente — Action de combat', () => {
     const pd = banc.getState().pendingDispel!;
     // Round 1 : DR +1 (cumul 1/2) → sort toujours actif, progression persistée.
     banc.setState({ pendingDispel: { ...pd, result: { roll: 10, target: pd.value, sl: 1, success: true } } });
-    banc.getState().jetValider('dispel');
+    banc.getState().jetValider('dissipation');
     const mage1 = banc.getState().battle!.combatants.find((c) => c.id === 'mage')!;
     expect(mage1.dispel).toEqual({ spellId: 'malefice', spellCasterId: 'ennemi', total: 1 });
     expect((banc.getState().battle!.combatants.find((c) => c.id === 'cible')!.activeEffects ?? []).length).toBe(1); // toujours là
@@ -66,7 +66,7 @@ describe('Dissipation permanente — Action de combat', () => {
     banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
     const pd2 = banc.getState().pendingDispel!;
     banc.setState({ pendingDispel: { ...pd2, result: { roll: 10, target: pd2.value, sl: 1, success: true } } });
-    banc.getState().jetValider('dispel');
+    banc.getState().jetValider('dissipation');
     const cibleAfter = banc.getState().battle!.combatants.find((c) => c.id === 'cible')!;
     expect((cibleAfter.activeEffects ?? []).some((e) => e.spell?.spellId === 'malefice')).toBe(false); // dissipé
     const mage2 = banc.getState().battle!.combatants.find((c) => c.id === 'mage')!;
@@ -75,7 +75,7 @@ describe('Dissipation permanente — Action de combat', () => {
   });
 
   // Adjacence du Soutien (LDB 12 l.196, #467) : câblée sur le Soutien « même Domaine » de Dissipation via la
-  // MÊME primitive `combatDistance` que `openSkillTest` (patron `support-adjacency-gate.hors-store.test.ts`).
+  // MÊME primitive `distanceDeContact` que `openSkillTest` (patron `support-adjacency-gate.hors-store.test.ts`).
   it('Soutien « même Domaine », adjacent (l.196) : compte', () => {
     setup();
     banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
@@ -88,7 +88,7 @@ describe('Dissipation permanente — Action de combat', () => {
     const mage = mk('mage', ['forme-bestiale']);
     const allie = mk('allie', ['incarnation-de-wyssan'], { pos: { x: 20, y: 20 } }); // même Domaine mais hors de portée
     const cible: Combatant = mk('cible', [], {
-      kind: 'enemy', pos: { x: 5, y: 5 },
+      kind: 'ennemi', pos: { x: 5, y: 5 },
       activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 2, casterId: 'ennemi', label: 'Maléfice' } }],
     } as unknown as Combatant) as Combatant;
@@ -104,7 +104,7 @@ describe('Dissipation permanente — Action de combat', () => {
   // est un DR (`caster.dispel.total`, l'accumulateur RÉEL), jamais la cible du Test (`pendingDispel.value`,
   // en points de pourcentage — un DR vaut une dizaine, `tests.ts:98`). Le volet OFF reste au Livre de
   // base (`LDB 46 l.154-162`, aucun bonus) ; le volet ON rougit si `dispelOwnSpellDR` se débranche.
-  it('dissipe son propre Sort : +1 DR CUMULÉ seulement sous `magic-vdm-incantation`', () => {
+  it('dissipe son propre Sort : +1 DR CUMULÉ seulement sous `magie-vdm-incantation`', () => {
     const freshMage = () => mk('mage', ['forme-bestiale'], {
       activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 3, casterId: 'mage', label: 'Maléfice' } }],
@@ -113,13 +113,13 @@ describe('Dissipation permanente — Action de combat', () => {
       const mage = freshMage();
       const battle = { combatants: [mage], order: ['mage'], turn: 0, round: 1, acted: false, over: false, log: [] } as unknown as BattleState;
       banc.setState({ battle, pendingDispel: null, pendingVictory: null }); // la victoire du Round précédent ne tient plus la main
-      if (rule) setRule('magic-vdm-incantation', true);
+      if (rule) setRule('magie-vdm-incantation', true);
       banc.getState().dissiperLeSort('mage', 'malefice', 'mage');
       const pd = banc.getState().pendingDispel!;
       banc.setState({ pendingDispel: { ...pd, result: { roll: 10, target: pd.value, sl: 1, success: true } } });
-      banc.getState().jetValider('dispel');
+      banc.getState().jetValider('dissipation');
       const total = banc.getState().battle!.combatants.find((c) => c.id === 'mage')!.dispel!.total;
-      if (rule) resetRule('magic-vdm-incantation');
+      if (rule) resetRule('magie-vdm-incantation');
       return total;
     };
     expect(roundDR(false)).toBe(1); // OFF (LDB 46 l.154-162) : le DR du jet seul (sl:1), aucun bonus.

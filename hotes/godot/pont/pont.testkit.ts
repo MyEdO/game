@@ -4,11 +4,15 @@
  * (`horlogeVirtuelle`, `src/noyau/horlogeVirtuelle.ts`), là où Godot arme ses minuteurs, et ce qu'il manque à une vue pour que
  * Godot dessine la fenêtre qui tient la main (`fautesDeLaFenetre`).
  */
-import { join } from 'node:path';
 import { expect } from 'vitest';
 import { listage } from '../listage.mjs';
+import { DOSSIER_DES_MODELES, recupererModeles } from '../asset/release';
 import { tableTotale } from '../../../src/lib/tableTotale';
-import { creerPont, type Pont, type Suite, type VueDuPont } from './pont';
+import type { Stockage } from '../../../src/lib/stockage';
+import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
+import { creerPont, type ReseauDuPont, type MondeDuPont, type MorceauxDuPont, type Pont, type Suite, type VueDuPont } from './pont';
+import { gestesDessines } from './dessines';
+export { enFocus, gestesDessines } from './dessines';
 import type { CategorieDuPont } from './pont';
 import { cleDuGeste, horlogeVirtuelle, type Effet, type LigneDuJournal } from '../../../src/noyau/index';
 import { parametresDuGeste } from '../../../src/hote/gestes';
@@ -17,29 +21,52 @@ import type { Bouton, Choix, Element, Formulaire, Jeu, Ligne, Plan, Saisie } fro
 /** Une réponse décodée. */
 export type Reponse = ({ ok: true } & Partial<Suite> & Record<string, unknown>) | { ok: false; erreur: { categorie: CategorieDuPont; message: string } };
 
-/** Un pont neuf, et ses appels : `entree` passe en JSON, absente sans entrée. */
-export function table() {
-  const pont: Pont = creerPont();
+/** Un pont neuf sur le stockage `stockage`, en mémoire et vide par défaut, et sur le réseau `reseau`, aucun par
+ *  défaut, et ses appels : `entree` passe en JSON, absente sans entrée. */
+export function table(stockage: Stockage = stockageEnMemoire(), reseau: ReseauDuPont | null = null) {
+  const pont: Pont = creerPont(stockage, reseau);
   const appel = (methode: string, entree?: unknown): Reponse => {
     const brut = pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree));
     expect(typeof brut, 'le pont rend une chaîne JSON').toBe('string');
     return JSON.parse(brut) as Reponse;
   };
-  return { pont, appel };
+  return { pont, appel, stockage };
+}
+
+/** Le manifeste du monde de la partie (`monde`). */
+export const mondeDe = (appel: ReturnType<typeof table>['appel']): MondeDuPont => appel('monde') as unknown as MondeDuPont;
+
+/** La géométrie de chaque morceau du volume de `manifeste`, demandée à `morceaux` sur la scène de `source`. */
+export function morceauxDe(appel: ReturnType<typeof table>['appel'], source: 'partie' | 'edition', manifeste: NonNullable<MondeDuPont['monde']>): MorceauxDuPont['volume'] {
+  const r = appel('morceaux', { source, volume: manifeste.morceaux.map(({ cle }) => cle), toits: [], couronnes: [] });
+  expect(r.ok, JSON.stringify(r)).toBe(true);
+  return (r as unknown as MorceauxDuPont).volume;
 }
 
 /** La vue d'une réponse qui en porte une. */
 export const vueDe = (r: Reponse): VueDuPont => (r as { vue: VueDuPont }).vue;
 
+/** Le bouton qui ouvre la fiche d'un héros du groupe (`groupe.heros`), sa carte nommée par son nom ou son rang. */
+export function ficheDuHeros(vue: VueDuPont, heros: string | number): Bouton {
+  const cartes = vue.zones['groupe.heros'];
+  const carte = typeof heros === 'number' ? cartes[heros] : cartes.find((c) => c.nom === heros);
+  const bouton = carte?.elements.find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'));
+  if (!bouton) throw new Error(`aucune carte du groupe pour ${heros}`);
+  return bouton;
+}
+
 /** Les éléments de la section `id` du statbloc de la fiche ouverte (`fiche.sections`, `section/<id>`), aucun sans
  *  elle. */
 export const sectionDeLaFiche = (vue: VueDuPont, id: string): Element[] => vue.zones['fiche.sections'].find((e) => e.id === `section/${id}`)?.elements ?? [];
 
-/** Le listage des modèles commités du projet Godot, tel que `GET modeles/listage.json` le sert. */
-export const modelesCommites = () => listage(join(import.meta.dirname, '../projet/modeles'));
+let commites: Promise<ReturnType<typeof listage>> | undefined;
+
+/** Le listage des modèles commités du projet Godot, tel que `GET modeles/listage.json` le sert, le GLB épinglé de
+ *  chacun déposé d'abord (`recupererModeles`) ; lu une fois par graphe de modules. */
+export const modelesCommites = () => (commites ??= recupererModeles({ dossier: DOSSIER_DES_MODELES, journal: () => {} }).then(() => listage(DOSSIER_DES_MODELES)));
 
 /** `modeles` par `appel` sur `manifestes`, chacun avec les os de ses meshes rigides au listage commité `commites`. */
-export function servirLesModeles(appel: ReturnType<typeof table>['appel'], commites: ReturnType<typeof modelesCommites>, manifestes = commites.manifestes): void {
+export function servirLesModeles(appel: ReturnType<typeof table>['appel'], commites: ReturnType<typeof listage>, manifestes = commites.manifestes): void {
   expect(appel('modeles', { manifestes, osDesRigides: tableTotale(Object.keys(manifestes), (id) => commites.osDesRigides[id] ?? []) })).toMatchObject({ ok: true });
 }
 
@@ -127,8 +154,6 @@ export function fautesDeLaFenetre(vue: VueDuPont): string[] {
   return fautes;
 }
 
-/** Les gestes dessinés de la fenêtre : ses réglages, puis ses gestes. */
-export const gestesDessines = (vue: VueDuPont): (Bouton | Choix | Formulaire)[] => [...vue.zones['fenetre.reglages'], ...vue.zones['fenetre.gestes']];
 
 /** Le geste d'identité `cle` (`cleDuGeste`) parmi les gestes dessinés de la fenêtre, ou l'échec qui la dit. */
 export function gesteDe(vue: VueDuPont, cle: string): Bouton | Choix | Formulaire {

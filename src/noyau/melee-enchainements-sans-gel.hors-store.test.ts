@@ -14,15 +14,15 @@ import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { avanceEtapeCascade } from './cascade.testkit';
 import { chebyshev } from '../engine/grid';
-import type { Combatant, Weapon } from '../engine/types';
+import type { Combatant, Weapon, Main } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const chars = { 'capacite-de-combat': 60, 'capacite-de-tir': 50, force: 40, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const arme = (uid: string, hand: 'main' | 'off'): Weapon => ({ uid, name: uid, label: uid, type: 'melee', damage: { plusBF: true, flat: 2, bare: true }, qualities: [], hand, hands: 1 } as unknown as Weapon);
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, w: Weapon[]): Combatant =>
+const arme = (uid: string, hand: Main): Weapon => ({ uid, name: uid, label: uid, type: 'melee', damage: { plusBF: true, flat: 2, bare: true }, qualities: [], hand, hands: 1 } as unknown as Weapon);
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, w: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [], traumas: [], items: [],
      weapons: w, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(12), resilience: 0, fortune: 0, fate: 1,
      species: 'humains-reiklander', bodyShape: 'humanoide',
@@ -37,11 +37,11 @@ const adj = (a: Combatant, b: Combatant): boolean => chebyshev(a.pos!, b.pos!) <
 const vivant = (x: Combatant): boolean => x.wounds.current > 0 && !(x as { dead?: boolean }).dead;
 
 function monte(gmSeat: number | undefined): void {
-  const h1 = mk('h1', 'hero', { x: 1, y: 1 }, [arme('m1', 'main'), arme('o1', 'off')]);
-  const h2 = mk('h2', 'hero', { x: 1, y: 2 }, [arme('m2', 'main')]); h2.size = 'grande';
+  const h1 = mk('h1', 'heros', { x: 1, y: 1 }, [arme('m1', 'main'), arme('o1', 'secondaire')]);
+  const h2 = mk('h2', 'heros', { x: 1, y: 2 }, [arme('m2', 'main')]); h2.size = 'grande';
   (h2 as unknown as { psychState: unknown[] }).psychState = [{ type: 'frenesie' }];
-  const e1 = mk('e1', 'enemy', { x: 2, y: 1 }, [arme('g1', 'main')]); const e2 = mk('e2', 'enemy', { x: 2, y: 2 }, [arme('g2', 'main')]);
-  const e3 = mk('e3', 'enemy', { x: 0, y: 2 }, [arme('g3', 'main'), arme('g3o', 'off')]);
+  const e1 = mk('e1', 'ennemi', { x: 2, y: 1 }, [arme('g1', 'main')]); const e2 = mk('e2', 'ennemi', { x: 2, y: 2 }, [arme('g2', 'main')]);
+  const e3 = mk('e3', 'ennemi', { x: 0, y: 2 }, [arme('g3', 'main'), arme('g3o', 'secondaire')]);
   const order = ['h1', 'e1', 'h2', 'e2', 'e3'];
   const battle = { combatants: [h1, h2, e1, e2, e3], order, baseOrder: order, turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState;
@@ -60,32 +60,32 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
     const actif = s.battle.combatants.find((x) => x.id === s.battle!.order[s.battle!.turn]);
     const cible = targetingHolder(s);
     if (cible && pickActiveModalKey(s) === 'cascade') doubleMain.push(`${cible} sur ${cur?.id}`);
-    if (s.pendingRoundStart) { g().fenetreValider('roundStart'); continue; }
-    if (s.pendingFateSave) { g().fenetreChoisir('fateSave', 'issue', 'negate'); if (g().pendingFateSave) g().fenetreChoisir('fateSave', 'issue', 'survive'); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().jetLancer('handGate'); else g().jetValider('handGate'); continue; }
+    if (s.pendingRoundStart) { g().fenetreValider('debutDuRound'); continue; }
+    if (s.pendingFateSave) { g().fenetreChoisir('destin', 'issue', 'eviter'); if (g().pendingFateSave) g().fenetreChoisir('destin', 'issue', 'survivre'); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().jetLancer('mainEnsanglantee'); else g().jetValider('mainEnsanglantee'); continue; }
     if (cur?.jet === 'defense' && s.pendingDefense && !s.pendingDefense.result) { g().jetLancer('defense'); continue; }
     if (cur?.jet === 'defense' && s.pendingDefense?.result) { g().jetValider('defense'); continue; }
     if (cible === 'pendingDualStrike' && !s.pendingHandGate) {
       const a = s.battle.combatants.find((x) => x.id === s.pendingDualStrike!.attackerId)!;
       const t = s.battle.combatants.find((x) => x.kind !== a.kind && vivant(x) && adj(a, x));
       if (t) g().frapperDeLaSecondeArme(t.id);
-      if (g().pendingDualStrike && !g().pendingAttack && !g().pendingHandGate) g().fenetreFermer('dualStrike');
+      if (g().pendingDualStrike && !g().pendingAttack && !g().pendingHandGate) g().fenetreFermer('secondeFrappe');
       continue;
     }
     if (cible === 'pendingCleave') {
       const a = s.battle.combatants.find((x) => x.id === s.pendingCleave!.attackerId)!;
       const t = s.battle.combatants.find((x) => x.kind !== a.kind && !s.pendingCleave!.hitIds.includes(x.id) && vivant(x) && adj(a, x));
       if (t) g().frapperEnBalayage(t.id);
-      if (!g().pendingAttack) g().fenetreFermer('cleave');
+      if (!g().pendingAttack) g().fenetreFermer('frappeMortelle');
       continue;
     }
-    if (cur?.jet === 'attack' && s.pendingAttack) { if (!s.pendingAttack.result) g().jetLancer('attack'); else g().jetValider('attack'); continue; }
-    if (cur?.jet === 'fumble') { avanceEtapeCascade(g); continue; }
+    if (cur?.jet === 'attaque' && s.pendingAttack) { if (!s.pendingAttack.result) g().jetLancer('attaque'); else g().jetValider('attaque'); continue; }
+    if (cur?.jet === 'maladresse') { avanceEtapeCascade(g); continue; }
     if (c && !cur?.jet) { avanceEtapeCascade(g); banc.avancer(50); continue; }
-    if (actif && (actif.kind === 'hero' || s.net.gmSeat != null) && !ouverts().length && s.battle.turn >= 0) {
+    if (actif && (actif.kind === 'heros' || s.net.gmSeat != null) && !ouverts().length && s.battle.turn >= 0) {
       const t = !s.battle.acted && s.battle.combatants.find((x) => x.kind !== actif.kind && vivant(x) && adj(actif, x));
       if (t) {
-        openAttackCascade(g, banc.setState, { attackerId: actif.id, targetId: t.id, location: null, result: null }, 'Attaque', 'action/attack');
-        if (actif.id === 'h1' || actif.id === 'e3') g().jetRegler('attack', 'deuxArmes', true);
+        openAttackCascade(g, banc.setState, { attackerId: actif.id, targetId: t.id, location: null, result: null }, 'Attaque', 'action/attaquer');
+        if (actif.id === 'h1' || actif.id === 'e3') g().jetRegler('attaque', 'deuxArmes', true);
         continue;
       }
       g().terminerLeTour(); banc.avancer(100); continue;

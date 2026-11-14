@@ -128,15 +128,15 @@ interface Foo {
 
   it('faux positif écarté : une clé de littéral `{ name: x.label }` (paramètre i18n/appel, PAS un '
     + 'schéma zod) n\'est JAMAIS détectée (preuve TDD — distingue déclaration de type et littéral)', () => {
-    expect(nameFieldLines('x.ts', "t('op.wounds', { name: x.label, n });")).toEqual([]);
+    expect(nameFieldLines('x.ts', "t('op.blessures', { name: x.label, n });")).toEqual([]);
     expect(nameFieldLines('x.ts', 'const row = { id: "a", name: entry.name };')).toEqual([]);
     expect(nameFieldLines('x.ts', "giveTrapping(char, { name: 'Corde' });")).toEqual([]);
   });
 
   it('faux positif écarté : un paramètre `name` d\'une fonction-type membre d\'une interface n\'est '
-    + 'PAS un champ (preuve TDD — `netHostStart: (name: string) => Promise<boolean>`, `ts.Parameter` '
+    + 'PAS un champ (preuve TDD — `netHostStart: (name: string) => Promise<string | null>`, `ts.Parameter` '
     + 'exclu par construction)', () => {
-    expect(nameFieldLines('x.ts', 'interface X { netHostStart: (name: string) => Promise<boolean>; }')).toEqual([]);
+    expect(nameFieldLines('x.ts', 'interface X { netHostStart: (name: string) => Promise<string | null>; }')).toEqual([]);
   });
 
   it('un champ `name` niché derrière du JSX/générique imbriqué est DÉTECTÉ (preuve TDD — l\'AST ne '

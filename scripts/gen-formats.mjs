@@ -206,10 +206,10 @@ export function calculerFormats(options = {}) {
   }))
 }
 
-/** Les `def` de `EtatDeSequence` (`src/noyau/sequenceContract.ts`) que voit le programme des formats,
+/** Les `definition` de `EtatDeSequence` (`src/noyau/sequenceContract.ts`) que voit le programme des formats,
  *  triés : les familles de séquence dont `FORMAT_SAVE` porte la forme. */
 export function defsDeSequence(options = {}) {
-  const extra = "export type DEFS = import('./noyau/sequenceContract').EtatDeSequence['def'];\n"
+  const extra = "export type DEFS = import('./noyau/sequenceContract').EtatDeSequence['definition'];\n"
   return dansLeProgramme({ ...options, extra }, ({ checker, alias }) => {
     const t = checker.getTypeAtLocation(alias.get('DEFS').name)
     return (t.isUnionType() ? t.getTypes() : [t]).map((m) => m.value).sort()

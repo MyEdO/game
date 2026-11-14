@@ -21,33 +21,33 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Incident de tir, tous les membres de son équipage sont affectés. »
  */
 const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const ammoItem = (uid: string, name: string, qty: number, over: Partial<ItemInstance> = {}): ItemInstance =>
-  ({ uid, label: name, kind: 'ammo', subType: 'munition-de-siege', qty, qualities: [], enc: 0, equipped: false, ...over }) as ItemInstance;
+const ammoItem = (uid: string, trappingId: string, name: string, qty: number, over: Partial<ItemInstance> = {}): ItemInstance =>
+  ({ uid, trappingId, label: name, kind: 'ammo', subType: 'munition-de-siege', qty, qualities: [], enc: 0, equipped: false, ...over }) as ItemInstance;
 const mkPoste = (ammo: ItemInstance[], ammoUid?: string): ShipPoste =>
   ({ side: 'tribord',
-    item: { uid: 'canon', label: 'Canon (moyen)', kind: 'ranged', subType: 'armes-de-siege', weaponGroup: 'poudre-noire',
+    item: { uid: 'canon', trappingId: 'canon-moyen', label: 'Canon (moyen)', kind: 'distance', subType: 'armes-de-siege', weaponGroup: 'poudre-noire',
       damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'arme-d-equipe', value: 2 }, { id: 'recharge', value: 6 }] },
     crewIds: ['chef', 'aide'], ammo, ammoUid }) as unknown as ShipPoste;
 const mkCrew = (id: string, items: ItemInstance[] = []): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'hero', characteristics: { ...chars },
+  (blessuresSurLeProfil({ id, label: id, kind: 'heros', characteristics: { ...chars },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], items,
     skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 20 }], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } })) as unknown as Combatant;
 const mkHull = (poste: ShipPoste): Combatant =>
-  (blessuresSurLeProfil({ id: 'ship', label: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'cogue', crewIds: ['chef', 'aide'],
+  (blessuresSurLeProfil({ id: 'ship', label: 'Frégate', kind: 'heros', bodyShape: 'vehicule', creatureId: 'cogue', crewIds: ['chef', 'aide'],
     postes: [poste], pos: { x: 5, y: 5 }, conditions: [], weapons: [],
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 40, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
     wounds: blessuresDeBase(60), advantage: 0, skills: [], talents: [], armour: { corps: 0 } })) as unknown as Combatant;
 const foeHull = (): Combatant =>
-  (blessuresSurLeProfil({ id: 'target', label: 'Caraque', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
+  (blessuresSurLeProfil({ id: 'target', label: 'Caraque', kind: 'ennemi', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 40, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
     wounds: blessuresDeBase(60), advantage: 0, conditions: [], weapons: [], skills: [], talents: [], armour: { corps: 0 }, crewIds: [] })) as unknown as Combatant;
 
 describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
   it('compatibleAmmo du chef = stock du POSTE (en tête) ∪ sa besace ; selectedAmmo suit poste.ammoUid', () => {
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
-    const mitraille = ammoItem('mitraille', 'Mitraille et poudre', 3);
-    const perso = ammoItem('perso', 'Boulet perso', 2);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 'Boulet et poudre', 5);
+    const mitraille = ammoItem('mitraille', 'mitraille-et-poudre', 'Mitraille et poudre', 3);
+    const perso = ammoItem('perso', 'boulet-et-poudre', 'Boulet perso', 2);
     const poste = mkPoste([boulet, mitraille], 'mitraille');
     const chef = mkCrew('chef', [perso]);
     serveChef(chef, poste); // pose mannedPoste + l'arme dérivée (mountSide)
@@ -60,7 +60,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
   });
 
   it('consumeAmmo décrémente LÀ où vit la munition (stock du poste) et retire l’instance à 0', () => {
-    const mitraille = ammoItem('mitraille', 'Mitraille et poudre', 1);
+    const mitraille = ammoItem('mitraille', 'mitraille-et-poudre', 'Mitraille et poudre', 1);
     const poste = mkPoste([mitraille], 'mitraille');
     const chef = mkCrew('chef');
     serveChef(chef, poste);
@@ -70,7 +70,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
   });
 
   it('resolveVolley tire la munition du STOCK DU POSTE (qualités de la munition fusionnées)', () => {
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5, { qualities: [{ id: 'percutante' }], damage: { flat: 0, plusBF: false } });
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 'Boulet et poudre', 5, { qualities: [{ id: 'percutante' }], damage: { flat: 0, plusBF: false } });
     const poste = mkPoste([boulet], 'boulet');
     const chef = mkCrew('chef');
     const aide = mkCrew('aide');
@@ -83,9 +83,9 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     expect(volley[0].weapon.qualities.some((q) => q.id === 'percutante')).toBe(true); // munition bakée
   });
 
-  it('bordée jouable : la munition du poste est CONSOMMÉE au « Feu ! » (jetValider@shipBattery)', () => {
+  it('bordée jouable : la munition du poste est CONSOMMÉE au « Feu ! » (jetValider@tirDeBatterie)', () => {
     seedBattleRng(7);
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 2);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 'Boulet et poudre', 2);
     const poste = mkPoste([boulet], 'boulet');
     const chef = mkCrew('chef');
     const aide = mkCrew('aide');
@@ -97,8 +97,8 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     });
     banc.getState().ouvrirLaBordee('ship', 'target');
     const p = banc.getState().pendingShipBattery!;
-    for (const part of p.participants) banc.getState().jetLancer('shipBattery', part.id);
-    banc.getState().jetValider('shipBattery');
+    for (const part of p.participants) banc.getState().jetLancer('tirDeBatterie', part.id);
+    banc.getState().jetValider('tirDeBatterie');
     expect(poste.ammo![0].qty).toBe(1); // 2 → 1 : un boulet parti avec la bordée
   });
 
@@ -110,7 +110,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
    */
   it('Test d’équipage RATÉ : 0 Dégât, mais la pièce est DÉCHARGÉE, la munition CONSOMMÉE, et le journal dit que la bordée MANQUE', () => {
     seedBattleRng(7);
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 2);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 'Boulet et poudre', 2);
     const poste = mkPoste([boulet], 'boulet');
     const chef = mkCrew('chef');
     const aide = mkCrew('aide');
@@ -126,7 +126,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     // doublé pour le rôle essentiel → Test d'équipage raté quels que soient le Moral et la graine.
     const p = banc.getState().pendingShipBattery!;
     banc.setState({ pendingShipBattery: { ...p, participants: p.participants.map((x) => ({ ...x, result: { roll: 95, target: 55, sl: -4 } })) } } as never);
-    banc.getState().jetValider('shipBattery');
+    banc.getState().jetValider('tirDeBatterie');
 
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'target')!.wounds.current).toBe(before); // aucune Blessure
     expect(poste.loaded).toBe(false); // … mais la pièce a fait feu : déchargée
@@ -149,8 +149,8 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
     });
 
   it('approvisionnerLaPiece sur une pièce CHARGÉE la décharge (le chef perd son gate de tir), sans rien détruire', () => {
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
-    const mitraille = ammoItem('mitraille', 'Mitraille et poudre', 3);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 'Boulet et poudre', 5);
+    const mitraille = ammoItem('mitraille', 'mitraille-et-poudre', 'Mitraille et poudre', 3);
     const poste = mkPoste([boulet, mitraille], 'boulet');
     const chef = mkCrew('chef');
     const hull = mkHull(poste);
@@ -158,7 +158,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
     expect(poste.loadedAmmoUid).toBe('boulet');
     mkBattle(hull, [chef, mkCrew('aide')], ['ship']);
 
-    banc.getState().approvisionnerLaPiece('ship', 'canon', 'mitraille');
+    banc.getState().approvisionnerLaPiece('canon', 'mitraille');
 
     expect(poste.loaded).toBe(false);            // le coup au boulet n'est plus là
     expect(poste.loadedAmmoUid).toBeUndefined();
@@ -169,13 +169,13 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
   });
 
   it('approvisionnerLaPiece sur la munition DÉJÀ chargée : sans effet (aucun rechargement imposé)', () => {
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 'Boulet et poudre', 5);
     const poste = mkPoste([boulet], 'boulet');
     const chef = mkCrew('chef');
     serveChef(chef, poste);
     mkBattle(mkHull(poste), [chef], ['ship']);
 
-    banc.getState().approvisionnerLaPiece('ship', 'canon', 'boulet');
+    banc.getState().approvisionnerLaPiece('canon', 'boulet');
 
     expect(poste.loaded).toBe(true);
     expect(poste.loadedAmmoUid).toBe('boulet');
@@ -183,8 +183,8 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
 
   it('recharge d’équipage en MITRAILLE → la bordée suivante tire de la MITRAILLE', () => {
     seedBattleRng(1); // jet bas → réussite franche : le Test étendu aboutit
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
-    const mitraille = ammoItem('mitraille', 'Mitraille et poudre', 3);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 'Boulet et poudre', 5);
+    const mitraille = ammoItem('mitraille', 'mitraille-et-poudre', 'Mitraille et poudre', 3);
     const poste = mkPoste([boulet, mitraille], 'boulet');
     const chef = mkCrew('chef');
     const aide = mkCrew('aide');
@@ -200,7 +200,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
     // Jet FORCÉ à la réussite franche (le dé n'est pas l'objet du test, la CAPTURE l'est) : le Test étendu aboutit.
     const pr = banc.getState().pendingReload!;
     banc.setState({ pendingReload: { ...pr, roll: 5, sl: 20, success: true } });
-    banc.getState().jetValider('reload');
+    banc.getState().jetValider('rechargement');
     expect(poste.loaded).toBe(true);
     expect(poste.loadedAmmoUid).toBe('mitraille');
 
@@ -211,8 +211,8 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
   });
 
   it('bascule de munition du CHEF (hotbar) : la bordée suivante ne part plus au boulet abandonné', () => {
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
-    const mitraille = ammoItem('mitraille', 'Mitraille et poudre', 3);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 'Boulet et poudre', 5);
+    const mitraille = ammoItem('mitraille', 'mitraille-et-poudre', 'Mitraille et poudre', 3);
     const poste = mkPoste([boulet, mitraille], 'boulet');
     const chef = mkCrew('chef');
     const aide = mkCrew('aide');
@@ -233,7 +233,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
   // pièce (nouveau chef, relève) ne le remplace pas. Seule une pièce dont le cycle n'a JAMAIS commencé est
   // amorcée à la mise en batterie. Sans ce gate, changer de servant rechargerait gratis.
   it('reprendre une pièce qui a TIRÉ ne la recharge pas (le Test étendu en cours survit à la relève)', () => {
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 'Boulet et poudre', 5);
     const poste = mkPoste([boulet], 'boulet');
     const chef = mkCrew('chef');
     serveChef(chef, poste); // 1re mise en batterie : la pièce est amorcée

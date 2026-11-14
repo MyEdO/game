@@ -8,7 +8,7 @@ import type { Combatant } from '../engine/types';
 
 const hero = (): Combatant =>
   ({
-    id: 'H1', label: 'Héros H1', kind: 'hero',
+    id: 'H1', label: 'Héros H1', kind: 'heros',
     characteristics: {}, skills: [], conditions: [], talents: [], fortune: 2, resilience: 3,
   }) as unknown as Combatant;
 
@@ -78,7 +78,7 @@ describe('#1262 L0 — la famille de la porte', () => {
 
   it('la marque SURVIT au post-traitement par spread (le site retouche sa rangée)', () => {
     const r = participantRow({ key: 'h1', row: { d }, actor: hero() });
-    expect(isBuiltRollRow({ ...r, flowKey: 'cascadeBatch' as const, winner: 'win' })).toBe(true);
+    expect(isBuiltRollRow({ ...r, flowKey: 'cascadeEnBande' as const, winner: 'win' })).toBe(true);
   });
 
   it('`participantRow` : identité de slot, interactivité et Test étendu ; `rolled` reste dérivé', () => {

@@ -6,7 +6,25 @@
  */
 import type { Combatant } from '../engine/types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
-import { crewRoleValue, competencesDuRole, moraleBand, MORALE_BASE, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, payChoices, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
+import {
+  crewRoleValue,
+  competencesDuRole,
+  moraleBand,
+  moraleBase,
+  undercrewPenalty,
+  weeklyCrewWageBrass,
+  recalcMorale,
+  payChoiceCostBrass,
+  payChoices,
+  isPayChoice,
+  isFreePayChoice,
+  freePayChoiceId,
+  recommendedPayChoiceId,
+  facteursDeContagionABord,
+  contagionABord,
+  type CrewAssignment,
+  type UndercrewPenalty,
+} from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup } from './bourseFlow';
 import { cadenceAuto } from '../engine/cadence';
@@ -37,6 +55,7 @@ import { choisirLaMunition } from '../engine/items';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { Scene } from './monde/scene';
 import { spawnEnemy } from './monde/spawn';
+import { posteDeLaBataille } from './monde/shipPostes';
 import { freeTilesNear, inscrireEnBataille } from './summonFlow';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
@@ -86,7 +105,7 @@ export function shipDefaultRoles(crew: Combatant[], testTypeId: string, navigati
     if (winner) { out.set(winner.id, roleId); free.delete(winner.id); }
   }
   // Le reste → rôle par défaut (MDG 14 l.15) s'il en a la formation.
-  if (parDefaut && testType.roles.includes(parDefaut)) for (const id of free) {
+  if (parDefaut && testType.roles.some((r) => r === parDefaut)) for (const id of free) {
     const c = apte.find((x) => x.id === id)!;
     if (peutTenter(c) && trainedForRole(c, parDefaut, navigation)) out.set(id, parDefaut);
   }
@@ -115,7 +134,7 @@ export function navigationDuNavire(get: Get, ship: Combatant): RefDesignee {
 }
 
 export function shipCrewAssignments(ship: Combatant, combatants: Combatant[], testTypeId: string, navigation: RefDesignee): CrewAssignment[] {
-  const roleSet = new Set(findCrewTestTypeById(testTypeId)?.roles ?? []);
+  const roleSet = new Set<string>(findCrewTestTypeById(testTypeId)?.roles ?? []);
   const crew = (ship.crewIds ?? [])
     .map((id) => combatants.find((c) => c.id === id))
     .filter((c): c is Combatant => !!c);
@@ -159,11 +178,11 @@ export function withCrewActed(crewActed: Record<string, string[]> | undefined, s
 /**
  * Moral effectif d'un navire pour un Test d'équipage (la bande de Moral pèse en ±DR, MDG 14). Pont CAMPAGNE → COMBAT :
  * la coque `Combatant` ne porte AUCUN Moral (il vit sur `CampaignVessel`, recalc hebdomadaire) → on lit `vessel.morale.score`
- * si la coque EST le navire de campagne, sinon `MORALE_BASE` (75, équipage neuf). Dérivé à l'usage, jamais stocké sur la coque.
+ * si la coque EST le navire de campagne, sinon `moraleBase()` (équipage neuf). Dérivé à l'usage, jamais stocké sur la coque.
  */
 export function shipMoraleScore(get: Get, ship: Combatant): number {
   const vessel = get().vessel;
-  return vessel && ship.creatureId === vessel.vehicleId ? vessel.morale.score : MORALE_BASE;
+  return vessel && ship.creatureId === vessel.vehicleId ? vessel.morale.score : moraleBase();
 }
 
 /**
@@ -390,6 +409,8 @@ export interface PendingCouncil extends PendingBase {
   phase: 'choix' | 'bilan';
   /** bilan : id du facteur de paie retenu. */
   decision?: string;
+  /** bilan : semaines réglées par la décision (`semainesDuConseil` à l'arrêt de la paie). */
+  semaines?: number;
   /** bilan : procès-verbal des jets de Moral (un par facteur). */
   results?: NightEntry[];
   /** bilan : variation totale, avant/après (nouvelle bande dérivée d'`after`). */
@@ -424,11 +445,11 @@ type MoraleRoll = { id: string; label: string; rolled: number };
  * de groupe (gages, sans bénéficiaire unique) est appliqué par l'appelant via `payFromGroup`. La solde =
  * `payChoiceCostBrass(barème, decision)` (le barème `wageMul` de chaque choix, en donnée) ; un choix
  * GRATUIT (`wageMul: 0`, ou un groupe insolvable qui s'y replie) cumule la solde due dans `wagesOwed`. Le facteur de
- * paie n'est injecté que pour le recalcul de CETTE semaine, jamais persisté dans `morale.factors` (édités
- * par l'auteur). #216/#229. RNG injecté.
+ * paie et, sous `contagion` (`contagionABord`, calculé par l'appelant), les facteurs `contagionABord` de la donnée ne
+ * sont injectés que pour le recalcul de CETTE semaine, jamais persistés dans `morale.factors` (édités par l'auteur).
+ * MDG 14 l.172, l.208 ; #216/#229/#4058. RNG injecté.
  */
-export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision: string | null, today: number, rng: RNG): VesselWeekOutcome {
-  const week = Math.floor(today / 7);
+export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision: string | null, week: number, contagion: boolean, rng: RNG): VesselWeekOutcome {
   const wageBrass = weeklyCrewWageBrass(vessel.crew);
   const lines: string[] = [];
   let paidFactor: string | null = null;
@@ -457,9 +478,8 @@ export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision
     }
     lines.push(paidLine);
   }
-  const factorsThisWeek = paidFactor && !vessel.morale.factors.includes(paidFactor)
-    ? [...vessel.morale.factors, paidFactor]
-    : vessel.morale.factors;
+  const injectes = [...(paidFactor ? [paidFactor] : []), ...(contagion ? facteursDeContagionABord() : [])];
+  const factorsThisWeek = [...vessel.morale.factors, ...injectes.filter((f) => !vessel.morale.factors.includes(f))];
   const before = vessel.morale.score;
   const r = recalcMorale(before, factorsThisWeek, rng);
   const newVessel: CampaignVessel = {
@@ -479,29 +499,64 @@ function defaultPayDecision(wageBrass: number): string | null {
 }
 
 /**
- * Entretien HEBDOMADAIRE du navire de campagne (MDG 14) — appelé par `upkeep.ts` (site UNIQUE) une fois par
- * semaine calendaire (même garde que `tickShipMorale`). CADENCE-AWARE (#229) : quand un humain est à la barre
+ * Entretien HEBDOMADAIRE du navire de campagne (MDG 14) — appelé par `upkeep.ts` (site UNIQUE) à chaque entretien,
+ * règle les semaines calendaires franchies depuis `lastMoraleWeek`. CADENCE-AWARE (#229) : quand un humain est à la barre
  * (cadence MANUELLE) et qu'un vrai choix de paie existe (équipage salarié), la décision REMONTE en CONSEIL DE
  * BORD (modale `pendingCouncil`) — aucune mutation ici, le recalcul se joue à la validation du joueur. Il n'y
  * a pas de combattant « navire » à piloter → le prédicat de contrôle canonique se réduit à la cadence
  * (`cadenceAuto` ; en Rapide/Auto le recalcul se résout seul, comme un jet de fin de Round). En combat, jamais
  * de conseil (repli auto silencieux). Cadence auto / pas d'équipage salarié → recalcul immédiat, régulière par
- * défaut (#216). Renvoie le journal (vide si aucune semaine franchie / conseil convoqué / pas de navire). RNG injecté.
+ * défaut (#216). Chaque semaine franchie se règle (`reglerLesSemaines`) ; un Conseil en cours vaut pour les semaines
+ * qui passent pendant qu'il siège (bloc étendu en phase `choix`, reprises au prochain entretien en phase `bilan`).
+ * Renvoie le journal (vide si aucune semaine franchie / conseil convoqué / pas de navire). RNG injecté.
  */
 export function tickCampaignVesselWeek(get: Get, set: SetFn, today: number, rng: RNG): string[] {
   const vessel = get().vessel;
   if (!vessel) return [];
-  const week = Math.floor(today / 7);
+  const week = semaineDuJour(today);
   if (week <= vessel.morale.lastMoraleWeek) return [];
+  const conseil = get().pendingCouncil;
+  if (conseil) {
+    if (conseil.phase === 'choix') set({ pendingCouncil: { ...conseil, today } });
+    return [];
+  }
   const wageBrass = weeklyCrewWageBrass(vessel.crew);
-  if (!cadenceAuto() && wageBrass > 0 && !get().battle && !get().pendingCouncil) {
+  if (!cadenceAuto() && wageBrass > 0 && !get().battle) {
     set({ pendingCouncil: { today, wageBrass, phase: 'choix' } });
     return [];
   }
-  const out = resolveVesselWeek(vessel, partyMoneyTotal(get), defaultPayDecision(wageBrass), today, rng);
-  if (out.costBrass > 0) payFromGroup(get, set, fromBrass(out.costBrass), { purpose: 'gages équipage' });
-  set({ vessel: out.vessel });
-  return out.lines;
+  return reglerLesSemaines(get, set, defaultPayDecision(wageBrass), week, rng).lines;
+}
+
+/** Semaine calendaire d'un jour de campagne (`lastMoraleWeek`, `PendingCouncil.today`). */
+export function semaineDuJour(jour: number): number {
+  return Math.floor(jour / 7);
+}
+
+/** Semaines que le Conseil de bord en phase `choix` règle d'une décision : de `lastMoraleWeek + 1` à sa semaine. */
+export function semainesDuConseil(s: Jeu): number {
+  const p = s.pendingCouncil;
+  return p && s.vessel ? semaineDuJour(p.today) - s.vessel.morale.lastMoraleWeek : 0;
+}
+
+/** Règle chaque semaine franchie, de `lastMoraleWeek + 1` à `week` (MDG 14 l.143, l.293-302) : une solde et un
+ *  recalcul du Moral par semaine, sous la même `decision`. Débite le groupe semaine après semaine (la solvabilité de
+ *  chaque semaine lit la bourse restante). Renvoie le procès-verbal cumulé du bloc. */
+function reglerLesSemaines(get: Get, set: SetFn, decision: string | null, week: number, rng: RNG): Pick<VesselWeekOutcome, 'factorRolls' | 'delta' | 'before' | 'after' | 'lines'> {
+  let vessel = garanti(get().vessel, week, 'navire de campagne');
+  const contagion = contagionABord(get().party);
+  const bloc = { factorRolls: [] as MoraleRoll[], delta: 0, before: vessel.morale.score, after: vessel.morale.score, lines: [] as string[] };
+  for (let w = vessel.morale.lastMoraleWeek + 1; w <= week; w++) {
+    const out = resolveVesselWeek(vessel, partyMoneyTotal(get), decision, w, contagion, rng);
+    if (out.costBrass > 0) payFromGroup(get, set, fromBrass(out.costBrass), { purpose: 'gages équipage' });
+    vessel = out.vessel;
+    set({ vessel });
+    bloc.factorRolls.push(...out.factorRolls);
+    bloc.lines.push(...out.lines);
+    bloc.delta += out.delta;
+    bloc.after = out.after;
+  }
+  return bloc;
 }
 
 /** Une entrée de procès-verbal (`NightEntry`) par jet de facteur de Moral — non-d100 (dés signés `+2d10`),
@@ -512,37 +567,35 @@ function factorLedger(rolls: MoraleRoll[]): NightEntry[] {
     icon: 'scenario/naval',
     label: f.label,
     text: t('crew.factorMorale', { delta: `${f.rolled >= 0 ? '+' : ''}${f.rolled}` }),
-    tone: f.rolled > 0 ? 'ok' : f.rolled < 0 ? 'bad' : 'info',
+    tone: f.rolled > 0 ? 'reussite' : f.rolled < 0 ? 'echec' : 'neutre',
   }));
 }
 
 /**
- * CONSEIL DE BORD — le joueur ARRÊTE la paie de la semaine (#229). Phase `choix` (aucune mutation encore) →
- * `fenetreChoisir('council', 'paie', decision)` prélève la solde, recalcule le Moral (`resolveVesselWeek`, cœur PUR
- * partagé avec la cadence auto) et bascule en phase `bilan` où le recalcul se JOUE (PV des facteurs + delta + nouvelle
- * bande). Le verbe n'admet qu'un choix que `refusDeChoixDePaie` ouvre (`OUVERTS_DU_CHOIX`) ; le choix GRATUIT reste
- * toujours offert.
+ * CONSEIL DE BORD — le joueur ARRÊTE la paie du bloc de semaines franchies (#229, #1652). Phase `choix` (aucune
+ * mutation encore) → `fenetreChoisir('conseil', 'paie', decision)` règle chaque semaine du bloc sous cette décision
+ * (`reglerLesSemaines`, partagé avec la cadence auto : une solde et un recalcul par semaine, une ligne de solde par
+ * semaine au journal) et bascule en phase `bilan` où le recalcul se JOUE (PV des facteurs de toutes les semaines + delta
+ * cumulé + nouvelle bande). Le verbe n'admet qu'un choix que `refusDeChoixDePaie` ouvre (`OUVERTS_DU_CHOIX`) ; le choix
+ * GRATUIT reste toujours offert.
  */
 function arreterLaPaie(get: Get, set: SetFn, decision: string): void {
   const p = garanti(get().pendingCouncil, decision, 'Conseil de bord');
-  const vessel = get().vessel;
-  if (!vessel) return;
-  const out = resolveVesselWeek(vessel, partyMoneyTotal(get), decision, p.today, battleRng());
-  if (out.costBrass > 0) payFromGroup(get, set, fromBrass(out.costBrass), { purpose: 'gages équipage' });
-  set({
-    vessel: out.vessel,
-    pendingCouncil: { ...p, phase: 'bilan', decision, results: factorLedger(out.factorRolls), delta: out.delta, before: out.before, after: out.after },
-  });
-  get().ecrireAuJournal(out.lines);
+  if (!get().vessel) return;
+  const semaines = semainesDuConseil(get());
+  const bloc = reglerLesSemaines(get, set, decision, semaineDuJour(p.today), battleRng());
+  set({ pendingCouncil: { ...p, phase: 'bilan', decision, semaines, results: factorLedger(bloc.factorRolls), delta: bloc.delta, before: bloc.before, after: bloc.after } });
+  get().ecrireAuJournal(bloc.lines);
 }
 
-/** Les choix de paie que `fenetreChoisir('council', 'paie', …)` accepte : ceux du registre (`payChoices`) que la bourse du groupe couvre, le choix
- *  gratuit compris. Vide hors phase `choix` du Conseil. #229 */
+/** Les choix de paie que `fenetreChoisir('conseil', 'paie', …)` accepte : ceux du registre (`payChoices`) dont la bourse du groupe couvre la
+ *  solde de tout le bloc (`semainesDuConseil`), le choix gratuit compris. Vide hors phase `choix` du Conseil. #229 */
 export function choixDePaieOuverts(s: Jeu): string[] {
   const p = s.pendingCouncil;
   if (!p || p.phase !== 'choix' || !s.vessel) return [];
   const bourse = partyMoneyTotal(() => s);
-  return payChoices().map((c) => c.factorId).filter((id) => isFreePayChoice(id) || canAfford(bourse, fromBrass(payChoiceCostBrass(p.wageBrass, id))));
+  const semaines = semainesDuConseil(s);
+  return payChoices().map((c) => c.factorId).filter((id) => isFreePayChoice(id) || canAfford(bourse, fromBrass(semaines * payChoiceCostBrass(p.wageBrass, id))));
 }
 
 /** Refus d'un choix de paie du Conseil : la bourse ne couvre pas ce choix ; `null` sinon. Lu par le choix de la paie
@@ -551,7 +604,7 @@ export function refusDeChoixDePaie(s: Jeu, decision: string): string | null {
   return choixDePaieOuverts(s).includes(decision) ? null : t('crew.paieHorsBourse');
 }
 
-/** Les chansons que réglage `shanty.chanson` accepte : celles que le chanteur de `pendingShanty` connaît (`knownShanties`) et que
+/** Les chansons que réglage `chansonDeMarin.chanson` accepte : celles que le chanteur de `pendingShanty` connaît (`knownShanties`) et que
  *  le catalogue porte, tant que le jet n'est pas tombé. MDG 09 l.32-40. */
 export function chansonsDuChanteur(s: Jeu): string[] {
   const p = s.pendingShanty;
@@ -584,7 +637,7 @@ export function applyVesselCrewLoss(get: Get, set: SetFn, delta: number): string
  * navire de campagne (`nominal − crewLost`, le MÊME agrégat que l'Embrigadement et le Manque de bras — pas
  * d'individus) ; les partants sont retirés par la couture partagée `applyVesselCrewLoss`. Événement SUBI
  * (pas un Test de héros, MDG 14 l.192-202). La FENÊTRE de ce dé existe et vit chez l'appelant : l'étape
- * `sea-desertion` ouverte par `seaVoyageFlow` (`openWorldTest`) ; ce corps en est le rejeu POST-POSE, d'où
+ * `merDesertion` ouverte par `seaVoyageFlow` (`openWorldTest`) ; ce corps en est le rejeu POST-POSE, d'où
  * la porte SILENCIEUSE du canal (`deMonde`) — un dé par membre présent. RNG injecté. Renvoie le journal.
  */
 export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): string[] {
@@ -601,23 +654,22 @@ export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): stri
 
 /** Le choix du Conseil de bord (`CorpsDesChoix`) : la paie de la semaine. #229 */
 export function choixDeLEquipage(get: Get, set: SetFn) {
-  return { council: { paie: (decision) => arreterLaPaie(get, set, decision) } } satisfies Partial<CorpsDesChoix>;
+  return { conseil: { paie: (decision) => arreterLaPaie(get, set, decision) } } satisfies Partial<CorpsDesChoix>;
 }
 
-/** Le Conseil de bord se lève au bilan (`MODAL_DEFS.council.sortieFermee`) : le recalcul a déjà été appliqué à la
+/** Le Conseil de bord se lève au bilan (`MODAL_DEFS.conseil.sortieFermee`) : le recalcul a déjà été appliqué à la
  *  validation de la paie. #229 */
 export function sortiesDeLEquipage(_get: Get, set: SetFn) {
-  return { council: () => set({ pendingCouncil: null }) } satisfies Partial<SortiesDeFenetre>;
+  return { conseil: () => set({ pendingCouncil: null }) } satisfies Partial<SortiesDeFenetre>;
 }
 
 export function creerActionsDeLEquipage(get: Get, set: SetFn) {
   return {
     affecterAuRoleABord: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
     affecterALaStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
-    approvisionnerLaPiece: (shipId, posteUid, ammoUid) => {
+    approvisionnerLaPiece: (posteUid, ammoUid) => {
       const b = get().battle;
-      const ship = inBattleId(b, shipId);
-      const poste = ship?.postes?.find((p) => p.item.uid === posteUid);
+      const poste = b && posteDeLaBataille(posteUid, b.combatants)?.poste;
       if (!b || !poste) return;
       // Le poste est PARTAGÉ par référence avec `mannedPoste` du chef (serveChef) → muter la même instance
       // suffit ; le `set` re-render (pattern combat : mutation + refresh). Le CHEF qui la sert lit la pièce par son

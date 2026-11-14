@@ -1,13 +1,13 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { combatantSections, categoryByKey, type CodexRow } from './registry';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 import { itemFromTrappingById, weaponFromItem, buildWeapon, unarmedWeapon } from '../../engine/items';
 import type { Weapon } from '../../engine/types';
 
 /** Rangées de la section « Armes » du statbloc d'un combattant portant `weapons`. */
 function rangeesArmes(weapons: Weapon[]): CodexRow[] {
-  const c = { ...pregen(idsDeTest, PREGEN.soldat), weapons };
+  const c = { ...herosDeScenario(idsDeTest, 'soldat'), weapons };
   return combatantSections(c).find((s) => s.title === 'Armes')?.rows ?? [];
 }
 const arme = (trappingId: string): Weapon => weaponFromItem(itemFromTrappingById(trappingId, idsDeTest)!);

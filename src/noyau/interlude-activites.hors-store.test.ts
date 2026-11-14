@@ -11,8 +11,8 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { battleActivityById, peutTenterAction } from './massBattleFlow';
+import { pratiquer } from './interlude.testkit';
 
 /** Texte FIGÉ du refus « plus d'Activité » du héros de ce banc. */
 const PLUS_D_ACTIVITE = 'Vétéran n’a plus d’Activité d’interlude.';
@@ -29,7 +29,7 @@ function veteran() {
 
 /** Ce qu'une aventure précédente a laissé : une planque, un investissement, une Faveur Mineure due. */
 const HERITAGE = (heroId: string) => ({
-  bank: [{ uid: 'depot-planque', heroId, kind: 'stash' as const, brass: 100, rate: 0 }, { uid: 'depot-invest', heroId, kind: 'invest' as const, brass: 100, rate: 1 }],
+  bank: [{ uid: 'depot-planque', heroId, kind: 'planque' as const, brass: 100, rate: 0 }, { uid: 'depot-invest', heroId, kind: 'investir' as const, brass: 100, rate: 1 }],
   favors: [{ id: 'favor-1', heroId, level: 'mineure' as const, owedTo: 'Un échevin', desc: 'Un service', progress: 0 }],
 });
 
@@ -60,7 +60,7 @@ function apresLeTirage(): { banc: Banc; heroId: string } {
 /** Dépense les Activités restantes du héros (des dépôts en planque). */
 function epuiser(banc: Banc, heroId: string): void {
   const left = () => banc.getState().interlude!.perHero[heroId].left;
-  for (let i = 0; i < 3 && left() > 0; i++) banc.actions.deposerALaBanque(heroId, 'stash', 10);
+  for (let i = 0; i < 3 && left() > 0; i++) banc.actions.deposerALaBanque(heroId, 'planque', 10);
   expect(left(), 'témoin : plus aucune Activité').toBe(0);
 }
 
@@ -78,13 +78,13 @@ const empreinte = (banc: Banc) => {
 };
 
 /** Les gestes qui CONSOMMENT une Activité, par leur intention. */
-const GESTES_D_ACTIVITE: [string, (a: ActionsDuNoyau, heroId: string) => void][] = [
-  ['pratiquerLActivite (Revenus)', (a, heroId) => a.pratiquerLActivite(heroId, 'revenus')],
-  ['commanderLObjet', (a, heroId) => a.commanderLObjet(heroId, 'arquebuse')],
-  ['suivreLEntrainement', (a, heroId) => a.suivreLEntrainement(heroId, 'characteristic', 'intelligence')],
-  ['deposerALaBanque (planque)', (a, heroId) => a.deposerALaBanque(heroId, 'stash', 10)],
-  ['retirerDeLaBanque (investissement)', (a) => a.retirerDeLaBanque('depot-invest')],
-  ['solderLaFaveur', (a, heroId) => a.solderLaFaveur(heroId, 'favor-1')],
+const GESTES_D_ACTIVITE: [string, (banc: Banc, heroId: string) => void][] = [
+  ['pratiquer (Revenus)', (banc, heroId) => pratiquer(banc.getState, heroId, 'revenus')],
+  ['commanderLObjet', (banc, heroId) => banc.actions.commanderLObjet(heroId, 'arquebuse')],
+  ['pratiquer (Entraînement)', (banc, heroId) => pratiquer(banc.getState, heroId, 'entrainement', { entrainement: 'intelligence' })],
+  ['deposerALaBanque (planque)', (banc, heroId) => banc.actions.deposerALaBanque(heroId, 'planque', 10)],
+  ['retirerDeLaBanque (investissement)', (banc) => banc.actions.retirerDeLaBanque('depot-invest')],
+  ['solderLaFaveur', (banc, heroId) => banc.actions.solderLaFaveur(heroId, 'favor-1')],
 ];
 
 describe('refusDActivite — un geste qui consomme une Activité', () => {
@@ -92,43 +92,43 @@ describe('refusDActivite — un geste qui consomme une Activité', () => {
     it(`${nom} : sans Activité restante, rien ne bouge et le refus se dit`, () => {
       const { banc, heroId } = sansActivite();
       const avant = empreinte(banc);
-      expect(journalDe(banc, () => geste(banc.actions, heroId))).toEqual([PLUS_D_ACTIVITE]);
+      expect(journalDe(banc, () => geste(banc, heroId))).toEqual([PLUS_D_ACTIVITE]);
       expect(empreinte(banc), 'le geste a agi sans Activité').toBe(avant);
     });
 
     it(`${nom} : pendant le tirage, rien ne bouge et le refus se dit`, () => {
       const { banc, heroId } = enTirage();
       const avant = empreinte(banc);
-      expect(journalDe(banc, () => geste(banc.actions, heroId))).toEqual([TIRAGE_EN_ATTENTE]);
+      expect(journalDe(banc, () => geste(banc, heroId))).toEqual([TIRAGE_EN_ATTENTE]);
       expect(empreinte(banc), 'le geste a agi avant le tirage').toBe(avant);
     });
   }
 
-  it('jetValider@activity : une Activité ouverte puis plus couverte par le budget se refuse à la validation', () => {
+  it('jetValider@activite : une Activité ouverte puis plus couverte par le budget se refuse à la validation', () => {
     const { banc, heroId } = apresLeTirage();
-    banc.actions.pratiquerLActivite(heroId, 'revenus');
+    pratiquer(banc.getState, heroId, 'revenus');
     expect(banc.getState().pendingActivity?.heroId, 'témoin : les Revenus sont ouverts').toBe(heroId);
-    banc.actions.jetLancer('activity');
+    banc.actions.jetLancer('activite');
     expect(banc.getState().pendingActivity?.roll, 'témoin : le jet est posé').toBeTypeOf('number');
     epuiser(banc, heroId);
     const st = () => banc.getState().interlude!.perHero[heroId];
     const avant = JSON.stringify(st());
-    expect(journalDe(banc, () => banc.actions.jetValider('activity'))).toEqual([PLUS_D_ACTIVITE]);
+    expect(journalDe(banc, () => banc.actions.jetValider('activite'))).toEqual([PLUS_D_ACTIVITE]);
     expect(JSON.stringify(st()), 'les Revenus ont été gagnés sans Activité').toBe(avant);
   });
 
-  it('jetValider@activity d’une préparation de bataille : sans Activité restante, rien n’est résolu ni consommé, et le refus se dit (ADE II 8 l.65)', () => {
+  it('jetValider@activite d’une préparation de bataille : sans Activité restante, rien n’est résolu ni consommé, et le refus se dit (ADE II 8 l.65)', () => {
     const { banc, heroId } = apresLeTirage();
-    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    banc.actions.amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     expect(banc.getState().massBattle?.phase, 'témoin : la bataille attend sa préparation').toBe('prep');
-    banc.actions.menerLActionDeBataille('reperage', heroId);
+    banc.actions.menerLActionDeBataille(heroId, 'reperage');
     expect(banc.getState().pendingActivity?.battle, 'témoin : une préparation est ouverte').toBe('prep');
-    banc.actions.jetLancer('activity');
+    banc.actions.jetLancer('activite');
     expect(banc.getState().pendingActivity?.roll, 'témoin : le jet est posé').toBeTypeOf('number');
     epuiser(banc, heroId);
     const bataille = JSON.stringify(banc.getState().massBattle);
     const st = JSON.stringify(banc.getState().interlude!.perHero[heroId]);
-    expect(journalDe(banc, () => banc.actions.jetValider('activity'))).toEqual([PLUS_D_ACTIVITE]);
+    expect(journalDe(banc, () => banc.actions.jetValider('activite'))).toEqual([PLUS_D_ACTIVITE]);
     expect(JSON.stringify(banc.getState().massBattle), 'la préparation a été résolue sans Activité').toBe(bataille);
     expect(JSON.stringify(banc.getState().interlude!.perHero[heroId])).toBe(st);
     expect(banc.getState().pendingActivity).toBeNull();
@@ -136,28 +136,28 @@ describe('refusDActivite — un geste qui consomme une Activité', () => {
 });
 
 describe('refusDuTirage — un geste qui ne consomme pas d’Activité', () => {
-  it('fabriquerLObjet : engager un Artisanat reste PERMIS sans Activité restante (LDB 23 l.76)', () => {
+  it('pratiquer l’Artisanat : engager un Artisanat reste PERMIS sans Activité restante (LDB 23 l.76)', () => {
     const { banc, heroId } = sansActivite();
-    banc.actions.fabriquerLObjet(heroId, 'dague', [], []);
+    pratiquer(banc.getState, heroId, 'craft', { ouvrage: 'dague' });
     expect(banc.getState().party[0].craft?.trappingId).toBe('dague');
   });
 
-  it('fabriquerLObjet : pendant le tirage, rien ne s’engage et le refus se dit', () => {
+  it('pratiquer l’Artisanat : pendant le tirage, rien ne s’engage et le refus se dit', () => {
     const { banc, heroId } = enTirage();
-    expect(journalDe(banc, () => banc.actions.fabriquerLObjet(heroId, 'dague', [], []))).toEqual([TIRAGE_EN_ATTENTE]);
+    expect(journalDe(banc, () => pratiquer(banc.getState, heroId, 'craft', { ouvrage: 'dague' }))).toEqual([TIRAGE_EN_ATTENTE]);
     expect(banc.getState().party[0].craft).toBeUndefined();
   });
 
   it('retirerDeLaBanque (planque) : retirer reste PERMIS sans Activité restante (LDB 23 l.170)', () => {
     const { banc, heroId } = sansActivite();
     banc.actions.retirerDeLaBanque('depot-planque');
-    expect(banc.getState().bank.filter((b) => b.heroId === heroId && b.kind === 'stash' && b.brass === 100)).toEqual([]);
+    expect(banc.getState().bank.filter((b) => b.heroId === heroId && b.kind === 'planque' && b.brass === 100)).toEqual([]);
   });
 
   it('retirerDeLaBanque (planque) : pendant le tirage, rien ne se retire et le refus se dit', () => {
     const { banc, heroId } = enTirage();
     expect(journalDe(banc, () => banc.actions.retirerDeLaBanque('depot-planque'))).toEqual([TIRAGE_EN_ATTENTE]);
-    expect(banc.getState().bank[0]).toEqual({ uid: 'depot-planque', heroId, kind: 'stash', brass: 100, rate: 0 });
+    expect(banc.getState().bank[0]).toEqual({ uid: 'depot-planque', heroId, kind: 'planque', brass: 100, rate: 0 });
   });
 });
 
@@ -169,21 +169,21 @@ describe('menerLActionDeBataille — la préparation de bataille est MENÉE par 
     banc.actions.ouvrirLInterlude(1);
     draineCascade(banc.getState);
     epuiser(banc, veteranne.id);
-    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    banc.actions.amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     const prepa = ['inspire', 'reperage', 'rassembler-des-forces']
       .find((id) => [veteranne, compagnon].every((h) => peutTenterAction(h, battleActivityById(id)!)))!;
     expect(banc.getState().interlude!.perHero[compagnon.id].left, 'témoin : le compagnon garde une Activité').toBeGreaterThan(0);
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().massBattle]);
-    expect(journalDe(banc, () => banc.actions.menerLActionDeBataille(prepa, veteranne.id))).toEqual([PLUS_D_ACTIVITE]);
+    expect(journalDe(banc, () => banc.actions.menerLActionDeBataille(veteranne.id, prepa))).toEqual([PLUS_D_ACTIVITE]);
     expect(banc.getState().pendingActivity, 'la préparation s’est ouverte sur un autre héros').toBeNull();
     expect(JSON.stringify([banc.getState().interlude, banc.getState().massBattle])).toBe(avant);
   });
 
   it('meneur qui ne peut pas tenter le Test : refusé et dit, sans repli sur un autre héros', () => {
     const { banc, heroId } = apresLeTirage();
-    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    banc.actions.amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     expect(peutTenterAction(banc.getState().party[0], battleActivityById('planification')!), 'témoin : sans Savoir (Guerre)').toBe(false);
-    expect(journalDe(banc, () => banc.actions.menerLActionDeBataille('planification', heroId)))
+    expect(journalDe(banc, () => banc.actions.menerLActionDeBataille(heroId, 'planification')))
       .toEqual(['Aucun Personnage désigné (Vétéran) ne peut tenter « Planification ».']);
     expect(banc.getState().pendingActivity).toBeNull();
   });

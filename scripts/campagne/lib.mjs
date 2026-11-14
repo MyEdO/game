@@ -16,7 +16,16 @@ import { buildScene } from '../../src/noyau/mapSpec.ts';
 import { documentDeProjet } from '../../src/noyau/worldMap.ts';
 import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
 import { idDuCorps } from '../../src/noyau/monde/scene.ts';
-import { findCreatureById, byId, findSpellById, findTraitById, findTrappingById, findVehicleById, siegeEngines, species as SPECIES_CATALOG } from '../../src/data/index.ts';
+import {
+  findCreatureById,
+  byId,
+  findSpellById,
+  findTraitById,
+  findTrappingById,
+  findVehicleById,
+  siegeEngines,
+  species as SPECIES_CATALOG,
+} from '../../src/data/index.ts';
 import { fauteDEspece, messageDeTenueInconnue, tenueFermeeSchema } from '../../src/data/schemas/grammaire/valeurs.ts';
 import { estObjet } from '../../src/lib/objet.mjs';
 
@@ -173,16 +182,6 @@ export function scene({ id, label, desc, ambiance = 'exterieur', weather, music,
   // Compétences/sorts des flows (tests, corruption, learnSpell) → ids : dialogues, triggers, onVictory des
   // rencontres, ET les flows des actions authorées (`entities[].usable.actions[]` — décor piégé).
   validateFlowRefs({ dialogues, triggers, entities, encounters: spec.encounters });
-  // Les uid de postes sont une séquence remise à zéro PAR SCÈNE (`resetIds`) : leur unicité n'est plus
-  // portée par un compteur global. Sans ce fail-fast, un doublon serait SILENCIEUX (tout lecteur résout
-  // un poste par `find` sur l'uid et prendrait le premier).
-  const uids = new Set();
-  for (const e of entities) {
-    for (const p of e.postes ?? []) {
-      if (uids.has(p.uid)) throw new Error(`campagne : scène « ${id} » — uid de poste dupliqué « ${p.uid} » (resetIds() appelé au MILIEU de la scène ?).`);
-      uids.add(p.uid);
-    }
-  }
   return buildScene(spec);
 }
 
@@ -201,10 +200,9 @@ let propSeq = 0;
 export function P(x, y, ref, extra = {}) {
   return { id: `p${propSeq++}`, kind: 'prop', pos: { x, y }, decor: { id: ref }, ...extra };
 }
-/** Remet à zéro TOUTES les séquences d'ids de scène (props ET postes) — à appeler au début de CHAQUE scène. */
+/** Remet à zéro la séquence d'ids de props de scène — à appeler au début de CHAQUE scène. */
 export function resetIds() {
   propSeq = 0;
-  posteSeq = 0;
 }
 
 /** Personnage (PNJ) : apparence/dialogue/marchand via opts. `inventaire`/`appearance.species`/`appearance.tenue`
@@ -231,20 +229,20 @@ export function hero(x, y) {
   return { id: 'start', kind: 'heroStart', pos: { x, y } };
 }
 
-let posteSeq = 0;
-/** Poste d'artillerie MONTÉ (#222) : émet la forme AUTHORÉE de référence `{ trappingId, uid, side, crewIds }`
+/** Poste d'artillerie MONTÉ (#222) : émet la forme AUTHORÉE de référence `{ trappingId, side, crewIds }`, l'uid
+ *  d'instance dérivé de sa place au spawn (#2907)
  *  — la base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée, elle est HYDRATÉE au spawn depuis
  *  `trappingId` (`hydratePoste`, `src/engine/items.ts`). VALIDE `trappingId` : doit être une pièce POSABLE
  *  du sous-type `armes-de-siege`, sélectionné par `siegeEngines` — sinon throw. `crewIds`
  *  vide par défaut : aucun id de héros n'est connu à l'authoring, le poste est servable en jeu (`serveAtPoste`). */
 export function poste(trappingId, side, crewIds = []) {
   if (!siegeEngines().some((t) => t.id === trappingId)) throw new Error(`campagne : poste « ${trappingId} » — attendu un trappingId du sous-type armes-de-siege (Compendium → Objets, armes de siège).`);
-  return { trappingId, uid: `poste-${++posteSeq}`, side, crewIds };
+  return { trappingId, side, crewIds };
 }
 
-/** Flow PLAT (séquence de `do`) à partir d'une liste d'Effets — forme attendue par `Trigger.flow`. */
+/** Flow PLAT (séquence de `effet`) à partir d'une liste d'Effets — forme attendue par `Trigger.flow`. */
 export function flowOf(effects) {
-  return { kind: 'seq', steps: effects.map((effect) => ({ kind: 'do', effect })) };
+  return { kind: 'sequence', etapes: effects.map((effet) => ({ kind: 'effet', effet })) };
 }
 /** Effect `document` (#679) qui remet au joueur l'entrée `doc` (`{ id, titre, prose }`) du registre
  *  `narratif.documents` du paquet — le générateur la déclare à ce registre et la désigne par son id. */
@@ -255,9 +253,9 @@ export function remetLeDocument(doc) {
 export function flagWhen(expr) {
   return { kind: 'flag', expr };
 }
-/** Nœud Flow `test` (jet de compétence → RÉUSSITE/ÉCHEC) ; `success`/`fail` = listes d'Effets (→ flowOf). */
-export function testNode(test, success = [], fail = []) {
-  return { kind: 'test', test, success: flowOf(success), fail: flowOf(fail) };
+/** Nœud Flow `test` (jet de compétence → RÉUSSITE/ÉCHEC) ; `reussite`/`echec` = listes d'Effets (→ flowOf). */
+export function testNode(test, reussite = [], echec = []) {
+  return { kind: 'test', test, reussite: flowOf(reussite), echec: flowOf(echec) };
 }
 
 /** Trigger de combat standard (une fois) : entrer dans le rect lance la rencontre. */

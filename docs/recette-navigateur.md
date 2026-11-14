@@ -185,7 +185,7 @@ Cellules NON MESURÉES, et pourquoi :
   `src/ui/gallery/registry.tsx`. L'inspection n'a pas de plaque : c'est le GESTE SECONDAIRE d'un
   jeton ou d'un portrait (clic droit, appui long ; Menu ou Maj+F10 sur un portrait focalisé ; touche
   I, R3 à la manette — #1822), à recetter par ces gestes réels. Au tour d'un héros qui a une cible,
-  Tab est la liaison `target-next` (il pose le curseur de combat sur la cible, jamais le focus sur un
+  Tab est la liaison `cible-suivante` (il pose le curseur de combat sur la cible, jamais le focus sur un
   portrait) : le chemin clavier y est Tab puis I, qui inspecte la case du curseur.
 - **Dock** `701–900` « dock sur deux rangées au besoin » : conditionnel, aucun rendu ne le rend
   exigible.
@@ -292,8 +292,8 @@ ne garde que ce relevé. Exit ≠ 0 avec la liste des défauts. Résidu mesuré 
 | `shot` | capture PNG nommée (`session, nom, dossier, { ancre, neutraliser = false }`), dossier absolu créé si absent ; défaut `DOSSIER_CAPTURES` hors arbre (`os.tmpdir()/recette-captures/<hash racine>`), partagé par les trois CLI. Un dossier relatif explicite lève avant CDP/écriture ; rend le chemin écrit. Le même nom dans ce dossier stable remplace volontairement la capture précédente. `{ancre}` fait DÉFILER un sélecteur en vue avant la capture — à 360 px les écrans s'empilent et le sujet passe sous le pli. Par DÉFAUT la capture ne change RIEN à l'état qu'elle capture (#2001 E : un `blur` d'office fermait le tiroir du journal avant la photo). `{neutraliser:true}` se DEMANDE : `Escape` si le focus est sur un `<select>` (son popup est NATIF et reste ouvert après `selectOption`), puis `blur` du focus. ⚠ Ce retrait MUTE l'écran : tout ce qui se ferme à la perte du focus se ferme avec lui, et une mesure clavier est cassée — jamais de `shot` neutralisant entre le focus posé et la frappe qui le consomme |
 | `dernierTelechargement` | le DERNIER fichier téléchargé par la page (`session, { timeoutMs = 15000 }`) → `{ chemin, nom, contenu }`, contenu lu en UTF-8 : le plus récent du dossier `telechargements` du profil jetable (`DOSSIER_TELECHARGEMENTS`, posé par `launchSession`) que la session n'a pas encore rendu. Attend un fichier COMPLET (aucun `.crdownload`) ; à l'échéance, LÈVE en nommant le dossier et les téléchargements en cours. Geste : cliquer le VRAI bouton d'export (« Exporter JSON », « Exporter forme dépôt (dev) » de l'éditeur), puis lire. Le dossier est purgé avec le profil |
 | `consoleGuard` | collecte la console de LA session courante (piège du buffer partagé, § « Pièges vécus » ci-dessous), TOUS niveaux avec leur niveau (`log`, `info`, `warning`, `error`), les exceptions et les entrées `Log` (réseau, 404, CSP, avertissements du navigateur). `errors()` JUGE (erreurs `Runtime` et `Log`, exceptions) ; `warnings()` se LISTE au rendu — une absence d'export n'est jamais un « zéro » ; `log`/`info` sont enregistrés sans juger. « Console à 0 erreur » = `errors()` vide DEPUIS L'AMORÇAGE : `openApp(url, { console: true })` pose le garde AVANT `Page.navigate` (`session.console`), `Log.enable` compris |
-| `ouvrirRound` | OUVRE le Round en pause (« Commencer le combat » / « Commencer le round N ») au vrai bouton de phase — `cliquerAction(session, 'round-start', { racine: '.cc-phase' })`. C'est le premier geste après `__wfrp.fight(id)` |
-| `finDuTour` | FINIT le tour du héros actif à la PLAQUE `end-turn` : si l'Action n'est pas dépensée, le premier clic ARME le garde-fou (`endTurnArmed`, lu par `__wfrp.battle()`) et un SECOND clic passe la main. Rend le nombre de clics. Le texte de la plaque (« Fin du tourAction non dépensée ») ne se vise pas : c'est son `data-action` |
+| `ouvrirRound` | OUVRE le Round en pause (« Commencer le combat » / « Commencer le round N ») au vrai bouton de phase — `cliquerAction(session, 'debut-de-round', { racine: '.cc-phase' })`. C'est le premier geste après `__wfrp.fight(id)` |
+| `finDuTour` | FINIT le tour du héros actif à la PLAQUE `fin-de-tour` : si l'Action n'est pas dépensée, le premier clic ARME le garde-fou (`endTurnArmed`, lu par `__wfrp.battle()`) et un SECOND clic passe la main. Rend le nombre de clics. Le texte de la plaque (« Fin du tourAction non dépensée ») ne se vise pas : c'est son `data-action` |
 | `prochainGeste` / `piloterCombat` / `avancerDeRounds` | le PILOTE de combat, au geste du joueur : `prochainGeste(lecture)` (PURE, lecture `LECTURE_COMBAT` = `__wfrp.battle()` + `__wfrp.auto()` + fenêtre au DOM) rend `fini`, `resoudre`, `ouvrirRound`, `finirTour` ou `attendre` ; `piloterCombat(session, { arret, budget = 300 })` boucle observer → geste jusqu'à `arret(lecture)` ou la fin du combat, lève en nommant la dernière lecture, et rend `{ lecture }` (lecture finale). `LECTURE_COMBAT.fenetre` porte l'IDENTITÉ de la fenêtre ouverte (`IDENTITE_FENETRE`, rangée `resoudreModales`), et `arret` est consulté à chaque lecture du pilote ET de `resoudreModales` : la recette s'ARRÊTE sur la modale qu'elle vise, laissée ouverte — arrêt sur la Défense : `piloterCombat(session, { arret: (e) => e.fenetre?.jet === 'defense' })`. `avancerDeRounds(session, n, { arret })` s'arrête au Round courant + n, ou plus tôt sur l'`arret` de l'appelant, même retour |
 | `capturerPion` | PNG recadré autour de la case du combattant (`tileScreenPos`), agrandi `zoom` fois. `{dir}` suit la validation absolue et le défaut `DOSSIER_CAPTURES` de `shot` ; rend le chemin écrit. |
 | `espionReseau` ⚠ à POSER AVANT le geste mesuré | les URL que la page DEMANDE : patch `fetch`/`XMLHttpRequest` DANS la page **et** `Network.requestWillBeSent` (CDP), réunis. `await esp.urls()` rend tout, `await esp.correspondant('/source/')` filtre. C'est la preuve d'une requête ABSENTE (« la fiche du Codex ne charge aucun chapitre »). **Jamais l'inventaire de ressources de l'API `performance`** : son tampon est BORNÉ (250 entrées) et l'app le sature à l'amorçage — il a rendu un faux « aucune requête » en recette C5 |
@@ -313,7 +313,7 @@ ne garde que ce relevé. Exit ≠ 0 avec la liste des défauts. Résidu mesuré 
 | `resoudreModales` + `CASCADE_LABELS` + `IDENTITE_FENETRE` | `session, etape, { labels, max = 40, pauseMs = 600, attenteMs = 30000, arret, dans }` : observe la boîte supérieure (`dialogueDuDessus`) et avance par ses vrais contrôles. Sans portée explicite, exige pendingCascade ET modale élue ET coquille RollShell (`data-champ`, `data-plein`). Les fiches restent refusées, même avec `{dans}`. `arret(identite)` rend avant tout geste ; identité = `{cle,jet,etape,nom}` enrichie de `auto().cascade` (`id,kind,interaction,ready,chosen,amount`). Une étape présente avec observation canonique absente ou incohérente (id/kind divergent, interaction vide, ready non booléen) lève avant tout geste, même avec `{dans}`. `arret` reste consulté avant ce refus. **Choix et quantité lèvent avant tout clic, même ready**. Une valeur initiale n’est pas un consentement. Un groupe obligatoire sans avancement lève en nommant les options offertes ; choisir puis confirmer au vrai clic scopé, avant de drainer la suite. Un groupe facultatif laisse Lancer ouvert : seul Lancer est pris. Aucun choix automatique ; retour void. Un geste carte lève en le nommant (`tileScreenPos` puis `geste` sur `SURFACE_CARTE`, ensuite relancer). Une lecture transitoire sans avancement attend `attenteMs`, puis nomme la dernière lecture. `max` borne toute la cascade ; pour un seul pas, cliquer explicitement. |
 | `cliquerPremierOffert` | CLIQUE le premier des libellés (`session, libelles, { dans?, offerts?, attenteMs = ATTENTE_CIBLE }`, ordre de préférence, sous-chaîne) qu'offre un contrôle OUVERT de `dans` (`.modal-overlay` par défaut) — la primitive UNIQUE des issues de fenêtre : avancer (`resoudreModales`), quitter un jet (« Renoncer », « Annuler », « Fermer »), fermer un briefing. Rend le texte cliqué ; sans libellé offert, LÈVE en nommant les contrôles ouverts, aucun clic émis |
 | `realKey` | frappe RÉELLE (`session, { key, code?, windowsVirtualKeyCode?, modifiers? }`, `Input.dispatchKeyEvent` : `rawKeyDown`/`char`/`keyUp`) par `frappe`, le SEUL émetteur clavier (`frappe(session, { focus?, qui }, evenements)` : `focus` exige que ce sélecteur désigne UN élément focalisé, sinon il LÈVE sans frapper) — traverse les MÊMES handlers que le clavier physique (`keybindings.ts`), contrairement à un `KeyboardEvent` JS synthétique souvent ignoré. UNE forme d'argument pour toute la famille `realKey*` : la TOUCHE `{ key, code?, windowsVirtualKeyCode?, modifiers? }` — pour Échap, `session` puis `{ key: 'Escape' }` ; seul `key` est requis, `code` et le code virtuel se déduisent de lui (`scripts/recette/lib.mjs`). Un chiffre se déduit en `DigitN` (code virtuel 48-57) : `{ key: '1' }` répond au dialogue. Alias français : `frapperTouche` (même geste, même forme). ⚠ Observé en recette #1752 le 2026-09-17 : `Enter` envoyé sur un `<button>` FOCALISÉ n'a pas activé le bouton (`keydown` reçu, `defaultPrevented:false`, aucun `click`) ; `Space` l'a activé. Une frappe d'activation se mesure donc, elle ne se suppose pas |
-| `realKeyDown` / `realKeyUp` + `ALT` / `MOD_ALT` | geste MAINTENU (`session, ALT` — la même TOUCHE que `realKey`, `ALT` imposant `code`/code virtuel) : l'appui et le relâchement sont deux appels, et ce qui se joue ENTRE les deux porte `{ modifiers: MOD_ALT }` (`survoler`, `clickButtonByText`) — sinon l'événement déclare la touche relâchée. C'est le pilotage d'**Alt maintenu** (`decor.reveler`) : halo + plaque de nom sur chaque utilisable visible, le survolé agrandi ; relâché, le champ redevient muet. ⚠ `__wfrp.screen('editor')` charge la scène-FIXTURE, pas la scène active — pour ouvrir un document précis, `editorOpen(id)` ; et un `querySelector` de pastille reste vrai SOUS la modale d'intro (mesurer la scène, pas le seul DOM) |
+| `realKeyDown` / `realKeyUp` + `ALT` / `MOD_ALT` | geste MAINTENU (`session, ALT` — la même TOUCHE que `realKey`, `ALT` imposant `code`/code virtuel) : l'appui et le relâchement sont deux appels, et ce qui se joue ENTRE les deux porte `{ modifiers: MOD_ALT }` (`survoler`, `clickButtonByText`) — sinon l'événement déclare la touche relâchée. C'est le pilotage d'**Alt maintenu** (`decor-reveler`) : halo + plaque de nom sur chaque utilisable visible, le survolé agrandi ; relâché, le champ redevient muet. ⚠ `__wfrp.screen('editor')` charge la scène-FIXTURE, pas la scène active — pour ouvrir un document précis, `editorOpen(id)` ; et un `querySelector` de pastille reste vrai SOUS la modale d'intro (mesurer la scène, pas le seul DOM) |
 | `typeInField` | SAISIE réelle dans un champ (`session, selecteur, texte, { clear = true, attendu }`) : focus par VRAI clic CDP — et LÈVE si le champ n'a pas le focus après ce clic, aucune frappe émise (#1853 L3 : un `<input type=number>` hors focus recevait une insertion perdue ; contrôle de `frappe`) —, puis `Input.insertText` — l'insertion passe par le pipeline d'édition, donc le `onChange` React s'exécute (mesuré : `ab12cd` frappé dans `.coop-code-input` se lit `AB12CD`, la casse venant du handler React de `CoopCodeInput`). Rend la valeur relue APRÈS la frappe ; un écart AVERTIT sur `stderr` (transformation du `onChange`, ou frappe additive), `{attendu}` (chaîne ou prédicat) le durcit en ERREUR. C'est la sortie du piège « Champ CONTRÔLÉ React » ci-dessous |
 | `selectOption` | CHOISIT une option d'un `<select>` AU GESTE (`session, selecteur, libelle`) — par son LIBELLÉ VISIBLE ; `{ par: 'valeur' }` vise la valeur interne : focus par VRAI clic CDP, `value` posée par le SETTER NATIF puis `input`+`change` dispatchés — le popup natif est hors DOM et peut rester ouvert en headless. `shot(..., {neutraliser:true})` demande explicitement Échap puis blur ; cette neutralisation modifie le focus et l’état affiché. La capture par défaut préserve cet état. Plusieurs options correspondantes : refus avant tout clic, focus, `input` ou `change` ; préciser `{ par: 'valeur' }` pour des libellés identiques à valeurs distinctes. Refus explicites : liste absente, aucune option ne correspond (les libellés, ou les valeurs, offerts sont remontés), option FERMÉE (`disabled`) — aucun choix émis. Rend `{valeur, libelle}` RELUS après le geste |
 | `champParLibelle` | SÉLECTEUR CSS d'un champ visé par son LIBELLÉ VISIBLE (`session, 'dernier bloc'`) : il pose un `data-recette` inerte sur le champ trouvé et rend `[data-recette=…]`. Nécessaire parce que les `id` de `NumberField`/`useId` (`:r5:`, `:ra:`) ne sont PAS des sélecteurs CSS valides — `querySelector('#:r5:')` jette. `{dans}` = sélecteur RACINE où chercher, même option que `clickButtonByText`. Plusieurs champs porteurs du libellé dans la portée LÈVENT en les comptant, sans marque posée — jamais le premier (#1969) : à l'éditeur, le « Nom » de l'inspecteur et celui de la modale « Enregistrer » se départagent par `{ dans: '.modal-overlay' }` |
@@ -349,7 +349,7 @@ La passer EXPLICITEMENT vise un autre serveur (celui que `npm run dev` a imprim�
 ```js
 import { openApp, gotoScreen, selectOption, clickButtonByText, shot, vueRecette } from './scripts/recette/lib.mjs';
 // URL explicite du port dérivé imprimé par `npm run dev` dans CE worktree ; `opts` = ceux de
-// `launchSession` (`{ width, height, mobile, chromePath, port, args }`).
+// `launchSession` (`{ width, height, mobile, chromePath, args }`).
 const { largeur, hauteur } = vueRecette('portable');
 const session = await openApp('http://localhost:5182/', { width: largeur, height: hauteur });
 await gotoScreen(session, 'compendium');
@@ -539,7 +539,7 @@ Une capture avec ancre se mesure : relever `document.scrollingElement.scrollTop`
 
 `installDevtools` active `AI_TRACE` : observer `__wfrp.auto()` (état/action), `__wfrp.log()` (journal) et la frise montée, puis exercer un vrai geste. Le scénario `entrainement` couvre un combat court ; `dome` prépare ses quatre combattants ; `magie-hors-combat` observe la magie sans ennemis, en exploration sans rounds de combat. Les POI existants se préparent avec `__wfrp.campaign('loup-et-saumure',11,'ls-quai-salzenmund')` puis `ready`.
 
-Limites #557 : `focus` prépare la Focalisation sans fixer le résultat d’un jet. L’étape courante se lit par `pendingCascade.participants[pendingCascade.cursor]`, son interaction par `auto().cascade` ; elle se choisit au vrai geste. `fear` couvre l’approche d’une source en combat, pas une rencontre générale (aucun helper `encounterPsych`). `giveTrapping` vise un héros du groupe, pas un ennemi. `spell` passe par `verdictApprentissage` et ne prépare pas tous les prérequis du lanceur : préférer `dome`/`magie-hors-combat` prééquipés. `grantTrait` ne rejoue pas le spawn. `openApp` reçoit une URL string en premier argument.
+Limites #557 : `focus` prépare la Focalisation sans fixer le résultat d’un jet. L’étape courante se lit par `pendingCascade.participants[pendingCascade.cursor]`, son interaction par `auto().cascade` ; elle se choisit au vrai geste. `fear` couvre l’approche d’une source en combat, pas une rencontre générale (aucun helper `psychologieDeRencontre`). `giveTrapping` vise un héros du groupe, pas un ennemi. `spell` passe par `verdictApprentissage` et ne prépare pas tous les prérequis du lanceur : préférer `dome`/`magie-hors-combat` prééquipés. `grantTrait` ne rejoue pas le spawn. `openApp` reçoit une URL string en premier argument.
 
 Surfaces navales distinctes : le geste secondaire d’inspection de la frise ouvre `InspectPanel`, Modal `inspection` nommé « Inspection — … », dont `ShipInspectBody` rend `PosteDetail` en lecture seule. Le clic primaire de frise est une action/cible. Le dock hors ciblage ouvre `PosteSheet`, Planche `feuille-postes` (Postes/Manœuvre), qui embarque `StationSheet` ; ce corps n’est pas une modale indépendante. Le dossier de campagne `ShipDossier` est une autre porte ScreenShell. Ne pas confondre ces scopes ni supposer des commandes de munitions dans l’inspection.
 
@@ -577,7 +577,7 @@ ou `node -e` : Git Bash y casse les antislashs, les regex et l'accentué (fricti
 | Exploration (dock) | carte du monde : `.worldmap-btn[title^="Carte du monde"]` (« Carte du monde — voyager », ou « … voyage interrompu (reprendre) ») — monté SEULEMENT quand la scène est un lieu de la carte du monde ou qu'un voyage est en cours ; `clickButtonByText(session, 'Carte du monde', { exact: false })` le vise par son `title` | `src/ui/ExplorationDock.tsx`, condition dans `src/ui/CampaignView.tsx` |
 | Portraits du groupe | fiche d'un héros : `button.ptile[aria-label^="<héros>"]` (`aria-label` = nom, suivi de « — geste secondaire (clic droit, appui long, touche Menu) : inspecter » quand le geste d'inspection est offert) ; `clickButtonByText(session, '<héros>', { exact: false, dans: '.party-dock' })` ; la valeur des Blessures en texte ne remplace pas ce nom ARIA | `src/ui/PortraitTile.tsx` |
 | Carte de scène (marche) | marcher vers un déclencheur : clic RÉEL sur sa case, `__wfrp.tileScreenPos({x, y})` puis `geste(session, { surface: SURFACE_CARTE, x, y }, {}, clic())` au centre de la boîte rendue — ZQSD/WASD bute contre les décors et n'arrive pas fiablement | `__wfrp` (`tileScreenPos`) |
-| Console de combat | fin de tour `.combat-console [data-action="end-turn"]` (`finDuTour`) ; ouverture du Round `.cc-phase [data-action="round-start"]` (« Commencer le combat », `ouvrirRound`) ; cases d'action par `cliquerAction(session, actionId, { cell? })` — `actionId` est l'id du REGISTRE (`src/data/actions.json` : l'attaque armée est `'attaque'`, jamais l'id de mode de ciblage `attack`) —, `cell` = `data-cell` stable quand plusieurs capacités partagent l'action ; ambiguïté refusée avant événement | `src/ui/console/CombatConsole.tsx` |
+| Console de combat | fin de tour `.combat-console [data-action="fin-de-tour"]` (`finDuTour`) ; ouverture du Round `.cc-phase [data-action="debut-de-round"]` (« Commencer le combat », `ouvrirRound`) ; cases d'action par `cliquerAction(session, actionId, { cell? })` — `actionId` est l'id du REGISTRE (`src/data/actions.json` : l'attaque armée est `'attaque'`, jamais l'id de mode de ciblage `attack`) —, `cell` = `data-cell` stable quand plusieurs capacités partagent l'action ; ambiguïté refusée avant événement | `src/ui/console/CombatConsole.tsx` |
 
 ### Gabarit — Journal adressé dans un projet à copie adressée
 
@@ -590,7 +590,7 @@ minimal pose un trigger dont le flux joue l'effet `journal`. Formes validées pa
 ```js
 const descRef = { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-barman', secOcc: 2, b0: 0, b1: 0, sum: '32d9b703acdfaede' }] }
 const trigger = { id: 'recette-journal', rect: { x: 2, y: 2, w: 1, h: 1 }, once: true,
-  flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'journal', descRef } }] } }
+  flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'journal', descRef } }] } }
 const pnj = { id: 'pnj-recette', base: { id: 'humain' } }   // narratif.presetsPnj[]
 ```
 
@@ -650,8 +650,8 @@ Exemple : `__wfrp.testCompetence(id, { stake: { authored: 'Recette de compétenc
 La recette clique ensuite « Lancer » puis les gestes de résultat ; ces helpers préparent,
 ils ne remplacent pas le chemin joueur.
 
-Une règle optionnelle se prépare par `__wfrp.rules('tavern-games', true)`, jamais
-`flag('tavern-games')` : `flag` refuse désormais les identifiants de règles en renvoyant à
+Une règle optionnelle se prépare par `__wfrp.rules('jeux-de-taverne', true)`, jamais
+`flag('jeux-de-taverne')` : `flag` refuse désormais les identifiants de règles en renvoyant à
 `rules`. À l'ouverture d'un interlude, résoudre les cérémonies successives avec une portée
 explicite avant de mesurer ses affordances.
 
@@ -688,10 +688,10 @@ Ordre de préférence STRICT pour exercer un flux :
    c'est la première source d'erreurs (closures, état non re-rendu, préconditions sautées).
 
 > **Touches du déplacement en EXPLORATION** (piège de recette : les flèches paraissent mortes hors combat).
-> Le pas du groupe est sur les codes physiques `KeyW`/`KeyA`/`KeyS`/`KeyD` (bindings `explore-*` de
+> Le pas du groupe est sur les codes physiques `KeyW`/`KeyA`/`KeyS`/`KeyD` (bindings `exploration-*` de
 > `src/state/clavier/keybindings.ts` — WASD sur clavier QWERTY, ZQSD sur AZERTY : `code` = position, pas lettre).
-> Les **flèches** (`ArrowUp`…) pilotent le SEUL curseur de combat (bindings `cursor-*`). En vue subjective
-> (`povActive`), les mêmes touches deviennent cap-relatives (bindings `pov-*`).
+> Les **flèches** (`ArrowUp`…) pilotent le SEUL curseur de combat (bindings `curseur-*`). En vue subjective
+> (`povActive`), les mêmes touches deviennent cap-relatives (bindings `subjectif-*`).
 > **W, A, S, D poussent vers le HAUT, la GAUCHE, le BAS et la DROITE À L'ÉCRAN** : c'est la table
 > `EXPLORE_STEP` (`src/state/clavier/keybindings.ts`), sur les vecteurs écran `DIR_VEC`
 > (`src/state/combatCursor.ts`) — pas des axes de grille, d'où des pas en diagonale de grille en vue iso.
@@ -851,7 +851,7 @@ pas la cible d'UX.
 
 | Helper | Usage | Limites connues |
 |---|---|---|
-| `spawn(creatureId, pos?, {side?, id?}?)` | instancie une créature du REGISTRE (`creatures.json`) directement EN COMBAT — par la porte `spawnEnemy` (`src/noyau/monde/spawn.ts`) du peuplement de scène, sans rencontre de scène. `spawn('gobelin')` / `spawn('gobelin', {x:12,y:8}, {side:'hero'})` | `pos` défaut : à côté du combattant ACTIF (sinon 1er combattant positionné) ; `opts.side` (`'enemy'` défaut / `'hero'` / `'npc'`) pose `kind` après coup — `'hero'` marque aussi `aiControlled` (allié PNJ piloté par l'IA, jamais un 5ᵉ héros manuel) ; `creatureId` inconnu → `✗` |
+| `spawn(creatureId, pos?, {side?, id?}?)` | instancie une créature du REGISTRE (`creatures.json`) directement EN COMBAT — par la porte `spawnEnemy` (`src/noyau/monde/spawn.ts`) du peuplement de scène, sans rencontre de scène. `spawn('gobelin')` / `spawn('gobelin', {x:12,y:8}, {side:'heros'})` | `pos` défaut : à côté du combattant ACTIF (sinon 1er combattant positionné) ; `opts.side` (`'ennemi'` défaut / `'heros'` / `'pnj'`) pose `kind` après coup — `'heros'` marque aussi `aiControlled` (allié PNJ piloté par l'IA, jamais un 5ᵉ héros manuel) ; `creatureId` inconnu → `✗` |
 | `turn('id')` | donne le TOUR à un combattant (réinitialise Action/Mouvement, budget de Course, porte de Peur, postures) | Refus NOMMÉS (`✗`) : pas de combat, absent de l'ordre d'initiative, hors de combat, et pendant la PAUSE de début de Round (« ✗ pause de début de Round : ouvrir le Round d'abord (__wfrp.confirm()) »). Saute les bornes de Round — mise en place, pas simulation de partie. **Ne DÉCLENCHE PAS l'IA** (mesuré #1135) : positionne l'index de tour SEULEMENT (`battle.turn`), aucune logique de début de tour n'est invoquée — un ennemi conduit par l'IA reste immobile. Enchaîner `fastForward()` pour qu'il agisse. **Ne purge PAS l'armement de fin de tour** (`battle.endTurnArmed`, deux temps « Finir quand même ? ») : rappeler `turn()` sur le MÊME combattant au même Round après un cycle armé→confirmé peut retrouver l'empreinte d'économie de l'armement et afficher « Finir quand même ? » d'emblée — prendre un combattant vierge ou changer de Round (mesuré recette P2-A) |
 | `attaque(attaquantId, defenseurId)` | SETUP : POSE l'attaque d'un combattant PILOTÉ PAR L'IA sur un défenseur CHOISI et OUVRE la modale de Défense de ce dernier — c'est son CONTENU qu'on recette (parade du porteur d'une arme, options offertes). La fenêtre s'ouvre par la couture de la déclaration d'attaque de l'IA (`combatFlow.ts:maybeOpenDefense`), au tour de l'attaquant, qui lui est donné si besoin : sa fermeture reprend ce tour comme après une attaque d'IA | Refus NOMMÉS (`✗`), sans rien toucher : pas de combat, combattant introuvable ou hors de combat, attaquant absent de l'ordre d'initiative ou PILOTÉ PAR UN JOUEUR (son attaque passe par la modale d'attaque), Défense déjà ouverte, PAUSE de début de Round (« ✗ pause de début de Round : ouvrir le Round d'abord (__wfrp.confirm()) »), tour en cours d'un combattant PILOTÉ PAR L'IA dont les minuteurs sont en vol (« ✗ tour de X, piloté par l'IA (minuteurs en vol) : attendre la main d'un joueur (__wfrp.fastForward()) ») ; puis, si la couture ne l'ouvre pas, la raison : défenseur non surfacé (piloté par l'IA), pas au contact (`place()` d'abord), incapable de se défendre (`cannotDefend`), aucune Défense opposable à l'arme. Ensuite : la répondre aux vrais boutons, ou `resoudreModales` avec un `arret` sur `jet === 'defense'` pour la laisser ouverte |
 | `attaqueGratuite(attaquantId, defenseurId, type?)` | SETUP : l'ENNEMI piloté par l'IA déclare une attaque GRATUITE de créature (`morsure`, `caudale`, `tentacules`, `cornes`, `pietinement` ; défaut = la première disponible) sur le défenseur, par la file de PRODUCTION des gratuites d'IA (`combatFlow.ts:aiCreatureFreeAttacks`) posée à cette seule unité, au tour de l'attaquant qui lui est donné AVANT : sa fermeture reprend ce tour comme après une gratuite d'IA. Le coût d'Avantage est PAYÉ (`quality(id, null, n)` pour le créditer) | Refus NOMMÉS (`✗`), sans rien toucher : ceux d'`attaque`, attaquant non ennemi, aucune gratuite disponible contre ce défenseur (trait Morsure/Attaque caudale/Tentacules, Cornes après une Charge, Piétinement d'un plus petit au contact), `type` absent des disponibles (les liste), hors de portée (distance > 1, `place()` d'abord), défenseur non surfacé ou incapable de se défendre ; si la file ÉCARTE l'unité (Avantage sous le coût), le tour est rendu et le coût nommé. Une gratuite DÉCLARÉE rend `✓` dans trois issues : modale de Défense ouverte — la file vise le PREMIER adversaire au contact, donc sur le défenseur ou sur un autre héros surfacé au contact, nommé (« … sur Tireur — modale de Défense ouverte (premier adversaire au contact, pas H) ») ; coup suspendu sur une étape (« coup suspendu sur l'étape sauvegarde », `modal()`) ; coup joué sans fenêtre sur un adversaire qui n'en ouvre pas (`log()`) — gardes de mêlée de `maybeOpenDefense` (`combatFlow.ts`, la fenêtre des attaques d'IA) : non surfacé (piloté par l'IA), hors d'Allonge, ou incapable de se défendre (`cannotDefend` : un statut porté qui déclare `gating.cannotDefend`, Surpris, Inconscient). Recetter la fenêtre du défenseur choisi : l'isoler des autres adversaires au contact |
@@ -862,12 +862,12 @@ pas la cible d'UX.
 | `killEnemies({withQualityLoot?})` | élimine tous les ennemis + flux de victoire NORMAL | ignore les postes `inert` non `dead` (affûts non visés, LDB — voir `isOutOfAction`) ; `withQualityLoot:true` ajoute à `pendingVictory.gear` un objet CATALOGUÉ à qualités (premier trapping de `trappings.json` avec `qualities` non vide, choisi dynamiquement — MÊME brique `gearFromEffects` que le vrai butin) — NON ajouté si la victoire n'est pas atteinte (cascade de fin de combat ouverte / combat en cours), le message le signale |
 | `dealDamage('id', n=5)` | inflige `n` Dégâts à un combattant par le VRAI pipeline (`applyOps` op `wounds`, BE et PA ignorés, États, puis `checkBattleOver` : reddition/naufrage/victoire) ; `n` est un nombre fini, sinon refus nommé (`✗`) | combat requis ; éprouve l'issue navale (coule une coque, teste un naufrage) sans jouer chaque tir |
 | `combatEnd({heroId?,critical?,corruption?})` | arme les conséquences de fin de combat (Infection/Corruption/Destin) puis LAISSE la cascade ouverte. `corruption` est l'id du Degré du trait `corruption` posé sur un ennemi : `'mineure'`, `'moderee'` (défaut, clé absente) ou `'majeure'` ; `false` n'expose pas. `critical:false` retire l'Infection post-critique ; un `corruption` qui n'est ni l'id d'un Degré ni `false` (`true`, un nombre, un libellé) est refusé, nommé (`✗`) | à conduire à la main (`jetLancer('cascade', id)`/`jetValider('cascade')`) — n'auto-résout rien, contrairement à `killEnemies` |
-| `healParty()` | groupe à neuf (PB max, états/critiques/maladies purgés, morts relevés) | ne touche QUE `kind:'hero'` en combat |
+| `healParty()` | groupe à neuf (PB max, états/critiques/maladies purgés, morts relevés) | ne touche QUE `kind:'heros'` en combat |
 | `charge('enemyId', heroId?)` | simule une charge (déclenche `onCharged`, Frappe réactive) | héros cible = le plus proche par défaut. ⚠ **Ni `place()` ni `charge()` n'établissent l'Engagement** (`engagedWith` reste vide) : RAW, seule une VRAIE attaque de corps à corps engage (LDB 13 l.169-175). Une recette qui a besoin d'un Engagement le crée en ATTAQUANT, pas en approchant — ~20 appels perdus à chercher pourquoi l'état n'arrivait pas |
 | `quality('id', label?, advantage?)` | ajoute un Atout/Défaut à l'arme ACTIVE + Avantages | ne touche que `weapons[0]` ; `null` vaut absent (un `undefined` passé par CDP arrive `null`) : qualité par défaut « Déstabilisante », Avantage inchangé |
 | `condition('id', name?, n?)` | applique un État via le VRAI `addCondition` (déclenche les triggers) | — |
 | `disease(heroId, maladieId, { phase? })` | contracte une maladie via le VRAI cycle (`contractDisease` + `tickDisease` de l'incubation) ; `phase:'active'` la déclare en avançant son horloge — jamais un état forgé (localisation de cloque, transitions, `infectedMinutes` réels) | `maladieId` inconnu → `✗` ; défaut = phase d'incubation. Ex. `disease('hero-1','crampes-abdominales')` n'existe pas (crampes = SYMPTÔME) → passer par la maladie porteuse (`colique`, `vers-de-carie`, `vers-du-reik`) |
-| `bladeTrap(defenderId, attackerId, defSL?)` | ouvre l'étape « Piège-lame » sans forcer un Critique défensif | assigne un `uid` factice à l'arme de l'attaquant si absent |
+| `piegeALame(defenderId, attackerId, defSL?)` | ouvre l'étape « Piège-lame » sans forcer un Critique défensif | assigne un `uid` factice à l'arme de l'attaquant si absent |
 | `focus('id', spell?, dr?)` | met un combattant en Focalisation (test d'interruption au coup suivant) | c'est aussi le raccourci LÉGITIME de SETUP pour poser un DR de Focalisation ARBITRAIRE sur un sort à CN élevé et sauter le grind multi-Rounds du bouton « Focaliser » (ci-dessous) — pas seulement l'éprouve d'interruption |
 | `fear(heroId, enemyId, indice?)` | pose une Peur + simule l'approche de la source | positions requises (`✗` sinon) |
 | `talent('id', talentId, opts?)` | octroie un Talent à un combattant — `opts` = `times` (nombre, défaut 1) OU `{ spec?, times? }` pour un talent `specsSource` (ex. `talent('hero-1','magie-du-chaos',{spec:'tzeentch'})` — la spec posée EST l'id lu par `chaosDomainOf`, `engine/combatFeatures/dispatch.ts`) | sans `spec`, un talent `specsSource` reste sans mécanique lisible |
@@ -888,15 +888,15 @@ pas la cible d'UX.
 | `giveTrapping(heroId, trappingId, qty?)` | donne un objet de CATALOGUE à un héros (défaut : le 1er), par le VRAI pipeline `giveTrapping` du store (`applyEffects` → `itemFromGive` : item bien formé, qualités du catalogue, rangement/Encombrement recalculés) | `trappingId` inconnu → message `✗` ; `qty` fixe la quantité de l'instance (ex. `giveTrapping('hero-1','boulet-et-poudre',6)` charge le coffre d'un canon) — ⚠ munitions ≠ rations (achat au marchand : la munition d'artillerie/à distance est un article SÉPARÉ des vivres, jamais suggéré à la place) |
 | `flags()` / `flag('id', value=true)` | lit/force un drapeau de scénario | id de règle optionnelle refusé avec renvoi à `rules(id, value)` |
 | `setMorale(n)` | pose directement `vessel.morale.score` (setup, MÊME patron que `flag()`) | pas le pipeline hebdomadaire (`recalcMorale`) — sert à rendre la désertion à quai (bande ≤75, `moraleBand(score).desertionRoll`) observable sans dérouler des semaines de facteurs ; `✗` sans `state.vessel` |
-| `gmSeat(bool?)` | flip du siège MJ SOLO (`setGmSeat`, siège 0) — sans argument : BASCULE | ⚠ **`scenario()` ne RÉINITIALISE PAS le siège MJ** (mesuré #1028 : `net.gmSeat` survit à `fixerLeGroupe`/`lancerLaScene`/`chargerLeProjet` — seuls `setGmSeat` et la fermeture d'un siège `netSeatClosed` y touchent) : appeler `gmSeat(false)` EXPLICITEMENT entre deux scénarios, sinon le 2ᵉ hérite du siège MJ (ennemis conduits à la main, jets surfacés qu'on croyait auto). La VALIDATION du flux MJ reste la checkbox RÉELLE de l'UI (§ Pièges vécus ci-dessous), ce helper économise seulement la mise en place |
-| `time(minutes=60)` / `rest(days=1)` | avance l'horloge / dort N jours par le chemin EAGER | ⚠ **`rest()` n'ouvre AUCUNE modale de nuit** : il route `reposerLeGroupe` → `restFlow.sleepParty`, qui résout la nuit ENTIÈRE d'un coup (triche d'avancement). Le VRAI chemin joueur — la cascade influençable, une étape à la fois — est le bouton « Dormir » de l'auberge/du camp (`fenetreValider('rest')` → `openRestNight` → `pendingRest`) : pour recetter un jet de nuit (Faim, Récupération, Exposition, maladie…), passer par CE bouton, jamais par `rest()`. ⚠ **NE PILOTE PAS non plus une traversée EN MER** : découplé de `travelPlan.sea` (`noyau/seaVoyageFlow.ts`), il avance l'horloge SANS faire progresser le navire sur sa route (désynchronise `gameTime` du voyage). Pour accélérer une traversée COMMANDÉE, voir « Voyage en mer » ci-dessous |
+| `gmSeat(bool?)` | flip du siège MJ SOLO (`affecterLeSiegeMJ`, siège 0) — sans argument : BASCULE | ⚠ **`scenario()` ne RÉINITIALISE PAS le siège MJ** (mesuré #1028 : `net.gmSeat` survit à `fixerLeGroupe`/`lancerLaScene`/`chargerLeProjet` — seuls `affecterLeSiegeMJ` et la fermeture d'un siège `fermerLeSiege` y touchent) : appeler `gmSeat(false)` EXPLICITEMENT entre deux scénarios, sinon le 2ᵉ hérite du siège MJ (ennemis conduits à la main, jets surfacés qu'on croyait auto). La VALIDATION du flux MJ reste la checkbox RÉELLE de l'UI (§ Pièges vécus ci-dessous), ce helper économise seulement la mise en place |
+| `time(minutes=60)` / `rest(days=1)` | avance l'horloge / dort N jours par le chemin EAGER | ⚠ **`rest()` n'ouvre AUCUNE modale de nuit** : il route `reposerLeGroupe` → `restFlow.sleepParty`, qui résout la nuit ENTIÈRE d'un coup (triche d'avancement). Le VRAI chemin joueur — la cascade influençable, une étape à la fois — est le bouton « Dormir » de l'auberge/du camp (`fenetreValider('repos')` → `openRestNight` → `pendingRest`) : pour recetter un jet de nuit (Faim, Récupération, Exposition, maladie…), passer par CE bouton, jamais par `rest()`. ⚠ **NE PILOTE PAS non plus une traversée EN MER** : découplé de `travelPlan.sea` (`noyau/seaVoyageFlow.ts`), il avance l'horloge SANS faire progresser le navire sur sa route (désynchronise `gameTime` du voyage). Pour accélérer une traversée COMMANDÉE, voir « Voyage en mer » ci-dessous |
 | `chantier('reparer'\|'carener'\|upgradeId, units?)` | services du chantier naval au port | hors combat, navire de campagne requis |
 | `massBattle(ally?, enemy?, rounds?)` | lance une bataille de masse de démo | la scène courante doit porter les rencontres attendues |
 | `scenario(id?, seed?)` | lance un scénario de test PRÊT À JOUER ; sans argument : liste les ids | Round 1 déjà acquitté, initiative déterministe SI `seed`. Un id inconnu ou une scène vide JETTENT une `Error` nommée (#1734) : l'id inconnu porte l'id demandé ET la liste des ids ; la scène vide (aucune scène active, ou `scene.entities` à 0) porte son id et son compte d'entités. Un lancement refusé n'écrit RIEN dans la mémoire d'onglet de `resumeLastScenario()` |
 | `resumeLastScenario()` | relance le DERNIER `scenario(id, seed)` de CET onglet — id ET seed mémorisés en `sessionStorage` (clé `wfrp.dev.lastScenario`, posée à chaque lancement d'un id connu) : un reload HMR ramène au menu en perdant tout, ce geste rejoue le même scénario à l'identique (#1335) | AUCUNE relance automatique au boot (un rechargement humain doit rendre le menu) ; mémoire PAR ONGLET (un nouvel onglet ne sait rien), et un lancement par le MENU « Scénarios de test » (bouton Lancer, `src/ui/TestScenariosScreen.tsx`) n'écrit RIEN — seul le helper mémorise ; `✗ aucun scénario mémorisé…` sinon. Relance = un vrai `scenario()` : l'état de jeu repart de zéro (progression, siège MJ hérité, cf. `gmSeat`), ce n'est pas une restauration de sauvegarde |
-| `campaign(id?, seed?, sceneId?)` | charge une CAMPAGNE BUILT-IN (`builtinCampaigns`, `scenes/campaign.ts`) SANS dérouler le character creator ×4 à la main — groupe canonique (`makeShowcaseParty`), MÊME chemin que le picker `PartyScreen` (`setPendingCampaign` + `chargerLeProjet`) ; sans argument : liste les ids | les campagnes built-in ne portent PAS de pré-tirés propres (seul `pregens.json`, libre-service au picker) → groupe canonique (les 4 piliers de l'Arène), pas le casting narratif de la campagne ; `sceneId` (optionnel) démarre ailleurs que l'entrée par défaut — hors des scènes de la campagne, `✗ scène « … » introuvable dans « id » — ids : …` et RIEN n'est chargé (ni groupe, ni scène) ; `pendingCampaign` redevient `null` juste après (comme le flux réel : `chargerLeProjet`→`lancerLaScene` réinitialise l'état à l'INITIAL hors le sous-ensemble préservé, `noyau/entreeEnScene.ts`) — pas une régression. ⚠ **L'ARÈNE N'EST PAS LISTÉE** (mesuré recette 2026-08-29, arbre 5e129a110) : `campaign()` sans argument rend 3 campagnes sur 4 — l'Arène passe par un autre chemin de chargement. CONTOURNEMENTS mesurés : (a) la bibliothèque de campagnes AUX CLICS (menu → groupe → picker), (b) `fight('enc-…')` pour tomber directement dans un combat |
-| `interlude(weeks=3)` | arme un INTERLUDE de démo jouable (`ouvrirLInterlude` — MÊME flux réel : `state.interlude` peuplé, Événement d100/héros, budget `min(3, weeks)`, écran 'interlude') SANS voyager jusqu'à Altdorf | catalogue d'Activités dérivé de la DONNÉE (`interludeCatalog`/`activities.json`), rien d'inventé ; sans groupe chargé, pose le groupe canonique (`makeShowcaseParty`, comme `campaign()`) ; `✗` si combat en cours ; interlude déjà ouvert → message sans réarmer ; à conduire ensuite à la main (Activités, clôture) — pas `screen('interlude')` seul (écran vide) |
-| `rules(id?, value?)` | lit/force une règle optionnelle (`policy.ts`) | **ASYMÉTRIE À CONNAÎTRE** : `rules(id, value)` est une surcharge **RUNTIME NON PERSISTÉE** (elle meurt au rechargement), tandis que `rules(id, null)` réinitialise **ET purge la surcharge PERSISTÉE** (`remettreUneRegleMaison` → `localStorage['wfrp4.house-rules']`). Une règle cochée un jour au **panneau Options** (seule couture qui persiste, `reglerUneRegleMaison`) revient donc COCHÉE à chaque ouverture tant qu'elle n'est pas réinitialisée — piège vécu (#1279 : « Jeux de taverne rapides » retrouvée active 3 runs de suite malgré deux `rules(id, false)`). **Vérifier l'état PERSISTÉ en fin de run** : `localStorage.getItem('wfrp4.house-rules')`. La CADENCE n'est plus ici (préférence de confort, cf. `prefs()`) — les règles sont VERROUILLÉES tant qu'un combat est en cours (`reglesMaisonMutables`) : l'écriture est refusée en silence, et `rules(id, null)` rend alors la raison |
+| `campaign(id?, seed?, sceneId?)` | charge une CAMPAGNE BUILT-IN (`builtinCampaigns`, `scenes/campaign.ts`) SANS dérouler le character creator ×4 à la main — groupe vitrine (`groupeVitrine`), MÊME chemin que le picker `PartyScreen` (`setPendingCampaign` + `chargerLeProjet`) ; sans argument : liste les ids | les campagnes built-in ne portent PAS de pré-tirés propres (seul `pregens.json`, libre-service au picker) → groupe vitrine, pas le casting narratif de la campagne ; `sceneId` (optionnel) démarre ailleurs que l'entrée par défaut — hors des scènes de la campagne, `✗ scène « … » introuvable dans « id » — ids : …` et RIEN n'est chargé (ni groupe, ni scène) ; `pendingCampaign` redevient `null` juste après (comme le flux réel : `chargerLeProjet`→`lancerLaScene` réinitialise l'état à l'INITIAL hors le sous-ensemble préservé, `noyau/entreeEnScene.ts`) — pas une régression. ⚠ **L'ARÈNE N'EST PAS LISTÉE** (mesuré recette 2026-08-29, arbre 5e129a110) : `campaign()` sans argument rend 3 campagnes sur 4 — l'Arène passe par un autre chemin de chargement. CONTOURNEMENTS mesurés : (a) la bibliothèque de campagnes AUX CLICS (menu → groupe → picker), (b) `fight('enc-…')` pour tomber directement dans un combat |
+| `interlude(weeks=3)` | arme un INTERLUDE de démo jouable (`ouvrirLInterlude` — MÊME flux réel : `state.interlude` peuplé, Événement d100/héros, budget `min(3, weeks)`, écran 'interlude') SANS voyager jusqu'à Altdorf | catalogue d'Activités dérivé de la DONNÉE (`interludeCatalog`/`activities.json`), rien d'inventé ; sans groupe chargé, pose le groupe vitrine (`groupeVitrine`, comme `campaign()`) ; `✗` si combat en cours ; interlude déjà ouvert → message sans réarmer ; à conduire ensuite à la main (Activités, clôture) — pas `screen('interlude')` seul (écran vide) |
+| `rules(id?, value?)` | lit/force une règle optionnelle (`policy.ts`) | **ASYMÉTRIE À CONNAÎTRE** : `rules(id, value)` est une surcharge **RUNTIME NON PERSISTÉE** (elle meurt au rechargement), tandis que `rules(id, null)` réinitialise **ET purge la surcharge PERSISTÉE** (`remettreUneRegleMaison` → `localStorage['wfrp4.house-rules']`). Une règle cochée un jour au **panneau Options** (seule couture qui persiste, `reglerUneRegleMaison`) revient donc COCHÉE à chaque ouverture tant qu'elle n'est pas réinitialisée — piège vécu (#1279 : « Jeux de taverne rapides » retrouvée active 3 runs de suite malgré deux `rules(id, false)`). **Vérifier l'état PERSISTÉ en fin de run** : `localStorage.getItem('wfrp4.house-rules')`. La CADENCE n'est plus ici (préférence de confort, cf. `prefs()`) — les règles sont VERROUILLÉES tant qu'un combat est en cours, et chez un invité de la coop, qui adopte celles de l'hôte (`reglesMaisonMutables`) : l'écriture est refusée en silence, et `rules(id, null)` rend alors la raison |
 | `prefs(id?, value?)` | lit/force une PRÉFÉRENCE de confort (`noyau/preferences.ts`) — dont `prefs('combat-cadence', 'auto')` (auto/rapide/manuel) | écriture PERSISTÉE (localStorage) + effet déclaré joué (reprise de boucle) ; `prefs(id, null)` réinitialise ; modifiable EN COMBAT, contrairement aux règles |
 | `seed(n)` | re-ensemence le RNG de bataille EN COURS de combat | même action que `scenario(id, seed)` au lancement |
 | `previewRoll(seed, count=1)` | lecture PURE des `count` premiers d100 d'un seed — `makeRNG(seed)` À PART, ZÉRO mutation d'état (jamais le `battleRng` du store) | fidèle au PROCHAIN jet réel du store UNIQUEMENT depuis un `seed(n)`/`scenario(id, seed)` FRAIS, avant toute autre consommation — `battleRng` est PARTAGÉ (initiative/dégâts/IA s'intercalent, désynchronisent la prédiction) ; deux previews du même seed renvoient TOUJOURS la même séquence |
@@ -950,7 +950,7 @@ elle reprend à la CONFIRMATION de ces étapes/modales, jamais via `time()`/`res
 
 | Helper | Usage | Limites connues |
 |---|---|---|
-| `advanceSeaDay({stopOnEveryEvent?, stopAt?, maxIters?})` | symétrique VOYAGE de `fastForward` : pilote la journée EN COURS (cascade du jour, halte de nuit, Activités hebdo si le palier de 8 jours tombe) jusqu'au JOUR SUIVANT — MÊME machinerie que le joueur (`jetLancer('cascade')`/`Finish`, `fenetreValider('rest')`, `fenetreValider('seaActivities')`), sans les clics | s'arrête sur la cascade `travelDay` FRAÎCHE du jour suivant (déjà ouverte, `cursor:0`, pas encore consommée — le PROCHAIN `advanceSeaDay()`/`roll()`/`skipToArrival()` la joue), jamais un `pendingCascade` à `null` ; `maxIters` (défaut 400) = garde-fou scrutations, `✗ borne atteinte…` = soft-lock probable (`auto()`) ; retourne une `Promise` (`await`). **PORTÉE EXACTE de `stopOnEveryEvent:true` (#380)** : il ne s'arrête QUE sur un événement RACONTÉ (carte-parchemin, `travelDay.events` non vide, testé sur `pendingRest`/`pendingSeaActivities`) — **jamais** sur une étape STRUCTURELLE du jour (Progression, choix de Progression, Orientation, Exposition, Entretien…), que `jetLancer('cascade')` traverse aux défauts. L'attendre pour observer une étape a coûté un point de recette. Pour CELA : `stopAt:'<kind>'` (#1117) → s'arrête **avant** de résoudre la cascade qui porte cette étape et rend la main intacte (ex. `advanceSeaDay({stopAt:'sea-progression-choice'})`, puis `__wfrp.modal()`/`roll()`). Même option sur `advanceRiverDay` |
+| `advanceSeaDay({stopOnEveryEvent?, stopAt?, maxIters?})` | symétrique VOYAGE de `fastForward` : pilote la journée EN COURS (cascade du jour, halte de nuit, Activités hebdo si le palier de 8 jours tombe) jusqu'au JOUR SUIVANT — MÊME machinerie que le joueur (`jetLancer('cascade')`/`Finish`, `fenetreValider('repos')`, `fenetreValider('activitesEnMer')`), sans les clics | s'arrête sur la cascade `travelDay` FRAÎCHE du jour suivant (déjà ouverte, `cursor:0`, pas encore consommée — le PROCHAIN `advanceSeaDay()`/`roll()`/`skipToArrival()` la joue), jamais un `pendingCascade` à `null` ; `maxIters` (défaut 400) = garde-fou scrutations, `✗ borne atteinte…` = soft-lock probable (`auto()`) ; retourne une `Promise` (`await`). **PORTÉE EXACTE de `stopOnEveryEvent:true` (#380)** : il ne s'arrête QUE sur un événement RACONTÉ (carte-parchemin, `travelDay.events` non vide, testé sur `pendingRest`/`pendingSeaActivities`) — **jamais** sur une étape STRUCTURELLE du jour (Progression, choix de Progression, Orientation, Exposition, Entretien…), que `jetLancer('cascade')` traverse aux défauts. L'attendre pour observer une étape a coûté un point de recette. Pour CELA : `stopAt:'<kind>'` (#1117) → s'arrête **avant** de résoudre la cascade qui porte cette étape et rend la main intacte (ex. `advanceSeaDay({stopAt:'merProgressionChoix'})`, puis `__wfrp.modal()`/`roll()`). Même option sur `advanceRiverDay` |
 | `skipToArrival(maxIters=4000)` | comme `advanceSeaDay` mais ROULE jusqu'à l'ACCOSTAGE (`openPortAt`, `travelPlan` vidé) | s'arrête aussi sur un combat (embuscade/abordage), et rend alors « ✓ voyage interrompu par un combat — voir __wfrp.battle() » (même retour pour `advanceSeaDay` et `advanceRiverDay`, `driveSeaVoyage`) — `battle` ouvert, à jouer/`fastForward` séparément ; `Promise` (`await`) |
 | `dealShipDamage(n=5)` | inflige `n` Dégâts de coque HORS COMBAT — VRAI pipeline (`damageCampaignVessel` : la coque de trajet en voyage, la coque bâtie du navire au port) | symétrique de `dealDamage` (combat) — voir le piège des DEUX copies de coque ci-dessous ; **NE déclenche AUCUN naufrage** : une coque à 0 ne coule pas (MDG 13 l.656, l.674), voir `forceShipwreck` |
 | `forceShipwreck(aboardIds?)` | déclenche `beginShipwreck` DIRECTEMENT (setup ASSUMÉ, PAS le pipeline de dégâts) — coque + cargaison purgées IMMÉDIATEMENT, cascade de survie à la nage (Chance/Pacte/Résilience influençable) ouverte pour les héros à bord | `✗` sans `state.vessel` ; hors combat, c'est la seule entrée du naufrage |
@@ -967,16 +967,16 @@ fois le jour RÉSOLU en route **commandée** (les Tests d'équipage de routine s
 `voyageCadence.ts`) : `await __wfrp.advanceSeaDay()` puis lire l'écran de traversée. Pour jouer une
 étape d'équipage À LA MAIN avant qu'elle n'entre au PV, s'arrêter dessus par son `kind` — les kinds
 RÉELS passés à `buildVoyageCrewStep` (`seaVoyageFlow.ts`, 3ᵉ argument — à ne pas confondre avec le
-`testTypeId` du 2ᵉ) sont `crew-progression`, `crew-orientation`, `crew-embuscade`, `crew-phare`, et en
-crise `crew-poursuite` ou `crew-tourbillon` :
+`testTypeId` du 2ᵉ) sont `equipage-progression`, `equipage-orientation`, `equipage-embuscade`, `equipage-phare`, et en
+crise `equipage-poursuite` ou `equipage-tourbillon` :
 
 ```js
-await __wfrp.advanceSeaDay({ stopAt: 'crew-orientation' });  // rend la main AVANT le Test d'Orientation
+await __wfrp.advanceSeaDay({ stopAt: 'equipage-orientation' });  // rend la main AVANT le Test d'Orientation
 __wfrp.modal();                                          // la modale de cascade est intacte
 ```
 
-`stopAt:'sea-progression-choice'` vise le CHOIX de progression (une étape de décision), pas un Test
-d'équipage : pour le Test lui-même, viser `crew-progression`.
+`stopAt:'merProgressionChoix'` vise le CHOIX de progression (une étape de décision), pas un Test
+d'équipage : pour le Test lui-même, viser `equipage-progression`.
 
 **Doctrine `advanceSeaDay`/`skipToArrival`** : même doctrine que `fastForward` — SETUP et
 accélération du BRUIT de routine, jamais un raccourci qui saute une décision du joueur. La halte de
@@ -998,7 +998,7 @@ journée (`purpose:travelDay`) gardent, eux, leur défaut de routine. Dérouler 
 
 **Constater une carte-parchemin de ROUTINE** : `forceEncounter()` tire par défaut
 `cogue-pirate`, un événement DÉCISIONNEL (le drive s'arrête sur la décision, pas sur une carte
-racontée). Pour observer une carte-parchemin de routine (`sea.events`, `SeaVoyageBody`), NE PAS
+racontée). Pour observer une carte-parchemin de routine (`travelPlan.evenements`, rangé au jour clos que lit `SeaVoyageBody`), NE PAS
 forcer : laisser le tirage d100/Manann jouer et rouler avec `advanceSeaDay({stopOnEveryEvent:true})`
 — le drive s'arrête au recap dès qu'un événement raconté vient d'être résolu.
 
@@ -1030,11 +1030,11 @@ le résout inline. Garde de ré-entrance : ce FM ne ré-émet jamais le trigger 
 
 **Points d'émission de `onOwnTestFailed`** (pour ne pas chercher à l'aveugle) :
 - `testsDeScene.cloturesDesTestsDeScene` (`jetValider('test')`) — Test de scène/compétence/combat (chemin modal joueur) ;
-- `interludeFlow.appliquerLActivite` (`jetValider('activity')`) — Activité d'interlude ratée ;
+- `interludeFlow.appliquerLActivite` (`jetValider('activite')`) — Activité d'interlude ratée ;
 - `combatFlow.applyAttackResult` — l'**ATTAQUANT** rate son jet d'attaque (CC/CT) **et** le **DÉFENSEUR**
   rate sa Parade/Esquive (Test opposé) — le porteur uniquement, pas la défense d'un non-porteur ;
 - `triggeredEffects.resolveInlineFlowTest` + `combat/triggeredTest` (inline ennemi/auto) ;
-- `cascade.commitStep` (seam CENTRAL des Tests différés d'entretien : `faim`/`recovery`/`disease-tick`/… ).
+- `cascade.commitStep` (seam CENTRAL des Tests différés d'entretien : `faim`/`recuperation`/`maladie-test-quotidien`/… ).
 
 **Cadence observée en recette** : après *Lancer*, compter **~2,5 s** avant que *Appliquer* soit stable
 (résolution de la défense adverse + animation d'attaque) — attendre cette tempo avant de lire le résultat.
@@ -1055,7 +1055,7 @@ __wfrp.prefs('des-fixes', true)            // pour POSER les dés
 
 __wfrp.shipCrit('greement')                // 1. Critique sur la coque des HÉROS (défaut)
 // 2. valider l'étape « Critique de navire » (jetValider('cascade')), puis LANCER chaque rangée d'Athlétisme :
-//    la bande est une étape à RANGÉES — le geste est jetLancer('cascadeBatch', idDuTesteur), pas jetLancer('cascade', …).
+//    la bande est une étape à RANGÉES — le geste est jetLancer('cascadeEnBande', idDuTesteur), pas jetLancer('cascade', …).
 // 3. les étapes de dé de la chute suivent : jetLancer('cascadeTirage', id) puis jetImposerLeResultat('cascadeTirage', v, id)
 ```
 
@@ -1078,8 +1078,8 @@ loin, ARMÉ d'un arc par la scène (hors du dôme, c'est la condition « provena
 ```js
 __wfrp.scenario('dome', 11)              // lancement (combat direct)
 // 1. Ilyanwe a un arsenal COURT (4 sorts, en donnée de la scène) : chaque sort est SA PROPRE alvéole
-//    de la console (data-action='cast-spell', data-cell='sort-<id>') ; le libellé est le nom du sort.
-//    Kit : cliquerAction(session, 'cast-spell', { cell: 'sort-dome' }).
+//    de la console (data-action='incantation', data-cell='sort-<id>') ; le libellé est le nom du sort.
+//    Kit : cliquerAction(session, 'incantation', { cell: 'sort-dome' }).
 //    Cliquer l'alvéole « Dôme » ouvre DIRECTEMENT la modale d'Incantation (aucun ciblage préalable) ;
 //    après « Lancer », le bouton devient « Poser la zone » → CLIQUER SA PROPRE CASE (Portée « Vous »,
 //    gabarit 3×3 annoncé par la modale). Le sort est NI 7 : un jet moyen rend DR 4 (« Réussite trop
@@ -1108,10 +1108,10 @@ __wfrp.scenario('dome', 11)              // lancement (combat direct)
 //    couvre pas la mêlée).
 ```
 
-Pour viser exactement le Dôme dans le kit, l'action est `cast-spell` et la cellule est
-`sort-dome` : `cliquerAction(session, 'cast-spell', { cell: 'sort-dome' })`.
+Pour viser exactement le Dôme dans le kit, l'action est `incantation` et la cellule est
+`sort-dome` : `cliquerAction(session, 'incantation', { cell: 'sort-dome' })`.
 Équivalent par sélecteur :
-`cliquerSelecteur(session, '.combat-console [data-action="cast-spell"][data-cell="sort-dome"]')`.
+`cliquerSelecteur(session, '.combat-console [data-action="incantation"][data-cell="sort-dome"]')`.
 `sort-dome` est une identité de cellule, pas un id d'action.
 Après le vrai lancer, le dé d'incantation se lit dans
 `__wfrp.store.getState().pendingCast?.result?.roll` ; avant résultat, `result` est nul.
@@ -1121,7 +1121,7 @@ Ce qui se lit à l'écran : le Trait qui a **réellement** sauvé est nommé (ja
 « Démoniaque/Protection » à deviner). **Deux graphies RAW cohabitent, et c'est le livre qui les
 sépare** : le STATBLOC écrit `Protection 6+` (`LDB 84 l.28` — puce de Trait du Codex, `grantTrait`,
 `formatTrait`), la PROSE d'un sort écrit `Protection (6+)` (`LDB 47 l.410` — journal de sauvegarde,
-`op.domeWard`, humanize, résumé d'op, `formatWardSave`). Ne pas « uniformiser » l'une sur l'autre.
+`op.dome`, humanize, résumé d'op, `formatWardSave`). Ne pas « uniformiser » l'une sur l'autre.
 
 **Poser le dé de sauvegarde** : l'option « Dés fixés » vit dans ☰ → **Options** → onglet **Confort**
 (case à cocher du registre `PREFERENCES`, persistée ; `__wfrp.prefs('des-fixes', null)` la remet). Elle
@@ -1205,7 +1205,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 
 - **Le BRIEFING d'entrée de scène avale tous les clics** (vécu 2026-08-10, recette du lacet continu —
   2 h perdues) : toute entrée de scène avec `startMessage` pousse une étape d'AFFICHAGE
-  (`pushReveal` `sceneEntry` → `CascadeModal`, bouton « Terminer »), qui est une modale bloquante :
+  (`pushReveal` `entreeEnScene` → `CascadeModal`, bouton « Terminer »), qui est une modale bloquante :
   la carte devient inerte (`modalBlocksMapHover`) et les boutons de l'écran de jeu sont sous son voile.
   Un clic « qui ne fait rien » juste après un `scenario()`/une transition N'EST PAS un bug de câblage.
   RÈGLE : FERMER le briefing (« Terminer ») AVANT toute mesure de clic, et le vérifier au DOM
@@ -1308,7 +1308,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   POV et à l'éditeur, et elle vaut pour Q/E du monde de jeu. Le `keyboard.down`/`up` de Playwright
   s'est révélé fragile pour ce geste tenu (échec silencieux : aucune rotation, aucune erreur) ;
   vérifier l'angle obtenu entre chaque geste plutôt que de le supposer.
-- **Pas d'EXPLORATION : une touche `explore-*` MAINTENUE fait COURIR le groupe** (recette #679,
+- **Pas d'EXPLORATION : une touche `exploration-*` MAINTENUE fait COURIR le groupe** (recette #679,
   2026-09-30) : `realKeyDown` / 350 ms / `realKeyUp` a mené le groupe de (1,2) à (4,0). La touche
   ARME une marche (`demarrerMarche`, `src/state/stageWalk.ts:90`) qui enchaîne un pas à chaque fin de
   glissement tant qu'elle est tenue ; le relâchement la désarme (`arreterMarche`, `:99`). Un TAP
@@ -1322,7 +1322,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   (`[aria-label="Vue du dessus"][aria-pressed]`), comme pour tout contrôle de cette barre.
 - **EN JEU, aucune barre de vues** (relevé en recette #1343, 2026-09-22) : `ViewControls` n'est monté
   qu'à l'éditeur (`src/ui/editor/EditorCanvas.tsx`). La bascule ISO ⇄ dessus du monde de jeu est un
-  RACCOURCI — binding `toggle-view`, muet en POV — à frapper par `realKey` ; la SOURCE des bascules
+  RACCOURCI — binding `vue-basculer`, muet en POV — à frapper par `realKey` ; la SOURCE des bascules
   d'affichage et de leurs touches est `src/state/clavier/keybindings.ts` (section `camera`), jamais ce doc.
 - **Une ref de snapshot ne se passe JAMAIS sous la forme `ref=xxx`** — deux formes selon l'outil qu'on
   tient, à vérifier au premier appel plutôt qu'à l'aveugle :
@@ -1516,15 +1516,15 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   #496 : clic « Humains » atterri sur « Nains »).
 
 - **Mode Pousser (bélier/engin de siège) au clavier — séquence exacte** (#199) : cliquer le slot
-  « Pousser » de la barre d'action ouvre le mode-CASE (`battle.action === 'push'`) mais laisse ce
+  « Pousser » de la barre d'action ouvre le mode-CASE (`battle.action === 'poussee'`) mais laisse ce
   BOUTON focalisé dans le DOM. `ArrowUp/Down/Left/Right` posent/déplacent `combatCursor` (le **1er
   appui pose le curseur sur la case de DÉPART elle-même**, coût 0 — `Pousser (0)` à l'aperçu, RIEN
   ne bouge encore ; il faut un **2e appui** pour quitter cette case et voir un coût > 0). `Entrée`/
   `NumpadEnter` commet (`commitCursor` → `pushCommitTile`) — fonctionne MÊME si le bouton « Pousser »
-  garde le focus résiduel du clic souris qui a ouvert le mode (corrigé : `cursor-commit` n'a plus la
+  garde le focus résiduel du clic souris qui a ouvert le mode (corrigé : `curseur-valider` n'a plus la
   garde `notWhenControlFocused`, `src/state/clavier/keybindings.ts`). `Échap` annule le curseur ;
   le geste « ANNULER » de la gouttière de Mouvement (nom accessible « Annuler le déplacement »,
-  action `undo-move` ; post-commit, tant qu'aucune Action n'a été prise) défait aussi une poussée
+  action `annulation-deplacement` ; post-commit, tant qu'aucune Action n'a été prise) défait aussi une poussée
   commise au clavier, comme au clic (`src/state/push-keyboard-commit.test.ts`).
 
 - **Combat naval — l'arc de bordée d'une pièce montée (`weapon.mountSide`)** : `firedAttackBlock`
@@ -1593,7 +1593,7 @@ que CHAQUE page rend, jamais à un `pending*` (identique des deux côtés, cf. i
 
 | Cas | Commande | Contrôle |
 |---|---|---|
-| **Défaut hors production — sans variable** | `npm run relay:dev` (= `npm --prefix server run dev`, wrangler dev, port 8787) dans un terminal, puis `timeout <N> npm run dev` en fond | `relayHttpUrl` (`src/state/netFlow.ts`) vise `http://localhost:8787` ; `POST /rooms` rend `{"code":…,"hostToken":…}` |
+| **Défaut hors production — sans variable** | `npm run relay:dev` (= `npm --prefix server run dev`, wrangler dev, port 8787) dans un terminal, puis `timeout <N> npm run dev` en fond | `relayHttpUrl` (`src/hote/coop/page.ts`) vise `http://localhost:8787` ; `POST /rooms` rend `{"code":…,"hostToken":…}` |
 | Build de production sans variable | Build avec `import.meta.env.PROD` vrai | Le défaut `RELAY_URL_PROD` vise le Worker Cloudflare déployé |
 | Relais explicite | Relancer Vite avec `VITE_RELAY_URL` | La variable prend priorité dans tous les modes ; une URL locale convient aussi à un build de production |
 
@@ -1616,9 +1616,11 @@ variable, aucune de ces tentatives ne vise le Worker de production.
 ### Le kit deux-navigateurs (`scripts/recette/lib.mjs`)
 
 Deux appels d'`openApp` dans le MÊME script node = **deux Chrome headless indépendants** : profil
-temporaire tiré au hasard pour chacun (`os.tmpdir()`), port CDP tiré au hasard, donc deux
-`window.__wfrp`, deux `localStorage`/`sessionStorage` (le token de reprise de siège compris). L'option
-`port` de `launchSession` (transmise par `openApp`) ne fixe QUE le port CDP — inutile de la poser.
+temporaire tiré au hasard pour chacun (`os.tmpdir()`), donc deux `window.__wfrp`, deux
+`localStorage`/`sessionStorage` (le token de reprise de siège compris). Chaque Chrome choisit son port CDP
+(`--remote-debugging-port=0`) et l'écrit dans le `DevToolsActivePort` de son profil ; `launchSession` le lit
+là (`lireDevToolsActivePort`) et se branche sur le WebSocket que ce fichier nomme : une session parle au
+Chrome qu'elle a lancé, même lancée en même temps qu'une autre. `session.port` est ce port lu.
 
 **Teardown** : `session.close` pour CHAQUE session dans un `finally` (ferme le target, tue l'ARBRE
 Chrome — `taskkill /T`, seul fiable sous Windows — et purge le profil). Le `process.on('exit')` du
@@ -1643,7 +1645,7 @@ try {
   const gInvite = consoleGuard(invite);
   try {
     await evaluate(invite, `window.__wfrp.store.getState().netJoin(${JSON.stringify(code)}, 'Invité')`);
-    await waitFor(invite, `window.__wfrp.store.getState().net.mode === 'guest'`);
+    await waitFor(invite, `window.__wfrp.store.getState().net.mode === 'invite'`);
     await waitFor(hote, `Object.keys(window.__wfrp.store.getState().net.seatNames).length === 2`);
     // … recette …
   } finally { await invite.close(); }
@@ -1657,12 +1659,12 @@ try {
 | Héberger | hôte | menu principal → **« Jouer en ligne »** (`MainMenu`, écran `coop`) → champ « Votre nom » → bouton **« Héberger »** (`src/ui/CoopLobby.tsx`) | AUX CLICS : `typeInField` sur le sélecteur que `champParLibelle` rend pour le libellé « Votre nom », puis `clickButtonByText` sur « Héberger » (le champ est un input React CONTRÔLÉ : `evaluate` + `.value` reste sans effet). Raccourci d'état : `__wfrp.store.getState().netHostStart('Hôte')` |
 | Lire le code | hôte | code à 6 caractères + « Lien d'invitation » (`CoopRoomPanel`, `src/ui/CoopPanels.tsx`) | `__wfrp.net().roomCode` (`state()` n'expose pas `net`) |
 | Rejoindre | invité | même écran → code + nom → **« Rejoindre »** | AUX CLICS : `typeInField` sur le sélecteur que `champParLibelle` rend pour « Votre nom », puis sur `.coop-code-input`, et `clickButtonByText` sur « Rejoindre ». Raccourci : ouvrir l'app sur `?join=<CODE>` (bascule sur l'écran `coop`, code pré-rempli, `src/ui/App.tsx`) puis `netJoin` |
-| Contrôler la liaison | les deux | liste « Joueurs connectés » (`CoopSeatList`) | `__wfrp.net()` des deux côtés : `mode` = `host`/`guest`, `mySeat` = 0/1, `seatNames` = les deux noms |
-| Composer le groupe | hôte | **« Composer le groupe → »** → écran d'équipe : l'hôte attribue les EMPLACEMENTS (`netAssignSlot`), chaque joueur remplit les siens | poser le groupe d'un coup par un scénario (ci-dessous) |
-| Attribuer les héros | hôte | rubrique « Attribution des héros » (`CoopAssignList`, un `<select>` par héros ; `GmSeatSelect` y pose le rôle MJ) — lobby ET menu ☰ en partie (`CoopMenuSection`) | `__wfrp.store.getState().netAssign(heroId, 1)` (hôte-autoritaire : refusé en mode invité) |
+| Contrôler la liaison | les deux | liste « Joueurs connectés » (`CoopSeatList`) | `__wfrp.net()` des deux côtés : `mode` = `hote`/`invite`, `mySeat` = 0/1, `seatNames` = les deux noms |
+| Composer le groupe | hôte | **« Composer le groupe → »** → écran d'équipe : l'hôte attribue les EMPLACEMENTS (`affecterLEmplacementAuSiege`), chaque joueur remplit les siens | poser le groupe d'un coup par un scénario (ci-dessous) |
+| Attribuer les héros | hôte | rubrique « Attribution des héros » (`CoopAssignList`, un `<select>` par héros ; `GmSeatSelect` y pose le rôle MJ) — lobby ET menu ☰ en partie (`CoopMenuSection`) | `__wfrp.store.getState().affecterLeHerosAuSiege(heroId, 1)` (verbe `hôte` : sans effet en mode invité) |
 | Jouer | hôte | tout le pilotage de MISE EN PLACE | `scenario`, `goto`, `fight`, `turn`, `combatEnd`… **depuis l'HÔTE uniquement** |
 
-⚠ **Ne jamais mettre en place depuis l'invité** : `interceptGuestActions` (`src/state/netFlow.ts`)
+⚠ **Ne jamais mettre en place depuis l'invité** : `transmettreLesIntentions` (`src/noyau/reseau.ts`)
 n'enrobe QUE les actions de l'allowlist (`GUEST_INTENTS`, `src/noyau/intentionsDeSiege.ts`) — toute autre action
 (`fixerLeGroupe`, `lancerLaScene`, `scenario`…) s'exécute en LOCAL chez l'invité puis est écrasée au snapshot
 suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n'est pas un bug.
@@ -1681,7 +1683,7 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
 ### Pièges coop
 
 - **Attendre la PROPAGATION avant d'asserter chez le pair** : la diffusion est throttlée (trailing
-  **~120 ms** + coalescing, `scheduleBroadcast`, `src/state/netFlow.ts`) et le trajet Worker s'y
+  **~120 ms** + coalescing, `diffuser`, `DIFFUSION_MS`, `src/hote/coop/salon.ts`) et le trajet Worker s'y
   ajoute. Après un geste côté A, poller la CONDITION attendue côté B (`waitFor`), jamais un délai fixe.
 - **Les deux `__wfrp` sont ÉTRANGERS** : un helper appelé sur la page hôte ne se voit sur la page
   invitée qu'après un snapshot. Toujours nommer la session dans le script (`hote` / `invite`).
@@ -1690,13 +1692,13 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
   autre siège, ou tant qu'une fenêtre (dialogue, pause de Round, cascade) est ouverte, rien ne répond.
   Fermer la fenêtre, ou rendre la main au bon siège, AVANT de conclure à une régression clavier.
 - **Ready-check de début de Round — le combat n'est PAS bloqué** : dès `net.mode !== 'local'`, l'hôte ne
-  lance le Round que quand `pendingRoundStart.readyBySeat` est complet (`fenetreValider('roundStart')` marque le
+  lance le Round que quand `pendingRoundStart.readyBySeat` est complet (`fenetreValider('debutDuRound')` marque le
   siège qui décide, `src/noyau/sortieDeFenetre.ts`). Annoncer « Prêt » **sur CHAQUE page** — sans les deux déclarations, rien
   n'avance, aucun tour ne s'ouvre, aucune modale ne surface : ce n'est pas un gel, c'est le
-  ready-check. ⚠ SEULE SURFACE aujourd'hui : le raccourci clavier `round-start`
+  ready-check. ⚠ SEULE SURFACE aujourd'hui : le raccourci clavier `debut-de-round`
   (`src/state/clavier/keybindings.ts`) — le bandeau de phase de la console ne rend que le
-  « Commencer le combat » (`fenetreValider('roundStart')`, le Round part d'un appel en solo) ; en recette coop,
-  piloter par `store.getState().fenetreValider('roundStart')` sur la page du siège concerné.
+  « Commencer le combat » (`fenetreValider('debutDuRound')`, le Round part d'un appel en solo) ; en recette coop,
+  piloter par `store.getState().fenetreValider('debutDuRound')` sur la page du siège concerné.
 - **Sous-bandes successives INDISCERNABLES au DOM** : une bande peut en appeler une autre (chaque rangée
   vaincue ré-appende SON Test à la cascade — Surprise → Vigilance, `src/noyau/combat/triggeredTest.ts`).
   Deux étapes consécutives présentent alors le MÊME libellé et les MÊMES boutons : la présence de
@@ -1704,9 +1706,9 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
   valeurs, rangées déjà roulées) entre deux clics, et **drainer jusqu'à disparition de la fenêtre** des
   DEUX côtés — jamais un nombre de clôtures présumé. Chaque étape est possédée par le siège de son
   acteur : une cascade qui « ne se ferme pas » chez l'hôte attend souvent une clôture chez l'invité.
-- **`__wfrp.gmSeat` ne sert QUE le solo/l'hôte** : il pose le siège **0** (`setGmSeat(0)`). En coop, le
+- **`__wfrp.gmSeat` ne sert QUE le solo/l'hôte** : il pose le siège **0** (`affecterLeSiegeMJ(0)`). En coop, le
   MJ se désigne par siège au `<select>` « Maître du Jeu » (`GmSeatSelect`) ou par
-  `store.getState().setGmSeat(1)` côté hôte. Le siège MJ SURVIT à `scenario()` (piège mesuré #1028
+  `store.getState().affecterLeSiegeMJ(1)` côté hôte. Le siège MJ SURVIT à `scenario()` (piège mesuré #1028
   ci-dessus) : le remettre à zéro entre deux recettes.
 - **Reprise de siège** : le token vit en `sessionStorage` par room — un reload de l'onglet invité
   reprend le MÊME siège, un Chrome au profil NEUF prend un siège NEUF. `netJoin` refuse hors mode
@@ -1720,10 +1722,10 @@ Deux véhicules, un par famille d'invariants — les mélanger est ce qui fait t
 
 | Invariant visé | Scénario | Pourquoi |
 |---|---|---|
-| Choix de GROUPE (3) + bande partagée (4/5) | `embuscade` (`src/scenes/test-scenarios/embuscade.ts`) | exploration → dialogue → combat ; `enc-mutants` porte `surprise: 'party'` (5 embusqueurs) donc une CASCADE s'ouvre avant tout tour — c'est justement le matériau des invariants de bande |
+| Choix de GROUPE (3) + bande partagée (4/5) | `embuscade` (`src/scenes/test-scenarios/embuscade.ts`) | exploration → dialogue → combat ; `enc-mutants` porte `surprise: 'groupe'` (5 embusqueurs) donc une CASCADE s'ouvre avant tout tour — c'est justement le matériau des invariants de bande |
 | Jet SOLO d'invité (1/2) | `entrainement` (`src/scenes/test-scenarios/entrainement.ts`) | `enc-entrainement` est SANS `surprise` : combat direct, ready-check, puis `ouvrirLaCourse()` dès le premier tour — mesuré en exécution comme le chemin court |
 
-⚠ **Ne pas chercher le jet solo dans `embuscade`** : `surprise: 'party'` fait ouvrir la bande de Surprise
+⚠ **Ne pas chercher le jet solo dans `embuscade`** : `surprise: 'groupe'` fait ouvrir la bande de Surprise
 (`applySurprise`, `src/noyau/combatFlow.ts`) AVANT tout tour, et chaque défenseur vaincu porteur de
 Vigilance ré-appende SON Test — une file d'étapes successives à drainer des DEUX côtés (piège
 « sous-bandes indiscernables » ci-dessus) qui noie le jet qu'on venait mesurer.
@@ -1737,7 +1739,7 @@ Déroulé : étapes 1-6 sur `embuscade` (choix de groupe), étape 7 sur `entrain
 3. HÔTE : `__wfrp.scenario('embuscade')` → groupe de 4 posé, scène chargée ; l'invité la reçoit au
    snapshot (contrôler `__wfrp.state().sceneId === 'ambush-test'` chez l'INVITÉ).
 4. HÔTE : relever les ids (`__wfrp.state().party`) et attribuer le 2ᵉ héros au siège 1 :
-   `__wfrp.store.getState().netAssign('<id>', 1)`. Contrôler chez l'invité :
+   `__wfrp.store.getState().affecterLeHerosAuSiege('<id>', 1)`. Contrôler chez l'invité :
    `net.ownership['<id>'] === 1`.
 5. HÔTE : `__wfrp.goto({ x: 9, y: 6 })` — la zone `approche` déclenche le dialogue `dlg-ambush`.
    **Choix de GROUPE** : `state().inDialogue` doit passer à `true` des DEUX côtés (invariant 3).
@@ -1747,7 +1749,7 @@ Déroulé : étapes 1-6 sur `embuscade` (choix de groupe), étape 7 sur `entrain
    côtés.
 7. **Jet SOLO d'invité — basculer sur `entrainement`** (chemin court, mesuré en exécution). HÔTE :
    `__wfrp.scenario('entrainement')` → scène `terrain-entrainement` ; le groupe est DIFFÉRENT (héros
-   dédiés du scénario) → **refaire l'étape 4** : relever les nouveaux ids et `netAssign` du 2ᵉ héros au
+   dédiés du scénario) → **refaire l'étape 4** : relever les nouveaux ids et `affecterLeHerosAuSiege` du 2ᵉ héros au
    siège 1. Puis HÔTE : `__wfrp.goto({ x: 9, y: 8 })` — franchir la bande `entrer-en-lice` (x=7) lance
    `enc-entrainement`, SANS Surprise. **Ready-check** : cliquer « Prêt » sur CHAQUE page (piège
    ci-dessus) — sinon aucun tour ne s'ouvre et on croit le combat gelé ; l'ouverture s'observe par
@@ -1757,7 +1759,7 @@ Déroulé : étapes 1-6 sur `embuscade` (choix de groupe), étape 7 sur `entrain
    intent → hôte → snapshot. **Jet d'invité** : la modale de Course est rendue chez l'invité,
    l'hôte affiche « Invité joue <héros>… » (invariant 1).
    Si on reste sur `embuscade` : rien ne s'ouvre tant que la cascade de Surprise n'est pas DRAINÉE des
-   deux côtés, et le héros est SURPRIS (`surprise: 'party'` de la rencontre, LDB 13) — passer au Round
+   deux côtés, et le héros est SURPRIS (`surprise: 'groupe'` de la rencontre, LDB 13) — passer au Round
    suivant (`fastForward`) puis refaire `turn`.
 8. Bande partagée + Résilience (invariants 4/5) : HÔTE `__wfrp.combatEnd()` → la cascade de fin de
    combat s'ouvre CHEZ LES DEUX ; vérifier qu'une rangée n'est jouable que par son siège et que la
@@ -1878,8 +1880,8 @@ Gestes du JOUEUR, re-mesurés au code (frictions des recettes #2177, #2199, #200
 
 - **Ouvrir le combat** : `__wfrp.fight(id)` (ou la rencontre déclenchée au pas) pose la PAUSE de début
   de Round ; « Commencer le combat » est un geste du joueur — `ouvrirRound` clique la case de phase
-  `data-action="round-start"` (`.cc-phase`). La pause d'un Round SUIVANT (« Commencer le round N »,
-  `pendingRoundStart`) tient la main de la même façon (`src/noyau/modalArbiter.ts`, entrée `roundStart`) :
+  `data-action="debut-de-round"` (`.cc-phase`). La pause d'un Round SUIVANT (« Commencer le round N »,
+  `pendingRoundStart`) tient la main de la même façon (`src/noyau/modalArbiter.ts`, entrée `debutDuRound`) :
   aucun tour ne commence tant qu'elle n'est pas confirmée.
 - **Cibler une attaque** : le PORTRAIT de la frise d'initiative (`button.ptile` d'une `.is-cell`,
   `src/ui/InitiativeStrip.tsx`) route son clic comme le pion de la carte (`onStripPortrait`,
@@ -1889,12 +1891,12 @@ Gestes du JOUEUR, re-mesurés au code (frictions des recettes #2177, #2199, #200
   n'est posé que pour un ciblage d'ENTITÉ d'un AUTRE mode (sort, Soin, Frappe Mortelle, 2ᵉ frappe… :
   `ciblageEntiteArme`, `src/noyau/targetingModes.ts`). Deux combattants de même nom : résoudre l'id
   d'abord (piège « Roster du HUD » ci-dessus).
-- **Finir le tour** : la plaque porte le crochet STABLE `data-action="end-turn"`
+- **Finir le tour** : la plaque porte le crochet STABLE `data-action="fin-de-tour"`
   (`src/ui/console/CombatConsole.tsx`) dans ses DEUX états — « Fin du tour » et sa note (« Action non
   dépensée », « Tour fini », « ESPACE »), puis, ARMÉE (`battle().endTurnArmed`) quand l'Action n'est
   pas dépensée, « Finir quand même » et sa note « Finir quand même ? » (`endNote`, `.cc-lbl`). Son texte change : jamais un
   `clickButtonByText('Fin du tour')`. `finDuTour` clique la plaque et confirme l'armement au second
-  clic ; `cliquerAction(session, 'end-turn')` est le clic unitaire.
+  clic ; `cliquerAction(session, 'fin-de-tour')` est le clic unitaire.
 - **Ouvrir une Défense** : `__wfrp.attaque(attaquantId, defenseurId)`, celle d'une attaque GRATUITE d'IA
   `__wfrp.attaqueGratuite(attaquantId, defenseurId, type?)` (table « Combat — triche de mise en
   place ») ; en pilotage, un `arret` sur `fenetre.jet === 'defense'` (`piloterCombat`,
@@ -2013,7 +2015,7 @@ sélectionne le trigger et ouvre son détail) → **+ Bloc** (`src/ui/editor/Flo
   (`AddMenu.tsx`, un `mini-title` par groupe, jamais cliquable) : « Narration » n'est qu'un titre, on
   clique « Journal » directement.
 - La ligne d'effet posée est un `<details class="eff-row flow-node">` REPLIÉ (`open` n'est posé que pour
-  un nœud `if`/`test`, `FlowEditor.tsx:268`) : ouvrir son `<summary>` avant de viser la zone de texte —
+  un nœud `si`/`test`, `FlowEditor.tsx:268`) : ouvrir son `<summary>` avant de viser la zone de texte —
   `deplierVers(session, '<sélecteur du champ>')` le fait au geste (clic réel du `summary`, puis molette).
 - Depuis la CARTE, un trigger sélectionné ouvre le même détail par le bouton **Effets (n)…** de
   l'inspecteur (`src/ui/editor/Inspector.tsx:910`).

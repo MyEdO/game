@@ -74,7 +74,7 @@ export function resetInterruptedFavorProgress(get: Get, set: Set): void {
 /** Rompt une Faveur (choix explicite du joueur, avec confirmation côté UI) — « votre Niveau est
  *  toujours réduit de 1, jusqu'à un minimum de 0, si la rumeur de la perfidie se répand » (l.141).
  *  La source (l.141) ne modélise aucune mécanique de propagation de rumeur (silence total) :
- *  arbitrage maison [entériné 2026-08-03] paramétrable (`favor-rumor-spreads`, défaut actif
+ *  arbitrage maison [entériné 2026-08-03] paramétrable (`faveur-rumeur-se-repand`, défaut actif
  *  — au plus simple, la rumeur se répand toujours ; #509). */
 export function breakFavor(get: Get, set: Set, heroId: string, favorId: string): void {
   if (refuseSi(get, set, refusDeRompreUneFaveur)) return;
@@ -82,7 +82,7 @@ export function breakFavor(get: Get, set: Set, heroId: string, favorId: string):
   const h = get().party.find((x) => x.id === heroId);
   if (!favor || !h) return;
   set({ favors: (get().favors ?? []).filter((f) => f.id !== favorId) });
-  if (rule('favor-rumor-spreads')) {
+  if (rule('faveur-rumeur-se-repand')) {
     h.careerLevel = Math.max(0, (h.careerLevel ?? 1) - 1);
     set({ party: [...get().party] });
     get().ecrireAuJournal(t('favor.brokenRumor', { name: h.label, level: favor.level, owedTo: favor.owedTo, lvl: h.careerLevel }));

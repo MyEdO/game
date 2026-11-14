@@ -24,7 +24,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 const noop = () => {};
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy'): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi'): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
@@ -35,7 +35,7 @@ const rolledRow = (label = 'Athlétisme', over: Partial<RollRowData> = {}): Buil
   ...over,
 });
 
-const actions: RollAction[] = [{ key: 'confirm', label: 'Appliquer', onClick: noop }];
+const actions: RollAction[] = [{ key: 'confirmer', label: 'Appliquer', onClick: noop }];
 
 describe('RollShell — l’ISSUE se rend à toute cardinalité (#1078)', () => {
   it('une coquille à 2 rangées (jet OPPOSÉ) rend son `outcome`', () => {
@@ -76,7 +76,7 @@ describe('RollShell — l’ISSUE se rend à toute cardinalité (#1078)', () => 
 });
 
 describe('RollShell — l’issue est une DONNÉE, rendue par LA coquille (#1078 LOT B1)', () => {
-  const combatants = [mk('Gustav', 'hero'), mk('Skaven', 'enemy')];
+  const combatants = [mk('Gustav', 'heros'), mk('Skaven', 'ennemi')];
 
   it('le CADRE d’issue et la ligne appartiennent à la coquille : `.rm-journal` > `.recap-line`', () => {
     const html = renderToStaticMarkup(
@@ -89,7 +89,7 @@ describe('RollShell — l’issue est une DONNÉE, rendue par LA coquille (#1078
   });
 
   it('une issue produite par `recapLineOfEvent` garde sa coloration PAR CAMP et son icône', () => {
-    const line = recapLineOfEvent(ev('damage', 'Gustav frappe Skaven', 'Gustav', 'Skaven'), combatants);
+    const line = recapLineOfEvent(ev('degats', 'Gustav frappe Skaven', 'Gustav', 'Skaven'), combatants);
     const html = renderToStaticMarkup(
       <RollShell title="T" rows={[rolledRow()]} rolled outcome={[line]} actions={actions} />,
     );
@@ -347,19 +347,19 @@ describe('RollShell — un RÔLE, une classe (#1078) : la coquille ne pose JAMAI
   });
 
   it('`VsHeader` (l’OPPOSITION) garde `.rm-vs`', () => {
-    const html = renderToStaticMarkup(<VsHeader actor={mk('a', 'hero')} target={mk('b', 'enemy')} />);
+    const html = renderToStaticMarkup(<VsHeader actor={mk('a', 'heros')} target={mk('b', 'ennemi')} />);
     expect(html).toContain('class="rm-vs"');
   });
 });
 
 describe('VsHeader — le verbe est un VOCABULAIRE FERMÉ (décision utilisateur 2026-08-04)', () => {
   it('sans `verb` : glyphe « → » (la direction dit qui agit)', () => {
-    const html = renderToStaticMarkup(<VsHeader actor={mk('a', 'hero')} target={mk('b', 'enemy')} />);
+    const html = renderToStaticMarkup(<VsHeader actor={mk('a', 'heros')} target={mk('b', 'ennemi')} />);
     expect(html).toContain('→');
   });
 
   it('avec `verb` : l’icône du registre est rendue (aucun texte n’est composé)', () => {
-    const html = renderToStaticMarkup(<VsHeader actor={mk('a', 'hero')} target={mk('b', 'enemy')} verb="melee/disengage" />);
+    const html = renderToStaticMarkup(<VsHeader actor={mk('a', 'heros')} target={mk('b', 'ennemi')} verb="melee/se-desengager" />);
     const arrow = html.slice(html.indexOf('rm-vs-arrow'));
     expect(arrow).toContain('<svg class="icon"');
     expect(arrow).not.toContain('→');
@@ -370,7 +370,7 @@ describe('sous-ligne d’une rangée — CANAL UNIQUE `note` (#1078)', () => {
   const parts = [{ id: 'a', interactive: true, result: { roll: 22, target: 45, sl: 2, success: true } }];
 
   it('la `note` du builder atterrit dans `.rr-note`, sous la ligne de jet', () => {
-    const rows = buildParticipantRows(parts, [mk('a', 'hero')], {
+    const rows = buildParticipantRows(parts, [mk('a', 'heros')], {
       onRoll: noop, onReroll: noop, onBonusSL: noop, onDarkPact: noop, onForce: noop,
       row: (_p, actor, res) => ({ combatant: actor, d: testBreakdown('Voile', 45, { roll: res!.roll, target: res!.target, sl: res!.sl, success: true }) }),
       note: (_p, _a, res) => <span className="cs-outcome">+{res.sl} DR ×2</span>,
@@ -381,7 +381,7 @@ describe('sous-ligne d’une rangée — CANAL UNIQUE `note` (#1078)', () => {
   });
 
   it('sans `note`, la rangée ne rend aucune sous-ligne', () => {
-    const rows = buildParticipantRows(parts, [mk('a', 'hero')], {
+    const rows = buildParticipantRows(parts, [mk('a', 'heros')], {
       onRoll: noop, onReroll: noop, onBonusSL: noop, onDarkPact: noop, onForce: noop,
       row: (_p, actor) => ({ combatant: actor, d: testBreakdown('Voile', 45, { roll: 22, target: 45, sl: 2, success: true }) }),
     });

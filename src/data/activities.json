@@ -3,7 +3,7 @@
     "id": "plein-air",
     "type": "activities",
     "label": "Plein air",
-    "icon": "nav/activity",
+    "icon": "navigation/activite",
     "contexts": [
       "voyage"
     ],
@@ -37,7 +37,7 @@
     "id": "approvisionnement",
     "type": "activities",
     "label": "Approvisionnement",
-    "icon": "action/consume",
+    "icon": "action/consommer",
     "contexts": [
       "voyage"
     ],
@@ -66,7 +66,7 @@
     "id": "recueillir-informations",
     "type": "activities",
     "label": "Recueillir des informations",
-    "icon": "char/soc",
+    "icon": "caracteristique/soc",
     "contexts": [
       "voyage",
       "auberge"
@@ -93,7 +93,7 @@
     "id": "rester-aux-aguets",
     "type": "activities",
     "label": "Rester aux aguets",
-    "icon": "action/aim",
+    "icon": "action/viser",
     "contexts": [
       "voyage"
     ],
@@ -119,7 +119,7 @@
     "id": "etablir-cartes",
     "type": "activities",
     "label": "Établir des cartes",
-    "icon": "nav/campaign",
+    "icon": "navigation/campagne",
     "contexts": [
       "voyage"
     ],
@@ -156,7 +156,7 @@
     "id": "pratiquer-competence",
     "type": "activities",
     "label": "Pratiquer une Compétence",
-    "icon": "scenario/training",
+    "icon": "scenario/entrainement",
     "contexts": [
       "voyage"
     ],
@@ -322,7 +322,7 @@
     "id": "recuperer",
     "type": "activities",
     "label": "Récupérer",
-    "icon": "nav/rest",
+    "icon": "navigation/repos",
     "contexts": [
       "voyage"
     ],
@@ -337,7 +337,7 @@
     "id": "monter-camp",
     "type": "activities",
     "label": "Monter un camp",
-    "icon": "journal/heal",
+    "icon": "journal/soin",
     "contexts": [
       "voyage"
     ],
@@ -369,7 +369,7 @@
     "id": "revenus",
     "type": "activities",
     "label": "Revenus",
-    "icon": "resource/gold-purse",
+    "icon": "ressource/bourse",
     "contexts": [
       "interlude"
     ],
@@ -387,7 +387,7 @@
     "id": "craft",
     "type": "activities",
     "label": "Artisanat",
-    "icon": "item/misc",
+    "icon": "objet/divers",
     "contexts": [
       "interlude"
     ],
@@ -405,7 +405,7 @@
     "id": "learn",
     "type": "activities",
     "label": "Apprentissage particulier",
-    "icon": "nav/compendium",
+    "icon": "navigation/compendium",
     "contexts": [
       "interlude"
     ],
@@ -423,7 +423,7 @@
     "id": "entrainement",
     "type": "activities",
     "label": "Entraînement",
-    "icon": "nav/compendium",
+    "icon": "navigation/compendium",
     "contexts": [
       "interlude"
     ],
@@ -438,7 +438,7 @@
     "id": "identify",
     "type": "activities",
     "label": "Identifier un artefact",
-    "icon": "nav/identify",
+    "icon": "navigation/identifier",
     "contexts": [
       "interlude"
     ],
@@ -464,7 +464,7 @@
     "id": "convalescence",
     "type": "activities",
     "label": "Convalescence",
-    "icon": "resource/resolve",
+    "icon": "ressource/determination",
     "contexts": [
       "interlude"
     ],
@@ -482,7 +482,7 @@
     ],
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "ops": [
           {
             "op": "removePsychTrait"
@@ -490,7 +490,7 @@
         ]
       },
       {
-        "on": "failure",
+        "on": "echec",
         "ops": [
           {
             "op": "grantReverseToken",
@@ -510,7 +510,7 @@
     "id": "penitence",
     "type": "activities",
     "label": "Pénitence",
-    "icon": "resource/fate",
+    "icon": "ressource/destin",
     "contexts": [
       "interlude"
     ],
@@ -529,7 +529,7 @@
     "desc": "Située au cœur de l'Empire, Altdorf est le centre du culte de Sigmar, son divin patron. Les adorateurs de Sigmar ont donc tendance à trouver une grande paix spirituelle dans la ville, malgré ses nombreuses distractions séculières.\n\nIl est commun pour les fidèles tombés en disgrâce d'entreprendre un pèlerinage à Altdorf en pénitence, afin de raviver la foi dans leur cœur. Si vous le désirez, vous pouvez entreprendre un tel voyage spirituel pour vous débarrasser des points de Péché que vous auriez accumulés. Si vous êtes déjà à Altdorf, la ville contient des chemins saints, dont on dit qu'ils retracent les pas de Sigmar lui-même, ou bien de l'un de ses fidèles suivants : emprunter ces chemins peut vous faire regagner ses faveurs.\n\nAprès un pèlerinage adéquat, faites un Test de **Prière Accessible (+20)**. Si vous réussissez, enlevez 1 point de Péché, ou 2 sur un Succès Impressionnant (+4 DR) ou mieux. Si vous échouez ce Test, vous subissez 1 État *Exténué* le premier jour de votre prochaine aventure : vous souffrez d'une fatigue physique et spirituelle. Si vous faites une Maladresse sur le jet, réalisez un Test sur le Tableau de la Colère des Dieux (**WFJDR**, p. 218) à la place.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "minSL": 4,
         "ops": [
           {
@@ -540,7 +540,7 @@
         "note": "Si vous réussissez, enlevez 1 point de Péché, ou 2 sur un Succès Impressionnant (+4 DR) ou mieux."
       },
       {
-        "on": "success",
+        "on": "reussite",
         "maxSL": 3,
         "ops": [
           {
@@ -551,17 +551,19 @@
         "note": "Si vous réussissez, enlevez 1 point de Péché."
       },
       {
-        "on": "failure",
+        "on": "echec",
         "ops": [
           {
             "op": "condition",
-            "id": "extenue"
+            "id": {
+              "id": "extenue"
+            }
           }
         ],
         "note": "Si vous échouez ce Test, vous subissez 1 État Exténué le premier jour de votre prochaine aventure : vous souffrez d'une fatigue physique et spirituelle."
       },
       {
-        "on": "fumble",
+        "on": "maladresse",
         "resolver": "wrathOfTheGods",
         "note": "Si vous faites une Maladresse sur le jet, réalisez un Test sur le Tableau de la Colère des Dieux (WFJDR, p. 218) à la place."
       }
@@ -576,7 +578,7 @@
     "id": "entrainement-arme-inhabituelle",
     "type": "activities",
     "label": "Entraînement avec une arme inhabituelle",
-    "icon": "action/attack",
+    "icon": "action/attaquer",
     "contexts": [
       "interlude"
     ],
@@ -602,12 +604,12 @@
     "desc": "Certaines armes sont si inhabituelles que pour les maîtriser, leur nouveau propriétaire doit passer un temps considérable à s'entraîner. Par exemple, peu de Personnages sont capables d'utiliser efficacement le couteau de lancer de Harald L'Infâme, forgé par Magnin. Les tuteurs ne peuvent pas faire de miracles : pour véritablement maîtriser une telle arme, il faut avoir la patience d'échouer et de recommencer indéfiniment.\n\nAprès ce difficile entraînement, faites un Test de **Corps à corps** ou de **Projectiles Complexe (−10)** selon la spécialisation de l'arme que vous tentez de maîtriser. Si le Test réussit, vous avez maîtrisé l'arme. Si vous échouez, le Personnage devra attendre le prochain moment de pause après une aventure pour recommencer.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "resolver": "masterWeapon",
         "note": "Si le Test réussit, vous avez maîtrisé l'arme."
       },
       {
-        "on": "failure",
+        "on": "echec",
         "note": "Si vous échouez, le Personnage devra attendre le prochain moment de pause après une aventure pour recommencer."
       }
     ],
@@ -621,7 +623,7 @@
     "id": "tester-objets-magiques",
     "type": "activities",
     "label": "Tester des objets magiques",
-    "icon": "nav/identify",
+    "icon": "navigation/identifier",
     "contexts": [
       "interlude"
     ],
@@ -646,18 +648,18 @@
         "note": "Le Personnage est capable d'étudier l'objet en profondeur. Il découvre comment exploiter son plein potentiel, et a conscience de tous les dangers éventuels de son utilisation."
       },
       {
-        "on": "success",
+        "on": "reussite",
         "maxSL": 3,
         "resolver": "identifyByResearch",
         "note": "Le Personnage peut découvrir la fonction principale de l'objet et comment l'activer."
       },
       {
-        "on": "failure",
+        "on": "echec",
         "minSL": -3,
         "note": "Le Personnage ne découvre aucune information utile sur l'artéfact."
       },
       {
-        "on": "failure",
+        "on": "echec",
         "maxSL": -4,
         "ops": [
           {
@@ -699,7 +701,7 @@
     "desc": "Altdorf accueille de nombreux comédiens, saltimbanques, et charlatans, qui se battent tous pour attirer l'attention d'un mécène fortuné.\n\nSi vous le souhaitez, lorsque vous pratiquez une Opération Bancaire (**WFJDR**, p. 196) à Altdorf, vous pouvez choisir d'investir votre argent durement gagné en sponsorisant un dramaturge prometteur. C'est une bonne façon de gagner une réputation de mécène des arts, et parfois, d'avoir un retour sur son investissement. Comme pour n'importe quel investissement, vous devez réaliser deux Opérations : une première quand vous donnez votre argent (au moins 5 CO) et une seconde quand vous essayez de le récupérer. Quand vous tentez de récupérer votre investissement, faites un Test d'**Évaluation Intermédiaire (+0)** pour voir si vous avez été capable de trouver un auteur de talent, et consultez le tableau ci-contre pour déterminer le résultat.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "minSL": 6,
         "payoutPct": 120,
         "note": "La pièce devient un classique instantané, et même les mécènes qui ont donné peu d'argent sont vus comme des patrons des arts aux goûts certains. Au cours de la prochaine aventure, vous pouvez inverser tout Test de Sociabilité quand vous avez affaire à un amateur de théâtre. Vous regagnez votre investissement, avec un profit de 20 %.",
@@ -713,7 +715,7 @@
         ]
       },
       {
-        "on": "success",
+        "on": "reussite",
         "minSL": 3,
         "maxSL": 5,
         "payoutPct": 100,
@@ -727,7 +729,7 @@
         ]
       },
       {
-        "on": "success",
+        "on": "reussite",
         "minSL": 0,
         "maxSL": 2,
         "payoutPct": 50,
@@ -741,20 +743,20 @@
         ]
       },
       {
-        "on": "failure",
+        "on": "echec",
         "minSL": -2,
         "payoutPct": 0,
         "note": "La pièce est considérée comme extrêmement ennuyeuse par les quelques personnes à l'avoir vue. Vous perdez votre investissement."
       },
       {
-        "on": "failure",
+        "on": "echec",
         "minSL": -5,
         "maxSL": -3,
         "payoutPct": 0,
         "note": "La pièce est tellement mauvaise qu'elle en est insultante : les tentatives d'humour aux dépens de la noblesse ne font rire personne. Vous perdez votre investissement, et un noble offensé jure de provoquer en duel tous ceux qui l'ont financée."
       },
       {
-        "on": "failure",
+        "on": "echec",
         "maxSL": -6,
         "payoutPct": 0,
         "note": "La performance est un désastre. Peut-être qu'elle n'était qu'une ruse grossière pour faire de l'évasion fiscale ou un rituel du Chaos. Votre Personnage attire l'attention d'un inspecteur fiscal royal d'Altdorf ou d'un répurgateur de la ville (à vous de choisir)."
@@ -773,7 +775,7 @@
     "id": "recherche-universitaire",
     "type": "activities",
     "label": "Recherche universitaire",
-    "icon": "nav/memorize",
+    "icon": "navigation/memoriser",
     "contexts": [
       "interlude"
     ],
@@ -793,7 +795,7 @@
     "desc": "Les collèges de Magie sont les principales réserves de connaissances magiques humaines de l'Empire. Les sorciers officiels peuvent s'y rendre pour consulter les ouvrages de leur bibliothèque et utiliser leurs laboratoires arcaniques pour leurs recherches. Cette activité vous permet de mémoriser des sorts plus facilement.\n\nUne fois au Collège, réalisez un Test de **Recherche Intermédiaire (+0)**. Chaque +DR vous permet de mémoriser un sort pour 100PX de moins que son prix normal (pour un minimum de 100PX). Pour bénéficier de cette réduction, vous devez acheter le sort immédiatement. Cette activité est inutile pour les nouveaux sorciers qui n'ont pas encore appris un nombre de sorts égal à leur Bonus d'Intelligence, mais les sorciers plus expérimentés bénéficient grandement de ces visites, qui leur permettent de rafraîchir leurs connaissances.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "resolver": "memorizeDiscount",
         "note": "Chaque +DR vous permet de mémoriser un sort pour 100PX de moins que son prix normal (pour un minimum de 100PX). Pour bénéficier de cette réduction, vous devez acheter le sort immédiatement."
       }
@@ -808,7 +810,7 @@
     "id": "commerce-opportunite",
     "type": "activities",
     "label": "Commerce d'opportunité",
-    "icon": "resource/gold-purse",
+    "icon": "ressource/bourse",
     "contexts": [
       "mer"
     ],
@@ -833,7 +835,7 @@
     "id": "cartographie",
     "type": "activities",
     "label": "Cartographie",
-    "icon": "nav/campaign",
+    "icon": "navigation/campagne",
     "contexts": [
       "mer"
     ],
@@ -859,7 +861,7 @@
     "id": "entrainement-equipage",
     "type": "activities",
     "label": "Entraînement d'équipage",
-    "icon": "action/lead",
+    "icon": "action/commander",
     "contexts": [
       "mer"
     ],
@@ -884,7 +886,7 @@
     "id": "inspire",
     "type": "activities",
     "label": "Discours inspirant",
-    "icon": "action/lead",
+    "icon": "action/commander",
     "contexts": [
       "bataille"
     ],
@@ -907,7 +909,7 @@
     "desc": "Un Personnage peut tenter d'inspirer les troupes avant la bataille. Cela nécessite de réussir un Test de Commandement avec une Difficulté déterminée par la différence de Puissance entre les armées, arrondie à la dizaine la plus proche. En cas de Succès, l'armée obtient un bonus de +10 au Test de Puissance pendant le premier Round de bataille.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "battle": [
           {
             "target": "firstRoundBonus",
@@ -924,7 +926,7 @@
     "id": "planification",
     "type": "activities",
     "label": "Planification",
-    "icon": "action/lead",
+    "icon": "action/commander",
     "contexts": [
       "bataille"
     ],
@@ -947,7 +949,7 @@
     "desc": "Assis dans une pièce autour d'un verre de vin et d'une carte décorée de figurines de bois, les généraux débattent pour mettre au point l'élément le plus important : le plan de bataille. Pour concevoir un bon plan, un Personnage doit réussir un Test de Savoir (Guerre). La Difficulté de ce Test dépend principalement de la différence de Puissance entre les armées, du champ de bataille choisi et du plan lui-même. Un Personnage avec au moins une Augmentation en Savoir (Guerre) peut aider au Test. En cas de Succès, l'armée obtient un bonus de +10 à tous les Tests de Puissance pendant la bataille. En cas de Succès Stupéfiant (+6), ce bonus passe à +20.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "minSL": 6,
         "battle": [
           {
@@ -958,7 +960,7 @@
         ]
       },
       {
-        "on": "success",
+        "on": "reussite",
         "maxSL": 5,
         "battle": [
           {
@@ -976,7 +978,7 @@
     "id": "infiltration",
     "type": "activities",
     "label": "Infiltration",
-    "icon": "scenario/ambush",
+    "icon": "scenario/embuscade",
     "contexts": [
       "bataille"
     ],
@@ -1005,7 +1007,7 @@
     "desc": "Après une Activité Planification réussie, un Personnage peut infiltrer le camp adverse et voler ses plans en réussissant un Test combiné de Discrétion et de Perception dont la Difficulté est déterminée par le MJ. Il peut aussi tenter de se faire passer pour un soldat de l'armée ennemie en réussissant un Test combiné de Divertissement (Interprétation) et de Perception. D'autres options peuvent être disponibles en fonction des résultats de l'Activité Repérage. En cas de Succès, le Personnage obtient un bonus de +20 à l'Activité Planification. En cas d'Échec, le Personnage est obligé de fuir du camp ennemi sous peine d'être capturé.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "battle": [
           {
             "target": "planningBonus",
@@ -1022,7 +1024,7 @@
     "id": "rassembler-des-forces",
     "type": "activities",
     "label": "Rassembler des forces",
-    "icon": "char/soc",
+    "icon": "caracteristique/soc",
     "contexts": [
       "bataille"
     ],
@@ -1053,11 +1055,11 @@
     "desc": "Un Personnage peut tenter de renforcer son armée avec des troupes supplémentaires avant la bataille. Il existe de nombreuses façons de rassembler des troupes. Des mercenaires, tels que les terrifiantes troupes de choc des ogres, peuvent être engagés ; les paysans du coin peuvent être mobilisés ; et les nobles peuvent être charmés, soudoyés ou intimidés. Certaines de ces actions nécessitent des Tests de Compétences avec une Difficulté déterminée au cas par cas. En cas de Succès, le rassemblement augmente la Puissance de l'armée de +5. En cas de Succès Stupéfiant (+6), la Puissance augmente de +10. En cas d'Échec Stupéfiant (–6), elle est réduite de –10, peut-être à cause d'une mutinerie, ou d'une perte de moral entraînant une désertion.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "minSL": 6,
         "battle": [
           {
-            "side": "ally",
+            "side": "allie",
             "target": "startMight",
             "scale": "fixed",
             "amount": 10
@@ -1065,11 +1067,11 @@
         ]
       },
       {
-        "on": "success",
+        "on": "reussite",
         "maxSL": 5,
         "battle": [
           {
-            "side": "ally",
+            "side": "allie",
             "target": "startMight",
             "scale": "fixed",
             "amount": 5
@@ -1077,11 +1079,11 @@
         ]
       },
       {
-        "on": "failure",
+        "on": "echec",
         "maxSL": -6,
         "battle": [
           {
-            "side": "ally",
+            "side": "allie",
             "target": "startMight",
             "scale": "fixed",
             "amount": -10
@@ -1096,7 +1098,7 @@
     "id": "reperage",
     "type": "activities",
     "label": "Repérage",
-    "icon": "action/aim",
+    "icon": "action/viser",
     "contexts": [
       "bataille"
     ],
@@ -1123,7 +1125,7 @@
     "desc": "Un Personnage peut effectuer un Test combiné de Chevaucher et de Perception Intermédiaire (+0) pour obtenir des informations sur l'armée adverse : ses effectifs, la distance qui les sépare et les troupes dont elle dispose. Toutes ces informations sont précieuses pour un général. Un Test réussi permet de toutes les obtenir, y compris la Puissance de l'armée adverse, en plus d'un bonus de +10 à l'Activité Planification. En cas d'échec, le Personnage récupère de fausses informations ou met trop de temps à revenir, et n'obtient aucun bonus. En cas d'Échec Stupéfiant (–6), il risque même de devoir semer les éclaireurs ennemis ou de se faire capturer.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "battle": [
           {
             "target": "planningBonus",
@@ -1140,7 +1142,7 @@
     "id": "sabotage",
     "type": "activities",
     "label": "Sabotage",
-    "icon": "scenario/trap",
+    "icon": "scenario/piege",
     "contexts": [
       "bataille"
     ],
@@ -1168,11 +1170,11 @@
     "desc": "Après une Activité Repérage réussie, une Activité Sabotage peut être réalisée. Le Sabotage peut varier de l'explosion de la poudre à canon de l'ennemi à l'empoisonnement de ses vivres. Les options présentées dépendent des résultats de l'Activité Repérage. Cependant, la plupart requièrent un Test de Discrétion ou de Divertissement (Interprétation) et peuvent être réalisées dans le cadre de l'Activité Infiltration. En cas de Succès, l'ennemi perd –5 de Puissance. En cas de Succès Stupéfiant (+6), sa Puissance est réduite de –10. En cas d'Échec, les Personnages doivent s'enfuir ou se battre pour s'échapper du camp adverse.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "minSL": 6,
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "startMight",
             "scale": "fixed",
             "amount": -10
@@ -1180,11 +1182,11 @@
         ]
       },
       {
-        "on": "success",
+        "on": "reussite",
         "maxSL": 5,
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "startMight",
             "scale": "fixed",
             "amount": -5
@@ -1199,7 +1201,7 @@
     "id": "motivation",
     "type": "activities",
     "label": "Motivation",
-    "icon": "char/soc",
+    "icon": "caracteristique/soc",
     "contexts": [
       "bataille-round"
     ],
@@ -1231,10 +1233,10 @@
     "desc": "Parfois, la source du problème n'est pas l'ennemi, mais sa propre armée : troupes blessées, moral au plus bas, désertion, etc. Un Personnage peut résoudre ces soucis en utilisant un Test de Compétence au cours d'une Scène de Motivation. En cas de Succès, la Puissance de l'armée augmente de +DR. Il peut s'agir d'une Scène courte et ne durer qu'une tentative, ou d'un Test étendu sur plusieurs Rounds de bataille. Une Scène de Motivation peut également être composée de différents Tests de Compétence accordant un bonus important.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "battle": [
           {
-            "side": "ally",
+            "side": "allie",
             "target": "might",
             "scale": "perDR",
             "amount": 1
@@ -1249,7 +1251,7 @@
     "id": "pluie-de-fleches",
     "type": "activities",
     "label": "Pluie de flèches",
-    "icon": "action/roll-fire",
+    "icon": "action/roulade",
     "contexts": [
       "bataille-round"
     ],
@@ -1262,16 +1264,16 @@
     "desc": "Si un ou plusieurs Personnages sont équipés d'Armes à distance, ils disposent de 2 Rounds pour attaquer l'ennemi en approche. Les Personnages peuvent ouvrir le feu dès qu'ils sont à portée. Ils peuvent tirer jusqu'à ce que l'ennemi les attaque ou jusqu'à atteindre un lieu sûr. Les ennemis courent et se déplacent à leur vitesse maximum. Chaque attaque réussie réduit la Puissance adverse de 1 pour chaque ennemi touché. Si une cible est neutralisée ou tuée, la Puissance adverse est encore réduite de 2. Les attaques à distance visant une foule ne touchent jamais la même cible deux fois. Au cours de ces Scènes, les Personnages qui en sont capables peuvent également utiliser des armes de siège.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "perHit",
             "amount": -1
           },
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "perKill",
             "amount": -2
@@ -1284,7 +1286,7 @@
     "id": "protection",
     "type": "activities",
     "label": "Protection",
-    "icon": "flag/defensive",
+    "icon": "drapeau/posture-defensive",
     "contexts": [
       "bataille-round"
     ],
@@ -1297,10 +1299,10 @@
     "desc": "Une arme ou un allié important doit être protégé de l'ennemi pendant quelques Rounds pendant qu'il récupère ou prépare une attaque puissante. Cette situation est résolue en 3 Rounds de Combat, pendant lesquels l'ennemi tente d'attaquer une cible précise. Les Personnages doivent protéger la cible pendant la durée de la Scène. En cas de succès, réduisez la Puissance adverse de –5 ou augmentez celle de votre armée de +5. Un Personnage qui réussit un Test de Compétence en soutien à la cible réduit le nombre de Rounds de 1.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -5
@@ -1345,10 +1347,10 @@
     "desc": "Les Personnages ont pris le contrôle d'une position avantageuse, mais l'ennemi est en train de les submerger. Chaque Round, l'ennemi effectue un Test opposé contre les Personnages en utilisant des Compétences adaptées à la situation. On nomme le nombre cumulé des DR : Point de rupture. Si le Point de rupture atteint 10 ou plus, ou si 5 Rounds se sont écoulés, les Personnages sont écrasés et la Scène se conclut par une déroute. Les Personnages vont devoir lutter pour s'enfuir s'ils ont essuyé une défaite cuisante au cours des Rounds précédents. Pour chaque Round où les Personnages ont tenu leur position avant que le Point de rupture n'atteigne 10, l'armée adverse perd –2 de Puissance, mais obtient un bonus cumulatif de +10 pour les Rounds successifs.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -2
@@ -1363,7 +1365,7 @@
     "id": "compte-a-rebours",
     "type": "activities",
     "label": "Compte à rebours",
-    "icon": "ui/warning",
+    "icon": "interface/attention",
     "contexts": [
       "bataille-round"
     ],
@@ -1390,10 +1392,10 @@
     "desc": "Les Personnages ont 3 Rounds pour empêcher l'ennemi de porter un coup dévastateur à leur armée et réduire sa Puissance de –10. Échouer à une Scène de Compte à rebours entraîne une Scène de Motivation, permettant aux Personnages d'aider à guérir ou motiver les troupes blessées.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -10
@@ -1401,7 +1403,7 @@
         ]
       },
       {
-        "on": "failure",
+        "on": "echec",
         "chains": [
           "motivation"
         ]
@@ -1428,11 +1430,11 @@
     "desc": "Qu'il s'agisse d'aborder un navire ennemi, ou charger les remparts d'un château à l'aide d'une tour de siège, une Scène de Percée nécessite qu'un Personnage prenne le contrôle d'une position ennemie en éliminant tous les soldats adverses ou en remplissant un objectif précis. Les Personnages disposent de 3 Rounds pour accomplir leur objectif, ce qui augmentera la Puissance de leur armée de +10. En cas d'échec, les Personnages peuvent décider de battre en retraite ou participer à une Scène de Charge si l'ennemi appelle des renforts.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "when": "combatWon",
         "battle": [
           {
-            "side": "ally",
+            "side": "allie",
             "target": "might",
             "scale": "fixed",
             "amount": 10
@@ -1440,7 +1442,7 @@
         ]
       },
       {
-        "on": "failure",
+        "on": "echec",
         "when": "combatLost",
         "chains": [
           "charge"
@@ -1452,7 +1454,7 @@
     "id": "ligne-de-mire",
     "type": "activities",
     "label": "Ligne de mire",
-    "icon": "action/aim",
+    "icon": "action/viser",
     "generalDownOn": "success",
     "contexts": [
       "bataille-round"
@@ -1479,10 +1481,10 @@
     "desc": "Au milieu du chaos de la bataille, un Personnage aperçoit soudain un capitaine ennemi isolé non loin de lui. Il peut le charger ou l'attaquer à une distance de 12 mètres. En cas de Succès, l'ennemi perd –5 de Puissance. Si c'est le général qui est tué ou neutralisé, la Puissance diminue encore de –5. Après cette attaque, les troupes ennemies encerclent le Personnage, qui doit battre en retraite. S'il veut attaquer de nouveau, il est libre de le faire au risque de sa vie, car il est submergé par ses adversaires. S'il choisit d'attaquer, le Personnage est obligé de participer à une Scène de Charge lors du prochain Round de bataille, où seul l'ennemi peut charger et est en supériorité numérique (WFJDR p.162) de 3 contre 1.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -5
@@ -1490,11 +1492,11 @@
         ]
       },
       {
-        "on": "success",
+        "on": "reussite",
         "when": "generalDown",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -5
@@ -1509,7 +1511,7 @@
     "id": "tuez-la-bete",
     "type": "activities",
     "label": "Tuez la bête !",
-    "icon": "scenario/bestiary",
+    "icon": "scenario/bestiaire",
     "contexts": [
       "bataille-round"
     ],
@@ -1522,10 +1524,10 @@
     "desc": "L'ennemi a libéré une créature gigantesque. Elle inflige des dégâts importants aux troupes. Vainquez-la en 3 Rounds pour diminuer la Puissance de l'ennemi de –10. Divisez les Blessures de départ de la créature par deux pour tenir compte des autres troupes qui l'attaquent. Dans le cas d'une créature de Taille Monstrueuse, les Personnages seront peut-être obligés de grimper dessus ou d'utiliser une arme de siège à proximité pour la tuer. Les créatures de Taille Monstrueuse peuvent essayer de se débarrasser de ceux qui lui grimpent dessus dans le cadre d'une action en faisant un Test opposé de Corps à corps (Bagarre) / Escalade. Si la créature échoue, les Personnages peuvent l'attaquer comme si elle était Sans défense.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -10
@@ -1538,7 +1540,7 @@
     "id": "survol",
     "type": "activities",
     "label": "Survol",
-    "icon": "travel/mount",
+    "icon": "voyage/en-selle",
     "generalDownOn": "stupefying",
     "contexts": [
       "bataille-round"
@@ -1559,10 +1561,10 @@
     "desc": "Une monture volante accorde aux Personnages une unique tentative pour surprendre le général ennemi à l'arrière des lignes. Réussir un Test de Chevaucher Intermédiaire (+0) permet aux Personnages d'effectuer une attaque à distance, ou toute autre Action réalisable à une distance de 15 moins DR mètres. En cas de succès Stupéfiant (+6), ils peuvent se rapprocher suffisamment pour des attaques au Corps à corps, à Bout portant ou des Actions similaires. Si l'attaque réussit, l'ennemi perd –5 de Puissance. Si le général ennemi est neutralisé ou tué, la Puissance diminue encore de –15. En cas d'Échec Stupéfiant (–6), les Personnages font une chute de 5 mètres et s'écrasent au milieu de la bataille. Au cours du prochain Round de bataille, ils doivent prendre part à une Scène de Charge où seul l'ennemi charge.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -5
@@ -1570,11 +1572,11 @@
         ]
       },
       {
-        "on": "success",
+        "on": "reussite",
         "when": "generalDown",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -15
@@ -1582,7 +1584,7 @@
         ]
       },
       {
-        "on": "failure",
+        "on": "echec",
         "maxSL": -6,
         "chains": [
           "charge"
@@ -1609,16 +1611,16 @@
     "desc": "Si un ou plusieurs Personnages chargent à corps perdu dans la mêlée, ils peuvent se battre pendant un maximum de 2 Rounds. Le camp qui mène une charge commence avec 1 Avantage, puis chacun agit tour à tour par ordre d'Initiative. Pour chaque ennemi touché par les Personnages, la Puissance ennemie diminue de 1. Pour chaque ennemi neutralisé ou tué, la Puissance diminue encore de 2.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "perHit",
             "amount": -1
           },
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "perKill",
             "amount": -2
@@ -1631,7 +1633,7 @@
     "id": "duel",
     "type": "activities",
     "label": "Duel",
-    "icon": "action/attack",
+    "icon": "action/attaquer",
     "contexts": [
       "bataille-round"
     ],
@@ -1644,11 +1646,11 @@
     "desc": "Le champ de bataille se retrouve soudainement figé lorsque les généraux (dont idéalement l'un des Personnages) de chaque armée se font face. D'un accord tacite, chacun dégaine son arme, tandis que les troupes les encerclent pour les laisser se battre. Le camp vaincu au cours du duel voit sa Puissance réduite de –20 tandis que les troupes assistent à la mort de leur commandant. Si un autre Personnage intervient et tue le général adverse, leur Puissance n'est réduite que de –10 et ils sont impliqués dans une Scène de Charge contre l'ennemi.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "when": "noIntervention",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -20
@@ -1656,11 +1658,11 @@
         ]
       },
       {
-        "on": "success",
+        "on": "reussite",
         "when": "intervention",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -10
@@ -1671,11 +1673,11 @@
         ]
       },
       {
-        "on": "failure",
+        "on": "echec",
         "when": "combatLost",
         "battle": [
           {
-            "side": "ally",
+            "side": "allie",
             "target": "might",
             "scale": "fixed",
             "amount": -20
@@ -1688,7 +1690,7 @@
     "id": "intrus",
     "type": "activities",
     "label": "Intrus",
-    "icon": "flag/fear",
+    "icon": "drapeau/peur",
     "contexts": [
       "bataille-round"
     ],
@@ -1708,7 +1710,7 @@
     "id": "rassemblement",
     "type": "activities",
     "label": "Rassemblement",
-    "icon": "journal/heal",
+    "icon": "journal/soin",
     "contexts": [
       "bataille-round"
     ],
@@ -1733,7 +1735,7 @@
     "id": "dressage",
     "type": "activities",
     "label": "Dressage",
-    "icon": "action/lead",
+    "icon": "action/commander",
     "contexts": [
       "interlude"
     ],
@@ -1752,7 +1754,7 @@
     "desc": "Vous passez du temps à entraîner l'un de vos animaux. Effectuez un Test de **Dressage Accessible (+20)**. En cas de réussite, ajoutez une Compétence à votre animal, choisie parmi les Traits de créature Dressé (voir page 339).",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "note": "En cas de réussite, ajoutez une Compétence à votre animal, choisie parmi les Traits de créature Dressé (voir page 339)."
       }
     ],
@@ -1763,7 +1765,7 @@
     "id": "dernieres-nouvelles",
     "type": "activities",
     "label": "Dernières nouvelles",
-    "icon": "expedition/rumor",
+    "icon": "expedition/rumeurs",
     "contexts": [
       "interlude"
     ],
@@ -1789,11 +1791,11 @@
     "desc": "Cette Activité vous permet d'apprendre les dernières nouvelles venant de loin. Tentez un Test de **Ragot Intermédiaire (+0)**. Sur un succès, vous apprenez une rumeur intéressante : chaque DR ajoute une autre rumeur, et elles peuvent même être en lien avec votre aventure à venir. Si vous échouez sérieusement (un Échec Impressionnant), vous apprenez quelque chose de faux, mais êtes convaincu que c'est réel ; pour faciliter les choses, le MJ peut effectuer le lancer en secret à votre place.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "note": "Sur un succès, vous apprenez une rumeur intéressante : chaque DR ajoute une autre rumeur, et elles peuvent même être en lien avec votre aventure à venir."
       },
       {
-        "on": "failure",
+        "on": "echec",
         "maxSL": -4,
         "note": "Si vous échouez sérieusement (un Échec Impressionnant), vous apprenez quelque chose de faux, mais êtes convaincu que c'est réel."
       }
@@ -1805,7 +1807,7 @@
     "id": "entrainement-au-combat",
     "type": "activities",
     "label": "Entraînement au Combat",
-    "icon": "expedition/practice",
+    "icon": "expedition/entrainement",
     "contexts": [
       "interlude"
     ],
@@ -1843,7 +1845,7 @@
     "id": "observer-une-cible",
     "type": "activities",
     "label": "Observer une cible",
-    "icon": "action/aim",
+    "icon": "action/viser",
     "contexts": [
       "interlude"
     ],
@@ -1868,7 +1870,7 @@
     "desc": "Vous utilisez cette Activité pour observer une cible potentielle et obtenir des avantages lors de futures entreprises criminelles. Un Charlatan peut étudier un marchand afin d'usurper au mieux son identité lors d'une escroquerie future, ou un Pilleur de Tombes peut rôder autour d'un Temple de Morr, surveillant les allées et venues des prêtres pour avoir une idée de leurs pratiques et de l'agencement des Jardins de Morr.\n\nTentez un Test de **Perception Intermédiaire (+0)**, bien que la Difficulté puisse être modifiée pour une cible particulièrement facile ou difficile. Sur un succès, vous pouvez inverser un Test concernant votre cible une fois pendant votre prochaine aventure. Notez-le sur votre Feuille de Personnage. Vous pouvez entreprendre cette Activité plusieurs fois si vous le souhaitez. En outre, le MJ devrait vous fournir des informations (ou désinformations !) concernant votre cible en fonction des DR que vous obtenez.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "ops": [
           {
             "op": "grantReverseToken"
@@ -1884,7 +1886,7 @@
     "id": "recherche-de-savoir",
     "type": "activities",
     "label": "Recherche de savoir",
-    "icon": "nav/compendium",
+    "icon": "navigation/compendium",
     "contexts": [
       "interlude"
     ],
@@ -1910,11 +1912,11 @@
     "desc": "Cette Activité vous permet d'étendre vos connaissances sur un sujet spécifique, comme le site d'une bataille, un événement historique célèbre ou un individu. Le Personnage doit avoir accès à une mine de savoir, comme une bibliothèque, les archives d'une forteresse naine, les registres d'une Guilde ou un Temple de Verena.\n\nTentez un Test de **Savoir Accessible (+20)**, en utilisant la spécialisation de Savoir appropriée pour la connaissance que vous recherchez. Si nous n'avez pas la bonne spécialisation de Savoir et que vous êtes instruit, vous pouvez toujours tenter d'apprendre quelque chose, mais il faudra pour cela un Test d'**Intelligence Complexe** (-10). Sur un succès, vous apprenez une part de connaissance intéressante, utile ou cachée sur le sujet recherché ; chaque DR ajoute une autre tranche d'informations pertinentes. Si vous échouez sérieusement (un Échec Impressionnant), vous apprenez quelque chose de faux, mais êtes convaincu que c'est vrai ; pour faciliter les choses, le MJ peut effectuer le lancer en secret, à votre place.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "note": "Sur un succès, vous apprenez une part de connaissance intéressante, utile ou cachée sur le sujet recherché ; chaque DR ajoute une autre tranche d'informations pertinentes."
       },
       {
-        "on": "failure",
+        "on": "echec",
         "maxSL": -4,
         "note": "Si vous échouez sérieusement (un Échec Impressionnant), vous apprenez quelque chose de faux, mais êtes convaincu que c'est vrai."
       }
@@ -1926,7 +1928,7 @@
     "id": "reputation",
     "type": "activities",
     "label": "Réputation",
-    "icon": "char/soc",
+    "icon": "caracteristique/soc",
     "contexts": [
       "interlude"
     ],
@@ -1952,7 +1954,7 @@
     "id": "semer-dissension-reperage",
     "type": "activities",
     "label": "Semer la dissension — Repérage",
-    "icon": "expedition/rumor",
+    "icon": "expedition/rumeurs",
     "contexts": [
       "interlude"
     ],
@@ -1984,7 +1986,7 @@
     "id": "semer-dissension-emeute",
     "type": "activities",
     "label": "Semer la dissension — Émeute",
-    "icon": "flag/anger",
+    "icon": "drapeau/hostilite",
     "contexts": [
       "interlude"
     ],
@@ -2017,7 +2019,7 @@
     "id": "fanmaris",
     "type": "activities",
     "label": "Tir parfait de Fanmaris",
-    "icon": "action/aim",
+    "icon": "action/viser",
     "contexts": [
       "interlude"
     ],
@@ -2044,7 +2046,7 @@
     "desc": "Tous ceux qui pratiquent le combat à distance connaissent la valeur d'un tir parfait au moment idéal. Une flèche ou une balle bien placée sur la bonne cible peut mettre fin à une bataille aussi sûrement qu'une charge d'un ordre de chevalerie. Le Personnage cherche à améliorer ses capacités de tir en consultant le manuel d'entraînement d'Allavandrel Fanmaris et s'entraîne à tirer dans des conditions distrayantes et sur des cibles compliquées. Après avoir entrepris cette Activité, effectuez un Test de **Projectiles (Arc) Complexe (–10)**. En cas de Succès, une fois au cours de la prochaine aventure, vous pouvez utiliser le bénéfice suivant : après avoir passé un Round de combat à viser votre adversaire, vous pouvez déclarer que vous accomplissez un Tir parfait. Effectuez un Test de **Projectiles** avec les pénalités et les bonus normaux, y compris le +20 de la visée. Votre attaque gagne les effets supplémentaires ci-dessous en fonction du DR total obtenu sur votre Test de Projectiles. Tous les effets sont cumulatifs.\n\n| DR | Effet (cumulatif) |\n|---|---|\n| +1 | Vous pouvez choisir la Localisation des Dégâts. |\n| +2 à +3 | Votre arme gagne l'Atout Perforante (page 298 de WFJDR) pour cette attaque. Si elle est déjà Perforante, augmentez ses Dégâts de 2. |\n| +4 à +5 | Vous infligez automatiquement un Coup Critique. |\n| +6 | Votre arme gagne l'Atout Dévastatrice (page 298 de WFJDR) pour cette attaque. Si elle est déjà Dévastatrice, elle gagne l'Atout Percutante (page 298 de WFJDR). |\n\nVous pouvez entreprendre cette Activité plusieurs fois si vous le désirez.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "note": "En cas de Succès, une fois au cours de la prochaine aventure, vous pouvez utiliser le bénéfice suivant : après avoir passé un Round de combat à viser votre adversaire, vous pouvez déclarer que vous accomplissez un Tir parfait."
       }
     ],
@@ -2055,7 +2057,7 @@
     "id": "leitdorf",
     "type": "activities",
     "label": "Défense de Leitdorf",
-    "icon": "melee/grapple",
+    "icon": "melee/empoignade",
     "contexts": [
       "interlude"
     ],
@@ -2081,7 +2083,7 @@
     "desc": "Comme tous les guerriers ne le savent que trop bien, chaque style possède sa méthode pour le contrer. Un épéiste est vaincu par la longue allonge d'une lance et une zweihänder ne parvient pas à toucher un noble agile armé d'une rapière.\n\nCe sont ces expériences frustrantes qui poussent souvent un combattant à explorer de nouvelles approches, par exemple frapper son adversaire avec la garde de son épée, lui donner des coups de tête ou attraper sa lame à mains nues. Ces tactiques sont risquées par nature, mais elles déstabilisent un opposant qui s'attendait à une attaque plus organisée.\n\nLes plus braves consultent le fascicule décrivant la Défense de Leitdorf, censé avoir été rédigé par le comte Marius Leitdorf d'Averland. Paradoxalement, il décrit une série de manœuvres offensives inhabituelles pour contrer les défenses orthodoxes. Après avoir utilisé cette technique, d'abord vous panserez vos blessures et ensuite, vous pourriez décider de ne plus jamais tenter de bravade aussi excessive.\n\nAprès avoir entrepris cette Activité, effectuez un Test de **Corps à Corps Complexe (–10)**. En cas de Succès, une fois au cours de la prochaine aventure, vous pouvez faire appel au bénéfice suivant : après un ou plusieurs Rounds lors desquels vous êtes Engagé contre un adversaire, vous pouvez déclarer que vous employez la Défense de Leitdorf. Portez une attaque en effectuant un Test opposé de **Corps à Corps** avec une pénalité de -10.\n\nVotre adversaire ne peut ni utiliser ses Talents ni ajouter ses Augmentations de Compétence quand il se défend contre cette attaque. Après avoir résolu l'attaque, si vous remportez le Test, vous subissez 1d10 Dégâts qui ignorent l'Armure. Si votre adversaire remporte le Test, il vous inflige un Coup Critique car la manœuvre risquée vous expose et vous rend vulnérable.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "note": "En cas de Succès, une fois au cours de la prochaine aventure, vous pouvez faire appel au bénéfice suivant : après un ou plusieurs Rounds lors desquels vous êtes Engagé contre un adversaire, vous pouvez déclarer que vous employez la Défense de Leitdorf."
       }
     ],
@@ -2092,7 +2094,7 @@
     "id": "alcatani",
     "type": "activities",
     "label": "Méthode Alcatani",
-    "icon": "flag/bond",
+    "icon": "drapeau/attachement",
     "contexts": [
       "interlude"
     ],
@@ -2118,7 +2120,7 @@
     "desc": "Tous les généraux partent à la guerre avec l'armée qu'ils ont, pas avec celle qu'ils veulent. Mais les canailles des rues et les laboureurs des champs ne servent pas à grand-chose sur un champ de bataille s'ils ne sont pas suffisamment entraînés pour suivre les ordres et bien appliquer les instructions.\n\nLa Méthode Alcatani utilise un mélange de cris, de menaces, de discours, d'alcool et de subornation pour transformer rapidement un groupe de mécréants en quelque chose qui ressemble à une unité militaire fonctionnelle. Cependant, sans une pratique régulière, ces leçons sont vite oubliées.\n\nAprès avoir entrepris cette Activité, effectuez un Test de **Commandement Complexe (–10)**. Pour chaque DR que vous obtenez sur ce Test, vous pouvez donner à un Personnage un seul rang dans le Talent Coude-à-coude (page 135 de **WFJDR**) pendant toute la durée de la prochaine aventure. Les Personnages possédant déjà le Talent Coude-à-coude peuvent augmenter de 1 leur rang de Coude-à-coude, sans dépasser le rang de Coude-àcoude du Personnage qui entreprend l'Activité.\n\nLes Personnages dotés du Talent Exaltant multiplient le nombre de Personnages qui reçoivent Coude-à-coude de la manière indiquée dans le **Livre de Règles** (voir page 137 de **WFJDR**). Par exemple, un Personnage qui a obtenu DR +3 sur son Test de Commandement et possède 2 rangs dans le Talent Exaltant pourrait accorder +1 rang de Coude-à-coude à jusqu'à 30 personnes.\n\n*Guerriers devant posséder au moins deux rangs dans le Talent Coude-à-coude*",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "note": "Pour chaque DR que vous obtenez sur ce Test, vous pouvez donner à un Personnage un seul rang dans le Talent Coude-à-coude (page 135 de **WFJDR**) pendant toute la durée de la prochaine aventure."
       }
     ],
@@ -2129,7 +2131,7 @@
     "id": "punchausen",
     "type": "activities",
     "label": "Fabuleuse Vente des Aventures du comte de Punchausen",
-    "icon": "merchant/haggle",
+    "icon": "marchand/marchander",
     "contexts": [
       "interlude"
     ],
@@ -2168,7 +2170,7 @@
     "id": "remaniement-contremaitre",
     "type": "activities",
     "label": "Remaniement du contremaître",
-    "icon": "scenario/trap",
+    "icon": "scenario/piege",
     "contexts": [
       "interlude"
     ],
@@ -2200,7 +2202,7 @@
     "id": "accomplir-un-rituel",
     "type": "activities",
     "label": "Accomplir un Rituel",
-    "icon": "mechanic/invoke",
+    "icon": "mecanique/invocation",
     "contexts": [
       "interlude"
     ],
@@ -2220,7 +2222,7 @@
     "id": "ameliorer-un-familier",
     "type": "activities",
     "label": "Améliorer un familier",
-    "icon": "scenario/bestiary",
+    "icon": "scenario/bestiaire",
     "contexts": [
       "interlude"
     ],
@@ -2239,7 +2241,7 @@
     "desc": "Les familiers sont assez limités dans leurs capacités à s'améliorer, étant en partie mus par le pouvoir de leur sorcier créateur. Ils ne peuvent pas utiliser les règles d'Activités, sauf si leur créateur passe du temps à les éduquer.\n\nPour améliorer son familier, le sorcier qui l'a créé doit choisir cette Activité et effectuer un Test de **Recherche Difficile (−20)**. Le familier peut lui apporter son soutien. S'il réussit ce Test, le sorcier peut imprégner son familier du pouvoir nécessaire pour qu'il entreprenne une Activité de son propre chef. Toutefois, même si le sorcier est parvenu à donner une Activité à son familier, celui-ci doit encore la réaliser pour en avoir les bénéfices.\n\nLe familier peut immédiatement entreprendre l'une des Activités suivantes chaque fois que son créateur accomplit l'Activité *Améliorer un familier* :\n\n- 0 Entraînement (voir **WFJDR**, page 197)\n- 0 Apprentissage particulier (voir **WFJDR**, page 196 ; un familier ne peut pas apprendre les Talents Béni, Invocation ou Âme pure)\n- 0 Entraînement avec une arme inhabituelle (voir **Altdorf**, page 219 ; uniquement pour les familiers de combat)\n- 0 Tester des objets magiques (voir **Altdorf**, page 219 ; uniquement pour les familiers de sorts et de pouvoir)",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "note": "S'il réussit ce Test, le sorcier peut imprégner son familier du pouvoir nécessaire pour qu'il entreprenne une Activité de son propre chef. Toutefois, même si le sorcier est parvenu à donner une Activité à son familier, celui-ci doit encore la réaliser pour en avoir les bénéfices."
       }
     ],
@@ -2252,7 +2254,7 @@
     "id": "brasser-une-potion",
     "type": "activities",
     "label": "Brasser une potion",
-    "icon": "item/consumable",
+    "icon": "objet/consommable",
     "contexts": [
       "interlude"
     ],
@@ -2276,7 +2278,7 @@
     ],
     "outcomes": [
       {
-        "on": "fumble",
+        "on": "maladresse",
         "note": "S'il échoue, il sait que le procédé n'a pas fonctionné, mais s'il commet une Maladresse, cela tourne à la catastrophe. Lancez 1d10, ajoutez le nombre de degrés d'échec, puis consultez le Tableau des Catastrophes de brassage.",
         "ops": [
           {
@@ -2298,7 +2300,7 @@
     "id": "reunir-des-ingredients",
     "type": "activities",
     "label": "Réunir des ingrédients",
-    "icon": "magic/component",
+    "icon": "magie/composante",
     "contexts": [
       "interlude"
     ],
@@ -2326,7 +2328,7 @@
     "id": "alchimie-ordinaire",
     "type": "activities",
     "label": "L'alchimie ordinaire",
-    "icon": "item/misc",
+    "icon": "objet/divers",
     "contexts": [
       "interlude"
     ],
@@ -2346,7 +2348,7 @@
     "desc": "Quiconque possède la Compétence Métier (Alchimiste) peut s'essayer à l'alchimie ordinaire ou « Basse Alchimie ». Pour l'essentiel, elle consiste à isoler des éléments chimiques, les combiner pour créer des composés, ou encore se servir de la connaissance scientifique lors de la création de petits artefacts simples.\n\nPour pouvoir utiliser la Compétence Métier (Alchimiste), un Personnage a besoin d'un laboratoire ou de posséder le Talent Concocter (**WFJDR**, page 135).\n\nLes procédés alchimiques ne sont pas sans risque. Si un Personnage obtient une Maladresse à un Test de Métier (Alchimiste) pour créer un artefact alchimique, quelque chose s'est terriblement mal passé. Lancez 1d10, ajoutez les degrés d'échec et consultez le **Tableau des Catastrophes de brassage** à la page 161.",
     "outcomes": [
       {
-        "on": "fumble",
+        "on": "maladresse",
         "note": "Si un Personnage obtient une Maladresse à un Test de Métier (Alchimiste) pour créer un artefact alchimique, quelque chose s'est terriblement mal passé. Lancez 1d10, ajoutez les degrés d'échec et consultez le **Tableau des Catastrophes de brassage** à la page 161.",
         "ops": [
           {
@@ -2367,7 +2369,7 @@
     "id": "haute-alchimie",
     "type": "activities",
     "label": "La Haute Alchimie",
-    "icon": "scenario/magic",
+    "icon": "scenario/magie",
     "contexts": [
       "interlude"
     ],
@@ -2387,7 +2389,7 @@
     "desc": "La Haute Alchimie prend une pincée des principes appris dans l'alchimie ordinaire et ajoute au mélange une touche de *Chamon*. Un alchimiste peut créer des artefacts d'une grande puissance en choisissant des composants riches en énergie magique. Seuls les Personnages dotés du Talent *Seconde vue* peuvent s'y essayer.\n\nLes sorciers Dorés et les alchimistes ordinaires chevronnés fabriquent des matériaux avec la Haute Alchimie. Pour ce faire, l'alchimiste doit d'abord créer une substance ordinaire associée au matériau. Il n'y a que lui qui puisse le faire, afin de s'assurer de la bonne utilisation des énergies magiques latentes contenues dans les matériaux bruts. Il effectue ensuite un Test étendu de **Métier (Alchimiste)** pour imprégner la substance de la qualité magique.\n\nLorsqu'ils tournent mal, les travaux de Haute Alchimie peuvent être désastreux. Si un Personnage effectue un Test de Métier (Alchimiste) et obtient une Maladresse, lancez 1d10 + 3. Ajoutez les degrés d'échec et consultez le **Tableau des Catastrophes de brassage** à la page 161.\n\nCréer un objet à l'aide de la Haute Alchimie est source de fierté pour un sorcier Doré ou un alchimiste. Les créateurs de ces concoctions grandioses gagnent le respect profond de leurs pairs et, s'ils vendaient ces objets précieux, ils pourraient en majorer le prix de 100 fois celui du matériau brut.",
     "outcomes": [
       {
-        "on": "fumble",
+        "on": "maladresse",
         "note": "Si un Personnage effectue un Test de Métier (Alchimiste) et obtient une Maladresse, lancez 1d10 + 3. Ajoutez les degrés d'échec et consultez le **Tableau des Catastrophes de brassage** à la page 161.",
         "ops": [
           {
@@ -2409,7 +2411,7 @@
     "id": "augure",
     "type": "activities",
     "label": "Augure",
-    "icon": "nav/dice",
+    "icon": "navigation/des",
     "contexts": [
       "interlude"
     ],
@@ -2430,7 +2432,7 @@
     "maison": "Tableau d'Augure (VDM 03 l.487-497, regles.json id `tableau-augure`) : les DR « Succès Stupéfiant »/« Succès » laissent au joueur le CHOIX d'un ou deux symboles — aucune primitive de pick manuel en table, modélisé par un jet supplémentaire (comme les DR à lancer). Le bonus/malus DR différé « au premier Test dans la Compétence listée » n'est pas appliqué mécaniquement (le symbole tiré reste narratif) — #914.",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "minSL": 6,
         "ops": [
           {
@@ -2445,7 +2447,7 @@
         "note": "Choisissez deux symboles sur le Tableau des Symboles."
       },
       {
-        "on": "success",
+        "on": "reussite",
         "minSL": 4,
         "maxSL": 5,
         "ops": [
@@ -2461,7 +2463,7 @@
         "note": "Effectuez deux lancers sur le Tableau des Symboles."
       },
       {
-        "on": "success",
+        "on": "reussite",
         "minSL": 2,
         "maxSL": 3,
         "ops": [
@@ -2473,7 +2475,7 @@
         "note": "Choisissez un symbole sur le Tableau des Symboles."
       },
       {
-        "on": "success",
+        "on": "reussite",
         "minSL": 0,
         "maxSL": 1,
         "ops": [
@@ -2485,7 +2487,7 @@
         "note": "Effectuez un lancer sur le Tableau des Symboles."
       },
       {
-        "on": "failure",
+        "on": "echec",
         "minSL": -3,
         "maxSL": -2,
         "ops": [
@@ -2497,7 +2499,7 @@
         "note": "Effectuez un lancer sur le Tableau des Symboles. Le symbole est inversé."
       },
       {
-        "on": "failure",
+        "on": "echec",
         "minSL": -5,
         "maxSL": -4,
         "ops": [
@@ -2513,7 +2515,7 @@
         "note": "Effectuez deux lancers sur le Tableau des Symboles. Les symboles sont inversés."
       },
       {
-        "on": "failure",
+        "on": "echec",
         "maxSL": -6,
         "ops": [
           {
@@ -2543,7 +2545,7 @@
     "id": "ecrire-des-parchemins",
     "type": "activities",
     "label": "Écrire des parchemins",
-    "icon": "nav/memorize",
+    "icon": "navigation/memoriser",
     "contexts": [
       "interlude"
     ],
@@ -2571,7 +2573,7 @@
     "id": "mendier",
     "type": "activities",
     "label": "Mendier",
-    "icon": "resource/gold-purse",
+    "icon": "ressource/bourse",
     "contexts": [
       "interlude"
     ],
@@ -2610,7 +2612,7 @@
     "maison": "Le livre donne un gain PAR HEURE sans dire combien d'heures dure une journée de mendicité, ne chiffre ni le modificateur de discours ni celui d'apparence, ne détaille pas les trois « ennuis » d'un Échec Stupéfiant, ne chiffre ni la chance d'être surpris par ses pairs ni l'amende des gardes : cinq règles optionnelles éditables (groupe Social) et la table `mendier-ennuis` portent ces valeurs, aucune n'est figée au moteur. La DIFFICULTÉ de base est elle aussi maison — `intermediaire` : LDB 09 l.97 ne chiffre que la MODIFICATION de la Difficulté (discours, apparence), jamais son socle. Enfin, AUCUN gate de lieu : le livre situe l'Activité « dans les rues », ce qu'aucun champ de `MapPlace` (`data/schemas/defs-scenes/worldmap.ts`) n'exprime aujourd'hui — l'indice de Taille de communauté (1 Hameau … 4 Grande ville) n'existe que NICHÉ dans `port` et `market`, jamais sur le lieu ; gater l'Activité sur une offre de marché reviendrait à lire « au marché » là où le livre dit « dans les rues », et la fermerait sur les 10 lieux des 4 campagnes livrées (mesuré 2026-09-06 : 0 lieu porte `market`).",
     "outcomes": [
       {
-        "on": "success",
+        "on": "reussite",
         "minSL": 1,
         "ops": [
           {
@@ -2638,7 +2640,7 @@
         ]
       },
       {
-        "on": "success",
+        "on": "reussite",
         "maxSL": 0,
         "ops": [
           {
@@ -2650,7 +2652,7 @@
         ]
       },
       {
-        "on": "failure",
+        "on": "echec",
         "maxSL": -6,
         "ops": [
           {

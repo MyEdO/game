@@ -5,7 +5,17 @@
  * silence ni migré (#2404).
  */
 import { describe, it, expect } from 'vitest';
-import { parseProject, parseSceneDeProjet, declutterPositions, resolvePortRef, portVersDepot, placeServices, produitsDuProfil, type RenderPoint, type MapPlace } from './worldMap';
+import {
+  parseProject,
+  parseSceneDeProjet,
+  declutterPositions,
+  resolvePortRef,
+  portVersDepot,
+  placeServices,
+  produitsDuProfil,
+  type RenderPoint,
+  type MapPlace,
+} from './worldMap';
 import { findCargoEntryById } from '../engine/cargo';
 import { lieuxServices, navalPorts } from '../data';
 import { validateScene } from './validateScene';
@@ -248,8 +258,8 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
     expect(svc[1].market).toBe(p.market);
     expect(svc[2].rest).toBe(rest);
     expect(svc[2].label).toBe('Auberge'); // libellé du catalogue lieux-services.json
-    expect(svc[0].icon).toBe('travel/anchor'); // icône LUE au catalogue, pas codée en dur
-    expect(svc[1].icon).toBe('merchant/cart');
+    expect(svc[0].icon).toBe('voyage/ancre'); // icône LUE au catalogue, pas codée en dur
+    expect(svc[1].icon).toBe('marchand/panier');
   });
 
   it('toute entrée du catalogue lieux-services.json porte une icône (source unique des icônes de service)', () => {
@@ -261,7 +271,7 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
     expect(svc.map((s) => s.id)).toEqual(['temple', 'forgeron']);
     expect(svc.every((s) => s.category === 'autre')).toBe(true);
     expect(svc[0].label).toBe('Temple');
-    expect(svc[0].icon).toBe('faith/church');
+    expect(svc[0].icon).toBe('foi/chapelle');
   });
 
   it('hameau NU (aucun service, aucune scène offrant l\'auberge) → liste VIDE', () => {
@@ -315,7 +325,7 @@ describe('parseProject — porte de schéma', () => {
   });
 
   it('un nœud `null` dans un Flow est REFUSÉ par les deux portes, jamais purgé', () => {
-    const flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'x' } }, null] };
+    const flow = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'x' } }, null] };
     const avecNull = { ...scene('s1'), triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow }] };
     expect(() => parseProject(projet([avecNull]))).toThrow(/déclencheur « t1 » › étape 2: .*null reçu/);
     expect(() => parseSceneDeProjet(avecNull)).toThrow(/déclencheur « t1 » › étape 2: .*null reçu/);

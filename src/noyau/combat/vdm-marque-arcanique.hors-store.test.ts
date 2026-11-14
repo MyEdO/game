@@ -22,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * fiche (`effectiveTalents`) ET +DR de Talent de la ligne « Tests » (`talentTestSLBonus`).
  * `VDM 02 l.238` · `VDM 13 l.461` · `LDB 10 l.19`
  */
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 /** Hysh (Domaine de la Lumière) : sa rangée 10 octroie `empreint-de-hysh`, dont la ligne « Tests »
  *  désigne Recherche. */
 const DOMAIN = 'lumiere';
@@ -38,10 +38,10 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.wounds = blessuresDeBase(400, 400, H);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return H;

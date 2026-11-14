@@ -33,12 +33,12 @@ let ancre: HTMLButtonElement;
 let clavier: { hote: HTMLDivElement; root: Root };
 const Clavier = () => { useGameKeyboard(); return null; };
 
-/** Écran de jeu, aucun autre état armé : `toggle-menu` est le DERNIER barreau de l'échelle d'Échap,
+/** Écran de jeu, aucun autre état armé : `menu-ouvrir` est le DERNIER barreau de l'échelle d'Échap,
  *  et son ouverture est le témoin qu'une touche a « traversé » une couche. */
 function ecranDeJeu() {
   useGame.setState({
     screen: 'campaign', mode: 'battle', gameMenuOpen: false, dialogue: null,
-    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'hero', pos: { x: 1, y: 1 } })], movementUsed: 0, preview: null },
+    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'heros', pos: { x: 1, y: 1 } })], movementUsed: 0, preview: null },
     net: { mode: 'local', mySeat: 0 }, combatCursor: null, preemptAiming: null, localIntent: null,
   } as never);
 }
@@ -175,7 +175,7 @@ describe('Échap — pile de couches LIFO', () => {
 });
 
 describe('Échap — parité MANETTE (bouton B)', () => {
-  it('EN CARTE : B prend l’échelle métier réelle (il ne se limite plus à `cursor-cancel`)', () => {
+  it('EN CARTE : B prend l’échelle métier réelle (il ne se limite plus à `curseur-annuler`)', () => {
     useGame.setState({ localIntent: { actionId: 'charge' } } as never);
     act(() => { padButton('B'); });
     expect(useGame.getState().localIntent, 'B désarme l’intention, comme Échap').toBeNull();

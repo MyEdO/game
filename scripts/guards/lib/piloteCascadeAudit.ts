@@ -110,9 +110,9 @@ import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 const estMesure = (rel: string): boolean => (estSuiteVitest(rel) || estKitDeTest(rel)) && !MODULE_DU_KIT.test(rel);
 
 /** Un verbe de jet du noyau (`jetLancer`, `jetRegler`…), qui joue sur la cascade quand son flux, en premier argument, en est un
- *  (`'cascade'`, `'cascadeBatch'`, `'cascadeTirage'`, `'fumble'`). */
+ *  (`'cascade'`, `'cascadeEnBande'`, `'cascadeTirage'`, `'maladresse'`). */
 const VERBE_DE_JET = /^jet[A-Z]/;
-const FLUX_DE_CASCADE = /^(cascade(Batch|Tirage)?|fumble)$/;
+const FLUX_DE_CASCADE = /^(cascade(EnBande|Tirage)?|maladresse)$/;
 
 /** Les méthodes dont un callback ITÈRE (`Array.from({ length }, f)` compris). */
 const ITERATEURS = new Set(['forEach', 'map', 'flatMap', 'filter', 'some', 'every', 'find', 'findIndex', 'reduce', 'from']);

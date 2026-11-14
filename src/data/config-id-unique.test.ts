@@ -10,7 +10,7 @@ import { estObjet } from '../lib/objet.mjs';
  *
  * Les documents de famille `config` portent depuis ce lot leur ENVELOPPE (`id`/`type`/`label`), et
  * leur `id` est AUTHORÉ — jamais dérivé du `type` : la dérivation a été RÉFUTÉE à la mesure, le type
- * `water-exposure` collisionnant avec l'entrée `water-exposure` de `stakes.json`. Un id
+ * d'un document collisionnant avec l'id d'une entrée de `stakes.json`. Un id
  * authoré n'est libre que s'il est UNIQUE, faute de quoi deux documents se répondraient sous le même
  * nom au premier index qui les réunit.
  *
@@ -70,6 +70,10 @@ const FLIPPES_V_FLIP_CONFIG = [
   'artillery-misfire', 'driving-mishap', 'drunkenness', 'incidents-monture',
   'naval-progression', 'obsessions', 'problemes-vehicule', 'rencontres-edoc', 'river-criticals',
   'ship-criticals', 'structure-criticals', 'surincantation', 'vents-tourbillonnants',
+  // #1667 lot C-e
+  'dispersion',
+  // #1667 lot C-g
+  'reaction-au-statut', 'tableau-capricieux',
 ];
 
 /** TOUTE racine-objet à enveloppe de `src/data` (`id` + `label`) : l'espace d'unicité est celui des

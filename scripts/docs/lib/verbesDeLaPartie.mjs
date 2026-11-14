@@ -24,8 +24,14 @@ const SOURCE_REGLAGES = 'src/noyau/reglagesDuJet.ts'
 const INTERFACE_REGLAGES = 'ReglagesDuJet'
 const SOURCE_CHOIX = 'src/noyau/choixDesFenetres.ts'
 const INTERFACE_CHOIX = 'ChoixDesFenetres'
+const SOURCE_LEXIQUE = 'src/noyau/fabriquesDuNoyau.ts'
+const LEXIQUE = 'MotDuLexique'
+const SOURCE_IDS = 'src/data/schemas/_ids.generated.ts'
+const INDEX_DES_IDS = 'IdsParEspace'
 /** Longueur au-delà de laquelle un type anonyme ne s'écrit plus déplié, mais par son genre. */
 const LONGUEUR_D_UN_NOM = 40
+/** Le nom d'un objet anonyme trop long pour s'écrire déplié (`nomDuType`). */
+const OBJET_ANONYME = 'objet'
 
 /** Le nom DÉCLARÉ d'un type : son alias, son interface ou sa classe ; `null` : anonyme. */
 function nomDeclare(type) {
@@ -41,11 +47,37 @@ function nomDuType(checker, type) {
   const ecrit = checker.typeToString(type)
   if (ecrit.length <= LONGUEUR_D_UN_NOM) return ecrit
   if (!(type.flags & TypeFlags.Object)) return 'type'
-  return checker.getSignaturesOfType(type, SignatureKind.Call).length ? 'fonction' : 'objet'
+  return checker.getSignaturesOfType(type, SignatureKind.Call).length ? 'fonction' : OBJET_ANONYME
 }
 
 /** Le nœud de type DÉCLARÉ d'un symbole (paramètre, champ), s'il en a un. */
 const typeDeclare = (symbole) => symbole.valueDeclaration?.resolve()?.type
+
+/** Aucun paramètre de type lié. */
+const AUCUNE = new Map()
+
+/** Le symbole que la référence de type `noeud` nomme, à travers un import. */
+function symboleNomme(checker, noeud) {
+  const s = checker.getSymbolAtLocation(ts.isIdentifier(noeud.typeName) ? noeud.typeName : noeud.typeName.right)
+  return s && s.flags & SymbolFlags.Alias ? checker.getAliasedSymbol(s) : s
+}
+
+/** Le nœud `noeud`, ou, s'il nomme un paramètre de type que `subst` lie, le nœud de son argument. */
+function substitue(checker, noeud, subst) {
+  if (!noeud || !subst.size || !ts.isTypeReferenceNode(noeud) || noeud.typeArguments?.length || !ts.isIdentifier(noeud.typeName)) return noeud
+  return subst.get(checker.getSymbolAtLocation(noeud.typeName)) ?? noeud
+}
+
+/** Les paramètres de type que lie la référence générique `noeud` (`RefDesignee<IdDeTalent>` : `I` → `IdDeTalent`) :
+ *  symbole du paramètre de l'interface ou de l'alias qu'elle nomme → nœud de son argument, lu à travers `subst` (ceux
+ *  du type englobant). Un champ du type nommé déclaré par un paramètre se lit au nœud de son argument (`substitue`),
+ *  qu'un alias de `string` résolu perdrait. Toute autre référence garde `subst`. */
+function substitutions(checker, noeud, subst) {
+  if (!noeud || !ts.isTypeReferenceNode(noeud) || !noeud.typeArguments?.length) return subst
+  const parametres = symboleNomme(checker, noeud)?.declarations?.[0]?.resolve()?.typeParameters
+  if (!parametres) return subst
+  return new Map(parametres.flatMap((tp, i) => (i < noeud.typeArguments.length ? [[checker.getSymbolAtLocation(tp.name), substitue(checker, noeud.typeArguments[i], subst)]] : [])))
+}
 
 /** Les désignations de la table `DESIGNATIONS`, lues à son source : le nom de chaque entrée et son `mot` littéral. */
 function nomsDesignes(session, racine) {
@@ -105,7 +137,7 @@ function reference(type, ou, refs) {
  *  référence (`reference`), une signature d'index à clé chaîne en dictionnaire, une chaîne marquée en chaîne ; un type
  *  sans forme JSON qui le contrôle (fonction, `any`, `unknown`, `{}`, gabarit de chaîne, intersection d'objets) lève en
  *  nommant son chemin. */
-function forme(checker, type, designes, refs, ou, pile = new Set()) {
+function forme(checker, type, designes, refs, ou, pile = new Set(), subst = AUCUNE) {
   const f = type.flags
   const indescriptible = (quoi) => { throw new Error(`verbesDeLaPartie : ${ou} : ${quoi} (\`${checker.typeToString(type)}\`) n'a pas de forme JSON`) }
   if (f & (TypeFlags.Any | TypeFlags.Unknown)) indescriptible('`any` ou `unknown`')
@@ -120,13 +152,13 @@ function forme(checker, type, designes, refs, ou, pile = new Set()) {
   if (f & (TypeFlags.Undefined | TypeFlags.Void)) return { genre: 'absent' }
   if (pile.has(type)) return reference(type, ou, refs)
   const dedans = new Set(pile).add(type)
-  if (type.isUnionType()) return unionDe(type.getTypes().map((t) => forme(checker, t, designes, refs, ou, dedans)), type.getAliasSymbol()?.name)
+  if (type.isUnionType()) return unionDe(type.getTypes().map((t) => forme(checker, t, designes, refs, ou, dedans, subst)), type.getAliasSymbol()?.name)
   if (f & TypeFlags.Intersection) {
     // Une chaîne (ou un nombre) marquée : `string & { readonly [MARQUE]: true }`.
     const membres = type.getTypes()
     const primitifs = membres.filter((t) => t.flags & (TypeFlags.StringLike | TypeFlags.NumberLike | TypeFlags.BooleanLike))
     if (primitifs.length !== 1 || !membres.every((t) => primitifs.includes(t) || t.flags & TypeFlags.Object)) indescriptible('intersection')
-    return forme(checker, primitifs[0], designes, refs, ou, dedans)
+    return forme(checker, primitifs[0], designes, refs, ou, dedans, subst)
   }
   if (checker.isTupleType(type)) {
     const elements = checker.getTypeArguments(type)
@@ -144,7 +176,7 @@ function forme(checker, type, designes, refs, ou, pile = new Set()) {
   const champs = checker.getPropertiesOfType(type).map((p) => ({
     nom: p.name,
     optionnel: !!(p.flags & SymbolFlags.Optional),
-    forme: formeDeclaree(checker, checker.getTypeOfSymbol(p), typeDeclare(p), designes, refs, `${ou}.${p.name}`, dedans),
+    forme: formeDeclaree(checker, checker.getTypeOfSymbol(p), substitue(checker, typeDeclare(p), subst), designes, refs, `${ou}.${p.name}`, dedans, subst),
   }))
   const index = checker.getIndexInfosOfType(type)
   if (index.length > 1) indescriptible('plusieurs signatures d’index')
@@ -197,9 +229,10 @@ function horsDesignation(noeud) {
 }
 
 /** La forme d'un champ, d'un paramètre ou d'un axe de type `type`, déclaré par `noeud`, au chemin `ou` : sans son
- *  membre `absent`, annotée de sa désignation (`designee`). */
-function formeDeclaree(checker, type, noeud, designes, refs, ou, pile) {
-  return designee(sansAbsent(forme(checker, type, designes, refs, ou, pile)), noeud, designes)
+ *  membre `absent`, annotée de sa désignation (`designee`), ses champs lus aux paramètres de type que `noeud` lie
+ *  (`substitutions`). */
+function formeDeclaree(checker, type, noeud, designes, refs, ou, pile, subst = AUCUNE) {
+  return designee(sansAbsent(forme(checker, type, designes, refs, ou, pile, substitutions(checker, noeudDeplie(checker, noeud, designes), subst))), noeud, designes)
 }
 
 /** Une forme sans son membre `absent` : l'optionnalité se porte par le drapeau du champ ou du paramètre. */
@@ -216,12 +249,13 @@ const admetAbsent = (f) => f.genre === 'absent' || (f.genre === 'union' && f.mem
 function parametre(checker, verbe, q, designes, refs) {
   const type = checker.getTypeOfSymbol(q)
   const ou = `${verbe}(${q.name})`
-  const lue = forme(checker, type, designes, refs, ou)
+  const noeud = typeDeclare(q)
+  const lue = forme(checker, type, designes, refs, ou, undefined, substitutions(checker, noeudDeplie(checker, noeud, designes), AUCUNE))
   return {
     nom: q.name,
     optionnel: !!(q.flags & SymbolFlags.Optional) || admetAbsent(lue),
     type: nomDuType(checker, type),
-    forme: designee(sansAbsent(lue), typeDeclare(q), designes),
+    forme: designee(sansAbsent(lue), noeud, designes),
   }
 }
 
@@ -248,13 +282,13 @@ function parametresDuReste(checker, verbe, q, designes, refs) {
   if (!membres || !tuples.every((t) => checker.isTupleType(t))) return null
   return membres.map((m, i) => {
     const types = tuples.map((t) => checker.getTypeOfSymbol(checker.getPropertyOfType(t, String(i))))
-    const f = unionDe(types.map((t) => forme(checker, t, designes, refs, `${verbe}(${m.name.text})`)))
+    const f = unionDe(types.map((t) => forme(checker, t, designes, refs, `${verbe}(${m.name.text})`, undefined, substitutions(checker, noeudDeplie(checker, m.type, designes), AUCUNE))))
     const ecrits = [...new Set(types.map((t) => nomDuType(checker, t)))]
     return { nom: m.name.text, optionnel: !!m.questionToken || admetAbsent(f), type: ecrits.length === 1 ? ecrits[0] : `${declare.type.typeName.text}[${i}]`, forme: designee(sansAbsent(f), m.type, designes) }
   })
 }
 
-/** L'alias d'un texte que le joueur écrit (`actionsDuNoyau.ts`) : la seule chaîne qu'aucune désignation ne nomme. */
+/** L'alias d'un texte que le joueur écrit (`src/data/schemas/grammaire/ref.ts`) : la seule chaîne qu'aucune désignation ne nomme. */
 const TEXTE_LIBRE = 'TexteLibre'
 
 /** Le nom d'une référence de type (`IdDeHeros`, `tavernFlow.ReglageDePartie` → `ReglageDePartie`). */
@@ -280,10 +314,11 @@ const elementDuNoeud = (noeud) => (!noeud ? undefined
   : ts.isArrayTypeNode(noeud) ? noeud.elementType
   : ts.isTypeReferenceNode(noeud) && noeud.typeArguments?.length === 1 ? noeud.typeArguments[0] : undefined)
 
-/** Les chemins de `type` (déclaré par `noeud` quand il est connu) où une chaîne n'est nommée par aucune désignation ni
- *  par `TexteLibre`, à toute profondeur : champs, éléments, membres d'union, valeurs de dictionnaire. */
-function chainesNuesDuType(checker, type, noeud, chemin, designes, vus, nues) {
-  const deplie = noeudDeplie(checker, noeud, designes)
+/** Les chemins de `type` (déclaré par `noeud` quand il est connu, lu aux paramètres de type que `subst` lie) où une
+ *  chaîne n'est nommée par aucune désignation ni par `TexteLibre`, à toute profondeur : champs, éléments, membres
+ *  d'union, valeurs de dictionnaire. */
+function chainesNuesDuType(checker, type, noeud, chemin, designes, vus, nues, subst = AUCUNE) {
+  const deplie = noeudDeplie(checker, substitue(checker, noeud, subst), designes)
   if (horsDesignation(deplie)) return
   if (deplie && ts.isTypeReferenceNode(deplie) && !deplie.typeArguments?.length) {
     const nom = nomDeReference(deplie)
@@ -292,14 +327,14 @@ function chainesNuesDuType(checker, type, noeud, chemin, designes, vus, nues) {
   if (!type) throw new Error(`chainesNues : type introuvable à ${chemin} (${deplie ? ts.SyntaxKind[deplie.kind] : '-'})`)
   // Une union déclarée se lit membre à membre, même rabattue en un seul type (`IdDObjet | IdDeLigneDeButin` : `string`).
   if (deplie && ts.isUnionTypeNode(deplie)) {
-    for (const m of deplie.types) chainesNuesDuType(checker, checker.getTypeFromTypeNode(m), m, chemin, designes, vus, nues)
+    for (const m of deplie.types) chainesNuesDuType(checker, checker.getTypeFromTypeNode(m), m, chemin, designes, vus, nues, subst)
     return
   }
   const f = type.flags
   if (f & (TypeFlags.String | TypeFlags.TemplateLiteral | TypeFlags.StringMapping)) { nues.push(chemin); return }
   if (type.isUnionType() || type.isIntersectionType?.() && !(f & TypeFlags.Object)) {
     if (type.isUnionType()) {
-      for (const t of type.getTypes()) chainesNuesDuType(checker, t, t.flags & (TypeFlags.Undefined | TypeFlags.Null) ? undefined : deplie, chemin, designes, vus, nues)
+      for (const t of type.getTypes()) chainesNuesDuType(checker, t, t.flags & (TypeFlags.Undefined | TypeFlags.Null) ? undefined : deplie, chemin, designes, vus, nues, subst)
       return
     }
   }
@@ -307,22 +342,24 @@ function chainesNuesDuType(checker, type, noeud, chemin, designes, vus, nues) {
   if (checker.getSignaturesOfType(type, SignatureKind.Call).length) return
   if (checker.isTupleType(type)) {
     const elements = deplie && ts.isTupleTypeNode(deplie) ? deplie.elements.map((e) => (ts.isNamedTupleMember(e) ? e.type : e)) : []
-    checker.getTypeArguments(type).forEach((t, i) => chainesNuesDuType(checker, t, elements[i], `${chemin}[${i}]`, designes, vus, nues))
+    checker.getTypeArguments(type).forEach((t, i) => chainesNuesDuType(checker, t, elements[i], `${chemin}[${i}]`, designes, vus, nues, subst))
     return
   }
   if (checker.isArrayType(type)) {
     const [element] = checker.getTypeArguments(type)
-    if (element) chainesNuesDuType(checker, element, elementDuNoeud(deplie), `${chemin}[]`, designes, vus, nues)
+    if (element) chainesNuesDuType(checker, element, elementDuNoeud(deplie), `${chemin}[]`, designes, vus, nues, subst)
     return
   }
-  const cle = `${checker.typeToString(type)}@${chemin.split('(')[0]}`
-  if (vus.has(type) || vus.has(cle)) return
-  vus.add(type); vus.add(cle)
+  const sous = substitutions(checker, deplie, subst)
+  // Un même type, lu à d'autres arguments (`RefDesignee<IdDeTalent>`, `RefDesignee<IdDeCompetence>`), se lit encore.
+  const cle = `${checker.typeToString(type)}<${[...sous.values()].map((n) => n.getText()).join(',')}>@${chemin.split('(')[0]}`
+  if (vus.has(cle)) return
+  vus.add(cle)
   for (const info of checker.getIndexInfosOfType(type)) {
     if (info.keyType.flags & TypeFlags.String) nues.push(`${chemin}[clé]`)
-    chainesNuesDuType(checker, info.valueType, undefined, `${chemin}[…]`, designes, vus, nues)
+    chainesNuesDuType(checker, info.valueType, undefined, `${chemin}[…]`, designes, vus, nues, sous)
   }
-  for (const p of checker.getPropertiesOfType(type)) chainesNuesDuType(checker, checker.getTypeOfSymbol(p), typeDeclare(p), `${chemin}.${p.name}`, designes, vus, nues)
+  for (const p of checker.getPropertiesOfType(type)) chainesNuesDuType(checker, checker.getTypeOfSymbol(p), typeDeclare(p), `${chemin}.${p.name}`, designes, vus, nues, sous)
 }
 
 /** Les chemins, dans chaque paramètre de chaque verbe de `decl` (membres hérités compris : verbes de jet, `jetRegler`,
@@ -358,13 +395,26 @@ function chainesNues(session, racine, decl, designes) {
   return [...new Set(nues)]
 }
 
-/** L'interface `nom` du fichier `source` du programme. */
+/** L'interface ou l'alias de type `nom` du fichier `source` du programme. */
 function interfaceDe(session, racine, source, nom) {
   const sf = session.program.getSourceFile(path.resolve(racine, source).replaceAll('\\', '/'))
   let decl
-  sf?.forEachChild((n) => { if (ts.isInterfaceDeclaration(n) && n.name.text === nom) decl = n })
-  if (!decl) throw new Error(`verbesDeLaPartie : interface \`${nom}\` introuvable dans ${source}`)
+  sf?.forEachChild((n) => { if ((ts.isInterfaceDeclaration(n) || ts.isTypeAliasDeclaration(n)) && n.name.text === nom) decl = n })
+  if (!decl) throw new Error(`verbesDeLaPartie : type \`${nom}\` introuvable dans ${source}`)
   return decl
+}
+
+/** Les chaînes littérales du type `type`, lui-même ou membres de son union. */
+const chainesDuType = (type) => (type.isUnionType() ? type.getTypes() : [type]).filter((t) => t.flags & TypeFlags.StringLiteral).map((t) => t.value)
+
+/** Les mots de `MotDuLexique` (src/noyau/fabriquesDuNoyau.ts), et les ids de chaque espace de `IdsParEspace`
+ *  (src/data/schemas/_ids.generated.ts), lus par le vérificateur. */
+function lexiqueLu(session, racine) {
+  const { checker } = session
+  const lexique = new Set(chainesDuType(checker.getTypeAtLocation(interfaceDe(session, racine, SOURCE_LEXIQUE, LEXIQUE).name)))
+  const index = checker.getTypeAtLocation(interfaceDe(session, racine, SOURCE_IDS, INDEX_DES_IDS).name)
+  const espaces = checker.getPropertiesOfType(index).map((e) => new Set(chainesDuType(checker.getTypeOfSymbol(e))))
+  return { lexique, espaces }
 }
 
 /** Les axes de chaque clé de l'interface `nom` du fichier `source` (les réglages de chaque flux de jet, `ReglagesDuJet` ;
@@ -408,12 +458,102 @@ function parametresDOffre(checker, decl) {
   return trouves
 }
 
+/** La clé désignée de la forme `f` : sa désignation, ou les clés d'une union de chaînes désignées, triées et jointes ;
+ *  `null` pour toute autre forme (littéral, nombre, objet…). */
+function cleDesignee(f) {
+  const membres = (f.genre === 'union' ? f.membres : [f]).filter((m) => m.genre !== 'null' && m.genre !== 'absent')
+  if (!membres.length || !membres.every((m) => m.genre === 'chaine' && m.designe)) return null
+  return [...new Set(membres.map((m) => m.designe.cle))].sort().join(' | ')
+}
+
+/** L'objet `f` est-il anonyme : son type s'écrit déplié (`{ … }`) ou par son genre (`nomDuType`) ? */
+const objetAnonyme = (f) => f.genre === 'objet' && (f.type.startsWith('{') || f.type === OBJET_ANONYME)
+
+/** Les objets anonymes de l'union `membres` qu'un champ littéral commun discrimine : leurs champs se qualifient par ce
+ *  discriminant. */
+function discrimines(membres) {
+  const objets = membres.filter(objetAnonyme)
+  if (objets.length < 2) return new Set()
+  const litteral = (o, nom) => o.champs.some((c) => c.nom === nom && c.forme.genre === 'litteral')
+  return objets[0].champs.some((c) => objets.every((o) => litteral(o, c.nom))) ? new Set(objets) : new Set()
+}
+
+/** Pose `poser(nom, forme)` pour chaque champ d'objet anonyme que la forme `f` porte, à travers objets anonymes,
+ *  tableaux, tuples et unions ; le champ d'un type nommé se qualifie par son type, celui d'un membre d'union
+ *  discriminée par son discriminant : aucun n'est posé. */
+function champsAnonymes(f, poser) {
+  if (f.genre === 'tableau') champsAnonymes(f.element, poser)
+  else if (f.genre === 'tuple') for (const e of f.elements) champsAnonymes(e, poser)
+  else if (f.genre === 'union') {
+    const qualifies = discrimines(f.membres)
+    for (const m of f.membres) if (!qualifies.has(m)) champsAnonymes(m, poser)
+  } else if (objetAnonyme(f)) {
+    for (const c of f.champs) { poser(c.nom, c.forme); champsAnonymes(c.forme, poser) }
+  }
+}
+
+/** Un nom, un type désigné (`.claude/rules/verbes-du-noyau.md`) : chaque paramètre des verbes `verbes`, et chaque champ
+ *  de leurs objets anonymes (`champsAnonymes`), dont la forme est désignée (`cleDesignee`) garde, sous un même nom, une
+ *  même clé désignée ; deux clés sous un nom lèvent, en nommant le nom, chaque clé et un verbe de chacune. */
+export function unNomUnTypeDesigne(verbes) {
+  /** Nom → clé désignée → premier verbe qui la porte. */
+  const cles = new Map()
+  for (const [verbe, parametres] of Object.entries(verbes)) {
+    const poser = (nom, f) => {
+      const cle = cleDesignee(f)
+      if (!cle) return
+      const parCle = cles.get(nom) ?? cles.set(nom, new Map()).get(nom)
+      if (!parCle.has(cle)) parCle.set(cle, verbe)
+    }
+    for (const p of parametres) { poser(p.nom, p.forme); champsAnonymes(p.forme, poser) }
+  }
+  const doubles = [...cles].filter(([, parCle]) => parCle.size > 1)
+  if (doubles.length) {
+    const dits = doubles.map(([nom, parCle]) => `\`${nom}\` : ${[...parCle].map(([cle, verbe]) => `\`${cle}\` (${verbe})`).join(', ')}`)
+    throw new Error(`verbesDeLaPartie : un nom de paramètre désigne deux types (une chose déjà désignée ailleurs garde le même type et le même nom de paramètre) : ${dits.join(' ; ')}`)
+  }
+}
+
+/** Les mots de l'id `s`, coupé à chaque tiret et avant chaque majuscule, en minuscules (`Mots<S>`,
+ *  src/noyau/fabriquesDuNoyau.ts). */
+const motsDe = (s) => s.split('-').flatMap((p) => p.split(/(?=[A-Z])/)).filter(Boolean).map((m) => m.toLowerCase())
+
+/** Les littéraux des paramètres des verbes `verbes` en mots du lexique (`.claude/rules/verbes-du-noyau.md`) : chaque
+ *  membre chaîne littéral d'un paramètre, à travers champs, tableaux, tuples, unions et types récursifs de `formes`, ne
+ *  prend que des mots de `lexique` ; une union dont chaque membre est un id d'un même espace de `espaces` recopie cet
+ *  espace, c'est une donnée, hors du lexique. Un mot hors du lexique lève, en nommant le verbe, le paramètre, le membre
+ *  et ses mots en faute. */
+export function litterauxDuLexique(verbes, formes, lexique, espaces) {
+  const fautes = []
+  const recopieUnEspace = (membres) => membres.length > 0 && membres.every((m) => m.genre === 'litteral' && typeof m.valeur === 'string')
+    && espaces.some((ids) => membres.every((m) => ids.has(m.valeur)))
+  const visiter = (f, ou, vus) => {
+    switch (f.genre) {
+      case 'litteral': {
+        const hors = typeof f.valeur === 'string' ? motsDe(f.valeur).filter((m) => !lexique.has(m)) : []
+        if (hors.length) fautes.push(`${ou} \`${f.valeur}\` (${hors.join(', ')})`)
+        return
+      }
+      case 'union': if (!recopieUnEspace(f.membres.filter((m) => m.genre !== 'null' && m.genre !== 'absent'))) for (const m of f.membres) visiter(m, ou, vus); return
+      case 'tableau': visiter(f.element, ou, vus); return
+      case 'tuple': for (const e of f.elements) visiter(e, ou, vus); return
+      case 'objet': for (const c of f.champs) visiter(c.forme, `${ou}.${c.nom}`, vus); return
+      case 'dictionnaire': visiter(f.cle, ou, vus); visiter(f.valeur, ou, vus); for (const c of f.champs ?? []) visiter(c.forme, `${ou}.${c.nom}`, vus); return
+      case 'ref': if (!vus.has(f.type)) visiter(formes[f.type], ou, new Set(vus).add(f.type)); return
+      default:
+    }
+  }
+  for (const [verbe, parametres] of Object.entries(verbes)) for (const p of parametres) visiter(p.forme, `${verbe}(${p.nom})`, new Set())
+  if (fautes.length) throw new Error(`verbesDeLaPartie : un littéral de paramètre prend un mot hors de \`${LEXIQUE}\` (${SOURCE_LEXIQUE}) : ${[...new Set(fautes)].join(', ')}`)
+}
+
 /** La partie lue de son type : ses verbes, par nom, ou les seuls `noms`, leurs paramètres dans l'ordre de l'appel
  *  (`ParametreDeVerbe`, src/hote/formes.ts), la forme de la valeur de chaque réglage de jet et de chaque choix de
- *  fenêtre, et celle de chaque type récursif qu'une forme référence (`formes`). */
+ *  fenêtre, et celle de chaque type récursif qu'une forme référence (`formes`) ; un nom de paramètre qui désigne deux
+ *  types lève (`unNomUnTypeDesigne`), un littéral de paramètre hors du lexique aussi (`litterauxDuLexique`). */
 export function partieLue(racine = process.cwd(), noms = null) {
   const fichier = path.resolve(racine, SOURCE).replaceAll('\\', '/')
-  const session = repoProgram(racine, () => [fichier])
+  const session = repoProgram(racine, () => [fichier, ...[SOURCE_LEXIQUE, SOURCE_IDS].map((f) => path.resolve(racine, f).replaceAll('\\', '/'))])
   try {
     const decl = interfaceDe(session, racine, SOURCE, INTERFACE)
     const { checker } = session
@@ -432,13 +572,17 @@ export function partieLue(racine = process.cwd(), noms = null) {
       const qs = signature.getParameters()
       verbes[p.name] = (qs.length === 1 && parametresDuReste(checker, p.name, qs[0], designes, refs)) || qs.map((q) => parametre(checker, p.name, q, designes, refs))
     }
+    unNomUnTypeDesigne(verbes)
     const reglages = axesLus(session, racine, designes, refs, SOURCE_REGLAGES, INTERFACE_REGLAGES)
     const choix = axesLus(session, racine, designes, refs, SOURCE_CHOIX, INTERFACE_CHOIX)
+    const formes = formesReferencees(checker, designes, refs)
+    const { lexique, espaces } = lexiqueLu(session, racine)
+    litterauxDuLexique(verbes, formes, lexique, espaces)
     return {
       verbes: Object.fromEntries(Object.entries(verbes).sort(([a], [b]) => parUnitesDeCode(a, b))),
       reglages,
       choix,
-      formes: formesReferencees(checker, designes, refs),
+      formes,
     }
   } finally {
     libererSessions([session])

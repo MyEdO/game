@@ -1,7 +1,7 @@
 import { nommerChamps } from '../grammaire/meta';
 /** MDG 12 l.108-193 */
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
+import { document } from '../grammaire/document';
 import { ecartsDeCouverture, plageOuverteSchema, profilDePropulsionSchema, shipSizeSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle, marquerCollection, marqueDeListe } from '../grammaire/collection-cle';
 
@@ -121,7 +121,6 @@ const doc = document(
     constructionTraits: { label: 'Traits de construction', hint: 'Traits de coque à paliers (E/Blindage/capacité par niveau)' },
   },
   {
-    codex: { keys: ['shipHullSizes', 'shipSpeedTraits', 'shipConstructionTraits'] },
     edit: { niche: { categories: { shipHullSizes: 'standard', shipSpeedTraits: 'speedTraits', shipConstructionTraits: 'constructionTraits' } } },
   },
 );
@@ -129,4 +128,3 @@ const doc = document(
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-export type ShipConstructionData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

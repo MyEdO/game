@@ -5,9 +5,7 @@
 [ext_resource type="Script" path="res://scripts/zone.gd" id="3_zone"]
 [ext_resource type="Script" path="res://scripts/montage_des_navires.gd" id="4_navires"]
 [ext_resource type="Script" path="res://scripts/montage_de_composition.gd" id="5_montage"]
-
-[sub_resource type="Theme" id="Avis"]
-Label/font_sizes/font_size = 18
+[ext_resource type="Theme" path="res://art/avis.tres" id="t_avis"]
 
 [node name="Editeur" type="Node"]
 script = ExtResource("1_editeur")
@@ -35,8 +33,8 @@ theme_type_variation = &"Panneau"
 horizontal_scroll_mode = 0
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Outils/Defilement"]
+theme_type_variation = &"PileSerree"
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
 
 [node name="Titre" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
 
@@ -101,21 +99,21 @@ clip_tabs = false
 [node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Combat"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
-ids = PackedStringArray("valeur/combat", "valeur/combat/", "valeur/statblock", "valeur/statblock/", "valeur/upgrades", "valeur/upgrades/", "inventaire", "inventaire/", "sorts/", "profil/")
+ids = PackedStringArray("valeur/combat", "valeur/combat/", "valeur/statblock", "valeur/statblock/", "valeur/upgrades", "valeur/upgrades/", "valeur/postes", "valeur/postes/", "inventaire", "inventaire/", "sorts/", "profil/")
 
 [node name="Rôles" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
 
 [node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Rôles"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
-ids = PackedStringArray("valeur/amateur", "valeur/amateur/")
+ids = PackedStringArray("valeur/dialogueId", "valeur/dialogueId/", "valeur/merchant", "valeur/merchant/", "valeur/tavernGame", "valeur/tavernGame/", "valeur/amateur", "valeur/amateur/", "valeur/usable", "valeur/usable/", "identifier/action/")
 
 [node name="Apparence" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
 
 [node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Apparence"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
-ids = PackedStringArray("valeur/anim", "valeur/anim/")
+ids = PackedStringArray("valeur/appearance", "valeur/appearance/", "valeur/anim", "valeur/anim/")
 
 [node name="Identité" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
 
@@ -141,7 +139,7 @@ anchor_left = 0.5
 anchor_right = 0.5
 offset_top = 24.0
 grow_horizontal = 2
-theme = SubResource("Avis")
+theme = ExtResource("t_avis")
 
 [node name="Refus" type="Label" parent="Interface/Avis"]
 horizontal_alignment = 1

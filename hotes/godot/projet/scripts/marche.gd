@@ -1,7 +1,7 @@
 ## La marche de l'atelier 3D (#3086) : les actions `avant`, `arriere`, `gauche` et `droite` (`project.godot`, `[input]`)
 ## déplacent la racine du modèle sur le sol, tournée vers sa direction de marche, à la vitesse au sol de la base
 ## (`vitesseAuSol` de la réponse de `modeles`, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») à l'échelle de son
-## gabarit posé ; le clip du rôle `walk` (`MontageDeComposition.clip`, à deux mains quand la main libre tient la seconde
+## gabarit posé ; le clip du rôle `marche` (`MontageDeComposition.clip`, à deux mains quand la main libre tient la seconde
 ## prise) se joue par le lecteur de l'atelier pendant le déplacement ; à l'arrêt, le clip s'arrête à son début, le
 ## squelette revient à sa pose de repos et l'atelier joue son clip de repos (`marche_arretee`). La caméra orbite
 ## autour de la racine au glissé du bouton droit de la souris, s'en rapproche ou s'en éloigne à la molette hors de
@@ -17,7 +17,7 @@ extends Node
 ## la marche, la racine du modèle avance sur le sol dans la direction de ces actions (`MiseEnPage.entree_de_marche`),
 ## tournée par le lacet de la caméra, le modèle face à cette direction (son avant en +Z), à `vitesseAuSol` m/s de la
 ## base multipliée par `echelleDeVitesse` du gabarit posé (1 sans gabarit, section « Gabarit d'une base ») et par
-## `speed_scale` du lecteur, et l'atelier joue le clip `walk` de la composition montée (`MontageDeComposition.clip`, à
+## `speed_scale` du lecteur, et l'atelier joue le clip `marche` de la composition montée (`MontageDeComposition.clip`, à
 ## deux mains sous une seconde prise) à son lecteur comme au clic de son bouton ; relâchée, le clip s'arrête à son
 ## début, le squelette revient à sa pose de repos (`Skeleton3D.reset_bone_poses`), et l'atelier joue son clip de repos
 ## (section « Atelier 3D », seconde prise). Ces touches ne déplacent pas le focus du panneau ; une touche que
@@ -71,7 +71,7 @@ func _ready() -> void:
 
 
 ## La racine `racine` du modèle posé (aucun si `null`), son lecteur de clips `lecteur`, `clip` qui rend le clip du rôle
-## `walk` de sa base au moment de marcher, et sa vitesse au sol `vitesse` en m/s.
+## `marche` de sa base au moment de marcher, et sa vitesse au sol `vitesse` en m/s.
 func suivre(racine: Node3D, lecteur: AnimationPlayer, clip: Callable, vitesse: float) -> void:
 	_racine = racine
 	_lecteur = lecteur

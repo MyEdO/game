@@ -10,7 +10,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'expedition/outdoors',
+    id: 'expedition/grand-air',
     label: 'Grand air',
     // Soleil rayonnant.
     svg:
@@ -18,7 +18,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 3.6 V6 M12 18 V20.4 M3.6 12 H6 M18 12 H20.4 M6 6 L7.7 7.7 M16.3 16.3 L18 18 M18 6 L16.3 7.7 M7.7 16.3 L6 18"/>`,
   },
   {
-    id: 'expedition/rumor',
+    id: 'expedition/rumeurs',
     label: 'Rumeurs',
     // Bulle de parole, trois points de suspension.
     svg:
@@ -26,7 +26,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="8.6" cy="11" r="1.1"/><circle ${F} cx="12" cy="11" r="1.1"/><circle ${F} cx="15.4" cy="11" r="1.1"/>`,
   },
   {
-    id: 'expedition/cartography',
+    id: 'expedition/cartographie',
     label: 'Cartographie',
     // Carte pliée à trois panneaux, itinéraire en pointillés.
     svg:
@@ -35,7 +35,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M6 14 L11 10 L14 12 L18 8"/>`,
   },
   {
-    id: 'expedition/practice',
+    id: 'expedition/entrainement',
     label: 'Entraînement',
     // Cible concentrique.
     svg:
@@ -44,7 +44,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="12" cy="12" r="2"/>`,
   },
   {
-    id: 'expedition/clover',
+    id: 'expedition/trefle',
     label: 'Chance (Rencontre positive)',
     // Trèfle à quatre feuilles sur sa tige.
     svg:

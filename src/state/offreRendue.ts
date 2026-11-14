@@ -1,3 +1,4 @@
+import type { IconId } from '../data/icons';
 /**
  * CE QU'UNE PASTILLE REND (#1687 lot 3-I-b) — l'invariant d'AFFICHAGE d'un geste offert sur son
  * porteur, indépendant de qui le produit.
@@ -28,7 +29,7 @@ export interface OffreRendue {
   label: string;
   /** Icône de l'action quand elle en a une (le registre de combat en porte une ; une action authorée
    *  d'exploration n'en déclare aucune — la pastille se peint alors sans glyphe). */
-  icon?: string;
+  icon?: IconId;
   /** Coût dans l'économie du tour, en toutes lettres ; `null` quand l'acte n'en prend aucun (hors
    *  combat, aucun geste n'en prend). */
   cost?: string | null;

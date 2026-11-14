@@ -25,7 +25,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy'): Combatant => (blessuresSurLeProfil({
+const mk = (id: string, kind: 'heros' | 'ennemi'): Combatant => (blessuresSurLeProfil({
   id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
   weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(12), resilience: 0, fortune: 0,
   species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4, armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -49,8 +49,8 @@ const texte = (e: Element) => (e.textContent ?? '').replace(/\s+/g, ' ').trim();
 /** Le menu tel que `startDisengage` le pose : `refusEsquive` (raison du verdict) et `canFuir` absents = ouverts. */
 function menu(canSacrifice: boolean, options: { refusEsquive?: string; canFuir?: boolean } = {}, mountId?: string) {
   useGame.setState({
-    battle: { combatants: [{ ...mk('Héros', 'hero'), ...(mountId ? { mountId } : {}) }, mk('Brute', 'enemy')] } as never,
-    pendingDisengage: { moverId: 'Héros', foeId: 'Brute', canSacrifice, ...options, phase: 'choice', atk: null, def: null, result: null },
+    battle: { combatants: [{ ...mk('Héros', 'heros'), ...(mountId ? { mountId } : {}) }, mk('Brute', 'ennemi')] } as never,
+    pendingDisengage: { moverId: 'Héros', foeId: 'Brute', canSacrifice, ...options, phase: 'choix', atk: null, def: null, result: null },
   } as never);
   act(() => root.render(<DisengageModal />));
   const corps = host.querySelector('.modal-body')!;
@@ -106,14 +106,14 @@ describe('Désengagement — une RANGÉE par option', () => {
   });
 });
 
-// #1097 — LDB 14 l.184 : la valeur du choix « Esquiver » est la cible que lance `jetLancer('disengage')`.
+// #1097 — LDB 14 l.184 : la valeur du choix « Esquiver » est la cible que lance `jetLancer('desengagement')`.
 describe('Désengagement — valeur d’Esquive du choix = cible lancée', () => {
   it('cavalier monté : le choix affiche la cible du Test d’Esquive, −20 compris', () => {
     const { cases } = menu(false, {}, 'monture-sonde');
     const affichee = Number(/\((\d+)\)$/.exec(cases[0].option)![1]);
     const atk = { roll: 50, target: 45, success: false, sl: -1, isDouble: false, base: 45 };
     useGame.setState({ pendingDisengage: { ...useGame.getState().pendingDisengage!, atk } } as never);
-    useGame.getState().jetLancer('disengage');
+    useGame.getState().jetLancer('desengagement');
     expect(affichee).toBe(useGame.getState().pendingDisengage!.def!.target);
     expect(affichee).toBe(chars.agilite - 20);
   });
@@ -127,7 +127,7 @@ describe('Désengagement — fuite : la ligne du Test du fuyard avant le jet', (
     const test = testDeRegle('fuite', 'touche-en-fuyant');
     const posee = testDeFiche('fuite', 'touche-en-fuyant');
     useGame.setState({
-      battle: { combatants: [mk('Héros', 'hero'), mk('Brute', 'enemy')] } as never,
+      battle: { combatants: [mk('Héros', 'heros'), mk('Brute', 'ennemi')] } as never,
       pendingDisengage: {
         moverId: 'Héros', foeId: 'Brute', canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
         fuir: { participants: [
@@ -144,7 +144,7 @@ describe('Désengagement — fuite : la ligne du Test du fuyard avant le jet', (
   it('issue de la fuite : la Course n’est annoncée que sous condition de capacité', () => {
     const test = testDeRegle('fuite', 'touche-en-fuyant');
     useGame.setState({
-      battle: { combatants: [mk('Héros', 'hero'), mk('Brute', 'enemy')] } as never,
+      battle: { combatants: [mk('Héros', 'heros'), mk('Brute', 'ennemi')] } as never,
       pendingDisengage: {
         moverId: 'Héros', foeId: 'Brute', canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
         fuir: { participants: [
@@ -160,9 +160,9 @@ describe('Désengagement — fuite : la ligne du Test du fuyard avant le jet', (
   // LDB 16 l.125, LDB 16 l.11.
   it('fuyard Sonné ×3 : la ligne de son Test nomme « −30 Sonné » et annonce la cible du jet', () => {
     const test = testDeRegle('fuite', 'touche-en-fuyant');
-    const fuyard = { ...mk('Héros', 'hero'), conditions: [{ id: 'sonne', value: 3 }] } as Combatant;
+    const fuyard = { ...mk('Héros', 'heros'), conditions: [{ id: 'sonne', value: 3 }] } as Combatant;
     useGame.setState({
-      battle: { combatants: [fuyard, mk('Brute', 'enemy')] } as never,
+      battle: { combatants: [fuyard, mk('Brute', 'ennemi')] } as never,
       pendingDisengage: {
         moverId: 'Héros', foeId: 'Brute', canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
         fuir: { participants: [

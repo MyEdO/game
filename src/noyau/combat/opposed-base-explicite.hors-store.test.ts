@@ -22,7 +22,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * DÉPARTAGE À DR ÉGAL du canal `triggeredTest` (#1153 L3) — `LDB 12 l.160` : « Si les deux participants
+ * DÉPARTAGE À DR ÉGAL du canal `testDeclenche` (#1153 L3) — `LDB 12 l.160` : « Si les deux participants
  * obtiennent le même DR, c'est le groupe avec la Compétence ou la Caractéristique la plus élevée qui
  * l'emporte. » La grandeur comparée est donc la valeur NUE, et elle l'est POUR LES DEUX CAMPS : opposer
  * la nue de l'un à la cible de l'autre comparerait deux grandeurs différentes.
@@ -40,7 +40,7 @@ const BRANCHES = { onSuccess: EMPTY_FLOW, onFail: EMPTY_FLOW };
 
 function combatant(p: Partial<Combatant> & { id: string }): Combatant {
   return blessuresSurLeProfil({
-    label: p.id, kind: 'hero',
+    label: p.id, kind: 'heros',
     characteristics: {
       'capacite-de-combat': 35, 'capacite-de-tir': 40, force: 50, endurance: 40, initiative: 30,
       agilite: 30, dexterite: 32, intelligence: 40, 'force-mentale': 35, sociabilite: 30,
@@ -55,7 +55,7 @@ function combatant(p: Partial<Combatant> & { id: string }): Combatant {
 function setBattle(combatants: Combatant[], activeId: string) {
   const order = combatants.map((c) => c.id);
   banc.setState({
-    mode: 'battle', party: combatants.filter((c) => c.kind === 'hero'),
+    mode: 'battle', party: combatants.filter((c) => c.kind === 'heros'),
     battle: {
       combatants, order, baseOrder: order, turn: order.indexOf(activeId), round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false,
@@ -77,7 +77,7 @@ describe('TÉMOIN — la sonde `REPLIS_DEUX_CIBLES` est vivante dans ce runtime'
  *  s'inversent face à un attaquant sain, et un départage sur les cibles donnerait l'autre vainqueur. */
 function bandeInversee() {
   const def = combatant({ id: 'def', conditions: [{ id: 'extenue', value: 2 }] as never });
-  const att = combatant({ id: 'att', kind: 'enemy', characteristics: { ...combatant({ id: 'x' }).characteristics, force: 45 } as never });
+  const att = combatant({ id: 'att', kind: 'ennemi', characteristics: { ...combatant({ id: 'x' }).characteristics, force: 45 } as never });
   setBattle([def, att], 'att');
   return { def, att };
 }
@@ -101,7 +101,7 @@ describe('G4 — BANDE OPPOSÉE : le départage suit la NUE sur le résolveur de
       const verdict = resolveOpposed(aT, { roll: roll.roll, target: roll.target, success: roll.success, sl: roll.sl, isDouble: false, base: row.base });
       if (verdict.decidedBy !== 'valeur') continue;
       joue = true;
-      expect(verdict.winner, 'nue du défenseur > nue de l’attaquant').toBe('defender');
+      expect(verdict.winner, 'nue du défenseur > nue de l’attaquant').toBe('defenseur');
       expect(roll.success, 'le résolveur de production applique le MÊME verdict (le défenseur résiste)').toBe(true);
     }
     expect(joue, 'aucun DR égal en 300 germes : le départage n’a pas été atteint').toBe(true);
@@ -131,11 +131,11 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const wielder = enemies[0];
     const prey = enemies[1];
     enemies.slice(2).forEach((e) => (e.dead = true));
@@ -161,7 +161,7 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
       banc.setState({ pendingCascade: null, pendingLogQueue: [] });
       seedBattleRng(seed);
       fireTriggers(banc.getState, wielder, 'onHit', { victim: H, weapon: assommante(), location: 'tete', rng: makeRNG(1), set: banc.setState });
-      const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+      const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
       const aT = step.meta!.opposed!.aT;
       expect(aT.base, 'le pré-jet de l’attaquant porte sa Force NUE').toBe(skillBaseValue(wielder, { characteristic: 'force' }));
       expect(step.base, 'l’étape du défenseur porte sa Résistance NUE').toBe(55);
@@ -170,7 +170,7 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
       const verdict = resolveOpposed(aT, { roll: r.roll, target: r.target, success: r.success, sl: r.sl, isDouble: false, base: step.base });
       if (verdict.decidedBy !== 'valeur') continue;
       joue = true;
-      expect(verdict.winner, 'nue 55 > nue de l’attaquant').toBe('defender');
+      expect(verdict.winner, 'nue 55 > nue de l’attaquant').toBe('defenseur');
       expect(r.success, 'l’étape conclut « résiste » — l’issue suit la NUE').toBe(true);
     }
     expect(joue, 'aucun DR égal en 300 germes : le départage n’a pas été atteint').toBe(true);
@@ -198,7 +198,7 @@ describe('G4 — producteurs de Tests SIMPLES : leur base est la NUE, aucun dép
   it('mono et bande simples posent `skillBaseValue`, jamais une valeur fondue', () => {
     const c = combatant({ id: 'simple', conditions: [{ id: 'sonne', value: 1 }] as never });
     // L'enjeu vient du PORTEUR, comme en production (#1262 V2 L6d) : `MonoSpec.stake` est requis.
-    const ft: FlowTest = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister' }, { kind: 'condition', id: 'empoisonne' });
+    const ft: FlowTest = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister' }, { kind: 'etat', id: 'empoisonne' });
     const nue = skillBaseValue(c, { skill: { id: 'resistance' } });
     expect(nue, 'sonde inerte : sans État, nue et valeur testée se confondraient').not.toBe(testValue(c, { skill: { id: 'resistance' } }));
     expect(simpleTriggeredTestStep(c, ft, combatConditionCtx(c, {}), BRANCHES, EMPTY_FLOW)!.base).toBe(nue);
@@ -213,11 +213,11 @@ describe('ATTAQUE DU JUGE — le bonus de DR joue AVANT le départage, jamais à
     // Sans bonus : les DR diffèrent → c'est le DR qui tranche, la nue ne sert pas.
     const sansBonus = resolveOpposed(aT, def);
     expect(sansBonus.decidedBy).toBe('dr');
-    expect(sansBonus.winner).toBe('attacker');
+    expect(sansBonus.winner).toBe('attaquant');
     // +1 DR au défenseur (Piège-lame, LDB 62 l.280) : les DR s'égalisent → la nue tranche, et pour lui.
     const avecBonus = resolveOpposed(aT, bumpSL(def, 1));
     expect(avecBonus.decidedBy).toBe('valeur');
-    expect(avecBonus.winner).toBe('defender');
+    expect(avecBonus.winner).toBe('defenseur');
   });
 });
 
@@ -239,7 +239,7 @@ describe('G9 — « se libérer » d’Empêtré (`escapeStrength` FIGÉE) : nu 
       const pris = combatant({ id: 'pris', conditions: [{ id: 'empetre', value: 1, escapeStrength: 55 }] as never });
       setBattle([pris], 'pris');
       banc.getState().seRemettreDeLEtat('empetre');
-      banc.getState().jetLancer('recover');
+      banc.getState().jetLancer('recuperation');
     }
     expect(REPLIS_DEUX_CIBLES.count).toBe(avant);
   });

@@ -1,11 +1,11 @@
 // LE MANIFESTE COMPLET D'UNE BASE (#2972, `ManifesteDeBase` de `hotes/godot/asset/manifesteDeBase.ts`), écrit sous
 // `manifeste` dans le dossier de production de son GLB exporté (`production.ts`, #3106). Chaque champ a une source :
 // - construit par la construction Blender (`humanoide.py`), lu en JSON sur l'entrée standard : `os`, `chaines`,
-//   `zones`, `emplacements`, `prises`, `silhouettes`, `gabarit` (dont `st`, `silhouettes.bornes_de_st`), `appuis.pieds`,
-//   `osAPositionAnimee` ;
+//   `zones`, `emplacements`, `prises`, `silhouettes`, `reliefDeCorpulence`, `gabarit` (dont `st`,
+//   `silhouettes.bornes_de_st`), `appuis.pieds`, `osAPositionAnimee` ;
 // - déclaré par le corps (`<declaration.json>`, `champsDeclares`) : `base`, `porteur`, `bornesArticulaires`, `clips`,
-//   `clipsDeuxMains` et `surfaces` ;
-// - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitesseAuSol`, celle du clip du rôle `walk` ;
+//   `clipsDeuxMains`, `prisesOccupees` et `surfaces` ;
+// - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitesseAuSol`, celle du clip du rôle `marche` ;
 // - construit avant l'export (`domaineDuGabarit`, pont `gabarit.mjs`) : `gabarit.bornes` ;
 // - pris au GLB : `glb.sha256` et `glb.octets`.
 // Le manifeste complet est jugé contre son GLB comme à l'import (`validerModele`, `modeles.ts`).
@@ -23,14 +23,14 @@ import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { champsDeclares, lireDeclaration } from './declaration.mjs'
 import { ecrireProduction, SOURCES, verifierProduction } from './production.ts'
 
-/** Vitesse posée sur le clip du rôle `walk` le temps de la mesure : `mesurerAppuis` (`appuis.ts`) ne la lit que pour
+/** Vitesse posée sur le clip du rôle `marche` le temps de la mesure : `mesurerAppuis` (`appuis.ts`) ne la lit que pour
  *  juger l'écart et le glissement, jamais pour mesurer la vitesse au sol. */
 const VITESSE_DE_SONDE = 1
 
-/** La vitesse au sol du clip du rôle `walk` du manifeste `manifeste`, mesurée par l'évaluateur sur `octets`. */
+/** La vitesse au sol du clip du rôle `marche` du manifeste `manifeste`, mesurée par l'évaluateur sur `octets`. */
 async function mesurerVitesse(octets, manifeste) {
   const { evaluer } = await chargerEvaluateur()
-  const clip = manifeste.clips.walk
+  const clip = manifeste.clips.marche
   const fiche = await evaluer({ base: octets, manifeste, clips: [clip] })
   const refus = fiche.ecarts.filter((e) => e.garde === 'manifeste')
   if (refus.length) throw new Error(`manifeste refusé par l'évaluateur :\n${refus.map((e) => `  [${e.code}] ${e.valeur} : ${e.detail}`).join('\n')}`)

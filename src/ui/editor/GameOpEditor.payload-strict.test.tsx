@@ -40,7 +40,7 @@ const caseACocher = (etiquette: string) =>
 describe('GameOpEditor — une clé vidée s’OMET, jusque dans un SOUS-objet', () => {
   it('décocher « sur l’échec » ôte `onFailure` de `valuePerSL`, sans y laisser une clé à `undefined`', () => {
     const vus: GameOp[][] = [];
-    monter([{ op: 'condition', id: conditionIds()[0], value: 1, valuePerSL: { every: 1, amount: 1, onFailure: true } } as GameOp], vus);
+    monter([{ op: 'condition', id: { id: conditionIds()[0] }, value: 1, valuePerSL: { every: 1, amount: 1, onFailure: true } } as GameOp], vus);
     const coche = caseACocher("sur l'échec");
     expect(coche.checked, 'la case ne reflète pas le payload d’entrée').toBe(true);
     act(() => {
@@ -53,7 +53,7 @@ describe('GameOpEditor — une clé vidée s’OMET, jusque dans un SOUS-objet',
 
   it('cocher « sur l’échec » pose la clé à `true`', () => {
     const vus: GameOp[][] = [];
-    monter([{ op: 'condition', id: conditionIds()[0], value: 1, valuePerSL: { every: 1, amount: 1 } } as GameOp], vus);
+    monter([{ op: 'condition', id: { id: conditionIds()[0] }, value: 1, valuePerSL: { every: 1, amount: 1 } } as GameOp], vus);
     act(() => {
       caseACocher("sur l'échec").click();
     });

@@ -63,7 +63,7 @@ const doc = document(
     /** LDB 50 l.9 ; EDOC 13 l.606 */
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** VDM 02 l.238. */
-    tables: z.record(z.string(), z.string()).optional(),
+    tables: z.record(z.string(), idDe('table')).optional(),
 
     effects: z.array(triggeredEffectSchema).optional(),
 
@@ -106,7 +106,7 @@ const doc = document(
     /** VDM 04 l.48-56 ; VDM 05 l.38-44 ; VDM 06 l.34-38 ; VDM 07 l.42-48 ; VDM 08 l.36-40 ; VDM 09 l.38-42 ; VDM 10 l.38-42 ; VDM 11 l.38-44. */
     windModifiers: z.array(nommerChamps(z.strictObject({
       /** Tests portés par le modificateur. */
-      tests: z.array(z.enum(['incantation', 'focalisation', 'seconde-vue'])).min(1),
+      tests: z.array(enumNomme({ incantation: 'Incantation', focalisation: 'Focalisation', 'seconde-vue': 'Seconde Vue' })).min(1),
       /** Delta de DR appliqué au Test. */
       dr: z.number(),
       /** Circonstances dont UNE suffit à déclencher le modificateur, signées par l'appelant.

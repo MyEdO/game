@@ -7,20 +7,40 @@
  * On édite les VRAIS objets de `src/data/*.json` (rien de transformé) → la donnée stockée reste celle
  * que le moteur lit (DiseaseSymptom / CombatFeature / AdvancementRef / TrappingRef).
  */
-import { ChoixDeSpec, ChoixDeSpecs, RefField, reposerLId, typeDuDataset, useSuggestionsPartagees, useValeursDistinctes, type RefFieldCfg, type SuggestionsPartagees } from '../../compendium/refField/RefField';
+import {
+  ChoixDeSpec,
+  ChoixDeSpecs,
+  RefField,
+  reposerLId,
+  typeDuDataset,
+  useSuggestionsPartagees,
+  useValeursDistinctes,
+  type RefFieldCfg,
+  type SuggestionsPartagees,
+} from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { datasetArray } from '../../../data/overrides';
 import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, type Difficulty, type CharKey } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import { formatDice, parseDice } from '../../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
-import type { AdvancementRef, DotationDePossession, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';
-import { dispoSaisonniereSchema, harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
-import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
+import type {
+  AdvancementRef,
+  DotationDePossession,
+  TrappingRef,
+  CountSpec,
+  DomainData,
+  HarvestRarity,
+  HarvestDanger,
+  TalentTest,
+  TestMatch,
+  SpecEntry,
+} from '../../../data';
+import { harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
+import type { Id, RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { missileBypassSchema } from '../../../data/schemas/defs/domains';
-import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, seasonLabel } from '../../../data';
-import type { z } from 'zod';
+import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, idDObjet, trappingsInstanciables } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { ConditionEditor } from '../ConditionEditor';
 import { isOptionalNote, type OptionalEntry } from '../../../engine/statEntry';
@@ -38,9 +58,9 @@ import type { GameOp } from '../../../engine/ops';
 import type { CrewTarget } from '../../../data/shipCriticals';
 import { NumberField } from '../../NumberField';
 import { ProseField } from '../../ProseField';
-import { PlageField } from '../../PlageField';
 import { OptionChooser } from '../../OptionChooser';
-import type { OptionalRule, RuleValue } from '../../../engine/policy';
+import type { OptionalRule, RuleKind, RuleValue } from '../../../engine/policy';
+import { IconField } from '../worldMapPickers';
 
 const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
 
@@ -49,9 +69,6 @@ const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
  *  def, or `crewHit.crewTarget` est imbriqué (garde `ref-field-cles.test.ts`). */
 const CFG_STATIONS: RefFieldCfg = { ds: 'shipStations' };
 const CFG_ROLE: RefFieldCfg = { ds: 'crewRoles', single: true };
-
-/** Les quatre colonnes saisonnières d'une cargaison, telles que la grammaire les déclare. */
-type DispoSaisonniere = z.infer<typeof dispoSaisonniereSchema>;
 
 /** 1°ʳᵉ référence d'un slot qui porte une LISTE de réfs (`reverseFailed.skills` : Pilote → Ramer OU
  *  Voile) — le contrôle MONO de cet atelier n'édite que celle-là, les suivantes sont conservées. PURE. */
@@ -482,6 +499,10 @@ function ChoiceList({ ds, value, onChange }: { ds: 'skills' | 'talents'; value: 
 
 const isText = (t: TrappingRef): t is { text: string; count?: CountSpec } => 'text' in t;
 const isPossession = (t: TrappingRef): t is DotationDePossession => 'type' in t;
+/** L'id que rend un `RefField` à fiche unique : l'id nu, ou la référence `{ id, spec? }`. */
+const idDuChoix = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'object' && v !== null && 'id' in v && typeof v.id === 'string' ? v.id : '');
+/** L'objet d'une rangée « Réf. (catalogue) » neuve : le premier du catalogue, que l'auteur remplace au sélecteur. */
+const premierObjet = (): Id<'trapping'> | undefined => idDObjet(trappingsInstanciables()[0]?.id);
 
 export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | undefined; onChange: (v: TrappingRef[]) => void }) {
   const list = value ?? [];
@@ -506,14 +527,20 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
           <div className="fieldrow">
             <select
               value={kindOf(t)}
-              onChange={(e) => { const c = 'count' in t ? t.count : undefined; return set(i, e.target.value === 'text' ? { text: '', count: c } : e.target.value === 'vehicle' || e.target.value === 'creature' ? { id: '', type: e.target.value, count: c, ...('label' in t && t.label ? { label: t.label } : {}) } : { id: '', count: c }); }}
+              onChange={(e) => {
+                const c = 'count' in t ? t.count : undefined;
+                const id = premierObjet();
+                if (e.target.value === 'text') set(i, { text: '', count: c });
+                else if (e.target.value === 'vehicle' || e.target.value === 'creature') set(i, { id: '', type: e.target.value, count: c, ...('label' in t && t.label ? { label: t.label } : {}) });
+                else if (id) set(i, { id, count: c });
+              }}
             >
               <option value="ref">Réf. (catalogue)</option>
               <option value="vehicle">Véhicule (vehicles.json)</option>
               <option value="creature">Bête (creatures.json)</option>
               <option value="text">Texte (narratif)</option>
             </select>
-            <label className="dr">quantité<input style={{ width: 80 }} placeholder="3 / 1d10" value={countOf(t)} onChange={(e) => set(i, { ...t, count: parseCount(e.target.value) })} /></label>
+            <label className="dr">quantité<input style={{ width: 80 }} placeholder="3 / 1d10" value={countOf(t)} onChange={(e) => set(i, { ...t, count: parseCount(e.target.value) } as TrappingRef)} /></label>
             <button className="btn small danger" title="Retirer la possession" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
           {isText(t)
@@ -521,21 +548,21 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
             : isPossession(t) && t.type === 'vehicle'
               ? (
                 <>
-                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.id} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
+                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.id} onChange={(v) => set(i, { id: idDuChoix(v), type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
                   <label className="dr">nom<input placeholder={findVehicleById(t.id)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
                 </>
               )
               : isPossession(t)
                 ? (
                   <>
-                    <RefField cfg={creatureCfg} fieldKey="bete" value={t.id} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
+                    <RefField cfg={creatureCfg} fieldKey="bete" value={t.id} onChange={(v) => set(i, { id: idDuChoix(v), type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
                     <label className="dr">nom<input placeholder={findCreatureById(t.id)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
                   </>
                 )
-                : <RefField cfg={refCfg} fieldKey="possession" value={'id' in t ? t.id : ''} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: 'count' in t ? t.count : undefined })} />}
+                : <RefField cfg={refCfg} fieldKey="possession" value={'id' in t ? t.id : ''} onChange={(v) => { const id = idDObjet(idDuChoix(v)); if (id) set(i, { id, count: 'count' in t ? t.count : undefined }); }} />}
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { id: '' }])}>+ Possession</button>
+      <button className="btn small" onClick={() => { const id = premierObjet(); if (id) onChange([...list, { id }]); }}>+ Possession</button>
     </div>
   );
 }
@@ -563,37 +590,6 @@ export function CharKeysField({ value, onChange }: { value: CharKey[] | undefine
           </label>
         ))}
       </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
- * 6) cargoes `avail` — DISPONIBILITÉ SAISONNIÈRE : quatre colonnes d100, chacune une
- *    fourchette `{min, max}` (`dispoSaisonniereSchema`). Une `PlageField` par saison.
- * ──────────────────────────────────────────────────────────────────────────── */
-
-/** Les quatre colonnes, DÉRIVÉES du nœud de grammaire : la liste des saisons n'est écrite qu'une
- *  fois dans le dépôt (`parSaison`, `schemas/grammaire/valeurs.ts`). */
-const SAISONS_DE_DISPO = Object.keys(dispoSaisonniereSchema.shape) as (keyof DispoSaisonniere)[];
-
-export function DispoSaisonniereField(
-  { label, value, onChange }: { label: string; value: DispoSaisonniere | undefined; onChange: (v: DispoSaisonniere) => void },
-) {
-  const colonnes = value ?? ({} as Partial<DispoSaisonniere>);
-  return (
-    <div className="ed-field">
-      <span>{label}</span>
-      {SAISONS_DE_DISPO.map((saison) => (
-        <PlageField
-          key={saison}
-          label={seasonLabel(saison)}
-          // MDG 15 l.406-418 / MSRC 13 l.73-78 : les quatre colonnes sont tirées au d100, et chacune
-          // couvre 1 à 100 d'un seul tenant (refine de def, `catalogueSaisonnier`).
-          domaine={{ nom: 'd100', min: 1, max: 100 }}
-          value={colonnes[saison]}
-          onChange={(f) => f && onChange({ ...(colonnes as DispoSaisonniere), [saison]: f as { min: number; max: number } })}
-        />
-      ))}
     </div>
   );
 }
@@ -654,20 +650,19 @@ export function DomainEffectsField(
     onCastBonus: (v: DomainData['castBonus']) => void; onMissile: (v: DomainData['missile']) => void; onCasterOps: (v: DomainData['casterOps']) => void;
   },
 ) {
-  const etatOpts = datasetArray('etats') as { id: string; label: string }[];
+  const etatOpts = datasetArray('etats');
   return (
     <div className="ed-field">
       <span>attributs du domaine (LDB 48 — bonus d'incantation conditionnel / mitigation de Projectile / ops au lanceur)</span>
       <div className="ed-subfield">
-        <label className="dr"><input type="checkbox" checked={!!castBonus} onChange={(e) => onCastBonus(e.target.checked ? { perCondition: '', radiusStat: 'force-mentale', bonus: 10 } : undefined)} /> Bonus d'incantation conditionnel</label>
+        <label className="dr"><input type="checkbox" checked={!!castBonus} onChange={(e) => onCastBonus(e.target.checked && etatOpts[0] ? { perCondition: etatOpts[0].id, radiusStat: 'force-mentale', bonus: 10 } : undefined)} /> Bonus d'incantation conditionnel</label>
         {castBonus && (
           <div className="tf-row">
             <label className="dr">par État
               {/* #173 : `perCondition` est l'id de l'État (résolu par `stacks(c, cb.perCondition)`,
                   noyau/combatFlow.ts — cf. ConditionInstance.name), pas son libellé → sélecteur id→label,
                   pas de datalist par label. */}
-              <select value={castBonus.perCondition} onChange={(e) => onCastBonus({ ...castBonus, perCondition: e.target.value })}>
-                <option value="">— (choisir un État) —</option>
+              <select value={castBonus.perCondition} onChange={(e) => { const etat = etatOpts.find((o) => o.id === e.target.value); if (etat) onCastBonus({ ...castBonus, perCondition: etat.id }); }}>
                 {etatOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
               </select>
             </label>
@@ -884,8 +879,8 @@ export function HarvestField({ value, onChange }: { value: Harvest | undefined; 
  * ──────────────────────────────────────────────────────────────────────────── */
 
 /** Le sous-ensemble de la règle qui pilote le contrôle rendu (jamais l'entrée entière : cet éditeur
- *  ne lit ni ne modifie autre chose que la valeur). */
-export type RuleShape = Pick<OptionalRule, 'kind' | 'options' | 'min' | 'max' | 'step'>;
+ *  ne lit ni ne modifie autre chose que la valeur), lâche : elle décrit l'entrée en cours d'édition, avant sa validation. */
+export type RuleShape = { kind: RuleKind; options?: readonly string[]; min?: number; max?: number; step?: number };
 
 export function RuleValueField({ id, label, rule, value, onChange }: {
   id: string; label: string; rule: RuleShape; value: RuleValue | undefined; onChange: (v: RuleValue) => void;
@@ -937,7 +932,7 @@ export function RuleActionField({ rule, value, onChange }: {
 }) {
   const vide: NonNullable<OptionalRule['action']> = {
     when: rule.kind === 'flag' ? true : rule.kind === 'param' ? (rule.min ?? 0) : (rule.options?.[0] ?? ''),
-    label: '', icon: '', run: '',
+    label: '', icon: 'outil-de-carte/epingle', run: '',
   };
   if (!value) {
     return (
@@ -955,9 +950,7 @@ export function RuleActionField({ rule, value, onChange }: {
       <label className="ed-subfield">Libellé du bouton
         <input value={value.label} onChange={(e) => set({ label: e.target.value })} />
       </label>
-      <label className="ed-subfield">Icône (id du registre src/data/icons/)
-        <input value={value.icon} onChange={(e) => set({ icon: e.target.value })} />
-      </label>
+      <IconField label="Icône" value={value.icon} onChange={(icon) => { if (icon) set({ icon }); }} />
       <label className="ed-subfield">Action du store à déclencher
         <input value={value.run} onChange={(e) => set({ run: e.target.value })} />
       </label>

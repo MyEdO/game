@@ -28,14 +28,14 @@ function auTourDUnHeros(): Partie {
     for (let pas = 0; file.length && pas < 500; pas++) jouer(partie.reprendre(file.shift()!));
   };
   jouer(partie.lancer(lancementDuScenario(PASTILLES, idsDeTest)));
-  for (let pas = 0; pas < 20 && activeCombatant(partie.etat().battle!)?.kind !== 'hero'; pas++) jouer(partie.envoyer({ type: 'fenetreValider', args: ['roundStart'] }));
-  expect(activeCombatant(partie.etat().battle!)?.kind, 'témoin : aucun héros n’est venu au tour').toBe('hero');
+  for (let pas = 0; pas < 20 && activeCombatant(partie.etat().battle!)?.kind !== 'heros'; pas++) jouer(partie.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] }));
+  expect(activeCombatant(partie.etat().battle!)?.kind, 'témoin : aucun héros n’est venu au tour').toBe('heros');
   return partie;
 }
 
 const contexte = (partie: Partie): ActionCtx => {
   const s = partie.etat();
-  return { active: activeCombatant(s.battle!)!, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime };
+  return { scene: s.scene, active: activeCombatant(s.battle!)!, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime };
 };
 
 describe('Partie.lancer — le lancement d’un scénario est un appel de la partie', () => {
@@ -72,7 +72,7 @@ describe('les verbes des offres, en intention', () => {
     }
   });
 
-  it('`end-turn`, l’Action intacte, arme le garde-fou du tour gâché sans finir le tour', () => {
+  it('`fin-de-tour`, l’Action intacte, arme le garde-fou du tour gâché sans finir le tour', () => {
     const partie = auTourDUnHeros();
     try {
       const actif = activeCombatant(partie.etat().battle!)!.id;
@@ -90,7 +90,7 @@ describe('les lecteurs de la vue', () => {
   it('`actionGate` rend sa raison sur une offre fermée', () => {
     const partie = auTourDUnHeros();
     try {
-      const gate = actionGate('focus-spell', contexte(partie));
+      const gate = actionGate('focalisation', contexte(partie));
       expect(gate.ok).toBe(false);
       expect(gate.reason, 'une offre fermée sans raison').toBeTruthy();
     } finally {
@@ -104,10 +104,10 @@ describe('les lecteurs de la vue', () => {
       const ctx = { ...contexte(partie), state: partie.etat() };
       const offres = offresDeLActif(ctx);
       const offertes = (surface: Parameters<typeof offresParPorteur>[1]) => offres.filter((o) => o.def.surface === surface).map((o) => o.actionId);
-      expect(actionGate('water', ctx).ok, 'témoin : le prédicat d’Aspersion est fermé').toBe(true);
-      expect(offertes('deduite-du-set'), 'Asperger est offert sans récipient ni cible').not.toContain('water');
-      expect(offertes('pastille-entite'), 'témoin : le champ n’offre plus ses gestes').toEqual(expect.arrayContaining(['mount', 'pickup']));
-      expect(offertes('pastille-entite'), 'Servir est offert sans poste à servir').not.toContain('man-poste');
+      expect(actionGate('aspersion', ctx).ok, 'témoin : le prédicat d’Aspersion est fermé').toBe(true);
+      expect(offertes('deduite-du-set'), 'Asperger est offert sans récipient ni cible').not.toContain('aspersion');
+      expect(offertes('pastille-entite'), 'témoin : le champ n’offre plus ses gestes').toEqual(expect.arrayContaining(['mise-en-selle', 'ramassage']));
+      expect(offertes('pastille-entite'), 'Servir est offert sans poste à servir').not.toContain('service-poste');
     } finally {
       partie.fermer();
     }

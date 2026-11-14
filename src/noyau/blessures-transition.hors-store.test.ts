@@ -27,7 +27,7 @@ afterEach(() => resetData());
 describe('écriture du store : le maximum suit, à chaque chemin de combattant de l’état', () => {
   describe.each(CHEMINS_NOMMES)('%s', (_, chemin) => {
     it.each(PORTEURS)('%s posé sans réconciliation', (_n, _champ, poser) => {
-      const c = blesseDeTest(10, { kind: 'hero' });
+      const c = blesseDeTest(10, { kind: 'heros' });
       poser(c, plus3());
       banc.setState(poserAuChemin(banc.getState(), chemin, c));
       expect(lireAuChemin(banc.getState(), chemin).wounds).toMatchObject({ max: 15, current: 13 });
@@ -37,7 +37,7 @@ describe('écriture du store : le maximum suit, à chaque chemin de combattant d
 
 describe('mutation de Corruption (LDB 19 l.76, l.83) : la transition réconcilie le porteur muté', () => {
   it('la dernière étape à table attache la mutation : le maximum et le courant du héros suivent', () => {
-    setDataset('mutations', [...datasetArray('mutations'), { id: ID_DE_PORTEUR, type: 'mutations', label: 'Mutation de test', desc: '', kind: 'physique', passive: plus3() }] as never);
+    setDataset('mutations', [...datasetArray('mutations'), { id: ID_DE_PORTEUR, type: 'mutations', label: 'Mutation de test', desc: '', kind: 'physique', passive: plus3() }]);
     setDataset('mutationTables', (datasetArray('mutationTables') as MutationTable[]).map((t) => ({ ...t, entries: [{ min: 1, max: 100, mutation: ID_DE_PORTEUR }] })) as never);
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 4 });
     h.corruption = 6;

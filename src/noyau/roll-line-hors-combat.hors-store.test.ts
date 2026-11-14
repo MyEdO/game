@@ -35,7 +35,7 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 
 function hero(p: Partial<Combatant>): Combatant {
   return blessuresSurLeProfil({
-    id: 'h1', label: 'Héros', kind: 'hero',
+    id: 'h1', label: 'Héros', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 35, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 35, sociabilite: 30 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -66,11 +66,11 @@ describe('Naufrage — Natation montée par `rollStep` (#1153 L3)', () => {
     const nue = skillBaseValue(nageur, { skill: { id: 'natation' }, characteristic: 'force' });
     const jetee = testValue(nageur, { skill: { id: 'natation' }, characteristic: 'force' });
     expect(jetee, 'l’État sépare la nue de la valeur jetée — sinon le test ne prouve rien').toBeLessThan(nue);
-    const diff = rule('sea-shipwreck-swim') as Difficulty;
+    const diff = rule('mer-naufrage-natation') as Difficulty;
     banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] }, } as never);
 
     beginShipwreck(get, set);
-    const step = get().pendingCascade!.participants.find((s) => s.kind === 'shipwreckSwim')!;
+    const step = get().pendingCascade!.participants.find((s) => s.kind === 'naufrageNatation')!;
     expect(step.base, 'Niveau de Compétence NU (LDB 09 l.17)').toBe(nue);
     expect(step.difficulty, 'la ligne DIT sa Difficulté (#1072)').toBe(diff);
     // CIBLE INVARIANTE : exactement ce que roulait l'ancien monteur à la main.
@@ -106,7 +106,7 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
     expect(contagion.target).toBe(clampTarget(jeteeRes + DIFFICULTY_MODIFIERS.accessible).target);
     expect(inexplique(contagion), 'aucune chip « autres » sur la Contagion').toBe(0);
 
-    const cauchemar = jetDe(steps.find((s) => s.kind === 'nightmare')!);
+    const cauchemar = jetDe(steps.find((s) => s.kind === 'cauchemar')!);
     // Cauchemars = « Test de Calme Facile (+40) » (LDB 21 l.95) : la porte compte l'État comme partout
     // ailleurs (LDB 16 l.125) — base NUE, écart NOMMÉ (#1685).
     const nueCalme = skillBaseValue(dormeur, { skill: { id: 'calme' } });
@@ -177,16 +177,16 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
     runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
 
     const kinds = deferred.map((t) => t.kind).sort();
-    expect(kinds, 'la journée doit bien produire les 4 familles visées').toEqual(['dessoulage', 'faim', 'soif', 'trauma-fracture']);
+    expect(kinds, 'la journée doit bien produire les 4 familles visées').toEqual(['convalescence-fracture', 'dessoulage', 'faim', 'soif']);
     for (const st of deferredUpkeepSteps(get().party, deferred)) {
       expect(inexplique(st), `chip « autres » sur l’étape ${st.kind}`).toBe(0);
     }
     // TOUS les producteurs NOMMENT leur Test et livrent une base NUE (#1685 : plus une seule formule maison).
     const nomme = deferred.filter((t) => t.test).map((t) => t.kind).sort();
-    expect(nomme, 'les quatre familles nomment leur Test').toEqual(['dessoulage', 'faim', 'soif', 'trauma-fracture']);
+    expect(nomme, 'les quatre familles nomment leur Test').toEqual(['convalescence-fracture', 'dessoulage', 'faim', 'soif']);
     const faim = deferred.find((t) => t.kind === 'faim')!;
     expect(faim.base).toBe(skillBaseValue(eprouve, { skill: { id: 'resistance' }, characteristic: 'endurance' }));
-    const conv = deferred.find((t) => t.kind === 'trauma-fracture')!;
+    const conv = deferred.find((t) => t.kind === 'convalescence-fracture')!;
     // Convalescence = « Test de Résistance Accessible (+20) » (LDB 18 l.202) : base NUE, État en chip.
     expect(conv.test).toEqual({ skill: { id: 'resistance' } });
     expect(conv.base).toBe(skillBaseValue(eprouve, { skill: { id: 'resistance' } }));
@@ -237,7 +237,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     fresh([marcheur]);
     const p = { ...restPending([marcheur], 'auberge'), travelMarch: [marcheur.id] } as never as PendingRest;
     const { steps } = buildNightCascade(get, set, p, { fedDaily: true });
-    const st = jetDe(steps.find((s) => s.kind === 'forced-march')!);
+    const st = jetDe(steps.find((s) => s.kind === 'marche-forcee')!);
     const nue = skillBaseValue(marcheur, { skill: { id: 'resistance' }, characteristic: 'endurance' });
     const jetee = testValue(marcheur, { skill: { id: 'resistance' }, characteristic: 'endurance' });
     expect(jetee, 'l’État sépare la nue de la valeur jetée').toBeLessThan(nue);
@@ -253,7 +253,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     const blesse = campeur({ id: 'ble', label: 'Blessé', wounds: blessuresDeBase(12, 4), conditions: [{ id: 'extenue', value: 1 }] as never });
     fresh([blesse]);
     const { steps } = buildNightCascade(get, set, restPending([blesse], 'auberge'), { fedDaily: true });
-    const st = jetDe(steps.find((s) => s.kind === 'recovery')!);
+    const st = jetDe(steps.find((s) => s.kind === 'recuperation')!);
     const nue = skillBaseValue(blesse, { skill: { id: 'resistance' } });
     const jetee = testValue(blesse, { skill: { id: 'resistance' } });
     expect(jetee, 'l’État sépare la nue de la valeur jetée — sinon le test ne prouve rien').toBeLessThan(nue);
@@ -276,7 +276,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     fresh([meneur, aide]);
     set({ scene: { ...scene, weather: 'neige' } } as never);
     const { steps } = buildNightCascade(get, set, restPending([meneur, aide], 'dehors'), { fedDaily: true });
-    const st = jetDe(steps.find((s) => s.kind === 'shelter')!);
+    const st = jetDe(steps.find((s) => s.kind === 'abri-de-fortune')!);
 
     const assiste = partyAssisted(get().party, { skill: { id: 'survie-en-exterieur' } })!;
     expect(assiste.support.bonus, 'l’aide doit réellement soutenir — sinon le test ne prouve rien').toBeGreaterThan(0);
@@ -295,10 +295,10 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     fresh([transi]);
     set({ scene: { ...scene, weather: 'tempete' } } as never);
     const { steps } = buildNightCascade(get, set, restPending([transi], 'dehors'), { fedDaily: true });
-    const expo = steps.filter((s) => s.kind === 'exposure');
+    const expo = steps.filter((s) => s.kind === 'exposition-nocturne');
     expect(expo.length, 'une nuit extrême SOUS TENTE garde le rythme difficile').toBeGreaterThan(0);
     const st = jetDe(expo[0]);
-    const pen = Number(rule('exposure-no-coat-penalty'));
+    const pen = Number(rule('exposition-sans-manteau'));
     expect(pen, 'sans pénalité de manteau, ce test ne mesure rien').toBeGreaterThan(0);
     // Exposition = « Test de Résistance » (LDB 18 l.328) : base NUE, États en chips, pénalité de manteau
     // SUR LA CIBLE — les trois séparément, plus aucune valeur maison (#1685).
@@ -323,7 +323,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     desso.participants![0].result = { roll: 50, target: desso.participants![0].target, sl: 0, success: true } as never;
     const out = applierDe('dessoulage')!(get, set, desso, get().party[0], { steps, index: 0 } as never);
     const bande = (out!.insert ?? [])[0];
-    expect(bande.kind).toBe('dessoulage-hangover');
+    expect(bande.kind).toBe('dessoulage-gueule-de-bois');
     const st = jetDe(bande);
     expect(st.label).toBe("Résistance à l'alcool");
     expect(st.base, 'base NUE — l’État a sa chip').toBe(skillBaseValue(ivre, { skill: { id: 'resistance-a-l-alcool' }, characteristic: 'endurance' }));
@@ -341,7 +341,7 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
     });
     const blesse = hero({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 4) });
     fresh([doc, blesse]);
-    get().ouvrirLeMedecin({ patientId: 'al' });
+    get().ouvrirLeMedecin('al');
     const ph = get().pendingHeal!;
     // Aucun soutien possible (le patient n'a pas Guérison) → la cible est celle du soigneur seul.
     expect(ph.target).toBe(clampTarget(testValue(doc, { skill: { id: 'guerison' } }) + DIFFICULTY_MODIFIERS[ph.difficulty]).target);
@@ -352,12 +352,12 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
     const doc = hero({ id: 'doc', label: 'Doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] as never });
     const patient = hero({
       id: 'p', label: 'Patient', wounds: { current: 40, max: 40 },
-      traumas: [{ label: 'Épaule luxée (bras perdu)', location: 'brasD', targetDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }] }],
+      traumas: [{ label: 'Épaule luxée (bras perdu)', location: 'brasD', drCible: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }] }],
     } as never);
     fresh([doc, patient]);
     set({ pendingSurgery: null } as never);
-    get().ouvrirLeMedecin({ patientId: 'p' });
-    get().jetLancer('heal'); // ARME la rééducation du brouillon et pose sa 1re passe
+    get().ouvrirLeMedecin('p');
+    get().jetLancer('soins'); // ARME la rééducation du brouillon et pose sa 1re passe
     const sg = get().medic!.surgery!;
     expect(sg.difficulty).toBe('accessible');
     const ps = get().pendingSurgery!;

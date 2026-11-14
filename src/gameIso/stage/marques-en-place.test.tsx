@@ -28,7 +28,7 @@ const TAILLE = { w: 800, h: 600 };
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero', pos, size: 'moyenne',
+    id, label: id, kind: 'heros', pos, size: 'moyenne',
     wounds: blessuresDeBase(12), weapons: [],
     characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
@@ -39,7 +39,7 @@ function hero(id: string, pos: { x: number; y: number }): Combatant {
  *  portée), ce qui en fait la mise à jour « sans rapport » du troisième fait. */
 function combatTémoin(reach: [string, number][]): BattleState {
   return {
-    combatants: [hero('h1', { x: 3, y: 3 }), { ...hero('e1', { x: 6, y: 6 }), kind: 'enemy' }],
+    combatants: [hero('h1', { x: 3, y: 3 }), { ...hero('e1', { x: 6, y: 6 }), kind: 'ennemi' }],
     order: ['h1', 'e1'],
     turn: 0,
     round: 1,
@@ -115,21 +115,21 @@ describe('Marques de cases — le pas ne remonte AUCUN pool (#1176 P3-0c)', () =
       act(() => root!.render(<MondeDeCampagne />));
 
       const avant = pools();
-      expect(avant.get('marques:walk')?.count, 'le témoin doit VRAIMENT peindre une portée').toBe(4);
-      expect(avant.get('marques:zoneSmoke')?.count).toBe(1);
+      expect(avant.get('marques:deplacement')?.count, 'le témoin doit VRAIMENT peindre une portée').toBe(4);
+      expect(avant.get('marques:zoneDeFumee')?.count).toBe(1);
       expect(espion.noms.length, 'le montage écrit les instances qu’il vient d’allouer').toBeGreaterThan(0);
 
       // PAS de l'actif : une case de plus dans la portée (même palier de capacité, 32).
       const écritesAvantLePas = espion.noms.length;
       act(() => { useGame.setState({ battle: combatTémoin(PAS_APRÈS) } as never); });
       const après = pools();
-      expect(après.get('marques:walk')?.count, 'la marque neuve est bien dessinée').toBe(5);
+      expect(après.get('marques:deplacement')?.count, 'la marque neuve est bien dessinée').toBe(5);
       for (const [nom, état] of avant) {
         expect(après.get(nom)?.uuid, `pool ${nom} REMONTÉ par un simple pas`).toBe(état.uuid);
         expect(après.get(nom)?.tampon, `tampon de ${nom} RÉALLOUÉ par un simple pas`).toBe(état.tampon);
       }
       expect(espion.noms.length - écritesAvantLePas, 'un pas doit RÉÉCRIRE les instances').toBeGreaterThan(0);
-      expect(espion.noms.slice(écritesAvantLePas)).toContain('marques:walk');
+      expect(espion.noms.slice(écritesAvantLePas)).toContain('marques:deplacement');
 
       // Mise à jour SANS RAPPORT : le survol d'un combattant qui ne porte aucune marque.
       const écritesAvantSurvol = espion.noms.length;

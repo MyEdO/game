@@ -4,18 +4,21 @@
  * expose leur réglage passe par ici ; leur persistance reste à l'hôte (`hote/reglesMaison.ts`).
  */
 import { t } from '../i18n';
-import { loadRuleOverrides, resetRule, setRule, type RuleValue } from '../engine/policy';
+import { loadRuleOverrides, resetRule, surchargerUneSaisie, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './persistance/elagage';
 import type { Jeu } from './etat';
 
 /**
  * Les règles optionnelles sont-elles MUTABLES en cet instant, et sinon POURQUOI. Verrou de CLASSE, sans granularité par
- * entrée : tant qu'une bataille est en cours, TOUTE entrée d'`OPTIONAL_RULES` est figée — le moteur lit `rule(id)` en
- * direct, et une bascule en plein combat rétroagit sur un état déjà construit à l'ouverture (réserves d'Avantage de
- * camp, Initiative, système de Blessures…). Ce qui relève du CONFORT (rythme de résolution…) n'est pas une règle et ne
- * vit pas dans ce registre : c'est une préférence (`noyau/preferences.ts`), modifiable à tout moment, combat compris.
+ * entrée : chez un invité, TOUTE entrée d'`OPTIONAL_RULES` est celle de l'hôte, qu'il adopte à chaque instantané
+ * (`loadRuleOverrides`, `noyau/coop.ts`) ; tant qu'une bataille est en cours, TOUTE entrée d'`OPTIONAL_RULES` est
+ * figée — le moteur lit `rule(id)` en direct, et une bascule en plein combat rétroagit sur un état déjà construit à
+ * l'ouverture (réserves d'Avantage de camp, Initiative, système de Blessures…). Ce qui relève du CONFORT (rythme de
+ * résolution…) n'est pas une règle et ne vit pas dans ce registre : c'est une préférence (`noyau/preferences.ts`),
+ * modifiable à tout moment, combat compris.
  */
-export function reglesMaisonMutables(s: Pick<Jeu, 'battle'>): { mutable: boolean; reason: string } {
+export function reglesMaisonMutables(s: Pick<Jeu, 'battle' | 'net'>): { mutable: boolean; reason: string } {
+  if (s.net.mode === 'invite') return { mutable: false, reason: t('houseRules.lockedForGuest') };
   if (!s.battle || s.battle.over) return { mutable: true, reason: '' };
   return { mutable: false, reason: t('houseRules.lockedInBattle') };
 }
@@ -30,14 +33,14 @@ export function poserLesReglesMaisonPersistees(persiste: Readonly<Record<string,
 }
 
 /** Surcharge la règle `id` de `valeur`, si le verrou de `s` le permet ; rend vrai si elle est posée. */
-export function surchargerUneRegleMaison(s: Pick<Jeu, 'battle'>, id: string, valeur: RuleValue): boolean {
+export function surchargerUneRegleMaison(s: Pick<Jeu, 'battle' | 'net'>, id: RegleOptionnelleId, valeur: RuleValue): boolean {
   if (!reglesMaisonMutables(s).mutable) return false;
-  setRule(id, valeur);
+  surchargerUneSaisie(id, valeur);
   return true;
 }
 
 /** Remet la règle `id` à son défaut, si le verrou de `s` le permet ; rend vrai si elle est remise. */
-export function retablirUneRegleMaison(s: Pick<Jeu, 'battle'>, id: string): boolean {
+export function retablirUneRegleMaison(s: Pick<Jeu, 'battle' | 'net'>, id: RegleOptionnelleId): boolean {
   if (!reglesMaisonMutables(s).mutable) return false;
   resetRule(id);
   return true;

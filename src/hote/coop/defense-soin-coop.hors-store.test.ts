@@ -19,13 +19,13 @@ import { etatInitialDuJeu, type BattleState, type Jeu, type NetState } from '../
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
-const NET = (mode: 'host' | 'guest', mySeat: number): NetState => ({
+const NET = (mode: 'hote' | 'invite', mySeat: number): NetState => ({
   mode, mySeat, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
-  connection: 'ok', hostAway: false, ownership: { h: 1 }, slots: [1, 1, 0, 0], rangs: {},
+  connection: 'connecte', hoteAbsent: false, ownership: { h: 1 }, slots: [1, 1, 0, 0], rangs: {},
 });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons: [rapiere], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, ...over }) as unknown as Combatant);
@@ -51,7 +51,7 @@ function table(banc: Banc): { guest: GuestSession; chezLInvite: () => Jeu } {
     guest,
     chezLInvite: () => {
       host.broadcastSnapshot();
-      return { ...banc.getState(), ...appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('guest', 1) }).etat };
+      return { ...banc.getState(), ...appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('invite', 1) }).etat };
     },
   };
 }
@@ -62,18 +62,18 @@ function combat(banc: Banc, combatants: Combatant[], turn: number): void {
     combatants, order, baseOrder: order, turn, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  banc.setState({ battle, mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'hero'), pendingDefense: null, pendingAttack: null, pendingCascade: null, pendingHeal: null });
+  banc.setState({ battle, mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'heros'), pendingDefense: null, pendingAttack: null, pendingCascade: null, pendingHeal: null });
 }
 
 describe('Défense et soin en coop : la même fenêtre des deux côtés', () => {
   it('la Défense du héros de l’invité : même réaction, mêmes cibles ; l’Esquive de l’invité se règle chez l’hôte', () => {
-    const banc = ouvrirLeBanc({ etat: { net: NET('host', 0) } });
+    const banc = ouvrirLeBanc({ etat: { net: NET('hote', 0) } });
     seedBattleRng(7);
-    combat(banc, [mk('e', 'enemy', { x: 1, y: 0 }), mk('h', 'hero', { x: 0, y: 0 })], 0);
+    combat(banc, [mk('e', 'ennemi', { x: 1, y: 0 }), mk('h', 'heros', { x: 0, y: 0 })], 0);
     const { guest, chezLInvite } = table(banc);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attack');
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attaquer');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     const vueHote = fenetreDeDefense(banc.getState());
     expect(vueHote?.reaction, 'chemin : la Défense du héros de l’invité s’ouvre chez l’hôte').toBeTruthy();
     expect(auMasque(fenetreDeDefense(chezLInvite()))).toEqual(auMasque(vueHote));
@@ -83,19 +83,19 @@ describe('Défense et soin en coop : la même fenêtre des deux côtés', () => 
   });
 
   it('le soin du héros de l’invité : même acte, mêmes raisons ; l’Hémorragie de l’invité se règle chez l’hôte', () => {
-    const banc = ouvrirLeBanc({ etat: { net: NET('host', 0) } });
-    const doc = mk('h', 'hero', { x: 0, y: 0 }, { skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] } as Partial<Combatant>);
-    const al = mk('al', 'hero', { x: 1, y: 0 }, { wounds: blessuresDeBase(18, 5), conditions: [{ id: 'hemorragique', value: 2 }] } as Partial<Combatant>);
+    const banc = ouvrirLeBanc({ etat: { net: NET('hote', 0) } });
+    const doc = mk('h', 'heros', { x: 0, y: 0 }, { skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] } as Partial<Combatant>);
+    const al = mk('al', 'heros', { x: 1, y: 0 }, { wounds: blessuresDeBase(18, 5), conditions: [{ id: 'hemorragique', value: 2 }] } as Partial<Combatant>);
     combat(banc, [doc, al], 0);
     const { guest, chezLInvite } = table(banc);
-    banc.setState({ battle: { ...banc.getState().battle!, action: 'heal' } });
+    banc.setState({ battle: { ...banc.getState().battle!, action: 'soins' } });
     guest.sendIntent('cliquerLaCase', [{ x: 1, y: 0 }, 'al']);
     const vueHote = fenetreDuSoin(banc.getState());
-    expect(vueHote?.mode.choisie, 'chemin : le soin du héros de l’invité s’ouvre chez l’hôte').toBe('wounds');
+    expect(vueHote?.mode.choisie, 'chemin : le soin du héros de l’invité s’ouvre chez l’hôte').toBe('blessures');
     const vueInvite = fenetreDuSoin(chezLInvite());
     expect(auMasque(vueInvite)).toEqual(auMasque(vueHote));
     expect(vueInvite!.mode.options.map((o) => o.refus === null), 'chez l’invité, les mêmes actes s’offrent').toEqual(vueHote!.mode.options.map((o) => o.refus === null));
-    guest.sendIntent('jetRegler', ['heal', 'mode', 'bleed']);
-    expect(banc.getState().pendingHeal!.mode, 'l’Hémorragie de l’invité est posée chez l’hôte').toBe('bleed');
+    guest.sendIntent('jetRegler', ['soins', 'mode', 'hemorragie']);
+    expect(banc.getState().pendingHeal!.mode, 'l’Hémorragie de l’invité est posée chez l’hôte').toBe('hemorragie');
   });
 });

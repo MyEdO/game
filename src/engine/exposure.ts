@@ -7,7 +7,7 @@
  * FROID (l.334) : 1ᵉʳ échec → −10 CT/Agilité/Dextérité ; 2ᵉ → −10 toutes les autres ; 3ᵉ+ →
  * 1d10 Dégâts ignorant les PA (min 1) ; à 0 PB → Inconscient. « Certaines Possessions accordent
  * des bonus et des pénalités pour ces Tests » : sans bon Manteau, pénalité au Test de Froid
- * (LDB 65 — silence, valeur maison `exposure-no-coat-penalty`). La PEAU DE PHOQUE (MDG 14
+ * (LDB 65 — silence, valeur maison `exposition-sans-manteau`). La PEAU DE PHOQUE (MDG 14
  * l.277-279 : « +1 DR sur les Tests de Résistance effectués pour supporter l'exposition au froid »)
  * est consommée par `sealskinDR` : sur un Test BINAIRE, le +1 DR retient l'échec de justesse
  * (échec dont le DR remonte à ≥ +1) — lecture déclarée, aucun ±10 inventé.
@@ -19,8 +19,8 @@
  *
  * La cadence (2h/4h ci-dessus) est LE SEUL chiffre du RAW ; son application à une NUIT dehors (un
  * nombre de Tests), l'annulation par une Tente (LDB 74 — silence) et la dissipation des pénalités
- * sont maison, réglées par le registre `policy.ts` (`exposure-night-difficile-count` /
- * `exposure-night-extreme-count` / `exposure-tent-cancels` / `exposure-expire-hours`) — cf.
+ * sont maison, réglées par le registre `policy.ts` (`exposition-tests-nuit-difficile` /
+ * `exposition-tests-nuit-extreme` / `exposition-tente-annule` / `exposition-dissipation-heures`) — cf.
  * `exposureTestCount`/`exposureShelterFromTent`. La météo de scène donne la sévérité : pluie/neige
  * = difficile, tempête = extrême (froid). Pur : mute `c`, renvoie jets + journal.
  */
@@ -59,11 +59,11 @@ export function partyHasTent(party: Combatant[]): boolean {
 }
 
 /** La Tente ANNULE-t-elle l'Exposition du camp (nuit difficile → 0 Test, extrême → rythme difficile) ?
- *  Règle optionnelle `exposure-tent-cancels` (LDB 74 — silence, valeur maison : le RAW ne prête à la
+ *  Règle optionnelle `exposition-tente-annule` (LDB 74 — silence, valeur maison : le RAW ne prête à la
  *  Tente AUCUN effet sur l'Exposition, seul le Sac de couchage a un bonus chiffré au Froid, LDB 74
  *  l.60). Désactivée, une Tente ne compte plus comme abri automatique (repli sur l'abri de fortune). */
 export function exposureShelterFromTent(party: Combatant[]): boolean {
-  return rule('exposure-tent-cancels') !== false && partyHasTent(party);
+  return rule('exposition-tente-annule') !== false && partyHasTent(party);
 }
 
 /** Peau de phoque (MDG 14 l.277-279) : « +1 DR sur les Tests de Résistance effectués pour supporter
@@ -93,12 +93,12 @@ const SECOND_FAIL: Record<ExposureKind, CharKey[]> = {
 };
 
 /** Nombre de Tests d'une nuit dehors selon sévérité et abri — cadence RAW (LDB 18 l.328 : 4h/2h),
- *  application « nuit ~8h » maison via `exposure-night-difficile-count`/`exposure-night-extreme-count`
+ *  application « nuit ~8h » maison via `exposition-tests-nuit-difficile`/`exposition-tests-nuit-extreme`
  *  (policy.ts). Un abri (Tente) ramène une nuit extrême au rythme difficile. */
 export function exposureTestCount(severity: ExposureSeverity, sheltered: boolean): number {
   if (severity === 'clement') return 0;
-  const difficile = Number(rule('exposure-night-difficile-count'));
-  const extreme = Number(rule('exposure-night-extreme-count'));
+  const difficile = Number(rule('exposition-tests-nuit-difficile'));
+  const extreme = Number(rule('exposition-tests-nuit-extreme'));
   if (severity === 'extreme') return sheltered ? difficile : extreme;
   return sheltered ? 0 : difficile;
 }
@@ -109,24 +109,24 @@ export function isWeatherWarded(c: Combatant): boolean {
 }
 
 /** Cible (et base) d'UN Test d'Exposition au froid : Résistance +0, pénalité maison sans manteau ni
- *  cape (LDB 65 l.44 — « des pénalités », non chiffrées ; valeur `exposure-no-coat-penalty`). */
+ *  cape (LDB 65 l.44 — « des pénalités », non chiffrées ; valeur `exposition-sans-manteau`). */
 export function exposureTarget(c: Combatant, resVal: number): number {
-  return Math.max(0, resVal - (hasCoat(c) ? 0 : Number(rule('exposure-no-coat-penalty'))));
+  return Math.max(0, resVal - (hasCoat(c) ? 0 : Number(rule('exposition-sans-manteau'))));
 }
 
 /** Caractéristiques DU PREMIER échec d'Exposition (`FIRST_FAIL`), en libellés du catalogue — SOURCE
- *  du descripteur d'enjeu de l'étape (`stakes.json`, `voyage-exposure`) : chaque terme est
+ *  du descripteur d'enjeu de l'étape (`stakes.json`, `voyage-exposition`) : chaque terme est
  *  l'effet que `applyExposureFailure` applique RÉELLEMENT, jamais une explication rédigée. PUR. */
 export function exposureFirstFailChars(kind: ExposureKind = 'froid'): string {
   return FIRST_FAIL[kind].map((k) => CHAR_LABELS[k]).join('/');
 }
 
 /** Modificateur NOMMÉ compris dans `exposureTarget` : la pénalité maison « sans Manteau ni cape »
- *  (`exposure-no-coat-penalty`) se LIT sur la ligne de jet au lieu d'être un −N anonyme dans la cible
+ *  (`exposition-sans-manteau`) se LIT sur la ligne de jet au lieu d'être un −N anonyme dans la cible
  *  (#1112). Renvoie `{}` quand rien ne s'applique (le porteur est couvert). */
 export function exposureCoatMods(c: Combatant): { mods?: ModLine[] } {
   if (hasCoat(c)) return {};
-  const pen = Number(rule('exposure-no-coat-penalty'));
+  const pen = Number(rule('exposition-sans-manteau'));
   return pen ? { mods: [{ label: t('exp.noCoatMod'), value: -pen, famille: 'jet', ref: RULE_REF.exposition }] } : {};
 }
 
@@ -156,7 +156,7 @@ export function dropHeaviestPossession(c: Combatant): string | undefined {
  * reste ; 3+ → 1d10 Blessures (ignore les PA), Inconscient à 0 PB. Chaleur : 1 → −10 Int/FM
  * + Exténué ; 2 → −10 le reste + Exténué ; 3+ → 1d10 Blessures (ignore les PA). Mute `c` ; renvoie
  * le journal + les Blessures infligées. Partagé par `exposureNight` (eager), l'applicateur de
- * cascade « exposure » et la Température en mer (MDG 13 l.203-225).
+ * cascade « exposition-nocturne » et la Température en mer (MDG 13 l.203-225).
  */
 export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, kind: ExposureKind = 'froid'): { log: string[]; wounds: number } {
   const log: string[] = [];
@@ -195,7 +195,7 @@ export function exposureNight(
 ): { rolls: ExposureRoll[]; log: string[]; failures: number; wounds: number } {
   const kind = opts.kind ?? 'froid';
   if (isWeatherWarded(c)) {
-    return { rolls: [], log: [t('eff.weatherWarded', { name: c.label, what: kind === 'froid' ? t('eff.wardFroid') : t('eff.wardChaleur') })], failures: 0, wounds: 0 };
+    return { rolls: [], log: [t('eff.meteoConjuree', { name: c.label, what: kind === 'froid' ? t('eff.protectionDuFroid') : t('eff.protectionDeLaChaleur') })], failures: 0, wounds: 0 };
   }
   const rolls: ExposureRoll[] = [];
   const log: string[] = [];
@@ -216,13 +216,13 @@ export function exposureNight(
     log.push(...f.log);
     wounds += f.wounds;
   }
-  if (kind === 'froid' && !hasCoat(c) && count > 0) log.push(t('exp.noCoat', { name: c.label, pen: Number(rule('exposure-no-coat-penalty')) }));
+  if (kind === 'froid' && !hasCoat(c) && count > 0) log.push(t('exp.noCoat', { name: c.label, pen: Number(rule('exposition-sans-manteau')) }));
   return { rolls, log, failures, wounds };
 }
 
 /** Pose une échéance d'horloge (`untilTime`) sur les effets permanents qui DÉCLARENT se dissiper au
  *  répit (`ActiveEffect.expiresOnRespite` — pénalités d'Exposition, posées au chaud/au frais). Le délai
- *  vient de l'appelant, qui lit la MÊME règle éditable `exposure-expire-hours` au camp comme en mer. */
+ *  vient de l'appelant, qui lit la MÊME règle éditable `exposition-dissipation-heures` au camp comme en mer. */
 export function expireOnRespite(c: Combatant, untilTime: number): void {
   for (const e of c.activeEffects ?? []) {
     if (e.expiresOnRespite && e.duration.scale === 'permanent') e.duration = { scale: 'clock', until: untilTime };

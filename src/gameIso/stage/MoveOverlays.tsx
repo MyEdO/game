@@ -50,7 +50,7 @@ export function CursorOverlay({ tile, footN, dims, liftAt }: { tile: Pt; footN: 
  *  le geste fait du Mouvement du Tour (#1411 P2-D). Une case que le clic REFUSERAIT n'arrive jamais ici :
  *  le survol n'affiche que le faisable (arbitrage 2026-08-24), le refus se dit au clic. */
 export function HoverMovePreview({ move, at, footN, dims, lift, battle, activeC }: {
-  move: { kind: 'move' | 'run' | 'tile'; path: Pt[]; cost?: number; label: string };
+  move: { kind: 'deplacement' | 'course' | 'tile'; path: Pt[]; cost?: number; label: string };
   at: Pt;
   footN: number;
   dims: Dims;
@@ -96,16 +96,16 @@ export function TapPreview({ battle, activeC, dims, liftOf, myTurn, difficulty }
   const pv = myTurn ? battle.preview : null;
   if (!pv) return null;
   const cible = 'targetId' in pv ? inBattleId(battle, pv.targetId) : undefined;
-  const dest = pv.kind === 'move' || pv.kind === 'run' ? pv.tile : pv.kind === 'attack' ? cible?.pos : pv.dest;
-  const label = pv.kind === 'move' ? `Aller (${pv.cost})`
-    : pv.kind === 'run' ? 'Courir'
+  const dest = pv.kind === 'deplacement' || pv.kind === 'course' ? pv.tile : pv.kind === 'attaque' ? cible?.pos : pv.dest;
+  const label = pv.kind === 'deplacement' ? `Aller (${pv.cost})`
+    : pv.kind === 'course' ? 'Courir'
       : pv.kind === 'charge' ? (pv.adv ? 'Charger (+1 Av)' : 'Charger')
-        : pv.kind === 'moveAttack' ? 'Rejoindre + attaquer' : 'Attaquer';
-  const footN = pv.kind === 'attack' ? 1 : activeC ? footprintN(mountOf(battle, activeC) ?? activeC) : 1;
+        : pv.kind === 'deplacementEtAttaque' ? 'Rejoindre + attaquer' : 'Attaquer';
+  const footN = pv.kind === 'attaque' ? 1 : activeC ? footprintN(mountOf(battle, activeC) ?? activeC) : 1;
   const lignes = [label, ...[mouvementLigne(battle, activeC, pv), difficultyShownText(difficulty)].filter((l): l is string => !!l)];
   return (
     <g pointerEvents="none">
-      {movePreviewEls(pv.kind === 'attack' ? [] : pv.path, dest ?? null, lignes, dims, 'pv', GOLD_TINT, footN, liftOf)}
+      {movePreviewEls(pv.kind === 'attaque' ? [] : pv.path, dest ?? null, lignes, dims, 'pv', GOLD_TINT, footN, liftOf)}
       {cible?.pos && footprintTiles(cible.pos, footprintN(cible)).map((t) => (
         <path
           key={`pv-tgt-${t.x}-${t.y}`}

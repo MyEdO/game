@@ -8,6 +8,7 @@ import { Combatant } from '../engine/types';
 import { AdvancementPanel, CharacterSheet } from './CharacterSheet';
 import { BackgroundPanel } from './BackgroundPanel';
 import { apparences, findTrappingById } from '../data';
+import { idDeFixture } from '../data/idDeFixture.testkit';
 import { setDataset } from '../data/overrides';
 import { apparencesCandidates, itemFromTrappingById } from '../engine/items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
@@ -23,7 +24,7 @@ const hero = (): Combatant =>
   (blessuresSurLeProfil({
     id: 'h',
     label: 'H',
-    kind: 'hero',
+    kind: 'heros',
     species: 'humains-reiklander',
     career: 'agitateur',
     careerLevel: 1,
@@ -51,11 +52,11 @@ describe('CharacterSheet — Apparence sur l’objet', () => {
   beforeEach(() => {
     catalogue = apparences.slice();
     setDataset('apparences', [...catalogue.filter((a) => !a.forme),
-      { type: 'apparences', id: 'choix-epee', label: 'Épée ouvragée', forme: { id: 'epee' } },
-      { type: 'apparences', id: 'choix-hache', label: 'Hache ouvragée', forme: { id: 'hache' } },
-      { type: 'apparences', id: 'choix-cape', label: 'Cape ouvragée', forme: { id: 'cape' } },
-      { type: 'apparences', id: 'choix-armure', label: 'Maille ouvragée', forme: findTrappingById('chemise-de-mailles')!.shape! },
-      { type: 'apparences', id: 'choix-bouclier', label: 'Bouclier ouvragé', forme: findTrappingById('bouclier')!.shape! },
+      { type: 'apparences', id: 'choix-epee', label: 'Épée ouvragée', forme: { id: idDeFixture('apparence', 'epee') } },
+      { type: 'apparences', id: 'choix-hache', label: 'Hache ouvragée', forme: { id: idDeFixture('apparence', 'hache') } },
+      { type: 'apparences', id: 'choix-cape', label: 'Cape ouvragée', forme: { id: idDeFixture('apparence', 'cape') } },
+      { type: 'apparences', id: 'choix-armure', label: 'Maille ouvragée', forme: { id: idDeFixture('apparence', findTrappingById('chemise-de-mailles')!.shape!.id) } },
+      { type: 'apparences', id: 'choix-bouclier', label: 'Bouclier ouvragé', forme: { id: idDeFixture('apparence', findTrappingById('bouclier')!.shape!.id) } },
     ]);
     useGame.setState({ party: [], battle: null, sheetTab: 'possessions' });
   });
@@ -449,7 +450,7 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
         { uid: 'n1', label: 'Gourde', kind: 'misc', qualities: [], enc: 1, equipped: false, inside: 'bag1' },
         { ...itemFromTrappingById('crochet', idsDeTest)!, uid: 'p1', equipped: true },
       ],
-      loadouts: [{ id: 'lo1', main: null, off: null }],
+      loadouts: [{ id: 'lo1', main: null, secondaire: null }],
       activeLoadoutId: 'lo1',
     }) as unknown as Combatant;
 
@@ -474,9 +475,9 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
       expect(etat(profane, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: 'true', raison: 'Personne dans le groupe ne peut tenter le Test d’Évaluation.' });
     });
 
-    it('« Évaluer » : manquée ce jour, reste rendu, fermé et NOMMÉ (délai maison `market-evaluation-delai-jours`)', () => {
+    it('« Évaluer » : manquée ce jour, reste rendu, fermé et NOMMÉ (délai maison `marche-evaluation-delai-jours`)', () => {
       const evaluateur = { ...hero(), id: 'e', items: [{ ...inconnu, appraiseTriedDay: gameDay(useGame.getState()) }], skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }] } as unknown as Combatant;
-      expect(etat(evaluateur, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: 'true', raison: t('mf.appraiseRetenter', { label: 'Épée', jours: 1 }) });
+      expect(etat(evaluateur, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: 'true', raison: t('mf.evaluationARetenter', { label: 'Épée', jours: 1 }) });
     });
 
     it('« Détecter » : offert quand un héros porte le Talent Détection d’artefact (LDB 10 l.336)', () => {

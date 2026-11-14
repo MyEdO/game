@@ -15,70 +15,28 @@
  * quand le passage en porte une) ; les formes réelles sont mesurées au schéma de la donnée.
  */
 import reglesOptionnellesJson from '../data/reglesOptionnelles.json';
+import { datasetDe, type EntreeDe } from '../data/datasets';
+import type * as reglesOptionnellesDef from '../data/schemas/defs/reglesOptionnelles';
+import { valeurConforme, type FormeDeControle } from '../data/schemas/defs/reglesOptionnelles';
 import { bumperDataset, indexParId } from '../data/versionDataset';
-import type { SourceRef } from '../data/schemas/grammaire/valeurs';
+import type { IdsParEspace, ValeurDeRegle } from '../data/schemas/_ids.generated';
 import { t } from '../i18n';
 
-/** Forme du contrôle qu'une règle optionnelle fait auto-rendre au panneau in-game : `flag` =
- *  interrupteur, `param` = nombre borné, `mode` = choix parmi `options`. */
-export type RuleKind = 'flag' | 'param' | 'mode';
-/** Valeur d'une règle optionnelle — union FERMÉE (miroir `ruleValueSchema`, `data/schemas/grammaire/valeurs.ts`). */
-export type RuleValue = boolean | number | string;
+/** Id d'une règle optionnelle : l'espace `reglesOptionnelles.json` de `IdsParEspace` — un id retiré du dataset ne compile plus. */
+export type RegleOptionnelleId = IdsParEspace['reglesOptionnelles.json'];
 
-export interface OptionalRule {
-  /** Identifiant stable (clé de surcharge + persistance). */
-  id: string;
-  type: 'reglesOptionnelles';
-  /** Libellé affiché dans le panneau. */
-  label: string;
-  /** Citation de la règle, montrée en infobulle : livre (`abbr` de `books.json`) + chapitre, plus la
-   *  ligne quand le passage en porte une. Formes mesurées : `data/schemas/defs/reglesOptionnelles.ts`. */
-  ref: string;
-  /** Ancre `{book, page}` de couverture par entrée — folio IMPRIMÉ relevé au marqueur `data-folio`
-   *  du passage visé par `ref` (#1318 E8). Absente sur les entrées portant `maison`. */
-  source?: SourceRef;
-  /** Justification d'une valeur que le RAW ne chiffre pas (AGENTS.md règle 7) — même sémantique que
-   *  `castingNumberMod.maison` (`src/data/schemas/grammaire/valeurs.ts`). Absente = la règle est au RAW. */
-  maison?: string;
-  /** Sous-système (regroupement dans le panneau). */
-  group: string;
-  /** Forme du contrôle auto-rendu : flag=toggle, param=nombre, mode=select. */
-  kind: RuleKind;
-  /** Valeur par défaut (RAW). */
-  default: RuleValue;
-  /** Valeurs possibles (kind='mode'). */
-  options?: string[];
-  /** Bornes (kind='param'). */
-  min?: number;
-  max?: number;
-  step?: number;
-  /** Aide courte (optionnelle). */
-  hint?: string;
-  /**
-   * ACTION de jeu attachée à la règle, rendue sous sa rangée quand la règle vaut `when` — DÉCLARÉE
-   * ICI, sur l'entrée, jamais reconnue par son id dans le panneau (doctrine 2026-07-26 : « "if (id="
-   * n'est jamais une solution »). Déclarer une action sur une AUTRE règle = une entrée de donnée,
-   * zéro ligne d'UI. `run` nomme l'action du store à déclencher : le moteur ne l'appelle jamais (il
-   * reste pur), la vue la résout génériquement sur le store.
-   */
-  action?: RuleAction;
-}
+/** Une règle optionnelle du registre, au type de son schéma (`data/schemas/defs/reglesOptionnelles.ts`) et à la forme
+ *  de son contrôle, que ce schéma refuse incomplète (`ecartsDeLaRegle`). L'ACTION attachée (`action`) est rendue
+ *  sous sa rangée quand la règle vaut `when` ; son `run` nomme l'action du store, que le moteur n'appelle jamais : la
+ *  vue la résout génériquement sur le store (`HouseRulesModal`). */
+export type OptionalRule = EntreeDe<typeof reglesOptionnellesDef> & FormeDeControle;
 
-export interface RuleAction {
-  /** Valeur de la règle qui rend l'action pertinente. */
-  when: RuleValue;
-  label: string;
-  /**
-   * Id du registre d'icônes (`src/data/icons/`) et nom de l'action du store à déclencher. Tous deux
-   * restent des `string` ICI : le moteur est une couche FEUILLE, il ne peut pas importer le type
-   * `IconId` ni les clés de l'hôte sans inverser la dépendance. La liaison est donc
-   * vérifiée côté hôte (chaque `icon` existe au registre,
-   * chaque `run` désigne une fonction de l'hôte), doublée d'un throw DEV au site de résolution
-   * (`HouseRulesModal`) : un renommage du store ne peut pas se solder par un bouton disparu.
-   */
-  icon: string;
-  run: string;
-}
+/** Le genre du contrôle d'une règle optionnelle (`FormeDeControle`). */
+export type RuleKind = OptionalRule['kind'];
+
+/** Valeur d'une règle optionnelle SANS sa règle — surcharges stockées, persistées ou saisies, que `valeurConforme`
+ *  juge contre leur règle. La valeur d'UNE règle est `ValeurDeRegle[id]`. */
+export type RuleValue = OptionalRule['default'];
 
 /**
  * LE registre, LU de la donnée. Ajouter une règle optionnelle = ajouter une entrée à
@@ -87,7 +45,7 @@ export interface RuleAction {
  * tableau que le module JSON (singleton ESM) : une édition au Compendium (`setDataset`, splice en
  * place) est vue en direct par le moteur.
  */
-export const OPTIONAL_RULES = reglesOptionnellesJson as unknown as OptionalRule[];
+export const OPTIONAL_RULES = datasetDe<typeof reglesOptionnellesDef>(reglesOptionnellesJson) as OptionalRule[];
 
 const regleParId = indexParId('reglesOptionnelles', OPTIONAL_RULES);
 const overrides = new Map<string, RuleValue>();
@@ -104,15 +62,28 @@ function regleExigee(id: string): OptionalRule {
   return regle;
 }
 
-/** Valeur EFFECTIVE d'une règle : surcharge runtime si présente, sinon défaut. */
-export function rule(id: string): RuleValue {
+/** Valeur EFFECTIVE d'une règle, au type de SA règle (`ValeurDeRegle`) : surcharge runtime si présente, sinon défaut.
+ *  Toute surcharge passe `valeurConforme` (`setRule`, `loadRuleOverrides`), tout défaut le schéma de la donnée. */
+export function rule<I extends RegleOptionnelleId>(id: I): ValeurDeRegle[I];
+export function rule(id: RegleOptionnelleId): RuleValue {
   const regle = regleExigee(id);
   return overrides.has(id) ? overrides.get(id)! : regle.default;
 }
 
-/** Surcharge runtime (depuis le panneau in-game). Écriture et lecture jugent par le même verdict
- *  (`refusDeSurcharge`) : un id hors du registre ou une valeur non conforme LÈVE (#1463 LD.1). */
-export function setRule(id: string, value: RuleValue): void {
+/** Surcharge runtime écrite par le CODE, au type de SA règle (`ValeurDeRegle`). */
+export function setRule<I extends RegleOptionnelleId>(id: I, value: ValeurDeRegle[I]): void {
+  surcharger(id, value);
+}
+
+/** Surcharge runtime d'une valeur SAISIE hors du code (panneau in-game, harnais de recette), que seul le runtime
+ *  juge contre sa règle. */
+export function surchargerUneSaisie(id: RegleOptionnelleId, value: RuleValue): void {
+  surcharger(id, value);
+}
+
+/** Écriture et lecture jugent par le même verdict (`refusDeSurcharge`) : un id hors du registre ou une valeur non
+ *  conforme LÈVE (#1463 LD.1). */
+function surcharger(id: RegleOptionnelleId, value: RuleValue): void {
   const refus = refusDeSurcharge(id, value);
   if (refus) throw new Error(refus);
   overrides.set(id, value);
@@ -120,27 +91,25 @@ export function setRule(id: string, value: RuleValue): void {
 }
 
 /** Retire la surcharge → retour au défaut. */
-export function resetRule(id: string): void {
+export function resetRule(id: RegleOptionnelleId): void {
   regleExigee(id);
   if (overrides.delete(id)) bumperDataset('reglesOptionnelles');
+}
+
+/** Un jeu de règles typé par id du registre, chaque valeur au type de SA règle (scénario, lancement). */
+export type JeuDeRegles = { readonly [I in RegleOptionnelleId]?: ValeurDeRegle[I] };
+
+/** Les ids d'un jeu de règles. */
+export const idsDuJeu = (regles: JeuDeRegles): RegleOptionnelleId[] => Object.keys(regles) as RegleOptionnelleId[];
+
+/** Pose chaque règle d'un jeu de règles (`setRule`). */
+export function poserLesRegles(regles: JeuDeRegles): void {
+  for (const id of idsDuJeu(regles)) setRule(id, regles[id]!);
 }
 
 /** Snapshot des surcharges (pour persistance). */
 export function ruleOverrides(): Record<string, RuleValue> {
   return Object.fromEntries(overrides);
-}
-
-/** `v` est-elle une valeur de la forme `kind` que déclare `regle` : `flag` booléen, `param` nombre dans ses
- *  bornes, `mode` l'une de ses `options` ? */
-export function valeurConforme(regle: Pick<OptionalRule, 'kind' | 'min' | 'max'> & { options?: readonly string[] }, v: unknown): v is RuleValue {
-  switch (regle.kind) {
-    case 'flag':
-      return typeof v === 'boolean';
-    case 'param':
-      return typeof v === 'number' && Number.isFinite(v) && (regle.min === undefined || v >= regle.min) && (regle.max === undefined || v <= regle.max);
-    case 'mode':
-      return typeof v === 'string' && (regle.options ?? []).includes(v);
-  }
 }
 
 /** Pourquoi la surcharge `v` de la règle `id` ne se pose pas — un id hors du registre, ou une valeur non conforme à

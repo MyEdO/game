@@ -7,13 +7,15 @@ extends SceneTree
 ## propre prise, il garde sa place sous son os. Rangé à un emplacement du bassin, sa prise a la tête vers le bas du
 ## personnage, à plat, sa face arrière à `JEU_DE_RANGEMENT` de ce qui est porté dessous, de l'emplacement sans rien
 ## dessous ; un second objet au même point se range à côté du premier, vers l'avant du personnage. Un fourreau
-## (`extras.fourreau`) n'est montré que rangé.
+## (`extras.fourreau`) n'est montré que rangé. Un objet qui pendrait jusqu'au sol passe en bandoulière, le fer en haut
+## penché vers la droite du personnage, le milieu de sa boîte sur l'emplacement.
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
 const MAIN := {id = "main", genre = "prise", attache = {os = "main_d", position = [-0.02, 0.09, 0.003], rotation = [1.32, -3.1, -0.03]}}
-const OFF := {id = "off", genre = "prise", attache = {os = "main_g", position = [0.02, 0.09, 0.003], rotation = [1.32, 3.1, 0.03]}}
+const OFF := {id = "secondaire", genre = "prise", attache = {os = "main_g", position = [0.02, 0.09, 0.003], rotation = [1.32, 3.1, 0.03]}}
 const CEINTURE := {id = "ceinture_avant", genre = "emplacement", attache = {os = "bassin", position = [0.0, 0.148, 0.108], rotation = [-0.29, 0.0, 0.0]}}
+const DOS := {id = "dos", genre = "emplacement", attache = {os = "bassin", position = [0.0, 0.3, -0.13], rotation = [0.0, 0.0, 0.0]}}
 const HANCHE := {id = "ceinture_g", genre = "emplacement", attache = {os = "bassin", position = [0.15, 0.117, 0.0], rotation = [-0.29, 0.0, 0.0]}}
 var _fautes: Array[String] = []
 
@@ -24,10 +26,11 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	print("[prise-reposee] version=", Engine.get_version_info().string)
-	for cible in ["off", "main", "ceinture_avant"]:
+	for cible in ["secondaire", "main", "ceinture_avant"]:
 		await _verifier(cible)
 	await _verifier_cote_a_cote()
 	await _verifier_l_appui()
+	await _verifier_la_bandouliere()
 	for faute in _fautes:
 		push_error("[prise-reposee] " + faute)
 	print("[prise-reposee] erreurs=", _fautes.size())
@@ -221,6 +224,49 @@ func _verifier_l_appui() -> void:
 		_fautes.append("appui : face arrière à %.4f de l'emplacement, attendue à %.4f" % [arriere, attendue])
 	print("[prise-reposee] appui : %s" % ("OK" if juste else "KO"))
 	porte.free()
+	montage.free()
+	squelette.queue_free()
+	await process_frame
+
+
+## Une hampe de 2 m rangée dans le dos, à 1,25 m du sol : en bandoulière, son +Y de prise (le fer) vers le haut, penché de
+## `INCLINAISON_EN_BANDOULIERE` vers la droite du personnage (-X du squelette) dans le plan de l'emplacement, le milieu
+## de sa boîte sur la normale sortante de l'emplacement.
+func _verifier_la_bandouliere() -> void:
+	var squelette := _squelette()
+	var montage := MontageDeComposition.new()
+	montage.base = {points = [DOS, MAIN, OFF]}
+	montage.squelette = squelette
+	var import := BoneAttachment3D.new()
+	import.bone_name = "main_d"
+	squelette.add_child(import)
+	var piece := MeshInstance3D.new()
+	var boite := BoxMesh.new()
+	boite.size = Vector3(0.04, 2.0, 0.03)
+	piece.mesh = boite
+	var local := _repere(MAIN.attache) * Transform3D(Basis.IDENTITY, Vector3(0.0, 0.6, 0.0))
+	piece.transform = local
+	import.add_child(piece)
+	montage.call("_poser_la_piece", piece, ["main_d"] as Array[String], squelette, "dos")
+	montage.call("_ranger")
+	await process_frame
+	var os := squelette.global_transform * squelette.get_bone_global_pose(squelette.find_bone("bassin"))
+	var emplacement := _repere(DOS.attache)
+	var sortante := Vector3(emplacement.origin.x, 0.0, emplacement.origin.z).normalized()
+	var bas := -emplacement.basis.y
+	bas = (bas - sortante * bas.dot(sortante)).normalized()
+	var en_prise := _repere(MAIN.attache).affine_inverse() * local
+	var fer := os.basis.inverse() * (piece.global_transform * en_prise.affine_inverse()).basis.y.normalized()
+	var droite := os.basis.inverse() * Vector3.LEFT
+	var penche := fer.angle_to(-bas)
+	var milieu := os.affine_inverse() * (piece.global_transform * piece.get_aabb().get_center()) - emplacement.origin
+	var hors_normale := (milieu - sortante * milieu.dot(sortante)).length()
+	var juste := absf(penche - MiseEnPage.INCLINAISON_EN_BANDOULIERE) < 0.001 and fer.dot(droite) > 0.0 \
+			and absf(fer.dot(sortante)) < 0.001 and hors_normale < 0.001
+	if not juste:
+		_fautes.append("bandoulière : fer penché de %.4f rad (attendu %.4f), vers la droite %.4f, sur la normale %.4f ; milieu à %.4f de la normale"
+			% [penche, MiseEnPage.INCLINAISON_EN_BANDOULIERE, fer.dot(droite), fer.dot(sortante), hors_normale])
+	print("[prise-reposee] bandoulière : %s" % ("OK" if juste else "KO"))
 	montage.free()
 	squelette.queue_free()
 	await process_frame

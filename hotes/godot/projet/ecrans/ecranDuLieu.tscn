@@ -5,30 +5,81 @@
 
 [node name="Monde" instance=ExtResource("1_monde")]
 
-[node name="Defilement" type="ScrollContainer" parent="Cadre/Marges/Colonne/Contenu"]
+[node name="Carte" type="HBoxContainer" parent="Cadre/Marges/Colonne/Tete/Gestes"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Tete/Gestes/Carte"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("lieu/carte")
+
+[node name="Description" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Description" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("lieu/description")
+formes = PackedStringArray("ligne:description")
+masque = NodePath("..")
+
+[node name="Lieu" type="HBoxContainer" parent="Cadre/Marges/Colonne/Contenu"]
+size_flags_vertical = 3
+theme_type_variation = &"Colonnes"
+
+[node name="Ici" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Lieu"]
+theme_type_variation = &"Pile"
+
+[node name="Plan" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Lieu/Ici"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Lieu/Ici/Plan"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("lieu/plan")
+formes = PackedStringArray("plan:planDuLieu")
+
+[node name="Partir" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Lieu/Ici"]
+theme_type_variation = &"PileSerree"
+
+[node name="Rubrique" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Lieu/Ici/Partir"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Lieu/Ici/Partir/Rubrique" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("lieu/trajets")
+formes = PackedStringArray("ligne:rubrique")
+masque = NodePath("..")
+
+[node name="Trajets" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Lieu/Ici/Partir"]
+theme_type_variation = &"PileSerree"
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Lieu/Ici/Partir/Trajets"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("trajet/")
+formes = PackedStringArray("entite:trajet")
+
+[node name="Faire" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Lieu"]
+size_flags_horizontal = 3
+theme_type_variation = &"PileSerree"
+
+[node name="Rubrique" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Lieu/Faire"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Lieu/Faire/Rubrique" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("lieu/services")
+formes = PackedStringArray("ligne:rubrique")
+masque = NodePath("..")
+
+[node name="Defilement" type="ScrollContainer" parent="Cadre/Marges/Colonne/Contenu/Lieu/Faire"]
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Lieu" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement"]
+[node name="Services" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Lieu/Faire/Defilement"]
 size_flags_horizontal = 3
-theme_override_constants/separation = 24
+theme_type_variation = &"FluxDeCartes"
 
-[node name="Services" type="GridContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
-theme_override_constants/h_separation = 40
-theme_override_constants/v_separation = 20
-columns = 3
-
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu/Services"]
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Lieu/Faire/Defilement/Services"]
 script = ExtResource("2_zone")
 source = "fenetre.corps"
-ids = PackedStringArray("service/", "poi/")
+formes = PackedStringArray("entite:service")
 
-[node name="Separation" type="HSeparator" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
-
-[node name="Trajets" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
-theme_override_constants/h_separation = 40
-theme_override_constants/v_separation = 20
-
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu/Trajets"]
-script = ExtResource("2_zone")
-source = "fenetre.corps"

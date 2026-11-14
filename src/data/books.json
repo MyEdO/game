@@ -196,6 +196,16 @@
     "desc": "**Le Compagnon du Pouvoir derrière le Trône**\n\nTroisième partie de la campagne de **L'Ennemi intérieur**\n\n*Au moment convenu, nous émergerons de nos repaires secrets et nous mettrons à genoux les villes et cités de l’Empire. Le Chaos envahira cette terre, et nous, les Serviteurs élus, nous nous couvrirons de gloire devant SES yeux. Gloire à Tzeentch, Changeur de Voies ! Njawrr’thakh Lzimbarr Tzeentch !*\n\n**Le Compagnon du Pouvoir derrière le Trône** est le troisième d’une série de cinq volumes accompagnant la campagne de **L’Ennemi Intérieur**. Il regorge d’informations supplémentaires, non seulement pour enrichir **Le Pouvoir derrière le Trône**, mais également toute partie de **WFJDR** se déroulant dans l’Empire.\n\nVous y découvrirez également un Guide du Spectre de Jade, l’un des cultes de Slaanesh le plus important en taille de l’Empire, réservé au Meneur de Jeu, une galerie de nouveaux PNJ majeurs pour ajouter encore quelques intrigues à la campagne, une étude du culte d’Ulric, ainsi que deux aventures classiques."
   },
   {
+    "id": "pretires-du-pouvoir-derriere-le-trone",
+    "type": "books",
+    "label": "Le Pouvoir derrière le Trône — Prétirés",
+    "abbr": "PDTP",
+    "dir": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone Pretires",
+    "pdf": "WH4_FR_ENI_PDT_Compagnon_PT.pdf",
+    "language": "VF",
+    "folder": "Cadre de campagne"
+  },
+  {
     "id": "rat-cornu-compagnon",
     "type": "books",
     "label": "Le Rat Cornu – Compagnon",

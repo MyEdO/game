@@ -39,7 +39,7 @@ function openInterlude(heroId: string, left = 3, granted = left) {
 }
 
 describe('Faveurs (LDB 23 l.139-151, #509)', () => {
-  afterEach(() => { resetRule('favor-rumor-spreads'); });
+  afterEach(() => { resetRule('faveur-rumeur-se-repand'); });
 
   it('grantFavor : crée une Faveur portée par le héros', () => {
     const heroId = setup();
@@ -152,8 +152,8 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     expect(banc.getState().party.find((h) => h.id === heroId)!.careerLevel).toBe(0);
   });
 
-  it('Rupture, règle maison désactivée (`favor-rumor-spreads`) : le Niveau ne bouge pas', () => {
-    setRule('favor-rumor-spreads', false);
+  it('Rupture, règle maison désactivée (`faveur-rumeur-se-repand`) : le Niveau ne bouge pas', () => {
+    setRule('faveur-rumeur-se-repand', false);
     const heroId = setup();
     banc.setState({ party: banc.getState().party.map((h) => (h.id === heroId ? { ...h, careerLevel: 2 } : h)) });
     banc.getState().accorderLaFaveur(heroId, 'mineure', 'un aubergiste', 'Un service rendu');

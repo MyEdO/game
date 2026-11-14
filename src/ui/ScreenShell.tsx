@@ -82,7 +82,7 @@ export function ScreenShell({
   actions?: ReactNode;
   /** Barre d'outils OPTIONNELLE (`.screen-toolbar`) : `<Tabs>` et/ou badges de l'écran, tels quels. */
   tabs?: ReactNode;
-  /** Bande d'ambiance (id du registre `src/ui/backdrops`) — opt-in, rendue sous l'en-tête/barre d'outils. */
+  /** Bande d'ambiance (id du registre `src/data/fonds`) — opt-in, rendue sous l'en-tête/barre d'outils. */
   backdrop?: string;
   /** Strate de MATIÈRE de l'écran (#717) — posée en `data-ambiance` sur le voile : les tokens
    *  `--amb-*` (`styles/base.css`) s'y rescopent et les matières déjà en place (parchemin, cartes)

@@ -4,7 +4,7 @@
  * ramasser, et elle revient sur un héros du groupe.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
+import { drainer, ficheDuHeros, sectionDeLaFiche, suiteDe, table, enFocus } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Entite, Jeu } from '../../../src/hote/elements';
 
@@ -15,7 +15,7 @@ const jouer = (jeu: Jeu): Suite => drainer(appel, appel('jouer', jeu)).suite;
 
 /** Les possessions de la fiche du héros `libelle`, la fiche ouverte puis refermée. */
 function possessionsDe(s: Suite, libelle: string): string[] {
-  const h = s.vue.zones['groupe.heros'].find((b) => b.libelle === libelle)!;
+  const h = ficheDuHeros(s.vue, libelle);
   const ouverte = suiteDe(appel('fiche', h.jeu));
   const libelles = (sectionDeLaFiche(ouverte.vue, 'possessions') as Bouton[]).map((p) => p.libelle);
   appel('fiche', { fiche: null });
@@ -25,9 +25,9 @@ function possessionsDe(s: Suite, libelle: string): string[] {
 describe('les objets au sol par le pont', () => {
   it('posée depuis la fiche, une possession devient un décor du monde, et l’exploration la ramasse', () => {
     let { suite: s } = drainer(appel, appel('demarrer', { scenario: 'porte-close', graine: 7 }));
-    while (s.vue.projection.fenetre) s = jouer(s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu);
+    while (s.vue.projection.fenetre) s = jouer(enFocus(s.vue)!.jeu);
     const avant = s.vue.plateau!.cleDuMonde;
-    const rosa = s.vue.zones['groupe.heros'].find((b) => b.libelle === 'Rosa Brandt')!;
+    const rosa = ficheDuHeros(s.vue, 'Apothicaire');
     s = suiteDe(appel('fiche', rosa.jeu));
     const dague = (sectionDeLaFiche(s.vue, 'possessions') as Bouton[]).find((p) => p.libelle === 'Dague')!;
     s = suiteDe(appel('fiche', dague.jeu));
@@ -43,7 +43,7 @@ describe('les objets au sol par le pont', () => {
     s = jouer(ramasser!.jeu);
     expect(s.vue.zones['exploration.gestes'].map((b) => b.libelle), 'ramassée, l’offre sort').not.toContain('Dague : Ramasser');
     expect(s.vue.plateau!.cleDuMonde, 'et son décor avec elle').toBe(avant);
-    const heros = s.vue.zones['groupe.heros'].map((b) => b.libelle);
+    const heros = s.vue.zones['groupe.heros'].map((c) => c.nom);
     expect(heros.flatMap((h) => possessionsDe(s, h)), 'elle revient sur un héros du groupe').toContain('Dague');
   });
 });

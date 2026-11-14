@@ -27,6 +27,8 @@ import { bonus, effectiveChar, effectiveArmourAt } from './characteristics';
 import { effectiveSkillCharKey, skillBaseValue, soutienBonus } from './skills';
 import { effectivelyHostile } from './relations';
 import { hitLocationByShape, phraseDeTouche, type ToucheDuJournal } from './combat';
+import { nomDe } from './nom';
+import { t } from '../i18n';
 import { resolveFormula, skillDRBonus, offTerrainTestDR } from './ops';
 import { valeurSansTirage } from './formule';
 import type { SpellRange, SpellTarget } from './spellRange';
@@ -34,7 +36,14 @@ import type { SpellDuration } from './spellDuration';
 import { type OvercastSource, effectiveRangeMetres, missileOvercastDamageBonus, overcastSourceOf, overcastBudget } from './overcast';
 import { arcaneDomainIdOf, castingKindOf, featuresOf, chaosDomainOf } from './combatFeatures/dispatch';
 import { isPrayerFamily } from './combatFeatures/types';
-import { domainMissileMods, domainSeaFocalisationDR, domainSeaFocalisationDoubled, domainSeaIncantationDR, domainSeaWidensCritFumble, domainWindDR } from './domainAttributes';
+import {
+  domainMissileMods,
+  domainSeaFocalisationDR,
+  domainSeaFocalisationDoubled,
+  domainSeaIncantationDR,
+  domainSeaWidensCritFumble,
+  domainWindDR,
+} from './domainAttributes';
 import type { WindContext } from './domainAttributes';
 import { environmentTestDR, environmentWidensCrit, environmentNIMods } from './magicEnvironment';
 import type { MagicEnvironment } from './magicEnvironment';
@@ -73,7 +82,6 @@ export interface SpellLike {
   domainId?: { id: string };
   cn: number | null;
   duration?: SpellDuration | null;
-  desc: string;
   /** Famille d'incantation STABLE (discriminant moteur, multilangue) — cf. SpellData.family. */
   family?: import('./combatFeatures/types').CastingKind;
   /** Projectile magique + Dégâts — DONNÉE (multilangue), cf. SpellData. Remplace les regex sur la desc. */
@@ -279,20 +287,20 @@ export function focalisationValue(c: Combatant, skill: { id: 'focalisation'; spe
  * PORTÉE (les PA naturels d'une mutation ne sont pas une armure). Exemptions
  * (LDB 46 l.150-152, inconditionnelles) : Magie des Arcanes (Métal) ignore les armures
  * métalliques, (Bêtes) ignore les armures de cuir. Troisième exemption, GATÉE par
- * `magic-vdm-incantation` (VDM 02 l.5, VDM 02 l.169) : le Sorcier du Chaos (Talent
+ * `magie-vdm-incantation` (VDM 02 l.5, VDM 02 l.169) : le Sorcier du Chaos (Talent
  * Magie du Chaos, `castingKindOf(...) === 'chaos'`) ignore les armures du Chaos.
  */
 export function armourCastDRPenalty(c: Combatant): number {
   // Domaine d'Arcane par ID STABLE (`arcaneDomainIdOf`) + matière TYPÉE de la source (Groupe de la pièce,
   // `matiere` du Trait) — aucune devinette par regex. Métal ignore le métal, Bête le cuir (LDB 46 l.150-152,
-  // inconditionnel). Sorcier du Chaos ignore le Chaos (VDM 02 l.169) — GATÉ par `magic-vdm-incantation`
+  // inconditionnel). Sorcier du Chaos ignore le Chaos (VDM 02 l.169) — GATÉ par `magie-vdm-incantation`
   // (VDM 02 l.5) : prédicat = PRÉSENCE du Talent Magie du Chaos (`castingKindOf === 'chaos'`), pas sa
   // spécialisation (`chaosDomainOf` renverrait undefined pour un porteur non spécialisé).
   const domId = arcaneDomainIdOf(c);
   const ignorees = new Set<MatiereDArmure>([
     ...(domId === 'metal' ? ['metal' as const] : []),
     ...(domId === 'bete' ? ['leather' as const] : []),
-    ...(rule('magic-vdm-incantation') === true && effectiveTalents(c).some((t) => castingKindOf(t.talentId) === 'chaos') ? ['chaos' as const] : []),
+    ...(rule('magie-vdm-incantation') === true && effectiveTalents(c).some((t) => castingKindOf(t.talentId) === 'chaos') ? ['chaos' as const] : []),
   ]);
   const exemptee = (m: MatiereDArmure | undefined): boolean => m !== undefined && ignorees.has(m);
   const pieces = wornArmourPoints(c.items ?? [], (i) => exemptee(matiereDuGroupe(i.subType)));
@@ -509,7 +517,7 @@ export function durationClockMinutes(duration: SpellDuration | null | undefined,
 
 /**
  * Influences malfaisantes/malveillantes — LDB 46 l.89 (« Règle du 8 ») ; `VDM 02 l.157-159` sous la
- * règle optionnelle `magic-vdm-incantation`. POINT DE LECTURE UNIQUE du delta : le déclencheur passe
+ * règle optionnelle `magie-vdm-incantation`. POINT DE LECTURE UNIQUE du delta : le déclencheur passe
  * du dé des unités à 8 au Test RATÉ (`testSucceeded === false`) ; l'escalade Mineure→Majeure quand une
  * Imparfaite Mineure est déjà due au même Test est commune aux deux versions. Renvoie la sévérité de
  * la Maladresse déclenchée, ou `null` (pas de déclencheur, ou pas à proximité d'une Corruption).
@@ -517,7 +525,7 @@ export function durationClockMinutes(duration: SpellDuration | null | undefined,
  */
 export function malevolentInfluenceSeverity(roll: number, testSucceeded: boolean, nearCorruption: boolean, alreadyMinor: boolean): 'mineure' | 'majeure' | null {
   if (!nearCorruption) return null;
-  const triggered = rule('magic-vdm-incantation') === true ? !testSucceeded : roll % 10 === 8;
+  const triggered = rule('magie-vdm-incantation') === true ? !testSucceeded : roll % 10 === 8;
   if (!triggered) return null;
   return alreadyMinor ? 'majeure' : 'mineure';
 }
@@ -625,7 +633,7 @@ export interface CastTestModsContext {
   sea?: { atSea?: boolean; wind?: import('./domainAttributes').SeaWind | null };
   /** Rubrique de VENT du Domaine (VDM 04 l.48-56 et ses 7 homologues). */
   wind?: WindContext;
-  /** État magique du LIEU (VDM 14, option `magic-vdm-environnementale`). */
+  /** État magique du LIEU (VDM 14, option `magie-vdm-environnementale`). */
   env?: MagicEnvironment;
 }
 
@@ -702,7 +710,7 @@ export function resolveCasting(
   /** Rubrique de VENT du Domaine (`VDM 04 l.48-56` et ses 7 homologues) : circonstances du monde
    *  courant, fournies par l'appelant (état). */
   wind: WindContext = {},
-  /** Magie ENVIRONNEMENTALE (`VDM 14`, option `magic-vdm-environnementale`) : état magique du LIEU
+  /** Magie ENVIRONNEMENTALE (`VDM 14`, option `magie-vdm-environnementale`) : état magique du LIEU
    *  (palier de Saturation + phénomènes arcaniques présents), fourni par l'appelant (état). */
   env: MagicEnvironment = {},
   /** Modificateurs de NI apportés par le PORTEUR (objet porté, breuvage, support de lecture,
@@ -920,7 +928,7 @@ export function castTestOf(res: Pick<CastResult, 'roll' | 'target' | 'sl' | 'bas
 export function counterspellOutcomeFrom(counter: Combatant, counterT: TestResult, castT: TestResult): CounterspellOutcome {
   const nue = { ...counterT, base: castingBaseValue(counter, incantationArcane()) };
   const opp = resolveOpposed(castT, nue); // le lanceur tient le rôle « attaquant »
-  const dispelled = opp.winner === 'defender';
+  const dispelled = opp.winner === 'defenseur';
   const net = castT.sl - counterT.sl;
   return {
     dispelled,
@@ -928,9 +936,9 @@ export function counterspellOutcomeFrom(counter: Combatant, counterT: TestResult
     casterNetSL: net,
     // Le jet du contre-lanceur n'a AUCUNE rangée : sa ligne se DÉRIVE (`traceLineOf`), au patron unique.
     log: traceLineOf({
-      label: `Contre-sort de ${counter.label}`,
+      label: t('contreSort.trace', { name: nomDe(counter) }),
       roll: counterT.roll, target: counterT.target, sl: counterT.sl, success: dispelled,
-      issue: dispelled ? 'le Sort est DISSIPÉ' : `insuffisant — l'incantation se résout à DR ${net}`,
+      issue: dispelled ? t('contreSort.dissipe') : t('contreSort.insuffisant', { dr: net }),
     }),
   };
 }
@@ -1023,9 +1031,9 @@ export function resolveMagicMissile(
  *  `VDM 02 l.68` : « Pour calculer les Dégâts, ajoutez le Bonus de Force Mentale du lanceur aux
  *  Dégâts du Sort. » Le DR retiré peut être regagné en Dégâts par la Surincantation (`VDM 02
  *  l.198`, `missileOvercastDamageBonus`). Point de lecture UNIQUE du delta (option
- *  `magic-vdm-incantation`). */
+ *  `magie-vdm-incantation`). */
 export function missileDamageSL(sl: number, overcastDamageSteps = 0, source: OvercastSource = 'arcane'): number {
-  return rule('magic-vdm-incantation') === true
+  return rule('magie-vdm-incantation') === true
     ? missileOvercastDamageBonus(source, overcastDamageSteps)
     : Math.max(0, sl);
 }
@@ -1033,9 +1041,9 @@ export function missileDamageSL(sl: number, overcastDamageSteps = 0, source: Ove
 /** « Puissance totale » d'une Incantation Critique (LDB 46 l.31) — sous `VDM 02 l.55` : « le Sort
  *  est lancé. Le lanceur peut ajouter le chiffre des dizaines de son lancer d'Incantation à son DR
  *  pour obtenir une Surincantation ». Point de lecture UNIQUE du delta (option
- *  `magic-vdm-incantation`) ; renvoie `res` À L'IDENTIQUE quand il n'y a rien à changer. */
+ *  `magie-vdm-incantation`) ; renvoie `res` À L'IDENTIQUE quand il n'y a rien à changer. */
 export function applyFullPower(res: CastResult): CastResult {
-  const tens = rule('magic-vdm-incantation') === true ? Math.floor((res.roll % 100) / 10) : 0;
+  const tens = rule('magie-vdm-incantation') === true ? Math.floor((res.roll % 100) / 10) : 0;
   if (res.cast && tens === 0) return res;
   // « quels que soient son NI et votre DR obtenu » (LDB 46 l.31) : le NI ne s'oppose plus au lancement
   // — `niRequired` tombe, donc le DR réduit par une Résistance à la Magie ne le re-confronte pas (#1007).
@@ -1112,8 +1120,8 @@ export function evaluateMissile(
   const woundsLost = Math.max(1, damage - (tb + ap));
   const defeated = target.wounds.current - woundsLost <= 0;
   const mitLabel =
-    [spellDmg?.ignoreBE ? null : 'BE', spellDmg?.ignorePA ? null : 'PA'].filter(Boolean).join('+') || 'rien';
-  const touche: ToucheDuJournal = { attaquant: caster.label, cible: target.label, forme: target.bodyShape, mitigation: mitLabel, sort: spell.label };
+    [spellDmg?.ignoreBE ? null : 'BE', spellDmg?.ignorePA ? null : 'PA'].filter(Boolean).join('+') || t('touche.mitigationNulle');
+  const touche: ToucheDuJournal = { attaquant: nomDe(caster), cible: nomDe(target), forme: target.bodyShape, mitigation: mitLabel, sort: spell.label };
   return {
     ...cr,
     hit: true,
@@ -1189,7 +1197,7 @@ export function resolveFocus(
   /** Rubrique de VENT du Domaine (`VDM 04 l.48-56` et ses 7 homologues) : circonstances du monde
    *  courant, fournies par l'appelant (état). */
   windCtx: WindContext = {},
-  /** Magie ENVIRONNEMENTALE (`VDM 14`, option `magic-vdm-environnementale`) : état magique du LIEU,
+  /** Magie ENVIRONNEMENTALE (`VDM 14`, option `magie-vdm-environnementale`) : état magique du LIEU,
    *  fourni par l'appelant (état). */
   env: MagicEnvironment = {},
 ): FocusResult {
@@ -1226,23 +1234,23 @@ export function resolveFocus(
 /** DR accumulé après une Focalisation Critique — LDB 46 l.136 : le Sort devient lançable
  *  immédiatement, quel que soit le DR déjà accumulé. Sous `VDM 02 l.145` : le lanceur ajoute
  *  au Test étendu un DR bonus égal à son Bonus de Force Mentale, sans compléter d'un coup.
- *  Point de lecture UNIQUE du delta (option `magic-vdm-incantation`). */
+ *  Point de lecture UNIQUE du delta (option `magie-vdm-incantation`). */
 export function focusCriticalDR(caster: Combatant, dr: number, ni: number): number {
-  return rule('magic-vdm-incantation') === true
+  return rule('magie-vdm-incantation') === true
     ? dr + bonus(effectiveChar(caster, 'force-mentale'))
     : Math.max(dr, ni);
 }
 
 /** Dissiper son PROPRE Sort (`VDM 02 l.186`) : +1 DR au Test de Langue (Magick). Absent du Livre
- *  de base (`LDB 46 l.154-162`). Point de lecture UNIQUE du delta (option `magic-vdm-incantation`). */
+ *  de base (`LDB 46 l.154-162`). Point de lecture UNIQUE du delta (option `magie-vdm-incantation`). */
 export function dispelOwnSpellDR(ownSpell: boolean): number {
-  return ownSpell && rule('magic-vdm-incantation') === true ? 1 : 0;
+  return ownSpell && rule('magie-vdm-incantation') === true ? 1 : 0;
 }
 
 /** Malepierre (`LDB 46 l.173` : « Un Sorcier utilisant une malepierre pour Incanter ou Focaliser
  *  double son DR pour les Tests appropriés ») : double tout DR obtenu à un Test d'Incantation OU de
  *  Focalisation tant que la réserve de NI n'est pas épuisée. RÈGLE DU LIVRE DE BASE, INCONDITIONNELLE
- *  — aucun gate `magic-vdm-incantation` (seule la réserve FINIE de NI relève de VDM, `VDM 02 l.165` —
+ *  — aucun gate `magie-vdm-incantation` (seule la réserve FINIE de NI relève de VDM, `VDM 02 l.165` —
  *  cf. `malepierreReserveOf`). Point de lecture UNIQUE du delta — renvoie le DR bonus à AJOUTER au DR
  *  déjà obtenu (0 = réserve à 0). */
 export function malepierreDR(dr: number, chargesRemaining: number): number {
@@ -1273,14 +1281,14 @@ export function malepierreItemOf(c: Combatant): ItemInstance | undefined {
 }
 
 /** Réserve de NI ACTUELLE du premier objet malepierre encore disponible porté par `c` (0 = aucun
- *  objet porté, ou tous épuisés). Option `magic-vdm-incantation` ACTIVE : réserve comptée en NI
+ *  objet porté, ou tous épuisés). Option `magie-vdm-incantation` ACTIVE : réserve comptée en NI
  *  (`ItemInstance.niReserve`, à défaut sa réserve initiale `ItemInstance.niPerGram` — `VDM 02 l.165`,
  *  `1 g = 20 NI`). Option INACTIVE (Livre de base seul, `LDB 46 l.173`) : `Infinity` tant qu'un
  *  objet est porté. Lue par `resolveCasting`/`resolveFocus` (point de lecture UNIQUE du bonus). */
 export function malepierreReserveOf(c: Combatant): number {
   const it = malepierreItemOf(c);
   if (!it) return 0;
-  if (rule('magic-vdm-incantation') !== true) return Infinity;
+  if (rule('magie-vdm-incantation') !== true) return Infinity;
   return it.niReserve ?? it.niPerGram ?? 0;
 }
 
@@ -1291,7 +1299,7 @@ export function malepierreReserveOf(c: Combatant): number {
  *  Seul point d'ÉCRITURE de la réserve. */
 export function consumeMalepierre(c: Combatant, drConsumed: number | undefined): void {
   if (!drConsumed) return;
-  if (rule('magic-vdm-incantation') !== true) return;
+  if (rule('magie-vdm-incantation') !== true) return;
   const it = malepierreItemOf(c);
   if (!it) return;
   const before = it.niReserve ?? it.niPerGram ?? 0;

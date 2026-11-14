@@ -20,10 +20,10 @@ const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
 /** Table en (5,5) au cap N : abords déclarés nord (5,4), est (6,5), sud (5,6), ouest (4,5). */
 const ABORD_NORD = { x: 5, y: 4 };
-const MENEUR: SeatOccupant = { kind: 'party', rang: 1 };
+const MENEUR: SeatOccupant = { kind: 'groupe', rang: 1 };
 
 const hero = (id = 'h'): Combatant =>
-  combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
+  combattantDeTest({ id, label: id.toUpperCase(), kind: 'heros', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
 function scèneDeTaverne(): Scene {
   const s = emptyScene('scene-test', 12, 12);
@@ -81,7 +81,7 @@ describe('interagirAvecLEntite sur un meuble à places — bascule s’asseoir /
   });
 
   it('toutes les places prises → refus explicite, aucune écriture', () => {
-    const pris = (id: string): SeatOccupant => ({ kind: 'entity', entityId: id });
+    const pris = (id: string): SeatOccupant => ({ kind: 'entite', entityId: id });
     poser(ABORD_NORD, { [PROP]: { 'place-1': pris('pnj-1'), 'place-2': pris('pnj-2'), 'place-3': pris('pnj-3'), 'place-4': pris('pnj-4') } });
     const avant = banc.getState().scene!;
     banc.getState().interagirAvecLEntite(PROP);
@@ -92,12 +92,12 @@ describe('interagirAvecLEntite sur un meuble à places — bascule s’asseoir /
 
   it('un seul gagnant sur la DERNIÈRE place : celle que tient déjà un corps ne se redonne pas', () => {
     // « nord » (le seul abord sous les pieds du groupe) est déjà tenu par un PNJ.
-    poser(ABORD_NORD, { [PROP]: { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } });
+    poser(ABORD_NORD, { [PROP]: { 'place-1': { kind: 'entite', entityId: 'pnj-1' } } });
     banc.getState().interagirAvecLEntite(PROP);
     expect(poseDuMeneur()).toBeNull();
     const sc = banc.getState().scene!;
     expect(occupants(sc)).toHaveLength(1);
-    expect(occupants(sc)[0]).toMatchObject({ kind: 'entity', entityId: 'pnj-1' });
+    expect(occupants(sc)[0]).toMatchObject({ kind: 'entite', entityId: 'pnj-1' });
   });
 
   it('un meuble SANS place suit le chemin d’interaction historique (aucune branche d’assise)', () => {
@@ -152,7 +152,7 @@ describe('meuble à places ET fouillable — les deux affordances restent atteig
   });
 
   it('TABLE PLEINE : la fouille reste atteignable (elle n’est jamais avalée par l’assise)', () => {
-    const pris = (id: string): SeatOccupant => ({ kind: 'entity', entityId: id });
+    const pris = (id: string): SeatOccupant => ({ kind: 'entite', entityId: id });
     posrFouillable(ABORD_NORD, { [PROP]: { 'place-1': pris('a'), 'place-2': pris('b'), 'place-3': pris('c'), 'place-4': pris('d') } });
     banc.getState().interagirAvecLEntite(PROP);
     expect(journalEntier(), 'le journal NOMME le geste joué').toContain('Fouiller…');

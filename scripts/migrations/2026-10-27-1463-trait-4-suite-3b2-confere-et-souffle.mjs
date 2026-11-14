@@ -72,7 +72,7 @@ for (const id of ATTAQUES) {
 // 2-3. maneuvers.json, breath-types.json
 const SOURCE_LDB = { book: 'livre-de-base', page: 341 };
 const SOURCE_EDOC = { book: 'ennemi-dans-l-ombre-compagnon', page: 78 };
-const aLaTouche = (ops) => ({ trigger: 'onHit', on: 'victim', flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops } } });
+const aLaTouche = (ops) => ({ trigger: 'onHit', on: 'victime', flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops } } });
 const REGLES = {
   feu: { ignoreAP: true, etat: 'en-flammes' },
   froid: { etat: 'sonne' },
@@ -97,8 +97,8 @@ if (porteLaTranche(souffle, { grantsManeuvers: Object.keys(ANCIENNES).map((id) =
   gestes++;
 }
 const SOUFFLE = {
-  id: 'souffle', type: 'maneuvers', label: 'Souffle', kind: 'souffle', activation: 'free', advantageCost: 2,
-  stat: 'capacite-de-tir', defense: 'esquive', targeting: 'zone', range: { bonusOf: 'endurance', plus: 20 },
+  id: 'souffle', type: 'maneuvers', label: 'Souffle', kind: 'souffle', activation: 'free', coutEnAvantage: 2,
+  stat: 'capacite-de-tir', defense: 'esquive', ciblage: 'zone', range: { bonusOf: 'endurance', plus: 20 },
   blast: { bonusOf: 'force' }, magic: true, source: SOURCE_LDB,
   effects: [aLaTouche([{ op: 'wounds', amount: { indiceOf: true }, ignoreTB: false, ignoreAP: false }])],
   stake: 'Esquive — réussie : le souffle est évité. Ratée : Dégâts d’Arme égaux à l’Indice{regleDuType}.',

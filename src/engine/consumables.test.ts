@@ -17,7 +17,7 @@ const user = (over: Partial<Combatant> = {}): Combatant =>
     wounds: blessuresDeBase(20, 5), conditions: [], activeEffects: [], ...over,
   })) as unknown as Combatant;
 
-const doFlow = (ops: import('./ops').GameOp[]): Flow => ({ kind: 'do', effect: { type: 'ops', ops } });
+const doFlow = (ops: import('./ops').GameOp[]): Flow => ({ kind: 'effet', effet: { type: 'ops', ops } });
 
 const item = (over: Partial<ItemInstance> = {}): ItemInstance =>
   ({ uid: 'i', label: 'X', kind: 'misc', qualities: [], enc: 0, equipped: false, ...over }) as ItemInstance;
@@ -53,35 +53,35 @@ describe('consommables — effet en FLOW (#50 : migration GameOp[] → Flow)', (
     const flow: Flow = {
       kind: 'test',
       test: { skill: { id: 'resistance' } },
-      success: doFlow([{ op: 'heal', amount: 1 }]),
-      fail: { kind: 'if', cond: { kind: 'always' }, then: doFlow([{ op: 'condition', id: 'sonne' }]) },
+      reussite: doFlow([{ op: 'heal', amount: 1 }]),
+      echec: { kind: 'si', condition: { kind: 'always' }, alors: doFlow([{ op: 'condition', id: { id: 'sonne' } }]) },
     };
     const baked = bakeConsumableFlow(flow, 'h1', 4242, 'Belladone');
     const leaves: import('./flowCore').EffectOp[] = [];
     (function walk(f: Flow) {
-      if (f.kind === 'do') leaves.push(f.effect);
-      else if (f.kind === 'seq') f.steps.forEach(walk);
-      else if (f.kind === 'if') { walk(f.then); if (f.else) walk(f.else); }
-      else if (f.kind === 'test') { walk(f.success); walk(f.fail); }
+      if (f.kind === 'effet') leaves.push(f.effet);
+      else if (f.kind === 'sequence') f.etapes.forEach(walk);
+      else if (f.kind === 'si') { walk(f.alors); if (f.sinon) walk(f.sinon); }
+      else if (f.kind === 'test') { walk(f.reussite); walk(f.echec); }
     })(baked);
     expect(leaves).toHaveLength(2);
     for (const e of leaves) {
-      expect(e.on).toBe('hero');
+      expect(e.on).toBe('heros');
       expect(e.heroId).toBe('h1');
       expect(e.untilTime).toBe(4242);
       expect(e.label).toBe('Belladone');
     }
     // PUR : la donnée d'origine n'est pas mutée.
-    expect((flow as Extract<Flow, { kind: 'test' }>).success.kind === 'do' && (flow as never as { success: { effect: { untilTime?: number } } }).success.effect.untilTime).toBeFalsy();
+    expect((flow as Extract<Flow, { kind: 'test' }>).reussite.kind === 'effet' && (flow as never as { reussite: { effet: { untilTime?: number } } }).reussite.effet.untilTime).toBeFalsy();
   });
 });
 
 describe('consommables — catalogue migré (LDB 71/72/67 + MSRC, donnée réelle)', () => {
   it('potion-de-guerison : gate « plus de 0 Blessure » (if woundsCurrent ≥ 1) → heal {bonusOf:E} (LDB 72 l.24)', () => {
     const f = findTrappingById('potion-de-guerison')!.consumable!;
-    expect(f.kind).toBe('if');
-    const g = f as Extract<Flow, { kind: 'if' }>;
-    expect(g.cond).toEqual({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 });
+    expect(f.kind).toBe('si');
+    const g = f as Extract<Flow, { kind: 'si' }>;
+    expect(g.condition).toEqual({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 });
     expect(consumableOps(f)).toEqual([{ op: 'heal', amount: { bonusOf: 'endurance' } }]);
     expect(isConsumable(itemFromTrappingById('potion-de-guerison', idsDeTest)!)).toBe(true);
   });
@@ -89,8 +89,8 @@ describe('consommables — catalogue migré (LDB 71/72/67 + MSRC, donnée réell
     const f = findTrappingById('necessaire-antipoison')!.consumable! as Extract<Flow, { kind: 'test' }>;
     expect(f.kind).toBe('test');
     expect(f.test.skill).toEqual({ id: 'guerison' });
-    expect(consumableOps(f.success)).toEqual([{ op: 'removeCondition', id: 'empoisonne', all: true }]);
-    expect(consumableOps(f.fail)).toEqual([]);
+    expect(consumableOps(f.reussite)).toEqual([{ op: 'removeCondition', id: { id: 'empoisonne' }, all: true }]);
+    expect(consumableOps(f.echec)).toEqual([]);
   });
   it('brise-coeur : « Combattu avec un Test de Résistance Complexe (-10) » → échec : 4 Empoisonné (LDB 71 l.22, patron Lotus)', () => {
     const f = findTrappingById('brise-coeur')!.consumable! as Extract<Flow, { kind: 'test' }>;
@@ -98,11 +98,11 @@ describe('consommables — catalogue migré (LDB 71/72/67 + MSRC, donnée réell
     expect(f.test.skill).toEqual({ id: 'resistance' });
     expect(f.test.difficulty).toBe('complexe');
     expect(f.test.gate).toEqual({ kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', value: 'poison' } }); // LDB 85 l.174
-    expect(consumableOps(f.fail)).toEqual([{ op: 'condition', id: 'empoisonne', value: 4 }]);
+    expect(consumableOps(f.echec)).toEqual([{ op: 'condition', id: { id: 'empoisonne' }, value: 4 }]);
   });
   it('faxtoryll : « retirent tous les États Hémorragique sans Test de Guérison » — SANS preventInfection (hors-RAW retiré, LDB 72 l.22)', () => {
     expect(consumableOps(findTrappingById('faxtoryll')!.consumable)).toEqual([
-      { op: 'removeCondition', id: 'hemorragique', all: true },
+      { op: 'removeCondition', id: { id: 'hemorragique' }, all: true },
     ]);
   });
   it('les consommables de la base portent un Flow (11 migrés + 9 drogues/herbes LDB 71-72 + rouille MSRC + sel sacré MDG + boissons alcoolisées LDB 09 + malepierre LDB 19, #462 ; + 14 potions VDM 12, #732)', () => {

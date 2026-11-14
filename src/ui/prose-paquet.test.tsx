@@ -37,12 +37,12 @@ let container: HTMLDivElement | undefined;
 let root: Root | undefined;
 
 /** Paquet chargé, naine désignée sosie par l'Effet `designerHeros`. */
-function charger(mode: 'local' | 'guest' = 'local') {
+function charger(mode: 'local' | 'invite' = 'local') {
   const s = emptyScene('scene-test', 4, 4); s.id = 'sc'; s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
   useGame.setState({ campaignNarratif: null, party: [], scene: null, document: null, flags: {}, etats: {}, identitesFigees: {}, net: { ...get().net, mode: 'local' } });
   get().chargerLeProjet({ scenes: [s], entryId: 'sc', narratif, projet: null });
   useGame.setState({ party: [heros('h1', 'humains-reiklander', 'M'), heros('h2', 'nains', 'F')] });
-  runFlow(get, useGame.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } });
+  runFlow(get, useGame.setState, { kind: 'effet', effet: { type: 'designerHeros', etat: 'sosie' } });
   get().fenetreChoisir('designationHeros', 'heros', 'h2');
   useGame.setState({ net: { ...get().net, mode } });
 }
@@ -82,7 +82,7 @@ describe('DocumentModal — seul un document de paquet est nommé', () => {
   });
 
   it('invité : il masque UNE remise ; la même remise répétée par l’hôte se montre de nouveau', () => {
-    charger('guest');
+    charger('invite');
     get().remettreLeDocument({ title: 'D3', text: 'Cher Herr Lieberung,', documentId: 'doc-3' });
     monter(<DocumentModal />);
     const fermer = [...document.querySelectorAll('button')].find((b) => b.textContent === 'Fermer')!;

@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applierDe } from './cascade';
 import { draineCascade } from './cascade.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene } from './monde/scene';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { rollShipCritical } from '../engine/shipCritical';
@@ -70,7 +70,7 @@ function aBord(party: Combatant[], coque: Combatant): void {
 describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coque', () => {
   it('(i) la bande PORTE l’id de la coque, et la Taille s’en déduit (MDG 12 l.122-129)', () => {
     const coque = coqueMoyenne();
-    const [gabier, vigie] = makePregens(idsDeTest).slice(0, 2);
+    const [gabier, vigie] = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
     const party = [{ ...gabier, shipStation: 'greement' }, { ...vigie, shipStation: 'nid-de-pie' }];
     aBord(party, coque);
 
@@ -84,7 +84,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
 
   it('(ii) l’ÉCHEC fait tomber chacun de SA hauteur : 2d10 m au gréement, 25 m au nid-de-pie (l.686)', () => {
     const coque = coqueMoyenne();
-    const [gabier, vigie] = makePregens(idsDeTest).slice(0, 2);
+    const [gabier, vigie] = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
     const party = [{ ...gabier, shipStation: 'greement' }, { ...vigie, shipStation: 'nid-de-pie' }];
     aBord(party, coque);
     const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-chute', { idNeuf: idsDeTest, rng: desDuTest, label: 'Mât brisé', hull: coque })!;
@@ -96,12 +96,12 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
         ...p, result: { roll: 98, target: p.target!, success: false, sl: -5, crit: false, fumble: false },
       })),
     };
-    applierDe('triggeredBatchTest')!(get, set, rates, undefined, { steps: [rates], index: 0 });
+    applierDe('testDeclencheEnBande')!(get, set, rates, undefined, { steps: [rates], index: 0 });
 
     // #1508 : l'échec n'applique plus la chute — il OUVRE ses dés. La hauteur du gréement est un dé
     // (2d10), celle du nid-de-pie un ENTIER (aucun dé de hauteur, seuls les Dégâts se tirent) : c'est
     // déjà lisible sur les étapes ouvertes, AVANT qu'aucune Blessure ne tombe.
-    const ouvertes = get().pendingCascade!.participants.filter((s) => s.kind === 'opsDe');
+    const ouvertes = get().pendingCascade!.participants.filter((s) => s.kind === 'operationsDe');
     const pourLe = (id: string) => ouvertes.filter((s) => s.actorId === id);
     expect(pourLe(gabier.id).map((s) => s.de!.spec), 'gréement d’une coque Moyenne = 2d10 m (l.686), puis les Dégâts')
       .toEqual([{ n: 2, sides: 10 }]);
@@ -127,7 +127,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
 
   it('(iii) la RÉUSSITE ne fait tomber personne (la branche d’échec porte seule la conséquence)', () => {
     const coque = coqueMoyenne();
-    const party = makePregens(idsDeTest).slice(0, 2).map((h) => ({ ...h, shipStation: 'greement' }));
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2).map((h) => ({ ...h, shipStation: 'greement' }));
     aBord(party, coque);
     const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-chute', { idNeuf: idsDeTest, rng: desDuTest, label: 'Mât brisé', hull: coque })!;
     const reussies: CascadeStep = {
@@ -136,13 +136,13 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
         ...p, result: { roll: 5, target: p.target!, success: true, sl: 3, crit: false, fumble: false },
       })),
     };
-    applierDe('triggeredBatchTest')!(get, set, reussies, undefined, { steps: [reussies], index: 0 });
+    applierDe('testDeclencheEnBande')!(get, set, reussies, undefined, { steps: [reussies], index: 0 });
     for (const h of get().party) expect(h.wounds.current, `${h.id} est tombé sur une RÉUSSITE`).toBe(h.wounds.max);
   });
 
   it('(v) voie COMBAT : la coque vit dans la FILE (arbitrage 2026-07-16 « les navires sont des combattants »)', () => {
     const coque = coqueMoyenne();
-    const [gabier] = makePregens(idsDeTest).slice(0, 1);
+    const [gabier] = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     const party = [{ ...gabier, shipStation: 'greement' }];
     aBord(party, coque);
     // Aucun trajet : la coque n'est atteignable QUE par la file de combat.
@@ -163,10 +163,10 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
         ...p, result: { roll: 98, target: p.target!, success: false, sl: -5, crit: false, fumble: false },
       })),
     };
-    applierDe('triggeredBatchTest')!(get, set, rates, undefined, { steps: [rates], index: 0 });
+    applierDe('testDeclencheEnBande')!(get, set, rates, undefined, { steps: [rates], index: 0 });
     // La coque de la FILE a bien été retrouvée : sa Taille a donné le dé de hauteur (#1508 — la chute
     // s'ANNONCE au lieu de s'appliquer, et c'est ce dé qui prouve la lecture de la coque).
-    const ouverte = get().pendingCascade!.participants.find((s) => s.kind === 'opsDe');
+    const ouverte = get().pendingCascade!.participants.find((s) => s.kind === 'operationsDe');
     expect(ouverte, 'aucun dé de chute : la coque de la FILE n’a pas été retrouvée').toBeTruthy();
     expect(ouverte!.de!.spec, 'coque Moyenne au gréement').toEqual({ n: 2, sides: 10 });
     draineCascade(get);
@@ -181,7 +181,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
     // un combat s'ouvre, une scène change), et sa reprise (`resumeSuspendedCascade`) tombe après la
     // fin du voyage : `travelPlan.vehicle` n'existe plus, et la coque n'est dans aucune file.
     const coque = coqueMoyenne();
-    const party = makePregens(idsDeTest).slice(0, 1).map((h) => ({ ...h, shipStation: 'greement' }));
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => ({ ...h, shipStation: 'greement' }));
     aBord(party, coque);
     const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-disparue', { idNeuf: idsDeTest, rng: desDuTest, label: 'Mât brisé', hull: coque })!;
     const pvAvant = get().party[0].wounds.current;
@@ -193,7 +193,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
         ...p, result: { roll: 98, target: p.target!, success: false, sl: -5, crit: false, fumble: false },
       })),
     };
-    const rendu = applierDe('triggeredBatchTest')!(get, set, rates, undefined, { steps: [rates], index: 0 });
+    const rendu = applierDe('testDeclencheEnBande')!(get, set, rates, undefined, { steps: [rates], index: 0 });
 
     const dit = JSON.stringify(rendu);
     expect(dit, `le refus n'est pas NOMMÉ : ${dit}`).toContain('n’est plus en jeu');
@@ -204,12 +204,12 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
 
   it('(iv) voie INLINE (porteur sans siège) : la même coque, et la chute est DITE au journal', () => {
     const coque = coqueMoyenne();
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     aBord(party, coque);
     /** Un gabier PNJ : aucun siège ne le tient (il n'est pas du groupe) → voie inline. Agilité 1 :
      *  son Athlétisme Complexe (−10) échoue hors des jets qui réussissent d'office (LDB 09). */
     const gabier = blessuresSurLeProfil({
-      id: 'gabier', name: 'Gabier', label: 'Gabier', kind: 'npc',
+      id: 'gabier', name: 'Gabier', label: 'Gabier', kind: 'pnj',
       characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 1, dexterite: 31, intelligence: 31, 'force-mentale': 31, sociabilite: 31 },
       skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [], items: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

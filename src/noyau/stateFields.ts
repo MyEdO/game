@@ -112,7 +112,7 @@ const STATE_FIELDS = {
   port: { init: null, resetOn: ['scene'] },
   pendingSeaActivities: { init: null, resetOn: [] },
   // Posé à l'accostage AVANT toute transition de scène (celle-ci n'intervient qu'à la résolution du
-  // choix `shoreLeave.accorder`) — aucune scène à survivre, mais transitoire de voyage comme les autres.
+  // choix `relacheATerre.accorder`) — aucune scène à survivre, mais transitoire de voyage comme les autres.
   pendingShoreLeave: { init: null, resetOn: [] },
   // Campagne publiée choisie au menu (PartyScreen) : survit jusqu'à la constitution du groupe, jamais
   // remis par un changement de scène/combat (posé AVANT toute scène de jeu).
@@ -129,7 +129,7 @@ const STATE_FIELDS = {
   // Commandes d'interlude (LDB 22-23) : purgées explicitement à l'ouverture du prochain interlude
   // (`ouvrirLInterlude`), jamais par `resetFields` (elles doivent SURVIVRE au combat/aux scènes entre-temps).
   pendingOrders: { init: [], resetOn: [] },
-  // Jet d'Activité d'interlude/bataille de masse : clos par `jetAnnuler('activity')`/`jetValider('activity')`, jamais
+  // Jet d'Activité d'interlude/bataille de masse : clos par `jetAnnuler('activite')`/`jetValider('activite')`, jamais
   // par un changement de scène/combat (l'interlude n'ouvre pas de combat pendant qu'une Activité est en cours).
   pendingActivity: { init: null, resetOn: [] },
   // Cadre de campagne (#717) : l'ouverture est posée par `chargerLeProjet` APRÈS `lancerLaScene` et le récap

@@ -7,7 +7,7 @@ import { collectLabelEntityResolvers } from './scripts/guards/lib/labelLogic.mjs
 import { RACINES_DES_ZONES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe } from './scripts/guards/lib/couches.mjs';
 
 const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation|CiblePsy|MaximumDesBlessures|DeDeTable)$/';
-const MSG_FORGE = 'Marque d’origine (#1262/#1318/#3045/#1463/#1667) : forger un `Built*`/`PlayerText`/`AdresseDeCreation`/`CiblePsy`/`MaximumDesBlessures`/`DeDeTable` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`), par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`), par la fabrique de Cible (`ciblePsy`), par celles des Blessures (`blessuresPosees`, `blessuresReconciliees`), ou par le constructeur du dé de table (`deDeLaTableTiree`).';
+const MSG_FORGE = 'Marque d’origine (#1262/#1318/#3045/#1463/#1667) : forger un `Built*`/`PlayerText`/`AdresseDeCreation`/`CiblePsy`/`MaximumDesBlessures`/`DeDeTable` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`, `nomDe`), par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`), par la fabrique de Cible (`ciblePsy`), par celles des Blessures (`blessuresPosees`, `blessuresReconciliees`), ou par le constructeur du dé de table (`deDeLaTableTiree`).';
 
 const VERROU_MARQUES = [{
   selector: `TSAsExpression TSTypeReference > Identifier[name=${MARQUES}]`,
@@ -86,7 +86,7 @@ const VERROU_LISTAGE = [
 ].map((selector) => ({ selector, message: MSG_ORDRE_TOTAL }));
 
 const STOCKAGES_WEB = ['localStorage', 'sessionStorage'];
-const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` (`src/web/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
+const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` (`src/hote/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
 
 const REMEDE_CONSOLE = 'rendre l’information VISIBLE, la nommer en `aria-label`/`aria-describedby`, ou la confier au popover `CodexRef` (verbatim de la donnée)';
 const VERROU_CONSOLE = [{
@@ -102,7 +102,7 @@ const CLE_DU_SUJET = 'Property:matches([key.name=/^(skill|skillId|difficulty|spe
 const SPREAD_CONDITIONNEL = 'SpreadElement > :matches(ConditionalExpression, LogicalExpression) > ObjectExpression';
 const CHAMP_CHAR = 'TSPropertySignature:matches([key.name="char"], [key.value="char"])';
 const CHAMP_DU_SUJET = 'TSPropertySignature:matches([key.name=/^(skill|skillId|difficulty|spec)$/], [key.value=/^(skill|skillId|difficulty|spec)$/])';
-const MSG_SUJET_CHAR = 'Sujet d’un Test (#3012, LDB 12 l.7) : il se nomme `characteristic`, comme `sujetDuJetSchema`. Une clé `char` à côté de `skill`/`skillId`/`difficulty`/`spec`, dans un littéral ou un type, en est l’ancienne graphie, que tsc laisse passer sur un objet non frais, un spread conditionnel ou un cast. La Caractéristique seule se nomme aussi `characteristic` (`charMod`, `actGate`, `CharRef`…, #1658) : `char` ne nomme plus que le profil chiffré d’un statblock.';
+const MSG_SUJET_CHAR = 'Sujet d’un Test (#3012, LDB 12 l.7) : il se nomme `characteristic`, comme `sujetDuJetSchema`. Une clé `char` à côté de `skill`/`skillId`/`difficulty`/`spec`, dans un littéral ou un type, en est l’ancienne graphie, que tsc laisse passer sur un objet non frais, un spread conditionnel ou un cast. La Caractéristique seule se nomme aussi `characteristic` (`charMod`, `testDAgir`, `CharRef`…, #1658) : `char` ne nomme plus que le profil chiffré d’un statblock.';
 const VERROU_SUJET_CHAR = [
   `ObjectExpression:has(> ${CLE_CHAR}):has(> ${CLE_DU_SUJET})`,
   `ObjectExpression:has(> ${CLE_DU_SUJET}) > ${SPREAD_CONDITIONNEL} > ${CLE_CHAR}`,
@@ -196,8 +196,8 @@ const MODULES_DE_MINUTERIES = ['timers', 'node:timers', 'timers/promises', 'node
 const APPEL_DE_MINUTERIE = `:matches(CallExpression, NewExpression) > Identifier.callee[name=/^(${MINUTERIES.join('|')})$/]`;
 const MSG_MINUTERIE = `Minuterie nue (#405, #415, #2817) : \`src/engine\` n’en pose aucune ; sous src/noyau, un appel différé passe par \`programmer\` (\`src/noyau/plateforme.ts\`) ; sous src/state, src/lib et src/web, un timer réel passe par \`scheduleCombatTimer\`/\`scheduleFlowTimer\` (\`${SOURCE_DES_MINUTERIES}\`). Les deux voies aboutissent au registre tracé que \`clearTrackedTimers\` annule au teardown de test.`;
 
-const MSG_SANS_HOTE = 'Sans hôte (#2817, AGENTS.md règle 3) : `src/engine` et `src/noyau` tournent sans hôte, qui leur FOURNIT ce qu’ils ne tirent pas d’eux-mêmes : un tirage passe par le `RNG` que l’appelant nomme (`battleRng()` au noyau, semé par l’hôte de `graineDEntropie`, `src/web/entropie.ts`), l’heure du jeu par `gameTime` de l’état, un appel différé par `programmer` (`src/noyau/plateforme.ts`), un id unique d’un projet à l’autre par l’appelant (`idDEntropie` de l’hôte ; `nextEntityId` au sein d’une collection), le navigateur par les services de `src/web`.';
-const MSG_ENTROPIE = 'Entropie (#2817) : `Math.random` ne s’écrit que dans `src/web/entropie.ts`, le seul site d’entropie de `src/` — un jet de règle prend un `RNG` nommé par l’appelant, une présentation ou un son tire de `entierDEntropie`, une graine de `graineDEntropie`, un id d’entité de `idDEntropie`.';
+const MSG_SANS_HOTE = 'Sans hôte (#2817, AGENTS.md règle 3) : `src/engine` et `src/noyau` tournent sans hôte, qui leur FOURNIT ce qu’ils ne tirent pas d’eux-mêmes : un tirage passe par le `RNG` que l’appelant nomme (`battleRng()` au noyau, semé par l’hôte de `graineDEntropie`, `src/hote/entropie.ts`), l’heure du jeu par `gameTime` de l’état, un appel différé par `programmer` (`src/noyau/plateforme.ts`), un id unique d’un projet à l’autre par l’appelant (`idDEntropie` de l’hôte ; `nextEntityId` au sein d’une collection), le navigateur par les services de `src/web`.';
+const MSG_ENTROPIE = 'Entropie (#2817) : `Math.random` ne s’écrit que dans `src/hote/entropie.ts`, le seul site d’entropie des zones — un jet de règle prend un `RNG` nommé par l’appelant, une présentation ou un son tire de `entierDEntropie`, une graine de `graineDEntropie`, un id d’entité de `idDEntropie`.';
 const VERROU_ENTROPIE = [
   { object: 'Math', property: 'random' },
   { property: 'Math' },
@@ -210,6 +210,9 @@ const VERROU_SANS_HOTE_SYNTAXE = [
   "NewExpression[callee.name='Date'][arguments.length=0]",
   "CallExpression[callee.name='Date']",
 ].map((selector) => ({ selector, message: MSG_SANS_HOTE }));
+const SOURCE_DU_BASE64 = 'src/lib/base64.ts';
+const CODECS_BASE64 = ['btoa', 'atob'];
+const MSG_BASE64 = `Base64 (#3948) : \`btoa\` et \`atob\` ne s’écrivent que dans \`${SOURCE_DU_BASE64}\` ; des octets passent par \`enBase64\`, un texte par \`depuisBase64\`.`;
 const GLOBALES_D_HOTE = [...HOTES, 'performance', 'crypto', 'document', 'navigator', 'location', 'fetch', 'indexedDB', 'process', 'queueMicrotask', 'requestIdleCallback', 'requestAnimationFrame'];
 
 const TYPES_CLAVIER = '/^key(down|up|press)$/';
@@ -708,8 +711,17 @@ export const BLOCS_LINT = [
   {
     // #2817, #2928
     files: CODE_DES_ZONES,
-    excludeFiles: ['src/web/entropie.ts', '**/*.test.*', '**/*.bench.*'],
+    excludeFiles: ['src/hote/entropie.ts', '**/*.test.*', '**/*.bench.*'],
     rules: { 'murs/entropie': ['error', ...VERROU_ENTROPIE] },
+  },
+  {
+    // #3948
+    files: CODE_DES_ZONES,
+    excludeFiles: [SOURCE_DU_BASE64],
+    rules: {
+      'murs/base64': ['error', ...CODECS_BASE64.map((name) => ({ name, message: MSG_BASE64 }))],
+      'murs/base64-hote': ['error', ...HOTES.flatMap((object) => CODECS_BASE64.map((property) => ({ object, property, message: MSG_BASE64 })))],
+    },
   },
   {
     // #2817
@@ -811,6 +823,12 @@ export const BLOCS_LINT = [
   {
     files: GLOBS_DE_MOD_HORS_TS,
     rules: { 'murs/mod-sans-regle': ['error', ...VERROU_MOD_HORS_TS] },
+  },
+  {
+    // #3821
+    files: ['src/**', 'hotes/**', 'scripts/**', 'server/**', '.claude/**'],
+    excludeFiles: BANCS_DE_MOD,
+    rules: { 'murs/noms-par-ligne': 'error' },
   },
 ];
 export default {

@@ -34,14 +34,14 @@ export function setEncounters(scene: Scene, list: AuthoredEncounter[]): void {
 /** Sections du menu des scénarios de test : clé (portée par la donnée) → libellé + icône
  *  (id du registre src/data/icons), dans l'ordre d'affichage. */
 export const SCENARIO_SECTIONS = [
-  { key: 'combat', label: 'Combat', icon: 'action/attack' },
-  { key: 'magie', label: 'Magie', icon: 'action/cast' },
-  { key: 'creatures', label: 'Créatures', icon: 'scenario/bestiary' },
-  { key: 'survie', label: 'Survie', icon: 'scenario/travel' },
-  { key: 'marche', label: 'Marché', icon: 'scenario/market' },
-  { key: 'scenarios', label: 'Scénarios complets', icon: 'nav/campaign' },
+  { key: 'combat', label: 'Combat', icon: 'action/attaquer' },
+  { key: 'magie', label: 'Magie', icon: 'action/incanter' },
+  { key: 'creatures', label: 'Créatures', icon: 'scenario/bestiaire' },
+  { key: 'survie', label: 'Survie', icon: 'scenario/voyage' },
+  { key: 'marche', label: 'Marché', icon: 'scenario/marche' },
+  { key: 'scenarios', label: 'Scénarios complets', icon: 'navigation/campagne' },
   { key: 'naval', label: 'Naval', icon: 'scenario/naval' },
-  { key: 'rendu', label: 'Rendu', icon: 'scenario/gallery' },
+  { key: 'rendu', label: 'Rendu', icon: 'scenario/galerie' },
 ] as const satisfies readonly { key: string; label: string; icon: IconIdGenerated }[];
 
 export type ScenarioCategory = (typeof SCENARIO_SECTIONS)[number]['key'];
@@ -64,8 +64,8 @@ export interface TestScenario {
   /** Bourse de départ (le lancement écrase la richesse par défaut) — ex. payer la diligence. */
   money?: { gold: number; silver: number; brass: number };
   /** Règles optionnelles pré-activées au lancement (mêmes ids que le panneau Règles maison, donc
-   *  modifiables en jeu) — ex. `{ 'travel-etapes': true }` pour le Voyage par Étapes EDOC. */
-  rules?: Record<string, import('../../engine/policy').RuleValue>;
+   *  modifiables en jeu) — ex. `{ 'voyage-etapes': true }` pour le Voyage par Étapes EDOC. */
+  rules?: import('../../engine/policy').JeuDeRegles;
   /** Ouvre un interlude (« Entre deux aventures », LDB 23) au lancement, AVANT la bataille de masse quand il y en
    *  a une — le budget d'Activités (max 3) qu'il alloue est CELUI dans lequel puise la préparation (ADE II 8 l.65).
    *  Sans lui, une `massBattle` démarre au Round 1 sans préparation. Valeur = nombre de semaines. */
@@ -75,7 +75,7 @@ export interface TestScenario {
 /** LE lancement d'un scénario (#2898), constructeur UNIQUE que partagent tous les
  *  hôtes du noyau : le contenu construit à neuf aux ids de la partie (`idNeuf`), et les réglages de la fiche. */
 export function lancementDuScenario(sc: TestScenario, idNeuf: FabriqueDId): LancementDeScenario {
-  return { ...sc.construire(idNeuf), regles: sc.rules, bourse: sc.money, combatDirect: sc.autoCombat, semainesDInterlude: sc.interludeWeeks };
+  return { ...sc.construire(idNeuf), projet: null, regles: sc.rules, bourse: sc.money, combatDirect: sc.autoCombat, semainesDInterlude: sc.interludeWeeks };
 }
 
 /** Arène dégagée + point de départ des héros (base des scénarios de combat direct). Preset MINCE

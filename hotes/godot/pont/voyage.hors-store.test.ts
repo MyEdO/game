@@ -5,31 +5,33 @@
  * l'arrivée, l'écran du lieu tient la main (`lieuEnVue`) : ses services et ses trajets ; « Explorer » entre dans sa scène.
  */
 import { afterEach, describe, it, expect } from 'vitest';
-import { departDeLaCarte, drainer, table } from './pont.testkit';
+import { departDeLaCarte, drainer, suiteDe, table, gestesDessines } from './pont.testkit';
+import { AUTO_SLOT, cleDEmplacement } from '../../../src/hote/sauvegardes';
+import type { SaveGame } from '../../../src/noyau/index';
 import type { Bouton, Choix, Element, Entite, Ligne, Plan } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 
 /** Le pont de la partie en cours, fermé après chaque cas : une partie par processus. */
 let ouvert: Pont | null = null;
-afterEach(() => { ouvert?.fermer(); ouvert = null; });
+afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
 
 /** Une partie neuve du scénario `voyage`, son entrée passée. */
 function partie() {
-  const { pont, appel } = table();
+  const { pont, appel, stockage } = table();
   ouvert = pont;
   /** Joue le geste que l'Entrée jouerait, ou le premier bouton ouvert, tant qu'une fenêtre autre que `jusqua` tient la
    *  main. */
   const avancer = (suite: Suite, jusqua?: string): Suite => {
     for (let pas = 0; suite.vue.projection.fenetre && suite.vue.projection.fenetre.cle !== jusqua; pas++) {
       expect(pas, 'les fenêtres se vident').toBeLessThan(80);
-      const g = suite.vue.zones['fenetre.gestes'];
+      const g = gestesDessines(suite.vue);
       const b = g.find((x): x is Bouton => x.type === 'bouton' && x.focus) ?? g.find((x): x is Bouton => x.type === 'bouton' && !x.refus)!;
       ({ suite } = drainer(appel, appel('jouer', b.jeu)));
     }
     return suite;
   };
   const jouer = (b: Bouton, jusqua?: string): Suite => avancer(drainer(appel, appel('jouer', b.jeu)).suite, jusqua);
-  return { jouer, suite: avancer(drainer(appel, appel('demarrer', { scenario: 'voyage', graine: 7 })).suite) };
+  return { jouer, appel, stockage, suite: avancer(drainer(appel, appel('demarrer', { scenario: 'voyage', graine: 7 })).suite) };
 }
 
 const parId = (elements: readonly Element[]) => Object.fromEntries(elements.map((e) => [e.id, e]));
@@ -74,8 +76,17 @@ describe('le voyage par le pont', () => {
     expect(suite.vue.zones['fenetre.titre'].map((l) => l.texte), 'le lieu en titre').toEqual(['Steinbruck']);
     expect(suite.vue.projection.scene?.id, 'le groupe n’est pas entré dans la scène du lieu').toBe('test-voyage-village');
     const corps = parId(suite.vue.zones['fenetre.corps']);
-    const gestes = (id: string) => (corps[id] as Entite).elements.map((b) => [(b as Bouton).libelle, ((b as Bouton).jeu as { type: string }).type]);
+    expect((corps['lieu/description'] as Ligne).texte, 'la description du lieu').toMatch(/^Un bourg de pierre grise au carrefour des routes/);
+    const plan = corps['lieu/plan'] as Plan;
+    expect(plan.points.filter((pt) => pt.ton === 'alerte').map((pt) => pt.nom), 'le plan de la carte vu d’ici, le lieu du groupe en alerte').toEqual(['Steinbruck']);
+    expect(plan.points.flatMap((pt) => pt.elements), 'rien sous les lieux de ce plan : on part depuis les trajets').toEqual([]);
+    expect(((corps['lieu/carte'] as Bouton).jeu as { type: string }).type, 'la carte s’ouvre d’ici').toBe('ouvrirLaCarte');
+    const habits = (id: string) => (corps[id] as Entite).elements.filter((e) => e.type !== 'bouton').map((e) => (e.type === 'fond' ? e.fond : e.type));
+    const gestes = (id: string) => (corps[id] as Entite).elements.filter((e): e is Bouton => e.type === 'bouton').map((b) => [b.libelle, (b.jeu as { type: string }).type]);
+    expect(habits('service/auberge'), 'l’auberge : son fond, son icône, le boniment de son hôte').toEqual(['taverne-commune', 'icone', 'ligne']);
     expect(gestes('service/auberge'), 'l’auberge : dormir, recueillir des informations').toEqual([['Dormir', 'ouvrirLeRepos'], ['Recueillir des informations', 'recueillirLesRumeurs']]);
+    expect(habits('service/forgeron'), 'le forgeron : son fond et son icône, sans boniment').toEqual(['forge', 'icone']);
+    expect([(corps['lieu/services'] as Ligne).texte, (corps['lieu/trajets'] as Ligne).texte], 'chaque rubrique sous son titre').toEqual(['Ce qu’on peut faire ici', 'Partir']);
     expect(gestes('service/forgeron'), 'le forgeron : son échoppe').toEqual([['Entrer', 'ouvrirLaBoutique']]);
     const retour = corps['trajet/r-grandroute'] as Entite;
     expect([retour.nom, retour.elements.map((x) => (x as Choix).libelle)], 'le trajet qui en part, le même départ que sur la carte').toEqual(['Weiler', ['30 km']]);
@@ -85,6 +96,28 @@ describe('le voyage par le pont', () => {
     expect(suite.vue.projection.scene?.id, 'Explorer entre dans la scène du lieu').toBe('test-voyage-bourg');
     const leLieu = suite.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Le lieu')!;
     expect(p.jouer(leLieu, 'ecranDuLieu').vue.projection.fenetre?.cle, 'le lieu se rouvre depuis sa scène').toBe('ecranDuLieu');
+  });
+
+  it('entrer dans la scène du lieu pose le point de reprise d’une campagne à l’emplacement automatique, jamais celui d’un scénario de test', () => {
+    const p = partie();
+    /** Le voyage jusqu'au bourg, puis « Explorer » : la suite, le groupe entré dans la scène du lieu. */
+    const explorer = (depart: Suite): Suite => {
+      let suite = p.jouer(carte(depart), 'carteDuMonde');
+      suite = p.jouer(mode(suite, 'r-grandroute', 'pied'), 'ecranDuLieu');
+      return p.jouer(suite.vue.zones['fenetre.gestes'].find((b): b is Bouton => b.type === 'bouton' && b.libelle === 'Explorer')!);
+    };
+    expect(p.appel('sauvegarder', { sauvegarder: 1 }).ok, 'le scénario de test s’écrit à la main').toBe(true);
+    explorer(p.suite);
+    expect(p.stockage.getItem(cleDEmplacement(AUTO_SLOT)), 'un scénario de test ne garde aucun point de reprise').toBeNull();
+
+    // La sauvegarde du scénario, posée en campagne : l'identité d'un document de projet.
+    const save = JSON.parse(p.stockage.getItem(cleDEmplacement(1))!) as SaveGame;
+    p.stockage.setItem(cleDEmplacement(1), JSON.stringify({ ...save, data: { ...save.data, campaignDoc: { ...save.data.campaignDoc, projet: { id: 'campagne-de-test' } } } }));
+    p.appel('quitter');
+    const arrivee = explorer(suiteDe(p.appel('charger', { charger: 1, graine: 7 })));
+    const garde = JSON.parse(p.stockage.getItem(cleDEmplacement(AUTO_SLOT)) ?? 'null') as SaveGame | null;
+    expect(garde?.data.scene?.id, 'le point de reprise est la scène où le groupe vient d’entrer').toBe(arrivee.vue.projection.scene!.id);
+    expect(garde?.data.scene?.id).not.toBe(save.data.scene?.id);
   });
 
   it('une embuscade en chemin : le récit l’annonce, chaque journée et ce qui s’y est passé, puis il faut faire face', () => {

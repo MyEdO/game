@@ -86,16 +86,16 @@ export function EditorToolbar({
     },
   });
   const entrees: EntreeDeMenu[] = [
-    item('nouveau', <><Icon id="file/new" size="sm" /> Nouveau projet</>, onNew),
-    item('ouvrir', <><Icon id="file/open" size="sm" /> Ouvrir…</>, onOpen),
-    item('enregistrer', <><Icon id="file/save" size="sm" /> Enregistrer…</>, onSave),
+    item('nouveau', <><Icon id="fichier/nouveau" size="sm" /> Nouveau projet</>, onNew),
+    item('ouvrir', <><Icon id="fichier/ouvrir" size="sm" /> Ouvrir…</>, onOpen),
+    item('enregistrer', <><Icon id="fichier/enregistrer" size="sm" /> Enregistrer…</>, onSave),
     { cle: 'sep-fichier', separateur: true },
-    item('importer', <><Icon id="file/import" size="sm" /> Importer JSON…</>, () => importRef.current?.click()),
-    item('exporter', <><Icon id="file/export" size="sm" /> Exporter JSON</>, onExport),
-    item('exporter-ascii', <><Icon id="file/export" size="sm" /> Exporter ASCII (grilles carte)</>, onExportAscii),
-    ...(onExportDepot ? [item('exporter-depot', <><Icon id="file/export" size="sm" /> Exporter forme dépôt (dev)</>, onExportDepot)] : []),
+    item('importer', <><Icon id="fichier/importer" size="sm" /> Importer JSON…</>, () => importRef.current?.click()),
+    item('exporter', <><Icon id="fichier/exporter" size="sm" /> Exporter JSON</>, onExport),
+    item('exporter-ascii', <><Icon id="fichier/exporter" size="sm" /> Exporter ASCII (grilles carte)</>, onExportAscii),
+    ...(onExportDepot ? [item('exporter-depot', <><Icon id="fichier/exporter" size="sm" /> Exporter forme dépôt (dev)</>, onExportDepot)] : []),
     { cle: 'sep-avance', separateur: true },
-    item('avance', <><Icon id="ui/settings" size="sm" /> Avancé — JSON (dialogues, triggers, rencontres)</>, onAdvanced),
+    item('avance', <><Icon id="interface/reglages" size="sm" /> Avancé — JSON (dialogues, triggers, rencontres)</>, onAdvanced),
   ];
 
   return (
@@ -154,10 +154,10 @@ export function EditorToolbar({
 
       <div className="editor-toolbar">
         <button className="btn small" onClick={onWorld} title="Carte du monde du projet : lieux, routes, voyage">
-          <Icon id="nav/campaign" size="sm" /> Monde{worldCount !== null ? ` (${worldCount})` : ''}
+          <Icon id="navigation/campagne" size="sm" /> Monde{worldCount !== null ? ` (${worldCount})` : ''}
         </button>
         <button className="btn small" onClick={onNarratif} title="Narratif du projet : affaires, indices, PNJ, objets">
-          <Icon id="nav/compendium" size="sm" /> Narratif{narratifCount > 0 ? ` (${narratifCount})` : ''}
+          <Icon id="navigation/compendium" size="sm" /> Narratif{narratifCount > 0 ? ` (${narratifCount})` : ''}
         </button>
         <button className="btn small btn-primary" onClick={onTest}>
           ▶ Tester

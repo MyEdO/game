@@ -5,6 +5,8 @@
  *  - Opérations bancaires : LDB 23 l.164-176
  *  - Revenus : LDB 08 l.105-120 (`gainDeStatut`, `engine/money`)
  */
+import type { Equipe } from './relations';
+import type { IconId } from '../data/icons';
 import { RNG, roll, rollDice } from './dice';
 import { Money, fromBrass, toBrass, priceToMoney, gainDeStatut, enPieces, PA_PER_SC, type StatusTier } from './money';
 import type { CharKey, Combatant, Difficulty, SkillInstance, Availability, StakeForm } from './types';
@@ -19,9 +21,22 @@ import type { PlayerText } from '../i18n/playerText';
 import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
 import { easeDifficulty, estJete, clampTarget, cibleDuTest, ECHEC_SANS_JET, type EchecSansJet } from './tests';
-import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, qualities, type TrappingData } from '../data';
+import {
+  trappingsInstanciables,
+  talents,
+  levelsForCareer,
+  skills,
+  specPoolOf,
+  specCatalogOf,
+  refLabel,
+  findCareerById,
+  findTalentById,
+  qualities,
+  type TalentData,
+  type TrappingData,
+} from '../data';
 import { memoParVersion } from '../data/versionDataset';
-import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
+import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars, refKey } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTE_PAR_DEFAUT } from './types';
@@ -42,10 +57,6 @@ import { parLibelle } from '../lib/ordre.mjs';
  *  HORS voyage, au comptoir d'une auberge du hub de ville (#352 : `recueillir-informations` s'y ouvre
  *  à la demande, un jet indépendant d'une Étape). */
 export type ActivityContext = 'interlude' | 'voyage' | 'mer' | 'bataille' | 'bataille-round' | 'auberge';
-
-/** Camp visé par une issue de bataille (ADE II 8) : `ally` = l'armée des Personnages, `enemy` = l'armée
- *  adverse. */
-export type BattleSide = 'ally' | 'enemy';
 
 /** Cible d'une issue d'Activité/Scène de bataille (ADE II 8) qui porte sur l'ARMÉE, non sur le héros
  *  acteur : `might` = delta de Puissance COURANTE (heal/wounds sur le Combattant-armée, plafonné au
@@ -72,7 +83,7 @@ export interface BattleDifficultyFrom {
 export type BattleOutcomeScale = 'fixed' | 'perDR' | 'perHit' | 'perKill';
 export interface BattleOutcome {
   /** `might`/`startMight` portent un `side` (armée visée) ; les modificateurs de Test sont toujours alliés. */
-  side?: BattleSide;
+  side?: Equipe;
   target: BattleOutcomeTarget;
   scale: BattleOutcomeScale;
   /** Montant SIGNÉ (gain +, réduction −). Pour `perDR`/`perHit`/`perKill`, multiplié par le compteur. */
@@ -162,7 +173,7 @@ export const resolversOwnedBy = (owner: ResolverOwner): ActivityResolver[] =>
  *  `resolver` = logique bespoke nommée (cf. dispatch d'interlude) ; `payoutPct` = rendu monétaire d'un
  *  retrait de dépôt (Mécénat : 120/100/50/0) ; `note` = texte de résultat VERBATIM de la source. */
 export interface OutcomeBand {
-  on?: 'success' | 'failure' | 'fumble';
+  on?: 'reussite' | 'echec' | 'maladresse';
   minSL?: number;
   maxSL?: number;
   ops?: GameOp[];
@@ -186,18 +197,18 @@ export interface OutcomeBand {
 export type BattleCond =
   | 'generalDown' | 'intervention' | 'noIntervention' | 'combatWon' | 'combatLost';
 
-/** Bandes d'issue applicables à un jet résolu. Maladresse : les bandes `on:'fumble'` REMPLACENT toute
+/** Bandes d'issue applicables à un jet résolu. Maladresse : les bandes `on:'maladresse'` REMPLACENT toute
  *  autre issue (« réalisez un Test sur le Tableau de la Colère des Dieux […] à la place », ACE 12 l.15) ;
  *  sans bande de Maladresse déclarée, la Maladresse reste un échec ordinaire. Une bande sans `on`
  *  matche par DR seul. PUR. */
 export function matchOutcomes(def: ActivityDef, res: { success: boolean; sl: number; fumble?: boolean }): OutcomeBand[] {
   const bands = def.outcomes ?? [];
   if (res.fumble) {
-    const fb = bands.filter((b) => b.on === 'fumble');
+    const fb = bands.filter((b) => b.on === 'maladresse');
     if (fb.length) return fb;
   }
-  const on = res.success ? 'success' : 'failure';
-  return bands.filter((b) => b.on !== 'fumble' && (b.on == null || b.on === on)
+  const on = res.success ? 'reussite' : 'echec';
+  return bands.filter((b) => b.on !== 'maladresse' && (b.on == null || b.on === on)
     && (b.minSL == null || res.sl >= b.minSL) && (b.maxSL == null || res.sl <= b.maxSL));
 }
 
@@ -344,7 +355,7 @@ export interface ActivityDef {
   label: string;
   /** Icône du registre (`src/data/icons`, id `famille/nom`) — affichée par les volets/boutons
    *  d'Activité. REQUIS ; icône ∈ registre validé par `data-wellformed.test.ts`. */
-  icon: string;
+  icon: IconId;
   contexts: ActivityContext[];
   source: { book: string; page: number };
   /** Tests AU CHOIX, chacun avec sa Difficulté ; l'acteur tente le meilleur qu'il peut tenter. LDB 23 l.209 ; AA 12 l.49 */
@@ -459,7 +470,7 @@ export interface ActivityDef {
   /** ENJEU du jet (#1117) : ce que le Test de CETTE Activité met en jeu, en descripteur MÉCANIQUE
    *  (ce que le résolveur applique) et/ou verbatim court. Donnée ÉDITABLE au Codex, jamais un texte
    *  écrit au call-site — les surfaces (volet d'Activité, modale de jet) le résolvent par la porte
-   *  unique `resolveStake` (`src/data/index.ts`, dataset `activity`). */
+   *  unique `resolveStake` (`src/data/index.ts`, dataset `activite`). */
   stake?: string;
   /** FORME DÉCLARÉE du `stake` — même contrat que `stakes.form` (garde de forme). */
   stakeForm?: StakeForm;
@@ -840,7 +851,7 @@ export function entrainementTutorRange(advanced: boolean): { minBrass: number; m
 }
 
 export interface EntrainementOption {
-  kind: 'skill' | 'characteristic';
+  kind: 'competence' | 'caracteristique';
   /** `id` STABLE de la Compétence ou clé `CharKey` de la Caractéristique. */
   id: string;
   spec?: string;
@@ -854,6 +865,14 @@ export interface EntrainementOption {
   tutorMinBrass: number;
   tutorMaxBrass: number;
 }
+
+/** La clé d'une option d'Entraînement : l'id de la Compétence et sa spécialisation, ou la Caractéristique, que nul id de
+ *  Compétence ne recouvre (`refKey`). */
+export const cleDEntrainement = (o: Pick<EntrainementOption, 'id' | 'spec'>): string => refKey(o.id, o.spec);
+
+/** Le libellé d'une option d'Entraînement, lu de son id et de sa spécialisation (`cleDEntrainement`). */
+export const libelleDEntrainement = ({ id, spec }: Pick<EntrainementOption, 'id' | 'spec'>): string =>
+  id in CHAR_LABELS ? CHAR_LABELS[id as CharKey] : refLabel('skills', { id, spec });
 
 /** Options d'Entraînement (LDB 23 l.132-136) : Compétences et Caractéristiques HORS carrière
  *  seulement — celles DE carrière s'achètent par l'Avancement normal (`buySkillAdvance`/
@@ -873,8 +892,8 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
       const advances = hero.charAdvances?.[k] ?? 0;
       const range = entrainementTutorRange(false);
       return {
-        kind: 'characteristic' as const, id: k, label: CHAR_LABELS[k], advanced: false, advances,
-        xpCost: advanceCost(advances, 'characteristic', false),
+        kind: 'caracteristique' as const, id: k, label: libelleDEntrainement({ id: k }), advanced: false, advances,
+        xpCost: advanceCost(advances, 'caracteristique', false),
         tutorMinBrass: range.minBrass, tutorMaxBrass: range.maxBrass,
       };
     });
@@ -889,8 +908,8 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
       const advanced = s.acces === 'avancee';
       const range = entrainementTutorRange(advanced);
       skillOptions.push({
-        kind: 'skill' as const, id: s.id, spec, label: refLabel('skills', { id: s.id, spec }), advanced, advances,
-        xpCost: advanceCost(advances, 'skill', false),
+        kind: 'competence' as const, id: s.id, spec, label: libelleDEntrainement({ id: s.id, spec }), advanced, advances,
+        xpCost: advanceCost(advances, 'competence', false),
         tutorMinBrass: range.minBrass, tutorMaxBrass: range.maxBrass,
       });
     }
@@ -898,23 +917,28 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
   return [...chars, ...skillOptions.sort((a, b) => parLibelle(a.label, b.label))];
 }
 
+/** Les trois dépôts d'une Opération bancaire (LDB 23 l.168-170). */
+export type GenreDeDepot = 'investir' | 'planque' | 'mecenat';
+/** Les dépôts tenus en banque ou en planque, que le retrait peut perdre. */
+type DepotRetirable = Exclude<GenreDeDepot, 'mecenat'>;
+
 /** Seuil de perte d'un dépôt au retrait : l'Indice borné à 1-10 pour un investissement (LDB 23 l.168),
  *  10 pour une planque (LDB 23 l.170), sauf `rate` positionné (MDG 15 l.292 : 50 pour la Planque liée à
  *  une Carte marine). */
-export function seuilDePerteBancaire(kind: 'invest' | 'stash', rate: number): number {
-  if (kind === 'invest') return Math.max(1, Math.min(10, rate));
+export function seuilDePerteBancaire(kind: DepotRetirable, rate: number): number {
+  if (kind === 'investir') return Math.max(1, Math.min(10, rate));
   return rate > 0 ? rate : 10;
 }
 
 /** Retrait bancaire (LDB 23 l.168-170) : `roll` = le 1d100 du retrait, perdu à `seuilDePerteBancaire` ou moins. */
-export function bankWithdrawOutcome(kind: 'invest' | 'stash', rate: number, roll: number): 'ok' | 'lost' {
-  return roll <= seuilDePerteBancaire(kind, rate) ? 'lost' : 'ok';
+export function bankWithdrawOutcome(kind: DepotRetirable, rate: number, roll: number): 'perdu' | 'recu' {
+  return roll <= seuilDePerteBancaire(kind, rate) ? 'perdu' : 'recu';
 }
 
 /** Somme d'un dépôt récupéré avec intérêts (« les fonds de départ, plus les intérêts générés »,
  *  l.157 — taux = Indice %). La planque ne rapporte jamais d'intérêts (l.159). */
-export function bankPayout(kind: 'invest' | 'stash', amountBrass: number, rate: number): number {
-  if (kind === 'stash') return amountBrass;
+export function bankPayout(kind: DepotRetirable, amountBrass: number, rate: number): number {
+  if (kind === 'planque') return amountBrass;
   return amountBrass + Math.floor((amountBrass * Math.max(1, Math.min(10, rate))) / 100);
 }
 
@@ -989,7 +1013,7 @@ export function tutorCostRange(talentXpCost: number): { minBrass: number; maxBra
 }
 
 export interface LearnOption {
-  /** `id` STABLE du Talent — clé de `learnFails` et `opts.talentId` de `pratiquerLActivite('learn')`. */
+  /** `id` STABLE du Talent — clé de `learnFails` et du choix `interlude.talent`. */
   id: string;
   label: string;
   /** Coût PX de la PROCHAINE acquisition (talentCost × fois déjà prises). */
@@ -1004,22 +1028,27 @@ export interface LearnOption {
  *  ceux à spécialisation (`specCatalogOf(t).length > 0`) : `LearnOption` ne porte aucune spec, l'achat
  *  ne produirait pas l'identité `(talentId, spec)` que lit `arcaneDomainGate` (`careerSlots.ts`). */
 export function learnableTalents(hero: Combatant): LearnOption[] {
-  const levels = levelsForCareer(hero.career ?? '');
-  const slots = talentSlotsUpTo(levels, hero.careerLevel ?? 1);
+  const apprendre = learnOptionWith(hero);
+  return talents.flatMap((t) => apprendre(t) ?? []).sort((a, b) => parLibelle(a.label, b.label));
+}
+
+/** L'option de `learnableTalents` du Talent `talentId`, ou `undefined` (id inconnu, Talent non apprenable). */
+export function learnOptionOf(hero: Combatant, talentId: string): LearnOption | undefined {
+  const t = findTalentById(talentId);
+  return t && learnOptionWith(hero)(t);
+}
+
+function learnOptionWith(hero: Combatant): (t: TalentData) => LearnOption | undefined {
+  const slots = talentSlotsUpTo(levelsForCareer(hero.career ?? ''), hero.careerLevel ?? 1);
   const desig = designationsFor(hero, hero.career ?? '');
-  return talents
-    .filter((t) => {
-      if (specCatalogOf(t).length > 0) return false; // pas de sélecteur de spec dans ce catalogue
-      if (talentEnCarriere(hero, slots, desig, t.id, undefined) != null) return false; // de carrière → Avancement
-      if (talentMaxReached(hero, t.id)) return false;
-      return true;
-    })
-    .map((t) => {
-      const xpCost = talentCost(talentAcquisitions(hero, t.id));
-      const { minBrass, maxBrass } = tutorCostRange(xpCost);
-      return { id: t.id, label: t.label, xpCost, tutorMinBrass: minBrass, tutorMaxBrass: maxBrass };
-    })
-    .sort((a, b) => parLibelle(a.label, b.label));
+  return (t) => {
+    if (specCatalogOf(t).length > 0) return undefined; // pas de sélecteur de spec dans ce catalogue
+    if (talentEnCarriere(hero, slots, desig, t.id, undefined) != null) return undefined; // de carrière → Avancement
+    if (talentMaxReached(hero, t.id)) return undefined;
+    const xpCost = talentCost(talentAcquisitions(hero, t.id));
+    const { minBrass, maxBrass } = tutorCostRange(xpCost);
+    return { id: t.id, label: t.label, xpCost, tutorMinBrass: minBrass, tutorMaxBrass: maxBrass };
+  };
 }
 
 /** Ce qui interdit « Passer commande » sur un équipement, ou `null` s'il est commandable. Porte
@@ -1054,11 +1083,11 @@ export function statusIncome(
   tier: StatusTier,
   standing: number,
   rng: RNG,
-  outcome: 'success' | 'fail' | 'astoundingFail' = 'success',
+  outcome: 'reussite' | 'echec' | 'echecStupefiant' = 'reussite',
 ): Money {
-  if (outcome === 'astoundingFail') return fromBrass(0);
+  if (outcome === 'echecStupefiant') return fromBrass(0);
   const { de, unite } = gainDeStatut(tier, standing);
   let brass = toBrass(enPieces(unite, rollDice(de, rng)));
-  if (outcome === 'fail') brass = Math.floor(brass / 2); // « la moitié de la somme »
+  if (outcome === 'echec') brass = Math.floor(brass / 2); // « la moitié de la somme »
   return fromBrass(brass);
 }

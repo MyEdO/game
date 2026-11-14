@@ -20,10 +20,10 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    return { b, hero: b.combatants.find((c) => c.kind === 'hero')!, enemy: b.combatants.find((c) => c.kind === 'enemy')! };
+    return { b, hero: b.combatants.find((c) => c.kind === 'heros')!, enemy: b.combatants.find((c) => c.kind === 'ennemi')! };
   }
 
   it('un Coup Critique ouvre une séquence de conséquence « Coup Critique » (panneau riche)', () => {
@@ -32,7 +32,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     enemy.important = true; // LDB 18 l.44 : hors Mort subite
     banc.setState({ pendingCascade: null });
     const res: AttackResult = {
-      hit: true, attackerRoll: 33, netSL: 2, critical: true, advantageTo: 'attacker',
+      hit: true, attackerRoll: 33, netSL: 2, critical: true, advantageTo: 'attaquant',
       defenderDefeated: false, woundsLost: 3, location: 'corps', critLocation: 'corps', log: 'touche !',
     } as AttackResult;
     applyAttackResult(banc.getState, banc.setState, hero, enemy, hero.weapons[0], res);
@@ -41,9 +41,9 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     avanceEtapeCascade(banc.getState);
     const c = banc.getState().pendingCascade;
     expect(c?.purpose).toBe('combat');
-    const crit = c?.participants.find((s) => s.kind === 'critical');
+    const crit = c?.participants.find((s) => s.kind === 'critique');
     expect(crit).toBeTruthy();
-    expect(crit!.reveal?.kind).toBe('critical'); // charge riche → panneau CriticalBody inline
+    expect(crit!.reveal?.kind).toBe('critique'); // charge riche → panneau CriticalBody inline
     expect(typeof crit!.reveal?.dice).toBe('number');
   });
 
@@ -55,7 +55,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     banc.setState({
       battle: { ...b, turn, acted: true },
       pendingCascade: cascadeDeTest(
-        [{ id: 'cons-critical-0', kind: 'critical', reveal: { kind: 'critical', title: 'Coup Critique', dice: 50, lines: ['x'] } }],
+        [{ id: 'cons-critique-0', kind: 'critique', reveal: { kind: 'critique', title: 'Coup Critique', dice: 50, lines: ['x'] } }],
         { title: 'Coup Critique', purpose: 'combat' },
       ),
     });
@@ -100,10 +100,10 @@ describe('Conséquences d’attaque en révélation (store)', () => {
   it('Déviation Critique → étape de CHOIX inline : « Subir » applique le Critique, « Dévier » l’ignore', () => {
     banc.getState().ensemencerLeTirage(2);
     const { hero, enemy } = battle();
-    const heroNow = () => banc.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
+    const heroNow = () => banc.getState().battle!.combatants.find((c) => c.kind === 'heros')!;
     hero.armour.corps = 3; // PA au corps → la déviation est possible
     const res = {
-      hit: true, attackerRoll: 33, netSL: 2, critical: true, advantageTo: 'attacker',
+      hit: true, attackerRoll: 33, netSL: 2, critical: true, advantageTo: 'attaquant',
       defenderDefeated: false, woundsLost: 3, location: 'corps', critLocation: 'corps', log: 'touche !',
     } as AttackResult;
 
@@ -114,7 +114,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     const devId = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!.id;
     banc.getState().jetLancer('cascadeTirage', devId); // le dé de sévérité tombe DANS la MÊME fenêtre (#1426)
     const dev = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'deviation');
-    expect(dev?.reveal?.kind).toBe('critical'); // panneau riche porté par l'étape, sous la ligne de dé
+    expect(dev?.reveal?.kind).toBe('critique'); // panneau riche porté par l'étape, sous la ligne de dé
 
     // (2) « Subir » applique CE Critique.
     const cwBefore = heroNow().criticalWounds ?? 0;

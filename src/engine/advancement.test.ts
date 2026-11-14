@@ -14,7 +14,7 @@ import {
   inCareerChar,
   mentorBlocks,
 } from './advancement';
-import { skillSlots, talentSlots } from './careerSlots';
+import { skillSlots, talentSlots, type EmplacementsDuNiveau } from './careerSlots';
 import { CareerLevelData, type AdvancementRef } from '../data';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
@@ -25,7 +25,7 @@ const hero = (xp: number): Combatant =>
   (blessuresSurLeProfil({
     id: 'h',
     name: 'H',
-    kind: 'hero',
+    kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10),
     advantage: 0,
@@ -41,28 +41,28 @@ const hero = (xp: number): Combatant =>
 
 describe('advanceCost — Tableau de Coût (LDB 07 l.51-70), verbatim', () => {
   it('Caractéristique : coûts par bande (déjà-achetées → coût de la prochaine)', () => {
-    expect(advanceCost(0, 'characteristic')).toBe(25); // bande 0 à 5
-    expect(advanceCost(5, 'characteristic')).toBe(25);
-    expect(advanceCost(6, 'characteristic')).toBe(30); // bande 6 à 10
-    expect(advanceCost(10, 'characteristic')).toBe(30);
-    expect(advanceCost(11, 'characteristic')).toBe(40);
-    expect(advanceCost(25, 'characteristic')).toBe(70);
-    expect(advanceCost(70, 'characteristic')).toBe(450);
-    expect(advanceCost(71, 'characteristic')).toBe(520); // 71 et +
-    expect(advanceCost(999, 'characteristic')).toBe(520);
+    expect(advanceCost(0, 'caracteristique')).toBe(25); // bande 0 à 5
+    expect(advanceCost(5, 'caracteristique')).toBe(25);
+    expect(advanceCost(6, 'caracteristique')).toBe(30); // bande 6 à 10
+    expect(advanceCost(10, 'caracteristique')).toBe(30);
+    expect(advanceCost(11, 'caracteristique')).toBe(40);
+    expect(advanceCost(25, 'caracteristique')).toBe(70);
+    expect(advanceCost(70, 'caracteristique')).toBe(450);
+    expect(advanceCost(71, 'caracteristique')).toBe(520); // 71 et +
+    expect(advanceCost(999, 'caracteristique')).toBe(520);
   });
   it('Compétence : coûts par bande', () => {
-    expect(advanceCost(0, 'skill')).toBe(10);
-    expect(advanceCost(5, 'skill')).toBe(10);
-    expect(advanceCost(6, 'skill')).toBe(15);
-    expect(advanceCost(11, 'skill')).toBe(20);
-    expect(advanceCost(25, 'skill')).toBe(40);
-    expect(advanceCost(71, 'skill')).toBe(440);
+    expect(advanceCost(0, 'competence')).toBe(10);
+    expect(advanceCost(5, 'competence')).toBe(10);
+    expect(advanceCost(6, 'competence')).toBe(15);
+    expect(advanceCost(11, 'competence')).toBe(20);
+    expect(advanceCost(25, 'competence')).toBe(40);
+    expect(advanceCost(71, 'competence')).toBe(440);
   });
   it('hors carrière : coût DOUBLE (LDB 07 l.91)', () => {
-    expect(advanceCost(0, 'characteristic', false)).toBe(50);
-    expect(advanceCost(0, 'skill', false)).toBe(20);
-    expect(advanceCost(11, 'characteristic', false)).toBe(80);
+    expect(advanceCost(0, 'caracteristique', false)).toBe(50);
+    expect(advanceCost(0, 'competence', false)).toBe(20);
+    expect(advanceCost(11, 'caracteristique', false)).toBe(80);
   });
 });
 
@@ -152,30 +152,18 @@ describe('Achat un par un (mutation du héros, PX déduits)', () => {
 describe('Compléter / Changer de Carrière (LDB 07 l.111-140, LDB 07 l.144)', () => {
   // Carrière factice à 2 niveaux : 9 compétences au Niveau 1, 2 talents.
   // Les fixtures utilisent les MÊMES ids ('s1'…, 't1'…) que `completedHero` : la comparaison est par id.
-  const LEVELS: CareerLevelData[] = [
+  const LEVELS: (EmplacementsDuNiveau & Pick<CareerLevelData, 'characteristics'>)[] = [
     {
-      id: 'Test-1',
-      type: 'careerLevels',
-      label: 'Niv1',
-      career: { id: 'Test' },
       level: 1,
       skills: A(['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9']),
       talents: A(['t1', 't2']),
-      trappings: [],
       characteristics: ['capacite-de-combat', 'force', 'endurance'],
-      status: 'Bronze 1',
     },
     {
-      id: 'Test-2',
-      type: 'careerLevels',
-      label: 'Niv2',
-      career: { id: 'Test' },
       level: 2,
       skills: A(['s10', 's11']),
       talents: A(['t3']),
-      trappings: [],
       characteristics: ['agilite'],
-      status: 'Bronze 2',
     },
   ];
   const completionOpts = (level: number) => ({

@@ -36,7 +36,7 @@ function difficultyValue(difficulty?: Difficulty, combined?: number): number {
  *  `.codex-ref[role='button']:hover`. Seuls son ESPACEMENT et l'anti-orphelin sont posés, par des
  *  sélecteurs d'ÉLÉMENT descendant de `.rm-roll-diff` — aucun nom de classe de plus. */
 function InfoDot() {
-  return <Icon id="journal/info" size="sm" />;
+  return <Icon id="journal/information" size="sm" />;
 }
 
 /** Nom du jet (la Compétence/Caractéristique lancée) — PORTE Codex dès que la ligne fournit sa
@@ -133,7 +133,7 @@ export const ANONYMES = { count: 0 };
  *
  * Les producteurs de `ModLine` sont PURS : ils ne connaissent que des ids stables. Résoudre au
  * producteur exigerait que chaque site passe un résolveur — et le site N+1 l'oublie (recette B3a :
- * « pregen-101 » à l'écran depuis `medicFlow`). La résolution vit donc ICI, au seul endroit que
+ * l'id brut à l'écran depuis `medicFlow`). La résolution vit donc ICI, au seul endroit que
  * TOUTE chip traverse : `actorIn` (combat OU groupe, primitive partagée). Un `label` qui vaut son
  * propre id est traité comme absent — c'est l'empreinte exacte du repli fautif. Sans acteur
  * résolvable (source hors combattants), le `label` fourni fait foi ; en dernier recours l'id, jamais
@@ -269,7 +269,7 @@ export function RollLine({ d }: { d: RollBreakdown }) {
         <span className="rm-roll-label">{d.label}<DifficultyText difficulty={d.difficulty} easedBy={d.easedBy} parts={d.difficultyParts} combined={d.difficultyCombined} /></span>
         <RollCalc base={d.base} modifier={d.modifier} target={d.target} mask={d.mask} />
         <span className="rm-roll-dice" title={masked ? MASK_HINT.roll : undefined} aria-label={masked ? MASK_HINT.roll : undefined}>
-          <Icon id="nav/dice" size="sm" /> <b>{masked ? '?' : <Dice roll={d.roll} />}</b>
+          <Icon id="navigation/des" size="sm" /> <b>{masked ? '?' : <Dice roll={d.roll} />}</b>
         </span>
         <span className="rm-roll-sl" title={masked ? MASK_HINT.roll : undefined} aria-label={masked ? MASK_HINT.roll : undefined}>
           {masked ? '?' : d.seuil
@@ -344,7 +344,7 @@ export function PendingRollLine({ p }: { p: PendingRoll }) {
           ? <RollCalc base={p.base} modifier={diff} target={target} mask={p.mask} />
           : <span className="rm-roll-calc" />}
         <span className="rm-roll-dice">
-          <Icon id="nav/dice" size="sm" /> <b className="rm-roll-empty">à lancer</b>
+          <Icon id="navigation/des" size="sm" /> <b className="rm-roll-empty">à lancer</b>
         </span>
         <span className="rm-roll-sl rm-roll-sl-pending" aria-hidden="true">—</span>
       </div>
@@ -375,7 +375,7 @@ export function TableRollLine({ table, roll, die, result, mod = 0 }: { table: st
         <span className="rm-roll-dice">
           {effective != null && (
             <>
-              <Icon id="nav/dice" size="sm" /> <b><Dice roll={effective} /></b>
+              <Icon id="navigation/des" size="sm" /> <b><Dice roll={effective} /></b>
               {mod !== 0 && <span className="hint">({roll} {mod > 0 ? '+' : '−'} {Math.abs(mod)})</span>}
             </>
           )}

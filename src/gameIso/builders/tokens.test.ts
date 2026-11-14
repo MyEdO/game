@@ -9,7 +9,7 @@ import { isOverhang, capsSolid } from '../../noyau/monde/volume/floors';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /** Fabrique un combattant MINIMAL (champs consommés par le builder + prédicats de filtre). */
-function cbt(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number; z?: number }, extra: Partial<Combatant> = {}): Combatant {
+function cbt(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number; z?: number }, extra: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
     id,
     name: id,
@@ -65,7 +65,7 @@ describe('buildTokens — figurants (PNJ d’ambiance)', () => {
       { id: 'f2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 4, y: 4 } }, // debout : aucune place
     ] as SceneEntity[];
     s.encounters = [] as Scene['encounters'];
-    s.seatAssignments = { 'table-1': { 'place-2': { kind: 'entity', entityId: 'f1' } } };
+    s.seatAssignments = { 'table-1': { 'place-2': { kind: 'entite', entityId: 'f1' } } };
     const par = new Map(buildTokens(s, allVisible(s), null, VIEW, ['h1', 'h2']).map((e) => [e.id, e.subject]));
     const assis = par.get('f1') as { kind: string; seat?: { slotId: string; facing: string; anchor: { x: number; y: number; h: number } } };
     expect(assis.seat?.slotId).toBe('place-2');
@@ -82,13 +82,13 @@ describe('buildTokens — figurants (PNJ d’ambiance)', () => {
   it('en combat : saute un figurant enrôlé (rendu par son combattant) ou couvert par un combattant', () => {
     const s = scene();
     // f1 enrôlé dans la bataille → c'est le combattant qui le rend.
-    const b1 = battleOf([cbt('f1', 'enemy', { x: 1, y: 1 })]);
+    const b1 = battleOf([cbt('f1', 'ennemi', { x: 1, y: 1 })]);
     expect(buildTokens(s, allVisible(s), b1, VIEW, ['h1', 'h2']).filter((e) => e.subject.kind === 'figurant')).toHaveLength(0);
     // Un combattant OCCUPE la case du figurant → pas d'empilement de corps.
-    const b2 = battleOf([cbt('h', 'hero', { x: 1, y: 1 })]);
+    const b2 = battleOf([cbt('h', 'heros', { x: 1, y: 1 })]);
     expect(buildTokens(s, allVisible(s), b2, VIEW, ['h1', 'h2']).filter((e) => e.subject.kind === 'figurant')).toHaveLength(0);
     // Case libre → figurant maintenu, estompé (inBattle).
-    const b3 = battleOf([cbt('h', 'hero', { x: 4, y: 4 })]);
+    const b3 = battleOf([cbt('h', 'heros', { x: 4, y: 4 })]);
     const figs = buildTokens(s, allVisible(s), b3, VIEW, ['h1', 'h2']).filter((e) => e.subject.kind === 'figurant');
     expect(figs).toHaveLength(1);
     expect(figs[0].subject).toMatchObject({ kind: 'figurant', inBattle: true });
@@ -100,7 +100,7 @@ describe('buildTokens — combattants', () => {
 
   it('émet les combattants placés, coupe un ENNEMI hors-vue mais jamais un héros', () => {
     const s = scene6();
-    const b = battleOf([cbt('h1', 'hero', { x: 0, y: 0 }), cbt('e1', 'enemy', { x: 5, y: 5 }), cbt('e2', 'enemy', { x: 1, y: 0 })]);
+    const b = battleOf([cbt('h1', 'heros', { x: 0, y: 0 }), cbt('e1', 'ennemi', { x: 5, y: 5 }), cbt('e2', 'ennemi', { x: 1, y: 0 })]);
     const els = buildTokens(s, new Set(['0,0,0', '1,0,0']), b, VIEW, ['h1', 'h2']).filter((e) => e.subject.kind === 'combatant');
     expect(els.map((e) => e.id)).toEqual(['h1', 'e2']); // e1 hors-vue coupé ; h1 (viewer) toujours rendu
   });
@@ -108,9 +108,9 @@ describe('buildTokens — combattants', () => {
   it('ordre d’ANNEAU héros : un cavalier non dessiné consomme quand même son ordinal (couleur stable)', () => {
     const s = scene6();
     const b = battleOf([
-      cbt('h1', 'hero', { x: 0, y: 0 }, { mountId: 'm1' }),
-      cbt('m1', 'enemy', { x: 0, y: 0 }, { riderId: 'h1' }),
-      cbt('h2', 'hero', { x: 2, y: 2 }),
+      cbt('h1', 'heros', { x: 0, y: 0 }, { mountId: 'm1' }),
+      cbt('m1', 'ennemi', { x: 0, y: 0 }, { riderId: 'h1' }),
+      cbt('h2', 'heros', { x: 2, y: 2 }),
     ]);
     const els = buildTokens(s, allVisible(s), b, VIEW, ['h1', 'h2']);
     const h2 = els.find((e) => e.id === 'h2')!;
@@ -122,8 +122,8 @@ describe('buildTokens — combattants', () => {
 
   it('l’identité du second héros reste commune aux anneaux et au chrome quand le premier est filtré', () => {
     const s = scene6();
-    const premier = cbt('h1', 'hero', { x: 0, y: 0 }, { pos: undefined });
-    const second = cbt('h2', 'hero', { x: 2, y: 2 });
+    const premier = cbt('h1', 'heros', { x: 0, y: 0 }, { pos: undefined });
+    const second = cbt('h2', 'heros', { x: 2, y: 2 });
     const population = [premier, second];
     const tokens = buildTokens(s, allVisible(s), battleOf(population), VIEW, ['h1', 'h2']);
     expect(tokens.map((token) => token.id)).toEqual(['h2']);
@@ -135,8 +135,8 @@ describe('buildTokens — combattants', () => {
 
   it('le meneur non premier garde son identité sur son anneau et son pion de groupe', () => {
     const s = scene6();
-    const premier = cbt('h1', 'hero', { x: 0, y: 0 });
-    const meneur = cbt('h2', 'hero', { x: 1, y: 1 });
+    const premier = cbt('h1', 'heros', { x: 0, y: 0 });
+    const meneur = cbt('h2', 'heros', { x: 1, y: 1 });
     const population = [premier, meneur];
     const groupe = partyTokenOf(s, meneur, { x: 2, y: 2 }, ['h1', 'h2'])!;
     const attendu = combatantRingDecor(meneur, ['h1', 'h2'], population);
@@ -148,9 +148,9 @@ describe('buildTokens — combattants', () => {
 
   it('la décoration de la monture suit le même couple iso ou pion dissocié que les anneaux et le chrome', () => {
     const s = scene6();
-    const premier = cbt('h1', 'hero', { x: 0, y: 0 });
-    const cavalier = cbt('h2', 'hero', { x: 2, y: 2 }, { mountId: 'm1' });
-    const monture = cbt('m1', 'enemy', { x: 2, y: 2 }, { riderId: cavalier.id });
+    const premier = cbt('h1', 'heros', { x: 0, y: 0 });
+    const cavalier = cbt('h2', 'heros', { x: 2, y: 2 }, { mountId: 'm1' });
+    const monture = cbt('m1', 'ennemi', { x: 2, y: 2 }, { riderId: cavalier.id });
     const population = [premier, cavalier, monture];
     for (const top of [false, true]) {
       const tokens = buildTokens(s, allVisible(s), battleOf(population), { ...VIEW, top }, ['h1', 'h2']);
@@ -165,8 +165,8 @@ describe('buildTokens — combattants', () => {
   it('vue du DESSUS : cavalier et monture redeviennent deux pions distincts (aucun composite)', () => {
     const s = scene6();
     const b = battleOf([
-      cbt('h1', 'hero', { x: 0, y: 0 }, { mountId: 'm1' }),
-      cbt('m1', 'hero', { x: 0, y: 0 }, { riderId: 'h1' }),
+      cbt('h1', 'heros', { x: 0, y: 0 }, { mountId: 'm1' }),
+      cbt('m1', 'heros', { x: 0, y: 0 }, { riderId: 'h1' }),
     ]);
     const els = buildTokens(s, allVisible(s), b, { ...VIEW, top: true }, ['h1', 'h2']);
     expect(els.filter((e) => e.subject.kind === 'mounted')).toHaveLength(0);
@@ -176,14 +176,14 @@ describe('buildTokens — combattants', () => {
   it('un couple ENNEMI subit les MÊMES filtres qu’un ennemi à pied : brouillard et étage le coupent', () => {
     const s = scene6();
     const couple = (z = 0) => battleOf([
-      cbt('h1', 'hero', { x: 0, y: 0 }), // le viewer (sinon rien à voir depuis nulle part)
-      cbt('e1', 'enemy', { x: 4, y: 4, z }, { mountId: 'm1' }),
-      cbt('m1', 'enemy', { x: 4, y: 4, z }, { riderId: 'e1' }),
+      cbt('h1', 'heros', { x: 0, y: 0 }), // le viewer (sinon rien à voir depuis nulle part)
+      cbt('e1', 'ennemi', { x: 4, y: 4, z }, { mountId: 'm1' }),
+      cbt('m1', 'ennemi', { x: 4, y: 4, z }, { riderId: 'e1' }),
     ]);
     // Brouillard : aucune case vue → le couple ne s'affiche pas, comme le témoin à pied.
     const rienDeVu = new Set(['0,0,0']);
     expect(buildTokens(s, rienDeVu, couple(), VIEW, ['h1', 'h2']).map((e) => e.key)).toEqual(['cbt:h1']);
-    const àPied = battleOf([cbt('h1', 'hero', { x: 0, y: 0 }), cbt('p1', 'enemy', { x: 4, y: 4 })]);
+    const àPied = battleOf([cbt('h1', 'heros', { x: 0, y: 0 }), cbt('p1', 'ennemi', { x: 4, y: 4 })]);
     expect(buildTokens(s, rienDeVu, àPied, VIEW, ['h1', 'h2']).map((e) => e.key)).toEqual(['cbt:h1']); // témoin
     // La sonde mord : la case vue, le couple sort bien en composite.
     const vu = new Set(['0,0,0', '4,4,0']);
@@ -198,8 +198,8 @@ describe('buildTokens — combattants', () => {
     const s = scene6();
     // La monture porte le camp de son record (ennemi) : c'est le CAVALIER héros qui fait le viewer.
     const b = battleOf([
-      cbt('h1', 'hero', { x: 4, y: 4 }, { mountId: 'm1' }),
-      cbt('m1', 'enemy', { x: 4, y: 4 }, { riderId: 'h1' }),
+      cbt('h1', 'heros', { x: 4, y: 4 }, { mountId: 'm1' }),
+      cbt('m1', 'ennemi', { x: 4, y: 4 }, { riderId: 'h1' }),
     ]);
     expect(buildTokens(s, new Set(), b, VIEW, ['h1', 'h2']).map((e) => e.key)).toEqual(['mtd:m1']);
   });
@@ -209,9 +209,9 @@ describe('buildTokens — combattants', () => {
     s.layers.push({ z: 1, tiles: new Array(36).fill('vide') });
     s.layers[0].tiles[2 * 6 + 2] = 'vide'; // sous (2,2) : rien de marchable → z1 n'y est PAS un surplomb
     const b = battleOf([
-      cbt('mur', 'enemy', { x: 1, y: 1 }, { bodyShape: 'structure' } as Partial<Combatant>),
-      cbt('e-haut', 'enemy', { x: 2, y: 2, z: 1 }), // z1 sur du VIDE (pas un surplomb) → coupé depuis z0
-      cbt('h1', 'hero', { x: 0, y: 0 }),
+      cbt('mur', 'ennemi', { x: 1, y: 1 }, { bodyShape: 'structure' } as Partial<Combatant>),
+      cbt('e-haut', 'ennemi', { x: 2, y: 2, z: 1 }), // z1 sur du VIDE (pas un surplomb) → coupé depuis z0
+      cbt('h1', 'heros', { x: 0, y: 0 }),
     ]);
     const els = buildTokens(s, new Set([...allVisible(s), '2,2,1']), b, VIEW, ['h1', 'h2']);
     expect(els.filter((e) => e.subject.kind === 'combatant').map((e) => e.id)).toEqual(['h1']);
@@ -241,9 +241,9 @@ describe('buildTokens — combattants', () => {
   it('un défenseur et sa PIÈCE servie sur le chemin de ronde restent rendus depuis la cour (activeZ 0)', () => {
     const s = rempart();
     const b = battleOf([
-      cbt('h1', 'hero', { x: 0, y: 0 }),
-      cbt('garde', 'hero', { x: 2, y: 2, z: 1 }),
-      cbt('baliste', 'hero', { x: 2, y: 2, z: 1 }, { bodyShape: 'engin' } as Partial<Combatant>),
+      cbt('h1', 'heros', { x: 0, y: 0 }),
+      cbt('garde', 'heros', { x: 2, y: 2, z: 1 }),
+      cbt('baliste', 'heros', { x: 2, y: 2, z: 1 }, { bodyShape: 'engin' } as Partial<Combatant>),
     ]);
     const els = buildTokens(s, allVisible(s), b, VIEW, ['h1', 'h2']).filter((e) => e.subject.kind === 'combatant');
     expect(els.map((e) => e.id)).toEqual(['h1', 'garde', 'baliste']);

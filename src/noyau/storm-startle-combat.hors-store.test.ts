@@ -16,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * monture Dressée (Guerre) est exemptée par la donnée du Trait Nerveux (aucune branche par-nom).
  */
 const mkMount = (id: string, traits: { id: string }[]): Combatant => combattantDeTest({
-  id, label: id, kind: 'enemy', characteristics: { 'capacite-de-combat': 30, endurance: 40 }, skills: [], talents: [],
+  id, label: id, kind: 'ennemi', characteristics: { 'capacite-de-combat': 30, endurance: 40 }, skills: [], talents: [],
   traits, conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   wounds: blessuresDeBase(10), advantage: 0, pos: { x: 0, y: 0 },
 });

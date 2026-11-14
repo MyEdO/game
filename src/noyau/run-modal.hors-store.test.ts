@@ -17,10 +17,10 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.pos = { x: 10, y: 10 };
     H.engagedWith = []; // pas Engagé → Course autorisée
     const turn = b.order.indexOf(H.id);
@@ -28,17 +28,17 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
     return { H };
   }
 
-  it('jetValider@run avant le jet : la clôture est fermée (`jetNonLance`), personne ne court', () => {
+  it('jetValider@course avant le jet : la clôture est fermée (`jetNonLance`), personne ne court', () => {
     const { H } = setup();
     banc.getState().ouvrirLaCourse({ x: 16, y: 10 });
-    banc.getState().jetValider('run');
+    banc.getState().jetValider('course');
     const st = banc.getState();
     expect(st.pendingRun, 'la fenêtre reste ouverte').toBeTruthy();
     expect(st.battle!.acted).toBe(false);
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
   });
 
-  it('ouvrirLaCourse(dest) ouvre pendingRun ; jetLancer@run lance ; jetValider@run court vers la destination + consomme l’Action', () => {
+  it('ouvrirLaCourse(dest) ouvre pendingRun ; jetLancer@course lance ; jetValider@course court vers la destination + consomme l’Action', () => {
     banc.getState().ensemencerLeTirage(2);
     const { H } = setup();
     const dest = { x: 16, y: 10 }; // 6 cases plein est (au-delà de la Marche M4)
@@ -49,11 +49,11 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
     expect(pr!.dest).toEqual(dest);
     expect(pr!.result).toBeNull();
 
-    banc.getState().jetLancer('run');
+    banc.getState().jetLancer('course');
     const r = banc.getState().pendingRun!.result!;
     expect(r.bonusCases).toBeGreaterThanOrEqual(0); // Course = 2×Mouvement + DR/2, plancher 0
 
-    banc.getState().jetValider('run');
+    banc.getState().jetValider('course');
     const st = banc.getState();
     expect(st.pendingRun).toBeNull();
     expect(st.battle!.acted).toBe(true); // l'Action est consommée par la Course
@@ -64,14 +64,14 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
 
   // Journal : la fenêtre de Course a MONTRÉ le dé ; le journal ne porte que la CONSÉQUENCE, la distance
   // parcourue (Décision 1b, `noyau/rollSeam.ts` `Consequence`).
-  it('jetValider@run journalise la seule conséquence : les cases parcourues', () => {
+  it('jetValider@course journalise la seule conséquence : les cases parcourues', () => {
     banc.getState().ensemencerLeTirage(2);
     const { H } = setup();
     banc.getState().ouvrirLaCourse({ x: 16, y: 10 });
-    banc.getState().jetLancer('run');
+    banc.getState().jetLancer('course');
     const avant = banc.getState().battle!.log.length;
     const parcouru = banc.getState().battle!.movementUsed ?? 0;
-    banc.getState().jetValider('run');
+    banc.getState().jetValider('course');
     const b = banc.getState().battle!;
     const lignes = b.log.slice(avant).map((e) => e.text);
     const arrivee = b.combatants.find((c) => c.id === H.id)!.pos!;
@@ -102,7 +102,7 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
       hero.resilience = 2;
     });
     banc.getState().ouvrirLaCourse({ x: 16, y: 10 });
-    banc.getState().jetForcerLaReussite('run');
+    banc.getState().jetForcerLaReussite('course');
     const r = banc.getState().pendingRun!.result!;
     expect(r.success).toBe(true);
     const M = mountMovement(banc.getState().battle!, H);

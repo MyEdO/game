@@ -404,8 +404,8 @@
     "characteristic": "intelligence",
     "acces": "avancee",
     "combatSubstitute": {
-      "role": "both",
-      "gate": "fear"
+      "role": "lesDeux",
+      "gate": "peur"
     },
     "specs": [
       {
@@ -585,7 +585,7 @@
     "acces": "base",
     "altChar": {
       "gatedByRule": {
-        "id": "test-intimidation-char"
+        "id": "test-intimidation-carac"
       },
       "chars": {
         "FM": "force-mentale",
@@ -598,8 +598,8 @@
       }
     },
     "combatSubstitute": {
-      "role": "both",
-      "gate": "fear"
+      "role": "lesDeux",
+      "gate": "peur"
     },
     "specs": [],
     "desc": "Cette Compétence vous permet de contraindre ou d'effrayer des créatures douées de conscience. La manière précise d'initier un Test d'Intimidation dépend du contexte : bien qu'il soit généralement accompagné d'une menace non dissimulée, il peut s'agir parfois d'une allusion subtile ou même d'un simple regard. L'Intimidation est presque toujours opposée à la Compétence Calme de votre cible ; sur un succès, vous pouvez intimider un nombre de cibles égal à votre Bonus de Force + DR. Chaque cible réagira à l'Intimidation en fonction de sa propre personnalité et de la façon dont vous avez réussi à la menacer, mais dans tous les cas, elle fera marche arrière ou s'écartera du chemin et ne vous dénoncera pas, ou bien considérera que le combat est la seule solution et préparera ses armes.\n\nEn combat, vous provoquez la Peur (voir page 190) chez toutes les cibles Intimidées. Vous pouvez aussi utiliser votre Compétence Intimidation à la place de Corps à corps quand vous vous défendez face à ceux qui ont peur de vous, obligeant les personnes intimidées à quitter le combat par votre volonté et votre seule posture. Par ailleurs, avec l'accord de votre MJ, vous pouvez utiliser Intimidation pour « attaquer » de telles cibles, en dictant des ordres précis, comme « lâche ton arme » ou « dégage de là ». Cependant, si vous échouez à l'un de ces Tests d'Intimidation ultérieurs, vous n'intimidez plus (ou ne causez plus de la Peur) les adversaires affectés. Avec l'accord de votre MJ, vous pouvez tenter de les Intimider de nouveau lors d'un prochain Round, mais cela entraîne un modificateur négatif, puisqu'ayant déjà constaté vos fanfaronnades, ils sont moins susceptibles de vous craindre.",
@@ -1059,6 +1059,16 @@
         "source": {
           "book": "guide-frenchy",
           "page": 321
+        },
+        "pool": false
+      },
+      {
+        "id": "mandoline",
+        "label": "Mandoline",
+        "source": {
+          "book": "ennemi-dans-l-ombre-compagnon",
+          "page": 113,
+          "note": "EDOC 16 l.1110"
         },
         "pool": false
       }
@@ -1757,6 +1767,16 @@
         "source": {
           "book": "guide-frenchy",
           "page": 468
+        },
+        "pool": false
+      },
+      {
+        "id": "ostermark",
+        "label": "Ostermark",
+        "source": {
+          "book": "zoo-imperial",
+          "page": 130,
+          "note": "ZI 14 l.761"
         },
         "pool": false
       }

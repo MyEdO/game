@@ -18,7 +18,7 @@ const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 45, force: 40, endu
 
 const hero = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h1', name: 'Lanceur', kind: 'hero', characteristics: CHARS,
+    id: 'h1', name: 'Lanceur', kind: 'heros', characteristics: CHARS,
     wounds: blessuresDeBase(15), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 2, y: 2 }, size: 'moyenne', weapons: [], items: [], fate: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -27,7 +27,7 @@ const hero = (p: Partial<Combatant>): Combatant =>
 
 const enemy = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'e1', name: 'Cible', kind: 'enemy', characteristics: CHARS,
+    id: 'e1', name: 'Cible', kind: 'ennemi', characteristics: CHARS,
     wounds: blessuresDeBase(20), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 8, y: 2 }, size: 'moyenne',
     weapons: [{ label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as Weapon], items: [],
@@ -35,8 +35,8 @@ const enemy = (p: Partial<Combatant>): Combatant =>
     ...p,
   }) as unknown as Combatant);
 
-const thrown: Weapon = { label: 'Hache de jet', type: 'ranged', damage: { plusBF: true, flat: 0, bare: true }, range: { bf: 3 }, qualities: [] } as Weapon;
-const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 6 }, range: 30, qualities: [] } as Weapon;
+const thrown: Weapon = { label: 'Hache de jet', type: 'distance', damage: { plusBF: true, flat: 0, bare: true }, range: { bf: 3 }, qualities: [] } as Weapon;
+const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 6 }, range: 30, qualities: [] } as Weapon;
 
 const missRes = (): AttackResult => ({
   hit: false, attackerRoll: 88, netSL: -3, critical: false, advantageTo: null, defenderDefeated: false, log: 'manque sa cible.',

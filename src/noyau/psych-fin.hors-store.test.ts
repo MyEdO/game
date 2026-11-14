@@ -4,7 +4,16 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { fireTriggers, effectSourcesOf } from './triggeredEffects';
 import { createHero } from '../engine/character';
 import { addCondition, hasCondition, isOutOfAction, COND } from '../engine/conditions';
-import { cibleEnVue, clearPsychOf, isAfflictionActive, psychBranchOps, refreshAllDefendedPsych, targetedTrigger, type PsychAffliction, sourceCombattant } from '../engine/psychology';
+import {
+  cibleEnVue,
+  clearPsychOf,
+  isAfflictionActive,
+  psychBranchOps,
+  refreshAllDefendedPsych,
+  targetedTrigger,
+  type PsychAffliction,
+  sourceCombattant,
+} from '../engine/psychology';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { spawnEnemy } from './monde/spawn';
 import { emptyScene, type Scene } from './monde/scene';
@@ -29,11 +38,11 @@ function setup() {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const [E, F, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const [E, F, ...autres] = b.combatants.filter((c) => c.kind === 'ennemi');
   autres.forEach((e) => (e.dead = true));
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 11, y: 10 };
@@ -136,7 +145,7 @@ describe('Fin d’une affliction en gagnant un État (`onGainCondition`, LDB 21 
 describe('cibleEnVue — verdict pur d’une instance parmi les combattants en vue (#3045)', () => {
   it('un neutre ni Engagé ni attaquant est présent mais calmé ; Engagé avec le porteur, il est hostile', () => {
     const { H, E } = setup();
-    E.kind = 'npc';
+    E.kind = 'pnj';
     const animosite = visant('animosite', E.id);
     expect(cibleEnVue(H, animosite, [sourceCombattant(E)])).toEqual({ present: true, hostile: false });
     E.engagedWith = [H.id];
@@ -190,13 +199,13 @@ describe('Inventaire : toute affliction ciblée a un chemin de fin (LDB 21 l.9)'
 const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [] } as unknown as Weapon;
 const coupMortel = (blessures: number): AttackResult => ({
   hit: true, attackerRoll: 41, netSL: 2, location: 'corps', damage: blessures, woundsLost: blessures,
-  critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'touche',
+  critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche',
 }) as AttackResult;
 
 describe('Famille défense, telle qu’avant #1463 : fin à la chute (LDB 21 l.75, l.81 ; #3045)', () => {
   it('l’orphelin A menacé la déclenche ; A tombe, B et C restent : la Camaraderie est levée', () => {
     const { H, E: A, F: B } = setup();
-    const C = banc.getState().battle!.combatants.filter((c) => c.kind === 'enemy')[2];
+    const C = banc.getState().battle!.combatants.filter((c) => c.kind === 'ennemi')[2];
     C.dead = false;
     C.pos = { x: 12, y: 9 };
     for (const o of [A, B, C]) o.groups = ['criminel'];

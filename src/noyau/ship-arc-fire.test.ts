@@ -11,11 +11,11 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * `firedAttackBlock` ne s'arme que pour le héros (chemin joueur), mais la LOGIQUE (shipOfCrew/mountedWeaponBears)
  * ne regarde pas le kind — l'IA câblera le même prédicat.
  */
-const cannon = { name: 'Canon', type: 'ranged' as const, damage: { plusBF: false, flat: 14 }, range: 75, qualities: [], mountSide: 'tribord' as const };
+const cannon = { name: 'Canon', type: 'distance' as const, damage: { plusBF: false, flat: 14 }, range: 75, qualities: [], mountSide: 'tribord' as const };
 
 const gunner = (): Combatant =>
   (blessuresSurLeProfil({
-    id: 'gunner', name: 'Canonnier', kind: 'hero',
+    id: 'gunner', name: 'Canonnier', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 45, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [cannon], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -23,11 +23,11 @@ const gunner = (): Combatant =>
   })) as unknown as Combatant;
 
 const enemyAt = (id: string, x: number, y: number): Combatant =>
-  ({ id, name: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [] }) as unknown as Combatant;
+  ({ id, name: id, kind: 'ennemi', pos: { x, y }, conditions: [], weapons: [] }) as unknown as Combatant;
 
 /** Coque dont l'équipage inclut le canonnier — son cap détermine l'arc. */
 const hull = (): Combatant =>
-  ({ id: 'hull', name: 'Cogue', kind: 'enemy', pos: { x: 5, y: 5 }, crewIds: ['gunner'], conditions: [], weapons: [] }) as unknown as Combatant;
+  ({ id: 'hull', name: 'Cogue', kind: 'ennemi', pos: { x: 5, y: 5 }, crewIds: ['gunner'], conditions: [], weapons: [] }) as unknown as Combatant;
 
 const mkGet = (combatants: Combatant[], heading: string): (() => JeuDuNoyau) =>
   (() => ({

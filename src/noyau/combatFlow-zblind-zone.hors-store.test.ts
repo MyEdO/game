@@ -14,7 +14,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castCommitZone, applyCast } from './combatFlow';
 import { zoneCovers } from './monde/zones';
 import { emptyScene } from './monde/scene';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
@@ -26,7 +26,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: 'lancé' });
 
 function caster(x: number, y: number, z: number, id = 'caster'): Combatant {
-  const h = pregen(idsDeTest, PREGEN.sorcier);
+  const h = herosDeScenario(idsDeTest, 'sorcier');
   h.id = id; h.label = id; h.pos = { x, y, z };
   h.wounds = blessuresDeBase(99, 99, h);
   const sk = h.skills.find((s) => s.id === 'langue');
@@ -37,7 +37,7 @@ function caster(x: number, y: number, z: number, id = 'caster'): Combatant {
 }
 
 const foe = (id: string, x: number, y: number, z: number, wounds = 40): Combatant =>
-  (blessuresSurLeProfil({ id, label: id, name: id, kind: 'enemy', pos: { x, y, z }, wounds: blessuresDeBase(wounds), advantage: 0,
+  (blessuresSurLeProfil({ id, label: id, name: id, kind: 'ennemi', pos: { x, y, z }, wounds: blessuresDeBase(wounds), advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] })) as unknown as Combatant;
 
@@ -50,7 +50,7 @@ describe('Placement de zone — z-blindness (#798)', () => {
     const ghost = foe('e-ghost', 8, 5, 0); // même (x,y), étage 0
     const battle = {
       combatants: [c, sameFloor, ghost], order: [c.id, 'e-same', 'e-ghost'], baseOrder: [c.id, 'e-same', 'e-ghost'],
-      turn: 0, round: 1, action: 'cast', selectedSpellId: 'explosion', reachable: new Map(),
+      turn: 0, round: 1, action: 'incantation', selectedSpellId: 'explosion', reachable: new Map(),
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as never;
     banc.setState({ battle, scene: undefined, party: [] });

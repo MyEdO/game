@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildOperaFloorplan } from '../opera/floorplan';
 import { scenarioEntities } from '../opera/furnished';
 import type { TestScenario } from './_shared';
@@ -27,5 +27,5 @@ export const scenario: TestScenario = {
     'sièges du parterre, décors de scène) et billboards restants, posés pièce par pièce sur la géométrie ' +
     'fidèle du Staatsoper (rez + étage). Exploration libre, aucune rencontre.',
   partyNote: 'Explorez librement : coulisses, scène, parterre, foyer, puis la galerie des loges par les rampes d\'angle. Aucune rencontre ne démarre.',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireScene() }),
 };

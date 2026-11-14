@@ -17,14 +17,14 @@ import { evalCondition, spellEffectOps } from '../engine/flowCore';
 import { applyOps } from '../engine/ops';
 import { makeRNG } from '../engine/dice';
 import type { Combatant, Weapon } from '../engine/types';
-import type { Flow } from '../data/schemas/defs-scenes/effets';
+import type { Flow } from '../engine/flowCore';
 import { reluDans } from './combatDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', label: 'C', kind: 'enemy',
+  id: 'c', label: 'C', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 },
   wounds: blessuresDeBase(15), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
@@ -65,17 +65,17 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
 
   /**
    * SANS routeur cadence-aware (`ctx.set` absent — entretien hors combat), un Flow n'a pas de voie
-   * d'interaction : ses parties PURES jouent, un `choice` n'est pas offert. Un `test` ENFOUI sous un
-   * `choice`, lui, ne doit JAMAIS passer en silence : `runPureFlowLines` n'a aucun `case 'choice'` — il
+   * d'interaction : ses parties PURES jouent, un `choix` n'est pas offert. Un `test` ENFOUI sous un
+   * `choix`, lui, ne doit JAMAIS passer en silence : `runPureFlowLines` n'a aucun `case 'choix'` — il
    * traverserait le nœud sans rien faire, et la branche de jet serait perdue sans un mot.
    */
   it('#1874 — SANS routeur, la branche `on:caster` d’un Test subi par la CIBLE tombe sur le PORTEUR (parité avec la voie routée)', () => {
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });
     // Les DEUX branches portent la même feuille : l'issue du jet (tiré par la voie inline) n'entre pas dans la mesure.
-    const surLePorteur = { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: 'a-terre' }] } };
-    const flow = { kind: 'test', test: { characteristic: 'force' }, success: surLePorteur, fail: surLePorteur } as unknown as Flow;
-    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime, rng: makeRNG(1) });
+    const surLePorteur = { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } };
+    const flow = { kind: 'test', test: { characteristic: 'force' }, reussite: surLePorteur, echec: surLePorteur } as unknown as Flow;
+    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victime', flow }], 'onHit', { victim: victime, rng: makeRNG(1) });
     expect(porteur.conditions.map((c) => c.id), 'la feuille `on:caster` doit atteindre le PORTEUR').toEqual(['a-terre']);
     expect(victime.conditions, 'la cible a reçu la conséquence du porteur').toEqual([]);
   });
@@ -84,37 +84,37 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });
     const flow: Flow = {
-      kind: 'choice', prompt: 'Renverser', advantageCost: 2,
-      yes: {
+      kind: 'choix', invite: 'Renverser', coutEnAvantage: 2,
+      oui: {
         kind: 'test',
         test: { characteristic: 'force', skill: { id: 'athletisme' } },
-        success: { kind: 'seq', steps: [] },
-        fail: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'a-terre' }] } },
+        reussite: { kind: 'sequence', etapes: [] },
+        echec: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } },
       },
-      no: { kind: 'seq', steps: [] },
+      non: { kind: 'sequence', etapes: [] },
     } as Flow;
     expect(
-      () => applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { rng: desDuTest, victim: victime }),
+      () => applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victime', flow }], 'onHit', { rng: desDuTest, victim: victime }),
       'un Test enfoui sous un `choice` a été traversé en SILENCE — aucune branche jouée, aucune levée.',
     ).toThrow(/routeur cadence-aware/);
     expect(victime.conditions, 'la cible a subi une conséquence alors qu’aucun jet n’a été joué.').toEqual([]);
   });
 
-  it('CHOICE sans routeur, cas Taillade (`choice{yes:do}`) : l’État AUTOMATIQUE joue, le choix n’est pas offert, aucune levée', () => {
+  it('CHOICE sans routeur, cas Taillade (`choice{oui:do}`) : l’État AUTOMATIQUE joue, le choix n’est pas offert, aucune levée', () => {
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });
     const flow: Flow = {
-      kind: 'seq',
-      steps: [
-        { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'hemorragique' }] } },
+      kind: 'sequence',
+      etapes: [
+        { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'hemorragique' } }] } },
         {
-          kind: 'choice', prompt: 'Ouvrir la plaie', advantageCost: 1,
-          yes: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'hemorragique' }] } },
+          kind: 'choix', invite: 'Ouvrir la plaie', coutEnAvantage: 1,
+          oui: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'hemorragique' } }] } },
         },
       ],
     } as Flow;
     porteur.advantage = 5;
-    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onCrit', on: 'victim', flow }], 'onCrit', { rng: desDuTest, victim: victime });
+    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onCrit', on: 'victime', flow }], 'onCrit', { rng: desDuTest, victim: victime });
     expect(victime.conditions.find((c) => c.id === 'hemorragique')?.value, 'l’État automatique du Critique manque, ou le choix a été joué GRATUITEMENT.').toBe(1);
     expect(porteur.advantage, 'un Avantage a été dépensé sans que personne n’ait choisi.').toBe(5);
   });
@@ -123,10 +123,10 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const archer = mk({ id: 'ar' });
     const foe = mk({ id: 'fo' });
     const logee = (c: Combatant) => c.conditions.find((x) => x.id === 'munition-logee');
-    const arc: Weapon = { label: 'Arc long', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
-    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'ranged', origine: 'coup-critique' });
+    const arc: Weapon = { label: 'Arc long', type: 'distance', damage: { plusBF: false, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
+    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'distance', origine: 'coup-critique' });
     expect(logee(foe)?.value).toBe(1);
-    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'ranged', origine: 'coup-critique' }); // 2e flèche → empile
+    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'distance', origine: 'coup-critique' }); // 2e flèche → empile
     expect(logee(foe)?.value).toBe(2);
     const lance: Weapon = { label: 'Lance de Taillade empaleuse', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
     const melee = mk({ id: 'me' });
@@ -177,14 +177,14 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
 
   it('op loseTurn : pose les drapeaux lus au début du Round', () => {
     const c = mk();
-    runPureFlowLines(c, c, { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'loseTurn' }] } }, { idNeuf: idsDeTest, rng: makeRNG(1), caster: c });
+    runPureFlowLines(c, c, { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'loseTurn' }] } }, { idNeuf: idsDeTest, rng: makeRNG(1), caster: c });
     expect(c.loseNextAction).toBe(true);
     expect(c.loseNextMovement).toBe(true);
   });
 
   it('Condition `compare` générique : who (cible/lanceur) × donnée/État · opérateur · valeur (const ou acteur)', () => {
     const target = { id: 't', woundsCurrent: 5, woundsMax: 15, size: 2, advantage: 0, camp: 'hostile' as const, groups: ['Morts-vivants'], talents: [], traits: ['mort-vivant'], immunities: ['poison'], conditions: { brise: 3 }, chars: {} as Record<string, number> }; // Petite (2), ennemi mort-vivant (conditions keyées par id)
-    const caster = { id: 'c', woundsCurrent: 12, woundsMax: 12, size: 4, advantage: 1, camp: 'party' as const, groups: [], talents: [{ id: 'magie-des-arcanes', spec: 'Feu' }], traits: [], conditions: {} as Record<string, number>, chars: {} as Record<string, number> }; // Grande (4), mage de Feu
+    const caster = { id: 'c', woundsCurrent: 12, woundsMax: 12, size: 4, advantage: 1, camp: 'groupe' as const, groups: [], talents: [{ id: 'magie-des-arcanes', spec: 'Feu' }], traits: [], conditions: {} as Record<string, number>, chars: {} as Record<string, number> }; // Grande (4), mage de Feu
     const ctx = { flags: {}, gameTime: 0, target, caster };
     expect(evalCondition({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 }, ctx)).toBe(true);
     expect(evalCondition({ kind: 'compare', subject: { who: 'target', condition: 'brise' }, op: '>=', value: 3 }, ctx)).toBe(true); // valeur d'État (stacks)
@@ -195,10 +195,10 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     expect(evalCondition({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 }, { flags: {}, gameTime: 0 })).toBe(false); // acteur absent
     // Condition `relation` : camp ABSOLU (kind) + relation RELATIVE au lanceur.
     expect(evalCondition({ kind: 'relation', who: 'target', is: 'hostile' }, ctx)).toBe(true); // la cible EST un ennemi (absolu)
-    expect(evalCondition({ kind: 'relation', who: 'target', is: 'opponent' }, ctx)).toBe(true); // adversaire du lanceur (camp ≠)
-    expect(evalCondition({ kind: 'relation', who: 'target', is: 'ally' }, ctx)).toBe(false);
-    expect(evalCondition({ kind: 'relation', who: 'caster', is: 'party' }, ctx)).toBe(true); // le lanceur est du groupe
-    expect(evalCondition({ kind: 'relation', who: 'target', is: 'self' }, ctx)).toBe(false); // cible ≠ lanceur
+    expect(evalCondition({ kind: 'relation', who: 'target', is: 'adversaire' }, ctx)).toBe(true); // adversaire du lanceur (camp ≠)
+    expect(evalCondition({ kind: 'relation', who: 'target', is: 'allie' }, ctx)).toBe(false);
+    expect(evalCondition({ kind: 'relation', who: 'caster', is: 'groupe' }, ctx)).toBe(true); // le lanceur est du groupe
+    expect(evalCondition({ kind: 'relation', who: 'target', is: 'soi' }, ctx)).toBe(false); // cible ≠ lanceur
     // Condition `has` : appartenance Groupe / Talent (spec) / Trait.
     expect(evalCondition({ kind: 'has', who: 'target', what: 'group', value: 'Morts-vivants' }, ctx)).toBe(true);
     expect(evalCondition({ kind: 'has', who: 'target', what: 'trait', value: 'mort-vivant' }, ctx)).toBe(true);
@@ -224,12 +224,12 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
   it('Atout authorable « à la touche : 1d10 Dégâts + Empêtré » — le Flow applique les DEUX ops', () => {
     // L'exemple exact demandé : un Flow de feuille EffectOp porté par un Atout (édité au Codex).
     const flow: Flow = {
-      kind: 'seq',
-      steps: [{
-        kind: 'do',
-        effect: { type: 'ops', on: 'target', ops: [
+      kind: 'sequence',
+      etapes: [{
+        kind: 'effet',
+        effet: { type: 'ops', on: 'target', ops: [
           { op: 'wounds', amount: { dice: { n: 1, sides: 10 } } },
-          { op: 'condition', id: 'empetre', value: 1 },
+          { op: 'condition', id: { id: 'empetre' }, value: 1 },
         ] },
       }],
     };
@@ -252,8 +252,8 @@ describe('Aire source-agnostique — un TRAIT pose `on:{near}` → GameOps à TO
   // de la VICTIME. Aucune arme : c'est la donnée du trait (comme l'« arc d'Azyr » du domaine) qui pose l'aire.
   const burstEffect = {
     trigger: 'onHit' as const,
-    on: { near: 'victim' as const, radiusMeters: 4 }, // 4 m → 2 cases (Chebyshev d'empreinte)
-    flow: { kind: 'do' as const, effect: { type: 'ops' as const, on: 'target' as const, ops: [{ op: 'wounds' as const, amount: 12 }] } },
+    on: { near: 'victime' as const, radiusMeters: 4 }, // 4 m → 2 cases (Chebyshev d'empreinte)
+    flow: { kind: 'effet' as const, effet: { type: 'ops' as const, on: 'target' as const, ops: [{ op: 'wounds' as const, amount: 12 }] } },
   };
 
   it('applique les GameOps à TOUS les combattants du rayon (exclut le centre/porteur), pas au combattant hors rayon', () => {
@@ -297,10 +297,10 @@ describe('Affamé — Test de trigger onKill routé (cadence-aware)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const hungry = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     hungry.traits = [...(hungry.traits ?? []), { id: 'affame' }];
@@ -320,7 +320,7 @@ describe('Affamé — Test de trigger onKill routé (cadence-aware)', () => {
 import { fireOwnTestFailed, effectSourcesOf } from './triggeredEffects';
 
 const withCrampes = (over: Partial<Combatant> = {}): Combatant => mk({
-  id: 'cr', kind: 'hero',
+  id: 'cr', kind: 'heros',
   diseases: [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 100000, durationMinutes: 100000 }],
   ...over,
 } as Partial<Combatant>);
@@ -392,11 +392,11 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.filter((c) => c.kind === 'ennemi');
     E.slice(1).forEach((e) => (e.dead = true));
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, E: E[0] };
@@ -409,7 +409,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     fireOwnTestFailed(banc.getState, H, { rng: desDuTest, sl: -4, set: banc.setState });
     expect(hasCondition(H, 'sonne')).toBe(true);   // palier 1 inline
     expect(hasCondition(H, 'a-terre')).toBe(false); // palier 2 DIFFÉRÉ en cascade (pas résolu inline)
-    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'triggeredTest');
+    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'testDeclenche');
     expect(step).toBeTruthy();
     expect(step?.meta?.noOwnTestFailed).toBe(true); // garde de ré-entrance portée par l'étape
   });
@@ -433,7 +433,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     E.characteristics['force-mentale'] = 1; // FM minimale → échec inline → À Terre
     addCrampes(E);
     fireOwnTestFailed(banc.getState, E, { rng: desDuTest, sl: -4, set: banc.setState });
-    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'triggeredTest')).toBeFalsy();
+    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'testDeclenche')).toBeFalsy();
     expect(hasCondition(E, 'a-terre')).toBe(true); // résolu inline (PNJ)
   });
 
@@ -444,7 +444,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     banc.setState({
       party: [hero], battle: null,
       pendingCascade: cascadeDeTest([
-        { id: 'dt', kind: 'disease-tick', actorId: hero.id, base: 0, target: 5, rollLabel: 'Endurance', result: null, meta: { diseaseName: 'x' } },
+        { id: 'dt', kind: 'maladie-test-quotidien', actorId: hero.id, base: 0, target: 5, rollLabel: 'Endurance', result: null, meta: { diseaseName: 'x' } },
       ], { title: 'Entretien' }),
     });
     banc.getState().jetLancer('cascade');
@@ -465,11 +465,11 @@ describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.filter((c) => c.kind === 'ennemi');
     E.slice(1).forEach((e) => (e.dead = true));
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, E: E[0] };
@@ -490,7 +490,7 @@ describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16
     seedBattleRng(1);
     const { H, E } = combat();
     addCrampes(H); // H se défend
-    const res: AttackResult = { hit: true, attackerRoll: 20, defenderRoll: 99, netSL: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, defenderDetail: { ...missDetail(-2), mode: 'parade' }, woundsLost: 0, log: `${E.label} touche.` };
+    const res: AttackResult = { hit: true, attackerRoll: 20, defenderRoll: 99, netSL: 3, critical: false, advantageTo: 'attaquant', defenderDefeated: false, defenderDetail: { ...missDetail(-2), mode: 'parade' }, woundsLost: 0, log: `${E.label} touche.` };
     applyAttackResult(banc.getState, banc.setState, E, H, wpn(E), res);
     expect(hasCondition(banc.getState().battle!.combatants.find((c) => c.id === H.id)!, 'sonne')).toBe(true);
   });
@@ -502,9 +502,9 @@ describe('Test déclenché INLINE : la pénalité d’État lit la Compétence t
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });
     if (victimeATerre) victime.conditions = [{ id: 'a-terre', value: 1 }] as never;
-    const sur = (id: string) => ({ kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id }] } });
-    const flow = { kind: 'test', test: { characteristic: 'agilite', skill: { id: 'athletisme' } }, success: sur('sonne'), fail: sur('aveugle') } as unknown as Flow;
-    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime, rng: de20 });
+    const sur = (id: string) => ({ kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id } }] } });
+    const flow = { kind: 'test', test: { characteristic: 'agilite', skill: { id: 'athletisme' } }, reussite: sur('sonne'), echec: sur('aveugle') } as unknown as Flow;
+    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victime', flow }], 'onHit', { victim: victime, rng: de20 });
     return porteur.conditions.map((c) => c.id);
   };
   it('Athlétisme (déplacement) À Terre : 20 contre 30 réussit debout, rate à −20', () => {
@@ -525,22 +525,22 @@ describe('Traits conférés par une attaque, Difficulté portée par l’État',
   });
   it('l’op `condition` fige sa Difficulté sur l’État posé', () => {
     const cible = mk({ id: 'ci' });
-    applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte: 'difficile' }], { idNeuf: idsDeTest, rng: makeRNG(1) });
+    applyOps(cible, [{ op: 'condition', id: { id: 'empoisonne' }, difficulte: 'difficile' }], { idNeuf: idsDeTest, rng: makeRNG(1) });
     expect(cible.conditions.find((x) => x.id === 'empoisonne')?.difficulte).toBe('difficile');
   });
   // (#3060 ; LDB 16 l.70) Difficulté la plus dure des poisons cumulés.
   it('des poisons de Difficultés différentes laissent à l’État la plus dure, dans les deux ordres', () => {
     for (const ordre of [['facile', 'difficile'], ['difficile', 'facile']] as const) {
       const cible = mk({ id: 'ci' });
-      for (const difficulte of ordre) applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte }], { idNeuf: idsDeTest, rng: makeRNG(1) });
+      for (const difficulte of ordre) applyOps(cible, [{ op: 'condition', id: { id: 'empoisonne' }, difficulte }], { idNeuf: idsDeTest, rng: makeRNG(1) });
       expect(cible.conditions.find((x) => x.id === 'empoisonne'), ordre.join(' puis ')).toMatchObject({ value: 2, difficulte: 'difficile' });
     }
   });
   it('l’État `argDifficulty` d’un Trait prend la Difficulté de l’arg, et reste posé sans arg (LDB 85 l.423, l.425)', () => {
     const opsDuVenin = (arg?: string) => effectSourcesOf(mk({ traits: [{ id: 'venin', ...(arg ? { arg } : {}) }] }))
       .find((s) => s.key === 'trait:venin')!.effects.flatMap((e) => spellEffectOps(e.flow));
-    expect(opsDuVenin('difficile')).toEqual([{ op: 'condition', id: 'empoisonne', difficulte: 'difficile' }]);
-    expect(opsDuVenin()).toEqual([{ op: 'condition', id: 'empoisonne' }]);
+    expect(opsDuVenin('difficile')).toEqual([{ op: 'condition', id: { id: 'empoisonne' }, difficulte: 'difficile' }]);
+    expect(opsDuVenin()).toEqual([{ op: 'condition', id: { id: 'empoisonne' } }]);
   });
   it('le Test qui élimine Empoisonné prend la Difficulté que l’État porte', () => {
     const difficulteDuTest = (c: Combatant) => effectSourcesOf(c).find((s) => s.key === 'cond:empoisonne')!.effects

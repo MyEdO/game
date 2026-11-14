@@ -91,17 +91,17 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   // Porte d'heure de départ (maison, #340) : départ terrestre/fluvial de nuit → attendre l'aube / annuler.
   const pendingDeparture = useGame((s) => s.pendingDeparture);
   const valider = useGame((s) => s.fenetreValider);
-  const attendreLAube = () => valider('departure');
-  const rester = () => fermer('departure');
+  const attendreLAube = () => valider('depart');
+  const rester = () => fermer('depart');
   // Coop : l'invité consulte la carte mais l'HÔTE décide des départs (le voyage déplace tout le
   // groupe et résout des journées entières — audit Lot 4, arbitrage V1 « exploration = miroir »).
-  const isGuest = useGame((s) => s.net.mode) === 'guest';
+  const isGuest = useGame((s) => s.net.mode) === 'invite';
   const identites = useIdentites();
   const [selId, setSelId] = useState<string | null>(initialRouteId ?? null);
   const [mode, setMode] = useState<TravelMode>('pied');
   const [classeId, setClasseId] = useState('');
   const [forced, setForced] = useState(false);
-  /** Allure en selle (EDOC 07 l.140) — règle optionnelle `travel-allures`. */
+  /** Allure en selle (EDOC 07 l.140) — règle optionnelle `voyage-allures`. */
   const [allure, setAllure] = useState<Allure>('pas');
   /** Attelage forcé au pas de course (EDOC 07 l.229). */
   const [forceGallop, setForceGallop] = useState(false);
@@ -200,9 +200,9 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
     setSeaPace(0);
   };
 
-  // « En selle » (EDOC 7, règle `travel-allures`) : mode IMPLICITE des routes praticables à pied,
+  // « En selle » (EDOC 7, règle `voyage-allures`) : mode IMPLICITE des routes praticables à pied,
   // quand chaque héros vivant a une monture utilisable.
-  const alluresOn = !!rule('travel-allures');
+  const alluresOn = !!rule('voyage-allures');
   const mounted = alluresOn && partyFullyMounted(party, possessions);
   const allures = mounted ? availableAllures(partyMounts(party, possessions)) : [];
   const modeChoices: TravelMode[] = selRoute
@@ -231,7 +231,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   const seaPaceChoices = seaRig ? [0, 1, 2].filter((b) => b === 0 || forcePaceDifficulty(b, seaRig.mode) != null) : [0];
   const seaPaceRefus = seaRig ? forcePaceRefus(party, seaRig.competence) : null;
   // Surcharge de la cale : MDG 12 l.70-75.
-  const seaOverload = vessel ? dossierDuNavire(vessel, party)?.overload ?? null : null;
+  const seaOverload = vessel ? dossierDuNavire(vessel, party, gameTime)?.overload ?? null : null;
   // Population embarquée pour le manifeste d'avitaillement (#245) : MDG 14 l.238.
   const seaCrewCount = shipboardSouls({ party, vessel }).crew;
 
@@ -256,7 +256,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
 
   // Avitaillement au départ EN MER (#241) : le groupe qui appareille sans vivres/eau le SAIT.
   const seaDaysEstimated = mode === 'mer' && selRoute && appareillable ? dureeDeTraversee(selRoute.km, seaM) : 0;
-  const provisions = mode === 'mer' && seaDaysEstimated > 0 ? provisioningManifest(party, vessel?.waterLitres, seaDaysEstimated, { count: seaCrewCount, provisions: vessel?.provisions }) : null;
+  const provisions = mode === 'mer' && seaDaysEstimated > 0 ? provisioningManifest(party, vessel?.waterLitres, seaDaysEstimated, gameTime, { count: seaCrewCount, provisions: vessel?.provisions }) : null;
 
   const libelleDepart = t(mode === 'mer' && provisions && !provisions.suffisant ? 'wm.appareillerQuandMeme' : achat ? 'wm.payerEtPartir' : 'wm.partir');
   const fmtDuration = (p: NonNullable<typeof plan>) =>
@@ -357,7 +357,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
               {/* Badge de mode : barque (voie d'eau) / compas (route carrossable). */}
               {r.modes.some((mm) => mm !== 'pied') && (
                 <g style={{ color: 'var(--wm-ink)' }}>
-                  <IconG id={water ? 'scenario/naval' : 'scenario/travel'} x={5.4} y={-1.35} size={2.5} />
+                  <IconG id={water ? 'scenario/naval' : 'scenario/voyage'} x={5.4} y={-1.35} size={2.5} />
                 </g>
               )}
             </g>
@@ -407,7 +407,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
           <circle r="1.5" fill="url(#wm-medal)" stroke="var(--wm-age-spot)" strokeWidth="0.22" filter="url(#wm-drop)" />
           {/* `p.icon` = id d'icône (registre src/data/icons) ; sans icône, drapeau de lieu. */}
           <g style={{ color: 'var(--wm-marker-icon)' }}>
-            <IconG id={p.icon ?? 'nav/entry-point'} x={-1.05} y={-1.05} size={2.1} />
+            <IconG id={p.icon ?? 'navigation/point-d-entree'} x={-1.05} y={-1.05} size={2.1} />
           </g>
         </>
       ),
@@ -443,8 +443,8 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   );
 
   return (
-    <ScreenShell title={<><Icon id="nav/campaign" size="sm" /> {map.label}</>} onClose={close} meta={{ time: gameTime, money }}>
-      <Split side="end" align="stretch" stackBelow={900} gap="xl" pad="xl" className="screen-scroll worldmap-layout">
+    <ScreenShell title={<><Icon id="navigation/campagne" size="sm" /> {map.label}</>} onClose={close} meta={{ time: gameTime, money }}>
+      <Split side="fin" align="stretch" stackBelow={900} gap="xl" pad="xl" className="screen-scroll worldmap-layout">
       <div className="worldmap-canvas">
         <MapCanvas
           className="wm-map"
@@ -580,8 +580,8 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
               <button
                 type="button"
                 className="btn small"
-                aria-pressed={!fastJoue && cadence === 'jour-par-jour'}
-                onClick={() => { setSeaFast(false); setCadence('jour-par-jour'); }}
+                aria-pressed={!fastJoue && cadence === 'jourParJour'}
+                onClick={() => { setSeaFast(false); setCadence('jourParJour'); }}
                 title={t(fluvialJoue ? 'wm.cadenceJourParJourFleuve' : 'wm.cadenceJourParJourMer')}
               >
                 {t('wm.jourParJour')}
@@ -659,10 +659,10 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
                 {t('wm.eau', { dispo: provisions.eauDispoLitres != null ? t('wm.litres', { litres: provisions.eauDispoLitres }) : '—', requis: provisions.eauRequiseLitres })}
               </span>
               {!provisions.suffisant && <span className="wm-provision-item short">{t('wm.avitaillementInsuffisant', { jours: provisions.joursEstimes, ames: provisions.souls })}</span>}
-              {seaOverload?.palierId && <span className="wm-provision-item short">{t('wm.caleSurchargee', { pct: seaOverload.ratioPct, palier: seaOverload.label, suite: t('wm.caleEffets', { m: seaOverload.mMod, dr: seaOverload.manoeuvreDR }) })}</span>}
+              {seaOverload?.palierId && <span className="wm-provision-item short">{t('wm.caleSurchargee', { pct: seaOverload.ratioPct, palier: seaOverload.label, suite: t('wm.caleEffets', { m: seaOverload.mMod, dr: seaOverload.drDeManoeuvre }) })}</span>}
             </div>
           )}
-          {mode === 'mer' && vessel ? <ShipRolesPanel /> : rule('travel-etapes') && <TravelRolesPanel />}
+          {mode === 'mer' && vessel ? <ShipRolesPanel /> : rule('voyage-etapes') && <TravelRolesPanel />}
           {/* STATIONS à bord, EMPILÉES sous les postes (maquette validée 2026-09-04) : partout où un
               bateau porte l'équipage — le navire de campagne en mer, et le bateau du trajet FLUVIAL
               (même gate qu'au départ, `travelFlow.partirEnVoyage`). Le fleuve n'a PAS de roster de
@@ -676,7 +676,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
                 sa raison que sur une action FERMÉE (#1689 T2). */}
             <GatedAction
               id="worldmap-depart"
-              label={<><Icon id="scenario/travel" size="sm" /> {aLAube ? t('wm.attendreAube') : libelleDepart}</>}
+              label={<><Icon id="scenario/voyage" size="sm" /> {aLAube ? t('wm.attendreAube') : libelleDepart}</>}
               ariaLabel={aLAube ? t('wm.attendreAube') : libelleDepart}
               enabled={!refusDuDepart}
               {...raisonSi(refusDuDepart)}
@@ -700,7 +700,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
             <button type="button" className="btn" onClick={() => setSelId(null)}>{t('wm.annuler')}</button>
             <GatedAction
               id={`wm-route-fermee-${selFerme.id}`}
-              label={<><Icon id="scenario/travel" size="sm" /> {t('wm.partir')}</>}
+              label={<><Icon id="scenario/voyage" size="sm" /> {t('wm.partir')}</>}
               ariaLabel={t('wm.partirVers', { lieu: destFermee.label })}
               enabled={false}
               reason={mdToText(nommer(garanti(selFerme.refus, selFerme.id, 'raison du trajet fermé (`mapRouteSchema`)').texte, identites))}

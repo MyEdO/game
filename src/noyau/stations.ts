@@ -4,6 +4,8 @@
  * identité (label/icône/faction/équipage) ; AUCUN effet de règle — la vérité mécanique reste la coque et ses
  * `postes` (cf. `monde/shipPostes.ts`). PUR.
  */
+import type { Equipe } from '../engine/relations';
+import type { IconId } from '../data/icons';
 import { isPosteManned } from './monde/shipPostes';
 import { battleSceneById } from './massBattleFlow';
 import type { Combatant, ShipPoste, FireArc } from '../engine/types';
@@ -21,17 +23,17 @@ export interface Station {
   kind: StationKind;
   pos: { x: number; y: number; z?: number };
   label: string;
-  /** id `ICON_DEFS` (registre `src/data/icons`) — pièce d'artillerie servie = `action/serve-engine`. */
-  icon: string;
+  /** id `ICON_DEFS` (registre `src/data/icons`) — pièce d'artillerie servie = `action/servir-l-engin`. */
+  icon: IconId;
   /** Faction dérivée du `kind` de la coque : héros → allié, ennemi → ennemi, PNJ → neutre. */
-  faction: 'ally' | 'enemy' | 'neutral';
+  faction: Equipe | 'neutre';
   assignedIds: string[];
   manned: boolean;
   side?: FireArc;
   ref: StationRef;
 }
 
-const FACTION: Record<Combatant['kind'], Station['faction']> = { hero: 'ally', enemy: 'enemy', npc: 'neutral' };
+const FACTION: Record<Combatant['kind'], Station['faction']> = { heros: 'allie', ennemi: 'ennemi', pnj: 'neutre' };
 
 /**
  * Indexe en Stations chaque poste des Combattants-coque (coque navale OU emplacement de siège — indifférent).
@@ -55,7 +57,7 @@ export function postesToStations(
         kind: 'poste',
         pos,
         label: poste.item.label,
-        icon: 'action/serve-engine',
+        icon: 'action/servir-l-engin',
         faction: FACTION[hull.kind],
         assignedIds: poste.crewIds ?? [],
         manned: isPosteManned(poste, combatants),
@@ -73,8 +75,8 @@ export function postesToStations(
  * vient de l'ancre AUTHORÉE (`scene.stations`) ; à défaut, un repli DÉTERMINISTE l'étale (la démo reste
  * jouable sans authoring d'ancres). L'AFFECTATION explicite (`assignment[sceneId]` = ids des PJ postés,
  * Scène MULTI-PJ ADE II 8) alimente `assignedIds`/`manned` — une Scène postée s'affiche « servie ». Une Scène inconnue du catalogue
- * (`battleSceneById` undefined) est ignorée. Faction : `enemy` pour une Scène MENACE (`threat`, elle
- * s'impose au camp allié), `neutral` sinon (l'action se joue au contact, pas un camp fixe). PUR.
+ * (`battleSceneById` undefined) est ignorée. Faction : `ennemi` pour une Scène MENACE (`threat`, elle
+ * s'impose au camp allié), `neutre` sinon (l'action se joue au contact, pas un camp fixe). PUR.
  */
 export function battleScenesToStations(
   situation: string[],
@@ -101,8 +103,8 @@ export function battleScenesToStations(
       kind: 'battleScene',
       pos,
       label: def.label,
-      icon: 'action/attack',
-      faction: def.sceneKind === 'threat' ? 'enemy' : 'neutral',
+      icon: 'action/attaquer',
+      faction: def.sceneKind === 'threat' ? 'ennemi' : 'neutre',
       assignedIds: heroIds,
       manned: heroIds.length > 0,
       ref: { kind: 'battleScene', sceneId },

@@ -5,6 +5,7 @@
  * `engine/ops.ts`), sans quoi une magnitude authorée en règle vaudrait 0 au scoring et l'IA
  * ignorerait un effet qu'elle applique ensuite pour de bon.
  */
+import { idDeFixture } from '../data/idDeFixture.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { resolveFormula, formulaExpectation, type Formula } from './ops';
 import { OPTIONAL_RULES, rule, setRule, resetRule } from './policy';
@@ -48,7 +49,7 @@ describe('Formula `{rule}` — le SCORING lit la même valeur que la RÉSOLUTION
   });
 
   it('une règle hors du registre LÈVE des deux côtés (#1463 LD.1)', () => {
-    expect(() => resolveFormula({ rule: 'regle-hors-registre' }, ref, desDuTest)).toThrow(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
-    expect(() => formulaExpectation({ rule: 'regle-hors-registre' }, ref)).toThrow(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
+    expect(() => resolveFormula({ rule: idDeFixture('regleOptionnelle', 'regle-hors-registre') }, ref, desDuTest)).toThrow(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
+    expect(() => formulaExpectation({ rule: idDeFixture('regleOptionnelle', 'regle-hors-registre') }, ref)).toThrow(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
   });
 });

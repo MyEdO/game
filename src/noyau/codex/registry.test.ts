@@ -1,11 +1,23 @@
 import { describe, it, expect } from 'vitest';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexGroupLabel, codexLookupById, creatureStatblock, raceTalentSection, type CodexItem } from './registry';
+import {
+  CODEX,
+  CODEX_GROUPS,
+  categoriesIn,
+  categoryByKey,
+  clustersIn,
+  codexGroupLabel,
+  codexLookupById,
+  creatureStatblock,
+  raceTalentSection,
+  type CodexItem,
+} from './registry';
 import { woundsForSize } from '../../engine/size';
 import { replier } from '../../lib/ordre.mjs';
 import { isEditableCategory } from '../../data/atelierDuCodex';
 import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
 import { datasetObject, setDataset } from '../../data/overrides';
+import { sousLeDe } from '../../data/deDeLaTable.testkit';
 import { CHAR_KEYS } from '../../engine/types';
 import { deDeLaTableTiree, facesDuDe } from '../../engine/tables';
 import { charAbr } from '../../data';
@@ -420,9 +432,9 @@ describe('Codex registry — règles de négoce (#3433, MDG 15 et MSRC 13)', () 
     expect(item.label).toBe(c.label);
     expect(item.source?.book).toBe('MSRC');
     const vin = item.sections!.find((s) => s.title === 'Qualité du vin (1d10)')!;
-    expect(vin.rows).toHaveLength(c.wineQuality.entries.length);
+    expect(vin.rows).toHaveLength(c.qualiteDuVin.entries.length);
     const rumeurs = item.sections!.find((s) => s.title === 'Rumeurs commerciales (1d100)')!;
-    expect(rumeurs.rows.filter((r) => r.t === 'text')).toHaveLength(c.rumours.entries.length);
+    expect(rumeurs.rows.filter((r) => r.t === 'text')).toHaveLength(c.rumeurs.entries.length);
     expect(rumeurs.rows.some((r) => r.t === 'ref' && r.category === 'cargoes')).toBe(true);
   });
 });
@@ -476,10 +488,10 @@ describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Na
   });
 
   it('« Changement de cap » (MDG 13 l.324-331) : le titre porte le dé ET le bonus de dérive majeure qui mène ses bandes au-delà de 10', () => {
-    const n = datasetObject('seaNavigation') as { orientation: { driftMajorBonus: number; changementDeCap: { die: string; entries: { max: number }[] } } };
+    const n = datasetObject('seaNavigation') as { orientation: { bonusDeDeriveMajeure: number; changementDeCap: { die: string; entries: { max: number }[] } } };
     const sec = categoryByKey('seaNavigation')!.items[0].sections!.find((s) => s.title.startsWith('Changement de cap'))!;
-    expect(sec.title.startsWith(`Changement de cap (1d10, +${n.orientation.driftMajorBonus} à DR `), sec.title).toBe(true);
-    expect(Math.max(...n.orientation.changementDeCap.entries.map((r) => r.max))).toBe(facesDuDe(deDeLaTableTiree(n.orientation.changementDeCap)) + n.orientation.driftMajorBonus);
+    expect(sec.title.startsWith(`Changement de cap (1d10, +${n.orientation.bonusDeDeriveMajeure} à DR `), sec.title).toBe(true);
+    expect(Math.max(...n.orientation.changementDeCap.entries.map((r) => r.max))).toBe(facesDuDe(deDeLaTableTiree(n.orientation.changementDeCap)) + n.orientation.bonusDeDeriveMajeure);
   });
 
   it('la fiche « Périls en mer » (dataset-OBJET, MDG 13) projette Dangers flottants + Détroits + Tourbillons', () => {
@@ -670,5 +682,24 @@ describe('Codex — rangées de référence par id (#1897)', () => {
       expect(refIdsOf(item, 'Compétences'), `${c.id} compétences`).toEqual(c.skills.map((r) => r.id));
       expect(refIdsOf(item, 'Talents'), `${c.id} talents`).toEqual(c.talents.map((r) => r.id));
     }
+  });
+});
+
+describe('Codex — Tableaux de couleur des yeux et des cheveux (#3578)', () => {
+  const sousTitres = (key: 'eyes' | 'hairs') => categoryByKey(key)!.items.map((i) => i.sub);
+  it('chaque couleur se lit à sa bande du dé imprimé (LDB 05 l.744, l.758)', () => {
+    expect(sousTitres('eyes')).toEqual(['2d10 2', '2d10 3', '2d10 4', '2d10 5–7', '2d10 8–11', '2d10 12–14', '2d10 15–17', '2d10 18', '2d10 19', '2d10 20']);
+    expect(sousTitres('hairs')).toEqual(sousTitres('eyes'));
+  });
+  it('une colonne à bornes propres affiche sa bande à côté de sa couleur (NADJ 15 l.99-104)', () => {
+    const gnome = (id: string) => categoryByKey('hairs')!.items.find((i) => i.id === id)!.sections![0].rows.find((r) => r.t === 'kv' && r.k === 'gnome');
+    expect(gnome('blond-roux')).toMatchObject({ v: 'Brun · 2d10 4–6' });
+    expect(gnome('brun-clair')).toMatchObject({ v: 'Auburn · 2d10 11' });
+    expect(gnome('blond-blanc')).toMatchObject({ v: 'Noir' });
+  });
+  it('la bande suit le dé posé sur la table par le seam', () => {
+    sousLeDe('eyes', '1d10', () => {
+      expect(sousTitres('eyes').slice(0, 5)).toEqual(['1d10 1–2', '1d10 3', '1d10 4', '1d10 5–7', '1d10 8–11']);
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
@@ -96,11 +96,11 @@ export const scenario: TestScenario = {
   id: 'enquete-carnet',
   order: 24,
   category: 'scenarios',
-  icon: 'nav/campaign',
+  icon: 'navigation/campagne',
   title: 'Carnet d’enquête',
   tests:
     'Mécanique MAISON du carnet (#670) : `revealClue` première révélation (dialogue, premier stade) ' +
     'et mise à jour (stade explicite), `discreditClue` (déclencheur de zone, fausse piste écartée).',
   partyNote: 'Pré-tirés',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene(), narratif: construireNarratif() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireScene(), narratif: construireNarratif() }),
 };

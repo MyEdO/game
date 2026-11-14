@@ -44,7 +44,7 @@ export function LogDrawer({ battle, journal, initialOpen = false, onOpenHistory 
         </div>
       )}
       <button type="button" className="ld-btn skin-tole" data-ton="sombre" onClick={() => setOpen(!open)} title={open ? 'Fermer le journal' : 'Ouvrir le journal'}>
-        <Icon id="nav/compendium" size="lg" />
+        <Icon id="navigation/compendium" size="lg" />
       </button>
     </div>
   );

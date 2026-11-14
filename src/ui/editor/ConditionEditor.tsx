@@ -6,12 +6,29 @@
  * porteur (ex. `CONDITION_KINDS_CARTE`) ; absente = toute l'algèbre. Remplace les
  * adaptateurs plats `whenFlag/whenWindow/buildWhen` (qui n'exprimaient que « flag ET créneau »).
  */
-import { seuilDeBourse, type Condition, type ActorRef, type ActorField, type CompareOp, type PartySelector, type TemporalCondition } from '../../engine/flowCore';
+import {
+  seuilDeBourse,
+  type Condition,
+  type ActorRef,
+  type ActorField,
+  type CompareOp,
+  type PartySelector,
+  type TemporalCondition,
+} from '../../engine/flowCore';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { HIT_LOCATION_LABELS, type HitLocation } from '../../engine/types';
 import { libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { etatsAdmettant, valeursDeclarees } from '../../data/schemas/defs-scenes/formes-d-etat';
-import { actorFieldSchema, actorRefSchema, CONDITIONS_RESERVEES, conditionSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
+import {
+  actorFieldSchema,
+  actorRefSchema,
+  CONDITIONS_RESERVEES,
+  conditionSchema,
+  hasWhatSchema,
+  partyWhoSchema,
+  relationOrCampSchema,
+  startleCauseSchema,
+} from '../../data/schemas/grammaire/mecanique';
 import type { Camp, Relation } from '../../engine/relations';
 import { ChoixDeSpec, RefField, reposerLId } from '../compendium/refField/RefField';
 import { NumberField } from '../NumberField';
@@ -267,10 +284,10 @@ export function ConditionEditor({ cond, onChange, kinds, narratif, noeud = condi
           est
           <select className="cond-kind" value={cond.is} onChange={(e) => onChange({ ...cond, is: e.target.value as Relation | Camp })}>
             <optgroup label="relatif au lanceur">
-              {(['self', 'ally', 'opponent'] as const).map((r) => <option key={r} value={r}>{libelleDeValeur(relationOrCampSchema, r)}</option>)}
+              {(['soi', 'allie', 'adversaire'] as const).map((r) => <option key={r} value={r}>{libelleDeValeur(relationOrCampSchema, r)}</option>)}
             </optgroup>
             <optgroup label="camp absolu">
-              {(['party', 'neutral', 'hostile'] as const).map((r) => <option key={r} value={r}>{libelleDeValeur(relationOrCampSchema, r)}</option>)}
+              {(['groupe', 'neutre', 'hostile'] as const).map((r) => <option key={r} value={r}>{libelleDeValeur(relationOrCampSchema, r)}</option>)}
             </optgroup>
           </select>
         </span>

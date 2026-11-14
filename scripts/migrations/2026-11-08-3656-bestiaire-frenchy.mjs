@@ -578,7 +578,7 @@ function armes(p, relevesVus) {
       continue;
     }
     const arme = trappings.get(it.i);
-    if (!arme || (arme.categorie !== 'melee' && arme.categorie !== 'ranged')) continue;
+    if (!arme || (arme.categorie !== 'melee' && arme.categorie !== 'distance')) continue;
     const r = releve(it.i);
     const calcul = arme.damage.plusBF ? BF + arme.damage.flat : arme.damage.flat;
     if (arme.categorie === 'melee') { out.push({ id: 'arme', value: indice(r) ?? calcul, arg: it.i }); continue; }

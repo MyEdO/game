@@ -26,7 +26,7 @@ const rng: RNG = deFixe(5) as RNG;
 
 function mk(over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'c', name: 'Cobaye', kind: 'enemy', size: 'moyenne', advantage: 0,
+    id: 'c', name: 'Cobaye', kind: 'ennemi', size: 'moyenne', advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 },
     conditions: [], skills: [], talents: [], traits: [], groups: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -81,7 +81,7 @@ describe('runtime : un piège authoré frappe via le runtime des zones de Sort',
     {
       id: 'acid', label: 'Flaque acide', area: { kind: 'disc', cx: 5, cy: 5, radius: 1 },
       perRound: [{ op: 'wounds', amount: 8, ignoreTB: false, ignoreAP: true }],
-      onCross: [{ op: 'wounds', amount: 8, ignoreTB: false, ignoreAP: true }, { op: 'condition', id: 'empoisonne' }],
+      onCross: [{ op: 'wounds', amount: 8, ignoreTB: false, ignoreAP: true }, { op: 'condition', id: { id: 'empoisonne' } }],
     },
   ]);
   it('stationner dedans (perRound) : 8 − BE 3 = 5 Blessures', () => {

@@ -10,7 +10,7 @@ import { combattantDeTest } from './combattantDeTest.testkit';
 import { desDuTest } from './dice.testkit';
 import { ciblePsy, refDeCible } from './psych/ciblage';
 
-const SOURCE = { kind: 'spell', id: 'colerique' } as const;
+const SOURCE = { kind: 'sort', id: 'colerique' } as const;
 const haineDuRival = (heures: number): GameOp => ({
   op: 'grantPsychTrait', psychType: { id: 'haine' }, cible: refDeCible(ciblePsy.individu('rival')), durationHours: heures,
 });

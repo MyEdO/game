@@ -89,15 +89,13 @@ describe('#1357 — portage des Groupes vers la donnée : parité avec les table
     expect(creatures.length).toBeGreaterThan(0); // le corpus mesuré n'est pas vide
   });
 
-  it('la mesure MORD : les dossiers historiques et les porteurs de Trait sont bien dans le corpus mesuré', () => {
-    const dossiers = new Set<string>();
-    let porteursDeTrait = 0;
-    for (const c of creatures) {
-      if (groupeDuDossier(c.folder)) dossiers.add(c.folder!);
-      if ((c.traits ?? []).some((t) => TRAIT_RULES_GELEES.some((r) => r.traitId === t.id))) porteursDeTrait += 1;
+  it('la mesure MORD : chaque règle gelée produit son Groupe sur au moins une entrée du corpus mesuré', () => {
+    for (const r of FOLDER_RULES_GELEES) {
+      expect(creatures.some((c) => groupeDuDossier(c.folder) === r.group), `dossier « ${r.kw} » absent du corpus`).toBe(true);
     }
-    expect(dossiers.size).toBeGreaterThanOrEqual(10);
-    expect(porteursDeTrait).toBeGreaterThanOrEqual(22);
+    for (const r of TRAIT_RULES_GELEES) {
+      expect(creatures.some((c) => (c.traits ?? []).some((t) => t.id === r.traitId)), `Trait « ${r.traitId} » absent du corpus`).toBe(true);
+    }
   });
 
   it('les deux Traits migrés déclarent leur Groupe en donnée (le canal de remplacement EXISTE)', () => {

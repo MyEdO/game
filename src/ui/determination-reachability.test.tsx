@@ -26,7 +26,7 @@ const BASE_CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30,
 
 const heros = (over: Partial<Combatant>) =>
   (blessuresSurLeProfil({
-    id: 'grimm', name: 'Grimm', label: 'Grimm', kind: 'hero', wounds: blessuresDeBase(12, 8),
+    id: 'grimm', name: 'Grimm', label: 'Grimm', kind: 'heros', wounds: blessuresDeBase(12, 8),
     conditions: [], advantage: 0, weapons: [], skills: [], items: [], movement: 4, talents: [], traumas: [],
     engagedWith: [], size: 'moyenne', species: 'humains-reiklander', bodyShape: 'humanoide',
     pos: { x: 0, y: 0 }, career: 'agitateur',
@@ -77,7 +77,7 @@ afterEach(() => {
 describe('Détermination — les trois usages sont ATTEIGNABLES depuis la console (LDB 17 l.59-61)', () => {
   it('usage 1 (l.59) — l’alvéole « immunité Psychologie » est vivante et DÉPENSE le point', () => {
     monter(heros({ resolve: 2, conditions: [], traumas: [] }));
-    const c = alveole('resolve-psych-immune');
+    const c = alveole('determination-psychologie');
     expect(c, 'aucune alvéole d’immunité Psychologie dans la grille').toBeTruthy();
     expect(c!.disabled).toBe(false);
     act(() => c!.click());
@@ -90,7 +90,7 @@ describe('Détermination — les trois usages sont ATTEIGNABLES depuis la consol
     // `ignoreCritMods` porte au-delà des seules séquelles (il annule aussi les malus de maladie/faim,
     // `engine/trauma.ts:877`). La case reste donc offerte tant qu'il reste un point.
     monter(heros({ resolve: 1, conditions: [], traumas: [] }));
-    const c = alveole('resolve-ignore-crit');
+    const c = alveole('determination-critique');
     expect(c, 'aucune alvéole « ignorer les modificateurs de critique »').toBeTruthy();
     act(() => c!.click());
     expect(actif().resolve).toBe(0);
@@ -100,8 +100,8 @@ describe('Détermination — les trois usages sont ATTEIGNABLES depuis la consol
   it('réserve VIDE — les deux alvéoles restent DESSINÉES et portent leur raison, au SURVOL', () => {
     const h = heros({ resolve: 0, conditions: [] });
     monter(h);
-    const attendue = actionGate('resolve-psych-immune', { active: h, battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
-    for (const id of ['resolve-psych-immune', 'resolve-ignore-crit']) {
+    const attendue = actionGate('determination-psychologie', { scene: useGame.getState().scene, active: h, battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
+    for (const id of ['determination-psychologie', 'determination-critique']) {
       const c = alveole(id)!;
       expect(c, `l’alvéole ${id} a disparu — la géométrie ne bouge jamais`).toBeTruthy();
       // Fermée par `aria-disabled` : elle porte une raison, elle doit rester focalisable (clavier,
@@ -136,7 +136,7 @@ describe('Détermination — les trois usages sont ATTEIGNABLES depuis la consol
   it('usage 3 — le geste NOMME l’État par son LIBELLÉ (jamais son id)', () => {
     monter(heros({ resolve: 1, conditions: [{ id: 'aveugle', value: 1 }] as never }));
     const nom = pastilles()[0].getAttribute('aria-label') ?? '';
-    expect(nom).toContain(findActionById('resolve-remove-condition')!.label);
+    expect(nom).toContain(findActionById('determination-etat')!.label);
     expect(nom).toContain(conditionLabel('aveugle'));
     // Assertion NÉGATIVE sur l'id : le libellé (« Aveuglé ») et l'id (« aveugle ») sont des chaînes
     // distinctes — le témoin ci-dessus borne la mesure, celui-ci interdit d'afficher l'id au joueur.

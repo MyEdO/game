@@ -9,7 +9,6 @@
       "page": 234,
       "note": "Tableau des Incantations Imparfaites Mineures/Majeures, LDB 46"
     },
-    "codexCategory": "miscastMinor",
     "entries": [
       {
         "id": "mineure-signe-de-sorciere",
@@ -52,7 +51,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "assourdi",
+            "id": {
+              "id": "assourdi"
+            },
             "value": 1
           }
         ],
@@ -104,7 +105,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "hemorragique",
+            "id": {
+              "id": "hemorragique"
+            },
             "value": {
               "dice": {
                 "n": 1,
@@ -127,7 +130,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "a-terre",
+            "id": {
+              "id": "a-terre"
+            },
             "value": 1
           }
         ],
@@ -156,7 +161,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "empetre",
+            "id": {
+              "id": "empetre"
+            },
             "value": 1,
             "escapeStrength": {
               "times": {
@@ -196,7 +203,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "extenue",
+            "id": {
+              "id": "extenue"
+            },
             "value": 1
           }
         ],
@@ -214,7 +223,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "surpris",
+            "id": {
+              "id": "surpris"
+            },
             "value": 1
           }
         ],
@@ -232,7 +243,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "aveugle",
+            "id": {
+              "id": "aveugle"
+            },
             "value": 1
           }
         ],
@@ -246,7 +259,9 @@
           "onFail": [
             {
               "op": "condition",
-              "id": "aveugle",
+              "id": {
+                "id": "aveugle"
+              },
               "value": 1
             }
           ]
@@ -298,7 +313,9 @@
           "onFail": [
             {
               "op": "condition",
-              "id": "brise",
+              "id": {
+                "id": "brise"
+              },
               "value": 1
             }
           ]
@@ -373,7 +390,6 @@
       "page": 234,
       "note": "Tableau des Incantations Imparfaites Mineures/Majeures, LDB 46"
     },
-    "codexCategory": "miscastMajor",
     "entries": [
       {
         "id": "majeure-voix-fantomatiques",
@@ -408,7 +424,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "aveugle",
+            "id": {
+              "id": "aveugle"
+            },
             "value": 1
           }
         ],
@@ -446,7 +464,9 @@
           "onFail": [
             {
               "op": "condition",
-              "id": "sonne",
+              "id": {
+                "id": "sonne"
+              },
               "value": 1
             }
           ]
@@ -476,7 +496,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "extenue",
+            "id": {
+              "id": "extenue"
+            },
             "value": 1
           }
         ],
@@ -494,7 +516,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "en-flammes",
+            "id": {
+              "id": "en-flammes"
+            },
             "value": 1
           }
         ],
@@ -560,7 +584,9 @@
           },
           {
             "op": "condition",
-            "id": "a-terre",
+            "id": {
+              "id": "a-terre"
+            },
             "value": 1
           }
         ],
@@ -637,7 +663,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "sonne",
+            "id": {
+              "id": "sonne"
+            },
             "durationRounds": {
               "dice": {
                 "n": 1,
@@ -686,12 +714,16 @@
           },
           {
             "op": "condition",
-            "id": "a-terre",
+            "id": {
+              "id": "a-terre"
+            },
             "value": 1
           },
           {
             "op": "condition",
-            "id": "extenue",
+            "id": {
+              "id": "extenue"
+            },
             "value": 1
           }
         ],
@@ -803,7 +835,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "assourdi",
+            "id": {
+              "id": "assourdi"
+            },
             "value": 1
           }
         ],
@@ -843,7 +877,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "empetre",
+            "id": {
+              "id": "empetre"
+            },
             "value": 1,
             "escapeStrength": {
               "times": {
@@ -909,7 +945,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "surpris",
+            "id": {
+              "id": "surpris"
+            },
             "value": 1
           }
         ],
@@ -927,7 +965,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "aveugle",
+            "id": {
+              "id": "aveugle"
+            },
             "value": 1
           }
         ],
@@ -941,7 +981,9 @@
           "onFail": [
             {
               "op": "condition",
-              "id": "aveugle",
+              "id": {
+                "id": "aveugle"
+              },
               "value": 1
             }
           ]
@@ -960,7 +1002,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "aveugle",
+            "id": {
+              "id": "aveugle"
+            },
             "value": 1
           }
         ],
@@ -978,7 +1022,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "hemorragique",
+            "id": {
+              "id": "hemorragique"
+            },
             "value": 1
           }
         ],
@@ -1026,7 +1072,9 @@
           "onFail": [
             {
               "op": "condition",
-              "id": "brise",
+              "id": {
+                "id": "brise"
+              },
               "value": 1
             }
           ]
@@ -1062,7 +1110,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "extenue",
+            "id": {
+              "id": "extenue"
+            },
             "value": 1
           }
         ],
@@ -1174,7 +1224,9 @@
           "onFail": [
             {
               "op": "condition",
-              "id": "sonne",
+              "id": {
+                "id": "sonne"
+              },
               "value": 1
             }
           ]
@@ -1215,7 +1267,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "en-flammes",
+            "id": {
+              "id": "en-flammes"
+            },
             "value": 1
           }
         ],
@@ -1281,7 +1335,9 @@
           },
           {
             "op": "condition",
-            "id": "a-terre",
+            "id": {
+              "id": "a-terre"
+            },
             "value": 1
           }
         ],
@@ -1358,7 +1414,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "sonne",
+            "id": {
+              "id": "sonne"
+            },
             "durationRounds": {
               "dice": {
                 "n": 1,
@@ -1418,12 +1476,16 @@
           },
           {
             "op": "condition",
-            "id": "a-terre",
+            "id": {
+              "id": "a-terre"
+            },
             "value": 1
           },
           {
             "op": "condition",
-            "id": "extenue",
+            "id": {
+              "id": "extenue"
+            },
             "value": 1
           }
         ],
@@ -1493,7 +1555,6 @@
       "page": 218,
       "note": "Tableau de la Colère des dieux, LDB 40 l.52-89"
     },
-    "codexCategory": "miscastWrath",
     "entries": [
       {
         "id": "colere-visions-sacrees",
@@ -1510,7 +1571,9 @@
           "onFail": [
             {
               "op": "condition",
-              "id": "sonne",
+              "id": {
+                "id": "sonne"
+              },
               "value": 1
             }
           ]
@@ -1583,7 +1646,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "a-terre",
+            "id": {
+              "id": "a-terre"
+            },
             "value": 1
           }
         ],
@@ -1713,7 +1778,9 @@
           "onFail": [
             {
               "op": "condition",
-              "id": "sonne",
+              "id": {
+                "id": "sonne"
+              },
               "value": 1
             }
           ]
@@ -1732,7 +1799,9 @@
         "targetOps": [
           {
             "op": "condition",
-            "id": "a-terre",
+            "id": {
+              "id": "a-terre"
+            },
             "value": 1
           },
           {
@@ -1826,7 +1895,9 @@
           "onFail": [
             {
               "op": "condition",
-              "id": "sonne",
+              "id": {
+                "id": "sonne"
+              },
               "value": 1
             }
           ]
@@ -1876,7 +1947,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "hemorragique",
+            "id": {
+              "id": "hemorragique"
+            },
             "value": {
               "sum": [
                 1,
@@ -1901,12 +1974,16 @@
         "ops": [
           {
             "op": "condition",
-            "id": "a-terre",
+            "id": {
+              "id": "a-terre"
+            },
             "value": 1
           },
           {
             "op": "condition",
-            "id": "aveugle",
+            "id": {
+              "id": "aveugle"
+            },
             "value": {
               "sum": [
                 1,
@@ -1958,7 +2035,9 @@
           "onFail": [
             {
               "op": "condition",
-              "id": "sonne",
+              "id": {
+                "id": "sonne"
+              },
               "value": 1
             }
           ]
@@ -2033,7 +2112,9 @@
           "onFail": [
             {
               "op": "condition",
-              "id": "sonne",
+              "id": {
+                "id": "sonne"
+              },
               "value": 1
             }
           ],
@@ -2042,15 +2123,21 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "inconscient",
+                "id": {
+                  "id": "inconscient"
+                },
                 "value": 1
               },
               {
                 "op": "condition",
-                "id": "inconscient",
+                "id": {
+                  "id": "inconscient"
+                },
                 "value": 1,
                 "perRound": true,
-                "unlessCondition": "inconscient",
+                "unlessCondition": {
+                  "id": "inconscient"
+                },
                 "durationRounds": {
                   "dice": {
                     "n": 1,
@@ -2086,7 +2173,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "brise",
+            "id": {
+              "id": "brise"
+            },
             "value": {
               "sum": [
                 1,
@@ -2125,7 +2214,9 @@
           },
           {
             "op": "condition",
-            "id": "inconscient"
+            "id": {
+              "id": "inconscient"
+            }
           }
         ],
         "source": {
@@ -2241,7 +2332,9 @@
           },
           {
             "op": "condition",
-            "id": "en-flammes",
+            "id": {
+              "id": "en-flammes"
+            },
             "value": 1
           }
         ],

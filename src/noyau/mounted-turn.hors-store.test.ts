@@ -8,7 +8,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 
@@ -16,14 +16,14 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function setup() {
-  const hero = makePregens(idsDeTest)[0];
+  const hero = tousLesHerosDeScenario(idsDeTest)[0];
   hero.pos = { x: 5, y: 5 };
   hero.initiative = 50;
   const horse = spawnEnemy({ ref: 'cheval' }, 'horse', { x: 6, y: 5 });
   horse.traits = [{ id: 'nerveux' }, { id: 'taille', arg: 'Grande' }] as never; // Cheval ordinaire : Trait Nerveux, Taille Grande
   horse.size = 'grande';
   horse.mountable = true;
-  horse.kind = 'hero'; // monture ALLIÉE (on n'enfourche que sa propre équipe)
+  horse.kind = 'heros'; // monture ALLIÉE (on n'enfourche que sa propre équipe)
   horse.initiative = 30;
   const other = spawnEnemy({ ref: 'humain' }, 'other', { x: 1, y: 1 });
   other.initiative = 40;

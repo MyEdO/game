@@ -2,12 +2,15 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
-import { findVehicleById } from '../data';
+import { findVehicleById, refLabel } from '../data';
+import { VIVRES_DE_CALE } from '../engine/seaNavigation';
+import { rationsDeCale, rationsDuVivre } from '../engine/provisions';
 import { findManannFactor } from '../engine/seaVoyage';
 import { findCargoEntryById } from '../engine/cargo';
 import { dossierDuNavire } from '../noyau/seaVoyageFlow';
 import { moraleBand, findMoraleFactor } from '../engine/crewMorale';
 import { fromBrass } from '../engine/money';
+import { formatEffetSigne } from '../engine/dice';
 import { bulkCarriers, nomDuNavire } from '../noyau/carriers';
 import { Coins } from './Coins';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -31,8 +34,8 @@ import { Split } from './Layout';
  * localisations — arbitrage USER). La fiche de combat `PosteSheet` (postes/manœuvre) reste distincte.
  */
 
-/** Humeur de Manann (MDG 15) → ton par SIGNE : favorable = ok, courroucée = danger, neutre = neutral. */
-const manannTone = (score: number): GaugeTone => (score > 0 ? 'ok' : score < 0 ? 'danger' : 'neutral');
+/** Humeur de Manann (MDG 15) → ton par SIGNE : favorable = ok, courroucée = danger, neutre = neutre. */
+const manannTone = (score: number): GaugeTone => (score > 0 ? 'ok' : score < 0 ? 'danger' : 'neutre');
 
 /** Surcharge de soute (MDG 12 l.70-75) : au-delà de la Contenance = surcharge (danger), proche = warn. */
 const cargoTone = (enc: number, cap: number): GaugeTone => {
@@ -52,6 +55,7 @@ type DossierTab = 'apercu' | 'cargaison' | 'equipage';
 export function ShipDossier({ onClose, initialTab }: { onClose: () => void; initialTab?: DossierTab }) {
   const vessel = useGame((s) => s.vessel);
   const party = useGame((s) => s.party);
+  const gameTime = useGame((s) => s.gameTime);
   const possessions = useGame((s) => s.possessions);
   const move = useGame((s) => s.deplacerLaCargaison);
   // Transfert navire ↔ porteur terrestre CO-LOCALISÉ (`carriersColocated` : avec le groupe, ou au même Lieu).
@@ -59,16 +63,16 @@ export function ShipDossier({ onClose, initialTab }: { onClose: () => void; init
   const carriers = useMemo(() => bulkCarriers({ party, vessel, possessions }), [party, vessel, possessions]);
   if (!vessel) return null;
   const transfer = <CargoTransferPanel carriers={carriers} onMove={move} labelOf={(id) => findCargoEntryById(id)?.label ?? id} />;
-  return <ShipDossierView vessel={vessel} party={party} onClose={onClose} initialTab={initialTab} transfer={transfer} />;
+  return <ShipDossierView vessel={vessel} party={party} now={gameTime} onClose={onClose} initialTab={initialTab} transfer={transfer} />;
 }
 
 /** Corps PUR (props) — testable en rendu statique (l'environnement de test est `node`, sans DOM :
  *  les sélecteurs de store ne s'hydratent pas sous `renderToStaticMarkup`, on passe donc les données). */
-export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu', transfer }: { vessel: CampaignVessel; party: Combatant[]; onClose: () => void; initialTab?: DossierTab; transfer?: ReactNode }) {
+export function ShipDossierView({ vessel, party, now, onClose, initialTab = 'apercu', transfer }: { vessel: CampaignVessel; party: Combatant[]; now: number; onClose: () => void; initialTab?: DossierTab; transfer?: ReactNode }) {
   const [tab, setTab] = useState<DossierTab>(initialTab);
 
   const vd = findVehicleById(vessel.vehicleId);
-  const vue = dossierDuNavire(vessel, party);
+  const vue = dossierDuNavire(vessel, party, now);
   if (!vd?.ship || !vue) return null;
 
   const name = nomDuNavire(vessel);
@@ -86,7 +90,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
     <ScreenShell
       className="ship-dossier"
       title={<>
-        <Icon id="travel/sail-ship" size="sm" /> {name}
+        <Icon id="voyage/navire-a-voile" size="sm" /> {name}
         <span className="char-sub"> — {vd.label}{rig ? ` · ${libelleDeValeur(rigSchema, rig)}` : ''}</span>
       </>}
       onClose={onClose}
@@ -95,8 +99,8 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
         <Tabs
           tabs={[
             { key: 'apercu' as const, label: <><Icon id="scenario/naval" size="sm" /> Vue d’ensemble</> },
-            { key: 'cargaison' as const, label: <><Icon id="item/misc" size="sm" /> Cargaison</> },
-            { key: 'equipage' as const, label: <><Icon id="nav/seat-owner" size="sm" /> Équipage</> },
+            { key: 'cargaison' as const, label: <><Icon id="objet/divers" size="sm" /> Cargaison</> },
+            { key: 'equipage' as const, label: <><Icon id="navigation/proprietaire-du-siege" size="sm" /> Équipage</> },
           ]}
           active={tab}
           onChange={setTab}
@@ -159,13 +163,18 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
               {vessel.saboteurDR ? <p className="port-hint">Sabotage actif : <b>{vessel.saboteurDR} DR</b> aux Tests d’équipage.</p> : null}
               <p className="port-hint">À bord : <b>{vue.heroes} héros + {crewCount} d’équipage</b>.</p>
               <p className="port-hint">
-                Eau douce : <b>{vessel.waterLitres != null ? `${vessel.waterLitres} L` : 'ravitaillement réputé assuré'}</b>
+                Eau douce : <b>{vessel.waterLitres != null ? `${vessel.waterLitres} L` : 'non suivie'}</b>
                 {autonomyDays != null ? ` · autonomie ~${autonomyDays} jour(s)` : ''}
               </p>
               <p className="port-hint">
-                Vivres d’équipage : <b>{vessel.provisions != null ? `${vessel.provisions} jour(s)-homme` : 'ravitaillement réputé assuré'}</b>
+                Vivres d’équipage : <b>{vessel.provisions != null ? `${rationsDeCale(vessel.provisions)} jour(s)-homme` : 'non suivis'}</b>
                 {provisionDays != null ? ` · autonomie ~${provisionDays} jour(s)` : ''}
               </p>
+              {vessel.provisions != null && (
+                <ul className="ship-dossier-list" aria-label="Vivres de la cale">
+                  {VIVRES_DE_CALE.vivres.map((id) => <li key={id}>{refLabel('trappings', { id })} : <b>{rationsDuVivre(vessel.provisions, id)}</b> ration(s)-jour</li>)}
+                </ul>
+              )}
               <p className="port-hint">Dernière traversée : <b>{vessel.lastVoyageMilles != null ? `${vessel.lastVoyageMilles} milles` : 'à quai depuis la mise à l’eau'}</b></p>
             </section>
 
@@ -189,7 +198,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
             <section className="panel port-section">
               <h3>Cale</h3>
               <NotchGauge label="Soute" value={cargoEnc} max={cargoMax} marks={cargoMarks} stacked tone={cargoTone} format={(v) => `${v} / ${capacity} Enc${overload.palierId ? ` — ${overload.label} (${overload.ratioPct} %)` : ''}`} />
-              {overload.palierId && <p className="port-hint">Surcharge : <b>{overload.mMod} M</b>, <b>{overload.manoeuvreDR} DR Manœuvre</b>.</p>}
+              {overload.palierId && <p className="port-hint">Surcharge : <b>{overload.mMod} M</b>, <b>{overload.drDeManoeuvre} DR Manœuvre</b>.</p>}
               {vue.refusDAppareiller && <p className="port-hint">{vue.refusDAppareiller}</p>}
               {cargo.length === 0 ? (
                 <p className="port-hint">La cale est vide.</p>
@@ -251,7 +260,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
                 <ul className="ship-dossier-list">
                   {vessel.morale.factors.map((id) => {
                     const f = findMoraleFactor(id);
-                    return <li key={id}>{f?.label ?? id}{f ? ` (${f.effect})` : ''}</li>;
+                    return <li key={id}>{f?.label ?? id}{f ? ` (${formatEffetSigne(f.effect)})` : ''}</li>;
                   })}
                 </ul>
               ) : (

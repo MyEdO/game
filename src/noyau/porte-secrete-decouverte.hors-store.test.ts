@@ -73,7 +73,7 @@ describe('porte secrète — découverte à l’approche', () => {
     expect(pt.label).toBe(t('eff.porteSecreteTest'));
     expect(pt.support?.bonus).toBeGreaterThan(0); // LDB 12 l.189
     expect(pt.roll).toBeNull();
-    expect(banc.getState().pendingCascade!.participants[0].stake?.key).toEqual({ dataset: 'flow', kind: 'perception-detect' });
+    expect(banc.getState().pendingCascade!.participants[0].stake?.key).toEqual({ dataset: 'flux', kind: 'perception-detecter' });
     expect(porteTentee(banc.getState().scene!, seg())).toBe(true);
   });
 
@@ -144,12 +144,12 @@ describe('porte secrète — combat : aucune découverte', () => {
     banc.setState({ party: [heros()[0]] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const sc = plan();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true));
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    b.combatants.filter((c) => c.kind === 'ennemi').forEach((e) => (e.dead = true));
     H.engagedWith = [];
     placeCombatant(H, sc, { x: 3, y: 2 });
     banc.setState({

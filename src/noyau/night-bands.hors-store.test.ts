@@ -112,7 +112,7 @@ describe('CLÉ de bande = (entrée de règle, JOUR)', () => {
 
   it('la fabrique SÉPARE aussi deux jets de même entrée le MÊME jour chez le MÊME héros (deux fenêtres)', () => {
     const mono = (id: string, day: number) => nuit({
-      id, kind: 'trauma-fracture', label: 'Convalescence', base: 40, difficulty: 'accessible', target: 60, meta: { day },
+      id, kind: 'convalescence-fracture', label: 'Convalescence', base: 40, difficulty: 'accessible', target: 60, meta: { day },
     });
     const out = nightBands([mono('a', 4), mono('b', 4)]);
     expect(out).toHaveLength(2); // deux Convalescences échéant le même jour : deux fenêtres, jamais un doublon
@@ -126,7 +126,7 @@ describe('CLÉ de bande = (entrée de règle, JOUR)', () => {
    * (`nightRowId`) viseraient sinon la mauvaise. Le jour ne suffit pas : il faut aussi le rang.
    */
   const conv = (id: string, day?: number) => nuit({
-    id, kind: 'trauma-fracture', label: 'Convalescence', base: 40, difficulty: 'accessible', target: 60,
+    id, kind: 'convalescence-fracture', label: 'Convalescence', base: 40, difficulty: 'accessible', target: 60,
     ...(day !== undefined ? { meta: { day } } : {}),
   });
 
@@ -218,7 +218,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
     expect(faim.groupOwner).toBeUndefined();
 
     // Deux sièges : le siège 1 possède le dormeur — l'hôte ne doit plus être le destinataire par défaut.
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { h1: 1 } } } as never);
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { h1: 1 } } } as never);
     expect(modalOwnerOf(get())).toBe('h1');
     expect(seatOwns(get(), 1, 'h1'), 'la fenêtre est au siège qui tient le dormeur').toBe(true);
     expect(seatOwns(get(), 0, 'h1'), 'et plus à l’hôte').toBe(false);
@@ -248,7 +248,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
 
     // La fenêtre part au siège qui tient le dormeur, plus à l'hôte (assertion COOP, #1262 B7).
     set({ pendingCascade: cascadeDeTest([kept!], { title: 'T' }) });
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { h1: 1 } } } as never);
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { h1: 1 } } } as never);
     expect(modalOwnerOf(get())).toBe('h1');
     expect(seatOwns(get(), 1, 'h1')).toBe(true);
     expect(seatOwns(get(), 0, 'h1'), 'l’hôte ne tranche pas le jet de l’invité').toBe(false);
@@ -269,7 +269,7 @@ describe('gueule de bois (LDB 09 l.485) — due par TOUTE rangée du dessoûlage
     set({ pendingCascade: { ...p, participants: p.participants.map((s) => (s.id === desso.id ? { ...s, participants: rows } : s)) } });
     get().jetValider('cascade');
 
-    const hangover = bandsOf('dessoulage-hangover');
+    const hangover = bandsOf('dessoulage-gueule-de-bois');
     expect(hangover, 'le 2ᵉ Test est dû « une fois tous les effets dissipés », pas aux seuls perdants').toHaveLength(1);
     expect(hangover[0].participants!.map((r) => r.id)).toEqual(['h1', 'h2']);
   });
@@ -299,8 +299,8 @@ describe('une bande par MALADIE', () => {
     const sick = contractDisease('verole-urticante', deFixe(1) as never, { incubation: 0, duration: 5 })!;
     set({ party: [h('m1', { diseases: [sick] }), h('s1'), h('s2')], scene: emptyScene('scene-test', 6, 6) } as never);
     get().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
-    for (const id of ['m1', 's1', 's2']) get().fenetreChoisir('rest', 'pitance', 'rien', id);
-    get().fenetreValider('rest');
+    for (const id of ['m1', 's1', 's2']) get().fenetreChoisir('repos', 'pitance', 'rien', id);
+    get().fenetreValider('repos');
 
     const cont = bandsOf('contagion');
     expect(cont).toHaveLength(1);
@@ -309,7 +309,7 @@ describe('une bande par MALADIE', () => {
 });
 
 /**
- * Le `kind` 'exposure' a TROIS producteurs (nuit de repos, effet de scène `exposureNight`, entretien
+ * Le `kind` 'exposition-nocturne' a TROIS producteurs (nuit de repos, effet de scène `exposureNight`, entretien
  * de mer) et UN SEUL applier — d'escalade cumulative (LDB 18 l.330/334). Si l'un d'eux restait MONO,
  * l'applier de bande RENONCERAIT sur ses étapes : jets lancés, aucune conséquence, en silence (le
  * sinistre du migrateur psy). Garde STRUCTURELLE : tout FICHIER qui construit une étape d'Exposition
@@ -352,7 +352,7 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
     const manuel = h('manuel', { hunger: { days: 2, tests: 0, failures: 0 } });
     const temoin = h('temoin', { hunger: { days: 2, tests: 0, failures: 0 } });
     addCondition(temoin, 'inconscient', 1); // hors d'action → jamais un jet à influencer
-    const ennemi = combattantDeTest({ id: 'e', kind: 'enemy', label: 'Bandit', characteristics: { endurance: 30 } as never,
+    const ennemi = combattantDeTest({ id: 'e', kind: 'ennemi', label: 'Bandit', characteristics: { endurance: 30 } as never,
       wounds: blessuresDeBase(10, 0), dead: true, conditions: [], skills: [], items: [], weapons: [], movement: 4, advantage: 0 });
     const queue = nightBands([
       nuit({ id: 'faim-manuel-0', kind: 'faim', hero: 'manuel', label: 'Faim', base: 40, target: 40, meta: { day: 1 } }),
@@ -380,11 +380,11 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
    *  file étant VIDÉE dans le même geste, l'étape — et sa conséquence — disparaîtraient en silence. */
   it('SONDE A : une étape NON bandable de la file survit (chemin d’origine), jamais dissoute par la scission', () => {
     const manuel = h('manuel');
-    const ennemi = combattantDeTest({ id: 'e', kind: 'enemy', label: 'Bandit', characteristics: { endurance: 30 } as never,
+    const ennemi = combattantDeTest({ id: 'e', kind: 'ennemi', label: 'Bandit', characteristics: { endurance: 30 } as never,
       wounds: blessuresDeBase(10, 0), dead: true, conditions: [], skills: [], items: [], weapons: [], movement: 4, advantage: 0 });
-    // `combatEndDisease` n'est PAS un `NightTestKind` → `nightBands` la laisse passer INTACTE.
+    // `maladieDeFinDeCombat` n'est PAS un `NightTestKind` → `nightBands` la laisse passer INTACTE.
     const etrangere = nuit({
-      id: 'combatEndDisease-manuel-x', kind: 'combatEndDisease', hero: 'manuel', label: 'Résistance',
+      id: 'maladieDeFinDeCombat-manuel-x', kind: 'maladieDeFinDeCombat', hero: 'manuel', label: 'Résistance',
       base: 40, target: 40, meta: { disease: 'courante-galopante' },
     });
     expect(nightBands([etrangere])[0]).toBe(etrangere); // garde du prémisse : elle traverse la fabrique telle quelle
@@ -395,9 +395,9 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
     } as never);
 
     expect(checkBattleOver(get, set)).toBe(true);
-    const vues = (get().pendingCascade?.participants ?? []).filter((s) => s.kind === 'combatEndDisease');
+    const vues = (get().pendingCascade?.participants ?? []).filter((s) => s.kind === 'maladieDeFinDeCombat');
     expect(vues, 'l’étape non bandable a disparu de la file ET de la cascade').toHaveLength(1);
-    expect(vues[0].id).toBe('combatEndDisease-manuel-x');
+    expect(vues[0].id).toBe('maladieDeFinDeCombat-manuel-x');
   });
 });
 
@@ -426,7 +426,7 @@ describe('SONDE B — ids de bande UNIQUES dans la séquence', () => {
       get().jetValider('cascade');
     }
 
-    const hangovers = vus.filter((v) => v.kind === 'dessoulage-hangover');
+    const hangovers = vus.filter((v) => v.kind === 'dessoulage-gueule-de-bois');
     expect(hangovers, 'chaque Dessoûlage doit sa gueule de bois (LDB 09 l.485)').toHaveLength(2);
     const ids = vus.map((v) => v.id);
     const doublons = ids.filter((id, i) => ids.indexOf(id) !== i);
@@ -446,7 +446,7 @@ describe('SONDE D — Exposition (chaleur) de bout en bout : drop → cancelsRow
     const h1 = h('h1'); h1.items = [heavy];
     const h2 = h('h2'); h2.items = [];
     set({ party: [h1, h2], pendingCascade: null, journal: [] } as never);
-    applyEffects(get, set, [{ type: 'exposureNight', kind: 'chaleur', count: 2, target: 'party' }]);
+    applyEffects(get, set, [{ type: 'exposureNight', kind: 'chaleur', count: 2, target: 'groupe' }]);
 
     const wave0 = get().pendingCascade!.participants[0];
     expect(wave0.participants!.map((r) => r.id)).toEqual(['h1', 'h2']);
@@ -459,14 +459,14 @@ describe('SONDE D — Exposition (chaleur) de bout en bout : drop → cancelsRow
 
     // UN SEUL délestage inséré (h2 n'a rien de lourd à jeter — sa conséquence est immédiate).
     const cur = () => { const c = get().pendingCascade!; return c.participants[c.cursor]; };
-    expect(cur().kind).toBe('exposure-heat-drop');
+    expect(cur().kind).toBe('exposition-delestage');
     expect(cur().actorId).toBe('h1');
     expect(cur().meta?.cancelsRowId).toBe(`${wave0.id}:h1`);
     get().jetRegler('cascade', 'choix', 'jeter', cur().id);
     get().jetValider('cascade');
 
     const wave1 = cur();
-    expect(wave1.kind).toBe('exposure');
+    expect(wave1.kind).toBe('exposition-nocturne');
     expect(wave1.meta?.wave).toBe(1);
     expect(Object.fromEntries(wave1.participants!.map((r) => [r.id, r.meta?.priorFails])))
       .toEqual({ h1: 0, h2: 1 }); // h1 : échec ANNULÉ par le délestage ; h2 : échec bien compté

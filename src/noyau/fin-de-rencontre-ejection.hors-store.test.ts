@@ -38,7 +38,7 @@ function combatAvecEjecte() {
   const ejecte: Combatant = { ...sien, outOfRencontre: true, exitReason: 'destin' };
   banc.setState({
     party: [mien, sien], scene: emptyScene('scene-test'), possessions: [],
-    net: { ...banc.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Antoine' } },
+    net: { ...banc.getState().net, mode: 'hote', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Antoine' } },
     battle: {
       combatants: [mien, ejecte], order: ['h1', 'h2'], baseOrder: ['h1', 'h2'], turn: 0, round: 4,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,

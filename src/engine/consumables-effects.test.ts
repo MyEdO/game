@@ -1,7 +1,7 @@
 /**
  * Effets mécaniques des consommables — suite comportementale sur la DONNÉE RÉELLE (#50).
  * Couvre les drogues (LDB 71), herbes/potions (LDB 72) et herbes MSRC 2, au format FLOW :
- *  - flows purement `do` → aplatis (`flattenFlow`) et appliqués par `applyOps` (moteur pur) ;
+ *  - flows purement `effet` → aplatis (`flattenFlow`) et appliqués par `applyOps` (moteur pur) ;
  *  - flows à nœud `test`/`delayed` → assertions de STRUCTURE (le runtime cadence-aware est couvert
  *    par `noyau/consumable-flow.hors-store.test.ts`).
  */
@@ -45,7 +45,7 @@ const activeDisease = (id: string, durationDays: number): Disease => ({
   durationMinutes: durationDays * MINUTES_PER_DAY,
 });
 
-/** Applique le Flow d'un consommable SANS nœud test (do/if seulement) au buveur — voie moteur pur. */
+/** Applique le Flow d'un consommable SANS nœud test (effet/si seulement) au buveur — voie moteur pur. */
 function drinkPure(c: Combatant, id: string): void {
   const flow = consommableDe(itemFromTrappingById(id, idsDeTest)!)!;
   for (const leaf of flattenFlow(flow, { flags: {}, gameTime: 0, party: [c], target: view(c), caster: view(c) })) {
@@ -56,21 +56,21 @@ function drinkPure(c: Combatant, id: string): void {
 function view(c: Combatant) {
   return {
     id: c.id ?? 'x', woundsCurrent: c.wounds.current, woundsMax: c.wounds.max, size: 3, advantage: 0,
-    camp: 'party' as const, groups: c.groups ?? [], talents: [], traits: [], conditions: {},
+    camp: 'groupe' as const, groups: c.groups ?? [], talents: [], traits: [], conditions: {},
     chars: Object.fromEntries(Object.entries(c.characteristics)) as never,
   };
 }
 
-/** Branche `then` du Flow onHit (patron Venin) d'un poison-enduit : `if[…] → test → fail`. */
+/** Branche `alors` du Flow onHit (patron Venin) d'un poison-enduit : `if[…] → test → echec`. */
 type VeninThen = {
   test: { skill?: string; difficulty?: string; gate?: unknown; onlyGroups?: string[] };
-  fail: { effect: { ops: { op: string; id?: string; value?: number }[] } };
+  echec: { effet: { ops: { op: string; id?: string; value?: number }[] } };
 };
 const onHitVeninThen = (id: string): VeninThen => {
   const aug = consumableOps(consommableDe(itemFromTrappingById(id, idsDeTest)!)).find((o) => o.op === 'augmentWeapon') as
-    | { op: 'augmentWeapon'; onHitEffects?: { flow: { then: VeninThen } }[] }
+    | { op: 'augmentWeapon'; onHitEffects?: { flow: { alors: VeninThen } }[] }
     | undefined;
-  return aug!.onHitEffects![0].flow.then;
+  return aug!.onHitEffects![0].flow.alors;
 };
 
 // ── Poisons LDB 71 (p.308) ────────────────────────────────────────────────────
@@ -80,8 +80,8 @@ describe('brise-coeur (LDB 71 l.22) — poison ingéré, Test au boire', () => {
     const f = consommableDe(itemFromTrappingById('brise-coeur', idsDeTest)!)! as Extract<Flow, { kind: 'test' }>;
     expect(f.kind).toBe('test');
     expect(f.test.difficulty).toBe('complexe');
-    expect(consumableOps(f.fail)).toEqual([{ op: 'condition', id: 'empoisonne', value: 4 }]);
-    expect(consumableOps(f.success)).toEqual([]);
+    expect(consumableOps(f.echec)).toEqual([{ op: 'condition', id: { id: 'empoisonne' }, value: 4 }]);
+    expect(consumableOps(f.reussite)).toEqual([]);
   });
 });
 
@@ -97,8 +97,8 @@ describe('lotus-noir (LDB 71 l.31) — enduit arme, pas ingéré', () => {
   });
   it("échec du Test → 2 états Empoisonné : « subissent immédiatement 2 États Empoisonnés »", () => {
     const then = onHitVeninThen('lotus-noir');
-    const condOp = then.fail.effect.ops.find((o) => o.op === 'condition');
-    expect(condOp?.id).toBe('empoisonne');
+    const condOp = then.echec.effet.ops.find((o) => o.op === 'condition');
+    expect(condOp?.id).toEqual({ id: 'empoisonne' });
     expect(condOp?.value).toBe(2);
   });
 });
@@ -111,7 +111,7 @@ describe('bave (LDB 71 l.18)', () => {
     expect(f.kind).toBe('test');
     expect(f.test.characteristic).toBe('endurance');
     expect(f.test.difficulty).toBe('tresDifficile');
-    expect(consumableOps(f.fail)).toEqual([{ op: 'narrative', text: 'perdu dans un fantasme très réaliste, que le MJ doit gérer. Durée : 1d10 minutes.' }]);
+    expect(consumableOps(f.echec)).toEqual([{ op: 'narrative', text: 'perdu dans un fantasme très réaliste, que le MJ doit gérer. Durée : 1d10 minutes.' }]);
   });
 });
 
@@ -126,11 +126,11 @@ describe('bonnet-de-fou (LDB 71 l.20)', () => {
     expect(delayed.ops).toEqual([{ op: 'wounds', amount: { dice: { n: 1, sides: 10 } }, ignoreTB: true, ignoreAP: true }]);
   });
   it('« Tous ceux qui ne sont pas des peaux-vertes » : Test de Résistance (+0) gaté exceptGroups → Infection mineure', () => {
-    const f = consommableDe(itemFromTrappingById('bonnet-de-fou', idsDeTest)!)! as Extract<Flow, { kind: 'seq' }>;
-    const test = f.steps.find((s) => s.kind === 'test') as Extract<Flow, { kind: 'test' }>;
+    const f = consommableDe(itemFromTrappingById('bonnet-de-fou', idsDeTest)!)! as Extract<Flow, { kind: 'sequence' }>;
+    const test = f.etapes.find((s) => s.kind === 'test') as Extract<Flow, { kind: 'test' }>;
     expect(test.test.exceptGroups).toEqual(['peau-verte']);
     expect(test.test.difficulty).toBe('intermediaire');
-    expect(consumableOps(test.fail)).toEqual([{ op: 'contractDisease', disease: 'infection-mineure' }]);
+    expect(consumableOps(test.echec)).toEqual([{ op: 'contractDisease', disease: 'infection-mineure' }]);
   });
   it('Durée « mâché plus 2d10 minutes » → consumableDuration 2d10 min (borne basse RAW, mastication non modélisée)', () => {
     expect(itemFromTrappingById('bonnet-de-fou', idsDeTest)!.consumableDuration).toEqual({ minutes: { dice: { n: 2, sides: 10 } } });
@@ -153,19 +153,19 @@ describe('delice-de-ranald (LDB 71 l.24)', () => {
 
 describe('fleur-de-lune (LDB 71 l.26-29)', () => {
   it('Elfes : « +30 à tous les Tests associés pour résister à la [Peste noire] » (branche if has group elfe)', () => {
-    const f = consommableDe(itemFromTrappingById('fleur-de-lune', idsDeTest)!)! as Extract<Flow, { kind: 'if' }>;
-    expect(f.cond).toEqual({ kind: 'has', who: 'target', what: 'group', value: 'elfe' });
-    expect(consumableOps(f.then)).toEqual([{ op: 'diseaseTestMod', diseases: ['peste-noire'], amount: 30 }]);
+    const f = consommableDe(itemFromTrappingById('fleur-de-lune', idsDeTest)!)! as Extract<Flow, { kind: 'si' }>;
+    expect(f.condition).toEqual({ kind: 'has', who: 'target', what: 'group', value: 'elfe' });
+    expect(consumableOps(f.alors)).toEqual([{ op: 'diseaseTestMod', diseases: ['peste-noire'], amount: 30 }]);
   });
   it('autres races : Test de FM Très difficile — raté → Inconscient (1d10+5 h) ; réussi → +20 Calme + 1 Exténué', () => {
-    const f = consommableDe(itemFromTrappingById('fleur-de-lune', idsDeTest)!)! as Extract<Flow, { kind: 'if' }>;
-    const test = f.else as Extract<Flow, { kind: 'test' }>;
+    const f = consommableDe(itemFromTrappingById('fleur-de-lune', idsDeTest)!)! as Extract<Flow, { kind: 'si' }>;
+    const test = f.sinon as Extract<Flow, { kind: 'test' }>;
     expect(test.test.characteristic).toBe('force-mentale');
     expect(test.test.difficulty).toBe('tresDifficile');
-    expect(consumableOps(test.fail)).toEqual([{ op: 'condition', id: 'inconscient', durationHours: { dice: { n: 1, sides: 10, plus: 5 } } }]);
-    expect(consumableOps(test.success)).toEqual([
+    expect(consumableOps(test.echec)).toEqual([{ op: 'condition', id: { id: 'inconscient' }, durationHours: { dice: { n: 1, sides: 10, plus: 5 } } }]);
+    expect(consumableOps(test.reussite)).toEqual([
       { op: 'skillMod', skill: { id: 'calme' }, mod: 20 },
-      { op: 'condition', id: 'extenue', value: 1 },
+      { op: 'condition', id: { id: 'extenue' }, value: 1 },
     ]);
   });
 });
@@ -198,12 +198,12 @@ describe("testMod.movementOnly — portée « Tests impliquant cette jambe » (#
 });
 
 describe('racine-de-mandragore (LDB 71 l.35)', () => {
-  it('« le Mouvement est réduit de moitié » + « +20 aux Tests de Calme » + gate FM par Round (actGate)', () => {
+  it('« le Mouvement est réduit de moitié » + « +20 aux Tests de Calme » + gate FM par Round (testDAgir)', () => {
     const c = makeTarget();
     drinkPure(c, 'racine-de-mandragore');
     expect(c.activeEffects!.some((e) => e.passive?.some((op) => op.op === 'moveScale' && op.num === 1 && op.den === 2))).toBe(true);
     expect(c.activeEffects!.some((e) => e.passive?.some((op) => op.op === 'skillMod' && op.skill.id === 'calme' && op.mod === 20))).toBe(true);
-    expect(c.activeEffects!.some((e) => e.actGate?.characteristic === 'force-mentale')).toBe(true);
+    expect(c.activeEffects!.some((e) => e.testDAgir?.characteristic === 'force-mentale')).toBe(true);
   });
 });
 
@@ -214,9 +214,9 @@ describe('belladone (LDB 72 l.18)', () => {
     const f = consommableDe(itemFromTrappingById('belladone', idsDeTest)!)! as Extract<Flow, { kind: 'test' }>;
     expect(f.kind).toBe('test');
     expect(f.test.skill).toEqual({ id: 'resistance' });
-    const delayed = consumableOps(f.fail).find((o) => o.op === 'delayed') as Extract<import('./ops').GameOp, { op: 'delayed' }>;
+    const delayed = consumableOps(f.echec).find((o) => o.op === 'delayed') as Extract<import('./ops').GameOp, { op: 'delayed' }>;
     expect(delayed.afterMinutes).toBe(150); // « au bout de 2-3 heures » → milieu de fourchette (arbitrage)
-    expect(delayed.ops).toEqual([{ op: 'condition', id: 'inconscient', durationHours: { dice: { n: 1, sides: 10, plus: 4 } } }]);
+    expect(delayed.ops).toEqual([{ op: 'condition', id: { id: 'inconscient' }, durationHours: { dice: { n: 1, sides: 10, plus: 4 } } }]);
   });
 });
 
@@ -257,13 +257,13 @@ describe('gesundheit (MSRC 04 l.184-186) — Test de Résistance Accessible (+20
   });
   it('succès → reduceDiseaseDays SCOPÉ blessure-purulente, échelle daysPerSL 1/DR — jamais fixe', () => {
     const f = consommableDe(itemFromTrappingById('gesundheit', idsDeTest)!)! as Extract<Flow, { kind: 'test' }>;
-    expect(consumableOps(f.success)).toEqual([
+    expect(consumableOps(f.reussite)).toEqual([
       { op: 'reduceDiseaseDays', days: 0, daysPerSL: { every: 1, amount: 1 }, disease: 'blessure-purulente' },
     ]);
   });
   it('échec → aucune réduction (le Test n\'a pas été réussi)', () => {
     const f = consommableDe(itemFromTrappingById('gesundheit', idsDeTest)!)! as Extract<Flow, { kind: 'test' }>;
-    expect(consumableOps(f.fail)).toEqual([]);
+    expect(consumableOps(f.echec)).toEqual([]);
   });
 });
 

@@ -18,6 +18,7 @@
  */
 import type { GameState } from './store';
 import type { ScreenDir } from './combatCursor';
+import type { PasRelatif } from '../noyau/actionsDuNoyau';
 import { surfaceTientLaMain, type ArbiterState } from '../noyau/modalArbiter';
 import { marcheOuverte } from '../noyau/marcheDuGroupe';
 import { modaleDuDessus } from './dismissStack';
@@ -28,10 +29,10 @@ import { clearTrackedTimer, scheduleFlowTimer } from '../web/minuteries';
  *  vue subjective. Les deux vues empruntent le même mécanisme, jamais deux. */
 export type PasTenu =
   | { vue: 'iso'; dir: ScreenDir }
-  | { vue: 'pov'; rel: 'forward' | 'back' | 'left' | 'right' };
+  | { vue: 'subjectif'; rel: PasRelatif };
 
 /** Identité d'un pas tenu : deux armements du MÊME pas ne se relâchent pas l'un l'autre. */
-const cle = (p: PasTenu): string => (p.vue === 'iso' ? `iso:${p.dir}` : `pov:${p.rel}`);
+const cle = (p: PasTenu): string => (p.vue === 'iso' ? `iso:${p.dir}` : `subjectif:${p.rel}`);
 
 /**
  * La carte accepte-t-elle un pas MAINTENANT ? Deux sources, aucune liste : les surfaces PARTAGÉES
@@ -44,7 +45,7 @@ export function marcheAutorisee(s: GameState, pas?: PasTenu): boolean {
   if (!marcheOuverte(s)) return false;
   if (surfaceTientLaMain(s as ArbiterState) || modaleDuDessus()) return false;
   if (!pas) return true;
-  return pas.vue === 'pov' ? !!s.povActive : !s.povActive;
+  return pas.vue === 'subjectif' ? !!s.povActive : !s.povActive;
 }
 
 /** PILE des directions TENUES, par ordre de pression : le SOMMET marche. Presser une direction de plus

@@ -11,7 +11,7 @@ import { sceneFearSources } from './encounterPsychFlow';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { groupesPercus } from '../engine/groups';
 import { carryOverState } from '../engine/persistence';
-import { finalizeHeroDeath } from './combatFlow';
+import { finalizeHeroDeath, instantaneAvantLeCoup } from './combatFlow';
 import { applierDe } from './cascade';
 import { draineEtapes, draineEtLit } from './cascade.testkit';
 import { bandStep, resultLines } from './rollSeam';
@@ -19,13 +19,14 @@ import { groupLabel, psychologyLabel } from '../data';
 import { t } from '../i18n';
 import { ciblePsy } from '../engine/psych/ciblage';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * Acquisition de Traits psychologiques — ADE II Annexe I « Troubles psychologiques » (règle facultative
- * `psych-acquisition-optional`). Vérifie le CÂBLAGE d'état (le noyau pur `ciblesDAnimositeAcquise`/`ciblesDePhobieDuNoir`
+ * `psycho-acquisition-optionnelle`). Vérifie le CÂBLAGE d'état (le noyau pur `ciblesDAnimositeAcquise`/`ciblesDePhobieDuNoir`
  * est testé dans engine/animosite-acquise.test et engine/phobie-du-noir.test) : dépense de Destin → Animosité/Haine ; persistance des Traits acquis.
  * Graines d100 (cf. combat/bleed-death.hors-store.test) : seedBattleRng(1) → 1ᵉʳ jet > 30 (Calme FM 30 ÉCHOUE → acquisition) ;
  * seedBattleRng(7) → 1ᵉʳ jet ≤ 10 (Calme RÉUSSIT → aucun Trait).
@@ -35,7 +36,7 @@ const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endu
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h1', name: 'Hardi', kind: 'hero', characteristics: CHARS,
+    id: 'h1', name: 'Hardi', kind: 'heros', characteristics: CHARS,
     wounds: blessuresDeBase(15), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [], fate: 2,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -52,41 +53,41 @@ function setBattle(combatants: Combatant[], fateSave: ReturnType<typeof banc.get
 }
 
 /** Le tueur `e1`, aux Groupes déclarés `groups`. */
-const adversaire = (groups: string[]) => hero({ id: 'e1', label: 'Brigand de Reikland', kind: 'enemy', fate: 0, groups } as Partial<Combatant>);
+const adversaire = (groups: string[]) => hero({ id: 'e1', label: 'Brigand de Reikland', kind: 'ennemi', fate: 0, groups } as Partial<Combatant>);
 
-describe('#62 — Animosité & Haine sur dépense de Destin (choix `fateSave.issue`)', () => {
-  beforeEach(() => { setRule('psych-acquisition-optional', true); });
+describe('#62 — Animosité & Haine sur dépense de Destin (choix `destin.issue`)', () => {
+  beforeEach(() => { setRule('psycho-acquisition-optionnelle', true); });
 
   const skaven = () => adversaire(['skaven']);
 
   it('règle ON + Calme ÉCHOUE → Animosité envers la Cible ; un 2ᵉ échec même Cible → Haine (remplace)', () => {
-    setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
+    setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1', avantLeCoup: hero() });
     seedBattleRng(1); // Calme (FM 30) échoue
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     let got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits).toEqual([{ type: 'animosite', cible: ciblePsy.groupe('skaven') }]);
 
     // Deuxième frôlement de la mort face aux mêmes Skavens → l'Animosité devient une Haine.
-    setBattle([got, skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
+    setBattle([got, skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1', avantLeCoup: instantaneAvantLeCoup(got) });
     seedBattleRng(1);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits).toEqual([{ type: 'haine', cible: ciblePsy.groupe('skaven') }]); // Animosité remplacée, pas doublée
   });
 
   it('règle ON + Calme RÉUSSIT → aucun Trait acquis', () => {
-    setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
+    setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1', avantLeCoup: hero() });
     seedBattleRng(7); // Calme (FM 30) réussit
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     const got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits ?? []).toEqual([]);
   });
 
   it('règle OFF → aucune acquisition même sur échec de Calme', () => {
-    resetRule('psych-acquisition-optional'); // défaut = OFF
-    setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
+    resetRule('psycho-acquisition-optionnelle'); // défaut = OFF
+    setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1', avantLeCoup: hero() });
     seedBattleRng(1);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     const got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits ?? []).toEqual([]);
   });
@@ -94,22 +95,22 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `fateSave.iss
   it('mort lente (source slow, sans tueur) → pas d’Animosité (perte de sang, aucun individu)', () => {
     setBattle([hero()], { heroId: 'h1', source: 'slow' });
     seedBattleRng(1);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     const got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits ?? []).toEqual([]);
   });
 });
 
-describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath → choix `fateSave.issue`)', () => {
-  beforeEach(() => { setRule('psych-acquisition-optional', true); });
+describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath → choix `destin.issue`)', () => {
+  beforeEach(() => { setRule('psycho-acquisition-optionnelle', true); });
 
   /** Un héros humain frôle la mort sous les coups de `foe`, dépense son Destin et rate son Calme. */
   const frolerLaMort = (foe: Combatant, p: Partial<Combatant> = {}) => {
     const h = hero({ label: 'Hardi', groups: ['humain'], ...p });
     setBattle([h, foe], null);
-    finalizeHeroDeath(banc.getState, banc.setState, h, 'hit', 10, foe);
+    finalizeHeroDeath(banc.getState, banc.setState, h, instantaneAvantLeCoup(h), foe);
     seedBattleRng(1); // Calme (FM 30) échoue
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
   };
   const traitsDuHeros = () => banc.getState().battle!.combatants.find((c) => c.id === 'h1')!.psychTraits ?? [];
 
@@ -207,14 +208,14 @@ describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath �
   });
 });
 
-describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `combatPsych`, Terreur ratée)', () => {
-  beforeEach(() => { setRule('psych-acquisition-optional', true); });
+describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `psychologieDeCombat`, Terreur ratée)', () => {
+  beforeEach(() => { setRule('psycho-acquisition-optionnelle', true); });
 
   /** Les `porteurs` du combat ratent leur Calme de 1 DR face à `foe` (Terreur 1 → 2 Brisé), en une bande ;
    *  `result` en donne un autre. */
   const bandeRatee = (foe: Combatant, porteurs: readonly string[], result = { success: false, sl: -1 }) => {
-    const decl = { kind: 'terreur' as const, sourceId: foe.id, sourceName: foe.label, indice: 1, round: banc.getState().battle!.round };
-    const step = bandStep({ id: `combatPsych-${foe.id}`, kind: 'combatPsych', combatPsych: decl }, porteurs.map((id) => ({ id, interactive: true, result }) as never))!;
+    const decl = { kind: 'terreur' as const, sourceId: foe.id, sourceName: nomDe(foe), indice: 1, round: banc.getState().battle!.round };
+    const step = bandStep({ id: `psychologieDeCombat-${foe.id}`, kind: 'psychologieDeCombat', psychologieDeCombat: decl }, porteurs.map((id) => ({ id, interactive: true, result }) as never))!;
     applierDe(step.kind)!(banc.getState, banc.setState, step, undefined, { steps: [step], index: 0 });
     return step;
   };
@@ -225,13 +226,13 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `combatPsych`, Te
     const step = bandeRatee(foe, ['h1']);
     return { h: porteur('h1'), lignes: step.participants![0].outcome?.map((l) => l.text) ?? [] };
   };
-  const source = (groups: string[]) => hero({ id: 'e1', label: 'Spectre', kind: 'enemy', fate: 0, groups } as Partial<Combatant>);
+  const source = (groups: string[]) => hero({ id: 'e1', label: 'Spectre', kind: 'ennemi', fate: 0, groups } as Partial<Combatant>);
 
   it('une seule cause : Phobie sur l’id de Groupe, journal au libellé, Terreurs vidées', () => {
     const { h, lignes } = terreurRatee(source(['mort-vivant']), [{ brise: 2, groupes: ['mort-vivant'] }]);
     expect(h().psychTraits).toEqual([{ type: 'phobie', cible: ciblePsy.groupe('mort-vivant') }]);
     expect(h().terreursSubies).toEqual([]);
-    expect(lignes).toContain(t('cf.phobieGain', { name: 'Hardi', groupe: groupLabel('mort-vivant') }));
+    expect(lignes).toContain(t('cf.phobieAcquise', { name: 'Hardi', groupe: groupLabel('mort-vivant') }));
     expect(groupLabel('mort-vivant')).not.toBe('mort-vivant');
   });
 
@@ -251,14 +252,14 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `combatPsych`, Te
   });
 
   it('règle éteinte : aucune Terreur mémorisée', () => {
-    resetRule('psych-acquisition-optional');
+    resetRule('psycho-acquisition-optionnelle');
     const { h } = terreurRatee(source(['mort-vivant']), []);
     expect(h().terreursSubies).toEqual([]);
     expect(h().conditions.some((c) => c.id === 'brise')).toBe(true);
   });
 
   it('les Groupes PERÇUS de la source : un Trait dissimulé ne se mémorise pas', () => {
-    const { h } = terreurRatee(hero({ id: 'e1', label: 'Spectre', kind: 'enemy', fate: 0, groups: ['mort-vivant'], traits: [{ id: 'demoniaque', hidden: true }] } as Partial<Combatant>), []);
+    const { h } = terreurRatee(hero({ id: 'e1', label: 'Spectre', kind: 'ennemi', fate: 0, groups: ['mort-vivant'], traits: [{ id: 'demoniaque', hidden: true }] } as Partial<Combatant>), []);
     expect(h().terreursSubies).toEqual([{ brise: 2, groupes: ['mort-vivant'] }]);
   });
 
@@ -279,7 +280,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `combatPsych`, Te
   });
 
   it('la mémoire se vide dès l’étape poussée : une 2ᵉ Terreur avant le choix compte pour la suivante', () => {
-    const [spectre, rat] = [source(['mort-vivant']), hero({ id: 'e2', label: 'Rat géant', kind: 'enemy', fate: 0, groups: ['skaven'] } as Partial<Combatant>)];
+    const [spectre, rat] = [source(['mort-vivant']), hero({ id: 'e2', label: 'Rat géant', kind: 'ennemi', fate: 0, groups: ['skaven'] } as Partial<Combatant>)];
     setBattle([hero({ label: 'Hardi', terreursSubies: [{ brise: 1, groupes: ['skaven'] }, { brise: 1, groupes: ['skaven'] }] }), spectre, rat], null);
     const h = porteur('h1');
     bandeRatee(spectre, ['h1']);
@@ -312,12 +313,12 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `combatPsych`, Te
 });
 
 describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `inflictPsychology`, #3045)', () => {
-  beforeEach(() => { setRule('psych-acquisition-optional', true); });
+  beforeEach(() => { setRule('psycho-acquisition-optionnelle', true); });
 
   /** Le héros (FM 30, Terreurs déjà subies `avant`) rate son Calme (d100 = 100) face à une Terreur d'auteur. */
   const terreurDAuteur = (avant: TerreurSubie[]) => {
     banc.setState({ battle: null, mode: 'exploration', journal: [], pendingCascade: null, party: [hero({ label: 'Hardi', terreursSubies: avant })] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'terreur', indice: 1, label: 'Un hurlement dans la nuit', target: 'hero', heroId: 'h1' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'terreur', indice: 1, label: 'Un hurlement dans la nuit', target: 'heros', heroId: 'h1' }]);
     draineEtapes(banc.getState, 5, () => 100);
     return banc.getState().party[0];
   };
@@ -328,8 +329,8 @@ describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `i
     const [banshee] = sceneFearSources(banc.getState().scene!, presetDuNarratif(banc.getState().campaignNarratif));
     const groupes = groupesPercus(banshee);
     expect(groupes.length).toBeGreaterThan(0);
-    const decl = { kind: 'terreur' as const, sourceId: banshee.id, sourceName: banshee.label, indice: 1 };
-    const step = bandStep({ id: 'encounterPsych', kind: 'encounterPsych', encounterPsych: decl }, [{ id: 'h1', interactive: true, result: { success: false, sl: -1 } } as never])!;
+    const decl = { kind: 'terreur' as const, sourceId: banshee.id, sourceName: nomDe(banshee), indice: 1 };
+    const step = bandStep({ id: 'psychologieDeRencontre', kind: 'psychologieDeRencontre', psychologieDeRencontre: decl }, [{ id: 'h1', interactive: true, result: { success: false, sl: -1 } } as never])!;
     applierDe(step.kind)!(banc.getState, banc.setState, step, undefined, { steps: [step], index: 0 });
     expect(banc.getState().party[0].terreursSubies).toEqual([{ brise: 2, groupes }]);
   });
@@ -346,7 +347,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `i
     const h = terreurDAuteur([{ brise: 1, groupes: ['skaven'] }]);
     expect(h.psychTraits).toEqual([{ type: 'phobie', cible: ciblePsy.groupe('skaven') }]);
     expect(h.terreursSubies).toEqual([]);
-    const ligne = t('cf.phobieGain', { name: 'Hardi', groupe: groupLabel('skaven') });
+    const ligne = t('cf.phobieAcquise', { name: 'Hardi', groupe: groupLabel('skaven') });
     expect(banc.getState().journal.some((l) => l.startsWith(ligne)), ligne).toBe(true);
   });
 });
@@ -355,7 +356,7 @@ describe('#62 — Trauma sur Ambition anéantie (Effet d’auteur `ambitionLost`
   beforeEach(() => { banc.setState({ battle: null, mode: 'exploration', journal: [] }); });
 
   it('règle ON + Calme Accessible (+20) ÉCHOUE → Trauma posé sur le héros visé', () => {
-    setRule('psych-acquisition-optional', true);
+    setRule('psycho-acquisition-optionnelle', true);
     const h = hero({ id: 'h1', characteristics: { ...CHARS, 'force-mentale': 10 } }); // Calme +20 → cible 30
     banc.setState({ party: [h] });
     seedBattleRng(1); // 1ᵉʳ jet > 30 → Calme échoue

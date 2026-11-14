@@ -26,12 +26,12 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 // ── firedAttackBlock : REFUS de portée minimale ─────────────────────────────────────────────────────────
 const rangedMachine = (minRangeBand: 'courte' | 'moyenne'): Weapon =>
   // Arme à distance NUE (pas de Recharge ni famille de munition ni arc) → isole le seul gate de portée.
-  ({ name: 'Pièce', type: 'ranged', range: 120, damage: { plusBF: false, flat: 10 }, qualities: [], minRangeBand, uid: 'piece' }) as unknown as Weapon;
+  ({ name: 'Pièce', type: 'distance', range: 120, damage: { plusBF: false, flat: 10 }, qualities: [], minRangeBand, uid: 'piece' }) as unknown as Weapon;
 
 const gunner = (w: Weapon): Combatant =>
-  ({ id: 'gunner', name: 'Servant', kind: 'hero', pos: { x: 0, y: 0 }, conditions: [], weapons: [w], loaded: true,
+  ({ id: 'gunner', name: 'Servant', kind: 'heros', pos: { x: 0, y: 0 }, conditions: [], weapons: [w], loaded: true,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } }) as unknown as Combatant;
-const enemyAt = (x: number): Combatant => ({ id: `e${x}`, name: 'cible', kind: 'enemy', pos: { x, y: 0 }, conditions: [], weapons: [] }) as unknown as Combatant;
+const enemyAt = (x: number): Combatant => ({ id: `e${x}`, name: 'cible', kind: 'ennemi', pos: { x, y: 0 }, conditions: [], weapons: [] }) as unknown as Combatant;
 
 const battle = (combatants: Combatant[]): BattleState =>
   ({ combatants, order: combatants.map((c) => c.id), turn: 0, movementUsed: 0, action: null, acted: false, over: null }) as unknown as BattleState;
@@ -59,7 +59,7 @@ describe('firedAttackBlock — PORTÉE MINIMALE (machines de siège ADE II 08 l.
 
 // ── Canon à flammes nain : 2 + DR En flammes à la touche, ZONE incluse (l.243) ──────────────────────────
 const foe = (id: string, x: number): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'enemy', pos: { x, y: 0 }, wounds: blessuresDeBase(20), advantage: 0,
+  (blessuresSurLeProfil({ id, name: id, kind: 'ennemi', pos: { x, y: 0 }, wounds: blessuresDeBase(20), advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] })) as unknown as Combatant;
 
@@ -79,7 +79,7 @@ function mountBattle(combatants: Combatant[]) {
 const flameCannon = (): Weapon => {
   const item = itemFromTrappingById('canon-a-flammes-nain-ade2', idsDeTest);
   expect(item).not.toBeNull();
-  const carrier = { id: 'crew', name: 'Servant', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } } as unknown as Combatant;
+  const carrier = { id: 'crew', name: 'Servant', kind: 'heros', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } } as unknown as Combatant;
   const w = mannedPosteWeapon(carrier, { item: item as never, side: 'proue', crewIds: ['crew'] } as never);
   expect(w).toBeDefined();
   return w!;
@@ -95,7 +95,7 @@ describe('Canon à flammes nain — 2 + DR En flammes (ADE II 8 l.243)', () => {
   });
 
   it('cible PRIMAIRE : DR 3 → 2 + 3 = 5 États En flammes (valuePerSL = +1/DR)', () => {
-    const atk = foe('tireur', 0); (atk as { kind: string }).kind = 'hero';
+    const atk = foe('tireur', 0); (atk as { kind: string }).kind = 'heros';
     const tgt = foe('cible', 5);
     mountBattle([atk, tgt]);
     fireTriggers(() => banc.getState(), atk, 'onHit', { victim: tgt, weapon: flameCannon(), woundsDealt: 0, margin: 3, rng: battleRng() } as never);
@@ -103,7 +103,7 @@ describe('Canon à flammes nain — 2 + DR En flammes (ADE II 8 l.243)', () => {
   });
 
   it('ZONE (Explosion) : chaque cible affectée reçoit 2 + DR En flammes, MÊME à 0 Blessure', () => {
-    const atk = foe('tireur', 0); (atk as { kind: string }).kind = 'hero';
+    const atk = foe('tireur', 0); (atk as { kind: string }).kind = 'heros';
     const tgt = foe('cible', 4);
     const near = foe('near', 5); // 1 case = 2 m ≤ Explosion 5 → dans la gerbe
     const { get, set } = mountBattle([atk, tgt, near]);

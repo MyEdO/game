@@ -42,7 +42,7 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
     const battle = banc.getState().battle!;
     const mount = battle.combatants.find((c) => c.id === 'pos-cheval-1');
     expect(mount).toBeTruthy();
-    expect(mount!.kind).toBe('hero');
+    expect(mount!.kind).toBe('heros');
     expect(mount!.riderId).toBe(hero.id);
     expect(mount!.mountable).toBe(true);
     const heroCombatant = battle.combatants.find((c) => c.id === hero.id)!;
@@ -60,7 +60,7 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
     const battle = banc.getState().battle!;
     const mount = battle.combatants.find((c) => c.id === 'pos-mule-1');
     expect(mount).toBeTruthy();
-    expect(mount!.kind).toBe('hero');
+    expect(mount!.kind).toBe('heros');
     expect(mount!.riderId).toBe(hero.id);
     const heroCombatant = battle.combatants.find((c) => c.id === hero.id)!;
     expect(heroCombatant.mountId).toBe('pos-mule-1');
@@ -96,7 +96,7 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
     banc.setState({ battle: { ...battle } });
 
     checkBattleOver(banc.getState, banc.setState);
-    expect(banc.getState().battle!.over).toBe('defeat');
+    expect(banc.getState().battle!.over).toBe('defaite');
   });
 
   it('une bête à statbloc CUSTOM garde son tirage figé et ses traits appris (LDB 77 l.108, LDB 23 l.130)', () => {

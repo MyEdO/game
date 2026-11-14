@@ -42,7 +42,7 @@ function EpingleButton({ clue, onEpingler }: { clue: ClueState; onEpingler: (epi
       onClick={() => onEpingler(!clue.épinglé)}
       title={clue.épinglé ? 'Désépingler' : 'Épingler'}
     >
-      <Icon id="map-tool/pin" size="sm" /> {clue.épinglé ? 'Épinglé' : 'Épingler'}
+      <Icon id="outil-de-carte/epingle" size="sm" /> {clue.épinglé ? 'Épinglé' : 'Épingler'}
     </button>
   );
 }
@@ -141,7 +141,7 @@ export function CarnetScreen({ onClose }: { onClose: () => void }) {
           variant="codex"
           selected={selId === PINNED_SEL}
           onClick={() => setSelId(PINNED_SEL)}
-          label={<><Icon id="map-tool/pin" size="sm" /> Épinglés</>}
+          label={<><Icon id="outil-de-carte/epingle" size="sm" /> Épinglés</>}
         >
           <span className="chip">{indicesÉpinglés.length}</span>
           <NouveautésChip n={nouveautés(indicesÉpinglés)} />
@@ -193,7 +193,7 @@ export function CarnetScreen({ onClose }: { onClose: () => void }) {
   );
 
   return (
-    <ScreenShell title={<><Icon id="nav/carnet" size="lg" /> Carnet d’enquête</>} onClose={onClose} body="centered-wide">
+    <ScreenShell title={<><Icon id="navigation/carnet" size="lg" /> Carnet d’enquête</>} onClose={onClose} body="centered-wide">
       <MasterDetail list={list} detail={detail} listLabel="Affaires" />
     </ScreenShell>
   );

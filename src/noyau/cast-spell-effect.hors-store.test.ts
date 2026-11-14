@@ -2,7 +2,7 @@
  * Effet d'auteur `castSpell` (#98) : lancer scripté depuis un dialogue/trigger. EN COMBAT, route par
  * le flux d'incantation STANDARD (`castSpell`, combatFlow) — même chemin que l'IA. HORS COMBAT, un
  * héros du groupe route par `incanterLeSort` (couture D, jet réel) ; un PNJ hors combat (pas de
- * Combatant) est refusé — pas de pseudo-combat inventé. `mode:'forceSuccess'` (arbitrage d'auteur)
+ * Combatant) est refusé — pas de pseudo-combat inventé. `mode:'forcerLaReussite'` (arbitrage d'auteur)
  * joue le Flow du sort à DR = NI, sans jet, en combat comme hors combat.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -23,11 +23,11 @@ describe('Effet castSpell (#98)', () => {
       banc.setState({ party: [wiz, ally] });
       banc.getState().lancerLaScene(testScene());
       banc.getState().lancerLeCombat('enc-mutants');
-      banc.getState().fenetreValider('roundStart');
+      banc.getState().fenetreValider('debutDuRound');
       const b = banc.getState().battle!;
-      const W = b.combatants.find((c) => c.kind === 'hero' && c.label === 'W')!;
-      const A = b.combatants.find((c) => c.kind === 'hero' && c.label === 'A')!;
-      const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+      const W = b.combatants.find((c) => c.kind === 'heros' && c.label === 'W')!;
+      const A = b.combatants.find((c) => c.kind === 'heros' && c.label === 'A')!;
+      const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
       enemies.slice(1).forEach((e) => (e.dead = true));
       const E = enemies[0];
       W.pos = { x: 10, y: 10 }; A.pos = { x: 11, y: 10 }; E.pos = { x: 12, y: 10 };
@@ -59,16 +59,16 @@ describe('Effet castSpell (#98)', () => {
       const pc = banc.getState().pendingCast;
       expect(pc).not.toBeNull();
       expect(pc!.casterId).toBe(E.id);
-      expect(pc!.result).not.toBeNull(); // IA : `jetLancer('cast')` auto-roulé (même branche que `castSpell` direct, combatFlow)
+      expect(pc!.result).not.toBeNull(); // IA : `jetLancer('incantation')` auto-roulé (même branche que `castSpell` direct, combatFlow)
     });
 
-    it('mode "forceSuccess" EN COMBAT : applique les effets du sort SANS jet, aucun `pendingCast` ouvert', () => {
+    it('mode "forcerLaReussite" EN COMBAT : applique les effets du sort SANS jet, aucun `pendingCast` ouvert', () => {
       const { W, A } = setup();
       const before = A.wounds.current;
       A.wounds.current = Math.max(0, before - 3);
       const wounded = banc.getState().battle!.combatants.find((c) => c.id === A.id)!.wounds.current;
       applyEffects(banc.getState, banc.setState, [
-        { type: 'castSpell', casterId: W.id, spellId: 'benediction-de-guerison', targetId: A.id, mode: 'forceSuccess' },
+        { type: 'castSpell', casterId: W.id, spellId: 'benediction-de-guerison', targetId: A.id, mode: 'forcerLaReussite' },
       ]);
       expect(banc.getState().pendingCast).toBeNull();
       const after = banc.getState().battle!.combatants.find((c) => c.id === A.id)!;
@@ -95,14 +95,14 @@ describe('Effet castSpell (#98)', () => {
       expect(banc.getState().journal.some((l) => /introuvable/i.test(l))).toBe(true);
     });
 
-    it('mode "forceSuccess" HORS COMBAT : applique les effets du sort directement (aucun `pendingCast`)', () => {
+    it('mode "forcerLaReussite" HORS COMBAT : applique les effets du sort directement (aucun `pendingCast`)', () => {
       const wiz = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
       const ally = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
       ally.wounds.current = Math.max(0, ally.wounds.current - 3);
       const before = ally.wounds.current;
       banc.setState({ party: [wiz, ally], battle: null, pendingCast: null, journal: [] });
       applyEffects(banc.getState, banc.setState, [
-        { type: 'castSpell', casterId: wiz.id, spellId: 'benediction-de-guerison', targetId: ally.id, mode: 'forceSuccess' },
+        { type: 'castSpell', casterId: wiz.id, spellId: 'benediction-de-guerison', targetId: ally.id, mode: 'forcerLaReussite' },
       ]);
       expect(banc.getState().pendingCast).toBeNull();
       const after = banc.getState().party.find((h) => h.id === ally.id)!;

@@ -68,7 +68,7 @@ describe('effectiveWeapon — improvisation par CONTEXTE générique (funnel)', 
 });
 
 const C = (id: string, p?: Partial<Combatant>): Combatant => (blessuresSurLeProfil({
-  id, name: id, kind: 'hero',
+  id, name: id, kind: 'heros',
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
   wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
   engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [],

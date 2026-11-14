@@ -12,10 +12,10 @@ import type { IconId } from '../data/icons';
  * le label de la ligne). Les écrire aussi au bandeau était le double rendu de classe #352.
  */
 export const HEAL_ACT: Record<HealMode, { label: string; icon: IconId }> = {
-  wounds: { label: 'Blessures', icon: 'journal/heal' },
-  bleed: { label: 'Hémorragie', icon: 'condition/bleeding' },
-  trauma: { label: 'Déchirure', icon: 'medical/tear' },
-  ammo: { label: 'Munition logée', icon: 'item/ammo' },
-  surgery: { label: 'Chirurgie', icon: 'medical/scalpel' },
-  recovery: { label: 'Rééducation', icon: 'medical/crutch' },
+  blessures: { label: 'Blessures', icon: 'journal/soin' },
+  hemorragie: { label: 'Hémorragie', icon: 'etat/hemorragique' },
+  traumatisme: { label: 'Déchirure', icon: 'medical/dechirure' },
+  munition: { label: 'Munition logée', icon: 'objet/munition' },
+  chirurgie: { label: 'Chirurgie', icon: 'medical/scalpel' },
+  reeducation: { label: 'Rééducation', icon: 'medical/bequille' },
 };

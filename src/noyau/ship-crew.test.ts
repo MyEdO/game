@@ -11,14 +11,14 @@ const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competenc
 // Marin minimal (carac d'instance = Dex → valeur prévisible = Dex + avances), calqué sur crew-roles.test.ts.
 const mk = (id: string, dex: number, skills: { id: string; advances: number; spec?: string }[] = [], shipRole?: string): Combatant =>
   ({
-    id, name: id, kind: 'hero',
+    id, name: id, kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: dex, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     skills: skills.map((s) => ({ ...s, characteristic: 'dexterite' }) as SkillInstance),
     conditions: [], talents: [], wounds: { current: 10, max: 10 }, shipRole,
   }) as unknown as Combatant;
 
 const hull = (crewIds: string[], creatureId = 'cogue'): Combatant =>
-  ({ id: 'ship', name: 'Navire', kind: 'npc', bodyShape: 'vehicule', creatureId, crewIds, conditions: [], wounds: { current: 50, max: 50 } }) as unknown as Combatant;
+  ({ id: 'ship', name: 'Navire', kind: 'pnj', bodyShape: 'vehicule', creatureId, crewIds, conditions: [], wounds: { current: 50, max: 50 } }) as unknown as Combatant;
 
 const getWith = (vessel: unknown): Get => (() => ({ vessel })) as unknown as Get;
 

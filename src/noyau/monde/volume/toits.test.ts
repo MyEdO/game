@@ -1,5 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { boundarySegs, buildRoofs, clearedSpace, depthToEave, fieldHeightAt, gableEnds, roofPans, massRoomZoneIds, massSpaceCells, nappeKey, resolveMass, resolveNappes, riseAt, ROOF_SLOPE_M, type RoofShapeSpec } from './toits';
+import {
+  boundarySegs,
+  buildRoofs,
+  clearedSpace,
+  depthToEave,
+  fieldHeightAt,
+  gableEnds,
+  roofPans,
+  massRoomZoneIds,
+  massSpaceCells,
+  nappeKey,
+  resolveMass,
+  resolveNappes,
+  riseAt,
+  ROOF_SLOPE_M,
+  type RoofShapeSpec,
+} from './toits';
 import { massFootprintCells } from '../buildings';
 import type { RoofLine } from './types';
 import type { Face, GP } from './types';
@@ -632,6 +648,13 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
     const alarme = roofMaterial('introuvable');
     expect(alarme.id).toBe(MISSING_ID);
     expect([alarme.N, alarme.E, alarme.S, alarme.O]).toEqual([MISSING_TONE, MISSING_TONE, MISSING_TONE, MISSING_TONE]);
+  });
+});
+
+describe('clearedSpace — l’espace dégagé d’un pas', () => {
+  it('redemandé sans que la scène ni les cases des alliés aient changé, l’espace est celui déjà résolu', () => {
+    const s = emptyScene('s', 4, 4);
+    expect(clearedSpace(s, [{ x: 1, y: 1 }])).toBe(clearedSpace(s, [{ x: 1, y: 1 }]));
   });
 });
 

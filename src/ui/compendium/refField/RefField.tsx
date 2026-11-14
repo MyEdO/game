@@ -9,7 +9,7 @@ import type { JSX } from 'react';
  *                 projet, `RefNarrativeField`) ;
  *  - `freeText` : `single` + `<input list>`/`<datalist>` (au lieu d'un `<select>` strict) — pioche par
  *                 LIBELLÉ ou id (id stocké) OU saisie libre hors catalogue, émise telle quelle ;
- *  - `vocab`    : `<input list>` + `<datalist>` des valeurs DISTINCTES d'un champ (refChar/refCareer/subType…)
+ *  - `vocab`    : `<input list>` + `<datalist>` des valeurs DISTINCTES d'un champ (refChar/subType…)
  *                 → pioche OU saisie libre (mais la LISTE elle-même vient d'un champ, pas d'ids de dataset) ;
  *  - `polymorphe` : référence typée `{ id, type }` (`refTypee`) — le `<select>` du type, puis le mode
  *                 `single` sur le dataset de l'espace de ce type (`cfgDuType`).
@@ -21,7 +21,20 @@ import type { JSX } from 'react';
 import { useId, useMemo, useState } from 'react';
 import { datasetArray, type DatasetKey } from '../../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
-import { TYPES, catalogueSpecs, entreeOuverte, espaceDe, estFeuilleDId, estSpecialisable, refusDeLEntree, declarationDeFeuilleDId, declarationDeRefASpecialisation, declarationDeRefTypee, type FeuilleDId, type TypeEntite } from '../../../data/schemas/grammaire/ref';
+import {
+  TYPES,
+  catalogueSpecs,
+  entreeOuverte,
+  espaceDe,
+  estFeuilleDId,
+  estSpecialisable,
+  refusDeLEntree,
+  declarationDeFeuilleDId,
+  declarationDeRefASpecialisation,
+  declarationDeRefTypee,
+  type FeuilleDId,
+  type TypeEntite,
+} from '../../../data/schemas/grammaire/ref';
 import { datasetDeLEspaceDuType, specLabel } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../../data/schemas/defs-scenes/registres-narratifs';
@@ -77,10 +90,9 @@ export const REF_FIELD: Record<string, RefFieldCfg> = {
   // `label`), donc valeur d'option = `id` (défaut). `abr` y est vide sur 7 des 19 entrées.
   'skills.characteristic': { ds: 'characteristics', single: true },
   // ── vocab (valeurs distinctes d'un champ) ───────────────────────────────────
-  // refChar/refCareer n'existent QUE sur les espèces → repli global par nom (la catégorie Codex
+  // refChar n'existe QUE sur les espèces → repli global par nom (la catégorie Codex
   // d'`species.json` est `races`, pas `species` ; un nom de champ unique évite de la coder en dur).
   refChar: { vocabFrom: 'species.refChar' },
-  refCareer: { vocabFrom: 'species.refCareer' },
   'qualities.subType': { ds: 'qualitySubtypes', single: true },
   'qualities.polarite': { ds: 'qualityTypes', single: true },
 };

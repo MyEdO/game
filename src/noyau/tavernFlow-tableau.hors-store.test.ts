@@ -8,7 +8,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { sequenceBoardOf } from './sequenceCore';
 import { t } from '../i18n';
@@ -20,9 +20,9 @@ const get = () => banc.getState();
 
 /** Un héros seul à la table lance `gameId` face à un habitué de la salle ; rend le tableau. */
 function partie(gameId: string) {
-  const a = makePregens(idsDeTest)[0] as Combatant;
+  const a = tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
   banc.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-  get().jouerALaTaverne({ gameId, challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+  get().jouerALaTaverne(a.id, { gameId, opponent: { kind: 'profil', id: 'humain' } });
   const board = sequenceBoardOf(get);
   expect(board, `${gameId} : un tableau de marque`).not.toBeNull();
   return board!;
@@ -42,7 +42,7 @@ describe('tavernBoard — NADJ 16', () => {
     const b = partie('cerevis');
     expect(b.camps.map((c) => c.target)).toEqual([undefined, undefined]);
     expect(b.camps[0].note).toBe(t('tavern.cerevisNote'));
-    expect(b).toMatchObject({ round: 1, rounds: 6, unit: 'chouettes' });
+    expect(b).toMatchObject({ manche: 1, manches: 6, unit: 'chouettes' });
   });
 
   it('Alvatafl (l.20, l.28) : le camp nain vise 7 pièces elfes prises, le camp elfe 25 pièces naines', () => {

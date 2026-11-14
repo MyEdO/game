@@ -21,7 +21,9 @@ Ce fichier couvre le **processus complet de création de Personnage** (étapes 1
 - [Étape 9 — Progression (dépense des PX bonus)](#étape-9--progression)
 - [Supplément Middenheim — 3 origines humaines](#supplément-middenheim--3-origines-humaines)
 - [Supplément ADE I — Nouvelles Carrières de départ](#supplément-ade-i--nouvelles-carrières-de-départ)
+- [Suppléments AA et VDM — Seconds jets de Carrière](#suppléments-aa-et-vdm--seconds-jets-de-carrière)
 - [Option 100 Points (création par points)](#option-100-points)
+- [Prétirés officiels — fiches imprimées](#prétirés-officiels--fiches-imprimées)
 - [Sources RAW](#sources-raw)
 - [Voir aussi](#voir-aussi)
 - [Implémenté](#implémenté)
@@ -65,6 +67,37 @@ Ce fichier couvre le **processus complet de création de Personnage** (étapes 1
 | 95–98 | Nain |
 | 99 | Haut Elfe |
 | 00 | Elfe Sylvain |
+
+### Tableau des Races aléatoires avec le Gnome (verbatim)
+
+`NADJ 14 l.66-75` (folio 87) — race jouable sous la règle optionnelle `creation-gnome-jouable` (`NADJ 14 l.5`).
+
+| 1D100 | Race |
+|-------|------|
+| 01-89 | Humain |
+| 90-93 | Halfling |
+| 94-97 | Nain |
+| 98 | Gnome |
+| 99 | Haut elfe |
+| 00 | Elfe sylvain |
+
+### Tableau des Races aléatoires avec l'Ogre
+
+`ADE II 02 l.112-121` (folio 18) — race jouable sous la règle optionnelle `creation-ogre-jouable` (`ADE II 02 l.110`).
+La VF imprime la seule colonne Race (Humain, Halfling, Nain, Ogre, Haut elfe, Elfe sylvain) : la colonne 1d100
+est perdue. Bornes prises à la VO, nombres seuls (`Archives of the Empire - Vol II/04 - Grabbing a Bite- Ogre
+Player Characters.md` l.94-97) : 01-89 / 90-93 / 94-97 / 98 / 99 / 00.
+
+### Table maison avec le Gnome et l'Ogre
+
+Aucun livre n'imprime la table des deux races. Valeur `maison` (`src/data/especes-aleatoires.json ›
+races-gnome-et-ogre`) : NADJ 14 l.70 et la VO d’ADE II (« Grabbing a Bite », l.95) ôtent chacun 1 valeur à la seule plage Humain
+(LDB 04 l.97 : 01-90 → 01-89) pour leur race ; Halfling et Nain gardent 4 valeurs chacun et se décalent. Avec
+les deux races, Humain cède 2 valeurs : 01-88 Humain / 89-92 Halfling / 93-96 Nain / 97 Gnome / 98 Ogre /
+99 Haut elfe / 00 Elfe sylvain.
+
+Une rangée désigne une race : le joueur y choisit l'espèce (variante régionale, clan) et garde les +20 PX
+(`LDB 04 l.91` ; `ADE I 02 l.257`).
 
 **Bonus PX :** +20 PX si le résultat aléatoire est conservé. `LDB 04 l.91`
 
@@ -520,7 +553,7 @@ Les personnages originaires du **nord de l'Empire** (Middenheim, Middenland, Nor
 | GUERRIERS | Tueur | — | — | — |
 | GUERRIERS | Prêtre guerrier | 100 | 100 | 100 |
 
-**Note Frère Loup :** la Carrière Frère Loup est exclusive aux personnages nordiques. Un résultat Flagellant (Middenheimer) peut être remplacé par Frère Loup. Voir section suivante. `Middenheim ANNEXE II l.96`
+**Note Frère Loup :** la Carrière Frère Loup est exclusive aux personnages nordiques. « Un Personnage qui tombe sur la Carrière Frère Loup peut à la place choisir de devenir Flagellant (voir **WFJDR**, p. 80). » Voir section suivante. `Middenheim ANNEXE II l.57`
 
 ### Humains de Middenheim
 
@@ -551,7 +584,7 @@ Les personnages originaires du **nord de l'Empire** (Middenheim, Middenland, Nor
 
 Humain, Bronze 0. Zélotes solitaires d'Ulric, vivent dans la nature, affrontent leurs ennemis en combat individuel. Pas d'uniforme, pas de prédication.
 
-**Alternative Flagellant :** un Personnage qui tombe sur Frère Loup peut à la place choisir de devenir Flagellant. `Middenheim ANNEXE II l.96`
+**Alternative Flagellant :** un Personnage qui tombe sur Frère Loup peut à la place choisir de devenir Flagellant. `Middenheim ANNEXE II l.57`
 
 **Schéma de progression :** CC ☐, F ☐, E ☐ (sans bordure de niveau).
 
@@ -575,7 +608,7 @@ Compétences : Natation, Soin aux animaux.
 Talents : Contrôle de la Frénésie, Effrayant, Ferveur ardente, Sans peur (Hommes-bêtes).
 Possessions : arme simple, haillons, respect des autres Frères Loups.
 
-**Règle Carrières plus longues :** certaines Carrières (dont Frère Loup) proposent plus de 8 Compétences au N1 ; il suffit d'en augmenter 8 pour passer au niveau suivant, dont obligatoirement la Compétence pour Gagner de l'argent (italique). `Middenheim ANNEXE II l.93-94`
+**Règle Carrières plus longues :** certaines Carrières (dont Frère Loup) proposent plus de 8 Compétences au N1 ; il suffit d'en augmenter 8 pour passer au niveau suivant, dont obligatoirement la Compétence pour Gagner de l'argent (italique). `Middenheim ANNEXE II l.61-63`
 
 ---
 
@@ -623,6 +656,85 @@ Ces Carrières peuvent aussi être choisies librement à la création. `ADE I AN
 
 ---
 
+## Suppléments AA et VDM — Seconds jets de Carrière
+
+> « Plusieurs nouvelles Carrières sont proposées dans ce livre. Si vous utilisez les tableaux de Carrières aléatoires des pages 30-31 de **WFJDR** pour générer une Carrière, reportez-vous au tableau suivant pour voir si la Carrière générée offre d'autres options. Si c'est le cas, relancez le dé pour voir si l'une des Carrières de cet ouvrage s'applique à la place. »
+> — `AA 02 l.109`
+
+> « Un Joueur peut toujours choisir de conserver la première Carrière générée, donc s'il génère un Colporteur, il peut décider d'en rester là. Mais, il peut aussi tenter de voir s'il peut devenir un suiveur de camp. En outre, les Carrières sont toutes communes à l'Empire, et les joueurs peuvent y accéder en fonction de leur expérience et des circonstances. »
+> — `AA 02 l.111`
+
+> « *Exemple : Gerd Braun est un Personnage généré aléatoirement. Lors de son jet de Carrière, Gerd obtient un 98, ce qui signifie qu'il est Soldat. Gerd décide de relancer le dé pour voir de quel type. Son deuxième jet est de 47, donc Gerd est un archer.* »
+> — `AA 02 l.113`
+
+### Jet optionnel d'AA (verbatim)
+
+`AA 02 l.115-128`
+
+| Carrière | Jet optionnel |
+|----------|---------------|
+| Cavalier | 01 – 75 : Cavalier ; 76 – 00 : Cavalier léger |
+| Chevalier | 01 – 55 : Chevalier ; 56 – 65 : Chevalier errant ; 66 – 70 : Chevalier du Soleil flamboyant ; 71 – 85 : Chevalier du Loup Blanc ; 86 – 00 : Chevalier Panthère |
+| Prêtre Guerrier | 01 – 85 : Prêtre Guerrier ; 86 – 00 : Prêtre de Myrmidia |
+| Soldat | 01 – 40 : Soldat ; 41 – 50 : Archer ; 51 – 70 : Hallebardier ; 71 – 85 : Arquebusier ; 86 – 90 : Joueur d'épée ; 91 – 96 : Piquier ; 97 – 00 : Spécialiste de siège |
+| Colporteur | 01 – 75 : Colporteur ; 76 – 00 : Suiveur de camp |
+| Érudit | 01 – 85 : Érudit ; 86 – 00 : Cartographe |
+| Ingénieur | 01 – 75 : Ingénieur ; 76 – 00 : Artilleur |
+
+### Personnages tiléens (verbatim)
+
+> « Quand vous générez une Carrière pour un Personnage tiléen, utilisez le *Tableau des Classes et Carrières aléatoires*  des pages 30-31 du **Livre de Règles WFJDR**, mais avec les modifications suivantes.
+>
+> - Un flagellant a peu de chances de venir de Tilée, ou de s'y rendre. Si un Joueur génère un Personnage flagellant, il peut choisir une nonne ou un prêtre vénérant Myrmidia, Morr, Verena, Shallya ou Ranald.
+> - Un cavalier peut choisir d'être plutôt un cavalier léger.
+> - Un soldat peut choisir d'être plutôt un piquier.
+> - Un prêtre guerrier peut choisir d'être plutôt un prêtre de Myrmidia. »
+> — `AA 05 l.135-140`
+
+### Second lancer du VDM (verbatim)
+
+> « Si vous vous servez du tableau des Carrières aléatoires de **WFJDR** (pages 30–31) pour en choisir une, référez-vous au tableau ci-dessous pour voir si elle peut donner lieu à plus d'options. Si c'est le cas, lancez à nouveau les dés pour voir si celles de ce livre s'appliquent à la place. »
+> — `VDM 03 l.17`
+
+`VDM 03 l.23-31`
+
+| Carrière existante | Second lancer |
+|--------------------|---------------|
+| Apothicaire | 01-15 : Alchimiste ordinaire ; 16-00 : Apothicaire |
+| Sorcier | 01–95 : Choisissez la Carrière de Sorcier dans le Livre de Règles de WFJDR ou bien l'une de celles spécifiques à un Collège (Hiérophante, Alchimiste, Druide, Astromancien, Umbramancien, Spirite, Pyromancien ou Chamane). 96–00 : Magister Vigilant |
+| Garde | 01–15 : Bedeau ; 16–00 : Garde |
+| Mystique | 01–10 : Devin ; 11–00 : Mystique |
+
+**Portée :** les « tableaux des pages 30-31 » sont les colonnes Humain, Nain, Halfling, Haut Elfe et Elfe sylvain du [Tableau des Classes et Carrières aléatoires](#tableau-des-classes-et-carrières-aléatoires-verbatim) (portions Côtiers comprises, `MDG 09 l.9`). Les colonnes Middenheimer, Middenlander et Nordlander les reçoivent en valeur maison (`AA 02 l.111` ; « Globalement, les Middenlanders ont le même type d'occupation que les Reiklanders » `Middenheim 09 l.51` ; #3908) ; la table norse (`MDG 07 l.271-303`), distincte, non.
+
+---
+
+## Prétirés officiels — fiches imprimées
+
+Les compagnons de campagne et *Le Zoo impérial* impriment des Personnages prêts à jouer, sans tirage : ligne « Initiales », « Augmentation » et « Courantes », Compétences et Talents à leur Augmentation, possessions, « Richesse de départ » (un nombre de d10 d'une monnaie), « Apparence et personnalité », « Historique » et « Secrets ». Où vit chaque fiche :
+
+| Prétiré | Fiche | Apparence et personnalité | Historique | Secrets |
+|---|---|---|---|---|
+| Harbull Piedvelu | `EDOC 16 l.421` | `EDOC 16 l.549` | `EDOC 16 l.555` | `EDOC 16 l.561` |
+| Werner Murrmann | `EDOC 16 l.577` | `EDOC 16 l.704` | `EDOC 16 l.712` | `EDOC 16 l.718` |
+| Wanda Weltschmertz | `EDOC 16 l.734` | `EDOC 16 l.855` | `EDOC 16 l.861` | `EDOC 16 l.865` |
+| Johann « Dam'de nage » Dassbüt | `EDOC 16 l.887` | `EDOC 16 l.1012` | `EDOC 16 l.1020` | `EDOC 16 l.1026` |
+| Malmir Giluviel | `EDOC 16 l.1042` | `EDOC 16 l.1167` | `EDOC 16 l.1175` | `EDOC 16 l.1183` |
+| Kirsten Krank | `EDOC 16 l.1199` | `EDOC 16 l.1315` | `EDOC 16 l.1327` | `EDOC 16 l.1335` |
+| Sigrid Sommerfeld | `MSRC 19 l.498` | `MSRC 19 l.635` | `MSRC 19 l.641` | `MSRC 19 l.645` |
+| Erina Eberhauer | `PDTP 01 l.3` | `PDTP 01 l.157` | `PDTP 01 l.163` | `PDTP 01 l.167` |
+| Golthog | `PDTP 01 l.204` | `PDTP 01 l.355` | `PDTP 01 l.361` | `PDTP 01 l.367` |
+| Erich Massenbach | `ZI 14 l.55` | `ZI 14 l.180` | `ZI 14 l.180` | `ZI 14 l.202` |
+| Jorunn Gromsdottir | `ZI 14 l.219` | `ZI 14 l.359` | `ZI 14 l.365` | `ZI 14 l.369` |
+| Lynathryn Chantenuit | `ZI 14 l.386` | `ZI 14 l.490` | `ZI 14 l.496` | `ZI 14 l.510` |
+| Theodosius Schreiber | `ZI 14 l.527` | `ZI 14 l.666` | `ZI 14 l.672` | `ZI 14 l.684` |
+| Vasya Ghorshkov | `ZI 14 l.700` | `ZI 14 l.817` | `ZI 14 l.823` | `ZI 14 l.827` |
+| Kistiane Brockdorf | `ZI 14 l.848` | `ZI 14 l.974` | `ZI 14 l.980` | `ZI 14 l.984` |
+
+Spécialisations imprimées par ces fiches : Bon marcheur (Rural) `EDOC 16 l.493`, Musicien (Mandoline) `EDOC 16 l.1110`, Savoir (Ostermark) `ZI 14 l.761`.
+
+---
+
 ## Sources RAW
 
 | Ref code | Source |
@@ -632,6 +744,13 @@ Ces Carrières peuvent aussi être choisies librement à la création. `ADE I AN
 | `LDB 10 l.714` | Livre de Base VF corrigé, chapitre 10 — Magie mineure à la création |
 | `Middenheim ANNEXE II l.XX` | Middenheim la Cité du Loup Blanc, Annexe II |
 | `ADE I ANNEXE I l.XX` | Archives de l'Empire vol. 1, Annexe I |
+| `AA 02 l.XX` | Aux Armes, chapitre 02 — Introduction |
+| `AA 05 l.XX` | Aux Armes, chapitre 05 — La Tilée et les personnages tiléens |
+| `VDM 03 l.XX` | Les Vents de Magie, chapitre 03 — Travaux arcaniques |
+| `EDOC 16 l.XX` | L'Ennemi dans l'Ombre — Compagnon, chapitre 12 — prétirés |
+| `MSRC 19 l.XX` | Mort sur le Reik — Compagnon, chapitre 17 — prétiré |
+| `PDTP 01 l.XX` | Le Pouvoir derrière le Trône — Prétirés |
+| `ZI 14 l.XX` | Le Zoo impérial, Expéditions prévues — prétirés |
 
 ---
 
@@ -650,16 +769,16 @@ Ces Carrières peuvent aussi être choisies librement à la création. `ADE I AN
 
 | Mécanique | Fichier(s) code |
 |-----------|----------------|
-| Tirage espèce d100 / +20 PX | `src/engine/creation.ts l.25, 33` — `LDB 04 l.91, 93` |
-| Tirage carrière d100 / +50/+25 PX | `src/engine/creation.ts l.26-27, 64` — `LDB 05 l.210-211` |
-| Tirage 2d10 Caractéristiques / +50/+25 PX | `src/engine/creation.ts l.28-29, 81` — `LDB 05 l.337-385` |
+| Tirage espèce d100 / +20 PX | `src/engine/creation.ts l.31, 62` — `LDB 04 l.91, 93` |
+| Tirage carrière d100 / +50/+25 PX | `src/engine/creation.ts l.32-33, 74` — `LDB 05 l.210-211` |
+| Tirage 2d10 Caractéristiques / +50/+25 PX | `src/engine/creation.ts l.34-35` · `src/engine/character.ts l.315` — `LDB 05 l.337-385` |
 | Profils d'espèce (bonus de Caractéristique) | `src/data/species.json` |
 | Blessures = BF+(2×BE)+BFM | `src/engine/characteristics.ts` |
-| Richesse initiale (Bronze/Argent/Or × Standing) | `src/engine/creation.ts l.11, 112` — `LDB 05 l.578-583` |
-| Âge par espèce (15+d10 / 15+10d10 / …) | `src/engine/creation.ts l.131` — `LDB 05 l.705-711` |
-| Taille par espèce (145+5d10 cm / …) | `src/engine/creation.ts l.136` — `LDB 05 l.728` |
-| Couleur des yeux (2d10, table par espèce) | `src/engine/creation.ts l.142` — `LDB 05 l.742-754` |
-| Couleur des cheveux (2d10, table par espèce) | `src/engine/creation.ts l.147` — `LDB 05 l.756-768` |
+| Richesse initiale (Bronze/Argent/Or × Standing) | `src/engine/creation.ts l.11, 102` — `LDB 05 l.578-583` |
+| Âge par espèce (15+d10 / 15+10d10 / …) | `src/engine/creation.ts l.109` — `LDB 05 l.705-711` |
+| Taille par espèce (145+5d10 cm / …) | `src/engine/creation.ts l.114` — `LDB 05 l.728` |
+| Couleur des yeux (2d10, table par espèce) | `src/engine/creation.ts l.119` — `LDB 05 l.742-754` |
+| Couleur des cheveux (2d10, table par espèce) | `src/engine/creation.ts l.124` — `LDB 05 l.756-768` |
 | 5 Augmentations gratuites sur 3 Caractéristiques de carrière | `src/engine/character.ts l.256, 263` — `LDB 05 l.459, 463` |
 | 40 Augmentations de Compétences de carrière (max 10 / Comp.) | `src/engine/character.ts` (`CAREER_SKILL_ADVANCES`) · `src/noyau/creation/brouillon.ts` |
 | Magie mineure : BFM sorts mémorisés à la création | `src/noyau/creation/brouillon.ts` (`pettySpellQuota`) — `LDB 10 l.714` |

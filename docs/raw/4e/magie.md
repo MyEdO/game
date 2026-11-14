@@ -216,7 +216,7 @@ Focalisé au LDB (NI considéré comme nul, `LDB 46 l.132`) et pour une Prière 
 NI). Les modificateurs de NI d'un lieu ou d'un objet ne sont branchés à aucun jet de combat. *Puissance
 totale* (`LDB 46 l.31`) ne retire pas le NI : un Sort que le jet a lancé garde son surplus au-delà du NI
 (augmenté des dizaines du lancer sous `VDM 02 l.55`) ; un Sort qu'elle seule lance n'a aucun pas. Un Sort
-dissipé (`LDB 46 l.156`) n'a aucun pas. La Focalisation sous `magic-vdm-incantation`
+dissipé (`LDB 46 l.156`) n'a aucun pas. La Focalisation sous `magie-vdm-incantation`
 (`VDM 02 l.133`, `l.137` : NI réduit de la réserve) n'est pas encore ce calcul : écart suivi depuis #3059.
 Le surplus se répartit librement entre les axes (même axe répétable). L'EFFET d'un pas **dépend de la
 source** :
@@ -384,7 +384,7 @@ La concentration est vitale pour focaliser. Si perturbé par quelque chose (brui
 
 ## Repousser les Vents (armure et tenue)
 
-**Sources RAW :** `LDB 46 l.150-152` ; troisième exemption (Sorcier du Chaos) `VDM 02 l.169`, gatée par la règle optionnelle `magic-vdm-incantation` (VDM 02 l.5)
+**Sources RAW :** `LDB 46 l.150-152` ; troisième exemption (Sorcier du Chaos) `VDM 02 l.169`, gatée par la règle optionnelle `magie-vdm-incantation` (VDM 02 l.5)
 
 Porter les couleurs appropriées au Vent manipulé aide à l'attirer. C'est pourquoi la majorité des Magisters portent la tenue de leur Ordre.
 
@@ -396,7 +396,7 @@ Porter les couleurs appropriées au Vent manipulé aide à l'attirer. C'est pour
 **Exemptions par Talent :**
 - `Magie des Arcanes (Métal)` → peut porter des armures métalliques sans pénalité.
 - `Magie des Arcanes (Bêtes)` → peut ignorer les pénalités des armures de cuir.
-- `Magie du Chaos` (VDM 02 l.169, règle `magic-vdm-incantation`) → peut ignorer les pénalités des armures du Chaos.
+- `Magie du Chaos` (VDM 02 l.169, règle `magie-vdm-incantation`) → peut ignorer les pénalités des armures du Chaos.
 
 > **Verbatim** (l.150) : « tout Lanceur de Sorts portant une armure subit une pénalité de −1 DR à tous ses Tests d'Incantation et de Focalisation, pour chaque PA sur la Localisation la mieux protégée du corps. »
 
@@ -714,7 +714,7 @@ La **malepierre** est un éclat de magie pure dans le plan matériel — manifes
   pour les Tests appropriés. En plus, Incanter ou Focaliser à l'aide d'une malepierre entraîne une
   influence corruptrice. » — règle INCONDITIONNELLE (`engine/magic.ts:malepierreDR`), sans gate
   d'option. Seule la réserve FINIE de NI (`VDM 02 l.165`, `1 g = 20 NI`) relève de l'option
-  `magic-vdm-incantation` (`TrappingData.niPerGram`/`niConsumedPerDR`).
+  `magie-vdm-incantation` (`TrappingData.niPerGram`/`niConsumedPerDR`).
 
 **Implémente :** [État calculé](../implemente.generated.md#4emagiemalepierre)
 
@@ -1325,7 +1325,7 @@ Changer la forme du familier modifie le NI :
 
 ## Nouvelles Activités magiques (VDM)
 
-**Sources RAW :** `VDM 02 l.769`, `l.777`, `l.783`, `l.787-790`, `l.794`, `l.796`, `l.798`
+**Sources RAW :** `VDM 02 l.769`, `l.777`, `l.783`, `l.787-790`, `l.794`, `l.796`, `l.798`, `VDM 12 l.356`
 
 VDM ajoute des Activités disponibles entre deux aventures pour les lanceurs de sorts (les Activités de confection d'objets magiques restant dans *Archives de l'Empire Vol. II*).
 
@@ -1336,6 +1336,7 @@ VDM ajoute des Activités disponibles entre deux aventures pour les lanceurs de 
 
 > **Verbatim** (l.777) : « Afin de représenter ce second avantage, le NI du Rituel est réduit de moitié (arrondi à l'entier supérieur). »
 > **Verbatim** (l.783) : « Pour améliorer son familier, le sorcier qui l'a créé doit choisir cette Activité et effectuer un Test de **Recherche Difficile (−20)**. »
+> **Verbatim** (`VDM 12 l.356`) : « L'acquisition des locaux et de l'équipement requis pour un laboratoire alchimique coûte 100 CO. Un laboratoire de piètre qualité coûte 50 CO, mais impose −1 DR aux Tests de brassage. Un laboratoire de bonne qualité coûte 200 CO et donne +1 DR aux Tests de brassage. »
 
 **Voir aussi :** [La Magie Rituelle (VDM)](#la-magie-rituelle-nouveau--vdm), [Créer un familier (VDM)](#créer-un-familier--traits-de-familier-vdm)
 

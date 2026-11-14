@@ -32,9 +32,9 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
     let guard = 0;
     while (banc.getState().pendingForceDoor && guard++ < 40) {
       const p = banc.getState().pendingForceDoor!;
-      p.participants.forEach((part) => banc.getState().jetLancer('forceDoor', part.id)); // chacun SON jet
+      p.participants.forEach((part) => banc.getState().jetLancer('enfoncerLaPorte', part.id)); // chacun SON jet
       expect(banc.getState().pendingForceDoor!.participants.every((x) => x.result)).toBe(true);
-      banc.getState().jetValider('forceDoor'); // applique la somme du Round
+      banc.getState().jetValider('enfoncerLaPorte'); // applique la somme du Round
     }
     expect(banc.getState().pendingForceDoor).toBeNull(); // la porte a cédé
     expect(banc.getState().flags.cave_ouverte).toBe(true); // ouverture en jeu (flag de scène)
@@ -54,7 +54,7 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
     expect(casc.participants).toHaveLength(1);
     const st = casc.participants[0];
     expect(Object.keys(st).sort(), 'la déclaration, et rien d’autre').toEqual(['groupOwner', 'id', 'jet', 'kind']);
-    expect(st.jet).toBe('forceDoor');
+    expect(st.jet).toBe('enfoncerLaPorte');
     expect(st.groupOwner).toBe(true);
     expect(st.actorId, 'un jet de GROUPE n’a pas d’acteur unique').toBeUndefined();
     expect(modalOwnerOf(banc.getState()), 'fenêtre ouverte à tous les sièges').toBe('*');
@@ -66,14 +66,14 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
     // Coups faibles (comme Gerhardt : DR −2 + BF 4 = 2 < BE 8 → 0).
     const p = banc.getState().pendingForceDoor!;
     banc.setState({ pendingForceDoor: { ...p, participants: p.participants.map((x) => ({ ...x, result: { roll: 63, target: 46, sl: -2, damage: 0 } })) } });
-    banc.getState().jetValider('forceDoor');
+    banc.getState().jetValider('enfoncerLaPorte');
     expect(banc.getState().pendingForceDoor!.doorB).toBe(5); // 0 dégât → Blessures inchangées, nouveau Round
   });
 
   it('Résilience garantit un coup ; chaque héros dépense SES propres ressources', () => {
     const [a] = heroes();
     banc.getState().enfoncerLaPorte({ label: 'Porte', doorBE: 0, doorB: 50, heroIds: [a.id] });
-    banc.getState().jetForcerLaReussite('forceDoor', a.id); // « Je ne faillirai pas ! » → DR max → dégâts
+    banc.getState().jetForcerLaReussite('enfoncerLaPorte', a.id); // « Je ne faillirai pas ! » → DR max → dégâts
     const r = banc.getState().pendingForceDoor!.participants[0].result!;
     expect(r.damage).toBeGreaterThan(0);
     expect(banc.getState().party[0].resilience).toBe(1); // 1 Point de Résilience dépensé (le SIEN)
@@ -83,12 +83,12 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
   // (LDB 12 l.102, DR = dizaines du JET), l'ancien `1` codé en dur donnait le DR MINIMAL (planché à 1) au lieu
   // du MAXIMAL. RAW LDB 17 l.68 « vous choisissez le résultat » = LE MEILLEUR → dizaines de la cible.
   it('Fast DR : le dé forcé vise le DR MAXIMAL (dizaines de la cible), PAS 1', () => {
-    setRule('test-fast-sl', true); // règle optionnelle : sur une réussite, DR = dizaines du jet
+    setRule('test-dr-rapide', true); // règle optionnelle : sur une réussite, DR = dizaines du jet
     const [a] = heroes();
     a.characteristics['capacite-de-combat'] = 65; // Bagarre (Corps à corps) → cible ~65 (dizaines 6)
     banc.setState({ party: [a] });
     banc.getState().enfoncerLaPorte({ label: 'Porte', doorBE: 0, doorB: 80, heroIds: [a.id] });
-    banc.getState().jetForcerLaReussite('forceDoor', a.id); // « Je ne faillirai pas ! »
+    banc.getState().jetForcerLaReussite('enfoncerLaPorte', a.id); // « Je ne faillirai pas ! »
     const r = banc.getState().pendingForceDoor!.participants[0].result!;
     const maxDR = Math.floor(Math.min(r.target, 95) / 10); // dizaines de la cible = DR forcé MAXIMAL
     expect(maxDR).toBeGreaterThan(1);   // cible élevée → DR max clairement > 1

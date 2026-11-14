@@ -19,9 +19,9 @@ describe('lireDeclaration', () => {
     assert.equal((await lireDeclaration(HUMANOIDE)).porteur.espece, 'humain')
   })
 
-  it('refuse une déclaration sans clip du rôle `walk`, en nommant le champ', async () => {
+  it('refuse une déclaration sans clip du rôle `marche`, en nommant le champ', async () => {
     const declaration = JSON.parse(readFileSync(HUMANOIDE, 'utf8'))
-    await assert.rejects(jugerDeclaration({ ...declaration, clips: { idle: 'Idle_Loop' } }, 'sans-marche.json'), /^Error: sans-marche\.json : clips\.walk, nom de clip attendu$/)
+    await assert.rejects(jugerDeclaration({ ...declaration, clips: { repos: 'Idle_Loop' } }, 'sans-marche.json'), /^Error: sans-marche\.json : clips\.marche, nom de clip attendu$/)
   })
 
   it('refuse une Taille que la donnée ne donne pas à la race, en nommant champ, déclaré et donnée', async () => {
@@ -53,7 +53,7 @@ describe('lireDeclaration', () => {
 
 describe('champsDeclares', () => {
   const porteur = { espece: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 }
-  const clips = { walk: 'Marche', idle: 'Repos', melee: 'Taille' }
+  const clips = { marche: 'Marche', repos: 'Repos', melee: 'Taille' }
   const bornesArticulaires = { genou: { x: [-5, 150], y: [-30, 30], z: [-10, 10] } }
 
   it('écrit au manifeste la base, le porteur, les bornes articulaires et la table rôle → clip de la déclaration, et rien d’autre', () => {
@@ -61,8 +61,13 @@ describe('champsDeclares', () => {
   })
 
   it('y ajoute la table des rôles tenus à deux mains, déclarée', () => {
-    const clipsDeuxMains = { hampe: { idle: 'Hampe_Repos_Loop' } }
+    const clipsDeuxMains = { hampe: { repos: 'Hampe_Repos_Loop' } }
     assert.deepEqual(champsDeclares({ base: 'corps', porteur, bornesArticulaires, clips, clipsDeuxMains }), { base: 'corps', porteur, bornesArticulaires, clips, clipsDeuxMains })
+  })
+
+  it('y ajoute les prises occupées par clip, déclarées', () => {
+    const prisesOccupees = { Chest_Open: ['secondaire'] }
+    assert.deepEqual(champsDeclares({ base: 'corps', porteur, bornesArticulaires, clips, prisesOccupees }), { base: 'corps', porteur, bornesArticulaires, clips, prisesOccupees })
   })
 
   it('y ajoute les surfaces déclarées', () => {

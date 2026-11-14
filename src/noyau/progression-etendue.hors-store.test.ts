@@ -35,11 +35,11 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     banc.setState({ party: [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     H.pos = { x: 10, y: 10 };
@@ -56,11 +56,11 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     }
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id) }, pendingCascade: null });
     openRoundEndCascade(banc.getState, banc.setState);
-    expect(band().combatPsych?.kind).toBe('peur');
+    expect(band().psychologieDeCombat?.kind).toBe('peur');
     return { H: actorIn(banc.getState(), H.id)!, E };
   }
 
-  /** Pose le dé de la rangée du héros (champ que `jetLancer('cascadeBatch')` écrit). */
+  /** Pose le dé de la rangée du héros (champ que `jetLancer('cascadeEnBande')` écrit). */
   function jet(id: string, sl: number, success: boolean) {
     const pc = banc.getState().pendingCascade!;
     const participants = band().participants!.map((p) => (p.id === id ? { ...p, result: { roll: success ? 1 : 99, target: p.target, sl, success } } : p));
@@ -89,7 +89,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
 });
 
 const servant = (id: string): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'hero',
+  combattantDeTest({ id, label: id, kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], fortune: 0, resilience: 0,
     skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 10 }], talents: [], weapons: [unarmedWeapon()],
@@ -99,9 +99,9 @@ describe('Poste servi à effectif COMPLET — la cible appliquée est celle anno
   it('canon Recharge 6, Arme d’équipe 3, trois servants : cible 6 ; 4 DR + DR 2 → la pièce est chargée', () => {
     const crew = ['g1', 'g2', 'g3'];
     const poste = { side: 'tribord', loaded: false, reloadProgress: 4, crewIds: crew,
-      item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
+      item: { uid: 'canon', label: 'Canon moyen', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
         reload: 6, qualities: [{ id: 'recharge', value: 6 }, { id: 'arme-d-equipe', value: 3 }] } } as unknown as ShipPoste;
-    const ship = combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
+    const ship = combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'heros', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
       crewIds: crew, postes: [poste], pos: { x: 5, y: 5 }, conditions: [], weapons: [unarmedWeapon()] });
     const servants = crew.map(servant);
     serveChef(servants[0], poste); // le chef sert la pièce : il en porte l'arme dérivée (`shipPostes.ts`)
@@ -111,22 +111,22 @@ describe('Poste servi à effectif COMPLET — la cible appliquée est celle anno
     const pr = banc.getState().pendingReload!;
     expect(pr.reload).toBe(6);
     banc.setState({ pendingReload: { ...pr, roll: 20, sl: 2, success: true } });
-    banc.getState().jetValider('reload');
+    banc.getState().jetValider('rechargement');
     const apres = banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0];
     expect(apres.loaded).toBe(true);
   });
 });
 
 describe('Règle optionnelle « DR 0 = ±1 » lue par le pas canonique (LDB 12 l.185)', () => {
-  afterEach(() => resetRule('test-extended-min-sl'));
+  afterEach(() => resetRule('test-etendu-dr-minimum'));
   it('Rechargement, réussite à DR 0 sous la règle : la progression gagne 1 DR', () => {
-    setRule('test-extended-min-sl', true);
-    const arbalete = { uid: 'arb', label: 'Arbalète', type: 'ranged', group: 'arbalete', damage: { flat: 9, plusBF: false }, range: 60,
+    setRule('test-etendu-dr-minimum', true);
+    const arbalete = { uid: 'arb', label: 'Arbalète', type: 'distance', group: 'arbalete', damage: { flat: 9, plusBF: false }, range: 60,
       reload: 2, loaded: false, reloadProgress: 0, qualities: [{ id: 'recharge', value: 2 }] } as unknown as Weapon;
-    const tireur = combattantDeTest({ id: 't', label: 'Tireur', kind: 'hero', weapons: [unarmedWeapon(), arbalete], pos: { x: 5, y: 5 } });
+    const tireur = combattantDeTest({ id: 't', label: 'Tireur', kind: 'heros', weapons: [unarmedWeapon(), arbalete], pos: { x: 5, y: 5 } });
     banc.setState({ battle: { combatants: [tireur], order: ['t'], turn: 0, round: 1, acted: false, log: [] } as never, party: [tireur], scene: null as never,
-      pendingReload: { actorId: 't', actorName: 'Tireur', weaponUid: 'arb', reload: 2, progressBefore: 0, skillValue: 50, difficulty: 'intermediaire', ligne: { base: 50, mods: [], target: 50, difficulty: 'intermediaire' }, roll: 45, target: 50, sl: 0, success: true } });
-    banc.getState().jetValider('reload');
+      pendingReload: { actorId: 't', weaponUid: 'arb', reload: 2, progressBefore: 0, skillValue: 50, difficulty: 'intermediaire', ligne: { base: 50, mods: [], target: 50, difficulty: 'intermediaire' }, roll: 45, target: 50, sl: 0, success: true } });
+    banc.getState().jetValider('rechargement');
     const w = banc.getState().battle!.combatants[0].weapons.find((x) => x.uid === 'arb')!;
     expect(w.reloadProgress).toBe(1);
   });
@@ -138,26 +138,26 @@ describe('Focalisation — Test étendu, un échec cumule son DR négatif (LDB 4
     w.focus = { spell: 'manifestation-de-demon-mineur', dr: 3 };
     banc.setState({ party: [w] });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, success: false, sl: -2, isCritical: false, isFumble: false, roll: 87, target: 65, log: 'échec' } } });
-    banc.getState().jetValider('focus');
+    banc.getState().jetValider('focalisation');
     expect(banc.getState().party.find((h) => h.id === w.id)!.focus).toEqual({ spell: 'manifestation-de-demon-mineur', dr: 1 });
   });
 });
 
 describe('Cartographie à deux (EDOC 8 l.161) : la barre de chaque rangée suit l’ordre du résolveur', () => {
   it('progression 1, échec DR −1 puis réussite DR 1 : la 2ᵉ barre annonce 1, la progression appliquée est 1', () => {
-    const carto = (id: string): Combatant => combattantDeTest({ id, label: id, kind: 'hero', weapons: [unarmedWeapon()],
+    const carto = (id: string): Combatant => combattantDeTest({ id, label: id, kind: 'heros', weapons: [unarmedWeapon()],
       skills: [{ id: 'metier', spec: 'cartographe', characteristic: 'dexterite', advances: 20 }] });
     banc.setState({ party: [carto('a'), carto('b')],
       travelPlan: { routeId: 'r', km: 24, postes: { a: { activityId: 'etablir-cartes' }, b: { activityId: 'etablir-cartes' } }, extendedProgress: 1 } as never });
     const steps = buildStageSteps(banc.getState, banc.setState, 'beau', 'ete');
-    const batch = steps.find((s) => s.kind === 'stagePosteBatch')!;
+    const batch = steps.find((s) => s.kind === 'etapePosteEnBande')!;
     const [a, b] = ['a', 'b'].map((id) => batch.participants!.find((p) => p.id === id)!);
     a.result = { roll: 90, target: a.target!, sl: -1, success: false };
     b.result = { roll: 10, target: b.target!, sl: 1, success: true };
     expect(cumulEtenduDeRangee(b, batch.participants!)?.cum).toBe(1);
-    applierDe('stagePosteBatch')!(banc.getState, banc.setState, batch, undefined, { steps: [batch], index: 0 });
-    const agg = steps.find((s) => s.kind === 'stageAggregate')!;
-    applierDe('stageAggregate')!(banc.getState, banc.setState, agg, undefined, { steps, index: steps.indexOf(agg) });
+    applierDe('etapePosteEnBande')!(banc.getState, banc.setState, batch, undefined, { steps: [batch], index: 0 });
+    const agg = steps.find((s) => s.kind === 'etapeBilan')!;
+    applierDe('etapeBilan')!(banc.getState, banc.setState, agg, undefined, { steps, index: steps.indexOf(agg) });
     expect(banc.getState().travelPlan!.extendedProgress).toBe(1);
   });
 });

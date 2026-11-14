@@ -12,7 +12,7 @@ import type { BattleState } from '../../noyau/etat';
 import type { Combatant } from '../../engine/types';
 import { structureCombatant } from '../../engine/structures';
 import { findStructureById } from '../../data';
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from '../../scenes/test-scenarios/_heros';
 import { cloisons, piece } from '../../noyau/pieces.fixture';
 import type { Pt } from '../../noyau/monde/path';
 import { poseFromDims } from './projection';
@@ -75,7 +75,7 @@ const mur = (() => {
 })();
 /** Le frappeur est un HÉROS RÉEL (pregen) : ses armes et ses Compétences sont ce que la porte lit. */
 const heros = (() => {
-  const h = makePregens(idsDeTest)[0];
+  const h = tousLesHerosDeScenario(idsDeTest)[0];
   h.id = 'h1';
   h.pos = { x: FRAPPEUR.x, y: FRAPPEUR.y };
   return h;

@@ -25,7 +25,7 @@ export function CritLocationPicker({ current, onSet, shape = 'humanoide' }: {
   }));
   return (
     <div className="rm-options">
-      <span className="mini-title"><Icon id="fire/flame" size="sm" /> {t('touche.nouvelleLocalisation', { lieu: t('touche.nouvelleLocalisationAuChoix') })}</span>
+      <span className="mini-title"><Icon id="feu/flamme" size="sm" /> {t('touche.nouvelleLocalisation', { lieu: t('touche.nouvelleLocalisationAuChoix') })}</span>
       <OptionChooser options={options} layout="grid" />
     </div>
   );
@@ -85,7 +85,7 @@ export function ForcedRollPicker({ roll, target, onSet, critable = true, fixed =
   const maxRoll = fixed ? Math.min(max ?? FIXED_ROLL_MAX, FIXED_ROLL_MAX) : maxForcedRoll(target);
   // Le dé se commet au geste TERMINAL (`commit: 'geste'`), et une saisie hors des faces est REFUSÉE
   // plutôt que calée : la politique vit dans `NumberField`, elle n'est pas rejouée ici.
-  const stateLabel = !fixed ? 'Dé choisi' : marked ? 'Dé fixé' : t('verbe.setForcedRoll');
+  const stateLabel = !fixed ? 'Dé choisi' : marked ? 'Dé fixé' : t('verbe.imposerLeResultat');
   // Un second clic sur le MÊME dé ne rejoue pas le commit : poser le dé (re)LANCE côté flux.
   const poser = (n: number) => { if (n !== roll) onSet(n); };
   return (

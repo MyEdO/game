@@ -24,8 +24,6 @@ import { TypeFlags } from 'typescript/unstable/sync';
 //   - `registry` : un champ d'op que le parse ne juge pas — op de `OPS_NON_TYPEES`
 //     (`src/data/schemas/grammaire/mecanique.ts`) ou champ à plat d'une op typée ; il meurt au typage de
 //     son op par une référence EMBOÎTÉE, lot L1c #1468 ;
-//   - `coveredBy` : un champ d'op loose jugé au parse par un refus nommé (`refusLoose`, même fichier) ;
-//     il meurt au typage de son op, lot L1c #1468 ;
 //   - les `nonRef` ne visent aucun registre : ils restent, justifiés.
 //
 // POURQUOI PARTIR DU CHAMP, PAS DU LITTÉRAL. `scripts/guards/lib/registryIdBranch.mjs` a mesuré
@@ -62,27 +60,12 @@ const OPS_TYPE = 'GameOp';
  * `op.champ` :
  *   - `{ registry }`            — référence DURE : la valeur doit résoudre dans ce registre.
  *   - `{ nonRef }`              — la valeur n'est la clé d'aucun registre ; le texte dit quoi et qui la lit.
- *   - `{ coveredBy }`           — champ de référence gardé AILLEURS (garde nommée), pas ré-vérifié ici.
- * Ces trois formes sont l'ensemble FERMÉ du format : `src/data/refs-migrated.test.ts` refuse toute clé
- * hors `registry`/`nonRef`/`coveredBy`, et toute valeur non résolue est un offenseur.
+ * Ces deux formes sont l'ensemble FERMÉ du format : `src/data/refs-migrated.test.ts` refuse toute clé
+ * hors `registry`/`nonRef`, et toute valeur non résolue est un offenseur.
  */
 export const GAMEOP_FIELD_TARGETS = {
-  // ── États (etats.json) et Groupes (groups.json) des ops loose ──
-  'condition.id': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose` et par le dialecte miscast `jsonOpSchema` (src/data/schemas/defs/miscast.ts)' },
-  'condition.onlyIfCondition': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose`' },
-  'condition.unlessCondition': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose` ; dialecte miscast : feuille `idDe(\'etat\')`' },
-  'removeCondition.id': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose` et par le dialecte miscast `jsonOpSchema` (src/data/schemas/defs/miscast.ts)' },
-  'wounds.onlyGroups': { coveredBy: '`refusLoose` (src/data/schemas/grammaire/mecanique.ts) par `refusDeLId(\'groupe\', id, CIBLE_D_APPARTENANCE)`' },
-  'condition.onlyGroups': { coveredBy: '`refusLoose` (src/data/schemas/grammaire/mecanique.ts) par `refusDeLId(\'groupe\', id, CIBLE_D_APPARTENANCE)`' },
   // ── Champs que le parse ne juge pas (lot L1c #1468) ──
-  'skillDRBonus.testType': { registry: 'crewTestTypes' },
-  'grantNaturalWeapon.qualities': { registry: 'qualities' },
-  'grantNaturalWeapon.subType': { registry: 'weaponGroups' },
-  'rollMutation.table': { registry: 'mutationTables' },
   'manann.factorId': { registry: 'seaManannFactors' },
-  // Tons de lumière (lightTones.json) — APPARENCE d'une source, résolue au bord du rendu.
-  // Absent = `flamme`.
-  'light.tone': { registry: 'lightTones' },
   // ── Psychologie (psychology.json) ──
   'beginPsych.sourceId': { nonRef: 'id de combattant RUNTIME — la créature SOURCE d\'une Peur/Terreur (`targetedTrigger` le pose, src/engine/psychology.ts ; purgé à la mort par `clearPsychOf`), jamais authoré en donnée' },
   // ── Champs qui ne visent AUCUN registre ──
@@ -92,7 +75,7 @@ export const GAMEOP_FIELD_TARGETS = {
   'grantFreeAttack.label': { nonRef: 'libellé de l\'option d\'attaque surfacée au Tour' },
   'giveTrapping.custom': { nonRef: 'objet CUSTOM (misc), défini par ce nom faute d\'entrée de catalogue (src/engine/items.ts › itemFromGive)' },
   'grantNaturalWeapon.attackKind': { nonRef: 'kind d\'attaque naturelle, lu par le maniement (src/noyau/animation.ts) — espace de noms du geste, pas un registre de données' },
-  'rollTable.die': { nonRef: 'expression de dé (« d10 », « 2d10 »), validée au parse par `deDeTirageSchema` (src/data/schemas/grammaire/valeurs.ts) et lue en `DiceSpec` par `parseDiceRequired` (src/engine/ops.ts › applyOps, `case \'rollTable\'`)' },
+  'rollTable.die': { nonRef: 'expression de dé (« d10 », « 2d10 »), validée au parse par `deDeTirageSchema` (src/data/schemas/grammaire/valeurs.ts) et lue en `DeDeTable` par `deDeTirageDe` (src/engine/ops.ts › applyOps, `case \'rollTable\'`)' },
   'transform.tag': { nonRef: 'étiquette de GROUPEMENT des effets posés, relue par `endTransform` (retrait atomique)' },
   'endTransform.tag': { nonRef: 'étiquette de groupement posée par `transform`' },
   'scheduleRespawn.cancelFlag': { nonRef: 'nom de drapeau de SCÈNE posé par un Effet, espace de noms de l\'auteur de scène' },

@@ -15,7 +15,7 @@ import { t } from '../i18n';
  */
 export function ResilienceButton({ resilience, show, onForce }: { resilience: number; show: boolean; onForce: () => void }) {
   if (resilience <= 0 || !show) return null;
-  const label = <><Icon id="fire/flame" size="sm" /> {t('verbe.forceSuccess')} ×{resilience}</>;
+  const label = <><Icon id="feu/flamme" size="sm" /> {t('verbe.forcerLaReussite')} ×{resilience}</>;
   return (
     <CodexRef category="characteristics" id="resilience" label="Résilience" instance="Je ne faillirai pas !" wrap>
       <button

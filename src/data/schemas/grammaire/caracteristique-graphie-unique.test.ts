@@ -13,7 +13,7 @@ const OPS: Record<string, Record<string, unknown>> = {
   testMod: { op: 'testMod', amount: -10 },
   charDRBonus: { op: 'charDRBonus', bonus: 1 },
   charDamage: { op: 'charDamage', amount: { dice: { n: 1, sides: 10 } } },
-  actGate: { op: 'actGate' },
+  testDAgir: { op: 'testDAgir' },
 };
 
 const optionals = (): z.ZodType => {

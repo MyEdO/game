@@ -25,10 +25,10 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     // L'ennemi devient une lanceuse façon Eusapia : Langue (Magick) 63 (Int 48 + 15), Carreau connu.
@@ -55,17 +55,17 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     banc.getState().ensemencerLeTirage(3);
     const { H, E } = setup();
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
-    banc.getState().jetLancer('cast');
+    banc.getState().jetLancer('incantation');
     const pc = banc.getState().pendingCast!;
     if (!pc.result!.isCritical) {
       expect(pc.result!.log).toContain('Contre-sort de');
       expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.dispelledThisRound).toBe(true);
     }
     // 2e incantation du même Round : l'essai est consommé, plus de Contre-sort. (La 1re situation se
-    // referme à la main — après le jet, `jetAnnuler('cast')` REFUSE de renoncer, #1031.)
+    // referme à la main — après le jet, `jetAnnuler('incantation')` REFUSE de renoncer, #1031.)
     banc.setState({ pendingCast: null, pendingCascade: null, pendingCounterspell: null });
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
-    banc.getState().jetLancer('cast');
+    banc.getState().jetLancer('incantation');
     const pc2 = banc.getState().pendingCast!;
     expect(pc2.result!.log).not.toContain('Contre-sort de');
   });
@@ -110,8 +110,8 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     // Le Contre-sort passe par SA phase de déclaration (#1042/#1059) : les rangées surfacées passent, la
     // dernière déclaration referme la fenêtre par le résolveur canonique.
     if (st.pendingCounterspell) {
-      for (const p of st.pendingCounterspell.participants) banc.getState().jetRegler('counterspell', 'declaration', 'pass', p.id);
-    } else banc.getState().jetValider('cast');
+      for (const p of st.pendingCounterspell.participants) banc.getState().jetRegler('contreSort', 'declaration', 'passer', p.id);
+    } else banc.getState().jetValider('incantation');
     banc.avancer(2000);
     // Une Maladresse de l'IA déclare son étape à table comme partout (#1426) : la main ne repasse
     // qu'une fois la séquence de conséquence jouée (le socle a déjà tiré ce que nul siège ne tient).
@@ -138,7 +138,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     acquerirTalent(hero, { id: 'beni', spec: 'shallya' }); // LDB 10 l.109
     hero.spells = ['benediction-de-guerison'];
     castSpell(banc.getState, banc.setState, hero, hero, 'benediction-de-guerison');
-    banc.getState().jetLancer('cast');
+    banc.getState().jetLancer('incantation');
     expect(banc.getState().pendingCast!.result!.log).not.toContain('Contre-sort');
   });
 });

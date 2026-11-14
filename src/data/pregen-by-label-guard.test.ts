@@ -8,8 +8,7 @@ import { estSuiteVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * Garde-fou « prégénéré retrouvé PAR LABEL » (#322) : un test ne retrouve JAMAIS un `PregenDef`
  * (`pregens.json`) via `.find(… => x.name === '<nom affiché>')`/`.name.startsWith('<préfixe>')` — le
  * label est de l'AFFICHAGE (AGENTS.md, doctrine ids), fragile à tout renommage. La source unique est
- * `pregen(idsDeTest, PREGEN.<clé>)` / `pregenParty(idsDeTest, ...)` (`src/data/pregens.ts`), résolution par id STABLE
- * (`pregen-<seed>`) qui JETTE explicitement si absent. ZÉRO TOLÉRANCE (pas de baseline cliquet) :
+ * `pretire(idsDeTest, '<id>')` (`src/data/pregens.ts`), résolution par id STABLE qui JETTE explicitement si absent. ZÉRO TOLÉRANCE (pas de baseline cliquet) :
  * la migration (#322) a ramené le compte à 0 sur les 42 sites recensés (17 fichiers) ; tout nouveau site réintroduit régresse.
  */
 
@@ -34,7 +33,7 @@ describe('garde-fou « prégénéré par label » (#322)', () => {
     expect(NAMES.length, 'aucun label de prégénéré : le détecteur ne chercherait rien').toBeGreaterThan(0);
   });
 
-  it('aucun test ne recherche un prégénéré via .name/.label === <libellé> — utiliser pregen(idsDeTest, PREGEN.x)/pregenParty(idsDeTest, ...)', () => {
+  it('aucun test ne recherche un prégénéré via .name/.label === <libellé> — utiliser pretire(idsDeTest, "<id>")', () => {
     const offenders: string[] = [];
     for (const { rel, text } of corpus()) {
       const findings = scanPregenByLabel(rel, text, NAMES);
@@ -42,17 +41,17 @@ describe('garde-fou « prégénéré par label » (#322)', () => {
     }
     expect(
       offenders,
-      'Prégénéré(s) retrouvé(s) par LABEL — migrer vers pregen(idsDeTest, PREGEN.<clé>)/pregenParty(idsDeTest, ...) ' +
+      'Prégénéré(s) retrouvé(s) par LABEL — migrer vers pretire(idsDeTest, "<id>") ' +
         `(src/data/pregens.ts) :\n${offenders.join('\n')}`,
     ).toEqual([]);
   });
 
   it('fail-closed : détecte un motif fictif de lookup par label (preuve TDD)', () => {
-    const fake = "const w = pregens.find((p) => p.name === 'Wilhelmina Faust');";
+    const fake = "const w = pregens.find((p) => p.name === 'Harbull Piedvelu');";
     expect(scanPregenByLabel('fake.test.ts', fake, NAMES)).toHaveLength(1);
-    const fakeStartsWith = "const w = party.find((h) => h.name.startsWith('Klein'));";
+    const fakeStartsWith = "const w = party.find((h) => h.name.startsWith('Harbull'));";
     expect(scanPregenByLabel('fake.test.ts', fakeStartsWith, NAMES)).toHaveLength(1);
-    const legit = "const w = pregen(idsDeTest, PREGEN.sorcier);";
+    const legit = "const w = pretire(idsDeTest, 'wanda-weltschmertz');";
     expect(scanPregenByLabel('fake.test.ts', legit, NAMES)).toHaveLength(0);
   });
 });

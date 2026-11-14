@@ -15,8 +15,8 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * (échelle des noms : `LDB 12 l.149-151`). La prose `LDB 14 l.95` le chiffre : brouillard + Localisation
  * précise vaudraient « une pénalité de -40 » avant plafond, soit −20 chacun.
  */
-const bow = { name: 'Arc', type: 'ranged' } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', x: number): Combatant =>
+const bow = { name: 'Arc', type: 'distance' } as unknown as Weapon;
+const mk = (id: string, kind: 'heros' | 'ennemi', x: number): Combatant =>
   (blessuresSurLeProfil({ id, name: id, kind, size: 'moyenne', pos: { x, y: 5 }, conditions: [], talents: [], liveTraits: [], skills: [], weapons: [], movement: 4, loaded: true, advantage: 0,
      characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
      wounds: blessuresDeBase(12), armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } })) as unknown as Combatant;
@@ -26,8 +26,8 @@ const fogScene = (): Scene =>
 
 describe('attackEnv (tir) — cible dissimulée par le brouillard = −20 (Difficile, LDB 14 l.75)', () => {
   it('brouillard, tireur sans vision nocturne → −20', () => {
-    const attacker = mk('att', 'hero', 5);
-    const target = mk('tgt', 'enemy', 8);
+    const attacker = mk('att', 'heros', 5);
+    const target = mk('tgt', 'ennemi', 8);
     const get = (() => ({ scene: fogScene(), battle: { combatants: [attacker, target], movementUsed: 0 }, facing: {}, gameTime: 12 * 60 })) as unknown as Get;
     const env = attackEnv(get, attacker, target, bow).env;
     const conceal = ligneDe(env, RULE_REF['cible-dissimulee']);
@@ -38,13 +38,13 @@ describe('attackEnv (tir) — cible dissimulée par le brouillard = −20 (Diffi
 
 describe('Exemple RAW LDB 14 l.95 — « le Test devient simplement Très Difficile (-30) au lieu de recevoir une pénalité de -40 »', () => {
   it('brouillard PRODUIT par la scène + Localisation visée : somme brute −40, plafonnée à −30', () => {
-    const attacker = mk('att', 'hero', 5);
-    const target = mk('tgt', 'enemy', 8);
+    const attacker = mk('att', 'heros', 5);
+    const target = mk('tgt', 'ennemi', 8);
     const get = (() => ({ scene: fogScene(), battle: { combatants: [attacker, target], movementUsed: 0 }, facing: {}, gameTime: 12 * 60 })) as unknown as Get;
-    // `heldGround` : le tireur déclare tirer IMMOBILE — isole les deux facteurs de l'exemple du livre
+    // `tirImmobile` : le tireur déclare tirer IMMOBILE — isole les deux facteurs de l'exemple du livre
     // (sans quoi la production ajoute aussi « Tir en bougeant » −10, LDB 14 l.70).
-    const env = attackEnv(get, attacker, target, bow, { heldGround: true }).env; // production RÉELLE, aucune valeur en dur
-    const mods = attackModifiers(attacker, target, bow, { kind: 'ranged', location: 'tete', env });
+    const env = attackEnv(get, attacker, target, bow, { tirImmobile: true }).env; // production RÉELLE, aucune valeur en dur
+    const mods = attackModifiers(attacker, target, bow, { kind: 'distance', location: 'tete', env });
     expect(ligneDe(env, RULE_REF['cible-dissimulee'])?.value).toBe(-20);
     expect(ligneDe(mods, refDeRegle('viser-une-localisation'))?.value).toBe(-20);
     expect(mods.filter((m) => m.value < 0).reduce((s, m) => s + m.value, 0)).toBe(-40); // somme BRUTE
@@ -55,11 +55,11 @@ describe('Exemple RAW LDB 14 l.95 — « le Test devient simplement Très Diffic
 describe('Obscurité (LDB 14 l.75) et météo (l.76, l.82) : sommées sous le plafond Très Difficile −30 (LDB 14 l.95)', () => {
   const nightScene = (weather: 'tempete' | 'neige'): Scene => ({ ...fogScene(), ambiance: 'exterieur', weather }) as unknown as Scene;
   const lignes = (weather: 'tempete' | 'neige') => {
-    const attacker = mk('att', 'hero', 5);
-    const target = mk('tgt', 'enemy', 8);
+    const attacker = mk('att', 'heros', 5);
+    const target = mk('tgt', 'ennemi', 8);
     const get = (() => ({ scene: nightScene(weather), battle: { combatants: [attacker, target], movementUsed: 0 }, facing: {}, gameTime: 23 * 60 })) as unknown as Get;
-    const env = attackEnv(get, attacker, target, bow, { heldGround: true }).env;
-    return { env, total: combineMods(attackModifiers(attacker, target, bow, { kind: 'ranged', env })) };
+    const env = attackEnv(get, attacker, target, bow, { tirImmobile: true }).env;
+    return { env, total: combineMods(attackModifiers(attacker, target, bow, { kind: 'distance', env })) };
   };
   it('nuit + tempête : deux lignes (−20, −20), plafonnées à −30', () => {
     const { env, total } = lignes('tempete');

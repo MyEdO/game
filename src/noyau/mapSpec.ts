@@ -27,6 +27,7 @@
  *                    (`assertAuthoredIds`) + schéma de scène (`validerFormeVivante(sceneSchema, …)`) —
  *                    fail-fast, une fois zones/plancher réel connus.
  */
+import type { Equipe } from '../engine/relations';
 import type {
   Scene,
   SceneEntity,
@@ -44,7 +45,7 @@ import type {
   WallOverlay,
   WallSeg,
 } from './monde/scene';
-import { DEFAULT_TERRAIN, emptyScene, porteAuteur, tileAt, wallOverlayOf } from './monde/scene';
+import { DEFAULT_TERRAIN, canonEdge, emptyScene, porteAuteur, tileAt, wallOverlayOf } from './monde/scene';
 import { findStructureById, structureAppearances } from '../data';
 // DÉFAUTS DE COMPILATION (#1716) : ce que ce compilateur pose quand la déclaration laisse le terrain
 // implicite — chemin de ronde et masse d'une `cells` d'enceinte. Donnée éditable au Codex, même patron
@@ -69,8 +70,32 @@ import { buildEncounter, type AuthoredEnemy } from './monde/encounterAuthoring';
 import { chebyshev } from '../engine/grid';
 import { seatAssignmentDefects, type SeatAssignments } from './monde/seating';
 import { massFootprintCells } from './monde/buildings';
-import { type Pt, setEdgeWall, patchWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintTiles, fillTerrainRect, addLayer, putLayer, placeEmplacement, setPosteCrew, setPosteSide, pasteEntity, addRestZone, setSceneScalaires, setSceneFlags, realFloorAt, roofExclusionsByZ, deriveArchitectureMasses, bodyFootCellsByZ, bodyFootCells, adoptableOpeningsAt } from './sceneEdit';
-import { canonEdge, edgeWallState } from './sceneEditLecture';
+import {
+  type Pt,
+  setEdgeWall,
+  patchWall,
+  toggleDiagonalWall,
+  paintHeight,
+  paintCrenellated,
+  paintTiles,
+  fillTerrainRect,
+  addLayer,
+  putLayer,
+  placeEmplacement,
+  setPosteCrew,
+  setPosteSide,
+  pasteEntity,
+  addRestZone,
+  setSceneScalaires,
+  setSceneFlags,
+  realFloorAt,
+  roofExclusionsByZ,
+  deriveArchitectureMasses,
+  bodyFootCellsByZ,
+  bodyFootCells,
+  adoptableOpeningsAt,
+} from './sceneEdit';
+import { edgeWallState } from './sceneEditLecture';
 
 /** Hauteur (m) par défaut d'une ENCEINTE `cells` sans `height` explicite — chemin de ronde à ~4 m (un
  *  « niveau » de relief, cf. `METRES_PER_LEVEL`). */
@@ -120,7 +145,7 @@ export type ReliefSpec =
  *  `{emplacement}` (poste d'artillerie), ou un TEMPLATE partiel de `SceneEntity` (posé par `pasteEntity`). */
 /** Enrôle l'entité posée par un marqueur bind dans la rencontre `enc` (côté/IA/monture) — l'id étant
  *  GÉNÉRÉ à la pose (positions venant de l'ASCII), c'est le SEUL moyen de l'ajouter au roster. */
-export type BindMember = { enc: string; side?: 'ally' | 'enemy'; ai?: boolean; mount?: boolean };
+export type BindMember = { enc: string; side?: Equipe; ai?: boolean; mount?: boolean };
 
 export type BindSpec =
   | 'heroStart'
@@ -139,17 +164,17 @@ export interface EncounterSpec {
   id: string;
   enemies?: AuthoredEnemy[];
   members?: EncounterMember[];
-  surprise?: 'party' | 'enemies';
+  surprise?: 'groupe' | 'ennemis';
   onVictory?: Flow;
   /** Rencontre invisible en exploration jusqu'au combat (embuscade visuelle) — pose `combat.hiddenUntilCombat`
    *  sur les entités enrôlées via `enemies`. Défaut false (visibles, RAW). */
   hidden?: boolean;
   /** Avantage initial — Manœuvrabilité (AA 11 l.53-65), cf. `EncounterDef.maneuverability`. */
-  maneuverability?: 'party' | 'enemies';
+  maneuverability?: 'groupe' | 'ennemis';
   /** Avantage initial — Menace (AA 11 l.53-65), cf. `EncounterDef.threat`. */
-  threat?: { camp: 'party' | 'enemies'; tier: ThreatTier };
+  threat?: { camp: 'groupe' | 'ennemis'; tier: ThreatTier };
   /** Avantage initial — Terrain (AA 11 l.53-65), cf. `EncounterDef.terrain`. */
-  terrain?: { camp: 'party' | 'enemies'; heavy?: boolean };
+  terrain?: { camp: 'groupe' | 'ennemis'; heavy?: boolean };
   /** Objectif de victoire (#197), cf. `EncounterDef.victoryCondition`. Absent = `allEnemiesDead`. */
   victoryCondition?: VictoryCondition;
   /** Rencontre de SIÈGE, cf. `EncounterDef.siege`. Absent = false (l'IA ne cible aucune structure). */
@@ -744,7 +769,11 @@ export function buildScene(spec: MapSpec): Scene {
       ...(side === '\\' || side === '/' ? { x: wall.x, y: wall.y, side } : canonEdge(wall.x, wall.y, side)), ...(z ? { z } : {}),
       ...(wall.door ? { door: true } : {}), ...champs,
     });
-    if (!compile.success) throw new Error(`buildScene: WallSpec (${wall.x},${wall.y},${wall.side}) — ${compile.error.issues.map((i) => i.message).join(' ; ')}`);
+    if (!compile.success) {
+      // Un id inconnu se nomme par la source de l'AUTEUR (`assertAuthoredIds`) avant l'arête compilée.
+      assertAuthoredIds(spec, s);
+      throw new Error(`buildScene: WallSpec (${wall.x},${wall.y},${wall.side}) — ${compile.error.issues.map((i) => i.message).join(' ; ')}`);
+    }
     if (side === '\\' || side === '/') continue;
     s = setEdgeWall(s, wall.x, wall.y, side, z, wall.door ? 'door' : 'wall');
     if (wall.structure || wall.appearance || wall.window || wall.climb || wall.secret) {
@@ -838,7 +867,7 @@ export function buildScene(spec: MapSpec): Scene {
     for (const [propId, parMeuble] of Object.entries(spec.seatAssignments)) {
       exigeFixe(propId, 'le décor');
       for (const occupant of Object.values(parMeuble))
-        if (occupant.kind === 'entity') exigeFixe(occupant.entityId, "l'occupant");
+        if (occupant.kind === 'entite') exigeFixe(occupant.entityId, "l'occupant");
     }
     s = { ...s, seatAssignments: spec.seatAssignments };
     const defauts = seatAssignmentDefects(s);
@@ -979,7 +1008,7 @@ export function buildScene(spec: MapSpec): Scene {
  */
 function assertAuthoredIds(spec: MapSpec, scene: Scene): void {
   const inconnus: { source: string; quoi: string; id: string; catalogue: string }[] = [];
-  const appearanceIds = new Set(structureAppearances.map((a) => a.id));
+  const appearanceIds = new Set<string>(structureAppearances.map((a) => a.id));
   // Un MÊME id faux est atteint par plusieurs sources (le char de `wallLegend` ET chacune des arêtes
   // qu'il a posées) : une faute = UNE ligne, nommée par la source la PLUS PROCHE de l'auteur — les
   // tables du spec sont parcourues avant les arêtes compilées.

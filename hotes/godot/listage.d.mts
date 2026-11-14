@@ -2,8 +2,8 @@
 
 export const DOSSIER_DES_MODELES: string;
 
-export function listage(dossier: string): { manifestes: Record<string, unknown>; osDesRigides: Record<string, string[]>; erreurs: string[] };
+export function listage(dossier: string): { manifestes: Record<string, unknown>; osDesRigides: Record<string, string[]>; erreurs: string[]; forme: 'glb' };
 
 export const LISTAGE: string;
 
-export function deposerLesModeles(dossier: string, sortie: string): void;
+export function deposerLesModeles<T>(dossier: string, sortie: string, fabriquer: (modeles: { id: string; glb: string; scene: string }[]) => T): T;

@@ -116,7 +116,7 @@ describe('#1051 — frontière table ⇄ REPLI universel', () => {
 
 describe('#1051 — les Activités d’interlude sont routées par une clé explicite chacune', () => {
   it('chaque verbe d’Activité a sa route et son intent d’interlude', () => {
-    for (const a of ['pratiquerLActivite', 'deposerALaBanque', 'fabriquerLObjet', 'commanderLObjet'] as const) {
+    for (const a of ['deposerALaBanque', 'commanderLObjet', 'solderLaFaveur'] as const) {
       expect(ROUTES.has(a), `${a} : la table ne le route pas`).toBe(true);
       expect(INTERLUDE_INTENTS.has(a)).toBe(true);
     }

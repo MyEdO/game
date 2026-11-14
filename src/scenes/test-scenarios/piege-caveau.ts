@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects, testFlow } from '../../noyau/monde/flow';
 import { type Condition } from '../../engine/flowCore';
@@ -86,7 +86,7 @@ function construireScene(): Scene {
           },
           flowFromEffects([{ type: 'journal', desc: 'Un déclic — vous vous figez juste à temps, les piques claquent dans le vide.' }]),
           flowFromEffects([
-            { type: 'ops', on: 'party', ops: [{ op: 'wounds', amount: 5 }, { op: 'condition', id: 'a-terre' }] },
+            { type: 'ops', on: 'groupe', ops: [{ op: 'wounds', amount: 5 }, { op: 'condition', id: { id: 'a-terre' } }] },
             { type: 'setFlag', flag: 'alarme' },
             { type: 'journal', desc: 'Les piques jaillissent ! Dans le fracas, une cloche d’alarme retentit — la herse se verrouille.' },
           ]),
@@ -112,9 +112,9 @@ export const scenario: TestScenario = {
   id: 'piege-caveau',
   order: 10,
   category: 'scenarios',
-  icon: 'scenario/trap',
+  icon: 'scenario/piege',
   title: 'Le Caveau piégé',
   tests: 'Vitrine Flow+Condition : interactions (levier/clé → flags), condition composée (clé OU levier) ET NON alarme pour la herse, dalle piégée = Test d’Athlétisme à branches (esquive / piques + À Terre + alarme).',
   partyNote: 'Pré-tirés',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireScene() }),
 };

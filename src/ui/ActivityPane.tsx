@@ -1,3 +1,4 @@
+import type { IconId } from '../data/icons';
 import type { ReactNode } from 'react';
 import { Icon } from './Icon';
 import { Prose } from './Prose';
@@ -22,7 +23,7 @@ export const idBlocage = (paneId: string) => `${paneId}-blocked`;
 export function ActivityPane({ id, icon, title, lead, desc, porteur, blocked, prejet, cost, note, actions, children }: {
   /** Id STABLE du volet — ancre de la bannière de blocage (cf. `idBlocage`). */
   id: string;
-  icon: string;
+  icon: IconId;
   title: ReactNode;
   /** Bandeau d'ouverture du corps, AVANT la description (ex. `SpeakerBanner` de l'hôte du service). */
   lead?: ReactNode;

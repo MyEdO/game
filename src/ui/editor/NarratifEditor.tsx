@@ -13,7 +13,6 @@ import { FORMES_D_ETAT, valeursDeclarees, type FormeDEtatKind } from '../../data
 import { SourceRefField, useSaisieEnCours } from '../SourceRefField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { ProseField } from '../ProseField';
-import type { DescRef } from '../../data/schemas/grammaire/valeurs';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { estDerive } from '../../noyau/codex/editFields';
 import { RefNarrativeField } from '../compendium/refField/RefField';
@@ -33,7 +32,19 @@ import { NumberField } from '../NumberField';
 import { CouvreField, SelecteurDEntreeDeFiche } from './CouvreField';
 import { Stack } from '../Layout';
 import { t } from '../../i18n';
-import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, DocumentNarratif, EtatNarratif, OuvertureBlock, ClotureBlock, AmbianceCadre, EcartDeFiche } from '../../data/schemas/defs-scenes/narratif';
+import type {
+  NarratifBlock,
+  PresetPnj,
+  Affaire,
+  Indice,
+  IndiceStade,
+  DocumentNarratif,
+  EtatNarratif,
+  OuvertureBlock,
+  ClotureBlock,
+  AmbianceCadre,
+  EcartDeFiche,
+} from '../../data/schemas/defs-scenes/narratif';
 import { raceKeySchema, sexeSchema, type RaceKey, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { validateDocument, cheminLisible } from '../../data/schemas/validate';
@@ -253,7 +264,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
 
   return (
     <ScreenShell
-      title={<><Icon id="nav/compendium" size="sm" /> Narratif de la campagne</>}
+      title={<><Icon id="navigation/compendium" size="sm" /> Narratif de la campagne</>}
       onClose={onClose}
       body="centered"
       tabs={<Tabs tabs={tabs} active={tab} onChange={setTab} label="Rubriques du narratif" />}
@@ -281,7 +292,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
           }
           action={
             <button type="button" className="btn small" onClick={addAffaire}>
-              <Icon id="ui/add" size="sm" /> Ajouter une affaire
+              <Icon id="interface/ajouter" size="sm" /> Ajouter une affaire
             </button>
           }
           detail={
@@ -315,7 +326,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
           action={
             <GatedAction
               id="ajouter-indice"
-              label={<><Icon id="ui/add" size="sm" /> Ajouter un indice</>}
+              label={<><Icon id="interface/ajouter" size="sm" /> Ajouter un indice</>}
               enabled={narratif.affaires.length > 0}
               {...raisonSi(narratif.affaires.length === 0 ? 'Créez d’abord une affaire.' : undefined)}
               onClick={addIndice}
@@ -359,7 +370,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
           }
           action={
             <button type="button" className="btn small" onClick={addDocument}>
-              <Icon id="ui/add" size="sm" /> Ajouter un document
+              <Icon id="interface/ajouter" size="sm" /> Ajouter un document
             </button>
           }
           detail={
@@ -393,7 +404,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
           }
           action={
             <button type="button" className="btn small" onClick={addEtat}>
-              <Icon id="ui/add" size="sm" /> Ajouter un état
+              <Icon id="interface/ajouter" size="sm" /> Ajouter un état
             </button>
           }
           detail={
@@ -429,7 +440,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
           }
           action={
             <button type="button" className="btn small" onClick={addPreset}>
-              <Icon id="ui/add" size="sm" /> Ajouter un PNJ
+              <Icon id="interface/ajouter" size="sm" /> Ajouter un PNJ
             </button>
           }
           detail={
@@ -482,7 +493,7 @@ function CadreForm({ narratif, ouverture, cloture, onOuverture, onCloture }: {
       <h4 className="mini-title">Ouverture cérémonielle</h4>
       {!ouverture ? (
         <button type="button" className="btn small" onClick={() => onOuverture({ titre: '', pitch: '' })}>
-          <Icon id="ui/add" size="sm" /> Ajouter une ouverture
+          <Icon id="interface/ajouter" size="sm" /> Ajouter une ouverture
         </button>
       ) : (
         <>
@@ -510,14 +521,14 @@ function CadreForm({ narratif, ouverture, cloture, onOuverture, onCloture }: {
             </select>
           </label>
           <button type="button" className="btn small danger" onClick={() => onOuverture(undefined)}>
-            <Icon id="ui/delete" size="sm" /> Retirer l'ouverture
+            <Icon id="interface/supprimer" size="sm" /> Retirer l'ouverture
           </button>
         </>
       )}
       <h4 className="mini-title">Clôture du chapitre</h4>
       {!cloture ? (
         <button type="button" className="btn small" onClick={() => onCloture({ titre: '', when: { kind: 'flag', expr: '' } })}>
-          <Icon id="ui/add" size="sm" /> Ajouter une clôture
+          <Icon id="interface/ajouter" size="sm" /> Ajouter une clôture
         </button>
       ) : (
         <>
@@ -532,7 +543,7 @@ function CadreForm({ narratif, ouverture, cloture, onOuverture, onCloture }: {
             <ConditionEditor cond={cloture.when} kinds={CONDITION_KINDS_CARTE} narratif={narratif} onChange={(when) => patchClo({ when })} />
           </div>
           <button type="button" className="btn small danger" onClick={() => onCloture(undefined)}>
-            <Icon id="ui/delete" size="sm" /> Retirer la clôture
+            <Icon id="interface/supprimer" size="sm" /> Retirer la clôture
           </button>
         </>
       )}
@@ -656,7 +667,7 @@ function EtatForm({ porteur, etat, refusDe, refus, refusDeRenommerValeur, refusD
             </div>
           ))}
           <button type="button" className="btn small" onClick={() => setValeurs([...valeurs, { id: idFrais('valeur', valeurs), label: `Valeur ${valeurs.length + 1}` }])}>
-            <Icon id="ui/add" size="sm" /> Ajouter une valeur
+            <Icon id="interface/ajouter" size="sm" /> Ajouter une valeur
           </button>
         </div>
       )}
@@ -665,7 +676,7 @@ function EtatForm({ porteur, etat, refusDe, refus, refusDeRenommerValeur, refusD
           ? <IdentiteForm porteur={porteur} identite={etat.forme.identite} onChange={(identite) => onPatch({ forme: identite ? { kind: 'heros', identite } : { kind: 'heros' } })} />
           : (
             <button type="button" className="btn small" onClick={() => onPatch({ forme: { kind: 'heros', identite: identiteNeuve() } })}>
-              <Icon id="ui/add" size="sm" /> Ajouter une identité
+              <Icon id="interface/ajouter" size="sm" /> Ajouter une identité
             </button>
           )
       )}
@@ -729,7 +740,7 @@ function IdentiteForm({ porteur, identite, onChange }: { porteur: string; identi
         </div>
       ))}
       <button type="button" className="btn small" onClick={() => poser({ ancres: [...identite.ancres, ''] })}>
-        <Icon id="ui/add" size="sm" /> Ajouter une ancre
+        <Icon id="interface/ajouter" size="sm" /> Ajouter une ancre
       </button>
       {identite.reperes.map((r, i) => (
         <div key={clesReperes[i]}>
@@ -746,7 +757,7 @@ function IdentiteForm({ porteur, identite, onChange }: { porteur: string; identi
         </div>
       ))}
       <button type="button" className="btn small" onClick={ajouterRepere}>
-        <Icon id="ui/add" size="sm" /> Ajouter un repère
+        <Icon id="interface/ajouter" size="sm" /> Ajouter un repère
       </button>
       {identite.lignes.map((l, j) => (
         <div key={clesLignes[j]}>
@@ -783,7 +794,7 @@ function IdentiteForm({ porteur, identite, onChange }: { porteur: string; identi
       ))}
       <GatedAction
         id={`ajouter-ligne-${porteur}`}
-        label={<><Icon id="ui/add" size="sm" /> Ajouter une ligne</>}
+        label={<><Icon id="interface/ajouter" size="sm" /> Ajouter une ligne</>}
         enabled={!!libre}
         {...raisonSi(libre ? undefined : 'Chaque espèce et chaque sexe a déjà sa ligne.')}
         onClick={ajouterLigne}
@@ -802,7 +813,7 @@ function BoutonRetirer({ id, libelle, refus, onRemove }: { id: string; libelle: 
   return (
     <GatedAction
       id={id}
-      label={<><Icon id="ui/delete" size="sm" /> {libelle}</>}
+      label={<><Icon id="interface/supprimer" size="sm" /> {libelle}</>}
       enabled={!refus}
       {...raisonSi(refus)}
       onClick={onRemove}
@@ -912,7 +923,7 @@ function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, refusDe
           </div>
         ))}
         <button type="button" className="btn small" onClick={addStade}>
-          <Icon id="ui/add" size="sm" /> Ajouter un stade
+          <Icon id="interface/ajouter" size="sm" /> Ajouter un stade
         </button>
       </div>
       <BoutonRetirer id={`supprimer-indice-${indice.id}`} libelle="Supprimer cet indice" refus={refus} onRemove={onRemove} />
@@ -947,10 +958,10 @@ function PresetForm({ porteur, preset, refusDe, onRename, onPatch, refus, onRemo
   const base = preset.base ? findCreatureById(preset.base.id) : undefined;
   const fusion = base ? mergeCreatureProfile(base, profil) : profil;
   const descAdressee = estDerive({ ...profil }, 'desc');
-  const { descRef } = profil as { descRef?: DescRef };
+  const { descRef } = profil;
 
   /** `profil` patché : une clé à `undefined` se retire, et `profil` vide aussi. */
-  const profilPatche = (patch: Partial<CreatureData> & { descRef?: undefined }): Partial<CreatureData> | undefined => {
+  const profilPatche = (patch: Partial<CreatureData>): Partial<CreatureData> | undefined => {
     const next = Object.fromEntries(Object.entries({ ...profil, ...patch }).filter(([, v]) => v !== undefined)) as Partial<CreatureData>;
     return Object.keys(next).length ? next : undefined;
   };

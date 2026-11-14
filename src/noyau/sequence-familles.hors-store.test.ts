@@ -75,48 +75,48 @@ const JOUTE = 'test-tournoi-joute';
 const passes: number[] = [];
 
 beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [JOUTE]: sequenceDeFixture<JoutePayload>({
-  round: (get, seq): SequenceRound<JoutePayload> | undefined => {
+  manche: (get, seq): SequenceRound<JoutePayload> | undefined => {
     const h = get().party[0];
     if (!h) return undefined;
-    passes.push(seq.round);
+    passes.push(seq.manche);
     const step = monoStep({
-      id: `passe-${seq.round}`, kind: cleDeFixture('testJoute'), label: fixtureText(`Passe ${seq.round}`), actor: h,
+      id: `passe-${seq.manche}`, kind: cleDeFixture('testJoute'), label: fixtureText(`Passe ${seq.manche}`), actor: h,
       difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-      stake: combatStakeRef('pursuit-move', { values: { distance: 1, evasion: 10 } }),
+      stake: combatStakeRef('poursuite-manche', { values: { distance: 1, evasion: 10 } }),
     });
-    return step ? { title: fixtureText(`Joute — passe ${seq.round}`), steps: [step], immediate: true, payload: { ...seq.payload, passes: [...seq.payload.passes, seq.round] } } : undefined;
+    return step ? { title: fixtureText(`Joute — passe ${seq.manche}`), steps: [step], immediate: true, chargeUtile: { ...seq.chargeUtile, passes: [...seq.chargeUtile.passes, seq.manche] } } : undefined;
   },
-  close: ({ get, seq }): SequenceVerdict<JoutePayload> => {
+  clore: ({ get, seq }): SequenceVerdict<JoutePayload> => {
     const h = get().party[0];
-    const dernier = sequencePhaseOf(seq.params, seq.round).last;
+    const dernier = sequencePhaseOf(seq.parametres, seq.manche).last;
     // Le vainqueur de la passe est NOMMÉ par le verdict : c'est le socle qui applique ses ops.
-    const roundActors = { winners: [h.id], all: [h.id] };
-    return dernier ? { go: 'end', outcome: 'fini', roundActors } : { go: 'continue', roundActors };
+    const porteurs = { vainqueurs: [h.id], tous: [h.id] };
+    return dernier ? { suite: 'fin', issue: 'fini', porteurs } : { suite: 'poursuivre', porteurs };
   },
 }), 'test-joute-borne-attrition': sequenceDeFixture<JoutePayload>({
-      round: (get, seq) => {
+      manche: (get, seq) => {
         const h = get().party[0];
-        passes.push(seq.round);
+        passes.push(seq.manche);
         const step = monoStep({
-          id: `b-${seq.round}`, kind: cleDeFixture('testJoute'), label: fixtureText('Passe'), actor: h,
+          id: `b-${seq.manche}`, kind: cleDeFixture('testJoute'), label: fixtureText('Passe'), actor: h,
           difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-          stake: combatStakeRef('pursuit-move', { values: { distance: 1, evasion: 10 } }),
+          stake: combatStakeRef('poursuite-manche', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Joute'), steps: [step], immediate: true } : undefined;
       },
-      close: ({ get }) => ({ go: 'continue', roundActors: { all: [get().party[0].id] } }),
+      clore: ({ get }) => ({ suite: 'poursuivre', porteurs: { tous: [get().party[0].id] } }),
     }), 'test-joute-sans-fin': sequenceDeFixture<JoutePayload>({
-      round: (get, seq) => {
+      manche: (get, seq) => {
         const h = get().party[0];
-        passes.push(seq.round);
+        passes.push(seq.manche);
         const step = monoStep({
-          id: `p-${seq.round}`, kind: cleDeFixture('testJoute'), label: fixtureText('Passe'), actor: h,
+          id: `p-${seq.manche}`, kind: cleDeFixture('testJoute'), label: fixtureText('Passe'), actor: h,
           difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-          stake: combatStakeRef('pursuit-move', { values: { distance: 1, evasion: 10 } }),
+          stake: combatStakeRef('poursuite-manche', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Joute'), steps: [step], immediate: true } : undefined;
       },
-      close: () => ({ go: 'continue' }),
+      clore: () => ({ suite: 'poursuivre' }),
     }) } }); });
 
 describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arrête au bout de ses phases', () => {
@@ -130,9 +130,9 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
 
   it('deux mi-temps de trois passes : SIX manches, pas une de plus', () => {
     startSequence<JoutePayload>(banc.getState, banc.setState, {
-      def: JOUTE,
-      params: { phases: { count: 2, rounds: 3 } },
-      payload: { lices: ['nord', 'sud'], passes: [] },
+      definition: JOUTE,
+      parametres: { phases: { count: 2, rounds: 3 } },
+      chargeUtile: { lices: ['nord', 'sud'], passes: [] },
     });
     expect(passes).toEqual([1, 2, 3, 4, 5, 6]);
     expect(banc.getState().sequence, 'la séquence est retirée au bout de ses phases').toBeNull();
@@ -140,12 +140,12 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
 
   it('les ops DÉCLARÉES tombent sur les porteurs NOMMÉS : +1 Avantage par passe gagnée', () => {
     startSequence<JoutePayload>(banc.getState, banc.setState, {
-      def: JOUTE,
-      params: {
+      definition: JOUTE,
+      parametres: {
         phases: { count: 1, rounds: 3 },
         rounds: { winner: [{ op: 'gainAdvantage', amount: 1 }] },
       },
-      payload: { lices: [], passes: [] },
+      chargeUtile: { lices: [], passes: [] },
     });
     // NADJ 16 l.34, LDB 14 l.204-209 : `gainAdvantage` est ADDITIF — trois passes gagnées, trois Avantages.
     expect(banc.getState().party[0].advantage).toBe(3);
@@ -154,11 +154,11 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
   it('en combat sous « Avantage de groupe », le gain de manche passe par la réserve du camp (AA 11 l.11-13)', () => {
     setRule('combat-aa-avantage-groupe', true);
     const h = banc.getState().party[0];
-    const battle = { combatants: [h], advantagePools: { allies: 0, foes: 0 }, log: [] };
+    const battle = { combatants: [h], advantagePools: { allies: 0, adversaires: 0 }, log: [] };
     const get = (() => ({ battle, party: [h] })) as never;
-    const seq = { def: JOUTE, round: 1, cum: {}, params: { rounds: { winner: [{ op: 'gainAdvantage', amount: 2 }] } }, payload: { lices: [], passes: [] } } as never;
-    sequenceRoundOps(get, seq, 1, { winners: [h.id] });
-    expect(battle.advantagePools).toEqual({ allies: 2, foes: 0 });
+    const seq = { definition: JOUTE, manche: 1, cumuls: {}, parametres: { rounds: { winner: [{ op: 'gainAdvantage', amount: 2 }] } }, chargeUtile: { lices: [], passes: [] } } as never;
+    sequenceRoundOps(get, seq, 1, { vainqueurs: [h.id] });
+    expect(battle.advantagePools).toEqual({ allies: 2, adversaires: 0 });
     expect(h.advantage, 'projection de la réserve').toBe(2);
   });
 
@@ -166,10 +166,10 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
     const h = banc.getState().party[0];
     h.advantage = 2;
     const get = (() => ({ battle: null, party: [h] })) as never;
-    const seq = (avantage: boolean) => ({ def: JOUTE, round: 1, cum: {}, params: avantage ? { avantage } : {}, payload: { lices: [], passes: [] } }) as never;
-    sequenceRoundOps(get, seq(false), 1, { losers: [h.id] });
+    const seq = (avantage: boolean) => ({ definition: JOUTE, manche: 1, cumuls: {}, parametres: avantage ? { avantage } : {}, chargeUtile: { lices: [], passes: [] } }) as never;
+    sequenceRoundOps(get, seq(false), 1, { perdants: [h.id] });
     expect(h.advantage, 'une séquence sans Avantage ne le touche pas').toBe(2);
-    sequenceRoundOps(get, seq(true), 1, { losers: [h.id] });
+    sequenceRoundOps(get, seq(true), 1, { perdants: [h.id] });
     expect(h.advantage).toBe(0);
   });
 
@@ -177,11 +177,11 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
     setRule('combat-aa-avantage-groupe', true);
     const h = banc.getState().party[0];
     h.advantage = 3;
-    const battle = { combatants: [h], advantagePools: { allies: 3, foes: 1 }, log: [] };
+    const battle = { combatants: [h], advantagePools: { allies: 3, adversaires: 1 }, log: [] };
     const get = (() => ({ battle, party: [h] })) as never;
-    const seq = { def: JOUTE, round: 1, cum: {}, params: { avantage: true }, payload: { lices: [], passes: [] } } as never;
-    sequenceRoundOps(get, seq, 1, { losers: [h.id], all: [h.id] });
-    expect(battle.advantagePools).toEqual({ allies: 3, foes: 1 });
+    const seq = { definition: JOUTE, manche: 1, cumuls: {}, parametres: { avantage: true }, chargeUtile: { lices: [], passes: [] } } as never;
+    sequenceRoundOps(get, seq, 1, { perdants: [h.id], tous: [h.id] });
+    expect(battle.advantagePools).toEqual({ allies: 3, adversaires: 1 });
     expect(h.advantage).toBe(3);
   });
 
@@ -189,22 +189,22 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
     const h = banc.getState().party[0];
     h.advantage = 2;
     const get = (() => ({ battle: null, party: [h] })) as never;
-    const seq = { def: JOUTE, round: 1, cum: {}, params: { avantage: true }, payload: { lices: [], passes: [] } } as never;
-    sequenceRoundOps(get, seq, 1, { all: [h.id] });
+    const seq = { definition: JOUTE, manche: 1, cumuls: {}, parametres: { avantage: true }, chargeUtile: { lices: [], passes: [] } } as never;
+    sequenceRoundOps(get, seq, 1, { tous: [h.id] });
     expect(h.advantage).toBe(1);
     h.advantage = 0;
-    sequenceRoundOps(get, seq, 2, { all: [h.id] });
+    sequenceRoundOps(get, seq, 2, { tous: [h.id] });
     expect(h.advantage).toBe(0);
   });
 
   it('l’ATTRITION d’intervalle ne tombe qu’aux manches multiples de l’intervalle déclaré', () => {
     startSequence<JoutePayload>(banc.getState, banc.setState, {
-      def: JOUTE,
-      params: {
+      definition: JOUTE,
+      parametres: {
         phases: { count: 1, rounds: 2 },
-        rounds: { attrition: [{ op: 'condition', id: 'extenue', value: 1 }], attritionEvery: 3 },
+        rounds: { attrition: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], attritionEvery: 3 },
       },
-      payload: { lices: [], passes: [] },
+      chargeUtile: { lices: [], passes: [] },
     });
     expect(passes).toEqual([1, 2]);
     expect(hasCondition(banc.getState().party[0], COND.extenue), 'intervalle 3, deux manches : rien').toBe(false);
@@ -214,12 +214,12 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
     // TERMINALE : elle serait restée verte avec l'attrition frappant la manche conclusive.)
     passes.length = 0;
     startSequence<JoutePayload>(banc.getState, banc.setState, {
-      def: JOUTE,
-      params: {
+      definition: JOUTE,
+      parametres: {
         phases: { count: 2, rounds: 2 },
-        rounds: { attrition: [{ op: 'condition', id: 'extenue', value: 1 }], attritionEvery: 3 },
+        rounds: { attrition: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], attritionEvery: 3 },
       },
-      payload: { lices: [], passes: [] },
+      chargeUtile: { lices: [], passes: [] },
     });
     expect(passes).toEqual([1, 2, 3, 4]);
     expect(hasCondition(banc.getState().party[0], COND.extenue), 'la 3ᵉ manche, qui PASSE, échoit').toBe(true);
@@ -233,12 +233,12 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
    */
   it('la manche qui CONCLUT n’inflige PAS l’attrition, même à un rang multiple de l’intervalle', () => {
     startSequence<JoutePayload>(banc.getState, banc.setState, {
-      def: JOUTE,
-      params: {
+      definition: JOUTE,
+      parametres: {
         phases: { count: 1, rounds: 3 }, // la 3ᵉ manche est la DERNIÈRE : elle conclut
-        rounds: { attrition: [{ op: 'condition', id: 'extenue', value: 1 }], attritionEvery: 3 },
+        rounds: { attrition: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], attritionEvery: 3 },
       },
-      payload: { lices: [], passes: [] },
+      chargeUtile: { lices: [], passes: [] },
     });
     expect(passes, 'trois manches jouées, la 3ᵉ conclut').toEqual([1, 2, 3]);
     expect(hasCondition(banc.getState().party[0], COND.extenue), 'le tour gagné n’est pas un tour qui passe').toBe(false);
@@ -248,12 +248,12 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
    *  manche qui ne « passe » plus — l'attrition ne la frappe pas non plus. */
   it('la manche de BORNE n’inflige pas non plus l’attrition', () => {
     startSequence<JoutePayload>(banc.getState, banc.setState, {
-      def: 'test-joute-borne-attrition',
-      params: {
+      definition: 'test-joute-borne-attrition',
+      parametres: {
         phases: { count: 1, rounds: 2 },
-        rounds: { attrition: [{ op: 'condition', id: 'extenue', value: 1 }], attritionEvery: 2 },
+        rounds: { attrition: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], attritionEvery: 2 },
       },
-      payload: { lices: [], passes: [] },
+      chargeUtile: { lices: [], passes: [] },
     });
     expect(passes).toEqual([1, 2]);
     expect(hasCondition(banc.getState().party[0], COND.extenue)).toBe(false);
@@ -261,7 +261,7 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
 
   it('sans déclaration d’ops, le socle n’applique RIEN (aucun effet par défaut)', () => {
     startSequence<JoutePayload>(banc.getState, banc.setState, {
-      def: JOUTE, params: { phases: { count: 1, rounds: 3 } }, payload: { lices: [], passes: [] },
+      definition: JOUTE, parametres: { phases: { count: 1, rounds: 3 } }, chargeUtile: { lices: [], passes: [] },
     });
     const h = banc.getState().party[0] as { advantage?: number };
     expect(h.advantage ?? 0).toBe(0);
@@ -279,7 +279,7 @@ describe('la BORNE tient compte des phases déclarées', () => {
 
   it('un réducteur qui ne conclut JAMAIS s’arrête quand même au total des phases', () => {
     startSequence<JoutePayload>(banc.getState, banc.setState, {
-      def: 'test-joute-sans-fin', params: { phases: { count: 2, rounds: 2 } }, payload: { lices: [], passes: [] },
+      definition: 'test-joute-sans-fin', parametres: { phases: { count: 2, rounds: 2 } }, chargeUtile: { lices: [], passes: [] },
     });
     expect(passes.length, 'quatre manches, puis la borne').toBe(4);
     expect(banc.getState().sequence).toBeNull();

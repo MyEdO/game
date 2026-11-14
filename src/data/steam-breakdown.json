@@ -84,7 +84,7 @@
             "characteristic": "force",
             "difficulty": "intermediaire"
           },
-          "targetDR": 10
+          "drCible": 10
         },
         {
           "test": {
@@ -122,7 +122,7 @@
             "characteristic": "force",
             "difficulty": "intermediaire"
           },
-          "targetDR": 10
+          "drCible": 10
         },
         {
           "test": {

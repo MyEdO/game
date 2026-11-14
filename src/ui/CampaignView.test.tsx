@@ -9,7 +9,7 @@ import type { Combatant } from '../engine/types';
 import { datasetArray, setDataset } from '../data/overrides';
 import { areneCampaign, paquetDuJeu } from '../scenes/campaign';
 import { testScene } from '../scenes/test-fixture';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { CampaignView } from './CampaignView';
 import { t } from '../i18n';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
@@ -168,11 +168,11 @@ describe('CampaignView — le geste de caméra du joueur, monté à l’écran',
 // LDB 46 l.158-162
 describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', () => {
   /** Combat à 2 héros, `h2` PORTEUR de 2 Sorts permanents. `action` arme (ou non) la Dissipation. */
-  function combatDissipation(action: 'dispel' | null) {
+  function combatDissipation(action: 'dissipation' | null) {
     demonterRacines();
     // `hoverClickCommits` (pointerCaps) interroge le pointeur : jsdom n'a pas `matchMedia`.
     vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));
-    const [h1, h2] = makePregens(idsDeTest);
+    const [h1, h2] = tousLesHerosDeScenario(idsDeTest);
     h1.id = 'h1'; h1.pos = { x: 6, y: 6 };
     h2.id = 'h2'; h2.pos = { x: 5, y: 6 };
     (h2 as { activeEffects?: unknown[] }).activeEffects = [1, 2].map((i) => ({
@@ -203,7 +203,7 @@ describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', ()
   };
 
   it('mode Dissiper ARMÉ : le portrait de l’allié porteur ÉLIT le porteur (comme son jeton)', () => {
-    const { h2 } = combatDissipation('dispel');
+    const { h2 } = combatDissipation('dissipation');
     const b = portraitDock(h2.label);
     expect(b.getAttribute('aria-label')).toBe(`${h2.label} — cibler — ${t('ptile.geste2eInspecter')}`);
     act(() => { b.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
@@ -228,7 +228,7 @@ describe('CampaignView — le refus du repli de défaite vit le temps de la moda
   function defaite(party: Combatant[]): BattleState {
     return {
       combatants: party, order: party.map((h) => h.id), turn: 0, round: 1, action: null, selectedSpellId: null,
-      reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: 'defeat',
+      reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: 'defaite',
     };
   }
   const alerte = () => host.querySelector('.defeat-modal [role="alert"]');
@@ -244,7 +244,7 @@ describe('CampaignView — le refus du repli de défaite vit le temps de la moda
     demonterRacines();
     vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     const avant = [...datasetArray('props')];
     useGame.setState({ screen: 'campaign', scene: null, mode: 'battle', povActive: false, massBattle: null, party, battle: defaite(party) });
     setDataset('props', avant.map((p) => (p.id === 'tonneau' ? { ...p, id: 'tonneau-renomme' } : p)));
@@ -276,7 +276,7 @@ describe('CampaignView — « Réduire » le hub de voyage pendant une halte (#2
   /** Hub de voyage actif ; `halte` = une nuit de halte attend (étape incrustée, hub forcé ouvert). */
   function monterHub(halte: boolean) {
     demonterRacines();
-    const [heros] = makePregens(idsDeTest);
+    const [heros] = tousLesHerosDeScenario(idsDeTest);
     useGame.setState({
       screen: 'campaign', scene: testScene(), mode: 'exploration', povActive: false, battle: null,
       party: [heros], worldMapOpen: false, travelRecap: null, pendingCascade: null, pendingShoreLeave: null,

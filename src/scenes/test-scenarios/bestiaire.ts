@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { makeShowcaseParty } from '../../data/pregens';
+import { groupeVitrineDeScenario } from './_heros';
 import { mutationAt } from '../../data/mutations';
 import { battleRng } from '../../noyau/battleRng';
 import { attachMutation } from '../../engine/corruption';
@@ -33,7 +33,7 @@ function mutate(c: Combatant, rolls: number[]): Combatant {
 }
 
 function groupe(idNeuf: FabriqueDId): Combatant[] {
-  const heroes = makeShowcaseParty(idNeuf).map((c, i) => mutate(c, LOTS[i] ?? [])); // 4 héros mutés
+  const heroes = groupeVitrineDeScenario(idNeuf).map((c, i) => mutate(c, LOTS[i] ?? [])); // 4 héros mutés
   const shallya = makePriest(idNeuf, 'h-shallya', 'Sœur Greta, Prêtresse de Shallya', 'shallya', { sociabilite: 66, 'force-mentale': 60, force: 40, endurance: 44 });
   return [...heroes, shallya];
 }
@@ -88,7 +88,7 @@ export const scenario: TestScenario = {
   id: 'bestiaire',
   order: 5,
   category: 'creatures',
-  icon: 'scenario/bestiary',
+  icon: 'scenario/bestiaire',
   title: 'Bestiaire, traits & états',
   tests:
     'Ménagerie : traits (Éthéré/Instable, Démoniaque/Champion/Perturbant, Régénération/Stupide, Toile/Bestial/Venin, ' +

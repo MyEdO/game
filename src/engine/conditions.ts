@@ -2,13 +2,26 @@
  * États (conditions) — Livre de base, chapitre « États ».
  * Gestion minimale pour le combat tactique : ajout, empilement, retrait.
  */
+import type { IconId } from '../data/icons';
 import type { FabriqueDId } from './fabriqueDId';
-import { Combatant, ActiveEffect, ConditionInstance, effectRef, type ModLine, type ConditionEmit, type ConditionLocks, type Difficulty } from './types';
+import {
+  Combatant,
+  ActiveEffect,
+  ConditionInstance,
+  effectRef,
+  type ModLine,
+  type ConditionEmit,
+  type ConditionLocks,
+  type Difficulty,
+  type Main,
+} from './types';
 import { evalCondition, walkFlow } from './flowCore';
 import { conditionLockCtx } from './actorView';
 import { tickRound, type Duration } from './duration';
 import { conditionIds, conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel, skills } from '../data';
 import { indexParId } from '../data/versionDataset';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { acteDeDeverrouillageSchema } from '../data/schemas/grammaire/valeurs';
 import { t } from '../i18n';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
@@ -30,7 +43,10 @@ import { hasActiveFlag } from './activeFlags';
 import { isVehicle } from './coque';
 import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
 import { cappedHealAmount } from './healing'; // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
-import { isInanimate } from './structures'; // cycle runtime (structures→capabilities→disease→conditions) : appelés à la lecture d'un combattant, jamais à l'init
+// cycle runtime (structures→capabilities→disease→conditions) : appelés à la lecture d'un combattant, jamais à l'init
+import {
+  isInanimate,
+} from './structures';
 import { hasTalent } from './magic'; // cycle runtime (magic→combat→conditions) : appelé à la lecture de la Mort subite, jamais à l'init
 import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical→combat→conditions) : appelé seulement dans inDeathCondition, jamais à l'init
 
@@ -60,25 +76,24 @@ export function etatNonCumulable(id: string): boolean {
 
 /** Marqueurs NARRATIFS hors LDB 16 (PAS des États `etats.json`, cf. `data-wellformed.test`) : Pétrifié
  *  (LDB 85), sans entrée catalogue — REGISTRE UNIQUE de l'exception (libellé, sévérité, icone) : le
- *  résolveur `etatConnu` et le nom scanné dans le journal (`conditionIdInText`) le COMPOSENT, aucun
- *  n'en garde de copie. */
-export const NARRATIVE_MARKERS: readonly { id: string; label: string; severity: number; icon: string }[] = [
-  { id: 'petrifie', label: 'Pétrifié', severity: 95, icon: 'condition/petrified' },
+ *  résolveur `etatConnu`, le nom scanné dans le journal (`conditionIdInText`) et la référence d'État d'une
+ *  op (`refDEtatSchema`, `data/schemas/grammaire/mecanique.ts`) le COMPOSENT, aucun n'en garde de copie. */
+export const NARRATIVE_MARKERS: readonly { id: string; label: string; severity: number; icon: IconId }[] = [
+  { id: 'petrifie', label: 'Pétrifié', severity: 95, icon: 'etat/petrifie' },
 ];
 
 const marqueurParId = indexParId('etats', NARRATIVE_MARKERS);
 
 /** État RÉSOLU par son id STABLE : catalogue VIVANT (`etats.json`) ∪ marqueurs narratifs
  *  (`NARRATIVE_MARKERS`), `undefined` hors des deux. SOURCE UNIQUE du jeu d'ids d'État connus : le
- *  prédicat d'une frontière (`!!etatConnu(id)` : console `devtools.condition`, refus d'État au
- *  parse `refuserEtatsInconnus` de `data/schemas/grammaire/mecanique.ts`), la sévérité (`conditionSeverity`) et l'icone
+ *  prédicat d'une frontière (`!!etatConnu(id)` : console `devtools.condition`), la sévérité (`conditionSeverity`) et l'icone
  *  (`gameIso/effectIcons.conditionMeta`) le composent. */
-export function etatConnu(id: string): { label: string; severity?: number; icon?: string } | undefined {
+export function etatConnu(id: string): { label: string; severity?: number; icon?: IconId } | undefined {
   return findConditionById(id) ?? marqueurParId(id);
 }
 
 /** L'État `id` que `etatConnu` résout ; un id hors des deux LÈVE (#1463 LD.1, #2995). */
-export function etatExige(id: string): { label: string; severity?: number; icon?: string } {
+export function etatExige(id: string): { label: string; severity?: number; icon?: IconId } {
   const etat = etatConnu(id);
   if (!etat) throw new Error(t('etats.inconnu', { id }));
   return etat;
@@ -150,7 +165,7 @@ function empileSurPionExistant(existing: ConditionInstance, value: number): void
 export function appliquerMortSubite(target: Combatant, log: string[]): void {
   target.wounds.current = 0;
   if (!target.conditions.some((c) => c.id === COND.inconscient)) addCondition(target, COND.inconscient);
-  log.push(t('cf.collapse', { name: target.label }));
+  log.push(t('cf.effondrement', { name: target.label }));
 }
 
 /** La Difficulté du Test qui retire l'État `id` quand sa pose n'en dicte aucune : le défaut de son Test
@@ -260,21 +275,13 @@ export function isConditionLocked(inst: ConditionInstance, c: Combatant): boolea
   return raisonVerrouEtat(inst, c) !== undefined;
 }
 
-/** Les actes de soin qui lèvent un verrou d'État (LDB 18), en français — source unique du libellé,
- *  partagée par le refus d'un remède et l'éditeur d'op. */
-export const ACTE_DE_DEVERROUILLAGE: Record<import('./types').ConditionUnlock, string> = {
-  medicalAid: 'Aide Médicale',
-  surgery: 'Chirurgie',
-  magic: 'Soin magique',
-};
-
 /** POURQUOI cet État ne se lève pas maintenant — la raison DU VERROU QUI TIENT, `undefined` si aucun.
  *  Les trois formes sont évaluées séparément, chacune avec SA raison : l'acte de soin attendu
  *  (`unlockBy`), le prédicat posé par le Critique (`lockedUntil` d'instance), puis celui du TYPE
  *  (`EtatData.lockedUntil`, dont la raison est la donnée `lockedReason`). `isConditionLocked` lit ce
  *  même verdict : une seule évaluation, jamais deux copies du OU. */
 export function raisonVerrouEtat(inst: ConditionInstance, c: Combatant): string | undefined {
-  if (inst.unlockBy != null) return t('cond.lockedByAct', { acte: ACTE_DE_DEVERROUILLAGE[inst.unlockBy] });
+  if (inst.unlockBy != null) return t('cond.lockedByAct', { acte: libelleDeValeur(acteDeDeverrouillageSchema, inst.unlockBy) });
   const type = findConditionById(inst.id);
   if (!inst.lockedUntil && !type?.lockedUntil) return undefined; // aucun prédicat : rien à projeter
   const vue = conditionLockCtx(c);
@@ -380,7 +387,7 @@ function opPorteuseDEtat(c: Combatant, conditionId: string): Extract<GameOp, { o
   const src = c.conditions.find((x) => x.id === conditionId)?.derivedFrom?.src;
   if (!src) return undefined;
   for (const m of passiveMods(c)) {
-    if (m.op.op !== 'condition' || m.op.id !== conditionId) continue;
+    if (m.op.op !== 'condition' || m.op.id.id !== conditionId) continue;
     if (memeSource(m.src, src)) return m.op;
   }
   return undefined;
@@ -475,9 +482,9 @@ function reconcilierEtatsDerives(c: Combatant, emit?: ConditionEmit): string[] {
   for (const m of passiveMods(c)) {
     if (m.op.op !== 'condition') continue;
     const n = typeof m.op.value === 'number' ? m.op.value : 1;
-    const e = cible.get(m.op.id);
+    const e = cible.get(m.op.id.id);
     if (e) e.stacks += n;
-    else cible.set(m.op.id, { stacks: n, ...(m.src ? { src: m.src } : {}) });
+    else cible.set(m.op.id.id, { stacks: n, ...(m.src ? { src: m.src } : {}) });
   }
   const log: string[] = [];
   // `?? []` : un porteur FORGÉ (coque de navire, sonde de test) peut n'avoir aucune liste d'États — la
@@ -688,7 +695,7 @@ function etatScopeApplies(op: Extract<GameOp, { op: 'testMod' }>, ctx: EtatTestC
  *  parade (Tests d'arme, `weaponHand` gaté) et `defenseValue` Esquive (`movement:true`). `weaponHand`/
  *  `movement` : contexte du Test COURANT, opposé aux gates portés par l'effet (`testModHand`/
  *  `testModMovementOnly`) — absents des DEUX côtés = mod global (comportement historique). */
-export function activeCharTestModParts(c: Combatant, ck: import('./types').CharKey, ctx: { weaponHand?: 'main' | 'off'; movement?: boolean } = {}): ModLine[] {
+export function activeCharTestModParts(c: Combatant, ck: import('./types').CharKey, ctx: { weaponHand?: Main; movement?: boolean } = {}): ModLine[] {
   const out: ModLine[] = [];
   for (const e of c.activeEffects ?? []) {
     if (e.testModChar !== ck) continue;
@@ -700,7 +707,7 @@ export function activeCharTestModParts(c: Combatant, ck: import('./types').CharK
 }
 
 /** Σ de `activeCharTestModParts` — SOURCE UNIQUE (l'affichage et le jet lisent les mêmes composantes). */
-export function activeCharTestMod(c: Combatant, ck: import('./types').CharKey, ctx: { weaponHand?: 'main' | 'off'; movement?: boolean } = {}): number {
+export function activeCharTestMod(c: Combatant, ck: import('./types').CharKey, ctx: { weaponHand?: Main; movement?: boolean } = {}): number {
   return activeCharTestModParts(c, ck, ctx).reduce((s, p) => s + p.value, 0);
 }
 /**
@@ -826,7 +833,7 @@ export function canTakeAction(c: Combatant): boolean {
 }
 
 /** Le combattant peut-il ENTRER en Frénésie : un Test de Force Mentale, donc son Action (`canTakeAction`), capable
- *  et pas déjà en Frénésie. Prédicat unique du héros (offre `frenzy`, `entrerEnFrenesie`) et de l'IA
+ *  et pas déjà en Frénésie. Prédicat unique du héros (offre `frenesie`, `entrerEnFrenesie`) et de l'IA
  *  (`aiMaybeFrenzy`). LDB 21 l.31 ; LDB 13 l.106 ; LDB 16 l.125 */
 export function peutEntrerEnFrenesie(c: Combatant): boolean {
   return canTakeAction(c) && isFrenzyCapable(c) && !isFrenzied(c);
@@ -948,7 +955,7 @@ export function pendingPlusExtensions(c: Combatant): ActiveEffect[] {
 /** Résout l'offre de prolongation (LDB 47 l.311) d'UN effet GELÉ (`awaitingExtension`) : succès (Test de
  *  Force Mentale réussi) → +1 Round, effet dégelé ; refus/échec → expiration NORMALE (mêmes réversions
  *  que `removeActiveEffects` — traits/armes/ressources accordés repris). Fonction PARTAGÉE par la
- *  résolution PNJ (inline, hook `end-of-round`) et l'applier de cascade héros (`spellPlusTest`). */
+ *  résolution PNJ (inline, hook `end-of-round`) et l'applier de cascade héros (`sortProlongeTest`). */
 export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: boolean): string[] {
   if (extended) {
     e.awaitingExtension = undefined;
@@ -1045,14 +1052,14 @@ export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: st
 }
 
 /** Mort Subite : LDB 18 l.42-46 ; variante `combat-aa-blessures: 'aa'` : AA 07 l.65-67 (AA 06 l.556).
- *  Portée réglable (`combat-sudden-death`) — JAMAIS les PJ : 'figurants' (défaut) = hors PNJ importants
+ *  Portée réglable (`combat-mort-subite`) — JAMAIS les PJ : 'figurants' (défaut) = hors PNJ importants
  *  (`ldb`) ou hors PNJ à Talent Chanceux (`aa`) ; 'tous' = tout PNJ ; 'off' = personne. Jamais un objet
  *  inanimé : AA 10 l.114, MDG 13 l.656, MSRC 07 l.74, EDOC 07 l.334. SOURCE UNIQUE (consommée par
  *  `isOutOfAction`, `endState` et la résolution de Blessure critique). */
 export function usesSuddenDeath(c: Combatant): boolean {
-  if (c.kind === 'hero') return false; // LDB 18 l.46 ; AA 07 l.67
+  if (c.kind === 'heros') return false; // LDB 18 l.46 ; AA 07 l.67
   if (isInanimate(c)) return false;
-  const mode = rule('combat-sudden-death');
+  const mode = rule('combat-mort-subite');
   if (mode === 'off') return false;
   if (mode === 'tous') return true;
   return rule('combat-aa-blessures') === 'aa' ? !hasTalent(c, 'chanceux') : !c.important; // AA 07 l.67 ; LDB 18 l.46

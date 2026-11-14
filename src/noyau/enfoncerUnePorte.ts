@@ -1,6 +1,6 @@
 /** Enfoncer une porte à plusieurs (EDO 11 l.89-95) : le Test que chaque héros jette, ses dégâts et le
- *  bilan d'un Round. Lus par le résolveur (`FLOWS.forceDoor`), par la clôture du Round (`jetValider('forceDoor')`),
- *  par le choix de l'arme (réglage `forceDoor.arme`) et par la fenêtre (`ForceDoorModal`). PUR. */
+ *  bilan d'un Round. Lus par le résolveur (`FLOWS.enfoncerLaPorte`), par la clôture du Round (`jetValider('enfoncerLaPorte')`),
+ *  par le choix de l'arme (réglage `enfoncerLaPorte.arme`) et par la fenêtre (`ForceDoorModal`). PUR. */
 import type { Combatant, Weapon } from '../engine/types';
 import { testValue, type TestDesigne } from '../engine/skills';
 import { attackTestOf } from '../engine/combat';

@@ -23,7 +23,7 @@ describe('Météo maritime — Précipitations injectées au Test réel (#183, M
   beforeEach(() => { banc.setState({ battle: null, pendingTest: null, travelPlan: null }); });
 
   const sailor = (): Combatant => (blessuresSurLeProfil({
-    id: 'h1', name: 'Marin', kind: 'hero',
+    id: 'h1', name: 'Marin', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 40, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
     skills: [

@@ -1,8 +1,9 @@
 /**
- * LA POLICE DE L'HÔTE GODOT (#3498) : l'autoload `Police` (`projet/scripts/police.gd`) pose en police par défaut du
- * thème celle de `projet/art/police.tres`, sa base puis ses replis dans l'ordre. Chaque caractère du catalogue de messages français
- * (`src/i18n/messages/fr.ts`) a son glyphe dans l'une d'elles, lu dans la table `cmap` du fichier livré ; chaque fichier
- * de `projet/polices/` a l'empreinte que sa provenance déclare.
+ * LES POLICES DE L'HÔTE GODOT (#3498) : l'autoload `Police` (`projet/scripts/police.gd`) pose en police par défaut du
+ * thème celle de `projet/art/police.tres`, sa base puis ses replis dans l'ordre ; celle des titres
+ * (`projet/art/police_des_titres.tres`) a les mêmes replis. Dans chaque chaîne, chaque caractère du catalogue de messages
+ * français (`src/i18n/messages/fr.ts`) a son glyphe dans l'une d'elles, lu dans la table `cmap` du fichier livré ; chaque
+ * fichier de `projet/polices/` a l'empreinte que sa provenance déclare.
  */
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -55,8 +56,10 @@ function pointsDeCode(police: Buffer): Set<number> {
   return points;
 }
 
-/** Les fichiers de la police du thème, sa base puis ses replis, dans l'ordre de `police.tres`. */
-const chaine = [...lire('art/police.tres').toString('utf8').matchAll(/^\[ext_resource type="FontFile" path="([^"]+)"/gm)].map((m) => m[1]);
+/** Les fichiers d'une police (`FontVariation`) de `art/`, sa base puis ses replis, dans l'ordre de son fichier. */
+const chaineDe = (police: string) => [...lire(police).toString('utf8').matchAll(/^\[ext_resource type="FontFile" path="([^"]+)"/gm)].map((m) => m[1]);
+const POLICES = ['art/police.tres', 'art/police_des_titres.tres'];
+const chaine = chaineDe('art/police.tres');
 
 const textes: string[] = [];
 const parcourir = (v: unknown): void => {
@@ -72,26 +75,30 @@ describe('la police de l’hôte Godot (#3498)', () => {
     expect(chaine.length, 'base et replis').toBeGreaterThan(1);
   });
 
-  it('chaque caractère des messages français a son glyphe dans la chaîne', () => {
-    const couverts = new Set(chaine.flatMap((chemin) => [...pointsDeCode(lire(chemin))]));
+  it.each(POLICES)('chaque caractère des messages français a son glyphe dans la chaîne de %s', (police) => {
+    const couverts = new Set(chaineDe(police).flatMap((chemin) => [...pointsDeCode(lire(chemin))]));
     const caracteres = new Set([...textes.join('')].map((c) => c.codePointAt(0)!).filter((c) => c >= 0x20));
     expect(caracteres.size, 'balayage suspect').toBeGreaterThan(100);
     const manquants = [...caracteres].filter((c) => !couverts.has(c)).map((c) => `${String.fromCodePoint(c)} U+${c.toString(16).toUpperCase().padStart(4, '0')}`);
-    expect(manquants, 'caractères sans glyphe : élargir un repli de projet/art/police.tres').toEqual([]);
+    expect(manquants, `caractères sans glyphe : élargir un repli de projet/${police}`).toEqual([]);
   });
 
-  it('aucun repli ne dépasse la base en hauteur : Godot prend la plus haute de la chaîne pour la ligne', () => {
-    const [base, ...replis] = chaine.map((chemin) => ({ chemin, ...metriques(lire(chemin)) }));
+  it.each(POLICES)('aucun repli de %s ne dépasse la base en hauteur : Godot prend la plus haute de la chaîne pour la ligne', (police) => {
+    const [base, ...replis] = chaineDe(police).map((chemin) => ({ chemin, ...metriques(lire(chemin)) }));
     for (const repli of replis) {
       expect(repli.ascendante, repli.chemin).toBeLessThanOrEqual(base.ascendante + 1e-3);
       expect(repli.descendante, repli.chemin).toBeLessThanOrEqual(base.descendante + 1e-3);
     }
   });
 
-  it('chaque fichier de la police a l’empreinte de sa provenance', () => {
+  it('chaque fichier des polices a l’empreinte de sa provenance', () => {
     const provenance = JSON.parse(lire('polices/provenance.json').toString('utf8')) as Record<string, { sha256: string }>;
-    expect(chaine.map((chemin) => chemin.replace('res://polices/', '')).sort()).toEqual(Object.keys(provenance).sort());
+    expect([...new Set(POLICES.flatMap(chaineDe))].map((chemin) => chemin.replace('res://polices/', '')).sort()).toEqual(Object.keys(provenance).sort());
     for (const [fichier, { sha256 }] of Object.entries(provenance))
       expect(createHash('sha256').update(lire(`polices/${fichier}`)).digest('hex'), fichier).toBe(sha256);
+  });
+
+  it('le projet s’importe sur un seul fil, les polices comprises (#3951)', () => {
+    expect(lire('project.godot').toString('utf8')).toMatch(/^import\/use_multiple_threads=false$/m);
   });
 });

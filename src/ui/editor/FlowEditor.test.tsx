@@ -5,6 +5,7 @@ import { FlowEditor } from './FlowEditor';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
 import { idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
@@ -15,12 +16,12 @@ beforeAll(() => {
 });
 afterEach(demonterRacines);
 
-const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
+const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, narratif: emptyNarratif() };
 const testFlow = (skill: string, vsGroups?: string[]): Flow => ({
   kind: 'test',
   test: { skill: { id: skill }, ...(vsGroups ? { vsGroups } : {}) },
-  success: EMPTY_FLOW,
-  fail: EMPTY_FLOW,
+  reussite: EMPTY_FLOW,
+  echec: EMPTY_FLOW,
 });
 
 describe('FlowEditor — nœud Test : champ Interlocuteur/groupes (P3)', () => {
@@ -47,7 +48,7 @@ describe('FlowEditor — menu « + Bloc » : effets, condition et test', () => {
   });
 
   it('rend un nœud `if` (condition + branches ALORS/SINON)', () => {
-    const flow: Flow = { kind: 'if', cond: { kind: 'flag', expr: 'porte_ouverte' }, then: EMPTY_FLOW };
+    const flow: Flow = { kind: 'si', condition: { kind: 'flag', expr: 'porte_ouverte' }, alors: EMPTY_FLOW };
     const html = renderToStaticMarkup(<FlowEditor flow={flow} onChange={() => {}} ctx={ctx} />);
     expect(html).toContain('porte_ouverte'); // la condition de flag est éditée
     expect(html).toContain('ALORS');
@@ -56,7 +57,7 @@ describe('FlowEditor — menu « + Bloc » : effets, condition et test', () => {
 
 describe('#1318 E1 — le domaine des crans de facilité atteint le champ (cale de NumberField)', () => {
   it('le champ « cran(s) » porte sa borne basse (au moins un cran)', () => {
-    const flow: Flow = { kind: 'test', test: { skill: { id: 'escalade' }, easierIf: { hasSkill: { id: 'escalade' }, steps: 2 } }, success: EMPTY_FLOW, fail: EMPTY_FLOW };
+    const flow: Flow = { kind: 'test', test: { skill: { id: 'escalade' }, easierIf: { hasSkill: { id: 'escalade' }, steps: 2 } }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW };
     const html = renderToStaticMarkup(<FlowEditor flow={flow} onChange={() => {}} ctx={ctx} />);
     expect(html).toMatch(/min="1"[^>]*value="2"|value="2"[^>]*min="1"/);
   });
@@ -65,7 +66,7 @@ describe('#1318 E1 — le domaine des crans de facilité atteint le champ (cale 
 
 describe('FlowEditor — nœud Test : condition d’accès (`gate`, MDG 15 l.197)', () => {
   it('une gate authorée s’édite par l’éditeur de Condition', () => {
-    const flow: Flow = { kind: 'test', test: { skill: { id: 'priere' }, gate: { kind: 'talent', id: 'beni', spec: 'manann' } }, success: EMPTY_FLOW, fail: EMPTY_FLOW };
+    const flow: Flow = { kind: 'test', test: { skill: { id: 'priere' }, gate: { kind: 'talent', id: 'beni', spec: 'manann' } }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW };
     const html = renderToStaticMarkup(<FlowEditor flow={flow} onChange={() => {}} ctx={ctx} />);
     expect(html).toMatch(/checked=""[^>]*\/?> Condition d’accès/);
     expect(html).toContain('manann');
@@ -79,6 +80,6 @@ describe('FlowEditor — nœud Test : condition d’accès (`gate`, MDG 15 l.197
       return JSON.stringify(dernier);
     };
     expect(basculer(testFlow('priere'))).toContain('"gate":{"kind":"always"}');
-    expect(basculer({ kind: 'test', test: { skill: { id: 'priere' }, gate: { kind: 'always' } }, success: EMPTY_FLOW, fail: EMPTY_FLOW })).not.toContain('"gate"');
+    expect(basculer({ kind: 'test', test: { skill: { id: 'priere' }, gate: { kind: 'always' } }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW })).not.toContain('"gate"');
   });
 });

@@ -8,10 +8,10 @@
  * select, on Enregistre — et on exige DEUX choses : aucun refus de schéma, et la rangée mémoire porte
  * un nœud `{kind:'test', test, success, fail}` à la nouvelle Difficulté.
  *
- * CE QU'IL MORD : la racine `FlowEditor` normalise ce qu'elle rend en `{kind:'seq', steps}`
+ * CE QU'IL MORD : la racine `FlowEditor` normalise ce qu'elle rend en `{kind:'sequence', steps}`
  * (`asSteps`/`seqOf`, `src/ui/editor/FlowEditor.tsx`) — montée sur ce champ, le premier geste
  * d'édition ferait perdre son `kind` au nœud et le save serait refusé (issues `invalid_value` sur
- * `kind`, `unrecognized_keys` sur `steps`). Le champ compose donc `NoeudTestField`, le SOUS-éditeur de nœud
+ * `kind`, `unrecognized_keys` sur `etapes`). Le champ compose donc `NoeudTestField`, le SOUS-éditeur de nœud
  * `test` (`TestFields` + un `FlowEditor` par branche servie), celui-là même que `FlowEditor` monte
  * à l'intérieur d'un Flow de sort ; une rangée de Critique SERT ses deux branches (`critical.ts`),
  * elle les édite donc toutes les deux.
@@ -86,8 +86,8 @@ describe('atelier du Codex — le nœud `test` d’une rangée de Critique reste
     expect(apres.test!.kind, 'le nœud a perdu son `kind` (racine `FlowEditor` rebranchée ?)').toBe('test');
     expect(apres.test!.test.difficulty, 'la Difficulté choisie n’est pas descendue dans le nœud').toBe('difficile');
     expect(apres.test!.test.skill, 'la Compétence du nœud a été perdue').toEqual({ id: 'athletisme' });
-    expect(apres.test!.success, 'la branche RÉUSSITE a été perdue').toEqual({ kind: 'seq', steps: [] });
-    expect(apres.test!.fail, 'la branche ÉCHEC a été perdue').toEqual(cible.test!.fail);
+    expect(apres.test!.reussite, 'la branche RÉUSSITE a été perdue').toEqual({ kind: 'sequence', etapes: [] });
+    expect(apres.test!.echec, 'la branche ÉCHEC a été perdue').toEqual(cible.test!.echec);
     expect((apres.test as unknown as { steps?: unknown }).steps, 'le nœud a été aplati en `seq`').toBeUndefined();
   });
 });

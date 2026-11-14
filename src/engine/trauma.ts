@@ -10,7 +10,22 @@
  * defenseModifiers — et ne s'applique qu'aux jets d'arme qui IMPLIQUENT la main blessée (jamais un charMod
  * CC/CT global). Le trauma est enregistré (label+note) même sans effet modélisé.
  */
-import { Combatant, CharKey, CHAR_LABELS, HitLocation, ItemInstance, Trauma, Difficulty, UpkeepDeferTest, Weapon, effectRef, locationLabel, type BodyShape, type ModFamille } from './types';
+import {
+  Combatant,
+  CharKey,
+  CHAR_LABELS,
+  HitLocation,
+  ItemInstance,
+  Trauma,
+  Difficulty,
+  UpkeepDeferTest,
+  Weapon,
+  effectRef,
+  locationLabel,
+  type BodyShape,
+  type ModFamille,
+  type Main,
+} from './types';
 import { RNG } from './dice';
 import type { Duration } from './duration';
 import type { CritEscalation } from '../data/criticals';
@@ -117,8 +132,9 @@ export interface TraumaFiche {
   maison?: string;
 }
 
-const FICHES = traumasJson as TraumaFiche[];
-const ficheById = indexParId('traumas', FICHES);
+/** Les fiches de `traumas.json`, lues ici seul : le seam (`data/overrides.ts`) les importe. */
+export const TRAUMA_FICHES = traumasJson as TraumaFiche[];
+const ficheById = indexParId('traumas', TRAUMA_FICHES);
 
 /** Fiche de Traumatisme par id STABLE (`traumas.json`). Lève si l'id est inconnu (réf cassée = bug data). */
 export function traumaFicheById(id: string): TraumaFiche {
@@ -335,10 +351,10 @@ export function tickTraumaRecovery(c: Combatant, days: number, defer: UpkeepDefe
   c.traumas = remaining;
   // Test de fin de fracture (l.202/212) : le producteur NOMME ce qui est testé (« Test de Résistance »)
   // et DIFFÈRE — la valeur est celle de la porte (`testValue` : États compris), la conséquence est
-  // appliquée par l'applier `trauma-fracture` (`applyFractureEnd`). La porte est EXIGÉE au type : il n'y
+  // appliquée par l'applier `convalescence-fracture` (`applyFractureEnd`). La porte est EXIGÉE au type : il n'y
   // a pas de chemin où cette fracture se résout dans le dos du joueur.
   for (const f of fractureTests) {
-    defer({ kind: 'trauma-fracture', label: `Convalescence — ${f.label}`, test: { skill: { id: 'resistance' } }, difficulty: fractureEndDifficulty(f.severity),
+    defer({ kind: 'convalescence-fracture', label: `Convalescence — ${f.label}`, test: { skill: { id: 'resistance' } }, difficulty: fractureEndDifficulty(f.severity),
       meta: { severity: f.severity, location: f.location, traumaLabel: f.label } });
   }
   return log;
@@ -373,12 +389,12 @@ export function hasSurgeryTrauma(c: Combatant): boolean {
 }
 
 /** Une arme IMPLIQUE-t-elle la main `side` (LDB 18) ? Arme à 2 mains → les DEUX ; arme à 1 main → sa main de
- *  tenue seulement (`hand:'off'` = gauche/secondaire, sinon droite/principale). Base de la pénalité d'amputation
+ *  tenue seulement (`hand:'secondaire'` = gauche/secondaire, sinon droite/principale). Base de la pénalité d'amputation
  *  CONTEXTUELLE : une amputation ne grève un jet d'arme que si l'arme tient la main blessée. Pur. */
-export function weaponUsesHand(weapon: Weapon, side: 'left' | 'right'): boolean {
+export function weaponUsesHand(weapon: Weapon, side: 'gauche' | 'droite'): boolean {
   if ((weapon.hands ?? 1) >= 2) return true;
-  const inLeft = weapon.hand === 'off';
-  return side === 'left' ? inLeft : !inLeft;
+  const inLeft = weapon.hand === 'secondaire';
+  return side === 'gauche' ? inLeft : !inLeft;
 }
 
 /** Pénalité d'amputation à un JET D'ARME (attaque/parade) — LDB 18 l.251 (Doigts : −5/doigt aux Tests qui
@@ -398,7 +414,7 @@ export function fingersLost(c: Combatant, loc: HitLocation): number {
  *  lue par `attackerFumbled`/`defenderFumbled` (combatFlow.ts), jamais un recomptage dupliqué. */
 export function maxFingersLostForWeapon(c: Combatant, weapon: Weapon): number {
   let max = 0;
-  for (const [side, loc] of [['left', 'brasG'], ['right', 'brasD']] as const) {
+  for (const [side, loc] of [['gauche', 'brasG'], ['droite', 'brasD']] as const) {
     if (weaponUsesHand(weapon, side)) max = Math.max(max, fingersLost(c, loc));
   }
   return max;
@@ -412,17 +428,17 @@ export function amputationCombatPenalty(c: Combatant, weapon: Weapon): number {
   const rachat = prosthesisPenaltyBuyback(c);
   const mainPerdue = Math.max(0, 20 - rachat);
   let penalty = 0;
-  for (const [side, loc] of [['left', 'brasG'], ['right', 'brasD']] as const) {
+  for (const [side, loc] of [['gauche', 'brasG'], ['droite', 'brasD']] as const) {
     if (!weaponUsesHand(weapon, side)) continue;
     if (handAmputated(loc)) penalty -= mainPerdue;
     else penalty -= 5 * fingersLost(c, loc);
   }
-  if (handAmputated('brasD') && weaponUsesHand(weapon, 'left')) penalty -= mainPerdue; // clause l.263 : main principale perdue → main secondaire à −20
+  if (handAmputated('brasD') && weaponUsesHand(weapon, 'gauche')) penalty -= mainPerdue; // clause l.263 : main principale perdue → main secondaire à −20
   return penalty;
 }
 
 /** Fiches à règle de cumul déclarée (`TraumaCumul`) — l'ordre du registre fixe l'ordre de consolidation. */
-const cumulFiches = memoParVersion('traumas', () => FICHES.filter((f) => f.cumul));
+const cumulFiches = memoParVersion('traumas', () => TRAUMA_FICHES.filter((f) => f.cumul));
 const IS_CUMUL = (t: Trauma): boolean => cumulFiches().some((f) => f.id === t.traumaId);
 
 /** Séquelle cumulative agrégée : `total` unités à `loc`, ops recalculées ; le libellé porte la
@@ -544,7 +560,7 @@ export function tickTraumaEscalation(c: Combatant): string[] {
  *    plaie (séquelle posée si pas de Chirurgie à temps ; décompté à l'entretien par `tickTraumaRecovery`) ;
  *  - « Épaule luxée »/« Genou démis » (`medicalAidGate`) → POUSSE une NOUVELLE séquelle « membre désactivé » à
  *    `location` (pas de plaie chirurgicale : le membre n'est pas amputé mais inutilisable), porteuse de
- *    `targetDR`/`recoveryPenalty`/`awaitingMedicalAid`.
+ *    `drCible`/`recoveryPenalty`/`awaitingMedicalAid`.
  * Mute `traumas` en place. No-op si l'entrée ne déclare pas d'escalade (ou, pour finger/pied, pas de plaie).
  */
 export function stampCriticalEscalation(
@@ -580,7 +596,7 @@ export function stampCriticalEscalation(
       location,
       ops: g.disable.map((o) => ({ ...o })),
       awaitingMedicalAid: true,
-      targetDR: g.targetDR,
+      drCible: g.drCible,
       recoveryPenalty: g.recoveryPenalty.map((o) => ({ ...o })),
     });
   }
@@ -671,7 +687,7 @@ export function reinjuryBleed(c: Combatant, location: HitLocation): number {
 /** Séquelles « membre désactivé » (`medicalAidGate`) dont l'Aide Médicale a été reçue et qui attendent le Test
  *  étendu de Guérison de récupération (acte « Guérison » de l'Infirmerie). */
 export function recoverableTraumas(c: Combatant): (Trauma & CibleEtendue)[] {
-  return (c.traumas ?? []).filter((t): t is Trauma & CibleEtendue => t.targetDR != null && !t.awaitingMedicalAid);
+  return (c.traumas ?? []).filter((t): t is Trauma & CibleEtendue => t.drCible != null && !t.awaitingMedicalAid);
 }
 /** Le personnage a-t-il un membre désactivé prêt à récupérer son usage (Aide Médicale reçue) ? */
 export function hasRecoverableTrauma(c: Combatant): boolean {
@@ -680,13 +696,13 @@ export function hasRecoverableTrauma(c: Combatant): boolean {
 /** Un membre désactivé attend-il ENCORE l'Aide Médicale (le Test de récupération est bloqué tant qu'elle
  *  n'est pas donnée, LDB 18 l.120/179 : « Après application de cette Aide… ») ? */
 export function hasLimbAwaitingAid(c: Combatant): boolean {
-  return (c.traumas ?? []).some((t) => t.targetDR != null && t.awaitingMedicalAid);
+  return (c.traumas ?? []).some((t) => t.drCible != null && t.awaitingMedicalAid);
 }
 /** Main tenant l'arme concernée par une Localisation de BRAS (convention DROITIER partagée avec `disarm`/
- *  `handGate` : `brasD`→`main`, `brasG`→`off`) ; `undefined` pour toute autre Localisation (jambe/tête/corps,
+ *  `handGate` : `brasD`→`main`, `brasG`→`secondaire`) ; `undefined` pour toute autre Localisation (jambe/tête/corps,
  *  aucune notion de main). */
-function armLocationHand(loc: HitLocation): 'main' | 'off' | undefined {
-  return loc === 'brasD' ? 'main' : loc === 'brasG' ? 'off' : undefined;
+function armLocationHand(loc: HitLocation): Main | undefined {
+  return loc === 'brasD' ? 'main' : loc === 'brasG' ? 'secondaire' : undefined;
 }
 
 /** Usage du membre RÉCUPÉRÉ (Test étendu de Guérison atteint) : retire la séquelle « membre désactivé »
@@ -718,7 +734,7 @@ export function cannotWieldTwoHanded(c: Combatant): boolean {
  *  Convention droitier : main directrice = brasD, secondaire = brasG. Une main perdue ne peut tenir ni arme ni
  *  bouclier → `recomputeLoadout` vide le slot de loadout correspondant. (Un Crochet fournit sa PROPRE arme à
  *  part, dérivée séparément.) */
-export function handAmputated(c: Combatant, hand: 'main' | 'off'): boolean {
+export function handAmputated(c: Combatant, hand: Main): boolean {
   const loc = hand === 'main' ? 'brasD' : 'brasG';
   return (c.traumas ?? []).some((t) => t.location === loc && !prosthesisCancels(c, t, 'all') && opsOfType(traumaOps(t), 'maxWeaponHands').some((o) => o.hands < 2));
 }
@@ -1041,7 +1057,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   // `src` (séquelles) ne sont pas suspendables : rien ne les nomme.
   // (#1695) Une fenêtre de Détermination NOMME l'État qu'elle écarte (LDB 17 l.61, « Retirez un État ») :
   // le mod interrogé porte son id quand c'est une op `condition`, et lui seul tombe.
-  return out.filter((m) => !sourceSuspended(c, m.src, m.op.op === 'condition' ? m.op.id : undefined));
+  return out.filter((m) => !sourceSuspended(c, m.src, m.op.op === 'condition' ? m.op.id.id : undefined));
 }
 
 /** Ops PASSIVES de type `op` collectées (kind aplati), filtrées par mode de combinaison quand il importe :

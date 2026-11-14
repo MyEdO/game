@@ -14,7 +14,7 @@ import type { Scene } from '../../noyau/monde/scene';
 /**
  * « Voyage & temps long » : tout le temps long en un trajet. Réunit le Voyage & Nourriture (carte du
  * monde, haltes de nuit, récupération des blessés, faim/maladie/cauchemars/Exposition, péripéties +
- * embuscade), le Voyage par ÉTAPES EDOC (postes d'Activité PERSISTANTS par héros + règle `travel-etapes`
+ * embuscade), le Voyage par ÉTAPES EDOC (postes d'Activité PERSISTANTS par héros + règle `voyage-etapes`
  * activable au panneau Règles maison) et l'Entre-deux-aventures (interlude d'Activités à l'arrivée).
  */
 /** Quatre héros, chacun à son POSTE de voyage (Étapes EDOC) ; Greta cumule le « mauvais état » qui fait
@@ -154,7 +154,7 @@ const construireEmbuscade = (): Scene => buildScene({
       { creature: { id: 'gobelin' }, pos: { x: 9, y: 3 }, hidden: true },
       { creature: { id: 'gobelin' }, pos: { x: 10, y: 5 }, hidden: true },
     ],
-    surprise: 'party', // annulée si la Perception du voyage est réussie (« le groupe les voit venir »)
+    surprise: 'groupe', // annulée si la Perception du voyage est réussie (« le groupe les voit venir »)
   }],
 });
 
@@ -163,12 +163,16 @@ const construireCarte = (): WorldMap => ({
   id: 'test-voyage-carte',
   label: 'Marches de Weiler (test)',
   places: [
-    { id: 'p-village', label: 'Weiler', pos: { x: 24, y: 62 }, scene: { id: 'test-voyage-village' }, icon: 'scenario/village' },
-    { id: 'p-hameau', label: 'Federholz', pos: { x: 72, y: 30 }, scene: { id: 'test-voyage-hameau' }, icon: 'scenario/hamlet' },
-    { id: 'p-bourg', label: 'Steinbruck', pos: { x: 70, y: 78 }, scene: { id: 'test-voyage-bourg' }, icon: 'scenario/port', services: [{ kind: { id: 'auberge' }, rest: { auberge: true } }, { kind: { id: 'forgeron' } }] },
+    { id: 'p-village', label: 'Weiler', pos: { x: 24, y: 62 }, scene: { id: 'test-voyage-village' }, icon: 'scenario/village',
+      prose: 'Une rue de boue, un puits, une auberge dont l’enseigne grince. Weiler vit de ses champs et de ceux qui passent : la piste s’enfonce sous les arbres vers Federholz, la route descend vers le bourg de Steinbruck.' },
+    { id: 'p-hameau', label: 'Federholz', pos: { x: 72, y: 30 }, scene: { id: 'test-voyage-hameau' }, icon: 'scenario/hameau',
+      prose: 'Quelques toits de chaume serrés contre la lisière. Les bûcherons de Federholz regardent passer les étrangers sans hâte ; après la dernière clôture commence la longue route d’Altdorf.' },
+    { id: 'p-bourg', label: 'Steinbruck', pos: { x: 70, y: 78 }, scene: { id: 'test-voyage-bourg' }, icon: 'scenario/port', services: [{ kind: { id: 'auberge' }, rest: { auberge: true } }, { kind: { id: 'forgeron' } }],
+      prose: 'Un bourg de pierre grise au carrefour des routes, où les diligences changent de chevaux. L’auberge et la forge se font face sur la place, et l’on entend le marteau jusque dans la cour du relais.' },
     // id 'altdorf' (pas juste 'p-cite') : les Activités d'Altdorf (ACE Annexe I) gatées `where:['altdorf']`
     // (activities.json — Pénitence, Entraînement, Tester des objets…) lisent le `lieu` du groupe par son id.
-    { id: 'altdorf', label: 'Altdorf', pos: { x: 90, y: 20 }, scene: { id: 'test-voyage-cite' }, icon: 'scenario/siege' },
+    { id: 'altdorf', label: 'Altdorf', pos: { x: 90, y: 20 }, scene: { id: 'test-voyage-cite' }, icon: 'scenario/siege',
+      prose: 'La capitale s’annonce par l’odeur de son fleuve bien avant ses murs. Passé la porte, la foule, les étals et les crieurs avalent le voyageur : ici tout s’achète, et tout se sait.' },
   ],
   routes: [
     {
@@ -212,11 +216,11 @@ export const scenario: TestScenario = {
   id: 'voyage',
   order: 6,
   category: 'survie',
-  icon: 'scenario/travel',
+  icon: 'scenario/voyage',
   title: 'Voyage & temps long',
   tests:
     'Carte du monde, voyage à pied/diligence, postes d’Étapes PERSISTANTS par héros (Plein air/Aguets/Cartes/' +
-    'Fourrage, règle travel-etapes activable), HALTES de nuit (modale de Repos), LONG voyage 96 km = 3 nuits, ' +
+    'Fourrage, règle voyage-etapes activable), HALTES de nuit (modale de Repos), LONG voyage 96 km = 3 nuits, ' +
     'bilan de nuit COMPLET (récupération des blessés, faim RAW, Vérole de Greta + contagion, cauchemars, ' +
     'Exposition sous la pluie), péripéties + embuscade + reprise, et INTERLUDE d’Activités à l’arrivée (Revenus/' +
     'Artisanat/banque/Apprentissage, le temps passe) — la cité d’arrivée est le lieu `altdorf` de la carte : ' +
@@ -229,6 +233,6 @@ export const scenario: TestScenario = {
     extraScenes: [construireHameau(), construireBourg(), construireCite(), construireEmbuscade()],
     worldMap: construireCarte(),
   }),
-  rules: { 'travel-etapes': true }, // mode Étapes EDOC pré-activé (coupable au panneau Règles maison)
+  rules: { 'voyage-etapes': true }, // mode Étapes EDOC pré-activé (coupable au panneau Règles maison)
   money: { gold: 6, silver: 10, brass: 0 },
 };

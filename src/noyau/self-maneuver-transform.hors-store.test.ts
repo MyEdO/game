@@ -1,5 +1,5 @@
 /**
- * Activation JOUEUR d'une capacité SUR SOI (targeting:'self') — Métamorphose de l'Enfant d'Ulric
+ * Activation JOUEUR d'une capacité SUR SOI (ciblage:'soi') — Métamorphose de l'Enfant d'Ulric
  * (Middenheim p.116) : la hotbar propose la manœuvre APPLICABLE (prendre/reprendre la forme) ; l'action
  * `manoeuvrerSurSoi` résout la transformation sur le porteur, applique le delta RAW + Traits + apparence,
  * consomme l'Action du tour ET la prochaine (loseTurn) = prix de DEUX actions, et se toggle proprement.
@@ -27,10 +27,10 @@ describe('manoeuvrerSurSoi — Métamorphose (activation joueur)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.traits = [{ id: 'metamorphose' }]; // Enfant d'Ulric (lycanthrope jouable)
     const turn = b.order.indexOf(H.id);
     banc.setState({ battle: { ...b, turn, movementUsed: 0, acted: false } });

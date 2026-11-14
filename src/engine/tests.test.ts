@@ -1,5 +1,19 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { evaluateTest, maxForcedRoll, bestForcedRoll, rollTest, evaluateCombinedTest, slTier, isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure, SL_IMPRESSIVE, SL_ASTOUNDING, assistBonus } from './tests';
+import {
+  evaluateTest,
+  maxForcedRoll,
+  bestForcedRoll,
+  rollTest,
+  evaluateCombinedTest,
+  slTier,
+  isImpressiveSuccess,
+  isImpressiveFailure,
+  isAstoundingSuccess,
+  isAstoundingFailure,
+  SL_IMPRESSIVE,
+  SL_ASTOUNDING,
+  assistBonus,
+} from './tests';
 import { getTestPolicy, type TestPolicy } from './testPolicy';
 import type { RNG } from './dice';
 import { setRule, resetRule } from './policy';
@@ -107,20 +121,20 @@ describe('evaluateCombinedTest — Test Combiné (LDB 12 l.202-206) : un jet vs 
 });
 
 describe('Largeur des bandes automatiques (LDB 12 l.32) : param réglable, plus de 5/96 en dur', () => {
-  afterEach(() => resetRule('test-auto-band-width'));
+  afterEach(() => resetRule('test-largeur-bandes-auto'));
   it('défaut RAW : bandes 01-05 / 96-00', () => {
     expect(getTestPolicy().autoSuccessMax).toBe(5);
     expect(getTestPolicy().autoFailMin).toBe(96);
   });
   it('largeur 10 → bandes 01-10 / 91-00 (autoFailMin = 101 − largeur), effet live + maxForcedRoll suit', () => {
-    setRule('test-auto-band-width', 10);
+    setRule('test-largeur-bandes-auto', 10);
     expect(getTestPolicy().autoSuccessMax).toBe(10);
     expect(getTestPolicy().autoFailMin).toBe(91);
     expect(evaluateTest(8, 0).success).toBe(true); // 8 ≤ 10 → réussite auto (bande basse élargie)
     expect(maxForcedRoll(99)).toBe(90); // 91 − 1
   });
   it('largeur 0 → aucune bande effective (01-00 hors plage)', () => {
-    setRule('test-auto-band-width', 0);
+    setRule('test-largeur-bandes-auto', 0);
     expect(getTestPolicy().autoSuccessMax).toBe(0);
     expect(getTestPolicy().autoFailMin).toBe(101);
     expect(evaluateTest(3, 0).success).toBe(false); // pas de bande basse → échec numérique
@@ -128,21 +142,21 @@ describe('Largeur des bandes automatiques (LDB 12 l.32) : param réglable, plus 
 });
 
 describe('Bascule in-game : éditer UNE règle change le comportement (preuve « un seul edit »)', () => {
-  afterEach(() => { resetRule('test-auto-bands'); resetRule('test-fast-sl'); resetRule('test-over-100'); });
-  it('test-auto-bands → inverted : evaluateTest (policy par défaut) suit la surcharge', () => {
+  afterEach(() => { resetRule('test-bandes-auto'); resetRule('test-dr-rapide'); resetRule('test-plus-de-100'); });
+  it('test-bandes-auto → inverted : evaluateTest (policy par défaut) suit la surcharge', () => {
     expect(evaluateTest(3, 99).success).toBe(true); // normal
-    setRule('test-auto-bands', 'inverted');
+    setRule('test-bandes-auto', 'inverted');
     expect(evaluateTest(3, 99).success).toBe(false); // bande basse = échec auto
   });
-  it('test-fast-sl → true : DR rapide sans autre édition', () => {
+  it('test-dr-rapide → true : DR rapide sans autre édition', () => {
     expect(evaluateTest(36, 80).sl).toBe(5); // standard
-    setRule('test-fast-sl', true);
+    setRule('test-dr-rapide', true);
     expect(evaluateTest(36, 80).sl).toBe(3); // dizaines du jet
   });
-  it('test-over-100 → true : rollTest cesse de plafonner la valeur à 99', () => {
+  it('test-plus-de-100 → true : rollTest cesse de plafonner la valeur à 99', () => {
     const rng50: RNG = deFixe(50);
     expect(rollTest(115, 'intermediaire', rng50).sl).toBe(4); // défaut : plafonné 99
-    setRule('test-over-100', true);
+    setRule('test-plus-de-100', true);
     expect(rollTest(115, 'intermediaire', rng50).sl).toBe(6); // règle on : valeur 115 pleine
   });
 });

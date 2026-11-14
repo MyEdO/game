@@ -7,7 +7,6 @@
     "variant": "Reiklander",
     "refChar": "humain",
     "refCareer": "humain",
-    "rand": 90,
     "desc": "Les humains constituent la race civilisée la plus répandue du Vieux Monde. Depuis les plaines des Royaumes estaliens aux provinces gelées de Kislev, les humains occupent chaque région du continent, et ils y prospèrent. Le plus grand et le plus puissant royaume humain est l'Empire, une mosaïque de provinces puissantes couvertes de forêts apparemment sans fin. Situé au cœur de l'Empire, le Reikland en est la région la plus riche et la plus cosmopolite.\n\nBeaucoup de Reiklanders estiment qu'il leur revient de gouverner de droit divin, car Sigmar, le dieu protecteur de l'Empire, était lui-même un Reiklander avant de s'élever au rang de divinité, il y a plusieurs siècles. Les temples et sanctuaires dédiés à ce dieu sont légion dans l'Empire, et la majorité des Reiklanders croient pieusement au message de Sigmar, qui promeut l'Empire et son unité. Pour cette raison, ils sont beaucoup plus amicaux, ouverts et optimistes que les autres peuples, car qu'est-ce qui pourrait mal tourner sur une terre qui a donné naissance à un dieu ? En comparaison, les étrangers les considèrent souvent comme d'insupportables fouineurs arrogants qui mettent partout leur nez indésirable.\n\nAu-delà de leur style de vie aisé et de leur personnalité arrogantes, les Reiklanders sont en tous points identiques aux autres humains. Si les humains ont une espérance de vie plus courte que celles des autres races, ils sont en revanche plus vigoureux, plus ambitieux et pleins de ressources. Ils ont également un lien apparemment inextricable avec les horreurs insidieuses des Puissances de la Ruine, puisque plus d'humains succombent à la corruption que n'importe quelle autre race. Ce n'est sans doute pas une surprise si les races anciennes en déclin se préoccupent de plus en plus de la montée spectaculaire de l'humanité, qui pourrait mener à un cataclysme.\n\n### Points de vue\n\n*Sur les nains...*\n\n« Ce sont nos alliés depuis que Sigmar a parcouru cette cité ; j'ai même combattu avec eux en '05. Bien sûr, ils sont un poil têtus, très vindicatifs et plutôt brusques, mais je ne veux pas entendre un seul mot contre eux. »\n\n– Reikäger Jungling, soldat d'Altdorf\n\n*Sur les halflings...*\n\n« Si je devais manger et fumer toute la journée, je serais heureux comme Ranald devant son herbe à chat. C'est quand ils débarquent en oubliant les bonnes manières et qu'ils me cassent la vaisselle, que j'peux pas les supporter ! Ils sourient et haussent les épaules quand la garde vient les ramasser, comme s'ils ne comprenaient pas ce qu'ils avaient fait de mal. »\n\n– Stefan Krause, tavernier à Stirgau\n\n*Sur les hauts elfes...*\n\n« Oui, je fais du commerce avec eux. Et, non, ne soyez pas ridicule, je n'ai jamais été changée en statue de sel rien qu'en les regardant. Vraiment, je les trouve gracieux et courtois. Parfaitement civilisés. Mais, de vous à moi, si Verena posait la question, je pourrais aussi dire que je les trouve tout simplement... étranges. Tellement intenses. Comme si chaque transaction que nous faisions comptait vraiment. »\n\n– Dorothea Taalenstein, marchande à Kemperbad\n\n*Sur les elfes sylvains...*\n\n« Les elfes de la forêt vous dites ? Y'en a pas ici, mon gars. Tu d'vrais aller au sud de la Bretonnie. J'ai entendu dire qu'y en avaient des tas, et qu'y-z étaient vraiment horribles ! »\n\n– Siggina Gerster, racoleuse d'Ubersreik",
     "movement": 4,
     "fate": {
@@ -108,7 +107,6 @@
     "variant": "Middenheim",
     "refChar": "humain",
     "refCareer": "middenheim",
-    "rand": 90,
     "desc": "Les Personnages originaires de Middenheim ont grandi dans une cité gigantesque et cosmopolite où foisonnent commerce, divertissement et vie criminelle. Il y a de grandes chances qu'ils aient appris soit à gagner leur vie en travaillant honnêtement, soit à tisser facilement des liens avec l'une des strates de la société complexe de la cité. Leur évolution est représentée par leurs Talents et Compétences.",
     "movement": 4,
     "fate": {
@@ -211,7 +209,6 @@
     "variant": "Middenland",
     "refChar": "humain",
     "refCareer": "middenland",
-    "rand": 90,
     "desc": "Les habitants du Middenland ont bien plus en commun avec leurs ancêtres Teutogens que les citoyens de Middenheim. Nombre d'entre eux mènent une existence éprouvante au sein de l'un des villages ou de l'une des communautés agricoles qui bordent la Drakwald. Ils ont dû apprendre à vivre dans la nature, et leurs Compétences et leurs Talents reflètent cette nécessité.",
     "movement": 4,
     "fate": {
@@ -320,7 +317,6 @@
     "variant": "Nordland",
     "refChar": "humain",
     "refCareer": "nordland",
-    "rand": 90,
     "desc": "Aux yeux de la plupart des étrangers, l'archétype du nordlander est un vieux loup de mer imbibé de grog. En réalité, cependant, seule une petite minorité de la population vit sur la côte. Même si une grande portion des baronnies du Nordland sont des étendues reculées et peu habitées, la ville de Salzenmund a toutes les caractéristiques d'une petite cité raffinée. Les Compétences et Talents des personnages du Nordland reflètent soit leur familiarité avec la mer, soit leur éducation ancrée dans la vie à la campagne.",
     "movement": 4,
     "fate": {
@@ -442,7 +438,6 @@
     "variant": "Tiléens",
     "refChar": "humain",
     "refCareer": "humain",
-    "rand": 90,
     "movement": 4,
     "fate": {
       "fate": 2,
@@ -550,7 +545,6 @@
     "variant": "Bjornling Norse",
     "refChar": "humain",
     "refCareer": "norse",
-    "rand": 90,
     "desc": "Si vous désirez créer un Personnage venant de Norsca, vous pouvez utiliser les règles ci-dessous à la place des règles pour les Personnages du Reikland en page 36 du **Livre de Règles Warhammer Fantasy le Jeu de Rôle.** Les Joueurs et le MJ doivent réfléchir à l'impact qu'un Personnage norse pourrait avoir sur un groupe d'aventuriers typique. Même les Personnages norses les plus civilisés ont été élevés dans une société qui légitime une forme de respect envers les dieux du Chaos, apprend à ses jeunes à développer leur robustesse personnelle et à considérer ceux qui ne le font pas comme des idiots et des faibles.",
     "movement": 4,
     "fate": {
@@ -669,7 +663,6 @@
     "variant": "Sarl Norse",
     "refChar": "humain",
     "refCareer": "norse",
-    "rand": 90,
     "desc": "Si vous désirez créer un Personnage venant de Norsca, vous pouvez utiliser les règles ci-dessous à la place des règles pour les Personnages du Reikland en page 36 du **Livre de Règles Warhammer Fantasy le Jeu de Rôle.** Les Joueurs et le MJ doivent réfléchir à l'impact qu'un Personnage norse pourrait avoir sur un groupe d'aventuriers typique. Même les Personnages norses les plus civilisés ont été élevés dans une société qui légitime une forme de respect envers les dieux du Chaos, apprend à ses jeunes à développer leur robustesse personnelle et à considérer ceux qui ne le font pas comme des idiots et des faibles.",
     "movement": 4,
     "fate": {
@@ -789,7 +782,6 @@
     "variant": "Skaeling Norse",
     "refChar": "humain",
     "refCareer": "norse",
-    "rand": 90,
     "desc": "Si vous désirez créer un Personnage venant de Norsca, vous pouvez utiliser les règles ci-dessous à la place des règles pour les Personnages du Reikland en page 36 du **Livre de Règles Warhammer Fantasy le Jeu de Rôle.** Les Joueurs et le MJ doivent réfléchir à l'impact qu'un Personnage norse pourrait avoir sur un groupe d'aventuriers typique. Même les Personnages norses les plus civilisés ont été élevés dans une société qui légitime une forme de respect envers les dieux du Chaos, apprend à ses jeunes à développer leur robustesse personnelle et à considérer ceux qui ne le font pas comme des idiots et des faibles.",
     "movement": 4,
     "fate": {
@@ -908,7 +900,6 @@
     "family": "Halflings",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "Les halflings se rencontrent partout à travers le Reikland, travaillant au service des commerces dans toutes les villes. Un quartier entier de la capitale du Reikland, Altdorf, connu sous le nom de Haffenstadt, regroupe même des centaines de familles élargies de halflings venant en aide aux restaurants, aux tavernes, aux échoppes de pipes et à un nombre impressionnant de gargotes ambulantes. Les halflings sont aussi très présents dans beaucoup de villages du Reikland, où ils travaillent souvent en tant qu'employés d'une auberge ou d'une ferme. Ce sont des créatures grégaires, qui préfèrent vivre en groupes familiaux très soudés, partageant maisons, chambres et lits avec des douzaines d'amis et de parents ; tout le monde contribue et tout le monde partage. Ce style de vie interdépendant laisse désemparés nombre de halflings, aux prises avec le concept de propriété et d'espace privés.\n\nIl est de notoriété publique que les halflings se passionnent pour la généalogie de leur famille, et beaucoup de clans halflings peuvent retracer leurs origines sur plusieurs siècles, jusqu'à la fondation même du Moot (leur grande province autogouvernée dans l'Empire). Le doyen du Moot, actuellement Hisme Fiercoeur, est le conservateur du Haffenlyver, un ancien rouleau brodé détaillant les principales lignées de leurs clans fondateurs, considéré comme le plus grand trésor des halflings.\n\nUne autre particularité est l'étrange affinité des halflings avec les ogres. Malgré leur appétit vorace, et un penchant à dévorer tout ce qui leur tombe sous la main, les ogres ont tendance à respecter les halflings. De fait, les équipes de manœuvres ogres sont souvent supervisées par des contremaîtres halflings, et la plupart des bandes d'ogres mercenaires ont un cuisinier halfling dans leur équipe.\n\nLes halflings sont de petite taille, arborent des joues roses et imberbes, semblables à des enfants humains aux grands yeux et au visage (et corps) potelé, impression renforcée par leur bonne humeur et leurs cheveux bouclés. Ils sont réputés pour leur énorme appétit pour toutes choses et leur manque de préoccupation pour l'espace personnel (ils sont tactiles), pour les limites sociales (« Eh bien, ma grande tante s'est juste mise en ménage avec mon meilleur ami, si vous saviez ce qu'ils font ! »), et pour les droits de propriété (« Ce n'est pas comme s'il l'utilisait ! »), ce qui a d'ailleurs envoyé plus d'un halfling en prison pour vol.\n\n### Points de vue\n\n*Sur les humains reiklanders...*\n\n« Bornés et pieux, belliqueux et jaloux... Je pourrais continuer, mais les bonnes manières m'en empêchent, et, d'ailleurs, je les aime bien, et puis ils aiment mes tartes. Tant que vous restez loin de leurs temples et de leurs extrémistes, ils forment un groupe ouvert et plutôt accueillant. Bon peuple, excellent pour les affaires. »\n\n– « Tubs » Samworth Rumster XVI, vendeur de tartes à Kalegan\n\n*Sur les nains...*\n\n« Ma tante Bessie était on ne peut plus cupide, tout comme ses six fils. Mais Bessie n'est rien à côté des nains. Leurs yeux deviennent aussi grands que Mannslieb même devant un gramme d'or. Mais si vous le leur dites, ils vous grogneront après comme si vous aviez volé le dernier gâteau au miel, et commenceront à gribouiller des notes dans leur satané livre à propos de l'insulte que vous avez fait à l'honneur de leur famille ou autres joyeusetés. »\n\n– « Lilly » Joseppinalina Piedfoin, colporteuse du Reikland\n\n*Sur les hauts elfes...*\n\n« Je les ai vus sur les rivières dans leurs bateaux blancs. Comment les gardent-ils aussi propres ? Et leurs cheveux... oh, leurs cheveux... ils luisent comme des rayons de soleil, si, si. Je me suis faufilée une fois sur un bateau pour voir ce qu'ils font. La même chose que les autres, cela semble juste plus... sérieux. »\n\n– « Délicate » Cordelineth Tuilecaramel IV, roublarde d'Altdorf\n\n*Sur les elfes sylvains...*\n\n« Des elfes qui vivent dans les bois ? Ne sois pas ridicule. Les elfes vivent dans des tours blanches et de jolis bateaux dans la ville d'Altdorf, imbécile. »\n\n– « Jammy » Mercimaus Fleurdaulne II, érudit de Fielbach",
     "movement": 3,
     "fate": {
@@ -998,8 +989,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "halflings-cendreplaine",
@@ -1009,7 +999,6 @@
     "variant": "Cendreplaine",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "Le clan Cendreplaine possède une histoire étendue et auguste. Autrefois, les Cendreplaine patrouillaient les frontières du Mootland sous le nom Gardechamps (voir p. 89). Ils repoussaient toutes les menaces, des voleurs de bétails humains aux morts-vivants de Sylvanie. Au cours des siècles, le clan est devenu célèbre pour son regard vif, son cœur vaillant et son endurance.\n\nDepuis que Ludwig le Gros a officiellement reconnu le Moot il y a mille cinq cents ans, les archers halflings ont défendu les frontières de l'Empire aux côtés des soldats humains. Certains des archers les plus compétents et les plus braves appartenaient au clan Cendreplaine. Quelques uns ont été acclamés comme des Héros de l'Empire, et ont reçu une Croix impériale en or en reconnaissance de leurs précieux et courageux services.\n\nDans le Reikland, de nombreux soldats, éclaireurs et chasseurs halflings sont des Cendreplaine. La plupart d'entre eux sont basés dans les casernes halflings d'Altdorf, à proximité des Casernes de l'armée régulière, dont les détachements de soutien sont rattachés aux unités de l'armée de l'État. Les Cendreplaine vivant dans les confins de la campagne du Reikland sont souvent au service de seigneurs humains en tant que grands veneurs, ou à leur compte dans la Reikwald comme braconniers et hors-la-loi. Dans les villes et les cités, les yeux vifs des Cendreplaine (et leur petite taille) en font de parfaits ratiers, une compétence très recherchée dans le Reikland! Ces Cendreplaine, davantage mus par l'appât du gain, se retrouvent souvent à travailler comme chasseurs de primes, où la probabilité que leur cible les sous-estime est directement proportionnelle à leur succès.",
     "movement": 3,
     "fate": {
@@ -1110,8 +1099,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "halflings-basseronce",
@@ -1121,7 +1109,6 @@
     "variant": "Basseronce",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "Les halflings du clan Basseronce sont ceux que l'on rencontre le plus fréquemment dans le Reikland, surtout parmi les riverains de la province. Même si les halflings vivent une vie sédentaire et s'installent quelque part avec quelques douzaines de leurs proches, d'autres sont plus enclins à partir à la recherche de travail (ou d'aventure). Uniques parmi les clans halflings du Reikland, les Basseronce apprécient un style de vie nomade et s'aventurent souvent assez loin, juste pour le plaisir du voyage. Les Basseronce rejoignent souvent des mercenaires ogres en tant que cuisiniers et brocanteurs. Leur nature itinérante convient naturellement à l'envie de voyager des ogres.\n\nCe sont des gens simples, aux désirs ordinaires, et il n'ont pas peur de travailler dur, mais n'hésitent pas non plus à se défiler s'ils en ont l'opportunité. Les Basseronce naviguent souvent sur le Reik en tant que bateliers ou nautoniers, où leurs doigts de fée et leurs yeux vifs constituent de grands atouts. Certains cherchent du travail comme patrouilleurs fluviaux, mais ils sont davantage susceptibles d'être du mauvais côté de la loi en introduisant et en transportant clandestinement des marchandises. Certains Basseronce font office de colporteurs, de serviteurs ou de cuisiniers pour les marchands ou nobles humains, et voyagent avec eux à travers le Reikland.\n\nLes Basseronce ne voyagent pas tous sans arrêt. Beaucoup d'entre eux passent leur vie au même endroit, même s'ils se jettent sur les voyageurs, avides d'histoires de pays lointains et de nouvelles de leur petit-cousin qui « est parti dans cette direction, mais il y a vingt ans ». Les Basseronce font preuve d'une curiosité attachante et d'une nature franche, et estiment que les sous doivent être dépensés. Par conséquent, ils sont souvent populaires, mais rarement nantis.",
     "movement": 3,
     "fate": {
@@ -1220,8 +1207,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "halflings-tuilecaramel",
@@ -1231,7 +1217,6 @@
     "variant": "Tuilecaramel",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "La lignée des Tuilecaramel remonte à la plus ancienne famille fermière du Mootland. Ils entretiennent une profonde affinité avec la terre riche et fertile, et les cultures. À l'instar des habitants typiques du Stirland (voir p. 15), les Tuilecaramel parlent généralement lentement, réfléchissent intensément, et ont la réputation d'être terriblement feignants. En vérité, ils sont plus adaptés au train de vie tranquille et bucolique d'une vie à la ferme, rythmée non par les minutes et les heures, mais par le lever du soleil et les saisons, là où chacun coopère pour le bien commun sans se soucier d'abstractions idéalistes comme l'espace personnel et la propriété privée. À bien des égards, les Tuilecaramel enjoués et indolents, avec leur visage ouvert et leurs tendances chapardeuses, sont l'archétype des halflings souvent caricaturé dans les journaux d'Altdorf.\n\nLes Tuilecaramel qui vivent dans les villages, les hameaux et dans la campagne du Reikland travaillent comme fermiers, brasseurs ou artisans, et fabriquent des œuvres raffinées de leurs doigts délicats et habiles. Certains sont des serviteurs pour des marchands prospères ou des nobles, et s'occupent de leurs terres et de leurs jardins, ou travaillent dans les cuisines. Leur capacité à faire pousser des choses en fait d'excellents herboristes et apothicaires, même s'ils cultivent des herbes à des fins récréatives aussi souvent qu'à des fins médicales. Ces Tuilecaramel qui vivent dans des environnements urbains plus denses acceptent n'importe quel type de travail, de préférence des tâches qui demandent peu d'effort et rapportent une belle récompense. Par conséquent, bon nombre des voleurs et pickpockets halflings du Reikland sont des Tuilecaramel.",
     "movement": 3,
     "fate": {
@@ -1331,8 +1316,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "halflings-piedfoin",
@@ -1342,7 +1326,6 @@
     "variant": "Piedfoin",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "Les Piedfoin (ou « Piedsfoin », les deux graphies sont utilisées par le clan) sont un clan essentiellement mercantile d'halflings. Ils sont installés aux lieux de commerce principaux du Reikland: les villages au bord de cours d'eau, les villes aux carrefours importants et, bien sûr, Altdorf, le joyau débordant d'activité et le trésor de la couronne du Reikland. Avec un bon œil pour les affaires et le chic pour nouer des relations, les halflings Piedfoin sont mus par le profit et prêts à voyager loin à la recherche d'une bonne affaire, souvent accompagnés d'une suite de Basseronce aventureux. En théorie, le clan Piedfoin est la famille de commerçants la plus importante du Reikland, mais même si elles partagent leur nom, les entreprises du clan sont loin d'être unies. Des Piedfoin individuels, ou de petits consortiums, passent leurs propres accords commerciaux, et vont parfois jusqu'à faire concurrence à leurs proches ou à les discréditer.\n\nLa plupart des Piedfoin sont des marchands, même si beaucoup d'entre eux poursuivent des Carrières secondaires, par exemple en tant que plaideurs ou employés. Les plus aventureux se lancent dans l'espionnage industriel en tant qu'enquêteurs et espions pour dénicher les secrets de leurs concurrents. Les plus jeunes travaillent parfois comme serviteurs pour les membres plus âgés de leur famille, conduisent des chariots tirés par des poneys afin de se faire une place dans l'entreprise familiale. Les Piedfoin sont rarement mêlés à des activités illégales. Ils ont conscience que le succès dans les affaires dépend autant de la réputation que de la perspicacité, et les marchands Piedfoin ont par conséquent peu de chances de se comporter peu scrupuleusement, sous peine de ternir leur nom.",
     "movement": 3,
     "fate": {
@@ -1441,8 +1424,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "halflings-piedpaille",
@@ -1452,7 +1434,6 @@
     "variant": "Piedpaille",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "Le clan Piedpaille adore fabriquer de beaux objets. Les origines de leur famille remontent au commerce du tissage, même si elles se sont diversifiées au fil des ans. De nos jours, les halflings Piedpaille vivent dans la plupart des villes et cités du Reikland et travaillent dans plusieurs domaines artisanaux. La créativité est inculquée aux Piedpaille dès leur plus jeune âge. Avec un tel engagement pour la qualité, certains ateliers Piedpaille ont même gagné le respect des artisans nains (même si ces derniers ne l'admettent pas ouvertement). De nouvelles inventions dans le traitement industriel, comme les grands métiers à tisser à vapeur d'Altdorf et de Nuln, inquiètent beaucoup les experts tisserands Piedpaille. Ils aimeraient beaucoup empêcher la propagation de ces machines.\n\nLes Piedpaille sont également particulièrement impliqués dans le domaine de la construction d'Altdorf. La Guilde des Contremaîtres, dirigée par les Piedpaille, est chargée de la gestion d'une grande partie des projets architecturaux de la ville. Et comme les contremaîtres Piedpaille ont accaparé la main-d'œuvre ouvrière des ogres dans la ville, ils possèdent un avantage conséquent sur leurs collègues humains.\n\nPresque tous les Piedpaille sont des artisans. Le tissage est toujours au centre des intérêts du clan, mais d'autres métiers comme la charpenterie, la forge et la fabrication de ceintures sont également répandus. D'autres membres du clan sont des marchands et vendent les produits de leur famille, ou des serviteurs qui aident les membres du clan les plus doués. Vu les taxes imposées par les guildes humaines, et la réticence de certaines d'entre elles à accueillir des membres non humains, certains Piedpaille sont obligés de poursuivre une Carrière de contrebande afin de transporter leurs marchandises là où elles peuvent être vendues librement. Récemment, beaucoup d'entre eux sont descendus dans les rues comme agitateurs pour protester contre la possible multiplication de métiers à tisser industriels qui représentent une concurrence directe aux compétences éprouvées de leur clan.",
     "movement": 3,
     "fate": {
@@ -1552,8 +1533,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "halflings-piedfoin-piedpaille",
@@ -1563,7 +1543,6 @@
     "variant": "Piedfoin-Piedpaille",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "Le clan Piedfoin-Piedpaille s'est formé assez récemment (d'un point de vue d'halfling) suite à un conflit lié aux lignées. Les détails précis du schisme ont été oubliés après des siècles de querelles internes et d'accusations, mais les Piedfoin-Piedpaille sont persuadés d'être le véritable clan, et que les clans Piedfoin et Piedpaille sont la descendance illégitime de leur propre et authentique lignée. La plupart des Piedfoin et Piedpaille répondent à cette opinion avec des sourires condescendants et des yeux levés au ciel. Mais les halflings Piedfoin-Piedpaille sont terriblement pédants et ignorent ces réactions. Ils sont pointilleux, maniaques, mesquins, orgueilleux, susceptibles, prompts à la colère et procéduriers.\n\nLes Piedfoin-Piedpaille vivent presque exclusivement dans le secteur Haffenstadt, à Altdorf, même si certains d'entre eux ont émigré à Ubersreik et Bögenhafen. Ils sont généralement plaideurs, prêteurs sur gages et usuriers, même s'ils empiètent souvent sur les intérêts des clans Piedfoin et Piedpaille. Par conséquent, ils travaillent souvent comme marchands pingres et sans scrupules, ou propriétaires d'ateliers produisant des marchandises bon marché et de mauvaise qualité pour sous-coter le travail soigné des Piedpaille. Ils sont rarement impliqués dans des crimes plus graves ; pas par scrupules moraux, mais par crainte des Havrebas, qui ne tolèrent aucune concurrence.",
     "movement": 3,
     "fate": {
@@ -1661,8 +1640,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "halflings-pochegaree",
@@ -1672,7 +1650,6 @@
     "variant": "Pochégarée",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "Les Pochégarée vivent une vie de misère et d'isolement. Pochégarée est le nom donné à un halfling sans clan. Même si, à de rares occasions, il peut s'agir d'une punition officielle infligée par les anciens des clans pour de graves transgressions, les Pochégarée sont généralement des enfants abandonnés ou des orphelins dépossédés dont aucune famille n'a voulu. Les raisons qui pousseraient une créature aussi compatissante qu'un halfling à abandonner son enfant font l'objet de nombreuses spéculations: le scandale, la peur de représailles ou la mort sont les plus probables. L'isolement imposé des Pochégarée produit souvent de jeunes halflings endurcis et indépendants, même si leur apparence confiante cache un désir douloureux pour la chaleur, l'intimité et la sécurité d'une famille qui leur sont à jamais refusées.\n\nLa plupart des Pochégarée commencent leur vie comme indigents et mendiants dans les rues d'Altdorf, ou dans les villes les plus importantes du Reikland. Ils y mènent une vie de souffrance auprès de gangs d'enfants humains qui les surpassent et les dépassent sans cesse. Même si les Pochégarée mettent les autres halflings mal à l'aise, de rares chanceux peuvent être adoptés dans un autre clan grâce à la nature indulgente et sociable de leur espèce. Cependant, de nombreux Pochégarée ne parviennent pas à échapper aux yeux remplis de pitié de leurs pairs, forçant beaucoup d'entre eux à s'installer parmi les grands. Par conséquent, les Pochégarée qui échappent aux rues et taudis d'Altdorf vivent un peu partout et travaillent comme saltimbanques, serviteurs, cuisiniers, entremetteurs ou d'autres métiers qui leur rapportent une situation stable et une place parmi les humains, constamment à la recherche de l'affection qui leur a été refusée au cours de leur enfance.\n\nLa honte des Pochégarée est telle que peu d'entre eux osent avoir des enfants. Toutefois, un « clan » de ces malheureux est en train de se développer dans les taudis d'Altdorf et suscite l'inquiétude des halflings bien-pensants.",
     "movement": 3,
     "fate": {
@@ -1769,8 +1746,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "halflings-havrebas",
@@ -1780,7 +1756,6 @@
     "variant": "Havrebas",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "Le clan Havrebas est le plus important de Nuln, et vient tout juste d'arriver à la capitale impériale par le Reik. Cependant, même si cela ne fait que quelques décennies que le clan s'est installé dans le Reikland, il s'est rapidement développé dans la province, et a étendu son influence dans le secteur d'Haffenstadt et la plupart des grandes villes du Reikland. Les Havrebas sont la conséquence logique du mépris naturel des halflings pour le caractère sacré de la propriété privé. Cette famille de criminels forme un réseau étroit d'intérêts qui se soutiennent mutuellement, un groupe bien plus organisé et solidaire que n'importe quel autre clan. Comme un halfling perd de façon quasi systématique face à un adversaire humain, les Havrebas font en sorte de se déplacer en masse. En cas de recours à la violence, ils attaquent toujours en groupe. Maintenant qu'ils se sont fait une place dans la pègre du Reikland, une rivalité tendue est apparue entre le clan et les autres organisations criminelles, comme le Poisson et les Crochets (les gangs des docks d'Altdorf) ou les familles criminelles Selblich et Barbieri.\n\nBien que la plupart des Havrebas soient des voleurs et des rançonneurs, d'autres maintiennent une apparence de respectabilité et travaillent comme enquêteurs, plaideurs, receleurs et marchands, uniquement des rôles leur permettant d'accomplir les objectifs du clan. À ces fins, beaucoup d'entre eux se font appeler « Basfond », le nom d'un clan disparu, annexé depuis des siècles par les Havrebas. Même si tous les halflings ont conscience de la supercherie, ils ne songent jamais à la partager avec les « grands », qui pensent que les deux clans sont complètement distincts. D'autres Havrebas travaillent aussi comme espions et infiltrent des syndicats de crime organisé humains pour les saboter de l'intérieur. Certains rejoignent même le Guet d'Altdorf, qui est sans doute le plus grand groupe criminel de la ville! S'il y a un profit à se faire du mauvais côté de la loi, un Havrebas est prêt à se porter volontaire.",
     "movement": 3,
     "fate": {
@@ -1882,8 +1857,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "halflings-rumster",
@@ -1893,7 +1867,6 @@
     "variant": "Rumster",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "Rumster est probablement le clan de halflings le plus connu du Reikland. Les Rumster (et leurs fameuses tourtes et pâtisseries) sont répandus dans l'ensemble de la province et de l'Empire. Les humains, les halflings et les nains consomment régulièrement leurs marchandises auprès de vendeurs de rue et de petites boulangeries, même si leur tendance à préparer des pâtisseries épaisses est moins adaptée aux papilles gustatives elfiques. Les humains pensent que toutes les tourtes portant le nom « Rumster » proviennent du même endroit, mais en réalité, il existe des centaines d'entreprises Rumster distinctes actives rien qu'à Altdorf. Comme la plupart des tourtes Rumster sont de bonne qualité, cela peut endormir la méfiance des humains (dont la robustesse intestinale ne vaut pas celle des halflings) face à une tourte Rumster de qualité douteuse, ce qui peut provoquer une « Vengeance des Rumster » (voir Courante galopante WFJDR, p. 186).\n\nPresque tous les halflings Rumster sont des cuisiniers ou des marchands, et préparent des tourtes ou les vendent. Quelques Rumster travaillent dans les champs pour contribuer à leur hégémonie montante sur le marché de la tourte. Certains sont des serviteurs ou des cochers, et livrent des tourtes chaudes dans tout le Reikland, tandis que d'autres sont des gardes et protègent le secret de leurs recettes de la concurrence et ainsi que les vendeurs de tourtes contre les clients furieux et mécontents. Cependant, on peut trouver des Rumster dans d'autres occupations plus variées, comme ratiers ou pilleurs de tombes. Après tout, il faut bien que la viande vienne de quelque part!",
     "movement": 3,
     "fate": {
@@ -1992,8 +1965,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "halflings-bordecharde",
@@ -2003,7 +1975,6 @@
     "variant": "Bordécharde",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "Les Bordécharde forment un clan pauvre. Ils n'ont aucune compétence et aucun talent spécifiques et vivent en marge des sociétés humaine et halfling. Ils acceptent toutes les tâches qu'on leur propose et partout où ils peuvent, si répugnantes soient- elles. Ils se retrouvent entraînés dans des activités criminelles par nécessité, mais ne font pas preuve du même enthousiasme que les Havrebas. Ils sont également moins solidaires et bien moins organisés en réseau que les rançonneurs. La plupart des grandes villes et cités accueillent un ou plusieurs « terriers » (presque un minuscule bas-fond) de Bordécharde, où des douzaines d'entre eux survivent péniblement, tassés dans des logements sordides et insalubres.\n\nLes halflings Bordécharde exercent généralement les métiers désagréables que personne d'autre ne veut faire. Collecteurs d'excréments, ratiers et mendiants sont des métiers courants, et beaucoup d'entre eux travaillent comme employés de jour dans les abattoirs, les quais, les tanneries et manufactures de soude. Certains exercent des professions illégales, comme pilleur de tombes ou hors-la-loi, et sont souvent enrôlés dans les combines des Havrebas pour servir de bras supplémentaires (et facilement remplaçables). Les Bordécharde n'ont pas peur de travailler dur, et un grand nombre d'entre eux sont honnêtes et peuvent donc obtenir un emploi relativement stable et travailler pour des commerces respectables en tant que couturiers, débardeurs ou employés.",
     "movement": 3,
     "fate": {
@@ -2102,8 +2073,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "halflings-pavederonces",
@@ -2113,7 +2083,6 @@
     "variant": "Pavéderonces",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "Les halflings n'ont pas de nobles au même sens que les humains ou les autres races. En règle générale, ils obtiennent un statut en fonction de leurs accomplissements, pas de l'identité de leurs parents, et même si leurs origines sont importantes (et remontent souvent jusqu'à l'époque de Ludwig le Gros), elles ne garantissent ni le respect ni le privilège. Ceci dit, le clan Pavéderonces est ce qui se rapproche le plus de la noblesse dans la société halfling. Leur lignée est aussi ancienne que celle des Fiercœur (les anciens du Mootland), les Pavéderonces se considèrent comme supérieurs aux autres clans: plus anciens, plus sages, plus instruits. Ce clan nanti, qui s'est développé grâce au commerce et à l'exploitation d'autres clans halflings inférieurs, s'est installé il y a plus d'un millénaire à Altdorf. Ils sont bien intégrés à la Cour impériale d'Altdorf, et parlent avec un accent de la haute société qui choque ceux qui les rencontrent pour la première fois.\n\nLes Pavéderonces œuvrent généralement pour les intérêts du clan (et les leurs) et cherchent à obtenir du profit, de l'influence et un statut. La majorité d'entre eux sont des courtisans à Altdorf, que ce soit à part entière ou rattachés à des familles de Comtes Électeurs et d'autres nobles humains influents. Certains travaillent comme marchands, banquiers ou membres de guildes, et achètent souvent des licences de Guilde alors qu'ils ne possèdent aucune aptitude pour l'artisanat concerné, uniquement dans le but d'obtenir l'influence politique associée au fait d'appartenir à une guilde, ou de la diriger. Les Pavéderonces sont généralement bien éduqués, et travaillent parfois dans les universités et établissements d'enseignement du Reikland. À l'instar des humains, de nombreux Pavéderonces ont des serviteurs: les serviteurs Bordécharde et Tuilecaramel sont aussi courants que les gardes Cendreplaine.",
     "movement": 3,
     "fate": {
@@ -2216,8 +2185,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "halflings-fraisedebois",
@@ -2227,7 +2195,6 @@
     "variant": "Fraisedébois",
     "refChar": "halfling",
     "refCareer": "halfling",
-    "rand": 94,
     "desc": "Les Fraisedébois sont probablement le clan halfling le mieux intégré de l'Empire. Ils se mêlent aisément à la classe moyenne florissante, et exercent une influence raisonnable, mais sans les airs pincés et les aspirations des Pavéderonces pour la noblesse. Ils ont toutes les caractéristiques des halflings amicaux: charmants, sympathiques et plaisants, et ne tolèrent pas les mauvaises manières. Ils font grand cas de l'art de la conversation et sont facilement offensés si les mondanités du discours civilisé sont ignorées. Les Fraisedébois sont également plus studieux que la plupart des autres halflings, leur intérêt pour l'apprentissage et l'érudition les amène à se faire une place dans les écoles et université du Reikland, ou à apporter leur aide dans les temples dédiés à Verena (où leur manque de foi personnelle est moins important que leur intérêt pour la connaissance).\n\nLes Fraisedébois sont généralement des commerçants, des marchands et des membres de guildes dans les villes et cités du Reikland. Ils tiennent souvent leur propre petit commerce en tant que boulangers, tailleurs et avocats, ou gèrent des restaurants ou des tavernes respectables. Certains travaillent comme érudits ou scribes et sont réputés pour l'allure soignée de leur écriture manuscrite. Étant donné la politesse presque oppressante de leur clan, les jeunes Fraisedébois partent parfois à l'aventure, avec la certitude qu'ils peuvent revenir se réfugier plus tard dans leur famille (et leur bonne réputation).",
     "movement": 3,
     "fate": {
@@ -2327,8 +2294,7 @@
     ],
     "profilStandard": {
       "id": "halfling"
-    },
-    "mutationBodyMax": 10
+    }
   },
   {
     "id": "nains",
@@ -2337,7 +2303,6 @@
     "family": "Nains",
     "refChar": "nain",
     "refCareer": "nain",
-    "rand": 97,
     "desc": "Les nains, ou Dawi, le nom qu'ils se donnent – sont légendairement bourrus et têtus. Bien que la majorité vive dans de vastes constructions à flanc de montagne, connues sous le nom de « forteresses », la plupart des grandes villes et la capitale du Reikland abritent également des populations naines. Compte tenu de leur nature clanique, les nains ont tendance à se regrouper, formant des enclaves ou des quartiers partout où ils s'installent. Beaucoup de nains vivant dans le Reikland sont les descendants de ceux qui ont été chassés de forteresses tombées il y a plusieurs siècles, mais la plupart se considèrent toujours comme des nains des Montagnes Grises, bien que certains n'aient jamais vu une colline, et encore moins une montagne.\n\nLa culture naine éprouve un profond respect pour les compétences artisanales, comme la maçonnerie, la forge, et l'ingénierie, et les forteresses naines reflètent leurs impressionnantes prouesses. Ils convoitent aussi l'or et les joyaux, minant profondément sous les Montagnes Grises à la recherche de pierres et de métaux précieux. Cependant, bien plus que ces possessions matérielles, les nains vénèrent leurs aînés, et plusieurs de leurs cultes sont centrés sur leurs si importants ancêtres. Les nains n'ont pas d'affinité avec la magie, bien que leurs forgerons de runes gravent sur des artefacts des symboles complexes leur permettant d'exploiter la magie. Cependant, leurs prouesses en ingénierie sont si impressionnantes, que certains de leurs plus ingénieux mécanismes ou engins à vapeur sont pris à tort pour de la magie par les gens simples.\n\nLes nains sont trapus, musclés, épais avec un large torse. Leurs traits sont rudes et leurs chevelures épaisses. La pilosité faciale est une marque de fierté et de statut parmi les nains, et tresses élaborées et ornements indiquent leur rang : raser un nain entraîne une honte terrible. En effet, l'honneur est un aspect fondamental de leur caractère. Compte tenu de leur longue mémoire et de leur nature fière, ils nourrissent une rancune envers ceux qui les ont offensés ou déshonorés, s'attachant à leurs griefs pendant de nombreuses années, assumant même les rancœurs héritées de leurs ancêtres, sachant que leurs aïeux les surveillent, ruminant leur amertume même après la mort. Bien qu'il puisse être difficile pour les autres de gagner l'amitié d'un nain, une fois acquise, elle est absolue. Même s'ils n'ont pas une espérance de vie aussi longue que celle des elfes presque immortels, les nains peuvent vivre plusieurs siècles. En fait, certains disent qu'aussi longtemps qu'un nain a un but, il ne mourra pas, à moins d'être tué en combat, soutenu par la force de ses convictions.\n\n### Points de vue\n\n*Sur les humains reiklanders...*\n\n« Comme mes ancêtres avant moi, j'ai vécu dans le Reikland toute ma vie. Les gens savent qu'il ne faut pas se mêler de mes affaires, et font preuve, comme il se doit, du respect que je mérite. Oui, ils ne sont pas fiables, et aussi changeants que le vent, mais ils sont aussi débrouillards et rusés. Aussi je vous recommande de faire équipe avec eux en cas de situation compliquée, car ils trouvent des solutions auxquelles je n'aurais même pas pensé. »\n\n– Garral Herraksson, joaillier d'Eilhart\n\n*Sur les halflings...*\n\n« Tout simplement pas le genre de personnes que j'apprécie. Toujours souriants. Toujours agités. Toujours la bouche ouverte. Toujours en groupes importants et qui ne veulent pas la fermer ! Quand ils viennent dans mon échoppe, je me plais à les chasser à coups de balai. Franchement, pourquoi sont-ils aussi heureux ? Je ne leur fais pas confiance, voilà. »\n\n– Helgi Galannasniz, bourgeois de Schrabwald\n\n*Sur les hauts elfes...*\n\n« Ne me parlez pas de ces salauds ! Alrug Lancecieux, mon dernier grand-oncle, a été trahi pendant la fichue Guerre de la maudite Vengeance par ces... ces... Ah ! C'est la plus ancienne rancune de notre clan ! Toujours d'actualité depuis des centaines de foutues années ! Quand je trouverai les descendants de ce satané Galanthiel Murmureux, par Grungni ! Je leur donnerai à tous, l'un après l'autre, une leçon de bonnes manières avec ma hache ! »\n\n– Snorrt Leivvusson, diplomate de Karak Ziflin\n\n*Sur les elfes sylvains...*\n\n« Mon arrière-grand-père pensait que l'exploitation des forêts de l'autre côté des Montagnes Grises serait lucrative. Ignorant tous les avertissements, il était persuadé qu'il ferait fortune. Qu'est-ce qu'une bande d'elfes maigrichons aurait bien pu lui faire à lui et à ses gars, après tout ? Beaucoup, en fin de compte. Seul mon grand- père a survécu, épargné pour transmettre le message : “Ne vous approchez pas.” Alors moi et mes hommes, on a préparé un groupe pour prendre notre revanche. »\n\n– Merig Ranvigsdottir, villageoise d'Azorn-Kalaki\n\n### Option: Animosité (Elfes)\n\nCompte tenu de l'incroyable mémoire des nains et de leur tendance à nourrir les rancunes, beaucoup entretiennent un profond ressentiment envers les elfes pour leur rôle dans la Guerre de la Barbe. De ce fait, beaucoup de nains possèdent le Trait Psychologique (voir page 190) Animosité (elfes) ; étant donné que certains groupes de WFJDR comprennent à la fois des elfes et des nains, cela pourrait créer des tensions inutiles entre les membres du groupe. Certains préféreront donc le laisser de côté.",
     "movement": 3,
     "fate": {
@@ -2444,8 +2409,7 @@
     ],
     "profilStandard": {
       "id": "nain"
-    },
-    "mutationBodyMax": 5
+    }
   },
   {
     "id": "nains-norse",
@@ -2455,7 +2419,6 @@
     "variant": "Norse",
     "refChar": "nain",
     "refCareer": "nain",
-    "rand": 97,
     "desc": "Un Joueur pourrait vouloir créer un Personnage nain norse venant de l'une des krakas. Dans ce cas, vous pouvez utiliser les règles ci-dessous à la place de celles concernant les nains en page 36 du **Livre de Règles Warhammer Fantasy le Jeu de Rôle**.",
     "movement": 3,
     "fate": {
@@ -2563,8 +2526,7 @@
     ],
     "profilStandard": {
       "id": "nain"
-    },
-    "mutationBodyMax": 5
+    }
   },
   {
     "id": "gnomes",
@@ -2573,7 +2535,6 @@
     "family": "Gnomes",
     "refChar": "gnome",
     "refCareer": "gnome",
-    "rand": 98,
     "gatedByRule": {
       "id": "creation-gnome-jouable"
     },
@@ -2707,7 +2668,6 @@
     "family": "Ogres",
     "refChar": "ogre",
     "refCareer": "ogre",
-    "rand": 98,
     "desc": "Pour la plupart des habitants de l'Empire, les ogres représentent une menace obscure, mais âprement discutée, venant de terres lointaines. Dans le Vieux Monde, les ogres font presque toujours partie de compagnies de mercenaires, au sein desquelles ils sont recrutés pour leur force, leur taille et leur férocité inégalables. Ceux qui y ont déjà eu affaire ne savent que trop bien qu'il faut les aborder avec prudence.\n\nGrand, hargneux et brutal, l'ogre adulte mesure environ 2,75 m et pèse près de 450 kg. Pour faire simple, les ogres sont des montagnes de muscles, dont les os sont particulièrement épais et résistants.\n\nL'aspect le plus impressionnant cette race est certainement leur ventre, et pas seulement selon leurs propres dires. Rien ne fait plus la fierté d'un ogre que la taille de sa bedaine, qu'il ne manquera pas de tâter et de contracter afin de créer un gargouillis assourdissant. L'appétit des ogres étant légendaire, se battre et manger sont sans surprise leurs activités favorites.\n\nLes ogres sont bruyants, goulus, vantards, fougueux, colériques et belliqueux. Mais ce sont également des créatures assez frustes, qui ne comprennent pas toujours les concepts abstraits les plus élémentaires. La musique, l'art, l'imagination et la créativité sont autant de sujets éclairés qui ne signifient absolument rien pour les ogres. Il est donc préférable de leur dire les choses de manière très directe : toute tentative de subtilité ou de métaphore ne fera qu'embrouiller et frustrer les ogres. Toutefois, ils savent apprécier un bon beuglement, en particulier pendant un banquet.\n\nLes ogres sont bien connus pour leur propension à voyager, ce qui fait qu'on peut facilement les trouver aux quatre coins du monde, combattant dans des groupes de mercenaires d'une vingtaine à quelques centaines d'individus, voire plus. Contrairement à la croyance populaire, les ogres s'intègrent plutôt bien dans la plupart des sociétés qu'ils rencontrent, assimilant les coutumes et les traditions locales avec une facilité qui est probablement due à un manque d'imagination.\n\n### Point de vue\n\n*Ce que les ogres pensent des humains du Reikland...*\n\n« J'aime bien leurs chapeaux. Et leurs petites chemises tailladées. Leurs armes sont pas terribles, un peu mieux que des cure-dents ! La plupart d'entre eux te regardent bizarrement, t'insultent ou te chassent de leur boutique avec leurs petites lames. Mais si tu en trouves un riche, avec un très grand chapeau, il te paiera bien pour rester là, à jouer les durs ! Ils pensent qu'on est bêtes, mais tu sais quoi ? Je me fiche de ce qu'ils pensent, du moment que je deviens riche ! »\n\n— Brutus Torlecou, garde du corps ogre\n\n*Ce que les humains du Reikland pensent des ogres...*\n\n« Les ogres ont une mauvaise réputation, ce qui n'est absolument pas mérité ni un tant soit peu justifié. Bien sûr, leur travail est souvent bâclé par rapport à ce dont nous avons l'habitude, mais je défie n'importe quel Reiklander de créer un corset comme le fait un ogre ! Parfois, je me demande si nous méprisons les ogres de la même manière que les nains nous méprisent... Et si c'est le cas, j'ai un peu de peine pour eux, mais je suis également ravie : pensez à tout ce que nous avons accompli malgré le mépris des nains ! »\n\n— Ellena Pfinkis, ingénieure du Reikland\n\n*Ce que les ogres pensent des nains...*\n\n« Comment on appelle un humain sur lequel on vient de s'asseoir ? Un nain ! Ha ha ! T'as compris ? Parce qu'ils sont tout écrasés et grincheux. Dis ça au petit minus et tu t'en mettras plein les joues pendant plusieurs jours. »\n\n— Nathaniel Striesser, dit « Nat », « comédien » ogre\n\n*Ce que les nains pensent des ogres...*\n\n« Ma mère avait l'habitude de dire “plus grand tu es, moins tu fais preuve d'honnêteté”. Elle parlait surtout des humains et des elfes, que Valaya la préserve, et dans ces cas-là, elle avait raison. Mais cette théorie ne s'applique pas aux ogres. Je pense qu'ils sont trop stupides pour mentir. Mais ce n'est pas pour autant qu'ils sont dignes de confiance. »\n\n— Ezra Brynsdottir, brise-bouclier naine\n\n*Ce que les ogres pensent des halflings...*\n\n« Ils sont petits et délicieux si tu dois remplir ton garde-manger vide, mais il vaut mieux s'en servir pour cuisiner... Enfin, c'est eux qui font la cuisine. Ils sont très bavards, mais il y a quelque chose chez eux qui en ferait presque des membres de la famille. Mais c'est pas non plus comme les avortons que tu finis par manger. »\n\n— Ballison Grandfestin, dit « le boucher », restaurateur ogre\n\n*Ce que les halflings pensent des ogres...*\n\n« Brutaux ? Oui. Stupides ? Souvent. Dangereux ? Absolument... Et pourtant, vous ne trouverez pas amitié plus solide, littéralement ! Avez-vous déjà senti la force d'un ogre ? Ils sont certainement plus dignes de confiance que la plupart des Reiklanders, foi de halfling. »\n\n— Ferdinand Piedfoin-Piedpaille, studieux halfling\n\n*Ce que les ogres pensent des hauts elfes...*\n\n« Les minus avec les oreilles pointues, là ? Ils se croient mieux que nous. Ils parlent trop bien, ça me donne mal à la tête. À mon avis, ils ont meilleur goût que nous, c'est déjà ça. »\n\n— Tuzergoo Fracasservelle, vagabond ogre\n\n*Ce que les hauts elfes pensent des ogres...*\n\n« Lorsque l'on a vécu aussi longtemps que moi, vu autant de rivages que moi, goûté autant de cuisines que moi, assisté à autant de guerres que moi, on commence à s'accommoder du monde tel qu'il est vraiment. On commence à s'habituer au fait que le monde change, rapidement, mais toujours avec un courant sous-jacent de cohésion, de stabilité, qui maintient toute une génération dans la lignée de celle qui l'a précédée. Mais les ogres ne fonctionnent pas de cette manière : parmi leurs leurs, ils sont un peuple immuable, jusqu'à ce qu'ils commencent à errer et deviennent une tout autre personne. »\n\n— Aesenil Clairciel, explorateur haut elfe\n\n*Ce que les ogres pensent des elfes sylvains...*\n\n« Les quoi ? Ah oui, les forêts qui piquent. Oui, je vois : tu te promènes, tu cherches à manger et d'un coup, tu es couvert de flèches. C'est pas des elfes ça, juste des arbres en colère. Mais il faut bien souffrir un peu pour manger, pas vrai ? »\n\n— Varzurga, chasseur ogre\n\n*Ce que les elfes sylvains pensent des ogres...*\n\n« Peu de créatures ont le pas aussi lourd que les ogres, dont chaque mouvement laisse une nouvelle marque dans la nature. Et pourtant, contrairement aux humains ou aux nains, peu de mes semblables éprouvent de l'animosité à leur égard. Après tout, on ne déteste pas la fourmi qui se repaît du cerf déchu, ni le grondement de son estomac lorsqu'il crie famine. Les ogres sont une force naturelle de ce monde, force qui demande à être contrecarrée par la lame et les flèches, mais jamais par la haine. »\n\n— Faraoth Vaguauvent, observateur elfe sylvain",
     "movement": 6,
     "fate": {
@@ -2822,12 +2782,14 @@
     "profilStandard": {
       "id": "ogre"
     },
-    "mutationBodyMax": 10,
     "traits": [
       {
         "id": "ogre"
       }
-    ]
+    ],
+    "gatedByRule": {
+      "id": "creation-ogre-jouable"
+    }
   },
   {
     "id": "hauts-elfes",
@@ -2837,7 +2799,6 @@
     "refChar": "haut-elfe",
     "refCareer": "haut-elfe",
     "arcaneDomainsBonusOf": "force-mentale",
-    "rand": 99,
     "desc": "Les hauts elfes sont relativement nombreux sur les rivières du Reikland. Altdorf et Nuln sont fières de leurs quartiers peuplés de hauts elfes marchands qui transportent des denrées sur le Reik en passant par Marienburg, jusqu'à la mer. Ces marchands sont de loin les plus nombreux des hauts elfes que l'on rencontre dans le Reikland, en plus des escortes diplomatiques et équipes de soutien. Réservés, étranges et d'une grande longévité, ils forment un peuple sensible et passionné, généralement perçu dans le Reikland comme la plus belle des races, mais aussi la plus arrogante.\n\nGrands et élancés, avec de délicates oreilles pointues, la plupart des elfes sont dotés de longs cheveux fins et d'une voix mélodieuse. Bien qu'ils puissent sembler fragiles, leur physiologie n'est pas simplement puissante, mais aussi extraordinairement agile et adroite. Il y a peu de dimorphisme sexuel entre les elfes, ce qui provoque souvent de la confusion chez les humains qui interagissent avec eux.\n\nLes hauts elfes, qui s'appellent eux-mêmes Asur, sont originaires d'Ulthuan, une île magique à l'ouest du Vieux Monde. Race fière, ils se vantent de faire partie des plus anciennes civilisations du monde. Les hauts elfes font preuve d'un mépris considérable pour les nains, avec lesquels ils ont un long passif de conflits. Depuis qu'ils ont abandonné le Vieux Monde au lendemain de la Guerre de la Barbe, les Asur se sont déchirés au cours d'une guerre civile, la « guerre fratricide », même s'ils n'en parlent pas ouvertement avec les étrangers. À cause de ce conflit qui dure depuis des millénaires, les elfes du Nord, déchirés par la guerre d'Ulthuan ont tendance à être des durs à cuire, pragmatiques et impitoyables.\n\nLa société des hauts elfes est étroitement liée aux rituels et à la discipline, pour éviter de se laisser submerger par de trop fortes émotions et de tirer le maximum de leurs intellects si complexes. En même temps, certains Asur se délectent d'aventures. Le terme « elfe des mers » est souvent utilisé par les autres races pour désigner les intrépides hauts elfes qui s'aventurent au-delà de la sécurité des côtes d'Ulthuan, en tant que marins, marchands et diplomates, et qui contrastent fortement avec les sombres Asur qui les accompagnent et qui suivent un style de vie plus guerrier.\n\n### Points de vue\n\n*Sur les humains reiklanders...*\n\n« Leurs envies éphémères en font des êtres jaloux et corrompus. Mais, lorsqu'ils prennent conscience de l'insignifiance de leurs besoins et de la crainte que nous leur inspirons, ils sont facilement influençables. »\n\n– Imryth Pluidebraise, ambassadeur de Caledor\n\n*Sur les nains...*\n\n« Je vous suggère de les éviter. Ils se sont perdus dans le passé, ce qui les empêche de voir le futur. Hochez poliment la tête, acceptez les reproches, et partez. Il ne sert à rien de discuter, ils ne changeront jamais d'avis. »\n\n– Alathan Montecrête, matelot de Cothique\n\n*Sur les halflings...*\n\n« Je trouve ces joyeuses créatures réellement intéressantes. J'ai vécu dans l'un de leurs groupes familiaux pendant un moment, et je les ai trouvés ouverts, accueillants, stimulants et tellement touchants. Mais j'ai dû finalement partir, l'odeur était bien trop puissante, et ils n'ont aucune compréhension de l'espace personnel, ce qui leur fait rapidement perdre tout leur charme. »\n\n– Hoelistor Oeilcourbe, sorcier de Saphery\n\n*Sur les elfes sylvains...*\n\n« Si les Asrai se donnaient la peine de regarder plus loin que leurs nez sales, ils pourraient voir ce à quoi nous sommes tous confrontés. Des isolationnistes idiots qui méritent tout ce qu'il leur arrive. Je doute que les Éonir vaillent guère mieux. »\n\n– Anaw-Alina Sombrepas, veilleuse de Nagarythe",
     "movement": 5,
     "fate": {
@@ -2944,8 +2905,7 @@
     ],
     "profilStandard": {
       "id": "elfe-haut-et-sylvain"
-    },
-    "mutationBodyMax": 0
+    }
   },
   {
     "id": "elfes-sylvains",
@@ -2955,7 +2915,6 @@
     "refChar": "elfe-sylvain",
     "refCareer": "elfe-sylvain",
     "arcaneDomainsBonusOf": "force-mentale",
-    "rand": 100,
     "desc": "Les elfes sylvains sont rares dans le Reikland, et pour une bonne raison. Pendant les derniers jours de la Guerre de la Barbe, beaucoup d'elfes se sont retirés du Vieux Monde. Mais quelques-uns sont restés et se sont retranchés dans les profondeurs des forêts magiques, qu'ils considèrent aujourd'hui comme leur foyer. Plus de trois mille ans d'isolement, de difficultés et de guerres s'ensuivirent, rendant les « elfes sylvains » culturellement très différents de leurs cousins hauts elfes.\n\nLa vie des elfes sylvains est intimement liée à la nature, au sein d'une société liée aux esprits de la forêt. Ce sont des créatures autonomes qui travaillent dur pour se tenir à l'écart de tout, et dont les avant-postes arboricoles sont habilement dissimulés grâce à de puissantes illusions et des pouvoirs magiques fantasmagoriques. Dans les rares occasions où ils voyagent au-delà de leurs frontières, c'est généralement pour guerroyer, souvent contre leurs voisins ou des forces plus obscures, ce qui laisse les autres peuples du Vieux Monde incertains de la nature de ces féeriques elfes capricieux.\n\nIl y a deux familles d'elfes sylvains très souvent vues dans le Reikland. Les Asrai d'Athel Loren, le long des Montagnes Grises, et les Éonirs de la forêt Laurelorn, loin dans le Nordland.\n\nLes impitoyables Asrai d'Athel Loren sont xénophobes et énigmatiques, et s'aventurent rarement au-delà de leurs frontières. Cependant, il y a dix ans, Naieth la Prophétesse a prédit la possible fin d'Athel Loren. Alors, le Roi et la Reine de la forêt, n'admettant pas que le destin de leurs bois pourrait tomber entre les mains d'étrangers, envoyèrent des groupes de guerriers tribaux hors d'Athel Loren pour traquer les ennemis de la forêt jusque chez eux.\n\nCes groupes féroces sont parfois dirigés par un enchanteur, qui fait appel aux antiques voies magiques des Racines du Monde pour se transporter entre Athel Loren et les profondeurs des autres forêts depuis longtemps perdues par les elfes, mais pas encore consumées par la civilisation ou le Chaos. Parfois, ces chasseurs sauvages se découvrent une cause commune avec d'autres habitants du Vieux Monde, et un individu peut sortir de l'ombre pour rejoindre ceux qui combattent un mal encore plus grand.\n\nLa Reine de la Laurelorn, par contre, a choisi une approche très différente de la prédiction rapportée et a récemment envoyé une importante délégation monter un camp dans la profonde forêt des collines d'Ambre, juste au sud d'Altdorf. Ces elfes observent la politique humaine concernant la Laurelorn et au-delà, et interviennent parfois sur des problèmes jugés importants. Ce camp est considéré comme une solution « temporaire » par les elfes, mais la signification de ce mot est très différente pour les races dotées d'une longue espérance de vie. En raison de ce camp, ces elfes sylvains sont de plus en plus présents dans le Reikland, car ils s'aventurent dans la forêt et l'arpentent à des fins mystérieuses, souvent en tant que Chasseurs ou Saltimbanques.\n\n### Points de vue\n\n*Sur les humains reiklanders...*\n\n« Je vois des créatures haineuses dont le cœur est empli de ténèbres et avec un irrespect total pour l'ordre. Mais elles sont répandues, belliqueuses et surtout faciles à manipuler. Étant donné que l'hiver approche, il est temps de s'en servir. »\n\n– Algwyllmyr Doublevue, voyant d'Athel Loren\n\n*Sur les nains...*\n\n« Plus bornés que le Chêne des Âges, ils ne comprennent qu'un seul argument : la force. Alors utilisez-la rapidement et de façon décisive, et gardez à l'esprit qu'ils reviendront plus tard pour une mesquine vengeance. »\n\n– Meridrynda Porte-de-Tremble, chevalier elfe sylvain d'Athel Loren\n\n*Sur les halflings...*\n\n« J'en ai rencontré un lors de mes voyages au Middenland pendant la neuvième année de la Reine Marrisith. Il parlait beaucoup. Vraiment beaucoup. Quand nous nous sommes quittés près d'une ville qu'il a nommée « Delberz », j'ai vu qu'il avait réussi je ne sais comment à dérober plusieurs sachets d'herbe de ma ceinture. J'étais impressionné. Alors je suggère de ne pas leur faire confiance, mais la camaraderie et le savoir local qu'ils partagent peuvent en valoir la peine ! »\n\n– Alafael Tireherse, saltimbanque de la Laurelorn\n\n*Sur les hauts elfes...*\n\n« N'approchez pas les Asurs, prétentieux au-delà de tout bon sens. Ils sont cyniques, arrogants et certainement perdus pour Atharti. Et s'ils essaient de vous toiser avec cette supériorité qu'ils affectionnent tant, rappelez-leur simplement que leur Reine en Avelorn mène une existence en tous points semblable à la nôtre. »\n\n– Cynwrawn Pistelointaine, chasseur de la Laurelorn\n\n### Cousins Sylvains\n\nLes elfes sylvains d'Athel Loren et de la Laurelorn partagent peut-être les mêmes histoires et origines dans le Vieux Monde, mais ils sont culturellement différents. Contrairement aux hauts elfes, aucune tribu d'elfes sylvains ne s'intéresse vraiment aux formes de civilisation conventionnelle, les percevant comme une menace pour leurs forêts bien-aimées et leur mode de vie. Ils diffèrent seulement dans leur manière de l'exprimer.\n\nLes elfes sylvains de la Laurelorn s'engagent activement dans la politique pour se protéger, se mélangeant à d'autres. Ils ne sont toutefois pas en reste lorsqu'il s'agit d'attiser la haine entre les autres groupes afin de détourner l'attention de leurs cibles favorites. De ce fait, question caractère, ils sont plus proches des hauts elfes, tout en ayant les Compétences et Talents des elfes sylvains.\n\nEn comparaison, les groupes de guerriers d'Athel Loren préfèrent se dissimuler dans les ombres, rejetant tout contact avec les autres, portant des coups mortels destinés à semer la peur et la terreur dans le cœur de quiconque considérerait la forêt avec avidité.",
     "movement": 5,
     "fate": {
@@ -3061,7 +3020,6 @@
     ],
     "profilStandard": {
       "id": "elfe-haut-et-sylvain"
-    },
-    "mutationBodyMax": 0
+    }
   }
 ]

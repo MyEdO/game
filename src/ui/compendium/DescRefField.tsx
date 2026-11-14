@@ -19,7 +19,7 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { books } from '../../data';
 import { estExtrait } from '../../data/schemas/grammaire/livres-extraits';
-import { chargerChapitre, chargerManifeste, type ChapitreManifeste, type Manifeste } from '../../data/source/chapitres';
+import { chargerChapitre, chargerManifeste, type Manifeste } from '../../data/source/chapitres';
 import {
   MAX_FRAGMENTS,
   MIN_FRAGMENT,
@@ -30,7 +30,6 @@ import {
   fragmentCellule,
   graphieDeChapitre,
   largeurDeChapitre,
-  memeTexte,
   positionDuBloc,
   resoudreAdresse,
   resoudreFragment,
@@ -43,38 +42,21 @@ import {
   type Fragment,
   type FragmentBlocs,
   type Section,
-  type TableDeSection,
 } from '../../data/source/decoupe';
 import { GatedAction } from '../GatedAction';
 import { NumberField } from '../NumberField';
 import { OptionChooser } from '../OptionChooser';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Prose } from '../Prose';
-
-/**
- * Ce que chaque code de refus du parseur veut dire À L'AUTEUR, et ce qu'il doit faire. La table est
- * TOTALE par le TYPE (`satisfies Record<CodeErreur, string>`) : un code neuf sans phrase ne
- * compile pas. Le détail technique du parseur reste disponible, en second rang — un code moteur brut
- * en première ligne n'est pas un texte d'auteur.
- */
-export const PHRASE_REFUS = {
-  'section-inconnue': 'Cette section n’existe pas dans le chapitre choisi — rechoisissez-en une dans la liste.',
-  'bornes-hors-limites': 'Les numéros de bloc sortent de la section — la plage admise est indiquée à côté des champs.',
-  'empreinte-divergente': 'Le texte du livre a changé sous cette adresse — relisez le passage, puis rescellez-la.',
-  'ligne-introuvable': 'Aucune ligne de la table ne porte cette clé — choisissez-en une dans la liste.',
-  'ligne-ambigue': 'Plusieurs lignes de la section portent cette clé — prenez une clé qui ne désigne qu’une ligne.',
-  'table-sans-en-tetes': 'La table de cette section n’a pas d’en-têtes : une cellule ne s’y adresse pas — passez en « blocs ».',
-  'colonne-inconnue': 'Cette colonne n’existe pas dans la table — choisissez un en-tête de la liste.',
-  'fragment-trop-court': `Ce fragment est trop court pour un montage : il en faut au moins ${MIN_FRAGMENT} caractères — étendez les bornes de blocs.`,
-  'fragment-ambigu': 'Ce texte apparaît plusieurs fois dans le chapitre : l’adresse désignerait un autre passage — étendez le fragment.',
-  'fragments-chevauchants': 'Deux fragments de ce montage citent le même passage — déplacez l’un d’eux sur d’autres blocs.',
-  'fragments-contigus': 'Ce fragment reprend au bloc qui suit le précédent : c’est un seul passage — écrivez-le en un seul fragment, en reportant sa fin sur celle de ce fragment.',
-  'fin-avant-depart': 'La fin de ce fragment précède son départ dans le chapitre — choisissez une section et un bloc de fin situés après le départ.',
-  'montage-hors-plafond': `Une adresse monte ${MAX_FRAGMENTS} fragments au plus — retirez-en un.`,
-} satisfies Record<CodeErreur, string>;
-
-/** `ligne-ambigue` quand la rangée PROPOSE le choix de la table : le remède est ce choix. */
-export const PHRASE_LIGNE_AMBIGUE_TABLE = 'Plusieurs tables de la section portent cette clé — choisissez sa table dans la liste « table ».';
+import {
+  PHRASE_LIGNE_AMBIGUE_TABLE,
+  PHRASE_REFUS,
+  cleSection,
+  libelleChapitre,
+  libelleSection,
+  libelleTable,
+  sectionsOrdonnees,
+} from '../../noyau/edition/adresseDeProse';
 
 /** Le chapitre n'offre plus AUCUN bloc à citer — la seule raison qui parle du CHAPITRE. */
 const RAISON_EPUISE = 'Ce chapitre n’a aucun bloc adressable de plus.';
@@ -103,26 +85,8 @@ const CHARGEURS_REELS: ChargeursSource = { chapitre: chargerChapitre, manifeste:
 /** Seuil au-delà duquel une liste (sections, chapitres) reçoit son champ de filtre. */
 const SECTIONS_A_FILTRER = 30;
 
-/** Adresse d'une section : c'est `slug#occ` que le fragment STOCKE, le titre n'est qu'un guide. */
-const cleSection = (slug: string, occ: number) => `${slug}#${occ}`;
-
-/** Libellé d'une table TITRÉE : son titre, et son rang quand la section en porte plusieurs de ce titre. */
-function libelleTable(t: TableDeSection, toutes: TableDeSection[]): string {
-  const memes = toutes.filter((u) => u.cle != null && memeTexte(u.table.titre ?? '', t.table.titre ?? ''));
-  return memes.length > 1 ? `${t.table.titre} (${memes.findIndex((u) => u.cle === t.cle) + 1})` : t.table.titre ?? '';
-}
-
 /** Les options d'un `<select>` contrôlé, PLUS sa valeur courante si elle n'y est pas (`sectionsPour`). */
 const avecCourante = (valeurs: string[], courante: string) => (valeurs.includes(courante) ? [] : [courante]);
-
-/** Une section SANS titre est le PRÉAMBULE d'extraction (« Pages PDF 27-47 »), pas un passage du
- *  livre : elle se nomme comme tel et passe en fin de liste (`sectionsOrdonnees`). */
-const libelleSection = (s: Section) => `${cleSection(s.slug, s.occ)} — ${s.title || 'préambule (sans titre)'}`;
-/** Sections TITRÉES d'abord, préambule en dernier — l'ordre du document est conservé dans chaque groupe. */
-const sectionsOrdonnees = (l: Section[]): Section[] => [...l.filter((s) => s.title), ...l.filter((s) => !s.title)];
-
-/** Libellé d'un chapitre : son TITRE, jamais le nom de fichier de l'extraction (`17 - _GoBack.md`). */
-const libelleChapitre = (c: ChapitreManifeste) => `${c.ch} — ${c.titre || '(chapitre sans titre)'}`;
 
 /** Le message MOTEUR d'un refus, replié derrière la primitive `.fold` (`components.css`, slots
  *  `.fold-title` / `.fold-body`) : la phrase d'auteur reste en tête, le détail ne se lit que sur

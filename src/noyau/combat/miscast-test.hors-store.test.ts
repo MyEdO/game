@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Lot 4d — les Tests imbriqués des tables d'Imparfaites/Colère (« Résistance Accessible ou Sonné »,
  * « Purifier la chair » : échec à −4 DR → Inconscient EN PLUS) sont des nœuds de Flow `test` portés par `MiscastResult.testFlow`, résolus CADENCE-AWARE par
  * `applyMiscast`→`runCombatFlow` :
- *  (a) lanceur HÉROS MANUEL → étape de cascade `triggeredTest` INFLUENÇABLE (Chance/Pacte/Résilience),
+ *  (a) lanceur HÉROS MANUEL → étape de cascade `testDeclenche` INFLUENÇABLE (Chance/Pacte/Résilience),
  *      appendue APRÈS l'étape de révélation Imparfaite/Colère ; le palier `onFailHard` (Inconscient à
  *      −4 DR) est honoré à la validation via la Condition Flow `slThreshold ≤ −4` ;
  *  (b) lanceur ENNEMI → jet INLINE (pas de cascade), branche d'échec appliquée tout de suite.
@@ -30,11 +30,11 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.wounds = blessuresDeBase(200, 200, H);
     E.wounds = blessuresDeBase(200, 200, E);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
@@ -44,25 +44,25 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
   const live = (id: string): Combatant => banc.getState().battle!.combatants.find((x) => x.id === id)!;
 
   /** Cherche la graine de `battleRng` qui, sur une Colère de `who`, produit une entrée À TEST (« Purifier
-   *  la chair », « Visions sacrées »…) → une étape `triggeredTest` apparaît dans la cascade. Renvoie la
+   *  la chair », « Visions sacrées »…) → une étape `testDeclenche` apparaît dans la cascade. Renvoie la
    *  graine ; on REJOUE ensuite proprement avec elle. (Le contrecoup tire d'abord le d100 de table.) */
-  function seedYieldingTest(who: 'hero' | 'enemy'): number {
+  function seedYieldingTest(who: 'heros' | 'ennemi'): number {
     for (let s = 0; s < 300; s++) {
       const { H, E } = setup();
       seedBattleRng(s);
-      applyMiscast(banc.getState, banc.setState, who === 'hero' ? H : E, 'colere');
+      applyMiscast(banc.getState, banc.setState, who === 'heros' ? H : E, 'colere');
       avanceEtapeCascade(banc.getState); // le dé du Tableau tombe à SON étape : la ligne n'existe qu'après
       const casc = banc.getState().pendingCascade;
-      const hasTestStep = !!casc?.participants.some((p) => p.kind === 'triggeredTest');
+      const hasTestStep = !!casc?.participants.some((p) => p.kind === 'testDeclenche');
       // Héros : une étape influençable (suspendue) ; Ennemi : ligne « Résistance » dans la file différée.
       const inlineTest = banc.getState().pendingLogQueue.some((q) => /Résistance/.test(q.line));
-      if (who === 'hero' ? hasTestStep : inlineTest) return s;
+      if (who === 'heros' ? hasTestStep : inlineTest) return s;
     }
     throw new Error('aucune graine ne produit une entrée de Colère à Test');
   }
 
-  it('(a) lanceur HÉROS MANUEL : étape triggeredTest INFLUENÇABLE appendue APRÈS la révélation', () => {
-    const seed = seedYieldingTest('hero');
+  it('(a) lanceur HÉROS MANUEL : étape testDeclenche INFLUENÇABLE appendue APRÈS la révélation', () => {
+    const seed = seedYieldingTest('heros');
     const { H } = setup();
     seedBattleRng(seed);
     applyMiscast(banc.getState, banc.setState, H, 'colere');
@@ -71,8 +71,8 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
     const casc = banc.getState().pendingCascade!;
     expect(casc.purpose).toBe('combat');
     // L'identité Colère vit sur une étape `miscast` (révélation), le Test imbriqué sur une étape SUIVANTE.
-    const miscastIdx = casc.participants.findIndex((p) => p.kind === 'miscast');
-    const testIdx = casc.participants.findIndex((p) => p.kind === 'triggeredTest');
+    const miscastIdx = casc.participants.findIndex((p) => p.kind === 'incantationImparfaite');
+    const testIdx = casc.participants.findIndex((p) => p.kind === 'testDeclenche');
     expect(miscastIdx).toBeGreaterThanOrEqual(0);
     expect(testIdx).toBeGreaterThan(miscastIdx); // le Test vient APRÈS la révélation (ordre du journal)
     const step = casc.participants[testIdx];
@@ -91,8 +91,8 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
       applyMiscast(banc.getState, banc.setState, H, 'colere');
       avanceEtapeCascade(banc.getState);
       const casc = banc.getState().pendingCascade;
-      const m = casc?.participants.find((p) => p.kind === 'miscast');
-      if (m?.outcome?.some((l) => /Purifier la chair/.test(l.text)) && casc?.participants.some((p) => p.kind === 'triggeredTest')) seed = s;
+      const m = casc?.participants.find((p) => p.kind === 'incantationImparfaite');
+      if (m?.outcome?.some((l) => /Purifier la chair/.test(l.text)) && casc?.participants.some((p) => p.kind === 'testDeclenche')) seed = s;
       banc.setState({ pendingCascade: null });
     }
     expect(seed).toBeGreaterThanOrEqual(0);
@@ -102,7 +102,7 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
     applyMiscast(banc.getState, banc.setState, H, 'colere');
     avanceEtapeCascade(banc.getState);
     const p0 = banc.getState().pendingCascade!;
-    const stepIdx = p0.participants.findIndex((s) => s.kind === 'triggeredTest');
+    const stepIdx = p0.participants.findIndex((s) => s.kind === 'testDeclenche');
     const step = p0.participants[stepIdx];
     // FORCE un échec à −4 DR ou pire (déterministe, indépendant du RNG) : jet 99 ÉCHOUÉ, DR = −5 (≤ −4 →
     // palier `slThreshold` honoré). `result` posé sur l'étape → l'applier joue la branche d'échec entière.
@@ -118,7 +118,7 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
   });
 
   it('(b) lanceur ENNEMI : jet INLINE (pas de cascade), branche d’échec appliquée tout de suite', () => {
-    const seed = seedYieldingTest('enemy');
+    const seed = seedYieldingTest('ennemi');
     const { E } = setup();
     E.characteristics.endurance = 1; // Résistance minimale → échec quasi sûr → Sonné posé inline
     seedBattleRng(seed);
@@ -127,7 +127,7 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
     // ouvrir d'étape INFLUENÇABLE : le Test imbriqué se roule inline.
     expect(banc.getState().pendingCascade!.participants[0].table!.result).toBeTruthy();
     avanceEtapeCascade(banc.getState);
-    expect(banc.getState().pendingCascade?.participants.some((p) => p.kind === 'triggeredTest') ?? false).toBe(false);
+    expect(banc.getState().pendingCascade?.participants.some((p) => p.kind === 'testDeclenche') ?? false).toBe(false);
     // La ligne de parité du Test (traceLineOf) part dans la file différée.
     expect(banc.getState().pendingLogQueue.some((q) => /Résistance/.test(q.line))).toBe(true);
   });

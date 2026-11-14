@@ -34,7 +34,7 @@ describe('Effet fall — chute', () => {
     const h = loneHero();
     const be = bonus(h.characteristics.endurance);
     const before = h.wounds.current;
-    applyEffects(banc.getState, banc.setState, [{ type: 'fall', target: 'party', metres: 4 }] as Effect[]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'fall', target: 'groupe', metres: 4 }] as Effect[]);
     // Le 1d10 des Dégâts est un dé du jeu : il tombe à la PORTE (#1508), en étape à dé nu par tombant.
     expect(banc.getState().party[0].wounds.current, 'rien avant le dé').toBe(before);
     draineCascade(banc.getState);
@@ -58,17 +58,17 @@ describe('Effet fall — chute', () => {
   it('l’atterrissage est un PAS du groupe : il arrive sur `to` (balcon → parterre)', () => {
     loneHero();
     banc.setState({ mode: 'exploration', scene: balconScene(), partyPos: { x: 5, y: 5, z: 1 } });
-    applyEffects(banc.getState, banc.setState, [{ type: 'fall', target: 'party', metres: 4, to: { x: 5, y: 8, z: 0 } }] as Effect[]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'fall', target: 'groupe', metres: 4, to: { x: 5, y: 8, z: 0 } }] as Effect[]);
     expect(banc.getState().partyPos).toEqual({ x: 5, y: 8, z: 0 });
   });
 
   it('`to` où le groupe ne se pose pas : l’Effet entier est REFUSÉ en le disant — ni pas, ni dé, ni Dégâts', () => {
     const before = loneHero().wounds.current;
     banc.setState({ mode: 'exploration', scene: balconScene(), partyPos: { x: 5, y: 5, z: 1 }, journal: [], pendingCascade: null });
-    applyEffects(banc.getState, banc.setState, [{ type: 'fall', target: 'party', metres: 4, to: { x: 5, y: 8, z: 1 } }] as Effect[]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'fall', target: 'groupe', metres: 4, to: { x: 5, y: 8, z: 1 } }] as Effect[]);
     expect(banc.getState().partyPos).toEqual({ x: 5, y: 5, z: 1 });
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('eff.fallAtterrissageRefuse'));
-    expect(t('eff.fallAtterrissageRefuse')).not.toMatch(/[0-9]/);
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('eff.chuteAtterrissageRefuse'));
+    expect(t('eff.chuteAtterrissageRefuse')).not.toMatch(/[0-9]/);
     expect(banc.getState().pendingCascade, 'aucun dé de chute ouvert').toBeNull();
     draineCascade(banc.getState);
     expect(banc.getState().party[0].wounds.current).toBe(before);
@@ -81,17 +81,17 @@ describe('Effet fall — chute', () => {
       walkable: (x: number, y: number, z: number) => isWalkable(balcon, x, y, z),
     } as EffectRefCtx;
     const refs = EFFECT_HANDLERS.fall.refs!;
-    expect(refs({ type: 'fall', target: 'party', metres: 4, to: { x: 12, y: 3 } }, ctx)).toEqual([{ level: 'error', message: 'Chute : atterrissage (12,3) hors de la carte' }]);
-    expect(refs({ type: 'fall', target: 'party', metres: 4, to: { x: 5, y: 8, z: 1 } }, ctx)).toEqual([{ level: 'error', message: 'Chute : atterrissage (5,8, étage 1) sur une case non marchable' }]);
-    expect(refs({ type: 'fall', target: 'party', metres: 4, to: { x: 5, y: 8, z: 0 } }, ctx)).toEqual([]);
-    expect(refs({ type: 'fall', target: 'party', metres: 4, to: { x: 5, y: 5, z: 1 } }, ctx)).toEqual([]);
-    expect(refs({ type: 'fall', target: 'party', metres: 4 }, ctx)).toEqual([]);
+    expect(refs({ type: 'fall', target: 'groupe', metres: 4, to: { x: 12, y: 3 } }, ctx)).toEqual([{ level: 'error', message: 'Chute : atterrissage (12,3) hors de la carte' }]);
+    expect(refs({ type: 'fall', target: 'groupe', metres: 4, to: { x: 5, y: 8, z: 1 } }, ctx)).toEqual([{ level: 'error', message: 'Chute : atterrissage (5,8, étage 1) sur une case non marchable' }]);
+    expect(refs({ type: 'fall', target: 'groupe', metres: 4, to: { x: 5, y: 8, z: 0 } }, ctx)).toEqual([]);
+    expect(refs({ type: 'fall', target: 'groupe', metres: 4, to: { x: 5, y: 5, z: 1 } }, ctx)).toEqual([]);
+    expect(refs({ type: 'fall', target: 'groupe', metres: 4 }, ctx)).toEqual([]);
   });
 
   it('authoring : `validateScene` branche la marchabilité de LA scène — le `to` non marchable remonte à l’auteur', () => {
     const sautVers = (to: { x: number; y: number; z: number }): Scene => ({
       ...balconScene(),
-      triggers: [{ id: 'saut', rect: { x: 5, y: 5, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'fall', target: 'party', metres: 4, to }] as Effect[]) }],
+      triggers: [{ id: 'saut', rect: { x: 5, y: 5, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'fall', target: 'groupe', metres: 4, to }] as Effect[]) }],
     });
     const chutes = (sc: Scene) => validateScene([sc]).filter((w) => w.refId === 'saut' && w.message.startsWith('Chute')).map((w) => [w.level, w.message]);
     expect(chutes(sautVers({ x: 5, y: 8, z: 1 }))).toEqual([['error', 'Chute : atterrissage (5,8, étage 1) sur une case non marchable']]);

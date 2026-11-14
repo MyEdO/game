@@ -12,7 +12,7 @@ function item(over: Partial<ItemInstance>): ItemInstance {
 
 function hero(p: Partial<Combatant>): Combatant {
   return blessuresSurLeProfil({
-    id: 'h1', label: 'Blessé', kind: 'hero',
+    id: 'h1', label: 'Blessé', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12, 6), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -65,7 +65,7 @@ describe('utiliserLObjet — consommables de la fiche', () => {
 
   it('en combat, hors du tour du porteur : utiliserLObjet ne fait rien', () => {
     const h = hero({ conditions: [{ id: 'hemorragique', value: 3 }], items: [BANDAGE] });
-    const e = hero({ id: 'e1', kind: 'enemy' });
+    const e = hero({ id: 'e1', kind: 'ennemi' });
     banc.setState({ party: [h], battle: { combatants: [h, e], order: ['e1', 'h1'], turn: 0, round: 1, acted: false, log: [], over: null } as never });
     banc.getState().utiliserLObjet('b1');
     const c = banc.getState().battle!.combatants.find((x) => x.id === 'h1')!;

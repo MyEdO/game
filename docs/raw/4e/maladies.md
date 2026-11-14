@@ -23,7 +23,7 @@
 - [Maladies et parasites aquatiques — MSRC 14](#maladies-et-parasites-aquatiques--msrc-14)
 - [Remèdes à base de plantes — MSRC 2 (volet maladies)](#remèdes-à-base-de-plantes--msrc-2-volet-maladies)
 - [Guérison et soins (renvoi)](#guérison-et-soins-renvoi)
-- [Règle optionnelle « disease-mode »](#règle-optionnelle--disease-mode-)
+- [Règle optionnelle « maladie-mode »](#règle-optionnelle--maladie-mode-)
 - [Voir aussi](#voir-aussi)
 
 - **La Mer des Griffes (MDG)** <!-- MDG-INTEGRATION -->
@@ -62,7 +62,7 @@ Chaque maladie est définie par les champs suivants :
 
 > « Certains groupes apprécient les maladies, parce qu'elles apportent une touche sombre et sans concession à leurs aventures… À l'inverse, certains joueurs considèrent les maladies comme des nuisances à oublier rapidement. C'est à vous et à votre groupe de décider comment vous allez utiliser les maladies dans vos parties, mais gardez à l'esprit qu'elles peuvent être très dangereuses, et qu'il n'est jamais agréable d'avoir un PJ cloué au lit, pendant que les autres membres du groupe partent à l'aventure. **Utilisez-les avec parcimonie.** »
 
-**Règle optionnelle implémentée** : le code expose un paramètre `disease-mode` (voir § [Règle optionnelle « disease-mode »](#règle-optionnelle--disease-mode-)).
+**Règle optionnelle implémentée** : le code expose un paramètre `maladie-mode` (voir § [Règle optionnelle « maladie-mode »](#règle-optionnelle--maladie-mode-)).
 
 ---
 
@@ -313,7 +313,7 @@ Vous toussez et éternuez régulièrement, **propageant votre maladie**. Tout Pe
 
 Le RAW est COMPLET (le verbatim intégral vit dans `symptoms.json`, entrée `toxine` : échec du Test quotidien
 = mort ; difficulté indexée sur la sévérité — Très Facile +60, Modéré → Facile +40, Grave → Accessible +20).
-IMPLÉMENTÉ (#338) : le cycle est un nœud `test` du Flow — sa branche d'échec (`onTick.test.fail`) porte
+IMPLÉMENTÉ (#338) : le cycle est un nœud `test` du Flow — sa branche d'échec (`onTick.test.echec`) porte
 `{ op: 'kill' }` (Point de Destin sauve, LDB 17 l.29-37, sinon `Combatant.dead`) ;
 `onTick.difficultyBySeverity` indexe la difficulté du nœud sur la sévérité de l'instance
 (lu par `symptomOnTick`, `src/engine/disease.ts`).
@@ -704,9 +704,9 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 
 ---
 
-## Règle optionnelle « disease-mode »
+## Règle optionnelle « maladie-mode »
 
-Implémentée dans le store (`rule('disease-mode')`) — contrôle l'activation des tests de Contraction en fin de combat :
+Implémentée dans le store (`rule('maladie-mode')`) — contrôle l'activation des tests de Contraction en fin de combat :
 
 | Valeur | Comportement |
 |---|---|
@@ -814,6 +814,10 @@ Maladie de **privation prolongée** qui frappe ceux qui restent longtemps en mer
 
 Planifier l'approvisionnement est vital pour un long voyage : l'équipage fournit un dur labeur et a besoin de beaucoup d'eau et de nourriture. Acheter n'importe quelle nourriture du marché risque le désastre, car elle **pourrit vite** ; seules les provisions ci-dessous sont prévues pour tenir en mer.
 
+> « se contenter d'acheter n'importe quelle nourriture disponible sur le marché revient à risquer un désastre lors d'une longue expédition, car elle va vite pourrir. » — `MDG 14 l.238`
+
+Le RAW ne chiffre pas la durée : règle maison `mer-vivres-frais-peremption-jours` (défaut 7 jours après l'embarquement, voisin `LDB 47 l.93-97`, Conservation « ils ne pourriront pas »).
+
 **Consommation et eau** — un tonneau d'eau douce contient **145 litres** ; un membre d'équipage **boit 2 à 3 litres d'eau par jour**. La **petite bière** (un tonneau d'eau + un tonnelet de bière) peut remplacer l'eau : si diluée, elle hydrate et **aide à empêcher la contamination de la boisson** (et échappe à la règle du tonneau contaminé, cf. § Maladies à bord).
 
 > « Un tonneau contient 145 litres d'eau. Un membre d'équipage boit 2 à 3 litres d'eau par jour. » — `MDG 14 l.242`
@@ -836,7 +840,7 @@ Planifier l'approvisionnement est vital pour un long voyage : l'équipage fourni
 
 > « Pénurie de nourriture. La nourriture a moisi ou a été infestée par de la vermine pendant le voyage. La moitié des provisions à bord<br>sont gâtées. » — `MDG 15 l.169-170`
 
-**Voir aussi** : [Scorbut (maladie de privation MDG)](#scorbut-maladie-de-privation-mdg) (soupe de chou fermenté ; biscuits ≠ nourriture correcte) ; [Maladies à bord — contagion et tonneaux contaminés (MDG)](#maladies-à-bord--contagion-et-tonneaux-contaminés-mdg) (tonneau d'eau / petite bière) ; `docs/raw/4e/deplacement.md` (le voyage lui-même). Hors domaine : modificateurs de Moral liés à la nourriture (biscuits seuls / ration insuffisante) — `MDG 14 l.166`, `MDG 14 l.171`.
+**Voir aussi** : [Scorbut (maladie de privation MDG)](#scorbut-maladie-de-privation-mdg) (soupe de chou fermenté ; biscuits ≠ nourriture correcte) ; [Maladies à bord — contagion et tonneaux contaminés (MDG)](#maladies-à-bord--contagion-et-tonneaux-contaminés-mdg) (tonneau d'eau / petite bière) ; `docs/raw/4e/deplacement.md` (le voyage lui-même). Hors domaine : modificateurs de Moral liés à la nourriture (frais au-dessus des rations / biscuits seuls / ration insuffisante) — `MDG 14 l.156`, `MDG 14 l.166`, `MDG 14 l.171`.
 
 **Implémente :** [État calculé](../implemente.generated.md#4emaladiesprovisions-et-privations-en-mer-eau-rations-faim-mdg)
 

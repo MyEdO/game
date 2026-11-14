@@ -13,7 +13,7 @@ import { buildHaloMesh } from './interactHaloMeshes';
 import { buildPrecipMesh, makeWeatherField, type PrecipArea } from './weatherParticles';
 import { buildBrumeSheets, retainBrumeSheets } from './weatherSheets';
 import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
-import type { WeatherBrumeDef, WeatherPrecipDef } from '../../../data/ambiance.types';
+import type { WeatherBrumeDef, WeatherPrecipDef } from '../../../data';
 
 const AIRE: PrecipArea = { x0: 0, x1: 10, z0: 0, z1: 10, groundM: 0, topM: 9 };
 const PLUIE: WeatherPrecipDef = {
@@ -50,7 +50,7 @@ describe('renderRanks — la table', () => {
 
 describe('renderRanks — les familles MONTÉES portent leur rang', () => {
   it('marques de case : rang `monde` (posées au sol, sous les pions)', () => {
-    expect(buildHighlightMesh('walk', 4).renderOrder).toBe(RENDER_ORDER.monde);
+    expect(buildHighlightMesh('deplacement', 4).renderOrder).toBe(RENDER_ORDER.monde);
   });
 
   it('marques dynamiques et halos : rang `chrome` (les affordances ne se voilent jamais)', () => {

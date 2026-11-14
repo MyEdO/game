@@ -9,7 +9,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
 import { applierDe } from './cascade';
 import { resultLine } from './rollSeam';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { findVehicleById } from '../data';
 import { setRule } from '../engine/policy';
 import { effectiveChar } from '../engine/characteristics';
@@ -26,20 +26,20 @@ beforeEach(() => {
 
 describe('Effet inflictHunger (LDB 18 l.337-343)', () => {
   it('1 jour affamé → 1ᵉʳ échec : −10 en Force et en Endurance (via le pool de faim)', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     const baseF = effectiveChar(party[0], 'force');
     banc.setState({ party });
-    applyEffects(banc.getState, banc.setState, [{ type: 'inflictHunger', days: 1, target: 'hero', heroId: party[0].id }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'inflictHunger', days: 1, target: 'heros', heroId: party[0].id }]);
     const h = banc.getState().party[0];
     expect(h.hunger?.failures).toBe(1);
     expect(effectiveChar(h, 'force')).toBe(baseF - 10); // 1ᵉʳ échec = −10 F/E (hungerCharPenalties)
   });
 
   it('2 jours → 2ᵉ échec : Dégâts encaissés (1d10 ignorant les PA, min 1) sur tout le groupe', () => {
-    const party = makePregens(idsDeTest).slice(0, 2);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
     const before = party.map((h) => h.wounds.current);
     banc.setState({ party });
-    applyEffects(banc.getState, banc.setState, [{ type: 'inflictHunger', days: 2, target: 'party' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'inflictHunger', days: 2, target: 'groupe' }]);
     const after = banc.getState().party;
     expect(after[0].hunger?.failures).toBe(2);
     // 2ᵉ échec → au moins 1 Blessure sur chaque héros.
@@ -48,9 +48,9 @@ describe('Effet inflictHunger (LDB 18 l.337-343)', () => {
   });
 
   it('journalise l’affliction', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     banc.setState({ party });
-    applyEffects(banc.getState, banc.setState, [{ type: 'inflictHunger', days: 1, target: 'hero', heroId: party[0].id }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'inflictHunger', days: 1, target: 'heros', heroId: party[0].id }]);
     expect(banc.getState().journal.some((l) => /affam/i.test(l))).toBe(true);
   });
 });
@@ -69,14 +69,14 @@ const current = () => { const pc = banc.getState().pendingCascade!; return pc.pa
 
 describe('Effet exposureNight (LDB 18 l.326-334) — BANDE influençable par VAGUE (#1117 L3)', () => {
   it('froid → UNE bande (la 1ʳᵉ vague) portant le nombre TOTAL de vagues, une rangée par héros, AUCUN jet résolu', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     banc.setState({ party, pendingCascade: null, journal: [] });
     banc.getState().ensemencerLeTirage(3); // graine dont les jets échoueraient s'ils roulaient inline
     const beforeW = banc.getState().party[0].wounds.current;
-    applyEffects(banc.getState, banc.setState, [{ type: 'exposureNight', kind: 'froid', count: 4, target: 'hero', heroId: party[0].id }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'exposureNight', kind: 'froid', count: 4, target: 'heros', heroId: party[0].id }]);
     const pc = banc.getState().pendingCascade;
     expect(pc).not.toBeNull(); // le jet est DIFFÉRÉ en modale, pas roulé en boucle
-    const bands = pc!.participants.filter((s) => s.kind === 'exposure');
+    const bands = pc!.participants.filter((s) => s.kind === 'exposition-nocturne');
     expect(bands).toHaveLength(1); // UNE fenêtre ouverte : la vague 0 (les suivantes se construisent après)
     expect(bands[0].meta?.waves).toBe(4); // les 4 Tests RAW sont déclarés, pas perdus
     expect(bands[0].participants!.map((p) => p.id)).toEqual([party[0].id]);
@@ -86,12 +86,12 @@ describe('Effet exposureNight (LDB 18 l.326-334) — BANDE influençable par VAG
   });
 
   it('chaleur → bande taguée kind "chaleur" ; SANS Possession lourde, la CONSÉQUENCE d’un échec pose Exténué + journal chaleur (l.330)', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     banc.setState({ party, pendingCascade: null, journal: [] });
     banc.getState().party[0].items = []; // aucune Possession lourde → conséquence IMMÉDIATE
-    applyEffects(banc.getState, banc.setState, [{ type: 'exposureNight', kind: 'chaleur', count: 1, target: 'party' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'exposureNight', kind: 'chaleur', count: 1, target: 'groupe' }]);
     const band = current();
-    expect(band.kind).toBe('exposure');
+    expect(band.kind).toBe('exposition-nocturne');
     expect(band.meta?.kind).toBe('chaleur');
     const row = band.participants![0];
     commitRows([{ roll: 99, target: row.target, sl: -5, success: false }]);
@@ -105,10 +105,10 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
   const heavyItem = { uid: 'sac-1', trappingId: 'grand-sac', name: 'Grand sac à dos', kind: 'misc', qualities: [], equipped: true, enc: 3 } as never;
 
   it('avec une Possession lourde : AUCUNE conséquence immédiate, un CHOIX est inséré qui NOMME la rangée qu’il tranche', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     banc.setState({ party, pendingCascade: null, journal: [] });
     banc.getState().party[0].items = [heavyItem];
-    applyEffects(banc.getState, banc.setState, [{ type: 'exposureNight', kind: 'chaleur', count: 1, target: 'party' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'exposureNight', kind: 'chaleur', count: 1, target: 'groupe' }]);
     const band = current();
     const row = band.participants![0];
     commitRows([{ roll: 99, target: row.target, sl: -5, success: false }]);
@@ -116,50 +116,50 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     expect((h.conditions ?? []).some((c) => c.id === 'extenue')).toBe(false); // choix non encore rendu, rien n'a été tranché
     expect(h.items).toHaveLength(1); // objet toujours en inventaire, rien n'a été jeté
     const choix = current();
-    expect(choix.kind).toBe('exposure-heat-drop');
+    expect(choix.kind).toBe('exposition-delestage');
     expect(choix.options?.map((o) => o.key).sort()).toEqual(['garder', 'jeter']);
     // La coordonnée de l'annulation est la RANGÉE, plus l'adjacence : une bande peut en produire N.
     expect(choix.meta?.cancelsRowId).toBe(`${band.id}:${row.id}`);
   });
 
   it('« jeter » : retire l’objet, ANNULE le Test (aucune escalade)', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     banc.setState({ party, pendingCascade: null, journal: [] });
     const h = banc.getState().party[0];
     h.items = [heavyItem];
-    const choice = { id: 'e0-drop', kind: 'exposure-heat-drop', actorId: h.id, chosen: 'jeter', meta: { failNumber: 1 } } as unknown as import('./pendings').CascadeStep;
-    const out = applierDe('exposure-heat-drop')!(banc.getState, banc.setState, choice, h, { steps: [choice], index: 0 });
+    const choice = { id: 'e0-drop', kind: 'exposition-delestage', actorId: h.id, chosen: 'jeter', meta: { failNumber: 1 } } as unknown as import('./pendings').CascadeStep;
+    const out = applierDe('exposition-delestage')!(banc.getState, banc.setState, choice, h, { steps: [choice], index: 0 });
     expect(h.items).toHaveLength(0); // délestée
     expect((h.conditions ?? []).some((c) => c.id === 'extenue')).toBe(false); // Test ANNULÉ, pas subi
     expect(/annulé/i.test(resultLine(out?.consequences ?? []))).toBe(true);
   });
 
   it('« garder » : conserve l’objet, la conséquence de l’échec s’applique normalement', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     banc.setState({ party, pendingCascade: null, journal: [] });
     const h = banc.getState().party[0];
     h.items = [heavyItem];
-    const choice = { id: 'e0-drop', kind: 'exposure-heat-drop', actorId: h.id, chosen: 'garder', meta: { failNumber: 1 } } as unknown as import('./pendings').CascadeStep;
-    const out = applierDe('exposure-heat-drop')!(banc.getState, banc.setState, choice, h, { steps: [choice], index: 0 });
+    const choice = { id: 'e0-drop', kind: 'exposition-delestage', actorId: h.id, chosen: 'garder', meta: { failNumber: 1 } } as unknown as import('./pendings').CascadeStep;
+    const out = applierDe('exposition-delestage')!(banc.getState, banc.setState, choice, h, { steps: [choice], index: 0 });
     expect(h.items).toHaveLength(1); // conservé
     expect((h.conditions ?? []).some((c) => c.id === 'extenue')).toBe(true); // 1ᵉʳ échec chaleur (l.330)
     expect(/chaleur|suffoque|accablé/i.test(resultLine(out?.consequences ?? []))).toBe(true);
   });
 
   it('escalade : la vague SUIVANTE se construit APRÈS le délestage — l’échec annulé ne compte pas dans son rang', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     banc.setState({ party, pendingCascade: null, journal: [] });
     banc.getState().party[0].items = [heavyItem];
-    applyEffects(banc.getState, banc.setState, [{ type: 'exposureNight', kind: 'chaleur', count: 2, target: 'party' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'exposureNight', kind: 'chaleur', count: 2, target: 'groupe' }]);
     const wave0 = current();
     commitRows([{ roll: 99, target: wave0.participants![0].target, sl: -5, success: false }]);
     // Le choix est courant : on JETTE → l'échec de la vague 0 est annulé, et c'est CE choix qui
     // déclenche la construction de la vague 1 (jamais avant : son escalade compterait l'échec annulé).
-    expect(current().kind).toBe('exposure-heat-drop');
+    expect(current().kind).toBe('exposition-delestage');
     banc.getState().jetRegler('cascade', 'choix', 'jeter', current().id);
     banc.getState().jetValider('cascade');
     const wave1 = current();
-    expect(wave1.kind).toBe('exposure');
+    expect(wave1.kind).toBe('exposition-nocturne');
     expect(wave1.meta?.wave).toBe(1);
     expect(wave1.participants![0].meta?.priorFails).toBe(0); // l'échec ANNULÉ ne compte pas
     banc.setState({ journal: [] });
@@ -173,20 +173,20 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
 
 describe('Effet inflictThirst (LDB 18 l.340, miroir de la Faim)', () => {
   it('1 jour assoiffé → 1ᵉʳ échec : −10 Intelligence/FM/Sociabilité (via le pool de soif)', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     const baseInt = effectiveChar(party[0], 'intelligence');
     banc.setState({ party });
-    applyEffects(banc.getState, banc.setState, [{ type: 'inflictThirst', days: 1, target: 'hero', heroId: party[0].id }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'inflictThirst', days: 1, target: 'heros', heroId: party[0].id }]);
     const h = banc.getState().party[0];
     expect(h.thirst?.failures).toBe(1);
     expect(effectiveChar(h, 'intelligence')).toBe(baseInt - 10);
   });
 
   it('2 jours → 2ᵉ échec : Dégâts encaissés (1d10 ignorant les PA, min 1) sur tout le groupe', () => {
-    const party = makePregens(idsDeTest).slice(0, 2);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
     const before = party.map((h) => h.wounds.current);
     banc.setState({ party });
-    applyEffects(banc.getState, banc.setState, [{ type: 'inflictThirst', days: 2, target: 'party' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'inflictThirst', days: 2, target: 'groupe' }]);
     const after = banc.getState().party;
     expect(after[0].thirst?.failures).toBe(2);
     expect(after[0].wounds.current).toBeLessThan(before[0]);
@@ -194,34 +194,34 @@ describe('Effet inflictThirst (LDB 18 l.340, miroir de la Faim)', () => {
   });
 
   it('journalise l’affliction', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     banc.setState({ party });
-    applyEffects(banc.getState, banc.setState, [{ type: 'inflictThirst', days: 1, target: 'hero', heroId: party[0].id }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'inflictThirst', days: 1, target: 'heros', heroId: party[0].id }]);
     expect(banc.getState().journal.some((l) => /sèche|déshydrat/i.test(l))).toBe(true);
   });
 });
 
 describe('Effet inflictPsychology (Peur/Terreur scénique, LDB 21) — BANDE INFLUENÇABLE', () => {
   it('ouvre UNE bande (une fenêtre pour la règle mise en jeu) à une RANGÉE par héros, AUCUN jet résolu (jamais silencieux)', () => {
-    const party = makePregens(idsDeTest).slice(0, 2);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
     banc.setState({ party, pendingCascade: null, journal: [] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'peur', indice: 2, label: 'Une ombre glaçante', target: 'party' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'peur', indice: 2, label: 'Une ombre glaçante', target: 'groupe' }]);
     const pc = banc.getState().pendingCascade;
     expect(pc).not.toBeNull();
-    const steps = pc!.participants.filter((s) => s.kind === 'encounterPsych');
+    const steps = pc!.participants.filter((s) => s.kind === 'psychologieDeRencontre');
     expect(steps).toHaveLength(1); // UNE entrée de règle = UNE bande (plus une étape par héros)
     expect(steps[0].participants?.map((p) => p.id)).toEqual(party.map((h) => h.id));
     expect(steps[0].participants?.every((p) => p.result == null)).toBe(true);
-    expect(steps[0].encounterPsych?.kind).toBe('peur');
-    expect(steps[0].encounterPsych?.indice).toBe(2);
+    expect(steps[0].psychologieDeRencontre?.kind).toBe('peur');
+    expect(steps[0].psychologieDeRencontre?.indice).toBe(2);
   });
 
   it('kind terreur → bande taguée terreur, une seule rangée quand un seul héros est ciblé', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     banc.setState({ party, pendingCascade: null, journal: [] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'terreur', indice: 3, label: 'Un spectre hurlant', target: 'hero', heroId: party[0].id }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'terreur', indice: 3, label: 'Un spectre hurlant', target: 'heros', heroId: party[0].id }]);
     const step = banc.getState().pendingCascade!.participants[0];
-    expect(step.encounterPsych?.kind).toBe('terreur');
+    expect(step.psychologieDeRencontre?.kind).toBe('terreur');
     expect(step.participants?.map((p) => p.id)).toEqual([party[0].id]);
   });
 });
@@ -233,7 +233,7 @@ describe('Effet setVessel (navire de campagne, MDG 13-15)', () => {
     applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue' }]);
     const v = banc.getState().vessel;
     expect(v?.vehicleId).toBe('cogue');
-    expect(v?.morale.score).toBe(75); // MORALE_BASE (nouvel équipage)
+    expect(v?.morale.score).toBe(75); // moraleBase() (nouvel équipage)
     expect(v?.wounds).toBeUndefined(); // coque intacte (aucun hullMax authoré)
     expect(banc.getState().journal.some((l) => /navire|cogue/i.test(l))).toBe(true);
   });
@@ -387,7 +387,7 @@ describe('Effet openPort (#93 — MÊME chemin que l’accostage en mer)', () =>
   };
 
   beforeEach(() => {
-    banc.setState({ worldMap, party: makePregens(idsDeTest).slice(0, 1) });
+    banc.setState({ worldMap, party: tousLesHerosDeScenario(idsDeTest).slice(0, 1) });
   });
 
   it('lieu SANS profil de port : aucune relâche à terre en attente (résout directement)', () => {
@@ -408,15 +408,15 @@ describe('Effet openPort (#93 — MÊME chemin que l’accostage en mer)', () =>
 
 describe('Effet openTavernGames (NADJ 16)', () => {
   it('option active → ouvre la modale (state tavernGames posé)', () => {
-    setRule('tavern-games', true);
-    banc.setState({ party: makePregens(idsDeTest).slice(0, 2), tavernGames: null });
+    setRule('jeux-de-taverne', true);
+    banc.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 2), tavernGames: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'openTavernGames' }]);
     expect(banc.getState().tavernGames).not.toBeNull();
   });
 
   it('option éteinte → sans effet (comme interlude désactivé)', () => {
-    setRule('tavern-games', false);
-    banc.setState({ party: makePregens(idsDeTest).slice(0, 2), tavernGames: null });
+    setRule('jeux-de-taverne', false);
+    banc.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 2), tavernGames: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'openTavernGames' }]);
     expect(banc.getState().tavernGames).toBeNull();
   });

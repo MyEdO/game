@@ -14,14 +14,14 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * Les pièces à DISTANCE (baliste/canon) gardent la géométrie du chef — inchangé.
  */
 const ramWeapon = { uid: 'ram-w', trappingId: 'belier-test', name: 'Bélier', kind: 'melee' as const, damage: { plusBF: true, flat: 10 }, qualities: [{ id: 'equipe', value: 6 }], weaponGroup: 'machine-de-guerre' };
-const cannonWeapon = { uid: 'cannon-w', trappingId: 'canon-test', name: 'Canon', kind: 'ranged' as const, damage: { plusBF: false, flat: 14 }, range: 75, qualities: [{ id: 'equipe', value: 6 }], weaponGroup: 'poudre-noire' };
+const cannonWeapon = { uid: 'cannon-w', trappingId: 'canon-test', name: 'Canon', kind: 'distance' as const, damage: { plusBF: false, flat: 14 }, range: 75, qualities: [{ id: 'equipe', value: 6 }], weaponGroup: 'poudre-noire' };
 
 const ramPoste: ShipPoste = { item: ramWeapon as never, crewIds: ['chef'] };
 const cannonPoste: ShipPoste = { item: cannonWeapon as never, crewIds: ['chef'] };
 
 const combatant = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'chef', name: 'Chef', kind: 'hero',
+    id: 'chef', name: 'Chef', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 50, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [{ name: 'Bélier', type: 'melee', damage: { plusBF: true, flat: 10 }, reach: 'Moyenne', qualities: [{ id: 'equipe', value: 6 }], weaponGroup: 'machine-de-guerre', uid: 'ram-w' }],
@@ -31,10 +31,10 @@ const combatant = (over: Partial<Combatant>): Combatant =>
   })) as unknown as Combatant;
 
 const hull = (pos: { x: number; y: number }, poste: ShipPoste, footprint?: number): Combatant =>
-  ({ id: 'hull', name: 'Affût', kind: 'ally', pos, conditions: [], wounds: { current: 20, max: 20 }, dead: false, postes: [poste], footprint, bodyShape: 'engin', inert: true }) as unknown as Combatant;
+  ({ id: 'hull', name: 'Affût', kind: 'heros', pos, conditions: [], wounds: { current: 20, max: 20 }, dead: false, postes: [poste], footprint, bodyShape: 'engin', inert: true }) as unknown as Combatant;
 
 const door = (pos: { x: number; y: number }): Combatant =>
-  ({ id: 'door', name: 'Porte', kind: 'enemy', pos, conditions: [], wounds: { current: 20, max: 20 }, dead: false, bodyShape: 'structure', inert: true }) as unknown as Combatant;
+  ({ id: 'door', name: 'Porte', kind: 'ennemi', pos, conditions: [], wounds: { current: 20, max: 20 }, dead: false, bodyShape: 'structure', inert: true }) as unknown as Combatant;
 
 const scene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 10, h: 10 }, ambiance: 'jour', layers: [{ z: 0, tiles: new Array(100).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
@@ -49,7 +49,7 @@ describe('#210 — adjacence d\'une pièce de MÊLÉE servie = celle de la COQUE
     const ram = hull({ x: 4, y: 0 }, ramPoste); // adjacente à la porte (distance 1)
     const chef = combatant({ pos: { x: 0, y: 0 }, mannedPoste: ramPoste } as never); // très loin de la porte
     const plan = attackPlan(mkGet([chef, ram, gate]), chef, gate);
-    expect(plan.kind).toBe('attack');
+    expect(plan.kind).toBe('attaque');
   });
 
   it('(b) chef ADJACENT à la porte mais coque À DISTANCE : attaque INDISPONIBLE (le bug corrigé)', () => {
@@ -57,7 +57,7 @@ describe('#210 — adjacence d\'une pièce de MÊLÉE servie = celle de la COQUE
     const chef = combatant({ pos: { x: 4, y: 0 }, mannedPoste: ramPoste } as never); // adjacent à la porte
     const ram = hull({ x: 0, y: 0 }, ramPoste); // très loin de la porte
     const plan = attackPlan(mkGet([chef, ram, gate]), chef, gate);
-    expect(plan.kind).toBe('blocked'); // une structure ne se charge/rejoint jamais implicitement (isInanimate)
+    expect(plan.kind).toBe('bloque'); // une structure ne se charge/rejoint jamais implicitement (isInanimate)
   });
 
   it('(c) empreinte >1 : une coque 2×2 dont UNE case touche la porte reste adjacente', () => {
@@ -65,13 +65,13 @@ describe('#210 — adjacence d\'une pièce de MÊLÉE servie = celle de la COQUE
     const ram = hull({ x: 3, y: 0 }, ramPoste, 2); // occupe (3,0)-(4,1) : la tuile (4,0) touche la porte (5,0)
     const chef = combatant({ pos: { x: 0, y: 0 }, mannedPoste: ramPoste } as never);
     const plan = attackPlan(mkGet([chef, ram, gate]), chef, gate);
-    expect(plan.kind).toBe('attack');
+    expect(plan.kind).toBe('attaque');
   });
 
   it('(d) non-régression PIÈCE À DISTANCE (canon/baliste) : géométrie du CHEF inchangée', () => {
     const chef = combatant({ id: 'chef', pos: { x: 4, y: 0 }, mannedPoste: cannonPoste } as never);
     const far = hull({ x: 0, y: 0 }, cannonPoste); // coque du canon très loin — ne doit RIEN changer
-    expect(isMeleeWarMachine({ type: 'ranged', qualities: cannonWeapon.qualities })).toBe(false);
+    expect(isMeleeWarMachine({ type: 'distance', qualities: cannonWeapon.qualities })).toBe(false);
     expect(meleeWarMachineHullOf(chef, [chef, far])).toBeUndefined();
     expect(combatGeomOf({ combatants: [chef, far] } as never, chef)).toBe(chef);
     expect(combatGeomOfList([chef, far], chef)).toBe(chef);
@@ -101,7 +101,7 @@ describe('pickAttackWeaponList — auto-choix EXCLUT toujours l\'arme du poste s
     const gate = door({ x: 5, y: 0 });
     const ram = hull({ x: 4, y: 0 }, ramPoste); // adjacente à la porte
     const chef = combatant({ pos: { x: 0, y: 0 }, mannedPoste: ramPoste, weapons: [sword, { ...ramWeapon }] } as never); // loin, arme perso + pièce servie
-    const w = pickAttackWeaponList([chef, ram, gate], chef, gate);
+    const w = pickAttackWeaponList(scene(), [chef, ram, gate], chef, gate);
     expect(w.uid).not.toBe(ramWeapon.uid);
     expect(w.uid).toBe(sword.uid); // repli sur l'arme personnelle
   });
@@ -110,19 +110,19 @@ describe('pickAttackWeaponList — auto-choix EXCLUT toujours l\'arme du poste s
     const gate = door({ x: 5, y: 0 });
     const ram = hull({ x: 4, y: 0 }, ramPoste);
     const chef = combatant({ pos: { x: 0, y: 0 }, mannedPoste: ramPoste, weapons: [sword, { ...ramWeapon }] } as never);
-    const w = firedWeapon(chef, gate, ramWeapon.uid, [chef, ram, gate]);
+    const w = firedWeapon(scene(), chef, gate, ramWeapon.uid, [chef, ram, gate]);
     expect(w.uid).toBe(ramWeapon.uid);
   });
 
   it('non-régression ARTILLERIE À DISTANCE (canon servi) : auto-choix (sans weaponUid) prend l\'arme PERSONNELLE (abordage), jamais le canon', () => {
     const target = combatant({ id: 'foe', pos: { x: 1, y: 0 } } as never); // au contact (mêlée personnelle possible)
     const cannonPoste2: ShipPoste = { item: cannonWeapon as never, crewIds: ['gunner'] };
-    const gunner = combatant({ id: 'gunner', pos: { x: 0, y: 0 }, mannedPoste: cannonPoste2, weapons: [dagger, { ...cannonWeapon, type: 'ranged' as const }] } as never);
-    const w = pickAttackWeaponList([gunner, target], gunner, target);
+    const gunner = combatant({ id: 'gunner', pos: { x: 0, y: 0 }, mannedPoste: cannonPoste2, weapons: [dagger, { ...cannonWeapon, type: 'distance' as const }] } as never);
+    const w = pickAttackWeaponList(scene(), [gunner, target], gunner, target);
     expect(w.uid).not.toBe(cannonWeapon.uid);
     expect(w.uid).toBe(dagger.uid);
     // Option DÉDIÉE « Servir le canon » (weaponUid explicite) : inchangée.
-    const w2 = pickAttackWeaponList([gunner, target], gunner, target, cannonWeapon.uid);
+    const w2 = pickAttackWeaponList(scene(), [gunner, target], gunner, target, cannonWeapon.uid);
     expect(w2.uid).toBe(cannonWeapon.uid);
   });
 });

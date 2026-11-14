@@ -7,18 +7,29 @@
  */
 import { Scene, sceneMetresPerTile } from './monde/scene';
 import { Pt } from './monde/path';
-import { computeVisible, computeLightField, ambientScalar, baseSightTiles, darkSightTiles, mapLights, combatantLights, buildOpaque, type LightSource, type Occ } from './monde/vision';
+import {
+  computeVisible,
+  computeLightField,
+  ambientScalar,
+  baseSightTiles,
+  darkSightTiles,
+  mapLights,
+  combatantLights,
+  buildOpaque,
+  type LightSource,
+  type Occ,
+} from './monde/vision';
 import { memoByRef, memoByRefDeps } from './monde/sceneMemo';
 import { meneurDuMonde } from './monde/combatants';
 import { smokeOf } from './monde/combatGeometry';
 import { isOutOfAction } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
-import type { EtatDeJeu } from './etat';
+import type { BattleState, EtatDeJeu } from './etat';
 
 /** Tranche d'état nécessaire au calcul de visibilité : ses champs sont les dépendances du mémo `vueDeLaScene`. */
 export interface VisionInput {
   scene: Scene | null;
-  battle: { combatants: Combatant[]; zones?: unknown } | null;
+  battle: { combatants: Combatant[]; zones?: BattleState['zones'] } | null;
   party?: Combatant[];
   partyPos: Pt;
   gameTime: number;
@@ -31,7 +42,7 @@ export interface VisionInput {
  *  le même gate de port et les mêmes rayons. PUR. */
 export function sceneLightSources(s: Pick<VisionInput, 'scene' | 'battle' | 'party' | 'partyPos'>): LightSource[] {
   const mpt = sceneMetresPerTile(s.scene!);
-  const sources = mapLights(s.scene!);
+  const sources = [...mapLights(s.scene!)];
   if (s.battle) {
     for (const c of s.battle.combatants) sources.push(...combatantLights(c, mpt));
     return sources;
@@ -58,7 +69,7 @@ export function sceneLightSources(s: Pick<VisionInput, 'scene' | 'battle' | 'par
 export function sceneLightField(s: VisionInput, occ: Occ = buildOpaque(s.scene!)): { light: ReturnType<typeof computeLightField>; smoke: Pt[] } {
   const scene = s.scene!;
   const ambient = ambientScalar(scene, s.gameTime, s.lightLevel);
-  const smoke: Pt[] = s.battle?.zones ? smokeOf(s.battle as never) : [];
+  const smoke: Pt[] = s.battle?.zones ? smokeOf(s.battle) : [];
   return { light: computeLightField(scene, ambient, sceneLightSources(s), smoke, occ), smoke };
 }
 
@@ -83,9 +94,9 @@ function visibleFrom(scene: Scene, s: VisionInput, light: StateLight, smoke: Pt[
       // Brouillard PARTY-ONLY : seuls les héros du GROUPE (manuels, ou héros coop d'autres joueurs)
       // révèlent la carte. Un PNJ allié piloté par l'IA (`aiControlled` : défenseur de siège, équipage
       // d'une pièce) ne contribue PAS à la vue du groupe — sinon il dévoilerait tout le champ adverse.
-      // Une pièce INERTE (affût de baliste/canon, côté allié `kind:'hero'` mais SANS IA) n'a pas d'yeux :
+      // Une pièce INERTE (affût de baliste/canon, côté allié `kind:'heros'` mais SANS IA) n'a pas d'yeux :
       // postée sur le rempart (z=1), elle dévoilerait sinon tout le champ d'en contrebas par-dessus le parapet.
-      if (c.kind !== 'hero' || c.aiControlled || c.inert || isOutOfAction(c) || !c.pos) continue;
+      if (c.kind !== 'heros' || c.aiControlled || c.inert || isOutOfAction(c) || !c.pos) continue;
       // `z` du viewer = ÉTAGE du combattant (vision cross-niveau : un défenseur sur le rempart z=1
       // voit en contrebas z=0). Sans ce z, il serait calculé au sol — aveugle depuis la muraille.
       viewers.push({ pos: c.pos, z: c.pos.z, radiusTiles: baseR, darkTiles: darkSightTiles(c) });

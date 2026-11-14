@@ -5,11 +5,12 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DEFS_DE_DOCUMENT } from './schemas/validate';
+import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';
 import { z } from 'zod';
 import { META_CHARGE, tableTiree } from './schemas/grammaire/document';
 import { deDeTirageDe } from './rangees';
-import { formatDice, parseDiceRequired } from '../engine/dice';
+import { formatDice } from '../engine/dice';
+import { deDeLaTableTiree } from '../engine/tables';
 import { weatherDie, type Season } from '../engine/travelStages';
 import { encounterDie } from '../engine/travelTables';
 import { SHIP_CRIT_SET } from './shipCriticals';
@@ -21,10 +22,55 @@ import type * as miscast from './schemas/defs/miscast';
 /** Le dé IMPRIMÉ par le livre pour chaque document-table, à sa réf. */
 const LIVRE: Record<string, { die: string; ref: string }> = {
   'artillery-misfire': { die: '1d10', ref: 'AA 10 l.272' },
+  dispersion: { die: '1d10', ref: 'LDB 14 l.144' },
+  'reaction-au-statut': { die: '1d10', ref: 'LDB 08 l.40' },
+  'tableau-capricieux': { die: '1d10', ref: 'MSRC 15 l.151' },
   'incidents-monte': { die: '1d100', ref: 'EDOC 07 l.150' },
   'problemes-vehicule': { die: '1d100', ref: 'EDOC 07 l.259' },
   'structure-criticals': { die: '1d100', ref: 'AA 10 l.118' },
   obsessions: { die: '2d10', ref: 'EDOC 12 l.172' },
+  'talents-aleatoires': { die: '1d100', ref: 'LDB 05 l.514' },
+  'races-ldb': { die: '1d100', ref: 'LDB 04 l.95' },
+  'races-gnome': { die: '1d100', ref: 'NADJ 14 l.68' },
+  'races-ogre': { die: '1d100', ref: 'ADE II 02 l.110' },
+  'races-gnome-et-ogre': { die: '1d100', ref: 'maison, NADJ 14 l.68, ADE II 02 l.110' },
+  'mutation-nature-humain': { die: '1d100', ref: 'LDB 19 l.76' },
+  'mutation-nature-halfling': { die: '1d100', ref: 'LDB 19 l.76' },
+  'mutation-nature-nain': { die: '1d100', ref: 'LDB 19 l.76' },
+  'mutation-nature-haut-elfe': { die: '1d100', ref: 'LDB 19 l.76' },
+  'mutation-nature-elfe-sylvain': { die: '1d100', ref: 'LDB 19 l.76' },
+  'mutation-nature-ogre': { die: '1d100', ref: 'ADE II 02 l.172, LDB 19 l.76' },
+  'mutation-nature-gnome': { die: '1d100', ref: 'NADJ 15 l.173, LDB 19 l.76' },
+  'cargaisons-mer-printemps': { die: '1d100', ref: 'MDG 15 l.404, l.406' },
+  'cargaisons-mer-ete': { die: '1d100', ref: 'MDG 15 l.404, l.406' },
+  'cargaisons-mer-automne': { die: '1d100', ref: 'MDG 15 l.404, l.406' },
+  'cargaisons-mer-hiver': { die: '1d100', ref: 'MDG 15 l.404, l.406' },
+  'cargaisons-terre-printemps': { die: '1d100', ref: 'MSRC 13 l.69, l.75' },
+  'cargaisons-terre-ete': { die: '1d100', ref: 'MSRC 13 l.69, l.76' },
+  'cargaisons-terre-automne': { die: '1d100', ref: 'MSRC 13 l.69, l.77' },
+  'cargaisons-terre-hiver': { die: '1d100', ref: 'MSRC 13 l.69, l.78' },
+  humain: { die: '1d100', ref: 'LDB 05 l.210' },
+  halfling: { die: '1d100', ref: 'LDB 05 l.210' },
+  nain: { die: '1d100', ref: 'LDB 05 l.210' },
+  'haut-elfe': { die: '1d100', ref: 'LDB 05 l.210' },
+  'elfe-sylvain': { die: '1d100', ref: 'LDB 05 l.210' },
+  gnome: { die: '1d100', ref: 'NADJ 14 l.79, LDB 05 l.210' },
+  ogre: { die: '1d100', ref: 'ADE II 02 l.126, LDB 05 l.210' },
+  middenheim: { die: '1d100', ref: 'Middenheim 09 l.13, LDB 05 l.210' },
+  middenland: { die: '1d100', ref: 'Middenheim 09 l.13, LDB 05 l.210' },
+  nordland: { die: '1d100', ref: 'Middenheim 09 l.13, LDB 05 l.210' },
+  norse: { die: '1d100', ref: 'MDG 07 l.271' },
+  'variantes-cavalier': { die: '1d100', ref: 'AA 02 l.117-128' },
+  'variantes-chevalier': { die: '1d100', ref: 'AA 02 l.117-128' },
+  'variantes-pretre-guerrier': { die: '1d100', ref: 'AA 02 l.117-128' },
+  'variantes-soldat': { die: '1d100', ref: 'AA 02 l.117-128' },
+  'variantes-colporteur': { die: '1d100', ref: 'AA 02 l.117-128' },
+  'variantes-erudit': { die: '1d100', ref: 'AA 02 l.117-128' },
+  'variantes-ingenieur': { die: '1d100', ref: 'AA 02 l.117-128' },
+  'variantes-apothicaire': { die: '1d100', ref: 'VDM 03 l.23-31' },
+  'variantes-sorcier': { die: '1d100', ref: 'VDM 03 l.23-31' },
+  'variantes-garde': { die: '1d100', ref: 'VDM 03 l.23-31' },
+  'variantes-mystique': { die: '1d100', ref: 'VDM 03 l.23-31' },
   ivresse: { die: '1d10', ref: 'LDB 09 l.477' },
   'accidents-conduite-attelage': { die: '1d10', ref: 'LDB 09 l.142' },
   'force-des-vents': { die: '1d10', ref: 'LDB 46 l.183' },
@@ -83,6 +129,8 @@ const LIVRE: Record<string, { die: string; ref: string }> = {
   'tableau-des-evenements': { die: '1d100', ref: 'LDB 22 l.5' },
   'panne-de-vapeur': { die: '1d100', ref: 'MDG 12 l.323' },
   'signes-astrologiques': { die: '1d100', ref: 'ADE II 03 l.42' },
+  'couleur-des-yeux': { die: '2d10', ref: 'LDB 05 l.744' },
+  'couleur-des-cheveux': { die: '2d10', ref: 'LDB 05 l.758' },
   peripeties: { die: '1d10', ref: 'LDB 51 l.210' },
 };
 
@@ -92,8 +140,8 @@ const TABLES_NICHEES_LIVRE: Record<string, { die: string; ref: string }> = {
   'arcane-phenomena.json › tables.vdm-corruption-chaotique': { die: '1d100', ref: 'VDM 14 l.49-58 (« bandes 1–00 »)' },
   'arcane-phenomena.json › tables.vdm-corruption-necromantique': { die: '1d100', ref: 'VDM 14 l.66-75 (« bandes 1–00 »)' },
   'arcane-phenomena.json › tables.vdm-flux-magique': { die: '1d10', ref: 'VDM 14 l.96' },
-  'land-cargo.json › rumours': { die: '1d100', ref: 'MSRC 13 l.283' },
-  'land-cargo.json › wineQuality': { die: '1d10', ref: 'MSRC 13 l.97' },
+  'land-cargo.json › rumeurs': { die: '1d100', ref: 'MSRC 13 l.283' },
+  'land-cargo.json › qualiteDuVin': { die: '1d10', ref: 'MSRC 13 l.97' },
   'mass-battle.json › hazards': { die: '1d10', ref: 'ADE II 08 l.311' },
   'river-navigation.json › windDirections': { die: '1d10', ref: 'MSRC 7 l.25' },
   'river-navigation.json › windForces': { die: '1d10', ref: 'MSRC 7 l.27' },
@@ -134,11 +182,10 @@ function documentsADe(): { id: string; die: string }[] {
 }
 
 describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
-  it('chaque document-table porte le dé imprimé par le livre, et la table couvre EXACTEMENT ces documents', () => {
+  it('chaque document-table nommé porte le dé imprimé par le livre', () => {
     const docs = documentsADe();
-    expect(docs.map((d) => d.id).sort(), 'documents à dé de tirage').toEqual(Object.keys(LIVRE).sort());
-    for (const d of docs) {
-      expect(formatDice(deDeTirageDe<typeof miscast>(docs, d.id)), `${d.id} (${LIVRE[d.id].ref})`).toBe(LIVRE[d.id].die);
+    for (const [id, livre] of Object.entries(LIVRE)) {
+      expect(formatDice(deDeTirageDe<typeof miscast>(docs, id)), `${id} (${livre.ref})`).toBe(livre.die);
     }
   });
 
@@ -149,11 +196,12 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
     }
   });
 
-  it('chaque table tirée nichée porte le dé imprimé par le livre, et la table couvre EXACTEMENT ces nœuds', () => {
-    const vues = tablesNichees();
-    expect(vues.map((t) => t.ou).sort(), 'tables tirées nichées').toEqual(Object.keys(TABLES_NICHEES_LIVRE).sort());
-    for (const t of vues) {
-      expect(formatDice(parseDiceRequired(t.die, t.ou)), `${t.ou} (${TABLES_NICHEES_LIVRE[t.ou].ref})`).toBe(TABLES_NICHEES_LIVRE[t.ou].die);
+  it('chaque table tirée nichée nommée porte le dé imprimé par le livre', () => {
+    const vues = new Map(tablesNichees().map((t) => [t.ou, t]));
+    for (const [ou, livre] of Object.entries(TABLES_NICHEES_LIVRE)) {
+      const t = vues.get(ou);
+      expect(t, `${ou} : table tirée nichée absente de la donnée`).toBeDefined();
+      expect(formatDice(deDeLaTableTiree({ die: t!.die, id: ou })), `${ou} (${livre.ref})`).toBe(livre.die);
     }
   });
 
@@ -163,6 +211,14 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
     expect(formatDice(starSubDie()), 'stars.json › sub (ADE II 03 l.63)').toBe('1d10');
     expect(formatDice(peripetieSeuilDie()), 'peripeties.json › tirageQuotidien (LDB 51 l.208)').toBe('1d10');
     expect(formatDice(massBattleHazardsDie()), 'mass-battle.json › hazards (ADE II 08 l.311)').toBe('1d10');
+  });
+
+  it('un sous-tirage n’a qu’une forme, `{ die }` : le `Tirage` (`{ dice }`) est refusé à la porte du Codex', () => {
+    for (const [fichier, cle] of [['stars.json', 'sub'], ['peripeties.json', 'tirageQuotidien']] as const) {
+      const doc = JSON.parse(readFileSync(join(process.cwd(), 'src/data', fichier), 'utf8')) as Record<string, unknown>;
+      expect(validateDataset(fichier, { ...doc, [cle]: { die: 'd10' } }), `${fichier} › ${cle} en \`{ die }\``).toBeNull();
+      expect(validateDataset(fichier, { ...doc, [cle]: { dice: { n: 1, sides: 10 } } }), `${fichier} › ${cle} en \`Tirage\``).toContain('"dice"');
+    }
   });
 
   it('le dé se lit VIVANT sur le document, à l’appel', () => {

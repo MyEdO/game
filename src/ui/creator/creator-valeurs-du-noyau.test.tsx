@@ -9,7 +9,18 @@ import { act } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createRoot } from 'react-dom/client';
 import { CharacterCreator, CareerScreen, CharScreen, SkillsScreen } from './CharacterCreator';
-import { newDraft, withSpecies, withCareer, withCompteur, rollDraftCareer, rollDraftChars, rerollDraftChars, speciesSkillRefs, careerSkillEntries, withSpeciesSkillTier } from '../../noyau/creation/brouillon';
+import {
+  newDraft,
+  withSpecies,
+  withCareer,
+  withCompteur,
+  rollDraftCareer,
+  rollDraftChars,
+  rerollDraftChars,
+  speciesSkillRefs,
+  careerSkillEntries,
+  withSpeciesSkillTier,
+} from '../../noyau/creation/brouillon';
 import { memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import { createHero } from '../../engine/character';
 import { useGame } from '../../state/store';
@@ -54,7 +65,7 @@ describe('bornes des compteurs : celles du noyau', () => {
   });
 
   it('100 Points : 18 ferme « augmenter »', () => {
-    const d = withCompteur({ ...pret(), charMode: 'pointBuy' }, { genre: 'points', k: 'capacite-de-combat' }, 18);
+    const d = withCompteur({ ...pret(), charMode: 'repartition' }, { genre: 'points', k: 'capacite-de-combat' }, 18);
     expect(incFerme(renderToStaticMarkup(<CharScreen d={d} setD={() => {}} />), 'Capacité de Combat')).toBe(true);
   });
 });

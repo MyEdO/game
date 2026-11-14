@@ -150,7 +150,7 @@ describe('poseDynamicMarks — le lien d’engagement suit la glisse (#1176 P3-0
 
   it('BIAIS : les marques dynamiques se posent AU-DESSUS de toutes les marques statiques, le LIEN au sommet', () => {
     // `rangeBand` est le rang le plus haut des marques de case (`highlightMeshes.SLOT_RANK`).
-    expect(dynSlotLiftM('actif')).toBeGreaterThan(slotLiftM('rangeBand'));
+    expect(dynSlotLiftM('actif')).toBeGreaterThan(slotLiftM('bandeDePortee'));
     expect(dynSlotLiftM('groupe')).toBeGreaterThan(dynSlotLiftM('actif'));
     expect(dynSlotLiftM('anneau')).toBeGreaterThan(dynSlotLiftM('groupe'));
     // Le lien d'engagement passe au-dessus de TOUTES les autres marques dynamiques : sous le contour
@@ -451,7 +451,7 @@ describe('poseDynamicMarks — les ANNEAUX d’équipe (#1176 P3-0e)', () => {
     // `dynamicHighlightObjs`).
     expect(dynSlotLiftM('anneau')).toBeGreaterThan(dynSlotLiftM('groupe'));
     expect(dynSlotLiftM('anneau') - dynSlotLiftM('groupe')).toBeCloseTo(SPECKLE_LIFT_M, 12);
-    expect(dynSlotLiftM('anneau')).toBeGreaterThan(slotLiftM('rangeBand'));
+    expect(dynSlotLiftM('anneau')).toBeGreaterThan(slotLiftM('bandeDePortee'));
   });
 
   it('SATURATION ATOMIQUE : un anneau qui ne RENTRE pas n’est pas entamé', () => {

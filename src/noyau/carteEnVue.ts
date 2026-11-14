@@ -41,7 +41,7 @@ export interface CarteEnVue { plan: PlanDeLaCarte; reprendre: GesteDuNoyau | nul
 /** Les modes qu'un trajet offre : les siens, et en selle quand il se fait à pied et que tout le groupe est monté
  *  (EDOC 07 l.140). */
 function modesDuTrajet(s: Jeu, modes: readonly TravelMode[]): TravelMode[] {
-  const enSelle = !!rule('travel-allures') && modes.includes('pied') && partyFullyMounted(s.party, s.possessions);
+  const enSelle = !!rule('voyage-allures') && modes.includes('pied') && partyFullyMounted(s.party, s.possessions);
   return [...modes, ...(enSelle ? ['monture'] : [])];
 }
 
@@ -63,14 +63,13 @@ export function trajetsDepuis(s: Jeu, map: WorldMap, ici: MapPlace): TrajetEnVue
   }));
 }
 
-/** Le plan de la carte `map` vu du lieu `ici`, chaque trajet (`trajetsDepuis`) sous sa destination. PUR. */
-function planDepuis(s: Jeu, map: WorldMap, ici: MapPlace): PlanDeLaCarte {
+/** Le plan de la carte `map` vu du lieu `ici`, chacun de ses `trajets` (`trajetsDepuis`) sous sa destination. PUR. */
+export function planDepuis(s: Jeu, map: WorldMap, ici: MapPlace, trajets: TrajetEnVue[]): PlanDeLaCarte {
   const ctx = condCtx(() => s);
   const lieux = visiblePlaces(map, ctx);
   const positions = positionsDeRendu(map, lieux);
   const existe = new Set(lieux.map((p) => p.id));
   const ouvertes = new Set(routesCliquables(map, ici.id, ctx).filter((e) => e.ouverte).map((e) => e.route.id));
-  const trajets = trajetsDepuis(s, map, ici);
   return {
     lieux: lieux.map((p) => {
       const pos = garanti(positions.get(p.id), p.id, 'position du lieu');
@@ -85,5 +84,5 @@ function planDepuis(s: Jeu, map: WorldMap, ici: MapPlace): PlanDeLaCarte {
 export function carteEnVue(s: Jeu): CarteEnVue | null {
   const ici = fenetreDuJeu(s)?.cle === 'carteDuMonde' ? lieuDuGroupe(s) : undefined;
   if (!s.worldMap || !ici) return null;
-  return { plan: planDepuis(s, s.worldMap, ici), reprendre: s.travelPlan?.interrupted ? { verbe: 'reprendreLeVoyage', args: [] } : null };
+  return { plan: planDepuis(s, s.worldMap, ici, trajetsDepuis(s, s.worldMap, ici)), reprendre: s.travelPlan?.interrupted ? { verbe: 'reprendreLeVoyage', args: [] } : null };
 }

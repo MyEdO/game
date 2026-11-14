@@ -375,7 +375,7 @@ export function planDeLaCouche(jeu: Pick<Jeu, 'battle' | 'partyPos'> & { scene: 
     sens.set(glyphe, quoi);
   };
   const autres = jeu.battle
-    ? jeu.battle.combatants.filter((c) => c.kind !== 'hero' && c.pos && !estPoseParSesPonts(scene, c.id)).map((c) => c.pos!)
+    ? jeu.battle.combatants.filter((c) => c.kind !== 'heros' && c.pos && !estPoseParSesPonts(scene, c.id)).map((c) => c.pos!)
     : scene.entities.filter((e) => e.kind === 'personnage' && !estPoseParSesPonts(scene, e.id)).map((e) => ({ ...e.pos, z: e.z }));
   const decors = scene.entities.filter((e) => e.kind === 'prop').map((e) => ({ ...e.pos, z: e.z }));
   for (const p of decors) marquer(p, MARQUES_DU_PLAN.decor, SENS_DES_MARQUES.decor);

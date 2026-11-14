@@ -20,7 +20,7 @@ beforeAll(() => {
 });
 
 const SP = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
-const CAREER = careersForSpecies(SP.refCareer)[0]!;
+const CAREER = careersForSpecies(SP)[0]!;
 
 describe("SkillsScreen (étape 5) — auto-scroll de la 1ʳᵉ rangée d'allocation NON SOLDÉE à l'arrivée sur le volet (#535 DoD)", () => {
   let container: HTMLDivElement;

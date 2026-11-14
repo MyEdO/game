@@ -49,7 +49,7 @@ export function partyTokenOf(
   partyIds: readonly string[],
 ): PartyToken | null {
   if (!leader) return null;
-  const seat = seatPoseOf(scene, { kind: 'party', rang: RANG_MENEUR });
+  const seat = seatPoseOf(scene, { kind: 'groupe', rang: RANG_MENEUR });
   const heroIndex = heroRingIndex(leader, partyIds);
   if (!seat) return { leader, heroIndex, pos: partyPos, capKey: CAP_GROUPE };
   return { leader, heroIndex, pos: { x: seat.anchor.x, y: seat.anchor.y, ...(partyPos.z ? { z: partyPos.z } : {}) }, seat, capKey: CAP_GROUPE };
@@ -117,7 +117,7 @@ export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefin
     if (!ez && covered(ent.pos.x, ent.pos.y)) continue; // l'occlusion par combattant ne vaut qu'au sol
     // ASSISE : un PNJ authored attablé (`Scene.seatAssignments`) porte son ancre et son cap depuis la
     // SOURCE UNIQUE `noyau/monde/seating` — le builder ne recalcule aucune géométrie de meuble.
-    const assis = seatPoseOf(scene, { kind: 'entity', entityId: ent.id });
+    const assis = seatPoseOf(scene, { kind: 'entite', entityId: ent.id });
     out.push({
       kind: 'token',
       key: `fig:${ent.id}`,
@@ -138,7 +138,7 @@ export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefin
     // Structure de siège : AUCUN jeton de case — elle se rend sur son ARÊTE (`stage/AreteOverlay.tsx`).
     if (isStructure(c)) continue;
     const cz = c.pos.z ?? 0;
-    const isHero = campOf(c) === 'party';
+    const isHero = campOf(c) === 'groupe';
     const { cut, overhang } = cutByView(scene, visible, view, c.pos, isHero);
     if (cut) continue;
     // Combat monté (iso) : cavalier et monture font UN jeton (couple ci-dessous) ; en vue du dessus,
@@ -167,13 +167,13 @@ export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefin
       if (isPassengerInBattle(mount, battle.combatants, isMerScene(scene))) continue;
       // Un couple est VIEWER dès que l'un des deux corps est un héros (le cheval d'un héros ne
       // disparaît pas parce que le record de la monture est d'un autre camp).
-      if (cutByView(scene, visible, view, mount.pos, campOf(mount) === 'party' || campOf(rider) === 'party').cut) continue;
+      if (cutByView(scene, visible, view, mount.pos, campOf(mount) === 'groupe' || campOf(rider) === 'groupe').cut) continue;
       out.push({
         kind: 'token',
         key: `mtd:${mount.id}`,
         id: mount.id,
         cell: { x: mount.pos.x, y: mount.pos.y, z: mount.pos.z ?? 0 },
-        subject: { kind: 'mounted', mount, rider, ...(campOf(rider) === 'party' ? { heroIndex: heroRingIndex(rider, partyIds) } : {}) },
+        subject: { kind: 'mounted', mount, rider, ...(campOf(rider) === 'groupe' ? { heroIndex: heroRingIndex(rider, partyIds) } : {}) },
         states: { visible: true },
       });
     }

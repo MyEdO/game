@@ -19,7 +19,20 @@
  */
 import { Combatant, CharKey, CHAR_LABELS, type TalentInstance } from './types';
 import { bonus } from './characteristics';
-import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, chaosSpellsOf, findSpeciesById, advancementLabel, refLabel, CareerLevelData, type AdvancementRef } from '../data';
+import { baseWithTalents } from './talentEffects';
+import {
+  byId,
+  specPoolOf,
+  levelsForCareer,
+  findTalentById,
+  findDomainById,
+  chaosSpellsOf,
+  findSpeciesById,
+  advancementLabel,
+  refLabel,
+  CareerLevelData,
+  type AdvancementRef,
+} from '../data';
 import { entreeOuverte, refusDeSpec, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
 import { splitLabel } from './statEntry';
@@ -102,7 +115,10 @@ export function slotOptionsFromRef(category: string, a: AdvancementRef): SlotOpt
   return [{ label: advancementLabel(category, a), wildcard: false }]; // tirage aléatoire (« N Talent aléatoire »)
 }
 
-function slotsOfLevel(level: CareerLevelData, kind: 'skill' | 'talent'): CareerSlot[] {
+/** Ce que les emplacements d'un Niveau de Carrière lisent : son rang, ses Compétences et ses Talents. */
+export type EmplacementsDuNiveau = Pick<CareerLevelData, 'level' | 'skills' | 'talents'>;
+
+function slotsOfLevel(level: EmplacementsDuNiveau, kind: 'skill' | 'talent'): CareerSlot[] {
   const refs = kind === 'skill' ? level.skills : level.talents;
   const cat = kind === 'skill' ? 'skills' : 'talents';
   return refs.map((ref, i) => {
@@ -124,23 +140,23 @@ function resumeDesOptions(options: SlotOption[]): string {
 }
 
 /** Slots de COMPÉTENCES disponibles au niveau `level` : cumul des niveaux ≤ courant (LDB 07 l.76). */
-export function skillSlots(levels: CareerLevelData[], level: number): CareerSlot[] {
+export function skillSlots(levels: readonly EmplacementsDuNiveau[], level: number): CareerSlot[] {
   return levels.filter((l) => l.level <= level).flatMap((l) => slotsOfLevel(l, 'skill'));
 }
 
 /** Slots de TALENTS achetables : niveau courant UNIQUEMENT (LDB 07 l.103). */
-export function talentSlots(levels: CareerLevelData[], level: number): CareerSlot[] {
+export function talentSlots(levels: readonly EmplacementsDuNiveau[], level: number): CareerSlot[] {
   const cur = levels.find((l) => l.level === level);
   return cur ? slotsOfLevel(cur, 'talent') : [];
 }
 
 /** TOUS les slots de talents des niveaux ≤ courant (pour l'unicité des désignations). */
-export function talentSlotsUpTo(levels: CareerLevelData[], level: number): CareerSlot[] {
+export function talentSlotsUpTo(levels: readonly EmplacementsDuNiveau[], level: number): CareerSlot[] {
   return levels.filter((l) => l.level <= level).flatMap((l) => slotsOfLevel(l, 'talent'));
 }
 
 /** Caractéristiques de carrière disponibles : cumul des niveaux ≤ courant (LDB 07 l.43). */
-export function availableChars(levels: CareerLevelData[], level: number): CharKey[] {
+export function availableChars(levels: readonly Pick<CareerLevelData, 'level' | 'characteristics'>[], level: number): CharKey[] {
   return levels.filter((l) => l.level <= level).flatMap((l) => l.characteristics);
 }
 
@@ -292,12 +308,12 @@ export function designateSlot(
  * ou illimité (absent). Lu sur l'entrée EFFECTIVE (`effectiveEntry`, `src/engine/variants.ts` ;
  * AA 13 l.54-59, l.70-74).
  */
-export function talentMaxById(hero: Pick<Combatant, 'characteristics'>, talentId: string, spec?: string): number | null {
+export function talentMaxById(hero: PorteurDeTalents, talentId: string, spec?: string): number | null {
   const max = effectiveEntry(findTalentById(talentId))?.max;
   if (max == null) return null;
   if (typeof max === 'number') return max;
   if (max === 'sortsDuDomaine') return spec ? chaosSpellsOf(spec).length : null;
-  return bonus(hero.characteristics[max.bonusOf]); // LDB 07 l.47 : `characteristics` porte les Augmentations (`buyCharAdvance`)
+  return bonus(baseWithTalents(hero, max.bonusOf)); // LDB 10 l.17 ; Caractéristique stockée (Augmentations, LDB 07 l.47) + `charMod` permanents des Talents, sans effets temporaires
 }
 
 /** Affichage FR du Maxi d'un talent (Compendium), DÉRIVÉ de la donnée structurée, jamais stocké en chaîne. */

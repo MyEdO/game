@@ -1,7 +1,7 @@
 /**
  * CÂBLAGE des variantes réglées de `spells.json` (#729, chantier VDM) — Les Vents de Magie RÉVISE
  * 18 Sorts du Livre de base sans les republier : chaque delta est une variante gatée par la règle
- * optionnelle `magic-vdm-incantation` (`src/engine/policy.ts`), jamais une seconde entrée.
+ * optionnelle `magie-vdm-incantation` (`src/engine/policy.ts`), jamais une seconde entrée.
  *
  * Ce test prouve la CHAÎNE RÉELLE, pas un contexte forgé : il part de la donnée committée
  * (`spells.json`), passe par le point de lecture unique (`findSpellById`, `src/data/index.ts`), et
@@ -23,7 +23,7 @@ import { learnableSpells } from '../engine/grimoire';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 
 afterEach(() => resetRule(RULE));
 
@@ -34,7 +34,7 @@ const CARRIERS = (spells as unknown as { id: string; variants?: unknown[] }[])
 /** Sorcier de Shyish : Langue (Magick) + Focalisation, de quoi faire un vrai Test d'Incantation. */
 const sorcier = (): Combatant =>
   (blessuresSurLeProfil({
-    id: 'w', label: 'Sorcier', kind: 'hero', size: 'moyenne', advantage: 0,
+    id: 'w', label: 'Sorcier', kind: 'heros', size: 'moyenne', advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 },
     conditions: [], traits: [], groups: [], weapons: [], movement: 4, wounds: blessuresDeBase(12),
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -43,7 +43,7 @@ const sorcier = (): Combatant =>
   }) as unknown as Combatant);
 
 describe('donnée — 18 Sorts révisés par VDM, gatés par la RÈGLE (jamais par le livre)', () => {
-  it('le catalogue porte exactement les 18 variantes curées, toutes sur `magic-vdm-incantation`', () => {
+  it('le catalogue porte exactement les 18 variantes curées, toutes sur `magie-vdm-incantation`', () => {
     expect(CARRIERS).toEqual([
       'bouclier-ceruleen', 'caresse-de-laniph', 'coeurs-ardents', 'creuset-de-chamon', 'destrier-d-ombre',
       'forme-bestiale', 'grands-feux-d-u-zhul', 'illusion', 'jumeau-malefique', 'l-egide-d-aqshy',
@@ -145,9 +145,9 @@ describe('Flow — Lumière de guérison : Résistance Difficile (−20) → Tr�
   /** Difficulté du nœud `test` du Flow RÉELLEMENT exécuté par `combatFlow` (`spellFlowFor`, l.4112). */
   const difficulte = (): string | undefined => {
     const f = spellFlowFor(findSpellById('lumiere-de-guerison')!.effects, 'target');
-    const walk = (n: { kind: string; steps?: unknown[]; test?: { difficulty?: string } }): string | undefined => {
+    const walk = (n: { kind: string; etapes?: unknown[]; test?: { difficulty?: string } }): string | undefined => {
       if (n.kind === 'test') return n.test?.difficulty;
-      for (const s of (n.steps ?? []) as typeof n[]) {
+      for (const s of (n.etapes ?? []) as typeof n[]) {
         const hit = walk(s);
         if (hit) return hit;
       }
@@ -165,7 +165,7 @@ describe('Flow — Lumière de guérison : Résistance Difficile (−20) → Tr�
 
 // ── Contradictions FRANCHES desc ⇄ op (#880) ──────────────────────────────────────────────────────
 /** Label d'un Trait par son id (le label est de l'AFFICHAGE — la donnée, elle, est keyée par id). */
-const TRAIT_LABEL = new Map(traits.map((t) => [t.id, t.label]));
+const TRAIT_LABEL = new Map<string, string>(traits.map((t) => [t.id, t.label]));
 
 /**
  * Texte de RÈGLE d'un Flow d'effets : la prose des ops PLUS le rendu des Conditions STRUCTURELLES
@@ -239,7 +239,7 @@ describe('desc EFFECTIVE ⇄ op EFFECTIVE — les deux disent la MÊME règle so
       // L'op de base ne dit PAS la règle que la desc effective affiche…
       expect(c.vdm.every((re) => re.test(sansRepublication)), `${c.id}`).toBe(false);
       // …que la desc effective, elle, porte en entier : c'est la divergence que #880 ferme.
-      expect(c.vdm.every((re) => re.test(eff.desc)), `${c.id}`).toBe(true);
+      expect(c.vdm.every((re) => re.test(eff.desc ?? '')), `${c.id}`).toBe(true);
     });
   }
 });

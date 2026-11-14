@@ -26,7 +26,7 @@ const CHARS = (force: number) => ({
 
 function combatant(p: Partial<Combatant> & { id: string; force: number }): Combatant {
   return blessuresSurLeProfil({
-    label: p.label ?? p.id, kind: p.kind ?? 'hero',
+    label: p.label ?? p.id, kind: p.kind ?? 'heros',
     characteristics: CHARS(p.force) as never,
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -52,7 +52,7 @@ function setBattle(combatants: Combatant[], activeId: string) {
  *  valeurs TESTÉES s'inversent, les NUES non. */
 function empetreCharge() {
   const src = combatant({
-    id: 'liane', label: 'Liane', kind: 'enemy', force: 50,
+    id: 'liane', label: 'Liane', kind: 'ennemi', force: 50,
     conditions: [{ id: 'extenue', value: 1 }] as never,
   });
   const actor = combatant({
@@ -81,7 +81,7 @@ describe('LDB 12 l.160 — la récupération opposée départage sur les valeurs
     for (let seed = 1; seed <= 200 && !tie; seed += 1) {
       seedBattleRng(seed);
       empetreCharge();
-      banc.getState().jetLancer('recover');
+      banc.getState().jetLancer('recuperation');
       const cur = banc.getState().pendingStateRecovery!;
       if (cur.roll && cur.opponentRoll && cur.roll.sl === cur.opponentRoll.sl) {
         tie = { actorSL: cur.roll.sl, oppSL: cur.opponentRoll.sl };
@@ -109,8 +109,8 @@ describe('LDB 12 l.160 — la récupération opposée départage sur les valeurs
     const avant = REPLIS_DEUX_CIBLES.count;
     seedBattleRng(7);
     empetreCharge();
-    banc.getState().jetLancer('recover');
-    banc.getState().jetRelancer('recover'); // Chance : re-oppose contre le jet FIGÉ de l'entrave
+    banc.getState().jetLancer('recuperation');
+    banc.getState().jetRelancer('recuperation'); // Chance : re-oppose contre le jet FIGÉ de l'entrave
     expect(REPLIS_DEUX_CIBLES.count, 'un départage du flux est retombé sur les cibles').toBe(avant);
   });
 });

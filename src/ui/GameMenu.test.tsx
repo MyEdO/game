@@ -131,7 +131,7 @@ describe('☰ du menu système — atteignable menu ouvert, jamais au-dessus des
 });
 
 describe('GameMenu — ouverture par Échap (binding toggle-menu)', () => {
-  const binding = KEYBINDINGS.find((b) => b.id === 'toggle-menu')!;
+  const binding = KEYBINDINGS.find((b) => b.id === 'menu-ouvrir')!;
   const state = (over: Partial<GameState>): GameState => ({ screen: 'campaign', gameMenuOpen: false, ...over } as GameState);
 
   beforeEach(() => useGame.setState({ gameMenuOpen: false, screen: 'campaign' }));

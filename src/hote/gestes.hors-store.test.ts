@@ -14,6 +14,7 @@ import { VERBES_DES_FENETRES } from '../noyau/fenetres.testkit';
 import type { Forme } from './formes';
 import { CHOIX, FORMES, REGLAGES, VERBES } from './verbes.generated';
 import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
+import type { FlowKey } from '../noyau/index';
 
 /** Les paramètres que la fenêtre pose d'office (`argumentsPosesDuGeste`) : aucun ne se saisit. */
 const POSES = new Set(['pid', 'flux', 'fenetre']);
@@ -58,7 +59,7 @@ describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur'
   });
 
   it.each(Object.entries(REGLAGES).flatMap(([flux, formes]) => Object.entries(formes).map(([reglage, forme]) => [`${flux}.${reglage}`, flux, reglage, forme] as const)))('réglage %s', (_ou, flux, reglage, forme) => {
-    expect(libelleDuReglage(flux, reglage)).toBeTruthy();
+    expect(libelleDuReglage(flux as FlowKey, reglage)).toBeTruthy();
     expect(fautesDesValeurs(VERBE_DE_REGLAGE, reglage, forme, `${flux}.${reglage}`)).toEqual([]);
   });
 
@@ -71,7 +72,7 @@ describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur'
 describe('un argument qui désigne un élément de l’état se choisit parmi ses éléments nommés (#2937)', () => {
   it.each([
     // Une union de désignations : chacune garde la sienne (`verbesDeLaPartie.mjs`, `designee`).
-    ['evaluerLObjet', 'uid', 'IdDObjet,IdDeLigneDeButin'],
+    ['evaluerLObjet', 'aEvaluer', 'IdDObjet,IdDeLigneDeButin'],
   ])('%s.%s désigne %s', (verbe, nom, cles) => {
     const p = VERBES[verbe].find((x) => x.nom === nom)!;
     const membres = p.forme.genre === 'union' ? p.forme.membres : [p.forme];
@@ -79,11 +80,22 @@ describe('un argument qui désigne un élément de l’état se choisit parmi se
   });
 
   it.each([
-    ['shanty', 'chanson', 'IdDeChanson'],
-    ['cast', 'formeConjuree', 'IdDeFormeConjuree'],
-    ['heal', 'bandages', 'IdDeHeros'],
+    // Le champ d'une référence générique se lit à l'argument de type qui le déclare (`verbesDeLaPartie.mjs`, `substitutions`).
+    ['acheterLeTalent', 'talent', 'IdDeTalent'],
+    ['designerLeCreneau', 'option', 'IdDeCompetenceOuDeTalent'],
+    ['acheterLaCompetence', 'skill', 'IdDeCompetence'],
+  ])('%s.%s : son `id` désigne %s, sa `spec` est un texte libre', (verbe, nom, cle) => {
+    const f = VERBES[verbe].find((x) => x.nom === nom)!.forme;
+    const champs = f.genre === 'objet' ? f.champs : [];
+    expect(champs.map((c) => [c.nom, c.optionnel, c.forme.genre === 'chaine' ? c.forme.designe?.cle ?? null : c.forme.genre])).toEqual([['id', false, cle], ['spec', true, null]]);
+  });
+
+  it.each([
+    ['chansonDeMarin', 'chanson', 'IdDeChanson'],
+    ['incantation', 'formeConjuree', 'IdDeFormeConjuree'],
+    ['soins', 'bandages', 'IdDeHeros'],
     ['test', 'testeur', 'IdDeCombattant'],
-    ['forceDoor', 'arme', 'IdDObjet'],
+    ['enfoncerLaPorte', 'arme', 'IdDObjet'],
   ])('réglage %s.%s désigne %s', (flux, reglage, cle) => {
     const f = REGLAGES[flux][reglage];
     const membres = f.genre === 'union' ? f.membres : [f];
@@ -91,12 +103,12 @@ describe('un argument qui désigne un élément de l’état se choisit parmi se
   });
 
   it.each([
-    ['council', 'paie', 'IdDeChoixDePaie'],
-    ['mountTarget', 'cible', 'IdDuCoupleMonte'],
-    ['medic', 'patient', 'IdDeHeros'],
-    ['victory', 'depecer', 'IdDeCreatureADepecer'],
-    ['roundStart', 'promouvoir', 'IdDeCombattantPromouvable'],
-    ['roundStart', 'viser', 'IdDeTireurRapide'],
+    ['conseil', 'paie', 'IdDeChoixDePaie'],
+    ['cibleDeMonture', 'cible', 'IdDuCoupleMonte'],
+    ['infirmerie', 'patient', 'IdDeHeros'],
+    ['victoire', 'depecer', 'IdDeCreatureADepecer'],
+    ['debutDuRound', 'promouvoir', 'IdDeCombattantPromouvable'],
+    ['debutDuRound', 'viser', 'IdDeTireurRapide'],
   ])('choix %s.%s désigne %s', (fenetre, axe, cle) => {
     const f = CHOIX[fenetre][axe];
     const membres = f.genre === 'union' ? f.membres : [f];

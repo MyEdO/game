@@ -1,9 +1,10 @@
+import { idDeFixture } from '../data/idDeFixture.testkit';
 import { describe, it, expect } from 'vitest';
 import { OPTIONAL_RULES, type OptionalRule } from '../engine/policy';
 import { houseRuleTabs, MISC_TAB_KEY, OWN_TAB_MIN } from './houseRuleTabs';
 
 const fake = (id: string, group: string): OptionalRule => ({
-  id, type: 'reglesOptionnelles', group, label: id, ref: 'LDB 12 l.1', kind: 'flag', default: false,
+  id: idDeFixture('regleOptionnelle', id), type: 'reglesOptionnelles', group, label: id, ref: 'LDB 12 l.1', kind: 'flag', default: false,
 });
 
 describe('houseRuleTabs — découpe dérivée du registre des règles optionnelles (#839)', () => {
@@ -39,7 +40,7 @@ describe('houseRuleTabs — découpe dérivée du registre des règles optionnel
 });
 
 describe('Registre des règles optionnelles — l’option VDM s’auto-rend dans le panneau (#733)', () => {
-  const RULE = 'magic-vdm-incantation';
+  const RULE = 'magie-vdm-incantation';
 
   it('le panneau la RENDRA sans une ligne d’UI : elle est dans la découpe dérivée du registre', () => {
     const tabs = houseRuleTabs();

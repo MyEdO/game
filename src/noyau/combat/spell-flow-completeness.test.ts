@@ -10,7 +10,7 @@ import { combattantDeTest, blessuresDeBase } from '../../engine/combattantDeTest
 /**
  * PREUVE DE COMPLÉTUDE — « peut-on créer TOUS les sorts via le système Flow/EffectOp ? ».
  * Réponse démontrée : chaque sort de la base porte ses EFFETS dans `SpellData.effects` — un Flow dont
- * les feuilles `do` sont des EffectOp (`{type:'ops', on, ops}`) — et l'exécuter par `runPureFlowLines`
+ * les feuilles `effet` sont des EffectOp (`{type:'ops', on, ops}`) — et l'exécuter par `runPureFlowLines`
  * applique réellement ces ops. Les effets ont MIGRÉ des specs engine-curées vers la donnée app-owned
  * (éditable dans le Compendium) ; la spec ne garde que les métadonnées de résolution. Si un jour un sort
  * ne « rentrait » pas, c'est le système (Flow/EffectOp) qu'on généraliserait — ce gate l'attraperait.
@@ -24,7 +24,7 @@ describe('Complétude : tout sort porte ses effets dans un Flow exécutable (Spe
     for (const sp of spells) {
       const flow = sp.effects;
       expect(flow, sp.label).toBeDefined();
-      expect(flow!.kind, sp.label).toBe('seq');
+      expect(flow!.kind, sp.label).toBe('sequence');
       // Toute feuille de 1er niveau est un EffectOp (le seed n'émet que `{type:'ops', on}`).
       for (const eff of flowEffects(flow!)) expect(eff.type, sp.label).toBe('ops');
       // Les ops se lisent par cible — l'union (target+caster) couvre tous les effets du sort.
@@ -34,9 +34,9 @@ describe('Complétude : tout sort porte ses effets dans un Flow exécutable (Spe
   });
 
   it('runPureFlowLines EXÉCUTE réellement les ops d’un sort sur la cible (wounds + condition)', () => {
-    const target = combattantDeTest({ id: 't', label: 'Cible', kind: 'enemy', dead: false, wounds: blessuresDeBase(20) });
+    const target = combattantDeTest({ id: 't', label: 'Cible', kind: 'ennemi', dead: false, wounds: blessuresDeBase(20) });
     // un « sort » minimal : 6 Blessures + En flammes — exprimé en Flow EffectOp.
-    const flow: Flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 6 }, { op: 'condition', id: 'en-flammes' }] } }] };
+    const flow: Flow = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 6 }, { op: 'condition', id: { id: 'en-flammes' } }] } }] };
     const lines = runPureFlowLines(target, undefined, flow, { idNeuf: idsDeTest, rng: desDuTest, label: 'Test' });
     expect(target.wounds.current).toBe(14); // wounds ignore BE/PA → 20 − 6
     expect(target.conditions.some((c) => c.id === 'en-flammes')).toBe(true);

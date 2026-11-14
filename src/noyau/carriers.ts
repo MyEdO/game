@@ -17,7 +17,16 @@ import { maxEncumbrance, totalEncumbrance } from '../engine/items';
 import { mountProfileForCreature } from '../engine/mountTravel';
 import { findVehicleById, libelleOuAbsence, dataLabel } from '../data';
 import type { PlayerText } from '../i18n/playerText';
-import { type CargoCarrier, type CargoLot, cargoTotalEnc, carrierFreeEnc, carriersColocated, spoilCargoByPct, cargoRaidLossPct, type CargoRaidOutcome } from '../engine/cargo';
+import {
+  type CargoCarrier,
+  type CargoLot,
+  cargoTotalEnc,
+  carrierFreeEnc,
+  carriersColocated,
+  spoilCargoByPct,
+  cargoRaidLossPct,
+  type CargoRaidOutcome,
+} from '../engine/cargo';
 import { rule } from '../engine/policy';
 import { t } from '../i18n';
 import type { Jeu } from './etat';
@@ -207,13 +216,13 @@ export function landBulkCarriers(s: CarrierStateSlice): CargoCarrier[] {
 
 /** VOL TERRESTRE GRADUÉ (#327 A5.1, arbitrage 2026-07-11) : quand une péripétie dangereuse terrestre se
  *  solde par un combat, la cargaison des porteurs du convoi subit un % d'Enc SELON L'ISSUE — combat gagné
- *  = rien ; fuite = `landRobberyFleePct` ; défaite = `landRobberyLossPct` (params maison). Retire des lots
+ *  = rien ; fuite = `vol-terrestre-fuite-pct` ; défaite = `vol-terrestre-defaite-pct` (params maison). Retire des lots
  *  RÉELS (tronc `spoilCargoByPct`) et renvoie le patch d'état (`persistCarriersCargo`) + l'Enc perdu par
  *  porteur — le call-site (store) journalise en Consequence structurée. */
 export function applyLandCargoRaid(
   s: CarrierStateSlice, outcome: CargoRaidOutcome,
 ): { patch: PatchDeFlux; pct: number; losses: { label: string; removed: number }[] } {
-  const pct = cargoRaidLossPct(outcome, Number(rule('landRobberyFleePct')), Number(rule('landRobberyLossPct')));
+  const pct = cargoRaidLossPct(outcome, Number(rule('vol-terrestre-fuite-pct')), Number(rule('vol-terrestre-defaite-pct')));
   const losses: { label: string; removed: number }[] = [];
   const updates: { carrierId: string; cargo: CargoLot[] }[] = [];
   if (pct > 0) for (const c of landBulkCarriers(s)) {

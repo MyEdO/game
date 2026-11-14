@@ -40,7 +40,7 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
 
   it('un ouvreur `parHote` reste `hôte`, une élection locale reste `local`', () => {
     const t = { terminerLeTour: 'invité' } as TableDesClasses;
-    // @ts-expect-error — `evaluerLObjet` ouvre le flux `appraise` depuis un écran d'hôte
+    // @ts-expect-error — `evaluerLObjet` ouvre le flux `evaluation` depuis un écran d'hôte
     const ouvreur: TableDesClasses = { ...t, evaluerLObjet: 'invité' };
     // @ts-expect-error — `designerLeSupport` n'écrit qu'un champ hors snapshot
     const election: TableDesClasses = { ...t, designerLeSupport: 'invité' };
@@ -74,7 +74,7 @@ describe('allowlist coop', () => {
   it('aucune action de persistance/économie/exploration dans l’allowlist (périmètre combat + groupe)', () => {
     for (const forbidden of ['saveGame', 'loadGame', 'importGame',
       'partirEnVoyage', 'deplacerLeGroupe', 'ouvrirLInterlude', 'chargerLeProjet',
-      'lancerLaScene', 'fixerLeGroupe', 'accorderLesPx', 'ensemencerLeTirage', 'netAssignSlot', 'netAssign']) {
+      'lancerLaScene', 'fixerLeGroupe', 'accorderLesPx', 'ensemencerLeTirage', 'affecterLEmplacementAuSiege', 'affecterLeHerosAuSiege', 'affecterLeSiegeMJ']) {
       expect(GUEST_INTENTS.has(forbidden), forbidden).toBe(false);
     }
   });
@@ -83,7 +83,7 @@ describe('allowlist coop', () => {
 describe('Activités d’interlude allowlistées (audit M7) — l’ouverture/clôture reste à l’hôte', () => {
   it('les activités par héros et le flux de jet sont permis à l’invité', () => {
     for (const name of INTERLUDE_INTENTS) expect(GUEST_INTENTS.has(name), name).toBe(true);
-    expect(INTERLUDE_INTENTS.has('pratiquerLActivite')).toBe(true); // chemin UNIQUE des Activités à jet
+    expect(GUEST_INTENTS.has('fenetreChoisir'), 'composer et pratiquer une Activité').toBe(true);
     expect(GUEST_INTENTS.has('jetValider'), 'la clôture du jet d’Activité').toBe(true);
   });
 });

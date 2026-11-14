@@ -1,9 +1,9 @@
 /**
  * Surincantation — SOURCE UNIQUE du « que fait un pas de surplus » selon le type de magie, dérivé de
  * la donnée (`spell.family`). Arcane : `LDB 47 l.13-17` ; Miracle : `LDB 42 l.7-13` ; Bénédiction :
- * `LDB 41 l.21-27` ; `magic-vdm-incantation` : `VDM 02 l.194-215`.
+ * `LDB 41 l.21-27` ; `magie-vdm-incantation` : `VDM 02 l.194-215`.
  *
- * Pur (consommé par les réglages `cast.surincantation…`, jetValider('cast'), overcastTargetCandidates et CastModal).
+ * Pur (consommé par les réglages `incantation.surincantation…`, jetValider('incantation'), overcastTargetCandidates et CastModal).
  */
 
 import type { GameOp } from './ops';
@@ -67,11 +67,11 @@ export function overcastAxesFor(spell: OvercastSpell, missile: boolean): Overcas
 
 /**
  * Modèle de Surincantation en vigueur pour une source — POINT DE LECTURE UNIQUE du delta
- * `VDM 02 l.194-215` (règle optionnelle `magic-vdm-incantation`). Les Bénédictions (LDB 41) et les
+ * `VDM 02 l.194-215` (règle optionnelle `magie-vdm-incantation`). Les Bénédictions (LDB 41) et les
  * Miracles (LDB 42) ne sont pas des Tests d'Incantation : VDM ne les révise pas.
  */
 function overcastModel(source: OvercastSource): 'ldb' | 'vdm' {
-  return source === 'arcane' && rule('magic-vdm-incantation') === true ? 'vdm' : 'ldb';
+  return source === 'arcane' && rule('magie-vdm-incantation') === true ? 'vdm' : 'ldb';
 }
 
 /** TABLEAU DE SURINCANTATION (`VDM 02 l.207-215`), LU de la donnée `src/data/surincantation.json` :

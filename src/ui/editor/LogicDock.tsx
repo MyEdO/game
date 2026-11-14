@@ -15,7 +15,22 @@ import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import type { Warning } from '../../noyau/validateScene';
-import { removeMember, patchMember, addTrigger, patchTrigger, deleteSel, addDialogue, replaceDialogue, removeDialogue, renameDialogue, addEncounter, patchEncounter, removeEncounter, renameTrigger, renameEncounter } from '../../noyau/sceneEdit';
+import {
+  removeMember,
+  patchMember,
+  addTrigger,
+  patchTrigger,
+  deleteSel,
+  addDialogue,
+  replaceDialogue,
+  removeDialogue,
+  renameDialogue,
+  addEncounter,
+  patchEncounter,
+  removeEncounter,
+  renameTrigger,
+  renameEncounter,
+} from '../../noyau/sceneEdit';
 import { EntryRename } from './EntryRename';
 import { flowEffectCount } from '../../noyau/sceneEditLecture';
 import { LayerChip, sceneLayerZs } from './LayerField';
@@ -87,10 +102,10 @@ export function LogicDock({
 
   const errors = warnings.filter((w) => w.level === 'error').length;
   const tabs: { key: LogicTab; label: string | JSX.Element; count: number; alert?: boolean }[] = [
-    { key: 'triggers', label: <><Icon id="map-tool/zone" size="sm" /> Triggers</>, count: scene.triggers.length },
-    { key: 'dialogues', label: <><Icon id="merchant/haggle" size="sm" /> Dialogues</>, count: scene.dialogues.length },
-    { key: 'encounters', label: <><Icon id="action/attack" size="sm" /> Rencontres</>, count: scene.encounters.length },
-    { key: 'validation', label: <><Icon id="ui/warning" size="sm" /> Validation</>, count: warnings.length, alert: errors > 0 },
+    { key: 'triggers', label: <><Icon id="outil-de-carte/zone" size="sm" /> Triggers</>, count: scene.triggers.length },
+    { key: 'dialogues', label: <><Icon id="marchand/marchander" size="sm" /> Dialogues</>, count: scene.dialogues.length },
+    { key: 'encounters', label: <><Icon id="action/attaquer" size="sm" /> Rencontres</>, count: scene.encounters.length },
+    { key: 'validation', label: <><Icon id="interface/attention" size="sm" /> Validation</>, count: warnings.length, alert: errors > 0 },
   ];
   /** Cliquer l'onglet DÉPLIÉ le replie — c'est le seul geste de repli, il n'en existe pas d'autre. */
   const clickTab = (t: LogicTab) => setTab(t === tab ? null : t);
@@ -180,7 +195,7 @@ function TriggersTab({
         >
           + Nouveau trigger
         </button>
-        <p className="hint">Astuce : outil <Icon id="map-tool/zone" size="sm" /> → glisser sur la carte pour dessiner la zone directement.</p>
+        <p className="hint">Astuce : outil <Icon id="outil-de-carte/zone" size="sm" /> → glisser sur la carte pour dessiner la zone directement.</p>
       </div>
       {t ? (
         <div className="logic-detail" key={cles[scene.triggers.indexOf(t)]}>
@@ -336,7 +351,7 @@ function EncountersTab({
         >
           + Nouvelle rencontre
         </button>
-        <p className="hint">Astuce : outil <Icon id="action/attack" size="sm" /> pour poser les combattants directement sur la carte.</p>
+        <p className="hint">Astuce : outil <Icon id="action/attaquer" size="sm" /> pour poser les combattants directement sur la carte.</p>
       </div>
       {enc ? (
         <div className="logic-detail">
@@ -374,7 +389,7 @@ function EncountersTab({
                     <ListRow
                       onClick={() => onSelectEntity(m.entityId)}
                       title="Sélectionner sur la carte → éditer le profil/apparence dans l'inspecteur"
-                      label={e ? `${nomDEntite(e, presetDuNarratif(ctx.narratif)) ?? m.entityId} · (${e.pos.x},${e.pos.y})` : <><Icon id="ui/warning" size="sm" /> {m.entityId} (entité manquante)</>}
+                      label={e ? `${nomDEntite(e, presetDuNarratif(ctx.narratif)) ?? m.entityId} · (${e.pos.x},${e.pos.y})` : <><Icon id="interface/attention" size="sm" /> {m.entityId} (entité manquante)</>}
                     />
                     <button className="btn small danger" onClick={() => setScene(removeMember(scene, enc.id, m.entityId))} title="Retirer de la rencontre (l'entité reste sur la carte)">
                       ✕
@@ -382,7 +397,7 @@ function EncountersTab({
                   </div>
                   <div className="enemy-mount">
                     <label title="Cette créature est une monture rideable (peut être enfourchée — LDB 14).">
-                      <input type="checkbox" checked={!!m.mount} onChange={(e2) => setScene(patchMember(scene, enc.id, m.entityId, { mount: e2.target.checked || undefined }))} /> <Icon id="travel/mount" size="sm" /> Monture
+                      <input type="checkbox" checked={!!m.mount} onChange={(e2) => setScene(patchMember(scene, enc.id, m.entityId, { mount: e2.target.checked || undefined }))} /> <Icon id="voyage/en-selle" size="sm" /> Monture
                     </label>
                     <label title="Monture (de cette rencontre) que cet acteur chevauche au spawn (référence stable par entité).">
                       Chevauche{' '}
@@ -397,9 +412,9 @@ function EncountersTab({
                     </label>
                     <label title="Camp au spawn : « Allié » place la créature du côté du groupe (monture libre prêtable). Défaut : Ennemi.">
                       Camp{' '}
-                      <select value={m.side ?? 'enemy'} onChange={(e2) => setScene(patchMember(scene, enc.id, m.entityId, { side: e2.target.value === 'ally' ? 'ally' : undefined }))}>
-                        <option value="enemy">Ennemi</option>
-                        <option value="ally">Allié</option>
+                      <select value={m.side ?? 'ennemi'} onChange={(e2) => setScene(patchMember(scene, enc.id, m.entityId, { side: e2.target.value === 'allie' ? 'allie' : undefined }))}>
+                        <option value="ennemi">Ennemi</option>
+                        <option value="allie">Allié</option>
                       </select>
                     </label>
                   </div>
@@ -407,19 +422,19 @@ function EncountersTab({
               );
             })}
             <p className="hint">
-              Un combattant se pose SUR LA CARTE, à la case voulue : outil <Icon id="action/attack" size="sm" /> de
+              Un combattant se pose SUR LA CARTE, à la case voulue : outil <Icon id="action/attaquer" size="sm" /> de
               la palette, rencontre cible = <b>{enc.id}</b>.
             </p>
           </div>
           <div className="mini-title">Surprise (embuscade, LDB 13)</div>
           <select
             value={enc.surprise ?? ''}
-            onChange={(e) => upd({ surprise: (e.target.value || undefined) as 'party' | 'enemies' | undefined })}
+            onChange={(e) => upd({ surprise: (e.target.value || undefined) as 'groupe' | 'ennemis' | undefined })}
             title="Camp pris en embuscade au début du combat : Test opposé Perception vs Discrétion ; les vaincus gagnent l'État Surpris."
           >
             <option value="">Aucune surprise</option>
-            <option value="enemies">Les ennemis sont surpris (le groupe embusque)</option>
-            <option value="party">Le groupe est surpris (les ennemis embusquent)</option>
+            <option value="ennemis">Les ennemis sont surpris (le groupe embusque)</option>
+            <option value="groupe">Le groupe est surpris (les ennemis embusquent)</option>
           </select>
           <div className="mini-title">Avantage initial — Manœuvrabilité / Menace / Terrain (AA 11 l.53-65)</div>
           <div className="enemy-mount">
@@ -427,11 +442,11 @@ function EncountersTab({
               Manœuvrabilité{' '}
               <select
                 value={enc.maneuverability ?? ''}
-                onChange={(e) => upd({ maneuverability: (e.target.value || undefined) as 'party' | 'enemies' | undefined })}
+                onChange={(e) => upd({ maneuverability: (e.target.value || undefined) as 'groupe' | 'ennemis' | undefined })}
               >
                 <option value="">Aucune</option>
-                <option value="party">Le groupe</option>
-                <option value="enemies">Les ennemis</option>
+                <option value="groupe">Le groupe</option>
+                <option value="ennemis">Les ennemis</option>
               </select>
             </label>
           </div>
@@ -441,13 +456,13 @@ function EncountersTab({
               <select
                 value={enc.threat?.camp ?? ''}
                 onChange={(e) => {
-                  const camp = e.target.value as 'party' | 'enemies' | '';
+                  const camp = e.target.value as 'groupe' | 'ennemis' | '';
                   upd({ threat: camp ? { camp, tier: enc.threat?.tier ?? 'dangereuse' } : undefined });
                 }}
               >
                 <option value="">Aucune</option>
-                <option value="party">Le groupe</option>
-                <option value="enemies">Les ennemis</option>
+                <option value="groupe">Le groupe</option>
+                <option value="ennemis">Les ennemis</option>
               </select>
             </label>
             {enc.threat && (
@@ -467,13 +482,13 @@ function EncountersTab({
               <select
                 value={enc.terrain?.camp ?? ''}
                 onChange={(e) => {
-                  const camp = e.target.value as 'party' | 'enemies' | '';
+                  const camp = e.target.value as 'groupe' | 'ennemis' | '';
                   upd({ terrain: camp ? { camp, heavy: enc.terrain?.heavy } : undefined });
                 }}
               >
                 <option value="">Aucun</option>
-                <option value="party">Le groupe</option>
-                <option value="enemies">Les ennemis</option>
+                <option value="groupe">Le groupe</option>
+                <option value="ennemis">Les ennemis</option>
               </select>
             </label>
             {enc.terrain && (
@@ -548,11 +563,11 @@ function EncountersTab({
                 <label>
                   Camp{' '}
                   <select
-                    value={vc.camp ?? 'party'}
-                    onChange={(e) => upd({ victoryCondition: { type: 'reachZone', rect: vc.rect, camp: e.target.value as 'party' | 'enemies' } })}
+                    value={vc.camp ?? 'groupe'}
+                    onChange={(e) => upd({ victoryCondition: { type: 'reachZone', rect: vc.rect, camp: e.target.value as 'groupe' | 'ennemis' } })}
                   >
-                    <option value="party">Le groupe</option>
-                    <option value="enemies">Les ennemis</option>
+                    <option value="groupe">Le groupe</option>
+                    <option value="ennemis">Les ennemis</option>
                   </select>
                 </label>
               </div>

@@ -8,6 +8,8 @@
 import { Combatant, CharKey } from './types';
 import { CareerSlot, acquerirTalent, parseRefKey, talentAcquisitions } from './careerSlots';
 import advancementCostsJson from '../data/advancementCosts.json';
+import type * as advancementCostsDef from '../data/schemas/defs/advancementCosts';
+import { datasetDe } from '../data/datasets';
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { t } from '../i18n';
@@ -25,17 +27,7 @@ export function inCareerChar(careerChars: CharKey[], char: CharKey): boolean {
   return careerChars.includes(char);
 }
 
-/**
- * Type d'une bande du Tableau de Coût des Augmentations (LDB 07 l.56-70).
- * La bande = nombre d'Augmentations DÉJÀ achetées, fourchette `{min, max}` aux bornes INCLUSIVES,
- * les DEUX telles que la source les imprime (« 0 à 5 », « 6 à 10 »…).
- * `max: null` = bande FINALE « 71 et + » : LDB 07 l.49 ne pose AUCUN plafond, la borne haute reste
- * donc OUVERTE en donnée (JSON n'a pas d'Infinity) et ne s'ouvre qu'au lookup.
- * La donnée vit dans `src/data/advancementCosts.json` — ne pas éditer ici.
- */
-export interface AdvanceCostBand { min: number; max: number | null; coutCarac: number; coutCompetence: number }
-
-const ADVANCE_COST_TABLE: AdvanceCostBand[] = advancementCostsJson as AdvanceCostBand[];
+const ADVANCE_COST_TABLE = datasetDe<typeof advancementCostsDef>(advancementCostsJson);
 
 /** La table telle que `findTableEntry` la lit : la borne OUVERTE de la dernière bande devient son
  *  infini. Aucun plafond n'est écrit en donnée — c'est le lookup qui ouvre, pas la source, et il est
@@ -46,9 +38,9 @@ const advanceCostLookup = memoParVersion('advancementCosts', () => tableOuverte(
  *  Hors carrière, le coût est DOUBLÉ (LDB 07 l.91). `discount` : « 5 PX de moins par
  *  Augmentation » des talents Maître artisan / Oreille absolue / etc. (LDB 10) quand la
  *  Compétence ajoutée est déjà incluse dans la Carrière — appliqué in-carrière seulement. */
-export function advanceCost(advancesAlready: number, kind: 'characteristic' | 'skill', inCareer = true, discount = 0): number {
+export function advanceCost(advancesAlready: number, kind: 'caracteristique' | 'competence', inCareer = true, discount = 0): number {
   const band = findTableEntry(advanceCostLookup(), advancesAlready);
-  const base = kind === 'characteristic' ? band.coutCarac : band.coutCompetence;
+  const base = kind === 'caracteristique' ? band.coutCarac : band.coutCompetence;
   return inCareer ? Math.max(1, base - discount) : base * 2;
 }
 
@@ -67,7 +59,7 @@ export interface AdvanceResult {
  *  les PX suffisent. Mute le héros. `inCareer` false → coût doublé (hors carrière). */
 export function buyCharAdvance(hero: Combatant, char: CharKey, inCareer = true): AdvanceResult {
   const already = hero.charAdvances?.[char] ?? 0;
-  const cost = advanceCost(already, 'characteristic', inCareer);
+  const cost = advanceCost(already, 'caracteristique', inCareer);
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
   hero.xp = (hero.xp ?? 0) - cost;
   hero.charAdvances = { ...(hero.charAdvances ?? {}), [char]: already + 1 };
@@ -80,7 +72,7 @@ export function buyCharAdvance(hero: Combatant, char: CharKey, inCareer = true):
 export function buySkillAdvance(hero: Combatant, ref: RefDesignee, inCareer = true, discount = 0): AdvanceResult {
   const skill = hero.skills.find((s) => s.id === ref.id && memeSpecialisation(s.spec, ref.spec));
   if (!skill) return { ok: false, cost: 0, reason: t('adv.unknownSkill') };
-  const cost = advanceCost(skill.advances, 'skill', inCareer, discount);
+  const cost = advanceCost(skill.advances, 'competence', inCareer, discount);
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
   hero.xp = (hero.xp ?? 0) - cost;
   skill.advances += 1; // chaque Augmentation ajoute +1 au niveau de Compétence (LDB 07 l.80)
@@ -177,7 +169,7 @@ export interface CareerChangeContext {
   targetLevelExists: boolean;
   /** Option MJ (LDB 07 l.140 + l.148, « Avec l'accord du MJ ») : autoriser un SAUT de Niveau (même
    *  Carrière, Niveau supérieur non-adjacent) ET l'accès au MÊME Niveau d'une autre Carrière de la
-   *  Classe. Piloté par la règle optionnelle `advancement-career-jump` côté state ; false = RAW strict. */
+   *  Classe. Piloté par la règle optionnelle `progression-saut-de-niveau` côté state ; false = RAW strict. */
   gmJump?: boolean;
 }
 
@@ -221,7 +213,7 @@ export function validateCareerChange(
  * Mentor requis (LDB 07 l.89 : « le MJ peut exiger que vous trouviez un mentor qui puisse vous
  * enseigner cette formation inhabituelle ») : une Augmentation HORS carrière (dont le coût est déjà
  * DOUBLÉ) est BLOQUÉE tant qu'aucun mentor n'est disponible, quand la règle optionnelle est active.
- * `policyOn` = règle `advancement-mentor` ; `hasMentor` = flag de groupe/scène. Renvoie vrai = bloqué.
+ * `policyOn` = règle `progression-mentor` ; `hasMentor` = flag de groupe/scène. Renvoie vrai = bloqué.
  */
 export function mentorBlocks(inCareer: boolean, policyOn: boolean, hasMentor: boolean): boolean {
   return !inCareer && policyOn && !hasMentor;

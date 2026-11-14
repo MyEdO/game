@@ -20,7 +20,7 @@ import { actionGate } from './actionRegistry';
 import { castSpell } from './combatFlow';
 import { chooseEnemyAction, type CastableSpell } from './monde/ai';
 import { emptyScene } from './monde/scene';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { findSpellById } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import { rollMiscast, miscastRowSource, miscastTableId } from '../engine/miscast';
@@ -46,7 +46,7 @@ afterEach(() => resetDesFixes());
 
 /** Un prêtre de Sigmar (`beni` spécialisé) et un allié blessé. */
 function pretreEtAllie(peche: number) {
-  const [pretre, allie] = pregenParty(idsDeTest, PREGEN.pretre, PREGEN.soldat);
+  const [pretre, allie] = groupeDeScenario(idsDeTest, 'pretre', 'soldat');
   pretre.sinPoints = peche;
   allie.wounds.current = allie.wounds.max - 5;
   return { pretre, allie };
@@ -57,7 +57,7 @@ function pretreEtAllie(peche: number) {
 function benir(casterId: string, targetId: string, roll: number, deDeTable = 50) {
   const result: CastResult = { cast: true, roll, target: 60, sl: 1, isCritical: false, isFumble: false, log: 'Prière exaucée.' };
   banc.setState({ pendingCast: { casterId, targetId, spellId: GUERISON, missile: false, focused: false, result } });
-  banc.getState().jetValider('cast');
+  banc.getState().jetValider('incantation');
   draineEtapes(banc.getState, 50, poseSurDeNonTombe(deDeTable));
 }
 
@@ -115,12 +115,12 @@ describe('Colère des dieux — 41-45 « Votre cause est indigne » (LDB 40 l.64
 describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40 l.74)', () => {
   /** Le prêtre en combat, au contact d'un ennemi, son tour ; la rangée 76-80 subie (1d10 = `de`). */
   function penitent(de: number) {
-    const [pretre] = pregenParty(idsDeTest, PREGEN.pretre);
+    const [pretre] = groupeDeScenario(idsDeTest, 'pretre');
     pretre.sinPoints = 2;
     banc.setState({ party: [pretre] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const { H, E, patch } = auContact(banc.getState());
     banc.setState(patch);
@@ -130,20 +130,20 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
     return { H, E };
   }
   const gate = (H: Combatant, id: string, spellId?: string) =>
-    actionGate(id, { active: H, battle: banc.getState().battle!, gameTime: MAINTENANT, ...(spellId ? { args: { spellId } } : {}) });
+    actionGate(id, { scene: banc.getState().scene, active: H, battle: banc.getState().battle!, gameTime: MAINTENANT, ...(spellId ? { args: { spellId } } : {}) });
 
   it('toute Action autre qu\'une Prière est refusée avec sa raison ; la Prière passe ; le Mouvement reste libre', () => {
     const { H, E } = penitent(5); // 1d10 = 5 → 5 + 2 Rounds
     const effet = (H.activeEffects ?? []).find((e) => e.prayerForAction)!;
     expect(effet.duration).toMatchObject({ scale: 'rounds', left: 7 });
 
-    for (const id of ['attaque', 'defend', 'heal', 'dispel']) {
+    for (const id of ['attaque', 'defensive', 'soins', 'dissipation']) {
       expect(gate(H, id), id).toMatchObject({ ok: false, reason: expect.stringMatching(/Test de Prière pour son Action/) });
     }
-    expect(gate(H, 'cast-spell', 'arme-aethyrique').ok).toBe(false);
-    expect(gate(H, 'cast-spell', GUERISON).ok).toBe(true);
+    expect(gate(H, 'incantation', 'arme-aethyrique').ok).toBe(false);
+    expect(gate(H, 'incantation', GUERISON).ok).toBe(true);
     expect(gate(H, 'mouvement').ok).toBe(true);
-    expect(gate(H, 'use-item').ok, 'Action gratuite, LDB 13 l.106').toBe(true);
+    expect(gate(H, 'usage-objet').ok, 'Action gratuite, LDB 13 l.106').toBe(true);
 
     castSpell(banc.getState, banc.setState, reluDans(banc.getState, H), reluDans(banc.getState, E), 'arme-aethyrique');
     expect(banc.getState().pendingCast).toBeNull();
@@ -156,16 +156,16 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
     const { H } = penitent(1); // 1d10 = 1 → 1 + 2 = 3 Rounds
     for (let r = 0; r < 2; r++) tickDurations(H);
     expect(prayerForActionBy(H)).not.toBeNull();
-    expect(gate(H, 'defend').ok).toBe(false);
+    expect(gate(H, 'defensive').ok).toBe(false);
     tickDurations(H);
     expect(prayerForActionBy(H)).toBeNull();
-    expect(gate(H, 'defend').ok).toBe(true);
+    expect(gate(H, 'defensive').ok).toBe(true);
   });
 
   it('l\'IA sous pénitence ne choisit qu\'une Prière (ou son Mouvement), jamais une attaque', () => {
     const { H, E } = penitent(5);
-    const pretreIA = { ...structuredClone(H), kind: 'enemy' as const, pos: { x: 1, y: 1 } };
-    const proie = { ...structuredClone(E), kind: 'hero' as const, pos: { x: 2, y: 1 } };
+    const pretreIA = { ...structuredClone(H), kind: 'ennemi' as const, pos: { x: 1, y: 1 } };
+    const proie = { ...structuredClone(E), kind: 'heros' as const, pos: { x: 2, y: 1 } };
     const sortDe = (id: string): CastableSpell => {
       const data = findSpellById(id)!;
       return { id, data, cn: data.cn ?? 0, range: null, shape: 'single', landProb: 1, focusState: 'none', active: false };
@@ -174,7 +174,7 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
     const libre = chooseEnemyAction({ ...base, enemy: { ...pretreIA, activeEffects: [] }, spells: [] });
     expect(libre.kind).toBe('melee');
     const contraint = chooseEnemyAction({ ...base, spells: [sortDe('arme-aethyrique')] });
-    expect(['melee', 'shoot', 'cast', 'castArea', 'focus']).not.toContain(contraint.kind);
+    expect(['melee', 'tir', 'incantation', 'incantationDeZone', 'focalisation']).not.toContain(contraint.kind);
   });
 });
 

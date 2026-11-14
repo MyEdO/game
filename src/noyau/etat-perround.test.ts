@@ -8,7 +8,7 @@ import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.te
 import { emptyArmour } from '../engine/items';
 
 const mk = (characteristics: Partial<Characteristics> = {}): Combatant => combattantDeTest({
-  id: 'x', label: 'X', kind: 'enemy', characteristics: { endurance: 40, ...characteristics }, armour: { corps: 5 } as Combatant['armour'],
+  id: 'x', label: 'X', kind: 'ennemi', characteristics: { endurance: 40, ...characteristics }, armour: { corps: 5 } as Combatant['armour'],
   wounds: blessuresDeBase(10),
 });
 

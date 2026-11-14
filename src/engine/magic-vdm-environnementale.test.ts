@@ -1,5 +1,5 @@
 /**
- * Magie ENVIRONNEMENTALE des *Vents de Magie* (`VDM 14`, option `magic-vdm-environnementale`) :
+ * Magie ENVIRONNEMENTALE des *Vents de Magie* (`VDM 14`, option `magie-vdm-environnementale`) :
  * l'état magique du LIEU (palier de Saturation + phénomènes arcaniques) modifie les Tests
  * d'Incantation / de Focalisation / de Dissipation.
  *
@@ -27,10 +27,11 @@ import {
 import { resolveCasting, resolveFocus, castLandProbability } from './magic';
 import type { Combatant } from './types';
 import { makeRNG } from './dice';
+import { deDeLaTableTiree, facesDuDe } from './tables';
 import { datasetObject, setObjectDataset } from '../data/overrides';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const RULE = 'magic-vdm-environnementale';
+const RULE = 'magie-vdm-environnementale';
 
 const spell = (domainId: string | null) => (domainId === null ? {} : { domainId: { id: domainId } });
 const sorcier = (talents: { talentId: string; spec?: string }[] = []): Combatant =>
@@ -59,7 +60,7 @@ describe('registre — la donnée porte le chapitre 14 en entier', () => {
 
   it('les trois tables du chapitre couvrent leur dé sans trou ni chevauchement', () => {
     for (const t of arcaneTables) {
-      const faces = t.die === 'd10' ? 10 : 100;
+      const faces = facesDuDe(deDeLaTableTiree(t));
       let next = 1;
       for (const r of t.entries) {
         expect(r.min).toBe(next);
@@ -123,7 +124,7 @@ describe('registre — la donnée porte le chapitre 14 en entier', () => {
   });
 });
 
-describe('option `magic-vdm-environnementale` — entrée du registre', () => {
+describe('option `magie-vdm-environnementale` — entrée du registre', () => {
   it('groupe Magie, drapeau, DÉSACTIVÉE par défaut, réf VDM', () => {
     const def = ruleDef(RULE);
     expect(def).toBeDefined();
@@ -351,7 +352,7 @@ describe('câblage — resolveCasting / castLandProbability / resolveFocus lisen
 
   const mk = (p: Partial<Combatant> = {}): Combatant =>
     (blessuresSurLeProfil({
-      id: 'c', label: 'Sujet', kind: 'hero',
+      id: 'c', label: 'Sujet', kind: 'heros',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 90, sociabilite: 30 },
       wounds: blessuresDeBase(14), advantage: 0, conditions: [], movement: 4,
       weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { CampaignVessel } from '../noyau/etat';
+import { lotsDeCale } from '../engine/caleDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { TravelPlan } from '../noyau/travelFlow';
 import { rollSeaWeather } from '../engine/seaWeather';
@@ -19,7 +20,7 @@ const cascade = (participants: CascadeStep[], cursor: number, purpose: PendingCa
   cascadeDeTest(participants, { title: 't', cursor, purpose });
 
 const hero = (id: string): Combatant => (blessuresSurLeProfil({
-  id, label: `Héros ${id}`, kind: 'hero',
+  id, label: `Héros ${id}`, kind: 'heros',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
   wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -30,7 +31,7 @@ const vessel = (): CampaignVessel => ({
   vehicleId: 'cogue', label: 'Le Cormoran',
   morale: { score: 62, lastMoraleWeek: 0, factors: [] },
   wounds: { current: 8, max: 20 },
-  provisions: 9,
+  provisions: lotsDeCale({ 'ration-biscuits-de-mer': 5, 'ration-nourriture-preservee': 4 }, 0),
   cargo: [{ uid: 'lot-1', cargoId: 'cereales', enc: 200, basePriceGold: 3 }],
 });
 
@@ -64,8 +65,9 @@ describe('VoyageScreen — hub de voyage paramétré par mode (#333)', () => {
   });
 
   it('tuiles MER : vent, coque, moral, provisions, cale', () => {
-    const keys = voyageTiles('mer', seaPlan(), vessel(), [hero('h1')], [], 0).map((t) => t.key);
-    expect(keys).toEqual(expect.arrayContaining(['vent', 'coque', 'moral', 'provisions', 'cale']));
+    const tiles = voyageTiles('mer', seaPlan(), vessel(), [hero('h1')], [], 0);
+    expect(tiles.map((t) => t.key)).toEqual(expect.arrayContaining(['vent', 'coque', 'moral', 'provisions', 'cale']));
+    expect(tiles.find((t) => t.key === 'provisions')?.value).toBe('9 j-homme');
     const coque = voyageTiles('mer', seaPlan(), vessel(), [hero('h1')], [], 0).find((t) => t.key === 'coque')!;
     expect(coque.value).toBe('8 / 20');
     expect(coque.gauge).toBeDefined();
@@ -162,8 +164,8 @@ describe('dayAgenda — sous-phases du jour EN COURS (arbitrage user verbatim)',
   });
 
   it('cascade travelDay : phases DÉRIVÉES des kinds présents, état fait/en cours/à venir par CURSEUR', () => {
-    const steps = [cascadeStep('stagePosteBatch'), cascadeStep('landPeril'), cascadeStep('landForcedPace')];
-    const agenda = dayAgenda(cascade(steps, 1), null); // curseur sur landPeril (index 1)
+    const steps = [cascadeStep('etapePosteEnBande'), cascadeStep('perilATerre'), cascadeStep('rythmeForceATerre')];
+    const agenda = dayAgenda(cascade(steps, 1), null); // curseur sur perilATerre (index 1)
     expect(agenda.map((a) => a.key)).toEqual(['activites', 'rencontre', 'route', 'nuit']);
     expect(agenda.find((a) => a.key === 'activites')!.state).toBe('done');
     expect(agenda.find((a) => a.key === 'rencontre')!.state).toBe('current');
@@ -172,13 +174,13 @@ describe('dayAgenda — sous-phases du jour EN COURS (arbitrage user verbatim)',
   });
 
   it('phase absente ce jour (aucun kind ne matche) : omise, pas affichée « à venir » à tort', () => {
-    const agenda = dayAgenda(cascade([cascadeStep('landPeril')], 0), null);
+    const agenda = dayAgenda(cascade([cascadeStep('perilATerre')], 0), null);
     expect(agenda.some((a) => a.key === 'activites')).toBe(false);
     expect(agenda.some((a) => a.key === 'route')).toBe(false);
   });
 
   it('jour d’ARRIVÉE (#2533) : la Nuit n’est pas une phase à venir — aucune halte ce soir-là', () => {
-    const agenda = dayAgenda(cascade([cascadeStep('landPeril')], 0), null, true);
+    const agenda = dayAgenda(cascade([cascadeStep('perilATerre')], 0), null, true);
     expect(agenda.map((a) => a.key)).toEqual(['rencontre']);
   });
 

@@ -1,7 +1,7 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { combatantSections } from './registry';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 import { effectiveChar } from '../../engine/characteristics';
 import { skillBaseValue } from '../../engine/skills';
 import { charAbr } from '../../data';
@@ -9,13 +9,13 @@ import { charAbr } from '../../data';
 /**
  * Contre-vérification au moteur (#498) : `combatantSections` (statbloc Codex/inspection) doit AFFICHER
  * exactement ce que rendent les lecteurs canoniques (`effectiveChar`/`skillBaseValue`), jamais la carac
- * BRUTE `characteristics[k]`. Fixture = pré-tiré Sigmund (talent « Guerrier né », charMod permanent sur
- * CC) — un pregen SANS talent à charMod ne prouverait rien (effective === brute par coïncidence).
+ * BRUTE `characteristics[k]`. Fixture = héros de scénario Soldat (talent « Guerrier né », charMod permanent sur
+ * CC) — un héros de scénario SANS talent à charMod ne prouverait rien (effective === brute par coïncidence).
  */
 describe('combatantSections — affichage carac/compétence = moteur (#498)', () => {
-  const sigmund = pregen(idsDeTest, PREGEN.soldat);
+  const sigmund = herosDeScenario(idsDeTest, 'soldat');
 
-  it('fixture pertinente : Sigmund porte un talent à charMod sur CC (effective > brute)', () => {
+  it('fixture pertinente : le Soldat porte un talent à charMod sur CC (effective > brute)', () => {
     expect(effectiveChar(sigmund, 'capacite-de-combat')).toBeGreaterThan(sigmund.characteristics['capacite-de-combat']);
   });
 

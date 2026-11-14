@@ -119,7 +119,7 @@ const doc = document(
     tourbillonSwim: { label: 'Nage hors tourbillon', hint: "Compétence et difficulté pour s'extraire à la nage" },
     gestionDesPerils: { label: 'Gestion à distance', hint: "Distance de détection/d'évitement d'un péril repéré à temps" },
   },
-  { codex: { keys: ['seaPerils'] }, edit: { object: 'single' } },
+  { codex: { keys: ['seaPerils'] }, edit: { object: 'unique' } },
 );
 
 export const schema = doc.schema;

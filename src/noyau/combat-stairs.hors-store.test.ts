@@ -41,12 +41,12 @@ describe('combat multi-couche — rampe : portée/aperçu/clic z-aware', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const sc = rampScene();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true)); // libère la grille 6×6
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    b.combatants.filter((c) => c.kind === 'ennemi').forEach((e) => (e.dead = true)); // libère la grille 6×6
     H.engagedWith = []; // libre de se déplacer
     placeCombatant(H, sc, heroPos); // stampe pos.h depuis le relief
     banc.setState({
@@ -66,8 +66,8 @@ describe('combat multi-couche — rampe : portée/aperçu/clic z-aware', () => {
   it('l’aperçu de déplacement cible une case de tablier z1 atteignable (clé de portée z-aware)', () => {
     setup({ x: 2, y: 3 });
     const pv = resolveMovement(banc.getState, { x: 2, y: 2, z: 1 });
-    expect(pv.status === 'ok' && pv.kind === 'move', 'la case de tablier se résout en Marche').toBe(true);
-    expect(pv.status === 'ok' && pv.path.length, 'un vrai chemin (pied → tablier)').toBeGreaterThanOrEqual(2);
+    expect(pv.status === 'possible' && pv.kind === 'deplacement', 'la case de tablier se résout en Marche').toBe(true);
+    expect(pv.status === 'possible' && pv.path.length, 'un vrai chemin (pied → tablier)').toBeGreaterThanOrEqual(2);
   });
 
   it('cliquer le tablier fait MONTER le héros (z=1) et stampe sa hauteur (h=1)', () => {

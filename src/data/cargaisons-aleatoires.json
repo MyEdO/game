@@ -1,0 +1,482 @@
+[
+  {
+    "id": "cargaisons-mer-printemps",
+    "type": "cargaisons-aleatoires",
+    "label": "Tableau des cargaisons maritimes — Printemps",
+    "voie": "mer",
+    "saison": "printemps",
+    "die": "d100",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, colonne Printemps (l.404-418)."
+    },
+    "entries": [
+      {
+        "id": "cereales",
+        "min": 1,
+        "max": 5
+      },
+      {
+        "id": "armes",
+        "min": 6,
+        "max": 8
+      },
+      {
+        "id": "produits-de-luxe-mer",
+        "min": 9,
+        "max": 13
+      },
+      {
+        "id": "metaux",
+        "min": 14,
+        "max": 19
+      },
+      {
+        "id": "bois-mer",
+        "min": 20,
+        "max": 28
+      },
+      {
+        "id": "vin",
+        "min": 29,
+        "max": 33
+      },
+      {
+        "id": "laine-mer",
+        "min": 34,
+        "max": 50
+      },
+      {
+        "id": "sel",
+        "min": 51,
+        "max": 60
+      },
+      {
+        "id": "huile",
+        "min": 61,
+        "max": 70
+      },
+      {
+        "id": "poisson-sale",
+        "min": 71,
+        "max": 90
+      },
+      {
+        "id": "pieces-detachees-de-navire",
+        "min": 91,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "cargaisons-mer-ete",
+    "type": "cargaisons-aleatoires",
+    "label": "Tableau des cargaisons maritimes — Été",
+    "voie": "mer",
+    "saison": "ete",
+    "die": "d100",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, colonne Été (l.404-418)."
+    },
+    "entries": [
+      {
+        "id": "cereales",
+        "min": 1,
+        "max": 9
+      },
+      {
+        "id": "armes",
+        "min": 10,
+        "max": 12
+      },
+      {
+        "id": "produits-de-luxe-mer",
+        "min": 13,
+        "max": 16
+      },
+      {
+        "id": "metaux",
+        "min": 17,
+        "max": 22
+      },
+      {
+        "id": "bois-mer",
+        "min": 23,
+        "max": 44
+      },
+      {
+        "id": "vin",
+        "min": 45,
+        "max": 56
+      },
+      {
+        "id": "laine-mer",
+        "min": 57,
+        "max": 62
+      },
+      {
+        "id": "sel",
+        "min": 63,
+        "max": 75
+      },
+      {
+        "id": "huile",
+        "min": 76,
+        "max": 82
+      },
+      {
+        "id": "poisson-sale",
+        "min": 83,
+        "max": 90
+      },
+      {
+        "id": "pieces-detachees-de-navire",
+        "min": 91,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "cargaisons-mer-automne",
+    "type": "cargaisons-aleatoires",
+    "label": "Tableau des cargaisons maritimes — Automne",
+    "voie": "mer",
+    "saison": "automne",
+    "die": "d100",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, colonne Automne (l.404-418)."
+    },
+    "entries": [
+      {
+        "id": "cereales",
+        "min": 1,
+        "max": 18
+      },
+      {
+        "id": "armes",
+        "min": 19,
+        "max": 21
+      },
+      {
+        "id": "produits-de-luxe-mer",
+        "min": 22,
+        "max": 25
+      },
+      {
+        "id": "metaux",
+        "min": 26,
+        "max": 30
+      },
+      {
+        "id": "bois-mer",
+        "min": 31,
+        "max": 46
+      },
+      {
+        "id": "vin",
+        "min": 47,
+        "max": 60
+      },
+      {
+        "id": "laine-mer",
+        "min": 61,
+        "max": 65
+      },
+      {
+        "id": "sel",
+        "min": 66,
+        "max": 72
+      },
+      {
+        "id": "huile",
+        "min": 73,
+        "max": 83
+      },
+      {
+        "id": "poisson-sale",
+        "min": 84,
+        "max": 90
+      },
+      {
+        "id": "pieces-detachees-de-navire",
+        "min": 91,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "cargaisons-mer-hiver",
+    "type": "cargaisons-aleatoires",
+    "label": "Tableau des cargaisons maritimes — Hiver",
+    "voie": "mer",
+    "saison": "hiver",
+    "die": "d100",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, colonne Hiver (l.404-418)."
+    },
+    "entries": [
+      {
+        "id": "cereales",
+        "min": 1,
+        "max": 9
+      },
+      {
+        "id": "armes",
+        "min": 10,
+        "max": 12
+      },
+      {
+        "id": "produits-de-luxe-mer",
+        "min": 13,
+        "max": 16
+      },
+      {
+        "id": "metaux",
+        "min": 17,
+        "max": 25
+      },
+      {
+        "id": "bois-mer",
+        "min": 26,
+        "max": 36
+      },
+      {
+        "id": "vin",
+        "min": 37,
+        "max": 56
+      },
+      {
+        "id": "laine-mer",
+        "min": 57,
+        "max": 60
+      },
+      {
+        "id": "sel",
+        "min": 61,
+        "max": 64
+      },
+      {
+        "id": "huile",
+        "min": 65,
+        "max": 81
+      },
+      {
+        "id": "poisson-sale",
+        "min": 82,
+        "max": 90
+      },
+      {
+        "id": "pieces-detachees-de-navire",
+        "min": 91,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "cargaisons-terre-printemps",
+    "type": "cargaisons-aleatoires",
+    "label": "Tableau des cargaisons aléatoires terrestres — Printemps",
+    "voie": "terre",
+    "saison": "printemps",
+    "die": "d100",
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES CARGAISONS ALÉATOIRES, ligne Printemps (l.69-73, l.75)."
+    },
+    "entries": [
+      {
+        "id": "vivres",
+        "min": 1,
+        "max": 9
+      },
+      {
+        "id": "armement",
+        "min": 10,
+        "max": 15
+      },
+      {
+        "id": "produits-de-luxe-terre",
+        "min": 16,
+        "max": 20
+      },
+      {
+        "id": "metal",
+        "min": 21,
+        "max": 30
+      },
+      {
+        "id": "bois-terre",
+        "min": 31,
+        "max": 55
+      },
+      {
+        "id": "vin-eau-de-vie",
+        "min": 56,
+        "max": 75
+      },
+      {
+        "id": "laine-terre",
+        "min": 76,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "cargaisons-terre-ete",
+    "type": "cargaisons-aleatoires",
+    "label": "Tableau des cargaisons aléatoires terrestres — Été",
+    "voie": "terre",
+    "saison": "ete",
+    "die": "d100",
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES CARGAISONS ALÉATOIRES, ligne Été (l.69-73, l.76)."
+    },
+    "entries": [
+      {
+        "id": "vivres",
+        "min": 1,
+        "max": 19
+      },
+      {
+        "id": "armement",
+        "min": 20,
+        "max": 23
+      },
+      {
+        "id": "produits-de-luxe-terre",
+        "min": 24,
+        "max": 29
+      },
+      {
+        "id": "metal",
+        "min": 30,
+        "max": 39
+      },
+      {
+        "id": "bois-terre",
+        "min": 40,
+        "max": 74
+      },
+      {
+        "id": "vin-eau-de-vie",
+        "min": 75,
+        "max": 85
+      },
+      {
+        "id": "laine-terre",
+        "min": 86,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "cargaisons-terre-automne",
+    "type": "cargaisons-aleatoires",
+    "label": "Tableau des cargaisons aléatoires terrestres — Automne",
+    "voie": "terre",
+    "saison": "automne",
+    "die": "d100",
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES CARGAISONS ALÉATOIRES, ligne Automne (l.69-73, l.77)."
+    },
+    "entries": [
+      {
+        "id": "vivres",
+        "min": 1,
+        "max": 35
+      },
+      {
+        "id": "armement",
+        "min": 36,
+        "max": 40
+      },
+      {
+        "id": "produits-de-luxe-terre",
+        "min": 41,
+        "max": 44
+      },
+      {
+        "id": "metal",
+        "min": 45,
+        "max": 60
+      },
+      {
+        "id": "bois-terre",
+        "min": 61,
+        "max": 80
+      },
+      {
+        "id": "vin-eau-de-vie",
+        "min": 81,
+        "max": 95
+      },
+      {
+        "id": "laine-terre",
+        "min": 96,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "cargaisons-terre-hiver",
+    "type": "cargaisons-aleatoires",
+    "label": "Tableau des cargaisons aléatoires terrestres — Hiver",
+    "voie": "terre",
+    "saison": "hiver",
+    "die": "d100",
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES CARGAISONS ALÉATOIRES, ligne Hiver (l.69-73, l.78)."
+    },
+    "entries": [
+      {
+        "id": "vivres",
+        "min": 1,
+        "max": 19
+      },
+      {
+        "id": "armement",
+        "min": 20,
+        "max": 23
+      },
+      {
+        "id": "produits-de-luxe-terre",
+        "min": 24,
+        "max": 29
+      },
+      {
+        "id": "metal",
+        "min": 30,
+        "max": 44
+      },
+      {
+        "id": "bois-terre",
+        "min": 45,
+        "max": 60
+      },
+      {
+        "id": "vin-eau-de-vie",
+        "min": 61,
+        "max": 95
+      },
+      {
+        "id": "laine-terre",
+        "min": 96,
+        "max": 100
+      }
+    ]
+  }
+]

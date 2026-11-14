@@ -30,11 +30,11 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true)); // une seule source ennemie
     H.pos = { x: 10, y: 10 };
@@ -53,8 +53,8 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
 
     openRoundEndCascade(banc.getState, banc.setState);
     const c = banc.getState().pendingCascade!;
-    // Récupération du Brisé en DONNÉES (etats.json) → étape GÉNÉRIQUE `triggeredTest`.
-    const step = c.participants.find((s) => s.kind === 'triggeredTest' && s.rollLabel === 'Calme')!;
+    // Récupération du Brisé en DONNÉES (etats.json) → étape GÉNÉRIQUE `testDeclenche`.
+    const step = c.participants.find((s) => s.kind === 'testDeclenche' && s.rollLabel === 'Calme')!;
     expect(step).toBeTruthy();
     expect(step.actorId).toBe(H.id);
 
@@ -95,7 +95,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     // UNE seule étape de récupération (le héros) — l'ennemi n'est JAMAIS une étape (silence côté hook).
     expect(c.participants).toHaveLength(1);
     const step = c.participants[0];
-    expect(step.kind).toBe('triggeredTest'); // étape GÉNÉRIQUE data-driven
+    expect(step.kind).toBe('testDeclenche'); // étape GÉNÉRIQUE data-driven
     expect(step.actorId).toBe(H.id);
     expect(step.rollLabel).toBe('Résistance');
     expect(step.result).toBeFalsy(); // pas encore lancé → influençable (Chance/Résilience)
@@ -110,7 +110,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
 
     openRoundEndCascade(banc.getState, banc.setState);
     const c = banc.getState().pendingCascade!;
-    const step = c.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = c.participants.find((s) => s.kind === 'testDeclenche')!;
     expect(step).toBeTruthy();
 
     banc.getState().jetLancer('cascade', step.id);
@@ -120,14 +120,14 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     expect(hasCondition(h, COND.extenue)).toBe(true);      // … vidé → 1 Exténué (LDB 16 l.72, via `if`/`condition`)
   });
 
-  it('Sonné data-driven : héros → étape triggeredTest ; succès → Sonné vidé + 1 Exténué (RAW l.125-129)', () => {
+  it('Sonné data-driven : héros → étape testDeclenche ; succès → Sonné vidé + 1 Exténué (RAW l.125-129)', () => {
     seedBattleRng(5);
     const { H } = setup();
     H.characteristics.endurance = 90; // Résistance haute → réussite
     addCondition(H, COND.sonne, 1);
 
     openRoundEndCascade(banc.getState, banc.setState);
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     expect(step).toBeTruthy();
     banc.getState().jetLancer('cascade', step.id);
     banc.getState().jetValider('cascade');
@@ -168,7 +168,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     openRoundEndCascade(banc.getState, banc.setState);
     const c = banc.getState().pendingCascade;
     // En rapide/auto le héros est joué/auto-résolu → son Test ne passe PAS par la cascade (résolu inline).
-    expect(c?.participants.some((s) => s.kind === 'triggeredTest')).toBeFalsy();
+    expect(c?.participants.some((s) => s.kind === 'testDeclenche')).toBeFalsy();
   });
 
   /**
@@ -208,7 +208,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     const { H, E } = setup();
     // Fragment 1 : la séquence de fin de Round, telle que l'ouvre `openRoundEndCascade` (combatFlow).
     startCascade(banc.getState, banc.setState, {
-      title: 'Fin de Round', icon: 'time/clock', purpose: 'combat', roundBoundary: true,
+      title: 'Fin de Round', icon: 'temps/heure', purpose: 'combat', roundBoundary: true,
       steps: [{ id: 'fear', kind: cleDeFixture('note'), actorId: H.id, outcome: [{ text: 'Peur de fin de Round' }]}],
     });
     // Fragment 2 : la défense de manœuvre de zone de la créature, appendue à la séquence en vol.
@@ -220,7 +220,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     expect(merged.participants.map((s) => s.id)).toEqual(['fear', 'zone-def']); // fusion, aucun fragment perdu
     // `maneuverResume` est posé par son UNIQUE producteur de la même façon (combatManeuvers.ts:461/:506 :
     // tag sur la séquence `purpose:'combat'` en cours).
-    banc.setState({ pendingCascade: { ...merged, maneuverResume: { attackerId: E.id, free: true } } });
+    banc.setState({ pendingCascade: { ...merged, maneuverResume: { attackerId: E.id } } });
 
     banc.getState().jetLancer('cascade');
     banc.getState().fenetreFermer('cascade'); // « Terminer » → dispatchCascadeDone

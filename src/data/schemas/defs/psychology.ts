@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { enumNomme, stakeFormSchema, varianteDeCibleSchema } from '../grammaire/valeurs';
 import { flowTestSchema, mecaniqueDe, passifsDe } from '../grammaire/mecanique';
-import { ref, refs } from '../grammaire/ref';
+import { idDe, ref, refs } from '../grammaire/ref';
 
 export const file = 'psychology.json';
 export const famille = 'entite';
@@ -35,7 +35,7 @@ const doc = document(
     attackDR: nommerChamps(z.strictObject({ amount: z.number(), vs: z.enum(['source', 'group', 'any']) }), { amount: { label: 'Quantité' }, vs: { label: 'Contre' } }).optional(),
     immuneWhileActive: refs('psychology').optional(),
     containedSocialMod: z.number().optional(),
-    targetCauses: nommerChamps(z.strictObject({ kind: z.string(), indice: z.number() }), { kind: { label: 'Type' }, indice: { label: 'Indice' } }).optional(),
+    targetCauses: nommerChamps(z.strictObject({ kind: idDe('psychology'), indice: z.number() }), { kind: { label: 'Type' }, indice: { label: 'Indice' } }).optional(),
     triggerOn: z.enum(['encounter', 'threatened']).optional(),
     retestAt: enumNomme({ roundStart: 'début du Round', roundEnd: 'fin du Round' }).optional(),
     /** ENJEU du Test de Psychologie (#1117 L2) — porté par l'ENTRÉE, pas par un gabarit de `kind` :
@@ -45,7 +45,7 @@ const doc = document(
     stake: z.string().optional(),
     /** FORME DÉCLARÉE du `stake` (même contrat que `stakes.form`/`activities`). */
     stakeForm: stakeFormSchema.optional(),
-    resolution: z.enum(['extended', 'terreur', 'binary']).optional(),
+    resolution: z.enum(['etendu', 'terreur', 'simple']).optional(),
     failCondition: ref('etat').optional(),
     failAmount: nommerChamps(z
       .strictObject({
@@ -81,7 +81,7 @@ const doc = document(
     retestAt: { label: 'Re-test', hint: 'Moment du re-test d’une affliction active : début (défaut) ou fin de Round' },
     stake: { label: 'Enjeu' },
     stakeForm: { label: 'Forme de l’enjeu' },
-    resolution: { label: 'Mode de résolution', hint: 'Étendu / Terreur / binaire' },
+    resolution: { label: 'Mode de résolution', hint: 'Étendu / Terreur / Simple' },
     failCondition: { label: 'État infligé à l’échec', hint: 'État posé quand le Test échoue' },
     failAmount: {
       label: 'Quantité infligée à l’échec',

@@ -58,7 +58,7 @@ const SRC: Record<string, string> = {
   corruptionFlow: readCode('../noyau/corruptionFlow.ts'),
   roundHooks: readCode('../noyau/combat/roundHooks.ts'),
   turnHooks: readCode('../noyau/combat/turnHooks.ts'),
-  triggeredTest: readCode('../noyau/combat/triggeredTest.ts'),
+  testDeclenche: readCode('../noyau/combat/triggeredTest.ts'),
   triggeredEffects: readCode('../noyau/triggeredEffects.ts'),
 };
 
@@ -96,14 +96,14 @@ const SURFACING: { file: keyof typeof SRC; fn: string; pred: RegExp }[] = [
   { file: 'combatFlow', fn: 'maybeHeroCleave', pred: /tenuParUnHumain/ }, // #1426 : la SURFACE, pas l'affordance locale
   { file: 'combatFlow', fn: 'ecrireLaMaladresse', pred: /jetSurfaced/ },
   { file: 'combatFlow', fn: 'openRoundEndCascade', pred: /surfaceOf/ }, // #1262 V1 lot 2 : la SURFACE, pas l'affordance locale
-  { file: 'combatFlow', fn: 'openCombatEndCascade', pred: /surfaceOf/ }, // #1262 V1 lot 5c : la SURFACE, pas l'affordance locale
+  { file: 'combatFlow', fn: 'ouvrirLaFinDeRencontre', pred: /surfaceOf/ }, // #1262 V1 lot 5c : la SURFACE, pas l'affordance locale
   { file: 'combatFlow', fn: 'passeDePsy', pred: /surfaceRow/ }, // #1262 V1 lot 5c : idem ; LDB 21 l.9, l.25
   { file: 'combatFlow', fn: 'applySurprise', pred: /surfaceOf/ }, // #1262 V1 lot 5c : le guetteur d'un autre siège entre dans la bande
   { file: 'combatFlow', fn: 'approachFearTrigger', pred: /surfaceOf/ }, // #1262 V1 lot 5c : idem pour le craintif
   { file: 'roundHooks', fn: 'collectHeroRoundEndUpkeep', pred: /surfaceOf/ }, // #1262 V1 lot 2
   { file: 'turnHooks', fn: 'resolveActGates', pred: /surfaceOf/ }, // #1262 V1 : la SURFACE, pas l'affordance locale
-  { file: 'triggeredTest', fn: 'resolveFlowTest', pred: /surfaceOf/ }, // #1262 V1 lot 3 : la SURFACE, pas l'affordance locale
-  { file: 'triggeredTest', fn: 'resolveFlowChoice', pred: /surfaceOf/ }, // #1262 V1 lot 3 : décider revient au siège du décideur
+  { file: 'testDeclenche', fn: 'resolveFlowTest', pred: /surfaceOf/ }, // #1262 V1 lot 3 : la SURFACE, pas l'affordance locale
+  { file: 'testDeclenche', fn: 'resolveFlowChoice', pred: /surfaceOf/ }, // #1262 V1 lot 3 : décider revient au siège du décideur
   { file: 'triggeredEffects', fn: 'applyTriggeredEffects', pred: /surfaceOf/ }, // #1262 V1 lot 2 (voie `deferInteractiveTest`) + lot 3 (l'opt-in)
   { file: 'corruptionFlow', fn: 'gainCorruption', pred: /tenuParUnHumain/ }, // #1426 : la SURFACE, pas l'affordance locale
 ];
@@ -114,8 +114,8 @@ const SURFACING: { file: keyof typeof SRC; fn: string; pred: RegExp }[] = [
 const DEFENDER_ROLL_SITES = new Set([
   'resolveAttack',        // repli non surfacé seulement (`defenseSurfaced` → undefined / defense:'none')
   'maybeOpenDefense',     // OUVRE la fenêtre (chemin instantané : IA, gratuites, balayage)
-  'openSurfacedDefense',  // OUVRE la fenêtre (chemin piloté : jetValider('attack'))
-  'resolveDualSecond',    // repli non surfacé seulement (2ᵉ frappe, LDB 10 l.773 ; surfacé → `jetValider('attack')` interpose, #998)
+  'openSurfacedDefense',  // OUVRE la fenêtre (chemin piloté : jetValider('attaque'))
+  'resolveDualSecond',    // repli non surfacé seulement (2ᵉ frappe, LDB 10 l.773 ; surfacé → `jetValider('attaque')` interpose, #998)
 ]);
 /** Ouvertures de fenêtre attendues sur les chemins d'attaque INSTANTANÉS (le brief #989 : le balayage
  *  et les attaques gratuites ne roulent plus de défense en silence). */
@@ -162,12 +162,12 @@ function freshCombat() {
   set({ party: [hero] });
   get().lancerLaScene(testScene());
   get().lancerLeCombat('enc-mutants');
-  get().fenetreValider('roundStart');
+  get().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = get().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   H.aiControlled = silence; // volet (d) : ré-silençage réel (contrôleur ≠ humain → pas de remontée)
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   const E = enemies[0];
   enemies.slice(1).forEach((e) => (e.dead = true)); // une seule source ennemie
   H.pos = { x: 10, y: 10 };
@@ -188,7 +188,7 @@ function behavioralFloor(): void {
     const { H } = freshCombat();
     addCondition(H, COND.empoisonne, 2);
     openRoundEndCascade(get, set);
-    expect(get().pendingCascade?.participants.some((s) => s.kind === 'triggeredTest' && s.actorId === H.id), 'upkeep Empoisonné doit REMONTER').toBeTruthy();
+    expect(get().pendingCascade?.participants.some((s) => s.kind === 'testDeclenche' && s.actorId === H.id), 'upkeep Empoisonné doit REMONTER').toBeTruthy();
   }
   // 2) Psychologie de fin de Round (Peur en Ligne de Vue, LDB 21) — gaté `humanControlled`.
   {
@@ -197,7 +197,7 @@ function behavioralFloor(): void {
     E.pos = { x: 11, y: 10 };
     E.causesPeur = 2; // H craint E (adjacent, LdV dégagée)
     openRoundEndCascade(get, set);
-    expect(get().pendingCascade?.participants.some((s) => s.kind === 'combatPsych' && s.participants?.some((p) => p.id === H.id)), 'Peur de fin de Round doit REMONTER').toBeTruthy();
+    expect(get().pendingCascade?.participants.some((s) => s.kind === 'psychologieDeCombat' && s.participants?.some((p) => p.id === H.id)), 'Peur de fin de Round doit REMONTER').toBeTruthy();
   }
   // 3) Exposition à la Corruption de fin de combat (LDB 19) — gaté `humanControlled`.
   {
@@ -205,7 +205,7 @@ function behavioralFloor(): void {
     const { H, E } = freshCombat();
     E.traits = [{ id: 'corruption', arg: 'mineure' }];
     openCombatEndCascade(get, set);
-    expect(get().pendingCascade?.participants.some((s) => s.kind === 'combatEndCorruption' && s.actorId === H.id), 'exposition Corruption doit REMONTER').toBeTruthy();
+    expect(get().pendingCascade?.participants.some((s) => s.kind === 'corruptionDeFinDeCombat' && s.actorId === H.id), 'exposition Corruption doit REMONTER').toBeTruthy();
   }
   // 4) Test déclenché (Mâchoires d'acier onGainCondition, LDB 10) — gaté `humanControlled`.
   {
@@ -213,7 +213,7 @@ function behavioralFloor(): void {
     const { H } = freshCombat();
     H.talents = [...(H.talents ?? []), { talentId: 'machoires-d-acier', times: 1 }];
     addCondition(H, COND.sonne, 2);
-    expect(get().pendingCascade?.participants.some((s) => s.kind === 'triggeredTest' && s.actorId === H.id), 'Test déclenché (Mâchoires) doit REMONTER').toBeTruthy();
+    expect(get().pendingCascade?.participants.some((s) => s.kind === 'testDeclenche' && s.actorId === H.id), 'Test déclenché (Mâchoires) doit REMONTER').toBeTruthy();
   }
   // 5) Défense réactive de mêlée (LDB 13) — gaté `defenseSurfaced` (cadence-agnostique).
   {
@@ -223,7 +223,7 @@ function behavioralFloor(): void {
     E.weapons = [buildWeapon({ label: 'Épée', attackKind: 'arme', damage: { plusBF: true, flat: 4 }, uid: 'epee' })];
     H.conditions = []; // pas Surpris → peut se défendre
     expect(maybeOpenDefense(get, set, E, H), 'attaque IA sur héros doit OUVRIR la défense').toBe(true);
-    expect(get().pendingCascade?.participants.some((s) => s.kind === 'defenseJet' && s.actorId === H.id), 'défense réactive doit REMONTER').toBeTruthy();
+    expect(get().pendingCascade?.participants.some((s) => s.kind === 'jetDeDefense' && s.actorId === H.id), 'défense réactive doit REMONTER').toBeTruthy();
   }
   // 6) Défense d'une manœuvre de ZONE (Souffle, LDB 85) — gaté `defenseSurfaced` (cadence-agnostique).
   {
@@ -235,7 +235,7 @@ function behavioralFloor(): void {
     H.characteristics.agilite = 1; H.skills = H.skills.filter((s) => s.id !== 'esquive'); H.conditions = [];
     set({ battle: { ...get().battle!, turn: get().battle!.order.indexOf(E.id), acted: true } });
     aiCreatureFreeAttacks(get, set, E);
-    expect(get().pendingCascade?.participants.some((s) => s.kind === 'maneuverDefense' && s.actorId === H.id), 'défense de manœuvre doit REMONTER').toBeTruthy();
+    expect(get().pendingCascade?.participants.some((s) => s.kind === 'defenseDeManoeuvre' && s.actorId === H.id), 'défense de manœuvre doit REMONTER').toBeTruthy();
   }
   // 7) Corruption au seuil (LDB 19 l.70) — gaté `tenuParUnHumain` (surface, cadence-agnostique, modale).
   {
@@ -278,7 +278,7 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
     addCondition(E, COND.sonne, 2); // onGainCondition → routeTriggeredTest → resolveFlowTest → humanControlled(E)=true
     const c = get().pendingCascade;
     expect(c, 'l’ennemi assigné doit ouvrir une cascade').toBeTruthy();
-    expect(c!.participants.some((s) => s.kind === 'triggeredTest' && s.actorId === E.id), 'le Test REMONTE au nom de l’ennemi assigné').toBe(true);
+    expect(c!.participants.some((s) => s.kind === 'testDeclenche' && s.actorId === E.id), 'le Test REMONTE au nom de l’ennemi assigné').toBe(true);
   });
 
   it('le même ennemi NON assigné → Test déclenché résolu INLINE (aucune cascade)', () => {
@@ -291,7 +291,7 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
     expect(get().pendingCascade, 'ennemi IA → jamais de cascade').toBeNull();
   });
 
-  it('la Maladresse d’un ENNEMI conduit (MJ) REMONTE en cascade via jetValider@attack (pas perdue — risque #2 du plan)', () => {
+  it('la Maladresse d’un ENNEMI conduit (MJ) REMONTE en cascade via jetValider@attaque (pas perdue — risque #2 du plan)', () => {
     const { H, E } = freshCombat();
     E.pos = { x: 10, y: 10 }; H.pos = { x: 11, y: 10 }; // adjacents (mêlée)
     E.weapons = [buildWeapon({ label: 'Épée', attackKind: 'arme', damage: { plusBF: true, flat: 4 }, uid: 'epee' })];
@@ -308,14 +308,14 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
     seedBattleRng(seed);
     const r = resolveAttack(get, E, H)!; // résultat de Maladresse RÉEL (pas fabriqué)
     set({ pendingAttack: { attackerId: E.id, targetId: H.id, location: r.res.location ?? null, result: r.res, victimId: r.victim?.id, weaponUid: E.weapons[0].uid } });
-    get().jetValider('attack');
-    // La défense du héros est SURFACÉE (#989) : `jetValider('attack')` interpose SA fenêtre — le héros défend,
+    get().jetValider('attaque');
+    // La défense du héros est SURFACÉE (#989) : `jetValider('attaque')` interpose SA fenêtre — le héros défend,
     // PUIS l'application reprend et la Maladresse de l'ennemi conduit remonte au nom de l'ennemi.
     expect(get().pendingDefense?.defenderId, 'la défense du héros s’interpose').toBe(H.id);
     get().jetLancer('defense');
     get().jetValider('defense');
     const c = get().pendingCascade;
-    expect(c?.participants.some((s) => s.jet === 'fumble' && s.actorId === E.id), 'la Maladresse de l’ennemi conduit REMONTE au nom de l’ennemi').toBe(true);
+    expect(c?.participants.some((s) => s.jet === 'maladresse' && s.actorId === E.id), 'la Maladresse de l’ennemi conduit REMONTE au nom de l’ennemi').toBe(true);
   });
 
   it('un HÉROS `aiControlled` → Test déclenché résolu INLINE (contrôleur ≠ humain)', () => {

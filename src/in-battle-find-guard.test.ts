@@ -7,7 +7,7 @@ import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVit
  * Garde-fou « recherche de combattant EN COMBAT par id » (#279, F1 du programme structurel #276).
  * `X.combatants.find((c) => c.id === …)` réinvente `inBattleId(battle, id)`
  * (`src/noyau/monde/combatants.ts`). Lot 1 a migré ~150 sites de `src/state` (find-par-id EXACT
- * uniquement — les prédicats COMPOSÉS, ex. `c.id === X && c.kind === 'hero'`, ne se réduisent pas
+ * uniquement — les prédicats COMPOSÉS, ex. `c.id === X && c.kind === 'heros'`, ne se réduisent pas
  * à un simple appel de primitive et RESTENT visibles ici, comptés).
  *
  * PÉRIMÈTRE ÉTENDU #410 (2026-07-13) : le scan couvre `SCAN_DIRS`
@@ -48,7 +48,6 @@ const BASELINES: Record<string, number> = {
   'src/ui/CharacterSheet.tsx': 1,
   'src/ui/DisengageModal.tsx': 2,
   'src/ui/DistraireModal.tsx': 2,
-  'src/ui/FateSaveModal.tsx': 1,
   'src/ui/FrenzyModal.tsx': 1,
   'src/ui/GrappleModal.tsx': 2,
   'src/ui/HandGateModal.tsx': 1,

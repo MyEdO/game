@@ -30,12 +30,12 @@ const SANS_PA: ArmourPoints = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0
 const chars = (end: number) => ({ 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: end, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
 
 // ── Coque : la bordée (MDG 14 l.128) ─────────────────────────────────────────────────────────────
-const gunnerPJ = (): Combatant => combattantDeTest({ id: 'gunner', label: 'Artilleur', kind: 'hero', characteristics: chars(30), wounds: blessuresDeBase(10), advantage: 0, conditions: [], fortune: 2, resilience: 1,
+const gunnerPJ = (): Combatant => combattantDeTest({ id: 'gunner', label: 'Artilleur', kind: 'heros', characteristics: chars(30), wounds: blessuresDeBase(10), advantage: 0, conditions: [], fortune: 2, resilience: 1,
   skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 30 }], talents: [], weapons: [],
   armour: { ...SANS_PA }, movement: 4, pos: { x: 5, y: 5 } });
-const battPoste = (): ShipPoste => ({ side: 'tribord', item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: ['gunner'] }) as unknown as ShipPoste;
-const firingShip = (): Combatant => combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 }, wounds: blessuresDeBase(60), conditions: [], weapons: [] });
-const coque = (end: number, blindage = 0): Combatant => combattantDeTest({ id: 'target', label: 'Caraque', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
+const battPoste = (): ShipPoste => ({ side: 'tribord', item: { uid: 'canon', label: 'Canon moyen', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: ['gunner'] }) as unknown as ShipPoste;
+const firingShip = (): Combatant => combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'pnj', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 }, wounds: blessuresDeBase(60), conditions: [], weapons: [] });
+const coque = (end: number, blindage = 0): Combatant => combattantDeTest({ id: 'target', label: 'Caraque', kind: 'ennemi', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
   characteristics: chars(end), wounds: blessuresDeBase(90), advantage: 0, conditions: [], weapons: [], armour: { ...SANS_PA, corps: blindage }, skills: [], talents: [], crewIds: [] });
 const mer = () => ({ id: 's', name: 's', dimensions: { w: 20, h: 20 }, ambiance: 'jour', metresPerTile: 10, layers: [{ z: 0, tiles: new Array(400).fill('eau') }], entities: [], dialogues: [], triggers: [], encounters: [] });
 /** Le d100 du canonnier : 44, un double réussi. */
@@ -81,11 +81,11 @@ function combat(seed = 7) {
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   for (const c of [H, E]) { c.items = (c.items ?? []).filter((i) => i.kind !== 'armor'); c.armour = { ...SANS_PA }; c.characteristics = { ...c.characteristics, endurance: 60 }; }
   return { H, E };
 }
@@ -125,7 +125,7 @@ describe('Critique d’un personnage ou d’une créature dont le coup est absor
 });
 
 // ── Structure : AA 10 l.114 ────────────────────────────────────────────────────────────────────
-const fleche: Weapon = { label: 'Flèche', type: 'ranged', damage: { plusBF: false, flat: 0 }, qualities: [] };
+const fleche: Weapon = { label: 'Flèche', type: 'distance', damage: { plusBF: false, flat: 0 }, qualities: [] };
 function mur(structure = 'mur-en-pierre', graine = 1): { S: Combatant; H: Combatant } {
   banc.getState().ensemencerLeTirage(graine);
   const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
@@ -134,10 +134,10 @@ function mur(structure = 'mur-en-pierre', graine = 1): { S: Combatant; H: Combat
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
   banc.getState().lancerLaScene(s);
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  return { S: b.combatants.find((c) => c.bodyShape === 'structure')!, H: b.combatants.find((c) => c.kind === 'hero')! };
+  return { S: b.combatants.find((c) => c.bodyShape === 'structure')!, H: b.combatants.find((c) => c.kind === 'heros')! };
 }
 
 describe('Critique d’une Structure (AA 10 l.114)', () => {
@@ -146,7 +146,7 @@ describe('Critique d’une Structure (AA 10 l.114)', () => {
     const { S, H } = mur();
     const woundsLost = woundsFromHit(fleche, S, 'corps', 30, 0, 1, undefined);
     expect(woundsLost).toBe(0);
-    const res: AttackResult = { hit: true, attackerRoll: 44, netSL: 2, damage: 30, woundsLost, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche' };
+    const res: AttackResult = { hit: true, attackerRoll: 44, netSL: 2, damage: 30, woundsLost, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche' };
     expect(() => applyAttackResult(banc.getState, banc.setState, H, S, fleche, res)).not.toThrow();
     const apres = banc.getState().battle!.combatants.find((c) => c.id === S.id)!;
     expect(apres.wounds.current).toBe(40);
@@ -156,7 +156,7 @@ describe('Critique d’une Structure (AA 10 l.114)', () => {
     const issue = (blessures: number) => {
       const { S, H } = mur('mur-en-pierres-seches', 2);
       const damage = Array.from({ length: 200 }, (_, d) => d).find((d) => woundsFromHit(fleche, S, 'corps', d, 0, 1, H.size) === blessures)!;
-      const res: AttackResult = { hit: true, attackerRoll: 44, netSL: 2, damage, woundsLost: blessures, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche' };
+      const res: AttackResult = { hit: true, attackerRoll: 44, netSL: 2, damage, woundsLost: blessures, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche' };
       applyAttackResult(banc.getState, banc.setState, H, S, fleche, res);
       draineCascade(banc.getState);
       return banc.getState().battle!.combatants.find((c) => c.id === S.id)!;

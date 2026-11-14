@@ -20,7 +20,7 @@ grow_vertical = 2
 theme_type_variation = &"Fenetre"
 
 [node name="Colonne" type="VBoxContainer" parent="."]
-theme_override_constants/separation = 8
+theme_type_variation = &"PileSerree"
 
 [node name="Titre" type="VBoxContainer" parent="Colonne"]
 theme = ExtResource("2_titre")
@@ -44,20 +44,20 @@ script = ExtResource("1_zone")
 source = "fenetre.etape"
 
 [node name="Armees" type="HBoxContainer" parent="Colonne"]
-theme_override_constants/separation = 24
+theme_type_variation = &"RangeeAeree"
 
 [node name="Zone" type="Node" parent="Colonne/Armees"]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
-ids = PackedStringArray("armee/ally", "armee/enemy")
+ids = PackedStringArray("armee/allie", "armee/ennemi")
 
 [node name="Defilement" type="ScrollContainer" parent="Colonne"]
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Scenes" type="VBoxContainer" parent="Colonne/Defilement"]
+theme_type_variation = &"Pile"
 size_flags_horizontal = 3
-theme_override_constants/separation = 12
 
 [node name="Zone" type="Node" parent="Colonne/Defilement/Scenes"]
 script = ExtResource("1_zone")
@@ -72,11 +72,11 @@ source = "fenetre.reglages"
 [node name="Pied" type="HSeparator" parent="Colonne"]
 
 [node name="Bas" type="HBoxContainer" parent="Colonne"]
-theme_override_constants/separation = 6
+theme_type_variation = &"RangeeSerree"
 
 [node name="Round" type="HBoxContainer" parent="Colonne/Bas"]
+theme_type_variation = &"RangeeSerree"
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
 
 [node name="Zone" type="Node" parent="Colonne/Bas/Round"]
 script = ExtResource("1_zone")
@@ -84,8 +84,8 @@ source = "fenetre.corps"
 ids = PackedStringArray("bataille/geste/0", "bataille/geste/1")
 
 [node name="Gestes" type="HBoxContainer" parent="Colonne/Bas"]
+theme_type_variation = &"RangeeSerree"
 alignment = 2
-theme_override_constants/separation = 6
 
 [node name="Zone" type="Node" parent="Colonne/Bas/Gestes"]
 script = ExtResource("1_zone")

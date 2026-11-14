@@ -8,7 +8,7 @@
  * connaitre la distance. »
  *
  * Ce que cette sonde mesure, côté web : la vue de surbrillance du champ (`combatHighlightsView`) peint
- * la portée du moteur, et Échap (registre clavier `intent-cancel`) dissout l'intention. Le reste du
+ * la portée du moteur, et Échap (registre clavier `intention-annuler`) dissout l'intention. Le reste du
  * patron se joue au banc du noyau (`src/noyau/intention-portee.hors-store.test.ts`).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -28,15 +28,15 @@ function setup() {
   useGame.setState({ party: [hero], screen: 'campaign' });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
-  useGame.getState().fenetreValider('roundStart');
+  useGame.getState().fenetreValider('debutDuRound');
   const b = useGame.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   let i = 0;
-  for (const e of b.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: 20 + i++, y: 20 };
+  for (const e of b.combatants.filter((c) => c.kind === 'ennemi')) e.pos = { x: 20 + i++, y: 20 };
   H.pos = { x: 6, y: 10 };
   const turn = b.order.indexOf(H.id);
   useGame.setState({ battle: { ...b, turn, action: null, acted: false, movementUsed: 0, movedPreAction: false, preview: null }, localIntent: null });
-  return { H, E: b.combatants.find((c) => c.kind === 'enemy')! };
+  return { H, E: b.combatants.find((c) => c.kind === 'ennemi')! };
 }
 
 const get = () => useGame.getState();
@@ -100,11 +100,11 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
 });
 
 describe('(b) annulation', () => {
-  it('Échap (registre clavier `intent-cancel`) dissout l’intention armée', () => {
+  it('Échap (registre clavier `intention-annuler`) dissout l’intention armée', () => {
     setup();
     get().armerLIntention('charge');
     expect(get().localIntent).not.toBeNull();
-    runBindingById('intent-cancel', get);
+    runBindingById('intention-annuler', get);
     expect(get().localIntent).toBeNull();
     expect(intentReach(get).size).toBe(0);
   });

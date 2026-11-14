@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { WaxSeal } from './WaxSeal';
+import type { RecapTone } from '../noyau/recapLine';
 
 /**
  * Carte-parchemin narrative (#371 LOT « moisson n°4 ») — texture `.tx-parchment` (ornaments.css)
@@ -14,7 +15,7 @@ export function ParchmentCard({ seal, title, tone, attenue, children }: {
    *  aucun tirage à montrer) — même primitive, jamais un sceau recodé à côté de la carte. */
   seal?: { label?: string; roll: number } | { kind: 'cire' };
   title?: ReactNode;
-  tone?: 'ok' | 'bad' | 'info';
+  tone?: RecapTone;
   /** Carte en RETRAIT (une lecture antérieure) : bord et ombre atténués, encre intacte. */
   attenue?: boolean;
   children: ReactNode;

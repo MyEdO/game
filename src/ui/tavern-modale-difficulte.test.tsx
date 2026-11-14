@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { useGame } from '../state/store';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { setRule, resetRule } from '../engine/policy';
 import { findTavernGameById } from '../engine/tavernGame';
 import { TavernGameModal } from './TavernGameModal';
@@ -18,12 +18,12 @@ const g = useGame.getState;
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
 beforeEach(() => {
   useGame.setState(useGame.getInitialState(), true);
-  setRule('tavern-games', true);
-  useGame.setState({ party: pregenParty(idsDeTest, PREGEN.soldat) });
+  setRule('jeux-de-taverne', true);
+  useGame.setState({ party: groupeDeScenario(idsDeTest, 'soldat') });
 });
 afterEach(() => {
   demonterRacines();
-  resetRule('tavern-games');
+  resetRule('jeux-de-taverne');
 });
 
 describe('Modale de taverne — la Difficulté annoncée suit la donnée', () => {

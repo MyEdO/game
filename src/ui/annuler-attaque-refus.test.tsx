@@ -21,14 +21,14 @@ beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REAC
 const epee = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 
 function ouvrir(pa: Record<string, unknown>): void {
-  const hero = combattantDeTest({ id: 'h', label: 'Héros', kind: 'hero', pos: { x: 0, y: 0 }, weapons: [epee] });
-  const ennemi = combattantDeTest({ id: 'e', label: 'Ennemi', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [epee] });
+  const hero = combattantDeTest({ id: 'h', label: 'Héros', kind: 'heros', pos: { x: 0, y: 0 }, weapons: [epee] });
+  const ennemi = combattantDeTest({ id: 'e', label: 'Ennemi', kind: 'ennemi', pos: { x: 1, y: 0 }, weapons: [epee] });
   const battle = { combatants: [hero, ennemi], order: ['h', 'e'], baseOrder: ['h', 'e'], turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState;
   useGame.setState({ battle, mode: 'battle', scene: testScene(), party: [hero], pendingAttack: null, pendingCascade: null, pendingDefense: null,
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, ownership: {} } });
   seedBattleRng(1);
-  openAttackCascade(useGame.getState, useGame.setState, { attackerId: 'h', targetId: 'e', location: null, result: null, weaponUid: 'sw', ...pa } as never, 'Attaque', 'action/attack');
+  openAttackCascade(useGame.getState, useGame.setState, { attackerId: 'h', targetId: 'e', location: null, result: null, weaponUid: 'sw', ...pa } as never, 'Attaque', 'action/attaquer');
 }
 
 function AttackModal() {

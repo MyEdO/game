@@ -8,7 +8,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../state/store';
 import { Modal } from '../Modal';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexGroupLabel, codexItemKey, type CodexCategory, type CodexGroup, type CodexItem } from '../../noyau/codex/registry';
+import {
+  CODEX,
+  CODEX_GROUPS,
+  categoriesIn,
+  categoryByKey,
+  clustersIn,
+  codexGroupLabel,
+  codexItemKey,
+  type CodexCategory,
+  type CodexGroup,
+  type CodexItem,
+} from '../../noyau/codex/registry';
 import type { CodexFocus } from '../../state/codexFocus';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import { filterItems, facetRows, type FacetSelection } from '../../noyau/codex/search';
@@ -145,7 +156,7 @@ export function CompendiumScreen({ focus: focusProp }: {
       <header className="codex-top">
         {/* Plein écran : « ← Retour » et le titre. En modale, le titre et la croix sont la tête du cadre. */}
         {!enModale && <button className="btn small" onClick={() => setScreen(back)}>← Retour</button>}
-        {!enModale && <h1 className="codex-h1"><Icon id="nav/compendium" size="sm" /> Compendium</h1>}
+        {!enModale && <h1 className="codex-h1"><Icon id="navigation/compendium" size="sm" /> Compendium</h1>}
         <div className="codex-groups">
           <Tabs
             label="Groupes du Codex"
@@ -161,7 +172,7 @@ export function CompendiumScreen({ focus: focusProp }: {
           onClick={() => { if (atelier) { setEditing(false); setCreating(false); } setAtelierMode(!atelier); }}
           title="Mode atelier : éditer les fiches du Compendium"
         >
-          <Icon id="ui/edit" size="sm" /> Atelier
+          <Icon id="interface/editer" size="sm" /> Atelier
         </button>
       </header>
 
@@ -251,10 +262,10 @@ export function CompendiumScreen({ focus: focusProp }: {
               <div className="codex-detail-actions">
                 {selected && (
                   <button className="btn small" onClick={() => setEditing((v) => !v)}>
-                    {editing ? '↩︎ Voir la fiche' : <><Icon id="ui/edit" size="sm" /> Éditer</>}
+                    {editing ? '↩︎ Voir la fiche' : <><Icon id="interface/editer" size="sm" /> Éditer</>}
                   </button>
                 )}
-                <button className="btn small" onClick={() => { setEditing(false); setCreating(true); }}><Icon id="ui/add" size="sm" /> Nouveau</button>
+                <button className="btn small" onClick={() => { setEditing(false); setCreating(true); }}><Icon id="interface/ajouter" size="sm" /> Nouveau</button>
               </div>
             )}
             {creating && atelier && cat && isEditableCategory(cat.key)
@@ -279,7 +290,7 @@ export function CodexOverlay() {
   const close = useGame((s) => s.closeCodexOverlay);
   if (!focus) return null;
   return (
-    <Modal title={<><Icon id="nav/compendium" size="sm" /> Compendium</>} kind="codex" taille="vaste" className="codex-modal" onClose={close} croix backdropClose>
+    <Modal title={<><Icon id="navigation/compendium" size="sm" /> Compendium</>} kind="codex" taille="vaste" className="codex-modal" onClose={close} croix backdropClose>
       <CompendiumScreen focus={focus} />
     </Modal>
   );

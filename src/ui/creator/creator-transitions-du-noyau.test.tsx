@@ -7,7 +7,16 @@ import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CharScreen, StarScreen, DetailsScreen } from './CharacterCreator';
-import { newDraft, withSpecies, withCareer, withCharMode, rollDraftChars, withStar, withStarTalentSpec, type CreatorDraft } from '../../noyau/creation/brouillon';
+import {
+  newDraft,
+  withSpecies,
+  withCareer,
+  withCharMode,
+  rollDraftChars,
+  withStar,
+  withStarTalentSpec,
+  type CreatorDraft,
+} from '../../noyau/creation/brouillon';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -46,7 +55,7 @@ afterEach(() => {
 
 describe('Caractéristiques réassignées', () => {
   it('donner le 4ᵉ jet à la Capacité de Combat rend le 1ᵉʳ à l’Endurance', () => {
-    monter(CharScreen, rollDraftChars(withCharMode(pret(), 'reassigned')));
+    monter(CharScreen, rollDraftChars(withCharMode(pret(), 'reassigne')));
     const selects = () => Array.from(container.querySelectorAll('select'));
     act(() => {
       const cc = selects()[0];

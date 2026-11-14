@@ -265,7 +265,7 @@ function CorpsDuMonde() {
   // PLACE ASSISE du meneur — résolue UNE fois pour tout l'écran (corps, chrome, caméra, POV). Le
   // point de RENDU du meneur en découle : son ancre s'il est attablé, sa case sinon. `partyPos`, lui,
   // ne bouge jamais : c'est la case d'abord, celle du brouillard, des chemins et des déclencheurs.
-  const partySeat = scene && partyLeader ? seatPoseOf(scene, { kind: 'party', rang: RANG_MENEUR }) : null;
+  const partySeat = scene && partyLeader ? seatPoseOf(scene, { kind: 'groupe', rang: RANG_MENEUR }) : null;
   const posDeRendu = partySeat ? { x: partySeat.anchor.x, y: partySeat.anchor.y, z: partyPos.z } : partyPos;
   const wnow = performance.now();
   // Position VISUELLE des jetons à un instant donné : le rendu la demande au sien, les boucles hors
@@ -326,14 +326,14 @@ function CorpsDuMonde() {
   const frameMonde = useMemo<WorldFrame>(
     () => (pov
       // L'ŒIL suit le CORPS : attablé, on regarde depuis sa place, pas depuis la case d'abord.
-      ? { mode: 'pov', partyPos: posDeRendu, facing: capPov ?? 'S', indoor, cid: partyLeader?.id ?? null, ...(partySeat && scene ? { eyeH: seatedEyeH(scene, partySeat, partyPos.z ?? 0) } : {}) }
+      ? { mode: 'subjectif', partyPos: posDeRendu, facing: capPov ?? 'S', indoor, cid: partyLeader?.id ?? null, ...(partySeat && scene ? { eyeH: seatedEyeH(scene, partySeat, partyPos.z ?? 0) } : {}) }
       : { mode: 'plateau', dims: dimsVue, camAt: camAtStable, yawAt: yawAtStable, zoom: zoomVue }),
     [pov, posDeRendu.x, posDeRendu.y, posDeRendu.z, capPov, indoor, partyLeader?.id, partySeat?.anchor.h, dimsVue, zoomVue, camAtStable, yawAtStable],
   );
   // ── BUILDERS (camera-free) : memos qui survivent aux rotations/projections ──────────────────────
   // Cases LOGIQUES des alliés — ce que la marche fait glisser, jamais ce qu'elle fait bouger.
   const allyBases = mode === 'battle' && battle
-    ? battle.combatants.filter((c) => c.kind === 'hero' && c.pos).map((c) => ({ id: c.id, x: c.pos!.x, y: c.pos!.y, z: c.pos!.z ?? 0 }))
+    ? battle.combatants.filter((c) => c.kind === 'heros' && c.pos).map((c) => ({ id: c.id, x: c.pos!.x, y: c.pos!.y, z: c.pos!.z ?? 0 }))
     : [{ id: partyLeader?.id ?? 'party', x: partyPos.x, y: partyPos.y, z: partyPos.z ?? 0 }];
   // Case ARRONDIE (grille) : la position VISUELLE glisse en continu (~60/s pendant la marche) mais la
   // case qu'elle OCCUPE (pièce/toit/prop) est un événement DISCRET — la clé ne change qu'au
@@ -535,7 +535,7 @@ function CorpsDuMonde() {
   // incantation (tooltip + gabarit ZdE), et détenteur du ciblage (`detenteurDuCiblage`).
   const hoverTracking =
     mode === 'battle' && !!battle && !battle.over &&
-    (((battle.action === null || battle.action === 'cast') && meneLActif) ||
+    (((battle.action === null || battle.action === 'incantation') && meneLActif) ||
       !!preemptAiming || // Tir rapide armé pendant la pause : on suit le survol (réticule + trait de visée) alors qu'il n'y a AUCUN actif
       cibleDetenue);
   // Le picking inverse la projection COMMISE : exacte à chaque commit du lacet (cran, départ, arrêt,

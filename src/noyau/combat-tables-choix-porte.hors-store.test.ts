@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import {
-  applyCoupCritiqueSec, applyAttackResult, applyMiscast, applyBladeTrap, startDisengage, STRUCTURE_CRIT_TABLE,
+  applyCoupCritiqueSec, instantaneAvantLeCoup, applyAttackResult, applyMiscast, applyBladeTrap, startDisengage, STRUCTURE_CRIT_TABLE,
 } from './combatFlow';
 import { displayStep, hostStep, tableStep } from './rollSeam';
 import { stepInteraction, tableStepPosee } from './cascade';
@@ -32,8 +32,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * LES TABLES, CHOIX et AFFICHAGES de combat PAR LA PORTE (#1262 V1 lot 5b) — Déviation, Piège-lame,
  * sévérité de Critique, Imparfaite/Colère, conséquence de Piège-lame, reprise de Fuite, Piétinement,
  * bascule de possession du Désengagement. Ce que ces tests verrouillent :
- *  - la CHARGE de l'applier voyage par la DÉCLARATION (`ChoiceSpec.deviation`/`bladeTrap`,
- *    `TableSpec.critSeverity`/`miscast`, `DisplaySpec.fleeMove`) : une charge perdue au mint rendrait
+ *  - la CHARGE de l'applier voyage par la DÉCLARATION (`ChoiceSpec.deviation`/`piegeALame`,
+ *    `TableSpec.critSeverity`/`incantationImparfaite`, `DisplaySpec.fuite`) : une charge perdue au mint rendrait
  *    l'étape muette au commit — l'applier ne trouverait plus de quoi appliquer ;
  *  - l'AFFICHAGE pur reste pur : `displayStep` ne peut PAS déclarer `reveal`/`table`/`options`
  *    (interdit au TYPE, cf. les `@ts-expect-error` ci-dessous) — une conséquence sans dé ne se rend
@@ -50,7 +50,7 @@ const hache: Weapon = { label: 'Hache', name: 'Hache', type: 'melee', damage: { 
 
 const critHit = (loc: HitLocation, woundsLost = 2): AttackResult => ({
   hit: true, attackerRoll: 44, netSL: 4, location: loc, critLocation: loc, damage: 6, woundsLost,
-  critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche',
+  critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche',
 } as unknown as AttackResult);
 
 const steps = (): CascadeStep[] => banc.getState().pendingCascade?.participants ?? [];
@@ -65,11 +65,11 @@ function combat(nb: number, seed = 7, invites: number[] = []) {
   banc.setState({ party: heros });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.filter((c) => c.kind === 'hero');
-  const E = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.filter((c) => c.kind === 'heros');
+  const E = b.combatants.filter((c) => c.kind === 'ennemi');
   // Les ids de héros sont ENGENDRÉS : la table de possession se compose après coup, sinon elle
   // désigne des combattants qui n'existent pas et le mode coop ne mesure plus rien.
   const ownership: Record<string, number> = {};
@@ -77,7 +77,7 @@ function combat(nb: number, seed = 7, invites: number[] = []) {
   banc.setState({
     battle: { ...b }, pendingCascade: null, suspendedCascades: [], pendingDisengage: null,
     pendingLogQueue: [],
-    net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: undefined, ownership },
+    net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership },
   } as never);
   return { H, E };
 }
@@ -89,7 +89,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     hero.armour = PA(3); // PA déviable partout : le choix Dévier/Subir s'offre quelle que soit la loc tirée
     hero.wounds = blessuresDeBase(40, 40, hero);
     seedBattleRng(5);
-    applyCoupCritiqueSec(banc.getState, banc.setState, hero, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, []);
+    applyCoupCritiqueSec(banc.getState, banc.setState, hero, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, [], E[0], instantaneAvantLeCoup(hero));
 
     const st = parKind('deviation')!;
     expect(st, 'le choix Dévier/Subir est une étape de la séquence').toBeTruthy();
@@ -108,7 +108,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     expect(ownsLocal(banc.getState(), hero.id), 'chez l’hôte, la décision n’est pas à lui').toBe(false);
   });
 
-  it('PIÈGE-LAME (Critique en parant) : options + charge `bladeTrap` + enjeu des deux voies, défaut « Critique »', () => {
+  it('PIÈGE-LAME (Critique en parant) : options + charge `piegeALame` + enjeu des deux voies, défaut « Critique »', () => {
     const { H, E } = combat(1, 7, [0]);
     const defenseur = H[0];
     const attaquant = E[0];
@@ -119,24 +119,24 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     // Test opposé PERDU par l'attaquant, avec un DOUBLE RÉUSSI du défenseur en PARADE (LDB 13 l.183).
     const res = {
       hit: false, attackerRoll: 61, netSL: -2, location: 'corps', damage: 0, woundsLost: 0, critical: false,
-      advantageTo: 'defender', defenderDefeated: false, log: 'paré',
+      advantageTo: 'defenseur', defenderDefeated: false, log: 'paré',
       attackerDetail: { roll: 61, target: 45, success: false, sl: -2, isDouble: false },
       defenderDetail: { roll: 22, target: 45, success: true, sl: 2, isDouble: true },
       parryWeapon: parade,
     } as unknown as AttackResult;
     applyAttackResult(banc.getState, banc.setState, attaquant, defenseur, lame, res);
 
-    const st = parKind('bladeTrap')!;
+    const st = parKind('piegeALame')!;
     expect(st, 'le choix Piéger/Critique est une étape de la séquence').toBeTruthy();
     expect(stepInteraction(st)).toBe('choix');
-    expect(st.options!.map((o) => o.key)).toEqual(['trap', 'crit']);
-    expect(st.defaultChoice, 'la résolution immédiate retient le Coup Critique').toBe('crit');
+    expect(st.options!.map((o) => o.key)).toEqual(['piege', 'critique']);
+    expect(st.defaultChoice, 'la résolution immédiate retient le Coup Critique').toBe('critique');
     expect(st.actorId).toBe(defenseur.id);
-    expect(st.bladeTrap, 'sans sa charge, l’applier n’a plus de Test opposé à router').toBeTruthy();
-    expect(st.bladeTrap!.defenderId).toBe(defenseur.id);
-    expect(st.bladeTrap!.attackerId).toBe(attaquant.id);
-    expect(st.bladeTrap!.parryWeaponUid).toBe('parade-1');
-    expect(st.bladeTrap!.defSL, 'le DR de la défense entre dans le Test opposé (LDB 62 l.280)').toBe(2);
+    expect(st.piegeLame, 'sans sa charge, l’applier n’a plus de Test opposé à router').toBeTruthy();
+    expect(st.piegeLame!.defenderId).toBe(defenseur.id);
+    expect(st.piegeLame!.attackerId).toBe(attaquant.id);
+    expect(st.piegeLame!.parryWeaponUid).toBe('parade-1');
+    expect(st.piegeLame!.defSL, 'le DR de la défense entre dans le Test opposé (LDB 62 l.280)').toBe(2);
     expect(st.outcome!.length, 'ce que chaque voie coûte est écrit sous les options').toBeGreaterThan(0);
     expect(modalOwnerOf(banc.getState()), 'COOP : le piégeur tranche SA parade').toBe(defenseur.id);
     expect(ownsLocal(banc.getState(), defenseur.id), 'chez l’hôte, la décision n’est pas à lui').toBe(false);
@@ -173,10 +173,10 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
     // en `'table'` puis, le dé tombé, en `'choix'`. Aucune autre combinaison de formes n'est ouverte.
     const st = tableStep({
       id: 'x', kind: 'deviation', label: fixtureText('Blessure critique'), actorId: 'a',
-      table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 } },
+      table: { tableId: STRUCTURE_CRIT_TABLE },
       options: [{ key: 'devier', label: fixtureText('Dévier') }, { key: 'subir', label: fixtureText('Subir') }],
       defaultChoice: 'devier',
-      stake: combatStakeRef('crit-severity'),
+      stake: combatStakeRef('critique-severite'),
     })!;
     expect(stepInteraction(st), 'tant que le dé n’est pas tombé, c’est un TIRAGE').toBe('table');
     expect(st.options!.map((o) => o.key), 'les voies sont RECOPIÉES par le mint').toEqual(['devier', 'subir']);
@@ -188,9 +188,9 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
     // Un `defaultChoice` étranger aux voies est REFUSÉ à la porte (calque de `choiceStep`).
     expect(() => tableStep({
       id: 'y', kind: 'deviation', label: fixtureText('Blessure critique'), actorId: 'a',
-      table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 } },
+      table: { tableId: STRUCTURE_CRIT_TABLE },
       options: [{ key: 'subir', label: fixtureText('Subir') }], defaultChoice: 'devier',
-      stake: combatStakeRef('crit-severity'),
+      stake: combatStakeRef('critique-severite'),
     })).toThrow(/defaultChoice/);
   });
 
@@ -202,11 +202,11 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
     seedBattleRng(3);
     applyMiscast(banc.getState, banc.setState, H[0], 'mineure');
 
-    const st = parKind('miscastTable')!;
+    const st = parKind('tableDIncantationImparfaite')!;
     expect(stepInteraction(st)).toBe('table');
     expect(st.table!.result).toBeUndefined();
-    expect(st.miscast, 'sans sa charge, l’applier n’a plus de contrecoup à résoudre').toBeTruthy();
-    expect(st.miscast!.severity).toBe('mineure');
+    expect(st.incantationImparfaite, 'sans sa charge, l’applier n’a plus de contrecoup à résoudre').toBeTruthy();
+    expect(st.incantationImparfaite!.severity).toBe('mineure');
     expect(st.actorId).toBe(H[0].id);
     expect(modalOwnerOf(banc.getState()), 'COOP : l’Imparfaite est celle du LANCEUR').toBe(H[0].id);
   });
@@ -221,7 +221,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     applyBladeTrap(banc.getState, banc.setState, defenseur,
       { attackerId: attaquant.id, weaponUid: 'lame-visee', defSL: 0, attackerSL: 0 }, 2);
 
-    const st = parKind('bladeTrapResult')!;
+    const st = parKind('issueDuPiegeALame')!;
     expect(st, 'la conséquence est EMPILÉE comme étape propre').toBeTruthy();
     expect(stepInteraction(st), 'zéro dé, zéro décision : l’étape s’acquitte').toBe('affichage');
     expect(st.outcome!.length).toBeGreaterThan(0);
@@ -232,7 +232,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     expect(live(attaquant.id).weapons.find((w) => w.uid === 'lame-visee'), 'la lame est arrachée').toBeUndefined();
   });
 
-  it('reprise de FUITE : étape d’affichage + charge `fleeMove` (la fuite attend le coup gratuit)', () => {
+  it('reprise de FUITE : étape d’affichage + charge `mouvementDeFuite` (la fuite attend le coup gratuit)', () => {
     // Duel de HÉROS : c'est la configuration où le Critique du coup dans le dos OFFRE la Déviation au
     // fuyard blindé — donc où l'application est SUSPENDUE et où la fuite a besoin de son étape de
     // reprise. Le fuyard est tenu par l'HÔTE : l'offre de Déviation d'`applyAttackResult` est gardée
@@ -252,21 +252,21 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
         moverId: fuyard.id, foeId: frappeur.id, canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
         fuir: {
           participants: [
-            { id: frappeur.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 33, netSL: 2, location: 'corps', critLocation: 'corps', damage: 6, woundsLost: 6, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'dans le dos' } },
+            { id: frappeur.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 33, netSL: 2, location: 'corps', critLocation: 'corps', damage: 6, woundsLost: 6, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'dans le dos' } },
             { id: fuyard.id, kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: { success: false, roll: 70, target: 50, sl: -1 } },
           ],
         },
       },
     } as never);
-    banc.getState().jetValider('flee');
+    banc.getState().jetValider('fuite');
 
-    const st = parKind('fleeMove')!;
+    const st = parKind('mouvementDeFuite')!;
     expect(st, 'la fuite a son étape de REPRISE').toBeTruthy();
     expect(stepInteraction(st)).toBe('affichage');
-    expect(st.fleeMove, 'sans sa charge, `completeFlee` ne saurait plus qui fuit ni combien de Brisé').toBeTruthy();
-    expect(st.fleeMove!.moverId).toBe(fuyard.id);
-    expect(st.fleeMove!.foeId).toBe(frappeur.id);
-    expect(st.fleeMove!.broken, 'Test `fuite` raté DR −1 → 1 + 1 États Brisés (LDB 15 l.66)').toBe(2);
+    expect(st.fuite, 'sans sa charge, `completeFlee` ne saurait plus qui fuit ni combien de Brisé').toBeTruthy();
+    expect(st.fuite!.moverId).toBe(fuyard.id);
+    expect(st.fuite!.foeId).toBe(frappeur.id);
+    expect(st.fuite!.broken, 'Test `fuite` raté DR −1 → 1 + 1 États Brisés (LDB 15 l.66)').toBe(2);
     expect(st.outcome?.map((l) => l.text), 'l’étape DIT la fuite qu’elle complète, jamais une fenêtre vide').toEqual([
       t('cs.fuiteReprise', { name: fuyard.label, foe: frappeur.label }),
       t('cs.panic', { name: fuyard.label, broken: 2 }),
@@ -281,9 +281,9 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
   it('le TYPE interdit à un affichage de se donner la forme d’un tirage ou d’une décision', () => {
     const base = { id: 'x', kind: 'x', label: 'x', actorId: 'a' };
     // @ts-expect-error une révélation est une FORME (dé + lignes de tirage), pas un affichage nu
-    expect(() => displayStep({ ...base, reveal: { kind: 'critical', title: 't', lines: [], subjectId: 'a' } })).not.toThrow();
+    expect(() => displayStep({ ...base, reveal: { kind: 'critique', title: 't', lines: [], subjectId: 'a' } })).not.toThrow();
     // @ts-expect-error un tirage à poser passe par `tableStep` (il a son cycle et son enjeu)
-    expect(() => displayStep({ ...base, table: { tableId: 't', spec: { n: 1, sides: 100 } } })).not.toThrow();
+    expect(() => displayStep({ ...base, table: { tableId: 't' } })).not.toThrow();
     // @ts-expect-error une décision passe par `choiceStep` (elle a un porteur et un défaut)
     expect(() => displayStep({ ...base, options: [{ key: 'k', label: 'l' }] })).not.toThrow();
   });
@@ -295,8 +295,8 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     // que ce qu'il déclare, et une contrebande de forme n'atteint jamais l'étape.
     const contrebande = {
       id: 'x', kind: 'x', label: 'x', actorId: 'a',
-      reveal: { kind: 'critical', title: 't', lines: [], subjectId: 'a' },
-      table: { tableId: 't', spec: { n: 1, sides: 100 } },
+      reveal: { kind: 'critique', title: 't', lines: [], subjectId: 'a' },
+      table: { tableId: 't' },
       options: [{ key: 'k', label: 'l' }],
       target: 40,
     } as never;
@@ -311,12 +311,12 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
     // L'ordre « pending puis mint » n'est pas une convention d'écriture : c'est ce que la garde
     // EXIGE. Figé ici sans dépendre du nombre de suites que l'inversion ferait rougir.
     banc.setState({ pendingAttack: null } as never);
-    expect(() => hostStep(banc.getState, { id: 'attack-jet', kind: 'attackJet', jet: 'attack', actorId: 'x' }))
+    expect(() => hostStep(banc.getState, { id: 'attack-jet', kind: 'jetDAttaque', jet: 'attaque', actorId: 'x' }))
       .toThrowError(/pendingAttack/);
     banc.setState({ pendingAttack: { attackerId: 'a', targetId: 'b', location: null, result: null } } as never);
-    const st = hostStep(banc.getState, { id: 'attack-jet', kind: 'attackJet', jet: 'attack', actorId: 'a' });
+    const st = hostStep(banc.getState, { id: 'attack-jet', kind: 'jetDAttaque', jet: 'attaque', actorId: 'a' });
     expect(st, 'le pending posé, le mint rend l’étape').toBeTruthy();
-    expect(st!.jet).toBe('attack');
+    expect(st!.jet).toBe('attaque');
     banc.setState({ pendingAttack: null } as never);
   });
 
@@ -339,8 +339,8 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
     cliquerSurLeCombattant(banc.getState, cible.id, { confirm: true });
 
     expect(banc.getState().pendingAttack?.freeKind, 'la donnée que la fenêtre rend').toBe('pietinement');
-    const st = steps().find((s) => s.jet === 'attack')!;
-    expect(st.kind).toBe('attackJet');
+    const st = steps().find((s) => s.jet === 'attaque')!;
+    expect(st.kind).toBe('jetDAttaque');
     expect(st.actorId).toBe(hero.id);
     expect(modalOwnerOf(banc.getState()), 'la fenêtre est celle du piétineur').toBe(hero.id);
     expect(seatOwns(banc.getState(), 1, hero.id), 'COOP : le siège invité ne tient PAS ce jet').toBe(false);
@@ -362,11 +362,11 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
 
     startDisengage(banc.getState, banc.setState, fuyard);
     const avant = { ...steps()[banc.getState().pendingCascade!.cursor] };
-    expect(avant.jet).toBe('disengage');
+    expect(avant.jet).toBe('desengagement');
     expect(avant.groupOwner, 'à l’ouverture, la fenêtre est celle du seul fuyard').toBeUndefined();
     expect(modalOwnerOf(banc.getState())).toBe(fuyard.id);
 
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
 
     const apres = steps()[banc.getState().pendingCascade!.cursor] as unknown as Record<string, unknown>;
     expect(apres.groupOwner, 'deux acteurs JOUÉS → moment partagé, posé par le mint').toBe(true);

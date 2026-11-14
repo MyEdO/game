@@ -5,7 +5,6 @@ import { spellMoney } from '../engine/money';
 import { t } from '../i18n';
 import { Coins } from './Coins';
 import { Icon } from './Icon';
-import type { IconIdInput } from '../data/icons';
 import { SpeakerBanner } from './SpeakerBanner';
 import { Prose } from './Prose';
 import { SpectatorChip } from './SpectatorChip';
@@ -27,7 +26,7 @@ export function DialogueBox() {
   const choisir = useGame((s) => s.fenetreChoisir);
   const net = useGame((s) => s.net);
   const meneur = nomDuSiege(net, groupDecisionSeat(useGame.getState()));
-  // SOURCE UNIQUE des réponses, partagée avec les touches `dialogue-choice-N` (`noyau/dialogue.ts`).
+  // SOURCE UNIQUE des réponses, partagée avec les touches `dialogue-reponse-N` (`noyau/dialogue.ts`).
   // Abonnement au RÉSULTAT, jamais à une liste d'entrées recopiée : la signature est une valeur
   // primitive, donc un changement d'état qui ne change aucune réponse ne re-rend rien.
   const signature = useGame((s) => JSON.stringify(reponsesDuNoeud(s)));
@@ -69,7 +68,7 @@ export function DialogueBox() {
             label={<>
               {/* Le RANG est l'ADRESSE de la réponse à l'écran — c'est lui que frappe la touche. */}
               <span className="dlg-choice-num">{num}</span>
-              {r.icon && <Icon id={r.icon as IconIdInput} size="sm" />}
+              {r.icon && <Icon id={r.icon} size="sm" />}
               {/* Tag et libellé : UN bloc de texte, qui reflue d'un tenant sous le numéro. */}
               <span className="dlg-choice-text">
                 {tag && <><span className="muted">{tag}</span>{' '}</>}

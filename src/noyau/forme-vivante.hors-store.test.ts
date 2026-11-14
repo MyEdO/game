@@ -51,11 +51,11 @@ describe('parseProject — forme vivante', () => {
   it('les neuf textes locaux et leurs provenances traversent export et parse', () => {
     const sc = scene({ desc: 'Réplique maison.' });
     sc.startMessage = { texte: 'Introduction dynamique : ' + sc.id, adapteDe: ADAPTE };
-    sc.triggers[0].flow = { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'setObjective', id: 'objectif', ...MATERIALISE } },
-      { kind: 'do', effect: { type: 'grantFavor', level: 'mineure', owedTo: 'Créancier', ...MATERIALISE } },
-      { kind: 'test', test: { skill: { id: 'escalade' }, difficulty: 'intermediaire', stake: { authored: 'Enjeu.', adapteDe: ADAPTE } }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
-      { kind: 'choice', prompt: 'Entrer ?', adapteDe: ADAPTE, yes: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'narrative', text: 'Narration.', adapteDe: ADAPTE }] } } },
+    sc.triggers[0].flow = { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'setObjective', id: 'objectif', ...MATERIALISE } },
+      { kind: 'effet', effet: { type: 'grantFavor', level: 'mineure', owedTo: 'Créancier', ...MATERIALISE } },
+      { kind: 'test', test: { skill: { id: 'escalade' }, difficulty: 'intermediaire', stake: { authored: 'Enjeu.', adapteDe: ADAPTE } }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
+      { kind: 'choix', invite: 'Entrer ?', adapteDe: ADAPTE, oui: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'narrative', text: 'Narration.', adapteDe: ADAPTE }] } } },
     ] };
     const recu = { ...projet(sc), narratif: { ...emptyNarratif(), ouverture: { titre: 'Titre', pitch: 'Pitch.', sousTitre: { texte: 'Ouverture.', adapteDe: ADAPTE } }, cloture: { titre: 'Fin', sousTitre: { texte: 'Clôture.', adapteDe: ADAPTE }, when: { kind: 'flag', expr: 'fin' } } }, worldMap: { ...emptyWorldMap('carte-test'), places: [{ id: 'a', label: 'A', scene: { id: 's1' }, pos: { x: 10, y: 10 } }, { id: 'b', label: 'B', scene: { id: 's1' }, pos: { x: 20, y: 10 } }], routes: [{ id: 'route', a: { id: 'a' }, b: { id: 'b' }, km: 1, modes: ['pied'], when: { kind: 'flag', expr: 'pont' }, refus: { texte: 'Pont fermé.', adapteDe: ADAPTE } }] } };
     const lu = parseProject(recu);
@@ -63,12 +63,12 @@ describe('parseProject — forme vivante', () => {
     expect(disque.scenes[0].startMessage).toEqual(sc.startMessage);
     expect(disque.narratif).toEqual(recu.narratif);
     expect(disque.worldMap.routes[0].refus).toEqual(recu.worldMap.routes[0].refus);
-    expect(disque.scenes[0].triggers[0].flow.steps.slice(0, 2).map((n: { effect: Record<string, unknown> }) => n.effect)).toEqual([
+    expect(disque.scenes[0].triggers[0].flow.etapes.slice(0, 2).map((n: { effet: Record<string, unknown> }) => n.effet)).toEqual([
       { type: 'setObjective', id: 'objectif', descRef: DESC_REF },
       { type: 'grantFavor', level: 'mineure', owedTo: 'Créancier', descRef: DESC_REF },
     ]);
     const materialise = structuredClone(disque);
-    for (const n of materialise.scenes[0].triggers[0].flow.steps.slice(0, 2)) n.effect.desc = TEXTE;
+    for (const n of materialise.scenes[0].triggers[0].flow.etapes.slice(0, 2)) n.effet.desc = TEXTE;
     expect(parseProject(materialise).scenes[0].triggers[0].flow).toEqual(sc.triggers[0].flow);
   });
   it('T1 : nœud et journal MATÉRIALISÉS acceptés, `desc` intact', () => {

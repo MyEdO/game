@@ -19,9 +19,9 @@ const VICTORY_REVEAL_MS = 950;
 
 /**
  * Écran de VICTOIRE plein écran (demande utilisateur) : récapitulatif de fin de combat — XP gagnée, or
- * récupéré, ennemis vaincus, et butin d'ÉQUIPEMENT assignable à un héros (`fenetreChoisir('victory', 'ligne', …)` applique
+ * récupéré, ennemis vaincus, et butin d'ÉQUIPEMENT assignable à un héros (`fenetreChoisir('victoire', 'ligne', …)` applique
  * le `giveTrapping` de la rencontre sur le portrait choisi, qualités préservées).
- * « Continuer » revient à l'exploration. Ne s'affiche que sur `battle.over === 'victory'`.
+ * « Continuer » revient à l'exploration. Ne s'affiche que sur `battle.over === 'victoire'`.
  * COOP : écran SYNCHRONISÉ — chacun n'attribue le butin qu'à SES héros ; « Continuer » = ✓ de son
  * siège (portraits + ✓), l'hôte ferme à l'unanimité (spec §4bis).
  */
@@ -33,11 +33,11 @@ export function VictoryScreen() {
   const choisir = useGame((s) => s.fenetreChoisir);
   const evaluerLObjet = useGame((s) => s.evaluerLObjet);
   const fermer = useGame((s) => s.fenetreFermer);
-  const dismiss = () => fermer('victory');
+  const dismiss = () => fermer('victoire');
   const state = useGame();
-  // Tenue du coup fatal : on diffère l'apparition de l'écran d'un beat après `over:'victory'` (la scène, avec
+  // Tenue du coup fatal : on diffère l'apparition de l'écran d'un beat après `over:'victoire'` (la scène, avec
   // l'ennemi à terre, reste visible dessous). Les hooks restent AVANT tout early-return (règles des Hooks).
-  const overVictory = battle?.over === 'victory';
+  const overVictory = battle?.over === 'victoire';
   const [revealed, setRevealed] = useState(false);
   useEffect(() => {
     if (!overVictory) { setRevealed(false); return; }
@@ -47,11 +47,11 @@ export function VictoryScreen() {
   const online = net.mode !== 'local';
   const ready = pv?.readyBySeat ?? {};
   // COUCHE BLOQUANTE tant que l'écran est là : [Continuer] VALIDE la victoire (attribution du butin,
-  // le siège marqué prêt en coop, `fenetreFermer('victory')` au quorum) — un congédiement est GRATUIT par contrat
+  // le siège marqué prêt en coop, `fenetreFermer('victoire')` au quorum) — un congédiement est GRATUIT par contrat
   // (`dismissStack`), il n'engage rien, donc il ne peut pas porter ce geste. Échap est donc inerte :
   // `Modal` sans `onClose` pose une couche bloquante. Même doctrine qu'une sortie d'interlude qui
   // commet (keybindings.ts:313-315).
-  if (!battle || battle.over !== 'victory' || !revealed) return null;
+  if (!battle || battle.over !== 'victoire' || !revealed) return null;
   const assignable = party.filter((h) => ownsLocal(state, h.id)); // solo : tous (#1262)
 
   const xp = pv?.xp ?? 0;
@@ -64,14 +64,14 @@ export function VictoryScreen() {
   if (gear.length > 0) {
     sections.push({
       id: 'equipement',
-      titre: <><Icon id="resource/gold-purse" size="sm" /> Équipement — qui l'emporte&nbsp;?</>,
+      titre: <><Icon id="ressource/bourse" size="sm" /> Équipement — qui l'emporte&nbsp;?</>,
       enAvant: true,
       children: (
         <GearAssignList
           gear={gear}
           assignable={assignable}
-          onAssign={(uid, heroId) => choisir('victory', 'ligne', uid, heroId)}
-          onAppraise={net.mode === 'guest' ? undefined : evaluerLObjet}
+          onAssign={(uid, heroId) => choisir('victoire', 'ligne', uid, heroId)}
+          onAppraise={net.mode === 'invite' ? undefined : evaluerLObjet}
         />
       ),
     });
@@ -85,7 +85,7 @@ export function VictoryScreen() {
         <Row gap="sm">
           {defeated.map((d) => {
             const done = (pv?.harvested ?? []).includes(d.creatureId ?? '');
-            const canHarvest = (done || aDepecer.includes(d.creatureId ?? '')) && net.mode !== 'guest';
+            const canHarvest = (done || aDepecer.includes(d.creatureId ?? '')) && net.mode !== 'invite';
             return (
               <Row key={d.label} className="chip">
                 {d.label}{d.count > 1 ? ` ×${d.count}` : ''}
@@ -97,7 +97,7 @@ export function VictoryScreen() {
                     enabled={!done}
                     reason={t('eff.dejaDepecee')}
                     descOfferte="Récolter les pièces de monstre (Test de Savoir (Bêtes))"
-                    onClick={() => choisir('victory', 'depecer', d.creatureId!)}
+                    onClick={() => choisir('victoire', 'depecer', d.creatureId!)}
                     primary={false}
                     btnClassName="btn-ghost"
                   />
@@ -119,7 +119,7 @@ export function VictoryScreen() {
         <>
           <ReadyRow ready={ready} />
           <button className="btn btn-primary" disabled={!!ready[net.mySeat]} onClick={dismiss}>
-            {ready[net.mySeat] ? <><Icon id="ui/wait" size="sm" /> En attente des autres…</> : 'Continuer'}
+            {ready[net.mySeat] ? <><Icon id="interface/attendre" size="sm" /> En attente des autres…</> : 'Continuer'}
           </button>
         </>
       ) : (

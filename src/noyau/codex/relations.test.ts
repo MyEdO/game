@@ -2,7 +2,20 @@ import { describe, it, expect } from 'vitest';
 import { reverseGroups, bookContents, labelIndex, tokenizeLinks } from './relations';
 import { setDataset } from '../../data/overrides';
 import { replier } from '../../lib/ordre.mjs';
-import { creatures, traits, gods, trappings, skills, talents, careerLevels, etats, locations, characteristics, findCareerById, findLocationById } from '../../data';
+import {
+  creatures,
+  traits,
+  gods,
+  trappings,
+  skills,
+  talents,
+  careerLevels,
+  etats,
+  locations,
+  characteristics,
+  findCareerById,
+  findLocationById,
+} from '../../data';
 
 /** Un groupe inverse de catégorie `cat` contient-il `label` ? */
 const groupHas = (groups: ReturnType<typeof reverseGroups>, cat: string, label: string): boolean =>

@@ -15,7 +15,7 @@ function initiativeTitle(c: Combatant): string {
   const base = baseWithTraits(c, 'initiative');
   const talent = talentInitiativeBonus(c);
   const talentPart = talent ? ` + Instinctif(${talent})` : '';
-  switch (rule('combat-init-method')) {
+  switch (rule('combat-methode-initiative')) {
     case 'fixed-i':
       return `Init(${base})${talentPart} = ${c.initiative}`;
     case 'roll-bi':
@@ -63,7 +63,7 @@ export interface InitiativeStripProps {
   preemptArmedId?: string | null;
   /** LDB 10. */
   onPreempt?: (id: string) => void;
-  /** INTERRUPTEUR de la demande de pause au prochain Round (entrée `raise-hand` du registre) : il vit
+  /** INTERRUPTEUR de la demande de pause au prochain Round (entrée `pause` du registre) : il vit
    *  ICI parce que c'est l'ENCHAÎNEMENT DES ROUNDS qu'il suspend, pas une action du tour. État
    *  RÉPLIQUÉ (`battle.handRaisedBy` voyage dans le snapshot) : chaque siège voit qui demande la
    *  pause, et chacun ne retire que la SIENNE (bascule gratuite). ABSENT = le siège n'est pas dessiné :
@@ -101,7 +101,7 @@ export function InitiativeStrip(p: InitiativeStripProps) {
               {p.turn === -1 && c.initiative !== undefined && (
                 <span className={`is-score${strikesLast(c.weapons) ? ' lente' : ''}`}
                   title={strikesLast(c.weapons) ? `${initiativeTitle(c)} — arme Lente : frappe en dernier` : initiativeTitle(c)}>
-                  {c.initiative}{strikesLast(c.weapons) ? <> <Icon id="ui/wait" size={10} /></> : null}
+                  {c.initiative}{strikesLast(c.weapons) ? <> <Icon id="interface/attendre" size={10} /></> : null}
                 </span>
               )}
               <CharFrame
@@ -123,7 +123,7 @@ export function InitiativeStrip(p: InitiativeStripProps) {
                     ? `${c.label} agit en premier ce Round — gratuit (arme Rapide)`
                     : `Dépense 1 point de Chance pour qu'${c.label} agisse en premier ce Round`}
                 >
-                  <Icon id="ui/preempt" size="sm" />{p.freeFirstIds?.includes(id) ? null : c.fortune ?? 0}
+                  <Icon id="interface/interruption" size="sm" />{p.freeFirstIds?.includes(id) ? null : c.fortune ?? 0}
                 </button>
               )}
               {p.canPreemptIds?.includes(id) && (
@@ -135,7 +135,7 @@ export function InitiativeStrip(p: InitiativeStripProps) {
                     ? `${c.label} — choisissez une cible pour son Tir rapide (re-cliquez pour annuler)`
                     : `Tir rapide : ${c.label} tire hors de son tour (épuise son Action et son Mouvement)`}
                 >
-                  <Icon id="action/shoot" size="sm" />
+                  <Icon id="action/tirer" size="sm" />
                 </button>
               )}
             </div>
@@ -146,9 +146,9 @@ export function InitiativeStrip(p: InitiativeStripProps) {
           c'est CE marqueur que lit la garde d'atteignabilité des actions (la frise est une surface au
           même titre que la console). */}
       {p.hand && (
-        <span className="is-hand" data-action="raise-hand" data-raised={p.hand.raised ? '' : undefined}>
+        <span className="is-hand" data-action="pause" data-raised={p.hand.raised ? '' : undefined}>
           <GatedAction
-            id="raise-hand"
+            id="pause"
             label={p.hand.label}
             ariaLabel={p.hand.ariaLabel}
             enabled={!p.hand.reason}

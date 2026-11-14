@@ -76,7 +76,7 @@ describe('DialogueBox — résolution du locuteur PAR ID (#669)', () => {
   });
 
   it('locuteur POSÉ à l’éditeur sans libellé : le nom de son entité (#1463 S3), tiré pour un anonyme (#3712)', () => {
-    const pose = placeEntity(scene, { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 2, y: 2 });
+    const pose = placeEntity(scene, { mode: 'entite', kind: 'personnage', ref: 'humain' }, { x: 2, y: 2 });
     expect(pose.scene.entities.find((e) => e.id === pose.id)).not.toHaveProperty('label');
     useGame.setState({ scene: pose.scene, flags: {}, gameTime: campaignStart(), party: [], dialogue: { dialogue: dlg, nodeId: 'n1', speakerId: pose.id, session: 1 } });
     container = document.createElement('div');
@@ -97,7 +97,7 @@ describe('DialogueBox — résolution du locuteur PAR ID (#669)', () => {
 const dlgTeste: Dialogue = {
   id: 'dlg-tag', start: { id: 'n1' },
   nodes: [{ id: 'n1', desc: 'La cage est là.', choices: [
-    { id: 'crocheter-cage', label: 'Crocheter la cage.', flow: { kind: 'test', test: { skill: { id: 'crochetage' }, difficulty: 'accessible', label: 'Crocheter la cage du garde-manger' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } } },
+    { id: 'crocheter-cage', label: 'Crocheter la cage.', flow: { kind: 'test', test: { skill: { id: 'crochetage' }, difficulty: 'accessible', label: 'Crocheter la cage du garde-manger' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } } },
     { id: 'renoncer', label: 'Renoncer.' },
   ] }],
 } as Dialogue;

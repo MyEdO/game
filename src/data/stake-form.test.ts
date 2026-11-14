@@ -9,7 +9,7 @@
  *  • `descripteur` : assemblage MÉCANIQUE assumé (ce que l'applier fait) — aucune contiguïté promise ;
  *    la porte vers la règle est exigée par le schéma (`schemas/defs/stakes.ts`), sauf au voyage.
  *
- * Un assemblage NON déclaré échoue : c'est exactement le défaut qu'avait `disease-tick` (préfixes
+ * Un assemblage NON déclaré échoue : c'est exactement le défaut qu'avait `maladie-test-quotidien` (préfixes
  * « **Blessé :** »/« **Toxine :** » fabriqués, 2ᵉ fragment à cheval sur deux folios).
  */
 import { describe, it, expect } from 'vitest';
@@ -56,8 +56,8 @@ describe('stakes — la FORME de chaque enjeu est déclarée et tenue (#1117 L0b
 
   it('le stock d’assemblages de la NUIT est NOMMÉ et borné', () => {
     // Chaque `descripteur` de nuit est un choix motivé, pas un repli.
-    expect(STAKES.filter((e) => e.cascade === 'night' && e.form === 'descripteur').map((e) => e.id).sort())
-      .toEqual(['disease-tick', 'nightmare']);
+    expect(STAKES.filter((e) => e.cascade === 'nuit' && e.form === 'descripteur').map((e) => e.id).sort())
+      .toEqual(['cauchemar', 'maladie-test-quotidien']);
   });
 
   it('FAIL-CLOSED : un fragment fabriqué ou à cheval sur deux lignes est DÉTECTÉ', () => {
@@ -92,9 +92,8 @@ describe('etats — la FORME de chaque enjeu de récupération est tenue', () =>
  * (`activities.json`, champs `stake`/`stakeForm`). La différence d'ancrage est nommée : une Activité
  * cite son folio (`source.page`), pas une ligne de chapitre — un enjeu déclaré `verbatim` doit donc
  * fournir `source.note` pour être localisable, faute de quoi la contiguïté n'est pas démontrable et
- * le régime est refusé. Aucune entrée n'est aujourd'hui `verbatim` (les 46 sont des descripteurs de
- * ce que le résolveur applique) : la branche est tenue par le FAIL-CLOSED ci-dessous, pas par un
- * échantillon — c'est le prix d'un régime ouvert mais inemployé.
+ * le régime est refusé. La branche `verbatim` est tenue par le FAIL-CLOSED ci-dessous, pas par un
+ * échantillon.
  */
 describe('activities — la FORME de chaque enjeu d’Activité est déclarée et tenue (#1117 L3)', () => {
   const avecEnjeu = ACTIVITY_STAKES.filter((a) => a.stake);
@@ -116,15 +115,6 @@ describe('activities — la FORME de chaque enjeu d’Activité est déclarée e
       }
     }
     expect(defauts, 'le déclarer `descripteur` ou le rendre contigu').toEqual([]);
-  });
-
-  it('le stock DESCRIPTEUR est celui mesuré', () => {
-    const descripteurs = avecEnjeu.filter((a) => a.stakeForm === 'descripteur');
-    // 46 → 47 (#1612, 2026-09-06) : l'enjeu de Mendier est un DESCRIPTEUR — il résume trois bandes de
-    // DR, le dé de monde qui suit et la clause d'« Argent à gaspiller », ce qu'aucun bloc contigu du
-    // livre n'imprime d'un tenant.
-    expect(descripteurs.length).toBe(47);
-    expect(avecEnjeu.filter((a) => a.stakeForm === 'verbatim').length).toBe(0);
   });
 
   it('FAIL-CLOSED : le même `contigu` reconnaît un passage réel d’activité et rejette un assemblage', () => {

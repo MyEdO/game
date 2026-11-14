@@ -1,41 +1,33 @@
 // LE SERVEUR DE L'EXPORT WEB DE L'HÔTE GODOT (#2928, #3086, `pont/CONTRAT.md`, section « Atelier 3D ») : l'export servi
-// en statique sur un port libre de la boucle locale, et, à côté de la page, le dossier des modèles : `GET /modeles/listage.json`
-// rend ses manifestes validés contre leur GLB et les os qui en portent les meshes rigides (`listage`), relus à chaque appel,
-// et `GET /modeles/<fichier>` chacun de ses fichiers, en `Cache-Control: no-store`. Avec `--depot`, l'éditeur de carte y
+// en statique sur un port libre de la boucle locale (sans export, rien d'autre que les modèles et le dépôt : le pont
+// vivant, `vivant.mjs`), et, à côté de la page, le dossier des modèles : `GET /modeles/listage.json`
+// rend ses manifestes validés contre leur GLB et les os qui en portent les meshes rigides (`listage`), calculés au lancement
+// puis à nouveau quand un fichier du dossier change (`listageDuDossier`), et `GET /modeles/<fichier>` chacun de ses fichiers, en `Cache-Control: no-store` ; tout autre chemin est un fichier de
+// l'export, ses planches comprises (`planches/`, `planches.mjs`, #3935). Avec `--statique`, l'export seul, tel que le site le publie : ses
+// modèles déposés en scènes fabriquées et ses planches (`construire.mjs --export`, #3946). Avec `--depot`, l'éditeur de carte y
 // lit et y écrit les projets manuscrits du dépôt (`pont/CONTRAT.md`, section « Éditeur ») : `GET /depot/<id>` et
-// `PUT /depot/<id>`. Une requête défaillante reçoit son statut d'erreur, le serveur continue.
+// `PUT /depot/<id>`, et y lit le `Source/` du dépôt : `GET /source/manifest.json` et `GET /source/<livre>/<NNN>.md`
+// (`servirLaSource`, `scripts/source/prose-source-plugin.mjs`). Une requête défaillante reçoit son statut d'erreur, le
+// serveur continue.
 //
-//   node hotes/godot/servir.mjs --web <dossier de l'export> [--modeles <dossier>] [--depot]
-import { createServer } from 'node:http'
-import { createReadStream, fstatSync, readFileSync } from 'node:fs'
-import { basename, extname, join, resolve, sep } from 'node:path'
+//   node hotes/godot/servir.mjs --web <dossier de l'export> [--modeles <dossier> | --statique] [--depot]
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { basename, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs'
 import { materialiser } from '../../scripts/source/resoudre.mjs'
+import { servirLaSource } from '../../scripts/source/prose-source-plugin.mjs'
 import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
 import { DOSSIER_DES_MODELES, LISTAGE, listage } from './listage.mjs'
+import { ecouter, rendre, TYPES } from './statique.mjs'
 
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm', '.png': 'image/png', '.json': 'application/json; charset=utf-8', '.glb': 'model/gltf-binary' }
-
-/** Le chemin `rel` sous `racine`, ou `null` s'il en sort. */
-function sous(racine, rel) {
-  const chemin = resolve(racine, rel)
-  return chemin.startsWith(racine + sep) ? chemin : null
-}
-
-/** Le fichier `chemin` en 200, ou 404 s'il ne s'ouvre pas en fichier ; une lecture coupée ferme la réponse. */
-function envoyer(res, chemin, entetes = {}) {
-  const flux = createReadStream(chemin)
-  flux.on('error', () => (res.headersSent ? res.destroy() : res.writeHead(404).end()))
-  flux.on('open', (fd) => {
-    const etat = fstatSync(fd)
-    if (!etat.isFile()) return void (flux.destroy(), res.writeHead(404).end())
-    res.writeHead(200, { 'Content-Type': TYPES[extname(chemin)] ?? 'application/octet-stream', 'Content-Length': etat.size, ...entetes })
-    flux.pipe(res)
-  })
-}
+/** Le WebGL 2 de l'export, en logiciel dans un Chrome sans GPU, sans l'avertissement de repli. */
+export const WEBGL_LOGICIEL = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
+/** La borne d'une lecture de la page : l'export Web de Godot tient le fil de la page le temps de chaque image, et celle
+ *  qui lit un GLB ou dessine en WebGL logiciel une vue à deviceScaleFactor 2 dure plus que le défaut du kit. */
+export const FIL_DE_LA_PAGE_MS = 120000
 
 /** La racine du dépôt où ce serveur vit, que `--depot` sert. */
 const RACINE_DU_DEPOT = fileURLToPath(new URL('../..', import.meta.url))
@@ -44,7 +36,7 @@ const CORPS_MAX = 32 * 1024 * 1024
 
 /**
  * Le dépôt est servi par `servir.mjs` lancé avec `--depot` (`npm run godot:editeur` exporte le projet dans `dist/godot`
- * puis l'y sert) : `GET depot/<id>` rend le projet manuscrit d'id `id` (`PROJETS_MANUSCRITS`,
+ * puis l'y sert), ou par le pont vivant (`vivant.mjs`, `npm run godot:ouvrir`) : `GET depot/<id>` rend le projet manuscrit d'id `id` (`PROJETS_MANUSCRITS`,
  * `scripts/guards/lib/projetsLivres.mjs`), prose adressée matérialisée (`lireProjetLivre`), en `no-store` ; `PUT
  * depot/<id>` écrit son corps à la place du fichier, 200, ou le refuse en 422 avec sa raison s'il n'est pas du JSON,
  * pas ce projet, ou pas en forme dépôt (`materialiser` le refuse). Un projet généré (`scripts/<dossier>/generate.mjs`)
@@ -110,31 +102,54 @@ function servirLeDepot(req, res, depot, id) {
   }
 }
 
-/** Sert `web` en statique et le dossier `modeles` sous `/modeles/`, sur un port libre de 127.0.0.1 ; avec `depot`, la
- *  racine d'un dépôt, ses projets manuscrits sous `/depot/` (`servirLeDepot`). */
-export function servir({ web, modeles = DOSSIER_DES_MODELES, depot }) {
-  const racine = resolve(web)
+/** L'empreinte du dossier `dossier` : le nom, la taille et la date de chacun de ses fichiers ; le code de l'erreur s'il ne
+ *  se lit pas. */
+function empreinteDu(dossier) {
+  try {
+    return readdirSync(dossier).map((f) => { const s = statSync(join(dossier, f)); return `${f}:${s.size}:${s.mtimeMs}` }).join('\n')
+  } catch (e) {
+    return String(e.code ?? e.message)
+  }
+}
+
+/** Le texte du listage du dossier vivant `dossier` (`listage`), calculé tout de suite, puis à la lecture qui trouve
+ *  changée l'empreinte du dossier (`empreinteDu`) : sa validation lit chaque GLB, plusieurs secondes pendant lesquelles
+ *  le serveur, sur un seul fil, ne répond à rien, et une page qui attend plus que le silence du pont (`SILENCE_S`,
+ *  `projet/scripts/pont.gd`) n'a plus de modèles. */
+function listageDuDossier(dossier) {
+  let empreinte = empreinteDu(dossier)
+  let texte = JSON.stringify(listage(dossier))
+  return () => {
+    const lue = empreinteDu(dossier)
+    if (lue !== empreinte) [empreinte, texte] = [lue, JSON.stringify(listage(dossier))]
+    return texte
+  }
+}
+
+/** Sert le dossier `modeles` sous `/modeles/`, sur un port libre de 127.0.0.1 ; avec `web`, l'export en statique,
+ *  ses `planches/` comprises, sans lui 404 hors de `/modeles/`, `/depot/` et `/source/` ; avec `statique`, `web`
+ *  seul, ses `modeles/` déposés compris ; avec `depot`, la racine
+ *  d'un dépôt, ses projets manuscrits sous `/depot/` (`servirLeDepot`), et le `Source/` de ce dépôt-ci sous `/source/`,
+ *  son index des chapitres et chacun de ses chapitres (`servirLaSource`), jamais sans lui. */
+export function servir({ web, modeles = DOSSIER_DES_MODELES, depot, statique = false }) {
+  const racine = web && resolve(web)
   const dossier = resolve(modeles)
-  const serveur = createServer((req, res) => {
-    let rel
-    try {
-      rel = decodeURIComponent(new URL(req.url, 'http://local').pathname).replace(/^\/+/, '')
-    } catch {
-      return void res.writeHead(400).end()
-    }
+  const lireLeListage = !statique && listageDuDossier(dossier)
+  return ecouter((req, res, rel) => {
     if (depot && rel.startsWith('depot/')) return servirLeDepot(req, res, resolve(depot), rel.slice('depot/'.length))
-    if (rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(listage(dossier)))
-    const [base, chemin, entetes] = rel.startsWith('modeles/') ? [dossier, rel.slice('modeles/'.length), { 'Cache-Control': 'no-store' }] : [racine, rel || 'index.html', {}]
-    const fichier = sous(base, chemin)
-    if (!fichier) return void res.writeHead(404).end()
-    envoyer(res, fichier, entetes)
+    if (depot && rel.startsWith('source/')) return void (servirLaSource(`/${rel}`, res) || res.writeHead(404).end())
+    if (lireLeListage && rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(lireLeListage())
+    const sansCache = { 'Cache-Control': 'no-store' }
+    const [base, chemin, entetes] = statique ? [racine, rel || 'index.html', {}]
+      : rel.startsWith('modeles/') ? [dossier, rel.slice('modeles/'.length), sansCache]
+      : [racine, rel || 'index.html', {}]
+    rendre(res, base, chemin, entetes)
   })
-  return new Promise((ok) => serveur.listen(0, '127.0.0.1', () => ok({ url: `http://127.0.0.1:${serveur.address().port}/`, fermer: () => serveur.close() })))
 }
 
 if (import.meta.main) {
-  const { values: o } = parseArgs({ options: { web: { type: 'string' }, modeles: { type: 'string' }, depot: { type: 'boolean' } } })
-  if (!o.web) throw new Error('usage : node hotes/godot/servir.mjs --web <dossier de l’export> [--modeles <dossier>] [--depot]')
-  const { url } = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(o.depot && { depot: RACINE_DU_DEPOT }) })
+  const { values: o } = parseArgs({ options: { web: { type: 'string' }, modeles: { type: 'string' }, statique: { type: 'boolean' }, depot: { type: 'boolean' } } })
+  if (!o.web || (o.modeles && o.statique)) throw new Error('usage : node hotes/godot/servir.mjs --web <dossier de l’export> [--modeles <dossier> | --statique] [--depot]')
+  const { url } = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(o.statique && { statique: true }), ...(o.depot && { depot: RACINE_DU_DEPOT }) })
   console.log(url)
 }

@@ -25,6 +25,7 @@
  * Un camp tenu par un joueur y ouvre une étape de CHOIX ; un camp PNJ tranche par sa POLITIQUE
  * (`PursuitPolicy`, valeur maison éditable à l'Effet `startPursuit` — règle 7, jamais un MJ implicite).
  */
+import { nomDe } from '../engine/nom';
 import type { Get, Set } from './flowTypes';
 import { rollTest } from '../engine/tests';
 import { effectiveMovement } from '../engine/encumbrance';
@@ -106,7 +107,7 @@ export const PURSUIT_POLICY_DEFAUT: Required<Pick<PursuitPolicy, 'sacrifice' | '
 /** Le camp d'un rattrapage, gelé le temps des décisions (l.94) : les DR TOTAUX de la manche par camp et
  *  la Distance d'AVANT la manche — le recalcul (d) rejoue l'étape 3 sur cette même Distance. */
 interface PursuitPris {
-  laggard: PursuitRunner & { side: 'party' | 'foes' };
+  laggard: PursuitRunner & { side: 'groupe' | 'adversaires' };
   fleeing: PursuitRunner[];
   pursuers: PursuitRunner[];
   distanceAvant: number;
@@ -142,8 +143,8 @@ declare module './sequenceContract' {
   }
 }
 
-const PURSUIT_MOVE_KIND = 'pursuitMove';
-const PURSUIT_CHOICE_KIND = 'pursuitChoice';
+const PURSUIT_MOVE_KIND = 'mouvementDePoursuite';
+const PURSUIT_CHOICE_KIND = 'choixDePoursuite';
 
 /** Difficulté du Test de Mouvement d'une manche : LDB 15 l.92 n'en pose aucune — le Test est nu. */
 const PURSUIT_DIFFICULTY: Difficulty = 'intermediaire';
@@ -160,7 +161,7 @@ const distanceDite = (p: PursuitPayload): PlayerText => t('pursuit.titreDistance
 /** La poursuite EN COURS (charge utile de la séquence), ou `null` — lecture partagée avec l'UI. */
 export function pursuitOf(s: Jeu): PursuitPayload | null {
   const seq = s.sequence as PursuitSequence | null;
-  return seq && seq.def === PURSUIT_SEQUENCE ? seq.payload : null;
+  return seq && seq.definition === PURSUIT_SEQUENCE ? seq.chargeUtile : null;
 }
 
 /** Héros du groupe ENCORE en course (vivants, dans la rencontre, non retirés par une décision de l.94). */
@@ -206,9 +207,9 @@ function pursuitRoundBand(get: Get, p: PursuitPayload, label: string): BuiltCasc
     // L'id est une ADRESSE (rang dans la séquence) ; la MANCHE, elle, voyage sur `meta.round` (#1852).
     id: idDansLaSequence(get, 'pursuit'),
     kind: PURSUIT_MOVE_KIND,
-    icon: 'travel/foot',
+    icon: 'voyage/a-pied',
     label: stepManche(p.manche, dataLabel(label)),
-    stake: combatStakeRef('pursuit-move', { values: { distance: p.distance, evasion: p.escapeAt } }),
+    stake: combatStakeRef('poursuite-manche', { values: { distance: p.distance, evasion: p.escapeAt } }),
     meta: { round: p.manche },
   }, participants);
 }
@@ -220,7 +221,7 @@ function resolvePursuitFoe(f: PursuitFoeRef, index: number, skillId: string): Pu
   const id = f.id ?? `foe-${index + 1}`;
   const ref = f.ref;
   const fiche = spawnEnemy('id' in ref ? { ref: ref.id } : { statblock: ref.custom }, id, { x: 0, y: 0 });
-  return { id, label: fiche.label, movement: effectiveMovement(fiche), skill: testValue(fiche, { skill: { id: skillId } }) };
+  return { id, label: nomDe(fiche), movement: effectiveMovement(fiche), skill: testValue(fiche, { skill: { id: skillId } }) };
 }
 
 /** Démarre une poursuite terrestre (Effet `startPursuit`) : instancie le socle puis ouvre la 1ʳᵉ manche. */
@@ -230,7 +231,7 @@ export function startGroundPursuit(get: Get, set: Set, spec: PursuitSpec): void 
   // Distance de départ bornée dans la course (1 .. escapeAt−1) — hors bornes = déjà rattrapé/semé.
   const distance = Math.max(1, Math.min(escapeAt - 1, Math.round(spec.distance)));
   const partyRole = spec.partyRole ?? 'fleeing';
-  const payload: PursuitPayload = {
+  const chargeUtile: PursuitPayload = {
     partyRole, distance, escapeAt, skill: spec.skill,
     foes: spec.foes.map((f, i) => resolvePursuitFoe(f, i, spec.skill)),
     ...(spec.encounter ? { encounter: spec.encounter } : {}),
@@ -242,18 +243,18 @@ export function startGroundPursuit(get: Get, set: Set, spec: PursuitSpec): void 
     distance, evasion: escapeAt,
   }));
   startSequence(get, set, {
-    def: PURSUIT_SEQUENCE,
+    definition: PURSUIT_SEQUENCE,
     // FORMULES DE SCORE EN DONNÉE (l.93) : les poursuivis comptent leur DR le plus BAS, les
     // poursuivants le plus HAUT — le socle applique, ce module ne compare pas à la main.
-    params: { score: { fleeing: 'min', pursuers: 'max' } },
-    payload,
+    parametres: { score: { fleeing: 'min', pursuers: 'max' } },
+    chargeUtile,
   });
 }
 
 /** Ouvre une manche : la fabrique DÉCLARÉE au socle. Une manche de COURSE est une bande ; une manche de
  *  DÉCISION (l.94) est une étape de choix portée par un héros du camp qui décide. */
 function pursuitRoundFactory(get: Get, seq: PursuitSequence): SequenceRound<PursuitPayload> | undefined {
-  const p = seq.payload;
+  const p = seq.chargeUtile;
   const label = byId('skill', p.skill)?.label ?? p.skill;
   if (p.phase === 'course') {
     // Le rang de MANCHE DE COURSE avance ici et repart avec la charge utile (le socle l'applique) : les
@@ -263,16 +264,16 @@ function pursuitRoundFactory(get: Get, seq: PursuitSequence): SequenceRound<Purs
     if (!band) return undefined;
     return {
       title: stepPrecision(t('pursuit.titreManche', { n: manche }), distanceDite(p)),
-      icon: 'travel/foot',
+      icon: 'voyage/a-pied',
       steps: [band],
-      payload: { ...p, manche },
+      chargeUtile: { ...p, manche },
     };
   }
   const pris = p.pris;
   if (!pris) return undefined;
   const step = p.phase === 'choix-fuyards' ? choixFuyards(get, p, pris) : choixPoursuivants(get, p, pris);
   if (!step) return undefined;
-  return { title: stepPrecision(t('pursuit.titreRattrapes'), distanceDite(p)), icon: 'travel/foot', steps: [step] };
+  return { title: stepPrecision(t('pursuit.titreRattrapes'), distanceDite(p)), icon: 'voyage/a-pied', steps: [step] };
 }
 
 /** DÉCISION (a) des poursuivis, l.94 — portée par un coureur du camp AUTRE que le retardataire (on ne
@@ -284,7 +285,7 @@ function choixFuyards(get: Get, p: PursuitPayload, pris: PursuitPris): BuiltCasc
   return choiceStep({
     id: `pursuit-${p.manche}-fuyards`,
     kind: PURSUIT_CHOICE_KIND,
-    icon: 'travel/foot',
+    icon: 'voyage/a-pied',
     label: t('step.pursuitRattrapes'),
     actorId: porteur.id,
     // LDB 15 l.94
@@ -303,7 +304,7 @@ function choixPoursuivants(get: Get, p: PursuitPayload, pris: PursuitPris): Buil
   return choiceStep({
     id: `pursuit-${p.manche}-poursuivants`,
     kind: PURSUIT_CHOICE_KIND,
-    icon: 'travel/foot',
+    icon: 'voyage/a-pied',
     label: stepDetail(t('step.abandonne', { who: pris.laggard.label }), t('step.quiSarrete')),
     actorId: camp[0].id,
     // LDB 15 l.94
@@ -374,8 +375,8 @@ function campsOf(get: Get, p: PursuitPayload, done: MancheClose, rng: RNG, log: 
 /** Variation de Distance d'une manche (l.93) — par les FORMULES DE SCORE déclarées en donnée. */
 function deltaOf(seq: PursuitSequence, camps: { fleeing: PursuitRunner[]; pursuers: PursuitRunner[] }): number {
   const totaux = (rs: PursuitRunner[]) => rs.map((r) => r.total);
-  return sequenceScoreOf(seq.params.score?.fleeing, totaux(camps.fleeing))
-    - sequenceScoreOf(seq.params.score?.pursuers, totaux(camps.pursuers));
+  return sequenceScoreOf(seq.parametres.score?.fleeing, totaux(camps.fleeing))
+    - sequenceScoreOf(seq.parametres.score?.pursuers, totaux(camps.pursuers));
 }
 
 /** Le camp des poursuivis est-il celui du GROUPE (donc décidé par un joueur) ? */
@@ -383,13 +384,13 @@ const fuyardsSontLeGroupe = (p: PursuitPayload) => p.partyRole === 'fleeing';
 
 /** RÉDUCTEUR DE CLÔTURE (enregistré sous `pursuit`) : lit les rangées closes, roule les adversaires,
  *  actualise la Distance (l.93), juge l'issue (l.94) et route les décisions de rattrapage. Ne mute rien. */
-function pursuitClose(ctx: { get: Get; seq: PursuitSequence; done: MancheClose; rng: RNG }): SequenceVerdict<PursuitPayload> {
-  const { get, seq, done, rng } = ctx;
-  const p = seq.payload;
-  if (p.phase !== 'course') return closeDecision(seq, done);
+function pursuitClose(ctx: { get: Get; seq: PursuitSequence; mancheClose: MancheClose; rng: RNG }): SequenceVerdict<PursuitPayload> {
+  const { get, seq, mancheClose, rng } = ctx;
+  const p = seq.chargeUtile;
+  if (p.phase !== 'course') return closeDecision(seq, mancheClose);
 
   const log: string[] = [];
-  const camps = campsOf(get, p, done, rng, log);
+  const camps = campsOf(get, p, mancheClose, rng, log);
   const delta = deltaOf(seq, camps);
   const distance = p.distance + delta;
   log.push(t('pursuit.round', {
@@ -397,22 +398,22 @@ function pursuitClose(ctx: { get: Get; seq: PursuitSequence; done: MancheClose; 
     delta: `${delta >= 0 ? '+' : ''}${delta}`, distance, evasion: p.escapeAt,
   }));
   const outcome = pursuitOutcome(distance, p.escapeAt);
-  if (outcome === 'ongoing') return { go: 'continue', payload: { ...p, distance, phase: 'course' }, log };
-  if (outcome === 'escaped') return { go: 'end', outcome: 'escaped', payload: { ...p, distance }, log };
+  if (outcome === 'ongoing') return { suite: 'poursuivre', chargeUtile: { ...p, distance, phase: 'course' }, log };
+  if (outcome === 'escaped') return { suite: 'fin', issue: 'escaped', chargeUtile: { ...p, distance }, log };
 
   // RATTRAPÉS (l.94) — le camp des poursuivis décide d'abord.
   const laggard = pursuitLaggard(camps.fleeing);
   const apres: PursuitPayload = { ...p, distance, pris: laggard ? {
-    laggard: { ...laggard, side: fuyardsSontLeGroupe(p) ? 'party' : 'foes' },
+    laggard: { ...laggard, side: fuyardsSontLeGroupe(p) ? 'groupe' : 'adversaires' },
     fleeing: camps.fleeing, pursuers: camps.pursuers, distanceAvant: p.distance,
   } : undefined };
-  if (!laggard) return { go: 'end', outcome: 'caught', payload: apres, log };
-  if (fuyardsSontLeGroupe(p)) return { go: 'continue', payload: { ...apres, phase: 'choix-fuyards' }, log };
+  if (!laggard) return { suite: 'fin', issue: 'caught', chargeUtile: apres, log };
+  if (fuyardsSontLeGroupe(p)) return { suite: 'poursuivre', chargeUtile: { ...apres, phase: 'choix-fuyards' }, log };
   // Camp PNJ : sa POLITIQUE tranche (a), puis on enchaîne sur (b)/(c).
   if (npcSacrificeChoice(p.policy, laggard, camps.fleeing) === 'affronter') {
     // LDB 15 l.94
     log.push(t('pursuit.stand', { who: laggard.label }));
-    return { go: 'end', outcome: 'caught', payload: apres, log };
+    return { suite: 'fin', issue: 'caught', chargeUtile: apres, log };
   }
   // LDB 15 l.94
   log.push(t('pursuit.sacrifice', { who: laggard.label }));
@@ -423,7 +424,7 @@ function pursuitClose(ctx: { get: Get; seq: PursuitSequence; done: MancheClose; 
  *  POLITIQUE sinon. Puis le recalcul (d). */
 function decisionPoursuivants(seq: PursuitSequence, p: PursuitPayload, log: string[]): SequenceVerdict<PursuitPayload> {
   const pris = p.pris!;
-  if (!fuyardsSontLeGroupe(p)) return { go: 'continue', payload: p, log }; // le GROUPE poursuit : il choisit
+  if (!fuyardsSontLeGroupe(p)) return { suite: 'poursuivre', chargeUtile: p, log }; // le GROUPE poursuit : il choisit
   const choix = npcPursuerChoice(p.policy, pris.laggard, pris.pursuers);
   if (choix.go === 'ignorer') {
     // LDB 15 l.94
@@ -437,16 +438,16 @@ function decisionPoursuivants(seq: PursuitSequence, p: PursuitPayload, log: stri
 
 /** Clôture d'une fenêtre de DÉCISION : la voie choisie par le joueur. */
 function closeDecision(seq: PursuitSequence, done: MancheClose): SequenceVerdict<PursuitPayload> {
-  const p = seq.payload;
+  const p = seq.chargeUtile;
   const pris = p.pris;
   const chosen = done.participants.find((s) => s.kind === PURSUIT_CHOICE_KIND)?.chosen;
-  if (!pris) return { go: 'end', outcome: 'caught' };
+  if (!pris) return { suite: 'fin', issue: 'caught' };
   const log: string[] = [];
   if (p.phase === 'choix-fuyards') {
     if (chosen !== 'sacrifier') {
       // LDB 15 l.94
       log.push(t('pursuit.partyStand'));
-      return { go: 'end', outcome: 'caught', payload: p, log };
+      return { suite: 'fin', issue: 'caught', chargeUtile: p, log };
     }
     // LDB 15 l.94
     log.push(t('pursuit.partySacrifice', { who: pris.laggard.label }));
@@ -486,9 +487,9 @@ function recalcul(seq: PursuitSequence, p: PursuitPayload, arreteId: string | un
   const retires = [...p.retires, ...sortis.filter((r) => estHeros(p, r)).map((r) => r.id)];
   const foes = p.foes.filter((f) => !sortis.some((r) => r.id === (f.id ?? f.label)));
   const suite: PursuitPayload = { ...p, distance, retires, foes, phase: 'course', pris: undefined };
-  if (pursuitOutcome(distance, p.escapeAt) === 'caught') return { go: 'end', outcome: 'caught', payload: suite, log };
-  if (pursuitOutcome(distance, p.escapeAt) === 'escaped') return { go: 'end', outcome: 'escaped', payload: suite, log };
-  return { go: 'continue', payload: suite, log };
+  if (pursuitOutcome(distance, p.escapeAt) === 'caught') return { suite: 'fin', issue: 'caught', chargeUtile: suite, log };
+  if (pursuitOutcome(distance, p.escapeAt) === 'escaped') return { suite: 'fin', issue: 'escaped', chargeUtile: suite, log };
+  return { suite: 'poursuivre', chargeUtile: suite, log };
 }
 
 /** Un coureur du camp du GROUPE (donc un héros) ? Les adversaires vivent dans `foes`. */
@@ -498,7 +499,7 @@ function estHeros(p: PursuitPayload, r: PursuitRunner): boolean {
 
 /** DÉNOUEMENT de la poursuite (l.94) — l'état est déjà retiré : on ne fait que raconter et enchaîner. */
 function pursuitSettle(get: Get, _set: Set, seq: PursuitSequence, outcome: string): void {
-  const p = seq.payload;
+  const p = seq.chargeUtile;
   if (outcome === 'escaped') {
     // LDB 15 l.94
     get().ecrireAuJournal(t(p.partyRole === 'fleeing' ? 'pursuit.escaped' : 'pursuit.preyEscaped'));
@@ -546,15 +547,15 @@ export const TABLES = {
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   sequences: {
     [PURSUIT_SEQUENCE]: {
-      round: (get, seq) => pursuitRoundFactory(get, seq),
-      close: (ctx) => pursuitClose(ctx),
-      settle: (get, set, seq, outcome) => pursuitSettle(get, set, seq, outcome),
+      manche: (get, seq) => pursuitRoundFactory(get, seq),
+      clore: (ctx) => pursuitClose(ctx),
+      denouer: (get, set, seq, outcome) => pursuitSettle(get, set, seq, outcome),
       // `pursuitSettle` joue l'issue `abandon`.
       abandon: (seq) => ({
-        label: t(seq.payload.partyRole === 'pursuing' ? 'pursuit.abandonPoursuite' : 'pursuit.abandonFuite'),
-        title: t(seq.payload.partyRole === 'pursuing' ? 'pursuit.abandonPoursuiteTitre'
-          : seq.payload.encounter ? 'pursuit.abandonFuiteCombatTitre' : 'pursuit.abandonFuiteTitre'),
-        outcome: 'abandon',
+        label: t(seq.chargeUtile.partyRole === 'pursuing' ? 'pursuit.abandonPoursuite' : 'pursuit.abandonFuite'),
+        title: t(seq.chargeUtile.partyRole === 'pursuing' ? 'pursuit.abandonPoursuiteTitre'
+          : seq.chargeUtile.encounter ? 'pursuit.abandonFuiteCombatTitre' : 'pursuit.abandonFuiteTitre'),
+        issue: 'abandon',
       }),
     },
   },

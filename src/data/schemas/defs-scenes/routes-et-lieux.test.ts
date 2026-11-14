@@ -6,7 +6,9 @@
  * liste, et portée locale.
  */
 import { describe, expect, it } from 'vitest';
-import { worldMapSchema } from './worldmap';
+import { routePerilSchema, worldMapSchema } from './worldmap';
+import { DIALOGUES_DE_LA_SCENE } from './communs';
+import { idsDeLaPortee } from '../grammaire/collection-cle';
 import { mesureDuParse } from '../grammaire/ref';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import areneProjet from '../../../scenes/arene/arene-projet.json';
@@ -118,5 +120,27 @@ describe('#2968 L13 — routes et lieux de la carte désignés par `ref(portee)`
 
   it('un id local n’entre dans aucun espace de l’INDEX DES IDS', () => {
     expect(Object.keys(IDS_PAR_ESPACE).filter((c) => /worldMap|places|routes/.test(c))).toEqual([]);
+  });
+});
+
+describe('`routePerilSchema` — un péril de route n’a pas de scène : il en ouvre les portées VIDES (`ouvrirPortees`, source `\'vide\'`)', () => {
+  const avecPeril = (effet: unknown) => carte((c) => Object.assign(c.routes[LIBRE], { perils: [{ label: 'Péripétie', chancePct: 10, effects: [effet] }] }));
+  const ouvrir = { type: 'startDialogue', dialogue: { id: 'dlg' } };
+  const differe = (effet: unknown) => ({ type: 'delayedEffect', afterMinutes: 5, flow: { kind: 'effet', effet } });
+  const journal = { type: 'journal', desc: 'Un colporteur partage la route.' };
+
+  it('un `startDialogue` est absent du catalogue, au premier niveau du péril comme sous un `delayedEffect`', () => {
+    expect(messages(avecPeril(ouvrir))).toEqual([`routes.${LIBRE}.perils.0.effects.0.dialogue.id « dlg » est absent du catalogue des dialogues de la scène (collection « dialogues » du document).`]);
+    expect(messages(avecPeril(differe(ouvrir)))).toEqual([`routes.${LIBRE}.perils.0.effects.0.flow.effet.dialogue.id « dlg » est absent du catalogue des dialogues de la scène (collection « dialogues » du document).`]);
+  });
+
+  it('un effet sans référence locale parse, au premier niveau comme sous un `delayedEffect`', () => {
+    expect(worldMapSchema.safeParse(avecPeril(journal)).success).toBe(true);
+    expect(worldMapSchema.safeParse(avecPeril(differe(journal))).success).toBe(true);
+  });
+
+  it('l’offre d’une référence locale dans un péril est vide, par la lecture du parse (`idsDeLaPortee`)', () => {
+    const peril = { label: 'Péripétie', chancePct: 10, effects: [ouvrir] };
+    expect(idsDeLaPortee(routePerilSchema, peril, DIALOGUES_DE_LA_SCENE)).toEqual([]);
   });
 });

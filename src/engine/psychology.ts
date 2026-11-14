@@ -4,6 +4,7 @@
  * P1 = Peur (Indice) / Terreur (Indice). Cf. spec :
  * docs/superpowers/specs/2026-06-07-psychologie-design.md
  */
+import type { IconId } from '../data/icons';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, type EffectSource, type TerreurSubie } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { t } from '../i18n';
@@ -12,7 +13,8 @@ import { rollTest, extendedTestStep, jetPose, type JetPose } from './tests';
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
 import { testValue } from './skills';
-import { findGroupById, findPsychologyById, psychologyLabel, refLabel, talents } from '../data';
+import { dataLabel, findGroupById, findPsychologyById, psychologyLabel, refLabel, talents } from '../data';
+import { nomDe } from './nom';
 import type { Relatif } from '../data/schemas/defs/groups';
 import { isEngagedWith } from './engagement';
 import type { PlayerText } from '../i18n/playerText';
@@ -81,9 +83,9 @@ export interface PsychAffliction {
 /** Libellés (icône + nom) des Traits psy ciblés — DÉRIVÉS de `psychology.json` (SOURCE UNIQUE, comme
  *  `etats.json` pour les États — même champ `icon` du registre `<Icon>`, id `famille/nom`). Partagé
  *  par les modales psy (combat + rencontre) et la narration. */
-export const cibleLabel = (type: string): { icon: string; label: string } | undefined => {
+export const cibleLabel = (type: string): { icon?: IconId; label: string } | undefined => {
   const p = findPsychologyById(type);
-  return p?.cibles ? { icon: p.icon ?? '', label: p.label } : undefined;
+  return p?.cibles ? { ...(p.icon ? { icon: p.icon } : {}), label: p.label } : undefined;
 };
 
 /** Ce qui peut déclencher, ou subir, un Trait psy ciblé : un combattant, l'interlocuteur d'un Test social
@@ -102,8 +104,8 @@ export const sourceCombattant = (c: Combatant): SourceEnVue => ({ genre: 'combat
 /** L'id de la source, que portent `PsychAffliction.sourceId` et les déclenchements. */
 export const idDeSource = (s: SourceEnVue): string => (s.genre === 'combattant' ? s.c.id : s.id);
 
-/** Le libellé de donnée de la source. */
-export const libelleDeSource = (s: SourceEnVue): string => (s.genre === 'combattant' ? s.c.label : s.label);
+/** Le nom de la source dans un texte joueur : un combattant par `nomDe` (#4017), une étiquette par son libellé de donnée. */
+export const libelleDeSource = (s: SourceEnVue): PlayerText => (s.genre === 'combattant' ? nomDe(s.c) : dataLabel(s.label));
 
 /** `self` a-t-il déjà affronté la source `id` : une affliction de régime Peur ou Terreur la porte, Peur héritée
  *  d'une Terreur comprise ? Une affliction ciblée née de la même source n'en dit rien. LDB 21 l.25, l.54 ; #3045 */
@@ -133,7 +135,7 @@ const RELATIFS: Record<Relatif, (s: SourcePsy, porteur: Combatant, lecture: Lect
   // Q15 A, #3045
   etrangersAuPorteur: (s, porteur, lecture) =>
     !lieAuPorteur(s, porteur, lecture) &&
-    (s.genre !== 'combattant' || relationBetween({ id: s.c.id, camp: campOf(s.c) }, { id: porteur.id, camp: campOf(porteur) }) === 'opponent'),
+    (s.genre !== 'combattant' || relationBetween({ id: s.c.id, camp: campOf(s.c) }, { id: porteur.id, camp: campOf(porteur) }) === 'adversaire'),
   // LDB 19 l.152 ; EDOC 12 l.219 ; #3045
   autresRacesQueLePorteur: (s, porteur, lecture) => {
     const siennes = racesDe(groupesDe(porteur));
@@ -186,7 +188,7 @@ export function agressifEnvers(
 ): boolean {
   if (source.id === cible.id) return false;
   const [cs, cc] = [campOf(source), campOf(cible)];
-  if (cs !== 'neutral' && cc !== 'neutral' && relationBetween({ id: source.id, camp: cs }, { id: cible.id, camp: cc }) === 'opponent') return true;
+  if (cs !== 'neutre' && cc !== 'neutre' && relationBetween({ id: source.id, camp: cs }, { id: cible.id, camp: cc }) === 'adversaire') return true;
   return !!source.engagedWith?.includes(cible.id)
     || !!cible.engagedWith?.includes(source.id)
     || !!source.attackedThisRound?.includes(cible.id);
@@ -225,8 +227,8 @@ export function fearSourceFor(self: Combatant, s: SourcePsy, selfSizeForSize?: S
 }
 
 /** Mode de RÉSOLUTION d'un état psy + ses conséquences d'échec, lus en DONNÉES (`psychology.json`) — SOURCE
- *  UNIQUE de l'applier `combatPsych` et du picker de Round : plus de `kind === 'terreur'` codé par-nom. */
-export function psychResolution(kind: PsychType): { mode?: 'extended' | 'terreur' | 'binary'; failCondition?: string; failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number }; becomes?: PsychType } {
+ *  UNIQUE de l'applier `psychologieDeCombat` et du picker de Round : plus de `kind === 'terreur'` codé par-nom. */
+export function psychResolution(kind: PsychType): { mode?: 'etendu' | 'terreur' | 'simple'; failCondition?: string; failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number }; becomes?: PsychType } {
   const d = findPsychologyById(kind);
   return { mode: d?.resolution, failCondition: d?.failCondition?.id, failAmount: d?.failAmount, becomes: d?.becomes?.id as PsychType | undefined };
 }
@@ -257,7 +259,7 @@ export function isPsychAfflictionActive(p: PsychAffliction): boolean {
  *  défendez les êtres aimés » est PORTÉ PAR `active` : `refreshDefendedPsych` (seul détenteur du
  *  roster) l'éteint dès qu'aucun aimé n'est présent et en état d'être défendu. Aucun roster n'est donc
  *  requis ICI — les 3 résolutions d'attaque (`combineOpposed`/`resolveMeleePassive`/`resolveRanged`)
- *  n'en ont aucun en portée et lisent pourtant le MÊME verdict que `fearSourceFor`/`encounterPsych`.
+ *  n'en ont aucun en portée et lisent pourtant le MÊME verdict que `fearSourceFor`/`psychologieDeRencontre`.
  *  Data-driven : aucune entité nommée, aucun canal codé. */
 export function psychImmuneToFrom(self: Combatant, s: SourcePsy, channel: string): boolean {
   for (const p of self.psychState ?? []) {
@@ -348,7 +350,7 @@ export function targetCausedSourcesFor(self: Combatant, s: SourcePsy): { kind: '
 }
 
 /** Premier Test dû à `self` du fait d'un Trait `targetCauses` face aux entités `visible` (LDB 21 l.87) —
- *  MÊME forme de retour que `targetedTrigger`, pour la porte HORS COMBAT (`encounterPsych`) : l'objet de
+ *  MÊME forme de retour que `targetedTrigger`, pour la porte HORS COMBAT (`psychologieDeRencontre`) : l'objet de
  *  la Phobie ouvre la bande du régime qu'il CAUSE (Peur), pas un Test propre. Une source déjà affrontée
  *  (affliction portant son `sourceId`) ne se re-déclenche pas, et les immunités du canal s'appliquent
  *  ICI aussi — MÊME verdict que `fearSourceFor` sur la même situation (l.41/l.75). Pur. */
@@ -614,7 +616,7 @@ export function targetedTriggers(self: Combatant, visible: readonly SourceEnVue[
   return out;
 }
 
-/** Le premier de `targetedTriggers`, pour la porte hors combat (`encounterPsych`). */
+/** Le premier de `targetedTriggers`, pour la porte hors combat (`psychologieDeRencontre`). */
 export function targetedTrigger(self: Combatant, visible: readonly SourceEnVue[]): { type: PsychType; cible: CiblePsy; sourceId: string; indice?: number } | null {
   return targetedTriggers(self, visible)[0] ?? null;
 }
@@ -655,7 +657,7 @@ function failAmountSpec(
 }
 
 /** L'entrée de Psychologie MISE EN JEU par un Test, telle que la déclarent les deux sites (bande de
- *  rencontre `encounterPsych`, bande de combat `combatPsych`) : l'entrée affrontée, sa source, sa
+ *  rencontre `psychologieDeRencontre`, bande de combat `psychologieDeCombat`) : l'entrée affrontée, sa source, sa
  *  Cible et son Indice. */
 export interface PsychStake {
   kind: PsychType;
@@ -696,7 +698,7 @@ export function psychBranchOps(
     const { base, perDeg } = failAmountSpec(res.failAmount, stake.indice);
     if (!outcome.success && res.failCondition && (base > 0 || perDeg > 0)) {
       ops.push({
-        op: 'condition', id: res.failCondition, value: base,
+        op: 'condition', id: { id: res.failCondition }, value: base,
         ...(perDeg ? { valuePerSL: { every: 1, amount: perDeg, onFailure: true } } : {}),
       });
     }
@@ -729,11 +731,11 @@ export function psychBranchOps(
  *  résolution connaît (DR cumulé du Test étendu, n° de Round) en est absent : l'annonce ne porte
  *  que ce qui est certain. */
 export function psychBranchFlow(stake: PsychStake, success: boolean): Flow {
-  return { kind: 'do', effect: { type: 'ops', on: 'target', ops: psychBranchOps(stake, { success }) } };
+  return { kind: 'effet', effet: { type: 'ops', on: 'target', ops: psychBranchOps(stake, { success }) } };
 }
 
 // ---------------------------------------------------------------------------
-// Acquisition de Traits psychologiques (ADE II 09), règle optionnelle `psych-acquisition-optional` :
+// Acquisition de Traits psychologiques (ADE II 09), règle optionnelle `psycho-acquisition-optionnelle` :
 // fonctions PURES qui DÉCIDENT du Trait à poser ; sa pose et son déclenchement vivent dans `noyau/`.
 // ---------------------------------------------------------------------------
 
@@ -783,7 +785,7 @@ export function ciblesDePhobieDuNoir(c: Combatant, terreurs: readonly TerreurSub
 
 /** Le Test de Calme seedé de l'Animosité acquise, `null` règle éteinte. PUR. ADE II 09 l.15 */
 export function calmeDeLAnimositeAcquise(c: Combatant, rng: RNG): { success: boolean; roll: number; sl: number; target: number } | null {
-  return rule('psych-acquisition-optional') ? resolveCalmeSimple(calmeValue(c), rng) : null;
+  return rule('psycho-acquisition-optionnelle') ? resolveCalmeSimple(calmeValue(c), rng) : null;
 }
 
 /** Les Traits psy qu'une acquisition pose. ADE II 09 l.9, l.15 */
@@ -850,7 +852,7 @@ export function traumaOnImpossibleAmbition(
   c: Combatant,
   rng: RNG,
 ): { test: { success: boolean; roll: number; sl: number; target: number }; trait?: PsychTrait } | null {
-  if (!rule('psych-acquisition-optional')) return null;
+  if (!rule('psycho-acquisition-optionnelle')) return null;
   const t = rollTest(calmeValue(c), 'accessible', rng); // Calme Accessible (+20)
   const test = { success: t.success, roll: t.roll, sl: t.sl, target: t.target };
   return t.success ? { test } : { test, trait: { type: 'trauma' } };

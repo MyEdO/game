@@ -11,7 +11,7 @@ const CARACTERISTIQUES = {
   agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 40,
 };
 
-export function combattantDeModale(id: string, kind: Combatant['kind'] = 'hero'): Combatant {
+export function combattantDeModale(id: string, kind: Combatant['kind'] = 'heros'): Combatant {
   return combattantDeTest({
     id, label: id, kind, characteristics: CARACTERISTIQUES, traumas: [], engagedWith: [], items: [], size: 'moyenne',
     pos: { x: 0, y: 0 }, wounds: blessuresDeBase(18), resilience: 2, fortune: 2, species: 'humains-reiklander',

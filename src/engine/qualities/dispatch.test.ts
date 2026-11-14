@@ -1,7 +1,19 @@
 import { idsDeTest } from '../idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Weapon } from '../types';
-import { hasQuality, qualitySum, qualityCritTriggered, parryDRAdjust, isUnbreakable, attackDRAdjust, dangerousNine, reloadDRTarget, magazineSize, resolveQualities, qualityArmourBypasses } from './dispatch';
+import {
+  hasQuality,
+  qualitySum,
+  qualityCritTriggered,
+  parryDRAdjust,
+  isUnbreakable,
+  attackDRAdjust,
+  dangerousNine,
+  reloadDRTarget,
+  magazineSize,
+  resolveQualities,
+  qualityArmourBypasses,
+} from './dispatch';
 import { craftEncDelta } from './craftEconomy';
 import { findQualityById, findTrappingById, qualityRefLabel, trappings } from '../../data';
 import { itemFromTrappingById } from '../items';
@@ -84,40 +96,40 @@ describe('Aux Armes p.89 — qualités de mêlée câblées', () => {
     const eff = findQualityById('taillade')?.effects?.[0];
     expect(eff?.trigger).toBe('onCrit');
     const flow = eff?.flow;
-    expect(flow?.kind, 'la séquence « État automatique puis offre » a disparu').toBe('seq');
-    const steps = flow?.kind === 'seq' ? flow.steps : [];
-    const auto = steps[0]?.kind === 'do' && steps[0].effect.type === 'ops' ? steps[0].effect.ops : undefined;
-    expect(auto?.[0]).toMatchObject({ op: 'condition', id: 'hemorragique' });
+    expect(flow?.kind, 'la séquence « État automatique puis offre » a disparu').toBe('sequence');
+    const steps = flow?.kind === 'sequence' ? flow.etapes : [];
+    const auto = steps[0]?.kind === 'effet' && steps[0].effet.type === 'ops' ? steps[0].effet.ops : undefined;
+    expect(auto?.[0]).toMatchObject({ op: 'condition', id: { id: 'hemorragique' } });
     const choix = steps[1];
-    expect(choix?.kind).toBe('choice');
-    if (choix?.kind !== 'choice') throw new Error('nœud de choix absent');
-    expect(choix.advantageCost).toBe('$indice'); // X = l'Indice imprimé (1A / 2A), jamais un coût figé
-    const sup = choix.yes.kind === 'do' && choix.yes.effect.type === 'ops' ? choix.yes.effect.ops : undefined;
-    expect(sup?.[0]).toMatchObject({ op: 'condition', id: 'hemorragique' });
+    expect(choix?.kind).toBe('choix');
+    if (choix?.kind !== 'choix') throw new Error('nœud de choix absent');
+    expect(choix.coutEnAvantage).toBe('$indice'); // X = l'Indice imprimé (1A / 2A), jamais un coût figé
+    const sup = choix.oui.kind === 'effet' && choix.oui.effet.type === 'ops' ? choix.oui.effet.ops : undefined;
+    expect(sup?.[0]).toMatchObject({ op: 'condition', id: { id: 'hemorragique' } });
     expect(findQualityById('taillade')?.capabilities).toBeUndefined(); // plus de capability bespoke
   });
   it('Déstabilisante : effet onHit data-driven — choix (2 Av) → Test opposé Force/Athlétisme → À Terre (effects, donnée)', () => {
     const eff = findQualityById('destabilisante')?.effects?.[0];
     expect(eff?.trigger).toBe('onHit');
-    expect(eff?.on).toBe('victim');
-    // Nœud `choice` opt-in coûtant 2 Avantages (cadence-aware : modale héros / auto IA).
+    expect(eff?.on).toBe('victime');
+    // Nœud `choix` opt-in coûtant 2 Avantages (cadence-aware : modale héros / auto IA).
     const choice = eff?.flow;
-    expect(choice?.kind).toBe('choice');
-    if (choice?.kind !== 'choice') throw new Error('flow doit être un choice');
-    expect(choice.advantageCost).toBe(2);
-    // Branche `yes` = Test OPPOSÉ Force/Athlétisme des deux côtés (défenseur jette F+athletisme,
+    expect(choice?.kind).toBe('choix');
+    if (choice?.kind !== 'choix') throw new Error('flow doit être un choice');
+    expect(choice.coutEnAvantage).toBe(2);
+    // Branche `oui` = Test OPPOSÉ Force/Athlétisme des deux côtés (défenseur jette F+athletisme,
     // attaquant pré-jeté opposed{F+athletisme}).
-    const test = choice.yes;
+    const test = choice.oui;
     expect(test.kind).toBe('test');
     if (test.kind !== 'test') throw new Error('yes doit être un test');
     expect(test.test.characteristic).toBe('force');
     expect(test.test.skill).toEqual({ id: 'athletisme' }); // id stable (≠ libellé — multilangue-safe)
     expect(test.test.opposed?.attacker).toBe('force');
     expect(test.test.opposed?.attackerSkill).toBe('athletisme');
-    // Défenseur PERD l'opposition (branche `fail`) → l'attaquant l'emporte → cible À Terre.
-    expect(test.fail.kind).toBe('do');
-    if (test.fail.kind !== 'do' || test.fail.effect.type !== 'ops') throw new Error('fail doit poser un État');
-    expect(test.fail.effect.ops[0]).toMatchObject({ op: 'condition', id: 'a-terre' });
+    // Défenseur PERD l'opposition (branche `echec`) → l'attaquant l'emporte → cible À Terre.
+    expect(test.echec.kind).toBe('effet');
+    if (test.echec.kind !== 'effet' || test.echec.effet.type !== 'ops') throw new Error('fail doit poser un État');
+    expect(test.echec.effet.ops[0]).toMatchObject({ op: 'condition', id: { id: 'a-terre' } });
   });
 });
 
@@ -277,10 +289,10 @@ describe('Indice d’un Atout — il atteint le COÛT du choix et le libellé IM
 
   it('le COÛT du choix authoré est le TEMPLATE `$indice` (aucun coût figé en donnée)', () => {
     const flow = findQualityById('taillade')?.effects?.[0]?.flow;
-    expect(flow?.kind).toBe('seq');
-    const choix = flow?.kind === 'seq' ? flow.steps.find((f) => f.kind === 'choice') : undefined;
+    expect(flow?.kind).toBe('sequence');
+    const choix = flow?.kind === 'sequence' ? flow.etapes.find((f) => f.kind === 'choix') : undefined;
     expect(choix, 'le nœud `choice` de Taillade a disparu : le coût en Avantages n’est plus offert').toBeDefined();
-    expect(choix?.kind === 'choice' ? choix.advantageCost : null).toBe('$indice');
+    expect(choix?.kind === 'choix' ? choix.coutEnAvantage : null).toBe('$indice');
   });
 });
 

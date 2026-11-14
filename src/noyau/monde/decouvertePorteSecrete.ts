@@ -40,11 +40,11 @@ export function testDePorteSecrete(seg: WallSeg): Flow {
   if (!secret) throw new Error(`testDePorteSecrete : l'arête (${seg.x},${seg.y},${seg.side}) ne porte pas de porte secrète`);
   const arete = { type: 'setDoor', x: seg.x, y: seg.y, side: seg.side, z: seg.z ?? 0 } as const;
   return {
-    kind: 'seq',
-    steps: [
-      { kind: 'do', effect: { ...arete, attempted: true } as Effect },
+    kind: 'sequence',
+    etapes: [
+      { kind: 'effet', effet: { ...arete, attempted: true } as Effect },
       testFlow(
-        { skill: { id: 'perception' }, difficulty: secret.difficulty, label: t('eff.porteSecreteTest'), stake: flowStakeRef('perception-detect') },
+        { skill: { id: 'perception' }, difficulty: secret.difficulty, label: t('eff.porteSecreteTest'), stake: flowStakeRef('perception-detecter') },
         flowFromEffects([{ ...arete, revealed: true }, { type: 'journal', desc: t('eff.porteSecreteTrouvee') }] as Effect[]),
         EMPTY_FLOW,
       ),
@@ -114,5 +114,5 @@ export function portesDeLaPiece(scene: Scene, piece: RoomFocus): WallSeg[] {
  *  en UNE séquence — chacune sa difficulté. Aucune porte visée : le Flow VIDE. */
 export function fouilleDeLaPiece(scene: Scene, piece: RoomFocus): Flow {
   const portes = portesDeLaPiece(scene, piece);
-  return portes.length ? { kind: 'seq', steps: portes.map(testDePorteSecrete) } : EMPTY_FLOW;
+  return portes.length ? { kind: 'sequence', etapes: portes.map(testDePorteSecrete) } : EMPTY_FLOW;
 }

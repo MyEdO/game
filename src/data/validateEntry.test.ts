@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { validateEntry } from './atelierDuCodex';
-import { traits, creatures, entryKey } from '.';
+import { traits, entryKey, type MutationData } from '.';
 import { datasetArray, DATASET_KEYS } from './overrides';
 
 type Entry = Record<string, unknown>;
 
 describe('validateEntry — porte d’`enregistrerEntree` (Enregistrer bloqué tant que non vide)', () => {
   const traitEntries = traits as unknown as Entry[];
-  const creatureEntries = creatures as unknown as Entry[];
 
   it('entrée réelle saine → aucune erreur', () => {
     expect(validateEntry('traits', traitEntries[0], traitEntries, 0)).toEqual([]);
@@ -33,45 +32,19 @@ describe('validateEntry — porte d’`enregistrerEntree` (Enregistrer bloqué t
     const errs = validateEntry('traits', { ...traitEntries[0], label: '' }, traitEntries, 0);
     expect(errs.some((e) => /libellé vide/.test(e))).toBe(true);
   });
-
-  it('réf {id} résolvable → OK ; introuvable → bloquant (choice descendu, {text} ignoré)', () => {
-    const good: Entry = {
-      id: '___test-validate___', label: 'Test',
-      traits: [{ id: traitEntries[0].id }],
-      trappings: [{ text: 'collection d’alcools' }], // narratif : jamais validé par-id
-    };
-    expect(validateEntry('creatures', good, creatureEntries, -1)).toEqual([]);
-    const bad: Entry = { ...good, traits: [{ id: '___inexistant___' }] };
-    const errs = validateEntry('creatures', bad, creatureEntries, -1);
-    expect(errs.some((e) => /___inexistant___.*introuvable/.test(e))).toBe(true);
-    // AdvancementRef en branche choice : l'id invalide est vu au fond de la branche.
-    const badChoice: Entry = { ...good, skills: [{ choice: [{ ref: { id: '___inconnu___' } }] }] };
-    expect(validateEntry('creatures', badChoice, creatureEntries, -1).some((e) => /___inconnu___/.test(e))).toBe(true);
-  });
 });
 
 /**
  * #173 — garde de CLASSE : un éditeur de ref (datalist ou sélecteur) ne doit JAMAIS écrire un LIBELLÉ
- * dans un champ que le lecteur résout par ID. `validateEntry` est le gate PRE-PERSIST unique ; ces cas
- * couvrent (a) un champ-liste de CHAÎNES top-level (`REF_LIST_DATASET`, ex. `criticalsTete.traumas`),
- * (b) une réf NICHÉE sous un sous-objet/sous-tableau (`NESTED_REF_FIELDS`, ex. `mutationTables.
- * entries[].mutation`, `domains.castBonus.perCondition`) — les deux mécanismes déclarés dans
- * `CodexEdit.tsx`. Le dernier test balaie TOUTE la donnée committée : round-trip = déjà résolvable.
+ * dans un champ que le lecteur résout par ID. Ces cas couvrent une réf NICHÉE sous un sous-objet/sous-tableau
+ * (`NESTED_REF_FIELDS`, ex. `mutationTables.entries[].mutation`, `domains.castBonus.perCondition`) ; un
+ * champ typé par la grammaire se refuse au parse (`atelierDuCodex.test.ts`). Le dernier test balaie TOUTE
+ * la donnée committée : round-trip = déjà résolvable.
  */
 describe('validateEntry — #173 : réf par ID écrasée par un LIBELLÉ (datalist/sélecteur) → bloquant', () => {
-  it('criticalsTete.traumas (string[] top-level, REF_LIST_DATASET) : id résolvable → OK ; libellé → bloquant', () => {
-    const criticalsTete = datasetArray('criticalsTete') as unknown as Entry[];
-    const goodId = (datasetArray('traumas') as { id: string }[])[0].id;
-    const base = criticalsTete[0];
-    expect(validateEntry('criticalsTete', { ...base, traumas: [goodId] }, criticalsTete, 0)).toEqual([]);
-    // Reproduit EXACTEMENT le bug #173 : l'ancien datalist écrivait le LIBELLÉ choisi, pas l'id.
-    const errs = validateEntry('criticalsTete', { ...base, traumas: ['Fracture'] }, criticalsTete, 0);
-    expect(errs.some((e) => /traumas.*Fracture.*introuvable/.test(e))).toBe(true);
-  });
-
   it('mutationTables.entries[].mutation (réf NICHÉE) : id résolvable → OK ; libellé → bloquant', () => {
     const tables = datasetArray('mutationTables') as unknown as Entry[];
-    const goodId = (datasetArray('mutations') as { id: string }[]).find((m) => m.id === 'pattes-d-animaux')!.id;
+    const goodId: MutationData['id'] = 'pattes-d-animaux';
     const base = tables[0];
     expect(validateEntry('mutationTables', { ...base, entries: [{ min: 1, max: 100, mutation: goodId }] }, tables, 0)).toEqual([]);
     const errs = validateEntry('mutationTables', { ...base, entries: [{ min: 1, max: 100, mutation: 'Pattes d’animaux' }] }, tables, 0);
@@ -79,7 +52,7 @@ describe('validateEntry — #173 : réf par ID écrasée par un LIBELLÉ (datali
   });
 
   it('domains.castBonus.perCondition (réf NICHÉE) : id d’État résolvable → OK ; libellé → bloquant', () => {
-    const domains = datasetArray('domains') as unknown as Entry[];
+    const domains = datasetArray('domains');
     const base = domains[0];
     expect(validateEntry('domains', { ...base, castBonus: { perCondition: 'en-flammes', radiusStat: 'force-mentale', bonus: 10 } }, domains, 0)).toEqual([]);
     const errs = validateEntry('domains', { ...base, castBonus: { perCondition: 'En flammes', radiusStat: 'force-mentale', bonus: 10 } }, domains, 0);

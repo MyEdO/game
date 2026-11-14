@@ -9,6 +9,7 @@
  * Les datasets-tableaux sont mutés EN PLACE (splice) → les réfs exportées (`IMPERIAL_MONTHS`,
  * `DAY_PHASES`, `WEEKDAYS`) restent valides et live.
  */
+import type { IconId } from '../data/icons';
 import { calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases } from '../data';
 import { findTierEntry } from './tables';
 import { memoParVersion } from '../data/versionDataset';
@@ -121,12 +122,12 @@ export const campaignStart = memoParVersion(['calendarMonths', 'calendarIntercal
 
 // ─── Phases du jour (#T1c) ─── affichage riche, découplé de l'obscurité mécanique ───
 export type DayPhaseId = 'aube' | 'matin' | 'midi' | 'apresmidi' | 'crepuscule' | 'soir' | 'nuit';
-export interface DayPhase { id: DayPhaseId; label: string; icon: string; isNight: boolean; }
+export interface DayPhase { id: DayPhaseId; label: string; icon: IconId; isNight: boolean; }
 
 /** Phases d'AFFICHAGE (palier `seuil` en minutes-de-jour + libellé + icône) — DONNÉE éditable, réf live.
  *  'nuit' enjambe minuit (00:00–05:00). Le canon est muet sur l'heure exacte du lever/coucher. */
-export const DAY_PHASES: { id: DayPhaseId; seuil: number; label: string; icon: string }[] =
-  calendarPhases as { id: DayPhaseId; seuil: number; label: string; icon: string }[];
+export const DAY_PHASES: { id: DayPhaseId; seuil: number; label: string; icon: IconId }[] =
+  calendarPhases as { id: DayPhaseId; seuil: number; label: string; icon: IconId }[];
 
 /**
  * Heure de début d'une phase ANCRE, résolue par son id. PURE (les phases sont un paramètre) : sa

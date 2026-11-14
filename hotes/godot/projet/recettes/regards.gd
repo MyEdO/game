@@ -5,7 +5,8 @@ extends SceneTree
 ## de biais en perspective. Sous l'œil, le sol touché à la verticale d'un lieu est celui de la couche sous lui : sur un
 ## volume d'un sol au rez et d'un plancher d'étage à 4 m, au-dessus de la même case, le rez sous l'œil d'en bas,
 ## l'étage sous l'œil d'en haut. La plaque de surbrillance du rez, sous le plancher, se montre au plateau et en
-## tactique, aucune en immersion (#3774), peinte avant l'œil ou sous lui.
+## tactique, aucune en immersion (#3774), peinte avant l'œil ou sous lui. Repeinte, la plaque d'une case garde son nœud,
+## à l'item qu'on lui donne ; celle d'une case qui n'est plus peinte le quitte (#3947).
 
 const RECETTE_AUTONOME := true
 const TRIANGLE := [0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0]
@@ -23,9 +24,12 @@ func _recetter() -> void:
 	print("[regards] version=", Engine.get_version_info().string)
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	root.add_child(monde)
-	monde.poser({metresParCase = 2.0, positions = TRIANGLE + PLANCHER, normales = NORMALES + NORMALES, couleurs = COULEURS + COULEURS,
-		cases = [[0, 0, 0], [0, 0, 1]], surfaces = [{debut = 0, fin = 6, matiere = "terrain--terre"}],
-		hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[4.0]]}], ombre = {positions = [], normales = [], couleurs = [], cases = [], surfaces = []}})
+	var rez := {cle = "sol/0/0/0", empreinte = "rez", rangee = 0, positions = TRIANGLE, normales = NORMALES, couleurs = COULEURS,
+		cases = [0, 0, 0], surfaces = [{debut = 0, fin = 3, matiere = "terrain--terre"}]}
+	var etage := {cle = "sol/1/0/0", empreinte = "etage", rangee = 2, positions = PLANCHER, normales = NORMALES, couleurs = COULEURS,
+		cases = [0, 0, 1], surfaces = [{debut = 0, fin = 3, matiere = "terrain--terre"}]}
+	monde.poser({monde = {metresParCase = 2.0, hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[4.0]]}], morceaux = [rez, etage]},
+		toits = [], couronnes = []}, {volume = [rez, etage], toits = [], couronnes = []})
 	await physics_frame
 	_sol(monde, Vector3(0.6, 1.0, 0.6), Vector3i(0, 0, 0), 0.0)
 	_sol(monde, Vector3(0.6, 3.0, 0.6), Vector3i(0, 0, 1), 2.0)
@@ -50,6 +54,18 @@ func _recetter() -> void:
 	if root.get_viewport().get_camera_3d() != camera or camera.projection != Camera3D.PROJECTION_PERSPECTIVE:
 		_fautes.append("tactique : la caméra du regard n'est pas celle de biais, en perspective")
 	_plaques(monde, "tactique", 1)
+	var surbrillance := monde.get_node("Surbrillance")
+	var du_rez := surbrillance.get_child(0).get_instance_id()
+	monde.peindre({Vector3i(0, 0, 0): Monde.ITEM_CIBLE, Vector3i(0, 0, 1): Monde.ITEM_SURVOL})
+	var repeintes := surbrillance.get_children()
+	if repeintes.size() != 2 or repeintes[0].get_instance_id() != du_rez or repeintes[0].mesh != monde.surbrillances.get_item_mesh(Monde.ITEM_CIBLE):
+		_fautes.append("repeinte en cible, la plaque du rez ne garde pas son nœud à l'item de la cible")
+	var de_l_etage := repeintes[1].get_instance_id()
+	monde.peindre({Vector3i(0, 0, 1): Monde.ITEM_SURVOL})
+	var restees := surbrillance.get_children()
+	var sur_l_etage := monde.surbrillances.get_item_mesh_transform(Monde.ITEM_SURVOL).translated(monde.lieu(Vector2i(0, 0), 1)).origin
+	if restees.size() != 1 or restees[0].get_instance_id() != de_l_etage or not restees[0].position.is_equal_approx(sur_l_etage):
+		_fautes.append("la case du rez n'est plus peinte : sa plaque reste, ou celle de l'étage ne garde pas son nœud sur son sol")
 	for faute in _fautes:
 		push_error("[regards] " + faute)
 	print("[regards] erreurs=", _fautes.size())

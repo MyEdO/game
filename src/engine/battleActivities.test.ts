@@ -24,7 +24,7 @@ function deltas(def: ActivityDef, res: BattleResolution): { side: string; amount
   for (const b of matchBattleOutcomes(def, res)) {
     for (const o of b.battle ?? []) {
       const amount = battleOutcomeAmount(o, res);
-      if (amount !== 0) out.push({ side: (o.side ?? (o.target === 'might' ? 'enemy' : 'ally')), amount });
+      if (amount !== 0) out.push({ side: (o.side ?? (o.target === 'might' ? 'ennemi' : 'allie')), amount });
     }
   }
   return out;
@@ -72,17 +72,17 @@ describe('Activités de préparation de bataille (ADE II 08 l.79-110) — donné
   it('Sabotage (l.104-106) : requiert le Repérage ; ennemi −5 (Succès) / −10 (Stupéfiant) de départ', () => {
     const sab = activityById('sabotage')!;
     expect(sab.requires).toEqual(['scouted']);
-    expect(matchBattleOutcomes(sab, testRes(true, 2)).flatMap((b) => b.battle!)).toEqual([{ side: 'enemy', target: 'startMight', scale: 'fixed', amount: -5 }]);
-    expect(matchBattleOutcomes(sab, testRes(true, 6)).flatMap((b) => b.battle!)).toEqual([{ side: 'enemy', target: 'startMight', scale: 'fixed', amount: -10 }]);
+    expect(matchBattleOutcomes(sab, testRes(true, 2)).flatMap((b) => b.battle!)).toEqual([{ side: 'ennemi', target: 'startMight', scale: 'fixed', amount: -5 }]);
+    expect(matchBattleOutcomes(sab, testRes(true, 6)).flatMap((b) => b.battle!)).toEqual([{ side: 'ennemi', target: 'startMight', scale: 'fixed', amount: -10 }]);
   });
 
   it('Rassembler des forces (l.94-96) : +5 (Succès) / +10 (Stupéfiant) / −10 (Éch. Stupéfiant) de départ allié', () => {
     const ras = activityById('rassembler-des-forces')!;
     expect(ras.tests!.map((o) => o.skill?.id)).toEqual(['commandement', 'charme', 'intimidation']);
-    expect(matchBattleOutcomes(ras, testRes(true, 2)).flatMap((b) => b.battle!)).toEqual([{ side: 'ally', target: 'startMight', scale: 'fixed', amount: 5 }]);
-    expect(matchBattleOutcomes(ras, testRes(true, 6)).flatMap((b) => b.battle!)).toEqual([{ side: 'ally', target: 'startMight', scale: 'fixed', amount: 10 }]);
+    expect(matchBattleOutcomes(ras, testRes(true, 2)).flatMap((b) => b.battle!)).toEqual([{ side: 'allie', target: 'startMight', scale: 'fixed', amount: 5 }]);
+    expect(matchBattleOutcomes(ras, testRes(true, 6)).flatMap((b) => b.battle!)).toEqual([{ side: 'allie', target: 'startMight', scale: 'fixed', amount: 10 }]);
     // Échec Stupéfiant (DR ≤ −6) : −10 (mutinerie/désertion, l.96).
-    expect(matchBattleOutcomes(ras, testRes(false, -6)).flatMap((b) => b.battle!)).toEqual([{ side: 'ally', target: 'startMight', scale: 'fixed', amount: -10 }]);
+    expect(matchBattleOutcomes(ras, testRes(false, -6)).flatMap((b) => b.battle!)).toEqual([{ side: 'allie', target: 'startMight', scale: 'fixed', amount: -10 }]);
     // Échec ordinaire : aucun effet.
     expect(matchBattleOutcomes(ras, testRes(false, -2)).flatMap((b) => b.battle ?? [])).toEqual([]);
   });
@@ -131,7 +131,7 @@ describe('Scènes cinématiques de bataille (ADE II 08 l.137-225) — données R
     expect(total(deltas(duel, combatWin(4, 1, 2)))).toBe(-10); // intervention
     expect(chains(duel, combatWin(4, 1, 2))).toEqual(['charge']);
     // Défaite : le camp ALLIÉ perd −20 (l.223, symétrique) ; pas de Charge.
-    expect(deltas(duel, combatLoss(2, 1))).toEqual([{ side: 'ally', amount: -20 }]);
+    expect(deltas(duel, combatLoss(2, 1))).toEqual([{ side: 'allie', amount: -20 }]);
     expect(chains(duel, combatLoss(2, 1))).toEqual([]);
   });
 
@@ -144,7 +144,7 @@ describe('Scènes cinématiques de bataille (ADE II 08 l.137-225) — données R
   it('Percée (l.173) : COMBAT, victoire → ally +10 ; défaite → Charge (pas de +10)', () => {
     const percee = activityById('percee')!;
     expect(percee.sceneKind).toBe('combat');
-    expect(deltas(percee, combatWin(4, 2, 1))).toEqual([{ side: 'ally', amount: 10 }]);
+    expect(deltas(percee, combatWin(4, 2, 1))).toEqual([{ side: 'allie', amount: 10 }]);
     expect(chains(percee, combatWin(4, 2, 1))).toEqual([]);
     expect(deltas(percee, combatLoss(2, 1))).toEqual([]);
     expect(chains(percee, combatLoss(2, 1))).toEqual(['charge']);

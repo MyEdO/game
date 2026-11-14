@@ -7,7 +7,7 @@ import type { Scene } from '../../noyau/monde/scene';
 import type { CustomStatblock } from '../../engine/statblock';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from './_heros';
 import type { TestScenario } from './_shared';
 import { especeDApparence } from '../../data';
 import { t } from '../../i18n';
@@ -64,7 +64,7 @@ const BRETTEUR = 'Bretteur (entraînement)';
 
 /** Bretteur : deux armes de mêlée 1 main (Arme simple à FORME changeable + Dague) + talent dédié. */
 function bretteur(idNeuf: FabriqueDId): Combatant {
-  const h = pregen(idNeuf, PREGEN.soldat);
+  const h = herosDeScenario(idNeuf, 'soldat');
   h.label = BRETTEUR;
   if (!h.talents.some((t) => t.talentId === 'maniement-de-deux-armes')) {
     acquerirTalent(h, { id: 'maniement-de-deux-armes' });
@@ -75,7 +75,7 @@ function bretteur(idNeuf: FabriqueDId): Combatant {
   if (main && off) {
     const id = loadoutCreate(h);
     loadoutSetSlot(h, id, 'main', main.uid);
-    loadoutSetSlot(h, id, 'off', off.uid);
+    loadoutSetSlot(h, id, 'secondaire', off.uid);
   }
   recomputeLoadout(h);
   return h;
@@ -142,7 +142,7 @@ const construireScene = (): Scene => buildScene({
         { statblock: MANNEQUIN, appearance: { species: 'humains-reiklander' }, pos: { x: 21, y: 2 } }, //  au loin dans le brouillard → invisible tant qu'on n'éclaire/approche pas
         { creature: { id: 'gobelin' }, pos: { x: 15, y: 7 } }, //         sparring : charge / Engagé / désengagement / deux armes
         { creature: { id: 'gobelin' }, pos: { x: 16, y: 9 } }, //         + cible plus petite que le Cheval → charge montée +20
-        { creature: { id: 'cheval' }, pos: { x: 5, y: 10 }, mount: true, side: 'ally' }, // monture libre à enfourcher
+        { creature: { id: 'cheval' }, pos: { x: 5, y: 10 }, mount: true, side: 'allie' }, // monture libre à enfourcher
       ],
     },
   ],
@@ -159,7 +159,7 @@ export const scenario: TestScenario = {
   id: 'entrainement',
   order: 1,
   category: 'combat',
-  icon: 'scenario/training',
+  icon: 'scenario/entrainement',
   title: "Terrain d'entraînement",
   tests:
     'Sandbox : tir + rechargement & ciblage/LdV (cible derrière un muret, cible au loin dans le brouillard), ' +
@@ -168,8 +168,8 @@ export const scenario: TestScenario = {
     'libre, +20 vs plus petit), Explosion en zone (Sorcière).',
   partyNote: 'Tireur (arbalète + lanterne) · Bretteur (deux armes, forme changeable) · Tueur nain (vision nocturne) · Sorcière (Lumière/Explosion)',
   construire: (idNeuf) => {
-    const sorciere = pregen(idNeuf, PREGEN.sorcier);
+    const sorciere = herosDeScenario(idNeuf, 'sorcier');
     sorciere.spells = ['lumiere', 'explosion', 'bouclier-magique', ...(sorciere.spells ?? [])];
-    return { party: [tireur(idNeuf), bretteur(idNeuf), pregen(idNeuf, PREGEN.tueur), sorciere], scene: construireScene() };
+    return { party: [tireur(idNeuf), bretteur(idNeuf), herosDeScenario(idNeuf, 'tueur'), sorciere], scene: construireScene() };
   },
 };

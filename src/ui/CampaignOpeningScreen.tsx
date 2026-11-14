@@ -27,10 +27,10 @@ export function CampaignOpeningScreen() {
   const party = useGame((s) => s.party);
   const valider = useGame((s) => s.fenetreValider);
   const setScreen = useGame((s) => s.setScreen);
-  const invite = useGame((s) => s.net.mode === 'guest');
+  const invite = useGame((s) => s.net.mode === 'invite');
   const campaignDoc = useGame((s) => s.campaignDoc);
   if (!ouv) return null;
-  const heroes = party.filter((h) => h.kind === 'hero');
+  const heroes = party.filter((h) => h.kind === 'heros');
 
   return (
     <ScreenShell

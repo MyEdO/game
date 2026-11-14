@@ -11,7 +11,7 @@ const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }
 
 const combattant = (id: string, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id, label: id, kind: 'hero',
+    id, label: id, kind: 'heros',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [], traits: [], weapons: [], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], movement: 4,
@@ -31,7 +31,7 @@ function desScriptes(...d100: number[]): RNG & { tires: () => number } {
 }
 
 const frappe = (rng: RNG, cible: Partial<Combatant> = {}) =>
-  resolveMelee(combattant('a'), combattant('d', cible), epee, rng, { defense: 'none' });
+  resolveMelee(combattant('a'), combattant('d', cible), epee, rng, { defense: 'aucune' });
 
 describe('T2 — la Localisation relancée est posée dès la sortie de `resolveMelee`', () => {
   beforeEach(() => setRule('combat-aa-blessures', 'aa'));

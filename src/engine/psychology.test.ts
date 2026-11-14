@@ -1,6 +1,20 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
-import { parsePsychTraits, peurTerreurFromSize, pasDePeur, psychBranchOps, isFrenzyCapable, resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, calmeDeLAnimositeAcquise, traumaOnImpossibleAmbition, effectivePsychTraits, calmeValue, sourceCombattant } from './psychology';
+import {
+  parsePsychTraits,
+  peurTerreurFromSize,
+  pasDePeur,
+  psychBranchOps,
+  isFrenzyCapable,
+  resolveFrenzyEntry,
+  targetedTrigger,
+  resolveCalmeSimple,
+  calmeDeLAnimositeAcquise,
+  traumaOnImpossibleAmbition,
+  effectivePsychTraits,
+  calmeValue,
+  sourceCombattant,
+} from './psychology';
 import { makeRNG } from './dice';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
@@ -43,7 +57,7 @@ describe('Psychologie (pur)', () => {
   });
   it('Terreur ratée : Brisé = Indice + |DR négatifs| ; la Peur héritée n’est pas surmontée, LDB 21 l.54-56', () => {
     const c = blessuresSurLeProfil({
-      id: 'c', label: 'c', kind: 'hero', characteristics: { 'force-mentale': 30 }, skills: [], talents: [], psychTraits: [], psychState: [], traits: [], groups: [],
+      id: 'c', label: 'c', kind: 'heros', characteristics: { 'force-mentale': 30 }, skills: [], talents: [], psychTraits: [], psychState: [], traits: [], groups: [],
       wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, armour: {} as never, weapons: [],
     }) as unknown as Combatant;
     applyOps(c, psychBranchOps({ kind: 'terreur', sourceId: 'o', indice: 3 }, { success: false }), { idNeuf: idsDeTest, rng: makeRNG(2), sl: -2 });
@@ -62,24 +76,24 @@ describe('Psychologie (pur)', () => {
     expect(r.target).toBe(80); // cible exposée pour la RollLine : FM, Intermédiaire +0
   });
   it('targetedTrigger : Animosité (elfe) se déclenche sur un ENNEMI du groupe elfe visible', () => {
-    const self = { id: 's', kind: 'enemy', psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }], psychState: [] } as unknown as Combatant;
-    const foe = { id: 'f', kind: 'hero', groups: ['elfe', 'soldat'] } as unknown as Combatant;
-    const other = { id: 'o', kind: 'hero', groups: ['humain'] } as unknown as Combatant;
+    const self = { id: 's', kind: 'ennemi', psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }], psychState: [] } as unknown as Combatant;
+    const foe = { id: 'f', kind: 'heros', groups: ['elfe', 'soldat'] } as unknown as Combatant;
+    const other = { id: 'o', kind: 'heros', groups: ['humain'] } as unknown as Combatant;
     expect(targetedTrigger(self, [other, foe].map(sourceCombattant))).toEqual({ type: 'animosite', cible: ciblePsy.groupe('elfe'), sourceId: 'f' });
     expect(targetedTrigger(self, [sourceCombattant(other)])).toBeNull(); // aucun membre du groupe visible
   });
   it('targetedTrigger : Amour se déclenche sur un membre du groupe MENACÉ (LDB 21 l.75) ; déjà en psychState → pas re-déclenché', () => {
-    const self = { id: 's', kind: 'hero', psychTraits: [{ type: 'amour', cible: ciblePsy.groupe('humain') }], psychState: [] } as unknown as Combatant;
-    const ally = { id: 'a', kind: 'hero', groups: ['humain'] } as unknown as Combatant;
-    const brigand = { id: 'b', kind: 'enemy' } as unknown as Combatant;
+    const self = { id: 's', kind: 'heros', psychTraits: [{ type: 'amour', cible: ciblePsy.groupe('humain') }], psychState: [] } as unknown as Combatant;
+    const ally = { id: 'a', kind: 'heros', groups: ['humain'] } as unknown as Combatant;
+    const brigand = { id: 'b', kind: 'ennemi' } as unknown as Combatant;
     expect(targetedTrigger(self, [sourceCombattant(ally)])).toBeNull(); // aimé présent mais non menacé
     expect(targetedTrigger(self, [ally, brigand].map(sourceCombattant))?.type).toBe('amour');
     self.psychState!.push({ type: 'amour', cible: ciblePsy.groupe('humain') });
     expect(targetedTrigger(self, [ally, brigand].map(sourceCombattant))).toBeNull();
   });
   it('targetedTrigger : « un au choix » (Cible indéfinie) → inerte', () => {
-    const self = { id: 's', kind: 'enemy', psychTraits: [{ type: 'animosite', cible: undefined }], psychState: [] } as unknown as Combatant;
-    const foe = { id: 'f', kind: 'hero', groups: ['elfe'] } as unknown as Combatant;
+    const self = { id: 's', kind: 'ennemi', psychTraits: [{ type: 'animosite', cible: undefined }], psychState: [] } as unknown as Combatant;
+    const foe = { id: 'f', kind: 'heros', groups: ['elfe'] } as unknown as Combatant;
     expect(targetedTrigger(self, [sourceCombattant(foe)])).toBeNull();
   });
   it('effectivePsychTraits : « Vous êtes mon meilleur ami ! » (ignoreAnimosity) retire Animosité/Préjugé, laisse le reste (LDB 09 l.480)', () => {
@@ -95,17 +109,17 @@ describe('Psychologie (pur)', () => {
   });
   it('targetedTrigger : sous ignoreAnimosity, l’Animosité ne se déclenche PAS sur un ennemi visible du groupe cible', () => {
     const self = {
-      id: 's', kind: 'enemy',
+      id: 's', kind: 'ennemi',
       psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }],
       psychState: [],
       activeEffects: [{ label: 'Ivresse', bonus: 0, ignoreAnimosity: true }],
     } as unknown as Combatant;
-    const foe = { id: 'f', kind: 'hero', groups: ['elfe'] } as unknown as Combatant;
+    const foe = { id: 'f', kind: 'heros', groups: ['elfe'] } as unknown as Combatant;
     expect(targetedTrigger(self, [sourceCombattant(foe)])).toBeNull();
   });
   it('targetedTrigger : effet EXPIRÉ (retiré des activeEffects) → l’Animosité redéclenche normalement', () => {
-    const self = { id: 's', kind: 'enemy', psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }], psychState: [], activeEffects: [] } as unknown as Combatant;
-    const foe = { id: 'f', kind: 'hero', groups: ['elfe'] } as unknown as Combatant;
+    const self = { id: 's', kind: 'ennemi', psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }], psychState: [], activeEffects: [] } as unknown as Combatant;
+    const foe = { id: 'f', kind: 'heros', groups: ['elfe'] } as unknown as Combatant;
     expect(targetedTrigger(self, [sourceCombattant(foe)])).toEqual({ type: 'animosite', cible: ciblePsy.groupe('elfe'), sourceId: 'f' });
   });
   it('resolveCalmeSimple : Test de Calme binaire (succès = résisté)', () => {
@@ -119,14 +133,14 @@ describe('Acquisition de Traits psychologiques (ADE II Annexe I, règle FACULTAT
   // RNG fixe (un d100 constant) — fail (roll 100) / success (roll 1), déterministe.
   const fixed = deFixe;
   const mk = (p: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-    id: 's', name: 'S', kind: 'hero',
+    id: 's', name: 'S', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
     skills: [], talents: [], psychTraits: [], psychState: [], traits: [], groups: [],
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, armour: {} as never, weapons: [],
     ...p,
   }) as unknown as Combatant);
 
-  afterEach(() => resetRule('psych-acquisition-optional'));
+  afterEach(() => resetRule('psycho-acquisition-optionnelle'));
 
   it('toutes les fonctions sont INERTES tant que la règle est éteinte (défaut)', () => {
     const c = mk();
@@ -135,14 +149,14 @@ describe('Acquisition de Traits psychologiques (ADE II Annexe I, règle FACULTAT
   });
 
   it('Animosité acquise : Test de Calme Intermédiaire (+0) (ADE II 09 l.15)', () => {
-    setRule('psych-acquisition-optional', true);
+    setRule('psycho-acquisition-optionnelle', true);
     const c = mk();
     expect(calmeDeLAnimositeAcquise(c, fixed(50))!.target).toBe(calmeValue(c));
     expect(traumaOnImpossibleAmbition(c, fixed(50))!.test.target, 'Accessible (+20), pour comparaison').toBe(calmeValue(c) + 20);
   });
 
   it('Trauma : Ambition rendue impossible → Calme Accessible raté → Trauma ; réussite → rien', () => {
-    setRule('psych-acquisition-optional', true);
+    setRule('psycho-acquisition-optionnelle', true);
     expect(traumaOnImpossibleAmbition(mk(), fixed(100))).toMatchObject({ trait: { type: 'trauma' } });
     const ok = traumaOnImpossibleAmbition(mk(), fixed(1));
     expect(ok!.test.success).toBe(true);
@@ -152,7 +166,7 @@ describe('Acquisition de Traits psychologiques (ADE II Annexe I, règle FACULTAT
 
 describe('Valeur de Calme : la valeur de Test, États compris (LDB 16 l.125)', () => {
   it('Sonné ×3 retire 30 à la Force Mentale plus les avances de Calme', () => {
-    const c = { id: 'c', kind: 'enemy', characteristics: { 'force-mentale': 50 }, skills: [{ id: 'calme', advances: 10 }], talents: [], traits: [], conditions: [], items: [], weapons: [] } as unknown as Combatant;
+    const c = { id: 'c', kind: 'ennemi', characteristics: { 'force-mentale': 50 }, skills: [{ id: 'calme', advances: 10 }], talents: [], traits: [], conditions: [], items: [], weapons: [] } as unknown as Combatant;
     expect(calmeValue(c)).toBe(60);
     c.conditions = [{ id: 'sonne', value: 3 }];
     expect(calmeValue(c)).toBe(30);

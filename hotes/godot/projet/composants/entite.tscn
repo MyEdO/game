@@ -1,29 +1,47 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="Theme" path="res://art/nom_d_entite.tres" id="t_nom_d_entite"]
 
-[node name="Entite" type="VBoxContainer"]
-theme_override_constants/separation = 6
+[node name="Entite" type="PanelContainer"]
+theme_type_variation = &"Entite"
+size_flags_horizontal = 3
 
-[node name="Nom" type="PanelContainer" parent="."]
+[node name="Pile" type="VBoxContainer" parent="."]
+theme_type_variation = &"PileSerree"
+
+[node name="Tete" type="HBoxContainer" parent="Pile"]
+theme_type_variation = &"RangeeSerree"
+
+[node name="Portrait" type="HBoxContainer" parent="Pile/Tete"]
+
+[node name="Zone" type="Node" parent="Pile/Tete/Portrait" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("portrait")
+masque = NodePath("..")
+
+[node name="Nom" type="PanelContainer" parent="Pile/Tete"]
 theme_type_variation = &"TeteDEntite"
+size_flags_horizontal = 3
+size_flags_vertical = 4
 
-[node name="Texte" type="Label" parent="Nom"]
-theme_override_font_sizes/font_size = 20
+[node name="Texte" type="Label" parent="Pile/Tete/Nom"]
+theme = ExtResource("t_nom_d_entite")
 
-[node name="nom" type="Node" parent="Nom/Texte"]
+[node name="nom" type="Node" parent="Pile/Tete/Nom/Texte"]
 script = ExtResource("1_liaison")
 champ = "nom"
 
-[node name="ton" type="Node" parent="Nom/Texte"]
+[node name="ton" type="Node" parent="Pile/Tete/Nom/Texte"]
 script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"
 
-[node name="Elements" type="HFlowContainer" parent="."]
-theme_override_constants/v_separation = 6
+[node name="Elements" type="HFlowContainer" parent="Pile"]
+theme_type_variation = &"FluxSerre"
 
-[node name="Zone" type="Node" parent="Elements"]
+[node name="Zone" type="Node" parent="Pile/Elements"]
 script = ExtResource("2_zone")
 source = "elements"

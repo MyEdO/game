@@ -7,7 +7,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testki
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     name: 'C',
-    kind: 'hero',
+    kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, // BE=3
     wounds: blessuresDeBase(12, 10),
     conditions: [],
@@ -21,7 +21,7 @@ describe('Modèle de mort (LDB 18-Traumatisme)', () => {
   });
   describe('figurant à 0 PB exact : la Mort Subite suit le déclencheur du mode', () => {
     afterEach(() => resetRule('combat-aa-blessures'));
-    const e = () => mk({ kind: 'enemy', wounds: blessuresDeBase(12, 0) });
+    const e = () => mk({ kind: 'ennemi', wounds: blessuresDeBase(12, 0) });
     it("'ldb' : à 0 exact, ni dépassement ni sortie (LDB 18 l.46) — À Terre, horloge de LDB 18 l.15", () => {
       const f = e();
       expect(usesSuddenDeath(f)).toBe(true);
@@ -37,30 +37,30 @@ describe('Modèle de mort (LDB 18-Traumatisme)', () => {
     });
     it("'aa' : un PNJ à Talent Chanceux n'est pas un figurant (AA 07 l.67)", () => {
       setRule('combat-aa-blessures', 'aa');
-      const chanceux = mk({ kind: 'enemy', important: false, talents: [{ talentId: 'chanceux', times: 1 }], wounds: { current: 0, max: 12 } } as Partial<Combatant>);
+      const chanceux = mk({ kind: 'ennemi', important: false, talents: [{ talentId: 'chanceux', times: 1 }], wounds: { current: 0, max: 12 } } as Partial<Combatant>);
       expect(usesSuddenDeath(chanceux)).toBe(false);
       expect(isOutOfAction(chanceux)).toBe(false);
-      const important = mk({ kind: 'enemy', important: true, wounds: { current: 0, max: 12 } } as Partial<Combatant>);
+      const important = mk({ kind: 'ennemi', important: true, wounds: { current: 0, max: 12 } } as Partial<Combatant>);
       expect(usesSuddenDeath(important)).toBe(true);
     });
   });
   describe('Mort Subite — portée réglable (LDB 18 l.42) ; jamais les PJ', () => {
-    afterEach(() => resetRule('combat-sudden-death'));
-    const fig = mk({ kind: 'enemy' });
-    const vip = mk({ kind: 'enemy', important: true } as Partial<Combatant>);
-    const hero = mk({ kind: 'hero' });
+    afterEach(() => resetRule('combat-mort-subite'));
+    const fig = mk({ kind: 'ennemi' });
+    const vip = mk({ kind: 'ennemi', important: true } as Partial<Combatant>);
+    const hero = mk({ kind: 'heros' });
     it("'figurants' (défaut) : figurants oui, PNJ important non, PJ non", () => {
       expect(usesSuddenDeath(fig)).toBe(true);
       expect(usesSuddenDeath(vip)).toBe(false);
       expect(usesSuddenDeath(hero)).toBe(false);
     });
     it("'tous' : tous les non-héros (PNJ important inclus), PJ jamais", () => {
-      setRule('combat-sudden-death', 'tous');
+      setRule('combat-mort-subite', 'tous');
       expect(usesSuddenDeath(vip)).toBe(true);
       expect(usesSuddenDeath(hero)).toBe(false);
     });
     it("'off' : personne, même les figurants", () => {
-      setRule('combat-sudden-death', 'off');
+      setRule('combat-mort-subite', 'off');
       expect(usesSuddenDeath(fig)).toBe(false);
     });
   });
@@ -112,18 +112,18 @@ describe("OBJET INERTE (affût d'artillerie) — immune à la cascade de Blessur
   const engin = (over: Partial<Combatant> = {}): Combatant =>
     mk(blessuresSurLeProfil({ inert: true, bodyShape: 'engin', wounds: blessuresDeBase(0),
       characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, ...over }) as unknown as Partial<Combatant>);
-  it("inert allié (kind:'hero') à 0 PB : applyZeroWounds ne pose PAS À Terre", () => {
-    const e = engin({ kind: 'hero' });
+  it("inert allié (kind:'heros') à 0 PB : applyZeroWounds ne pose PAS À Terre", () => {
+    const e = engin({ kind: 'heros' });
     applyZeroWounds(e);
     expect(hasCondition(e, 'a-terre')).toBe(false);
   });
   it("inert allié : tickDeath ne pose PAS Inconscient même après plusieurs rounds (BE=0)", () => {
-    const e = engin({ kind: 'hero', roundsAtZero: 5 } as Partial<Combatant>);
+    const e = engin({ kind: 'heros', roundsAtZero: 5 } as Partial<Combatant>);
     tickDeath(e);
     expect(hasCondition(e, 'inconscient')).toBe(false);
   });
-  it("inert ennemi (kind:'enemy') : ni À Terre ni Inconscient", () => {
-    const e = engin({ kind: 'enemy', roundsAtZero: 5 } as Partial<Combatant>);
+  it("inert ennemi (kind:'ennemi') : ni À Terre ni Inconscient", () => {
+    const e = engin({ kind: 'ennemi', roundsAtZero: 5 } as Partial<Combatant>);
     applyZeroWounds(e); tickDeath(e);
     expect(hasCondition(e, 'a-terre')).toBe(false);
     expect(hasCondition(e, 'inconscient')).toBe(false);

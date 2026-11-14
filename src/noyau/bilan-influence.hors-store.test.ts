@@ -17,16 +17,16 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * #253 — les jets du BILAN quotidien (Faim, Exposition, Contagion) passent par la surface
- * INFLUENÇABLE (cascade de nuit), au même titre que leurs frères disease-tick/weatherResistance :
+ * INFLUENÇABLE (cascade de nuit), au même titre que leurs frères maladie-test-quotidien/resistanceALaMeteo :
  * chaque jet est une ÉTAPE lancée puis influençable à la Chance (LDB 17 l.21-25) AVANT de se
- * verrouiller. Ce test prouve, pour la nuit UNIQUE (chemin du bouton Repos, `fenetreValider('rest')` days=1) :
+ * verrouiller. Ce test prouve, pour la nuit UNIQUE (chemin du bouton Repos, `fenetreValider('repos')` days=1) :
  *  1. le jet apparaît en étape de cascade (jamais pré-résolu dans le journal) ;
- *  2. la Chance est proposable sur la RANGÉE ratée (`jetRelancer('cascadeBatch')` dépense 1 Point de Chance) ;
+ *  2. la Chance est proposable sur la RANGÉE ratée (`jetRelancer('cascadeEnBande')` dépense 1 Point de Chance) ;
  *  3. la conséquence n'est appliquée qu'UNE fois (à la validation, pas aussi en eager).
  */
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h1', label: 'Hilda', kind: 'hero',
+    id: 'h1', label: 'Hilda', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -59,9 +59,9 @@ describe('#253 — FAIM du bilan : étape de cascade influençable, pas un jet t
     const b = hero({ id: 'B', label: 'Repue', items: [ration('r1')] }); // B mange sa ration → aucun jet
     banc.setState({ party: [a, b] });
     banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
-    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'A');
-    banc.getState().fenetreChoisir('rest', 'pitance', 'ration', 'B');
-    banc.getState().fenetreValider('rest');
+    banc.getState().fenetreChoisir('repos', 'pitance', 'rien', 'A');
+    banc.getState().fenetreChoisir('repos', 'pitance', 'ration', 'B');
+    banc.getState().fenetreValider('repos');
 
     // 1. Le jet est une ÉTAPE, PAS pré-résolu : hunger.tests/failures encore vierges tant que non validé.
     const faim = stepOfKind('faim');
@@ -75,7 +75,7 @@ describe('#253 — FAIM du bilan : étape de cascade influençable, pas un jet t
     // 2. Chance proposable sur l'échec : la relance dépense 1 Point de Chance.
     forceFail(faim!.id, 'A');
     const fortuneBefore = banc.getState().party.find((h) => h.id === 'A')!.fortune;
-    banc.getState().jetRelancer('cascadeBatch', 'A');
+    banc.getState().jetRelancer('cascadeEnBande', 'A');
     expect(banc.getState().party.find((h) => h.id === 'A')!.fortune).toBe((fortuneBefore ?? 0) - 1);
 
     // 3. Conséquence appliquée 1× à la validation (applyFaimTest) — un seul Test compté, pas de double.
@@ -95,9 +95,9 @@ describe('#253 — CONTAGION de promiscuité : étape de cascade influençable',
     const b = hero({ id: 'B', label: 'Sain', fortune: 2 });
     banc.setState({ party: [a, b] });
     banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
-    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'A');
-    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'B');
-    banc.getState().fenetreValider('rest');
+    banc.getState().fenetreChoisir('repos', 'pitance', 'rien', 'A');
+    banc.getState().fenetreChoisir('repos', 'pitance', 'rien', 'B');
+    banc.getState().fenetreValider('repos');
 
     const cont = stepOfKind('contagion');
     expect(cont).toBeTruthy();
@@ -107,7 +107,7 @@ describe('#253 — CONTAGION de promiscuité : étape de cascade influençable',
     // Chance proposable sur l'échec.
     forceFail(cont!.id, 'B');
     const fortuneBefore = banc.getState().party.find((h) => h.id === 'B')!.fortune;
-    banc.getState().jetRelancer('cascadeBatch', 'B');
+    banc.getState().jetRelancer('cascadeEnBande', 'B');
     expect(banc.getState().party.find((h) => h.id === 'B')!.fortune).toBe((fortuneBefore ?? 0) - 1);
 
     // Contraction appliquée 1× (pas de double entrée de maladie) sur un échec verrouillé.
@@ -140,7 +140,7 @@ describe("#253 — AVANCE D'HORLOGE (avancerLeTemps) : bilan en cascade influen�
     // 2. Chance proposable sur l'échec.
     forceFail(faim!.id, 'A');
     const fortuneBefore = banc.getState().party.find((h) => h.id === 'A')!.fortune;
-    banc.getState().jetRelancer('cascadeBatch', 'A');
+    banc.getState().jetRelancer('cascadeEnBande', 'A');
     expect(banc.getState().party.find((h) => h.id === 'A')!.fortune).toBe((fortuneBefore ?? 0) - 1);
 
     // 3. Conséquence appliquée 1× à la validation — un seul Test compté, pas de double-résolution.
@@ -166,7 +166,7 @@ describe("#253 — AVANCE D'HORLOGE (avancerLeTemps) : bilan en cascade influen�
 
     forceFail(step!.id, 'A');
     const fortuneBefore = banc.getState().party.find((h) => h.id === 'A')!.fortune;
-    banc.getState().jetRelancer('cascadeBatch', 'A');
+    banc.getState().jetRelancer('cascadeEnBande', 'A');
     expect(banc.getState().party.find((h) => h.id === 'A')!.fortune).toBe((fortuneBefore ?? 0) - 1);
 
     // Dessoûlage appliqué 1× à la validation (`soberUpDissipate` lève l'état, quelle que soit l'issue du DR).
@@ -195,20 +195,20 @@ describe('#253 — EXPOSITION de campement : étape de cascade influençable', (
     const a = hero({ id: 'A', label: 'Transi', fortune: 2 });
     banc.setState({ party: [a], scene: sc });
     banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
-    banc.getState().fenetreChoisir('rest', 'couchage', 'dehors', 'A'); banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'A');
-    banc.getState().fenetreValider('rest');
+    banc.getState().fenetreChoisir('repos', 'couchage', 'dehors', 'A'); banc.getState().fenetreChoisir('repos', 'pitance', 'rien', 'A');
+    banc.getState().fenetreValider('repos');
 
     // L'abri de fortune (Survie en extérieur) ouvre la séquence ; son échec INSÈRE les jets d'Exposition.
-    const abri = stepOfKind('shelter');
+    const abri = stepOfKind('abri-de-fortune');
     if (abri) { forceFail(abri.id, 'A'); banc.getState().jetValider('cascade'); }
 
-    const expo = stepOfKind('exposure');
+    const expo = stepOfKind('exposition-nocturne');
     expect(expo).toBeTruthy();
     expect(expo!.participants!.map((r) => r.id)).toEqual(['A']);
 
     forceFail(expo!.id, 'A');
     const fortuneBefore = banc.getState().party.find((h) => h.id === 'A')!.fortune;
-    banc.getState().jetRelancer('cascadeBatch', 'A');
+    banc.getState().jetRelancer('cascadeEnBande', 'A');
     expect(banc.getState().party.find((h) => h.id === 'A')!.fortune).toBe((fortuneBefore ?? 0) - 1);
   });
 });

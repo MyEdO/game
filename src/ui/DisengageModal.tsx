@@ -27,49 +27,49 @@ import { t } from '../i18n';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque fenêtre du Désengagement. */
-const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice: 'disengage-choice', esquive: 'disengage-esquive', fuir: 'disengage-fuir' };
+const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choix: 'desengagement-choix', esquive: 'desengagement-esquive', fuir: 'desengagement-fuir' };
 
 /**
  * Modale de Désengagement (LDB 15 l.43-68). Trois phases, une seule coquille de jet PARTAGÉE :
- * - **'choice'** : PAS un jet — le MENU d'options (`OptionChooser`) Sacrifier l'Avantage / Esquiver /
+ * - **'choix'** : PAS un jet — le MENU d'options (`OptionChooser`) Sacrifier l'Avantage / Esquiver /
  *   Fuir + Résilience pré-jet, rendu dans un `Modal` simple (RollShell ne fait pas les menus).
  * - **'esquive'** : `RollShell` opposé (2 rangées) — [0] Corps à corps du foe FIGÉ (témoin) vs
- *   [1] Esquive du mover INTERACTIVE (cycle d'influence), `winnerIndex`/`outcome`. Appliquer = `jetValider('disengage')`.
+ *   [1] Esquive du mover INTERACTIVE (cycle d'influence), `winnerIndex`/`outcome`. Appliquer = `jetValider('desengagement')`.
  * - **'fuir'** : `RollShell` (flux MULTI `flee`, 2 slots) — [0] le coup dans le dos du FRAPPEUR,
  *   [1] le Test du FUYARD (fiche `fuite`, présent seulement si le coup a fait des Blessures). Chaque rangée
- *   est INTERACTIVE pour son contrôleur humain, TÉMOIN sinon. Appliquer = `jetValider('flee')`.
+ *   est INTERACTIVE pour son contrôleur humain, TÉMOIN sinon. Appliquer = `jetValider('fuite')`.
  */
 export function DisengageModal() {
   const pd = useGame((s) => s.pendingDisengage);
   const battle = useGame((s) => s.battle);
   const regler = useGame((s) => s.jetRegler);
-  const esquiver = useGesteDeJet('jetLancer', 'disengage');
-  const reroll = useGesteDeJet('jetRelancer', 'disengage');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'disengage');
-  const darkPact = useGesteDeJet('jetPactiser', 'disengage');
-  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'disengage');
-  const confirm = useGesteDeJet('jetValider', 'disengage');
-  const fleeRoll = useGesteDeJet('jetLancer', 'flee');
-  const fleeReroll = useGesteDeJet('jetRelancer', 'flee');
-  const fleeBonusSL = useGesteDeJet('jetAjouterUnDR', 'flee');
-  const fleeDarkPact = useGesteDeJet('jetPactiser', 'flee');
-  const fleeForce = useGesteDeJet('jetForcerLaReussite', 'flee');
-  const fleeConfirm = useGesteDeJet('jetValider', 'flee');
-  const cancel = useGesteDeJet('jetAnnuler', 'disengage');
+  const esquiver = useGesteDeJet('jetLancer', 'desengagement');
+  const reroll = useGesteDeJet('jetRelancer', 'desengagement');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'desengagement');
+  const darkPact = useGesteDeJet('jetPactiser', 'desengagement');
+  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'desengagement');
+  const confirm = useGesteDeJet('jetValider', 'desengagement');
+  const fleeRoll = useGesteDeJet('jetLancer', 'fuite');
+  const fleeReroll = useGesteDeJet('jetRelancer', 'fuite');
+  const fleeBonusSL = useGesteDeJet('jetAjouterUnDR', 'fuite');
+  const fleeDarkPact = useGesteDeJet('jetPactiser', 'fuite');
+  const fleeForce = useGesteDeJet('jetForcerLaReussite', 'fuite');
+  const fleeConfirm = useGesteDeJet('jetValider', 'fuite');
+  const cancel = useGesteDeJet('jetAnnuler', 'desengagement');
   if (!pd || !battle) return null;
   const mover = battle.combatants.find((c) => c.id === pd.moverId);
   const foe = battle.combatants.find((c) => c.id === pd.foeId);
   if (!mover || !foe) return null;
-  const header = <VsHeader actor={mover} target={foe} label="quitter le corps à corps" verb="melee/disengage" />;
+  const header = <VsHeader actor={mover} target={foe} label="quitter le corps à corps" verb="melee/se-desengager" />;
 
-  // ── Phase 'choice' : MENU d'options (pas un jet) — Modal simple + OptionChooser + Résilience pré-jet. ──
-  if (pd.phase === 'choice') {
+  // ── Phase 'choix' : MENU d'options (pas un jet) — Modal simple + OptionChooser + Résilience pré-jet. ──
+  if (pd.phase === 'choix') {
     // « Avantage de groupe » (AA 11 l.37) : l'option A devient « Retraite stratégique » à coût FIXE (2 Av,
     // 1 avec Impitoyable) débité de la réserve du camp ; sinon LDB « Sacrifier l'Avantage » (→ 0).
     const groupMode = groupAdvantage();
     const retreatCost = retreatAdvantageCost(mover);
     const choiceStake = flowStakeRef(DISENGAGE_STAKE[pd.phase]);
-    const sacrificeLabel = <><Icon id="melee/disengage" size="sm" /> {groupMode ? `Retraite stratégique (${retreatCost} Av)` : "Sacrifier l'Avantage"}</>;
+    const sacrificeLabel = <><Icon id="melee/se-desengager" size="sm" /> {groupMode ? `Retraite stratégique (${retreatCost} Av)` : "Sacrifier l'Avantage"}</>;
     // L'intitulé suit la VOIE que le verdict a ouverte (`voieDAvantage`), jamais une supposition.
     const voie = voieDAvantage({ active: mover, battle });
     const sacrificeTitle = voie ? {
@@ -78,12 +78,12 @@ export function DisengageModal() {
       'avantage-superieur': "Tu as l'Avantage supérieur : pars librement, sans coût d'Action",
     }[voie] : undefined;
     const offertes = [
-      { stake: groupMode ? flowStakeRef('disengage-retraite', { values: { cout: retreatCost } }) : flowStakeRef('disengage-sacrifice'),
-        option: { key: 'sacrifice', label: sacrificeLabel, hidden: !pd.canSacrifice, onSelect: () => regler('disengage', 'sacrifier', true), title: sacrificeTitle } },
-      { stake: flowStakeRef('disengage-esquive'),
-        option: { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: ligneDEsquiveDeDesengagement(useGame.getState(), mover).target, hidden: !!pd.refusEsquive, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
-      { stake: flowStakeRef('disengage-fuir'),
-        option: { key: 'fuir', label: <><Icon id="melee/flee" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canFuir === false, onSelect: () => regler('disengage', 'fuir', true), title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours si tu en es encore capable' } },
+      { stake: groupMode ? flowStakeRef('desengagement-retraite', { values: { cout: retreatCost } }) : flowStakeRef('desengagement-sacrifice'),
+        option: { key: 'sacrifice', label: sacrificeLabel, hidden: !pd.canSacrifice, onSelect: () => regler('desengagement', 'sacrifier', true), title: sacrificeTitle } },
+      { stake: flowStakeRef('desengagement-esquive'),
+        option: { key: 'esquive', label: <><Icon id="melee/roule-boule" size="sm" /> Esquiver</>, value: ligneDEsquiveDeDesengagement(useGame.getState(), mover).target, hidden: !!pd.refusEsquive, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
+      { stake: flowStakeRef('desengagement-fuir'),
+        option: { key: 'fuir', label: <><Icon id="melee/fuir" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canFuir === false, onSelect: () => regler('desengagement', 'fuir', true), title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours si tu en es encore capable' } },
     ].filter((o) => !o.option.hidden);
     return (
       /* Décision DE COMBAT, champ lisible : les adversaires au contact se lisent sous la fenêtre. */
@@ -104,7 +104,7 @@ export function DisengageModal() {
             <OptionChooser layout="grid" options={offertes.map((o) => ({ ...o.option, note: <StakeNote stake={o.stake} /> }))} />
             {pd.refusEsquive && <p className="modal-log">Esquive fermée : {pd.refusEsquive}.</p>}
           </div>
-          {/* Le renoncement (`disengage-choice`) : note du geste « Renoncer » du pied. */}
+          {/* Le renoncement (`desengagement-choix`) : note du geste « Renoncer » du pied. */}
           <StakeNote stake={choiceStake} />
           <div className="rm-influence">
             {/* Résilience AVANT le jet (LDB 17 l.68) : Esquive forcée en réussite. */}
@@ -156,25 +156,25 @@ export function DisengageModal() {
       note: (part) => (isBackstab(part.id) && res
         ? <p className="modal-log">{res.hit ? `Touché · ${res.woundsLost ?? 0} Blessure${(res.woundsLost ?? 0) > 1 ? 's' : ''}` : 'Manqué'}</p>
         : undefined),
-    // Les rangées de cette coquille appartiennent au flux `flee` (≠ `disengage` de la coquille).
-    }).map((r) => ({ ...r, flowKey: 'flee' as const })).map((r) => (isBackstab(String(r.key))
-      ? { ...r, rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer le coup dans le dos</> }
-      : { ...r, rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer le Test</> }));
+    // Les rangées de cette coquille appartiennent au flux `fuite` (≠ `disengage` de la coquille).
+    }).map((r) => ({ ...r, flowKey: 'fuite' as const })).map((r) => (isBackstab(String(r.key))
+      ? { ...r, rollLabel: <><Icon id="navigation/des" size="sm" /> Lancer le coup dans le dos</> }
+      : { ...r, rollLabel: <><Icon id="navigation/des" size="sm" /> Lancer le Test</> }));
 
     const rolled = !!res && (!toucheDu || !!jet);
-    const actions: RollAction[] = [{ key: 'confirm', label: t('verbe.confirm'), onClick: fleeConfirm, verbe: 'confirm', flux: 'flee' }];
+    const actions: RollAction[] = [{ key: 'confirmer', label: t('verbe.valider'), onClick: fleeConfirm, verbe: 'valider', flux: 'fuite' }];
 
     return (
       <RollShell
         etape={pd.phase}
-        flowKey="disengage"
+        flowKey="desengagement"
         stake={flowStakeRef(DISENGAGE_STAKE[pd.phase])}
         title="Se désengager"
         extra={header}
         rows={rows}
         rolled={rolled}
         outcome={fleeOutcome
-          ? [recapLineOfEvent(ev(toucheDu ? 'fear' : 'flee', fleeOutcome, mover.id, foe.id), battle.combatants)]
+          ? [recapLineOfEvent(ev(toucheDu ? 'peur' : 'fuite', fleeOutcome, mover.id, foe.id), battle.combatants)]
           : undefined}
         actions={actions}
       />
@@ -183,7 +183,7 @@ export function DisengageModal() {
 
   // ── Phase 'esquive' : Test OPPOSÉ (2 rangées) — le jet est déjà lancé en entrant ici. ──
   const outcome = describeDisengage(pd);
-  const winnerIndex = pd.result === 'success' ? 1 : pd.result === 'failure' ? 0 : null;
+  const winnerIndex = pd.result === 'reussite' ? 1 : pd.result === 'echec' ? 0 : null;
 
   // Test OPPOSÉ Corps à corps (foe) / Esquive (mover) : la Difficulté est DÉCLARÉE UNE fois pour
   // l'opposition entière (LDB 12 l.166 ; jet de combat, LDB 13 l.118).
@@ -199,7 +199,7 @@ export function DisengageModal() {
   const foeRow: BuiltRollRow = {
     key: 'foe',
     ...frozenOpposedRow({
-      revele: jetFigeRevele(useGame.getState(), JET_FIGE.disengage(pd)),
+      revele: jetFigeRevele(useGame.getState(), JET_FIGE.desengagement(pd)),
       row: { combatant: foe, d: foeLine.d },
     }),
   };
@@ -209,7 +209,7 @@ export function DisengageModal() {
     row: { combatant: mover, d: moverLine.d },
     rerolled: !!pd.rerolled,
     // Égalité comprise : l'opposition n'est pas emportée (LDB 17 l.68).
-    lost: pd.result !== 'success',
+    lost: pd.result !== 'reussite',
     onReroll: reroll,
     onBonusSL: bonusSL,
     onDarkPact: darkPact,
@@ -217,20 +217,20 @@ export function DisengageModal() {
   }, { key: 'mover' });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       etape={pd.phase}
-      flowKey="disengage"
+      flowKey="desengagement"
       stake={flowStakeRef(DISENGAGE_STAKE[pd.phase])}
       title="Se désengager"
       extra={header}
       rows={[foeRow, moverRow]}
       rolled
       winnerIndex={winnerIndex}
-      outcome={[recapLineOfEvent(ev(pd.result === 'success' ? 'dodge' : 'attack', outcome, mover.id, foe.id), battle.combatants)]}
+      outcome={[recapLineOfEvent(ev(pd.result === 'reussite' ? 'esquive' : 'attaque', outcome, mover.id, foe.id), battle.combatants)]}
       actions={actions}
     />
   );

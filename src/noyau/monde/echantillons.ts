@@ -2,7 +2,7 @@
  * LES ÉCHANTILLONS DU MONDE (#3802) : ce que le jeu dessine en 3D hors des modèles servis, famille par famille (chaque
  * décor, chaque sol, chaque matière de relief et de toit, chaque apparence de mur), chacun posé dans une scène que
  * bâtissent les écrivains de l'éditeur (`sceneEdit`) et dessiné par les lecteurs que le jeu sert à son hôte : le volume
- * (`volumeDuMonde`), les arêtes et les couronnes tombées du plateau (`plateauDeLaScene`), les nappes de toit
+ * (`volumeDuMonde`), les arêtes (`aretesDeLaScene`) et les couronnes tombées du plateau (`plateauDeLaScene`), les nappes de toit
  * (`toitsDuMonde`) et les couronnes crénelées (`couronnesDuMonde`).
  */
 import { findPropById, matieresDe, props, structureAppearances, terrains, semencesDeScene } from '../../data';
@@ -11,11 +11,23 @@ import { empreinteDuProp } from '../../data/props.types';
 import { parLibelle } from '../../lib/ordre.mjs';
 import { PARTS_RELIEF } from '../../data/materials.types';
 import { roofProfileSchema, eaveSideSchema } from '../../data/schemas/defs-scenes/scene';
-import { addArchitectureBody, addBuildingMass, addLayer, fillTerrainRect, paintCrenellated, paintHeight, patchBuildingMass, patchWall, placeEntity, setEdgeWall, setReliefDefault } from '../sceneEdit';
+import {
+  addArchitectureBody,
+  addBuildingMass,
+  addLayer,
+  fillTerrainRect,
+  paintCrenellated,
+  paintHeight,
+  patchBuildingMass,
+  patchWall,
+  placeEntity,
+  setEdgeWall,
+  setReliefDefault,
+} from '../sceneEdit';
 import { emptyScene, setStructureDown, type Scene, type WallSeg, type WallSide } from './scene';
 import { METRES_PER_LEVEL, STEP_MAX_M } from './relief';
 import { estAbsent, terrainBuilt, terrainSolidHeightM } from './terrain';
-import { plateauDeLaScene, type AreteDessinee } from './aretes';
+import { aretesDeLaScene, plateauDeLaScene, type AreteDessinee } from './aretes';
 import { couronnesDuMonde, toitsDuMonde, volumeDuMonde, type NappeDuMonde, type VolumeDuMonde } from './volume/volume';
 
 /** Une famille d'échantillons : les décors (`props.json`), les sols (`terrains.json`, hors de l'absence de sol,
@@ -54,7 +66,7 @@ function sceneDuDecor(id: string): Scene {
   const { w, h } = empreinteDuProp(findPropById(id), undefined, semencesDeScene.metresPerTile);
   const taillee = sceneVide(w + 2 * BORD, h + 2 * BORD);
   const centre = { x: (taillee.dimensions.w - 1) / 2, y: (taillee.dimensions.h - 1) / 2 };
-  return placeEntity(taillee, { mode: 'entity', kind: 'prop', ref: id }, { x: BORD, y: BORD }, 0, centre).scene;
+  return placeEntity(taillee, { mode: 'entite', kind: 'prop', ref: id }, { x: BORD, y: BORD }, 0, centre).scene;
 }
 
 /** Une scène de `COTE_DU_SOL` cases de côté couverte du terrain `id`. */
@@ -154,6 +166,6 @@ export function sceneDEchantillon(famille: FamilleDEchantillon, id: string): Sce
  *  regard qui ne retire rien (`immersion`). PUR. */
 export function echantillonDessine(famille: FamilleDEchantillon, id: string): EchantillonDessine {
   const scene = sceneDEchantillon(famille, id);
-  const { aretes, couronnesAbattues } = plateauDeLaScene(scene, [], 'immersion');
-  return { monde: volumeDuMonde(scene), aretes, toits: toitsDuMonde(scene), couronnes: couronnesDuMonde(scene), couronnesAbattues };
+  const { couronnesAbattues } = plateauDeLaScene(scene, [], 'immersion');
+  return { monde: volumeDuMonde(scene), aretes: aretesDeLaScene(scene), toits: toitsDuMonde(scene), couronnes: couronnesDuMonde(scene), couronnesAbattues };
 }

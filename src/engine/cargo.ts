@@ -9,55 +9,30 @@
  */
 import type { FabriqueDId } from './fabriqueDId';
 import cargoesJson from '../data/cargoes.json';
+import { datasetDe, type EntreeDe } from '../data/datasets';
+import type * as cargoesDef from '../data/schemas/defs/cargoes';
 import { memoParVersion } from '../data/versionDataset';
-import { d100, rollDice, type DiceSpec, type RNG } from './dice';
-import { findTableEntryIndex } from './tables';
+import { cargaisonsAleatoires, landCargo, seaCargo } from '../data';
+import { garanti } from '../lib/garanti';
+import { rollDice, type RNG } from './dice';
+import { deDeLaTableTiree, findTableEntry } from './tables';
 import type { Season } from './travelStages';
 import type { PossessionLocation } from './possession';
 import { PA_PER_CO } from './money';
 
+/** Une entrée de catalogue de cargaison, au type de son schéma (`schemas/defs/cargoes.ts`) : une marchandise, ou un
+ *  MARQUEUR de la colonne Production/Produits de l'Index (« Commerce », « Minimum vital », « Subsistance »,
+ *  `echangeable: false`), qui partage le vocabulaire des cargaisons sans disponibilité ni prix. MSRC 13 l.24-28 ;
+ *  MSRC 13 l.80-91 ; MDG 15 l.321 ; MDG 15 l.420-436 */
+export type CargoEntry = EntreeDe<typeof cargoesDef>;
+
+/** Un type de cargaison (bien volumineux) : prix du livre par saison, ou un jet de dés (`{dice}`), dans l'unité
+ *  de sa voie (`prixParPointDEnc`). */
+export type CargoDef = Exclude<CargoEntry, { echangeable: false }>;
+
 /** La VOIE d'une cargaison : la table du livre qui la porte — maritime (MDG 15), terrestre et fluviale
  *  (MSRC 13). */
-export type Voie = 'mer' | 'terre';
-
-/** Un type de cargaison (bien volumineux) : plages saisonnières d100 (Tableau des cargaisons) + prix de
- *  base par saison (CO par 10 points d'Encombrement) — ou un jet de dés (`{dice}`, ex. Vin maritime 3d10). */
-export interface CargoDef {
-  id: string;
-  label: string;
-  voie: Voie;
-  /** Absent sur une cargaison marchande — présent et `false` sur un MARQUEUR (`CargoMarkerDef`). */
-  echangeable?: true;
-  avail: Record<Season, { min: number; max: number }>;
-  price: Record<Season, number> | { dice: DiceSpec };
-  /** MSRC 13 l.93-104 */
-  wine?: boolean;
-}
-
-/** Un MARQUEUR de la colonne Production/Produits de l'Index (« Commerce », « Minimum vital »,
- *  « Subsistance ») : il partage le vocabulaire des cargaisons — une colonne d'Index le cite comme une
- *  marchandise — sans en être une, donc sans disponibilité ni prix. Il vit dans le MÊME catalogue
- *  (`cargoes.json`) pour que son libellé joueur ait une source unique.
- *
- *  Ce qui est PASSÉ EN DONNÉE sur le marqueur : l'EXCLUSION du négoce (`echangeable`), le LIBELLÉ
- *  (`label` + `hint`) et la qualité de PLAQUE TOURNANTE (`tradeHub`, lue par `isTradeHubEntry`). */
-export interface CargoMarkerDef {
-  id: string;
-  label: string;
-  voie: Voie;
-  echangeable: false;
-  /** Qualificatif d'AFFICHAGE du marqueur, ÉDITABLE en donnée : il reprend la forme des verbatims
-   *  MSRC 13 — « plaque tournante » (l.28) vs « rien à échanger » (l.119). Deux sens DISTINCTS qu'un
-   *  suffixe unique codé en dur écrasait ; l'écran l'affiche entre parenthèses après le `label`. */
-  hint?: string;
-  /** Le Lieu qui porte ce marqueur est une PLAQUE TOURNANTE du commerce : variété de biens disponibles
-   *  (MSRC 13 l.24-28), cargaison aléatoire à l'escale (MDG 15 l.321). Absent = marqueur ordinaire
-   *  (« Subsistance » / « Minimum vital »). */
-  tradeHub?: true;
-}
-
-/** Une entrée de catalogue de cargaison : marchandise ou marqueur. */
-export type CargoEntry = CargoDef | CargoMarkerDef;
+export type Voie = CargoEntry['voie'];
 
 /** L'entrée est-elle une marchandise (achetable/vendable) ? Lit le CHAMP d'exclusion. PUR. */
 export function isEchangeable(entry: CargoEntry): entry is CargoDef {
@@ -66,20 +41,20 @@ export function isEchangeable(entry: CargoEntry): entry is CargoDef {
 
 /** Le catalogue COMPLET tel qu'il est authoré, marchandises ET marqueurs des deux voies : le dataset
  *  éditable (`src/data/overrides.ts`). */
-export const CARGO_ENTRIES: readonly CargoEntry[] = cargoesJson as unknown as CargoEntry[];
+export const CARGO_ENTRIES = datasetDe<typeof cargoesDef>(cargoesJson);
 
 /** Résout une entrée QUELCONQUE du catalogue, marqueur compris (libellé d'affichage) : un id y est
  *  unique, quelle que soit sa voie. */
 export const findCargoEntryById = (id: string): CargoEntry | undefined => CARGO_ENTRIES.find((c) => c.id === id);
 
-/** Les MARCHANDISES de chaque voie, filtrées À LA SOURCE sur le champ d'exclusion : négoce, table de
- *  cargaison aléatoire, éditeur et Compendium n'y voient jamais un marqueur. */
+/** Les MARCHANDISES de chaque voie, filtrées À LA SOURCE sur le champ d'exclusion : négoce, éditeur et
+ *  Compendium n'y voient jamais un marqueur. */
 const marchandisesParVoie = memoParVersion('cargoes', (): Readonly<Record<Voie, readonly CargoDef[]>> => {
   const marchandises = CARGO_ENTRIES.filter(isEchangeable);
   return { mer: marchandises.filter((c) => c.voie === 'mer'), terre: marchandises.filter((c) => c.voie === 'terre') };
 });
 
-/** Les marchandises de la table d'une voie, dans l'ordre du livre. */
+/** Les marchandises d'une voie, dans l'ordre du catalogue. */
 export const marchandisesDe = (voie: Voie): readonly CargoDef[] => marchandisesParVoie()[voie];
 
 /** Résout une MARCHANDISE, quelle que soit sa voie (les marqueurs ne sont ni achetables ni vendables). */
@@ -102,27 +77,36 @@ export function isTradeHubColumn(produits: readonly string[] | undefined): boole
   return (produits ?? []).some((id) => isTradeHubEntry(findCargoEntryById(id)));
 }
 
-/** Cargaison ALÉATOIRE de la saison : d100 dans la colonne saisonnière du tableau fourni (MSRC 13 l.71-78,
- *  MDG 15 l.402-418). PUR. La couverture EXACTE de la colonne (1 à 100, sans trou ni chevauchement) est un
- *  invariant de la DONNÉE, gardé au parse table par table (`catalogueSaisonnier`,
- *  `src/data/schemas/defs/cargoes.ts`) ; un jet que rien ne couvre est donc une ANOMALIE NOMMÉE, jamais
- *  le repli muet de `findTableEntry` sur la dernière cargaison du catalogue. */
-export function rollSeasonalCargo(cargoes: CargoDef[], season: Season, rng: RNG): CargoDef {
-  const r = d100(rng);
-  const i = findTableEntryIndex(cargoes.map((c) => c.avail[season]), r);
-  if (i < 0) {
-    throw new Error(
-      `rollSeasonalCargo : le jet ${r} ne tombe dans aucune plage de disponibilité de la saison « ${season} » sur les ${cargoes.length} cargaison(s) fournies — la colonne ne couvre pas le d100.`,
-    );
-  }
-  return cargoes[i];
+/** Le document de `cargaisons-aleatoires.json` qui tire la colonne `saison` de la table de `voie`, lu à l'appel.
+ *  MDG 15 l.404-418 ; MSRC 13 l.69-78 */
+export function tableDesCargaisons(voie: Voie, saison: Season): (typeof cargaisonsAleatoires)[number] {
+  return garanti(cargaisonsAleatoires.find((t) => t.voie === voie && t.saison === saison), `${voie} › ${saison}`, 'colonne du Tableau des cargaisons');
 }
 
-/** Prix de BASE d'une cargaison (CO par 10 points d'Encombrement) pour la saison (MSRC 13 l.80-90, MDG 15
- *  l.420-436). Prix « à dés » (Vin maritime 3d10) tiré une fois à l'achat et NOTÉ. PUR (RNG injecté). */
+/** Cargaison ALÉATOIRE de la saison : au dé du document de la colonne (`tableDesCargaisons`), dont les rangées
+ *  couvrent ce dé au parse (`defs/cargaisons-aleatoires.ts`). PUR (RNG injecté). MDG 15 l.404 ; MSRC 13 l.69 */
+export function rollSeasonalCargo(voie: Voie, saison: Season, rng: RNG): CargoDef {
+  const table = tableDesCargaisons(voie, saison);
+  const { id } = findTableEntry(table.entries, rollDice(deDeLaTableTiree(table), rng));
+  return garanti(findCargoById(id), id, 'marchandise du Tableau des cargaisons');
+}
+
+/** L'Encombrement que couvre un prix du livre, par voie : donnée de la configuration de chaque voie. */
+const ENC_PAR_PRIX: Readonly<Record<Voie, number>> = {
+  mer: seaCargo.prixDuLivre.encParPrix,
+  terre: landCargo.prixDuLivre.encParPrix,
+};
+
+/** SEULE conversion d'un prix du livre de la voie en CO par point d'Enc, l'unité de `CargoLot.basePriceGold`.
+ *  PUR. MSRC 13 l.91, MDG 15 l.436 */
+export function prixParPointDEnc(prixDuLivre: number, voie: Voie): number {
+  return prixDuLivre / ENC_PAR_PRIX[voie];
+}
+
+/** Prix de BASE d'une cargaison pour la saison, en CO par point d'Enc (`prixParPointDEnc`). Prix « à dés » tiré
+ *  une fois à l'achat et NOTÉ. PUR (RNG injecté). MSRC 13 l.80-91, MDG 15 l.420-436 */
 export function cargoBasePrice(cargo: CargoDef, season: Season, rng: RNG): number {
-  if ('dice' in cargo.price) return rollDice(cargo.price.dice, rng);
-  return cargo.price[season];
+  return prixParPointDEnc('dice' in cargo.price ? rollDice(cargo.price.dice, rng) : cargo.price[season], cargo.voie);
 }
 
 /** Un LOT de cargaison en cale/soute (`basePriceGold` = prix de base NOTÉ à l'achat, CO par point d'Enc —
@@ -194,16 +178,16 @@ export function spoilCargoByPct(lots: CargoLot[], pct: number): { lots: CargoLot
   return spoilCargoByEnc(lots, Math.round(cargoTotalEnc(lots) * p / 100));
 }
 
-/** Issue d'une péripétie dangereuse terrestre pour la cargaison du convoi (arbitrage utilisateur #327).
+/** Issue d'une péripétie dangereuse terrestre pour la cargaison du convoi. https://github.com/MyEdO/game/issues/327#issuecomment-4945245936
  *  Combat gagné = le convoi est sauf ; fuite = perte partielle ; défaite = pillage lourd.
- *  Les taux sont des paramètres MAISON (`landRobberyFleePct`/`landRobberyLossPct`). */
-export type CargoRaidOutcome = 'victory' | 'fled' | 'defeat';
+ *  Les taux sont des paramètres MAISON (`vol-terrestre-fuite-pct`/`vol-terrestre-defaite-pct`). */
+export type CargoRaidOutcome = 'victoire' | 'fuite' | 'defaite';
 
 /** Pourcentage d'Enc perdu selon l'issue du combat de vol terrestre (victoire = 0 ; fuite = `fleePct` ;
  *  défaite = `lossPct`). Taux bornés 0..100. PUR. */
 export function cargoRaidLossPct(outcome: CargoRaidOutcome, fleePct: number, lossPct: number): number {
-  if (outcome === 'victory') return 0;
-  return Math.max(0, Math.min(100, outcome === 'fled' ? fleePct : lossPct));
+  if (outcome === 'victoire') return 0;
+  return Math.max(0, Math.min(100, outcome === 'fuite' ? fleePct : lossPct));
 }
 
 /** Ce qui SITUE un porteur (décision 5) : son id STABLE — id de Combattant, uid de Possession, ou id du

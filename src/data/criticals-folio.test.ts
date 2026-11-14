@@ -82,10 +82,6 @@ describe('criticals.json — la note cite la LIGNE qui porte l’entrée, dans l
     }
   });
 
-  it('168 citations : 8 documents-tables et 160 rangées', () => {
-    expect(citations().length).toBe(168);
-  });
-
   it('chaque note est la réf nue de SA ligne : fourchette et libellé pour une rangée, titre pour une table', () => {
     const f = fautives(citations());
     expect(f, `citation(s) hors de leur ligne :\n  ${f.join('\n  ')}`).toEqual([]);

@@ -1,5 +1,5 @@
 /**
- * Règles d'incantation révisées des Vents de Magie (`VDM 02 l.5-7`), option `magic-vdm-incantation` :
+ * Règles d'incantation révisées des Vents de Magie (`VDM 02 l.5-7`), option `magie-vdm-incantation` :
  * deux deltas câblés au moteur — Dégâts d'un Projectile magique (`VDM 02 l.68`, folio 20) et
  * « Puissance totale » d'une Incantation Critique (`VDM 02 l.55`, folio 20). Option OFF = LDB.
  */
@@ -12,11 +12,11 @@ import type { PendingCast } from '../noyau/pendings';
 import type { Combatant } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 
 function mk(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'c', label: 'Sujet', kind: 'hero',
+    id: 'c', label: 'Sujet', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 42, sociabilite: 30 },
     wounds: blessuresDeBase(14), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -34,7 +34,7 @@ const crit = (cast: boolean, sl: number): CastResult => ({ cast, roll: 44, targe
 afterEach(() => resetRule(RULE));
 
 describe('Registre des règles optionnelles — l’option VDM s’auto-rend dans le panneau (#733)', () => {
-  it('entrée `magic-vdm-incantation` : groupe Magie, drapeau, DÉSACTIVÉE par défaut, réf VDM', () => {
+  it('entrée `magie-vdm-incantation` : groupe Magie, drapeau, DÉSACTIVÉE par défaut, réf VDM', () => {
     const def = ruleDef(RULE);
     expect(def).toBeTruthy();
     expect(def!.group).toBe('Magie');
@@ -48,7 +48,7 @@ describe('Registre des règles optionnelles — l’option VDM s’auto-rend dan
 
 describe('Projectile magique — Dégâts (`VDM 02 l.68`, folio 20)', () => {
   const caster = mk({ id: 'w', label: 'Mage' }); // BFM 4
-  const target = mk({ id: 't', kind: 'enemy' }); // BE 3, aucune PA
+  const target = mk({ id: 't', kind: 'ennemi' }); // BE 3, aucune PA
 
   it('option OFF (LDB 46 l.101) : Dégâts du Sort + DR + BFM', () => {
     const r = evaluateMissile(caster, target, projectile as never, crit(true, 3));

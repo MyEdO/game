@@ -31,7 +31,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(40),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
@@ -40,8 +40,8 @@ const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: 
 /** Ennemi PORTEUR d'une gratuite de mêlée (Morsure, LDB 85 l.237) au contact d'un héros SURFACÉ. */
 function setup() {
   seedBattleRng(7);
-  const enemy = mk('e', 'enemy', { x: 1, y: 0 }, [sword]);
-  const hero = mk('h', 'hero', { x: 0, y: 0 }, [sword]);
+  const enemy = mk('e', 'ennemi', { x: 1, y: 0 }, [sword]);
+  const hero = mk('h', 'heros', { x: 0, y: 0 }, [sword]);
   enemy.traits = [{ id: 'morsure', value: 14 }];
   enemy.advantage = 3;
   const battle: BattleState = {
@@ -126,9 +126,9 @@ describe('#1852 — une gratuite de créature après une défense : deux fenêtr
  *  le coup principal, l'enchaînement de balayage et la gratuite se suivent — chacun SA fenêtre. */
 function setupTaille() {
   seedBattleRng(7);
-  const enemy = mk('e', 'enemy', { x: 1, y: 0 }, [sword]);
-  const h1 = mk('h1', 'hero', { x: 0, y: 0 }, [sword]);
-  const h2 = mk('h2', 'hero', { x: 2, y: 0 }, [sword]);
+  const enemy = mk('e', 'ennemi', { x: 1, y: 0 }, [sword]);
+  const h1 = mk('h1', 'heros', { x: 0, y: 0 }, [sword]);
+  const h2 = mk('h2', 'heros', { x: 2, y: 0 }, [sword]);
   enemy.traits = [{ id: 'morsure', value: 14 }];
   enemy.size = 'enorme'; // Taille supérieure → `res.cleave` (LDB 85 l.362)
   enemy.characteristics['capacite-de-combat'] = 80;
@@ -153,8 +153,8 @@ function setupTaille() {
  *  défense sur le chargeur PENDANT le télégraphe de sa charge. */
 function setupRiposte() {
   seedBattleRng(3);
-  const hero = mk('h', 'hero', { x: 4, y: 0 }, [sword]); // hors contact : il approche PUIS charge
-  const enemy = mk('e', 'enemy', { x: 0, y: 0 }, [sword]);
+  const hero = mk('h', 'heros', { x: 4, y: 0 }, [sword]); // hors contact : il approche PUIS charge
+  const enemy = mk('e', 'ennemi', { x: 0, y: 0 }, [sword]);
   enemy.talents = [{ talentId: 'frappe-reactive', times: 1 }] as never;
   enemy.characteristics.initiative = 99; // Test d'Initiative de la riposte quasi-garanti
   const battle: BattleState = {
@@ -220,7 +220,7 @@ describe('#1852 — la PORTE : aucune défense ne s’ouvre par-dessus une défe
     const { enemy, hero } = setup();
     maybeOpenDefense(g, banc.setState, enemy, hero, sword);
     const premiere = g().pendingDefense;
-    expect(drainerLesGratuites(g, banc.setState, enemy, { disponibles: true }), 'file suspendue par la fenêtre vivante').toBe(true);
+    expect(drainerLesGratuites(g, banc.setState, enemy), 'file suspendue par la fenêtre vivante').toBe(true);
     expect(g().pendingDefense, 'aucune gratuite n’a écrasé le slot').toBe(premiere);
     expect(g().pendingCascade!.participants.filter((s) => s.jet === 'defense')).toHaveLength(1);
   });
@@ -273,7 +273,7 @@ describe('#1852 — la PORTE : aucune défense ne s’ouvre par-dessus une défe
     g().jetValider('defense');
     jouerJusquAuBout();
     for (let i = 0; i < 300 && g().battle!.turn === 0; i++) if (!banc.jusquALaProchaine()) break;
-    const frappes = g().battle!.log.filter((l) => l.kind === 'attack' && l.actorId === hero.id).length;
+    const frappes = g().battle!.log.filter((l) => l.kind === 'attaque' && l.actorId === hero.id).length;
     expect(frappes, 'le télégraphe échu après la fermeture frappe une fois').toBe(1);
     expect(aiTurnLog().filter((r) => r.id === hero.id && r.round === 1).length, 'une décision').toBe(1);
     expect(g().battle!.turn, 'le tour a AVANCÉ').toBe(1);
@@ -299,7 +299,8 @@ describe('#1852 — la file des gratuites S’ARRÊTE à la première fenêtre o
   it('Frénésie (gratuite d’Arme) PUIS Morsure : la 2ᵉ ne se déclare pas par-dessus la fenêtre de la 1ʳᵉ', () => {
     const { enemy } = setup();
     (enemy.psychState ??= []).push({ type: 'frenesie' }); // LDB 21 l.33 : « un Test de CC gratuit chaque Round »
-    const suspendu = drainerLesGratuites(g, banc.setState, enemy, { disponibles: true });
+    banc.setState({ battle: { ...g().battle!, acted: true } }); // l'Action du tour, faite par l'acteur actif
+    const suspendu = drainerLesGratuites(g, banc.setState, enemy);
     expect(suspendu, 'la gratuite d’Arme a ouvert SA fenêtre → la file s’arrête').toBe(true);
     expect(g().pendingDefense, 'une défense, et une seule').not.toBeNull();
     expect(g().pendingCascade!.participants.filter((s) => s.jet === 'defense')).toHaveLength(1);
@@ -308,24 +309,24 @@ describe('#1852 — la file des gratuites S’ARRÊTE à la première fenêtre o
 });
 
 describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s’y pose jamais', () => {
-  const JETS: HostJet[] = ['attack', 'defense', 'fumble', 'cast', 'test', 'extended', 'disengage', 'forceDoor'];
+  const JETS: HostJet[] = ['attaque', 'defense', 'maladresse', 'incantation', 'test', 'testEtendu', 'desengagement', 'enfoncerLaPorte'];
 
   // Le prédicat dit « cette étape a de quoi rendre un corps » : il doit couvrir TOUTES les causes de
   // `null` du hook de props du jet (`useXJetProps`), slot ET acteurs, sinon le renderer inconditionnel
   // de `CascadeModal` rend `{...null!}` — un crash, pas une fenêtre vide.
   const battleDe = (...ids: string[]) => ({ combatants: ids.map((id) => ({ id })) } as never);
   const ETAT_COMPLET: Record<HostJet, Record<string, unknown>> = {
-    attack: { battle: battleDe('a', 'h'), pendingAttack: { attackerId: 'a', targetId: 'h' } },
+    attaque: { battle: battleDe('a', 'h'), pendingAttack: { attackerId: 'a', targetId: 'h' } },
     defense: { battle: battleDe('a', 'h'), pendingDefense: { attackerId: 'a', defenderId: 'h' } },
-    fumble: { battle: battleDe('h') }, // sans slot : la donnée est `step.fumble`
-    cast: { pendingCast: {} },
+    maladresse: { battle: battleDe('h') }, // sans slot : la donnée est `step.maladresse`
+    incantation: { pendingCast: {} },
     test: { pendingTest: {} },
-    extended: { battle: battleDe('h'), pendingExtendedTest: { actorId: 'h' } },
-    disengage: { pendingDisengage: {} },
-    forceDoor: { pendingForceDoor: {} },
+    testEtendu: { battle: battleDe('h'), pendingExtendedTest: { actorId: 'h' } },
+    desengagement: { pendingDisengage: {} },
+    enfoncerLaPorte: { pendingForceDoor: {} },
   };
   const etape = (jet: HostJet): CascadeStep =>
-    ({ id: `x-${jet}`, kind: 'k', jet, actorId: 'h', ...(jet === 'fumble' ? { fumble: { weapon: 'Épée' } } : {}) } as never);
+    ({ id: `x-${jet}`, kind: 'k', jet, actorId: 'h', ...(jet === 'maladresse' ? { maladresse: { weapon: 'Épée' } } : {}) } as never);
 
   it('pour CHAQUE jet hôté : donnée complète ⇒ pas orphelin ; slot vidé ⇒ orphelin', () => {
     for (const jet of JETS) {
@@ -339,14 +340,14 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
   it('2ᵉ cause de `null` du hook : l’ACTEUR a quitté le `battle` ⇒ orphelin', () => {
     // useDefenseJetProps:51 / useAttackJetProps:57 / useFumbleJetProps:26 /
     // useExtendedTestJetProps:34 — `if (!attacker || !target) return null`.
-    for (const jet of ['attack', 'defense', 'fumble', 'extended'] as HostJet[]) {
+    for (const jet of ['attaque', 'defense', 'maladresse', 'testEtendu'] as HostJet[]) {
       expect(hoteOrphelin({ ...ETAT_COMPLET[jet], battle: battleDe('personne') } as never, etape(jet)), `${jet} sans acteur`).toBe(true);
       expect(hoteOrphelin({ ...ETAT_COMPLET[jet], battle: null } as never, etape(jet)), `${jet} hors combat`).toBe(true);
     }
   });
 
-  it('Maladresse : sa donnée vit SUR l’étape (`step.fumble`), invisible au slot ⇒ orphelin sans elle', () => {
-    expect(hoteOrphelin(ETAT_COMPLET.fumble as never, { id: 'f', kind: cleDeFixture('k'), jet: 'fumble', actorId: 'h' })).toBe(true);
+  it('Maladresse : sa donnée vit SUR l’étape (`step.maladresse`), invisible au slot ⇒ orphelin sans elle', () => {
+    expect(hoteOrphelin(ETAT_COMPLET.maladresse as never, { id: 'f', kind: cleDeFixture('k'), jet: 'maladresse', actorId: 'h' })).toBe(true);
   });
 
   it('une étape déjà VALIDÉE (`committed`) n’est jamais orpheline : elle a rendu sa donnée', () => {
@@ -365,14 +366,14 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
       pendingDefense: null,
       pendingCascade: cascadeDeTest([
         { id: 'affichage', kind: cleDeFixture('display'), actorId: 'h', label: fixtureText('X') },
-        { id: 'defense-jet-1', kind: 'defenseJet', jet: 'defense', actorId: 'h' }, // ORPHELINE : aucun pendingDefense
+        { id: 'defense-jet-1', kind: 'jetDeDefense', jet: 'defense', actorId: 'h' }, // ORPHELINE : aucun pendingDefense
       ], { title: 'Défense', purpose: 'combat' }),
     });
     expect(() => banc.getState().jetValider('cascade')).toThrow(/orphelin/);
   });
 
   it('l’ARBITRE n’élit pas la cascade quand le corps de l’étape `cast` s’efface (ciblage carte)', () => {
-    const casc = cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'cast', actorId: 'h' }]);
+    const casc = cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'incantation', actorId: 'h' }]);
     expect(pickActiveModalKey({ pendingCast: {} as never, pendingCascade: casc })).toBe('cascade');
     expect(pickActiveModalKey({ pendingCast: { pickingTargets: true } as never, pendingCascade: casc })).toBeNull();
   });
@@ -432,10 +433,10 @@ describe('#1852 — un combattant ne décide qu’UNE fois son tour', () => {
     enemy.traits = [];
     enemy.size = 'enorme'; // écart de Taille → Terreur (LDB 85 l.383)
     banc.setState({ battle: { ...g().battle!, turn: -1 }, pendingRoundStart: { round: 1 } } as never);
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     const joues = () => aiTurnLog().filter((r) => r.id === enemy.id && r.round === 1).length;
-    const bande = g().pendingCascade?.participants.find((st) => st.kind === 'combatPsych');
-    expect([bande?.combatPsych?.kind, bande?.participants?.map((pa) => pa.id)], 'chemin : la Terreur du héros ouvre sa bande').toEqual(['terreur', [hero.id]]);
+    const bande = g().pendingCascade?.participants.find((st) => st.kind === 'psychologieDeCombat');
+    expect([bande?.psychologieDeCombat?.kind, bande?.participants?.map((pa) => pa.id)], 'chemin : la Terreur du héros ouvre sa bande').toEqual(['terreur', [hero.id]]);
     banc.reprendreTout();
     expect([joues(), g().battle!.tourEnCours?.cle], 'la séquence tient la main : le tour n’est pas décidé').toEqual([0, undefined]);
     jouerJusquAuBout();

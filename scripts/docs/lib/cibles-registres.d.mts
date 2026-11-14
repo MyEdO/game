@@ -22,4 +22,5 @@ export const SORTIE_VOCABULAIRES_D_ART: string;
 export const SORTIES: readonly string[];
 export const SORTIE_FORMATS: string;
 export const SORTIE_VERBES: string;
+export const SORTIE_NOMS_DE_PARAMETRE: string;
 export const SORTIE_COMBATTANTS_DE_L_ETAT: string;

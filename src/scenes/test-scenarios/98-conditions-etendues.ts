@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
@@ -76,12 +76,12 @@ export const scenario: TestScenario = {
   id: 'conditions-etendues',
   order: 25,
   category: 'scenarios',
-  icon: 'nav/campaign',
+  icon: 'navigation/campagne',
   title: 'Conditions étendues (skill/career/species/status)',
   tests:
     'Les 4 nouveaux kinds de `Condition` party-level (#711) : `skill` (avances), `career`, ' +
     '`species`, `status` — gate de choix de dialogue sur les VIVANTS du groupe, convention ' +
     'de préfixe « [Descripteur] » côté prose.',
   partyNote: 'Pré-tirés',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireScene() }),
 };

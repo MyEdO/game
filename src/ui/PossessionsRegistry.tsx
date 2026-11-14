@@ -12,6 +12,7 @@
  * quels par `PossessionsScreen.tsx` (#620 Lot 2, écran de gestion) : source unique du vocabulaire
  * visuel d'une Possession, jamais une 2e copie.
  */
+import type { IconId } from '../data/icons';
 import type { ReactNode } from 'react';
 import type { Combatant } from '../engine/types';
 import type { Possession } from '../engine/possession';
@@ -41,12 +42,12 @@ export const NATURE_TITLE: Record<Possession['nature'], string> = {
   immeuble: 'Immeubles',
 };
 
-export const NATURE_ICON: Record<Possession['nature'], string> = {
-  bete: 'travel/mount',
-  vehicule: 'travel/cart',
-  navire: 'travel/sail-ship',
-  serviteur: 'map-tool/npc',
-  immeuble: 'rest/home',
+export const NATURE_ICON: Record<Possession['nature'], IconId> = {
+  bete: 'voyage/en-selle',
+  vehicule: 'voyage/charrette',
+  navire: 'voyage/navire-a-voile',
+  serviteur: 'outil-de-carte/personnage',
+  immeuble: 'repos/chez-soi',
 };
 
 export const MOUNT_INJURY_LABEL: Record<MountInjury, string> = {
@@ -120,7 +121,7 @@ function PossessionRow({ p, allPossessions, onOpen }: { p: Possession; allPosses
         />
         {codexRef && (
           <CodexRef category={codexRef.category} id={codexRef.id} label={label} className="ab-codex-info" hideIfUnknown>
-            <Icon id="journal/info" size="sm" />
+            <Icon id="journal/information" size="sm" />
           </CodexRef>
         )}
       </Row>

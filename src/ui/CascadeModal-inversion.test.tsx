@@ -37,10 +37,10 @@ function bandeDePeur(jeton: boolean): void {
   useGame.setState({ party: [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })], pendingCascade: null });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
-  useGame.getState().fenetreValider('roundStart');
+  useGame.getState().fenetreValider('debutDuRound');
   const b = useGame.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   const E = enemies[0];
   enemies.slice(1).forEach((e) => (e.dead = true));
   E.size = 'grande';
@@ -52,7 +52,7 @@ function bandeDePeur(jeton: boolean): void {
   openRoundEndCascade(useGame.getState, useGame.setState);
   const pc = useGame.getState().pendingCascade!;
   const band = pc.participants[0];
-  expect(band.combatPsych?.kind, 'témoin : la bande est une Peur').toBe('peur');
+  expect(band.psychologieDeCombat?.kind, 'témoin : la bande est une Peur').toBe('peur');
   const participants = band.participants!.map((p) => (p.id === H.id ? { ...p, target: 55, result: { roll: 64, target: 55, sl: -1, success: false } } : p));
   useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants }, ...pc.participants.slice(1)] } });
   act(() => { root.render(<CascadeBody />); });

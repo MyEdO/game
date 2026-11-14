@@ -1,6 +1,6 @@
 import type { CSSProperties, PointerEvent, ReactNode } from 'react';
 import { useGame } from '../state/store';
-import { runBindingById } from '../state/clavier/keybindings';
+import { runBindingById, type IdDeRaccourci } from '../state/clavier/keybindings';
 
 /**
  * Croix directionnelle TACTILE de la vue subjective (POV). Ne crée AUCUN chemin d'entrée parallèle :
@@ -29,12 +29,12 @@ const BTN: CSSProperties = {
 };
 
 export function PovControls() {
-  const press = (id: string) => (e: PointerEvent) => {
+  const press = (id: IdDeRaccourci) => (e: PointerEvent) => {
     e.stopPropagation();
     e.preventDefault();
     runBindingById(id, useGame.getState);
   };
-  const btn = (id: string, label: string, title: string): ReactNode => (
+  const btn = (id: IdDeRaccourci, label: string, title: string): ReactNode => (
     <button key={id} type="button" title={title} style={BTN} onPointerDown={press(id)}>
       {label}
     </button>
@@ -43,12 +43,12 @@ export function PovControls() {
   // il s'ancre au bas de la RANGÉE DU MONDE, au-dessus du pont, sans en connaître la hauteur.
   return (
     <div className="pov-controls" onPointerDown={(e) => e.stopPropagation()}>
-      {btn('pov-turn-l', '⟲', 'Pivoter le regard à gauche (A)')}
-      {btn('pov-forward', '▲', 'Avancer (Z)')}
-      {btn('pov-turn-r', '⟳', 'Pivoter le regard à droite (E)')}
-      {btn('pov-strafe-l', '◄', 'Pas de côté à gauche (Q)')}
-      {btn('pov-back', '▼', 'Reculer (S)')}
-      {btn('pov-strafe-r', '►', 'Pas de côté à droite (D)')}
+      {btn('subjectif-pivot-gauche', '⟲', 'Pivoter le regard à gauche (A)')}
+      {btn('subjectif-avant', '▲', 'Avancer (Z)')}
+      {btn('subjectif-pivot-droite', '⟳', 'Pivoter le regard à droite (E)')}
+      {btn('subjectif-gauche', '◄', 'Pas de côté à gauche (Q)')}
+      {btn('subjectif-arriere', '▼', 'Reculer (S)')}
+      {btn('subjectif-droite', '►', 'Pas de côté à droite (D)')}
     </div>
   );
 }

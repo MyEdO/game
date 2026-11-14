@@ -147,6 +147,11 @@
       "armes": 1
     },
     "dirigeant": "Baron Ludolf Köhler",
+    "chantierNavalSpecialise": {
+      "book": "mer-des-griffes",
+      "page": 24,
+      "note": "MDG 03 l.196"
+    },
     "desc": "Mouillage de la Seconde Flotte de la Marine impériale",
     "source": {
       "book": "mer-des-griffes",
@@ -325,6 +330,11 @@
       "cereales": 1
     },
     "dirigeant": "Roi Haarkon et reine Inga",
+    "chantierNavalSpecialise": {
+      "book": "mer-des-griffes",
+      "page": 43,
+      "note": "MDG 06 l.104"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 138
@@ -446,6 +456,11 @@
       "produits-de-luxe-mer": 1
     },
     "dirigeant": "Empereur Karl Franz I Holswig Schliestein",
+    "chantierNavalSpecialise": {
+      "book": "altdorf-couronne-de-l-empire",
+      "page": 85,
+      "note": "ACE 05 l.882"
+    },
     "desc": "Capitale impériale ; Grande Cathédrale de Sigmar",
     "source": {
       "book": "mer-des-griffes",

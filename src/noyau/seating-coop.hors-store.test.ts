@@ -22,9 +22,9 @@ const MJ = 0;
 const INVITE = 1;
 
 const hero = (id: string): Combatant =>
-  combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
+  combattantDeTest({ id, label: id.toUpperCase(), kind: 'heros', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
-const pris = (id: string): SeatOccupant => ({ kind: 'entity', entityId: id });
+const pris = (id: string): SeatOccupant => ({ kind: 'entite', entityId: id });
 const occupants = (sc: Scene) => Object.values(sc.seatAssignments ?? {}).flatMap((m) => Object.values(m));
 
 let banc: Banc;
@@ -45,7 +45,7 @@ function derniereePlaceLibre(): void {
   banc.getState().lancerLaScene(s);
   banc.setState({
     partyPos: { ...ABORD_NORD },
-    net: { ...banc.getState().net, mode: 'host', mySeat: MJ, gmSeat: MJ, ownership: { h1: MJ, h2: INVITE } },
+    net: { ...banc.getState().net, mode: 'hote', mySeat: MJ, gmSeat: MJ, ownership: { h1: MJ, h2: INVITE } },
   });
 }
 
@@ -85,14 +85,14 @@ describe('un seul gagnant sur la DERNIÈRE place', () => {
     derniereePlaceLibre();
     const perimee = banc.getState().scene!;
     banc.getState().interagirAvecLEntite(PROP);
-    expect(seatPoseOf(banc.getState().scene!, { kind: 'party', rang: 1 })).toMatchObject({ slotId: 'place-1' });
+    expect(seatPoseOf(banc.getState().scene!, { kind: 'groupe', rang: 1 })).toMatchObject({ slotId: 'place-1' });
 
     banc.setState({ scene: perimee }); // snapshot périmé remis en place (rattrapage réseau)
     banc.getState().interagirAvecLEntite(PROP);
     const sc = banc.getState().scene!;
     expect(occupants(sc)).toHaveLength(4);                       // 3 PNJ + UN seul corps de groupe
-    expect(occupants(sc).filter((o) => o.kind === 'party')).toHaveLength(1);
-    expect(sc.seatAssignments![PROP]['place-1']).toEqual({ kind: 'party', rang: 1 });
+    expect(occupants(sc).filter((o) => o.kind === 'groupe')).toHaveLength(1);
+    expect(sc.seatAssignments![PROP]['place-1']).toEqual({ kind: 'groupe', rang: 1 });
   });
 
   it('un second EMPLACEMENT ne peut pas s’y glisser : la place est prise', () => {
@@ -101,7 +101,7 @@ describe('un seul gagnant sur la DERNIÈRE place', () => {
     // La place tenue l'est par un EMPLACEMENT (rang 1). Un autre emplacement du même groupe qui
     // tenterait la même place est refusé par la transaction elle-même, sur l'état COURANT.
     const sc = banc.getState().scene!;
-    expect(assignSeat(sc, PROP, 'place-1', { kind: 'party', rang: 2 }, banc.getState().party.length))
+    expect(assignSeat(sc, PROP, 'place-1', { kind: 'groupe', rang: 2 }, banc.getState().party.length))
       .toMatchObject({ ok: false, reason: 'slot-occupe' });
     expect(occupants(sc)).toHaveLength(4);
   });
@@ -113,11 +113,11 @@ describe('un seul gagnant sur la DERNIÈRE place', () => {
     // lève — elle ne passe pas de main en main, et aucune seconde occupation de groupe n'apparaît.
     banc.setState((s) => ({ party: [s.party[1], s.party[0]] }));
     const sc = banc.getState().scene!;
-    expect(occupants(sc).filter((o) => o.kind === 'party')).toEqual([]);
+    expect(occupants(sc).filter((o) => o.kind === 'groupe')).toEqual([]);
     expect(occupants(sc)).toHaveLength(3); // les trois PNJ authorés gardent la leur
     // …et la place ainsi rendue est de nouveau prenable par le geste du meneur.
     banc.getState().interagirAvecLEntite(PROP);
-    expect(seatPoseOf(banc.getState().scene!, { kind: 'party', rang: 1 })).toMatchObject({ slotId: 'place-1' });
+    expect(seatPoseOf(banc.getState().scene!, { kind: 'groupe', rang: 1 })).toMatchObject({ slotId: 'place-1' });
   });
 });
 
@@ -129,11 +129,11 @@ describe('parité hôte → invité', () => {
 
     // L'invité part d'un état DIVERGENT (personne d'assis) puis reçoit le snapshot.
     banc.setState((s) => ({ scene: { ...s.scene!, seatAssignments: {} } }));
-    expect(seatPoseOf(banc.getState().scene!, { kind: 'party', rang: 1 })).toBeNull();
+    expect(seatPoseOf(banc.getState().scene!, { kind: 'groupe', rang: 1 })).toBeNull();
 
     banc.setState(appliquerLInstantane(snap, banc.getState()).etat);
     const sc = banc.getState().scene!;
-    expect(seatPoseOf(sc, { kind: 'party', rang: 1 })).toMatchObject({ propId: PROP, slotId: 'place-1' });
+    expect(seatPoseOf(sc, { kind: 'groupe', rang: 1 })).toMatchObject({ propId: PROP, slotId: 'place-1' });
     expect(occupants(sc)).toHaveLength(4);
   });
 });

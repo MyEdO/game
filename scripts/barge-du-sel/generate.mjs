@@ -17,28 +17,16 @@ import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scene, hero, P, flowOf, poste, resetIds, projectDoc, flagWhen } from '../campagne/lib.mjs';
-import { gabaritDObjet } from '../../src/engine/items.ts';
 import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
 
 /** Construction PURE du document de projet : la SOURCE possède 100 % de la donnée de l'artefact
  *  (`src/scenes/barge-du-sel/barge-du-sel-projet.json`), le CLI ci-dessous n'en est que la voie d'écriture.
  *  Rejouable à volonté dans un même process — garde `src/scenes/generateurs-byte-stables.test.ts`. */
 export function build() {
-let ammoSeq = 0;
-/** Munition de bord (`ItemInstance` kind:'ammo') bâtie sur le gabarit CANONIQUE `gabaritDObjet`,
- *  uid STABLE + quantité — cohérence témoin avec `scripts/loup-et-saumure/generate.mjs`. */
-function ammoStock(trappingId, qty) {
-  const base = gabaritDObjet(trappingId);
-  if (!base) throw new Error(`munition inconnue au catalogue : ${trappingId}`);
-  return { ...base, uid: `ammo-${trappingId}-${++ammoSeq}`, qty };
-}
-/** Poste ARMÉ (#241) : le `poste()` DOTÉ de son coffre à boulets de bord (`ShipPoste.ammo`) + la munition
- *  sélectionnée par défaut. Sans dotation, la pièce est muette (affordance « Pas de munitions »). */
-function armedPoste(trappingId, side, stock) {
-  const p = poste(trappingId, side);
-  p.ammo = stock.map((s) => ammoStock(s.ref, s.qty));
-  p.ammoUid = p.ammo[0].uid;
-  return p;
+/** Poste d'artillerie ARMÉ (#241) : le `poste()` doté de son coffre (`coffre`, chaque munition du catalogue par son id, sa
+ *  quantité) et de sa munition choisie, la première. MDG 12 l.410-424 */
+function armedPoste(trappingId, side, coffre) {
+  return { ...poste(trappingId, side), ammo: coffre, selectedAmmo: { id: Object.keys(coffre)[0] } };
 }
 
 /** Entité-COQUE brute (chemin `entities` du MapSpec, JAMAIS normalisée par `creatureId`) — une coque
@@ -177,18 +165,18 @@ scenes.push(scene({
   entities: [
     hero(3, 7),
     hull('louve-grise', 'loup-imperial', 3, 7, 'E', 'La Louve grise', ['louve-helm', 'louve-gun'],
-      [armedPoste('canon-moyen', 'tribord', [{ ref: 'boulet-et-poudre', qty: 12 }, { ref: 'mitraille-et-poudre', qty: 4 }]),
-       armedPoste('canon-moyen', 'babord', [{ ref: 'boulet-et-poudre', qty: 12 }, { ref: 'mitraille-et-poudre', qty: 4 }]),
-       armedPoste('pierrier', 'proue', [{ ref: 'balles-et-poudre-pierrier', qty: 16 }])]),
+      [armedPoste('canon-moyen', 'tribord', { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }),
+       armedPoste('canon-moyen', 'babord', { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }),
+       armedPoste('pierrier', 'proue', { 'balles-et-poudre-pierrier': 16 })]),
     marine('louve-helm', 3, 6, 'Timonier de la Louve grise', HELM_SKILLS, 'marin'),
     marine('louve-gun', 3, 8, 'Canonnier de la Louve grise', GUN_SKILLS, 'artilleur-de-navire'),
     // Trait naval du catalogue (`naval-traits.json`, kind:'trait') posé en amélioration d'INSTANCE sur la
     // coque pirate — « Renforcé » (MDG p.97, +10 Endurance/niveau), thématiquement une coque de pirates
     // renforcée pour l'abordage. Passagers : les pirates + le chef, + un barreur/canonnier compétents.
     hull('cogue-pirate', 'cogue', 18, 7, 'O', 'La cogue pirate', ['pirate-1', 'pirate-2', 'chef-pirate-1', 'cogue-helm', 'cogue-gun'],
-      [armedPoste('canon-moyen', 'tribord', [{ ref: 'boulet-et-poudre', qty: 12 }]),
-       armedPoste('canon-moyen', 'babord', [{ ref: 'boulet-et-poudre', qty: 12 }]),
-       armedPoste('canon-moyen', 'proue', [{ ref: 'boulet-et-poudre', qty: 8 }])],
+      [armedPoste('canon-moyen', 'tribord', { 'boulet-et-poudre': 12 }),
+       armedPoste('canon-moyen', 'babord', { 'boulet-et-poudre': 12 }),
+       armedPoste('canon-moyen', 'proue', { 'boulet-et-poudre': 8 })],
       [{ id: 'renforce', value: 1 }]),
     { id: 'pirate-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 18, y: 6 }, label: 'Pirate' },
     { id: 'pirate-2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 18, y: 8 }, label: 'Pirate' },
@@ -201,18 +189,18 @@ scenes.push(scene({
       id: 'enc-embuscade-sel',
       // Surprise navale = avantage de POSITION (couche Mer : pas d'État Surpris sur une coque) : Perception
       // ratée → la cogue surgit plus près, bordée alignée ; repérée → ~150 m sans avantage (`applyNavalSurprisePosition`).
-      surprise: 'party',
+      surprise: 'groupe',
       // Reddition à 40 % de Blessures (VictoryCondition.woundsThreshold, doc §8) : la cogue pirate amène
       // son pavillon avant le naufrage complet.
       victoryCondition: { type: 'woundsThreshold', targetId: 'cogue-pirate', atOrBelowPercent: 40 },
       members: [
-        { entityId: 'louve-grise', side: 'ally' },
-        { entityId: 'cogue-pirate', side: 'enemy' },
-        { entityId: 'pirate-1', side: 'enemy' },
-        { entityId: 'pirate-2', side: 'enemy' },
-        { entityId: 'chef-pirate-1', side: 'enemy' },
-        { entityId: 'cogue-helm', side: 'enemy' },
-        { entityId: 'cogue-gun', side: 'enemy' },
+        { entityId: 'louve-grise', side: 'allie' },
+        { entityId: 'cogue-pirate', side: 'ennemi' },
+        { entityId: 'pirate-1', side: 'ennemi' },
+        { entityId: 'pirate-2', side: 'ennemi' },
+        { entityId: 'chef-pirate-1', side: 'ennemi' },
+        { entityId: 'cogue-helm', side: 'ennemi' },
+        { entityId: 'cogue-gun', side: 'ennemi' },
       ],
       onVictory: flowOf([
         { type: 'setFlag', flag: 'sel-embuscade-vaincue' },

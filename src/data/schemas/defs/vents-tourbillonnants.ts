@@ -26,7 +26,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['ventsTourbillonnants'] },
     edit: { niche: { categories: { ventsTourbillonnants: 'entries' } } },
   },
   { rangee, deDeTirage: true },

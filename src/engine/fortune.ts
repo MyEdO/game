@@ -24,7 +24,7 @@ export function canReroll(ownRollFailed: boolean, alreadyRerolled: boolean): boo
  * séance (`terminerLaSeance`, partyFlow).
  */
 export function restoreFortune(party: Combatant[]): Combatant[] {
-  return party.map((h) => (h.kind === 'hero'
+  return party.map((h) => (h.kind === 'heros'
     ? { ...h, ...(h.fate != null ? { fortune: fortuneMax(h) } : {}), resistanceUsed: undefined }
     : h));
 }
@@ -32,13 +32,13 @@ export function restoreFortune(party: Combatant[]): Combatant[] {
 /** Sauvetage par le Destin (LDB 17 l.29) : sur le coup qui porte (`hit`) ou sur une mort lente (`slow`). */
 export type FateSaveSource = 'hit' | 'slow';
 
-/** Option du sacrifice : `survive` LDB 17 l.31, `negate` LDB 17 l.32. */
-export type FateSaveOption = 'survive' | 'negate';
+/** Option du sacrifice : `survivre` LDB 17 l.31, `eviter` LDB 17 l.32. */
+export type FateSaveOption = 'survivre' | 'eviter';
 
 /** Options OFFERTES selon la source, dans l'ordre du livre : LDB 17 l.31-32. Source unique de la
- *  fenêtre, de son enjeu, du choix `fateSave.issue` et de l'auto-combat. */
+ *  fenêtre, de son enjeu, du choix `destin.issue` et de l'auto-combat. */
 export function fateSaveOptions(source: FateSaveSource): readonly FateSaveOption[] {
-  return source === 'hit' ? ['survive', 'negate'] : ['survive'];
+  return source === 'hit' ? ['survivre', 'eviter'] : ['survivre'];
 }
 
 /** Mort certaine évitée en brûlant 1 Point de Destin (LDB 17 l.29-37) : Destin −1 et la cible

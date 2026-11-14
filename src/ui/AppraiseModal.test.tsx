@@ -14,7 +14,6 @@ const ligneDEvaluation = (valeur: number, actor?: Combatant, soutien?: SupportDe
 
 const base: PendingAppraise = {
   actorId: 'h',
-  actorName: 'H',
   itemUid: 'x',
   itemName: 'Épée mystérieuse',
   truePriceBrass: 240,
@@ -30,7 +29,7 @@ const noop = () => {};
 /** Évaluateur minimal : Int 40 + 15 Augmentations d'Évaluation (la Compétence que roule le flux). */
 function hero(): Combatant {
   return {
-    id: 'h', label: 'H', kind: 'hero', speciesId: 'humains-reiklander',
+    id: 'h', label: 'H', kind: 'heros', speciesId: 'humains-reiklander',
     characteristics: { intelligence: 40, sociabilite: 40, agilite: 40 } as Combatant['characteristics'],
     skills: [{ id: 'evaluation', advances: 15 }] as SkillInstance[],
     talents: [], items: [], conditions: [], advantage: 0, weapons: [],
@@ -40,7 +39,7 @@ function hero(): Combatant {
 describe('AppraiseModal (#2e)', () => {
   it('avant le jet : bouton Lancer + nom de l’objet', () => {
     const html = renderToStaticMarkup(
-      <AppraiseModalView pa={base} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
+      <AppraiseModalView nom="H" pa={base} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );
     expect(html).toMatch(/Lancer/);
     expect(html).toContain('Épée mystérieuse');
@@ -49,13 +48,13 @@ describe('AppraiseModal (#2e)', () => {
   it('#1064 — Soutien (LDB 12) : chip NOMMÉE et base rebasée, avant comme après le jet', () => {
     const pa: PendingAppraise = { ...base, ligne: ligneDEvaluation(65, undefined, { count: 2, bonus: 20, ids: ['h2', 'h3'] }), target: 65 };
     const pre = renderToStaticMarkup(
-      <AppraiseModalView pa={pa} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
+      <AppraiseModalView nom="H" pa={pa} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );
     expect(pre).toContain('Soutien');
     expect(pre).toContain('+20 Soutien');
     expect(pre).toContain('45'); // base RÉELLE du meneur (65 − 20), plus une valeur qui tombe du ciel
     const post = renderToStaticMarkup(
-      <AppraiseModalView pa={{ ...pa, roll: 20, success: true, sl: 2 }} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
+      <AppraiseModalView nom="H" pa={{ ...pa, roll: 20, success: true, sl: 2 }} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );
     expect(post).toContain('+20 Soutien'); // le détail SURVIT au jet (pile le moment où on lit son résultat)
   });
@@ -67,7 +66,7 @@ describe('AppraiseModal (#2e)', () => {
     const skillValue = testValue(evaluateur, { skill: { id: 'evaluation' }, characteristic: 'intelligence' });
     const pa: PendingAppraise = { ...base, ligne: ligneDEvaluation(skillValue, evaluateur), target: skillValue };
     const html = renderToStaticMarkup(
-      <AppraiseModalView pa={pa} actor={evaluateur} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
+      <AppraiseModalView nom="H" pa={pa} actor={evaluateur} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );
     expect(skillValue).toBeLessThan(skillBaseValue(evaluateur, { skill: { id: 'evaluation' }, characteristic: 'intelligence' })); // l'État pèse VRAIMENT
     expect(html).toContain('−10 Empoisonné'); // l'octroyeur est NOMMÉ
@@ -81,7 +80,7 @@ describe('AppraiseModal (#2e)', () => {
     const sain = hero();
     const skillValue = testValue(sain, { skill: { id: 'evaluation' }, characteristic: 'intelligence' });
     const html = renderToStaticMarkup(
-      <AppraiseModalView pa={{ ...base, ligne: ligneDEvaluation(skillValue, sain), target: skillValue }} actor={sain} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
+      <AppraiseModalView nom="H" pa={{ ...base, ligne: ligneDEvaluation(skillValue, sain), target: skillValue }} actor={sain} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );
     expect(html).not.toContain('rm-mod'); // la ligne de jet ne porte AUCUNE chip de modificateur
   });
@@ -90,7 +89,7 @@ describe('AppraiseModal (#2e)', () => {
     const pa: PendingAppraise = { ...base, roll: 20, success: true, sl: 2 };
     useGame.setState({ pendingAppraise: pa }); // la coquille juge la clôture sur l'Évaluation en attente
     const html = renderToStaticMarkup(
-      <AppraiseModalView pa={pa} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
+      <AppraiseModalView nom="H" pa={pa} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );
     useGame.setState({ pendingAppraise: null });
     expect(html).toContain('révélé');

@@ -4,6 +4,7 @@
  * (rack d'alvéoles réservées) et les deux gouttières sont DESSINÉES quoi qu'il arrive. Montée pour de
  * vrai (`createRoot`/`act`) sur le VRAI store et de VRAIS héros (`createHero`) — aucun module mocké.
  */
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
@@ -57,7 +58,7 @@ function hero(id: string, label: string): Combatant {
 
 function foe(id: string, x: number, y: number): Combatant {
   const e = hero(id, `Rat ${id}`);
-  e.kind = 'enemy';
+  e.kind = 'ennemi';
   e.pos = { x, y };
   return e;
 }
@@ -87,13 +88,13 @@ function monter(h: Combatant, opts: { foes?: Combatant[]; runBudget?: number; tu
 }
 
 it('l’arche respecte le camp résolu par campOf sans surcharge de son hôte', () => {
-  const camp = vi.spyOn(relations, 'campOf').mockReturnValue('neutral');
+  const camp = vi.spyOn(relations, 'campOf').mockReturnValue('neutre');
   try {
     act(() => root.render(<ConsoleArch active={foe('camp-resolu', 2, 2)} move={{ value: 4, max: 4 }} action={{ value: 1, max: 1 }} />));
     const tuile = host.querySelector('.cc-arch .ptile')!;
     expect(tuile).toBeTruthy();
-    expect(tuile.classList.contains('team-enemy')).toBe(false);
-    expect(tuile.classList.contains('team-ally')).toBe(false);
+    expect(tuile.classList.contains('team-ennemi')).toBe(false);
+    expect(tuile.classList.contains('team-allie')).toBe(false);
   } finally {
     camp.mockRestore();
   }
@@ -710,14 +711,14 @@ describe('CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17
     h.conditions = [];
     monter(h, { foes: [foe('e1', 9, 9)] });
     const arch = host.querySelector('.cc-arch')!;
-    expect(arch.querySelectorAll('.team-ally, .team-enemy').length).toBe(1);
-    expect(arch.querySelector('.ptile')!.classList.contains('team-ally')).toBe(true);
+    expect(arch.querySelectorAll('.team-allie, .team-ennemi').length).toBe(1);
+    expect(arch.querySelector('.ptile')!.classList.contains('team-allie')).toBe(true);
     // … et au tour de l'adversaire (forme SPECTATRICE, arbitrage 2026-08-24), l'arche seule porte le
     // camp au même endroit : une seule fois, sur la tuile.
     monter(h, { foes: [foe('e1', 9, 9)], turn: 1 });
     const seule = host.querySelector('.cc-arch')!;
-    expect(seule.querySelectorAll('.team-ally, .team-enemy').length).toBe(1);
-    expect(seule.querySelector('.ptile')!.classList.contains('team-enemy')).toBe(true);
+    expect(seule.querySelectorAll('.team-allie, .team-ennemi').length).toBe(1);
+    expect(seule.querySelector('.ptile')!.classList.contains('team-ennemi')).toBe(true);
   });
 
   // C-4 (R-M2) : « Mouve… », « Déter… » + « 3 » orphelin à 360 — la boîte à deux lignes ne pose son
@@ -822,7 +823,7 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
     // exactement le même flux et le même compte de cases (loi 1) — c'est ce que ce contrat mesure.
     // (Le tour de l'adversaire, lui, change de FORME depuis l'arbitrage 2026-08-24 : il ne peut plus
     // servir de témoin de géométrie constante.)
-    monter(h, { foes: [e], action: 'battery' });
+    monter(h, { foes: [e], action: 'bordee' });
     expect(host.querySelectorAll('.cc-phase').length).toBe(1);
     expect(enFlux()).toEqual(auHeros);
     expect(host.querySelectorAll('.cc-cell').length).toBe(casesHeros);
@@ -1162,7 +1163,7 @@ describe('CombatConsole — trois formes, une seule bande', () => {
 describe('CombatConsole — case Recharger : le porteur de l’état est l’ARME', () => {
   /** Arme à distance NUE (sans `uid`) : son registre de charge est l'instance d'arme elle-même. */
   function pistolet(load: Partial<Weapon>): Weapon {
-    return { label: 'Pistolet', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 20, reload: 3, qualities: [], ...load } as Weapon;
+    return { label: 'Pistolet', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 20, reload: 3, qualities: [], ...load } as Weapon;
   }
 
   it('affiche la progression du Test étendu portée par l’ARME et allume la case tant qu’elle est déchargée', () => {
@@ -1242,7 +1243,7 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
     const h = deuxSets({ loaded: false });
     // L'état vient bien du registre de l'arme (l'objet possédé), pas d'un champ du porteur.
     const arb = h.items!.find((i) => i.uid === 'i-arb')!;
-    expect(weaponLoaded(h, { ...arb, type: 'ranged', reload: 2 } as unknown as Weapon)).toBe(false);
+    expect(weaponLoaded(h, { ...arb, type: 'distance', reload: 2 } as unknown as Weapon)).toBe(false);
     monter(h);
     const tir = host.querySelector('[data-set="lo-tir"]')!;
     // Un MOT ENTIER, jamais une abréviation tronquée (« déch. » : grief vision 2026-08-17).
@@ -1332,7 +1333,7 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
       h.skills = [...(h.skills ?? []), { id: 'guerison', advances: 10 } as never];
       h.items = [...h.items!, ...uids.map((u) => objet('potion-de-guerison', u))];
       // Le joueur a posé SA potion au 3ᵉ rang de l'accès rapide.
-      h.barre = { accesRapide: { 2: { actionId: 'use-item', cle: 'q-objet-potion-de-guerison' } } };
+      h.barre = { accesRapide: { 2: { actionId: 'usage-objet', cle: 'q-objet-potion-de-guerison' } } };
       return h;
     };
     monter(avecPotions(['i-po1', 'i-po2']));
@@ -1404,7 +1405,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     h.items = [objet('dague', 'i-ep'), objet('pistolet', 'i-arb', { loaded: false, reloadProgress: 0 })];
-    h.loadouts = [{ id: 'lo-mixte', main: 'i-ep', off: 'i-arb' }];
+    h.loadouts = [{ id: 'lo-mixte', main: 'i-ep', secondaire: 'i-arb' }];
     h.activeLoadoutId = 'lo-mixte';
     recomputeLoadout(h);
     return h;
@@ -1439,11 +1440,11 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     expect(case5().disabled, 'arme de tir en main, Mouvement intact : la case est active').toBe(false);
 
     act(() => case5().click());
-    expect(useGame.getState().battle!.stances?.['h1']?.heldGround, 'le clic ARME la posture').toBe(true);
+    expect(useGame.getState().battle!.stances?.['h1']?.tirImmobile, 'le clic ARME la posture').toBe(true);
     expect(case5().classList.contains('on'), 'la case allumée dit que la posture est tenue').toBe(true);
 
     act(() => case5().click());
-    expect(useGame.getState().battle!.stances?.['h1']?.heldGround, 're-clic : la posture tombe').toBe(false);
+    expect(useGame.getState().battle!.stances?.['h1']?.tirImmobile, 're-clic : la posture tombe').toBe(false);
     expect(case5().classList.contains('on')).toBe(false);
 
     act(() => { useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: 1 } }); });
@@ -1589,13 +1590,13 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     // sont ceux de la grille (spec zone 8), et le pont ne publie que la zone dont on lit les rangs.
     const arsenal = [...host.querySelectorAll('.cc-grid-left .cc-cell')];
     expect(arsenal.length, 'l’arsenal garde sa géométrie entière').toBe(6);
-    expect(arsenal.map((c) => c.getAttribute('data-action')).slice(0, 4)).toEqual(['attaque', 'reload', 'aim', 'posture-tir']);
+    expect(arsenal.map((c) => c.getAttribute('data-action')).slice(0, 4)).toEqual(['attaque', 'rechargement', 'visee', 'posture-tir']);
     expect(host.querySelector('[data-cell="g4-recharger"] .cc-key'), 'un chiffre sur la travée gauche').toBeNull();
     // La POSTURE de tir n'est plus une maquette (spec §1a G5) : branchée, elle mord au clic.
     const posture = host.querySelector('[data-cell="g5-posture"]') as HTMLButtonElement;
     expect(posture.className).not.toContain('cc-inert');
     act(() => posture.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(useGame.getState().battle!.stances?.[h.id]?.heldGround, 'le rang 4 de la travée n’a pas armé la posture').toBe(true);
+    expect(useGame.getState().battle!.stances?.[h.id]?.tirImmobile, 'le rang 4 de la travée n’a pas armé la posture').toBe(true);
     // GRILLE : le rang N porte le badge N (1-8), et la touche exécute LE RANG — pas la N-ième branchée.
     const grille = [...host.querySelectorAll('.cc-grid-right .cc-cell')];
     expect(hotbar.capacites.length, 'la grille de capacités est publiée à sa géométrie entière').toBe(12);
@@ -1607,7 +1608,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     }
     expect(grille[8].querySelector('.cc-key'), 'les rangs 9-12 n’ont pas encore de touche (spec zone 8)').toBeNull();
     // Le rang de « Se défendre » exécute bien CETTE case (même `run` que le clic).
-    const rang = hotbar.capacites.findIndex((s) => s?.actionId === 'defend');
+    const rang = hotbar.capacites.findIndex((s) => s?.actionId === 'defensive');
     expect(rang, 'aucune case Se défendre publiée à la grille').toBeGreaterThanOrEqual(0);
     expect(hotbar.capacites[rang]!.disabled).toBe(false);
     expect(useGame.getState().battle!.acted).toBe(false);
@@ -1617,7 +1618,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
 
   // Le cœur du lot A1 : les cases se rendent PAR ADRESSE. Une case vidée par le joueur RESTE vide à sa
   // place — aucune recomposition ne fait remonter la suivante (patron RT : la position s'apprend).
-  it('D-5bis — la DISPOSITION du porteur commande l’adresse : case vidée, case posée, id inconnu', () => {
+  it('D-5bis — la DISPOSITION du porteur commande l’adresse : case vidée, case posée', () => {
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     monter(h, { foes: [foe('e1', 9, 9)] });
@@ -1640,25 +1641,17 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     // jamais dupliquer).
     const pose = hero('h1', 'Gunnar');
     pose.conditions = [];
-    pose.barre = { capacites: { 0: { actionId: 'defend', cle: 'defend' } } };
+    pose.barre = { capacites: { 0: { actionId: 'defensive', cle: 'defensive' } } };
     monter(pose, { foes: [foe('e1', 9, 9)] });
-    expect(lire()[0]).toBe('defend');
-    expect(lire().filter((a) => a === 'defend').length, 'la capacité posée s’est dédoublée').toBe(1);
-
-    // (c) id INCONNU (save d'une autre version) : entrée ignorée, la case reste VIDE — la déduction ne
-    // la reprend pas, le joueur l'avait remplie.
-    const inconnu = hero('h1', 'Gunnar');
-    inconnu.conditions = [];
-    inconnu.barre = { capacites: { 0: { actionId: 'action-qui-nexiste-pas', cle: 'action-qui-nexiste-pas' } } };
-    monter(inconnu, { foes: [foe('e1', 9, 9)] });
-    expect(lire()[0], 'un id inconnu a laissé la déduction reprendre la case').toBeNull();
+    expect(lire()[0]).toBe('defensive');
+    expect(lire().filter((a) => a === 'defensive').length, 'la capacité posée s’est dédoublée').toBe(1);
   });
 
   // Plusieurs cases partagent un même `actionId` (une par Compétence d'Avantage, une par sort) : sans
   // le CANDIDAT dans l'adresse, la case posée rendrait la n-ième occurrence de l'offre — donc une
   // AUTRE compétence dès que l'offre change. L'adresse désigne « CELLE-LÀ ».
   it('D-5ter — l’adresse porte le CANDIDAT : deux cases de la MÊME action ne se confondent pas', () => {
-    /** Un lanceur à DEUX sorts : deux alvéoles, un seul `actionId` (`cast-spell`). */
+    /** Un lanceur à DEUX sorts : deux alvéoles, un seul `actionId` (`incantation`). */
     const sorcier = () => {
       const h = hero('h1', 'Magister');
       h.conditions = [];
@@ -1668,13 +1661,13 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     };
     monter(sorcier(), { foes: [foe('e1', 9, 9)] });
     const cles = () => [...host.querySelectorAll('.cc-grid-right .cc-cell')].map((c) => c.getAttribute('data-cell'));
-    const memeAction = [...host.querySelectorAll('.cc-grid-right [data-action="cast-spell"]')]
+    const memeAction = [...host.querySelectorAll('.cc-grid-right [data-action="incantation"]')]
       .map((c) => c.getAttribute('data-cell')!);
     expect(memeAction.length, 'un seul sort : la sonde ne mesurerait aucune collision').toBeGreaterThan(1);
     // Le 2ᵉ sort, posé au rang 0 : c'est LUI qui doit s'y rendre.
     const elue = memeAction[1];
     const pose = sorcier();
-    pose.barre = { capacites: { 0: { actionId: 'cast-spell', cle: elue } } };
+    pose.barre = { capacites: { 0: { actionId: 'incantation', cle: elue } } };
     monter(pose, { foes: [foe('e1', 9, 9)] });
     expect(cles()[0], 'l’adresse a rendu une AUTRE compétence que celle posée').toBe(elue);
     expect(cles().filter((k) => k === elue).length, 'la compétence posée s’est dédoublée').toBe(1);
@@ -1722,7 +1715,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
       'case rendue dont l’id d’action n’existe pas au registre',
     ).toEqual([]);
     // Le libellé de la Défensive n'est pas écrit dans le composant : il est LU dans l'entrée.
-    expect(caseAction('defend')!.querySelector('.cc-lbl')!.textContent).toBe(findActionById('defend')!.label);
+    expect(caseAction('defensive')!.querySelector('.cc-lbl')!.textContent).toBe(findActionById('defensive')!.label);
   });
 
   it('R-2 — la case Défensive EXÉCUTE son dispatcher (`prendreLaDefensive`) par le registre', () => {
@@ -1730,7 +1723,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     h.conditions = [];
     monter(h, { foes: [foe('e1', 9, 9)] });
     expect(useGame.getState().battle!.acted).toBe(false);
-    act(() => caseAction('defend')!.click());
+    act(() => caseAction('defensive')!.click());
     // Effet MOTEUR observable (pas un drapeau d'UI) : posture défensive posée, Action dépensée.
     expect(useGame.getState().battle!.combatants[0].defensiveStance, 'la case Défensive n’a rien exécuté').toBe(true);
     expect(useGame.getState().battle!.acted).toBe(true);
@@ -1744,17 +1737,17 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     h.resolve = 2;
     act(() => { useGame.setState({ scene: emptyScene('scene-test', 20, 20) }); });
     monter(h, { foes: [foe('e1', 9, 9)] });
-    act(() => caseAction('resolve-psych-immune')!.click());
+    act(() => caseAction('determination-psychologie')!.click());
     // Effet MOTEUR observable : un point parti, l'immunité posée, et AUCUN mode d'action armé.
     expect(useGame.getState().battle!.combatants[0].resolve, 'la case n’a pas dépensé le point').toBe(1);
     expect(useGame.getState().battle!.combatants[0].activeEffects?.some((e) => e.psychImmune)).toBe(true);
     expect(useGame.getState().battle!.action, 'une dépense directe n’arme rien').toBeNull();
-    act(() => caseAction('resolve-ignore-crit')!.click());
+    act(() => caseAction('determination-critique')!.click());
     expect(useGame.getState().battle!.combatants[0].resolve).toBe(0);
     expect(useGame.getState().battle!.combatants[0].activeEffects?.some((e) => e.ignoreCritMods)).toBe(true);
     // Réserve épuisée : le gate du registre referme les deux alvéoles, avec sa raison.
-    expect(estFermee(caseAction('resolve-psych-immune')!)).toBe(true);
-    expect(estFermee(caseAction('resolve-ignore-crit')!)).toBe(true);
+    expect(estFermee(caseAction('determination-psychologie')!)).toBe(true);
+    expect(estFermee(caseAction('determination-critique')!)).toBe(true);
   });
 
   it('R-4 — une case gatée porte la RAISON du registre AU SURVOL/FOCUS, et ne s’exécute pas', () => {
@@ -1762,9 +1755,9 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     h.conditions = [];
     h.resolve = 0; // aucun point : le gate `determination-en-reserve` refuse, avec sa raison
     monter(h, { foes: [foe('e1', 9, 9)] });
-    const det = caseAction('resolve-psych-immune')!;
+    const det = caseAction('determination-psychologie')!;
     expect(det.hasAttribute('data-gated')).toBe(true);
-    const attendue = actionGate('resolve-psych-immune', { active: h, battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
+    const attendue = actionGate('determination-psychologie', { scene: useGame.getState().scene, active: h, battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
     // La raison du REGISTRE (jamais une chaîne recopiée ici) se lit au survol ET au focus…
     expect(refusAuSurvol(det)).toBe(attendue);
     expect(refusAuFocus(det)).toBe(attendue);
@@ -1794,7 +1787,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     h.resolve = 0;
     monter(h, { foes: [foe('e1', 9, 9)] });
     // PIRE CAS mesuré, jamais une fixture courte : le plus long libellé des gestes de Détermination.
-    const detIds = ['resolve-psych-immune', 'resolve-ignore-crit'];
+    const detIds = ['determination-psychologie', 'determination-critique'];
     const pire = detIds.reduce((a, b) => (findActionById(a)!.label.length >= findActionById(b)!.label.length ? a : b));
     expect(findActionById(pire)!.label.length, 'le pire cas doit être un libellé long').toBeGreaterThan(18);
     for (const id of detIds) {
@@ -1856,16 +1849,16 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     monter(h, { foes: [foe('e1', 9, 9)] });
-    expect(caseAction('dismount'), 'à pied : aucun geste d’état').toBeNull();
+    expect(caseAction('pied-a-terre'), 'à pied : aucun geste d’état').toBeNull();
 
     const cavalier = hero('h2', 'Gunnar');
     cavalier.conditions = [];
     cavalier.mountId = 'mule';
     monter(cavalier, { foes: [foe('e1', 9, 9)] });
-    const desc = caseAction('dismount');
+    const desc = caseAction('pied-a-terre');
     expect(desc, 'en selle : la case G6bis doit être dessinée').not.toBeNull();
-    expect(findActionById('dismount')!.surface).toBe('geste-d-etat');
-    expect(desc!.querySelector('.cc-lbl')!.textContent).toBe(findActionById('dismount')!.label);
+    expect(findActionById('pied-a-terre')!.surface).toBe('geste-d-etat');
+    expect(desc!.querySelector('.cc-lbl')!.textContent).toBe(findActionById('pied-a-terre')!.label);
     // La géométrie ne bouge pas d'un poil : la travée garde son compte de cases.
     expect(host.querySelectorAll('.cc-grid-left .cc-cell').length).toBe(6);
   });
@@ -1874,12 +1867,12 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     monter(h, { foes: [foe('e1', 9, 9)] });
-    expect(caseAction('roll-fire'), 'sans flammes, aucune case de remède').toBeNull();
+    expect(caseAction('roulade'), 'sans flammes, aucune case de remède').toBeNull();
 
     const brulant = hero('h2', 'Gunnar');
     brulant.conditions = [{ id: 'en-flammes', value: 1 }] as ConditionInstance[];
     monter(brulant, { foes: [foe('e1', 9, 9)] });
-    const rouler = caseAction('roll-fire');
+    const rouler = caseAction('roulade');
     expect(rouler, 'En flammes : le remède doit être offert à la grille').not.toBeNull();
     act(() => rouler!.click());
     // `seRemettreDeLEtat('en-flammes')` ouvre le Test de récupération de l'État (donnée `EtatData.recover`).
@@ -2195,7 +2188,7 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
     h.activeLoadoutId = 'lo-tir';
     recomputeLoadout(h);
     // On CHARGE l'arme par le moteur (jamais un champ forgé) : c'est `loadedAmmo` qui doit parler.
-    const w = h.weapons.find((x) => x.type === 'ranged')!;
+    const w = h.weapons.find((x) => x.type === 'distance')!;
     loadWeapon(h, w); // capture la munition choisie pour CETTE arme (`selectedAmmo`) dans son registre
     expect(loadedAmmo(h, w)?.uid, 'la couture de chargement doit désigner le carreau').toBe('i-c');
     monter(h);
@@ -2300,7 +2293,7 @@ describe('CombatConsole — intention armée : aucune infobulle de règle au-des
     // Ni la case armée, ni ses voisines : le champ reste dégagé sous toutes les alvéoles de la console.
     survoler(enveloppeDe(caseAction('course')!));
     expect(infobulles().length, 'la case armée rouvre son infobulle au survol').toBe(0);
-    survoler(enveloppeDe(caseAction('defend')!));
+    survoler(enveloppeDe(caseAction('defensive')!));
     expect(infobulles().length, 'une case VOISINE rouvre son infobulle au survol').toBe(0);
     // Désarmement (re-clic, `desarmerLeMode`) → l'information de règle n'était pas retirée, elle attendait.
     act(() => { caseAction('course')!.click(); });
@@ -2346,8 +2339,8 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
     monter(h, { foes: [foe('e1', 6, 5)] });
     act(() => { useGame.setState({ pendingCleave: { attackerId: h.id, hitIds: [], count: 0 } as never }); });
     expect(bandeau()?.querySelector('.cc-phase-label')?.textContent).toBe('Frappe Mortelle');
-    expect(bandeau()?.querySelector('[data-consigne]')?.textContent, 'le bandeau dit ce que la carte attend').toBe(t('consigne.cleave'));
-    const b = sortie('cleave-end');
+    expect(bandeau()?.querySelector('[data-consigne]')?.textContent, 'le bandeau dit ce que la carte attend').toBe(t('consigne.frappeMortelle'));
+    const b = sortie('fin-balayage');
     expect(b, 'la sortie « Terminer » de l’interlude cleave doit être à l’écran').not.toBeNull();
     expect(b!.textContent).toContain('Terminer');
     // Proéminence DÉDUITE du rôle (validation) — jamais un champ de style en donnée.
@@ -2362,9 +2355,9 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
     const h = hero('h1', 'Gunnar');
     monter(h, { foes: [foe('e1', 9, 9)] });
     // La scène est requise par `armerLeMode` (le désarmement lit `{ battle, scene }`).
-    act(() => { useGame.setState({ scene: emptyScene('scene-test'), battle: { ...useGame.getState().battle!, action: 'battery' } }); });
+    act(() => { useGame.setState({ scene: emptyScene('scene-test'), battle: { ...useGame.getState().battle!, action: 'bordee' } }); });
     expect(bandeau()?.querySelector('.cc-phase-label')?.textContent).toBe('Bordée');
-    const b = sortie('battery-cancel');
+    const b = sortie('annulation-bordee');
     expect(b, 'la sortie « Annuler » de l’interlude bordée doit être à l’écran').not.toBeNull();
     expect(b!.className, 'une annulation ne porte pas l’accent').toContain('btn-ghost');
     act(() => { b!.click(); });
@@ -2383,7 +2376,7 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
     expect(bandeau(), 'un tour ordinaire n’a pas de bandeau de phase').toBeNull();
     act(() => { useGame.setState({ pendingRoundStart: { round: 2, readyBySeat: {} } as never }); });
     expect(bandeau()?.querySelector('.cc-phase-label')?.textContent).toBe('Début du Round 2');
-    expect(sortie('round-start')?.textContent, 'la pause de Round garde son bouton d’ouverture').toContain('Commencer le round 2');
+    expect(sortie('debut-de-round')?.textContent, 'la pause de Round garde son bouton d’ouverture').toContain('Commencer le round 2');
     sansFlux();
   });
 });
@@ -2402,15 +2395,15 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
   const poste = (): ShipPoste =>
     ({
       side: 'tribord', loaded: false, reloadProgress: 0, crewIds: ['gunner'],
-      item: { uid: 'canon', label: 'Canon moyen', type: 'ranged', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] },
+      item: { uid: 'canon', label: 'Canon moyen', type: 'distance', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] },
     }) as unknown as ShipPoste;
 
   /** La COQUE du groupe : un vrai `vehicleCombatant` (facette `hull` de `vehicles.json`), du camp
-   *  joueur (`kind:'hero'` — c'est ainsi que le combat naval la pose, `combatSlice.ts:2778`). */
+   *  joueur (`kind:'heros'` — c'est ainsi que le combat naval la pose, `combatSlice.ts:2778`). */
   function navire(): Combatant {
     const hull = vehicleCombatant(findVehicleById('bateau-de-patrouille')!)!;
     hull.id = 'ship';
-    hull.kind = 'hero';
+    hull.kind = 'heros';
     hull.pos = { x: 5, y: 5 };
     hull.crewIds = ['gunner'];
     // Une pièce CHARGÉE (la Bordée a de quoi faire feu, `postesPretsAFaireFeu`) et une DÉCHARGÉE (la recharge a son objet).
@@ -2439,18 +2432,18 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
   it('N-1 — la console VIT au tour de la coque : aucune bande d’attente, les cinq cases navales sont là', () => {
     monterNavire();
     expect(host.querySelector('.cc-phase'), 'le tour d’un acteur CONTRÔLÉ n’est pas une phase d’attente').toBeNull();
-    for (const id of ['maneuver-ship', 'battery', 'sing-shanty', 'ship-reload']) {
+    for (const id of ['manoeuvre-du-navire', 'bordee', 'chanson-de-marin', 'rechargement-piece']) {
       expect(caseAction(id), `case navale « ${id} » absente de la travée`).not.toBeNull();
     }
     // BRANCHÉES, pas seulement dessinées : le pont clavier ne publie que les cases qui portent un `run`.
     const publiees = [...host.querySelectorAll('.cc-grid-left .cc-cell:not(.cc-empty)')]
       .filter((c) => !(c as HTMLButtonElement).disabled)
       .map((c) => c.getAttribute('data-action'));
-    for (const id of ['maneuver-ship', 'battery', 'ship-reload']) {
+    for (const id of ['manoeuvre-du-navire', 'bordee', 'rechargement-piece']) {
       expect(publiees, `« ${id} » n’est pas branchée (aucun dispatcher publié)`).toContain(id);
     }
     // Manœuvrer / Bordée / Rude épreuve : Action du navire INTACTE → offertes (gates du registre).
-    for (const id of ['maneuver-ship', 'battery']) {
+    for (const id of ['manoeuvre-du-navire', 'bordee']) {
       expect(estFermee(caseAction(id)!), `« ${id} » est fermée alors que l’Action du navire est intacte`).toBe(false);
       expect(caseAction(id)!.hasAttribute('data-gated'), `« ${id} » porte une raison de refus`).toBe(false);
     }
@@ -2463,33 +2456,33 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     const ship = monterNavire();
     const chariot = vehicleCombatant(findVehicleById('diligence')!)!;
     act(() => {
-      useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [{ ...chariot, id: ship.id, kind: 'hero', pos: ship.pos, crewIds: ship.crewIds, postes: ship.postes }, ...useGame.getState().battle!.combatants.slice(1)] } });
+      useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [{ ...chariot, id: ship.id, kind: 'heros', pos: ship.pos, crewIds: ship.crewIds, postes: ship.postes }, ...useGame.getState().battle!.combatants.slice(1)] } });
     });
-    for (const id of ['maneuver-ship', 'battery', 'sing-shanty']) {
+    for (const id of ['manoeuvre-du-navire', 'bordee', 'chanson-de-marin']) {
       expect(caseAction(id), `case navale « ${id} » offerte au tour d’un chariot`).toBeNull();
     }
-    expect(caseAction('ship-reload'), 'la recharge d’une pièce montée reste offerte (LDB 62 l.335)').not.toBeNull();
+    expect(caseAction('rechargement-piece'), 'la recharge d’une pièce montée reste offerte (LDB 62 l.335)').not.toBeNull();
   });
 
   it('N-2 — la Bordée ARME son mode par le registre, et l’interlude prend la main pour en sortir', () => {
     monterNavire();
-    act(() => caseAction('battery')!.click());
-    expect(useGame.getState().battle!.action, 'la case Bordée n’a pas armé le mode').toBe('battery');
+    act(() => caseAction('bordee')!.click());
+    expect(useGame.getState().battle!.action, 'la case Bordée n’a pas armé le mode').toBe('bordee');
     // Le mode armé est un CIBLAGE par la carte : la console passe sous son bandeau de phase, et c'est
     // LUI qui porte la sortie (aucune case ne reste cliquable pendant un interlude).
     expect(host.querySelector('.cc-phase .cc-phase-label')!.textContent).toBe('Bordée');
-    const sortie = host.querySelector('.cc-phase [data-action="battery-cancel"]') as HTMLButtonElement;
+    const sortie = host.querySelector('.cc-phase [data-action="annulation-bordee"]') as HTMLButtonElement;
     act(() => sortie.click());
     expect(useGame.getState().battle!.action, 'la sortie d’interlude doit désarmer la bordée').toBeNull();
   });
 
   it('N-3 — la fin de tour passe au tour du navire (garde-fou « Action non dépensée » compris)', () => {
     monterNavire();
-    const fin = host.querySelector('[data-cell="end-turn"]') as HTMLButtonElement;
+    const fin = host.querySelector('[data-cell="fin-de-tour"]') as HTMLButtonElement;
     expect(fin.disabled, 'la fin de tour est inerte au tour du navire').toBe(false);
     act(() => fin.click()); // 1ᵉʳ clic : Action du navire non dépensée → confirmation armée
-    expect((host.querySelector('[data-cell="end-turn"]') as HTMLElement).hasAttribute('data-armed')).toBe(true);
-    act(() => (host.querySelector('[data-cell="end-turn"]') as HTMLButtonElement).click());
+    expect((host.querySelector('[data-cell="fin-de-tour"]') as HTMLElement).hasAttribute('data-armed')).toBe(true);
+    act(() => (host.querySelector('[data-cell="fin-de-tour"]') as HTMLButtonElement).click());
     expect(useGame.getState().battle!.turn, 'le tour du navire n’est pas passé').not.toBe(0);
   });
 
@@ -2508,8 +2501,8 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
       });
     });
     act(() => { root.render(<CombatConsole />); });
-    expect(caseAction('ship-reload'), 'la géométrie ne perd jamais une case').not.toBeNull();
-    expect(estFermee(caseAction('ship-reload')!)).toBe(true);
+    expect(caseAction('rechargement-piece'), 'la géométrie ne perd jamais une case').not.toBeNull();
+    expect(estFermee(caseAction('rechargement-piece')!)).toBe(true);
   });
 
   // Une coque n'a « ni arme tenue, ni sort, ni marche de fantassin » (`engine/vehicle.ts`) : les
@@ -2517,11 +2510,11 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
   // navire et le clic BRÛLAIT son Action (celle de la Bordée) — le refus doit être visible et inerte.
   it('N-5 — les gestes de FANTASSIN sont fermés à la coque, avec leur raison, et ne s’exécutent pas', () => {
     monterNavire();
-    for (const id of ['defend', 'course', 'mouvement']) {
+    for (const id of ['defensive', 'course', 'mouvement']) {
       const c = caseAction(id);
       expect(c, `la géométrie garde sa case « ${id} »`).not.toBeNull();
       expect(estFermee(c!), `« ${id} » reste cliquable au tour d’une coque`).toBe(true);
-      const attendue = actionGate(id, { active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
+      const attendue = actionGate(id, { scene: useGame.getState().scene, active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
       expect(refusAuSurvol(c!), `« ${id} » se ferme sans dire pourquoi au survol`).toBe(attendue);
       const copie = c!.querySelector('.hors-ecran[data-gate]');
       expect(copie?.textContent, `« ${id} » : rien à lire pour un lecteur d’écran`).toBe(attendue);
@@ -2529,11 +2522,11 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
       expect(c!.getAttribute('aria-describedby')).toBe(copie!.id);
     }
     // … et le clic ne mange PAS l'Action du navire (elle reste à la Bordée).
-    act(() => caseAction('defend')!.click());
+    act(() => caseAction('defensive')!.click());
     expect(useGame.getState().battle!.acted, 'la Défensive a dépensé l’Action de la coque').toBe(false);
     expect(useGame.getState().battle!.combatants[0].defensiveStance).toBeFalsy();
-    expect(estFermee(caseAction('battery')!), 'l’Action du navire doit rester offerte à la Bordée').toBe(false);
-    expect(caseAction('battery')!.hasAttribute('data-gated'), 'la Bordée porte une raison de refus').toBe(false);
+    expect(estFermee(caseAction('bordee')!), 'l’Action du navire doit rester offerte à la Bordée').toBe(false);
+    expect(caseAction('bordee')!.hasAttribute('data-gated'), 'la Bordée porte une raison de refus').toBe(false);
   });
 });
 
@@ -2546,7 +2539,7 @@ describe('CombatConsole — COOP : la console suit la POSSESSION, jamais le mode
     act(() => {
       useGame.setState({
         party: [a, b], scene: emptyScene('scene-test', 20, 20),
-        net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 } },
+        net: { ...useGame.getState().net, mode: 'hote', mySeat: 0, ownership: { h1: 0, h2: 1 } },
         battle: {
           combatants: [a, b], order: [a.id, b.id], baseOrder: [a.id, b.id], turn, round: 1,
           action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,
@@ -2561,7 +2554,7 @@ describe('CombatConsole — COOP : la console suit la POSSESSION, jamais le mode
   it('C-1 — en partie RÉSEAU, le siège qui tient l’actif a une console VIVANTE', () => {
     monterCoop(0); // tour de « h1 », possédé par le siège local (0)
     expect(enAttente(), 'la console de MON héros ne doit pas être en lecture').toBe(false);
-    expect((host.querySelector('[data-cell="end-turn"]') as HTMLButtonElement).disabled).toBe(false);
+    expect((host.querySelector('[data-cell="fin-de-tour"]') as HTMLButtonElement).disabled).toBe(false);
     expect(
       hotbar.capacites.some((s) => s?.run && !s.disabled),
       'aucune case branchée : le pont clavier est mort',
@@ -2578,11 +2571,11 @@ describe('CombatConsole — COOP : la console suit la POSSESSION, jamais le mode
     expect(host.querySelector('.combat-console')!.getAttribute('data-forme')).toBe('spectatrice');
     // Plus une seule case à cliquer — parce qu'il n'y a plus une seule case. Rien n'est grisé.
     expect(host.querySelectorAll('.cc-cell').length, 'les cases survivent au tour d’autrui').toBe(0);
-    expect(host.querySelector('[data-cell="end-turn"]'), 'la plaque de fin de tour survit').toBeNull();
+    expect(host.querySelector('[data-cell="fin-de-tour"]'), 'la plaque de fin de tour survit').toBeNull();
     // L'arche seule montre l'ALLIÉ que l'autre siège joue (jamais en teinte hostile), et la puce coop
     // reste : c'est elle qui dit QUI joue.
     const arche = host.querySelector('.cc-arch')!;
-    expect(arche.querySelector('.ptile')!.classList.contains('team-enemy')).toBe(false);
+    expect(arche.querySelector('.ptile')!.classList.contains('team-ennemi')).toBe(false);
     expect(arche.querySelector('.ptile-name')!.textContent).toBe('Rolf');
     expect(host.querySelector('.spectator-chip'), 'la puce coop doit rester').not.toBeNull();
   });
@@ -2621,18 +2614,18 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     const e = foe('e1', 6, 5);
     porteur(e, 2);
     monter(h, { foes: [e] });
-    const cell = host.querySelector('[data-action="dispel"]') as HTMLButtonElement;
+    const cell = host.querySelector('[data-action="dissipation"]') as HTMLButtonElement;
     expect(cell, 'aucune alvéole Dissiper').toBeTruthy();
     act(() => { cell.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    expect(useGame.getState().battle!.action).toBe('dispel');
+    expect(useGame.getState().battle!.action).toBe('dissipation');
   });
 
-  it('clic-porteur (2 Sorts) → panneau BORNÉ à SES Sorts ; le clic COMMET `dispel-spell` avec les bons ids', () => {
+  it('clic-porteur (2 Sorts) → panneau BORNÉ à SES Sorts ; le clic COMMET `dissipation-sort` avec les bons ids', () => {
     const h = mage();
     const e = foe('e1', 6, 5);
     porteur(e, 2);
     monter(h, { foes: [e] });
-    act(() => { (host.querySelector('[data-action="dispel"]') as HTMLButtonElement).dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    act(() => { (host.querySelector('[data-action="dissipation"]') as HTMLButtonElement).dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     // Le clic-token du champ passe par la MÊME porte que la carte (`cliquerLaCase`).
     act(() => { cliquerSurLeCombattant(useGame.getState, 'e1'); });
     expect(useGame.getState().dispelCarrierId).toBe('e1');
@@ -2648,13 +2641,13 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     const e = foe('e1', 6, 5);
     porteur(e, 2);
     monter(h, { foes: [e] });
-    act(() => { (host.querySelector('[data-action="dispel"]') as HTMLButtonElement).dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    act(() => { (host.querySelector('[data-action="dissipation"]') as HTMLButtonElement).dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     act(() => { cliquerSurLeCombattant(useGame.getState, 'e1'); });
     expect(panneau()).toBeTruthy();
     act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
     expect(panneau()).toBeNull();
     expect(useGame.getState().pendingDispel).toBeNull();
-    expect(useGame.getState().battle!.action, 'le mode reste armé : on vise un autre porteur').toBe('dispel');
+    expect(useGame.getState().battle!.action, 'le mode reste armé : on vise un autre porteur').toBe('dissipation');
   });
 
   it('l’alvéole PORTE la progression du Test étendu (DR cumulé / NI) dès qu’un Sort est entamé', () => {
@@ -2663,8 +2656,8 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     const e = foe('e1', 6, 5);
     porteur(e, 2);
     monter(h, { foes: [e] });
-    const cell = host.querySelector('[data-action="dispel"]') as HTMLButtonElement;
-    expect(cell.querySelector('.cc-lbl')?.textContent).toBe(`${findActionById('dispel')!.label} 2/3`);
+    const cell = host.querySelector('[data-action="dissipation"]') as HTMLButtonElement;
+    expect(cell.querySelector('.cc-lbl')?.textContent).toBe(`${findActionById('dissipation')!.label} 2/3`);
   });
 
   // ON VISE, ON NE LIT PAS : un mode de ciblage armé met les infobulles de règle de la console en
@@ -2676,7 +2669,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     const e = foe('e1', 6, 5);
     porteur(e, 2);
     monter(h, { foes: [e] });
-    const cell = () => host.querySelector('[data-action="dispel"]') as HTMLButtonElement;
+    const cell = () => host.querySelector('[data-action="dissipation"]') as HTMLButtonElement;
     const survole = () => {
       act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
       act(() => { document.body.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
@@ -2686,7 +2679,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     expect(survole(), 'témoin : rien d’armé, la règle de la case s’ouvre au survol').not.toBeNull();
 
     act(() => { cell().dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    expect(useGame.getState().battle!.action, 'témoin : le mode doit être armé').toBe('dispel');
+    expect(useGame.getState().battle!.action, 'témoin : le mode doit être armé').toBe('dissipation');
     expect(survole(), 'pavé de règle ouvert pendant qu’on vise : il recouvre ce que le clic a armé').toBeNull();
 
     act(() => { cell().dispatchEvent(new MouseEvent('click', { bubbles: true })); });
@@ -2699,7 +2692,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
  * MUNITION JOUABLE DEPUIS LA CONSOLE (#1411 P1-B, spec §1a + zone 10) : la munition vit à l'EN-TÊTE de
  * travée, et ce chip EST le déclencheur du choix — panneau BORNÉ aux munitions compatibles de l'arme,
  * conséquence RENDUE sur le candidat qui déchargera, annulation gratuite. Le commit passe par le
- * registre (`select-ammo` → `approvisionnerLArme`), jamais par une closure de site.
+ * registre (`munition` → `approvisionnerLArme`), jamais par une closure de site.
  */
 describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHEUR du choix', () => {
   const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) =>
@@ -2719,7 +2712,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     h.activeLoadoutId = 'lo-tir';
     recomputeLoadout(h);
     // Le chargement passe par le MOTEUR (jamais un registre forgé) : c'est lui qui capture la munition.
-    if (opts.charge !== false) loadWeapon(h, h.weapons.find((w) => w.type === 'ranged')!);
+    if (opts.charge !== false) loadWeapon(h, h.weapons.find((w) => w.type === 'distance')!);
     return h;
   }
 
@@ -2756,9 +2749,9 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     expect(candidats().map((b) => b.querySelector('[data-actuel]')?.textContent ?? null)).toEqual(['valeur actuelle', null]);
   });
 
-  it('le clic COMMET `select-ammo` avec les bons ids : l’arme change de munition ET se décharge', () => {
+  it('le clic COMMET `munition` avec les bons ids : l’arme change de munition ET se décharge', () => {
     const h = tireur();
-    const w = h.weapons.find((x) => x.type === 'ranged')!;
+    const w = h.weapons.find((x) => x.type === 'distance')!;
     expect(weaponLoaded(h, w), 'témoin : l’arme part chargée').toBe(true);
     monter(h);
     ouvrir();
@@ -2778,7 +2771,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
 
   it('ÉCHAP referme sans rien engager (annulation gratuite : la munition ne bouge pas)', () => {
     const h = tireur();
-    const w = h.weapons.find((x) => x.type === 'ranged')!;
+    const w = h.weapons.find((x) => x.type === 'distance')!;
     monter(h);
     ouvrir();
     expect(panneau()).toBeTruthy();
@@ -2794,10 +2787,10 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     expect(host.querySelector('.cc-bay-head [data-ammo]'), 'la munition reste LUE dans l’en-tête').not.toBeNull();
   });
 
-  it('FRÉNÉSIE : le choix de munition reste OUVERT (`select-ammo` ne coûte aucune Action — LDB 21 l.33)', () => {
+  it('FRÉNÉSIE : le choix de munition reste OUVERT (`munition` ne coûte aucune Action — LDB 21 l.33)', () => {
     const h = tireur();
     h.psychState = [{ type: 'frenesie' }] as never;
-    const w = h.weapons.find((x) => x.type === 'ranged')!;
+    const w = h.weapons.find((x) => x.type === 'distance')!;
     monter(h);
     expect(chip()!.hasAttribute('aria-disabled'), 'aucun refus sur le chip').toBe(false);
     expect(host.querySelector('.cc-bay-head [data-gate]'), 'aucune raison de refus portée').toBeNull();
@@ -2825,7 +2818,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     expect(panneau(), 'témoin : le panneau doit être ouvert avant la commutation').toBeTruthy();
     act(() => { useGame.getState().prendreLaPanoplie(h.id, 'lo-arc'); });
     act(() => { root.render(<CombatConsole />); });
-    expect(acteur().weapons.some((w) => w.type === 'ranged'), 'témoin : l’autre set porte AUSSI une arme de tir').toBe(true);
+    expect(acteur().weapons.some((w) => w.type === 'distance'), 'témoin : l’autre set porte AUSSI une arme de tir').toBe(true);
     expect(panneau(), 'panneau FANTÔME : il a survécu à l’arme qui l’avait ouvert').toBeNull();
   });
 });
@@ -2836,7 +2829,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
 // vraiment. Le compteur `movementUsed` ne suffit pas à le dire : `seRelever` l'écrit SANS poser
 // de `moveSnapshot` (`combatSlice.ts:1664`), et le dispatcher n'aurait alors rien à restaurer.
 describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvement', () => {
-  const geste = () => host.querySelector('.cc-gutter-move [data-action="undo-move"]') as HTMLButtonElement | null;
+  const geste = () => host.querySelector('.cc-gutter-move [data-action="annulation-deplacement"]') as HTMLButtonElement | null;
 
   beforeEach(() => { useGame.setState({ scene: emptyScene('scene-test', 20, 20) }); });
 
@@ -2866,7 +2859,7 @@ describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvem
     const bouton = geste();
     expect(bouton, 'aucun geste d’annulation sur la gouttière de Mouvement').toBeTruthy();
     // Le nom accessible vient de l'ENTRÉE du registre, jamais d'un littéral du composant.
-    expect(bouton!.getAttribute('aria-label')).toBe(findActionById('undo-move')!.label);
+    expect(bouton!.getAttribute('aria-label')).toBe(findActionById('annulation-deplacement')!.label);
     act(() => { bouton!.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     const apres = useGame.getState().battle!;
     expect(apres.combatants[0].pos, 'le clic n’a pas restauré la position').toEqual(depart);
@@ -2932,7 +2925,7 @@ describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvem
     act(() => { root.render(<CombatConsole />); });
     const bouton = geste()!;
     expect(bouton.querySelector('i')!.textContent, 'le geste ne dit rien à l’écran').toBe('ANNULER');
-    expect(bouton.getAttribute('aria-label')).toBe(findActionById('undo-move')!.label);
+    expect(bouton.getAttribute('aria-label')).toBe(findActionById('annulation-deplacement')!.label);
     expect(bouton.hasAttribute('title'), 'la raison ne passe jamais par une infobulle native').toBe(false);
     // La cible tactile est posée HORS de toute tranche de pointeur (elle vaut partout).
     const cible = ruleOf(CC_BASE, 'button.cc-socle::before');
@@ -2953,7 +2946,7 @@ describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvem
 // d'avant. Le verdict est donc le gate `avantage-sous-plafond` (`actionRegistry.ts`), source UNIQUE :
 // le sélecteur `competences-avantage` (`actionRegistry.ts:192`) ne filtre plus rien.
 describe('CombatConsole — Avantage au plafond : la case reste, FERMÉE, avec sa raison', () => {
-  const casesAdv = () => [...host.querySelectorAll('[data-action="gain-advantage"]')] as HTMLButtonElement[];
+  const casesAdv = () => [...host.querySelectorAll('[data-action="avantage"]')] as HTMLButtonElement[];
 
   it('à Avantage 0 la case est OUVERTE ; au plafond elle reste dessinée, désactivée, raison à l’écran', () => {
     const h = hero('h1', 'Gunnar');
@@ -2966,7 +2959,7 @@ describe('CombatConsole — Avantage au plafond : la case reste, FERMÉE, avec s
     const offertes = casesAdv();
     expect(offertes.length, 'aucune case d’Avantage : la sonde ne mesurerait rien').toBeGreaterThan(0);
     expect(offertes.every((b) => !b.disabled), 'à Avantage 0 aucune méthode n’est au plafond').toBe(true);
-    expect(host.querySelector('[data-action="gain-advantage"] [data-gate]'), 'aucune raison ne doit s’afficher tant que rien ne refuse').toBeNull();
+    expect(host.querySelector('[data-action="avantage"] [data-gate]'), 'aucune raison ne doit s’afficher tant que rien ne refuse').toBeNull();
     // Au PLUS HAUT plafond offert, plus AUCUNE méthode ne peut rendre un cran.
     const cap = Math.max(
       ...ACTION_CANDIDATES['competences-avantage']({ active: h, battle: useGame.getState().battle! } as never)
@@ -2981,7 +2974,7 @@ describe('CombatConsole — Avantage au plafond : la case reste, FERMÉE, avec s
     expect(fermees.length, 'la case a DISPARU au plafond : le refus est devenu muet').toBe(offertes.length);
     expect(fermees.every((b) => estFermee(b)), 'case au plafond encore cliquable').toBe(true);
     expect(refusAuSurvol(fermees[0]), 'la raison du refus ne s’ouvre pas au survol').toBe(t('agate.advantageCapped', { n: cap }));
-    const raison = host.querySelector('[data-action="gain-advantage"] [data-gate]');
+    const raison = host.querySelector('[data-action="avantage"] [data-gate]');
     expect(raison?.textContent, 'la copie accessible de la raison a disparu').toBe(t('agate.advantageCapped', { n: cap }));
     expect(fermees[0].getAttribute('aria-describedby')).toBe(raison!.id);
   });
@@ -3007,10 +3000,10 @@ describe('CombatConsole — l’allumage d’une case armée vient du REGISTRE',
   it('Soigner : la case s’allume quand `battle.action` vaut le `mode` de son entrée armée, et le re-clic désarme', () => {
     act(() => { useGame.setState({ scene: emptyScene('scene-test') }); }); // `armerLeMode` lit { battle, scene }
     monter(soigneur());
-    const soin = findActionById('heal')!;
+    const soin = findActionById('soins')!;
     expect(soin.armed, 'l’entrée « Soigner » du registre arme son mode').toBe(true);
     const armed = soin.mode;
-    expect(armed, 'l’entrée « Soigner » du registre déclare le mode qu’elle arme').toBe('heal');
+    expect(armed, 'l’entrée « Soigner » du registre déclare le mode qu’elle arme').toBe('soins');
     expect(caseCell('q-soigner'), 'la case Soigner doit être à l’écran').not.toBeNull();
     expect(caseCell('q-soigner')!.className, 'rien n’est armé au départ').not.toContain(' on');
 
@@ -3027,7 +3020,7 @@ describe('CombatConsole — l’allumage d’une case armée vient du REGISTRE',
 /**
  * DEUX ARMES À DISTANCE (#1411 P1-7, spec §1a + zone 10) : la géométrie de la travée ne bouge pas —
  * UNE case `Recharger` quel que soit le nombre d'armes. À plusieurs, elle ouvre un panneau-paramètre
- * BORNÉ (quelle arme ?) dont le clic COMMET `reload` avec SON `weaponUid` ; à une seule, elle
+ * BORNÉ (quelle arme ?) dont le clic COMMET `rechargement` avec SON `weaponUid` ; à une seule, elle
  * dispatche directement. La munition, elle, est une chip PAR arme dans l'EN-TÊTE (pas la grille).
  */
 describe('CombatConsole — deux armes à distance : une case, un paramètre à élire', () => {
@@ -3044,10 +3037,10 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
       objet('balle-et-poudre', 'i-a1', { qty: 12 }),
       objet('balle-et-poudre', 'i-a2', { label: 'Balle bénie', qty: 4 }),
     ];
-    h.loadouts = [{ id: 'lo-2p', main: 'i-p1', ...(opts.deux === false ? {} : { off: 'i-p2' }) }];
+    h.loadouts = [{ id: 'lo-2p', main: 'i-p1', ...(opts.deux === false ? {} : { secondaire: 'i-p2' }) }];
     h.activeLoadoutId = 'lo-2p';
     recomputeLoadout(h);
-    if (opts.charges) h.weapons.filter((w) => w.type === 'ranged').forEach((w) => loadWeapon(h, w));
+    if (opts.charges) h.weapons.filter((w) => w.type === 'distance').forEach((w) => loadWeapon(h, w));
     return h;
   }
 
@@ -3060,7 +3053,7 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
 
   it('DEUX pistolets : UNE seule case Recharger (géométrie inchangée), et le clic OUVRE le choix de l’arme', () => {
     const h = bretteur();
-    expect(h.weapons.filter((w) => w.type === 'ranged').length, 'témoin : les DEUX pistolets sont au set').toBe(2);
+    expect(h.weapons.filter((w) => w.type === 'distance').length, 'témoin : les DEUX pistolets sont au set').toBe(2);
     monter(h);
     expect(host.querySelectorAll('[data-cell="g4-recharger"]').length, 'une arme de plus n’ajoute pas une case').toBe(1);
     expect(panneau(), 'aucun panneau avant le clic').toBeNull();
@@ -3072,7 +3065,7 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
     ]);
   });
 
-  it('le candidat élu COMMET `reload` avec SON uid (la 2ᵉ arme, pas la première du sac)', () => {
+  it('le candidat élu COMMET `rechargement` avec SON uid (la 2ᵉ arme, pas la première du sac)', () => {
     monter(bretteur());
     act(() => { caseRecharger().dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     act(() => { candidats()[1].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
@@ -3108,7 +3101,7 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
     expect(candidats().map((b) => (b as HTMLButtonElement).disabled)).toEqual([true, false]);
   });
 
-  it('MUNITION : une chip PAR arme dans l’en-tête, et la 2ᵉ commet `select-ammo` sur SON arme', () => {
+  it('MUNITION : une chip PAR arme dans l’en-tête, et la 2ᵉ commet `munition` sur SON arme', () => {
     const h = bretteur({ charges: true });
     monter(h);
     const chips = [...host.querySelectorAll('.cc-bay-head button[data-ammo]')] as HTMLButtonElement[];
@@ -3194,9 +3187,9 @@ describe('CombatConsole — contrat SURFACE ⇄ RENDEUR', () => {
   it('les rendeurs HORS-GRILLE sont bien couverts par la mesure (témoins nommés)', () => {
     porteurAyantMarche();
     const par = (id: string) => mesure().find((r) => r.id === id);
-    expect(par('undo-move')?.rendeur, 'le geste d’annulation vit sur la gouttière de Mouvement').toBe('.cc-gutter');
-    expect(par('end-turn')?.rendeur, 'la fin de tour vit au coin, isolée des travées').toBe('.cc-corner');
-    expect(par('switch-loadout')?.rendeur, 'la commutation de set vit sur la vignette de set').toBe('.cc-sets');
+    expect(par('annulation-deplacement')?.rendeur, 'le geste d’annulation vit sur la gouttière de Mouvement').toBe('.cc-gutter');
+    expect(par('fin-de-tour')?.rendeur, 'la fin de tour vit au coin, isolée des travées').toBe('.cc-corner');
+    expect(par('panoplie')?.rendeur, 'la commutation de set vit sur la vignette de set').toBe('.cc-sets');
     expect(par('attaque')?.rendeur, 'le geste déduit du set vit dans la travée gauche').toBe('.cc-bay-left');
   });
 
@@ -3211,20 +3204,20 @@ describe('CombatConsole — contrat SURFACE ⇄ RENDEUR', () => {
 
 /**
  * PAUSE DE ROUND EN COOP (#1411 P2-A) — le bouton du bandeau et la touche (`keybindings.round-start`) sont
- * un seul geste, la validation de la pause (`fenetreValider('roundStart')`), qui respecte le ready-check : le
- * bandeau consomme l'entrée `round-start` du registre — LA porte, pour la souris comme pour la touche.
+ * un seul geste, la validation de la pause (`fenetreValider('debutDuRound')`), qui respecte le ready-check : le
+ * bandeau consomme l'entrée `debut-de-round` du registre — LA porte, pour la souris comme pour la touche.
  */
 describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touche', () => {
-  const bouton = () => host.querySelector('.cc-phase [data-action="round-start"]') as HTMLButtonElement | null;
+  const bouton = () => host.querySelector('.cc-phase [data-action="debut-de-round"]') as HTMLButtonElement | null;
 
   /** Combat en PAUSE de Round (personne n'agit : `turn: -1`), dans le mode réseau demandé. */
-  function pause(mode: 'local' | 'host' | 'guest', round = 2) {
+  function pause(mode: 'local' | 'hote' | 'invite', round = 2) {
     const a = hero('h1', 'Gunnar');
     const b = hero('h2', 'Rolf');
     act(() => {
       useGame.setState({
         party: [a, b], scene: emptyScene('scene-test', 20, 20),
-        net: { ...useGame.getState().net, mode, mySeat: mode === 'guest' ? 1 : 0, ownership: { h1: 0, h2: 1 }, seatNames: mode === 'local' ? {} : { 0: 'L’hôte', 1: 'Rolf' } },
+        net: { ...useGame.getState().net, mode, mySeat: mode === 'invite' ? 1 : 0, ownership: { h1: 0, h2: 1 }, seatNames: mode === 'local' ? {} : { 0: 'L’hôte', 1: 'Rolf' } },
         pendingRoundStart: { round },
         battle: {
           combatants: [a, b], order: [a.id, b.id], baseOrder: [a.id, b.id], turn: -1, round,
@@ -3248,7 +3241,7 @@ describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touc
   });
 
   it('COOP invité — le bouton MARQUE le siège prêt et n’ouvre RIEN (le quorum décide)', () => {
-    pause('guest');
+    pause('invite');
     act(() => bouton()!.click());
     const prs = useGame.getState().pendingRoundStart;
     expect(prs, 'un invité a lancé le Round pour toute la table').not.toBeNull();
@@ -3256,15 +3249,15 @@ describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touc
   });
 
   it('COOP hôte — même porte : le clic marque le siège 0, et le Round attend l’autre siège requis', () => {
-    pause('host');
+    pause('hote');
     act(() => bouton()!.click());
     expect(useGame.getState().pendingRoundStart!.readyBySeat).toEqual({ 0: true });
-    act(() => { withActingSeat(1, () => useGame.getState().fenetreValider('roundStart')); });
+    act(() => { withActingSeat(1, () => useGame.getState().fenetreValider('debutDuRound')); });
     expect(useGame.getState().pendingRoundStart, 'quorum atteint : le Round devait s’ouvrir').toBeNull();
   });
 
   it('COOP — la bande porte la rangée des sièges REQUIS et éteint le bouton une fois ce siège prêt', () => {
-    pause('host');
+    pause('hote');
     expect(host.querySelectorAll('.cc-phase .ready-chip').length, 'deux sièges requis, deux chips').toBe(2);
     act(() => bouton()!.click());
     expect(bouton()!.disabled, 'un siège déjà prêt ne re-clique pas').toBe(true);
@@ -3292,7 +3285,7 @@ describe('CombatConsole — tour d’un siège distant : exactement UNE puce de 
     act(() => {
       useGame.setState({
         party: [a, b], scene: emptyScene('scene-test', 20, 20),
-        net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Rolf' } },
+        net: { ...useGame.getState().net, mode: 'hote', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Rolf' } },
         battle: {
           combatants: [a, b], order: [a.id, b.id], baseOrder: [a.id, b.id], turn, round: 1,
           action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,
@@ -3330,7 +3323,7 @@ describe('CombatConsole — tour d’un siège distant : exactement UNE puce de 
 
 /**
  * GESTE SECONDAIRE D'UNE ALVÉOLE (#1411 P2-B) — Focaliser n'est plus une case : c'est le geste
- * secondaire de l'alvéole du SORT (`surface: 'geste-secondaire'`, `hote: { id: 'cast-spell' }`), atteint au
+ * secondaire de l'alvéole du SORT (`surface: 'geste-secondaire'`, `hote: { id: 'incantation' }`), atteint au
  * clic droit, à l'appui long, à la touche Menu et à RB. Le rendeur est GÉNÉRIQUE : la console ne
  * nomme aucun id — elle apparie `hote` et population de candidats. Un geste de plus = une ligne de
  * JSON, ce que mesure ici une entrée FABRIQUÉE.
@@ -3360,7 +3353,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
     monter(mage(['carreau']));
     const cellule = alveole('carreau');
     expect(cellule, 'témoin : l’alvéole du sort est bien rendue').toBeTruthy();
-    expect(cellule.getAttribute('data-geste-2e'), 'le geste secondaire est nommé en structure').toBe('focus-spell');
+    expect(cellule.getAttribute('data-geste-2e'), 'le geste secondaire est nommé en structure').toBe('focalisation');
     act(() => { cellule.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); });
     expect(useGame.getState().pendingFocus?.spellId, 'le clic droit ouvre la Focalisation du sort de SON alvéole').toBe('carreau');
     expect(panneau(), 'un seul geste offert ne se choisit pas : dispatch direct').toBeNull();
@@ -3477,20 +3470,20 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
     act(() => { alveole('carreau').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(useGame.getState().battle!.selectedSpellId, 'témoin : le clic arme bien l’incantation de CE sort').toBe('carreau');
     expect(alveole('carreau').classList.contains('on'), 'le sort élu s’allume').toBe(true);
-    expect(alveole('bouclier-magique').classList.contains('on'), 'le mode `cast` seul n’allume pas les autres sorts').toBe(false);
+    expect(alveole('bouclier-magique').classList.contains('on'), 'le mode `incantation` seul n’allume pas les autres sorts').toBe(false);
   });
 
   it('DEUX gestes secondaires sur le même hôte (entrée FABRIQUÉE) : panneau ancré, 2 candidats, Échap gratuit', () => {
     const fabrique: ActionDef = {
-      id: 'test-geste-2e-fabrique', label: 'Geste fabriqué', icon: 'flag/focus',
-      surface: 'geste-secondaire', hote: { id: 'cast-spell' }, gate: 'toujours',
+      id: idDeFixture('action', 'test-geste-2e-fabrique'), type: 'actions', label: 'Geste fabriqué', icon: 'drapeau/focalisation',
+      surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     ACTIONS.push(fabrique);
     try {
       monter(mage(['carreau']));
       const cellule = alveole('carreau');
-      expect(cellule.getAttribute('data-geste-2e'), 'les DEUX gestes se lisent sur l’alvéole').toBe('focus-spell test-geste-2e-fabrique');
+      expect(cellule.getAttribute('data-geste-2e'), 'les DEUX gestes se lisent sur l’alvéole').toBe('focalisation test-geste-2e-fabrique');
       expect(cellule.querySelector('[data-glyphe-2e]')!.textContent, 'à N≥2 le coin porte le COMPTE, pas le glyphe du premier').toBe('+2');
       expect(cellule.getAttribute('aria-label'), 'les QUATRE surfaces se disent en UNE phrase (source i18n unique)')
         .toBe(`Carreau — ${t('cc.geste2eSurfaces', { gestes: 'Focaliser, Geste fabriqué' })}`);
@@ -3507,10 +3500,10 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('SURFACE ⇄ RENDEUR : le geste secondaire n’a pas d’alvéole propre — son rendeur est celle de son HÔTE', () => {
     monter(mage(['carreau']));
-    expect(findActionById('focus-spell')!.surface).toBe('geste-secondaire');
-    expect(findActionById('focus-spell')!.hote?.id).toBe('cast-spell');
-    expect(host.querySelector('[data-action="focus-spell"]'), 'aucune case propre : le geste n’est pas une alvéole').toBeNull();
-    const porteur = host.querySelector('[data-action="cast-spell"][data-geste-2e~="focus-spell"]');
+    expect(findActionById('focalisation')!.surface).toBe('geste-secondaire');
+    expect(findActionById('focalisation')!.hote?.id).toBe('incantation');
+    expect(host.querySelector('[data-action="focalisation"]'), 'aucune case propre : le geste n’est pas une alvéole').toBeNull();
+    const porteur = host.querySelector('[data-action="incantation"][data-geste-2e~="focalisation"]');
     expect(porteur, 'l’alvéole de l’hôte PORTE le geste').toBeTruthy();
   });
 
@@ -3523,8 +3516,8 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('APPUI LONG puis `contextmenu` NATIF : UN seul déclenchement (le doigt ne bascule pas le panneau)', () => {
     const fabrique: ActionDef = {
-      id: 'test-geste-2e-fabrique', label: 'Geste fabriqué', icon: 'flag/focus',
-      surface: 'geste-secondaire', hote: { id: 'cast-spell' }, gate: 'toujours',
+      id: idDeFixture('action', 'test-geste-2e-fabrique'), type: 'actions', label: 'Geste fabriqué', icon: 'drapeau/focalisation',
+      surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     vi.useFakeTimers();
@@ -3620,8 +3613,8 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('CLIC DROIT MAINTENU (contextmenu À L’APPUI, macOS/Linux) : le minuteur d’appui long ne rejoue pas le geste', () => {
     const fabrique: ActionDef = {
-      id: 'test-geste-2e-fabrique', label: 'Geste fabriqué', icon: 'flag/focus',
-      surface: 'geste-secondaire', hote: { id: 'cast-spell' }, gate: 'toujours',
+      id: idDeFixture('action', 'test-geste-2e-fabrique'), type: 'actions', label: 'Geste fabriqué', icon: 'drapeau/focalisation',
+      surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     vi.useFakeTimers();
@@ -3650,12 +3643,12 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
     expect(estFermee(cellule), 'témoin : l’Action dépensée ferme la case').toBe(true);
     expect(cellule.querySelector('[data-glyphe-2e]'), 'une case fermée ne promet pas un geste que rien ne peut prendre').toBeNull();
     expect(cellule.getAttribute('aria-label'), 'le nom accessible n’annonce pas les quatre surfaces non plus').toBe('Carreau');
-    expect(cellule.getAttribute('data-geste-2e'), 'le CHEMIN reste nommé en structure (mesure de surface)').toBe('focus-spell');
+    expect(cellule.getAttribute('data-geste-2e'), 'le CHEMIN reste nommé en structure (mesure de surface)').toBe('focalisation');
   });
 
   /** RENDEUR GÉNÉRIQUE (grief G2) : le calcul des gestes secondaires vit dans `cellFor`, pas au site
    *  des sorts — une entrée déclarée sur un AUTRE hôte est rendue SANS une ligne de code. */
-  it('un geste secondaire déclaré sur `reload` (entrée FABRIQUÉE) est rendu par l’alvéole de SON hôte', () => {
+  it('un geste secondaire déclaré sur `rechargement` (entrée FABRIQUÉE) est rendu par l’alvéole de SON hôte', () => {
     const objet = (id: string, uid: string) => Object.assign(itemFromTrappingById(id, idsDeTest)!, { uid }) as ItemInstance;
     const tireur = () => {
       const h = hero('h1', 'Gunnar');
@@ -3669,18 +3662,18 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       return h;
     };
     const fabrique: ActionDef = {
-      id: 'test-geste-2e-reload', label: 'Geste de recharge', icon: 'flag/focus',
-      surface: 'geste-secondaire', hote: { id: 'reload' }, gate: 'toujours',
+      id: idDeFixture('action', 'test-geste-2e-rechargement'), type: 'actions', label: 'Geste de recharge', icon: 'drapeau/focalisation',
+      surface: 'geste-secondaire', hote: { id: 'rechargement' }, gate: 'toujours',
       run: 'rechargerLArme', candidates: 'armes-a-distance', coutAction: 'gratuit',
     };
     monter(tireur());
-    expect(host.querySelector('[data-action="reload"]'), 'témoin : l’alvéole hôte est bien rendue').toBeTruthy();
-    expect(host.querySelector('[data-action="reload"]')!.getAttribute('data-geste-2e'), 'témoin : aucun geste avant l’entrée').toBeNull();
+    expect(host.querySelector('[data-action="rechargement"]'), 'témoin : l’alvéole hôte est bien rendue').toBeTruthy();
+    expect(host.querySelector('[data-action="rechargement"]')!.getAttribute('data-geste-2e'), 'témoin : aucun geste avant l’entrée').toBeNull();
     ACTIONS.push(fabrique);
     try {
       monter(tireur());
-      const hote = host.querySelector('[data-action="reload"]') as HTMLButtonElement;
-      expect(hote.getAttribute('data-geste-2e'), 'l’hôte porte le geste : le rendeur ne connaît AUCUN id').toBe('test-geste-2e-reload');
+      const hote = host.querySelector('[data-action="rechargement"]') as HTMLButtonElement;
+      expect(hote.getAttribute('data-geste-2e'), 'l’hôte porte le geste : le rendeur ne connaît AUCUN id').toBe('test-geste-2e-rechargement');
       expect(hote.getAttribute('aria-label')).toContain('Geste de recharge');
     } finally {
       ACTIONS.splice(ACTIONS.indexOf(fabrique), 1);
@@ -3725,7 +3718,7 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
     // portrait, son nom — jamais l'adversaire qui ouvre l'initiative.
     expect(host.querySelector('.cc-phase'), 'la pause de Round garde son bandeau').toBeTruthy();
     expect(host.querySelector('.ptile-name')?.textContent).toBe('Gunnar');
-    expect(host.querySelector('.cc-arch .ptile')?.classList.contains('team-enemy'),
+    expect(host.querySelector('.cc-arch .ptile')?.classList.contains('team-ennemi'),
       'le cadre du joueur portait un ennemi').toBe(false);
   });
 
@@ -3746,7 +3739,7 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
     expect(bandeau, 'aucun bandeau d’ouverture centré').not.toBeNull();
     expect(host.querySelector('.combat-console')!.contains(bandeau), 'le bandeau est resté DANS le pont').toBe(false);
     expect(bandeau.textContent).toContain('Ouverture du combat');
-    expect(bandeau.querySelector('button[data-action="round-start"]')!.textContent).toContain('Commencer le combat');
+    expect(bandeau.querySelector('button[data-action="debut-de-round"]')!.textContent).toContain('Commencer le combat');
     // … et il est CENTRÉ EN HAUT : ancré au haut du champ, ramené au centre par sa demi-largeur.
     const regle = ruleOf(CC_BASE, ".cc-phase[data-phase='ouverture']");
     expect(decl(regle, 'top')).toBe('var(--cc-ouverture-top)');
@@ -3820,14 +3813,14 @@ describe('CombatConsole — la raison d’une case fermée s’atteint au clavie
     h.conditions = [];
     h.resolve = 0;
     monter(h, { foes: [foe('e1', 9, 9)] });
-    const det = caseAction('resolve-psych-immune')!;
+    const det = caseAction('determination-psychologie')!;
     expect(det, 'la sonde ne mesure rien sans case fermée').toBeTruthy();
     return det;
   }
 
   it('FOCUS RÉEL (clavier) : la case gatée prend le focus et ouvre sa raison ; le blur la referme', () => {
     const det = consoleGatee();
-    const attendue = actionGate('resolve-psych-immune', {
+    const attendue = actionGate('determination-psychologie', { scene: useGame.getState().scene,
       active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime,
     }).reason;
     expect(refusAuFocus(det)).toBe(attendue);
@@ -3853,7 +3846,7 @@ describe('CombatConsole — la raison d’une case fermée s’atteint au clavie
 
   it('TACTILE : un tap sur la case fermée MONTRE sa raison — et n’exécute rien', () => {
     const det = consoleGatee();
-    const attendue = actionGate('resolve-psych-immune', {
+    const attendue = actionGate('determination-psychologie', { scene: useGame.getState().scene,
       active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime,
     }).reason;
     const avant = useGame.getState().battle!.combatants[0].resolve;
@@ -3878,18 +3871,18 @@ describe('CombatConsole — tout État qui déclare `restrictsAction` ferme les 
     const libre = hero('h1', 'Gunnar');
     libre.conditions = [];
     monter(libre, { foes: [foe('e1', 9, 9)] });
-    expect(caseAction('defend')!.getAttribute('data-gated'), 'sans État verrouillant, la Défensive devrait être offerte').toBeNull();
+    expect(caseAction('defensive')!.getAttribute('data-gated'), 'sans État verrouillant, la Défensive devrait être offerte').toBeNull();
     for (const etat of verrouillants) {
       const h = hero('h1', 'Gunnar');
       h.conditions = [{ id: etat.id, value: 1 }] as ConditionInstance[];
       monter(h, { foes: [foe('e1', 9, 9)] });
       expect(
-        caseAction('defend')!.getAttribute('data-gated'),
+        caseAction('defensive')!.getAttribute('data-gated'),
         `l’État ${etat.id} déclare restrictsAction, la Défensive reste pourtant ouverte`,
       ).toBe('');
       const b = useGame.getState().battle!;
-      expect(caseAction('defend')!.querySelector('[data-gate]')?.textContent, 'la case ne dit pas la raison du registre')
-        .toBe(actionGate('defend', { active: b.combatants.find((c) => c.id === 'h1')!, battle: b, gameTime: useGame.getState().gameTime }).reason);
+      expect(caseAction('defensive')!.querySelector('[data-gate]')?.textContent, 'la case ne dit pas la raison du registre')
+        .toBe(actionGate('defensive', { scene: useGame.getState().scene, active: b.combatants.find((c) => c.id === 'h1')!, battle: b, gameTime: useGame.getState().gameTime }).reason);
     }
   });
 
@@ -3898,7 +3891,7 @@ describe('CombatConsole — tout État qui déclare `restrictsAction` ferme les 
     h.conditions = [];
     h.talents = [...(h.talents ?? []), { talentId: 'distraire', times: 1 }] as Combatant['talents'];
     monter(h, { foes: [foe('e1', 6, 5)] });
-    act(() => caseAction('defend')!.click());
+    act(() => caseAction('defensive')!.click());
     expect(useGame.getState().battle!.acted, 'témoin : l’Action n’est pas dépensée').toBe(true);
     expect(caseAction('distraire'), 'témoin : la case Distraire n’est pas rendue').not.toBeNull();
     expect(caseAction('distraire')!.getAttribute('data-gated'), 'la console ferme Distraire sur l’Action dépensée').toBeNull();
@@ -3923,7 +3916,7 @@ describe('remède d’État — offre et dispatcher rendent le MÊME verdict', (
 
   it('0 Blessure : la case « Se relever » est DESSINÉE, FERMÉE, et dit pourquoi', () => {
     monter(aTerre(0), { foes: [foe('e1', 9, 9)] });
-    const cell = caseAction('stand');
+    const cell = caseAction('relevement');
     expect(cell, 'la case de relevé a disparu au lieu de dire son refus').not.toBeNull();
     expect(cell!.getAttribute('data-gated'), 'la case ne se déclare pas fermée').toBe('');
     // … et la raison est CELLE DE LA DONNÉE (`lockedReason` d'À Terre), pas un repli générique.
@@ -3935,7 +3928,7 @@ describe('remède d’État — offre et dispatcher rendent le MÊME verdict', (
 
   it('TÉMOIN — 5 Blessures : la case est OFFERTE et le clic relève', () => {
     monter(aTerre(5), { foes: [foe('e1', 9, 9)] });
-    const cell = caseAction('stand');
+    const cell = caseAction('relevement');
     expect(cell, 'la case de relevé n’est pas offerte').not.toBeNull();
     expect(cell!.getAttribute('data-gated'), 'la case est fermée alors que le relevé est possible').toBeNull();
     act(() => cell!.click());
@@ -3946,7 +3939,7 @@ describe('remède d’État — offre et dispatcher rendent le MÊME verdict', (
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     monter(h, { foes: [foe('e1', 9, 9)] });
-    expect(caseAction('stand'), 'debout, la case de relevé n’a aucune raison d’exister').toBeNull();
+    expect(caseAction('relevement'), 'debout, la case de relevé n’a aucune raison d’exister').toBeNull();
   });
 
   // CONTRAT D'ORDRE : les cases de remède paraissent dans l'ordre de `actions.json` — c'est la donnée
@@ -3960,7 +3953,7 @@ describe('remède d’État — offre et dispatcher rendent le MÊME verdict', (
     expect(attendus.length, 'aucun remède au registre : la sonde ne mesurerait rien').toBeGreaterThan(0);
     const rendus = [...host.querySelectorAll('.cc-cell[data-action]')]
       .map((c) => c.getAttribute('data-action')!)
-      .filter((id) => attendus.includes(id));
+      .filter((id) => attendus.some((a) => a === id));
     expect(rendus, 'l’ordre des cases de remède à l’écran a changé').toEqual(attendus);
   });
 
@@ -3970,10 +3963,10 @@ describe('remède d’État — offre et dispatcher rendent le MÊME verdict', (
     const h = hero('h1', 'Gunnar');
     h.conditions = [{ id: 'en-flammes', value: 1 }] as ConditionInstance[];
     monter(h, { foes: [foe('e1', 9, 9)] });
-    act(() => caseAction('roll-fire')!.click());
+    act(() => caseAction('roulade')!.click());
     act(() => { root.render(<><CombatConsole /><ActiveModal /></>); });
     expect(useGame.getState().pendingStateRecovery, 'la case n’a pas ouvert le Test').toBeTruthy();
     // Le titre porte aussi la puce d'enjeu (`StakeRule`) : on mesure le LIBELLÉ, pas sa ponctuation.
-    expect(host.querySelector('.modal h3')!.textContent!.trim()).toBe(findActionById('roll-fire')!.label);
+    expect(host.querySelector('.modal h3')!.textContent!.trim()).toBe(findActionById('roulade')!.label);
   });
 });

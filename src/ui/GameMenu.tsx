@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { MESSAGE_DU_REFUS, useGame } from '../state/store';
+import { useGame } from '../state/store';
+import { MESSAGE_DU_REFUS } from '../hote/sauvegardes';
 import type { RefusDeSauvegarde } from '../noyau/persistance/save';
 import { useModalA11y } from './Modal';
 import { ScreenMeta } from './ScreenMeta';
@@ -9,7 +10,7 @@ import { CoopMenuSection, GmSoloToggle } from './CoopPanels';
 import { t } from '../i18n';
 
 /**
- * Menu SYSTÈME plein écran (pause) — bouton ☰ de la barre HUD ET touche Échap (binding `toggle-menu`,
+ * Menu SYSTÈME plein écran (pause) — bouton ☰ de la barre HUD ET touche Échap (binding `menu-ouvrir`,
  * `state.gameMenuOpen`) l'ouvrent quand aucune modale n'est active. Voile sombre + colonne d'entrées :
  * MÊME langage que le menu principal (`MainMenu`), tous deux composant `MenuCard`. Contenu STRICT à six
  * entrées (Reprendre · Sauvegarder/Charger · Coopération · Options · Fin de séance · Quitter) ; la
@@ -77,12 +78,12 @@ export function GameMenu({ sceneName, time, onQuit, onSaveLoad, refusDeSauvegard
               />}
             >
               <MenuSection rule={false}>
-                <MenuButton icon="ui/round-start" onClick={close}>{t('gameMenu.resume')}</MenuButton>
-                <MenuButton icon="file/save" onClick={act(onSaveLoad)} refus={refusDeSauvegarde ? t(MESSAGE_DU_REFUS[refusDeSauvegarde]) : undefined}>{t('gameMenu.saveLoad')}</MenuButton>
-                <MenuButton icon="nav/online" onClick={() => setView('coop')}>{t('gameMenu.section.coop')}</MenuButton>
-                <MenuButton icon="ui/settings" onClick={() => setView('options')}>{t('gameMenu.options')}</MenuButton>
-                <MenuButton icon="resource/xp" onClick={act(onFinDeSeance)} refus={refusDeFinDeSeance ?? undefined}>{t('gameMenu.finDeSeance')}</MenuButton>
-                <MenuButton icon="map-tool/door" onClick={onQuit}>{t('gameMenu.quit')}</MenuButton>
+                <MenuButton icon="interface/nouveau-round" onClick={close}>{t('gameMenu.resume')}</MenuButton>
+                <MenuButton icon="fichier/enregistrer" onClick={act(onSaveLoad)} refus={refusDeSauvegarde ? t(MESSAGE_DU_REFUS[refusDeSauvegarde]) : undefined}>{t('gameMenu.saveLoad')}</MenuButton>
+                <MenuButton icon="navigation/en-ligne" onClick={() => setView('coop')}>{t('gameMenu.section.coop')}</MenuButton>
+                <MenuButton icon="interface/reglages" onClick={() => setView('options')}>{t('gameMenu.options')}</MenuButton>
+                <MenuButton icon="ressource/experience" onClick={act(onFinDeSeance)} refus={refusDeFinDeSeance ?? undefined}>{t('gameMenu.finDeSeance')}</MenuButton>
+                <MenuButton icon="outil-de-carte/porte" onClick={onQuit}>{t('gameMenu.quit')}</MenuButton>
               </MenuSection>
             </MenuCard>
           )}

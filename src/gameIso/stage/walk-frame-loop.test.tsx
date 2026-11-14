@@ -42,7 +42,7 @@ afterAll(() => setStageRendererFactory(null));
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero', species: 'humains-reiklander', pos, size: 'moyenne',
+    id, label: id, kind: 'heros', species: 'humains-reiklander', pos, size: 'moyenne',
     wounds: blessuresDeBase(12), weapons: [],
     characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,

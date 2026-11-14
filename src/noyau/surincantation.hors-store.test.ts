@@ -1,14 +1,14 @@
 /**
  * Surincantation jugée par le NOYAU (#3059) : ce qu'un hôte sans écran (hôte texte, invité) envoie à
  * les réglages de Surincantation (`cast.surincantation*`) passent par la même règle que ce que la modale propose (`overcastAxesFor`,
- * `castOvercastBudget`). Le jet se pose par ses coutures : `jetLancer('cast')`, puis `jetImposerLeResultat('cast')`.
+ * `castOvercastBudget`). Le jet se pose par ses coutures : `jetLancer('incantation')`, puis `jetImposerLeResultat('incantation')`.
  * Axes : `LDB 47 l.15`, `l.17`, `l.27`, `l.28` ; `LDB 41 l.21-27` ; `LDB 42 l.11` ; `VDM 02 l.199`.
  * Budget : `LDB 47 l.17`, `l.21` ; `LDB 46 l.31`, `l.156`. Décision #3059 (issuecomment-6452965421).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Partie } from './index';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spells, type SpellData } from '../data/index';
 import { setDataset } from '../data/overrides';
 import { findSpellById } from '../data/index';
@@ -16,14 +16,15 @@ import { overcastAxesFor, type OvercastAxis } from '../engine/overcast';
 import { castAfterCrit, castOvercastBudget } from '../engine/magic';
 import { castOvercastAxes, aiOvercastPlan } from './combatFlow';
 import { REGLAGE_DE_L_AXE } from './reglagesDuJet';
+import type { EntreeVivante } from '../data/datasets';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
 /** Sort d'épreuve : seuls Portée, Cible, Durée, famille et NI comptent ici. */
-const sort = (id: string, champs: Pick<SpellData, 'family' | 'range' | 'target' | 'duration' | 'cn'>): SpellData => ({
-  id, type: 'spells', label: id, ecole: 'Épreuve', subType: null, desc: '', effects: { kind: 'seq', steps: [] },
+const sort = (id: string, champs: Pick<SpellData, 'family' | 'range' | 'target' | 'duration' | 'cn'>): EntreeVivante<SpellData> => ({
+  id, type: 'spells', label: id, ecole: 'Épreuve', subType: null, desc: '', effects: { kind: 'sequence', etapes: [] },
   source: { book: 'livre-de-base', page: 243 }, ...champs,
-} as SpellData);
+});
 
 const UN = { kind: 'count', n: 1 } as const;
 const ROUNDS = { kind: 'rounds', value: { charOf: 'force-mentale' } } as const;
@@ -38,7 +39,7 @@ const FIXTURES = {
   puissanceVdm: sort('epreuve-puissance-vdm', { family: 'arcane', cn: 5, range: { kind: 'distance', value: 6, unit: 'm' }, target: UN, duration: ROUNDS }),
   puissance: sort('epreuve-puissance', { family: 'arcane', cn: 30, range: { kind: 'distance', value: 6, unit: 'm' }, target: UN, duration: ROUNDS }),
   priere: sort('epreuve-priere', { family: 'beni', cn: 4, range: { kind: 'distance', value: 6, unit: 'm' }, target: UN, duration: ROUNDS }),
-} satisfies Record<string, SpellData>;
+} satisfies Record<string, EntreeVivante<SpellData>>;
 
 const original = [...spells];
 beforeAll(() => { setDataset('spells', [...original, ...Object.values(FIXTURES)]); });
@@ -46,7 +47,7 @@ afterAll(() => { setDataset('spells', original); });
 
 /** Lanceur maîtrisant Langue (Magick) et Prière : le dé fixé 03 réussit largement les deux. */
 function lanceur() {
-  const h = pregen(idsDeTest, PREGEN.sorcier);
+  const h = herosDeScenario(idsDeTest, 'sorcier');
   h.id = 'L'; h.label = 'L';
   h.skills = [
     ...h.skills.filter((s) => s.id !== 'langue' && s.id !== 'priere'),
@@ -56,17 +57,17 @@ function lanceur() {
   return h;
 }
 
-/** Ouvre l'incantation de `spell` hors combat, pose le jet par ses coutures (`jetLancer('cast')`, dé fixé `de`),
+/** Ouvre l'incantation de `spell` hors combat, pose le jet par ses coutures (`jetLancer('incantation')`, dé fixé `de`),
  *  joue `corps` puis ferme la partie. */
-function lancer(spell: SpellData, corps: (partie: Partie) => void, extra: { grimoire?: true } = {}, de = 3, reglesMaison: Record<string, unknown> = {}): void {
+function lancer(spell: EntreeVivante<SpellData>, corps: (partie: Partie) => void, extra: { grimoire?: true } = {}, de = 3, reglesMaison: Record<string, unknown> = {}): void {
   const L = lanceur();
   const partie = creerPartie({
     ...etatInitialDuJeu(), party: [L],
     pendingCast: { casterId: L.id, targetId: L.id, spellId: spell.id, missile: false, focused: false, result: null, ...extra },
   }, { ...ENTREES, reglesMaison });
   try {
-    partie.envoyer({ type: 'jetLancer', args: ['cast'] });
-    partie.envoyer({ type: 'jetImposerLeResultat', args: ['cast', de] });
+    partie.envoyer({ type: 'jetLancer', args: ['incantation'] });
+    partie.envoyer({ type: 'jetImposerLeResultat', args: ['incantation', de] });
     expect(partie.etat().pendingCast?.result, `${spell.id} n'a pas de jet`).toBeTruthy();
     corps(partie);
   } finally {
@@ -76,7 +77,7 @@ function lancer(spell: SpellData, corps: (partie: Partie) => void, extra: { grim
 
 /** Pas alloués à `axis` après `n` demandes d'un pas de plus (le bouton « + » de la modale). */
 function allouer(partie: Partie, axis: OvercastAxis, n = 1): number {
-  for (let i = 0; i < n; i++) partie.envoyer({ type: 'jetRegler', args: ['cast', REGLAGE_DE_L_AXE[axis], (partie.etat().pendingCast?.overcast?.[axis] ?? 0) + 1] });
+  for (let i = 0; i < n; i++) partie.envoyer({ type: 'jetRegler', args: ['incantation', REGLAGE_DE_L_AXE[axis], (partie.etat().pendingCast?.overcast?.[axis] ?? 0) + 1] });
   return partie.etat().pendingCast?.overcast?.[axis] ?? 0;
 }
 
@@ -142,25 +143,25 @@ describe('Surincantation — budget sur le NI effectif du jet', () => {
     lancer(FIXTURES.puissance, (p) => {
       const res = p.etat().pendingCast!.result!;
       expect(res, 'le double 11 est une Incantation Critique qui ne lance pas le Sort').toMatchObject({ cast: false, isCritical: true });
-      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
+      p.envoyer({ type: 'jetRegler', args: ['incantation', 'effetCritique', 'puissance'] });
       expect(castAfterCrit(res, 'puissance')).toBe(true);
       expect(allouer(p, 'duration', 20)).toBe(0);
     }, {}, 11);
   });
-  it('« Puissance totale » sous `magic-vdm-incantation` : les dizaines ne donnent aucun pas à un jet sous le NI (`VDM 02 l.55`)', () => {
+  it('« Puissance totale » sous `magie-vdm-incantation` : les dizaines ne donnent aucun pas à un jet sous le NI (`VDM 02 l.55`)', () => {
     lancer(FIXTURES.puissanceVdm, (p) => {
       const res = p.etat().pendingCast!.result!;
       expect(res, 'le double 88 réussit sous le NI 5').toMatchObject({ cast: false, isCritical: true });
       expect(res.sl + 8, 'les dizaines du lancer dépassent le NI').toBeGreaterThanOrEqual(5 + 2);
-      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
+      p.envoyer({ type: 'jetRegler', args: ['incantation', 'effetCritique', 'puissance'] });
       expect(allouer(p, 'duration', 20)).toBe(0);
-    }, {}, 88, { 'magic-vdm-incantation': true });
+    }, {}, 88, { 'magie-vdm-incantation': true });
   });
   it('Sort dissipé : ni lancé, ni budget, ni plan de l’IA (`LDB 46 l.156`)', () => {
     lancer(FIXTURES.critique, (p) => {
       const pc = p.etat().pendingCast!;
       const L = p.etat().party.find((c) => c.id === pc.casterId)!;
-      const ennemi = { ...L, id: 'E', label: 'E', kind: 'enemy' as const, pos: { x: 1, y: 0 } };
+      const ennemi = { ...L, id: 'E', label: 'E', kind: 'ennemi' as const, pos: { x: 1, y: 0 } };
       const lanceurPose = { ...L, pos: { x: 0, y: 0 } };
       const plan = (r: typeof pc.result & object) => aiOvercastPlan(lanceurPose, 'X', FIXTURES.critique, r, [lanceurPose, ennemi], undefined, false);
       expect(plan(pc.result!), 'témoin : le jet lancé a un plan').toHaveProperty('extraTargetIds', ['E']);
@@ -179,18 +180,18 @@ describe('Surincantation — un budget changé remet l’allocation à zéro', (
   it('effet d’Incantation Critique changé après 2 pas : l’allocation retombe (décision #3059)', () => {
     lancer(FIXTURES.critique, (p) => {
       expect(p.etat().pendingCast!.result, 'le double 11 lance le Sort de NI 0').toMatchObject({ cast: true, isCritical: true });
-      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
+      p.envoyer({ type: 'jetRegler', args: ['incantation', 'effetCritique', 'puissance'] });
       expect(allouer(p, 'duration', 2)).toBe(2);
-      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
+      p.envoyer({ type: 'jetRegler', args: ['incantation', 'effetCritique', 'puissance'] });
       expect(p.etat().pendingCast!.overcast?.duration, 'le même effet ne change rien').toBe(2);
-      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'ineluctable'] });
+      p.envoyer({ type: 'jetRegler', args: ['incantation', 'effetCritique', 'ineluctable'] });
       expect(p.etat().pendingCast!.overcast).toBeUndefined();
     }, {}, 11);
   });  it('« +1 DR » de Chance après 2 pas : l’allocation retombe (décision #3059)', () => {
     lancer(FIXTURES.critique, (p) => {
       expect(allouer(p, 'duration', 2)).toBe(2);
       const sl = p.etat().pendingCast!.result!.sl;
-      p.envoyer({ type: 'jetAjouterUnDR', args: ['cast'] });
+      p.envoyer({ type: 'jetAjouterUnDR', args: ['incantation'] });
       expect(p.etat().pendingCast!.result!.sl, 'la Chance a ajouté son DR').toBe(sl + 1);
       expect(p.etat().pendingCast!.overcast).toBeUndefined();
     });

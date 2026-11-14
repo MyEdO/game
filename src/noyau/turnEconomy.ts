@@ -3,6 +3,7 @@ import type { BattleState, Jeu } from './etat';
 import { isOutOfAction } from '../engine/conditions';
 import { canStrikeFirst } from '../engine/qualities/dispatch';
 import { ACTION_GATES, type ActionCtx } from './actionRegistry';
+import type { GateDAction } from '../data/schemas/defs/actions';
 import { desengagementSansAction } from './combat/desengagement';
 import { controlsCombatant } from './netOwnership';
 import { inBattleId } from './monde/combatants';
@@ -17,10 +18,10 @@ import { inBattleId } from './monde/combatants';
  * Pur : les gates consommés ne lisent que l'acteur et son combat.
  */
 export function hasMeaningfulOption(ctx: ActionCtx): boolean {
-  if (ctx.active.kind !== 'hero') return false;
+  if (ctx.active.kind !== 'heros') return false;
   // Action disponible · Mouvement restant · désengagement sans Action (LDB 15 l.47, LDB 85 l.253, l.373-374) · Piétinement gratuit
   // (LDB 85) · attaque d'Arme gratuite de Frénésie (LDB 21 l.33) · Détermination en réserve (LDB 17 l.59-61).
-  const gates = [
+  const gates: GateDAction[] = [
     'action-libre',
     'mouvement-restant',
     'pietinement-gratuit',
@@ -44,7 +45,7 @@ export function canActFirst(c: Combatant, battle: BattleState): boolean {
   return (c.fortune ?? 0) > 0 || canStrikeFirst(c.weapons);
 }
 
-/** Les héros que le choix `roundStart.promouvoir` accepte pendant la pause de début de Round : ceux que le siège qui décide
+/** Les héros que le choix `debutDuRound.promouvoir` accepte pendant la pause de début de Round : ceux que le siège qui décide
  *  contrôle (`controlsCombatant`) et qui peuvent agir en premier (`canActFirst`). Vide hors pause. LDB 17 l.25. */
 export function actFirstIds(s: Jeu): string[] {
   const battle = s.battle;

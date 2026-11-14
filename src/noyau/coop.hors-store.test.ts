@@ -28,7 +28,7 @@ function hoteEnPartie(): EtatDeJeu {
     dispelCarrierId: 'heros-hote',
     refus: { texte: 'refus de l’hôte', nonce: 7 },
     pendingCampaign: { id: 'camp-fixture', label: 'Campagne fixture', scenes: [emptyScene('scene-a', 4, 4)], startSceneId: 'scene-a', worldMap: null, projet: { id: 'projet-fixture' } },
-    net: { mode: 'host', mySeat: 0, roomCode: 'ABC234', seatNames: { 0: 'Hôte', 2: 'Anne' }, presence: { 2: 'ok' }, connection: 'ok', hostAway: false, ownership: { 'heros-anne': 2 }, slots: [0, 2, 0, 0], rangs: {} },
+    net: { mode: 'hote', mySeat: 0, roomCode: 'ABC234', seatNames: { 0: 'Hôte', 2: 'Anne' }, presence: { 2: 'present' }, connection: 'connecte', hoteAbsent: false, ownership: { 'heros-anne': 2 }, slots: [0, 2, 0, 0], rangs: {} },
   };
 }
 
@@ -40,7 +40,7 @@ function inviteAuSiege2(): EtatDeJeu {
     localIntent: { actionId: 'portee-charge' },
     dispelCarrierId: null,
     refus: { texte: 'refus de l’invité', nonce: 3 },
-    net: { mode: 'guest', mySeat: 2, roomCode: 'ABC234', seatNames: { 2: 'Anne' }, presence: {}, connection: 'reconnecting', hostAway: true, ownership: {}, slots: [0, 0, 0, 0], rangs: {} },
+    net: { mode: 'invite', mySeat: 2, roomCode: 'ABC234', seatNames: { 2: 'Anne' }, presence: {}, connection: 'reconnexion', hoteAbsent: true, ownership: {}, slots: [0, 0, 0, 0], rangs: {} },
   };
 }
 
@@ -79,7 +79,7 @@ describe('application de l’instantané chez l’invité', () => {
   it('garde l’identité réseau de l’invité et ce qui lui est local, prend le reste de l’hôte', () => {
     const mien = inviteAuSiege2();
     const { etat } = appliquerLInstantane(JSON.parse(JSON.stringify(instantaneDeLaCoop(hoteEnPartie()))), mien);
-    expect(etat.net).toEqual({ ...hoteEnPartie().net, mode: 'guest', mySeat: 2, connection: 'reconnecting', hostAway: true });
+    expect(etat.net).toEqual({ ...hoteEnPartie().net, mode: 'invite', mySeat: 2, connection: 'reconnexion', hoteAbsent: true });
     expect({ localIntent: etat.localIntent, dispelCarrierId: etat.dispelCarrierId, refus: etat.refus })
       .toEqual({ localIntent: mien.localIntent, dispelCarrierId: mien.dispelCarrierId, refus: mien.refus });
   });
@@ -116,7 +116,7 @@ describe('build du handshake coop : format ET registres (#1463 LD.1)', () => {
     setDataset('etats', structuredClone(ETATS_LIVRES));
     expect(buildDeLaCoop()).toBe(base);
     const mode = REGLES_LIVREES.findIndex((r) => r.kind === 'mode');
-    setDataset('reglesOptionnelles', REGLES_LIVREES.map((r, i) => (i === mode ? { ...structuredClone(r), options: [...(r.options ?? []), 'option-de-fixture'] } : structuredClone(r))));
+    setDataset('reglesOptionnelles', REGLES_LIVREES.map((r, i) => (i === mode && r.kind === 'mode' ? { ...structuredClone(r), options: [...r.options, 'option-de-fixture'] } : structuredClone(r))));
     expect(buildDeLaCoop()).not.toBe(base);
   });
 });

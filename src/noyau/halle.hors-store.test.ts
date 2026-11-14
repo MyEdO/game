@@ -6,13 +6,14 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Partie } from './index';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene } from './monde/scene';
 import { minCargoEnc } from '../engine/landCargo';
 import type { Possession } from '../engine/possession';
 import type { WorldMap } from './worldMap';
 import { carrierById } from './carriers';
 import { devisDAchatDeCargaison } from './landMarketFlow';
+import { refusDeGesteSurLeGroupe } from './bourseFlow';
 import { bourseOf, withBourseMoney } from '../engine/bourse';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import type { CargoLot } from '../engine/cargo';
@@ -31,7 +32,7 @@ const carte: WorldMap = {
 
 /** Ouvre la halle par le geste du noyau, le groupe menant une diligence (Chargement 80) si `avecPorteur`. */
 function ouvrir(avecPorteur: boolean, bourseDuMeneur = 0): Partie {
-  const party = makePregens(idsDeTest).slice(0, 3).map((h, i) => (i === 0 ? withBourseMoney(h, { gold: bourseDuMeneur, silver: 0, brass: 0 }, idsDeTest) : h));
+  const party = tousLesHerosDeScenario(idsDeTest).slice(0, 3).map((h, i) => (i === 0 ? withBourseMoney(h, { gold: bourseDuMeneur, silver: 0, brass: 0 }, idsDeTest) : h));
   const possessions: Possession[] = avecPorteur
     ? [{ uid: 'convoi', ownerId: party[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }]
     : [];
@@ -95,8 +96,8 @@ describe('#3059 — achat de cargaison : un seul refus pour l’écran et le ges
 
 /** Halle FIXÉE : une offre de 20 Enc de métal à 10 CO, une diligence vide, un seul héros sans Négociateur,
  *  qui mène donc le Marchandage du groupe (`partyAssisted`). `mode` : siège local ou invité. */
-function halleFixee(mode: 'local' | 'guest', cargo: CargoLot[] = [], produits = carte.places[0].market!.produits): Partie {
-  const heros = { ...makePregens(idsDeTest)[0], talents: [] };
+function halleFixee(mode: 'local' | 'invite', cargo: CargoLot[] = [], produits = carte.places[0].market!.produits): Partie {
+  const heros = { ...tousLesHerosDeScenario(idsDeTest)[0], talents: [] };
   const entrees: EntreesDeLaPartie = { graine: 3, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   return creerPartie({
     ...etatInitialDuJeu(),
@@ -118,7 +119,7 @@ describe('#3059 — achat de cargaison : bourse sous le prix plancher au meilleu
       acheter(partie, 'convoi', 'metal', 10);
       expect(fenetres()).toEqual(avant);
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([]);
-      expect(journalDit(partie, t('cargo.bourseSousPlancher', { plancher: 90 }))).toBe(true);
+      expect(journalDit(partie, t('cargo.bourseSousPlancher', { plancher: '90 CO' }))).toBe(true);
       expect(devisDAchatDeCargaison(partie.etat(), 'convoi', 'metal', 10)).toMatchObject({ estimationGold: 110, plancherGold: 90, refus: { motif: 'bourse', plancher: 90 } });
     } finally {
       partie.fermer();
@@ -126,10 +127,10 @@ describe('#3059 — achat de cargaison : bourse sous le prix plancher au meilleu
   });
 });
 
-describe('#3059 — siège invité : les gestes de la halle sur la bourse et la cale disent le refus de groupe', () => {
-  it('vente, bradage, évaluation du vin et transfert refusés, cargaison intacte', () => {
+describe('#3059 — siège invité : les gestes de la halle sur la bourse et la cale sont à l’hôte', () => {
+  it('vente et bradage refusés par la fenêtre, évaluation du vin et transfert envoyés refusés (`coop.hoteSeul`), cargaison intacte', () => {
     const lot: CargoLot = { uid: 'lot-1', cargoId: 'metal', enc: 12, basePriceGold: 10 };
-    const partie = halleFixee('guest', [lot]);
+    const partie = halleFixee('invite', [lot]);
     try {
       partie.envoyer({ type: 'fenetreChoisir', args: ['marcheDeTerre', 'vendre', 'lot-1'] });
       partie.envoyer({ type: 'fenetreChoisir', args: ['marcheDeTerre', 'jeter', 'lot-1'] });
@@ -137,7 +138,8 @@ describe('#3059 — siège invité : les gestes de la halle sur la bourse et la 
       partie.envoyer({ type: 'deplacerLaCargaison', args: ['lot-1', 'convoi', 5] });
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([lot]);
       expect(partie.etat().journal.filter((l) => l.includes(t('choix.refus.hoteSeul'))).length, 'vente et bradage').toBe(2);
-      expect(partie.etat().journal.filter((l) => l.includes(t('groupe.hoteSeul'))).length, 'évaluation et transfert').toBe(2);
+      expect(partie.etat().journal.filter((l) => l === t('coop.hoteSeul')).length, 'évaluation et transfert').toBe(2);
+      expect(refusDeGesteSurLeGroupe(partie.etat()), 'le refus de groupe que lit l’écran').toBe(t('groupe.hoteSeul'));
     } finally {
       partie.fermer();
     }

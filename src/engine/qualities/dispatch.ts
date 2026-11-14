@@ -11,11 +11,11 @@
 import type { Weapon, QualityInstance, ArmourBypass } from '../types';
 import type { QualityId } from './ids';
 import type { QualityDef } from './types';
-import { findQualityById, findWeaponGroupById, qualityInstance, type QualityCapabilities, type QualityData } from '../../data';
+import { findQualityById, findWeaponGroupById, groupeDeLArme, qualityInstance, type QualityCapabilities, type QualityData } from '../../data';
 import type { GameOp, OpPassive } from '../ops';
 
 /** Tout porteur de qualités (Weapon ou ItemInstance) — seul `qualities` est requis ; `weaponGroup`/
- *  `subType` (`weaponGroup ?? subType` = Groupe d'objet) donnent accès aux qualités de FAMILLE.
+ *  `subType` (`groupeDeLArme` = Groupe d'objet) donnent accès aux qualités de FAMILLE.
  *  `noFamilyQualities` bloque cette fusion SANS effacer `subType`/`weaponGroup` (cf. `Weapon.noFamilyQualities` —
  *  la compétence/talent lus par `subType` restent intacts pour un profil qui remplace la liste de qualités).
  *  `removedQualities`/`removedTypes` : qualités NEUTRALISÉES par une altération (op `augmentWeapon`,
@@ -57,14 +57,14 @@ export function resolveQualities(w: QualityCarrier | undefined): ResolvedQuality
   if (!w) return [];
   const own = w.qualities ?? [];
   const ownIds = new Set(own.map((q) => q.id));
-  const familyQualities = w.noFamilyQualities ? [] : (findWeaponGroupById(w.weaponGroup ?? w.subType)?.qualities ?? []);
+  const familyQualities = w.noFamilyQualities ? [] : (findWeaponGroupById(groupeDeLArme(w))?.qualities ?? []);
   const merged = [...own, ...familyQualities.filter((q) => !ownIds.has(q.id)).map(qualityInstance)];
   const out: ResolvedQuality[] = [];
   for (const q of merged) {
     const data = findQualityById(q.id);
     out.push({ def: { key: data?.label ?? q.id }, id: q.id, data, caps: data?.capabilities, indice: q.value });
   }
-  const beaten = new Set(out.flatMap((r) => r.caps?.beats ?? []));
+  const beaten = new Set<string>(out.flatMap((r) => r.caps?.beats ?? []));
   // Neutralisations d'une ALTÉRATION (op `augmentWeapon`) : par id, et par POLARITÉ lue dans le REGISTRE
   // (`QualityData.polarite`) — jamais une liste d'ids en dur. Appliquées APRÈS la fusion de famille : le RAW
   // (« Tous les Atouts de l'arme disparaissent », VDM 05) ne distingue pas propre et famille.
@@ -91,12 +91,12 @@ export function qualityIndice(w: QualityCarrier | undefined, id: QualityId): num
 }
 
 /** Somme d'un modificateur numérique sur les qualités présentes (0 si aucune) — lu dans les ops PASSIVES
- *  de la donnée. `attackMod` = `weaponRollMod{phase:'attack'}.flatMod` (Précise +10) ; `armourReduction` =
+ *  de la donnée. `attackMod` = `weaponRollMod{phase:'attaque'}.flatMod` (Précise +10) ; `armourReduction` =
  *  `armourPierce.amount` (Perforante 1). */
 export function qualitySum(w: QualityCarrier | undefined, field: 'attackMod' | 'armourReduction'): number {
   let n = 0;
   for (const op of weaponPassiveOps(w)) {
-    if (field === 'attackMod' && op.op === 'weaponRollMod' && op.phase === 'attack') n += op.flatMod ?? 0;
+    if (field === 'attackMod' && op.op === 'weaponRollMod' && op.phase === 'attaque') n += op.flatMod ?? 0;
     else if (field === 'armourReduction' && op.op === 'armourPierce') n += op.amount;
   }
   return n;
@@ -117,7 +117,7 @@ export function qualityArmourBypasses(w: QualityCarrier | undefined): ArmourBypa
  *  registre : elle n'a pas d'id et n'apparaît donc pas ici. */
 export function attackModQualityIds(w: QualityCarrier | undefined): string[] {
   return resolveQualities(w)
-    .filter((r) => (r.data?.passive ?? []).some((op) => op.op === 'weaponRollMod' && op.phase === 'attack' && (op.flatMod ?? 0) !== 0))
+    .filter((r) => (r.data?.passive ?? []).some((op) => op.op === 'weaponRollMod' && op.phase === 'attaque' && (op.flatMod ?? 0) !== 0))
     .map((r) => r.id);
 }
 
@@ -137,25 +137,25 @@ function rollModSum(w: QualityCarrier | undefined, phase: RollPhase, kind: 'drMo
 
 /** Ajustement de DR de la PARADE (Test opposé) : Défensive (arme du défenseur) +1, À Enroulement (arme de l'attaquant) -1. */
 export function parryDRAdjust(defenderWeapon: QualityCarrier | undefined, attackerWeapon: QualityCarrier | undefined): number {
-  return rollModSum(defenderWeapon, 'parryByDefender') + rollModSum(attackerWeapon, 'parryAgainstAttacker');
+  return rollModSum(defenderWeapon, 'paradeDuDefenseur') + rollModSum(attackerWeapon, 'paradeAdverse');
 }
 
 /** ±DR au Test d'ATTAQUE avec l'arme. La phase `attack` s'applique que le Test soit réussi ou raté
- *  (Imprécise -1, LDB 62 l.323) ; la phase `attackSuccess` n'entre QUE sur un Test réussi (Pointue +1,
+ *  (Imprécise -1, LDB 62 l.323) ; la phase `attaqueReussie` n'entre QUE sur un Test réussi (Pointue +1,
  *  LDB 62 l.288) — d'où `success`. Inclut le sous-effectif d'une Arme d'équipe d'Indice ≥ 3 (Imprécise,
  *  Aux Armes p.124). */
 export function attackDRAdjust(w: QualityCarrier | undefined, success: boolean): number {
-  return rollModSum(w, 'attack') + (success ? rollModSum(w, 'attackSuccess') : 0) + (crewedTeamIndice(w) >= 3 ? -1 : 0);
+  return rollModSum(w, 'attaque') + (success ? rollModSum(w, 'attaqueReussie') : 0) + (crewedTeamIndice(w) >= 3 ? -1 : 0);
 }
 
 /** +DR à TOUT Test de défense (Parade ET Esquive) contre l'arme de l'attaquant (Lente +1, LDB 62 l.331). */
 export function vsDefenseDRAdjust(attackerWeapon: QualityCarrier | undefined): number {
-  return rollModSum(attackerWeapon, 'vsDefense');
+  return rollModSum(attackerWeapon, 'defenseAdverse');
 }
 
 /** L'arme peut-elle tirer au Combat rapproché (Atout Pistolet) ? */
 export function canFireWhileEngaged(w: Weapon | undefined): boolean {
-  return !!w && w.type === 'ranged' && resolveQualities(w).some((r) => r.caps?.canFireWhileEngaged);
+  return !!w && w.type === 'distance' && resolveQualities(w).some((r) => r.caps?.canFireWhileEngaged);
 }
 
 /** L'objet est-il insensible aux dégâts/destruction (Incassable) ? (remplace les regex /incassable/i). */
@@ -172,7 +172,7 @@ export function isFirearmQuality(w: QualityCarrier | undefined): boolean {
  *  Renvoie 0 si le test est RÉUSSI (la règle ne vise que les échecs). */
 export function craftTestDRAdjust(w: QualityCarrier | undefined, success: boolean): number {
   if (success) return 0;
-  return rollModSum(w, 'testFail');
+  return rollModSum(w, 'testRate');
 }
 
 /** Somme des modificateurs de Sociabilité (Laid -10, LDB 60 l.54) des qualités du porteur — lus dans la DONNÉE
@@ -270,7 +270,7 @@ export function canPushback(w: QualityCarrier | undefined): boolean {
 
 /** Piège-lame (LDB 62 l.278) : l'arme peut piéger une lame sur un Critique défensif. */
 export function hasBladeTrap(w: QualityCarrier | undefined): boolean {
-  return resolveQualities(w).some((r) => r.caps?.bladeTrap);
+  return resolveQualities(w).some((r) => r.caps?.piegeALame);
 }
 
 /** Arme MAGIQUE (qualité enchantée, ADE II) : ses attaques comptent comme magiques (Éthéré, LDB 85). */

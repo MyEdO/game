@@ -20,7 +20,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
 import {
-  applySurprise, approachFearTrigger, applyAttackResult, applyCoupCritiqueSec,
+  applySurprise, approachFearTrigger, applyAttackResult, applyCoupCritiqueSec, instantaneAvantLeCoup,
   openCombatEndCascade, openRoundStartPsych,
 } from './combatFlow';
 import { createHero } from '../engine/character';
@@ -57,11 +57,11 @@ function setupCoop(opts: { heros?: number; invites?: number[]; vivants?: number 
   banc.setState({ party });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.filter((c) => c.kind === 'hero');
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.filter((c) => c.kind === 'heros');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(opts.vivants ?? 1).forEach((e) => (e.dead = true));
   const E = enemies.slice(0, opts.vivants ?? 1);
   H.forEach((h, i) => (h.pos = { x: 10, y: 10 + i }));
@@ -69,7 +69,7 @@ function setupCoop(opts: { heros?: number; invites?: number[]; vivants?: number 
   const ownership: Record<string, number> = {};
   for (const i of opts.invites ?? [0]) ownership[H[i].id] = 1;
   banc.setState({ battle: { ...b }, pendingCascade: null, suspendedCascades: [], pendingLogQueue: [] } as never);
-  banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership } } as never);
+  banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership } } as never);
   return { H, E };
 }
 
@@ -84,9 +84,9 @@ describe('#1262 lot 5c — la BANDE se compose sur la SURFACE, pas sur l’écra
     expect(humanControlled(g(), H[1]), 'chez l’hôte, il ne pilote pas le héros de l’invité…').toBe(false);
     expect(surfaceOf(g, H[1].id), '…mais un siège humain le tient').toBe(true);
 
-    applySurprise(g, banc.setState, 'party'); // les ennemis embusquent : les héros sont les guetteurs
+    applySurprise(g, banc.setState, 'groupe'); // les ennemis embusquent : les héros sont les guetteurs
 
-    const step = parKind('triggeredBatchTest');
+    const step = parKind('testDeclencheEnBande');
     expect(step, 'la bande des guetteurs existe').toBeTruthy();
     expect(step!.participants!.map((p) => p.id).sort()).toEqual([H[0].id, H[1].id].sort());
     const rangee = step!.participants!.find((p) => p.id === H[1].id)!;
@@ -103,7 +103,7 @@ describe('#1262 lot 5c — la BANDE se compose sur la SURFACE, pas sur l’écra
 
     approachFearTrigger(g, banc.setState, E[0], { x: 30, y: 30 }); // la source a fini PLUS PRÈS
 
-    const step = parKind('triggeredBatchTest');
+    const step = parKind('testDeclencheEnBande');
     expect(step, 'le craintif de l’invité est dans la bande').toBeTruthy();
     expect(step!.participants!.map((p) => p.id)).toEqual([H[0].id]);
     expect(step!.participants![0].result, 'rien n’a été roulé : la rangée est à jouer').toBeNull();
@@ -119,12 +119,12 @@ describe('#1262 lot 5c — la BANDE se compose sur la SURFACE, pas sur l’écra
 
     openRoundStartPsych(g, banc.setState);
 
-    const step = parKind('combatPsych');
+    const step = parKind('psychologieDeCombat');
     expect(step, 'la bande de Terreur existe pour le porteur de l’invité').toBeTruthy();
     expect(step!.participants!.map((p) => p.id)).toEqual([H[0].id]);
     expect(step!.actorId, 'un seul porteur : la bande EST la sienne').toBe(H[0].id);
     expect(step!.groupOwner).toBeUndefined();
-    expect(step!.combatPsych?.sourceId, 'la déclaration de règle traverse le socle intacte').toBe(E[0].id);
+    expect(step!.psychologieDeCombat?.sourceId, 'la déclaration de règle traverse le socle intacte').toBe(E[0].id);
     expect(step!.aggregate, 'rangées INDÉPENDANTES').toBe('none');
     expect(modalOwnerOf(g())).toBe(H[0].id);
     expect(seatOwns(g(), 1, H[0].id)).toBe(true);
@@ -141,7 +141,7 @@ describe('#1262 lot 5c — la fin de combat ne contracte plus en silence', () =>
 
     openCombatEndCascade(g, banc.setState);
 
-    const step = parKind('combatEndDisease');
+    const step = parKind('maladieDeFinDeCombat');
     expect(step, 'la bande influençable existe').toBeTruthy();
     expect(step!.actorId, 'une bande d’un seul porteur EST son porteur').toBe(H[0].id);
     const row = step!.participants!.find((r) => r.id === H[0].id)!;
@@ -168,7 +168,7 @@ describe('#1262 lot 5c — la fin de combat ne contracte plus en silence', () =>
 
     openCombatEndCascade(g, banc.setState);
 
-    expect(parKind('combatEndDisease'), 'hors d’action : aucune fenêtre à ce site').toBeUndefined();
+    expect(parKind('maladieDeFinDeCombat'), 'hors d’action : aucune fenêtre à ce site').toBeUndefined();
     expect(c.tookCriticalThisFight, 'le marqueur a bien été consommé par la voie inline').toBe(false);
   });
 });
@@ -178,7 +178,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
   const hache = { label: 'Hache', name: 'Hache', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], uid: 'hache-1' } as unknown as Weapon;
   const critHit = (loc: HitLocation): AttackResult => ({
     hit: true, attackerRoll: 44, netSL: 4, location: loc, critLocation: loc, damage: 6, woundsLost: 2,
-    critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche',
+    critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche',
   } as unknown as AttackResult);
 
   function blinde(c: Combatant): void {
@@ -230,7 +230,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
     blinde(cible);
     seedBattleRng(5);
 
-    applyCoupCritiqueSec(g, banc.setState, cible, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, []);
+    applyCoupCritiqueSec(g, banc.setState, cible, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, [], E[0], instantaneAvantLeCoup(cible));
 
     const dev = parKind('deviation');
     expect(dev, 'le jumeau n’a jamais porté le filtre d’affordance locale').toBeTruthy();

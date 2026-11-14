@@ -5,7 +5,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { datasetArray, setDataset } from '../data/overrides';
 import { DIFFICULTY_LABELS, type Combatant } from '../engine/types';
@@ -20,7 +20,7 @@ const get = () => banc.getState();
 
 /** Un pré-tiré, avec ou sans Tireur d'élite. */
 function heros(rang: number, tireur: boolean): Combatant {
-  const h = makePregens(idsDeTest)[rang] as Combatant;
+  const h = tousLesHerosDeScenario(idsDeTest)[rang] as Combatant;
   const autres = (h.talents ?? []).filter((t) => t.talentId !== 'tireur-d-elite');
   return { ...h, talents: tireur ? [...autres, { talentId: 'tireur-d-elite', times: 1 }] : autres };
 }
@@ -32,20 +32,20 @@ const courant = (): CascadeStep | undefined => {
 
 /** Tranche le choix de ligne visée ouvert, et le commit. */
 function vise(cle: string): void {
-  expect(courant()?.kind, 'la ligne visée est à choisir').toBe('tavern-throw-aim');
+  expect(courant()?.kind, 'la ligne visée est à choisir').toBe('taverneLancerVisee');
   avanceEtapeCascade(get, undefined, () => cle);
 }
 
 /** Le lancer ouvert. */
 function lancer(): CascadeStep {
-  const band = get().pendingCascade!.participants.find((s) => s.kind === 'tavern-throw');
+  const band = get().pendingCascade!.participants.find((s) => s.kind === 'taverneLancer');
   expect(band, 'un lancer est ouvert').toBeDefined();
   return band!;
 }
 
 /** Pose un lancer raté (dé naturel 99) sur le lancer ouvert, puis le commit. */
 function rate(): void {
-  expect(courant()?.kind, 'le lancer est ouvert').toBe('tavern-throw');
+  expect(courant()?.kind, 'le lancer est ouvert').toBe('taverneLancer');
   avanceEtapeCascade(get, () => 99);
 }
 
@@ -62,8 +62,8 @@ describe('L’Arène — Tireur d’élite, « un cran plus facile » (NADJ 16 l
     const a = heros(0, true);
     const b = heros(1, false);
     banc.setState({ party: [a, b] });
-    get().jouerALaTaverne({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
-    expect((get().sequence!.payload as TavernPayload).specials, 'figés à l’ouverture, au seul siège qui a le Talent')
+    get().jouerALaTaverne(a.id, { gameId: 'arene', opponent: { kind: 'heros', id: b.id } });
+    expect((get().sequence!.chargeUtile as TavernPayload).specials, 'figés à l’ouverture, au seul siège qui a le Talent')
       .toEqual({ [a.id]: [expect.objectContaining({ effet: 'cran', hasTalent: 'tireur-d-elite', steps: 1 })] });
 
     expect(optionCornes(), 'le choix le DIT').toContain(DIFFICULTY_LABELS.facile);
@@ -89,7 +89,7 @@ describe('Manche opposée contre la salle — la Difficulté du challenger ne s�
       : g)));
     const a = heros(0, true);
     banc.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne(a.id, { gameId: 'dominos', opponent: { kind: 'profil', id: 'humain' } });
     const etape = get().pendingCascade!.participants[0];
     expect(etape.difficulty, 'le challenger, un cran plus facile').toBe('facile');
     const aT = etape.meta!.opposed!.aT!;

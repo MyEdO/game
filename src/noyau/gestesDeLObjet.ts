@@ -8,7 +8,7 @@
  */
 import type { Jeu } from './etat';
 import type { GesteDuNoyau, GesteFermable } from './actionsDuNoyau';
-import type { ItemInstance } from '../engine/types';
+import type { ItemInstance, Main } from '../engine/types';
 import { canStow, isWearable, itemLabel } from '../engine/items';
 import { possessionLabel } from '../engine/possession';
 import { isConsumable } from '../engine/consumables';
@@ -32,7 +32,7 @@ export interface GestesDeLObjet {
   /** Un objet porté sur le corps (`isWearable`), hors consommable : s'il est porté. */
   porter: (GesteFermable & { porte: boolean }) | null;
   /** Une arme d'un héros : chaque main du set actif (`set`, son id). */
-  mains: { set: string; main: MainDuSet; off: MainDuSet } | null;
+  mains: { set: string; main: MainDuSet; secondaire: MainDuSet } | null;
   /** Un objet en vrac qui tient dans un contenant du porteur (`canStow`) : chacun de ces contenants. */
   ranger: GesteAChoix<ItemInstance> | null;
   /** Un objet rangé dans un contenant. */
@@ -50,27 +50,27 @@ export interface GestesDeLObjet {
 }
 
 /** L'id d'un porteur et son nom. */
-const porteurDit = (c: Carrier): [id: string, libelle: string] => (c.kind === 'hero' ? [c.hero.id, c.hero.label] : [c.possession.uid, possessionLabel(c.possession)]);
+const porteurDit = (c: Carrier): [id: string, libelle: string] => (c.kind === 'heros' ? [c.hero.id, c.hero.label] : [c.possession.uid, possessionLabel(c.possession)]);
 
 /** Les gestes de l'objet `uid` du porteur `porteurId` (`resolveCarrier` : un héros du groupe ou une possession),
  *  `null` sans lui ou sans l'objet. PUR. */
 export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime' | 'scene'>, porteurId: string, uid: string): GestesDeLObjet | null {
   const porteur = resolveCarrier(s, porteurId);
-  const items = !porteur ? [] : porteur.kind === 'hero' ? (porteur.hero.items ?? []) : porteur.possession.items;
+  const items = !porteur ? [] : porteur.kind === 'heros' ? (porteur.hero.items ?? []) : porteur.possession.items;
   const it = items.find((i) => i.uid === uid);
   if (!porteur || !it) return null;
   const verrou = refusDInventaire(s);
   const sur = (verbe: GesteDuNoyau['verbe'], args: unknown[], refus: string | null = null): GesteFermable => ({ geste: { verbe, args }, refus: verrou ?? refus });
-  const hero = porteur.kind === 'hero' ? porteur.hero : null;
+  const hero = porteur.kind === 'heros' ? porteur.hero : null;
   const consommable = isConsumable(it);
   const contenants = it.container || it.inside ? [] : items.filter((i) => i.container && canStow({ items }, it, i.uid));
   const ici = porteurLocalise(porteur);
   const porteurs: Carrier[] = [
-    ...s.party.filter((h) => h.id !== porteurId).map((h): Carrier => ({ kind: 'hero', hero: h })),
+    ...s.party.filter((h) => h.id !== porteurId).map((h): Carrier => ({ kind: 'heros', hero: h })),
     ...s.possessions.filter((p) => p.uid !== porteurId && !p.destroyed).map((p): Carrier => ({ kind: 'possession', possession: p })),
   ].filter((c) => carriersColocated(ici, porteurLocalise(c)));
-  const set = hero && (it.kind === 'melee' || it.kind === 'ranged') ? ((hero.loadouts ?? []).find((l) => l.id === hero.activeLoadoutId) ?? hero.loadouts?.[0]) : undefined;
-  const main = (slot: 'main' | 'off'): MainDuSet => {
+  const set = hero && (it.kind === 'melee' || it.kind === 'distance') ? ((hero.loadouts ?? []).find((l) => l.id === hero.activeLoadoutId) ?? hero.loadouts?.[0]) : undefined;
+  const main = (slot: Main): MainDuSet => {
     const tenue = set![slot] === uid;
     const vise = tenue ? null : uid;
     return { tenue, geste: { verbe: 'garnirLaPanoplie', args: [porteurId, set!.id, slot, vise] }, refus: refusEmplacementDeMain(s, hero!, set!.id, slot, vise) };
@@ -78,7 +78,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
   const inconnu = hero && it.identified === false;
   return {
     porter: isWearable(it) && !consommable ? { ...sur('equiperLObjet', [uid]), porte: it.equipped } : null,
-    mains: set ? { set: set.id, main: main('main'), off: main('off') } : null,
+    mains: set ? { set: set.id, main: main('main'), secondaire: main('secondaire') } : null,
     ranger: contenants.length ? { refus: verrou, choix: contenants.map((c) => ({ cible: c, libelle: itemLabel(c), geste: { verbe: 'rangerLObjet', args: [uid, c.uid] } })) } : null,
     sortir: it.inside ? sur('rangerLObjet', [uid, null]) : null,
     donner: porteurs.length ? { refus: verrou, choix: porteurs.map((c) => {
@@ -87,7 +87,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
     }) } : null,
     poser: { geste: { verbe: 'poserLObjet', args: [uid] }, refus: refusDePoser(s, uid) },
     utiliser: hero && consommable ? sur('utiliserLObjet', [uid], refusDeConsommer(hero, it)) : null,
-    evaluer: inconnu ? sur('evaluerLObjet', [uid], refusDEvaluation(s.party, it, 'evaluate', gameDay(s))) : null,
-    detecter: inconnu ? sur('evaluerLObjet', [uid, 'detect'], refusDEvaluation(s.party, it, 'detect', gameDay(s))) : null,
+    evaluer: inconnu ? sur('evaluerLObjet', [uid], refusDEvaluation(s.party, it, 'evaluation', gameDay(s))) : null,
+    detecter: inconnu ? sur('evaluerLObjet', [uid, 'detection'], refusDEvaluation(s.party, it, 'detection', gameDay(s))) : null,
   };
 }

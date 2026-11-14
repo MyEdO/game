@@ -5,13 +5,13 @@
  * l'entre-deux-Rounds, et le Round suivant revient.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { drainer, table, enFocus } from './pont.testkit';
 import type { Bouton, Choix, Element, Entite, Jauge } from '../../../src/hote/elements';
 import type { Suite } from './pont';
 
 const { appel } = table();
 const jouer = (b: Bouton): Suite => drainer(appel, appel('jouer', b.jeu)).suite;
-const enFocus = (suite: Suite): Bouton => suite.vue.zones['fenetre.gestes'].find((x): x is Bouton => x.type === 'bouton' && x.focus)!;
+const focus = (suite: Suite): Bouton => enFocus(suite.vue)!;
 const corps = (suite: Suite) => Object.fromEntries(suite.vue.zones['fenetre.corps'].map((e) => [e.id, e]));
 const parId = (e: Entite) => Object.fromEntries(e.elements.map((x: Element) => [x.id, x]));
 
@@ -20,11 +20,11 @@ describe('la bataille de masse par le pont', () => {
     let suite = drainer(appel, appel('demarrer', { scenario: 'bataille-de-masse', graine: 7 })).suite;
     for (let pas = 0; suite.vue.disposition !== 'batailleDeMasse'; pas++) {
       expect(pas, 'l’interlude se clôt').toBeLessThan(15);
-      suite = jouer(enFocus(suite));
+      suite = jouer(focus(suite));
     }
     let c = corps(suite);
     expect(c['bataille/round'], 'le Round').toMatchObject({ texte: 'Round de bataille 1 / 3' });
-    expect(parId(c['armee/ally'] as Entite).puissance as Jauge, 'la Puissance alliée').toMatchObject({ courant: 50, texte: '50 · départ 50' });
+    expect(parId(c['armee/allie'] as Entite).puissance as Jauge, 'la Puissance alliée').toMatchObject({ courant: 50, texte: '50 · départ 50' });
     const tenue = parId(c['scene/tenez-votre-position'] as Entite);
     expect(tenue.position, 'la position tenue').toMatchObject({ libelle: 'Point de rupture 0/10' });
     expect((parId(c['scene/pluie-de-fleches'] as Entite).engager as Bouton).libelle, 'un combat engage tout le groupe, sans postes').toBe('Engager le combat');
@@ -32,12 +32,12 @@ describe('la bataille de masse par le pont', () => {
 
     const sigmund = (s: Suite) => (parId(corps(s)['scene/motivation'] as Entite).postes as Choix).valeurs[0];
     suite = jouer(sigmund(suite));
-    expect(sigmund(suite), 'Sigmund posté à la Motivation').toMatchObject({ libelle: 'Sigmund Reikhardt', presse: true });
+    expect(sigmund(suite), 'Le Soldat posté à la Motivation').toMatchObject({ libelle: 'Soldat', presse: true });
 
     suite = jouer(parId(corps(suite)['scene/motivation'] as Entite).engager as Bouton);
-    expect(suite.vue.disposition, 'le jet de la Scène tient la main').toBe('activity');
+    expect(suite.vue.disposition, 'le jet de la Scène tient la main').toBe('activite');
     expect(suite.vue.zones['fenetre.corps'].some((e) => e.id.startsWith('scene/')), 'la bataille ne se montre pas sous le jet').toBe(false);
-    suite = jouer(enFocus(suite));
+    suite = jouer(focus(suite));
     suite = jouer(suite.vue.zones['fenetre.gestes'].find((b): b is Bouton => b.type === 'bouton' && b.libelle === 'Appliquer')!);
     c = corps(suite);
     expect((parId(c['scene/motivation'] as Entite).engager as Bouton).refus, 'la Scène résolue se ferme').toBe('Cette Scène est déjà résolue.');

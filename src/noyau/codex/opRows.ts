@@ -10,7 +10,17 @@
 import { estCausePersistante, type GameOp, type Formula, type PerSL } from '../../engine/ops';
 import { slBonus } from '../../engine/formule';
 import type { CodexRow } from './registry';
-import { humanizeOp, humanizeFormula, humanizePerSL, causePersistante, replieCausesPersistantes, plural, dureePropre, plancher, traitOctroyeLisible } from './humanize';
+import {
+  humanizeOp,
+  humanizeFormula,
+  humanizePerSL,
+  causePersistante,
+  replieCausesPersistantes,
+  plural,
+  dureePropre,
+  plancher,
+  traitOctroyeLisible,
+} from './humanize';
 import { CHAR_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
 import { traitLabelById } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
@@ -121,7 +131,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'psychologies', id: o.type.id, label, show: label, badge };
     }
     case 'condition': {
-      const label = conditionLabel(o.id);
+      const label = conditionLabel(o.id.id);
       // Quantité : le nombre RÉSOLU dès que le DR du jet est connu (verdict) — sinon la base, et la
       // progression par DR passe en badge, pour que l'annonce dise la règle ENTIÈRE et jamais un
       // nombre que la résolution démentira.
@@ -137,15 +147,15 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
         duree ?? (!persistante && o.perRound ? t('codex.ligne.parRound') : undefined),
         n == null && o.valuePerSL ? humanizePerSL(o.valuePerSL) : undefined,
       ].filter((s) => !!s).join(' · ') || undefined;
-      return { t: 'ref', category: 'etats', id: o.id, label, show, badge };
+      return { t: 'ref', category: 'etats', id: o.id.id, label, show, badge };
     }
     case 'removeCondition': {
       if (!o.id) return textRow(o); // « au choix » : pas d'ancre
-      const label = conditionLabel(o.id);
+      const label = conditionLabel(o.id.id);
       const n = resolvedCount(o.value, o.valuePerSL, ctx?.sl); // même contrat de quantité que `condition`
       const show = n != null ? `${n} × ${label}` : label;
       const badge = n == null && o.valuePerSL ? humanizePerSL(o.valuePerSL) : undefined;
-      return { t: 'ref', category: 'etats', id: o.id, label, show, badge };
+      return { t: 'ref', category: 'etats', id: o.id.id, label, show, badge };
     }
     case 'giveTrapping': {
       if (!o.trappingId) return textRow(o); // objet CUSTOM (misc) sans id de catalogue → repli
@@ -188,8 +198,8 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'creatures', id: o.morphRef, label, show: label, badge: o.tag };
     }
     case 'rollMutation': {
-      const label = mutationTables.find((t) => t.id === o.table)?.label ?? o.table;
-      return { t: 'ref', category: 'mutationTables', id: o.table, label, show: label };
+      const label = mutationTables.find((t) => t.id === o.table.id)?.label ?? o.table.id;
+      return { t: 'ref', category: 'mutationTables', id: o.table.id, label, show: label };
     }
     default:
       return textRow(o);
@@ -197,7 +207,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
 }
 
 /** Fourchette d'une rangée de table (« 1–2 · Perte d'Initiative », « 8 · Mutation »). */
-const tableRowRange = (r: { min: number; max: number; label?: string }, faces: number): string =>
+const tableRowRange = (r: { min: number | null; max: number | null; label?: string }, faces: number): string =>
   `${fourchette(r.min, r.max, faces)}${r.label ? ` · ${r.label}` : ''}`;
 
 /** Profondeur d'expansion des tables IMBRIQUÉES (une rangée de table portant elle-même `rollTable`) —
@@ -208,7 +218,7 @@ const MAX_TABLE_DEPTH = 1;
 /** Rangées `[min,max] → ops` d'une table d'effets → lignes Codex (sous-titre de fourchette + ops de la
  *  rangée passées par la MÊME humanisation récursive). SOURCE UNIQUE, composée par la catégorie Codex
  *  « Tables d'effets » (`registry.ts`) ET par l'expansion générique de l'op `rollTable` ci-dessous. */
-export function tableRows(table: { die: string; entries: { min: number; max: number; label?: string; ops: GameOp[] }[] }, depth = 0, ctx?: OpRowCtx): CodexRow[] {
+export function tableRows(table: { die: string; entries: { min: number | null; max: number | null; label?: string; ops: GameOp[] }[] }, depth = 0, ctx?: OpRowCtx): CodexRow[] {
   const faces = facesDuDe(deDeLaTableTiree(table));
   return table.entries.flatMap((r): CodexRow[] => [
     { t: 'sub', label: tableRowRange(r, faces) },

@@ -19,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 describe('Surdité — restriction fire par le sens authoré du Test de scène (LDB 18)', () => {
   const deafHero = (): Combatant => (blessuresSurLeProfil({
-    id: 'h1', name: 'Sourd', kind: 'hero',
+    id: 'h1', name: 'Sourd', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 40, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
     skills: [{ id: 'perception', characteristic: 'initiative', advances: 0 }], talents: [],

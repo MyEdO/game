@@ -1,9 +1,11 @@
 ## LA RECETTE DE L'ÉCRAN (#3328) : chaque vue que la sonde fige (`hotes/godot/recettes/ecran.ts`, écrite sous
 ## `VUES` dans la copie qu'elle importe) montrée par la scène `Ecran` comme le routeur `combat.gd` la montre, dans la
-## disposition qu'elle nomme. Chaque zone de la scène lit une source de la vue et chaque source a sa zone ; chaque
+## disposition qu'elle nomme. Chaque zone de la scène lit une source de la vue et chaque source a sa zone, hors des
+## zones d'un panneau que la disposition cache (le journal sous une scène qui le tient, `Disposition.journal`) ; chaque
 ## élément a son composant, dans l'ordre de la zone qui le range, et aucun ne reste sans zone ; chaque texte qu'il dit
 ## (`DITS`) se lit à l'écran, ou au survol de son contrôle ; chaque geste pressé joue l'intention que l'élément porte,
-## un formulaire celle que la vue attend ; le geste en focus le prend. Remontrée, une vue garde ses nœuds ; vidée, une
+## un formulaire celle que la vue attend, un curseur glissé ou réglé par sa boîte à nombre sa valeur (#4081) ; le geste
+## en focus le prend. Remontrée, une vue garde ses nœuds et ne joue rien (sa pose remet chaque curseur) ; vidée, une
 ## zone les quitte et la fenêtre se cache, le journal garde ses lignes. Chaque disposition dédiée (`res://ecrans/`) est
 ## montrée par une vue.
 extends SceneTree
@@ -15,11 +17,14 @@ const VUES := "res://recettes/vues/ecran.json"
 ## Les champs d'un élément que l'écran dit en texte.
 const DITS := ["texte", "libelle", "qui", "cible", "resultat", "dr", "verdict", "refus", "detail"]
 const ECRANS := "res://ecrans"
+const SCENE := "Interface/Ossature/Colonne/Milieu/Scene"
 
 var _fautes: Array[String] = []
 var _joues: Array = []
 var _presses: Array[String] = []
 var _posees := {}
+## Le panneau du journal de l'écran (`Disposition.journal`), que la disposition posée cache quand elle le tient.
+var _journal: Control
 
 
 func _initialize() -> void:
@@ -38,7 +43,7 @@ func _recetter() -> void:
 		await _recetter_la_vue(_disposer(ecran, vue.disposition), vue)
 	var zones := _disposer(ecran, null)
 	Zone.montrer_toutes(zones, {})
-	_verifier(not (ecran.get_node("Fenetre").find_child("Cadre", true, false) as Control).visible, "sans fenêtre, le cadre de la fenêtre se cache")
+	_verifier(not (ecran.get_node(SCENE).find_child("Cadre", true, false) as Control).visible, "sans fenêtre, le cadre de la fenêtre se cache")
 	for scene in _dedicaces(ECRANS):
 		_verifier(_posees.has(scene), "%s : aucune vue ne la montre" % scene)
 	for zone in zones:
@@ -53,9 +58,10 @@ func _recetter() -> void:
 
 ## Les zones de l'écran, la disposition de `disposition` posée (`Disposition.disposer`) : chacune rend son geste joué.
 func _disposer(ecran: Node, disposition: Variant) -> Array[Zone]:
-	var posee := ecran.get_node("Fenetre/Disposition") as Disposition
+	var posee := ecran.get_node(SCENE + "/Disposition") as Disposition
 	posee.disposer(disposition)
 	_posees[posee.scene] = true
+	_journal = posee.journal
 	var zones := Zone.racines(ecran)
 	for zone in zones:
 		if zone.geste.get_connections().is_empty():
@@ -79,6 +85,7 @@ func _recetter_la_vue(zones: Array[Zone], vue: Dictionary) -> void:
 	for source in vue.zones:
 		_verifier(_zone_de(zones, source) != null, "%s : la source %s n'a pas de zone" % [vue.nom, source])
 	Zone.montrer_toutes(zones, vue.zones)
+	zones = zones.filter(func(zone: Zone) -> bool: return _journal.visible or not _journal.is_ancestor_of(zone))
 	var noeuds := {}
 	for zone in zones:
 		_verifier(vue.zones.has(zone.source), "%s : la zone %s ne lit aucune source de la vue" % [vue.nom, zone.source])
@@ -107,7 +114,9 @@ func _recetter_la_vue(zones: Array[Zone], vue: Dictionary) -> void:
 			var noeud: Node = noeuds.get(_cle("fenetre.gestes", Zone.cle(e)))
 			var attendu: Node = noeud.get_node(FOCUS[e.type])
 			_verifier(focus == attendu, "%s : le geste en focus %s n'a pas le focus (%s)" % [vue.nom, e.id, focus])
+	_joues.clear()
 	Zone.montrer_toutes(zones, vue.zones)
+	_verifier(_joues.is_empty(), "%s : la vue remontrée joue %s" % [vue.nom, _joues])
 	for zone in zones:
 		for n in _dessines(zone):
 			_verifier(noeuds.get(_cle(zone.source, n.get_meta(Zone.META))) == n, "%s : %s redessiné au lieu d'être gardé" % [vue.nom, n.get_meta(Zone.META)])
@@ -199,6 +208,17 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 			_verifier(liste.selected == pressee, "%s, %s : liste choisie à %d, valeur pressée %d" % [vue.nom, e.id, liste.selected, pressee])
 			for i in e.valeurs.size():
 				_attendre(vue, e.valeurs[i].id, func() -> void: liste.item_selected.emit(i), e.valeurs[i].jeu)
+		"curseur":
+			var glissiere := noeud.get_node("Glissiere") as Slider
+			var boite := noeud.get_node("Nombre") as SpinBox
+			_verifier([boite.value, boite.min_value, boite.max_value, boite.step] == [e.valeur, e.min, e.max, e.pas], "%s, %s : la boîte à nombre montre %s" % [vue.nom, e.id, [boite.value, boite.min_value, boite.max_value, boite.step]])
+			_verifier(glissiere.editable == (e.refus == null) and boite.editable == (e.refus == null), "%s, %s : réglable malgré son refus, ou refusé sans lui" % [vue.nom, e.id])
+			var glisser := func() -> void:
+				glissiere.drag_started.emit()
+				glissiere.value = e.min
+				glissiere.drag_ended.emit(true)
+			_attendre(vue, e.id, glisser, {type = e.verbe, args = e.arguments + [e.min]})
+			_attendre(vue, e.id, func() -> void: boite.value = e.max, {type = e.verbe, args = e.arguments + [e.max]})
 		"formulaire":
 			var jouer: Node = noeud.get_node("Jouer")
 			_attendre(vue, e.id, func() -> void: (jouer as BaseButton).pressed.emit(), vue.attendus.get(e.id))

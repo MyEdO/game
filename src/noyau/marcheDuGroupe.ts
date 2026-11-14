@@ -32,7 +32,7 @@ export function poserLeGroupe(get: Get, set: Set, pt: Pt): boolean {
   // MARCHER, C'EST SE LEVER : le meneur assis qui fait un pas quitte sa place. Libéré AVANT
   // l'écriture de `partyPos`, dans la MÊME écriture — aucun état intermédiaire ne le montre assis
   // à une place dont il s'est déjà éloigné. Scène sans assise → aucun delta (même référence).
-  const debout = get().party.length ? releaseSeat(scene, { kind: 'party', rang: RANG_MENEUR }) : scene;
+  const debout = get().party.length ? releaseSeat(scene, { kind: 'groupe', rang: RANG_MENEUR }) : scene;
   set(debout === scene ? { partyPos: pt } : { partyPos: pt, scene: debout });
   // CAP DU GROUPE le long du pas (écrivain unique) — `orienterSelonLeChemin` reste la couture des caps
   // INDIVIDUELS du combat. DELTA NUL : un pas qui ne change que l'ÉTAGE (escalier, `z` seul) ne
@@ -164,11 +164,11 @@ export function creerActionsDeMarche(get: Get, set: Set) {
       if (!scene || !meneurDuMonde(s)) return;
       const cur = capDuGroupe(s) ?? 'S';
       // Cap MONDE du pas = regard tourné de 0/2/4/6 crans (2 crans = 90° par cadran relatif).
-      const worldDir = rotateDir8(cur, { forward: 0, right: 2, back: 4, left: 6 }[rel]);
+      const worldDir = rotateDir8(cur, { avant: 0, droite: 2, arriere: 4, gauche: 6 }[rel]);
       if (!faireLePas(s, povStepDest(scene, s.partyPos, worldDir))) return;
       // Un pas ≠ avant ne doit pas tourner le regard : `deplacerLeGroupe` a posé le cap du groupe le long du
       // pas → on restaure le cap d'origine (l'avance, elle, aligne naturellement regard et déplacement).
-      if (rel !== 'forward') set((st) => ({ facing: poserCapDuGroupe(st.facing, cur) }));
+      if (rel !== 'avant') set((st) => ({ facing: poserCapDuGroupe(st.facing, cur) }));
     },
     sauter: (chemin, indice) => {
       const { scene, mode, partyPos, party } = get();

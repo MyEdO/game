@@ -25,14 +25,14 @@ export interface CombatCursor {
   snappedId?: string;
 }
 
-export type ScreenDir = 'up' | 'down' | 'left' | 'right';
+export type ScreenDir = 'haut' | 'bas' | 'gauche' | 'droite';
 
 /** Vecteur ÉCRAN (y vers le bas) de la direction poussée. */
 const DIR_VEC: Record<ScreenDir, [number, number]> = {
-  right: [1, 0],
-  left: [-1, 0],
-  up: [0, -1],
-  down: [0, 1],
+  droite: [1, 0],
+  gauche: [-1, 0],
+  haut: [0, -1],
+  bas: [0, 1],
 };
 
 /**
@@ -154,7 +154,7 @@ export function nextCaseCursorTile(scene: Scene, cur: Pt | null, dir: ScreenDir,
     }
     return best;
   }
-  const horizontal = dir === 'left' || dir === 'right';
+  const horizontal = dir === 'gauche' || dir === 'droite';
   let best: Pt | null = null;
   let bestDist = Infinity;
   let bestDot = 0;

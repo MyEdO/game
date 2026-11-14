@@ -33,7 +33,7 @@ const scene: Scene = { ...emptyScene('scn', 4, 4), entities: [pnj], dialogues: [
 
 /** État réseau : deux sièges nommés, aucun héros attribué (le dialogue n'appartient à personne). */
 const net = (over: Partial<GameState['net']>): GameState['net'] =>
-  ({ mode: 'host', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {}, connection: 'ok', hostAway: false, ownership: {}, slots: [0, 0, 0, 0], ...over }) as GameState['net'];
+  ({ mode: 'hote', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {}, connection: 'connecte', hoteAbsent: false, ownership: {}, slots: [0, 0, 0, 0], ...over }) as GameState['net'];
 
 const snapshot = { net: useGame.getState().net, party: useGame.getState().party };
 let container: HTMLDivElement;
@@ -75,13 +75,13 @@ describe('#1262 — les réponses d’un dialogue ne sont servies qu’au siège
   });
 
   it('COOP hôte (aucun MJ désigné) : l’hôte répond', () => {
-    monte(net({ mode: 'host', mySeat: 0 }));
+    monte(net({ mode: 'hote', mySeat: 0 }));
     expect(reponses().every((b) => !b.disabled)).toBe(true);
     expect(chip()).toBeNull();
   });
 
   it('COOP invité : réponses DÉSACTIVÉES et le meneur est NOMMÉ', () => {
-    monte(net({ mode: 'guest', mySeat: 1 }));
+    monte(net({ mode: 'invite', mySeat: 1 }));
     expect(reponses()).toHaveLength(2);
     expect(reponses().every(inerte), 'un clic d’invité est écrasé au snapshot : la réponse doit être INERTE (aria-disabled), et rester atteignable pour dire pourquoi').toBe(true);
     expect(clicSansEffet(), 'le clic d’un siège non meneur ne doit RIEN avancer').toBe(true);
@@ -89,12 +89,12 @@ describe('#1262 — les réponses d’un dialogue ne sont servies qu’au siège
   });
 
   it('rôle MJ posé sur le siège 1 : le meneur bascule — l’invité répond, l’hôte regarde', () => {
-    monte(net({ mode: 'guest', mySeat: 1, gmSeat: 1 }));
+    monte(net({ mode: 'invite', mySeat: 1, gmSeat: 1 }));
     expect(reponses().every((b) => !b.disabled)).toBe(true);
     expect(chip()).toBeNull();
     act(() => { root.unmount(); });
     container.remove();
-    monte(net({ mode: 'host', mySeat: 0, gmSeat: 1 }));
+    monte(net({ mode: 'hote', mySeat: 0, gmSeat: 1 }));
     expect(reponses().every(inerte)).toBe(true);
     expect(clicSansEffet()).toBe(true);
     expect(chip()?.textContent).toContain('Antoine');

@@ -3,7 +3,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { loadKeyOverrides } from './keybindingsPrefs';
 import { KEYBINDINGS, effectiveCodes, effectiveMods, surchargeDe } from './clavier/keybindings';
-import { loadAudioPrefs } from '../audio/engine';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 const poser = (cle: string, valeur: unknown) => localStorage.setItem(cle, JSON.stringify(valeur));
@@ -35,17 +34,5 @@ describe('touches (`wfrp4.keys`)', () => {
       expect(surchargeDe(b, { 'editeur-dupliquer': combo }), combo).toBeUndefined();
     }
     expect(KEYBINDINGS.some((k) => surchargeDe(k, { 'id-hors-registre': 'KeyX' }) !== undefined)).toBe(false);
-  });
-});
-
-describe('audio (`wfrp4.audio`)', () => {
-  it('des réglages conformes sont chargés', () => {
-    poser('wfrp4.audio', { volume: 0.3, musicVolume: 0, muted: true });
-    expect(loadAudioPrefs()).toEqual({ volume: 0.3, musicVolume: 0, muted: true });
-  });
-
-  it('un volume hors de 0..1 ou une sourdine non booléenne est ignoré : le défaut s’applique', () => {
-    poser('wfrp4.audio', { volume: 2, musicVolume: '0.5', muted: 1 });
-    expect(loadAudioPrefs()).toEqual({ volume: 0.8, musicVolume: 0.6, muted: false });
   });
 });

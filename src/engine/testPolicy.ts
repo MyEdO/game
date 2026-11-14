@@ -31,14 +31,14 @@ export interface TestPolicy {
  *  surcharges in-game en direct. */
 export function getTestPolicy(): TestPolicy {
   // Largeur des bandes auto réglable (LDB 12 l.32) : 01..N réussite, (101−N)..00 échec. Défaut 5 → 01-05 / 96-00.
-  const bandWidth = rule('test-auto-band-width') as number;
+  const bandWidth = rule('test-largeur-bandes-auto') as number;
   return {
     autoSuccessMax: bandWidth,
     autoFailMin: 101 - bandWidth,
-    bandsMode: rule('test-auto-bands') as BandsMode,
-    slMode: rule('test-fast-sl') ? 'fast' : 'standard',
+    bandsMode: rule('test-bandes-auto') as BandsMode,
+    slMode: rule('test-dr-rapide') ? 'fast' : 'standard',
     targetMin: 1,
     // « Tests >100 % » (LDB 12 l.77) : on lève le plafond → tens(valeur) donne +1 DR par 10 % au-delà de 100.
-    targetMax: rule('test-over-100') ? 999 : 99,
+    targetMax: rule('test-plus-de-100') ? 999 : 99,
   };
 }

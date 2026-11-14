@@ -1,5 +1,5 @@
 /**
- * runFlow — exécution de la logique authorée (Flow) : séquence d'effets, branche `if` sur l'état
+ * runFlow — exécution de la logique authorée (Flow) : séquence d'effets, branche `si` sur l'état
  * VIVANT, et nœud `test` (ouvre la modale, SUSPEND, reprend branche + continuation à `jetValider('test')`).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -12,21 +12,21 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const setFlag = (flag: string): Flow => ({ kind: 'do', effect: { type: 'setFlag', flag } });
+const setFlag = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
 
 describe('runFlow — séquence + branche if (état vivant)', () => {
   it('seq de do : applique les effets dans l’ordre', () => {
-    runFlow(banc.getState, banc.setState, { kind: 'seq', steps: [setFlag('a'), setFlag('b')] });
+    runFlow(banc.getState, banc.setState, { kind: 'sequence', etapes: [setFlag('a'), setFlag('b')] });
     expect(banc.getState().flags).toMatchObject({ a: true, b: true });
   });
 
   it('if : la condition est évaluée APRÈS les effets déjà émis (état vivant)', () => {
-    // do(setFlag porte) PUIS if(flag porte) → la branche `then` doit être prise (la condition voit l'effet).
+    // do(setFlag porte) PUIS if(flag porte) → la branche `alors` doit être prise (la condition voit l'effet).
     const flow: Flow = {
-      kind: 'seq',
-      steps: [
+      kind: 'sequence',
+      etapes: [
         setFlag('porte'),
-        { kind: 'if', cond: { kind: 'flag', expr: 'porte' }, then: setFlag('ouvert'), else: setFlag('ferme') },
+        { kind: 'si', condition: { kind: 'flag', expr: 'porte' }, alors: setFlag('ouvert'), sinon: setFlag('ferme') },
       ],
     };
     runFlow(banc.getState, banc.setState, flow);
@@ -35,7 +35,7 @@ describe('runFlow — séquence + branche if (état vivant)', () => {
   });
 
   it('if sans else, condition fausse → rien', () => {
-    runFlow(banc.getState, banc.setState, { kind: 'if', cond: { kind: 'flag', expr: 'jamais' }, then: setFlag('x') });
+    runFlow(banc.getState, banc.setState, { kind: 'si', condition: { kind: 'flag', expr: 'jamais' }, alors: setFlag('x') });
     expect(banc.getState().flags.x).toBeUndefined();
   });
 });
@@ -49,10 +49,10 @@ describe('runFlow — nœud test (suspension + continuation)', () => {
   it('ouvre pendingTest ; jetValider@test joue la branche RÉUSSITE puis la continuation', () => {
     banc.setState({ party: [hero()] });
     const flow: Flow = {
-      kind: 'seq',
-      steps: [
+      kind: 'sequence',
+      etapes: [
         setFlag('avant'),
-        { kind: 'test', test: { characteristic: 'force', label: 'Force' }, success: setFlag('gagne'), fail: setFlag('perd') },
+        { kind: 'test', test: { characteristic: 'force', label: 'Force' }, reussite: setFlag('gagne'), echec: setFlag('perd') },
         setFlag('apres'), // CONTINUATION : doit s'exécuter APRÈS la branche
       ],
     };
@@ -62,7 +62,7 @@ describe('runFlow — nœud test (suspension + continuation)', () => {
     expect(banc.getState().flags.apres).toBeUndefined();
     expect(banc.getState().pendingTest).toBeTruthy();
 
-    // Force une réussite et acquitte → branche `success` + continuation.
+    // Force une réussite et acquitte → branche `reussite` + continuation.
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 5, success: true } });
     banc.getState().jetValider('test');
     expect(banc.getState().flags.gagne).toBe(true);
@@ -73,7 +73,7 @@ describe('runFlow — nœud test (suspension + continuation)', () => {
 
   it('jetValider@test joue la branche ÉCHEC sur un Test raté', () => {
     banc.setState({ party: [hero()] });
-    const flow: Flow = { kind: 'test', test: { characteristic: 'force' }, success: setFlag('gagne'), fail: setFlag('perd') };
+    const flow: Flow = { kind: 'test', test: { characteristic: 'force' }, reussite: setFlag('gagne'), echec: setFlag('perd') };
     runFlow(banc.getState, banc.setState, flow);
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 99, success: false } });
     banc.getState().jetValider('test');

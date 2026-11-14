@@ -1,5 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { resolveMeleePassive, rederivePassiveAttack, weaponInflictsFlames, causeDuCoupCritique, resolveRanged, finishRanged, resolveStrayRangedHit, woundsAtCritLocation } from './combat';
+import {
+  resolveMeleePassive,
+  rederivePassiveAttack,
+  weaponInflictsFlames,
+  causeDuCoupCritique,
+  resolveRanged,
+  finishRanged,
+  resolveStrayRangedHit,
+  woundsAtCritLocation,
+} from './combat';
 import { critiquesDuCoup, relanceLaLocalisation } from './critical';
 import { setRule, resetRule } from './policy';
 import { evaluateTest } from './tests';
@@ -23,7 +32,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id: 'x',
     name: 'X',
-    kind: 'enemy',
+    kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12),
     advantage: 0,
@@ -40,12 +49,12 @@ const empaleuseSword: Weapon = { label: 'Épée', type: 'melee', damage: { plusB
 const percutanteSword: Weapon = { label: 'Masse', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'percutante' }] };
 const perforanteSword: Weapon = { label: 'Estoc', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'perforante' }] };
 const plainSword: Weapon = { label: 'Glaive', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
+const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
 
 /** onHitEffect posant l'État En flammes (patron Épée ardente de Rhuin) → arme « infligeant *En flammes* ». */
 const flameOnHit: TriggeredEffect = {
-  trigger: 'onHit', on: 'victim',
-  flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: 'en-flammes' }] } }] },
+  trigger: 'onHit', on: 'victime',
+  flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', ops: [{ op: 'condition', id: { id: 'en-flammes' } }] } }] },
 };
 const flameSword: Weapon = { label: 'Épée ardente', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], onHitEffects: [flameOnHit] };
 
@@ -69,7 +78,7 @@ describe('Retenir ses coups — Critique supprimé sauf mise à 0 (AA 07 l.59-61
   });
 
   it('même coup mais la cible tombe à 0 → le Coup Critique du double reste ignoré, celui de la mise à 0 demeure (#1595 c.6226467544)', () => {
-    const lowHP = mk({ wounds: blessuresDeBase(12, 4), kind: 'hero' }); // 4 PB ; le coup (≈7) la met à 0 ; AA 07 l.67 : hors Mort subite
+    const lowHP = mk({ wounds: blessuresDeBase(12, 4), kind: 'heros' }); // 4 PB ; le coup (≈7) la met à 0 ; AA 07 l.67 : hors Mort subite
     const withheld = resolveMeleePassive(att(), lowHP, empaleuseSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true);
     expect(withheld.defenderDefeated).toBe(true);
     expect(withheld.critical).toBe(false);
@@ -80,7 +89,7 @@ describe('Retenir ses coups — Critique supprimé sauf mise à 0 (AA 07 l.59-61
 
 describe('Retenir ses coups sur une cible déjà à 0 : la Localisation relancée garde le profil retenu (AA 07 l.59, l.61 ; #1595 c.6227274650 Q2)', () => {
   enAA();
-  const aZero = (over: Partial<Combatant> = {}) => mk({ wounds: blessuresDeBase(12, 0), kind: 'hero', ...over });
+  const aZero = (over: Partial<Combatant> = {}) => mk({ wounds: blessuresDeBase(12, 0), kind: 'heros', ...over });
   const atk = evaluateTest(35, 60);
 
   it('Estoc Perforante contre PA 2 : la Localisation relancée ne compte pas Perforante', () => {
@@ -145,7 +154,7 @@ describe('Retenir ses coups — gardes RAW (mêlée seule, jamais En flammes / p
   });
 
   it('projectile : Retenir n’a aucun effet (l.61) → Critique du double conservé', () => {
-    const ranged = rederivePassiveAttack(att(), mk(), bow, dbl, 'ranged', { rng: makeRNG(1595) }, undefined, true);
+    const ranged = rederivePassiveAttack(att(), mk(), bow, dbl, 'distance', { rng: makeRNG(1595) }, undefined, true);
     expect(ranged.critical).toBe(true); // AA 07 l.61
   });
 });
@@ -161,7 +170,7 @@ describe("Retenir ses coups en 'ldb' — tout Coup Critique ignoré, rien d'autr
   });
 
   it('au tir comme avec une arme En flammes, le Coup Critique est ignoré', () => {
-    expect(rederivePassiveAttack(att(), mk(), bow, dbl, 'ranged', { rng: makeRNG(1595) }, undefined, true).critical).toBe(false);
+    expect(rederivePassiveAttack(att(), mk(), bow, dbl, 'distance', { rng: makeRNG(1595) }, undefined, true).critical).toBe(false);
     expect(resolveMeleePassive(att(), mk(), flameSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true).critical).toBe(false);
   });
 });

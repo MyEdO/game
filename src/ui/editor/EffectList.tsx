@@ -13,11 +13,24 @@ import { tableTotale } from '../../lib/tableTotale';
 import { EncounterDef, Dialogue, Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { Icon } from '../Icon';
-import { EMPTY_FLOW } from '../../engine/flowCore';
+import { EMPTY_FLOW, type EffectOp } from '../../engine/flowCore';
 import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, genreDeCible, type RacineDeCatalogue, type TableDeCibles } from '../../noyau/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
-import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
+import {
+  spells,
+  trappingDesObjetsPuisDuCatalogue,
+  refLabel,
+  WATER_EXPOSURE,
+  vehicles,
+  findVehicleById,
+  crewRoles,
+  memoParVersion,
+  creatureSemee,
+  vehiculeSeme,
+  libelleOuAbsence,
+  type TrappingData,
+} from '../../data';
 import { useId } from 'react';
 import { ObjetDonneField } from './ObjetDonneField';
 import { type Effect } from '../../data/schemas/defs-scenes/effets';
@@ -32,7 +45,6 @@ import { ScheduleSpecFields } from './ScheduleSpecFields';
 import { RefField, RefNarrativeField, SOURCE_NARRATIVE } from '../compendium/refField/RefField';
 import { entreesDeStades, libelleDEtat, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../../noyau/codex/libellesNarratifs';
 import { etatsAdmettant, valeursDeclarees, type UsageDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
-import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { NumberField } from '../NumberField';
@@ -136,7 +148,7 @@ export interface Ctx {
   cibles: TableDeCibles;
   /** Narratif du projet, que désignent les références narratives (`REFERENCES_NARRATIVES`), et dont
    *  l'Effet `giveTrapping` résout les objets avant le catalogue (`trappingDesObjetsPuisDuCatalogue`).
-   *  Absent = racine de CATALOGUE : ni objet de projet, ni Effect à référence narrative (`menuDEffets`). */
+   *  Absent = racine de CATALOGUE : ni objet de projet, ni autre feuille que `ops` (`menuDEffets`). */
   narratif?: NarratifBlock;
   /** La famille mécanique du porteur (`familleDesEffets`) : Conditions et ops qu'il admet. Absent = famille fermée. */
   famille?: FamilleMecanique;
@@ -173,19 +185,17 @@ export const EFFECT_MENU_GROUPS: TypeMenuGroup[] = EFFECT_GROUPS.map(([g, types]
   items: types.map((t) => ({ key: t, label: <><Icon id={EFFECT_ICON[t]} size="sm" /> {EFFECT_LABEL[t]}</> })),
 }));
 
-/** Types d'Effet dont la fabrique pose une référence narrative (clé de `REFERENCES_NARRATIVES`). */
-const TYPES_A_REF_NARRATIVE: ReadonlySet<Effect['type']> = new Set(
-  EFFECT_TYPES.filter((t) => Object.keys(EFFECT_HANDLERS[t].make()).some((k) => k in REFERENCES_NARRATIVES)),
-);
+/** La seule feuille qu'admet une racine de CATALOGUE : son Flow est `flowSchema` (`grammaire/mecanique.ts`), à feuilles
+ *  `EffectOp` — aucun Effect de scène, aucune référence narrative (#679 R4). */
+const FEUILLE_DE_CATALOGUE: EffectOp['type'] = 'ops';
 
-/** Le vocabulaire d'une racine SANS narratif (catalogue, #679 R4) : un Effect qui désignerait un document
- *  de campagne romprait la portabilité du paquet de catalogue. */
-const MENU_SANS_NARRATIF: TypeMenuGroup[] = EFFECT_MENU_GROUPS
-  .map((g) => ({ ...g, items: g.items.filter((it) => !TYPES_A_REF_NARRATIVE.has(it.key as Effect['type'])) }))
+/** Le vocabulaire d'une racine de catalogue : la seule feuille `ops`. */
+const MENU_DE_CATALOGUE: TypeMenuGroup[] = EFFECT_MENU_GROUPS
+  .map((g) => ({ ...g, items: g.items.filter((it) => it.key === FEUILLE_DE_CATALOGUE) }))
   .filter((g) => g.items.length > 0);
 
 /** Les types d'Effet que propose une racine — lu par « + Effet », « + Bloc » et le changement de type. */
-export const menuDEffets = (ctx: Pick<Ctx, 'narratif'>): TypeMenuGroup[] => (ctx.narratif ? EFFECT_MENU_GROUPS : MENU_SANS_NARRATIF);
+export const menuDEffets = (ctx: Pick<Ctx, 'narratif'>): TypeMenuGroup[] => (ctx.narratif ? EFFECT_MENU_GROUPS : MENU_DE_CATALOGUE);
 
 /** Ce que révèle un `revealClue` sans stade (`revealClue`, `noyau/monde/clues.ts`) : `title` du champ ; le résumé
  *  d'une rangée en porte la forme COURTE. */
@@ -240,24 +250,24 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'openCharacterCreator': return `Créer un personnage (assistant)`;
     case 'inflictNightmares': return `Cauchemars${e.heroId ? ` → ${e.heroId}` : ''}`;
     case 'inflictDisease': return `Maladie : ${e.disease || '?'}`;
-    case 'inflictHunger': return `Faim ×${e.days ?? 1} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
-    case 'inflictThirst': return `Soif ×${e.days ?? 1} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
-    case 'exposureNight': return `Exposition ${e.kind === 'chaleur' ? 'chaleur' : 'froid'} ×${e.count ?? 2} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
+    case 'inflictHunger': return `Faim ×${e.days ?? 1} → ${e.target === 'heros' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
+    case 'inflictThirst': return `Soif ×${e.days ?? 1} → ${e.target === 'heros' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
+    case 'exposureNight': return `Exposition ${e.kind === 'chaleur' ? 'chaleur' : 'froid'} ×${e.count ?? 2} → ${e.target === 'heros' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
     case 'inflictTrauma': return `Critique : ${e.kind ?? 'fracture'} (${e.location ?? '?'})`;
     case 'ambitionLost': return `Ambition anéantie → Trauma${e.heroId ? ` → ${e.heroId}` : ''}`;
-    case 'inflictPsychology': return `${e.kind === 'terreur' ? 'Terreur' : 'Peur'} ${e.indice ?? 1} — ${e.label || '?'} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
+    case 'inflictPsychology': return `${e.kind === 'terreur' ? 'Terreur' : 'Peur'} ${e.indice ?? 1} — ${e.label || '?'} → ${e.target === 'heros' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
     case 'ops': {
       const on: string = genreDeCible(e.on) ?? ctx.cibles[0].on;
       const cible = ctx.cibles.find((c) => c.on === on);
       const who = !cible ? `« on: ${on} » hors du vocabulaire de cette racine`
-        : on === 'hero' ? `${cible.label} (${e.heroId || '1ᵉʳ'})`
+        : on === 'heros' ? `${cible.label} (${e.heroId || '1ᵉʳ'})`
         : typeof e.on === 'object' && 'volontaires' in e.on ? `${cible.label} (${e.on.volontaires})`
         : typeof e.on === 'object' ? `${cible.label} (${crewRoles.find((r) => r.id === e.on.role.id)?.label ?? (e.on.role.id || '?')})`
         : cible.label;
       return `${who} : ${(e.ops ?? []).map(opSummary).join(', ') || '(aucune op)'}${e.pendantJours !== undefined ? ` · pendant ${formulaSummary(e.pendantJours)} jour(s)` : ''}`;
     }
     case 'zoneBlast': return `Souffle ${(e.ops ?? []).length} op(s) rayon ${e.radius ?? 0} @(${e.center?.x ?? 0},${e.center?.y ?? 0})`;
-    case 'fall': return `Chute ${e.metres ?? 0} m → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}${e.to ? ` ⤓(${e.to.x},${e.to.y}${e.to.z ? `,z${e.to.z}` : ''})` : ''}`;
+    case 'fall': return `Chute ${e.metres ?? 0} m → ${e.target === 'heros' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}${e.to ? ` ⤓(${e.to.x},${e.to.y}${e.to.z ? `,z${e.to.z}` : ''})` : ''}`;
     case 'setLight': return `Lumière ${Math.round((e.level ?? 1) * 100)} %`;
     case 'setDoor': return `Porte (${e.x ?? 0},${e.y ?? 0},${e.side ?? 'N'})${e.attempted === undefined ? '' : e.attempted ? ' tentée' : ' non tentée'}${e.revealed === undefined ? '' : e.revealed ? ' révélée' : ' masquée'}${e.open === undefined ? '' : e.open ? ' ouverte' : ' fermée'}`;
     case 'moveEntity': return e.remove
@@ -266,11 +276,11 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'playSfx': return `Son : ${e.id || '?'}`;
     case 'giveSin': return `${e.amount ?? 1} point(s) de Péché`;
     case 'corruptionExposure': return `Influence corruptrice (${e.level ?? 'mineure'}, ${e.nature ? libelleDeLaNature(e.nature) : 'au choix'})${e.align ? ` — ${libelleDeValeur(chaosAlignSchema, e.align)}` : ''}`;
-    case 'waterExposure': return `Eau souillée (${e.mode === 'immersion' ? 'immersion' : 'ingestion'}${e.source ? ` · ${e.source}` : ''}) → ${e.target === 'party' ? 'groupe' : (e.heroId || '1ᵉʳ héros')}`;
+    case 'waterExposure': return `Eau souillée (${e.mode === 'immersion' ? 'immersion' : 'ingestion'}${e.source ? ` · ${e.source}` : ''}) → ${e.target === 'groupe' ? 'groupe' : (e.heroId || '1ᵉʳ héros')}`;
     case 'learnSpell': return `Apprendre : ${e.spell ? refLabel('spells', { id: e.spell }) : '?'}`;
-    case 'castSpell': return `Incanter ${e.spellId ? refLabel('spells', { id: e.spellId }) : '?'} — ${e.casterId || '?'}${e.targetId ? ` → ${e.targetId}` : ''}${e.mode === 'forceSuccess' ? ' (garanti)' : ''}`;
+    case 'castSpell': return `Incanter ${e.spellId ? refLabel('spells', { id: e.spellId }) : '?'} — ${e.casterId || '?'}${e.targetId ? ` → ${e.targetId}` : ''}${e.mode === 'forcerLaReussite' ? ' (garanti)' : ''}`;
     case 'petitePriere': {
-      const n = e.reward ? (e.reward.kind === 'seq' ? e.reward.steps.length : 1) : 0;
+      const n = e.reward ? (e.reward.kind === 'sequence' ? e.reward.etapes.length : 1) : 0;
       return `Petites Prières (site sacré)${e.heroId ? ` → ${e.heroId}` : ''} · ${n} bloc(s) si exaucée`;
     }
     case 'rest': return `Repos ${e.days ?? 1} nuit(s) (${e.lodging ?? 'maison'}${e.quality === 'pietre' ? ', piètre' : ''})`;
@@ -283,7 +293,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
       const b: MassBattleSpec = e.battle ?? {};
       const rounds = b.plannedRounds ?? 1;
       const sit = b.situations?.length ? `, ${b.situations.length} situation(s)` : '';
-      return `Combat de masse : ${nomDArmee(b, 'ally')} (${b.allyMight ?? 0}) vs ${nomDArmee(b, 'enemy')} (${b.enemyMight ?? 0}) — ${rounds} Round${rounds > 1 ? 's' : ''}${sit}`;
+      return `Combat de masse : ${nomDArmee(b, 'allie')} (${b.puissanceAlliee ?? 0}) vs ${nomDArmee(b, 'ennemi')} (${b.puissanceEnnemie ?? 0}) — ${rounds} Round${rounds > 1 ? 's' : ''}${sit}`;
     }
     case 'transition': {
       const sc = ctx.scenes?.find((s) => s.id === e.scene?.id);
@@ -303,23 +313,23 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
       if (e.crew?.length) parts.push(`équipage ${e.crew.reduce((s: number, h: { count: number }) => s + h.count, 0)}`);
       return `Ajuster le navire : ${parts.length ? parts.join(', ') : '(aucun champ)'}`;
     }
-    case 'startDialogue': return `Dialogue : ${e.dialogue || '?'}`;
-    case 'openMerchant': return `Boutique : ${e.entityId || '?'}`;
+    case 'startDialogue': return `Dialogue : ${e.dialogue?.id || '?'}`;
+    case 'openMerchant': return `Boutique : ${e.entityId?.id || '?'}`;
     case 'openPort': return `Port : ${e.placeId || '?'}`;
     case 'openTavernGames': return `Jeux de taverne`;
     case 'medicalAid': return `Soins payants (${(e.acts ?? (e.act ? [0] : [])).length} acte(s))`;
-    case 'extendedTest': return `Test Étendu ${e.skill ? refLabel('skills', e.skill) : (e.characteristic || '?')} → DR cumulé ${e.targetDR ?? 0}${e.flag ? ` (flag ${e.flag})` : ''}`;
+    case 'extendedTest': return `Test Étendu ${e.skill ? refLabel('skills', e.skill) : (e.characteristic || '?')} → DR cumulé ${e.drCible ?? 0}${e.flag ? ` (flag ${e.flag})` : ''}`;
     case 'forceDoor': return `Enfoncer « ${e.label || '?'} » (BE ${e.doorBE ?? 0}, B ${e.doorB ?? 0})${e.flag ? ` → flag ${e.flag}` : ''}`;
     case 'setTime': return `Heure → ${DAY_PHASES.find((p) => p.id === e.phase)?.label ?? e.phase}`;
     case 'delayedEffect': {
-      const n = e.flow ? (e.flow.kind === 'seq' ? e.flow.steps.length : 1) : 0;
+      const n = e.flow ? (e.flow.kind === 'sequence' ? e.flow.etapes.length : 1) : 0;
       return `Différé ${scheduleSummary(e)} → ${n} bloc(s)${e.cancelFlag ? ` · annulé si ${e.cancelFlag}` : ''}`;
     }
     case 'endDialogue': return `Fermer le dialogue`;
   }
 }
 
-/** Corps DÉPLIÉ d'un effet (feuille `do` d'un Flow) : menu de type + champs spécifiques. */
+/** Corps DÉPLIÉ d'un effet (feuille `effet` d'un Flow) : menu de type + champs spécifiques. */
 export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChange: (e: Effect) => void; ctx: Ctx }) {
   const e = effect as any;
   const upd = (patch: any) => onChange({ ...e, ...patch });
@@ -372,8 +382,8 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         {effect.type === 'clearObjective' && (
           <input placeholder="id de l'objectif à retirer (vide = tous)" value={e.id ?? ''} onChange={(ev) => upd({ id: ev.target.value || undefined })} />
         )}
-        {TYPES_A_REF_NARRATIVE.has(effect.type) && !ctx.narratif && (
-          <p className="hint">Ce catalogue ne connaît aucune campagne : cet Effet ne s’y pose pas.</p>
+        {effect.type !== FEUILLE_DE_CATALOGUE && !ctx.narratif && (
+          <p className="hint">Ce catalogue n’admet que des opérations : cet Effet ne s’y pose pas.</p>
         )}
         {(effect.type === 'poserEtat' || effect.type === 'designerHeros') && ctx.narratif && (
           <RefField
@@ -468,11 +478,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'inflictHunger' && (
           <div className="tf-row">
-            <select value={e.target ?? 'party'} onChange={(ev) => upd({ target: ev.target.value })}>
-              <option value="party">Tout le groupe</option>
-              <option value="hero">Un héros</option>
+            <select value={e.target ?? 'groupe'} onChange={(ev) => upd({ target: ev.target.value })}>
+              <option value="groupe">Tout le groupe</option>
+              <option value="heros">Un héros</option>
             </select>
-            {e.target === 'hero' && (
+            {e.target === 'heros' && (
               <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
             )}
             <label className="dr">Jours affamés <NumberField variant="nu" label="Jours affamés" min={1} value={e.days ?? 1} onChange={(days) => upd({ days })} /></label>
@@ -480,11 +490,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'inflictThirst' && (
           <div className="tf-row">
-            <select value={e.target ?? 'party'} onChange={(ev) => upd({ target: ev.target.value })}>
-              <option value="party">Tout le groupe</option>
-              <option value="hero">Un héros</option>
+            <select value={e.target ?? 'groupe'} onChange={(ev) => upd({ target: ev.target.value })}>
+              <option value="groupe">Tout le groupe</option>
+              <option value="heros">Un héros</option>
             </select>
-            {e.target === 'hero' && (
+            {e.target === 'heros' && (
               <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
             )}
             <label className="dr">Jours assoiffés <NumberField variant="nu" label="Jours assoiffés" min={1} value={e.days ?? 1} onChange={(days) => upd({ days })} /></label>
@@ -496,11 +506,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <option value="froid">Froid (négatives, blizzard)</option>
               <option value="chaleur">Chaleur (désert, fournaise)</option>
             </select>
-            <select value={e.target ?? 'party'} onChange={(ev) => upd({ target: ev.target.value })}>
-              <option value="party">Tout le groupe</option>
-              <option value="hero">Un héros</option>
+            <select value={e.target ?? 'groupe'} onChange={(ev) => upd({ target: ev.target.value })}>
+              <option value="groupe">Tout le groupe</option>
+              <option value="heros">Un héros</option>
             </select>
-            {e.target === 'hero' && (
+            {e.target === 'heros' && (
               <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
             )}
             <label className="dr">Tests <NumberField variant="nu" label="Tests" min={1} value={e.count ?? 2} onChange={(count) => upd({ count })} /></label>
@@ -580,11 +590,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             </select>
             <label className="dr">Indice <NumberField variant="nu" label="Indice" min={1} value={e.indice ?? 1} onChange={(indice) => upd({ indice })} /></label>
             <input placeholder="Source (apparition, présage…)" value={e.label ?? ''} onChange={(ev) => upd({ label: ev.target.value })} />
-            <select value={e.target ?? 'party'} onChange={(ev) => upd({ target: ev.target.value })}>
-              <option value="party">Tout le groupe</option>
-              <option value="hero">Un héros</option>
+            <select value={e.target ?? 'groupe'} onChange={(ev) => upd({ target: ev.target.value })}>
+              <option value="groupe">Tout le groupe</option>
+              <option value="heros">Un héros</option>
             </select>
-            {e.target === 'hero' && (
+            {e.target === 'heros' && (
               <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
             )}
           </div>
@@ -630,11 +640,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                 <option key={m.id} value={m.id}>{m.label} ({m.mod > 0 ? '+' : ''}{m.mod})</option>
               ))}
             </select>
-            <select value={e.target ?? 'hero'} onChange={(ev) => upd({ target: ev.target.value })}>
-              <option value="hero">Un héros</option>
-              <option value="party">Tout le groupe</option>
+            <select value={e.target ?? 'heros'} onChange={(ev) => upd({ target: ev.target.value })}>
+              <option value="heros">Un héros</option>
+              <option value="groupe">Tout le groupe</option>
             </select>
-            {(e.target ?? 'hero') === 'hero' && (
+            {(e.target ?? 'heros') === 'heros' && (
               <input placeholder="id du héros (vide = le premier)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value })} />
             )}
           </>
@@ -688,7 +698,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             )}
             <select value={e.mode ?? 'jet'} onChange={(ev) => upd({ mode: ev.target.value })}>
               <option value="jet">Jet réel (RAW — modale influençable si piloté par un humain)</option>
-              <option value="forceSuccess">Rituel garanti (arbitrage d'auteur, aucun jet)</option>
+              <option value="forcerLaReussite">Rituel garanti (arbitrage d'auteur, aucun jet)</option>
             </select>
           </>
         )}
@@ -783,7 +793,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                     {ctx.cibles.map((c) => <option key={c.on} value={c.on}>{c.label}</option>)}
                   </select>
                 </label>
-                {e.on === 'hero' && (
+                {e.on === 'heros' && (
                   <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
                 )}
                 {typeof e.on === 'object' && 'volontaires' in e.on && (
@@ -821,11 +831,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'fall' && (
           <div className="tf-row">
-            <select value={e.target ?? 'party'} onChange={(ev) => upd({ target: ev.target.value })}>
-              <option value="party">Tout le groupe</option>
-              <option value="hero">Un héros</option>
+            <select value={e.target ?? 'groupe'} onChange={(ev) => upd({ target: ev.target.value })}>
+              <option value="groupe">Tout le groupe</option>
+              <option value="heros">Un héros</option>
             </select>
-            {e.target === 'hero' && (
+            {e.target === 'heros' && (
               <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
             )}
             <label className="dr">Hauteur (m) <NumberField variant="nu" label="Hauteur (m)" min={0} value={e.metres ?? 0} onChange={(metres) => upd({ metres })} /></label>
@@ -947,7 +957,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
           </>
         ))}
         {effect.type === 'startDialogue' && (
-          <select value={e.dialogue ?? ''} onChange={(ev) => upd({ dialogue: ev.target.value })}>
+          <select value={e.dialogue?.id ?? ''} onChange={(ev) => upd({ dialogue: { id: ev.target.value } })}>
             <option value="">— dialogue —</option>
             {ctx.dialogues.map((d) => (
               <option key={d.id} value={d.id}>
@@ -958,7 +968,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'openMerchant' && (ctx.merchants ? (
           ctx.merchants.length ? (
-            <select value={e.entityId ?? ''} onChange={(ev) => upd({ entityId: ev.target.value })}>
+            <select value={e.entityId?.id ?? ''} onChange={(ev) => upd({ entityId: { id: ev.target.value } })}>
               <option value="">— entité marchande de la scène —</option>
               {ctx.merchants.map((mch) => (
                 <option key={mch.id} value={mch.id}>{mch.label ? `${mch.label} (${mch.id})` : mch.id}</option>
@@ -968,7 +978,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             <span className="branch-label">Aucune entité marchande dans la scène — donnez d'abord un archétype de marchand à un PNJ (Inspecteur).</span>
           )
         ) : (
-          <input placeholder="id de l’entité marchande (doit porter un archétype)" value={e.entityId ?? ''} onChange={(ev) => upd({ entityId: ev.target.value })} />
+          <input placeholder="id de l’entité marchande (doit porter un archétype)" value={e.entityId?.id ?? ''} onChange={(ev) => upd({ entityId: { id: ev.target.value } })} />
         ))}
         {effect.type === 'openPort' && (ctx.places ? (
           ctx.places.length ? (
@@ -987,9 +997,9 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         {effect.type === 'medicalAid' && (() => {
           // Schéma : une LISTE d'actes tarifés (le débit a lieu à l'acte, dans l'infirmerie).
           const ACTS: { key: 'wounds' | 'bleed' | 'trauma' | 'surgery'; label: string | JSX.Element }[] = [
-            { key: 'wounds', label: <><Icon id="journal/heal" size="sm" /> Soin de Blessures</> },
-            { key: 'bleed', label: <><Icon id="condition/bleeding" size="sm" /> Arrêt d’hémorragie</> },
-            { key: 'trauma', label: <><Icon id="medical/tear" size="sm" /> Soin de déchirure</> },
+            { key: 'wounds', label: <><Icon id="journal/soin" size="sm" /> Soin de Blessures</> },
+            { key: 'bleed', label: <><Icon id="etat/hemorragique" size="sm" /> Arrêt d’hémorragie</> },
+            { key: 'trauma', label: <><Icon id="medical/dechirure" size="sm" /> Soin de déchirure</> },
             { key: 'surgery', label: <><Icon id="medical/scalpel" size="sm" /> Chirurgie</> },
           ];
           const acts: { act: string; cost?: { gold?: number; silver?: number; brass?: number } }[] =
@@ -1023,7 +1033,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               })}
               {ctx.personas ? (
                 ctx.personas.length ? (
-                  <select value={e.entityId ?? ''} onChange={(ev) => upd({ entityId: ev.target.value })}>
+                  <select value={e.entityId?.id ?? ''} onChange={(ev) => upd({ entityId: { id: ev.target.value } })}>
                     <option value="">— PNJ soigneur de la scène —</option>
                     {ctx.personas.map((p) => (
                       <option key={p.id} value={p.id}>{p.label ? `${p.label} (${p.id})` : p.id}</option>
@@ -1033,7 +1043,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                   <span className="branch-label">Aucun personnage dans la scène — posez d’abord le PNJ soigneur (Inspecteur).</span>
                 )
               ) : (
-                <input placeholder="id du PNJ soigneur (personnage de la scène)" value={e.entityId ?? ''} onChange={(ev) => upd({ entityId: ev.target.value })} />
+                <input placeholder="id du PNJ soigneur (personnage de la scène)" value={e.entityId?.id ?? ''} onChange={(ev) => upd({ entityId: { id: ev.target.value } })} />
               )}
               <span className="branch-label">Le PNJ soigne dans son infirmerie : chaque acte coché est proposé à son tarif, débité au lancement de l’acte. Sa Guérison et son Bonus d’Intelligence se lisent sur SA fiche (réf de bestiaire ou statbloc de l’entité).</span>
             </div>
@@ -1055,7 +1065,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                   {(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}
                 </select>
               </label>
-              <label className="dr">DR cible<NumberField variant="nu" label="Degrés de Réussite cibles" value={e.targetDR ?? 5} onChange={(targetDR) => upd({ targetDR })} /></label>
+              <label className="dr">DR cible<NumberField variant="nu" label="Degrés de Réussite cibles" value={e.drCible ?? 5} onChange={(drCible) => upd({ drCible })} /></label>
             </div>
             <input placeholder="flag posé à la réussite (option)" value={e.flag ?? ''} onChange={(ev) => upd({ flag: ev.target.value || undefined })} />
           </>
@@ -1116,7 +1126,7 @@ function SceneMultiSelect({ value, onChange, placeholder }: { value: string[]; o
  *  Réutilise les primitives d'effet (`.test-fields`/`.tf-row`/`.dr`, patron `ListRefField`, select de
  *  rencontre de `startCombat`). Aucun id tapé : toute Scène/rencontre passe par un picker. */
 function MassBattleFields({ identite, battle, onChange, ctx }: { identite: string; battle: MassBattleSpec; onChange: (b: MassBattleSpec) => void; ctx: Ctx }) {
-  const b = battle ?? ({ allyMight: 50, enemyMight: 50 } as MassBattleSpec);
+  const b = battle ?? ({ puissanceAlliee: 50, puissanceEnnemie: 50 } as MassBattleSpec);
   const set = (patch: Partial<MassBattleSpec>) => onChange({ ...b, ...patch });
   const rounds = Math.max(1, Math.floor(b.plannedRounds ?? 1));
   const situations = b.situations ?? [];
@@ -1125,23 +1135,23 @@ function MassBattleFields({ identite, battle, onChange, ctx }: { identite: strin
   return (
     <div className="test-fields">
       <div className="tf-row">
-        <label className="dr" style={{ flex: 1 }}>Alliés<input value={b.allyName ?? ''} placeholder={nomDArmee({ ...b, allyName: undefined }, 'ally')} onChange={(ev) => set({ allyName: ev.target.value || undefined })} /></label>
-        <label className="dr" style={{ flex: 1 }}>Ennemis<input value={b.enemyName ?? ''} placeholder={nomDArmee({ ...b, enemyName: undefined }, 'enemy')} onChange={(ev) => set({ enemyName: ev.target.value || undefined })} /></label>
+        <label className="dr" style={{ flex: 1 }}>Alliés<input value={b.nomDesAllies ?? ''} placeholder={nomDArmee({ ...b, nomDesAllies: undefined }, 'allie')} onChange={(ev) => set({ nomDesAllies: ev.target.value || undefined })} /></label>
+        <label className="dr" style={{ flex: 1 }}>Ennemis<input value={b.nomDesEnnemis ?? ''} placeholder={nomDArmee({ ...b, nomDesEnnemis: undefined }, 'ennemi')} onChange={(ev) => set({ nomDesEnnemis: ev.target.value || undefined })} /></label>
       </div>
       <div className="tf-row">
-        <label className="dr">Puissance alliée<NumberField variant="nu" label="Puissance alliée" min={0} max={100} value={b.allyMight ?? 0} onChange={(n) => set({ allyMight: clampMight(n) })} /></label>
-        <label className="dr">Puissance ennemie<NumberField variant="nu" label="Puissance ennemie" min={0} max={100} value={b.enemyMight ?? 0} onChange={(n) => set({ enemyMight: clampMight(n) })} /></label>
+        <label className="dr">Puissance alliée<NumberField variant="nu" label="Puissance alliée" min={0} max={100} value={b.puissanceAlliee ?? 0} onChange={(n) => set({ puissanceAlliee: clampMight(n) })} /></label>
+        <label className="dr">Puissance ennemie<NumberField variant="nu" label="Puissance ennemie" min={0} max={100} value={b.puissanceEnnemie ?? 0} onChange={(n) => set({ puissanceEnnemie: clampMight(n) })} /></label>
         <label className="dr">Estimer (force relative)
-          <select value="" onChange={(ev) => { const r = POWER_ESTIMATE.find((p) => p.id === ev.target.value); if (r) set({ allyMight: r.ally, enemyMight: r.enemy }); }}>
+          <select value="" onChange={(ev) => { const r = POWER_ESTIMATE.find((p) => p.id === ev.target.value); if (r) set({ puissanceAlliee: r.allie, puissanceEnnemie: r.ennemi }); }}>
             <option value="">— remplir les Puissances —</option>
-            {POWER_ESTIMATE.map((p) => <option key={p.id} value={p.id}>{p.label} ({p.ally}/{p.enemy})</option>)}
+            {POWER_ESTIMATE.map((p) => <option key={p.id} value={p.id}>{p.label} ({p.allie}/{p.ennemi})</option>)}
           </select>
         </label>
       </div>
       <div className="tf-row">
         <label className="dr">Rounds prévus<NumberField variant="nu" label="Rounds prévus" min={1} value={rounds} onChange={(plannedRounds) => set({ plannedRounds })} /></label>
         <label className="dr">Taille de tirage<NumberField variant="nu" label="Taille de tirage" min={1} value={b.situationSize ?? 3} onChange={(situationSize) => set({ situationSize })} /></label>
-        <label className="dr">Modif. permanent (Planification)<NumberField variant="nu" label="Modificateur permanent (Planification)" value={b.allyMod ?? 0} onChange={(allyMod) => set({ allyMod })} /></label>
+        <label className="dr">Modif. permanent (Planification)<NumberField variant="nu" label="Modificateur permanent (Planification)" value={b.modificateurAllie ?? 0} onChange={(allyMod) => set({ modificateurAllie: allyMod })} /></label>
       </div>
       <ProseField label="Terrain (description)" ariaLabel="Description du terrain" value={b.terrain ?? ''} onChange={(terrain) => set({ terrain: terrain || undefined })} />
       <ProvenanceDuTexte copie identite={identite} sujet="du terrain" value={b} onChange={set} />

@@ -44,7 +44,7 @@ import type { TraitInstance } from './statEntry';
  * Lecture LOCALE des seuls passifs de talents : `passiveCharSum` (trauma.ts) somme les `charMod` additifs
  * de tous les porteurs.
  */
-export function baseWithTalents(c: Combatant, key: CharKey): number {
+export function baseWithTalents(c: Pick<Combatant, 'characteristics'> & Partial<Pick<Combatant, 'talents'>>, key: CharKey): number {
   let val = c.characteristics[key] ?? 0;
   for (const t of c.talents ?? []) {
     for (const op of findTalentById(t.talentId)?.passive ?? []) {
@@ -84,8 +84,8 @@ export function applyTalentAcquisition(hero: Combatant, talentId: string, spec?:
   }
 }
 
-/** `applyTalentAcquisition` de chaque Talent du porteur, une fois par acquisition (`times`) : création
- *  d'un héros (`createHero`) comme spawn d'une créature ou d'un statbloc (`noyau/monde/spawn.ts`). */
+/** `applyTalentAcquisition` de chaque Talent du porteur, une fois par acquisition (`times`) : assemblage
+ *  d'un héros (`assemblerLeHeros`) comme spawn d'une créature ou d'un statbloc (`noyau/monde/spawn.ts`). */
 export function appliquerAcquisitions(porteur: Combatant): void {
   for (const t of porteur.talents ?? []) for (let i = 0; i < (t.times ?? 1); i++) applyTalentAcquisition(porteur, t.talentId, t.spec);
 }

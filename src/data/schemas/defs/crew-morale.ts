@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { ecartsDeCouverture, effetSigneSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
+import { ref } from '../grammaire/ref';
 
 export const file = 'crew-morale.json';
 export const famille = 'config';
@@ -22,6 +23,10 @@ const doc = document(
       wageMul: z.number().optional(),
       /** MDG 14. */
       recommendedPay: z.boolean().optional(),
+      /** MDG 14 l.156, l.166 */
+      vivreSeul: ref('trapping').optional(),
+      /** MDG 14 l.172, l.208 */
+      contagionABord: z.boolean().optional(),
       source: sourceRefSchema,
     }), {
       id: { label: 'identifiant' },
@@ -29,6 +34,8 @@ const doc = document(
       effect: { label: 'effet' },
       wageMul: { label: 'multiplicateur de paie' },
       recommendedPay: { label: 'paie recommandée' },
+      vivreSeul: { label: 'seul vivre mangé', texte: { regime: 'technique' } },
+      contagionABord: { label: 'maladie contagieuse à bord' },
       source: { label: 'source' },
     }),
     'id',
@@ -69,7 +76,6 @@ const doc = document(
     },
   },
   {
-    codex: { keys: ['crewMoraleFactors', 'crewMoraleBands'] },
     edit: { niche: { categories: { crewMoraleFactors: 'factors', crewMoraleBands: 'bands' } } },
   },
   {

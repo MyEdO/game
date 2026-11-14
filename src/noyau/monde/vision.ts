@@ -12,8 +12,7 @@
  * sont canon ; la DONNÉE les porte en mètres et `rayonEnCases` les convertit à l'échelle de la scène
  * (`Scene.metresPerTile`, défaut `LDB 15 l.12`).
  */
-import { Scene, type SceneEntity, tileAt, heightAt, edgeOf, sceneMetresPerTile, areteOcculte } from './scene';
-import { wallOnSight } from './lineOfSight';
+import { Scene, type SceneDuVolume, type SceneEntity, tileAt, heightAt, edgeOf, sceneMetresPerTile, areteOcculte, wallOnSight } from './scene';
 import { terrainOpaque, terrainSolidHeightM } from './terrain';
 import { METRES_PER_LEVEL } from './relief';
 import { sceneIsDark } from './sceneRules';
@@ -85,9 +84,10 @@ export const LIT_THRESHOLD = 0.18;
  *  Terrain opaque + décor opaque (`props.json`). Les cloisons de bâtiment sont des `WallSeg` (arêtes),
  *  prises en compte séparément ci-dessous. PUR. */
 export interface Occ { g: Uint8Array; topH: Float32Array; w: number; h: number; walls: Set<string> }
-/** Mémoïsé par IDENTITÉ de `scene` (`memoByRef`, patron unique) : sûr car `buildOpaqueUncached` ne
- *  lit QUE des champs de `scene` (`dimensions`, `entities`, `walls` — et `tileAt`/`heightAt` qui lisent
- *  `layers`/`relief`), et TOUTE mutation de l'un de ces champs (porte/structure/tuile effondrée via
+/** Mémoïsé par IDENTITÉ de `scene` et version des datasets (`memoByRef`) : `buildOpaqueUncached` lit des
+ *  champs de `scene` (`dimensions`, `entities`, `walls` — et `tileAt`/`heightAt` qui lisent
+ *  `layers`/`relief`) et les catalogues des terrains et des décors (`terrainOpaque`, `findPropById`) ; TOUTE
+ *  mutation de l'un de ces champs (porte/structure/tuile effondrée via
  *  `setDoorOpen`/`toggleDoorIn`/`setStructureDown`/`setTileCollapsed` `scene.ts`, mais aussi tout
  *  changement d'`entities`/`walls`/`layers`) renvoie une NOUVELLE réf `{ ...scene, … }` — jamais une
  *  mutation en place. La clé du cache est `scene` (pas un sous-champ) : un re-keying futur sur un
@@ -195,8 +195,9 @@ export function baseSightTiles(scene: Scene, gameTime: number): number {
 export const rayonEnCases = (radiusM: number, mpt: number): number => radiusM / mpt;
 
 /** Sources de lumière POSÉES sur la carte : props dont le TYPE (`props.json` `light`) émet, ou
- *  override d'instance `SceneEntity.light`. PUR. */
-export function mapLights(scene: Scene): LightSource[] {
+ *  override d'instance `SceneEntity.light`. Retenues par `scene` et la version des datasets qu'elles lisent
+ *  (`memoByRef`). PUR. */
+export const mapLights = memoByRef((scene: SceneDuVolume): readonly LightSource[] => {
   const out: LightSource[] = [];
   const mpt = sceneMetresPerTile(scene);
   for (const e of scene.entities) {
@@ -210,7 +211,7 @@ export function mapLights(scene: Scene): LightSource[] {
     if (rM && rM > 0) out.push({ pos: e.pos, z: e.z, radiusTiles: rayonEnCases(rM, mpt), srcId: e.id, tone: inst?.tone ?? type?.tone, ...foyerDe(scene, e, prop, mpt) });
   }
   return out;
-}
+});
 
 /** Hauteur (m) par DÉFAUT d'une flamme au-dessus du sol de sa case — le foyer d'un émetteur qui n'a
  *  AUCUNE primitive déclarée : un billboard (dont le dessin n'a pas de volume monde où pointer) ou une
@@ -236,7 +237,7 @@ export const FLAME_LIFT_M = 1;
  *
  * Rien à rendre sans type résolu : la source garde alors le défaut du rendu. PUR.
  */
-function foyerDe(scene: Scene, ent: SceneEntity, prop: PropData | undefined, mpt: number): { foyer?: LightSource['foyer'] } {
+function foyerDe(scene: SceneDuVolume, ent: SceneEntity, prop: PropData | undefined, mpt: number): { foyer?: LightSource['foyer'] } {
   if (!prop) return {};
   const emettrice = prop.volume.primitives.find((p) => p.emet);
   const ancre = ancreDuDecor(ent, mpt);
@@ -266,7 +267,7 @@ export function combatantLights(c: {
     const held = !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
     if (!held) continue;
     for (const op of it.passive ?? []) {
-      if (op.op === 'light' && op.radiusM > rM) { rM = op.radiusM; tone = op.tone; }
+      if (op.op === 'light' && op.radiusM > rM) { rM = op.radiusM; tone = op.tone?.id; }
     }
   }
   for (const e of c.activeEffects ?? []) {
@@ -320,7 +321,7 @@ function falloff(d: number, radius: number): number {
  * (dégradé `falloff`, combinaison par max) — une source n'éclaire une case que si la Ligne de Vue
  * source→case est dégagée (la lumière ne traverse pas les murs). PUR.
  */
-export function computeLightField(scene: Scene, ambient: number, sources: LightSource[], smoke: Pt[] = [], occ: Occ = buildOpaque(scene)): LightField {
+export function computeLightField(scene: Scene, ambient: number, sources: readonly LightSource[], smoke: Pt[] = [], occ: Occ = buildOpaque(scene)): LightField {
   const { w, h } = scene.dimensions;
   const smokeSet = new Set(smoke.map((s) => `${s.x},${s.y}`));
   const grid = new Map<string, number>(); // "x,y,z" → contribution des sources (> ambient seulement)

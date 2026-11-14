@@ -15,7 +15,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *  2. le plancher de DR d'un Test OPPOSÉ (LDB 17 l.68 : « S'il s'agit d'un Test opposé, vous l'emportez
  *     avec au moins DR +1 ») se mesure contre l'incantation FIGÉE — `castT.sl + 1`.
  */
-const mk = (id: string, kind: Combatant['kind'] = 'hero'): Combatant => (blessuresSurLeProfil({
+const mk = (id: string, kind: Combatant['kind'] = 'heros'): Combatant => (blessuresSurLeProfil({
   id, name: id, label: id, kind,
   characteristics: { force: 40, dexterite: 40, agilite: 40, endurance: 40, 'force-mentale': 40, 'capacite-de-combat': 45, 'capacite-de-tir': 45, initiative: 40, intelligence: 40, sociabilite: 40 },
   wounds: blessuresDeBase(10), advantage: 0, conditions: [], traumas: [],
@@ -35,7 +35,7 @@ const P = <T2,>(k: string): T2 => (banc.getState() as unknown as Record<string, 
 const heroResilience = (id: string) => banc.getState().party.find((h) => h.id === id)!.resilience;
 
 beforeEach(() => {
-  const A = mk('A'), B = mk('B'), E = mk('E', 'enemy');
+  const A = mk('A'), B = mk('B'), E = mk('E', 'ennemi');
   banc.setState({
     party: [A, B],
     battle: { combatants: [A, B, E], log: [], order: ['A', 'B', 'E'], turn: 0, round: 1 } as never,
@@ -52,10 +52,10 @@ describe('dé choisi d’un flux MULTI d’incantation — routage par pid + pla
         { id: 'B', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...rateTR }, casterNetSL: 7, log: '' } },
       ] },
     } as never);
-    st().jetForcerLaReussite('counterspell', 'B');
+    st().jetForcerLaReussite('contreSort', 'B');
     const apres = heroResilience('B');
     expect(apres, 'la Résilience de B n’a pas été dépensée').toBe(2);
-    st().jetImposerLeResultat('counterspell', CHOISI, 'B');
+    st().jetImposerLeResultat('contreSort', CHOISI, 'B');
 
     const parts = P<{ participants: { result: { dispelled: boolean; counter: { roll: number; sl: number; success: boolean } } }[] }>('pendingCounterspell').participants;
     const [cA, cB] = [parts[0].result, parts[1].result];

@@ -1,5 +1,6 @@
-// GARDE du dépôt (#1993) : sous `scripts/docs/` et `scripts/gates/`, aucun NUMÉRO DE LIGNE vers un
-// AUTRE fichier — en commentaire, en chaîne ou dans une prose émise vers un doc généré. Un numéro de
+// GARDE du dépôt (#1993, #4007) : sous `RACINES_BALAYEES`, aucun NUMÉRO DE LIGNE vers un
+// AUTRE fichier — en commentaire, en chaîne, dans une prose émise vers un doc généré ou dans la prose
+// que les agents chargent (règles, skills, fiches d'agent et de mémoire, credo, `AGENTS.md`). Un numéro de
 // ligne périme au premier geste dans le fichier visé, sans que rien ne le voie ; la réf porte une
 // ANCRE STABLE (symbole, nom de test, titre de section).
 // Deux formes : `fichier.ext:NN`, et `l.NN` — derrière un nom de fichier (fin de ligne et marques de
@@ -16,8 +17,11 @@ import { alternationDuRegistre, refReDe } from '../../raw/_lib.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 
-/** Dossiers balayés, relatifs POSIX. */
-export const RACINES_BALAYEES = ['scripts/docs/', 'scripts/gates/']
+/** Dossiers et fichiers balayés, relatifs POSIX. */
+export const RACINES_BALAYEES = [
+  'scripts/docs/', 'scripts/gates/',
+  '.claude/rules/', '.claude/skills/', '.claude/agents/', '.claude/memory/', '.claude/credo.md', '.claude/sous-agents.md', 'AGENTS.md',
+]
 
 /** Un chemin (ou un nom nu, point initial compris : `.gitignore`) dont l'extension commence par une
  *  lettre. Jamais précédé d'un caractère de chemin ni d'un `\` — `\.md:9` est une expression régulière. */

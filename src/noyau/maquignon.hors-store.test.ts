@@ -29,7 +29,7 @@ const maquignonScene = () => {
 describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
   beforeEach(() => {
     banc.setState({ party: [], scene: null, merchant: null, merchantStocks: {}, possessions: [], journal: [] });
-    setRule('market-mode', 'sans-disponibilite'); // déterministe : toute Dispo Commune/Limitée/Rare en stock (LDB 59 l.15)
+    setRule('marche-mode', 'sans-disponibilite'); // déterministe : toute Dispo Commune/Limitée/Rare en stock (LDB 59 l.15)
   });
 
   it('le stock liste la mule avec sa Disponibilité, échoue sans le maquignon (garde de câblage)', () => {

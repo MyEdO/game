@@ -3,7 +3,18 @@
  * le combattant concerné — modale ouverte → son concerné seul ('*' = tous) ; sinon le tour actif.
  */
 import { describe, it, expect } from 'vitest';
-import { intentAllowedFor, seatSlotsRemaining, controlsActive, controlsCombatant, pilotedByHuman, aiDriven, ownsLocal, rolledLocally, reponseDonnee, jetFigeRevele } from './netOwnership';
+import {
+  intentAllowedFor,
+  seatSlotsRemaining,
+  controlsActive,
+  controlsCombatant,
+  pilotedByHuman,
+  aiDriven,
+  ownsLocal,
+  rolledLocally,
+  reponseDonnee,
+  jetFigeRevele,
+} from './netOwnership';
 import { spectatorSeatOfModal } from './combatAuto';
 import { modalOwnerOf } from './modalArbiter';
 import { fermerLeSiege, seatOwns } from './sieges';
@@ -14,12 +25,12 @@ import { GUEST_INTENTS } from './intentionsDeSiege';
 
 const base = (over: Partial<Jeu>): Jeu =>
   ({
-    net: { mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 0, 0, 0] },
+    net: { mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 0, 0, 0] },
     // `kind` PORTÉ par le groupe (comme tout héros réel, `createHero`) : hors combat, `seatInfluences`
     // résout le porteur d'un jet dans `party` et distingue héros ⇄ ennemi sur ce champ.
-    party: [{ id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero' }],
+    party: [{ id: 'h1', kind: 'heros' }, { id: 'h2', kind: 'heros' }],
     battle: { order: ['h1', 'h2'], turn: 0, combatants: [
-      { id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero' }, { id: 'e1', kind: 'enemy' },
+      { id: 'h1', kind: 'heros' }, { id: 'h2', kind: 'heros' }, { id: 'e1', kind: 'ennemi' },
     ] },
     ...over,
   }) as unknown as Jeu;
@@ -27,10 +38,10 @@ const base = (over: Partial<Jeu>): Jeu =>
 describe('fermerLeSiege — le départ définitif d’un siège rend ses héros, ses emplacements et le rôle MJ', () => {
   it('héros et emplacements reviennent à l’hôte, le rôle MJ tombe, les autres sièges restent', () => {
     const s = base({});
-    const net = { ...s.net, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Léa' }, presence: { 1: 'away' as const, 2: 'ok' as const }, ownership: { h1: 2, h2: 1 }, slots: [1, 2, 0, 1], gmSeat: 1 };
+    const net = { ...s.net, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Léa' }, presence: { 1: 'absent' as const, 2: 'present' as const }, ownership: { h1: 2, h2: 1 }, slots: [1, 2, 0, 1], gmSeat: 1 };
     const apres = fermerLeSiege(net, 1);
-    expect(apres).toMatchObject({ seatNames: { 0: 'Hôte', 2: 'Léa' }, presence: { 2: 'ok' }, ownership: { h1: 2, h2: 0 }, slots: [0, 2, 0, 0], gmSeat: undefined });
-    expect(pilotedByHuman({ ...s, net: apres }, { id: 'e1', kind: 'enemy' } as never), 'sans MJ, l’ennemi revient à l’IA').toBe(false);
+    expect(apres).toMatchObject({ seatNames: { 0: 'Hôte', 2: 'Léa' }, presence: { 2: 'present' }, ownership: { h1: 2, h2: 0 }, slots: [0, 2, 0, 0], gmSeat: undefined });
+    expect(pilotedByHuman({ ...s, net: apres }, { id: 'e1', kind: 'ennemi' } as never), 'sans MJ, l’ennemi revient à l’IA').toBe(false);
     expect(fermerLeSiege(net, 2).gmSeat, 'fermer un autre siège garde le MJ').toBe(1);
   });
 });
@@ -48,7 +59,7 @@ describe('rolledLocally (#990) — « ce siège a-t-il produit CE jet ? », base
   it('allié PNJ `aiControlled` : son jet n’est PAS le mien (l’automate le joue, comme un ennemi IA)', () => {
     const s = base({
       net: { mode: 'local', mySeat: 0, seatNames: {}, ownership: {}, slots: [0, 0, 0, 0] },
-      battle: { order: ['h1', 'h2'], turn: 0, combatants: [{ id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero', aiControlled: true }, { id: 'e1', kind: 'enemy' }] },
+      battle: { order: ['h1', 'h2'], turn: 0, combatants: [{ id: 'h1', kind: 'heros' }, { id: 'h2', kind: 'heros', aiControlled: true }, { id: 'e1', kind: 'ennemi' }] },
     } as unknown as Partial<Jeu>);
     expect(rolledLocally(s, 'h2')).toBe(false);
   });
@@ -59,7 +70,7 @@ describe('rolledLocally (#990) — « ce siège a-t-il produit CE jet ? », base
   });
 
   it('COOP : l’ennemi conduit par le MJ est masqué pour l’invité, pas pour le MJ', () => {
-    const gm = base({ net: { mode: 'host', mySeat: 0, gmSeat: 0, seatNames: {}, ownership: { h2: 1 }, slots: [0, 0, 0, 0] } } as unknown as Partial<Jeu>);
+    const gm = base({ net: { mode: 'hote', mySeat: 0, gmSeat: 0, seatNames: {}, ownership: { h2: 1 }, slots: [0, 0, 0, 0] } } as unknown as Partial<Jeu>);
     expect(rolledLocally(gm, 'e1'), 'le MJ a roulé ce jet lui-même').toBe(true);
     const invite = { ...gm, net: { ...gm.net, mySeat: 1 } } as Jeu;
     expect(rolledLocally(invite, 'e1'), 'l’invité n’a pas roulé le jet du MJ').toBe(false);
@@ -82,17 +93,17 @@ describe('rolledLocally (#990) — « ce siège a-t-il produit CE jet ? », base
 describe('reponseDonnee et jetFigeRevele (#990) — le calendrier d’un Test opposé à jet figé, par siège', () => {
   // h1 et h3 : héros de l'hôte (siège 0) ; h2 : héros de l'invité (siège 1) ; e1 : ennemi de l'IA. Le siège 2
   // ne tient aucun combattant : il regarde la table.
-  const net = (mode: 'host' | 'guest', mySeat: number) =>
+  const net = (mode: 'hote' | 'invite', mySeat: number) =>
     ({ mode, mySeat, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Léa' }, ownership: { h2: 1 }, slots: [0, 0, 0, 0] });
-  const table = (mode: 'host' | 'guest', mySeat: number): Jeu => base({
+  const table = (mode: 'hote' | 'invite', mySeat: number): Jeu => base({
     net: net(mode, mySeat),
     battle: { order: ['h1', 'h2', 'h3'], turn: 0, combatants: [
-      { id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero' }, { id: 'h3', kind: 'hero' }, { id: 'e1', kind: 'enemy' },
+      { id: 'h1', kind: 'heros' }, { id: 'h2', kind: 'heros' }, { id: 'h3', kind: 'heros' }, { id: 'e1', kind: 'ennemi' },
     ] },
   } as unknown as Partial<Jeu>);
-  const hote = table('host', 0);
-  const invite = table('guest', 1);
-  const spectateur = table('guest', 2);
+  const hote = table('hote', 0);
+  const invite = table('invite', 1);
+  const spectateur = table('invite', 2);
   const jete = { roll: 40 };
   const defense = (id: string, result?: unknown) => [{ id, interactive: true, result }];
 
@@ -124,14 +135,14 @@ describe('reponseDonnee et jetFigeRevele (#990) — le calendrier d’un Test op
 describe('spectatorSeatOfModal — le siège attendu sur la modale prioritaire', () => {
   const defense = (over: Partial<Jeu>) => base({
     pendingDefense: { attackerId: 'e1', defenderId: 'h2' } as Jeu['pendingDefense'],
-    pendingCascade: cascadeDeTest([{ id: 'd', jet: 'defense', kind: 'defenseJet', actorId: 'h2' }]),
+    pendingCascade: cascadeDeTest([{ id: 'd', jet: 'defense', kind: 'jetDeDefense', actorId: 'h2' }]),
     ...over,
   });
 
   it('la Défense du héros de l’invité : l’hôte et le spectateur attendent le siège 1, l’invité aucun', () => {
     expect(spectatorSeatOfModal(defense({}))).toBe(1);
-    expect(spectatorSeatOfModal(defense({ net: { ...base({}).net, mode: 'guest', mySeat: 1 } }))).toBeNull();
-    expect(spectatorSeatOfModal(defense({ net: { ...base({}).net, mode: 'guest', mySeat: 2 } }))).toBe(1);
+    expect(spectatorSeatOfModal(defense({ net: { ...base({}).net, mode: 'invite', mySeat: 1 } }))).toBeNull();
+    expect(spectatorSeatOfModal(defense({ net: { ...base({}).net, mode: 'invite', mySeat: 2 } }))).toBe(1);
   });
 
   it('solo, ou aucune modale : aucun siège attendu', () => {
@@ -154,7 +165,7 @@ describe('possession réseau (netOwnership)', () => {
     // données) ; l'owner de la modale `cascade` = l'actorId de l'étape (le défenseur h2).
     const s = base({
       pendingDefense: { attackerId: 'e1', defenderId: 'h2' } as Jeu['pendingDefense'],
-      pendingCascade: cascadeDeTest([{ id: 'd', jet: 'defense', kind: 'defenseJet', actorId: 'h2' }]),
+      pendingCascade: cascadeDeTest([{ id: 'd', jet: 'defense', kind: 'jetDeDefense', actorId: 'h2' }]),
     });
     expect(modalOwnerOf(s)).toBe('h2');
     expect(intentAllowedFor(s, 1, 'jetLancer', ['defense'])).toBe(true);
@@ -162,12 +173,12 @@ describe('possession réseau (netOwnership)', () => {
   });
 
   it("sort ENNEMI ('*') : tout le monde peut agir (Contre-sort multi)", () => {
-    // Wrapper-fold : l'incantation est une étape `jet:'cast'` de la cascade. Sort ENNEMI → la cascade
+    // Wrapper-fold : l'incantation est une étape `jet:'incantation'` de la cascade. Sort ENNEMI → la cascade
     // est ouverte avec `groupOwner:true` → l'entrée `cascade`
     // met l'owner à '*' (moment partagé + Contre-sort multi en coop). `pendingCast` coexiste comme data.
     const s = base({
       pendingCast: { casterId: 'e1', targetId: 'h1' } as Jeu['pendingCast'],
-      pendingCascade: cascadeDeTest([{ id: 'c', jet: 'cast', kind: 'cast', actorId: 'e1', groupOwner: true }]),
+      pendingCascade: cascadeDeTest([{ id: 'c', jet: 'incantation', kind: 'incantation', actorId: 'e1', groupOwner: true }]),
     });
     expect(modalOwnerOf(s)).toBe('*');
     expect(intentAllowedFor(s, 1, 'castCounterspell')).toBe(true);
@@ -182,7 +193,7 @@ describe('possession réseau (netOwnership)', () => {
     });
     expect(intentAllowedFor(s, 0, 'jetValider', ['cascade'])).toBe(true);
     expect(intentAllowedFor(s, 1, 'jetValider', ['cascade'])).toBe(false);
-    expect(intentAllowedFor(s, 1, 'fenetreValider', ['roundStart'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'fenetreValider', ['debutDuRound'])).toBe(false);
   });
 
   it("valider l'étape (`jetValider('cascade')`) : le propriétaire de la fenêtre — l'acteur de l'étape, tous sur une étape de groupe", () => {
@@ -204,14 +215,14 @@ describe('possession réseau (netOwnership)', () => {
   it('recruterLeHeros : la route laisse passer, le quota du siège se compte par `seatSlotsRemaining` (le geste tranche)', () => {
     // 2 slots au siège 1, il possède déjà h2 → 1 restant.
     const s = base({
-      net: { mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 1, 1, 0] },
+      net: { mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 1, 1, 0] },
       battle: null,
     } as unknown as Partial<Jeu>);
     expect(seatSlotsRemaining(s, 1)).toBe(1);
     expect(intentAllowedFor(s, 1, 'recruterLeHeros', [{ id: 'h3' }])).toBe(true);
     // Quota épuisé : h3 ajouté au siège 1 → refus.
     const full = base({
-      net: { mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1, h3: 1 }, slots: [0, 1, 1, 0] },
+      net: { mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1, h3: 1 }, slots: [0, 1, 1, 0] },
       party: [{ id: 'h1' }, { id: 'h2' }, { id: 'h3' }],
       battle: null,
     } as unknown as Partial<Jeu>);
@@ -232,7 +243,7 @@ describe('possession réseau (netOwnership)', () => {
     const horsCombat = base({ battle: null } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(horsCombat, 1, 'epinglerLIndice', ['ind', true]), 'épingle refusée à l’invité hors combat').toBe(true);
     expect(intentAllowedFor(horsCombat, 1, 'marquerLesIndices', [vu]), 'nouveauté vue refusée à l’invité hors combat').toBe(true);
-    expect(intentAllowedFor(horsCombat, 1, 'suivreLEntrainement', ['h1']), 'opposé : un geste POSSÉDÉ reste refusé').toBe(false);
+    expect(intentAllowedFor(horsCombat, 1, 'commanderLObjet', ['h1']), 'opposé : un geste POSSÉDÉ reste refusé').toBe(false);
     const enCombat = base({}); // actif = h1 (hôte) : le repli refuserait le siège 1
     expect(intentAllowedFor(enCombat, 1, 'epinglerLIndice', ['ind', true])).toBe(true);
     expect(intentAllowedFor(enCombat, 1, 'marquerLesIndices', [vu])).toBe(true);
@@ -328,28 +339,28 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
   const interludeState = (over: Partial<Jeu> = {}): Jeu => base({
     battle: null,
     interlude: { weeks: 2, phase: 'activities', perHero: { h1: { eventRoll: 1, left: 2, revenueBrass: 0 }, h2: { eventRoll: 2, left: 2, revenueBrass: 0 } } },
-    bank: [{ uid: 'depot-h2', heroId: 'h2', kind: 'stash', brass: 100, rate: 0 }],
+    bank: [{ uid: 'depot-h2', heroId: 'h2', kind: 'planque', brass: 100, rate: 0 }],
     ...over,
   } as Partial<Jeu>);
 
   it('activité visant un héros : son propriétaire agit, pas les autres', () => {
     const s = interludeState();
-    expect(intentAllowedFor(s, 1, 'pratiquerLActivite', ['h2', 'revenus'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'pratiquerLActivite', ['h1', 'revenus'])).toBe(false);
-    expect(intentAllowedFor(s, 0, 'fabriquerLObjet', ['h1', 'Dague', [], []])).toBe(true);
-    expect(intentAllowedFor(s, 0, 'pratiquerLActivite', ['h2', 'learn', { talentId: 'chanceux' }])).toBe(false);
-    expect(intentAllowedFor(s, 1, 'deposerALaBanque', ['h2', 'stash', 120])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'fenetreChoisir', ['interlude', 'activite', 'revenus', 'h2'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'fenetreChoisir', ['interlude', 'pratiquer', true, 'h1'])).toBe(false);
+    expect(intentAllowedFor(s, 0, 'fenetreChoisir', ['interlude', 'ouvrage', 'dague', 'h1'])).toBe(true);
+    expect(intentAllowedFor(s, 0, 'fenetreChoisir', ['interlude', 'talent', 'chanceux', 'h2'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'deposerALaBanque', ['h2', 'planque', 120])).toBe(true);
   });
 
-  it('Entraînement, Faveur (1er argument) et préparation de bataille (meneur en 2e argument) : son propriétaire agit, pas les autres', () => {
+  it('Entraînement, Faveur et préparation de bataille (héros en 1er argument) : son propriétaire agit, pas les autres', () => {
     const s = interludeState();
-    expect(intentAllowedFor(s, 1, 'suivreLEntrainement', ['h2', 'characteristic', 'intelligence'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'suivreLEntrainement', ['h1', 'characteristic', 'intelligence'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'fenetreChoisir', ['interlude', 'entrainement', 'intelligence', 'h2'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'fenetreChoisir', ['interlude', 'entrainement', 'intelligence', 'h1'])).toBe(false);
     expect(intentAllowedFor(s, 1, 'solderLaFaveur', ['h2'])).toBe(true);
     expect(intentAllowedFor(s, 1, 'solderLaFaveur', ['h1'])).toBe(false);
-    expect(intentAllowedFor(s, 1, 'menerLActionDeBataille', ['planification', 'h2'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'menerLActionDeBataille', ['planification', 'h1'])).toBe(false);
-    expect(intentAllowedFor(s, 0, 'menerLActionDeBataille', ['planification', 'h2'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'menerLActionDeBataille', ['h2', 'planification'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'menerLActionDeBataille', ['h1', 'planification'])).toBe(false);
+    expect(intentAllowedFor(s, 0, 'menerLActionDeBataille', ['h2', 'planification'])).toBe(false);
   });
 
   it('retrait bancaire : le dépôt appartient à un héros — son propriétaire retire', () => {
@@ -362,7 +373,7 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
   it('modale de jet d’Activité (arbitre M8) : owner = héros du pending', () => {
     const s = interludeState({ pendingActivity: { heroId: 'h2', kind: 'catalog', activityId: 'revenus' } as Jeu['pendingActivity'] });
     expect(modalOwnerOf(s)).toBe('h2');
-    expect(intentAllowedFor(s, 1, 'jetLancer', ['activity'])).toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetLancer', ['activity'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetLancer', ['activite'])).toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetLancer', ['activite'])).toBe(false);
   });
 });

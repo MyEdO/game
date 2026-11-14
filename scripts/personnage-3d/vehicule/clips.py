@@ -1,7 +1,7 @@
 """Les clips d'un engin (#2987) : chaque clip anime des nœuds de la scène, échantillonné à chaque image, et s'exporte en
 une animation glTF (une piste NLA du nom du clip par nœud, que l'export `NLA_TRACKS` fusionne d'un nœud à l'autre). Le
-manifeste nomme le clip de chaque rôle (`ROLES_D_ANIMATION`, `src/noyau/animation.ts`) : `idle` (repos), `walk` (le
-déplacement, joué en boucle) et le rôle de son attaque, `ranged` ou `melee`.
+manifeste nomme le clip de chaque rôle (`ROLES_D_ANIMATION`, `src/noyau/animation.ts`) : `repos`, `marche` (le
+déplacement, joué en boucle) et le rôle de son attaque, `tir` ou `melee`.
 
 Un clip est `(role, nom, duree, pistes)`, `pistes` `{nœud: f(t) -> ((dx, dy, dz), (rx, ry, rz))}` : le déplacement et la
 rotation (radians) du nœud depuis son repos à l'instant `t` (secondes). Chaque clip clé tous les nœuds qu'anime l'un des
@@ -14,7 +14,7 @@ import bpy
 IMAGES = 24
 # Une case de 2 m (LDB 15 l.12) en `DUREE_DEPLACEMENT_S` (`hotes/godot/projet/scripts/combattant.gd`).
 VITESSE = 2.0 / 0.45
-REPOS = ("idle", "repos", 1.0, {})
+REPOS = ("repos", "repos", 1.0, {})
 SECOUSSE = 0.02
 
 
@@ -40,18 +40,18 @@ def rouler(rayon, roues):
     """Le clip de déplacement d'un engin aux `roues` de `rayon` : un tour de roue à `VITESSE`, en boucle."""
     duree = 2 * math.pi * rayon / VITESSE
     f = lambda t: ((0, 0, 0), (2 * math.pi * t / duree, 0, 0))
-    return ("walk", "marche", duree, {n: f for n in roues})
+    return ("marche", "marche", duree, {n: f for n in roues})
 
 
 def cahoter(noeuds):
     """Le clip de déplacement d'un engin sans roues, que ses servants portent ou traînent : une secousse par case."""
     duree = 2.0 / VITESSE
     f = lambda t: ((0, 0, SECOUSSE * abs(math.sin(math.pi * t / duree))), (0, 0, 0))
-    return ("walk", "marche", duree, {n: f for n in noeuds})
+    return ("marche", "marche", duree, {n: f for n in noeuds})
 
 
 def tirer(T, temps, glisse, pieces, roues=(), rayon=1.0):
-    """Le clip `ranged` d'une pièce à feu aux `temps` (`coup`) de la table `T` : `recul` (m, vers l'arrière) de `glisse`,
+    """Le clip `tir` d'une pièce à feu aux `temps` (`coup`) de la table `T` : `recul` (m, vers l'arrière) de `glisse`,
     des `pieces` et des `roues` de `rayon`, tournées à rebours ; `ressaut` (degrés, bouche levée) des `pieces` ; le nœud
     `tourne` des `pieces`, un barillet, fait `tours` tours sur son axe y."""
     duree = sum(temps)
@@ -61,7 +61,7 @@ def tirer(T, temps, glisse, pieces, roues=(), rayon=1.0):
     for n in pieces:
         tour = 2 * math.pi * T.get("tours", 0) if n == T.get("tourne") else 0.0
         pistes[n] = lambda t, tour=tour: ((0, recul(t), 0), (-math.radians(T["ressaut"]) * coup(t, temps), tour * lisse(t / duree), 0))
-    return ("ranged", "tir", duree, pistes)
+    return ("tir", "tir", duree, pistes)
 
 
 def animer(clips):

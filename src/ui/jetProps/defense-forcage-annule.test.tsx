@@ -17,7 +17,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, species: 'humains-reiklander', characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, resilience: 1 }) as unknown as Combatant);
@@ -33,8 +33,8 @@ afterEach(demonterRacines);
 /** Joue l'opposition PILOTÉE jusqu'à la fenêtre de Défense, en forçant les camps demandés. */
 function play(opts: { atk?: boolean; def?: boolean }): string {
   demonterRacines();
-  const enemy = mk('e', 'enemy', { x: 1, y: 0 });
-  const hero = mk('h', 'hero', { x: 0, y: 0 });
+  const enemy = mk('e', 'ennemi', { x: 1, y: 0 });
+  const hero = mk('h', 'heros', { x: 0, y: 0 });
   const battle: BattleState = {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -46,10 +46,10 @@ function play(opts: { atk?: boolean; def?: boolean }): string {
   });
   const g = useGame.getState;
   seedBattleRng(3);
-  openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-  g().jetLancer('attack');
-  if (opts.atk) g().jetForcerLaReussite('attack');
-  g().jetValider('attack');
+  openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
+  g().jetLancer('attaque');
+  if (opts.atk) g().jetForcerLaReussite('attaque');
+  g().jetValider('attaque');
   g().jetLancer('defense');
   if (opts.def) g().jetForcerLaReussite('defense');
   return monterRacine(<Probe />).container.textContent ?? '';

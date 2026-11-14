@@ -15,7 +15,7 @@ const REZ := [-1.0, 0.0, -1.0, 1.0, 0.0, -1.0, -1.0, 0.0, 1.0, 1.0, 0.0, -1.0, 1
 	1.0, 0.0, -1.0, 3.0, 0.0, -1.0, 1.0, 0.0, 1.0, 3.0, 0.0, -1.0, 3.0, 0.0, 1.0, 1.0, 0.0, 1.0]
 const ETAGE := [-1.0, 4.0, -1.0, 1.0, 4.0, -1.0, -1.0, 4.0, 1.0, 1.0, 4.0, -1.0, 1.0, 4.0, 1.0, -1.0, 4.0, 1.0,
 	1.0, 4.0, -1.0, 3.0, 4.0, -1.0, 1.0, 4.0, 1.0, 3.0, 4.0, -1.0, 3.0, 4.0, 1.0, 1.0, 4.0, 1.0]
-const CASES := [[0, 0, 0], [0, 0, 0], [1, 0, 0], [1, 0, 0], [0, 0, 1], [0, 0, 1], [1, 0, 1], [1, 0, 1]]
+const CASES := [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1]
 ## Les sommets des huit triangles.
 const SOMMETS := 24
 const OEIL_M := 1.7
@@ -44,10 +44,10 @@ func _recetter() -> void:
 		couleurs.append_array([1.0, 1.0, 1.0, 1.0])
 	var positions := REZ.duplicate()
 	positions.append_array(ETAGE)
-	monde.poser({metresParCase = METRES_PAR_CASE, positions = positions, normales = normales, couleurs = couleurs, cases = CASES,
-		surfaces = [{debut = 0, fin = SOMMETS, matiere = "terrain--terre"}],
-		hauteurs = [{z = 0, rangees = [[0.0, 0.0]]}, {z = 1, rangees = [[4.0, 4.0]]}],
-		ombre = {positions = [], normales = [], couleurs = [], cases = [], surfaces = []}})
+	var morceau := {cle = "sol/0/0/0", empreinte = "sol", rangee = 0, positions = positions, normales = normales, couleurs = couleurs, cases = CASES,
+		surfaces = [{debut = 0, fin = SOMMETS, matiere = "terrain--terre"}]}
+	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = [[0.0, 0.0]]}, {z = 1, rangees = [[4.0, 4.0]]}],
+		morceaux = [morceau]}, toits = [], couronnes = []}, {volume = [morceau], toits = [], couronnes = []})
 	await physics_frame
 	monde.regarder("immersion")
 	var immersion: Immersion = plateau.get_node("Immersion")

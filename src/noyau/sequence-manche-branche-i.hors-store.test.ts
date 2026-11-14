@@ -32,17 +32,17 @@ describe('#1595 — une manche résolue en branche I se clôt', () => {
     set({ party: [h] } as never);
     const closes: number[] = [];
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, sondeMancheI: () => undefined }, sequences: { ...tablesDuJeu().sequences, 'sonde-manche-branche-i': sequenceDeFixture<Record<string, never>>({
-      round: (g, seq) => {
+      manche: (g, seq) => {
         const step = monoStep({
-          id: `m-${seq.round}`, kind: cleDeFixture('sondeMancheI'), label: fixtureText('Manche'), actor: g().party[0],
+          id: `m-${seq.manche}`, kind: cleDeFixture('sondeMancheI'), label: fixtureText('Manche'), actor: g().party[0],
           difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-          stake: combatStakeRef('pursuit-move', { values: { distance: 1, evasion: 10 } }),
+          stake: combatStakeRef('poursuite-manche', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Manche'), steps: [step] } : undefined;
       },
-      close: ({ seq }) => { closes.push(seq.round); return { go: 'end', outcome: 'fin' }; },
+      clore: ({ seq }) => { closes.push(seq.manche); return { suite: 'fin', issue: 'fin' }; },
     }) } });
-    startSequence(get, set, { def: 'sonde-manche-branche-i', payload: {} });
+    startSequence(get, set, { definition: 'sonde-manche-branche-i', chargeUtile: {} });
     expect(get().pendingCascade, 'aucun siège ne tient le porteur : aucune fenêtre').toBeNull();
     expect(closes, 'la manche résolue sur place est CLOSE par le socle').toEqual([1]);
     expect(activeSequence(get), 'issue atteinte : la séquence est retirée').toBeNull();

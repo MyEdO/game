@@ -50,7 +50,7 @@ describe('hooks du stage — smoke (premier rendu, état initial)', () => {
   });
 });
 
-const cbt = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
+const cbt = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant =>
   ({ id, name: id, kind, pos, size: 'moyenne', conditions: [], wounds: { current: 10, max: 10 } } as unknown as Combatant);
 const walkStill = (_id: string, x: number, y: number) => ({ x, y, walking: false });
 
@@ -70,12 +70,12 @@ describe('stageFocus / cameraTargeting — helpers purs de caméra', () => {
 
   it('hors combat : suit la position (visuelle) du leader, sinon partyPos', () => {
     expect(stageFocus(base)).toEqual({ x: 2, y: 3, sujet: 'groupe' });
-    expect(stageFocus({ ...base, partyLeader: cbt('h', 'hero', { x: 0, y: 0 }) })).toEqual({ x: 2, y: 3, sujet: 'groupe' }); // walkStill → position logique
+    expect(stageFocus({ ...base, partyLeader: cbt('h', 'heros', { x: 0, y: 0 }) })).toEqual({ x: 2, y: 3, sujet: 'groupe' }); // walkStill → position logique
   });
 
   it('hors combat : le SUJET est le GROUPE — changer de meneur, groupe immobile, ne relance aucun adoucissement', () => {
-    const avant = stageFocus({ ...base, partyLeader: cbt('a', 'hero', { x: 0, y: 0 }) });
-    const apres = stageFocus({ ...base, partyLeader: cbt('b', 'hero', { x: 0, y: 0 }) });
+    const avant = stageFocus({ ...base, partyLeader: cbt('a', 'heros', { x: 0, y: 0 }) });
+    const apres = stageFocus({ ...base, partyLeader: cbt('b', 'heros', { x: 0, y: 0 }) });
     // Le saut de focale s'arme sur un CHANGEMENT de sujet (`MondeDeCampagne`, `lissageRef`) : deux
     // meneurs, un seul sujet → rien à adoucir, et la focale ne bouge pas non plus.
     expect(apres.sujet, 'le meneur n’est pas le sujet : le groupe l’est').toBe(avant.sujet);
@@ -84,8 +84,8 @@ describe('stageFocus / cameraTargeting — helpers purs de caméra', () => {
   });
 
   it('paire de visée (télégraphe/attaque en résolution) : cadre le MILIEU attaquant ↔ cible', () => {
-    const a = cbt('a', 'enemy', { x: 0, y: 0 });
-    const t = cbt('t', 'hero', { x: 4, y: 2 });
+    const a = cbt('a', 'ennemi', { x: 0, y: 0 });
+    const t = cbt('t', 'heros', { x: 4, y: 2 });
     const battle = { combatants: [a, t], order: ['a'], turn: 0 } as unknown as BattleState;
     const focus = stageFocus({ ...base, mode: 'battle', battle, targeting: { from: a, to: t } });
     expect(focus).toEqual({ x: 2, y: 1, sujet: 'paire:a>t' });
@@ -93,8 +93,8 @@ describe('stageFocus / cameraTargeting — helpers purs de caméra', () => {
   });
 
   it('combat sans paire : suit l’actif ; ouverture (planView) ou pas d’actif → centroïde ; peek de frise prime', () => {
-    const a = cbt('a', 'hero', { x: 1, y: 1 });
-    const b = cbt('b', 'enemy', { x: 3, y: 3 });
+    const a = cbt('a', 'heros', { x: 1, y: 1 });
+    const b = cbt('b', 'ennemi', { x: 3, y: 3 });
     const battle = { combatants: [a, b], order: ['a', 'b'], turn: 0 } as unknown as BattleState;
     expect(stageFocus({ ...base, mode: 'battle', battle })).toEqual({ x: 1, y: 1, sujet: 'actif:a' }); // l'actif
     expect(stageFocus({ ...base, mode: 'battle', battle, planView: true })).toEqual({ x: 2, y: 2, sujet: 'centroide' }); // centroïde
@@ -102,11 +102,11 @@ describe('stageFocus / cameraTargeting — helpers purs de caméra', () => {
   });
 
   it('cameraTargeting : paire depuis actorAim, mêlée/charge = ligne pleine', () => {
-    const a = cbt('a', 'enemy', { x: 0, y: 0 });
-    const t = cbt('t', 'hero', { x: 1, y: 1 });
+    const a = cbt('a', 'ennemi', { x: 0, y: 0 });
+    const t = cbt('t', 'heros', { x: 1, y: 1 });
     const battle = { combatants: [a, t] } as unknown as BattleState;
     expect(cameraTargeting(battle, { fromId: 'a', toId: 't', kind: 'charge' })?.melee).toBe(true);
-    expect(cameraTargeting(battle, { fromId: 'a', toId: 't', kind: 'ranged' })?.melee).toBe(false);
+    expect(cameraTargeting(battle, { fromId: 'a', toId: 't', kind: 'tir' })?.melee).toBe(false);
     expect(cameraTargeting(battle, null)).toBeNull();
   });
 });

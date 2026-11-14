@@ -6,7 +6,7 @@ import { t } from '../i18n';
  * Bouton « Inverser » (LDB 23 l.209 « Entraînement au Combat » / l.218 « Observer une cible » ; LDB 10,
  * Talents Sociable/Studieux/Lecture rapide/Pharmacologie/Chat de gouttière/Noctambule/Pansement de
  * fortune/Pilote : « vous pouvez inverser un Test raté ») : intervertit les chiffres du d100 d'un jet —
- * un CHOIX du joueur, jamais un automatisme (#558). Pendant UI du verbe `reverse` de la fabrique
+ * un CHOIX du joueur, jamais un automatisme (#558). Pendant UI du verbe `inverser` de la fabrique
  * rollFlow — frère de `ResistButton`/`ResilienceButton`. Affiché quand une voie APPLICABLE existe
  * (`show` — Talent : convertirait l'échec en réussite ; jeton : libre, réussi ou raté). `preview` rend
  * l'issue LISIBLE avant le clic (dé renversé + DR/succès, `reversePreview`) — le jeton peut dégrader
@@ -29,7 +29,7 @@ export function ReverseButton({
       onClick={onReverse}
       title="Inverser ce Test : intervertit les chiffres du d100"
     >
-      <Icon id="nav/dice" size="sm" /> {t('verbe.reverse')}{previewLabel}
+      <Icon id="navigation/des" size="sm" /> {t('verbe.inverser')}{previewLabel}
     </button>
   );
 }

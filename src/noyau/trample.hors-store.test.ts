@@ -25,7 +25,7 @@ const auTourDe = (id: string): void => {
   b.turn = b.order.indexOf(id);
 };
 
-const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Partial<Combatant> = {}): Combatant =>
+const at = (kind: 'heros' | 'ennemi', id: string, x: number, y: number, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id, name: id, kind,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -37,14 +37,14 @@ const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Part
 
 describe('cibleDEcartDeTaille — cible au contact plus petite d’au moins N catégories (pur)', () => {
   it('renvoie un adversaire adjacent PLUS PETIT et vivant ; pas un égal/lointain/mort', () => {
-    const big = at('enemy', 'TROLL', 5, 5, { size: 'grande' });
-    const small = at('hero', 'H1', 5, 6, { size: 'moyenne' }); // adjacent, plus petit
-    const equal = at('hero', 'H2', 4, 5, { size: 'grande' }); // adjacent mais même Taille
-    const far = at('hero', 'H3', 5, 9, { size: 'petite' }); // plus petit mais loin
+    const big = at('ennemi', 'TROLL', 5, 5, { size: 'grande' });
+    const small = at('heros', 'H1', 5, 6, { size: 'moyenne' }); // adjacent, plus petit
+    const equal = at('heros', 'H2', 4, 5, { size: 'grande' }); // adjacent mais même Taille
+    const far = at('heros', 'H3', 5, 9, { size: 'petite' }); // plus petit mais loin
     const battle = { combatants: [big, small, equal, far] } as unknown as BattleState;
-    expect(cibleDEcartDeTaille(battle, big, 1)?.id).toBe('H1');
-    expect(cibleDEcartDeTaille(battle, big, 1, 'H2')).toBeUndefined(); // ciblage explicite d'un égal → rien
-    expect(cibleDEcartDeTaille(battle, big, 1, 'H3')).toBeUndefined(); // trop loin
+    expect(cibleDEcartDeTaille(null, battle, big, 1)?.id).toBe('H1');
+    expect(cibleDEcartDeTaille(null, battle, big, 1, 'H2')).toBeUndefined(); // ciblage explicite d'un égal → rien
+    expect(cibleDEcartDeTaille(null, battle, big, 1, 'H3')).toBeUndefined(); // trop loin
   });
 });
 
@@ -62,11 +62,11 @@ describe('Piétinement en combat (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     H.pos = { x: 10, y: 10 };
@@ -94,11 +94,11 @@ describe('Piétinement en combat (store)', () => {
     H.advantage = 2;
     pietiner(E.id);
     expect(banc.getState().pendingAttack!.freeKind).toBe('pietinement');
-    banc.getState().jetLancer('attack');
+    banc.getState().jetLancer('attaque');
     const pa = banc.getState().pendingAttack!;
     expect(pa.weapon!.attackKind, 'l’arme du JET est celle du Piétinement').toBe('pietinement');
     expect(pa.result!.defenderDetail, 'la cible oppose sa défense').toBeDefined();
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().battle!.acted, 'action GRATUITE : l’Action reste').toBe(false);
   });
 
@@ -111,12 +111,12 @@ describe('Piétinement en combat (store)', () => {
     E.pos = { x: 13, y: 10 };
     pietiner(E.id);
     expect(banc.getState().pendingAttack?.freeKind, 'le clic ouvre le jet du Piétinement').toBe('pietinement');
-    banc.getState().jetLancer('attack');
+    banc.getState().jetLancer('attaque');
     expect(banc.getState().pendingAttack!.result!.defenderDetail, 'la cible oppose sa défense').toBeDefined();
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.pietinement).toBe(1);
-    expect(availableAttacks(h, banc.getState().battle!).some((o) => o.id === 'pietinement'), 'l’option disparaît').toBe(false);
+    expect(availableAttacks(banc.getState().scene, h, banc.getState().battle!).some((o) => o.id === 'pietinement'), 'l’option disparaît').toBe(false);
   });
 
   it('Morsure jouée par un héros : l’arme du JET est la Morsure, jamais l’arme tenue (#1026 ; LDB 85 l.237)', () => {
@@ -126,7 +126,7 @@ describe('Piétinement en combat (store)', () => {
     H.advantage = 2;
     banc.getState().armerLAttaque('morsure');
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    banc.getState().jetLancer('attack');
+    banc.getState().jetLancer('attaque');
     const pa = banc.getState().pendingAttack!;
     expect(H.weapons.some((w) => w.attackKind === 'morsure'), 'aucune arme tenue ne porte la Morsure').toBe(false);
     expect(pa.weapon!.attackKind).toBe('morsure');
@@ -145,8 +145,8 @@ describe('Piétinement en combat (store)', () => {
     E.advantage = 0;
     const before = E.wounds.current;
     pietiner(E.id);
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     expect(advDe(H.id)).toBe(0);
     expect(advDe(E.id)).toBe(1);
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.wounds.current).toBe(before);
@@ -156,17 +156,17 @@ describe('Piétinement en combat (store)', () => {
     const { H, E } = setup();
     H.size = 'grande';
     H.advantage = 0;
-    expect(availableAttacks(H, banc.getState().battle!).some((o) => o.id === 'pietinement')).toBe(false);
+    expect(availableAttacks(banc.getState().scene, H, banc.getState().battle!).some((o) => o.id === 'pietinement')).toBe(false);
     H.advantage = 2;
     H.size = 'moyenne';
     E.size = 'moyenne';
-    expect(availableAttacks(H, banc.getState().battle!).some((o) => o.id === 'pietinement')).toBe(false);
+    expect(availableAttacks(banc.getState().scene, H, banc.getState().battle!).some((o) => o.id === 'pietinement')).toBe(false);
   });
 
   it('cible de même Taille au contact : le clic ne piétine pas (`freeAttackTargetOk`)', () => {
     const { H, E } = setup();
     const b = banc.getState().battle!;
-    const E2 = b.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
+    const E2 = b.combatants.find((c) => c.kind === 'ennemi' && c.id !== E.id)!;
     E2.dead = false;
     E2.pos = { x: 10, y: 11 };
     H.size = 'grande';
@@ -185,7 +185,7 @@ describe('Piétinement en combat (store)', () => {
     H.size = 'grande';
     H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
     H.advantage = 0;
-    const piet = availableAttacks(H, banc.getState().battle!).find((o) => o.id === 'pietinement');
+    const piet = availableAttacks(banc.getState().scene, H, banc.getState().battle!).find((o) => o.id === 'pietinement');
     expect(piet?.cost).toEqual({ action: false, advantage: 0, movement: true });
   });
 
@@ -221,7 +221,7 @@ describe('Piétinement en combat (store)', () => {
     H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
     H.advantage = 0;
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: mountMovement(banc.getState().battle!, H) } });
-    expect(availableAttacks(H, banc.getState().battle!).some((o) => o.id === 'pietinement')).toBe(false);
+    expect(availableAttacks(banc.getState().scene, H, banc.getState().battle!).some((o) => o.id === 'pietinement')).toBe(false);
   });
 
   // LDB 85 l.237 ; LDB 85 l.314 ; LDB 85 l.387.
@@ -239,13 +239,13 @@ describe('Piétinement en combat (store)', () => {
     const paye = banc.getState();
     expect(paye.pendingAttack, 'la déclaration a ouvert le jet').toBeTruthy();
     expect(advDe(H.id) < 2 || paye.battle!.movementUsed > 0, 'la déclaration a PAYÉ').toBe(true);
-    banc.getState().jetAnnuler('attack');
+    banc.getState().jetAnnuler('attaque');
     const st = banc.getState();
     expect(st.pendingAttack).toBeNull();
     expect(advDe(H.id), 'Avantage rendu').toBe(2);
     expect(st.battle!.movementUsed, 'Mouvement rendu').toBe(0);
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
-    expect(availableAttacks(h, st.battle!).some((o) => o.id === attaque), 'l’option est rendue').toBe(true);
+    expect(availableAttacks(banc.getState().scene, h, st.battle!).some((o) => o.id === attaque), 'l’option est rendue').toBe(true);
   });
 
   it('IA : un ennemi plus grand avec de l’Avantage piétine un héros adjacent plus petit (via aiCreatureFreeAttacks, #527)', () => {
@@ -412,12 +412,12 @@ describe('Piétinement en combat (store)', () => {
     H.size = 'grande';
     H.advantage = 3;
     pietiner(E.id);
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     h.advantage = 3;
     expect(h.freeAttacksThisTurn?.pietinement).toBe(1);
-    expect(availableAttacks(h, banc.getState().battle!).some((o) => o.id === 'pietinement')).toBe(false);
+    expect(availableAttacks(banc.getState().scene, h, banc.getState().battle!).some((o) => o.id === 'pietinement')).toBe(false);
   });
 
   // La case de gate lit l'option, jamais un second prédicat. LDB 85 l.387 ; LDB 85 l.314.
@@ -426,15 +426,15 @@ describe('Piétinement en combat (store)', () => {
     const { H, E } = setup();
     H.size = 'grande';
     H.advantage = 3;
-    expect(ACTION_GATES['pietinement-gratuit']({ active: H, battle: banc.getState().battle!, gameTime: banc.getState().gameTime }).ok).toBe(true);
+    expect(ACTION_GATES['pietinement-gratuit']({ scene: banc.getState().scene, active: H, battle: banc.getState().battle!, gameTime: banc.getState().gameTime }).ok).toBe(true);
     pietiner(E.id);
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     banc.reprendreTout();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.id === H.id)!;
     expect(h.advantage, 'il reste de l’Avantage').toBeGreaterThan(0);
-    expect(ACTION_GATES['pietinement-gratuit']({ active: h, battle: b, gameTime: banc.getState().gameTime }).ok).toBe(false);
+    expect(ACTION_GATES['pietinement-gratuit']({ scene: banc.getState().scene, active: h, battle: b, gameTime: banc.getState().gameTime }).ok).toBe(false);
   });
 
   it('gate « pietinement-gratuit » : Se cabrer à 0 Avantage, Mouvement intact, la gate est ouverte', () => {
@@ -442,7 +442,7 @@ describe('Piétinement en combat (store)', () => {
     H.size = 'grande';
     H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
     H.advantage = 0;
-    expect(ACTION_GATES['pietinement-gratuit']({ active: H, battle: banc.getState().battle!, gameTime: banc.getState().gameTime }).ok).toBe(true);
+    expect(ACTION_GATES['pietinement-gratuit']({ scene: banc.getState().scene, active: H, battle: banc.getState().battle!, gameTime: banc.getState().gameTime }).ok).toBe(true);
   });
 
   // LDB 85 l.237 ; LDB 85 l.387 ; LDB 85 l.405.
@@ -466,6 +466,6 @@ describe('Piétinement en combat (store)', () => {
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(e.freeAttacksThisTurn?.[kind], 'l’IA joue exactement le plafond').toBe(plafond);
     e.advantage = 5;
-    expect(availableAttacks(e, banc.getState().battle!).some((o) => o.freeKind === kind), 'le héros lit le même plafond').toBe(false);
+    expect(availableAttacks(banc.getState().scene, e, banc.getState().battle!).some((o) => o.freeKind === kind), 'le héros lit le même plafond').toBe(false);
   });
 });

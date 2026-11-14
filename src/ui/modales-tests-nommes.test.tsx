@@ -65,8 +65,8 @@ describe('modales des Tests nommés — compétence et Difficulté lues du pendi
   it('Approche d’une Peur : ligne = compétence et Difficulté de `se-rapprocher`', () => {
     const test = testDeRegle('calme-d-approche', 'se-rapprocher');
     useGame.setState({
-      battle: { combatants: [combattantDeModale('H'), combattantDeModale('Ogre', 'enemy')] },
-      pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null },
+      battle: { combatants: [combattantDeModale('H'), combattantDeModale('Ogre', 'ennemi')] },
+      pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null },
     } as never);
     act(() => root.render(<ApproachModal />));
     const { skill, difficulty } = testDeFiche('calme-d-approche', 'se-rapprocher');

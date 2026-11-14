@@ -13,6 +13,7 @@
  *     le seam de jet y poserait est une CIBLE ; c'est la `base` authorée de l'étape qui doit servir,
  *     sans quoi l'opposition compare une cible à la nue de l'attaquant figé.
  */
+import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant } from '../engine/types';
@@ -24,7 +25,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const mk = (id: string, kind: Combatant['kind'] = 'hero', over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
+const mk = (id: string, kind: Combatant['kind'] = 'heros', over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id, name: id, label: id, kind,
   characteristics: { force: 40, dexterite: 40, agilite: 40, endurance: 40, 'force-mentale': 30, 'capacite-de-combat': 45, 'capacite-de-tir': 45, initiative: 40, intelligence: 30, sociabilite: 40 },
   wounds: blessuresDeBase(10), advantage: 0, conditions: [], traumas: [],
@@ -47,7 +48,7 @@ const P = <T,>(k: string): T => (banc.getState() as unknown as Record<string, T>
 
 beforeEach(() => {
   // Le héros A a Int 30 + 15 Augmentations = Niveau de Compétence 45 en Langue (Magick).
-  const A = mk('A'), E = mk('E', 'enemy');
+  const A = mk('A'), E = mk('E', 'ennemi');
   banc.setState({
     party: [A],
     battle: { combatants: [A, E], log: [], order: ['A', 'E'], turn: 0, round: 1 } as never,
@@ -62,7 +63,7 @@ describe('LDB 12 l.160 — dé POSÉ sur un Test opposé d’incantation (#1150)
       // `base: 30` sur le jet de départ = une valeur TESTÉE quelconque : elle ne doit pas servir au départage.
       { id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...RATE }, casterNetSL: 7, log: '' } },
     ] } } as never);
-    st().jetImposerLeResultat('counterspell', POSE, 'A');
+    st().jetImposerLeResultat('contreSort', POSE, 'A');
 
     const part = P<{ participants: { result: { dispelled: boolean; counter: { roll: number; sl: number; base?: number } } }[] }>('pendingCounterspell').participants[0];
     expect(part.result.counter.roll).toBe(POSE);
@@ -72,13 +73,13 @@ describe('LDB 12 l.160 — dé POSÉ sur un Test opposé d’incantation (#1150)
   });
 
   it('Contre-sort : le chanteur le plus compétent dissipe, à DR égal', () => {
-    banc.setState({ party: [mk('A', 'hero', { skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 45 }] })] } as never);
+    banc.setState({ party: [mk('A', 'heros', { skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 45 }] })] } as never);
     const b = banc.getState().battle!;
     banc.setState({ battle: { ...b, combatants: [banc.getState().party[0], b.combatants[1]] } } as never);
     banc.setState({ pendingCounterspell: { participants: [
       { id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...RATE }, casterNetSL: 7, log: '' } },
     ] } } as never);
-    st().jetImposerLeResultat('counterspell', POSE, 'A');
+    st().jetImposerLeResultat('contreSort', POSE, 'A');
 
     const part = P<{ participants: { result: { dispelled: boolean; counter: { base?: number } } }[] }>('pendingCounterspell').participants[0];
     expect(part.result.counter.base, 'Int 30 + 45 Augmentations').toBe(75);
@@ -105,7 +106,7 @@ describe('LDB 12 l.160 — seam de CASCADE opposée : la nue de l’étape, jama
   const step = (over: Partial<CascadeTestStep> = {}): CascadeStep => ({
     id: 's1', kind: cleDeFixture('test'), actorId: 'A', rollLabel: 'Force Mentale',
     base: 45, target: 25, difficulty: 'difficile',
-    meta: { opposed: { aT: { roll: 13, target: 40, base: 40, sl: 1, success: true, isDouble: false }, attackerId: 'E', attackerName: 'E', attackerLabel: 'Force' } },
+    meta: { opposed: { aT: { roll: 13, target: 40, base: 40, sl: 1, success: true, isDouble: false }, attackerId: 'E', attackerName: fixtureText('E'), attackerLabel: 'Force' } },
     result: { roll: 88, target: 25, sl: -6, success: false },
     ...over,
   });

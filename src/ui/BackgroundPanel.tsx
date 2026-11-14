@@ -70,7 +70,7 @@ export function BackgroundPanel({ hero }: { hero: Combatant }) {
       )}
 
       <div className="mini-title">
-        Background <span className="bg-hint"><Icon id="ui/edit" size="sm" /> Modifiable hors combat</span>
+        Background <span className="bg-hint"><Icon id="interface/editer" size="sm" /> Modifiable hors combat</span>
       </div>
       <BackgroundFields
         values={{ motivation: hero.motivation ?? '', ambitionShort: d?.ambitionShort ?? '', ambitionLong: d?.ambitionLong ?? '' }}

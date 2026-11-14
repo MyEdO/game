@@ -19,7 +19,7 @@
  *    → collectées par `diseasePassiveOps` → `passiveMods` (kind 'maladie', annulable par Détermination) ;
  *    les `condition` y sont MATÉRIALISÉES sur le porteur par `syncDerivedConditions` (engine/conditions).
  *  - `onTick` : cycle quotidien — soit une ÉPREUVE (`test`, le nœud `test` du Flow : jet + conséquence
- *    de la branche `fail`), DIFFÉRÉE en cascade influençable (`disease-tick`) ; soit une conséquence
+ *    de la branche `echec`), DIFFÉRÉE en cascade influençable (`maladie-test-quotidien`) ; soit une conséquence
  *    CERTAINE (`ops`), appliquée sans jet.
  *  - `capabilities` (drapeaux irréductibles lus par la machinerie de CYCLE ci-dessous) : `blocksHealing`
  *    (Blessé/Gangrène), `amputation` (Gangrène), `contagious` (Toux),
@@ -31,13 +31,22 @@ import { RNG, roll, rollDice, formatDice } from './dice';
 import { MINUTES_PER_DAY } from './clock';
 import { findTableEntry } from './tables';
 import { spellOps, type FlowTestNode } from './flowCore';
-import locJson from '../data/localisation.json';
-// Table de Localisation CANONIQUE (`src/data/localisation.json`, humanoïde) via la primitive `findTableEntry`
-// — MÊME source/lookup que `engine/combat.hitLocation`, réutilisée ici sans cycle (json + tables = feuilles).
-const HUMANOID_LOC = (locJson as { personnage: { shapes: Record<string, { min: number; max: number; loc: HitLocation }[]> } }).personnage.shapes.humanoide;
-const rollBlisterLocation = (rng: RNG): HitLocation => findTableEntry(HUMANOID_LOC, roll(1, 100, rng)).loc;
+// Table de Localisation CANONIQUE (`tablesDeLocalisation`, humanoïde) via la primitive `findTableEntry` — MÊME
+// source/lookup que `engine/combat.hitLocation`, lue à l'appel.
+const rollBlisterLocation = (rng: RNG): HitLocation => findTableEntry(tablesDeLocalisation.personnage.shapes.humanoide, roll(1, 100, rng)).loc;
 import { rollTest } from './tests';
-import { maladies, diseaseLabel, findSymptomById, symptomLabel, conditionLabel, SYMPTOM_SEVERITIES, memoParVersion, type SymptomCapabilities } from '../data';
+import {
+  maladies,
+  tablesDeLocalisation,
+  diseaseLabel,
+  findSymptomById,
+  symptomLabel,
+  conditionLabel,
+  SYMPTOM_SEVERITIES,
+  memoParVersion,
+  type SymptomCapabilities,
+  type DiseaseDef,
+} from '../data';
 import type { GameOp, OpPassive, PassiveMod } from './ops';
 import type { PsychTrait } from './psychology';
 import { traitOctroye } from './psych/opsPsy';
@@ -46,7 +55,7 @@ import { fateSaveOrDie } from './fortune';
 import { addCondition } from './conditions';
 import { sourceSuspended, suspendSource } from './suspension'; // module FEUILLE : suspension GÉNÉRALE d'une source passive
 import type { CodexTarget } from './ruleRefs';
-import type { DiseaseDef, DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
+import type { DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
 
 /** Unité d'un temps de maladie (incubation/durée). La base de calcul/stockage reste la MINUTE (`clock.ts`). */
 const UNIT_MINUTES: Record<DiseaseTime['unit'], number> = { days: MINUTES_PER_DAY, hours: 60, minutes: 1 };
@@ -278,7 +287,7 @@ export type CycleQuotidien =
 
 /**
  * Cycle quotidien d'une instance de symptôme (Blessé/Toxine/Vers) — lecture PURE de la donnée : les
- * ops de la branche `fail` du nœud sont extraites par `spellOps` (`flowCore`), comme `resolveCritique`.
+ * ops de la branche `echec` du nœud sont extraites par `spellOps` (`flowCore`), comme `resolveCritique`.
  * `difficulty` ABSENTE = cycle SANS jet : la conséquence `ops` du porteur est certaine. Sinon la
  * Difficulté est celle du nœud, INDEXÉE sur la sévérité EFFECTIVE de l'instance quand le symptôme le
  * prévoit (`difficultyBySeverity` — Toxine, LDB 20 l.215 : Modéré→Facile, Grave→Accessible) : le
@@ -318,15 +327,15 @@ function idsDuNoeud(node: FlowTestNode): TestIds {
   throw new Error(`nœud \`test\` sans compétence ni caractéristique : ${JSON.stringify(node.test)}`);
 }
 
-/** Ops de la branche `fail` d'un nœud `test` de maladie — le canal différé `disease-tick` n'applique QUE
- *  l'échec (`noyau/restFlow.ts`), la branche `success` est du bruit authoré vide (contrat vérifié). */
+/** Ops de la branche `echec` d'un nœud `test` de maladie — le canal différé `maladie-test-quotidien` n'applique QUE
+ *  l'échec (`noyau/restFlow.ts`), la branche `reussite` est du bruit authoré vide (contrat vérifié). */
 function opsDeLEchec(node: FlowTestNode): GameOp[] {
-  return spellOps(node.fail, 'target');
+  return spellOps(node.echec, 'target');
 }
 /** Interprète INLINE le sous-ensemble d'ops `onFail`/inconditionnelles que le cycle de maladie peut
  *  appliquer SANS `applyOps` (contrainte sans-cycle ops↔disease de l'en-tête) : contraction, mort (Destin,
  *  MSRC 16 l.101), Blessure directe + État (éclatement du Vers du Reik, l.142). Les ops RICHES à dés/table
- *  (`rollTable`/`charDamage` — table du Vers de carie, l.90) passent par la voie DIFFÉRÉE (`disease-tick`
+ *  (`rollTable`/`charDamage` — table du Vers de carie, l.90) passent par la voie DIFFÉRÉE (`maladie-test-quotidien`
  *  → `applyOps` côté state, vocabulaire complet) ; elles sont IGNORÉES ici (jamais roulées à l'aveugle). */
 function applyOnFailInline(c: Combatant, onFail: GameOp[], contractOnce: (name: string) => boolean, log: string[], emit?: ConditionEmit): void {
   for (const op of onFail) {
@@ -336,16 +345,16 @@ function applyOnFailInline(c: Combatant, onFail: GameOp[], contractOnce: (name: 
       if (r.etat === 'deja' && op.otherwise?.length) applyOnFailInline(c, op.otherwise, contractOnce, log, emit);
     } else if (op.op === 'grantSymptom') log.push(...grantDiseaseSymptom(c, op.disease, op.symptomId, op.severity));
     else if (op.op === 'contractDisease') contractOnce(op.disease);
-    else if (op.op === 'kill') log.push(fateSaveOrDie(c) ? t('op.kill.fateSaved', { name: c.label }) : t('op.kill', { name: c.label }));
+    else if (op.op === 'kill') log.push(fateSaveOrDie(c) ? t('op.mort.sauveParLeDestin', { name: c.label }) : t('op.mort', { name: c.label }));
     else if (op.op === 'wounds') {
       const n = typeof op.amount === 'number' ? op.amount : 0; // burst = 1 Blessure directe (littéral) ; formules → voie différée
-      if (n > 0) { c.wounds.current = Math.max(0, c.wounds.current - n); log.push(t('op.wounds', { name: c.label, n, mitig: '' })); }
+      if (n > 0) { c.wounds.current = Math.max(0, c.wounds.current - n); log.push(t('op.blessures', { name: c.label, n, mitig: '' })); }
     } else if (op.op === 'condition') {
       // Pose par la SOURCE UNIQUE (LDB 16 l.115 non-cumul, l.7 perte d'Avantage, déclencheur de gain).
       const valeur = typeof op.value === 'number' ? op.value : 1;
-      addCondition(c, op.id, valeur);
-      log.push(t('op.cond', { name: c.label, v: c.conditions.find((x) => x.id === op.id)?.value ?? valeur, cond: conditionLabel(op.id) }));
-      emit?.({ stateId: op.id, change: 'gain', targetId: c.id });
+      addCondition(c, op.id.id, valeur);
+      log.push(t('op.etat', { name: c.label, v: c.conditions.find((x) => x.id === op.id.id)?.value ?? valeur, cond: conditionLabel(op.id.id) }));
+      emit?.({ stateId: op.id.id, change: 'gain', targetId: c.id });
     }
   }
 }
@@ -597,7 +606,7 @@ export function applyDiseasePersist(c: Combatant, diseaseName: string, success: 
  * nœud) et ses modificateurs NOMMÉS (`mods`) ; la porte calcule la valeur (`testValue`), ouvre la
  * fenêtre et applique. L'état avance ici (incubation/durée), la maladie en fin de durée reste
  * `endTestPending` jusqu'à la validation de son étape. La conséquence d'un `onTick` (GameOp `onFail`)
- * est appliquée par l'applier `disease-tick` côté state (restFlow) ; gangrène/persistant par
+ * est appliquée par l'applier `maladie-test-quotidien` côté state (restFlow) ; gangrène/persistant par
  * `applyDiseaseGangrene/Persist`.
  */
 export function tickDisease(c: Combatant, minutes: number, rng: RNG, defer: UpkeepDeferTest, beForGangrene = 0, emit?: ConditionEmit): string[] {
@@ -663,16 +672,16 @@ export function tickDisease(c: Combatant, minutes: number, rng: RNG, defer: Upke
             // MSRC 16 l.142) : appliquée DIRECTEMENT ici, via l'interprète inline restreint.
             applyOnFailInline(c, tick.onFail, contractOnce, log, emit);
           } else {
-            defer({ kind: 'disease-tick', label: t('step.sujetPrecision', { sujet: symptomLabel(inst.symptomId), precision: diseaseLabel(dz.id) }), test: tick.test, difficulty: tick.difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: inst.symptomId, opsEchec: tick.onFail } });
+            defer({ kind: 'maladie-test-quotidien', label: t('step.sujetPrecision', { sujet: symptomLabel(inst.symptomId), precision: diseaseLabel(dz.id) }), test: tick.test, difficulty: tick.difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: inst.symptomId, opsEchec: tick.onFail } });
           }
         }
         // Gangrène (l.176) : capacité `amputation` — Test de Résistance Accessible (+20) journalier ; plus
         // d'échecs que le Bonus d'Endurance → la Localisation est PERDUE (Amputation). Machinerie stateful.
         if (diseaseHasCapability(dz, 'amputation') && !dz.gangreneLost) {
-          defer({ kind: 'disease-gangrene', label: symptomLabel('gangrene'), test: TEST_RESISTANCE, difficulty: 'accessible', ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: 'gangrene', be: beForGangrene } });
+          defer({ kind: 'maladie-gangrene', label: symptomLabel('gangrene'), test: TEST_RESISTANCE, difficulty: 'accessible', ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: 'gangrene', be: beForGangrene } });
         }
         // Test de cycle quotidien porté par la MALADIE (EDOC 08 l.104-108) — même canal différé que les
-        // `onTick` de symptôme (`disease-tick`), donc influençable.
+        // `onTick` de symptôme (`maladie-test-quotidien`), donc influençable.
         // ÉCART MESURÉ à `EDOC 08 l.104`, #674 (2026-08-31) : la condition de déclenchement citée là-bas
         // porte sur les journées d'EFFORT, signal que le moteur n'a pas — `effortRounds`
         // (`engine/types.ts:1507`) compte des ROUNDS de combat, pas des journées d'activité. Faute de ce
@@ -685,7 +694,7 @@ export function tickDisease(c: Combatant, minutes: number, rng: RNG, defer: Upke
           // `defs/maladies.ts`) — `FlowTest` la laisse optionnelle pour les jets dont elle vient d'ailleurs.
           const difficulty = daily.test.test.difficulty!;
           const onFail = opsDeLEchec(daily.test);
-          defer({ kind: 'disease-tick', label: t('step.sujetPrecision', { sujet: symptomLabel(daily.symptomId), precision: diseaseLabel(dz.id) }), test: idsDuNoeud(daily.test), difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: daily.symptomId, opsEchec: onFail } });
+          defer({ kind: 'maladie-test-quotidien', label: t('step.sujetPrecision', { sujet: symptomLabel(daily.symptomId), precision: diseaseLabel(dz.id) }), test: idsDuNoeud(daily.test), difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: daily.symptomId, opsEchec: onFail } });
         }
         // MUE (EDOC 08 l.122) : au-delà de `afterDays` jours de phase active, la maladie CÈDE la place
         // à `into` — propriété de la DONNÉE, aucun id codé ici.
@@ -715,7 +724,7 @@ export function tickDisease(c: Combatant, minutes: number, rng: RNG, defer: Upke
       // Fin de Durée — résolution (DIFFÉRÉE en cascade : la maladie reste en attente).
       if (dz.persistDifficulty) {
         dz.endTestPending = true;
-        defer({ kind: 'disease-persist', label: t('dz.endStep', { disease: diseaseLabel(dz.id) }), test: TEST_RESISTANCE, difficulty: dz.persistDifficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: 'persistant' } });
+        defer({ kind: 'maladie-persistance', label: t('dz.endStep', { disease: diseaseLabel(dz.id) }), test: TEST_RESISTANCE, difficulty: dz.persistDifficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: 'persistant' } });
         survivors.push(dz);
       } else {
         log.push(t('dz.cured', { name: c.label, disease: diseaseLabel(dz.id) }));

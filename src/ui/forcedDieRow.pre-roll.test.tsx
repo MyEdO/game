@@ -28,7 +28,7 @@ beforeAll(() => {
 
 const C = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'X', name: 'X', label: 'X', kind: 'hero',
+    id: 'X', name: 'X', label: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [],
     species: 'humains-reiklander',
@@ -39,7 +39,7 @@ const C = (over: Partial<Combatant>): Combatant =>
   })) as unknown as Combatant;
 
 const ATT = C({ id: 'A', label: 'Att', resilience: 2 });
-const DEF = C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 } });
+const DEF = C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 } });
 
 /** Attaque NON LANCÉE (aucun résultat) : l'état exact d'une rangée pré-jet. */
 function setupPreRoll() {
@@ -57,7 +57,7 @@ function resolveRoll() {
     pendingAttack: {
       ...p,
       result: {
-        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defender',
+        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defenseur',
         defenderDefeated: false, log: 'raté',
         attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 88, success: false, sl: -4 },
       },
@@ -119,7 +119,7 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     const calls: string[] = [];
     const die = rowForcedDie(
       useGame.getState(),
-      'attack',
+      'attaque',
       { actor: ATT, rolled: false, interactive: true, onRoll: () => { calls.push('roll'); resolveRoll(); } },
       false,
     );
@@ -152,7 +152,7 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     const onRoll = () => { calls.push('roll'); resolveRoll(); };
     const die = rowForcedDie(
       useGame.getState(),
-      'attack',
+      'attaque',
       { actor: ATT, rolled: false, interactive: true, onRoll },
       false,
     );
@@ -187,7 +187,7 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     setupPreRoll();
     const die = rowForcedDie(
       useGame.getState(),
-      'attack',
+      'attaque',
       { actor: ATT, rolled: false, interactive: true, onRoll: () => resolveRoll() },
       false,
     );
@@ -227,8 +227,8 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     setDesFixes(true);
     setupPreRoll();
     resolveRoll();
-    useGame.getState().jetImposerLeResultat('attack', 33);
-    const die = rowForcedDie(useGame.getState(), 'attack', { actor: ATT, rolled: true, interactive: true, onRoll: null }, true);
+    useGame.getState().jetImposerLeResultat('attaque', 33);
+    const die = rowForcedDie(useGame.getState(), 'attaque', { actor: ATT, rolled: true, interactive: true, onRoll: null }, true);
     act(() => {
       root.render(
         <RollRow
@@ -254,7 +254,7 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
   it('sans déclencheur de jet, AUCUN champ pré-jet n’est rendu (jamais d’affordance morte)', () => {
     setDesFixes(true);
     setupPreRoll();
-    const die = rowForcedDie(useGame.getState(), 'attack', { actor: ATT, rolled: false, interactive: true, onRoll: null }, false);
+    const die = rowForcedDie(useGame.getState(), 'attaque', { actor: ATT, rolled: false, interactive: true, onRoll: null }, false);
     expect(die.forcedRoll).toBeUndefined();
     act(() => {
       root.render(
@@ -276,8 +276,8 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     setDesFixes(true);
     setupPreRoll();
     resolveRoll();
-    useGame.getState().jetImposerLeResultat('attack', 33);
-    const die = rowForcedDie(useGame.getState(), 'attack', { actor: ATT, rolled: true, interactive: true, onRoll: null }, true);
+    useGame.getState().jetImposerLeResultat('attaque', 33);
+    const die = rowForcedDie(useGame.getState(), 'attaque', { actor: ATT, rolled: true, interactive: true, onRoll: null }, true);
     expect(die.fixedMark).toBe(true);
     act(() => {
       root.render(
@@ -300,7 +300,7 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
 describe('« Dé fixé » PRÉ-jet — le champ DANS une vraie modale', () => {
   /** Le câblage complet : `Modal` (son écouteur Entrée au document) + la rangée + son sélecteur. */
   function mountInModal(onRoll: () => void, applies: string[]) {
-    const die = rowForcedDie(useGame.getState(), 'attack', { actor: ATT, rolled: false, interactive: true, onRoll }, false);
+    const die = rowForcedDie(useGame.getState(), 'attaque', { actor: ATT, rolled: false, interactive: true, onRoll }, false);
     act(() => {
       root.render(
         <Modal title="Attaque"
@@ -370,7 +370,7 @@ describe('« Fixer le dé » — un nom accessible PAR LIGNE (#1117)', () => {
   function mountTwoRows(): HTMLInputElement[] {
     setDesFixes(true);
     setupPreRoll();
-    const die = rowForcedDie(useGame.getState(), 'attack', { actor: ATT, rolled: false, interactive: true, onRoll: () => {} }, false);
+    const die = rowForcedDie(useGame.getState(), 'attaque', { actor: ATT, rolled: false, interactive: true, onRoll: () => {} }, false);
     act(() => {
       root.render(
         <>
@@ -421,7 +421,7 @@ describe('« Fixer le dé » PRÉ-jet — taper PUIS cliquer « Lancer » (sans 
     setupPreRoll();
     const calls: string[] = [];
     const die = rowForcedDie(
-      useGame.getState(), 'attack',
+      useGame.getState(), 'attaque',
       { actor: ATT, rolled: false, interactive: true, onRoll: () => { calls.push('roll'); resolveRoll(); } },
       false,
     );
@@ -563,7 +563,7 @@ describe('CTA HISSÉ de la coquille (hôte réel d’une cascade) — le dé sai
     act(() => {
       root.render(
         <RollShell
-          flowKey="attack"
+          flowKey="attaque"
           title="Journée de descente"
           rolled={false}
           rows={[buildRollRow(
@@ -624,7 +624,7 @@ describe('CTA HISSÉ d’une étape SANS champ de dé — le brouillon de l’é
     const tires: string[] = [];
     act(() => {
       root.render(
-        <RollShell flowKey="attack" title="Attaque" rolled={false}
+        <RollShell flowKey="attaque" title="Attaque" rolled={false}
           rows={[buildRollRow(
             { actor: ATT, row: { combatant: ATT, pending: testPending('Corps à corps', 45) }, onRoll: () => { resolveRoll(); } },
             { key: 'r', interactive: true, rollFrisson: false },
@@ -690,11 +690,11 @@ describe('« Tout lancer » d’une fenêtre MULTI — chaque rangée consomme S
     act(() => {
       root.render(
         <RollShell
-          flowKey="shipManeuver"
+          flowKey="manoeuvreDuNavire"
           title="Test d’équipage"
           rolled={false}
           rows={[mkRow('a', 'Voile'), mkRow('b', 'Ramer'), mkRow('c', 'Perception')]}
-          actions={[{ key: 'rollAll', label: 'Tout lancer', onClick: () => { for (const id of ['a', 'b', 'c']) rolls.push(`${id}:naturel`); } }]}
+          actions={[{ key: 'lancerLesRangees', label: 'Tout lancer', onClick: () => { for (const id of ['a', 'b', 'c']) rolls.push(`${id}:naturel`); } }]}
           onCancel={() => {}}
         />,
       );
@@ -733,7 +733,7 @@ describe('ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé
   it('CTA de RANGÉE : blur puis clic « Lancer » → le dé saisi résout', () => {
     setDesFixes(true);
     setupPreRoll();
-    const die = rowForcedDie(useGame.getState(), 'attack', { actor: ATT, rolled: false, interactive: true, onRoll: () => { resolveRoll(); } }, false);
+    const die = rowForcedDie(useGame.getState(), 'attaque', { actor: ATT, rolled: false, interactive: true, onRoll: () => { resolveRoll(); } }, false);
     act(() => {
       root.render(
         <RollRow actor={ATT} row={{ combatant: ATT, pending: testPending('Voile', 45) }} rolled={false} interactive
@@ -755,7 +755,7 @@ describe('ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé
     setupPreRoll();
     act(() => {
       root.render(
-        <RollShell flowKey="attack" title="Journée de descente" rolled={false}
+        <RollShell flowKey="attaque" title="Journée de descente" rolled={false}
           rows={[buildRollRow(
             { actor: ATT, row: { combatant: ATT, pending: testPending('Voile', 45) }, onRoll: () => { resolveRoll(); } },
             { key: 'r', interactive: true, rollFrisson: false },
@@ -788,9 +788,9 @@ describe('ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé
     );
     act(() => {
       root.render(
-        <RollShell flowKey="shipManeuver" title="Test d’équipage" rolled={false}
+        <RollShell flowKey="manoeuvreDuNavire" title="Test d’équipage" rolled={false}
           rows={[mkRow('a', 'Voile'), mkRow('b', 'Ramer')]}
-          actions={[{ key: 'rollAll', label: 'Tout lancer', onClick: () => { rolls.push('a:naturel'); rolls.push('b:naturel'); } }]}
+          actions={[{ key: 'lancerLesRangees', label: 'Tout lancer', onClick: () => { rolls.push('a:naturel'); rolls.push('b:naturel'); } }]}
           onCancel={() => {}} />,
       );
     });

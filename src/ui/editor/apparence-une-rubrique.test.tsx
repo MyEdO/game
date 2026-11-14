@@ -11,7 +11,6 @@ import { NarratifEditor } from './NarratifEditor';
 import type { ProjetEdite } from '../../noyau/narratifEdit';
 import { CodexEdit, dedicatedFieldKeys } from './codex/CodexEdit';
 import { datasetArray } from '../../data/overrides';
-import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 
@@ -50,7 +49,7 @@ function monterInspecteur(): HTMLElement {
         openLogic={() => undefined}
         resizeScene={() => undefined}
         narratif={emptyNarratif()}
-        tool={{ mode: 'select' }}
+        tool={{ mode: 'selection' }}
         armZoneTiles={() => undefined}
         zoneFocusKey={null}
       />,
@@ -79,7 +78,7 @@ function monterNarratif(): HTMLElement {
 }
 
 function monterCodex(): HTMLElement {
-  const creature = datasetArray('creatures').find((c) => (c as { appearance?: EntityAppearance }).appearance?.species) as { id: string; label: string };
+  const [creature] = datasetArray('creatures');
   return monterRacine(<CodexEdit categoryKey="creatures" id={creature.id} onClose={() => {}} />).container;
 }
 

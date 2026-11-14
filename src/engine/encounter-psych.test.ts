@@ -5,11 +5,11 @@ import type { Combatant } from './types';
 import { ciblePsy } from './psych/ciblage';
 
 const hero = (opts: Partial<Combatant>): Combatant =>
-  ({ id: 'h', name: 'H', kind: 'hero', size: 'moyenne', psychState: [], psychTraits: [], groups: [], ...opts } as unknown as Combatant);
+  ({ id: 'h', name: 'H', kind: 'heros', size: 'moyenne', psychState: [], psychTraits: [], groups: [], ...opts } as unknown as Combatant);
 const npc = (id: string, opts: Partial<Combatant>): Combatant =>
-  ({ id, name: id, kind: 'npc', size: 'moyenne', groups: [], ...opts } as unknown as Combatant);
+  ({ id, name: id, kind: 'pnj', size: 'moyenne', groups: [], ...opts } as unknown as Combatant);
 
-describe('encounterPsych — Psychologie à la rencontre, HORS COMBAT (Peur/Terreur = combat seulement)', () => {
+describe('psychologieDeRencontre — Psychologie à la rencontre, HORS COMBAT (Peur/Terreur = combat seulement)', () => {
   it('rencontrer un PNJ ÉNORME (Terreur de Taille) → AUCUN Test hors combat', () => {
     expect(encounterPsych(hero({}), [sourceCombattant(npc('geant', { size: 'enorme' }))])).toBeNull();
   });

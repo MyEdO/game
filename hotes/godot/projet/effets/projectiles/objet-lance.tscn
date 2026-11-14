@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wpxlp"]
+albedo_color = Color(0.5411765, 0.47843137, 0.3764706, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_r8k7v"]
+material = SubResource("StandardMaterial3D_wpxlp")
+radius = 0.08
+height = 0.16
+
+[node name="objet-lance" type="Node3D" unique_id=360983976]
+
+[node name="Corps" type="Node3D" parent="." unique_id=348425266]
+
+[node name="Maille" type="MeshInstance3D" parent="Corps" unique_id=1407602299]
+cast_shadow = 0
+mesh = SubResource("SphereMesh_r8k7v")

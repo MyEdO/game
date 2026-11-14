@@ -5,8 +5,27 @@ import * as ts from 'typescript/unstable/ast';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scanRollSeamExclusivity, ROLL_SEAM_RX, scanPendingJetFabrication, engineRollerExports, engineHomonyms, scanEngineDelegatedRoll, scanDesHorsPorte, engineDiceRollers, AMORCE_DES } from '../../scripts/guards/lib/rollSeamExclusivity.mjs';
-import { RACINE_DU_SEAM, rollSeamExcluded, ROLL_SEAM_PHASE2_STOCK, WORLD_DIE_SUBTRACTED_STOCK, PENDING_JET_FABRICATION_STOCK, ENGINE_DELEGATED_ROLL_STOCK, DES_HORS_PORTE_STOCK, SEAM_CALLERS } from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
+import {
+  scanRollSeamExclusivity,
+  ROLL_SEAM_RX,
+  scanPendingJetFabrication,
+  engineRollerExports,
+  engineHomonyms,
+  scanEngineDelegatedRoll,
+  scanDesHorsPorte,
+  engineDiceRollers,
+  AMORCE_DES,
+} from '../../scripts/guards/lib/rollSeamExclusivity.mjs';
+import {
+  RACINE_DU_SEAM,
+  rollSeamExcluded,
+  ROLL_SEAM_PHASE2_STOCK,
+  WORLD_DIE_SUBTRACTED_STOCK,
+  PENDING_JET_FABRICATION_STOCK,
+  ENGINE_DELEGATED_ROLL_STOCK,
+  DES_HORS_PORTE_STOCK,
+  SEAM_CALLERS,
+} from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
 import { contexteDeScanRng, scanBattleRngEngineLeak } from '../../scripts/guards/lib/battleRngEngineLeak.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { tableDesExports } from '../../scripts/guards/lib/canonUnique.mjs';
@@ -869,7 +888,7 @@ const ETAPE_A_LA_MAIN_STOCK: Record<string, number> = {
   'src/noyau/interludeFlow.ts': 2, // PendingActivityFields (type) + `target: 0` sentinelle d'ouverture
   // RELAIS d'une ligne DÉJÀ montée par le monteur (rien à recalculer ici) — EXEMPTION AU SITE
   'src/noyau/restFlow.ts': 1, // `deferredUpkeepSteps` : `montee` recopie base/target/mods/clamped de la
-  // ligne que `rollStep` a montée AU MOMENT DÛ (upkeep.ts:178). Le scanner est TEXTUEL : il ne voit pas
+  // ligne que `rollStep` a montée AU MOMENT DÛ (upkeep.ts:202). Le scanner est TEXTUEL : il ne voit pas
   // cette provenance, il compte le littéral — la raison la dit.
   // MONTAGES à la main — dette RÉELLE restante hors combat, à router par `rollStep`
   'src/engine/rest.ts': 3, // bilan EAGER de la modale de Repos (`RestRoll` : type + 2 collectes)
@@ -980,12 +999,12 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
     // Preuve de couverture sur PIÈCE : le montage à base FONDUE tel qu'il s'écrivait (abri de fortune,
     // Soutien de `partyAssisted` fondu, cible = base) — invisible au premier cliquet ET à `inexplique`.
     const avant = `
-      steps.push({ id: 'abri', kind: 'shelter', actorId: best.actor.id, label: 'Abri de fortune',
+      steps.push({ id: 'abri', kind: 'abri-de-fortune', actorId: best.actor.id, label: 'Abri de fortune',
         rollLabel: 'Survie en extérieur', base: best.value, difficulty: 'intermediaire', target: best.value,
         result: null, interactive: true });`;
     expect(etapesALaMain(avant), 'le scanner doit voir le montage à la main').toBe(1);
     const apres = `
-      steps.push({ id: 'abri', kind: 'shelter', actorId: best.actor.id, label: 'Abri de fortune',
+      steps.push({ id: 'abri', kind: 'abri-de-fortune', actorId: best.actor.id, label: 'Abri de fortune',
         rollLabel: 'Survie en extérieur',
         ...rollStep({ actor: best.actor, test: { skill: 'survie-en-exterieur' }, difficulty: 'intermediaire',
           valeur: best.value, soutien: best.support }),
@@ -1019,21 +1038,21 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
 
   it('le scanner VOIT une étape montée à la main à PROFONDEUR QUELCONQUE — sujet emboîté d’un `testValue` en ligne (#3012)', () => {
     const profonde = `
-      steps.push({ id: 'abri', kind: 'shelter', actorId: h.id, label: 'Abri de fortune',
+      steps.push({ id: 'abri', kind: 'abri-de-fortune', actorId: h.id, label: 'Abri de fortune',
         target: testValue(h, { skill: { id: 'survie-en-exterieur' } }), result: null, interactive: true });`;
     const vuParLeNiveau = [...profonde.matchAll(LITTERAL_RX)].some((m) => /kind:\s/.test(m[0]) && /target:\s/.test(m[0]));
     expect(vuParLeNiveau, 'témoin : trois niveaux d’imbrication échappent à `LITTERAL_RX`').toBe(false);
     expect(etapesALaMain(profonde), 'la passe d’arbre lit le littéral entier').toBe(1);
     const conditionnelle = `
-      steps.push({ id: 'abri', kind: 'shelter', actorId: h.id, label: 'Abri de fortune',
+      steps.push({ id: 'abri', kind: 'abri-de-fortune', actorId: h.id, label: 'Abri de fortune',
         ...(fixe ? { target: testValue(h, { skill: { id: 'survie-en-exterieur' } }) } : {}), result: null });`;
     expect(etapesALaMain(conditionnelle), 'une `target` posée par un spread conditionnel est la même clé').toBe(1);
     const parLeMonteur = `
-      steps.push({ id: 'abri', kind: 'shelter', actorId: h.id, label: 'Abri de fortune',
+      steps.push({ id: 'abri', kind: 'abri-de-fortune', actorId: h.id, label: 'Abri de fortune',
         ...rollStep({ actor: h, test: { skill: { id: 'survie-en-exterieur' } }, difficulty: 'intermediaire' }), result: null });`;
     expect(etapesALaMain(parLeMonteur), 'contre-épreuve : routé par le monteur, rien à voir').toBe(0);
     const deuxObjets = `
-      const a = { kind: 'shelter', opts: f({ cible: { id: 'x' } }) }; const b = { target: g({ skill: { id: 'y' } }) };`;
+      const a = { kind: 'abri-de-fortune', opts: f({ cible: { id: 'x' } }) }; const b = { target: g({ skill: { id: 'y' } }) };`;
     expect(etapesALaMain(deuxObjets), 'contre-épreuve : `kind` et `target` de deux littéraux distincts ne font pas une étape').toBe(0);
   });
 
@@ -1580,6 +1599,8 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
       'src/noyau/combatFlow.ts jouerLaFrappePassive',
       'src/noyau/combatFlow.ts jouerLaSuiteDuCoup',
       'src/noyau/combatFlow.ts jouerLesTirsDeBordee',
+      'src/noyau/combatFlow.ts ouvrirLaSerieSubie',
+      'src/noyau/combatFlow.ts poursuivreLaSerie',
       'src/noyau/combatFlow.ts resumeCleaveChain',
       'src/noyau/combatFlow.ts runCleaveChain',
       'src/noyau/combatFlow.ts runPreemptShots',

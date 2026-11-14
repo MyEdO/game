@@ -60,7 +60,18 @@ import { refKey, splitLabel } from '../../engine/careerSlots';
 import { BASE_HUMAINE, CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, baseDEspece, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { bandeAuDe } from '../../engine/tables';
-import { brancheChoisie, dotationsDuHeros, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
+import { formatDice } from '../../engine/dice';
+import {
+  brancheChoisie,
+  dotationsDuHeros,
+  emplacementsDeDotation,
+  estEmplacementDeDotation,
+  estEmplacementRacine,
+  idChoisi,
+  sousEmplacement,
+  type ChoixDeDotation,
+  type EmplacementDeDotation,
+} from '../../engine/trappingChoices';
 import { idsDeLaSousListe, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
@@ -72,7 +83,7 @@ import { rangeSpecLabel, ammoRangeModLabel } from '../../engine/weaponStats';
 import { formatSpellRange, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { effectiveEntry } from '../../engine/variants';
 import { Coins } from '../Coins';
-import { graineDEntropie, idDEntropie } from '../../web/entropie';
+import { graineDEntropie, idDEntropie } from '../../hote/entropie';
 import { Icon } from '../Icon';
 import { OptionChooser } from '../OptionChooser';
 import { MediaSelect, type MediaOption } from '../MediaSelect';
@@ -91,7 +102,7 @@ import { previewHero } from './CreatorSummary';
 import { CreatorStepFrame, StepHeader, Section, XpBadge, type StepZones } from './CreatorStepFrame';
 import { Band } from '../Band';
 import { fillDraftDefaults } from '../../noyau/creation/defauts';
-import { carrieresOffertes, famillesDEspeces } from '../../noyau/creation/vueDeLaCreation';
+import { famillesDEspeces } from '../../noyau/creation/vueDeLaCreation';
 import { QtyStepper } from '../QtyStepper';
 import { CreatorDice } from './CreatorDice';
 import { useRollFrisson, prefersReducedMotion } from '../useRollFrisson';
@@ -150,6 +161,7 @@ import {
   withCharMode,
   withAssignment,
   withIgnoreRestrictions,
+  carrieresOffertes,
   validateStep,
   stepIds,
   type StepId,
@@ -302,7 +314,12 @@ export function CharacterCreator() {
   };
 
   const create = () => {
-    if (engagerLeHeros(stockageDuRoster(), useGame.getState(), d, idDEntropie, editing?.heroId) === null) closeCreator();
+    const jeu = useGame.getState();
+    const engage = engagerLeHeros(stockageDuRoster(), jeu, d, idDEntropie, editing?.heroId);
+    if ('refus' in engage) return;
+    if (engage.intention.type === 'recruterLeHeros') jeu.recruterLeHeros(...engage.intention.args);
+    else jeu.remplacerLeHeros(...engage.intention.args);
+    closeCreator();
   };
 
   const stepProps: StepProps = { d, setD, skillsSub, setSkillsSub };
@@ -327,7 +344,7 @@ export function CharacterCreator() {
     <div className="screen creator">
       <header className="bar">
         <Row as="button" className="btn small" onClick={closeCreator}>
-          ← <Icon id="nav/seat-owner" size="sm" /> Groupe ({party.length}/{PARTY_MAX})
+          ← <Icon id="navigation/proprietaire-du-siege" size="sm" /> Groupe ({party.length}/{PARTY_MAX})
         </Row>
         <h2>{editing ? 'Modifier le personnage' : 'Créateur de personnage'}</h2>
         <div className="wizard-steps">
@@ -355,7 +372,7 @@ export function CharacterCreator() {
 
       {editing && !editing.lossless && (
         <p className="hint warn-text" style={{ margin: '4px 12px' }}>
-          <Icon id="ui/warning" size="sm" /> Brouillon d'origine indisponible : race, carrière, identité et apparence sont repris, mais
+          <Icon id="interface/attention" size="sm" /> Brouillon d'origine indisponible : race, carrière, identité et apparence sont repris, mais
           les tirages, allocations et Talents sont à revoir étape par étape avant d'enregistrer.
         </p>
       )}
@@ -456,12 +473,12 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
   // La recherche filtre les RACES (nom de famille) ET les LIGNÉES (variantes) — une lignée matchée
   // garde/surligne sa carte de race (le filtre agit au niveau famille, jamais en éclatant la grille).
   const visibleFamilies = filterByLabel(families, (f) => `${f.famille} ${f.especes.map((s) => s.variant ?? s.label).join(' ')}`, search);
-  const activeFamilyIdx = Math.max(0, visibleFamilies.findIndex((f) => f.famille === sp?.family));
+  const activeFamilyIdx = Math.max(0, visibleFamilies.findIndex((f) => f.race === sp?.refChar));
   const selectFamily = (list: SpeciesData[]) => setD(withSpecies(d, sp && list.some((s) => s.id === sp.id) ? sp.id : list[0].id));
 
   // Lignées de la famille COURANTE (chips en tête du panneau détail) — masquées si la famille n'a
   // qu'une lignée (Gnomes/Hauts elfes/Elfes sylvains/Ogres du LDB) : rien à trancher.
-  const famList = sp ? families.find((f) => f.famille === sp.family)?.especes ?? [] : [];
+  const famList = sp ? families.find((f) => f.race === sp.refChar)?.especes ?? [] : [];
 
   // Encrier de tirage RACE (#393 P3, correction structurelle du verdict utilisateur 2026-07-14) :
   // rangée UNIQUE avec la recherche (recherche à gauche, encrier remplit le reste — pas de section
@@ -470,8 +487,9 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
   // se marque sur les surfaces existantes (badge « +20 PX » des chips de lignée, liseré des cartes de
   // famille) — la sélection reste la même mécanique (chips/cartes), le bonus de PX inchangé (`speciesXp`).
   const rolledIds = d.speciesRoll?.ids ?? [];
-  const rolledFamilies = new Set(rolledIds.map((id) => findSpeciesById(id)?.family).filter((f): f is string => !!f));
-  const rolledFamily = d.speciesRoll ? (sp && rolledIds.includes(sp.id) ? sp.family : findSpeciesById(rolledIds[0])?.family) : undefined;
+  const rolledRaces = new Set(rolledIds.map((id) => findSpeciesById(id)?.refChar));
+  const rolledRace = d.speciesRoll ? findSpeciesById(rolledIds[0])?.refChar : undefined;
+  const rolledFamily = families.find((f) => f.race === rolledRace)?.famille;
   const kept = speciesXp(d) > 0;
   const { rolling, landed, trigger, skip } = useRollFrisson(() => setD(rollDraftSpecies(d)));
   const faces = landed && d.speciesRoll ? d100Faces(d.speciesRoll.roll) : null;
@@ -497,7 +515,7 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
       </span>
       <span className="dicewell-copy">
         <span className="dicewell-txt">
-          Jet : <b>{d.speciesRoll.roll}</b> — borne {rolledFamily} · +{speciesXp(d)} PX {kept ? 'conservé' : '(choix libre)'}
+          Jet : <b>{d.speciesRoll.roll}</b> — rangée {rolledFamily} · +{speciesXp(d)} PX {kept ? 'conservé' : '(choix libre)'}
         </span>
       </span>
     </div>
@@ -526,11 +544,11 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
         onActivate={(idx) => selectFamily(visibleFamilies[idx].especes)}
       >
         {visibleFamilies.map((f, idx) => {
-          const selected = sp?.family === f.famille;
-          const rolled = !selected && rolledFamilies.has(f.famille);
+          const selected = sp?.refChar === f.race;
+          const rolled = !selected && rolledRaces.has(f.race);
           return (
             <FigTile
-              key={f.famille}
+              key={f.race}
               label={f.famille}
               sub={`${f.especes.length} lignée${f.especes.length > 1 ? 's' : ''}`}
               selected={selected}
@@ -663,7 +681,7 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
   // Encrier de tirage CARRIÈRE (#393 P2, même patron que Race #393 P3) : rangée unique recherche +
   // encrier, le résultat vit dans l'encrier rendu (plus de mur de boutons de borne). LDB 05 l.208-212 :
   // 1ᵉʳ jet gardé = +50 PX ; pas convaincu → deux jets de plus (3 bornes au choix) = +25 PX ; au-delà,
-  // relances libres = 0 PX (mécanique `rollDraftCareer`/`careerXp`, INCHANGÉE).
+  // relances libres = 0 PX (mécanique `rollDraftCareer`/`careerXp`).
   const rolledLast = d.careerRolls[d.careerRolls.length - 1];
   const kept = careerXp(d) > 0;
   const { rolling, landed, trigger, skip } = useRollFrisson(() => setD(rollDraftCareer(d)));
@@ -700,12 +718,12 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
         </span>
         {d.careerRolls.length === 1 && (
           <button type="button" className="btn small" style={{ marginTop: 4 }} onClick={() => trigger()}>
-            <Icon id="nav/dice" size="sm" /> Pas convaincu : 2 jets de plus (3 choix, +{careerXpDuProchainJet(d)} PX)
+            <Icon id="navigation/des" size="sm" /> Pas convaincu : 2 jets de plus (3 choix, +{careerXpDuProchainJet(d)} PX)
           </button>
         )}
         {d.careerRolls.length >= 3 && (
           <button type="button" className="btn small" style={{ marginTop: 4 }} onClick={() => trigger()}>
-            <Icon id="nav/dice" size="sm" /> Continuer à relancer (+{careerXpDuProchainJet(d)} PX)
+            <Icon id="navigation/des" size="sm" /> Continuer à relancer (+{careerXpDuProchainJet(d)} PX)
           </button>
         )}
       </span>
@@ -916,7 +934,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
   // Titre de bande à la planche (`.cu-sechead .ttl` + `small`) : mot-clef en display, suite en
   // petites capitales — même prose qu'avant, seulement scindée.
   const [tirageMain, tirageSub] =
-    d.charMode === 'rolled' ? ['Le tirage', '2d10 par caractéristique'] : d.charMode === 'reassigned' ? ['Réassignation', 'des dix jets'] : ['Répartition', 'des points'];
+    d.charMode === 'tire' ? ['Le tirage', '2d10 par caractéristique'] : d.charMode === 'reassigne' ? ['Réassignation', 'des dix jets'] : ['Répartition', 'des points'];
 
   // Bande d'ACTION (slot requis de l'ossature) : LA MÉTHODE — le choix de la voie (#393 P3bis,
   // sélecteur PERMANENT segmenté, les trois options coexistent toujours) + le GESTE « Tirer aux
@@ -931,9 +949,9 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
         <OptionChooser
           layout="seg"
           options={[
-            { key: 'rolled', label: `Aux dés — garder le tirage`, mode: 'rolled' as const },
-            { key: 'reassigned', label: `Aux dés — réorganiser ensuite`, mode: 'reassigned' as const },
-            { key: 'pointBuy', label: `Répartir ${repartition(d, 'points').quota} points`, mode: 'pointBuy' as const },
+            { key: 'tire', label: `Aux dés — garder le tirage`, mode: 'tire' as const },
+            { key: 'reassigne', label: `Aux dés — réorganiser ensuite`, mode: 'reassigne' as const },
+            { key: 'repartition', label: `Répartir ${repartition(d, 'points').quota} points`, mode: 'repartition' as const },
           ].map(({ key, label, mode }) => ({
             key,
             label: <>{label} <em className="hint" style={{ fontStyle: 'normal' }}>+{charsXpDeLaMethode(d, mode)} PX</em></>,
@@ -945,7 +963,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
           Chaque Caractéristique s'écrit base + 2d10. Garder le tirage tel quel rapporte le plus de PX de création.
         </p>
       </Section>
-      {d.charMode !== 'pointBuy' && (
+      {d.charMode !== 'repartition' && (
         <CreatorDice
           label="Tirer les dix jets — 2d10 par Caractéristique"
           hint={<>Garder le tirage : +{XP_CHARS_KEPT} PX · réorganiser ensuite : +{XP_CHARS_REASSIGNED} PX · relancer : +{charsXpDeLaMethode(rerollDraftChars(d), d.charMode)} PX.</>}
@@ -955,7 +973,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
           onRoll={() => startCeremony(rollDraftChars(d))}
         >
           <button className="btn small" disabled={seq != null} onClick={() => startCeremony(rerollDraftChars(d))}>
-            <Icon id="nav/dice" size="sm" /> Relancer les dix jets (bonus perdus)
+            <Icon id="navigation/des" size="sm" /> Relancer les dix jets (bonus perdus)
           </button>
         </CreatorDice>
       )}
@@ -970,10 +988,10 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
           <Band
             title={<>{tirageMain}<small>{tirageSub}</small></>}
             right={
-              d.charMode === 'pointBuy' ? (
+              d.charMode === 'repartition' ? (
                 <b className={points.total === points.quota ? 'ok-text' : 'warn-text'}>Points : {points.total}/{points.quota}</b>
               ) : (
-                <NotchGauge value={tiredCount} max={10} notches={10} format={(v, m) => `${v}/${m} tirées`} tone={tiredCount === 10 ? 'ok' : 'neutral'} />
+                <NotchGauge value={tiredCount} max={10} notches={10} format={(v, m) => `${v}/${m} tirées`} tone={tiredCount === 10 ? 'ok' : 'neutre'} />
               )
             }
           >
@@ -1000,24 +1018,24 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                     sub={`base ${baseDEspece(sp, k)}`}
                     meta={
                       <>
-                        {d.charMode !== 'pointBuy' && rowRolling && (
+                        {d.charMode !== 'repartition' && rowRolling && (
                           <Row as="span">
                             <DiceRoll scene={false} landed={false} faces={null} onSkip={() => setSeq(null)} tone="gold" />
                           </Row>
                         )}
-                        {d.charMode !== 'pointBuy' && !rowRolling && !revealed && (
+                        {d.charMode !== 'repartition' && !rowRolling && !revealed && (
                           <Row as="span">
                             <span className="rm-die"><DieFace n={null} landed tone="gold" /></span>
                             <span className="rm-die"><DieFace n={null} landed tone="gold" /></span>
                           </Row>
                         )}
-                        {d.charMode === 'rolled' && revealed && (
+                        {d.charMode === 'tire' && revealed && (
                           <Row as="span">
                             <span className="rm-die"><DieFace n={pairs[i][0]} landed tone="gold" /></span>
                             <span className="rm-die"><DieFace n={pairs[i][1]} landed tone="gold" /></span>
                           </Row>
                         )}
-                        {d.charMode === 'reassigned' && revealed && (
+                        {d.charMode === 'reassigne' && revealed && (
                           <select
                             value={d.assignment[k]}
                             onChange={(e) => setD(withAssignment(d, k, Number(e.target.value)))}
@@ -1029,12 +1047,12 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                             ))}
                           </select>
                         )}
-                        {d.charMode === 'pointBuy' && (
+                        {d.charMode === 'repartition' && (
                           <AllocStepper d={d} setD={setD} compteur={{ genre: 'points', k }} label={CHAR_LABELS[k]} />
                         )}
                       </>
                     }
-                    value={d.charMode !== 'pointBuy' && !revealed ? '—' : chars[k]}
+                    value={d.charMode !== 'repartition' && !revealed ? '—' : chars[k]}
                   />
                 );
               })}
@@ -1067,13 +1085,13 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
             right={<b className={destin.total === destin.quota ? 'ok-text' : 'warn-text'}>{destin.total}/{destin.quota}</b>}
           >
             <p className="hint">
-              <Icon id="resource/fate" size="sm" /> Destin : survie & Chance. <Icon id="resource/resilience" size="sm" /> Résilience :
+              <Icon id="ressource/destin" size="sm" /> Destin : survie & Chance. <Icon id="ressource/resilience" size="sm" /> Résilience :
               Détermination (votre Motivation la recharge).
             </p>
             <PlaqueGrid>
               <PlaqueRow
                 attention={charsAttention === 'fate'}
-                content={<><Icon id="resource/fate" size="sm" /> Points de Destin</>}
+                content={<><Icon id="ressource/destin" size="sm" /> Points de Destin</>}
                 meta={
                   <>
                     <em>race : {sp.fate.fate}</em>
@@ -1082,7 +1100,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                 }
               />
               <PlaqueRow
-                content={<><Icon id="resource/resilience" size="sm" /> Points de Résilience</>}
+                content={<><Icon id="ressource/resilience" size="sm" /> Points de Résilience</>}
                 meta={
                   <>
                     <em>race : {sp.fate.resilience}</em>
@@ -1129,7 +1147,7 @@ function AllocStepper({ d, setD, compteur, label }: { d: CreatorDraft; setD: (d:
 
 /** Les POSITIONS de la roue céleste = les VINGT fourchettes d100 de la table RAW (ADE II 3 l.36-56,
  *  « Les 20 signes »), pas les 23 entrées de `stars.json` : L'Étoile du Sorcier (96-00) porte QUATRE
- *  destins (sous-table 1d10, `StarData.sub`) qui partagent sa borne `rand` et se déplient en plaques
+ *  destins (sous-table `starSubDie`, `StarData.sub`) qui partagent sa borne `rand` et se déplient en plaques
  *  une fois l'aiguille posée. Grouper ICI est ce qui rend le cadran lisible — les quatre destins
  *  occupaient quatre positions voisines sous le MÊME nom, d'où le télescopage du pôle nord.
  *  Clé de position = la borne `rand` (donnée RAW stable, jamais un libellé). Dérivée une fois : les
@@ -1150,6 +1168,7 @@ const STAR_POSITIONS = (() => {
     return { key: String(rand), rand, from, members, label };
   });
 })();
+const POSITION_A_DESTINS = STAR_POSITIONS.find((p) => p.members.length > 1);
 
 /** Tagline SOURCÉE d'une entrée de donnée (« Archives de l'Empire II p. 41 ») — `DetailFrame.sub`
  *  n'accepte rien d'autre qu'une réf de source, et trois étapes la composaient à l'identique. */
@@ -1163,7 +1182,7 @@ function sourceSub(source: SourceRef | undefined): string | undefined {
 //      l'ASTROLABE et, à sa droite, le `DetailFrame` du signe élu ; DESC = fiche vivante (défaut du
 //      gabarit). Un ÉCRAN (et non des `zones` nues) parce que le pas pose son propre état d'UI. ════
 export function StarScreen({ d, setD }: StepProps) {
-  // Position POINTÉE sans destin encore élu (L'Étoile du Sorcier : la roue déplie ses quatre destins,
+  // Position POINTÉE sans destin encore élu (L'Étoile du Sorcier : la roue déplie ses destins,
   // le joueur en choisit un). État d'UI PUR — le brouillon ne connaît que `star`, l'id du destin élu.
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const sign = d.star ? starsTable.find((s) => s.id === d.star) : undefined; // d.star = id STABLE
@@ -1212,8 +1231,8 @@ export function StarScreen({ d, setD }: StepProps) {
       </StepHeader>
       <p className="hint" style={{ margin: '0 0 8px' }}>
         Tourner la roue à la main choisit librement ; le d100 s'arrête sur la fourchette du signe tiré, et le
-        garder rapporte +{XP_STAR_ROLLED} PX de création. L'Étoile du Sorcier ouvre quatre destins — la roue
-        les déplie si l'aiguille s'y pose.
+        garder rapporte +{XP_STAR_ROLLED} PX de création.
+        {POSITION_A_DESTINS && <> L'Étoile du Sorcier ouvre {POSITION_A_DESTINS.members.length} destins — la roue les déplie si l'aiguille s'y pose.</>}
       </p>
     </>
   );
@@ -1241,7 +1260,7 @@ export function StarScreen({ d, setD }: StepProps) {
         />
         {/* Astrologie : flavor PUR (ADE II 3 l.502-512, aucun effet de jeu) — sous le cadran, là où
             la roue laisse sa marge, jamais en concurrence avec le sens du signe. */}
-        <Section title="Astrologie (pur roleplay)" right={<button className="btn small" onClick={() => setD(rollDraftAstrology(d))}><Icon id="nav/dice" size="sm" /> Thème astral</button>}>
+        <Section title="Astrologie (pur roleplay)" right={<button className="btn small" onClick={() => setD(rollDraftAstrology(d))}><Icon id="navigation/des" size="sm" /> Thème astral</button>}>
           {d.ascendant || d.dwellings?.length ? (
             <div className="lore-text">
               {d.ascendant && <p style={{ margin: '0 0 6px' }}><b>Ascendant :</b> {d.ascendant}</p>}
@@ -1258,7 +1277,7 @@ export function StarScreen({ d, setD }: StepProps) {
       </div>
       <div className="appear-controls">
         {selPos && selPos.members.length > 1 && (
-          <Section title="Quatre destins — 1d10">
+          <Section title={`${selPos.members.length} destins — ${formatDice(starSubDie())}`}>
             <PlaqueGrid>
               {selPos.members.map((m) => (
                 <PlaqueRow
@@ -1322,7 +1341,7 @@ export function StarScreen({ d, setD }: StepProps) {
         ) : (
           <p className="hint">
             {selPos && selPos.members.length > 1
-              ? 'L’Étoile du Sorcier ouvre quatre destins — choisissez le vôtre ci-dessus.'
+              ? `L’Étoile du Sorcier ouvre ${selPos.members.length} destins — choisissez le vôtre ci-dessus.`
               : 'Choisissez ou tirez votre signe astral — son sens apparaîtra ici.'}
           </p>
         )}
@@ -1466,14 +1485,14 @@ function speciesSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, sp
                 max={SPECIES_SKILLS_PLUS5}
                 notches={SPECIES_SKILLS_PLUS5}
                 format={(v, m) => `${v}/${m} à +5`}
-                tone={d.speciesPlus5.length === SPECIES_SKILLS_PLUS5 ? 'ok' : 'neutral'}
+                tone={d.speciesPlus5.length === SPECIES_SKILLS_PLUS5 ? 'ok' : 'neutre'}
               />
               <NotchGauge
                 value={d.speciesPlus3.length}
                 max={SPECIES_SKILLS_PLUS3}
                 notches={SPECIES_SKILLS_PLUS3}
                 format={(v, m) => `${v}/${m} à +3`}
-                tone={d.speciesPlus3.length === SPECIES_SKILLS_PLUS3 ? 'ok' : 'neutral'}
+                tone={d.speciesPlus3.length === SPECIES_SKILLS_PLUS3 ? 'ok' : 'neutre'}
               />
             </>
           }
@@ -1555,7 +1574,7 @@ function careerSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, att
               value={total}
               max={CAREER_SKILL_ADVANCES}
               format={(v, m) => `${v} / ${m} · reste ${m - v}`}
-              tone={done ? 'ok' : 'neutral'}
+              tone={done ? 'ok' : 'neutre'}
             />
           }
         >
@@ -1646,7 +1665,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
                       <>
                         <span className="chip tone-warn">{t.auMaxi ? 'Maxi atteint : sans effet si gardé' : 'Déjà possédé'}</span>
                         <button className="btn small" aria-label={`Relancer ${designation}`} onClick={() => setD(rerollDraftTalent(d, t.adresse))}>
-                          <Icon id="nav/dice" size="sm" /> Relancer
+                          <Icon id="navigation/des" size="sm" /> Relancer
                         </button>
                       </>
                     )}
@@ -1842,7 +1861,7 @@ export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
   const { adresse } = emplacement;
   if (emplacement.sorte === 'branches') {
     const choisie = brancheChoisie(emplacement, choices);
-    const options = emplacement.ref.choice.map((branche, j) => ({
+    const options = emplacement.ref.of.map((branche, j) => ({
       key: String(j),
       label: trappingRefLabel(branche),
       selected: choisie === j,
@@ -1887,7 +1906,7 @@ function trappingMeta(id: string): string {
   if (t.pa) bits.push(`${t.pa} PA (${t.loc ?? ''})`);
   if (t.reach && t.categorie === 'melee') bits.push(`Allonge ${t.reach}`);
   // Portée : « N m » (fixe) / « BF×k m » (jet) ; sinon le modificateur de la munition (« ×½ »).
-  if (t.categorie === 'ranged' || t.categorie === 'ammunition') { const p = rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod); if (p) bits.push(`Portée ${p}`); }
+  if (t.categorie === 'distance' || t.categorie === 'ammunition') { const p = rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod); if (p) bits.push(`Portée ${p}`); }
   if (t.enc) bits.push(`Enc. ${t.enc}`);
   if (t.qualities?.length) bits.push(t.qualities.map(qualityRefLabel).join(', '));
   return bits.join(' · ');
@@ -2022,7 +2041,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
   return <CreatorStepFrame d={d} step={stepIdx} label="Possessions" zones={{ action, choice }} />;
 }
 
-/** Rangée du registre d'état civil — libellé au-dessus, contrôle + bouton d'effacement (`ui/undo`,
+/** Rangée du registre d'état civil — libellé au-dessus, contrôle + bouton d'effacement (`interface/revenir`,
  *  mineur/réversible) en fin de rangée (étalon = la planche ratifiée du créateur, écran Détails). */
 function IdentityRow({ label, control, onClear }: { label: string; control: ReactNode; onClear: () => void }) {
   return (
@@ -2031,7 +2050,7 @@ function IdentityRow({ label, control, onClear }: { label: string; control: Reac
       content={control}
       meta={
         <button type="button" className="btn small" title={`${label} : effacer`} onClick={onClear}>
-          <Icon id="ui/undo" size="sm" />
+          <Icon id="interface/revenir" size="sm" />
         </button>
       }
     />
@@ -2126,7 +2145,7 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
           label="Sexe"
           content={
             <button type="button" className="btn small" onClick={() => setD(withSexeSuivant(d))}>
-              <Icon id="ui/branch" size="sm" /> {libelleDeValeur(sexeSchema, d.apparence.sex)}
+              <Icon id="interface/branchement" size="sm" /> {libelleDeValeur(sexeSchema, d.apparence.sex)}
             </button>
           }
         />
@@ -2226,11 +2245,11 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
         </Rubrique>
         <Rubrique title="Valeurs dérivées">
           <div className="creator-derived">
-            <span><Icon id="resource/wounds" size="sm" /> Blessures <b>{hero.wounds.max}</b></span>
-            <span><Icon id="resource/movement" size="sm" /> Mouvement <b>{hero.movement}</b></span>
-            <span><Icon id="resource/fate" size="sm" /> Destin <b>{hero.fate ?? '—'}</b> · Chance <b>{hero.fortune ?? '—'}</b></span>
-            <span><Icon id="resource/resilience" size="sm" /> Résilience <b>{hero.resilience ?? '—'}</b> · Dét. <b>{hero.resolve ?? '—'}</b></span>
-            <span><Icon id="resource/gold-purse" size="sm" /> Bourse <b><Coins money={draftWealth(d).montant} /></b></span>
+            <span><Icon id="ressource/blessures" size="sm" /> Blessures <b>{hero.wounds.max}</b></span>
+            <span><Icon id="ressource/mouvement" size="sm" /> Mouvement <b>{hero.movement}</b></span>
+            <span><Icon id="ressource/destin" size="sm" /> Destin <b>{hero.fate ?? '—'}</b> · Chance <b>{hero.fortune ?? '—'}</b></span>
+            <span><Icon id="ressource/resilience" size="sm" /> Résilience <b>{hero.resilience ?? '—'}</b> · Dét. <b>{hero.resolve ?? '—'}</b></span>
+            <span><Icon id="ressource/bourse" size="sm" /> Bourse <b><Coins money={draftWealth(d).montant} /></b></span>
             <span>PX création <b>+{xpTotal(d)}</b></span>
           </div>
         </Rubrique>

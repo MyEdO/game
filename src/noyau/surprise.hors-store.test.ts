@@ -16,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const scene = () => emptyScene('s', 10, 10);
 const C = (over: Partial<Combatant>): Combatant =>
-  combattantDeTest({ id: 'x', kind: 'hero', label: 'X', conditions: [], skills: [], characteristics: {}, wounds: blessuresDeBase(10), items: [], movement: 4, advantage: 0, ...over });
+  combattantDeTest({ id: 'x', kind: 'heros', label: 'X', conditions: [], skills: [], characteristics: {}, wounds: blessuresDeBase(10), items: [], movement: 4, advantage: 0, ...over });
 
 describe('Surprise — établissement & comportement (LDB 13 l.52-81 / 16 l.130-136)', () => {
   it('applySurprise : le camp embusqué qui perd le Test opposé Perception vs Discrétion → Surpris', () => {
@@ -24,10 +24,10 @@ describe('Surprise — établissement & comportement (LDB 13 l.52-81 / 16 l.130-
     seedBattleRng(1);
     const LOW = { 'capacite-de-combat': 5, 'capacite-de-tir': 5, force: 5, endurance: 5, initiative: 5, agilite: 5, dexterite: 5, intelligence: 5, 'force-mentale': 5, sociabilite: 5 } as never;
     const HIGH = { 'capacite-de-combat': 90, 'capacite-de-tir': 90, force: 90, endurance: 90, initiative: 90, agilite: 90, dexterite: 90, intelligence: 90, 'force-mentale': 90, sociabilite: 90 } as never;
-    const hero = C({ id: 'h', kind: 'hero', characteristics: LOW }); // Perception faible
-    const enemy = C({ id: 'e', kind: 'enemy', characteristics: HIGH }); // Discrétion forte (embusqueur)
+    const hero = C({ id: 'h', kind: 'heros', characteristics: LOW }); // Perception faible
+    const enemy = C({ id: 'e', kind: 'ennemi', characteristics: HIGH }); // Discrétion forte (embusqueur)
     banc.setState({ battle: { combatants: [hero, enemy], order: ['h', 'e'], turn: -1, round: 1, log: [], over: null } as never, pendingLogQueue: [] });
-    applySurprise(banc.getState, banc.setState, 'party'); // les héros sont pris en embuscade
+    applySurprise(banc.getState, banc.setState, 'groupe'); // les héros sont pris en embuscade
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     const e = banc.getState().battle!.combatants.find((c) => c.id === 'e')!;
     expect(hasCondition(h, 'surpris')).toBe(true);
@@ -40,9 +40,9 @@ describe('Surprise — établissement & comportement (LDB 13 l.52-81 / 16 l.130-
   });
 
   it('IA : un ennemi Surpris passe la main (ni Mouvement ni Action)', () => {
-    const e = C({ id: 'e', kind: 'enemy', conditions: [{ id: 'surpris', value: 1 }], pos: { x: 5, y: 5 }, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }] as never });
-    const h = C({ id: 'h', kind: 'hero', pos: { x: 6, y: 5 } });
-    expect(chooseEnemyAction({ enemy: e, heroes: [h], scene: scene(), blocked: new Set(), movement: 4 } as never).kind).toBe('end');
+    const e = C({ id: 'e', kind: 'ennemi', conditions: [{ id: 'surpris', value: 1 }], pos: { x: 5, y: 5 }, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }] as never });
+    const h = C({ id: 'h', kind: 'heros', pos: { x: 6, y: 5 } });
+    expect(chooseEnemyAction({ enemy: e, heroes: [h], scene: scene(), blocked: new Set(), movement: 4 } as never).kind).toBe('fin');
   });
 
   // Surpris (LDB 16 l.135) : ni Mouvement ni Action ce tour. La Détermination reste ouverte, et le
@@ -50,10 +50,10 @@ describe('Surprise — établissement & comportement (LDB 13 l.52-81 / 16 l.130-
   // dispatcher DIRECT ; depuis #1411 P0-B lot 3 elle n'arme plus aucun mode (`battle.action`), c'est
   // la pastille de l'État qui porte le retrait.
   it('un héros Surpris ne peut QUE puiser dans sa Détermination — et elle retire l’État (LDB 13 l.71)', () => {
-    const hero = C({ id: 'h', kind: 'hero', conditions: [{ id: 'surpris', value: 1 }], pos: { x: 5, y: 5 }, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }] as never, resolve: 1 });
+    const hero = C({ id: 'h', kind: 'heros', conditions: [{ id: 'surpris', value: 1 }], pos: { x: 5, y: 5 }, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }] as never, resolve: 1 });
     banc.setState({ battle: { combatants: [hero], order: ['h'], turn: 0, action: null, movementUsed: 0, acted: false, reachable: new Map(), over: false, round: 1, log: [] } as never, scene: scene() });
     expect(computeMoveReach(banc.getState).size).toBe(0); // Mouvement bloqué (effectiveMovement = 0)
-    banc.getState().armerLeMode('cast');
+    banc.getState().armerLeMode('incantation');
     expect(banc.getState().battle!.action).toBeNull(); // Action bloquée
     banc.getState().depenserLaDetermination(hero.id, 'retirerUnEtat', 'surpris'); // dépense DIRECTE, jamais un mode armé
     expect(hasCondition(banc.getState().battle!.combatants[0], 'surpris')).toBe(false);
@@ -61,8 +61,8 @@ describe('Surprise — établissement & comportement (LDB 13 l.52-81 / 16 l.130-
   });
 
   it('aucune surprise déclarée → personne n\'est Surpris', () => {
-    const hero = C({ id: 'h', kind: 'hero' });
-    const enemy = C({ id: 'e', kind: 'enemy' });
+    const hero = C({ id: 'h', kind: 'heros' });
+    const enemy = C({ id: 'e', kind: 'ennemi' });
     // applySurprise n'est appelé que si enc.surprise est défini ; ici on vérifie juste l'état initial.
     expect(hasCondition(hero, 'surpris')).toBe(false);
     expect(hasCondition(enemy, 'surpris')).toBe(false);

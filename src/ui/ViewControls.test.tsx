@@ -29,7 +29,7 @@ describe('ViewControls', () => {
   it('ne porte aucune bascule d’inspection : l’inspection est un geste sur l’entité (#1822)', () => {
     const html = renderControls({ onTogglePov: noop });
     expect(html).not.toMatch(/inspection/i);
-    expect(html).not.toContain(iconMarkup('nav/identify'));
+    expect(html).not.toContain(iconMarkup('navigation/identifier'));
   });
 
   it('expose l’état pressé de la projection et du POV', () => {
@@ -52,12 +52,12 @@ describe('ViewControls', () => {
       expect(html).not.toContain(`>${glyph}<`);
     }
     for (const id of [
-      'ui/rotate-left',
-      'ui/rotate-right',
-      'ui/projection-top',
-      'ui/zoom-out',
-      'ui/zoom-in',
-      'ui/zoom-reset',
+      'interface/tourner-a-gauche',
+      'interface/tourner-a-droite',
+      'interface/vue-du-dessus',
+      'interface/zoom-arriere',
+      'interface/zoom-avant',
+      'interface/zoom-initial',
     ] as const) {
       expect(html).toContain(iconMarkup(id));
     }
@@ -71,6 +71,6 @@ describe('ViewControls', () => {
   it('omet seulement le reset quand le zoom vaut 100 %', () => {
     const html = renderControls({ zoom: 1 });
     expect(html).toContain('<output class="vc-zoom-value">100%</output>');
-    expect(html).not.toContain(iconMarkup('ui/zoom-reset'));
+    expect(html).not.toContain(iconMarkup('interface/zoom-initial'));
   });
 });

@@ -103,7 +103,7 @@ export function makeForet() {
         // La harde en lisière : embuscade — invisible jusqu'au combat (brouillard de sous-bois),
         // + Test de Surprise opposé (la Perception du groupe peut la déjouer).
         id: 'enc-foret-harde',
-        surprise: 'party',
+        surprise: 'groupe',
         hidden: true,
         enemies: [
           { creature: { id: 'gor' }, pos: { x: 12, y: 9 } },
@@ -212,7 +212,7 @@ export function makeMarais() {
             { type: 'journal', desc: 'Le noyé voyageait riche : 22 pa, que la tourbe lui pardonne.' },
           ],
           [
-            { type: 'inflictDisease', disease: 'Infection Mineure' },
+            { type: 'inflictDisease', disease: 'infection-mineure' },
             { type: 'journal', desc: 'L’eau morte vous entre par une écorchure. Ça gratte. Ça GRATTE.' },
           ],
         )),
@@ -223,7 +223,7 @@ export function makeMarais() {
     encounters: [
       {
         id: 'enc-marais',
-        surprise: 'party',
+        surprise: 'groupe',
         hidden: true, // embuscade de tourbière : la chose surgit de l'eau morte
         enemies: [
           { creature: { id: 'bete-des-marais' }, pos: { x: 15, y: 19 } },
@@ -378,7 +378,7 @@ export function makeVillage() {
           { skill: { id: 'resistance' }, difficulty: 'intermediaire', label: 'Les remontées du puits maudit', stake: { authored: 'Encaisser les miasmes du puits : sinon la Courante Galopante se déclare.' } },
           [{ type: 'journal', desc: 'L’odeur du puits vous plie en deux — mais rien ne s’accroche. Cette eau a TUÉ le village.' }],
           [
-            { type: 'inflictDisease', disease: 'Courante Galopante' },
+            { type: 'inflictDisease', disease: 'courante-galopante' },
             { type: 'journal', desc: 'Les miasmes du puits vous prennent à la gorge. Votre ventre gargouille déjà sinistrement…' },
           ],
         ),
@@ -455,7 +455,7 @@ export function makeEmbuscade() {
     encounters: [
       {
         id: 'enc-embuscade',
-        surprise: 'party',
+        surprise: 'groupe',
         hidden: true, // embuscade de route : les détrousseurs jaillissent des fourrés
         enemies: [
           { creature: { id: 'gobelin' }, pos: { x: 14, y: 4 }, randomChars: true },

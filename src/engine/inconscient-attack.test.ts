@@ -11,7 +11,7 @@ const mk = (_over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id: 'c',
     name: 'C',
-    kind: 'enemy',
+    kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12),
     advantage: 0,
@@ -25,7 +25,7 @@ const mk = (_over: Partial<Combatant> = {}): Combatant =>
   }) as unknown as Combatant);
 
 const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
 
 describe('Attaque contre un Inconscient (LDB 16 l.113)', () => {
   it('un Inconscient ne peut pas se défendre', () => {
@@ -45,7 +45,7 @@ describe('Attaque contre un Inconscient (LDB 16 l.113)', () => {
 
   it('mêlée : un défenseur conscient esquive/pare ce même jet raté (pas de touche)', () => {
     const target = mk();
-    const res = resolveMelee(mk(), target, sword, rngOf(98), { defense: 'none' });
+    const res = resolveMelee(mk(), target, sword, rngOf(98), { defense: 'aucune' });
     expect(res.hit).toBe(false); // jet 98 vs CC 40 → échec, cible consciente
   });
 

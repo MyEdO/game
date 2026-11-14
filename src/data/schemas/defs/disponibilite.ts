@@ -3,7 +3,7 @@ import { nommerChamps, libelleDeValeur } from '../grammaire/meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { availabilitySchema, dispoPctAvailabilitySchema, sourceRefSchema } from '../grammaire/valeurs';
+import { availabilitySchema, dispoPctAvailabilitySchema, settlementSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { AVAILABILITIES } from '../../../engine/types';
 
 export const file = 'disponibilite.json';
@@ -19,11 +19,7 @@ const doc = document(
   dispoPct: z.array(
     nommerChamps(z.strictObject({
       availability: dispoPctAvailabilitySchema,
-      pct: nommerChamps(z.strictObject({ village: z.number(), ville: z.number(), cite: z.number() }), {
-        village: { label: 'village' },
-        ville: { label: 'ville' },
-        cite: { label: 'cité' },
-      }),
+      pct: nommerChamps(z.strictObject(tableTotale(settlementSchema.options, () => z.number())), { ...tableTotale(settlementSchema.options, (taille) => ({ label: libelleDeValeur(settlementSchema, taille) })) }),
       source: sourceRefSchema,
     }), {
       availability: { label: 'disponibilité' },
@@ -48,7 +44,7 @@ const doc = document(
     dispoPct: { label: 'Tableau de Disponibilité', hint: "Pourcentage de réussite du Test d'achat, par taille de colonie" },
     barterRatios: { label: 'Ratios de troc', hint: "Ratio d'objets échangés entre deux Disponibilités, au troc" },
   },
-  { codex: { keys: ['disponibilite'] }, edit: { object: 'single' } },
+  { codex: { keys: ['disponibilite'] }, edit: { object: 'unique' } },
 );
 
 export const schema = doc.schema;

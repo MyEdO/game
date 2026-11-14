@@ -1,7 +1,7 @@
 /**
- * LE VERDICT D'ARMEMENT VOYAGE AVEC LE GESTE (#1411, P0-A) — liaison web : le commit clavier
- * (`combatCursor.commitCursor`) passe par les actions de store, que `netFlow.interceptGuestActions`
- * remplace chez l'invité. La règle (ré-entrée, verdict joint aux args, refus local) se joue au banc
+ * L'INTENTION DU CLIC VOYAGE AVEC LE GESTE (#1411, P0-A) — liaison web : le commit clavier
+ * (`combatCursor.commitCursor`) passe par les actions de store, que `transmettreLesIntentions` (`noyau/reseau.ts`)
+ * remplace chez l'invité. La règle (ré-entrée, intention jointe aux args et jugée, refus local) se joue au banc
  * du noyau, `src/noyau/geste-arme-voyage.hors-store.test.ts`.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -18,13 +18,13 @@ function setup() {
   useGame.setState({ party: [hero] });
   get().lancerLaScene(testScene());
   get().lancerLeCombat('enc-mutants');
-  get().fenetreValider('roundStart');
+  get().fenetreValider('debutDuRound');
   vi.clearAllTimers();
   const b = get().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   let i = 0;
-  for (const e of b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id)) e.pos = { x: 25 + i++, y: 25 };
+  for (const e of b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id)) e.pos = { x: 25 + i++, y: 25 };
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 13, y: 10 }; // distance 3 : hors d'Allonge, dans la portée de Charge (2×M)
   const turn = b.order.indexOf(H.id);
@@ -42,10 +42,10 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans les args', () => {
+describe('(B) COOP — l’intention part de l’ÉMETTEUR dans les args', () => {
   it('CLAVIER : `commitCursor` commet par l’ACTION DE STORE — donc par le wrapper d’invité', () => {
     const { E } = setup();
-    // L'invité n'émet ses gestes que parce que `netFlow.interceptGuestActions` REMPLACE les actions de
+    // L'invité n'émet ses gestes que parce que `transmettreLesIntentions` (`noyau/reseau.ts`) REMPLACE les actions de
     // l'allowlist DANS le store. Un commit clavier qui appellerait le chemin interne au lieu de
     // `get().cliquerLaCase` sortirait du réseau sans un bruit : chez l'invité, le clavier ne jouerait
     // plus. On installe le substitut par le MÊME moyen que le wrapper (`useGame.setState`).

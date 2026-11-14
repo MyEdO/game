@@ -32,7 +32,7 @@ import { EXPOSURE_BAND_KINDS } from './bandesDExposition';
 import { sealskinDR, type ExposureKind } from '../engine/exposure';
 
 /** Discriminant d'ENTRÉE DE RÈGLE d'une étape de nuit, lu dans son `meta` : la maladie et son symptôme
- *  (`disease-tick`/`disease-gangrene`/`disease-persist`/`contagion` sont des entrées DIFFÉRENTES), le volet
+ *  (`maladie-test-quotidien`/`maladie-gangrene`/`maladie-persistance`/`contagion` sont des entrées DIFFÉRENTES), le volet
  *  froid/chaleur de l'Exposition (LDB 18 l.330 vs l.334) et sa VAGUE. */
 function bandEntry(step: CascadeStep): string {
   const m = step.meta ?? {};
@@ -45,7 +45,7 @@ export function nightBandKey(step: CascadeStep): string {
 }
 
 /** Une étape MONO peut-elle rejoindre une bande ? Test de nuit à JET porté par un acteur — un CHOIX
- *  (`exposure-heat-drop`) reste MONO (`stepReady` exige `result` sur les rangées d'une bande, et le
+ *  (`exposition-delestage`) reste MONO (`stepReady` exige `result` sur les rangées d'une bande, et le
  *  choix se pose au niveau ÉTAPE : `setCascadeChoice`), et une étape déjà en bande passe telle quelle. */
 function bandable(step: CascadeStep): boolean {
   return isNightTestKind(step.kind) && !step.participants && !step.options
@@ -155,7 +155,7 @@ function bandSpecOf(band: CascadeStep): BandSpec {
     ...(band.aggregate ? { aggregate: band.aggregate } : {}),
     ...(band.stake ? { stake: band.stake } : {}),
     ...(band.menace ? { menace: band.menace } : {}),
-    ...(band.combatPsych ? { combatPsych: band.combatPsych } : {}),
+    ...(band.psychologieDeCombat ? { psychologieDeCombat: band.psychologieDeCombat } : {}),
     ...(band.meta ? { meta: band.meta } : {}),
   };
 }
@@ -202,11 +202,11 @@ export function genuineExposureFail(hero: Combatant, kind: ExposureKind, r: Casc
 
 /** Échecs d'Exposition DÉJÀ subis par un héros pour CE volet (LDB 18 l.330/334, escalade cumulative),
  *  hors ceux ANNULÉS par un délestage de Possession lourde (l.332) : parcourt les bandes d'Exposition
- *  DÉJÀ jouées et les choix `exposure-heat-drop` qui les tranchent (`meta.cancelsRowId`). */
+ *  DÉJÀ jouées et les choix `exposition-delestage` qui les tranchent (`meta.cancelsRowId`). */
 export function exposurePriorFails(steps: CascadeStep[], hero: Combatant, kind: ExposureKind): number {
   const cancelled = new Set<string>();
   for (const s of steps) {
-    if (s.kind !== 'exposure-heat-drop' || s.chosen !== 'jeter') continue;
+    if (s.kind !== 'exposition-delestage' || s.chosen !== 'jeter') continue;
     const id = s.meta?.cancelsRowId;
     if (typeof id === 'string') cancelled.add(id);
   }
@@ -240,7 +240,7 @@ export function nextExposureWave(get: Get, band: CascadeStep, steps: CascadeStep
   const rows = (band.participants ?? []).map((row) => {
     const hero = actorIn(get(), row.id);
     const meta = { ...row.meta, priorFails: hero ? exposurePriorFails(steps, hero, kind) : 0 };
-    return { ...row, result: null, outcome: undefined, rerolled: undefined, forced: undefined, immune: undefined, fixed: undefined, meta };
+    return { ...row, result: null, outcome: undefined, rerolled: undefined, forcee: undefined, immune: undefined, fixed: undefined, meta };
   });
   const suivante = bandStep({
     ...bandSpecOf(band),

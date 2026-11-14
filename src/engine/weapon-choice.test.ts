@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { canFireWhileEngaged, attackWeapon, assertAttackWeapon } from './combat';
 import { Weapon } from './types';
 
-const arbalete: Weapon = { label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
-const pistolet: Weapon = { label: 'Pistolet', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [{ id: 'pistolet' }, { id: 'recharge' }] };
+const arbalete: Weapon = { label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+const pistolet: Weapon = { label: 'Pistolet', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [{ id: 'pistolet' }, { id: 'recharge' }] };
 const epee: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
 describe('canFireWhileEngaged — Atout Pistolet (LDB Armes l.297-298)', () => {

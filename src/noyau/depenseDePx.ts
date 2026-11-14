@@ -12,10 +12,10 @@ import { refusDepensePx } from './verrousDeFiche';
 import type { Combatant } from '../engine/types';
 
 
-/** Une Augmentation hors carrière exige-t-elle un mentor absent (règle `advancement-mentor`, flag de
+/** Une Augmentation hors carrière exige-t-elle un mentor absent (règle `progression-mentor`, flag de
  *  partie `mentor`) ? Verdict UNIQUE de l'achat et de la vue d'avancement. LDB 07 l.89 */
 export function mentorRequis(s: Pick<Jeu, 'flags'>, inCareer: boolean): boolean {
-  return mentorBlocks(inCareer, rule('advancement-mentor') === true, !!s.flags['mentor']);
+  return mentorBlocks(inCareer, rule('progression-mentor') === true, !!s.flags['mentor']);
 }
 
 /** Libellé d'affichage d'une Compétence/Talent concret : nom, et spécialisation entre parenthèses. */
@@ -47,7 +47,7 @@ export function contexteDeChangement(hero: Combatant, newCareer: string, newLeve
     completed,
     sameClass: findCareerById(hero.career ?? '')?.class.id === findCareerById(newCareer)?.class.id,
     targetLevelExists: levelsForCareer(newCareer).some((l) => l.level === newLevel),
-    gmJump: rule('advancement-career-jump') === true,
+    gmJump: rule('progression-saut-de-niveau') === true,
   };
 }
 

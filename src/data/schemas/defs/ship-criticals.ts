@@ -60,7 +60,6 @@ const doc = document(
     tables: { label: 'Critiques par Localisation', hint: 'Cinq tables sœurs : cargaison, gréement, coque, avirons, équipements' },
   },
   {
-    codex: { keys: ['shipCriticalsCargaison', 'shipCriticalsGreement', 'shipCriticalsCoque', 'shipCriticalsAvirons', 'shipCriticalsEquipements'] },
     edit: { niche: { categories: { shipCriticalsCargaison: 'tables.cargaison', shipCriticalsGreement: 'tables.greement', shipCriticalsCoque: 'tables.coque', shipCriticalsAvirons: 'tables.avirons', shipCriticalsEquipements: 'tables.equipements' } } },
   },
 );

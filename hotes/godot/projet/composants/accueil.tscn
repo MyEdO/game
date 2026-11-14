@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+
+[node name="Accueil" type="Label"]
+theme_type_variation = &"Accueil"
+size_flags_horizontal = 3
+autowrap_mode = 3
+max_lines_visible = 3
+text_overrun_behavior = 3
+
+[node name="texte" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "texte"
+

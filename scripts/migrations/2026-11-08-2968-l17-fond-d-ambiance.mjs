@@ -8,7 +8,7 @@
  * projets ne porte de fond.
  *
  * ENTRÉES : écrites et lues — `src/data/lieux-services.json`, `src/scenes/loup-et-saumure/loup-et-saumure-projet.json` ;
- * lues — les defs du registre des fonds (`src/ui/backdrops/defs`, `vocabulaireDuRegistre` de
+ * lues — les defs du registre des fonds (`src/data/fonds/defs`, `vocabulaireDuRegistre` de
  * `scripts/gen-registry.mjs`), catalogue de la cible.
  * CARDINAL ASSERTÉ : `CARDINAL` gestes au premier passage, `PAR_PORTEUR` par porteur.
  * IDEMPOTENT, FAIL-FAST et FORMATAGE : `lib/idNuEnRef.mjs` ; rejouée sur l'état final, rien ne s'écrit et la

@@ -26,7 +26,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const heros = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h', label: 'Hilda', kind: 'hero',
+    id: 'h', label: 'Hilda', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 40, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -52,7 +52,7 @@ function rangeeAuDepart(posting: Parameters<ReturnType<typeof banc.getState>['af
   banc.getState().chargerLeProjet({ scenes: [scene('lieu-a-scene', 'Village A'), scene('lieu-b-scene', 'Bourg B')], entryId: 'lieu-a-scene', worldMap: CARTE, projet: null });
   banc.getState().affecterAuRoleDeMarche('h', posting);
   banc.getState().partirEnVoyage('r1', 'pied');
-  const bande = () => banc.getState().pendingCascade?.participants.find((s) => s.kind === 'stagePosteBatch');
+  const bande = () => banc.getState().pendingCascade?.participants.find((s) => s.kind === 'etapePosteEnBande');
   // La Météo d'Étape ouvre la cascade du jour ; la bande des postes la suit.
   for (let garde = 0; !bande() && garde < 10; garde++) {
     const p = banc.getState().pendingCascade;
@@ -136,7 +136,7 @@ describe('Pratiquer une Compétence : la liste `freeSkill` éditée au Compendiu
 });
 
 describe('Pratiquer une Compétence : du rôle épinglé à la rangée de l’Étape', () => {
-  beforeEach(() => { setRule('travel-etapes', true); });
+  beforeEach(() => { setRule('voyage-etapes', true); });
 
   it('Compétence choisie : la rangée de la bande la teste, elle', () => {
     const rangee = rangeeAuDepart({ activityId: 'pratiquer-competence', freeSkill: { id: 'escalade' } })!;

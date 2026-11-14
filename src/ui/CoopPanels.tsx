@@ -5,7 +5,7 @@ import type { NetState } from '../noyau/etat';
 import { CharFrame } from './CharFrame';
 import { MenuToggle } from './MenuCard';
 import { Icon } from './Icon';
-import type { IconIdInput } from '../data/icons';
+import type { IconId } from '../data/icons';
 import { Stack, Row, Grid } from './Layout';
 import { t } from '../i18n';
 
@@ -40,8 +40,8 @@ export function CoopInvite({ code, onCopierCode, onCopierLien }: {
     <Stack gap="md">
       <div className="coop-code display-title">{code}</div>
       <div className="bar">
-        <button className="btn small" onClick={onCopierCode}><Icon id="coop/code" size="sm" /> Code</button>
-        <button className="btn small" onClick={onCopierLien}><Icon id="coop/invite" size="sm" /> Lien d'invitation</button>
+        <button className="btn small" onClick={onCopierCode}><Icon id="coop/code-de-partie" size="sm" /> Code</button>
+        <button className="btn small" onClick={onCopierLien}><Icon id="coop/invitation" size="sm" /> Lien d'invitation</button>
       </div>
     </Stack>
   );
@@ -78,7 +78,7 @@ export function SeatList({ sieges }: { sieges: SiegeDeLaTable[] }) {
     <Row as="ul" gap="md">
       {sieges.map(({ seat, nom, moi, absent }) => (
         <li key={seat} className={absent ? 'muted' : undefined}>
-          <Icon id={seat === 0 ? 'coop/host' : absent ? 'coop/away' : 'coop/online'} size="sm" /> {nom}
+          <Icon id={seat === 0 ? 'coop/hote' : absent ? 'coop/reconnexion' : 'coop/connecte'} size="sm" /> {nom}
           {moi ? ' (vous)' : ''}
           {absent ? ' — reconnexion…' : ''}
         </li>
@@ -118,7 +118,7 @@ export function CoopAssignRow({ portrait, libelle, valeur, options, onChange }: 
 export function CoopAssignList() {
   const net = useGame((s) => s.net);
   const party = useGame((s) => s.party);
-  const assign = useGame((s) => s.netAssign);
+  const assign = useGame((s) => s.affecterLeHerosAuSiege);
   const options = siegesDeLaTable(net).map(({ seat, nom }) => ({ valeur: seat, libelle: nom }));
   return (
     <Grid cols={2} gap="md" align="stretch">
@@ -146,14 +146,14 @@ export function CoopAssignList() {
  *  (en solo, le siège unique bascule via `GmSoloToggle`). */
 export function GmSeatSelect() {
   const net = useGame((s) => s.net);
-  const setGmSeat = useGame((s) => s.setGmSeat);
-  if (net.mode !== 'host') return null;
+  const affecterLeSiegeMJ = useGame((s) => s.affecterLeSiegeMJ);
+  if (net.mode !== 'hote') return null;
   return (
     <CoopAssignRow
       libelle="Maître du Jeu"
       valeur={net.gmSeat ?? ''}
       options={[{ valeur: '', libelle: 'IA (aucun MJ)' }, ...siegesDeLaTable(net).map(({ seat, nom }) => ({ valeur: seat, libelle: nom }))]}
-      onChange={(v) => setGmSeat(v === '' ? null : Number(v))}
+      onChange={(v) => affecterLeSiegeMJ(v === '' ? null : Number(v))}
     />
   );
 }
@@ -161,10 +161,10 @@ export function GmSeatSelect() {
 /** SOLO (mode local) : contrôler aussi les ennemis + les jets du monde (rôle MJ pour le siège unique). */
 export function GmSoloToggle() {
   const net = useGame((s) => s.net);
-  const setGmSeat = useGame((s) => s.setGmSeat);
+  const affecterLeSiegeMJ = useGame((s) => s.affecterLeSiegeMJ);
   if (net.mode !== 'local') return null;
   return (
-    <MenuToggle checked={net.gmSeat != null} onChange={(v) => setGmSeat(v ? 0 : null)}>
+    <MenuToggle checked={net.gmSeat != null} onChange={(v) => affecterLeSiegeMJ(v ? 0 : null)}>
       Siège du contrôleur — piloter aussi les ennemis / le monde
     </MenuToggle>
   );
@@ -172,21 +172,21 @@ export function GmSoloToggle() {
 
 /** Bandeau de LIAISON, non bloquant : un chip qui SIGNALE (`.chip.tone-danger`), posé en haut du
  *  champ au-dessus de l'écran courant, quel qu'il soit. */
-export function CoopBanner({ icone, children }: { icone: IconIdInput; children: ReactNode }) {
+export function CoopBanner({ icone, children }: { icone: IconId; children: ReactNode }) {
   return <div className="chip tone-danger coop-banner" role="status"><Icon id={icone} size="sm" /> {children}</div>;
 }
 
 /** Ce que la vue réseau donne à SIGNALER — `null` : la liaison est saine, aucun bandeau. */
-export function liaisonASignaler(net: NetState): { icone: IconIdInput; texte: string } | null {
-  if (net.mode === 'guest' && net.connection === 'reconnecting')
-    return { icone: 'ui/warning', texte: 'Reconnexion en cours…' };
-  if (net.mode === 'guest' && net.hostAway)
-    return { icone: 'ui/wait', texte: 'L’hôte est déconnecté — la partie reprendra à son retour.' };
-  if (net.mode === 'host') {
+export function liaisonASignaler(net: NetState): { icone: IconId; texte: string } | null {
+  if (net.mode === 'invite' && net.connection === 'reconnexion')
+    return { icone: 'interface/attention', texte: 'Reconnexion en cours…' };
+  if (net.mode === 'invite' && net.hoteAbsent)
+    return { icone: 'interface/attendre', texte: 'L’hôte est déconnecté — la partie reprendra à son retour.' };
+  if (net.mode === 'hote') {
     const away = Object.entries(net.presence)
-      .filter(([, p]) => p === 'away')
+      .filter(([, p]) => p === 'absent')
       .map(([s]) => nomDuSiege(net, Number(s)));
-    if (away.length) return { icone: 'ui/warning', texte: `${away.join(', ')} : reconnexion en cours…` };
+    if (away.length) return { icone: 'interface/attention', texte: `${away.join(', ')} : reconnexion en cours…` };
   }
   return null;
 }
@@ -195,9 +195,9 @@ export function liaisonASignaler(net: NetState): { icone: IconIdInput; texte: st
 export function CoopHostSections() {
   return (
     <>
-      <CoopSection title={t('coop.host.invite.section')}><CoopRoomPanel /></CoopSection>
-      <CoopSection title={t('coop.host.players.section')}><CoopSeatList /></CoopSection>
-      <CoopSection title={t('coop.host.assign.section')}><CoopAssignList /></CoopSection>
+      <CoopSection title={t('coop.hote.inviter.section')}><CoopRoomPanel /></CoopSection>
+      <CoopSection title={t('coop.hote.joueurs.section')}><CoopSeatList /></CoopSection>
+      <CoopSection title={t('coop.hote.attribution.section')}><CoopAssignList /></CoopSection>
     </>
   );
 }
@@ -205,6 +205,6 @@ export function CoopHostSections() {
 /** Sous-écran Coopération du menu ☰ : il n'a de contenu qu'en partie HÉBERGÉE. */
 export function CoopMenuSection() {
   const net = useGame((s) => s.net);
-  if (net.mode !== 'host') return null;
+  if (net.mode !== 'hote') return null;
   return <CoopHostSections />;
 }

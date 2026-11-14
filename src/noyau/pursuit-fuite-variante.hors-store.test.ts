@@ -36,7 +36,7 @@ function hero(withTalent: boolean): Combatant {
  *  RNG semé (identique d'un run à l'autre). */
 function doneRound(h: Combatant, sl: number): MancheClose {
   const participants: CascadeStep[] = [{
-    id: 'pursuit-1', kind: 'pursuitMove', label: fixtureText('Manche 1 — Athlétisme'), aggregate: 'none',
+    id: 'pursuit-1', kind: 'mouvementDePoursuite', label: fixtureText('Manche 1 — Athlétisme'), aggregate: 'none',
     participants: [{
       id: h.id, label: 'Athlétisme', base: 40, target: 40, interactive: true,
       result: { roll: 40, target: 40, sl, success: sl >= 0 },
@@ -50,10 +50,10 @@ function distanceAfterRound(h: Combatant, partyRole: 'fleeing' | 'pursuing'): nu
   banc.getState().ensemencerLeTirage(7);
   banc.setState({
     sequence: {
-      def: 'pursuit', round: 1, cum: {}, params: { score: { fleeing: 'min', pursuers: 'max' } },
-      payload: {
+      definition: 'pursuit', manche: 1, cumuls: {}, parametres: { score: { fleeing: 'min', pursuers: 'max' } },
+      chargeUtile: {
         partyRole, distance: 5, escapeAt: 10, skill: 'athletisme', policy: { ...PURSUIT_POLICY_DEFAUT },
-        foes: [{ id: 'foe-1', label: 'Bandit', movement: 4, skill: 40 }], manche: 1, phase: 'course', retires: [],
+        foes: [{ id: 'foe-1', label: fixtureText('Bandit'), movement: 4, skill: 40 }], manche: 1, phase: 'course', retires: [],
       },
     },
   });

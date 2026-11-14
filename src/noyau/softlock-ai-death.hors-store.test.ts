@@ -20,14 +20,14 @@ function setupBattle(nHeroes: number) {
   banc.setState({ party });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   return banc.getState().battle!;
 }
 
 describe('Soft-lock — l’IA active meurt pendant sa propre attaque (critique défensif)', () => {
   it('resumeSuspendedAI avance le tour quand l’IA active est hors-combat (au lieu de bloquer)', () => {
     const b = setupBattle(2);
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = enemies[0]; // le chargeur, actif
     // E a chargé et agi, puis a été TUÉ par le critique défensif du héros. On garde ≥1 ennemi vivant
     // pour distinguer « avancer » de « finir le combat » (les deux prouvent l'absence de soft-lock).

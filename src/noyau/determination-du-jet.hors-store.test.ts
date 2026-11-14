@@ -28,7 +28,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mk = (id: string, pos: { x: number; y: number }, resolve = 2): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, label: id, kind: 'hero', characteristics: { ...CHARS }, conditions: [], engagedWith: [], skills: [], talents: [],
+  (blessuresSurLeProfil({ id, name: id, label: id, kind: 'heros', characteristics: { ...CHARS }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(12), resolve, fortune: 0,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 
@@ -42,7 +42,7 @@ function arene() {
   } as unknown as BattleState;
   banc.setState({
     ...initialFields(), battle, mode: 'battle', scene: testScene(), party: [h2, h3],
-    net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1, h3: 2 }, slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité A', 2: 'Invité B' } },
+    net: { ...initialNet(), mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { h2: 1, h3: 2 }, slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité A', 2: 'Invité B' } },
   });
 }
 
@@ -51,8 +51,8 @@ const row = (id: string, over: Partial<BatchParticipant> = {}): BatchParticipant
 /** Une bande de Peur (LDB 21 l.25) partagée par `h2` et `h3` : la fenêtre est à tous (`groupOwner`). */
 function bandeDePeur(rangees: BatchParticipant[] = [row('h2'), row('h3')]) {
   const etape: CascadeStep = {
-    id: 'bande-peur', kind: 'combatPsych', label: fixtureText('Peur'), aggregate: 'none', participants: rangees, result: null, groupOwner: true,
-    combatPsych: { kind: 'peur', sourceId: 'e1', sourceName: 'Bête', indice: 2, round: 1 },
+    id: 'bande-peur', kind: 'psychologieDeCombat', label: fixtureText('Peur'), aggregate: 'none', participants: rangees, result: null, groupOwner: true,
+    psychologieDeCombat: { kind: 'peur', sourceId: 'e1', sourceName: fixtureText('Bête'), indice: 2, round: 1 },
   };
   startCascade(banc.getState, banc.setState, { title: 'Peur', purpose: 'test', steps: [etape] });
 }
@@ -102,7 +102,7 @@ describe('`fenetreDeDetermination` : la bande offre l’immunité à chacun de s
     ]);
     expect(f.option.options.map((o) => o.valeur)).toEqual(['immuniserALaPsychologie']);
     expect(f.etat.options.map((o) => o.valeur)).toEqual([null]);
-    banc.getState().jetLancer('cascadeBatch', 'h2');
+    banc.getState().jetLancer('cascadeEnBande', 'h2');
     expect(fenetreDeDetermination(banc.getState())!.porteur.options[0].refus, 'le jet tombé, la Peur a pesé').toBe(libelleDeLaFermeture('jetLance'));
     banc.getState().depenserLaDetermination('h2', 'immuniserALaPsychologie');
     expect(combattant('h2').resolve, 'le verbe lit le même refus que la fenêtre').toBe(2);

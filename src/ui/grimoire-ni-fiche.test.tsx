@@ -8,7 +8,7 @@
  * `spells` ni recopier un facteur.
  *
  * Preuve par DÉBRANCHEMENT : *Caresse de Laniph* vaut NI 7 au Livre de base et NI 4 sous
- * `magic-vdm-incantation` (`VDM 12` folio 122). Un écran resté sur le tableau brut afficherait
+ * `magie-vdm-incantation` (`VDM 12` folio 122). Un écran resté sur le tableau brut afficherait
  * « 7→14 » dans les deux états ; un facteur `× 2` en dur afficherait « 4→8 » mais mentirait dès
  * qu'un Rituel entre dans la liste (`VDM 12 l.647`) — d'où l'assertion sur le NI de lecture RENDU,
  * comparé à celui que la résolution appliquera vraiment.
@@ -25,7 +25,7 @@ import type { Combatant } from '../engine/types';
 import { objetDeTest } from '../engine/objetsDeTest.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 const SPELL = 'caresse-de-laniph';
 
 /** Sorcier de Shyish, Grimoire au paquetage, AUCUN sort mémorisé — toute sa magie passe par le livre. */
@@ -33,7 +33,7 @@ const sorcier = (): Combatant =>
   (blessuresSurLeProfil({
     id: 'w',
     label: 'Wilhelm',
-    kind: 'hero',
+    kind: 'heros',
     species: 'humains-reiklander',
     career: 'apprenti-sorcier',
     careerLevel: 1,

@@ -1,7 +1,7 @@
 /**
- * LES GATES DU CATALOGUE D'ACTIVITÉS, sans store (#3059 S5) : une Activité dont la cible manque ou sort de sa
- * liste (objet à tester, arme inhabituelle, sort, Trait psychologique), dont la réussite n'aurait rien à
- * changer (Pénitence sans Péché), qui ne s'ouvre pas par le catalogue (Entraînement), une Faveur Importante,
+ * LES GATES DU CATALOGUE D'ACTIVITÉS, sans store (#3059 S5) : une Activité hors du catalogue de ce lieu, dont la cible
+ * manque, n'est pas choisie ou sort de sa liste (objet à tester, arme inhabituelle, sort, Trait psychologique), dont la
+ * réussite n'aurait rien à changer (Pénitence sans Péché), un Entraînement sans option, une Faveur Importante,
  * une préparation de bataille déjà faite ou un retrait de Mécénat hors d'Altdorf sont refusés, ET le disent ;
  * aucune Activité consommée, aucun jet en attente. Aucune Activité d'interlude n'est MUETTE.
  * ACE 12 l.13-55, ADE II 09 l.33, LDB 23 l.147-151, ADE II 8 l.67
@@ -16,13 +16,16 @@ import { withBourseMoney } from '../engine/bourse';
 import { ACTIVITIES } from '../engine/activities';
 import { learnableSpells } from '../engine/grimoire';
 import { spells } from '../data';
-import { refusDeRetrait, refusDOuvertureDActivite } from './verdictsDInterlude';
+import { refusDeLaComposition, refusDeRetrait } from './verdictsDInterlude';
+import { reglageDuChoixDeFenetre } from './choixDeFenetre';
+import { t } from '../i18n';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Favor } from '../engine/favor';
 import type { PsychTrait } from '../engine/psychology';
 import { ciblePsy, identiteDeCiblage } from '../engine/psych/ciblage';
 import { applyOps } from '../engine/ops';
 import { makeRNG } from '../engine/dice';
+import { horsComposition, pratiquer } from './interlude.testkit';
 
 const SCENE = { ...emptyScene('altdorf-centre', 2, 2), label: 'Altdorf', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] };
 
@@ -54,7 +57,7 @@ function auLieu(fiche: Fiche = {}, favors: (heroId: string) => Favor[] = () => [
 /** L'empreinte de ce qu'un geste refusé ne doit pas changer. */
 const empreinte = (banc: Banc) => {
   const s = banc.getState();
-  return JSON.stringify([s.interlude, s.pendingActivity, s.favors, s.bank, s.massBattle?.activitiesDone, s.party.map((h) => [h.items, h.sinPoints, h.psychTraits])]);
+  return JSON.stringify([horsComposition(s.interlude), s.pendingActivity, s.favors, s.bank, s.massBattle?.activitiesDone, s.party.map((h) => [h.items, h.sinPoints, h.psychTraits])]);
 };
 
 /** Joue `geste`, vérifie que rien n'a changé ni n'attend : les lignes qu'il a dites. */
@@ -71,62 +74,62 @@ const heros = (banc: Banc, heroId: string): Combatant => banc.getState().party.f
 
 /** Lance le jet ouvert, le pose (`success`, `sl`), puis le confirme. */
 function confirmer(banc: Banc, success: boolean, sl: number): void {
-  banc.actions.jetLancer('activity');
+  banc.actions.jetLancer('activite');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: success ? 10 : 95, success, sl } }));
-  banc.actions.jetValider('activity');
+  banc.actions.jetValider('activite');
 }
 
 describe('Catalogue — aucune Activité d’interlude n’est muette', () => {
   const INTERLUDE = ACTIVITIES.filter((d) => d.contexts.includes('interlude'));
-  it.each(INTERLUDE.map((d) => [d.id, d] as const))('%s : ouverte comme le verdict le dit, ou refusée par sa raison, sans Activité consommée', (_id, def) => {
+  it.each(INTERLUDE.map((d) => [d.id, d] as const))('%s : composée et pratiquée comme ses verdicts le disent, ou refusée par sa raison, sans Activité consommée', (_id, def) => {
     const { banc, heroId } = auLieu();
-    const verdict = refusDOuvertureDActivite(banc.getState(), heroId, def);
+    const offerte = reglageDuChoixDeFenetre(banc.getState(), 'interlude', 'activite', heroId).valeurs?.find((v) => v.valeur === def.id);
+    const verdict = offerte ? offerte.refus ?? refusDeLaComposition(banc.getState(), heroId, { activite: def.id, cibles: {}, atouts: [], defauts: [] }) : t('choix.refus.valeur');
     const left = banc.getState().interlude!.perHero[heroId].left;
     const journal = banc.getState().journal.length;
-    banc.actions.pratiquerLActivite(heroId, def.id);
+    pratiquer(banc.getState, heroId, def.id);
     const s = banc.getState();
     expect(s.interlude!.perHero[heroId].left, 'ouvrir ne consomme rien').toBe(left);
-    if (verdict == null) expect(s.pendingActivity?.activityId, 'le verdict ouvre, le geste ouvre').toBe(def.id);
+    if (verdict == null) expect(s.pendingActivity?.activityId, 'les verdicts ouvrent, le geste ouvre').toBe(def.id);
     else {
-      expect(s.pendingActivity, 'le verdict refuse, le geste refuse').toBeNull();
+      expect(s.pendingActivity, 'un verdict refuse, le geste refuse').toBeNull();
       expect(s.journal.slice(journal)).toEqual([verdict]);
     }
   });
 });
 
 describe('Catalogue — cible absente ou hors de sa liste', () => {
-  it('Entraînement par le catalogue : refusé et dit (il s’entreprend par son volet)', () => {
+  it('Entraînement sans option choisie : refusé et dit', () => {
     const { banc, heroId } = auLieu();
-    expect(refuse(banc, () => banc.actions.pratiquerLActivite(heroId, 'entrainement')))
-      .toEqual(['Entraînement ne s’entreprend pas depuis le catalogue d’Activités, mais par son volet dédié.']);
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'entrainement'))).toEqual([t('interlude.choisir.entrainement')]);
   });
 
   it('Tester des objets magiques sans objet non identifié : refusé et dit', () => {
     const { banc, heroId } = auLieu();
-    expect(refuse(banc, () => banc.actions.pratiquerLActivite(heroId, 'tester-objets-magiques'))).toEqual(['Aucun objet non identifié dans le sac de Vétéran.']);
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'tester-objets-magiques'))).toEqual(['Aucun objet non identifié dans le sac de Vétéran.']);
   });
 
   it('Tester des objets magiques sur un objet hors de la liste : refusé et dit', () => {
     const { banc, heroId } = auLieu({ items: [AMULETTE, COUTEAU_DE_HARALD] });
-    expect(refuse(banc, () => banc.actions.pratiquerLActivite(heroId, 'tester-objets-magiques', { itemUid: 'arme-1' })))
-      .toEqual(['Vétéran : choisir un objet non identifié du sac.']);
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'tester-objets-magiques', { itemUid: 'arme-1' }))).toEqual([t('choix.refus.valeur')]);
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'tester-objets-magiques'))).toEqual(['Vétéran : choisir un objet non identifié du sac.']);
   });
 
   it('maîtrise d’un objet qui n’est pas une arme : aucune arme à maîtriser, refusé et dit', () => {
     const { banc, heroId } = auLieu({ items: [ARMURE_INHABITUELLE] });
-    expect(refuse(banc, () => banc.actions.pratiquerLActivite(heroId, 'entrainement-arme-inhabituelle', { itemUid: 'armure-1' })))
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'entrainement-arme-inhabituelle', { itemUid: 'armure-1' })))
       .toEqual(['Aucune arme inhabituelle à maîtriser dans le sac de Vétéran.']);
   });
 
   it('maîtrise visant l’armure quand une arme est à maîtriser : refusé et dit', () => {
     const { banc, heroId } = auLieu({ items: [COUTEAU_DE_HARALD, ARMURE_INHABITUELLE] });
-    expect(refuse(banc, () => banc.actions.pratiquerLActivite(heroId, 'entrainement-arme-inhabituelle', { itemUid: 'armure-1' })))
-      .toEqual(['Vétéran : choisir une arme inhabituelle non maîtrisée du sac.']);
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'entrainement-arme-inhabituelle', { itemUid: 'armure-1' }))).toEqual([t('choix.refus.valeur')]);
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'entrainement-arme-inhabituelle'))).toEqual(['Vétéran : choisir une arme inhabituelle non maîtrisée du sac.']);
   });
 
   it('Recherche universitaire sans sort payant à mémoriser : refusé et dit', () => {
     const { banc, heroId } = auLieu();
-    expect(refuse(banc, () => banc.actions.pratiquerLActivite(heroId, 'recherche-universitaire')))
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'recherche-universitaire')))
       .toEqual(['Vétéran n’a aucun sort à mémoriser (Talent de lanceur et sort payant requis).']);
   });
 
@@ -134,15 +137,15 @@ describe('Catalogue — cible absente ou hors de sa liste', () => {
     const feu = spells.filter((sp) => sp.family === 'arcane' && sp.subType === 'Feu').map((sp) => sp.id);
     const { banc, heroId } = auLieu({ magie: { talent: 'magie-des-arcanes', spec: 'feu', sorts: feu.slice(0, 4) } });
     expect(learnableSpells(heros(banc, heroId)).some((x) => x.cost > 0), 'témoin : un sort payant est à mémoriser').toBe(true);
-    expect(refuse(banc, () => banc.actions.pratiquerLActivite(heroId, 'recherche-universitaire', { spellId: 'sort-inexistant' })))
-      .toEqual(['Vétéran : choisir un sort payant à mémoriser.']);
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'recherche-universitaire', { spellId: 'sort-inexistant' }))).toEqual([t('choix.refus.valeur')]);
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'recherche-universitaire'))).toEqual(['Vétéran : choisir un sort payant à mémoriser.']);
   });
 });
 
 describe('Catalogue — réussite sans objet', () => {
   it('Pénitence sans Point de Péché : refusée et dite', () => {
     const { banc, heroId } = auLieu({ competences: [{ id: 'priere', characteristic: 'sociabilite', advances: 5 }] as Combatant['skills'] });
-    expect(refuse(banc, () => banc.actions.pratiquerLActivite(heroId, 'penitence')))
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'penitence')))
       .toEqual(['Vétéran n’a aucun Point de Péché à expier. Pénitence ne lui apporterait rien en cas de réussite.']);
   });
 });
@@ -152,18 +155,18 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
 
   it('sans Trait psychologique : refusée et dite', () => {
     const { banc, heroId } = auLieu();
-    expect(refuse(banc, () => banc.actions.pratiquerLActivite(heroId, 'convalescence'))).toEqual(['Vétéran n’a aucun Trait psychologique à éliminer.']);
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'convalescence'))).toEqual(['Vétéran n’a aucun Trait psychologique à éliminer.']);
   });
 
   it('Trait non porté : refusée et dite', () => {
     const { banc, heroId } = auLieu({ psychTraits: TRAITS });
-    expect(refuse(banc, () => banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: 'haine' })))
-      .toEqual(['Vétéran : choisir un Trait psychologique porté.']);
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'convalescence', { traitPsy: 'haine' }))).toEqual([t('choix.refus.valeur')]);
+    expect(refuse(banc, () => pratiquer(banc.getState, heroId, 'convalescence'))).toEqual(['Vétéran : choisir un Trait psychologique porté.']);
   });
 
   it('réussite : élimine le Trait CHOISI, pas le premier porté', () => {
     const { banc, heroId } = auLieu({ psychTraits: TRAITS });
-    banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: 'peur' });
+    pratiquer(banc.getState, heroId, 'convalescence', { traitPsy: 'peur' });
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le jet s’ouvre').toBe('convalescence');
     confirmer(banc, true, 1);
     expect(heros(banc, heroId).psychTraits).toEqual([{ type: 'frenesie' }]);
@@ -173,7 +176,7 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
   it('deux Haines à Cibles différentes : le joueur choisit l’INSTANCE, la Haine (Elfe) part, la Haine (Nain) reste', () => {
     const haines: PsychTrait[] = [{ type: 'haine', cible: ciblePsy.groupe('nain') }, { type: 'haine', cible: ciblePsy.groupe('elfe') }];
     const { banc, heroId } = auLieu({ psychTraits: haines });
-    banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: identiteDeCiblage('haine', ciblePsy.groupe('elfe')) });
+    pratiquer(banc.getState, heroId, 'convalescence', { traitPsy: identiteDeCiblage('haine', ciblePsy.groupe('elfe')) });
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le jet s’ouvre').toBe('convalescence');
     confirmer(banc, true, 1);
     expect(heros(banc, heroId).psychTraits).toEqual([{ type: 'haine', cible: 'nain' }]);
@@ -181,7 +184,7 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
 
   it('Trait choisi disparu avant la confirmation : la réussite ne retire AUCUN autre Trait, et le dit', () => {
     const { banc, heroId } = auLieu({ psychTraits: TRAITS });
-    banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: 'peur' });
+    pratiquer(banc.getState, heroId, 'convalescence', { traitPsy: 'peur' });
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le jet s’ouvre').toBe('convalescence');
     const h = heros(banc, heroId);
     applyOps(h, [{ op: 'removePsychTrait', psychType: { id: 'peur' } }], { idNeuf: idsDeTest, rng: makeRNG(1) }); // la Peur part entre l'ouverture et la confirmation
@@ -194,7 +197,7 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
 
   it('échec : les Traits restent, un jeton inverse UN Test de Calme qui résiste à un Trait Psychologique, l’Activité est consommée', () => {
     const { banc, heroId } = auLieu({ psychTraits: TRAITS });
-    banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: 'peur' });
+    pratiquer(banc.getState, heroId, 'convalescence', { traitPsy: 'peur' });
     const left = banc.getState().interlude!.perHero[heroId].left;
     confirmer(banc, false, -2);
     const h = heros(banc, heroId);
@@ -216,13 +219,13 @@ describe('Faveur Importante', () => {
 describe('Préparation de bataille', () => {
   it('déjà faite : refusée et dite, rien en attente', () => {
     const { banc, heroId } = auLieu();
-    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
-    banc.actions.menerLActionDeBataille('inspire', heroId);
+    banc.actions.amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
+    banc.actions.menerLActionDeBataille(heroId, 'inspire');
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le Discours s’ouvre').toBe('inspire');
     banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 20, success: true, sl: 2 } }));
-    banc.actions.jetValider('activity');
+    banc.actions.jetValider('activite');
     expect(banc.getState().massBattle?.activitiesDone, 'témoin : le Discours est fait').toContain('inspire');
-    expect(refuse(banc, () => banc.actions.menerLActionDeBataille('inspire', heroId))).toEqual(['Déjà réalisée cette bataille (Activité non répétable).']);
+    expect(refuse(banc, () => banc.actions.menerLActionDeBataille(heroId, 'inspire'))).toEqual(['Déjà réalisée cette bataille (Activité non répétable).']);
   });
 });
 

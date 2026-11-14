@@ -2,7 +2,7 @@
  * MANŒUVRES de créature (attaques naturelles activées — LDB 85) : ENTITÉS de 1ʳᵉ classe ÉDITABLES
  * (`maneuvers.json`, effets en GameOp). Ce module FEUILLE porte le RÉSOLVEUR GÉNÉRIQUE unique
  * (`resolveManeuver`) — il REMPLACE les 5 appliers par type. La GÉOMÉTRIE/portée/opposition est moteur
- * (règle 3, dérivée de `ManeuverDef.targeting` + `range`/`blast`) ; les Dégâts (`wounds`) et États sont
+ * (règle 3, dérivée de `ManeuverDef.ciblage` + `range`/`blast`) ; les Dégâts (`wounds`) et États sont
  * la DONNÉE (`ManeuverDef.effects`, GameOp) appliquée par `applyTriggeredEffects` aux cibles GAGNÉES.
  *
  * Module FEUILLE : n'importe RIEN de `combatFlow`. Tout passe par les feuilles moteur/état (engine/*, ./path, ./footprint,
@@ -17,10 +17,20 @@ import type { Get, Set as SetFn } from './flowTypes';
 import type { BattleState, Jeu } from './etat';
 import { facingToward } from '../geometry/dir8';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, CHAR_LABELS } from '../engine/types';
+import { nomDe } from '../engine/nom';
 import { battleRng } from './battleRng';
 import { evLines } from './combatLog';
 import type { RNG } from '../engine/dice';
-import { combatValue, combatBaseValue, defenseValue, defenseBaseValue, DEFENSE_LABEL, baseTestModLines, weaponSkillId, GRAPPLE_TEST_CTX } from '../engine/combat';
+import {
+  combatValue,
+  combatBaseValue,
+  defenseValue,
+  defenseBaseValue,
+  DEFENSE_LABEL,
+  baseTestModLines,
+  weaponSkillId,
+  GRAPPLE_TEST_CTX,
+} from '../engine/combat';
 import { isInanimate } from '../engine/structures';
 import { rollTest, resolveOpposed, hydrateTR, estJete, evaluateTest, type TestResult } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe } from '../engine/characteristics';
@@ -28,9 +38,17 @@ import { testValue, skillBaseValue } from '../engine/skills';
 import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../engine/conditions';
 import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
 import { isFrenzied } from '../engine/psychology';
-import { creatureAttacks, attaqueDeCle, attaquesNaturelles, attaqueNaturelle, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
+import {
+  creatureAttacks,
+  attaqueDeCle,
+  attaquesNaturelles,
+  attaqueNaturelle,
+  type AttackKind,
+  type CreatureAttack,
+  type ManoeuvreComposee,
+} from '../engine/creatureAttacks';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
-import { attackKindSchema } from '../data/schemas/defs/maneuvers';
+import { attackKindSchema } from '../data/schemas/grammaire/valeurs';
 import { findTalentById, findPsychologyById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
 import { startCascade } from './cascade';
 import { freeCons } from './rollSeam';
@@ -45,7 +63,8 @@ import { sizeGap } from '../engine/size';
 
 /** Op d'attaque gratuite (Frénésie/talent) — narrowing partagé. */
 type GrantFreeAttackOp = Extract<GameOp, { op: 'grantFreeAttack' }>;
-import { combatDistance } from './monde/footprint';
+import { distanceDeContact } from './monde/footprint';
+import type { Scene } from './monde/scene';
 import { type Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import { combatantsWithinRadius } from './monde/combatGeometry';
@@ -69,17 +88,17 @@ import { tablesPosees, type FragmentDeTables, type PartDeTable } from './tablesP
 
 /** Émet l'animation d'attaque d'une attaque SPÉCIALE de créature (`EVT.ANIM_ATTACK`, `creatureAttack`). */
 export function emitCreatureAttackAnim(attacker: Combatant, kind: AttackKind): void {
-  bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: attacker.id, kind: 'creature', defense: 'none', result: { hit: true }, creatureAttack: kind });
+  bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: attacker.id, kind: 'creature', defense: 'aucune', result: { hit: true }, creatureAttack: kind });
 }
 
 /** Chiffre flottant de Dégâts sur le pion touché — MÊME canal FX que les attaques/sorts (`useCombatFx`
  *  écoute `ANIM_FLOAT`). Sans ça, les Dégâts d'une manœuvre n'apparaissaient QUE dans le journal. */
 function floatDamage(tgt: Combatant, wl: number): void {
-  if (wl > 0) bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text: t('fx.blessures', { n: wl }), kind: 'damage' });
+  if (wl > 0) bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text: t('fx.blessures', { n: wl }), kind: 'blessures' });
 }
 /** Étiquette flottante d'ÉTAT/issue (Pétrifié, Esquivé…) sur le pion — feedback visuel de la manœuvre. */
 function floatTag(tgt: Combatant, text: string): void {
-  bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text, kind: 'condition' });
+  bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text, kind: 'etat' });
 }
 
 /** Conséquence POST-TOUCHE d'une manœuvre (op IMPURE de géométrie, `TablesDuJeu.apresToucheDeManoeuvre`) —
@@ -94,7 +113,7 @@ export type ManeuverPostHitHook = (get: Get, set: SetFn, attacker: Combatant, de
  * Dégâts `wounds` + États + pétrification) sont appliqués avec la marge (`margin` : DR net + Avantage
  * variable) et l'`indice`, puis le chiffre flottant de Dégâts + la mise à 0 PB + la conséquence post-touche
  * (entraînement de la Langue). SOURCE UNIQUE : appelée par le résolveur SILENCIEUX (`resolveManeuver`) ET
- * par l'applier de cascade `maneuverDefense` (héros influençable). Renvoie les lignes de journal.
+ * par l'applier de cascade `defenseDeManoeuvre` (héros influençable). Renvoie les lignes de journal.
  */
 export function applyManeuverEffects(
   get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, tgt: Combatant, indice: number, margin: number | undefined, rng: RNG,
@@ -113,7 +132,7 @@ export function applyManeuverEffects(
 
 /** Adversaire ADJACENT, encore actif, plus petit que `c` d'au moins `ecart` catégories de Taille.
  *  `targetId` borne la recherche à une cible précise (clic du joueur). LDB 85 l.387 */
-export function cibleDEcartDeTaille(battle: BattleState, c: Combatant, ecart: number, targetId?: string): Combatant | undefined {
+export function cibleDEcartDeTaille(scene: Scene | null, battle: BattleState, c: Combatant, ecart: number, targetId?: string): Combatant | undefined {
   return battle.combatants.find(
     (t) =>
       (targetId ? t.id === targetId : true) &&
@@ -121,7 +140,7 @@ export function cibleDEcartDeTaille(battle: BattleState, c: Combatant, ecart: nu
       !isOutOfAction(t) &&
       !!t.pos &&
       !!c.pos &&
-      combatDistance(c, t) <= 1 &&
+      distanceDeContact(scene, c, t) <= 1 &&
       sizeGap(c.size, t.size) >= ecart,
   );
 }
@@ -129,7 +148,7 @@ export function cibleDEcartDeTaille(battle: BattleState, c: Combatant, ecart: nu
 /** PRIX d'une attaque gratuite `def` pour `c` — SOURCE UNIQUE lue par `availableAttacks` (option du héros,
  *  débitée au commit) et par l'IA (`aiCreatureFreeAttacks`). LDB 85 l.387 ; LDB 85 l.314 */
 export function freeAttackCost(battle: BattleState, c: Combatant, def: ManeuverDef): { advantage: number; movement: boolean } {
-  return maneuverPaidByMovement(c.traits, def.id) && battle.movementUsed === 0 ? { advantage: 0, movement: true } : { advantage: def.advantageCost, movement: false };
+  return maneuverPaidByMovement(c.traits, def.id) && battle.movementUsed === 0 ? { advantage: 0, movement: true } : { advantage: def.coutEnAvantage, movement: false };
 }
 
 /** PLAFOND par tour d'une attaque gratuite de créature, DÉRIVÉ de la donnée : `count` pour une attaque
@@ -144,17 +163,17 @@ export const gratuitesRestantes = (c: Combatant, kind: AttackKind, a?: Pick<Crea
 
 /** `target` est-elle une cible VALIDE de l'attaque gratuite `kind` de `c` ? SOURCE UNIQUE du survol, du
  *  clic et de l'IA. LDB 85 l.387 */
-export function freeAttackTargetOk(battle: BattleState, c: Combatant, kind: AttackKind, target: Combatant): boolean {
+export function freeAttackTargetOk(scene: Scene | null, battle: BattleState, c: Combatant, kind: AttackKind, target: Combatant): boolean {
   const ecart = attaqueNaturelle(c.traits ?? [], kind)?.def.ecartDeTailleMin;
-  return ecart == null || !!cibleDEcartDeTaille(battle, c, ecart, target.id);
+  return ecart == null || !!cibleDEcartDeTaille(scene, battle, c, ecart, target.id);
 }
 
 /** Icône par type de manœuvre (id du registre `src/data/icons/` — la hotbar rend `<Icon id>`).
  *  Typé par l'union GÉNÉRÉE `IconId` (`src/data/icones.generated.ts`, hors de `ui`). */
 export const MANEUVER_ICON: Record<AttackKind, IconId> = {
-  arme: 'action/attack', morsure: 'creature/bite', caudale: 'creature/tail', cornes: 'creature/horns',
-  souffle: 'creature/breath', vomi: 'creature/vomit', tentacules: 'creature/tentacles',
-  etreinte: 'creature/squeeze', regard: 'creature/gaze', langue: 'creature/tongue', hurlement: 'creature/scream',
+  arme: 'action/attaquer', morsure: 'creature/morsure', caudale: 'creature/caudale', cornes: 'creature/cornes',
+  souffle: 'creature/souffle', vomi: 'creature/vomi', tentacules: 'creature/tentacules',
+  etreinte: 'creature/etreinte', regard: 'creature/regard', langue: 'creature/langue', hurlement: 'creature/hurlement',
   pietinement: 'journal/charge',
 };
 
@@ -186,7 +205,7 @@ export interface AttackOption {
    *  au sol (placeur de zone) au lieu d'un combattant. Absent/false = tir DIRECT (cible = combattant). */
   indirect?: boolean;
   def?: ManeuverDef;
-  advantageMode?: 'fixed' | 'variable' | 'all';
+  modeDAvantage?: ManeuverDef['modeDAvantage'];
 }
 
 /** Sources DONNÉE d'une attaque d'Arme gratuite « DISPONIBLE » (`grantFreeAttack when:'available'`) sur SON
@@ -235,9 +254,9 @@ export function grappleActionEligible(mover: Combatant, foe: Combatant): boolean
 /** Attaques que le héros ACTIF peut lancer MAINTENANT — UNE liste à coût (Arme d'abord, puis gratuites/
  *  zone abordables, mutation Tentacule). Subsume l'attaque d'arme implicite ET la garde de Frénésie.
  *  Source : `active.weapons` (Arme) + `attaquesNaturelles` (gratuites) + les prédicats existants. */
-export function availableAttacks(active: Combatant, battle: BattleState): AttackOption[] {
+export function availableAttacks(scene: Scene | null, active: Combatant, battle: BattleState): AttackOption[] {
   // KIND-AGNOSTIQUE (un ennemi conduit par le MJ a le MÊME jeu d'attaques qu'un héros — bac-à-sable). Seul un
-  // NAVIRE (`kind:'hero'`/`enemy`, MDG 13) est exclu : il n'a PAS d'attaque-arme PERSONNELLE (`active.weapons`
+  // NAVIRE (`kind:'heros'`/`ennemi`, MDG 13) est exclu : il n'a PAS d'attaque-arme PERSONNELLE (`active.weapons`
   // vide → l'option 'arme' planterait `attackPlan`) — ses « attaques » sont la Manœuvre + la Bordée via ses postes.
   // (Un combattant sans arme reste armé de ses poings/Bagarre : `attackPlan` gère l'arme vide, cf. player-maneuvers.)
   if (refusCoque(active)) return [];
@@ -255,10 +274,10 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
   //     variable ; Action si trigger='action') ; une manœuvre d'écart de Taille exige sa cible au contact.
   for (const a of attaquesNaturelles(active.traits ?? [])) {
     if (a.kind === 'arme' || a.trigger === 'charge') continue;
-    if (a.def.ecartDeTailleMin != null && !cibleDEcartDeTaille(battle, active, a.def.ecartDeTailleMin)) continue; // LDB 85 l.387
+    if (a.def.ecartDeTailleMin != null && !cibleDEcartDeTaille(scene, battle, active, a.def.ecartDeTailleMin)) continue; // LDB 85 l.387
     const cout = freeAttackCost(battle, active, a.def); // LDB 85 l.387 ; LDB 85 l.314
     const prix = cout.advantage;
-    const minAdv = a.advantageMode === 'variable' ? 1 : prix;
+    const minAdv = a.modeDAvantage === 'variable' ? 1 : prix;
     if (active.advantage < minAdv) continue;
     if (a.trigger === 'action' && !actionDispo) continue;
     if (a.trigger === 'free' && gratuitesRestantes(active, a.kind, a) === 0) continue; // LDB 85 l.237 ; LDB 85 l.405
@@ -266,7 +285,7 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
     out.push({
       id: a.cle, kind: a.kind, label: a.def.label, icon: MANEUVER_ICON[a.kind],
       targeting: melee ? 'melee' : 'zone',
-      ...(melee ? { reach: 1, forceMelee: true, freeKind: a.kind } : { def: a.def, advantageMode: a.advantageMode }),
+      ...(melee ? { reach: 1, forceMelee: true, freeKind: a.kind } : { def: a.def, modeDAvantage: a.modeDAvantage }),
       cost: { action: a.trigger === 'action', advantage: prix, ...(cout.movement ? { movement: true } : {}) },
     });
   }
@@ -280,7 +299,7 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
     !!active.pos &&
     battle.combatants.some((c) => c.kind !== active.kind && !isOutOfAction(c) && c.pos)
   )
-    out.push({ id: 'tentacule', kind: 'tentacules', label: 'Tentacule', icon: 'creature/tentacles', targeting: 'melee', reach: 1, forceMelee: true, weaponUid: tentacule.uid, freeKind: 'tentacules', cost: { action: false, advantage: 0 } });
+    out.push({ id: 'tentacule', kind: 'tentacules', label: 'Tentacule', icon: 'creature/tentacules', targeting: 'melee', reach: 1, forceMelee: true, weaponUid: tentacule.uid, freeKind: 'tentacules', cost: { action: false, advantage: 0 } });
   // (3) Poste d'artillerie SERVI (`mannedPoste`, MDG 12-13) : « servir la pièce » = attaque DÉDIÉE portant
   //     l'arme du poste (`weaponUid` → canon ÉPINGLÉ, même si le servant porte une arme perso de mêlée pour
   //     l'abordage). Arc + portée INTRINSÈQUES (firedAttackBlock garde déjà l'arc de `w.mountSide`). Coûte
@@ -291,36 +310,36 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
     const w = active.weapons.find((x) => x.uid === active.mannedPoste!.item.uid);
     // Pièce INDIRECTE (mortier/catapulte, `w.indirect`) : vise une CASE (placeur de zone), pas un combattant
     // (AA 10 l.169/171). DIRECTE (canon/baliste) : ciblage de combattant classique. Flag DONNÉE, zéro liste en dur.
-    if (w) out.push({ id: 'poste', label: `Servir ${w.label}`, icon: 'action/serve-engine', targeting: 'melee', weaponUid: w.uid, cost: { action: true, advantage: 0 }, ...(w.indirect ? { indirect: true } : {}) });
+    if (w) out.push({ id: 'poste', label: `Servir ${w.label}`, icon: 'action/servir-l-engin', targeting: 'melee', weaponUid: w.uid, cost: { action: true, advantage: 0 }, ...(w.indirect ? { indirect: true } : {}) });
   }
-  // (4) « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle optionnelle `combat-weapon-reach`) :
+  // (4) « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle optionnelle `combat-longueur-arme`) :
   //     Test opposé de Corps à corps pour entrer dans la longueur d'arme. Dispo si la règle est ON, l'Action
   //     dispo, et un adversaire Engagé présente une différence d'allonge pertinente. Choix EXPLICITE de
   //     l'« Attaque ▾ », pas une frappe.
-  if (rule('combat-weapon-reach') && actionDispo && battle.combatants.some((c) => auContactEligible(active, c)))
-    out.push({ id: 'aucontact', label: 'Au contact', icon: 'action/attack', targeting: 'aucontact', cost: { action: true, advantage: 0 } });
+  if (rule('combat-longueur-arme') && actionDispo && battle.combatants.some((c) => auContactEligible(active, c)))
+    out.push({ id: 'aucontact', label: 'Au contact', icon: 'action/attaquer', targeting: 'aucontact', cost: { action: true, advantage: 0 } });
   // (5) Empoignade EN COURS (LDB 14 l.161) : action à son tour entre deux Empoignés — Test opposé de Force
   //     (Dégâts / Empêtré) ou « Briser » (Avantage supérieur). Dispo si l'Action est dispo et un adversaire
   //     est Empoigné. Choix EXPLICITE de l'« Attaque ▾ ».
   if (actionDispo && battle.combatants.some((c) => grappleActionEligible(active, c)))
-    out.push({ id: 'grapple', label: 'Empoignade', icon: 'creature/squeeze', targeting: 'grapple', cost: { action: true, advantage: 0 } });
+    out.push({ id: 'grapple', label: 'Empoignade', icon: 'creature/etreinte', targeting: 'grapple', cost: { action: true, advantage: 0 } });
   return out.filter((m, i) => out.findIndex((n) => n.id === m.id) === i);
 }
 
 
 /** L'attaque se résout-elle SUR-LE-CHAMP, sans cible ni placement ? Sa manœuvre vise tous ceux d'alentour ou tous les
- *  ennemis (`ManeuverDef.targeting`, le Hurlement, LDB 85 l.170) ; toute autre se désigne (une cible, un point). */
+ *  ennemis (`ManeuverDef.ciblage`, le Hurlement, LDB 85 l.170) ; toute autre se désigne (une cible, un point). */
 export function attaqueImmediate(a: AttackOption): boolean {
-  return a.def?.targeting === 'allAround' || a.def?.targeting === 'allFoes';
+  return a.def?.ciblage === 'toutAutour' || a.def?.ciblage === 'adversairesAutour';
 }
 
 /** Résout l'`AttackOption` à exécuter/prévisualiser : l'attaque ARMÉE (`selectedAttack`, défaut 'arme',
  *  repli sur 'arme' si périmée). `undefined` = mode
  *  non-attaque (cast/heal/focus/…) ou aucune attaque abordable. SOURCE UNIQUE partagée par le clic (store)
  *  et le survol (targeting). */
-export function selectedAttackOption(active: Combatant, battle: BattleState): AttackOption | undefined {
+export function selectedAttackOption(scene: Scene | null, active: Combatant, battle: BattleState): AttackOption | undefined {
   if (battle.action !== null) return undefined; // l'attaque ne vit qu'en mode neutre (cast/heal/… = leurs propres modes)
-  const opts = availableAttacks(active, battle);
+  const opts = availableAttacks(scene, active, battle);
   const want = battle.selectedAttack ?? 'arme';
   return opts.find((o) => o.id === want) ?? opts.find((o) => o.id === 'arme'); // armée, repli sur l'Arme si périmée
 }
@@ -334,14 +353,14 @@ export function selectedAttackOption(active: Combatant, battle: BattleState): At
  *  Intermédiaire par défaut. Hurlement n'a PAS de jet d'attaquant (chaque cible teste sa Résistance)
  *  → `stat` absent : `rollManeuverAttacker` n'est jamais appelé pour lui. */
 export function rollManeuverAttacker(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', rng: RNG, difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT): TestResult {
-  const kind = stat === 'capacite-de-combat' ? 'melee' : 'ranged';
+  const kind = stat === 'capacite-de-combat' ? 'melee' : 'distance';
   return { ...rollTest(combatValue(attacker, kind), difficulty, rng), base: combatBaseValue(attacker, kind) }; // LDB 12 l.160
 }
 
 /** Ligne du jet d'attaquant d'une manœuvre (`rollLine`, canal de combat, même valeur que
  *  `rollManeuverAttacker`) — lue par les fenêtres de Manœuvre et de Battement. LDB 85 l.445. */
 export function ligneDAttaquantDeManoeuvre(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT): RollLineParts {
-  return rollLine({ actor: attacker, combat: { kind: stat === 'capacite-de-combat' ? 'melee' : 'ranged' }, difficulty });
+  return rollLine({ actor: attacker, combat: { kind: stat === 'capacite-de-combat' ? 'melee' : 'distance' }, difficulty });
 }
 
 /** Difficulté du jet d'ATTAQUANT propre à une manœuvre (seul le Vomissement dévie du +0 : Facile +40
@@ -391,10 +410,10 @@ function emitAoe(get: Get, de: string, center: Pt, radius: number, rendu: string
 interface CiblesDeManoeuvre { affected: Combatant[]; center: Combatant | null; blast?: number; radius?: number }
 function ciblesDeManoeuvre(battle: BattleState, attacker: Combatant, def: ManeuverDef, chosenTarget?: Combatant): CiblesDeManoeuvre {
   const alive = (c: Combatant) => c.kind !== attacker.kind && !isOutOfAction(c) && !!c.pos;
-  const inPlay = (c: Combatant) => c.id !== attacker.id && !isOutOfAction(c) && !!c.pos; // population SANS camp (`allAround`)
+  const inPlay = (c: Combatant) => c.id !== attacker.id && !isOutOfAction(c) && !!c.pos; // population SANS camp (`toutAutour`)
   const nearest = (cands: Combatant[]) => cands.reduce((p, c) => (chebyshev(attacker.pos!, p.pos!) <= chebyshev(attacker.pos!, c.pos!) ? p : c));
-  if (def.targeting === 'self') return { affected: [], center: null };
-  if (def.targeting === 'zone') {
+  if (def.ciblage === 'soi') return { affected: [], center: null };
+  if (def.ciblage === 'zone') {
     const rangeTiles = tilesOf(measureMeters(def.range, attacker)) ?? Math.max(1, Math.ceil(bonus(effectiveChar(attacker, 'endurance')) / 2));
     const foes = combatantsWithinRadius(attacker.pos!, rangeTiles, battle.combatants, alive);
     const center = chosenTarget && alive(chosenTarget) && chebyshev(attacker.pos!, chosenTarget.pos!) <= rangeTiles
@@ -405,17 +424,17 @@ function ciblesDeManoeuvre(battle: BattleState, attacker: Combatant, def: Maneuv
     const blast = tilesOf(measureMeters(def.blast, center)) ?? 1;
     return { affected: combatantsWithinRadius(center.pos!, blast, battle.combatants, alive), center, blast };
   }
-  if (def.targeting === 'allFoes' || def.targeting === 'allAround') {
+  if (def.ciblage === 'adversairesAutour' || def.ciblage === 'toutAutour') {
     // Hurlement fantomatique (LDB 85 l.170) : « Toutes les créatures vivantes (ne possédant pas le trait
-    // Mort-vivant) se trouvant à un nombre de mètres égal à l'Initiative » → `allAround`, aucun camp. Le
+    // Mort-vivant) se trouvant à un nombre de mètres égal à l'Initiative » → `toutAutour`, aucun camp. Le
     // Mort-vivant se lit au TRAIT (capability `undead`), PAS au Groupe bestiaire (folder « Morts sans
     // repos » sans le Trait, ex. Goule de crypte, reste ciblable — cf. domainAttributes.test.ts).
-    // `allFoes` sert les textes qui DÉSIGNENT le camp (Hurlement de la Bête indomptable, Middenheim 04
+    // `adversairesAutour` sert les textes qui DÉSIGNENT le camp (Hurlement de la Bête indomptable, Middenheim 04
     // l.11 : « effectuer une attaque gratuite de hurlement contre ses ennemis »).
     // « créatures vivantes » exclut aussi l'objet INANIMÉ (structure de siège, véhicule-coque) — dans les
     // DEUX populations : un chariot n'entend pas un hurlement.
     const radius = Math.max(1, Math.ceil(effectiveChar(attacker, 'initiative') / 2));
-    const pop = def.targeting === 'allAround' ? inPlay : alive;
+    const pop = def.ciblage === 'toutAutour' ? inPlay : alive;
     const affected = combatantsWithinRadius(attacker.pos!, radius, battle.combatants, (c) => pop(c) && !isInanimate(c) && !traitCapability(c.traits, 'undead'));
     return { affected, center: null, radius };
   }
@@ -426,7 +445,7 @@ function ciblesDeManoeuvre(battle: BattleState, attacker: Combatant, def: Maneuv
 }
 
 /** Les défenseurs SURFACÉS d'une manœuvre — influençables, ils jouent leur défense en cascade
- *  (`maneuverDefense`) et rien ne leur est appliqué à la résolution. MÊME prédicat que TOUTES les autres
+ *  (`defenseDeManoeuvre`) et rien ne leur est appliqué à la résolution. MÊME prédicat que TOUTES les autres
  *  défenses (`defenseSurfaced`, #989). Opposition réelle exigée : jet d'attaquant présent, défense ≠
  *  `resist`, effets à subir (pas de fumée pure) ; un défenseur Surpris (`cannotDefend`) ne réagit pas. */
 function defenseursSurfacesDeManoeuvre(s: Jeu, def: ManeuverDef, atk: TestResult | null, affected: Combatant[]): Combatant[] {
@@ -452,12 +471,12 @@ export function maneuverDefensePending(s: Jeu): boolean {
  * RÉSOLVEUR UNIQUE de manœuvre — joue ENTIÈREMENT une `ManeuverDef` (remplace applyMan{Area,Tongue,
  * Wail,Gaze,ChillGrasp}). `atk` = jet d'attaquant FIGÉ (influencé par la modale joueur ; null = pas de
  * jet, Hurlement), `spent` = Avantage dépensé, `chosenTarget` = clic joueur (victime mêlée/distance, ou
- * centre de zone). La GÉOMÉTRIE dérive de `def.targeting`+`range`/`blast` ; les effets AUTHORÉS
+ * centre de zone). La GÉOMÉTRIE dérive de `def.ciblage`+`range`/`blast` ; les effets AUTHORÉS
  * (`def.effects`, GameOp : Dégâts `wounds` + États) sont appliqués aux cibles GAGNÉES avec l'Indice
  * (`{indiceOf}`) et la marge (`ctx.sl` : slThreshold/valuePerSL). NE PPELLE PAS `checkBattleOver`.
  */
 export function resolveManeuver(
-  get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, indice: number, atk: TestResult | null, spent: number, chosenTarget?: Combatant,
+  get: Get, set: SetFn, attacker: Combatant, def: ManoeuvreComposee, indice: number, atk: TestResult | null, spent: number, chosenTarget?: Combatant,
 ): boolean {
   const battle = get().battle;
   if (!battle || battle.over || !attacker.pos) return false;
@@ -467,7 +486,7 @@ export function resolveManeuver(
   // Orientation du geste : l'attaquant vise le centre RÉELLEMENT résolu plus bas (la cible cliquée peut
   // être écartée — morte, hors portée — et le souffle recentré sur le plus proche). UNE écriture par
   // manœuvre ; cible = SOI (transformation) ou case identique ⇒ delta nul, facing inchangé ; population
-  // centrée sur l'attaquant (`allAround`/`allFoes`) ⇒ rien à viser. Seul l'ATTAQUANT tourne, à la
+  // centrée sur l'attaquant (`toutAutour`/`adversairesAutour`) ⇒ rien à viser. Seul l'ATTAQUANT tourne, à la
   // différence de la passe d'armes d'`applyAttackResult` (combatFlow.ts:2406) qui tourne AUSSI le
   // défenseur : une manœuvre touche N cibles ou une zone, et son défenseur n'y répond par aucun jet orienté.
   const faceTarget = (tgt?: Combatant | null): void => {
@@ -477,7 +496,7 @@ export function resolveManeuver(
   };
   emitCreatureAttackAnim(attacker, def.kind);
   const flushLog = () => {
-    set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lines, 'attack', attacker.id)] } });
+    set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lines, 'attaque', attacker.id)] } });
     bus.emit(EVT.SCENE_DIRTY);
   };
 
@@ -491,13 +510,13 @@ export function resolveManeuver(
       const opp = resolveOpposed(atk ?? drow, drow);
       if (!opp.attackerWins) { lines.push(t('manv.resists', { name: tgt.label })); floatTag(tgt, def.defense === 'init' ? t('fx.resists') : t('fx.dodge')); return; }
       // Marge = DR net du vainqueur (+Avantage dépensé pour les manœuvres à Avantage VARIABLE, LDB 85 l.290).
-      margin = opp.netSL + (def.advantageMode === 'variable' ? spent : 0);
+      margin = opp.netSL + (def.modeDAvantage === 'variable' ? spent : 0);
     }
     lines.push(...applyManeuverEffects(get, set, attacker, def, tgt, indice, margin, rng));
   };
 
   // SUR SOI (transformation, mue, auto-buff) : aucune cible adverse ni opposition — jamais de cascade.
-  if (def.targeting === 'self') {
+  if (def.ciblage === 'soi') {
     lines.push(...applyTriggeredEffects(get, attacker, maneuverEffects(def), 'onHit', { victim: attacker, indice, rng, set }));
     flushLog();
     return false;
@@ -506,7 +525,7 @@ export function resolveManeuver(
   // Cibles AFFECTÉES (`ciblesDeManoeuvre`, la géométrie partagée avec l'affichage) + émissions propres
   // à la géométrie.
   const { affected, center, blast, radius } = ciblesDeManoeuvre(battle, attacker, def, chosenTarget);
-  if (def.targeting === 'zone') {
+  if (def.ciblage === 'zone') {
     if (!center) { flushLog(); return false; }
     faceTarget(center); // le centre de la zone = ce que l'attaquant vise (cliqué, ou recentré sur le plus proche)
     emitAoe(get, attacker.id, center.pos!, blast!, def.rendu?.id);
@@ -522,7 +541,7 @@ export function resolveManeuver(
       lines.push(t('manv.smoke', { dur }));
       set({ battle: { ...get().battle!, zones } });
     }
-  } else if (def.targeting === 'allFoes' || def.targeting === 'allAround') {
+  } else if (def.ciblage === 'adversairesAutour' || def.ciblage === 'toutAutour') {
     emitAoe(get, attacker.id, attacker.pos, radius!, def.rendu?.id);
   } else {
     faceTarget(center);
@@ -543,13 +562,13 @@ export function resolveManeuver(
     return true; // tour SUSPENDU : reprise via `resumeManeuverDefense` à la fermeture de la cascade
   }
   // Un nœud Flow `test` DANS les effets (Hurlement : « Test de Résistance/Calme ou Brisé », LDB 85) a pu
-  // ouvrir une cascade `triggeredTest` INFLUENÇABLE pour un héros MANUEL (chemin silencieux `hitOne` →
+  // ouvrir une cascade `testDeclenche` INFLUENÇABLE pour un héros MANUEL (chemin silencieux `hitOne` →
   // `applyManeuverEffects` → `applyTriggeredEffects` → `routeTriggeredTest` cadence-aware). On la TAGUE `maneuverResume`
   // pour que sa fermeture reprenne le tour de la créature — MÊME mécanisme que la défense de zone
-  // (dispatchCascadeDone → resumeManeuverDefense), sans `maneuverDefense` bidon pour un Test simple.
+  // (dispatchCascadeDone → resumeManeuverDefense), sans `defenseDeManoeuvre` bidon pour un Test simple.
   const p = get().pendingCascade;
   if (p && p.purpose === 'combat' && !p.maneuverResume) {
-    set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id, free: def.activation === 'free' } } });
+    set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id } } });
     return true; // tour SUSPENDU : le Test de Résistance influençable tient la main
   }
   return false;
@@ -569,33 +588,33 @@ function maneuverDefenseLabel(tgt: Combatant, defense: NonNullable<ManeuverDef['
   return DEFENSE_LABEL[mode];
 }
 
-/** Ouvre la cascade de DÉFENSE à une manœuvre de zone IA : UNE étape `maneuverDefense` INFLUENÇABLE par héros
+/** Ouvre la cascade de DÉFENSE à une manœuvre de zone IA : UNE étape `defenseDeManoeuvre` INFLUENÇABLE par héros
  *  ciblé (jumeau de la cascade de Psychologie), le jet d'attaquant FIGÉ dans `meta.opposed.aT`. À la
  *  fermeture, le store reprend le tour de la créature (`maneuverResume`). */
 function openManeuverDefenseCascade(
-  get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, indice: number, atk: TestResult, spent: number, heroes: Combatant[],
+  get: Get, set: SetFn, attacker: Combatant, def: ManoeuvreComposee, indice: number, atk: TestResult, spent: number, heroes: Combatant[],
 ): void {
   const attackerLabel = dataLabel(def.label);
   const steps: CascadeStep[] = heroes.map((h) => {
     const base = maneuverDefenseValue(h, def.defense!);
     return {
       id: `maneuverDef-${h.id}`,
-      kind: 'maneuverDefense',
+      kind: 'defenseDeManoeuvre',
       actorId: h.id,
       rollLabel: maneuverDefenseLabel(h, def.defense!),
       base,
       target: base, // Test opposé Intermédiaire (+0) → cible = valeur nue ; l'issue vient de resolveOpposed(aT)
       label: attackerLabel,
-      stake: combatStakeRef('combat-maneuver-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) }),
+      stake: combatStakeRef('combat-manoeuvre-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) }),
       meta: {
-        opposed: { aT: atk, attackerId: attacker.id, attackerName: attacker.label, attackerLabel },
-        maneuverDefense: { attackerId: attacker.id, def: structuredClone(def), indice, spent },
+        opposed: { aT: atk, attackerId: attacker.id, attackerName: nomDe(attacker), attackerLabel },
+        defenseDeManoeuvre: { attackerId: attacker.id, def: structuredClone(def), indice, spent },
       },
     };
   });
   startCascade(get, set, { title: attackerLabel, purpose: 'combat', steps });
   const p = get().pendingCascade;
-  if (p) set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id, free: def.activation === 'free' } } });
+  if (p) set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id } } });
 }
 
 /** Le défenseur choisit sa meilleure réaction : Parade (Corps à corps) ou Esquive (Agilité + avances,
@@ -615,7 +634,7 @@ export function bestDefenseMode(defender: Combatant): 'parade' | 'esquive' {
  *  `foe` ? Conditions mesurées ici : camp opposé et actif, `foe` armé, `sizeGap`, Engagement. */
 export function battementEligible(attacker: Combatant, foe: Combatant): boolean {
   if (foe.kind === attacker.kind || isOutOfAction(foe)) return false;
-  const foeArmed = (foe.weapons ?? []).some((w) => w.type === 'melee' || w.type === 'ranged');
+  const foeArmed = (foe.weapons ?? []).some((w) => w.type === 'melee' || w.type === 'distance');
   return foeArmed && sizeGap(foe.size, attacker.size) < 1 && isEngagedWith(attacker, foe.id);
 }
 
@@ -744,19 +763,19 @@ export function startDistraire(_get: Get, set: SetFn, mover: Combatant, foe: Com
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['maneuverDefense'] as const;
+export const GENRES_D_ETAPE = ['defenseDeManoeuvre'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   appliers: {
-    /** Applier de l'étape `maneuverDefense` (héros influençable) — SOURCE UNIQUE de la conséquence : le jet du
+    /** Applier de l'étape `defenseDeManoeuvre` (héros influençable) — SOURCE UNIQUE de la conséquence : le jet du
      *  défenseur est déjà résolu par `FLOWS.cascade` (`meta.opposed` → `resolveOpposed(défenseur, aT)`), on lit
      *  son issue. RÉSISTE (`result.success`) → aucun effet ; sinon l'attaquant l'emporte → marge nette (DR net +
      *  Avantage variable) → effets via `applyManeuverEffects` (le MÊME que le chemin silencieux). Le Critique se
      *  FOLDE dans la MÊME cascade (les ops de Dégâts poussent une révélation → `pushReveal` l'append). */
-    maneuverDefense: (get, set, step, hero) => {
+    defenseDeManoeuvre: (get, set, step, hero) => {
       if (!hero || !estJete(step.result)) return;
-      const md = step.meta?.maneuverDefense;
+      const md = step.meta?.defenseDeManoeuvre;
       const opp = step.meta?.opposed;
       if (!md || !opp) return;
       const attacker = inBattleId(get().battle, md.attackerId);
@@ -775,7 +794,7 @@ export const TABLES = {
       // L'attaquant l'emporte : on re-oppose le jet influencé du défenseur (reproduit `resolveOpposed` de la
       // cascade) pour la MARGE NETTE (RAW Regard : +1 DR/Avantage variable), puis on applique les effets.
       const drow = hydrateTR({ roll: step.result.roll, target: step.result.target, base: step.base, success: evaluateTest(step.result.roll, step.result.target).success, sl: step.result.sl });
-      const margin = resolveOpposed(opp.aT, drow).netSL + (def.advantageMode === 'variable' ? md.spent : 0);
+      const margin = resolveOpposed(opp.aT, drow).netSL + (def.modeDAvantage === 'variable' ? md.spent : 0);
       const journal = applyManeuverEffects(get, set, attacker, def, hero, md.indice, margin, battleRng());
       syncManeuver();
       return { consequences: freeCons(journal) };

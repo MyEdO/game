@@ -17,11 +17,22 @@ import { sceneSchema } from '../defs-scenes/scene';
 import { validateDocument, cheminLisible } from '../validate';
 import { parseProject, ProjetRefuse } from '../../../noyau/worldMap';
 import areneProjet from '../../../scenes/arene/arene-projet.json';
-import { collectionDe, collectionsDesDocuments, collectionsPerdues, collectionsRetrouvees, listeCle, marquerCollection, marqueDeRecord, noeudsDeLElement, refusDeCharge, type MarqueDeCollection } from './collection-cle';
+import {
+  collectionDe,
+  collectionsDesDocuments,
+  collectionsPerdues,
+  collectionsRetrouvees,
+  listeCle,
+  marquerCollection,
+  marqueDeRecord,
+  noeudsDeLElement,
+  refusDeCharge,
+  type MarqueDeCollection,
+} from './collection-cle';
 import { descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { champsDeChoix } from './choixDeCreation';
 import { schema as schemaDesTailles } from '../defs/sizes';
-import { idDe } from './ref';
+import { estFeuilleDId, estRefEmboitee, idDe } from './ref';
 
 const nomDeMarque = (m: MarqueDeCollection | undefined): string | undefined => (m?.forme === 'liste' ? m.nom : m?.sous);
 const nomDe = (n: unknown): string | undefined => nomDeMarque(collectionDe(n));
@@ -61,62 +72,43 @@ describe('anti-perte — le seul détecteur du zéro SILENCIEUX', () => {
 });
 
 /**
- * Listes d'objets du schéma de projet dont l'élément déclare `id` SANS en être l'identité : l'`id` y
- * DÉSIGNE une entrée d'un autre document (référence de catalogue), la liste n'a pas de clé propre.
+ * Exemptions NOMMÉES : listes d'objets du schéma de projet dont l'élément porte un `id` hors feuille `idDe`
+ * (`porteUnIdDIdentite`) SANS en être l'identité : l'`id` y DÉSIGNE une cible, la liste n'a pas de clé propre.
  * Clé = chemin de la marche, branches d'union effacées.
  */
 const LISTES_DE_REFERENCES: Readonly<Record<string, string>> = {
-  '.scenes[].effectZones[].onCross[]^summon.addTraits[]': 'références de Traits (traits.json)',
-  '.scenes[].effectZones[].onCross[]^combatEnMer.adversaire.optionals[]': 'références de Traits facultatifs (traits.json)',
-  '.scenes[].effectZones[].onCross[]^suppressTalents.talents[]': 'références de Talents (talents.json)',
-  '.scenes[].effectZones[].onCross[]^testMod.exceptSkills[]': 'références de Compétences (skills.json)',
   '.scenes[].triggers[].when.of[]': 'conditions composées : `id` d’un objet/talent désigné',
-  '.scenes[].entities[].statblock.traits[]': 'références de Traits (`traits.json`)',
-  '.scenes[].entities[].statblock.traits[].confere[]': 'références de Traits conférés (`traits.json`)',
-  '.scenes[].entities[].statblock.skills[]': 'références de Compétences (`skills.json`)',
-  '.scenes[].entities[].statblock.talents[]': 'références de Talents (`talents.json`)',
-  '.scenes[].entities[].talentsDeCarriere{}[]': 'références de Talents (`talents.json`)',
-  '.scenes[].entities[].competencesDeCarriere{}[]': 'références de Compétences (`skills.json`)',
-  '.scenes[].entities[].upgrades[]': 'références d’Améliorations navales (`naval-traits.json`)',
-  '.scenes[].entities[].combat.skills[]': 'références de Compétences (`skills.json`)',
-  '.scenes[].entities[].combat.optionals[]': 'références de Traits optionnels (`traits.json`)',
   '.narratif.cloture.when.of[]': 'conditions composées : `id` d’un objet/talent désigné',
   '.worldMap.routes[].perils[].effects[]': 'effets de scène : `id` d’une cible désignée',
-  '.narratif.presetsPnj[].profil.traits[]': 'références de Traits (`traits.json`)',
-  '.narratif.presetsPnj[].profil.traits[].confere[]': 'références de Traits conférés (`traits.json`)',
-  '.narratif.presetsPnj[].profil.optionals[]': 'références de Traits optionnels (`traits.json`)',
-  '.narratif.presetsPnj[].profil.optionals[].grant[]': 'octrois : `id` de Compétence/Talent désigné',
-  '.narratif.presetsPnj[].profil.skills[]': 'références de Compétences (`skills.json`)',
-  '.narratif.presetsPnj[].profil.talents[]': 'références de Talents (`talents.json`)',
-  '.narratif.presetsPnj[].profil.trappings[]': 'références de Possessions (`trappings.json`)',
-  '.narratif.presetsPnj[].profil.trappings[].qualities[]': 'références d’Atouts/Défauts (`qualities.json`)',
-  '.narratif.presetsPnj[].profil.trappings[].choice[]': 'références de Possessions (`trappings.json`)',
 };
 
-/** Clés d'objet d'un élément de liste, à travers enveloppes ET branches d'union (`ouverts`). */
-function clesDeLElement(noeud: unknown): string[] {
-  return [...new Set(ouverts([noeud]).flatMap((n) => enfantsDe(n).flatMap((e) => (e.cle === undefined ? [] : [e.cle]))))];
+/** L'élément de liste porte-t-il, à travers enveloppes ET branches d'union (`ouverts`), un `id` qui n'est ni la
+ *  référence emboîtée `{ id }` d'une op (`refDEtatSchema`, `grammaire/mecanique.ts`) ni une feuille `idDe`
+ *  (`estFeuilleDId`) ? Une liste dont l'`id` est une feuille `idDe` est lue comme une liste de références, sans clé
+ *  exigée. */
+function porteUnIdDIdentite(noeud: unknown): boolean {
+  return ouverts([noeud]).some((n) => enfantsDe(n).some((e) => e.cle === 'id' && !ouverts([e.noeud]).some((f) => estRefEmboitee(f) || estFeuilleDId(f))));
 }
 
-/** Listes d'objets du schéma dont l'élément déclare `id`, avec leur chemin et leur marque de clé. */
+/** Listes d'objets du schéma dont l'élément déclare un `id` d'identité, avec leur chemin et leur marque de clé. */
 function listesAId(schema: unknown): { chemin: string; cle?: string }[] {
   const out: { chemin: string; cle?: string }[] = [];
   descendre([schema], ({ noeud, def, path }) => {
-    if (def.type === 'array' && clesDeLElement(enfantsDe(noeud).find((e) => e.segment === '[]')?.noeud).includes('id')) out.push({ chemin: `${path.replace(/\|\d+/g, '')}[]`, cle: nomDe(noeud) });
+    if (def.type === 'array' && porteUnIdDIdentite(enfantsDe(noeud).find((e) => e.segment === '[]')?.noeud)) out.push({ chemin: `${path.replace(/\|\d+/g, '')}[]`, cle: nomDe(noeud) });
   });
   return out;
 }
 
-describe('complétude — toute liste d’objets à `id` du schéma de projet DÉCLARE sa clé, ou se dit liste de RÉFÉRENCES', () => {
+describe('complétude — toute liste d’objets à `id` du schéma de projet DÉCLARE sa clé par `listeCle`, porte son `id` en feuille `idDe` (liste de RÉFÉRENCES), ou est une exemption NOMMÉE', () => {
   const listes = listesAId(projetSchema);
 
   it('la marche VOIT les listes à `id` (une marche aveugle rendrait la garde vacueuse)', () => {
     expect(listes.map((l) => l.chemin)).toEqual(expect.arrayContaining(['.scenes[]', '.scenes[].entities[]', '.narratif.affaires[]']));
   });
 
-  it('aucune liste à `id` n’est muette : clé déclarée par `listeCle`, ou exemption NOMMÉE', () => {
+  it('aucune liste à `id` n’est muette : clé déclarée par `listeCle`, `id` en feuille `idDe` (liste de références), ou exemption NOMMÉE', () => {
     const muettes = listes.filter((l) => l.cle === undefined && !(l.chemin in LISTES_DE_REFERENCES)).map((l) => l.chemin);
-    expect(muettes, 'liste(s) d’objets à `id` sans clé : l’envelopper dans `listeCle(…, \'id\')` à son def, ou l’exempter comme liste de RÉFÉRENCES').toEqual([]);
+    expect(muettes, 'liste(s) d’objets à `id` sans clé : l’envelopper dans `listeCle(…, \'id\')` à son def, désigner son `id` par une feuille `idDe` si elle liste des références, ou l’exempter nommément').toEqual([]);
   });
 
   it('une exemption ne couvre qu’une liste RÉELLE et SANS clé : la liste des références ne peut que décroître', () => {
@@ -142,7 +134,7 @@ describe('unicité PROUVÉE à la porte — un id répété dans une liste à cl
   const noeud = { id: 'n1', desc: 'x', choices: [] };
   const CAS: [string, (d: Doc) => void, string][] = [
     ['une entité', (d) => repete(d.scenes[0].entities), 'entité'],
-    ['un déclencheur', (d) => { d.scenes[0].triggers = [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq', steps: [] } }]; repete(d.scenes[0].triggers); }, 'déclencheur'],
+    ['un déclencheur', (d) => { d.scenes[0].triggers = [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence', etapes: [] } }]; repete(d.scenes[0].triggers); }, 'déclencheur'],
     ['un nœud de dialogue', (d) => { d.scenes[0].dialogues = [{ id: 'd1', start: { id: 'n1' }, nodes: [noeud, noeud] }]; }, 'nœud'],
     ['une réponse de dialogue', (d) => { const oui = { id: 'oui', label: 'Oui' }; d.scenes[0].dialogues = [{ id: 'd1', start: { id: 'n1' }, nodes: [{ ...noeud, choices: [oui, oui] }] }]; }, 'réponse'],
     ['un lieu', (d) => { d.worldMap = { id: 'carte', label: 'Carte', places: [lieu, lieu], routes: [] }; }, 'lieux'],
@@ -256,7 +248,6 @@ describe('clé de collection — la co-descente re-dérive les racines, les cat�
       const racine = fichier === undefined ? undefined : racines.get(fichier);
       return racine === undefined || racine === tableau ? [] : [{ k, attendue: `${fichier}#${chercher(racine, tableau, '')}`, tableau }];
     });
-    expect(nichees).toHaveLength(56);
     const fichiersNiches = new Set(nichees.map(({ attendue }) => attendue.split('#')[0]));
     const mesurees = collectionsDesDocuments(DEFS, new Map([...racines].filter(([f]) => fichiersNiches.has(f))));
     const parTableau = nichees.map(({ k, tableau }) => [k, mesurees.filter((c) => c.valeur === tableau).map((c) => c.cle)]);

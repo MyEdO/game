@@ -11,15 +11,15 @@ export const famille = 'config';
 const powerEstimateRowSchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
-  ally: z.number(),
-  enemy: z.number(),
+  allie: z.number(),
+  ennemi: z.number(),
   example: z.string(),
   source: sourceRefSchema,
 }), {
   id: { label: 'identifiant' },
   label: { label: 'libellé' },
-  ally: { label: 'alliés' },
-  enemy: { label: 'ennemis' },
+  allie: { label: 'alliés' },
+  ennemi: { label: 'ennemis' },
   example: { label: 'exemple' },
   source: { label: 'source' },
 });
@@ -111,9 +111,6 @@ const doc = document(
     hazards: { label: 'Aléas de bataille', hint: "Table de tirage d'incidents de la bataille de masse" },
   },
   {
-    codex: {
-      keys: ['massBattlePowerEstimate', 'massBattleMightModifiers', 'massBattleWarMachines', 'massBattleStructures', 'massBattleHazards'],
-    },
     edit: { niche: { categories: { massBattlePowerEstimate: 'powerEstimate', massBattleMightModifiers: 'mightModifiers', massBattleWarMachines: 'warMachines', massBattleStructures: 'structures', massBattleHazards: 'hazards.entries' } } },
   },
 );

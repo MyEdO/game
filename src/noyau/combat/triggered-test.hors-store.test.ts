@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Mâchoires d'acier (LDB 10) en effet DÉCLENCHÉ `onGainCondition` data-driven, résolu cadence-aware
  * par la brique `combat/triggeredTest` : « chaque fois que vous gagnez un État Sonné… Test de
  * Résistance Intermédiaire → ignore 1 + DR ». On vérifie : (a) héros MANUEL gagnant Sonné en combat →
- * étape de cascade `triggeredTest` NON lancée (influençable) puis `jetLancer('cascade', id)`+`jetValider('cascade')` retire
+ * étape de cascade `testDeclenche` NON lancée (influençable) puis `jetLancer('cascade', id)`+`jetValider('cascade')` retire
  * 1 + DR ; (b) ENNEMI avec Mâchoires → résolu INLINE (jamais d'étape de cascade) ; (c) le filtre
  * `condition` : gagner un AUTRE État (Empoisonné) ne déclenche PAS Mâchoires.
  */
@@ -28,11 +28,11 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     H.pos = { x: 10, y: 10 };
@@ -41,7 +41,7 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     return { H, E };
   }
 
-  it('héros MANUEL gagne Sonné → étape de cascade triggeredTest (non lancée, influençable)', () => {
+  it('héros MANUEL gagne Sonné → étape de cascade testDeclenche (non lancée, influençable)', () => {
     seedBattleRng(7);
     const { H } = setup();
     H.talents = [...(H.talents ?? []), { talentId: 'machoires-d-acier', times: 1 }];
@@ -53,7 +53,7 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     expect(c.purpose).toBe('combat');
     expect(c.participants).toHaveLength(1);
     const step = c.participants[0];
-    expect(step.kind).toBe('triggeredTest');
+    expect(step.kind).toBe('testDeclenche');
     expect(step.actorId).toBe(H.id);
     expect(step.result).toBeFalsy(); // pas encore lancé → Chance/Résilience possibles
     expect(step.meta?.onSuccess).toBeTruthy(); // la conséquence voyage dans le meta (sérialisable, coop)
@@ -68,7 +68,7 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     // lui, `base` vaudrait `rawCombatTestBase` par coïncidence et l'assert ne discriminerait rien.
     H.activeEffects = [...(H.activeEffects ?? []), { id: 'fx-e', label: 'Mystracine', testModChar: 'endurance', testMod: -10 } as never];
     addCondition(H, COND.sonne, 2); // H porte Sonné AU MOMENT du Test → sa pénalité ne compte qu'UNE fois
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     const nue = skillBaseValue(H, { skill: { id: 'resistance' } });
     expect(nue, 'sonde inerte : sans écart nue/valeur testée, l’assert passerait par coïncidence').not.toBe(rawCombatTestBase(H, { skill: { id: 'resistance' } }));
     // `base` = Niveau de Compétence NU (`LDB 09 l.17`) ; `target` = valeur TESTÉE de combat + Intermédiaire(0)
@@ -86,7 +86,7 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     H.talents = [...(H.talents ?? []), { talentId: 'machoires-d-acier', times: 1 }];
 
     addCondition(H, COND.sonne, 2);
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     expect(step).toBeTruthy();
 
     banc.getState().jetLancer('cascade', step.id);

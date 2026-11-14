@@ -6,7 +6,6 @@
     "max": null,
     "test": null,
     "specs": [],
-    "rand": null,
     "codexOnly": true,
     "source": {
       "book": "livre-de-base",
@@ -39,7 +38,6 @@
     },
     "desc": "Vous êtes capable de prouesses incroyables à cheval. Vous pouvez utiliser n'importe laquelle de vos Compétences Représentation, et Esquive non modifiée, quand vous êtes à cheval. De plus, quand vous êtes en selle, vous pouvez effectuer votre Mouvement au début du Round au lieu de votre Tour.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 132
@@ -53,7 +51,6 @@
     "test": null,
     "desc": "Vous gagnez un bonus permanent de +5 à votre Caractéristique Sociabilité de départ (qui ne compte pas comme des Augmentations).",
     "specs": [],
-    "rand": 3,
     "source": {
       "book": "livre-de-base",
       "page": 132
@@ -85,7 +82,6 @@
     },
     "desc": "Les animaux sauvages se sentent en confiance en votre présence, et ont tendance à vous suivre. Toutes les créatures avec le Trait Bestial non dressées à être agressives seront automatiquement calmes en votre présence, à moins qu'elles n'aient une raison de ne pas l'être, comme la douleur, une attaque, une hyper agressivité naturelle ou un jeune à proximité.",
     "specs": [],
-    "rand": 6,
     "source": {
       "book": "livre-de-base",
       "page": 132
@@ -99,7 +95,6 @@
     "test": null,
     "desc": "Vous pouvez utiliser votre main non directrice bien mieux que la plupart des gens, grâce à votre entraînement ou à un talent inné. Vous subissez seulement une pénalité de -10 aux Tests reposant uniquement sur votre main secondaire au lieu de -20. Si vous possédez deux fois ce Talent, vous ne subissez aucune pénalité.",
     "specs": [],
-    "rand": 9,
     "source": {
       "book": "livre-de-base",
       "page": 132
@@ -121,7 +116,6 @@
     "test": null,
     "desc": "Votre âme est pure, très résistante aux déprédations du Chaos. Vous pouvez gagner un nombre de Points de Corruption supplémentaires égal à votre niveau d'Âme pure avant d'avoir à effectuer un Test pour savoir si vous êtes corrompu.",
     "specs": [],
-    "rand": 13,
     "source": {
       "book": "livre-de-base",
       "page": 132
@@ -140,7 +134,6 @@
     "test": null,
     "desc": "Vous pouvez recharger avec facilité les armes à Poudre noire. Ajoutez un DR égal à votre niveau d'Artilleur à n'importe quel Test étendu pour recharger une arme à Poudre noire.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 132
@@ -226,7 +219,6 @@
         "label": "Tissage"
       }
     ],
-    "rand": 16,
     "source": {
       "book": "livre-de-base",
       "page": 132
@@ -261,7 +253,6 @@
     },
     "desc": "Vos coups se succèdent rapidement et pleuvent sur vos adversaires avec la fureur d'Ulric. Une fois par Round, si vous touchez un adversaire en combat rapproché, vous pouvez immédiatement dépenser un Avantage ou votre Mouvement pour effectuer une attaque supplémentaire (en supposant qu'il vous reste votre Mouvement).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 132
@@ -269,10 +260,10 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "caster",
             "ops": [
@@ -280,7 +271,7 @@
                 "op": "grantFreeAttack",
                 "weapon": "held",
                 "when": "immediate",
-                "advantageOrMovement": true
+                "avantageOuMouvement": true
               }
             ]
           }
@@ -296,7 +287,6 @@
     "test": null,
     "desc": "Ce Talent est propre aux familiers de pouvoir et aucune autre race n'y a accès.\n\nLe familier peut apporter son soutien au sorcier qui l'a créé lorsque celui-ci effectue un Test de Focalisation, de Savoir (Magie) ou de Langue (Magick). L'assistant peut également participer aux Tests de Recherche, pourvu qu'il s'agisse de découvertes ou d'innovations magiques. Il apporte un Soutien de +20 à ces Tests au lieu du +10 habituel (voir **WFJDR**, page 155).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "vents-de-la-magie",
       "page": 186
@@ -333,7 +323,6 @@
         "pool": false
       }
     ],
-    "rand": 19,
     "source": {
       "book": "livre-de-base",
       "page": 132
@@ -359,7 +348,6 @@
     },
     "desc": "Appelé « parler à tort et à travers » dans le Nordland, ou simplement « raconter des âneries » au Ostland, Baratiner consiste à parler rapidement de façon incessante, ou parler longuement de façon volubile, en parlant de choses sans importance ou n'ayant aucun sens, pour embrouiller et déconcerter verbalement une cible. Vous utilisez votre Compétence Charme pour Baratiner. Tentez un Test opposé **Charme/Intelligence**. Un succès donne à votre adversaire un État *Sonné*. De plus, pour chaque niveau que vous possédez dans ce Talent, votre adversaire gagne un État *Sonné* supplémentaire. Les cibles *Sonnées* grâce à Baratiner ne peuvent rien faire d'autre que vous regarder, médusées et essayant de suivre ou de comprendre ce que vous racontez. Une fois que le dernier État *Sonné* touche à sa fin, la cible peut enfin placer un mot, et peut ne pas être très contente de vous. Après tout, vous avez parlé de choses sans importance ou n'ayant aucun sens pendant assez longtemps. Si vous arrêtez de parler, votre adversaire perd immédiatement tous les États *Sonné* causés par votre Talent Baratiner. En général, vous ne pouvez tenter de Baratiner un Personnage qu'une seule fois par scène, ou plus longtemps (le MJ détermine ce point), car la cible ne tarde pas à prendre conscience de vos simagrées.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 133
@@ -388,7 +376,6 @@
     },
     "desc": "Vous êtes entraîné à effectuer des frappes précises contrôlées sur l'arme de votre adversaire, créant une ouverture pour une attaque ou empêchant simplement une attaque de vous atteindre. Pour votre Action, vous pouvez choisir Battement avant de lancer les dés. Effectuez un Test de Corps à corps ; sur un succès, votre adversaire perd -1 Avantage et -1 de plus par DR que vous avez obtenu. Ce Test n'est pas opposé. Ce Talent est inutile si votre adversaire ne porte pas d'arme, ou est d'une Taille supérieure à la vôtre (voir page 342).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 133
@@ -414,7 +401,6 @@
     "test": null,
     "desc": "Tzeentch, le Dieu du Chaos de la Magie, vous a béni d'un parasite enfoui dans votre esprit. Lorsque vous achetez ce Talent, un Sort unique se faufile dans votre tête où il s'installe, murmurant de temps en temps pendant votre sommeil. Ce Sort peut être choisi dans n'importe quel savoir de Magie des Couleurs. De plus, vous pouvez acheter un Sort de Magie des Couleurs supplémentaire pour 100 XP pour chaque Sort que vous avez mémorisé provenant du Savoir de Tzeentch.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 75
@@ -433,7 +419,6 @@
     "desc": "Vous êtes protégé par l'un des dieux et vous pouvez intensifier le pouvoir de simples Prières. Vous pouvez à présent utiliser les Bénédictions de votre divinité listées au Chapitre 7 : Religions et Croyances. Dans des conditions normales, vous ne pouvez connaître qu'un seul Savoir divin pour le Talent Béni.",
     "specsSource": "cultBlessings",
     "grantSpecGroups": true,
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 133
@@ -503,9 +488,18 @@
           "page": 184
         },
         "pool": false
+      },
+      {
+        "id": "rural",
+        "label": "Rural",
+        "source": {
+          "book": "ennemi-dans-l-ombre-compagnon",
+          "page": 113,
+          "note": "EDOC 16 l.493"
+        },
+        "pool": false
       }
     ],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 133
@@ -532,7 +526,6 @@
     },
     "desc": "Vous avez des jambes solides capables de vous porter sur de grandes distances quand vous sautez. Ajoutez votre niveau de Bonnes jambes à votre DR à tous les Tests d'Athlétisme impliquant Saut (voir page 166).",
     "specs": [],
-    "rand": 22,
     "source": {
       "book": "livre-de-base",
       "page": 133
@@ -558,7 +551,6 @@
     },
     "desc": "Vous êtes une sorte de touche-à-tout, capable de réparer presque n'importe quoi. Vous considérez toutes les Compétences Métier non magiques comme étant de Base lorsque vous réparez des objets cassés.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 133
@@ -584,7 +576,6 @@
     },
     "desc": "Vous avez l'habitude de vous débrouiller avec peu, et savez comment survivre aux périodes de vache maigre. Vous pouvez subsister avec la moitié de la nourriture nécessaire sans pénalités négatives (vous empêchant d'avoir réellement faim), et vous avez seulement besoin d'effectuer un Test concernant la faim tous les 3 jours et pas 2 (voir page 181).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 133
@@ -598,7 +589,6 @@
     "test": null,
     "desc": "Vous avez réussi à conserver une apparence respectable malgré vos méfaits. Vous pouvez ignorer le Statut perdu à cause du Talent Criminel.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 134
@@ -627,7 +617,6 @@
     },
     "desc": "Vous êtes à l'aise en selle même dans les situations les plus difficiles, et savez comment tirer le meilleur de votre monture pendant les conflits. En supposant que vous possédez la Compétence Chevaucher, vous pouvez directement demander à votre monture d'effectuer une Action, pas seulement un Mouvement, sans Test de Chevaucher.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 134
@@ -671,7 +660,6 @@
     "test": null,
     "desc": "On prétend que lorsque vous êtes né, Ranald a souri. Votre maximum de Points de Chance est à présent égal à votre nombre actuel de Points de Destin, plus le nombre de fois que vous avez pris Chanceux.",
     "specs": [],
-    "rand": 26,
     "source": {
       "book": "livre-de-base",
       "page": 134
@@ -704,7 +692,6 @@
     },
     "desc": "Vous vous précipitez sur vos ennemis avec une témérité sans bornes, utilisant la force de votre charge pour ajouter du poids à vos frappes. Lorsque vous effectuez une Charge berserk, vous infligez +1 point de Dégât par niveau dans ce Talent à toutes les attaques de Corps à corps.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 134
@@ -726,7 +713,6 @@
     },
     "desc": "Vous êtes à l'aise dans les ruelles sombres. Quand vous utilisez Discrétion (Urbaine), vous pouvez inverser le lancer de n'importe quel Test raté si cela entraîne un Succès.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 134
@@ -767,7 +753,6 @@
     },
     "desc": "Vous êtes un chirurgien, capable d'ouvrir et de refermer les chairs pour soigner. Vous pouvez traiter n'importe quelle Blessure Critique nécessitant de la Chirurgie. Vous pouvez aussi pratiquer une Chirurgie pour résoudre des problèmes internes avec un Test étendu de Guérison Intermédiaire (+0) dont le DR cible est déterminé par le MJ (en général 5-10) en fonction de la difficulté de la procédure en cours. Cela cause 1d10 Blessures et 1 État Hémorragique par Test, ce qui signifie que la Chirurgie a de fortes chances de tuer le patient si le praticien n'est pas rigoureux. Après la Chirurgie, le patient doit réussir un Test de Résistance Accessible (+20) ou gagner une Infection Mineure (voir page 187).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 134
@@ -796,7 +781,6 @@
     },
     "desc": "Vous savez comment tirer le meilleur parti de vos animaux. Lorsque l'un des animaux que vous contrôlez Fuit ou Court , il gagne +1 en Mouvement si vous utilisez un fouet.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 134
@@ -822,7 +806,6 @@
     },
     "desc": "Peu importe à quel point les choses vont mal, vous persévérez malgré tout. Vous pouvez tenter un Test de Calme pour retirer un État Brisé à la fin de chacun de vos Tours ainsi qu'à la fin du Round (voir page 168 pour plus de détails).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 134
@@ -851,7 +834,6 @@
     },
     "desc": "Vous avez appris tous les coups bas du combat à mains nues. Vous pouvez choisir d'infliger +1 Dégât supplémentaire pour chaque niveau de Combat déloyal, pour tous les coups réussis avec Corps à corps (Bagarre).\n\n**Remarque:** utiliser ce Talent sera considéré comme une tricherie dans tout combat officiel.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 134
@@ -870,7 +852,6 @@
     "test": null,
     "desc": "Vous réagissez aussi vite que l'éclair. Votre Initiative est plus élevée de 10 pour déterminer l'Initiative de Combat pour chaque niveau que vous possédez dans ce Talent.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 134
@@ -899,7 +880,6 @@
     },
     "desc": "Vous êtes entraîné à vous placer très près d'un adversaire. Vous ne subissez aucune pénalité pour vous battre contre un adversaire avec une arme plus longue que la vôtre. De plus, si vous utilisez les règles optionnelles de Combat au contact (voir page 297), gagnez un bonus de +10 pour toucher votre adversaire. ",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 134
@@ -925,7 +905,6 @@
     },
     "desc": "Vous avez appris à tirer le meilleur parti des combats en espace clos. Vous ignorez les pénalités de Corps à corps causées par les espaces confinés, comme les tunnels, les lignes de front, les petites fosses de combat et endroits similaires, et vous pouvez utiliser la Compétence Esquive, même si c'est normalement impossible à cause du manque d'espace.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 135
@@ -951,7 +930,6 @@
     },
     "desc": "Vous êtes doué pour la fabrication de potions, de philtres et de décoctions. Vous pouvez effectuer gratuitement une Activité Artisanat pour utiliser Savoir (Apothicaire) sans avoir besoin d'Atelier. Les autres Activités Artisanat suivent les règles normales.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 135
@@ -959,7 +937,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous êtes doué pour la fabrication de potions, de philtres et de décoctions. Vous pouvez effectuer gratuitement une Activité *Artisanat* ou *Brasser une potion* pour utiliser Métier (Apothicaire) ou Métier (Alchimiste) sans avoir besoin d'atelier ou de laboratoire. Les autres Activités *Artisanat* suivent les règles normales.",
         "source": {
@@ -1010,7 +988,6 @@
     },
     "desc": "Vous pouvez plier votre corps en une myriade de positions apparemment anormales. Cela vous permet de vous glisser dans des espaces improbables et de manipuler votre corps de façon incroyable, vous offrant des Avantages accordés par le MJ, avec éventuellement un Test d'Agilité réussi.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 135
@@ -1036,7 +1013,6 @@
     },
     "desc": "Vous êtes davantage en mesure de contrôler votre Frénésie en combat. Vous pouvez y mettre fin avec un Test de Calme réussi à la fin du Round.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 135
@@ -1044,7 +1020,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "optional": true,
         "flow": {
           "kind": "test",
@@ -1061,9 +1037,9 @@
               "value": "frenesie"
             }
           },
-          "success": {
-            "kind": "do",
-            "effect": {
+          "reussite": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -1075,14 +1051,16 @@
                 },
                 {
                   "op": "condition",
-                  "id": "extenue"
+                  "id": {
+                    "id": "extenue"
+                  }
                 }
               ]
             }
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
@@ -1101,7 +1079,6 @@
     },
     "desc": "Vous savez ce qu'il faut dire et à quel moment pour avoir le plus d'impact sur vos supérieurs. Quand vous utilisez avec succès une Compétence sociale pour influencer ceux qui possèdent un plus haut Statut, vous pouvez choisir d'utiliser soit le DR, soit le chiffre des Unités du dé. Donc, un succès de 46 peut être utilisé comme un DR de +6.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 135
@@ -1130,7 +1107,6 @@
     },
     "desc": "Un Personnage doté de ce Talent a l'habitude de gérer des équipes maniant des armes de siège et des pièces d'artillerie. Le Personnage peut effectuer un Test de Commandement Intermédiaire (+0) pour aider une équipe qui utilise une arme possédant le Défaut Arme d'équipe à portée de voix. Si le Personnage réussit le Test, les membres de l'équipe peuvent ensuite utiliser le score de Compétence Projectiles du Personnage quand ils tirent avec l'arme.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "aux-armes",
       "page": 140
@@ -1154,7 +1130,6 @@
     },
     "desc": "Vous êtes musclé et habitué à porter des charges lourdes. Augmentez les Points d'Encombrement d'un nombre égal à votre niveau de Costaud x 2.",
     "specs": [],
-    "rand": 29,
     "source": {
       "book": "livre-de-base",
       "page": 135
@@ -1183,7 +1158,6 @@
     },
     "desc": "Vous avez été formé à combattre côte à côte avec d'autres soldats. Si un ennemi vous fait perdre des Avantages alors qu'il se tient à côté d'un allié actif possédant le Talent Coude-à- coude, vous pouvez conserver 1 Avantage perdu pour chaque fois que vous avez pris le Talent Coude-à-coude. ",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 135
@@ -1215,7 +1189,6 @@
     "test": null,
     "desc": "Vous savez comment frapper fort ! Vous infligez votre niveau de Coup puissant en Dégâts supplémentaires avec des armes de Corps à corps.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 135
@@ -1232,7 +1205,6 @@
     "test": null,
     "desc": "Vous êtes un criminel actif qui gagne de l'argent grâce à des sources illégales, et vous n'êtes pas toujours discret à ce sujet. Pour calculer vos revenus, que ce soit quand vous Gagnez de l'argent ou quand vous effectuez une Activité Revenus, référez-vous au tableau suivant :\n\n| Standing de Carrière | Bonus d'argent par fois où le Talent est pris |\n| --- | --- |\n| 1 | +2d10 sous de cuivre |\n| 2 | +1d10 pistoles d'argent |\n| 3 | +2d10 pistoles d'argent |\n| 4 | +1 couronne d'or |\n\nÀ cause de votre nature criminelle évidente, les autres vous considèrent d'un Statut inférieur, à moins qu'ils ne possèdent également le Talent Criminel. Dans ce cas, le Statut est comparé normalement – vous possédez peut-être des tatouages de gang, avez l'air louche, ou êtes juste un peu brute, vous avez le choix. À cause de cela, les forces de l'ordre locales se montrent toujours méfiantes et doutent de vos motivations. Plus vous prenez ce Talent, plus cela empire, les répercussions exactes étant déterminées par le MJ. Ceux qui transgressent la loi sans posséder le Talent Criminel gagnent bien moins d'argent, mais comme ce n'est pas notoire, ils conservent donc leur Statut. Avec l'accord du MJ, vous pouvez retirer des niveaux du Talent Criminel pour le même montant de PX que leur coût d'achat.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 135
@@ -1258,7 +1230,6 @@
     },
     "desc": "Vous êtes capable de désarmer un adversaire d'un coup de poignet judicieux ou grâce à une frappe bien ciblée à la main. Pour une Action, vous pouvez tenter un Test opposé Corps à corps/Corps à corps. Sur un succès, votre adversaire perd une arme tenue, qui atterrit à 1d10 x 30 cm dans une direction aléatoire (avec des effets supplémentaires déterminés par le MJ). Si vous réussissez de 2 DR, vous pouvez déterminer à quelle distance l'arme est projetée au lieu d'effectuer un lancer ; si vous gagnez de 4 DR, vous pouvez également choisir la direction dans laquelle est projetée l'arme ; si vous gagnez de 6 DR ou plus, vous pouvez prendre l'arme de votre adversaire si vous avez une main libre, l'attrapant en l'air avec panache. Ce Talent est inutile si votre adversaire n'a pas d'arme, ou s'il est d'une Taille supérieure à la vôtre (voir page 342).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 135
@@ -1272,7 +1243,6 @@
     "test": null,
     "desc": "À l'âge de 10 ans, un Prêtre de Morr aussi appelé Augure, vous a pris à part pour prédire votre mort lors d'un rituel de passage à l'âge adulte, lourd d'encens, appelé la Destinée. En accord avec votre MJ, proposez une Destinée appropriée. Si votre Personnage meurt d'une façon y correspondant, votre prochain Personnage gagnera un bonus égal à la moitié du total de PX accumulés par votre Personnage mort pendant la partie.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -1298,7 +1268,6 @@
     },
     "desc": "Vous êtes capable de déceler quand la magie réside dans un artefact. Vous pouvez tenter un Test d'Intuition pour n'importe quel artefact magique touché. Sur un succès, vous sentez que l'objet est magique ; de plus, chaque DR apprend également une règle spéciale spécifique concernant l'objet, s'il en possède. En principe, vous ne pouvez tenter ce Test qu'une seule fois par artefact touché.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -1314,7 +1283,6 @@
     "test": null,
     "desc": "Vous lancez des attaques avec une détermination acharnée. Ajoutez votre niveau de Talent Déterminé à votre Bonus de Force quand vous Chargez.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -1343,7 +1311,6 @@
     },
     "desc": "Vous comprenez instinctivement la langue Magick et êtes capable d'articuler rapidement les phrases les plus complexes sans erreur. Vous ne subissez pas d'Incantation Imparfaite si vous obtenez un double à un Test réussi de Langue (Magick).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -1365,7 +1332,6 @@
     },
     "desc": "Vous êtes doué pour suivre les gens sans vous faire remarquer. Vous pouvez utiliser les règles de Filature à la page 121 sans effectuer de Test combiné. Au lieu de cela, vous effectuez simplement un Test de Perception ou de Discrétion, en fonction du plus élevé.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -1394,7 +1360,6 @@
     },
     "desc": "Vous êtes formé à effectuer des mouvements simples pour distraire ou surprendre votre adversaire, détournant les regards de votre véritable intention. Vous pouvez utiliser votre Mouvement pour Distraire. Ceci se résout par un Test opposé d'Athlétisme/Calme. Sur un succès, votre adversaire ne gagne pas d'Avantage jusqu'à la fin du prochain Round.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -1420,7 +1385,6 @@
     "test": null,
     "desc": "Lorsque vous obtenez une Mutation, lancez deux fois les dés et choisissez l'un des deux résultats.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 75
@@ -1435,7 +1399,6 @@
     "test": null,
     "desc": "Vous gagnez un bonus permanent de +5 à votre Dextérité de départ (ne compte pas comme des Augmentations).",
     "specs": [],
-    "rand": 32,
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -1457,7 +1420,6 @@
     "desc": "Vous êtes tellement habile à maintenir votre identité secrète que vous êtes capable de mener deux vies complètement séparées. Lorsque vous prenez ce Talent, vous pouvez entamer une deuxième Carrière parallèlement à votre Carrière du Chaos. Vous comptez maintenant comme appartenant aux deux Carrières, et vous pouvez acheter des Compétences avancées et des Talents dans l'une ou l'autre, ainsi que prendre et abandonner de nouvelles Carrières dans l'une ou l'autre. Comme toujours, tout changement de Carrière doit être approuvé par votre MJ afin de s'adapter au mieux aux plans de campagne et de refléter correctement votre Double vie.",
     "codexOnly": true,
     "specs": [],
-    "rand": null,
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 75
@@ -1487,7 +1449,6 @@
     },
     "desc": "Vous avez un don pour calculer et trouvez facilement la solution de la plupart des problèmes mathématiques. Vous pouvez utiliser une simple calculatrice pour simuler ce que votre PJ est capable de compter mentalement.",
     "specs": [],
-    "rand": 36,
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -1503,7 +1464,6 @@
     "test": null,
     "desc": "Vous gagnez autant de Points de Blessure supplémentaires que votre Bonus d'Endurance. Si ce dernier augmente, le nombre de Points de Blessure conféré par Dur à cuire augmente également.",
     "specs": [],
-    "rand": 40,
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -1538,7 +1498,6 @@
     },
     "desc": "Vous êtes expert pour défoncer rapidement les portes et effectuer des effractions. Vous pouvez ajouter +1 Dégât pour chaque niveau dans ce Talent quand vous déterminez les Dégâts infligés à des objets inanimés, tels que des fenêtres, des coffres, des portes et objets similaires.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -1554,7 +1513,6 @@
     "test": null,
     "desc": "Toute personne saine d'esprit réfléchit à deux fois avant de vous approcher. Si vous le souhaitez, vous avez un Indice de Peur de 1 (voir page 190). Ajoutez +1 à cet Indice par nombre de fois supplémentaires que vous avez pris ce Talent.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -1573,7 +1531,6 @@
     "test": null,
     "desc": "Il en faut beaucoup pour vous achever. Vous pouvez ignorer le Point de Blessure perdu à cause d'un État Hémorragique. Chaque niveau dans ce Talent vous permet d'ignorer le Point de Blessure perdu à cause d'un État Hémorragique supplémentaire.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -1593,7 +1550,6 @@
     },
     "desc": "Vous êtes empreint de l'un des Vents de Magie et les personnes dotées de la Seconde vue peuvent le voir s'accrocher à votre corps. Toute tentative réussie pour lancer un sort du Domaine associé à votre vent dans un rayon de 8 mètres autour de vous gagne +1 DR. Vous ne pouvez obtenir ce bonus qu'une seule fois, peu importe le nombre de sources près de vous qui sont empreintes de votre Vent de Magie.\n\nDe plus, vous disposez d'un effet supplémentaire selon le vent qui vous enveloppe.\n\n*Aqshy* : Vous obtenez le Talent *Frénésie* et pour y entrer vous pouvez utiliser votre Compétence Focalisation (*Aqshy*) à la place de votre Force Mentale.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "vents-de-la-magie",
       "page": 186
@@ -1617,7 +1573,6 @@
     },
     "desc": "Vous êtes empreint de l'un des Vents de Magie et les personnes dotées de la Seconde vue peuvent le voir s'accrocher à votre corps. Toute tentative réussie pour lancer un sort du Domaine associé à votre vent dans un rayon de 8 mètres autour de vous gagne +1 DR. Vous ne pouvez obtenir ce bonus qu'une seule fois, peu importe le nombre de sources près de vous qui sont empreintes de votre Vent de Magie.\n\nDe plus, vous disposez d'un effet supplémentaire selon le vent qui vous enveloppe.\n\n*Azyr :* Vous pouvez recourir à votre Compétence Focalisation (*Azyr*) plutôt que Perception pour les Tests appropriés.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "vents-de-la-magie",
       "page": 186
@@ -1641,7 +1596,6 @@
     },
     "desc": "Vous portez l'empreinte du Vent de Magie gris, que les personnes dotées de Seconde vue perçoivent comme une brume ténébreuse et changeante qui enveloppe votre corps. Vous pouvez utiliser votre Compétence Focalisation (Ulgu) à la place de Discrétion pour tous les Tests qui y font appel. De plus, toute tentative réussie pour jeter des sorts du Domaine des Ombres à moins de 8 mètres gagne +1 DR. Ce bonus ne peut être obtenu qu'une seule fois, quel que soit le nombre de Personnages avec Empreint d'Ulgu dans le voisinage du lanceur de sorts.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 88
@@ -1672,7 +1626,6 @@
     },
     "desc": "Vous êtes empreint de l'un des Vents de Magie et les personnes dotées de la Seconde vue peuvent le voir s'accrocher à votre corps. Toute tentative réussie pour lancer un sort du Domaine associé à votre vent dans un rayon de 8 mètres autour de vous gagne +1 DR. Vous ne pouvez obtenir ce bonus qu'une seule fois, peu importe le nombre de sources près de vous qui sont empreintes de votre Vent de Magie.\n\nDe plus, vous disposez d'un effet supplémentaire selon le vent qui vous enveloppe.\n\n*Chamon :* Vous pouvez vous servir de votre Compétence Focalisation (*Chamon*) au lieu d'Évaluation pour tous les Tests appropriés.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "vents-de-la-magie",
       "page": 186
@@ -1702,7 +1655,6 @@
     },
     "desc": "Vous êtes empreint de l'un des Vents de Magie et les personnes dotées de la Seconde vue peuvent le voir s'accrocher à votre corps. Toute tentative réussie pour lancer un sort du Domaine associé à votre vent dans un rayon de 8 mètres autour de vous gagne +1 DR. Vous ne pouvez obtenir ce bonus qu'une seule fois, peu importe le nombre de sources près de vous qui sont empreintes de votre Vent de Magie.\n\nDe plus, vous disposez d'un effet supplémentaire selon le vent qui vous enveloppe.\n\n*Ghur* : Vous pouvez utiliser votre Compétence Focalisation (*Ghur*) à la place d'Emprise sur les animaux et Savoir (Bête) pour les Tests appropriés.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "vents-de-la-magie",
       "page": 186
@@ -1744,7 +1696,6 @@
     },
     "desc": "Vous êtes empreint de l'un des Vents de Magie et les personnes dotées de la Seconde vue peuvent le voir s'accrocher à votre corps. Toute tentative réussie pour lancer un sort du Domaine associé à votre vent dans un rayon de 8 mètres autour de vous gagne +1 DR. Vous ne pouvez obtenir ce bonus qu'une seule fois, peu importe le nombre de sources près de vous qui sont empreintes de votre Vent de Magie.\n\nDe plus, vous disposez d'un effet supplémentaire selon le vent qui vous enveloppe.\n\n*Ghyran :* Vous pouvez vous servir de votre Compétence Focalisation (*Ghyran*) en lieu et place de Savoir (Animaux, Herbes, Plantes) et Soin aux animaux pour les Tests appropriés.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "vents-de-la-magie",
       "page": 186
@@ -1768,7 +1719,6 @@
     },
     "desc": "Vous êtes empreint de l'un des Vents de Magie et les personnes dotées de la Seconde vue peuvent le voir s'accrocher à votre corps. Toute tentative réussie pour lancer un sort du Domaine associé à votre vent dans un rayon de 8 mètres autour de vous gagne +1 DR. Vous ne pouvez obtenir ce bonus qu'une seule fois, peu importe le nombre de sources près de vous qui sont empreintes de votre Vent de Magie.\n\nDe plus, vous disposez d'un effet supplémentaire selon le vent qui vous enveloppe.\n\n*Hysh* : Vous pouvez recourir à votre Compétence Focalisation (*Hysh*) à la place de Recherche pour les Tests appropriés.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "vents-de-la-magie",
       "page": 186
@@ -1792,7 +1742,6 @@
     },
     "desc": "Vous êtes empreint de l'un des Vents de Magie et les personnes dotées de la Seconde vue peuvent le voir s'accrocher à votre corps. Toute tentative réussie pour lancer un sort du Domaine associé à votre vent dans un rayon de 8 mètres autour de vous gagne +1 DR. Vous ne pouvez obtenir ce bonus qu'une seule fois, peu importe le nombre de sources près de vous qui sont empreintes de votre Vent de Magie.\n\nDe plus, vous disposez d'un effet supplémentaire selon le vent qui vous enveloppe.\n\n*Shyish* : Vous pouvez vous servir de votre Compétence Focalisation (*Shyish*) plutôt qu'Intimidation pour tous les Tests appropriés.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "vents-de-la-magie",
       "page": 186
@@ -1807,7 +1756,6 @@
     "test": null,
     "desc": "Tous les Sorts lancés à votre Bonus de Force Mentale en mètres autour de vous gagnent +1 DR au lancé. Ce bonus ne peut être appliqué qu'une fois par lancement, quel que soit le nombre de Personnages à proximité possédant ce Talent.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 79
@@ -1835,7 +1783,6 @@
     },
     "desc": "Vous êtes habitué à faire valoir vos opinions et à les imposer. Si vous réussissez un Test de Charme pour débattre avec un adversaire, vous pouvez choisir soit d'utiliser le DR de votre lancer, soit le chiffre des unités obtenu sur votre dé. Donc, un lancer réussi de 24 peut être utilisé comme un DR de +4.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 137
@@ -1859,7 +1806,6 @@
     },
     "desc": "Vous êtes doué pour détourner l'argent de vos employeurs sans vous faire prendre. Chaque fois que vous Gagnez de l'argent (pendant le jeu ou en effectuant une Activité Revenus), vous pouvez tenter un Test opposé d'Intelligence avec votre employeur (en partant du principe que vous en avez un). Si vous gagnez, vous détournez 2d10 + DR sous de cuivre, 1d10 + DR pistoles d'argent, ou 1 + DR couronnes d'or (en fonction de la taille de la transaction en question, déterminée par le MJ) sans vous faire prendre. Si votre employeur gagne de +6 DR, vous gagnez votre argent, mais votre Escroquerie est repérée ; ce qui arrive ensuite est laissé à l'appréciation du MJ. Tout autre résultat signifie que vous avez échoué à escroquer de l'argent.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 137
@@ -1885,7 +1831,6 @@
     },
     "desc": "Vos appels exaltants peuvent renverser le cours d'une bataille. Référez-vous au tableau suivant pour voir combien de personnes vous pouvez à présent influencer avec votre Compétence Commandement (voir page 120) lors d'une guerre.\n\n| Talent pris | Nombre de soldats influencés |\n| --- | --- |\n| 1 | Normal x 5 |\n| 2 | Normal x 10 |\n| 3 | Normal x 20 |\n| 4 | Normal x 50 |\n| 5 | Normal x 100 |\n| 6 | Normal x 200 |\n| 7 | Normal x 500 |\n| 8 | Normal x 1000 |\n| 9 | Tous ceux qui peuvent entendre votre voix inspirante |\n\n**Exemple:** le monastère de l'abbesse Brigitte van der Hoogenband est pris d'assaut par les peaux-vertes, et les choses vont mal. De fait, elle décide de renforcer l'esprit de ses soldats avec un Test de Commandement, leur octroyant +10 à tous les Tests de Psychologie. Elle obtient 3 DR à son Test de Commandement. Étant donné qu'elle possède un Bonus de Sociabilité de 6, et qu'elle peut influencer un nombre de soldats, égal à son Bonus de Sociabilité + DR en utilisant Commandement, elle renforce 9 soldats. Cependant, comme elle possède Exaltant 3, ce nombre est multiplié par 20, ce qui signifie que 180 de ses soldats sont inspirés par ses cris d'encouragement « MAINTENEZ LES RANGS ! »",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 137
@@ -1911,7 +1856,6 @@
     },
     "desc": "Vous êtes un mendiant expérimenté, capable de faire mettre la main à la poche même aux individus les plus cyniques. Vous pouvez effectuer un Test de Charme toutes les demi-heures quand vous Mendiez, et non toutes les heures (voir page 119).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 137
@@ -1938,7 +1882,6 @@
     },
     "desc": "Vous avez appris comment faire de fausses attaques en combat rapproché pour duper votre adversaire. Vous pouvez à présent faire une Feinte pour votre Action contre tout adversaire utilisant une arme. Cela est résolu avec un Test opposé de Corps à corps (Escrime)/Corps à corps. Si vous gagnez et que vous attaquez le même adversaire avant la fin du prochain Round, vous pourrez ajouter le DR de votre Feinte au résultat de votre jet.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 137
@@ -1964,7 +1907,6 @@
     },
     "desc": "Quand vous parlez pour défendre votre cause, votre situation ou votre religion, vos mots vibrent de passion et d'ardente ferveur. Vous pouvez doubler votre Sociabilité pour calculer le nombre de personnes que vous influencez avec votre Talent Orateur (voir page 142) quand vous défendez votre cause.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 137
@@ -1983,7 +1925,6 @@
     },
     "desc": "Vous avez voué votre douleur au service de votre Dieu. Chaque jour, vous devez passer une demi-cloche (une demi-heure) à prier en continuant à vous infliger un nombre de Blessures égal à votre Niveau de Flagellant. Jusqu'à votre prochain repos, si vous possédez le Talent Frénésie, vous pouvez entrer en Frénésie immédiatement sans effectuer de Test.\n\nLe Talent Frénésie est ajouté à la liste des Talents de n'importe laquelle de vos Carrière. Si vous ne réussissez pas à vous flageller un jour donné, ou si vous permettez à votre chair meurtrie de guérir, vous ne pouvez dépenser aucune Résilience et aucune Détermination jusqu'à une nouvelle flagellation.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 137
@@ -2010,7 +1951,6 @@
     },
     "desc": "Vous avez l'habitude de vous retrouver dans de mauvaises situations, et de préférence à vous en sortir. Vous pouvez tenter un Test d'Intuition pour repérer ceux qui cherchent à créer des problèmes ou à vous faire du mal, même si vous n'y avez normalement pas droit, à cause de Talents ou d'un Sort par exemple. Ce Test sera probablement opposé si les autres sont dissimulés, et le MJ peut préférer effectuer ce Test en votre nom pour que vous ne connaissiez pas le résultat en cas d'échec. Si les perturbateurs repérés engagent le combat, vous pouvez ignorer n'importe quel État Surpris qu'ils auraient en principe infligé.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 137
@@ -2036,7 +1976,6 @@
     },
     "desc": "Vous savez où frapper un adversaire pour le faire tomber rapidement. Vous ignorez la pénalité due à la désignation d'une Localisation pour frapper à la Tête quand vous utilisez une arme de Corps à corps avec l'Atout Assommante (voir page 297). De plus, vous considérez toutes les armes improvisées comme ayant l'Atout Assommante.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2055,7 +1994,6 @@
     "test": null,
     "desc": "Vous êtes un expert pour frapper vos ennemis aux endroits les plus vulnérables. Vous infligez votre niveau de Frappe blessante en Blessures supplémentaires quand vous causez une Blessure Critique.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2091,7 +2029,6 @@
     "test": null,
     "desc": "Vous êtes doué pour frapper votre ennemi exactement là où vous le voulez, que ce soit à Distance ou au Corps à corps. Vous pouvez modifier votre résultat de la Localisation jusqu'à +/-10 par nombre de fois où vous avez pris ce Talent. Donc, si vous avez pris deux fois ce Talent et obtenez la Localisation 34, Bras droit, vous pouvez le modifier en 14, Bras gauche, ou en 54, Corps (voir page 159).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2115,7 +2052,6 @@
     },
     "desc": "Vos réactions rapides vous ont permis de faire tomber de nombreux ennemis avant même qu'ils aient eu le temps de dégainer. Quand vous êtes Chargé, vous pouvez tenter un Test d'Initiative Intermédiaire (+0) pour gagner immédiatement une Attaque gratuite en dehors de la séquence de tours normale. Cette attaque est résolue avec n'importe quelle arme que vous tenez dans votre main principale. Vous pouvez effectuer autant de Frappes réactives pendant un Round que vous possédez de Niveaux dans ce Talent, mais pouvez seulement attaquer chaque individu Chargeant une seule fois.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2123,21 +2059,21 @@
     "effects": [
       {
         "trigger": "onCharged",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "choice",
-          "prompt": "Frappe réactive",
-          "icon": "action/free-attack",
-          "yes": {
+          "kind": "choix",
+          "invite": "Frappe réactive",
+          "icon": "action/attaque-gratuite",
+          "oui": {
             "kind": "test",
             "test": {
               "characteristic": "initiative",
               "difficulty": "intermediaire",
               "label": "Frappe réactive"
             },
-            "success": {
-              "kind": "do",
-              "effect": {
+            "reussite": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "caster",
                 "ops": [
@@ -2150,14 +2086,14 @@
                 ]
               }
             },
-            "fail": {
-              "kind": "seq",
-              "steps": []
+            "echec": {
+              "kind": "sequence",
+              "etapes": []
             }
           },
-          "no": {
-            "kind": "seq",
-            "steps": []
+          "non": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
@@ -2174,7 +2110,6 @@
     "confereTrait": {
       "id": "frenesie"
     },
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2200,7 +2135,6 @@
     },
     "desc": "Quand votre vie est en jeu, vous êtes capable de courir à une vitesse impressionnante. Votre Attribut de Mouvement compte comme s'il était augmenté de 1 quand vous fuyez (voir page 165).",
     "specs": [],
-    "rand": 43,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2256,7 +2190,6 @@
     },
     "desc": "Vous êtes doué pour enflammer les foules. Vous gagnez un bonus de DR égal à vos niveaux de Grand orateur à n'importe quel Test de Charme quand vous parlez en public devant une foule.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2281,7 +2214,6 @@
     },
     "desc": "Vous êtes un exceptionnel grimpeur. Vous pouvez tenter de grimper même sur des surfaces paraissant trop lisses, telles que des fortifications à pic, des plateformes glacées, des murs enduits de plâtre, etc. et vous ignorez toutes les pénalités aux Tests d'Escalade résultant de la difficulté de la surface escaladée. ",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2295,7 +2227,6 @@
     "test": null,
     "desc": "Vous gagnez un bonus permanent de +5 à votre Caractéristique CC de départ (ne compte pas comme des Augmentations).",
     "specs": [],
-    "rand": 46,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2328,7 +2259,6 @@
     },
     "desc": "Vous connaissez toutes les astuces pour naviguer sur les rivières dangereuses. Vous n'avez pas besoin de Test pour traverser les étendues d'eau perfide jusqu'à ce que la Difficulté soit de -10 ou moins – vous réussissez automatiquement tous les Tests plus faciles. De plus, si vous possédez la Compétence Savoir (Région) appropriée, vous n'avez jamais besoin d'effectuer de Test pour naviguer sur les eaux dangereuses – car on considère que vous connaissez les itinéraires à emprunter.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2355,7 +2285,6 @@
     "confereTrait": {
       "id": "haine"
     },
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2371,7 +2300,6 @@
     "test": null,
     "desc": "Vos Prières exhalent la haine que vous éprouvez pour vos ennemis blasphématoires. Vous infligez +1 Dégâts avec des Miracles pour chaque niveau dans ce Talent.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2396,7 +2324,6 @@
     },
     "desc": "Votre expérience, Talent ou entraînement vous permet de manipuler de façon plus sûre les Vents de la Magie. Vous ne subissez pas d'Incantation Imparfaite si vous obtenez un double à un Test de Focalisation réussi.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2426,7 +2353,6 @@
     },
     "desc": "Vous entretenez une identité secrète qui vous permet de paraître plus riche, ou peut-être plus pauvre, que vous ne l'êtes actuellement. Avec l'accord du MJ, choisissez une Carrière. Tant que vous êtes habillé de façon appropriée, vous pouvez utiliser le Statut Social de la Carrière d'emprunt choisie plutôt que celui de la vôtre, pour modifier les Tests de Sociabilité. Vous pouvez même ignorer le Talent Criminel. Cependant, conserver cette identité nécessitera des Tests de Divertissement (Interprétation) quand vous rencontrez ceux qui pourraient déceler votre supercherie. Vous pouvez créer une nouvelle Identité secrète pour chaque Niveau que vous possédez dans ce Talent.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
@@ -2453,7 +2379,6 @@
     },
     "desc": "Vous avez une bonne oreille pour les accents et dialectes et pour les reproduire avec exactitude. Vous pouvez copier n'importe quel accent auquel vous êtes exposé pendant au moins une journée grâce à un Test d'Initiative ; ce Test peut être tenté une fois par jour. Une fois réussi, vous pouvez toujours imiter l'accent, et les autochtones croiront que vous êtes l'un des leurs.",
     "specs": [],
-    "rand": 49,
     "source": {
       "book": "livre-de-base",
       "page": 139
@@ -2467,7 +2392,6 @@
     "test": null,
     "desc": "Vous gagnez un bonus permanent de +5 à votre Caractéristique FM de départ (cela ne compte pas comme des Augmentations).",
     "specs": [],
-    "rand": 52,
     "source": {
       "book": "livre-de-base",
       "page": 139
@@ -2494,7 +2418,6 @@
     },
     "desc": "Quand votre esprit est rivé sur une cible, personne ne peut vous empêcher de l'atteindre. Si vous utilisez des Avantages quand vous vous Désengagez, vous pouvez garder un nombre d'Avantages égal à votre Niveau d'Impitoyable. De plus, vous pouvez utiliser des Avantages pour vous Désengager même si vous avez moins d'Avantages que vos adversaires.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 139
@@ -2538,7 +2461,6 @@
     },
     "desc": "Vous êtes un vétéran blasé qui a survécu à plus d'une rafale de tirs d'armes à Poudre noire. Vous avez besoin d'effectuer un Test de Calme pour résister à un État Brisé, uniquement si vous êtes blessé avec succès par une arme à Poudre noire, et pas juste ciblé (voir page 297).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 139
@@ -2568,7 +2490,6 @@
     },
     "desc": "Vous avez l'échine solide, rompue au dur labeur. Vous pouvez ajouter vos Niveaux d'Infatigable à votre DR dans tous les Tests opposés de Force et vous pouvez porter un nombre de Points supplémentaires d'Encombrement (voir p293) équivalent à votre Niveau d'Infatigable.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 139
@@ -2594,7 +2515,6 @@
     },
     "desc": "Les grands et puissants ne prêtent pas attention à votre présence, sachant que vous n'êtes pas digne d'être remarqué. En supposant que vous êtes correctement vêtu et pas dans une position incongrue, les personnes d'un Échelon de Statut plus haut vous ignorent, à moins que votre présence ne soit déplacée, ce qui peut rendre très facile l'écoute de conversations que vous n'êtes peut-être pas censé entendre. De plus, les Personnages d'un Échelon de Statut plus élevé que vous ne gagnent pas d'Avantage lorsqu'ils vous battent en combat, car il n'y a aucun mérite à battre un si pauvre hère.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 139
@@ -2618,7 +2538,6 @@
     },
     "desc": "Vous êtes un maître en politique et vous dénichez les conspirations partout où elles se cachent. Une fois par session, vous pouvez poser une question au MJ concernant une situation politique ou une organisation sociale complexe ; le MJ effectuera un Test d'Intelligence secret et vous fournira certaines observations sur la situation en se basant sur votre DR.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 139
@@ -2632,7 +2551,6 @@
     "test": null,
     "desc": "Vous êtes béni par l'un des dieux, et pouvez donc effectuer l'un des Miracles de votre culte. De plus, vous pouvez acheter des Miracles supplémentaires pour 100 PX par Miracle que vous connaissez actuellement. Donc, si vous connaissez déjà 3 Miracles, votre prochain Miracle vous coûtera 300 PX. Les règles complètes sur l'apprentissage de nouveaux Miracles se trouvent au Chapitre 7 : Religions et Croyances. Dans des conditions normales, vous ne pouvez pas apprendre plus d'un Talent Invocation (Savoir divin). De plus, vous ne pouvez pas apprendre les Talents Magie mineure ou Magie des Arcanes quand vous possédez le Talent Invocation. Vous pouvez désapprendre ce Talent pour 100 PX, mais vous perdrez tous vos Miracles si vous le faites, et vous encourrez l'extrême défaveur de votre Dieu, dont les effets sont déterminés par le MJ.",
     "specsSource": "cultMiracles",
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 139
@@ -2654,7 +2572,6 @@
     },
     "desc": "Vous pouvez inverser un Test de Recherche raté si cela permet de le réussir. Si la vitesse à laquelle vous lisez est importante pendant un combat, un Test de Langue réussi vous permet de lire et de bien comprendre un nombre de pages par Round égal à votre DR plus votre niveau de Lecture rapide (minimum 1, même si vous avez raté le Test).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 140
@@ -2689,7 +2606,6 @@
     },
     "desc": "Vous avez une affinité naturelle pour les langues. Après un mois passé à écouter n'importe quelle Langue, vous considérez la Compétence Langue associée comme une Compétence de Base grâce à un Test d'Intelligence réussi (qui peut être tenté une fois par mois).\n\n**Remarque:** le Talent Linguistique fonctionne uniquement pour les langues utilisées pour communiquer avec les autres, il ne fonctionne donc pas avec Langue (Magick).",
     "specs": [],
-    "rand": 55,
     "source": {
       "book": "livre-de-base",
       "page": 140
@@ -2703,7 +2619,6 @@
     "test": null,
     "desc": "Vous êtes l'un des rares individus lettrés du Vieux Monde. On considère que vous pouvez lire et écrire (si nécessaire) toutes les Langues que vous parlez.",
     "specs": [],
-    "rand": 58,
     "source": {
       "book": "livre-de-base",
       "page": 140
@@ -2729,7 +2644,6 @@
     },
     "desc": "Vous pouvez comprendre ce que les gens disent en fixant simplement leurs lèvres ; vous n'avez pas besoin d'entendre ce qu'ils disent. Si vous disposez d'un point de vue dégagé sur le bas du visage du locuteur, vous pouvez tenter un Test de Perception pour comprendre ce qu'il dit.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 140
@@ -2755,7 +2669,6 @@
     },
     "desc": "Vous êtes un marin expérimenté, et vous êtes parfaitement habitué à la vie en mer. Vous pouvez ignorer tous les modificateurs négatifs aux Tests en mer résultant de conditions météorologiques défavorables, du roulis des bateaux, et situations similaires. De plus, vous comptez comme deux marins pour le nombre minimum de membres d'équipage nécessaire pour piloter un navire de haute mer.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 140
@@ -2781,7 +2694,6 @@
     },
     "desc": "Vous êtes de constitution robuste et pouvez résister aux frappes les plus fortes. Chaque fois que vous gagnez un État Sonné ou plus, vous pouvez immédiatement effectuer un Test de Résistance Intermédiaire (+0) pour en ignorer un, chaque DR supprimant un État Sonné supplémentaire.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 140
@@ -2790,7 +2702,7 @@
       {
         "trigger": "onGainCondition",
         "condition": "sonne",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "test",
           "test": {
@@ -2799,15 +2711,17 @@
             },
             "difficulty": "intermediaire"
           },
-          "success": {
-            "kind": "do",
-            "effect": {
+          "reussite": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "caster",
               "ops": [
                 {
                   "op": "removeCondition",
-                  "id": "sonne",
+                  "id": {
+                    "id": "sonne"
+                  },
                   "value": 1,
                   "valuePerSL": {
                     "every": 1,
@@ -2817,9 +2731,9 @@
               ]
             }
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
@@ -2833,7 +2747,6 @@
     "test": null,
     "desc": "Vous êtes entraîné à faire appel à la magie au milieu du combat. À votre Tour, vous pouvez lancer gratuitement un Sort avec un Niveau d'Incantation de 5 ou moins, sans utiliser votre Action. Cependant, si vous le faites, vous ne pouvez lancer aucun autre Sort ce Tour.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 140
@@ -2852,7 +2765,6 @@
     "grantSpecGroups": true,
     "grantsArcaneDomain": true,
     "desc": "Vous connaissez l'un des huit Domaines de Magie – Bête, Cieux, Mort, Feu, Métal, Ombres, Lumière ou Vie –, ou pratiquez un Savoir moins connu, comme la Magie naturelle ou la Nécromancie. Vous pouvez à présent mémoriser des Sorts du Domaine choisi pour le prix en PX suivant.\n\n| Nbre de Sorts actuellement connus | Coût en PX pour un nouveau sort |\n| --- | --- |\n| Bonus d'Intelligence x 1 | 100 PX |\n| Bonus d'Intelligence x 2 | 200 PX |\n| Bonus d'Intelligence x 3 | 300 PX |\n| Bonus d'Intelligence x 4 | 400 PX |\n| ... et ainsi de suite. |  |\n\nDonc, si votre Bonus d'Intelligence est de 4, les 4 premiers Sorts vous coûteront 100 PX chacun, puis 200 PX pour les 4 suivants, et ainsi de suite. Les règles complètes sur l'apprentissage de nouveaux Sorts se trouvent dans le Chapitre 8 : Magie. Dans des conditions normales, vous ne pouvez pas apprendre plus d'un Talent Magie des Arcanes (Domaine). De plus, vous ne pouvez pas apprendre les Talents Béni ou Invocation quand vous possédez le Talent Magie des Arcanes. Vous pouvez désapprendre ce Talent pour 100 PX, mais si vous le faites, vous perdez immédiatement tous vos Sorts.",
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 140
@@ -2872,7 +2784,6 @@
       "magie"
     ],
     "desc": "Par accident ou à dessein, vous avez cédé une partie de votre âme à l'un des Dieux Sombres, et pouvez à présent pratiquer les infâmes magies du Chaos. Votre chef de la Ruine vous confère immédiatement l'accès à un seul Sort du Domaine choisi (le plus souvent les Domaines de Nurgle, Slaanesh ou Tzeentch) et vous gagnez un Point de Corruption lorsque le Sort s'insinue dans votre esprit, pour ne plus jamais en sortir.\n\nLorsque vous prenez ce Talent, qui coûte à chaque fois 100 PX, vous apprenez un autre Sort du Domaine choisi et gagnez un Point de Corruption. Pour plus d'informations sur les Sorts disponibles, voir le Chapitre 8 : Magie. Dans des conditions normales, vous ne pouvez connaître qu'un seul Savoir de Magie chaotique.\n\nLes Personnages avec un Talent Magie du Chaos peuvent choisir n'importe quelle combinaison de Sorts d'Arcane, de Sorts du Chaos, et de Sorts de leur propre Domaine du Chaos. Un Personnage ayant Magie du Chaos (Tzeentch) peut sélectionner des Sorts dans la liste des Sorts d'Arcanes, la liste des Sorts d'Arcanes du Chaos et la liste des Sorts du Domaine de Tzeentch. Un Personnage avec le Talent Magie du Chaos (Indivisible) peut sélectionner des Sorts dans la liste des Arcanes et dans celle des Arcanes du Chaos.",
-    "rand": null,
     "codexOnly": true,
     "source": {
       "book": "livre-de-base",
@@ -2894,7 +2805,6 @@
     "grantGroups": [
       "magie"
     ],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 140
@@ -2911,7 +2821,6 @@
     "test": null,
     "desc": "Vous êtes un maître incontesté dans votre domaine, capable de créer des œuvres d'une telle complexité que les autres ne peuvent que rester cois et s'émerveiller devant votre génie. Chaque fois que vous prenez ce Talent, vous pouvez créer une œuvre d'art exceptionnelle avec l'une de vos Compétences Métier. Cette œuvre est inégalable dans votre domaine, une pièce unique qui impressionnera toujours, vous octroyant des bonus, déterminés par le MJ, le plus souvent à vos Tests de Sociabilité envers ceux qui connaissent votre œuvre stupéfiante. Vendre cette pièce vous rapportera au moins dix fois sa valeur normale, et parfois bien plus.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 141
@@ -2943,7 +2852,6 @@
     },
     "desc": "Vous pouvez mouvoir vos mains avec une dextérité incroyable. Les passants ne bénéficient d'aucun Test de Perception passif pour remarquer que vous utilisez la Compétence Escamotage. Au lieu de cela, ils ne peuvent s'opposer à vos Tests d'Escamotage que s'ils vous suspectent activement ou sont à l'affût de vos mouvements. De plus, les tentatives pour utiliser Corps à corps (Bagarre) pour simplement toucher un adversaire gagnent un bonus de +10 x votre Niveau de Mains agiles.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 141
@@ -3159,7 +3067,6 @@
         }
       }
     ],
-    "rand": 61,
     "source": {
       "book": "livre-de-base",
       "page": 141
@@ -3196,7 +3103,6 @@
     },
     "desc": "Vous excellez à prendre l'apparence et les manières des autres. Avec rien d'autre que des changements de posture, une torsion du visage et l'utilisation judicieuse de vêtements appropriés, vous ne vous ressemblez plus sans avoir besoin d'utiliser de nécessaire de déguisement, même en vous faisant passer pour quelqu'un de sexe différent.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 141
@@ -3228,7 +3134,6 @@
     },
     "desc": "Vous êtes un maître des jeux de dés, et tous ceux qui affirment que vous trichez ont clairement tort. Quand vous utilisez Pari ou Escamotage de façon réussie avec des dés, vous pouvez choisir soit d'utiliser le DR obtenu, soit le chiffre des unités du dé. Donc, un lancer réussi de 06 peut être utilisé comme un DR de +6. Si vous jouez à des jeux de dés réels pour représenter celui en jeu, lancez toujours un nombre de dés supplémentaires égal à votre niveau de Maîtrise des dés et choisissez les meilleurs résultats.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 141
@@ -3244,7 +3149,6 @@
     "test": null,
     "desc": "Vous avez accumulé des années d'expérience au combat, ce qui vous permet de tenir facilement les combattants les plus faibles à distance. Pour chaque fois que vous avez ce Talent, vous comptez comme une personne supplémentaire lors du calcul pour déterminer si l'un des camps dépasse l'autre en nombre. Ce Talent n'entre en jeu que lorsque vous êtes dépassé en nombre. Voir page 162 pour les règles concernant ce cas.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 141
@@ -3279,7 +3183,6 @@
     },
     "desc": "Quand vous êtes équipé de deux armes, vous pouvez attaquer avec les deux pour votre Action. Effectuez un lancer pour toucher avec l'arme tenue par votre main principale. Si vous touchez, déterminez les Dégâts normalement, mais rappelez-vous de conserver votre lancer de dés, car vous l'utiliserez de nouveau. Si la première frappe est réussie, une fois résolue, l'arme dans votre main secondaire peut ensuite viser un adversaire disponible de votre choix en utilisant le même lancer de dés que celui de la première frappe, mais inversé. Donc, si vous avez obtenu 34 pour toucher avec la première arme, vous obtenez 43 pour toucher avec la seconde. Rappelez-vous de modifier ce second lancer avec la pénalité de votre mauvaise main (-20 à moins que vous ne possédiez le Talent Ambidextre). Cette seconde attaque est opposée à un nouveau lancer de défense et les Dégâts pour cette seconde frappe sont calculés normalement. Une exception à cela : si vous obtenez un Critique pour votre première frappe. Si cela se produit, utilisez le lancer du tableau des Critiques pour servir de lancer à la seconde attaque. Donc, si vous infligez un Critique à la tête et lancez un 56 sur le tableau des Critiques et obtenez une Blessure majeure à l'œil, votre seconde attaque aurait donc une valeur de 56. Si vous choisissez d'attaquer avec les deux armes, tous vos lancers défensifs subissent une pénalité de -10 jusqu'au début de votre prochain Tour. Vous ne gagnez pas d'Avantage quand vous réussissez à frapper ou à infliger une Blessure à un adversaire avec le Maniement de deux armes sauf si les deux attaques touchent.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 141
@@ -3311,7 +3214,6 @@
     },
     "desc": "Vous êtes un navigateur expérimenté en eaux douces, habitué aux navires fluviaux. Vous pouvez ignorer toutes les pénalités à vos Tests quand vous vous trouvez à bord d'une barque qui dérive à cause de tourbillons, de navires qui tanguent, lorsque vous êtes déséquilibré, et autres situations similaires. De plus, vous comptez comme deux bateliers pour le nombre minimum de membres d'équipage nécessaires pour diriger un navire fluvial.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 141
@@ -3336,7 +3238,6 @@
     },
     "desc": "Vous bénéficiez d'une stature imposante. Quand vous utilisez la Compétence Intimidation, gagnez un bonus de DR égal à vos Niveaux de Menaçant.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 141
@@ -3362,7 +3263,6 @@
     },
     "desc": "Tel Ranald le dieu de la Duperie, vous mélangez vérité et mensonges comme s'il n'y avait aucune différence. Quand vous utilisez Charme pour mentir, les auditeurs ne peuvent pas s'y opposer avec leur Intuition pour détecter s'il y a quelque chose de douteux dans vos propos.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 142
@@ -3387,7 +3287,6 @@
     },
     "desc": "Vous êtes un nageur particulièrement endurant et habitué à retenir votre souffle pendant une longue période sous l'eau. Gagnez un bonus à votre Bonus d'Endurance égal à votre Niveau de Nageur endurant pour calculer le temps pendant lequel vous retenez votre souffle.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 142
@@ -3401,7 +3300,6 @@
     "test": null,
     "desc": "Vous êtes fabuleusement riche, et rarement à court d'argent. Quand vous Gagnez de l'argent (y compris avec des Activités Revenus), vous gagnez +1 CO par nombre de fois où vous avez pris ce Talent.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 142
@@ -3426,7 +3324,6 @@
     },
     "desc": "Vous êtes un homme d'affaires expérimenté qui sait comment conclure un marché. Quand vous utilisez la Compétence Marchandage, vous réduisez ou augmentez le prix des produits de 10 % supplémentaires.\n\n**Remarque:** le MJ peut imposer une réduction inférieure des prix pour montrer qu'un vendeur refuse de vendre à perte.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 142
@@ -3446,7 +3343,6 @@
     },
     "desc": "Vous êtes issu de la noblesse, ou des événements durant le jeu vous ont permis de vous y élever. En partant du principe que vous êtes habillé de façon appropriée, vous êtes toujours considéré d'un plus haut Statut que les autres, à moins qu'ils ne possèdent le Talent Noblesse. Dans ce cas, les Statuts sont comparés normalement.",
     "specs": [],
-    "rand": 63,
     "source": {
       "book": "livre-de-base",
       "page": 142
@@ -3465,7 +3361,6 @@
     },
     "desc": "Vous êtes un fêtard chevronné et vous savez comment vous amuser. Vous pouvez inverser le résultat de n'importe quel Test de Résistance à l'alcool raté si cela entraîne un succès.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 142
@@ -3500,7 +3395,6 @@
     },
     "desc": "Vous êtes à l'aise quand vous arpentez les espaces sauvages. Quand vous utilisez Discrétion en environnement rural, ceux qui croisent votre route n'obtiennent pas de Test de Perception passif pour vous détecter ; ils peuvent vous détecter uniquement s'ils sont spécifiquement à l'affût ou à la recherche de personnes cachées.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 142
@@ -3526,7 +3420,6 @@
     },
     "desc": "Vous connaissez bien les monnaies du Vieux Monde, et vous êtes un expert pour déterminer leur valeur. Vous pouvez juger de la valeur réelle d'une pièce par votre seule expérience, sans que cela ne nécessite jamais de Test. De plus, vous pouvez identifier des pièces contrefaites avec un simple Test d'Évaluation ; il n'est jamais opposé par le DR du faussaire.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 142
@@ -3542,7 +3435,6 @@
     "test": null,
     "desc": "Vous êtes la quintessence de la détermination et de la résolution. Ajoutez votre niveau d'Obstiné au maximum de votre réserve de Détermination.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 142
@@ -3568,7 +3460,6 @@
     },
     "desc": "Vous êtes un chasseur expérimenté et connaissez toutes les meilleures techniques pour trouver du gibier.\n\nQuand vous voyagez à travers des régions giboyeuses, vous êtes automatiquement capable de chasser suffisamment de gibier pour vous nourrir vous et un nombre de personnes égal à votre niveau d'Œil du chasseur, tant que vous avez le temps et l'équipement approprié. Vous pouvez fournir plus de nourriture encore en utilisant les règles normales de Recherche de nourriture (voir page 131).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 142
@@ -3584,7 +3475,6 @@
     "test": null,
     "desc": "Vous êtes un orateur de talent et savez comment galvaniser d'importants groupes de personnes. Référez-vous au tableau suivant pour voir combien de personnes vous pouvez influencer avec votre Compétence Charme (voir page 119) quand vous parlez en public.\n\n| Talent pris | Nombre de personnes influencées |\n| --- | --- |\n| 1 | Normal x 5 |\n| 2 | Normal x 10 |\n| 3 | Normal x 20 |\n| 4 | Normal x 50 |\n| 5 | Normal x 100 |\n| 6 | Normal x 200 |\n| 7 | Normal x 500 |\n| 8 | Normal x 1000 |\n| 9 | Toutes celles qui peuvent entendre votre voix d'or |",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 142
@@ -3616,7 +3506,6 @@
     },
     "desc": "Vous avez l'oreille absolue, capable de reproduire parfaitement les notes et de les identifier sans jamais avoir besoin d'effectuer de Test. De plus, ajoutez Divertissement (Chant) à n'importe quelle Carrière que vous entamez ; si la Compétence est déjà dans votre Carrière, vous pouvez à la place acheter la Compétence pour 5 PX de moins par Augmentation.",
     "specs": [],
-    "rand": 66,
     "source": {
       "book": "livre-de-base",
       "page": 143
@@ -3653,7 +3542,6 @@
     },
     "desc": "Vous êtes habitué à traiter rapidement les blessures. Si vous ratez un Test de Guérison quand vous utilisez des Bandages, vous pouvez inverser le résultat si cela entraîne un succès ; cependant, si vous le faites, vous ne pouvez pas obtenir plus de +1 DR, car vous vous concentrez sur la vitesse plutôt que sur la précision.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 143
@@ -3690,7 +3578,6 @@
     },
     "desc": "Vous êtes doué pour être là où les armes ennemies ne se trouvent pas. Si vous utilisez Esquive pour vous défendre contre une attaque et gagnez le Test opposé, vous pouvez vous déplacer jusqu'à 2 mètres alors que vous plongez hors de portée, ce qui signifie que vous n'êtes plus Engagé. Aucun de vos adversaires ne gagnera d'Attaque gratuite quand vous faites ce Pas de côté.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 143
@@ -3709,7 +3596,6 @@
     },
     "desc": "Vous êtes un pêcheur très habile et connaissez les meilleures façons d'attraper du poisson. En supposant qu'une étendue d'eau suffisamment grande soit disponible, vous êtes automatiquement considéré comme capable de pêcher suffisamment de poisson pour vous nourrir vous et un nombre de personnes égal à votre niveau de Pêcheur, en partant du principe que vous choisissez de passer au moins une heure ou deux avec une ligne et des appâts. Vous pouvez fournir plus de poisson en utilisant les règles normales pour la Recherche de nourriture (voir page 131).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 143
@@ -3735,7 +3621,6 @@
     },
     "desc": "Vous êtes capable de sentir les Vents de la Magie chez les autres. Vous pouvez tenter un Test d'Intuition Accessible (+20) chaque fois que vous rencontrez un lanceur de Sorts. Sur un succès, vous sentez que la cible est un sorcier. De plus, si vous obtenez un Succès Stupéfiant (+6), vous pouvez aussi déterminer la Spécialisation de Focalisation la plus élevée de la cible.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 143
@@ -3761,7 +3646,6 @@
     },
     "desc": "Vous n'abandonnez jamais, même si les tâches paraissent impossibles. Vous pouvez doubler le temps que les Tests de Résistance réussis vous accordent pour supporter une difficulté. Cela inclut endurer une chevauchée prolongée, une exposition, des rituels et autres problèmes similaires.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 143
@@ -3775,7 +3659,6 @@
     "test": null,
     "desc": "Vous gagnez un bonus permanent de +5 à votre Caractéristique Intelligence de départ (ne compte pas comme Augmentation).",
     "specs": [],
-    "rand": 69,
     "source": {
       "book": "livre-de-base",
       "page": 143
@@ -3796,7 +3679,6 @@
     "test": null,
     "desc": "Vous êtes bien plus petit que la plupart des gens dans le Vieux Monde. Les règles complètes concernant les différentes Tailles se trouvent au Chapitre 12 : Bestiaire à la page 342.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 143
@@ -3816,7 +3698,6 @@
     },
     "desc": "Vous êtes hautement qualifié en pharmacie, à même de fabriquer des pilules, des baumes, des onguents, des huiles, des crèmes, etc. Vous pouvez inverser n'importe quel Test de Métier (Apothicaire) raté si cela permet d'obtenir un succès.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -3845,7 +3726,6 @@
     },
     "desc": "Vous êtes habitué aux roulis des océans, et il est très improbable que vous ayez le mal de mer, même dans les pires des tempêtes. Dans des conditions normales en mer, vous n'avez jamais besoin de Test pour savoir si vous avez le mal de mer. Dans d'autres cas (tels qu'une tempête ou un mal de mer causé par la magie), vous pouvez ignorer toutes les pénalités des Tests pour éviter ces nausées.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -3877,7 +3757,6 @@
     },
     "desc": "Vous êtes doué pour diriger des vaisseaux à travers les eaux dangereuses. Si vous ratez un Test pour les traverser, vous pouvez inverser le résultat si cela entraîne un succès ; cependant, si vous le faites, vous ne pouvez pas obtenir plus de +1 DR, car vous repérez le danger imminent au dernier moment.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -3910,7 +3789,6 @@
     },
     "desc": "Vous êtes habile dans le maniement de votre bouclier pour manœuvrer en combat afin de pouvoir tirer le meilleur parti d'une situation désespérée. Quand vous utilisez un Bouclier pour vous défendre, vous gagnez un nombre d'Avantages égal au nombre de Niveaux que vous possédez en Porte-Bouclier si vous perdez le Test opposé.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -3956,7 +3834,6 @@
     },
     "desc": "Votre présence emplit les autres de crainte et d'admiration. Votre aura d'autorité est telle que ceux possédant un Statut inférieur ne peuvent pas résister à vos Tests de Commandement avec leur Force Mentale. Évidemment, les ennemis ne sont toujours pas plus enclins à vous respecter ou à vous obéir, mais le commun des mortels se dresse rarement contre vous.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -3972,7 +3849,6 @@
     "test": null,
     "desc": "Vous êtes habitué à anticiper les besoins des autres comme les vôtres. Un nombre de fois par séance égal à votre niveau de Prévoyant, vous pouvez sortir de votre sac à dos (ou similaire) l'équipement nécessaire à la situation actuelle, tant que son Encombrement est de 0, qu'il est crédible que vous l'ayez acheté récemment, et qu'il ne soit pas trop invraisemblable. Cela peut être n'importe quoi, de la flasque d'alcool pour fortifier un camarade blessé au sifflet bon marché, absolument nécessaire pour un saltimbanque de passage. Chaque fois que vous le faites, vous devez déduire le coût de l'objet sorti de votre sac pour compenser l'argent dépensé plus tôt. ",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -3998,7 +3874,6 @@
     },
     "desc": "Vous êtes à l'aise dans les tunnels, les égouts et tout autre environnement souterrain. Quand vous y utilisez Discrétion, ceux qui croisent votre chemin n'obtiennent pas de Tests de Perception passifs pour vous détecter ; ils ne peuvent vous remarquer que s'ils sont spécifiquement à l'affût ou à la recherche de personnes cachées.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -4014,7 +3889,6 @@
     "test": null,
     "desc": "Vous pouvez recharger les armes à distance avec facilité. Vous ajoutez un DR égal à votre niveau de Rechargement rapide à n'importe quel Test pour recharger une arme à distance.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -4047,7 +3921,6 @@
     "test": null,
     "desc": "Vous gagnez un bonus permanent de +5 à votre Caractéristique Agilité de départ (ne compte pas comme des Augmentations).",
     "specs": [],
-    "rand": 72,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -4080,7 +3953,6 @@
     },
     "desc": "Vous êtes habitué aux combats désespérés, capable de retourner même les situations les plus désastreuses à votre Avantage. Si vous gagnez le Test opposé de Corps à corps, au lieu de gagner +1 Avantage, vous prenez tous les Avantages actuels de votre adversaire. Dans ce cas, vous ne pouvez infliger aucun Dégât, même si c'était votre Tour dans le Round.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -4147,7 +4019,6 @@
         "label": "Poisons ingérés"
       }
     ],
-    "rand": 75,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -4163,7 +4034,6 @@
     "test": null,
     "desc": "Vous êtes très résistant à la magie. Le DR de tout Sort vous affectant est réduit de 2 par point que vous possédez dans ce Talent. Le DR d'un Sort est uniquement modifié par le plus haut score du Talent Résistance à la Magie dans la zone de sa cible. De plus, vous ne pourrez jamais apprendre les Talents Béni, Invocation, Magie des Arcanes, Magie mineure et Sorcier !.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -4195,7 +4065,6 @@
     },
     "desc": "La meilleure défense c'est l'attaque, donc vous répondez à une attaque par une contre-attaque rapide comme l'éclair. Si votre arme possède l'Atout Rapide, vous pouvez infliger des Dégâts quand vous êtes attaqué, comme si c'était votre Action. Vous pouvez Riposter à un nombre d'attaques par Round égal à votre Niveau de Riposte. ",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 144
@@ -4216,7 +4085,6 @@
     "test": null,
     "desc": "Vous êtes un dur à cuire et vous encaissez les Dégâts. Vous réduisez tous les Dégâts subis de 1 par nombre de fois où vous avez pris le Talent Robuste, même si les Dégâts ne peuvent normalement pas être réduits. Mais vous subissez toujours un minimum de 1 Blessure de n'importe quelle source de Dégâts.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 145
@@ -4245,7 +4113,6 @@
     },
     "desc": "Vous êtes suffisamment courageux ou fou pour que la peur de certains ennemis ne soit qu'un lointain souvenir. Avec un seul Test de Calme Accessible (+20), vous pouvez ignorer les effets d'Intimidation, de Peur ou de Terreur de l'ennemi spécifié quand vous le rencontrez. Les ennemis courants comprennent les hommes-bêtes, les peaux-vertes, les hors-la-loi, les vampires, les gardes et les Sorciers dissidents.",
     "specsSource": "groupesDAppartenance",
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 145
@@ -4262,7 +4129,6 @@
     "test": null,
     "desc": "Il est difficile de vous mettre à terre. Vous pouvez effectuer un Test d'Athlétisme Intermédiaire (+0) pour atterrir immédiatement sur vos pieds chaque fois que vous gagnez un État À Terre. Ce Test d'Athlétisme est souvent modifié par la Force du coup qui vous renverse : pour chaque tranche de +10 en Force que possède le coup au-delà de votre Endurance, vous subissez une pénalité de -10 au Test d'Athlétisme, et vice versa.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 145
@@ -4510,7 +4376,6 @@
         "pool": false
       }
     ],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 145
@@ -4676,7 +4541,6 @@
         "pool": false
       }
     ],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 145
@@ -4696,7 +4560,6 @@
     },
     "desc": "Vous pouvez percevoir les Vents changeants de la Magie, qui soufflent depuis les Portes du Chaos jusqu'aux pôles du monde. Vous possédez à présent Seconde vue (voir page 233).",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 145
@@ -4722,7 +4585,6 @@
     },
     "desc": "Votre regard sévère et vos mots exaltants incitent vos soldats à se battre jusqu'au bout. Tous les subalternes capables de vous voir peuvent ajouter votre Niveau de Seigneur de guerre au DR d'un Test de Force Mentale par Round. Ce bonus n'est pas cumulatif.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 145
@@ -4769,7 +4631,6 @@
         "label": "Vue"
       }
     ],
-    "rand": 78,
     "source": {
       "book": "livre-de-base",
       "page": 145
@@ -4794,7 +4655,6 @@
     },
     "desc": "Vous avez un sens instinctif de l'orientation. Vous savez automatiquement où se trouve le nord en regardant les étoiles, les arbres ou n'importe quels autres signes familiers.",
     "specs": [],
-    "rand": 81,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -4820,7 +4680,6 @@
     },
     "desc": "Vous avez une impression étrange quand vous êtes en danger, et pouvez réagir en conséquence. Le MJ peut vous prévenir que vous êtes observé, ou que vous êtes en danger ; cela arrivera normalement après un Test d'Intuition secret en votre nom. De plus, vous pouvez ignorer la Surprise si vous réussissez un Test d'Intuition.",
     "specs": [],
-    "rand": 85,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -4839,7 +4698,6 @@
     },
     "desc": "Vous aimez parler avec les autres et on dirait bien qu'ils aiment discuter avec vous. Vous pouvez inverser n'importe quel Test de Ragot si cela permet au Test de réussir.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -4867,7 +4725,6 @@
     "grantGroups": [
       "magie"
     ],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -4902,7 +4759,6 @@
     },
     "desc": "Vous êtes agile comme un chat, et capable de tomber de plus grandes hauteurs que les autres sans vous blesser. Chaque fois que vous tombez, effectuez un Test d'Athlétisme. Sur un succès, réduisez la distance de chute de 1 mètre, +1 mètre supplémentaire par +1 DR obtenu, pour calculer les Dégâts.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -4928,7 +4784,6 @@
     },
     "desc": "Vous êtes un coureur très rapide. Votre Attribut de Mouvement compte comme plus élevé de 1 lorsque vous Courez.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -4950,7 +4805,6 @@
     },
     "desc": "Vous êtes un vrai rat de bibliothèque. Quand vous utilisez Recherche, vous pouvez inverser le résultat de n'importe quel Test raté si cela entraîne un succès.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -4984,7 +4838,6 @@
     },
     "desc": "Vous êtes un corrupteur hautement qualifié. Le MJ peut réduire le coût de base de n'importe quel pot-de-vin requis de 10 % par niveau que vous possédez en Suborneur, jusqu'à un minimum de 10 % du montant d'origine. ",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -4998,7 +4851,6 @@
     "test": null,
     "desc": "Vous pouvez effectuer des tirs ciblés d'une précision chirurgicale. Vous ignorez les modificateurs de Difficulté des Tests de Projectiles dus à la taille de votre cible.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -5015,7 +4867,6 @@
     "test": null,
     "desc": "Vous gagnez un bonus permanent de +5 à votre Capacité de Tir de départ (ne compte pas comme des Augmentations).",
     "specs": [],
-    "rand": 88,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -5039,7 +4890,6 @@
     },
     "desc": "La distance n'est pas un obstacle pour vos Compétences de tir, et vous êtes expert dans l'art de repérer des cibles aussi bien éloignées qu'à proximité. Vous ne subissez aucune pénalité lors d'un tir à Longue distance, et la moitié des pénalités à Portée extrême.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -5056,7 +4906,6 @@
     "test": null,
     "desc": "Vous touchez toujours un adversaire juste entre les deux yeux... ou à l'endroit que vous aviez l'intention d'atteindre. Au lieu d'inverser le dé pour déterminer quelle Localisation est touchée avec votre arme à distance, vous pouvez la choisir.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -5075,7 +4924,6 @@
     "test": null,
     "desc": "Vous êtes un tireur exceptionnel et savez où atteindre un ennemi pour lui causer un maximum de Dégâts. Votre niveau de Tir précis équivaut à des dégâts supplémentaires pour toutes les armes à distance.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -5104,7 +4952,6 @@
     },
     "desc": "Si vous avez une arme à distance chargée, vous pouvez faire feu en dehors de l'ordre d'Initiative normal avant que tout autre combattant ne réagisse dans le Round suivant. Vous effectuez un lancer pour toucher en utilisant les modificateurs normaux. Utiliser Tir rapide nécessite à la fois votre Action et votre Mouvement pour votre tour à venir, qui compteront comme ayant été dépensés pendant le prochain tour. Si deux Personnages ou plus utilisent Tir rapide, celui qui a pris ce Talent le plus de fois tire en premier. En cas d'égalité, ils font feu simultanément et devraient être gérés en même temps.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -5123,7 +4970,6 @@
     "test": null,
     "desc": "Vous savez comment trouver les points faibles de l'armure d'une cible. Quand vous la touchez, vous pouvez ignorer un nombre de PA égal à votre Niveau de Tir sûr.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -5142,7 +4988,6 @@
     "test": null,
     "desc": "Une technique de mémorisation initiée par le Culte de Verena, d'après ce que l'on prétend, tirée des pratiques elfiques enseignées par les Maîtres du savoir de Hoeth, Tour des souvenirs vous permet de vous rappeler parfaitement une série d'événements en les mémorisant dans une tour imaginaire. Vous pouvez vous souvenir d'une série d'événements d'une longueur égale à votre Intelligence sans avoir besoin d'effectuer de Test. Pour chaque tranche de 10 éléments supplémentaires que vous tentez de mémoriser, vous devez effectuer un Test d'Intelligence dont la Difficulté augmente pour vous en souvenir correctement, en partant de Très facile (+60) pour 10+, Facile (+40) pour 20+, Accessible (+20) pour 30+, etc. Au-delà de son utilité évidente pour le Pari, car ce Talent ajoute un Bonus de +20 à +60, selon l'utilité de la mémorisation lors du jeu en cours, le MJ peut, si nécessaire, appliquer des Bonus aux autres Tests. Chaque fois que vous prenez ce Talent, vous pouvez vous rappeler une série supplémentaire d'événements, sans avoir à en oublier une précédemment mémorisée. ",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 146
@@ -5173,7 +5018,6 @@
     },
     "desc": "Vous êtes doué pour repérer et utiliser des pièges. Vous pouvez effectuer un Test de Perception pour en repérer automatiquement, sans avoir à prévenir le MJ de votre intention ; le MJ peut préférer effectuer ces Tests secrètement, à votre place.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5380,7 +5224,6 @@
         "label": "Vigneron"
       }
     ],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5395,7 +5238,6 @@
     "test": null,
     "desc": "Vous gagnez un bonus permanent de +5 à votre Caractéristique Force de départ (ne compte pas comme des Augmentations).",
     "specs": [],
-    "rand": 91,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5416,7 +5258,6 @@
     "test": null,
     "desc": "Vous gagnez un bonus permanent de +5 à votre Caractéristique Endurance de départ (ne compte pas comme des Augmentations).",
     "specs": [],
-    "rand": 94,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5449,7 +5290,6 @@
     },
     "desc": "Vous êtes doué pour jouer et gagner aux cartes, bien que vos méthodes puissent impliquer un peu de triche. Quand vous utilisez Pari ou Escamotage avec succès en jouant aux cartes, vous pouvez choisir, soit d'utiliser le DR obtenu, soit le chiffre des unités de votre dé. Donc, un succès de 28 peut être utilisé comme un DR de +8. Si vous jouez avec un jeu de cartes réel pour représenter ce qui se passe en jeu, vous pouvez recevoir un nombre supplémentaire de cartes par distribution égal à votre niveau de Tricheur, puis en défausser pour revenir à la taille de main appropriée avant chaque tour de jeu.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5463,7 +5303,6 @@
     "test": null,
     "desc": "Quand vous déterminez les Dégâts, utilisez le Bonus d'Endurance de votre adversaire comme votre Bonus de Force s'il est plus élevé ; déterminez toujours ce point avant toute autre règle modifiant votre Force ou Bonus de Force. De plus, si votre cible est plus grande que vous, et que vous obtenez un Critique (voir page 159), multipliez tous les Dégâts de Corps à corps que vous infligez par le nombre de catégories de Taille de votre cible, supérieures à la vôtre (donc, 2 catégories = x2, 3 = x3, et ainsi de suite) ; cette multiplication est calculée une fois tous les modificateurs appliqués. Voir page 342 pour plus d'informations au sujet de la Taille. ",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5480,7 +5319,6 @@
     "test": null,
     "desc": "Vous gagnez +1 à votre Attribut de Mouvement.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5514,7 +5352,6 @@
     },
     "desc": "Vous avez l'habitude d'analyser le champ de bataille pour prendre des décisions rapides, éclairées par les vagues changeantes du conflit. Vous pouvez effectuer un Test de Perception Intermédiaire (+0) pour ignorer la Surprise, modifié normalement par la situation.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5543,7 +5380,6 @@
     },
     "desc": "Vous pouvez voir parfaitement dans les ténèbres naturelles. En présumant que vous possédez au moins une faible source de lumière (telle que la lumière des étoiles, le clair de lune, la bioluminescence), vous pouvez voir clairement jusqu'à 20 mètres par Niveau de Vision nocturne. De plus, vous pouvez étendre la distance d'illumination effective de toutes les sources de lumière de 20 mètres par niveau de Vision nocturne.",
     "specs": [],
-    "rand": 97,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5569,7 +5405,6 @@
     },
     "desc": "Vous discernez clairement les grandes œuvres des dieux tout autour de vous. Vous savez automatiquement quand vous entrez sur un sol sacré, et pouvez effectuer un Test d'Intuition pour recevoir des visions (souvent obscures et interprétées via le paradigme de votre culte ou de votre système individuel de croyance) concernant la localité si des événements importants ont eu lieu ici par le passé.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5583,7 +5418,6 @@
     "test": null,
     "desc": "Vous gagnez un bonus permanent de +5 à votre Caractéristique Initiative de départ (ne compte pas comme des Augmentations).",
     "specs": [],
-    "rand": 100,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5616,7 +5450,6 @@
     },
     "desc": "Vous êtes indomptable, et vous ne vous inclinerez jamais volontairement devant autrui. L'utilisation de la Compétence Intimidation ne provoque pas la Peur chez vous et ne vous empêchera pas de vous opposer à un interlocuteur intimidant.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5635,7 +5468,6 @@
     },
     "desc": "Vous êtes une âme curieuse qui a voyagé partout, et appris toutes sortes d'informations locales. Ajoutez Savoir (Région) à n'importe quelle Carrière que vous entamez. Si elle est déjà incluse dans la Carrière, vous pouvez acheter la Compétence deux fois – avec une Spécialisation différente chaque fois, telle qu'Altdorf, Vorbergland ou Ubersreik – pour 5 PX de moins par Augmentation.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 147
@@ -5658,7 +5490,6 @@
     "test": null,
     "desc": "Vous êtes bien plus massif que la plupart des habitants du Vieux Monde. Les règles complètes à propos des différentes Tailles se trouvent à la page 342 de WFJDR.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 20
@@ -5700,7 +5531,6 @@
         "label": "Plaisir"
       }
     ],
-    "rand": null,
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 20
@@ -5715,7 +5545,6 @@
     "test": null,
     "desc": "Votre famille est vue comme une nouvelle venue dans la Laurelorn, et est traitée avec condescendance par les Éonirs des autres lignages. Votre Statut est toujours considéré comme plus bas que celui des autres Éonirs, à moins qu'ils aient, eux aussi, le Talent Sang neuf. Un membre du jeune lignage de deuxième génération peut perdre ce Talent s'il réussit une série d'épreuves pour rejoindre l lignée des Enfants de la forêt.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 78
@@ -5745,7 +5574,6 @@
     "combat": {
       "seaShanty": true
     },
-    "rand": null,
     "source": {
       "book": "mer-des-griffes",
       "page": 63
@@ -5773,7 +5601,6 @@
     },
     "desc": "Vos hommes vous respectent et vous font confiance. Pour tout Test de Commandement approprié effectué à bord de votre bateau ou impliquant votre équipage, vous gagnez un bonus de DR égal à votre nombre de niveaux en Commandant émérite. Ce bonus s'applique aux Tests d'équipage comme aux Tests de Commandement individuels.",
     "specs": [],
-    "rand": null,
     "source": {
       "book": "mer-des-griffes",
       "page": 63

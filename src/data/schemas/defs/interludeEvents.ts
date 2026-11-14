@@ -63,7 +63,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['interludeEvents'] },
     edit: { niche: { categories: { interludeEvents: 'entries' } } },
   },
   // LDB 22 l.5

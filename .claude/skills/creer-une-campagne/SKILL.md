@@ -18,7 +18,8 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
    « Fichier → Exporter JSON » télécharge l'export portable `<id du projet>-projet.json`, libellé de la
    copie de travail. Les deux passent la porte UNIQUE du document (`parseProject`, garde
    `src/ui/editor/export-passe-la-porte.test.tsx`). Tout paquet neuf se déclare dans
-   `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` : son volet couverture exige que tout
+   `PROJETS_MANUSCRITS` de `scripts/guards/lib/projetsLivres.mjs` : le volet couverture de
+   `src/scenes/generateurs-byte-stables.test.ts` exige que tout
    `*-projet.json` soit produit par un générateur OU nommé manuscrit.
 2. **Scènes et cartes à l'éditeur** ; reproduire un plan de livre : skill `creer-une-map`.
 3. **Écrire des IDS stables** — `ref` de créature, `skill`, `spell`, `species`, `inventaire` (trappingId),
@@ -67,7 +68,7 @@ valide ; un bloc mal formé fait échouer `parseProject`.
   et s'enrôle par `encounters[].members` ; le schéma de scène refuse un corps hors de son catalogue (`creature`,
   `vehicule`, `engin` : un engin de siège, sous-type `armes-de-siege`) et deux corps sur un personnage. Une coque
   RICHE porte `crewIds`, `upgrades` et `postes`. Un poste est une RÉFÉRENCE JSON
-  `{ trappingId, side, crewIds?, uid?, ammo?, ammoUid? … }` (`AuthoredShipPoste`, `src/engine/types.ts`),
+  `{ trappingId, side, crewIds?, ammo?, ammoUid? … }` (`AuthoredShipPoste`, `src/engine/types.ts`),
   hydratée au spawn par `hydratePoste` (`src/engine/items.ts`), qui lève sur un `trappingId` inconnu.
   `src/scenes/bundled-projects.test.ts` contrôle l'équipage exposé (chaque `crewIds` de la coque = une
   entité de la scène), les améliorations (catalogue naval) et le coffre (`ammo` en munitions de quantité

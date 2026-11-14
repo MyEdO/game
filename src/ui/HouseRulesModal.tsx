@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { rule, type OptionalRule, type RuleValue } from '../engine/policy';
+import { rule, type OptionalRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 import { prendreLeTemoinDesReglesMaisonWeb, reglerUneRegleMaisonWeb, remettreUneRegleMaisonWeb } from '../state/reglesMaison';
 import { reglesMaisonMutables } from '../noyau/reglesMaison';
 import { t } from '../i18n';
@@ -48,8 +48,8 @@ export function HouseRulesPanel() {
     if (r) setRetirees(r);
   }, []);
 
-  const change = (id: string, v: RuleValue) => { reglerUneRegleMaisonWeb(id, v); rerender(); };
-  const reset = (id: string) => { remettreUneRegleMaisonWeb(id); rerender(); };
+  const change = (id: RegleOptionnelleId, v: RuleValue) => { reglerUneRegleMaisonWeb(id, v); rerender(); };
+  const reset = (id: RegleOptionnelleId) => { remettreUneRegleMaisonWeb(id); rerender(); };
 
   return (
     <div className="house-rules">
@@ -76,7 +76,7 @@ export function HouseRulesPanel() {
 }
 
 /**
- * Résout sur le store le nom d'action DÉCLARÉ par une entrée du registre (`RuleAction.run`). Ce nom
+ * Résout sur le store le nom d'action DÉCLARÉ par une entrée du registre (`OptionalRule`, `action.run`). Ce nom
  * traverse une frontière de couches — le moteur, pur, ne peut pas typer les clés du store — d'où la
  * lecture indexée. En DEV, un nom qui ne désigne pas une fonction LÈVE : un renommage du store se
  * voit à la recette au lieu de faire disparaître le bouton en silence (garde statique de la liaison :
@@ -87,7 +87,7 @@ function storeAction(store: object, name: string | undefined): (() => void) | un
   const fn = (store as Record<string, unknown>)[name];
   if (typeof fn === 'function') return fn as () => void;
   if (import.meta.env?.DEV) {
-    throw new Error(`Action de règle inconnue : « ${name} » — aucune fonction de ce nom sur le store (voir RuleAction.run, engine/policy.ts).`);
+    throw new Error(`Action de règle inconnue : « ${name} » — aucune fonction de ce nom sur le store (voir OptionalRule, action.run, engine/policy.ts).`);
   }
   return undefined;
 }
@@ -98,8 +98,8 @@ function HouseRuleRow({
   regle: OptionalRule;
   /** Verrou de CLASSE (identique pour toutes les rangées) — sa raison est rendue en tête du panneau. */
   mutable: boolean;
-  onChange: (id: string, v: RuleValue) => void;
-  onReset: (id: string) => void;
+  onChange: (id: RegleOptionnelleId, v: RuleValue) => void;
+  onReset: (id: RegleOptionnelleId) => void;
 }) {
   const val = rule(regle.id);
   const dirty = val !== regle.default;
@@ -139,7 +139,7 @@ function HouseRuleRow({
               aria-label={regle.label} value={String(val)} disabled={!mutable}
               aria-describedby={describedBy} onChange={(e) => onChange(regle.id, e.target.value)}
             >
-              {(regle.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
+              {regle.options.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           )}
           {regle.kind === 'param' && (

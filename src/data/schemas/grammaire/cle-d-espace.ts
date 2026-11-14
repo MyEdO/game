@@ -128,6 +128,9 @@ export function cleDesSpecs(espace: string, id: string): string {
   return cleNichee(espace, suiteAvecPas(suiteAvecPas('', { cle: id }), { champ: 'specs' }));
 }
 
+/** Suite de la liste `entries` de l'élément `id` (`[id].entries`). */
+export const suiteDesEntrees = (id: string): string => suiteAvecPas(suiteAvecPas('', { cle: id }), { champ: 'entries' });
+
 /** La clé NON FILTRÉE d'une clé lue : `fichier`, ou `fichier#…`. */
 export function baseDe(lue: CleLue): string {
   return lue.niche === undefined ? lue.fichier : `${lue.fichier}#${lue.niche}`;

@@ -1,7 +1,7 @@
 /**
  * BANC DU MUR SANS HÔTE (#2817, AGENTS.md règle 3) : `src/engine` et `src/noyau` ne tirent ni entropie,
  * ni horloge murale, ni service du navigateur — l'hôte les fournit ; dans tout `src/`, `Math.random` ne
- * s'écrit qu'à `src/web/entropie.ts`. Le banc lance les murs `murs/sans-hote`, `murs/sans-hote-syntaxe`,
+ * s'écrit qu'à `src/hote/entropie.ts`. Le banc lance les murs `murs/sans-hote`, `murs/sans-hote-syntaxe`,
  * `murs/sans-hote-globale` et `murs/entropie` (`oxlint.config.mjs`, patron `murs/alea-serveur`) sur la
  * config RÉELLE, et sélectionne par `ruleId` : un sélecteur trop étroit rendrait le vert par vacuité.
  * Les minuteries et le stockage web restent à `murs/minuteries` et `murs/stockage-web-global`.
@@ -91,7 +91,7 @@ describe('mur sans hôte — le moteur et le noyau tournent sans hôte (#2817)',
   });
 
   it('le site d’entropie et les tests tirent librement', async () => {
-    expect(await pris('export const a = Math.random();\n', 'src/web/entropie.ts')).toBe(0);
+    expect(await pris('export const a = Math.random();\n', 'src/hote/entropie.ts')).toBe(0);
     expect(await pris('export const a = Math.random() + Date.now();\n', 'src/noyau/__sonde-purete.test.ts')).toBe(0);
     expect(await pris('export const a = Math.random();\n', 'src/ui/__sonde-purete.test.tsx')).toBe(0);
   });

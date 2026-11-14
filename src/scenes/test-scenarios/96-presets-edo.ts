@@ -1,4 +1,4 @@
-import { pregenParty, PREGEN } from '../../data/pregens';
+import { groupeDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { Dialogue, Scene } from '../../noyau/monde/scene';
@@ -87,7 +87,7 @@ function construireScene(): Scene {
               // CHEMIN JOUEUR de « il leur propose une partie » (`EDO 01 l.200`) : sans lui, le rôle
               // `tavernGame` de l'entité est une affordance morte — authorée, jamais atteignable au clic.
               label: 'Accepter la partie de cartes qu’il propose.',
-              icon: 'nav/dice',
+              icon: 'navigation/des',
               flow: flowFromEffects([{ type: 'openTavernGames' }]),
             },
             {
@@ -162,7 +162,7 @@ export const scenario: TestScenario = {
   id: 'presets-edo',
   order: 23,
   category: 'scenarios',
-  icon: 'nav/campaign',
+  icon: 'navigation/campagne',
   title: 'Presets PNJ — pilotes EDO',
   tests:
     'Recette #671 (lot C) : trois PNJ authorés en presets (base globale + surcharges embarquées) résolus ' +
@@ -170,7 +170,7 @@ export const scenario: TestScenario = {
     '(Knud Cratinx) déclenché depuis le dialogue.',
   partyNote: 'Soldat · Chasseur · Prêtre',
   construire: (idNeuf) => ({
-    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.pretre),
+    party: groupeDeScenario(idNeuf, 'soldat', 'chasseur', 'pretre'),
     scene: construireScene(),
     narratif: construireNarratif(),
   }),

@@ -15,7 +15,18 @@
 import { describe, it, expect } from 'vitest';
 import { rollTest, resolveOpposed, opposedReasons, type TestResult } from './tests';
 import { makeRNG } from './dice';
-import { combatBaseValue, combatValue, defenseBaseValue, defenseValue, rollMeleeAttacker, rollMeleeDefender, rollGrappleForce, rollDisengageAttack, resolveMelee, finishMelee } from './combat';
+import {
+  combatBaseValue,
+  combatValue,
+  defenseBaseValue,
+  defenseValue,
+  rollMeleeAttacker,
+  rollMeleeDefender,
+  rollGrappleForce,
+  rollDisengageAttack,
+  resolveMelee,
+  finishMelee,
+} from './combat';
 import { hydrateTR } from './tests';
 import { COND } from './conditions';
 import type { Characteristics, Combatant, ItemInstance, Weapon } from './types';
@@ -32,7 +43,7 @@ function hero(opts: { conditions?: { id: string; value: number }[]; skills?: Com
   const enc = opts.enc ?? 0;
   const items: ItemInstance[] = enc > 0 ? [{ uid: 'x', label: 'charge', kind: 'misc', qualities: [], enc, equipped: false }] : [];
   return blessuresSurLeProfil({
-    id: 'h', label: 'Sujet', kind: 'hero',
+    id: 'h', label: 'Sujet', kind: 'heros',
     characteristics: chars(opts.chars),
     wounds: blessuresDeBase(12),
     advantage: 0,
@@ -63,7 +74,7 @@ describe('#1153 L6 — une opposition sans nue explicite retombe sur les DEUX ci
     // Fixture DISCRIMINANTE : un départage MIXTE (nue 20 vs cible 40) donnerait le défenseur ;
     // le repli tout-ou-rien (cibles 55 vs 40) donne l'attaquant.
     const opp = resolveOpposed(tr(55, 2, 20), tr(40, 2));
-    expect(opp.winner).toBe('attacker');
+    expect(opp.winner).toBe('attaquant');
     expect(opp.decidedBy).toBe('valeur');
     const [why] = opposedReasons(opp);
     expect(why).toEqual({ by: 'valeur', own: 55, other: 40 }); // les CIBLES, la même grandeur des deux côtés
@@ -77,13 +88,13 @@ describe('#1153 L6 — une opposition sans nue explicite retombe sur les DEUX ci
     const b = { ...rollTest(40, 'intermediaire', makeRNG(12)), success: true, sl: 2 };
     expect([a.target, b.target]).toEqual([55, 40]);
     const opp = resolveOpposed(a, b);
-    expect(opp.winner).toBe('attacker');
+    expect(opp.winner).toBe('attaquant');
     expect(opposedReasons(opp)[0]).toEqual({ by: 'valeur', own: 55, other: 40 });
   });
 
   it('aucune nue nulle part : idem — les cibles tranchent', () => {
     const opp = resolveOpposed(tr(40, 1), tr(55, 1));
-    expect(opp.winner).toBe('defender');
+    expect(opp.winner).toBe('defenseur');
     expect(opp.decidedBy).toBe('valeur');
   });
 
@@ -91,7 +102,7 @@ describe('#1153 L6 — une opposition sans nue explicite retombe sur les DEUX ci
     // Attaquant sain (nue 40, cible 40) contre défenseur pénalisé (nue 45, cible 25) : à DR égal,
     // c'est la Compétence qui départage (LDB 12 l.160), pas la cible modifiée.
     const opp = resolveOpposed(tr(40, 1, 40), tr(25, 1, 45));
-    expect(opp.winner).toBe('defender');
+    expect(opp.winner).toBe('defenseur');
     expect(opp.decidedBy).toBe('valeur');
     const [, why] = opposedReasons(opp);
     expect(why).toEqual({ by: 'valeur', own: 45, other: 40 });
@@ -147,7 +158,7 @@ describe('#1153 L6 — la nue survit au RollBreakdown (fenêtre de défense, Cha
     // À DR égal, 50 (nue de l'attaquant) < 45+20 (nue du défenseur) : le RAW donne le défenseur. Avec
     // la fondue 70, l'attaquant l'emportait — sur une grandeur que l'écran ne montre nulle part.
     expect(defenseBaseValue(D, 'esquive')).toBe(65);
-    expect(resolveOpposed({ ...atk, sl: 2 }, { ...def, sl: 2 }).winner).toBe('defender');
+    expect(resolveOpposed({ ...atk, sl: 2 }, { ...def, sl: 2 }).winner).toBe('defenseur');
   });
 
   it('la Chance ne change pas la GRANDEUR du départage : même nue avant et après re-hydratation', () => {

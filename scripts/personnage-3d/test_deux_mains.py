@@ -3,24 +3,34 @@ ramène une cible hors de portée sur la sphère de portée ; les clés de geste
 repos, sauf à une clé d'élan, la prise `main` à la moitié de l'écart du milieu de chaque clé ; le repère de l'arme porte
 son +Y vers le fer et son +X au plus près du flanc donné ; chaque clip dérivé a une clé au début et une à la fin, et un
 maniement dont la seconde prise est déclarée ; le bras ne se tord pas et l'avant-bras porte la torsion dans ses bornes ;
+le dépassement des bornes articulaires se lit sur le vecteur de rotation, à la marge près, et écarte l'IK d'une pose qui
+en sort ;
 une peau déplacée d'un bloc garde ses longueurs, un os plié étire l'arête à cheval, l'écrasement ne lit que les arêtes
 que meuvent les os libres ; la seconde
-prise de chaque arme tourne comme celle des clips de son maniement."""
+prise de chaque arme tourne comme celle des clips de son maniement ;
+sous une silhouette à os, les têtes déplacées et le tronc posé sont ceux du squelette déplacé explicite, et un point du
+bras se mesure sur sa tête d'os déplacée, tournée par les axes du bras ; le prix du tronc compte la prise à sa marge ;
+une prise dans un tronc plan en sort à sa marge le long de la normale, une prise dehors ne bouge pas (#4002)."""
 import json
 import math
 import sys
 import unittest
 from pathlib import Path
 
+import bpy
 import numpy
 from mathutils import Matrix, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from deux_mains import (CLIPS, POIGNET, PRONATION, SECONDES, PeauDuBras, bras, cle, coude,  # noqa: E402
-                        etirement_du_bras, interpoler, peau_fixe, repere_de_l_arme)
+from deux_mains import (CLIPS, MARGE_DES_BORNES, POIGNET, PRONATION, SECONDES, TRONC, ChaineDuBras,  # noqa: E402
+                        PeauDuBras, PeauDuTronc, bras, cle, coude, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe,
+                        pousser, prix_du_tronc, repere_de_l_arme, tronc_pose)
+from sol import ecarts_des_os, rotations_de_peau, tetes_deplacees  # noqa: E402
+from test_sol import DECALAGE, DEPLACEMENTS, PARENT, POIDS, PROPRE, SOMMET, TETES, autour_de_l_avant, peaux  # noqa: E402
 
 L1, L2 = 0.25, 0.24
+LIBRE = {a: [-180, 180] for a in 'xyz'}
 
 
 class Coude(unittest.TestCase):
@@ -51,12 +61,23 @@ class Bras(unittest.TestCase):
     AXES = Matrix(((0, 1, 0), (0, 0, -1), (-1, 0, 0)))
     """Le bras gauche au repos en T : son +Y vers la gauche du personnage (+X), son +X vers le bas."""
 
-    def poser(self, tourne, cible=Vector((0.15, -0.38, 1.2))):
+    def poser(self, tourne, cible=Vector((0.15, -0.38, 1.2)), bornes=(LIBRE, LIBRE)):
         devant = self.AXES.col[1].rotation_difference(Vector((0, -1, 0))).to_matrix() @ self.AXES
         main = (devant @ Matrix.Rotation(math.radians(tourne), 3, 'Y')).to_4x4()
         main.translation = cible
         un = Matrix.Identity(3)
-        return main, bras(self.EPAULE, self.AXES, main, (L1, L2), Vector((0.55, 0.35, -0.75)), un, un, PRONATION['l'])
+        return main, bras(self.EPAULE, self.AXES, main, (L1, L2), Vector((0.55, 0.35, -0.75)), un, un, PRONATION['l'], bornes)
+
+    def test_une_borne_de_l_avant_bras_ecarte_l_ik_de_la_pose_qui_en_sort(self):
+        _, (_, humerus, avant_bras, _, _, _) = self.poser(0)
+        q = (humerus.transposed() @ avant_bras).to_quaternion()
+        v = q.axis * math.degrees(q.angle)
+        axe = max(range(3), key=lambda i: abs(v[i]))
+        serree = {**LIBRE, 'xyz'[axe]: [-abs(v[axe]) / 2, abs(v[axe]) / 2]}
+        _, (_, humerus_, avant_bras_, _, _, detail) = self.poser(0, bornes=(serree, LIBRE))
+        self.assertLess(hors_des_bornes(humerus_.transposed() @ avant_bras_, serree),
+                        hors_des_bornes(humerus.transposed() @ avant_bras, serree))
+        self.assertAlmostEqual(detail[4], round(hors_des_bornes(humerus_.transposed() @ avant_bras_, serree), 1), places=6)
 
     def test_le_bras_ne_se_tord_pas_et_l_avant_bras_porte_la_torsion_dans_ses_bornes(self):
         for tourne in (-150, -90, -40, 0, 30, 90):
@@ -79,6 +100,15 @@ class Bras(unittest.TestCase):
                 main, (_, humerus, avant_bras, _, _, _) = self.poser(tourne)
                 self.assertAlmostEqual(torsion(humerus, avant_bras), PRONATION['l'][1], places=2)
                 self.assertGreater(torsion(avant_bras, main.to_3x3()), 0)
+
+
+class HorsDesBornes(unittest.TestCase):
+    def test_le_vecteur_de_rotation_se_lit_par_axe_a_la_marge_pres(self):
+        bornes = {'x': [-20, 50], 'y': [-180, 180], 'z': [-10, 20]}
+        self.assertEqual(hors_des_bornes(Matrix.Identity(3), bornes), 0)
+        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(30), 3, 'Z'), bornes), 10 + MARGE_DES_BORNES, places=4)
+        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(-30), 3, 'X'), bornes), 10 + MARGE_DES_BORNES, places=4)
+        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(19.5), 3, 'Z'), bornes), 0.5, places=4)
 
 
 class Peau(unittest.TestCase):
@@ -110,6 +140,68 @@ class Peau(unittest.TestCase):
         fixe = peau_fixe(peau, numpy.array([numpy.diag([0.1, 0.1, 0.1, 1.0]), numpy.eye(4)]), [1])
         ecrase = etirement_du_bras(peau, fixe, [(1, numpy.array([numpy.diag([0.5, 0.5, 0.5, 1.0])]))])[1][0]
         self.assertAlmostEqual(ecrase, 0.5, places=6)
+
+
+LOCALES = [numpy.eye(4), autour_de_l_avant(numpy.pi / 2), autour_de_l_avant(-numpy.pi / 2)]
+"""Le parent tourné de 90° autour de l'avant, l'enfant de −90° sous lui : e_b = ΔJ_b − R_b D_b non nul (`test_sol`)."""
+
+
+class SousUneSilhouetteAOs(unittest.TestCase):
+    def test_les_tetes_deplacees_sont_celles_du_squelette_deplace_et_ecarts_des_os_en_lit_la_hauteur(self):
+        matrices = peaux(numpy.zeros((3, 3)), LOCALES)[None]
+        tetes = tetes_deplacees(matrices, PARENT, DEPLACEMENTS)[0]
+        deplace, nu = peaux(DEPLACEMENTS, LOCALES), peaux(numpy.zeros((3, 3)), LOCALES)
+        for b in range(3):
+            explicite = (deplace[b] @ numpy.r_[TETES[b] + DEPLACEMENTS[b], 1.0] - nu[b] @ numpy.r_[TETES[b], 1.0])[:3]
+            numpy.testing.assert_allclose(tetes[b], explicite, atol=1e-12)
+        numpy.testing.assert_allclose(ecarts_des_os(matrices, PARENT, DEPLACEMENTS)[0],
+                                      tetes[:, 2] - (rotations_de_peau(matrices)[0] @ DEPLACEMENTS[..., None])[:, 2, 0], atol=1e-12)
+
+    def test_le_tronc_pose_est_la_peau_du_squelette_deplace(self):
+        cle_ = DECALAGE + PROPRE
+        tronc = PeauDuTronc((SOMMET + numpy.r_[cle_, 0.0])[None, None], numpy.array([[0.0, 0.0, 1.0]]), POIDS, PARENT,
+                            DEPLACEMENTS[None])
+        pose = tronc_pose(tronc, peaux(numpy.zeros((3, 3)), LOCALES))
+        explicite = (peaux(DEPLACEMENTS, LOCALES)[2] @ (SOMMET + numpy.r_[cle_, 0.0]))[:3]
+        numpy.testing.assert_allclose(pose.positions[0, 0], explicite, atol=1e-12)
+
+
+def plan(deplacements=None):
+    """Le tronc plan z = 0, normale +Z, dedans sous lui, posé au repos sur un seul os, un seul jeu."""
+    grille = numpy.linspace(-0.3, 0.3, 61)
+    x = numpy.array([[a, b, 0.0, 1.0] for a in grille for b in grille])
+    tronc = PeauDuTronc(x[None], numpy.tile([0.0, 0.0, 1.0], (len(x), 1)), numpy.ones((len(x), 1)), numpy.array([-1]),
+                        numpy.zeros((1, 1, 3)))
+    return tronc_pose(tronc, numpy.eye(4)[None])
+
+
+class Tronc(unittest.TestCase):
+    AXES = numpy.eye(3)[None, None].repeat(2, axis=1)
+    """Un essai, le bras et l'avant-bras à leur repos."""
+
+    def prix(self, chaines, prise, axes=AXES):
+        chaine = ChaineDuBras(numpy.eye(3)[None].repeat(2, axis=0), numpy.array(chaines, dtype=float)[None])
+        return prix_du_tronc(plan(), chaine, numpy.array([[0.0, 0.0, 0.3]]), axes, (0.1, 0.0, 0.3), prise)[0]
+
+    def test_sous_une_silhouette_a_os_un_point_du_bras_se_mesure_sur_sa_tete_deplacee(self):
+        haute = (0.0, 0.0, 2.0)
+        enfonce = [(0, 0, 0), (0, 0, -0.5), (0, 0, -0.5)]
+        self.assertEqual(self.prix([(0, 0, 0)] * 3, haute), 0)
+        self.assertGreater(self.prix(enfonce, haute), 0)
+        retourne = self.AXES.copy()
+        retourne[0, 0] = numpy.diag([1.0, -1.0, -1.0])
+        self.assertEqual(self.prix(enfonce, haute, retourne), 0)
+
+    def test_le_prix_du_tronc_compte_la_prise(self):
+        self.assertAlmostEqual(self.prix([(0, 0, 0)] * 3, (0.0, 0.0, -0.01)), ((0.01 + TRONC['prise']) / TRONC['echelle']) ** 2,
+                               places=6)
+
+    def test_une_prise_dans_un_tronc_plan_en_sort_a_sa_marge_le_long_de_la_normale(self):
+        pas = pousser(plan(), numpy.array([[[0.01, 0.02, -0.02], [0.05, -0.1, 0.03]]]))
+        numpy.testing.assert_allclose(pas, (0.0, 0.0, 0.02 + TRONC['prise']), atol=1e-12)
+
+    def test_une_prise_dehors_ne_bouge_pas(self):
+        self.assertFalse(pousser(plan(), numpy.array([[[0.01, 0.02, TRONC['prise'] + 0.01]]])).any())
 
 
 class Interpolation(unittest.TestCase):

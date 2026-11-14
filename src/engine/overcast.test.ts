@@ -42,11 +42,11 @@ describe('overcastAxesFor — ZdE réservée à l’arcane (`LDB 41 l.21-27`, `L
   it('l’axe Dégâts n’existe qu’au Projectile magique, sous VDM (`VDM 02 l.198`)', () => {
     const projectile = { ...ouvert('arcane'), target: { kind: 'count', n: 1 } } as const;
     expect(overcastAxesFor(projectile, true)).toEqual(['range', 'duration', 'targets']); // option OFF
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     expect(overcastAxesFor(projectile, true)).toEqual(['range', 'duration', 'targets', 'damage']);
     expect(overcastAxesFor(projectile, false)).toEqual(['range', 'duration', 'targets']);
     expect(overcastAxesFor({ ...projectile, family: 'invocation' }, true)).toEqual(['range', 'duration', 'targets']); // Miracle jamais VDM
-    resetRule('magic-vdm-incantation');
+    resetRule('magie-vdm-incantation');
   });
   it('« Vous » ferme Portée et Cibles, pas la ZdE centrée sur le lanceur (`LDB 47 l.15`)', () => {
     expect(overcastAxesFor({ ...ouvert('arcane'), range: { kind: 'self' } }, false)).toEqual(['zone', 'duration']);
@@ -65,16 +65,16 @@ describe('overcastAxesFor — ZdE réservée à l’arcane (`LDB 41 l.21-27`, `L
 describe('overcastStepCost — coût en DR d’un pas, dérivé du même overcastModel (VDM 02 l.196-201)', () => {
   it('LDB (option OFF) : 2 DR par pas ; VDM (option ON) : 1 DR par pas', () => {
     expect(overcastStepCost('arcane')).toBe(2);
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     expect(overcastStepCost('arcane')).toBe(1);
-    resetRule('magic-vdm-incantation');
+    resetRule('magie-vdm-incantation');
     expect(overcastStepCost('arcane')).toBe(2);
   });
   it('Bénédiction/Miracle ne sont jamais VDM : toujours 2 DR par pas', () => {
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     expect(overcastStepCost('blessing')).toBe(2);
     expect(overcastStepCost('miracle')).toBe(2);
-    resetRule('magic-vdm-incantation');
+    resetRule('magie-vdm-incantation');
   });
 });
 
@@ -152,7 +152,7 @@ describe('Tableau de Surincantation (VDM) — les 7 paliers imprimés, lus de la
   });
 
   it('chaque palier rend l’effet imprimé sur les 5 colonnes', () => {
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     try {
       for (const [dr, cibles, degat, portee, zde, duree] of PALIERS) {
         expect(extraTargetCapacity('arcane', dr, 1), `${dr} DR → Cible additionnelle`).toBe(cibles);
@@ -162,12 +162,12 @@ describe('Tableau de Surincantation (VDM) — les 7 paliers imprimés, lus de la
         expect(overcastDurationParts('arcane', dr).mult, `${dr} DR → Durée prolongée`).toBe(duree);
       }
     } finally {
-      resetRule('magic-vdm-incantation');
+      resetRule('magie-vdm-incantation');
     }
   });
 
   it('0 DR n’ouvre aucun palier ; entre deux paliers c’est le plus haut ATTEINT, et 21 est « ou plus »', () => {
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     try {
       expect(extraTargetCapacity('arcane', 0, 1)).toBe(0);
       expect(missileOvercastDamageBonus('arcane', 0)).toBe(0);
@@ -178,7 +178,7 @@ describe('Tableau de Surincantation (VDM) — les 7 paliers imprimés, lus de la
       expect(extraTargetCapacity('arcane', 99, 1)).toBe(3); // « 21 ou plus »
       expect(zoneDiameterMultiplier('arcane', 99)).toBe(3);
     } finally {
-      resetRule('magic-vdm-incantation');
+      resetRule('magie-vdm-incantation');
     }
   });
 });

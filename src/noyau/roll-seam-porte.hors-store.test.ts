@@ -24,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>
   combattantDeTest({
-    id, label: `Héros ${id}`, kind: 'hero',
+    id, label: `Héros ${id}`, kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     skills: [], conditions: [], talents: [], fortune: 2, resilience: 3,
     ...over,
@@ -33,7 +33,7 @@ const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>
 /** HÔTE au siège 0 ; `H1` appartient au siège 1 (invité), `H2` au siège 0. */
 function deuxSieges(party: Combatant[]): void {
   banc.setState({ party, battle: null, pendingCascade: null, suspendedCascades: [] } as never);
-  banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, ownership: { H1: 1, H2: 0 } } } as never);
+  banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, ownership: { H1: 1, H2: 0 } } } as never);
 }
 
 const etapeCourante = (): CascadeStep => banc.getState().pendingCascade!.participants[0];
@@ -49,7 +49,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     const h2 = hero('H2');
     deuxSieges([h1, h2]);
     openBand(banc.getState, banc.setState, {
-      id: 'peur', kind: 'encounterPsych', label: fixtureText('Peur'), title: 'Peur', purpose: 'test',
+      id: 'peur', kind: 'psychologieDeRencontre', label: fixtureText('Peur'), title: 'Peur', purpose: 'test',
       difficulty: 'intermediaire',
       porteurs: [{ actor: h1, ligne: { test: { characteristic: 'force-mentale' } } }, { actor: h2, ligne: { test: { characteristic: 'force-mentale' } } }],
     });
@@ -85,7 +85,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     deuxSieges([h1, h2]);
     setCadence('rapide');
     openBand(banc.getState, banc.setState, {
-      id: 'peur', kind: 'encounterPsych', label: fixtureText('Peur'), title: 'Peur', purpose: 'test',
+      id: 'peur', kind: 'psychologieDeRencontre', label: fixtureText('Peur'), title: 'Peur', purpose: 'test',
       difficulty: 'intermediaire',
       porteurs: [{ actor: h1, ligne: { test: { characteristic: 'force-mentale' } } }, { actor: h2, ligne: { test: { characteristic: 'force-mentale' } } }],
     });
@@ -102,7 +102,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     const h1 = hero('H1');
     deuxSieges([h1, hero('H2', { aiControlled: true } as Partial<Combatant>)]);
     openBand(banc.getState, banc.setState, {
-      id: 'surprise', kind: 'triggeredBatchTest', label: fixtureText('Surprise'), title: 'Surprise', purpose: 'combat',
+      id: 'surprise', kind: 'testDeclencheEnBande', label: fixtureText('Surprise'), title: 'Surprise', purpose: 'combat',
       rows: [
         { id: 'H1', base: 40, target: 40, result: null, difficulty: 'intermediaire' },
         { id: 'H2', base: 30, target: 30, result: null, difficulty: 'intermediaire' },
@@ -120,7 +120,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     deuxSieges([h1, hero('H2')]);
     const fige = { roll: 12, target: 40, sl: 2, success: true };
     openBand(banc.getState, banc.setState, {
-      id: 'oppose', kind: 'triggeredBatchTest', label: fixtureText('Opposé gelé'), title: 'Opposé', purpose: 'combat',
+      id: 'oppose', kind: 'testDeclencheEnBande', label: fixtureText('Opposé gelé'), title: 'Opposé', purpose: 'combat',
       rows: [
         { id: 'H1', base: 40, target: 40, result: fige, difficulty: 'intermediaire' },
         { id: 'H2', base: 30, target: 30, result: null, difficulty: 'intermediaire' },
@@ -211,7 +211,7 @@ describe('#1262 — openChoice : une décision PORTÉE, jamais partagée', () =>
     const owner = modalOwnerOf(banc.getState()) ?? undefined;
     expect(owner).toBeUndefined();
     expect(ownsLocal(banc.getState(), owner), 'chez l’hôte (siège 0), la fenêtre est jouable').toBe(true);
-    banc.setState({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1 } } as never);
+    banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1 } } as never);
     expect(ownsLocal(banc.getState(), owner), 'chez l’invité, elle est visible en spectateur').toBe(false);
   });
 });
@@ -222,11 +222,11 @@ describe('#1262 — « `result` ⇒ close » ne vaut QU’À L’OUVERTURE', () 
     const h2 = hero('H2');
     deuxSieges([h1, h2]);
     openBand(banc.getState, banc.setState, {
-      id: 'peur', kind: 'encounterPsych', label: fixtureText('Peur'), title: 'Peur', purpose: 'test',
+      id: 'peur', kind: 'psychologieDeRencontre', label: fixtureText('Peur'), title: 'Peur', purpose: 'test',
       difficulty: 'intermediaire',
       porteurs: [{ actor: h1, ligne: { test: { characteristic: 'force-mentale' } } }, { actor: h2, ligne: { test: { characteristic: 'force-mentale' } } }],
     });
-    banc.getState().jetLancer('cascadeBatch', 'H1');
+    banc.getState().jetLancer('cascadeEnBande', 'H1');
     const jouee = etapeCourante().participants!.find((p) => p.id === 'H1')!;
     expect(jouee.result, 'le dé est tombé').toBeTruthy();
     expect(jouee.interactive, 'la rangée reste influençable — c’est pourquoi la règle de la porte ne vaut qu’au montage').toBe(true);

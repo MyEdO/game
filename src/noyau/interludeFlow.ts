@@ -25,17 +25,17 @@ import { refuseSi } from './verrousDeFiche';
 import { progresDActivite } from './progresEtendu';
 import { refuserGeste } from './refusVisible';
 import {
-  ciblesDActivite, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDArtisanat,
-  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, viseDuTrait, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
+  brouillonDe, ciblesDActivite, devisDeDepot, poserDansLeBrouillon, optionDEntrainement, refusDActivite,
+  refusDeCommande, refusDeConfirmerLActivite, refusDeRetrait, opsCiblees, viseDuTrait, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type AxeDuBrouillon, type CiblesChoisies, type CompositionDActivite, type TraitPsyVise,
 } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, engagerLaBataille, battlePrepEntries, soutienCouteUneActivite } from './massBattleFlow';
 import {
-  craftTarget, craftSpecOf, metierOf, statusIncome, statusIncomeMax, bankWithdrawOutcome, seuilDePerteBancaire, bankPayout, apprenticeshipTutorCost,
+  craftTarget, craftSpecOf, metierOf, qualitesDArtisanat, statusIncome, statusIncomeMax, bankWithdrawOutcome, seuilDePerteBancaire, bankPayout, apprenticeshipTutorCost,
   entrainementTutorCost,
-  ACTIVITIES, activitiesFor, activityById, matchOutcomes, activityAvailableAt,
+  ACTIVITIES, activitiesFor, activityById, learnOptionOf, matchOutcomes, activityAvailableAt,
   RESOLVER_OWNER,
-  type ActivityDef, type ActivityResolver, type ResolverOf,
+  type ActivityDef, type ActivityResolver, type GenreDeDepot, type ResolverOf,
 } from '../engine/activities';
 import { buildActivityWorldRollSteps } from './activityWorldRolls';
 import { actorStatus } from '../engine/social';
@@ -55,9 +55,22 @@ import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
-import { findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, libelleOuAbsence, testSkillLabel } from '../data';
+import {
+  findQualityById,
+  findTrappingById,
+  idDObjet,
+  findTalentById,
+  findSpellById,
+  refLabel,
+  skillInstanceLabel,
+  qualityRefLabel,
+  qualities,
+  combatStakeRef,
+  libelleOuAbsence,
+  testSkillLabel,
+} from '../data';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
-import { facesDuDe, findTableEntry } from '../engine/tables';
+import { findTableEntry } from '../engine/tables';
 import { type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { PendingBase } from './rollFlowFactory';
@@ -70,6 +83,7 @@ import { stepDetail } from './rollSeam';
 import { memeSpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
+import type { CorpsDesChoix } from './choixDesFenetres';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 export interface InterludeHeroState {
@@ -84,7 +98,7 @@ export interface InterludeHeroState {
    *  ne dit plus, une fois dépensé, s'il en a jamais eu. Lu par `resetInterruptedFavorProgress`
    *  (noyau/favorFlow) : sans emplacement possible, aucune chaîne de Faveur ne casse. */
   granted: number;
-  /** Devoir elfique APPLIQUÉ (règle optionnelle `interlude-elf-duty` active + elfe + ≥3 semaines) —
+  /** Devoir elfique APPLIQUÉ (règle optionnelle `interlude-devoir-elfique` active + elfe + ≥3 semaines) —
    *  source UNIQUE de la conséquence : l'UI rend ce drapeau, elle ne re-dérive jamais la règle. */
   elfDuty?: boolean;
   /** A entrepris Revenus — maintient les Niveaux 3-4 (« Avec le pouvoir », LDB 23 l.33). */
@@ -104,6 +118,8 @@ export interface InterludeHeroState {
   /** Faveurs (LDB 23 l.139-151, #509) déjà créditées d'une Activité CET interlude — trace la
    *  « consécutivité » (`Favor.progress`) pour `resetInterruptedFavorProgress` (noyau/favorFlow). */
   favorProgress?: string[];
+  /** L'Activité que le héros compose (`fenetreChoisir('interlude', …)`), que le choix `pratiquer` conclut. */
+  composition?: CompositionDActivite;
 }
 
 /** Un lot d'issues différées à la clôture, et le contexte gelé de l'Activité qui l'a produit (libellé,
@@ -130,7 +146,7 @@ export interface BankDeposit {
   /** Son identité, posée au dépôt. */
   uid: string;
   heroId: string;
-  kind: 'invest' | 'stash' | 'mecenat';
+  kind: GenreDeDepot;
   /** Montant déposé, en sous de cuivre. */
   brass: number;
   /** Indice d'intérêts (1-10) — taux % ET risque de faillite (invest seulement). */
@@ -152,7 +168,7 @@ export const INTERLUDE_EVENT_TABLE = 'interlude-events';
 
 /** Le dé de la table (`interludeEventDie`), sans modificateur : le dé NATUREL est le dé du lookup —
  *  c'est aussi ce que `perHero.eventRoll` persiste, et donc ce que tout lecteur re-résout. */
-const interludeEventDecl = (): CascadeTableDecl => ({ tableId: INTERLUDE_EVENT_TABLE, spec: interludeEventDie() });
+const interludeEventDecl = (): CascadeTableDecl => ({ tableId: INTERLUDE_EVENT_TABLE });
 
 /** La séquence des tirages est SA propre séquence (`purpose:'interlude'`, doctrine du slot #942 L1) :
  *  l'interlude ne s'ouvre jamais en combat, et aucun autre `purpose` hors-combat ne doit y fusionner. */
@@ -162,10 +178,10 @@ const INTERLUDE_PURPOSE = 'interlude' as const;
 function eventStep(hero: Combatant): CascadeStep {
   return {
     id: `interlude-event-${hero.id}`,
-    kind: 'interludeEvent', actorId: hero.id, icon: 'nav/dice',
+    kind: 'evenementDInterlude', actorId: hero.id, icon: 'navigation/des',
     label: t('step.evenement'),
     table: interludeEventDecl(),
-    stake: combatStakeRef('interlude-event'),
+    stake: combatStakeRef('interlude-evenement'),
   };
 }
 
@@ -174,14 +190,14 @@ function eventStep(hero: Combatant): CascadeStep {
 function purseStep(): CascadeStep {
   return {
     id: 'interlude-purse',
-    kind: 'interludePurse', icon: 'resource/gold-purse',
-    label: t('step.interludePurse'),
+    kind: 'bourseDInterlude', icon: 'ressource/bourse',
+    label: t('step.bourseDInterlude'),
   };
 }
 
 /** Ouvre l'interlude : événements tirés et appliqués, commandes livrées, écran dédié. */
 export function ouvrirLInterlude(get: Get, set: Set, weeks = 1): void {
-  if (!rule('interlude-enabled')) return; // LDB 21 l.108
+  if (!rule('interlude-actif')) return; // LDB 21 l.108
   if (get().battle) {
     get().ecrireAuJournal(msg('if.inCombat'));
     return;
@@ -218,7 +234,7 @@ export function ouvrirLInterlude(get: Get, set: Set, weeks = 1): void {
   // fenêtre pour le siège qui tient le héros, une résolution d'office si nul siège ne le tient — et
   // l'option « Dés fixés » n'y ajoute que la POSE. Le dénouement de GROUPE ferme la séquence.
   const steps: CascadeStep[] = party.map(eventStep);
-  startCascade(get, set, { title: msg('if.drawTitle'), icon: 'nav/dice', purpose: INTERLUDE_PURPOSE, steps: [...steps, purseStep()] });
+  startCascade(get, set, { title: msg('if.drawTitle'), icon: 'navigation/des', purpose: INTERLUDE_PURPOSE, steps: [...steps, purseStep()] });
   set({ party: [...get().party] });
 }
 
@@ -232,8 +248,8 @@ function finishInterludeEvent(get: Get, set: Set, hero: Combatant, roll: number)
   const lines: string[] = [msg('if.eventLine', { name: hero.label, roll, label: ev.label, text: ev.desc })];
   let left = st.left;
   if (ev.fx?.loseActivity && !ev.fx.partyWide) left -= 1; // l'Événement de groupe ôte au dénouement de groupe
-  // LDB 23 l.56 ; règle optionnelle `interlude-elf-duty` (LDB 23 l.54).
-  const elfDuty = rule('interlude-elf-duty') && groupsFor({ speciesId: hero.species }).includes('elfe') && itl.weeks >= 3;
+  // LDB 23 l.56 ; règle optionnelle `interlude-devoir-elfique` (LDB 23 l.54).
+  const elfDuty = rule('interlude-devoir-elfique') && groupsFor({ speciesId: hero.species }).includes('elfe') && itl.weeks >= 3;
   if (elfDuty) {
     left -= 1;
     lines.push(msg('if.elfDuty', { name: hero.label }));
@@ -243,8 +259,8 @@ function finishInterludeEvent(get: Get, set: Set, hero: Combatant, roll: number)
     lines.push(msg('if.fortuneOmen', { name: hero.label, n: ev.fx.fortuneMaxDelta }));
   }
   let bank = get().bank ?? [];
-  if (ev.fx?.stashRaided && bank.some((b) => b.heroId === hero.id && b.kind === 'stash')) {
-    bank = bank.filter((b) => !(b.heroId === hero.id && b.kind === 'stash'));
+  if (ev.fx?.stashRaided && bank.some((b) => b.heroId === hero.id && b.kind === 'planque')) {
+    bank = bank.filter((b) => !(b.heroId === hero.id && b.kind === 'planque'));
     lines.push(msg('if.stashRaided', { name: hero.label }));
   }
   itl.perHero[hero.id] = { ...st, eventRoll: roll, fx: ev.fx, left: Math.max(0, left), granted: Math.max(0, left), ...(elfDuty && { elfDuty }) };
@@ -260,7 +276,7 @@ function denouementDuTirage(s: Jeu) {
   return {
     pertes: pertesDArgentDuTirage(s),
     perdues: heros.map((heroId) => ({ heroId, effets: activitesPerduesAuGroupe(s, heroId) })).filter((p) => p.effets.length),
-    faillite: heros.some((heroId) => verificationDeFaillite(s, heroId)) && (s.bank ?? []).some((d) => d.kind === 'invest'),
+    faillite: heros.some((heroId) => verificationDeFaillite(s, heroId)) && (s.bank ?? []).some((d) => d.kind === 'investir'),
   };
 }
 
@@ -289,7 +305,7 @@ function finishInterludeDraw(get: Get, set: Set): string[] {
   set({ interlude: { ...get().interlude!, perHero } });
   if (d.faillite) {
     for (const dep of [...(get().bank ?? [])].reverse()) {
-      if (dep.kind === 'invest') lines.push(...bankWithdrawInner(get, set, dep.uid, true));
+      if (dep.kind === 'investir') lines.push(...bankWithdrawInner(get, set, dep.uid, true));
     }
   }
   set({ interlude: { ...get().interlude!, phase: 'activities' } });
@@ -334,7 +350,7 @@ export interface PendingActivityFields extends PendingBase {
   /** Test étendu (Artisanat/Rituel) : progression (avant ce jet) et cible. */
   drBefore?: number;
   drTarget?: number;
-  /** Rituel (`VDM 02 l.377-393`) : id du Sort focalisé CE Round — branche `resolve` de `FLOWS.activity`
+  /** Rituel (`VDM 02 l.377-393`) : id du Sort focalisé CE Round — branche `resolve` de `FLOWS.activite`
    *  (`noyau/rollFlowSpecs.ts`) vers `resolveFocus` (`engine/magic.ts`) au lieu du Test simple générique. */
   ritualSpell?: string;
   /** DR bonus consommé par la malepierre CE Round (`FocusResult.malepierreConsumed`) — écrit à la
@@ -358,7 +374,7 @@ export interface PendingActivityFields extends PendingBase {
   traitPsy?: TraitPsyVise;
   // ── Activité/Scène de BATAILLE de masse (ADE II 8 — contextes 'bataille'/'bataille-round') ──
   /** Activité de bataille : l'issue (delta de Puissance / modificateur de Test) porte sur l'ARMÉE, pas
-   *  sur le héros — routée par `jetValider('activity')` vers le résolveur de bataille. `prep` = Activité de
+   *  sur le héros — routée par `jetValider('activite')` vers le résolveur de bataille. `prep` = Activité de
    *  préparation ('bataille') ; `round` = Scène cinématique d'un Round ('bataille-round'). */
   battle?: 'prep' | 'round';
   /** Modificateur de SITUATION (fondu dans la cible, en LIGNE de mod pour la modale) : Menace −20 (l.219)
@@ -381,7 +397,7 @@ export interface PendingActivityFields extends PendingBase {
   // ── Test OPPOSÉ de « Tenez votre position » (l.161) : l'opposition ennemie vit dans `ActivityOpposition` ──
   /** DR net de l'ennemi au Test opposé de tenue (positif = l'ennemi l'emporte). */
   enemySL?: number;
-  forced?: boolean;
+  forcee?: boolean;
   /** Coût en sous de cuivre engagé par CETTE Activité (Réputation, LDB 23 l.228-234 : « le maximum de
    *  vos revenus standards », dépensé MÊME sur échec — calculé à l'ouverture, débité à la résolution). */
   costBrass?: number;
@@ -396,7 +412,7 @@ const heroState = (s: Jeu, heroId: string) => s.interlude?.perHero[heroId];
 /** Ancrage de regle des effets d'une Activite d'interlude — l'`ActivityDef` du catalogue
  *  (`activities.json`), par id STABLE. Absent quand la demande n'en porte pas : on n'en fabrique pas. */
 const activitySource = (pa: PendingActivity): EffectSource | undefined =>
-  (pa.activityId ? { kind: 'activity', id: pa.activityId } : undefined);
+  (pa.activityId ? { kind: 'activite', id: pa.activityId } : undefined);
 
 /** Décrémente le budget d'Activités d'un héros (`interlude.perHero[id].left`) — SOURCE UNIQUE du budget
  *  de downtime (LDB 23 l.5 / ADE II 8 l.65). No-op si aucun interlude / budget épuisé. */
@@ -414,23 +430,23 @@ const trappingLabelOf = (id: string): string => findTrappingById(id)?.label ?? i
 const craftQualLabel = (id: string): string => qualityRefLabel({ id });
 
 /** Engage un Artisanat : Compétence Métier, matériaux payés avant l'Activité ; l'engagement n'en consomme
- *  aucune (verdict `refusDArtisanat`). LDB 23 l.76 */
-export function craftStart(get: Get, set: Set, heroId: string, trappingId: string, atouts: string[], defauts: string[]): void {
-  if (refuseSi(get, set, (s) => refusDArtisanat(s, heroId, trappingId) ?? (trappingId ? null : msg('interlude.choisir.ouvrage')))) return;
+ *  aucune (verdict `refusDArtisanat`, que juge le choix `pratiquer`). LDB 23 l.76 */
+function craftStart(get: Get, set: Set, heroId: string, trappingId: string, atouts: string[], defauts: string[]): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   const metier = h && metierOf(h);
+  const id = idDObjet(trappingId);
   const t = findTrappingById(trappingId);
   // Gamme/Disponibilité/matériaux : dérivation PARTAGÉE avec le catalogue UI (craftSpecOf).
   const spec = t && craftSpecOf(t);
-  if (!st || !h || !metier || !t || !spec) return;
+  if (!st || !h || !metier || !id || !t || !spec) return;
   const { tier, avail, materialsBrass: materials } = spec;
   const target = craftTarget(tier, avail, atouts.length, defauts.length);
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(materials)), recipient: heroId, purpose: 'artisanat' });
   // `payWithAllocation` remplace l'entrée `party` du héros débité (nouvelle référence) — re-résoudre
   // AVANT de muter `craft`, sinon la mutation porterait sur l'objet PÉRIMÉ (perdue au `set` suivant).
   const h2 = get().party.find((x) => x.id === heroId)!;
-  h2.craft = { trappingId, tier, avail, atouts, defauts, drDone: 0, drTarget: target.dr, difficulty: target.difficulty };
+  h2.craft = { trappingId: id, tier, avail, atouts, defauts, drDone: 0, drTarget: target.dr, difficulty: target.difficulty };
   set({ party: [...get().party] });
   get().ecrireAuJournal(msg('if.craftStart', {
     name: h.label, cost: formatMoney(fromBrass(materials)), label: t.label, dr: target.dr, skill: skillInstanceLabel(metier),
@@ -458,7 +474,7 @@ export function interludeCatalog(s: Pick<Jeu, 'lieu' | 'massBattle'>): ActivityD
  *  le sort visé vient d'`opts.spellId` au 1er Round, puis du Rituel déjà engagé. NI formule
  *  (`cn: null`, `ritual.cnFrom`) = volet 2 (#879), non engageable ici. `null` = refus (déjà
  *  loggé) — le Test étendu de Focalisation lui-même (`VDM 02 l.129-141`) est orchestré par
- *  `resolveFocus` (`engine/magic.ts`), branché dans `FLOWS.activity` (rollFlowSpecs.ts). */
+ *  `resolveFocus` (`engine/magic.ts`), branché dans `FLOWS.activite` (rollFlowSpecs.ts). */
 export function openRitualFocus(
   get: Get, set: Set, h: Combatant, spellId: string | undefined,
 ): (Partial<PendingActivityFields> & { label: string }) | undefined {
@@ -484,17 +500,15 @@ function ouverteSansCible(def: ActivityDef): never {
   throw new Error(`Activité « ${def.id} » ouverte par refusDOuvertureDActivite sans la cible ou la compétence que son ouverture lit.`);
 }
 
-/** Ouvre la modale d'une Activité du CATALOGUE (TOUTES les Activités à jet d'interlude passent ici).
+/** Ouvre la modale d'une Activité du CATALOGUE (TOUTES les Activités à jet d'interlude passent ici), que le verdict
+ *  `refusDOuvertureDActivite` ouvre : le choix `pratiquer` et le retrait de Mécénat le jugent.
  *  Le Test (voie, valeur, Difficulté, modificateurs) est le PRÉ-JET de l'Activité (`preJetDActivite`),
  *  celui qu'affiche son volet ; le résolveur n'annexe que ses champs propres : Test étendu en cours
  *  (`craftExtended`, `ritualFocus`), Talent et tuteur tiré (`learnTalent`), coût (`reputation`), objet
  *  étudié (`identify`). Cibles éventuelles : objet (`itemUid`), sort (`spellId` — achat immédiat), dépôt
  *  (`depotId`), Talent (`talentId`). */
-export function openCatalogActivity(get: Get, set: Set, heroId: string, activityId: string, optsRecues?: CiblesChoisies | null): void {
-  const opts: CiblesChoisies = optsRecues ?? {}; // un intent forgé peut porter `null`
-  const def = activityById(activityId);
-  if (!def) { refuserGeste(get, set, t('if.activiteInconnue', { id: activityId })); return; }
-  if (refuseSi(get, set, (s) => refusDOuvertureDActivite(s, heroId, def, opts))) return;
+function openCatalogActivity(get: Get, set: Set, heroId: string, def: ActivityDef, opts: CiblesChoisies): void {
+  const activityId = def.id;
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   if (!st || !h) return ouverteSansCible(def);
@@ -515,7 +529,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
   } else if (def.resolver === 'learnTalent') {
     // Apprentissage particulier : tuteur tiré, puis jugé. LDB 23 l.66-72
     const talent = findTalentById(opts.talentId ?? '');
-    const xpCost = optionDApprentissage(h, opts.talentId ?? '')?.xpCost;
+    const xpCost = learnOptionOf(h, opts.talentId ?? '')?.xpCost;
     if (!talent || xpCost == null) return ouverteSansCible(def);
     const tutorBrass = toBrass(apprenticeshipTutorCost(xpCost, battleRng()));
     const tuteurHorsBourse = refusDeBourse(h, fromBrass(tutorBrass), 'if.tuteurKo');
@@ -573,7 +587,7 @@ function mecenatPayout(get: Get, set: Set, h: Combatant, depotId: IdDeDepot, pay
 
 /** Issue d'un résolveur d'Activité : les lignes de journal + un `patch` de l'état d'interlude du
  *  héros (deltas NON exprimables en `GameOp` : DR du Test étendu, crédit différé des Revenus,
- *  compteur d'acharnement — fusionnés dans l'écriture finale de `jetValider('activity')`). */
+ *  compteur d'acharnement — fusionnés dans l'écriture finale de `jetValider('activite')`). */
 interface ResolverResult { lines: string[]; patch?: Partial<InterludeHeroState>; closeOps?: GameOp[] }
 
 /** Ce résolveur appartient-il à la famille INTERLUDE (`RESOLVER_OWNER`) ? */
@@ -581,7 +595,7 @@ const ownedByInterlude = (r: ActivityResolver): r is ResolverOf<'interlude'> => 
 
 /** Dispatch des résolveurs BESPOKE d'issue d'Activité (`ActivityDef.resolver` + bandes `resolver`) —
  *  chacun RÉUTILISE une logique PURE existante et implémente la règle RAW vérifiée. Le `patch` porte
- *  les deltas d'état d'interlude (le `set` final est fait par `jetValider('activity')`). FERMÉ sur le
+ *  les deltas d'état d'interlude (le `set` final est fait par `jetValider('activite')`). FERMÉ sur le
  *  sous-ensemble POSSÉDÉ par l'interlude (`RESOLVER_OWNER`) : un résolveur d'une autre famille qui
  *  arriverait ici est une erreur de routage, elle CRIE. */
 function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa: PendingActivity, h: Combatant, st: InterludeHeroState): ResolverResult {
@@ -595,7 +609,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // Échec Stupéfiant (-6), […] vous n'avez rien gagné. » Le crédit est DIFFÉRÉ (l.191 : « remis une
       // fois que vous avez disposé de l'argent de votre dernière aventure ») → `revenueBrass`, jamais
       // `money`. Revenus maintient aussi le Statut des Niveaux 3-4 (l.193 → `didRevenus`).
-      const outcome = pa.success ? 'success' : isAstoundingFailure(pa.success, pa.sl) ? 'astoundingFail' : 'fail';
+      const outcome = pa.success ? 'reussite' : isAstoundingFailure(pa.success, pa.sl) ? 'echecStupefiant' : 'echec';
       const { tier, standing } = actorStatus(h);
       let brass = toBrass(statusIncome(tier, standing, battleRng(), outcome));
       const lines: string[] = [];
@@ -617,7 +631,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       if (!h.craft) return { lines: [] };
       const { total: drDone, done } = garanti(progresDActivite(pa), h.id, 'cible d’Artisanat');
       if (done) {
-        const it = itemFromTrappingRef({ id: h.craft.trappingId, qualities: [...h.craft.atouts, ...h.craft.defauts].map((id) => ({ id })) }, get().forgerUnId, undefined, contexteDeNaissanceDObjet(h));
+        const it = itemFromTrappingRef({ id: h.craft.trappingId, qualities: [...h.craft.atouts, ...h.craft.defauts].flatMap((id) => { const q = findQualityById(id); return q ? [{ id: q.id }] : []; }) }, get().forgerUnId, undefined, contexteDeNaissanceDObjet(h));
         if (it) {
           h.items = [...(h.items ?? []), it];
           autoStowNewItem(h, it); // #204 : rangement par défaut
@@ -642,7 +656,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
     case 'ritualFocus': {
       // Rituel (Activité « Accomplir un Rituel », `VDM 02 l.777`) : Round de Focalisation cumulé par
       // `progresDActivite` (LDB 12 l.174). `pa.sl` porte le DR du Round (`FocusResult` via
-      // `FLOWS.activity`) : `dr` sur une réussite, le DR brut sur un échec. Composants/Conditions/
+      // `FLOWS.activite`) : `dr` sur une réussite, le DR brut sur un échec. Composants/Conditions/
       // Sacrifices/Conséquences restent en PROSE non structurée (`SpellData['ritual']`), non appliqués
       // ici. `h.ritual` (Combatant) survit à la clôture de l'interlude, #897.
       if (!h.ritual) return { lines: [] };
@@ -906,15 +920,15 @@ export function orderItem(get: Get, set: Set, heroId: string, trappingId: string
  *  dehors de votre Carrière » — PAS de Test (achat direct comme Passer commande/Banque). Coût en PX
  *  NORMAL (hors carrière, déjà doublé par `advanceCost`/`acheterLaCaracteristique`/`acheterLaCompetence`, LDB 07 l.91)
  *  + tuteur 1D10 sc (doublé pour une Compétence Avancée, l.135). `opt` recalculée ICI depuis les
- *  données du héros (`optionDEntrainement`) — jamais fait confiance à un id client non revérifié.
+ *  données du héros (`optionDEntrainement`), que le choix `pratiquer` a jugée (`refusDEntrainement`).
  *  Une Compétence de Base hors carrière encore inconnue est ACQUISE à 0 Augmentation puis augmentée
  *  (même geste qu'`acheterLaCompetence`, LDB 09 l.42). */
-export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'skill' | 'characteristic', id: string, spec?: string): void {
+function entrainementStart(get: Get, set: Set, heroId: string, cle: string): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
-  if (refuseSi(get, set, (s) => refusDEntrainement(s, heroId, kind, id, spec))) return;
-  const opt = h && optionDEntrainement(h, kind, id, spec);
+  const opt = h && optionDEntrainement(h, cle);
   if (!st || !h || !opt) return;
+  const { kind, id, spec } = opt;
   const tutor = toBrass(entrainementTutorCost(opt.advanced, battleRng()));
   const tuteurHorsBourse = refusDeBourse(h, fromBrass(tutor), 'if.tuteurKo');
   if (tuteurHorsBourse) { refuserGeste(get, set, tuteurHorsBourse); return; }
@@ -923,7 +937,7 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
     const entraine = structuredClone(lu);
     const fortuneBefore = fortuneMax(entraine);
     const resolveBefore = resolveMax(entraine);
-    if (kind === 'characteristic') r = engineBuyCharAdvance(entraine, id as CharKey, false);
+    if (kind === 'caracteristique') r = engineBuyCharAdvance(entraine, id as CharKey, false);
     else {
       if (!entraine.skills.some((k) => k.id === id && memeSpecialisation(k.spec, spec))) {
         entraine.skills.push({ id: id, spec, characteristic: skillCharacteristicById(id), advances: 0 });
@@ -985,8 +999,8 @@ function appliquerLActivite(get: Get, set: Set): void {
   const lines: string[] = [];
   const closeOps: GameOp[] = [];
   let patch: Partial<InterludeHeroState> = {};
-  const source: EffectSource = { kind: 'activity', id: def.id };
-  // Maladresse d'Activité (LDB 12 : double raté) — porte les bandes `on:'fumble'` (Pénitence :
+  const source: EffectSource = { kind: 'activite', id: def.id };
+  // Maladresse d'Activité (LDB 12 : double raté) — porte les bandes `on:'maladresse'` (Pénitence :
   // Colère des dieux « à la place », ACE 12 l.15).
   const fumble = isFumble(garanti(pa.roll, pa.heroId, 'jet de l’Activité'), pa.success);
   // Résolveur DIRECT (pas de table d'issues) : Revenus/Artisanat/Apprentissage/Identification —
@@ -1002,7 +1016,7 @@ function appliquerLActivite(get: Get, set: Set): void {
       ? matchOutcomes(def, { success: pa.success, sl: pa.sl, fumble })
       : pa.success && def.onSuccess?.length ? [{ ops: def.onSuccess }] : [])
       .map((b) => (b.ops ? { ...b, ops: opsCiblees(b.ops, pa.traitPsy) } : b));
-    if (fumble && def.outcomes?.some((b) => b.on === 'fumble')) lines.push(msg('if.fumble', { name: h.label, roll: String(pa.roll) }));
+    if (fumble && def.outcomes?.some((b) => b.on === 'maladresse')) lines.push(msg('if.fumble', { name: h.label, roll: String(pa.roll) }));
     for (const band of bands) {
       if (band.note) lines.push(band.note); // résultat VERBATIM de la table source
       // L'Activité est un geste délibéré : une issue sans objet pour le héros se DIT, `applyOps` la tait.
@@ -1058,16 +1072,16 @@ function appliquerLActivite(get: Get, set: Set): void {
 }
 
 /** Refus de l'Indice d'intérêts `indice` d'un dépôt `kind` : seul un placement en porte un, entier de 1 à 10. LDB 23 l.168 */
-export function refusDIndice(kind: 'invest' | 'stash' | 'mecenat', indice: number | undefined): string | null {
+export function refusDIndice(kind: GenreDeDepot, indice: number | undefined): string | null {
   if (indice === undefined) return null;
-  if (kind !== 'invest') return msg('if.bankIndiceHorsPlacement');
+  if (kind !== 'investir') return msg('if.bankIndiceHorsPlacement');
   return Number.isInteger(indice) && indice >= 1 && indice <= 10 ? null : msg('if.bankIndiceHorsBornes', { indice });
 }
 
 /** Opérations bancaires (LDB 23 l.164-170) — dépôt (1 Activité). Invest : Statut Or/Argent.
  *  `mecenat` (ACE 12 l.49) : variante d'Opération bancaire — « au moins 5 CO » (minInvest de
  *  la donnée), gate géographique de l'Activité ; le retrait se résout par un Test d'Évaluation. */
-export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, indice?: number): void {
+export function bankDeposit(get: Get, set: Set, heroId: string, kind: GenreDeDepot, amountBrass: number, indice?: number): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   if (refuseSi(get, set, (s) => (kind ? devisDeDepot(s, heroId, kind, amountBrass).refus : msg('interlude.choisir.depot')))) return;
@@ -1076,7 +1090,7 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' |
   const { debite: amount, depose: deposited } = devisDeDepot(get(), heroId, kind, amountBrass);
   const lines: string[] = [];
   for (const { label, fx } of effetsDeLaPeriode(get(), heroId)) if (fx.bankPct) lines.push(msg('if.eventBankPct', { pct: fx.bankPct, event: label }));
-  const r = kind === 'invest' ? indice ?? d10(battleRng()) : 0;
+  const r = kind === 'investir' ? indice ?? d10(battleRng()) : 0;
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(amount)), recipient: heroId, purpose: 'dépôt-banque' });
   const uid = get().forgerUnId('it');
   set({ bank: [...(get().bank ?? []), { uid, heroId, kind, brass: deposited, rate: r }] });
@@ -1084,11 +1098,11 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' |
   itl.perHero[heroId] = { ...st, left: st.left - 1 };
   set({ interlude: { ...itl } });
   lines.push(msg(
-    kind === 'invest' ? 'if.bankInvest' : kind === 'mecenat' ? 'if.bankMecenat' : 'if.bankStash',
+    kind === 'investir' ? 'if.bankInvest' : kind === 'mecenat' ? 'if.bankMecenat' : 'if.bankStash',
     { name: h.label, money: formatMoney(fromBrass(deposited)), rate: r },
   ));
   // Un dépôt en banque réputée vérifie la faillite sous la période qui l'exige. LDB 22 l.111
-  if (kind === 'invest' && verificationDeFaillite(get(), heroId)) {
+  if (kind === 'investir' && verificationDeFaillite(get(), heroId)) {
     lines.push(...bankWithdrawInner(get, set, uid, true));
   }
   for (const l of lines) get().ecrireAuJournal(l);
@@ -1104,10 +1118,10 @@ export function bankWithdraw(get: Get, set: Set, depotId: IdDeDepot): void {
     // Retrait de Mécénat (ACE 12 l.49) = 1 Activité résolue par un Test d'Évaluation Intermédiaire :
     // la modale d'Activité applique la bande (payoutPct) et consomme l'Activité à la validation.
     const def = ACTIVITIES.find((a) => a.resolver === 'mecenat');
-    if (def) openCatalogActivity(get, set, dep.heroId, def.id, { depotId });
+    if (def) openCatalogActivity(get, set, dep.heroId, def, { depotId });
     return;
   }
-  if (dep.kind === 'invest') {
+  if (dep.kind === 'investir') {
     const st = heroState(get(), dep.heroId);
     if (!st) return;
     const itl = get().interlude!;
@@ -1126,14 +1140,14 @@ function bankWithdrawInner(get: Get, set: Set, depotId: IdDeDepot, crashCheckOnl
   // dépositaire PORTE encore une carte-marine, le trésor n'est pas à découvert ; il ne l'est (jet ≤ rate)
   // que si la carte est perdue/volée.
   const chartHeld = !!h?.items?.some((it) => it.trappingId === 'carte-marine');
-  const outcome = dep.chartSecured && chartHeld ? 'ok' : bankWithdrawOutcome(dep.kind, dep.rate, roll);
+  const outcome = dep.chartSecured && chartHeld ? 'recu' : bankWithdrawOutcome(dep.kind, dep.rate, roll);
   const rest = (get().bank ?? []).filter((d) => d.uid !== depotId);
-  if (outcome === 'lost') {
+  if (outcome === 'perdu') {
     set({ bank: rest });
     const threshold = seuilDePerteBancaire(dep.kind, dep.rate);
     return [msg('if.bankLost', {
       name: libelleOuAbsence(h, 'heros', dep.heroId), roll, threshold,
-      what: msg(dep.kind === 'invest' ? 'if.bankFailBank' : 'if.bankFailStash'),
+      what: msg(dep.kind === 'investir' ? 'if.bankFailBank' : 'if.bankFailStash'),
       money: formatMoney(fromBrass(dep.brass)),
     })];
   }
@@ -1143,7 +1157,7 @@ function bankWithdrawInner(get: Get, set: Set, depotId: IdDeDepot, crashCheckOnl
   creditBourse(get, set, dep.heroId, fromBrass(payout)); // retrait PERSONNEL : recrédité au déposant
   return [msg('if.bankWithdraw', {
     name: libelleOuAbsence(h, 'heros', dep.heroId), money: formatMoney(fromBrass(payout)), roll,
-    extra: dep.kind === 'invest' ? msg('if.bankInterest', { rate: dep.rate }) : '',
+    extra: dep.kind === 'investir' ? msg('if.bankInterest', { rate: dep.rate }) : '',
   })];
 }
 
@@ -1203,13 +1217,55 @@ function ligneNommee(ligne: { label?: string }, table: string): string {
 export function creerActionsDInterlude(get: Get, set: Set) {
   return {
     ouvrirLInterlude: (weeks) => ouvrirLInterlude(get, set, weeks),
-    fabriquerLObjet: (heroId, trapping, atouts, defauts) => craftStart(get, set, heroId, trapping, atouts, defauts),
     deposerALaBanque: (heroId, kind, amountBrass, indice) => bankDeposit(get, set, heroId, kind, amountBrass, indice),
     retirerDeLaBanque: (depotId) => bankWithdraw(get, set, depotId),
     commanderLObjet: (heroId, trapping) => orderItem(get, set, heroId, trapping),
-    suivreLEntrainement: (heroId, kind, id, spec) => entrainementStart(get, set, heroId, kind, id, spec),
-    pratiquerLActivite: (heroId, activityId, opts) => openCatalogActivity(get, set, heroId, activityId, opts),
   } satisfies FabriqueDuNoyau;
+}
+
+/** Pratique l'Activité `c` que compose le héros `heroId`, que le choix `pratiquer` a jugée (`refusDeLaComposition`) :
+ *  engage l'ouvrage d'Artisanat qu'il n'a pas en cours, suit l'Entraînement, sinon ouvre l'Activité sur ses cibles.
+ *  LDB 23 l.5 */
+function pratiquer(get: Get, set: Set, heroId: string, c: CompositionDActivite): void {
+  const def = garanti(activityById(c.activite), c.activite, 'Activité composée');
+  if (def.resolver === 'craftExtended' && !get().party.find((h) => h.id === heroId)?.craft) {
+    craftStart(get, set, heroId, garanti(c.ouvrage, heroId, 'ouvrage composé'), c.atouts, c.defauts);
+  } else if (def.resolver === 'entrainement') {
+    entrainementStart(get, set, heroId, garanti(c.entrainement, heroId, 'Entraînement composé'));
+  } else {
+    openCatalogActivity(get, set, heroId, def, c.cibles);
+  }
+}
+
+/** Le corps des choix de l'interlude (`fenetreChoisir('interlude', …)`) : le héros `pid` compose son Activité — une autre
+ *  Activité recommence la composition —, puis la pratique. */
+export function choixDInterlude(get: Get, set: Set) {
+  const composer = (pid: string, c: CompositionDActivite) => {
+    const itl = garanti(get().interlude, pid, 'interlude ouvert');
+    set({ interlude: { ...itl, perHero: { ...itl.perHero, [pid]: { ...garanti(itl.perHero[pid], pid, 'héros de l’interlude'), composition: c } } } });
+  };
+  const composee = (pid: string): CompositionDActivite => garanti(get().interlude?.perHero[pid]?.composition, pid, 'Activité composée');
+  const poser = (axe: AxeDuBrouillon) => (valeur: string, pid: string) => composer(pid, poserDansLeBrouillon(composee(pid), axe, valeur));
+  return {
+    interlude: {
+      activite: (activite, pid) => composer(pid, brouillonDe(get().interlude?.perHero[pid]?.composition, activite)),
+      talent: poser('talent'),
+      entrainement: poser('entrainement'),
+      ouvrage: poser('ouvrage'),
+      ajouterLaQualite: (q, pid) => {
+        const c = composee(pid);
+        composer(pid, qualitesDArtisanat().atouts.some((a) => a === q) ? { ...c, atouts: [...c.atouts, q] } : { ...c, defauts: [...c.defauts, q] });
+      },
+      retirerLaQualite: (q, pid) => {
+        const c = composee(pid);
+        composer(pid, { ...c, atouts: c.atouts.filter((x) => x !== q), defauts: c.defauts.filter((x) => x !== q) });
+      },
+      objet: poser('objet'),
+      sort: poser('sort'),
+      traitPsychologique: poser('traitPsychologique'),
+      pratiquer: (_vrai, pid) => pratiquer(get, set, pid, composee(pid)),
+    },
+  } satisfies Partial<CorpsDesChoix>;
 }
 
 export function validationsDInterlude(get: Get, set: Set) {
@@ -1217,11 +1273,11 @@ export function validationsDInterlude(get: Get, set: Set) {
 }
 
 export function cloturesDInterlude(get: Get, set: Set) {
-  return { activity: () => appliquerLActivite(get, set) } satisfies Partial<CloturesDuJet>;
+  return { activite: () => appliquerLActivite(get, set) } satisfies Partial<CloturesDuJet>;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['interludeEvent', 'interludePurse'] as const;
+export const GENRES_D_ETAPE = ['evenementDInterlude', 'bourseDInterlude'] as const;
 /** Les tables tirables que ce module déclare (table `tablesTirables`). */
 export const TABLES_TIRABLES = [INTERLUDE_EVENT_TABLE] as const;
 
@@ -1229,28 +1285,28 @@ export const TABLES_TIRABLES = [INTERLUDE_EVENT_TABLE] as const;
 export const TABLES = {
   appliers: {
     /** La LIGNE tirée résout l'Événement du héros de l'étape. */
-    interludeEvent: (get, set, step, hero) => {
+    evenementDInterlude: (get, set, step, hero) => {
       const rolled = step.table?.result;
       if (!rolled || !hero) return;
       return { consequences: freeCons(finishInterludeEvent(get, set, hero, rolled.roll)) };
     },
-    interludePurse: (get, set) => {
+    bourseDInterlude: (get, set) => {
       const lines = finishInterludeDraw(get, set);
       return { consequences: freeCons(lines.length ? lines : [msg('if.noPurseEvent')]) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   annonces: {
     /** Ce que les bourses vont perdre, et la vérification de faillite que les placements vont passer. */
-    interludePurse: (get) => {
+    bourseDInterlude: (get) => {
       const d = denouementDuTirage(get());
       const lines = [...lignesDesPertes(get(), d), ...(d.faillite ? [msg('if.bankCrashDue')] : [])];
       return lines.length ? lines : [msg('if.noPurseEvent')];
     },
-  } satisfies PartDeTable<'annonces', readonly ['interludePurse']>,
+  } satisfies PartDeTable<'annonces', readonly ['bourseDInterlude']>,
   tablesTirables: {
     [INTERLUDE_EVENT_TABLE]: {
       label: msg('if.eventTableLabel'),
-      get die() { return facesDuDe(interludeEventDie()); },
+      get die() { return interludeEventDie(); },
       rows: INTERLUDE_EVENTS,
       lines: (die) => [interludeEventFor(die).label, interludeEventFor(die).desc],
       entryCategory: 'interludeEvents', // la ligne tirée EST l'Événement : sa fiche porte son texte

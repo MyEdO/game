@@ -11,7 +11,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState, GesteDeSuite } from './etat';
-import { advanceTurn, aiTurnLog, clearAiTurnLog, finalizeHeroDeath, maybeRunEnemyTurn } from './combatFlow';
+import { advanceTurn, aiTurnLog, clearAiTurnLog, finalizeHeroDeath, instantaneAvantLeCoup, maybeRunEnemyTurn } from './combatFlow';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { seedBattleRng } from './battleRng';
@@ -25,19 +25,19 @@ import { spawnEnemy } from './monde/spawn';
 import { setCadence } from '../engine/cadence';
 import { setRule, resetRule } from '../engine/policy';
 import { isOutOfAction } from '../engine/conditions';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { cliquerSurLeCombattant } from './combatOrParty';
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[] = [sword], pv = 40): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[] = [sword], pv = 40): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(pv),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const CROSSBOW: Weapon = { label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, reload: 1, qualities: [], uid: 'xb', loaded: false } as unknown as Weapon;
+const CROSSBOW: Weapon = { label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, reload: 1, qualities: [], uid: 'xb', loaded: false } as unknown as Weapon;
 
 /** Pose un combat de Round 1 (ordre = ordre des combattants), en solo. */
 function poser(banc: Banc, seed: number, combattants: Combatant[]): void {
@@ -48,7 +48,7 @@ function poser(banc: Banc, seed: number, combattants: Combatant[]): void {
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   banc.setState({
-    battle, mode: 'battle', scene: testScene(), party: combattants.filter((c) => c.kind === 'hero'),
+    battle, mode: 'battle', scene: testScene(), party: combattants.filter((c) => c.kind === 'heros'),
     pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [],
     net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} },
   } as never);
@@ -56,8 +56,8 @@ function poser(banc: Banc, seed: number, combattants: Combatant[]): void {
 
 /** Le héros `h` (Auto-combat), hors contact, charge `e`, porteur de Frappe réactive au Test d'Initiative quasi-garanti. */
 function charge(banc: Banc, seed: number, autres: Combatant[] = [], pvDuChargeur = 40): void {
-  const h = mk('h', 'hero', { x: 4, y: 0 }, [sword], pvDuChargeur);
-  const e = mk('e', 'enemy', { x: 0, y: 0 });
+  const h = mk('h', 'heros', { x: 4, y: 0 }, [sword], pvDuChargeur);
+  const e = mk('e', 'ennemi', { x: 0, y: 0 });
   e.talents = [{ talentId: 'frappe-reactive', times: 1 }] as never;
   e.characteristics.initiative = 99;
   poser(banc, seed, [h, e, ...autres]);
@@ -66,7 +66,7 @@ function charge(banc: Banc, seed: number, autres: Combatant[] = [], pvDuChargeur
 let banc: Banc;
 const g = () => banc.getState();
 const b = () => g().battle!;
-const attaques = (de: string, sur?: string) => b().log.filter((l) => l.kind === 'attack' && l.actorId === de && (!sur || l.targetId === sur)).length;
+const attaques = (de: string, sur?: string) => b().log.filter((l) => l.kind === 'attaque' && l.actorId === de && (!sur || l.targetId === sur)).length;
 const decisions = (id: string, round = 1) => aiTurnLog().filter((r) => r.id === id && r.round === round).length;
 const suite = (): GesteDeSuite['kind'] | undefined => b().tourEnCours?.suite?.geste.kind;
 const parquee = () => !!b().tourEnCours?.parquee;
@@ -153,7 +153,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
   it('E (graine 1) : la riposte met le chargeur hors de combat — aucune frappe, le tour avance', () => {
     banc = ouvrirLeBanc({ cadence: 'auto' });
     clearAiTurnLog();
-    charge(banc, 1, [mk('h2', 'hero', { x: 9, y: 9 })], 1);
+    charge(banc, 1, [mk('h2', 'heros', { x: 9, y: 9 })], 1);
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(auPremierTour);
     expect(isOutOfAction(b().combatants.find((c) => c.id === 'h')!), 'chemin : la riposte a mis le chargeur hors de combat').toBe(true);
@@ -168,20 +168,20 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     charge(banc, 1, [], 1);
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !b().over);
-    expect([b().over, attaques('e', 'h'), attaques('h')], 'chemin : la riposte a fini le combat avant la frappe du chargeur').toEqual(['defeat', 1, 0]);
+    expect([b().over, attaques('e', 'h'), attaques('h')], 'chemin : la riposte a fini le combat avant la frappe du chargeur').toEqual(['defaite', 1, 0]);
     expect([g().actorAim, g().actorMove, g().actorAoe], 'aucun télégraphe ne survit au combat').toEqual([null, null, null]);
   });
 
   it('E-victoire (graine 1) : la riposte du héros met le dernier ennemi hors de combat — sous la séquence de fin, aucun télégraphe de son geste', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    const e = mk('e', 'enemy', { x: 4, y: 0 }, [sword], 1);
+    const e = mk('e', 'ennemi', { x: 4, y: 0 }, [sword], 1);
     e.traits = [{ id: 'corruption', arg: 'mineure' }] as never;
-    const h = mk('h', 'hero', { x: 0, y: 0 });
+    const h = mk('h', 'heros', { x: 0, y: 0 });
     h.talents = [{ talentId: 'frappe-reactive', times: 1 }] as never;
     h.characteristics.initiative = 99;
     h.aiControlled = true; // riposte résolue par l'IA ; le héros manuel `h2` tient le Test de fin de combat
-    poser(banc, 1, [e, h, mk('h2', 'hero', { x: 9, y: 9 })]);
+    poser(banc, 1, [e, h, mk('h2', 'heros', { x: 9, y: 9 })]);
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !isOutOfAction(b().combatants[0]));
     expect([isOutOfAction(b().combatants[0]), attaques('h', 'e'), attaques('e')], 'chemin : la riposte a fini l’ennemi avant sa frappe').toEqual([true, 1, 0]);
@@ -202,8 +202,8 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     expect([suite(), parquee()], 'chemin : la frappe est parquée').toEqual(['frappe', true]);
     jouerLaSequence();
     cliquerSurLeCombattant(g, 'e', { confirm: true });
-    g().jetLancer('attack');
-    g().jetValider('attack');
+    g().jetLancer('attaque');
+    g().jetValider('attaque');
     jouerLaSequence();
     expect([attaques('h', 'e'), b().acted], 'le joueur a frappé à la main : son Action est dépensée').toEqual([1, true]);
     remettreLAutoCombat();
@@ -241,8 +241,8 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     tantQue(() => !!g().pendingDefense);
     passerEnManuel();
     cliquerSurLeCombattant(g, 'e', { confirm: true });
-    g().jetLancer('attack');
-    g().jetValider('attack');
+    g().jetLancer('attaque');
+    g().jetValider('attaque');
     jouerLaSequence();
     expect([suite(), parquee(), attaques('h', 'e'), b().acted], 'chemin : la frappe du joueur a devancé la suite, qui attend parquée ; l’Action est dépensée à la main').toEqual(['frappe', true, 1, true]);
     remettreLAutoCombat();
@@ -259,10 +259,10 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     tantQue(() => !g().pendingDefense);
     tantQue(() => !!g().pendingDefense);
     passerEnManuel();
-    setRule('combat-defensive-stance', true);
+    setRule('combat-sur-la-defensive', true);
     try {
       g().prendreLaDefensive(); // une Action hors attaque : aucune frappe pilotée ne devance la suite (LDB 13 l.118)
-    } finally { resetRule('combat-defensive-stance'); }
+    } finally { resetRule('combat-sur-la-defensive'); }
     remettreLAutoCombat();
     ouvrirUneFenetreNeutre('h');
     banc.reprendreTout();
@@ -276,13 +276,13 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
 
 /** L'ennemi `e`, source de Peur du héros MANUEL `h` qui le craint, s'en approche (Peur à l'approche, LDB 21 l.27). */
 function approche(banc: Banc, depart: { x: number; y: number }): void {
-  const h = mk('h', 'hero', { x: 0, y: 0 });
+  const h = mk('h', 'heros', { x: 0, y: 0 });
   h.psychState = [{ type: 'peur', sourceId: 'e', indice: 2, calmeDR: 0 }];
-  const e = mk('e', 'enemy', depart);
+  const e = mk('e', 'ennemi', depart);
   e.movement = 2;
   poser(banc, 4, [e, h]);
 }
-const bandeOuverte = () => !!g().pendingCascade?.participants.some((s) => s.kind === 'triggeredBatchTest');
+const bandeOuverte = () => !!g().pendingCascade?.participants.some((s) => s.kind === 'testDeclencheEnBande');
 
 describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main pendant la suite du tour', () => {
   it('B (graine 1) : la frappe échoit sur la bande — parquée, puis UNE frappe à sa clôture', () => {
@@ -294,7 +294,7 @@ describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main 
     expect(bandeOuverte(), 'chemin : l’approche ouvre la bande de Peur').toBe(true);
     banc.avancer(3000);
     expect([suite(), parquee(), attaques('e', 'h')], 'la frappe est parquée, rien frappé').toEqual(['frappe', true, 0]);
-    g().jetLancer('cascadeBatch', 'h');
+    g().jetLancer('cascadeEnBande', 'h');
     g().jetValider('cascade');
     tantQue(() => !g().pendingDefense);
     jouerLaSequence();
@@ -312,7 +312,7 @@ describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main 
     expect(bandeOuverte(), 'chemin : l’approche ouvre la bande de Peur').toBe(true);
     banc.avancer(3000);
     expect([suite(), parquee(), b().turn], 'l’« avancer » est parqué').toEqual(['avancer', true, 0]);
-    g().jetLancer('cascadeBatch', 'h');
+    g().jetLancer('cascadeEnBande', 'h');
     g().jetValider('cascade');
     banc.reprendreTout();
     expect(attaques('e'), 'aucune frappe').toBe(0);
@@ -327,7 +327,7 @@ describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main 
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !bandeOuverte());
     expect([bandeOuverte(), suite(), parquee()], 'chemin : la bande est ouverte, la frappe attend son échéance').toEqual([true, 'frappe', false]);
-    g().jetLancer('cascadeBatch', 'h');
+    g().jetLancer('cascadeEnBande', 'h');
     g().jetValider('cascade');
     tantQue(() => !g().pendingDefense);
     jouerLaSequence();
@@ -348,7 +348,7 @@ function lanceur(banc: Banc, seed: number, sort: string, heros: Combatant[]): vo
   poser(banc, seed, [e, ...heros]);
 }
 const pretire = (id: string, pos: { x: number; y: number }): Combatant => {
-  const h = pregen(idsDeTest, PREGEN.soldat);
+  const h = herosDeScenario(idsDeTest, 'soldat');
   h.id = id; h.label = id; h.pos = pos; h.wounds = blessuresDeBase(99, 99, h);
   return h;
 };
@@ -374,7 +374,7 @@ describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parq
   it('F-frappe (graine 1) : au contact du héros manuel, la frappe parquée part une fois', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    poser(banc, 1, [mk('e', 'enemy', { x: 1, y: 0 }), mk('h', 'hero', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('e', 'ennemi', { x: 1, y: 0 }), mk('h', 'heros', { x: 0, y: 0 })]);
     expect(decider(), 'chemin : l’IA décide une frappe').toBe('frappe');
     expect(tenirPuisClore('e'), 'parquée sur la fenêtre').toEqual(['frappe', true]);
     tantQue(() => !g().pendingDefense);
@@ -388,7 +388,7 @@ describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parq
   it('F-avancer (graine 1) : la recharge finit le tour — l’« avancer » parqué avance une fois', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    poser(banc, 1, [mk('e', 'enemy', { x: 9, y: 0 }, [{ ...CROSSBOW }]), mk('h', 'hero', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('e', 'ennemi', { x: 9, y: 0 }, [{ ...CROSSBOW }]), mk('h', 'heros', { x: 0, y: 0 })]);
     expect(decider(), 'chemin : l’IA recharge, puis finit son tour').toBe('avancer');
     expect(tenirPuisClore('e'), 'parqué sur la fenêtre').toEqual(['avancer', true]);
     banc.reprendreTout();
@@ -399,7 +399,7 @@ describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parq
   it('M9 (graine 1) : un « avancer » réarmé ne part pas au minuteur qu’il remplace', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    poser(banc, 1, [mk('e', 'enemy', { x: 9, y: 0 }, [{ ...CROSSBOW }]), mk('h', 'hero', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('e', 'ennemi', { x: 9, y: 0 }, [{ ...CROSSBOW }]), mk('h', 'heros', { x: 0, y: 0 })]);
     expect(decider(), 'chemin : l’IA recharge, puis finit son tour').toBe('avancer');
     const premier = b().tourEnCours?.suite?.n ?? 0;
     ouvrirUneFenetreNeutre('e');
@@ -439,7 +439,7 @@ describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parq
   it('F-déplacer (graine 1) : le déplacement parqué se joue une fois', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    poser(banc, 1, [mk('e', 'enemy', { x: 9, y: 0 }), mk('h', 'hero', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('e', 'ennemi', { x: 9, y: 0 }), mk('h', 'heros', { x: 0, y: 0 })]);
     let glisses = 0;
     const off = bus.on(EVT.ANIM_MOVE, (p: { id: string }) => { if (p.id === 'e') glisses++; });
     try {
@@ -458,14 +458,14 @@ describe('#3058 — un geste décidé par l’IA ne part pas par-dessus une Acti
   it('H-sort (graine 1) : sort parqué sur une fenêtre, bascule en manuel, le joueur incante, retour en Auto — une incantation, le tour avance', () => {
     banc = ouvrirLeBanc({ cadence: 'auto' });
     clearAiTurnLog();
-    const h = pregen(idsDeTest, PREGEN.sorcier);
+    const h = herosDeScenario(idsDeTest, 'sorcier');
     h.id = 'h'; h.label = 'h'; h.pos = { x: 1, y: 1 }; h.wounds = blessuresDeBase(99, 99, h);
     h.characteristics.intelligence = 60;
     h.skills = [...h.skills.filter((sk) => sk.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 } as never];
     h.spells = ['flechette'];
     h.weapons = [];
     poser(banc, 1, [h, pretire('e', { x: 7, y: 7 })]);
-    b().combatants[1].kind = 'enemy';
+    b().combatants[1].kind = 'ennemi';
     const n = incantations('h');
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !b().tourEnCours);
@@ -477,7 +477,7 @@ describe('#3058 — un geste décidé par l’IA ne part pas par-dessus une Acti
     fermerLaFenetreNeutre();
     g().incanterLeSort(h.id, 'flechette');
     cliquerSurLeCombattant(g, 'e', { confirm: true });
-    for (let i = 0; i < 6 && g().pendingCast; i++) { if (g().pendingCast!.result == null) g().jetLancer('cast'); else g().jetValider('cast'); }
+    for (let i = 0; i < 6 && g().pendingCast; i++) { if (g().pendingCast!.result == null) g().jetLancer('incantation'); else g().jetValider('incantation'); }
     jouerLaSequence();
     expect([n(), b().acted], 'le joueur a incanté à la main : son Action est dépensée').toEqual([1, true]);
     remettreLAutoCombat();
@@ -492,7 +492,7 @@ describe('#3058 — un déplacement décidé par l’IA ne part pas par-dessus u
   it('H-déplacer (graine 1) : déplacement parqué sur une fenêtre, bascule en manuel, le joueur se déplace, retour en Auto — un seul déplacement, le tour avance', () => {
     banc = ouvrirLeBanc({ cadence: 'auto' });
     clearAiTurnLog();
-    poser(banc, 1, [mk('h', 'hero', { x: 9, y: 0 }), mk('e', 'enemy', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('h', 'heros', { x: 9, y: 0 }), mk('e', 'ennemi', { x: 0, y: 0 })]);
     let glisses = 0;
     const off = bus.on(EVT.ANIM_MOVE, (p: { id: string }) => { if (p.id === 'h') glisses++; });
     try {
@@ -520,7 +520,7 @@ describe('#3058 — un geste périmé ne touche pas au tour suivant', () => {
   it('I (graine 1) : l’échéance d’un acteur dont le tour est passé ne frappe pas, ni n’efface la suite et le réticule du suivant', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    poser(banc, 1, [mk('e', 'enemy', { x: 1, y: 0 }), mk('e2', 'enemy', { x: 0, y: 1 }), mk('h', 'hero', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('e', 'ennemi', { x: 1, y: 0 }), mk('e2', 'ennemi', { x: 0, y: 1 }), mk('h', 'heros', { x: 0, y: 0 })]);
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !b().tourEnCours);
     expect([b().tourEnCours?.cle, suite()], 'chemin : `e` a armé sa frappe').toEqual(['1:0:e', 'frappe']);
@@ -540,7 +540,7 @@ describe('#3058 — saut de tour sans talent (une séquence de conséquences ouv
     it(`G (graine ${graine}) : au contact, 400 PV, Auto-combat — chaque combattant décide une fois par Round`, () => {
       banc = ouvrirLeBanc({ cadence: 'auto' });
       clearAiTurnLog();
-      poser(banc, graine, [mk('h', 'hero', { x: 1, y: 0 }, [sword], 400), mk('e', 'enemy', { x: 0, y: 0 }, [sword], 400)]);
+      poser(banc, graine, [mk('h', 'heros', { x: 1, y: 0 }, [sword], 400), mk('e', 'ennemi', { x: 0, y: 0 }, [sword], 400)]);
       maybeRunEnemyTurn(g, banc.setState);
       let sequenceApresLaFrappe = false;
       for (let i = 0; i < 2000 && b().round <= 3 && !b().over; i++) {
@@ -563,12 +563,12 @@ function chargeManuelle(seed: number, o: { reactive?: boolean; autres?: Combatan
   if (o.depart) qui('h').pos = { ...o.depart };
 }
 const qui = (id: string): Combatant => b().combatants.find((c) => c.id === id)!;
-const cliquerLaCharge = () => cliquerSurLeCombattant(g, 'e', { confirm: true, approche: true });
+const cliquerLaCharge = () => cliquerSurLeCombattant(g, 'e', { confirm: true, intentionId: 'charge' });
 const frappeOuverte = () => (g().pendingAttack ? { de: g().pendingAttack!.attackerId, fromCharge: !!g().pendingAttack!.fromCharge, annulable: !!g().pendingAttack!.chargeUndo } : null);
 /** Le joueur lance et applique la frappe ouverte, puis joue la séquence jusqu'à sa clôture. */
 function frapper(): void {
-  g().jetLancer('attack');
-  g().jetValider('attack');
+  g().jetLancer('attaque');
+  g().jetValider('attaque');
   jouerLaSequence();
 }
 
@@ -593,7 +593,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     banc.setState({ net: { ...g().net, gmSeat: 0 } } as never);
     cliquerLaCharge();
     const etapes = () => g().pendingCascade?.participants.map((p) => p.kind) ?? [];
-    expect([etapes(), frappeOuverte(), attaques('h')], 'la réaction s’offre au pilote de la cible, avant toute frappe').toEqual([['triggeredChoice'], null, 0]);
+    expect([etapes(), frappeOuverte(), attaques('h')], 'la réaction s’offre au pilote de la cible, avant toute frappe').toEqual([['choixDeclenche'], null, 0]);
     jouerLaSequence();
     banc.reprendreTout();
     expect(frappeOuverte()?.de, 'la frappe du chargeur s’ouvre ensuite').toBe('h');
@@ -601,8 +601,8 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
 
   it('B (graine 4) : coop — l’invité charge par intent : chez l’hôte, la cible réagit avant, la frappe de l’invité s’ouvre après', () => {
     chargeManuelle(4);
-    banc.setState({ net: { ...g().net, mode: 'host', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h: 1 }, slots: [1, 1, 0, 0] } } as never);
-    expect(appliquerLIntentionDUnSiege(g, 1, 'cliquerLaCase', [{ ...qui('e').pos! }, 'e', { confirm: true, approche: true }]), 'l’intent de l’invité est appliqué').toBe('appliquee');
+    banc.setState({ net: { ...g().net, mode: 'hote', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h: 1 }, slots: [1, 1, 0, 0] } } as never);
+    expect(appliquerLIntentionDUnSiege(g, 1, 'cliquerLaCase', [{ ...qui('e').pos! }, 'e', { confirm: true, intentionId: 'charge' }]), 'l’intent de l’invité est appliqué').toBe('appliquee');
     expect([g().pendingDefense?.defenderId, attaques('h'), frappeOuverte()], 'la riposte ouvre la défense du chargeur avant toute frappe').toEqual(['h', 0, null]);
     for (let i = 0; i < 40; i++) {
       if (g().pendingDefense) { appliquerLIntentionDUnSiege(g, 1, 'jetLancer', ['defense']); appliquerLIntentionDUnSiege(g, 1, 'jetValider', ['defense']); continue; }
@@ -625,7 +625,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     banc.reprendreTout();
     expect(frappeOuverte(), 'aucune réaction : la frappe s’ouvre annulable').toEqual({ de: 'h', fromCharge: true, annulable: true });
     expect(fenetreDAttaque(g())?.annulation, 'la fenêtre offre l’Annuler').toBeNull();
-    g().jetAnnuler('attack');
+    g().jetAnnuler('attaque');
     expect([qui('h').pos, qui('h').chargedThisTurn, frappeOuverte(), g().pendingCascade], 'Annuler rend la case de départ et ferme la séquence').toEqual([{ x: 4, y: 0 }, false, null, null]);
     cliquerLaCharge();
     banc.reprendreTout();
@@ -639,7 +639,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     banc.reprendreTout();
     const depuis = { ...qui('h').pos! };
     expect(fenetreDAttaque(g())?.annulation, 'la fenêtre ferme l’Annuler avec le texte du geste').toBe('La Charge est engagée : la cible a répondu, le Test de Corps à corps est dû.');
-    g().jetAnnuler('attack');
+    g().jetAnnuler('attaque');
     expect([frappeOuverte()?.annulable, qui('h').pos, qui('h').chargedThisTurn], 'la cible a répondu : Annuler est refusé, la Charge reste').toEqual([false, depuis, true]);
   });
 
@@ -666,7 +666,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
   });
 
   it('E manuel (graine 1) : la riposte met le chargeur hors de combat — aucune frappe, le tour ne passe pas seul', () => {
-    chargeManuelle(1, { autres: [mk('h2', 'hero', { x: 9, y: 9 })], pvDuChargeur: 1 });
+    chargeManuelle(1, { autres: [mk('h2', 'heros', { x: 9, y: 9 })], pvDuChargeur: 1 });
     cliquerLaCharge();
     jouerLaSequence();
     banc.reprendreTout();
@@ -679,26 +679,26 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     qui('h').fate = 1;
     cliquerLaCharge();
     jouerLaSequence();
-    finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
+    finalizeHeroDeath(g, banc.setState, qui('h'), instantaneAvantLeCoup(qui('h')), qui('e'));
     expect(!!g().pendingFateSave, 'chemin : le Destin est offert').toBe(true);
-    g().fenetreChoisir('fateSave', 'issue', 'negate');
+    g().fenetreChoisir('destin', 'issue', 'eviter');
     banc.reprendreTout();
     expect([frappeOuverte()?.de, b().turn], 'la frappe du joueur s’ouvre, son tour tient').toEqual(['h', 0]);
   });
 
   it('P1 (graine 4) : Sur la Défensive pendant le glissé prend l’Action — la frappe pilotée s’abandonne, le tour reste au joueur', () => {
     chargeManuelle(4, { reactive: false });
-    setRule('combat-defensive-stance', true);
+    setRule('combat-sur-la-defensive', true);
     try {
       cliquerLaCharge();
       g().prendreLaDefensive();
       banc.reprendreTout();
-    } finally { resetRule('combat-defensive-stance'); }
+    } finally { resetRule('combat-sur-la-defensive'); }
     expect([frappeOuverte(), attaques('h'), b().acted, b().turn], 'aucune frappe, l’Action est prise, le tour tient').toEqual([null, 0, true, 0]);
   });
 
   it('P7 (graine 1) : chargeur K.O. par la riposte, puis Auto-combat — le combat avance', () => {
-    chargeManuelle(1, { autres: [mk('h2', 'hero', { x: 9, y: 9 })], pvDuChargeur: 1 });
+    chargeManuelle(1, { autres: [mk('h2', 'heros', { x: 9, y: 9 })], pvDuChargeur: 1 });
     cliquerLaCharge();
     jouerLaSequence();
     banc.reprendreTout();
@@ -712,8 +712,8 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
   it('P8 (graine 4) : le Destin dépensé sur le tour d’un héros manuel sans geste en attente ne finit pas son tour', () => {
     chargeManuelle(4, { reactive: false });
     qui('h').fate = 1;
-    finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
-    g().fenetreChoisir('fateSave', 'issue', 'negate');
+    finalizeHeroDeath(g, banc.setState, qui('h'), instantaneAvantLeCoup(qui('h')), qui('e'));
+    g().fenetreChoisir('destin', 'issue', 'eviter');
     banc.reprendreTout();
     expect(b().turn, 'le tour reste au joueur').toBe(0);
   });
@@ -725,8 +725,8 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     banc.reprendreTout();
     frapper();
     expect([attaques('h', 'e'), b().acted], 'chemin : l’Action est prise par la frappe').toEqual([1, true]);
-    finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
-    g().fenetreChoisir('fateSave', 'issue', 'negate');
+    finalizeHeroDeath(g, banc.setState, qui('h'), instantaneAvantLeCoup(qui('h')), qui('e'));
+    g().fenetreChoisir('destin', 'issue', 'eviter');
     banc.reprendreTout();
     expect(b().turn, 'le tour reste au joueur').toBe(0);
   });

@@ -3,9 +3,9 @@
  * (EDOC 12 l.217) et « Terribles phobies » (EDOC 12 l.241) : chaque rangée désigne un Groupe.
  */
 import { describe, it, expect } from 'vitest';
-import { makeRNG } from '../engine/dice';
-import { findTableEntry } from '../engine/tables';
-import { OBSESSIONS, OBSESSIONS_SOURCE, TIRAGE_DE_CIBLE } from './obsessions';
+import { makeRNG, totalDuDe } from '../engine/dice';
+import { facesDuDe, findTableEntry } from '../engine/tables';
+import { OBSESSIONS, TIRAGE_DE_CIBLE, obsessionsDie } from './obsessions';
 import { attachMutation } from '../engine/corruption';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
 import { parsePsychTraits } from '../engine/psych/registry';
@@ -17,7 +17,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', label: 'Cobaye', kind: 'hero',
+    id: 'h', label: 'Cobaye', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 42, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -29,13 +29,10 @@ function hero(p: Partial<Combatant> = {}): Combatant {
 const groupeDuJet = (jet: number): string => findTableEntry([...OBSESSIONS], jet).id;
 
 describe('Tableau des Obsessions (EDOC 12 l.170)', () => {
-  it('couvre 2d10 sans trou ni chevauchement, source EDOC folio 69', () => {
-    for (let jet = 2; jet <= 20; jet++) expect(OBSESSIONS.filter((e) => e.min <= jet && jet <= e.max)).toHaveLength(1);
-    expect(OBSESSIONS_SOURCE).toEqual({
-      book: 'ennemi-dans-l-ombre-compagnon',
-      page: 69,
-      note: 'Tableau des Obsessions, EDOC 12 l.170',
-    });
+  it('couvre 2d10 sans trou ni chevauchement', () => {
+    const de = obsessionsDie();
+    expect([de.n, de.sides]).toEqual([2, 10]);
+    for (let jet = totalDuDe(de, de.n); jet <= facesDuDe(de); jet++) expect(OBSESSIONS.filter((e) => e.min <= jet && jet <= e.max)).toHaveLength(1);
   });
 
   it('chaque rangée désigne un Groupe de `groups.json`', () => {

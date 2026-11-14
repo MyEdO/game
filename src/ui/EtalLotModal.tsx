@@ -30,13 +30,13 @@ export function EtalLotModal() {
   }));
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: 'Ouvrir l’étal', onClick: confirm, verbe: 'confirm' },
+    { key: 'confirmer', label: 'Ouvrir l’étal', onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="etalLot"
-      title={<><Icon id="nav/dice" size="sm" /> {p.label}</>}
+      title={<><Icon id="navigation/des" size="sm" /> {p.label}</>}
       instruction="Les dés de l’étal sont tombés — posez ceux que vous voulez fixer, puis ouvrez."
       rows={rows}
       stake={flowStakeRef('etal-lot')}

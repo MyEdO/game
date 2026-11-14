@@ -24,7 +24,7 @@ afterEach(() => {
 
 describe('atelier du Codex — l’identité de l’entrée éditée', () => {
   it('Trait puis Créature : la fiche suivante est rendue dès son premier rendu, sans valeur de la précédente', () => {
-    const creature = (datasetArray('creatures') as { id: string; label: string }[])[0];
+    const creature = datasetArray('creatures')[0];
     const trait = (datasetArray('traits') as { id: string; label: string }[]).find((t) => t.id === 'champion')!;
     container = document.createElement('div');
     document.body.appendChild(container);

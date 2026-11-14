@@ -1,6 +1,6 @@
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from './_heros';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
@@ -52,7 +52,7 @@ export const scenario: TestScenario = {
   id: 'metamorphose-ulric',
   order: 17,
   category: 'creatures',
-  icon: 'scenario/bestiary',
+  icon: 'scenario/bestiaire',
   title: "Métamorphose — Enfant d'Ulric",
   tests:
     "Verbe de transformation volontaire (op transform) : un Enfant d'Ulric humain adopte sa forme hybride " +
@@ -60,7 +60,7 @@ export const scenario: TestScenario = {
     "auto-transformation de l'IA (self-buff valorisé data-driven).",
   partyNote: 'Groupe standard (Soldat · Sorcière · Tueur nain · Répurgateur) face à deux lycanthropes.',
   construire: (idNeuf) => ({
-    party: [pregen(idNeuf, PREGEN.soldat), pregen(idNeuf, PREGEN.sorcier), pregen(idNeuf, PREGEN.tueur), pregen(idNeuf, PREGEN.repurgateur)],
+    party: [herosDeScenario(idNeuf, 'soldat'), herosDeScenario(idNeuf, 'sorcier'), herosDeScenario(idNeuf, 'tueur'), herosDeScenario(idNeuf, 'repurgateur')],
     scene: construireScene(),
   }),
 };

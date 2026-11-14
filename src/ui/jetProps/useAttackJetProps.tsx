@@ -13,7 +13,7 @@ import { VsHeader } from '../VsHeader';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { Icon } from '../Icon';
-import type { IconIdInput } from '../../data/icons';
+import type { IconId } from '../../data/icons';
 import { Row } from '../Layout';
 import { useGesteDeJet } from '../useGesteDeJet';
 import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
@@ -21,7 +21,7 @@ import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 /** Sortie « confirmer » d'une modale de COUP (attaque, manœuvre de créature) : elle applique le coup, ou
  *  passe la main quand une Défense surfacée va s'interposer (#1004). Source unique de son libellé. */
 export function confirmerLeCoup(awaitingDefense: boolean, confirm: () => void): RollAction {
-  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.confirm'), onClick: confirm, verbe: 'confirm' };
+  return { key: 'confirmer', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.valider'), onClick: confirm, verbe: 'valider' };
 }
 
 /**
@@ -37,21 +37,21 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   const pa = useGame((s) => s.pendingAttack);
   const battle = useGame((s) => s.battle);
   const regler = useGame((s) => s.jetRegler);
-  const setLocation = (v: ReglagesDuJet['attack']['localisation']) => regler('attack', 'localisation', v);
-  const setWeapon = (v: ReglagesDuJet['attack']['arme']) => regler('attack', 'arme', v);
-  const setDualMode = (v: ReglagesDuJet['attack']['deuxArmes']) => regler('attack', 'deuxArmes', v);
-  const roll = useGesteDeJet('jetLancer', 'attack');
-  const reroll = useGesteDeJet('jetRelancer', 'attack');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'attack');
-  const darkPact = useGesteDeJet('jetPactiser', 'attack');
-  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'attack');
-  const reverseVerb = useGesteDeJet('jetInverser', 'attack');
-  const confirm = useGesteDeJet('jetValider', 'attack');
-  const cancel = useGesteDeJet('jetAnnuler', 'attack');
-  const setHarpoonRopeCut = (v: ReglagesDuJet['attack']['sansLaCorde']) => regler('attack', 'sansLaCorde', v);
-  const setWithhold = (v: ReglagesDuJet['attack']['retenirSesCoups']) => regler('attack', 'retenirSesCoups', v);
-  const setGrapple = (v: ReglagesDuJet['attack']['empoigner']) => regler('attack', 'empoigner', v);
-  const setCritLocation = (v: ReglagesDuJet['attack']['localisationDuCritique']) => regler('attack', 'localisationDuCritique', v);
+  const setLocation = (v: ReglagesDuJet['attaque']['localisation']) => regler('attaque', 'localisation', v);
+  const setWeapon = (v: ReglagesDuJet['attaque']['arme']) => regler('attaque', 'arme', v);
+  const setDualMode = (v: ReglagesDuJet['attaque']['deuxArmes']) => regler('attaque', 'deuxArmes', v);
+  const roll = useGesteDeJet('jetLancer', 'attaque');
+  const reroll = useGesteDeJet('jetRelancer', 'attaque');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'attaque');
+  const darkPact = useGesteDeJet('jetPactiser', 'attaque');
+  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'attaque');
+  const reverseVerb = useGesteDeJet('jetInverser', 'attaque');
+  const confirm = useGesteDeJet('jetValider', 'attaque');
+  const cancel = useGesteDeJet('jetAnnuler', 'attaque');
+  const setHarpoonRopeCut = (v: ReglagesDuJet['attaque']['sansLaCorde']) => regler('attaque', 'sansLaCorde', v);
+  const setWithhold = (v: ReglagesDuJet['attaque']['retenirSesCoups']) => regler('attaque', 'retenirSesCoups', v);
+  const setGrapple = (v: ReglagesDuJet['attaque']['empoigner']) => regler('attaque', 'empoigner', v);
+  const setCritLocation = (v: ReglagesDuJet['attaque']['localisationDuCritique']) => regler('attaque', 'localisationDuCritique', v);
   const spendResolve = useGame((s) => s.depenserLaDetermination);
   const vue = pa && battle ? fenetreDAttaque(useGame.getState()) : null;
   if (!vue || !battle) return null;
@@ -87,14 +87,14 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
       ? witnessRow({ row: { combatant: target, d: defense.d } })
       : buildRollRow({ row: { combatant: target, pending: { ...defense.pending, mask: 'value' as const } } }, { interactive: false });
   const rows = [attackerRow, ...(defenderRow ? [defenderRow] : [])];
-  const bascule = (b: { libelle: string; active: boolean }, icone: IconIdInput, onToggle: (v: boolean) => void) => (
+  const bascule = (b: { libelle: string; active: boolean }, icone: IconId, onToggle: (v: boolean) => void) => (
     <button className="btn small" aria-pressed={b.active} onClick={() => onToggle(!b.active)}>
       <Icon id={icone} size="sm" /> {b.libelle}
     </button>
   );
 
   return {
-    flowKey: 'attack',
+    flowKey: 'attaque',
     title: vue.intitule,
     subtitle: vue.sousTitre,
     extra: <VsHeader actor={attacker} target={target} label={vue.degats === null ? vue.arme : `${vue.arme} · ${t('attaque.degats', { dmg: vue.degats })}`} />,
@@ -109,9 +109,9 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
             <div className="rm-loc-inline" data-bascule>
               <label>
                 <input type="checkbox" checked={vue.deuxArmes.active} onChange={(e) => setDualMode(e.target.checked)} />
-                <span className="mini-title"><Icon id="action/attack" size="sm" /> {vue.deuxArmes.libelle}</span>
+                <span className="mini-title"><Icon id="action/attaquer" size="sm" /> {vue.deuxArmes.libelle}</span>
               </label>
-              <CodexRef category="regles" id="combat-deux-armes" label="Combat à deux armes" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              <CodexRef category="regles" id="combat-deux-armes" label="Combat à deux armes" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
             </div>
           )}
           {vue.choixDArme && (
@@ -120,7 +120,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
               <select className="rm-loc-select" value={vue.choixDArme.choisie ?? ''} onChange={(e) => setWeapon(e.target.value || null)}>
                 {vue.choixDArme.options.map((o) => <option key={o.valeur ?? ''} value={o.valeur ?? ''}>{o.libelle}</option>)}
               </select>
-              <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
             </div>
           )}
           {vue.localisation && (
@@ -129,49 +129,49 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
               <select className="rm-loc-select" value={vue.localisation.choisie ?? ''} onChange={(e) => setLocation((e.target.value as HitLocation) || null)}>
                 {vue.localisation.options.map((o) => <option key={o.valeur ?? ''} value={o.valeur ?? ''}>{o.libelle}</option>)}
               </select>
-              <CodexRef category="regles" id="viser-une-localisation" label="Viser une Localisation" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              <CodexRef category="regles" id="viser-une-localisation" label="Viser une Localisation" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
             </div>
           )}
           {/* POSTURES DE TIR — LECTURE SEULE (spec HUD §1a G5, verbatim user « plutôt qu'une option
               dans la modale ») : la fenêtre ANNONCE la posture armée et sa valeur, le CONTRÔLE vit dans
               la console (cases `posture-tir` / `posture-tas`). Aucun bouton ici, aucun setter. */}
           {vue.tirDansLeTas && (
-            <Row gap="md" align="center" data-posture="intoCrowd" data-armee={vue.tirDansLeTas.armee ? '' : undefined}>
-              <span className="rm-note" data-ton="etat"><Icon id="action/aim" size="sm" /> {vue.tirDansLeTas.etat}</span>
-              <CodexRef category="regles" id="tirer-dans-le-tas" label="Tirer dans le tas" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+            <Row gap="md" align="center" data-posture="dansLeTas" data-armee={vue.tirDansLeTas.armee ? '' : undefined}>
+              <span className="rm-note" data-ton="etat"><Icon id="action/viser" size="sm" /> {vue.tirDansLeTas.etat}</span>
+              <CodexRef category="regles" id="tirer-dans-le-tas" label="Tirer dans le tas" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
               <span className="rm-note" data-ton="discret">{vue.tirDansLeTas.note}</span>
             </Row>
           )}
           {vue.tirImmobile && (
-            <Row gap="md" align="center" data-posture="heldGround" data-armee={vue.tirImmobile.armee ? '' : undefined}>
-              <span className="rm-note" data-ton="etat"><Icon id="travel/anchor" size="sm" /> {vue.tirImmobile.etat}</span>
-              <CodexRef category="regles" id="tir-en-mouvement" label="Tirer en se déplaçant" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+            <Row gap="md" align="center" data-posture="tirImmobile" data-armee={vue.tirImmobile.armee ? '' : undefined}>
+              <span className="rm-note" data-ton="etat"><Icon id="voyage/ancre" size="sm" /> {vue.tirImmobile.etat}</span>
+              <CodexRef category="regles" id="tir-en-mouvement" label="Tirer en se déplaçant" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
               <span className="rm-note" data-ton="discret">{vue.tirImmobile.note}</span>
             </Row>
           )}
           {vue.sansLaCorde && (
             <Row gap="md" align="center">
-              {bascule(vue.sansLaCorde, 'action/aim', setHarpoonRopeCut)}
+              {bascule(vue.sansLaCorde, 'action/viser', setHarpoonRopeCut)}
               <span className="rm-note" data-ton="discret">{vue.sansLaCorde.note}</span>
             </Row>
           )}
           {vue.retenirSesCoups && (
             <Row gap="md" align="center">
-              {bascule(vue.retenirSesCoups, 'melee/pulled-punch', setWithhold)}
-              <CodexRef category="regles" id="retenir-ses-coups" label="Retenir ses coups (maîtriser sans tuer)" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              {bascule(vue.retenirSesCoups, 'melee/retenir-ses-coups', setWithhold)}
+              <CodexRef category="regles" id="retenir-ses-coups" label="Retenir ses coups (maîtriser sans tuer)" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
               {vue.retenirSesCoups.note && <span className="rm-note" data-ton="discret">{vue.retenirSesCoups.note}</span>}
             </Row>
           )}
           {vue.empoigner && (
             <Row gap="md" align="center">
-              {bascule(vue.empoigner, 'melee/grapple', setGrapple)}
-              <CodexRef category="regles" id="empoignade" label="Empoignade" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              {bascule(vue.empoigner, 'melee/empoignade', setGrapple)}
+              <CodexRef category="regles" id="empoignade" label="Empoignade" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
               {vue.empoigner.note && <span className="rm-note" data-ton="discret">{vue.empoigner.note}</span>}
             </Row>
           )}
         </div>
         {vue.bloque && (
-          <div className="rm-note" data-ton="bloque"><Icon id="ui/warning" size="sm" /> {vue.bloque}</div>
+          <div className="rm-note" data-ton="bloque"><Icon id="interface/attention" size="sm" /> {vue.bloque}</div>
         )}
         <DeterminationButton combatant={attacker} onSpend={(name) => spendResolve(attacker.id, 'retirerUnEtat', name)} />
       </>
@@ -185,7 +185,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     postRollExtra: vue.attente ? <p className="rm-note" data-ton="attente">{vue.attente}</p> : undefined,
     forcedExtra: vue.critiqueALocaliser ? <CritLocationPicker current={vue.critiqueALocaliser.choisie} onSet={setCritLocation} shape={target.bodyShape} /> : undefined,
     actions: [
-      { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel', ...(vue.annulation ? { refus: vue.annulation } : {}) } as RollAction,
+      { key: 'annuler', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler', ...(vue.annulation ? { refus: vue.annulation } : {}) } as RollAction,
       confirmerLeCoup(vue.defenseAttendue, confirm),
     ],
   };

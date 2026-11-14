@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * #1765 — le bouton de la modale de MANŒUVRE dit ce qu'il fait : face à un défenseur SURFACÉ, rien
- * n'est appliqué, sa défense s'ouvre en cascade (`maneuverDefense`) — « Passer à la Défense » ;
+ * n'est appliqué, sa défense s'ouvre en cascade (`defenseDeManoeuvre`) — « Passer à la Défense » ;
  * sinon l'opposition se résout et s'applique — « Appliquer ». Le prédicat est celui de la résolution
  * (`maneuverDefensePending`, partagé avec `resolveManeuver`).
  */
@@ -29,12 +29,12 @@ function souffleLance(gmSeat: number | undefined): Combatant {
   useGame.setState({ screen: 'campaign', party: [hero] });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
-  useGame.getState().fenetreValider('roundStart');
+  useGame.getState().fenetreValider('debutDuRound');
   vi.clearAllTimers();
   useGame.setState({ net: { ...useGame.getState().net, gmSeat } });
   const b = useGame.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies[0];
   H.pos = { x: 10, y: 10 };
@@ -47,7 +47,7 @@ function souffleLance(gmSeat: number | undefined): Combatant {
   useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, acted: false } });
   useGame.getState().armerLAttaque('souffle');
   cliquerSurLeCombattant(useGame.getState, E.id);
-  useGame.getState().jetLancer('maneuver');
+  useGame.getState().jetLancer('manoeuvre');
   return E;
 }
 
@@ -81,7 +81,7 @@ describe('Modale de manœuvre : le bouton suit le défenseur surfacé', () => {
     expect(passer).toBeTruthy();
     act(() => passer!.click());
     const c = useGame.getState().pendingCascade;
-    expect(c?.participants[c.cursor]?.kind, 'la défense du défenseur surfacé tient la main').toBe('maneuverDefense');
+    expect(c?.participants[c.cursor]?.kind, 'la défense du défenseur surfacé tient la main').toBe('defenseDeManoeuvre');
     expect(useGame.getState().battle!.combatants.find((x) => x.id === E.id)!.wounds.current, 'rien n’est appliqué').toBe(30);
   });
 
@@ -92,7 +92,7 @@ describe('Modale de manœuvre : le bouton suit le défenseur surfacé', () => {
     const appliquer = bouton('Appliquer');
     expect(appliquer).toBeTruthy();
     act(() => appliquer!.click());
-    expect(useGame.getState().pendingCascade?.participants.some((s) => s.kind === 'maneuverDefense') ?? false).toBe(false);
+    expect(useGame.getState().pendingCascade?.participants.some((s) => s.kind === 'defenseDeManoeuvre') ?? false).toBe(false);
     expect(useGame.getState().battle!.combatants.find((x) => x.id === E.id)!.wounds.current, 'le Souffle a porté').toBeLessThan(30);
   });
 });

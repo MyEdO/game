@@ -8,6 +8,7 @@
  *  - les NOMS colorés par camp (allié vert / ennemi rouge) sous forme de segments,
  *  - l'IMPORTANCE (les événements importants remontent dans le bandeau haut ; le reste reste au journal).
  */
+import type { Equipe } from '../engine/relations';
 import { conditionMeta } from './effectIcons';
 import type { IconId } from '../data/icons';
 import type { RecapLine } from '../noyau/recapLine';
@@ -20,7 +21,7 @@ import { conditionIdInText } from '../engine/conditions';
 
 export interface NarratedSegment {
   text: string;
-  team?: 'ally' | 'enemy';
+  team?: Equipe;
 }
 
 export interface NarratedLine {
@@ -40,10 +41,10 @@ interface ComLite {
 
 /** Icône par type d'événement (source unique pour journal + bandeau + pastilles). */
 const KIND_ICON: Record<CombatEventKind, IconId> = {
-  charge: 'journal/charge', attack: 'action/attack', shoot: 'action/shoot', cast: 'action/cast', item: 'item/consumable', heal: 'journal/heal',
-  move: 'journal/move', flee: 'journal/flee', defensive: 'flag/defensive', aim: 'action/aim', focus: 'flag/focus', frenzy: 'flag/frenzy',
-  reload: 'journal/reload', parry: 'action/defend', dodge: 'journal/dodge', damage: 'journal/damage', crit: 'journal/critical',
-  condition: 'condition/bleeding', fear: 'flag/fear', death: 'journal/death', round: 'journal/round', detail: 'journal/detail', info: 'journal/info',
+  charge: 'journal/charge', attaque: 'action/attaquer', tir: 'action/tirer', sort: 'action/incanter', objet: 'objet/consommable', soin: 'journal/soin',
+  deplacement: 'journal/mouvement', fuite: 'journal/fuite', defensive: 'drapeau/posture-defensive', visee: 'action/viser', focalisation: 'drapeau/focalisation', frenesie: 'drapeau/frenesie',
+  rechargement: 'journal/rechargement', parade: 'action/se-defendre', esquive: 'journal/esquive', degats: 'journal/degats', critique: 'journal/critique',
+  etat: 'etat/hemorragique', peur: 'drapeau/peur', mort: 'journal/mort', round: 'journal/fin-de-round', detail: 'journal/detail', information: 'journal/information',
 };
 
 /** L'icône de l'État (LDB 16) que nomme un événement `condition`/`detail`, par `conditionMeta`. L'État est
@@ -55,7 +56,7 @@ function iconOfState(e: CombatEvent): IconId | null {
 }
 
 function iconOf(e: CombatEvent): IconId {
-  if (e.kind === 'condition' || e.kind === 'detail') {
+  if (e.kind === 'etat' || e.kind === 'detail') {
     const icon = iconOfState(e);
     if (icon) return icon;
   }
@@ -71,10 +72,10 @@ function colorize(text: string, combatants: ComLite[]): NarratedSegment[] {
   const named = combatants.filter((c) => c.label && c.label.trim());
   if (!named.length) return [{ text }];
 
-  const teamOf = new Map<string, 'ally' | 'enemy'>();
+  const teamOf = new Map<string, Equipe>();
   // Index de TEXTE (le nom est ce qui apparaît dans la prose narrée) : construction seule, sans
   // interrogation par libellé (#602) — parcours inversé pour que le PREMIER combattant l'emporte.
-  for (let i = named.length - 1; i >= 0; i--) teamOf.set(named[i].label, named[i].kind === 'hero' ? 'ally' : 'enemy');
+  for (let i = named.length - 1; i >= 0; i--) teamOf.set(named[i].label, named[i].kind === 'heros' ? 'allie' : 'ennemi');
 
   // Noms uniques, du plus long au plus court (évite « Rat » de mordre dans « Rat géant »).
   const names = [...new Set(named.map((c) => c.label))].sort((a, b) => b.length - a.length);
@@ -114,9 +115,9 @@ export function recapLinesOfEvents(events: CombatEvent[], combatants: ComLite[] 
 /** Verbe + kind (icône/ton) pour chaque manière de télégraphe d'intention. */
 const INTENT: Record<ActorAimKind, { verb: string; kind: CombatEventKind }> = {
   charge: { verb: 'charge', kind: 'charge' },
-  melee: { verb: 'attaque', kind: 'attack' },
-  ranged: { verb: 'vise', kind: 'shoot' },
-  cast: { verb: 'lance un sort sur', kind: 'cast' },
+  melee: { verb: 'attaque', kind: 'attaque' },
+  tir: { verb: 'vise', kind: 'tir' },
+  incantation: { verb: 'lance un sort sur', kind: 'sort' },
 };
 
 /** Narre l'INTENTION télégraphiée d'un combattant IA (« X charge / attaque / vise / lance un sort sur
@@ -135,7 +136,7 @@ export function narrateIntent(aim: ActorAim, combatants: ComLite[] = []): Narrat
  *  ligne PROJETÉE, jamais journalisée (un clic refusé n'est pas un fait de jeu). Ton `strong` : c'est
  *  une réponse à un geste du joueur, elle doit se remarquer sans crier comme un critique. */
 export function narrateRefus(refus: RefusIHM, combatants: ComLite[] = []): NarratedLine {
-  return { raw: refus.texte, icon: 'ui/forbidden', important: true, tone: 'strong', segments: colorize(refus.texte, combatants) };
+  return { raw: refus.texte, icon: 'interface/interdit', important: true, tone: 'strong', segments: colorize(refus.texte, combatants) };
 }
 
 /** Les `max` derniers événements IMPORTANTS (pour le bandeau haut), ordre chronologique préservé. */

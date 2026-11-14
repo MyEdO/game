@@ -17,7 +17,7 @@ import type { Combatant } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const mk = (id: string, o: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id, label: id, kind: 'enemy', advantage: 0, conditions: [], characteristics: {} as never, psychState: [], psychTraits: [],
+  id, label: id, kind: 'ennemi', advantage: 0, conditions: [], characteristics: {} as never, psychState: [], psychTraits: [],
   groups: [], weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...o,
 }) as Combatant);
 

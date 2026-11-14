@@ -6,7 +6,7 @@
  * refus nomme ce que l'état offre ; l'hôte y joint ses pistes de lecture (`PistesDeLecture`), là où son auteur lit la suite.
  */
 import {
-  DESIGNATIONS, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, cleDuGeste, argsAvecVerdictLocal, etatDeLaBarre, fenetreDuJeu, porteurParId,
+  DESIGNATIONS, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, cleDuGeste, argsAvecIntentionLocale, etatDeLaBarre, fenetreDuJeu, porteurParId,
   quiTientLaMain, siegeDe, type Intention, type Jeu, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
 import { estObjet } from '../lib/objet.mjs';
@@ -124,11 +124,11 @@ export function offresDeLaBarre(etat: Jeu, pistes: PistesDeLecture): Offre[] {
 }
 
 /** L'intention d'un geste, son verbe contrôlé contre `VERBES` (`gesteDuVerbe`). Un verbe joué au nom d'un siège joint le
- *  verdict d'armement que ce siège voit (`argsAvecVerdictLocal`), comme le client du web le joint à son intention. Le
+ *  l'intention armée que ce siège voit (`argsAvecIntentionLocale`), comme le client du web la joint à son intention. Le
  *  verbe juge le geste : un verbe de la barre, par le refus de son geste (`refusDuGeste`). */
 export function intentionDuGeste(etat: Jeu, geste: Geste): Intention {
   if (geste.siege === undefined) return { type: geste.type, args: geste.args } as Intention;
-  return { type: geste.type, args: argsAvecVerdictLocal(() => etat, geste.type, geste.args), siege: geste.siege } as Intention;
+  return { type: geste.type, args: argsAvecIntentionLocale(() => etat, geste.type, geste.args), siege: geste.siege } as Intention;
 }
 
 /** Qui tient la main (`quiTientLaMain`) et le siège qui le joue (`siegeDe`) : ce qui rendrait le geste permis. */

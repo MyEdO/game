@@ -64,7 +64,7 @@ export function hullHitAdjust(attackerSize: SizeCategory | undefined, weapon: We
   | null {
   const size = hullShipSize(target);
   if (!size) return null;
-  if (weapon.type === 'ranged') return isArtilleryWeapon(weapon) ? { extraTB: 0 } : { blocked: 'petites-armes' };
+  if (weapon.type === 'distance') return isArtilleryWeapon(weapon) ? { extraTB: 0 } : { blocked: 'petites-armes' };
   const f = meleeVsHullBE(size, effectiveSize(attackerSize));
   if (!f) return { blocked: 'taille' };
   return { extraTB: 'mult' in f ? (f.mult - 1) * bonus(effectiveChar(target, 'endurance')) : f.flat };

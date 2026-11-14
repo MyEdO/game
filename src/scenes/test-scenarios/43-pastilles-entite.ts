@@ -1,4 +1,4 @@
-import { pregen, PREGEN, idDuPretire } from '../../data/pregens';
+import { herosDeScenario, idDuHerosDeScenario } from './_heros';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { crewFormationSlots } from '../../noyau/monde/shipPostes';
 import { buildScene } from '../../noyau/mapSpec';
@@ -12,11 +12,11 @@ import type { Scene } from '../../noyau/monde/scene';
  *
  * Les trois familles sont réunies AUTOUR DU MÊME HÉROS, adjacentes à sa case d'arrivée — la recette se
  * joue donc sans un pas de déplacement, en un seul tour (anti-grind : le DoD tient en ≤ 2 Rounds) :
- *  • MONTURE (`mount`) — un cheval libre du même camp, à une case ;
- *  • OBJETS AU SOL (`pickup`) — un coffre à DEUX objets : une même entité offre N candidats, donc un
+ *  • MONTURE (`mise-en-selle`) — un cheval libre du même camp, à une case ;
+ *  • OBJETS AU SOL (`ramassage`) — un coffre à DEUX objets : une même entité offre N candidats, donc un
  *    panneau-paramètre né de la pastille (et non une liste) ;
- *  • PIÈCE (`push-engine`) — le bélier ADE II servi par le Soldat (chef de pièce) et son Équipe : la
- *    pastille de l'engin porte « Pousser », et son refus se lit si l'Équipe fond. `man-poste` n'y est
+ *  • PIÈCE (`poussee`) — le bélier ADE II servi par le Soldat (chef de pièce) et son Équipe : la
+ *    pastille de l'engin porte « Pousser », et son refus se lit si l'Équipe fond. `service-poste` n'y est
  *    PAS offert : le Soldat sert déjà l'unique pièce du banc (`servablePostes` écarte son propre poste).
  *
  * Le Soldat est CHEF du bélier (`crewIds[0]`) : c'est lui l'actif qui voit les quatre gestes. Les 5
@@ -30,7 +30,7 @@ const SOLDAT_POS = { x: 5, y: 6 };
 // Ids RÉELS des membres de rencontre : `enemy-<encounterId>-<index>` (`spawnEnemy`) — l'affût est
 // l'index 0, la monture l'index 1, les cinq servants les index 2 à 6. Le CHEF est le Soldat (héros).
 const RAM_CREW = [
-  idDuPretire(PREGEN.soldat),
+  idDuHerosDeScenario('soldat'),
   'enemy-enc-pastilles-2', 'enemy-enc-pastilles-3', 'enemy-enc-pastilles-4', 'enemy-enc-pastilles-5', 'enemy-enc-pastilles-6',
 ];
 // Formation rigide autour de l'affût (jamais l'avant, où l'engin frappe) — on écarte la colonne du
@@ -73,15 +73,15 @@ function construireScene(): Scene {
       enemies: [
         // L'EMPLACEMENT du bélier — affût inerte 2×2, servi par l'Équipe `RAM_CREW` (le Soldat en tête).
         {
-          engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
+          engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'allie',
           postes: [{ trappingId: 'belier-ade2', crewIds: [...RAM_CREW] }],
         },
-        { creature: { id: 'cheval' }, pos: { x: 5, y: 5 }, mount: true, side: 'ally', label: 'Cheval de manœuvre' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[1], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[2], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[3], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[4], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'cheval' }, pos: { x: 5, y: 5 }, mount: true, side: 'allie', label: 'Cheval de manœuvre' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[1], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[2], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[3], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[4], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
       ],
     },
   ]);
@@ -95,14 +95,14 @@ export const scenario: TestScenario = {
   icon: 'scenario/siege',
   title: 'Pastilles d’entité — Monter / Ramasser / Pousser',
   tests:
-    'Zone 4 de la spec HUD : les gestes d’ENTITÉ (`surface: "pastille-entite"` du registre — `mount`, ' +
-    '`pickup`, `push-engine` ; `man-poste` ne s’y offre pas, le Soldat servant DÉJÀ l’unique pièce) ' +
+    'Zone 4 de la spec HUD : les gestes d’ENTITÉ (`surface: "pastille-entite"` du registre — `mise-en-selle`, ' +
+    '`ramassage`, `poussee` ; `service-poste` ne s’y offre pas, le Soldat servant DÉJÀ l’unique pièce) ' +
     'naissent de la chose qui les offre et vivent HORS de la ' +
     'console (géométrie immuable). Couvre : une pastille par entité offrante, le panneau-paramètre ' +
     'quand une même entité porte N candidats (coffre à deux objets), le coût affiché, le refus VISIBLE ' +
     'avec sa raison (`equipage-suffisant` si l’Équipe du bélier fond), l’annulation gratuite (Échap, ' +
     're-clic sur « Pousser »), et le picking : cliquer la pastille ne vaut jamais un clic-monde.',
   partyNote: 'Soldat solo, chef de pièce du bélier — cheval et coffre à une case.',
-  construire: (idNeuf) => ({ party: [pregen(idNeuf, PREGEN.soldat)], scene: construireScene() }),
+  construire: (idNeuf) => ({ party: [herosDeScenario(idNeuf, 'soldat')], scene: construireScene() }),
   autoCombat: 'enc-pastilles',
 };

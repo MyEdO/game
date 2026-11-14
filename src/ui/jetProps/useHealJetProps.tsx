@@ -9,6 +9,8 @@ import { testBreakdown, testPending } from '../breakdown';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { describeHeal } from '../../noyau/flowOutcomes';
+import { nomEnVue } from '../../noyau/visionDuGroupe';
+import { garanti } from '../../lib/garanti';
 import { lodgedAmmoCount } from '../../engine/healing';
 import { stacks } from '../../engine/conditions';
 import { Icon } from '../Icon';
@@ -26,24 +28,26 @@ import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
  *  - hors combat : l'infirmerie (`MedicModal`, `embedded`), qui pose le jet dans SA boîte
  *    (`useRollShell`) et reste ouverte après « Appliquer ».
  * Le soigneur peut être un PNJ payant : sa Chance/Résilience valent 0 (boutons inertes) ; son tarif se débite au
- * lancer, et le brouillon de l'infirmerie ne s'annule pas (`FLOWS.heal.annulation`).
+ * lancer, et le brouillon de l'infirmerie ne s'annule pas (`FLOWS.soins.annulation`).
  */
 export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {}): ComponentProps<typeof RollShell> | null {
   const ph = useGame((s) => s.pendingHeal);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetLancer', 'heal');
-  const reroll = useGesteDeJet('jetRelancer', 'heal');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'heal');
-  const darkPact = useGesteDeJet('jetPactiser', 'heal');
-  const force = useGesteDeJet('jetForcerLaReussite', 'heal');
-  const confirm = useGesteDeJet('jetValider', 'heal');
-  const cancel = useGesteDeJet('jetAnnuler', 'heal');
+  const nomCible = useGame((s) => (s.pendingHeal ? nomEnVue(s, s.pendingHeal.targetId) : null));
+  const roll = useGesteDeJet('jetLancer', 'soins');
+  const reroll = useGesteDeJet('jetRelancer', 'soins');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'soins');
+  const darkPact = useGesteDeJet('jetPactiser', 'soins');
+  const force = useGesteDeJet('jetForcerLaReussite', 'soins');
+  const confirm = useGesteDeJet('jetValider', 'soins');
+  const cancel = useGesteDeJet('jetAnnuler', 'soins');
   const regler = useGame((s) => s.jetRegler);
-  const setMode = (v: ReglagesDuJet['heal']['mode']) => regler('heal', 'mode', v);
-  const setTest = (v: ReglagesDuJet['heal']['test']) => regler('heal', 'test', v);
-  const setBandages = (v: ReglagesDuJet['heal']['bandages']) => regler('heal', 'bandages', v);
+  const setMode = (v: ReglagesDuJet['soins']['mode']) => regler('soins', 'mode', v);
+  const setTest = (v: ReglagesDuJet['soins']['test']) => regler('soins', 'test', v);
+  const setBandages = (v: ReglagesDuJet['soins']['bandages']) => regler('soins', 'bandages', v);
   if (!ph) return null;
+  const nom = garanti(nomCible, ph.targetId, 'cible du soin');
   const fenetre = fenetreDuSoin(useGame.getState());
   const pool = battle?.combatants ?? party; // même flux en combat (file) et hors combat (groupe)
   const healer = pool.find((c) => c.id === ph.healerId); // absent (PNJ médecin) → Chance/Résilience à 0
@@ -52,9 +56,9 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   const rolled = ph.roll != null;
   const acte = HEAL_ACT[ph.mode]; // vocabulaire PARTAGÉ avec le dossier d’opération (MedicModal)
 
-  const wounds = ph.mode === 'wounds';
-  const trauma = ph.mode === 'trauma';
-  const ammo = ph.mode === 'ammo';
+  const wounds = ph.mode === 'blessures';
+  const trauma = ph.mode === 'traumatisme';
+  const ammo = ph.mode === 'munition';
   // Surface UNIQUE du soin en combat : on a ciblé l'allié sur la carte (mode par défaut) ; si plusieurs
   // soins s'offrent (`fenetreDuSoin.mode`), on choisit ICI, avant le jet. L'infirmerie (embedded) garde
   // son propre choix d'acte → pas de seg.
@@ -83,14 +87,14 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return {
-    flowKey: 'heal',
+    flowKey: 'soins',
     stake: enjeuDuSoin(useGame.getState(), ph),
-    title: wounds ? <><Icon id="journal/heal" size="sm" /> Soigner les Blessures</> : trauma ? <><Icon id="medical/tear" size="sm" /> Soigner une déchirure</> : ammo ? <><Icon id="item/ammo" size="sm" /> Retirer une munition</> : <><Icon id="condition/bleeding" size="sm" /> Arrêter l’Hémorragie</>,
+    title: wounds ? <><Icon id="journal/soin" size="sm" /> Soigner les Blessures</> : trauma ? <><Icon id="medical/dechirure" size="sm" /> Soigner une déchirure</> : ammo ? <><Icon id="objet/munition" size="sm" /> Retirer une munition</> : <><Icon id="etat/hemorragique" size="sm" /> Arrêter l’Hémorragie</>,
     /* A→B canonique (décision utilisateur 2026-08-04) : portraits + flèche annotée de l'acte —
        plus AUCUNE phrase « A soigne B » en sous-titre. Le patient est en `full` : ses pastilles
        d'ÉTATS sont ce que le jet fait bouger (suivre l'Hémorragie passe par passe). EMBARQUÉ
@@ -100,7 +104,7 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
        nom est au titre de l'infirmerie). La Difficulté reste la donnée de la LIGNE (#1072). */
     extra: embedded ? undefined : healer
       ? <VsHeader actor={healer} target={target} label={acte.label} verb={acte.icon} targetVariant="full" />
-      : <p className="rm-note">{acte.label} — {ph.targetName}</p>,
+      : <p className="rm-note">{acte.label} — {nom}</p>,
     // Fenêtre du soin (`fenetreDuSoin`) : le Test et les Bandages engagés, chaque option fermée avec sa raison.
     setup: rolled ? undefined : (
       <>
@@ -110,11 +114,11 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
             groupLabel={fenetre.mode.libelle}
             options={combatModes.map((m) => ({
               key: m,
-              label: m === 'wounds'
-                ? <><Icon id="journal/heal" size="sm" /> Blessures</>
-                : m === 'ammo'
-                  ? <><Icon id="item/ammo" size="sm" /> Munition ×{lodged}</>
-                  : <><Icon id="condition/bleeding" size="sm" /> Hémorragie ×{bleed}</>,
+              label: m === 'blessures'
+                ? <><Icon id="journal/soin" size="sm" /> Blessures</>
+                : m === 'munition'
+                  ? <><Icon id="objet/munition" size="sm" /> Munition ×{lodged}</>
+                  : <><Icon id="etat/hemorragique" size="sm" /> Hémorragie ×{bleed}</>,
               selected: ph.mode === m,
               onSelect: () => setMode(m),
             }))}
@@ -144,7 +148,7 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
     ),
     rows: [actorRow],
     rolled,
-    outcome: rolled && target ? [recapLineOfEvent(ev('heal', describeHeal(ph, target), ph.healerId, ph.targetId), pool)] : undefined,
+    outcome: rolled && target ? [recapLineOfEvent(ev('soin', describeHeal(ph, target, nom), ph.healerId, ph.targetId), pool)] : undefined,
     actions,
     onCancel: rolled ? undefined : cancel,
   };

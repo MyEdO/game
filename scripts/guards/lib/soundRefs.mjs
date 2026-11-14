@@ -1,7 +1,6 @@
 // Mécanique de scan du garde-fou anti-son-fantôme (#321 lentille 2) : toute réf littérale
 // `playSfx('x')` doit résoudre dans le registre de sons généré (`src/data/sons/_registry.generated.ts`).
 // Module ESM pur — consommé par `src/audio/no-phantom-sound.test.ts` (POLICY : répertoires scannés).
-// Mécanique JUMELLE de `iconRefs.mjs` (même forme d'extraction, id littéral + ligne de 1ʳᵉ occurrence).
 
 /** Réf littérale `playSfx('id')` — ≠ accès dynamique (`playSfx(x)`). @type {RegExp} */
 const SOUND_REF_RE = /\bplaySfx\(\s*['"]([A-Za-z0-9_-]+)['"]/g;

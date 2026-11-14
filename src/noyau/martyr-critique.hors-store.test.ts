@@ -31,11 +31,11 @@ function touche({ sl, critical, martyr = true, fenetre = false, arme = epee, end
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const [cible, pretre] = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const [cible, pretre] = b.combatants.filter((c) => c.kind === 'ennemi');
   for (const c of [cible, pretre]) { c.items = (c.items ?? []).filter((i) => i.kind !== 'armor'); c.armour = { ...SANS_PA }; c.wounds = blessuresDeBase(20, 20, c); }
   cible.important = true; // LDB 18 l.44 : hors Mort subite
   cible.armour = { tete: pa, corps: pa, brasG: pa, brasD: pa, jambeG: pa, jambeD: pa };

@@ -2,33 +2,37 @@
  * Composition d'équipe coop (recruterLeHeros/renvoyerLeHeros + emplacements `net.slots`) :
  * point d'entrée unique de l'écran d'équipe — quota par siège, doublons, bourse, possession.
  */
-import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
-import { makePregens, idDuPretire } from '../data/pregens';
+import { idDuPretire, richesseDuPretire } from '../data/pregens';
+import type { PregenDef } from '../data';
+import type { EntreeVivante } from '../data/datasets';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { makeRNG, rollDice } from '../engine/dice';
+import { battleRng, seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
 import { toBrass } from '../engine/money';
 import { partyMoneyTotal } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { withActingSeat } from './netOwnership';
 import { emplacementsDuGroupe, fermerLeSiege } from './sieges';
-import { refusDeComposerLeHeros, refusDeLancer } from './partyFlow';
+import { refusDeComposerLeHeros, refusDeLancer, refusDeRecruter, refusDeRenvoyer } from './partyFlow';
+import { pretiresOfferts } from './creation/engagement';
+import { careerLabelFor, findSpeciesById } from '../data';
 import { lancerCampagne } from '../scenes/campaign';
 import { t } from '../i18n';
 import { brouillonComplet, engage } from './creation/engagement.testkit';
 import { draftWealth, newDraft } from './creation/brouillon';
-import { pregens } from '../data';
+import { PRETIRE_DE_TEST, poserLesPretires } from './creation/pretireDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-function hero(id: string): Combatant {
-  const h: Combatant = JSON.parse(JSON.stringify(makePregens(idsDeTest)[0]));
-  h.id = id;
-  h.label = `Héros ${id}`;
-  return h;
-}
+/** Un prétiré de fixture dont une possession du catalogue est imprimée à 1d10. */
+const AUX_DES: EntreeVivante<PregenDef> = { ...PRETIRE_DE_TEST, trappings: [{ id: 'chiffons', count: { roll: { n: 1, sides: 10 } } }] };
+
+const hero = (id: string): Combatant => combattantDeTest({ id, label: `Héros ${id}`, kind: 'heros' });
 
 describe('composition d’équipe (partyFlow + net.slots)', () => {
   it('recruterLeHeros : le noyau bâtit le héros du brouillon, pose la possession du siège, crédite sa Richesse de départ', () => {
@@ -46,10 +50,60 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     expect(journal[journal.length - 1]).toBe('Choisissez votre race.');
   });
 
-  it('recruterLeHeros : un pré-tiré se désigne par son id, le noyau le bâtit de la donnée', () => {
-    const [def] = pregens;
+  it('recruterLeHeros : un pré-tiré se désigne par son id, le noyau le bâtit de la donnée et tire sa Richesse au RNG du jeu', () => {
+    const def = PRETIRE_DE_TEST;
+    poserLesPretires();
+    seedBattleRng(31);
     banc.getState().recruterLeHeros({ pretire: def.id });
-    expect(banc.getState().party.map((h) => [h.id, h.label])).toEqual([[idDuPretire(def.seed), def.label]]);
+    const s = banc.getState();
+    expect(s.party.map((h) => [h.id, h.label])).toEqual([[idDuPretire(def.id), def.label]]);
+    expect(toBrass(bourseOf(s.party[0]))).toBe(toBrass(richesseDuPretire(def, makeRNG(31))));
+  });
+
+  it('pretiresOfferts : chaque pré-tiré de la donnée, son nom, son espèce, sa carrière, et le refus de son recrutement', () => {
+    const autre: EntreeVivante<PregenDef> = { ...PRETIRE_DE_TEST, id: 'autre-pretire-de-test', label: 'Autre prétiré de test', sex: 'F' };
+    poserLesPretires([PRETIRE_DE_TEST, autre]);
+    const offre = (def: EntreeVivante<PregenDef>, refus: string | null) => ({ id: def.id, nom: def.label, espece: findSpeciesById(def.species.id)!.label, carriere: careerLabelFor({ career: 'herboriste', appearance: { sex: def.sex } }), recrutement: { type: 'recruterLeHeros', args: [{ pretire: def.id }] }, refus });
+    expect(pretiresOfferts(banc.getState())).toEqual([offre(PRETIRE_DE_TEST, null), offre(autre, null)]);
+    banc.getState().recruterLeHeros({ pretire: PRETIRE_DE_TEST.id });
+    expect(pretiresOfferts(banc.getState()), 'le pré-tiré au groupe se refuse, du verdict du verbe').toEqual([
+      offre(PRETIRE_DE_TEST, t('pf.partyDuplicate', { name: PRETIRE_DE_TEST.label })), offre(autre, null),
+    ]);
+    expect(refusDeRecruter(banc.getState(), { pretire: 'zz-inconnu' })).toBe(t('party.pretireInconnu', { id: 'zz-inconnu' }));
+    expect(refusDeRenvoyer(banc.getState(), idDuPretire(PRETIRE_DE_TEST.id))).toBeNull();
+  });
+
+  it('remplacerLeHeros par un pré-tiré : aucun dé tiré, la Bourse du remplacé portée', () => {
+    const def = PRETIRE_DE_TEST;
+    poserLesPretires();
+    banc.getState().recruterLeHeros(engage('a'));
+    const bourseDeA = toBrass(bourseOf(banc.getState().party[0]));
+    seedBattleRng(31);
+    banc.getState().remplacerLeHeros('a', { pretire: def.id });
+    const s = banc.getState();
+    expect(s.party.map((h) => h.id)).toEqual([idDuPretire(def.id)]);
+    expect(toBrass(bourseOf(s.party[0]))).toBe(bourseDeA);
+    const temoin = makeRNG(31);
+    expect(battleRng().int(1, 1_000_000), 'le RNG du jeu reste à sa graine : le remplacement ne tire rien').toBe(temoin.int(1, 1_000_000));
+  });
+
+  it('recruterLeHeros : une possession de pré-tiré imprimée à quantité aux dés se tire au RNG du jeu, avant la Richesse', () => {
+    poserLesPretires([AUX_DES]);
+    seedBattleRng(31);
+    banc.getState().recruterLeHeros({ pretire: AUX_DES.id });
+    const temoin = makeRNG(31);
+    const attendu = rollDice({ n: 1, sides: 10 }, temoin);
+    expect(banc.getState().party[0].items!.filter((i) => i.trappingId === 'chiffons')).toHaveLength(attendu);
+    expect(toBrass(bourseOf(banc.getState().party[0])), 'la Richesse se tire après les possessions').toBe(toBrass(richesseDuPretire(AUX_DES, temoin)));
+  });
+
+  it('remplacerLeHeros par un pré-tiré : ses possessions aux dés se tirent aussi', () => {
+    poserLesPretires([AUX_DES]);
+    banc.getState().recruterLeHeros(engage('a'));
+    seedBattleRng(31);
+    banc.getState().remplacerLeHeros('a', { pretire: AUX_DES.id });
+    const attendu = rollDice({ n: 1, sides: 10 }, makeRNG(31));
+    expect(banc.getState().party[0].items!.filter((i) => i.trappingId === 'chiffons')).toHaveLength(attendu);
   });
 
   it('recruterLeHeros : refuse les doublons d’id et le groupe plein', () => {
@@ -62,7 +116,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
   });
 
   it('recruterLeHeros : respecte le quota d’emplacements du siège (hôte autoritaire)', () => {
-    banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 0, 0, 1] } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 0, 0, 1] } });
     const st = banc.getState();
     withActingSeat(1, () => st.recruterLeHeros(engage('g1')));
     withActingSeat(1, () => st.recruterLeHeros(engage('g2'))); // 1 seul slot au siège 1 → refusé
@@ -72,7 +126,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
   });
 
   it('renvoyerLeHeros : le siège retire SON héros et nettoie sa possession', () => {
-    banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
     withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));
     withActingSeat(1, () => banc.getState().renvoyerLeHeros('g1'));
     const s = banc.getState();
@@ -81,7 +135,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
   });
 
   it('D4 — l’hôte ne retire, ne remplace ni ne modifie le héros d’un invité : refusé, le refus au journal', () => {
-    banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
     withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));
     const journal = banc.getState().journal.length;
     banc.getState().renvoyerLeHeros('g1');
@@ -153,7 +207,7 @@ describe('le rang de chaque héros est un état du jeu (`net.rangs`, #3059 F10)'
   });
 
   it('coop : un héros ajouté par un siège entre dans un emplacement de CE siège ; fermer le siège garde son rang', () => {
-    banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 0, 1, 0] } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 0, 1, 0] } });
     withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));
     banc.getState().recruterLeHeros(engage('h1'));
     expect(occupants(banc)).toEqual(['h1', null, 'g1', null]);
@@ -171,7 +225,7 @@ describe('lancer la partie : `refusDeLancer`, lu par `lancerCampagne` (#3059 F10
   it('D2 — un siège invité nommé sans héros refuse le lancement, même quand un orphelin de l’hôte occupe son emplacement', () => {
     banc.setState({
       party: ['a', 'b', 'c', 'd'].map(hero),
-      net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] },
+      net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] },
     });
     expect(emplacementsDuGroupe(banc.getState())[1].heroId, 'témoin : l’orphelin de l’hôte occupe l’emplacement de l’invité').toBe('b');
     expect(refusDeLancer(banc.getState())).toBe(t('party.action.start.guestPending'));
@@ -179,8 +233,17 @@ describe('lancer la partie : `refusDeLancer`, lu par `lancerCampagne` (#3059 F10
     expect(banc.getState().scene).toBeNull();
   });
 
+  it('un invité ne lance pas, son groupe complet compris : `party.guest.waiting`, aucune scène n’est posée ; le même groupe se lance en partie locale', () => {
+    banc.setState({ party: ['a', 'b', 'c', 'd'].map(hero) });
+    expect(refusDeLancer(banc.getState()), 'témoin : le groupe complet se lance en partie locale').toBeNull();
+    banc.setState({ net: { ...initialNet(), mode: 'invite', mySeat: 1, roomCode: 'ABCDEF' } });
+    expect(refusDeLancer(banc.getState())).toBe(t('party.guest.waiting'));
+    expect(lancerCampagne(banc.getState, null)).toBe(t('party.guest.waiting'));
+    expect(banc.getState().scene).toBeNull();
+  });
+
   it('un groupe dont chaque siège invité a rempli ses emplacements se lance', () => {
-    banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
     withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));
     expect(refusDeLancer(banc.getState())).toBeNull();
   });

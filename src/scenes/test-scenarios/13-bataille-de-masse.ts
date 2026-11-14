@@ -1,4 +1,4 @@
-import { pregenParty, PREGEN } from '../../data/pregens';
+import { groupeDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
@@ -82,7 +82,7 @@ export const scenario: TestScenario = {
   id: 'bataille-de-masse',
   order: 40,
   category: 'scenarios',
-  icon: 'action/attack',
+  icon: 'action/attaquer',
   title: 'Bataille de masse',
   tests:
     // ADE II 08
@@ -94,12 +94,12 @@ export const scenario: TestScenario = {
   // UNIQUE dans lequel puise la préparation de bataille (ADE II 8 l.65). Sans lui : Round 1 direct.
   interludeWeeks: 3,
   construire: (idNeuf) => ({
-    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
+    party: groupeDeScenario(idNeuf, 'soldat', 'chasseur', 'sorcier', 'tueur'),
     scene: construireScene(),
     massBattle: {
-      enemyName: 'Horde ennemie',
-      allyMight: 50,
-      enemyMight: 55,
+      nomDesEnnemis: 'Horde ennemie',
+      puissanceAlliee: 50,
+      puissanceEnnemie: 55,
       plannedRounds: 3,
       terrain: 'La plaine boueuse s\'étend devant les remparts ; la horde dévale la pente en hurlant.',
       scenes: [

@@ -51,8 +51,8 @@ const PORTEURS = [
     avec: (v: unknown) => projet((c) => Object.assign(c.worldMap.routes[0].ambush, { scene: v })),
   },
   {
-    porteur: 'scenes[].triggers[].flow › transition.scene', chemin: `scenes.${RANG_SCENE_DU_DECLENCHEUR}.triggers.${RANG_DECLENCHEUR}.flow.steps.0.effect.scene`,
-    avec: (v: unknown) => projet((c) => Object.assign(c.scenes[RANG_SCENE_DU_DECLENCHEUR].triggers[RANG_DECLENCHEUR].flow.steps[0].effect, { scene: v })),
+    porteur: 'scenes[].triggers[].flow › transition.scene', chemin: `scenes.${RANG_SCENE_DU_DECLENCHEUR}.triggers.${RANG_DECLENCHEUR}.flow.etapes.0.effet.scene`,
+    avec: (v: unknown) => projet((c) => Object.assign(c.scenes[RANG_SCENE_DU_DECLENCHEUR].triggers[RANG_DECLENCHEUR].flow.etapes[0].effet, { scene: v })),
   },
   {
     porteur: 'worldMap.routes[].perils[].effects › transition.scene', chemin: 'worldMap.routes.0.perils.0.effects.0.scene',

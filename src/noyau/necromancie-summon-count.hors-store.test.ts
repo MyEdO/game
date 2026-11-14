@@ -26,9 +26,9 @@ const frozen = (sl: number): TestResult => ({ roll: 11, target: 60, success: tru
 /** Babrakkos, lanceur de Nécromancie du bestiaire (BFM 6, Middenheim 10 l.87) + N adversaires DANS la zone posée. */
 function setup(foes: number): Combatant {
   const necro = spawnEnemy({ ref: 'babrakkos' }, 'necro', { x: 5, y: 5 });
-  necro.kind = 'enemy';
+  necro.kind = 'ennemi';
   const others = Array.from({ length: foes }, (_, i) =>
-    Object.assign(spawnEnemy({ ref: 'humain' }, `foe${i}`, { x: 8 + i, y: 5 }), { kind: 'hero' as const }),
+    Object.assign(spawnEnemy({ ref: 'humain' }, `foe${i}`, { x: 8 + i, y: 5 }), { kind: 'heros' as const }),
   );
   const combatants = [necro, ...others];
   const ids = combatants.map((c) => c.id);

@@ -17,18 +17,18 @@ import { useGesteDeJet } from './useGesteDeJet';
  * Modale de Course (LDB 15 l.41) : « Lancer » jette le Test de `pendingRun.test`,
  * « Relancer »/« Résilience ×N » dépensent Chance/Résilience, « Appliquer » ouvre le déplacement
  * étendu (Marche + Course + DR). La Course N'EST PAS binaire : « +1 DR » (Chance, LDB 17 l.24) allonge
- * la distance parcourue (DR en mètres → cases, cf. le flux `run`).
+ * la distance parcourue (DR en mètres → cases, cf. le flux `course`).
  */
 export function RunModal() {
   const pr = useGame((s) => s.pendingRun);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'run');
-  const reroll = useGesteDeJet('jetRelancer', 'run');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'run');
-  const darkPact = useGesteDeJet('jetPactiser', 'run');
-  const force = useGesteDeJet('jetForcerLaReussite', 'run');
-  const confirm = useGesteDeJet('jetValider', 'run');
-  const cancel = useGesteDeJet('jetAnnuler', 'run');
+  const roll = useGesteDeJet('jetLancer', 'course');
+  const reroll = useGesteDeJet('jetRelancer', 'course');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'course');
+  const darkPact = useGesteDeJet('jetPactiser', 'course');
+  const force = useGesteDeJet('jetForcerLaReussite', 'course');
+  const confirm = useGesteDeJet('jetValider', 'course');
+  const cancel = useGesteDeJet('jetAnnuler', 'course');
   if (!pr || !battle) return null;
   const c = battle.combatants.find((x) => x.id === pr.combatantId);
   if (!c) return null;
@@ -53,15 +53,15 @@ export function RunModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
-      flowKey="run"
-      stake={flowStakeRef('run-roll')}
-      title={<><Icon id="melee/flee" size="sm" /> {pr.test.label}</>}
+      flowKey="course"
+      stake={flowStakeRef('course-test')}
+      title={<><Icon id="melee/fuir" size="sm" /> {pr.test.label}</>}
       subtitle={
         <>
           <strong>{c.label}</strong> s'élance
@@ -69,7 +69,7 @@ export function RunModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('move', describeRun(pr), c.id), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('deplacement', describeRun(pr), c.id), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

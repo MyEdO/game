@@ -5,7 +5,7 @@
  * tire ENSUITE au score de Projectiles DU COMMANDANT.
  *
  * « À portée de voix » n'est chiffrée NULLE PART (AA 13 l.35, LDB 09 l.128) : la portée est une RÈGLE
- * ÉDITABLE (`combat-voice-range-m`, `engine/policy.ts`), lue à chaque mesure, jamais une constante
+ * ÉDITABLE (`combat-portee-voix-m`, `engine/policy.ts`), lue à chaque mesure, jamais une constante
  * enterrée. Mesurée par le MÊME mécanisme d'aura que les Traits (Chebyshev × 2 m/case, cf.
  * `noyau/combat/roundHooks` `recompute-auras`).
  */
@@ -20,9 +20,9 @@ import type { Combatant, Weapon } from '../../engine/types';
 /** id du Défaut « Arme d'équipe » (registre de qualités) — même littéral que `engine/crewedWeapon`. */
 const ARME_D_EQUIPE = 'arme-d-equipe';
 
-/** Portée de voix de commandement EFFECTIVE, en mètres (règle `combat-voice-range-m`). */
+/** Portée de voix de commandement EFFECTIVE, en mètres (règle `combat-portee-voix-m`). */
 export function voiceCommandRangeM(): number {
-  return rule('combat-voice-range-m') as number;
+  return rule('combat-portee-voix-m') as number;
 }
 
 /** Deux combattants sont-ils à portée de voix l'un de l'autre ? (géométrie d'aura : Chebyshev × 2 m/case). */
@@ -77,7 +77,7 @@ export function teamCommandMod(chief: Combatant, weapon: Weapon, combatants: Com
   if (!chief.mannedPoste || chief.teamCommanderId == null || weapon.uid !== chief.mannedPoste.item.uid) return null;
   const cmd = effectiveCommander(chief, combatants);
   if (!cmd) return null;
-  const delta = combatValue(cmd, 'ranged', weapon) - combatValue(chief, 'ranged', weapon);
+  const delta = combatValue(cmd, 'distance', weapon) - combatValue(chief, 'distance', weapon);
   if (delta === 0) return null; // aucune substitution à montrer
   return { label: 'Commandant d’équipe', value: delta, famille: 'jet', ref: RULE_REF['commandant-d-equipe'] };
 }

@@ -18,7 +18,7 @@ beforeAll(() => {
 });
 
 const SP = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
-const CAREER = careersForSpecies(SP.refCareer)[0]!;
+const CAREER = careersForSpecies(SP)[0]!;
 
 describe('CharScreen — auto-scroll de la 1ʳᵉ rangée d’allocation NON SOLDÉE à la fin du tirage (#535 DoD)', () => {
   let container: HTMLDivElement;

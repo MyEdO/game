@@ -4,16 +4,16 @@
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 
 [node name="Choix" type="HBoxContainer"]
+theme_type_variation = &"RangeeSerree"
 size_flags_horizontal = 3
-theme_override_constants/separation = 10
 
-[node name="Libelle" type="Label" parent="."]
+[node name="Nom" type="Label" parent="."]
 
-[node name="libelle" type="Node" parent="Libelle"]
+[node name="libelle" type="Node" parent="Nom"]
 script = ExtResource("1_liaison")
 champ = "libelle"
 
-[node name="ton" type="Node" parent="Libelle"]
+[node name="ton" type="Node" parent="Nom"]
 script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"

@@ -5,13 +5,15 @@
   "init": [
     {
       "op": "condition",
-      "id": "empetre",
+      "id": {
+        "id": "empetre"
+      },
       "value": 1,
       "grapple": true
     }
   ],
   "win": {
-    "damage": [
+    "degats": [
       {
         "op": "wounds",
         "amount": {
@@ -25,17 +27,21 @@
         "ignoreAP": true
       }
     ],
-    "entangle": [
+    "empetrer": [
       {
         "op": "condition",
-        "id": "empetre",
+        "id": {
+          "id": "empetre"
+        },
         "value": 1
       }
     ],
-    "free": [
+    "liberer": [
       {
         "op": "removeCondition",
-        "id": "empetre",
+        "id": {
+          "id": "empetre"
+        },
         "value": 1,
         "valuePerSL": {
           "every": 1,

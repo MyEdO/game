@@ -44,7 +44,7 @@ beforeAll(() => {
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 };
 const mk = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, label: id, kind: 'hero', characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
+  (blessuresSurLeProfil({ id, name: id, label: id, kind: 'heros', characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(18, 12), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
@@ -173,7 +173,7 @@ describe('infirmerie ouverte depuis la fiche — le dialogue du dessus est celui
   it('manette : la croix depuis « Lancer » navigue dans l’infirmerie', async () => {
     await ouvrirInfirmerieDepuisLaFiche();
     bouton(infirmerie(), 'Lancer').focus();
-    act(() => padDir('down'));
+    act(() => padDir('bas'));
     expect(infirmerie().contains(document.activeElement), `croix → « ${actif()} »`).toBe(true);
   });
 });
@@ -249,7 +249,7 @@ describe('manette — bulle épinglée au-dessus d’un dialogue', () => {
     const bulle = document.querySelector<HTMLElement>('.infobulle')!;
     expect(bulle, 'la bulle est épinglée').toBeTruthy();
     expect(bulle.contains(document.activeElement), 'elle a pris le focus').toBe(true);
-    act(() => padDir('down'));
+    act(() => padDir('bas'));
     expect(bulle.contains(document.activeElement), `croix → « ${actif()} »`).toBe(true);
   });
 });
@@ -355,10 +355,10 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
     useGame.setState({ party: [heros], screen: 'campaign', gameMenuOpen: false, dialogue: null });
     useGame.getState().lancerLaScene(testScene());
     act(() => { useGame.getState().lancerLeCombat('enc-mutants'); });
-    if (useGame.getState().pendingRoundStart) act(() => useGame.getState().fenetreValider('roundStart'));
+    if (useGame.getState().pendingRoundStart) act(() => useGame.getState().fenetreValider('debutDuRound'));
     const b = useGame.getState().battle!;
-    const h = b.combatants.find((c) => c.kind === 'hero')!;
-    const cible = b.combatants.find((c) => c.kind !== 'hero')!;
+    const h = b.combatants.find((c) => c.kind === 'heros')!;
+    const cible = b.combatants.find((c) => c.kind !== 'heros')!;
     useGame.setState({
       pendingCascade: null, combatCursor: null,
       battle: {
@@ -373,7 +373,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
     useGame.setState({ screen: 'campaign', mode: 'exploration', dialogue: null, povActive: false, battle: null });
     expect(dialogueDuDessus(), 'aucun dialogue dans la pile').toBeNull();
     touche('KeyF', 'f');
-    expect(pris(), 'le registre a pris F').toEqual(['toggle-pov']);
+    expect(pris(), 'le registre a pris F').toEqual(['subjectif-basculer']);
     expect(useGame.getState().povActive, 'F bascule la vue subjective').toBe(true);
   });
 
@@ -381,7 +381,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
     await ouvrirInfirmerieDepuisLaFiche();
     expect(dialogueDuDessus(), 'l’infirmerie est le dialogue du dessus').toBe(infirmerie());
     const s0 = useGame.getState();
-    expect(liaison('toggle-pov').when(s0), 'la situation laisse vivre F hors dialogue').toBe(true);
+    expect(liaison('subjectif-basculer').when(s0), 'la situation laisse vivre F hors dialogue').toBe(true);
     (document.activeElement as HTMLElement | null)?.blur();
     expect(actif()).toBe('BODY');
     for (const [code, key] of [['KeyF', 'f'], ['KeyQ', 'q'], ['KeyE', 'e'], ['KeyW', 'w'], ['KeyV', 'v'], ['KeyC', 'c'], ['ArrowUp', 'ArrowUp']]) touche(code, key);
@@ -395,8 +395,8 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
   it('(b) fiche seule, en combat au tour du héros : Espace ne finit pas le tour, 1 ne déclenche rien', async () => {
     const h = ouvrirCombat();
     const s0 = useGame.getState();
-    expect(liaison('end-turn').when(s0), 'hors dialogue, Espace finirait le tour').toBe(true);
-    expect(liaison('hotbar-1').when(s0), 'hors dialogue, 1 jouerait la 1ʳᵉ case').toBe(true);
+    expect(liaison('fin-de-tour').when(s0), 'hors dialogue, Espace finirait le tour').toBe(true);
+    expect(liaison('capacite-1').when(s0), 'hors dialogue, 1 jouerait la 1ʳᵉ case').toBe(true);
     act(() => root.render(<StrictMode><ActiveModal /><CharacterSheet heroId={h.id} onClose={() => {}} /></StrictMode>));
     await vider();
     expect(dialogueDuDessus(), 'la fiche est le dialogue du dessus').not.toBeNull();
@@ -411,7 +411,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
     const h = ouvrirCombat();
     const s0 = useGame.getState();
     expect(validTargets(useGame.getState).length, 'une cible valide').toBeGreaterThan(0);
-    expect(liaison('target-next').when(s0), 'hors dialogue, Tab aimanterait le curseur').toBe(true);
+    expect(liaison('cible-suivante').when(s0), 'hors dialogue, Tab aimanterait le curseur').toBe(true);
     act(() => root.render(<StrictMode><ActiveModal /><CharacterSheet heroId={h.id} onClose={() => {}} /></StrictMode>));
     await vider();
     const fiche = dialogueDuDessus()!;
@@ -426,7 +426,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
   it('(d) désignation des cibles d’un sort par la carte (aucune fenêtre) : ↑ déplace le curseur', async () => {
     const h = ouvrirCombat();
     act(() => useGame.setState({
-      pendingCascade: cascadeDeTest([{ actorId: h.id, id: 'c', kind: cleDeFixture('castJet'), jet: 'cast' }]),
+      pendingCascade: cascadeDeTest([{ actorId: h.id, id: 'c', kind: cleDeFixture('castJet'), jet: 'incantation' }]),
       pendingCast: { casterId: h.id, pickingTargets: true } as never,
     }));
     act(() => root.render(<StrictMode><ActiveModal /></StrictMode>));
@@ -435,7 +435,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
     expect(dialogueDuDessus(), 'aucun dialogue dans la pile').toBeNull();
     (document.activeElement as HTMLElement | null)?.blur();
     touche('ArrowUp');
-    expect(pris(), 'le registre a pris ↑').toEqual(['cursor-up']);
+    expect(pris(), 'le registre a pris ↑').toEqual(['curseur-haut']);
     expect(useGame.getState().combatCursor, 'le curseur est posé').not.toBeNull();
   });
 });
@@ -506,7 +506,7 @@ describe('conversation PNJ — une surface de la pile qui suspend le jeu', () =>
       const cap0 = JSON.stringify(useGame.getState().facing);
       const pivot = [...document.querySelectorAll<HTMLButtonElement>('.pov-controls button')].find((b) => /Pivoter le regard à gauche/.test(b.title))!;
       act(() => { pivot.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })); });
-      act(() => { runBindingById('toggle-pov', useGame.getState); });
+      act(() => { runBindingById('subjectif-basculer', useGame.getState); });
       const r = { capChange: JSON.stringify(useGame.getState().facing) !== cap0, pov: useGame.getState().povActive };
       act(() => root.render(<></>));
       await vider();
@@ -518,11 +518,11 @@ describe('conversation PNJ — une surface de la pile qui suspend le jeu', () =>
 
   it('clavier : aucun autre raccourci ne répond pendant la conversation — C, F, Q, E, V, flèches ; en plein combat, I', async () => {
     const s0 = await ouvrirConversation();
-    for (const id of ['cam-recenter', 'cam-left', 'toggle-view']) expect(KEYBINDINGS.find((k) => k.id === id)!.when(s0), `hors pile, ${id} partirait`).toBe(true);
+    for (const id of ['camera-recentrer', 'camera-gauche', 'vue-basculer']) expect(KEYBINDINGS.find((k) => k.id === id)!.when(s0), `hors pile, ${id} partirait`).toBe(true);
     for (const [code, key] of [['KeyC', 'c'], ['KeyF', 'f'], ['KeyQ', 'q'], ['KeyE', 'e'], ['KeyV', 'v'], ['ArrowUp', 'ArrowUp'], ['ArrowLeft', 'ArrowLeft']]) touche(code, key);
     expect(pris(), 'aucun raccourci du registre n’est parti').toEqual([]);
     expect(useGame.getState().viewMode, 'la vue n’a pas basculé').toBe(s0.viewMode);
-    act(() => useGame.setState({ mode: 'battle', inspectId: null, hovered: 'h1', battle: { over: null, order: ['h1'], turn: 0, combatants: [combattantDeTest({ id: 'h1', kind: 'hero' })] } as never }));
+    act(() => useGame.setState({ mode: 'battle', inspectId: null, hovered: 'h1', battle: { over: null, order: ['h1'], turn: 0, combatants: [combattantDeTest({ id: 'h1', kind: 'heros' })] } as never }));
     expect(KEYBINDINGS.find((k) => k.id === 'inspecter')!.when(useGame.getState()), 'hors pile, I partirait en combat').toBe(true);
     touche('KeyI', 'i');
     expect(pris(), 'en plein combat, I se tait aussi').toEqual([]);
@@ -531,7 +531,7 @@ describe('conversation PNJ — une surface de la pile qui suspend le jeu', () =>
 
   it('manette : Back et LT sont inertes pendant la conversation', async () => {
     const s0 = await ouvrirConversation();
-    for (const id of ['cam-recenter', 'cam-left']) expect(KEYBINDINGS.find((k) => k.id === id)!.when(s0), `hors pile, ${id} partirait`).toBe(true);
+    for (const id of ['camera-recentrer', 'camera-gauche']) expect(KEYBINDINGS.find((k) => k.id === id)!.when(s0), `hors pile, ${id} partirait`).toBe(true);
     act(() => useGame.setState({ zoom: 2 } as never));
     act(() => { padButton('Back'); padButton('LT'); });
     expect(pris(), 'aucun raccourci du registre n’est parti').toEqual([]);
@@ -545,7 +545,7 @@ describe('conversation PNJ — une surface de la pile qui suspend le jeu', () =>
     expect(dialogueDuDessus(), 'aucune conversation').toBeNull();
     touche('KeyC', 'c');
     act(() => { padButton('Back'); });
-    expect(pris(), 'C et Back partent hors conversation').toEqual(['cam-recenter']);
+    expect(pris(), 'C et Back partent hors conversation').toEqual(['camera-recentrer']);
   });
 
   const choix = () => [...conversation().querySelectorAll<HTMLButtonElement>('.dlg-choice')];
@@ -610,11 +610,11 @@ describe('conversation PNJ — une surface de la pile qui suspend le jeu', () =>
     await vider();
     expect(document.activeElement, 'Maj+Tab depuis le premier boucle sur le dernier').toBe(dernier);
     premier.focus();
-    act(() => { padDir('down'); });
+    act(() => { padDir('bas'); });
     expect(document.activeElement, 'la croix navigue dans les choix').toBe(dernier);
-    act(() => { padDir('down'); });
+    act(() => { padDir('bas'); });
     expect(document.activeElement, 'et boucle dans les choix').toBe(premier);
     touche('Digit2', '2');
-    expect(pris(), 'la conversation a la main : la réponse 2 part').toEqual(['dialogue-choice-2']);
+    expect(pris(), 'la conversation a la main : la réponse 2 part').toEqual(['dialogue-reponse-2']);
   });
 });

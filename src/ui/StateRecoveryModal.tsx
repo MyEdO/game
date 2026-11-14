@@ -12,11 +12,14 @@ import { remedeDeLEtat } from '../noyau/actionRegistry';
 import { conditionLabel } from '../data';
 import { libelleDeForceAdverse } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { nomEnVue } from '../noyau/visionDuGroupe';
+import { garanti } from '../lib/garanti';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Vue pure de la modale « se libérer » (Empêtré) / « se rouler » (En flammes). Testable sans store. */
 export function StateRecoveryModalView({
   sr,
+  nom,
   actor,
   fortune,
   onRoll,
@@ -26,6 +29,8 @@ export function StateRecoveryModalView({
   onConfirm,
   onCancel,
 }: {
+  /** le nom de l'acteur tel que le groupe le connaît (`nomEnVue`). */
+  nom: string;
   sr: PendingStateRecovery;
   /** Acteur qui se libère (jet mono-acteur côté joueur) → portrait dans la ligne de jet. */
   actor?: Combatant;
@@ -72,19 +77,19 @@ export function StateRecoveryModalView({
     : undefined;
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: onCancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: onConfirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
-      flowKey="recover"
+      flowKey="recuperation"
       stake={stateRecoveryStakeRef(sr.state)}
       title={remedeDeLEtat(sr.state)?.label ?? conditionLabel(sr.state)}
       subtitle={<>{sub} · {sr.stacks} pion{sr.stacks > 1 ? 's' : ''}</>}
       rows={witness ? [actorRow, witness] : [actorRow]}
       rolled={rolled}
-      outcome={rolled ? [recapLineOfEvent(evDEtat(sr.state, describeStateRecovery(sr, sr.actorName), sr.actorId))] : undefined}
+      outcome={rolled ? [recapLineOfEvent(evDEtat(sr.state, describeStateRecovery(sr, nom), sr.actorId))] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : onCancel}
     />
@@ -98,16 +103,17 @@ export function StateRecoveryModalView({
  */
 export function StateRecoveryModal() {
   const sr = useGame((s) => s.pendingStateRecovery);
+  const nom = useGame((s) => (s.pendingStateRecovery ? nomEnVue(s, s.pendingStateRecovery.actorId) : null));
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'recover');
-  const reroll = useGesteDeJet('jetRelancer', 'recover');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'recover');
-  const darkPact = useGesteDeJet('jetPactiser', 'recover');
-  const confirm = useGesteDeJet('jetValider', 'recover');
-  const cancel = useGesteDeJet('jetAnnuler', 'recover');
+  const roll = useGesteDeJet('jetLancer', 'recuperation');
+  const reroll = useGesteDeJet('jetRelancer', 'recuperation');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'recuperation');
+  const darkPact = useGesteDeJet('jetPactiser', 'recuperation');
+  const confirm = useGesteDeJet('jetValider', 'recuperation');
+  const cancel = useGesteDeJet('jetAnnuler', 'recuperation');
   if (!sr || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === sr.actorId);
   return (
-    <StateRecoveryModalView sr={sr} actor={actor} fortune={actor?.fortune ?? 0} onRoll={roll} onReroll={reroll} onBonusSL={bonusSL} onDarkPact={darkPact} onConfirm={confirm} onCancel={cancel} />
+    <StateRecoveryModalView sr={sr} nom={garanti(nom, sr.actorId, 'acteur qui se libère')} actor={actor} fortune={actor?.fortune ?? 0} onRoll={roll} onReroll={reroll} onBonusSL={bonusSL} onDarkPact={darkPact} onConfirm={confirm} onCancel={cancel} />
   );
 }

@@ -3,7 +3,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import * as donnees from '../data';
 import { species } from '../data';
-import { pregen, PREGEN } from '../data/pregens';
+import { HEROS_DE_SCENARIO, herosDeScenario, type RoleDeScenario } from '../scenes/test-scenarios/_heros';
 import { applyOps, type GameOp } from '../engine/ops';
 import { makeRNG, type RNG } from '../engine/dice';
 import { createHero } from '../engine/character';
@@ -28,7 +28,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const geler = memoByRef((s: Scene) => s);
 const VIERGE = JSON.stringify(etatInitialDuJeu());
 /** L'entité source des ops : une DONNÉE gelée, comme celle qu'un effet du catalogue porte. */
-const SOURCE = { kind: 'spell', id: 'partage' } as const;
+const SOURCE = { kind: 'sort', id: 'partage' } as const;
 gelerProfond(SOURCE);
 
 /** Une écriture EN PLACE dans une donnée gelée : la faute que la copie à la couture prévient. */
@@ -46,11 +46,11 @@ const enJeu = (c: Combatant): Combatant => ({ ...c, pos: { x: 1, y: 1 } });
 describe('coutures donnée → état (#2097)', () => {
   it('A — un effet `giveTrapping` d’une scène gelée : l’objet reçu n’atteint pas la scène', () => {
     const eff = { type: 'giveTrapping', trappingId: 'dague', teinte: { id: 'aethyrique' } };
-    const scene = { ...emptyScene('partage-a', 4, 4), triggers: [{ id: 't', when: { kind: 'enter' }, flow: { kind: 'do', effect: eff } }] } as unknown as Scene;
+    const scene = { ...emptyScene('partage-a', 4, 4), triggers: [{ id: 't', when: { kind: 'enter' }, flow: { kind: 'effet', effet: eff } }] } as unknown as Scene;
     geler(scene);
-    const gele = (scene as unknown as { triggers: { flow: { effect: typeof eff } }[] }).triggers[0].flow.effect;
+    const gele = (scene as unknown as { triggers: { flow: { effet: typeof eff } }[] }).triggers[0].flow.effet;
     expect(Object.isFrozen(gele.teinte)).toBe(true);
-    banc.setState({ party: [pregen(idsDeTest, PREGEN.soldat)], scene });
+    banc.setState({ party: [herosDeScenario(idsDeTest, 'soldat')], scene });
     applyEffects(banc.getState, banc.setState, [gele as never]);
     expect(banc.getState().party[0].items!.some((i) => i.trappingId === 'dague' && i.teinte === 'aethyrique')).toBe(true);
     expect(partagesDe(banc.getState().party, [scene])).toEqual([]);
@@ -66,7 +66,7 @@ describe('coutures donnée → état (#2097)', () => {
       vues.add(cle);
       ops.push(o as GameOp);
     }
-    const base = enJeu(pregen(idsDeTest, PREGEN.sorcier));
+    const base = enJeu(herosDeScenario(idsDeTest, 'sorcier'));
     const fautes = new Map<string, string[]>();
     let appliquees = 0;
     for (const op of ops) {
@@ -102,7 +102,7 @@ describe('coutures donnée → état (#2097)', () => {
       crees++;
       fautes.push(...partagesDe(h).map((p) => `${sp.id} : ${p}`));
     }
-    for (const id of Object.values(PREGEN)) fautes.push(...partagesDe(pregen(idsDeTest, id)).map((p) => `${id} : ${p}`));
+    for (const id of Object.keys(HEROS_DE_SCENARIO) as RoleDeScenario[]) fautes.push(...partagesDe(herosDeScenario(idsDeTest, id)).map((p) => `${id} : ${p}`));
     expect(crees).toBeGreaterThan(0);
     expect(fautes).toEqual([]);
   });
@@ -116,18 +116,18 @@ describe('coutures donnée → état (#2097)', () => {
     geler(scene);
     const gelees = (scene as unknown as { effectZones: { onCross: GameOp[] }[] }).effectZones[0].onCross;
     expect(Object.isFrozen(gelees)).toBe(true);
-    const c = enJeu(pregen(idsDeTest, PREGEN.soldat));
+    const c = enJeu(herosDeScenario(idsDeTest, 'soldat'));
     for (const op of gelees) applyOps(c, [op], { idNeuf: idsDeTest, rng: desDuTest, source: SOURCE, defaultDurationRounds: 3 });
     expect(c.items!.some((i) => i.label === 'Lame de zone')).toBe(true);
     expect(partagesDe(c, [scene])).toEqual([]);
   });
 
   it('aura — `recompute-auras` : la cible ne reçoit pas les ops du catalogue par référence', () => {
-    const src = enJeu(pregen(idsDeTest, PREGEN.soldat));
+    const src = enJeu(herosDeScenario(idsDeTest, 'soldat'));
     src.id = 'src';
-    src.kind = 'enemy';
+    src.kind = 'ennemi';
     src.traits = [{ id: 'perturbant' }];
-    const cible = pregen(idsDeTest, PREGEN.sorcier);
+    const cible = herosDeScenario(idsDeTest, 'sorcier');
     cible.id = 'cible';
     cible.pos = { x: 2, y: 1 };
     const battle = { combatants: [src, cible], order: ['src', 'cible'], turn: 0, round: 1, log: [], over: null };
@@ -149,7 +149,7 @@ describe('coutures donnée → état (#2097)', () => {
       return { nom: `campagne ${c.id}`, scenes: p.scenes, narratif: p.narratif ?? null };
     }),
   ];
-  const heros = pregen(idsDeTest, PREGEN.soldat);
+  const heros = herosDeScenario(idsDeTest, 'soldat');
   let effets = 0;
   let ops = 0;
 
@@ -194,7 +194,7 @@ describe('coutures donnée → état (#2097)', () => {
   });
 
   it.each(allBuiltinCampaigns.map((c) => [c.id, c] as const))('campagne %s lancée par `lancerCampagne` : rien de partagé, ouverture comprise', (_id, c) => {
-    banc.setState({ party: [pregen(idsDeTest, PREGEN.soldat)] });
+    banc.setState({ party: [herosDeScenario(idsDeTest, 'soldat')] });
     expect(lancerCampagne(banc.getState, campagneDuJeu(c))).toBeNull();
     expect(partagesDeLEtat(banc.getState(), scenesDuRegistre())).toEqual([]);
   });

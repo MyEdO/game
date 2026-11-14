@@ -3,7 +3,7 @@ import { Combatant } from './types';
 import { isEngaged, isEngagedWith, engage, disengageFrom, decayEngagement, chargeAdvantage } from './engagement';
 
 const mk = (id: string, wounds = 10): Combatant =>
-  ({ id, name: id, kind: 'enemy', wounds: { current: wounds, max: 10 }, conditions: [] }) as unknown as Combatant;
+  ({ id, name: id, kind: 'ennemi', wounds: { current: wounds, max: 10 }, conditions: [] }) as unknown as Combatant;
 
 describe('Engagé — pose / levée (LDB 13 l.169-171)', () => {
   it('engage() pose le lien des DEUX côtés + marque le coup ce Round ; idempotent', () => {

@@ -1,6 +1,6 @@
 /**
  * Télégraphe VISUEL de la ZdE de l'IA (juice, pas une règle) : quand un lanceur IA lance un sort de
- * ZONE (`case 'castArea'` de `runEnemyAI`), on PEINT le disque cible (centre + rayon) ~0,7 s AVANT la
+ * ZONE (`case 'incantationDeZone'` de `runEnemyAI`), on PEINT le disque cible (centre + rayon) ~0,7 s AVANT la
  * résolution — comme le missile montre déjà sa ligne/réticule (`actorAim`). Le télégraphe est
  * l'état transitoire `actorAoe { casterId, center, radius }`, jamais un `actorAim` DÉGÉNÉRÉ (ligne
  * enemy→enemy) qui n'indique PAS l'aire.
@@ -8,7 +8,7 @@
  * On vérifie : (1) `actorAoe` est POSÉ pendant la phase de télégraphe (center + radius corrects, centre
  * couvrant le paquet de héros) ; (2) il est NETTOYÉ (null) après le `setTimeout(TEMPO.aimTelegraph)` et
  * la résolution de la ZdE est AMORCÉE (cascade d'incantation ouverte). La NON-RÉGRESSION de l'application
- * effective de la zone par le chemin PARTAGÉ `jetValider('cast')` est couverte par `ai-zde-counterspell.hors-store.test.ts`.
+ * effective de la zone par le chemin PARTAGÉ `jetValider('incantation')` est couverte par `ai-zde-counterspell.hors-store.test.ts`.
  * Le moteur (`src/engine`) n'est PAS touché.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -17,7 +17,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { runEnemyAI } from './combatFlow';
 import { spawnEnemy } from './monde/spawn';
 import { chebyshev } from '../engine/grid';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { findSpellById } from '../data';
 import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
@@ -33,7 +33,7 @@ describe('ZdE ennemie — télégraphe visuel actorAoe (pose pendant le télégr
 
   /** Une cible héros minimale (sans Dissipation : aucune fenêtre de Contre-sort ne s'ouvre). */
   function target(x: number, y: number, id: string): Combatant {
-    const h = pregen(idsDeTest, PREGEN.sorcier);
+    const h = herosDeScenario(idsDeTest, 'sorcier');
     h.id = id; h.label = id; h.pos = { x, y };
     h.wounds = blessuresDeBase(30, 30, h);
     h.skills = []; // pas de Langue (Magick) → ne peut pas Dissiper → pas de pendingCounterspell
@@ -45,7 +45,7 @@ describe('ZdE ennemie — télégraphe visuel actorAoe (pose pendant le télégr
   function setupAiAreaCaster() {
     // Lanceur IA fort (DR ≥ NI d'Explosion d'un seul jet), deux héros COLLÉS → un centre couvre les deux.
     const e = spawnEnemy({ ref: 'humain' }, 'caster', { x: 5, y: 5 });
-    e.kind = 'enemy';
+    e.kind = 'ennemi';
     e.characteristics.intelligence = 70; e.characteristics['force-mentale'] = 70;
     e.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 } as never];
     const spell = findSpellById('explosion')!; // Projectile magique à ZdE
@@ -84,7 +84,7 @@ describe('ZdE ennemie — télégraphe visuel actorAoe (pose pendant le télégr
     expect(banc.getState().pendingCascade).toBeNull();
 
     // Déclenche le setTimeout du télégraphe (TEMPO.aimTelegraph) → la callback nettoie actorAoe AVANT
-    // d'amorcer la résolution (castZoneSpell → jetLancer('cast') → routeCounterspell → jetValider('cast'), chemin PARTAGÉ).
+    // d'amorcer la résolution (castZoneSpell → jetLancer('incantation') → routeCounterspell → jetValider('incantation'), chemin PARTAGÉ).
     banc.reprendreLesEnAttente();
 
     // Télégraphe nettoyé : le disque de menace disparaît au moment où le sort part — c'est l'invariant

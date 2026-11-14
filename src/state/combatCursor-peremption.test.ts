@@ -13,14 +13,14 @@ import { finishCombatEnd, advanceTurn } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { emptyScene } from '../noyau/monde/scene';
 import { seedBattleRng } from '../noyau/battleRng';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import { cliquerSurLeCombattant } from '../noyau/combatOrParty';
 
 const get = () => useGame.getState();
-const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ranged')!;
+const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'distance')!;
 
 /** Duel sur scène vide : le héros H joue au tour `turn` de l'ordre [H, E]. */
 function duel(turn: 0 | 1) {
@@ -29,7 +29,7 @@ function duel(turn: 0 | 1) {
   const E: Combatant = JSON.parse(JSON.stringify(H));
   E.id = 'enemy-0';
   E.label = 'Gobelin';
-  E.kind = 'enemy';
+  E.kind = 'ennemi';
   E.pos = { x: 2, y: 0 };
   const battle: BattleState = {
     combatants: [H, E], order: [E.id, H.id], turn, round: 1, action: null, selectedSpellId: null,
@@ -43,12 +43,12 @@ function duel(turn: 0 | 1) {
 function pauseTirRapide() {
   const { H, E } = duel(1);
   H.talents = [{ talentId: 'tir-rapide', times: 1 }];
-  H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
+  H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
   rangedOf(H).loaded = true;
   advanceTurn(get, useGame.setState);
   expect(get().pendingRoundStart, 'témoin : la pause de Round est ouverte').not.toBeNull();
   seedBattleRng(1);
-  get().fenetreChoisir('roundStart', 'viser', H.id);
+  get().fenetreChoisir('debutDuRound', 'viser', H.id);
   get().snapCursorToTarget(1);
   expect(get().combatCursor?.snappedId, 'témoin : le curseur vise la cible du tireur').toBe(E.id);
   return { H, E };
@@ -60,16 +60,16 @@ afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); useGame.setState({ ba
 describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
   it('fin de combat : la victoire périme le curseur', () => {
     duel(1);
-    get().moveCursor('right');
+    get().moveCursor('droite');
     expect(get().combatCursor, 'témoin : le curseur est posé').not.toBeNull();
     finishCombatEnd(get, useGame.setState);
-    expect(get().battle!.over).toBe('victory');
+    expect(get().battle!.over).toBe('victoire');
     expect(get().combatCursor).toBeNull();
   });
 
   it('tour achevé : la fin de tour périme le curseur', () => {
     duel(1);
-    get().moveCursor('right');
+    get().moveCursor('droite');
     expect(get().combatCursor, 'témoin : le curseur est posé').not.toBeNull();
     advanceTurn(get, useGame.setState);
     expect(get().combatCursor).toBeNull();
@@ -78,7 +78,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
   it('tour achevé dans le Round : la main qui passe périme le curseur', () => {
     const { H, E } = duel(0);
     useGame.setState({ battle: { ...get().battle!, order: [H.id, E.id] } });
-    get().moveCursor('right');
+    get().moveCursor('droite');
     expect(get().combatCursor, 'témoin : le curseur est posé').not.toBeNull();
     advanceTurn(get, useGame.setState);
     expect(get().battle!.round, 'témoin : le Round ne change pas').toBe(1);
@@ -87,13 +87,13 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
   });
 
   it('enfourcher une monture Nerveux qui précède le cavalier décale le tour, pas la main : le curseur survit', () => {
-    const hero = makePregens(idsDeTest)[0];
+    const hero = tousLesHerosDeScenario(idsDeTest)[0];
     hero.pos = { x: 5, y: 5 };
     const horse = spawnEnemy({ ref: 'cheval' }, 'horse', { x: 6, y: 5 });
     horse.traits = [{ id: 'nerveux' }, { id: 'taille', arg: 'Grande' }] as never;
     horse.size = 'grande';
     horse.mountable = true;
-    horse.kind = 'hero';
+    horse.kind = 'heros';
     const other = spawnEnemy({ ref: 'humain' }, 'other', { x: 1, y: 1 });
     const battle: BattleState = {
       combatants: [hero, horse, other], order: ['other', 'horse', hero.id], baseOrder: ['other', 'horse', hero.id],
@@ -101,7 +101,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
     useGame.setState({ screen: 'campaign', party: [hero], mode: 'battle', battle, scene: testScene(), combatCursor: null, preemptAiming: null });
-    get().moveCursor('right');
+    get().moveCursor('droite');
     const pose = get().combatCursor;
     expect(pose, 'témoin : le curseur est posé').not.toBeNull();
     get().monterEnSelle();
@@ -122,14 +122,14 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
   it('visée Tir rapide désarmée : le changement de `preemptAiming` périme le curseur', () => {
     const { H } = pauseTirRapide();
     expect(get().preemptAiming, 'témoin : la visée est armée').toBe(H.id);
-    get().fenetreChoisir('roundStart', 'viser', null);
+    get().fenetreChoisir('debutDuRound', 'viser', null);
     expect(get().preemptAiming, 'témoin : la visée est désarmée').toBeNull();
     expect(get().combatCursor).toBeNull();
   });
 
   it('une écriture sans rapport avec la fenêtre ne périme pas le curseur', () => {
     duel(1);
-    get().moveCursor('right');
+    get().moveCursor('droite');
     const pose = get().combatCursor;
     expect(pose, 'témoin : le curseur est posé').not.toBeNull();
     get().armerLIntention('course');

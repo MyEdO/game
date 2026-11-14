@@ -24,11 +24,11 @@ describe('téléportation — un grand qui se téléporte dégage les plus petit
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     return { H, enemies };
   }
 
@@ -44,7 +44,7 @@ describe('téléportation — un grand qui se téléporte dégage les plus petit
 
     const b = banc.getState().battle!;
     banc.setState({
-      battle: { ...b, turn: b.order.indexOf(H.id), action: 'teleport', reachable: new Map([['8,10', 0]]) },
+      battle: { ...b, turn: b.order.indexOf(H.id), action: 'teleportation', reachable: new Map([['8,10', 0]]) },
     });
 
     banc.getState().cliquerLaCase({ x: 8, y: 10 });

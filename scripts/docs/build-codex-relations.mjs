@@ -307,7 +307,7 @@ argument de la fabrique \`document()\` (\`src/data/schemas/grammaire/document.ts
 - \`codex\` — soit \`{ keys: [...] }\`, les clés de catégorie sous lesquelles le joueur trouve le
   document, soit \`{ exempt: { kind, raison, ticket? } }\` : une exemption MOTIVÉE. La fabrique
   refuse un \`codex\` sans clés ni exemption motivée.
-- \`edit\` — ce que l'ÉDITEUR édite : \`{ dataset }\`, \`{ object: 'single' | 'record' }\`,
+- \`edit\` — ce que l'ÉDITEUR édite : \`{ dataset }\`, \`{ object: 'unique' | 'parCle' }\`,
   \`{ niche: { categories } }\` (chaque clé Codex du document routée comme dataset, vers la suite
   nichée de la collection qu'elle édite — le fichier parent est réécrit au save), ou \`{ none: raison }\`. La fabrique
   refuse les quatre absents.

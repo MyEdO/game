@@ -6,7 +6,18 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from '../../engine/types';
 import type { RNG } from '../../engine/dice';
-import { wallTiles, discTiles, decayZones, crossZones, zonesRoundTick, losBlockingTiles, sceneZonesToBattle, zoneCovers, barrierTilesFor, type BattleZone } from './zones';
+import {
+  wallTiles,
+  discTiles,
+  decayZones,
+  crossZones,
+  zonesRoundTick,
+  losBlockingTiles,
+  sceneZonesToBattle,
+  zoneCovers,
+  barrierTilesFor,
+  type BattleZone,
+} from './zones';
 import type { SceneEffectZone } from './scene';
 import { findSpellById } from '../../data';
 import { deFixe } from '../../engine/dice.testkit';
@@ -16,7 +27,7 @@ const rng: RNG = deFixe(5) as RNG;
 
 function mk(over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'c', name: 'Cobaye', kind: 'enemy', size: 'moyenne', advantage: 0,
+    id: 'c', name: 'Cobaye', kind: 'ennemi', size: 'moyenne', advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 },
     conditions: [], skills: [], talents: [], traits: [], groups: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -55,7 +66,7 @@ describe('decayZones — TTL en Rounds', () => {
 describe('crossZones — « Quiconque traverse le mur de feu » (LDB 47)', () => {
   const wall: BattleZone = {
     label: 'Mur de feu', tiles: [{ x: 4, y: 4 }, { x: 4, y: 5 }, { x: 4, y: 6 }], rounds: 3,
-    onCross: [{ op: 'wounds', amount: { bonusOf: 'force-mentale' }, ignoreTB: false, ignoreAP: false }, { op: 'condition', id: 'en-flammes' }],
+    onCross: [{ op: 'wounds', amount: { bonusOf: 'force-mentale' }, ignoreTB: false, ignoreAP: false }, { op: 'condition', id: { id: 'en-flammes' } }],
     casterId: 'w',
   };
   const caster = mk({ id: 'w', label: 'Pyromancien', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 } as Combatant['characteristics'] });
@@ -68,8 +79,8 @@ describe('crossZones — « Quiconque traverse le mur de feu » (LDB 47)', () =>
   });
   // LDB 48 l.286 ; #1595 c.6240485441 Q2.
   it('BE + PA ≥ BFM : la traversée ne coûte aucune Blessure, En flammes reste', () => {
-    const ops = findSpellById('mur-de-feu')!.effects as unknown as { steps: { effect: { ops: { onCross: BattleZone['onCross'] }[] } }[] };
-    const murDuSort: BattleZone = { ...wall, onCross: ops.steps[0].effect.ops[0].onCross };
+    const ops = findSpellById('mur-de-feu')!.effects as unknown as { etapes: { effet: { ops: { onCross: BattleZone['onCross'] }[] } }[] };
+    const murDuSort: BattleZone = { ...wall, onCross: ops.etapes[0].effet.ops[0].onCross };
     const m = mk({ id: 'm3', label: 'Blindé', armour: { tete: 1, brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 } as Combatant['armour'] }); // BE 3 + PA 1 = BFM 4
     crossZones([murDuSort], m, [{ x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }], () => caster, rng, idsDeTest);
     expect(m.wounds.current).toBe(12);
@@ -86,7 +97,7 @@ describe('crossZones — « Quiconque traverse le mur de feu » (LDB 47)', () =>
 describe('zonesRoundTick — « Quiconque se trouve dans la ZdE au début d’un Round » (Grands feux)', () => {
   const fire: BattleZone = {
     label: "Grands feux d'U'Zhul", tiles: discTiles({ x: 5, y: 5 }, 2), rounds: 4,
-    perRound: [{ op: 'wounds', amount: { dice: { n: 1, sides: 10, plus: 6 } }, ignoreTB: false, ignoreAP: true }, { op: 'condition', id: 'en-flammes' }],
+    perRound: [{ op: 'wounds', amount: { dice: { n: 1, sides: 10, plus: 6 } }, ignoreTB: false, ignoreAP: true }, { op: 'condition', id: { id: 'en-flammes' } }],
   };
   it('occupant : 1d10+6 Dégâts ignorant les PA (mitigés BE) + 1 En flammes', () => {
     const inZone = mk({ id: 'a', pos: { x: 6, y: 5 }, armour: { tete: 9, brasG: 9, brasD: 9, corps: 9, jambeG: 9, jambeD: 9 } as Combatant['armour'] });
@@ -105,8 +116,8 @@ describe('GameOp[] dans une zone — wounds mitigé + condition unlessCondition 
   // Zone authorée en vocabulaire UNIQUE : op:'wounds' mitigé (BE+PA déduits) + op:'condition' entretenu.
   const ward: BattleZone = {
     label: 'Brasier corrosif', tiles: discTiles({ x: 5, y: 5 }, 1), rounds: 3,
-    onCross: [{ op: 'wounds', amount: 8, ignoreTB: false, ignoreAP: false }, { op: 'condition', id: 'brise', unlessCondition: 'brise' }],
-    perRound: [{ op: 'wounds', amount: 8, ignoreTB: false, ignoreAP: false }, { op: 'condition', id: 'brise', unlessCondition: 'brise' }],
+    onCross: [{ op: 'wounds', amount: 8, ignoreTB: false, ignoreAP: false }, { op: 'condition', id: { id: 'brise' }, unlessCondition: { id: 'brise' } }],
+    perRound: [{ op: 'wounds', amount: 8, ignoreTB: false, ignoreAP: false }, { op: 'condition', id: { id: 'brise' }, unlessCondition: { id: 'brise' } }],
   };
   it('crossZones : 8 − BE 3 − PA 2 = 3 Blessures + Brisé entretenu sans empiler', () => {
     const m = mk({ id: 'm', pos: { x: 4, y: 5 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 } as Combatant['armour'] });
@@ -152,7 +163,7 @@ describe('z-blind — zones authorées d’étage (#799)', () => {
   const trapUpstairs: SceneEffectZone = {
     id: 'piege-etage', label: 'Trappe', area: { kind: 'rect', x: 4, y: 4, w: 1, h: 1 }, z: 1,
     onCross: [{ op: 'wounds', amount: 5, ignoreTB: false, ignoreAP: false }],
-    perRound: [{ op: 'condition', id: 'en-flammes' }],
+    perRound: [{ op: 'condition', id: { id: 'en-flammes' } }],
     barrier: {},
   };
   it('sceneZonesToBattle propage z.z sur chaque case', () => {

@@ -18,6 +18,7 @@ from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
 from anatomie import attache
+from filets import filets_au_repos
 from formes import aretes_des_triangles, aux_noeuds, decalages, poser_la_cle, rapports, region_locale, retournees_par, transferer_les_cles
 
 BORNES_DES_CLES = (0.4, 2.5)
@@ -27,6 +28,77 @@ jambe tassé sous `gabarit_legs_moins` et passe les siennes : le lissage, qui ne
 s'étendrait sinon à toute la pièce et la décollerait du corps (`suiviDuCorps/cle-non-suivie`)."""
 
 
+CHARNIERE_M = 0.10
+"""Hauteur, en mètres, sous les racines d'un filet, sur laquelle une nappe passe du corps au filet (`Filet.part`)."""
+FONDU_D_OS_M = 0.12
+"""Hauteur, en mètres, autour de l'articulation de deux os d'un brin, sur laquelle une nappe passe de l'un à l'autre
+(`Filet.poids`)."""
+EGALITE_DE_ZONE_M = 1e-5
+"""Écart de distance, en mètres, sous lequel deux zones sont aussi proches d'une face (`Base.zones_des_faces`) : le
+point le plus proche d'une face posée sur la couture de deux zones est sur leurs deux bords, à des distances que
+l'arrondi de la machine départage (la robe de #4002 : 61 faces à égalité, écarts de 1e-8 à 3e-7 m)."""
+
+
+def direction(theta):
+    """Direction horizontale (x, y) de l'azimut `theta` (degrés, depuis l'avant -Y vers la gauche +X)."""
+    t = math.radians(theta)
+    return np.array([math.sin(t), -math.cos(t)])
+
+
+def fondu(x):
+    x = min(1.0, max(0.0, x))
+    return x * x * (3 - 2 * x)
+
+
+class Filet:
+    """Un filet de la base au repos (`filets_au_repos`, `base/filets.py`) sous la nappe qui le suit : son rayon autour de
+    son axe et ses poids, par os de la base, en un point donné par sa hauteur `z` et son azimut `theta` (`direction`)."""
+
+    def __init__(self, repos, indice_os):
+        self.brins, self.os, self.axe, self.ferme, self.indice_os = repos['brins'], repos['os'], repos['axe'], repos['ferme'], indice_os
+        hors = self.brins[:, -1, :2] - self.axe
+        self.hors = hors / np.linalg.norm(hors, axis=1, keepdims=True)
+        self.azimuts = np.round(np.degrees(np.arctan2(hors[:, 0], -hors[:, 1])), 6) % 360.0
+        self.rayons = np.linalg.norm(self.brins[:, :, :2] - self.axe, axis=2)
+
+    def azimut(self, p):
+        """L'azimut du point `p` autour de l'axe du filet."""
+        return math.degrees(math.atan2(p[0] - self.axe[0], self.axe[1] - p[1]))
+
+    def part(self, z):
+        """Part du filet à la hauteur `z` : nulle à ses racines, entière `CHARNIERE_M` au-dessous."""
+        return fondu((float(self.brins[:, 0, 2].max()) - z) / CHARNIERE_M)
+
+    def rayon_du_brin(self, s, z):
+        """Rayon du brin `s` à la hauteur `z`, le long de ses os, le dernier prolongé sous l'ourlet."""
+        zs, rs = self.brins[s, :, 2], self.rayons[s]
+        k = int(np.clip(np.searchsorted(-zs, -z) - 1, 0, len(zs) - 2))
+        return rs[k] + (rs[k + 1] - rs[k]) * max(0.0, (zs[k] - z) / (zs[k] - zs[k + 1]))
+
+    def point(self, z, theta):
+        """Le rayon du filet en (`z`, `theta`), sur la corde entre ses deux brins voisins, ces deux brins et la part du
+        second ; au-delà du bord d'un filet ouvert, son brin de bord."""
+        i = int(np.searchsorted(self.azimuts, theta % 360.0, side='right')) - 1
+        i, j = (i % len(self.brins), (i + 1) % len(self.brins)) if self.ferme else (max(i, 0), min(i + 1, len(self.brins) - 1))
+        if i == j:
+            return float(self.rayon_du_brin(i, z)), i, j, 0.0
+        coins = [self.rayon_du_brin(s, z) * self.hors[s] for s in (i, j)]
+        rho, part = np.linalg.solve(np.column_stack([direction(theta), coins[0] - coins[1]]), coins[0])
+        return float(rho), i, j, float(min(1.0, max(0.0, part)))
+
+    def poids(self, z, theta):
+        """Les poids du point (`z`, `theta`) : entre ses deux brins voisins selon l'azimut, le long de chacun d'un os au
+        suivant sur `FONDU_D_OS_M` autour de leur articulation."""
+        _, i, j, part = self.point(z, theta)
+        w = np.zeros(len(self.indice_os))
+        for s, reste in ((i, 1 - part), (j, part)):
+            for k, os_ in enumerate(self.os[s]):
+                sous = fondu((self.brins[s, k + 1, 2] + FONDU_D_OS_M / 2 - z) / FONDU_D_OS_M) if k + 1 < len(self.os[s]) else 0.0
+                w[self.indice_os[os_]] += reste * (1 - sous)
+                reste *= sous
+        return w
+
+
 class Base:
     """La base `glb` au repos, son manifeste `manifeste`, ses zones de peau (un mesh par zone, de la surface de palette
     `peau` : les sourcils et les yeux portent aussi une zone) ; `publies(id)` rend le GLB d'un élément publié."""
@@ -34,6 +106,7 @@ class Base:
     def __init__(self, glb, manifeste, publies):
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.ops.import_scene.gltf(filepath=str(glb))
+        self.glb = glb
         rigs = [o for o in bpy.data.objects if o.type == 'ARMATURE']
         if len(rigs) != 1:
             raise ValueError(f'{len(rigs)} armatures dans la base, une attendue')
@@ -61,6 +134,10 @@ class Base:
         absentes = [z for z in noms if z not in self.zones]
         if absentes:
             raise ValueError(f'zones absentes de la base : {absentes}')
+
+    def filet(self, nom):
+        """Le filet `nom` de la base au repos."""
+        return Filet(filets_au_repos(self.glb)[nom], self.indice_os)
 
     def tete(self, nom):
         """La tête de l'os `nom`, monde, au repos."""
@@ -220,48 +297,66 @@ class Base:
             bpy.ops.object.join()
         return copies[0]
 
-    def decouper_par_zone(self, piece):
-        """La pièce découpée en un objet par zone du corps (#2972) : chaque face va à la zone de la base la plus proche
-        de son centre au repos ; chaque objet porte sa zone (`zone`, exportée en `extras.zone`) et garde les normales
-        de la pièce entière, pour que la couture ne marque pas l'ombrage. Elles sont figées en normales libres (attribut
-        de coin `custom_normal`), copiées au bit près : encodées dans les espaces de normale de Blender, elles se
-        redécodaient, aux sommets que la découpe laisse en éventails disjoints, à quelques 1e-4 d'écart, fusionnés ou
-        non par l'export glTF selon l'arrondi de la machine (#3865). Rend les objets."""
+    def zones_des_faces(self, piece):
+        """Par face de `piece`, la zone de la base la plus proche de son centre au repos ; des zones à égalité
+        (`EGALITE_DE_ZONE_M`), la première par nom."""
         noms = sorted(self.zones)
-        sup = self.porteur(noms)
-        bornes = np.cumsum([len(self.corps(n)[1]) for n in noms])
-        me = piece.data
-        normales = np.empty(len(me.loops) * 3, dtype=np.float32)
-        me.corner_normals.foreach_get('vector', normales)
-        me.attributes.new('custom_normal', 'FLOAT_VECTOR', 'CORNER').data.foreach_set('vector', normales)
-        attribut = me.attributes.new('zone_de_la_face', 'INT', 'FACE')
-        for p in me.polygons:
-            face = sup['arbre'].find_nearest(piece.matrix_world @ p.center)[2]
-            attribut.data[p.index].value = int(np.searchsorted(bornes, face, side='right'))
-        bpy.ops.object.select_all(action='DESELECT')
-        bpy.context.view_layer.objects.active = piece
-        piece.select_set(True)
-        restantes = sorted({d.value for d in attribut.data})
-        bpy.ops.object.mode_set(mode='EDIT')
-        for z in restantes[1:]:
-            bm = bmesh.from_edit_mesh(piece.data)
-            couche = bm.faces.layers.int['zone_de_la_face']
-            for f in bm.faces:
-                f.select_set(False)
-            for f in bm.faces:
-                if f[couche] == z:
-                    f.select_set(True)
-            bmesh.update_edit_mesh(piece.data)
-            bpy.ops.mesh.separate(type='SELECTED')
-        bpy.ops.object.mode_set(mode='OBJECT')
-        objets = [o for o in bpy.context.selected_objects if o.type == 'MESH']
+        arbres = [porteur_de(*self.corps(n))['arbre'] for n in noms]
+        zones = []
+        for p in piece.data.polygons:
+            centre = piece.matrix_world @ p.center
+            d = np.array([a.find_nearest(centre)[3] for a in arbres])
+            zones.append(noms[int(np.flatnonzero(d <= d.min() + EGALITE_DE_ZONE_M)[0])])
+        return zones
+
+    def decouper_par_zone(self, piece):
+        """La pièce découpée (`decouper`) en un objet par zone du corps (#2972) : chaque face va à la zone de la base la
+        plus proche de son centre au repos ; chaque objet porte sa zone (`zone`, exportée en `extras.zone`). Rend les
+        objets."""
         nom = piece.name
-        for o in objets:
-            z = noms[o.data.attributes['zone_de_la_face'].data[0].value]
-            o.data.attributes.remove(o.data.attributes['zone_de_la_face'])
+        objets = decouper(piece, self.zones_des_faces(piece))
+        for z, o in objets:
             o['zone'] = z
             o.name = o.data.name = f'{nom}-{z}'
-        return objets
+        return [o for _, o in objets]
+
+
+def decouper(piece, parties):
+    """La pièce découpée en un objet par valeur de `parties` (une par face) ; chaque objet garde les normales de la
+    pièce entière, pour que la couture ne marque pas l'ombrage. Elles sont figées en normales
+    libres (attribut de coin `custom_normal`), copiées au bit près : encodées dans les espaces de normale de Blender,
+    elles se redécodaient, aux sommets que la découpe laisse en éventails disjoints, à quelques 1e-4 d'écart, fusionnés
+    ou non par l'export glTF selon l'arrondi de la machine (#3865). Rend les couples (valeur, objet)."""
+    me = piece.data
+    normales = np.empty(len(me.loops) * 3, dtype=np.float32)
+    me.corner_normals.foreach_get('vector', normales)
+    if 'custom_normal' in me.attributes:
+        me.attributes.remove(me.attributes['custom_normal'])
+    me.attributes.new('custom_normal', 'FLOAT_VECTOR', 'CORNER').data.foreach_set('vector', normales)
+    valeurs = sorted(set(parties))
+    attribut = me.attributes.new('partie_de_la_face', 'INT', 'FACE')
+    attribut.data.foreach_set('value', [valeurs.index(p) for p in parties])
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.view_layer.objects.active = piece
+    piece.select_set(True)
+    bpy.ops.object.mode_set(mode='EDIT')
+    for k in range(1, len(valeurs)):
+        bm = bmesh.from_edit_mesh(piece.data)
+        couche = bm.faces.layers.int['partie_de_la_face']
+        for f in bm.faces:
+            f.select_set(False)
+        for f in bm.faces:
+            if f[couche] == k:
+                f.select_set(True)
+        bmesh.update_edit_mesh(piece.data)
+        bpy.ops.mesh.separate(type='SELECTED')
+    bpy.ops.object.mode_set(mode='OBJECT')
+    objets = []
+    for o in bpy.context.selected_objects:
+        if o.type == 'MESH':
+            objets.append((valeurs[o.data.attributes['partie_de_la_face'].data[0].value], o))
+            o.data.attributes.remove(o.data.attributes['partie_de_la_face'])
+    return objets
 
 
 def lambeaux(L, n):

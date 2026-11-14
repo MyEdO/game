@@ -42,7 +42,7 @@ describe('woundsFromHit — Inoffensive (LDB 62 l.327)', () => {
   });
 
   it('branche STRUCTURE intacte (ADE II 8) : minWounds=0 déjà géré, PA=0 (aucune Localisation)', () => {
-    const canon = mkWeapon({ label: 'Canon', type: 'ranged', qualities: [{ id: 'siege' }] });
+    const canon = mkWeapon({ label: 'Canon', type: 'distance', qualities: [{ id: 'siege' }] });
     const struct = structureCombatant(findStructureById('porte')!);
     expect(woundsFromHit(canon, struct, undefined, 10, 0, 1, undefined)).toBe(18); // BE 2 (E20) → 20 dégâts (×2 Siège) - 2 = 18
   });

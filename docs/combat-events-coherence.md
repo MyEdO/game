@@ -21,7 +21,7 @@ interne moteur). Presque tout se **dédouble** : `(donnée = le flag/effet poss�
 l'algorithme générique qui le lit)`.
 
 **Restent machinerie légitime** (ne nomment aucune entité, itèrent génériquement) : décrément des
-durées, `tick-death` (règle de mort), `clear-psych-of-dead`, `purge-summons`,
+durées, `tick-death` (règle de mort), `clear-psych-of-dead`, `purge-expired-summons`,
 ré-ordonnancement d'initiative, surnombre (la règle ; les exemptions sont des traits = donnée),
 `suffocation-tick` (règle environnementale universelle, gatée par le drapeau d'effet éditable
 `suffocates`/`noBreath`).
@@ -55,7 +55,8 @@ couvert). Ajouter une source = l'ajouter **dans `fireTriggers`**, jamais un nouv
 **Le bus** : `emitCombatEvent(event, ctx)` (`src/noyau/combatEvents.ts`) — à chaque moment canonique,
 (a) joue les abonnés MACHINERIE (table `crochetsDeCombat`, lue par `combatHooks`, ordonnés par `order`) PUIS (b) diffuse
 l'événement aux TRIGGERS DE DONNÉES de `ctx.audience` via `fireTriggers`. Les deux journalisent via le
-même `sink`.
+même `sink`. `ctx.battle` est nullable : hors bataille (coup encaissé hors bataille, #3984), (a) ne joue
+pas, (b) joue.
 
 **Attaques gratuites — un seul émetteur, kind-agnostique.** Un Flow qui porte `grantFreeAttack`
 (`flowHasFreeAttack`) est SAUTÉ par le bus (`applyTriggeredEffects`) et joué ENTIER par
@@ -79,7 +80,7 @@ restent des hooks ordonnés (interleave par `order`, y compris le cross-phase `o
   importables UNIQUEMENT par `combatEvents.ts`, les deux définisseurs et les modules bus-owned — le
   dispatch direct est INEXPRIMABLE (fail-closed, preuve par fichier fictif).
 - **Complétude d'émission** (`combat-event-emission-coverage.test.ts`) : chaque `EffectTrigger` du schéma
-  d'authoring (dérivé d'`effectTriggerSchema`, dont le `satisfies Record<EffectTrigger, string>` tient l'exhaustivité au compilateur) a ≥1 point d'émission — zéro
+  d'authoring (`effectTriggerSchema`, dont `EffectTrigger` est la sortie) a ≥1 point d'émission — zéro
   affordance morte.
 
 Triggers CÂBLÉS par #316 (jadis orphelins) : `onAttackResolved` (fin de résolution d'attaque),
@@ -101,7 +102,7 @@ scène) ; `passeDePsy` route chaque rangée par `surfaceRow` : surfacée, elle r
 son jet sans pilote est résolu sur-le-champ par la même `resolveCombatPsychRow` (patron
 `deferInteractiveTest`). Le moment dépend de l'entrée (`retestAt` de `psychology.json`), jamais du porteur ;
 aucun hook `onTurnStart` ne joue la psychologie. Le Round concerné voyage sur la déclaration de bande
-(`combatPsych.round`). `LDB 21 l.9`, `l.19`, `l.25`, `l.39`, `l.48`.
+(`psychologieDeCombat.round`). `LDB 21 l.9`, `l.19`, `l.25`, `l.39`, `l.48`.
 
 **Reste à faire pour « un seul bus » complet** : #315 (exécuteur unique — `runPureFlowLines` à
 supprimer + garde de double-exécution).
@@ -136,7 +137,7 @@ incrémentant `target.criticalWounds` (`noyau/combatFlow.ts`), **sans mourir** t
 (Inconscient ET `crit > BE`) n'est pas franchie, hors ligne mortelle du Tableau des Critiques.
 
 ### 4b. Suspecté (non clos par lecture statique) : « X est hors combat » puis ils continuent (#2661)
-- La ligne de journal `cf.outOfAction` n'est émise que si `isOutOfAction(target)` est vrai (plusieurs
+- La ligne de journal `cf.horsDeCombat` n'est émise que si `isOutOfAction(target)` est vrai (plusieurs
   sites de `noyau/combatFlow.ts`).
 - Un héros à Destin : `finalizeHeroDeath` pose `pendingFateSave` et **suspend** sans tuer.
 - Or Inconscient ⇒ `isOutOfAction` ⇒ devrait être filtré du ciblage. **S'ils continuent**, un invariant

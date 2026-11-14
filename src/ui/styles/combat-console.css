@@ -768,7 +768,7 @@
 }
 /* La FORME du trait d'équipe (R9, daltonisme) sur l'anneau de `PortraitTile` (`.ptile.team-*`) : plein pour un
    allié, tirets pour un ennemi. */
-.cc-arch .ptile.team-enemy {
+.cc-arch .ptile.team-ennemi {
   border-style: dashed;
 }
 /* Corps de l'arche : gouttière Mouvement | portrait | gouttière Action | niche d'États, assis sur la

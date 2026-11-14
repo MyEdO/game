@@ -1,8 +1,7 @@
 /**
- * LA MACHINERIE DU NOYAU (#3370) : les écritures que le noyau, l'éditeur ou un test appellent, et qu'aucun siège n'envoie
- * ni aucun hôte ne joue. Elles ne sont pas des verbes (`ActionsDuNoyau`) : ni `Intention`, ni `VERBES`, ni
- * `GesteDuNoyau` ne les nomment. Seul un `Get<JeuDuNoyau>` les atteint, celui des fabriques (`creerActionsDuNoyau`) et des
- * flux qui les appellent.
+ * LA MACHINERIE DU NOYAU (#3370) : les écritures de l'état qu'aucun siège n'envoie. Elles ne sont pas des verbes
+ * (`ActionsDuNoyau`) : ni `Intention`, ni `VERBES`, ni `GesteDuNoyau` ne les nomment. Seul un `Get<JeuDuNoyau>` les
+ * atteint, celui des fabriques (`creerActionsDuNoyau`) et des flux qui les appellent.
  */
 import type { Combatant, CharKey } from '../engine/types';
 import type { FabriqueDId } from '../engine/fabriqueDId';
@@ -18,13 +17,16 @@ import type { Pt } from './monde/path';
 import type { IdDeCombattant, IdDeHeros, IdDePossession, IdDEntiteDeScene, IdDeTireurRapide, IdDIntention } from './designations';
 import type { OpenRestOpts } from './restFlow';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
-import type { BattleClickOpts, TileClickOpts } from './targetingModes';
-import type { EtatDeJeu, Jeu, PaquetALancer, PendingInteract } from './etat';
+import type { BattleClickOpts, OptionsDuClic } from './targetingModes';
+import type { EtatDeJeu, Jeu, NetState, PaquetALancer, PendingInteract } from './etat';
 
 export interface MachinerieDuNoyau {
   // ── Ids du monde ──
   /** Forge un id du monde au compteur de l'état (`idsDuMonde.ts`, #2907). */
   forgerUnId: FabriqueDId;
+  /** Compte un combat qui s'ouvre (`combatsOuverts`, `idsDuMonde.ts`, #3009) : appelée par la seule naissance d'un
+   *  `battle` (`combatSlice.ts`), avant sa pose. */
+  marquerUnCombatOuvert: () => void;
   // ── Horloge ──
   /** Écrivain UNIQUE de l'avance de `gameTime` : pose l'horloge, tire les effets programmés échus
    *  (`fireScheduledEffects`, #668) puis dissipe les effets à durée d'horloge échus (`purgeSurAvanceDHorloge`, #1599). */
@@ -60,7 +62,7 @@ export interface MachinerieDuNoyau {
   /** Passe de la phase pré-bataille (Discours/Planification) aux Rounds de bataille. */
   engagerLaBataille: () => void;
   /** Test Étendu SÉQUENTIEL (LDB 12) : ouvre le flux (ex. crocheter DR 5) ; un Round à la fois. */
-  ouvrirLeTestEtendu: (opts: { actorId: IdDeCombattant; label: string; skillLabel: string; skill?: PendingExtendedTest['skill']; characteristic?: CharKey; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: IdDeCombattant; label: string }; outcome?: PendingExtendedTest['outcome']; stake?: StakeRef; suite?: Flow }) => void;
+  ouvrirLeTestEtendu: (opts: { actorId: IdDeCombattant; label: string; skillLabel: string; skill?: PendingExtendedTest['skill']; characteristic?: CharKey; target: number; drCible: number; tentativesMax?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: IdDeCombattant; label: string }; outcome?: PendingExtendedTest['outcome']; stake?: StakeRef; suite?: Flow }) => void;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2) : ouvre le flux (objet BE/B) ; chacun frappe. */
   enfoncerLaPorte: (opts: { label: string; doorBE: number; doorB: number; heroIds: IdDeHeros[]; flag?: string; suite?: Flow }) => void;
   orienterLesCombattants: () => void;
@@ -72,7 +74,7 @@ export interface MachinerieDuNoyau {
   cliquerLeCombattant: (id: IdDeCombattant, opts?: BattleClickOpts) => void;
   /** Le clic d'une case libre : le commit-case du mode de ciblage courant, sinon le déplacement de l'actif (aperçu,
    *  puis commit), la Course, ou le Désengagement de l'actif Engagé. */
-  cliquerLaCaseDuCombat: (pt: Pt, opts?: TileClickOpts) => void;
+  cliquerLaCaseDuCombat: (pt: Pt, opts?: OptionsDuClic) => void;
   // ── Commits de clic : le clic du champ (`cliquerLeCombattant`, `cliquerLaCaseDuCombat`) les appelle ──
   /** Tir rapide (talent, LDB 10) : INTERRUPTION à distance en début de Round (hors de l'ordre) ; le tir
    *  se résout par la modale de jet normale et épuise le tour normal du tireur (Action + Mouvement). */
@@ -139,6 +141,14 @@ export interface MachinerieDuNoyau {
   /** Action canonique UNIQUE composant `journal` (pousse `msg`, ou toutes les `msg[]` dans l'ordre,
    *  et plafonne à 40 lignes) — ticket #319 : tout site de `journal: [...journal.slice(-40), …]` route ICI. */
   ecrireAuJournal: (msg: string | string[]) => void;
+  // ── Réseau (`reseau.ts`) ──
+  /** Pose la session coop `net` ; rien si c'est déjà elle. */
+  poserLeReseau: (net: NetState) => void;
+  /** INVITÉ : enrobe dans l'état chaque action de `GUEST_INTENTS` (`emettreIntentInvite`), `envoyer` recevant ses
+   *  arguments passés par `sanitizeIntentArgs` ; sans effet si déjà enrobé. */
+  transmettreLesIntentions: (envoyer: (action: string, args: unknown[]) => void) => void;
+  /** Repose les actions d'origine ; sans effet quand rien n'est enrobé. */
+  restaurerLesIntentions: () => void;
   // ── Le clic d'une case en exploration (`cliquerLaCase`) les joue ──
   /** Le pas d'une case du groupe vers `pt`, refusé hors d'une case voisine à pied (`pasDuGroupe`). */
   deplacerLeGroupe: (pt: Pt) => void;

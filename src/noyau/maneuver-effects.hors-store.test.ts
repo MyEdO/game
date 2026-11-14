@@ -21,7 +21,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', label: 'C', kind: 'enemy',
+  id: 'c', label: 'C', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 },
   wounds: blessuresDeBase(15), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
@@ -95,24 +95,24 @@ describe('effets onHit des manœuvres de zone/action (data) — appliqués par l
 /**
  * Hurlement fantomatique porte un nœud Flow `test` enfoui dans son Flow
  * `seq[ do(1d10) , test{Résistance → Brisé} , do(3 Assourdi) ]`. Routé par les actions du noyau (un `test` non routé
- * LÈVE). La manœuvre cible `allFoes` → un banshee ENNEMI hurle sur le HÉROS : héros MANUEL → le Test
- * suspend en ÉTAPE de cascade `triggeredTest` INFLUENÇABLE (avec `meta.after` = le `do(3 Assourdi)`) ; le
+ * LÈVE). La manœuvre cible `adversairesAutour` → un banshee ENNEMI hurle sur le HÉROS : héros MANUEL → le Test
+ * suspend en ÉTAPE de cascade `testDeclenche` INFLUENÇABLE (avec `meta.after` = le `do(3 Assourdi)`) ; le
  * `do(1d10)` AVANT s'applique tout de suite ; après `jetLancer('cascade', id)`+`jetValider('cascade')`, la branche PUIS la
  * continuation `after` (3 Assourdi) s'appliquent — preuve que l'ordre du Flow `seq` est préservé.
  */
 describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-aware)', () => {
-  it('banshee ENNEMIE hurle sur le HÉROS → étape triggeredTest (after = 3 Assourdi), rejouée à la résolution', () => {
+  it('banshee ENNEMIE hurle sur le HÉROS → étape testDeclenche (after = 3 Assourdi), rejouée à la résolution', () => {
     seedBattleRng(5);
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.characteristics.endurance = 90; H.wounds = blessuresDeBase(100, 100, H); // Résistance réussie (pas de Brisé)
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const banshee = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     banshee.traits = [...(banshee.traits ?? []), { id: 'hurlement-fantomatique', value: 0 }];
@@ -124,7 +124,7 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     applyWail(banc.getState, banc.setState, banshee);
 
     // Le `do(1d10)` AVANT le test s'est appliqué tout de suite ; le test a suspendu en étape de cascade.
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     expect(step).toBeTruthy();
     expect(step.actorId).toBe(H.id);
     expect(step.result).toBeFalsy();        // pas encore lancé → influençable
@@ -139,7 +139,7 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
   });
 
   /**
-   * #402 — le filtre `allFoes` doit lire la CAPABILITY `undead` (portée par le TRAIT Mort-vivant),
+   * #402 — le filtre `adversairesAutour` doit lire la CAPABILITY `undead` (portée par le TRAIT Mort-vivant),
    * PAS le Groupe bestiaire (déclaré par l'entrée, `CreatureData.grantGroups`).
    * Contre-preuve du juge de réfutation : une créature du Groupe « mort-vivant » SANS le
    * Trait (ex. RAW Goule de crypte, `creatures.json`) reste une cible VALIDE du Hurlement fantomatique
@@ -151,24 +151,24 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.dead = true; H.pos = undefined; // hors-cible : on isole le cas sur les 2 synthétiques ci-dessous
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const banshee = enemies[0];
     banshee.traits = [...(banshee.traits ?? []), { id: 'hurlement-fantomatique', value: 0 }];
     banshee.pos = { x: 10, y: 10 };
     banshee.advantage = 3;
     // Goule-de-crypte-like : folder « Les morts sans repos » → Groupe dérivé, mais AUCUN Trait Mort-vivant.
     const goule = enemies[1];
-    goule.kind = 'hero'; goule.aiControlled = true; goule.dead = false;
+    goule.kind = 'heros'; goule.aiControlled = true; goule.dead = false;
     goule.traits = []; goule.groups = ['mort-vivant']; goule.pos = { x: 9, y: 10 };
     goule.wounds = blessuresDeBase(15, 15, goule);
     // Vrai Mort-vivant : PORTE le Trait (capability `undead`) → doit rester EXCLU.
     const trueUndead = enemies[2];
-    trueUndead.kind = 'hero'; trueUndead.aiControlled = true; trueUndead.dead = false;
+    trueUndead.kind = 'heros'; trueUndead.aiControlled = true; trueUndead.dead = false;
     trueUndead.traits = [{ id: 'mort-vivant' }]; trueUndead.groups = ['mort-vivant']; trueUndead.pos = { x: 11, y: 10 };
     trueUndead.wounds = blessuresDeBase(15);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
@@ -182,7 +182,7 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
 
   /**
    * #1231 — « Toutes les créatures vivantes (ne possédant pas le trait Mort-vivant) » (LDB 85 l.170) :
-   * le Hurlement fantomatique ne connaît AUCUN camp (`targeting:'allAround'`). Un allié de la banshee,
+   * le Hurlement fantomatique ne connaît AUCUN camp (`ciblage:'toutAutour'`). Un allié de la banshee,
    * vivant et à portée, le prend comme les autres ; elle-même jamais.
    */
   it('un ALLIÉ vivant de la banshee, à portée, subit le hurlement (aucun camp) — l’émettrice non', () => {
@@ -191,12 +191,12 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.dead = true; H.pos = undefined; // hors-cible : on isole le cas sur la paire d'ennemis ci-dessous
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const banshee = enemies[0];
     banshee.traits = [...(banshee.traits ?? []), { id: 'hurlement-fantomatique', value: 0 }];
     banshee.pos = { x: 10, y: 10 };

@@ -7,7 +7,7 @@
  */
 import type { Jeu } from './etat';
 import type { Combatant, Weapon } from '../engine/types';
-import { inBattleId } from './monde/combatants';
+import { porteurParId } from './monde/combatants';
 import { spendableAdvantage } from './combat/advantagePool';
 import { defenseSubOf, parryWeaponOf } from './rollFlowSpecs';
 import { ligneDeDefense } from './combatFlow';
@@ -24,6 +24,7 @@ import { defenseGagneeEnMelee } from './combatFlow';
 import { shieldReactionCost, contreSurDefenseGagnee, contresEpuisees } from '../engine/combatFeatures/dispatch';
 import { gesteDuReglage, type ChoixNomme } from './reglages';
 import type { ReglageDu } from './reglagesDuJet';
+import type { ReactionDeBouclier } from './pendings';
 
 /** La réaction de la Défense : chaque mode offert porte la cible de son jet (`ligneDeDefense`), réglé comme le réglage
  *  `defense.reaction` le pose. */
@@ -47,26 +48,25 @@ export interface FenetreDeDefense {
   reaction: ChoixDeReaction | null;
   armeDeParade: ChoixNomme | null;
   /** AA 13 l.84 : son coût en Avantages dans son libellé. */
-  porteBouclier: ChoixNomme<'damage' | 'push'> | null;
+  porteBouclier: ChoixNomme<ReactionDeBouclier> | null;
   /** LDB 10 l.1037 : aucune valeur retenue quand les Ripostes du Round sont portées. */
   riposte: ChoixNomme<boolean> | null;
   /** Le jet de la réaction avant le dé, monté comme le flux le jette (`ligneDeDefense`), et le texte de sa
    *  Difficulté (`difficultyText`) ; `null` une fois jeté. */
   jet: (RollLineParts & { difficulte: string }) | null;
   /** L'issue du coup une fois jeté (`issueAuJet`), son genre et sa ligne ; `null` avant le dé. */
-  issue: { genre: 'crit' | 'damage' | 'parry' | 'dodge'; ligne: string } | null;
+  issue: { genre: 'critique' | 'degats' | 'parade' | 'esquive'; ligne: string } | null;
 }
 
 /** Le libellé d'une arme de parade : la main secondaire se dit. */
-const libelleDeParade = (w: Weapon): string => (w.hand === 'off' ? t('defense.secondaire', { arme: w.label }) : w.label);
+const libelleDeParade = (w: Weapon): string => (w.hand === 'secondaire' ? t('defense.secondaire', { arme: w.label }) : w.label);
 
 /** La fenêtre de la Défense en attente (`pendingDefense`), `null` sans Défense. PUR. */
 export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
   const pd = s.pendingDefense;
-  const battle = s.battle;
-  if (!pd || !battle) return null;
-  const attaquant: Combatant | undefined = inBattleId(battle, pd.attackerId);
-  const defenseur: Combatant | undefined = inBattleId(battle, pd.defenderId);
+  if (!pd) return null;
+  const attaquant: Combatant | undefined = porteurParId(s, pd.attackerId);
+  const defenseur: Combatant | undefined = porteurParId(s, pd.defenderId);
   if (!attaquant || !defenseur) return null;
   const jete = !!pd.result;
   // LDB 09 l.207, l.287
@@ -91,11 +91,11 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
   const jetLance = t('defense.refus.jetLance');
   // AA 13 l.84 ; LDB 13 l.123
   const coutDuBouclier = pd.mode === 'parade' ? shieldReactionCost(defenseur, parade) : 0;
-  const refusDuBouclier = (genre: 'damage' | 'push'): string | null => {
-    if (res) return genre === 'damage' && !gagnee ? t('defense.refus.degatsSansDefenseGagnee') : jetLance;
+  const refusDuBouclier = (genre: ReactionDeBouclier): string | null => {
+    if (res) return genre === 'degats' && !gagnee ? t('defense.refus.degatsSansDefenseGagnee') : jetLance;
     if (pd.shieldReaction === genre) return null;
     if (defenseur.usedShieldReactionRound) return t('defense.refus.bouclierUtilise');
-    const avantage = spendableAdvantage(battle, defenseur);
+    const avantage = spendableAdvantage(s.battle, defenseur);
     return avantage < coutDuBouclier ? t('defense.refus.avantages', { cout: coutDuBouclier, nom: defenseur.label, avantage }) : null;
   };
   // LDB 10 l.1037
@@ -121,7 +121,7 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
     porteBouclier: coutDuBouclier > 0
       ? choix('porteBouclier', pd.shieldReaction ?? null, [
         { valeur: null, libelle: t('valeur.aucun'), refus: res ? jetLance : null },
-        ...(['damage', 'push'] as const).map((genre) => ({ valeur: genre, libelle: t(`valeur.${genre}`), refus: refusDuBouclier(genre) })),
+        ...(['degats', 'repousser'] as const).map((genre) => ({ valeur: genre, libelle: t(`valeur.${genre}`), refus: refusDuBouclier(genre) })),
       ], t('defense.porteBouclier', { cout: coutDuBouclier }))
       : null,
     riposte: contre?.choisie
@@ -131,6 +131,6 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
       ])
       : null,
     jet: ligne && { ...ligne, difficulte: difficultyText(ligne.difficulty, ligne.difficultyCombined) },
-    issue: res && coup ? { genre: coup.compte.critiques.length ? 'crit' : res.hit ? 'damage' : pd.mode === 'parade' ? 'parry' : 'dodge', ligne: coup.ligne } : null,
+    issue: res && coup ? { genre: coup.compte.critiques.length ? 'critique' : res.hit ? 'degats' : pd.mode === 'parade' ? 'parade' : 'esquive', ligne: coup.ligne } : null,
   };
 }

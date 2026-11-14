@@ -39,7 +39,7 @@ describe('règles optionnelles — actions déclarées, câblage store & icônes
     expect(runIsStoreAction('restoreFortuneMaintenant')).toBe(false); // renommage/typo
     expect(runIsStoreAction('battle')).toBe(false); // propriété d'état : crash au clic
     expect(runIsStoreAction('party')).toBe(false);
-    expect(iconIsRegistered('resource/fortune')).toBe(true);
+    expect(iconIsRegistered('ressource/chance')).toBe(true);
     expect(iconIsRegistered('resource/fortune-inventee')).toBe(false);
   });
 });

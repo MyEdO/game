@@ -1,41 +1,34 @@
 /**
- * CONTRAT RAW de la DISPONIBILITÉ SAISONNIÈRE (#1659 L-1659-2) — les 72 cellules des deux tableaux de
- * cargaisons, confrontées à ce que les livres IMPRIMENT.
+ * CONTRAT RAW du TABLEAU DES CARGAISONS (#1659 L-1659-2, #3578 L5) — les 72 cellules des deux tableaux,
+ * portées par les huit documents de `cargaisons-aleatoires.json` (une colonne saisonnière imprimée par
+ * document), confrontées à ce que les livres IMPRIMENT.
  *
- * Ce que ce fichier tient, et que rien d'autre ne tenait : la valeur des bornes. Le refine des defs
- * garde la COUVERTURE (1–100 sans trou), pas la FIDÉLITÉ — une colonne entièrement décalée d'un cran
- * couvre toujours 1 à 100 et passerait. Le lookup, lui, ne juge rien.
+ * Ce que ce fichier tient, et que rien d'autre ne tenait : la valeur des bornes. Le refine du def garde la
+ * COUVERTURE du dé de chaque document, pas la FIDÉLITÉ — une colonne entièrement décalée d'un cran couvre
+ * toujours 1 à 100 et passerait.
  *
- * POURQUOI LA TABLE EST RETRANSCRITE ICI, et non importée de la migration
- * (`scripts/migrations/2026-09-01-1659-avail-plage.mjs`, `ATTENDU_MER`/`ATTENDU_TERRE`) :
- *  1. une migration est un artefact DATÉ, rejoué puis destiné à disparaître ; un contrat qui en
- *     dépendrait mourrait avec elle ;
- *  2. surtout, un littéral PARTAGÉ entre l'écrivain et le juge ne peut pas les départager : la
- *     migration écrit CE littéral, ce test le relirait — une faute de transcription serait VERTE des
- *     deux côtés. Deux transcriptions INDÉPENDANTES de la même table imprimée sont une saisie en
- *     partie double : c'est le seul montage où une coquille se voit.
- * Un troisième domicile (`scripts/raw/…`) ne ferait que déplacer le problème (1) et supprimer (2) :
- * il n'aurait aucun autre lecteur que ces deux-là.
+ * POURQUOI LA TABLE EST RETRANSCRITE ICI, et non importée de la migration : un littéral PARTAGÉ entre
+ * l'écrivain et le juge ne peut pas les départager. Deux transcriptions INDÉPENDANTES de la même table
+ * imprimée sont une saisie en partie double : c'est le seul montage où une coquille se voit.
  *
- * MARITIME — `Source/WH - V4 - La Mer de Griffe/15 - Longs voyages.md` l.406-418.
+ * MARITIME — `Source/WH - V4 - La Mer de Griffe/15 - Longs voyages.md` l.404-418.
  * TERRESTRE — `Source/Warhammer v4 - 2.0 Mort sur le Reik Compagnon/13 - CHAPITRE 11 - Règles du
- * commerce.md` l.73-78 (table TRANSPOSÉE : une LIGNE par saison, une COLONNE par bien).
+ * commerce.md` l.69-78 (table TRANSPOSÉE : une LIGNE par saison, une COLONNE par bien).
  * `00` est le 100 du d100.
  */
 import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import type { z } from 'zod';
-import { dispoSaisonniereSchema } from './schemas/grammaire/valeurs';
+import { saisonSchema } from './schemas/grammaire/valeurs';
 
 /** Une cellule du tableau, telle que le livre l'imprime : `01-05` → `[1, 5]`. */
 type CelluleAvail = [number, number];
 
-/** Les quatre colonnes, DÉRIVÉES du nœud de grammaire — la liste des saisons n'est écrite qu'une fois
- *  dans le dépôt (`parSaison`). Leur ORDRE est celui des deux en-têtes imprimés (MDG 15 l.406,
- *  MSRC 13 l.73-78), ce que le premier test vérifie avant de s'en servir. */
-const SAISONS_IMPRIMEES = Object.keys(dispoSaisonniereSchema.shape) as (keyof z.infer<typeof dispoSaisonniereSchema>)[];
+/** Les quatre colonnes, DÉRIVÉES du vocabulaire des saisons (`saisonSchema`, clés de `parSaison`). Leur ORDRE
+ *  est celui des deux en-têtes imprimés (MDG 15 l.406, MSRC 13 l.75-78), ce que le premier test vérifie avant
+ *  de s'en servir. */
+const SAISONS_IMPRIMEES = saisonSchema.options;
 
 /**
  * MDG 15 l.406-418, recopié colonne par colonne :
@@ -79,69 +72,37 @@ const TERRE: Record<string, CelluleAvail[]> = tableTotale(TERRE_COLONNES, (_id, 
   SAISONS_IMPRIMEES.map((s) => TERRE_PAR_SAISON[s][colonne]),
 );
 
-type Entree = { id: string; label: string; voie: string; echangeable?: false; avail?: Record<string, { min: number; max: number }> };
+type Document = { id: string; voie: string; saison: string; die: string; entries: { id: string; min: number; max: number }[] };
 
-/** Les entrées d'UNE voie du catalogue (`cargoes.json`) — chaque voie est la table d'un livre. */
-const lire = (voie: string): Entree[] =>
-  (JSON.parse(readFileSync(fileURLToPath(new URL('./cargoes.json', import.meta.url)), 'utf8')) as Entree[]).filter((e) => e.voie === voie);
+/** Les documents du tableau d'UNE voie (`cargaisons-aleatoires.json`), lus au disque. */
+const lire = (voie: string): Document[] =>
+  (JSON.parse(readFileSync(fileURLToPath(new URL('./cargaisons-aleatoires.json', import.meta.url)), 'utf8')) as Document[]).filter((d) => d.voie === voie);
 
-/** Les entrées MARCHANDES : le marqueur de colonne Production/Produits n'a pas de disponibilité
- *  (`isEchangeable`, `src/engine/cargo.ts` — le CHAMP d'exclusion, jamais un id). */
-const marchandes = (entrees: Entree[]) => entrees.filter((e) => e.echangeable !== false);
-
-describe('disponibilité saisonnière : la donnée dit ce que le livre imprime (#1659)', () => {
-  it('les colonnes du nœud de grammaire sont celles des en-têtes IMPRIMÉS, dans l’ordre', () => {
+describe('Tableau des cargaisons : les documents disent ce que le livre imprime (#1659, #3578)', () => {
+  it('les colonnes du vocabulaire des saisons sont celles des en-têtes IMPRIMÉS, dans l’ordre', () => {
     // Les deux transcriptions ci-dessus sont POSITIONNELLES (MDG 15 l.406 « | Printemps | Été |
-    // Automne | Hiver | », MSRC 13 l.75-78 dans le même ordre de lignes) : si `parSaison` réordonnait
-    // ses clés, elles seraient lues de travers SANS qu'aucune borne ne change.
-    expect(
-      SAISONS_IMPRIMEES,
-      'l’ordre des colonnes de `parSaison` a changé : les tables retranscrites ici sont lues par POSITION.',
-    ).toEqual(['printemps', 'ete', 'automne', 'hiver']);
+    // Automne | Hiver | », MSRC 13 l.75-78 dans le même ordre de lignes).
+    expect(SAISONS_IMPRIMEES, 'l’ordre des saisons a changé : les tables retranscrites ici sont lues par POSITION.').toEqual(['printemps', 'ete', 'automne', 'hiver']);
   });
 
   for (const [voie, attendu, cardinal] of [
     ['mer', MER, 44],
     ['terre', TERRE, 28],
   ] as const) {
-    it(`cargoes.json, voie ${voie} — les ${cardinal} cellules, borne par borne`, () => {
-      const entrees = marchandes(lire(voie));
-      expect(
-        entrees.map((e) => e.id).sort(),
-        'le catalogue et la table imprimée n’ont plus les mêmes cargaisons : une entrée marchande sans ligne au livre est une invention (règle 1).',
-      ).toEqual(Object.keys(attendu).sort());
-
-      // Le RÉSULTAT est comparé en BLOC (une seule assertion nomme toutes les cellules fautives), et
-      // son CARDINAL est asserté sur ce qui a été effectivement lu — pas sur la longueur du littéral.
+    it(`voie ${voie} — un document d100 par saison imprimée, et ses ${cardinal} cellules, borne par borne`, () => {
+      const documents = lire(voie);
+      expect(documents.map((d) => d.saison).sort(), `voie ${voie} : une colonne imprimée sans document, ou tirée deux fois.`).toEqual([...SAISONS_IMPRIMEES].sort());
       const vu: Record<string, CelluleAvail[]> = {};
       let cellules = 0;
-      for (const e of entrees) {
-        vu[e.id] = SAISONS_IMPRIMEES.map((s) => {
-          const f = e.avail?.[s];
+      for (const [i, saison] of SAISONS_IMPRIMEES.entries()) {
+        const d = documents.find((x) => x.saison === saison)!;
+        for (const r of d.entries) {
+          (vu[r.id] ??= [])[i] = [r.min, r.max];
           cellules++;
-          return [f?.min as number, f?.max as number];
-        });
+        }
       }
-      expect(vu, `une cellule de disponibilité de la voie ${voie} ne dit plus ce que le livre imprime.`).toEqual(attendu);
-      expect(cellules, 'le compte des cellules LUES a bougé : 4 saisons × cargaisons marchandes.').toBe(cardinal);
+      expect(vu, `une cellule de la voie ${voie} ne dit plus ce que le livre imprime.`).toEqual(attendu);
+      expect(cellules, 'le compte des cellules LUES a bougé : 4 saisons × cargaisons imprimées.').toBe(cardinal);
     });
   }
-
-  it('les deux voies du catalogue portent 72 cellules — le cardinal du lot, sur le RÉSULTAT', () => {
-    const total = [...marchandes(lire('mer')), ...marchandes(lire('terre'))]
-      .flatMap((e) => SAISONS_IMPRIMEES.map((s) => e.avail?.[s]))
-      .filter((f) => typeof f?.min === 'number' && typeof f?.max === 'number').length;
-    expect(total, 'les 72 disponibilités saisonnières du lot #1659 L-1659-2 ne sont plus toutes des fourchettes.').toBe(72);
-  });
-
-  it('AUCUNE cellule n’est restée un TUPLE `[min, max]` (la forme que #1659 retire)', () => {
-    const tuples = [...marchandes(lire('mer')), ...marchandes(lire('terre'))]
-      .flatMap((e) => SAISONS_IMPRIMEES.map((s) => ({ id: e.id, s, f: e.avail?.[s] })))
-      .filter((c) => Array.isArray(c.f))
-      .map((c) => `${c.id} › ${c.s}`);
-    expect(
-      tuples,
-      'une disponibilité est réécrite en TUPLE : `findTableEntryIndex` (`src/engine/tables.ts`) lit `{min, max}`, et un tuple encode ses bornes par POSITION — ni éditable, ni mesurable.',
-    ).toEqual([]);
-  });
 });

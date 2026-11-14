@@ -38,7 +38,6 @@ const PORTEURS = [
   { porteur: 'trappings.json › subType', doc: (v: unknown) => avec(objet('baton-de-combat'), 'subType', v), connue: 'armes-d-hast', refus: 'est absent du catalogue des groupes d’armes' },
   { porteur: 'trappings.json › weaponGroup', doc: (v: unknown) => avec(objet('baliste'), 'weaponGroup', v), connue: 'arbalete', refus: 'est absent du catalogue des groupes d’armes' },
   { porteur: 'trappings.json › derivedWeapon.subType', doc: crochetDerive, connue: 'base', refus: 'est absent du catalogue des groupes d’armes' },
-  { porteur: 'trappings.json › defaultAmmo', doc: (v: unknown) => avec(objet('baliste'), 'defaultAmmo', v), connue: 'carreau-de-baliste', refus: 'est hors de la sous-liste « ammunition » du catalogue des objets' },
 ];
 
 describe('#2968 L07 — Groupe d’objet et munition désignés par `ref(type)`', () => {
@@ -59,8 +58,9 @@ describe('#2968 L07 — Groupe d’objet et munition désignés par `ref(type)`'
     expect(schemaObjets.safeParse(doc(connue)).success).toBe(false);
   });
 
-  it('trappings.json › defaultAmmo : un objet hors des munitions est refusé, sa sous-liste nommée', () => {
-    expect(messages(schemaObjets, avec(objet('baliste'), 'defaultAmmo', { id: 'dague' }))).toContain('« dague » est hors de la sous-liste « ammunition » du catalogue des objets');
+  it('trappings.json › munitions : un objet hors des munitions est refusé, sa sous-liste nommée', () => {
+    expect(schemaObjets.safeParse(avec(objet('baliste'), 'munitions', ['carreau-de-baliste'])).success).toBe(true);
+    expect(messages(schemaObjets, avec(objet('baliste'), 'munitions', ['dague']))).toContain('« dague » est hors de la sous-liste « ammunition » du catalogue des objets');
   });
 
   describe('merchants.json › category.subTypes : liste de Groupes (`refs`)', () => {

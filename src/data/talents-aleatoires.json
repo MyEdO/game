@@ -1,0 +1,175 @@
+[
+  {
+    "id": "talents-aleatoires",
+    "type": "talents-aleatoires",
+    "label": "Tableau des Talents aléatoires",
+    "die": "d100",
+    "source": {
+      "book": "livre-de-base",
+      "page": 36,
+      "note": "Tableau des Talents aléatoires, LDB 05 l.514-531"
+    },
+    "entries": [
+      {
+        "id": "affable",
+        "min": 1,
+        "max": 3
+      },
+      {
+        "id": "affinite-avec-les-animaux",
+        "min": 4,
+        "max": 6
+      },
+      {
+        "id": "ambidextre",
+        "min": 7,
+        "max": 9
+      },
+      {
+        "id": "ame-pure",
+        "min": 10,
+        "max": 13
+      },
+      {
+        "id": "artiste",
+        "min": 14,
+        "max": 16
+      },
+      {
+        "id": "attirant",
+        "min": 17,
+        "max": 19
+      },
+      {
+        "id": "bonnes-jambes",
+        "min": 20,
+        "max": 22
+      },
+      {
+        "id": "chanceux",
+        "min": 23,
+        "max": 26
+      },
+      {
+        "id": "costaud",
+        "min": 27,
+        "max": 29
+      },
+      {
+        "id": "doigts-de-fee",
+        "min": 30,
+        "max": 32
+      },
+      {
+        "id": "doue-en-calcul",
+        "min": 33,
+        "max": 36
+      },
+      {
+        "id": "dur-a-cuire",
+        "min": 37,
+        "max": 40
+      },
+      {
+        "id": "fuite",
+        "min": 41,
+        "max": 43
+      },
+      {
+        "id": "guerrier-ne",
+        "min": 44,
+        "max": 46
+      },
+      {
+        "id": "imitation",
+        "min": 47,
+        "max": 49
+      },
+      {
+        "id": "imperturbable",
+        "min": 50,
+        "max": 52
+      },
+      {
+        "id": "linguistique",
+        "min": 53,
+        "max": 55
+      },
+      {
+        "id": "lire-ecrire",
+        "min": 56,
+        "max": 58
+      },
+      {
+        "id": "maitre-artisan",
+        "min": 59,
+        "max": 61
+      },
+      {
+        "id": "noblesse",
+        "min": 62,
+        "max": 63
+      },
+      {
+        "id": "oreille-absolue",
+        "min": 64,
+        "max": 66
+      },
+      {
+        "id": "perspicace",
+        "min": 67,
+        "max": 69
+      },
+      {
+        "id": "reflexes-foudroyants",
+        "min": 70,
+        "max": 72
+      },
+      {
+        "id": "resistance",
+        "min": 73,
+        "max": 75
+      },
+      {
+        "id": "sens-aiguise",
+        "min": 76,
+        "max": 78
+      },
+      {
+        "id": "sens-de-l-orientation",
+        "min": 79,
+        "max": 81
+      },
+      {
+        "id": "sixieme-sens",
+        "min": 82,
+        "max": 85
+      },
+      {
+        "id": "tireur-de-precision",
+        "min": 86,
+        "max": 88
+      },
+      {
+        "id": "tres-fort",
+        "min": 89,
+        "max": 91
+      },
+      {
+        "id": "tres-resistant",
+        "min": 92,
+        "max": 94
+      },
+      {
+        "id": "vision-nocturne",
+        "min": 95,
+        "max": 97
+      },
+      {
+        "id": "vivacite",
+        "min": 98,
+        "max": 100
+      }
+    ]
+  }
+]

@@ -37,7 +37,7 @@ const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endu
 
 /** Héros d'épreuve : chaque Test du lot sur une valeur distincte ; l'Évaluation dépasse la borne haute (Int 60 + 50). */
 const heros = (id = 'h', over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id, label: id, kind: 'hero', pos: { x: 1, y: 1 }, size: 'moyenne', characteristics: { ...CHARS },
+  id, label: id, kind: 'heros', pos: { x: 1, y: 1 }, size: 'moyenne', characteristics: { ...CHARS },
   skills: [
     { id: 'athletisme', advances: 12 }, { id: 'calme', advances: 7 }, { id: 'resistance', advances: 4 },
     { id: 'guerison', advances: 21 }, { id: 'evaluation', advances: 50 },
@@ -78,8 +78,8 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     banc.setState({ pendingRun: { combatantId: 'h', test: testDuCavalier(heros(), testDeRegle('course', 'courir')), result: null } });
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDuTestNomme(acteur(banc.getState(), 'h'), banc.getState().pendingRun!.test));
-    const enVue = cibleEnVue(banc.getState(), 'run', 'h');
-    banc.getState().jetLancer('run');
+    const enVue = cibleEnVue(banc.getState(), 'course', 'h');
+    banc.getState().jetLancer('course');
     expect(cibleMesuree(banc.getState().pendingRun!.result!)).toEqual(annoncee);
     expect(enVue, 'jetsEnVue').toBe(annoncee.target);
   });
@@ -91,8 +91,8 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     banc.setState({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 2, y: 1 }, metres: 6, initiateurId: 'h', participants: [{ id: 'h', interactive: true, attempt: true, result: null }] } });
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDuTestNomme(acteur(banc.getState(), 'h'), banc.getState().pendingFall!.test));
-    const enVue = cibleEnVue(banc.getState(), 'fall', 'h');
-    banc.getState().jetLancer('fall', 'h');
+    const enVue = cibleEnVue(banc.getState(), 'chute', 'h');
+    banc.getState().jetLancer('chute', 'h');
     expect(cibleMesuree(banc.getState().pendingFall!.participants[0].result!)).toEqual(annoncee);
     expect(enVue, 'jetsEnVue').toBe(annoncee.target);
   });
@@ -101,11 +101,11 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     poserFicheDeTest();
     const banc = ouvrirLeBanc();
     enCombat(banc, heros());
-    banc.setState({ pendingApproach: { combatantId: 'h', test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: 'x', sourceName: 'X', intent: { kind: 'tile', pt: { x: 2, y: 1 } }, result: null } });
+    banc.setState({ pendingApproach: { combatantId: 'h', test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: 'x', intent: { kind: 'tile', pt: { x: 2, y: 1 } }, result: null } });
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDuTestNomme(acteur(banc.getState(), 'h'), banc.getState().pendingApproach!.test));
-    const enVue = cibleEnVue(banc.getState(), 'approach', 'h');
-    banc.getState().jetLancer('approach');
+    const enVue = cibleEnVue(banc.getState(), 'approche', 'h');
+    banc.getState().jetLancer('approche');
     expect(cibleMesuree(banc.getState().pendingApproach!.result as never)).toEqual(annoncee);
     expect(enVue, 'jetsEnVue').toBe(annoncee.target);
   });
@@ -116,8 +116,8 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     banc.setState({ pendingFrenzy: { combatantId: 'h', result: null } });
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDeFrenesie(acteur(banc.getState(), 'h')));
-    const enVue = cibleEnVue(banc.getState(), 'frenzy', 'h');
-    banc.getState().jetLancer('frenzy');
+    const enVue = cibleEnVue(banc.getState(), 'frenesie', 'h');
+    banc.getState().jetLancer('frenesie');
     expect(cibleMesuree(banc.getState().pendingFrenzy!.result as never)).toEqual(annoncee);
     expect(enVue, 'jetsEnVue').toBe(annoncee.target);
   });
@@ -128,18 +128,18 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     // Le frappeur (non joué) porte son coup dans le dos à l'ouverture et blesse : le Test du fuyard est dû (LDB 15 l.66).
     const epee = { uid: 'e', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4, bare: true }, qualities: [], hand: 'main', hands: 1 };
     const brute = heros('x', {
-      kind: 'enemy', pos: { x: 2, y: 1 }, engagedWith: ['h'], weapons: [epee], items: [{ uid: 'e', label: 'Épée', kind: 'melee', qualities: [] }],
+      kind: 'ennemi', pos: { x: 2, y: 1 }, engagedWith: ['h'], weapons: [epee], items: [{ uid: 'e', label: 'Épée', kind: 'melee', qualities: [] }],
       loadouts: [{ id: 'lo', main: 'e' }], activeLoadoutId: 'lo',
       characteristics: { ...CHARS, 'capacite-de-combat': 90, force: 80 },
     } as unknown as Partial<Combatant>);
     enCombat(banc, heros('h', { engagedWith: ['x'], movement: 4 } as Partial<Combatant>), brute);
     startDisengage(banc.getState, banc.setState, acteur(banc.getState(), 'h'));
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
     const test = fleeTouche(banc.getState().pendingDisengage!)!.test;
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDuTestNomme(acteur(banc.getState(), 'h'), test));
-    const enVue = cibleEnVue(banc.getState(), 'flee', 'h');
-    banc.getState().jetLancer('flee', 'h');
+    const enVue = cibleEnVue(banc.getState(), 'fuite', 'h');
+    banc.getState().jetLancer('fuite', 'h');
     expect(cibleMesuree(fleeTouche(banc.getState().pendingDisengage!)!.jet as { target: number; clamped?: number })).toEqual(annoncee);
     expect(enVue, 'jetsEnVue').toBe(annoncee.target);
   });
@@ -166,11 +166,11 @@ describe('flux figés : la ligne posée à l’ouverture est celle que le résol
     const banc = ouvrirLeBanc();
     const h = heros('h', { handGates: ['main'] } as Partial<Combatant>);
     enCombat(banc, h);
-    poserLeTestDeMain(banc.setState, acteur(banc.getState(), 'h'), 'main', { attackerId: 'h', targetId: 'h', location: null, result: null } as never, 'Attaque', 'action/attack');
+    poserLeTestDeMain(banc.setState, acteur(banc.getState(), 'h'), 'main', { attackerId: 'h', targetId: 'h', location: null, result: null } as never, 'Attaque', 'action/attaquer');
     const ligne = banc.getState().pendingHandGate!.ligne;
     expect(ligne.difficulty).toBe('accessible');
     exterue(banc, 'h');
-    banc.getState().jetLancer('handGate');
+    banc.getState().jetLancer('mainEnsanglantee');
     const pg = banc.getState().pendingHandGate!;
     expect(pg.ligne).toEqual(ligne);
     expect(cibleMesuree(pg)).toEqual(cibleMesuree(ligne));
@@ -182,14 +182,14 @@ describe('flux figés : la ligne posée à l’ouverture est celle que le résol
     const patient = heros('p');
     banc.setState({
       battle: null, party: [chirurgien, patient],
-      medic: { patientId: 'p', surgery: { kind: 'recovery', difficulty: 'accessible', healerId: 'c', healerName: 'c', skill: 81, intBonus: 6, targetDR: 6, cumDR: 0 } } as never,
+      medic: { patientId: 'p', surgery: { kind: 'reeducation', difficulty: 'accessible', healerId: 'c', healerName: 'c', skill: 81, intBonus: 6, drCible: 6, cumDR: 0 } } as never,
     });
     seedBattleRng(7);
     banc.setState({ pendingSurgery: passeDeLOperation(banc.getState()) });
     const ligne = banc.getState().pendingSurgery!.ligne;
     expect(ligne.difficulty).toBe('accessible');
     exterue(banc, 'c');
-    banc.getState().jetLancer('surgery');
+    banc.getState().jetLancer('chirurgie');
     const ps = banc.getState().pendingSurgery!;
     expect(ps.ligne).toEqual(ligne);
     expect(cibleMesuree(ps)).toEqual(cibleMesuree(ligne));
@@ -202,7 +202,7 @@ describe('flux figés : la ligne posée à l’ouverture est celle que le résol
     seedBattleRng(7);
     evaluerLObjet(banc.getState, banc.setState, 'd1');
     const avant = banc.getState().pendingAppraise!;
-    banc.getState().jetLancer('appraise');
+    banc.getState().jetLancer('evaluation');
     const apres = banc.getState().pendingAppraise!;
     expect(cibleMesuree(avant), 'la cible que la fenêtre lit avant le jet').toEqual(cibleMesuree(apres));
     expect(cibleMesuree(avant.ligne)).toEqual(cibleMesuree(apres));

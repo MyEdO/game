@@ -10,9 +10,9 @@ import { describe, it, expect } from 'vitest';
 import { certainFlowOps, EMPTY_FLOW, testFlow, type Flow } from './flowCore';
 import type { GameOp } from './ops';
 
-const OPS: GameOp[] = [{ op: 'condition', id: 'sonne', value: 1 }];
+const OPS: GameOp[] = [{ op: 'condition', id: { id: 'sonne' }, value: 1 }];
 const AUTRES: GameOp[] = [{ op: 'wounds', amount: 3 }];
-const doOps = (ops: GameOp[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops } });
+const doOps = (ops: GameOp[]): Flow => ({ kind: 'effet', effet: { type: 'ops', on: 'target', ops } });
 
 describe('certainFlowOps — l’encadré Réussite/Échec se CALCULE des ops (#1117)', () => {
   it('une feuille d’ops rend SES ops, dans l’ordre', () => {
@@ -20,7 +20,7 @@ describe('certainFlowOps — l’encadré Réussite/Échec se CALCULE des ops (#
   });
 
   it('une séquence CONCATÈNE ses feuilles (l’ordre d’application est celui de l’encadré)', () => {
-    const f: Flow = { kind: 'seq', steps: [doOps(OPS), doOps(AUTRES)] };
+    const f: Flow = { kind: 'sequence', etapes: [doOps(OPS), doOps(AUTRES)] };
     expect(certainFlowOps(f)).toEqual([...OPS, ...AUTRES]);
   });
 
@@ -29,19 +29,19 @@ describe('certainFlowOps — l’encadré Réussite/Échec se CALCULE des ops (#
   });
 
   it('FAIL-CLOSED : un `if` ne se résume pas (la branche dépend d’une Condition évaluée plus tard)', () => {
-    const f: Flow = { kind: 'if', cond: { kind: 'flag', expr: 'x' }, then: doOps(OPS), else: doOps(AUTRES) };
+    const f: Flow = { kind: 'si', condition: { kind: 'flag', expr: 'x' }, alors: doOps(OPS), sinon: doOps(AUTRES) };
     expect(certainFlowOps(f)).toBeUndefined();
     // …et il CONTAMINE la séquence qui le porte : un « Réussite : Sonné » suivi d'un peut-être mentirait.
-    expect(certainFlowOps({ kind: 'seq', steps: [doOps(OPS), f] })).toBeUndefined();
+    expect(certainFlowOps({ kind: 'sequence', etapes: [doOps(OPS), f] })).toBeUndefined();
   });
 
   it('FAIL-CLOSED : un `test` imbriqué (second jet) et un `choice` ne se résument pas non plus', () => {
     expect(certainFlowOps(testFlow({ skill: { id: 'resistance' }, difficulty: 'intermediaire' }, EMPTY_FLOW, doOps(OPS)))).toBeUndefined();
-    expect(certainFlowOps({ kind: 'choice', prompt: 'Tenter ?', yes: doOps(OPS) })).toBeUndefined();
+    expect(certainFlowOps({ kind: 'choix', invite: 'Tenter ?', oui: doOps(OPS) })).toBeUndefined();
   });
 
   it('FAIL-CLOSED : une feuille qui n’est PAS une liste d’ops (transition, dialogue) ne se résume pas', () => {
-    const f = { kind: 'do', effect: { type: 'transition', to: 'scene-2' } } as unknown as Flow;
+    const f = { kind: 'effet', effet: { type: 'transition', to: 'scene-2' } } as unknown as Flow;
     expect(certainFlowOps(f)).toBeUndefined();
   });
 

@@ -16,7 +16,7 @@ import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/c
 const base: PendingBargain = {
   playerId: 'h',
   playerName: 'H',
-  contrepartie: { kind: 'marchand', mode: 'buy', titre: t('out.bargainTitreAchat') },
+  contrepartie: { kind: 'marchand', mode: 'achat', titre: t('out.bargainTitreAchat') },
   opposant: { label: 'Armurier', valeur: 45 },
   playerSkill: 50,
   playerBase: 50,
@@ -39,10 +39,10 @@ describe('BargainModal — le marchand à preset joue sa fiche', () => {
       layers: [{ z: 0, tiles: Array(16).fill('herbe') }], dialogues: [], triggers: [], encounters: [], flags: {},
       entities: [{ id: 'marchand', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'marchand-nomme', merchant: { archetype: { id: 'armurier' } } }],
     } as unknown as Scene;
-    const negociateur = blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', items: [], characteristics: profilDeTest({ sociabilite: 40 }), skills: [], talents: [], wounds: blessuresDeBase(10), conditions: [], weapons: [], armour: {} }) as unknown as Combatant;
+    const negociateur = blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'heros', items: [], characteristics: profilDeTest({ sociabilite: 40 }), skills: [], talents: [], wounds: blessuresDeBase(10), conditions: [], weapons: [], armour: {} }) as unknown as Combatant;
     useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'marchand-nomme', base: { id: 'nain' }, profil: { label: 'Gunther le Négociant' } }] }, scene, party: [negociateur] });
     useGame.getState().ouvrirLeMarchand('marchand');
-    useGame.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    useGame.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     const pb = useGame.getState().pendingBargain!;
     const fiche = sceneNpc(scene, 'marchand', presetPnjById)!;
     expect(fiche.creatureId).toBe('nain');
@@ -83,7 +83,7 @@ describe('BargainModal (#2c)', () => {
    */
   it('base AFFICHÉE = la Compétence NUE, État et Soutien en chips nommées, cible invariante', () => {
     const negociateur: Combatant = {
-      id: 'h', label: 'Maître d’armes', kind: 'hero', speciesId: 'humains-reiklander',
+      id: 'h', label: 'Maître d’armes', kind: 'heros', speciesId: 'humains-reiklander',
       characteristics: profilDeTest({ sociabilite: 40 }),
       skills: [{ id: 'marchandage', advances: 15 }], talents: [], items: [],
       conditions: [{ id: 'empoisonne', value: 1 }], advantage: 0,
@@ -101,7 +101,7 @@ describe('BargainModal (#2c)', () => {
       result: {
         attacker: { roll: 20, target: 35, success: true, sl: 3, isDouble: false },
         defender: { roll: 60, target: 45, success: false, sl: -1, isDouble: false },
-        winner: 'attacker', attackerWins: true, netSL: 4, decidedBy: 'dr',
+        winner: 'attaquant', attackerWins: true, netSL: 4, decidedBy: 'dr',
       },
     };
     const html = renderToStaticMarkup(
@@ -127,7 +127,7 @@ describe('BargainModal (#2c)', () => {
       result: {
         attacker: { roll: 20, target: 50, success: true, sl: 3, isDouble: false },
         defender: { roll: 60, target: 45, success: false, sl: -1, isDouble: false },
-        winner: 'attacker',
+        winner: 'attaquant',
         attackerWins: true,
         netSL: 4,
         decidedBy: 'dr',

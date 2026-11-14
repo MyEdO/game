@@ -39,9 +39,9 @@ function heroes(): Combatant[] {
 /** SÉQUENCE de poursuite en cours (l'état vit dans le socle). */
 function pursuitSeq(p: Partial<PursuitPayload> & { foes: PursuitFoe[] }): EtatDeFamille<'pursuit'> {
   return {
-    def: 'pursuit', round: 1, cum: {},
-    params: { score: { fleeing: 'min', pursuers: 'max' } },
-    payload: {
+    definition: 'pursuit', manche: 1, cumuls: {},
+    parametres: { score: { fleeing: 'min', pursuers: 'max' } },
+    chargeUtile: {
       partyRole: 'fleeing', distance: 2, escapeAt: 10, skill: 'athletisme',
       policy: { ...PURSUIT_POLICY_DEFAUT }, manche: 1, phase: 'course', retires: [],
       ...p,
@@ -53,7 +53,7 @@ function pursuitSeq(p: Partial<PursuitPayload> & { foes: PursuitFoe[] }): EtatDe
 /** Manche FIGÉE : une rangée par coureur, DR imposé (le jet adverse, lui, tombe au RNG semé). */
 function doneRound(rows: { id: string; sl: number }[]): MancheClose {
   const participants: CascadeStep[] = [{
-    id: 'pursuit-1', kind: 'pursuitMove', label: fixtureText('Manche 1 — Athlétisme'), aggregate: 'none',
+    id: 'pursuit-1', kind: 'mouvementDePoursuite', label: fixtureText('Manche 1 — Athlétisme'), aggregate: 'none',
     participants: rows.map((r) => ({
       id: r.id, label: 'Athlétisme', base: 40, target: 40, interactive: true,
       result: { roll: 40, target: 40, sl: r.sl, success: r.sl >= 0 },
@@ -98,9 +98,9 @@ describe('Poursuite — l’exemple canonique du Source (LDB 15 l.98-102)', () =
       sequence: pursuitSeq({
         partyRole: 'pursuing', distance: 2,
         foes: [
-          { label: 'Cultiste 1', movement: 4, skill: 40 },
-          { label: 'Cultiste 2', movement: 4, skill: 40 },
-          { label: 'Cultiste 3', movement: 4, skill: 40 },
+          { label: fixtureText('Cultiste 1'), movement: 4, skill: 40 },
+          { label: fixtureText('Cultiste 2'), movement: 4, skill: 40 },
+          { label: fixtureText('Cultiste 3'), movement: 4, skill: 40 },
         ],
       }),
     });
@@ -133,7 +133,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
   it('(a) le camp du GROUPE poursuivi choisit — la voie « sacrifier » nomme le plus lent', () => {
     banc.getState().ensemencerLeTirage(4);
     const [a, b, c] = heroes();
-    banc.setState({ sequence: pursuitSeq({ distance: 1, foes: [{ label: 'Cavalier', movement: 4, skill: 95 }] }) });
+    banc.setState({ sequence: pursuitSeq({ distance: 1, foes: [{ label: fixtureText('Cavalier'), movement: 4, skill: 95 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound([{ id: a.id, sl: -6 }, { id: b.id, sl: 2 }, { id: c.id, sl: 3 }]));
     const choix = banc.getState().pendingCascade!.participants[0];
     expect(choix.options?.find((o) => o.key === 'sacrifier')?.label).toBe('Abandonner Alix'); // DR le plus bas
@@ -143,7 +143,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
   it('(a)+(d) sacrifier : le plus lent sort de la course et la Distance se RECALCULE sans lui', () => {
     banc.getState().ensemencerLeTirage(4);
     const [a, b, c] = heroes();
-    banc.setState({ sequence: pursuitSeq({ distance: 1, foes: [{ label: 'Cavalier', movement: 4, skill: 95 }] }) });
+    banc.setState({ sequence: pursuitSeq({ distance: 1, foes: [{ label: fixtureText('Cavalier'), movement: 4, skill: 95 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound([{ id: a.id, sl: -6 }, { id: b.id, sl: 2 }, { id: c.id, sl: 3 }]));
     const choix = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetRegler('cascade', 'choix', 'sacrifier', choix.id);
@@ -163,7 +163,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
     const [a, b, c] = heroes();
     banc.setState({
       // `escapeAt` haut : la manche recalculée ne peut pas SEMER les poursuivants, elle continue.
-      sequence: pursuitSeq({ distance: 1, escapeAt: 30, foes: [{ label: 'Cavalier vif', movement: 6, skill: 60 }, { label: 'Trainard', movement: 4, skill: 60 }] }),
+      sequence: pursuitSeq({ distance: 1, escapeAt: 30, foes: [{ label: fixtureText('Cavalier vif'), movement: 6, skill: 60 }, { label: fixtureText('Trainard'), movement: 4, skill: 60 }] }),
     });
     // Les deux coureurs restants sont rapides : le recalcul (d) laisse la poursuite OUVERTE, ce qui rend
     // le retrait du poursuivant arrêté observable dans l'état.
@@ -181,7 +181,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
     banc.setState({
       sequence: pursuitSeq({
         distance: 1,
-        foes: [{ label: 'Cavalier', movement: 4, skill: 60 }],
+        foes: [{ label: fixtureText('Cavalier'), movement: 4, skill: 60 }],
         policy: { ...PURSUIT_POLICY_DEFAUT, prioritaires: [b.id] }, // la scène ne veut QUE Brun
       }),
     });
@@ -202,7 +202,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
         partyRole: 'pursuing', distance: 6,
         // Deux fuyards PNJ : le second est un poids mort (M 3 contre M 5, et il court mal) — la
         // politique du camp le sacrifie ; le premier garde assez d'avance pour que la course continue.
-        foes: [{ label: 'Voleur agile', movement: 5, skill: 90 }, { label: 'Gros Jean', movement: 3, skill: 1 }],
+        foes: [{ label: fixtureText('Voleur agile'), movement: 5, skill: 90 }, { label: fixtureText('Gros Jean'), movement: 3, skill: 1 }],
       }),
     });
     closeSequenceRound(banc.getState, banc.setState, doneRound([{ id: a.id, sl: 3 }, { id: b.id, sl: 3 }, { id: c.id, sl: 3 }]));

@@ -10,7 +10,7 @@ import { Stack } from '../Layout';
  *   · si   (condition → ALORS / SINON)
  *   · test (jet de compétence → RÉUSSITE / ÉCHEC)
  * chaque branche étant elle-même un Flow (récursif). SOURCE UNIQUE du branchement authoré. La feuille
- * `do` réutilise `EffectFields` (sans `test` : le jet est un nœud Flow) ; le `si` réutilise `ConditionEditor`
+ * `effet` réutilise `EffectFields` (sans `test` : le jet est un nœud Flow) ; le `si` réutilise `ConditionEditor`
  * (algèbre flag/horaire/ET/OU/NON, partagé avec le `when` des triggers/dialogues).
  */
 import { FlowTest, EMPTY_FLOW } from '../../engine/flowCore';
@@ -41,20 +41,20 @@ import { blocNeuf, noeudTestNeuf } from '../../data/valeursNeuves';
 import { ConditionEditor } from './ConditionEditor';
 import { condSummary } from './interne/resumeDeCondition';
 
-/** Normalise un Flow en liste de blocs éditables (un `seq` expose ses étapes ; sinon bloc unique). */
+/** Normalise un Flow en liste de blocs éditables (un `sequence` expose ses étapes ; sinon bloc unique). */
 function asSteps(flow: Flow): Flow[] {
-  return flow.kind === 'seq' ? flow.steps : [flow];
+  return flow.kind === 'sequence' ? flow.etapes : [flow];
 }
-const seqOf = (steps: Flow[]): Flow => ({ kind: 'seq', steps });
+const seqOf = (steps: Flow[]): Flow => ({ kind: 'sequence', etapes: steps });
 
 /** Résumé HUMAIN d'un nœud Flow (rangée repliée). */
 function nodeSummary(node: Flow, ctx: Ctx): string | JSX.Element {
   switch (node.kind) {
-    case 'do': return <><Icon id={EFFECT_ICON[node.effect.type]} size="sm" /> {effectSummary(node.effect, ctx)}</>;
-    case 'if': return <><Icon id="ui/branch" size="sm" /> Si {condSummary(node.cond, ctx.narratif)}{node.else != null ? ' · sinon…' : ''}</>;
-    case 'test': return <><Icon id="nav/dice" size="sm" /> Test {node.test.skill ? refLabel('skills', node.test.skill) : (node.test.characteristic || '?')} → ✓ / ✗</>;
-    case 'choice': return <><Icon id="ui/balance" size="sm" /> Choix{node.advantageCost != null ? ` (${node.advantageCost} Av)` : ''} « {node.prompt} » → ✓ / ✗</>;
-    case 'seq': return `▸ ${node.steps.length} bloc(s)`;
+    case 'effet': return <><Icon id={EFFECT_ICON[node.effet.type]} size="sm" /> {effectSummary(node.effet, ctx)}</>;
+    case 'si': return <><Icon id="interface/branchement" size="sm" /> Si {condSummary(node.condition, ctx.narratif)}{node.sinon != null ? ' · sinon…' : ''}</>;
+    case 'test': return <><Icon id="navigation/des" size="sm" /> Test {node.test.skill ? refLabel('skills', node.test.skill) : (node.test.characteristic || '?')} → ✓ / ✗</>;
+    case 'choix': return <><Icon id="interface/balance" size="sm" /> Choix{node.coutEnAvantage != null ? ` (${node.coutEnAvantage} Av)` : ''} « {node.invite} » → ✓ / ✗</>;
+    case 'sequence': return `▸ ${node.etapes.length} bloc(s)`;
   }
 }
 
@@ -66,7 +66,7 @@ export type NoeudTest = FlowTestNode<Effect>;
  * Éditeur d'un CHAMP portant un nœud `test` (`{kind:'test', test, success, fail}`), pas un Flow
  * quelconque. Il compose le SOUS-éditeur de nœud (`TestFields` + un `FlowEditor` par branche), celui-là
  * même que `FlowEditor` monte quand il rencontre un `kind:'test'` — et JAMAIS la racine `FlowEditor`,
- * qui normalise ce qu'elle rend en `{kind:'seq', steps}` (`asSteps`/`seqOf`) : le nœud y perdrait son
+ * qui normalise ce qu'elle rend en `{kind:'sequence', steps}` (`asSteps`/`seqOf`) : le nœud y perdrait son
  * `kind`, et le document ne parserait plus son schéma au save.
  *
  * `retirable` = le champ admet-il l'ABSENCE de jet (rangée de Critique sans jet). Un porteur dont le
@@ -99,12 +99,12 @@ export function NoeudTestField({ value, onChange, desc, racine, retirable = true
           {branches === 'les-deux' && (
             <div className="branch">
               <span className="branch-label ok">Si RÉUSSITE :</span>
-              <FlowEditor flow={value.success} ctx={ctxDeCatalogue(racine)} onChange={(success) => onChange({ ...value, success })} />
+              <FlowEditor flow={value.reussite} ctx={ctxDeCatalogue(racine)} onChange={(success) => onChange({ ...value, reussite: success })} />
             </div>
           )}
           <div className="branch">
             <span className="branch-label fail">Si ÉCHEC :</span>
-            <FlowEditor flow={value.fail} ctx={ctxDeCatalogue(racine)} onChange={(fail) => onChange({ ...value, fail })} />
+            <FlowEditor flow={value.echec} ctx={ctxDeCatalogue(racine)} onChange={(fail) => onChange({ ...value, echec: fail })} />
           </div>
           {retirable && <button type="button" className="btn" onClick={() => onChange(undefined)}>Retirer le jet</button>}
         </div>
@@ -239,23 +239,23 @@ function FlowAddMenu({ onAdd, ctx }: { onAdd: (node: Flow) => void; ctx: Ctx }) 
           title: 'Logique',
           items: [
             {
-              key: 'if',
-              label: <><Icon id="ui/branch" size="sm" /> Condition (si…)</>,
-              onPick: () => onAdd(blocNeuf('if')),
+              key: 'si',
+              label: <><Icon id="interface/branchement" size="sm" /> Condition (si…)</>,
+              onPick: () => onAdd(blocNeuf('si')),
             },
             {
               key: 'test',
-              label: <><Icon id="nav/dice" size="sm" /> Test de compétence</>,
+              label: <><Icon id="navigation/des" size="sm" /> Test de compétence</>,
               onPick: () => onAdd(blocNeuf('test')),
             },
             {
-              key: 'choice',
-              label: <><Icon id="ui/balance" size="sm" /> Choix du joueur</>,
-              onPick: () => onAdd(blocNeuf('choice')),
+              key: 'choix',
+              label: <><Icon id="interface/balance" size="sm" /> Choix du joueur</>,
+              onPick: () => onAdd(blocNeuf('choix')),
             },
           ],
         },
-        ...pickable(menuDEffets(ctx), (key) => onAdd({ kind: 'do', effect: newEffect(key as Effect['type']) })),
+        ...pickable(menuDEffets(ctx), (key) => onAdd({ kind: 'effet', effet: newEffect(key as Effect['type']) })),
       ]}
     />
   );
@@ -275,7 +275,7 @@ export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: 
   return (
     <div className="flow-list eff-list">
       {steps.map((node, i) => (
-        <details className={`eff-row flow-node flow-${node.kind}`} key={cles[i]} open={node.kind !== 'do'}>
+        <details className={`eff-row flow-node flow-${node.kind}`} key={cles[i]} open={node.kind !== 'effet'}>
           <summary>
             <span className="eff-summary">{nodeSummary(node, ctx)}</span>
             <span className="eff-actions" onClick={(e) => e.preventDefault()}>
@@ -284,23 +284,23 @@ export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: 
               <button className="btn small danger" title="Supprimer le bloc" onClick={() => set(steps.filter((_, j) => j !== i))}>✕</button>
             </span>
           </summary>
-          {node.kind === 'do' && (
-            <EffectFields effect={node.effect} ctx={ctx} onChange={(eff) => updAt(i, { kind: 'do', effect: eff })} />
+          {node.kind === 'effet' && (
+            <EffectFields effect={node.effet} ctx={ctx} onChange={(eff) => updAt(i, { kind: 'effet', effet: eff })} />
           )}
-          {node.kind === 'if' && (
+          {node.kind === 'si' && (
             <div className="eff-body flow-branch">
-              <ConditionEditor cond={node.cond} narratif={ctx.narratif} noeud={ctx.famille?.condition} onChange={(c) => updAt(i, { ...node, cond: c })} />
+              <ConditionEditor cond={node.condition} narratif={ctx.narratif} noeud={ctx.famille?.condition} onChange={(c) => updAt(i, { ...node, condition: c })} />
               <div className="branch">
                 <span className="branch-label ok">ALORS :</span>
-                <FlowEditor flow={node.then} ctx={ctx} onChange={(f) => updAt(i, { ...node, then: f })} />
+                <FlowEditor flow={node.alors} ctx={ctx} onChange={(f) => updAt(i, { ...node, alors: f })} />
               </div>
               <label className="ed-check">
-                <input type="checkbox" checked={node.else != null} onChange={(e) => updAt(i, { ...node, else: e.target.checked ? EMPTY_FLOW : undefined })} /> sinon…
+                <input type="checkbox" checked={node.sinon != null} onChange={(e) => updAt(i, { ...node, sinon: e.target.checked ? EMPTY_FLOW : undefined })} /> sinon…
               </label>
-              {node.else != null && (
+              {node.sinon != null && (
                 <div className="branch">
                   <span className="branch-label fail">SINON :</span>
-                  <FlowEditor flow={node.else} ctx={ctx} onChange={(f) => updAt(i, { ...node, else: f })} />
+                  <FlowEditor flow={node.sinon} ctx={ctx} onChange={(f) => updAt(i, { ...node, sinon: f })} />
                 </div>
               )}
             </div>
@@ -310,28 +310,28 @@ export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: 
               <TestFields test={node.test} onChange={(t) => updAt(i, { ...node, test: t })} />
               <div className="branch">
                 <span className="branch-label ok">Si RÉUSSITE :</span>
-                <FlowEditor flow={node.success} ctx={ctx} onChange={(f) => updAt(i, { ...node, success: f })} />
+                <FlowEditor flow={node.reussite} ctx={ctx} onChange={(f) => updAt(i, { ...node, reussite: f })} />
               </div>
               <div className="branch">
                 <span className="branch-label fail">Si ÉCHEC :</span>
-                <FlowEditor flow={node.fail} ctx={ctx} onChange={(f) => updAt(i, { ...node, fail: f })} />
+                <FlowEditor flow={node.echec} ctx={ctx} onChange={(f) => updAt(i, { ...node, echec: f })} />
               </div>
             </div>
           )}
-          {node.kind === 'seq' && (
+          {node.kind === 'sequence' && (
             <div className="eff-body">
               <FlowEditor flow={node} ctx={ctx} onChange={(f) => updAt(i, f)} />
             </div>
           )}
-          {node.kind === 'choice' && (
+          {node.kind === 'choix' && (
             <Stack className="eff-body">
-              <ProseField label="Invite du choix" value={node.prompt} onChange={(prompt) => updAt(i, { ...node, prompt })} />
+              <ProseField label="Invite du choix" value={node.invite} onChange={(invite) => updAt(i, { ...node, invite })} />
               <ProvenanceDuTexte copie identite={`${cles[i]}/choix`} sujet="du choix" value={node} onChange={(patch) => updAt(i, { ...node, ...patch })} />
-              <NumberField label="Coût en Avantage" value={typeof node.advantageCost === 'number' ? node.advantageCost : 0} min={0} onChange={(advantageCost) => updAt(i, { ...node, advantageCost })} />
+              <NumberField label="Coût en Avantage" value={typeof node.coutEnAvantage === 'number' ? node.coutEnAvantage : 0} min={0} onChange={(coutEnAvantage) => updAt(i, { ...node, coutEnAvantage })} />
               <span className="branch-label ok">Si OUI :</span>
-              <FlowEditor flow={node.yes} ctx={ctx} onChange={(yes) => updAt(i, { ...node, yes })} />
-              <label className="ed-check"><input type="checkbox" checked={node.no !== undefined} onChange={(e) => updAt(i, { ...node, no: e.target.checked ? EMPTY_FLOW : undefined })} /> Branche NON</label>
-              {node.no && <FlowEditor flow={node.no} ctx={ctx} onChange={(no) => updAt(i, { ...node, no })} />}
+              <FlowEditor flow={node.oui} ctx={ctx} onChange={(yes) => updAt(i, { ...node, oui: yes })} />
+              <label className="ed-check"><input type="checkbox" checked={node.non !== undefined} onChange={(e) => updAt(i, { ...node, non: e.target.checked ? EMPTY_FLOW : undefined })} /> Branche NON</label>
+              {node.non && <FlowEditor flow={node.non} ctx={ctx} onChange={(no) => updAt(i, { ...node, non: no })} />}
             </Stack>
           )}
         </details>

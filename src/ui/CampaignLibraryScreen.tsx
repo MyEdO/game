@@ -4,10 +4,18 @@ import { MasterDetail } from './MasterDetail';
 import { Icon } from './Icon';
 import { ListRow } from './ListRow';
 import { useGame } from '../state/store';
-import { downloadText, fileSlug } from '../web/fileIo';
+import { downloadText } from '../web/fileIo';
+import { fileSlug } from '../lib/normalize';
 import { parseProject, documentDeProjet, ProjetRefuse, playerEntryError, refusJoueur, messageDeRefusJoueur, type ProjectDoc } from '../noyau/worldMap';
 import { projectsLoad, projectSave, projetDeLEntree, projectRemove, campagneDeLEntree, estRefusee } from '../state/projectLibrary';
-import { nomDeProjet, IMPORT_FORME_DEPOT, MARQUE_AUTRE_FORMAT, type SavedProject, type EntreeListee, type EntreeEcrite } from '../noyau/persistance/bibliotheque';
+import {
+  nomDeProjet,
+  IMPORT_FORME_DEPOT,
+  MARQUE_AUTRE_FORMAT,
+  type SavedProject,
+  type EntreeListee,
+  type EntreeEcrite,
+} from '../noyau/persistance/bibliotheque';
 import { allBuiltinCampaigns, campagneDuJeu, documentDuJeu, type BuiltinCampaign } from '../scenes/campaign';
 import { Row, Stack } from './Layout';
 import { ChipDeRefus } from './ChipDeRefus';
@@ -211,7 +219,7 @@ export function CampaignLibraryScreen({ onClose }: { onClose: () => void }) {
       <Stack>{builtins.map(row)}</Stack>
       <div className="mini-title">Ma bibliothèque</div>
       <label className="btn small">
-        <Icon id="file/import" size="sm" /> Importer une campagne…
+        <Icon id="fichier/importer" size="sm" /> Importer une campagne…
         <input
           type="file"
           accept="application/json"

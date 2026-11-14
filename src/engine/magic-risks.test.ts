@@ -18,7 +18,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 function wiz(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'w', label: 'Sorcière', kind: 'hero',
+    id: 'w', label: 'Sorcière', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 50, 'force-mentale': 45, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -89,19 +89,19 @@ describe('« Repousser les Vents » — armure portée (LDB 46 l.150-152)', () =
     // …mais pas l'inverse.
     expect(armourCastDRPenalty(wiz({ items: [mailles], talents: [{ talentId: 'magie-des-arcanes', spec: 'bete', times: 1 }] }))).toBe(2);
   });
-  describe('Sorcier du Chaos ignore les armures du Chaos (VDM 02 l.169) — GATÉ par magic-vdm-incantation', () => {
-    afterEach(() => resetRule('magic-vdm-incantation'));
+  describe('Sorcier du Chaos ignore les armures du Chaos (VDM 02 l.169) — GATÉ par magie-vdm-incantation', () => {
+    afterEach(() => resetRule('magie-vdm-incantation'));
     it('ON + Talent Magie du Chaos : exemption', () => {
-      setRule('magic-vdm-incantation', true);
+      setRule('magie-vdm-incantation', true);
       const chaosSorcerer = wiz({ items: [chaosArmour], talents: [{ talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 }] });
       expect(armourCastDRPenalty(chaosSorcerer)).toBe(0);
     });
     it('ON + Talent Magie du Chaos : le métal ordinaire reste pénalisé', () => {
-      setRule('magic-vdm-incantation', true);
+      setRule('magie-vdm-incantation', true);
       expect(armourCastDRPenalty(wiz({ items: [mailles], talents: [{ talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 }] }))).toBe(2);
     });
     it('ON, SANS le Talent Magie du Chaos : pénalisé même sous armure du Chaos (contrôle négatif)', () => {
-      setRule('magic-vdm-incantation', true);
+      setRule('magie-vdm-incantation', true);
       expect(armourCastDRPenalty(wiz({ items: [chaosArmour] }))).toBe(2);
     });
     it('OFF (défaut) : pénalisé même AVEC le Talent Magie du Chaos — la règle VDM est désactivée', () => {

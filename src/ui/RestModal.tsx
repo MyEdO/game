@@ -6,8 +6,17 @@ import { CharFrame } from './CharFrame';
 import { StateChips } from './StateChips';
 import { Coins } from './Coins';
 import { OptionChooser } from './OptionChooser';
-import { lodgingOptions, foodOptions, nourrituresDeTroupe, restCost, partsDuRepos, noteDAubergeCouverte, type RestLodging, type RestFood } from '../noyau/restFlow';
-import { refusDeLaValidation } from '../noyau/validationDeFenetre';
+import {
+  lodgingOptions,
+  foodOptions,
+  nourrituresDeTroupe,
+  restCost,
+  partsDuRepos,
+  noteDAubergeCouverte,
+  type RestLodging,
+  type RestFood,
+} from '../noyau/restFlow';
+import { refusDeLaValidationNommee } from '../noyau/validationDeFenetre';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { exposureTestCount, exposureShelterFromTent } from '../engine/exposure';
 import { activeExposureSeverity, nuitDispenseeParPleinAir } from '../noyau/combatFlow';
@@ -17,32 +26,32 @@ import { toBrass } from '../engine/money';
 import { ReadyRow } from './ReadyRow';
 import { ownsLocal } from '../noyau/netOwnership';
 import { Icon } from './Icon';
-import type { IconIdInput } from '../data/icons';
+import type { IconId } from '../data/icons';
 import type { Combatant } from '../engine/types';
 import { GatedAction, raisonSi } from './GatedAction';
 import { Row } from './Layout';
 
-const LODGING_META: Record<RestLodging, { icon: IconIdInput; labelKey: MsgKey }> = {
-  privee: { icon: 'rest/bed', labelKey: 'valeur.couchage.privee' },
-  commune: { icon: 'rest/couch', labelKey: 'valeur.couchage.commune' },
-  maison: { icon: 'rest/home', labelKey: 'valeur.couchage.maison' },
-  dehors: { icon: 'rest/camp', labelKey: 'valeur.couchage.dehors' },
-  bord: { icon: 'travel/sail-ship', labelKey: 'valeur.couchage.bord' },
+const LODGING_META: Record<RestLodging, { icon: IconId; labelKey: MsgKey }> = {
+  privee: { icon: 'repos/lit', labelKey: 'valeur.couchage.privee' },
+  commune: { icon: 'repos/canape', labelKey: 'valeur.couchage.commune' },
+  maison: { icon: 'repos/chez-soi', labelKey: 'valeur.couchage.maison' },
+  dehors: { icon: 'repos/campement', labelKey: 'valeur.couchage.dehors' },
+  bord: { icon: 'voyage/navire-a-voile', labelKey: 'valeur.couchage.bord' },
 };
-const FOOD_META: Record<RestFood, { icon: IconIdInput; labelKey: MsgKey }> = {
-  repas: { icon: 'rest/stew', labelKey: 'valeur.pitance.repas' },
-  maison: { icon: 'rest/feast', labelKey: 'valeur.pitance.maison' },
-  ration: { icon: 'item/misc', labelKey: 'valeur.pitance.ration' },
-  rien: { icon: 'ui/forbidden', labelKey: 'valeur.pitance.rien' },
+const FOOD_META: Record<RestFood, { icon: IconId; labelKey: MsgKey }> = {
+  repas: { icon: 'repos/ragout', labelKey: 'valeur.pitance.repas' },
+  maison: { icon: 'repos/repas-fait-maison', labelKey: 'valeur.pitance.maison' },
+  ration: { icon: 'objet/divers', labelKey: 'valeur.pitance.ration' },
+  rien: { icon: 'interface/interdit', labelKey: 'valeur.pitance.rien' },
 };
 
 /** Avertissements de la ligne d'un héros (info de DÉCISION, pas de texte tuto). */
 function heroWarnings(h: Combatant, lodging: RestLodging, food: RestFood, exposureTests: number): ReactNode[] {
   const out: ReactNode[] = [];
   const sansRecuperation = refusDeRecuperation(h);
-  if (sansRecuperation) out.push(<><Icon id="ui/warning" size="sm" /> {sansRecuperation}</>);
-  if (food === 'rien') out.push(<><Icon id="ui/warning" size="sm" /> ventre vide</>);
-  if (lodging === 'dehors' && exposureTests > 0) out.push(<><Icon id="rest/cold" size="sm" /> Exposition ×{exposureTests}</>);
+  if (sansRecuperation) out.push(<><Icon id="interface/attention" size="sm" /> {sansRecuperation}</>);
+  if (food === 'rien') out.push(<><Icon id="interface/attention" size="sm" /> ventre vide</>);
+  if (lodging === 'dehors' && exposureTests > 0) out.push(<><Icon id="repos/froid" size="sm" /> Exposition ×{exposureTests}</>);
   return out;
 }
 
@@ -52,7 +61,7 @@ function heroWarnings(h: Combatant, lodging: RestLodging, food: RestFood, exposu
  * `false` = modale flottante. Une seule phase, les RÉGLAGES de la nuit : par héros,
  * couchage + pitance (choix PERSONNELS et orthogonaux — manger à l'auberge et dormir dehors est
  * permis) ; coût RAW total calculé ; avertissements en ligne. Le bilan n'est pas ici : « Dormir
- * jusqu’à l’aube » (`fenetreValider('rest')`, au quorum) vide `pendingRest` et ouvre la nuit en CASCADE (`openRestNight`,
+ * jusqu’à l’aube » (`fenetreValider('repos')`, au quorum) vide `pendingRest` et ouvre la nuit en CASCADE (`openRestNight`,
  * `restFlow.ts`).
  */
 export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
@@ -62,16 +71,16 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const net = useGame((s) => s.net);
   const choisir = useGame((s) => s.fenetreChoisir);
   const regler = (heroId: string, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => {
-    if (patch.lodging) choisir('rest', 'couchage', patch.lodging, heroId);
-    if (patch.food) choisir('rest', 'pitance', patch.food, heroId);
+    if (patch.lodging) choisir('repos', 'couchage', patch.lodging, heroId);
+    if (patch.food) choisir('repos', 'pitance', patch.food, heroId);
   };
   const valider = useGame((s) => s.fenetreValider);
   const fermer = useGame((s) => s.fenetreFermer);
-  const renoncer = () => fermer('rest');
+  const renoncer = () => fermer('repos');
   const severity = useGame((s) => activeExposureSeverity(() => s));
   const pleinAir = useGame((s) => nuitDispenseeParPleinAir(() => s));
   const state = useGame();
-  const refusDormir = useGame((s) => refusDeLaValidation(s, 'rest'));
+  const refusDormir = useGame((s) => refusDeLaValidationNommee(s, 'repos'));
   const couverte = useGame(noteDAubergeCouverte);
   // Héros PERSONNALISÉS (détachés du choix maître de troupe) — le reste SUIT la troupe. Arbitrage user
   // 2026-07-11 : « ≠ personnaliser » déplie les contrôles du héros seul, « ↺ » le rend au choix de troupe.
@@ -80,7 +89,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
 
   // Titre FRANC (arbitrage user 2026-07-11) : la nature de la halte + le lieu nommé par l'appelant d'`ouvrirLeRepos`.
   const lieu = <> — {p.lieu}</>;
-  const title = p.places.auberge ? <><Icon id="rest/bed" size="sm" /> {t('rf.nightInn')}{lieu}</> : p.places.maison ? <><Icon id="time/night" size="sm" /> {t('rf.nightHome')}{lieu}</> : p.places.bord ? <><Icon id="travel/sail-ship" size="sm" /> {t('rf.nightAboard')}{lieu}</> : <><Icon id="rest/camp" size="sm" /> {t('rf.nightStars')}{lieu}</>;
+  const title = p.places.auberge ? <><Icon id="repos/lit" size="sm" /> {t('rf.nightInn')}{lieu}</> : p.places.maison ? <><Icon id="temps/nuit" size="sm" /> {t('rf.nightHome')}{lieu}</> : p.places.bord ? <><Icon id="voyage/navire-a-voile" size="sm" /> {t('rf.nightAboard')}{lieu}</> : <><Icon id="repos/campement" size="sm" /> {t('rf.nightStars')}{lieu}</>;
 
   // ── Phase RÉGLAGES ──
   const cost = restCost(p, party);
@@ -110,9 +119,9 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
       {/* Panneau de nuit = la DÉCISION seule (vague « lisibilité du voyage » 2/2) : le BILAN du jour
           (km, péripéties, jets) est sorti d'ici — il vit dans la CHRONIQUE du hub, sélectionnable
           comme un jour passé (`VoyageScreen`/`voyageDayCards`), pas re-déroulé ici. */}
-      {pleinAir && <p className="rest-weather"><Icon id="expedition/outdoors" size="sm" /> {t('rf.pleinAirDispense')}</p>}
+      {pleinAir && <p className="rest-weather"><Icon id="expedition/grand-air" size="sm" /> {t('rf.pleinAirDispense')}</p>}
       {severity !== 'clement' && (
-        <p className="rest-weather">{severity === 'extreme' ? <><Icon id="rest/storm" size="sm" /> {t('rf.tempsDeChien')}</> : <><Icon id="rest/rain" size="sm" /> {t('rf.mauvaisTemps')}</>}{sheltered ? <> — {t('rf.tenteAbrite')}</> : ''}</p>
+        <p className="rest-weather">{severity === 'extreme' ? <><Icon id="repos/tempete" size="sm" /> {t('rf.tempsDeChien')}</> : <><Icon id="repos/pluie" size="sm" /> {t('rf.mauvaisTemps')}</>}{sheltered ? <> — {t('rf.tenteAbrite')}</> : ''}</p>
       )}
       {/* CHOIX MAÎTRE « Pour toute la troupe » (arbitrage user 2026-07-11) : Couchage + Pitance appliqués
           d'un coup à tous les héros non personnalisés. */}
@@ -194,17 +203,17 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const reglagesFooter = (
     <>
         {!p.travelHalt && <button className="btn btn-ghost" onClick={renoncer}>Annuler</button>}
-        {net.mode === 'guest' && !ready[net.mySeat] && (
-          <button className="btn" onClick={() => valider('rest')}><Icon id="action/attack" size="sm" /> Prêt</button>
+        {net.mode === 'invite' && !ready[net.mySeat] && (
+          <button className="btn" onClick={() => valider('repos')}><Icon id="action/attaquer" size="sm" /> Prêt</button>
         )}
-        {(!online || net.mode === 'host') && (
+        {(!online || net.mode === 'hote') && (
           <GatedAction
             id="rest-sleep"
-            label={<><Icon id="time/night" size="sm" /> Dormir jusqu’à l’aube</>}
+            label={<><Icon id="temps/nuit" size="sm" /> Dormir jusqu’à l’aube</>}
             ariaLabel="Dormir jusqu’à l’aube"
             enabled={!refusDormir}
             {...raisonSi(refusDormir)}
-            onClick={() => valider('rest')}
+            onClick={() => valider('repos')}
           />
         )}
     </>

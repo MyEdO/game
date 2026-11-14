@@ -28,15 +28,17 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       const start = scene.entities.find((e) => e.kind === 'heroStart');
       const pos = startOf(scene) ?? findFreeTile(scene);
       // Démarrage d'une partie / d'un scénario : on repart de l'état NEUF du jeu (`etatInitialDuJeu`). On ne
-      // conserve QUE l'écran, le groupe (posé par `fixerLeGroupe`), le compteur des ids du monde que ses objets ont consommé
-      // (`prochainId`, #2907) et la SESSION COOP (net : héberger une partie
+      // conserve QUE l'écran, le groupe (posé par `fixerLeGroupe`), les compteurs de la partie (ids du monde
+      // `prochainId`, #2907 ; `lignesAuJournal` et `combatsOuverts`, #3009) et la SESSION COOP (net : héberger une partie
       // PUIS la lancer ne doit pas dissoudre le salon — Jalon 7). L'interface se remet chez son hôte, à
       // l'entrée en scène (`EVT.ARRIVEE_EN_SCENE`).
-      const { screen, party, net, prochainId } = get();
+      const { screen, party, net, prochainId, lignesAuJournal, combatsOuverts } = get();
+      const journal = scene.startMessage ? [scene.startMessage.texte] : [];
       const capEntrant = start?.facing ?? spawnFacing(pos, scene.dimensions);
       set({
         ...etatInitialDuJeu(),
-        screen, party, net, prochainId,
+        screen, party, net, prochainId, combatsOuverts,
+        lignesAuJournal: lignesAuJournal + journal.length,
         scene: JSON.parse(JSON.stringify(scene)),
         mode: 'exploration',
         partyPos: pos,
@@ -45,7 +47,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
         facing: poserCapDuGroupe({}, capEntrant),
         flags: { ...scene.flags },
         campaignSceneId: scene.id,
-        journal: scene.startMessage ? [scene.startMessage.texte] : [],
+        journal,
         campaignNarratif: narratif ?? null,
       });
       if (scene.startMessage) bus.emit(EVT.LIGNE_AU_JOURNAL, { texte: scene.startMessage.texte });
@@ -62,7 +64,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       // skippable ; le Journal garde l'archive consultable. Poussée APRÈS `openEncounterPsych` et en
       // séquence PROPRE (`own`) : la carte passe DEVANT les Tests de Sang-froid de la rencontre, qui
       // sont parqués par la doctrine du slot et repris à la clôture de la carte — jamais perdus.
-      if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage.texte], sceneId: scene.id }, { own: true });
+      if (scene.startMessage) pushReveal(set, { kind: 'entreeEnScene', title: scene.label, lines: [scene.startMessage.texte], sceneId: scene.id }, { own: true });
     },
     chargerLeProjet: ({ scenes, entryId, worldMap, narratif, projet }) => {
       // Enregistre toutes les scènes du projet (pour que les portes reveal:'door'
@@ -148,7 +150,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       // N1 : entrée de zone (transition) en MODALE — étape d'AFFICHAGE skippable (Journal = archive),
       // poussée APRÈS `openEncounterPsych` et en séquence PROPRE (`own`), pour la même raison qu'à
       // `lancerLaScene` : la carte passe devant, les Tests de rencontre sont parqués puis repris.
-      if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage.texte], sceneId: target.id }, { own: true });
+      if (target.startMessage) pushReveal(set, { kind: 'entreeEnScene', title: target.label, lines: [target.startMessage.texte], sceneId: target.id }, { own: true });
     },
   } satisfies FabriqueDuNoyau;
 }

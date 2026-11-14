@@ -102,8 +102,8 @@ let cible: Combatant;
 beforeEach(() => {
   banc = ouvrirLeBanc();
   seedBattleRng(1);
-  mage = mk('enemy', 'mage', { pos: { x: 0, y: 0 } });
-  cible = mk('hero', 'victime', { pos: { x: 2, y: 0 } });
+  mage = mk('ennemi', 'mage', { pos: { x: 0, y: 0 } });
+  cible = mk('heros', 'victime', { pos: { x: 2, y: 0 } });
   setBattle([mage, cible]);
 });
 
@@ -278,7 +278,7 @@ describe('Verrou d’État (LDB 18) et source d’un pion dérivé', () => {
   });
 
   it('un retrait NATIF reste INERTE sur un pion verrouillé (LDB 18) — le verrou ne protège que de LUI', () => {
-    const c = mk('hero', 'blesse');
+    const c = mk('heros', 'blesse');
     addCondition(c, 'aveugle', 1, undefined, undefined, undefined, undefined, { unlockBy: 'medicalAid' });
     removeCondition(c, 'aveugle', 1);
     expect(stacks(c, 'aveugle'), 'le verrou d’acte de soin n’a pas tenu contre un retrait natif').toBe(1);
@@ -300,7 +300,7 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
 
   it('chaque champ de `CHAMPS_EXCLUS_DE_CARRIED` est refusé en se NOMMANT — durées, verrous ET champs de lutte', () => {
     for (const champ of CHAMPS_EXCLUS_DE_CARRIED) {
-      expect(refus({ op: 'condition', id: 'empetre', carried: true, [champ]: valeurs[champ] })).toContain(`« ${champ} »`);
+      expect(refus({ op: 'condition', id: { id: 'empetre' }, carried: true, [champ]: valeurs[champ] })).toContain(`« ${champ} »`);
     }
     // Les 5 champs de LUTTE sont nommément couverts : ils seraient PERDUS à la pose (`applyOps`).
     expect(CHAMPS_EXCLUS_DE_CARRIED).toContain('escapeStrength');
@@ -308,14 +308,14 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
   });
 
   it('« carried » seul passe, et une durée SANS « carried » passe (le refus ne mord que le cumul)', () => {
-    expect(gameOpSchema.safeParse({ op: 'condition', id: 'sonne', carried: true }).success).toBe(true);
-    expect(gameOpSchema.safeParse({ op: 'condition', id: 'sonne', durationRounds: 3 }).success).toBe(true);
-    expect(gameOpSchema.safeParse({ op: 'condition', id: 'empetre', escapeStrength: 40 }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'condition', id: { id: 'sonne' }, carried: true }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'condition', id: { id: 'sonne' }, durationRounds: 3 }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'condition', id: { id: 'empetre' }, escapeStrength: 40 }).success).toBe(true);
   });
 
   it('« carried » sans DURÉE de contexte ne pose RIEN, et le dit au journal', () => {
-    const c = mk('hero', 'seul');
-    const lines = applyOps(c, [{ op: 'condition', id: 'sonne', carried: true }], { idNeuf: idsDeTest, rng: deFixe(1) });
+    const c = mk('heros', 'seul');
+    const lines = applyOps(c, [{ op: 'condition', id: { id: 'sonne' }, carried: true }], { idNeuf: idsDeTest, rng: deFixe(1) });
     expect(stacks(c, 'sonne'), 'un État PORTÉ a été posé sans source à durée — il serait permanent').toBe(0);
     expect(c.activeEffects ?? [], 'un effet porteur PERMANENT a été posé').toHaveLength(0);
     expect(lines.join(' | ')).toContain('« carried » exige une source à DURÉE');

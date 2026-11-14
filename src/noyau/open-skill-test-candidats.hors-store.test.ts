@@ -19,7 +19,7 @@ const CHARS = {
 
 function hero(id: string, agilite: number, over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id, name: id, label: id, kind: 'hero',
+    id, name: id, label: id, kind: 'heros',
     characteristics: { ...CHARS, agilite },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
     skills: [{ id: 'athletisme', characteristic: 'agilite', advances: 5 }], talents: [], items: [], psychState: [], engagedWith: [],

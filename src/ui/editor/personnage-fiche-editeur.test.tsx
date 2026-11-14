@@ -38,7 +38,7 @@ function palette(tool: Tool) {
       brush={1} setBrush={noop} terrainRect={false} setTerrainRect={noop}
       encTarget="" setEncTarget={noop} encRef="" setEncRef={noop} enemyCreatures={BESTIAIRE}
       currentLayer={0} stairRun={[]} onStairApply={noop} onStairClear={noop}
-      architectureMode={false} architectureBodyId={null} architectureStoreyId={null} architectureAction="select"
+      architectureMode={false} architectureBodyId={null} architectureStoreyId={null} architectureAction="selection"
       onArchitectureMode={noop} onArchitectureBody={noop} onArchitectureStorey={noop} onAddArchitectureBody={noop}
       onAddArchitecturePart={noop} onAddArchitectureStorey={noop} onAddRoofSection={noop} onArmFacade={noop}
     />,
@@ -50,24 +50,24 @@ function palette(tool: Tool) {
 
 describe('Palette — « Poser un personnage » choisit une FICHE du bestiaire', () => {
   it('les fiches offertes sont celles de `fichesDePersonnage`, dans son ordre, les profils standard marqués', () => {
-    const h = palette({ mode: 'entity', kind: 'personnage', ref: 'humain' });
+    const h = palette({ mode: 'entite', kind: 'personnage', ref: 'humain' });
     const fiches = fichesDePersonnage();
     const standard = new Set(profilsStandard());
     expect(h.items().map((b) => b.textContent)).toEqual(fiches.map((c) => (standard.has(c.id) ? `${c.label}Profil standard` : c.label)));
   });
 
   it('cliquer une fiche arme l’outil sur son id stable', () => {
-    const h = palette({ mode: 'entity', kind: 'personnage', ref: 'humain' });
+    const h = palette({ mode: 'entite', kind: 'personnage', ref: 'humain' });
     const fiches = fichesDePersonnage();
     const fiche = fiches[fiches.length - 1];
     act(() => h.items().find((b) => b.textContent === fiche.label)!.click());
-    expect(h.outils[h.outils.length - 1]).toEqual({ mode: 'entity', kind: 'personnage', ref: fiche.id });
+    expect(h.outils[h.outils.length - 1]).toEqual({ mode: 'entite', kind: 'personnage', ref: fiche.id });
   });
 
   it('l’icône du rail arme l’outil sur la PREMIÈRE fiche offerte', () => {
-    const h = palette({ mode: 'select' });
+    const h = palette({ mode: 'selection' });
     act(() => h.container.querySelector<HTMLButtonElement>('button[aria-label="Poser un personnage"]')!.click());
-    expect(h.outils[h.outils.length - 1]).toEqual({ mode: 'entity', kind: 'personnage', ref: fichesDePersonnage()[0].id });
+    expect(h.outils[h.outils.length - 1]).toEqual({ mode: 'entite', kind: 'personnage', ref: fichesDePersonnage()[0].id });
   });
 });
 
@@ -82,7 +82,7 @@ function inspecteur(entity: SceneEntity) {
       sel={{ type: 'entity', id: entity.id }} setSel={() => undefined}
       enemyCreatures={BESTIAIRE} openLogic={() => undefined} resizeScene={() => undefined}
       narratif={{ ...emptyNarratif(), presetsPnj: [{ id: 'preset-tavernier', profil: { label: 'Le Tavernier' } }, { id: 'preset-garde', base: { id: 'humain' } }] }}
-      tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
+      tool={{ mode: 'selection' }} armZoneTiles={() => undefined} zoneFocusKey={null}
     />,
   );
   act(() => rendre(scene));
@@ -141,7 +141,7 @@ describe('Inspecteur — le preset PNJ se choisit au sélecteur unique de réfé
 
 describe('Barre d’état — l’outil personnage nomme sa fiche par son libellé', () => {
   it('libellé de la fiche, jamais l’id brut', () => {
-    const html = renderToStaticMarkup(<>{toolLabel({ mode: 'entity', kind: 'personnage', ref: 'humain' })}</>);
+    const html = renderToStaticMarkup(<>{toolLabel({ mode: 'entite', kind: 'personnage', ref: 'humain' })}</>);
     expect(html).toContain(creatureLabel('humain'));
     expect(creatureLabel('humain')).not.toBe('humain');
   });

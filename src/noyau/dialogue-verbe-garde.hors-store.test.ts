@@ -28,7 +28,7 @@ const dlg: Dialogue = {
   id: 'd-garde', start: { id: 'n1' },
   nodes: [
     { id: 'n1', desc: '…', choices: [
-      { id: 'tenter', label: 'Tenter', next: { id: 'n2' }, flow: { kind: 'test', test: { characteristic: 'force', label: 'Force' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } } },
+      { id: 'tenter', label: 'Tenter', next: { id: 'n2' }, flow: { kind: 'test', test: { characteristic: 'force', label: 'Force' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } } },
       { id: 'secret', label: 'Secret', next: { id: 'n2' }, when: { kind: 'flag', expr: 'jamais' } },
       { id: 'acheter', label: 'Acheter', next: { id: 'n2' }, cost: { gold: 5 } },
     ] },
@@ -98,7 +98,7 @@ describe('dialogue.reponse — un id que le joueur ne peut PAS choisir est refus
 
 describe('dialogue.reponse — le siège qui ne DÉCIDE pas n’avance rien', () => {
   it('invité coop hors décision : le verbe refuse (le snapshot n’a rien à écraser)', () => {
-    monter({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1, gmSeat: 0 } as Jeu['net'] });
+    monter({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1, gmSeat: 0 } as Jeu['net'] });
     banc.getState().fenetreChoisir('dialogue', 'reponse', 'tenter');
     expect(banc.getState().dialogue?.nodeId).toBe('n1');
     expect(banc.getState().pendingTest).toBeNull();

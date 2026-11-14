@@ -9,7 +9,7 @@ import { applyEffects } from './combatEffects';
 import { gainCorruption, corruptionTarget } from './corruptionFlow';
 import { draineCascade, avanceEtapeCascade } from './cascade.testkit';
 import type { RevealEntry } from './pendings';
-import { makePregens, PREGEN } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { createHero } from '../engine/character';
 import mutationTables from '../data/mutationTables.json';
 import type { Combatant } from '../engine/types';
@@ -20,9 +20,9 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function party2() {
-  const all = makePregens(idsDeTest);
+  const all = tousLesHerosDeScenario(idsDeTest);
   // Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage d'Âme pure (LDB 10 l.52).
-  const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: all[0].id, seed: PREGEN.soldat, talentsRolled: false });
+  const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: all[0].id, seed: 101, talentsRolled: false });
   const b = all[1];
   return { a, b, party: [a, b] as Combatant[] };
 }
@@ -220,7 +220,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 5, sl: -9, success: false } });
     banc.getState().jetValider('corruption');
     expect(banc.getState().pendingRenounce).toBeTruthy();
-    banc.getState().fenetreChoisir('renounce', 'renier', false); // subir la mutation
+    banc.getState().fenetreChoisir('renier', 'renier', false); // subir la mutation
     draineCascade(banc.getState);
     const after = banc.getState().party.find((h) => h.id === a.id)!;
     expect(after.mutations?.length).toBe(1);
@@ -230,7 +230,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
 
   it('PNJ (pas de modale) : seuil auto-résolu — la mutation tombe sans pendingCorruption', () => {
     const { a, party } = party2();
-    const npc = { ...a, id: 'npc-1', kind: 'enemy', characteristics: { ...a.characteristics, endurance: 1, 'force-mentale': 1 }, corruption: 5, resilience: 0, mutations: [] } as unknown as Combatant;
+    const npc = { ...a, id: 'npc-1', kind: 'ennemi', characteristics: { ...a.characteristics, endurance: 1, 'force-mentale': 1 }, corruption: 5, resilience: 0, mutations: [] } as unknown as Combatant;
     banc.setState({ party, battle: { combatants: [npc], log: [] } as never });
     gainCorruption(banc.getState, banc.setState, npc, 1);
     expect(banc.getState().pendingCorruption).toBeNull();
@@ -246,7 +246,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
     banc.setState({
       party,
       pendingTest: {
-        actorId: a.id, actorName: a.label, label: 'Test important', skillValue: 40,
+        actorId: a.id, label: 'Test important', skillValue: 40,
         difficulty: 'intermediaire', requireSL: 0, target: 40,
         roll: 95, sl: -6, success: false, isDouble: false, rerolled: true, onSuccess: [], onFailure: [],
       } as never,
@@ -264,7 +264,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
     banc.setState({
       party,
       pendingTest: {
-        actorId: a.id, actorName: a.label, label: 'Test', skillValue: 40,
+        actorId: a.id, label: 'Test', skillValue: 40,
         difficulty: 'intermediaire', requireSL: 0, target: 40,
         roll: 12, sl: 2, success: true, isDouble: false, onSuccess: [], onFailure: [],
       } as never,
@@ -281,7 +281,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
     banc.setState({
       party,
       pendingTest: {
-        actorId: a.id, actorName: a.label, label: 'Test', skillValue: 40,
+        actorId: a.id, label: 'Test', skillValue: 40,
         difficulty: 'intermediaire', requireSL: 0, target: 40,
         roll: 95, sl: -6, success: false, isDouble: false, rerolled: true, onSuccess: [], onFailure: [],
       } as never,
@@ -300,7 +300,7 @@ describe('Effet ops { op: corruption } (gain direct via ops generiques)', () => 
   it('cible le heros designe et applique le compteur via l\'Effet ops', () => {
     const { b, party } = party2();
     banc.setState({ party });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: b.id, ops: [{ op: 'corruption', amount: 2, align: 'nurgle' }] }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: b.id, ops: [{ op: 'corruption', amount: 2, align: 'nurgle' }] }]);
     expect(banc.getState().party.find((h) => h.id === b.id)!.corruption).toBe(2);
   });
 
@@ -311,7 +311,7 @@ describe('Effet ops { op: corruption } (gain direct via ops generiques)', () => 
     a.corruption = 4; // seuil depasse au prochain gain
     a.resilience = 0; // mutation directe
     banc.setState({ party });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: a.id, ops: [{ op: 'corruption', amount: 1, align: 'nurgle' }] }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: a.id, ops: [{ op: 'corruption', amount: 1, align: 'nurgle' }] }]);
     const pc = banc.getState().pendingCorruption!;
     expect(pc.kind).toBe('seuil');
     expect(pc.align).toBe('nurgle'); // l\'alignement voyage source -> modale
@@ -330,13 +330,13 @@ describe('Effet ops { op: corruption } (gain direct via ops generiques)', () => 
 });
 
 // #152 (suite #143) : `corruptionTarget` (utilisé par `resolveRenounce` / « Je te renie ! ») filtrait
-// encore `kind === 'hero'` — reconditionné sur `followsCharacterRules` (engine/relations.ts), le MÊME
+// encore `kind === 'heros'` — reconditionné sur `followsCharacterRules` (engine/relations.ts), le MÊME
 // prédicat que le reste de la boucle de fin de combat/Corruption (#143).
 describe('corruptionTarget — #152 : reconditionné sur followsCharacterRules (pas kind===\'hero\')', () => {
   const e30 = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
   const npcPersonnage = (p: Partial<Combatant>): Combatant =>
     (blessuresSurLeProfil({
-      id: 'npc', label: 'PNJ', kind: 'enemy', followsCharacterRules: true,
+      id: 'npc', label: 'PNJ', kind: 'ennemi', followsCharacterRules: true,
       characteristics: e30,
       wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
       weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -362,7 +362,7 @@ describe('corruptionTarget — #152 : reconditionné sur followsCharacterRules (
       battle: { combatants: [npc], log: [] } as never,
       pendingRenounce: { heroId: npc.id, testRoll: 99, testTarget: 30 },
     });
-    banc.getState().fenetreChoisir('renounce', 'renier', true);
+    banc.getState().fenetreChoisir('renier', 'renier', true);
     expect(banc.getState().pendingRenounce).toBeNull();
     expect(npc.resilience).toBe(0); // trouvé via followsCharacterRules → « Je te renie ! » a pu s'appliquer
   });

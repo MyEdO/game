@@ -14,7 +14,7 @@ de résolution forcée ; mono = multi N=1. Gardes réelles : `rollFlowWiring.tes
 `maneuver-defense-cascade.hors-store.test.ts` (surfaçage contrôleur humain).
 
 - Un Test que le RAW dit OPPOSÉ passe, sur le chemin joueur, par la machinerie d'opposition
-  (`opposedBinaryFlow` `src/noyau/rollFlowSpecs.ts:375`, `openCastOpposition`,
+  (`opposedBinaryFlow` de `src/noyau/rollFlowSpecs.ts`, `openCastOpposition`,
   `src/noyau/combat/triggeredTest.ts`, `VsHeader`) : les deux jets visibles, ré-opposés à chaque
   influence (#579). Un test simple avec tirage adverse caché dans l'applier exige une justification
   RAW citée.
@@ -22,4 +22,4 @@ de résolution forcée ; mono = multi N=1. Gardes réelles : `rollFlowWiring.tes
   jure que les axes qu'il a mesurés.
 - Un acte de combat qui exige un Test consomme l'Action (`battle.acted`), mouvement difficile compris.
   Ce critère ne renverse jamais une exception canon explicite (Piétinement gratuit, Viser = Action sans
-  jet). `Source/Warhammer Fantasy Roleplay 5e Core Rulebook/034 - Taking Your Turn.md` l.39, l.17
+  jet). CRB 034 l.39, CRB 034 l.17

@@ -14,7 +14,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testki
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', label: 'Soigneur', kind: 'hero',
+    id: 'h', label: 'Soigneur', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 38, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -39,7 +39,7 @@ describe('engine/healing — gate compétence & cibles', () => {
 
   describe('Structure (AA 10 l.134) : Guérison sans effet ; soin magique selon la règle maison structure-soin-magique', () => {
     afterEach(() => resetRule('structure-soin-magique'));
-    const mur = () => hero({ id: 'mur', kind: 'npc', bodyShape: 'structure', wounds: blessuresDeBase(40, 5), skills: [] } as Partial<Combatant>);
+    const mur = () => hero({ id: 'mur', kind: 'pnj', bodyShape: 'structure', wounds: blessuresDeBase(40, 5), skills: [] } as Partial<Combatant>);
     it('la Guérison ne cible jamais une Structure blessée ; un Personnage blessé, si (contrôle)', () => {
       expect(isHealable(mur())).toBe(false);
       expect(isHealable(hero({ wounds: blessuresDeBase(12, 5) }))).toBe(true);
@@ -65,24 +65,20 @@ describe('engine/healing — gate compétence & cibles', () => {
 
   it('availableHealModes : « wounds » bloqué si déjà soigné cette rencontre ; « bleed » indépendant', () => {
     const t = hero({ wounds: blessuresDeBase(12, 5), conditions: [{ id: 'hemorragique', value: 2 }] });
-    expect(availableHealModes(t)).toEqual(['wounds', 'bleed']);
-    expect(availableHealModes({ ...t, soinRencontreUtilise: true })).toEqual(['bleed']);
+    expect(availableHealModes(t)).toEqual(['blessures', 'hemorragie']);
+    expect(availableHealModes({ ...t, soinRencontreUtilise: true })).toEqual(['hemorragie']);
   });
 
-  it('healableTargets (combat) : soi + alliés adjacents (Chebyshev ≤ 1), inconscient inclus', () => {
-    const healer = hero({ wounds: blessuresDeBase(12), pos: { x: 2, y: 2 } }); // plein PB → pas auto-soignable
-    const adj = hero({ id: 'a', wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], pos: { x: 3, y: 2 } });
-    const far = hero({ id: 'f', wounds: blessuresDeBase(12, 1), pos: { x: 8, y: 8 } });
-    const ids = healableTargets(healer, [healer, adj, far], { adjacency: true }).map((c) => c.id);
-    expect(ids).toContain('a');
-    expect(ids).not.toContain('f');
-    expect(ids).not.toContain('h'); // healer plein PB, pas hémorragique → pas soignable
+  it('healableTargets : les soignables du pool, inconscient inclus', () => {
+    const healer = hero({ wounds: blessuresDeBase(12) }); // plein PB → pas auto-soignable
+    const blesse = hero({ id: 'a', wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }] });
+    const ids = healableTargets([healer, blesse]).map((c) => c.id);
+    expect(ids).toEqual(['a']);
   });
 
   it('healableTargets : un soigneur blessé peut se soigner lui-même (auto-soin)', () => {
-    const healer = hero({ wounds: blessuresDeBase(12, 8), pos: { x: 2, y: 2 } });
-    const ids = healableTargets(healer, [healer], { adjacency: true }).map((c) => c.id);
-    expect(ids).toContain('h');
+    const healer = hero({ wounds: blessuresDeBase(12, 8) });
+    expect(healableTargets([healer]).map((c) => c.id)).toContain('h');
   });
 });
 
@@ -142,16 +138,16 @@ describe('engine/healing — healDifficulty (mode → Difficulté, variante comb
 
   it('variante LDB (défaut) : wounds/bleed/ammo tous Intermédiaire (+0)', () => {
     resetRule('combat-aa-blessures');
-    expect(healDifficulty('wounds')).toBe('intermediaire');
-    expect(healDifficulty('bleed')).toBe('intermediaire');
-    expect(healDifficulty('ammo')).toBe('intermediaire');
+    expect(healDifficulty('blessures')).toBe('intermediaire');
+    expect(healDifficulty('hemorragie')).toBe('intermediaire');
+    expect(healDifficulty('munition')).toBe('intermediaire');
   });
 
   it('variante AA : bleed devient Accessible (+20), wounds/ammo restent Intermédiaire (+0)', () => {
     setRule('combat-aa-blessures', 'aa');
-    expect(healDifficulty('wounds')).toBe('intermediaire');
-    expect(healDifficulty('bleed')).toBe('accessible');
-    expect(healDifficulty('ammo')).toBe('intermediaire');
+    expect(healDifficulty('blessures')).toBe('intermediaire');
+    expect(healDifficulty('hemorragie')).toBe('accessible');
+    expect(healDifficulty('munition')).toBe('intermediaire');
   });
 });
 

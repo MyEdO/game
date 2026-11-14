@@ -11,12 +11,12 @@ import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
-import { enumNomme, pointDuPlanSchema } from '../grammaire/valeurs';
+import { enumNomme, idDIconeSchema, pointDuPlanSchema } from '../grammaire/valeurs';
 import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
 import { idDe, recordDIds, ref, refs } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
 import { listeCle, marquerCollection, marqueDeRecord, ouvrirPortees } from '../grammaire/collection-cle';
-import { couvreSchema, SCENES_DU_PROJET } from './communs';
+import { couvreSchema, PORTEES_DE_LA_SCENE, SCENES_DU_PROJET } from './communs';
 import { findVehicleById } from '../../index';
 
 /** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */
@@ -102,7 +102,7 @@ export const placePoiSchema = nommerChamps(z
     label: z.string(),
     /** Coordonnées PLAN-LOCALES, indépendantes de `MapPlace.pos`. */
     pos: pointDuPlanSchema,
-    icon: z.string().optional(),
+    icon: idDIconeSchema.optional(),
     sceneId: ref(SCENES_DU_PROJET).optional(),
     serviceKind: ref('serviceDeLieu').optional(),
   })
@@ -116,15 +116,15 @@ export const placePoiSchema = nommerChamps(z
   }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, icon: { label: "icône" , texte: { regime: "technique"} }, sceneId: { label: "scène" , texte: { regime: "technique"} }, serviceKind: { label: "type de service" , texte: { regime: "technique"} } });
 
 /** `MapPlace` — lieu posé sur la carte ; être dans `scene` = être à ce lieu. */
-export const mapPlaceSchema = nommerChamps(z.strictObject({
+export const mapPlaceSchema = proseNommee(nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   /** Position sur la carte du monde. */
   pos: pointDuPlanSchema,
   scene: ref(SCENES_DU_PROJET),
   entry: z.string().optional(),
-  /** Icône du médaillon (id du registre `src/data/icons`), défaut `nav/entry-point`. */
-  icon: z.string().optional(),
+  /** Icône du médaillon (id du registre `src/data/icons`), défaut `navigation/point-d-entree`. */
+  icon: idDIconeSchema.optional(),
   port: portProfileSchema.optional(),
   market: landMarketProfileSchema.optional(),
   services: z.array(placeServiceSchema).optional(),
@@ -135,14 +135,15 @@ export const mapPlaceSchema = nommerChamps(z.strictObject({
    *  narratif : la destination n'apparaît qu'une fois révélée. Absente = toujours visible. */
   when: conditionCondCtxSchema.optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } }), 'worldMap.places[].prose');
 
-/** `RoutePeril` — péripétie d'AUTEUR tirée chaque jour de voyage à `chancePct` %. */
-export const routePerilSchema = nommerChamps(z.strictObject({
+/** `RoutePeril` — péripétie d'AUTEUR tirée chaque jour de voyage à `chancePct` %. Hors de toute scène, elle en ouvre
+ *  les portées VIDES (`ouvrirPortees`, source `'vide'`) : aucune référence locale de la scène n'y résout. */
+export const routePerilSchema = nommerChamps(ouvrirPortees(z.strictObject({
   label: z.string(),
   chancePct: z.number(),
   effects: z.array(effectSchema),
-}).superRefine((peril, ctx) => refuserLesIndividus(peril.effects, ctx, 'une péripétie de route')), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
+}).superRefine((peril, ctx) => refuserLesIndividus(peril.effects, ctx, 'une péripétie de route')), PORTEES_DE_LA_SCENE, 'vide'), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
 
 /** Une référence à un lieu de la carte (`ref(LIEUX_DE_LA_CARTE)`). */
 type RefDeLieu = { id: string };

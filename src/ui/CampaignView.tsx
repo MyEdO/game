@@ -9,7 +9,6 @@ import { actorIn, inBattleId } from '../noyau/monde/combatants';
 import { sceneNpc } from '../noyau/monde/sceneNpc';
 import { refusDeSauvegarde } from '../noyau/persistance/save';
 import { refusDeFinDeSeance } from '../noyau/partyFlow';
-import type { IconIdInput } from '../data/icons';
 import { ciblageEntiteArme } from '../noyau/targetingModes';
 import { MondeDeCampagne } from '../gameIso/stage/MondeDeCampagne';
 import { SceneErrorBoundary } from './SceneErrorBoundary';
@@ -199,7 +198,7 @@ export function CampaignView() {
   // fiche (état + équipage), comme une fiche héros. Le navire n'apparaît qu'en combat naval (sinon le filtre est vide).
   const dockHeroes = [
     ...party.map((h) => battle?.combatants.find((x) => x.id === h.id) ?? h),
-    ...(battle?.combatants.filter((c) => (isVehicle(c) || isEngin(c)) && c.kind === 'hero') ?? []),
+    ...(battle?.combatants.filter((c) => (isVehicle(c) || isEngin(c)) && c.kind === 'heros') ?? []),
   ];
   // LDB 17 l.25.
   const canFirstIds = pendingRoundStart ? actFirstIds(useGame.getState()) : [];
@@ -211,7 +210,7 @@ export function CampaignView() {
   // LDB 10.
   const preemptAiming = useGame((s) => s.preemptAiming);
   const canPreemptIds = preemptShooterIds(useGame.getState); // source UNIQUE (partagée avec le ciblage clavier)
-  // PAUSE AU PROCHAIN ROUND (`raise-hand`) : l'interrupteur du pied de frise. Verdict d'offre et
+  // PAUSE AU PROCHAIN ROUND (`pause`) : l'interrupteur du pied de frise. Verdict d'offre et
   // dispatcher viennent du REGISTRE — la vue ne connaît qu'un id d'action, et la bascule repasse par
   // la MÊME offre que la pose (le relais lit la main levée), ce qui rend l'annulation gratuite et symétrique.
   // La commande n'est DESSINÉE qu'en coop (pertinence de SITE : elle s'adresse aux autres joueurs,
@@ -222,11 +221,12 @@ export function CampaignView() {
   const mainsLevees = battle?.handRaisedBy ?? [];
   const handRaised = mainsLevees.includes(mySeat);
   const autresMains = mainsLevees.filter((s) => s !== mySeat).length;
-  const handDef = findActionById('raise-hand')!;
+  const handDef = findActionById('pause')!;
   const handVerdict = battle
     ? actionGate(handDef.id, {
         active: (inBattleId(battle, battle.order[battle.turn]) ?? battle.combatants[0])!,
         battle,
+        scene,
         netMode,
         gameTime,
       })
@@ -310,7 +310,7 @@ export function CampaignView() {
             /* Carte du monde (#T2) : la scène est un lieu connu, ou un voyage interrompu attend. */
             worldMap={worldMap && (lieu || travelPlan) ? { onOpen: ouvrirLaCarte, interrupted: !!travelPlan?.interrupted } : undefined}
             /* Hub de ville (#343) : à un lieu offrant au moins un service, ou un couchage sur place. */
-            hub={hubPlace ? { label: hubPlace.label, icon: hubPlace.icon ?? 'nav/campaign', onOpen: ouvrirLeLieu } : undefined}
+            hub={hubPlace ? { label: hubPlace.label, icon: hubPlace.icon ?? 'navigation/campagne', onOpen: ouvrirLeLieu } : undefined}
             /* Dormir ici HORS lieu (route, camp sauvage) — l'offre vient de la ZONE où se tient le
                groupe, sinon de la scène. À un lieu, le repos vit DANS le hub. */
             rest={!travelPlan && restHere && !hubPlace
@@ -355,14 +355,14 @@ export function CampaignView() {
               onInspect={setInspectId}
               onHover={setHoverCombatant}
               hoveredId={hovered}
-              onPromote={(id) => choisir('roundStart', 'promouvoir', id)}
+              onPromote={(id) => choisir('debutDuRound', 'promouvoir', id)}
               canPreemptIds={canPreemptIds}
               preemptArmedId={preemptAiming}
-              onPreempt={(id) => choisir('roundStart', 'viser', preemptAiming === id ? null : id)}
+              onPreempt={(id) => choisir('debutDuRound', 'viser', preemptAiming === id ? null : id)}
               hand={netMode === 'local' ? undefined : {
                 raised: handRaised,
                 reason: handVerdict.ok ? undefined : handVerdict.reason,
-                label: <><Icon id={handDef.icon as IconIdInput} size="sm" /> {handRaised ? 'Pause demandée' : 'Pause'}{autresMains > 0 ? ` +${autresMains}` : ''}</>,
+                label: <><Icon id={handDef.icon} size="sm" /> {handRaised ? 'Pause demandée' : 'Pause'}{autresMains > 0 ? ` +${autresMains}` : ''}</>,
                 ariaLabel: `${handRaised ? `${handDef.label} : retirer ma demande` : handDef.label}${autresMains > 0 ? ` — déjà demandée par ${autresMains} autre${autresMains > 1 ? 's' : ''} joueur${autresMains > 1 ? 's' : ''}` : ''}`,
                 onToggle: () => jouerLOffreDeLEcran(useGame.getState(), handDef.id),
               }}
@@ -386,7 +386,7 @@ export function CampaignView() {
                   onClick={() => setDossierOpen(true)}
                   title="Dossier du navire — état, cargaison, équipage"
                 >
-                  <Icon id="travel/sail-ship" size="lg" />
+                  <Icon id="voyage/navire-a-voile" size="lg" />
                 </button>
               )}
               <LogDrawer battle={battle ? { log: battle.log, combatants: battle.combatants } : null} journal={journal} />
@@ -412,7 +412,7 @@ export function CampaignView() {
         {showVoyage && <VoyageScreen onClose={() => { if (!voyageStepUp) setVoyageMin(true); }} reduireRefus={voyageStepUp ? t('vs.reduireRefus') : undefined} />}
         {/* Hub de ville (#343) : écran-lieu plein-champ. Cédé aux écrans plein-champ qu'il ouvre
             (carte du monde, port, marché) — « Entrer » ferme le hub avant de les ouvrir. Cédé aussi à
-            la modale de repos (`pendingRest` → `ActiveModal` clé `rest`) : « Dormir » depuis le panneau
+            la modale de repos (`pendingRest` → `ActiveModal` clé `repos`) : « Dormir » depuis le panneau
             auberge armait `pendingRest` SANS fermer le hub, qui restait monté DERRIÈRE la modale flottante
             (bouton « Recueillir des informations » écrasé sous son bord, #376 pt.4). */}
         {lieuOuvert && hubPlace && !worldMapOpen && !port && !landMarket && !pendingRest && !merchant && (
@@ -434,7 +434,7 @@ export function CampaignView() {
         {/* Défaite : overlay centré (la victoire a son écran plein, VictoryScreen). Dans une Scène de
             combat de bataille de masse (ADE II 08), la sortie de la défaite fait CONTINUER la bataille (repli
             tactique, pas game-over) ; hors bataille de masse, il rend la main à la scène. */}
-        {mode === 'battle' && battle?.over === 'defeat' && <ModaleDeDefaite />}
+        {mode === 'battle' && battle?.over === 'defaite' && <ModaleDeDefaite />}
         {/* Anéantissement HORS COMBAT (`checkPartyWiped`) : MÊME écran de défaite que le combat, hors
             bataille (aucun `battle`) — le groupe entier est tombé (faim, exposition, damnation…). */}
         {partyWiped && (
@@ -446,7 +446,7 @@ export function CampaignView() {
         )}
       </main>
 
-      <VictoryScreen />{/* écran de fin de combat plein écran (se gate sur battle.over==='victory') */}
+      <VictoryScreen />{/* écran de fin de combat plein écran (se gate sur battle.over==='victoire') */}
       {/* Cadre de campagne (#717) : l'ouverture cérémonielle passe AVANT tout HUD (rideau) ; le récap
           de fin de chapitre attend qu'elle soit acquittée. */}
       {pendingOuverture && <CampaignOpeningScreen />}

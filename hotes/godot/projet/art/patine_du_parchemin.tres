@@ -1,0 +1,13 @@
+[gd_resource type="GradientTexture2D" load_steps=2 format=3]
+
+[sub_resource type="Gradient" id="Patine"]
+offsets = PackedFloat32Array(0.45, 1)
+colors = PackedColorArray(0.4, 0.3, 0.16, 0, 0.4, 0.3, 0.16, 0.42)
+
+[resource]
+gradient = SubResource("Patine")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 1)

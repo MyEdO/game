@@ -16,7 +16,7 @@ function setPendingTest(over: Partial<any> = {}) {
   banc.setState({
     party: [combattantDeTest({ id: 'h1', label: 'Héros', resilience: 2 })],
     pendingTest: {
-      actorId: 'h1', actorName: 'Héros', label: 'Test', skillValue: 40, difficulty: 'intermediaire',
+      actorId: 'h1', label: 'Test', skillValue: 40, difficulty: 'intermediaire',
       requireSL: 0, target: 40, roll: null, success: false, sl: 0,
       ...over,
     } as any,
@@ -31,7 +31,7 @@ describe('jetForcerLaReussite@test — Résilience AVANT le jet', () => {
     expect(pt.success).toBe(true);
     expect(pt.sl).toBeGreaterThanOrEqual(1);
     expect(pt.roll).toBe(1); // « vous choisissez le résultat » → 01
-    expect(pt.forced).toBe(true);
+    expect(pt.forcee).toBe(true);
     expect(banc.getState().party[0].resilience).toBe(1);
   });
 
@@ -48,7 +48,7 @@ describe('jetForcerLaReussite@test — Résilience AVANT le jet', () => {
     expect(pt.success).toBe(true);
     expect(pt.roll).toBe(1); // sans enjeu de double, le choix rationnel est le score le plus bas
     expect(pt.sl).toBe(4); // dizaine(40) − dizaine(01) : le DR maximal atteignable contre une cible de 40
-    expect(pt.forced).toBe(true);
+    expect(pt.forcee).toBe(true);
     expect(banc.getState().party[0].resilience).toBe(1);
   });
 
@@ -72,9 +72,9 @@ describe('Résilience pré-jet — autres modales (synthèse de succès)', () =>
     banc.setState({
       party: [combattantDeTest({ id: 'h1', label: 'Soigneur', resilience: 1, wounds: blessuresDeBase(12, 4), skills: [{ id: 'guerison', advances: 10, characteristic: 'intelligence' }] })],
       battle: null, medic: { patientId: 'h1' },
-      pendingHeal: { healerId: 'h1', healerName: 'Soigneur', targetId: 'h1', targetName: 'Soigneur', mode: 'wounds', intBonus: 3, test: 'guerison', bandagesDe: null, sl: 0, success: false, roll: null, target: 50 } as any,
+      pendingHeal: { healerId: 'h1', healerName: 'Soigneur', targetId: 'h1', mode: 'blessures', intBonus: 3, test: 'guerison', bandagesDe: null, sl: 0, success: false, roll: null, target: 50 } as any,
     });
-    banc.getState().jetForcerLaReussite('heal');
+    banc.getState().jetForcerLaReussite('soins');
     const ph = banc.getState().pendingHeal!;
     expect(ph.success).toBe(true);
     expect(ph.roll).toBe(1);
@@ -87,7 +87,7 @@ describe('Résilience pré-jet — autres modales (synthèse de succès)', () =>
       battle: { combatants: [brute] } as any,
       pendingFrenzy: { combatantId: 'e1', result: null } as any,
     });
-    banc.getState().jetForcerLaReussite('frenzy');
+    banc.getState().jetForcerLaReussite('frenesie');
     expect(banc.getState().pendingFrenzy!.result!.success).toBe(true);
     expect(banc.getState().battle!.combatants[0].resilience).toBe(0);
   });

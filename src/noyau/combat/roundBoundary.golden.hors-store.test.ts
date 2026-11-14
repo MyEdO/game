@@ -24,10 +24,10 @@ describe('GOLDEN — séquence de franchissement de Round (advanceTurn)', () => 
     banc.getState().lancerLaScene(testScene());
     seedBattleRng(777);
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
+    const enemy = b.combatants.find((c) => c.kind === 'ennemi')!;
     addCondition(enemy, COND.empoisonne); // exerce endOfRound (dégâts périodiques + RNG)
     const beforeLen = banc.getState().battle!.log.length;
     seedBattleRng(424242); // RNG du franchissement fixé, indépendant du setup
@@ -40,10 +40,10 @@ describe('GOLDEN — séquence de franchissement de Round (advanceTurn)', () => 
       {
         "lines": [
           "round:— Round 2 —",
-          "condition:Dider Rudlos subit 1 Blessure(s) (ignorant BE et PA).",
-          "condition:Dider Rudlos — Test de Résistance Intermédiaire (+0) : 13/20 → réussi (DR +1).",
-          "condition:Dider Rudlos retire 1 État Empoisonné.",
-          "condition:Dider Rudlos reçoit 1 État Exténué.",
+          "etat:Dider Rudlos subit 1 Blessure(s) (ignorant BE et PA).",
+          "etat:Dider Rudlos — Test de Résistance Intermédiaire (+0) : 13/20 → réussi (DR +1).",
+          "etat:Dider Rudlos retire 1 État Empoisonné.",
+          "etat:Dider Rudlos reçoit 1 État Exténué.",
         ],
         "rngProbe": 24,
       }

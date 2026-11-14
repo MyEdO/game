@@ -34,7 +34,20 @@ import { clearPeriodTextures, getPeriodTexture } from '../backends/webgl/periodT
 import { bakeQueueLength, PRIORITE_VUE_COURANTE, queueBakeTask, setBudgetTrancheMs } from '../backends/webgl/atlasBake';
 import { AMBIANCE } from '../catalog/ambiance';
 import { GameStage3D, setStageRendererFactory, type StageFrame, type StageWalkAnim } from './GameStage3D';
-import { BancRenderer, PLAFOND_ATTENTE_MS, PLAFOND_HORS_ATTEINTE_MS, attendreEntréeFinie, attendreQue, brancherArdoise, caméras, respirer as respirerBanc, scènes, simulerRasterisation, viderCaptures, type Rasterisation } from './banc-volumique';
+import {
+  BancRenderer,
+  PLAFOND_ATTENTE_MS,
+  PLAFOND_HORS_ATTEINTE_MS,
+  attendreEntréeFinie,
+  attendreQue,
+  brancherArdoise,
+  caméras,
+  respirer as respirerBanc,
+  scènes,
+  simulerRasterisation,
+  viderCaptures,
+  type Rasterisation,
+} from './banc-volumique';
 import type { ActorPose, KeepEl, SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
 import type { BillboardPropEl } from '../builders/types';
 import { entreeEnScene } from '../../state/entreeEnScene';
@@ -75,7 +88,7 @@ const anim: StageWalkAnim = {
 };
 
 const cadre = (pos: { x: number; y: number } = GROUPE): StageFrame =>
-  ({ mode: 'pov', partyPos: pos, facing: 'N', indoor: false, cid: null });
+  ({ mode: 'subjectif', partyPos: pos, facing: 'N', indoor: false, cid: null });
 
 const respirer = (ms: number): Promise<void> => respirerBanc(ms, () => battre?.());
 

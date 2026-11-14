@@ -23,6 +23,7 @@ import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { deDeLaTableTiree } from '../engine/tables';
 
 let banc: Banc;
 /** Les lignes du journal de combat (`journaliser` : combat ouvert → `battle.log`). */
@@ -33,7 +34,7 @@ beforeEach(() => {
 
 const C = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'X', name: 'X', label: 'X', kind: 'hero',
+    id: 'X', name: 'X', label: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [],
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
@@ -46,7 +47,7 @@ const C = (over: Partial<Combatant>): Combatant =>
 function setupAttack(attackerOver: Partial<Combatant> = {}, targetOver: Partial<Combatant> = {}) {
   seedBattleRng(7);
   const attacker = C({ id: 'A', label: 'Att', resilience: 2, ...attackerOver });
-  const target = C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 }, ...targetOver });
+  const target = C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 }, ...targetOver });
   banc.setState({
     battle: { combatants: [attacker, target], log: [], order: [attacker.id, target.id], turn: 0, round: 1 } as never,
     pendingAttack: {
@@ -84,7 +85,7 @@ describe('option ON + héros piloté — le dé se saisit AVANT et APRÈS le jet
 
   it('APRÈS le jet : le dé saisi remplace le jet et l’issue se re-dérive AU NATUREL (33 = double → Critique)', () => {
     setupAttack();
-    banc.getState().jetImposerLeResultat('attack', 33);
+    banc.getState().jetImposerLeResultat('attaque', 33);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.attackerRoll).toBe(33);
     expect(res.hit).toBe(true);
@@ -95,7 +96,7 @@ describe('option ON + héros piloté — le dé se saisit AVANT et APRÈS le jet
 
   it('un dé fixé peut ÉCHOUER (≠ Résilience, qui garantit la réussite)', () => {
     setupAttack();
-    banc.getState().jetImposerLeResultat('attack', 99);
+    banc.getState().jetImposerLeResultat('attaque', 99);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.attackerRoll).toBe(99);
     expect(res.hit).toBe(false);
@@ -106,13 +107,13 @@ describe('option ON + héros piloté — le dé se saisit AVANT et APRÈS le jet
     setupAttack();
     const before = banc.getState().battle!.combatants.find((c) => c.id === 'A')!;
     const resil = before.resilience;
-    banc.getState().jetImposerLeResultat('attack', 33);
+    banc.getState().jetImposerLeResultat('attaque', 33);
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'A')!.resilience).toBe(resil);
   });
 
   it('le journal de combat porte la mention « dé fixé »', () => {
     setupAttack();
-    banc.getState().jetImposerLeResultat('attack', 33);
+    banc.getState().jetImposerLeResultat('attaque', 33);
     const log = lignesDeCombat().join('\n');
     expect(log).toContain('dé fixé');
     // La valeur JOURNALISÉE est celle RÉELLEMENT appliquée au jet, relue sur le slot après commit.
@@ -125,15 +126,15 @@ describe('contrôle — `canFixDie` décrit l’AFFORDANCE LOCALE (jamais le ges
   beforeEach(() => setDesFixes(true));
 
   it('siège MJ d’un AUTRE joueur → l’ennemi ne s’affiche pas comme fixable ici', () => {
-    setupAttack({ id: 'A', kind: 'enemy' }, { id: 'B', kind: 'hero' });
-    banc.setState({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1, gmSeat: 0 } as never });
+    setupAttack({ id: 'A', kind: 'ennemi' }, { id: 'B', kind: 'heros' });
+    banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1, gmSeat: 0 } as never });
     expect(canFixDie(banc.getState(), 'A')).toBe(false);
   });
 
   it('étape MONDE (sans acteur) → siège MJ s’il existe, hôte sinon', () => {
     setupAttack();
     expect(canFixDie(banc.getState(), undefined)).toBe(true); // solo/hôte = siège 0
-    banc.setState({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1 } as never });
+    banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1 } as never });
     expect(canFixDie(banc.getState(), undefined)).toBe(false);
     banc.setState({ net: { ...banc.getState().net, gmSeat: 1 } as never });
     expect(canFixDie(banc.getState(), undefined)).toBe(true);
@@ -145,7 +146,7 @@ describe('contrôle — `canFixDie` décrit l’AFFORDANCE LOCALE (jamais le ges
   });
 
   it('ennemi SANS siège MJ → aucune affordance (il est à l’IA)', () => {
-    setupAttack({ id: 'A', kind: 'enemy' }, { id: 'B', kind: 'hero' });
+    setupAttack({ id: 'A', kind: 'ennemi' }, { id: 'B', kind: 'heros' });
     expect(canFixDie(banc.getState(), 'A')).toBe(false);
   });
 });
@@ -154,7 +155,7 @@ describe('option OFF — l’option gate l’AFFORDANCE de celui qui clique, pas
   it('le dé d’un siège émetteur s’applique chez celui qui exécute sans l’option, avec sa provenance et sa ligne', () => {
     setupAttack();
     expect(canFixDie(banc.getState(), 'A'), 'précondition : option OFF, aucune affordance locale').toBe(false);
-    banc.getState().jetImposerLeResultat('attack', 33);
+    banc.getState().jetImposerLeResultat('attaque', 33);
     expect(attackRoll()).toBe(33);
     expect(banc.getState().pendingAttack!.fixed).toBe(true);
     expect(lignesDeCombat().join('\n')).toContain('dé fixé');
@@ -163,9 +164,9 @@ describe('option OFF — l’option gate l’AFFORDANCE de celui qui clique, pas
 
 describe('Résilience — le choix du dé reste OFFERT sans l’option (deux affordances, un sélecteur)', () => {
   it('le choix du dé n’est plus le privilège des flux à `caps.picker` : un flux à LENTILLE l’expose aussi', () => {
-    // `reload`/`recover`/`appraise`/`heal` ne déclarent AUCUN `caps.picker` — la fabrique le dérive de
+    // `rechargement`/`recuperation`/`evaluation`/`soins` ne déclarent AUCUN `caps.picker` — la fabrique le dérive de
     // leur lentille (`dieTarget` + `actorTR`), suggestion `bestForcedRoll` avant le jet.
-    for (const key of ['reload', 'handGate', 'appraise', 'heal', 'steamSave', 'surgery', 'dispel', 'shanty'] as const) {
+    for (const key of ['rechargement', 'mainEnsanglantee', 'evaluation', 'soins', 'fuiteDeVapeur', 'chirurgie', 'dissipation', 'chansonDeMarin'] as const) {
       expect(typeof FLOWS[key].picker, key).toBe('function');
     }
   });
@@ -182,11 +183,11 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
 
   it('Résilience puis DEUX changements de dé successifs : chacun re-dérive (la cible reste lisible)', () => {
     openHandGate();
-    banc.getState().jetForcerLaReussite('handGate');
+    banc.getState().jetForcerLaReussite('mainEnsanglantee');
     expect(banc.getState().pendingHandGate!.roll).toBe(bestForcedRoll(60));
-    banc.getState().jetImposerLeResultat('handGate', 11);
+    banc.getState().jetImposerLeResultat('mainEnsanglantee', 11);
     expect(banc.getState().pendingHandGate!.roll).toBe(11);
-    banc.getState().jetImposerLeResultat('handGate', 55);
+    banc.getState().jetImposerLeResultat('mainEnsanglantee', 55);
     const p = banc.getState().pendingHandGate!;
     expect(p.roll).toBe(55);
     expect(p.sl).toBe(Math.max(evaluateTest(55, 60).sl, 1));
@@ -196,34 +197,34 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
   it('dé FIXÉ raté PUIS Résilience : la Résilience RE-TIRE le dé, la provenance « dé fixé » s’efface (LDB 17 l.68)', () => {
     openHandGate();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('handGate', 95);
+    banc.getState().jetImposerLeResultat('mainEnsanglantee', 95);
     expect(banc.getState().pendingHandGate!.fixed).toBe(true);
     expect(banc.getState().pendingHandGate!.success, 'évalué au naturel : 95 > 60').toBe(false);
-    banc.getState().jetForcerLaReussite('handGate');
+    banc.getState().jetForcerLaReussite('mainEnsanglantee');
     const p = banc.getState().pendingHandGate!;
-    expect([p.forced, p.success, !!p.fixed]).toEqual([true, true, false]);
+    expect([p.forcee, p.success, !!p.fixed]).toEqual([true, true, false]);
   });
 
   it('pending FERMÉ (post-Appliquer) : le verbe est inerte, aucun crash', () => {
     openHandGate();
     setDesFixes(true);
     banc.setState({ pendingHandGate: null });
-    expect(() => banc.getState().jetImposerLeResultat('handGate', 11)).not.toThrow();
+    expect(() => banc.getState().jetImposerLeResultat('mainEnsanglantee', 11)).not.toThrow();
     expect(banc.getState().pendingHandGate).toBeNull();
   });
 
   it('un dé FIXÉ ne consomme ni ne marque la Résilience', () => {
     openHandGate();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('handGate', 41);
-    expect(banc.getState().pendingHandGate!.forced).toBeFalsy();
+    banc.getState().jetImposerLeResultat('mainEnsanglantee', 41);
+    expect(banc.getState().pendingHandGate!.forcee).toBeFalsy();
     expect(banc.getState().battle!.combatants[0].resilience).toBe(3);
   });
 
   it('journal : mention NOMINATIVE de la valeur appliquée', () => {
     openHandGate();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('handGate', 41);
+    banc.getState().jetImposerLeResultat('mainEnsanglantee', 41);
     expect(lignesDeCombat().join('\n')).toMatch(/Héros : dé fixé à 41/);
   });
 });
@@ -233,11 +234,11 @@ describe('Test OPPOSÉ — plancher de Résilience vs évaluation naturelle du d
   function setupOpposed() {
     seedBattleRng(7);
     banc.setState({
-      battle: { combatants: [C({ id: 'A', label: 'Att', resilience: 2 }), C({ id: 'B', label: 'Def', kind: 'enemy', pos: { x: 1, y: 0 } })], log: [] } as never,
+      battle: { combatants: [C({ id: 'A', label: 'Att', resilience: 2 }), C({ id: 'B', label: 'Def', kind: 'ennemi', pos: { x: 1, y: 0 } })], log: [] } as never,
       pendingAttack: {
         attackerId: 'A', targetId: 'B', location: null,
         result: {
-          hit: false, attackerRoll: 88, netSL: -9, critical: false, advantageTo: 'defender', defenderDefeated: false, log: 'raté',
+          hit: false, attackerRoll: 88, netSL: -9, critical: false, advantageTo: 'defenseur', defenderDefeated: false, log: 'raté',
           attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 88, success: false, sl: -4 },
           defenderDetail: { label: 'Esquive', base: 55, modifier: 0, target: 55, roll: 5, success: true, sl: 5 },
         } as never,
@@ -247,7 +248,7 @@ describe('Test OPPOSÉ — plancher de Résilience vs évaluation naturelle du d
 
   it('Résilience : « vous l’emportez avec au moins DR +1 » (LDB 17 l.68) — DR 6 contre un DR 5', () => {
     setupOpposed();
-    banc.getState().jetForcerLaReussite('attack');
+    banc.getState().jetForcerLaReussite('attaque');
     const r = banc.getState().pendingAttack!.result!;
     expect(r.attackerDetail!.sl).toBe(6);
     expect(r.hit).toBe(true);
@@ -255,8 +256,8 @@ describe('Test OPPOSÉ — plancher de Résilience vs évaluation naturelle du d
 
   it('dé CHOISI ensuite (11) : le plancher opposé TIENT et le double donne son Critique', () => {
     setupOpposed();
-    banc.getState().jetForcerLaReussite('attack');
-    banc.getState().jetImposerLeResultat('attack', 11);
+    banc.getState().jetForcerLaReussite('attaque');
+    banc.getState().jetImposerLeResultat('attaque', 11);
     const r = banc.getState().pendingAttack!.result!;
     expect(r.attackerRoll).toBe(11);
     expect(r.attackerDetail!.sl).toBe(6);
@@ -266,20 +267,20 @@ describe('Test OPPOSÉ — plancher de Résilience vs évaluation naturelle du d
   it('dé FIXÉ 11 (option, sans Résilience) : AUCUN plancher — le DR est celui du dé', () => {
     setupOpposed();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('attack', 11);
+    banc.getState().jetImposerLeResultat('attaque', 11);
     const r = banc.getState().pendingAttack!.result!;
     expect(r.attackerRoll).toBe(11);
     expect(r.attackerDetail!.sl).toBe(evaluateTest(11, 45).sl);
-    expect(banc.getState().pendingAttack!.forced).toBeFalsy();
+    expect(banc.getState().pendingAttack!.forcee).toBeFalsy();
   });
 });
 
 describe('coop — un siège TIERS ne fixe le dé de personne (sonde S4 promue)', () => {
   it('la validation de possession accepte le PROPRIÉTAIRE et refuse le tiers', () => {
     setupAttack();
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, roomCode: 'R', ownership: { A: 1 } } as never });
-    expect(intentAllowedFor(banc.getState(), 1, 'jetImposerLeResultat', ['attack', 33])).toBe(true);
-    expect(intentAllowedFor(banc.getState(), 2, 'jetImposerLeResultat', ['attack', 33])).toBe(false);
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, roomCode: 'R', ownership: { A: 1 } } as never });
+    expect(intentAllowedFor(banc.getState(), 1, 'jetImposerLeResultat', ['attaque', 33])).toBe(true);
+    expect(intentAllowedFor(banc.getState(), 2, 'jetImposerLeResultat', ['attaque', 33])).toBe(false);
   });
 });
 
@@ -288,7 +289,7 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
   it('la ligne d’issue produite par l’Appliquer porte la mention', () => {
     setupAttack();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('attack', 33); // double ≤ cible → touche + Critique
+    banc.getState().jetImposerLeResultat('attaque', 33); // double ≤ cible → touche + Critique
     banc.setState({ journal: [] });
     // Le pending est ENCORE ouvert pendant que l'applicateur compose : c'est la fenêtre du marquage.
     banc.getState().ecrireAuJournal('Att touche Cible à la tête · CRITIQUE !');
@@ -305,7 +306,7 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
   it('aucun doublon : la ligne de fixation n’est pas re-marquée', () => {
     setupAttack();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('attack', 33);
+    banc.getState().jetImposerLeResultat('attaque', 33);
     const ligne = lignesDeCombat().find((l) => l.includes('dé fixé'))!;
     expect(ligne).toBe('Att : dé fixé à 33.');
   });
@@ -313,7 +314,7 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
   it('pending REFERMÉ (hors modale) : plus aucune ligne n’est marquée', () => {
     setupAttack();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('attack', 33);
+    banc.getState().jetImposerLeResultat('attaque', 33);
     banc.setState({ pendingAttack: null, journal: [] });
     banc.getState().ecrireAuJournal('Le Gobelin se relève.');
     expect(banc.getState().journal.join('\n')).not.toContain('dé fixé');
@@ -331,7 +332,7 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
   const applied: string[] = [];
 
   const etape = (id: string): CascadeStep =>
-    ({ id, kind: cleDeFixture('markSpy'), label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: TBL }});
+    ({ id, kind: cleDeFixture('markSpy'), label: fixtureText('Tirage'), icon: 'navigation/des', table: { tableId: TBL }});
 
   beforeEach(() => {
     applied.length = 0;
@@ -339,7 +340,7 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
     avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [TBL]: {
       label: 'Table de la marque',
-      die: 100,
+      die: deDeLaTableTiree({ die: 'd100' }),
       rows: [{ min: 1, max: 50, id: 'basse', label: 'Ligne basse' }, { min: 51, max: 100, id: 'haute', label: 'Ligne haute' }],
       lines: (die) => [`ligne (dé ${die})`],
     } }, appliers: { ...tablesDuJeu().appliers, markSpy: spyApplier(applied, (s) => `conséquence de ${s.id} (dé ${s.table!.result!.roll})`, (s) => ({ consequences: freeCons([`conséquence de ${s.id} (dé ${s.table!.result!.roll})`]) })) } });

@@ -6,6 +6,7 @@
  * (`terrainsElectifs`, `EFFECT_HANDLERS`) : tout hôte crée la même valeur que l'éditeur web.
  */
 import type { Formula, GameOp } from '../engine/ops';
+import { VIVRES_DE_CALE } from '../engine/seaNavigation';
 import type { JsonFormula } from '../engine/miscast';
 import { opPsy } from '../engine/psych/opsPsy';
 import { OPTIONAL_RULES } from '../engine/policy';
@@ -19,7 +20,19 @@ import { CONDITION_TOUJOURS, recast } from '../data/valeursNeuves';
 import type { Condition } from '../engine/flowCore';
 import { terrainsElectifs } from './monde/terrain';
 import { EFFECT_HANDLERS } from './combatEffects';
-import { admetUneListe, bornesDuNoeud, champsDeclares, choixDuNoeud, kindDuNoeud, unionDuNoeud, varianteCourante, videDuNoeud, type UnionDuNoeud, type VarianteDuNoeud } from './codex/editFields';
+import {
+  admetUneListe,
+  bornesDuNoeud,
+  champsDeclares,
+  choixDuNoeud,
+  kindDuNoeud,
+  recordDuNoeud,
+  unionDuNoeud,
+  varianteCourante,
+  videDuNoeud,
+  type UnionDuNoeud,
+  type VarianteDuNoeud,
+} from './codex/editFields';
 
 
 /** Règles optionnelles NUMÉRIQUES (`kind: 'param'`) — seules éligibles au terme `{rule}` d'une Formula
@@ -122,7 +135,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'wounds': return { op: 'wounds', amount: 5 };
     case 'heal': return { op: 'heal', amount: 3 };
     case 'healCaster': return { op: 'healCaster', amount: 1 };
-    case 'condition': return { op: 'condition', id: '', value: 1 };
+    case 'condition': return { op: 'condition', id: { id: '' }, value: 1 };
     case 'removeCondition': return { op: 'removeCondition' };
     case 'endPsych': return opPsy.fin('');
     case 'beginPsych': return opPsy.pose('');
@@ -151,7 +164,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'attackWardFM': return { op: 'attackWardFM' };
     case 'grantWeapon': return { op: 'grantWeapon', label: '', damage: { bonusOf: 'force-mentale' } };
     case 'grantNaturalWeapon': return { op: 'grantNaturalWeapon', label: '', damage: 3 };
-    case 'grantFreeAttack': return { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true };
+    case 'grantFreeAttack': return { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', avantageOuMouvement: true };
     case 'grantTrait': return { op: 'grantTrait', trait: { id: '' } };
     case 'removeTrait': return { op: 'removeTrait', trait: { id: '' } };
     case 'grantPsychTrait': return opPsy.octroi('');
@@ -171,7 +184,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'aggravateSymptom': return { op: 'aggravateSymptom', disease: '', symptomId: '', severity: 'grave' };
     case 'attenuateSymptom': return { op: 'attenuateSymptom', disease: '', symptomId: '' };
     case 'grantSymptom': return { op: 'grantSymptom', disease: '', symptomId: '' };
-    case 'actGate': return { op: 'actGate', characteristic: 'force-mentale' };
+    case 'testDAgir': return { op: 'testDAgir', characteristic: 'force-mentale' };
     case 'delayed': return { op: 'delayed', afterHours: 1, ops: [] };
     case 'preventInfection': return { op: 'preventInfection' };
     case 'aideMedicale': return { op: 'aideMedicale' };
@@ -218,14 +231,14 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'senseLoss': return { op: 'senseLoss', sense: 'vue' };
     case 'loseTurn': return { op: 'loseTurn' };
     case 'removeShipPoste': return { op: 'removeShipPoste' };
-    case 'weaponRollMod': return { op: 'weaponRollMod', phase: 'attack', drMod: -1 };
+    case 'weaponRollMod': return { op: 'weaponRollMod', phase: 'attaque', drMod: -1 };
     case 'weaponDamageMod': return { op: 'weaponDamageMod', mode: 'maxUnits' };
     case 'armourPierce': return { op: 'armourPierce', amount: 1 };
     case 'critOnRoll': return { op: 'critOnRoll', mod: 10, equals: 0 };
     case 'spendAdvantage': return { op: 'spendAdvantage', amount: 1 };
     case 'rollThreshold': return { op: 'rollThreshold', sides: 10, thresholds: [] };
     case 'rollTable': return { op: 'rollTable', die: 'd10', entries: [] };
-    case 'rollMutation': return { op: 'rollMutation', table: '' };
+    case 'rollMutation': return { op: 'rollMutation', table: { id: '' } };
     case 'narrative': return { op: 'narrative', text: '' };
     case 'shipMorale': return { op: 'shipMorale', delta: { sign: 1, dice: { n: 1, sides: 10 } } };
     case 'manann': return { op: 'manann', delta: { sign: 1, dice: { n: 1, sides: 10 } } };
@@ -233,11 +246,14 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'navireMod': return { op: 'navireMod', m: -1, jusqua: 'carenage' };
     case 'meteoImposee': return { op: 'meteoImposee', jours: { dice: { n: 1, sides: 10 } }, meteo: { vent: 'calme-plat' } };
     case 'cargaison': return { op: 'cargaison', enc: { dice: { n: 1, sides: 100 } } };
-    case 'provisions': return { op: 'provisions', jours: { dice: { n: 1, sides: 10 } } };
+    case 'provisions': return { op: 'provisions', jours: { dice: { n: 1, sides: 10 } }, vivre: { id: VIVRES_DE_CALE.vivres[0] } };
     case 'equipage': return { op: 'equipage', delta: 1 };
     case 'perilDeMer': return { op: 'perilDeMer', collision: { id: '' } };
     case 'navireHostile': return { op: 'navireHostile', navire: { id: '' }, equipage: { id: '', nombre: 1 } };
-    case 'infestation': return { op: 'infestation', crewTestType: { id: '' }, difficulty: 'intermediaire', targetDR: 10, chaqueNuit: { kind: 'seq', steps: [] } };
+    case 'commission': return { op: 'commission', montant: { brass: 48000 } };
+    case 'constructeurDEscale': return { op: 'constructeurDEscale', competence: 68, duree: { dice: { n: 1, sides: 10 } } };
+    case 'rationsDEscale': return { op: 'rationsDEscale', montant: { brass: 3 } };
+    case 'infestation': return { op: 'infestation', crewTestType: { id: '' }, difficulty: 'intermediaire', drCible: 10, chaqueNuit: { kind: 'sequence', etapes: [] } };
     default: {
       const payload = OP_DEFS[op];
       if (payload) return sansReferenceElue(payload, valeurNeuveDe(payload)) as GameOp;
@@ -254,7 +270,7 @@ export function newEffect(type: Effect['type']): Effect {
 
 /** La valeur NEUVE du nœud de schéma `noeud` : d'un champ à choix, sa première valeur (`choixDuNoeud`) ; d'un objet,
  *  ses seuls champs dont le nœud n'admet pas le retrait (`videDuNoeud`), chacun à sa valeur neuve ; d'une union, celle
- *  de sa première variante (`neuveDeLaVariante`) ; d'un nombre, 0, ou sa borne basse si elle est au-dessus ; d'un
+ *  de sa première variante (`neuveDeLaVariante`) ; d'un record, {} ; d'un nombre, 0, ou sa borne basse si elle est au-dessus ; d'un
  *  texte, '' ; d'une liste, [] ; `undefined` pour tout autre nœud, qu'un objet neuf ne porte pas. */
 export function valeurNeuveDe(noeud: unknown): unknown {
   const choix = choixDuNoeud(noeud);
@@ -266,6 +282,7 @@ export function valeurNeuveDe(noeud: unknown): unknown {
   }));
   const u = unionDuNoeud(noeud);
   if (u) return u.variantes.length ? neuveDeLaVariante(u, u.variantes[0], undefined) : undefined;
+  if (recordDuNoeud(noeud)) return {};
   const bornes = bornesDuNoeud(noeud);
   if (bornes) return bornes.min !== null && bornes.min > 0 ? bornes.min : 0;
   const kind = kindDuNoeud('', noeud);
@@ -274,12 +291,12 @@ export function valeurNeuveDe(noeud: unknown): unknown {
 }
 
 /** La valeur NEUVE de la variante `v` de l'union `u`, depuis la valeur `actuelle` : d'une op, celle de sa fabrique
- *  (`newOp`) ; d'une Condition, celle de `recast`, qui enveloppe l'actuelle sous ET, OU, NON ; de toute autre branche,
- *  sa valeur neuve, son discriminant posé, sauf pour la variante qui ne le porte pas (clé vide) et pour une union à clé
- *  propre, qui n'en a pas. */
+ *  (`newOp`) ; d'une Condition, union dont une variante est le produit de la Condition de sa clé, celle de `recast`,
+ *  qui enveloppe l'actuelle sous ET, OU, NON ; de toute autre branche, sa valeur neuve, son discriminant posé, sauf pour
+ *  la variante qui ne le porte pas (clé vide) et pour une union sans discriminant. */
 function neuveDeLaVariante(u: UnionDuNoeud, v: VarianteDuNoeud, actuelle: unknown): unknown {
   if (declarationDEnfants(u.noeud)) return newOp(v.cle);
-  if (u.variantes.some((w) => classeDeProduit(w.noeud)?.fabrique === 'conditionDe')) return recast((actuelle as Condition | undefined) ?? CONDITION_TOUJOURS, v.cle as Condition['kind']);
+  if (u.variantes.some((w) => classeDeProduit(w.noeud)?.role === `condition.${w.cle}`)) return recast((actuelle as Condition | undefined) ?? CONDITION_TOUJOURS, v.cle as Condition['kind']);
   const neuve = valeurNeuveDe(v.noeud);
   return v.cle === '' || u.discriminant === '' ? neuve : { ...(neuve as object), [u.discriminant]: v.cle };
 }
@@ -296,4 +313,17 @@ export function variantesAChoisir(noeud: unknown, actuelle: unknown): ValeurDeVa
   if (!u) return undefined;
   const courante = varianteCourante(u, actuelle);
   return u.variantes.map((v) => ({ cle: v.cle, libelle: v.libelle, valeur: v === courante ? actuelle : neuveDeLaVariante(u, v, actuelle), courante: v === courante }));
+}
+
+/** Ce que jouent les gestes de la liste `liste`, d'élément neuf `neuve` : « Ajouter », la liste où il s'ajoute en fin
+ *  (`null` sans élément neuf, `valeurNeuveDe` n'en bâtissant aucun) ; pour chaque élément, « Retirer », la liste sans
+ *  lui, et « Monter », celle où il passe avant le précédent (`null` pour le premier). */
+export function gestesDeLaListe(liste: readonly unknown[], neuve: unknown): { ajouter: unknown[] | null; elements: { retirer: unknown[]; monter: unknown[] | null }[] } {
+  return {
+    ajouter: neuve === undefined ? null : [...liste, neuve],
+    elements: liste.map((e, rang) => ({
+      retirer: liste.filter((_, i) => i !== rang),
+      monter: rang ? [...liste.slice(0, rang - 1), e, liste[rang - 1], ...liste.slice(rang + 1)] : null,
+    })),
+  };
 }

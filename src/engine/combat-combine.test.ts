@@ -121,31 +121,31 @@ describe('combineMods — séparabilité des familles (balayage aléatoire déte
 });
 
 describe('combineMods — plafonds de Difficulté réglables (LDB 14 l.95, règle optionnelle)', () => {
-  afterEach(() => { resetRule('combat-diff-cap-bonus'); resetRule('combat-diff-cap-malus'); });
-  it('combat-diff-cap-bonus → 20 : la somme des bonus plafonne à +20 (défaut +60)', () => {
+  afterEach(() => { resetRule('combat-plafond-bonus-difficulte'); resetRule('combat-plafond-malus-difficulte'); });
+  it('combat-plafond-bonus-difficulte → 20 : la somme des bonus plafonne à +20 (défaut +60)', () => {
     expect(combineMods([{ label: 'a', value: 40, famille: 'circonstance' }, { label: 'b', value: 40, famille: 'circonstance' }])).toBe(60);
-    setRule('combat-diff-cap-bonus', 20);
+    setRule('combat-plafond-bonus-difficulte', 20);
     expect(combineMods([{ label: 'a', value: 40, famille: 'circonstance' }, { label: 'b', value: 40, famille: 'circonstance' }])).toBe(20);
   });
-  it('combat-diff-cap-malus → 10 : la somme des malus plafonne à −10 (défaut −30)', () => {
+  it('combat-plafond-malus-difficulte → 10 : la somme des malus plafonne à −10 (défaut −30)', () => {
     expect(combineMods([{ label: 'a', value: -20, famille: 'circonstance' }, { label: 'b', value: -20, famille: 'circonstance' }])).toBe(-30);
-    setRule('combat-diff-cap-malus', 10);
+    setRule('combat-plafond-malus-difficulte', 10);
     expect(combineMods([{ label: 'a', value: -20, famille: 'circonstance' }, { label: 'b', value: -20, famille: 'circonstance' }])).toBe(-10);
   });
 });
 
 describe("weaponReachPenalty — Longueur d'arme (LDB 62 l.172, règle optionnelle)", () => {
-  afterEach(() => resetRule('combat-weapon-reach'));
+  afterEach(() => resetRule('combat-longueur-arme'));
   const w = (reach: string | null) => ({ type: 'melee', reach }) as unknown as Weapon;
   it('off (défaut) : aucun malus de longueur', () => {
     expect(weaponReachPenalty(w('Très courte'), w('Longue'))).toBe(0);
   });
   it('on : arme adverse PLUS LONGUE → −10 pour la toucher', () => {
-    setRule('combat-weapon-reach', true);
+    setRule('combat-longueur-arme', true);
     expect(weaponReachPenalty(w('Très courte'), w('Longue'))).toBe(-10);
   });
   it('on : mon arme plus longue ou égale → pas de malus ; adversaire mains nues → pas de malus', () => {
-    setRule('combat-weapon-reach', true);
+    setRule('combat-longueur-arme', true);
     expect(weaponReachPenalty(w('Longue'), w('Très courte'))).toBe(0);
     expect(weaponReachPenalty(w('Moyenne'), w('Moyenne'))).toBe(0);
     expect(weaponReachPenalty(w('Moyenne'), undefined)).toBe(0);
@@ -153,12 +153,12 @@ describe("weaponReachPenalty — Longueur d'arme (LDB 62 l.172, règle optionnel
   // LDB 62 l.172 compare deux LONGUEURS ; l.31 donne « Variable » à l'Arme improvisée, et l.156-164
   // n'échelonnent que les sept Allonges. Une longueur non ordonnable n'affirme donc rien.
   it('on : Allonge « Variable » (LDB 62 l.31) — aucune comparaison, dans les DEUX sens', () => {
-    setRule('combat-weapon-reach', true);
+    setRule('combat-longueur-arme', true);
     expect(weaponReachPenalty(w('Très courte'), w('Variable'))).toBe(0);
     expect(weaponReachPenalty(w('Variable'), w('Longue'))).toBe(0);
   });
   it('on : Allonge absente d’une arme de mêlée → aucune comparaison', () => {
-    setRule('combat-weapon-reach', true);
+    setRule('combat-longueur-arme', true);
     expect(weaponReachPenalty(w('Très courte'), w(null))).toBe(0);
     expect(weaponReachPenalty(w(null), w('Longue'))).toBe(0);
   });
@@ -213,10 +213,10 @@ describe('defenseModifiers — Avantage hors plafond, circonstances plafonnées 
  * absorbe (−30).
  */
 describe('attackModifiers — Parasité et Allonge pèsent sur la CIBLE (#1218)', () => {
-  afterEach(() => resetRule('combat-weapon-reach'));
+  afterEach(() => resetRule('combat-longueur-arme'));
 
   const fighter = (over: Record<string, unknown>): Combatant => (blessuresSurLeProfil({
-    id: 'x', label: 'X', kind: 'enemy',
+    id: 'x', label: 'X', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, 'force-mentale': 30, intelligence: 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -226,7 +226,7 @@ describe('attackModifiers — Parasité et Allonge pèsent sur la CIBLE (#1218)'
   const melee = (reach: string): Weapon => ({ label: 'Arme', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], reach } as unknown as Weapon);
 
   it('sous une circonstance SATURÉE, les deux −10 sont absorbés par le plafond (−30, pas −50)', () => {
-    setRule('combat-weapon-reach', true);
+    setRule('combat-longueur-arme', true);
     const arme = melee('Très courte');
     const attaquant = fighter({ id: 'a', weapons: [arme] });
     const cible = fighter({ id: 't', traits: [{ id: 'parasite' }], weapons: [melee('Longue')] });
@@ -249,7 +249,7 @@ describe('attackModifiers — Parasité et Allonge pèsent sur la CIBLE (#1218)'
     { env: -20, circonstance: -30, jet: -40 }, // 1ᵉʳ palier où le classement DÉPLACE un chiffre (+10)
     { env: -30, circonstance: -30, jet: -50 },
   ])('saturation env=$env → combiné $circonstance (en famille jet : $jet)', ({ env, circonstance, jet }) => {
-    setRule('combat-weapon-reach', true);
+    setRule('combat-longueur-arme', true);
     const arme = melee('Très courte');
     const attaquant = fighter({ id: 'a', weapons: [arme] });
     const cible = fighter({ id: 't', traits: [{ id: 'parasite' }], weapons: [melee('Longue')] });

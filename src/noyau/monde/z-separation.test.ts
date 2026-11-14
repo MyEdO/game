@@ -2,14 +2,14 @@
  * Garde structurel ANTI-RÉGRESSION « z-aveugle » (#807) — verrouille que la SÉPARATION D'ÉTAGE tient
  * PARTOUT où deux entités/zones peuvent partager le même (x,y) sur des couches différentes. Racine
  * commune : `tileKey(x,y,z)` (path.ts, z=0 omis / z>0 suffixé) pour les grilles de blocage, et
- * `combatDistance` (footprint.ts:99-104, `verticalTiles` sur la hauteur RÉELLE `pos.h`) pour le
+ * `distanceDeCombat` (footprint.ts:99-104, `verticalTiles` sur la hauteur RÉELLE `pos.h`) pour le
  * mono-cible/aura. Chaque site est verrouillé en DEUX sens : POSITIF (même étage → actif, inchangé)
  * et NÉGATIF (autre étage, même (x,y) → inerte).
  */
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { entityBlockedAt } from './sceneRules';
-import { combatDistance } from './footprint';
+import { distanceDeCombat } from './footprint';
 import { combatantsWithinRadius, combatantAtTile, occupied } from './combatGeometry';
 import { zoneCovers, crossZones, zonesRoundTick, sceneZonesToBattle, type BattleZone } from './zones';
 import { applyTriggeredEffects } from '../triggeredEffects';
@@ -21,7 +21,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 
 const mk = (id: string, x: number, y: number, z = 0, h = 0): Combatant =>
   (blessuresSurLeProfil({
-    id, label: id, kind: 'enemy', pos: { x, y, ...(z ? { z } : {}), ...(h ? { h } : {}) },
+    id, label: id, kind: 'ennemi', pos: { x, y, ...(z ? { z } : {}), ...(h ? { h } : {}) },
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(20), advantage: 0, conditions: [], traits: [], talents: [], skills: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -58,16 +58,16 @@ describe('z-blindness #807 — entityBlockedAt (décor multi-cases/interactif)',
   });
 });
 
-describe('z-blindness #807 — combatDistance (mono-cible, hauteur réelle)', () => {
+describe('z-blindness #807 — distanceDeCombat (mono-cible, hauteur réelle)', () => {
   it('POSITIF — même étage (h identique) : distance = Chebyshev horizontal pur', () => {
     const a = mk('a', 0, 0, 0, 0);
     const b = mk('b', 3, 0, 0, 0);
-    expect(combatDistance(a, b)).toBe(3);
+    expect(distanceDeCombat(a, b)).toBe(3);
   });
   it("NÉGATIF — même (x,y), étage supérieur (Δh=4m=2 cases) : distance DOMINÉE par la verticale", () => {
     const sol = mk('sol', 5, 5, 0, 0);
     const etage = mk('etage', 5, 5, 1, 4);
-    expect(combatDistance(sol, etage)).toBe(2); // horizontal 0, vertical = 4/2 = 2 cases
+    expect(distanceDeCombat(sol, etage)).toBe(2); // horizontal 0, vertical = 4/2 = 2 cases
   });
 });
 
@@ -81,12 +81,12 @@ describe('z-blindness #807 — combatantsWithinRadius (aire/orchestrateur partag
     const c = mk('c', 6, 5, 1);
     expect(combatantsWithinRadius(center, 2, [c])).toEqual([]);
   });
-  it('NÉGATIF (dist=combatDistance, empreinte) — même (x,y), étage supérieur réel : hors rayon', () => {
+  it('NÉGATIF (dist=distanceDeCombat, empreinte) — même (x,y), étage supérieur réel : hors rayon', () => {
     const src = mk('src', 5, 5, 0, 0);
     const above = mk('above', 5, 5, 1, 4); // 2 cases de vertical
-    const withinFloor = combatantsWithinRadius(src.pos!, 1, [above], undefined, (_c, x) => combatDistance(src, x));
+    const withinFloor = combatantsWithinRadius(src.pos!, 1, [above], undefined, (_c, x) => distanceDeCombat(src, x));
     expect(withinFloor).toEqual([]);
-    const withinRadius2 = combatantsWithinRadius(src.pos!, 2, [above], undefined, (_c, x) => combatDistance(src, x));
+    const withinRadius2 = combatantsWithinRadius(src.pos!, 2, [above], undefined, (_c, x) => distanceDeCombat(src, x));
     expect(withinRadius2).toEqual([above]); // au rayon exact (2 cases), inclus — contrôle POSITIF de la formule
   });
 });
@@ -170,8 +170,8 @@ describe("z-blindness #807 — interaction (combatantAtTile, curseur/clic)", () 
 describe('z-blindness #807 — aura (`TriggeredEffect.on:{near}`, effet déclenché SOURCE-AGNOSTIQUE)', () => {
   const auraEffect = {
     trigger: 'onHit' as const,
-    on: { near: 'self' as const, radiusMeters: 4 }, // 4 m → 2 cases
-    flow: { kind: 'do' as const, effect: { type: 'ops' as const, on: 'target' as const, ops: [{ op: 'wounds' as const, amount: 6 }] } },
+    on: { near: 'soi' as const, radiusMeters: 4 }, // 4 m → 2 cases
+    flow: { kind: 'effet' as const, effet: { type: 'ops' as const, on: 'target' as const, ops: [{ op: 'wounds' as const, amount: 6 }] } },
   };
 
   it('POSITIF — un combattant du même étage, dans le rayon, subit l\'aura', () => {

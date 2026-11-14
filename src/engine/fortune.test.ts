@@ -36,14 +36,14 @@ const cible = (E = 30): Combatant =>
     advantage: 0, conditions: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     wounds: blessuresDeBase(10), skills: [],
   })) as unknown as Combatant;
-const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
 
 describe('fateSaveOptions — options offertes du sacrifice de Destin (LDB 17 l.29-32)', () => {
   it('sur le coup qui porte : « Meurs un autre jour » puis « Comment ça a pu rater ? », ordre du livre', () => {
-    expect(fateSaveOptions('hit')).toEqual(['survive', 'negate']);
+    expect(fateSaveOptions('hit')).toEqual(['survivre', 'eviter']);
   });
   it('sur une mort lente : « Meurs un autre jour » seul (lecture de LDB 17 l.32)', () => {
-    expect(fateSaveOptions('slow')).toEqual(['survive']);
+    expect(fateSaveOptions('slow')).toEqual(['survivre']);
   });
 });
 
@@ -52,14 +52,14 @@ describe('rederivePassiveAttack — +1 DR (re-dérive un tir figé sans relancer
     const a = ranger();
     const d = cible(30); // BE(30) = 3, PA = 0
     const atk = evaluateTest(20, 50); // réussi, DR = 5 - 2 = 3
-    const r0 = rederivePassiveAttack(a, d, bow, atk, 'ranged', { rng: makeRNG(1595) });
-    const r1 = rederivePassiveAttack(a, d, bow, { ...atk, sl: atk.sl + 1 }, 'ranged', { rng: makeRNG(1595) });
+    const r0 = rederivePassiveAttack(a, d, bow, atk, 'distance', { rng: makeRNG(1595) });
+    const r1 = rederivePassiveAttack(a, d, bow, { ...atk, sl: atk.sl + 1 }, 'distance', { rng: makeRNG(1595) });
     expect(r0.hit).toBe(true);
     expect(r1.woundsLost!).toBe(r0.woundsLost! + 1); // +1 DR = +1 dégât = +1 Blessure
   });
   it('+1 DR ne fabrique pas une touche sur un tir raté (succès = d100, inchangé)', () => {
     const atk = evaluateTest(80, 50); // d100 raté
-    const r = rederivePassiveAttack(ranger(), cible(), bow, { ...atk, sl: atk.sl + 1 }, 'ranged', { rng: makeRNG(1595) });
+    const r = rederivePassiveAttack(ranger(), cible(), bow, { ...atk, sl: atk.sl + 1 }, 'distance', { rng: makeRNG(1595) });
     expect(r.hit).toBe(false);
   });
 });
@@ -71,7 +71,7 @@ const mage = (Int = 30): Combatant =>
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, wounds: blessuresDeBase(10),
     skills: [{ name: 'Langue', spec: 'Magick', characteristic: 'intelligence', advances: 1 }],
   })) as unknown as Combatant;
-const dart: SpellLike = { label: 'Fléchette', ecole: 'Sort des Arcanes', cn: 3, desc: 'Projectile magique. Dégâts +4.' };
+const dart: SpellLike = { label: 'Fléchette', ecole: 'Sort des Arcanes', cn: 3 };
 
 describe('rederiveCastSL — +1 DR sur une incantation figée', () => {
   it('+1 DR fait franchir le seuil NI (DR < NI → cast)', () => {

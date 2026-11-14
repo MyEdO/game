@@ -8,7 +8,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { gainCorruption } from './corruptionFlow';
 import { draineCascade } from './cascade.testkit';
 import { corruptionThresholdExceeded } from '../engine/corruption';
-import { PREGEN, idDuPretire } from '../data/pregens';
+import { idDuHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { createHero } from '../engine/character';
 import { bonus } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';
@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage d'Âme pure (LDB 10 l.52). */
 function hero(): Combatant {
-  return createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: idDuPretire(PREGEN.soldat), seed: PREGEN.soldat, talentsRolled: false });
+  return createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: idDuHerosDeScenario('soldat'), seed: 101, talentsRolled: false });
 }
 
 beforeEach(() => {
@@ -63,7 +63,7 @@ describe('« Je te renie ! » (LDB 17 l.67)', () => {
     expect(banc.getState().pendingRenounce).toBeTruthy();
     expect(lu().mutations ?? []).toEqual([]);
     const before = lu().corruption!;
-    banc.getState().fenetreChoisir('renounce', 'renier', true);
+    banc.getState().fenetreChoisir('renier', 'renier', true);
     expect(banc.getState().pendingRenounce).toBeNull();
     expect(lu().resilience).toBe(0); // 1 Point de Résilience dépensé
     expect(lu().mutations ?? []).toEqual([]); // pas de mutation
@@ -74,7 +74,7 @@ describe('« Je te renie ! » (LDB 17 l.67)', () => {
     h.resilience = 1;
     corruptPastThreshold(h);
     expect(banc.getState().pendingRenounce).toBeTruthy();
-    banc.getState().fenetreChoisir('renounce', 'renier', false);
+    banc.getState().fenetreChoisir('renier', 'renier', false);
     draineCascade(banc.getState); // les dés de la mutation sont des étapes : elle tombe en les jouant
     expect((lu().mutations ?? []).length).toBe(1);
   });

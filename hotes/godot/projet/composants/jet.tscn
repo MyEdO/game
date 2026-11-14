@@ -27,34 +27,43 @@ script = ExtResource("1_liaison")
 champ = "libelle"
 
 [node name="Chiffres" type="HBoxContainer" parent="."]
-theme_override_constants/separation = 14
+theme_type_variation = &"Rangee"
 
 [node name="Cible" type="Label" parent="Chiffres"]
-theme_override_font_sizes/font_size = 30
+theme_type_variation = &"Chiffre"
 
 [node name="cible" type="Node" parent="Chiffres/Cible"]
 script = ExtResource("1_liaison")
 champ = "cible"
 cacher_si_nul = true
 
-[node name="Resultat" type="Label" parent="Chiffres"]
-theme_override_font_sizes/font_size = 30
+[node name="Resultat" type="PanelContainer" parent="Chiffres"]
+size_flags_vertical = 4
 
 [node name="resultat" type="Node" parent="Chiffres/Resultat"]
 script = ExtResource("1_liaison")
 champ = "resultat"
-cacher_si_nul = true
+propriete = &"visible"
 
 [node name="ton" type="Node" parent="Chiffres/Resultat"]
 script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"
 
+[node name="De" type="Label" parent="Chiffres/Resultat"]
+theme_type_variation = &"Chiffre"
+horizontal_alignment = 1
+
+[node name="resultat" type="Node" parent="Chiffres/Resultat/De"]
+script = ExtResource("1_liaison")
+champ = "resultat"
+
 [node name="Issue" type="VBoxContainer" parent="Chiffres"]
 size_flags_horizontal = 3
 alignment = 1
 
 [node name="Verdict" type="Label" parent="Chiffres/Issue"]
+custom_minimum_size = Vector2(72, 0)
 autowrap_mode = 3
 
 [node name="verdict" type="Node" parent="Chiffres/Issue/Verdict"]

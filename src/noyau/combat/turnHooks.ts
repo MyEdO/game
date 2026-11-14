@@ -12,6 +12,7 @@
  * Ces hooks ne tournent que pour l'ENNEMI actif (`runEnemyAI` est enemy-only) ; les fonctions ont en
  * plus leurs propres gardes `kind`/capacité internes (no-op pour un héros), comportement conservé.
  */
+import { nomDe } from '../../engine/nom';
 import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';
 import { battleRng } from '../battleRng';
 import { ev } from '../combatLog';
@@ -68,12 +69,12 @@ function fireTurnEdgeTriggers(get: Get, set: SetFn, c: Combatant | undefined, tr
 }
 
 // ============================================================================================
-// GATE D'ACTION PAR ROUND (op `actGate` — Racine de mandragore, LDB 71 l.35 : « Les utilisateurs
+// GATE D'ACTION PAR ROUND (op `testDAgir` — Racine de mandragore, LDB 71 l.35 : « Les utilisateurs
 // doivent réussir un Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement
 // (un au choix) »). Résolu au DÉBUT du tour du porteur, cadence-aware :
 //  - porteur SURFACÉ (`surfaceOf` : un siège humain QUELCONQUE le tient, cadence manuelle) → étape de
-//    cascade `actGate` INFLUENÇABLE ; sur un échec, l'applier INSÈRE une étape
-//    de CHOIX `actGateChoice` (garder l'Action ou le Mouvement) dont l'issue est appliquée directement
+//    cascade `testDAgir` INFLUENÇABLE ; sur un échec, l'applier INSÈRE une étape
+//    de CHOIX `choixDAgir` (garder l'Action ou le Mouvement) dont l'issue est appliquée directement
 //    sur la battle COURANTE (le tour vient de commencer) ;
 //  - IA / cadence auto → jet inline ; échec = l'Action est GARDÉE (défaut rationnel), le Mouvement est
 //    perdu — FOLDÉ par l'appelant (advanceTurn/lancerLeRound) dans le budget du tour.
@@ -86,10 +87,10 @@ export interface ActGateOutcome { loseMovement: boolean; lines: string[] }
 export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutcome {
   const out: ActGateOutcome = { loseMovement: false, lines: [] };
   if (isOutOfAction(c) || !get().battle) return out;
-  const gates = (c.activeEffects ?? []).filter((e) => e.actGate);
-  const chars = [...new Set(gates.map((e) => e.actGate!.characteristic))];
+  const gates = (c.activeEffects ?? []).filter((e) => e.testDAgir);
+  const chars = [...new Set(gates.map((e) => e.testDAgir!.characteristic))];
   for (const char of chars) {
-    const gate = garanti(gates.find((e) => e.actGate!.characteristic === char), char, 'gate d’action');
+    const gate = garanti(gates.find((e) => e.testDAgir!.characteristic === char), char, 'gate d’action');
     const label = gate.label;
     if (surfaceOf(get, c.id)) {
       // ENJEU (#1117) : le gabarit dit la mécanique du gate ; le RENVOI descend à l'ENTITÉ qui l'exige
@@ -98,18 +99,18 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
       // TOTALE `CATEGORY_BY_SOURCE_KIND` : aucun `if` par nature de source ici.
       const src = gate?.source;
       pushMono(set, {
-        id: `actGate-${c.id}-${char}`, kind: 'actGate', icon: 'item/consumable', rollLabel: CHAR_LABELS[char],
+        id: `testDAgir-${c.id}-${char}`, kind: 'testDAgir', icon: 'objet/consommable', rollLabel: CHAR_LABELS[char],
         actor: c,
         ligne: { test: { characteristic: char }, combat: { kind: 'test' } },
         difficulty: 'intermediaire',
-        label: t('turn.actGate', { label }),
-        stake: combatStakeRef('act-gate', src ? { entryId: src.id, entryCategory: CATEGORY_BY_SOURCE_KIND[src.kind] } : {}),
+        label: t('turn.testDAgir', { label }),
+        stake: combatStakeRef('agir-malgre-effet', src ? { entryId: src.id, entryCategory: CATEGORY_BY_SOURCE_KIND[src.kind] } : {}),
       });
       continue;
     }
     const res = rollSansPilote(get, c, rawCombatTestBase(c, { characteristic: char }), 'intermediaire', battleRng(), combatTestPenalty(c));
-    out.lines.push(traceLineOf({ who: c.label, label: testTraceLabel(`${CHAR_LABELS[char]} (${label})`, 'intermediaire'), ...res }));
-    if (!res.success) { out.loseMovement = true; out.lines.push(t('turn.actGateKeepAction', { name: c.label })); }
+    out.lines.push(traceLineOf({ who: nomDe(c), label: testTraceLabel(`${CHAR_LABELS[char]} (${label})`, 'intermediaire'), ...res }));
+    if (!res.success) { out.loseMovement = true; out.lines.push(t('turn.testDAgirGardeLAction', { name: c.label })); }
   }
   return out;
 }
@@ -133,7 +134,7 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   if (aiJetteraitUnSort(get, enemy.id)) return;
   if (resolveFrenzyEntry(testValue(enemy, { characteristic: 'force-mentale' }), battleRng()).success) {
     (enemy.psychState ??= []).push({ type: 'frenesie' });
-    set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenzy', t('turn.frenzyEnter', { name: enemy.label }), enemy.id)] } });
+    set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenesie', t('turn.frenzyEnter', { name: enemy.label }), enemy.id)] } });
   }
 }
 
@@ -144,41 +145,41 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
 // ============================================================================================
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['actGate', 'actGateChoice'] as const;
+export const GENRES_D_ETAPE = ['testDAgir', 'choixDAgir'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   appliers: {
-    // Étape `actGate` (héros manuel) : succès → rien à restreindre ; échec → étape de CHOIX insérée.
-    actGate: (_get, _set, step, hero) => {
+    // Étape `testDAgir` (héros manuel) : succès → rien à restreindre ; échec → étape de CHOIX insérée.
+    testDAgir: (_get, _set, step, hero) => {
       if (!hero || !step.result) return;
-      if (step.result.success) return { consequences: freeCons([t('turn.actGateOk', { name: hero.label })]) };
+      if (step.result.success) return { consequences: freeCons([t('turn.testDAgirReussi', { name: hero.label })]) };
       const choix = choiceStep({
-        id: `actGateChoice-${hero.id}`, kind: 'actGateChoice', actorId: hero.id, icon: 'item/consumable',
-        label: t('turn.actGateChoice'),
+        id: `choixDAgir-${hero.id}`, kind: 'choixDAgir', actorId: hero.id, icon: 'objet/consommable',
+        label: t('turn.choixDAgir'),
         options: [
-          { key: 'action', label: t('turn.actGateOptAction') },
-          { key: 'move', label: t('turn.actGateOptMove') },
+          { key: 'action', label: t('turn.testDAgirOptionAction') },
+          { key: 'mouvement', label: t('turn.testDAgirOptionMouvement') },
         ],
         defaultChoice: 'action',
       });
       return {
         // LDB 71
-        consequences: freeCons([t('turn.actGateFail', { name: hero.label })]),
+        consequences: freeCons([t('turn.testDAgirRate', { name: hero.label })]),
         ...(choix ? { insert: [choix] } : {}),
       };
     },
-    // Étape `actGateChoice` : applique l'issue sur la battle COURANTE (le tour du héros vient de démarrer).
-    actGateChoice: (get, set, step, hero) => {
+    // Étape `choixDAgir` : applique l'issue sur la battle COURANTE (le tour du héros vient de démarrer).
+    choixDAgir: (get, set, step, hero) => {
       if (!hero) return;
       const battle = get().battle;
       if (!battle || battle.order[battle.turn] !== hero.id) return; // plus son tour → sans objet
-      if (step.chosen === 'move') {
+      if (step.chosen === 'mouvement') {
         set({ battle: { ...battle, acted: true } });
-        return { consequences: freeCons([t('op.loseAction', { name: hero.label })]) };
+        return { consequences: freeCons([t('op.actionPerdue', { name: hero.label })]) };
       }
       set({ battle: { ...battle, movementUsed: mountMovement(battle, hero) } });
-      return { consequences: freeCons([t('op.loseMovement', { name: hero.label })]) };
+      return { consequences: freeCons([t('op.mouvementPerdu', { name: hero.label })]) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   crochetsDeCombat: [
@@ -194,7 +195,7 @@ export const TABLES = {
         if (adv >= 3) {
           campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
           (enemy.psychState ??= []).push({ type: 'frenesie' });
-          battle.log.push(ev('frenzy', t('turn.rageEnter', { name: enemy.label }), enemy.id));
+          battle.log.push(ev('frenesie', t('turn.rageEnter', { name: enemy.label }), enemy.id));
           set({ battle: { ...battle } });
           return;
         }
@@ -203,7 +204,7 @@ export const TABLES = {
         if (!battle.combatants.some((f) => !isOutOfAction(f) && vise(HAINE_DE_RAGE, sourceCombattant(f), 'appartenance', enemy))) return;
         campSpend(get, enemy, adv); // LDB 85 l.282 ; AA 11 l.30-38
         (enemy.psychState ??= []).push({ type: 'haine', cible: HAINE_DE_RAGE, active: true, lastTestRound: battle.round });
-        battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));
+        battle.log.push(ev('peur', t('turn.rageHate', { name: enemy.label, groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));
         set({ battle: { ...battle } });
       },
     },

@@ -23,11 +23,11 @@ describe('Approche sous Peur (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 15, y: 10 };
     H.psychState = [{ type: 'peur', sourceId: E.id, indice: 2, calmeDR: 0 }];
@@ -46,7 +46,7 @@ describe('Approche sous Peur (store)', () => {
     let st = banc.getState();
     expect(st.pendingApproach).toMatchObject({ combatantId: H.id, sourceId: E.id, intent: { kind: 'tile', pt: { x: 11, y: 10 } } });
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
-    banc.getState().jetAnnuler('approach'); // renoncer avant le jet : aucune trace
+    banc.getState().jetAnnuler('approche'); // renoncer avant le jet : aucune trace
     // S'éloigner (9,10) : aucun Test.
     banc.getState().cliquerLaCase({ x: 9, y: 10 }, undefined, { confirm: true });
     st = banc.getState();
@@ -58,7 +58,7 @@ describe('Approche sous Peur (store)', () => {
     const { H } = setup();
     banc.getState().cliquerLaCase({ x: 11, y: 10 }, undefined, { confirm: true });
     banc.setState({ pendingApproach: { ...banc.getState().pendingApproach!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
-    banc.getState().jetValider('approach');
+    banc.getState().jetValider('approche');
     const st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 11, y: 10 }); // relancé
     expect(st.battle!.fearGate).toBe('passed');
@@ -73,7 +73,7 @@ describe('Approche sous Peur (store)', () => {
     const { H } = setup();
     banc.getState().cliquerLaCase({ x: 11, y: 10 }, undefined, { confirm: true });
     banc.setState({ pendingApproach: { ...banc.getState().pendingApproach!, result: { success: false, roll: 96, target: 50, sl: -4 } } });
-    banc.getState().jetValider('approach');
+    banc.getState().jetValider('approche');
     let st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
     expect(st.battle!.fearGate).toBe('failed');
@@ -91,15 +91,15 @@ describe('Approche sous Peur (store)', () => {
     const { H, E } = setup();
     E.pos = { x: 13, y: 10 }; // distance 3 ≤ 2M+1 (M4) → charge possible
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : le clic ne s'approche plus tout seul.
-    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, intentionId: 'charge' });
     let st = banc.getState();
-    // Le verdict d'armement est CAPTURÉ dans le pending : la relance après le Test `se-rapprocher` ne relit
+    // L'intention du clic est CAPTURÉE dans le pending : la relance après le Test `se-rapprocher` ne relit
     // pas l'intention (dissoute par ce clic), sans quoi le geste gagné serait refusé.
-    expect(st.pendingApproach).toMatchObject({ combatantId: H.id, sourceId: E.id, intent: { kind: 'entity', id: E.id, approche: true } });
+    expect(st.pendingApproach).toMatchObject({ combatantId: H.id, sourceId: E.id, intent: { kind: 'entity', id: E.id, intentionId: 'charge' } });
     expect(st.pendingAttack).toBeNull(); // la charge attend le Test
     banc.setState({ pendingApproach: { ...st.pendingApproach!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
     banc.abandonner();
-    banc.getState().jetValider('approach');
+    banc.getState().jetValider('approche');
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) relancé → ouvre la frappe
     st = banc.getState();
     expect(st.pendingAttack?.fromCharge).toBe(true); // charge relancée après le succès

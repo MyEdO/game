@@ -18,7 +18,7 @@ import { porteurDeProjet } from './porteurDeProjet';
  *
  * UN seul écran, DEUX volets : le volet 1 raconte et montre l'étape suivante en APERÇU inerte, le
  * volet 2 la rend interactive (`useSessionEnd`, MÊME formulaire que la modale du menu système, la fin de séance que
- * le récap a ouverte, terminée par sa validation `fenetreValider('chapterRecap')`) ;
+ * le récap a ouverte, terminée par sa validation `fenetreValider('finDeChapitre')`) ;
  * le pied de l'écran porte le geste du volet courant.
  * Fermer l'écran (Échap) ne fait qu'AJOURNER : le récap se re-pose au prochain lot d'effets tant que
  * la clôture n'a pas été CONSOMMÉE par « Terminer la séance » (`clotureConsommee`, `noyau/chapitreRecap.ts`).
@@ -32,11 +32,11 @@ export function ChapterRecapScreen() {
   const recap = useGame((s) => s.pendingChapterRecap);
   const campaignDoc = useGame((s) => s.campaignDoc);
   const fermer = useGame((s) => s.fenetreFermer);
-  const ajourner = () => fermer('chapterRecap');
-  const invite = useGame((s) => s.net.mode === 'guest');
+  const ajourner = () => fermer('finDeChapitre');
+  const invite = useGame((s) => s.net.mode === 'invite');
   const [volet, setVolet] = useState<1 | 2>(1);
   const [masque, setMasque] = useState(false);
-  const seance = useSessionEnd({ fenetre: 'chapterRecap', apercu: volet === 1 });
+  const seance = useSessionEnd({ fenetre: 'finDeChapitre', apercu: volet === 1 });
   if (!recap || masque) return null;
 
   return (

@@ -5,7 +5,20 @@
  */
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { chargerLaSave, creerPartie, etatInitialDuJeu, exporterLaSauvegarde, lireSave, metaDeSave, refusDeSauvegarde, snapshotSave, type EtatDeJeu, type SaveGame } from '../index';
+import {
+  chargerLaSave,
+  creerPartie,
+  estUnPointDeReprise,
+  etatInitialDuJeu,
+  exporterLaSauvegarde,
+  lireSave,
+  metaDeSave,
+  pointDeRepriseAGarder,
+  refusDeSauvegarde,
+  snapshotSave,
+  type EtatDeJeu,
+  type SaveGame,
+} from '../index';
 import { initialNet, type BattleState } from '../etat';
 import { emptyScene } from '../monde/scene';
 import { OPTIONAL_RULES, rule, loadRuleOverrides } from '../../engine/policy';
@@ -18,7 +31,7 @@ import { scenario as conditionsEtendues } from '../../scenes/test-scenarios/98-c
 const etatDUnHote = (): EtatDeJeu & Record<string, unknown> => ({ ...etatInitialDuJeu(), camRot: 2, zoom: 1.8, reveler: true, sheetId: 'h', keyOverrides: { a: 'KeyA' } });
 
 /** Un héros minimal, porteur d'États. */
-const heros = (id: string, ...etats: string[]) => ({ id, label: id, kind: 'hero', conditions: etats.map((e) => ({ id: e, value: 1 })) });
+const heros = (id: string, ...etats: string[]) => ({ id, label: id, kind: 'heros', conditions: etats.map((e) => ({ id: e, value: 1 })) });
 
 const ENTREES = { graine: 3, cadence: 'manuel' as const, desFixes: true, persisterLeHeros: () => {} };
 
@@ -77,7 +90,7 @@ describe('lireSave — la porte des scènes (`parseSceneDeProjet`)', () => {
 describe('chargerLaSave — l’état de jeu à ouvrir, ses règles, ses retraits', () => {
   it('ouvre une partie sur l’état chargé, écran campagne, session réseau neuve, règles maison posées', () => {
     const r = OPTIONAL_RULES.find((x) => x.kind === 'flag')!;
-    const avant = { ...etatInitialDuJeu(), flags: { 'quete-x': true }, gameTime: 12345, net: { ...initialNet(), mode: 'host' as const, roomCode: 'ABCDEF' } };
+    const avant = { ...etatInitialDuJeu(), flags: { 'quete-x': true }, gameTime: 12345, net: { ...initialNet(), mode: 'hote' as const, roomCode: 'ABCDEF' } };
     const save = JSON.parse(JSON.stringify(snapshotSave(avant, 'x', { [r.id]: !r.default }))) as SaveGame;
     const { etat, regles, retraits } = chargerLaSave(save);
     expect(retraits).toBeNull();
@@ -129,7 +142,7 @@ describe('chargerLaSave — l’état de jeu à ouvrir, ses règles, ses retrait
   it('une assise d’un héros absent du groupe est élaguée ; une scène sans assise n’en gagne pas le champ', () => {
     const sans = emptyScene('scene-sans-assise', 4, 4);
     expect('seatAssignments' in chargerLaSave(snapshotSave({ ...etatInitialDuJeu(), scene: sans }, 'x')).etat.scene!).toBe(false);
-    const avec = { ...emptyScene('scene-assise', 4, 4), seatAssignments: { 'table-absente': { 'place-1': { kind: 'party' as const, rang: 0 } } } };
+    const avec = { ...emptyScene('scene-assise', 4, 4), seatAssignments: { 'table-absente': { 'place-1': { kind: 'groupe' as const, rang: 0 } } } };
     expect(chargerLaSave(snapshotSave({ ...etatInitialDuJeu(), scene: avec }, 'x')).etat.scene!.seatAssignments).toEqual({});
   });
 
@@ -142,10 +155,29 @@ describe('chargerLaSave — l’état de jeu à ouvrir, ses règles, ses retrait
 
 describe('refusDeSauvegarde — l’hôte hors combat seul écrit la save', () => {
   it('en combat : `combat` ; d’un autre siège que l’hôte : `invite` ; sinon rien', () => {
-    const enCombat = { battle: {} as BattleState };
+    const enCombat = { battle: {} as BattleState, serieSubie: null };
     expect(refusDeSauvegarde(enCombat, 0)).toBe('combat');
     expect(refusDeSauvegarde(enCombat, 2)).toBe('combat');
-    expect(refusDeSauvegarde({ battle: null }, 2)).toBe('invite');
-    expect(refusDeSauvegarde({ battle: null }, 0)).toBeNull();
+    expect(refusDeSauvegarde({ battle: null, serieSubie: null }, 2)).toBe('invite');
+    expect(refusDeSauvegarde({ battle: null, serieSubie: null }, 0)).toBeNull();
+  });
+});
+
+describe('le point de reprise — l’arrivée dans une autre scène d’une campagne', () => {
+  it('l’arrivée du groupe dans une autre scène le pose ; l’entrée dans la première scène, un autre événement ou un appel programmé, non', () => {
+    expect(estUnPointDeReprise({ type: 'emis', evt: 'arrivee_en_scene', payload: { sceneId: 'bourg', neuve: false } })).toBe(true);
+    expect(estUnPointDeReprise({ type: 'emis', evt: 'arrivee_en_scene', payload: { sceneId: 'bourg', neuve: true } })).toBe(false);
+    expect(estUnPointDeReprise({ type: 'emis', evt: 'scene_dirty', payload: undefined })).toBe(false);
+    expect(estUnPointDeReprise({ type: 'etatGagne', porteur: 'h', etat: 'a-terre' })).toBe(false);
+  });
+
+  it('il se garde pour une campagne lancée, hors combat et au siège de l’hôte ; jamais pour un scénario de test', () => {
+    const campagne = { scenes: [], narratif: { chapitres: [] } as unknown as NonNullable<EtatDeJeu['campaignNarratif']>, startSceneId: 's', projet: { id: 'campagne' } };
+    const calme = { battle: null, serieSubie: null };
+    expect(pointDeRepriseAGarder({ ...calme, campaignDoc: campagne }, 0)).toBe(true);
+    expect(pointDeRepriseAGarder({ ...calme, campaignDoc: campagne }, 1), 'un invité').toBe(false);
+    expect(pointDeRepriseAGarder({ battle: {} as BattleState, serieSubie: null, campaignDoc: campagne }, 0), 'en combat').toBe(false);
+    expect(pointDeRepriseAGarder({ ...calme, campaignDoc: { ...campagne, projet: null } }, 0), 'un scénario de test').toBe(false);
+    expect(pointDeRepriseAGarder({ ...calme, campaignDoc: null }, 0), 'aucun paquet').toBe(false);
   });
 });

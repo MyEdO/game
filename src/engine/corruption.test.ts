@@ -9,6 +9,7 @@ import {
   corruptionGain, corruptionThresholdExceeded, mutationKindFor, mutationLimitExceeded,
   attachMutation, detachMutation, mutationArmourBonus,
 } from './corruption';
+import { natureDeMutationDe } from '../data';
 import { mutationById, rollMutation } from '../data/mutations';
 import { passiveSkillSum, passiveTestMod } from './trauma';
 import { effectiveChar } from './characteristics';
@@ -21,7 +22,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', label: 'Cobaye', kind: 'hero',
+    id: 'h', label: 'Cobaye', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 42, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -56,46 +57,50 @@ describe('seuil & limites (l.80/95)', () => {
     expect(corruptionThresholdExceeded(hero({ corruption: 8 }))).toBe(true);
   });
   it('limites : physiques > BE ou mentales > BFM → damné', () => {
-    const phys = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `m${i}`, label: `m${i}`, desc: '', kind: 'physique' as const, roll: 1 }));
+    const phys = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `m${i}`, type: 'mutations' as const, label: `m${i}`, desc: '', kind: 'physique' as const, roll: 1 }));
     expect(mutationLimitExceeded(hero({ mutations: phys(4) }))).toBe(false); // BE 4
     expect(mutationLimitExceeded(hero({ mutations: phys(5) }))).toBe(true);
-    const ment = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `m${i}`, label: `m${i}`, desc: '', kind: 'mentale' as const, roll: 1 }));
+    const ment = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `m${i}`, type: 'mutations' as const, label: `m${i}`, desc: '', kind: 'mentale' as const, roll: 1 }));
     expect(mutationLimitExceeded(hero({ mutations: ment(3) }))).toBe(false); // BFM 3
     expect(mutationLimitExceeded(hero({ mutations: ment(4) }))).toBe(true);
   });
 });
 
-describe('mutationKindFor — d100 corps/esprit par espèce (data-driven, ids STABLES, l.87-91)', () => {
-  it('Humain (id) : corps 01-50, esprit 51-100 (LDB 19)', () => {
+describe('mutationKindFor — le tableau corps ou esprit de la race de l’espèce (`mutation-nature.json`, ids STABLES)', () => {
+  it('Humain : corps 01-50, esprit 51-100 (LDB 19 l.78-81)', () => {
     expect(mutationKindFor('humains-reiklander', 50)).toBe('physique');
-    expect(mutationKindFor('humains-reiklander', 51)).toBe('mentale');
+    expect(mutationKindFor('humains-middenheim', 51)).toBe('mentale');
   });
-  it('Nain 01-05, Halfling 01-10, Elfe jamais physique (LDB 19)', () => {
+  it('Nain 01-05, Halfling 01-10, Elfe jamais physique (LDB 19 l.78-81)', () => {
     expect(mutationKindFor('nains', 5)).toBe('physique');
-    expect(mutationKindFor('nains', 6)).toBe('mentale');
+    expect(mutationKindFor('nains-norse', 6)).toBe('mentale');
     expect(mutationKindFor('halflings', 10)).toBe('physique');
-    expect(mutationKindFor('halflings', 11)).toBe('mentale');
+    expect(mutationKindFor('halflings-havrebas', 11)).toBe('mentale');
     expect(mutationKindFor('hauts-elfes', 1)).toBe('mentale');
     expect(mutationKindFor('elfes-sylvains', 100)).toBe('mentale');
   });
-  it('Ogre 01-10 (ADE II « Ogres et Mutations ») — corrige le défaut Humain erroné', () => {
+  it('Ogre : corps 01-10, esprit 11-00 (ADE II 02 l.172-177)', () => {
     expect(mutationKindFor('ogres', 10)).toBe('physique');
     expect(mutationKindFor('ogres', 11)).toBe('mentale');
   });
-  it('Gnome = Humain 01-50 (NADJ « Gnomes et Corruption »)', () => {
+  it('Gnome : comme les humains (NADJ 15 l.173)', () => {
     expect(mutationKindFor('gnomes', 50)).toBe('physique');
     expect(mutationKindFor('gnomes', 51)).toBe('mentale');
   });
-  it('espèce inconnue/absente → défaut Humain (50)', () => {
-    expect(mutationKindFor(undefined, 30)).toBe('physique');
-    expect(mutationKindFor('inexistant', 51)).toBe('mentale');
+  it('PNJ dont l’espèce est une clé de race d’apparence : le document de cette race', () => {
+    expect(natureDeMutationDe('nain').id).toBe('mutation-nature-nain');
+    expect(mutationKindFor('nain', 6)).toBe('mentale');
+  });
+  it('espèce absente ou sans race couverte : le document de la race `humain`', () => {
+    expect(natureDeMutationDe(undefined).id).toBe('mutation-nature-humain');
+    expect(natureDeMutationDe('guerrier-du-chaos').id).toBe('mutation-nature-humain');
   });
 });
 
 describe('effets de mutation lus à la volée', () => {
   it('charMods permanents → effectiveChar (base, cumulable avec un buff magique)', () => {
     const c = hero();
-    attachMutation(c, { id: 'corpulent', label: 'Corpulent', desc: '', kind: 'physique', roll: 8, passive: [{ op: 'charMod', characteristic: 'force', mod: 5 }, { op: 'charMod', characteristic: 'endurance', mod: 5 }, { op: 'moveMod', mod: -1 }] }, desDuTest);
+    attachMutation(c, { type: 'mutations', id: 'corpulent', label: 'Corpulent', desc: '', kind: 'physique', roll: 8, passive: [{ op: 'charMod', characteristic: 'force', mod: 5 }, { op: 'charMod', characteristic: 'endurance', mod: 5 }, { op: 'moveMod', mod: -1 }] }, desDuTest);
     expect(effectiveChar(c, 'force')).toBe(35);
     c.activeEffects = [{ label: 'Puissance', characteristic: 'force', bonus: 10, duration: { scale: 'rounds', left: 3 } }];
     expect(effectiveChar(c, 'force')).toBe(45); // base mutée 35 + buff 10 (pas d'écrasement)
@@ -103,28 +108,28 @@ describe('effets de mutation lus à la volée', () => {
   });
   it('movement → effectiveMovement', () => {
     const c = hero();
-    attachMutation(c, { id: 'court-sur-pattes', label: 'Court sur pattes', desc: '', kind: 'physique', roll: 73, passive: [{ op: 'moveMod', mod: -1 }] }, desDuTest);
+    attachMutation(c, { type: 'mutations', id: 'court-sur-pattes', label: 'Court sur pattes', desc: '', kind: 'physique', roll: 73, passive: [{ op: 'moveMod', mod: -1 }] }, desDuTest);
     expect(effectiveMovement(c)).toBe(3);
   });
   it('PA naturels apAll + apLocations', () => {
     const c = hero();
-    attachMutation(c, { id: 'ecailles-epineuses', label: 'Écailles épineuses', desc: '', kind: 'physique', roll: 78, passive: [{ op: 'ap', amount: 1 }] }, desDuTest);
-    attachMutation(c, { id: 'cornes-asymetriques', label: 'Cornes asymétriques', desc: '', kind: 'physique', roll: 83, passive: [{ op: 'ap', loc: 'tete', amount: 1 }] }, desDuTest);
+    attachMutation(c, { type: 'mutations', id: 'ecailles-epineuses', label: 'Écailles épineuses', desc: '', kind: 'physique', roll: 78, passive: [{ op: 'ap', amount: 1 }] }, desDuTest);
+    attachMutation(c, { type: 'mutations', id: 'cornes-asymetriques', label: 'Cornes asymétriques', desc: '', kind: 'physique', roll: 83, passive: [{ op: 'ap', loc: 'tete', amount: 1 }] }, desDuTest);
     expect(mutationArmourBonus(c, 'tete')).toBe(2);
     expect(mutationArmourBonus(c, 'corps')).toBe(1);
   });
   it('mods de Tests : compétence nommée + Tests d\'une caractéristique (testValue)', () => {
     const c = hero({ skills: [{ id: 'pistage', advances: 5 } as never, { id: 'charme', advances: 0 } as never] });
-    attachMutation(c, { id: 'groin-poilu', label: 'Groin poilu', desc: '', kind: 'physique', roll: 93, passive: [{ op: 'skillMod', skill: { id: 'pistage' }, mod: 10 }] }, desDuTest);
-    attachMutation(c, { id: 'visage-inverse', label: 'Visage inversé', desc: '', kind: 'physique', roll: 53, passive: [{ op: 'testMod', amount: -20, characteristic: 'sociabilite' }] }, desDuTest);
+    attachMutation(c, { type: 'mutations', id: 'groin-poilu', label: 'Groin poilu', desc: '', kind: 'physique', roll: 93, passive: [{ op: 'skillMod', skill: { id: 'pistage' }, mod: 10 }] }, desDuTest);
+    attachMutation(c, { type: 'mutations', id: 'visage-inverse', label: 'Visage inversé', desc: '', kind: 'physique', roll: 53, passive: [{ op: 'testMod', amount: -20, characteristic: 'sociabilite' }] }, desDuTest);
     expect(passiveSkillSum(c, 'pistage')).toBe(10); // compétence nommée → collecteur passif (Σ, intrinsèque)
     expect(passiveTestMod(c, 'sociabilite')).toBe(-20); // Tests char-qualifiés (Visage inversé) → collecteur passif
     expect(testValue(c, { skill: { id: 'charme' } })).toBe(30 - 20); // Soc 30, Tests de Sociabilité −20 (bout en bout)
   });
   it('attachMutation pousse les Traits dérivés (créature + psychologie)', () => {
     const c = hero();
-    attachMutation(c, { id: 'tentacule-epais', label: 'Tentacule épais', desc: '', kind: 'physique', roll: 38, passive: [{ op: 'grantTrait', trait: { id: 'tentacules' } }] }, desDuTest);
-    attachMutation(c, { id: 'colere-impie', label: 'Colère impie', desc: '', kind: 'mentale', roll: 93, passive: [opPsy.octroi('frenesie')] }, desDuTest);
+    attachMutation(c, { type: 'mutations', id: 'tentacule-epais', label: 'Tentacule épais', desc: '', kind: 'physique', roll: 38, passive: [{ op: 'grantTrait', trait: { id: 'tentacules' } }] }, desDuTest);
+    attachMutation(c, { type: 'mutations', id: 'colere-impie', label: 'Colère impie', desc: '', kind: 'mentale', roll: 93, passive: [opPsy.octroi('frenesie')] }, desDuTest);
     // L'instance accordée porte SA provenance (`TraitInstance.src`) : c'est ce registre que le
     // `removeTrait` d'une mutation interroge pour ne retirer que le sien.
     expect(c.traits).toContainEqual({ id: 'tentacules', src: { kind: 'mutation', id: 'tentacule-epais' } });
@@ -249,7 +254,7 @@ describe('plancher d’un charMod, figé à l’attache (EDO 11 l.190 ; #1853)',
 
   it('la référence est la base PERMANENTE : un charMod permanent compte, un sort temporaire non', () => {
     const c = hero();
-    attachMutation(c, { id: 'esprit-vif', label: 'Esprit vif', desc: '', kind: 'mentale', roll: 1, passive: [{ op: 'charMod', characteristic: 'intelligence', mod: 5 }] }, desDuTest);
+    attachMutation(c, { type: 'mutations', id: 'esprit-vif', label: 'Esprit vif', desc: '', kind: 'mentale', roll: 1, passive: [{ op: 'charMod', characteristic: 'intelligence', mod: 5 }] }, desDuTest);
     c.activeEffects = [{ label: 'Sagesse', characteristic: 'intelligence', bonus: 20, duration: { scale: 'rounds', left: 3 } }];
     attachMutation(c, cretin(), desDuTest);
     expect(effectiveChar(c, 'intelligence')).toBe(10 + 20);

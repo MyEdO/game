@@ -24,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * COMMANDANT D'ÉQUIPE (Talent, AA 13 l.29-35) — un Personnage doté du Talent peut, par un Test de
  * Commandement Intermédiaire (+0), aider une équipe servant une Arme d'équipe « à portée de voix » :
  * l'équipe tire ensuite au score de Projectiles DU COMMANDANT. « Portée de voix » n'a aucune valeur RAW
- * → règle éditable `combat-voice-range-m` (défaut 50 m ≈ 25 cases à 2 m/case), géométrie d'aura (Chebyshev).
+ * → règle éditable `combat-portee-voix-m` (défaut 50 m ≈ 25 cases à 2 m/case), géométrie d'aura (Chebyshev).
  */
 
 const CHARS = (over: Partial<Record<string, number>> = {}) =>
@@ -33,7 +33,7 @@ const CHARS = (over: Partial<Record<string, number>> = {}) =>
 /** Commandant (héros) — porte le Talent + une Compétence de Commandement (Soc). */
 const mkCommander = (id: string, pos: { x: number; y: number }, over: Partial<Record<string, number>> = {}, withTalent = true): Combatant =>
   combattantDeTest({
-    id, label: id, kind: 'hero', characteristics: CHARS(over),
+    id, label: id, kind: 'heros', characteristics: CHARS(over),
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 30 }],
     talents: withTalent ? [{ talentId: 'commandant-d-equipe', times: 1 }] : [],
@@ -43,19 +43,19 @@ const mkCommander = (id: string, pos: { x: number; y: number }, over: Partial<Re
 /** Chef de pièce (héros) servant une Arme d'équipe (baliste : `arme-d-equipe`). */
 const mkChief = (id: string, pos: { x: number; y: number }, over: Partial<Record<string, number>> = {}): Combatant =>
   combattantDeTest({
-    id, label: id, kind: 'hero', characteristics: CHARS(over),
+    id, label: id, kind: 'heros', characteristics: CHARS(over),
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos,
   });
 
 const mkEnemy = (id: string, x: number, y: number): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
+  combattantDeTest({ id, label: id, kind: 'ennemi', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
     characteristics: CHARS({ 'capacite-de-tir': 0 }), wounds: blessuresDeBase(60), advantage: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
 
 /** Emplacement portant la baliste, servie par le chef `crewIds[0]`. */
 const mkEmplacement = (poste: ShipPoste, pos = { x: 7, y: 7 }): Combatant =>
-  combattantDeTest({ id: 'emplacement', label: 'Affût', kind: 'hero', pos, conditions: [], weapons: [], skills: [], talents: [],
+  combattantDeTest({ id: 'emplacement', label: 'Affût', kind: 'heros', pos, conditions: [], weapons: [], skills: [], talents: [],
     wounds: blessuresDeBase(30), advantage: 0, postes: [poste] });
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
@@ -190,8 +190,8 @@ describe('(D) Substitution — l’équipe tire au score de Projectiles du comma
   });
 });
 
-// ── (E) CÂBLAGE de la règle éditable « Portée de voix » (combat-voice-range-m) ────────────────────
-describe('(E) combat-voice-range-m — la règle éditable pilote la portée', () => {
+// ── (E) CÂBLAGE de la règle éditable « Portée de voix » (combat-portee-voix-m) ────────────────────
+describe('(E) combat-portee-voix-m — la règle éditable pilote la portée', () => {
 
   const setup = (commanderPos: { x: number; y: number }) => {
     const poste = mkPoste('baliste', ['chief', 's1']);
@@ -206,7 +206,7 @@ describe('(E) combat-voice-range-m — la règle éditable pilote la portée', (
     const { commander, all } = setup({ x: 37, y: 6 }); // 30 cases → 60 m
     expect(voiceCommandRangeM()).toBe(50);
     expect(teamCommandTargets(commander, all)).toHaveLength(0);
-    setRule('combat-voice-range-m', 100);
+    setRule('combat-portee-voix-m', 100);
     expect(voiceCommandRangeM()).toBe(100);
     expect(teamCommandTargets(commander, all).map((c) => c.id)).toContain('chief');
   });
@@ -214,7 +214,7 @@ describe('(E) combat-voice-range-m — la règle éditable pilote la portée', (
   it('réduire la règle à 4 m retire un chef qui était offert à 10 m', () => {
     const { commander, all } = setup({ x: 12, y: 6 }); // 5 cases → 10 m
     expect(teamCommandTargets(commander, all).map((c) => c.id)).toContain('chief');
-    setRule('combat-voice-range-m', 4);
+    setRule('combat-portee-voix-m', 4);
     expect(teamCommandTargets(commander, all)).toHaveLength(0);
   });
 });

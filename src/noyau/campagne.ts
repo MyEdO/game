@@ -22,9 +22,9 @@ export function creerActionsDeCampagne(get: Get, set: Set) {
     /** NOUVEAUTÉ VUE, MARQUÉE PAR SON SIÈGE : le siège vient de `decidingSeat` (le siège agissant quand
      *  l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un argument — un siège ne
      *  marque vu que pour lui-même. */
-    marquerLesIndices: (affichés) => {
+    marquerLesIndices: (affiches) => {
       const s = get();
-      const clues = marquerVus(s.clues, affichés, decidingSeat(s));
+      const clues = marquerVus(s.clues, affiches, decidingSeat(s));
       if (clues !== s.clues) set({ clues });
     },
     ouvrirLaDesignation: (p) => {

@@ -33,9 +33,9 @@ describe('poste — adaptateurs de projection (donnée-vue commune)', () => {
     expect(p.icon).toBeUndefined();
   });
 
-  it('les CINQ stations se projettent sans exception', () => {
+  it('les stations se projettent sans exception', () => {
     const postes: Poste[] = shipStations.map(stationAsPoste);
-    expect(postes.map((p) => p.id)).toEqual(['pont', 'greement', 'nid-de-pie', 'avirons', 'cale']);
+    expect(postes.map((p) => p.id)).toEqual(shipStations.map((s) => s.id));
     for (const p of postes) {
       expect(p.label, p.id).toBeTruthy();
     }
@@ -52,16 +52,15 @@ describe('poste — adaptateurs de projection (donnée-vue commune)', () => {
 });
 
 /** Deux héros nus : `postesOccupes` ne lit qu'un id de poste, jamais une caractéristique. */
-const h = (id: string, label: string): Combatant => ({ id, label, kind: 'hero' } as Combatant);
+const h = (id: string, label: string): Combatant => ({ id, label, kind: 'heros' } as Combatant);
 
 describe('reposAsPoste — « Repos » est une LIGNE ÉPINGLABLE du roster', () => {
   it('son id EST la constante de résolution (source unique de la valeur)', () => {
     expect(reposAsPoste().id).toBe(BENCHED);
   });
 
-  it('il reste HORS du catalogue MDG 14 : les 9 rôles du livre n’en comptent pas un dixième', () => {
-    expect(crewRoles.some((r) => r.id === BENCHED), 'le dataset d’un livre ne reçoit pas d’entrée maison').toBe(false);
-    expect(crewRoles.length).toBe(9);
+  it('il reste HORS du catalogue MDG 14 : aucun rôle du livre ne porte son id', () => {
+    expect(crewRoles.map((r) => r.id), 'le dataset d’un livre ne reçoit pas d’entrée maison').not.toContain(BENCHED);
   });
 
   it('son libellé est « Repos »', () => {

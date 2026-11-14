@@ -17,10 +17,20 @@ import { OP_DEFS } from './mecanique';
 import { descendre } from './descente';
 import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { LIBELLES_DES_ICONES } from '../../icons';
+import { traitCapabilitiesSchema } from '../defs/traits';
+import { itemCapabilitiesSchema } from '../defs/trappings';
+import { GATES_D_ACTION, MODES_DE_CIBLAGE, PORTEES_D_INTENTION, RUNS_D_ACTION, SELECTEURS_D_ACTION } from '../defs/actions';
 
 /** Les ids AUTHORÉS des deux racines, tels que `npm run gen` les relève — la référence qui dit d'un
  *  vocabulaire qu'il ÉNUMÈRE des entités plutôt qu'un univers de mots. */
 const IDS_CONNUS: ReadonlySet<string> = new Set(Object.values(IDS_PAR_ESPACE).flat());
+
+/** Les vocabulaires d'ids des REGISTRES DE CODE que `actions.json` nomme (`defs/actions.ts`, #4056), par leurs options :
+ *  chaque id désigne l'entrée d'un registre du noyau, qui porte son sens. */
+const VOCABULAIRES_DE_REGISTRES: ReadonlySet<string> = new Set(
+  [GATES_D_ACTION, SELECTEURS_D_ACTION, RUNS_D_ACTION, PORTEES_D_INTENTION, MODES_DE_CIBLAGE].map((ids) => ids.join('|')),
+);
 
 /**
  * Un vocabulaire d'IDS ne se nomme JAMAIS : ses options sont les ids d'un dataset, dont le nom FR est
@@ -73,13 +83,18 @@ const NOMMES = [
   // `sexeSchema` (#1897) : le sexe d'une apparence, porté par `entityAppearanceSchema` et `pregens`.
   'M|F',
   'N|NE|E|SE|S|SO|O|NO',
+  // `idDIconeSchema` : les ids du registre d'icônes (`ICON_DEFS`), libellés par leur propre `label`.
+  Object.keys(LIBELLES_DES_ICONES).join('|'),
   // `domainCircumstanceSchema` (#1715) : les circonstances (météo, saison, relief, lieu, bâti) qu'un
   // modificateur de Vent attend, et que l'appelant signale — vocabulaire FERMÉ des rubriques
   // `VDM 04`–`VDM 11`, partagé par `windModifiers[].when` et `…cancelledBy.circumstance`.
   'feu-proche|volcan-actif|ville-en-flammes|charnier|lieu-de-massacre|lieu-sans-mort|eau-abondante|milieu-sec|mois-sommerzeit|mois-vorgeheim|mois-ulriczeit|mois-vorhexen|tour|colline-elevee|sommet-de-montagne|en-vol|voyage-vers-equateur|metaux-abondants|temps-orageux|temps-brumeux|temps-ensoleille|brise-legere|ville|cite|pleine-nature|region-reculee|middenheim|assistance-chantee',
   'feu|flammeche|lueur',
+  // `windModifiers[].tests` (#3614) : les Tests qu'un modificateur de Vent porte (VDM 04-11).
+  'incantation|focalisation|seconde-vue',
   'clair|pluie|brouillard|neige|tempete',
   'colombage|pierre|cloture',
+  'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
   'heroStart|personnage|prop',
@@ -112,13 +127,18 @@ const NOMMES = [
   'capacite-de-combat|capacite-de-tir|force|endurance|initiative|agilite|dexterite|intelligence|force-mentale|sociabilite',
   'circonstance|jet',
   'esquive|parade|init|resist|auto',
-  'feeding|praying|cowering|standing|howling',
-  'fixed|variable|all',
+  'repas|priere|tapi|debout|hurlement',
+  'fixe|variable|tout',
+  // `apFromSchema`, `ressourceDeDestinSchema`, `arrondiSchema` (#3606 M2a) : les vocabulaires des ops `wounds`,
+  // `gainResource` et `lifeSteal`.
+  'corps|least',
+  'fortune|fate',
+  'floor|ceil',
   'gable|stone-entry|chimney|sign|window-band|belfry',
   'flag|param|mode',
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
-  'melee|ranged|zone|allFoes|allAround|self',
+  'melee|distance|zone|adversairesAutour|toutAutour|soi',
   'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume|vegetal',
   'physique|mentale',
   // `availabilitySchema`, `dispoPctAvailabilitySchema`, `harvestRaritySchema`, `harvestDangerSchema` (#3691) :
@@ -127,6 +147,10 @@ const NOMMES = [
   'limitee|rare',
   'commune|limitee|rare|exotique|unique',
   'inoffensive|inquietante|menacante|mortelle',
+  // `settlementSchema` (LDB 59 l.25-34) et `marketModeSchema` (#3606) : la taille d'agglomération d'un
+  // marché et le mode de marché d'un marchand de scène.
+  'village|ville|cite',
+  'complet|sans-disponibilite|sans-marchandage|simplifie',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
   'prop|roof|relief|objet|couleur',
@@ -139,52 +163,60 @@ const NOMMES = [
   'tresFacile|facile|accessible|intermediaire|complexe|difficile|tresDifficile|presqueImpossible|impossible',
   'intermediaire|complexe|difficile|tresDifficile',
   'lame1m|escrime|lourde2m|hampe|lance_cav|fleau|parade|poings|arc|arbalete|arme_feu|fronde|jet|entraves|explosif|cornes',
+  // `depuisSchema` (`dispersion.ts`) : l'origine du décalage d'une rangée de Dispersion, LDB 14 l.142-151.
+  'lanceur|cible',
+  // `issueDeReactionSchema` (`reaction-au-statut.ts`) : l'issue d'une rangée de Réaction au Statut, LDB 08 l.43-45.
+  'braver-le-statut|reactions-classiques|opinions-extremes',
   // `teneurSchema` (#1825 lot E) : ce que contiennent les chapitres d'un livre non couverts par une
   // fiche de l'Atlas — absente = livre de règles (`defs/books.ts`).
   'scenario|mixte',
   'selfWound|weaponDamageActLast|actionPenalty|loseMovement|loseAction|trauma|hitAlly|misfire',
   'weapon|ammo|armour|inventory',
   'arme|morsure|caudale|cornes|souffle|vomi|tentacules|etreinte|regard|langue|hurlement|pietinement',
-  'ally|enemy',
+  'allie|ennemi',
   'bravoure|ami|staggering|belligerent|blackout',
   'fixed|perDR|perHit|perKill',
   'generalDown|intervention|noIntervention|combatWon|combatLost',
+  'gold|silver|brass',
   'groupe|individu',
   'harness|jolt|wheel|crash',
   'incantation|focalisation|dissipation',
   'ingestion|immersion',
   'ligne-de-force|pierre-gardienne|vortex|nexus|appui-arcanique|tempete|corruption|site',
-  'melee|ranged|ammunition|armor|trapping',
+  'melee|distance',
+  'melee|distance|ammunition|armor|trapping',
   'metal|nonMagic',
   'might|startMight|allyTestMod|firstRoundBonus|planningBonus',
   'plus2|plus1|normal|minus1|half',
   'premier|courant|extreme',
+  // `saisonSchema` : la saison d'une cargaison (MDG 15 l.406 ; MSRC 13 l.73).
+  'printemps|ete|automne|hiver',
   'psych|perilDesEaux|bandages|amateurDArt|amateurDeTheatre',
   'quadrupede|quadrupede-aile|oiseau|sans-jambes|theropode|arthropode-a-pinces|sans-membres|amorphe|arachnide|poisson|unique|cephalopode|squig',
   // `amateurSchema` : la contrepartie d'un Test de Sociabilité qu'une fiche déclare (ACE 12 l.60-62).
   'amateurDArt|amateurDeTheatre',
   'source-d-eau|blessures-et-etats',
-  'success|failure|fumble',
   // `issueDuTestSchema` : l'issue du Test de Commerce d'opportunité (MDG 15 l.274-286).
-  'success|failure',
+  'reussite|echec',
+  'reussite|echec|maladresse',
   'test|combat|threat|hold|rally',
   'any|all',
   'group|talent|trait|psych|immunity',
   'moderee|grave',
-  'night|voyage|flow|combat',
+  'nuit|voyage|flux|combat',
   'noise|magic',
-  'self|ally|opponent|party|neutral|hostile',
+  'soi|allie|adversaire|groupe|neutre|hostile',
   'target|caster',
   'weaponGroupsMelee|weaponGroupsRanged|winds|arcaneDomains|cultBlessings|cultMiracles|cultChaos|seaShanties|ciblesPsy|groupesDAppartenance|diseases|sizes|mutations|breathTypes|damageTypes|weaponsMelee|weaponsRanged|exposureLevels|difficulties',
   'woundsCurrent|woundsMax|size|advantage',
   'onHit|onCrit|onWoundLoss|onSlain|onRoundStart|onStartled|onKill|onCharged|onGainCondition|onCombatStart|onCombatEnd|onRoundEnd|onTurnStart|onTurnEnd|onDayStart|onWake|onAttackResolved|onCastResolved|onMiscast|onOwnTestFailed',
-  'self|victim|engaged|grappled',
+  'soi|victime|engages|empoigne',
   // `surchargeDeGabaritSchema` (#2972) : les facteurs de carrure qu'une race surcharge (`raceAppearance › gabaritOverride`).
   'sl|st|legs|arms|head',
   // Payloads d'`OP_DEFS` : `armourBypassCategorieSchema`, `loseTurnWhatSchema`, `zoneShapeSchema`
   // (`grammaire/mecanique.ts`) ;
   // `porteeDAssautSchema` (`grammaire/mecanique.ts`), source du type moteur `PorteeDAssaut`.
-  'melee|ranged|all',
+  'melee|distance|all',
   'action|movement',
   'all|metal|nonMagic|nonMetal',
   // `matiereDArmureSchema` (#1463) : la matière d'une armure, Groupe d'une pièce (`weaponGroups.material`) et Trait Armure posé.
@@ -195,6 +227,8 @@ const NOMMES = [
   'all|random',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
   'porteuse|voisine|les-deux',
+  // `posteSideSchema` (#3606 M1f) : le bord d'un poste, à la fiche de navire comme au poste monté d’une scène (`authoredShipPosteSchema.side`).
+  'proue|tribord|poupe|babord',
   // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
   'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
   // `defs/garde-robe.ts` (#3114, #3113, #3111) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.
@@ -202,11 +236,25 @@ const NOMMES = [
   'vetement|armure|accessoire',
   'trapping|tenue',
   // `mainSchema` (`grammaire/valeurs.ts`) : la main d'un objet tenu (`prises`) ou d'une arme (`weaponHand`).
-  'main|off',
+  'main|secondaire',
+  // `acteDeDeverrouillageSchema` (#3606 M2a2) : l'acte de soin qui lève le verrou d'un État (LDB 18).
+  'medicalAid|surgery|magic',
+  // `refDEtatSchema` (`grammaire/mecanique.ts`, #3606 M2a2) : les marqueurs narratifs, réserve de la référence d'État.
+  'petrifie',
   // `relatifSchema` (`defs/groups.ts`, #3045) : le Groupe relatif, lu par rapport au porteur du Trait psy.
   'engagesAvecPorteur|etrangersAuPorteur|autresRacesQueLePorteur',
   // `marcheDuPort` (`grammaire/mecanique.ts`, #1652 lot 9) : les colonnes de l'Index qu'une escale bascule.
   'penurie|saturation',
+  // `navireMod.jusqua` (#3606 M2e) : l'échéance de bord d'un modificateur de navire.
+  'carenage|evenementDeBord',
+  // `cibleDeFeuilleSchema` (#3606 M2e) : la cible d'une feuille `ops` nommée par une chaîne.
+  'groupe|heros|navire|membreAuHasard|target|caster',
+  // `capaciteDeTraitSchema` (#4056) : une capacité de Trait, nommée par le libellé de son champ (`traits.suppressesCapabilities`).
+  Object.keys(traitCapabilitiesSchema.shape).join('|'),
+  // `capaciteDObjetSchema` (#4056) : une capacité d'objet, nommée par le libellé de son champ (`skills.tool.capability`).
+  Object.keys(itemCapabilitiesSchema.shape).join('|'),
+  // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
+  'personne|bete|vehicule|immeuble|titre|intangible',
 ].sort();
 
 /**
@@ -234,6 +282,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'aucun|retard|quart-de-tour|demi-tour',
   'bete|serviteur|vehicule',
   'bete|vehicule-terrestre',
+  'blessures|hemorragie|traumatisme|chirurgie',
   'bout-portant|courte|moyenne|longue|extreme',
   'brasPrincipal|random',
   'calme-plat|legere-brise|brise-fraiche|vent-modere|vent-violent|violente-tempete',
@@ -242,7 +291,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'chaleur|froid',
   'classe|relais|compagnie|peage|patrouille',
   'complet|partiel',
-  'complet|sans-disponibilite|sans-marchandage|simplifie',
   'current|ever',
   'dangereuse|tresDangereuse|extreme',
   'days|hours|minutes',
@@ -250,31 +298,29 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'dechirure|fracture|amputation',
   'declare|tirage',
   'deduite-du-set|geste-d-etat|grille|gouttiere-arche|selecteur-de-sets|coin-de-tour|bandeau-de-phase|interlude|pastille-etat|pastille-entite|frise|geste-secondaire',
-  'defense|attack|both',
+  'defense|attaque|lesDeux',
   'degage|brume|brouillard|puree-de-pois',
   'dominant|nord|sud|ouest|est',
   'douleur|mobilite|structurel|sensoriel|maladie|faim|magique|etat|ivresse|intrinseque',
   'dr|dr-ecrete|toute-la-reserve|points-de-la-ligne|points-de-la-ligne-suivante|chiffres-du-de|gain-au-choix|aucun-gain|termine-le-passage',
   'edge|tile|instance',
   'encounter|threatened',
-  'enemies|allies|all',
-  'enemy|ally',
+  'ennemis|allies|tous',
   'equipage|avirons|greement|coque|equipements|cargaison|gouvernail|superstructure',
-  'exact|ok|drift-minor|drift|drift-major',
-  'extended|terreur|binary',
+  'exact|correct|derive-mineure|derive|derive-majeure',
+  'etendu|terreur|simple',
   'fleeing|pursuing',
   'froid|chaleur',
-  'heldGround|intoCrowd',
+  'tirImmobile|dansLeTas',
   'heure|minute|round',
   'imparfaite|moyenne|totale',
-  'incantation|focalisation|seconde-vue',
   'income|craftExtended|learnTalent|identify|entrainement|mecenat|ritualFocus|masterWeapon|identifyByResearch|memorizeDiscount|combatTraining|punchausen|knowledgeResearch|reputation|wrathOfTheGods|dissensionScout|dissensionEmeute|contremaitre|forage|seaChart|opportunityTrade|crewTraining',
   'indice|rumeur',
   'inferieur|superieur',
   'interieur|exterieur',
   'interior|exterior',
   'jamais|toujours|si-ecart',
-  'jet|forceSuccess',
+  'jet|forcerLaReussite',
   'ladder|surface',
   'ldb|aa',
   'le-plus-lent|aucun',
@@ -286,15 +332,14 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'min|max|sum|first',
   'movement|all',
   'm|km',
-  'navTest|obstacle|detect',
+  'navigation|obstacle|perception',
   'navire|navire-fluvial',
-  'night|voyage|weather|flow|activity|combat',
+  'nuit|voyage|meteo|flux|activite|combat',
   'none|half|crawl',
   'normale|pietre',
-  'opposed|extended',
-  'party|enemies',
-  'party|hero',
-  'party|hero|navire|membreAuHasard|caster|target',
+  'oppose|etendu',
+  'groupe|ennemis',
+  'groupe|heros',
   'pas|trot|galop',
   'pluie|averse|neige',
   'radius|diameter',
@@ -309,7 +354,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'ship-criticals|river-criticals',
   'sort|rituel',
   'source|group|any',
-  'spell|prayer|talent|trait|trapping|quality|disease|symptom|mutation|condition|psychology|maneuver|creature|activity|rule|tavernGame|miscastMinor|miscastMajor|miscastWrath',
+  'sort|priere|talent|trait|objet|qualite|maladie|symptome|mutation|etat|psychologie|manoeuvre|creature|activite|regle|jeuDeTaverne|imparfaiteMineure|imparfaiteMajeure|imparfaiteMineureVdm|imparfaiteMajeureVdm|colereDesDieux',
   'success|stupefying',
   'suppressExposure|gatherInfo|noSurprise|mapMade|reverseToken|countsAsRest|campCare|extraActivity|skipStage|fullRecovery|worsenWeather',
   'team|thrower|pot|volley',
@@ -320,9 +365,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'valide|renonce',
   'veillee|parchemin',
   'verbatim|descripteur',
-  'victim|self',
-  'village|ville|cite',
-  'wounds|bleed|trauma|surgery',
+  'victime|soi',
   'x+|x-|y+|y-',
   'x|y',
 ];
@@ -330,7 +373,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
 describe('libellés de VALEURS — stock nominatif décroissant des VOCABULAIRES', () => {
   it('le stock des vocabulaires SANS libellés est celui déclaré, et il DÉCROÎT', () => {
     const stock = [...vocabulairesDuRegistre()]
-      .filter(([cle, c]) => c.nommes === 0 && !estVocabulaireDIds(cle.split('|')))
+      .filter(([cle, c]) => c.nommes === 0 && !estVocabulaireDIds(cle.split('|')) && !VOCABULAIRES_DE_REGISTRES.has(cle))
       .map(([cle]) => cle)
       .sort();
     expect(stock).toEqual(VOCABULAIRES_SANS_LIBELLES.slice().sort());

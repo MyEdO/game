@@ -5,8 +5,8 @@ import { CharFrame } from './CharFrame';
 import { OptionChooser } from './OptionChooser';
 import { Prose } from './Prose';
 import { seaActivitiesCatalog } from '../noyau/seaActivities';
-import { reglageDuChoixDeFenetre, refusDuChoix } from '../noyau/choixDeFenetre';
-import { refusDeLaValidation } from '../noyau/validationDeFenetre';
+import { reglageDuChoixDeFenetre, refusDuChoixNomme } from '../noyau/choixDeFenetre';
+import { refusDeLaValidationNommee } from '../noyau/validationDeFenetre';
 import type { IdDActiviteEnMer } from '../noyau/designations';
 import { findRegleById } from '../data';
 import { encLibreNominale } from '../noyau/portFlow';
@@ -17,8 +17,8 @@ import { Icon } from './Icon';
 import { Grid } from './Layout';
 import { GatedAction, raisonSi } from './GatedAction';
 
-/** MDG 15 l.266-306 — chaque choix est un choix de la fenêtre (`fenetreChoisir('seaActivities', axe, valeur, héros)`),
- *  lu dans le noyau avec ses refus (`refusDuChoix`) ; l'hôte valide la semaine (`fenetreValider('seaActivities')`). */
+/** MDG 15 l.266-306 — chaque choix est un choix de la fenêtre (`fenetreChoisir('activitesEnMer', axe, valeur, héros)`),
+ *  lu dans le noyau avec ses refus (`refusDuChoixNomme`) ; l'hôte valide la semaine (`fenetreValider('activitesEnMer')`). */
 export function SeaActivitiesModal() {
   const pending = useGame((s) => s.pendingSeaActivities);
   const party = useGame((s) => s.party);
@@ -26,7 +26,7 @@ export function SeaActivitiesModal() {
   const choisir = useGame((s) => s.fenetreChoisir);
   const valider = useGame((s) => s.fenetreValider);
   const vessel = useGame((s) => s.vessel);
-  // Le siège et la possession des héros ouvrent ou ferment chaque rangée (`refusDuChoix`).
+  // Le siège et la possession des héros ouvrent ou ferment chaque rangée (`refusDuChoixNomme`).
   useGame((s) => s.net);
   const catalog = useMemo(() => seaActivitiesCatalog(), []);
   // Le texte d'ouverture est une fiche de Règle ADRESSÉE (`regles.json`), pas une constante de code.
@@ -34,14 +34,14 @@ export function SeaActivitiesModal() {
   if (!pending) return null;
   const s = useGame.getState();
   const heroes = party.filter((h) => !h.dead && !h.outOfRencontre);
-  const refusDeValider = refusDeLaValidation(s, 'seaActivities');
+  const refusDeValider = refusDeLaValidationNommee(s, 'activitesEnMer');
   const freeEnc = encLibreNominale(vessel);
 
   return (
-    <Modal title={<><Icon id="travel/anchor" size="sm" /> Activités en mer — semaine écoulée</>} taille="large"
+    <Modal title={<><Icon id="voyage/ancre" size="sm" /> Activités en mer — semaine écoulée</>} taille="large"
       footer={
         <>
-          <GatedAction id="sea-act-confirm" label="Valider la semaine" enabled={refusDeValider == null} {...raisonSi(refusDeValider)} onClick={() => valider('seaActivities')} />
+          <GatedAction id="sea-act-confirm" label="Valider la semaine" enabled={refusDeValider == null} {...raisonSi(refusDeValider)} onClick={() => valider('activitesEnMer')} />
         </>
       }
     >
@@ -52,11 +52,11 @@ export function SeaActivitiesModal() {
       )}
       <Grid min="md" stackBelow={700}>
         {heroes.map((h) => {
-          const activite = reglageDuChoixDeFenetre(s, 'seaActivities', 'activite', h.id);
+          const activite = reglageDuChoixDeFenetre(s, 'activitesEnMer', 'activite', h.id);
           const chosen = typeof activite.courant === 'string' ? activite.courant : '';
           const chosenDef = chosen ? catalog.find((d) => d.id === chosen) : undefined;
-          const mise = reglageDuChoixDeFenetre(s, 'seaActivities', 'investir', h.id);
-          const planque = reglageDuChoixDeFenetre(s, 'seaActivities', 'cacher', h.id);
+          const mise = reglageDuChoixDeFenetre(s, 'activitesEnMer', 'investir', h.id);
+          const planque = reglageDuChoixDeFenetre(s, 'activitesEnMer', 'cacher', h.id);
           return (
             <section key={h.id} className="panel sea-act-hero">
               <h4><CharFrame c={h} variant="identity" size="xs" /></h4>
@@ -64,14 +64,14 @@ export function SeaActivitiesModal() {
                 layout="grid"
                 options={(activite.valeurs ?? []).map((v) => {
                   const valeur = v.valeur as IdDActiviteEnMer | null;
-                  // Fermée pour tous, pour CE héros seul (LDB 09 l.30 ; #2588), ou à un autre siège : `refusDuChoix`.
-                  const refus = refusDuChoix(s, 'seaActivities', 'activite', valeur, h.id);
+                  // Fermée pour tous, pour CE héros seul (LDB 09 l.30 ; #2588), ou à un autre siège : `refusDuChoixNomme`.
+                  const refus = refusDuChoixNomme(s, 'activitesEnMer', 'activite', valeur, h.id);
                   return {
                     key: valeur ?? 'repos',
                     label: v.libelle,
                     selected: activite.courant === valeur,
                     ...(refus ? { refus } : valeur ? { title: v.libelle } : {}),
-                    onSelect: () => choisir('seaActivities', 'activite', valeur, h.id),
+                    onSelect: () => choisir('activitesEnMer', 'activite', valeur, h.id),
                   };
                 })}
               />
@@ -87,8 +87,8 @@ export function SeaActivitiesModal() {
                         min={0}
                         max={mise.bornes.max}
                         value={Number(mise.courant)}
-                        disabled={refusDuChoix(s, 'seaActivities', 'investir', mise.courant, h.id) != null}
-                        onChange={(investGold) => choisir('seaActivities', 'investir', investGold, h.id)}
+                        disabled={refusDuChoixNomme(s, 'activitesEnMer', 'investir', mise.courant, h.id) != null}
+                        onChange={(investGold) => choisir('activitesEnMer', 'investir', investGold, h.id)}
                       />
                     </label>
                   )}
@@ -101,8 +101,8 @@ export function SeaActivitiesModal() {
                         min={0}
                         max={planque.bornes.max}
                         value={Number(planque.courant)}
-                        disabled={refusDuChoix(s, 'seaActivities', 'cacher', planque.courant, h.id) != null}
-                        onChange={(stashGold) => choisir('seaActivities', 'cacher', stashGold, h.id)}
+                        disabled={refusDuChoixNomme(s, 'activitesEnMer', 'cacher', planque.courant, h.id) != null}
+                        onChange={(stashGold) => choisir('activitesEnMer', 'cacher', stashGold, h.id)}
                       />
                     </label>
                   )}

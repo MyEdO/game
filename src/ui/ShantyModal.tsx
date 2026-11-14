@@ -22,15 +22,15 @@ import type { ReglagesDuJet } from '../noyau/reglagesDuJet';
 export function ShantyModal() {
   const p = useGame((s) => s.pendingShanty);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'shanty');
-  const reroll = useGesteDeJet('jetRelancer', 'shanty');
-  const bonus = useGesteDeJet('jetAjouterUnDR', 'shanty');
-  const darkPact = useGesteDeJet('jetPactiser', 'shanty');
-  const force = useGesteDeJet('jetForcerLaReussite', 'shanty');
-  const confirm = useGesteDeJet('jetValider', 'shanty');
-  const cancel = useGesteDeJet('jetAnnuler', 'shanty');
+  const roll = useGesteDeJet('jetLancer', 'chansonDeMarin');
+  const reroll = useGesteDeJet('jetRelancer', 'chansonDeMarin');
+  const bonus = useGesteDeJet('jetAjouterUnDR', 'chansonDeMarin');
+  const darkPact = useGesteDeJet('jetPactiser', 'chansonDeMarin');
+  const force = useGesteDeJet('jetForcerLaReussite', 'chansonDeMarin');
+  const confirm = useGesteDeJet('jetValider', 'chansonDeMarin');
+  const cancel = useGesteDeJet('jetAnnuler', 'chansonDeMarin');
   const regler = useGame((s) => s.jetRegler);
-  const setSong = (v: ReglagesDuJet['shanty']['chanson']) => regler('shanty', 'chanson', v);
+  const setSong = (v: ReglagesDuJet['chansonDeMarin']['chanson']) => regler('chansonDeMarin', 'chanson', v);
   if (!p || !battle) return null;
   const singer = battle.combatants.find((c) => c.id === p.singerId);
   if (!singer) return null;
@@ -55,15 +55,15 @@ export function ShantyModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
-      flowKey="shanty"
-      stake={flowStakeRef('shanty-roll', p.shantyId ? { entryId: p.shantyId } : undefined)}
-      title={<><Icon id="audio/music" size="sm" /> Chanson de marin</>}
+      flowKey="chansonDeMarin"
+      stake={flowStakeRef('chanson-de-marin-test', p.shantyId ? { entryId: p.shantyId } : undefined)}
+      title={<><Icon id="son/musique" size="sm" /> Chanson de marin</>}
       /* Z1 : acteur + le BÉNÉFICIAIRE, qui n'a de portrait nulle part (l'équipage entier). La
          Compétence est le label de la ligne (`Divertissement (Chant)`) — jamais redite ici. */
       subtitle={<><strong>{singer.label}</strong> — pour tout l’équipage</>}
@@ -94,8 +94,8 @@ export function ShantyModal() {
       outcome={r && chosen
         ? resultLines(freeCons(r.success
             ? [
-                { text: t('crew.shantyPorte', { shanty: chosen.label, min: dureeDeChanson(r.sl), desc: chosen.desc }), icon: 'audio/music', tone: 'ok' as const },
-                ...(chosen.note ? [{ text: `— ${chosen.note}`, tone: 'info' as const }] : []),
+                { text: t('crew.shantyPorte', { shanty: chosen.label, min: dureeDeChanson(r.sl), desc: chosen.desc }), icon: 'son/musique', tone: 'reussite' as const },
+                ...(chosen.note ? [{ text: `— ${chosen.note}`, tone: 'neutre' as const }] : []),
               ]
             : [t('crew.shantyAPlat')]))
         : undefined}

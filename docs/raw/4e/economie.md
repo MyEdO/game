@@ -130,7 +130,7 @@ La compétence **Évaluation** sert à :
 
 **Compétences qui peuvent révéler un Défaut caché** (LDB 60 l.42) : Évaluation, Corps à corps (armes), Métier (outils) — n'importe laquelle fonctionne.
 
-**Nouvelle tentative** : le RAW ne borne pas les nouvelles tentatives d'Évaluation. LDB 12 l.94 accorde un nouvel essai à un résultat marginal (DR 0), sans rien interdire au-delà. Le délai après un échec à DR négatif est une règle optionnelle maison (`market-evaluation-delai-jours`, défaut 1 jour).
+**Nouvelle tentative** : le RAW ne borne pas les nouvelles tentatives d'Évaluation. LDB 12 l.94 accorde un nouvel essai à un résultat marginal (DR 0), sans rien interdire au-delà. Le délai après un échec à DR négatif est une règle optionnelle maison (`marche-evaluation-delai-jours`, défaut 1 jour).
 
 **Talent Détection d'artefact** (LDB 10 l.336) : Test d'Intuition au toucher — une seule tentative par artefact. Révèle l'aura magique et ses règles (par DR).
 
@@ -390,7 +390,7 @@ Couverture confirmée des refs `LDB XX l.YY` dans le code :
 | `LDB 60 l.5` | `src/engine/bargain.ts` + `src/noyau/merchantFlow.ts` | Vente base = ½ prix listé ; ¼ sans Marchandage gagné, ½ si gagné, +10 % au Succès Stupéfiant, +10 % avec Négociateur (`resaleRate`, `bargainSellFactor`) |
 | `LDB 60 l.3-62` | `src/engine/qualities/craftEconomy.ts` | Facteur prix (`craftPriceFactor` : ×2/Atout, ÷2/Défaut) ; décalage Disponibilité (`shiftAvailability`) ; delta Enc (`craftEncDelta` : Léger −1, Volumineux +1) ; classe de qualité (`qualityClass`) |
 | `LDB 10 l.336` | `src/noyau/merchantFlow.ts` | Talent Détection d'artefact : Test Intuition, 1 tentative/artefact, révèle aura par DR |
-| `LDB 12 l.94` | `src/noyau/merchantFlow.ts` | Échec d'Évaluation à DR 0 : nouvel essai permis ; à DR négatif, délai maison `market-evaluation-delai-jours` |
+| `LDB 12 l.94` | `src/noyau/merchantFlow.ts` | Échec d'Évaluation à DR 0 : nouvel essai permis ; à DR négatif, délai maison `marche-evaluation-delai-jours` |
 
 **Fichiers engine** : `src/engine/disponibilite.ts`, `src/engine/bargain.ts`, `src/engine/appraisal.ts`, `src/engine/qualities/craftEconomy.ts`
 

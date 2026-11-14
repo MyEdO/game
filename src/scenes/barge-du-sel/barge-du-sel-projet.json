@@ -192,11 +192,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "openWorldMap"
            }
           }
@@ -220,11 +220,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setVessel",
          "vehicleId": "loup-imperial",
          "label": "La Louve grise",
@@ -240,16 +240,16 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setObjective",
          "id": "barge-du-sel-mission",
          "desc": "Convoyer le sel jusqu'à l'îlot, malgré les pirates qui infestent la route."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La Louve grise appareille, la cale pleine de sel, deux matelots à son bord — son canon servi, poudre et boulets en soute."
         }
@@ -267,18 +267,18 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "sel-cap-donne"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Sur les planches du quai, le maître de quai donne le cap : l'îlot du sel, plein nord."
         }
@@ -694,150 +694,38 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-1",
        "side": "tribord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-1"
-        },
-        {
-         "reach": null,
-         "range": null,
-         "ammoRangeMod": {
-          "mult": 0.25
-         },
-         "trappingId": "mitraille-et-poudre",
-         "label": "Mitraille et poudre",
-         "kind": "ammo",
-         "damage": {
-          "plusBF": false,
-          "flat": -5
-         },
-         "qualities": [
-          {
-           "id": "tir-de-zone",
-           "value": 5
-          }
-         ],
-         "enc": 0,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 4,
-         "uid": "ammo-mitraille-et-poudre-2"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-1"
+       "ammo": {
+        "boulet-et-poudre": 12,
+        "mitraille-et-poudre": 4
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-2",
        "side": "babord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-3"
-        },
-        {
-         "reach": null,
-         "range": null,
-         "ammoRangeMod": {
-          "mult": 0.25
-         },
-         "trappingId": "mitraille-et-poudre",
-         "label": "Mitraille et poudre",
-         "kind": "ammo",
-         "damage": {
-          "plusBF": false,
-          "flat": -5
-         },
-         "qualities": [
-          {
-           "id": "tir-de-zone",
-           "value": 5
-          }
-         ],
-         "enc": 0,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 4,
-         "uid": "ammo-mitraille-et-poudre-4"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-3"
+       "ammo": {
+        "boulet-et-poudre": 12,
+        "mitraille-et-poudre": 4
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "pierrier",
-       "uid": "poste-3",
        "side": "proue",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "balles-et-poudre-pierrier",
-         "label": "Balles et poudre pour 1 tir",
-         "kind": "ammo",
-         "damage": {
-          "plusBF": false,
-          "flat": 1
-         },
-         "qualities": [
-          {
-           "id": "empaleuse"
-          },
-          {
-           "id": "perforante"
-          },
-          {
-           "id": "tir-de-zone",
-           "value": 3
-          }
-         ],
-         "enc": 0,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 16,
-         "uid": "ammo-balles-et-poudre-pierrier-5"
-        }
-       ],
-       "ammoUid": "ammo-balles-et-poudre-pierrier-5"
+       "ammo": {
+        "balles-et-poudre-pierrier": 16
+       },
+       "selectedAmmo": {
+        "id": "balles-et-poudre-pierrier"
+       }
       }
      ]
     },
@@ -940,93 +828,36 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-4",
        "side": "tribord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-6"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-6"
+       "ammo": {
+        "boulet-et-poudre": 12
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-5",
        "side": "babord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-7"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-7"
+       "ammo": {
+        "boulet-et-poudre": 12
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-6",
        "side": "proue",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 8,
-         "uid": "ammo-boulet-et-poudre-8"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-8"
+       "ammo": {
+        "boulet-et-poudre": 8
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       }
      ],
      "upgrades": [
@@ -1158,54 +989,54 @@
      "members": [
       {
        "entityId": "louve-grise",
-       "side": "ally"
+       "side": "allie"
       },
       {
        "entityId": "cogue-pirate",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "pirate-1",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "pirate-2",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "chef-pirate-1",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "cogue-helm",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "cogue-gun",
-       "side": "enemy"
+       "side": "ennemi"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "sel-embuscade-vaincue"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 100
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 10
@@ -1213,16 +1044,16 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setObjective",
          "id": "barge-du-sel-mission",
          "desc": "Rallier l'îlot avec le sel — la cogue pirate écartée."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La cogue pirate amène son pavillon à mi-coque et rompt le combat."
         }
@@ -1379,24 +1210,24 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "clearObjective"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La Louve grise accoste à l'îlot, la cale toujours pleine de sel."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "sel-ilot-accoste"
         }

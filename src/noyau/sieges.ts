@@ -2,6 +2,7 @@
  * Tenue d'un porteur de dé par un siège, lue sur `s.net` (#1426).
  */
 import type { Jeu, NetState } from './etat';
+import type { Intention } from './partie';
 import type { Combatant } from '../engine/types';
 import { PARTY_MAX, inBattleId, porteurParId } from './monde/combatants';
 import { WORLD_STEP_OWNER } from './pendings';
@@ -39,7 +40,7 @@ export interface SiegeDeLaTable {
  *  non (en solo, `seatNames` est vide, `initialNet`). Seuls ces sièges reçoivent un héros, un emplacement ou le rôle MJ. */
 export function siegesDeLaTable(net: Pick<NetState, 'seatNames' | 'mySeat' | 'presence'>): SiegeDeLaTable[] {
   const seats = [...new Set([0, ...Object.keys(net.seatNames).map(Number)])].sort((a, b) => a - b);
-  return seats.map((seat) => ({ seat, nom: nomDuSiege(net, seat), moi: seat === net.mySeat, absent: net.presence[seat] === 'away' }));
+  return seats.map((seat) => ({ seat, nom: nomDuSiege(net, seat), moi: seat === net.mySeat, absent: net.presence[seat] === 'absent' }));
 }
 
 /** Le siège attribué à ce héros (`net.ownership`), l'hôte (siège 0) s'il n'en a aucun. */
@@ -125,7 +126,7 @@ export function refusDAttribuerLEmplacement(net: NetState, party: GroupeAssis['p
 /** Le réseau après l'attribution du héros `heroId` au siège `seat` (lobby) : décidée par l'hôte seul, refusée par
  *  `refusDAttribuerLeHeros`, sinon `net` inchangé. */
 export function attribuerLeHeros(net: NetState, party: GroupeAssis['party'], heroId: string, seat: number): NetState {
-  if (net.mode !== 'host' || refusDAttribuerLeHeros(net, party, heroId, seat)) return net;
+  if (net.mode !== 'hote' || refusDAttribuerLeHeros(net, party, heroId, seat)) return net;
   return { ...net, ownership: { ...net.ownership, [heroId]: seat } };
 }
 
@@ -133,17 +134,63 @@ export function attribuerLeHeros(net: NetState, party: GroupeAssis['party'], her
  *  autre siège. Décidé par l'hôte, ou en solo pour le siège unique, refusé par `refusDuSiegeMJ` ; chez un invité,
  *  `net` inchangé. */
 export function poserLeSiegeMJ(net: NetState, seat: number | null): NetState {
-  if (net.mode === 'guest' || refusDuSiegeMJ(net, seat)) return net;
+  if (net.mode === 'invite' || refusDuSiegeMJ(net, seat)) return net;
   return { ...net, gmSeat: seat ?? undefined };
 }
 
 /** Le réseau après l'attribution de l'EMPLACEMENT `slot` de l'écran d'équipe au siège `seat`, que son
  *  joueur remplira : décidée par l'hôte seul, refusée par `refusDAttribuerLEmplacement`, sinon `net` inchangé. */
 export function attribuerLEmplacement(net: NetState, party: GroupeAssis['party'], slot: number, seat: number): NetState {
-  if (net.mode !== 'host' || refusDAttribuerLEmplacement(net, party, slot, seat)) return net;
+  if (net.mode !== 'hote' || refusDAttribuerLEmplacement(net, party, slot, seat)) return net;
   const slots = [...net.slots];
   slots[slot] = seat;
   return { ...net, slots };
+}
+
+/** Un siège de la table, ou l'IA (`siege: null`, rôle MJ seul), tel qu'une offre le propose : son nom, s'il tient
+ *  déjà la chose offerte, et l'intention qui la lui attribue. */
+export interface ChoixDeSiege {
+  siege: number | null;
+  nom: string;
+  tenu: boolean;
+  intention: Intention;
+}
+
+/** Ce qui s'attribue à un siège : un héros du groupe, un emplacement vide, le rôle MJ ; un choix par siège de la table
+ *  (`siegesDeLaTable`), et l'IA pour le rôle MJ. */
+export interface SiegeOffert {
+  id: `heros/${string}` | `emplacement/${number}` | 'mj';
+  nom: string;
+  choix: ChoixDeSiege[];
+}
+
+/** Chaque attribution de siège que l'hôte d'une session peut jouer (#3009) : chaque héros du groupe, chaque emplacement
+ *  vide (`emplacementsDuGroupe`), puis le rôle MJ ; aucune hors du mode `hote`. */
+export function siegesOfferts(s: Pick<Jeu, 'net' | 'party'>): SiegeOffert[] {
+  if (s.net.mode !== 'hote') return [];
+  const table = siegesDeLaTable(s.net);
+  const parSiege = (tient: (seat: number) => boolean, intention: (seat: number) => Intention): ChoixDeSiege[] =>
+    table.map(({ seat, nom }) => ({ siege: seat, nom, tenu: tient(seat), intention: intention(seat) }));
+  return [
+    ...s.party.map((h): SiegeOffert => ({
+      id: `heros/${h.id}`,
+      nom: h.label,
+      choix: parSiege((seat) => siegeDuHeros(s.net, h.id) === seat, (seat) => ({ type: 'affecterLeHerosAuSiege', args: [h.id, seat] })),
+    })),
+    ...emplacementsDuGroupe(s).flatMap((e): SiegeOffert[] => (e.heroId !== null ? [] : [{
+      id: `emplacement/${e.rang}`,
+      nom: t('party.slot.adventurer', { n: e.rang + 1 }),
+      choix: parSiege((seat) => e.siege === seat, (seat) => ({ type: 'affecterLEmplacementAuSiege', args: [e.rang, seat] })),
+    }])),
+    {
+      id: 'mj',
+      nom: t('ecran.salon.mj'),
+      choix: [
+        { siege: null, nom: t('ecran.salon.ia'), tenu: s.net.gmSeat === undefined, intention: { type: 'affecterLeSiegeMJ', args: [null] } },
+        ...parSiege((seat) => s.net.gmSeat === seat, (seat) => ({ type: 'affecterLeSiegeMJ', args: [seat] })),
+      ],
+    },
+  ];
 }
 
 /**
@@ -169,7 +216,7 @@ export function conduitParLeSiegeDuMonde(s: Pick<Jeu, 'battle' | 'net'>, combata
   if (combatantId === WORLD_STEP_OWNER) return true;
   if (!combatantId) return false;
   const c = inBattleId(s.battle, combatantId);
-  return !!c && c.kind === 'enemy' && s.net.gmSeat != null;
+  return !!c && c.kind === 'ennemi' && s.net.gmSeat != null;
 }
 
 /** Le siège qui possède ce combattant (héros non attribué → hôte, siège 0). */
@@ -195,8 +242,8 @@ export function seatOwns(s: Pick<Jeu, 'battle' | 'net'>, seat: number, combatant
  * SOURCE UNIQUE du surfaçage RÉACTIF : Défense (#989) et Contre-sort (#1028).
  */
 export function jetSurfaced(s: Jeu, c: Combatant): boolean {
-  if (c.kind === 'hero') return !c.aiControlled;
-  if (c.kind === 'enemy') return s.net.gmSeat != null;
+  if (c.kind === 'heros') return !c.aiControlled;
+  if (c.kind === 'ennemi') return s.net.gmSeat != null;
   return false;
 }
 

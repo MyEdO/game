@@ -10,7 +10,7 @@ import { castingValue, incantationArcane } from '../engine/magic';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import type { CounterParticipant } from './pendings';
+import type { CounterDeclaration, CounterParticipant } from './pendings';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -20,9 +20,9 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * RAW : `LDB 46 l.162` (« Plusieurs lanceurs de Sorts tentant de dissiper le même Sort effectuent leur
  * lancer séparément. S'ils incantent en utilisant le même Domaine, ils peuvent décider d'effectuer un
  * Test Soutenu à la place. » — § Dissiper des Sorts permanents, TRANSPOSÉ à la fenêtre réactive :
- * transposition maison, tag au site canonique `jetValider('counterspell')`) ; `LDB 12 l.189` (un seul jet, le
+ * transposition maison, tag au site canonique `jetValider('contreSort')`) ; `LDB 12 l.189` (un seul jet, le
  * plus fort lance, +10 par soutien), `l.195` (≥1 Augmentation), `l.198` (plafond = Bonus de Carac).
- * Contrats couverts ici (réfs nues) : phase 1 verrouille les jets, `pass` ne consomme rien, N solos
+ * Contrats couverts ici (réfs nues) : phase 1 verrouille les jets, `passer` ne consomme rien, N solos
  * déclarés jettent tous, composition figée après la phase, mix libre, drive de cadence — #1042, #1059.
  */
 
@@ -43,10 +43,10 @@ function setup() {
   banc.setState({ party: [mk('W1', 707, 20, 'feu'), mk('W2', 101, 10, 'feu'), mk('W3', 55, 15, 'mort')] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
-  const heroes = b.combatants.filter((c) => c.kind === 'hero');
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const heroes = b.combatants.filter((c) => c.kind === 'heros');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies[0];
   E.characteristics.intelligence = 48;
@@ -91,7 +91,7 @@ function affaiblir(id: string) {
 
 const live = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!;
 const row = (id: string) => banc.getState().pendingCounterspell!.participants.find((p) => p.id === id)!;
-const declare = (id: string, choice: 'solo' | 'soutenu' | 'pass') => banc.getState().jetRegler('counterspell', 'declaration', choice, id);
+const declare = (id: string, choice: CounterDeclaration) => banc.getState().jetRegler('contreSort', 'declaration', choice, id);
 
 describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu (LDB 46 l.162 / LDB 12 l.189)', () => {
   it('PHASE 1 — tant qu’une rangée n’a pas déclaré, AUCUN jet ne part (ni au clic, ni au drive)', () => {
@@ -101,14 +101,14 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     openWindow([h1.id, h2.id]);
     expect(counterspellDeclarePhase(banc.getState().pendingCounterspell)).toBe(true);
     declare(h1.id, 'solo');
-    banc.getState().jetLancer('counterspell', h1.id);
+    banc.getState().jetLancer('contreSort', h1.id);
     expect(row(h1.id).result, 'le jet attend que TOUTE la fenêtre ait déclaré').toBeNull();
     expect(live(h1.id).dispelledThisRound, 'le verrou ne brûle rien').toBeFalsy();
-    banc.getState().jetLancer('counterspell');
+    banc.getState().jetLancer('contreSort');
     expect(banc.getState().pendingCounterspell!.participants.every((p) => !p.result), 'le drive ne force pas la phase').toBe(true);
-    declare(h2.id, 'pass'); // dernière déclaration → phase 2
+    declare(h2.id, 'passer'); // dernière déclaration → phase 2
     expect(counterspellDeclarePhase(banc.getState().pendingCounterspell)).toBe(false);
-    banc.getState().jetLancer('counterspell', h1.id);
+    banc.getState().jetLancer('contreSort', h1.id);
     expect(row(h1.id).result, 'phase 2 : le déclaré solo lance').toBeTruthy();
   });
 
@@ -118,11 +118,11 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     freezeCast(E, h1);
     openWindow([h1.id, h2.id]);
     declare(h1.id, 'solo');
-    declare(h2.id, 'pass');
+    declare(h2.id, 'passer');
     expect(live(h2.id).dispelledThisRound).toBeFalsy();
-    banc.getState().jetLancer('counterspell', h2.id); // une rangée qui passe ne lance jamais
+    banc.getState().jetLancer('contreSort', h2.id); // une rangée qui passe ne lance jamais
     expect(row(h2.id).result).toBeNull();
-    banc.getState().jetLancer('counterspell', h1.id);
+    banc.getState().jetLancer('contreSort', h1.id);
     expect(live(h1.id).dispelledThisRound, 'le lanceur, lui, consomme son essai').toBe(true);
     expect(live(h2.id).dispelledThisRound, 'celui qui passe garde le sien').toBeFalsy();
   });
@@ -135,11 +135,11 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     openWindow([h1.id, h2.id, h3.id]);
     declare(h3.id, 'solo');
     declare(h1.id, 'solo');
-    declare(h2.id, 'pass');
+    declare(h2.id, 'passer');
     seedBattleRng(11);
-    banc.getState().jetLancer('counterspell', h3.id);
+    banc.getState().jetLancer('contreSort', h3.id);
     expect(row(h3.id).result!.dispelled, 'préparation : son Contre-sort échoue').toBe(false);
-    banc.getState().jetLancer('counterspell', h1.id);
+    banc.getState().jetLancer('contreSort', h1.id);
     expect(row(h1.id).result, 'un échec ne ferme pas la lice aux autres DÉCLARÉS').toBeTruthy();
     expect(banc.getState().pendingCounterspell!.participants.filter((p) => p.result).length).toBe(2);
     for (const h of [h1, h3]) expect(live(h.id).dispelledThisRound, `${h.label} a tenté`).toBe(true);
@@ -152,10 +152,10 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     freezeCast(E, h1);
     openWindow([h1.id, h2.id]);
     declare(h1.id, 'solo');
-    declare(h2.id, 'pass');
+    declare(h2.id, 'passer');
     declare(h2.id, 'solo'); // ralliement APRÈS la clôture de la phase
-    expect(row(h2.id).declared, 'la composition ne bouge plus').toBe('pass');
-    declare(h1.id, 'pass'); // retrait APRÈS la clôture
+    expect(row(h2.id).declared, 'la composition ne bouge plus').toBe('passer');
+    declare(h1.id, 'passer'); // retrait APRÈS la clôture
     expect(row(h1.id).declared).toBe('solo');
   });
 
@@ -195,10 +195,10 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     expect(grp.bonus, '+10 par soutien éligible').toBe(10);
     expect(counterspellSoutienFor(s, s.pendingCounterspell, h2.id), 'le Soutien ne s’ajoute qu’au meneur').toBe(0);
     const attendu = castingValue(live(h1.id), incantationArcane()) + 10;
-    banc.getState().jetLancer('counterspell', h1.id);
+    banc.getState().jetLancer('contreSort', h1.id);
     expect(row(h1.id).result!.counter.target, 'la cible du jet PORTE le Soutien').toBe(attendu);
     expect(row(h2.id).result, 'le groupe n’a qu’un jet (LDB 12 l.189)').toBeNull();
-    banc.getState().jetLancer('counterspell', h2.id);
+    banc.getState().jetLancer('contreSort', h2.id);
     expect(row(h2.id).result, 'un soutien ne peut pas lancer le sien en plus').toBeNull();
   });
 
@@ -207,14 +207,14 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     const [h1, h2] = heroes;
     freezeCast(E, h1);
     openWindow([h1.id, h2.id]);
-    // (1) EFFET : en phase 1, un siège ne referme pas la fenêtre des autres — décliner s'y dit `pass`.
-    banc.getState().jetAnnuler('counterspell');
+    // (1) EFFET : en phase 1, un siège ne referme pas la fenêtre des autres — décliner s'y dit `passer`.
+    banc.getState().jetAnnuler('contreSort');
     expect(banc.getState().pendingCounterspell, 'la fenêtre reste ouverte').toBeTruthy();
     // (2) FENÊTRE : la fermeture que l'effet applique est celle que la fenêtre montre à chaque siège.
-    expect(fermeturesDuFlux(banc.getState(), 'counterspell').cancel, 'aucun siège ne ferme pendant la phase').toBe('declarationsDues');
+    expect(fermeturesDuFlux(banc.getState(), 'contreSort').annuler, 'aucun siège ne ferme pendant la phase').toBe('declarationsDues');
     // (3) TOUT-PASS : la dernière déclaration ferme la fenêtre par le résolveur canonique, sans jet.
-    declare(h1.id, 'pass');
-    declare(h2.id, 'pass');
+    declare(h1.id, 'passer');
+    declare(h2.id, 'passer');
     expect(banc.getState().pendingCounterspell, 'fenêtre close d’office : plus personne ne lance').toBeNull();
     for (const h of [h1, h2]) expect(live(h.id).dispelledThisRound, 'passer ne coûte rien').toBeFalsy();
     expect(banc.getState().battle!.log.some((e) => e.text.includes('Contre-sort de')),
@@ -231,10 +231,10 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     const attendu = castingValue(live(h1.id), incantationArcane()) + 10;
     // (1) RÉSILIENCE PRÉ-JET (LDB 17 l.68) : le résolveur forcé lit la valeur SOUTENUE, pas la valeur nue.
     live(h1.id).resilience = 1;
-    banc.getState().jetForcerLaReussite('counterspell', h1.id);
+    banc.getState().jetForcerLaReussite('contreSort', h1.id);
     expect(row(h1.id).result!.counter.target, 'la Résilience du meneur porte le Soutien').toBe(attendu);
     // (2) DÉ FIXÉ posé ensuite : la cible reste celle du jet SOUTENU (aucun recalcul nu en chemin).
-    banc.getState().jetImposerLeResultat('counterspell', 7, h1.id);
+    banc.getState().jetImposerLeResultat('contreSort', 7, h1.id);
     expect(row(h1.id).result!.counter.roll, 'le dé saisi est bien appliqué').toBe(7);
     expect(row(h1.id).result!.counter.target, 'le dé fixé du meneur garde le Soutien').toBe(attendu);
   });
@@ -262,8 +262,8 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     declare(h2.id, 'soutenu');
     expect(live(h1.id).dispelledThisRound, 'déclarer n’est pas chanter').toBeFalsy();
     expect(live(h2.id).dispelledThisRound).toBeFalsy();
-    declare(h3.id, 'pass');
-    banc.getState().jetLancer('counterspell', h1.id);
+    declare(h3.id, 'passer');
+    banc.getState().jetLancer('contreSort', h1.id);
     expect(live(h1.id).dispelledThisRound, 'le meneur a tenté').toBe(true);
     expect(live(h2.id).dispelledThisRound, 's’unir EST tenter').toBe(true);
     expect(live(h3.id).dispelledThisRound, 'passer ne coûte rien').toBeFalsy();
@@ -279,9 +279,9 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     declare(h2.id, 'soutenu');
     declare(h3.id, 'solo');
     seedBattleRng(11);
-    banc.getState().jetLancer('counterspell', h3.id);
+    banc.getState().jetLancer('contreSort', h3.id);
     expect(row(h3.id).result!.dispelled, 'préparation : le séparé échoue').toBe(false);
-    banc.getState().jetLancer('counterspell', h1.id);
+    banc.getState().jetLancer('contreSort', h1.id);
     expect(row(h1.id).result, 'le groupe chante aussi').toBeTruthy();
     expect(row(h2.id).result, 'le soutien n’a pas de jet propre').toBeNull();
     // Deux participants ROULÉS entrent dans l'agrégation (le groupe compte pour un).
@@ -309,11 +309,11 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     for (const h of heroes) affaiblir(h.id); // chants ratés : la lice reste ouverte du premier au dernier
     openWindow([h1.id, h2.id, h3.id]);
     seedBattleRng(11);
-    banc.getState().jetLancer('counterspell');
+    banc.getState().jetLancer('contreSort');
     expect(banc.getState().pendingCounterspell!.participants.every((p) => !p.result), 'phase 1 : rien ne part').toBe(true);
-    banc.getState().jetRegler('counterspell', 'declaration', 'solo');
+    banc.getState().jetRegler('contreSort', 'declaration', 'solo');
     expect(banc.getState().pendingCounterspell!.participants.every((p) => p.declared === 'solo')).toBe(true);
-    banc.getState().jetLancer('counterspell');
+    banc.getState().jetLancer('contreSort');
     expect(banc.getState().pendingCounterspell!.participants.filter((p) => p.result).length,
       'phase 2 : chaque rangée du siège chante').toBe(3);
   });
@@ -323,22 +323,22 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     const [h1, h2] = heroes;
     freezeCast(E, h1);
     openWindow([h1.id, h2.id]);
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [h1.id]: 1, [h2.id]: 2 }, slots: [0, 1, 2, 0] } as Jeu['net'] });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [h1.id]: 1, [h2.id]: 2 }, slots: [0, 1, 2, 0] } as Jeu['net'] });
     const s = banc.getState();
-    expect(intentAllowedFor(s, 1, 'jetRegler', ['counterspell', 'declaration', 'solo', h1.id]), 'le siège qui possède la rangée').toBe(true);
-    expect(intentAllowedFor(s, 2, 'jetRegler', ['counterspell', 'declaration', 'solo', h1.id]), 'un autre siège ne déclare pas à sa place').toBe(false);
-    expect(intentAllowedFor(s, 0, 'jetRegler', ['counterspell', 'declaration', 'solo', h1.id]), 'l’hôte non plus').toBe(false);
-    expect(intentAllowedFor(s, 1, 'jetRegler', ['counterspell', 'declaration', 'solo']), '« tout déclarer » : qui tient une rangée vierge').toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetRegler', ['counterspell', 'declaration', 'solo']), '« tout déclarer » : pas qui n’en tient aucune').toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRegler', ['contreSort', 'declaration', 'solo', h1.id]), 'le siège qui possède la rangée').toBe(true);
+    expect(intentAllowedFor(s, 2, 'jetRegler', ['contreSort', 'declaration', 'solo', h1.id]), 'un autre siège ne déclare pas à sa place').toBe(false);
+    expect(intentAllowedFor(s, 0, 'jetRegler', ['contreSort', 'declaration', 'solo', h1.id]), 'l’hôte non plus').toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRegler', ['contreSort', 'declaration', 'solo']), '« tout déclarer » : qui tient une rangée vierge').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRegler', ['contreSort', 'declaration', 'solo']), '« tout déclarer » : pas qui n’en tient aucune').toBe(false);
     // Et le geste a un EFFET chez son possesseur (chemin réel, pas seulement l'autorisation).
     banc.setState({ net: { ...banc.getState().net, mySeat: 1 } as Jeu['net'] });
     declare(h1.id, 'solo');
     expect(row(h1.id).declared, 'le possesseur déclare sa rangée').toBe('solo');
-    declare(h2.id, 'pass');
+    declare(h2.id, 'passer');
     expect(row(h2.id).declared, 'la rangée d’un autre siège reste inerte ici').toBeUndefined();
     // SOLO : un seul siège, il tient tout.
     banc.setState({ net: { ...banc.getState().net, ...NET0 } as Jeu['net'] });
-    declare(h2.id, 'pass');
-    expect(row(h2.id).declared, 'en solo le joueur déclare toutes ses rangées').toBe('pass');
+    declare(h2.id, 'passer');
+    expect(row(h2.id).declared, 'en solo le joueur déclare toutes ses rangées').toBe('passer');
   });
 });

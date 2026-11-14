@@ -29,8 +29,8 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   host.remove();
-  resetRule('test-extended-min-sl');
-  resetRule('magic-vdm-incantation');
+  resetRule('test-etendu-dr-minimum');
+  resetRule('magie-vdm-incantation');
   useGame.setState({ pendingFocus: null, pendingDispel: null, pendingActivity: null, pendingExtendedTest: null, pendingCascade: null, battle: null, party: [], suspendedCascades: [] });
 });
 
@@ -48,7 +48,7 @@ describe('barre de DR des fenêtres de Test étendu', () => {
   });
 
   it('Dissipation de son PROPRE Sort (VDM 02 l.186) : cumul 1, réussite DR 0 → 2 / 5 DR', () => {
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     const w = heros();
     w.dispel = { spellId: 'armure-aethyrique', spellCasterId: w.id, total: 1 };
     useGame.setState({ party: [w], battle: null,
@@ -58,7 +58,7 @@ describe('barre de DR des fenêtres de Test étendu', () => {
   });
 
   it('Artisanat sous « DR 0 = ±1 » (LDB 12 l.185) : 2 DR, réussite DR 0 → 3 / 6 DR', () => {
-    setRule('test-extended-min-sl', true);
+    setRule('test-etendu-dr-minimum', true);
     const w = heros();
     useGame.setState({ party: [w], battle: null,
       pendingActivity: { heroId: w.id, kind: 'catalog', activityId: 'craft', label: 'Artisanat', skillLabel: 'Métier', skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' },
@@ -68,10 +68,10 @@ describe('barre de DR des fenêtres de Test étendu', () => {
   });
 
   it('Test étendu de scène sous « DR 0 = ±1 » (LDB 12 l.185) : total 2, Round réussi à DR 0 → 3 / 5 DR', () => {
-    setRule('test-extended-min-sl', true);
+    setRule('test-etendu-dr-minimum', true);
     const w = heros();
     useGame.setState({ party: [w], battle: null });
-    useGame.getState().ouvrirLeTestEtendu({ actorId: w.id, label: 'Serrure', skillLabel: 'Crochetage', target: 40, targetDR: 5 });
+    useGame.getState().ouvrirLeTestEtendu({ actorId: w.id, label: 'Serrure', skillLabel: 'Crochetage', target: 40, drCible: 5 });
     const p = useGame.getState().pendingExtendedTest!;
     useGame.setState({ pendingExtendedTest: { ...p, total: 2, rounds: [{ ...p.rounds[0], result: { roll: 40, sl: 0, success: true } }] } as never });
     act(() => { root.render(<CascadeBody />); });

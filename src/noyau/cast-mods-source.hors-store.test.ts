@@ -45,7 +45,7 @@ const SPELL_ID = 'flechette';
 /** RNG qui ne rend que le dé COMMUN — les voies naturelles se mesurent sur le même d100 que les deux autres. */
 const RNG_DE = deFixe(DE);
 
-const mk = (id: string, kind: Combatant['kind'] = 'hero'): Combatant => (blessuresSurLeProfil({
+const mk = (id: string, kind: Combatant['kind'] = 'heros'): Combatant => (blessuresSurLeProfil({
   id, name: id, label: id, kind,
   characteristics: { force: 40, dexterite: 40, agilite: 40, endurance: 40, 'force-mentale': 40, 'capacite-de-combat': 45, 'capacite-de-tir': 45, initiative: 40, intelligence: 40, sociabilite: 40 },
   wounds: blessuresDeBase(10), advantage: 0, conditions: [], traumas: [],
@@ -84,7 +84,7 @@ const openCast = (roll: number, target: number) => banc.setState({
 } as never);
 
 beforeEach(() => {
-  const A = mk('A'), E = mk('E', 'enemy');
+  const A = mk('A'), E = mk('E', 'ennemi');
   banc.setState({
     party: [A],
     battle: { combatants: [A, E], log: [], order: ['A', 'E'], turn: 0, round: 1 } as never,
@@ -118,7 +118,7 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
   it('contre-sort — voie 1 (store) : un jet RNG quelconque porte les mêmes modificateurs', () => {
     seedBattleRng(12345);
     openCounterspell();
-    st().jetLancer('counterspell', 'A');
+    st().jetLancer('contreSort', 'A');
     const c = counterOf();
     const nu = evaluateTest(c.roll, VALEUR).sl;
     expect(c.sl, 'jet du store : DR autre que le Talent lié seul').toBe(c.roll <= VALEUR ? nu + TALENT : nu);
@@ -126,7 +126,7 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
 
   it('contre-sort — voie 2 : le dé SAISI passe par la source', () => {
     openCounterspell({ dispelled: false, counter: { roll: 88, target: VALEUR, sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: '' });
-    st().jetImposerLeResultat('counterspell', DE, 'A');
+    st().jetImposerLeResultat('contreSort', DE, 'A');
     const c = counterOf();
     expect(c.roll).toBe(DE);
     expect(c.sl, 'dé fixé : DR autre que le Talent lié seul').toBe(DR_DISSIPATION);
@@ -134,12 +134,12 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
 
   it('contre-sort — voie 3 : la RÉSILIENCE passe par la source (dé par défaut, puis dé choisi)', () => {
     openCounterspell();
-    st().jetForcerLaReussite('counterspell', 'A');
+    st().jetForcerLaReussite('contreSort', 'A');
     const c = counterOf();
     expect(c.roll, 'la Résilience n’a pas pris son dé par défaut').toBe(DE);
     expect(c.sl, 'Résilience : DR autre que le Talent lié seul').toBe(DR_DISSIPATION);
 
-    st().jetImposerLeResultat('counterspell', DE, 'A');
+    st().jetImposerLeResultat('contreSort', DE, 'A');
     expect(counterOf().sl, 'Résilience + dé choisi : DR autre que le Talent lié seul').toBe(DR_DISSIPATION);
   });
 
@@ -153,7 +153,7 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
 
   it('incantation — voie 2 : le dé SAISI passe par la source', () => {
     openCast(88, VALEUR);
-    st().jetImposerLeResultat('cast', DE);
+    st().jetImposerLeResultat('incantation', DE);
     const r = castOf();
     expect(r.roll).toBe(DE);
     expect(r.sl, 'dé fixé : DR autre que Talent lié et armure').toBe(DR_INCANTATION);
@@ -161,12 +161,12 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
 
   it('incantation — voie 3 : la RÉSILIENCE passe par la source (dé par défaut, puis dé choisi)', () => {
     openCast(88, VALEUR);
-    st().jetForcerLaReussite('cast');
+    st().jetForcerLaReussite('incantation');
     const r = castOf();
     expect(r.roll, 'la Résilience n’a pas pris son dé par défaut').toBe(DE);
     expect(r.sl, 'Résilience : DR autre que Talent lié et armure').toBe(DR_INCANTATION);
 
-    st().jetImposerLeResultat('cast', DE);
+    st().jetImposerLeResultat('incantation', DE);
     expect(castOf().sl, 'Résilience + dé choisi : DR autre que Talent lié et armure').toBe(DR_INCANTATION);
   });
 });
@@ -176,7 +176,7 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
  * (les autres à zéro), sur les trois `kind`, avec son contrôle POSITIF non nul : une composante
  * silencieusement débranchée, ou branchée sur le mauvais `kind`, tombe ici.
  */
-const SORT = (domainId: string): SpellLike => ({ id: 's', label: 'S', ecole: 'Magie des Arcanes', family: 'arcane', domainId: { id: domainId }, cn: 0, desc: '' });
+const SORT = (domainId: string): SpellLike => ({ id: 's', label: 'S', ecole: 'Magie des Arcanes', family: 'arcane', domainId: { id: domainId }, cn: 0 });
 const mage = (over: Record<string, unknown>) => ({ ...(mk('M') as unknown as Record<string, unknown>), ...over } as unknown as Combatant);
 /** Aucun modificateur porté : isole la composante fournie par le CONTEXTE (mer, vent, lieu). */
 const NU = () => mage({ items: [], talents: [] });
@@ -226,12 +226,12 @@ describe('castTestDRMods — gates par composante (#948)', () => {
   });
 
   it('lieu (VDM 14 l.167) : chaque kind lit SA clé, sous l’option et sur la réussite', () => {
-    setRule('magic-vdm-environnementale', true);
+    setRule('magie-vdm-environnementale', true);
     expect(castTestDRMods(NU(), 'incantation', { spell: SORT('feu'), env: ATTENUATION }), 'Atténuation : −2 DR d’Incantation muet').toBe(-2);
     expect(castTestDRMods(NU(), 'dissipation', { env: ATTENUATION }), 'Atténuation : +2 DR de Dissipation muet').toBe(2);
     expect(castTestDRMods(NU(), 'focalisation', { spell: SORT('feu'), env: ATTENUATION }), 'la clé d’Incantation fuit vers la Focalisation').toBe(0);
     expect(castTestDRMods(NU(), 'dissipation', { env: ATTENUATION, success: false }), 'modificateur de lieu appliqué à un Test RATÉ').toBe(0);
-    resetRule('magic-vdm-environnementale');
+    resetRule('magie-vdm-environnementale');
     expect(castTestDRMods(NU(), 'dissipation', { env: ATTENUATION }), 'option désactivée : le lieu modifie quand même le Test').toBe(0);
   });
 });
@@ -262,7 +262,7 @@ const lanceur = (pa: number) => ({
 
 const poser = (hero: Combatant, extra: Record<string, unknown> = {}) => banc.setState({
   party: [hero],
-  battle: { combatants: [hero, mk('E', 'enemy')], log: [], order: ['A', 'E'], turn: 0, round: 1 } as never,
+  battle: { combatants: [hero, mk('E', 'ennemi')], log: [], order: ['A', 'E'], turn: 0, round: 1 } as never,
   net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
   pendingCast: null, pendingCounterspell: null, pendingCastOpposition: null, pendingFocus: null,
   ...extra,
@@ -279,18 +279,18 @@ describe('Focalisation — trois voies, même DR à dé égal (#948)', () => {
       const hero = focalisateur(pa);
       poser(hero);
       setDesFixes(true);
-      // Voie 1 — jet NATUREL du moteur (celui que `FLOWS.focus.resolve` appelle), dé 01.
+      // Voie 1 — jet NATUREL du moteur (celui que `FLOWS.focalisation.resolve` appelle), dé 01.
       const naturel = resolveFocus(hero, findSpellById(FOCUS_SPELL)!, RNG_DE).dr;
 
       // Voie 2 — dé SAISI (option « Dés fixés »).
       openFocus();
-      st().jetImposerLeResultat('focus', DE);
+      st().jetImposerLeResultat('focalisation', DE);
       const saisi = focusOf();
       expect(saisi.roll, 'le dé saisi n’est pas celui appliqué').toBe(DE);
 
       // Voie 3 — RÉSILIENCE (dé par défaut = le meilleur, 01 en policy standard).
       poser(hero); openFocus();
-      st().jetForcerLaReussite('focus');
+      st().jetForcerLaReussite('focalisation');
       const resil = focusOf();
       expect(resil.roll, 'la Résilience n’a pas pris son dé par défaut').toBe(DE);
 
@@ -315,18 +315,18 @@ describe('portée de l’armure — trois voies × PA 0/2 (#948)', () => {
   const csDR = (pa: number) => {
     const hero = lanceur(pa);
     const castT = castTestOf(ENEMY_CAST);
-    // Voie 1 — jet naturel du moteur (celui de `FLOWS.counterspell.resolve`).
+    // Voie 1 — jet naturel du moteur (celui de `FLOWS.contreSort.resolve`).
     const naturel = resolveCounterspell(hero, castT, RNG_DE).counter.sl;
     // Voie 2 — dé saisi.
     poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, focused: false, result: ENEMY_CAST },
       pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { roll: 88, target: castingValue(hero, incantationArcane()), sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: '' } }] } });
     setDesFixes(true);
-    st().jetImposerLeResultat('counterspell', DE, 'A');
+    st().jetImposerLeResultat('contreSort', DE, 'A');
     const saisi = counterOf().sl;
     // Voie 3 — Résilience.
     poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, focused: false, result: ENEMY_CAST },
       pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo' }] } });
-    st().jetForcerLaReussite('counterspell', 'A');
+    st().jetForcerLaReussite('contreSort', 'A');
     const resil = counterOf().sl;
     return { naturel, saisi, resil };
   };
@@ -339,10 +339,10 @@ describe('portée de l’armure — trois voies × PA 0/2 (#948)', () => {
       result: { cast: false, roll: 88, target: cible, sl: evaluateTest(88, cible).sl, isCritical: false, isFumble: false, log: '' } };
     poser(hero, { pendingCast: pending });
     setDesFixes(true);
-    st().jetImposerLeResultat('cast', DE);
+    st().jetImposerLeResultat('incantation', DE);
     const saisi = castOf().sl;
     poser(hero, { pendingCast: pending });
-    st().jetForcerLaReussite('cast');
+    st().jetForcerLaReussite('incantation');
     const resil = castOf().sl;
     return { naturel, saisi, resil };
   };

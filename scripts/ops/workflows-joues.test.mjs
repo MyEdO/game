@@ -31,7 +31,38 @@ import { z } from 'zod'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { FAMILLES_DE_DOSSIER, ficheDeDossier } from '../../src/data/source/dossier.ts'
 import { argsDeTableSimulee, ecrireFiche, ficheDuRun } from '../raw/workflow-args.mjs'
-import { DOSSIER, DATE, ARBRE, COMMIT, jouer, SECRET, D1, DOSSIER_DU_CHAPITRE, ARGS_TABLE, FICHES_PJ, LECTURES, SANS_SOSIE, TYPE_DE_POINT_AU_MJ, jetsDe, jsonEntre, declencheursEnvoyes, analyseCouvrante, repondreALaTable, jouerTable, RESOLUTION, mjSansFin, mjAuxSorts, analyseSignal, fichierDeFixture, argsDossier, ARGS_DOSSIER, completude, repondreAuDossier, jouerDossier, sauf } from '../test/lib/bancWorkflows.mjs'
+import {
+  DOSSIER,
+  DATE,
+  ARBRE,
+  COMMIT,
+  jouer,
+  SECRET,
+  D1,
+  DOSSIER_DU_CHAPITRE,
+  ARGS_TABLE,
+  FICHES_PJ,
+  LECTURES,
+  SANS_SOSIE,
+  TYPE_DE_POINT_AU_MJ,
+  jetsDe,
+  jsonEntre,
+  declencheursEnvoyes,
+  analyseCouvrante,
+  repondreALaTable,
+  jouerTable,
+  RESOLUTION,
+  mjSansFin,
+  mjAuxSorts,
+  analyseSignal,
+  fichierDeFixture,
+  argsDossier,
+  ARGS_DOSSIER,
+  completude,
+  repondreAuDossier,
+  jouerDossier,
+  sauf,
+} from '../test/lib/bancWorkflows.mjs'
 
 const ARGS_TABLE_PERSONAS = ['rôliste', 'fouineur', 'saboteur', 'hors-cadre'];
 
@@ -221,9 +252,9 @@ test('table-simulee : l’auteur des fiches des PJ ne voit ni le chapitre, ni le
   assert.ok(!auteur.includes(SECRET), 'il porte le dossier du chapitre');
   assert.doesNotMatch(auteur, /sosie|ressembl/i, 'il nomme la ressemblance');
   const choixDuSosie = promptsParLabel.get('Préparation:sosie');
-  assert.match(choixDuSosie, /"id": "pregen-707",\n {2}"nom": "pregen-707",\n {2}"espece": "humain",\n {2}"carriere": "c"/, 'le choix du sosie reçoit la LISTE des PJ');
+  assert.match(choixDuSosie, /"id": "pretire-malmir-giluviel",\n {2}"nom": "pretire-malmir-giluviel",\n {2}"espece": "humain",\n {2}"carriere": "c"/, 'le choix du sosie reçoit la LISTE des PJ');
   assert.ok(choixDuSosie.includes(SECRET) && choixDuSosie.includes('Phillipe'), 'et le dossier du chapitre');
-  assert.ok(!choixDuSosie.includes('fiche de pregen-707'), 'jamais leurs fiches');
+  assert.ok(!choixDuSosie.includes('fiche de pretire-malmir-giluviel'), 'jamais leurs fiches');
 });
 
 test('table-simulee : la fiche du joueur est la sortie de l’auteur des fiches À L’OCTET, quel que soit le secret du MJ', async () => {
@@ -231,7 +262,7 @@ test('table-simulee : la fiche du joueur est la sortie de l’auteur des fiches 
     ...FICHES_PJ,
     pjs: FICHES_PJ.pjs.map((pj) => ({ ...pj, fiche: `${pj.id} · Combat 45 · Tir 30 · ressemble à son père` })),
   };
-  const secretHorsVocabulaire = { id: 'pregen-707', ref: 'EDO 02 l.40', motif: 'portrait craché du mort, double parfait, K. L.' };
+  const secretHorsVocabulaire = { id: 'pretire-malmir-giluviel', ref: 'EDO 02 l.40', motif: 'portrait craché du mort, double parfait, K. L.' };
   const { promptsParLabel, rendu } = await jouerTable(mjSansFin, analyseCouvrante(), ARGS_TABLE, uneLigne, secretHorsVocabulaire);
   const joueurs = [...promptsParLabel].filter(([cle]) => cle.startsWith('Partie:joueur:'));
   assert.equal(joueurs.length, 8);
@@ -244,7 +275,7 @@ test('table-simulee : la fiche du joueur est la sortie de l’auteur des fiches 
     assert.ok(!prompt.includes('SOSIE'), `${cle} porte la marque du MJ`);
   }
   const mj = promptsParLabel.get('Partie:mj:1');
-  assert.match(mj, /### pregen-707 \(pregen-707\) — SOSIE \(secret du MJ\)\npregen-707 · Combat 45/);
+  assert.match(mj, /### pretire-malmir-giluviel \(pretire-malmir-giluviel\) — SOSIE \(secret du MJ\)\npretire-malmir-giluviel · Combat 45/);
   assert.equal((mj.match(/SOSIE \(secret du MJ\)/g) || []).length, 1, 'un seul PJ marqué');
   assert.ok(mj.includes('portrait craché'), 'le MJ reçoit le motif du sosie');
   assert.deepEqual(rendu.journal.joueurs.map((j) => j.sosie), [false, false, true, false]);
@@ -265,8 +296,8 @@ test('table-simulee : le MJ et les joueurs ne connaissent un joueur que par son 
       assert.ok(!lignes.some((l) => l.toLowerCase().includes(persona)), `${cle} porte la persona « ${persona} »`);
     }
   }
-  assert.match(promptsParLabel.get('Partie:mj:2'), /^- pregen-707 \(pregen-707\) : geste \d+$/m, 'le MJ reçoit chaque intention sous son PJ');
-  assert.match(promptsParLabel.get('Partie:joueur:rôliste:2'), /Intentions : pregen-101 \(pregen-101\) : geste \d+ \| pregen-202/, 'les échanges publics désignent les joueurs par leur PJ');
+  assert.match(promptsParLabel.get('Partie:mj:2'), /^- pretire-malmir-giluviel \(pretire-malmir-giluviel\) : geste \d+$/m, 'le MJ reçoit chaque intention sous son PJ');
+  assert.match(promptsParLabel.get('Partie:joueur:rôliste:2'), /Intentions : pretire-wanda-weltschmertz \(pretire-wanda-weltschmertz\) : geste \d+ \| pretire-harbull-piedvelu/, 'les échanges publics désignent les joueurs par leur PJ');
   assert.deepEqual(
     rendu.journal.echanges[1].resolutions.map((r) => [r.pj, r.persona, r.intention]),
     rendu.journal.echanges[1].intentions.map((i) => [i.pj, i.persona, i.intention]),
@@ -282,7 +313,7 @@ test('table-simulee : le schéma du MJ exige UNE résolution par PJ qui a une in
   const schemaDe = (numero) => optionsParLabel.get(`Partie:mj:${numero}`).schema.properties;
   assert.deepEqual(clesDe(schemaDe(1).resolutions), [false, [], []], 'l’ouverture : aucune intention, aucune clé');
   assert.deepEqual(clesDe(schemaDe(2).resolutions), [false, IDS_DES_PJ, IDS_DES_PJ], 'une salve d’intentions : chaque PJ, exigé');
-  assert.deepEqual(schemaDe(2).resolutions.properties['pregen-707'].anyOf.map((b) => [b.properties.source.enum, b.properties.categorie.enum, b.required]), [
+  assert.deepEqual(schemaDe(2).resolutions.properties['pretire-malmir-giluviel'].anyOf.map((b) => [b.properties.source.enum, b.properties.categorie.enum, b.required]), [
     [['livre'], [''], ['source', 'ref', 'categorie', 'resolution']],
     [['IMPRO'], [...TYPE_DE_POINT_AU_MJ.enum, 'hors-livre'], ['source', 'ref', 'categorie', 'resolution']],
   ], 'une branche par source, chacune avec SA catégorie');
@@ -291,7 +322,7 @@ test('table-simulee : le schéma du MJ exige UNE résolution par PJ qui a une in
   assert.deepEqual(schemaDe(2).tour.properties.declencheurs.properties.d2.required, ['statut', 'motif']);
   assert.deepEqual(schemaDe(1).tour.properties.beat, { enum: ['b1', 'b2'] });
   const mj2 = promptsParLabel.get('Partie:mj:2');
-  assert.match(mj2, /`resolutions` est un objet dont chaque clé est l'id NU d'un PJ qui a une intention ci-dessus \(`pregen-101`, `pregen-202`, `pregen-707`, `pregen-303`\), jamais sa désignation « Nom \(id\) »/);
+  assert.match(mj2, /`resolutions` est un objet dont chaque clé est l'id NU d'un PJ qui a une intention ci-dessus \(`pretire-wanda-weltschmertz`, `pretire-harbull-piedvelu`, `pretire-malmir-giluviel`, `pretire-werner-murrmann`\), jamais sa désignation « Nom \(id\) »/);
   assert.match(mj2, /`tour\.declencheurs` est un objet dont chaque clé est l'id NU d'un déclencheur EN ATTENTE \(`d2`\)/);
   assert.match(promptsParLabel.get('Partie:mj:1'), /`resolutions` est un objet [^\n]*\(aucune clé : l'objet est vide\)/);
   assert.deepEqual(rendu.journal.echanges.map((e) => e.declencheurs), [
@@ -299,13 +330,13 @@ test('table-simulee : le schéma du MJ exige UNE résolution par PJ qui a une in
     [{ id: 'd2', statut: 'non-echu', motif: 'm' }],
     [{ id: 'd2', statut: 'non-echu', motif: 'm' }],
   ], 'le journal garde un tableau de sorts, un par déclencheur en attente');
-  assert.deepEqual(rendu.journal.echanges[1].resolutions[0], { persona: 'rôliste', pj: 'pregen-101', intention: 'intention de joueur:rôliste:1', ...RESOLUTION });
+  assert.deepEqual(rendu.journal.echanges[1].resolutions[0], { persona: 'rôliste', pj: 'pretire-wanda-weltschmertz', intention: 'intention de joueur:rôliste:1', ...RESOLUTION });
 });
 
 test('table-simulee : un id de PJ vide ou en double, rendu par les fiches des PJ, ARRÊTE avant la partie et se nomme', async () => {
   const cas = [
-    [['pregen-101', 'pregen-202', 'pregen-707', 'pregen-707'], ['fiches des PJ — id « pregen-707 » en double']],
-    [['pregen-101', 'pregen-202', '', ' '], ['fiches des PJ — PJ 3 (« N2 ») sans id', 'fiches des PJ — PJ 4 (« N3 ») sans id']],
+    [['pretire-wanda-weltschmertz', 'pretire-harbull-piedvelu', 'pretire-malmir-giluviel', 'pretire-malmir-giluviel'], ['fiches des PJ — id « pretire-malmir-giluviel » en double']],
+    [['pretire-wanda-weltschmertz', 'pretire-harbull-piedvelu', '', ' '], ['fiches des PJ — PJ 3 (« N2 ») sans id', 'fiches des PJ — PJ 4 (« N3 ») sans id']],
   ];
   for (const [ids, manques] of cas) {
     const fiches = { ...FICHES_PJ, pjs: ids.map((id, rang) => ({ id, nom: `N${rang}`, espece: 'humain', carriere: 'c', fiche: `fiche ${rang}` })) };

@@ -6,8 +6,8 @@
     {
       "id": "insignifiante",
       "label": "Insignifiante",
-      "ally": 30,
-      "enemy": 70,
+      "allie": 30,
+      "ennemi": 70,
       "example": "Une défense de ville provinciale face à un Comte vampire et sa légion de morts-vivants.",
       "source": {
         "book": "archives-de-l-empire-2",
@@ -18,8 +18,8 @@
     {
       "id": "desavantagee",
       "label": "Désavantagée",
-      "ally": 40,
-      "enemy": 60,
+      "allie": 40,
+      "ennemi": 60,
       "example": "Une compagnie de mercenaires contre un Waaagh ! de peaux vertes.",
       "source": {
         "book": "archives-de-l-empire-2",
@@ -30,8 +30,8 @@
     {
       "id": "egale",
       "label": "De force égale",
-      "ally": 50,
-      "enemy": 50,
+      "allie": 50,
+      "ennemi": 50,
       "example": "Des armées provinciales qui s'affrontent sur le champ de bataille.",
       "source": {
         "book": "archives-de-l-empire-2",
@@ -42,8 +42,8 @@
     {
       "id": "avantagee",
       "label": "Avantagée",
-      "ally": 60,
-      "enemy": 40,
+      "allie": 60,
+      "ennemi": 40,
       "example": "Un château bien approvisionné se défendant contre une horde de guerriers de clans skavens mal organisés.",
       "source": {
         "book": "archives-de-l-empire-2",
@@ -54,8 +54,8 @@
     {
       "id": "ecrasante",
       "label": "Écrasante",
-      "ally": 70,
-      "enemy": 30,
+      "allie": 70,
+      "ennemi": 30,
       "example": "Une alliance d'humains et de nains prenant d'assaut un bivouac d'hommes-bêtes.",
       "source": {
         "book": "archives-de-l-empire-2",

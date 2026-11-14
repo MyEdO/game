@@ -7,8 +7,18 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
  * engine) et d'un inventaire EXHAUSTIF par script (histogramme de TOUTES les entrées du dataset).
  */
 import { z } from 'zod';
+import { tableTotale } from '../../../lib/tableTotale';
 import { document } from '../grammaire/document';
-import { availabilitySchema, enumNomme, formulaSchema, moneySchema, reachSchema, sizeCategorySchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
+import {
+  availabilitySchema,
+  enumNomme,
+  formulaSchema,
+  genreDArmeSchema,
+  moneySchema,
+  reachSchema,
+  sizeCategorySchema,
+  weaponDamageSpecSchema,
+} from '../grammaire/valeurs';
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { manieAussiSchema, qualityRefSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
@@ -38,7 +48,7 @@ const refusDuTypeDArmure = (subType: { id: string } | null): string | null =>
 /** CATÉGORIE de catalogue d'une possession — id de logique qui ne s'affiche jamais nu. */
 export const trappingCategorieSchema = enumNomme({
   melee: 'Armes de mêlée',
-  ranged: 'Armes à distance',
+  distance: 'Armes à distance',
   ammunition: 'Munitions',
   armor: 'Armures',
   trapping: 'Équipement',
@@ -51,7 +61,7 @@ const weaponRangeSpecSchema = z.union([z.number(), nommerChamps(z.strictObject({
 const ammoRangeModSchema = z.union([nommerChamps(z.strictObject({ mult: z.number() }), { mult: { label: 'Multiplicateur' } }), nommerChamps(z.strictObject({ add: z.number() }), { add: { label: 'Ajout' } })]);
 
 /** `ItemCapabilities` (`src/data/index.ts`) — sac de drapeaux IRRÉDUCTIBLES, tous optionnels. */
-const itemCapabilitiesSchema = nommerChamps(z.strictObject({
+export const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   preventForcedDrop: z.boolean().optional(),
   weatherProtection: z.boolean().optional(),
   isShelter: z.boolean().optional(),
@@ -81,10 +91,13 @@ const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   improvisedWithoutCharge: { label: 'Improvisée sans Charge' },
 });
 
+/** Une capacité de `itemCapabilitiesSchema`, nommée par le libellé de son champ (`skills.tool.capability`). */
+export const capaciteDObjetSchema = enumNomme(tableTotale(itemCapabilitiesSchema.keyof().options, (cle) => metaDesChamps(itemCapabilitiesSchema, { exigees: true })[cle].label));
+
 /** LDB 73 */
 const weaponSchema = nommerChamps(z.strictObject({
   label: z.string(),
-  type: z.enum(['melee', 'ranged']),
+  type: genreDArmeSchema,
   damage: weaponDamageSpecSchema,
   reach: z.union([reachSchema, z.null()]).optional(),
   range: z.union([weaponRangeSpecSchema, z.null()]).optional(),
@@ -129,7 +142,7 @@ const doc = document(
     packSize: z.number().optional(),
     /** CATÉGORIE de catalogue — vocabulaire FERMÉ, mesuré sur 440/440 : melee 65, ranged 79,
      *  ammunition 22, armor 17, trapping 257. ≠ `Weapon.type` du moteur (`src/engine/types.ts`,
-     *  `'melee' | 'ranged'`, persisté) et ≠ `ItemInstance.kind` : le pont est `kindOf()`
+     *  `'melee' | 'distance'`, persisté) et ≠ `ItemInstance.kind` : le pont est `kindOf()`
      *  (`src/engine/items.ts`), une TRADUCTION. `vehicle` n'a aucun porteur et n'est plus admis. */
     categorie: trappingCategorieSchema,
     subType: ref('weaponGroup').nullable(),
@@ -153,10 +166,9 @@ const doc = document(
     /** ADE II 8 l.251/253 */
     minRangeBand: z.enum(RANGEES_DE_REGLE['portee-d-une-arme']).optional(),
     siegeFootprint: z.number().optional(),
-    /** Munition REPRÉSENTATIVE d'une arme de siège, désignée dans la sous-liste `ammunition` — discrimine
-     *  pierrier/canon/baliste/mortier là où le Groupe `armes-de-siege` seul ne le fait pas (hint joueur,
-     *  `ammoFamilyLabel`). */
-    defaultAmmo: ref('trapping', undefined, 'ammunition').optional(),
+    /** Les munitions d'une arme de siège, la représentative en tête (`chargeLArme`). AA 10 l.150 ; MDG 12 l.410-424 ;
+     *  AA 10 l.198-221 */
+    munitions: refs('trapping', { sousListe: 'ammunition' }).optional(),
     ...apparenceDObjetSchema.shape,
     /** #3086 D6(c), #3116 */
     rangement: ref('gardeRobe', undefined, 'emplacement').optional(),
@@ -172,7 +184,7 @@ const doc = document(
         grants: { label: 'Accorde' },
       }))
       .optional(),
-    /** Absent (pas seulement `null`) sur 5 entrées — reflet du contenu réel. */
+    /** LDB 61 l.5 */
     enc: z.union([z.number(), z.literal('ND'), z.literal('Variable'), z.null()]).optional(),
     /** ADE II 2 l.706-710 */
     sizeFor: sizeCategorySchema.optional(),
@@ -247,9 +259,9 @@ const doc = document(
       label: 'Empreinte au sol',
       hint: 'Taille occupée sur la grille par l’engin de siège une fois posé en combat',
     },
-    defaultAmmo: {
-      label: 'Munition représentative',
-      hint: 'Munition affichée par défaut pour cette arme de siège (indication au joueur)',
+    munitions: {
+      label: 'Munitions',
+      hint: 'Munitions que tire cette arme de siège, la représentative en tête (indication au joueur)',
     },
     ...metaDesChamps(apparenceDObjetSchema, { exigees: true }),
     requiresMastery: {

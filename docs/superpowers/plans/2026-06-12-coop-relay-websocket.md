@@ -1318,7 +1318,7 @@ export interface NetState {
   /** Vue HÔTE : sièges en cours de reconnexion (absent = connecté). */
   presence: Record<number, 'ok' | 'away'>;
   /** Vue INVITÉ : sa propre connexion (préservée à l'application des snapshots). */
-  connection: 'ok' | 'reconnecting';
+  connection: 'connecte' | 'reconnecting';
   /** Vue INVITÉ : l'hôte est-il momentanément déconnecté ? */
   hostAway: boolean;
   ownership: Record<string, number>;
@@ -1326,7 +1326,7 @@ export interface NetState {
 }
 export const initialNet = (): NetState => ({
   mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {},
-  connection: 'ok', hostAway: false, ownership: {}, slots: [0, 0, 0, 0],
+  connection: 'connecte', hostAway: false, ownership: {}, slots: [0, 0, 0, 0],
 });
 ```
 

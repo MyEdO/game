@@ -19,8 +19,8 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
  * volumique memoïse ses marques sur le CONTEXTE que l'hôte lui passe (`HighlightOpts`) : toute vérité
  * qui les nourrit sans vivre dans `battle` doit y entrer, sinon elle n'est lue qu'au MONTAGE, et
  * l'écran ment jusqu'au prochain changement de `battle`. Les deux vérités concernées :
- *  - l'INTENTION armée (`store.localIntent`) → marques `intent` (défaut de recette 2026-08-19) ;
- *  - le SURVOL d'un tireur (`store.hovered`) → marques `rangeBand` (même classe de défaut).
+ *  - l'INTENTION armée (`store.localIntent`) → marques `intention` (défaut de recette 2026-08-19) ;
+ *  - le SURVOL d'un tireur (`store.hovered`) → marques `bandeDePortee` (même classe de défaut).
  * Le verrou est le MEMO, pas le rendu : forcer un re-rendu ne les ferait pas apparaître.
  */
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -28,11 +28,11 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 const TAILLE = { w: 800, h: 600 };
 
 /** Arc de Portée 4 m : bandes de Bout Portant à Extrême sur 6 cases (1 case = 2 m). */
-const ARC = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 4, qualities: [] };
+const ARC = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 4, qualities: [] };
 
 function hero(id: string, pos: { x: number; y: number }, weapons: unknown[] = []): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero', pos, size: 'moyenne',
+    id, label: id, kind: 'heros', pos, size: 'moyenne',
     wounds: blessuresDeBase(12), weapons,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
@@ -41,7 +41,7 @@ function hero(id: string, pos: { x: number; y: number }, weapons: unknown[] = []
 }
 
 function ennemi(id: string, pos: { x: number; y: number }): Combatant {
-  return { ...hero(id, pos), kind: 'enemy' } as unknown as Combatant;
+  return { ...hero(id, pos), kind: 'ennemi' } as unknown as Combatant;
 }
 
 function combatTémoin(): BattleState {
@@ -103,24 +103,24 @@ afterEach(() => {
 });
 
 describe('Marques de cases — l’écran DÉJÀ MONTÉ suit le store (#1411 P0-A)', () => {
-  it('INTENTION : armer peint N > 0 cellules `intent`, désarmer les retire', () => {
+  it('INTENTION : armer peint N > 0 cellules `intention`, désarmer les retire', () => {
     monter();
-    expect(marques('intent'), 'aucune intention armée au montage').toBe(0);
+    expect(marques('intention'), 'aucune intention armée au montage').toBe(0);
     act(() => { useGame.getState().armerLIntention('mouvement'); }); // l’archer n’a aucun corps à corps : la Charge lui est fermée
     expect(useGame.getState().localIntent, 'l’intention n’est même pas armée').toEqual({ actionId: 'mouvement' });
-    expect(marques('intent'), 'l’armement n’a peint AUCUNE case : la portée reste invisible').toBeGreaterThan(0);
+    expect(marques('intention'), 'l’armement n’a peint AUCUNE case : la portée reste invisible').toBeGreaterThan(0);
     act(() => { useGame.getState().desarmerLeMode(); });
     expect(useGame.getState().localIntent).toBeNull();
-    expect(marques('intent'), 'le désarmement laisse la portée à l’écran').toBe(0);
+    expect(marques('intention'), 'le désarmement laisse la portée à l’écran').toBe(0);
   });
 
   it('SURVOL : survoler un tireur peint N > 0 bandes de portée, le quitter les retire', () => {
     monter();
-    expect(marques('rangeBand'), 'personne n’est survolé au montage').toBe(0);
+    expect(marques('bandeDePortee'), 'personne n’est survolé au montage').toBe(0);
     act(() => { useGame.getState().setHovered('h1'); });
     expect(useGame.getState().hovered).toBe('h1');
-    expect(marques('rangeBand'), 'le survol du tireur n’a peint AUCUNE bande de portée').toBeGreaterThan(0);
+    expect(marques('bandeDePortee'), 'le survol du tireur n’a peint AUCUNE bande de portée').toBeGreaterThan(0);
     act(() => { useGame.getState().setHovered(null); });
-    expect(marques('rangeBand'), 'les bandes de portée survivent au survol').toBe(0);
+    expect(marques('bandeDePortee'), 'les bandes de portée survivent au survol').toBe(0);
   });
 });

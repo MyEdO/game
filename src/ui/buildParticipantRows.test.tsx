@@ -16,7 +16,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * (provenance) : il ne doit JAMAIS devenir le nom de la ligne — c'est le défaut vu en recette
  * (« Timonier » là où le jet est « Voile (Chaland) »).
  */
-const actor = { id: 'h1', label: 'Hilda', kind: 'hero' } as Combatant;
+const actor = { id: 'h1', label: 'Hilda', kind: 'heros' } as Combatant;
 
 const bundle = {
   onRoll: () => {}, onReroll: () => {}, onBonusSL: () => {}, onDarkPact: () => {}, onForce: () => {},
@@ -100,7 +100,7 @@ describe('#1262 L0 — la rangée-participant vient du NOYAU (contrat mesuré su
         expect(Object.keys(rows[0]).sort()).toEqual([...p.champs].sort());
         expect(isBuiltRollRow(rows[0]), 'la rangée porte la marque du monteur').toBe(true);
         // Post-traitement par SPREAD (CascadeModal:644, DisengageModal:137) : la marque survit.
-        expect(isBuiltRollRow({ ...rows[0], flowKey: 'cascadeBatch' as const })).toBe(true);
+        expect(isBuiltRollRow({ ...rows[0], flowKey: 'cascadeEnBande' as const })).toBe(true);
         expect(rows[0].rolled, 'sur ces 6 présentations, « un dé affiché » ⇔ « un résultat »').toBe(!!res);
       }
     });
@@ -133,7 +133,7 @@ describe('#1262 L0 — la rangée-participant vient du NOYAU (contrat mesuré su
  */
 describe('crewRoleRow — refus du rôle non tentable, dé jeté contre sa cible', () => {
   const marin = blessuresSurLeProfil({
-    id: 'm1', label: 'Gunnar', kind: 'hero', conditions: [{ id: 'inconscient', value: 1 }], skills: [], talents: [],
+    id: 'm1', label: 'Gunnar', kind: 'heros', conditions: [{ id: 'inconscient', value: 1 }], skills: [], talents: [],
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, weapons: [], items: [], movement: 4,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

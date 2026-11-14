@@ -1,0 +1,33 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/studio_de_portraits.gd" id="1_studio"]
+[ext_resource type="PackedScene" path="res://scenes/Combattant.tscn" id="2_combattant"]
+
+[sub_resource type="Environment" id="Ambiance"]
+background_mode = 1
+background_color = Color(0, 0, 0, 0)
+ambient_light_source = 2
+ambient_light_color = Color(0.85, 0.78, 0.66, 1)
+ambient_light_energy = 0.6
+
+[node name="StudioDePortraits" type="Node"]
+script = ExtResource("1_studio")
+
+[node name="Monde" type="SubViewport" parent="."]
+own_world_3d = true
+transparent_bg = true
+handle_input_locally = false
+msaa_3d = 2
+size = Vector2i(128, 128)
+render_target_update_mode = 0
+
+[node name="Ambiance" type="WorldEnvironment" parent="Monde"]
+environment = SubResource("Ambiance")
+
+[node name="Combattant" parent="Monde" instance=ExtResource("2_combattant")]
+
+[node name="Camera" type="Camera3D" parent="Monde"]
+
+[node name="Lumiere" type="DirectionalLight3D" parent="Monde"]
+transform = Transform3D(0.866, -0.25, 0.433, 0, 0.866, 0.5, -0.5, -0.433, 0.75, 0, 2, 2)
+light_color = Color(1, 0.94, 0.84, 1)

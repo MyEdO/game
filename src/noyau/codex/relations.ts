@@ -28,8 +28,8 @@ import type { AdvancementRef } from '../../data';
 import { isOptionalNote } from '../../engine/statEntry';
 import { effectiveEntry } from '../../engine/variants';
 import { deDeLaTableTiree, facesDuDe, fourchette } from '../../engine/tables';
-import { spellEffectOps } from '../../engine/flowCore';
-import type { Flow, TriggeredEffect } from '../../data/schemas/defs-scenes/effets';
+import { spellEffectOps, type TriggeredEffect } from '../../engine/flowCore';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { memoParVersion } from '../../data/versionDataset';
 import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';
 import { replier } from '../../lib/ordre.mjs';
@@ -85,7 +85,7 @@ function advancementIds(list: AdvancementRef[] | undefined): string[] {
 /** États INFLIGÉS — ops `condition` des effets (Sort = Flow ; Trait/Qualité/Talent/Domaine =
  *  TriggeredEffect[].flow). On réutilise le walker `spellEffectOps` (zéro parsing maison). */
 const conditionIdsInFlow = (flow: Flow | undefined): string[] =>
-  spellEffectOps(flow).flatMap((o) => (o.op === 'condition' ? [o.id] : []));
+  spellEffectOps(flow).flatMap((o) => (o.op === 'condition' ? [o.id.id] : []));
 const conditionIdsInEffects = (effects: TriggeredEffect[] | undefined): string[] =>
   (effects ?? []).flatMap((e) => conditionIdsInFlow(e.flow));
 
@@ -111,7 +111,7 @@ const graph = versionCached<ReverseGraph>(() => {
     for (const id of advancementIds(s.skills)) addReverse('skills', id, by);
     for (const id of advancementIds(s.talents)) addReverse('talents', id, by);
     // Carrières accessibles à l'espèce (LDB 05) → inverse « Races y accédant » sur la carrière.
-    for (const c of careersForSpecies(s.refCareer)) addReverse('careers', c.id, by, 'Races y accédant');
+    for (const c of careersForSpecies(s)) addReverse('careers', c.id, by, 'Races y accédant');
   }
 
   // 2) Carrières (cat `careers`) → classe.
@@ -271,7 +271,7 @@ const catalog = versionCached<CatalogEntry[]>(() => {
   pushCatalog('spells', spells);
   pushCatalog('creatures', creatures as { id: string; label: string; source?: { book: string; page: number } }[]);
   pushCatalog('traits', traits);
-  pushCatalog('mutations', mutations as { id: string; label: string; source?: { book: string; page: number } | null }[]);
+  pushCatalog('mutations', mutations);
   pushCatalog('stars', stars);
   pushCatalog('locations', locations as { id: string; label: string; source?: { book: string; page: number } }[]);
   pushCatalog('characteristics', characteristics as { id: string; label: string }[]);

@@ -19,7 +19,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 
-type NetMode = 'local' | 'host' | 'guest';
+type NetMode = 'local' | 'hote' | 'invite';
 import { CombatConsole } from './console/CombatConsole';
 import { ActiveModal } from './ActiveModal';
 import { CampaignView } from './CampaignView';
@@ -52,7 +52,7 @@ afterEach(() => {
 });
 
 /** Combat coop : le tour est tenu par le héros du siège DISTANT (1) — le siège local est l'hôte (0). */
-function combatCoop(mode: NetMode = 'host') {
+function combatCoop(mode: NetMode = 'hote') {
   const mien = hero('h1', 'Gunnar');
   const sien = hero('h2', 'Wilhelm');
   act(() => {
@@ -100,6 +100,6 @@ describe('frise — l’interrupteur de pause de Round est une surface de COOP',
   });
 
   it('COOP : la commande est dessinée (témoin de la mesure ci-dessus)', () => {
-    expect(monterCampagne('host')).toBe(1);
+    expect(monterCampagne('hote')).toBe(1);
   });
 });

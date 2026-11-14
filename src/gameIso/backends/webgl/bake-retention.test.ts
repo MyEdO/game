@@ -7,7 +7,7 @@ import { scenario } from '../../../scenes/test-scenarios/zones-pieces';
 import { findPropById, materials, matieresDe, props, terrains } from '../../../data';
 import { setDataset, resetData } from '../../../data/overrides';
 import type { MaterialEntry } from '../../../data/materials.types';
-import type { TerrainDef } from '../../../data/terrains.types';
+import type { TerrainDef } from '../../../data';
 import { effectiveArchitecture } from '../../../noyau/sceneEdit';
 import { roofMaterial } from '../../../noyau/monde/volume/matieres';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../scenes/campaign';
@@ -83,7 +83,7 @@ const MUTATIONS: Record<Exclude<keyof Scene, 'type'>, (s: Scene) => Scene> = {
   layers: (s) => ({ ...s, layers: cloneLayers(s) }),
   walls: (s) => ({ ...s, walls: [...(s.walls ?? [])] }),
   entities: (s) => ({ ...s, entities: [...s.entities] }),
-  seatAssignments: (s) => ({ ...s, seatAssignments: { 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } } }),
+  seatAssignments: (s) => ({ ...s, seatAssignments: { 'table-1': { 'place-1': { kind: 'entite', entityId: 'attable' } } } }),
   architecture: (s) => ({ ...s, architecture: [...(s.architecture ?? [])] }),
   dialogues: (s) => ({ ...s, dialogues: [...s.dialogues] }),
   triggers: (s) => ({ ...s, triggers: [...s.triggers] }),

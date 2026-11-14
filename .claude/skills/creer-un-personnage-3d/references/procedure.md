@@ -70,10 +70,11 @@ les `LICENSE-<pack>.txt` qu'elle écrit, un pack sans `--licence-<pack>`, et un 
 absent, hors des dossiers ancêtres de sa source, vide, ou dont la licence déclarée (ligne
 `License:`, sinon titre) manque à `hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
 déclaration du corps (`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence,
-`clips`, la table rôle d'animation → clip dont le rôle `walk` est la marche plantée, et `surfaces`, les matériaux du corps
+`bornesArticulaires`, `clips`, la table rôle d'animation → clip dont le rôle `marche` est la marche plantée, `clipsDeuxMains`
+(#3319), `prisesOccupees` (#3806), et `surfaces`, les matériaux du corps
 et leur emplacement de palette, sans `blason`, chacun avec, en option, `parSexe` : par sexe, le matériau d'un corps
 donneur que la construction recouche sur les UV de la surface et exporte en variante `KHR_materials_variants` du nom du
-sexe, #3188), la vitesse au sol du clip du rôle `walk` mesurée par l'évaluateur, et
+sexe, #3188), la vitesse au sol du clip du rôle `marche` mesurée par l'évaluateur, et
 l'empreinte du GLB. Le manifeste refusé par `validerModele` (`hotes/godot/asset/modeles.ts`) fait échouer la construction.
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
@@ -107,12 +108,13 @@ Lire la table exécutable des catégories avant d'écrire le manifeste :
 | trait | trait | non résolu à l'import | squelette |
 | decor | prop | non résolu à l'import ; design : `src/data/props.json` | rigide |
 | vehicule | definition | coque de `src/data/vehicles.json` ou engin `armes-de-siege` de `src/data/trappings.json` | rigide |
+| amelioration | amelioration | Amélioration de `src/data/naval-traits.json` | rigide |
 
 Chaque surface, quelle que soit la catégorie, nomme le matériau du GLB et l'emplacement de palette
 dont il prend la couleur (`{ "nom", "palette" }`, `SLOTS` de `src/lib/palette.ts`, `hotes/godot/asset/surfaces.ts`) ;
 la palette d'une composition donne à chaque emplacement une couleur du nuancier.
 
-Un élément sans base (`decor`, `vehicule`) se construit dans un repère fixe : en glTF, son avant
+Un élément sans base (`decor`, `vehicule`, `amelioration`) se construit dans un repère fixe : en glTF, son avant
 vers +Z, sa gauche vers +X (bâbord d'un navire), son origine au sol ou, pour un navire, à la ligne
 de flottaison, son emprise recentrée en x et z ; l'hôte le pose sur son empreinte et le tourne vers
 son cap sans lire d'autre repère. Il se construit en mètres réels : l'hôte le réduit à son empreinte.
@@ -137,8 +139,8 @@ monstrueuse : `{ "tete": "skaven" }`. Un seul élément par
 et pour un corps il inclut partie et forme. Le manifeste ne porte pas d'id arbitraire.
 
 Les catégories corps, tête, pilosité, vêtement, armure, accessoire et trait portent une couche :
-peau < dessous < tenue < armure < manteau. L'armure impose armure. Les trois autres catégories
-n'ont ni couche ni couverture. `couvre` est requis pour les éléments skinnés, optionnel pour un
+peau < dessous < tenue < armure < manteau. L'armure impose armure. Les quatre autres catégories
+(rigide, decor, vehicule, amelioration) n'ont ni couche ni couverture. `couvre` est requis pour les éléments skinnés, optionnel pour un
 accessoire ; ses ids viennent des zones de la base. Une couverture déclarée reste à mesurer. L'hôte cache la zone
 couverte du corps et des couches dessous : une pièce ne couvre une zone que si elle la cache sous tout angle du jeu.
 Sous un ourlet ouvert, évasé ou effiloché, pieds écartés, le mollet se voit ; la robe du Sorcier ne couvre donc pas
@@ -163,9 +165,9 @@ n'imposent sa présence : la vérifier dans le GLB, et garder cette exigence NON
 l'import ne la refuse pas.
 
 Une **zone** est une région du corps ; un **emplacement**, un point d'accroche ; une
-**localisation**, une localisation de règle d'armure ; une **prise**, main ou off.
+**localisation**, une localisation de règle d'armure ; une **prise**, main ou secondaire.
 La base humanoïde déclare 16 emplacements dans `scripts/personnage-3d/base/anatomie.py`.
-Les prises se lisent dans son manifeste, main sur hand_r et off sur hand_l.
+Les prises se lisent dans son manifeste, main sur hand_r et secondaire sur hand_l.
 La donnée de pièce vise l'emplacement ; l'élément ne répète ni prise ni rangement.
 Un vêtement a coupe, volume et épaisseur ; un accessoire s'accroche. Une armure recouvre les
 couches inférieures. L'exclusion à couche égale et le montage après couverture relèvent de L3/L4.
@@ -226,6 +228,11 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   la coiffure) nomme ses ids.
 - `modele.py` : la construction seule. Un rigide : `construire(D, materiaux)` rend ses objets, bâtis dans le repère de
   sa prise. Une pièce skinnée : `construire(D, materiaux, base)` rend la pièce jointe, ses clés transférées.
+- Une pièce skinnée publiée dont l'atelier est perdu se reprend de son GLB épinglé (#3761) : `modele.py` tient en
+  `from publie import reprendre`, et `donnees.py` ne porte que `MANIFESTE` (les champs publiés, `emplacements` compris),
+  `MATERIAUX` (valeurs des matériaux du GLB publié) et `BUDGET_TRIANGLES` (son compte de triangles). `element/publie.py`
+  garde du publié le repos, les poids, les normales, la découpe en meshes et les clés propres (`visage_inverse`), et
+  retransfère de la base courante les silhouettes et les clés `gabarit_*`. Une pièce neuve ne passe jamais par là.
 
 Le constructeur commun `element/construire.py` ouvre la base épinglée, appelle le modèle, contrôle le budget, pend le
 rigide à l'os de sa prise ou découpe la pièce par zone, exporte l'élément seul et écrit son dossier de production
@@ -244,10 +251,31 @@ manifeste, par `Base.transferer(piece, zones)` depuis la copie jointe des zones 
 le plus proche (une liaison de surface tourne l'écart au corps avec sa normale) ; une pièce longue
 dont le corps se tasse sous une clé (robe jusqu'aux chevilles sous `gabarit_legs_moins`) passe ses `bornes`. Une arête
 que la clé retourne est lissée comme une arête hors bornes ; la nappe intérieure d'une double nappe porte les clés de
-sa jumelle extérieure (liées chacune au plus près, elles divergeaient et le lissage gagnait toute la pièce). Une pièce posée sur un autre vêtement (pan de capuche sur la
-robe) en emprunte les poids (`Base.matieres_publiees`) et les clés (un `masques` de `Base.transferer`, ses zones et les
-meshes publiés qu'il couvre) : transférées du seul corps, deux couches divergent sous silhouette et se traversent. Le
-vêtement de dessous s'importe donc avant, et l'élément qui le recouvre le nomme dans son `CONTOURNE`. De même, une
+sa jumelle extérieure (liées chacune au plus près, elles divergeaient et le lissage gagnait toute la pièce).
+Sous une silhouette à os (`gabarit.osDesSilhouettes` du manifeste de base : la carrure écarte les épaules et les
+hanches), les hôtes déplacent les os et compensent les liaisons : au repos, une pièce skinnée vaut son bind plus ses
+clés quels que soient ses poids, et une pièce rigide suit son os. L'élément ne déclare rien : ses clés transférées
+portent le déplacement entier. L'évaluateur et `rendu.py` déplacent les os de la même table.
+
+Une pièce ne se pondère jamais contre une autre pièce : ses poids sont ceux de son porteur, le corps. Le montage résout
+la pile des couches de la tenue réellement portée (`resoudreLaPile`, `hotes/godot/asset/pile.ts`), par les mêmes règles
+pour toute pièce : la couche du dessous reprend les poids de celle qui la couvre, recule à 3 mm sous elle, et ses
+triangles entièrement couverts ne se dessinent plus. La pièce lui doit trois choses, et rien d'autre :
+
+- sa `couche` déclarée, qui dit ce qui la couvre ; à couche égale, un `accessoire` se porte par-dessus ;
+- au repos et sous chaque silhouette, rester derrière ce qui la couvre : le montage laisse dehors ce qui le perce de
+  plus de 1 cm, et la porte nomme (`couche-percee-au-repos`) l'arête qui traverse l'endroit de sa couverture et en sort
+  de plus de 5 mm devant un triangle qui lui fait face ; longer sa couverture sans la traverser, comme un col sous une
+  écharpe, n'est pas la percer, ni sortir par le chant d'une pièce épaisse, comme la joue au-delà d'une barbe ;
+- les mêmes poids, sommet pour sommet, sur les deux faces d'une épaisseur : le montage garde rigide ce que son auteur
+  a lié pareil.
+
+Une pièce posée sur un autre vêtement (pan de capuche sur la robe) se place sur lui (`Base.matieres_publiees`) et n'en
+reprend les clés (un `masques` de `Base.transferer`, ses zones et les meshes publiés qu'il couvre) que si, transférées
+du seul corps, les deux couches s'écartent de plus de 1 cm sous une silhouette. Le vêtement de dessous s'importe alors
+avant, et l'élément qui le recouvre le nomme dans son `CONTOURNE`.
+
+ De même, une
 partie qui ne suit qu'une région du corps prend ses clés de ses seules zones : liée aussi au cou, qui monte sous
 `carrure_plus` quand la tête publiée ne bouge pas, le bas d'un capuchon se replie et la tête passe devant.
 `npm run godot:evaluer` (garde `suiviDuCorps`) refuse par `cle-inerte` une pièce qui ne suit pas un corps qui bouge
@@ -257,10 +285,16 @@ Pièges mesurés au Sorcier (#3743) : la nappe intérieure d'une double nappe es
 corps se vise sur elle ; une pièce qui couvre `cou` cache le cou sous l'hôte et doit couvrir la couture cou/torse de la
 base, en dents de scie ; sous le menton, des anneaux trop proches s'étirent en clip (écart vertical minimal entre
 anneaux) ; un vêtement de tête se pose par une marche du dehors vers le centre en distance aux surfaces contournées, les
-rayons depuis un centre glissant par les coutures ouvertes du cou. La chaîne `jupe` (`base/chaines.py`) est faite de
-quatre brins rigides pendus au bassin, dont seul l'os `_01` tourne : un pan se pondère par secteur angulaire autour du
-bassin, fondu du bassin vers son brin sous la tête des cuisses ; son étirement en clip suit le déplacement du brin et la
-pente du fondu entre brins, pas la finesse du maillage. Une doublure reprend les colonnes et les poids de la nappe
+rayons depuis un centre glissant par les coutures ouvertes du cou. Un tissu qui pend ne se pondère ni aux cuisses ni au
+dos : il se pose sur un filet de la base (`base/filets.py`), `jupe` (seize brins de trois os autour du bassin) ou `cape`
+(sept brins de quatre os dans le dos, par-dessus la jupe). La base drape ces filets image par image dans chaque clip
+(`base/tente.py`) : le brin passe par-dessus ce que le vêtement laisse voir et sous la main, cède à la main sur ce qu'il
+cache, et cède à tout plutôt que de s'étirer : dans une roulade, un pied traverse l'ourlet avant qu'une arête ne
+s'allonge. Une pièce lit le filet au repos par `Base.filet(nom)` (`tissu.Filet`) : elle pose sa nappe au jeu sur le
+rayon du filet (`Filet.point`) et la pondère aux os de ses deux brins voisins (`Filet.poids`), fondue du corps au filet
+sous ses racines (`Filet.part`). Elle ne dépasse pas le brin de bord d'un filet ouvert, au-delà duquel rien ne la
+porte, et déclare le filet dans `chaines`. Aucun réglage de pli ni d'évasement par pièce : la forme au repos et le
+mouvement viennent du filet. Une doublure reprend les colonnes et les poids de la nappe
 qu'elle double, sans lissage propre, sinon elle la traverse. Une traversée peut n'apparaître qu'à une silhouette :
 la porte est la matrice des cinq passes, jamais la passe neutre seule.
 
@@ -312,7 +346,7 @@ Une pose utile absente relève de la base et de sa porte, pas d'un nouveau clip 
 Une arme à deux mains déclare `liaison.secondePrise`, le repère de prise de la main libre dans celui
 de sa prise, le long du manche : au-dessus sur le +Y (vers le fer) pour une hampe, au-dessous vers le talon pour une
 arme lourde (`hotes/godot/asset/element.ts`) ; tenue à la prise
-`main`, Godot y pose la main `off` (`hotes/godot/projet/scripts/seconde_prise.gd`, #3319). Son côté
+`main`, Godot y pose la main `secondaire` (`hotes/godot/projet/scripts/seconde_prise.gd`, #3319). Son côté
 et son roulis sont ceux du maniement de l'arme dans les clips dérivés (`SECONDES` de
 `scripts/personnage-3d/base/deux_mains.py`, test `SecondesPrises`). La vérifier au rendu Godot sur
 repos, attaque et marche : poing fermé sur le manche, bras sans torsion. Un rendu Blender des clips montre la main
@@ -333,7 +367,7 @@ Lire au besoin la référence diagnostics du skill.
    L'armature nécessaire au skin peut être exportée, sans dupliquer les meshes du corps ni les
    clips de base ; les animations viennent de la base. Un rigide tenu pend à un os de la
    base : l'import refuse un élément rigide sans mesh, un mesh sur un os absent de la base, ou à la
-   racine hors `decor`/`vehicule` (`hotes/godot/asset/element.ts` `REGLES_DES_CATEGORIES`).
+   racine hors `decor`/`vehicule`/`amelioration` (`hotes/godot/asset/element.ts` `REGLES_DES_CATEGORIES`).
    Réimporter le GLB réellement livré.
 4. Écrire le manifeste schéma 3, valider sa forme contre la base, vérifier son empreinte et
    évaluer le GLB monté sur cette base (commandes ci-dessous).
@@ -423,6 +457,20 @@ déclarée de la base seule à 1, une passe par processus, en parallèle sur les
 moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>`. Une passe isolée se
 rejoue par `--silhouettes nom=poids`, et `--clips` borne un essai aux clips fautifs avant la porte entière.
 Ne pas valider une matrice entière avec le seul cas neutre.
+La porte mesure la tenue telle que le montage la pose : elle résout d'abord la pile des couches (section 3), et son
+rapport en donne le bilan (`mesures.pile` : points retenus, suiveurs, reculés, triangles masqués).
+La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant la surface de celle qui
+la couvre ; un triangle de la couverture qui se couche seul en pose ne fait rien passer devant lui.
+`couche-percee-au-repos` : au repos neutre, une arête d'une couche traverse l'endroit de celle qui la couvre et en
+sort devant un triangle qui lui fait face ; sortir par le chant d'une pièce épaisse, comme la joue au-delà d'une
+barbe, n'est pas la percer. `membre-dans-un-vetement` : en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
+manche de l'autre bras. Le tissu pincé n'en est pas : là où le vêtement repose sur le corps d'une autre zone,
+le membre qui l'y presse ne le traverse pas. D'un vêtement à doublure, seul compte l'endroit : la main posée devant
+lui est derrière sa doublure sans l'avoir traversé.
+Ce qu'une tenue de preset garde de `membre-dans-un-vetement` après correction s'admet à sa mesure, par passe et par
+clip, dans `hotes/godot/asset/plafonds/<preset>.json`, et sa porte se joue avec `--plafonds <ce fichier>` : au-delà du
+plafond d'un clip elle rend tous ses écarts, en deçà elle demande de le baisser (`plafond-a-baisser`). Un plafond ne
+monte pas (#3842).
 
 ## 7. Deux validations distinctes
 
@@ -442,7 +490,7 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 
 | Élément | Triangles maximum | Atlas maximum |
 |---|---|---|
-| base humanoïde | 6 000 | 1024² |
+| base humanoïde | 14 500 | 1024² |
 | tête | 2 500 | 512² |
 | pilosité | 1 500 | 256² |
 | vêtement par pièce | 2 500 | 512² |
@@ -452,8 +500,10 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 | prop d'art | 1 500 | 512² |
 | personnage assemblé, base visible comprise | 16 000 | — |
 
-Ne pas créer de plafond véhicule absent du contrat. La part de base masquée se mesure lors du
-montage complet ; le budget de l'évaluateur présent ne remplace pas automatiquement ce calcul.
+Base à 14 500 : décision utilisateur du 2026-11-13 (#3287), la base mesurée à 14 318 triangles.
+
+Ne pas créer de plafond véhicule absent du contrat. Le budget assemblé de l'évaluateur ne compte pas
+les meshes que la pile des couches masque (`hotes/godot/asset/evaluateur/evaluer.ts`, `masques`).
 
 **Artistique** : identité, silhouette, proportions, pose, coupe, contacts et lisibilité. Un défaut
 dominant renvoie à la construction ; un petit pli acceptable permet d'avancer. Gros trou, pièce
@@ -532,8 +582,8 @@ projet) et se cite dans la docstring des données ; sans référence, la docstri
 
 Un engin est une unité : il s'anime comme une créature (`clips.py`). Chaque pièce mobile est son propre nœud, à son
 pivot (roue à son essieu, bras à son axe, fût à ses tourillons, chaîne à son attache), et `clips.animer` clé ses clips :
-`idle` (repos), `walk` (déplacement en boucle : `rouler` tourne les roues à la vitesse d'une case par pas du plateau,
-`cahoter` secoue un engin sans roues que ses servants portent ou traînent) et son attaque, `ranged` (`tirer` : recul,
+`repos`, `marche` (déplacement en boucle : `rouler` tourne les roues à la vitesse d'une case par pas du plateau,
+`cahoter` secoue un engin sans roues que ses servants portent ou traînent) et son attaque, `tir` (`tirer` : recul,
 ressaut, barillet qui tourne ; ou la course d'un bras, d'une verge) ou `melee` (le bélier). Les durées et amplitudes
 sont des données nommées de `donnees.py`.
 
@@ -563,7 +613,9 @@ ne franchissent ni mur ni porte, et reposent sur un plancher. Une garde qui refu
 d'une case ou en la tournant, jamais en la retirant ni en vidant une cabine dessinée : le nombre de pièces par bord est
 celui de l'illustration qui les place (MDG 12 pour la caraque). Dans le jeu, la route à bord
 (`hotes/godot/recettes/route-a-bord.hors-store.test.ts`, une par scénario `a-bord-de-*`) prouve que chaque case
-s'atteint depuis le départ par les échelles, et la rejoue au clic dans l'export Web :
+s'atteint depuis le départ par les échelles et qu'au regard `plateau` chacune est la plus haute que le monde montre à
+la verticale de son point (aucun décor du pont du dessous ne la traverse : `src/noyau/planDeNavire.test.ts`), et la
+rejoue au clic dans l'export Web, au regard `plateau` :
 
 ```sh
 ROUTE=/atelier/routes npx vitest run --config vitest.noyau.config.ts hotes/godot/recettes/route-a-bord.hors-store.test.ts
@@ -615,8 +667,8 @@ Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur liv
 ## Importer une base et ses éléments
 
 Chaque dossier de production contient `manifest.json`, le GLB qu'il nomme, au plus un `.blend`
-et ses `LICENSE*.txt` (licence déclarée par la ligne `License:`, sinon par le titre). Pour une base ou un élément au schéma 3,
-`manifest.json` est une enveloppe de production séparée du manifeste fermé :
+et ses `LICENSE*.txt` (licence déclarée par la ligne `License:`, sinon par le titre). Pour une base (schéma 6, `VERSION_DU_SCHEMA_DE_BASE`) ou un élément (schéma 3),
+`manifest.json` est une enveloppe de production séparée du manifeste fermé, ici celle d'un élément :
 
 ```json
 {

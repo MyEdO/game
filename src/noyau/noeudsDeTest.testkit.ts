@@ -13,7 +13,7 @@
  * eux-mêmes, ce kit ne fait que le CONSTRUIRE (type seul, effacé à la compilation).
  *
  * La PORTE MALADIE (`rendreMalade` → `nuitDuMalade`) y vit aussi : un nœud de cycle (`onTick.test` d'un
- * symptôme, `dailyTest.test` d'une maladie) se joue par l'ENTRETIEN réel de la nuit (étape `disease-tick`,
+ * symptôme, `dailyTest.test` d'une maladie) se joue par l'ENTRETIEN réel de la nuit (étape `maladie-test-quotidien`,
  * `engine/disease.ts` `tickDisease` → applier de `noyau/restFlow.ts`), jamais par `routeTriggeredTest`.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -34,6 +34,7 @@ import { battleRng } from './battleRng';
 import { draineCascade } from './cascade.testkit';
 import { sceneLieu } from './restFlow';
 import { emptyScene, type Scene } from './monde/scene';
+import { findDiseaseById, findSymptomById, maladies } from '../data';
 
 const DATA = join(fileURLToPath(new URL('..', import.meta.url)), 'data');
 
@@ -45,15 +46,15 @@ export type NoeudTest = Extract<Flow, { kind: 'test' }>;
  *  le foyer est la RANGÉE et non le document (Critiques) n'y sont pas : leur producteur les nomme
  *  (cf. `ENJEU_AU_PRODUCTEUR`, `flowtest-derived-stake.hors-store.test.ts`). */
 export const KIND_PAR_FICHIER: Record<string, EffectSourceKind> = {
-  'spells.json': 'spell',
-  'trappings.json': 'trapping',
-  'etats.json': 'condition',
+  'spells.json': 'sort',
+  'trappings.json': 'objet',
+  'etats.json': 'etat',
   'talents.json': 'talent',
   'traits.json': 'trait',
-  'maneuvers.json': 'maneuver',
-  'qualities.json': 'quality',
-  'symptoms.json': 'symptom',
-  'maladies.json': 'disease',
+  'maneuvers.json': 'manoeuvre',
+  'qualities.json': 'qualite',
+  'symptoms.json': 'symptome',
+  'maladies.json': 'maladie',
 };
 
 export interface Noeud {
@@ -131,23 +132,21 @@ export function decorHorsCombat(): Partial<Jeu> {
   };
 }
 
-const lireDonnee = <T extends { id: string }>(fichier: string): T[] =>
-  JSON.parse(readFileSync(join(DATA, fichier), 'utf8')) as T[];
-
 /** La PORTE MALADIE d'un nœud, lue à son CHAMP porteur : la maladie à contracter, le symptôme dont
- *  l'étape `disease-tick` porte le jet, et les jours de phase active avant qu'il ne tombe. `undefined`
+ *  l'étape `maladie-test-quotidien` porte le jet, et les jours de phase active avant qu'il ne tombe. `undefined`
  *  pour tout autre nœud. Un symptôme qu'aucune maladie ne porte LÈVE (nœud injouable, nommé). */
 export function porteDeMaladie(n: Noeud): { maladie: string; symptomId: string; jours: number } | undefined {
   if (n.fichier === 'maladies.json' && n.chemin === '.dailyTest.test') {
-    const dz = lireDonnee<{ id: string; dailyTest: { symptomId: string } }>('maladies.json').find((m) => m.id === n.entryId)!;
-    return { maladie: n.entryId, symptomId: dz.dailyTest.symptomId, jours: 0 };
+    const quotidien = findDiseaseById(n.entryId)?.dailyTest;
+    if (!quotidien) throw new Error(`maladie « ${n.entryId} » : aucun Test quotidien (\`dailyTest\`) dans maladies.json`);
+    return { maladie: n.entryId, symptomId: quotidien.symptomId, jours: 0 };
   }
   if (n.fichier === 'symptoms.json' && n.chemin === '.onTick.test') {
-    const porteuse = lireDonnee<{ id: string; symptoms?: { symptomId: string }[] }>('maladies.json')
-      .find((m) => (m.symptoms ?? []).some((x) => x.symptomId === n.entryId));
+    const porteuse = maladies.find((m) => m.symptoms.some((x) => x.symptomId === n.entryId));
     if (!porteuse) throw new Error(`symptôme « ${n.entryId} » : aucune maladie de maladies.json ne le porte`);
-    const sym = lireDonnee<{ id: string; onTick: { afterDays?: number } }>('symptoms.json').find((x) => x.id === n.entryId)!;
-    return { maladie: porteuse.id, symptomId: n.entryId, jours: sym.onTick.afterDays ?? 0 };
+    const cycle = findSymptomById(n.entryId)?.onTick;
+    if (!cycle) throw new Error(`symptôme « ${n.entryId} » : aucun cycle (\`onTick\`) dans symptoms.json`);
+    return { maladie: porteuse.id, symptomId: n.entryId, jours: cycle.afterDays ?? 0 };
   }
   return undefined;
 }
@@ -164,16 +163,16 @@ export function rendreMalade(c: Combatant, n: Noeud): Combatant {
   return h;
 }
 
-/** La NUIT du malade (repos → « Dormir »), par les gestes du joueur : l'étape `disease-tick` du nœud reçoit
+/** La NUIT du malade (repos → « Dormir »), par les gestes du joueur : l'étape `maladie-test-quotidien` du nœud reçoit
  *  un dé POSÉ (« Dés fixés », `draineCascade`) — 1 pour une réussite, 100 pour un échec —, toute autre
  *  rangée un 1. Aucun dé tiré : deux nuits de même décor ne divergent que par l'issue du jet du nœud. */
 export function nuitDuMalade(get: Get, n: Noeud, sujetId: string, reussite: boolean): void {
   const { symptomId } = porteDeMaladie(n)!;
   get().offrirLeRepos({ lieu: sceneLieu(get) });
-  get().fenetreValider('rest');
+  get().fenetreValider('repos');
   const p = get().pendingCascade;
-  const vise = (s: CascadeStep): boolean => s.kind === 'disease-tick' && s.meta?.symptomId === symptomId
+  const vise = (s: CascadeStep): boolean => s.kind === 'maladie-test-quotidien' && s.meta?.symptomId === symptomId
     && (s.participants ? s.participants.some((r) => r.id === sujetId) : s.actorId === sujetId);
-  if (!p?.participants.some(vise)) throw new Error(`${n.entryId} : la nuit n’a posé aucune étape \`disease-tick\` de « ${symptomId} » chez ${sujetId} (nuit : ${(p?.participants ?? []).map((s) => `${s.kind}:${String(s.meta?.symptomId ?? '')}`).join(' ') || 'aucune cascade'} ; jour ${dayIndex(get().gameTime)}, entretien ${get().lastUpkeepDay})`);
+  if (!p?.participants.some(vise)) throw new Error(`${n.entryId} : la nuit n’a posé aucune étape \`maladie-test-quotidien\` de « ${symptomId} » chez ${sujetId} (nuit : ${(p?.participants ?? []).map((s) => `${s.kind}:${String(s.meta?.symptomId ?? '')}`).join(' ') || 'aucune cascade'} ; jour ${dayIndex(get().gameTime)}, entretien ${get().lastUpkeepDay})`);
   draineCascade(get, 200, (etape, rangee) => (vise(etape) && (rangee ? rangee.id === sujetId : true) && !reussite ? 100 : 1));
 }

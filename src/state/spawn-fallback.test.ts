@@ -65,9 +65,9 @@ describe('#3684 — objets d’inventaire d’auteur au spawn de combat', () => 
   it('une entité armée d’un arc d’inventaire a une cible DANS SA BANDE DE TIR (elle peut tirer)', () => {
     const shooter = spawnEnemy({ ref: 'humain' }, 'archere', { x: 0, y: 0 }, { inventaire: { arc: false } });
     const cible = spawnEnemy({ ref: 'humain' }, 'cible', { x: 10, y: 0 });
-    const arc = shooter.weapons.find((w) => w.type === 'ranged');
+    const arc = shooter.weapons.find((w) => w.type === 'distance');
     expect(arc?.trappingId).toBe('arc');
     expect(weaponLoaded(shooter, arc!)).toBe(true);
-    expect(inFiringBand(shooter, cible, arc!)).toBe(true); // 10 cases = 20 m, Portée 50 m
+    expect(inFiringBand(null, shooter, cible, arc!)).toBe(true); // 10 cases = 20 m, Portée 50 m
   });
 });

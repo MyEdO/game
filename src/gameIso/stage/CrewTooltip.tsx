@@ -4,12 +4,14 @@
  * si le héros actif peut la servir. Données pures (poste.crewIds / qualité arme-d-equipe) — zéro mécanique.
  */
 import type { BattleState } from '../../noyau/etat';
+import type { Scene } from '../../noyau/monde/scene';
 import { Combatant } from '../../engine/types';
 import { serveTargetPoste, isPosteManned, servingCrewPresent, posteCrewSplit, isCrewQualified } from '../../noyau/monde/shipPostes';
 import { weaponGroupLabel } from '../../data';
 import { GOLD_TINT, ENEMY_CUE_TINT, RING_ALLY_TINT } from '../highlightTints';
 
-export function CrewTooltip({ battle, hoveredId, myTurn, anchor }: {
+export function CrewTooltip({ scene, battle, hoveredId, myTurn, anchor }: {
+  scene: Scene;
   battle: BattleState;
   hoveredId: string | null;
   myTurn: boolean;
@@ -20,7 +22,7 @@ export function CrewTooltip({ battle, hoveredId, myTurn, anchor }: {
   const active = battle.combatants.find((c) => c.id === battle.order[battle.turn]);
   // Pièce que le héros ACTIF pourrait REJOINDRE (affordance « Servir cette pièce ») → carte d'ACTION
   // (qualifié/aide), à l'image de la carte d'attaque quand on cible un ennemi.
-  const servePoste = active && active.kind === 'hero' && myTurn ? serveTargetPoste(active, occ, battle.combatants) : undefined;
+  const servePoste = active && active.kind === 'heros' && myTurn ? serveTargetPoste(scene, active, occ, battle.combatants) : undefined;
   const lines: { text: string; color: string; bold?: boolean }[] = [];
   for (const p of occ.postes) {
     const indice = p.item.qualities?.find((q) => q.id === 'arme-d-equipe')?.value ?? 0;
@@ -41,7 +43,7 @@ export function CrewTooltip({ battle, hoveredId, myTurn, anchor }: {
     if (indice > 0 && present != null) lines.push({ text: `Effectif (qualifié) : ${present}/${indice}${present < indice ? ' sous-effectif' : ''}`, color: present < indice ? ENEMY_CUE_TINT : RING_ALLY_TINT });
     // Carte d'ACTION du héros actif : SA qualification pour CETTE pièce (même check RAW que l'effectif),
     // affichée DÈS le survol (même non adjacent) → on sait d'un coup d'œil si ce héros peut l'armer.
-    if (active && active.kind === 'hero' && myTurn) {
+    if (active && active.kind === 'heros' && myTurn) {
       const canServeNow = !!(servePoste && servePoste.item.uid === p.item.uid); // adjacent + servable maintenant
       if (isCrewQualified(active, p)) {
         lines.push({ text: `✓ Qualifié${groupLabel ? ` (Projectiles ${groupLabel})` : ''}`, color: RING_ALLY_TINT, bold: true });

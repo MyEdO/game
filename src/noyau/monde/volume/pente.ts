@@ -6,7 +6,7 @@
  * case, ses deux voisines d'arête, la diagonale) ; une voisine que la case ne raccorde pas y compte à la hauteur de la
  * case. PUR, en unités de grille + mètres.
  */
-import { edgeOf, heightAt, tileAt, type Scene } from '../scene';
+import { edgeOf, heightAt, tileAt, type SceneDuVolume } from '../scene';
 import { aretesA } from '../wallIndex';
 import { gradeBetween } from '../relief';
 import { estAbsent, terrainBuilt, terrainSolidHeightM } from '../terrain';
@@ -21,19 +21,19 @@ const DIVISIONS_PENTE = 4;
 /** Hauteur d'AFFICHAGE (m) d'une surface = hauteur de jeu (`heightAt`, vérité INTOUCHÉE) + le BLOC PLEIN
  *  éventuel du terrain (`solidHeightM`, ex. mur), qui s'ajoute à la hauteur propre de la case. Seul le volume la lit :
  *  aucun code de combat ne voit la hauteur du bloc. */
-export function displayHeightAt(scene: Scene, x: number, y: number, z: number): number {
+export function displayHeightAt(scene: SceneDuVolume, x: number, y: number, z: number): number {
   return heightAt(scene, x, y, z) + terrainSolidHeightM(tileAt(scene, x, y, z));
 }
 
 /** La case (x,y) de la couche z porte-t-elle un sol, dans la grille ? */
-export function presenteDansLaGrille(scene: Scene, x: number, y: number, z: number): boolean {
+export function presenteDansLaGrille(scene: SceneDuVolume, x: number, y: number, z: number): boolean {
   const { w, h } = scene.dimensions;
   return x >= 0 && y >= 0 && x < w && y < h && !estAbsent(tileAt(scene, x, y, z));
 }
 
 /** Deux cases voisines de la couche z se rejoignent-elles à pied ? Un bloc plein n'en rejoint aucune, ni un segment
  *  posé sur leur côté commun (`aretesA`), mur ou porte, ouverte ou non : le sol ne passe pas sous un mur. */
-export function rejointAPied(scene: Scene, ax: number, ay: number, bx: number, by: number, z: number): boolean {
+export function rejointAPied(scene: SceneDuVolume, ax: number, ay: number, bx: number, by: number, z: number): boolean {
   if (!presenteDansLaGrille(scene, ax, ay, z) || !presenteDansLaGrille(scene, bx, by, z)) return false;
   const cote = edgeOf(ax, ay, bx, by);
   if (cote && aretesA(scene, cote.x, cote.y, cote.side, z).length > 0) return false;
@@ -67,7 +67,7 @@ const indiceDuQuart = (u: number, v: number): number => (u >= 0 ? 1 : 0) + (v >=
 
 /** La case (x,y,z) est-elle une marche de volée le long de l'axe (ax, ay) : rejoint à pied ses deux voisines sur cet axe,
  *  l'une plus basse, l'autre plus haute qu'elle ? */
-function traverseeLeLongDe(scene: Scene, x: number, y: number, z: number, ax: number, ay: number): boolean {
+function traverseeLeLongDe(scene: SceneDuVolume, x: number, y: number, z: number, ax: number, ay: number): boolean {
   if (!rejointAPied(scene, x, y, x - ax, y - ay, z) || !rejointAPied(scene, x, y, x + ax, y + ay, z)) return false;
   const h = displayHeightAt(scene, x, y, z);
   return Math.sign(displayHeightAt(scene, x - ax, y - ay, z) - h) * Math.sign(displayHeightAt(scene, x + ax, y + ay, z) - h) < 0;
@@ -77,14 +77,14 @@ function traverseeLeLongDe(scene: Scene, x: number, y: number, z: number, ax: nu
  *  seulement, quand l'une des deux est une marche de cette volée sur cet axe (`traverseeLeLongDe`) et que la case n'est
  *  pas la marche d'une volée de l'autre axe. Un palier, le sol au flanc d'une volée ou une estrade restent plats : la
  *  contremarche de leur arête comble l'écart. */
-function raccordeLeLongDeLaVolee(scene: Scene, x: number, y: number, z: number, dx: number, dy: number): boolean {
+function raccordeLeLongDeLaVolee(scene: SceneDuVolume, x: number, y: number, z: number, dx: number, dy: number): boolean {
   const [ax, ay] = [Math.abs(dx), Math.abs(dy)];
   if (traverseeLeLongDe(scene, x, y, z, ay, ax)) return false;
   return traverseeLeLongDe(scene, x, y, z, ax, ay) || traverseeLeLongDe(scene, x + dx, y + dy, z, ax, ay);
 }
 
 /** Le dessus de la case (x,y,z) présente. */
-export function dessusDe(scene: Scene, x: number, y: number, z: number): Dessus {
+export function dessusDe(scene: SceneDuVolume, x: number, y: number, z: number): Dessus {
   const h = displayHeightAt(scene, x, y, z);
   const bati = terrainBuilt(tileAt(scene, x, y, z));
   const raccorde = (dx: number, dy: number): boolean =>

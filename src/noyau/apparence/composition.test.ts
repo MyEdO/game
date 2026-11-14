@@ -4,11 +4,30 @@
  * et la seule validation d'une composition. Les attendus se lisent au catalogue et au schéma, jamais recopiés.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { cataloguesDeComposition, compositionDuPreset, lireComposition, porteeDeComposition, presetDeComposition, type Axe, type Composition } from './composition';
-import { findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTrappingById, findVarianteById, gardeRobe, piecesDeLObjet, presetsDePersonnage, trappingsInstanciables } from '../../data';
+import {
+  cataloguesDeComposition,
+  compositionDuPreset,
+  lireComposition,
+  porteeDeComposition,
+  presetDeComposition,
+  type Axe,
+  type Composition,
+} from './composition';
+import {
+  findEnsembleParHabille,
+  findPieceById,
+  findPresetDePersonnageById,
+  findTrappingById,
+  findVarianteById,
+  gardeRobe,
+  piecesDeLObjet,
+  presetsDePersonnage,
+  trappingsInstanciables,
+  type PresetDePersonnage,
+} from '../../data';
 import { resetData, setDataset } from '../../data/overrides';
 import { CLES_ENVELOPPE } from '../../data/schemas/grammaire/document';
-import { file as FICHIER_DES_PRESETS, meta as metaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
+import { file as FICHIER_DES_PRESETS, meta as metaDesPresets } from '../../data/schemas/defs/presets-de-personnage';
 import { noeudDuChamp } from '../../data/schemas/validate';
 import { serializeDataset } from '../../data/serialize';
 import { BUILD_NEUTRE } from '../../lib/corpulence';
@@ -75,7 +94,7 @@ describe('cataloguesDeComposition', () => {
 
   it('un enum nommé publie ses valeurs, celui d’une clé de record aussi', () => {
     expect(catalogues.sex.map((c) => c.id)).toEqual(['M', 'F']);
-    expect(catalogues.prises).toEqual([{ id: 'main', label: 'Main directrice' }, { id: 'off', label: 'Main secondaire' }]);
+    expect(catalogues.prises).toEqual([{ id: 'main', label: 'Main directrice' }, { id: 'secondaire', label: 'Main secondaire' }]);
   });
 
   it('les axes, dans leur ordre : la forme dérivée du schéma, le libellé de sa méta, sa liste, les bornes et le neutre de la corpulence', () => {
@@ -112,9 +131,9 @@ describe('lireComposition', () => {
   it('une composition absente, enveloppée ou fautive est refusée, chaque faute à son chemin', () => {
     expect(lireComposition(undefined)).toMatchObject({ ok: false, fautes: [{ chemin: [] }] });
     expect(lireComposition(soldat)).toMatchObject({ ok: false });
-    expect(lireComposition({ ...composition, prises: { main: { id: 'hallebarde' }, off: { id: 'hallebarde' } } })).toEqual({
+    expect(lireComposition({ ...composition, prises: { main: { id: 'hallebarde' }, secondaire: { id: 'hallebarde' } } })).toEqual({
       ok: false,
-      fautes: [{ chemin: ['prises', 'off'], message: expect.stringContaining('porté deux fois') }],
+      fautes: [{ chemin: ['prises', 'secondaire'], message: expect.stringContaining('porté deux fois') }],
     });
   });
 

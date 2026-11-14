@@ -146,7 +146,7 @@ describe('PARITÉ — les rosters ne diffèrent QUE par leurs données', () => {
  */
 describe('APTITUDE — un marin hors d’état n’entre pas au roster', () => {
   const marin = (id: string, label: string, pv: number, dead = false): Combatant => (blessuresSurLeProfil({
-    id, label, kind: 'hero',
+    id, label, kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
     wounds: blessuresDeBase(12, pv), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -168,7 +168,7 @@ describe('APTITUDE — un marin hors d’état n’entre pas au roster', () => {
     const mort = marin('m', 'Brenner', 0, true);
     const ko = marin('k', 'Ansmann', 0);
     const servant = marin('s', 'Perla', 12);
-    const hull = { id: 'ship', label: 'La Cogue', kind: 'npc', conditions: [], wounds: { current: 50, max: 50 },
+    const hull = { id: 'ship', label: 'La Cogue', kind: 'pnj', conditions: [], wounds: { current: 50, max: 50 },
       postes: [{ item: { label: 'Pierrier', uid: 'p1' }, crewIds: ['s'] }] } as unknown as Combatant;
     const montre = manoeuvreCrew(hull, [vivant, mort, ko, servant]).map((c) => c.id);
     expect(montre, 'ni le mort, ni le marin à 0 Blessure, ni le servant de pièce').toEqual(['v']);

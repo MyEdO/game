@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="QuadMesh" path="res://effets/particule_lumineuse.tres" id="1_2dlpj"]
+
+[sub_resource type="Gradient" id="Gradient_fv4ou"]
+colors = PackedColorArray(1, 1, 1, 0.9, 1, 1, 1, 0)
+
+[node name="lueur" type="Node3D" unique_id=1594019798]
+
+[node name="Gerbe1" type="CPUParticles3D" parent="." unique_id=1669700502 groups=["teinte"]]
+cast_shadow = 0
+amount = 16
+lifetime = 1.6
+preprocess = 1.6
+local_coords = true
+mesh = ExtResource("1_2dlpj")
+emission_shape = 6
+emission_ring_axis = Vector3(0, 1, 0)
+emission_ring_height = 0.0
+emission_ring_radius = 0.3
+emission_ring_inner_radius = 0.2
+emission_ring_cone_angle = 90.0
+direction = Vector3(0, 1, 0)
+spread = 180.0
+gravity = Vector3(0, 0.2, 0)
+initial_velocity_min = 0.1
+initial_velocity_max = 0.3
+scale_amount_min = 0.12
+scale_amount_max = 0.22
+color_ramp = SubResource("Gradient_fv4ou")

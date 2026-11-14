@@ -25,11 +25,11 @@ function setup(scene: Scene = testScene()) {
   banc.setState({ party: [hero], battle: null });
   banc.getState().lancerLaScene(scene);
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   return { H, E };
 }
 
@@ -40,7 +40,7 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood' } } });
     const res: AttackResult = {
       hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3,
-      critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+      critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
     };
     applyAttackResult(banc.getState, banc.setState, H, E, H.weapons[0], res);
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
@@ -56,7 +56,7 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood' } } });
     const res: AttackResult = {
       hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 4, woundsLost: 4,
-      critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+      critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
     };
     applyAttackResult(banc.getState, banc.setState, H, E, H.weapons[0], res);
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
@@ -66,19 +66,19 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
     const over = checkBattleOver(banc.getState, banc.setState);
     draineCascade(banc.getState);
     expect(over).toBe(true);
-    expect(banc.getState().battle!.over).toBe('victory');
+    expect(banc.getState().battle!.over).toBe('victoire');
   });
 
   it("0 Blessure (fin standard, RAW l.177) reste active en parallèle — même sous firstBlood, avec des coups ≤ seuil", () => {
     setup();
     // Tous les ennemis directement à 0 PB et morts : la fin STANDARD (incapacité), indépendante du premier sang.
     const b = banc.getState().battle!;
-    for (const c of b.combatants) if (c.kind === 'enemy') { c.dead = true; c.wounds = { ...c.wounds, current: 0 }; }
+    for (const c of b.combatants) if (c.kind === 'ennemi') { c.dead = true; c.wounds = { ...c.wounds, current: 0 }; }
     banc.setState({ battle: { ...b, victoryCondition: { type: 'firstBlood' } } });
     const over = checkBattleOver(banc.getState, banc.setState);
     draineCascade(banc.getState);
     expect(over).toBe(true);
-    expect(banc.getState().battle!.over).toBe('victory');
+    expect(banc.getState().battle!.over).toBe('victoire');
   });
 
   it("seuil ÉDITÉ en donnée (5) → un coup à 5 continue, à 6 termine", () => {
@@ -87,14 +87,14 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood', threshold: 5 } } });
     const res5: AttackResult = {
       hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 5, woundsLost: 5,
-      critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+      critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
     };
     applyAttackResult(banc.getState, banc.setState, H, E, H.weapons[0], res5);
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.outOfRencontre).toBeFalsy();
 
     const res6: AttackResult = {
       hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 6, woundsLost: 6,
-      critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+      critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
     };
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     e.wounds = blessuresDeBase(10, 10, e); // frais : le 1er coup (≤ seuil) ne doit pas biaiser le 2e par clampage
@@ -104,7 +104,7 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
 });
 
 describe('Duel judiciaire — restriction d\'armes à distance (#471, NADJ 06 l.181)', () => {
-  const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+  const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
 
   it('banRanged actif : resolveAttack REFUSE une arme à distance — chemin JOUEUR', () => {
     const { H, E } = setup();
@@ -175,7 +175,7 @@ describe('Duel judiciaire — premier sang mesuré sur le coup FINALISÉ (#471 d
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood' } } });
     const res: AttackResult = {
       hit: true, attackerRoll: 33, netSL: 1, location: 'corps', critLocation: 'brasG', damage: 2, woundsLost: 2,
-      critical: true, advantageTo: 'attacker', defenderDefeated: false, log: '',
+      critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: '',
     };
     applyAttackResult(banc.getState, banc.setState, H, E, H.weapons[0], res);
     draineCascade(banc.getState); // la sévérité du Critique se tire DANS la fenêtre (#1426)

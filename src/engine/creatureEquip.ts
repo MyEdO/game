@@ -6,7 +6,19 @@
  */
 import type { Weapon, ArmourPoints } from './types';
 import type { TraitInstance, TraitList } from './statEntry';
-import { buildWeapon, cleDInstanceDeTrait, emptyArmour, estUneVraieArme, gabaritDObjet, peutEtreTenu, uidDArme, unarmedWeapon, weaponFromItem, type GabaritDObjet, type TrappingResolver } from './items';
+import {
+  buildWeapon,
+  cleDInstanceDeTrait,
+  emptyArmour,
+  estUneVraieArme,
+  gabaritDObjet,
+  peutEtreTenu,
+  uidDArme,
+  unarmedWeapon,
+  weaponFromItem,
+  type GabaritDObjet,
+  type TrappingResolver,
+} from './items';
 import { armureDuTrait } from './armourBypass';
 import type { WeaponDamageSpec } from './types';
 import { traitLabelById } from './traits/dispatch';
@@ -70,7 +82,7 @@ function armeDuTrait(t: TraitInstance, resolveTrapping: TrappingResolver): Weapo
     const it = catalogItem(t.arg, source, resolveTrapping);
     if (it) return creatureWeapon(it, uid, dmg, t.range);
     // Arme naturelle/libre (arg hors catalogue, ou absent) : aucun `trappingId`, aucune forme résolue (le rendu retombe sur le Groupe).
-    return buildWeapon({ label: t.arg || 'Attaque à distance', type: 'ranged', damage: dmg, range: t.range ?? undefined, uid });
+    return buildWeapon({ label: t.arg || 'Attaque à distance', type: 'distance', damage: dmg, range: t.range ?? undefined, uid });
   }
   if (source === 'weaponsMelee') {
     // Attaque naturelle de corps (flag DONNÉE `natural`) → aucune arme dessinée (aucune forme résolue).
@@ -91,7 +103,7 @@ function armeDuTrait(t: TraitInstance, resolveTrapping: TrappingResolver): Weapo
   // `attackKind = t.id` (l'id du trait EST le kind : morsure/cornes/tentacules) → la pose/anim route par
   // ce champ STABLE (`maniementDe`, `src/noyau/animation.ts`), jamais par le libellé.
   const nat = findTraitById(t.id)?.capabilities?.naturalWeapon;
-  if (nat) return buildWeapon({ label: traitLabelById(t.id), type: nat.ranged ? 'ranged' : 'melee', damage: dmg, natural: true, attackKind: t.id, uid });
+  if (nat) return buildWeapon({ label: traitLabelById(t.id), type: nat.ranged ? 'distance' : 'melee', damage: dmg, natural: true, attackKind: t.id, uid });
   return null;
 }
 

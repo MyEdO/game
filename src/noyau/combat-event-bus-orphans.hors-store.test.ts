@@ -1,7 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { emitCombatEvent } from './combatEvents';
-import { applyCoupCritiqueSec } from './combatFlow';
+import { applyCoupCritiqueSec, instantaneAvantLeCoup } from './combatFlow';
 import { traits } from '../data';
 import { setDataset } from '../data/overrides';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -12,7 +12,7 @@ import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { hasCondition, COND } from '../engine/conditions';
 import type { Combatant, Weapon } from '../engine/types';
-import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../engine/flowCore';
 import type { EffectTrigger } from '../engine/flowCore';
 import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
@@ -27,7 +27,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 
 const bare = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', name: 'C', kind: 'enemy',
+  id: 'c', name: 'C', kind: 'ennemi',
   characteristics: profilDeTest({ force: 35, endurance: 35 }),
   wounds: blessuresDeBase(15), advantage: 0, conditions: [], skills: [], talents: [], traits: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
@@ -44,8 +44,8 @@ function withSyntheticTrait(id: string, effects: TriggeredEffect[]): Combatant {
   return bare({ traits: [{ id }] } as Partial<Combatant>);
 }
 const SELF_EMPETRE: TriggeredEffect = {
-  trigger: 'onHit', on: 'self',
-  flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'empetre', value: 1 }] } },
+  trigger: 'onHit', on: 'soi',
+  flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empetre' }, value: 1 }] } },
 };
 
 const TRAITS_LIVRES = [...traits];
@@ -69,9 +69,9 @@ describe('#316 — triggers orphelins câblés au bus (émission + déclenchemen
     const c = withSyntheticTrait('synth-oncharged', [
       { ...SELF_EMPETRE, trigger: 'onCharged' },
       {
-        trigger: 'onCharged', on: 'self',
-        flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [
-          { op: 'condition', id: 'a-terre', value: 1 },
+        trigger: 'onCharged', on: 'soi',
+        flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [
+          { op: 'condition', id: { id: 'a-terre' }, value: 1 },
           { op: 'grantFreeAttack', when: 'immediate' } as never,
         ] } },
       },
@@ -97,17 +97,17 @@ describe('7bis — applyCoupCritiqueSec émet onCrit (Taillade sur Critique oppo
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }; // pas de PA déviable → application directe
     E.weapons = [taillade()];
     banc.setState({ battle: { ...b } });
 
     const log: string[] = [];
-    applyCoupCritiqueSec(banc.getState, banc.setState, H, 40, 'double', { attackerId: E.id, weapon: 'Hache de Taillade', weaponObj: taillade() }, log);
+    applyCoupCritiqueSec(banc.getState, banc.setState, H, 40, 'double', { attackerId: E.id, weapon: 'Hache de Taillade', weaponObj: taillade() }, log, E, instantaneAvantLeCoup(H));
 
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(h, COND.hemorragique)).toBe(true); // onCrit émis par le bus → Taillade appliquée

@@ -20,12 +20,12 @@ describe('Miscast en séquence (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     return {
-      hero: b.combatants.find((c) => c.kind === 'hero')!,
-      enemy: b.combatants.find((c) => c.kind === 'enemy')!,
+      hero: b.combatants.find((c) => c.kind === 'heros')!,
+      enemy: b.combatants.find((c) => c.kind === 'ennemi')!,
     };
   }
 
@@ -36,9 +36,9 @@ describe('Miscast en séquence (store)', () => {
     applyMiscast(banc.getState, banc.setState, hero, 'colere');
     const ouverte = banc.getState().pendingCascade;
     expect(ouverte?.purpose).toBe('combat');
-    expect(ouverte?.participants[0].kind, 'le dé du Tableau est une étape, pas un tirage à l’appel').toBe('miscastTable');
+    expect(ouverte?.participants[0].kind, 'le dé du Tableau est une étape, pas un tirage à l’appel').toBe('tableDIncantationImparfaite');
     avanceEtapeCascade(banc.getState); // le dé tombe au rang de son étape → la révélation suit
-    const revelation = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'miscast');
+    const revelation = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'incantationImparfaite');
     expect(revelation?.label).toBe('Colère des dieux'); // identité sur l'ÉTAPE, pas le titre de cascade
     expect(revelation?.outcome?.length ?? revelation?.reveal?.lines.length).toBeGreaterThan(0);
   });
@@ -49,9 +49,9 @@ describe('Miscast en séquence (store)', () => {
     banc.setState({ pendingCascade: null });
     applyMiscast(banc.getState, banc.setState, hero, 'mineure');
     expect(banc.getState().pendingCascade?.purpose).toBe('combat');
-    expect(banc.getState().pendingCascade?.participants[0].kind).toBe('miscastTable');
+    expect(banc.getState().pendingCascade?.participants[0].kind).toBe('tableDIncantationImparfaite');
     avanceEtapeCascade(banc.getState);
-    const revelation = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'miscast');
+    const revelation = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'incantationImparfaite');
     expect(revelation?.label).toBe('Imparfaite'); // identité Imparfaite sur l'ÉTAPE
   });
 
@@ -62,7 +62,7 @@ describe('Miscast en séquence (store)', () => {
     applyMiscast(banc.getState, banc.setState, enemy, 'colere');
     // Aucun siège ne tient cet ennemi : sa table naît tirée (`cascade.poserLeCurseur`).
     const st = banc.getState().pendingCascade!.participants[0];
-    expect(st.kind).toBe('miscastTable');
+    expect(st.kind).toBe('tableDIncantationImparfaite');
     expect(st.table!.result, 'une table sans siège est restée non tirée').toBeTruthy();
     draineCascade(banc.getState);
     // La révélation est réservée aux HÉROS : l'ennemi n'en laisse aucune derrière lui.

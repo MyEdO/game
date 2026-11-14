@@ -36,7 +36,7 @@ function jusquAuTour(partie: Partie, tenu: (c: Combatant) => boolean): Combatant
     const actif = activeCombatant(partie.etat().battle!);
     if (actif && tenu(actif)) return actif;
     const e = partie.etat();
-    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }] : [actif ? { type: 'terminerLeTour', args: [] } : { type: 'fenetreValider', args: ['roundStart'] }];
+    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }] : [actif ? { type: 'terminerLeTour', args: [] } : { type: 'fenetreValider', args: ['debutDuRound'] }];
     for (const i of intentions) jouer(partie, partie.envoyer(i));
   }
   throw new Error('témoin : le tour attendu n’est pas venu');
@@ -57,7 +57,7 @@ function auTour(id: string, tenu: (c: Combatant) => boolean): Partie {
 
 const contexte = (partie: Partie): ActionCtx => {
   const s = partie.etat();
-  return { active: activeCombatant(s.battle!)!, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime };
+  return { scene: s.scene, active: activeCombatant(s.battle!)!, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime };
 };
 
 /** L'attendu par entrée : `true` = un gate de l'entrée se FERME sous l'État, avec la raison de l'État ; `false` = aucun
@@ -66,33 +66,33 @@ const contexte = (partie: Partie): ActionCtx => {
  *  LDB 15 l.49, Brisé s'éloigne, LDB 16 l.52 (porteur sans Avantage ni départ libre, LDB 15 l.47, LDB 85 l.253, l.373-374) ;
  *  Action gratuite : LDB 13 l.106. */
 const MATRICE: Record<string, { brise: boolean; sonne: boolean }> = {
-  reload: { brise: true, sonne: true },
-  aim: { brise: true, sonne: true },
-  heal: { brise: true, sonne: true },
-  water: { brise: true, sonne: true },
-  defend: { brise: true, sonne: true },
-  'gain-advantage': { brise: true, sonne: true },
+  rechargement: { brise: true, sonne: true },
+  visee: { brise: true, sonne: true },
+  soins: { brise: true, sonne: true },
+  aspersion: { brise: true, sonne: true },
+  defensive: { brise: true, sonne: true },
+  avantage: { brise: true, sonne: true },
   battement: { brise: true, sonne: true },
-  'aid-team': { brise: true, sonne: true },
-  dispel: { brise: true, sonne: true },
-  'self-maneuver': { brise: true, sonne: true },
-  'maneuver-area': { brise: true, sonne: true },
-  'cast-spell': { brise: true, sonne: true },
-  'maneuver-ship': { brise: true, sonne: true },
-  'select-attack': { brise: true, sonne: true },
-  dismount: { brise: true, sonne: false },
+  'direction-equipe': { brise: true, sonne: true },
+  dissipation: { brise: true, sonne: true },
+  'manoeuvre-sur-soi': { brise: true, sonne: true },
+  'attaque-zone': { brise: true, sonne: true },
+  incantation: { brise: true, sonne: true },
+  'manoeuvre-du-navire': { brise: true, sonne: true },
+  'attaque-trait': { brise: true, sonne: true },
+  'pied-a-terre': { brise: true, sonne: false },
   distraire: { brise: true, sonne: false },
   mouvement: { brise: false, sonne: false },
   course: { brise: false, sonne: true },
-  disengage: { brise: false, sonne: true },
+  desengagement: { brise: false, sonne: true },
   'posture-tir': { brise: false, sonne: false },
   'posture-tas': { brise: false, sonne: false },
-  stand: { brise: false, sonne: false },
-  'resolve-psych-immune': { brise: false, sonne: false },
-  'resolve-ignore-crit': { brise: false, sonne: false },
-  'resolve-remove-condition': { brise: false, sonne: false },
-  'use-item': { brise: false, sonne: false },
-  'leave-poste': { brise: false, sonne: false },
+  relevement: { brise: false, sonne: false },
+  'determination-psychologie': { brise: false, sonne: false },
+  'determination-critique': { brise: false, sonne: false },
+  'determination-etat': { brise: false, sonne: false },
+  'usage-objet': { brise: false, sonne: false },
+  'abandon-poste': { brise: false, sonne: false },
 };
 
 /** Les gates de `def` que l'État `etat`, posé par `addCondition`, fait passer d'ouvert à fermé, avec leur raison. */
@@ -119,7 +119,7 @@ describe('Matrice des verrous d’État : le registre ferme ce que la console gr
   };
   for (const etat of ['brise', 'sonne'] as const) {
     it(`${etat} : chaque entrée se ferme ou reste ouverte selon son attendu`, () => {
-      const partie = auTour('pastilles-entite', (c) => c.kind === 'hero');
+      const partie = auTour('pastilles-entite', (c) => c.kind === 'heros');
       try {
         const ctx = contexte(partie);
         const ecarts: string[] = [];
@@ -142,13 +142,13 @@ describe('Matrice des verrous d’État : le registre ferme ce que la console gr
 
 describe('État qui verrouille l’Action (LDB 16 l.52) : la raison du verdict est celle du verbe', () => {
   it('Brisé : l’offre du Soin, refusée, porte la MÊME raison que le gate', () => {
-    const partie = auTour('pastilles-entite', (c) => c.kind === 'hero');
+    const partie = auTour('pastilles-entite', (c) => c.kind === 'heros');
     try {
       const ctx = contexte(partie);
       addCondition(ctx.active, 'brise');
-      partie.envoyer({ type: 'armerLeMode', args: ['heal'] });
+      partie.envoyer({ type: 'armerLeMode', args: ['soins'] });
       expect(partie.etat().battle!.action, 'le Brisé a armé le Soin').toBeNull();
-      expect(partie.etat().refus?.texte).toBe(actionGate('heal', ctx).reason);
+      expect(partie.etat().refus?.texte).toBe(actionGate('soins', ctx).reason);
     } finally {
       partie.fermer();
     }
@@ -157,18 +157,18 @@ describe('État qui verrouille l’Action (LDB 16 l.52) : la raison du verdict e
 
 describe('Préalables et pertinence : l’offre refuse ce que le verbe refuse', () => {
   it('Recharger sans arme à recharger est fermé', () => {
-    const partie = auTour('pastilles-entite', (c) => c.kind === 'hero');
+    const partie = auTour('pastilles-entite', (c) => c.kind === 'heros');
     try {
       const ctx = contexte(partie);
       expect(ctx.active.weapons.some((w) => aRecharger(ctx.active, w)), 'témoin : une arme est à recharger').toBe(false);
-      expect(actionGate('reload', ctx)).toEqual({ ok: false, reason: t('agate.nothingToReload') });
+      expect(actionGate('rechargement', ctx)).toEqual({ ok: false, reason: t('agate.nothingToReload') });
     } finally {
       partie.fermer();
     }
   });
 
   it('Viser n’est plus offert au tireur déjà en joue (pertinence, LDB 14 l.61)', () => {
-    const tireur = (c: Combatant) => c.kind === 'hero' && c.weapons.some((w) => w.type === 'ranged');
+    const tireur = (c: Combatant) => c.kind === 'heros' && c.weapons.some((w) => w.type === 'distance');
     const partie = auTour('ecuries-clayonnage', tireur);
     try {
       const id = activeCombatant(partie.etat().battle!)!.id;
@@ -177,33 +177,33 @@ describe('Préalables et pertinence : l’offre refuse ce que le verbe refuse', 
       jouer(partie, partie.envoyer({ type: 'terminerLeTour', args: [] }));
       jusquAuTour(partie, (c) => c.id === id && !partie.etat().battle!.acted);
       const ctx = contexte(partie);
-      expect(actionGate('aim', ctx)).toEqual({ ok: false, reason: t('agate.alreadyAiming') });
-      expect(offresDeLActif({ ...ctx, state: partie.etat() }).some((o) => o.actionId === 'aim'), 'Viser reste offert en joue').toBe(false);
+      expect(actionGate('visee', ctx)).toEqual({ ok: false, reason: t('agate.alreadyAiming') });
+      expect(offresDeLActif({ ...ctx, state: partie.etat() }).some((o) => o.actionId === 'visee'), 'Viser reste offert en joue').toBe(false);
     } finally {
       partie.fermer();
     }
   });
 
   it('Coque : la Bordée se ferme quand aucune pièce n’est chargée (`postesPretsAFaireFeu`, lu par `ouvrirLaBordee`)', () => {
-    const partie = auTour('duel-naval', (c) => !!c.postes?.length && c.kind === 'hero');
+    const partie = auTour('duel-naval', (c) => !!c.postes?.length && c.kind === 'heros');
     try {
       const ctx = contexte(partie);
-      expect(actionGate('battery', ctx), 'témoin : pièces chargées, la Bordée est ouverte').toEqual({ ok: true });
+      expect(actionGate('bordee', ctx), 'témoin : pièces chargées, la Bordée est ouverte').toEqual({ ok: true });
       for (const p of ctx.active.postes!) p.loaded = false;
-      expect(actionGate('battery', ctx)).toEqual({ ok: false, reason: t('agate.noLoadedPostes') });
+      expect(actionGate('bordee', ctx)).toEqual({ ok: false, reason: t('agate.noLoadedPostes') });
     } finally {
       partie.fermer();
     }
   });
 
   it('Coque : chant sans chanteur et recharge sans pièce déchargée sont fermés', () => {
-    const partie = auTour('duel-naval', (c) => !!c.postes?.length && c.kind === 'hero');
+    const partie = auTour('duel-naval', (c) => !!c.postes?.length && c.kind === 'heros');
     try {
       const ctx = contexte(partie);
-      expect(actionGate('sing-shanty', { ...ctx, args: { shipId: ctx.active.id } }).reason).toBe(t('agate.noShantySinger'));
+      expect(actionGate('chanson-de-marin', { ...ctx, args: { shipId: ctx.active.id } }).reason).toBe(t('agate.noShantySinger'));
       const poste = ctx.active.postes![0];
       expect(poste.loaded, 'témoin : la pièce est chargée').not.toBe(false);
-      expect(actionGate('ship-reload', { ...ctx, args: { weaponUid: poste.item.uid } }).reason).toBe(t('agate.nothingToReload'));
+      expect(actionGate('rechargement-piece', { ...ctx, args: { weaponUid: poste.item.uid } }).reason).toBe(t('agate.nothingToReload'));
     } finally {
       partie.fermer();
     }

@@ -17,7 +17,7 @@ const TR = (roll: number, target: number, sl: number, success = true) => ({ roll
 
 /** Marchandage forcé par Résilience, dé CHOISI 41 sur cible 45 → DR NATUREL 0 : seul le plancher parle. */
 function bargainForcedSL(merchantSL: number): number {
-  const hero = combattantDeTest({ id: 'H', label: 'H', kind: 'hero', resilience: 5, fortune: 0, characteristics: {}, skills: [], talents: [], weapons: [], items: [], conditions: [] });
+  const hero = combattantDeTest({ id: 'H', label: 'H', kind: 'heros', resilience: 5, fortune: 0, characteristics: {}, skills: [], talents: [], weapons: [], items: [], conditions: [] });
   banc.setState({
     party: [hero],
     pendingBargain: {
@@ -25,8 +25,8 @@ function bargainForcedSL(merchantSL: number): number {
       merchantRoll: TR(20, 50, merchantSL, merchantSL >= 0), roll: TR(45, 45, 0),
     },
   } as never);
-  banc.getState().jetForcerLaReussite('bargain');
-  banc.getState().jetImposerLeResultat('bargain', 41);
+  banc.getState().jetForcerLaReussite('marchandage');
+  banc.getState().jetImposerLeResultat('marchandage', 41);
   return banc.getState().pendingBargain!.roll!.sl;
 }
 
@@ -47,7 +47,7 @@ describe('#1000 — plancher de la garantie (LDB 17 l.68) : jamais en dessous de
 describe('Victoire IMPOSÉE : le critère de départage la NOMME (`decidedBy: force`)', () => {
   /** Même sonde, mais on lit le CRITÈRE porté par l'issue au lieu du DR. */
   function bargainForcedDecidedBy(merchantSL: number, chooseDie: boolean): string {
-    const hero = combattantDeTest({ id: 'H', label: 'H', kind: 'hero', resilience: 5, fortune: 0, characteristics: {}, skills: [], talents: [], weapons: [], items: [], conditions: [] });
+    const hero = combattantDeTest({ id: 'H', label: 'H', kind: 'heros', resilience: 5, fortune: 0, characteristics: {}, skills: [], talents: [], weapons: [], items: [], conditions: [] });
     banc.setState({
       party: [hero],
       pendingBargain: {
@@ -55,8 +55,8 @@ describe('Victoire IMPOSÉE : le critère de départage la NOMME (`decidedBy: fo
         merchantRoll: TR(20, 50, merchantSL, merchantSL >= 0), roll: TR(45, 45, 0),
       },
     } as never);
-    banc.getState().jetForcerLaReussite('bargain');
-    if (chooseDie) banc.getState().jetImposerLeResultat('bargain', 41);
+    banc.getState().jetForcerLaReussite('marchandage');
+    if (chooseDie) banc.getState().jetImposerLeResultat('marchandage', 41);
     return banc.getState().pendingBargain!.result!.decidedBy;
   }
 

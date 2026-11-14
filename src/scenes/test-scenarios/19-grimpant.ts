@@ -1,4 +1,4 @@
-import { pregenParty, PREGEN } from '../../data/pregens';
+import { groupeDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
@@ -42,7 +42,7 @@ export const scenario: TestScenario = {
   id: 'grimpant',
   order: 18,
   category: 'creatures',
-  icon: 'scenario/bestiary',
+  icon: 'scenario/bestiaire',
   title: 'Grimpant — l’araignée escalade',
   tests:
     // LDB 85 l.160-162
@@ -50,6 +50,6 @@ export const scenario: TestScenario = {
     "vitesse pleine — pathing (`reachable`/`pathTo`, `MoveEnv.traverse`) et IA (`chooseEnemyAction`) " +
     "exploitent l'arête automatiquement ; le groupe (hors du Talent Grimpeur) reste bloqué en bas.",
   partyNote: 'Chasseur solo, posté sur le plateau (hors d’atteinte au sol).',
-  construire: (idNeuf) => ({ party: pregenParty(idNeuf, PREGEN.chasseur), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: groupeDeScenario(idNeuf, 'chasseur'), scene: construireScene() }),
   autoCombat: 'enc-grimpant',
 };

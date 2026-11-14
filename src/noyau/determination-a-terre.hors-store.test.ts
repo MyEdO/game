@@ -12,10 +12,12 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { actionGate } from './actionRegistry';
-import { hasCondition, raisonRefusDetermination, ACTE_DE_DEVERROUILLAGE } from '../engine/conditions';
+import { hasCondition, raisonRefusDetermination } from '../engine/conditions';
 import { findConditionById } from '../data/index';
 import { t } from '../i18n';
 import type { Combatant, ConditionInstance } from '../engine/types';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { acteDeDeverrouillageSchema } from '../data/schemas/grammaire/valeurs';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -26,10 +28,10 @@ function setup(pb: number, resolve: number, inst: Partial<ConditionInstance> = {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   H.engagedWith = [];
   H.resolve = resolve;
   H.wounds.current = pb;
@@ -75,7 +77,7 @@ describe('Détermination — « Retirez un État » relève d’À Terre à 0 Bl
   it('à 0 PB, la case « Se relever » reste FERMÉE alors que la dépense, elle, est OUVERTE', () => {
     const { H } = setup(0, 1);
     const battle = banc.getState().battle!;
-    const geste = actionGate('stand', { active: vivant(H.id), battle, gameTime: banc.getState().gameTime });
+    const geste = actionGate('relevement', { scene: banc.getState().scene, active: vivant(H.id), battle, gameTime: banc.getState().gameTime });
     expect(geste.ok, 'le GESTE ne rend aucune Blessure : il reste refusé (LDB 16 l.35)').toBe(false);
     expect(geste.reason).toBe(findConditionById('a-terre')!.lockedReason);
     expect(raisonRefusDetermination(vivant(H.id), 'a-terre'), 'la dépense doit rester ouverte').toBeUndefined();
@@ -84,7 +86,7 @@ describe('Détermination — « Retirez un État » relève d’À Terre à 0 Bl
   it('verrou de Critique (`unlockBy`) : la dépense est REFUSÉE — point NON débité, aucun soin rendu', () => {
     const { H } = setup(0, 1, { unlockBy: 'medicalAid' });
     expect(raisonRefusDetermination(vivant(H.id), 'a-terre'))
-      .toBe(t('cond.lockedByAct', { acte: ACTE_DE_DEVERROUILLAGE.medicalAid }));
+      .toBe(t('cond.lockedByAct', { acte: libelleDeValeur(acteDeDeverrouillageSchema, 'medicalAid') }));
     banc.getState().depenserLaDetermination(H.id, 'retirerUnEtat', 'a-terre');
     const apres = vivant(H.id);
     expect(hasCondition(apres, 'a-terre')).toBe(true);

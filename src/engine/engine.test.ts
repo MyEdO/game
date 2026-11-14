@@ -7,7 +7,20 @@ import { evaluateTest, resolveOpposed, reverseRoll } from './tests';
 import { bonus, maxWounds } from './characteristics';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 import { effectiveWeaponDamage } from './weaponDamage';
-import { hitLocation, hitLocationByShape, shipHitLocation, locationLabel, resolveMelee, rangeBandModifier, rollMeleeAttacker, rollMeleeDefender, finishMelee, resolveMeleePassive, rederivePassiveAttack, woundsFromHit } from './combat';
+import {
+  hitLocation,
+  hitLocationByShape,
+  shipHitLocation,
+  locationLabel,
+  resolveMelee,
+  rangeBandModifier,
+  rollMeleeAttacker,
+  rollMeleeDefender,
+  finishMelee,
+  resolveMeleePassive,
+  rederivePassiveAttack,
+  woundsFromHit,
+} from './combat';
 
 describe('Portée des tirs (table des Difficultés, 14 - _GoBack.md l.82-118 ; 1 case = 2 m)', () => {
   it('Bout portant +40, Courte +20, Moyenne +0, Longue −10, Extrême −30, au-delà = null', () => {
@@ -27,7 +40,7 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     (blessuresSurLeProfil({
       id: 'a',
       name: 'a',
-      kind: 'enemy',
+      kind: 'ennemi',
       characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(20),
       advantage: 0,
@@ -44,7 +57,7 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     def.armour.brasD = 3; // jet 44 → reverseRoll 44 → Bras droit
     const hit = (q: string[]) => {
       const atk = fighter(50, { qualities: q.map((s) => parseQualityInstance(s)!), damage: { plusBF: false, flat: 10 } });
-      return resolveMelee(atk, def, atk.weapons[0], rngOf(44), { defense: 'none' });
+      return resolveMelee(atk, def, atk.weapons[0], rngOf(44), { defense: 'aucune' });
     };
     expect(hit(['Perforante']).woundsLost! - hit([]).woundsLost!).toBe(1);
   });
@@ -95,9 +108,9 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     const base = duel([], 50, 50, 44); // DR 1 contre DR 1
     expect([base.hit, base.netSL, base.advantageTo]).toEqual([false, 0, null]);
     const pointue = duel(['Pointue'], 50, 50, 44); // DR 2 contre DR 1
-    expect([pointue.hit, pointue.netSL, pointue.advantageTo]).toEqual([true, 1, 'attacker']);
+    expect([pointue.hit, pointue.netSL, pointue.advantageTo]).toEqual([true, 1, 'attaquant']);
     const imprecise = duel(['Imprécise'], 50, 50, 44); // DR 0 contre DR 1 (LDB 62 l.323)
-    expect([imprecise.hit, imprecise.netSL, imprecise.advantageTo]).toEqual([false, 1, 'defender']);
+    expect([imprecise.hit, imprecise.netSL, imprecise.advantageTo]).toEqual([false, 1, 'defenseur']);
   });
   it('Pointue : MUET sur un Test d’attaque RATÉ (CC 40 vs CC 30, jet 45 — l’attaquant l’emporte en échouant)', () => {
     expect(duel([], 40, 30, 45).netSL).toBe(1);
@@ -107,18 +120,18 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     const def = fighter(30);
     const hit = (q: string[]) => {
       const atk = fighter(50, { qualities: q.map((s) => parseQualityInstance(s)!) });
-      return resolveMelee(atk, def, atk.weapons[0], rngOf(44), { defense: 'none' });
+      return resolveMelee(atk, def, atk.weapons[0], rngOf(44), { defense: 'aucune' });
     };
     expect(hit(['Pointue']).netSL - hit([]).netSL).toBe(1);
     expect(hit(['Pointue']).woundsLost! - hit([]).woundsLost!).toBe(1);
   });
   it('Empaleuse : Critique sur un multiple de 10', () => {
     const emp = fighter(60, { qualities: [{ id: 'empaleuse' }] });
-    const r = resolveMelee(emp, fighter(30), emp.weapons[0], rngOf(20), { defense: 'none' });
+    const r = resolveMelee(emp, fighter(30), emp.weapons[0], rngOf(20), { defense: 'aucune' });
     expect(r.hit).toBe(true);
     expect(r.critical).toBe(true);
     const plain = fighter(60);
-    expect(resolveMelee(plain, fighter(30), plain.weapons[0], rngOf(20), { defense: 'none' }).critical).toBe(false);
+    expect(resolveMelee(plain, fighter(30), plain.weapons[0], rngOf(20), { defense: 'aucune' }).critical).toBe(false);
   });
   it('Empaleuse : un Test RATÉ sur un multiple de 10, Test opposé gagné, ne génère aucun Critique (LDB 13 l.183)', () => {
     const emp = fighter(30, { qualities: [{ id: 'empaleuse' }] });
@@ -130,8 +143,8 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     const def = fighter(30);
     const plain = fighter(40); // CC 40, jet 45 → échec
     const prec = fighter(40, { qualities: [{ id: 'precise' }] }); // +10 → cible 50, jet 45 → réussite
-    expect(resolveMelee(plain, def, plain.weapons[0], rngOf(45), { defense: 'none' }).hit).toBe(false);
-    expect(resolveMelee(prec, def, prec.weapons[0], rngOf(45), { defense: 'none' }).hit).toBe(true);
+    expect(resolveMelee(plain, def, plain.weapons[0], rngOf(45), { defense: 'aucune' }).hit).toBe(false);
+    expect(resolveMelee(prec, def, prec.weapons[0], rngOf(45), { defense: 'aucune' }).hit).toBe(true);
   });
 });
 
@@ -140,7 +153,7 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
     (blessuresSurLeProfil({
       id: 'x',
       name: 'x',
-      kind: 'enemy',
+      kind: 'ennemi',
       characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(20),
       advantage: 0,
@@ -197,7 +210,7 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
     const d = fighter(30);
     const rate = { roll: 95, target: 80, success: false, sl: -2, isDouble: false };
     const melee = rederivePassiveAttack(a, d, a.weapons[0], rate, 'melee', { rng: makeRNG(1595) });
-    const tir = rederivePassiveAttack(a, d, { ...a.weapons[0], type: 'ranged' }, rate, 'ranged', { rng: makeRNG(1595) });
+    const tir = rederivePassiveAttack(a, d, { ...a.weapons[0], type: 'distance' }, rate, 'distance', { rng: makeRNG(1595) });
     expect({ advantageTo: melee.advantageTo, netSL: melee.netSL, hit: melee.hit }).toEqual({ advantageTo: tir.advantageTo, netSL: tir.netSL, hit: tir.hit });
   });
 });
@@ -208,7 +221,7 @@ describe('Sur la défensive (+20 en défense, LDB Combat l.118)', () => {
     (blessuresSurLeProfil({
       id: 'c',
       name: 'c',
-      kind: 'enemy',
+      kind: 'ennemi',
       characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(20),
       advantage: 0,
@@ -291,7 +304,7 @@ describe('Avantage en combat (LDB Déplacement l.37 : +10 par point)', () => {
   const mk = (cc: number, advantage = 0): Combatant => (blessuresSurLeProfil({
     id: 'c',
     label: 'c',
-    kind: 'enemy',
+    kind: 'ennemi',
     characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10),
     advantage,
@@ -305,8 +318,8 @@ describe('Avantage en combat (LDB Déplacement l.37 : +10 par point)', () => {
   it('1 Avantage (+10) fait toucher là où 0 Avantage échoue (cible nue, même jet)', () => {
     const target = mk(30);
     // CC 40, jet 45 : sans Avantage cible=40 → échec ; +1 Avantage cible=50 → réussite.
-    const a0 = resolveMelee(mk(40, 0), target, mk(40).weapons[0], rngOf(45), { defense: 'none' });
-    const a1 = resolveMelee(mk(40, 1), target, mk(40).weapons[0], rngOf(45), { defense: 'none' });
+    const a0 = resolveMelee(mk(40, 0), target, mk(40).weapons[0], rngOf(45), { defense: 'aucune' });
+    const a1 = resolveMelee(mk(40, 1), target, mk(40).weapons[0], rngOf(45), { defense: 'aucune' });
     expect(a0.hit).toBe(false);
     expect(a1.hit).toBe(true);
   });
@@ -432,7 +445,7 @@ describe('Dégâts d’arme (parsing via effectiveWeaponDamage)', () => {
     expect(effectiveWeaponDamage({ label: 'x', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }, { bf: 3, passif: 0 })).toBe(7);
   });
   it('+9 (distance) ignore BF', () => {
-    expect(effectiveWeaponDamage({ label: 'x', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [] }, { bf: 3, passif: 0 })).toBe(9);
+    expect(effectiveWeaponDamage({ label: 'x', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [] }, { bf: 3, passif: 0 })).toBe(9);
   });
 });
 
@@ -441,7 +454,7 @@ function dummy(name: string, chars: Partial<Characteristics>, wounds: number, we
   return blessuresSurLeProfil({
     id: name,
     label: name,
-    kind: 'enemy',
+    kind: 'ennemi',
     characteristics: { ...base, ...chars },
     wounds: blessuresDeBase(wounds),
     advantage: 0,
@@ -492,7 +505,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(70, 70, 30); // DR 0
     const r = resolveOpposed(att, def);
     expect(att.sl).toBe(def.sl);
-    expect(r.winner).toBe('attacker');
+    expect(r.winner).toBe('attaquant');
     expect(r.decidedBy).toBe('valeur');
   });
   it('égalité de DR : à valeurs nues égales, la cible modifiée ne départage PAS → tie', () => {
@@ -500,7 +513,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(41, 45, 45); // Compétence 45, cible 45 — même DR
     const r = resolveOpposed(att, def);
     expect(att.sl).toBe(def.sl);
-    expect(r.winner).toBe('tie');
+    expect(r.winner).toBe('egalite');
     expect(r.decidedBy).toBe('egalite');
     expect(r.attackerWins).toBe(false);
   });
@@ -508,7 +521,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const att = evaluateTest(23, 45, 45); // DR 2
     const def = evaluateTest(21, 45, 45); // DR 2
     const r = resolveOpposed(att, def);
-    expect(r.winner).toBe('tie');
+    expect(r.winner).toBe('egalite');
     expect(r.decidedBy).toBe('egalite');
     expect(r.attackerWins).toBe(false);
   });
@@ -517,7 +530,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(31, 55, 90); // DR 2, Compétence nue 90 (la plus haute)
     const r = resolveOpposed(att, def);
     expect(att.sl).toBeGreaterThan(def.sl);
-    expect(r.winner).toBe('attacker');
+    expect(r.winner).toBe('attaquant');
     expect(r.decidedBy).toBe('dr');
   });
   it('valeur nue ABSENTE des deux côtés (jet réhydraté) : la cible sert de repli', () => {
@@ -525,7 +538,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(23, 55);
     const r = resolveOpposed(att, def);
     expect(att.sl).toBe(def.sl);
-    expect(r.winner).toBe('defender');
+    expect(r.winner).toBe('defenseur');
     expect(r.decidedBy).toBe('valeur');
   });
   it('valeur nue d’UN SEUL côté : tout-ou-rien — on compare les deux CIBLES, jamais nue vs cible', () => {
@@ -533,7 +546,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(70, 70);     // réhydraté sans valeur nue, cible 70
     const r = resolveOpposed(att, def);
     expect(att.sl).toBe(def.sl);
-    expect(r.winner).toBe('defender'); // cible 70 > cible 25 — la nue 45 n'affronte pas une cible
+    expect(r.winner).toBe('defenseur'); // cible 70 > cible 25 — la nue 45 n'affronte pas une cible
     expect(r.decidedBy).toBe('valeur');
   });
 });
@@ -543,7 +556,7 @@ describe('Coup Critique au niveau moteur (LDB 18-Traumatisme : double uniquement
     const heavy: Weapon = { label: 'Maillet', type: 'melee', damage: { plusBF: true, flat: 20 }, qualities: [] };
     const a = dummy('Brute', { 'capacite-de-combat': 90, force: 40 }, 20, heavy);
     const d = dummy('Frêle', { 'capacite-de-combat': 20, endurance: 20 }, 3, heavy); // Blessures max 3
-    const res = resolveMelee(a, d, heavy, makeRNG(1), { defense: 'none' });
+    const res = resolveMelee(a, d, heavy, makeRNG(1), { defense: 'aucune' });
     expect(res.hit).toBe(true);
     expect(res.woundsLost!).toBeGreaterThan(d.wounds.max); // gros coup → overkill géré par le STORE, plus par applyHit
     // `critical` du moteur = uniquement un double réussi (l'arme n'a pas l'Atout Empaleuse).
@@ -557,7 +570,7 @@ function caster(chars: Partial<Characteristics>, skills: SkillInstance[] = [], w
   return blessuresSurLeProfil({
     id: 'c',
     label: 'Mage',
-    kind: 'hero',
+    kind: 'heros',
     characteristics: { ...base, ...chars },
     wounds: blessuresDeBase(wounds),
     advantage: 0,
@@ -570,9 +583,9 @@ function caster(chars: Partial<Characteristics>, skills: SkillInstance[] = [], w
   });
 }
 
-const FLECHETTE: SpellLike = { label: 'Fléchette', ecole: 'Magie mineure', family: 'mineure', missile: true, damage: 0, cn: 0, duration: { kind: 'instant' }, desc: 'Il s’agit d’un Projectile magique avec Dégât +0.' };
-const PRIERE: SpellLike = { label: 'Bénédiction de Bataille', ecole: 'Béni', family: 'beni', cn: null, duration: { kind: 'rounds', value: 6 }, desc: 'Votre cible gagne +10 en Capacité de Combat.' };
-const ARCANE: SpellLike = { label: 'Boule de feu', ecole: 'Magie des Arcanes', family: 'arcane', cn: 8, duration: { kind: 'instant' }, desc: 'Projectile magique avec Dégâts +8.' };
+const FLECHETTE: SpellLike = { label: 'Fléchette', ecole: 'Magie mineure', family: 'mineure', missile: true, damage: 0, cn: 0, duration: { kind: 'instant' } };
+const PRIERE: SpellLike = { label: 'Bénédiction de Bataille', ecole: 'Béni', family: 'beni', cn: null, duration: { kind: 'rounds', value: 6 } };
+const ARCANE: SpellLike = { label: 'Boule de feu', ecole: 'Magie des Arcanes', family: 'arcane', cn: 8, duration: { kind: 'instant' } };
 
 describe('Magie — routage du test par branche', () => {
   it('les Prières (Béni/Invocation) utilisent Prière (Soc), sans NI', () => {
@@ -594,7 +607,7 @@ describe('Magie — routage du test par branche', () => {
 
 describe('Magie — analyse des descriptions', () => {
   it('missileDamage lit les champs de données (Dégâts / ignore PA / ignore BE)', () => {
-    const sp = (o: Partial<SpellLike>): SpellLike => ({ label: 'X', ecole: 'T', cn: 0, desc: '', ...o });
+    const sp = (o: Partial<SpellLike>): SpellLike => ({ label: 'X', ecole: 'T', cn: 0, ...o });
     expect(missileDamage(sp({ missile: true, damage: 8 }))).toEqual({ damage: 8, ignorePA: false, ignoreBE: false });
     expect(missileDamage(sp({ missile: true, damage: 0, ignorePA: true }))).toEqual({ damage: 0, ignorePA: true, ignoreBE: false });
     expect(missileDamage(sp({ missile: true, damage: 10, ignorePA: true, ignoreBE: true }))).toEqual({ damage: 10, ignorePA: true, ignoreBE: true });
@@ -673,14 +686,14 @@ describe('Magie — effets actifs (buffs temporisés)', () => {
   it('effectiveChar applique le meilleur bonus, sans cumul entre Sorts (LDB 46 l.119)', () => {
     const c = caster({ 'capacite-de-combat': 35 });
     c.activeEffects = [
-      { label: 'A', source: { kind: 'spell', id: 's-A' }, characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 6 } },
-      { label: 'B', source: { kind: 'spell', id: 's-B' }, characteristic: 'capacite-de-combat', bonus: 20, duration: { scale: 'rounds', left: 6 } },
+      { label: 'A', source: { kind: 'sort', id: 's-A' }, characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 6 } },
+      { label: 'B', source: { kind: 'sort', id: 's-B' }, characteristic: 'capacite-de-combat', bonus: 20, duration: { scale: 'rounds', left: 6 } },
     ];
     expect(effectiveChar(c, 'capacite-de-combat')).toBe(55); // 35 + max(10,20)
   });
   it('endOfRound décrémente et dissipe les effets expirés', () => {
     const c = caster({ 'capacite-de-combat': 35 });
-    const eff: ActiveEffect = { label: 'Bénédiction de Bataille', source: { kind: 'spell', id: 's-Bénédiction de Bataille' }, characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 1 } };
+    const eff: ActiveEffect = { label: 'Bénédiction de Bataille', source: { kind: 'sort', id: 's-Bénédiction de Bataille' }, characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 1 } };
     c.activeEffects = [eff];
     endOfRound(c, desDuTest, idsDeTest);
     expect(c.activeEffects.length).toBe(0);
@@ -690,17 +703,17 @@ describe('Magie — effets actifs (buffs temporisés)', () => {
   it('effectiveChar applique le meilleur bonus ET la pire pénalité des Sorts (LDB 46 l.119)', () => {
     const c = caster({ agilite: 40 });
     c.activeEffects = [
-      { label: 'buff', source: { kind: 'spell', id: 's-buff' }, characteristic: 'agilite', bonus: 10, duration: { scale: 'rounds', left: 6 } },
-      { label: 'autre buff', source: { kind: 'spell', id: 's-autre buff' }, characteristic: 'agilite', bonus: 20, duration: { scale: 'rounds', left: 6 } },
-      { label: 'Écorce', source: { kind: 'spell', id: 's-Écorce' }, characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 6 } },
+      { label: 'buff', source: { kind: 'sort', id: 's-buff' }, characteristic: 'agilite', bonus: 10, duration: { scale: 'rounds', left: 6 } },
+      { label: 'autre buff', source: { kind: 'sort', id: 's-autre buff' }, characteristic: 'agilite', bonus: 20, duration: { scale: 'rounds', left: 6 } },
+      { label: 'Écorce', source: { kind: 'sort', id: 's-Écorce' }, characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 6 } },
     ];
     expect(effectiveChar(c, 'agilite')).toBe(50); // 40 + max(10,20) + min(-10) = 40+20-10
   });
   it('effectiveChar garde la pénalité la PIRE entre deux Sorts (LDB 46 l.119)', () => {
     const c = caster({ dexterite: 45 });
     c.activeEffects = [
-      { label: 'a', source: { kind: 'spell', id: 's-a' }, characteristic: 'dexterite', bonus: -10, duration: { scale: 'rounds', left: 6 } },
-      { label: 'b', source: { kind: 'spell', id: 's-b' }, characteristic: 'dexterite', bonus: -20, duration: { scale: 'rounds', left: 6 } },
+      { label: 'a', source: { kind: 'sort', id: 's-a' }, characteristic: 'dexterite', bonus: -10, duration: { scale: 'rounds', left: 6 } },
+      { label: 'b', source: { kind: 'sort', id: 's-b' }, characteristic: 'dexterite', bonus: -20, duration: { scale: 'rounds', left: 6 } },
     ];
     expect(effectiveChar(c, 'dexterite')).toBe(25); // 45 + 0 - 20
   });
@@ -720,7 +733,6 @@ describe('Magie — correctifs de fidélité (audit)', () => {
       damage: 10,
       ignorePA: true,
       ignoreBE: true,
-      desc: 'Projectile magique avec Dégâts +10 qui ignore le Bonus d’Endurance et les PA.',
     };
     const res = resolveMagicMissile(c, target, spell, makeRNG(5));
     if (res.hit) {
@@ -828,7 +840,7 @@ describe('Magie — compétences Avancées (gating)', () => {
 
   it('Dissipation : seul un SORT se dissipe — pas une Prière (LDB 46 « Si un Sort vous cible »)', () => {
     expect(isDispellableSpell(FLECHETTE)).toBe(true);
-    expect(isDispellableSpell({ label: 'Bénédiction', ecole: 'Béni', family: 'beni', cn: null, duration: null, desc: '' })).toBe(false);
+    expect(isDispellableSpell({ label: 'Bénédiction', ecole: 'Béni', family: 'beni', cn: null, duration: null })).toBe(false);
   });
 
   it('le Trait « Lanceur de Sorts » (LDB 85 : « La créature peut lancer des Sorts ») dispense de la Compétence', () => {
@@ -883,7 +895,7 @@ describe('Création de héros', () => {
       label: 'Test',
       seed: 7,
     });
-    expect(hero.kind).toBe('hero');
+    expect(hero.kind).toBe('heros');
     expect(hero.skills.length).toBeGreaterThan(0);
     expect(hero.wounds.max).toBeGreaterThan(0);
     expect(hero.movement).toBe(4);

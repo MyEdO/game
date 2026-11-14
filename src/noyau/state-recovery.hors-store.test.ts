@@ -12,7 +12,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function hero(p: Partial<Combatant>): Combatant {
   return blessuresSurLeProfil({
-    id: 'h1', label: 'Héros', kind: 'hero',
+    id: 'h1', label: 'Héros', kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 80, endurance: 40, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -22,7 +22,7 @@ function hero(p: Partial<Combatant>): Combatant {
 }
 
 function enemy(p: Partial<Combatant>): Combatant {
-  return { ...hero({ kind: 'enemy', label: 'Bête', skills: [], ...p }) } as Combatant;
+  return { ...hero({ kind: 'ennemi', label: 'Bête', skills: [], ...p }) } as Combatant;
 }
 
 function setBattle(combatants: Combatant[], activeId: string) {
@@ -47,11 +47,11 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     expect(sr).not.toBeNull();
     expect(sr.opposition).toBeUndefined();
     expect(sr.skillLabel).toBe('Athlétisme');
-    banc.getState().jetLancer('recover');
+    banc.getState().jetLancer('recuperation');
     expect(banc.getState().pendingStateRecovery!.roll).not.toBeNull();
     // fige une réussite reproductible (DR 1) avant Appliquer
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: true, netSL: 1 } });
-    banc.getState().jetValider('recover');
+    banc.getState().jetValider('recuperation');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.conditions.find((c) => c.id === 'en-flammes')).toBeUndefined(); // 2 − (1+1) = 0 → retiré
     expect(banc.getState().battle!.acted).toBe(true);
@@ -67,10 +67,10 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     const sr = banc.getState().pendingStateRecovery!;
     expect(sr.opposition).toBeDefined();
     expect(sr.opposition?.label).toBe('Pieuvre');
-    banc.getState().jetLancer('recover');
+    banc.getState().jetLancer('recuperation');
     // fige la victoire de l’acteur (F 80 ≫ F 20)
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: true, netSL: 0 } });
-    banc.getState().jetValider('recover');
+    banc.getState().jetValider('recuperation');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.conditions.find((c) => c.id === 'empetre')).toBeUndefined();
     expect(banc.getState().battle!.acted).toBe(true);
@@ -88,9 +88,9 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     const h = hero({ id: 'h', conditions: [{ id: 'en-flammes', value: 1 }] });
     setBattle([h], 'h');
     banc.getState().seRemettreDeLEtat('en-flammes');
-    banc.getState().jetLancer('recover');
+    banc.getState().jetLancer('recuperation');
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: false, netSL: 0 } });
-    banc.getState().jetValider('recover');
+    banc.getState().jetValider('recuperation');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.conditions.find((c) => c.id === 'en-flammes')?.value).toBe(1); // intact
     expect(banc.getState().battle!.acted).toBe(true);
@@ -102,7 +102,7 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 25, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 55, sociabilite: 30 } as any });
     const h = hero({ id: 'h', conditions: [] });
     // L'op `condition` Empêtré avec escapeStrength = FM du lanceur (Enchevêtrement de Taal).
-    applyOps(h, [{ op: 'condition', id: 'empetre', value: 1, escapeStrength: { charOf: 'force-mentale' } }], { idNeuf: idsDeTest, rng: desDuTest, caster });
+    applyOps(h, [{ op: 'condition', id: { id: 'empetre' }, value: 1, escapeStrength: { charOf: 'force-mentale' } }], { idNeuf: idsDeTest, rng: desDuTest, caster });
     expect(h.conditions.find((c) => c.id === 'empetre')?.escapeStrength).toBe(55);
     setBattle([h], 'h'); // pas de source vivante dans le combat → sans escapeStrength, ce serait un Test simple
     banc.getState().seRemettreDeLEtat('empetre');
@@ -115,7 +115,7 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
   it('entrave figée d’une source HORS DE COMBAT : l’entrave porte le NOM de sa source (#1882)', () => {
     const caster = enemy({ id: 'src', label: 'Liane', dead: true });
     const h = hero({ id: 'h', conditions: [] });
-    applyOps(h, [{ op: 'condition', id: 'empetre', value: 1, escapeStrength: 40 }], { idNeuf: idsDeTest, rng: desDuTest, caster });
+    applyOps(h, [{ op: 'condition', id: { id: 'empetre' }, value: 1, escapeStrength: 40 }], { idNeuf: idsDeTest, rng: desDuTest, caster });
     h.conditions.find((c) => c.id === 'empetre')!.sourceId = 'src';
     setBattle([h, caster], 'h');
     banc.getState().seRemettreDeLEtat('empetre');
@@ -127,7 +127,7 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     const caster = enemy({ id: 'src', label: 'Liane',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 80, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as any });
     const h = hero({ id: 'h', conditions: [] });
-    applyOps(h, [{ op: 'condition', id: 'empetre', value: 1, escapeStrength: { charOf: 'force-mentale' } }], { idNeuf: idsDeTest, rng: desDuTest, caster });
+    applyOps(h, [{ op: 'condition', id: { id: 'empetre' }, value: 1, escapeStrength: { charOf: 'force-mentale' } }], { idNeuf: idsDeTest, rng: desDuTest, caster });
     // L'op ne pose pas de sourceId — on simule une entrave dont la source serait aussi présente :
     h.conditions.find((c) => c.id === 'empetre')!.sourceId = 'src';
     setBattle([h, caster], 'h');
@@ -141,9 +141,9 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     const h = hero({ id: 'h', conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, entangleOnFail: true }], armour: { tete: 5, brasG: 5, brasD: 5, corps: 5, jambeG: 5, jambeD: 5 } });
     setBattle([h], 'h');
     banc.getState().seRemettreDeLEtat('empetre');
-    banc.getState().jetLancer('recover');
+    banc.getState().jetLancer('recuperation');
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: false, netSL: 1 } }); // DR < seuil → échoue
-    banc.getState().jetValider('recover');
+    banc.getState().jetValider('recuperation');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.conditions.find((c) => c.id === 'empetre')?.value).toBe(2); // 1 → 2 (aggravation)
   });
@@ -152,9 +152,9 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     const h = hero({ id: 'h', conditions: [{ id: 'empetre', value: 1, escapeStrength: 47 }] });
     setBattle([h], 'h');
     banc.getState().seRemettreDeLEtat('empetre');
-    banc.getState().jetLancer('recover');
+    banc.getState().jetLancer('recuperation');
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: false, netSL: 0 } });
-    banc.getState().jetValider('recover');
+    banc.getState().jetValider('recuperation');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.conditions.find((c) => c.id === 'empetre')?.value).toBe(1); // inchangé
   });
@@ -167,9 +167,9 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
       conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 }] }));
     setBattle([h], 'h');
     banc.getState().seRemettreDeLEtat('empetre');
-    banc.getState().jetLancer('recover');
+    banc.getState().jetLancer('recuperation');
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: true, netSL: 3 } });
-    banc.getState().jetValider('recover');
+    banc.getState().jetValider('recuperation');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.wounds!.current).toBe(11); // 1 Blessure malgré 5 PA (ignore l’armure)
     expect(after.conditions.find((c) => c.id === 'empetre')).toBeUndefined(); // libéré
@@ -182,9 +182,9 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
       conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 }] }));
     setBattle([h], 'h');
     banc.getState().seRemettreDeLEtat('empetre');
-    banc.getState().jetLancer('recover');
+    banc.getState().jetLancer('recuperation');
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: false, netSL: 1 } });
-    banc.getState().jetValider('recover');
+    banc.getState().jetValider('recuperation');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.wounds!.current).toBe(11); // Dégâts infligés MÊME sur échec
     expect(after.conditions.find((c) => c.id === 'empetre')?.value).toBe(2); // + aggravation
@@ -194,7 +194,7 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     const h = hero({ id: 'h', conditions: [{ id: 'en-flammes', value: 1 }] });
     setBattle([h], 'h');
     banc.getState().seRemettreDeLEtat('en-flammes');
-    banc.getState().jetAnnuler('recover');
+    banc.getState().jetAnnuler('recuperation');
     expect(banc.getState().pendingStateRecovery).toBeNull();
     expect(banc.getState().battle!.acted).toBe(false);
   });

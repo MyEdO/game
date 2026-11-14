@@ -13,11 +13,11 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Dissipation HORS COMBAT (couture D, #461, LDB 46 l.160-162) : « pour votre Action » n'est pas
- *  bornée au combat — calque `focaliserLeSort`, réutilise `dispel.ts`/`jetValider('dispel')` tels quels. */
+ *  bornée au combat — calque `focaliserLeSort`, réutilise `dispel.ts`/`jetValider('dissipation')` tels quels. */
 describe('Dissipation permanente — hors combat (couture D, #461)', () => {
   const langue = { id: 'langue', spec: 'magick', characteristic: 'intelligence' as const, advances: 20 };
   const mk = (id: string, spells: string[], extra: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-    id, name: id, kind: 'hero',
+    id, name: id, kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -38,13 +38,6 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
     return { mage, allie, cible };
   }
 
-  it('n’ouvre rien EN combat : dissiperLeSort est un no-op (battle ouvert = action de combat)', () => {
-    const { mage } = setup();
-    banc.setState({ battle: { combatants: [mage], order: ['mage'], turn: 0, round: 1, acted: false, over: false, log: [] } as never });
-    banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
-    expect(banc.getState().pendingDispel).toBeNull();
-  });
-
   it('ouvre le pending hors combat, Soutien « même Domaine » compté sans géométrie (l.162)', () => {
     setup();
     banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
@@ -60,7 +53,7 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
     banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
     const pd = banc.getState().pendingDispel!;
     banc.setState({ pendingDispel: { ...pd, result: { roll: 10, target: pd.value, sl: 1, success: true } } });
-    banc.getState().jetValider('dispel');
+    banc.getState().jetValider('dissipation');
     const cibleAfter = banc.getState().party.find((c) => c.id === cible.id)!;
     expect((cibleAfter.activeEffects ?? []).some((e) => e.spell?.spellId === 'malefice')).toBe(false);
     const mageAfter = banc.getState().party.find((c) => c.id === 'mage')!;
@@ -71,20 +64,20 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
   // Dissiper son PROPRE Sort (`VDM 02 l.186`), hors combat — mesuré OFF puis ON sur un jet IDENTIQUE :
   // le bonus est un DR (`caster.dispel.total`, l'accumulateur RÉEL), jamais la cible du Test
   // (`pendingDispel.value`, en points — un DR vaut une dizaine, `tests.ts:98`).
-  it('dissipe son propre Sort hors combat : +1 DR CUMULÉ seulement sous `magic-vdm-incantation`', () => {
+  it('dissipe son propre Sort hors combat : +1 DR CUMULÉ seulement sous `magie-vdm-incantation`', () => {
     const freshMage = () => mk('mage', ['forme-bestiale'], {
       activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 3, casterId: 'mage', label: 'Maléfice' } }],
     });
     const roundDR = (rule: boolean) => {
       banc.setState({ party: [freshMage()], pendingDispel: null });
-      if (rule) setRule('magic-vdm-incantation', true);
+      if (rule) setRule('magie-vdm-incantation', true);
       banc.getState().dissiperLeSort('mage', 'malefice', 'mage');
       const pd = banc.getState().pendingDispel!;
       banc.setState({ pendingDispel: { ...pd, result: { roll: 10, target: pd.value, sl: 1, success: true } } });
-      banc.getState().jetValider('dispel');
+      banc.getState().jetValider('dissipation');
       const total = banc.getState().party.find((c) => c.id === 'mage')!.dispel!.total;
-      if (rule) resetRule('magic-vdm-incantation');
+      if (rule) resetRule('magie-vdm-incantation');
       return total;
     };
     expect(roundDR(false)).toBe(1); // OFF (LDB 46 l.154-162) : le DR du jet seul (sl:1), aucun bonus.

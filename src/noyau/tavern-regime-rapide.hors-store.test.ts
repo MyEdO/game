@@ -1,5 +1,5 @@
 /**
- * LE RÉGIME RAPIDE — règle optionnelle `tavern-games-rapides` (#1279 Sf).
+ * LE RÉGIME RAPIDE — règle optionnelle `jeux-de-taverne-rapides` (#1279 Sf).
  *
  * `NADJ 16 l.9-11`, verbatim : « **OPTION : JEUX DE TAVERNE RAPIDES** — Pour certains groupes, les
  * jets de dés peuvent gêner le plaisir du jeu de rôle. Si vous souhaitez que vos parties de taverne
@@ -14,10 +14,11 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { setRule } from '../engine/policy';
-import { findTavernGameById, fastTavernGame, TAVERN_GAMES, TAVERN_FAST_RULE, tavernFastRegime } from '../engine/tavernGame';
+import { findTavernGameById, fastTavernGame, TAVERN_FAST_RULE, tavernFastRegime } from '../engine/tavernGame';
+import { TAVERN_GAMES } from '../data';
 import { toBrass } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { tavernParams } from './tavernFlow';
@@ -30,7 +31,7 @@ const get = () => banc.getState();
 
 /** Un héros seul à la table, face à un adversaire de la salle. */
 function seul(): Combatant {
-  const a = makePregens(idsDeTest)[0] as Combatant;
+  const a = tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
   banc.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return get().party[0];
 }
@@ -45,7 +46,7 @@ function drain(): void {
       else if (cur.options && cur.chosen == null) get().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id);
       else if (cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
       else if (cur.participants?.some((r) => r.interactive !== false && !r.result)) {
-        for (const r of cur.participants) if (r.interactive !== false && !r.result) get().jetLancer('cascadeBatch', r.id);
+        for (const r of cur.participants) if (r.interactive !== false && !r.result) get().jetLancer('cascadeEnBande', r.id);
       }
     }
     get().jetValider('cascade');
@@ -58,11 +59,11 @@ beforeEach(() => {
 });
 
 describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture de la fonctionnalité', () => {
-  it('elle est ÉTEINTE par défaut, et n’est pas `tavern-games`', () => {
-    expect(TAVERN_FAST_RULE).toBe('tavern-games-rapides');
+  it('elle est ÉTEINTE par défaut, et n’est pas `jeux-de-taverne`', () => {
+    expect(TAVERN_FAST_RULE).toBe('jeux-de-taverne-rapides');
     expect(tavernFastRegime(), 'par défaut : le jeu complet').toBe(false);
     // Ouvrir la fonctionnalité ne bascule PAS le régime — deux règles, deux décisions.
-    setRule('tavern-games', true);
+    setRule('jeux-de-taverne', true);
     expect(tavernFastRegime()).toBe(false);
   });
 
@@ -75,12 +76,12 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
    */
   it('active : AUCUN champ hors liste blanche, sur les TREIZE jeux du chapitre', () => {
     setRule(TAVERN_FAST_RULE, true);
-    const BLANCHE = new Set(['id', 'label', 'desc', 'skill', 'spec', 'characteristic', 'mode', 'source']);
+    const BLANCHE = new Set(['id', 'type', 'label', 'desc', 'skill', 'spec', 'characteristic', 'mode', 'source']);
     const fuites: string[] = [];
     for (const entree of TAVERN_GAMES) {
       const jeu = findTavernGameById(entree.id)!;
       for (const cle of Object.keys(jeu)) if (!BLANCHE.has(cle)) fuites.push(`${entree.id}.${cle}`);
-      expect(jeu.mode, `${entree.id} : un Test opposé, rien d’autre`).toBe('opposed');
+      expect(jeu.mode, `${entree.id} : un Test opposé, rien d’autre`).toBe('oppose');
       // Aucune famille ne peut s'armer : les paramètres de séquence sont VIDES pour tout jeu.
       expect(tavernParams(jeu, 3), `${entree.id} : aucun paramètre de famille`).toEqual({});
     }
@@ -93,9 +94,9 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
     for (const entree of TAVERN_GAMES) {
       const h = seul();
       const avant = toBrass(bourseOf(get().party[0]));
-      get().jouerALaTaverne({ gameId: entree.id, challengerId: h.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, stakeBrass: 500 });
+      get().jouerALaTaverne(h.id, { gameId: entree.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, stakeBrass: 500 });
       const ouverture = get().pendingCascade!;
-      expect(ouverture.participants.map((s) => s.kind), `${entree.id} : la manche opposée ordinaire, rien d’autre`).toEqual(['tavern-round']);
+      expect(ouverture.participants.map((s) => s.kind), `${entree.id} : la manche opposée ordinaire, rien d’autre`).toEqual(['taverneRound']);
       expect(ouverture.participants[0].difficulty, `${entree.id} : « Test opposé de Compétence Intermédiaire (+0) »`).toBe('intermediaire');
       drain();
       const res = get().tavernGames!.result!;
@@ -140,7 +141,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
   it('AL-ZAHR au régime rapide : une partie SANS MISE, tranchée en UNE manche par un Test opposé', () => {
     setRule(TAVERN_FAST_RULE, true);
     const h = seul();
-    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: h.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, stakeBrass: 0 });
+    get().jouerALaTaverne(h.id, { gameId: 'al-zahr', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, stakeBrass: 0 });
     // Le régime complet REFUSERAIT cette partie (« sans mise, aucune table ne s'ouvre ») : ici elle
     // s'ouvre, parce que le jeu rapide ne connaît ni mise ni pot.
     expect(get().sequence, 'la séquence est ouverte').toBeTruthy();
@@ -149,17 +150,17 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
     expect(res.rounds, 'une seule manche : le plus de DR l’emporte').toBe(1);
     expect(res.stakeBrass).toBe(0);
     expect(res.netBrass, 'aucun mouvement de bourse : il n’y a pas de mise').toBe(0);
-    expect(['player', 'opponent', 'tie']).toContain(res.winner);
+    expect(['joueur', 'adversaire', 'egalite']).toContain(res.winner);
     expect(get().sequence, 'la partie est dénouée').toBeNull();
   });
 
   it('LES FLÉCHETTES au régime rapide : aucun passage de lancers — la partie tient en une manche', () => {
     setRule(TAVERN_FAST_RULE, true);
     const h = seul();
-    get().jouerALaTaverne({ gameId: 'flechettes', challengerId: h.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne(h.id, { gameId: 'flechettes', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     // Aucune étape de volée : c'est la manche opposée ordinaire qui s'ouvre.
     const kinds = get().pendingCascade!.participants.map((s) => s.kind);
-    expect(kinds).toEqual(['tavern-round']);
+    expect(kinds).toEqual(['taverneRound']);
     drain();
     expect(get().tavernGames!.result!.rounds).toBe(1);
   });
@@ -167,9 +168,9 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
   it('LE CEREVIS au régime rapide : aucun Test combiné — la fenêtre n’annonce qu’une lecture', () => {
     setRule(TAVERN_FAST_RULE, true);
     const h = seul();
-    get().jouerALaTaverne({ gameId: 'cerevis', challengerId: h.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne(h.id, { gameId: 'cerevis', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const cur = get().pendingCascade!.participants[0];
-    expect(cur.kind).toBe('tavern-round');
+    expect(cur.kind).toBe('taverneRound');
     expect(cur.second, 'le jeu rapide ne joue pas le Test combiné').toBeUndefined();
     // Et la Difficulté est celle du jeu rapide (« Intermédiaire (+0) »), pas le « Pari Accessible (+20) »
     // que l'entrée déclare pour sa manche complète.

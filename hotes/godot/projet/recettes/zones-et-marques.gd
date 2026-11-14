@@ -3,14 +3,17 @@ extends SceneTree
 ## Les zones qui durent et les marques des États (#3834, `hotes/godot/pont/CONTRAT.md`, section « Vue ») : une zone de
 ## feu pose les gerbes continues de sa nappe sur chacune de ses cases, à leur lieu, et joue son crépitement en boucle à
 ## sa case centrale ; une fumée, sa nappe sans son ; la même zone reposée reste telle quelle, une zone qui ne dure plus
-## est retirée. Un porteur En flammes et Hémorragique 3 montre leurs deux textes l'un au-dessus de l'autre, le feu de la
+## est retirée ; la même clé aux cases changées garde son nœud, les nappes de ses cases gardées et son crépitement, qui
+## suit sa case centrale. Un porteur En flammes et Hémorragique 3 montre leurs deux textes l'un au-dessus de l'autre, le feu de la
 ## première et son crépitement, la lueur de la seconde ; les mêmes marques ne changent rien, aucune marque n'en laisse
 ## aucune.
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
-const CREPITEMENT := {id = "crepitement", fichiers = ["crepitement.ogg"], volume = 0.6}
+const CREPITEMENT := {id = "crepitement", fichiers = ["crepitement.ogg"], volume = 0.6, canal = "ambiance"}
 const CASES := [{x = 1, y = 0}, {x = 2, y = 0}, {x = 3, y = 0}]
+## Les cases du feu une fois changées, sous la même clé : la première sortie, une neuve.
+const CASES_DEPLACEES := [{x = 2, y = 0}, {x = 3, y = 0}, {x = 4, y = 0}]
 const FEU := {cle = "mur-de-feu@2,0,0", cases = CASES, centre = {x = 2, y = 0}, couleur = "#ff5a2a", visuel = "nappe-de-flammes", boucle = CREPITEMENT}
 const FUMEE := {cle = "souffle-de-fumee@5,5,0", cases = [{x = 5, y = 5}], centre = {x = 5, y = 5}, couleur = "#8a8a8a", visuel = "nuage", boucle = null}
 const MARQUES := [
@@ -46,6 +49,20 @@ func _recetter() -> void:
 	await process_frame
 	if zones.zone(FEU.cle) != feu or zones.zone(FUMEE.cle) != null or zones.get_child_count() != 1:
 		_fautes.append("reposées : le feu doit rester tel quel, la fumée être retirée (%d zones)" % zones.get_child_count())
+	var gardees := nappes.slice(1).map(func(n: Node) -> int: return n.get_instance_id())
+	var feu_deplace := FEU.duplicate()
+	feu_deplace.cases = CASES_DEPLACEES
+	feu_deplace.centre = {x = 3, y = 0}
+	zones.poser([feu_deplace], lieu, METRES_PAR_CASE)
+	await process_frame
+	var accordees := [] if zones.zone(FEU.cle) == null else zones.zone(FEU.cle).get_children().filter(func(n: Node) -> bool: return n.name.begins_with("nappe-de-flammes"))
+	var lieux := accordees.map(func(n: Node3D) -> Vector3: return n.position)
+	if zones.zone(FEU.cle) != feu or lieux != [Vector3(2.0, 0.0, 0.0), Vector3(3.0, 0.0, 0.0), Vector3(4.0, 0.0, 0.0)]:
+		_fautes.append("cases changées : la zone garde son nœud, une nappe par case attendue à son lieu, posées %s" % [lieux])
+	elif accordees.slice(0, 2).map(func(n: Node) -> int: return n.get_instance_id()) != gardees:
+		_fautes.append("cases changées : les nappes des cases gardées doivent rester les mêmes instances")
+	elif not crepitement.position.is_equal_approx(Vector3(3.0, 0.0, 0.0)) or zones.zone(FEU.cle).get_node_or_null("son-crepitement") != crepitement:
+		_fautes.append("cases changées : le même crépitement doit suivre la case centrale")
 
 	var marques := MarquesDEtats.new()
 	root.add_child(marques)

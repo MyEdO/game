@@ -17,8 +17,8 @@ import { noeudTest, flowSchema } from './mecanique';
 const SANS_DIFFICULTE = {
   kind: 'test',
   test: { skill: { id: 'athletisme' } },
-  success: { kind: 'seq', steps: [] },
-  fail: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: 'a-terre', value: 1 }], on: 'target' } },
+  reussite: { kind: 'sequence', etapes: [] },
+  echec: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'condition', id: { id: 'a-terre' }, value: 1 }], on: 'target' } },
 };
 
 const AVEC_DIFFICULTE = { ...SANS_DIFFICULTE, test: { ...SANS_DIFFICULTE.test, difficulty: 'intermediaire' } };

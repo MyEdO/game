@@ -3,10 +3,10 @@ extends SceneTree
 ## Le repos de l'atelier (#3787, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D », seconde prise) : l'atelier
 ## ouvert sur un pont figé (`PontFige`, `pont_fige.gd`, sur l'atelier figé par la sonde,
 ## `hotes/godot/recettes/atelier.ts`, `figerLeRepos`) qui sert la base humanoïde et un élément à seconde prise. À
-## l'ouverture, il joue le clip `idle` de la base ; l'élément monté à la prise `main`, le clip `idle` de son maniement
+## l'ouverture, il joue le clip `repos` de la base ; l'élément monté à la prise `main`, le clip `repos` de son maniement
 ## (`clipsDeuxMains`) ; la marche tenue (son action pressée, l'appui de sa touche remis à la marche, qu'une sonde sans
-## fenêtre ne reçoit pas), le clip `walk` de ce maniement, puis à son arrêt de nouveau son `idle` ; mis en pause, puis
-## l'élément démonté, le clip `idle` de la base, toujours en pause. L'écran publié porte chaque fois ce clip et sa
+## fenêtre ne reçoit pas), le clip `marche` de ce maniement, puis à son arrêt de nouveau son `repos` ; mis en pause, puis
+## l'élément démonté, le clip `repos` de la base, toujours en pause. L'écran publié porte chaque fois ce clip et sa
 ## lecture.
 
 const RECETTE_AUTONOME := true
@@ -34,21 +34,21 @@ func _recetter() -> void:
 	var base: Dictionary = lu.modeles.bases.filter(func(b: Dictionary) -> bool: return b.id == "humanoide")[0]
 	var deux_mains: Dictionary = base.clipsDeuxMains[lu.modeles.secondesPrises[lu.element].maniement]
 	await _attendre(func() -> bool: return montage.lecteur != null and montage.lecteur.assigned_animation != "")
-	await _constater(montage, pont, base.clips.idle, true, "à l'ouverture")
+	await _constater(montage, pont, base.clips.repos, true, "à l'ouverture")
 	_choisir(atelier, "main", lu.element)
 	await _attendre(func() -> bool: return montage.montes.get("main") == lu.element)
-	await _constater(montage, pont, deux_mains.idle, true, "l'élément à seconde prise monté")
+	await _constater(montage, pont, deux_mains.repos, true, "l'élément à seconde prise monté")
 	var appui: InputEvent = InputMap.action_get_events(&"avant")[0].duplicate()
 	appui.pressed = true
 	Input.action_press(&"avant")
 	atelier.get_node("Marche")._input(appui)
-	await _constater(montage, pont, deux_mains.walk, true, "la marche tenue")
+	await _constater(montage, pont, deux_mains.marche, true, "la marche tenue")
 	Input.action_release(&"avant")
-	await _constater(montage, pont, deux_mains.idle, true, "la marche relâchée")
+	await _constater(montage, pont, deux_mains.repos, true, "la marche relâchée")
 	_bouton(atelier, "Pause").pressed.emit()
 	_choisir(atelier, "main", MontageDeComposition.VIDE)
 	await _attendre(func() -> bool: return not montage.montes.has("main"))
-	await _constater(montage, pont, base.clips.idle, false, "en pause, l'élément démonté")
+	await _constater(montage, pont, base.clips.repos, false, "en pause, l'élément démonté")
 	for faute in _fautes:
 		push_error("[repos-de-l-atelier] " + faute)
 	print("[repos-de-l-atelier] erreurs=", _fautes.size())

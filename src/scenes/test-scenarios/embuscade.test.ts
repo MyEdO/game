@@ -100,7 +100,7 @@ describe('embuscade — Scene produite par buildScene', () => {
     expect(enc.onVictory).toBeDefined();
 
     const chef = s.entities.find((e) => e.id === 'enemy-enc-mutants-0');
-    expect(chef).toMatchObject({ creature: { id: 'mutant' }, anim: 'standing', pos: { x: 17, y: 6 } });
+    expect(chef).toMatchObject({ creature: { id: 'mutant' }, anim: 'debout', pos: { x: 17, y: 6 } });
     expect(chef?.statblock?.label).toBe('Knud Cratinx');
     expect(chef?.statblock?.char['capacite-de-tir']).toBe(43);
     expect(chef?.statblock?.traits).toContainEqual({ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 });
@@ -141,7 +141,7 @@ describe('embuscade — Scene produite par buildScene', () => {
       expect(traits.length).toBeGreaterThan(0);
       for (const t of traits) {
         const trapping = t.arg ? findTrappingById(t.arg) : undefined;
-        expect(trapping?.categorie).toBe(t.id === 'a-distance' ? 'ranged' : 'melee');
+        expect(trapping?.categorie).toBe(t.id === 'a-distance' ? 'distance' : 'melee');
       }
       const melee = traits.find((t) => t.id === 'arme');
       expect(weaponFromTrait(traitsDuPorteur([melee!], porteurDuProfil(m.entityId, e?.statblock?.char ?? {}))[0])?.label).toBe(attendus[m.entityId]);

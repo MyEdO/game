@@ -14,7 +14,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-const setFlag = (flag: string): Flow => ({ kind: 'do', effect: { type: 'setFlag', flag } });
+const setFlag = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
 
 /** Dialogue à deux nœuds ; le choix `withFlow` porte un Test + un `next` vers n2. */
 function makeDialogue(withFlow: boolean): Dialogue {
@@ -27,7 +27,7 @@ function makeDialogue(withFlow: boolean): Dialogue {
           id: 'tenter',
           label: 'Tenter',
           next: { id: 'n2' },
-          ...(withFlow ? { flow: { kind: 'test', test: { characteristic: 'force', label: 'Force' }, success: setFlag('gagne'), fail: setFlag('perd') } as Flow } : {}),
+          ...(withFlow ? { flow: { kind: 'test', test: { characteristic: 'force', label: 'Force' }, reussite: setFlag('gagne'), echec: setFlag('perd') } as Flow } : {}),
         }],
       },
       { id: 'n2', desc: 'Suite', choices: [] },

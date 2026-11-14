@@ -8,6 +8,7 @@ import {
   withCareer,
   rollDraftSpecies,
   rollDraftCareer,
+  tirerLaVariante,
   rollDraftChars,
   rollDraftTalents,
   speciesXp,
@@ -34,16 +35,17 @@ import {
   draftLevel,
   careerCharKeys,
   coastalSwapAvailable,
-  careerRollPool,
+  carrieresOffertes,
   withCoastalSwap,
   speciesTalentChoiceEntries,
   unresolvedTrappingSlots,
   rerollDraftTalent,
   withRandomTalentSpec,
   withSpeciesTalentChoice,
+  withCareerTalent,
 } from './brouillon';
 import { CHAR_KEYS } from '../../engine/types';
-import { especeDApparence, trappingRefLabel } from '../../data';
+import { especeDApparence, trappingRefLabel, type CareerLevelData, type ClassData } from '../../data';
 import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './brouillon';
 import { speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
@@ -51,12 +53,12 @@ import { dotationsDuHeros, emplacementsDeDotation } from '../../engine/trappingC
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { careerSkillAdditions } from '../../engine/talentEffects';
-import { spells, stars, celestialHouses, species as allSpecies, careersForSpecies } from '../../data';
+import { spells, stars, celestialHouses, species as allSpecies, careersForSpecies, offreDuJet } from '../../data';
 
 // Page blanche : `newDraft` ne pré-tire plus race/carrière — les tests posent explicitement les
 // mêmes défauts dérivés qu'avant (1ʳᵉ espèce du LDB, sa 1ʳᵉ carrière accessible).
 const DEFAULT_SPECIES = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
-const DEFAULT_CAREER = careersForSpecies(DEFAULT_SPECIES.refCareer)[0]!;
+const DEFAULT_CAREER = careersForSpecies(DEFAULT_SPECIES)[0]!;
 const draft = () => withCareer(withSpecies(newDraft(1234), DEFAULT_SPECIES.id), DEFAULT_CAREER.id);
 
 /** Spécialisation par défaut des jokers de carrière (1re du pool LIBRE) + répartition par défaut des
@@ -221,7 +223,7 @@ describe('relance d\'un Talent tiré doublon (LDB 05 l.484)', () => {
 describe('changer d’espèce ou de carrière écarte les spécialisations des emplacements de SA famille', () => {
   const a = adresseDeCreation;
   const autreEspece = allSpecies.find((s) => s.id !== DEFAULT_SPECIES.id)!.id;
-  const autreCarriere = careersForSpecies(DEFAULT_SPECIES.refCareer).find((c) => c.id !== DEFAULT_CAREER.id)!.id;
+  const autreCarriere = careersForSpecies(DEFAULT_SPECIES).find((c) => c.id !== DEFAULT_CAREER.id)!.id;
   const d = () => ({ ...draft(), specChoices: { [a.especeTalent(0)]: 'e', [a.carriereCompetence(0)]: 'c', [a.ajout('metier')]: 'x', [a.signe(1)]: 's' } });
 
   it('l’espèce écarte les emplacements d’espèce et les ajouts, garde la carrière et le signe', () => {
@@ -290,7 +292,7 @@ describe('agentivité (#393, amendement « ossature enforcée ») — aucun rés
   });
   it('validation étape 3 : le geste est EXIGÉ pour les voies aux dés, pas pour les 100 Points', () => {
     expect(validateStep(draft(), 'chars')).toBe('Tirez vos Caractéristiques aux dés.');
-    expect(validateStep({ ...draft(), charMode: 'pointBuy' as const }, 'chars')).not.toMatch(/aux dés/);
+    expect(validateStep({ ...draft(), charMode: 'repartition' as const }, 'chars')).not.toMatch(/aux dés/);
   });
   it('talents aléatoires : AUCUN tiré avant le geste (ni liste ni résolution), révélés après — figés par le seed', () => {
     const d = draft(); // Reiklander : « 3 Talent aléatoire »
@@ -321,11 +323,11 @@ describe('Riverains ⇄ Côtiers (MDG 09 l.9, #393 P2 correctif utilisateur)', (
   const swappableSpecies = allSpecies.find((s) => coastalSwapAvailable(withSpecies(newDraft(1), s.id)))!;
   const swappable = () => withSpecies(newDraft(1234), swappableSpecies.id);
 
-  it('la table effective exclut Riverains XOR Côtiers selon la bascule — jamais les deux', () => {
-    const off = careerRollPool({ ...swappable(), coastalSwap: false });
+  it('les carrières offertes portent Riverains XOR Côtiers selon la bascule — jamais les deux', () => {
+    const off = carrieresOffertes({ ...swappable(), coastalSwap: false });
     expect(off.some((c) => c.class.id === 'cotiers')).toBe(false);
     expect(off.some((c) => c.class.id === 'riverains')).toBe(true);
-    const on = careerRollPool({ ...swappable(), coastalSwap: true });
+    const on = carrieresOffertes({ ...swappable(), coastalSwap: true });
     expect(on.some((c) => c.class.id === 'riverains')).toBe(false);
     expect(on.some((c) => c.class.id === 'cotiers')).toBe(true);
   });
@@ -359,22 +361,90 @@ describe('bonus de PX (LDB 04/05)', () => {
     const d1 = rollDraftCareer(draft());
     expect(careerXp(d1)).toBe(50);
     // Une carrière hors des bornes tirées (refusée sans relancer) → choix libre, 0 PX.
-    const rolledIds = new Set(d1.careerRolls.flatMap((r) => r.ids));
+    const rolledIds = new Set(d1.careerRolls.flatMap((r) => offreDuJet(draftSpecies(d1)!, r)));
     const other = ['soldat', 'artisan', 'apothicaire'].find((id) => !rolledIds.has(id))!;
     expect(careerXp(withCareer(d1, other))).toBe(0);
     const d3 = rollDraftCareer(d1);
     expect(d3.careerRolls).toHaveLength(3);
-    expect(careerXp(withCareer(d3, d3.careerRolls[2].ids[0]))).toBe(25);
+    expect(careerXp(withCareer(d3, d3.careerRolls[2].id))).toBe(25);
     const dFree = rollDraftCareer(d3); // « continuez à relancer » (LDB 05 l.212)
     expect(careerXp(dFree)).toBe(0);
+    expect(dFree.careerRolls).toHaveLength(4);
+    expect(dFree.careerId, 'la relance libre est la carrière du brouillon').toBe(dFree.careerRolls[3].id);
+    expect(rollDraftCareer(dFree).careerRolls.slice(0, 4), 'chaque relance libre reste lisible').toEqual(dFree.careerRolls);
+  });
+});
+
+describe('second lancer sur la variante de la carrière tirée (AA 02 l.109-113 ; VDM 03 l.17-19 ; LDB 05 l.208-212)', () => {
+  /** Le premier jet du brouillon d'un Middenheimer de graine `graine`. */
+  const premierJet = (graine: number) => rollDraftCareer(withSpecies(newDraft(graine), 'humains-middenheim'));
+  /** Le premier brouillon, graines 1.., dont le premier jet vérifie `voulu`. */
+  const brouillonOu = (voulu: (d: CreatorDraft) => boolean) => {
+    for (let graine = 1; graine < 5000; graine++) { const d = premierJet(graine); if (voulu(d)) return d; }
+    throw new Error('aucune graine');
+  };
+  const soldat = brouillonOu((d) => d.careerRolls[0].id === 'soldat' && tirerLaVariante(d, 0).careerId !== 'soldat');
+
+  it('une carrière de variante choisie sans second lancer ne rapporte rien ; le résultat du second lancer garde le bonus du premier jet', () => {
+    expect(careerXp(soldat)).toBe(50);
+    expect(careerXp(withCareer(soldat, 'archer'))).toBe(0);
+    const engage = tirerLaVariante(soldat, 0);
+    expect(engage.careerRolls[0].second, 'le second lancer est lisible sur son jet').toBeDefined();
+    expect(engage.careerId).toBe(engage.careerRolls[0].second!.id);
+    expect(careerXp(engage)).toBe(50);
+    expect(careerXp(withCareer(engage, 'soldat')), 'le second lancer engage : Soldat n’est plus offert').toBe(0);
+  });
+
+  it('se refuse sur un jet qui l’a déjà fait, et sur une carrière sans variante', () => {
+    const engage = tirerLaVariante(soldat, 0);
+    expect(tirerLaVariante(engage, 0)).toBe(engage);
+    const frereLoup = brouillonOu((d) => d.careerRolls[0].id === 'frere-loup');
+    expect(tirerLaVariante(frereLoup, 0)).toBe(frereLoup);
+  });
+
+  it('une substitution prise garde le bonus de son jet (Middenheim 09 l.57)', () => {
+    const frereLoup = brouillonOu((d) => d.careerRolls[0].id === 'frere-loup');
+    expect(careerXp(withCareer(frereLoup, 'flagellant'))).toBe(50);
   });
   it('caractéristiques : +50 gardées, +25 réassignées, 0 après relance ou 100 Points — et 0 sans le GESTE', () => {
     expect(charsXp(draft())).toBe(0); // pas de bonus pour un tirage jamais lancé (#393 agentivité)
     const d = rollDraftChars(draft());
     expect(charsXp(d)).toBe(50);
-    expect(charsXp({ ...d, charMode: 'reassigned' })).toBe(25);
+    expect(charsXp({ ...d, charMode: 'reassigne' })).toBe(25);
     expect(charsXp({ ...d, charRerolls: 1 })).toBe(0);
-    expect(charsXp({ ...d, charMode: 'pointBuy' })).toBe(0);
+    expect(charsXp({ ...d, charMode: 'repartition' })).toBe(0);
+  });
+});
+
+describe('culte du Tiléen qui prend Nonne ou Prêtre à la place de Flagellant (AA 05 l.137 ; LDB 05 l.208-212)', () => {
+  const tileen = withSpecies(newDraft(1), 'humains-tileens');
+  const FLAGELLANT = [{ roll: 39, id: 'flagellant' }];
+  const xp = (base: CreatorDraft, careerRolls: CreatorDraft['careerRolls'], carriere: string, talent: RefDesignee) =>
+    careerXp(withCareerTalent(withCareer({ ...base, careerRolls }, carriere), talent));
+
+  for (const carriere of ['nonne', 'pretre']) {
+    it(`${carriere} : Béni d’un dieu tiléen garde le bonus, Béni d’un autre dieu ou sans spécialisation le perd, un autre Talent de carrière ou aucun le garde`, () => {
+      for (const dieu of ['myrmidia', 'morr', 'verena', 'shallya', 'ranald'])
+        expect(xp(tileen, FLAGELLANT, carriere, { id: 'beni', spec: dieu }), `Béni (${dieu})`).toBe(50);
+      for (const dieu of ['sigmar', 'ulric'])
+        expect(xp(tileen, FLAGELLANT, carriere, { id: 'beni', spec: dieu }), `Béni (${dieu})`).toBe(0);
+      expect(xp(tileen, FLAGELLANT, carriere, { id: 'lire-ecrire' })).toBe(50);
+      expect(xp(tileen, FLAGELLANT, carriere, { id: 'beni' }), 'Béni sans spécialisation').toBe(0);
+      expect(careerXp(withCareer({ ...tileen, careerRolls: FLAGELLANT }, carriere)), 'Talent de carrière pas encore choisi').toBe(50);
+    });
+  }
+
+  it('trois jets, Nonne prise à la place de Flagellant avec Béni (Sigmar) : aucun bonus', () => {
+    const jets = [...FLAGELLANT, { roll: 1, id: 'agitateur' }, { roll: 2, id: 'artisan' }];
+    expect(xp(tileen, jets, 'nonne', { id: 'beni', spec: 'sigmar' })).toBe(0);
+  });
+
+  it('Nonne tirée directement : le culte est libre, Béni (Sigmar) garde le bonus', () => {
+    expect(xp(tileen, [{ roll: 52, id: 'nonne' }], 'nonne', { id: 'beni', spec: 'sigmar' })).toBe(50);
+  });
+
+  it('un Reiklander qui tire Flagellant ne prend pas Nonne à sa place : aucun bonus', () => {
+    expect(xp(withSpecies(newDraft(1), 'humains-reiklander'), FLAGELLANT, 'nonne', { id: 'beni', spec: 'myrmidia' })).toBe(0);
   });
 });
 
@@ -399,7 +469,7 @@ describe('validation des étapes', () => {
     expect(validateStep(ok, 'chars')).toBeNull();
   });
   it('Caractéristiques : réassignation = permutation stricte des dix jets', () => {
-    const d = { ...readyDraft(), charMode: 'reassigned' as const };
+    const d = { ...readyDraft(), charMode: 'reassigne' as const };
     expect(validateStep(d, 'chars')).toBeNull();
     const bad = { ...d, assignment: { ...d.assignment, 'capacite-de-combat': d.assignment['capacite-de-tir'] } };
     expect(validateStep(bad, 'chars')).toMatch(/une seule fois/);
@@ -481,14 +551,35 @@ describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, c
       const dot = adresseDeCreation.dotation;
       const d = { ...withCareer(readyDraft(), CARRIERE_FIXTURE), careerTalent: undefined, wealthRoll: true };
       const [classe] = DOTATIONS_FIXTURE.classe;
-      const [joker, , branches] = DOTATIONS_FIXTURE.niveau;
-      expect(unresolvedTrappingSlots(d)).toEqual([classe, joker, branches].map(trappingRefLabel));
-      const trappingChoices = { [dot([0])]: 1, [dot([0, 1])]: 'solide', [dot([1])]: 'baton-de-combat', [dot([3])]: 0, [dot([3, 0])]: 1, [dot([3, 0, 1])]: 'dague' };
+      const [joker, , branches, , lot, jokerDeGroupe, jokerAAtout] = DOTATIONS_FIXTURE.niveau;
+      expect(unresolvedTrappingSlots(d)).toEqual([classe, joker, branches, lot, jokerDeGroupe, jokerAAtout].map(trappingRefLabel));
+      const trappingChoices = { [dot([0])]: 1, [dot([0, 1])]: 'solide', [dot([1])]: 'baton-de-combat', [dot([3])]: 0, [dot([3, 0])]: 1, [dot([3, 0, 1])]: 'dague', [dot([5])]: 1, [dot([6])]: 'epee-batarde', [dot([7])]: 'rapiere' };
       expect(unresolvedTrappingSlots({ ...d, trappingChoices })).toEqual([]);
       const objets = (buildHero({ ...d, trappingChoices }, idsDeTest, 'h-dotations').items ?? []).map((it) => it.trappingId);
-      expect(objets).toEqual(expect.arrayContaining(['fleuret', 'baton-de-combat', 'pinceau', 'dague']));
+      expect(objets).toEqual(expect.arrayContaining(['fleuret', 'baton-de-combat', 'pinceau', 'dague', 'arc', 'fleche', 'epee-batarde', 'rapiere']));
       expect(objets).not.toContain('miroir-a-main');
       expect(objets).not.toContain('grande-hache');
+    });
+  });
+
+  // LDB 05 l.552, l.572 ; #4053
+  it('le héros créé reçoit chaque possession de départ de sa Classe et de son Niveau 1', () => {
+    const dotations: { classe: ClassData['trappings']; niveau: CareerLevelData['trappings'] } = {
+      classe: [{ id: 'dague' }, { pick: 1, of: [{ id: 'capuchon' }, { id: 'masque' }] }],
+      niveau: [{ id: 'robes', spec: 'en lambeaux' }, { id: 'caissette' }, { id: 'eprouvettes' }, { id: 'alambic' }, { id: 'allumette', count: { roll: { n: 1, sides: 10 } } }],
+    };
+    avecDotations(CARRIERE_FIXTURE, dotations, () => {
+      const d = { ...withCareer(readyDraft(), CARRIERE_FIXTURE), careerTalent: undefined, wealthRoll: true };
+      expect(unresolvedTrappingSlots(d)).toEqual([trappingRefLabel(dotations.classe[1])]);
+      const trappingChoices = { [adresseDeCreation.dotation([1])]: 1 };
+      expect(unresolvedTrappingSlots({ ...d, trappingChoices })).toEqual([]);
+      const items = buildHero({ ...d, trappingChoices }, idsDeTest, 'h-depart').items ?? [];
+      const objets = items.map((it) => it.trappingId);
+      expect([...new Set(objets)].sort()).toEqual(['alambic', 'allumette', 'caissette', 'dague', 'eprouvettes', 'masque', 'robes']);
+      expect(items.find((it) => it.trappingId === 'robes')?.spec).toBe('en lambeaux');
+      const allumettes = objets.filter((id) => id === 'allumette').length;
+      expect(allumettes).toBeGreaterThanOrEqual(1);
+      expect(allumettes).toBeLessThanOrEqual(10);
     });
   });
 });
@@ -531,7 +622,7 @@ describe('Magie mineure à la création (LDB 10 l.714) — BFM sorts inclus au T
   /** Talent « +5 FM » (Imperturbable, LDB 10) au quota : verrouille la source UNIQUE des +5 de
    *  talent (`baseWithTalents`, jamais une boucle manuelle re-implémentée dans `pettySpellQuota`).
    *  Humains (Tiléens) portent le choix « Imperturbable ou Affable » (Affable = Sociabilité, témoin
-   *  neutre) ; BFM figé en `pointBuy` pour franchir la décade sans dépendre du tirage. */
+   *  neutre) ; BFM figé en `repartition` pour franchir la décade sans dépendre du tirage. */
   it('talent « +5 FM » (Imperturbable) : quota supérieur au témoin sans bonus de FM', () => {
     const tileenSorcererDraft = (talentPick: 'imperturbable' | 'affable') => {
       const base = withCareer(withSpecies(newDraft(4321), 'humains-tileens'), 'sorcier');
@@ -542,7 +633,7 @@ describe('Magie mineure à la création (LDB 10 l.714) — BFM sorts inclus au T
       }
       return {
         ...base,
-        charMode: 'pointBuy' as const,
+        charMode: 'repartition' as const,
         pointBuy: { ...base.pointBuy, 'force-mentale': 7 }, // base 20 + 7 = 27 (bonus 2), à la frontière de décade
         charsRolled: true,
         talentsRolled: true,

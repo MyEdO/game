@@ -23,6 +23,7 @@ import { combatantLights } from '../../noyau/monde/vision';
 import { objetDeTest } from '../../engine/objetsDeTest.testkit';
 import { lightTones, props as propsData, trappings, type LightToneDef } from '../../data';
 import { setDataset } from '../../data/overrides';
+import type { EntreeVivante } from '../../data/datasets';
 import { schema as lightTonesSchema } from '../../data/schemas/defs/lightTones';
 import { ambianceLuminance } from '../catalog/ambiance';
 import { TEINTE_PLEINE, poseBoards, type Board } from './boardPose';
@@ -79,11 +80,11 @@ describe('lightTones.json — le catalogue livré, et les bornes qui le tiennent
   });
 
   it('tout `tone` AUTHORÉ dans la donnée livrée se résout — un ton fantôme est un bug de donnée', () => {
-    const ids = new Set(lightTones.map((t) => t.id));
+    const ids = new Set<string>(lightTones.map((t) => t.id));
     const authorés: [string, string][] = [];
     for (const p of propsData) if (p.light?.tone) authorés.push([`props/${p.id}`, p.light.tone]);
     for (const t of trappings)
-      for (const op of t.passive ?? []) if (op.op === 'light' && op.tone) authorés.push([`trappings/${t.id}`, op.tone]);
+      for (const op of t.passive ?? []) if (op.op === 'light' && op.tone) authorés.push([`trappings/${t.id}`, op.tone.id]);
     expect(authorés.length).toBeGreaterThan(0); // sinon ce garde ne mesure rien
     expect(authorés.filter(([, tone]) => !ids.has(tone))).toEqual([]);
   });
@@ -101,7 +102,7 @@ describe('lightTones.json — le catalogue livré, et les bornes qui le tiennent
 describe('Un ton FORGÉ change l’apparence de la flaque SANS une ligne de code (#1245 L4)', () => {
   /** Pousse un ton dans le catalogue LIVE par le SEAM d'écriture (`setDataset`, `data/overrides.ts`) —
    *  la seule porte : elle mute le tableau en place ET versionne l'édition. */
-  function forger(ton: LightToneDef): void {
+  function forger(ton: EntreeVivante<LightToneDef>): void {
     setDataset('lightTones', [...lightTones, ton]);
   }
   const TONS_LIVRES = [...lightTones];

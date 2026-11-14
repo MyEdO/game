@@ -22,7 +22,7 @@ import { ciblePsy } from './psych/ciblage';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', label: 'Cobaye', kind: 'hero',
+    id: 'h', label: 'Cobaye', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 45, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 38, sociabilite: 30 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -113,11 +113,11 @@ describe('AUCUN plancher de durée au moteur — toute échelle rend ce que la f
 
   it('État posé par une op `condition` : 0 Round et échéance nue, en Rounds comme à l’horloge', () => {
     const rounds = hero();
-    applyOps(rounds, [{ op: 'condition', id: 'sonne', durationRounds: 0 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort' });
+    applyOps(rounds, [{ op: 'condition', id: { id: 'sonne' }, durationRounds: 0 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort' });
     expect(rounds.conditions[0]).toMatchObject({ id: 'sonne', roundsLeft: 0 });
 
     const horloge = hero();
-    applyOps(horloge, [{ op: 'condition', id: 'sonne', durationMinutes: 0 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort', now: 100 });
+    applyOps(horloge, [{ op: 'condition', id: { id: 'sonne' }, durationMinutes: 0 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort', now: 100 });
     expect(horloge.conditions[0]).toMatchObject({ id: 'sonne', untilTime: 100 });
   });
 
@@ -261,8 +261,8 @@ describe('applyOps — opérations unitaires', () => {
   it('giveTrapping : crée l’objet dans l’inventaire (réel → stats, échelle au DR)', () => {
     const c = hero({ items: [] });
     // Générosité de Manann : 1 Ration + 1 par +2 DR → à DR 4, 1 + floor(4/2) = 3 Rations.
-    applyOps(c, [{ op: 'giveTrapping', custom: 'Ration (1 jour)', perSL: { every: 2, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest, sl: 4 });
-    const rations = (c.items ?? []).filter((it) => /^ration/i.test(it.label));
+    applyOps(c, [{ op: 'giveTrapping', trappingId: 'ration', perSL: { every: 2, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest, sl: 4 });
+    const rations = (c.items ?? []).filter((it) => it.trappingId === 'ration');
     expect(rations.length).toBe(3);
   });
 
@@ -284,7 +284,7 @@ describe('applyOps — opérations unitaires', () => {
 
   it('grantTrait Démoniaque : le porteur est un Démon tant qu’il porte le Trait (LDB 85 l.94)', () => {
     const c = hero({ groups: ['humain'] });
-    const ctx = { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'spell' as const, id: 'sort-fixture' } };
+    const ctx = { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'sort' as const, id: 'sort-fixture' } };
     applyOps(c, [{ op: 'grantTrait', trait: { id: 'demoniaque' } }], ctx);
     expect(groupMatch('demon', groupesDe(c))).toBe(true);
     applyOps(c, [{ op: 'removeTrait', trait: { id: 'demoniaque' } }], ctx);
@@ -294,7 +294,7 @@ describe('applyOps — opérations unitaires', () => {
   it('condition : ajout avec valeur en formule (Bonus de FM du référent caster)', () => {
     const caster = hero({ id: 'c', label: 'Lanceur', characteristics: { ...hero().characteristics, 'force-mentale': 52 } });
     const c = hero();
-    applyOps(c, [{ op: 'condition', id: 'hemorragique', value: { bonusOf: 'force-mentale' } }], { idNeuf: idsDeTest, rng: desDuTest, caster });
+    applyOps(c, [{ op: 'condition', id: { id: 'hemorragique' }, value: { bonusOf: 'force-mentale' } }], { idNeuf: idsDeTest, rng: desDuTest, caster });
     expect(c.conditions.find((x) => x.id === 'hemorragique')?.value).toBe(5);
   });
 
@@ -456,7 +456,7 @@ describe('applyOps — opérations unitaires', () => {
     it("ctx.location='brasG' → cible la main SECONDAIRE (off), la MAIN n'est pas touchée", () => {
       const c = withWeapon();
       applyOps(c, [{ op: 'disarm' }], { idNeuf: idsDeTest, rng: desDuTest, location: 'brasG' });
-      expect(c.loadouts![0].main).toBe('w1'); // rien tenu en `off` → inerte, l'arme MAIN reste
+      expect(c.loadouts![0].main).toBe('w1'); // rien tenu en `secondaire` → inerte, l'arme MAIN reste
     });
 
     it('aucun objet tenu dans cette main → inerte, journalisé (ne plante pas)', () => {
@@ -485,7 +485,7 @@ describe('applyOps — opérations unitaires', () => {
 
     // L'op `disarm` est l'entrée DONNÉE de `items.lacherLArme` : l'arme TENUE se lit dans `c.weapons`.
     it('statbloc (armes sans objet) : l’épée quitte les mains, les Mains nues la remplacent, le journal la nomme', () => {
-      const c = hero({ kind: 'enemy', items: [], weapons: [{ uid: 'sb-epee', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as Weapon] });
+      const c = hero({ kind: 'ennemi', items: [], weapons: [{ uid: 'sb-epee', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as Weapon] });
       const lines = applyOps(c, [{ op: 'disarm' }], { idNeuf: idsDeTest, rng: desDuTest, location: 'brasD' });
       expect(c.weapons.map(isUnarmed)).toEqual([true]);
       expect(lines[0]).toMatch(/lâche Épée/);
@@ -543,14 +543,14 @@ describe('applyOps — opérations unitaires', () => {
 
   it('reduceToZero + condition inconscient : Châtiment (LDB 40 l.79)', () => {
     const c = hero();
-    applyOps(c, [{ op: 'reduceToZero' }, { op: 'condition', id: 'inconscient' }], { idNeuf: idsDeTest, rng: desDuTest });
+    applyOps(c, [{ op: 'reduceToZero' }, { op: 'condition', id: { id: 'inconscient' } }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(c.wounds.current).toBe(0);
     expect(c.conditions.some((x) => x.id === 'inconscient')).toBe(true);
   });
 
   it('reduceToZero + condition en-flammes : Tonnerre et foudre (LDB 40 l.84)', () => {
     const c = hero();
-    applyOps(c, [{ op: 'reduceToZero' }, { op: 'condition', id: 'en-flammes', value: 1 }], { idNeuf: idsDeTest, rng: desDuTest });
+    applyOps(c, [{ op: 'reduceToZero' }, { op: 'condition', id: { id: 'en-flammes' }, value: 1 }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(c.wounds.current).toBe(0);
     expect(c.conditions.some((x) => x.id === 'en-flammes')).toBe(true);
     expect(c.conditions.some((x) => x.id === 'inconscient')).toBe(false);
@@ -574,9 +574,9 @@ describe('applyOps — opérations unitaires', () => {
 });
 
 describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveChar', () => {
-  const sort = (id: string, casterId = 'm') => ({ source: { kind: 'spell' as const, id }, sourceSpell: { spellId: id, ni: 5, casterId, label: id } });
-  /** ctx de `runCastFlow` (`src/noyau/combatFlow.ts`) : `source.kind` vaut `spell` pour TOUT lancement. */
-  const priere = (id: string) => ({ source: { kind: 'spell' as const, id }, sourceSpellId: id });
+  const sort = (id: string, casterId = 'm') => ({ source: { kind: 'sort' as const, id }, sourceSpell: { spellId: id, ni: 5, casterId, label: id } });
+  /** ctx de `runCastFlow` (`src/noyau/combatFlow.ts`) : `source.kind` vaut `sort` pour TOUT lancement. */
+  const priere = (id: string) => ({ source: { kind: 'sort' as const, id }, sourceSpellId: id });
   const pose = (c: Combatant, mod: number, ctx: object) => applyOps(c, [{ op: 'charMod', characteristic: 'force', mod }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Effet', defaultDurationRounds: 6, ...ctx });
   it('deux Prières DIFFÉRENTES se somment ; la MÊME Prière ne se cumule pas (LDB 40 l.19)', () => {
     const c = hero(); pose(c, 10, priere('benediction-de-bataille')); pose(c, 10, priere('prouesses-martiales'));
@@ -592,7 +592,7 @@ describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveCh
     const caster = hero({ id: 'pretre' });
     const lancer = (t: Combatant, id: string) => {
       const sp = findSpellById(id)!;
-      applyOps(t, spellOps(sp.effects, 'target'), { idNeuf: idsDeTest, rng: desDuTest, caster, label: sp.label, sourceSpellId: id, source: { kind: 'spell', id }, defaultDurationRounds: 6 });
+      applyOps(t, spellOps(sp.effects, 'target'), { idNeuf: idsDeTest, rng: desDuTest, caster, label: sp.label, sourceSpellId: id, source: { kind: 'sort', id }, defaultDurationRounds: 6 });
     };
     const t = hero(); lancer(t, 'benediction-de-bataille'); lancer(t, 'prouesses-martiales');
     expect(effectiveChar(t, 'capacite-de-combat')).toBe(t.characteristics['capacite-de-combat'] + 20);
@@ -604,7 +604,7 @@ describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveCh
     expect(effectiveChar(c, 'force')).toBe(40);
   });
   it('objet −10 + Sort −10 se somment (LDB 14 l.95)', () => {
-    const c = hero(); pose(c, -10, { source: { kind: 'trapping', id: 'o' } }); pose(c, -10, sort('s'));
+    const c = hero(); pose(c, -10, { source: { kind: 'objet', id: 'o' } }); pose(c, -10, sort('s'));
     expect(effectiveChar(c, 'force')).toBe(10);
   });
   it('un même Sort d’un même lanceur n’est actif qu’une fois : la nouvelle pose remplace (LDB 46 l.119)', () => {
@@ -634,8 +634,8 @@ describe("op:'grantPsychTrait' / op:'removePsychTrait' — Traits psychologiques
   });
   it("grantPsychTrait porte la PROVENANCE de l'effet, comme l'op grantTrait (#1853)", () => {
     const c = hero({ psychTraits: [] });
-    applyOps(c, [opPsy.octroi('frenesie')], { idNeuf: idsDeTest, rng: desDuTest, label: 'Colère', source: { kind: 'spell', id: 'colere' } });
-    expect(c.psychTraits).toEqual([{ type: 'frenesie', src: { kind: 'spell', id: 'colere' } }]);
+    applyOps(c, [opPsy.octroi('frenesie')], { idNeuf: idsDeTest, rng: desDuTest, label: 'Colère', source: { kind: 'sort', id: 'colere' } });
+    expect(c.psychTraits).toEqual([{ type: 'frenesie', src: { kind: 'sort', id: 'colere' } }]);
   });
   it("removePsychTrait { psychType } retire le Trait correspondant (laisse les autres)", () => {
     const c = hero({ psychTraits: [{ type: 'phobie', cible: ciblePsy.groupe('serpent') }, { type: 'haine', cible: ciblePsy.groupe('skaven') }] });
@@ -721,7 +721,7 @@ describe("op:'rollTable' — tirage sur table par fourchette (findTableEntry, so
     op: 'rollTable' as const, die: 'd10' as const,
     entries: [
       { min: 1, max: 2, ops: [{ op: 'charDamage' as const, characteristic: 'initiative' as const, amount: { dice: { n: 1, sides: 10 } } }] },
-      { min: 3, max: 8, ops: [{ op: 'condition' as const, id: 'sonne' }] },
+      { min: 3, max: 8, ops: [{ op: 'condition' as const, id: { id: 'sonne' } }] },
       { min: 9, max: 9, ops: [{ op: 'grantTrait' as const, trait: { id: 'nerveux' } }] },
       { min: 10, max: 99, ops: [{ op: 'kill' as const }] },
     ],
@@ -826,12 +826,12 @@ describe('op `gainResource` — un `amount` NÉGATIF retire (Dague voleuse de ch
 });
 
 describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', () => {
-  const cible = (): Combatant => (blessuresSurLeProfil({ id: 't', label: 'Cible', kind: 'enemy', characteristics: profilDeTest({ agilite: 40 }), wounds: blessuresDeBase(10), conditions: [], skills: [], talents: [], traits: [], activeEffects: [], weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
+  const cible = (): Combatant => (blessuresSurLeProfil({ id: 't', label: 'Cible', kind: 'ennemi', characteristics: profilDeTest({ agilite: 40 }), wounds: blessuresDeBase(10), conditions: [], skills: [], talents: [], traits: [], activeEffects: [], weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
   const ops = [
     { op: 'wounds', amount: 2, ignoreTB: true, ignoreAP: true },
     { op: 'charMod', characteristic: 'agilite', mod: -10, durationRounds: 3 },
     { op: 'charMod', characteristic: 'endurance', mod: -10, durationRounds: 3 },
-    { op: 'condition', id: 'sonne', value: 1 },
+    { op: 'condition', id: { id: 'sonne' }, value: 1 },
   ] as never[];
 
   it('chaque ligne arrive avec son rang ; la ligne agrégée des charMod va au dernier de la suite', () => {
@@ -844,19 +844,19 @@ describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', 
 
   it('une op IMBRIQUÉE rend ses lignes à l’op qui la porte, une seule fois', () => {
     const recues: [number | null, string][] = [];
-    const lignes = applyOps(cible(), [{ op: 'transform', tag: 'forme', ops: [{ op: 'condition', id: 'sonne', value: 1 }] }] as never[], { idNeuf: idsDeTest, rng: makeRNG(1), surLigne: (rang, l) => { recues.push([rang, l]); } });
+    const lignes = applyOps(cible(), [{ op: 'transform', tag: 'forme', ops: [{ op: 'condition', id: { id: 'sonne' }, value: 1 }] }] as never[], { idNeuf: idsDeTest, rng: makeRNG(1), surLigne: (rang, l) => { recues.push([rang, l]); } });
     expect(lignes).toEqual(['Cible reçoit 1 État Sonné.', 'Cible se métamorphose (forme).']);
     expect(recues).toEqual([[0, 'Cible reçoit 1 État Sonné.'], [0, 'Cible se métamorphose (forme).']]);
   });
 });
 
 describe('augmentWeapon — l’arme tenue est celle du set actif résolu', () => {
-  it('arme à deux mains en `main`, dague en `off` : la dague n’est pas tenue, l’enchantement qui la vise échoue', () => {
+  it('arme à deux mains en `main`, dague en `secondaire` : la dague n’est pas tenue, l’enchantement qui la vise échoue', () => {
     const c = hero({ items: [{ ...itemFromGive({ trappingId: 'grande-hache' }, idsDeTest), uid: 'grande-hache' }, { ...itemFromGive({ trappingId: 'dague' }, idsDeTest), uid: 'dague' }] });
     recomputeLoadout(c);
     const lo = c.loadouts![0];
     loadoutSetSlot(c, lo.id, 'main', 'grande-hache');
-    loadoutSetSlot(c, lo.id, 'off', 'dague');
+    loadoutSetSlot(c, lo.id, 'secondaire', 'dague');
     recomputeLoadout(c);
     const lignes = applyOps(c, [{ op: 'augmentWeapon', addQualities: ['magique'], requiresWeapon: ['dague'] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Sonde', defaultDurationRounds: 2 });
     expect(lignes).toEqual(['Cobaye : aucune arme en main à enchanter (Sonde).']);

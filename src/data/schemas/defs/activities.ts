@@ -8,7 +8,17 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { blocageDeLivraison, difficultySchema, enumNomme, formulaSchema, formuleSansTirageSchema, foyerDeRegleSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
+import {
+  blocageDeLivraison,
+  difficultySchema,
+  enumNomme,
+  equipeSchema,
+  formulaSchema,
+  formuleSansTirageSchema,
+  foyerDeRegleSchema,
+  moneyPartialSchema,
+  stakeFormSchema,
+} from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, flowTestSchema, stageOutcomeSchema } from '../grammaire/mecanique';
 import { refOuSpec, refs } from '../grammaire/ref';
 
@@ -26,7 +36,6 @@ const activityContextSchema = enumNomme({
   auberge: 'Auberge (hub de ville)',
 });
 
-export const battleSideSchema = enumNomme({ ally: 'Armée alliée', enemy: 'Armée ennemie' });
 export const battleOutcomeTargetSchema = enumNomme({
   might: 'Puissance courante',
   startMight: 'Puissance de départ',
@@ -42,7 +51,7 @@ export const battleOutcomeScaleSchema = enumNomme({
 });
 
 const battleOutcomeSchema = nommerChamps(z.strictObject({
-  side: battleSideSchema.optional(),
+  side: equipeSchema.optional(),
   target: battleOutcomeTargetSchema,
   scale: battleOutcomeScaleSchema,
   amount: z.number(),
@@ -81,7 +90,7 @@ export const sceneKindSchema = enumNomme({
 });
 
 /** Issue du Test qui ouvre une bande (absente = toute issue). */
-export const outcomeOnSchema = enumNomme({ success: 'Succès', failure: 'Échec', fumble: 'Maladresse' });
+export const outcomeOnSchema = enumNomme({ reussite: 'Succès', echec: 'Échec', maladresse: 'Maladresse' });
 
 const outcomeBandSchema = nommerChamps(z.strictObject({
   on: outcomeOnSchema.optional(),

@@ -6,11 +6,12 @@
  * `fabriquesDuNoyau.ts`.
  */
 import { t } from '../i18n';
+import { garanti } from '../lib/garanti';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 import { libelleDeLaFermeture } from './libelles';
-import { seanceDuChapitre, validationDeLaFenetre, type FenetreAValider } from './modalArbiter';
+import { estFenetreAValider, seanceDuChapitre, validationDeLaFenetre, type FenetreAValider } from './modalArbiter';
 import { refuserGesteDuSiege } from './refusVisible';
 import type { FermetureDuJet } from './rollFlowFactory';
 import { fermetureDuQuorum, jouerOuMarquer } from './sortieDeFenetre';
@@ -28,11 +29,11 @@ export type ValidationsDeFenetre = { readonly [F in FenetreAValider]: () => void
  *  achat à répartir, la fin de séance que le récap de chapitre termine, la semaine en mer dont un choix n'est plus ouvert
  *  (`semaineAReprendre`), le Round de bataille dont le Test spectaculaire reste à jouer (`fermetureDuRoundSuivant`). */
 export const FERMETURES_DE_LA_VALIDATION: { readonly [F in FenetreAValider]?: (s: Jeu) => FermetureDuJet | null } = {
-  rest: (s) => (noteDAubergeCouverte(s) ? null : 'noteNonCouverte'),
+  repos: (s) => (noteDAubergeCouverte(s) ? null : 'noteNonCouverte'),
   interlude: (s) => (interludeDrawPending(s) ? 'evenementsATirer' : null),
   marchand: (s) => (s.merchant?.pendingDistribution?.length ? null : 'rienARepartir'),
   finDeSeance: seanceDuChapitre,
-  seaActivities: (s) => (semaineAReprendre(s) ? 'choixAReprendre' : null),
+  activitesEnMer: (s) => (semaineAReprendre(s) ? 'choixAReprendre' : null),
   batailleDeMasse: fermetureDuRoundSuivant,
 };
 
@@ -47,11 +48,15 @@ export function fermetureDeLaValidation(s: Jeu, fenetre: FenetreAValider): Ferme
  *  qui ne se valide pas, une fenêtre fermée, la validation de l'hôte dans l'état d'un invité, ce qui ferme sa validation
  *  maintenant (`fermetureDeLaValidation`) ; `null` : elle se joue. */
 export function refusDeLaValidation(s: Jeu, fenetre: unknown): string | null {
-  const validation = validationDeLaFenetre(fenetre);
-  if (!validation) return t('validation.refus.inconnue');
+  return estFenetreAValider(fenetre) ? refusDeLaValidationNommee(s, fenetre) : t('validation.refus.inconnue');
+}
+
+/** Ce qui refuse la validation de `fenetre` maintenant (`refusDeLaValidation`) ; `null` : elle se joue. */
+export function refusDeLaValidationNommee(s: Jeu, fenetre: FenetreAValider): string | null {
+  const validation = garanti(validationDeLaFenetre(fenetre), fenetre, 'validation déclarée');
   if (!validation.ouverte(s)) return t('validation.refus.fermee');
-  if (validation.qui === 'hote' && s.net.mode === 'guest') return t('validation.refus.hoteSeul');
-  const fermee = fermetureDeLaValidation(s, fenetre as FenetreAValider);
+  if (validation.qui === 'hote' && s.net.mode === 'invite') return t('validation.refus.hoteSeul');
+  const fermee = fermetureDeLaValidation(s, fenetre);
   return fermee && libelleDeLaFermeture(fermee);
 }
 

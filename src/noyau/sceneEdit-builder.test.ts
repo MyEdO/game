@@ -3,7 +3,33 @@ import { emptyScene, isDescriptiveZone, layerTiles, type Scene } from './monde/s
 import { isRoomZone } from './monde/rooms';
 import { EFFECT_ZONE_SEEDS } from './sceneEditLecture';
 // `putLayer` : appelant unique `noyau/mapSpec.ts` (`buildScene`), sans porte d'écran (#855).
-import { editEntity, editEntityCombat, putLayer, renameActionAuthoree, setSceneScalaires, setSceneLabel, renameScene, editEntry, setSceneFlags, addArchitectureBody, patchArchitectureBody, patchArchitecturePart, patchBuildingMass, patchRoofExclusion, addRoofExclusion, setFacadeSectionZ, addFacadeSection, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE, addBuildingMass, rederiveRoofMasses, addEffectZone, renameEffectZone } from './sceneEdit';
+import {
+  editEntity,
+  editEntityCombat,
+  putLayer,
+  renameActionAuthoree,
+  setSceneScalaires,
+  setSceneLabel,
+  renameScene,
+  editEntry,
+  setSceneFlags,
+  addArchitectureBody,
+  patchArchitectureBody,
+  patchArchitecturePart,
+  patchBuildingMass,
+  patchRoofExclusion,
+  addRoofExclusion,
+  setFacadeSectionZ,
+  addFacadeSection,
+  addFacadeFeature,
+  patchFacadeFeature,
+  removeFacadeFeature,
+  BORNES_D_OUVERTURE,
+  addBuildingMass,
+  rederiveRoofMasses,
+  addEffectZone,
+  renameEffectZone,
+} from './sceneEdit';
 import { sceneEntitySchema, PENTE_TOIT_DEG, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { buildingRoofMaterial } from './monde/buildings';
 import { encloseRect } from './sceneEdit.testkit';
@@ -172,8 +198,8 @@ describe('renameActionAuthoree — l’unicité d’un id d’action se garde au
   const decor = (actions: ActionAuthoree[]): SceneEntity =>
     ({ id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'coffre' }, usable: { actions } });
   const deux = (): ActionAuthoree[] => [
-    { id: 'fouiller', flow: { kind: 'seq', steps: [] } },
-    { id: 'crocheter', flow: { kind: 'seq', steps: [] } },
+    { id: 'fouiller', flow: { kind: 'sequence', etapes: [] } },
+    { id: 'crocheter', flow: { kind: 'sequence', etapes: [] } },
   ];
 
   it('vers un id LIBRE : renommé', () => {

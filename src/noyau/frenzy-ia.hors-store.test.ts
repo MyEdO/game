@@ -12,13 +12,14 @@ import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { actorIn } from './monde/combatants';
+import { idDeFixture } from '../data/idDeFixture.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
-function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
+function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
     id, label: id, kind, pos,
     wounds: blessuresDeBase(10),
@@ -32,7 +33,7 @@ function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, o
 
 /** Invocation alliée RÉSOLUE (shape 'self', op summon sur 'caster'). */
 function summonSpell(): CastableSpell {
-  const data = { id: 'invoc', label: 'Invocation', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, effects: { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'summon', ref: 'loup', count: 1, allyOfCaster: true }] } } } as unknown as SpellData;
+  const data: SpellData = { id: idDeFixture('spell', 'invoc'), type: 'spells', label: 'Invocation', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, effects: { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'summon', ref: 'loup', count: 1, allyOfCaster: true }] } } };
   return { id: 'invoc', data, cn: 0, range: 0, shape: 'self', landProb: 1, focusState: 'none', active: false };
 }
 
@@ -43,18 +44,18 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
 
 describe('Frénésie IA — cible la plus proche (chooseEnemyAction, pur, LDB 21 l.33)', () => {
   it('frenzied : vise le plus PROCHE en Ligne de Vue (pas le plus faible distant)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: 'frenesie' }], movement: 4 });
-    const near = mk('near', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10) }); // proche, costaud
-    const far = mk('far', 'hero', { x: 5, y: 9 }, { wounds: blessuresDeBase(10, 2) }); // faible, atteignable MAIS plus loin
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: 'frenesie' }], movement: 4 });
+    const near = mk('near', 'heros', { x: 5, y: 6 }, { wounds: blessuresDeBase(10) }); // proche, costaud
+    const far = mk('far', 'heros', { x: 5, y: 9 }, { wounds: blessuresDeBase(10, 2) }); // faible, atteignable MAIS plus loin
     const action = chooseEnemyAction(input(e, [near, far]));
     const tid = (action as { targetId?: string; thenTargetId?: string }).targetId ?? (action as { thenTargetId?: string }).thenTargetId;
     expect(tid).toBe('near');
   });
 
   it('non frenzied : conserve le ciblage du plus faible (régression)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 });
-    const near = mk('near', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10) });
-    const far = mk('far', 'hero', { x: 5, y: 7 }, { wounds: blessuresDeBase(10, 2) }); // faible, atteignable
+    const e = mk('e', 'ennemi', { x: 5, y: 5 });
+    const near = mk('near', 'heros', { x: 5, y: 6 }, { wounds: blessuresDeBase(10) });
+    const far = mk('far', 'heros', { x: 5, y: 7 }, { wounds: blessuresDeBase(10, 2) }); // faible, atteignable
     const action = chooseEnemyAction(input(e, [near, far]));
     const tid = (action as { targetId?: string; thenTargetId?: string }).targetId ?? (action as { thenTargetId?: string }).thenTargetId;
     expect(tid).toBe('far');
@@ -66,15 +67,15 @@ describe('Frénésie IA — ORDRE (report tant qu’un sort prime, Couche 3)', (
   // frénétique (le peek tourne AVANT l'entrée), une invocation jouable + héros loin → l'IA PRÉPARE le sort
   // (cast), donc la Frénésie est différée. Sans sort → mêlée/approche (pas de report).
   it('un sort jouable (invocation, héros loin) → la meilleure action est `cast` (→ report de Frénésie)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [] }); // état non frénétique à ce stade
-    const h = mk('h', 'hero', { x: 5, y: 11 }); // loin → ni mêlée ni bonne approche
-    expect(chooseEnemyAction(input(e, [h], { spells: [summonSpell()] })).kind).toBe('cast');
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [] }); // état non frénétique à ce stade
+    const h = mk('h', 'heros', { x: 5, y: 11 }); // loin → ni mêlée ni bonne approche
+    expect(chooseEnemyAction(input(e, [h], { spells: [summonSpell()] })).kind).toBe('incantation');
   });
 
   it('sans sort jouable → la meilleure action n’est PAS un sort (pas de report)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [MELEE] });
-    const h = mk('h', 'hero', { x: 5, y: 11 });
-    expect(['cast', 'castArea', 'focus']).not.toContain(chooseEnemyAction(input(e, [h])).kind);
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [MELEE] });
+    const h = mk('h', 'heros', { x: 5, y: 11 });
+    expect(['incantation', 'incantationDeZone', 'focalisation']).not.toContain(chooseEnemyAction(input(e, [h])).kind);
   });
 });
 
@@ -88,12 +89,12 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
+    b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id).forEach((e) => (e.dead = true));
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 }; // adjacent + Ligne de Vue dégagée
     banc.setState({ battle: { ...b } });

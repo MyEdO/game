@@ -47,7 +47,7 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 
 function hero(p: Partial<Combatant>): Combatant {
   return blessuresSurLeProfil({
-    id: 'h1', label: 'Héros', kind: 'hero',
+    id: 'h1', label: 'Héros', kind: 'heros',
     characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 40, force: 35, endurance: 40, initiative: 30, agilite: 30, dexterite: 32, intelligence: 40, 'force-mentale': 35, sociabilite: 30 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -67,13 +67,13 @@ const effetCT = [{ id: 'fx1', label: 'Mystracine', testModChar: 'capacite-de-tir
 const epee = { uid: 'w2', label: 'Épée', type: 'melee', damage: 4, qualities: [] } as never;
 
 const arbalete = {
-  uid: 'w1', label: 'Arbalète', type: 'ranged', damage: 4, qualities: [], reload: 1, range: 60,
+  uid: 'w1', label: 'Arbalète', type: 'distance', damage: 4, qualities: [], reload: 1, range: 60,
 } as never;
 
 function setBattle(combatants: Combatant[], activeId: string) {
   const order = combatants.map((c) => c.id);
   banc.setState({
-    mode: 'battle', party: combatants.filter((c) => c.kind === 'hero'),
+    mode: 'battle', party: combatants.filter((c) => c.kind === 'heros'),
     battle: {
       combatants, order, baseOrder: order, turn: order.indexOf(activeId), round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false,
@@ -93,8 +93,8 @@ describe('Rechargement (combatSlice) — canal COMBAT du monteur', () => {
     setBattle([tireur], 'tir');
 
     // ORACLE recalculé à la main depuis les jumelles du moteur (jamais relu du site).
-    const nue = combatBaseValue(tireur, 'ranged', tireur.weapons[0]);
-    const jetee = combatValue(tireur, 'ranged', tireur.weapons[0]);
+    const nue = combatBaseValue(tireur, 'distance', tireur.weapons[0]);
+    const jetee = combatValue(tireur, 'distance', tireur.weapons[0]);
     expect(jetee, 'l’effet char-qualifié sépare la nue de la valeur jetée — sinon le test ne prouve rien').toBeLessThan(nue);
     expect(jetee, 'la valeur de COMBAT n’est pas la valeur hors combat : le canal a un sens')
       .not.toBe(testValue(tireur, { skill: { id: 'projectiles' }, characteristic: 'capacite-de-tir' }));
@@ -103,9 +103,9 @@ describe('Rechargement (combatSlice) — canal COMBAT du monteur', () => {
     const pr = get().pendingReload!;
     expect(pr.target).toBe(clampTarget(jetee + DIFFICULTY_MODIFIERS.intermediaire).target);
 
-    const ligne = rollLine({ actor: tireur, difficulty: 'intermediaire', valeur: pr.skillValue, combat: { kind: 'ranged', weapon: tireur.weapons[0] } });
+    const ligne = rollLine({ actor: tireur, difficulty: 'intermediaire', valeur: pr.skillValue, combat: { kind: 'distance', weapon: tireur.weapons[0] } });
     expect(ligne.base, 'Niveau de combat NU (LDB 09 l.17 sur CC/CT + Spé du Groupe)').toBe(nue);
-    expect(ligne.mods.reduce((s, m) => s + m.value, 0)).toBe(combatValueMods(tireur, 'ranged', tireur.weapons[0]));
+    expect(ligne.mods.reduce((s, m) => s + m.value, 0)).toBe(combatValueMods(tireur, 'distance', tireur.weapons[0]));
     expect(inexplique({ ...ligne, difficulty: pr.difficulty }), 'aucune chip « autres »').toBe(0);
   });
 });
@@ -117,7 +117,7 @@ describe('Main ensanglantée (`poserLeTestDeMain`) — cible montée sur la vale
     const dex = testValue(brute, { characteristic: 'dexterite' });
     expect(dex, 'l’État sépare la Dextérité nue de la valeur jetée').toBeLessThan(effectiveChar(brute, 'dexterite'));
 
-    openAttackCascade(get, set, { attackerId: 'br', targetId: 'br', location: null, result: null } as never, 'Attaquer', 'action/attack');
+    openAttackCascade(get, set, { attackerId: 'br', targetId: 'br', location: null, result: null } as never, 'Attaquer', 'action/attaquer');
     const pg = get().pendingHandGate!;
     expect(pg.ligne.base + pg.ligne.mods.reduce((n, m) => n + m.value, 0)).toBe(dex);
     expect(pg.target).toBe(clampTarget(dex + DIFFICULTY_MODIFIERS.accessible).target);
@@ -139,12 +139,12 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
     const nue = skillBaseValue(doc, { skill: { id: 'guerison' } });
     expect(v, 'l’État sépare la nue de la valeur jetée').toBeLessThan(nue);
 
-    banc.setState({ battle: { ...get().battle!, action: 'heal' } }); // le Soin se commet depuis son mode armé (`HEAL_MODE`)
+    banc.setState({ battle: { ...get().battle!, action: 'soins' } }); // le Soin se commet depuis son mode armé (`HEAL_MODE`)
     get().ouvrirLaGuerison('bl');
     const ph = get().pendingHeal!;
     expect(ph.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS[ph.difficulty]).target);
 
-    get().jetRegler('heal', 'mode', 'bleed');
+    get().jetRegler('soins', 'mode', 'hemorragie');
     const ph2 = get().pendingHeal!;
     expect(ph2.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS[ph2.difficulty]).target);
 
@@ -177,7 +177,7 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
       id: 'sv', label: 'Survivant', conditions: ETAT, tookCriticalThisFight: true,
       skills: [{ id: 'resistance', advances: 10, characteristic: 'endurance' }] as never,
     } as never);
-    const bete = hero({ id: 'be', label: 'Bête', kind: 'enemy', dead: true, traits: [{ id: 'corruption', arg: 'mineure' }] } as never);
+    const bete = hero({ id: 'be', label: 'Bête', kind: 'ennemi', dead: true, traits: [{ id: 'corruption', arg: 'mineure' }] } as never);
     setBattle([survivant, bete], 'sv');
     survivant.diseaseExposure = [{ disease: 'courante-galopante', difficulty: 'intermediaire' }] as never;
 
@@ -186,14 +186,14 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
     const penalite = combatTestPenalty(survivant);
     expect(penalite, 'l’État doit peser sur les Tests de COMBAT — sinon la fixture ne prouve rien').toBeLessThan(0);
 
-    const maladie = steps.find((s) => s.kind === 'combatEndDisease')?.participants?.find((r) => r.id === 'sv');
+    const maladie = steps.find((s) => s.kind === 'maladieDeFinDeCombat')?.participants?.find((r) => r.id === 'sv');
     if (maladie) {
       const resVal = effectiveChar(survivant, 'endurance') + 10;
       expect(maladie.base).toBe(resVal);
       expect(maladie.target).toBe(clampTarget(resVal + DIFFICULTY_MODIFIERS[maladie.difficulty!] + penalite).target);
       expect(inexplique(maladie), 'la pénalité de combat est NOMMÉE, pas « autres »').toBe(0);
     }
-    const corruption = steps.find((s) => s.kind === 'combatEndCorruption')?.participants?.find((r) => r.id === 'sv');
+    const corruption = steps.find((s) => s.kind === 'corruptionDeFinDeCombat')?.participants?.find((r) => r.id === 'sv');
     if (corruption) {
       expect(corruption.base, 'base = Niveau de Compétence NU (l’État sort en chip)').toBe(skillBaseValue(survivant, { skill: { id: 'resistance' } }));
       expect(corruption.target, 'pénalité de combat comptée UNE fois').toBe(clampTarget(rawCombatTestBase(survivant, { skill: { id: 'resistance' } }) + DIFFICULTY_MODIFIERS.intermediaire + penalite).target);
@@ -202,7 +202,7 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
     // Les DEUX familles de BANDE doivent être produites, chacune avec la rangée du survivant (#1117 L4).
     // La fixture porte les DEUX entrées de Contraction (Blessure critique + exposition) : deux bandes.
     expect(steps.map((s) => s.kind), 'les DEUX familles de bande doivent être produites')
-      .toEqual(['combatEndDisease', 'combatEndDisease', 'combatEndCorruption']);
+      .toEqual(['maladieDeFinDeCombat', 'maladieDeFinDeCombat', 'corruptionDeFinDeCombat']);
     expect([maladie, corruption].map((r) => r?.id)).toEqual(['sv', 'sv']);
   });
 });
@@ -211,7 +211,7 @@ describe('Gate d’Action par Round (combat/turnHooks) — canal COMBAT « Test 
   it('base = valeur de Test de combat BRUTE, la pénalité d’États est comptée UNE fois et nommée', () => {
     const porteur = hero({
       id: 'po', label: 'Porteur', conditions: ETAT,
-      activeEffects: [{ id: 'racine', label: 'Racine de mandragore', actGate: { characteristic: 'force-mentale' } }] as never,
+      activeEffects: [{ id: 'racine', label: 'Racine de mandragore', testDAgir: { characteristic: 'force-mentale' } }] as never,
     });
     setBattle([porteur], 'po');
 
@@ -222,7 +222,7 @@ describe('Gate d’Action par Round (combat/turnHooks) — canal COMBAT « Test 
       .toBe(testValue(porteur, { characteristic: 'force-mentale' }) - testStatePenalty(porteur, undefined));
 
     resolveActGates(get, set, porteur);
-    const step = (get().pendingCascade?.participants ?? []).find((s) => s.kind === 'actGate')!;
+    const step = (get().pendingCascade?.participants ?? []).find((s) => s.kind === 'testDAgir')!;
     expect(step.target).toBe(clampTarget(brut + DIFFICULTY_MODIFIERS.intermediaire + penalite).target);
     expect(step.base, 'base = Caractéristique NUE, tout le reste est en chips').toBe(effectiveChar(porteur, 'force-mentale'));
     expect(inexplique(step), 'aucune chip « autres »').toBe(0);
@@ -248,7 +248,7 @@ describe('Résilience d’un contributeur d’équipage (shipManeuver) — cible
     // Un jet FORCÉ par la Résilience vise la MÊME cible qu'un jet roulé : `clampTarget`
     // (`engine/tests.ts`) la borne à `targetMax`, et le DR se compte sur cette cible (LDB 12 l.92).
     // `targetMax` vaut 99 tant que la règle optionnelle « Tests supérieurs à 100 % » (LDB 12
-    // l.73-77, `test-over-100`) est inactive — c'est le régime par défaut mesuré ici.
+    // l.73-77, `test-plus-de-100`) est inactive — c'est le régime par défaut mesuré ici.
     const barreur = hero({
       id: 'ba', label: 'Barreur', conditions: ETAT,
       characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 40, force: 35, endurance: 40, initiative: 30, agilite: 105, dexterite: 32, intelligence: 40, 'force-mentale': 35, sociabilite: 30 },
@@ -286,8 +286,8 @@ describe('ORACLE du canal combat — balayage EXHAUSTIF (#1153 L1b, sonde promue
     const CANAUX: { combat: RollLineCombat; test?: SujetDuJet }[] = [
       { combat: { kind: 'melee' } },
       { combat: { kind: 'melee', weapon: epee } },
-      { combat: { kind: 'ranged' } },
-      { combat: { kind: 'ranged', weapon: arbalete } },
+      { combat: { kind: 'distance' } },
+      { combat: { kind: 'distance', weapon: arbalete } },
       { combat: { kind: 'test' }, test: { characteristic: 'force-mentale' } },
       { combat: { kind: 'test' }, test: { characteristic: 'dexterite' } },
       { combat: { kind: 'test' }, test: { skill: { id: 'resistance' } } },
@@ -368,13 +368,13 @@ describe('SONDES PROMUES (#1153 L1b) — ce que le monteur NE fait PAS encore', 
       skills: [{ id: 'projectiles', advances: 20, characteristic: 'capacite-de-tir' }] as never,
       weapons: [arbalete],
     });
-    const valeur = combatValue(tireur, 'ranged', tireur.weapons[0]);
+    const valeur = combatValue(tireur, 'distance', tireur.weapons[0]);
     // Canal HORS COMBAT sur une valeur de combat : la reconstruction rate — en DEV, elle THROW.
     expect(() => rollLine({ actor: tireur, test: { characteristic: 'capacite-de-tir' }, difficulty: 'intermediaire', valeur }))
       .toThrow(/ne se reconstruit pas/);
     // MÊME valeur par son canal : la ligne se monte et s'explique intégralement.
-    const ligne = rollLine({ actor: tireur, difficulty: 'intermediaire', valeur, combat: { kind: 'ranged', weapon: tireur.weapons[0] } });
-    expect(ligne.base).toBe(combatBaseValue(tireur, 'ranged', tireur.weapons[0]));
+    const ligne = rollLine({ actor: tireur, difficulty: 'intermediaire', valeur, combat: { kind: 'distance', weapon: tireur.weapons[0] } });
+    expect(ligne.base).toBe(combatBaseValue(tireur, 'distance', tireur.weapons[0]));
     expect(inexplique({ ...ligne, difficulty: 'intermediaire' })).toBe(0);
   });
 
@@ -382,7 +382,7 @@ describe('SONDES PROMUES (#1153 L1b) — ce que le monteur NE fait PAS encore', 
    * MATRICE du mode plafonné (`LDB 14 l.91-96`) — les six régimes de la règle, jugés sur TROIS
    * grandeurs : la cible que le combat applique, la DIFFICULTÉ que la ligne annonce, et l'écart
    * base→cible intégralement nommé. Les plafonds sont lus de la POLICY
-   * (`combat-diff-cap-bonus`/`-malus`, règles optionnelles), jamais écrits en dur : un jeu de
+   * (`combat-plafond-bonus-difficulte`/`-malus`, règles optionnelles), jamais écrits en dur : un jeu de
    * valeurs maison doit faire bouger l'attendu avec le moteur.
    *
    * DEUX formes d'annonce, une seule règle : `palier` = un CRAN de la table que les circonstances
@@ -391,8 +391,8 @@ describe('SONDES PROMUES (#1153 L1b) — ce que le monteur NE fait PAS encore', 
    * en fait « Combinée (+30) »). Dans les DEUX cas les circonstances quittent les chips et la
    * composition est portée par la Difficulté. Sans circonstance : rien à composer.
    */
-  const capB = rule('combat-diff-cap-bonus') as number;
-  const capM = rule('combat-diff-cap-malus') as number;
+  const capB = rule('combat-plafond-bonus-difficulte') as number;
+  const capM = rule('combat-plafond-malus-difficulte') as number;
   const MATRICE: { nom: string; mods: ModLine[]; attendu: number; mord: boolean; palier?: Difficulty; combine?: number }[] = [
     { nom: 'aucun plafond ne mord (un mod au jet, une circonstance)', mods: [{ label: 'Sonné', value: -10, famille: 'jet' }, { label: 'À Terre', value: 20, famille: 'circonstance' }], attendu: 10, mord: false, palier: 'accessible' },
     { nom: 'MALUS de CIRCONSTANCES mordant (Σ −60)', mods: [{ label: 'Brouillard', value: -20, famille: 'circonstance' }, { label: 'Localisation visée', value: -20, famille: 'circonstance' }, { label: 'Main secondaire', value: -20, famille: 'circonstance' }], attendu: -capM, mord: true, palier: 'tresDifficile' },
@@ -592,11 +592,11 @@ describe('DIFFICULTÉ COMPOSÉE — contrat balayé sur tout le produit cartési
     expect(echecs.slice(0, 20)).toEqual([]);
   });
 
-  /** Le plafond est une DONNÉE de policy (`combat-diff-cap-malus`), pas une constante : sous un jeu
+  /** Le plafond est une DONNÉE de policy (`combat-plafond-malus-difficulte`), pas une constante : sous un jeu
    *  maison à −50 (l'échelle EDO descend jusqu'à « Impossible (−50) »), la MÊME règle doit tenir —
    *  et une somme amputée à −50 y trouve un cran là où −30 n'en trouvait plus. */
   it('les six invariants tiennent avec un plafond de POLICY à −50 (échelle étendue EDO)', () => {
-    setRule('combat-diff-cap-malus', 50);
+    setRule('combat-plafond-malus-difficulte', 50);
     cas = 0; composees = 0; combinees = 0; echecs.length = 0;
     balaye();
     expect(combineMods([{ label: 'A', value: -40, famille: 'circonstance' }, { label: 'B', value: -40, famille: 'circonstance' }]), 'la policy doit VRAIMENT avoir bougé').toBe(-50);

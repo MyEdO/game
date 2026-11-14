@@ -21,7 +21,7 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
+const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, narratif: emptyNarratif() };
 
 describe('terrain de bataille — prose et provenance', () => {
   it('la saisie multiligne et les bascules conservent le texte, le folio et les autres champs à la sérialisation', async () => {
@@ -29,7 +29,7 @@ describe('terrain de bataille — prose et provenance', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    let dernier: Effect = { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 60, terrain: 'Texte copié.', source } };
+    let dernier: Effect = { type: 'startMassBattle', battle: { puissanceAlliee: 50, puissanceEnnemie: 60, terrain: 'Texte copié.', source } };
     function Controle() {
       const [effect, setEffect] = useState(dernier);
       return <EffectFields effect={effect} ctx={ctx} onChange={(next) => { dernier = next; setEffect(next); }} />;
@@ -45,7 +45,7 @@ describe('terrain de bataille — prose et provenance', () => {
       const zone = container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Description du terrain"]');
       expect(zone?.classList.contains('prose-field')).toBe(true);
       await basculer('Adapté');
-      expect(bataille()).toMatchObject({ adapteDe: source, terrain: 'Texte copié.', allyMight: 50, enemyMight: 60 });
+      expect(bataille()).toMatchObject({ adapteDe: source, terrain: 'Texte copié.', puissanceAlliee: 50, puissanceEnnemie: 60 });
       expect(bataille().source).toBeUndefined();
       await act(async () => {
         Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(zone, 'Premier paragraphe.\n\nDeuxième paragraphe.');
@@ -69,7 +69,7 @@ describe('terrain de bataille — prose et provenance', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    const effect: Effect = { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, terrain: 'Maison.' } };
+    const effect: Effect = { type: 'startMassBattle', battle: { puissanceAlliee: 50, puissanceEnnemie: 50, terrain: 'Maison.' } };
     try {
       await act(async () => { root.render(<EffectFields key="a" effect={effect} ctx={ctx} onChange={() => {}} />); });
       const copie = container.querySelector<HTMLButtonElement>('button[aria-label="Copie — provenance du terrain"]');
@@ -106,7 +106,7 @@ describe('EffectList — Effet setTime (jour/nuit via trigger, #T1c)', () => {
 describe('selects guidés (audit M9) — fini les ids à taper', () => {
   it('learnSpell : sorts de la base en optgroups (plus de « libellé exact »)', () => {
     const html = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'learnSpell', spell: '', heroId: '' }]} onChange={() => {}} ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE }} />,
+      <EffectList effects={[{ type: 'learnSpell', spell: '', heroId: '' }]} onChange={() => {}} ctx={ctx} />,
     );
     expect(html).toContain('<optgroup');
     expect(html).toContain('Fléchette');
@@ -115,7 +115,7 @@ describe('selects guidés (audit M9) — fini les ids à taper', () => {
 
   it('transition : scènes du projet + points d’entrée quand le contexte les fournit', () => {
     const ctx = {
-      encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE,
+      encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, narratif: emptyNarratif(),
       scenes: [
         { id: 'sc-a', nom: 'Village', entries: [] },
         { id: 'sc-b', nom: 'Taverne', entries: ['porte', 'cave'] },
@@ -132,13 +132,13 @@ describe('selects guidés (audit M9) — fini les ids à taper', () => {
 
   it('openMerchant : entités marchandes de la scène (ou explication si aucune)', () => {
     const withM = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'openMerchant', entityId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, merchants: [{ id: 'armurier', label: 'Maître armurier' }] }} />,
+      <EffectList effects={[{ type: 'openMerchant', entityId: { id: '' } }]} onChange={() => {}}
+        ctx={{ ...ctx, merchants: [{ id: 'armurier', label: 'Maître armurier' }] }} />,
     );
     expect(withM).toContain('Maître armurier (armurier)');
     const without = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'openMerchant', entityId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, merchants: [] }} />,
+      <EffectList effects={[{ type: 'openMerchant', entityId: { id: '' } }]} onChange={() => {}}
+        ctx={{ ...ctx, merchants: [] }} />,
     );
     expect(without).toContain('Aucune entité marchande');
   });
@@ -154,7 +154,7 @@ describe('#94 — Effets santé éditables (ambitionLost/inflictThirst/inflictPs
 
   it('inflictThirst : cible + jours (modèle inflictHunger)', () => {
     const html = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'inflictThirst', days: 2, target: 'party' }]} onChange={() => {}} ctx={ctx} />,
+      <EffectList effects={[{ type: 'inflictThirst', days: 2, target: 'groupe' }]} onChange={() => {}} ctx={ctx} />,
     );
     expect(html).toMatch(/Jours assoiffés/);
     expect(html).toContain('Tout le groupe');
@@ -162,7 +162,7 @@ describe('#94 — Effets santé éditables (ambitionLost/inflictThirst/inflictPs
 
   it('inflictPsychology : kind/indice/label/cible rendus', () => {
     const html = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'inflictPsychology', kind: 'terreur', indice: 2, label: 'Un spectre hurlant', target: 'party' }]} onChange={() => {}} ctx={ctx} />,
+      <EffectList effects={[{ type: 'inflictPsychology', kind: 'terreur', indice: 2, label: 'Un spectre hurlant', target: 'groupe' }]} onChange={() => {}} ctx={ctx} />,
     );
     expect(html).toContain('Terreur');
     expect(html).toMatch(/Indice/);
@@ -178,13 +178,13 @@ describe('#94 — Effets santé éditables (ambitionLost/inflictThirst/inflictPs
   it('openPort : lieux de la carte du monde (ou explication si aucun)', () => {
     const withP = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openPort', placeId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, places: [{ id: 'port-marienburg', label: 'Marienburg' }] }} />,
+        ctx={{ ...ctx, places: [{ id: 'port-marienburg', label: 'Marienburg' }] }} />,
     );
     expect(withP).toContain('Marienburg (port-marienburg)');
     expect(withP).not.toMatch(/id du lieu/);
     const without = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openPort', placeId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, places: [] }} />,
+        ctx={{ ...ctx, places: [] }} />,
     );
     expect(without).toContain('Aucun lieu sur la carte du monde');
   });
@@ -382,7 +382,7 @@ describe('#1874 C0 — cibles d’un Effet `ops` : la table vient de la racine',
     return f!;
   };
   const selectsDeCible = (c: HTMLElement) =>
-    Array.from(c.querySelectorAll('select')).filter((s) => Array.from(s.options).some((o) => o.value === 'target' || o.value === 'party'));
+    Array.from(c.querySelectorAll('select')).filter((s) => Array.from(s.options).some((o) => o.value === 'target' || o.value === 'groupe'));
   const monte = (effect: Effect, racine: Parameters<typeof ctxDeCatalogue>[0] | 'scene'): HTMLElement => {
     const container = document.createElement('div');
     container.innerHTML = renderToStaticMarkup(
@@ -421,14 +421,14 @@ describe('#1874 C0 — cibles d’un Effet `ops` : la table vient de la racine',
   });
 
   it('racine `maladie` : une seule cible, AUCUN sélecteur, le résumé la nomme', () => {
-    const f: Effect = { type: 'ops', ops: [{ op: 'condition', id: 'sonne' }] } as Effect;
+    const f: Effect = { type: 'ops', ops: [{ op: 'condition', id: { id: 'sonne' } }] } as Effect;
     expect(selectsDeCible(monte(f, 'maladie'))).toEqual([]);
     expect(effectSummary(f, ctxDeCatalogue('maladie'))).toMatch(/^Le malade : /);
   });
 
   it('racine SCÈNE : six options, groupe, héros, navire, rôle d’équipage, membre au hasard et volontaires', () => {
-    const [sel] = selectsDeCible(monte({ type: 'ops', on: 'party', ops: [] }, 'scene'));
-    expect(Array.from(sel.options).map((o) => o.value)).toEqual(['party', 'hero', 'navire', 'role', 'membreAuHasard', 'volontaires']);
+    const [sel] = selectsDeCible(monte({ type: 'ops', on: 'groupe', ops: [] }, 'scene'));
+    expect(Array.from(sel.options).map((o) => o.value)).toEqual(['groupe', 'heros', 'navire', 'role', 'membreAuHasard', 'volontaires']);
   });
 
   it('racine SCÈNE : la cible « volontaires » s’édite par sa question, posée à chaque héros (MDG 15 l.196)', () => {
@@ -442,7 +442,7 @@ describe('#1874 C0 — cibles d’un Effet `ops` : la table vient de la racine',
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root: Root = createRoot(container);
-    let dernier: Effect = { type: 'ops', on: 'party', ops: [] };
+    let dernier: Effect = { type: 'ops', on: 'groupe', ops: [] };
     function Controle() {
       const [eff, setEff] = useState<Effect>(dernier);
       return <EffectFields effect={eff} ctx={ctx} onChange={(n) => { dernier = n; setEff(n); }} />;
@@ -571,20 +571,20 @@ describe('#679 — les références narratives s’éditent par le sélecteur un
     expect(effectSummary({ type: 'revealClue', indiceId: 'ind-lettre', stade: 'dechiffree' }, ctxProjet)).toBe('Indice : La lettre chiffrée → stade 2');
   });
 
-  it('racine de catalogue : « + Effet », « + Bloc » et le changement de type taisent les trois Effects à réf narrative ; la racine de projet les offre', async () => {
-    const narratifs = [EFFECT_LABEL.document, EFFECT_LABEL.revealClue, EFFECT_LABEL.discreditClue];
+  it('racine de catalogue : « + Effet », « + Bloc » et le changement de type n’offrent que la feuille `ops`, et une autre feuille y dit son refus ; la racine de projet offre tout', async () => {
+    const types = Object.values(EFFECT_LABEL);
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root: Root = createRoot(container);
     const entreesDe = async (menu: HTMLDetailsElement) => {
       const boite = await ouvrirMenu(menu);
-      const vus = narratifs.filter((l) => entreeDe(boite, l));
-      const journal = !!entreeDe(boite, EFFECT_LABEL.journal);
+      const vus = types.filter((l) => entreeDe(boite, l));
       await act(async () => { menu.querySelector('summary')!.click(); });
-      return { vus, journal };
+      return vus;
     };
+    const refus = 'Ce catalogue n’admet que des opérations : cet Effet ne s’y pose pas.';
     try {
-      for (const [c, attendu] of [[ctxDeCatalogue('consommable'), []], [ctxProjet, narratifs]] as const) {
+      for (const [c, attendu, refuse] of [[ctxDeCatalogue('declenche'), [EFFECT_LABEL.ops], true], [ctxProjet, types, false]] as const) {
         await act(async () => {
           root.render(
             <>
@@ -594,10 +594,9 @@ describe('#679 — les références narratives s’éditent par le sélecteur un
           );
         });
         for (const menu of [menuDe(container, '+ Effet'), menuDe(container, '+ Bloc'), menuDe(container, /^Type :/)]) {
-          const { vus, journal } = await entreesDe(menu);
-          expect(journal).toBe(true);
-          expect(vus).toEqual(attendu);
+          expect(await entreesDe(menu)).toEqual(attendu);
         }
+        expect([...container.querySelectorAll('.hint')].some((p) => p.textContent === refus)).toBe(refuse);
       }
     } finally {
       await act(async () => { root.unmount(); });

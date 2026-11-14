@@ -7,9 +7,12 @@
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
-## coupe d'un navire et le compte des triangles d'une géométrie. Seul script où l'arithmétique et la mesure sont permises
-## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au
-## plus un vecteur, sans état.
+## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait (celle d'un
+## morceau ou d'une nappe) et à celui de la vision, la part d'un fondu de la vision après un pas de temps, l'état fondu
+## d'une case et le plus grand de deux, la teinte d'instance d'un état, le relief d'un matériau à son facteur, et l'abscisse
+## sur un rayon d'un point, d'un point au-delà de celui qu'il touche et du bout de chaque tronçon dont il reprend. Seul
+## script où l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et
+## des fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
 class_name MiseEnPage
 extends RefCounted
 
@@ -31,6 +34,13 @@ const JEU_ENTRE_RANGES := 0.02
 const JEU_DE_RANGEMENT := 0.005
 ## Le côté, en mètres, des cases où un objet rangé se confronte à ce qui est porté dessous (`case_de_contact`).
 const CASE_DE_CONTACT := 0.02
+## Le pas, en mètres, dont un rayon reprend au-delà d'un point touché (`point_au_dela`), et dont un tronçon recouvre la
+## fin du précédent (`point_en_deca`).
+const PAS_AU_DELA_M := 0.0005
+## La longueur, en mètres, d'un tronçon dont un rayon reprend (`bout_du_troncon`) : le moteur physique du projet
+## (GodotPhysics3D, `physics/3d/physics_engine` au défaut) manque toute face plus proche de l'origine du tronçon que
+## `CMP_EPSILON` fois sa longueur (`core/math/geometry_3d.h:115`, `core/math/math_defs.h:50`, Godot 4.7).
+const PORTEE_D_UN_TRONCON_M := 20.0
 ## La hauteur, en mètres, sous l'attache d'un objet rangé jusqu'où il s'appuie sur ce qui est porté ; plus bas, il pivote
 ## (`recul_sur_la_case`, `pivot_sur_la_case`).
 const APPUI_DE_RANGEMENT := 0.05
@@ -39,6 +49,9 @@ const APPUI_DE_RANGEMENT := 0.05
 const PORTEE_DE_CONTACT := 1.0
 ## Sous cette composante avant, l'axe X d'un repère de rangement est latéral (`sens_vers_l_avant`).
 const TOLERANCE_LATERALE := 0.1
+## L'inclinaison depuis la verticale, en radians, d'un objet rangé en bandoulière (`biais_de_rangement`), son haut vers
+## la droite du personnage.
+const INCLINAISON_EN_BANDOULIERE := PI / 6.0
 ## La longueur sous laquelle la position d'un emplacement est sur l'axe de son os.
 const TOLERANCE_DE_NORMALE := 0.001
 const RADIANS_PAR_PIXEL := 0.005
@@ -74,14 +87,29 @@ const ECART_DES_MARQUES := 0.3
 const HAUTEUR_DU_VISUEL_DE_MARQUE := 0.9
 ## La marge, en pixels, entre le bord d'un plan et ses points.
 const MARGE_DU_PLAN := 28.0
-## Le rayon, en pixels, d'un point du plan.
-const RAYON_DU_POINT := 7.0
+## Les pixels de la texture d'un dessin par pixel d'écran : l'écran étire l'interface (`window/stretch`).
+const FINESSE_DE_DESSIN := 2.0
 ## L'écart, en pixels, entre un point du plan et ce qui se pose sous lui.
 const ECART_SOUS_LE_POINT := 2.0
 ## Ce que la coupe d'un navire ôte (m) sous le plus bas des sols qu'un regard lui retire (`hauteur_de_coupe`) : le
 ## plancher de ce pont, les baux qui le portent et l'imprécision de la hauteur que porte chaque sommet
 ## (`opacite_de_coupe`).
 const MARGE_DE_COUPE := 0.15
+
+
+## Le cadrage d'un portrait (`Portrait`) : la part de la hauteur de la tête montrée sous son haut, la marge au-dessus
+## d'elle en part du cadre, et l'angle de vue vertical de sa caméra, en degrés.
+const BUSTE_DU_PORTRAIT := 0.2
+const MARGE_DU_PORTRAIT := 0.08
+const ANGLE_DU_PORTRAIT := 20.0
+
+
+## La caméra d'un portrait qui cadre en buste un corps au haut de tête à `tete` (`Combattant.hauteur_de_la_tete`), de
+## face : sa hauteur (`x`) et sa distance au corps (`y`), le haut de la tête sous la marge, `BUSTE_DU_PORTRAIT` de sa
+## hauteur sous lui au bas du cadre.
+static func cadrage_en_buste(tete: float) -> Vector2:
+	var cadre := tete * BUSTE_DU_PORTRAIT / (1.0 - MARGE_DU_PORTRAIT)
+	return Vector2(tete + cadre * MARGE_DU_PORTRAIT - cadre / 2.0, cadre / 2.0 / tan(deg_to_rad(ANGLE_DU_PORTRAIT) / 2.0))
 
 
 ## La largeur du texte d'une bulle qui, sur une ligne, en prendrait `largeur` : la sienne, au pixel supérieur, au plus
@@ -224,6 +252,97 @@ static func triangles(sommets: int) -> float:
 	return sommets / 3.0
 
 
+## Le compte de `triangles` triangles, plus ceux que portent `sommets` sommets (`triangles`).
+static func triangles_de_plus(triangles: int, sommets: int) -> float:
+	return triangles + sommets / 3.0
+
+
+## Le texel, dans le masque du retrait (`RetraitDuMonde`), de la case `case` du plan de première rangée `rangee`.
+static func texel_du_masque(case: Vector2i, rangee: int) -> Vector2i:
+	return Vector2i(case.x, case.y + rangee)
+
+
+## Le texel, dans le masque du retrait (`RetraitDuMonde`, deux plans de `rangees_par_plan` rangées par couche), de la
+## case `case` d'une nappe de toit ou d'une couronne (`NappeDuMonde`) de la couche d'indice `couche` : au plan `sol` de
+## sa couche, celui que le shader de monde lit pour sa vision (`art/monde.gdshader`, `vision_premiere_rangee`).
+static func texel_de_nappe(case: Vector2i, couche: int, rangees_par_plan: int) -> Vector2i:
+	return texel_du_masque(case, 2 * couche * rangees_par_plan)
+
+
+## Le texel, dans le masque de la vision (`VisionDuMonde`, un plan de `rangees_par_plan` rangées par couche), de la case
+## `case` de la couche d'indice `couche`.
+static func texel_de_vision(case: Vector2i, couche: int, rangees_par_plan: int) -> Vector2i:
+	return Vector2i(case.x, case.y + couche * rangees_par_plan)
+
+
+## La taille d'une image rangée comme le masque de la vision (`texel_de_vision`) : `largeur` cases de large, `couches`
+## plans de `rangees_par_plan` rangées.
+static func taille_du_masque(largeur: int, couches: int, rangees_par_plan: int) -> Vector2i:
+	return Vector2i(largeur, couches * rangees_par_plan)
+
+
+## La part, de 0 à 1, d'un fondu de `duree` secondes parvenu à la part `part`, `secondes` secondes plus tard.
+static func part_du_fondu(part: float, secondes: float, duree: float) -> float:
+	return minf(1.0, part + secondes / duree)
+
+
+## L'état, de 0 à 1, d'une case dont l'octet de la vision (0 inconnue, 128 explorée, 255 vue) passe de `avant` à `neuf`,
+## à la part `part` du fondu (`art/monde.gdshader`, `fragment`).
+static func etat_fondu(avant: int, neuf: int, part: float) -> float:
+	return lerpf(avant / 255.0, neuf / 255.0, part)
+
+
+## Le plus grand des états `etat` et `autre`.
+static func plus_grand_etat(etat: float, autre: float) -> float:
+	return maxf(etat, autre)
+
+
+## La part de lumière linéaire, de 0 à 1, de ce qui est à l'état `etat` (de 0 à 1) sous les teintes `teintes`
+## (inconnue, explorée, vue) : la jumelle de `part_de_lumiere` de `art/vision.gdshaderinc`.
+static func part_de_lumiere(etat: float, teintes: Vector3) -> float:
+	var exploree := 128.0 / 255.0
+	if etat < exploree:
+		return lerpf(teintes.x, teintes.y, clampf(etat / exploree, 0.0, 1.0))
+	return lerpf(teintes.y, teintes.z, clampf((etat - exploree) / (1.0 - exploree), 0.0, 1.0))
+
+
+## La teinte, en sRGB, de l'instance d'une pièce à l'état `etat` (de 0 à 1) sous les teintes `teintes` (inconnue,
+## explorée, vue) : sa part de lumière (`part_de_lumiere`) portée en sRGB.
+static func teinte_d_instance(etat: float, teintes: Vector3) -> float:
+	var part := part_de_lumiere(etat, teintes)
+	return Color(part, part, part).linear_to_srgb().r
+
+
+## L'abscisse du point `point` sur le rayon de sens `-rayon.z` (unitaire), comptée depuis l'abscisse `depuis`.
+static func abscisse(point: Vector3, rayon: Basis, depuis: float) -> float:
+	return -rayon.z.dot(point) - depuis
+
+
+## Le point d'où un rayon de sens `-rayon.z` reprend au-delà du point `touche` qu'il touche, de `PAS_AU_DELA_M` sur un
+## plateau de `metres_par_case` mètres par case.
+static func point_au_dela(touche: Vector3, rayon: Basis, metres_par_case: float) -> Vector3:
+	return touche - rayon.z * PAS_AU_DELA_M * echelle_metrique(metres_par_case)
+
+
+## Le point d'où reprend le tronçon qui suit celui qui finit en `bout`, sur un rayon de sens `-rayon.z` : en deçà de
+## `PAS_AU_DELA_M`, sur un plateau de `metres_par_case` mètres par case.
+static func point_en_deca(bout: Vector3, rayon: Basis, metres_par_case: float) -> Vector3:
+	return bout + rayon.z * PAS_AU_DELA_M * echelle_metrique(metres_par_case)
+
+
+## L'abscisse, comptée depuis `depuis`, du bout du tronçon qui part de `debut` sur un rayon de sens `-rayon.z`
+## d'abscisse finale `fin` : `PORTEE_D_UN_TRONCON_M` plus loin sur un plateau de `metres_par_case` mètres par case,
+## `fin` au plus.
+static func bout_du_troncon(debut: Vector3, rayon: Basis, depuis: float, fin: float, metres_par_case: float) -> float:
+	return minf(abscisse(debut, rayon, depuis) + PORTEE_D_UN_TRONCON_M * echelle_metrique(metres_par_case), fin)
+
+
+## Le point d'abscisse `abscisse_du_point`, comptée depuis `depuis`, sur le rayon de sens `-rayon.z` qui passe par
+## `debut`.
+static func point_a_l_abscisse(debut: Vector3, rayon: Basis, depuis: float, abscisse_du_point: float) -> Vector3:
+	return debut - rayon.z * (abscisse_du_point - abscisse(debut, rayon, depuis))
+
+
 ## La hauteur du calque de référence posé sur le plan `plan` (mètres), décalé de `decalage` : juste au-dessus du sol
 ## qu'il recouvre, ou juste dessous.
 static func hauteur_du_calque(plan: float, metres_par_case: float, decalage: float) -> float:
@@ -323,6 +442,19 @@ static func distance_zoomee(distance: float, sens: float, minimum: float, maximu
 	return clampf(distance * pow(PAS_DE_ZOOM, sens), minimum, maximum)
 
 
+## L'étendue (m) qu'une caméra en perspective d'angle vertical `angle` (degrés) montre sur la hauteur de sa fenêtre, au
+## lieu qu'elle regarde à `distance` mètres.
+static func etendue_en_perspective(distance: float, angle: float) -> float:
+	return 2.0 * distance * tan(deg_to_rad(angle) / 2.0)
+
+
+## Le décalage de l'objectif (horizontal, vertical, en mètres) d'une caméra qui montre `etendue` mètres sur la hauteur
+## d'une fenêtre de `largeur` sur `hauteur` pixels : le lieu qu'elle regarde se pose au point `centre` de la fenêtre au
+## lieu de son milieu.
+static func decalage_de_l_objectif(centre: Vector2, largeur: float, hauteur: float, etendue: float) -> Vector2:
+	return Vector2(largeur / 2.0 - centre.x, centre.y - hauteur / 2.0) * etendue / hauteur
+
+
 ## Un délai du pont (millisecondes) en secondes de minuteur.
 static func secondes(ms: float) -> float:
 	return ms / MS_PAR_SECONDE
@@ -331,6 +463,12 @@ static func secondes(ms: float) -> float:
 ## L'échelle qui porte une image de `largeur` pixels à `largeur_voulue` ; 1 pour une image vide.
 static func echelle_d_image(largeur_voulue: float, largeur: int) -> float:
 	return 1.0 if largeur == 0 else largeur_voulue / largeur
+
+
+## L'échelle d'un dessin au cadre de `largeur_du_cadre` sur `hauteur_du_cadre` unités qui couvre `largeur` sur `hauteur`
+## pixels d'écran, sa texture `FINESSE_DE_DESSIN` fois plus fine que l'écran.
+static func echelle_de_dessin(largeur: float, hauteur: float, largeur_du_cadre: float, hauteur_du_cadre: float) -> float:
+	return FINESSE_DE_DESSIN * maxf(largeur / largeur_du_cadre, hauteur / hauteur_du_cadre)
 
 
 ## Le pas d'image d'un clip de `duree` secondes, sa piste suivante de `cles` clés réparties sur le clip retenue si son pas
@@ -452,6 +590,12 @@ static func echelle_composee(echelle_du_squelette: float, echelle: float) -> flo
 	return echelle_du_squelette * echelle
 
 
+## L'intensité `relief` de la carte de normales d'un matériau (`normal_scale`) portée au facteur `facteur` de sa surface
+## (`reliefs` de la composition, #4002).
+static func relief_au_facteur(relief: float, facteur: float) -> float:
+	return relief * facteur
+
+
 ## L'échelle de l'orbite qui cadre un corps de sommet `sommet` comme elle cadre, à l'échelle 1, le corps neutre de sommet
 ## `sommet_neutre`.
 static func echelle_de_cadrage(sommet: float, sommet_neutre: float) -> float:
@@ -485,16 +629,6 @@ static func dans_la_base(base: Basis, vecteur: Vector3) -> Vector3:
 	return base.inverse() * vecteur
 
 
-## L'axe unité (±X, ±Y ou ±Z) le plus proche de `vecteur` posé dans le repère de base `base` : celui de sa plus grande
-## composante, à son signe (`SecondePrise`, #3319).
-static func axe_le_plus_proche(base: Basis, vecteur: Vector3) -> Vector3:
-	var pose := base * vecteur
-	var axe := pose.abs().max_axis_index()
-	var unite := Vector3.ZERO
-	unite[axe] = signf(pose[axe])
-	return unite
-
-
 ## L'axe `axe` (`Vector3.AXIS_X`, `AXIS_Y` ou `AXIS_Z`) du repère de prise d'un objet rangé à l'emplacement de base
 ## `emplacement` et de position `point` dans son os (#3319, `CONTRAT.md`) : Z, vers les jointures, sur la normale
 ## sortante, la composante de `point` hors de l'axe de l'os, ou l'avant de l'emplacement sur cet axe ; Y, de
@@ -524,6 +658,25 @@ static func part_du_melange(cumul: float, poids: float) -> float:
 ## Le décalage, le long du +Y (vers le bas) d'un repère de rangement, qui monte à son origine la cote `haut` d'un objet.
 static func suspension(haut: float) -> Vector3:
 	return Vector3(0.0, -haut, 0.0)
+
+
+## Le tour, autour de la normale sortante (+Z) d'un repère de rangement, d'un objet rangé dont la boîte, pendue à
+## l'emplacement, descend à `bas` sous lui, à `hauteur` au-dessus du sol : nul s'il ne l'atteint pas ; sinon l'objet passe
+## en bandoulière, son +Y (le fer) vers le haut, penché de `INCLINAISON_EN_BANDOULIERE` vers `droite`, la droite du
+## personnage dans ce repère.
+static func biais_de_rangement(bas: float, hauteur: float, droite: Vector3) -> float:
+	return 0.0 if bas <= hauteur else PI + signf(droite.x) * INCLINAISON_EN_BANDOULIERE
+
+
+## Hauteur au-dessus du sol d'un point exprimé dans le repère d'un os de repos (origine = hauteur de l'os).
+static func hauteur_au_sol(os: Basis, point: Vector3, origine: float) -> float:
+	return origine + (os * point).y
+
+
+## Le décalage, dans un repère de rangement, qui pose sur l'emplacement `milieu`, le milieu de la boîte d'un objet en
+## bandoulière (`biais_de_rangement`), sur la hauteur et la largeur ; sa face arrière s'appuie sur ce qui est porté.
+static func centre_en_bandouliere(milieu: Vector3) -> Vector3:
+	return Vector3(-milieu.x, -milieu.y, 0.0)
 
 
 ## Le signe, +1 ou -1, de l'axe `x` d'un repère de rangement, posé dans le repère au repos `os` de son os, vers l'avant du
@@ -634,12 +787,12 @@ static func point_du_plan(taille: Vector2, x: float, y: float) -> Vector2:
 	return Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) + Vector2(x, y) * (taille - Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) * 2.0)
 
 
-## Le coin d'un contrôle de `largeur` sur `hauteur` centré sous le point du plan `centre`, gardé dans le plan de
-## `largeur_du_plan` sur `hauteur_du_plan`.
-static func sous_le_point(centre: Vector2, largeur: float, hauteur: float, largeur_du_plan: float, hauteur_du_plan: float) -> Vector2:
+## Le coin d'un contrôle de `largeur` sur `hauteur` centré sous le point du plan `centre`, de rayon `rayon`, gardé dans
+## le plan de `largeur_du_plan` sur `hauteur_du_plan`.
+static func sous_le_point(centre: Vector2, rayon: float, largeur: float, hauteur: float, largeur_du_plan: float, hauteur_du_plan: float) -> Vector2:
 	return Vector2(
 		clampf(centre.x - largeur / 2.0, 0.0, maxf(0.0, largeur_du_plan - largeur)),
-		clampf(centre.y + RAYON_DU_POINT + ECART_SOUS_LE_POINT, 0.0, maxf(0.0, hauteur_du_plan - hauteur)))
+		clampf(centre.y + rayon + ECART_SOUS_LE_POINT, 0.0, maxf(0.0, hauteur_du_plan - hauteur)))
 
 
 ## Le lieu, au sol, de la cible de la vitrine des effets de l'atelier, à `distance_m` mètres de l'auteur posé à l'origine

@@ -131,7 +131,7 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
   /** Le nœud Test « voleur » niché dans le flow du delayedEffect des pétards (à 20h30). */
   const spotNode = (): Extract<Flow, { kind: 'test' }> => {
     const petards = flowEffects(arm.flow).find((e): e is Extract<Effect, { type: 'delayedEffect' }> => e.type === 'delayedEffect' && e.afterMinutes === 10)!;
-    const steps = petards.flow.kind === 'seq' ? petards.flow.steps : [petards.flow];
+    const steps = petards.flow.kind === 'sequence' ? petards.flow.etapes : [petards.flow];
     return steps.find((s) => s.kind === 'test') as Extract<Flow, { kind: 'test' }>;
   };
 
@@ -173,7 +173,7 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
   it('retirer le détonateur empêche l’explosion finale', () => {
     const before = lonePartyAt(35).wounds.current;
     applyEffects(banc.getState, banc.setState, flowEffects(arm.flow));
-    applyEffects(banc.getState, banc.setState, flowEffects(detect.success)); // désamorçage
+    applyEffects(banc.getState, banc.setState, flowEffects(detect.reussite)); // désamorçage
     banc.getState().avancerLeTemps(120);
     expect(banc.getState().party[0].wounds.current).toBe(before); // intacte (pétards à l'écart, bombe annulée)
   });
@@ -191,9 +191,9 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
     const spot = spotNode();
     expect(spot.test.skill).toEqual({ id: 'perception' });
     lonePartyAt(35);
-    applyEffects(banc.getState, banc.setState, flowEffects(spot.fail));
+    applyEffects(banc.getState, banc.setState, flowEffects(spot.echec));
     expect(banc.getState().flags.clesVolees).toBe(true);
-    applyEffects(banc.getState, banc.setState, flowEffects(spot.success));
+    applyEffects(banc.getState, banc.setState, flowEffects(spot.reussite));
     expect(banc.getState().flags.glimbrinDejoue).toBe(true);
   });
 
@@ -208,8 +208,8 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
   it('chaque intrigue résolue récompense les PX canoniques (50 / 15 / 10)', () => {
     const xpIn = (effs: Effect[] | undefined) =>
       (effs ?? []).filter((e): e is Extract<Effect, { type: 'giveXp' }> => e.type === 'giveXp').reduce((n, e) => n + e.amount, 0);
-    expect(xpIn(flowEffects(detect.success))).toBe(50); // bombe déjouée (l.275)
-    expect(xpIn(flowEffects(spotNode().success))).toBe(15); // vol de clés empêché (l.297)
+    expect(xpIn(flowEffects(detect.reussite))).toBe(50); // bombe déjouée (l.275)
+    expect(xpIn(flowEffects(spotNode().reussite))).toBe(15); // vol de clés empêché (l.297)
     expect(xpIn(flowEffects(scenarioConstruit.scene.encounters.find((e) => e.id === 'enc-etudiants')!.onVictory ?? EMPTY_FLOW))).toBe(10); // étudiants arrêtés (l.277)
   });
 

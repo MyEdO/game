@@ -3,15 +3,16 @@ import { lireGlb } from './glb.ts';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { cheminsAbsolus, ligneDErreur } from './manifeste.ts';
 import { validerManifesteDeBase, type ManifesteDeBase, type VerdictDeBase } from './manifesteDeBase.ts';
-import { ecartsDeClips, ecartsDesTablesDeuxMains } from './clips.ts';
+import { ecartsDeClips, ecartsDesPrisesOccupees, ecartsDesTablesDeuxMains } from './clips.ts';
 
 export type ManifesteDeModele = ManifesteDeBase | ManifesteDElement;
 export interface EntreeDeModele { readonly id: string; readonly brut: unknown }
 export interface BaseLivree { readonly brut: unknown; readonly octets: Uint8Array }
 export type VerdictDeModele = { readonly ok: true; readonly manifeste: ManifesteDeModele } | { readonly ok: false; readonly refus: readonly string[] };
 
-/** Les fichiers du modèle `id` dans le projet : le GLB (tiré de la Release, ignoré de git), le manifeste et la provenance (commités). */
-export const fichiersDuModele = (id: string) => ({ glb: `${id}.glb`, manifeste: `${id}.manifeste.json`, provenance: `${id}.provenance.json` });
+/** Les fichiers du modèle `id` : dans le projet, le GLB (tiré de la Release, ignoré de git), le manifeste et la provenance
+ *  (commités) ; à l'export, la scène que Godot fabrique du GLB (`hotes/godot/listage.mjs`, `deposerLesModeles`). */
+export const fichiersDuModele = (id: string) => ({ glb: `${id}.glb`, manifeste: `${id}.manifeste.json`, provenance: `${id}.provenance.json`, scene: `${id}.scn` });
 
 /** Une base porte son squelette (`ManifesteDeBase.os`), champ qu'aucune catégorie d'élément n'admet (`element.ts`). */
 export const estBase = (m: unknown): boolean => estObjet(m) && Object.prototype.hasOwnProperty.call(m, 'os');
@@ -56,12 +57,13 @@ export function verdictsDesModeles(entrees: readonly EntreeDeModele[], octets: R
 }
 
 /** La base `brut` jugée contre son GLB `octets` : son schéma (`validerManifesteDeBase`), puis ses tables rôle → clip
- *  (`ecartsDeClips`, `ecartsDesTablesDeuxMains`). */
+ *  (`ecartsDeClips`, `ecartsDesTablesDeuxMains`) et les clips de ses prises occupées (`ecartsDesPrisesOccupees`). */
 function validerBase(brut: unknown, octets: Uint8Array): VerdictDeBase {
   const v = validerManifesteDeBase(brut, octets);
   if (!v.ok) return v;
   const { animations } = lireGlb(octets);
-  const ecarts = [...ecartsDeClips(v.manifeste.clips, animations), ...ecartsDesTablesDeuxMains(v.manifeste.clipsDeuxMains ?? {}, animations)];
+  const ecarts = [...ecartsDeClips(v.manifeste.clips, animations), ...ecartsDesTablesDeuxMains(v.manifeste.clipsDeuxMains ?? {}, animations),
+    ...ecartsDesPrisesOccupees(v.manifeste.prisesOccupees ?? {}, animations)];
   return ecarts.length ? { ok: false, ecarts } : v;
 }
 

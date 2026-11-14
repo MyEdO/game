@@ -6,7 +6,7 @@
  */
 import {
   poserLesReglesMaisonPersistees, retablirUneRegleMaison, ruleOverrides, surchargerUneRegleMaison,
-  type Jeu, type RetraitsDElagage, type RuleValue,
+  type Jeu, type RegleOptionnelleId, type RetraitsDElagage, type RuleValue,
 } from '../noyau/index';
 import { lireDictionnaire, type Stockage } from '../lib/stockage';
 import { prendreLeTemoin, temoigner, TEMOIN_DES_RETRAITS } from './temoin';
@@ -25,6 +25,14 @@ export function chargerLesReglesMaison(stockage: Stockage | null): void {
   temoigner(stockage, CLE_DU_TEMOIN, TEMOIN_DES_RETRAITS, retraits);
 }
 
+/** Repose les règles maison du joueur : celles que `stockage` persiste (`chargerLesReglesMaison`), aucune s'il n'en
+ *  persiste pas ; sans stockage (`null`), celles de la session restent. */
+export function reposerLesReglesMaison(stockage: Stockage | null): void {
+  if (!stockage) return;
+  if (lireDictionnaire(stockage, CLE_DES_REGLES)) chargerLesReglesMaison(stockage);
+  else poserLesReglesMaisonPersistees({});
+}
+
 /** Le témoin des règles retirées par les chargements depuis la dernière prise, RETIRÉ de `stockage` : `null` sans
  *  retrait. */
 export function prendreLeTemoinDesReglesMaison(stockage: Stockage | null): RetraitsDElagage | null {
@@ -32,12 +40,12 @@ export function prendreLeTemoinDesReglesMaison(stockage: Stockage | null): Retra
 }
 
 /** Surcharge la règle `id` sous le verrou de `etat` (`surchargerUneRegleMaison`) et persiste ; rien sinon. */
-export function reglerUneRegleMaison(stockage: Stockage | null, etat: Pick<Jeu, 'battle'>, id: string, valeur: RuleValue): void {
+export function reglerUneRegleMaison(stockage: Stockage | null, etat: Pick<Jeu, 'battle' | 'net'>, id: RegleOptionnelleId, valeur: RuleValue): void {
   if (surchargerUneRegleMaison(etat, id, valeur)) enregistrer(stockage);
 }
 
 /** Remet la règle `id` à son défaut sous le verrou de `etat` (`retablirUneRegleMaison`) et persiste ; rien sinon. */
-export function remettreUneRegleMaison(stockage: Stockage | null, etat: Pick<Jeu, 'battle'>, id: string): void {
+export function remettreUneRegleMaison(stockage: Stockage | null, etat: Pick<Jeu, 'battle' | 'net'>, id: RegleOptionnelleId): void {
   if (retablirUneRegleMaison(etat, id)) enregistrer(stockage);
 }
 

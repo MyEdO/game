@@ -16,14 +16,14 @@ import type { Combatant } from '../engine/types';
 import { ouvrirLaPartie, nouvelEntete } from '../hote/partie';
 import { empreinte, jouerUnGeste, lireLeFichier, rejouer } from '../hoteTexte/partieTexte';
 import { ouvrirLeBanc } from './banc.testkit';
-import { makeShowcaseParty } from '../data/pregens';
+import { groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';
 import { pregens } from '../data';
 import { fabriqueLocale } from '../engine/fabriqueDId';
 import { testScenarios } from '../scenes/test-scenarios';
 import { DESIGNATIONS } from './designations';
 
 const ENTREES = { graine: 3, cadence: 'manuel' as const, desFixes: true, persisterLeHeros: () => {}, reglesMaison: {} };
-const HEROS = { id: 'h', label: 'H', kind: 'hero', conditions: [], items: [] } as unknown as Combatant;
+const HEROS = { id: 'h', label: 'H', kind: 'heros', conditions: [], items: [] } as unknown as Combatant;
 /** Les ids du monde que porte `texte` (`<genre>-<n>`, préfixés ou non d'une dérivation). */
 const idsDuMonde = (texte: string): Set<string> => new Set(texte.match(/(?:it|hero|pos|favor)-\d+/g) ?? []);
 
@@ -160,7 +160,7 @@ describe('un uid porté par deux combattants n’est pas masqué par la désigna
 
 describe('un geste refusé ne consomme aucun id (#2907)', () => {
   it('un recrutement refusé, groupe plein, laisse le compteur', () => {
-    const banc = ouvrirLeBanc({ etat: { party: makeShowcaseParty(fabriqueLocale('groupe')) } });
+    const banc = ouvrirLeBanc({ etat: { party: groupeVitrineDeScenario(fabriqueLocale('groupe')) } });
     const avant = banc.getState().prochainId;
     banc.getState().recruterLeHeros({ pretire: pregens[0].id });
     expect(banc.getState().party).toHaveLength(4);

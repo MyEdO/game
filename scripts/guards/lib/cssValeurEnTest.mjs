@@ -21,8 +21,7 @@
 
 // Lectures de CSS : les fonctions par lesquelles un test atteint une déclaration, plus les feuilles
 // lues en clair. Les sections (`CC_BASE`, `CHIPS_BASE`…) ne figurent PAS : elles ne se lisent qu'à
-// TRAVERS ces fonctions, et un suffixe `_BASE` seul attrapait des constantes de règle sans rapport
-// (mesuré : `MORALE_BASE`, `src/engine/crewMorale.test.ts:17`).
+// TRAVERS ces fonctions, et un suffixe `_BASE` seul attrape des constantes de règle sans rapport.
 const LECTURES_CSS = [
   /\bdecl\s*\(/, /\bruleOf\s*\(/, /\breadCss\s*\(/, /\bmediaBlock\s*\(/, /\bbaseSection\s*\(/,
   /\b[A-Z][A-Z0-9_]*_CSS\b/,

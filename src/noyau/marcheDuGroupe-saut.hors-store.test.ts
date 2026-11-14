@@ -24,7 +24,7 @@ function gouffre(): Scene {
 
 /** Le groupe d'un héros de Mouvement `m`, en exploration sur le bord du gouffre (1, 1, étage 1). */
 function auBord(m: number) {
-  const heros = combattantDeTest({ id: 'h', label: 'H', kind: 'hero', movement: m });
+  const heros = combattantDeTest({ id: 'h', label: 'H', kind: 'heros', movement: m });
   banc.setState({ mode: 'exploration', scene: gouffre(), party: [heros], partyPos: { x: 1, y: 1, z: 1 }, dialogue: null, battle: null } as never);
 }
 const depart = { x: 1, y: 1, z: 1 };

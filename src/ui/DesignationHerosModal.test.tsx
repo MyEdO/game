@@ -52,9 +52,9 @@ describe('DesignationHerosModal — clic sur un portrait → état posé', () =>
 
   it('l’invite de l’Effet est rendue ; plus aucun vivant : « Continuer » clôt sans choix et la suite du Flow se joue', () => {
     useGame.setState({ party: [heros('Vivant', 1)], etats: {}, flags: {}, campaignNarratif, pendingDesignationHeros: null });
-    runFlow(useGame.getState, useGame.setState, { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie', invite: 'Lequel d’entre vous ?' } },
-      { kind: 'do', effect: { type: 'setFlag', flag: 'apres' } },
+    runFlow(useGame.getState, useGame.setState, { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'designerHeros', etat: 'sosie', invite: 'Lequel d’entre vous ?' } },
+      { kind: 'effet', effet: { type: 'setFlag', flag: 'apres' } },
     ] });
     const { container } = monterRacine(<DesignationHerosModal />);
     expect(document.body.textContent).toContain('Lequel d’entre vous ?');

@@ -1,6 +1,6 @@
 /**
  * LA VUE LIT CE QUE LE JEU LIT (#2898, M4, sondes `distance` et `mvt` du juge promues ; lot C) : la distance d'un
- * combattant à l'actif est celle du ciblage (`combatDistance` : empreinte et relief), et le Mouvement du Tour est celui
+ * combattant à l'actif est celle du ciblage (`distanceDeCombat` : empreinte et relief), et le Mouvement du Tour est celui
  * de la jauge de la console (`mouvementDuTour`). `pastilles-entite` porte une monture dont l'empreinte écarte la distance
  * de combat de la distance de case ; `ecuries-clayonnage`, un actif dont le budget du Tour n'est pas sa caractéristique.
  * La fenêtre nomme les verbes de chaque étape de cascade (`cascade-dome.jsonl`), le jet lancé se lit avant sa
@@ -9,16 +9,18 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { activeCombatant, combatDistance, mouvementDuTour, porteesDuTour, CLIC_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../noyau/index';
+import { activeCombatant, distanceDeCombat, mouvementDuTour, porteesDuTour, CLIC_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../noyau/index';
 import { lireLeFichier, rejouer, type LigneNumerotee, type PartieRejouee } from './partieTexte';
 import { nouvelEntete, ouvrirLaPartie } from '../hote/partie';
 import type { Geste } from '../hote/geste';
 import { casesAtteignables, projeter as projeterLaPartie } from '../hote/projection';
 import { BORNES, borner, ligneDeCombattant, pageDeLaCarte, projeter, rendreLaCarte, rendreLaVue, rendreLeJournal, rendreLesCases } from './vue';
+import { fermerLaTable, partie, verbe } from './hote.testkit';
+import { t } from '../i18n';
 
 /** La partie du scénario, sa pause de Round confirmée, puis `gestes` ; fermée après `faire`. */
 function auPremierTour(scenario: string, faire: (r: PartieRejouee) => void, ...gestes: Geste[]) {
-  const r = rejouer(nouvelEntete(scenario, { graine: 7 }), [{ type: 'fenetreValider', args: ['roundStart'] }, ...gestes]);
+  const r = rejouer(nouvelEntete(scenario, { graine: 7 }), [{ type: 'fenetreValider', args: ['debutDuRound'] }, ...gestes]);
   enPartie(r, faire);
 }
 
@@ -38,7 +40,7 @@ function enPartie(r: PartieRejouee, faire: (r: PartieRejouee) => void) {
 }
 
 describe('la projection lit les lecteurs du jeu', () => {
-  it('la distance de chaque combattant est sa distance de combat à l’actif (`combatDistance`)', { timeout: 120_000 }, () => {
+  it('la distance de chaque combattant est sa distance de combat à l’actif (`distanceDeCombat`)', { timeout: 120_000 }, () => {
     auPremierTour('pastilles-entite', (r) => {
       const etat = r.partie.etat();
       const b = etat.battle!;
@@ -46,7 +48,7 @@ describe('la projection lit les lecteurs du jeu', () => {
       const { combattants } = pageDeLaCarte(etat);
       expect(combattants.length, 'témoin : la carte liste les combattants').toBe(b.combatants.length);
       for (const c of combattants) {
-        const vrai = combatDistance(actif, b.combatants.find((x) => x.id === c.id)!);
+        const vrai = distanceDeCombat(actif, b.combatants.find((x) => x.id === c.id)!);
         expect(c.distance, `${c.id} : distance de la vue`).toBe(Number.isFinite(vrai) ? vrai : null);
       }
     });
@@ -89,31 +91,31 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
       expect(f.gestes.filter((g) => !lu(g)).map(cleDuGeste), 'des gestes de la fenêtre manquent à la vue').toEqual([]);
     });
   });
-  it('l’étape-jet d’attaque nomme la pose du dé de son flux (`jetImposerLeResultat` sur `attack`)', { timeout: 120_000 }, () => {
+  it('l’étape-jet d’attaque nomme la pose du dé de son flux (`jetImposerLeResultat` sur `attaque`)', { timeout: 120_000 }, () => {
     auPremierTour('dome', (r) => {
-      expect(projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetLancer@attack', 'jetValider@attack', 'jetImposerLeResultat@attack']));
+      expect(projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetLancer@attaque', 'jetValider@attaque', 'jetImposerLeResultat@attaque']));
     }, { type: 'armerLIntention', args: ['charge'] }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] });
   });
 });
 
 describe('le jet se lit avant sa confirmation', () => {
-  it('après `jetLancer@attack`, la vue rend les rangées du jet (d100, cible, DR), la gagnante et le DR net, ceux de `pendingAttack.result`', { timeout: 120_000 }, () => {
+  it('après `jetLancer@attaque`, la vue rend les rangées du jet (d100, cible, DR), la gagnante et le DR net, ceux de `pendingAttack.result`', { timeout: 120_000 }, () => {
     auPremierTour('dome', (r) => {
       const res = r.partie.etat().pendingAttack!.result!;
       const p = projeter(r.partie.etat(), r.gestes.length, r.journal.length);
       const [jet] = p.jets;
-      expect(jet).toMatchObject({ flux: 'attack', oppose: { drNet: res.netSL } });
+      expect(jet).toMatchObject({ flux: 'attaque', oppose: { drNet: res.netSL } });
       expect(jet.lignes[0]).toMatchObject({ genre: 'test', jet: { d100: res.attackerDetail!.roll, dr: res.attackerDetail!.sl, reussi: res.attackerDetail!.success } });
       expect(jet.lignes).toHaveLength(res.defenderDetail ? 2 : 1);
-      expect(rendreLaVue(p).join('\n')).toMatch(/^jet attack : .* · (gagne : \S+|égalité) · DR net [+-]?\d+$/m);
-    }, { type: 'armerLIntention', args: ['charge'] }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] }, { type: 'jetLancer', args: ['attack'] });
+      expect(rendreLaVue(p).join('\n')).toMatch(/^jet attaque : .* · (gagne : \S+|égalité) · DR net [+-]?\d+$/m);
+    }, { type: 'armerLIntention', args: ['charge'] }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] }, { type: 'jetLancer', args: ['attaque'] });
   });
 });
 
 describe('le champ et l’exploration se lisent', () => {
   it('l’aperçu du premier clic : sa case et son coût', { timeout: 120_000 }, () => {
     auPremierTour('siege-enceinte', (r) => {
-      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n')).toMatch(/^aperçu : move → \(12,44\) · coût 1/m);
+      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n')).toMatch(/^aperçu : deplacement → \(12,44\) · coût 1/m);
     }, { type: 'cliquerLaCase', args: [{ x: 12, y: 44 }] });
   });
   it('les cases sont celles que le champ peint (`porteesDuTour`), et `cases` les borne', { timeout: 120_000 }, () => {
@@ -150,7 +152,7 @@ describe('le journal', () => {
   it('la défaite ne recopie pas le journal du combat (`defaite-dome.jsonl`)', { timeout: 240_000 }, () => {
     aLaFixture('defaite-dome.jsonl', (r) => {
       const textes = r.journal.flatMap((l) => (l.ligne.de === 'combat' ? [l.ligne.evenement.text] : []));
-      expect(r.partie.etat().battle?.over, 'témoin : la partie va jusqu’à la défaite').toBe('defeat');
+      expect(r.partie.etat().battle?.over, 'témoin : la partie va jusqu’à la défaite').toBe('defaite');
       expect(textes.filter((t) => t.startsWith('Le combat commence')), 'le journal du combat est recopié après la défaite').toHaveLength(1);
       const log = r.partie.etat().battle!.log;
       expect(log.some((e) => / — Résistance : /.test(e.text)), 'la défaite efface du journal du combat les Tests de fin de combat').toBe(true);
@@ -191,6 +193,29 @@ describe('projection des positions', () => {
       expect(ligneDeCombattant(projete(etage.id))).toContain('(4,5) étage 1');
     } finally {
       partie.fermer();
+    }
+  });
+});
+
+describe('ce que le groupe ne voit pas (#3950, `siege-enceinte` : 8 ennemis derrière la muraille au départ)', () => {
+  it('`carte` liste les seuls combattants en vue ; la `fiche` d’un ennemi hors de vue se refuse en mots du joueur', { timeout: 120_000 }, () => {
+    const table = partie('siege-enceinte', verbe('fenetreValider', 'debutDuRound'));
+    try {
+      const lignes: string[] = [];
+      for (let depuis: number | undefined = 0; depuis !== undefined;) {
+        const page = table.lire('carte', { depuis }).lignes;
+        const suite = /"depuis":(\d+)\}`$/.exec(page[page.length - 1]);
+        lignes.push(...(suite ? page.slice(0, -1) : page));
+        depuis = suite ? Number(suite[1]) : undefined;
+      }
+      const listes = lignes.map((l) => l.slice(2).split(' ')[0]).sort();
+      expect(listes, 'la carte, page après page : les héros, les défenseurs du chemin de ronde, la porte, et les deux ennemis en vue').toEqual([
+        'chasseur-de-test', 'crew-baliste', 'crew-canon', 'personnage-0', 'personnage-4', 'personnage-8', 'personnage-9', 'personnage-a', 'personnage-b', 'personnage-c', 'personnage-d', 'personnage-e', 'soldat-de-test', 'sorcier-de-test', 'structure-14-37-N-0', 'structure-15-37-N-0', 'tueur-de-test',
+      ]);
+      const fiche = table.lire('fiche', { id: 'personnage-7' });
+      expect([fiche.erreur, fiche.texte], 'la fiche d’un gobelin derrière la muraille').toEqual(['validation', expect.stringContaining(`fiche : ${t('vision.ficheHorsDeVue')}`)]);
+    } finally {
+      fermerLaTable();
     }
   });
 });

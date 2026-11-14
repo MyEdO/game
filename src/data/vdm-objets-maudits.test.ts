@@ -123,7 +123,7 @@ describe('objets maudits — Méfaits exprimés', () => {
     expect(wounds.every((w) => w.ignoreTB === true && w.ignoreAP === true)).toBe(true);
     // « lui y compris » : `near` EXCLUT le centre (`EffectTargeting`, engine/flowCore) — il faut
     // donc un effet jumeau visant le porteur.
-    const selfAssourdi = effects.filter((e) => (e as { on?: unknown }).on === 'self' && JSON.stringify(e).includes('assourdi'));
+    const selfAssourdi = effects.filter((e) => (e as { on?: unknown }).on === 'soi' && JSON.stringify(e).includes('assourdi'));
     expect(selfAssourdi).toHaveLength(1);
   });
 

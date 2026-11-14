@@ -1,7 +1,7 @@
 /**
  * LE SOIN DÉCLARÉ (`pendingHeal`) : le Test que le soigneur jette et les Bandages qu'il engage (LDB 09 l.255-261 ;
- * LDB 74 l.41), lus à l'identique par l'ouverture, les réglages `heal.test`/`heal.bandages`, le résolveur
- * (`FLOWS.heal`, `jetValider('heal')`), l'annonce (`describeHeal`, `enjeuDuSoin`) et la fenêtre (`fenetreDuSoin`). PUR.
+ * LDB 74 l.41), lus à l'identique par l'ouverture, les réglages `soins.test`/`soins.bandages`, le résolveur
+ * (`FLOWS.soins`, `jetValider('soins')`), l'annonce (`describeHeal`, `enjeuDuSoin`) et la fenêtre (`fenetreDuSoin`). PUR.
  */
 import type { Combatant } from '../engine/types';
 import type { SupportDetail } from '../engine/skills';
@@ -26,7 +26,7 @@ import { cibleDeLOperation, estOperation, HEAL_STAKE, refusDeLActeALInfirmerie }
 export const parametresDuSoin = (ph: Pick<PendingHeal, 'test' | 'bandagesDe'>): ParametresDeSoin => ({ test: ph.test, bandages: ph.bandagesDe != null });
 
 /** Valeur, Difficulté et ligne du Test de soin `test` d'un soigneur combattant ; Guérison : Soutien `support` fondu
- *  (LDB 12). Lu par l'ouverture en combat et par les réglages `heal.test`/`heal.mode`. */
+ *  (LDB 12). Lu par l'ouverture en combat et par les réglages `soins.test`/`soins.mode`. */
 export function jetDuSoigneur(soigneur: Combatant, test: TestDeSoin, mode: HealMode, support?: SupportDetail): { skillValue: number; difficulty: PendingHeal['difficulty']; ligne: RollLineParts } {
   const ids = IDS_DU_TEST_DE_SOIN[test];
   const soutien = test === 'guerison' ? support : undefined;
@@ -36,7 +36,7 @@ export function jetDuSoigneur(soigneur: Combatant, test: TestDeSoin, mode: HealM
 }
 
 /** Pourquoi le héros `porteurId` ne peut engager ses Bandages dans le soin en cours (`porteurId` `null` : les retirer),
- *  `null` s'il le peut. La propriété (seul le siège du porteur déclare) est jugée par la route du réglage `heal.bandages`
+ *  `null` s'il le peut. La propriété (seul le siège du porteur déclare) est jugée par la route du réglage `soins.bandages`
  *  (`netOwnership`). VERDICT UNIQUE du geste et de la fenêtre. */
 export function refusDesBandages(s: Pick<Jeu, 'pendingHeal' | 'battle' | 'party'>, porteurId: string | null): string | null {
   const ph = garanti(s.pendingHeal, porteurId ?? undefined, 'soin des Bandages');
@@ -47,7 +47,7 @@ export function refusDesBandages(s: Pick<Jeu, 'pendingHeal' | 'battle' | 'party'
   return porteur && porteDesBandages(porteur) ? null : t('heal.bandagesAbsents', { name: porteur?.label ?? porteurId });
 }
 
-/** Pourquoi le Test `test` est refusé au soin en cours, `null` s'il s'offre. VERDICT UNIQUE du réglage `heal.test` et de la fenêtre. */
+/** Pourquoi le Test `test` est refusé au soin en cours, `null` s'il s'offre. VERDICT UNIQUE du réglage `soins.test` et de la fenêtre. */
 export function refusDuTestDuSoin(s: Pick<Jeu, 'pendingHeal' | 'battle' | 'party'>, test: TestDeSoin): string | null {
   const ph = garanti(s.pendingHeal, test, 'soin du Test');
   if (ph.roll != null) return t('heal.testJetFait');
@@ -56,7 +56,7 @@ export function refusDuTestDuSoin(s: Pick<Jeu, 'pendingHeal' | 'battle' | 'party
 
 /** Pourquoi l'acte `mode` est refusé au soin en cours, `null` s'il s'offre : en combat, le patient
  *  (`raisonDeModeDeSoinEnCombat`) puis le Test déclaré (`refusDuTestDeSoin`) ; hors combat, l'infirmerie
- *  (`refusDeLActeALInfirmerie`). VERDICT UNIQUE du réglage `heal.mode`, de son lancer et de la fenêtre. */
+ *  (`refusDeLActeALInfirmerie`). VERDICT UNIQUE du réglage `soins.mode`, de son lancer et de la fenêtre. */
 export function refusDuModeDuSoin(s: Pick<Jeu, 'pendingHeal' | 'pendingSurgery' | 'medic' | 'battle' | 'party'>, mode: HealMode): string | null {
   const ph = garanti(s.pendingHeal, mode, 'soin de l’acte');
   if (ph.roll != null) return t('heal.testJetFait');
@@ -68,32 +68,32 @@ export function refusDuModeDuSoin(s: Pick<Jeu, 'pendingHeal' | 'pendingSurgery' 
 /** L'enjeu annoncé du soin `ph` : celui de son acte, décliné par Test et Bandages pour l'Hémorragie et les Blessures ;
  *  le brouillon d'une opération, celui de l'opération qu'il arme, à sa cible de DR (`cibleDeLOperation`). */
 export function enjeuDuSoin(s: Pick<Jeu, 'party'>, ph: Pick<PendingHeal, 'mode' | 'test' | 'bandagesDe' | 'targetId' | 'plaie'>): StakeRef {
-  if (estOperation(ph.mode)) return flowStakeRef(HEAL_STAKE[ph.mode], { values: { targetDR: cibleDeLOperation(s, ph, ph.mode) } });
-  if (ph.mode === 'bleed') return flowStakeRef(ph.test === 'dexterite' ? 'heal-bleed-dexterite' : ph.bandagesDe ? 'heal-bleed-bandages' : 'heal-bleed');
-  if (ph.mode === 'wounds') return flowStakeRef(ph.bandagesDe ? 'heal-wounds-bandages' : 'heal-wounds');
+  if (estOperation(ph.mode)) return flowStakeRef(HEAL_STAKE[ph.mode], { values: { drCible: cibleDeLOperation(s, ph, ph.mode) } });
+  if (ph.mode === 'hemorragie') return flowStakeRef(ph.test === 'dexterite' ? 'soin-hemorragie-dexterite' : ph.bandagesDe ? 'soin-hemorragie-bandages' : 'soin-hemorragie');
+  if (ph.mode === 'blessures') return flowStakeRef(ph.bandagesDe ? 'soin-blessures-bandages' : 'soin-blessures');
   return flowStakeRef(HEAL_STAKE[ph.mode]);
 }
 
 /** La fenêtre du soin en données : le patient, l'acte, le Test et les Bandages engagés (réglages
- *  `heal.mode`, `heal.test`, `heal.bandages`), chaque option avec sa raison de refus ; `null` sans soin en attente. Les
+ *  `soins.mode`, `soins.test`, `soins.bandages`), chaque option avec sa raison de refus ; `null` sans soin en attente. Les
  *  porteurs offerts : les héros présents qui portent des Bandages. PUR. */
 export function fenetreDuSoin(s: Jeu): { patientId: string; mode: ChoixNomme<HealMode>; test: ChoixNomme<TestDeSoin>; bandages: ChoixNomme<string> | null } | null {
   const ph = s.pendingHeal;
   if (!ph) return null;
-  const pool = (s.battle?.combatants ?? s.party).filter((c) => c.kind === 'hero');
+  const pool = (s.battle?.combatants ?? s.party).filter((c) => c.kind === 'heros');
   const porteurs = pool.filter((c) => porteDesBandages(c) || c.id === ph.bandagesDe);
   return {
     patientId: ph.targetId,
     mode: {
-      geste: gesteDuReglage('heal', 'mode'), libelle: libelleDuReglage('heal', 'mode'), choisie: ph.mode,
+      geste: gesteDuReglage('soins', 'mode'), libelle: libelleDuReglage('soins', 'mode'), choisie: ph.mode,
       options: HEAL_MODES.map((mode) => ({ valeur: mode, libelle: t(`valeur.${mode}`), refus: refusDuModeDuSoin(s, mode) })),
     },
     test: {
-      geste: gesteDuReglage('heal', 'test'), libelle: libelleDuReglage('heal', 'test'), choisie: ph.test,
+      geste: gesteDuReglage('soins', 'test'), libelle: libelleDuReglage('soins', 'test'), choisie: ph.test,
       options: TESTS_DE_SOIN.map((test) => ({ valeur: test, libelle: libelleDeTest(test), refus: test === ph.test ? null : refusDuTestDuSoin(s, test) })),
     },
     bandages: actePanse(ph.mode) && porteurs.length ? {
-      geste: gesteDuReglage('heal', 'bandages'), libelle: libelleDuReglage('heal', 'bandages'), choisie: ph.bandagesDe,
+      geste: gesteDuReglage('soins', 'bandages'), libelle: libelleDuReglage('soins', 'bandages'), choisie: ph.bandagesDe,
       options: [
         { valeur: null, libelle: t('heal.sansBandages'), refus: ph.bandagesDe == null ? null : refusDesBandages(s, null) },
         ...porteurs.map((c) => ({ valeur: c.id, libelle: t('heal.bandagesDe', { name: c.label }), refus: c.id === ph.bandagesDe ? null : refusDesBandages(s, c.id) })),

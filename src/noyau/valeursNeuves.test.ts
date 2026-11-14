@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { OP_DEFS, gameOpSchema } from '../data/schemas/grammaire/mecanique';
+import { OP_DEFS, flowSchema, gameOpSchema } from '../data/schemas/grammaire/mecanique';
 import { formulaSinSchema } from '../data/schemas/grammaire/valeurs';
-import { effectSchema } from '../data/schemas/defs-scenes/effets';
+import { effectSchema, sceneFlowSchema } from '../data/schemas/defs-scenes/effets';
 import { mapPlaceSchema, routePerilSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { semencesDeScene } from '../data';
 import { refusHorsSentinelle } from '../data/valeursNeuves.testkit';
 import { EFFECT_HANDLERS } from './combatEffects';
-import { formulaForShape, newEffect, newOp, paramsDeRegle, shapeOf, type FormulaShape } from './valeursNeuves';
+import { formulaForShape, newEffect, newOp, paramsDeRegle, shapeOf, valeurNeuveDe, variantesAChoisir, type FormulaShape } from './valeursNeuves';
 import { marcheNeuf, peripetieNeuve, portNeuf } from './worldMapEdit';
 import { emptyWorldMap } from './worldMap';
 
@@ -34,6 +34,22 @@ describe('valeurs neuves de l’atelier au noyau (#3059) : toute valeur neuve pa
   it('newEffect : chaque type du registre (`EFFECT_HANDLERS`) naît conforme à `effectSchema`', () => {
     for (const t of Object.keys(EFFECT_HANDLERS) as (keyof typeof EFFECT_HANDLERS)[]) {
       expect(refusHorsSentinelle(effectSchema, newEffect(t)), t).toEqual([]);
+    }
+  });
+
+  it('Flow : chaque branche, nommée, naît conforme, chaque flux qu’elle porte à la séquence vide, où la récursion s’arrête (#3606 M2b)', () => {
+    const vide = { kind: 'sequence', etapes: [] };
+    for (const [schema, effet] of [[sceneFlowSchema, { type: 'setFlag', flag: '' }], [flowSchema, { type: 'ops', ops: [] }]] as const) {
+      expect(valeurNeuveDe(schema)).toEqual(vide);
+      const variantes = variantesAChoisir(schema, undefined)!;
+      expect(variantes.map((v) => [v.cle, v.libelle, v.valeur])).toEqual([
+        ['sequence', 'Séquence', vide],
+        ['effet', 'Effet', { kind: 'effet', effet: effet }],
+        ['si', 'Si', { kind: 'si', condition: { kind: 'always' }, alors: vide }],
+        ['test', 'Test', { kind: 'test', test: {}, reussite: vide, echec: vide }],
+        ['choix', 'Choix', { kind: 'choix', oui: vide, invite: '' }],
+      ]);
+      for (const v of variantes) expect(refusHorsSentinelle(schema, v.valeur), v.cle).toEqual([]);
     }
   });
 

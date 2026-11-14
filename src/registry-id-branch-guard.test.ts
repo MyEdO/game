@@ -2,7 +2,14 @@ import { afterAll, describe, it, expect } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { scanRegistryIdBranch, scanRawIdEqualities, isRegistryIdBranchExcluded, SCAN_DIRS, SCAN_EXTS, OP_VOCABULARY } from '../scripts/guards/lib/registryIdBranch.mjs';
+import {
+  scanRegistryIdBranch,
+  scanRawIdEqualities,
+  isRegistryIdBranchExcluded,
+  SCAN_DIRS,
+  SCAN_EXTS,
+  OP_VOCABULARY,
+} from '../scripts/guards/lib/registryIdBranch.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 
@@ -188,7 +195,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
 
     const row = [
       'function HouseRuleRow({ regle }: { regle: OptionalRule }) {',
-      "  return regle.id === 'fortune-mid-session' ? <FortuneButton /> : null;",
+      "  return regle.id === 'chance-en-cours-de-session' ? <FortuneButton /> : null;",
       '}',
     ].join('\n');
     expect(rules(row, 'fixture.tsx')).toEqual(['id-equality']);
@@ -283,6 +290,9 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
       //     reçu n'est pas une table de valeurs par entrée de registre.
       'const SK: Partial<Record<OsId, Bone>> = { tronc: b1, croupe: b2 };',
       'export function zOf(id: OsId) { return SK[id]!.z; }',
+      // (9) table TOTALE en type MAPPÉ : chaque clé fermée tient l'ENTRÉE qui porte cet id.
+      'const PAR_ID: { readonly [M in ModeId]: Mode & { readonly id: M } } = { attaque: ATTAQUE, soins: SOINS };',
+      'export function modeLabel(modeId: ModeId) { return PAR_ID[modeId].label; }',
     ].join('\n');
     expect(rules(sain, 'fixture.tsx')).toEqual([]);
   });
@@ -425,7 +435,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
     const evasions = [
       "const has = c.talents.some((t) => t.talentId === 'frenesie');",
       "const sk = c.skills.find((s) => s.id === 'resistance');",
-      "const isFortune = FORTUNE.id === 'fortune-mid-session';",
+      "const isFortune = FORTUNE.id === 'chance-en-cours-de-session';",
       "const noyau = REGISTRE[0];\nconst estCadence = noyau.id === 'combat-cadence';",
     ].join('\n');
     expect(scanRegistryIdBranch('fixture.ts', evasions)).toEqual([]);

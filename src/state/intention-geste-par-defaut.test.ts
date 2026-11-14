@@ -18,15 +18,15 @@ function setup() {
   useGame.setState({ party: [hero], screen: 'campaign' });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
-  useGame.getState().fenetreValider('roundStart');
+  useGame.getState().fenetreValider('debutDuRound');
   const b = useGame.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   let i = 0;
-  for (const e of b.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: 20 + i++, y: 20 };
+  for (const e of b.combatants.filter((c) => c.kind === 'ennemi')) e.pos = { x: 20 + i++, y: 20 };
   H.pos = { x: 6, y: 10 };
   const turn = b.order.indexOf(H.id);
   useGame.setState({ battle: { ...b, turn, action: null, acted: false, movementUsed: 0, movedPreAction: false, preview: null }, localIntent: null });
-  return { H, E: b.combatants.find((c) => c.kind === 'enemy')! };
+  return { H, E: b.combatants.find((c) => c.kind === 'ennemi')! };
 }
 
 const get = () => useGame.getState();
@@ -43,7 +43,7 @@ describe('(a) le clic-SOL au-delà de la Marche exige la Course ARMÉE', () => {
     expect(vue().runReach.size, 'la zone de Course se peint sans avoir été demandée').toBe(0);
     get().armerLIntention('course');
     expect(vue().runReach.size, 'la Course armée ne peint pas sa zone').toBeGreaterThan(0);
-    runBindingById('intent-cancel', get);
+    runBindingById('intention-annuler', get);
     expect(vue().runReach.size, 'Échap laisse la zone de Course à l’écran').toBe(0);
   });
 });
@@ -53,7 +53,7 @@ describe('(d) l’annulation reste GRATUITE par construction', () => {
     const { H } = setup();
     const avant = { mv: get().battle!.movementUsed ?? 0, acted: get().battle!.acted, adv: H.advantage };
     get().armerLIntention('course');
-    runBindingById('intent-cancel', get);
+    runBindingById('intention-annuler', get);
     expect(get().localIntent).toBeNull();
     const b = get().battle!;
     expect({ mv: b.movementUsed ?? 0, acted: b.acted, adv: b.combatants.find((c) => c.id === H.id)!.advantage }).toEqual(avant);

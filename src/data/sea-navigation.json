@@ -203,7 +203,7 @@
       {
         "min": 0,
         "max": 3,
-        "outcome": "ok",
+        "outcome": "correct",
         "desc": "Le bateau avance dans la direction supposée par le Navigateur.",
         "source": {
           "book": "mer-des-griffes",
@@ -214,7 +214,7 @@
       {
         "min": -2,
         "max": -1,
-        "outcome": "drift-minor",
+        "outcome": "derive-mineure",
         "desc": "Le vaisseau a légèrement dévié de sa trajectoire. L'écart est mineur, c'est pourquoi ce résultat n'a aucun effet la première fois, mais s'il se reproduit, lancez le dé dans le tableau Changement de cap.",
         "source": {
           "book": "mer-des-griffes",
@@ -225,7 +225,7 @@
       {
         "min": -4,
         "max": -3,
-        "outcome": "drift",
+        "outcome": "derive",
         "desc": "Le bateau a dévié de sa trajectoire. Lancez le dé dans le tableau Changement de cap.",
         "source": {
           "book": "mer-des-griffes",
@@ -236,7 +236,7 @@
       {
         "min": null,
         "max": -5,
-        "outcome": "drift-major",
+        "outcome": "derive-majeure",
         "desc": "Le bateau a énormément dévié de sa trajectoire. Lancez le dé dans le tableau Changement de cap et ajoutez 2 au résultat.",
         "source": {
           "book": "mer-des-griffes",
@@ -245,8 +245,8 @@
         }
       }
     ],
-    "driftMajorBonus": 2,
-    "driftSide": {
+    "bonusDeDeriveMajeure": 2,
+    "coteDeLaDerive": {
       "tribordMax": 5
     },
     "changementDeCap": {
@@ -374,7 +374,22 @@
       "book": "mer-des-griffes",
       "page": 129,
       "note": "ch.15 « Longs voyages » — Vitesse moyenne des bateaux lors de longs voyages, table M/Milles par jour (l.53-70)."
-    }
+    },
+    "vivresDeCale": [
+      {
+        "id": "nourriture-courses-journee"
+      },
+      {
+        "id": "ration-nourriture-preservee"
+      },
+      {
+        "id": "ration-biscuits-de-mer"
+      }
+    ],
+    "tonneauDeCale": {
+      "id": "tonneau-d-eau-douce"
+    },
+    "maison": "L'équipage mange les vivres de la cale dans l'ordre de la liste, le périssable d'abord (MDG 14 l.238, l.263) (consigne utilisateur 2026-11-07)."
   },
   "poursuite": {
     "distanceUnitM": 10,
@@ -505,7 +520,9 @@
       "book": "mer-des-griffes",
       "page": 109,
       "note": "ch.13 « Navigation maritime » — COURSE-POURSUITE, 1 point de Distance = 10 mètres (l.362)."
-    }
+    },
+    "voileSansProfil": 51,
+    "maison": "Un navire hostile dont ni le chef ni l'équipage n'ont de profil à Voile (MDG 15 l.150, l.171 n'en donnent pas) mène sa Poursuite avec la Voile 51 du profil Marin (MDG 14 l.321)."
   },
   "reparation": {
     "portCostGoldPerWound": 1,
@@ -521,12 +538,8 @@
         "sides": 10
       }
     },
-    "charpentierPenalty": -10,
     "lissageRepairSurcoutPct": 50,
     "temporaire": {
-      "difficultyMin": "complexe",
-      "difficultyMax": "tresDifficile",
-      "hoursPerRepair": 1,
       "woundsPerRepair": {
         "dice": {
           "n": 1,
@@ -546,6 +559,14 @@
       "book": "mer-des-griffes",
       "page": 116,
       "note": "ch.13 « Navigation maritime » — RÉPARER LES NAVIRES + Réparations temporaires (l.639-651) ; entretienCrewTestDR croise ch.14 « Entretien » (l.122)."
-    }
+    },
+    "constructeurLocal": 50,
+    "joursDePose": {
+      "dice": {
+        "n": 1,
+        "sides": 10
+      }
+    },
+    "maison": "Le constructeur naval local (MDG 13 l.643) n'a pas de profil : il teste son Métier (Constructeur de navires) à 50 (consigne utilisateur 2026-11-07). Une Amélioration dont le livre ne chiffre pas la pose (MDG 12 l.195-364) prend 1d10 jours, la durée d’un travail du Constructeur de navires itinérant (MDG 15 l.255)."
   }
 }

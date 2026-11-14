@@ -60,15 +60,15 @@ describe('Règles optionnelles — verrouillées tant qu’un combat est en cour
 
   it('combat ouvert le combat fini : la porte se rouvre', () => {
     const battle = startFixtureCombat();
-    banc.setState({ battle: { ...battle, over: 'victory' } });
+    banc.setState({ battle: { ...battle, over: 'victoire' } });
     expect(verrou().mutable).toBe(true);
   });
 
   it('#564 — activer « Avantage de groupe » en plein combat ne détruit plus l’Avantage accumulé', () => {
     const battle = startFixtureCombat();
     expect(battle.advantagePools).toBeUndefined(); // combat ouvert sous le modèle du Livre de base
-    const hero = battle.combatants.find((c) => c.kind === 'hero')!;
-    const foe = battle.combatants.find((c) => c.kind === 'enemy')!;
+    const hero = battle.combatants.find((c) => c.kind === 'heros')!;
+    const foe = battle.combatants.find((c) => c.kind === 'ennemi')!;
     hero.advantage = 4;
     foe.advantage = 2;
     surchargerUneRegleMaison(banc.getState(), 'combat-aa-avantage-groupe', true); // le joueur bascule au menu système, en plein combat
@@ -95,7 +95,7 @@ describe('#564 — le bug, sans la porte (écriture directe du registre moteur)'
 
   it('réserve née à zéro → l’Avantage de tous les combattants est écrasé', () => {
     const battle = startFixtureCombat();
-    const hero = battle.combatants.find((c) => c.kind === 'hero')!;
+    const hero = battle.combatants.find((c) => c.kind === 'heros')!;
     hero.advantage = 4;
     setRule('combat-aa-avantage-groupe', true); // primitive PURE du moteur : ne connaît pas la partie
     resolveRoundBoundary(banc.getState, banc.setState);

@@ -64,8 +64,8 @@ export function deriveChapterRecap(args: {
     .filter((h) => h.dead && (depuis == null || depuis.vivants.includes(h.id)))
     .map((h) => ({ id: h.id, label: h.label }));
   const chronique: RecapLine[] = [
-    ...objectifsSoldes.map((o): RecapLine => ({ text: o.text, icon: 'map-tool/start-flag', tone: 'ok', paquet: true })),
-    ...tombes.map((t): RecapLine => ({ text: t.label, icon: 'ui/close', tone: 'bad' })),
+    ...objectifsSoldes.map((o): RecapLine => ({ text: o.text, icon: 'outil-de-carte/depart', tone: 'reussite', paquet: true })),
+    ...tombes.map((t): RecapLine => ({ text: t.label, icon: 'interface/fermer', tone: 'echec' })),
   ];
   return { titre: cloture.titre, sousTitre: cloture.sousTitre?.texte, px, chronique, tombes, lieux };
 }
@@ -76,7 +76,7 @@ export function deriveChapterRecap(args: {
  * neutre hors campagne à `cloture`. Une CASCADE active (jour de voyage, psychologie…) tient l'écran :
  * le récap attend le lot d'effets suivant plutôt que de s'ouvrir par-dessus elle.
  *
- * Une clôture CONSOMMÉE (`clotureConsommee`, posé par la validation du récap, `fenetreValider('chapterRecap')`) n'arme plus rien : la Condition
+ * Une clôture CONSOMMÉE (`clotureConsommee`, posé par la validation du récap, `fenetreValider('finDeChapitre')`) n'arme plus rien : la Condition
  * reste vraie après la séance close, si bien que sans ce fait le lot d'effets suivant — et chacun de
  * ceux d'après — rouvrirait un récap VIDE (archive vidée, borne re-posée : 0 PX, chronique vide).
  */
@@ -105,7 +105,7 @@ export function armChapterRecapIfDue(get: Get, set: SetFn): void {
 export function validationsDuChapitre(get: Get, set: SetFn) {
   return {
     ouverture: () => set((s) => ({ pendingOuverture: null, chapitreDepuis: snapshotChapitre(s.party, s.gameTime) })),
-    chapterRecap: () => {
+    finDeChapitre: () => {
       terminerLaSeance(get, set);
       set((s) => ({ pendingChapterRecap: null, objectifsSoldes: [], chapitreDepuis: snapshotChapitre(s.party, s.gameTime), clotureConsommee: true }));
     },
@@ -113,7 +113,7 @@ export function validationsDuChapitre(get: Get, set: SetFn) {
 }
 
 /** AJOURNE le récap (Échap / « Plus tard ») et sa fin de séance : le chapitre reste clos en donnée, donc le récap se
- *  re-pose au prochain lot d'effets — rien n'est appliqué, rien n'est forcé. Sortie de l'hôte (`HORS_MODAL.chapterRecap`). */
+ *  re-pose au prochain lot d'effets — rien n'est appliqué, rien n'est forcé. Sortie de l'hôte (`HORS_MODAL.finDeChapitre`). */
 export function sortiesDuChapitre(_get: Get, set: SetFn) {
-  return { chapterRecap: () => set({ pendingChapterRecap: null, finDeSeance: null }) } satisfies Partial<SortiesDeFenetre>;
+  return { finDeChapitre: () => set({ pendingChapterRecap: null, finDeSeance: null }) } satisfies Partial<SortiesDeFenetre>;
 }

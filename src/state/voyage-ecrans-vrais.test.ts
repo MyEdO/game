@@ -27,7 +27,7 @@ const get = () => useGame.getState();
 const set = useGame.setState;
 
 const hero = (p: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'h', label: 'Hilda', kind: 'hero',
+  id: 'h', label: 'Hilda', kind: 'heros',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
   wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -66,19 +66,19 @@ function setup(worldMap: WorldMap, departWeather?: Scene['weather'], party: Comb
 
 /** POSE le dé de Météo d'Étape (« Dés fixés ») sur la rangée `id` de la table de la saison courante. */
 function poseMeteo(id: string): void {
-  const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'stage-weather')!;
+  const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'etape-meteo')!;
   const saison = seasonOfMonth(toDate(get().gameTime).month);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
   get().jetImposerLeResultat('cascadeTirage', rangee.min, meteo.id);
 }
 
 beforeEach(() => { seedBattleRng(1); resetDesFixes(); resetCadence(); });
-afterEach(() => { resetDesFixes(); resetCadence(); resetRule('travel-etapes'); resetRule('travel-attraper-froid'); });
+afterEach(() => { resetDesFixes(); resetCadence(); resetRule('voyage-etapes'); resetRule('voyage-attraper-froid'); });
 
 describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halte (2026-10-09 01:51)', () => {
   /** Interruption à pied sous l'averse (6 h marchées), victoire simulée : rend le jour interrompu. */
   function jourInterrompu(): unknown {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
     get().partirEnVoyage('r1', 'pied');

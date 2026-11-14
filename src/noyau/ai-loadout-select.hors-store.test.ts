@@ -10,7 +10,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makeShowcaseParty } from '../data/pregens';
+import { groupeVitrineDeScenario, idDuHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
 import { runEnemyAI } from './combatFlow';
 
@@ -20,17 +20,17 @@ const embuscadeConstruit = embuscade.construire(idsDeTest);
 
 describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
   function setup() {
-    banc.setState({ party: makeShowcaseParty(idsDeTest) });
+    banc.setState({ party: groupeVitrineDeScenario(idsDeTest) });
     banc.getState().lancerLaScene(embuscadeConstruit.scene);
     banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const ael = b.combatants.find((c) => /aelindra/i.test(c.label))!; // PREGEN.chasseur (fronde + arme simple)
+    const ael = b.combatants.find((c) => c.id === idDuHerosDeScenario('chasseur'))!; // chasseur (fronde + arme simple)
     // Héros AUTO (cf. en-tête) : `runEnemyAI` ne joue QUE des combattants `aiDriven` — pour un héros,
     // c'est le drapeau `aiControlled` (ou l'Auto-combat). Sans lui, la fixture ferait jouer par l'IA un
     // héros piloté à la main, situation qu'aucun chemin réel ne produit (`maybeRunEnemyTurn`).
     ael.aiControlled = true;
-    // donne le tour à Aelindra
+    // donne le tour au Chasseur
     banc.setState({ battle: { ...b, order: [ael.id, ...b.order.filter((id) => id !== ael.id)], turn: 0, action: null } });
     return ael.id;
   }
@@ -40,23 +40,23 @@ describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
     const id = setup();
     // état initial : loadout mêlée actif (arme simple)
     expect(weaponsOf(id)).toContain('melee');
-    expect(weaponsOf(id)).not.toContain('ranged');
+    expect(weaponsOf(id)).not.toContain('distance');
     runEnemyAI(banc.getState, banc.setState, id); // switch SYNCHRONE en tête
-    const ranged = banc.getState().battle!.combatants.find((c) => c.id === id)!.weapons!.find((w) => w.type === 'ranged');
+    const ranged = banc.getState().battle!.combatants.find((c) => c.id === id)!.weapons!.find((w) => w.type === 'distance');
     expect(ranged?.label).toMatch(/fronde/i); // a dégainé la fronde
   });
 
   it('un adversaire au CONTACT → garde/dégaine son arme de MÊLÉE (ne dégaine pas la fronde au corps à corps)', () => {
     const id = setup();
-    // colle un ennemi adjacent à Aelindra
+    // colle un ennemi adjacent au Chasseur
     const b = banc.getState().battle!;
     const ael = b.combatants.find((c) => c.id === id)!;
-    const foe = b.combatants.find((c) => c.kind === 'enemy' && !c.dead)!;
+    const foe = b.combatants.find((c) => c.kind === 'ennemi' && !c.dead)!;
     foe.pos = { x: ael.pos!.x + 1, y: ael.pos!.y };
     banc.setState({ battle: { ...b } });
     runEnemyAI(banc.getState, banc.setState, id);
     const w = banc.getState().battle!.combatants.find((c) => c.id === id)!.weapons!;
     expect(w.some((x) => x.type === 'melee')).toBe(true); // arme de mêlée disponible au contact
-    expect(w.find((x) => x.type === 'ranged')).toBeUndefined(); // pas la fronde au corps à corps
+    expect(w.find((x) => x.type === 'distance')).toBeUndefined(); // pas la fronde au corps à corps
   });
 });

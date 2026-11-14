@@ -29,6 +29,7 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { draineCascade } from './cascade.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { cliquerSurLeCombattant } from './combatOrParty';
+import { pratiquer } from './interlude.testkit';
 
 /**
  * CÂBLAGE des Tests nommés (#2779, #1173) : la compétence et la Difficulté d'un Test que nomme une règle
@@ -56,11 +57,11 @@ function auCombat(): { H: Combatant; E: Combatant } {
   banc.setState({ party: [heros()], pendingRun: null, pendingApproach: null, pendingDisengage: null, pendingCascade: null });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 15, y: 10 };
   H.engagedWith = [];
@@ -68,17 +69,17 @@ function auCombat(): { H: Combatant; E: Combatant } {
   return { H, E };
 }
 
-/** Le scénario `entrainement` (le banc de la recette : un cheval allié libre), au Tour de Wilhelmina,
+/** Le scénario `entrainement` (le banc de la recette : un cheval allié libre), au Tour de du Sorcier,
  *  Mouvement intact. `dejaEnSelle` : en selle avant son Tour (`mountUp`, comme une rencontre qui pose un
  *  cavalier), sinon le cheval attend à une case. */
 function enSelle({ dejaEnSelle = true } = {}): { R: Combatant; monture: Combatant } {
   lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'entrainement')!, idsDeTest));
   if (!g().battle) g().lancerLeCombat('enc-entrainement');
-  if (g().pendingRoundStart) g().fenetreValider('roundStart');
+  if (g().pendingRoundStart) g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
   const monture = b.combatants.find((c) => c.mountable)!;
-  const R = b.combatants.find((c) => c.id === 'pregen-707')!;
+  const R = b.combatants.find((c) => c.id === 'sorcier-de-test')!;
   R.pos = { x: monture.pos!.x + 1, y: monture.pos!.y };
   if (dejaEnSelle) mountUp(R, monture);
   banc.setState({ battle: { ...b, turn: b.order.indexOf(R.id), action: null, acted: false, movementUsed: 0, movedPreAction: false, runBudget: null } });
@@ -106,19 +107,19 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     restaurerFiche();
   });
 
-  it('Course : `ouvrirLaCourse` pose le Test de `course`, `jetLancer@run` le jette', () => {
+  it('Course : `ouvrirLaCourse` pose le Test de `course`, `jetLancer@course` le jette', () => {
     const { H } = auCombat();
     g().ouvrirLaCourse({ x: 16, y: 10 });
     expect(g().pendingRun!.test).toMatchObject(testDeFiche('course', 'courir'));
-    g().jetLancer('run');
+    g().jetLancer('course');
     expect(g().pendingRun!.result!.target).toBe(cible(H, 'course', 'courir'));
   });
 
   it('Course d’un cavalier : le clic de case au-delà de la Marche, Course armée, ouvre le Test de `course` sur Chevaucher (LDB 14 l.179), Difficulté de la fiche', () => {
     const { R } = enSelle();
     const cible = caseDeCourse();
-    g().cliquerLaCase(cible, undefined, { courseArmee: true });
-    g().cliquerLaCase(cible, undefined, { courseArmee: true });
+    g().cliquerLaCase(cible, undefined, { intentionId: 'course' });
+    g().cliquerLaCase(cible, undefined, { intentionId: 'course' });
     expect(g().pendingRun, 'la Course s’ouvre').toMatchObject({ combatantId: R.id, dest: cible });
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' }, difficulty: testDeFiche('course', 'courir').difficulty });
   });
@@ -131,21 +132,21 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const [cle] = [...computeRunReach(g)].sort((a, b) => b[1] - a[1])[0];
     const [x, y] = cle.split(',').map(Number);
     const cible = { x, y };
-    g().cliquerLaCase(cible, undefined, { courseArmee: true });
-    g().cliquerLaCase(cible, undefined, { courseArmee: true });
+    g().cliquerLaCase(cible, undefined, { intentionId: 'course' });
+    g().cliquerLaCase(cible, undefined, { intentionId: 'course' });
     expect(g().pendingRun, 'la Course s’ouvre').toMatchObject({ combatantId: R.id, dest: cible });
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' } });
   });
 
-  it('Chute volontaire : `franchirLArete` pose le Test de `chute`, `jetLancer@fall` le jette', () => {
+  it('Chute volontaire : `franchirLArete` pose le Test de `chute`, `jetLancer@chute` le jette', () => {
     const s = emptyScene('scene-test', 4, 4);
     s.layers[0].height = Array.from({ length: 16 }, (_, i) => (i === 2 ? 4 : 0));
     const hero = heros();
     banc.setState({ party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingCascade: null });
     g().franchirLArete({ x: 2, y: 1 });
     expect(g().pendingFall!.test).toMatchObject(testDeFiche('chute', 'tenter'));
-    g().jetRegler('fall', 'tenter', true, hero.id);
-    g().jetLancer('fall', hero.id);
+    g().jetRegler('chute', 'tenter', true, hero.id);
+    g().jetLancer('chute', hero.id);
     expect(g().pendingFall!.participants[0].result!.target).toBe(cible(hero, 'chute', 'tenter'));
   });
 
@@ -158,18 +159,18 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     }
   });
 
-  it('Fuite : `jetRegler(\'disengage\', \'fuir\')` pose le Test de `fuite` sur le slot du fuyard, `jetLancer@flee` le jette', () => {
+  it('Fuite : `jetRegler(\'desengagement\', \'fuir\')` pose le Test de `fuite` sur le slot du fuyard, `jetLancer@fuite` le jette', () => {
     const { H, E } = auCombat();
     E.characteristics['capacite-de-combat'] = 90;
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     banc.setState({
       battle: { ...g().battle! },
-      pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+      pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choix', atk: null, def: null, result: null },
     });
-    g().jetRegler('disengage', 'fuir', true);
+    g().jetRegler('desengagement', 'fuir', true);
     expect(fleeTouche(g().pendingDisengage!)!.test).toMatchObject(testDeFiche('fuite', 'touche-en-fuyant'));
-    g().jetLancer('flee', H.id);
+    g().jetLancer('fuite', H.id);
     expect(fleeTouche(g().pendingDisengage!)!.jet!.target).toBe(cible(H, 'fuite', 'touche-en-fuyant'));
   });
 
@@ -179,7 +180,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc.setState({ battle: { ...g().battle!, reachable: new Map([['11,10', 1]]) } });
     g().cliquerLaCase({ x: 11, y: 10 }, undefined, { confirm: true });
     expect(g().pendingApproach!.test).toMatchObject(testDeFiche('calme-d-approche', 'se-rapprocher'));
-    g().jetLancer('approach');
+    g().jetLancer('approche');
     expect(g().pendingApproach!.result!.target).toBe(cible(H, 'calme-d-approche', 'se-rapprocher'));
   });
 
@@ -187,7 +188,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const { H, E } = auCombat();
     H.psychState = [{ type: 'peur', sourceId: E.id, indice: 2, calmeDR: 0 }];
     E.pos = { x: 13, y: 10 };
-    cliquerSurLeCombattant(g, E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(g, E.id, { confirm: true, intentionId: 'charge' });
     expect(g().pendingApproach!.test).toMatchObject(testDeFiche('calme-d-approche', 'se-rapprocher'));
   });
 
@@ -195,7 +196,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const { H, E } = auCombat();
     H.psychState = [{ type: 'peur', sourceId: E.id, indice: 2, calmeDR: 0 }];
     approachFearTrigger(g, banc.setState, E, { x: 15, y: 10 }, { x: 12, y: 10 });
-    const rangee = g().pendingCascade!.participants.find((s) => s.kind === 'triggeredBatchTest')!.participants!.find((p) => p.id === H.id)!;
+    const rangee = g().pendingCascade!.participants.find((s) => s.kind === 'testDeclencheEnBande')!.participants!.find((p) => p.id === H.id)!;
     const { skill, difficulty } = testDeFiche('calme-d-approche', 'source-se-rapproche');
     expect({ skill: rangee.skill, difficulty: rangee.difficulty }).toEqual({ skill, difficulty });
   });
@@ -204,7 +205,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const { H } = auCombat();
     H.focus = { spell: 'armure-aethyrique', dr: 3 };
     checkFocusInterruption(g, banc.setState, H);
-    const etape = g().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const etape = g().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     const { skill, difficulty } = testDeFiche('interruption-de-focalisation', 'maintenir');
     expect({ rollLabel: etape.rollLabel, difficulty: etape.difficulty }).toEqual({ rollLabel: refLabel('skills', skill), difficulty });
   });
@@ -233,10 +234,10 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const itl = g().interlude!;
     itl.perHero[hero.id] = { ...itl.perHero[hero.id], fx: undefined, left: 3 };
     banc.setState({ interlude: { ...itl } });
-    g().pratiquerLActivite(hero.id, 'tester-objets-magiques', { itemUid: 'art1' });
-    g().jetLancer('activity');
+    pratiquer(g, hero.id, 'tester-objets-magiques', { itemUid: 'art1' });
+    g().jetLancer('activite');
     banc.setState({ pendingActivity: { ...g().pendingActivity!, roll: 98, success: false, sl: -5 } });
-    g().jetValider('activity');
+    g().jetValider('activite');
     expect(g().pendingCorruption).toMatchObject({ nature: 'physique', test: testDeFiche('influences-corruptrices', 'physique') });
   });
 
@@ -244,7 +245,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const { H, E } = auCombat();
     E.traits = [...(E.traits ?? []), { id: 'corruption', arg: 'mineure' }] as Combatant['traits'];
     openCombatEndCascade(g, banc.setState);
-    const bande = g().pendingCascade!.participants.find((s) => s.kind === 'combatEndCorruption')!;
+    const bande = g().pendingCascade!.participants.find((s) => s.kind === 'corruptionDeFinDeCombat')!;
     const rangee = bande.participants!.find((p) => p.id === H.id)!;
     const { skill, difficulty } = testDeFiche('influences-corruptrices', 'physique');
     expect({ label: rangee.label, difficulty: rangee.difficulty }).toEqual({ label: refLabel('skills', skill), difficulty });
@@ -252,7 +253,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
 
   it('Course de l’IA : `aiApproachPlan` jette le Test de `course`', () => {
     const scene = emptyScene('s', 30, 21);
-    const C = (kind: 'hero' | 'enemy', id: string, x: number): Combatant => (blessuresSurLeProfil({ id, name: id, label: id, kind, pos: { x, y: 10 }, movement: 4,
+    const C = (kind: 'heros' | 'ennemi', id: string, x: number): Combatant => (blessuresSurLeProfil({ id, name: id, label: id, kind, pos: { x, y: 10 }, movement: 4,
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
       conditions: [], skills: [{ id: 'esquive', characteristic: 'agilite', advances: 25 }], wounds: blessuresDeBase(10), advantage: 0, engagedWith: [], psychState: [] })) as unknown as Combatant;
@@ -260,8 +261,8 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const [skill, d] = FICHE_DE_TEST.course.courir;
     const ecarts = { competence: 0, difficulte: 0 };
     for (let graine = 1; graine <= 30; graine++) {
-      const enemy = C('enemy', 'e', 2);
-      const input: EnemyTurnInput = { enemy, heroes: [C('hero', 'h', 25)], scene, blocked: new Set(['25,10']), movement: 4, spells: [] };
+      const enemy = C('ennemi', 'e', 2);
+      const input: EnemyTurnInput = { enemy, heroes: [C('heros', 'h', 25)], scene, blocked: new Set(['25,10']), movement: 4, spells: [] };
       const budget = (s: string, x: Difficulty) => 4 + resolveRun(testValue(enemy, { skill: { id: s } }), x, 4, makeRNG(graine)).bonusCases;
       expect(aiApproachPlan(input, enemy, chooseEnemyAction(input), makeRNG(graine)).ran?.budget, `graine ${graine}`).toBe(budget(skill, d));
       if (budget(jeuSkill, d) !== budget(skill, d)) ecarts.competence++;
@@ -269,8 +270,8 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     }
     expect(ecarts.competence * ecarts.difficulte, 'les graines départagent compétence et Difficulté').toBeGreaterThan(0);
     const plan = (mountId?: string) => {
-      const enemy = { ...C('enemy', 'e', 2), ...(mountId ? { mountId } : {}) };
-      const input: EnemyTurnInput = { enemy, heroes: [C('hero', 'h', 25)], scene, blocked: new Set(['25,10']), movement: 4, spells: [] };
+      const enemy = { ...C('ennemi', 'e', 2), ...(mountId ? { mountId } : {}) };
+      const input: EnemyTurnInput = { enemy, heroes: [C('heros', 'h', 25)], scene, blocked: new Set(['25,10']), movement: 4, spells: [] };
       return aiApproachPlan(input, enemy, chooseEnemyAction(input), makeRNG(1)).ran?.test.skill;
     };
     expect(plan(), 'la compétence que le journal nomme').toEqual(testDeFiche('course', 'courir').skill);

@@ -1,8 +1,9 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/combattant.gd" id="1_combattant"]
 [ext_resource type="Script" path="res://scripts/montage_de_composition.gd" id="2_montage"]
 [ext_resource type="Script" path="res://scripts/montage_de_vehicule.gd" id="3_vehicule"]
+[ext_resource type="PackedScene" path="res://scenes/EtatsDuCorps.tscn" id="4_etats"]
 
 [sub_resource type="StandardMaterial3D" id="Materiau_selection"]
 shading_mode = 0
@@ -21,6 +22,8 @@ script = ExtResource("2_montage")
 
 [node name="Vehicule" type="Node3D" parent="."]
 script = ExtResource("3_vehicule")
+
+[node name="Etats" parent="." instance=ExtResource("4_etats")]
 
 [node name="Selection" type="MeshInstance3D" parent="."]
 visible = false

@@ -23,7 +23,7 @@ const TURN_OPTIONS: { key: string; label: string; steps: number }[] = [
 
 /**
  * Modale de MANŒUVRE navale = TEST D'ÉQUIPAGE (MDG 13-14) — flux MULTI, patron `ForceDoorModal`. Pré-jet : choix
- * du virage (`OptionChooser` → réglage `shipManeuver.virage`, ⟂ jet). Chaque rôle tenu = une `RollRow` : un PJ lance
+ * du virage (`OptionChooser` → réglage `manoeuvreDuNavire.virage`, ⟂ jet). Chaque rôle tenu = une `RollRow` : un PJ lance
  * SON Test (Chance/+1 DR/Pacte/Résilience sur SON jet, gaté par la possession locale — `ui/ownership`) ; un marin PNJ est un TÉMOIN auto-roulé.
  * Le bandeau somme les DR (essentiel ×2) + Moral → DR final ; « Manœuvrer » vire le cap + avance (`…Confirm`).
  */
@@ -32,14 +32,14 @@ export function ShipManeuverModal() {
   const battle = useGame((s) => s.battle);
   const owns = useOwns(); // possession locale à l'affichage (#1262) — hook : AVANT tout retour anticipé
   const regler = useGame((s) => s.jetRegler);
-  const setTurn = (v: ReglagesDuJet['shipManeuver']['virage']) => regler('shipManeuver', 'virage', v);
-  const roll = useGesteDeJet('jetLancer', 'shipManeuver');
-  const reroll = useGesteDeJet('jetRelancer', 'shipManeuver');
-  const bonus = useGesteDeJet('jetAjouterUnDR', 'shipManeuver');
-  const darkPact = useGesteDeJet('jetPactiser', 'shipManeuver');
-  const force = useGesteDeJet('jetForcerLaReussite', 'shipManeuver');
-  const confirm = useGesteDeJet('jetValider', 'shipManeuver');
-  const cancel = useGesteDeJet('jetAnnuler', 'shipManeuver');
+  const setTurn = (v: ReglagesDuJet['manoeuvreDuNavire']['virage']) => regler('manoeuvreDuNavire', 'virage', v);
+  const roll = useGesteDeJet('jetLancer', 'manoeuvreDuNavire');
+  const reroll = useGesteDeJet('jetRelancer', 'manoeuvreDuNavire');
+  const bonus = useGesteDeJet('jetAjouterUnDR', 'manoeuvreDuNavire');
+  const darkPact = useGesteDeJet('jetPactiser', 'manoeuvreDuNavire');
+  const force = useGesteDeJet('jetForcerLaReussite', 'manoeuvreDuNavire');
+  const confirm = useGesteDeJet('jetValider', 'manoeuvreDuNavire');
+  const cancel = useGesteDeJet('jetAnnuler', 'manoeuvreDuNavire');
   const milieu = useGame((s) => milieuDuVoyage(s.travelPlan));
   if (!p || !battle) return null;
   const ship = battle.combatants.find((c) => c.id === p.shipId);
@@ -64,15 +64,15 @@ export function ShipManeuverModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'roll' as const }] : []),
-    { key: 'confirm', label: 'Manœuvrer', onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    ...(rollAll ? [{ key: 'lancerLesRangees' as const, label: <><Icon id="navigation/des" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'lancer' as const }] : []),
+    { key: 'valider', label: 'Manœuvrer', onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
-      flowKey="shipManeuver"
-      title={<><Icon id="action/steer-ship" size="sm" /> Manœuvre — Test d’équipage</>}
+      flowKey="manoeuvreDuNavire"
+      title={<><Icon id="action/tenir-la-barre" size="sm" /> Manœuvre — Test d’équipage</>}
       subtitle={<><strong>{ship.label}</strong> — {p.participants.length} rôle{plural(p.participants.length)} à la manœuvre (DR sommés)</>}
       extra={<OptionChooser layout="grid" groupLabel="Virage" options={turnOptions} />}
       rows={rows}

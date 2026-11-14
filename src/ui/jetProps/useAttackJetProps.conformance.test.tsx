@@ -45,14 +45,14 @@ const sword = {
 const bow = {
   name: 'Arc',
   label: 'Arc',
-  type: 'ranged',
+  type: 'distance',
   damage: { plusBF: false, flat: 8 },
   range: 60,
   uid: 'bow',
   qualities: [],
 } as unknown as Weapon;
 
-function combatant(id: string, label: string, kind: 'hero' | 'enemy', x: number, weapons: Weapon[] = [sword], advantage = 0): Combatant {
+function combatant(id: string, label: string, kind: 'heros' | 'ennemi', x: number, weapons: Weapon[] = [sword], advantage = 0): Combatant {
   return blessuresSurLeProfil({
     id,
     name: label,
@@ -108,7 +108,7 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
   // Tir : 20 cases = 40 m avec une Portée de 60 m → bande « Moyenne » (+0, aucune chip de portée) ;
   // 5 cases = 10 m → « Courte portée » (+20, entrée de la table). Mêlée : au contact. La distance est
   // CHOISIE pour que seules les circonstances mesurées pèsent.
-  const attacker = combatant('attacker', 'Elsa', 'hero', 0, opts.armes ?? [weapon], opts.avantage ?? 0);
+  const attacker = combatant('attacker', 'Elsa', 'heros', 0, opts.armes ?? [weapon], opts.avantage ?? 0);
   if (opts.morsure) (attacker as unknown as { traits: unknown[] }).traits = [{ id: 'morsure', value: 6 }];
   if (opts.pietinement) {
     attacker.size = 'enorme';
@@ -117,7 +117,7 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
       ...(opts.bagarre ? [{ id: 'corps-a-corps', spec: 'bagarre', characteristic: 'capacite-de-combat', advances: opts.bagarre }] : []),
     ] as Combatant['skills'];
   }
-  const target = combatant('target', 'Gobelin', 'enemy', opts.cases ?? (opts.ranged ? 20 : 1));
+  const target = combatant('target', 'Gobelin', 'ennemi', opts.cases ?? (opts.ranged ? 20 : 1));
   if (opts.ethere) (target as unknown as { traits: unknown[] }).traits = [{ id: 'ethere' }];
   if (opts.cible?.pb != null) target.wounds = blessuresDeBase(18, opts.cible.pb, target);
   if (opts.cible?.important) target.important = true;
@@ -125,14 +125,14 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
   if (opts.conditions) (attacker as unknown as { conditions: unknown[] }).conditions = opts.conditions;
   // Badauds AU CONTACT de la cible (`crowdEligible` : distance ≤ 1, la cible comprise) — c'est eux qui
   // font, ou non, le « groupe serré » du seuil de `crowdMod`.
-  const badauds = Array.from({ length: opts.badauds ?? 0 }, (_, i) => combatant(`badaud-${i}`, `Badaud ${i}`, 'enemy', (target.pos!.x) + (i % 2 === 0 ? 1 : -1)));
+  const badauds = Array.from({ length: opts.badauds ?? 0 }, (_, i) => combatant(`badaud-${i}`, `Badaud ${i}`, 'ennemi', (target.pos!.x) + (i % 2 === 0 ? 1 : -1)));
   const combatants = [attacker, target, ...badauds];
   const battle = {
     combatants,
     order: combatants.map((c) => c.id),
     baseOrder: combatants.map((c) => c.id),
     ...(opts.tasArme || opts.tirArme
-      ? { stances: { [attacker.id]: { ...(opts.tasArme ? { intoCrowd: true } : {}), ...(opts.tirArme ? { heldGround: true } : {}) } } }
+      ? { stances: { [attacker.id]: { ...(opts.tasArme ? { dansLeTas: true } : {}), ...(opts.tirArme ? { tirImmobile: true } : {}) } } }
       : {}),
     turn: 0,
     round: 1,
@@ -159,9 +159,9 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
     useGame.setState,
     // Posture ARMÉE à la console : on laisse le VERSEMENT moteur (`withArmedStance`) trancher, comme
     // au vrai site de déclaration — un champ porté par l'appelant primerait et court-circuiterait le prédicat.
-    { attackerId: attacker.id, targetId: target.id, location: opts.location ?? null, result: null, ...(opts.morsure ? { freeKind: 'morsure' as const } : opts.pietinement ? { freeKind: 'pietinement' as const } : { weaponUid: weapon.uid }), ...(opts.tirArme ? {} : { heldGround: !opts.enMouvement }) },
+    { attackerId: attacker.id, targetId: target.id, location: opts.location ?? null, result: null, ...(opts.morsure ? { freeKind: 'morsure' as const } : opts.pietinement ? { freeKind: 'pietinement' as const } : { weaponUid: weapon.uid }), ...(opts.tirArme ? {} : { tirImmobile: !opts.enMouvement }) },
     'Attaque',
-    'action/attack',
+    'action/attaquer',
   );
   host = document.createElement('div');
   document.body.appendChild(host);
@@ -190,7 +190,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
     const avant = rendues!.rows[0].row.pending!;
     expect(avant.base, 'Bagarre, sans avance : la CC nue, pas la Spé de l’arme tenue').toBe(45);
     expect(ligneDe(avant.mods, refDeRegle('possession-pas-a-sa-taille'))).toBeUndefined();
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     const jet = rendues!.rows[0].row.d!;
     expect([jet.base, jet.target], 'aperçu et jet : même valeur cible').toEqual([avant.base, avant.target]);
   });
@@ -202,7 +202,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
     const avant = rendues!.rows[0].row.pending!;
     expect(avant.label).toBe('Corps à corps (Bagarre)');
     expect(avant.base, 'CC 45 + 5 Augmentations de Bagarre, jamais les 8 de Base').toBe(50);
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     expect(rendues!.rows[0].row.d!.base, 'le jet tire la Spé annoncée').toBe(50);
   });
 
@@ -232,7 +232,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
    */
   it('la posture de tir est AFFICHÉE en lecture seule — état lisible, aucun bouton de bascule', () => {
     const v = renderAttack({ ranged: true });
-    const ligne = v.querySelector('[data-posture="heldGround"]')!;
+    const ligne = v.querySelector('[data-posture="tirImmobile"]')!;
     expect(ligne, 'un tir de héros annonce sa posture').toBeTruthy();
     expect(ligne.hasAttribute('data-armee'), 'ce pending est armé immobile').toBe(true);
     expect(ligne.textContent).toContain('Tir immobile — armé');
@@ -242,7 +242,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
 
   it('posture NON armée : la fenêtre le dit aussi, et reste sans bouton', () => {
     const v = renderAttack({ ranged: true, enMouvement: true });
-    const ligne = v.querySelector('[data-posture="heldGround"]')!;
+    const ligne = v.querySelector('[data-posture="tirImmobile"]')!;
     expect(ligne.hasAttribute('data-armee')).toBe(false);
     expect(ligne.textContent).toContain('Tir immobile — non armé');
     expect(ligne.textContent).toContain('-10 « Tir en bougeant »');
@@ -257,7 +257,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
    */
   it('« Dans le tas » armée + cible ISOLÉE : la ligne est là, sans objet, avec sa raison', () => {
     const v = renderAttack({ ranged: true, tasArme: true });
-    const ligne = v.querySelector('[data-posture="intoCrowd"]')!;
+    const ligne = v.querySelector('[data-posture="dansLeTas"]')!;
     expect(ligne, 'une posture armée ne disparaît pas en silence').toBeTruthy();
     expect(ligne.hasAttribute('data-armee'), 'sans groupe, elle ne mord pas').toBe(false);
     expect(ligne.textContent).toContain('sans objet sur cette cible');
@@ -267,7 +267,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
 
   it('« Dans le tas » armée + cible EN GROUPE : la ligne de bonus normale (+20, 3 au contact)', () => {
     const v = renderAttack({ ranged: true, tasArme: true, badauds: 2 });
-    const ligne = v.querySelector('[data-posture="intoCrowd"]')!;
+    const ligne = v.querySelector('[data-posture="dansLeTas"]')!;
     expect(ligne.hasAttribute('data-armee')).toBe(true);
     expect(ligne.textContent).toContain('Dans le tas — armée (+20)');
     expect(ligne.textContent).toContain('3 au contact');
@@ -282,7 +282,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
    */
   it('« Tir immobile » armé puis Mouvement ENTAMÉ : la ligne est là, sans objet, avec sa raison', () => {
     const v = renderAttack({ ranged: true, tirArme: true, mouvementUse: 3 });
-    const ligne = v.querySelector('[data-posture="heldGround"]')!;
+    const ligne = v.querySelector('[data-posture="tirImmobile"]')!;
     expect(ligne, 'une posture armée ne disparaît pas en silence').toBeTruthy();
     expect(ligne.hasAttribute('data-armee'), 'le Mouvement entamé la périme').toBe(false);
     expect(ligne.textContent).toContain('sans objet sur ce tir');
@@ -292,7 +292,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
 
   it('« Tir immobile » armé + Mouvement INTACT : la ligne de posture armée normale', () => {
     const v = renderAttack({ ranged: true, tirArme: true });
-    const ligne = v.querySelector('[data-posture="heldGround"]')!;
+    const ligne = v.querySelector('[data-posture="tirImmobile"]')!;
     expect(ligne.hasAttribute('data-armee')).toBe(true);
     expect(ligne.textContent).toContain('Tir immobile — armé');
     expect(ligne.textContent).toContain('Mouvement du Tour consommé');
@@ -477,24 +477,24 @@ describe('Attaque — issue d’un coup sans prise', () => {
     // Tir à l'arc : aucune fenêtre de Défense ne s'interpose, l'issue s'affiche dans la popin d'attaque.
     renderAttack({ ethere: true, ranged: true });
     seedBattleRng(29);
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     const res = useGame.getState().pendingAttack!.result!;
     expect([res.critical, res.sansPrise], 'précondition : Critique obtenu au jet, coup sans prise').toEqual([true, 'ethere']);
     const issue = rendues!.outcome![0];
-    expect(issue.icon, 'l’issue n’est pas celle d’un Critique').not.toBe(recapLineOfEvent(ev('crit', res.log)).icon);
-    expect(issue.icon, 'l’issue est celle d’une touche').toBe(recapLineOfEvent(ev('damage', res.log)).icon);
+    expect(issue.icon, 'l’issue n’est pas celle d’un Critique').not.toBe(recapLineOfEvent(ev('critique', res.log)).icon);
+    expect(issue.icon, 'l’issue est celle d’une touche').toBe(recapLineOfEvent(ev('degats', res.log)).icon);
   });
 
   it('jet forcé sur un double contre une cible Éthérée : aucun sélecteur de Localisation du Critique', () => {
     const vue = renderAttack({ ethere: true, ranged: true });
     act(() => { useGame.getState().battle!.combatants[0].resilience = 1; });
     seedBattleRng(1);
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     expect(useGame.getState().pendingAttack!.result!.attackerDetail!.success, 'précondition : jet raté, à forcer').toBe(false);
-    act(() => useGame.getState().jetForcerLaReussite('attack'));
-    act(() => useGame.getState().jetImposerLeResultat('attack', 33));
+    act(() => useGame.getState().jetForcerLaReussite('attaque'));
+    act(() => useGame.getState().jetImposerLeResultat('attaque', 33));
     const pa = useGame.getState().pendingAttack!;
-    expect([pa.forced, pa.result?.critical, pa.result?.sansPrise], 'précondition : jet forcé, Critique obtenu, coup sans prise').toEqual([true, true, 'ethere']);
+    expect([pa.forcee, pa.result?.critical, pa.result?.sansPrise], 'précondition : jet forcé, Critique obtenu, coup sans prise').toEqual([true, true, 'ethere']);
     expect(rendues!.forcedExtra, 'pas de Localisation à choisir pour un Critique non appliqué').toBeUndefined();
     expect(vue.querySelector('.rm-loc-grid')).toBeNull();
   });
@@ -509,13 +509,13 @@ describe('Attaque — l’annonce du Coup Critique lit le compte du coup (LDB 17
     const vue = renderAttack({ ranged: true, cible });
     act(() => { useGame.getState().battle!.combatants[0].resilience = 1; });
     seedBattleRng(1);
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     expect(useGame.getState().pendingAttack!.result!.attackerDetail!.success, 'précondition : jet raté, à forcer').toBe(false);
-    act(() => useGame.getState().jetForcerLaReussite('attack'));
-    act(() => useGame.getState().jetImposerLeResultat('attack', force));
+    act(() => useGame.getState().jetForcerLaReussite('attaque'));
+    act(() => useGame.getState().jetImposerLeResultat('attaque', force));
     const res = useGame.getState().pendingAttack!.result!;
     expect(res.hit, 'précondition : le jet forcé touche').toBe(true);
-    const iconeCrit = recapLineOfEvent(ev('crit', res.log)).icon;
+    const iconeCrit = recapLineOfEvent(ev('critique', res.log)).icon;
     return { selecteur: rendues!.forcedExtra !== undefined, grille: !!vue.querySelector('.rm-loc-grid'), crit: rendues!.outcome![0].icon === iconeCrit, marque: rendues!.outcome![0].text.includes('CRITIQUE'), res };
   }
 
@@ -556,10 +556,10 @@ describe('Attaque — l’issue d’une Empoignade (LDB 14 l.159)', () => {
     expect(useGame.getState().pendingAttack!.grapple, 'précondition : Empoigner coché').toBe(true);
     act(() => { useGame.getState().battle!.combatants[0].resilience = 1; });
     seedBattleRng(1);
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     if (!useGame.getState().pendingAttack!.result!.hit) {
-      act(() => useGame.getState().jetForcerLaReussite('attack'));
-      act(() => useGame.getState().jetImposerLeResultat('attack', 21));
+      act(() => useGame.getState().jetForcerLaReussite('attaque'));
+      act(() => useGame.getState().jetImposerLeResultat('attaque', 21));
     }
     const res = useGame.getState().pendingAttack!.result!;
     expect([res.hit, !!res.touche], 'précondition : touche, ligne de touche').toEqual([true, true]);
@@ -582,10 +582,10 @@ describe('Attaque — l’issue d’une Empoignade (LDB 14 l.159)', () => {
       b.combatants.find((c) => c.id === useGame.getState().pendingAttack!.targetId)!.inert = true;
     });
     seedBattleRng(1);
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     if (!useGame.getState().pendingAttack!.result!.hit) {
-      act(() => useGame.getState().jetForcerLaReussite('attack'));
-      act(() => useGame.getState().jetImposerLeResultat('attack', 21));
+      act(() => useGame.getState().jetForcerLaReussite('attaque'));
+      act(() => useGame.getState().jetImposerLeResultat('attaque', 21));
     }
     const res = useGame.getState().pendingAttack!.result!;
     expect([res.hit, !!res.touche], 'précondition : touche, ligne de touche').toEqual([true, true]);

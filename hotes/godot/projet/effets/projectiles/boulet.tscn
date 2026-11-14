@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ymctc"]
+albedo_color = Color(0.11764706, 0.11764706, 0.11764706, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_u4oci"]
+material = SubResource("StandardMaterial3D_ymctc")
+radius = 0.1
+height = 0.2
+
+[node name="boulet" type="Node3D" unique_id=1215855692]
+
+[node name="Corps" type="Node3D" parent="." unique_id=341658029]
+
+[node name="Maille" type="MeshInstance3D" parent="Corps" unique_id=1809999134]
+cast_shadow = 0
+mesh = SubResource("SphereMesh_u4oci")

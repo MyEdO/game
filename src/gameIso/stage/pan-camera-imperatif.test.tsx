@@ -33,7 +33,7 @@ afterAll(() => setStageRendererFactory(null));
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero', species: 'humains-reiklander', pos, size: 'moyenne',
+    id, label: id, kind: 'heros', species: 'humains-reiklander', pos, size: 'moyenne',
     wounds: blessuresDeBase(12), weapons: [unarmedWeapon()], // invariant mains nues (`assertAttackWeapon`)
     characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
@@ -182,7 +182,7 @@ describe('Focale — la vue COURT vers sa nouvelle cible, elle n’y saute pas',
 
   /** Combat à deux unités distantes, au tour de `h1` : le sujet suivi est l'unité ACTIVE (`stageFocus`). */
   const combat = (turn: number): BattleState => ({
-    combatants: [hero('h1', { x: 2, y: 2 }), { ...hero('e1', { x: 6, y: 6 }), kind: 'enemy' }],
+    combatants: [hero('h1', { x: 2, y: 2 }), { ...hero('e1', { x: 6, y: 6 }), kind: 'ennemi' }],
     order: ['h1', 'e1'], turn, round: 2, over: false, action: null, acted: false, movementUsed: 0,
     preview: null, reachable: new Map<string, number>(), zones: [], log: [],
   }) as unknown as BattleState;

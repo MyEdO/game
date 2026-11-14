@@ -3,7 +3,16 @@ import type { Characteristics, Combatant, ItemInstance } from '../engine/types';
 import type { CargoLot } from '../engine/cargo';
 import { carrierUsedEnc } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
-import { partyCarriers, carrierById, primaryCargoCarrier, bulkCargoRefs, partyCargoTotalEnc, persistCarriersCargo, CAMPAIGN_VESSEL_CARRIER_ID, type CarrierStateSlice } from './carriers';
+import {
+  partyCarriers,
+  carrierById,
+  primaryCargoCarrier,
+  bulkCargoRefs,
+  partyCargoTotalEnc,
+  persistCarriersCargo,
+  CAMPAIGN_VESSEL_CARRIER_ID,
+  type CarrierStateSlice,
+} from './carriers';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 const chars = (F = 30, E = 30): Characteristics => ({
@@ -12,7 +21,7 @@ const chars = (F = 30, E = 30): Characteristics => ({
 
 function hero(id: string, items: ItemInstance[] = [], F = 30, E = 30): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero', characteristics: chars(F, E),
+    id, label: id, kind: 'heros', characteristics: chars(F, E),
     wounds: blessuresDeBase(10), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     items, skills: [], talents: [], movement: 4,

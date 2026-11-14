@@ -1,18 +1,18 @@
-"""chaines.ajouter_chaines et chaines.cuire_chaines sur un squelette synthétique aux os de la base : les six chaînes du
-design posées sous leurs os porteurs, le manifeste lu de la scène, une piste de rotation LINEAR par os de chaîne dans
-chaque clip, la jupe qui suit la cuisse avancée et la cape qui pend quand le dos se penche en arrière."""
+"""chaines.ajouter_chaines et chaines.cuire_chaines sur un squelette synthétique aux os de la base : les chaînes
+d'appendice posées sous leurs os porteurs, le manifeste lu de la scène, une piste de rotation LINEAR au repos par os de
+chaîne dans chaque clip."""
 import math
 import sys
 import unittest
 from pathlib import Path
 
 import bpy
-from mathutils import Matrix, Vector
+from mathutils import Quaternion
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from animation import assign_action, clear_animation  # noqa: E402
-from chaines import SEGMENTS, ajouter_chaines, cuire_chaines, rotation_du_brin  # noqa: E402
+from chaines import SEGMENTS, ajouter_chaines, cuire_chaines  # noqa: E402
 from pistes import sacs  # noqa: E402
 
 OS = {
@@ -31,15 +31,13 @@ OS = {
     'neck_01': ((0, 0.041, 1.53), (0, 0.017, 1.609), 'spine_03'),
     'Head': ((0, 0.017, 1.609), (0, 0.017, 1.8), 'neck_01'),
 }
-PORTEURS = {'jupe_avant_01': 'pelvis', 'jupe_arriere_01': 'pelvis', 'jupe_g_01': 'pelvis', 'jupe_d_01': 'pelvis',
-            'cape_01': 'spine_03', 'queue_01': 'pelvis', 'aile_g_01': 'spine_03', 'aile_d_01': 'spine_03',
+PORTEURS = {'queue_01': 'pelvis', 'aile_g_01': 'spine_03', 'aile_d_01': 'spine_03',
             'bras_sup_g_01': 'clavicle_l', 'bras_sup_d_01': 'clavicle_r', 'cou_long_01': 'neck_01'}
-BAS = Vector((0.0, 0.0, -1.0))
 
 
 def construire():
-    """Le squelette `OS`, un corps en anneaux elliptiques des hanches aux épaules, et deux clips : `Marche` avance la
-    cuisse gauche de 30° à l'image 10 ; `Penche` penche le dos de 20° en arrière à l'image 10, en avant à l'image 20."""
+    """Le squelette `OS`, un corps en anneaux elliptiques des hanches aux épaules, et deux clips de 0 à 20 qui tournent la
+    cuisse gauche et le dos à l'image 10."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     rig = bpy.data.objects.new('Rig', bpy.data.armatures.new('Rig'))
     bpy.context.scene.collection.objects.link(rig)
@@ -56,30 +54,20 @@ def construire():
     maillage.from_pydata(points, [], [])
     corps = bpy.data.objects.new('corps', maillage)
     bpy.context.scene.collection.objects.link(corps)
-    clips = [cle_au_milieu(rig, 'Marche', {10: {'thigh_l': Matrix.Rotation(math.radians(-30), 3, 'X')}}),
-             cle_au_milieu(rig, 'Penche', {10: {'spine_03': Matrix.Rotation(math.radians(-20), 3, 'X')},
-                                           20: {'spine_03': Matrix.Rotation(math.radians(20), 3, 'X')}})]
-    return rig, corps, clips
+    return rig, corps, [cle_au_milieu(rig, 'Marche', 'thigh_l'), cle_au_milieu(rig, 'Penche', 'spine_03')]
 
 
-def cle_au_milieu(rig, nom, poses):
-    """Un clip `nom` de 0 à 20 : au repos aux bouts, à chaque image de `poses` ses os tournés (rotation de l'armature)."""
+def cle_au_milieu(rig, nom, os_):
+    """Un clip `nom` de 0 à 20 : au repos aux bouts, l'os `os_` tourné de 30° autour de son X à l'image 10."""
     action = bpy.data.actions.new(nom)
     assign_action(rig, action)
-    for image in (0, *poses, 20):
-        for os_ in ('thigh_l', 'spine_03'):
-            b = rig.pose.bones[os_]
-            b.rotation_mode = 'QUATERNION'
-            rotation = poses.get(image, {}).get(os_)
-            b.rotation_quaternion = rotation_du_brin(b.bone.matrix_local, rotation) if rotation else (1, 0, 0, 0)
-            b.keyframe_insert('rotation_quaternion', frame=image)
+    b = rig.pose.bones[os_]
+    b.rotation_mode = 'QUATERNION'
+    for image, angle in ((0, 0.0), (10, math.radians(30)), (20, 0.0)):
+        b.rotation_quaternion = Quaternion((1.0, 0.0, 0.0), angle)
+        b.keyframe_insert('rotation_quaternion', frame=image)
     clear_animation(rig)
     return action
-
-
-def direction(rig, nom):
-    b = rig.pose.bones[nom]
-    return (b.tail - b.head).normalized()
 
 
 class Chaines(unittest.TestCase):
@@ -89,21 +77,16 @@ class Chaines(unittest.TestCase):
         cls.chaines = ajouter_chaines(bpy, cls.rig, corps)
         cuire_chaines(bpy, cls.rig, cls.clips, cls.chaines)
 
-    def poser(self, clip, image):
-        assign_action(self.rig, clip)
-        bpy.context.scene.frame_set(image)
-        self.addCleanup(clear_animation, self.rig)
-
-    def test_les_six_chaines_du_design_sous_leurs_os_porteurs(self):
-        self.assertEqual(list(self.chaines), ['jupe', 'cape', 'queue', 'ailes', 'bras_sup', 'cou_long'])
+    def test_les_chaines_d_appendice_sous_leurs_os_porteurs(self):
+        self.assertEqual(list(self.chaines), ['queue', 'ailes', 'bras_sup', 'cou_long'])
         for chaine, os_ in self.chaines.items():
-            brins = 4 if chaine == 'jupe' else 2 if chaine in ('ailes', 'bras_sup') else 1
+            brins = 2 if chaine in ('ailes', 'bras_sup') else 1
             self.assertEqual(len(os_), brins * SEGMENTS[chaine], chaine)
         os_de_la_scene = {b.name for b in self.rig.data.bones}
         self.assertTrue(all(nom in os_de_la_scene for noms in self.chaines.values() for nom in noms))
         self.assertEqual({nom: self.rig.data.bones[nom].parent.name for nom in PORTEURS}, PORTEURS)
 
-    def test_chaque_clip_porte_une_piste_de_rotation_lineaire_par_os_de_chaine(self):
+    def test_chaque_clip_porte_une_piste_de_rotation_lineaire_au_repos_par_os_de_chaine(self):
         for clip in self.clips:
             courbes = {(c.data_path, c.array_index): c for sac in sacs(clip) for c in sac.fcurves}
             for nom in (n for noms in self.chaines.values() for n in noms):
@@ -111,21 +94,7 @@ class Chaines(unittest.TestCase):
                     courbe = courbes.get((f'pose.bones["{nom}"].rotation_quaternion', i))
                     self.assertIsNotNone(courbe, f'{clip.name} : {nom}[{i}]')
                     self.assertEqual({k.interpolation for k in courbe.keyframe_points}, {'LINEAR'}, f'{clip.name} : {nom}[{i}]')
-
-    def test_le_brin_avant_de_la_jupe_suit_la_cuisse_avancee_l_arriere_reste_vertical(self):
-        self.poser(self.clips[0], 10)
-        cuisse = direction(self.rig, 'thigh_l')
-        self.assertAlmostEqual(math.degrees(cuisse.angle(BAS)), 30, places=3)
-        avant = direction(self.rig, 'jupe_avant_01')
-        self.assertAlmostEqual(avant.angle(BAS), cuisse.angle(BAS), places=4)
-        self.assertLess(avant.y, 0)
-        self.assertAlmostEqual(direction(self.rig, 'jupe_arriere_01').angle(BAS), 0, places=4)
-
-    def test_la_cape_pend_quand_le_dos_se_penche_en_arriere_et_se_couche_sur_lui_en_avant(self):
-        self.poser(self.clips[1], 10)
-        self.assertAlmostEqual(direction(self.rig, 'cape_01').angle(BAS), 0, places=4)
-        self.poser(self.clips[1], 20)
-        self.assertAlmostEqual(math.degrees(direction(self.rig, 'cape_01').angle(BAS)), 20, places=3)
+                    self.assertEqual([tuple(k.co) for k in courbe.keyframe_points], [(0.0, float(i == 0)), (20.0, float(i == 0))], f'{clip.name} : {nom}[{i}]')
 
 
 if __name__ == '__main__':

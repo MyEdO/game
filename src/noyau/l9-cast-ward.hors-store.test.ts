@@ -2,7 +2,7 @@
  * « N'écoutez point la Sorcière » (LDB 42) : « Tous les Sorts qui ciblent quelque chose ou
  * quelqu'un dans les (Bonus de Sociabilité) mètres subissent une pénalité de -20 aux Tests de
  * Langue (Magick), en plus de toute autre pénalité. » — aura `castWard` du porteur, consommée
- * au CALCUL du Test d'incantation (jetLancer('cast')/jetRelancer('cast')/jetPactiser('cast')).
+ * au CALCUL du Test d'incantation (jetLancer('incantation')/jetRelancer('incantation')/jetPactiser('incantation')).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -24,11 +24,11 @@ describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', (
     banc.setState({ party: [hero, priest] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.label === 'H')!;
     const P = b.combatants.find((c) => c.label === 'P')!;
-    const E = b.combatants.filter((c) => c.kind === 'enemy')[0];
+    const E = b.combatants.filter((c) => c.kind === 'ennemi')[0];
     // L'ennemi devient un lanceur de Sorts (Langue (Magick)).
     E.spells = ['flechette'];
     E.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 10 });
@@ -49,7 +49,7 @@ describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', (
 
   it('cible à portée de l’aura : le Test de Langue (Magick) prend −20', () => {
     const { E } = setup({ x: 10, y: 10 }); // prêtre adjacent à la cible (2 m ≤ 4 m)
-    banc.getState().jetLancer('cast');
+    banc.getState().jetLancer('incantation');
     const res = banc.getState().pendingCast!.result!;
     const base = castingValue(E as Combatant, incantationArcane());
     expect(res.target).toBe(base - 20);
@@ -60,7 +60,7 @@ describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', (
     const spell = findSpellById('flechette')!;
     const pv = previewCast(E as Combatant, spell, { missile: true, focused: false, ctx: { s: banc.getState(), target: H as Combatant } });
     const base = castingValue(E as Combatant, incantationArcane());
-    expect(pv.target).toBe(base - 20); // la cible ANNONCÉE est celle que `jetLancer('cast')` appliquera
+    expect(pv.target).toBe(base - 20); // la cible ANNONCÉE est celle que `jetLancer('incantation')` appliquera
     // …et NOMMÉE par l'entité qui a posé l'aura, avec son renvoi Codex et son PORTEUR en provenance.
     expect(pv.mods).toContainEqual({ label: (P as Combatant).activeEffects![0].label, value: -20, famille: 'jet', ref: { category: 'spells', id: 'n-ecoutez-point-la-sorciere' }, by: [{ id: P.id }] });
     // Contrôle : sans contexte de cible, l'aperçu ne peut pas connaître la protection de la victime.
@@ -69,7 +69,7 @@ describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', (
 
   it('cible hors du rayon : aucune pénalité', () => {
     const { E } = setup({ x: 2, y: 2 }); // prêtre loin de la cible
-    banc.getState().jetLancer('cast');
+    banc.getState().jetLancer('incantation');
     const res = banc.getState().pendingCast!.result!;
     const base = castingValue(E as Combatant, incantationArcane());
     expect(res.target).toBe(base);

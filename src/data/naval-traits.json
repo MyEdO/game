@@ -60,7 +60,9 @@
     "passive": [
       {
         "op": "skillDRBonus",
-        "testType": "affaler",
+        "testType": {
+          "id": "affaler"
+        },
         "bonus": 2
       }
     ],
@@ -218,7 +220,21 @@
             "value": 175
           }
         ]
-      }
+      },
+      "jours": {
+        "bands": [
+          {
+            "maxLengthM": 35,
+            "value": 16
+          },
+          {
+            "maxLengthM": null,
+            "value": 32,
+            "maison": "« un mois » (MDG 12 l.230) : les mois impériaux durent 32 ou 33 jours (EDO 12 l.64-88) ; 32 = 4 semaines de 8 jours (MDG 15 l.268)."
+          }
+        ]
+      },
+      "chantierSpecialise": true
     },
     "source": {
       "book": "mer-des-griffes",
@@ -260,7 +276,21 @@
             "value": 160
           }
         ]
-      }
+      },
+      "jours": {
+        "bands": [
+          {
+            "maxLengthM": 35,
+            "value": 16
+          },
+          {
+            "maxLengthM": null,
+            "value": 32,
+            "maison": "« un mois » (MDG 12 l.230) : les mois impériaux durent 32 ou 33 jours (EDO 12 l.64-88) ; 32 = 4 semaines de 8 jours (MDG 15 l.268)."
+          }
+        ]
+      },
+      "chantierSpecialise": true
     },
     "source": {
       "book": "mer-des-griffes",
@@ -442,6 +472,18 @@
           {
             "maxLengthM": null,
             "value": 132
+          }
+        ]
+      },
+      "jours": {
+        "bands": [
+          {
+            "maxLengthM": 35,
+            "value": 8
+          },
+          {
+            "maxLengthM": null,
+            "value": 16
           }
         ]
       }
@@ -709,7 +751,9 @@
     "passive": [
       {
         "op": "skillDRBonus",
-        "testType": "progression-poursuite",
+        "testType": {
+          "id": "progression-poursuite"
+        },
         "bonus": 1
       }
     ],

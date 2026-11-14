@@ -24,7 +24,7 @@ const seq = (...values: number[]): RNG => desEnSuite(values, { borne: true });
 
 const cible = (): Combatant =>
   (blessuresSurLeProfil({
-    id: 't', name: 'Cible', label: 'Cible', kind: 'enemy',
+    id: 't', name: 'Cible', label: 'Cible', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), conditions: [], skills: [], traumas: [], critEntriesSuffered: [], bodyShape: 'humanoide',
   })) as unknown as Combatant;
@@ -46,8 +46,8 @@ const NEUVIEME: CritDoc = {
       test: {
         kind: 'test',
         test: { difficulty: 'accessible' },
-        success: { kind: 'seq', steps: [] },
-        fail: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: 'sonne', value: 1 }], on: 'target' } },
+        reussite: { kind: 'sequence', etapes: [] },
+        echec: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'condition', id: { id: 'sonne' }, value: 1 }], on: 'target' } },
       },
       desc: 'Rangée de morsure — jamais authorée, posée en mémoire par ce test.',
       source: { book: 'livre-de-base', page: 174 },
@@ -87,7 +87,8 @@ describe('N+1 — un 9ᵉ document-table lu sans une ligne de moteur', () => {
     expect(trouve.entry.label).toBe('Entaille de morsure');
     expect(trouve.table).toBe('tete');
     expect(trouve.jeu).toBe(JEU_NEUF);
-    expect(critEntryCodexCategory(trouve.table, trouve.jeu)).toBe('criticalsTete');
+    // Aucune catégorie tant que son exposition ne la déclare pas (`niche.categories`, `schemas/defs/criticals.ts`).
+    expect(critEntryCodexCategory(trouve.table, trouve.jeu)).toBeUndefined();
   });
 
   it('la RÉSOLUTION le joue dès que son régime est déclaré — UNE déclaration, aucune branche', () => {

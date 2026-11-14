@@ -4,7 +4,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { buildScene } from './mapSpec';
 import { buildEncounters } from './monde/encounterAuthoring';
 import { crewFormationSlots } from './monde/shipPostes';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Scene } from './monde/scene';
 
 let banc: Banc;
@@ -32,11 +32,11 @@ function makeScene(): Scene {
     id: ENC_ID,
     enemies: [
       {
-        engin: { id: 'belier-ade2' }, pos: HULL_POS, facing: HEADING, side: 'ally',
+        engin: { id: 'belier-ade2' }, pos: HULL_POS, facing: HEADING, side: 'allie',
         postes: [{ trappingId: 'belier-ade2', crewIds: [IDS[1], IDS[2]] }],
       },
-      { creature: { id: 'brute' }, pos: HULL_POS, side: 'ally', ai: true }, // SANS position propre (== coque)
-      { creature: { id: 'brute' }, pos: AUTHORED_POS, side: 'ally', ai: true }, // position AUTHORÉE distincte
+      { creature: { id: 'brute' }, pos: HULL_POS, side: 'allie', ai: true }, // SANS position propre (== coque)
+      { creature: { id: 'brute' }, pos: AUTHORED_POS, side: 'allie', ai: true }, // position AUTHORÉE distincte
     ],
   }]);
   scene.entities.push(...entities);
@@ -45,7 +45,7 @@ function makeScene(): Scene {
 }
 
 function start(): void {
-  banc.setState({ party: pregenParty(idsDeTest, PREGEN.soldat) });
+  banc.setState({ party: groupeDeScenario(idsDeTest, 'soldat') });
   banc.getState().lancerLaScene(makeScene());
   banc.getState().lancerLeCombat(ENC_ID);
 }

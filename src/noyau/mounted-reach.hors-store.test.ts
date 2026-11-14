@@ -8,18 +8,18 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 import { mountUp } from './mount';
 import { attackPlan, previewAttack, resolveAttack } from './combatFlow';
-import { combatDistance } from './monde/footprint';
+import { distanceDeContact } from './monde/footprint';
 import { testScene } from '../scenes/test-fixture';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function setup() {
-  const hero = makePregens(idsDeTest)[0];
+  const hero = tousLesHerosDeScenario(idsDeTest)[0];
   hero.weapons = [{ name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }] as never; // Allonge 1
   const mount = spawnEnemy({ ref: 'cheval' }, 'mount-1', { x: 11, y: 9 });
   mount.size = 'grande'; // empreinte 2×2 → couvre (11,9)(12,9)(11,10)(12,10)
@@ -42,14 +42,14 @@ beforeEach(() => {
 describe('portée de mêlée d’un cavalier = empreinte de la monture', () => {
   it('prémisse : le cavalier est à distance 2 de la cible, la monture à 1', () => {
     const { hero, mount, foe } = setup();
-    expect(combatDistance(hero, foe)).toBe(2); // cavalier 1×1 en (11,9)
-    expect(combatDistance(mount, foe)).toBe(1); // monture 2×2 → croupe en (12,10) ↔ (13,10)
+    expect(distanceDeContact(banc.getState().scene, hero, foe)).toBe(2); // cavalier 1×1 en (11,9)
+    expect(distanceDeContact(banc.getState().scene, mount, foe)).toBe(1); // monture 2×2 → croupe en (12,10) ↔ (13,10)
   });
 
   it('attackPlan : cible adjacente à la MONTURE → attaque directe (pas Charge ni blocage)', () => {
     const { hero, foe } = setup();
     const plan = attackPlan(() => banc.getState(), hero, foe);
-    expect(plan.kind).toBe('attack');
+    expect(plan.kind).toBe('attaque');
   });
 
   it('previewAttack : la cible est À PORTÉE de mêlée pour le cavalier monté', () => {

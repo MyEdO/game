@@ -8,7 +8,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { modalOwnerOf } from './modalArbiter';
 import { seatOwns } from './sieges';
@@ -23,9 +23,9 @@ const NET0 = initialNet();
 
 /** Deux héros, l'un à l'hôte (siège 0), l'autre à l'invité (siège 1). */
 function deuxSieges(): [Combatant, Combatant] {
-  const [a, b] = makePregens(idsDeTest).slice(0, 2) as [Combatant, Combatant];
+  const [a, b] = tousLesHerosDeScenario(idsDeTest).slice(0, 2) as [Combatant, Combatant];
   banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-  banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [b.id]: 1 } } } as never);
+  banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [b.id]: 1 } } } as never);
   return [a, b];
 }
 
@@ -37,10 +37,10 @@ beforeEach(() => {
 describe('#1279 S1 — la manche héros-vs-héros appartient AUX DEUX sièges', () => {
   it('Bras de fer : une BANDE de deux rangées À JOUER, une fenêtre PARTAGÉE', () => {
     const [a, b] = deuxSieges();
-    g().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
+    g().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'heros', id: b.id } });
 
     const step = g().pendingCascade!.participants[0];
-    expect(step.kind).toBe('tavern-round');
+    expect(step.kind).toBe('taverneRound');
     expect(step.participants!.map((r) => r.id).sort()).toEqual([a.id, b.id].sort());
     const sien = step.participants!.find((r) => r.id === b.id)!;
     expect(sien.interactive, 'la rangée de l’invité est À JOUER').toBe(true);
@@ -56,7 +56,7 @@ describe('#1279 S1 — la manche héros-vs-héros appartient AUX DEUX sièges', 
 
   it('contre la SALLE (adversaire abstrait), la manche reste MONO : un seul porteur, un seul siège', () => {
     const [a] = deuxSieges();
-    g().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    g().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
 
     const step = g().pendingCascade!.participants[0];
     expect(step.participants, 'aucune bande : personne d’autre ne joue').toBeUndefined();

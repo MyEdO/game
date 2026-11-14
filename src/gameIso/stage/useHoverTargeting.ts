@@ -18,11 +18,13 @@ import { controlsCombatant } from '../../noyau/netOwnership';
 import { resolveMovement } from '../../noyau/combatFlow';
 import { hoverTargeting, tilePreviewAt } from '../../noyau/targeting';
 import type { DifficultyShown } from '../../engine/combat';
-import { courseArmee } from '../../noyau/localIntent';
+import { courseArmee, intentionLocale } from '../../noyau/localIntent';
 import { modalBlocksMapHover } from '../../state/mapHover';
 import { detenteurDuCiblage, mapTargetingActive } from '../../noyau/targetingHolder';
 import type { RoomPortal } from '../../noyau/monde/roomPortals';
 import { ciblesHorsDeVue } from '../../noyau/targetingModes';
+import { nomEnVue } from '../../noyau/visionDuGroupe';
+import { garanti } from '../../lib/garanti';
 import { marcheOuverte } from '../../noyau/marcheDuGroupe';
 
 export interface HoverAim {
@@ -34,6 +36,9 @@ export interface HoverAim {
   /** Carte de jet : nom de la cible / arme-ou-sort / compétence + valeur / palier / dégâts. */
   tip: { title: string; targetName: string; skill: string; base: number; mod: number; dmg: number | null; difficulty?: DifficultyShown } | null;
 }
+
+/** Le nom de la cible `id` sur la carte de jet, tel que le groupe la connaît (`nomEnVue`, #4017). */
+const nomDeLaCible = (s: Parameters<typeof nomEnVue>[0], id: string): string => garanti(nomEnVue(s, id), id, 'cible visée');
 
 export function useHoverTargeting(
   scene: Scene | null,
@@ -64,8 +69,8 @@ export function useHoverTargeting(
   const pendingCleave = useGame((s) => s.pendingCleave);
   const pendingDualStrike = useGame((s) => s.pendingDualStrike);
   const preemptAiming = useGame((s) => s.preemptAiming);
-  // Intention de Course du client (`localIntent`) : le verdict d'armement que le clic-sol joindra.
-  const intentionDeCourse = useGame((s) => courseArmee(() => s));
+  // Intention de Course du client (`localIntent`), celle que le clic-sol commettra.
+  const intentionDeCourse = useGame((s) => courseArmee(intentionLocale(() => s)));
 
   // Signaux de survol EFFECTIFS : le curseur clavier/manette PRIME sur la souris locale (hover) ET sur
   // le survol de frise — la souris reprend la main dès qu'elle bouge (onPointerMove → clearCursor()).
@@ -96,7 +101,7 @@ export function useHoverTargeting(
       if (!shooter?.pos) return null;
       const ht = hoverTargeting(st, shooter, occ);
       if (ht.kind !== 'ok') return null;
-      return { fromId: shooter.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: ht.targetName, skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } };
+      return { fromId: shooter.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: nomDeLaCible(st(), occ.id), skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } };
     }
     // Flux différés (bandeau TargetPrompt — Frappe Mortelle / 2ᵉ frappe / Surincantation +Cible) : le
     // réticule vient du MODE courant (targetingModes via hoverTargeting), AVANT les verrous acted/
@@ -109,7 +114,7 @@ export function useHoverTargeting(
       // enchaînement), et le survol en dit la valeur et la Difficulté. Les modes qui ne jettent rien
       // (cibles de Surincantation) laissent leurs zones à 0 — la carte s'adapte, elle n'invente pas.
       return ht.kind === 'ok'
-        ? { fromId: actor.id, toId: occ.id, line: ht.line, tip: { title: ht.title, targetName: ht.targetName, skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } }
+        ? { fromId: actor.id, toId: occ.id, line: ht.line, tip: { title: ht.title, targetName: nomDeLaCible(st(), occ.id), skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } }
         : null;
     }
     if (!myTurn) return null; // le ciblage NORMAL (ci-dessous) exige Mon Tour ; la pré-emption (ci-dessus) non
@@ -118,7 +123,7 @@ export function useHoverTargeting(
     // Le verdict est celui du MODE courant (`hoverTargeting` → `refusDAttaque` en mode attaque).
     const ht = hoverTargeting(st, activeH, occ);
     if (ht.kind !== 'ok') return null;
-    return { fromId: activeH.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: ht.targetName, skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } };
+    return { fromId: activeH.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: nomDeLaCible(st(), occ.id), skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } };
   }, [combatCursor, hover, hoverCombatantId, mode, battle, scene, myTurn, preemptAiming, mapInert, genreDuDetenteur, pendingCast, pendingCleave, pendingDualStrike]);
 
   // Combattant SOUS le focus (tuile survolée OU portrait de frise/Tab) — INDÉPENDANT du ciblage
@@ -153,16 +158,16 @@ export function useHoverTargeting(
     return occ ? null : resolveMovement(useGame.getState, effHover, { courseArmee: intentionDeCourse });
   }, [combatCursor, hover, mode, battle, myTurn, mapInert, mapTargeting, intentionDeCourse]);
 
-  const hoverMove = useMemo<{ kind: 'move' | 'run' | 'tile'; path: Pt[]; cost?: number; label: string } | null>(() => {
+  const hoverMove = useMemo<{ kind: 'deplacement' | 'course' | 'tile'; path: Pt[]; cost?: number; label: string } | null>(() => {
     if (mode !== 'battle' || !battle || battle.over || !effHover || battle.preview || !myTurn) return null;
     const tp = tilePreviewAt(useGame.getState, effHover);
     if (tp) return { kind: 'tile', path: tp.path ?? [], cost: tp.cost, label: tp.label };
-    if (hoverMovementResolution?.status !== 'ok') return null;
+    if (hoverMovementResolution?.status !== 'possible') return null;
     return {
       kind: hoverMovementResolution.kind,
       path: hoverMovementResolution.path,
       cost: hoverMovementResolution.cost,
-      label: hoverMovementResolution.kind === 'move' ? `Aller (${hoverMovementResolution.cost})` : 'Courir',
+      label: hoverMovementResolution.kind === 'deplacement' ? `Aller (${hoverMovementResolution.cost})` : 'Courir',
     };
   }, [effHover, mode, battle, myTurn, hoverMovementResolution]);
 

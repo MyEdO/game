@@ -12,7 +12,7 @@
 import type { Jeu } from './etat';
 import type { FlowKey } from './flowVerbs';
 import type { HostJet } from './slotsDeJet';
-import type { BatchParticipant, CascadeRoll, CascadeStep, PendingCastOpposition, PendingDefense, SeuilDeSauvegarde } from './pendings';
+import type { BatchParticipant, CascadeRoll, IssueOpposee, CascadeStep, PendingCastOpposition, PendingDefense, SeuilDeSauvegarde } from './pendings';
 import { fleeBackstab, fleeTouche } from './pendings';
 import type { AttackResult, RollBreakdown } from '../engine/combat';
 import type { Combatant } from '../engine/types';
@@ -27,7 +27,7 @@ import { findCrewRoleById, findSpellById, refLabel, testSkillLabel } from '../da
 import { t } from '../i18n';
 import { HORS_MODAL, MODAL_DEFS, type HorsModalDef, type ModalDef } from './modalArbiter';
 import { FENETRE_DU_JET, fenetreDuJeu } from './combatAuto';
-import { maladresseCourante, specDeEtape, tableStepDef } from './cascade';
+import { maladresseCourante, tableStepDef } from './cascade';
 import { opposedAttackerLabel } from './rollSeam';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { APPRAISE_SKILL } from './merchantFlow';
@@ -103,7 +103,7 @@ export const libelleDePuissance = (nom: string): string => `${nom} · Puissance`
 
 /** Le libellé de ligne d'une Évaluation/Détection. */
 export const libelleDEvaluation = (pa: { skillLabel?: string; mode?: keyof typeof APPRAISE_SKILL }): string =>
-  pa.skillLabel ?? refLabel('skills', APPRAISE_SKILL[pa.mode ?? 'evaluate'].skill);
+  pa.skillLabel ?? refLabel('skills', APPRAISE_SKILL[pa.mode ?? 'evaluation'].skill);
 
 /** Le libellé de ligne d'une opposition de cible à une incantation. */
 export const libelleDOppositionDeSort = (pcs: Pick<PendingCastOpposition, 'test'>): string => testSkillLabel(pcs.test);
@@ -128,14 +128,14 @@ export function libelleDuJetFige(opp: NonNullable<Parameters<typeof opposedAttac
 /** Le libellé de ligne de l'attaque FIGÉE d'une Défense : l'arme d'une attaque gratuite de créature (#1858), sinon
  *  l'Attaque. */
 export const libelleDeLAttaqueFigee = (pd: Pick<PendingDefense, 'suite' | 'weapon'>): string =>
-  (pd.suite.mode === 'machine' && pd.suite.coup.manoeuvre?.kind ? pd.weapon.label : t('jet.attack'));
+  (pd.suite.mode === 'machine' && pd.suite.coup.manoeuvre?.kind ? pd.weapon.label : t('jet.attaque'));
 
 /** La graphie du seuil d'un dé (#1508). */
 export const libelleDuSeuil = (seuil: SeuilDeSauvegarde): string =>
-  `${formatWardSave(seuil.source, seuil.indice)}${seuil.dome ? t('cf.wardFromDome') : ''}`;
+  `${formatWardSave(seuil.source, seuil.indice)}${seuil.dome ? t('cf.sauvegardeDuDome') : ''}`;
 
 /** Ce qui se tire d'un dé nu, et ses dés (« Hauteur de chute (2d10) »). */
-export const libelleDuDe = (s: CascadeStep): string => `${s.label ?? ''} (${s.de ? formatDice(specDeEtape(s.de)) : ''})`.trim();
+export const libelleDuDe = (s: CascadeStep): string => `${s.label ?? ''} (${s.de ? formatDice(s.de.spec) : ''})`.trim();
 
 /** Le total d'un dé nu, dans la lecture de l'étape : avec son unité, ou confronté à son seuil. */
 export function lectureDuTotal(s: CascadeStep, total: number): string {
@@ -172,11 +172,11 @@ function opposeBinaire(
   flux: FlowKey,
   foe: { qui: string; test: string; r: JetLu },
   acteur: { qui: string; test: string; r: JetLu },
-  issue: 'success' | 'failure' | 'tie' | null,
+  issue: IssueOpposee | null,
   revele: boolean,
 ): JetEnVue {
   const lignes = [ligne(foe.qui, foe.test, revele ? foe.r : null), ligne(acteur.qui, acteur.test, acteur.r)];
-  const oppose = revele && acteur.r && foe.r && issue ? { gagnante: issue === 'tie' ? null : issue === 'success' ? 1 : 0, drNet: drNet(foe.r, acteur.r) } : null;
+  const oppose = revele && acteur.r && foe.r && issue ? { gagnante: issue === 'egalite' ? null : issue === 'reussite' ? 1 : 0, drNet: drNet(foe.r, acteur.r) } : null;
   return vue(flux, lignes, oppose);
 }
 
@@ -212,27 +212,27 @@ function rangees<P extends { id: string; result?: unknown; refus?: unknown }>(pa
  * `null` : son pending est fermé.
  */
 const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
-  attack: (s) => s.pendingAttack && lireCoup('attack', s.pendingAttack.attackerId, s.pendingAttack.targetId, s.pendingAttack.result),
+  attaque: (s) => s.pendingAttack && lireCoup('attaque', s.pendingAttack.attackerId, s.pendingAttack.targetId, s.pendingAttack.result),
   defense: (s) => {
     const pd = s.pendingDefense;
     if (!pd) return null;
     if (pd.result) return lireCoup('defense', pd.attackerId, pd.defenderId, pd.result);
     return vue('defense', [ligne(pd.attackerId, libelleDeLAttaqueFigee(pd), jetFigeRevele(s, JET_FIGE.defense(pd)) ? pd.atk : null)]);
   },
-  cast: (s) => {
+  incantation: (s) => {
     const pc = s.pendingCast;
     if (!pc) return null;
-    const r = jetFigeRevele(s, JET_FIGE.cast(s, pc)) ? pc.result : undefined;
-    return vue('cast', [ligne(pc.casterId, libelleDIncantation(pc.spellId), r && { roll: r.roll, target: r.target, sl: r.sl })]);
+    const r = jetFigeRevele(s, JET_FIGE.incantation(s, pc)) ? pc.result : undefined;
+    return vue('incantation', [ligne(pc.casterId, libelleDIncantation(pc.spellId), r && { roll: r.roll, target: r.target, sl: r.sl })]);
   },
-  counterspell: (s) => {
+  contreSort: (s) => {
     const csp = s.pendingCounterspell;
     const pc = s.pendingCast;
-    const cast = pc && jetFigeRevele(s, JET_FIGE.cast(s, pc)) ? pc.result : undefined;
+    const cast = pc && jetFigeRevele(s, JET_FIGE.incantation(s, pc)) ? pc.result : undefined;
     if (!csp) return null;
     const lignes = rangees(csp.participants, (p) => ligne(p.id, libelleDeTest('langue-magick'), p.result?.counter));
     const tranche = cast && csp.participants.length === 1 && csp.participants[0].result;
-    return vue('counterspell', tranche ? [ligne(s.pendingCast!.casterId, libelleDIncantation(s.pendingCast!.spellId), cast), ...lignes] : lignes,
+    return vue('contreSort', tranche ? [ligne(s.pendingCast!.casterId, libelleDIncantation(s.pendingCast!.spellId), cast), ...lignes] : lignes,
       tranche ? { gagnante: tranche.dispelled ? 1 : 0, drNet: drNet(cast, tranche.counter) } : null);
   },
   opposition: (s) => {
@@ -240,11 +240,11 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
     if (!pcs) return null;
     return vue('opposition', rangees(pcs.participants, (p) => ligne(p.id, libelleDOppositionDeSort(pcs), p.result?.oppose, p.ligne.target)));
   },
-  extendedTest: (s) => {
+  testEtendu: (s) => {
     const p = s.pendingExtendedTest;
     const cur = p?.rounds[p.rounds.length - 1];
     if (!p || !cur) return null;
-    return vue('extendedTest', [ligne(p.actorId, p.skillLabel, cur.result && { ...cur.result, target: p.target }, p.target)]);
+    return vue('testEtendu', [ligne(p.actorId, p.skillLabel, cur.result && { ...cur.result, target: p.target }, p.target)]);
   },
   cascade: (s) => {
     const cur = etapeCourante(s);
@@ -254,26 +254,26 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
     const cur = etapeCourante(s);
     return cur && !cur.jet && (cur.table || cur.de) ? lireEtape(s, cur, true)[0] ?? null : null;
   },
-  fumble: (s) => {
+  maladresse: (s) => {
     const m = maladresseCourante(s.pendingCascade);
     if (!m) return null;
-    const r = m.fumble.result;
-    return vue('fumble', [{ genre: 'table', qui: m.actorId ?? null, table: libelleDeTest('oups'), jet: r ? { d100: r.roll, effectif: r.roll, ligne: r.label } : null }]);
+    const r = m.maladresse.result;
+    return vue('maladresse', [{ genre: 'table', qui: m.actorId ?? null, table: libelleDeTest('oups'), jet: r ? { d100: r.roll, effectif: r.roll, ligne: r.label } : null }]);
   },
-  cascadeBatch: (s) => {
+  cascadeEnBande: (s) => {
     const cur = etapeCourante(s);
-    return cur?.participants ? vue('cascadeBatch', lireEtape(s, cur, true).flatMap((v) => v.lignes)) : null;
+    return cur?.participants ? vue('cascadeEnBande', lireEtape(s, cur, true).flatMap((v) => v.lignes)) : null;
   },
   etalLot: (s) => s.pendingEtalLot && vue('etalLot', s.pendingEtalLot.participants.map((r) => ({
     genre: 'de', qui: null, de: r.label, jet: { naturel: r.value, total: r.value, lecture: String(r.value) },
   }))),
-  forceDoor: (s) => s.pendingForceDoor && vue('forceDoor', rangees(s.pendingForceDoor.participants, (p) => ligne(p.id, libelleDeTest('bagarre'), p.result))),
-  disengage: (s) => {
+  enfoncerLaPorte: (s) => s.pendingForceDoor && vue('enfoncerLaPorte', rangees(s.pendingForceDoor.participants, (p) => ligne(p.id, libelleDeTest('bagarre'), p.result))),
+  desengagement: (s) => {
     const pd = s.pendingDisengage;
     if (!pd || pd.phase !== 'esquive') return null;
-    return opposeBinaire('disengage', { qui: pd.foeId, test: libelleDeTest('corps-a-corps'), r: pd.atk }, { qui: pd.moverId, test: libelleDeTest('esquive'), r: pd.def }, pd.result, jetFigeRevele(s, JET_FIGE.disengage(pd)));
+    return opposeBinaire('desengagement', { qui: pd.foeId, test: libelleDeTest('corps-a-corps'), r: pd.atk }, { qui: pd.moverId, test: libelleDeTest('esquive'), r: pd.def }, pd.result, jetFigeRevele(s, JET_FIGE.desengagement(pd)));
   },
-  flee: (s) => {
+  fuite: (s) => {
     const pd = s.pendingDisengage;
     if (!pd?.fuir) return null;
     const dos = fleeBackstab(pd);
@@ -282,7 +282,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
       ...(dos ? [ligne(dos.id, libelleDeTest('dans-le-dos'), dos.result?.attackerDetail)] : []),
       ...(touche ? [ligne(touche.id, libelleDuTestNomme(touche.test), touche.jet, cibleDuLecteur(s, touche.id, (c) => ligneDuTestNomme(c, touche.test)))] : []),
     ];
-    return vue('flee', lignes);
+    return vue('fuite', lignes);
   },
   auContact: (s) => {
     const pd = s.pendingAuContact;
@@ -290,11 +290,11 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
     const cac = libelleDeTest('corps-a-corps');
     return opposeBinaire('auContact', { qui: pd.foeId, test: cac, r: pd.atk }, { qui: pd.moverId, test: cac, r: pd.def }, pd.result, jetFigeRevele(s, JET_FIGE.auContact(pd)));
   },
-  grapple: (s) => {
+  empoignade: (s) => {
     const pd = s.pendingGrapple;
     if (!pd) return null;
     const force = libelleDeTest('force');
-    return opposeBinaire('grapple', { qui: pd.foeId, test: force, r: pd.atk }, { qui: pd.actorId, test: force, r: pd.def }, pd.result, jetFigeRevele(s, JET_FIGE.grapple(pd)));
+    return opposeBinaire('empoignade', { qui: pd.foeId, test: force, r: pd.atk }, { qui: pd.actorId, test: force, r: pd.def }, pd.result, jetFigeRevele(s, JET_FIGE.empoignade(pd)));
   },
   distraire: (s) => {
     const pd = s.pendingDistraire;
@@ -302,56 +302,56 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
     return opposeBinaire('distraire', { qui: pd.foeId, test: libelleDeTest('calme'), r: pd.defRoll }, { qui: pd.moverId, test: libelleDeTest('athletisme'), r: pd.atk }, pd.result, jetFigeRevele(s, JET_FIGE.distraire(pd)));
   },
   battement: (s) => s.pendingBattement && vue('battement', [ligne(s.pendingBattement.attackerId, libelleDeTest('corps-a-corps'), s.pendingBattement.result)]),
-  maneuver: (s) => {
+  manoeuvre: (s) => {
     const pm = s.pendingManeuver;
     const a = pm && pool(s).find((c) => c.id === pm.attackerId);
-    return pm && a ? vue('maneuver', [ligne(pm.attackerId, libelleDeManoeuvre(a, pm.attaque), pm.result)]) : null;
+    return pm && a ? vue('manoeuvre', [ligne(pm.attackerId, libelleDeManoeuvre(a, pm.attaque), pm.result)]) : null;
   },
-  run: (s) => {
+  course: (s) => {
     const pr = s.pendingRun;
-    return pr && vue('run', [ligne(pr.combatantId, libelleDuTestNomme(pr.test), pr.result && { ...pr.result, sl: pr.result.dr }, cibleDuLecteur(s, pr.combatantId, (c) => ligneDuTestNomme(c, pr.test)))]);
+    return pr && vue('course', [ligne(pr.combatantId, libelleDuTestNomme(pr.test), pr.result && { ...pr.result, sl: pr.result.dr }, cibleDuLecteur(s, pr.combatantId, (c) => ligneDuTestNomme(c, pr.test)))]);
   },
-  fall: (s) => {
+  chute: (s) => {
     const p = s.pendingFall;
     if (!p) return null;
     const test = libelleDuTestNomme(p.test);
-    return vue('fall', p.participants.filter((x) => x.attempt === true).map((x) => ligne(x.id, test, x.result && { ...x.result, sl: x.result.dr }, cibleDuLecteur(s, x.id, (c) => ligneDuTestNomme(c, p.test)))));
+    return vue('chute', p.participants.filter((x) => x.attempt === true).map((x) => ligne(x.id, test, x.result && { ...x.result, sl: x.result.dr }, cibleDuLecteur(s, x.id, (c) => ligneDuTestNomme(c, p.test)))));
   },
-  reload: (s) => {
+  rechargement: (s) => {
     const p = s.pendingReload;
-    return p && vue('reload', [ligne(p.actorId, libelleDeTest('projectiles'), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
+    return p && vue('rechargement', [ligne(p.actorId, libelleDeTest('projectiles'), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
   },
-  handGate: (s) => {
+  mainEnsanglantee: (s) => {
     const p = s.pendingHandGate;
-    return p && vue('handGate', [ligne(p.attackerId, libelleDeTest('dexterite'), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
+    return p && vue('mainEnsanglantee', [ligne(p.attackerId, libelleDeTest('dexterite'), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
   },
-  recover: (s) => {
+  recuperation: (s) => {
     const sr = s.pendingStateRecovery;
     if (!sr) return null;
     const acteur = ligne(sr.actorId, sr.skillLabel, sr.roll);
-    if (!sr.opposition || !sr.roll) return vue('recover', [acteur]);
-    return vue('recover', [acteur, ligne(null, libelleDeForceAdverse(sr.opposition.label), sr.opponentRoll)],
+    if (!sr.opposition || !sr.roll) return vue('recuperation', [acteur]);
+    return vue('recuperation', [acteur, ligne(null, libelleDeForceAdverse(sr.opposition.label), sr.opponentRoll)],
       sr.opponentRoll ? { gagnante: sr.success ? 0 : 1, drNet: Math.abs(sr.netSL) } : null);
   },
-  focus: (s) => {
+  focalisation: (s) => {
     const p = s.pendingFocus;
     const r = p?.result;
-    return p && vue('focus', [ligne(p.casterId, libelleDeTest('focalisation'), r && { roll: r.roll, target: r.target, sl: r.sl ?? r.dr, success: r.success })]);
+    return p && vue('focalisation', [ligne(p.casterId, libelleDeTest('focalisation'), r && { roll: r.roll, target: r.target, sl: r.sl ?? r.dr, success: r.success })]);
   },
-  dispel: (s) => s.pendingDispel && vue('dispel', [ligne(s.pendingDispel.casterId, libelleDeTest('langue-magick'), s.pendingDispel.result)]),
-  frenzy: (s) => s.pendingFrenzy && vue('frenzy', [ligne(s.pendingFrenzy.combatantId, libelleDeTest('force-mentale'), s.pendingFrenzy.result, cibleDuLecteur(s, s.pendingFrenzy.combatantId, ligneDeFrenesie))]),
-  approach: (s) => {
+  dissipation: (s) => s.pendingDispel && vue('dissipation', [ligne(s.pendingDispel.casterId, libelleDeTest('langue-magick'), s.pendingDispel.result)]),
+  frenesie: (s) => s.pendingFrenzy && vue('frenesie', [ligne(s.pendingFrenzy.combatantId, libelleDeTest('force-mentale'), s.pendingFrenzy.result, cibleDuLecteur(s, s.pendingFrenzy.combatantId, ligneDeFrenesie))]),
+  approche: (s) => {
     const p = s.pendingApproach;
-    return p && vue('approach', [ligne(p.combatantId, libelleDuTestNomme(p.test), p.result, cibleDuLecteur(s, p.combatantId, (c) => ligneDuTestNomme(c, p.test)))]);
+    return p && vue('approche', [ligne(p.combatantId, libelleDuTestNomme(p.test), p.result, cibleDuLecteur(s, p.combatantId, (c) => ligneDuTestNomme(c, p.test)))]);
   },
-  ward: (s) => s.pendingWard && vue('ward', [ligne(s.pendingWard.attackerId, libelleDeTest('force-mentale'), s.pendingWard.result)]),
-  heal: (s) => {
+  protection: (s) => s.pendingWard && vue('protection', [ligne(s.pendingWard.attackerId, libelleDeTest('force-mentale'), s.pendingWard.result)]),
+  soins: (s) => {
     const p = s.pendingHeal;
-    return p && vue('heal', [ligne(p.healerId, libelleDeTest(p.test), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
+    return p && vue('soins', [ligne(p.healerId, libelleDeTest(p.test), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
   },
-  surgery: (s) => {
+  chirurgie: (s) => {
     const p = s.pendingSurgery;
-    return p && vue('surgery', [ligne(p.healerId, libelleDeTest('guerison'), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
+    return p && vue('chirurgie', [ligne(p.healerId, libelleDeTest('guerison'), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
   },
   corruption: (s) => {
     const p = s.pendingCorruption;
@@ -361,36 +361,36 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
     const p = s.pendingTest;
     return p && vue('test', [ligne(p.actorId, libelleDuTestDeScene(p), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: evaluateTest(p.roll, p.target).success } : null, p.target)]);
   },
-  steamSave: (s) => {
+  fuiteDeVapeur: (s) => {
     const p = s.pendingSteamSave;
-    return p && vue('steamSave', [ligne(p.actorId, libelleDeTest('initiative'), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
+    return p && vue('fuiteDeVapeur', [ligne(p.actorId, libelleDeTest('initiative'), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
   },
-  activity: (s) => {
+  activite: (s) => {
     const pa = s.pendingActivity;
     if (!pa) return null;
     const r = pa.roll != null ? { roll: pa.roll, target: pa.target, sl: pa.sl, success: pa.success } : null;
     const lignes = [ligne(pa.heroId, pa.skillLabel, r, pa.target)];
     if (pa.target2 != null && pa.skill2) lignes.push(ligne(pa.heroId, pa.skill2, pa.roll != null ? { roll: pa.roll, target: pa.target2, sl: pa.sl2 ?? 0, success: pa.success2 } : null, pa.target2));
     const ennemi = r && pa.enemyValue != null && pa.enemyRoll != null && s.massBattle ? evaluateTest(pa.enemyRoll, pa.enemyValue) : null;
-    if (!ennemi) return vue('activity', lignes);
-    lignes.push(ligne(null, libelleDePuissance(s.massBattle!.enemy.label), ennemi));
-    return vue('activity', lignes, { gagnante: pa.success ? 0 : lignes.length - 1, drNet: Math.abs(pa.enemySL ?? 0) });
+    if (!ennemi) return vue('activite', lignes);
+    lignes.push(ligne(null, libelleDePuissance(s.massBattle!.ennemi.label), ennemi));
+    return vue('activite', lignes, { gagnante: pa.success ? 0 : lignes.length - 1, drNet: Math.abs(pa.enemySL ?? 0) });
   },
-  bargain: (s) => {
+  marchandage: (s) => {
     const pb = s.pendingBargain;
     if (!pb) return null;
-    const revele = jetFigeRevele(s, JET_FIGE.bargain(pb));
+    const revele = jetFigeRevele(s, JET_FIGE.marchandage(pb));
     const lignes = [ligne(pb.playerId, libelleDeTest('marchandage'), pb.roll), ligne(null, libelleDeTest('marchandage'), revele ? pb.merchantRoll : null)];
     const o = revele && pb.roll ? pb.result : null;
-    return vue('bargain', lignes, o ? { gagnante: o.winner === 'tie' ? null : o.attackerWins ? 0 : 1, drNet: o.netSL } : null);
+    return vue('marchandage', lignes, o ? { gagnante: o.winner === 'egalite' ? null : o.attackerWins ? 0 : 1, drNet: o.netSL } : null);
   },
-  appraise: (s) => {
+  evaluation: (s) => {
     const p = s.pendingAppraise;
-    return p && vue('appraise', [ligne(p.actorId, libelleDEvaluation(p), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
+    return p && vue('evaluation', [ligne(p.actorId, libelleDEvaluation(p), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
   },
-  shanty: (s) => s.pendingShanty && vue('shanty', [ligne(s.pendingShanty.singerId, libelleDeTest('chant'), s.pendingShanty.result)]),
-  shipManeuver: (s) => s.pendingShipManeuver && vue('shipManeuver', rangees(s.pendingShipManeuver.participants, (p) => ligne(p.id, libelleDeRole(p), jete(p.result)))),
-  shipBattery: (s) => s.pendingShipBattery && vue('shipBattery', rangees(s.pendingShipBattery.participants, (p) => ligne(p.id, libelleDeRole(p), jete(p.result)))),
+  chansonDeMarin: (s) => s.pendingShanty && vue('chansonDeMarin', [ligne(s.pendingShanty.singerId, libelleDeTest('chant'), s.pendingShanty.result)]),
+  manoeuvreDuNavire: (s) => s.pendingShipManeuver && vue('manoeuvreDuNavire', rangees(s.pendingShipManeuver.participants, (p) => ligne(p.id, libelleDeRole(p), jete(p.result)))),
+  tirDeBatterie: (s) => s.pendingShipBattery && vue('tirDeBatterie', rangees(s.pendingShipBattery.participants, (p) => ligne(p.id, libelleDeRole(p), jete(p.result)))),
 };
 
 /** Les flux qu'une étape-JET de cascade héberge, dans l'ordre de sa fenêtre : le sien, puis ceux des fenêtres qu'elle
@@ -413,7 +413,7 @@ function ligneDeBande(s: Jeu, part: BatchParticipant): LigneDeJet {
 
 /** Le jet FIGÉ d'une étape opposée (`meta.opposed`) face à une réponse, révélé selon le calendrier (`jetFigeRevele`). */
 function opposeDEtape(s: Jeu, step: CascadeStep, reponse: LigneDeJet, r: CascadeRoll | null): JetEnVue {
-  const flux = step.participants ? 'cascadeBatch' : 'cascade';
+  const flux = step.participants ? 'cascadeEnBande' : 'cascade';
   const opp = step.meta?.opposed;
   if (!opp) return vue(flux, [reponse]);
   const revele = jetFigeRevele(s, JET_FIGE.cascade(step));
@@ -429,7 +429,7 @@ function opposeDEtape(s: Jeu, step: CascadeStep, reponse: LigneDeJet, r: Cascade
 function lireEtape(s: Jeu, step: CascadeStep, courante: boolean): JetEnVue[] {
   if (step.participants) {
     if (courante && step.meta?.opposed) return step.participants.filter((p) => p.refus == null).map((p) => opposeDEtape(s, step, ligneDeBande(s, p), jete(p.result)));
-    return [vue('cascadeBatch', rangees(step.participants, (p) => ligneDeBande(s, p)))];
+    return [vue('cascadeEnBande', rangees(step.participants, (p) => ligneDeBande(s, p)))];
   }
   if (step.refus != null) return [];
   if (step.target != null) {

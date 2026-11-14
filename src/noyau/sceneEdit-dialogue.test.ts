@@ -16,11 +16,11 @@ const dialogue = (): Dialogue => ({
     { id: 'n3', desc: 'trois', choices: [] },
   ],
 });
-const ouvrir = (id: string) => ({ kind: 'do' as const, effect: { type: 'startDialogue' as const, dialogue: id } });
+const ouvrir = (id: string) => ({ kind: 'effet' as const, effet: { type: 'startDialogue' as const, dialogue: { id } } });
 const scene = (): Scene => ({
   ...emptyScene('scene-test', 8, 8),
   entities: [{ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, label: 'Aubergiste', dialogueId: { id: 'd1' } } as SceneEntity],
-  triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'seq', steps: [ouvrir('d1')] } }],
+  triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'sequence', etapes: [ouvrir('d1')] } }],
   dialogues: [dialogue(), { id: 'd2', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'autre', choices: [{ id: 'choix-1', label: 'autre', flow: ouvrir('d1') }] }] }],
 });
 const fautesDeDialogue = (s: Scene) => validateScene([s]).filter((w) => w.level === 'error' && /dialogue/i.test(w.message)).map((w) => w.message);
@@ -31,7 +31,7 @@ describe('renameDialogue', () => {
     const s = renameDialogue(scene(), 'd1', ' d-auberge ');
     expect(s.dialogues.map((d) => d.id)).toEqual(['d-auberge', 'd2']);
     expect(s.entities[0].dialogueId).toEqual({ id: 'd-auberge' });
-    expect(s.triggers[0].flow).toEqual({ kind: 'seq', steps: [ouvrir('d-auberge')] });
+    expect(s.triggers[0].flow).toEqual({ kind: 'sequence', etapes: [ouvrir('d-auberge')] });
     expect(s.dialogues[1].nodes[0].choices[0].flow).toEqual(ouvrir('d-auberge'));
     expect(fautesDeDialogue(s)).toEqual([]);
   });

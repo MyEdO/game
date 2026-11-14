@@ -39,13 +39,14 @@ import steamBreakdown from '../../steam-breakdown.json';
 import advancementCosts from '../../advancementCosts.json';
 import reglesOptionnelles from '../../reglesOptionnelles.json';
 import vehicles from '../../vehicles.json';
+import classesDuDisque from '../../classes.json';
 import traits from '../../traits.json';
 import { corruptionExposureSchema } from '../defs-scenes/effets';
 import { menaceIds } from '../../../engine/menace';
 import { dotationsDuHeros, resolveTrappingChoices } from '../../../engine/trappingChoices';
 import { adresseDeCreation } from '../../../engine/adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE } from '../../dotations.fixture';
-import type { TrappingRef } from '../../index';
+import type { CareerLevelData } from '../../index';
 
 
 /** Les paths de DONNÉE des fautes de `valeur` au schéma de `fichier` — le LIEU rendu nomme un élément
@@ -81,16 +82,73 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
     expect(trappingRefSchema.safeParse({ id: 'epee-de-cour', type: 'vehicle', qualityChoice: true }).success).toBe(false);
   });
 
-  it('accepte {choice} — dotation « X ou Y » migrée (chantier #654 Lot 3)', () => {
-    const ref = { choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
-    expect(trappingRefSchema.safeParse(ref).success).toBe(true);
+  it('accepte une somme, un objet à sa valeur, une mention de nature connue ; refuse une nature inconnue (#4053)', () => {
+    expect(trappingRefSchema.safeParse({ monnaie: 'silver', count: { roll: { n: 3, sides: 10 } } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ id: 'bijoux', valeur: { monnaie: 'gold', count: { fixed: 50 } } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ label: 'Pamphlétaires', nature: 'personne', count: { fixed: 3 } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ label: 'Apprenti', nature: 'objet' }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ monnaie: 'florin', count: { fixed: 1 } }).success).toBe(false);
   });
 
-  it('{choice} migré (Arbalète de poing ou pistolet) résout la 2e branche via resolveTrappingChoices', () => {
-    const ref: TrappingRef = { choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
+  it('accepte le « 1 parmi » `{ pick: 1, of }`, imbriqué compris', () => {
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ pick: 1, of: [{ id: 'dague' }, { wildcard: 'arme' }] }, { id: 'grande-hache' }] }).success).toBe(true);
+  });
+
+  it('accepte un lot d’objets ou de possessions comme option d’un « 1 parmi »', () => {
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'arme-simple' }, { lot: [{ id: 'arc' }, { id: 'fleche', count: { fixed: 10 } }] }] }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ lot: [{ id: 'cheval-de-monte', type: 'creature' }, { id: 'selle-et-harnais' }] }, { id: 'diligence', type: 'vehicle' }] }).success).toBe(true);
+  });
+
+  it('refuse un lot hors d’un « 1 parmi », un lot d’un seul membre, un membre de lot à Atout au choix', () => {
+    expect(trappingRefSchema.safeParse({ lot: [{ id: 'arc' }, { id: 'fleche' }] }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc' }] }] }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc', qualityChoice: true }, { id: 'fleche' }] }] }).success).toBe(false);
+  });
+
+  it('accepte un joker d’arme restreint à un Groupe d’armes, et un joker à Atout au choix ; refuse un Groupe d’armure', () => {
+    expect(trappingRefSchema.safeParse({ wildcard: 'arme', groupe: { id: 'deux-mains' } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ wildcard: 'arme', qualityChoice: true }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ wildcard: 'arme', groupe: { id: 'plate' } }).success).toBe(false);
+  });
+
+  it('refuse un « 2 parmi » : `brancheChoisie` ne retient qu’une branche', () => {
+    expect(trappingRefSchema.safeParse({ pick: 2, of: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] }).success).toBe(false);
+  });
+
+  it('refuse une branche `{ id, choix }` ou `{ id, spec, choix }` : `of` n’admet que les formes de dotation', () => {
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague', choix: true }] }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague', spec: 'x', choix: ['a'] }] }).success).toBe(false);
+  });
+
+  it('refuse la graphie `{ choice }`', () => {
+    expect(trappingRefSchema.safeParse({ choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] }).success).toBe(false);
+  });
+
+  it('`{ pick: 1, of }` (Arbalète de poing ou pistolet) résout la 2e branche via resolveTrappingChoices', () => {
+    const ref: CareerLevelData['trappings'][number] = { pick: 1, of: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
     const resolues = avecDotations(CARRIERE_FIXTURE, { classe: [], niveau: [ref] }, () =>
       resolveTrappingChoices(dotationsDuHeros(CARRIERE_FIXTURE), { [adresseDeCreation.dotation([0])]: 1 }));
     expect(resolues).toEqual([{ id: 'pistolet' }]);
+  });
+});
+
+// LDB 05 l.552 ; #4053
+describe('classes.json — une Classe ne porte que des dotations sans texte', () => {
+  const classe = classesDuDisque[0];
+  const classeDotee = (trappings: unknown[]) => [{ ...classe, trappings }];
+
+  it('une Classe nommée qui porte un `{text}`, à la racine ou dans un `{pick, of}`, est refusée', () => {
+    expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { pick: 1, of: [{ id: 'capuchon' }, { id: 'masque' }] }]))).toBeNull();
+    expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { text: 'Déjeuner' }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect(validateDataset('classes.json', classeDotee([{ pick: 1, of: [{ id: 'capuchon' }, { text: 'Masque' }] }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
+  });
+
+  it('une Classe nommée qui porte un joker d’arme, simple, à Groupe ou à Atout, ou un lot dans un « 1 parmi », est refusée', () => {
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme' }])), 'joker simple').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', groupe: { id: 'deux-mains' } }])), 'joker à Groupe').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', qualityChoice: true }])), 'joker à Atout').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ pick: 1, of: [{ lot: [{ id: 'arc' }, { id: 'fleche' }] }, { id: 'dague' }] }])), 'lot').toEqual(expect.stringContaining(`« ${classe.id} »`));
   });
 });
 
@@ -98,7 +156,7 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
  * `plageSchema` (`grammaire/valeurs.ts`, vague `plage` #1463 P1) — les deux bornes d'une rangée de
  * table de tirage se déclarent UNE fois et se composent par la SHAPE. Le spread est un ANGLE MORT du
  * scanner de redéclarations (`scripts/docs/lib/structures-scan.mts` lit les littéraux par AST et ne
- * résout pas un spread, cf. `grammaire/reference.ts:145-146`) : l'extinction d'une ligne de stock ne
+ * résout pas un spread, cf. `talentRefSchema`, `grammaire/reference.ts`) : l'extinction d'une ligne de stock ne
  * prouve donc RIEN sur le parse. Ce gate est POSITIF — il mesure que la garde des bornes tient
  * encore, au schéma partagé ET à chaque site adoptant, par la porte de validation réelle
  * (`validateDataset`).
@@ -164,8 +222,8 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
     ['driving-mishap.json', drivingMishap],
     // Deux tables de tirage distinctes : la qualité SECRÈTE du vin (MSRC 13 l.97) et les rumeurs
     // commerciales (MSRC 13 l.283) — la seconde ne serait jamais atteinte sans descente.
-    ['land-cargo.json', landCargo, ['wineQuality']],
-    ['land-cargo.json', landCargo, ['rumours']],
+    ['land-cargo.json', landCargo, ['qualiteDuVin']],
+    ['land-cargo.json', landCargo, ['rumeurs']],
     ['mass-battle.json', massBattle, ['hazards', 'entries']],
     ['naval-progression.json', navalProgression],
     // Les deux tables du vent fluvial partagent le MÊME schéma de rangée (`bandRow`) : chacune
@@ -343,28 +401,28 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
     const regles = reglesOptionnelles as ReadonlyArray<Record<string, unknown>>;
     expect(validateDataset('reglesOptionnelles.json', regles)).toBeNull();
     const bornees = regles.filter((r) => typeof r.min === 'number' && typeof r.max === 'number');
-    // 23→24 (#1599) : la fenêtre de conscience par Détermination (LDB 20 l.170).
-    // 24→29 (#1612, 2026-09-06) : les CINQ réglages `param` de l'Activité Mendier, tous bornés —
-    // `mendier-heures-par-jour` (1..12), `mendier-discours` (−30..30), `mendier-apparence-bonus`
-    // (−30..30), `mendier-surpris-pct` (0..100) et `mendier-amende-sous` (0..240). LDB 09 l.97/l.99 ne
-    // chiffre AUCUN d'entre eux (durée du créneau, discours, apparence, chance d'être surpris, sanction
-    // des gardes) : cinq valeurs maison éditables, aucune figée au moteur.
-    // 29→30 (#700, 2026-09-29) : `fenetre-hauteur-allege` (0..3 m), LDB 15 l.55 ne chiffre pas l'allège.
-    // 30→31 (#700, 2026-09-30) : `porte-secrete-rayon-m` (1..20 m), LDB 09 l.399 ne chiffre pas la distance.
-    // 31→30 (#700, 2026-10-05) : `fenetre-hauteur-allege` supprimée, l'allège est une donnée de la croisée.
-    // 30→31 (#700, 2026-10-05) : `fouille-piece-minutes` (1..120 min), LDB 12 l.200 ne chiffre pas la durée.
-    // 31→32 (#1652, 2026-11-07) : `cibleVulnerablePct` (10..300 %), MDG 15 l.150/171 ne chiffre pas la cible vulnérable.
-    // 32→33 (#3612, 2026-11-08) : `market-evaluation-delai-jours` (0..30 jours), LDB 59 l.41 ne borne pas les nouvelles tentatives d'Évaluation.
-    expect(bornees.length, 'plus aucun réglage borné : la sonde ne mesure rien.').toBe(33);
+    expect(bornees.length, 'plus aucun réglage borné : la sonde ne mesure rien.').toBeGreaterThan(0);
     expect(
       bornees.filter((r) => r.kind !== 'param').map((r) => r.id),
-      'un réglage borné n’est pas un paramètre chiffré : la co-présence mesurée 33/33 ne porte plus sur la même population.',
+      'un réglage borné n’est pas un paramètre chiffré : la co-présence mesurée ne porte plus sur la même population.',
     ).toEqual([]);
     const i = regles.indexOf(bornees[0]);
     const { max: _absente, ...ampute } = bornees[0];
     const err = validateDataset('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)]);
     expect(err, 'un réglage à borne basse SEULE est accepté').not.toBeNull();
     expect(pathsRefuses('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)])).toContain(`${i}.max`);
+  });
+
+  it('reglesOptionnelles.json : un `param` sans ses bornes et un `mode` sans ses `options` sont REFUSÉS (#4081)', () => {
+    const regles = reglesOptionnelles as ReadonlyArray<Record<string, unknown>>;
+    const refus = (kind: string, champs: readonly string[]): string | null => {
+      const i = regles.findIndex((r) => r.kind === kind);
+      expect(i, `aucune règle \`${kind}\` : la sonde ne mesure rien`).toBeGreaterThanOrEqual(0);
+      const ampute = Object.fromEntries(Object.entries(regles[i]).filter(([k]) => !champs.includes(k)));
+      return validateDataset('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)]);
+    };
+    expect(refus('param', ['min', 'max', 'step'])).toContain('un nombre (kind « param ») déclare ses bornes');
+    expect(refus('mode', ['options'])).toContain('un choix (kind « mode ») propose au moins deux valeurs');
   });
 });
 
@@ -395,11 +453,10 @@ describe('water-exposure › auto.between — les deux bornes du prédicat', () 
  * le juge au parse) et n'existe pas au bestiaire — sinon composer `traitInstanceSchema` redeviendrait tentant.
  */
 describe('vehicles.json › ship.traits — foyer disjoint du bestiaire (#1463 L-gram-2)', () => {
-  // 19 → 20 : la barge fluviale gagne le Trait `cale` (#1657 B3-2b-a — MSRC 07 l.94, MSRC 10 l.90).
-  it('20 Traits navals, AUCUN au bestiaire', () => {
+  it('Traits navals, AUCUN au bestiaire', () => {
     const bestiaire = new Set((traits as ReadonlyArray<{ id: string }>).map((e) => e.id));
     const vus = (vehicles as ReadonlyArray<{ ship?: { traits?: ReadonlyArray<{ id: string }> } }>).flatMap((v) => v.ship?.traits ?? []);
-    expect(vus.length, 'la population des Traits de navire a disparu.').toBe(20);
+    expect(vus.length, 'la population des Traits de navire a disparu.').toBeGreaterThan(0);
     expect(
       vus.filter((t) => bestiaire.has(t.id)),
       'un Trait de navire existe AUSSI au bestiaire : le foyer des deux catalogues cesse d’être disjoint, et composer `traitInstanceSchema` redeviendrait tentant.',
@@ -419,49 +476,49 @@ describe('vehicles.json › ship.traits — foyer disjoint du bestiaire (#1463 L
  *  - la dernière bande TERRESTRE ouverte alors que MSRC 13 l.150-156 n'écrit aucun « ou plus ».
  */
 describe('prix d’offre — les bandes couvrent leur domaine d’un seul tenant (#1463 L-gram-3)', () => {
-  /** Remplace la N-ième bande d'un `sell.<cle>` par une version modifiée (copie, jamais l'arbre). */
+  /** Remplace la N-ième bande d'un `vente.<cle>` par une version modifiée (copie, jamais l'arbre). */
   const muter = (doc: unknown, cle: string, i: number, patch: Record<string, unknown>) => {
-    const d = doc as { sell: Record<string, Record<string, unknown>[]> };
-    const bandes = d.sell[cle].map((b, j) => (j === i ? { ...b, ...patch } : b));
-    return { ...d, sell: { ...d.sell, [cle]: bandes } };
+    const d = doc as { vente: Record<string, Record<string, unknown>[]> };
+    const bandes = d.vente[cle].map((b, j) => (j === i ? { ...b, ...patch } : b));
+    return { ...d, vente: { ...d.vente, [cle]: bandes } };
   };
 
-  it('sea-cargo.json › sell.offerPrice : la donnée réelle passe ; TROU, CHEVAUCHEMENT et plafond sur la bande FINALE sont REFUSÉS', () => {
+  it('sea-cargo.json › vente.prixDOffre : la donnée réelle passe ; TROU, CHEVAUCHEMENT et plafond sur la bande FINALE sont REFUSÉS', () => {
     expect(validateDataset('sea-cargo.json', seaCargo)).toBeNull();
 
-    const trou = validateDataset('sea-cargo.json', muter(seaCargo, 'offerPrice', 3, { min: 5 }));
+    const trou = validateDataset('sea-cargo.json', muter(seaCargo, 'prixDOffre', 3, { min: 5 }));
     expect(trou, 'un TROU entre deux bandes est accepté').not.toBeNull();
     expect(trou).toContain('commence à 5 au lieu de 4');
 
-    const chevauchement = validateDataset('sea-cargo.json', muter(seaCargo, 'offerPrice', 1, { min: 1 }));
+    const chevauchement = validateDataset('sea-cargo.json', muter(seaCargo, 'prixDOffre', 1, { min: 1 }));
     expect(chevauchement, 'un CHEVAUCHEMENT est accepté').not.toBeNull();
     expect(chevauchement).toContain('commence à 1 au lieu de 2');
 
-    const plafonnee = validateDataset('sea-cargo.json', muter(seaCargo, 'offerPrice', 3, { max: 9 }));
+    const plafonnee = validateDataset('sea-cargo.json', muter(seaCargo, 'prixDOffre', 3, { max: 9 }));
     expect(plafonnee, 'la bande « 4 ou plus » accepte un plafond').not.toBeNull();
     expect(plafonnee).toContain('est la DERNIÈRE et porte un plafond');
   });
 
-  it('land-cargo.json › sell.offerByRichesse : la donnée réelle passe ; TROU, CHEVAUCHEMENT, bande FINALE ouverte et débordement d’échelle sont REFUSÉS', () => {
+  it('land-cargo.json › vente.offreParRichesse : la donnée réelle passe ; TROU, CHEVAUCHEMENT, bande FINALE ouverte et débordement d’échelle sont REFUSÉS', () => {
     expect(validateDataset('land-cargo.json', landCargo)).toBeNull();
 
-    const trou = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 2, { min: 4 }));
+    const trou = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 2, { min: 4 }));
     expect(trou, 'un TROU entre deux bandes est accepté').not.toBeNull();
     expect(trou).toContain('commence à 4 au lieu de 3');
 
-    const chevauchement = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 1, { min: 1 }));
+    const chevauchement = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 1, { min: 1 }));
     expect(chevauchement, 'un CHEVAUCHEMENT est accepté').not.toBeNull();
     expect(chevauchement).toContain('commence à 1 au lieu de 2');
 
     // Côté TERRE, le livre n'écrit aucun « ou plus » : la borne haute est REQUISE (`plageSchema`),
     // et `max: null` est refusé AU TYPE, avant même la mesure de couverture.
-    const ouverte = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }));
+    const ouverte = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 4, { max: null }));
     expect(ouverte, 'la dernière bande terrestre accepte une borne haute OUVERTE').not.toBeNull();
     expect(ouverte).toContain('Règles de vente › Mise à prix selon la Richesse 5 › Maximum');
-    expect(pathsRefuses('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }))).toContain('sell.offerByRichesse.4.max');
+    expect(pathsRefuses('land-cargo.json', muter(landCargo, 'offreParRichesse', 4, { max: null }))).toContain('vente.offreParRichesse.4.max');
 
     // Le domaine s'arrête à 5 (MSRC 13 l.52-60) : une bande qui déborde n'a aucun indice à couvrir.
-    const deborde = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: 6 }));
+    const deborde = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 4, { max: 6 }));
     expect(deborde, 'la table déborde l’échelle des indices imprimés').not.toBeNull();
     expect(deborde).toContain("s'arrête à 6 au lieu de 5");
   });

@@ -20,8 +20,8 @@ const heros = (label: string, seed: number) => {
   h.fortune = 2; h.resilience = 2; h.characteristics.force = 45;
   return h;
 };
-const apres = (flag: string): Flow => ({ kind: 'do', effect: { type: 'setFlag', flag } });
-const puis = (effect: Effect, flag: string): Flow => ({ kind: 'seq', steps: [{ kind: 'do', effect }, apres(flag)] });
+const apres = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
+const puis = (effect: Effect, flag: string): Flow => ({ kind: 'sequence', etapes: [{ kind: 'effet', effet: effect }, apres(flag)] });
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [heros('Vivant', 1), heros('Autre', 2)], flags: {}, etats: {},
@@ -39,9 +39,9 @@ describe('designerHeros — la désignation porte la suite du Flow', () => {
   });
 
   it('`runFlow` : la suite au-delà du LOT (un `if` qui suit) attend elle aussi le choix', () => {
-    runFlow(get, banc.setState, { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } },
-      { kind: 'if', cond: { kind: 'etat', etat: 'sosie' }, then: apres('sosie-designe'), else: apres('sosie-absent') },
+    runFlow(get, banc.setState, { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'designerHeros', etat: 'sosie' } },
+      { kind: 'si', condition: { kind: 'etat', etat: 'sosie' }, alors: apres('sosie-designe'), sinon: apres('sosie-absent') },
     ] });
     expect(get().flags['sosie-absent'], 'la branche ne s’évalue pas avant la désignation').toBeUndefined();
     get().fenetreChoisir('designationHeros', 'heros', 'h-1');
@@ -57,7 +57,7 @@ describe('designerHeros — la désignation porte la suite du Flow', () => {
   });
 
   it('l’invite de l’Effet est portée par la désignation', () => {
-    runFlow(get, banc.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie', invite: 'Lequel ?' } });
+    runFlow(get, banc.setState, { kind: 'effet', effet: { type: 'designerHeros', etat: 'sosie', invite: 'Lequel ?' } });
     expect(get().pendingDesignationHeros?.invite).toBe('Lequel ?');
   });
 
@@ -81,7 +81,7 @@ describe('designerHeros — la désignation porte la suite du Flow', () => {
 });
 
 describe('extendedTest / forceDoor — même patron, même suite', () => {
-  const crochetage: Effect = { type: 'extendedTest', characteristic: 'force', difficulty: 'facile', label: 'Enfoncer', targetDR: 3, flag: 'cede' };
+  const crochetage: Effect = { type: 'extendedTest', characteristic: 'force', difficulty: 'facile', label: 'Enfoncer', drCible: 3, flag: 'cede' };
   const porte: Effect = { type: 'forceDoor', label: 'Porte', doorBE: 0, doorB: 6, flag: 'porte-ouverte' };
 
   it('Test étendu atteint : la suite se joue après l’issue', () => {
@@ -91,8 +91,8 @@ describe('extendedTest / forceDoor — même patron, même suite', () => {
     let garde = 0;
     while (get().pendingExtendedTest && garde++ < 60) {
       const p = get().pendingExtendedTest!;
-      get().jetLancer('extendedTest', p.rounds[p.rounds.length - 1].id);
-      get().jetValider('extendedTest');
+      get().jetLancer('testEtendu', p.rounds[p.rounds.length - 1].id);
+      get().jetValider('testEtendu');
     }
     expect(get().flags.cede).toBe(true);
     expect(get().flags['apres-test']).toBe(true);
@@ -100,7 +100,7 @@ describe('extendedTest / forceDoor — même patron, même suite', () => {
 
   it('Test étendu abandonné : la suite se joue aussi', () => {
     runFlow(get, banc.setState, puis(crochetage, 'apres-test'));
-    get().jetAnnuler('extendedTest');
+    get().jetAnnuler('testEtendu');
     expect(get().flags.cede).toBeUndefined();
     expect(get().flags['apres-test']).toBe(true);
   });
@@ -111,8 +111,8 @@ describe('extendedTest / forceDoor — même patron, même suite', () => {
     expect(get().flags['apres-porte']).toBeUndefined();
     let garde = 0;
     while (get().pendingForceDoor && garde++ < 60) {
-      for (const part of get().pendingForceDoor!.participants) get().jetLancer('forceDoor', part.id);
-      get().jetValider('forceDoor');
+      for (const part of get().pendingForceDoor!.participants) get().jetLancer('enfoncerLaPorte', part.id);
+      get().jetValider('enfoncerLaPorte');
     }
     expect(get().flags['porte-ouverte']).toBe(true);
     expect(get().flags['apres-porte']).toBe(true);
@@ -120,7 +120,7 @@ describe('extendedTest / forceDoor — même patron, même suite', () => {
 
   it('porte abandonnée : la suite se joue aussi', () => {
     runFlow(get, banc.setState, puis(porte, 'apres-porte'));
-    get().jetAnnuler('forceDoor');
+    get().jetAnnuler('enfoncerLaPorte');
     expect(get().flags['apres-porte']).toBe(true);
   });
 });

@@ -6,3 +6,11 @@
 /kit/*.glb
 /sons/*.ogg
 /sons/*.mp3
+# Ce que l'éditeur en dérive quand il ouvre le projet en place (`npm run godot:ouvrir`, #3945).
+/modeles/*.glb.import
+/textures/*.import
+/kit/*.png
+/kit/*.import
+/sons/*.import
+# Le catalogue des dessins que `npm run godot:ouvrir` dépose dans le projet en place (`deposerLesDessins`, #3935).
+/art/dessins.json

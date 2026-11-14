@@ -5,6 +5,7 @@
  * survol n'affiche que le faisable) — le refus se dit au clic. INTERACTION → overlay du stage, hors builders.
  */
 import type { BattleState } from '../../noyau/etat';
+import type { Scene } from '../../noyau/monde/scene';
 import type { PendingAttack, PendingDefense, PendingHeal, PendingCast } from '../../noyau/pendings';
 import { Combatant } from '../../engine/types';
 import { attackWeaponOf, victimeDuCoup } from '../../noyau/combatFlow';
@@ -16,7 +17,8 @@ import { difficultyShownText } from '../../noyau/difficultyText';
 import { t as message } from '../../i18n';
 import type { HoverAim } from './useHoverTargeting';
 
-export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pendingDefense, pendingHeal, pendingCast }: {
+export function AimOverlay({ scene, battle, hoverAim, anchor, dims, pendingAttack, pendingDefense, pendingHeal, pendingCast }: {
+  scene: Scene | null;
   battle: BattleState;
   hoverAim: HoverAim | null;
   anchor: (c: Combatant) => { cx: number; cy: number };
@@ -31,12 +33,12 @@ export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pend
     const a = byId(pendingAttack.attackerId), cible = byId(pendingAttack.targetId);
     const t = cible && byId(victimeDuCoup(battle, cible, pendingAttack).id);
     if (!a || !cible || !t) return null;
-    const ranged = attackWeaponOf(battle, a, cible, pendingAttack).type === 'ranged'; // l'arme du coup (#1026)
-    return <TargetReticle from={anchor(a)} to={anchor(t)} line={ranged ? 'dashed' : 'solid'} lineColor={a.kind === 'hero' ? GOLD_TINT : ENEMY_CUE_TINT} />;
+    const ranged = attackWeaponOf(scene, battle, a, cible, pendingAttack).type === 'distance'; // l'arme du coup (#1026)
+    return <TargetReticle from={anchor(a)} to={anchor(t)} line={ranged ? 'dashed' : 'solid'} lineColor={a.kind === 'heros' ? GOLD_TINT : ENEMY_CUE_TINT} />;
   }
   if (pendingDefense) {
     const a = byId(pendingDefense.attackerId), t = byId(pendingDefense.defenderId);
-    return a && t ? <TargetReticle from={anchor(a)} to={anchor(t)} line={pendingDefense.weapon.type === 'ranged' ? 'dashed' : 'solid'} lineColor={ENEMY_CUE_TINT} /> : null;
+    return a && t ? <TargetReticle from={anchor(a)} to={anchor(t)} line={pendingDefense.weapon.type === 'distance' ? 'dashed' : 'solid'} lineColor={ENEMY_CUE_TINT} /> : null;
   }
   if (pendingCast && !pendingCast.pickingTargets) {
     const a = byId(pendingCast.casterId);
@@ -47,7 +49,7 @@ export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pend
       : t ? anchor(t) : null;
     if (!a || !to) return null;
     const self = !pendingCast.zone && pendingCast.casterId === pendingCast.targetId; // sort sur SOI : réticule seul
-    return <TargetReticle from={self ? null : anchor(a)} to={to} line={self ? null : 'dashed'} lineColor={a.kind === 'hero' ? GOLD_TINT : ENEMY_CUE_TINT} />;
+    return <TargetReticle from={self ? null : anchor(a)} to={to} line={self ? null : 'dashed'} lineColor={a.kind === 'heros' ? GOLD_TINT : ENEMY_CUE_TINT} />;
   }
   if (pendingHeal) {
     const t = byId(pendingHeal.targetId);

@@ -10,7 +10,7 @@ import { CODEX, type CodexRow } from './registry';
 import { causePersistante } from './humanize';
 
 function rangee() {
-  const cat = CODEX.find((c) => c.key === 'miscastWrath')!;
+  const cat = CODEX.find((c) => c.key === 'colereDesDieux')!;
   const item = cat.items.find((i) => i.id === 'colere-purifier-la-chair')!;
   const rows: CodexRow[] = (item.sections ?? []).flatMap((s) => s.rows);
   return { item, rows };

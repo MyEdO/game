@@ -19,9 +19,25 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { inferFields } from '../../noyau/codex/editFields';
-import { DescRefField, PHRASE_LIGNE_AMBIGUE_TABLE, PHRASE_REFUS, type ChargeursSource } from './DescRefField';
+import { DescRefField, type ChargeursSource } from './DescRefField';
+import { PHRASE_LIGNE_AMBIGUE_TABLE, PHRASE_REFUS } from '../../noyau/edition/adresseDeProse';
 import { defautsDeNoms, nomAccessible } from '../nomsAccessibles.testkit';
-import { MAX_FRAGMENTS, empreinteDe, fragmentBlocs, fragmentCellule, intervalleDe, parseChapitre, prefixesDeChapitres, resoudreAdresse, estErreur, tablesOf, type ChoixDeCellule, type DescRef, type FragmentBlocs, type FragmentCellule } from '../../data/source/decoupe';
+import {
+  MAX_FRAGMENTS,
+  empreinteDe,
+  fragmentBlocs,
+  fragmentCellule,
+  intervalleDe,
+  parseChapitre,
+  prefixesDeChapitres,
+  resoudreAdresse,
+  estErreur,
+  tablesOf,
+  type ChoixDeCellule,
+  type DescRef,
+  type FragmentBlocs,
+  type FragmentCellule,
+} from '../../data/source/decoupe';
 
 /** Ce que le chargeur injecté sert, et ce qu'on lui a demandé — réglable par cas. */
 const etat = { manifeste: true, appels: [] as string[] };

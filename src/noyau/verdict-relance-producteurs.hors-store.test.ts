@@ -16,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *  naissance. AA 07 l.25 ; LDB 18 l.53, l.55 ; LDB 14 l.136 ; LDB 10 l.1037 ; MDG 14 l.128. */
 
 const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
-const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, qualities: [], range: 50 } as unknown as Weapon;
+const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, qualities: [], range: 50 } as unknown as Weapon;
 /** Un jet réussi, sans double. */
 const jet = { label: 'Test', roll: 37, target: 90, success: true, sl: 5, isDouble: false } as never;
 
@@ -26,11 +26,11 @@ function combat(current: number): { H: Combatant; cible: Combatant } {
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const cible = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const cible = b.combatants.find((c) => c.kind === 'ennemi')!;
   cible.wounds = blessuresDeBase(20, current, cible);
   cible.important = true;
   return { H, cible };
@@ -43,7 +43,7 @@ const producteurs: readonly (readonly [string, (H: Combatant, cible: Combatant) 
 ];
 
 describe('le verdict de relance naît sur la cible au compte, pour chaque producteur', () => {
-  beforeEach(() => { setRule('combat-aa-blessures', 'aa'); setRule('combat-sudden-death', 'off'); });
+  beforeEach(() => { setRule('combat-aa-blessures', 'aa'); setRule('combat-mort-subite', 'off'); });
 
   for (const [nom, produire, arme] of producteurs) for (const current of [0, 3]) it(`${nom}, coup non critique, cible à ${current} Blessure`, () => {
     const { H, cible } = combat(current);

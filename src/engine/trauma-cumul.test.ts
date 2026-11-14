@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { traumaById, consolidateAmputations, setTraumaCount, traumaCumulOps, traumaCharPenalties, traumaFicheById, permanentAmputations, avecSequelles, type SequelleNeuve } from './trauma';
+import {
+  traumaById,
+  consolidateAmputations,
+  setTraumaCount,
+  traumaCumulOps,
+  traumaCharPenalties,
+  traumaFicheById,
+  permanentAmputations,
+  avecSequelles,
+  type SequelleNeuve,
+} from './trauma';
 import type { Combatant, HitLocation } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
@@ -13,7 +23,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  */
 const C = (traumas: SequelleNeuve[]): Combatant =>
   (blessuresSurLeProfil({
-    id: 'c', label: 'C', kind: 'hero', conditions: [], skills: [], items: [],
+    id: 'c', label: 'C', kind: 'heros', conditions: [], skills: [], items: [],
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), traumas: avecSequelles([], traumas),
   }) as unknown as Combatant);

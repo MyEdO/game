@@ -140,22 +140,22 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
     const p = g().pendingFall!;
     expect(p).toMatchObject({ metres: 4, suspendu: 2, allege: 1 });
     expect(p.participants.map((x) => [x.attempt, x.suspendre])).toEqual([[null, null], [null, null]]);
-    expect(phaseDeChute(p)).toBe('choice');
+    expect(phaseDeChute(p)).toBe('choix');
   });
 
   it('axe hauteur manquant alors qu’il est offert → refus NOMMÉ, rangée non déclarée', () => {
     g().franchirLArete(rue);
-    g().jetRegler('fall', 'tenter', false, A);
+    g().jetRegler('chute', 'tenter', false, A);
     expect(g().pendingFall!.participants.find((x) => x.id === A)!.attempt).toBeNull();
     expect(journalise()).toMatch(/ce saut offre de se suspendre d’abord ; la déclaration dit si le tombant se suspend/);
   });
 
   it('A se suspend (chute de 2 m), B saute de toute la hauteur (4 m)', () => {
     g().franchirLArete(rue);
-    g().jetRegler('fall', 'suspendre', true, A);
-    g().jetRegler('fall', 'tenter', false, A);
-    g().jetRegler('fall', 'suspendre', false, B);
-    g().jetRegler('fall', 'tenter', false, B);
+    g().jetRegler('chute', 'suspendre', true, A);
+    g().jetRegler('chute', 'tenter', false, A);
+    g().jetRegler('chute', 'suspendre', false, B);
+    g().jetRegler('chute', 'tenter', false, B);
     expect(g().pendingFall).toBeNull();
     expect(g().partyPos).toEqual({ x: 2, y: 1, z: 0 });
     const chutes = drainerChutes();
@@ -165,12 +165,12 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
 
   it('se suspendre PUIS tenter : le Test réduit la hauteur de suspension (LDB 15 l.82)', () => {
     g().franchirLArete(rue);
-    g().jetRegler('fall', 'suspendre', true, A);
-    g().jetRegler('fall', 'tenter', true, A);
-    g().jetRegler('fall', 'suspendre', false, B);
-    g().jetRegler('fall', 'tenter', false, B);
-    expect(phaseDeChute(g().pendingFall!)).toBe('roll');
-    g().jetLancer('fall', A);
+    g().jetRegler('chute', 'suspendre', true, A);
+    g().jetRegler('chute', 'tenter', true, A);
+    g().jetRegler('chute', 'suspendre', false, B);
+    g().jetRegler('chute', 'tenter', false, B);
+    expect(phaseDeChute(g().pendingFall!)).toBe('jet');
+    g().jetLancer('chute', A);
     const r = g().pendingFall!.participants.find((x) => x.id === A)!.result!;
     expect(r.effectiveMetres).toBe(Math.max(0, 2 - Math.max(0, r.dr)));
   });
@@ -182,11 +182,11 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
     banc.setState({ party: [hero] });
     g().lancerLaScene(testScene());
     g().lancerLeCombat('enc-mutants');
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = g().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true));
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    b.combatants.filter((c) => c.kind === 'ennemi').forEach((e) => (e.dead = true));
     H.engagedWith = [];
     placeCombatant(H, sc, chambre);
     banc.setState({ scene: sc, battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed, acted: false, movedPreAction: false, reachable: new Map(), preview: null } });
@@ -196,8 +196,8 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
   it('saut par une croisée, sans suspension : le pas + l’allège (1 m à ½ vitesse, 2 m/case → 1)', () => {
     const { H } = setup();
     g().franchirLArete(rue);
-    g().jetRegler('fall', 'suspendre', false, H.id);
-    g().jetRegler('fall', 'tenter', false, H.id);
+    g().jetRegler('chute', 'suspendre', false, H.id);
+    g().jetRegler('chute', 'tenter', false, H.id);
     const b = g().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 1 });
     expect(b.movementUsed).toBe(2);
@@ -207,7 +207,7 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
     const { H } = setup(0, etage(undefined, 3));
     g().franchirLArete(rue);
     expect(g().pendingFall).toMatchObject({ metres: 4, allege: 3 });
-    g().jetRegler('fall', 'tenter', false, H.id);
+    g().jetRegler('chute', 'tenter', false, H.id);
     const b = g().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 1 });
     expect(b.movementUsed).toBe(4);
@@ -216,8 +216,8 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
   it('en se suspendant (`descente-facile`) : + la hauteur descendue (4 − 2 = 2 m à ½ vitesse → 2 cases)', () => {
     const { H } = setup();
     g().franchirLArete(rue);
-    g().jetRegler('fall', 'suspendre', true, H.id);
-    g().jetRegler('fall', 'tenter', false, H.id);
+    g().jetRegler('chute', 'suspendre', true, H.id);
+    g().jetRegler('chute', 'tenter', false, H.id);
     expect(g().battle!.movementUsed).toBe(4);
     expect(g().battle!.acted).toBe(false);
   });
@@ -225,10 +225,10 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
   it('Mouvement restant qui ne couvre pas la suspension → refus NOMMÉ à la déclaration, rien ne bouge', () => {
     const { H } = setup(1); // Marche 4 − 1 = 3 < 4
     g().franchirLArete(rue);
-    g().jetRegler('fall', 'suspendre', true, H.id);
+    g().jetRegler('chute', 'suspendre', true, H.id);
     expect(journalise()).toMatch(/plus assez de Mouvement pour se suspendre avant de sauter \(4 cases\)/);
     expect(g().pendingFall!.participants[0].suspendre).toBeNull();
-    g().jetRegler('fall', 'tenter', false, H.id);
+    g().jetRegler('chute', 'tenter', false, H.id);
     expect(g().pendingFall!.participants[0].attempt).toBeNull();
     expect(g().battle!.movementUsed).toBe(1);
   });
@@ -244,8 +244,8 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
     setRule('fenetre-suspension', 'libre');
     const { H } = setup();
     g().franchirLArete(rue);
-    g().jetRegler('fall', 'suspendre', true, H.id);
-    g().jetRegler('fall', 'tenter', false, H.id);
+    g().jetRegler('chute', 'suspendre', true, H.id);
+    g().jetRegler('chute', 'tenter', false, H.id);
     expect(g().battle!.movementUsed).toBe(2);
   });
 });

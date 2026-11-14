@@ -67,24 +67,24 @@ async function monter(): Promise<void> {
 const capacites = (): string[] => (getStageFrame()?.aretes() ?? []).map((p) => p.arete.capacite);
 
 /** Combat : l'actif (héros, ou le premier ennemi si `actif = 'enemy'`) posté au sommet de la corniche. */
-function combat(actif: 'hero' | 'enemy' = 'hero') {
+function combat(actif: 'heros' | 'ennemi' = 'heros') {
   vi.useFakeTimers();
   const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], net: NET0, battle: null });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
-  useGame.getState().fenetreValider('roundStart');
+  useGame.getState().fenetreValider('debutDuRound');
   vi.clearAllTimers();
   vi.useRealTimers(); // `respirer` attend en temps réel
   const sc = corniche();
   const b = useGame.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const foes = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const foes = b.combatants.filter((c) => c.kind === 'ennemi');
   foes.forEach((e, i) => { e.engagedWith = []; placeCombatant(e, sc, { x: 4, y: 3 - i }); });
   H.engagedWith = [];
-  const mobile = actif === 'hero' ? H : foes[0];
+  const mobile = actif === 'heros' ? H : foes[0];
   placeCombatant(mobile, sc, sommet);
-  if (actif === 'enemy') placeCombatant(H, sc, { x: 0, y: 3 });
+  if (actif === 'ennemi') placeCombatant(H, sc, { x: 0, y: 3 });
   useGame.setState({
     screen: 'campaign', scene: sc, mode: 'battle', dialogue: null, explored: {}, facing: {}, camRot: 0, viewMode: 'iso', camEdge: false, povActive: false,
     battle: { ...b, turn: b.order.indexOf(mobile.id), action: null, movementUsed: 0, acted: false, movedPreAction: false, reachable: new Map(), preview: null },
@@ -120,15 +120,15 @@ describe('marqueurs de geste d’arête — l’écran monté répond comme l’
   });
 
   it('combat : ennemi mené par le siège MJ LOCAL → la chute est offerte (le siège le mène, `controlsCombatant`)', async () => {
-    combat('enemy');
-    useGame.setState({ net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: 0, ownership: {}, slots: [0, 0, 0, 0] } });
+    combat('ennemi');
+    useGame.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: 0, ownership: {}, slots: [0, 0, 0, 0] } });
     await monter();
     expect(capacites()).toContain('chute');
   });
 
   it('combat : ennemi mené par un AUTRE siège (MJ distant) → aucune chute offerte', async () => {
-    combat('enemy');
-    useGame.setState({ net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: 1, ownership: {}, slots: [0, 1, 0, 0] } });
+    combat('ennemi');
+    useGame.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: 1, ownership: {}, slots: [0, 1, 0, 0] } });
     await monter();
     expect(capacites()).not.toContain('chute');
   });

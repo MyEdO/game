@@ -22,7 +22,7 @@ import { t } from '../i18n';
 import type { MenaceId } from '../engine/menace';
 
 /** Libellé par défaut du bouton « Lancer » (rangée seule ET coquille `RollShell` hissée). */
-export const defaultRollLabel = (): ReactNode => <><Icon id="nav/dice" size="sm" /> {t('verbe.roll')}</>;
+export const defaultRollLabel = (): ReactNode => <><Icon id="navigation/des" size="sm" /> {t('verbe.lancer')}</>;
 
 /**
  * Une RANGÉE de jet (mono OU participant d'un flux MULTI), pendant UI de la fabrique `makeRollFlow`
@@ -109,7 +109,7 @@ export function RollRow({
   const determineBtn = determination && (
     <CodexRef category={RULE_REF.determination.category} id={RULE_REF.determination.id} label="Détermination" wrap>
       <button className="btn btn-resource" onClick={determination.onResolve}>
-        <Icon id="resource/resolve" size="sm" /> Détermination ×{determination.resolve}
+        <Icon id="ressource/determination" size="sm" /> Détermination ×{determination.resolve}
       </button>
     </CodexRef>
   );
@@ -125,7 +125,7 @@ export function RollRow({
           milieu d'un récap et ne disait plus DE QUELLE ligne elle parlait. */}
       <div className="prow-line">
         <RollPanel rows={[row]} winnerIndex={winner === 'win' ? 0 : winner === 'lose' ? 1 : null} />
-        {fixedMark && !forcedRoll?.fixed && <span className="hint prow-fixed-mark"><Icon id="nav/dice" size="sm" /> Dé fixé</span>}
+        {fixedMark && !forcedRoll?.fixed && <span className="hint prow-fixed-mark"><Icon id="navigation/des" size="sm" /> Dé fixé</span>}
       </div>
       {/* Progression d'un Test ÉTENDU (LDB 12) — SITE UNIQUE de rendu de la barre de DR de rangée
           (arbitrage user 2026-07-11) : les émetteurs (cartographie, Peur de combat, périls…) ne posent
@@ -233,7 +233,7 @@ export interface RollRowProps {
   /** Ce jet a été SAISI par le joueur (option « Dés fixés ») → mention « dé fixé » sur la rangée. */
   fixedMark?: boolean;
   /** Flux PROPRE à cette rangée quand il DIFFÈRE de celui de la coquille (`RollShell.flowKey`) :
-   *  « Se désengager » héberge les rangées du flux `flee` (coup dans le dos + Test `fuite`), la cascade
+   *  « Se désengager » héberge les rangées du flux `fuite` (coup dans le dos + Test `fuite`), la cascade
    *  héberge l'étape courante. Sans lui, le sélecteur de dé serait dérivé du mauvais pending.
    *  `key` sert alors d'id de slot (participant) — c'est déjà sa valeur en multi. */
   flowKey?: keyof typeof FLOW_VERBS;

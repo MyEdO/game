@@ -24,11 +24,11 @@ function engage(): { H: Combatant; E: Combatant } {
   banc.setState({ party: [hero] });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies[0];
   H.pos = { x: 10, y: 10 };
@@ -46,7 +46,7 @@ function reticuleEtJet(attaque: string, H: Combatant, E: Combatant): { reticule:
   const ht = hoverTargeting(g, H, E);
   if (ht.kind !== 'ok' || ht.base == null || ht.mod == null) throw new Error(`réticule ${ht.kind}`);
   cliquerSurLeCombattant(g, E.id, { confirm: true });
-  g().jetLancer('attack');
+  g().jetLancer('attaque');
   const d = g().pendingAttack!.result!.attackerDetail!;
   return { reticule: ht.base + ht.mod, jet: d.target, avantage: H.advantage };
 }

@@ -28,7 +28,7 @@ interface RollLineBase {
    *  l.229). Les déclarer ici les compte UNE fois — dans la cible et sur la ligne. */
   surLaCible?: ModLine[];
   /** PLAFONNEMENT des `surLaCible` (`LDB 14 l.91-96`) : le monteur combine lui-même les
-   *  modificateurs (`combineMods`, plafonds data-driven `combat-diff-cap-bonus`/`-malus`, appliqués
+   *  modificateurs (`combineMods`, plafonds data-driven `combat-plafond-bonus-difficulte`/`-malus`, appliqués
    *  aux seules `famille: 'circonstance'`) et, quand la combinaison diffère de la somme brute, ÉMET
    *  l'écart en ligne NOMMÉE « plafond Difficultés » liée à sa fiche de règle. Sans ce mode, un
    *  appelant qui plafonnait sa cible à la main laissait l'amputation en chip « autres ». Réservé aux
@@ -46,19 +46,19 @@ interface RollLineBase {
 
 /**
  * CANAL de valeur d'un jet de COMBAT (#1153 L1a) — le combat ne se calcule pas avec `testValue` :
- *  - `'melee'`/`'ranged'` : valeur d'ATTAQUE/de tir — base `combatBaseValue` (`engine/combat.ts`,
+ *  - `'melee'`/`'distance'` : valeur d'ATTAQUE/de tir — base `combatBaseValue` (`engine/combat.ts`,
  *    Caractéristique + Spé du Groupe de l'arme) et composantes `combatValueModParts` ;
  *  - `'test'` : Test de combat NON-attaque (gate d'Action, Résistance de fin de rencontre) — base
  *    `rawCombatTestBase` (`engine/skills.ts` : `testValue` privée de la pénalité d'États HORS combat)
  *    et pénalité d'États en version COMBAT (`conditionModLines` → `combatTestPenaltyParts`), comptée
  *    une seule fois. Le contrat des deux grandeurs est celui du moteur, pas de ce monteur.
  *
- * BRANCHÉ à `volatileCharLines` (`engine/characteristics.ts:68`) sur `'melee'`/`'ranged'` (#1153 L3a) :
+ * BRANCHÉ à `volatileCharLines` (`engine/characteristics.ts:68`) sur `'melee'`/`'distance'` (#1153 L3a) :
  * ces lignes décomposent l'intérieur de la CARACTÉRISTIQUE (`effectiveChar`), donc de la valeur NUE.
  * Le canal les SORT de la base autant qu'il les pose en lignes — la valeur de combat et la cible
  * restent identiques au point près, seule la répartition base/chips change.
  */
-export type RollLineCombat = { kind: 'melee' | 'ranged'; weapon?: Weapon } | { kind: 'test'; weapon?: never };
+export type RollLineCombat = { kind: 'melee' | 'distance'; weapon?: Weapon } | { kind: 'test'; weapon?: never };
 
 /** LA valeur du jet — trois régimes EXCLUSIFS, et le compilateur tient l'exclusion :
  *  - DÉRIVÉE de l'acteur (`testValue`) : rien d'autre à déclarer ;

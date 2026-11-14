@@ -17,8 +17,8 @@
  *
  * Les divergences que ce module a HÉRITÉES des quatre overlays d'origine et qui vivent encore :
  *  (a) INTERROGATION DU PORTEUR — les deux capacités de dénivelé ne lisent pas le même mobile de la
- *      même façon : l'escalade exige qu'il BORDE l'arête (`escalades`), la chute et la fenêtre sondent ses quatre
- *      cardinaux (`franchissements`) ; la structure, elle, ne l'interroge pas du tout — on pilonne à distance,
+ *      même façon : l'escalade exige qu'il BORDE l'arête, la chute et la fenêtre sondent ses quatre
+ *      cardinaux (`denivelesDuMobile`) ; la structure, elle, ne l'interroge pas du tout — on pilonne à distance,
  *      et le porteur n'y OUVRE que l'offre : pas de frappeur en main, pas de frappe offerte. Son
  *      geste, lui, part de la case du MUR comme le clic de n'importe quel jeton ennemi ;
  *  (c) BROUILLARD — porte et structure/escalade ne bâtissent pas leur clé de visibilité de la même
@@ -32,10 +32,11 @@
  * PORTES : les accès du CONTRÔLEUR, `portalsForParty(scene, controleur)` (`roomPortals.ts`) — la même
  * réponse que la navigation d'exploration (`exploreNav.ts`) ; aucun contrôleur, aucun accès.
  */
-import { t } from '../i18n';
-import { heightAt, edgeOf, porteMasquee, structureIsDown, type Scene, type WallSide } from './monde/scene';
+import { t, type MsgKey } from '../i18n';
+import { heightAt, edgeOf, porteMasquee, structureIsDown, type Scene, type WallSeg, type WallSide } from './monde/scene';
+import { memoByRef } from './monde/sceneMemo';
 import { cleArete } from './monde/wallIndex';
-import { planFranchissement, type PlanFranchissement } from './fallMove';
+import { planFranchissement } from './fallMove';
 import { inBattleId } from './monde/combatants';
 import { portalsForParty, type RoomPortal } from './monde/roomPortals';
 import type { Pt } from './monde/path';
@@ -171,70 +172,95 @@ function portes(ctx: ContexteAretes): AreteUtilisable[] {
   return out;
 }
 
-/** ESCALADE : arête `climb` de la couche active que le mobile BORDE ; on grimpe depuis sa case vers
- *  celle d'en face, le libellé disant le sens du dénivelé. */
-function escalades(ctx: ContexteAretes): AreteUtilisable[] {
-  const { scene, controleur, activeZ } = ctx;
-  if (!controleur) return [];
-  const sur = (c: Pt) => controleur.x === c.x && controleur.y === c.y && (controleur.z ?? 0) === activeZ;
-  const out: AreteUtilisable[] = [];
+/** Un dénivelé du mobile, hors brouillard : l'arête qu'il lui offre sans son texte, la clé de message qui le dit
+ *  et ses variables. */
+interface Denivele {
+  arete: Omit<AreteUtilisable, 'libelle'>;
+  libelle: MsgKey;
+  vars?: Record<string, number>;
+}
+
+/** Les segments grimpables (`climb`) de `scene`, par la clé `x,y,z` de chacune des deux cases qu'ils séparent, dans
+ *  l'ordre du document. Mémoïsés par scène. */
+const grimpablesParCase = memoByRef((scene: Scene): ReadonlyMap<string, WallSeg[]> => {
+  const parCase = new Map<string, WallSeg[]>();
   for (const w of scene.walls ?? []) {
-    if (!w.climb || (w.z ?? 0) !== activeZ || (w.side !== 'N' && w.side !== 'E')) continue;
-    const z = w.z ?? 0;
-    const [c1, c2] = cotes(w.x, w.y, w.side);
-    if (!vue(ctx.visible, c1, c2, z)) continue;
-    if (!sur(c1) && !sur(c2)) continue;
-    const from = sur(c1) ? c1 : c2;
-    const to = sur(c1) ? c2 : c1;
-    const monte = heightAt(scene, to.x, to.y, z) > heightAt(scene, from.x, from.y, z);
-    out.push({
-      cle: cleArete(w.x, w.y, w.side, z),
-      x: w.x, y: w.y, side: w.side, z,
-      capacite: 'escalade',
-      ancrage: { x: from.x, y: from.y, z },
-      largeurPrise: LARGEUR_PRISE_ARETE.escalade,
-      libelle: monte ? t('arete.escalader') : t('arete.descendreEnEscalade'),
-    });
+    if (!w.climb || (w.side !== 'N' && w.side !== 'E')) continue;
+    for (const c of cotes(w.x, w.y, w.side)) {
+      const k = `${c.x},${c.y},${w.z ?? 0}`;
+      const bordants = parCase.get(k);
+      if (bordants) bordants.push(w);
+      else parCase.set(k, [w]);
+    }
   }
-  return out;
-}
+  return parCase;
+});
 
-/** FRANCHISSEMENTS : les quatre cardinaux du mobile de la couche active, sondés par
- *  `planFranchissement` ; `capacite` dit quel plan donne une arête, `libelle` son texte joueur. */
-function franchissements(
-  ctx: ContexteAretes,
-  capacite: 'chute' | 'fenetre',
-  libelle: (plan: PlanFranchissement) => string | null,
-): AreteUtilisable[] {
-  const { scene, controleur, activeZ } = ctx;
-  if (!controleur || (controleur.z ?? 0) !== activeZ) return [];
-  const out: AreteUtilisable[] = [];
+/**
+ * Les DÉNIVELÉS du mobile posé en (x, y, z), hors brouillard. FRANCHISSEMENTS : ses quatre cardinaux, sondés par
+ * `planFranchissement` — un plan `fall` (dénivelé descendant, croisée franchissable comprise) donne une CHUTE, un plan
+ * `enjamber` (croisée franchissable de plain-pied) une FENÊTRE. ESCALADE : chaque arête `climb` de sa couche qu'il
+ * BORDE ; on grimpe depuis sa case vers celle d'en face, le texte disant le sens du dénivelé.
+ */
+function denivelesDuMobile(scene: Scene, x: number, y: number, z: number): Denivele[] {
+  const offre = (e: { x: number; y: number; side: WallSide }, capacite: CapaciteArete, libelle: MsgKey, vars?: Record<string, number>): Denivele => ({
+    arete: { cle: cleArete(e.x, e.y, e.side, z), x: e.x, y: e.y, side: e.side, z, capacite, ancrage: { x, y, z }, largeurPrise: LARGEUR_PRISE_ARETE[capacite] },
+    libelle,
+    vars,
+  });
+  const out: Denivele[] = [];
   for (const [dx, dy] of CARDINAUX) {
-    const to: Pt = { x: controleur.x + dx, y: controleur.y + dy, z: controleur.z };
-    const texte = libelle(planFranchissement(scene, controleur, to));
-    if (texte === null) continue;
-    if (!vue(ctx.visible, controleur, to, activeZ)) continue;
-    const e = edgeOf(controleur.x, controleur.y, to.x, to.y);
+    const e = edgeOf(x, y, x + dx, y + dy);
     if (!e) continue;
-    out.push({
-      cle: cleArete(e.x, e.y, e.side, activeZ),
-      x: e.x, y: e.y, side: e.side, z: activeZ,
-      capacite,
-      ancrage: { ...controleur },
-      largeurPrise: LARGEUR_PRISE_ARETE[capacite],
-      libelle: texte,
-    });
+    const plan = planFranchissement(scene, { x, y, z }, { x: x + dx, y: y + dy, z });
+    if (plan.kind === 'fall') out.push(offre(e, 'chute', 'arete.sauterEnBas', { m: Math.round(plan.metres) }));
+    if (plan.kind === 'enjamber') out.push(offre(e, 'fenetre', 'arete.enjamberFenetre'));
+  }
+  for (const w of grimpablesParCase(scene).get(`${x},${y},${z}`) ?? []) {
+    const [c1, c2] = cotes(w.x, w.y, w.side);
+    const vers = c1.x === x && c1.y === y ? c2 : c1;
+    const monte = heightAt(scene, vers.x, vers.y, z) > heightAt(scene, x, y, z);
+    out.push(offre(w, 'escalade', monte ? 'arete.escalader' : 'arete.descendreEnEscalade'));
   }
   return out;
 }
 
-/** CHUTE : seul un plan `fall` (dénivelé descendant, croisée franchissable comprise) donne une arête. */
-const chutes = (ctx: ContexteAretes): AreteUtilisable[] =>
-  franchissements(ctx, 'chute', (p) => (p.kind === 'fall' ? t('arete.sauterEnBas', { m: Math.round(p.metres) }) : null));
+const denivelesParCase = memoByRef((_scene: Scene) => new Map<string, readonly Denivele[]>());
 
-/** FENÊTRE : seul un plan `enjamber` (croisée franchissable de plain-pied) donne une arête. */
-const fenetres = (ctx: ContexteAretes): AreteUtilisable[] =>
-  franchissements(ctx, 'fenetre', (p) => (p.kind === 'enjamber' ? t('arete.enjamberFenetre') : null));
+/** Les dénivelés du mobile posé en (x, y, z) (`denivelesDuMobile`) : ils ne tiennent qu'à la scène et à sa case, et
+ *  se calculent une fois par scène et par case. */
+function denivelesDe(scene: Scene, x: number, y: number, z: number): readonly Denivele[] {
+  const parCase = denivelesParCase(scene);
+  const k = `${x},${y},${z}`;
+  let deniveles = parCase.get(k);
+  if (!deniveles) parCase.set(k, (deniveles = denivelesDuMobile(scene, x, y, z)));
+  return deniveles;
+}
+
+const casesADeniveleParCouche = memoByRef((_scene: Scene) => new Map<number, readonly { x: number; y: number }[]>());
+
+/** Les cases de la couche `z` de `scene` d'où un mobile a un dénivelé (`denivelesDe`), rangée par rangée. Calculées
+ *  une fois par scène et par couche. */
+export function casesADenivele(scene: Scene, z: number): readonly { x: number; y: number }[] {
+  const parCouche = casesADeniveleParCouche(scene);
+  let cases = parCouche.get(z);
+  if (!cases) {
+    const { w, h } = scene.dimensions;
+    const trouvees: { x: number; y: number }[] = [];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (denivelesDe(scene, x, y, z).length) trouvees.push({ x, y });
+    parCouche.set(z, (cases = trouvees));
+  }
+  return cases;
+}
+
+/** DÉNIVELÉS de capacité `capacite` : ceux du contrôleur posé sur la couche active (`denivelesDe`) dont une des
+ *  deux cases est éclaircie. */
+const deniveles = (capacite: CapaciteArete) => ({ scene, visible, controleur, activeZ }: ContexteAretes): AreteUtilisable[] =>
+  !controleur || (controleur.z ?? 0) !== activeZ
+    ? []
+    : denivelesDe(scene, controleur.x, controleur.y, activeZ)
+      .filter(({ arete }) => arete.capacite === capacite && vue(visible, ...cotes(arete.x, arete.y, arete.side), activeZ))
+      .map(({ arete, libelle, vars }) => ({ ...arete, ancrage: { ...arete.ancrage }, libelle: t(libelle, vars) }));
 
 /** STRUCTURE (AA 10 l.94-102) : arête `structure` debout de la couche active, ENRÔLÉE dans la file de
  *  combat (le Combattant tient la cible ; à la brèche il disparaît et l'arête avec). Aucune garde
@@ -270,21 +296,22 @@ function structures(ctx: ContexteAretes): AreteUtilisable[] {
 
 const DERIVEURS: Readonly<Record<CapaciteArete, (ctx: ContexteAretes) => AreteUtilisable[]>> = {
   structure: structures,
-  chute: chutes,
-  fenetre: fenetres,
-  escalade: escalades,
+  chute: deniveles('chute'),
+  fenetre: deniveles('fenetre'),
+  escalade: deniveles('escalade'),
   porte: portes,
 };
 
 /**
  * Les arêtes utilisables du contexte, DANS L'ORDRE DE PRIORITÉ (`PRIORITE_ARETES`) : une arête qui
  * porte plusieurs capacités n'en rend qu'UNE, la plus forte — une enceinte enrôlée en combat se
- * frappe, elle ne s'ouvre pas.
+ * frappe, elle ne s'ouvre pas. `capacites` borne la dérivation à celles qu'il nomme.
  */
-export function aretesUtilisables(ctx: ContexteAretes): AreteUtilisable[] {
+export function aretesUtilisables(ctx: ContexteAretes, capacites: readonly CapaciteArete[] = PRIORITE_ARETES): AreteUtilisable[] {
   const out: AreteUtilisable[] = [];
   const prises = new Set<string>();
   for (const capacite of PRIORITE_ARETES) {
+    if (!capacites.includes(capacite)) continue;
     for (const arete of DERIVEURS[capacite](ctx)) {
       if (prises.has(arete.cle)) continue;
       prises.add(arete.cle);

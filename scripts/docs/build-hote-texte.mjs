@@ -69,11 +69,13 @@ function litteral(noeud, ou) {
 
 /** La PROVENANCE de chaque champ de la projection (`projeter`, src/hote/projection.ts) : le lecteur du noyau qui le rend. */
 const PROVENANCE = [
-  ['combat.round, combat.tour, combat.fin', 'battle.round, battle.turn, battle.over'],
-  ['combat.actif', 'activeCombatant'],
+  ['combat.round, combat.fin', 'battle.round, battle.over'],
+  ['combat.tour, combat.tours', 'battle.turn, ordreEnVue (battle.order réduit aux combattants en vue, porteurEnVue)'],
+  ['combat.actif', 'activeCombatant, s’il est en vue (combattantEnVue)'],
+  ['combat.voisins, carte', 'les combattants en vue (combattantEnVue)'],
   ['combat.actif.mouvement', 'mouvementDuTour (le restant et le total que la jauge de la console montre)'],
   ['combat.actif.action', 'battle.acted'],
-  ['combat.voisins, carte : distance', 'combatDistance (empreinte et relief, comme le ciblage)'],
+  ['combat.voisins, carte : distance', 'distanceDeCombat (empreinte et relief, comme le ciblage)'],
   ['combat.voisins, carte : engagé', 'Combatant.engagedWith'],
   ['fenetre', 'fenetreDuJeu (et stepInteraction pour l’étape de cascade)'],
   ['fenetre.fermes', 'fermeturesDeLaFenetre : chaque verbe de la fenêtre que son flux de jet ferme maintenant, avec sa raison (libelleDeLaFermeture)'],
@@ -81,7 +83,7 @@ const PROVENANCE = [
   ['jets', 'jetsEnVue : les lignes de jet de la fenêtre (Test, table, dé), jetées ou à jeter, la gagnante et le DR net d’un Test opposé (netSL, le badge « DR net » du web)'],
   ['combat.apercu', 'battle.preview (l’aperçu du premier clic)'],
   ['cases', 'porteesDuTour (displayedReach, computeRunReach, intentReach : la surbrillance du champ)'],
-  ['exploration.entites, carte hors combat', 'Scene.entities, hors des navires posés par leurs ponts (estPoseParSesPonts)'],
+  ['exploration.entites, carte hors combat', 'Scene.entities que le groupe connaît (entiteConnue), hors des navires posés par leurs ponts (estPoseParSesPonts)'],
   ['combat.barre', 'etatDeLaBarre (le verdict que lit la console)'],
   ['combat.offres', 'offresDeLActif (l’énumération que lit la console)'],
   ['combat.cibles', 'validTargets'],
@@ -90,6 +92,7 @@ const PROVENANCE = [
   ['exploration.etage, exploration.cap', 'partyPos.z, capDuGroupe'],
   ['jouer : levé', 'Jeu.localIntent, battle.preview, endTurnArmed, lus avant et après chaque geste'],
   ['erreur permission', 'quiTientLaMain, siegeDe'],
+  ['fiche', 'refusée hors de la vue du groupe (porteurEnVue)'],
   ['fiche : armure', 'effectiveArmourAt, par LOCALISATIONS_DE_COUP'],
   ['refus', 'Jeu.refus (texte et nonce)'],
 ]
@@ -185,7 +188,7 @@ function rendu() {
   out += `\nUn geste qui ne change aucun fait de la partie et ne programme aucune suite (un jeton de la plateforme) est SANS EFFET : erreur \`regle\`, avec le refus, la ligne de journal ou l'événement informatif que le noyau lui a opposés (« Saut refusé : … », \`move_blocked\`). Un événement émis seul (\`move_blocked\`, un son) informe, il n'est pas un effet. Sous un coup ouvert (son jet en attente, \`coupFerme\`), un clic du champ est sans effet : le noyau le refuse, l'écran lit la même garde (\`combatantClickActs\`). Le pas du groupe va vers une case voisine à pied (\`pasDuGroupe\`), sinon « Pas refusé ». Le journal de la partie et le refus du geste disent, ils ne sont pas des faits : un geste qui ne change qu'eux est sans effet. Un geste qui change la partie ET pose un refus s'écrit ; la réponse dit le refus (« refus : … »), la vue garde le dernier, un refus neuf se lit au changement de son \`nonce\`.\n\n`
 
   out += `## Ce que la vue donne prêt à jouer\n\nLa fenêtre qui tient la main se lit en combat comme hors combat, avec la signature de ses verbes. En exploration, la vue donne la case du groupe, son étage quand la scène en a plusieurs, son cap, puis chaque geste que le groupe peut jouer depuis sa case (\`gestesDExploration\` : les arêtes qu'il borde, les sauts, les accès et les sorties de scène, rejoints pas à pas), chacun écrit en appel de \`jouer\` à coller tel quel ; ${bornes.gestesEnVue} au plus, \`lire\` \`{"quoi":"offres"}\` les liste tous. Une réponse de \`jouer\` dit ce que ses gestes ont levé : une intention armée, un aperçu du premier clic, une fin de tour armée. Un refus de permission nomme qui tient la main et son siège (\`quiTientLaMain\`, \`siegeDe\`).\n\n`
-  out += `## Les verbes et leurs arguments\n\nLes arguments d'un verbe sont un tableau JSON, contrôlés contre le TYPE du verbe, celui que \`Partie.envoyer\` accepte (\`ActionsDuNoyau\`, \`src/noyau/actionsDuNoyau.ts\`), que la cible de code \`src/hote/verbes.generated.ts\` porte (\`npm run gen\`) : un argument d'une forme fausse, en trop ou manquant lève \`validation\`, avec la signature du verbe. Un point s'écrit \`{"x":3,"y":6}\`, jamais \`[3,6]\`. \`null\` omet un argument optionnel pour en poser un suivant. Un argument qui désigne un id (\`DESIGNATIONS\`, \`src/noyau/designations.ts\` : ce que l'état porte, combattant, héros, scène, objet, porte, indice ; ce que la garde d'un verbe accepte, tireur rapide, chanson, créature à dépecer ; ou une entrée du catalogue, sort, Talent, Activité) s'écrit par ce qu'il désigne (\`id de combattant\`) et se contrôle contre les ids que la table lit ; aucun paramètre d'un verbe n'est une chaîne nue (\`npm run gen\` le refuse), un texte du joueur s'écrit \`TexteLibre\`. \`lire\` \`{"quoi":"verbes","id":"<verbe>"}\` donne une signature. Dans la table, \`?\` marque un argument optionnel ; un objet montre ses champs au premier niveau, le nom de son type au-delà, et se contrôle à toute profondeur, le brouillon d'un héros (\`HorsDesignation\`) compris, une clé qu'il ne déclare pas refusée, un refus nommant le chemin du champ fautif ; une union de littéraux (un flux, une fenêtre) se contrôle contre ses valeurs, que le refus nomme ; \`pid\` est l'id de l'étape ou de la rangée que la ligne « verbes » de la vue donne. Un verbe de jet (\`jetLancer\`, \`jetRelancer\`, \`jetImposerLeResultat\`…) prend en premier argument le flux qu'il vise (\`"attack"\`), que la ligne « verbes » écrit en valeur : \`{"type":"jetLancer","args":["attack"]}\`. Une suite de \`jouer\` compte ${GESTES_PAR_APPEL} gestes au plus.\n\n`
+  out += `## Les verbes et leurs arguments\n\nLes arguments d'un verbe sont un tableau JSON, contrôlés contre le TYPE du verbe, celui que \`Partie.envoyer\` accepte (\`ActionsDuNoyau\`, \`src/noyau/actionsDuNoyau.ts\`), que la cible de code \`src/hote/verbes.generated.ts\` porte (\`npm run gen\`) : un argument d'une forme fausse, en trop ou manquant lève \`validation\`, avec la signature du verbe. Un point s'écrit \`{"x":3,"y":6}\`, jamais \`[3,6]\`. \`null\` omet un argument optionnel pour en poser un suivant. Un argument qui désigne un id (\`DESIGNATIONS\`, \`src/noyau/designations.ts\` : ce que l'état porte, combattant, héros, scène, objet, porte, indice ; ce que la garde d'un verbe accepte, tireur rapide, chanson, créature à dépecer ; ou une entrée du catalogue, sort, Talent, Activité) s'écrit par ce qu'il désigne (\`id de combattant\`) et se contrôle contre les ids que la table lit ; aucun paramètre d'un verbe n'est une chaîne nue (\`npm run gen\` le refuse), un texte du joueur s'écrit \`TexteLibre\`. \`lire\` \`{"quoi":"verbes","id":"<verbe>"}\` donne une signature. Dans la table, \`?\` marque un argument optionnel ; un objet montre ses champs au premier niveau, le nom de son type au-delà, et se contrôle à toute profondeur, le brouillon d'un héros (\`HorsDesignation\`) compris, une clé qu'il ne déclare pas refusée, un refus nommant le chemin du champ fautif ; une union de littéraux (un flux, une fenêtre) se contrôle contre ses valeurs, que le refus nomme ; \`pid\` est l'id de l'étape ou de la rangée que la ligne « verbes » de la vue donne. Un verbe de jet (\`jetLancer\`, \`jetRelancer\`, \`jetImposerLeResultat\`…) prend en premier argument le flux qu'il vise (\`"attack"\`), que la ligne « verbes » écrit en valeur : \`{"type":"jetLancer","args":["attaque"]}\`. Une suite de \`jouer\` compte ${GESTES_PAR_APPEL} gestes au plus.\n\n`
   out += `| Verbe | Arguments |\n|---|---|\n`
   for (const [verbe, parametres] of Object.entries(verbes)) out += `| \`${verbe}\` | \`${cellule(parametresEcrits(parametres))}\` |\n`
   out += `\n## Provenance de la vue\n\nAucune règle ne se calcule dans l'hôte : chaque champ est un lecteur de la surface du noyau, ou un champ de l'état lu tel quel.\n\n`

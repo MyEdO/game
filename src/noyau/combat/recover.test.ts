@@ -9,7 +9,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
  * fin du `if state === empetre … else athletisme` dupliqué. Pin de la résolution (skill/opposé/source).
  */
 const mk = (over: Partial<Combatant>): Combatant =>
-  (blessuresSurLeProfil({ id: 'c', name: 'C', kind: 'enemy', conditions: [], skills: [], characteristics: { force: 40, agilite: 35 } as never,
+  (blessuresSurLeProfil({ id: 'c', name: 'C', kind: 'ennemi', conditions: [], skills: [], characteristics: { force: 40, agilite: 35 } as never,
      wounds: blessuresDeBase(10), ...over }) as unknown as Combatant);
 
 describe('resolveRecoverTest (LDB 16 l.66/84) — données EtatData.recover', () => {

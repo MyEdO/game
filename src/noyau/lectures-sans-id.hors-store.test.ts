@@ -9,7 +9,7 @@ import { giveTrappingQualities, itemFromTrappingById, recomputeLoadout } from '.
 import { attachMutation } from '../engine/corruption';
 import { makeRNG } from '../engine/dice';
 import { mutationById } from '../data/mutations';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { apercuDuHeros } from './creation/brouillon';
 import { brouillonComplet } from './creation/engagement.testkit';
 import { rubriquesDeLaPage } from './creation/vueDeLaCreation';
@@ -40,7 +40,7 @@ describe('une lecture ne forge aucun id (#2907)', () => {
   });
 
   it('la recomposition de l’équipement d’un porteur d’arme naturelle (`recomputeLoadout`)', () => {
-    const c = pregen(idsDeTest, PREGEN.soldat);
+    const c = herosDeScenario(idsDeTest, 'soldat');
     attachMutation(c, mutationById('griffes')!, makeRNG(1));
     recomputeLoadout(c);
     expect(c.weapons.some((w) => w.natural)).toBe(true);
@@ -67,16 +67,16 @@ describe('une lecture ne forge aucun id (#2907)', () => {
 
 describe('l’arme re-dérivée garde son uid (#2907)', () => {
   it('l’arme naturelle choisie par uid se retrouve après `recomputeLoadout`', () => {
-    const c = pregen(idsDeTest, PREGEN.soldat);
+    const c = herosDeScenario(idsDeTest, 'soldat');
     attachMutation(c, mutationById('griffes')!, makeRNG(1));
     recomputeLoadout(c);
     const choisie = c.weapons.find((w) => w.natural)!;
     recomputeLoadout(c);
-    expect(pickAttackWeaponList(undefined, c, pregen(idsDeTest, PREGEN.tueur), choisie.uid).uid).toBe(choisie.uid);
+    expect(pickAttackWeaponList(null, undefined, c, herosDeScenario(idsDeTest, 'tueur'), choisie.uid).uid).toBe(choisie.uid);
   });
 
   it('l’arme dérivée d’un objet porté (Crochet, LDB 73) a un uid propre, stable, retrouvé après `recomputeLoadout`', () => {
-    const c = pregen(idsDeTest, PREGEN.soldat);
+    const c = herosDeScenario(idsDeTest, 'soldat');
     const crochet = { ...itemFromTrappingById('crochet', idsDeTest)!, equipped: true };
     c.items = [...(c.items ?? []), crochet];
     recomputeLoadout(c);
@@ -85,6 +85,6 @@ describe('l’arme re-dérivée garde son uid (#2907)', () => {
     expect(derivee.uid).not.toBe(crochet.uid);
     recomputeLoadout(c);
     expect(c.weapons.find((w) => w.derivedFromItem === crochet.uid)?.uid).toBe(derivee.uid);
-    expect(pickAttackWeaponList(undefined, c, pregen(idsDeTest, PREGEN.tueur), derivee.uid).uid).toBe(derivee.uid);
+    expect(pickAttackWeaponList(null, undefined, c, herosDeScenario(idsDeTest, 'tueur'), derivee.uid).uid).toBe(derivee.uid);
   });
 });

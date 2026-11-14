@@ -28,11 +28,11 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     H.pos = { x: 10, y: 10 };
@@ -84,7 +84,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     expect(pd!.defRoll).toBeTruthy(); // Calme du foe déjà figé
 
     banc.getState().jetLancer('distraire'); // le flux tire l’Athlétisme, opposé au Calme figé
-    expect(banc.getState().pendingDistraire!.result).toBe('success');
+    expect(banc.getState().pendingDistraire!.result).toBe('reussite');
     banc.getState().jetValider('distraire'); // Appliquer → resolveDistraire
 
     const st = banc.getState();
@@ -124,11 +124,11 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     H.pos = { x: 5, y: 10 };
@@ -137,7 +137,7 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, acted: false } });
     return { H, E };
   }
-  const ctx = (H: Combatant) => ({ active: H, battle: banc.getState().battle!, gameTime: banc.getState().gameTime });
+  const ctx = (H: Combatant) => ({ scene: banc.getState().scene, active: H, battle: banc.getState().battle!, gameTime: banc.getState().gameTime });
 
   it('BATTEMENT : sans adversaire ENGAGÉ, la case est refusée AVEC sa raison ; l’Engagement l’ouvre', () => {
     const { H, E } = terrain();
@@ -161,7 +161,7 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
     expect(banc.getState().pendingDistraire?.foeId, 'le dispatcher ouvre bien sur cet adversaire').toBe(E.id);
     banc.getState().jetAnnuler('distraire');
     const b2 = banc.getState().battle!;
-    b2.combatants.filter((c) => c.kind === 'enemy').forEach((c) => (c.dead = true));
+    b2.combatants.filter((c) => c.kind === 'ennemi').forEach((c) => (c.dead = true));
     banc.setState({ battle: { ...b2 } });
     const refus = actionGate('distraire', ctx(H));
     expect(refus.ok, 'plus aucun adversaire actif : le dispatcher n’aurait rien à traiter').toBe(false);

@@ -15,7 +15,7 @@ import { MINUTES_PER_DAY } from './clock';
 import { ciblePsy } from './psych/ciblage';
 import type { Combatant, EffectSource } from './types';
 
-const SOURCE: EffectSource = { kind: 'activity', id: 'convalescence' };
+const SOURCE: EffectSource = { kind: 'activite', id: 'convalescence' };
 const ctx = (): OpsCtx => ({ idNeuf: idsDeTest, rng: makeRNG(1), source: SOURCE });
 
 const maladie = (minutesLeft: number) => ({ id: 'infection-mineure', symptoms: [], phase: 'active' as const, minutesLeft, durationMinutes: 10 * MINUTES_PER_DAY });
@@ -46,7 +46,7 @@ const OPS: GameOp[] = [
   { op: 'removePsychTrait' }, { op: 'removePsychTrait', psychType: { id: 'peur' } }, { op: 'removePsychTrait', psychType: { id: 'haine' } },
   { op: 'removePsychTrait', psychType: { id: 'haine' }, cible: { id: 'elfe' } }, { op: 'removePsychTrait', psychType: { id: 'haine' }, cible: { id: 'gobelin' } },
   { op: 'endPsych', type: { id: 'peur' } }, { op: 'endPsych', type: { id: 'haine' } },
-  { op: 'removeCondition', id: 'extenue' }, { op: 'removeCondition', id: 'a-terre' }, { op: 'removeCondition' },
+  { op: 'removeCondition', id: { id: 'extenue' } }, { op: 'removeCondition', id: { id: 'a-terre' } }, { op: 'removeCondition' },
   { op: 'removeTrait', trait: { id: 'amphibie' } },
   { op: 'cureDisease' }, { op: 'reduceDiseaseDays', days: 1 }, { op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }, { op: 'reduceDiseaseDays', days: 0 },
   { op: 'cureCriticalWound' },

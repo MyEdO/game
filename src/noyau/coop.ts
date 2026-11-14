@@ -16,7 +16,7 @@ import { FORMAT_SAVE } from './persistance/formats.generated';
  *  dont un instantané nomme les ids (règles optionnelles et leur forme, États connus). Deux clients qui divergent
  *  sur l'un ou l'autre sont refusés par le seul `format-mismatch` du handshake (`hote/coop/session.ts`). */
 export function buildDeLaCoop(): string {
-  const regles = OPTIONAL_RULES.flatMap((r) => [r.id, r.kind, (r.options ?? []).join('|'), r.min ?? '', r.max ?? '']);
+  const regles = OPTIONAL_RULES.flatMap((r) => [r.id, r.kind, r.kind === 'mode' ? r.options.join('|') : '', r.kind === 'param' ? r.min : '', r.kind === 'param' ? r.max : '']);
   return `${FORMAT_SAVE}.${hash32(...regles, '§', ...etatIdsConnus()).toString(36)}`;
 }
 
@@ -25,8 +25,8 @@ export function buildDeLaCoop(): string {
 export const LOCALES_AU_CLIENT = ['localIntent', 'dispelCarrierId', 'refus'] as const satisfies readonly (keyof EtatDeJeu)[];
 
 /** L'instantané coop de `etat` (spec coop §3, spec v2 §5) : les clés de la sauvegarde (`snapshotSave`), le paquet de
- *  campagne réduit à son stub (ses scènes voyagent une fois au join, message `paquetDeCampagne`), sans `LOCALES_AU_CLIENT`,
- *  les règles maison de l'hôte jointes (`packHouseRules`). Sa forme est datée par `FORMAT_SAVE` (`buildDeLaCoop`). */
+ *  campagne réduit à son stub (les scènes d'une campagne lancée voyagent dans `campaignDoc`, `appliquerLInstantane`), sans
+ *  `LOCALES_AU_CLIENT`, les règles maison de l'hôte jointes (`packHouseRules`). Sa forme est datée par `FORMAT_SAVE` (`buildDeLaCoop`). */
 export function instantaneDeLaCoop(etat: EtatDeJeu): Record<string, unknown> {
   const data = snapshotSave(etat, 'net').data as unknown as Record<string, unknown>;
   const pc = data.pendingCampaign as EtatDeJeu['pendingCampaign'];
@@ -65,10 +65,10 @@ export function appliquerLInstantane(data: Record<string, unknown>, mien: EtatDe
     ...(mien.screen === 'creator' && entrant.screen === 'party' ? { screen: 'creator' as const } : null),
     net: {
       ...(entrant.net ?? mien.net),
-      mode: 'guest',
+      mode: 'invite',
       mySeat: mien.net.mySeat,
       connection: mien.net.connection,
-      hostAway: mien.net.hostAway,
+      hoteAbsent: mien.net.hoteAbsent,
     },
   };
   return {

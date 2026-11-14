@@ -2,7 +2,15 @@
   "id": "land-cargo",
   "type": "land-cargo",
   "label": "Cargaison terrestre",
-  "wineQuality": {
+  "prixDuLivre": {
+    "encParPrix": 10,
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES PRIX DE BASE (l.91)."
+    }
+  },
+  "qualiteDuVin": {
     "die": "d10",
     "entries": [
       {
@@ -73,28 +81,28 @@
       }
     ]
   },
-  "buy": {
-    "availabilityMultiplier": 10,
-    "merchantSkill": {
+  "achat": {
+    "multiplicateurDeDisponibilite": 10,
+    "competenceDuMarchand": {
       "d10": 2,
       "plus": 30
     },
-    "partialSurchargePct": 10,
-    "minEnc": 10,
-    "wineEvalDifficulty": "intermediaire",
-    "wineEvalEasyDifficulty": "accessible",
-    "wineAlcoholResistThreshold": 50,
+    "pctSurcoutPartiel": 10,
+    "encMin": 10,
+    "difficulteEvaluationVin": "intermediaire",
+    "difficulteEvaluationVinFacile": "accessible",
+    "seuilResistanceAlcool": 50,
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 73,
       "note": "ch.11 « Règles du commerce » — 4. Marchandage (l.125-131) ; l’évaluation du Vin (Test Évaluation Intermédiaire, Accessible si Résistance à l’alcool ≥50) est en l.95, folio 72."
     }
   },
-  "sell": {
-    "targetPerSize": 10,
-    "commerceBonus": 30,
-    "dumpingPctOfBase": 50,
-    "offerByRichesse": [
+  "vente": {
+    "cibleParTaille": 10,
+    "bonusDeCommerce": 30,
+    "pctDeBradage": 50,
+    "offreParRichesse": [
       {
         "min": 1,
         "max": 1,
@@ -132,7 +140,7 @@
       "note": "ch.11 « Règles du commerce » — VENTE, table Mise à prix par Richesse (l.133-160)."
     }
   },
-  "gossip": {
+  "ragot": {
     "difficulty": "complexe",
     "mod": -10,
     "source": {
@@ -141,7 +149,7 @@
       "note": "ch.11 « Règles du commerce » — Test de Ragot Complexe (–10) pour une rumeur commerciale (l.180)."
     }
   },
-  "rumours": {
+  "rumeurs": {
     "die": "d100",
     "entries": [
       {

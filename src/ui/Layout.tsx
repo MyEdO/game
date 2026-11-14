@@ -1,4 +1,5 @@
 import { createElement, forwardRef, type ForwardedRef, type HTMLAttributes, type ReactNode } from 'react';
+import type { VerrouDesMots } from '../noyau/fabriquesDuNoyau';
 
 /**
  * COUCHE LAYOUT (#1800) — les quatre concepts de PLACEMENT d'un écran, en liste FERMÉE :
@@ -141,7 +142,7 @@ type SplitProps = {
   /** Largeur de la colonne bornée : `sm` 160-240px, `md` 270px, `lg` 240px-1,3fr. */
   aside?: 'sm' | 'md' | 'lg';
   /** Côté de la colonne bornée (défaut : au début). */
-  side?: 'start' | 'end';
+  side?: 'debut' | 'fin';
   /** La colonne bornée reste visible au défilement — remise dans le flux sous la cassure. */
   sticky?: boolean;
   /** Hauteur des deux colonnes : `start` les hisse en haut, `stretch` les égale (défaut : `start`). */
@@ -151,7 +152,11 @@ type SplitProps = {
   children: ReactNode;
 } & Rest;
 
-/** SPLIT : une colonne BORNÉE + le contenu. La colonne bornée est le PREMIER enfant ; `side='end'`
+/** VERROU : le côté de la colonne bornée ne prend que des mots du lexique (#3977). */
+const verrouDuCote: VerrouDesMots<NonNullable<SplitProps['side']>> = true;
+void verrouDuCote;
+
+/** SPLIT : une colonne BORNÉE + le contenu. La colonne bornée est le PREMIER enfant ; `side='fin'`
  *  la renvoie à droite, et c'est alors le DERNIER enfant qui est borné. S'empile sous 700px sauf
  *  `stackBelow` contraire. */
 export const Split = forwardRef<HTMLElement, SplitProps>(function Split(

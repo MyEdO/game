@@ -10,11 +10,11 @@
  *    Test étendu de Marchandage Complexe (−10), 10 DR en ≤ 3 tentatives → % récupéré
  *    (`opportunityTradePct`, table verbatim `sea-cargo.json`).
  *  - Cartographie (l.288-290) : Métier (Cartographe) Complexe (−10) → une Carte marine (trapping
- *    `carte-marine`, +2 DR d'Orientation via la règle `sea-chart-orientation-dr`) d'une valeur de DR CO
+ *    `carte-marine`, +2 DR d'Orientation via la règle `mer-carte-orientation-dr`) d'une valeur de DR CO
  *    (prix d'instance). Les deux ports désignés (l.290) exigeraient un graphe de ports : simplifiés en
  *    « toute route » par cette règle maison éditable.
  *  - Planque gratuite lors de la Cartographie (l.292) : dépôt optionnel (`pick.stashGold`) dans
- *    `bank` (kind `stash`, `chartSecured`), en sûreté tant que le dépositaire garde la carte-marine —
+ *    `bank` (kind `planque`, `chartSecured`), en sûreté tant que le dépositaire garde la carte-marine —
  *    sinon découverte sur un jet ≤ 50 (`bankWithdrawInner`).
  *  - Entraînement d'équipage (l.294-300) : GATE (MDG 14 l.39, l.296) — voir `seaActivityBlocked`.
  *  - Whitelist d'Activités TERRESTRES (l.270 : Apprentissage particulier, Artisanat, Entraînement,
@@ -29,7 +29,7 @@
  * `travelActivitySpec`, Commerce d'opportunité étendu) sont des étapes de cascade construites en
  * UNE passe (`buildSeaActivitiesCascade`) — plus de bulk synchrone. Cartographie/générique sont POUSSÉES
  * à la porte de séquence, qui dérive la surface de leurs porteurs ; le Commerce d'opportunité SÉQUENCE un
- * Test étendu (`ouvrirLeTestEtendu`, `maxAttempts`+`outcome` #273 Étape 1) par héros à la fois (un seul
+ * Test étendu (`ouvrirLeTestEtendu`, `tentativesMax`+`outcome` #273 Étape 1) par héros à la fois (un seul
  * `pendingExtendedTest` actif) — `pendingSeaActivities.opportunityQueue` porte la file, vidée par
  * `continueSeaActivitiesAfterCascade` jusqu'à la halte de nuit.
  */
@@ -139,13 +139,13 @@ function eligibleSeaActivityPicks(get: Get, picks: Record<string, SeaActivityPic
   return out;
 }
 
-/** Étape MONO « Cartographie » (l.288-290, `sea-activity-chart`) : Métier (Cartographe), Complexe (−10). */
+/** Étape MONO « Cartographie » (l.288-290, `merActiviteCarte`) : Métier (Cartographe), Complexe (−10). */
 function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityPick): BuiltCascadeStep | undefined {
   const chart = seaActivityTest(def)!;
   const test: RollRequest['test'] = chart;
   const difficulty = def.tests?.[0]?.difficulty ?? 'complexe';
   return monoStep({
-    id: `sea-activity-chart-${hero.id}`, kind: 'sea-activity-chart', actor: hero,
+    id: `merActiviteCarte-${hero.id}`, kind: 'merActiviteCarte', actor: hero,
     label: composeRollLabel(hero, dataLabel(def.label), test), difficulty, rollLabel: refLabel('skills', chart.skill),
     // L'enjeu d'une Activité EST l'Activité choisie : il vit sur SA fiche (`ActivityDef.stake`).
     stake: activityStakeRef(def.id),
@@ -154,7 +154,7 @@ function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityP
   });
 }
 
-/** Étape MONO chemin GÉNÉRIQUE data-driven (`sea-activity-generic`) : `travelActivitySpec` choisit la
+/** Étape MONO chemin GÉNÉRIQUE data-driven (`merActiviteGenerique`) : `travelActivitySpec` choisit la
  *  meilleure compétence TENTABLE de l'acteur, la porte lance le Test.
  *  `undefined` = Activité SANS Test (Récupérer…), appliquée d'office ici : aucune étape à jouer. La spec
  *  est toujours rendue : le schéma d'édition refuse `freeSkill` à une Activité de contexte 'mer'
@@ -175,7 +175,7 @@ export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: Ac
   const difficulty = spec.difficulty;
   const test: RollRequest['test'] = spec.test;
   return monoStep({
-    id: `sea-activity-generic-${hero.id}`, kind: 'sea-activity-generic', actor: hero,
+    id: `merActiviteGenerique-${hero.id}`, kind: 'merActiviteGenerique', actor: hero,
     label: composeRollLabel(hero, def.label, test), difficulty, rollLabel: def.label,
     // Idem : l'enjeu descend à l'Activité jouée, quelle qu'elle soit (fail-closed si elle n'en a pas).
     stake: activityStakeRef(def.id),
@@ -198,26 +198,26 @@ function buildSeaActivitiesCascade(get: Get, set: Set, picks: Record<string, Sea
   return { steps, oppHeroIds };
 }
 
-/** Valide la semaine (`fenetreValider('seaActivities')`, l'hôte) : résout les Activités choisies (une par héros, l.268)
+/** Valide la semaine (`fenetreValider('activitesEnMer')`, l'hôte) : résout les Activités choisies (une par héros, l.268)
  *  puis rend la main à la halte de nuit — seam de jet (#273 Étape 2) : les jets deviennent des étapes de cascade
  *  influençables ; le Commerce d'opportunité (Test étendu) est SÉQUENCÉ ensuite, `continueSeaActivitiesAfterCascade`
  *  enchaîne. */
 function validerLaSemaine(get: Get, set: Set): void {
-  const pending = garanti(get().pendingSeaActivities, 'seaActivities', 'semaine en mer ouverte');
+  const pending = garanti(get().pendingSeaActivities, 'activitesEnMer', 'semaine en mer ouverte');
   const { steps, oppHeroIds } = buildSeaActivitiesCascade(get, set, pending.picks);
   set({ pendingSeaActivities: { ...pending, opportunityQueue: oppHeroIds } });
   if (!steps.length) { continueSeaActivitiesAfterCascade(get, set); return; }
   // La semaine d'Activités est UNE séquence, pas deux lots : la surface se dérive de ses porteurs
   // (`openSequence` → `surfaceDesEtapes`, #1479). Un seul héros tenu par un humain suffit à ouvrir la
   // fenêtre, et les rangées que personne ne tient s'y résolvent d'office, VISIBLES au bilan.
-  if (openSequence(get, set, { title: t('sact.weekTitle'), icon: 'travel/anchor', purpose: 'seaActivities', steps })) {
+  if (openSequence(get, set, { title: t('sact.weekTitle'), icon: 'voyage/ancre', purpose: 'seaActivities', steps })) {
     continueSeaActivitiesAfterCascade(get, set);
   }
 }
 
 /** Ouvre le Commerce d'opportunité (Test étendu, #273 Étape 1) du PROCHAIN héros de la file — mise
  *  du choix, plafonnée par lui (`plafondDeMiseDOpportunite`), débitée d'office (comme l'ancien bulk synchrone) ; l'ISSUE
- *  (% récupéré) est résolue par l'applier `sea-activity-opportunity` (`meta` sérialisable, coop). */
+ *  (% récupéré) est résolue par l'applier `merActiviteOpportunite` (`meta` sérialisable, coop). */
 function openNextOpportunityTrade(get: Get, set: Set): void {
   const pending = get().pendingSeaActivities;
   const heroId = pending?.opportunityQueue?.[0];
@@ -238,9 +238,9 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
   const test: RollRequest['test'] = seaActivityTest(def)!;
   get().ouvrirLeTestEtendu({
     actorId: hero.id, label: dataLabel(def.label), skillLabel: refLabel('skills', OPPORTUNITE.test.skill), skill: OPPORTUNITE.test.skill,
-    target: effectiveTarget(hero, test, OPPORTUNITE.test.difficulty), targetDR: OPPORTUNITE.targetDR,
-    maxAttempts: OPPORTUNITE.maxAttempts,
-    outcome: { kind: 'sea-activity-opportunity', meta: { heroId: hero.id, investBrass: invest * PA_PER_CO } },
+    target: effectiveTarget(hero, test, OPPORTUNITE.test.difficulty), drCible: OPPORTUNITE.drCible,
+    tentativesMax: OPPORTUNITE.tentativesMax,
+    outcome: { kind: 'merActiviteOpportunite', meta: { heroId: hero.id, investBrass: invest * PA_PER_CO } },
     stake: activityStakeRef(def.id),
   });
 }
@@ -274,12 +274,12 @@ export function seaActivitiesCatalog(): ActivityDef[] {
  *  d'opportunité (l.276), la planque de la Cartographie (l.292). */
 export function choixDeLaSemaineEnMer(get: Get, set: Set) {
   const choisir = (pid: string, pick: SeaActivityPick | null) => {
-    const pending = garanti(get().pendingSeaActivities, 'seaActivities', 'semaine en mer ouverte');
+    const pending = garanti(get().pendingSeaActivities, 'activitesEnMer', 'semaine en mer ouverte');
     set({ pendingSeaActivities: { ...pending, picks: { ...pending.picks, [pid]: pick } } });
   };
   const choisie = (pid: string): SeaActivityPick => garanti(get().pendingSeaActivities?.picks[pid], pid, 'Activité choisie');
   return {
-    seaActivities: {
+    activitesEnMer: {
       activite: (activite, pid) => choisir(pid, activite === null ? null : { activityId: activite }),
       investir: (investGold, pid) => choisir(pid, { ...choisie(pid), investGold }),
       cacher: (stashGold, pid) => choisir(pid, { ...choisie(pid), stashGold }),
@@ -289,20 +289,20 @@ export function choixDeLaSemaineEnMer(get: Get, set: Set) {
 
 /** La validation de la semaine (`ValidationsDeFenetre`). */
 export function validationsDeLaSemaineEnMer(get: Get, set: Set) {
-  return { seaActivities: () => validerLaSemaine(get, set) } satisfies Partial<ValidationsDeFenetre>;
+  return { activitesEnMer: () => validerLaSemaine(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['sea-activity-chart', 'sea-activity-generic'] as const;
+export const GENRES_D_ETAPE = ['merActiviteCarte', 'merActiviteGenerique'] as const;
 /** Les issues de Test étendu que ce module déclare (table `issuesDeTestEtendu`). */
-export const ISSUES_DE_TEST_ETENDU = ['sea-activity-opportunity'] as const;
+export const ISSUES_DE_TEST_ETENDU = ['merActiviteOpportunite'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   appliers: {
-    /** Cartographie (l.288-290, `sea-activity-chart`) : réussite → Carte marine (valeur = DR en CO, +2 DR
+    /** Cartographie (l.288-290, `merActiviteCarte`) : réussite → Carte marine (valeur = DR en CO, +2 DR
      *  d'Orientation) + Planque optionnelle (l.292). */
-    'sea-activity-chart': (get, set, step, hero) => {
+    'merActiviteCarte': (get, set, step, hero) => {
       if (!step.result || !hero) return;
       const stashGold = typeof step.meta?.stashGold === 'number' ? step.meta.stashGold : 0;
       const j: string[] = [];
@@ -319,7 +319,7 @@ export const TABLES = {
         if (stashGold > 0) {
           const stashBrass = stashGold * PA_PER_CO;
           payWithAllocation(get, set, { debits: soloPayer(hero.id, fromBrass(stashBrass)), recipient: hero.id, purpose: 'planque cartographie' });
-          set({ bank: [...get().bank, { uid: get().forgerUnId('it'), heroId: hero.id, kind: 'stash', brass: stashBrass, rate: 50, chartSecured: true }] });
+          set({ bank: [...get().bank, { uid: get().forgerUnId('it'), heroId: hero.id, kind: 'planque', brass: stashBrass, rate: 50, chartSecured: true }] });
           // MDG 15 l.292
           j.push(t('sact.stash', { name: hero.label, money: formatMoney(fromBrass(stashBrass)) }));
         }
@@ -329,10 +329,10 @@ export const TABLES = {
       set({ party: [...get().party] });
       return { consequences: freeCons(j) };
     },
-    /** Chemin GÉNÉRIQUE data-driven (`sea-activity-generic`) : recompose `travelActivitySpec` (déterministe,
+    /** Chemin GÉNÉRIQUE data-driven (`merActiviteGenerique`) : recompose `travelActivitySpec` (déterministe,
      *  pas de RNG) depuis `meta.activityId` et applique l'issue de l'Activité au jet DÉJÀ résolu
      *  (`appliquerIssueActivite`, source unique terre et mer). */
-    'sea-activity-generic': (get, set, step, hero) => {
+    'merActiviteGenerique': (get, set, step, hero) => {
       if (!step.result || !hero) return;
       const def = typeof step.meta?.activityId === 'string' ? activityById(step.meta.activityId) : undefined;
       const spec = def ? travelActivitySpec(hero, def) : null;
@@ -344,8 +344,8 @@ export const TABLES = {
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   issuesDeTestEtendu: {
     /** Issue de DOMAINE du Commerce d'opportunité (#273 Étape 1, Test étendu 3 tentatives max) : % récupéré
-     *  par la table verbatim (`opportunityTradePct`), qu'il ait atteint 10 DR ou buté sur `maxAttempts`. */
-    'sea-activity-opportunity': (get, set, p, total) => {
+     *  par la table verbatim (`opportunityTradePct`), qu'il ait atteint 10 DR ou buté sur `tentativesMax`. */
+    'merActiviteOpportunite': (get, set, p, total) => {
       const meta = p.outcome?.meta;
       const heroId = String(meta?.heroId);
       const investBrass = typeof meta?.investBrass === 'number' ? meta.investBrass : 0;

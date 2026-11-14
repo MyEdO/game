@@ -19,50 +19,50 @@ const vide = (): Scene => emptyScene('scene-geste', 6, 4);
 describe('appliquerOutil — un outil appliqué à une case', () => {
   it('hors de la carte, aucun outil n’écrit', () => {
     for (const p of [{ x: -1, y: 0 }, { x: 6, y: 0 }, { x: 0, y: 4 }])
-      expect(appliquerOutil(vide(), { mode: 'tile', terrain: 'pierre' }, p, GESTE)).toBeNull();
+      expect(appliquerOutil(vide(), { mode: 'terrain', terrain: 'pierre' }, p, GESTE)).toBeNull();
   });
 
   it('le pinceau de terrain peint la case visée, à la couche du geste', () => {
-    const out = appliquerOutil(vide(), { mode: 'tile', terrain: 'pierre' }, { x: 2, y: 1 }, GESTE);
+    const out = appliquerOutil(vide(), { mode: 'terrain', terrain: 'pierre' }, { x: 2, y: 1 }, GESTE);
     expect(out && tileAt(out.scene, 2, 1)).toBe('pierre');
     expect(out?.sel).toBeUndefined();
   });
 
   it('l’outil décor pose toujours, même sur une case occupée, et désigne ce qu’il pose ; l’outil personnage désigne ce qui est déjà là', () => {
-    const outil = { mode: 'entity', kind: 'prop', ref: 'tonneau' } as const;
+    const outil = { mode: 'entite', kind: 'prop', ref: 'tonneau' } as const;
     const pose = appliquerOutil(vide(), outil, { x: 1, y: 1 }, GESTE)!;
     expect(pose.scene.entities).toHaveLength(1);
     expect(pose.sel).toEqual({ type: 'entity', id: pose.scene.entities[0].id });
     const encore = appliquerOutil(pose.scene, outil, { x: 1, y: 1 }, GESTE)!;
     expect(encore.scene.entities).toHaveLength(2);
     expect(encore.sel).toEqual({ type: 'entity', id: encore.scene.entities[1].id });
-    const pnj = appliquerOutil(encore.scene, { mode: 'entity', kind: 'personnage', ref: 'mutant' }, { x: 1, y: 1 }, GESTE)!;
+    const pnj = appliquerOutil(encore.scene, { mode: 'entite', kind: 'personnage', ref: 'mutant' }, { x: 1, y: 1 }, GESTE)!;
     expect(pnj.scene).toBe(encore.scene);
   });
 
   it('l’outil de rencontre pose un ennemi et rend la rencontre qu’il a complétée', () => {
-    const out = appliquerOutil(vide(), { mode: 'encounter' }, { x: 3, y: 2 }, GESTE)!;
+    const out = appliquerOutil(vide(), { mode: 'rencontre' }, { x: 3, y: 2 }, GESTE)!;
     expect(out.encId).toBe(out.scene.encounters[0].id);
     expect(out.sel).toEqual({ type: 'entity', id: out.scene.encounters[0].members![0].entityId });
   });
 
   it('l’outil de rencontre sur un décor pose un ennemi à côté de lui, sans enrôler le décor', () => {
-    const tonneau = appliquerOutil(vide(), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 3, y: 2 }, GESTE)!.scene;
-    const out = appliquerOutil(tonneau, { mode: 'encounter' }, { x: 3, y: 2 }, GESTE)!;
+    const tonneau = appliquerOutil(vide(), { mode: 'entite', kind: 'prop', ref: 'tonneau' }, { x: 3, y: 2 }, GESTE)!.scene;
+    const out = appliquerOutil(tonneau, { mode: 'rencontre' }, { x: 3, y: 2 }, GESTE)!;
     const membre = out.scene.entities.find((e) => e.id === out.scene.encounters[0].members![0].entityId)!;
     expect(membre.kind).toBe('personnage');
     expect(out.scene.entities).toHaveLength(2);
   });
 
   it('l’outil murs exige l’arête visée, et bascule le mur de cette arête', () => {
-    const outil = { mode: 'wall', paint: 'wall' } as const;
+    const outil = { mode: 'arete', paint: 'wall' } as const;
     expect(appliquerOutil(vide(), outil, { x: 1, y: 1 }, GESTE)).toBeNull();
     const out = appliquerOutil(vide(), outil, { x: 1, y: 1 }, { ...GESTE, side: 'N' })!;
     expect(out.scene.walls).toEqual([expect.objectContaining({ x: 1, y: 1, side: 'N' })]);
   });
 
   it('sélection, zone au rectangle et tracé de volée n’écrivent rien à la case', () => {
-    for (const tool of [{ mode: 'select' }, { mode: 'zone', zone: 'room' }, { mode: 'stair', toZ: 1 }] as const)
+    for (const tool of [{ mode: 'selection' }, { mode: 'zone', zone: 'room' }, { mode: 'escalier', toZ: 1 }] as const)
       expect(appliquerOutil(vide(), tool, { x: 1, y: 1 }, GESTE)).toBeNull();
   });
 });
@@ -86,9 +86,9 @@ describe('validerRectangle — le rectangle tracé', () => {
   });
 
   it('le terrain au rectangle remplit le rectangle ; un outil sans rectangle ne rend rien', () => {
-    const out = validerRectangle(vide(), { mode: 'tile', terrain: 'pierre' }, rect, 0)!;
+    const out = validerRectangle(vide(), { mode: 'terrain', terrain: 'pierre' }, rect, 0)!;
     expect([tileAt(out.scene, 1, 1), tileAt(out.scene, 2, 2), tileAt(out.scene, 3, 3)]).toEqual(['pierre', 'pierre', 'herbe']);
-    expect(validerRectangle(vide(), { mode: 'erase' }, rect, 0)).toBeNull();
+    expect(validerRectangle(vide(), { mode: 'gomme' }, rect, 0)).toBeNull();
   });
 });
 

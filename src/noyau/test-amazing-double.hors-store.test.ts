@@ -20,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h', label: 'Hilda', kind: 'hero',
+    id: 'h', label: 'Hilda', kind: 'heros',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 50, endurance: 50, initiative: 50, agilite: 50, dexterite: 50, intelligence: 50, 'force-mentale': 50, sociabilite: 50 },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -28,7 +28,7 @@ const hero = (p: Partial<Combatant>): Combatant =>
   }) as Combatant);
 
 const basePending = (over: Partial<PendingTest> = {}): PendingTest => ({
-  actorId: 'h', actorName: 'Hilda', label: 'Test', skill: 'Athlétisme', skillValue: 50,
+  actorId: 'h', label: 'Test', skill: 'Athlétisme', skillValue: 50,
   difficulty: 'intermediaire', requireSL: 0, target: 50, isDouble: false,
   roll: null, success: false, sl: 0, ...over,
 });
@@ -50,7 +50,7 @@ describe('amazingTestLabel — libellé du double (LDB 12 l.127), règle `test-c
       .toEqual({ success: false, text: 'Échec Stupéfiant' });
   });
   it('aucun badge sur une réussite FORCÉE (Résilience) — pas un vrai double de dé', () => {
-    expect(amazingTestLabel(basePending({ roll: 1, success: true, isDouble: false, forced: true }))).toBeNull();
+    expect(amazingTestLabel(basePending({ roll: 1, success: true, isDouble: false, forcee: true }))).toBeNull();
   });
 });
 
@@ -72,7 +72,7 @@ describe('FLOWS.test — isDouble PROPAGÉ du jet jusqu’au pendingTest', () =>
     // (garanti statistiquement) et on vérifie la cohérence à CHAQUE itération.
     for (let i = 0; i < 400; i++) {
       banc.setState({ party: [h], pendingTest: basePending() });
-      FLOWS.test.roll(banc.getState, banc.setState);
+      FLOWS.test.lancer(banc.getState, banc.setState);
       const pt = banc.getState().pendingTest!;
       expect(pt.roll).not.toBeNull();
       // Le flag du pending = le double du dé réellement obtenu (propagation via le commit de la fabrique).

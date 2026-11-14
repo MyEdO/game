@@ -51,6 +51,10 @@ export const WORKFLOWS = Object.freeze({
     etat: 'autosignale',
     raison: `le step sous !cancelled() exécute ${SIGNALEUR} avec job.status ; les refus de fusion sont visibles sur la PR et ses tickets par reprendre-file.mjs`,
   },
+  'facteur.yml': {
+    etat: 'autosignale',
+    raison: `le step sous !cancelled() && (failure() || relais posé) exécute ${SIGNALEUR} avec job.status ; un relais refusé fait sortir facteur.mjs en code non nul, un run sans relais ne rend aucun verdict`,
+  },
   'fermetures.yml': {
     etat: 'autosignale',
     raison:
@@ -86,6 +90,12 @@ export const WORKFLOWS = Object.freeze({
     raison:
       '`on: workflow_dispatch:` seul : lancé et regardé par une main humaine (AGENTS.md § Pile et ' +
       'commandes : cible `jeu`, « prod — sur demande explicite SEULEMENT » ; cible `dev`, le test de l’hôte Godot)',
+  },
+  'bureau.yml': {
+    etat: 'manuel',
+    raison:
+      '`on: workflow_dispatch:` seul : lancé par celui qui veut l’exécutable de bureau (#3951), qui lit son run et ' +
+      'en télécharge l’artefact ; `npm run godot:bureau` y rougit si l’exécutable ne joue pas sa partie',
   },
 })
 

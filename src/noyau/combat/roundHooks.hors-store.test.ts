@@ -11,7 +11,7 @@ const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endu
 
 const combatant = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'x', name: 'X', kind: 'enemy',
+    id: 'x', name: 'X', kind: 'ennemi',
     skills: [], talents: [], conditions: [], activeEffects: [], liveTraits: [],
     wounds: blessuresDeBase(10), advantage: 0,
     ...over,

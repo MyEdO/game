@@ -12,7 +12,7 @@ import { imposerLesD100 } from '../../noyau/battleRng.testkit';
 import { setRule, resetRule } from '../../engine/policy';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../../scenes/campaign';
-import { makePregensWithWealth, PREGEN, idDuPretire } from '../../data/pregens';
+import { groupeVitrineDeScenario } from '../../scenes/test-scenarios/_heros';
 import { creditBourse, partyMoneyTotal } from '../../noyau/bourseFlow';
 import { toBrass } from '../../engine/money';
 import { prixParPassager, transportCost, type TarifDePassage } from '../../engine/travel';
@@ -40,16 +40,14 @@ const T3 = 'route-sept-rayons-altdorf';
 const get = () => banc.getState();
 const bourse = () => toBrass(partyMoneyTotal(get));
 
-/** Les 4 piliers du groupe showcase (`makeShowcaseParty`), avec LEUR Richesse initiale tirée (LDB 05 l.578). */
-const SHOWCASE: readonly string[] = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].map((s) => idDuPretire(s));
+const BOURSE_DE_FIXTURE = { gold: 0, silver: 3, brass: 4 };
 
 /** Lance le chapitre 1 avec le groupe showcase et sa bourse, et fait monter à bord (`edo-ch1-depart`). */
 function aBord(): void {
-  const groupe = makePregensWithWealth(idsDeTest).filter((e) => SHOWCASE.includes(e.hero.id));
-  expect(groupe).toHaveLength(4);
-  banc.setState({ party: groupe.map((e) => e.hero) });
+  const groupe = groupeVitrineDeScenario(idsDeTest);
+    banc.setState({ party: groupe });
   expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
-  for (const e of groupe) creditBourse(get, banc.setState, e.hero.id, e.wealth);
+  for (const h of groupe) creditBourse(get, banc.setState, h.id, BOURSE_DE_FIXTURE);
   get().fenetreValider('ouverture');
   poserLeGroupe(get, banc.setState, { x: 13, y: 31 }); // à portée de la charrette (patron `edo-ch1-chaine-carte.hors-store.test.ts`)
   get().jouerAction('diligence-remise-charrette', 'monter-a-bord');
@@ -89,16 +87,16 @@ function marchander(joueur: (cible: number) => number, vendeur: number): Bargain
   const pb = get().pendingBargain!;
   expect(pb.contrepartie).toEqual({ kind: 'billet', routeId: T1, vehicule: 'diligence', depuis: 'la-diligence', titre: t('out.bargainTitreBillet') });
   imposerLesD100(joueur(pb.playerSkill), vendeur);
-  get().jetLancer('bargain');
+  get().jetLancer('marchandage');
   vi.restoreAllMocks();
-  get().jetValider('bargain');
+  get().jetValider('marchandage');
   return get().marchandagesDeBillet[cleDeBillet(T1, 'diligence', 'la-diligence')];
 }
 /** Victoire nette de 1 à 5 DR : le joueur réussit d'un Degré (cible − 10), le vendeur fait 27 sur 27 (DR 0). */
 const gagneDeUnPeu = (): BargainOutcome => marchander((cible) => cible - 10, 27);
 
-beforeEach(() => setRule('test-auto-bands', 'off'));
-afterEach(() => { resetRule('test-auto-bands'); vi.restoreAllMocks(); });
+beforeEach(() => setRule('test-bandes-auto', 'off'));
+afterEach(() => { resetRule('test-bandes-auto'); vi.restoreAllMocks(); });
 
 describe('(a) le billet La Diligence → Sept Rayons se paie UNE fois, au départ', () => {
   it('sans marchandage, 4 × 4/- au toit (192 sous) dépasse la bourse tirée du groupe showcase (160 sous) : départ refusé', () => {
@@ -172,7 +170,7 @@ describe('(c) un seul Test de Marchandage par billet', () => {
     expect(pb.opposant.valeur).toBe(skillBaseValue(gunnar, { skill: { id: 'marchandage' } }));
     expect(pb.opposant.valeur).toBe(27); // Sociabilité 27, sans Augmentation en Marchandage
     vi.restoreAllMocks();
-    get().jetAnnuler('bargain');
+    get().jetAnnuler('marchandage');
     marchander(() => 99, 1);
     expect(get().pendingBargain).toBeNull();
     expect(get().marchandagesDeBillet[cleDeBillet(T1, 'diligence', 'la-diligence')]?.won).toBe(false);

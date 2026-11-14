@@ -23,12 +23,12 @@ function ouvrir() {
   banc.setState({ party: scenario.construire(idsDeTest).party });
   banc.getState().lancerLaScene(scenarioConstruit.scene);
   banc.getState().lancerLeCombat('enc-pastilles');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   // L'ordre du Round est tiré à l'Initiative : on se place au TOUR DU SOLDAT, celui que le joueur
   // exerce en recette (même patron que `42-belier-porte.hors-store.test`, dont la poussée exige l'actif chef).
   const b = banc.getState().battle!;
-  const soldat = b.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
+  const soldat = b.combatants.find((c) => c.kind === 'heros' && !!c.mannedPoste)!;
   banc.setState({ battle: { ...b, turn: b.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });
   return banc.getState();
 }
@@ -39,7 +39,7 @@ const actionDe = (o: Offre) => o.actionId;
 /** Les PASTILLES D'ENTITÉ de l'instant : les offres de l'actif à la surface du champ, par entité qui les porte. */
 const entityGestes = (st: Jeu) => {
   const battle = st.battle!;
-  return offresParPorteur(offresDeLActif({ active: activeCombatant(battle)!, battle, netMode: st.net.mode, gameTime: st.gameTime, state: st }), 'pastille-entite');
+  return offresParPorteur(offresDeLActif({ scene: st.scene, active: activeCombatant(battle)!, battle, netMode: st.net.mode, gameTime: st.gameTime, state: st }), 'pastille-entite');
 };
 
 describe('Scénario « Pastilles d’entité » — le banc de recette de la zone 4', () => {
@@ -47,7 +47,7 @@ describe('Scénario « Pastilles d’entité » — le banc de recette de la zon
   it('le Soldat ACTIF est chef du bélier, et les trois porteurs sont à UNE case (aucun pas requis)', () => {
     const st = ouvrir();
     const b = st.battle!;
-    const soldat = b.combatants.find((c) => c.kind === 'hero')!;
+    const soldat = b.combatants.find((c) => c.kind === 'heros')!;
     expect(soldat.mannedPoste, 'le Soldat sert le bélier (chef de pièce)').toBeTruthy();
     expect(b.order, 'et il entre bien dans l’ordre du Round').toContain(soldat.id);
     const cheval = b.combatants.find((c) => c.mountable)!;
@@ -61,12 +61,12 @@ describe('Scénario « Pastilles d’entité » — le banc de recette de la zon
     const offres = entityGestes(st);
     const parAction = new Map(offres.flatMap((p) => p.offres.map((o) => [actionDe(o), p.porteurId] as const)));
     // Monter (la monture), Ramasser (le coffre), Pousser (l'engin servi) — chacun porté par SON entité.
-    expect([...parAction.keys()].sort(), 'les gestes du banc').toEqual(['mount', 'pickup', 'push-engine']);
+    expect([...parAction.keys()].sort(), 'les gestes du banc').toEqual(['mise-en-selle', 'poussee', 'ramassage']);
     const cheval = st.battle!.combatants.find((c) => c.mountable)!;
-    expect(parAction.get('mount'), 'Monter naît de la MONTURE').toBe(cheval.id);
-    expect(parAction.get('pickup'), 'Ramasser naît du COFFRE').toBe('coffre-de-cour');
+    expect(parAction.get('mise-en-selle'), 'Monter naît de la MONTURE').toBe(cheval.id);
+    expect(parAction.get('ramassage'), 'Ramasser naît du COFFRE').toBe('coffre-de-cour');
     const engin = st.battle!.combatants.find((c) => c.postes?.length)!;
-    expect(parAction.get('push-engine'), 'Pousser naît de la PIÈCE servie').toBe(engin.id);
+    expect(parAction.get('poussee'), 'Pousser naît de la PIÈCE servie').toBe(engin.id);
     // Le scénario DIT ce qu'il couvre : ses gestes sont nommés dans sa fiche (catalogue `docs/test-scenarios.md`).
     for (const id of parAction.keys()) expect(scenario.tests, `le scénario nomme ${id}`).toContain(id);
   });
@@ -80,7 +80,7 @@ describe('Scénario « Pastilles d’entité » — le banc de recette de la zon
 
   it('« Pousser » est OFFERT (Équipe complète) — et son coût est dit sur la pastille', () => {
     const st = ouvrir();
-    const pousser = entityGestes(st).flatMap((p) => p.offres).find((o) => actionDe(o) === 'push-engine')!;
+    const pousser = entityGestes(st).flatMap((p) => p.offres).find((o) => actionDe(o) === 'poussee')!;
     expect(pousser.gate.ok, 'l’Équipe de 6 est au complet : le geste est ouvert').toBe(true);
     expect(pousser.cost, 'la poussée prend le Mouvement').toBeTruthy();
   });

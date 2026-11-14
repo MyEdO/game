@@ -2,9 +2,9 @@
  * LA FENÊTRE D'INCANTATION EN DONNÉES (#3059) — ce que la fenêtre d'incantation (`pendingCast`) montre, lu de l'état :
  * le Sort, son NI et sa Zone d'Effet, la ligne du jet (aperçu ou jet tombé), les réglages d'avant et d'après le jet
  * (ton de la Prière, forme de l'arme invoquée, effet d'Incantation Critique, Surincantation, jets sur le Tableau, pose
- * de la zone), chacun avec la raison qui le refuse, les fermetures du flux `cast`, l'annulation et l'issue. Lecteur PUR,
+ * de la zone), chacun avec la raison qui le refuse, les fermetures du flux `incantation`, l'annulation et l'issue. Lecteur PUR,
  * partagé par l'écran d'incantation et par tout hôte qui lit la partie sans écran ; ses refus sont ceux que
- * les réglages du jet (`jetRegler('cast', …)`, `reglagesDuCombat`) et la pose de la zone appliquent (`combatSlice.ts`).
+ * les réglages du jet (`jetRegler('incantation', …)`, `reglagesDuCombat`) et la pose de la zone appliquent (`combatSlice.ts`).
  * Ses textes sortent du catalogue par `t()`.
  */
 import type { Jeu } from './etat';
@@ -85,9 +85,9 @@ export interface FenetreDIncantation {
   /** Les pas de Surincantation de chaque axe ouvert, en choix réglés (`REGLAGE_DE_L_AXE`) : de 0 au budget, chaque pas
    *  avec la raison qui le refuse ; vide quand le jet n'ouvre aucun pas. LDB 47 l.15-17 */
   crans: ChoixNomme<number>[];
-  /** La pose de la zone après le jet (`jetRegler('cast', 'carte', 'zone')`) : la raison qui la refuse ; `null` sans zone à poser. */
+  /** La pose de la zone après le jet (`jetRegler('incantation', 'carte', 'zone')`) : la raison qui la refuse ; `null` sans zone à poser. */
   pose: { refus: string | null } | null;
-  /** Les fermetures du flux `cast` (`FLOWS.cast.fermetures`). */
+  /** Les fermetures du flux `incantation` (`FLOWS.incantation.fermetures`). */
   fermetures: FermeturesDuJet;
   /** Pourquoi l'annulation est refusée (`fermetures.cancel`), `null` si elle est offerte. */
   annulation: string | null;
@@ -98,8 +98,8 @@ export interface FenetreDIncantation {
 /** Ce que refuse le réglage `reglage` de l'incantation maintenant, en mots du joueur ; `null` : ouvert. La fermeture
  *  est celle que `jetRegler` applique (`fermetureDuReglage` : sa phase, puis son offre) ; la fenêtre et les refus de
  *  valeur ci-dessous la lisent ici. */
-export function refusDuReglage(s: Jeu, reglage: ReglageDu<'cast'>): string | null {
-  const f = fermetureDuReglage(() => s, 'cast', reglage);
+export function refusDuReglage(s: Jeu, reglage: ReglageDu<'incantation'>): string | null {
+  const f = fermetureDuReglage(() => s, 'incantation', reglage);
   return f ? libelleDeLaFermeture(f) : null;
 }
 
@@ -158,8 +158,8 @@ export function refusDeLaPose(s: Jeu, on: boolean): string | null {
 }
 
 /** Le réglage `reglage` se montre : ouvert, ou refusé au seul siège qui ne pilote pas le lanceur (`rangeeTemoin`). */
-const seMontre = (s: Jeu, reglage: ReglageDu<'cast'>): boolean => {
-  const f = fermetureDuReglage(() => s, 'cast', reglage);
+const seMontre = (s: Jeu, reglage: ReglageDu<'incantation'>): boolean => {
+  const f = fermetureDuReglage(() => s, 'incantation', reglage);
   return !f || f === 'rangeeTemoin';
 };
 
@@ -208,14 +208,14 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
   if (!lanceur || !cible || !sort) return null;
   const res = pc.result;
   const priere = castInfoIsPrayer(sort);
-  const montre = (reglage: ReglageDu<'cast'>): boolean => seMontre(s, reglage);
-  const choix = <V extends string | number | boolean>(reglage: ReglageDu<'cast'>, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> =>
-    ({ geste: gesteDuReglage('cast', reglage), libelle: libelleDuReglage('cast', reglage), choisie, options });
+  const montre = (reglage: ReglageDu<'incantation'>): boolean => seMontre(s, reglage);
+  const choix = <V extends string | number | boolean>(reglage: ReglageDu<'incantation'>, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> =>
+    ({ geste: gesteDuReglage('incantation', reglage), libelle: libelleDuReglage('incantation', reglage), choisie, options });
   const zoneAPoser = !!pc.zone && !pc.zone.center;
   const apercu = previewCast(lanceur, sort, { missile: pc.missile, focused: pc.focused, jete: !!res, ctx: { s, target: cible, skipWard: zoneAPoser } });
   const formes = conjureFormOptions(lanceur);
   const refusDeForme = refusDuReglage(s, 'formeConjuree');
-  const fermetures = fermeturesDuFlux(s, 'cast');
+  const fermetures = fermeturesDuFlux(s, 'incantation');
   const surincantation = surincantationEnVue(s);
   return {
     lanceurId: lanceur.id,
@@ -260,7 +260,7 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
     })))),
     pose: zoneAPoser && res && s.battle ? { refus: refusDeLaPose(s, true) } : null,
     fermetures,
-    annulation: fermetures.cancel ? libelleDeLaFermeture(fermetures.cancel) : null,
+    annulation: fermetures.annuler ? libelleDeLaFermeture(fermetures.annuler) : null,
     issue: issueDeLIncantation(s),
   };
 }

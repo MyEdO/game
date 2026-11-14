@@ -3,10 +3,9 @@
  *  nuit. Les deux regards de l'hôte du monde (`stage/MondeDeCampagne`) et la QC headless consomment
  *  les MÊMES defs SVG assemblées ici —
  *  plus aucune de ces couleurs en dur dans un renderer. */
-import { ambiance } from '../../data';
+import { ambiance, type AmbianceDef, type RadialVeilDef } from '../../data';
 import { ao, luminanceHex, spec } from '../../lib/ombrage';
 import type { Dims } from '../../geometry/iso';
-import type { AmbianceDef, RadialVeilDef } from '../../data/ambiance.types';
 import { sceneWeatherFx } from '../../noyau/monde/meteo';
 import type { Scene } from '../../noyau/monde/scene';
 

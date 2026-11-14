@@ -1,0 +1,31 @@
+{
+  "id": "reaction-au-statut",
+  "type": "reaction-au-statut",
+  "label": "Réaction au Statut",
+  "die": "d10",
+  "entries": [
+    {
+      "id": "reaction-au-statut-1-2",
+      "min": 1,
+      "max": 2,
+      "issue": "braver-le-statut"
+    },
+    {
+      "id": "reaction-au-statut-3-8",
+      "min": 3,
+      "max": 8,
+      "issue": "reactions-classiques"
+    },
+    {
+      "id": "reaction-au-statut-9-10",
+      "min": 9,
+      "max": 10,
+      "issue": "opinions-extremes"
+    }
+  ],
+  "source": {
+    "book": "livre-de-base",
+    "page": 50,
+    "note": "Au-delà de la norme sociale, LDB 08 l.38-46"
+  }
+}

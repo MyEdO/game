@@ -5,13 +5,14 @@ import { startCascade, pushStep, suspendActiveCascade, resumeSuspendedCascade, s
 import { tableStep, displayStep } from '../noyau/rollSeam';
 import { stepForcedDie } from '../ui/forcedDieRow';
 import { fixtureText } from '../i18n/fixtureText';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { setCadence, resetCadence, type Cadence } from '../engine/cadence';
 import type { CascadeStep } from '../noyau/pendings';
 import { avecLesTables, type FixtureDeTables, cleDeFixture } from '../noyau/noyau.testkit';
 import type { GenreDeCascade } from '../noyau/tablesPosees';
+import { deDeLaTableTiree } from '../engine/tables';
 
 /**
  * GARDE DE PARITÉ DE PORTEUR (#1426) — le pilote de cascade traite une table de MONDE exactement
@@ -42,7 +43,7 @@ const FIXTURE: FixtureDeTables = {
   tablesTirables: {
     [TABLE]: {
       label: fixtureText('Table de parité'),
-      die: 100,
+      die: deDeLaTableTiree({ die: 'd100' }),
       rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }],
       lines: () => ['ligne de parité'],
     },
@@ -60,7 +61,7 @@ type Porteur = 'heros' | 'monde';
 function etapeTable(porteur: Porteur, heroId: string, id = 'parite-1'): CascadeStep {
   const commun = {
     id, kind: cleDeFixture('parite-table'), label: fixtureText('Table de parité'),
-    table: { tableId: TABLE, spec: { n: 1, sides: 100 } },
+    table: { tableId: TABLE },
     stake: { key: { dataset: 'combat' as const, kind: 'mutation' } },
   };
   return (porteur === 'heros' ? tableStep({ ...commun, actorId: heroId }) : tableStep({ ...commun, worldOwner: true }))!;
@@ -95,7 +96,7 @@ interface Observation {
 
 /** Groupe d'UN héros, siège local, mode solo — l'état complet du cas, jamais hérité du voisin. */
 function montage(): string {
-  const h = makePregens(idsDeTest)[0];
+  const h = tousLesHerosDeScenario(idsDeTest)[0];
   set({ party: [h], battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
   set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   return h.id;

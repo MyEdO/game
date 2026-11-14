@@ -12,10 +12,10 @@ import { fixedJetOpen, markFixedDie } from './fixedDieMark';
 import type { Get, Set as SetFn } from './flowTypes';
 
 export type CombatEventKind =
-  | 'charge' | 'attack' | 'shoot' | 'cast' | 'item' | 'heal' | 'move' | 'flee'
-  | 'defensive' | 'aim' | 'focus' | 'frenzy' | 'reload'
-  | 'parry' | 'dodge' | 'damage' | 'crit'
-  | 'condition' | 'fear' | 'death' | 'round' | 'detail' | 'info';
+  | 'charge' | 'attaque' | 'tir' | 'sort' | 'objet' | 'soin' | 'deplacement' | 'fuite'
+  | 'defensive' | 'visee' | 'focalisation' | 'frenesie' | 'rechargement'
+  | 'parade' | 'esquive' | 'degats' | 'critique'
+  | 'etat' | 'peur' | 'mort' | 'round' | 'detail' | 'information';
 
 export interface CombatEvent {
   kind: CombatEventKind;
@@ -29,7 +29,7 @@ export interface CombatEvent {
 /** Télégraphe d'intention d'un combattant IA (réticule + ligne sur la carte) : qui vise qui, et de
  *  quelle manière. `kind` choisit le trait (mêlée/charge = ligne PLEINE ; tir/sort = POINTILLÉE) ET
  *  narre la bannière (« charge / attaque / vise / lance un sort »). Une seule source pour les deux. */
-export type ActorAimKind = 'melee' | 'charge' | 'ranged' | 'cast';
+export type ActorAimKind = 'melee' | 'charge' | 'tir' | 'incantation';
 export interface ActorAim {
   fromId: string;
   toId: string;
@@ -43,7 +43,7 @@ export function ev(kind: CombatEventKind, text: string, actorId?: string, target
 
 /** L'évènement `condition` de la ligne `text`, qui nomme l'État `etat`. */
 export function evDEtat(etat: string, text: string, actorId?: string): CombatEvent {
-  return { kind: 'condition', text, actorId, etat };
+  return { kind: 'etat', text, actorId, etat };
 }
 
 /**
@@ -84,8 +84,8 @@ export function journaliser(
   get: Get,
   set: SetFn,
   lines: string[],
-  kind: CombatEventKind = 'info',
-  opts?: { actorId?: string; extra?: CombatEvent[] },
+  kind: CombatEventKind = 'information',
+  opts?: { actorId?: string; targetId?: string; extra?: CombatEvent[] },
 ): void {
   const extra = opts?.extra ?? [];
   if (!lines.length && !extra.length) return;
@@ -95,7 +95,7 @@ export function journaliser(
     return;
   }
   const dites = fixedJetOpen(get()) ? lines.map(markFixedDie) : lines;
-  set({ battle: { ...b, log: [...b.log, ...evLines(dites, kind, opts?.actorId), ...extra] } });
+  set({ battle: { ...b, log: [...b.log, ...evLines(dites, kind, opts?.actorId, opts?.targetId), ...extra] } });
 }
 
 /**
@@ -106,7 +106,7 @@ export function journaliser(
  */
 export type CombatTone = 'normal' | 'strong' | 'grave';
 
-const KIND_TONE: Partial<Record<CombatEventKind, CombatTone>> = { crit: 'grave', death: 'grave', fear: 'strong' };
+const KIND_TONE: Partial<Record<CombatEventKind, CombatTone>> = { critique: 'grave', mort: 'grave', peur: 'strong' };
 export function toneOf(k: CombatEventKind): CombatTone {
   return KIND_TONE[k] ?? 'normal';
 }
@@ -114,8 +114,8 @@ export function toneOf(k: CombatEventKind): CombatTone {
 /** Types d'événements « temps forts » (bandeau haut ET cadence) — le reste (dégâts bruts, mouvement…)
  *  reste au journal sans ralentir/marquer le rythme. */
 const IMPORTANT: Set<CombatEventKind> = new Set([
-  'charge', 'attack', 'shoot', 'cast', 'item', 'heal', 'flee',
-  'defensive', 'aim', 'focus', 'frenzy', 'crit', 'fear', 'death', 'round',
+  'charge', 'attaque', 'tir', 'sort', 'objet', 'soin', 'fuite',
+  'defensive', 'visee', 'focalisation', 'frenesie', 'critique', 'peur', 'mort', 'round',
 ]);
 
 /** Un évènement `condition` est important s'il nomme un État INCAPACITANT (Sonné, À terre…
@@ -130,7 +130,7 @@ function isImportantCondition(e: CombatEvent): boolean {
 /** Un évènement est-il un « temps fort » (bandeau haut ET cadence) ? */
 export function isImportantEvent(e: CombatEvent): boolean {
   if (IMPORTANT.has(e.kind)) return true;
-  if (e.kind === 'condition') return isImportantCondition(e);
+  if (e.kind === 'etat') return isImportantCondition(e);
   return false;
 }
 

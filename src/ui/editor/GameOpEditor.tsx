@@ -19,9 +19,17 @@ import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
 import { noeudObjet, payloadDeFamille } from '../../data/schemas/validate';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
-import { chaosAlignSchema, deDeTirageSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
+import { acteDeDeverrouillageSchema, chaosAlignSchema, deDeTirageSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
-import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, OP_LABEL, armourBypassCategorieSchema, banishNarrationSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
+import {
+  SUJETS_DE_VERROU,
+  CHAMPS_EXCLUS_DE_CARRIED,
+  OP_LABEL,
+  armourBypassCategorieSchema,
+  banishNarrationSchema,
+  gameOpSchema,
+  tablesDeCiblesSchema,
+} from '../../data/schemas/grammaire/mecanique';
 import { ConditionEditor } from './ConditionEditor';
 import { opsMissingRefs } from '../../data/refsDOp';
 import { opSummary } from './interne/resumeDOp';
@@ -39,14 +47,20 @@ import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTraits } from '../../data/refFormatLivre';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
-import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { JsonField } from './JsonField';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
-import type { IconIdInput } from '../../data/icons';
-import { NATURES_D_INFLUENCE, TERMES_DE_JET, admetLePeche, estSansTirage, formuleSansTirageSchema, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
+import type { IconId } from '../../data/icons';
+import {
+  NATURES_D_INFLUENCE,
+  TERMES_DE_JET,
+  admetLePeche,
+  estSansTirage,
+  formuleSansTirageSchema,
+  type NatureDInfluence,
+} from '../../data/schemas/grammaire/valeurs';
 import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { FORME_DE_CLE, contientLePeche, formulaForShape, newOp, paramsDeRegle, shapeOf, type FormulaShape } from '../../noyau/valeursNeuves';
 
@@ -54,57 +68,53 @@ const SIZES = Object.keys(SIZE_LABEL) as SizeCategory[];
 
 const CHARS = Object.keys(CHAR_LABELS) as CharKey[];
 
-/** Actes de soin qui LÈVENT un verrou d'État (`ConditionUnlock`, LDB 18) — libellés du moteur
- *  (`ACTE_DE_DEVERROUILLAGE`), partagés avec le refus d'un remède sur un État verrouillé. */
-const UNLOCK_LABELS = Object.entries(ACTE_DE_DEVERROUILLAGE) as [ConditionUnlock, string][];
-
 // ---------------------------------------------------------------------------
 // Vocabulaire COMPLET — libellé + menu groupé par intention
 // ---------------------------------------------------------------------------
 
 /** Icône de CHAQUE op (rendue à côté du libellé partout SAUF dans le `<select>`/`<optgroup>` natif,
  *  qui ne peut afficher que du texte) — vocabulaire LARGE : plusieurs ops apparentées partagent
- *  la même icône (cf. defs/mechanic.ts, « pas une métaphore par op individuelle »). */
-const OP_ICON: Record<GameOp['op'], IconIdInput> = {
-  wounds: 'journal/damage', heal: 'journal/heal', healCaster: 'journal/heal', fall: 'journal/fall',
-  condition: 'magic/area', removeCondition: 'magic/gust',
-  charMod: 'mechanic/stat-mod', ap: 'mechanic/ward', testMod: 'mechanic/stat-mod',
-  skillDRBonus: 'mechanic/stat-mod', charDRBonus: 'mechanic/stat-mod', offTerrainMod: 'mechanic/stat-mod',
-  crewTestMod: 'travel/anchor', incomingAttackMod: 'mechanic/ward', incomingAdvantage: 'flag/focus',
-  incomingSpellDRMod: 'mechanic/ward',
-  sbBonus: 'char/f', endPsych: 'mechanic/mind', beginPsych: 'mechanic/mind', exposeDisease: 'medical/infection', contractDisease: 'medical/infection',
-  kill: 'journal/damage',
-  removeShipPoste: 'travel/anchor', teamCommander: 'action/lead', attackKeyword: 'item/weapon',
-  mitigateIncoming: 'mechanic/ward', ignoreStatePenalties: 'ui/done', freeReroll: 'resource/fortune',
-  critTwice: 'journal/critical', gainResource: 'resource/fortune', gainAdvantage: 'flag/focus', topUpAdvantage: 'flag/focus',
-  attrMod: 'resource/fortune', corruption: 'nav/mutation', sinMod: 'ui/balance', corruptionExposure: 'nav/mutation',
-  castPenalty: 'mechanic/ward', money: 'resource/gold-purse', statusMod: 'ui/balance', grantReverseToken: 'resource/fortune', castWard: 'mechanic/ward', arrowWard: 'mechanic/ward', domeWard: 'mechanic/ward',
-  attackWardFM: 'mechanic/ward', grantWeapon: 'mechanic/invoke', grantNaturalWeapon: 'mechanic/invoke',
-  grantFreeAttack: 'action/free-attack', interruptFocus: 'mechanic/mind', breakBlade: 'item/weapon',
-  push: 'mechanic/chain', teleport: 'mechanic/chain', chain: 'mechanic/chain',
-  grantTrait: 'mechanic/invoke', removeTrait: 'magic/gust', grantPsychTrait: 'mechanic/mind', removePsychTrait: 'mechanic/mind',
-  grantTalent: 'mechanic/invoke', suppressTalents: 'mechanic/invoke', deitySkillMod: 'mechanic/mind', deityBan: 'magic/power', prayerForAction: 'magic/power', grantCareerSkill: 'mechanic/invoke', grantCareerTalent: 'mechanic/invoke',
-  augmentWeapon: 'item/weapon', cureDisease: 'medical/infection', reduceDiseaseDays: 'medical/infection',
-  preventInfection: 'medical/infection', aideMedicale: 'medical/crutch', cureCriticalWound: 'medical/crutch', amputer: 'medical/crutch', diseaseTestMod: 'medical/infection',
+ *  la même icône (cf. defs/mecanique.ts, « pas une métaphore par op individuelle »). */
+const OP_ICON: Record<GameOp['op'], IconId> = {
+  wounds: 'journal/degats', heal: 'journal/soin', healCaster: 'journal/soin', fall: 'journal/chute',
+  condition: 'magie/zone', removeCondition: 'magie/souffle',
+  charMod: 'mecanique/modificateur', ap: 'mecanique/protection', testMod: 'mecanique/modificateur',
+  skillDRBonus: 'mecanique/modificateur', charDRBonus: 'mecanique/modificateur', offTerrainMod: 'mecanique/modificateur',
+  crewTestMod: 'voyage/ancre', incomingAttackMod: 'mecanique/protection', incomingAdvantage: 'drapeau/focalisation',
+  incomingSpellDRMod: 'mecanique/protection',
+  sbBonus: 'caracteristique/f', endPsych: 'mecanique/psychologie', beginPsych: 'mecanique/psychologie', exposeDisease: 'medical/infection', contractDisease: 'medical/infection',
+  kill: 'journal/degats',
+  removeShipPoste: 'voyage/ancre', teamCommander: 'action/commander', attackKeyword: 'objet/arme',
+  mitigateIncoming: 'mecanique/protection', ignoreStatePenalties: 'interface/fait', freeReroll: 'ressource/chance',
+  critTwice: 'journal/critique', gainResource: 'ressource/chance', gainAdvantage: 'drapeau/focalisation', topUpAdvantage: 'drapeau/focalisation',
+  attrMod: 'ressource/chance', corruption: 'navigation/mutation', sinMod: 'interface/balance', corruptionExposure: 'navigation/mutation',
+  castPenalty: 'mecanique/protection', money: 'ressource/bourse', statusMod: 'interface/balance', grantReverseToken: 'ressource/chance', castWard: 'mecanique/protection', arrowWard: 'mecanique/protection', domeWard: 'mecanique/protection',
+  attackWardFM: 'mecanique/protection', grantWeapon: 'mecanique/invocation', grantNaturalWeapon: 'mecanique/invocation',
+  grantFreeAttack: 'action/attaque-gratuite', interruptFocus: 'mecanique/psychologie', breakBlade: 'objet/arme',
+  push: 'mecanique/enchainement', teleport: 'mecanique/enchainement', chain: 'mecanique/enchainement',
+  grantTrait: 'mecanique/invocation', removeTrait: 'magie/souffle', grantPsychTrait: 'mecanique/psychologie', removePsychTrait: 'mecanique/psychologie',
+  grantTalent: 'mecanique/invocation', suppressTalents: 'mecanique/invocation', deitySkillMod: 'mecanique/psychologie', deityBan: 'magie/puissance', prayerForAction: 'magie/puissance', grantCareerSkill: 'mecanique/invocation', grantCareerTalent: 'mecanique/invocation',
+  augmentWeapon: 'objet/arme', cureDisease: 'medical/infection', reduceDiseaseDays: 'medical/infection',
+  preventInfection: 'medical/infection', aideMedicale: 'medical/bequille', cureCriticalWound: 'medical/bequille', amputer: 'medical/bequille', diseaseTestMod: 'medical/infection',
   suppressSymptom: 'medical/infection', aggravateSymptom: 'medical/infection', attenuateSymptom: 'medical/infection', grantSymptom: 'medical/infection',
-  actGate: 'ui/wait', delayed: 'ui/wait', suppressPsych: 'mechanic/mind',
-  suffocate: 'mechanic/ward', noBreath: 'mechanic/ward', noHunger: 'mechanic/ward', ignoreAnimosity: 'mechanic/ward', weatherWard: 'mechanic/ward',
-  damageArmour: 'item/armour', damageWornGear: 'item/armour', reduceToZero: 'journal/damage', banish: 'magic/area', martyr: 'action/defend',
-  giveTrapping: 'item/misc', perRound: 'ui/wait', summon: 'mechanic/invoke', scheduleRespawn: 'ui/wait',
-  zone: 'scenario/trap', polymorph: 'mechanic/invoke', transform: 'mechanic/invoke', endTransform: 'ui/wait',
-  lifeSteal: 'condition/bleeding', light: 'fire/flame', skillMod: 'mechanic/stat-mod',
-  moveScale: 'resource/movement', moveMod: 'resource/movement', maxWeaponHands: 'item/weapon', disarm: 'item/weapon', handGate: 'condition/bleeding',
-  senseLoss: 'ui/eye', loseTurn: 'ui/wait', weaponRollMod: 'item/weapon', weaponDamageMod: 'item/weapon',
-  armourPierce: 'item/weapon', critOnRoll: 'journal/critical', spendAdvantage: 'flag/focus', rollThreshold: 'nav/dice',
-  rollTable: 'nav/dice', rollMutation: 'nav/mutation', charDamage: 'mechanic/stat-mod',
-  intoxicate: 'item/consumable', narrative: 'journal/detail',
-  shipMorale: 'travel/anchor', manann: 'travel/anchor', shipCritical: 'travel/anchor', navireMod: 'travel/anchor', meteoImposee: 'nautical/wind', cargaison: 'item/misc', provisions: 'item/consumable', equipage: 'travel/anchor', perilDeMer: 'nautical/wind', navireHostile: 'travel/anchor', infestation: 'medical/infection', combatEnMer: 'action/attack', marcheDuPort: 'merchant/cart',
+  testDAgir: 'interface/attendre', delayed: 'interface/attendre', suppressPsych: 'mecanique/psychologie',
+  suffocate: 'mecanique/protection', noBreath: 'mecanique/protection', noHunger: 'mecanique/protection', ignoreAnimosity: 'mecanique/protection', weatherWard: 'mecanique/protection',
+  damageArmour: 'objet/armure', damageWornGear: 'objet/armure', reduceToZero: 'journal/degats', banish: 'magie/zone', martyr: 'action/se-defendre',
+  giveTrapping: 'objet/divers', perRound: 'interface/attendre', summon: 'mecanique/invocation', scheduleRespawn: 'interface/attendre',
+  zone: 'scenario/piege', polymorph: 'mecanique/invocation', transform: 'mecanique/invocation', endTransform: 'interface/attendre',
+  lifeSteal: 'etat/hemorragique', light: 'feu/flamme', skillMod: 'mecanique/modificateur',
+  moveScale: 'ressource/mouvement', moveMod: 'ressource/mouvement', maxWeaponHands: 'objet/arme', disarm: 'objet/arme', handGate: 'etat/hemorragique',
+  senseLoss: 'interface/oeil', loseTurn: 'interface/attendre', weaponRollMod: 'objet/arme', weaponDamageMod: 'objet/arme',
+  armourPierce: 'objet/arme', critOnRoll: 'journal/critique', spendAdvantage: 'drapeau/focalisation', rollThreshold: 'navigation/des',
+  rollTable: 'navigation/des', rollMutation: 'navigation/mutation', charDamage: 'mecanique/modificateur',
+  intoxicate: 'objet/consommable', narrative: 'journal/detail',
+  shipMorale: 'voyage/ancre', manann: 'voyage/ancre', shipCritical: 'voyage/ancre', navireMod: 'voyage/ancre', meteoImposee: 'nautique/vent', cargaison: 'objet/divers', provisions: 'objet/consommable', equipage: 'voyage/ancre', perilDeMer: 'nautique/vent', navireHostile: 'voyage/ancre', infestation: 'medical/infection', combatEnMer: 'action/attaquer', attaquesSubies: 'action/attaquer', marcheDuPort: 'marchand/panier', commission: 'marchand/panier', constructeurDEscale: 'voyage/ancre', rationsDEscale: 'objet/consommable',
 };
 
 /** TOUTES les op du vocabulaire, groupées par intention d'auteur. Libellé de groupe = texte SEUL
  *  (titre de rubrique du menu). */
 const OP_GROUPS: [string, GameOp['op'][]][] = [
-  ['Dégâts & soin', ['wounds', 'heal', 'healCaster', 'fall', 'lifeSteal', 'reduceToZero', 'banish', 'kill']],
+  ['Dégâts & soin', ['wounds', 'heal', 'healCaster', 'fall', 'lifeSteal', 'reduceToZero', 'banish', 'kill', 'attaquesSubies']],
   ['États', ['condition', 'removeCondition']],
   ['Buffs & caractéristiques', ['charMod', 'ap', 'testMod', 'skillDRBonus', 'charDRBonus', 'crewTestMod', 'ignoreStatePenalties', 'freeReroll', 'critTwice']],
   ['Ressources', ['gainResource', 'corruption', 'sinMod', 'corruptionExposure']],
@@ -113,7 +123,7 @@ const OP_GROUPS: [string, GameOp['op'][]][] = [
   ['Zones', ['zone']],
   ['Projection & téléportation', ['push', 'teleport', 'chain']],
   ['Soin avancé', ['cureDisease', 'reduceDiseaseDays', 'preventInfection', 'aideMedicale', 'cureCriticalWound', 'diseaseTestMod', 'suppressSymptom', 'aggravateSymptom', 'attenuateSymptom', 'grantSymptom']],
-  ['Divers', ['suppressPsych', 'suffocate', 'noBreath', 'noHunger', 'weatherWard', 'damageArmour', 'damageWornGear', 'martyr', 'giveTrapping', 'perRound', 'delayed', 'loseTurn', 'actGate', 'removeShipPoste', 'light']],
+  ['Divers', ['suppressPsych', 'suffocate', 'noBreath', 'noHunger', 'weatherWard', 'damageArmour', 'damageWornGear', 'martyr', 'giveTrapping', 'perRound', 'delayed', 'loseTurn', 'testDAgir', 'removeShipPoste', 'light']],
   ['Séquelles & mobilité', ['amputer', 'skillMod', 'moveScale', 'moveMod', 'offTerrainMod', 'maxWeaponHands', 'disarm', 'handGate', 'senseLoss']],
   ['Atouts/Défauts d’arme (passifs)', ['weaponRollMod', 'weaponDamageMod', 'armourPierce', 'critOnRoll']],
   ['Contrôle', ['rollThreshold', 'rollTable', 'rollMutation', 'spendAdvantage']],
@@ -256,7 +266,7 @@ export function FormulaField(props: FormulaFieldProps) {
         </select>
         {shape === 'regle' && (
           <select aria-label="Règle optionnelle" value={typeof value === 'object' && value != null && 'rule' in value ? value.rule : ''}
-            onChange={(e) => onChange({ rule: e.target.value })}>
+            onChange={(e) => onChange({ rule: paramsDeRegle()[e.target.selectedIndex].id })}>
             {paramsDeRegle().map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
           </select>
         )}
@@ -709,9 +719,9 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         )}
         {(op.op === 'condition' || op.op === 'removeCondition') && (
           <>
-            <select value={o.id ?? ''} onChange={(e) => upd({ id: e.target.value || undefined })}>
+            <select value={o.id?.id ?? ''} onChange={(e) => upd({ id: e.target.value ? { id: e.target.value } : undefined })}>
               {op.op === 'removeCondition' && <option value="">— au choix (1er État) —</option>}
-              {op.op === 'condition' && !o.id && <option value="">— (choisir un État) —</option>}
+              {op.op === 'condition' && !o.id?.id && <option value="">— (choisir un État) —</option>}
               {etats.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
             <FormulaField label="Intensité" champ="value" value={o.value ?? 1} min={0} onChange={(value) => upd({ value })} />
@@ -734,7 +744,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                 {/* État PORTÉ (#1695, LDB 48 l.495) : cocher « porté » EFFACE les champs que le canal
                     passif ne transporte pas (même patron d'exclusivité que Force d'évasion / Seuil de DR
                     ci-dessus), depuis la MÊME liste close que le refus au parse (`CHAMPS_EXCLUS_DE_CARRIED`)
-                    — la donnée ne peut donc pas naître dans la forme que `refusLoose` refuse. */}
+                    — la donnée ne peut donc pas naître dans la forme que le payload `condition` refuse. */}
                 <label className="dr"><input type="checkbox" checked={!!o.carried} onChange={(e) => upd(e.target.checked
                   ? { carried: true, ...tableTotale(CHAMPS_EXCLUS_DE_CARRIED, () => undefined) }
                   : { carried: undefined })}
@@ -754,7 +764,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                       <label className="dr">Retiré par{/* LDB 18 : « ne peut être retiré que par [acte] » */}
                         <select value={o.unlockBy ?? ''} onChange={(e) => upd({ unlockBy: (e.target.value || undefined) as ConditionUnlock | undefined })}>
                           <option value="">— aucun acte requis —</option>
-                          {UNLOCK_LABELS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                          {optionsDuNoeud(acteDeDeverrouillageSchema).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                         </select>
                       </label>
                     </>
@@ -894,7 +904,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                 onChange={(radiusM) => upd({ radiusM })} />
             </label>
             <label className="dr">Ton
-              <select value={o.tone ?? ''} onChange={(e) => upd({ tone: e.target.value || undefined })}>
+              <select value={o.tone?.id ?? ''} onChange={(e) => upd({ tone: e.target.value ? { id: e.target.value } : undefined })}>
                 <option value="">— ton par défaut —</option>
                 {lightTones.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
               </select>
@@ -960,7 +970,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <label className="dr">Table de hauteur
             <select value={o.hauteur.table.id} onChange={(e) => upd({ hauteur: { table: { id: e.target.value } } })}>
               {!o.hauteur.table.id && <option value="">— (choisir une table) —</option>}
-              {fallTables.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
+              {fallTables().map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
             </select>
           </label>
         )}
@@ -1011,8 +1021,8 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         {op.op === 'rollMutation' && (
           <>
             <label className="dr">Table de Corruption
-              <select value={o.table} onChange={(e) => upd({ table: e.target.value })}>
-                {!o.table && <option value="">— (choisir une table) —</option>}
+              <select value={o.table.id} onChange={(e) => upd({ table: { id: e.target.value } })}>
+                {!o.table.id && <option value="">— (choisir une table) —</option>}
                 {mutationTables.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
               </select>
             </label>

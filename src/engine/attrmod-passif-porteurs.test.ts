@@ -12,7 +12,7 @@ import { PORTEURS } from './porteursDePassifs.testkit';
  */
 
 /** F 38 (BF 3), E 35 (BE 3), FM 31 (BFM 3) : B = 12. */
-const heros = (): Combatant => combattantDeTest({ id: 'h', label: 'Héros', kind: 'hero', characteristics: { force: 38, endurance: 35, 'force-mentale': 31 } });
+const heros = (): Combatant => combattantDeTest({ id: 'h', label: 'Héros', kind: 'heros', characteristics: { force: 38, endurance: 35, 'force-mentale': 31 } });
 
 afterEach(() => resetData());
 

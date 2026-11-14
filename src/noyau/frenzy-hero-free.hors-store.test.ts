@@ -11,7 +11,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const HIT: AttackResult = {
   hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3,
-  critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+  critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
 };
 
 describe('Frénésie du héros — attaque de CC GRATUITE chaque Round (LDB 21 l.33)', () => {
@@ -24,11 +24,11 @@ describe('Frénésie du héros — attaque de CC GRATUITE chaque Round (LDB 21 l
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 };
     H.talents = [...(H.talents ?? []), { talentId: 'frenesie', times: 1 }]; // octroie l'attaque d'arme libre (donnée)
@@ -39,7 +39,7 @@ describe('Frénésie du héros — attaque de CC GRATUITE chaque Round (LDB 21 l
     const { H, E } = setup();
     (H.psychState ??= []).push({ type: 'frenesie' });
     banc.setState({ battle: { ...banc.getState().battle!, acted: false }, pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT } });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     const st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.['arme']).toBe(1);
@@ -51,14 +51,14 @@ describe('Frénésie du héros — attaque de CC GRATUITE chaque Round (LDB 21 l
     (H.psychState ??= []).push({ type: 'frenesie' });
     H.freeAttacksThisTurn = { arme: 1 }; // attaque d'arme libre déjà utilisée ce Round (plafond atteint)
     banc.setState({ battle: { ...banc.getState().battle!, acted: false }, pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT } });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().battle!.acted).toBe(true);
   });
 
   it('héros NON frénétique → l’attaque consomme l’Action', () => {
     const { H, E } = setup();
     banc.setState({ battle: { ...banc.getState().battle!, acted: false }, pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT } });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().battle!.acted).toBe(true);
   });
 

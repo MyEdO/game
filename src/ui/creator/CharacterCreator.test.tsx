@@ -2,7 +2,20 @@
 import { describe, it, expect } from 'vitest';
 import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CharacterCreator, CareerScreen, CharScreen, SpeciesRaceScreen, SkillsScreen, StarScreen, TrappingsScreen, DetailsScreen, PresentationScreen, PettySpellsSection, careerLevelTalentsTitle, TrappingChoiceSlot } from './CharacterCreator';
+import {
+  CharacterCreator,
+  CareerScreen,
+  CharScreen,
+  SpeciesRaceScreen,
+  SkillsScreen,
+  StarScreen,
+  TrappingsScreen,
+  DetailsScreen,
+  PresentationScreen,
+  PettySpellsSection,
+  careerLevelTalentsTitle,
+  TrappingChoiceSlot,
+} from './CharacterCreator';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche } from '../../engine/trappingChoices';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
@@ -37,7 +50,7 @@ import { echapperRegex } from '../../lib/regex';
 
 // Défauts dérivés (page blanche : plus de pré-tiré dans newDraft) — 1ʳᵉ espèce LDB + sa 1ʳᵉ carrière.
 const SP = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
-const CAREER = careersForSpecies(SP.refCareer)[0]!;
+const CAREER = careersForSpecies(SP)[0]!;
 const ready = () => withCareer(withSpecies(newDraft(7), SP.id), CAREER.id);
 
 /** L'option `label` d'une grille est-elle MISE EN AVANT (`btn-primary`) ? Le contrat est la présence
@@ -96,12 +109,12 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
   it('#393 P4 — après le tirage, le mur de boutons meurt : le résultat vit dans l\'encrier, PLUS de badge par chip de lignée (l\'éligibilité vit dans l\'encrier + le liseré de la carte de famille)', () => {
     const rolled = rollDraftSpecies(withSpecies(newDraft(7), SP.id));
     const html = renderToStaticMarkup(<SpeciesRaceScreen d={rolled} setD={() => {}} />);
-    // Encrier « résolu » (rendu laiton) : le jet et sa borne y vivent seuls, sans bouton de tirage ni
-    // grille d'options de borne à l'écran.
+    // Encrier « résolu » (rendu laiton) : le jet et sa rangée y vivent seuls, sans bouton de tirage ni
+    // grille d'options de rangée à l'écran.
     expect(html).toContain('dicewell done');
-    expect(html).toMatch(/Jet : <b>\d+<\/b> — borne \w+/);
-    expect(html).not.toMatch(/\(\+20 PX\)<\/(?:span|button)>\s*<\/button>/); // aucun libellé de bouton de borne à l'écran
-    // Mort du badge « +20 PX » par chip de lignée (#393 P4) — la borne couvre une famille entière,
+    expect(html).toContain(`Jet : <b>${rolled.speciesRoll!.roll}</b> — rangée ${allSpecies.find((s) => s.id === rolled.speciesRoll!.ids[0])!.family} ·`);
+    expect(html).not.toMatch(/\(\+20 PX\)<\/(?:span|button)>\s*<\/button>/); // aucun libellé de bouton de rangée à l'écran
+    // Mort du badge « +20 PX » par chip de lignée (#393 P4) — la rangée couvre une race entière,
     // l'éligibilité vit dans l'encrier rendu (ci-dessus) + le liseré `.rolled`/`.sel` de la carte de
     // famille (surfaces existantes déjà couvertes par les autres assertions de ce fichier).
     expect(html).not.toContain('xp-badge');
@@ -416,7 +429,8 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
   it('L\'Étoile du Sorcier — la position déplie ses QUATRE destins en plaques (1d10, ADE II 3) et n\'en impose aucun', () => {
     const elu = { ...newDraft(7), star: 'l-etoile-du-sorcier-seconde-vue' };
     const html = renderToStaticMarkup(<StarScreen d={elu} setD={() => {}} />);
-    expect(html).toContain('Quatre destins');
+    expect(html).toContain('4 destins');
+    expect(html).toContain('ouvre 4 destins — la roue les déplie'); // le compte du bandeau d'action
     expect((html.match(/plaque-row/g) ?? []).length).toBe(4);
     expect(html).toMatch(/plaque-row sel/); // le destin élu porte la plaque chaude
     expect(html).toContain('1d10 4–6'); // sa fourchette de sous-table

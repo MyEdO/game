@@ -23,7 +23,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 20, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const mk = (id: string, label: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
+const mk = (id: string, label: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant =>
   (blessuresSurLeProfil({ id, name: label, label, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons: [{ ...sword, uid: `sw-${id}` }], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, resilience: 1 }) as unknown as Combatant);
@@ -49,13 +49,13 @@ afterEach(() => {
 
 /** Ennemi au contact d'un héros SURFACÉ, journal portant une ligne d'un beat PRÉCÉDENT. */
 function setup() {
-  const enemy = mk('e', 'Rat géant', 'enemy', { x: 1, y: 0 });
-  const hero = mk('h', 'Gunnar', 'hero', { x: 0, y: 0 });
+  const enemy = mk('e', 'Rat géant', 'ennemi', { x: 1, y: 0 });
+  const hero = mk('h', 'Gunnar', 'heros', { x: 0, y: 0 });
   const battle: BattleState = {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false,
-    log: [ev('attack', STALE, hero.id, enemy.id)], over: null,
+    log: [ev('attaque', STALE, hero.id, enemy.id)], over: null,
   } as unknown as BattleState;
   useGame.setState({
     battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null, actorAim: null,

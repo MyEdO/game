@@ -28,7 +28,7 @@ describe('belowMinRangeBand — comparaison ordinale des bandes', () => {
 
 /** Les 9 machines de siège à DISTANCE d'ADE II (dérivées du catalogue : livre + catégorie + subType). */
 const ade2RangedSiege = trappings.filter(
-  (t) => t.categorie === 'ranged' && t.subType?.id === 'armes-de-siege' && t.source.book === 'archives-de-l-empire-2',
+  (t) => t.categorie === 'distance' && t.subType?.id === 'armes-de-siege' && t.source.book === 'archives-de-l-empire-2',
 );
 
 describe('catalogue ADE II — portée minimale des machines de siège à distance', () => {

@@ -1,0 +1,31 @@
+[gd_resource type="Theme" load_steps=2 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
+
+[resource]
+Rubrique/base_type = &"Label"
+Rubrique/colors/font_color = Color(0.816, 0.69, 0.42, 1)
+Rubrique/font_sizes/font_size = 17
+Rubrique/fonts/font = ExtResource("1_titres")
+NomDeCarte/base_type = &"Label"
+NomDeCarte/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+NomDeCarte/font_sizes/font_size = 21
+NomDeCarte/fonts/font = ExtResource("1_titres")
+NomDeHeros/base_type = &"Label"
+NomDeHeros/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+NomDeHeros/font_sizes/font_size = 18
+NomDeHeros/fonts/font = ExtResource("1_titres")
+Destination/base_type = &"Label"
+Destination/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+Destination/font_sizes/font_size = 18
+Destination/fonts/font = ExtResource("1_titres")
+Accueil/base_type = &"Label"
+Accueil/colors/font_color = Color(0.725, 0.671, 0.573, 1)
+Accueil/font_sizes/font_size = 14
+Accueil/fonts/font = ExtResource("1_titres")
+Accueil/constants/line_spacing = 0
+Description/base_type = &"Label"
+Description/colors/font_color = Color(0.886, 0.816, 0.659, 1)
+Description/font_sizes/font_size = 20
+Description/fonts/font = ExtResource("1_titres")
+Description/constants/line_spacing = 0

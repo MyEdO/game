@@ -62,7 +62,7 @@ describe('même Test, héros et IA Sonnés ×3 : même cible (LDB 16 l.125)', ()
     H.conditions = []; E.conditions = [];
     H.traits = [{ id: 'frenesie' }]; E.traits = [{ id: 'frenesie' }];
     g().entrerEnFrenesie();
-    g().jetLancer('frenzy');
+    g().jetLancer('frenesie');
     const cible = g().pendingFrenzy!.result!.target!;
     memeCible(cible, 60, (de) => {
       E.psychState = [];
@@ -75,8 +75,8 @@ describe('même Test, héros et IA Sonnés ×3 : même cible (LDB 16 l.125)', ()
   it('Bénédiction de Protection (Test de Force Mentale Accessible, LDB 41)', () => {
     const { H, E } = jumeauxSonnes();
     (H as { activeEffects?: unknown[] }).activeEffects = [{ label: 'Bénédiction de Protection', bonus: 0, duration: { scale: 'rounds', left: 6 }, attackWardFM: true }];
-    banc.setState({ pendingWard: { attackerId: H.id, targetId: E.id, targetName: E.label, result: null } } as never);
-    g().jetLancer('ward');
+    banc.setState({ pendingWard: { attackerId: H.id, targetId: E.id, result: null } } as never);
+    g().jetLancer('protection');
     const cible = g().pendingWard!.result!.target!;
     memeCible(cible, 50, (de) => attackWardGate(E, H, deFixe(de)).allowed);
   });
@@ -84,7 +84,7 @@ describe('même Test, héros et IA Sonnés ×3 : même cible (LDB 16 l.125)', ()
   it('Main ensanglantée (Test de Dextérité Accessible, AA 07 l.117)', () => {
     const { H, E } = jumeauxSonnes();
     H.handGates = ['main']; E.handGates = ['main'];
-    openAttackCascade(g, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Attaque', 'action/attaquer');
     const cible = g().pendingHandGate!.target;
     memeCible(cible, 50, (de) => {
       deDeCombat(de);

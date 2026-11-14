@@ -15,7 +15,20 @@ import merchantsJson from '../../merchants.json';
 import skillsJson from '../../skills.json';
 import talentsJson from '../../talents.json';
 import traitsJson from '../../traits.json';
-import { adressesDesEntreesEmbarquees, document, documentDeLEntreePartielle, exclusiviteAdapteDe, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
+import {
+  adressesDesEntreesEmbarquees,
+  document,
+  documentDeLEntreePartielle,
+  exclusiviteAdapteDe,
+  CLES_ENVELOPPE,
+  CLES_EXIGIBLES,
+  META_CHARGE,
+  optionsEnum,
+  type DeclarationExposition,
+  type Exposition,
+  type CleExigible,
+  type DocumentHandle,
+} from './document';
 import { libelleDeValeur, metaDesChamps, valeursDe, nommerNoeud } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
@@ -28,7 +41,7 @@ import { avancement } from './avancement';
 import { SANS_LIVRE_DEFINITIF } from './sans-livre';
 import { SCHEMA_DEFS } from '../_registry.generated';
 import { entreePartielle as creaturePartielle } from '../defs/creatures';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE, type IdsParEspace } from '../_ids.generated';
 import { poserRegimeVivant } from './idsVivants';
 import { defDe, enfantsDe } from './descente';
 import { noeudObjet, validateDataset } from '../validate';
@@ -46,7 +59,7 @@ const SOURCE_REELLE = { book: 'livre-de-base', page: 118 };
  *  Fixture SYNTHÉTIQUE : `page: 1` est un remplissage de forme, PAS une citation — aucun folio de ce
  *  livre n'est allégué ici. Le livre, lui, est bien VF (AGENTS.md § Sources VF : la VO ne se cite pas). */
 const SOURCE_SANS_EXTRACTION = { book: 'boite-d-initiation', page: 1 };
-const EXPOSITION: Exposition = { codex: { keys: ['talents'] }, edit: { dataset: 'talents.json' } };
+const EXPOSITION: DeclarationExposition = { codex: { keys: ['talents'] }, edit: { dataset: 'talents.json' } };
 
 describe('document() — enveloppe posée par la fabrique', () => {
   const fiche = document(
@@ -154,23 +167,23 @@ describe('document() — enveloppe posée par la fabrique', () => {
   it('EXIGE une exposition Codex/éditeur déclarée (clés, ou exemption motivée)', () => {
     expect(() =>
       // @ts-expect-error — `codex` vide : ni `keys` ni `exempt`.
-      document('jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, { codex: {}, edit: { object: 'single' } }),
+      document('jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, { codex: {}, edit: { object: 'unique' } }),
     ).toThrow(/`codex` exige/);
     expect(() =>
       // @ts-expect-error — `edit` vide : ni `dataset`, ni `object`, ni `niche`, ni `none`.
       document('jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, { codex: { keys: ['x'] }, edit: {} }),
     ).toThrow(/`edit` exige/);
     expect(() =>
-      document('jouet', 'config', { max: z.number() }, { max: { label: 'Max' } }, { codex: { keys: ['x'] }, edit: { niche: { categories: {} } } }),
+      document('jouet', 'config', { max: z.number() }, { max: { label: 'Max' } }, { edit: { niche: { categories: {} } } }),
     ).toThrow(/`edit.niche.categories` exige/);
     const nichee = document(
       'jouet',
       'config',
       { max: z.number() },
       { max: { label: 'Max' } },
-      { codex: { keys: ['x', 'y'] }, edit: { niche: { categories: { x: 'x' } } } },
+      { edit: { niche: { categories: { y: 'y.entries', x: 'x' } } } },
     );
-    expect(nichee.exposition.edit).toEqual({ niche: { categories: { x: 'x' } } });
+    expect(nichee.exposition).toEqual({ codex: { keys: ['y', 'x'] }, edit: { niche: { categories: { y: 'y.entries', x: 'x' } } } });
     const exempte = document(
       'jouet',
       'config',
@@ -201,33 +214,6 @@ describe('document() — enveloppe posée par la fabrique', () => {
         { codex: { exempt: { kind: 'vocabulaire-app-interne', raison: '   interne   ' } }, edit: { none: 'dérivé' } },
       ),
     ).toThrow(/`exempt` motivé \(raison ≥ 10 caractères\)/);
-  });
-
-  it('CROISE `edit.niche.categories` avec `codex.keys` : une catégorie hors Codex est REFUSÉE, en la nommant', () => {
-    expect(() =>
-      document(
-        'jouet',
-        'config',
-        { max: z.number() },
-        { max: { label: 'Max' } },
-        { codex: { keys: ['x'] }, edit: { niche: { categories: { x: 'x', z: 'z' } } } },
-      ),
-    ).toThrow(/`edit.niche.categories` nomme des clés absentes de `codex.keys` : z/);
-  });
-
-  it('REFUSE `edit.niche` sur un document Codex EXEMPT — aucune clé à router', () => {
-    expect(() =>
-      document(
-        'jouet',
-        'config',
-        { max: z.number() },
-        { max: { label: 'Max' } },
-        {
-          codex: { exempt: { kind: 'vocabulaire-app-interne', raison: 'vocabulaire du moteur, jamais lu par le joueur' } },
-          edit: { niche: { categories: { x: 'x' } } },
-        },
-      ),
-    ).toThrow(/`edit.niche` route des catégories alors que `codex` est EXEMPT/);
   });
 
   it('n’expose AUCUN nœud extensible en aval : `.extend` et `.shape` absents AU RUNTIME', () => {
@@ -578,7 +564,7 @@ describe('defs/ — forme de FICHIER et EXPOSITION déclarée (#1472 sous-lot A)
     expect(fautifs).toEqual([]);
   });
 
-  it('chaque def du registre porte une `exposition` conforme (codex, edit, croisement niche×codex)', () => {
+  it('chaque def du registre porte une `exposition` conforme (codex, edit)', () => {
     const fautifs: string[] = [];
     for (const def of SCHEMA_DEFS) {
       const exposition = (def as { file: string; exposition?: Exposition }).exposition;
@@ -596,11 +582,6 @@ describe('defs/ — forme de FICHIER et EXPOSITION déclarée (#1472 sous-lot A)
         const cats = estObjet(carte) ? Object.keys(carte) : [];
         if (!(cats.length && cats.every((k) => k.length && typeof carte![k] === 'string' && (carte![k] as string).length))) {
           fautifs.push(`${def.file} : \`edit.niche.categories\` vide ou mal formée`);
-        } else if (!keys) {
-          fautifs.push(`${def.file} : \`edit.niche\` sur un Codex EXEMPT`);
-        } else {
-          const hors = cats.filter((k) => !keys.includes(k));
-          if (hors.length) fautifs.push(`${def.file} : \`edit.niche.categories\` hors \`codex.keys\` : ${hors.join(', ')}`);
         }
       }
     }
@@ -608,17 +589,9 @@ describe('defs/ — forme de FICHIER et EXPOSITION déclarée (#1472 sous-lot A)
   });
 });
 
-describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique qui justifie `exiges`', () => {
-  // MESUREUR : « requis » = `shape[k].safeParse(undefined)` ROUGE au schéma d'entrée du def (jamais une
-  // regex de source, qui sous-compte les déclarations indentées autrement). Les defs DÉJÀ adoptés par
-  // `document()` rendent un nœud SCELLÉ sans `.shape` : ils ne sont pas mesurables ici — et n'ont plus
-  // rien à perdre, leur enveloppe est celle de la fabrique. Ce compte est ce que le flip-entite doit
-  // reporter en `options.exiges`, def par def : il DÉCROÎT à mesure que les defs sont adoptés.
-  //
-  // Au 2026-08-28, `scelles` = 77 defs `entite`, TOUS adoptés — et la population MESURÉE est VIDE.
-  // `oups.json` est le dernier entré (V-UNION) : ses deux formes (bande d100 `min`/`max`/`kind` vs
-  // Incident de Tir `kind: 'misfire'`) tiennent en UNE entrée dont un refine ⟺ porte la disjonction,
-  // si bien qu'il n'a plus besoin d'une classe « union » hors des vagues d'adoption.
+describe('tout def `entite` tient son enveloppe de `document()`', () => {
+  // Un def adopté par `document()` rend un nœud SCELLÉ, sans `.shape` : son enveloppe est celle de la fabrique, et
+  // ses exigences se lisent au verrou ci-dessous. Un def qui expose encore une `.shape` écrit son enveloppe à la main.
   const noeudInterne = (n: unknown): unknown => {
     const type = defDe(n)?.type;
     if (type === undefined || type === 'pipe' || type === 'lazy') return undefined;
@@ -634,99 +607,17 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     return undefined;
   };
 
-  const mesure = { desc: 0, source: 0, icon: 0, scelles: 0, mesures: 0 };
-  for (const def of SCHEMA_DEFS.filter((d) => d.famille === 'entite')) {
-    const shape = shapeDe(def.schema);
-    if (!shape) {
-      mesure.scelles++;
-      continue;
-    }
-    mesure.mesures++;
-    for (const k of ['desc', 'source', 'icon'] as const) {
-      if (shape[k] && shape[k].safeParse(undefined).success === false) mesure[k]++;
-    }
-  }
-
-  /**
-   * TÉMOIN DU DÉTECTEUR — la population mesurée étant VIDE, les trois compteurs valent 0 ; un
-   * `shapeDe` cassé rendrait EXACTEMENT le même 0. Ce zéro n'a de sens que si l'instrument mord
-   * encore : on lui donne ici un schéma NON adopté (la forme que portaient les defs avant la
-   * fabrique) et on exige qu'il y VOIE les trois clés requises.
-   */
-  const NON_ADOPTE = z.array(z.strictObject({ desc: z.string(), source: z.string(), icon: z.string() }));
-
   it('le DÉTECTEUR mord encore — sur un schéma NON adopté, il VOIT les trois clés requises', () => {
-    const shape = shapeDe(NON_ADOPTE);
+    const shape = shapeDe(z.array(z.strictObject({ desc: z.string(), source: z.string(), icon: z.string() })));
     expect(shape, '`shapeDe` ne descend plus jusqu’à la forme d’un def non adopté').toBeDefined();
     const requises = (['desc', 'source', 'icon'] as const).filter((k) => shape![k] && !shape![k].safeParse(undefined).success);
     expect(requises).toEqual(['desc', 'source', 'icon']);
   });
 
-  it('compte les clés d’enveloppe REQUISES que l’adoption relâcherait sans `exiges`', () => {
-    // #1467 L1b V-FLIP-ENTITE, vagues 11a puis 11b (2026-08-28) : 42 defs `entite` ont adopté
-    // `document()` — ils rendent un nœud SCELLÉ, donc ils quittent la population MESURÉE pour la
-    // population SCELLÉE (75 → 33, 2 → 44). Ce que la mesure perd, `options.exiges` le PORTE
-    // au def, et le verrou d'exigence ci-dessous le prouve entrée par entrée.
-    //   11a : desc −5 (astrology, classes, crew-roles, peripeties, sea-shanties),
-    //         source −3 (astrology, classes, sea-shanties), icon −1 (calendarPhases).
-    //   11b : desc −6 (careers, characteristics, interludeEvents, mutations, qualities, regles),
-    //         source −7 (careers, characteristics, locations, qualities, regles, stars, voyage-stakes).
-    //   12  : desc −9 (etats, maladies, naval-traits, skills, steam-breakdown, symptoms, talents,
-    //                  traits, traumas),
-    //         source −9 (combat-stakes, etats, flow-stakes, maneuvers, naval-ports, skills,
-    //                    structures, talents, traits) — 21 defs quittent la mesure (33 → 12, 44 → 65).
-    //   12b : desc −4 (psychology, species, spells, tavernGames),
-    //         source −8 (activities, creatures, night-stakes, psychology, species, spells,
-    //                    tavernGames, trappings),
-    //         icon −2 (actions, activities) — les 12 DERNIERS defs `entite` quittent la mesure
-    //         (12 → 0, 65 → 77). La population MESURÉE est ÉTEINTE : plus AUCUN def `entite` ne
-    //         porte son enveloppe à la main.
-    //   14  : `oups` (V-UNION) était DÉJÀ compté en `scelles` — son union n'avait pas plus de
-    //         `.shape` que le nœud scellé qu'il rend — donc le total ne bouge PAS (77).
-    //         Ce qu'il gagne, c'est d'y être pour la BONNE raison, et son `source` exigée au verrou.
-    // L'ADOPTION est la cause du recalage, pas une dérive du détecteur — le témoin ci-dessus le
-    // prouve en faisant mordre l'instrument sur un schéma non adopté.
-    //
-    // DEUX ÉCARTS entre ce que la mesure PERD et ce que `exiges` REPREND, tous deux de la MÊME
-    // classe — une entrée MÉTA ou sans prose citable dont la `desc: ""` est purgée, si bien
-    // qu'exiger `desc` la refuserait :
-    //   • vague 12  : `talents` (187ᵉ entrée `talent-aleatoire`, vocabulaire de tirage LDB 05 l.484,
-    //     exemptée d'obtenabilité par `codexOnly`), purgée par la migration 12a ;
-    //   • vague 12b : `species` (5ᵉ entrée `humains-tileens`), purgée par la migration 12b.
-    // Les deux renvois viennent NOMMÉMENT de `2026-08-27-l1b-3h-desc-null.mjs:25-28`, verbatim :
-    // « Les deux autres — `species.json[4]` et `talents.json[0]` — sont déclarés `desc: z.string()`
-    // REQUIS […] Ils meurent avec le lot qui posera `min(1)` sur ces deux defs, pas ici. » Les deux
-    // sont morts (12a puis 12b) : le renvoi de 3h est INTÉGRALEMENT soldé. Les écarts sont
-    // ici, pas dans un silence.
-    //   #677 : `reseau-routier` est un def `entite` NEUF, adopté dès sa création et `source` exigée
-    //         — il naît donc dans la population SCELLÉE (77 → 78), sans jamais passer par la mesure.
-    //   #1654 : `miscast` déclare la famille `entite` (son fichier porte une LISTE de 5 documents,
-    //         chacun à sa charge `entries` par `options.rangee`) — un def SCELLÉ de plus dans la
-    //         population de ce mesureur, qui GAGNE là une couverture (78 → 79) : la famille qu'il
-    //         portait sortait ce def de tout filtre `entite` de ce fichier.
-    //   #1657 : `criticals` fait de même (79 → 80) — les deux racines-objet `criticals`/
-    //         `aa-criticals` fusionnent en UNE liste de 8 documents-tables, famille `entite` à charge
-    //         `entries` ; le def d'`aa-criticals` meurt, celui de `criticals` entre dans la population.
-    //   #1657 : `ship-stations` naît SCELLÉ (80 → 81) — catalogue FERMÉ des présences à bord
-    //         que les livres nomment, `exiges: ['desc']` dès sa première écriture.
-    //   #1686 : `propMaterials`/`roofMaterials`/`reliefMaterials` fusionnent en UN def
-    //         `materials` (81 → 79) — trois defs SCELLÉS en deviennent un, la population perd 2.
-    //   #1690 : `terrains` naît SCELLÉ (79 → 80) — le registre TS des 25 sols devient un dataset.
-    //   #1715 : `buildings` naît SCELLÉ (80 → 81) — le registre TS des 7 types de bâtiment devient un dataset.
-    //   #2948 : `apparences` naît SCELLÉ (81 → 82) — le catalogue des apparences d'objet devient un dataset.
-    //   #2972 : `gabarits` naît SCELLÉ (82 → 83) — le registre TS des carrures devient un dataset.
-    //   #3114 : `garde-robe` naît SCELLÉ (83 → 84) — la garde-robe des éléments 3D devient un dataset.
-    //   #3086 : `presets-de-personnage` naît SCELLÉ (84 → 85) — les presets de personnage entier deviennent un dataset.
-    //   #1665 : `montures` passe de la famille `config` à `entite` (85 → 86) — ses 8 profils de voyage deviennent la liste du fichier.
-    //   #1681 : les quatre defs d'enjeux fusionnent en UN def `stakes` (86 → 83).
-    //   #1684 : le catalogue des cargaisons naît en def `entite` `cargoes`, `source` exigée (83 → 84).
-    //   #1667 : `oups`, `interludeEvents`, `steam-breakdown`, `stars` et `peripeties` deviennent des
-    //         documents mono-tables `config` (84 → 79) — leurs lignes passent en `rangee`.
-    //   #2993 : `planDeBestiaire` naît SCELLÉ (79 → 80) — le plan de bestiaire devient un dataset.
-    //   #3771 : `rendus` naît SCELLÉ (80 → 81) — le catalogue des rendus des coups et des incantations.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 81, mesures: 0 });
+  it('aucun def `entite` n’écrit son enveloppe à la main', () => {
+    const aLaMain = SCHEMA_DEFS.filter((d) => d.famille === 'entite' && shapeDe(d.schema)).map((d) => d.file);
+    expect(aLaMain).toEqual([]);
   });
-
 });
 
 /**
@@ -888,6 +779,10 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     // est donc exigible dès la création. `desc` ne l'est pas (les 6 compagnies de la liste l.27-34
     // n'ont que leur nom au Source — aucune prose à recopier, aucune à inventer).
     'reseau-routier.json · source',
+    // #3884 — les prétirés officiels sont des fiches imprimées : chacune adresse son folio et sa prose
+    // (« Apparence et personnalité », « Historique »).
+    'pregens.json · desc',
+    'pregens.json · source',
     // #1657 — `ship-stations` naît adopté : chacune des 5 présences porte le VERBATIM de la
     // clause qui la nomme (MDG 13 l.714/730/751, MDG 12 l.303, MSRC 07 l.94), `desc` est donc exigible
     // dès la création. `source` ne l'est pas au def : c'est déjà l'enveloppe qui refuse une entrée sans
@@ -984,7 +879,7 @@ describe('document() — verrous d’ENVELOPPE paramétrés (#1467 L1b V-P0c)', 
       { id: 'x', label: 'X', max: 2, source: {} },
       { id: 'x', label: 'X', max: 2, source: SOURCE_REELLE, maison: 'r' },
     ];
-    const messages = (doc: ReturnType<typeof document>) =>
+    const messages = (doc: DocumentHandle<string>) =>
       CORPUS.flatMap((v) => {
         const r = doc.entree.safeParse({ ...v, type: 'fiche-jouet' });
         return r.success ? [] : r.error.issues.map((i) => i.message);
@@ -1003,13 +898,15 @@ describe('document() — verrous d’ENVELOPPE paramétrés (#1467 L1b V-P0c)', 
     const strict = document('fiche-jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, EXPOSITION, {
       exiges: ['icon', 'alsoIn'],
     });
-    const base = { ...ENV('fiche-jouet'), max: 2, icon: 'epee', alsoIn: [{ book: 'aux-armes', page: 12 }] };
+    const sansIcone = { ...ENV('fiche-jouet'), max: 2, alsoIn: [{ book: 'aux-armes', page: 12 }] };
+    const base = { ...sansIcone, icon: 'melee/au-contact' };
     expect(strict.entree.safeParse(base).success).toBe(true);
     expect(strict.entree.safeParse({ ...base, icon: '' }).success).toBe(false);
     expect(strict.entree.safeParse({ ...base, alsoIn: [] }).success).toBe(false);
-    // Non exigées, ces mêmes clés gardent leur forme d'origine (l'option n'est pas un durcissement global).
+    // Non exigées, ces mêmes clés restent optionnelles et `alsoIn` admet `[]` (l'option n'est pas un durcissement global).
     const libre = document('fiche-jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, EXPOSITION);
-    expect(libre.entree.safeParse({ ...base, icon: '', alsoIn: [] }).success).toBe(true);
+    expect(libre.entree.safeParse({ ...sansIcone, alsoIn: [] }).success).toBe(true);
+    expect(strict.entree.safeParse(sansIcone).success).toBe(false);
   });
 
   it('`idDocument` qui admettrait la CHAÎNE VIDE est REFUSÉ à la déclaration', () => {
@@ -1052,7 +949,7 @@ describe('document() — verrous d’ENVELOPPE paramétrés (#1467 L1b V-P0c)', 
 });
 
 describe('ref() — id validé AU PARSE contre le registre généré', () => {
-  it('accepte un id RÉEL de son dataset et le brande', () => {
+  it('accepte un id RÉEL de son dataset et le type à l’union fermée de son espace', () => {
     const noeud = ref('skill');
     expect(noeud.safeParse({ id: UNE_COMPETENCE.id }).success).toBe(true);
     const idParse = idDe('skill').parse(UNE_COMPETENCE.id);
@@ -1372,9 +1269,10 @@ describe('byId — la PORTE de résolution d’une entité par son id STABLE', (
     expectTypeOf(competence.parse({ id: UNE_COMPETENCE.id })).toEqualTypeOf<{ id: Id<'skill'> }>();
   });
 
-  it("`ref(type, undefined, sousListe)` garde la même sortie `{ id: Id<type> }`", () => {
+  it("`ref(type, undefined, sousListe)` sort `{ id: Id<type, sousListe> }`, l'union de sa seule sous-liste", () => {
     const parSousListe = ref('material', undefined, 'objet');
-    expectTypeOf<z.output<typeof parSousListe>>().toEqualTypeOf<{ id: Id<'material'> }>();
+    expectTypeOf<z.output<typeof parSousListe>>().toEqualTypeOf<{ id: Id<'material', 'objet'> }>();
+    expectTypeOf<Id<'material', 'objet'>>().toEqualTypeOf<IdsParEspace['materials.json?domain=objet']>();
   });
 });
 

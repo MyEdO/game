@@ -38,7 +38,7 @@
       "id": "baton"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -83,7 +83,7 @@
       "id": "hallebarde"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "bladed": true
   },
@@ -123,7 +123,7 @@
       "id": "lance"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -162,7 +162,7 @@
       "id": "pique"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -735,7 +735,7 @@
       "id": "lance_cavalerie"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "capabilities": {
       "improvisedWithoutCharge": true
@@ -1297,7 +1297,7 @@
     "type": "trappings",
     "label": "Arbalète",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arbalete"
     },
@@ -1338,7 +1338,7 @@
     "id": "arbalete-de-poing",
     "type": "trappings",
     "label": "Arbalète de poing",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arbalete"
     },
@@ -1379,7 +1379,7 @@
     "type": "trappings",
     "label": "Arbalète lourde",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arbalete"
     },
@@ -1424,7 +1424,7 @@
     "type": "trappings",
     "label": "Arc",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arc"
     },
@@ -1461,7 +1461,7 @@
     "type": "trappings",
     "label": "Arc court",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arc"
     },
@@ -1498,7 +1498,7 @@
     "type": "trappings",
     "label": "Arc elfique",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arc"
     },
@@ -1542,7 +1542,7 @@
     "type": "trappings",
     "label": "Arc long",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arc"
     },
@@ -1582,7 +1582,7 @@
     "id": "fouet",
     "type": "trappings",
     "label": "Fouet",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "entraves"
     },
@@ -1622,7 +1622,7 @@
     "id": "lasso",
     "type": "trappings",
     "label": "Lasso",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "entraves"
     },
@@ -1661,7 +1661,7 @@
     "id": "filet",
     "type": "trappings",
     "label": "Filet",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "entraves"
     },
@@ -1697,7 +1697,7 @@
     "id": "bombe",
     "type": "trappings",
     "label": "Bombe",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "explosifs"
     },
@@ -1745,7 +1745,7 @@
     "id": "bombe-incendiaire",
     "type": "trappings",
     "label": "Bombe incendiaire",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "explosifs"
     },
@@ -1790,7 +1790,7 @@
     "id": "fronde",
     "type": "trappings",
     "label": "Fronde",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "fronde"
     },
@@ -1826,7 +1826,7 @@
     "type": "trappings",
     "label": "Fustibale",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "fronde"
     },
@@ -1861,7 +1861,7 @@
     "id": "bolas",
     "type": "trappings",
     "label": "Bolas",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -1903,7 +1903,7 @@
     "id": "couteau-de-lancer",
     "type": "trappings",
     "label": "Couteau de lancer",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -1940,7 +1940,7 @@
     "id": "flechette",
     "type": "trappings",
     "label": "Fléchette",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -1981,7 +1981,7 @@
     "id": "hache-de-lancer",
     "type": "trappings",
     "label": "Hache de lancer",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -2022,7 +2022,7 @@
     "id": "javelot",
     "type": "trappings",
     "label": "Javelot",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -2064,7 +2064,7 @@
     "id": "rocher",
     "type": "trappings",
     "label": "Rocher",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -2096,7 +2096,7 @@
     "type": "trappings",
     "label": "Arquebus à répétition",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "ingenierie"
     },
@@ -2149,7 +2149,7 @@
     "id": "pistolet-a-repetition",
     "type": "trappings",
     "label": "Pistolet à répétition",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "ingenierie"
     },
@@ -2206,7 +2206,7 @@
     "type": "trappings",
     "label": "Arquebuse",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -2256,7 +2256,7 @@
     "type": "trappings",
     "label": "Long fusil d'Hochland",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -2308,7 +2308,7 @@
     "id": "pistolet",
     "type": "trappings",
     "label": "Pistolet",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -2358,7 +2358,7 @@
     "type": "trappings",
     "label": "Tromblon",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -3556,6 +3556,98 @@
     }
   },
   {
+    "id": "caissette",
+    "type": "trappings",
+    "label": "Caissette",
+    "categorie": "trapping",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3435) : Encombrement posé sur le repère Besace, Enc 1 (LDB 64 l.10).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 109,
+      "note": "LDB 08 l.3435"
+    }
+  },
+  {
+    "id": "sac-a-cordons",
+    "type": "trappings",
+    "label": "Sac à cordons",
+    "categorie": "trapping",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 09 l.763) : Encombrement posé sur le repère Besace, Enc 1 (LDB 64 l.10).",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 78,
+      "note": "MDG 09 l.763"
+    }
+  },
+  {
+    "id": "paquetage",
+    "type": "trappings",
+    "label": "Paquetage",
+    "categorie": "trapping",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
+    "enc": 2,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (AA 02 l.163) : Encombrement posé sur le repère Sac à dos, Enc 2 (LDB 64 l.20).",
+    "source": {
+      "book": "aux-armes",
+      "page": 10,
+      "note": "AA 02 l.163"
+    }
+  },
+  {
+    "id": "coffre",
+    "type": "trappings",
+    "label": "Coffre",
+    "categorie": "trapping",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
+    "enc": 4,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 09 l.99) : Encombrement posé sur le repère objet surdimensionné, Enc 4 (LDB 61 l.25).",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 64,
+      "note": "MDG 09 l.99"
+    }
+  },
+  {
     "id": "amulette",
     "type": "trappings",
     "label": "Amulette",
@@ -3921,7 +4013,7 @@
   {
     "id": "costume-de-cour",
     "type": "trappings",
-    "label": "Costume de cour",
+    "label": "Habit de cour",
     "categorie": "trapping",
     "subType": {
       "id": "vetements-et-accessoires"
@@ -4181,6 +4273,264 @@
     }
   },
   {
+    "id": "tablier",
+    "type": "trappings",
+    "label": "Tablier",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ADE II 02 l.968) : Encombrement posé sur le repère Vêtement, Enc 1 (LDB 65 l.30).",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 37,
+      "note": "ADE II 02 l.968"
+    }
+  },
+  {
+    "id": "echarpe",
+    "type": "trappings",
+    "label": "Écharpe",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2570) : Encombrement posé sur le repère Gants, Enc 0 (LDB 65 l.20).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 94,
+      "note": "LDB 08 l.2570"
+    }
+  },
+  {
+    "id": "livree",
+    "type": "trappings",
+    "label": "Livrée",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 1,
+    "availability": "limitee",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 6,
+      "silver": 0,
+      "brass": 0
+    },
+    "maison": "Prix, Encombrement et Disponibilité lus sur LDB 65 l.42 (moitié du prix de l'Habit de cour, l.21 : 12CO, Enc 1, Limitée).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 64,
+      "note": "LDB 08 l.816"
+    }
+  },
+  {
+    "id": "insigne",
+    "type": "trappings",
+    "label": "Insigne",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.541) : Encombrement posé sur le repère Symbole religieux, Enc 0 (LDB 65 l.27).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 59,
+      "note": "LDB 08 l.541"
+    }
+  },
+  {
+    "id": "symbole-de-grade",
+    "type": "trappings",
+    "label": "Symbole de grade",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.549) : Encombrement posé sur le repère Symbole religieux, Enc 0 (LDB 65 l.27).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 59,
+      "note": "LDB 08 l.549"
+    }
+  },
+  {
+    "id": "perruque",
+    "type": "trappings",
+    "label": "Perruque",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2228) : Encombrement posé sur le repère Chapeau, Enc 0 (LDB 65 l.15).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 88,
+      "note": "LDB 08 l.2228"
+    }
+  },
+  {
+    "id": "casquette",
+    "type": "trappings",
+    "label": "Casquette",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2631) : Encombrement posé sur le repère Chapeau, Enc 0 (LDB 65 l.15).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 95,
+      "note": "LDB 08 l.2631"
+    }
+  },
+  {
+    "id": "couronne-de-fleurs",
+    "type": "trappings",
+    "label": "Couronne de fleurs",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3781-3783) : Encombrement posé sur le repère Chapeau, Enc 0 (LDB 65 l.15).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 115,
+      "note": "LDB 08 l.3781-3783"
+    }
+  },
+  {
+    "id": "fourrures-de-rhinox",
+    "type": "trappings",
+    "label": "Fourrures de rhinox",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "sizeFor": "grande",
+    "enc": 2,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ADE II 02 l.929) : Encombrement posé sur le repère Manteau, Enc 1 (LDB 65 l.22), doublé à la taille ogre (ADE II 02 l.708).",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 36,
+      "note": "ADE II 02 l.929"
+    }
+  },
+  {
+    "id": "mortier-universitaire",
+    "type": "trappings",
+    "label": "Mortier",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2104) : Encombrement posé sur le repère Chapeau, Enc 0 (LDB 65 l.15).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 86,
+      "note": "LDB 08 l.2104"
+    }
+  },
+  {
+    "id": "couronne-de-triton",
+    "type": "trappings",
+    "label": "Couronne de Triton",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 16 l.307) : Encombrement posé sur le repère Chapeau, Enc 0 (LDB 65 l.15).",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 149,
+      "note": "MDG 16 l.307"
+    }
+  },
+  {
     "id": "biere-pinte",
     "type": "trappings",
     "label": "Bière, pinte",
@@ -4212,13 +4562,13 @@
         },
         "label": "Bière — Résistance à l'alcool"
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -4494,13 +4844,13 @@
         "label": "Vin & spiritueux — Résistance à l'alcool",
         "difficulty": "difficile"
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -4514,7 +4864,7 @@
   {
     "id": "ration",
     "type": "trappings",
-    "label": "Ration",
+    "label": "Vivres, 1 jour",
     "capabilities": {
       "isRations": true
     },
@@ -4529,7 +4879,6 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "(1 jour)",
     "price": {
       "gold": 0,
       "silver": 2,
@@ -4538,6 +4887,98 @@
     "source": {
       "book": "livre-de-base",
       "page": 302
+    }
+  },
+  {
+    "id": "gros-morceau-de-viande",
+    "type": "trappings",
+    "label": "Gros morceau de viande",
+    "categorie": "trapping",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ADE II 02 l.880) : Encombrement posé sur le repère Nourriture, courses/journée, Enc 1 (LDB 66 l.15).",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 35,
+      "note": "ADE II 02 l.880"
+    }
+  },
+  {
+    "id": "alcool",
+    "type": "trappings",
+    "label": "Alcool",
+    "categorie": "trapping",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2082) : Encombrement posé sur le repère Spiritueux, pinte, Enc 0 (LDB 66 l.17).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 86,
+      "note": "LDB 08 l.2082"
+    }
+  },
+  {
+    "id": "dejeuner",
+    "type": "trappings",
+    "label": "Déjeuner",
+    "categorie": "trapping",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 05 l.554) : Encombrement posé sur le repère Vivres, 1 jour, Enc 0 (LDB 66 l.20).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 37,
+      "note": "LDB 05 l.554"
+    }
+  },
+  {
+    "id": "eau",
+    "type": "trappings",
+    "label": "Eau",
+    "categorie": "trapping",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2985) : Encombrement posé sur le repère Bière, pinte, Enc 0 (LDB 66 l.9).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 101,
+      "note": "LDB 08 l.2985"
     }
   },
   {
@@ -5095,22 +5536,24 @@
         "label": "Nécessaire antipoison",
         "noSupport": false
       },
-      "success": {
-        "kind": "do",
-        "effect": {
+      "reussite": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
               "op": "removeCondition",
-              "id": "empoisonne",
+              "id": {
+                "id": "empoisonne"
+              },
               "all": true
             }
           ]
         }
       },
-      "fail": {
-        "kind": "seq",
-        "steps": []
+      "echec": {
+        "kind": "sequence",
+        "etapes": []
       }
     }
   },
@@ -5299,7 +5742,7 @@
   {
     "id": "piege-a-animaux",
     "type": "trappings",
-    "label": "Piège à animaux",
+    "label": "Piège à animal",
     "categorie": "trapping",
     "subType": {
       "id": "outils-et-necessaires"
@@ -5598,6 +6041,498 @@
     "source": {
       "book": "livre-de-base",
       "page": 303
+    }
+  },
+  {
+    "id": "loupe",
+    "type": "trappings",
+    "label": "Loupe",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2204) : Encombrement posé sur le repère Bésicles, Enc 0 (LDB 67 l.22).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 88,
+      "note": "LDB 08 l.2204"
+    }
+  },
+  {
+    "id": "instruments-de-torture",
+    "type": "trappings",
+    "label": "Instruments de torture",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1893) : Encombrement posé sur le repère Outils professionnels, Enc 1 (LDB 69 l.10).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 83,
+      "note": "LDB 08 l.1893"
+    }
+  },
+  {
+    "id": "brosse",
+    "type": "trappings",
+    "label": "Brosse",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2745) : Encombrement posé sur le repère Brosse pour le sol, Enc 0 (LDB 67 l.25).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 97,
+      "note": "LDB 08 l.2745"
+    }
+  },
+  {
+    "id": "filet-de-peche",
+    "type": "trappings",
+    "label": "Filet de pêche",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 09 l.763) : Encombrement posé sur le repère Filet lesté, Enc 1 (AA 08 l.290).",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 78,
+      "note": "MDG 09 l.763"
+    }
+  },
+  {
+    "id": "eprouvettes",
+    "type": "trappings",
+    "label": "Éprouvettes",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 03 l.70) : Encombrement posé sur le repère Pilon & Mortier, Enc 0 (LDB 67 l.51).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 36,
+      "note": "VDM 03 l.70"
+    }
+  },
+  {
+    "id": "alambic",
+    "type": "trappings",
+    "label": "Alambic",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 03 l.70) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la mandoline.",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 36,
+      "note": "VDM 03 l.70"
+    }
+  },
+  {
+    "id": "trepied",
+    "type": "trappings",
+    "label": "Trépied",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 03 l.70) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la mandoline.",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 36,
+      "note": "VDM 03 l.70"
+    }
+  },
+  {
+    "id": "encre",
+    "type": "trappings",
+    "label": "Encre",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.352-354) : Encombrement posé sur le repère Plume d'oie, Enc 0 (LDB 67 l.56).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 56,
+      "note": "LDB 08 l.352-354"
+    }
+  },
+  {
+    "id": "canne-a-peche",
+    "type": "trappings",
+    "label": "Canne à pêche",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 2,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2678) : Encombrement posé sur le repère entre Canne de marche, Enc 1 (LDB 65 l.12) et Perche (3 mètres), Enc 3 (LDB 67 l.48).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 96,
+      "note": "LDB 08 l.2678"
+    }
+  },
+  {
+    "id": "appats",
+    "type": "trappings",
+    "label": "Appâts",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2678) : Encombrement posé sur le repère Vers (6), Enc 0 (LDB 70 l.27).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 96,
+      "note": "LDB 08 l.2678"
+    }
+  },
+  {
+    "id": "sextant",
+    "type": "trappings",
+    "label": "Sextant",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2773) : Encombrement posé sur le repère Télescope, Enc 0 (LDB 67 l.61).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 97,
+      "note": "LDB 08 l.2773"
+    }
+  },
+  {
+    "id": "monocle",
+    "type": "trappings",
+    "label": "Monocle",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3280) : Encombrement posé sur le repère Bésicles, Enc 0 (LDB 67 l.22).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 106,
+      "note": "LDB 08 l.3280"
+    }
+  },
+  {
+    "id": "sphere-armillaire",
+    "type": "trappings",
+    "label": "Sphère armillaire",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 07 l.88) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la mandoline (l.11).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 92,
+      "note": "VDM 07 l.88"
+    }
+  },
+  {
+    "id": "planetaire",
+    "type": "trappings",
+    "label": "Planétaire",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 07 l.88) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la mandoline (l.11).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 92,
+      "note": "VDM 07 l.88"
+    }
+  },
+  {
+    "id": "theodolite",
+    "type": "trappings",
+    "label": "Théodolite",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 3,
+    "availability": "exotique",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 6,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 88,
+      "note": "AA 08 l.40"
+    }
+  },
+  {
+    "id": "cartouchiere",
+    "type": "trappings",
+    "label": "Cartouchière",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": "commune",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 0,
+      "silver": 6,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 88,
+      "note": "AA 08 l.30"
+    }
+  },
+  {
+    "id": "meche",
+    "type": "trappings",
+    "label": "Mèche",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": "limitee",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 0,
+      "silver": 0,
+      "brass": 3
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 88,
+      "note": "AA 08 l.34"
+    }
+  },
+  {
+    "id": "longue-vue",
+    "type": "trappings",
+    "label": "Longue-vue",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.384) : Encombrement posé sur le repère Télescope, Enc 0 (LDB 67 l.61).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 56,
+      "note": "LDB 08 l.384"
+    }
+  },
+  {
+    "id": "cadran-lunaire",
+    "type": "trappings",
+    "label": "Cadran lunaire",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 16 l.364) : Encombrement posé sur le repère Télescope, Enc 0 (LDB 67 l.61).",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 151,
+      "note": "MDG 16 l.364"
+    }
+  },
+  {
+    "id": "sable-a-secher-l-encre",
+    "type": "trappings",
+    "label": "Sable à sécher l'encre",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 15 l.157) : Encombrement posé sur le repère Plume d'oie, Enc 0 (LDB 67 l.56).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 213,
+      "note": "VDM 15 l.157"
+    }
+  },
+  {
+    "id": "trousse-de-toilette",
+    "type": "trappings",
+    "label": "Trousse de toilette",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ZI 14 l.126) : Encombrement posé sur le repère Nécessaire de déguisement, Enc 0 (LDB 67 l.44).",
+    "source": {
+      "book": "zoo-imperial",
+      "page": 122,
+      "note": "ZI 14 l.126"
     }
   },
   {
@@ -5966,31 +6901,6 @@
     }
   },
   {
-    "id": "feuille-de-parchemin",
-    "type": "trappings",
-    "label": "Feuille de parchemin",
-    "categorie": "trapping",
-    "subType": {
-      "id": "livres-et-documents"
-    },
-    "enc": 0,
-    "availability": "commune",
-    "reach": null,
-    "loc": null,
-    "pa": null,
-    "damage": null,
-    "qualities": [],
-    "price": {
-      "gold": 0,
-      "silver": 1,
-      "brass": 0
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 304
-    }
-  },
-  {
     "id": "tract",
     "type": "trappings",
     "label": "Tract",
@@ -6013,6 +6923,305 @@
     "source": {
       "book": "livre-de-base",
       "page": 304
+    }
+  },
+  {
+    "id": "velin",
+    "type": "trappings",
+    "label": "Vélin",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (AA 02 l.403) : Encombrement posé sur le repère Parchemin/feuille, Enc 0 (LDB 68 l.20).",
+    "source": {
+      "book": "aux-armes",
+      "page": 16,
+      "note": "AA 02 l.403"
+    }
+  },
+  {
+    "id": "livre",
+    "type": "trappings",
+    "label": "Livre",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2082) : Encombrement posé sur le repère Livre, toute spécialité, Enc 1 (LDB 68 l.12-19).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 86,
+      "note": "LDB 08 l.2082"
+    }
+  },
+  {
+    "id": "guide-de-l-observateur-des-etoiles",
+    "type": "trappings",
+    "label": "Guide de l'observateur des étoiles",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 07 l.74) : Encombrement posé sur le repère Livre, toute spécialité, Enc 1 (LDB 68 l.12-19).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 92,
+      "note": "VDM 07 l.74"
+    }
+  },
+  {
+    "id": "journal",
+    "type": "trappings",
+    "label": "Journal",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.352) : Encombrement posé sur le repère Livre, toute spécialité, Enc 1 (LDB 68 l.12-19).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 56,
+      "note": "LDB 08 l.352"
+    }
+  },
+  {
+    "id": "lettre-de-recommandation",
+    "type": "trappings",
+    "label": "Lettre de recommandation",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2082) : Encombrement posé sur le repère Document légal, Enc 0 (LDB 68 l.10).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 86,
+      "note": "LDB 08 l.2082"
+    }
+  },
+  {
+    "id": "choix-de-textes",
+    "type": "trappings",
+    "label": "Choix de textes",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1954) : Encombrement posé sur le repère Livre, toute spécialité, Enc 1 (LDB 68 l.12-19).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 84,
+      "note": "LDB 08 l.1954"
+    }
+  },
+  {
+    "id": "licence-magique",
+    "type": "trappings",
+    "label": "Licence magique",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2460) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 92,
+      "note": "LDB 08 l.2460"
+    }
+  },
+  {
+    "id": "lettre-de-nomination",
+    "type": "trappings",
+    "label": "Lettre de nomination",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1380) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 74,
+      "note": "LDB 08 l.1380"
+    }
+  },
+  {
+    "id": "ordres-de-mission",
+    "type": "trappings",
+    "label": "Ordres de mission",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1380) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 74,
+      "note": "LDB 08 l.1380"
+    }
+  },
+  {
+    "id": "bon-de-commande",
+    "type": "trappings",
+    "label": "Bon de commande",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2051) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 85,
+      "note": "LDB 08 l.2051"
+    }
+  },
+  {
+    "id": "diplome",
+    "type": "trappings",
+    "label": "Diplôme",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2094) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 86,
+      "note": "LDB 08 l.2094"
+    }
+  },
+  {
+    "id": "lettre-d-engagement",
+    "type": "trappings",
+    "label": "Lettre d'engagement",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2289) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 89,
+      "note": "LDB 08 l.2289"
+    }
+  },
+  {
+    "id": "contrat-de-mercenaire",
+    "type": "trappings",
+    "label": "Contrat de mercenaire",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ADE II 02 l.900) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 35,
+      "note": "ADE II 02 l.900"
     }
   },
   {
@@ -6510,6 +7719,82 @@
     }
   },
   {
+    "id": "presse-a-imprimer",
+    "type": "trappings",
+    "label": "Presse à imprimer",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
+    "enc": "ND",
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.199) : Encombrement posé sur le repère Atelier, Enc ND (LDB 69 l.9).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 53,
+      "note": "LDB 08 l.199"
+    }
+  },
+  {
+    "id": "laboratoire-alchimique-portatif",
+    "type": "trappings",
+    "label": "Laboratoire alchimique portatif",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
+    "enc": 3,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 12,
+      "silver": 0,
+      "brass": 0
+    },
+    "maison": "Prix imprimé hors table (VDM 03 l.659), sans Encombrement ni Disponibilité : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang du grand sac (l.13) : « grande malle de voyage » (VDM 03 l.659).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 50,
+      "note": "VDM 03 l.659"
+    }
+  },
+  {
+    "id": "laboratoire-alchimique",
+    "type": "trappings",
+    "label": "Laboratoire alchimique",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
+    "enc": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 100,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 160,
+      "note": "VDM 12 l.356"
+    }
+  },
+  {
     "id": "collier-et-laisse-chien",
     "type": "trappings",
     "label": "Collier et laisse (chien)",
@@ -6667,13 +7952,13 @@
         "difficulty": "tresDifficile",
         "label": "Bave"
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -6711,11 +7996,11 @@
       "page": 306
     },
     "consumable": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -6767,13 +8052,13 @@
             ],
             "label": "Bonnet de fou"
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -6840,18 +8125,20 @@
         "menace": "poison",
         "label": "Brise-cœur"
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
               "op": "condition",
-              "id": "empoisonne",
+              "id": {
+                "id": "empoisonne"
+              },
               "value": 4
             }
           ]
@@ -6885,8 +8172,8 @@
       "page": 306
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -6977,16 +8264,16 @@
       "page": 306
     },
     "consumable": {
-      "kind": "if",
-      "cond": {
+      "kind": "si",
+      "condition": {
         "kind": "has",
         "who": "target",
         "what": "group",
         "value": "elfe"
       },
-      "then": {
-        "kind": "do",
-        "effect": {
+      "alors": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -6999,16 +8286,16 @@
           ]
         }
       },
-      "else": {
+      "sinon": {
         "kind": "test",
         "test": {
           "characteristic": "force-mentale",
           "difficulty": "tresDifficile",
           "label": "Fleur de lune"
         },
-        "success": {
-          "kind": "do",
-          "effect": {
+        "reussite": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -7020,20 +8307,24 @@
               },
               {
                 "op": "condition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "value": 1
               }
             ]
           }
         },
-        "fail": {
-          "kind": "do",
-          "effect": {
+        "echec": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
                 "op": "condition",
-                "id": "inconscient",
+                "id": {
+                  "id": "inconscient"
+                },
                 "durationHours": {
                   "dice": {
                     "n": 1,
@@ -7083,8 +8374,8 @@
       "page": 306
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7092,10 +8383,10 @@
             "onHitEffects": [
               {
                 "trigger": "onHit",
-                "on": "victim",
+                "on": "victime",
                 "flow": {
-                  "kind": "if",
-                  "cond": {
+                  "kind": "si",
+                  "condition": {
                     "kind": "all",
                     "of": [
                       {
@@ -7117,7 +8408,7 @@
                       }
                     ]
                   },
-                  "then": {
+                  "alors": {
                     "kind": "test",
                     "test": {
                       "characteristic": "endurance",
@@ -7136,19 +8427,21 @@
                       },
                       "menace": "poison"
                     },
-                    "success": {
-                      "kind": "seq",
-                      "steps": []
+                    "reussite": {
+                      "kind": "sequence",
+                      "etapes": []
                     },
-                    "fail": {
-                      "kind": "do",
-                      "effect": {
+                    "echec": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "on": "target",
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "empoisonne",
+                            "id": {
+                              "id": "empoisonne"
+                            },
                             "value": 2
                           }
                         ]
@@ -7181,14 +8474,14 @@
     "price": null,
     "niPerGram": 20,
     "niConsumedPerDR": 1,
-    "maison": "VDM 02 l.163-165 ne fixe aucune formule de consommation de la réserve : 1 NI par point de DR bonus accordé (défaut). Le doublement (LDB 46 l.173) s'applique PLEIN dès qu'un reliquat de réserve existe (le RAW ne prévoit pas de doublement partiel/proratisé). Arbitrage MAISON supplémentaire : sous le Livre de base seul (option `magic-vdm-incantation` OFF), la réserve est INÉPUISABLE tant que l'objet est porté — `LDB 46 l.173` n'indique aucune limite ni épuisement, ce silence n'est pas une inconditionnalité RAW mais un choix d'arbitrage (la réserve réellement finie est le seul apport de `VDM 02 l.165`).",
+    "maison": "VDM 02 l.163-165 ne fixe aucune formule de consommation de la réserve : 1 NI par point de DR bonus accordé (défaut). Le doublement (LDB 46 l.173) s'applique PLEIN dès qu'un reliquat de réserve existe (le RAW ne prévoit pas de doublement partiel/proratisé). Arbitrage MAISON supplémentaire : sous le Livre de base seul (option `magie-vdm-incantation` OFF), la réserve est INÉPUISABLE tant que l'objet est porté — `LDB 46 l.173` n'indique aucune limite ni épuisement, ce silence n'est pas une inconditionnalité RAW mais un choix d'arbitrage (la réserve réellement finie est le seul apport de `VDM 02 l.165`).",
     "source": {
       "book": "livre-de-base",
       "page": 182
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7218,14 +8511,14 @@
     "price": null,
     "niPerGram": 20,
     "niConsumedPerDR": 1,
-    "maison": "VDM 02 l.163-165 ne fixe aucune formule de consommation de la réserve : 1 NI par point de DR bonus accordé (défaut). Le doublement (LDB 46 l.173) s'applique PLEIN dès qu'un reliquat de réserve existe (le RAW ne prévoit pas de doublement partiel/proratisé). Arbitrage MAISON supplémentaire : sous le Livre de base seul (option `magic-vdm-incantation` OFF), la réserve est INÉPUISABLE tant que l'objet est porté — `LDB 46 l.173` n'indique aucune limite ni épuisement, ce silence n'est pas une inconditionnalité RAW mais un choix d'arbitrage (la réserve réellement finie est le seul apport de `VDM 02 l.165`).",
+    "maison": "VDM 02 l.163-165 ne fixe aucune formule de consommation de la réserve : 1 NI par point de DR bonus accordé (défaut). Le doublement (LDB 46 l.173) s'applique PLEIN dès qu'un reliquat de réserve existe (le RAW ne prévoit pas de doublement partiel/proratisé). Arbitrage MAISON supplémentaire : sous le Livre de base seul (option `magie-vdm-incantation` OFF), la réserve est INÉPUISABLE tant que l'objet est porté — `LDB 46 l.173` n'indique aucune limite ni épuisement, ce silence n'est pas une inconditionnalité RAW mais un choix d'arbitrage (la réserve réellement finie est le seul apport de `VDM 02 l.165`).",
     "source": {
       "book": "livre-de-base",
       "page": 183
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7263,8 +8556,8 @@
       "page": 306
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7335,8 +8628,8 @@
       "page": 306
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7352,7 +8645,7 @@
             "mod": 20
           },
           {
-            "op": "actGate",
+            "op": "testDAgir",
             "characteristic": "force-mentale"
           }
         ]
@@ -7408,13 +8701,13 @@
         },
         "label": "Belladone"
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -7423,7 +8716,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "inconscient",
+                  "id": {
+                    "id": "inconscient"
+                  },
                   "durationHours": {
                     "dice": {
                       "n": 1,
@@ -7465,8 +8760,8 @@
       "page": 307
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7508,13 +8803,15 @@
       "page": 307
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
             "op": "removeCondition",
-            "id": "hemorragique",
+            "id": {
+              "id": "hemorragique"
+            },
             "all": true
           }
         ]
@@ -7547,8 +8844,8 @@
       "page": 307
     },
     "consumable": {
-      "kind": "if",
-      "cond": {
+      "kind": "si",
+      "condition": {
         "kind": "compare",
         "subject": {
           "who": "target",
@@ -7557,9 +8854,9 @@
         "op": ">=",
         "value": 1
       },
-      "then": {
-        "kind": "do",
-        "effect": {
+      "alors": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -7602,13 +8899,15 @@
       "page": 307
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
             "op": "removeCondition",
-            "id": "extenue",
+            "id": {
+              "id": "extenue"
+            },
             "all": true
           }
         ]
@@ -7647,8 +8946,8 @@
       "page": 307
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7698,13 +8997,15 @@
       "page": 307
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
             "op": "removeCondition",
-            "id": "sonne",
+            "id": {
+              "id": "sonne"
+            },
             "value": 1
           }
         ]
@@ -7737,8 +9038,8 @@
       "page": 307
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7793,9 +9094,9 @@
         "difficulty": "accessible",
         "label": "Gesundheit"
       },
-      "success": {
-        "kind": "do",
-        "effect": {
+      "reussite": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -7810,9 +9111,9 @@
           ]
         }
       },
-      "fail": {
-        "kind": "seq",
-        "steps": []
+      "echec": {
+        "kind": "sequence",
+        "etapes": []
       }
     }
   },
@@ -7845,8 +9146,8 @@
       "page": 14
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7854,10 +9155,10 @@
             "onHitEffects": [
               {
                 "trigger": "onHit",
-                "on": "victim",
+                "on": "victime",
                 "flow": {
-                  "kind": "if",
-                  "cond": {
+                  "kind": "si",
+                  "condition": {
                     "kind": "all",
                     "of": [
                       {
@@ -7879,7 +9180,7 @@
                       }
                     ]
                   },
-                  "then": {
+                  "alors": {
                     "kind": "test",
                     "test": {
                       "characteristic": "endurance",
@@ -7901,19 +9202,21 @@
                       },
                       "menace": "poison"
                     },
-                    "success": {
-                      "kind": "seq",
-                      "steps": []
+                    "reussite": {
+                      "kind": "sequence",
+                      "etapes": []
                     },
-                    "fail": {
-                      "kind": "do",
-                      "effect": {
+                    "echec": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "on": "target",
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "empoisonne",
+                            "id": {
+                              "id": "empoisonne"
+                            },
                             "value": 1,
                             "onlyGroups": [
                               "mort-vivant"
@@ -7970,8 +9273,8 @@
       "page": 14
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7994,6 +9297,29 @@
     },
     "consumableDuration": {
       "days": 1
+    }
+  },
+  {
+    "id": "assortiment-d-herbes",
+    "type": "trappings",
+    "label": "Assortiment d'herbes",
+    "categorie": "trapping",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3594) : Encombrement posé sur le repère herbes et potions, Enc 0 (LDB 72 l.9-16).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 112,
+      "note": "LDB 08 l.3594"
     }
   },
   {
@@ -8378,8 +9704,8 @@
       "page": 308
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -8483,7 +9809,9 @@
       {
         "op": "light",
         "radiusM": 10,
-        "tone": "chandelle"
+        "tone": {
+          "id": "chandelle"
+        }
       }
     ],
     "desc": "Fournit un éclairage sur 10 mètres lorsqu'elle est allumée.",
@@ -8700,6 +10028,29 @@
     }
   },
   {
+    "id": "clef-des-secrets",
+    "type": "trappings",
+    "label": "Clef des Secrets",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 10 l.70) : Encombrement posé sur le repère Clef, Enc 0 (LDB 67 l.28).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 128,
+      "note": "VDM 10 l.70"
+    }
+  },
+  {
     "id": "instrument",
     "type": "trappings",
     "label": "Instrument",
@@ -8723,6 +10074,29 @@
     "source": {
       "book": "livre-de-base",
       "page": 308
+    }
+  },
+  {
+    "id": "porte-bougie",
+    "type": "trappings",
+    "label": "Porte-bougie",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 04 l.86) : Encombrement posé sur le repère Bougie, Enc 0 (LDB 74 l.18).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 56,
+      "note": "VDM 04 l.86"
     }
   },
   {
@@ -8780,7 +10154,9 @@
       {
         "op": "light",
         "radiusM": 10,
-        "tone": "lanterne"
+        "tone": {
+          "id": "lanterne"
+        }
       }
     ]
   },
@@ -8803,7 +10179,9 @@
       {
         "op": "light",
         "radiusM": 20,
-        "tone": "lanterne"
+        "tone": {
+          "id": "lanterne"
+        }
       }
     ],
     "desc": "Des obturateurs protègent la flamme du vent, et permet également de diriger la lumière dans un arc de 90° ou de l'obscurcir complètement. Fournit un éclairage sur 20 mètres, ou 30 quand il est ciblé.",
@@ -8836,7 +10214,9 @@
       {
         "op": "light",
         "radiusM": 20,
-        "tone": "lanterne"
+        "tone": {
+          "id": "lanterne"
+        }
       }
     ],
     "desc": "Fournit un éclairage sur 20 mètres.",
@@ -8901,6 +10281,29 @@
     }
   },
   {
+    "id": "hamac",
+    "type": "trappings",
+    "label": "Hamac",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 09 l.87) : Encombrement posé sur le repère Sac de couchage, Enc 1 (LDB 74 l.37).",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 64,
+      "note": "MDG 09 l.87"
+    }
+  },
+  {
     "id": "paquet-de-cartes",
     "type": "trappings",
     "label": "Paquet de cartes",
@@ -8923,6 +10326,29 @@
     "source": {
       "book": "livre-de-base",
       "page": 308
+    }
+  },
+  {
+    "id": "carquois",
+    "type": "trappings",
+    "label": "Carquois",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (AA 02 l.163) : Encombrement posé sur le repère Besace, Enc 1 (LDB 64 l.10).",
+    "source": {
+      "book": "aux-armes",
+      "page": 10,
+      "note": "AA 02 l.163"
     }
   },
   {
@@ -8973,6 +10399,29 @@
     "source": {
       "book": "livre-de-base",
       "page": 308
+    }
+  },
+  {
+    "id": "porte-bonheur",
+    "type": "trappings",
+    "label": "Porte-bonheur",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3753) : Encombrement posé sur le repère Amulette, Enc 0 (LDB 65 l.9).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 115,
+      "note": "LDB 08 l.3753"
     }
   },
   {
@@ -9059,6 +10508,374 @@
     "source": {
       "book": "livre-de-base",
       "page": 308
+    }
+  },
+  {
+    "id": "epee-d-entrainement-en-bois",
+    "type": "trappings",
+    "label": "Épée d'entraînement en bois",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.771) : Encombrement posé sur le repère Épée, Enc 1 (LDB 61 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 63,
+      "note": "LDB 08 l.771"
+    }
+  },
+  {
+    "id": "relique",
+    "type": "trappings",
+    "label": "Relique",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1728) : Encombrement posé sur le repère Symbole religieux, Enc 0 (LDB 65 l.27).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 80,
+      "note": "LDB 08 l.1728"
+    }
+  },
+  {
+    "id": "tete-de-troll",
+    "type": "trappings",
+    "label": "Tête de troll",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 3,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1484) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang du tonneau (l.13).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 76,
+      "note": "LDB 08 l.1484"
+    }
+  },
+  {
+    "id": "tete-de-geant",
+    "type": "trappings",
+    "label": "Tête de géant",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 4,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1492) : Encombrement posé sur le repère objet surdimensionné, Enc 4 (LDB 61 l.25).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 76,
+      "note": "LDB 08 l.1492"
+    }
+  },
+  {
+    "id": "tete-de-dragon",
+    "type": "trappings",
+    "label": "Tête de dragon",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 4,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1502) : Encombrement posé sur le repère objet surdimensionné, Enc 4 (LDB 61 l.25).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 76,
+      "note": "LDB 08 l.1502"
+    }
+  },
+  {
+    "id": "sifflet",
+    "type": "trappings",
+    "label": "Sifflet",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2639) : Encombrement posé sur le repère petit instrument, Enc 0 (LDB 74 l.47).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 95,
+      "note": "LDB 08 l.2639"
+    }
+  },
+  {
+    "id": "poudres-colorees",
+    "type": "trappings",
+    "label": "Poudres colorées",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2985) : Encombrement posé sur le repère Poudre pour le visage, Enc 0 (LDB 65 l.24).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 101,
+      "note": "LDB 08 l.2985"
+    }
+  },
+  {
+    "id": "breloque",
+    "type": "trappings",
+    "label": "Breloque",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2985) : Encombrement posé sur le repère Amulette, Enc 0 (LDB 65 l.9).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 101,
+      "note": "LDB 08 l.2985"
+    }
+  },
+  {
+    "id": "colifichet",
+    "type": "trappings",
+    "label": "Colifichet",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2985) : Encombrement posé sur le repère Amulette, Enc 0 (LDB 65 l.9).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 101,
+      "note": "LDB 08 l.2985"
+    }
+  },
+  {
+    "id": "crane",
+    "type": "trappings",
+    "label": "Crâne",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3345) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la mandoline (l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 107,
+      "note": "LDB 08 l.3345"
+    }
+  },
+  {
+    "id": "marchandises",
+    "type": "trappings",
+    "label": "Marchandises",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3272) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la besace (l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 106,
+      "note": "LDB 08 l.3272"
+    }
+  },
+  {
+    "id": "peau-de-grand-felin",
+    "type": "trappings",
+    "label": "Peau de grand félin",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (AA 03 l.414) : Encombrement posé sur le repère Couverture, Enc 0 (LDB 74 l.23).",
+    "source": {
+      "book": "aux-armes",
+      "page": 36,
+      "note": "AA 03 l.414"
+    }
+  },
+  {
+    "id": "etendard",
+    "type": "trappings",
+    "label": "Étendard",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 3,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (AA 04 l.222) : Encombrement posé sur le repère Perche (3 mètres), Enc 3 (LDB 67 l.48).",
+    "source": {
+      "book": "aux-armes",
+      "page": 46,
+      "note": "AA 04 l.222"
+    }
+  },
+  {
+    "id": "trophee",
+    "type": "trappings",
+    "label": "Trophée",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ADE I 07 l.217) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la mandoline (l.11).",
+    "source": {
+      "book": "archives-de-l-empire-1",
+      "page": 91,
+      "note": "ADE I 07 l.217"
+    }
+  },
+  {
+    "id": "souvenirs",
+    "type": "trappings",
+    "label": "Souvenirs",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ADE I 07 l.172-174) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la besace (l.11).",
+    "source": {
+      "book": "archives-de-l-empire-1",
+      "page": 90,
+      "note": "ADE I 07 l.172-174"
+    }
+  },
+  {
+    "id": "gamelles",
+    "type": "trappings",
+    "label": "Gamelles",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (EDOC 16 l.481) : Encombrement posé sur le repère Casserole, Enc 1 (LDB 74 l.19).",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 113,
+      "note": "EDOC 16 l.481"
     }
   },
   {
@@ -9169,7 +10986,7 @@
     "id": "baliste",
     "type": "trappings",
     "label": "Baliste",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9179,9 +10996,10 @@
     "rendu": {
       "id": "baliste"
     },
-    "defaultAmmo": {
-      "id": "carreau-de-baliste"
-    },
+    "munitions": [
+      "carreau-de-baliste",
+      "carreau-nain-norse"
+    ],
     "soloSimple": true,
     "enc": 20,
     "availability": "limitee",
@@ -9221,7 +11039,7 @@
     "id": "catapulte-petite",
     "type": "trappings",
     "label": "Catapulte (petite)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9231,6 +11049,9 @@
     "rendu": {
       "id": "catapulte"
     },
+    "munitions": [
+      "bombe-incendiaire-mortier"
+    ],
     "indirect": true,
     "enc": 25,
     "availability": "limitee",
@@ -9273,7 +11094,7 @@
     "id": "catapulte-moyenne",
     "type": "trappings",
     "label": "Catapulte (moyenne)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9283,6 +11104,9 @@
     "rendu": {
       "id": "catapulte"
     },
+    "munitions": [
+      "bombe-incendiaire-mortier"
+    ],
     "indirect": true,
     "enc": 40,
     "availability": "limitee",
@@ -9325,7 +11149,7 @@
     "id": "catapulte-grande",
     "type": "trappings",
     "label": "Catapulte (grande)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9335,6 +11159,9 @@
     "rendu": {
       "id": "catapulte"
     },
+    "munitions": [
+      "bombe-incendiaire-mortier"
+    ],
     "indirect": true,
     "enc": 65,
     "availability": "limitee",
@@ -9377,7 +11204,7 @@
     "id": "batterie-tonnerre-de-feu",
     "type": "trappings",
     "label": "Batterie tonnerre de feu",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9443,7 +11270,7 @@
     "id": "canon-a-repetition",
     "type": "trappings",
     "label": "Canon à répétition",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9491,7 +11318,7 @@
     "id": "canon-a-repetition-feu-d-enfer",
     "type": "trappings",
     "label": "Canon à répétition feu d'enfer",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9543,7 +11370,7 @@
     "id": "canon-petit",
     "type": "trappings",
     "label": "Canon (petit)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9553,9 +11380,10 @@
     "rendu": {
       "id": "canon"
     },
-    "defaultAmmo": {
-      "id": "boulet-et-poudre"
-    },
+    "munitions": [
+      "boulet-et-poudre",
+      "mitraille-et-poudre"
+    ],
     "enc": 30,
     "availability": "limitee",
     "reach": null,
@@ -9598,7 +11426,7 @@
     "id": "canon-moyen",
     "type": "trappings",
     "label": "Canon (moyen)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9608,9 +11436,10 @@
     "rendu": {
       "id": "canon"
     },
-    "defaultAmmo": {
-      "id": "boulet-et-poudre"
-    },
+    "munitions": [
+      "boulet-et-poudre",
+      "mitraille-et-poudre"
+    ],
     "enc": 50,
     "availability": "exotique",
     "reach": null,
@@ -9653,7 +11482,7 @@
     "id": "canon-grand",
     "type": "trappings",
     "label": "Canon (grand)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9663,9 +11492,10 @@
     "rendu": {
       "id": "canon"
     },
-    "defaultAmmo": {
-      "id": "boulet-et-poudre"
-    },
+    "munitions": [
+      "boulet-et-poudre",
+      "mitraille-et-poudre"
+    ],
     "enc": 75,
     "availability": "exotique",
     "reach": null,
@@ -9708,7 +11538,7 @@
     "id": "mortier",
     "type": "trappings",
     "label": "Mortier",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9718,9 +11548,10 @@
     "rendu": {
       "id": "mortier"
     },
-    "defaultAmmo": {
-      "id": "bombe-de-mortier"
-    },
+    "munitions": [
+      "bombe-de-mortier",
+      "bombe-incendiaire-mortier"
+    ],
     "indirect": true,
     "enc": 50,
     "availability": "exotique",
@@ -9757,7 +11588,7 @@
     "id": "pierrier",
     "type": "trappings",
     "label": "Pierrier",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9767,9 +11598,10 @@
     "rendu": {
       "id": "canon"
     },
-    "defaultAmmo": {
-      "id": "balles-et-poudre-pierrier"
-    },
+    "munitions": [
+      "balles-et-poudre-pierrier",
+      "petites-munitions-et-poudre-pierrier"
+    ],
     "enc": 5,
     "availability": "rare",
     "reach": null,
@@ -9839,7 +11671,7 @@
       "id": "demi_lance"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "capabilities": {
       "improvisedWithoutCharge": true
@@ -10137,6 +11969,45 @@
     }
   },
   {
+    "id": "matraque-2",
+    "type": "trappings",
+    "label": "Matraque",
+    "categorie": "melee",
+    "subType": {
+      "id": "bagarre"
+    },
+    "enc": 0,
+    "availability": "rare",
+    "reach": "Personnelle",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 1
+    },
+    "qualities": [
+      {
+        "id": "assommante"
+      },
+      {
+        "id": "desequilibree"
+      },
+      {
+        "id": "inoffensive"
+      }
+    ],
+    "price": {
+      "gold": 0,
+      "silver": 1,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 94,
+      "note": "AA 08 l.255"
+    }
+  },
+  {
     "id": "cape-2",
     "type": "trappings",
     "label": "Cape",
@@ -10225,7 +12096,7 @@
       "id": "ahlspiess"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -10268,7 +12139,7 @@
       "id": "attrape_coquin"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -10324,7 +12195,7 @@
       "id": "hache_armes"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "bladed": true
   },
@@ -10379,7 +12250,7 @@
       "id": "pertuisane"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "bladed": true
   },
@@ -10433,7 +12304,7 @@
       "id": "serpe_guerre"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "bladed": true
   },
@@ -10489,7 +12360,7 @@
     "id": "baton-pointu",
     "type": "trappings",
     "label": "Bâton pointu",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -10532,7 +12403,7 @@
     "id": "fleche-barbelee",
     "type": "trappings",
     "label": "Flèche barbelée",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -10567,7 +12438,7 @@
     "id": "fleche-bodkin",
     "type": "trappings",
     "label": "Flèche bodkin",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -10601,7 +12472,7 @@
     "id": "bille-de-plomb",
     "type": "trappings",
     "label": "Bille de plomb",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -10637,7 +12508,7 @@
     "id": "caillou",
     "type": "trappings",
     "label": "Caillou",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -10677,7 +12548,7 @@
     "type": "trappings",
     "label": "Arquebuse à double canon",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -10726,7 +12597,7 @@
     "type": "trappings",
     "label": "Arquebuse à mèche",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -10771,7 +12642,7 @@
     "type": "trappings",
     "label": "Hache-arquebuse",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -10819,7 +12690,7 @@
     "type": "trappings",
     "label": "Hallebarde-arquebuse",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -10867,7 +12738,7 @@
     "type": "trappings",
     "label": "Haquebute",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -10914,7 +12785,7 @@
     "id": "pistolet-patte-de-griffon",
     "type": "trappings",
     "label": "Pistolet patte de griffon",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -10963,7 +12834,7 @@
     "type": "trappings",
     "label": "Tromblon à mèche",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -11011,7 +12882,7 @@
     "id": "canne-pistolet",
     "type": "trappings",
     "label": "Canne-pistolet",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -11059,7 +12930,7 @@
     "type": "trappings",
     "label": "Mortier à main",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -11106,7 +12977,7 @@
     "id": "poivriere",
     "type": "trappings",
     "label": "Poivrière",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -11157,7 +13028,7 @@
     "id": "balle-de-gros-calibre-et-poudre",
     "type": "trappings",
     "label": "Balle de gros calibre et poudre",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11196,7 +13067,7 @@
     "id": "bombe-explosive",
     "type": "trappings",
     "label": "Bombe explosive",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11236,7 +13107,7 @@
     "id": "cartouche-en-papier",
     "type": "trappings",
     "label": "Cartouche en papier",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11272,7 +13143,7 @@
     "id": "cartouche-et-poudre-de-precision",
     "type": "trappings",
     "label": "Cartouche et poudre de précision",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11311,7 +13182,7 @@
     "id": "ferraille-et-poudre",
     "type": "trappings",
     "label": "Ferraille et poudre",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11350,7 +13221,7 @@
     "id": "grappin-munition",
     "type": "trappings",
     "label": "Grappin (munition)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11389,7 +13260,7 @@
     "id": "poudre-impregnee-d-aqshy",
     "type": "trappings",
     "label": "Poudre imprégnée d'Aqshy",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11431,7 +13302,7 @@
     "id": "jezail-a-malepierre",
     "type": "trappings",
     "label": "Jezaïl à malepierre",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -11481,7 +13352,7 @@
     "type": "trappings",
     "label": "Canon ratling",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "ingenierie"
     },
@@ -11537,7 +13408,7 @@
     "id": "pistolet-a-malepierre",
     "type": "trappings",
     "label": "Pistolet à malepierre",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -13005,7 +14876,7 @@
     "type": "trappings",
     "label": "Lance-harpon",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "entraves"
     },
@@ -13054,7 +14925,7 @@
     "id": "piege-a-chaines",
     "type": "trappings",
     "label": "Piège à chaînes",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "entraves"
     },
@@ -13097,7 +14968,7 @@
     "id": "grande-lance",
     "type": "trappings",
     "label": "Grande lance",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -13142,7 +15013,7 @@
     "type": "trappings",
     "label": "Canon crache-plomb",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -13187,7 +15058,7 @@
     "id": "pistolet-ogre",
     "type": "trappings",
     "label": "Pistolet ogre",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -13388,8 +15259,8 @@
       "page": 83
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -13668,7 +15539,7 @@
     "id": "baliste-ade2",
     "type": "trappings",
     "label": "Baliste",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -13678,9 +15549,10 @@
     "rendu": {
       "id": "baliste"
     },
-    "defaultAmmo": {
-      "id": "carreau-de-baliste"
-    },
+    "munitions": [
+      "carreau-de-baliste",
+      "carreau-nain-norse"
+    ],
     "minRangeBand": "courte",
     "availability": "rare",
     "reach": null,
@@ -13781,7 +15653,7 @@
     "id": "batterie-tonnerre-de-feu-ade2",
     "type": "trappings",
     "label": "Batterie tonnerre de feu",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -13842,7 +15714,7 @@
     "id": "canon-a-repetition-feu-d-enfer-ade2",
     "type": "trappings",
     "label": "Canon à répétition feu d'enfer",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -13907,7 +15779,7 @@
     "id": "canon-ade2",
     "type": "trappings",
     "label": "Canon",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -13917,9 +15789,10 @@
     "rendu": {
       "id": "canon"
     },
-    "defaultAmmo": {
-      "id": "boulet-et-poudre"
-    },
+    "munitions": [
+      "boulet-et-poudre",
+      "mitraille-et-poudre"
+    ],
     "minRangeBand": "courte",
     "availability": "exotique",
     "reach": null,
@@ -13974,7 +15847,7 @@
     "id": "canon-a-flammes-nain-ade2",
     "type": "trappings",
     "label": "Canon à flammes nain",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -13996,16 +15869,18 @@
     "onHitEffects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "value": 2,
                 "valuePerSL": {
                   "every": 1,
@@ -14058,7 +15933,7 @@
     "id": "mangonneau-ade2",
     "type": "trappings",
     "label": "Mangonneau",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -14117,7 +15992,7 @@
     "id": "onagre-ade2",
     "type": "trappings",
     "label": "Onagre",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -14176,7 +16051,7 @@
     "id": "trebuchet-ade2",
     "type": "trappings",
     "label": "Trébuchet",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -14235,7 +16110,7 @@
     "id": "mortier-ade2",
     "type": "trappings",
     "label": "Mortier",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -14245,9 +16120,10 @@
     "rendu": {
       "id": "mortier"
     },
-    "defaultAmmo": {
-      "id": "bombe-de-mortier"
-    },
+    "munitions": [
+      "bombe-de-mortier",
+      "bombe-incendiaire-mortier"
+    ],
     "indirect": true,
     "minRangeBand": "moyenne",
     "availability": "exotique",
@@ -14435,7 +16311,7 @@
       "id": "baton"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -14477,8 +16353,8 @@
       "page": 161
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14515,8 +16391,8 @@
       "page": 162
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14545,8 +16421,8 @@
       "page": 162
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14576,8 +16452,8 @@
       "page": 162
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14626,8 +16502,8 @@
       "page": 162
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14665,8 +16541,8 @@
       "page": 162
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14703,8 +16579,8 @@
       "page": 162
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14743,11 +16619,11 @@
       "page": 162
     },
     "consumable": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -14763,12 +16639,16 @@
               },
               {
                 "op": "removeCondition",
-                "id": "hemorragique",
+                "id": {
+                  "id": "hemorragique"
+                },
                 "all": true
               },
               {
                 "op": "removeCondition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "all": true
               },
               {
@@ -14787,9 +16667,9 @@
             "difficulty": "accessible",
             "label": "Panacea Universalis"
           },
-          "success": {
-            "kind": "do",
-            "effect": {
+          "reussite": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -14799,9 +16679,9 @@
               ]
             }
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       ]
@@ -14825,8 +16705,8 @@
       "page": 163
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14866,8 +16746,8 @@
       "page": 163
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14899,8 +16779,8 @@
       "page": 163
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14943,8 +16823,8 @@
       "page": 163
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14994,8 +16874,8 @@
       "page": 163
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -15038,8 +16918,8 @@
       "page": 163
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -15062,7 +16942,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "value": 3
               }
             ]
@@ -15356,7 +17238,7 @@
     "type": "trappings",
     "label": "Arc d'empathie sanglante",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arc"
     },
@@ -15387,22 +17269,24 @@
     "onHitEffects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 2
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
                   "op": "condition",
-                  "id": "hemorragique",
+                  "id": {
+                    "id": "hemorragique"
+                  },
                   "value": 1
                 }
               ]
@@ -15532,17 +17416,17 @@
     "onHitEffects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 2
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -15592,19 +17476,19 @@
       {
         "trigger": "onHit",
         "on": {
-          "near": "self",
+          "near": "soi",
           "radiusMeters": 6
         },
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 3
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -15620,17 +17504,17 @@
       },
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 3
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -15647,17 +17531,17 @@
       {
         "trigger": "onHit",
         "on": {
-          "near": "self",
+          "near": "soi",
           "radiusMeters": 6
         },
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 3
           },
-          "then": {
+          "alors": {
             "kind": "test",
             "test": {
               "skill": {
@@ -15666,18 +17550,20 @@
               "difficulty": "complexe",
               "label": "Déchireur de sociabilité"
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "assourdi",
+                    "id": {
+                      "id": "assourdi"
+                    },
                     "value": 1
                   }
                 ]
@@ -15688,15 +17574,15 @@
       },
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 3
           },
-          "then": {
+          "alors": {
             "kind": "test",
             "test": {
               "skill": {
@@ -15705,18 +17591,20 @@
               "difficulty": "complexe",
               "label": "Déchireur de sociabilité"
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "assourdi",
+                    "id": {
+                      "id": "assourdi"
+                    },
                     "value": 1
                   }
                 ]
@@ -15872,7 +17760,7 @@
     "id": "pistolet-de-solitude-involontaire",
     "type": "trappings",
     "label": "Pistolet de solitude involontaire",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -15916,17 +17804,17 @@
     "onHitEffects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 2
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -15982,16 +17870,15 @@
     "onHitEffects": [
       {
         "trigger": "onCrit",
-        "on": "self",
+        "on": "soi",
         "coupCritique": true,
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
                 "op": "rollTable",
-                "die": "d10",
                 "tableId": "vdm-maladie-coups-de-poing-maudits"
               }
             ]

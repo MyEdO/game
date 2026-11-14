@@ -1,7 +1,6 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from '../../engine/types';
-import { makePregens } from '../../data/pregens';
 import { createHero, competencesDeCarriere, repartitionDeCarriere } from '../../engine/character';
 import { firstLevel } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
@@ -80,12 +79,7 @@ const TEMOINS: Record<string, () => CreatorDraft> = {
   }),
 };
 
-describe('création de personnage — golden (8 pré-tirés, 6 témoins du créateur)', () => {
-  it('les 8 pré-tirés', async () => {
-    const pregens = makePregens(idsDeTest);
-    expect(pregens).toHaveLength(8);
-    await expect(JSON.stringify(pregens.map(empreinte), null, 1)).toMatchFileSnapshot('./__golden__/pregens.json');
-  });
+describe('création de personnage — golden (6 témoins du créateur)', () => {
   it('les témoins du créateur', async () => {
     const out = Object.fromEntries(Object.entries(TEMOINS).map(([nom, d]) => [nom, empreinte(buildHero(d(), idsDeTest, 'temoin'))]));
     await expect(JSON.stringify(out, null, 1)).toMatchFileSnapshot('./__golden__/temoins.json');

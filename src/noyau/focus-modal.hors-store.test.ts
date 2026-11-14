@@ -9,7 +9,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 // Focalisation par modale (LDB — Test étendu).
 describe('Focalisation en modale (store)', () => {
-  it('focaliserLeSort ouvre pendingFocus sans tirer ; jetLancer@focus tire ; jetValider@focus cumule le DR + consomme l’Action', () => {
+  it('focaliserLeSort ouvre pendingFocus sans tirer ; jetLancer@focalisation tire ; jetValider@focalisation cumule le DR + consomme l’Action', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     hero.characteristics['force-mentale'] = 80;
     hero.spells = ['arme-aethyrique'];
@@ -18,10 +18,10 @@ describe('Focalisation en modale (store)', () => {
     banc.getState().ensemencerLeTirage(2);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     let st = banc.getState();
-    const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
+    const heroC = st.battle!.combatants.find((c) => c.kind === 'heros')!;
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, selectedSpellId: 'arme-aethyrique', acted: false } });
 
@@ -29,26 +29,26 @@ describe('Focalisation en modale (store)', () => {
     expect(banc.getState().pendingFocus).toBeTruthy();
     expect(banc.getState().pendingFocus!.result).toBeNull(); // pas encore lancé
 
-    banc.getState().jetLancer('focus');
+    banc.getState().jetLancer('focalisation');
     expect(banc.getState().pendingFocus!.result).toBeTruthy(); // jet figé
 
-    banc.getState().jetValider('focus');
+    banc.getState().jetValider('focalisation');
     st = banc.getState();
     expect(st.pendingFocus).toBeNull();
     expect(st.battle!.combatants.find((c) => c.id === heroC.id)!.focus?.spell).toBe('arme-aethyrique'); // DR cumulé (id stable)
     expect(st.battle!.acted).toBe(true); // la Focalisation consomme l'Action
   });
 
-  it('IA : un ennemi ACTIF peut focaliser pour lui-même ; jetValider@focus pose le DR et reprend son tour', () => {
+  it('IA : un ennemi ACTIF peut focaliser pour lui-même ; jetValider@focalisation pose le DR et reprend son tour', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'PJ', seed: 3 });
     banc.setState({ party: [hero] });
     banc.getState().ensemencerLeTirage(7);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     let st = banc.getState();
-    const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const enemy = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     // Dote l'ennemi d'un sort arcanique focalisable + la Compétence de Focalisation (DONNÉE, pas un nom).
     enemy.spells = ['carreau'];
     enemy.characteristics['force-mentale'] = 80;
@@ -62,10 +62,10 @@ describe('Focalisation en modale (store)', () => {
     banc.getState().focaliserLeSort(enemy.id, 'carreau'); // garde héros-only relâchée → autorisé pour l'IA active
     expect(banc.getState().pendingFocus).toBeTruthy();
 
-    banc.getState().jetLancer('focus');
+    banc.getState().jetLancer('focalisation');
     expect(banc.getState().pendingFocus!.result).toBeTruthy();
 
-    banc.getState().jetValider('focus');
+    banc.getState().jetValider('focalisation');
     st = banc.getState();
     expect(st.pendingFocus).toBeNull();
     const e2 = st.battle!.combatants.find((c) => c.id === enemy.id)!;
@@ -81,10 +81,10 @@ describe('Focalisation en modale (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const st = banc.getState();
-    const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
+    const heroC = st.battle!.combatants.find((c) => c.kind === 'heros')!;
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, acted: false } });
     banc.getState().focaliserLeSort(heroC.id, 'flechette'); // Magie mineure → non focalisable

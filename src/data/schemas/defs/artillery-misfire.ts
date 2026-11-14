@@ -40,7 +40,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['artilleryMisfire'] },
     edit: { niche: { categories: { artilleryMisfire: 'entries' } } },
   },
   { rangee, deDeTirage: true },

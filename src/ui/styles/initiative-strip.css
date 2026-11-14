@@ -159,10 +159,10 @@
   width: 5px;
   background: linear-gradient(180deg, var(--combat-enemy), var(--blood));
 }
-.is-cell:has(.ptile.team-ally)::before {
+.is-cell:has(.ptile.team-allie)::before {
   background: linear-gradient(180deg, var(--hud-camp-ally-hi), var(--hud-camp-ally-lo));
 }
-.is-cell:not(:has(.ptile.team-ally, .ptile.team-enemy))::before {
+.is-cell:not(:has(.ptile.team-allie, .ptile.team-ennemi))::before {
   display: none;
 }
 /* UN SEUL traitement « au trait » dans la frise : le liseré doré de la vignette active. Le survol
@@ -203,7 +203,7 @@
 }
 /* Design 2026-07-31 §5. */
 .is-cell[data-phase='past'] { opacity: 0.5; }
-/* PIED de la frise : l'interrupteur de pause de Round (`raise-hand`, coop). Ce bloc n'en porte que
+/* PIED de la frise : l'interrupteur de pause de Round (`pause`, coop). Ce bloc n'en porte que
    l'ANCRAGE — il s'aligne sur la largeur de la colonne, jamais il ne l'élargit ; la graduation de la
    commande est la variante `dense` de sa primitive (`GatedAction`, components.css). */
 .is-hand {

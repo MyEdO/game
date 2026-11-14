@@ -20,7 +20,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 // Nuée — Trait Nuée (LDB 85 l.251-253).
-const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
+const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
 
 describe('Nuée — Trait Nuée (LDB 85 l.251-253)', () => {
   it('build au spawn : ×5 PB, +10 CC, immunité Psychologie, flag swarm', () => {
@@ -41,7 +41,7 @@ describe('Nuée — Trait Nuée (LDB 85 l.251-253)', () => {
   it('+40 au tir CONTRE une nuée, et la Taille de la cible est ignorée', () => {
     const swarm = statblockToCombatant({ type: 'statblock', label: 'Nuée', char: { B: 5 }, traits: [{ id: 'nuee' }, { id: 'taille', arg: 'Petite' }] }, 's', { x: 0, y: 0 });
     const shooter = statblockToCombatant({ type: 'statblock', label: 'Tireur', char: {} }, 't', { x: 5, y: 0 });
-    const mods = attackModifiers(shooter, swarm, bow, { kind: 'ranged' });
+    const mods = attackModifiers(shooter, swarm, bow, { kind: 'distance' });
     expect(mods).toContainEqual({ label: refLabel('traits', { id: 'nuee' }), value: 40, famille: 'circonstance', ref: { category: 'traits', id: 'nuee' } }); // LDB 85 l.253
     expect(ligneDe(mods, RULE_REF['taille-cible-au-tir'])).toBeUndefined(); // Taille ignorée (l.253)
   });
@@ -90,7 +90,7 @@ function startNuee(scene: Scene) {
   banc.setState({ party: [hero], battle: null, pendingDisengage: null });
   banc.getState().lancerLaScene(scene);
   banc.getState().lancerLeCombat(ENC_NUEE);
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner(); // les tours d'IA du Round sont différés : ce banc ne joue que ses propres gestes
   return { battle: banc.getState().battle!, heroId: hero.id };
 }

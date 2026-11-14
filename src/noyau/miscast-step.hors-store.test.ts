@@ -53,9 +53,9 @@ function joueEnRetenant(max = 30): { des: number[]; lignes: string[] } {
     const p = banc.getState().pendingCascade!;
     const cur = p.participants[p.cursor];
     if (!cur) break;
-    if (cur.kind === 'miscastTable' && !cur.table?.result) banc.getState().jetLancer('cascadeTirage', cur.id);
+    if (cur.kind === 'tableDIncantationImparfaite' && !cur.table?.result) banc.getState().jetLancer('cascadeTirage', cur.id);
     const jouee = banc.getState().pendingCascade?.participants[p.cursor];
-    if (jouee?.kind === 'miscastTable' && jouee.table?.result && !vus.has(jouee.id)) {
+    if (jouee?.kind === 'tableDIncantationImparfaite' && jouee.table?.result && !vus.has(jouee.id)) {
       vus.add(jouee.id);
       des.push(jouee.table.result.die);
       lignes.push(jouee.table.result.id);
@@ -93,7 +93,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
       expect(def, `table « ${id} » non enregistrée`).toBeDefined();
       expect(def.rows).toBe(miscastTableRows(id));
       expect(def.rows.map((r) => r.id)).toEqual(rows.map((r) => r.id));
-      expect(def.die).toBe(100);
+      expect(def.die).toEqual({ n: 1, sides: 100 });
       expect(def.label).toBe(label);
       // Surface JOUEUR : aucun libellé ne porte de référence de livre (`docs/charte-ui.md`).
       expect(hasBookMarker(def.label), `provenance dans « ${def.label} »`).toBe(false);
@@ -115,7 +115,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
   it('la table déclarée SUIT le jeu de tables en vigueur (LDB, ou VDM sous la règle optionnelle)', () => {
     expect(miscastTableId('mineure')).toBe('miscast-mineure');
     expect(miscastTableId('colere')).toBe('miscast-colere');
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     expect(miscastTableId('mineure')).toBe('miscast-mineure-vdm');
     expect(miscastTableId('majeure')).toBe('miscast-majeure-vdm');
     expect(miscastTableId('colere'), 'la Colère des dieux n’est pas révisée par VDM').toBe('miscast-colere');
@@ -173,7 +173,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     const lines = applyMiscast(banc.getState, banc.setState, hero, 'majeure');
     expect(lines, 'la ligne du Tableau se dit à son étape, pas à l’appel').not.toContain(undefined);
     const st = stepAt(0);
-    expect(st.kind).toBe('miscastTable');
+    expect(st.kind).toBe('tableDIncantationImparfaite');
     expect(stepInteraction(st)).toBe('table');
     expect(st.table!.result, 'un siège tient le lanceur : le socle ne tire pas à sa place').toBeUndefined();
     expect(canFixDie(banc.getState(), hero.id), 'option ÉTEINTE : la pose n’est pas offerte').toBe(false);
@@ -187,13 +187,13 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     const lines = applyMiscast(banc.getState, banc.setState, hero, 'majeure');
     expect(lines).toEqual([]);
     const st = stepAt(0);
-    expect(st.kind).toBe('miscastTable');
+    expect(st.kind).toBe('tableDIncantationImparfaite');
     expect(stepInteraction(st)).toBe('table'); // dé À POSER → les deux affordances de la modale
-    expect(st.table).toMatchObject({ tableId: 'miscast-majeure', spec: { n: 1, sides: 100 } });
+    expect(st.table).toMatchObject({ tableId: 'miscast-majeure' });
     expect(st.table!.mod, 'aucun modificateur hors Colère').toBeUndefined();
     expect(st.table!.result).toBeUndefined();
     expect(hero.conditions).toEqual([]);
-    expect(steps().some((s) => s.kind === 'miscast'), 'une révélation avant le dé').toBe(false);
+    expect(steps().some((s) => s.kind === 'incantationImparfaite'), 'une révélation avant le dé').toBe(false);
   });
 
   it('96-00 « Chaos en cascade » : l’étape MAJEURE est INSÉRÉE, et rien n’est appliqué avant son dé', () => {
@@ -205,8 +205,8 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     expect(stepAt(0).fixed).toBe(true);
     suivant();
     const majeure = stepAt(1);
-    expect(majeure.kind).toBe('miscastTable');
-    expect(majeure.miscast!.severity).toBe('majeure');
+    expect(majeure.kind).toBe('tableDIncantationImparfaite');
+    expect(majeure.incantationImparfaite!.severity).toBe('majeure');
     expect(majeure.table!.tableId).toBe('miscast-majeure');
     expect(majeure.table!.result, 'la relance a été tirée d’office au lieu d’être posée').toBeUndefined();
     expect(hero.conditions, 'un effet appliqué avant le dernier dé').toEqual([]);
@@ -214,7 +214,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     poser(majeure.id, 26);
     suivant();
     expect(hasCondition(hero, 'en-flammes'), 'la ligne posée n’est pas celle appliquée').toBe(true);
-    expect(steps().some((s) => s.kind === 'miscast')).toBe(true);
+    expect(steps().some((s) => s.kind === 'incantationImparfaite')).toBe(true);
   });
 
   it('91-95 « Multiplication d’infortune » : DEUX étapes insérées, et un 91-00 d’une fille se RELANCE', () => {
@@ -224,14 +224,14 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     poser(stepAt(0).id, 91);
     suivant();
     const filles = steps().slice(1, 3);
-    expect(filles.map((s) => s.kind)).toEqual(['miscastTable', 'miscastTable']);
-    expect(filles.every((s) => s.miscast!.severity === 'mineure' && s.miscast!.rerollHigh)).toBe(true);
+    expect(filles.map((s) => s.kind)).toEqual(['tableDIncantationImparfaite', 'tableDIncantationImparfaite']);
+    expect(filles.every((s) => s.incantationImparfaite!.severity === 'mineure' && s.incantationImparfaite!.rerollHigh)).toBe(true);
     expect(new Set(filles.map((s) => s.id)).size, 'deux étapes au même id').toBe(2);
     // « en relançant tous les résultats entre 91-00 » : la fille qui retombe haut insère UNE relance.
     poser(filles[0].id, 96);
     suivant();
     const relance = steps()[2];
-    expect(relance.miscast!.rerollHigh, 'un 96 d’une relance bornée a basculé sur la Majeure').toBe(true);
+    expect(relance.incantationImparfaite!.rerollHigh, 'un 96 d’une relance bornée a basculé sur la Majeure').toBe(true);
     expect(relance.table!.tableId).toBe('miscast-mineure');
     expect(relance.table!.result).toBeUndefined();
     // Dé terminal : le contrecoup de CETTE ligne s'applique (36-40 « Secousse spirituelle » → À Terre).
@@ -247,7 +247,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     applyMiscast(banc.getState, banc.setState, hero, 'colere');
     const st = stepAt(0);
     // Le modificateur est DÉCLARÉ vivant (compteur de l'acteur), pas figé à l'ouverture.
-    expect(st.table).toMatchObject({ tableId: 'miscast-colere', spec: { n: 1, sides: 100 }, modPerActor: { counter: 'sinPoints', factor: 10 } });
+    expect(st.table).toMatchObject({ tableId: 'miscast-colere', modPerActor: { counter: 'sinPoints', factor: 10 } });
     expect(hero.sinPoints, 'le Péché expire AVANT le lancer').toBe(1);
     // 95 naturel + 10 = 105 → « Châtiment » (101-105), une ligne INATTEIGNABLE sans Point de Péché.
     poser(st.id, 95);
@@ -291,7 +291,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     // Les deux Colères se DÉSIGNENT par leur nature, jamais par leur position : la conséquence d'une
     // étape s'INSÈRE derrière elle (#1508, `cascade.poseDansLaSequence`), donc la 2ᵉ Colère n'est plus
     // forcément la 2ᵉ du tableau — et ce qui se joue ici est « la Colère suivante », pas « l'index 1 ».
-    const coleres = () => steps().filter((s) => s.kind === 'miscastTable');
+    const coleres = () => steps().filter((s) => s.kind === 'tableDIncantationImparfaite');
     expect(coleres()).toHaveLength(2);
     poser(coleres()[0].id, 1);
     expect(coleres()[0].table!.result!.die, '1 + 2×10').toBe(21);
@@ -301,7 +301,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     // séquence : c'est une disposition d'INGÉNIERIE (une étape poussée par un applier est sa suite
     // immédiate), pas une règle — aucun passage source ne prescrit l'ordre entre deux Colères.
     // Ce que le RAW tient ici est ailleurs, et reste vérifié plus bas : la 2ᵉ se tire au total EXPIÉ.
-    expect(steps().map((s) => s.kind)).toEqual(['miscastTable', 'miscast', 'miscastTable']);
+    expect(steps().map((s) => s.kind)).toEqual(['tableDIncantationImparfaite', 'incantationImparfaite', 'tableDIncantationImparfaite']);
     suivant();
     // 2ᵉ étape : son modificateur est relu MAINTENANT (1 Péché), pas celui de son ouverture (2).
     poser(coleres()[1].id, 1);
@@ -318,7 +318,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     setDesFixes(true);
     applyMiscast(banc.getState, banc.setState, hero, 'colere');
     applyMiscast(banc.getState, banc.setState, hero, 'colere');
-    const avant = steps().filter((s) => s.kind === 'miscastTable').map((s) => s.id);
+    const avant = steps().filter((s) => s.kind === 'tableDIncantationImparfaite').map((s) => s.id);
     expect(() => banc.getState().jetLancer('cascade'), 'la garde de ligne a levé sur un chemin légitime').not.toThrow();
     // « Tout lancer » laisse la séquence en BILAN (curseur en fin) : les étapes tirées s'y relisent.
     const tirees = avant.map((id) => steps().find((s) => s.id === id)!);
@@ -462,19 +462,19 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
   it('lanceur NON contrôlé par le siège local (ennemi sans siège MJ) : l’étape est POUSSÉE et le socle la résout D’OFFICE', () => {
     const hero = mageSolo();
     setDesFixes(true);
-    const npc = { ...structuredClone(hero), id: 'npc-1', kind: 'enemy' } as Combatant;
+    const npc = { ...structuredClone(hero), id: 'npc-1', kind: 'ennemi' } as Combatant;
     npc.conditions = [];
     banc.setState({ party: [hero, npc] });
     seedBattleRng(2);
     applyMiscast(banc.getState, banc.setState, npc, 'majeure');
     // Aucun siège ne tient ce porteur : l'étape sous le curseur naît RÉSOLUE (`cascade.poserLeCurseur`).
     const st = stepAt(0);
-    expect(st.kind).toBe('miscastTable');
+    expect(st.kind).toBe('tableDIncantationImparfaite');
     const tire = st.table!.result;
     expect(tire, 'une table sans siège est restée non tirée').toBeTruthy();
     expect(tire!.id, 'le dé tiré d’office ne désigne pas la ligne du Tableau')
       .toBe(miscastRowAt('miscast-majeure', tire!.die).id);
-    expect(draineCascade(banc.getState)).toContain('miscastTable');
+    expect(draineCascade(banc.getState)).toContain('tableDIncantationImparfaite');
     expect(banc.getState().pendingCascade, 'la séquence résolue d’office ne se ferme pas').toBeNull();
   });
 });

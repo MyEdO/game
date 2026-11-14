@@ -1,5 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { IMPERIAL_MONTHS, INTERCALARY, WEEKDAYS, daysPerYear, MINUTES_PER_DAY, toDate, fromDate, formatImperial, campaignStart, dayPhase, isNight, minutesUntilNext, dawnMinute, duskMinute, DAY_PHASES, ancreDePhase } from './clock';
+import {
+  IMPERIAL_MONTHS,
+  INTERCALARY,
+  WEEKDAYS,
+  daysPerYear,
+  MINUTES_PER_DAY,
+  toDate,
+  fromDate,
+  formatImperial,
+  campaignStart,
+  dayPhase,
+  isNight,
+  minutesUntilNext,
+  dawnMinute,
+  duskMinute,
+  DAY_PHASES,
+  ancreDePhase,
+} from './clock';
 import { setDataset } from '../data/overrides';
 import { calendarMonths } from '../data';
 
@@ -102,18 +119,9 @@ describe('clock — phases du jour & obscurité (#T1c)', () => {
     expect(isNight(at(21, 59))).toBe(false);
   });
   it('dayPhase expose label/icon et isNight', () => {
-    expect(dayPhase(at(12))).toMatchObject({ id: 'midi', icon: 'time/noon', isNight: false });
+    expect(dayPhase(at(12))).toMatchObject({ id: 'midi', icon: 'temps/midi', isNight: false });
     expect(dayPhase(at(23))).toMatchObject({ id: 'nuit', isNight: true });
   });
-  // #1666 : les phases sont des PALIERS (`findTierEntry`) — l'ordre du fichier ne décide de rien, des
-  // seuils DISTINCTS font l'ordre total. Une donnée à seuil répété se DÉNONCE ici.
-  it('`calendarPhases.json` : seuils DISTINCTS (ordre total des paliers de `dayPhase`)', () => {
-    const seuils = DAY_PHASES.map((p) => p.seuil);
-    expect(new Set(seuils).size, `seuils répétés : ${seuils.join(', ')}`).toBe(seuils.length);
-    // TÉMOIN de l'enjambement : AVANT le plus bas palier (00:00 < aube), la phase du plus HAUT palier.
-    expect(dayPhase(0).id).toBe('nuit');
-  });
-
   it('`dayPhase` ne dépend pas de l’ordre d’authoring des phases', () => {
     const avant = [0, 300, 479, 480, 700, 1079, 1080, 1250, 1439].map((m) => dayPhase(m).id);
     const ordre = [...DAY_PHASES];

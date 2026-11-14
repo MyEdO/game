@@ -18,14 +18,37 @@ import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
 import { hasTalent } from '../engine/magic';
-import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type Settlement, type CatalogItem, type StockLine } from '../engine/disponibilite';
+import {
+  rollStock,
+  fullStock,
+  availabilitySearchBonus,
+  barterRatio,
+  availabilityAfterHalvings,
+  priceAfterHalvings,
+  isTradable,
+  outOfTradeReason,
+  type CatalogItem,
+  type StockLine,
+} from '../engine/disponibilite';
+import type { Settlement } from '../data/schemas/grammaire/valeurs';
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type Money } from '../engine/money';
 import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, findMerchantArchetypeById, type TrappingData } from '../data/index';
+import {
+  findTrappingById,
+  trappingsInstanciables,
+  findVehicleById,
+  findCreatureById,
+  vehicles,
+  creatures,
+  combatStakeRef,
+  findMerchantArchetypeById,
+  type QualityRef,
+  type TrappingData,
+} from '../data/index';
 import type { MerchantArchetypeDef } from '../data/merchants.types';
 import type { UniteAchetable } from '../data/merchants.types';
 import { FLOWS, type CloturesDuJet } from './rollFlowSpecs';
@@ -34,6 +57,7 @@ import { freeCons, openPartyTest } from './rollSeam';
 import { rollLine } from './ligneDeJet';
 import { actorIn, ecrireActeur } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
 import { sceneNpc } from './monde/sceneNpc';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
@@ -90,8 +114,8 @@ export interface MerchantState {
 }
 
 /** Le côté d'un marché négocié : l'achat ou la vente (LDB 59 l.43). */
-export type ModeDeMarche = 'buy' | 'sell';
-export const MODES_DE_MARCHE = ['buy', 'sell'] as const satisfies readonly ModeDeMarche[];
+export type ModeDeMarche = 'achat' | 'vente';
+export const MODES_DE_MARCHE = ['achat', 'vente'] as const satisfies readonly ModeDeMarche[];
 
 /** Le Troc vide : rien de cédé, rien de reçu. */
 export const BROUILLON_DE_TROC_VIDE: BrouillonDeTroc = Object.freeze({ cede: null, recu: null, quantite: 1 });
@@ -114,8 +138,8 @@ export type MerchantStocks = Record<string, { stock: { id: string; qty: number }
 
 /** Prix listé d'un objet en sous de cuivre (catalogue × qualité d'artisanat) — la référence du seuil
  *  « Tenir les comptes » ET du Troc (avant majoration/Marchandage). null (0) si prix non chiffré. */
-function listedBrassOf(t: { price: Partial<Money> | 'ND' | null; qualities?: unknown[] }): number {
-  const b = toBrass(priceToMoney(t.price)) * craftPriceFactor({ qualities: t.qualities as never });
+function listedBrassOf(t: { price: Partial<Money> | 'ND' | null; qualities?: QualityRef[] }): number {
+  const b = toBrass(priceToMoney(t.price)) * craftPriceFactor({ qualities: t.qualities ?? [] });
   return Number.isFinite(b) ? Math.round(b) : 0;
 }
 
@@ -130,7 +154,7 @@ export interface CatalogEntry {
   label: string;
   price: Partial<Money> | null;
   availability: Availability | null;
-  qualities?: unknown[];
+  qualities?: QualityRef[];
   unit?: UniteVendue;
 }
 
@@ -182,11 +206,11 @@ function partyStatusBudgetBrass(party: Combatant[]): number {
 function marketRule(ent: SceneEntity | undefined, key: 'guild' | 'marketMode' | 'tenirComptes'): RuleValue {
   const override = ent?.merchant?.[key];
   if (override !== undefined) return override;
-  const ruleId = key === 'guild' ? 'market-guild' : key === 'marketMode' ? 'market-mode' : 'market-tenir-comptes';
+  const ruleId = key === 'guild' ? 'marche-guildes' : key === 'marketMode' ? 'marche-mode' : 'marche-tenir-comptes';
   return rule(ruleId);
 }
 
-/** « Tenir les comptes » (LDB 59 l.9-11, option `market-tenir-comptes`) : un objet dont le prix listé
+/** « Tenir les comptes » (LDB 59 l.9-11, option `marche-tenir-comptes`) : un objet dont le prix listé
  *  est ≤ au niveau de Statut du groupe s'achète « autant de fois que nécessaire », sans débit. */
 function comptesFree(ent: SceneEntity | undefined, party: Combatant[], listedBrass: number): boolean {
   return !!marketRule(ent, 'tenirComptes') && listedBrass > 0 && listedBrass <= partyStatusBudgetBrass(party);
@@ -226,7 +250,7 @@ export function prixDeLigne(m: MerchantState, id: string, ent: SceneEntity | und
   if (!entry?.price) return null;
   if (comptesFree(ent, party, listedBrassOf(entry))) return fromBrass(0);
   const haggle = m.bargainBuy ? bargainBuyFactor(m.bargainBuy.won, m.bargainBuy.drNet, m.bargainBuy.negotiator) : 1;
-  const brass = toBrass(priceToMoney(entry.price)) * craftPriceFactor({ qualities: entry.qualities as never }) * (m.buyMarkup ?? 1) * haggle;
+  const brass = toBrass(priceToMoney(entry.price)) * craftPriceFactor({ qualities: entry.qualities ?? [] }) * (m.buyMarkup ?? 1) * haggle;
   return Number.isFinite(brass) ? fromBrass(Math.round(brass)) : null;
 }
 
@@ -243,7 +267,7 @@ export function devisDuPanier(m: MerchantState, { ent, party, bourse, refusHote 
     return { id: c.id, qty: c.qty, unitaire, sousTotal: unitaire ? fromBrass(toBrass(unitaire) * c.qty) : null };
   });
   const total = fromBrass(lignes.reduce((s, l) => s + (l.sousTotal ? toBrass(l.sousTotal) : 0), 0));
-  return { lignes, total, refus: refusHote ?? (!lignes.length ? t('mf.panierVide') : !canAfford(bourse, total) ? t('mf.cartPurseKo') : null) };
+  return { lignes, total, refus: refusHote ?? (!lignes.length ? t('mf.panierVide') : !canAfford(bourse, total) ? t('mf.bourseInsuffisantePourLePanier') : null) };
 }
 
 /** Refus d'ajout d'une unité de la ligne `id` au panier, contre la bourse `bourse` du groupe que le panier
@@ -258,7 +282,7 @@ export function refusDAjout(m: MerchantState, id: string, contexte: ContexteDAch
   return m.bargainBuy != null ? t('mf.panierFige')
     : enPanier >= stockQty ? t('mf.stockEpuise', { label })
     : !unitaire ? t('mf.sansPrix', { label })
-    : !canAfford(bourse, moneyAdd(devisDuPanier(m, contexte).total, unitaire)) ? t('mf.purseKo', { label })
+    : !canAfford(bourse, moneyAdd(devisDuPanier(m, contexte).total, unitaire)) ? t('mf.bourseInsuffisante', { label })
     : null;
 }
 
@@ -278,7 +302,7 @@ function partyAvailabilityBonus(party: Combatant[], gossipDay = false): number {
  *  pré-tirage affiché (`openStockRevealCascade`) ET de la conséquence de l'étape. Le tirage n'est pas
  *  un Test de Compétence : c'est l'ARTICLE qui nomme la ligne, avec la nature du dé. */
 function stockTraceLine(l: StockLine): string {
-  return traceLineOf({ label: stepDetail(dataLabel(l.label), t('mf.dispoTrace')), roll: l.test!.roll, target: l.test!.target, success: true, issue: t('mf.dispoQty', { qty: l.qty }) });
+  return traceLineOf({ label: stepDetail(dataLabel(l.label), t('mf.traceDeDisponibilite')), roll: l.test!.roll, target: l.test!.target, success: true, issue: t('mf.quantiteDisponible', { qty: l.qty }) });
 }
 /** Instantané de stock FRAIS d'un archétype à un instant `now`, avec un bonus de Disponibilité (Carrière
  *  cohérente + éventuelle recherche active, LDB 59 l.50). PUR (aucun `set`/`ecrireAuJournal`) — SOURCE UNIQUE de calcul,
@@ -291,7 +315,7 @@ function computeFreshStockLines(
   const guild = !!marketRule(ent, 'guild');
   const marketMode = marketRule(ent, 'marketMode') as string;
   const cat: CatalogItem[] = trappingsInstanciables()
-    .filter((t) => (!arch.category.categories || arch.category.categories.includes(t.categorie)) && (!arch.category.subTypes || (t.subType !== null && arch.category.subTypes.includes(t.subType.id))))
+    .filter((t) => (!arch.category.categories || arch.category.categories.includes(t.categorie)) && (!arch.category.subTypes || (t.subType !== null && arch.category.subTypes.some((id) => id === t.subType?.id))))
     .map((t) => {
       const base: CatalogItem['availability'] = isTradable(t.availability) ? t.availability : null;
       const av = guild && base ? shiftAvailability(base, { qualities: t.qualities }, { guild: true }) : base;
@@ -330,7 +354,7 @@ function rollFreshStock(
   entityId: string, ent: SceneEntity | undefined, arch: MerchantArchetypeDef, settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean,
 ): { id: string; qty: number }[] {
   const { stock, tested } = computeFreshStockLines(get, ent, arch, entityId, settlement, now, restockPeriod, gossipDay);
-  if (tested.length) get().ecrireAuJournal(t('mf.marketRoll', { settlement, lignes: tested.map((l) => t('mf.stockLine', { label: l.label, qty: l.qty })).join(', ') }));
+  if (tested.length) get().ecrireAuJournal(t('mf.tirageDuMarche', { settlement, lignes: tested.map((l) => t('mf.ligneDeStock', { label: l.label, qty: l.qty })).join(', ') }));
   persistStock(set, entityId, stock, now);
   return stock;
 }
@@ -342,7 +366,7 @@ function rollFreshStock(
  *  seuls ses PARAMÈTRES le sont, cf. `CascadeStepMeta`) ; ouvre le panneau marchand (`ouvrirLeMarchand`) ou
  *  rafraîchit son stock si `merchant` porte déjà cette entité (`chercherLaDisponibilite`), au choix de
  *  `s.merchant?.entityId === entityId` — un seul applier pour les deux appelants. */
-const MERCHANT_STOCK_KIND = 'merchant-stock';
+const MERCHANT_STOCK_KIND = 'stockDuMarchand';
 
 /** Ouvre l'étape de cascade VISIBLE-LANÇABLE au siège MJ (#273 dernier volet) — jamais un tirage
  *  silencieux : le `meta` porte les PARAMÈTRES sérialisables du tirage (le rng seedé reste calculé par
@@ -369,7 +393,7 @@ function openStockRevealCascade(
     ...(outcome?.length ? { outcome: toRecapLines(outcome) } : {}),
     meta: { entityId, archetype, settlement, now, restockPeriod, gossipDay, resaleRate, buyMarkup, ...(backdrop != null ? { backdrop } : {}) },
   };
-  startCascade(get, set, { title: t('mf.restockTitle'), purpose: 'test', steps: [step] });
+  startCascade(get, set, { title: t('mf.titreDeReassort'), purpose: 'test', steps: [step] });
 }
 
 /** Ouverture PARTAGÉE d'une visite marchande (#369) — `ent` est l'override d'ENTITÉ de scène (PNJ posé
@@ -378,7 +402,7 @@ function openStockRevealCascade(
  *  par les deux entrées — aucune n'est un fork de l'autre. */
 function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype: string, ent?: SceneEntity, backdrop?: string): void {
   const arch = findMerchantArchetypeById(archetype);
-  if (!arch) { get().ecrireAuJournal(t('mf.archetypeUnknown', { archetype })); return; }
+  if (!arch) { get().ecrireAuJournal(t('mf.archetypeInconnu', { archetype })); return; }
   const settlement: Settlement = ent?.merchant?.settlement ?? arch.settlement;
   const resaleRate = ent?.merchant?.resaleRate ?? arch.resaleRate;
   const buyMarkup = ent?.merchant?.buyMarkup ?? arch.buyMarkup ?? 1; // majoration d’achat (1 = prix listé ; >1 = vend plus cher)
@@ -388,7 +412,7 @@ function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype
   // Re-stock dans le temps (#T3) : on conserve le stock DÉPLÉTÉ entre visites ; on ne re-tire un stock
   // FRAIS (nouvelle Disponibilité) que si `restockPeriod` s'est écoulé depuis le dernier tirage.
   // Règles optionnelles « Marché » (LDB 59/60) : Guildes d'Artisans (Atouts/Défauts inversent la
-  // Disponibilité) ; système simplifié (pas de Test de Disponibilité) ; cf. `market-guild`/`market-mode`.
+  // Disponibilité) ; système simplifié (pas de Test de Disponibilité) ; cf. `marche-guildes`/`marche-mode`.
   if (!prev || now - prev.rolledAt >= restockPeriod) {
     // #273 dernier volet — porte : siège MJ présent → tirage VISIBLE-LANÇABLE (jamais silencieux) ;
     // sinon → inline INCHANGÉ (zéro friction locale).
@@ -430,7 +454,7 @@ export function ouvrirLaBoutique(get: Get, set: Set, serviceId: string): void {
  *  canonique `openPartyTest` (side `partyBest`) — la surface se dérive des PORTEURS réels du jet, la
  *  fenêtre est influençable (Chance/Résilience) et le siège MJ la voit ; la continuation (avance de la
  *  journée + réassort visible/inline) vit ICI, keyée par `kind`. */
-const MERCHANT_RAGOT_KIND = 'merchant-ragot';
+const MERCHANT_RAGOT_KIND = 'marchand-ragot';
 
 /** Continuation PARTAGÉE (jet réussi/raté OU absence de candidat au Ragot) : avance la journée (« journée
  *  entière », LDB 59 l.50), puis même porte que l'ouverture (#273) — siège MJ → tirage VISIBLE ; sinon
@@ -464,7 +488,7 @@ function chercherLaDisponibilite(get: Get, set: Set): void {
   // Test de Ragot du groupe (Soutien LDB 12) — Intermédiaire (+0), le RAW ne chiffre pas la difficulté.
   const best = partyAssisted(get().party, { skill: { id: 'ragot' }, characteristic: 'sociabilite' });
   if (!best) {
-    get().ecrireAuJournal(t('mf.noGossip'));
+    get().ecrireAuJournal(t('mf.sansRagot'));
     finalizeSearchAvailability(get, set, m.entityId, restockPeriod, false);
     return;
   }
@@ -490,7 +514,7 @@ function quitterLeMarchand(get: Get, set: Set): void {
   const renege = !!m && ((m.bargainBuy != null && !m.bargainPaid) || (m.bargainSell != null && !m.bargainSellUsed));
   if (m && renege) {
     set((s) => ({ merchantStocks: { ...s.merchantStocks, [m.entityId]: { ...s.merchantStocks[m.entityId], bargainLocked: true } } }));
-    get().ecrireAuJournal(t('mf.renege'));
+    get().ecrireAuJournal(t('mf.marcheRenie'));
   }
   repartirLesAchats(get, set); // ne pas perdre les objets payés non répartis
   set({ merchant: null });
@@ -506,18 +530,18 @@ function possessionDUnite(unit: UniteVendue, ownerId: string): Parameters<typeof
 /** Ce qui refuse de refuser le marché `mode` de l'échoppe `m` : aucun marché négocié de ce côté ; `null` : il se
  *  refuse. */
 export function refusDeRefusDuMarche(m: MerchantState, mode: ModeDeMarche): string | null {
-  return (mode === 'buy' ? m.bargainBuy : m.bargainSell) == null ? t('mf.rienARefuser') : null;
+  return (mode === 'achat' ? m.bargainBuy : m.bargainSell) == null ? t('mf.rienARefuser') : null;
 }
 
 function refuserLeMarche(get: Get, set: Set, mode: ModeDeMarche): void {
   const m = garanti(get().merchant, 'marchand', 'échoppe ouverte');
   // Refuser une négociation → annule ce côté + VERROU PARTAGÉ (plus de marchandage achat NI vente jusqu'au réassort).
-  const patch = mode === 'buy' ? { cart: [], bargainBuy: null } : { bargainSell: null };
+  const patch = mode === 'achat' ? { cart: [], bargainBuy: null } : { bargainSell: null };
   set((s) => ({
     merchant: { ...s.merchant!, ...patch, bargainLocked: true },
     merchantStocks: { ...s.merchantStocks, [m.entityId]: { ...s.merchantStocks[m.entityId], bargainLocked: true } },
   }));
-  get().ecrireAuJournal(t('mf.bargainRefused'));
+  get().ecrireAuJournal(t('mf.marcheRefuse'));
 }
 
 function payerLesAchats(get: Get, set: Set): void {
@@ -525,7 +549,7 @@ function payerLesAchats(get: Get, set: Set): void {
   const cart = m.cart ?? [];
   const devis = devisDuPanier(m, contexteDAchat(get(), m));
   const total = devis.total;
-  if (devis.refus || !payFromGroup(get, set, total, { purpose: 'panier marchand' })) { refuserGeste(get, set, devis.refus ?? t('mf.cartPurseKo')); return; }
+  if (devis.refus || !payFromGroup(get, set, total, { purpose: 'panier marchand' })) { refuserGeste(get, set, devis.refus ?? t('mf.bourseInsuffisantePourLePanier')); return; }
   // Crée les objets achetés (par UNITÉ) en attente de répartition + déplète le stock. Une ligne
   // UNITÉ (véhicule/créature-monture, #760) rejoint elle aussi `pendingDistribution` — le joueur
   // choisit le héros PROPRIÉTAIRE via le même écran de répartition que les objets de sac ;
@@ -552,7 +576,7 @@ function payerLesAchats(get: Get, set: Set): void {
       merchantStocks: { ...s.merchantStocks, [eid]: { ...persisted, stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
     };
   });
-  get().ecrireAuJournal(t('mf.paid', { total: formatMoney(total), count, s: count > 1 ? 's' : '' }));
+  get().ecrireAuJournal(t('mf.paye', { total: formatMoney(total), count, s: count > 1 ? 's' : '' }));
 }
 
 /** Range chaque achat payé chez le héros que lui donne la répartition (`marchand.repartition`) : corps de la validation
@@ -677,7 +701,7 @@ export function optionsDeTroc(party: readonly Combatant[]): OptionDeTroc[] {
       const trapping = findTrappingById(trappingId);
       if (!trapping) continue;
       const horsCommerce = barterRefusal(trappingId);
-      const refus = horsCommerce ? t('trade.barterRefused', { reason: horsCommerce }) : listedBrassOf(trapping) > 0 ? null : t('mf.barterNoPrice');
+      const refus = horsCommerce ? t('trade.barterRefused', { reason: horsCommerce }) : listedBrassOf(trapping) > 0 ? null : t('mf.trocSansPrix');
       out.push({ heroId: h.id, trappingId, count: exemplairesCedables(h, trappingId).length, refus });
     }
   }
@@ -698,12 +722,12 @@ export function devisDeTroc(m: MerchantState, party: Combatant[], opts: DemandeD
   const dispo = hero ? exemplairesCedables(hero, opts.giveTrappingId).length : 0;
   const label = findTrappingById(opts.giveTrappingId)?.label ?? opts.giveTrappingId;
   const refus = refused ? t('trade.barterRefused', { reason: refused })
-    : !quote ? t('mf.barterNoPrice')
-    : dispo < quote.giveCount ? t('mf.barterNeed', { n: quote.giveCount, label, dispo })
-    : stockQty < getCount ? t('mf.barterNoStock')
+    : !quote ? t('mf.trocSansPrix')
+    : dispo < quote.giveCount ? t('mf.trocExige', { n: quote.giveCount, label, dispo })
+    : stockQty < getCount ? t('mf.trocSansStock')
     : null;
   const max = Math.max(1, stockQty); // borne de la quantité acquise : le stock du marchand, plancher 1
-  return refus == null && quote ? { refus: null, quote, getCount, max } : { refus: refus ?? t('mf.barterNoPrice'), quote, getCount, max };
+  return refus == null && quote ? { refus: null, quote, getCount, max } : { refus: refus ?? t('mf.trocSansPrix'), quote, getCount, max };
 }
 
 /** La demande du Troc composé dans l'échoppe `m` ; `null` : le bien cédé ou l'article acquis manque. */
@@ -741,7 +765,7 @@ function troquerLesObjets(get: Get, set: Set): void {
       merchantStocks: { ...s.merchantStocks, [eid]: { stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
     };
   });
-  get().ecrireAuJournal(t('mf.barterDone', {
+  get().ecrireAuJournal(t('mf.trocConclu', {
     giveCount: quote.giveCount, giveLabel: donne,
     getCount, getLabel: recu,
     giveAv: quote.giveAv, ratio: `${quote.ratio.give}:${quote.ratio.get}`, getAv: quote.getAv,
@@ -807,14 +831,14 @@ export function coutDeReparation(item: ItemInstance): Money {
 /** Refus de réparer `item` aux frais de son porteur `hero` : la raison affichée, ou `null`. Tombe dans
  *  `reparerLObjet`, lu par l'écran. */
 export function refusDeReparation(hero: Combatant, item: ItemInstance, refusHote: string | null): string | null {
-  return refusHote ?? refusDeBourse(hero, coutDeReparation(item), 'mf.repairPurseKo', { label: item.label });
+  return refusHote ?? refusDeBourse(hero, coutDeReparation(item), 'mf.bourseInsuffisantePourLaReparation', { label: item.label });
 }
 
 /** Chaque objet abîmé d'un héros du groupe, avec ce qui refuse de le réparer : une arme réduite à l'état improvisé
  *  (`isRepairable`), puis la bourse de son porteur (`refusDeReparation`). */
 export function objetsAReparer(party: readonly Combatant[]): { hero: Combatant; item: ItemInstance; refus: string | null }[] {
   return party.flatMap((hero) => (hero.items ?? []).filter((item) => (item.damageTaken ?? 0) > 0).map((item) => ({
-    hero, item, refus: isRepairable(item) ? refusDeReparation(hero, item, null) : t('mf.repairIrreparable', { label: item.label }),
+    hero, item, refus: isRepairable(item) ? refusDeReparation(hero, item, null) : t('mf.irreparable', { label: item.label }),
   })));
 }
 
@@ -832,7 +856,7 @@ function reparerLObjet(get: Get, set: Set, uid: string): void {
     recomputeLoadout(clone);
     return clone;
   }));
-  get().ecrireAuJournal(msg('mf.repairDone', { label: item.label }));
+  get().ecrireAuJournal(msg('mf.reparationFaite', { label: item.label }));
 }
 
 /** Ouvre le Marchandage du meilleur négociateur du groupe (Soutien, LDB 12) contre `opposant`, pour
@@ -860,7 +884,7 @@ export function refusDeMarchandage(s: Pick<Jeu, 'scene' | 'party'>, m: MerchantS
   if (mkt === 'sans-marchandage' || mkt === 'simplifie') return t('mf.marchandageOte');
   if (m.soured) return t('mf.marchandMefiant');
   if (m.bargainLocked) return t('mf.marchandageVerrouille');
-  if (mode === 'buy' ? m.bargainBuy : m.bargainSell) return t('mf.dejaMarchande');
+  if (mode === 'achat' ? m.bargainBuy : m.bargainSell) return t('mf.dejaMarchande');
   return partyAssisted(s.party, { skill: { id: 'marchandage' }, characteristic: 'sociabilite' }) ? null : t('mf.sansNegociateur');
 }
 
@@ -869,7 +893,7 @@ function marchanderLePrix(get: Get, set: Set, mode: ModeDeMarche): void {
   // L'ouverture refuse un archétype inconnu (`openMerchantByArchetype`) : ouvert, il est garanti.
   const arch = garanti(findMerchantArchetypeById(m.archetype), m.archetype, 'marchandage');
   // Le marchand est un PNJ de scène : sa fiche porte le portrait de la ligne adverse.
-  ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'buy' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(get().scene, m.entityId, presetDuNarratif(get().campaignNarratif)) });
+  ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'achat' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(get().scene, m.entityId, presetDuNarratif(get().campaignNarratif)) });
 }
 
 /** « Conclure » le Marchandage : fige l'issue sur sa contrepartie — les prix de la visite du marchand
@@ -881,9 +905,9 @@ function acquitterLeMarchandage(get: Get, set: Set): void {
   const won = res.attackerWins; // le joueur est l'attaquant
   const drNet = res.netSL;
   const outcome = { won, drNet, negotiator: pb.negotiator };
-  // ACQUITTEMENT par le goulot (`FLOWS.bargain.apply`) : le verdict est déclaré AU FLUX (`spec.issue`),
+  // ACQUITTEMENT par le goulot (`FLOWS.marchandage.apply`) : le verdict est déclaré AU FLUX (`spec.issue`),
   // journalisé là — ici on acquitte, avant de fermer le pending qui le porte.
-  FLOWS.bargain.apply(get);
+  FLOWS.marchandage.apply(get);
   const c = pb.contrepartie;
   // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 (symétrique du Succès Stupéfiant
   // +6) → le marchand se méfie de votre monnaie : plus aucun marchandage cette visite.
@@ -892,7 +916,7 @@ function acquitterLeMarchandage(get: Get, set: Set): void {
     pendingBargain: null,
     ...(c.kind === 'billet'
       ? { marchandagesDeBillet: { ...s.marchandagesDeBillet, [cleDeBillet(c.routeId, c.vehicule, c.depuis)]: outcome } }
-      : { merchant: s.merchant ? { ...s.merchant, ...(c.mode === 'buy' ? { bargainBuy: outcome } : { bargainSell: outcome }), soured: s.merchant.soured || botch } : s.merchant }),
+      : { merchant: s.merchant ? { ...s.merchant, ...(c.mode === 'achat' ? { bargainBuy: outcome } : { bargainSell: outcome }), soured: s.merchant.soured || botch } : s.merchant }),
   }));
 }
 
@@ -904,20 +928,20 @@ const DETECT_TALENT = 'detection-d-artefact';
  *  libellé (`libelleDEvaluation`). Détection : Talent « Détection d'artefact »
  *  (`LDB 10 l.336`). Les Caractéristiques associées sont celles de `skills.json`. */
 export const APPRAISE_SKILL = {
-  evaluate: { skill: { id: 'evaluation' }, characteristic: 'intelligence' },
-  detect: { skill: { id: 'intuition' }, characteristic: 'initiative' },
+  evaluation: { skill: { id: 'evaluation' }, characteristic: 'intelligence' },
+  detection: { skill: { id: 'intuition' }, characteristic: 'initiative' },
 } as const satisfies Record<string, TestIds>;
 
 /** Un mode de l'évaluation (`APPRAISE_SKILL`) : l'Évaluation (LDB 59 l.41) ou la Détection d'artefact (LDB 10 l.336). */
 export type ModeDEvaluation = keyof typeof APPRAISE_SKILL;
 /** Le mode d'`evaluerLObjet` appelé sans mode. */
-export const MODE_D_EVALUATION_PAR_DEFAUT = 'evaluate' satisfies ModeDEvaluation;
+export const MODE_D_EVALUATION_PAR_DEFAUT = 'evaluation' satisfies ModeDEvaluation;
 
 /** Meilleur détecteur du groupe : meilleure Intuition PARMI les porteurs du Talent (c'est LUI qui
  *  touche l'objet — pas un partyBest global comme l'Évaluation). null si personne ne l'a. */
 function bestDetector(party: Combatant[]): { actor: Combatant; value: number; support: SupportDetail } | null {
   const holders = party.filter((h) => hasTalent(h, DETECT_TALENT));
-  const best = partyAssisted(holders, APPRAISE_SKILL.detect); // Soutien (LDB 12)
+  const best = partyAssisted(holders, APPRAISE_SKILL.detection); // Soutien (LDB 12)
   return best ? { actor: best.actor, value: best.value, support: best.support } : null;
 }
 
@@ -927,7 +951,7 @@ const sansDetection = (party: Combatant[], cible: CibleDeDetection): Combatant[]
 /** Meneur de l'Évaluation (Soutien LDB 12) ou de la Détection de `cible` (`bestDetector`, parmi ceux qui ne l'ont pas
  *  tentée) ; `null` = personne qui puisse tenter. */
 function appraiseLeader(party: Combatant[], mode: ModeDEvaluation, cible: CibleDeDetection = {}): { actor: Combatant; value: number; support: SupportDetail } | null {
-  return mode === 'detect' ? bestDetector(sansDetection(party, cible)) : partyAssisted(party, APPRAISE_SKILL.evaluate);
+  return mode === 'detection' ? bestDetector(sansDetection(party, cible)) : partyAssisted(party, APPRAISE_SKILL.evaluation);
 }
 
 /** Ce que la Détection lit de sa cible (objet porté ou ligne de butin) : qui l'a déjà tentée. */
@@ -935,33 +959,33 @@ interface CibleDeDetection { label?: string; detectTriedBy?: readonly string[] }
 
 /** Détection : le refus nomme le Talent, pas la Compétence — LDB 10 l.336. */
 const appraiseNobody = (mode: ModeDEvaluation): string => refusPersonneNePeutTenter(
-  mode === 'detect' ? { action: refLabel('talents', { id: DETECT_TALENT }) } : { skill: APPRAISE_SKILL[mode].skill },
+  mode === 'detection' ? { action: refLabel('talents', { id: DETECT_TALENT }) } : { skill: APPRAISE_SKILL[mode].skill },
 );
 
 /** Refus NOMMÉ d'une Évaluation que personne ne peut tenter (LDB 09 l.30) ; `null` sinon. Le geste de l'UI en dérive. */
 export function appraiseRefus(party: Combatant[]): string | null {
-  return appraiseLeader(party, 'evaluate') ? null : appraiseNobody('evaluate');
+  return appraiseLeader(party, 'evaluation') ? null : appraiseNobody('evaluation');
 }
 
 /** Refus de la Détection d'artefact de `cible` : personne n'a le Talent, ou chacun de ses porteurs l'a déjà tentée
  *  sur elle ; `null` sinon. LDB 10 l.336 */
 export function refusDeDetection(party: Combatant[], cible: CibleDeDetection & { label: string }): string | null {
-  if (!bestDetector(party)) return appraiseNobody('detect');
-  return appraiseLeader(party, 'detect', cible) ? null : t('mf.detectDejaTentee', { label: cible.label });
+  if (!bestDetector(party)) return appraiseNobody('detection');
+  return appraiseLeader(party, 'detection', cible) ? null : t('mf.detectionDejaTentee', { label: cible.label });
 }
 
 /** Démarreur PARTAGÉ Évaluation/Détection — sur un objet d'inventaire (`itemUid`) OU une ligne de
- *  butin encore en fenêtre (`gear`). Une seule modale, un seul flux de jet (`FLOWS.appraise`, `rollFlowSpecs.ts`). */
+ *  butin encore en fenêtre (`gear`). Une seule modale, un seul flux de jet (`FLOWS.evaluation`, `rollFlowSpecs.ts`). */
 function openAppraise(
   get: Get, set: Set,
-  target: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },
+  target: { itemUid?: string; gear?: { scope: 'butin' | 'victoire'; uid: IdDeLigneDeButin } },
   itemName: string, mode: ModeDEvaluation, trappingId?: string, cible: CibleDeDetection = {},
 ): void {
   const best = garanti(appraiseLeader(get().party, mode, cible), itemName, 'meneur de l’évaluation (`refusDEvaluation`)');
   const t = trappingId ? findTrappingById(trappingId) : undefined;
   const ligne = rollLine({ actor: best.actor, test: APPRAISE_SKILL[mode], difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
   set({ pendingAppraise: {
-    actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,
+    actorId: best.actor.id, ...target, itemName,
     // Le libellé de la Compétence vient du REGISTRE, par id stable — jamais un nom écrit au call-site.
     mode, skillLabel: refLabel('skills', APPRAISE_SKILL[mode].skill),
     truePriceBrass: t ? toBrass(priceToMoney(t.price)) : 0,
@@ -976,12 +1000,12 @@ export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
 }
 
 /** Ce qu'évalue `evaluerLObjet` : l'objet qu'un héros du groupe porte, sinon la ligne d'un butin encore en fenêtre
- *  (`loot` puis `victory`) ; sa cible ouverte (`openAppraise`) et ce que lisent ses refus. `null` : l'uid ne désigne ni
+ *  (`butin` puis `victoire`) ; sa cible ouverte (`openAppraise`) et ce que lisent ses refus. `null` : l'uid ne désigne ni
  *  l'un ni l'autre. */
-function aEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openAppraise>[2]; cible: CibleDEvaluation; trappingId?: string } | null {
+function cibleAEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openAppraise>[2]; cible: CibleDEvaluation; trappingId?: string } | null {
   const item = s.party.find((h) => h.id === porteurDeLObjet(s, uid))?.items?.find((i) => i.uid === uid);
   if (item) return { target: { itemUid: uid }, cible: item, trappingId: item.trappingId };
-  for (const scope of ['loot', 'victory'] as const) {
+  for (const scope of ['butin', 'victoire'] as const) {
     const ligne = ligneDuButin(s, scope, uid);
     if (ligne) return { target: { gear: { scope, uid } }, cible: { ...ligne.effect, label: ligne.label }, trappingId: ligne.effect.trappingId };
   }
@@ -993,39 +1017,39 @@ function aEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openAppraise
 type CibleDEvaluation = CibleDeDetection & { label: string; appraiseTriedDay?: number };
 
 /** Les jours qui restent, au jour `jour`, avant de retenter l'Évaluation manquée de `cible` (règle maison
- *  `market-evaluation-delai-jours`) ; 0 : elle se retente. */
+ *  `marche-evaluation-delai-jours`) ; 0 : elle se retente. */
 const joursAvantDeRetenter = (cible: CibleDEvaluation, jour: number): number =>
-  (cible.appraiseTriedDay === undefined ? 0 : Math.max(0, cible.appraiseTriedDay + Number(rule('market-evaluation-delai-jours')) - jour));
+  (cible.appraiseTriedDay === undefined ? 0 : Math.max(0, cible.appraiseTriedDay + Number(rule('marche-evaluation-delai-jours')) - jour));
 
-/** Refus de l'Évaluation (`evaluate`) ou de la Détection d'artefact (`detect`) de `cible` au jour `jour` : manquée trop
- *  récemment (règle maison `market-evaluation-delai-jours`), personne ne peut la tenter (LDB 09 l.30), ou chaque
+/** Refus de l'Évaluation (`evaluation`) ou de la Détection d'artefact (`detection`) de `cible` au jour `jour` : manquée trop
+ *  récemment (règle maison `marche-evaluation-delai-jours`), personne ne peut la tenter (LDB 09 l.30), ou chaque
  *  détecteur l'a déjà tentée (LDB 10 l.336) ; `null` sinon. Le verbe et la fenêtre du butin le lisent. */
 export function refusDEvaluation(party: Combatant[], cible: CibleDEvaluation, mode: ModeDEvaluation, jour: number): string | null {
-  if (mode === 'detect') return refusDeDetection(party, cible);
+  if (mode === 'detection') return refusDeDetection(party, cible);
   const jours = joursAvantDeRetenter(cible, jour);
-  return jours > 0 ? t('mf.appraiseRetenter', { label: cible.label, jours }) : appraiseRefus(party);
+  return jours > 0 ? t('mf.evaluationARetenter', { label: cible.label, jours }) : appraiseRefus(party);
 }
 
 /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10 l.336) d'un objet porté par un héros, ou d'une ligne de
  *  butin ENCORE en fenêtre, révélée avant de choisir qui l'emporte. Chaque refus est dit. */
-export function evaluerLObjet(get: Get, set: Set, uid: IdDObjet | IdDeLigneDeButin, mode: ModeDEvaluation = MODE_D_EVALUATION_PAR_DEFAUT): void {
-  if (porteurDeLObjet(get(), uid) && (refuseSi(get, set, refusDInventaire) || refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid)))) return;
-  const cible = aEvaluer(get(), uid);
+export function evaluerLObjet(get: Get, set: Set, aEvaluer: IdDObjet | IdDeLigneDeButin, mode: ModeDEvaluation = MODE_D_EVALUATION_PAR_DEFAUT): void {
+  if (porteurDeLObjet(get(), aEvaluer) && (refuseSi(get, set, refusDInventaire) || refuseSi(get, set, (s) => refusDuHerosPorteur(s, aEvaluer)))) return;
+  const cible = cibleAEvaluer(get(), aEvaluer);
   if (!cible) return void refuserGeste(get, set, t('pf.objetSansPorteur'));
   if (refuseSi(get, set, (s) => refusDEvaluation(s.party, cible.cible, mode, gameDay(s)))) return;
   openAppraise(get, set, cible.target, cible.cible.label, mode, cible.trappingId, cible.cible);
 }
 
 /** La ligne `uid` du butin `scope` encore en fenêtre. */
-const ligneDuButin = (s: Jeu, scope: 'loot' | 'victory', uid: string) => (scope === 'loot' ? s.pendingLoot : s.pendingVictory)?.gear?.find((g) => g.uid === uid);
+const ligneDuButin = (s: Jeu, scope: 'butin' | 'victoire', uid: string) => (scope === 'butin' ? s.pendingLoot : s.pendingVictory)?.gear?.find((g) => g.uid === uid);
 
 /** Patch la cible de l'Évaluation/Détection — objet porté (party) ou ligne de butin en fenêtre. */
-function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },
+function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: { scope: 'butin' | 'victoire'; uid: IdDeLigneDeButin } },
   { detecteur, ...patch }: { identified?: boolean; magicKnown?: boolean; detecteur?: string; appraiseTriedDay?: number }): void {
   /** La Détection tentée par `detecteur` s'ajoute à la liste de sa cible. LDB 10 l.336 */
   const avecDetecteur = (cible: { detectTriedBy?: string[] }) => (detecteur ? { detectTriedBy: [...(cible.detectTriedBy ?? []), detecteur] } : {});
   if (pa.gear) {
-    const key = pa.gear.scope === 'loot' ? 'pendingLoot' : 'pendingVictory';
+    const key = pa.gear.scope === 'butin' ? 'pendingLoot' : 'pendingVictory';
     const { uid } = pa.gear;
     set((s) => {
       const bucket = s[key];
@@ -1059,50 +1083,51 @@ function acquitterLEvaluation(get: Get, set: Set): void {
   const pa = get().pendingAppraise;
   if (!pa) return;
   set({ pendingAppraise: null });
-  if (pa.mode === 'detect') {
+  if (pa.mode === 'detection') {
     // Qualités MAGIQUES de la cible : sur une ligne de butin on les connaît (effet) ; sur un objet
     // porté, l'ajout est fondu dans `qualities` → on compte 1 règle (cas du butin du jeu).
     const line = pa.gear ? ligneDuButin(get(), pa.gear.scope, pa.gear.uid) : undefined;
     const item = pa.itemUid ? get().party.flatMap((h) => h.items ?? []).find((i) => i.uid === pa.itemUid) : undefined;
     const isMagic = line ? line.magic : !!item && (item.identified === false || !!item.magicKnown);
     const rules = line ? (line.effect.qualities?.length ?? (line.effect.identified === false ? 1 : 0)) : 1;
+    const actor = garanti(nomEnVue(get(), pa.actorId), pa.actorId, 'détecteur de la Détection');
     if (!pa.success) {
       patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
-      get().ecrireAuJournal(t('mf.detectNothing', { actor: pa.actorName, item: pa.itemName }));
+      get().ecrireAuJournal(t('mf.detectionVaine', { actor, item: pa.itemName }));
       return;
     }
     if (!isMagic) {
       patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
-      get().ecrireAuJournal(t('mf.detectNotMagic', { actor: pa.actorName, item: pa.itemName }));
+      get().ecrireAuJournal(t('mf.detectionSansAura', { actor, item: pa.itemName }));
       return;
     }
     // Succès : aura sentie ; chaque DR apprend une règle → tout révélé quand DR couvre les règles.
     const allKnown = pa.sl >= Math.max(1, rules);
     patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId, magicKnown: true, ...(allKnown ? { identified: true } : {}) });
-    get().ecrireAuJournal(t(allKnown ? 'mf.detectAll' : 'mf.detectPartial', { actor: pa.actorName, item: pa.itemName, dr: pa.sl }));
+    get().ecrireAuJournal(t(allKnown ? 'mf.detectionComplete' : 'mf.detectionPartielle', { actor, item: pa.itemName, dr: pa.sl }));
     return;
   }
   if (!pa.success) {
     // Un échec à DR 0 offre un nouvel essai (LDB 12 l.94) ; à DR négatif, le délai de la règle maison
-    // `market-evaluation-delai-jours` court.
+    // `marche-evaluation-delai-jours` court.
     if (pa.sl < 0) patchAppraiseTarget(get, set, pa, { appraiseTriedDay: gameDay(get()) });
-    get().ecrireAuJournal(t('mf.appraiseFail', { item: pa.itemName }));
+    get().ecrireAuJournal(t('mf.evaluationRatee', { item: pa.itemName }));
     return;
   }
   patchAppraiseTarget(get, set, pa, { identified: true });
-  if (pa.truePriceBrass <= 0) { get().ecrireAuJournal(t('mf.appraiseUnique', { item: pa.itemName })); return; }
+  if (pa.truePriceBrass <= 0) { get().ecrireAuJournal(t('mf.evaluationPieceUnique', { item: pa.itemName })); return; }
   const est = appraiseEstimate(pa.availability as Parameters<typeof appraiseEstimate>[0], pa.truePriceBrass);
   const range = est.min === est.max
     ? formatMoney(fromBrass(est.min))
-    : t('mf.estimateRange', { min: formatMoney(fromBrass(est.min)), max: formatMoney(fromBrass(est.max)) });
-  get().ecrireAuJournal(t('mf.appraiseValue', { item: pa.itemName, range }));
+    : t('mf.fourchetteDEstimation', { min: formatMoney(fromBrass(est.min)), max: formatMoney(fromBrass(est.max)) });
+  get().ecrireAuJournal(t('mf.evaluationValeur', { item: pa.itemName, range }));
 }
 
 export function creerActionsDuMarchand(get: Get, set: Set) {
   return {
     ouvrirLeMarchand: (entityId) => ouvrirLeMarchand(get, set, entityId),
     ouvrirLaBoutique: (serviceId) => ouvrirLaBoutique(get, set, serviceId),
-    evaluerLObjet: (uid, mode) => evaluerLObjet(get, set, uid, mode),
+    evaluerLObjet: (aEvaluer, mode) => evaluerLObjet(get, set, aEvaluer, mode),
   } satisfies FabriqueDuNoyau;
 }
 
@@ -1159,8 +1184,8 @@ export function validationsDuMarchand(get: Get, set: Set) {
 
 export function cloturesDuMarchand(get: Get, set: Set) {
   return {
-    bargain: () => acquitterLeMarchandage(get, set),
-    appraise: () => acquitterLEvaluation(get, set),
+    marchandage: () => acquitterLeMarchandage(get, set),
+    evaluation: () => acquitterLEvaluation(get, set),
   } satisfies Partial<CloturesDuJet>;
 }
 
@@ -1211,9 +1236,9 @@ export const TABLES = {
       finalizeSearchAvailability(get, set, entityId, Number(meta.restockPeriod ?? MINUTES_PER_DAY), gossipDay);
       return {
         consequences: freeCons([stepDetail(
-          actor ? dataLabel(actor.label) : t('eff.party'),
+          actor ? dataLabel(actor.label) : t('eff.groupe'),
           // LDB 59 l.50
-          estJete(step.result) ? t(gossipDay ? 'mf.searchOk' : 'mf.searchKo') : t('mf.searchSansJet'),
+          estJete(step.result) ? t(gossipDay ? 'mf.rechercheReussie' : 'mf.rechercheRatee') : t('mf.rechercheSansJet'),
         )]),
       };
     },

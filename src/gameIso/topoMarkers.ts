@@ -29,7 +29,7 @@ export interface StationMarker {
 
 /** Teinte d'un marqueur selon sa faction (source unique `teamColors`). */
 export function stationTint(faction: Station['faction']): string {
-  return faction === 'ally' ? ALLY_TINT : faction === 'enemy' ? ENEMY_TINT : NEUTRAL_TINT;
+  return faction === 'allie' ? ALLY_TINT : faction === 'ennemi' ? ENEMY_TINT : NEUTRAL_TINT;
 }
 
 /** Direction ÉCRAN (dx,dy unitaires) d'un arc relatif au marqueur — convention fixe, heading-agnostique

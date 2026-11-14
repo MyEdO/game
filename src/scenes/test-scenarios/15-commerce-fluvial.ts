@@ -1,7 +1,7 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { createHero } from '../../engine/character';
 import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
-import type { Combatant } from '../../engine/types';
+import type { Combatant, ItemInstance } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
 import type { Scene } from '../../noyau/monde/scene';
 import type { MapPlace, MapRoute, WorldMap } from '../../noyau/worldMap';
@@ -37,7 +37,7 @@ function traders(idNeuf: FabriqueDId): Combatant[] {
   renforcerCompetence(berta, 'resistance-a-l-alcool', 45);
   // Chariot de convoi (porteur RÉEL de la cargaison, #327) : la contenance devient un plafond réel — le
   // vrac vit sur `ItemInstance.cargo`, embarqué sur la barge à la descente (Décision 5, EDOC 7).
-  const convoi = { uid: 'com-convoi', name: 'Chariot de convoi', trappingId: 'diligence', kind: 'misc', qualities: [], enc: 0, equipped: false } as never;
+  const convoi: ItemInstance = { uid: 'com-convoi', label: 'Chariot de convoi', trappingId: 'diligence', kind: 'misc', qualities: [], enc: 0, equipped: false };
   berta.items = [...(berta.items ?? []), itemFromTrappingById('ration', idNeuf, undefined, contexteDeNaissanceDObjet(berta))!, itemFromTrappingById('ration', idNeuf, undefined, contexteDeNaissanceDObjet(berta))!, convoi];
   berta.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
 
@@ -173,7 +173,7 @@ export const scenario: TestScenario = {
   id: 'commerce-fluvial',
   order: 2,
   category: 'marche',
-  icon: 'scenario/market',
+  icon: 'scenario/marche',
   title: 'Commerce fluvial (le Reik)',
   tests:
     // MSRC 13

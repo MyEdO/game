@@ -30,13 +30,14 @@ import { combatStakeRef, type StakeRef } from '../data';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { deDeLaTableTiree } from '../engine/tables';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (id: string): Combatant =>
   combattantDeTest({
-    id, label: `Héros ${id}`, kind: 'hero',
+    id, label: `Héros ${id}`, kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     skills: [], conditions: [], talents: [], fortune: 2, resilience: 3,
   });
@@ -55,6 +56,7 @@ beforeEach(() => {
   banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, ownership: {} } } as never);
   avecLesTables({ plis: { ...tablesDuJeu().plis, [KIND_A_PLI]: (step) => step }, tablesTirables: { ...tablesDuJeu().tablesTirables, [TABLE]: {
     label: 'Table des mints',
+    die: deDeLaTableTiree({ die: 'd100' }),
     rows: [{ min: 1, max: 50, id: 'basse' }, { min: 51, max: 100, id: 'haute' }],
     lines: (die) => [`ligne ${die}`],
     entryCategory: 'mutations',
@@ -217,26 +219,26 @@ describe('#1262 — hostStep : jamais de fenêtre sans la donnée qu’elle rend
     });
   }
 
-  it('jet:\'fumble\' : aucun pending à attendre, sa charge vit SUR l’étape', () => {
-    const step = hostStep(banc.getState, { id: 'f', kind: 'fumbleJet', jet: 'fumble', actorId: 'H1', fumble: { weapon: ARME, result: null } })!;
-    expect(step.fumble!.weapon.label).toBe('Épée');
+  it('jet:\'maladresse\' : aucun pending à attendre, sa charge vit SUR l’étape', () => {
+    const step = hostStep(banc.getState, { id: 'f', kind: 'jetDeMaladresse', jet: 'maladresse', actorId: 'H1', maladresse: { weapon: ARME, result: null } })!;
+    expect(step.maladresse!.weapon.label).toBe('Épée');
   });
 
-  it('jet:\'fumble\' SANS sa charge → refusé au TYPE (union discriminée)', () => {
-    // @ts-expect-error — `fumble` requis par la branche `jet:'fumble'`
-    const nu: HostSpec = { id: 'f', kind: 'fumbleJet', jet: 'fumble', actorId: 'H1' };
-    expect(nu.jet).toBe('fumble');
+  it('jet:\'maladresse\' SANS sa charge → refusé au TYPE (union discriminée)', () => {
+    // @ts-expect-error — `maladresse` requis par la branche `jet:'maladresse'`
+    const nu: HostSpec = { id: 'f', kind: 'jetDeMaladresse', jet: 'maladresse', actorId: 'H1' };
+    expect(nu.jet).toBe('maladresse');
   });
 
   it('une charge de Maladresse sur un AUTRE jet est inexprimable', () => {
-    // @ts-expect-error — `fumble` interdit hors de sa branche
-    const croise: HostSpec = { id: 'x', kind: 'k', jet: 'attack', actorId: 'H1', fumble: { weapon: ARME, result: null } };
-    expect(croise.jet).toBe('attack');
+    // @ts-expect-error — `maladresse` interdit hors de sa branche
+    const croise: HostSpec = { id: 'x', kind: 'k', jet: 'attaque', actorId: 'H1', maladresse: { weapon: ARME, result: null } };
+    expect(croise.jet).toBe('attaque');
   });
 
   it('`groupOwner` est le SEUL canal de possession partagée de la famille (moment de cast partagé)', () => {
     banc.setState({ pendingCast: { marqueur: true } } as never);
-    const step = hostStep(banc.getState, { id: 'c', kind: 'cast', jet: 'cast', actorId: 'H1', groupOwner: true })!;
+    const step = hostStep(banc.getState, { id: 'c', kind: 'incantation', jet: 'incantation', actorId: 'H1', groupOwner: true })!;
     expect(step.groupOwner).toBe(true);
     banc.setState({ pendingCast: null } as never);
   });
@@ -315,7 +317,7 @@ describe('#1262 — les portes d’APPEND', () => {
   });
 
   it('`pushHost` refuse aussi la fenêtre fantôme (le mint est le même des deux côtés)', () => {
-    expect(() => pushHost(banc.getState, banc.setState, { id: 'h', kind: cleDeFixture('k'), jet: 'attack', actorId: 'H1' })).toThrow(/pendingAttack/);
+    expect(() => pushHost(banc.getState, banc.setState, { id: 'h', kind: cleDeFixture('k'), jet: 'attaque', actorId: 'H1' })).toThrow(/pendingAttack/);
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
@@ -360,12 +362,12 @@ describe('#1262 — pushBand : la bande APPENDUE porte sa possession (assertion 
 
   beforeEach(() => {
     banc.setState({ battle: null, party: [h1, h2], pendingCascade: null, suspendedCascades: [] } as never);
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, ownership: { H1: 1, H2: 0 } } } as never);
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, ownership: { H1: 1, H2: 0 } } } as never);
   });
 
   it('DEUX porteurs de sièges distincts → bande de GROUPE, et la rangée de l’INVITÉ reste à JOUER', () => {
     pushBand(banc.getState, banc.setState, {
-      id: 'peur', kind: 'combatPsych', label: fixtureText('Peur'), difficulty: 'intermediaire',
+      id: 'peur', kind: 'psychologieDeCombat', label: fixtureText('Peur'), difficulty: 'intermediaire',
       porteurs: [{ actor: h1, ligne: { test: { characteristic: 'force-mentale' } } }, { actor: h2, ligne: { test: { characteristic: 'force-mentale' } } }],
     });
     const [st] = etapes();
@@ -379,7 +381,7 @@ describe('#1262 — pushBand : la bande APPENDUE porte sa possession (assertion 
 
   it('porteur UNIQUE de l’invité → l’étape le NOMME, et la fenêtre va à SON siège (jamais à l’hôte)', () => {
     pushBand(banc.getState, banc.setState, {
-      id: 'terreur', kind: 'combatPsych', label: fixtureText('Terreur'), difficulty: 'intermediaire',
+      id: 'terreur', kind: 'psychologieDeCombat', label: fixtureText('Terreur'), difficulty: 'intermediaire',
       porteurs: [{ actor: h1, ligne: { test: { characteristic: 'force-mentale' } } }],
     });
     const [st] = etapes();
@@ -481,7 +483,7 @@ describe('#1262 V2 — la FILE d’entretien et la FABRIQUE de nuit n’accepten
     const h = hero('H1');
     h.characteristics['force-mentale'] = 71; // le héros a SES composantes : elles ne doivent PAS entrer
     const cumul = [{ label: '−5 cumulatif (Round 2)', value: -5, famille: 'jet' as const }];
-    const commun = { id: 'right-1', kind: 'riverRighting' as const, actor: h, label: fixtureText('Redressement'), difficulty: 'accessible' as const, stake: ENJEU };
+    const commun = { id: 'right-1', kind: 'fleuveRedressement' as const, actor: h, label: fixtureText('Redressement'), difficulty: 'accessible' as const, stake: ENJEU };
 
     const parLigne = monoStep({ ...commun, ligne: { valeur: 42, valeurEtrangere: true, surLaCible: cumul } })!;
     const parMontee = monoStep({ ...commun, montee: rollStep({ difficulty: 'accessible', valeur: 42, valeurEtrangere: true, surLaCible: cumul }) })!;

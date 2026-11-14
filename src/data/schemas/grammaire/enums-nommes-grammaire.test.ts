@@ -61,13 +61,13 @@ const MIGRES: readonly [string, unknown, Record<string, string>][] = [
     any: 'un héros au moins', all: 'tout le groupe',
   }],
   ['Condition relation.is', relationOrCampSchema, {
-    self: 'soi-même', ally: 'allié (même camp)', opponent: 'adversaire (camp ≠)',
-    party: 'du groupe (joueur)', neutral: 'neutre (PNJ)', hostile: 'hostile (ennemi)',
+    soi: 'soi-même', allie: 'allié (même camp)', adversaire: 'adversaire (camp ≠)',
+    groupe: 'du groupe (joueur)', neutre: 'neutre (PNJ)', hostile: 'hostile (ennemi)',
   }],
   ['Condition startleCause.is', startleCauseSchema, { noise: 'Bruits forts', magic: 'Magie' }],
   ['TriggeredEffect.on (cible simple)', effectOnSchema, {
-    self: 'soi-même', victim: 'la victime', engaged: 'les adversaires engagés',
-    grappled: 'la victime empoignée (absorbée)',
+    soi: 'soi-même', victime: 'la victime', engages: 'les adversaires engagés',
+    empoigne: 'la victime empoignée (absorbée)',
   }],
   ['TriggeredEffect.trigger', effectTriggerSchema, {
     onHit: 'À la touche', onCrit: 'Sur un Critique', onWoundLoss: 'En perdant des PB',

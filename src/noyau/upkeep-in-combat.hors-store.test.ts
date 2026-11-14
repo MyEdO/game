@@ -25,7 +25,7 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 describe('#253.1 — dessoûlage : le 2ᵉ Test (gueule de bois) est une étape INFLUENÇABLE insérée', () => {
-  it('l\'applier `dessoulage` DISSIPE (1er DR) et INSÈRE une étape `dessoulage-hangover` (2ᵉ jet), sans rouler l\'Exténué', () => {
+  it('l\'applier `dessoulage` DISSIPE (1er DR) et INSÈRE une étape `dessoulage-gueule-de-bois` (2ᵉ jet), sans rouler l\'Exténué', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.drunk = { failedTests: 3, drunk: true, result: 'joyeux' };
     banc.setState({ party: [hero], gameTime: 8 * 60 });
@@ -36,26 +36,26 @@ describe('#253.1 — dessoûlage : le 2ᵉ Test (gueule de bois) est une étape 
     const out = applierDe('dessoulage')!(get, set, step, hero, { steps: [step], index: 0 });
 
     expect(hero.drunk).toBeUndefined();                          // dissipation appliquée (1er Test)
-    expect(out?.insert?.[0]?.kind).toBe('dessoulage-hangover');   // 2ᵉ Test devenu BANDE influençable
+    expect(out?.insert?.[0]?.kind).toBe('dessoulage-gueule-de-bois');   // 2ᵉ Test devenu BANDE influençable
     expect(out?.insert?.[0]?.participants?.[0]?.result ?? null).toBeNull(); // pas encore lancé (le joueur l'influencera)
     expect(hero.conditions?.some((c) => c.id === 'extenue')).toBeFalsy(); // gueule de bois DIFFÉRÉE au 2ᵉ Test
 
     const hStep = out!.insert![0];
     hStep.participants![0].result = { roll: 10, target: hStep.participants![0].target, sl: 2, success: true };
-    applierDe('dessoulage-hangover')!(get, set, hStep, hero, { steps: [hStep], index: 0 });
+    applierDe('dessoulage-gueule-de-bois')!(get, set, hStep, hero, { steps: [hStep], index: 0 });
     expect(hero.conditions?.some((c) => c.id === 'extenue')).toBe(true); // posée par le 2ᵉ Test résolu
   });
 });
 
 describe('#253.2 — combat franchissant minuit : les Tests d\'entretien se mettent EN FILE, jamais silencieux', () => {
   const deadEnemy = (): Combatant =>
-    combattantDeTest({ id: 'e', kind: 'enemy', label: 'Bandit', characteristics: { endurance: 30 } as never,
+    combattantDeTest({ id: 'e', kind: 'ennemi', label: 'Bandit', characteristics: { endurance: 30 } as never,
       wounds: blessuresDeBase(10, 0), dead: true, conditions: [], skills: [], items: [], weapons: [], movement: 4, advantage: 0 });
 
   it('un franchissement de jour PENDANT un combat FILE un Test de dessoûlage (deferredUpkeepQueue), sans le rouler', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 2 });
     hero.drunk = { failedTests: 2, drunk: true, result: 'joyeux' };
-    const heroClone = { ...hero, kind: 'hero' as const };
+    const heroClone = { ...hero, kind: 'heros' as const };
     banc.setState({
       party: [hero], lastUpkeepDay: 0, lastNightDay: 0, gameTime: 23 * 60 + 59,
       battle: { combatants: [heroClone, deadEnemy()], order: [hero.id, 'e'], turn: 0, round: 1, log: [], over: null } as never,
@@ -71,7 +71,7 @@ describe('#253.2 — combat franchissant minuit : les Tests d\'entretien se mett
 
   it('openCombatEndCascade CONSOMME la file : un héros piloté-humain → l\'étape rejoint la cascade de FIN', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
-    const heroClone = { ...hero, kind: 'hero' as const };
+    const heroClone = { ...hero, kind: 'heros' as const };
     // La file accepte seulement une étape MINTÉE (#1262 V2) ; sa ligne est posée telle quelle.
     const queued = monoStep({ id: 'faim-H-0', kind: 'faim', actor: hero, label: fixtureText('Faim'), rollLabel: 'Résistance',
       difficulty: 'intermediaire', montee: { base: 40, target: 40 }, stake: nightStakeRef('faim') })!;

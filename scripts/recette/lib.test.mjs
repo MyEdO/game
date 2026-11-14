@@ -62,6 +62,7 @@ import {
   lireProcessus,
   nettoyerALaSortie,
   waitForWsUrl,
+  lireDevToolsActivePort,
   purgerProfil,
   leverApresNettoyage,
   waitForAppSilently,
@@ -233,7 +234,7 @@ test('nom ARIA vide : contenu valide retrouvé avant title', async () => {
 for (const interaction of ['choix', 'quantite']) {
   test('interaction canonique : ' + interaction + ' ready refuse avant Continuer, arret observe sans geste', async () => {
     const { dom, doc, etat, session } = pagePilotee('<div class="modal-overlay"><div role="dialog" aria-label="Décision"><button>Continuer</button></div></div>', { cascade: true })
-    dom.window.__wfrp = { auto: () => ({ activeModal: 'pendingCascade', cascade: { id: 'fixture-step', kind: 'defenseJet', interaction, ready: true, chosen: 'defaut', amount: 1 } }) }
+    dom.window.__wfrp = { auto: () => ({ activeModal: 'pendingCascade', cascade: { id: 'fixture-step', kind: 'jetDeDefense', interaction, ready: true, chosen: 'defaut', amount: 1 } }) }
     doc.querySelector('button').onclick = () => doc.querySelector('.modal-overlay').remove()
     await assert.rejects(() => resoudreModales(session, 'decision', { pauseMs: 1 }), new RegExp('interaction joueur « ' + interaction + ' ».*Décision.*Continuer'))
     assert.deepEqual(etat.emis, [])
@@ -248,8 +249,8 @@ for (const interaction of ['choix', 'quantite']) {
 
 for (const [cas, metadata] of [
   ['absente', null],
-  ['interaction vide', { id: 'fixture-step', kind: 'defenseJet', interaction: '', ready: true, chosen: null, amount: null }],
-  ['autre id', { id: 'autre-etape', kind: 'defenseJet', interaction: 'affichage', ready: true, chosen: null, amount: null }],
+  ['interaction vide', { id: 'fixture-step', kind: 'jetDeDefense', interaction: '', ready: true, chosen: null, amount: null }],
+  ['autre id', { id: 'autre-etape', kind: 'jetDeDefense', interaction: 'affichage', ready: true, chosen: null, amount: null }],
 ]) {
   test('observation canonique : ' + cas + ' refuse avant Continuer malgré portée explicite', async () => {
     const { dom, doc, etat, session } = pagePilotee('<div class="modal-overlay"><div role="dialog" aria-label="Décision"><button>Continuer</button></div></div>', { cascade: true })
@@ -899,7 +900,7 @@ function pagePilotee(html, { auxLectures, recouvrir, battle, jeu = {}, cascade =
   const dom = new JSDOM(html, { runScripts: 'outside-only' })
   const doc = dom.window.document
   const etat = { lectures: 0, emis: [], cliques: [], marque: null }
-  dom.window.__game = { getState: () => ({ pendingCascade: cascade && doc.querySelector('.modal-overlay') ? { cursor: 0, participants: [{ id: 'fixture-step', kind: 'defenseJet', jet: 'defense' }] } : null, ...jeu }) }
+  dom.window.__game = { getState: () => ({ pendingCascade: cascade && doc.querySelector('.modal-overlay') ? { cursor: 0, participants: [{ id: 'fixture-step', kind: 'jetDeDefense', jet: 'defense' }] } : null, ...jeu }) }
   const gesteCarteAttendu = () => jeu.gesteCarte ?? null
   const dialogueDuDessus = () => {
     const overlay = [...doc.querySelectorAll('.modal-overlay')].at(-1)
@@ -1112,7 +1113,7 @@ test('piloterCombat / avancerDeRounds : le choix explicite laisse le geste carte
   const bataille = { round: 1, over: false, actif: 'h1', acted: false, movementUsed: 0, endTurnArmed: false }
   const jeu = {}
   const { dom, doc, session } = pagePilotee('<div class="modal-overlay"><div role="dialog" aria-label="Défense"><div class="seg"><button>Parade</button><button>Esquive</button></div><button id="lancer" disabled>Lancer</button></div></div>', { jeu, cascade: true })
-  dom.window.__wfrp = { battle: () => bataille, auto: () => ({ roundPause: false, activeModal: 'pendingCascade', cascade: cascadeAffichage(dom), active: { id: 'h1', kind: 'hero' } }) }
+  dom.window.__wfrp = { battle: () => bataille, auto: () => ({ roundPause: false, activeModal: 'pendingCascade', cascade: cascadeAffichage(dom), active: { id: 'h1', kind: 'heros' } }) }
   doc.querySelector('.seg button').onclick = () => { doc.querySelector('.modal-overlay').remove(); jeu.gesteCarte = { kind: 'cibles', label: 'Flèche', casterId: 'h1', cibles: [] } }
   await clickButtonByText(session, 'Parade', { dans: '.modal-overlay' })
   await assert.rejects(() => avancerDeRounds(session, 1, { pauseMs: 1 }), (e) => {
@@ -1208,7 +1209,7 @@ for (const [nom, pc, election, coquille, permis] of [
   ['cascade élue avec coquille', true, true, true, true],
 ]) {
   test('preuve de flux : ' + nom, async () => {
-    const jeu = { pendingCascade: pc ? { cursor: 0, participants: [{ id: 'fixture-step', kind: 'defenseJet', jet: 'defense' }] } : null }
+    const jeu = { pendingCascade: pc ? { cursor: 0, participants: [{ id: 'fixture-step', kind: 'jetDeDefense', jet: 'defense' }] } : null }
     const { dom, doc, etat, session } = pagePilotee('<div class="modal-overlay" ' + (coquille ? 'data-champ data-plein' : '') + '><button>Terminer</button></div>', { jeu })
     dom.window.__wfrp = { auto: () => ({ activeModal: election && doc.querySelector('.modal-overlay') ? 'pendingCascade' : null, cascade: cascadeAffichage(dom) }) }
     doc.querySelector('button').onclick = () => { doc.querySelector('.modal-overlay').remove(); jeu.pendingCascade = null }
@@ -1316,20 +1317,20 @@ test('resoudreModales : une cascade Surprise se vide — « Tout lancer », roul
 
 const lecture = (champs = {}) => ({
   battle: { round: 1, over: null, actif: 'h1', acted: false, movementUsed: 0, endTurnArmed: false, ...champs.battle },
-  auto: { roundPause: false, activeModal: null, active: { id: 'h1', kind: 'hero', aiDriven: false, acted: false }, ...champs.auto },
+  auto: { roundPause: false, activeModal: null, active: { id: 'h1', kind: 'heros', aiDriven: false, acted: false }, ...champs.auto },
   modale: champs.modale ?? false,
 })
 
 for (const [cas, l, attendu, opts] of [
   ['aucun combat', { ...lecture(), battle: null }, 'fini'],
-  ['combat terminé', lecture({ battle: { over: 'victory' } }), 'fini'],
+  ['combat terminé', lecture({ battle: { over: 'victoire' } }), 'fini'],
   ['arrêt atteint', lecture({ battle: { round: 3 } }), 'fini', { arret: (e) => e.battle.round >= 3 }],
   ['fenêtre au DOM', lecture({ modale: true }), 'resoudre'],
   ['modale active au store', lecture({ auto: { activeModal: 'pendingAttack' } }), 'resoudre'],
   ['pause de début de Round', lecture({ auto: { roundPause: true, active: null } }), 'ouvrirRound'],
   ['tour d’un héros piloté', lecture(), 'finirTour'],
   ['plaque ARMÉE (second temps de fin de tour)', lecture({ battle: { endTurnArmed: true }, auto: { active: null } }), 'finirTour'],
-  ['tour d’IA', lecture({ auto: { active: { id: 'g1', kind: 'enemy', aiDriven: true, acted: false } } }), 'attendre'],
+  ['tour d’IA', lecture({ auto: { active: { id: 'g1', kind: 'ennemi', aiDriven: true, acted: false } } }), 'attendre'],
   ['aucun acteur', lecture({ auto: { active: null } }), 'attendre'],
 ]) {
   test(`prochainGeste : ${cas} → ${attendu}`, () => {
@@ -1339,7 +1340,7 @@ for (const [cas, l, attendu, opts] of [
 
 test('finDuTour : plaque armée au premier clic → un SECOND clic passe la main', async () => {
   let arme = false
-  const { etat, session } = pagePilotee('<div class="combat-console"><button data-action="end-turn">Fin du tour<span>Action non dépensée</span></button></div>', {
+  const { etat, session } = pagePilotee('<div class="combat-console"><button data-action="fin-de-tour">Fin du tour<span>Action non dépensée</span></button></div>', {
     battle: () => ({ endTurnArmed: arme }),
   })
   socketDe(session).gerer = ((rpc) => async (m, p) => {
@@ -1352,7 +1353,7 @@ test('finDuTour : plaque armée au premier clic → un SECOND clic passe la main
 })
 
 test('finDuTour : plaque non armée → un seul clic', async () => {
-  const { etat, session } = pagePilotee('<div class="combat-console"><button data-action="end-turn">Fin du tour</button></div>', {
+  const { etat, session } = pagePilotee('<div class="combat-console"><button data-action="fin-de-tour">Fin du tour</button></div>', {
     battle: () => ({ endTurnArmed: false }),
   })
   assert.equal(await finDuTour(session, { pauseMs: 1 }), 1)
@@ -1362,7 +1363,7 @@ test('finDuTour : plaque non armée → un seul clic', async () => {
 test('piloterCombat : rend la lecture après sélection explicite de Parade', async () => {
   const bataille = { round: 1, over: false, actif: 'h1', acted: false, movementUsed: 0, endTurnArmed: false }
   const { dom, doc, session } = pagePilotee('<div class="modal-overlay"><div role="dialog" aria-label="Défense"><div class="seg"><button>Parade</button><button>Esquive</button></div><button id="lancer" disabled>Lancer</button></div></div>', { cascade: true })
-  dom.window.__wfrp = { battle: () => bataille, auto: () => ({ roundPause: false, activeModal: 'pendingCascade', cascade: cascadeAffichage(dom), active: { id: 'h1', kind: 'hero' } }) }
+  dom.window.__wfrp = { battle: () => bataille, auto: () => ({ roundPause: false, activeModal: 'pendingCascade', cascade: cascadeAffichage(dom), active: { id: 'h1', kind: 'heros' } }) }
   doc.querySelector('.seg button').onclick = (e) => { e.target.setAttribute('aria-pressed', 'true'); doc.querySelector('#lancer').disabled = false }
   doc.querySelector('#lancer').onclick = () => { doc.querySelector('.modal-overlay').remove(); bataille.over = true }
   await clickButtonByText(session, 'Parade', { dans: '.modal-overlay' })
@@ -1373,7 +1374,7 @@ test('piloterCombat : rend la lecture après sélection explicite de Parade', as
 
 
 test('piloterCombat : budget épuisé → levée qui NOMME la dernière lecture', async () => {
-  const session = { rpc: async () => ({ result: { value: lecture({ auto: { active: { id: 'g1', kind: 'enemy', aiDriven: true } } }) } }) }
+  const session = { rpc: async () => ({ result: { value: lecture({ auto: { active: { id: 'g1', kind: 'ennemi', aiDriven: true } } }) } }) }
   await assert.rejects(() => piloterCombat(session, { budget: 2, pauseMs: 1 }), /dernière lecture : .*"aiDriven":true/)
 })
 
@@ -1525,6 +1526,27 @@ test('brancherCdp : un appel sur socket FERMÉE est REJETÉ sans pendre, typé c
   assert.deepEqual(ws.envoyes, [])
 })
 
+test('brancherCdp : la page PLANTE, tout appel sur SA session, en vol ou à venir, est rejeté typé, sans passer pour une navigation', async () => {
+  const ecoutes = { message: [], close: [] }
+  const envoyes = []
+  const ws = { addEventListener: (t, fn) => ecoutes[t].push(fn), send: (brut) => envoyes.push(JSON.parse(brut).method), readyState: WebSocket.OPEN }
+  const dire = (m) => ecoutes.message.forEach((fn) => fn({ data: JSON.stringify(m) }))
+  const session = brancherCdp(ws, { sessionId: 'S' })
+  let regle = false
+  const enVol = bornee(session.rpc('Runtime.evaluate', { expression: '1' }).finally(() => { regle = true }))
+  const duNavigateur = bornee(session.rpcNavigateur('Target.closeTarget', { targetId: 'T' }), 50)
+  dire({ method: 'Inspector.targetCrashed', sessionId: 'autre' })
+  await new Promise((r) => setTimeout(r))
+  assert.equal(regle, false)
+  dire({ method: 'Inspector.targetCrashed', sessionId: 'S' })
+  const issue = await enVol
+  assert.equal(issue.code, kitRecette.PAGE_PLANTEE)
+  assert.equal(isNavigationError(issue), false)
+  assert.equal((await bornee(session.rpc('Runtime.evaluate', { expression: '2' }))).code, kitRecette.PAGE_PLANTEE)
+  assert.deepEqual(envoyes, ['Runtime.evaluate', 'Target.closeTarget'])
+  assert.equal(await duNavigateur, 'PENDU')
+})
+
 test('attacherSession : close() d’une session dont la socket est déjà FERMÉE se résout', async () => {
   const { ws, opts } = attacheFactice()
   const s = await attacherSession('/tmp/s.json', opts)
@@ -1672,7 +1694,7 @@ test('nomDeProfil / pidDeProfil : le lanceur (PID et naissance) se consigne et s
 
 test('demarrer : scénario et rencontre posés par `__wfrp`, le premier Round OUVERT au vrai bouton', async () => {
   const appels = []
-  const { dom, etat, session } = pagePilotee('<div class="cc-phase"><button data-action="round-start">Commencer le combat</button></div>')
+  const { dom, etat, session } = pagePilotee('<div class="cc-phase"><button data-action="debut-de-round">Commencer le combat</button></div>')
   dom.window.__wfrp = {
     scenario: (id, graine) => { appels.push(`scenario:${id}:${graine}`); return '✓' },
     ready: () => true,
@@ -1939,12 +1961,12 @@ test('nom accessible explicite : aria-label prime sur les Blessures rendues du p
 })
 
 test('action paramétrée : ambiguïté refusée avant événement, cellule stable sélectionnée', async () => {
-  const { etat, session } = pagePilotee('<div class="combat-console"><button data-action="cast-spell" data-cell="sort-lumiere">Lumière</button><button data-action="cast-spell" data-cell="sort-dome">Dôme</button></div>')
-  await assert.rejects(() => cliquerAction(session, 'cast-spell'), /2 cibles ambiguës.*Lumière.*Dôme/)
+  const { etat, session } = pagePilotee('<div class="combat-console"><button data-action="incantation" data-cell="sort-lumiere">Lumière</button><button data-action="incantation" data-cell="sort-dome">Dôme</button></div>')
+  await assert.rejects(() => cliquerAction(session, 'incantation'), /2 cibles ambiguës.*Lumière.*Dôme/)
   assert.deepEqual(etat.emis, [])
-  await cliquerAction(session, 'cast-spell', { cell: 'sort-dome' })
+  await cliquerAction(session, 'incantation', { cell: 'sort-dome' })
   assert.deepEqual(etat.cliques, ['Dôme'])
-  await assert.rejects(() => cliquerAction(session, 'cast-spell', { cell: 'sort-inconnu' }), /cellule « sort-inconnu ».*aucune case/)
+  await assert.rejects(() => cliquerAction(session, 'incantation', { cell: 'sort-inconnu' }), /cellule « sort-inconnu ».*aucune case/)
 })
 
 // ------------------------------------------------- `cliquerAction` : le contrôle fermé est celui de `geste`
@@ -2060,6 +2082,30 @@ test('nettoyerALaSortie : un échec est NOMMÉ et n’arrête pas les nettoyages
 
 test('waitForWsUrl : à l’échéance, le DERNIER échec est nommé', async () => {
   await assert.rejects(() => waitForWsUrl(9, 50, { recuperer: async () => { throw new Error('ECONNREFUSED') } }), /Dernier échec : ECONNREFUSED/)
+})
+
+/** Lecteur de `DevToolsActivePort` qui rend `etats` dans l'ordre (le dernier se répète) ; `null` = fichier absent. */
+const lecteurDe = (...etats) => {
+  const lus = []
+  return { lus, lire: (chemin) => { lus.push(chemin); const e = etats[Math.min(lus.length, etats.length) - 1]; if (e === null) throw erreurDeCode('ENOENT'); return e } }
+}
+
+test('lireDevToolsActivePort : le port de la première ligne, le WebSocket du chemin de la seconde, lus dans le profil', async () => {
+  const l = lecteurDe('41237\n/devtools/browser/0b5e-77\n')
+  assert.deepEqual(await lireDevToolsActivePort('/p', 1000, l), { port: 41237, wsUrl: 'ws://127.0.0.1:41237/devtools/browser/0b5e-77' })
+  assert.deepEqual(l.lus, [joinPath('/p', 'DevToolsActivePort')])
+})
+
+for (const [cas, etat] of [['absent', null], ['vide', ''], ['d’une seule ligne', '41237\n']]) {
+  test(`lireDevToolsActivePort : un fichier ${cas} s’attend, puis se lit`, async () => {
+    const l = lecteurDe(etat, '41237\n/devtools/browser/0b5e-77')
+    assert.equal((await lireDevToolsActivePort('/p', 2000, l)).port, 41237)
+    assert.equal(l.lus.length, 2)
+  })
+}
+
+test('lireDevToolsActivePort : à l’échéance, l’erreur NOMME le fichier attendu', async () => {
+  await assert.rejects(() => lireDevToolsActivePort('/p', 50, lecteurDe('41237\n')), (e) => e.message.includes(joinPath('/p', 'DevToolsActivePort')) && /"41237"/.test(e.message))
 })
 
 test('purgerProfil : un handle TENU (EBUSY) se réessaie, une autre erreur LÈVE', async () => {
@@ -2210,18 +2256,18 @@ test('resoudreModales : « Poser la zone » est cliqué, PUIS la pose en cours l
 // ------------------------------------------------- avancerDeRounds, et l'arrêt sur une fenêtre nommée
 
 /** Combat factice : la plaque de fin de tour s'ARME au premier clic (« Finir quand même »), passe la
- *  main au second ; la pause de début de Round attend « Commencer le round N » (`round-start`). */
+ *  main au second ; la pause de début de Round attend « Commencer le round N » (`debut-de-round`). */
 function combatFactice() {
   const b = { round: 1, over: false, actif: 'h1', acted: false, movementUsed: 0, endTurnArmed: false }
   const a = { roundPause: false, activeModal: null }
-  const { dom, doc, etat, session } = pagePilotee('<div class="combat-console"><button data-action="end-turn">Fin du tour</button></div><div class="cc-phase"><button data-action="round-start">Commencer le round</button></div>')
-  dom.window.__wfrp = { battle: () => ({ ...b }), auto: () => ({ ...a, active: a.roundPause ? null : { id: 'h1', kind: 'hero', aiDriven: false } }) }
-  doc.querySelector('[data-action="end-turn"]').onclick = () => {
+  const { dom, doc, etat, session } = pagePilotee('<div class="combat-console"><button data-action="fin-de-tour">Fin du tour</button></div><div class="cc-phase"><button data-action="debut-de-round">Commencer le round</button></div>')
+  dom.window.__wfrp = { battle: () => ({ ...b }), auto: () => ({ ...a, active: a.roundPause ? null : { id: 'h1', kind: 'heros', aiDriven: false } }) }
+  doc.querySelector('[data-action="fin-de-tour"]').onclick = () => {
     if (!b.endTurnArmed) { b.endTurnArmed = true; return }
     b.endTurnArmed = false
     a.roundPause = true
   }
-  doc.querySelector('[data-action="round-start"]').onclick = () => { a.roundPause = false; b.round += 1 }
+  doc.querySelector('[data-action="debut-de-round"]').onclick = () => { a.roundPause = false; b.round += 1 }
   return { b, etat, session }
 }
 
@@ -2243,21 +2289,21 @@ test('avancerDeRounds : sans combat, refus nommé', async () => {
 const DEFENSE = '<div role="dialog" aria-label="Défense"><div class="seg"><button>Parade</button><button>Esquive</button></div><button>Lancer</button></div>'
 
 test('piloterCombat : `arret` reçoit l’IDENTITÉ de la fenêtre — il s’arrête sur la Défense, laissée ouverte', async () => {
-  const jeu = { pendingCascade: { cursor: 0, participants: [{ id: 'fixture-step', kind: 'defenseJet', jet: 'defense' }] } }
+  const jeu = { pendingCascade: { cursor: 0, participants: [{ id: 'fixture-step', kind: 'jetDeDefense', jet: 'defense' }] } }
   const { dom, etat, session } = pagePilotee(`<div class="modal-overlay">${DEFENSE}</div>`, { jeu, cascade: true })
   dom.window.__wfrp = { battle: () => ({ round: 1, over: false, endTurnArmed: false }), auto: () => ({ roundPause: false, activeModal: 'cascade', cascade: cascadeAffichage(dom), active: null }) }
   const { lecture } = await piloterCombat(session, { pauseMs: 1, arret: (e) => e.fenetre?.jet === 'defense' })
-  assert.deepEqual({ ...lecture.fenetre }, { cle: 'cascade', jet: 'defense', etape: 'defenseJet', nom: 'Défense', id: 'fixture-step', kind: 'defenseJet', interaction: 'affichage', ready: true, chosen: null, amount: null })
+  assert.deepEqual({ ...lecture.fenetre }, { cle: 'cascade', jet: 'defense', etape: 'jetDeDefense', nom: 'Défense', id: 'fixture-step', kind: 'jetDeDefense', interaction: 'affichage', ready: true, chosen: null, amount: null })
   assert.deepEqual(etat.cliques, [])
 })
 
 test('piloterCombat : une Défense qui s’ouvre PENDANT la résolution arrête aussi `resoudreModales`', async () => {
-  const jeu = { pendingCascade: { cursor: 0, participants: [{ id: 'fixture-step', kind: 'attackJet', jet: 'attack' }] } }
+  const jeu = { pendingCascade: { cursor: 0, participants: [{ id: 'fixture-step', kind: 'jetDAttaque', jet: 'attaque' }] } }
   const { dom, doc, etat, session } = pagePilotee('<div class="modal-overlay"><div role="dialog" aria-label="Attaque"><button id="lancer">Lancer</button></div></div>', { jeu, cascade: true })
   dom.window.__wfrp = { battle: () => ({ round: 1, over: false, endTurnArmed: false }), auto: () => ({ roundPause: false, activeModal: 'cascade', cascade: cascadeAffichage(dom), active: null }) }
   doc.querySelector('#lancer').onclick = () => {
     doc.querySelector('.modal-overlay').innerHTML = DEFENSE
-    jeu.pendingCascade = { cursor: 0, participants: [{ id: 'fixture-step', kind: 'defenseJet', jet: 'defense' }] }
+    jeu.pendingCascade = { cursor: 0, participants: [{ id: 'fixture-step', kind: 'jetDeDefense', jet: 'defense' }] }
   }
   const { lecture } = await piloterCombat(session, { pauseMs: 1, arret: (e) => e.fenetre?.jet === 'defense' })
   assert.deepEqual(etat.cliques, ['Lancer'])
@@ -2346,6 +2392,16 @@ test('molette : le pointeur posé puis un cran CDP `mouseWheel` au centre de la 
   assert.deepEqual(etat.crans, [120])
   assert.deepEqual(souris, [['mouseMoved', 60, 110], ['mouseWheel', 60, 110]], 'le pointeur est posé au point du cran avant la molette')
   await assert.rejects(() => molette(session, { selecteur: '#absente' }, 120), /molette : aucune cible « #absente »/)
+})
+
+test('molette : `crans` crans tournés d’un même geste, au point contrôlé, le pointeur posé une fois', async () => {
+  const { etat, session } = pageDefilante('<div id="liste" data-y="100">liste</div>')
+  const souris = []
+  const rpc = socketDe(session).gerer
+  socketDe(session).gerer = async (m, params) => { if (m === 'Input.dispatchMouseEvent') souris.push([params.type, params.x, params.y]); return rpc(m, params) }
+  await molette(session, { selecteur: '#liste' }, -120, { crans: 3 })
+  assert.deepEqual(etat.crans, [-120, -120, -120])
+  assert.deepEqual(souris, [['mouseMoved', 60, 110], ['mouseWheel', 60, 110], ['mouseWheel', 60, 110], ['mouseWheel', 60, 110]])
 })
 
 // ------------------------------------------------- typeInField : la frappe exige le focus

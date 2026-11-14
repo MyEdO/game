@@ -36,7 +36,7 @@ function openReveal(make: (heroId: string) => RevealEntry) {
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
     pendingCascade: cascadeDeTest(
       [{ id: 'cons-0', kind: entry.kind, actorId: entry.subjectId, label: fixtureText(entry.title), reveal: entry }],
-      { title: entry.title, icon: 'nav/mutation', purpose: 'affichage' },
+      { title: entry.title, icon: 'navigation/mutation', purpose: 'affichage' },
     ),
   });
   return hero;
@@ -58,17 +58,17 @@ const render = () => act(() => { root.render(<CascadeBody />); });
 
 describe('étape de révélation — le sujet', () => {
   it('l’introduction rend le Markdown complet sans paragraphes imbriqués', () => {
-    openReveal(() => ({ kind: 'sceneEntry', title: 'Entrée', lines: ['**Le groupe** entre.\n\n- Une porte'] }));
+    openReveal(() => ({ kind: 'entreeEnScene', title: 'Entrée', lines: ['**Le groupe** entre.\n\n- Une porte'] }));
     render();
     expect(host.querySelector('.modal-log strong')?.textContent).toBe('Le groupe');
     expect(host.querySelector('.modal-log li')?.textContent).toBe('Une porte');
     expect(host.textContent).not.toContain('**Le groupe**');
     expect(host.querySelector('p .prose, p p, p ul')).toBeNull();
   });
-  it('le choix rend son prompt Markdown dans le corps et ses aperçus en texte', () => {
-    openReveal(() => ({ kind: 'sceneEntry', title: 'Entrée', lines: [] }));
+  it('le choix rend son invite Markdown dans le corps et ses aperçus en texte', () => {
+    openReveal(() => ({ kind: 'entreeEnScene', title: 'Entrée', lines: [] }));
     useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'choix', kind: cleDeFixture('choix'), label: fixtureText('**Entrer** par [la porte](https://example.com) ?'),
-      options: [{ key: 'yes', label: fixtureText('**Oui**'), detail: '*Entrer*' }, { key: 'no', label: fixtureText('Non') }] }], { title: 'Choix', purpose: 'affichage' }) });
+      options: [{ key: 'oui', label: fixtureText('**Oui**'), detail: '*Entrer*' }, { key: 'non', label: fixtureText('Non') }] }], { title: 'Choix', purpose: 'affichage' }) });
     render();
     expect(host.querySelector('strong')?.textContent).toBe('Entrer');
     expect(host.querySelector('a')?.getAttribute('href')).toBe('https://example.com');

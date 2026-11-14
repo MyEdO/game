@@ -15,7 +15,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  */
 const caster = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'necro', label: 'Nécromancien', kind: 'hero',
+    id: 'necro', label: 'Nécromancien', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 },
     wounds: blessuresDeBase(20), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -55,7 +55,7 @@ describe('applySummon', () => {
     const lines = applySummon(h.get, h.set, c, { ref: 'zombie', count: { bonusOf: 'force-mentale' }, countPerSL: { every: 1, amount: 1 }, allyOfCaster: true, despawnIfCasterDown: true }, { rng: desDuTest, sl: 2, rounds: null, label: 'Réanimation' });
     const summons = h.state().battle.combatants.filter((x: Combatant) => x.summon);
     expect(summons.length).toBe(4 + 2); // BFM(4) + DR(2)
-    expect(summons.every((s: Combatant) => s.kind === 'hero')).toBe(true); // camp du lanceur héros
+    expect(summons.every((s: Combatant) => s.kind === 'heros')).toBe(true); // camp du lanceur héros
     expect(summons.every((s: Combatant) => s.summon!.byId === 'necro' && s.summon!.despawnIfSummonerDown)).toBe(true);
     expect(h.state().battle.order).toContain(summons[0].id); // dans l'initiative
     const order = h.state().battle.order;
@@ -69,7 +69,7 @@ describe('applySummon', () => {
     const h = harness(c, battle([c]));
     applySummon(h.get, h.set, c, { ref: 'sanguinaire-de-khorne', count: 1, allyOfCaster: false }, { rng: desDuTest, rounds: 3, label: 'Déchirer l’Aethyr' });
     const s = h.state().battle.combatants.find((x: Combatant) => x.summon);
-    expect(s.kind).toBe('enemy'); // hostile à un lanceur héros
+    expect(s.kind).toBe('ennemi'); // hostile à un lanceur héros
   });
 
   // Unicité RAW (LDB 46/40) : l'invocation porte l'IDENTITÉ du sort source (`summon.spellId`) → l'IA sait

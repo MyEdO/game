@@ -10,7 +10,7 @@ import type { Combatant } from './types';
  * `when` (Condition, couche state) sont injectés par `whenHolds` → le moteur reste pur.
  */
 const c = (talents: { talentId: string; times: number; spec?: string }[]): Combatant =>
-  ({ id: 't', name: 'T', kind: 'hero', characteristics: {}, skills: [], talents, traits: [], conditions: [] } as unknown as Combatant);
+  ({ id: 't', name: 'T', kind: 'heros', characteristics: {}, skills: [], talents, traits: [], conditions: [] } as unknown as Combatant);
 
 describe('talentTestSLBonus — règle LDB 10 universelle (matcher structuré test.matches)', () => {
   it('compétence pure : Grimpeur ×2 → +2 DR sur un Test d’Escalade, 0 ailleurs', () => {
@@ -50,7 +50,7 @@ describe('talentTestSLBonus — règle LDB 10 universelle (matcher structuré te
 });
 
 describe('Intégrité des talent.test.matches (garde de curation)', () => {
-  const skillIds = new Set(skills.map((s) => s.id));
+  const skillIds = new Set<string>(skills.map((s) => s.id));
   const CHARS = new Set(['capacite-de-combat', 'capacite-de-tir', 'force', 'endurance', 'initiative', 'agilite', 'dexterite', 'intelligence', 'force-mentale', 'sociabilite']);
   it('chaque match a skill XOR characteristic, et l’id/la Caractéristique résout', () => {
     const bad: string[] = [];

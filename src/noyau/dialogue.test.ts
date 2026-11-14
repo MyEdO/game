@@ -4,7 +4,7 @@
  *  · le RANG est celui de la liste VISIBLE (une réponse masquée par son `when` ne prend pas de
  *    numéro), et l'`id` reste celui de la DONNÉE — c'est lui que reçoit le choix `dialogue.reponse` ;
  *  · l'OFFRE tombe pour une bourse trop courte et pour un siège qui ne décide pas ;
- *  · le TEST annoncé est celui que le flux DÉCLARE, en ids stables (nœud `test`, `seq`, `if`, effet
+ *  · le TEST annoncé est celui que le flux DÉCLARE, en ids stables (nœud `test`, `sequence`, `si`, effet
  *    `extendedTest` avec son DR cumulé) ; un flux sans jet n'annonce rien ;
  *  · une CONVERSATION naît avec sa `session`, monotone et au-dessus de ce qui est déjà archivé.
  */
@@ -24,7 +24,7 @@ const cc = conditionCtx({ flags: {}, gameTime: campaignStart() });
 
 /** Héros porteur d'une bourse — la solvabilité d'une réponse payante se lit sur le GROUPE. */
 const hero = (brass: number): Combatant =>
-  withBourseMoney({ id: 'h1', name: 'Hero', kind: 'hero', chars: {}, items: [] } as unknown as Combatant, { gold: 0, silver: 0, brass }, idsDeTest);
+  withBourseMoney({ id: 'h1', name: 'Hero', kind: 'heros', chars: {}, items: [] } as unknown as Combatant, { gold: 0, silver: 0, brass }, idsDeTest);
 
 const noeud = (choices: DialogueNode['choices']): Dialogue => ({ id: 'd', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: '…', choices }] } as Dialogue);
 
@@ -41,8 +41,8 @@ const etat = (dlg: Dialogue, over: Partial<Jeu> = {}): Jeu =>
 const testDIntuition: Flow = {
   kind: 'test',
   test: { skill: { id: 'intuition' }, difficulty: 'difficile', label: 'Quelque chose cloche' },
-  success: { kind: 'seq', steps: [] },
-  fail: { kind: 'seq', steps: [] },
+  reussite: { kind: 'sequence', etapes: [] },
+  echec: { kind: 'sequence', etapes: [] },
 } as Flow;
 
 describe('reponsesDuNoeud — le RANG est celui de la liste VISIBLE', () => {
@@ -76,7 +76,7 @@ describe('reponsesDuNoeud — l’OFFRE, verdict partagé par le clic et par la 
 
   it('coop, siège qui ne DÉCIDE pas : toutes les réponses sont fermées, le texte nomme le siège qui répond', () => {
     const dlg = noeud([{ id: 'une', label: 'Une' }, { id: 'deux', label: 'Deux' }] as DialogueNode['choices']);
-    const r = reponsesDuNoeud(etat(dlg, { net: { mode: 'guest', mySeat: 1, ownership: {}, seatNames: { 0: 'Greta' } } as unknown as Jeu['net'] }));
+    const r = reponsesDuNoeud(etat(dlg, { net: { mode: 'invite', mySeat: 1, ownership: {}, seatNames: { 0: 'Greta' } } as unknown as Jeu['net'] }));
     expect(r.every((x) => !x.enabled && x.refus === 'Greta répond pour le groupe.')).toBe(true);
   });
 });
@@ -87,24 +87,24 @@ describe('testAnnonce — le jet vient du FLUX, en ids stables', () => {
   });
 
   it('`seq` : le PREMIER jet rencontré — le seul que le clic déclenche', () => {
-    const flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'x' } }, testDIntuition] } as Flow;
+    const flow = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'x' } }, testDIntuition] } as Flow;
     expect(testAnnonce(flow, { cc })?.skill).toEqual({ id: 'intuition' });
   });
 
   it('`if` : le jet de la branche que la Condition PREND', () => {
-    const flow = (expr: string) => ({ kind: 'if', cond: { kind: 'flag', expr }, then: testDIntuition } as Flow);
+    const flow = (expr: string) => ({ kind: 'si', condition: { kind: 'flag', expr }, alors: testDIntuition } as Flow);
     expect(testAnnonce(flow('jamais'), { cc })).toBeUndefined();
     expect(testAnnonce(flow('!jamais'), { cc })?.skill).toEqual({ id: 'intuition' });
   });
 
   it('effet `extendedTest` : Compétence spécialisée, difficulté par DÉFAUT de `resoudreFlowTest`, DR cumulé', () => {
-    const flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'extendedTest', skill: { id: 'metier', spec: 'charpentier' }, label: 'Réparation', targetDR: 5 } }] } as Flow;
-    expect(testAnnonce(flow, { cc })).toEqual({ skill: { id: 'metier', spec: 'charpentier' }, difficulty: 'intermediaire', targetDR: 5 });
+    const flow = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'extendedTest', skill: { id: 'metier', spec: 'charpentier' }, label: 'Réparation', drCible: 5 } }] } as Flow;
+    expect(testAnnonce(flow, { cc })).toEqual({ skill: { id: 'metier', spec: 'charpentier' }, difficulty: 'intermediaire', drCible: 5 });
   });
 
   it('flux SANS jet (ou absent) : aucun tag à annoncer', () => {
     expect(testAnnonce(undefined, { cc })).toBeUndefined();
-    expect(testAnnonce({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'endDialogue' } }] } as Flow, { cc })).toBeUndefined();
+    expect(testAnnonce({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'endDialogue' } }] } as Flow, { cc })).toBeUndefined();
   });
 
   it('nœud `test` dont le `gate` est FERMÉ : l’annonce suit la Condition du flux — aucun tag', () => {

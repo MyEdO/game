@@ -15,7 +15,7 @@ import { pickActiveModalKey } from '../noyau/modalArbiter';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { ActiveModal } from './ActiveModal';
-import type { Combatant, Weapon } from '../engine/types';
+import type { Combatant, Weapon, Main } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
@@ -23,12 +23,12 @@ beforeAll(() => {
 });
 
 const chars = { 'capacite-de-combat': 60, 'capacite-de-tir': 50, force: 45, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(30), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
-const arme = (uid: string, hand: 'main' | 'off'): Weapon =>
+const arme = (uid: string, hand: Main): Weapon =>
   ({ uid, name: uid, label: uid, type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand, hands: 1 } as unknown as Weapon);
 
 let root: Root | null = null;
@@ -43,9 +43,9 @@ afterEach(() => {
 /** Bretteur à deux armes contre un gobelin ; `gmSeat: 0` surface la défense du gobelin (#989). */
 function duel(gmSeat: number | undefined) {
   seedBattleRng(1);
-  const bretteur = mk('Bretteur', 'hero', { x: 0, y: 0 }, [arme('m', 'main'), arme('o', 'off')]);
+  const bretteur = mk('Bretteur', 'heros', { x: 0, y: 0 }, [arme('m', 'main'), arme('o', 'secondaire')]);
   bretteur.characteristics['capacite-de-combat'] = 95;
-  const gobelin = mk('Gobelin', 'enemy', { x: 1, y: 0 }, [arme('g', 'main')]);
+  const gobelin = mk('Gobelin', 'ennemi', { x: 1, y: 0 }, [arme('g', 'main')]);
   gobelin.characteristics['capacite-de-combat'] = 5;
   gobelin.characteristics.agilite = 5;
   const battle: BattleState = {
@@ -72,19 +72,19 @@ describe('#998 — Deux armes : la fenêtre survit entre les deux frappes (recet
   for (const [nom, gmSeat] of [['défenseur surfacé', 0], ['défenseur de l’IA', undefined]] as const) {
     it(`${nom} : frappe principale, « Appliquer », 2ᵉ frappe dans SA fenêtre, puis clôture`, () => {
       const { bretteur, gobelin } = duel(gmSeat);
-      act(() => { openAttackCascade(g, useGame.setState, { attackerId: bretteur.id, targetId: gobelin.id, location: null, result: null }, 'Attaque', 'action/attack'); });
-      act(() => g().jetRegler('attack', 'deuxArmes', true));
-      act(() => g().jetLancer('attack'));
-      act(() => g().jetValider('attack'));
+      act(() => { openAttackCascade(g, useGame.setState, { attackerId: bretteur.id, targetId: gobelin.id, location: null, result: null }, 'Attaque', 'action/attaquer'); });
+      act(() => g().jetRegler('attaque', 'deuxArmes', true));
+      act(() => g().jetLancer('attaque'));
+      act(() => g().jetValider('attaque'));
       if (gmSeat != null) surDefense(gobelin.id);
       expect(g().pendingDualStrike, 'la 1ʳᵉ frappe a touché : la 2ᵉ attend sa cible').toBeTruthy();
       expect(pickActiveModalKey(g()), 'aucune fenêtre sans corps n’est élue').not.toBe('cascade');
       expect(host!.querySelector('.modal-overlay'), 'la carte tient la main (TargetPrompt)').toBeNull();
       act(() => g().frapperDeLaSecondeArme(gobelin.id));
       const seq = g().pendingCascade!;
-      expect(seq.participants[seq.cursor].jet, 'la 2ᵉ frappe est rendue par une étape d’attaque').toBe('attack');
+      expect(seq.participants[seq.cursor].jet, 'la 2ᵉ frappe est rendue par une étape d’attaque').toBe('attaque');
       expect(host!.querySelector('.modal-overlay'), 'la fenêtre de la 2ᵉ frappe est montée').not.toBeNull();
-      act(() => g().jetValider('attack'));
+      act(() => g().jetValider('attaque'));
       if (gmSeat != null) surDefense(gobelin.id);
       expect(g().pendingDualStrike, 'la 2ᵉ frappe est appliquée').toBeNull();
       expect(g().pendingAttack).toBeNull();

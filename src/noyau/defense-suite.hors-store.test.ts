@@ -19,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(200),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
@@ -28,10 +28,10 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): 
  *  `gmSeat` pose un siège MJ, donc un attaquant PILOTÉ (chemin `openSurfacedDefense`). */
 function setup(acted: boolean, heros = 1, gmSeat?: number) {
   seedBattleRng(7);
-  const enemy = blessuresSurLeProfil({ ...mk('e', 'enemy', { x: 1, y: 0 }), size: 'enorme' as const }); // Taille SUPÉRIEURE : l'Attaque caudale met à Terre (LDB 85 l.47), et le coup BALAIE
+  const enemy = blessuresSurLeProfil({ ...mk('e', 'ennemi', { x: 1, y: 0 }), size: 'enorme' as const }); // Taille SUPÉRIEURE : l'Attaque caudale met à Terre (LDB 85 l.47), et le coup BALAIE
   enemy.characteristics['capacite-de-combat'] = 95;
   const herosList = Array.from({ length: heros }, (_, i) => {
-    const h = mk(i === 0 ? 'h' : `h${i + 1}`, 'hero', { x: i === 0 ? 0 : 1, y: i === 0 ? 0 : i });
+    const h = mk(i === 0 ? 'h' : `h${i + 1}`, 'heros', { x: i === 0 ? 0 : 1, y: i === 0 ? 0 : i });
     h.characteristics['capacite-de-combat'] = 5; h.characteristics.agilite = 5; // la défense échoue
     return h;
   });
@@ -88,7 +88,7 @@ describe('Fenêtre de défense — ce que la fermeture joue (#1858)', () => {
 });
 
 /** Touche qui BALAIE (LDB 85 l.362 : « Toutes les frappes réussies… ») — de quoi lancer `autoCleave`. */
-const toucheQuiBalaie = (): AttackResult => ({ hit: true, cleave: true, attackerRoll: 10, netSL: 5, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '' } as unknown as AttackResult);
+const toucheQuiBalaie = (): AttackResult => ({ hit: true, cleave: true, attackerRoll: 10, netSL: 5, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '' } as unknown as AttackResult);
 
 describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouverture (#1858)', () => {
   // K1 — chaque producteur déclare EXACTEMENT ce que la fenêtre porte.
@@ -125,9 +125,9 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
   it('K1 attaque PILOTÉE : l’attaque figée, marquée défendue', () => {
     const { enemy, hero } = setup(false, 1, 0);
     const g = banc.getState;
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().jetLancer('attack');
-    g().jetValider('attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
+    g().jetLancer('attaque');
+    g().jetValider('attaque');
     const suite = suiteDeLaFenetre();
     expect(suite.mode).toBe('pilotee');
     expect(suite.mode === 'pilotee' && suite.pa.defended).toBe(true);
@@ -185,9 +185,9 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
     expect(JSON.parse(JSON.stringify(machine))).toEqual(machine);
     const { enemy: e2, hero } = setup(false, 1, 0);
     const g = banc.getState;
-    openAttackCascade(g, banc.setState, { attackerId: e2.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().jetLancer('attack');
-    g().jetValider('attack');
+    openAttackCascade(g, banc.setState, { attackerId: e2.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
+    g().jetLancer('attaque');
+    g().jetValider('attaque');
     const pilotee = suiteDeLaFenetre();
     expect(JSON.parse(JSON.stringify(pilotee))).toEqual(pilotee);
   });
@@ -220,14 +220,14 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
     expect(apres.suite, 'aucun balayage ne s’est accroché à la fenêtre d’autrui').toEqual(suiteAvant);
   });
 
-  // K6 — PILOTÉE : la fermeture rend l'attaque à `jetValider('attack')`, UNE fois ; et un pd piloté dont
+  // K6 — PILOTÉE : la fermeture rend l'attaque à `jetValider('attaque')`, UNE fois ; et un pd piloté dont
   // l'attaquant a quitté le combat garde sa retombée (la fenêtre se ferme, le tour reprend).
   it('K6 pilotée : l’attaque est rendue au chemin d’application unique', () => {
     const { enemy, hero } = setup(false, 1, 0);
     const g = banc.getState;
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().jetLancer('attack');
-    g().jetValider('attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
+    g().jetLancer('attaque');
+    g().jetValider('attaque');
     g().jetLancer('defense');
     g().jetValider('defense');
     const st = banc.getState();
@@ -239,9 +239,9 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
   it('K6 pilotée dont l’attaquant a quitté le combat : la fenêtre se ferme sans appliquer', () => {
     const { enemy, hero } = setup(false, 1, 0);
     const g = banc.getState;
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().jetLancer('attack');
-    g().jetValider('attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
+    g().jetLancer('attaque');
+    g().jetValider('attaque');
     g().jetLancer('defense');
     const b = g().battle!;
     banc.setState({ battle: { ...b, combatants: b.combatants.filter((c) => c.id !== enemy.id) } });
@@ -310,10 +310,10 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
   const toucheDuHeros = (cleave: boolean): AttackResult => ({ ...toucheQuiBalaie(), cleave, damage: 1, woundsLost: 1 } as unknown as AttackResult);
   function setupHeros() {
     seedBattleRng(7);
-    const h = mk('h', 'hero', { x: 1, y: 1 });
+    const h = mk('h', 'heros', { x: 1, y: 1 });
     (h as unknown as { psychState: unknown[] }).psychState = [{ type: 'frenesie' }];
-    const e1 = mk('e1', 'enemy', { x: 2, y: 1 });
-    const e2 = mk('e2', 'enemy', { x: 1, y: 2 });
+    const e1 = mk('e1', 'ennemi', { x: 2, y: 1 });
+    const e2 = mk('e2', 'ennemi', { x: 1, y: 2 });
     const combatants = [h, e1, e2];
     const battle = { combatants, order: combatants.map((c) => c.id), baseOrder: combatants.map((c) => c.id),
       turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -326,12 +326,12 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
   it('Frénésie qui balaie : la chaîne porte la restitution, l’Action est rendue après le maillon', () => {
     setupHeros();
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'e1', location: null, result: toucheDuHeros(true) } as never });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().pendingCleave?.restitution, 'la chaîne ouverte emporte la restitution').toEqual({ prevActed: false });
     banc.getState().frapperEnBalayage('e2');
     const pa = banc.getState().pendingAttack!;
     banc.setState({ pendingAttack: { ...pa, result: toucheDuHeros(false) } as never });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     const st = banc.getState();
     expect(st.pendingCleave, 'plus aucune cible : la chaîne est close').toBeNull();
     expect(st.battle!.acted, 'gratuite : l’Action d’avant, maillon compris').toBe(false);
@@ -340,9 +340,9 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
   it('Frénésie qui balaie puis renonce : la sortie du balayage rend l’Action', () => {
     setupHeros();
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'e1', location: null, result: toucheDuHeros(true) } as never });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().pendingCleave).not.toBeNull();
-    banc.getState().fenetreFermer('cleave');
+    banc.getState().fenetreFermer('frappeMortelle');
     expect(banc.getState().battle!.acted, 'gratuite : l’Action d’avant à la fermeture de la chaîne').toBe(false);
   });
 
@@ -352,7 +352,7 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } });
     h.wounds.current = 0; (h as { dead?: boolean }).dead = true;
     jouerLApresCoup(banc.getState, banc.setState, { attackerId: 'h', targetId: e2.id, weapon: sword, res: toucheDuHeros(false),
-      suite: { restitution: { prevActed: false }, enchainement: { mode: 'hero', wasChain: true } }, depuis: 'oupsAttaquant' });
+      suite: { restitution: { prevActed: false }, enchainement: { mode: 'heros', wasChain: true } }, depuis: 'oupsAttaquant' });
     const st = banc.getState();
     expect(st.pendingCleave, 'un mort ne garde aucune chaîne ouverte').toBeNull();
     expect(st.battle!.acted).toBe(false);
@@ -366,14 +366,14 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     h.characteristics['capacite-de-combat'] = 95; h.advantage = 1;
     e1.characteristics['capacite-de-combat'] = 5; e1.characteristics.agilite = 5;
     accorderLAttaqueGratuite(banc.getState, banc.setState, h,
-      { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true }, { targetId: e1.id, cap: 1, key: 'assaut-feroce' });
+      { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', avantageOuMouvement: true }, { targetId: e1.id, cap: 1, key: 'assaut-feroce' });
     expect(banc.getState().battle!.combatants.find((c) => c.id === e1.id)!.wounds.current, 'la gratuite a touché e1').toBeLessThan(200);
     expect(banc.getState().pendingCleave?.attackerId, 'la chaîne est offerte au héros').toBe('h');
     expect(banc.getState().pendingCleave?.restitution, 'la chaîne emporte la restitution de la gratuite').toEqual({ prevActed: false });
     banc.getState().frapperEnBalayage('e2');
     const pa = banc.getState().pendingAttack!;
     banc.setState({ pendingAttack: { ...pa, result: toucheDuHeros(false) } as never });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     const st = banc.getState();
     expect(st.pendingCleave, 'plus aucune cible : la chaîne est close').toBeNull();
     expect(st.battle!.acted, 'gratuite : l’Action d’avant, maillon compris').toBe(false);
@@ -389,7 +389,7 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     banc.setState({ pendingCleave: { attackerId: 'h', hitIds: ['e1'], count: 0, fm: false, restitution: { prevActed: false } } });
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } });
     accorderLAttaqueGratuite(banc.getState, banc.setState, h,
-      { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true }, { targetId: e1.id, cap: 1, key: 'assaut-feroce' });
+      { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', avantageOuMouvement: true }, { targetId: e1.id, cap: 1, key: 'assaut-feroce' });
     expect(banc.getState().battle!.combatants.find((c) => c.id === e1.id)!.wounds.current, 'la gratuite a touché e1').toBeLessThan(200);
     expect(banc.getState().pendingCleave?.restitution, 'la restitution d’ouverture reste celle de la chaîne').toEqual({ prevActed: false });
   });

@@ -22,10 +22,10 @@ beforeAll(() => {
 });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy'): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi'): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [],
      skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 20 }], talents: [], items: [],
-     weapons: [], advantage: 0, size: 'moyenne', pos: { x: kind === 'hero' ? 0 : 1, y: 0 }, wounds: blessuresDeBase(18),
+     weapons: [], advantage: 0, size: 'moyenne', pos: { x: kind === 'heros' ? 0 : 1, y: 0 }, wounds: blessuresDeBase(18),
      resilience: 2, fortune: 2, species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
 
@@ -38,9 +38,9 @@ let root: Root;
 
 /** Fenêtre à deux contre-lanceurs héros contre un Sort ENNEMI figé ; `parts` = état des rangées. */
 function monter(parts: unknown[]) {
-  const A = mk('A', 'hero');
-  const B = mk('B', 'hero');
-  const E = mk('E', 'enemy');
+  const A = mk('A', 'heros');
+  const B = mk('B', 'heros');
+  const E = mk('E', 'ennemi');
   useGame.setState({
     battle: { combatants: [A, B, E], order: ['E', 'A', 'B'], baseOrder: ['E', 'A', 'B'], turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState,
@@ -99,7 +99,7 @@ describe('#1042/#1059 — le CTA de Contre-sort ne ment jamais sur ce qu’il fe
   it('phase CLOSE et personne n’a dissipé : le bouton est ACTIF, sans raison affichée', () => {
     monter([
       { id: 'A', interactive: true, declared: 'solo', result: null },
-      { id: 'B', interactive: true, declared: 'pass', result: null },
+      { id: 'B', interactive: true, declared: 'passer', result: null },
     ]);
     expect(ctaA()!.getAttribute('aria-disabled'), 'rien ne s’oppose au jet : le CTA est vivant').toBeNull();
     expect(ctaA()!.disabled).toBe(false);
@@ -117,7 +117,7 @@ describe('sous-ligne de rangée — une `.rr-note` porte du CONTENU (#1078)', ()
       // A : déclarée « contrer seul », pas encore lancée → rien à dire sous sa ligne de jet.
       { id: 'A', interactive: true, declared: 'solo', result: null },
       // B : déclarée « passe » → sa situation MOTIVE l'extinction, elle occupe la sous-ligne.
-      { id: 'B', interactive: true, declared: 'pass', result: null },
+      { id: 'B', interactive: true, declared: 'passer', result: null },
     ]);
     const textes = notes().map((n) => n.textContent?.trim());
     expect(textes.filter((t) => t?.includes('passe')), 'la situation « passe » se lit sous la rangée B').toHaveLength(1);

@@ -20,7 +20,7 @@ const pen = (c: Combatant, char: string): number[] =>
 
 function mk(over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', label: 'H', kind: 'hero',
+    id: 'h', label: 'H', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -113,7 +113,7 @@ describe('gangrène — progression journalière (l.135+)', () => {
     // l.176) ; issues INJECTÉES : tout raté, BE 0 → Localisation perdue dès le 1er échec.
     const { specs, defer } = porteEntretien();
     tickDisease(c, 3 * MINUTES_PER_DAY, makeRNG(6), defer, 0);
-    const gangrenes = specs.filter((s) => s.kind === 'disease-gangrene');
+    const gangrenes = specs.filter((s) => s.kind === 'maladie-gangrene');
     expect(gangrenes.length, 'un Test par journée pleine').toBe(3);
     expect(gangrenes[0].test, 'la porte sait ce qui est testé').toEqual({ skill: { id: 'resistance' } });
     expect(gangrenes[0].difficulty).toBe('accessible');

@@ -12,7 +12,7 @@ import type { Combatant, Weapon } from '../engine/types';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-// Au Contact (Issue #42.5, LDB 62 l.176, Option « Longueur d'arme », règle `combat-weapon-reach`).
+// Au Contact (Issue #42.5, LDB 62 l.176, Option « Longueur d'arme », règle `combat-longueur-arme`).
 
 const longWeapon: Weapon = { label: 'Pertuisane', type: 'melee', reach: 'Longue', damage: { plusBF: true, flat: 5 }, qualities: [{ id: 'empaleuse' }] };
 const dagger: Weapon = { label: 'Dague', type: 'melee', reach: 'Courte', damage: { plusBF: true, flat: 1 }, qualities: [] };
@@ -20,7 +20,7 @@ const simpleWeapon: Weapon = { label: 'Arme simple', type: 'melee', reach: 'Moye
 
 describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
   beforeEach(() => {
-    setRule('combat-weapon-reach', true);
+    setRule('combat-longueur-arme', true);
   });
 
   function setup() {
@@ -28,11 +28,11 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     return { H, enemies };
   }
 
@@ -53,15 +53,15 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     engageAndActivate(H, [E]);
-    const opts = availableAttacks(live(H.id), banc.getState().battle!);
+    const opts = availableAttacks(banc.getState().scene, live(H.id), banc.getState().battle!);
     expect(opts.some((o) => o.id === 'aucontact' && o.targeting === 'aucontact')).toBe(true);
   });
 
   it('règle OFF → pas d’option « Au contact »', () => {
-    resetRule('combat-weapon-reach');
+    resetRule('combat-longueur-arme');
     const { H, enemies } = setup();
     engageAndActivate(H, [enemies[0]]);
-    const opts = availableAttacks(live(H.id), banc.getState().battle!);
+    const opts = availableAttacks(banc.getState().scene, live(H.id), banc.getState().battle!);
     expect(opts.some((o) => o.id === 'aucontact')).toBe(false);
   });
 
@@ -73,7 +73,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
 
     banc.getState().ouvrirLAuContact(E.id);
     let pd = banc.getState().pendingAuContact;
-    expect(pd?.phase).toBe('roll');
+    expect(pd?.phase).toBe('jet');
     expect(pd?.atk).not.toBeNull(); // jet du foe FIGÉ d'avance
 
     banc.getState().jetLancer('auContact');
@@ -82,9 +82,9 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     expect(pd.result).not.toBeNull();
 
     // Force l'issue « le mover l'emporte » (déterminisme), puis le héros tranche.
-    banc.setState({ pendingAuContact: { ...pd, result: 'success' } });
+    banc.setState({ pendingAuContact: { ...pd, result: 'reussite' } });
     banc.getState().jetValider('auContact');
-    expect(banc.getState().pendingAuContact?.phase).toBe('choice');
+    expect(banc.getState().pendingAuContact?.phase).toBe('choix');
     banc.getState().jetRegler('auContact', 'issue', 'contact');
 
     const st = banc.getState();
@@ -122,7 +122,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
 
     banc.getState().ouvrirLAuContact(E.id);
     const pd = banc.getState().pendingAuContact!;
-    banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'success' } });
+    banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'reussite' } });
     banc.getState().jetValider('auContact');
     banc.getState().jetRegler('auContact', 'issue', 'normal');
 
@@ -139,7 +139,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
 
     banc.getState().ouvrirLAuContact(E.id);
     const pd = banc.getState().pendingAuContact!;
-    banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'failure' } }); // le foe l'emporte
+    banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'echec' } }); // le foe l'emporte
     banc.getState().jetValider('auContact'); // pas de phase de choix montrée — l'IA tranche
 
     expect(banc.getState().pendingAuContact).toBeNull();
@@ -158,7 +158,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
 
     banc.getState().ouvrirLAuContact(E.id);
     const pd = banc.getState().pendingAuContact!;
-    banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'failure' } }); // le foe l'emporte
+    banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'echec' } }); // le foe l'emporte
     banc.getState().jetValider('auContact');
 
     expect(areInContact(live(H.id), live(E.id))).toBe(true);
@@ -173,10 +173,10 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     e.pos = { x: 6, y: 5 }; // adjacents (mêlée)
 
     // Sans contact : l'arme Longue garde son profil.
-    expect(firedWeapon(h, e).damage).toEqual(longWeapon.damage);
+    expect(firedWeapon(banc.getState().scene, h, e).damage).toEqual(longWeapon.damage);
 
     setContact(h, e);
-    const fired = firedWeapon(h, e);
+    const fired = firedWeapon(banc.getState().scene, h, e);
     expect(fired.damage).toEqual({ plusBF: true, flat: 1 }); // improvisée
     expect(fired.qualities).toEqual([{ id: 'inoffensive' }]);
   });

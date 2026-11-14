@@ -31,8 +31,8 @@ describe('lancerLeCombat — ouverture des réserves d’Avantage de camp (AA 11
     setRule('combat-aa-avantage-groupe', true);
     const battle = startFixtureCombat();
     // 1 héros contre 3 Mutants : Surnombre ×3 au camp adverse (AA 11 l.60-62) → +3 dans SA réserve.
-    expect(battle.advantagePools).toEqual({ allies: 0, foes: 3 });
-    for (const c of battle.combatants) expect(c.advantage).toBe(c.kind === 'hero' ? 0 : 3); // projection
+    expect(battle.advantagePools).toEqual({ allies: 0, adversaires: 3 });
+    for (const c of battle.combatants) expect(c.advantage).toBe(c.kind === 'heros' ? 0 : 3); // projection
   });
 
   it('règle INACTIVE (défaut Livre de base) : aucune réserve n’est créée', () => {
@@ -50,13 +50,13 @@ describe('resolveRoundBoundary — transfert de domination de fin de Round (AA 1
     resolveRoundBoundary(banc.getState, banc.setState);
     const after = banc.getState().battle!;
     // Les Mutants dominent (3 contre 1) et la réserve alliée est vide → +1 pour eux.
-    expect(after.advantagePools).toEqual({ allies: before.allies, foes: before.foes + 1 });
-    for (const c of after.combatants) expect(c.advantage).toBe(c.kind === 'hero' ? after.advantagePools!.allies : after.advantagePools!.foes);
+    expect(after.advantagePools).toEqual({ allies: before.allies, adversaires: before.adversaires + 1 });
+    for (const c of after.combatants) expect(c.advantage).toBe(c.kind === 'heros' ? after.advantagePools!.allies : after.advantagePools!.adversaires);
   });
 
   it('règle INACTIVE : décroissance per-combattant du Livre de base (LDB 14 l.219), aucune réserve', () => {
     const battle = startFixtureCombat();
-    const hero = battle.combatants.find((c) => c.kind === 'hero')!;
+    const hero = battle.combatants.find((c) => c.kind === 'heros')!;
     hero.advantage = 2;
     resolveRoundBoundary(banc.getState, banc.setState);
     const after = banc.getState().battle!;

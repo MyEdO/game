@@ -20,7 +20,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 
 const CHARS = (CT = 70) => ({ 'capacite-de-combat': 35, 'capacite-de-tir': CT, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
 
-const mkActor = (id: string, kind: 'hero' | 'npc' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[] = []): Combatant =>
+const mkActor = (id: string, kind: 'heros' | 'pnj' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[] = []): Combatant =>
   (blessuresSurLeProfil({ id, name: id, kind, characteristics: CHARS(), wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     skills: [], talents: [], weapons, armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     movement: 0, pos, loaded: true })) as unknown as Combatant;
@@ -43,22 +43,22 @@ const mkGate = (): Combatant => {
 /** Canonnier ENNEMI loin au nord (14,2) servant un canon de siège braqué vers la porte (14,38) — 36 cases
  *  = 72 m, dans la bande Longue de la portée 50 m. Un héros est tapi DERRIÈRE le mur (cour) → hors LdV. */
 const mkGunner = (): Combatant => {
-  const g = mkActor('gunner', 'enemy', { x: 14, y: 2 });
+  const g = mkActor('gunner', 'ennemi', { x: 14, y: 2 });
   g.postes = [{ item: itemFromTrappingById('canon-petit', idsDeTest)!, crewIds: ['gunner'] } as ShipPoste];
   applyShipPostes([g]); // sert le canon au chef → g.weapons porte la pièce dérivée (ranged, Atout Siège)
   return g;
 };
 
 const input = (enemy: Combatant, structures: Combatant[]): EnemyTurnInput =>
-  ({ enemy, heroes: [mkActor('hero', 'hero', { x: 14, y: 42 })], scene: siegeScene(),
+  ({ enemy, heroes: [mkActor('hero', 'heros', { x: 14, y: 42 })], scene: siegeScene(),
     blocked: new Set(), movement: 0, spells: [], structures });
 
 describe('SIÈGE-B — armes de siège ciblent les structures', () => {
   it('canon de siège ennemi → BRÈCHE la porte (le héros derrière le mur est hors LdV)', () => {
     const gunner = mkGunner();
-    expect(gunner.weapons.some((w) => w.type === 'ranged')).toBe(true); // sanity : la pièce est servie
+    expect(gunner.weapons.some((w) => w.type === 'distance')).toBe(true); // sanity : la pièce est servie
     const action = chooseEnemyAction(input(gunner, [mkGate()]));
-    expect(action).toEqual({ kind: 'shoot', targetId: 'gate' });
+    expect(action).toEqual({ kind: 'tir', targetId: 'gate' });
   });
 
   it('on vise la FACE exposée de la porte (case côté champ), pas la case derrière le mur', () => {
@@ -67,30 +67,30 @@ describe('SIÈGE-B — armes de siège ciblent les structures', () => {
   });
 
   it('arme ORDINAIRE (arc, sans Atout Siège) → ne cible PAS la porte Impénétrable', () => {
-    const archer = mkActor('archer', 'enemy', { x: 14, y: 2 },
-      [{ uid: 'arc', name: 'Arc', type: 'ranged', damage: { literal: '+7' }, range: 60, qualities: [] } as unknown as Weapon]);
+    const archer = mkActor('archer', 'ennemi', { x: 14, y: 2 },
+      [{ uid: 'arc', name: 'Arc', type: 'distance', damage: { literal: '+7' }, range: 60, qualities: [] } as unknown as Weapon]);
     const action = chooseEnemyAction(input(archer, [mkGate()]));
-    expect(action.kind).not.toBe('shoot'); // Impénétrable + non-Siège → aucune attaque jouable (immobile → end)
+    expect(action.kind).not.toBe('tir'); // Impénétrable + non-Siège → aucune attaque jouable (immobile → end)
   });
 
   it('aucune structure dans l\'entrée (fixture standard) → comportement inchangé (pas de candidat structure)', () => {
     const gunner = mkGunner();
     const action = chooseEnemyAction({ ...input(gunner, []), structures: undefined });
-    expect(action.kind).not.toBe('shoot'); // le seul héros est hors LdV (derrière le mur) → pas de tir
+    expect(action.kind).not.toBe('tir'); // le seul héros est hors LdV (derrière le mur) → pas de tir
   });
 });
 
 describe('SIÈGE-A — drapeau allié-IA (aiControlled) piloté par aiDriven', () => {
   const localState = { net: { mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] } } as unknown as Jeu;
-  const c = (over: Partial<Combatant>): Combatant => ({ id: 'a', kind: 'hero', ...over }) as Combatant;
+  const c = (over: Partial<Combatant>): Combatant => ({ id: 'a', kind: 'heros', ...over }) as Combatant;
 
   it('un PNJ allié `aiControlled` est piloté par l\'IA même en jeu manuel', () => {
-    expect(aiDriven(localState, c({ kind: 'hero', aiControlled: true }))).toBe(true);
+    expect(aiDriven(localState, c({ kind: 'heros', aiControlled: true }))).toBe(true);
   });
   it('un héros du groupe (sans le drapeau) reste MANUEL hors Auto-combat', () => {
-    expect(aiDriven(localState, c({ kind: 'hero' }))).toBe(false);
+    expect(aiDriven(localState, c({ kind: 'heros' }))).toBe(false);
   });
   it('un ennemi est toujours piloté par l\'IA (inchangé)', () => {
-    expect(aiDriven(localState, c({ kind: 'enemy' }))).toBe(true);
+    expect(aiDriven(localState, c({ kind: 'ennemi' }))).toBe(true);
   });
 });

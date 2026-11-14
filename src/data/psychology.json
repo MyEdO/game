@@ -36,10 +36,10 @@
     "effects": [
       {
         "trigger": "onTurnStart",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "any",
             "of": [
               {
@@ -68,9 +68,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -82,7 +82,9 @@
                 },
                 {
                   "op": "condition",
-                  "id": "extenue"
+                  "id": {
+                    "id": "extenue"
+                  }
                 }
               ]
             }
@@ -92,10 +94,10 @@
       {
         "trigger": "onGainCondition",
         "condition": "sonne",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -107,7 +109,9 @@
               },
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               }
             ]
           }
@@ -116,10 +120,10 @@
       {
         "trigger": "onGainCondition",
         "condition": "inconscient",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -131,20 +135,22 @@
               },
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               }
             ]
           }
         }
       }
     ],
-    "icon": "flag/frenzy"
+    "icon": "drapeau/frenesie"
   },
   {
     "id": "peur",
     "type": "psychology",
     "label": "Peur",
-    "icon": "flag/fear",
+    "icon": "drapeau/peur",
     "descRef": {
       "book": "livre-de-base",
       "ch": "21",
@@ -167,7 +173,7 @@
       "amount": -1,
       "vs": "source"
     },
-    "resolution": "extended",
+    "resolution": "etendu",
     "test": {
       "skill": {
         "id": "calme"
@@ -181,7 +187,7 @@
     "id": "terreur",
     "type": "psychology",
     "label": "Terreur",
-    "icon": "creature/scream",
+    "icon": "creature/hurlement",
     "descRef": {
       "book": "livre-de-base",
       "ch": "21",
@@ -224,7 +230,7 @@
     "id": "animosite",
     "type": "psychology",
     "label": "Animosité",
-    "icon": "flag/anger",
+    "icon": "drapeau/hostilite",
     "cibles": [
       "groupe",
       "individu"
@@ -254,7 +260,7 @@
       "vs": "group"
     },
     "retestAt": "roundEnd",
-    "resolution": "binary",
+    "resolution": "simple",
     "test": {
       "skill": {
         "id": "calme"
@@ -266,19 +272,19 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "not",
             "of": {
               "kind": "cibleEnVue",
               "hostiles": true
             }
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -294,10 +300,10 @@
       {
         "trigger": "onGainCondition",
         "condition": "sonne",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -314,10 +320,10 @@
       {
         "trigger": "onGainCondition",
         "condition": "inconscient",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -337,7 +343,7 @@
     "id": "haine",
     "type": "psychology",
     "label": "Haine",
-    "icon": "flag/anger",
+    "icon": "drapeau/hostilite",
     "cibles": [
       "groupe",
       "individu"
@@ -368,7 +374,7 @@
       "vs": "group"
     },
     "retestAt": "roundEnd",
-    "resolution": "binary",
+    "resolution": "simple",
     "test": {
       "skill": {
         "id": "calme"
@@ -380,18 +386,18 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "not",
             "of": {
               "kind": "cibleEnVue"
             }
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -407,10 +413,10 @@
       {
         "trigger": "onGainCondition",
         "condition": "inconscient",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -430,7 +436,7 @@
     "id": "prejuge",
     "type": "psychology",
     "label": "Préjugé",
-    "icon": "flag/anger",
+    "icon": "drapeau/hostilite",
     "cibles": [
       "groupe",
       "individu"
@@ -455,7 +461,7 @@
     },
     "endedByOtherPsych": true,
     "containedSocialMod": -10,
-    "resolution": "binary",
+    "resolution": "simple",
     "test": {
       "skill": {
         "id": "calme"
@@ -467,18 +473,18 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "not",
             "of": {
               "kind": "cibleEnVue"
             }
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -494,10 +500,10 @@
       {
         "trigger": "onGainCondition",
         "condition": "sonne",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -514,10 +520,10 @@
       {
         "trigger": "onGainCondition",
         "condition": "inconscient",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -537,7 +543,7 @@
     "id": "amour",
     "type": "psychology",
     "label": "Amour",
-    "icon": "flag/bond",
+    "icon": "drapeau/attachement",
     "cibles": [
       "individu"
     ],
@@ -567,7 +573,7 @@
       "peur"
     ],
     "triggerOn": "threatened",
-    "resolution": "binary",
+    "resolution": "simple",
     "test": {
       "skill": {
         "id": "calme"
@@ -581,7 +587,7 @@
     "id": "camaraderie",
     "type": "psychology",
     "label": "Camaraderie",
-    "icon": "flag/bond",
+    "icon": "drapeau/attachement",
     "cibles": [
       "groupe",
       "individu"
@@ -609,7 +615,7 @@
       "vs": "any"
     },
     "triggerOn": "threatened",
-    "resolution": "binary",
+    "resolution": "simple",
     "test": {
       "skill": {
         "id": "calme"
@@ -623,7 +629,7 @@
     "id": "phobie",
     "type": "psychology",
     "label": "Phobie",
-    "icon": "flag/fear",
+    "icon": "drapeau/peur",
     "cibles": [
       "groupe",
       "individu"

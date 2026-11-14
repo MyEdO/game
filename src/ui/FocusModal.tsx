@@ -21,13 +21,13 @@ export function FocusModal() {
   const pf = useGame((s) => s.pendingFocus);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetLancer', 'focus');
-  const reroll = useGesteDeJet('jetRelancer', 'focus');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'focus');
-  const darkPact = useGesteDeJet('jetPactiser', 'focus');
-  const force = useGesteDeJet('jetForcerLaReussite', 'focus');
-  const confirm = useGesteDeJet('jetValider', 'focus');
-  const cancel = useGesteDeJet('jetAnnuler', 'focus');
+  const roll = useGesteDeJet('jetLancer', 'focalisation');
+  const reroll = useGesteDeJet('jetRelancer', 'focalisation');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'focalisation');
+  const darkPact = useGesteDeJet('jetPactiser', 'focalisation');
+  const force = useGesteDeJet('jetForcerLaReussite', 'focalisation');
+  const confirm = useGesteDeJet('jetValider', 'focalisation');
+  const cancel = useGesteDeJet('jetAnnuler', 'focalisation');
   if (!pf) return null;
   const caster = (battle?.combatants ?? party).find((c) => c.id === pf.casterId); // combat (file) ou hors combat (groupe)
   if (!caster) return null;
@@ -60,14 +60,14 @@ export function FocusModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
-      flowKey="focus"
-      title={<><Icon id="flag/focus" size="sm" /> Focalisation</>}
+      flowKey="focalisation"
+      title={<><Icon id="drapeau/focalisation" size="sm" /> Focalisation</>}
       /* Z1 : QUI focalise QUOI. La PROGRESSION (DR cumulé vers le NI) n'est PAS ici — elle a sa zone
          unique, la barre de DR de la rangée (`extendedDr`, ci-dessus). */
       subtitle={
@@ -79,7 +79,7 @@ export function FocusModal() {
       rolled={rolled}
       /* L'issue ne s'ouvre que pour ce qu'aucune autre zone n'énonce (le NI atteint) : `describeFocus`
          rend '' tant que la Focalisation progresse — pas de cadre vide, pas de progression redite. */
-      outcome={describeFocus(step) ? [recapLineOfEvent(ev('focus', describeFocus(step), caster.id), battle?.combatants ?? party)] : undefined}
+      outcome={describeFocus(step) ? [recapLineOfEvent(ev('focalisation', describeFocus(step), caster.id), battle?.combatants ?? party)] : undefined}
       actions={actions}
       onCancel={cancel}
     />

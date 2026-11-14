@@ -21,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>
   combattantDeTest({
-    id, label: `Héros ${id}`, kind: 'hero',
+    id, label: `Héros ${id}`, kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     skills: [], conditions: [], talents: [], fortune: 2, resilience: 3,
     ...over,
@@ -72,7 +72,7 @@ describe('#1262 — surfaceRow : rangée SURFACÉE ou TÉMOIN né roulé', () =>
 
 describe('#1262 — bandStep : la bande pose SA possession', () => {
   it('plus d’UN porteur → `groupOwner` posé par le constructeur (l’appelant ne le décide plus)', () => {
-    const b = bandStep({ id: 'manche-1', kind: 'pursuitMove', label: fixtureText('Manche 1')}, [rang('H1'), rang('H2')]);
+    const b = bandStep({ id: 'manche-1', kind: 'mouvementDePoursuite', label: fixtureText('Manche 1')}, [rang('H1'), rang('H2')]);
     expect(b!.groupOwner).toBe(true);
     expect(b!.aggregate).toBe('none');
     expect(b!.participants).toHaveLength(2);
@@ -118,7 +118,7 @@ describe('#1262 — une bande est TOUJOURS visible chez le siège de son porteur
   /** HÔTE au siège 0 ; l'unique porteur `H1` appartient au siège 1 (invité). */
   function ouvreBandeChezLHote(rows: BatchParticipant[]): void {
     banc.setState({ party: [hero('H1'), hero('H2')] } as never);
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, ownership: { H1: 1, H2: 1 } } } as never);
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, ownership: { H1: 1, H2: 1 } } } as never);
     const b = bandStep({ id: 'bande', kind: cleDeFixture('nightTest'), label: fixtureText('Bande')}, rows)!;
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [b] });
   }

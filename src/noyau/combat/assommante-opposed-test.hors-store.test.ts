@@ -13,6 +13,10 @@ import { testValue, skillBaseValue } from '../../engine/skills';
 import { testScene } from '../../scenes/test-fixture';
 import type { Weapon } from '../../engine/types';
 import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
+import { heroFaceAUnEnnemi } from '../combatDeTest.testkit';
+import { imposerLesD100 } from '../battleRng.testkit';
+import { doAttack } from '../combatFlow';
+import { armeDeTest } from '../../engine/objetsDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -23,7 +27,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Test, votre adversaire gagne Sonné. » L'attaquant (porteur de l'arme) oppose sa FORCE (FIGÉE) à la
  * RÉSISTANCE de la victime ; l'issue vient de `resolveOpposed` (PAS d'un test simple plié) — l'attaquant
  * doit REMPORTER (égalité = victime résiste, RAW). Trois cas :
- *  (a) victime HÉROS MANUEL → étape de cascade `triggeredTest` INFLUENÇABLE portant l'attaquant figé ;
+ *  (a) victime HÉROS MANUEL → étape de cascade `testDeclenche` INFLUENÇABLE portant l'attaquant figé ;
  *      l'issue (Sonné ou non) suit `resolveOpposed(jetDéfenseur, aT)`.
  *  (a-bis) ÉGALITÉ (même DR + même cible) → la victime RÉSISTE, PAS de Sonné (preuve de fidélité : un
  *      test simple plié aurait conclu « réussite » sur le jet de l'attaquant, ici l'égalité ne suffit pas).
@@ -37,11 +41,11 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const wielder = enemies[0]; // le porteur de l'arme Assommante (attaquant)
     const prey = enemies[1];    // une victime ENNEMIE (cas b)
     enemies.slice(2).forEach((e) => (e.dead = true));
@@ -51,7 +55,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     return { H, wielder, prey };
   }
 
-  it('(a) victime HÉROS MANUEL : étape triggeredTest OPPOSÉE influençable (Force attaquant figée dans meta.opposed)', () => {
+  it('(a) victime HÉROS MANUEL : étape testDeclenche OPPOSÉE influençable (Force attaquant figée dans meta.opposed)', () => {
     seedBattleRng(7);
     const { H, wielder } = setup();
     wielder.characteristics.force = 55;
@@ -62,7 +66,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     const casc = banc.getState().pendingCascade!;
     expect(casc).toBeTruthy();
     expect(casc.purpose).toBe('combat');
-    const step = casc.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = casc.participants.find((s) => s.kind === 'testDeclenche')!;
     expect(step).toBeTruthy();
     expect(step.actorId).toBe(H.id);
     expect(step.result).toBeFalsy();        // pas encore lancé → Chance/Pacte/Résilience possibles
@@ -83,14 +87,14 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     H.characteristics.endurance = 30; // Résistance basse → l’attaquant l’emporte probablement
 
     fireTriggers(banc.getState, wielder, 'onHit', { victim: H, weapon: assommante(), location: 'tete', rng: makeRNG(1), set: banc.setState });
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     const aT = step.meta!.opposed!.aT; // attaquant figé
 
     banc.getState().jetLancer('cascade', step.id);
     // Le jet du défenseur (Résistance) est posé sur l’étape ; l’issue doit être COHÉRENTE avec resolveOpposed
     // (ATTAQUANT figé en 1ʳᵉ position, comme la production) : la victime résiste si l’attaquant ne l’emporte pas.
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
-    const expectedResist = resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false }).winner !== 'attacker';
+    const expectedResist = resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false }).winner !== 'attaquant';
     banc.getState().jetValider('cascade');
 
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
@@ -101,7 +105,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
   it('(a-bis) ÉGALITÉ (même DR + mêmes NUES) : STATU QUO — la victime RÉSISTE, PAS de Sonné', () => {
     // Deux étages d'égalité, tous deux nécessaires : même CIBLE effective → même DR sur un dé identique ;
     // mêmes valeurs NUES (`skillBaseValue`) → le départage à DR égal (LDB 12 l.160) ne tranche pas non
-    // plus. `resolveOpposed` conclut 'tie' → STATU QUO (l.160, arbitrage `opposedBranchSuccess`) : ici
+    // plus. `resolveOpposed` conclut 'egalite' → STATU QUO (l.160, arbitrage `opposedBranchSuccess`) : ici
     // « vous » (LDB 62 l.235 : « Si vous remportez le Test, votre adversaire gagne un État *Sonné*. »)
     // est l'ATTAQUANT, pas le jeteur — rien ne se passe se lit donc « la victime RÉSISTE ».
     const { H, wielder } = setup();
@@ -118,7 +122,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     // l’ATTAQUANT, la 2ᵉ celui du défenseur (jetLancer('cascade', id)). seed 113 → deux d100 IDENTIQUES → ÉGALITÉ stricte.
     seedBattleRng(113);
     fireTriggers(banc.getState, wielder, 'onHit', { victim: H, weapon: assommante(), location: 'tete', rng: makeRNG(1), set: banc.setState });
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     const aT = step.meta!.opposed!.aT;
     // L'étape et le jet figé portent chacun LEUR nue — c'est par elles que passe le départage.
     expect(aT.base, 'le pré-jet de l’attaquant porte sa Force NUE').toBe(fNue);
@@ -131,7 +135,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(rolled.target).toBe(aT.target);
     expect(rolled.sl).toBe(aT.sl);
     // Ré-opposition à l'identique de la production : les DEUX camps avec leur nue (jamais un mixte).
-    expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false, base: step.base }).winner).toBe('tie');
+    expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false, base: step.base }).winner).toBe('egalite');
     // L’étape conclut « résiste » (success) — un test simple plié sur le jet de l’ATTAQUANT aurait conclu autrement.
     expect(rolled.success).toBe(true);
     banc.getState().jetValider('cascade');
@@ -169,5 +173,32 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(banc.getState().pendingCascade).toBeNull();
     const live = banc.getState().battle!.combatants.find((c) => c.id === prey.id)!;
     expect(hasCondition(live, 'sonne')).toBe(false); // pas à la Tête → pas de Test opposé, pas de Sonné
+  });
+});
+
+describe('Assommante à la Tête d’un héros : le coup attend le Test de l’Atout (#4011)', () => {
+  it('la gratuite `onHit` du coup (Assaut féroce, LDB 10 l.78) attend la clôture du Test : LDB 62 l.235', () => {
+    const { H, E } = heroFaceAUnEnnemi(banc, testScene());
+    const g = banc.getState;
+    E.weapons = [armeDeTest('marteau-a-bec-de-corbin')];
+    E.talents = [...(E.talents ?? []), { talentId: 'assaut-feroce', times: 1 }];
+    E.advantage = 3;
+    H.wounds = blessuresDeBase(200, 200, H);
+    banc.setState({ battle: { ...g().battle! } });
+    imposerLesD100(20, 23, 20, 23, 20, 23, 20, 23);
+    doAttack(g, banc.setState, E, H);
+    g().jetLancer('defense');
+    g().jetImposerLeResultat('defense', 97);
+    expect(g().pendingDefense!.result).toMatchObject({ hit: true, location: 'tete' });
+    g().jetValider('defense');
+    const gratuites = () => g().battle!.combatants.find((c) => c.id === E.id)!.freeAttacksThisTurn?.['assaut-feroce'];
+    const ouvertes = g().pendingCascade!.participants.filter((x) => !x.committed);
+    expect(ouvertes.map((x) => x.kind)).toEqual(['testDeclenche']);
+    expect(gratuites()).toBeUndefined();
+    expect(g().pendingDefense).toBeNull();
+    g().jetLancer('cascade', ouvertes[0].id);
+    g().jetValider('cascade');
+    expect(gratuites()).toBe(1);
+    expect(g().pendingDefense).toMatchObject({ attackerId: E.id, defenderId: H.id });
   });
 });

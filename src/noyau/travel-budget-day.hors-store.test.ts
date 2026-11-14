@@ -5,7 +5,7 @@
  * ENCHAÎNÉS le même jour cumulent leur budget (l'accumulateur unique `travelDayHours` (état du jeu) keyé sur
  * `dayIndex(gameTime)`) ; l'allure choisie au départ borne la journée, et la marche forcée (case cochée)
  * se teste dès que le cumul dépasse 6 h (un seul Test/jour). Portes maison : départ terrestre/fluvial de l'aube au crépuscule
- * (`travel-departure-gate`), privation de sommeil au jour franchi sans nuit (`travel-sleep-forced`).
+ * (`voyage-heure-de-depart`), privation de sommeil au jour franchi sans nuit (`voyage-privation-de-sommeil`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -25,7 +25,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const get = () => banc.getState();
 
 const hero = (p: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'h', label: 'Hilda', kind: 'hero',
+  id: 'h', label: 'Hilda', kind: 'heros',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 20, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
   wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -77,7 +77,7 @@ describe('#340 / #2533 — budget d’heures PAR JOUR CALENDAIRE (LDB 51 l.195)'
     expect(get().travelPlan).toBeNull(); // aucun « Étape 0 »
     expect(get().pendingCascade).toBeNull(); // ni météo ni péripétie d'un jour vide
     expect(get().pendingDeparture?.cause).toBe('budget');
-    get().fenetreValider('departure'); // patron de la porte de départ : la nuit se passe SUR PLACE
+    get().fenetreValider('depart'); // patron de la porte de départ : la nuit se passe SUR PLACE
     const nuit = get().pendingRest!;
     expect(nuit.lieu).toBe(sceneLieu(get));
     expect(nuit.travelHalt).toBeFalsy();
@@ -130,7 +130,7 @@ describe('#340 — porte d’heure de départ (terre & fleuve, maison ON par dé
     expect(get().pendingDeparture!.dawnAt).toBeGreaterThan(get().gameTime); // prochain départ possible = l'aube
 
     // « Attendre l'aube » : joue une nuit (repos) et lève la porte.
-    get().fenetreValider('departure');
+    get().fenetreValider('depart');
     expect(get().pendingDeparture).toBeNull();
     expect(get().pendingRest).not.toBeNull();
   });
@@ -144,7 +144,7 @@ describe('#340 — porte d’heure de départ (terre & fleuve, maison ON par dé
   });
 
   it('porte débrayable : désactivée, un départ de nuit part directement', () => {
-    setRule('travel-departure-gate', false);
+    setRule('voyage-heure-de-depart', false);
     setup(16);
     banc.setState({ gameTime: campaignStart() + 15 * 60 });
     get().partirEnVoyage('r1', 'pied');
@@ -162,7 +162,7 @@ describe('#340 — nuit forcée (privation de sommeil, maison, défaut ON [arbit
   });
 
   it('débrayable : désactivée, franchir un jour sans dormir ne coûte pas d’Exténué', () => {
-    setRule('travel-sleep-forced', false);
+    setRule('voyage-privation-de-sommeil', false);
     setup(16);
     banc.setState({ gameTime: campaignStart(), lastNightDay: dayIndex(campaignStart()), lastUpkeepDay: dayIndex(campaignStart()) });
     const before = stacks(get().party[0], 'extenue');
@@ -172,9 +172,9 @@ describe('#340 — nuit forcée (privation de sommeil, maison, défaut ON [arbit
 });
 
 describe('#340 — voguer de nuit (÷2 mer, MDG 15 l.76) câblé sur une règle maison', () => {
-  it('la capacité de navigation nocturne est portée par `sea-night-sailing` (défaut ON)', () => {
-    expect(rule('sea-night-sailing')).toBe(true); // navire équipé pour la nuit → distance pleine
-    setRule('sea-night-sailing', false);
-    expect(rule('sea-night-sailing')).toBe(false); // OFF → seaMilesPerDay(m, false) applique le ÷2
+  it('la capacité de navigation nocturne est portée par `mer-voguer-de-nuit` (défaut ON)', () => {
+    expect(rule('mer-voguer-de-nuit')).toBe(true); // navire équipé pour la nuit → distance pleine
+    setRule('mer-voguer-de-nuit', false);
+    expect(rule('mer-voguer-de-nuit')).toBe(false); // OFF → seaMilesPerDay(m, false) applique le ÷2
   });
 });

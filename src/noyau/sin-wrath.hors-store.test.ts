@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
 import { avanceEtapeCascade, draineEtLit } from './cascade.testkit';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
 
@@ -18,7 +18,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function priestParty(sin: number) {
-  const [priest, ally] = pregenParty(idsDeTest, PREGEN.pretre, PREGEN.soldat);
+  const [priest, ally] = groupeDeScenario(idsDeTest, 'pretre', 'soldat');
   const priere = priest.skills.find((s) => s.id === 'priere');
   if (priere) priere.advances = Math.max(priere.advances, 5);
   else priest.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 });
@@ -35,7 +35,7 @@ function confirmPrayerWithRoll(casterId: string, targetId: string, roll: number,
   banc.setState({
     pendingCast: { casterId, targetId, spellId: 'benediction-de-guerison', missile: false, focused: false, result },
   });
-  banc.getState().jetValider('cast');
+  banc.getState().jetValider('incantation');
 }
 
 describe('Péché et Colère Divine (LDB 40)', () => {
@@ -82,7 +82,7 @@ describe('Péché et Colère Divine (LDB 40)', () => {
     banc.setState({
       pendingCast: { casterId: priest.id, targetId: ally.id, spellId: 'benediction-de-guerison', missile: false, focused: false, result },
     });
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     const journal = draineEtLit(banc.getState).join('\n');
     expect(journal.match(/Colère des dieux \(/g)?.length).toBe(1); // un seul JET de table
     expect(banc.getState().party.find((h) => h.id === priest.id)!.sinPoints).toBe(1);
@@ -94,11 +94,11 @@ describe('Péché et Colère Divine (LDB 40)', () => {
     confirmPrayerWithRoll(priest.id, ally.id, 41); // unités 1 ≤ 5
     // Le dé de la Colère tombe au rang de SON étape ; la révélation (charge riche `reveal`) suit dans
     // la MÊME séquence — on joue jusqu'à elle.
-    for (let i = 0; i < 6 && !banc.getState().pendingCascade?.participants.some((s) => s.kind === 'miscast'); i++) {
+    for (let i = 0; i < 6 && !banc.getState().pendingCascade?.participants.some((s) => s.kind === 'incantationImparfaite'); i++) {
       avanceEtapeCascade(banc.getState);
     }
-    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'miscast');
-    expect(step?.reveal?.kind).toBe('miscast');
+    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'incantationImparfaite');
+    expect(step?.reveal?.kind).toBe('incantationImparfaite');
     // d100 ∈ [1;100] + 5×10 → le jet effectif est forcément > 50.
     expect(step!.reveal!.dice).toBeGreaterThan(50);
   });

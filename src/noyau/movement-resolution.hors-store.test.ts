@@ -15,13 +15,13 @@ function setup() {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   const battle = banc.getState().battle!;
-  const active = battle.combatants.find((combatant) => combatant.kind === 'hero')!;
+  const active = battle.combatants.find((combatant) => combatant.kind === 'heros')!;
   active.pos = { x: 6, y: 10 };
   active.engagedWith = [];
   let enemyX = 20;
-  for (const enemy of battle.combatants.filter((combatant) => combatant.kind === 'enemy')) {
+  for (const enemy of battle.combatants.filter((combatant) => combatant.kind === 'ennemi')) {
     enemy.pos = { x: enemyX++, y: 20 };
   }
   banc.setState({
@@ -47,20 +47,20 @@ describe('résolution canonique du déplacement', () => {
     const active = setup();
     const walkDest = { x: active.pos!.x + 2, y: active.pos!.y };
     const walk = resolveMovement(banc.getState, walkDest);
-    expect(walk).toMatchObject({ status: 'ok', kind: 'move', cost: 2 });
-    if (walk.status === 'ok') expect(walk.path[walk.path.length - 1]).toEqual(walkDest);
+    expect(walk).toMatchObject({ status: 'possible', kind: 'deplacement', cost: 2 });
+    if (walk.status === 'possible') expect(walk.path[walk.path.length - 1]).toEqual(walkDest);
 
     const runDest = { x: active.pos!.x + effectiveMovement(active) + 2, y: active.pos!.y };
     const run = resolveMovement(banc.getState, runDest);
-    expect(run).toMatchObject({ status: 'ok', kind: 'run', cost: effectiveMovement(active) + 2 });
-    if (run.status === 'ok') expect(run.path[run.path.length - 1]).toEqual(runDest);
+    expect(run).toMatchObject({ status: 'possible', kind: 'course', cost: effectiveMovement(active) + 2 });
+    if (run.status === 'possible') expect(run.path[run.path.length - 1]).toEqual(runDest);
   });
 
   it('retourne la raison du même gate qui bloque le déplacement', () => {
     const active = setup();
     active.engagedWith = ['enemy'];
     const result = resolveMovement(banc.getState, { x: active.pos!.x - 1, y: active.pos!.y });
-    expect(result).toEqual({ status: 'blocked', reason: 'engaged' });
+    expect(result).toEqual({ status: 'bloque', reason: 'engage' });
   });
 
   it('réutilise au commit le chemin et le coût stockés au premier tap', () => {
@@ -68,8 +68,8 @@ describe('résolution canonique du déplacement', () => {
     const dest = { x: active.pos!.x + 2, y: active.pos!.y };
     banc.getState().cliquerLaCase(dest);
     const preview = banc.getState().battle!.preview;
-    expect(preview).toMatchObject({ kind: 'move', cost: 2 });
-    if (!preview || preview.kind !== 'move') throw new Error('aperçu de Marche absent');
+    expect(preview).toMatchObject({ kind: 'deplacement', cost: 2 });
+    if (!preview || preview.kind !== 'deplacement') throw new Error('aperçu de Marche absent');
 
     let emittedPath: unknown;
     const unsubscribe = bus.on(EVT.ANIM_MOVE, (payload) => { emittedPath = payload.path; });
@@ -84,12 +84,12 @@ describe('résolution canonique du déplacement', () => {
     const active = setup();
     const dest = { x: active.pos!.x + effectiveMovement(active) + 2, y: active.pos!.y };
     // Course ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : sans elle, le clic au-delà de la Marche refuse.
-    banc.getState().cliquerLaCase(dest, undefined, { courseArmee: true });
+    banc.getState().cliquerLaCase(dest, undefined, { intentionId: 'course' });
     const preview = banc.getState().battle!.preview;
-    expect(preview?.kind).toBe('run');
-    if (!preview || preview.kind !== 'run') throw new Error('aperçu de Course absent');
+    expect(preview?.kind).toBe('course');
+    if (!preview || preview.kind !== 'course') throw new Error('aperçu de Course absent');
 
-    banc.getState().cliquerLaCase(dest, undefined, { courseArmee: true });
+    banc.getState().cliquerLaCase(dest, undefined, { intentionId: 'course' });
 
     expect(banc.getState().pendingRun?.path).toBe(preview.path);
     expect(banc.getState().pendingRun?.cost).toBe(preview.cost);
@@ -103,7 +103,7 @@ describe('résolution canonique du déplacement', () => {
 
   it('la priorité Désengagement ouvre son flux sans intention de déplacement', () => {
     const active = setup();
-    const enemy = banc.getState().battle!.combatants.find((combatant) => combatant.kind === 'enemy')!;
+    const enemy = banc.getState().battle!.combatants.find((combatant) => combatant.kind === 'ennemi')!;
     enemy.pos = { x: active.pos!.x + 1, y: active.pos!.y };
     active.engagedWith = [enemy.id];
     enemy.engagedWith = [active.id];

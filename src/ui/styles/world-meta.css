@@ -36,7 +36,7 @@
 }
 /* Phase 3 (#343) : la carte reste la zone principale, le panneau de départ (4 états mutuellement
    exclusifs — reprise/départ/muet/porte de nuit, tous `.worldmap-panel`) devient une colonne latérale
-   FIXE, SECONDE (compose `Split side="end" align="stretch"` — jamais une grille maison). ≥901px, cet
+   FIXE, SECONDE (compose `Split side="fin" align="stretch"` — jamais une grille maison). ≥901px, cet
    écran pose SA colonne bornée par la variable `--aside` que `Split` consomme (400px plafonnée à
    40vw), et une seule RANGÉE, pour que
    l'aside défile dans sa propre hauteur au lieu d'allonger la page. ≤900px : la primitive empile

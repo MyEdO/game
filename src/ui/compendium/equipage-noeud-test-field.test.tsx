@@ -89,8 +89,8 @@ describe('atelier du Codex — le coup à l’équipage porte un nœud `test`, e
     expect(apres.crewHit!.test!.kind, 'le nœud a perdu son `kind` (racine `FlowEditor` rebranchée ?)').toBe('test');
     expect(apres.crewHit!.test!.test.difficulty, 'la Difficulté choisie n’est pas descendue dans le nœud').toBe('difficile');
     expect(apres.crewHit!.test!.test.characteristic, 'le sujet du jet a été perdu').toBe('initiative');
-    expect(apres.crewHit!.test!.success, 'la branche RÉUSSITE a été perdue').toEqual({ kind: 'seq', steps: [] });
-    expect(apres.crewHit!.test!.fail, 'la branche ÉCHEC a été perdue').toEqual(cible.crewHit!.test!.fail);
+    expect(apres.crewHit!.test!.reussite, 'la branche RÉUSSITE a été perdue').toEqual({ kind: 'sequence', etapes: [] });
+    expect(apres.crewHit!.test!.echec, 'la branche ÉCHEC a été perdue').toEqual(cible.crewHit!.test!.echec);
     expect(apres.crewHit!.crewTarget, 'QUI encaisse a été perdu à l’édition').toEqual({ stations: ['pont'] });
     expect(apres.crewHit!.ops, 'le coup a basculé en effet certain').toBeUndefined();
   });

@@ -2,11 +2,43 @@
  * Construction de Combattants depuis le bestiaire (réf.) ou un statblock
  * personnalisé d'une scène. Sert au combat tactique.
  */
-import { Combatant, Characteristics, type Weapon, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../../engine/types';
+import {
+  Combatant,
+  Characteristics,
+  type Weapon,
+  CHAR_KEYS,
+  BodyShape,
+  SkillInstance,
+  TalentInstance,
+  type AuthoredShipPoste,
+  type NavalTraitRef,
+} from '../../engine/types';
 import { skillCharacteristicById } from '../../engine/character';
-import { isOptionalNote, resoudreTrait, traitsDuPorteur, type PorteurDeTraits, type TraitInstance, type TraitList, type TraitsDesignes, type OptionalEntry, type OptionalSwap } from '../../engine/statEntry';
+import {
+  isOptionalNote,
+  resoudreTrait,
+  traitsDuPorteur,
+  type PorteurDeTraits,
+  type TraitInstance,
+  type TraitList,
+  type TraitsDesignes,
+  type OptionalEntry,
+  type OptionalSwap,
+} from '../../engine/statEntry';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
-import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../../data';
+import {
+  findCreatureById,
+  byId,
+  findTalentById,
+  tailleDuProfil,
+  findVehicleById,
+  findTrappingById,
+  specPoolOf,
+  CreatureData,
+  type SkillData,
+  type SkillRef,
+  type TalentRef,
+} from '../../data';
 import { vehicleCombatant } from '../../engine/vehicle';
 import { estNavire } from '../../engine/coque';
 import { inanimateCombatant } from '../../engine/inanimate';
@@ -19,7 +51,16 @@ import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { apparencesObjetsDe, contexteDeNaissanceDObjet, deciderApparencesDesArmes, equipConflicts, hydratePoste, loadWeapon, objetsDeLInventaire, recomputeLoadout } from '../../engine/items';
+import {
+  apparencesObjetsDe,
+  contexteDeNaissanceDObjet,
+  deciderApparencesDesArmes,
+  equipConflicts,
+  hydratePoste,
+  loadWeapon,
+  objetsDeLInventaire,
+  recomputeLoadout,
+} from '../../engine/items';
 import { argentDuPnj, porterAuParcours } from '../../engine/pnjDeCarriere';
 import { sortsDuPnj } from '../../engine/sortsDuPnj';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
@@ -37,17 +78,22 @@ import { hashSeed } from '../../engine/dice';
 import { bodyShapeForSpecies } from '../../engine/bodyForm';
 import { estPoseParSesPonts } from '../planDeNavire';
 
-/**
- * Pose la position d'un combattant en RAFRAÎCHISSANT sa hauteur métrique (`pos.h`) depuis le relief de
- * la scène — SOURCE UNIQUE de la cohérence position↔hauteur. À appeler au SPAWN et à CHAQUE déplacement
- * (combat, poussée/traction, course, téléport, chute, avance navale) : sans ce rafraîchissement, la
- * distance de combat verticale et le −10 « en contrebas » resteraient faux après le mouvement.
- * `z` omis quand nul et `h` omis quand la surface est à 0 m → byte-identique au plan sur une scène plate.
- */
-export function placeCombatant(c: { id: string; pos?: { x: number; y: number; z?: number; h?: number }; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
+/** La position d'un corps posé en `p` : `h` = sol de sa case d'ancrage (`heightAt`). `z` omis quand nul, `h` à 0 m
+ *  et sans scène. PUR. */
+export function positionPosee(scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): NonNullable<Combatant['pos']> {
   const z = p.z ?? 0;
   const h = scene ? heightAt(scene, p.x, p.y, z) : 0;
-  c.pos = { x: p.x, y: p.y, ...(z ? { z } : {}), ...(h ? { h } : {}) };
+  return { x: p.x, y: p.y, ...(z ? { z } : {}), ...(h ? { h } : {}) };
+}
+
+/**
+ * Pose la position d'un combattant (`positionPosee`) et re-dérive ses drapeaux positionnels — SOURCE UNIQUE de la
+ * cohérence position↔scène. À appeler au SPAWN et à CHAQUE déplacement (combat, poussée/traction, course, téléport,
+ * chute, avance navale).
+ */
+export function placeCombatant(c: { id: string; pos?: Combatant['pos']; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
+  const z = p.z ?? 0;
+  c.pos = positionPosee(scene, p);
   // Drapeau POSITIONNEL « hors de son terrain » (op passive `offTerrainMod` — Créature marine MDG 16 l.17 /
   // Aquatique MSRC 15 l.139) : re-dérivé à CHAQUE placement (chokepoint UNIQUE du positionnement). Un porteur
   // dont la case n'est pas de son terrain d'élection (`eau`) subit mSet/testDR ; sans passif, no-op.
@@ -258,7 +304,7 @@ function withTraitChars(chars: Characteristics, live: TraitsDesignes | undefined
   return out;
 }
 
-export function creatureToCombatant(creature: CreatureData, id: string, pos: { x: number; y: number; z?: number }, extras?: SpawnExtras): Combatant {
+export function creatureToCombatant(creature: CreatureData, id: string, pos?: { x: number; y: number; z?: number }, extras?: SpawnExtras): Combatant {
   const optEntries = extras?.optionals ?? [];
   // Les optionnels choisis (LDB 76 l.45) se répartissent : Traits FACULTATIFS ordinaires (fusionnés)
   // vs NOTES composées « swap » (Grand Loup/Griffon ZI). Le joker « all-traits » (Mutant) est une
@@ -316,7 +362,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     id,
     label: creature.label,
     creatureId: creature.id, // identité bestiaire STABLE, résolue par id (jamais par `name`)
-    kind: 'enemy',
+    kind: 'ennemi',
     ...(optTraits.length ? { liveTraits: optTraits } : {}), // charMods/Mouvement des facultatifs appliqués en direct
     ...(creature.appearance?.species ? { species: creature.appearance.species } : {}), // espèce du record (P2)
     characteristics: chars,
@@ -336,7 +382,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     skills,
     talents,
     movement,
-    pos,
+    ...(pos ? { pos } : {}),
   };
   // Écart du livre posé sur le profil imprimé, sans les facultatifs, qui déplacent ensuite le maximum :
   // LDB 77 l.91-95, LDB 05 l.1001.
@@ -348,7 +394,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   return combattant;
 }
 
-export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: number; y: number; z?: number }, appearance?: EntityAppearance, extras?: SpawnExtras): Combatant {
+export function statblockToCombatant(sb: CustomStatblock, id: string, pos?: { x: number; y: number; z?: number }, appearance?: EntityAppearance, extras?: SpawnExtras): Combatant {
   const poses = sb.traits ?? [];
   const designes = [...poses, ...(extras?.learnedTraits ?? []).map((t) => ({ id: t }))];
   let chars = charsFrom(sb.char);
@@ -373,7 +419,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   const sansBlessures: Omit<Combatant, 'wounds'> = {
     id,
     label: sb.label,
-    kind: 'enemy',
+    kind: 'ennemi',
     ...(traits.length ? { liveTraits: [...traits] } : {}), // statbloc d'éditeur : tous les traits en direct
     characteristics: chars,
     advantage: 0,
@@ -392,7 +438,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
     skills,
     talents,
     movement,
-    pos,
+    ...(pos ? { pos } : {}),
   };
   // `char.B` d'une Nuée : celui d'une créature type, LDB 85 l.253.
   const horsNuee = traits.filter((t) => !isSwarm([t]));
@@ -413,20 +459,20 @@ export class RefIrresoluble extends Error {
 
 /** La fiche du corps que porte `porteur` : sa créature, portée à son `parcours` de carrière s'il en a un
  *  (`porterAuParcours`), sa coque, son engin ; lève `RefIrresoluble` hors de son catalogue. */
-function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehicule: string } | { engin: string }>, id: string, pos: { x: number; y: number; z?: number }, opts?: SpawnExtras): Combatant {
+function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehicule: string } | { engin: string }>, id: string, pos?: { x: number; y: number; z?: number }, opts?: SpawnExtras): Combatant {
   if (porteur.vehicule !== undefined) {
-    // Coque/navire (`vehicles.json` → facette `hull`) comme Combattant à PV (MDG 13). 'enemy' pour être
+    // Coque/navire (`vehicles.json` → facette `hull`) comme Combattant à PV (MDG 13). 'ennemi' pour être
     // une cible ; inerte (pas d'arme/Mouvement, Psychologie ignorée) — sa destruction passe par ses Blessures.
     const coque = findVehicleById(porteur.vehicule);
     const c = coque && vehicleCombatant(coque, id);
     if (!c) throw new RefIrresoluble(porteur.vehicule, id);
-    return { ...c, kind: 'enemy', pos: { ...pos } };
+    return { ...c, kind: 'ennemi', ...(pos ? { pos: { ...pos } } : {}) };
   }
   if (porteur.engin !== undefined) {
     // AA 10 l.175-193
     const t = findTrappingById(porteur.engin);
     if (!t) throw new RefIrresoluble(porteur.engin, id);
-    return { ...inanimateCombatant({ id, label: t.label, refId: porteur.engin, bodyShape: 'engin', inert: true, footprint: t.siegeFootprint }), kind: 'enemy', pos: { ...pos } };
+    return { ...inanimateCombatant({ id, label: t.label, refId: porteur.engin, bodyShape: 'engin', inert: true, footprint: t.siegeFootprint }), kind: 'ennemi', ...(pos ? { pos: { ...pos } } : {}) };
   }
   const creature = findCreatureById(porteur.ref);
   if (!creature) throw new RefIrresoluble(porteur.ref, id);
@@ -454,7 +500,7 @@ function equiperDeLInventaire(c: Combatant, inventaire: InventaireDAuteur): void
 export function spawnEnemy(
   porteur: PorteurDeFiche,
   id: string,
-  pos: { x: number; y: number; z?: number }, // z (étage) conservé sur c.pos via les spreads/shorthands
+  pos: { x: number; y: number; z?: number } | undefined, // z (étage) conservé sur c.pos via les spreads/shorthands ; absente : un assaillant sans case (`serieSubie`)
   opts?: { appearance?: EntityAppearance; inventaire?: InventaireDAuteur } & SpawnExtras,
 ): Combatant {
   const c = porteur.presetCreature ? creatureToCombatant(porteur.presetCreature, id, pos, opts)
@@ -486,7 +532,7 @@ export function spawnEnemy(
   // Arme à distance CHARGÉE au spawn (miroir du héros dans lancerLeCombat) — LDB 62 l.335 : le `loaded` ne gate
   // que les armes à Recharge, un tireur fraîchement engagé peut donc tirer au 1er Round (pas de recharge à vide).
   // Couture UNIQUE : le coup porte SA munition dès le spawn (aucune capture posée ailleurs).
-  const spawnRanged = c.weapons.find((w) => w.type === 'ranged');
+  const spawnRanged = c.weapons.find((w) => w.type === 'distance');
   if (spawnRanged) loadWeapon(c, spawnRanged);
   return structuredClone(c); // #2097
 }

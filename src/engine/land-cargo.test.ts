@@ -46,17 +46,17 @@ describe('Commerce terrestre MSRC 13 — ACHAT (l.22-131)', () => {
     expect(rollRandomLandCargo('ete', seq(90)).id).toBe('laine-terre');
   });
 
-  it('prix de base par saison (l.84-90) : Métal = 8 CO/10 Enc toute l’année ; Vivres = 0,25 en automne', () => {
-    expect(landCargoBasePrice(findCargoById('metal')!, 'automne', hameau, seq())).toBe(8);
-    expect(landCargoBasePrice(findCargoById('vivres')!, 'automne', hameau, seq())).toBe(0.25);
+  it('prix de base par saison (l.84-91), en CO par point d’Enc : Métal = 8 CO les 10 Enc → 0,8 ; Vivres = 0,25 en automne → 0,025', () => {
+    expect(landCargoBasePrice(findCargoById('metal')!, 'automne', hameau, seq())).toBe(0.8);
+    expect(landCargoBasePrice(findCargoById('vivres')!, 'automne', hameau, seq())).toBe(0.025);
   });
 
-  it('qualité SECRÈTE du Vin (l.97-104) : d10 6 → Bon = 3 CO (exemple Grünburg l.166) ; Kemperbad +2 échelons', () => {
-    expect(rollWineQuality(seq(6))).toEqual({ roll: 6, label: 'Bon', price: 3 });
-    // Kemperbad : +2 échelons — d10 4 (Moyen, idx 2) → idx 4 = Excellent (6 CO).
-    expect(landCargoBasePrice(findCargoById('vin-eau-de-vie')!, 'printemps', kemperbad, seq(4))).toBe(6);
+  it('qualité SECRÈTE du Vin (l.91, l.97-104) : d10 6 → Bon = 3 CO les 10 Enc → 0,3 par point d’Enc ; Kemperbad +2 échelons', () => {
+    expect(rollWineQuality(seq(6))).toEqual({ roll: 6, label: 'Bon', price: 0.3 });
+    // Kemperbad : +2 échelons — d10 4 (Moyen, idx 2) → idx 4 = Excellent (6 CO les 10 Enc).
+    expect(landCargoBasePrice(findCargoById('vin-eau-de-vie')!, 'printemps', kemperbad, seq(4))).toBe(0.6);
     // Le Vin ne suit PAS la colonne saisonnière : le prix vient de la table de qualité.
-    expect(landCargoBasePrice(findCargoById('vin-eau-de-vie')!, 'printemps', grunburg, seq(6))).toBe(3);
+    expect(landCargoBasePrice(findCargoById('vin-eau-de-vie')!, 'printemps', grunburg, seq(6))).toBe(0.3);
   });
 
   it('Test d’Évaluation du Vin : Intermédiaire, ou Accessible avec Résistance à l’alcool ≥ 50 (l.95)', () => {
@@ -65,12 +65,12 @@ describe('Commerce terrestre MSRC 13 — ACHAT (l.22-131)', () => {
   });
 
   it('Révélation de la qualité du Vin (l.95) : succès → vraie qualité ; échec → fausse indication décalée du DR', () => {
-    // Prix de base 3 CO = « Bon » (idx 3). Succès → la vraie qualité.
-    expect(wineEvalReveal(3, true, 2)).toEqual({ trueLabel: 'Bon', shownLabel: 'Bon' });
+    // Prix de base 0,3 CO par point d'Enc = 3 CO les 10 Enc = « Bon » (idx 3). Succès → la vraie qualité.
+    expect(wineEvalReveal(0.3, true, 2)).toEqual({ trueLabel: 'Bon', shownLabel: 'Bon' });
     // Échec DR −2 → décalé de 2 échelons vers le haut (idx 3+2=5) = « Supérieur » (fausse indication).
-    expect(wineEvalReveal(3, false, -2)).toEqual({ trueLabel: 'Bon', shownLabel: 'Supérieur' });
-    // Échec au sommet (12 CO = « Supérieur » idx 5) : le décalage haut est plafonné → on dévalue (idx 5−2=3).
-    expect(wineEvalReveal(12, false, -2)).toEqual({ trueLabel: 'Supérieur', shownLabel: 'Bon' });
+    expect(wineEvalReveal(0.3, false, -2)).toEqual({ trueLabel: 'Bon', shownLabel: 'Supérieur' });
+    // Échec au sommet (12 CO les 10 Enc = « Supérieur » idx 5) : le décalage haut est plafonné → on dévalue (idx 5−2=3).
+    expect(wineEvalReveal(1.2, false, -2)).toEqual({ trueLabel: 'Supérieur', shownLabel: 'Bon' });
   });
 
   it('Marchandage : marchand 2d10+30 (l.129) ; lot partiel +10 %, mini 10 Enc (l.131)', () => {
@@ -102,7 +102,7 @@ describe('Commerce terrestre MSRC 13 — dé des tables (l.97, l.283 ; #1667)', 
   it('la qualité du vin et la rumeur se tirent au `die` VIVANT de leur table', () => {
     const imprime = structuredClone(datasetObject('landCargo'));
     try {
-      setObjectDataset('landCargo', { ...imprime, wineQuality: { ...imprime.wineQuality, die: 'd1' }, rumours: { ...imprime.rumours, die: 'd5' } });
+      setObjectDataset('landCargo', { ...imprime, qualiteDuVin: { ...imprime.qualiteDuVin, die: 'd1' }, rumeurs: { ...imprime.rumeurs, die: 'd5' } });
       expect(rollWineQuality(deMax), 'd1 → Médiocre').toMatchObject({ roll: 1, label: 'Médiocre' });
       expect(rollTradeRumour(deMax), 'd5 au max → 01-05').toMatchObject({ min: 1, max: 5 });
     } finally {

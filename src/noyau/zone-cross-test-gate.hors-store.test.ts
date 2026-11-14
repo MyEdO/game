@@ -25,10 +25,10 @@ const CROSS_TEST_ZONE: BattleZone = {
   // `source` = l'ENTITÉ qui a posé la zone, comme `placeZoneFromOp` la pose en production (#1262 V2
   // L6d) : le Test de traversée en DÉRIVE son enjeu (« ce qui se joue : Forêt d'épines »).
   label: "Forêt d'épines", tiles: [{ x: 6, y: 10 }], rounds: 4, casterId: 'CASTER',
-  source: { kind: 'spell', id: 'foret-d-epines' },
+  source: { kind: 'sort', id: 'foret-d-epines' },
   onCross: [
-    { op: 'condition', id: 'hemorragique' },
-    { op: 'condition', id: 'empetre', escapeStrength: { charOf: 'force-mentale' } },
+    { op: 'condition', id: { id: 'hemorragique' } },
+    { op: 'condition', id: { id: 'empetre' }, escapeStrength: { charOf: 'force-mentale' } },
   ],
   crossTest: {
     characteristic: 'agilite', difficulty: 'difficile', label: "Forêt d'épines",
@@ -44,11 +44,11 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
     banc.getState().lancerLaScene(testScene());
     seedBattleRng(9);
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const hero = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemy = b.combatants.filter((c) => c.kind === 'enemy')[0];
+    const hero = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemy = b.combatants.filter((c) => c.kind === 'ennemi')[0];
     hero.pos = { x: 5, y: 10 };
     enemy.pos = { x: 5, y: 11 };
     // Lanceur du sort — présent dans la BATAILLE (retiré ensuite au cas « hors combat »).
@@ -60,10 +60,10 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
     return { hero, enemy, caster };
   }
 
-  it('héros manuel SANS le Talent : la traversée pousse une étape de cascade `triggeredTest` (Agilité, Difficile)', () => {
+  it('héros manuel SANS le Talent : la traversée pousse une étape de cascade `testDeclenche` (Agilité, Difficile)', () => {
     const { hero } = setup();
     applyZoneCrossings(banc.getState, banc.setState, hero, [{ x: 5, y: 10 }, { x: 6, y: 10 }]);
-    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'triggeredTest');
+    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'testDeclenche');
     expect(step).toBeTruthy();
     expect(step!.rollLabel).toBe('Agilité');
     // Aucun État posé tant que le jet n'a pas été résolu (pas de jet silencieux).
@@ -74,7 +74,7 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
     const { hero, caster } = setup();
     applyZoneCrossings(banc.getState, banc.setState, hero, [{ x: 5, y: 10 }, { x: 6, y: 10 }]);
     const p = banc.getState().pendingCascade!;
-    const step = p.participants.find((s) => s.kind === 'triggeredTest')! as CascadeStep;
+    const step = p.participants.find((s) => s.kind === 'testDeclenche')! as CascadeStep;
     // Force le jet ÉCHOUÉ (pattern forcé du repo — `gesundheit-sl-scene.hors-store.test.ts` — bypass le d100).
     banc.setState({
       pendingCascade: {
@@ -94,7 +94,7 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
     const { hero } = setup();
     applyZoneCrossings(banc.getState, banc.setState, hero, [{ x: 5, y: 10 }, { x: 6, y: 10 }]);
     const p = banc.getState().pendingCascade!;
-    const step = p.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = p.participants.find((s) => s.kind === 'testDeclenche')!;
     banc.setState({
       pendingCascade: {
         ...p,
@@ -110,7 +110,7 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
   it('héros manuel avec le Talent Magie des Arcanes (Vie) : EXEMPTÉ — aucun jet, aucun État', () => {
     const { hero } = setup([{ talentId: 'magie-des-arcanes', spec: 'vie', times: 1 }]);
     applyZoneCrossings(banc.getState, banc.setState, hero, [{ x: 5, y: 10 }, { x: 6, y: 10 }]);
-    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'triggeredTest')).toBeFalsy();
+    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'testDeclenche')).toBeFalsy();
     expect(hasCondition(hero, COND.empetre)).toBe(false);
   });
 
@@ -134,7 +134,7 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
     banc.setState({ battle: { ...b } });
     applyZoneCrossings(banc.getState, banc.setState, hero, [{ x: 5, y: 10 }, { x: 6, y: 10 }]);
     const p = banc.getState().pendingCascade!;
-    const step = p.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = p.participants.find((s) => s.kind === 'testDeclenche')!;
     banc.setState({
       pendingCascade: {
         ...p,

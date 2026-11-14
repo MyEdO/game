@@ -10,12 +10,13 @@
  * deux dans une même cascade, cf. `noyau/cascade.ts`. Aucun héros humain à bord (IA/rafale/cadence auto) →
  * résolution inline visible (patron `corruptionFlow`). Difficulté d'un naufrage en pleine mer : ancrage RAW
  * le plus proche = la noyade du Tourbillon (MDG 13 l.522 : « Natation Complexe (–10) sous peine de commencer
- * à se noyer ») → défaut MAISON `sea-shipwreck-swim` (#244, éditable). Échec = noyade (LDB 18 l.344, sans
+ * à se noyer ») → défaut MAISON `mer-naufrage-natation` (#244, éditable). Échec = noyade (LDB 18 l.344, sans
  * secours en pleine mer, la suffocation va à son terme). Un héros hors d'action (Inconscient) ne peut pas
  * nager : il sombre SANS jet. Les rescapés sont échoués au lieu le PLUS PROCHE de la position estimée (la
  * carte le sait) ; le navire et sa cargaison sont perdus ; si personne ne survit, `checkPartyWiped` présente
  * la défaite.
  */
+import { nomDe } from '../engine/nom';
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
 import { garanti } from '../lib/garanti';
@@ -41,7 +42,7 @@ import type { PlayerText } from '../i18n/playerText';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Libellé du Test de survie : la Compétence vient de `skills.json` (jamais bakée), sa difficulté de
- *  la policy `sea-shipwreck-swim`. UN foyer pour les DEUX chemins (inline sans pilote / applier de cascade). */
+ *  la policy `mer-naufrage-natation`. UN foyer pour les DEUX chemins (inline sans pilote / applier de cascade). */
 const swimTestLabel = (diff: Difficulty): PlayerText =>
   t('step.sujetPrecision', { sujet: refLabel('skills', { id: 'natation' }), precision: DIFFICULTY_LABELS[diff] });
 
@@ -87,7 +88,7 @@ function shorePlace(get: Get): MapPlace | undefined {
 export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] } = {}): void {
   const vessel = get().vessel;
   const shipName = vessel ? nomDuNavire(vessel) : garanti(get().travelPlan?.vehicle, get().travelPlan?.routeId, 'navire qui sombre').label;
-  const diff = rule('sea-shipwreck-swim') as Difficulty;
+  const diff = rule('mer-naufrage-natation') as Difficulty;
   const shore = shorePlace(get);
   const aboardSet = opts.aboardIds ? new Set(opts.aboardIds) : null;
   const isAboard = (h: Combatant) => (aboardSet ? aboardSet.has(h.id) : !h.dead);
@@ -149,7 +150,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
       const value = testValue(h, { skill: { id: 'natation' }, characteristic: 'force' });
       const tr = rollSansPilote(get, h, value, diff, rng);
       lines.push(traceLineOf({
-        who: h.label, label: swimTestLabel(diff), roll: tr.roll, target: tr.target, success: tr.success,
+        who: nomDe(h), label: swimTestLabel(diff), roll: tr.roll, target: tr.target, success: tr.success,
         // LDB 18 l.344
         issue: tr.success ? t('wreck.issueSwims') : t('wreck.issueDrowns'),
       }));
@@ -172,15 +173,15 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
     const human = humanControlled(get(), h);
     const result = human ? null : (() => { const t = rollSansPilote(get, h, value, diff, rng); return { roll: t.roll, target: t.target, sl: t.sl, success: t.success }; })();
     return {
-      id: `shipwreck-${h.id}`, kind: 'shipwreckSwim', actorId: h.id, icon: 'nautical/swim',
+      id: `shipwreck-${h.id}`, kind: 'naufrageNatation', actorId: h.id, icon: 'nautique/natation',
       label: t('step.natation'), rollLabel: refLabel('skills', { id: 'natation' }), difficulty: diff,
       ...rollStep({ actor: h, test: { skill: { id: 'natation' }, characteristic: 'force' }, difficulty: diff }),
-      stake: voyageStakeRef('sea-shipwreck-swim'),
+      stake: voyageStakeRef('mer-naufrage-nage'),
       result,
       meta,
     };
   });
-  startCascade(get, set, { title: t('wreck.title'), icon: 'nautical/swim', purpose: 'test', steps });
+  startCascade(get, set, { title: t('wreck.title'), icon: 'nautique/natation', purpose: 'test', steps });
 }
 
 /** Journalise (réellement, `get().ecrireAuJournal`) une liste de lignes accumulées AVANT qu'elles n'existent dans
@@ -213,16 +214,16 @@ function finishShipwreck(get: Get, set: Set, shore: MapPlace | undefined, swimme
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['shipwreckSwim'] as const;
+export const GENRES_D_ETAPE = ['naufrageNatation'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   appliers: {
     /** Étape-jet de Natation d'un naufrage (#269) : succès → rescapé (sort de la rencontre) ; échec → noyé
      *  (LDB 18 l.344). La DERNIÈRE étape validée déclenche la clôture complète (`finishShipwreck`). */
-    shipwreckSwim: (get, set, step, hero, ctx) => {
+    naufrageNatation: (get, set, step, hero, ctx) => {
       if (!step.result || !hero) return;
-      const diff = rule('sea-shipwreck-swim') as Difficulty;
+      const diff = rule('mer-naufrage-natation') as Difficulty;
       const success = step.result.success;
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
       const line = t('wreck.applierLine', {
@@ -234,7 +235,7 @@ export const TABLES = {
       if (ctx.index !== ctx.steps.length - 1) return { consequences: freeCons([line]) };
       const shoreId = String(step.meta?.shoreId ?? '');
       const journalMark = Number(step.meta?.journalMark ?? 0);
-      const swimmerIds = ctx.steps.filter((s) => s.kind === 'shipwreckSwim').map((s) => s.actorId!);
+      const swimmerIds = ctx.steps.filter((s) => s.kind === 'naufrageNatation').map((s) => s.actorId!);
       const shore = shoreId ? placeById(get().worldMap as WorldMap, shoreId) : undefined;
       return { consequences: freeCons([line, ...finishShipwreck(get, set, shore, swimmerIds, journalMark)]) };
     },

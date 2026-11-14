@@ -16,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * registre de charge est la pièce qu'il sert (`mannedPoste`).
  */
 const marin = (id: string, pos = { x: 5, y: 5 }): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'hero',
+  combattantDeTest({ id, label: id, kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 70, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], fortune: 0, resilience: 0,
     skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 20 }], talents: [], weapons: [],
@@ -25,10 +25,10 @@ const marin = (id: string, pos = { x: 5, y: 5 }): Combatant =>
 /** Un poste de canon (Recharge 6) qui A TIRÉ : déchargé, à 5 DR de recharge cumulés (proche de la cible). */
 const firedPoste = (over: Partial<ShipPoste> = {}): ShipPoste =>
   ({ side: 'tribord', loaded: false, reloadProgress: 5, crewIds: ['gunner'],
-    item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', weaponGroup: 'poudre-noire', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, ...over }) as unknown as ShipPoste;
+    item: { uid: 'canon', label: 'Canon moyen', kind: 'distance', subType: 'armes-de-siege', weaponGroup: 'poudre-noire', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, ...over }) as unknown as ShipPoste;
 
 const ship = (poste: ShipPoste): Combatant =>
-  combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
+  combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'heros', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
     crewIds: poste.crewIds, postes: [poste], pos: { x: 5, y: 5 }, conditions: [], weapons: [] });
 
 /** Le navire au Tour, son équipage SANS Tour propre ; `applyShipPostes` fait servir chaque pièce par son chef. */
@@ -55,8 +55,8 @@ describe('rechargerLArme sur la pièce d’un navire — Test étendu du chef (L
     seedBattleRng(1); // jet bas → réussite, DR ≥ 1 → 5 + DR ≥ 6 → rechargée
     setup();
     banc.getState().rechargerLArme('canon');
-    banc.getState().jetLancer('reload');
-    banc.getState().jetValider('reload');
+    banc.getState().jetLancer('rechargement');
+    banc.getState().jetValider('rechargement');
     const st = banc.getState();
     expect(pieceDe().loaded).toBe(true);
     expect(pieceDe().reloadProgress).toBe(0);
@@ -91,8 +91,8 @@ describe('rechargerLArme sur la pièce d’un navire — Test étendu du chef (L
     const pr = banc.getState().pendingReload!;
     expect(pr.soutien?.ids).toEqual(['aide']);
     expect(pr.soutien?.bonus).toBe(10);
-    banc.getState().jetLancer('reload');
-    banc.getState().jetValider('reload');
+    banc.getState().jetLancer('rechargement');
+    banc.getState().jetValider('rechargement');
     expect(banc.getState().battle!.crewActed?.['ship']).toEqual(expect.arrayContaining(['gunner', 'aide']));
   });
 });
@@ -102,20 +102,20 @@ describe('rechargerLArme sur la pièce d’un navire — Test étendu du chef (L
  *  (l'Artilleur qui a tiré le fait ensuite), pas d'auto-rechargement. */
 describe('cycle bordée → recharge → re-bordée (MDG 12-14)', () => {
   const gunnerPJ = (): Combatant =>
-    combattantDeTest({ id: 'gunner', label: 'Artilleur', kind: 'hero',
+    combattantDeTest({ id: 'gunner', label: 'Artilleur', kind: 'heros',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 80, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(10), advantage: 0, conditions: [], fortune: 0, resilience: 0,
       skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 30 }], talents: [], weapons: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } });
   const onePoste = (): ShipPoste =>
     ({ side: 'tribord', loaded: true, crewIds: ['gunner'],
-      item: { uid: 'canon', label: 'Pierrier', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 1 }] } }) as unknown as ShipPoste;
+      item: { uid: 'canon', label: 'Pierrier', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 1 }] } }) as unknown as ShipPoste;
   const cycleShip = (): Combatant =>
-    combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
+    combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'heros', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
       crewIds: ['gunner'], postes: [onePoste()], pos: { x: 5, y: 5 }, conditions: [], weapons: [],
       wounds: blessuresDeBase(50) });
   const foe = (): Combatant =>
-    combattantDeTest({ id: 'target', label: 'Cogue', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
+    combattantDeTest({ id: 'target', label: 'Cogue', kind: 'ennemi', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
       characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 40, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
       wounds: blessuresDeBase(90), advantage: 0, conditions: [], weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], crewIds: [] });
 
@@ -126,8 +126,8 @@ describe('cycle bordée → recharge → re-bordée (MDG 12-14)', () => {
     banc.setState({ battle: { combatants: all, order: ['ship'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never, party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, pendingReload: null, scene: null as never });
     // Round 1 : bordée tribord → la pièce tire puis est DÉCHARGÉE.
     banc.getState().ouvrirLaBordee('ship', 'target');
-    banc.getState().jetLancer('shipBattery', 'gunner');
-    banc.getState().jetValider('shipBattery');
+    banc.getState().jetLancer('tirDeBatterie', 'gunner');
+    banc.getState().jetValider('tirDeBatterie');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0].loaded).toBe(false);
     // Même Round : 2e bordée impossible (aucune pièce ne porte → ne s'ouvre pas).
     banc.getState().ouvrirLaBordee('ship', 'target');
@@ -136,8 +136,8 @@ describe('cycle bordée → recharge → re-bordée (MDG 12-14)', () => {
     banc.setState({ battle: { ...banc.getState().battle!, round: 2, crewActed: {} } as never });
     banc.getState().rechargerLArme('canon');
     expect(banc.getState().pendingReload).toBeTruthy();
-    banc.getState().jetLancer('reload');
-    banc.getState().jetValider('reload');
+    banc.getState().jetLancer('rechargement');
+    banc.getState().jetValider('rechargement');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0].loaded).toBe(true); // rechargée
     // Round 2, après recharge : la bordée redevient possible.
     banc.getState().ouvrirLaBordee('ship', 'target');

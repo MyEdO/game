@@ -1,27 +1,16 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
+[ext_resource type="PackedScene" path="res://cadres/fenetre_de_jet.tscn" id="0_cadre"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Theme" path="res://art/titre_de_fenetre.tres" id="2_titre"]
 
-[node name="Cadre" type="PanelContainer"]
-visible = false
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -330.0
-offset_top = -56.0
-offset_right = 330.0
-offset_bottom = -56.0
-grow_horizontal = 2
-grow_vertical = 0
-theme_type_variation = &"Fenetre"
+[node name="Cadre" instance=ExtResource("0_cadre")]
 
 [node name="Colonne" type="VBoxContainer" parent="."]
-theme_override_constants/separation = 8
+theme_type_variation = &"PileSerree"
 
 [node name="Tete" type="HBoxContainer" parent="Colonne"]
-theme_override_constants/separation = 12
+theme_type_variation = &"Rangee"
 
 [node name="Titre" type="VBoxContainer" parent="Colonne/Tete"]
 size_flags_horizontal = 3
@@ -48,7 +37,7 @@ source = "fenetre.corps"
 ids = PackedStringArray("defense/qui")
 
 [node name="Duel" type="HBoxContainer" parent="Colonne"]
-theme_override_constants/separation = 16
+theme_type_variation = &"Rangee"
 
 [node name="Reaction" type="VBoxContainer" parent="Colonne/Duel"]
 size_flags_horizontal = 3

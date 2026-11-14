@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * Axe HAUTEUR de la chute volontaire (EDO 01 l.231) dans la rangée de `FallModal` : offert seulement
- * quand l'étape porte `suspendu`, déclaré avant le Test par `jetRegler('fall', 'suspendre')`, éteint quand le Mouvement ne le
+ * quand l'étape porte `suspendu`, déclaré avant le Test par `jetRegler('chute', 'suspendre')`, éteint quand le Mouvement ne le
  * couvre pas (`refusDeLaSuspension`, `noyau/gesteDArete.ts`). Afficher = agir.
  */
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
@@ -20,7 +20,7 @@ beforeAll(() => {
 });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 40 };
-const sauteur = blessuresSurLeProfil({ id: 'S', name: 'S', label: 'S', kind: 'hero', characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
+const sauteur = blessuresSurLeProfil({ id: 'S', name: 'S', label: 'S', kind: 'heros', characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
   weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
   species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4, traits: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant;

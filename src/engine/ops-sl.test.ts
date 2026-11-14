@@ -20,7 +20,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  */
 const dummy = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'x', label: 'X', kind: 'enemy',
+    id: 'x', label: 'X', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(20), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -48,7 +48,7 @@ describe('PerSL — échelle « par +N DR » (OpsCtx.sl)', () => {
 
   it('condition « +1 Empêtré par +2 DR » (Enchevêtrement, LDB 47)', () => {
     const c = dummy();
-    applyOps(c, [{ op: 'condition', id: 'empetre', valuePerSL: { every: 2, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest, sl: 5 });
+    applyOps(c, [{ op: 'condition', id: { id: 'empetre' }, valuePerSL: { every: 2, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest, sl: 5 });
     expect(stacks(c, 'empetre')).toBe(3); // 1 (base) + ⌊5/2⌋ = 2
   });
 
@@ -62,7 +62,7 @@ describe('PerSL — échelle « par +N DR » (OpsCtx.sl)', () => {
 
   it('condition « +DR État En flammes » (Purification, LDB 48) — base 0, plancher 1 de l’op', () => {
     const c = dummy();
-    applyOps(c, [{ op: 'condition', id: 'en-flammes', value: 0, valuePerSL: { every: 1, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest, sl: 4 });
+    applyOps(c, [{ op: 'condition', id: { id: 'en-flammes' }, value: 0, valuePerSL: { every: 1, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest, sl: 4 });
     expect(stacks(c, 'en-flammes')).toBe(4);
   });
 
@@ -76,16 +76,16 @@ describe('PerSL — échelle « par +N DR » (OpsCtx.sl)', () => {
 
   it('condition « 1 Sonné par niveau d’échec » (Hallucinogène, MdRC ch.13 l.167) — value:0 + valuePerSL.onFailure', () => {
     const c = dummy();
-    applyOps(c, [{ op: 'condition', id: 'sonne', value: 0, valuePerSL: { every: 1, amount: 1, onFailure: true } }], { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
+    applyOps(c, [{ op: 'condition', id: { id: 'sonne' }, value: 0, valuePerSL: { every: 1, amount: 1, onFailure: true } }], { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
     expect(stacks(c, 'sonne')).toBe(2);
     const c1 = dummy();
-    applyOps(c1, [{ op: 'condition', id: 'sonne', value: 0, valuePerSL: { every: 1, amount: 1, onFailure: true } }], { idNeuf: idsDeTest, rng: desDuTest, sl: -1 });
+    applyOps(c1, [{ op: 'condition', id: { id: 'sonne' }, value: 0, valuePerSL: { every: 1, amount: 1, onFailure: true } }], { idNeuf: idsDeTest, rng: desDuTest, sl: -1 });
     expect(stacks(c1, 'sonne')).toBe(1);
   });
 
   it('consommateurs valuePerSL/perSL existants à DR ≥ 0 restent inchangés (non-régression)', () => {
     const c = dummy();
-    applyOps(c, [{ op: 'condition', id: 'empetre', valuePerSL: { every: 2, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest, sl: 5 });
+    applyOps(c, [{ op: 'condition', id: { id: 'empetre' }, valuePerSL: { every: 2, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest, sl: 5 });
     expect(stacks(c, 'empetre')).toBe(3);
   });
 
@@ -93,17 +93,17 @@ describe('PerSL — échelle « par +N DR » (OpsCtx.sl)', () => {
     const trait = findTraitById('hallucinogene');
     const flow = trait?.effects?.[0]?.flow as Extract<Flow, { kind: 'test' }> | undefined;
     expect(flow?.kind).toBe('test');
-    const fail = flow!.fail as Extract<Flow, { kind: 'do' }>;
-    expect(fail.effect.type).toBe('ops');
+    const fail = flow!.echec as Extract<Flow, { kind: 'effet' }>;
+    expect(fail.effet.type).toBe('ops');
     const c2 = dummy();
-    applyOps(c2, (fail.effect as { ops: Parameters<typeof applyOps>[1] }).ops, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
+    applyOps(c2, (fail.effet as { ops: Parameters<typeof applyOps>[1] }).ops, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
     expect(stacks(c2, 'sonne')).toBe(2);
     const c1 = dummy();
-    applyOps(c1, (fail.effect as { ops: Parameters<typeof applyOps>[1] }).ops, { idNeuf: idsDeTest, rng: desDuTest, sl: -1 });
+    applyOps(c1, (fail.effet as { ops: Parameters<typeof applyOps>[1] }).ops, { idNeuf: idsDeTest, rng: desDuTest, sl: -1 });
     expect(stacks(c1, 'sonne')).toBe(1);
-    // réussite = branche `success` vide (aucun op) → aucune mutation.
-    const success = flow!.success as Extract<Flow, { kind: 'seq' }>;
-    expect(success.steps).toHaveLength(0);
+    // réussite = branche `reussite` vide (aucun op) → aucune mutation.
+    const success = flow!.reussite as Extract<Flow, { kind: 'sequence' }>;
+    expect(success.etapes).toHaveLength(0);
   });
 });
 
@@ -113,7 +113,7 @@ describe('onlyGroups — ops gatées par Groupe de la cible (Feu de l’âme, LD
     const villageois = dummy({ groups: ['humain'] });
     const ops = [
       { op: 'wounds' as const, amount: 3 },
-      { op: 'condition' as const, id: 'en-flammes', onlyGroups: ['mort-vivant', 'demon'] },
+      { op: 'condition' as const, id: { id: 'en-flammes' }, onlyGroups: ['mort-vivant', 'demon'] },
     ];
     applyOps(zombie, ops, { idNeuf: idsDeTest, rng: desDuTest, sl: 0 });
     applyOps(villageois, ops, { idNeuf: idsDeTest, rng: desDuTest, sl: 0 });
@@ -125,7 +125,7 @@ describe('onlyGroups — ops gatées par Groupe de la cible (Feu de l’âme, LD
 
   it('groupMatch : appartenance STRICTE par id — plus de tolérance de pluriel (« Morts-vivants » ne matche PAS l’id « mort-vivant »)', () => {
     const zombie = dummy({ groups: ['mort-vivant'] });
-    applyOps(zombie, [{ op: 'condition', id: 'en-flammes', onlyGroups: ['Morts-vivants'] }], { idNeuf: idsDeTest, rng: desDuTest });
+    applyOps(zombie, [{ op: 'condition', id: { id: 'en-flammes' }, onlyGroups: ['Morts-vivants'] }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(stacks(zombie, 'en-flammes')).toBe(0);
   });
 });

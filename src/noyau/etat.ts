@@ -1,10 +1,11 @@
 import type { Combatant, ItemInstance } from '../engine/types';
-import type { FateSaveSource } from '../engine/fortune';
+import type { Formula } from '../engine/ops';
 import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
-import type { BattleActionMode } from './actionRegistry';
+import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { ShipMoraleState } from '../engine/crewMorale';
 import type { Dir8 } from '../geometry/dir8';
 import type { LocalIntent } from './localIntent';
+import type { IdDIntention } from './designations';
 import type { RefusIHM } from './refusVisible';
 import type { EtatDeSequence } from './sequenceContract';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -21,7 +22,53 @@ import type { Possession } from '../engine/possession';
 import type { MerchantState, MerchantStocks } from './merchantFlow';
 import type { FinDeSeance } from './partyFlow';
 import type * as tavernFlow from './tavernFlow';
-import type { PendingVictory, PendingLoot, PendingTest, PendingSteamSave, PendingReload, PendingStateRecovery, PendingBargain, PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel, PendingFrenzy, PendingRenounce, PendingDefense, PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingDesignationHeros, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption, PendingCastOpposition, PendingCascade, ScheduledEffect, EtatDialogue } from './pendings';
+import type {
+  PendingVictory,
+  PendingLoot,
+  PendingTest,
+  PendingSteamSave,
+  PendingReload,
+  PendingStateRecovery,
+  PendingBargain,
+  PendingAppraise,
+  PendingAttack,
+  PendingHandGate,
+  PendingSiegeAim,
+  PendingCleave,
+  PendingDualStrike,
+  PendingBattement,
+  PendingDistraire,
+  PendingManeuver,
+  PendingRun,
+  PendingFall,
+  PendingShipManeuver,
+  PendingShipBattery,
+  PendingShanty,
+  PendingApproach,
+  PendingWard,
+  PendingFocus,
+  PendingDispel,
+  PendingFrenzy,
+  PendingRenounce,
+  PendingDefense,
+  PendingDisengage,
+  PendingAuContact,
+  PendingGrapple,
+  PendingCast,
+  PendingCounterspell,
+  PendingExtendedTest,
+  PendingForceDoor,
+  PendingDesignationHeros,
+  PendingEtalLot,
+  PendingHeal,
+  PendingSurgery,
+  PendingCorruption,
+  PendingCastOpposition,
+  PendingCascade,
+  ScheduledEffect,
+  EtatDialogue,
+  Suite,
+} from './pendings';
 import type { MedicState } from './acteDeSoin';
 import type { PendingRest } from './restFlow';
 import type { PendingCouncil } from './shipCrew';
@@ -40,11 +87,11 @@ export const SCREENS = ['menu', 'party', 'creator', 'campaign', 'editor', 'test'
 export type Ecran = typeof SCREENS[number];
 
 /** Postures de tir PRÉ-ARMÉES d'un combattant (`BattleState.stances`) : les champs qu'elles
- *  pré-remplissent sur le `PendingAttack` de son prochain tir. `heldGround` — tir IMMOBILE
- *  (`LDB 14 l.70`) ; `intoCrowd` — « Tirer dans le tas » (`LDB 14 l.106`, `l.116`). */
+ *  pré-remplissent sur le `PendingAttack` de son prochain tir. `tirImmobile` — tir IMMOBILE
+ *  (`LDB 14 l.70`) ; `dansLeTas` — « Tirer dans le tas » (`LDB 14 l.106`, `l.116`). */
 export interface ShootingStance {
-  heldGround?: boolean;
-  intoCrowd?: boolean;
+  tirImmobile?: boolean;
+  dansLeTas?: boolean;
 }
 /** Champ de posture armable — l'id porté par le registre des actions (`ActionDef.stance`). */
 export type ShootingStanceKey = keyof ShootingStance;
@@ -68,6 +115,14 @@ export interface TourEnCours {
   parquee?: true;
 }
 
+/** La série d'attaques subies hors bataille (`EtatDeJeu.serieSubie`). `apresSuite` : la suite que le dé `nombre` faisait
+ *  attendre (#1508), remise par son applier et jouée à la sortie unique de la série (`fermerLaSerieSubie`). */
+export interface SerieSubie { assaillant: Combatant; cibleId: string; avant: Combatant; restantes: number; apresSuite?: Suite }
+
+/** Une Blessure critique suspendue à son étape (`etapeId`, Déviation `self` ou Piège-à-lame) : `avantLeCoup`, le porteur
+ *  tel qu'avant le coup (`instantaneAvantLeCoup`), lu et retiré par l'applier de l'étape. LDB 17 l.32 */
+export interface CritiqueSuspendu { etapeId: string; porteurId: string; avantLeCoup: Combatant }
+
 export interface BattleState {
   combatants: Combatant[];
   order: string[];
@@ -84,9 +139,7 @@ export interface BattleState {
    *  ils sont implicites au clic (sol/ennemi) quand `action === null` — cf. `cliquerLaCaseDuCombat`/`cliquerLeCombattant`.
    *  La Focalisation / l'usage d'objet / le ramassage NE sont PAS des modes : ils passent par
    *  `focaliserLeSort`→`pendingFocus`, `utiliserLObjet`, `ramasserLObjet`.
-   *  Le TYPE vient du REGISTRE DES ACTIONS (`actions.json` : le champ `armed` de chaque action) +
-   *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleport` = résolution d'un sort) —
-   *  parité gardée par `src/noyau/action-atteignabilite.hors-store.test.ts`. */
+   *  Le TYPE vient de `MODES_ARMABLES` (`src/data/schemas/defs/actions.ts`). */
   action: BattleActionMode | null;
   /** Sort sélectionné pour l'action d'incantation en cours (id STABLE — le libellé se résout à l'affichage). */
   selectedSpellId: string | null;
@@ -119,7 +172,7 @@ export interface BattleState {
    *  `PendingAttack` qu'elle pré-remplit — aucune sémantique parallèle. */
   stances?: Record<string, ShootingStance>;
   log: CombatEvent[];
-  over: null | 'victory' | 'defeat';
+  over: null | 'victoire' | 'defaite';
   onVictory?: Flow;
   /** Objectif de victoire authorable (#197). Absent = `allEnemiesDead` (défaut historique, `checkBattleOver`). */
   victoryCondition?: VictoryCondition;
@@ -173,11 +226,11 @@ export interface BattleState {
   /** Aperçu « tap 1 » du modèle de clic implicite (tap aperçu → tap confirme). Purgé au commit,
    *  à chaque changement de Tour/Round, et remplacé par tout nouveau tap. */
   preview?:
-    | { kind: 'move'; tile: Pt; path: Pt[]; cost: number }
-    | { kind: 'run'; tile: Pt; path: Pt[]; cost: number }
-    | { kind: 'attack'; targetId: string }
+    | { kind: 'deplacement'; tile: Pt; path: Pt[]; cost: number }
+    | { kind: 'course'; tile: Pt; path: Pt[]; cost: number }
+    | { kind: 'attaque'; targetId: string }
     | { kind: 'charge'; targetId: string; dest: Pt; path: Pt[]; adv: 0 | 1 }
-    | { kind: 'moveAttack'; targetId: string; dest: Pt; path: Pt[]; cost: number }
+    | { kind: 'deplacementEtAttaque'; targetId: string; dest: Pt; path: Pt[]; cost: number }
     | null;
 }
 
@@ -240,6 +293,8 @@ export interface CampaignVessel {
   upgrades?: import('../engine/types').NavalTraitRef[];
   /** Salissures (MDG 13 l.144-159) : niveau 0-5 + garde hebdomadaire du Test. */
   fouling?: { level: number; lastWeek: number };
+  /** Coque tenue par une réparation temporaire, jusqu'à la réparation au port (`portRepairVessel`). MDG 13 l.651 */
+  reparationTemporaire?: true;
   /** Humeur de Manann (MDG 15 l.83-125) — par navire, registre des facteurs déjà appliqués. */
   manann?: import('../engine/seaVoyage').ManannMood;
   /** SABOTAGE authoré sur cette coque (MDG 14 l.45-47) — clampé [-5,0] par `shipSaboteurDR`,
@@ -253,14 +308,13 @@ export interface CampaignVessel {
   modificateurs?: import('../engine/seaVoyage').ModificateurDuNavire[];
   /** Météos imposées par un événement (op `meteoImposee`), valables en mer comme au départ d'un port. MDG 15 l.248 */
   meteosImposees?: import('../engine/seaVoyage').MeteoImposeeDuNavire[];
-  /** Eau douce embarquée (litres — tonneau : 145 L, MDG 14 l.242). Absent = ravitaillement réputé
-   *  assuré (même décision de périmètre que la Soif, cf. provisions.ts). */
+  /** Eau douce embarquée (litres — tonneau : 145 L, MDG 14 l.242). Absent = eau non suivie, l'accès
+   *  à l'eau suit la règle `penurie-d-eau` (`upkeep.ts`, `hasWater`). */
   waterLitres?: number;
-  /** VIVRES de l'équipage PNJ embarqués (rations de mer de la cale, en jours-homme — MDG 14 l.238/250).
-   *  L'effectif nominal en consomme une/jour à `shipboardSouls().crew` ; à court → facteur de Moral
-   *  `nourriture-insuffisante` (−2d10, MDG 14 l.171). Absent = ravitaillement d'équipage réputé assuré
-   *  (même décision de périmètre que `waterLitres`). #245. */
-  provisions?: number;
+  /** VIVRES de l'équipage PNJ embarqués, en lots datés de la cale (`LotDeVivres`), mangés par
+   *  `consumeCrewProvisions` (`seaVoyageFlow.ts`), le périssable pourri purgé par `purgeSurAvanceDHorloge`.
+   *  MDG 14 l.171, l.238, l.245-252. Absent = vivres de l'équipage non suivis. #245 ; #4058 */
+  provisions?: import('../engine/provisions').LotDeVivres[];
   /** Milles de la DERNIÈRE traversée accomplie — vente à un port PRODUCTEUR : « Si le bateau a
    *  parcouru plus de 100 milles » (MDG 15 l.366). Absent = navire à quai depuis sa mise à l'eau. */
   lastVoyageMilles?: number;
@@ -280,18 +334,33 @@ export interface CampaignVessel {
   /** Le lieu de la carte où le navire est à quai : posé à l'accostage, levé à l'appareillage ; absent en mer.
    *  Le « port de l'escale » de l'op `marcheDuPort`. MDG 15 l.129 */
   escale?: string;
+  /** Colis à livrer (op `commission`) : le lieu de destination (`placeId`), le montant reçu à l'accostage dans ce
+   *  lieu (sous de cuivre) et la source ; chaque commission tombe à sa livraison. MDG 15 l.261 */
+  commissions?: { label: string; placeId: string; brass: number }[];
+  /** Constructeur de navires de l'escale (op `constructeurDEscale`) : la Compétence de son Test de réparation et la
+   *  durée en jours de chacun de ses travaux, tirée à chaque réparation ou Amélioration ; levé à l'appareillage.
+   *  MDG 15 l.255 */
+  constructeurDEscale?: { competence: number; duree: Formula };
+  /** Prix de la ration-jour de vivres frais à l'escale (op `rationsDEscale`), en sous de cuivre ; levé à l'appareillage.
+   *  MDG 15 l.262 */
+  rationsDEscale?: number;
   /** Enc de cargaison perdus au PROCHAIN déchargement dans le port de l'escale (op `cargaison`,
    *  `perteAuDechargement`) ; levé à l'accostage suivant. MDG 15 l.250 */
   perteAuDechargement?: number;
   /** INFESTATION de la cale (op `infestation`) jusqu'à son extermination : `progres` DR cumulés au Test
-   *  étendu `crewTestType` ; `chaqueNuit` joue à chaque nuit en mer. MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
+   *  étendu `crewTestType` ; `chaqueNuit` joue à chaque nuit en mer ; `assaillie`, posé par une étape à DR
+   *  négatif, fait jouer `surDRNegatif` au soir. MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
   infestation?: {
     label: string;
     crewTestType: string;
     difficulty: import('../engine/types').Difficulty;
-    targetDR: number;
+    drCible: number;
     progres: number;
     chaqueNuit: import('../engine/flowCore').Flow;
+    /** MDG 15 l.161, l.176 */
+    surDRNegatif?: import('../engine/flowCore').Flow;
+    /** MDG 15 l.161, l.176 */
+    assaillie?: true;
   };
 }
 
@@ -299,17 +368,17 @@ export interface CampaignVessel {
  *  `slots` : siège attribué à chacun des 4 emplacements de l'écran d'équipe (0 = hôte).
  *  `rangs` : heroId → emplacement qu'il occupe, lu par `emplacementsDuGroupe` (`sieges.ts`). */
 export interface NetState {
-  mode: 'local' | 'host' | 'guest';
+  mode: 'local' | 'hote' | 'invite';
   mySeat: number;
   /** Code de room à 6 caractères (affiché/copiable par l'hôte, voyage dans les snapshots). */
   roomCode: string | null;
   seatNames: Record<number, string>;
   /** Vue HÔTE : sièges en cours de reconnexion (absent = connecté). */
-  presence: Record<number, 'ok' | 'away'>;
+  presence: Record<number, 'present' | 'absent'>;
   /** Vue INVITÉ : sa propre connexion (préservée à l'application des snapshots). */
-  connection: 'ok' | 'reconnecting';
+  connection: 'connecte' | 'reconnexion';
   /** Vue INVITÉ : l'hôte est-il momentanément déconnecté ? */
-  hostAway: boolean;
+  hoteAbsent: boolean;
   ownership: Record<string, number>;
   slots: number[];
   rangs: Record<string, number>;
@@ -320,7 +389,7 @@ export interface NetState {
 }
 export const initialNet = (): NetState => ({
   mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {},
-  connection: 'ok', hostAway: false, ownership: {}, slots: [0, 0, 0, 0], rangs: {},
+  connection: 'connecte', hoteAbsent: false, ownership: {}, slots: [0, 0, 0, 0], rangs: {},
 });
 
 /** Les champs de JEU de l'état (#2817 D5) : tout hôte les porte ; aucun champ d'interface. */
@@ -342,7 +411,7 @@ export interface EtatDeJeu {
    *  à choisir LEQUEL de ses Sorts permanents dissiper — c'est le paramètre que le panneau borné de
    *  la console demande. LOCAL au client au même titre que `localIntent` (aucune ressource engagée,
    *  hors `battle`, hors snapshot). L'élection se joue donc chez l'ÉMETTEUR du clic
-   *  (`emettreIntentInvite`, `hote/coop/salon.ts` ; table `targetingModes.INTENT_ELECTION_LOCALE`) : elle ne part
+   *  (`emettreIntentInvite`, `noyau/reseau.ts` ; table `targetingModes.INTENT_ELECTION_LOCALE`) : elle ne part
    *  JAMAIS en intent — l'exécuter dans le store de l'hôte y ferait naître un panneau étranger, et
    *  l'invité n'en verrait aucun (le snapshot efface ce champ).
    *  null = aucun porteur élu — avant le clic-token, ou après la fermeture du panneau. */
@@ -376,9 +445,9 @@ export interface EtatDeJeu {
    *  dérive. CAMPAGNE-scopé comme `objectives` ; vidé en nouvelle partie (`lancerLaScene`). */
   objectifsSoldes: Objective[];
   /** Borne d'ouverture du chapitre courant (#717) — posée à l'acquittement de l'ouverture
-   *  (`fenetreValider('ouverture')`), re-posée à la clôture (`fenetreValider('chapterRecap')`) ; null = aucun chapitre borné. */
+   *  (`fenetreValider('ouverture')`), re-posée à la clôture (`fenetreValider('finDeChapitre')`) ; null = aucun chapitre borné. */
   chapitreDepuis: ChapitreDepuis | null;
-  /** La clôture authorée du paquet courant a été CONSOMMÉE (#717) — posé par `fenetreValider('chapterRecap')`, lu par
+  /** La clôture authorée du paquet courant a été CONSOMMÉE (#717) — posé par `fenetreValider('finDeChapitre')`, lu par
    *  `armChapterRecapIfDue`. La clôture est une Condition, et une Condition vraie le RESTE (un drapeau
    *  ne se retire pas) : sans ce fait, le lot d'effets suivant ré-armerait un récap vide, à l'infini.
    *  Un seul booléen suffit : un paquet porte UNE `narratif.cloture`, et le fait meurt avec la partie
@@ -401,6 +470,13 @@ export interface EtatDeJeu {
    *  transitions de scène (comme `clues`/`explored`), vidé en nouvelle partie (`lancerLaScene`). Verbatim
    *  des dialogues (non borné à 40) : `dialogueHistory`, slot séparé (ne pas greffer ici). */
   journal: string[];
+  /** Lignes écrites au `journal` depuis l'ouverture de la partie : clé réservée, augmentée par `ecrireAuJournal`
+   *  (`journal.ts`) et par `lancerLaScene` (`entreeEnScene.ts`), jamais remise. Un invité compte par elle ce qu'un
+   *  instantané lui apporte (`Partie.recevoir`). #3009 */
+  lignesAuJournal: number;
+  /** Combats ouverts depuis l'ouverture de la partie : clé réservée, augmentée par `marquerUnCombatOuvert`
+   *  (`idsDuMonde.ts`) et gardée par `lancerLaScene`. L'identité du `battle` courant (`Partie.recevoir`). #3009 */
+  combatsOuverts: number;
   /** CONVERSATION en cours (`EtatDialogue`, porteuse de sa `session`) — ouverte par l'unique
    *  fabrique `ouvrirDialogue` (`noyau/dialogue.ts`), jamais bâtie à la main. */
   dialogue: EtatDialogue | null;
@@ -410,13 +486,20 @@ export interface EtatDeJeu {
   dialogueHistory: DialogueTurn[];
   /** Marchand ouvert (#2) : instantané du stock pour la visite (Disponibilité figée). */
   merchant: MerchantState | null;
-  /** Jeux de taverne ouverts (option `tavern-games`, NADJ 16) — null = fermé ; `result` = dernière partie. */
+  /** Jeux de taverne ouverts (option `jeux-de-taverne`, NADJ 16) — null = fermé ; `result` = dernière partie. */
   tavernGames: tavernFlow.TavernGamesState | null;
   /** Stock PERSISTANT par marchand (#T3 re-stock) : déplété entre visites, re-tiré seulement après
    *  `restockDays` écoulés. `rolledAt` = gameTime du dernier tirage. `bargainLocked` = le joueur a négocié
    *  puis quitté SANS payer → plus de Marchandage avec ce marchand jusqu'au prochain réassort. Reset en nouvelle partie. */
   merchantStocks: MerchantStocks;
   battle: BattleState | null;
+  /** La SÉRIE D'ATTAQUES SUBIES hors bataille (op `attaquesSubies`) : l'assaillant, seul hôte hors du groupe, lu par
+   *  `porteurParId` et `touchActors` ; `cibleId`, le héros attaqué, au contact de l'assaillant ; `avant`, ce héros tel
+   *  qu'il était avant d'entrer dans la rencontre ; `restantes`, les attaques encore dues. `null` hors série. MDG 15
+   *  l.163-164, l.177-178 */
+  serieSubie: SerieSubie | null;
+  /** Les Blessures critiques suspendues à une étape de la séquence, chacune avec son porteur d'avant le coup. */
+  critiquesSuspendus: CritiqueSuspendu[];
   campaignSceneId: string | null;
   /** Couche NARRATIVE de la campagne chargée (#765/#767) — bloc `{affaires, indices, presetsPnj, objets}`
    *  du paquet, posé par `chargerLeProjet`, lu par id via les résolveurs UNIQUES de `resolveursDuNarratif.ts`. RUNTIME
@@ -468,13 +551,13 @@ export interface EtatDeJeu {
   pendingInteract: PendingInteract | null;
   pendingCast: PendingCast | null;
   /** Contre-sort à PLUSIEURS (réaction au Sort figé dans `pendingCast`) : les contre-lanceurs
-   *  enrôlés par `routeCounterspell`, chacun son jet (flux multi `FLOWS.counterspell`). Null = pas de réaction. */
+   *  enrôlés par `routeCounterspell`, chacun son jet (flux multi `FLOWS.contreSort`). Null = pas de réaction. */
   pendingCounterspell: PendingCounterspell | null;
   /** Test Étendu en cours (LDB 12 : DR cumulé vers une cible, ex. crochetage) : flux multi
-   *  SÉQUENTIEL — un Round à la fois (`FLOWS.extendedTest`), cumul dans `jetValider('extendedTest')`. */
+   *  SÉQUENTIEL — un Round à la fois (`FLOWS.testEtendu`), cumul dans `jetValider('testEtendu')`. */
   pendingExtendedTest: PendingExtendedTest | null;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2 : objet BE/B) : flux multi PARALLÈLE — chaque
-   *  héros frappe (`FLOWS.forceDoor`), cumul des dégâts vs B dans `jetValider('forceDoor')`. */
+   *  héros frappe (`FLOWS.enfoncerLaPorte`), cumul des dégâts vs B dans `jetValider('enfoncerLaPorte')`. */
   pendingForceDoor: PendingForceDoor | null;
   /** DÉSIGNATION d'un héros pour un état de campagne (Effet `designerHeros`, EDO 02 l.91). */
   pendingDesignationHeros: PendingDesignationHeros | null;
@@ -503,7 +586,7 @@ export interface EtatDeJeu {
   /** Incantation OPPOSÉE (`spec.opposed`) : chaque CIBLE oppose son Test (FM/Int) à l'incantation
    *  figée (`pendingCast.result`) — multijet DANS la modale de cast (cible IA = rangée témoin
    *  auto-roulée, cible héros = interactive). `jetValider('opposition')` agrège → `pendingCast.opposedOutcome`
-   *  → `jetValider('cast')` applique (cible résistante = aucune op ; sinon ops à la marge). */
+   *  → `jetValider('incantation')` applique (cible résistante = aucune op ; sinon ops à la marge). */
   pendingCastOpposition: PendingCastOpposition | null;
   /** Télégraphe d'intention ENNEMI : réticule « qui l'adversaire vise » + manière (`kind`), montré
    *  ~0,85 s AVANT l'action. Alimente le réticule/la ligne sur la carte ET la bannière d'annonce. */
@@ -573,10 +656,14 @@ export interface EtatDeJeu {
    *  frise) — le prochain clic sur un adversaire (carte OU frise) déclenche `declencherLeTirPreventif`. `null` = aucune. */
   preemptAiming: string | null;
   /** Sauvetage par le Destin en attente (LDB 17 l.29-32). */
-  pendingFateSave: { heroId: string; source: FateSaveSource; restoreWounds?: number;
+  pendingFateSave: ({ heroId: string;
     /** L'auteur du coup direct, dont se lisent les Cibles de l'Animosité acquise si le héros dépense le Destin
      *  (`ciblesDAnimositeAcquise`, ADE II 09 l.15). */
-    foeId?: string } | null;
+    foeId?: string } & (
+    /** Le coup létal : `avantLeCoup`, le porteur tel qu'avant le coup, que « Comment ça a pu rater ? » restaure
+     *  (LDB 17 l.32). */
+    | { source: 'hit'; avantLeCoup: Combatant }
+    | { source: 'slow' })) | null;
   /** Récompenses de victoire capturées (écran de fin de combat) ; null hors victoire. */
   pendingVictory: PendingVictory | null;
   /** VOL TERRESTRE en cours (#327) : le combat courant est né d'une péripétie dangereuse terrestre —
@@ -610,16 +697,16 @@ export interface EtatDeJeu {
   /** Combat de masse / Puissance de Bataille (ADE II 08) : état de la bataille abstraite en cours
    *  (Puissance des deux armées, Round, Scènes) — null hors bataille. */
   massBattle: MassBattleState | null;
-  /** Coop en ligne : état réseau sérialisable + actions de session — délégué à netFlow.
-   *  Les objets réseau vivants (sessions, sockets du relay) restent des singletons de module. */
+  /** Coop en ligne : état réseau sérialisable ; les objets réseau vivants (sessions, sockets du
+   *  relay) restent dans la fermeture du salon (`hote/coop/salon.ts`). */
   net: NetState;
   /** La fin de séance ouverte (`ouvrirLaFinDeSeance` : l'Effet `sessionEnd` #83, le menu de jeu, le récap de chapitre)
    *  et ses cases cochées ; `null` : fermée. */
   finDeSeance: FinDeSeance | null;
   /** Combat monté (AA 9 l.36) : clic sur un couple cavalier+monture (deux ennemis) → choisir lequel
    *  frapper (le cavalier −10 si l'on est plus petit que la monture ; abattre la monture désarçonne). */
-  /** `approche` = VERDICT D'ARMEMENT capturé au clic qui a ouvert ce choix (cf. `PendingApproach`). */
-  pendingMountTarget: { riderId: string; mountId: string; approche?: boolean } | null;
+  /** `intentionId` = l'intention du clic qui a ouvert ce choix (cf. `PendingApproach`). */
+  pendingMountTarget: { riderId: string; mountId: string; intentionId?: IdDIntention } | null;
   /** Temps de jeu : minutes depuis l'époque (Hexenstag 2512 00:00, cf. clock.ts). « Tout est horodaté ». */
   gameTime: number;
   // ── Voyage & nourriture (#T2) ──
@@ -650,7 +737,7 @@ export interface EtatDeJeu {
   /** Dernier jour calendaire (index d'horloge) où une NUIT a été jouée (`sleepParty`/`buildNightCascade`)
    *  — garde de la « nuit forcée » maison (#340) : un jour franchi au-delà sans sommeil coûte 1 Exténué. */
   lastNightDay: number;
-  /** Départ de voyage BLOQUÉ par la porte d'heure (maison `travel-departure-gate`, #340) : terre/fleuve
+  /** Départ de voyage BLOQUÉ par la porte d'heure (maison `voyage-heure-de-depart`, #340) : terre/fleuve
    *  de nuit → « Attendre l'aube » (nuit jouée) ou annuler. `null` = pas de départ en attente. */
   pendingDeparture: { mode: import('../engine/travel').TravelMode; cause: 'nuit' | 'budget'; dawnAt: number } | null;
   /** Navire de campagne PERSISTANT (MDG 13-14) — porte son `vehicleId` et son MORAL (recalculé chaque
@@ -732,12 +819,16 @@ export function etatInitialDuJeu(): EtatDeJeu {
     clues: {},
     explored: {},
     journal: [],
+    lignesAuJournal: 0,
+    combatsOuverts: 0,
     dialogue: null,
     dialogueHistory: [],
     merchant: null,
     merchantStocks: {},
     tavernGames: null,
     battle: null,
+    serieSubie: null,
+    critiquesSuspendus: [],
     campaignSceneId: null,
     interlude: null,
     bank: [],

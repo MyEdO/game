@@ -2,9 +2,10 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** NADJ 16 l.11 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { charKeySchema, difficultySchema, maisonSchema, plageSchema } from '../grammaire/valeurs';
-import { executeesDe, fixerLeTest, flowTestSchema, jetSchema, sujetDuJetSchema } from '../grammaire/mecanique';
+import { charKeySchema, deDeTirageSchema, difficultySchema, maisonSchema, plageSchema } from '../grammaire/valeurs';
+import { executeesDe, flowTestSchema, porteurDeTestFixe, jetSchema, sujetDuJetSchema } from '../grammaire/mecanique';
 import { specialSchema } from '../grammaire/jeu-de-taverne';
+import { idDe } from '../grammaire/ref';
 import { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../../../engine/sequenceVocab';
 
 export const file = 'tavernGames.json';
@@ -34,7 +35,7 @@ const doc = document(
       maison: { label: 'Arbitrage maison' },
     }).optional(),
     /** Absent quand le jeu ne se résout pas au Test : l'Al-zahr est un jeu de MISE (`pot`). */
-    mode: z.enum(['opposed', 'extended']).optional(),
+    mode: z.enum(['oppose', 'etendu']).optional(),
     target: z.number().optional(),
     drCap: z.number().optional(),
     /** Id du départage d'égalité résolu par le socle de séquence (`units-lowest` Dominos l.105,
@@ -65,11 +66,11 @@ const doc = document(
     roundShape: z.enum(['team', 'thrower', 'pot', 'volley']).optional(),
     /** Options de Test d'une manche (Middenball l.119 : Bagarre (+20) OU Athlétisme (+0)) — le choix
      *  va au joueur ; la 1ʳᵉ option est celle que suivent les porteurs sans siège et les figurants. */
-    options: z.array(nommerChamps(z.strictObject({
+    options: z.array(nommerChamps(porteurDeTestFixe(z.strictObject({
       test: flowTestSchema,
       /** LDB 14 l.215 */
       combatTest: z.boolean().optional(),
-    }).superRefine(fixerLeTest('difficulty')), {
+    }), 'difficulty'), {
       test: { label: 'Test' },
       combatTest: { label: 'Test de combat' },
     })).min(2).optional(),
@@ -133,17 +134,17 @@ const doc = document(
     /** NADJ 16 l.90 */
     combined: nommerChamps(z.strictObject({
       second: sujetDuJetSchema,
-      failEvery: z.number().optional(),
-      eraseEvery: z.number().optional(),
+      echecsParEcheance: z.number().optional(),
+      effacementsParEcheance: z.number().optional(),
       ops: executeesDe().optional(),
       markLoser: z.boolean().optional(),
-      /** Id d'État (`etats.json`) dont l'apparition arrête la partie (l.88 « rouler sous la table »). */
-      stopCondition: z.string().optional(),
+      /** NADJ 16 l.88 */
+      stopCondition: idDe('etat').optional(),
       tours: z.number().optional(),
     }), {
       second: { label: 'Second Test' },
-      failEvery: { label: 'Fréquence d’échec' },
-      eraseEvery: { label: 'Fréquence d’effacement' },
+      echecsParEcheance: { label: 'Fréquence d’échec' },
+      effacementsParEcheance: { label: 'Fréquence d’effacement' },
       ops: { label: 'Opérations' },
       markLoser: { label: 'Marquer le perdant' },
       stopCondition: { label: 'Condition d’arrêt' },
@@ -153,7 +154,7 @@ const doc = document(
      *  impose, ce que son échec coûte au camp (`points`) et applique au lanceur (`ops`), et le prix
      *  du balayage final des trop sobres (`sobrietyPoints`). Consommée par
      *  `SequenceParams.throwerPenalty` (`src/noyau/sequenceCore.ts`). */
-    throwerPenalty: nommerChamps(z.strictObject({
+    throwerPenalty: nommerChamps(porteurDeTestFixe(z.strictObject({
       test: flowTestSchema,
       label: z.string().optional(),
       points: z.number().optional(),
@@ -172,7 +173,7 @@ const doc = document(
         echec: { label: 'Échec' },
         balayage: { label: 'Balayage' },
       }).optional(),
-    }).superRefine(fixerLeTest('difficulty')), {
+    }), 'difficulty'), {
       test: { label: 'Test' },
       label: { label: 'Libellé' },
       points: { label: 'Points' },
@@ -206,7 +207,8 @@ const doc = document(
      *  effet de pot DÉCLARÉ (table `effetsDePot`), jamais un id de jeu — la clé nomme donc
      *  ce qu'elle porte : une CLÉ DE REGISTRE, ni de la prose ni l'issue du tour. */
     pot: nommerChamps(z.strictObject({
-      dice: nommerChamps(z.strictObject({ count: z.number(), faces: z.number() }), { count: { label: 'Nombre' }, faces: { label: 'Faces' } }),
+      /** NADJ 16 l.17 */
+      die: deDeTirageSchema,
       targetRange: plageSchema.optional(),
       manchesPerPlayer: z.number().optional(),
       /** Unité de borne de la famille : tours qu'une manche peut prendre (anti-boucle, pas une règle). */
@@ -224,7 +226,7 @@ const doc = document(
         label: { label: 'Libellé' },
       })),
     }), {
-      dice: { label: 'Dés' },
+      die: { label: 'Dé de tirage', hint: 'Expression du dé lancé à chaque tour (ex. « 2d10 »)' },
       targetRange: { label: 'Plage cible' },
       manchesPerPlayer: { label: 'Manches par joueur' },
       roundsPerManche: { label: 'Rounds par manche' },
