@@ -74,6 +74,7 @@ describe('modelesDeLAtelier', () => {
     expect(emplacementsDeRangement('epee')).toContain('ceinture_g');
     expect(emplacementsDeRangement('epee')).toContain('dos');
     expect(emplacementsDeRangement('epee')).not.toContain('epaule_d');
+    expect(emplacementsDeRangement('symbole_de_sigmar')).toContain('cou');
     const mains = { ...humanoide, os: ['root', 'spine', 'main_d', 'main_g'], emplacements: { dos, ceinture_g: attache('root') }, prises: { main: attache('main_d'), secondaire: attache('main_g') } };
     const base = modelesDeLAtelier({ humanoide: mains, epee, bouclier }, { humanoide: [], epee: ['main_d'], bouclier: ['spine'] }).bases[0];
     expect(Object.fromEntries(base.points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], ceinture_g: ['epee'], main: ['epee'], secondaire: ['epee'] });

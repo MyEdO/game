@@ -16,9 +16,8 @@ la bure publiée sous la corde.
 import math
 
 import numpy as np
-from mathutils import Vector
 from anatomie import AXES_DU_PERSONNAGE
-from tissu import JUMEAU, emprunter, lisser, maillage_skinne, poids_normalises, porteur_de, voisinage
+from tissu import JUMEAU, emprunter, lisser, maillage_skinne, poids_normalises, porteur_de, sur_le_porteur, voisinage
 
 
 def unitaire(x):
@@ -44,15 +43,6 @@ def repere(tangente, sortante):
     return e1, np.cross(tangente, e1)
 
 
-def sur_la_bure(bure, origine, direction, portee):
-    """Le point et la normale de la bure touchés par la visée de `origine` + `portee` · `direction` vers `origine`."""
-    touche = bure['arbre'].ray_cast(Vector((origine + portee * direction).tolist()), Vector((-direction).tolist()), portee)
-    if touche[0] is None:
-        raise ValueError(f'{origine} : aucune bure le long de {direction}')
-    normale = np.array(touche[1])
-    return np.array(touche[0]), normale if normale @ direction > 0 else -normale
-
-
 def construire(D, materiaux, b):
     b.exiger(D['ZONES'])
     bure = porteur_de(*b.matieres_publiees(D['CONTOURNE']['bure'], D['MATIERES_DE_LA_BURE']))
@@ -65,7 +55,7 @@ def construire(D, materiaux, b):
     def point(theta):
         d = np.array([math.sin(theta), -math.cos(theta), 0.0])
         o = axe + haut * (D['HAUTEUR'] - D['PENTE'] / 2 * math.cos(theta))
-        p, _ = sur_la_bure(bure, o, d, D['PORTEE'])
+        p, _ = sur_le_porteur(bure, o, d, D['PORTEE'])
         return p + d * (D['JEU'] + R), d
 
     anneau = [point(2 * math.pi * (i + 0.5) / s) for i in range(s)]
@@ -95,7 +85,7 @@ def construire(D, materiaux, b):
         for k in range(D['PAS_DES_BOUTS'] + 1):
             u = k / D['PAS_DES_BOUTS']
             o = centre_du_noeud + t0 * (depart + (pointe - depart) * u) - haut * (N['rayon'] + D['LONGUEUR_DES_BOUTS'] * u)
-            p, n = sur_la_bure(bure, o - d0 * D['PORTEE'] / 2, d0, D['PORTEE'])
+            p, n = sur_le_porteur(bure, o - d0 * D['PORTEE'] / 2, d0, D['PORTEE'])
             r = R * (1 + (D['EPAISSEUR_DU_BOUT'] - 1) * max(0.0, 2 * u - 1))
             centres.append((p + n * (D['JEU_DES_BOUTS'] + r), r))
         bout = []

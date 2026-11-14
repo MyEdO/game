@@ -7,7 +7,8 @@
  * doublure d'une double nappe ne couvre rien), tourné du même côté que son dehors (`dehorsDesSommets`), à
  * `PORTEE_DE_COUVERTURE_M` derrière lui au plus, ou `PERCEE_M` devant. Sa couverture le retient : il reprend, au point couvrant, les
  * poids de peau qu'elle a une fois résolue, tout entier jusqu'à `SERRAGE_M` d'elle, de moins en moins jusqu'à
- * `PORTEE_DE_COUVERTURE_M`. Elle ne le retient pas si elle flotte sur une chaîne plus que lui (`FLOTTEMENT`), ni si elle tient à
+ * `PORTEE_DE_COUVERTURE_M`. Elle ne le retient pas si elle flotte sur une chaîne plus que lui (`FLOTTEMENT`, à
+ * `EGALITE_DE_CHAINE` près), ni si elle tient à
  * une autre partie du corps que lui (`PARENTE`). Les points de sa pièce à moins de `HALO_M` d'un point plus retenu
  * qu'eux le suivent, en fondu avec la distance, ses voisins d'arête aussi quelle que soit la longueur de l'arête, à
  * `SAUT_D_ARETE` de poids déplacés près, et des points que leur auteur a liés aux mêmes poids restent liés pareil.
@@ -35,6 +36,11 @@ export const HALO_M = 0.03;
 export const SAUT_D_ARETE = 1 / 3;
 /** L'écart de poids de chaîne, couverture moins sujet, à partir duquel la couverture flotte et ne retient rien. */
 export const FLOTTEMENT = 0.5;
+/** L'écart de poids de chaîne, couverture moins sujet, sous lequel elle ne flotte pas plus que lui : une pièce qui
+ *  emprunte les poids de celle qu'elle couvre (la feuille du sceau de cire sur la bure, #3867) en porte la même part au
+ *  bruit près (3,8e-8 relevé), que Godot quantifie sur 16 bits (jusqu'à 4 × 7,6e-6 par point) ; départagés à zéro, ces
+ *  points retenus tout entiers ou non différaient entre l'évaluateur et la fusion (masques 156 contre 152). */
+export const EGALITE_DE_CHAINE = 1e-4;
 /** La part des poids d'un point et de sa couverture portée par les mêmes os, un os et son parent comptant pour moitié,
  *  à partir de laquelle la couverture le retient tout entier. */
 export const PARENTE = 0.5;
@@ -413,7 +419,7 @@ function tenir(q: Point, propres: ReadonlyMap<string, number>, couvrants: readon
   const poids = new Map<string, number>(), auteur = new Map<string, number>();
   for (const [s, coin] of touche.coins) { poidsParNom(touche.de.resolus, s, coin, poids); poidsParNom(touche.de.auteur, s, coin, auteur); }
   const deChaine = (p: ReadonlyMap<string, number>): number => { let c = 0; for (const [nom, pk] of p) if (squelette.osDeChaine.has(nom)) c += pk; return c; };
-  const part = (1 - fondu((deChaine(auteur) - deChaine(propres)) / FLOTTEMENT)) * fondu(parente(propres, auteur, squelette.parents) / PARENTE)
+  const part = (1 - fondu((deChaine(auteur) - deChaine(propres) - EGALITE_DE_CHAINE) / FLOTTEMENT)) * fondu(parente(propres, auteur, squelette.parents) / PARENTE)
     * (1 - fondu((touche.e - SERRAGE_M) / (PORTEE_DE_COUVERTURE_M - SERRAGE_M)));
   return part > 0 ? { touche, poids, part } : 'flotte';
 }

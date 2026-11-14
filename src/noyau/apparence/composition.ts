@@ -218,13 +218,17 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
 }
 
 /** Les emplacements où se range un objet de forme `apparence` : le `rangement` de chaque trapping instanciable de cette
- *  forme (D1), puis chaque emplacement où un preset range un objet de cette apparence (`rangementsObjets`), sans
- *  doublon, dans cet ordre. */
+ *  forme (D1), puis chaque emplacement où un preset range un de ses objets portés de cette apparence, choisie
+ *  (`apparencesObjets`) ou de sa forme, à son rangement choisi (`rangementsObjets`), à défaut à celui de son trapping,
+ *  sans doublon, dans cet ordre. */
 export const emplacementsDeRangement = (apparence: string): string[] => [
   ...new Set([
     ...trappingsInstanciables().flatMap((t) => (t.shape?.id === apparence && t.rangement ? [t.rangement.id] : [])),
     ...presetsDePersonnage.flatMap((p) =>
-      Object.entries(p.rangementsObjets ?? {}).flatMap(([id, ou]) => (candidatsDeLObjet(p, id)[0] === apparence ? [ou.id] : [])),
+      (p.objets ?? []).flatMap((id) => {
+        const ou = p.rangementsObjets?.[id]?.id ?? findTrappingById(id)?.rangement?.id;
+        return ou !== undefined && candidatsDeLObjet(p, id)[0] === apparence ? [ou] : [];
+      }),
     ),
   ]),
 ];

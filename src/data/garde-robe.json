@@ -54,6 +54,12 @@
     "kind": "emplacement"
   },
   {
+    "id": "ceinture_avant_d",
+    "type": "garde-robe",
+    "label": "Ceinture, devant droit",
+    "kind": "emplacement"
+  },
+  {
     "id": "ceinture_arriere",
     "type": "garde-robe",
     "label": "Ceinture, derrière",
@@ -296,7 +302,7 @@
     "kind": "piece",
     "categorie": "accessoire",
     "emplacement": {
-      "id": "ceinture_avant"
+      "id": "ceinture_avant_d"
     }
   },
   {

@@ -6,9 +6,35 @@
     "piece": "sceau-de-cire"
   },
   "liaison": {
-    "mode": "rigide"
+    "mode": "surface"
   },
   "couche": "armure",
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "emplacements": {
+    "ceinture_avant_d": {
+      "os": "jupe_avant_avant_d_01",
+      "position": [
+        -0.007057,
+        0.141308,
+        0.018496
+      ],
+      "rotation": [
+        -0.147072,
+        -0.043633,
+        -3.141593
+      ],
+      "poids": {
+        "jupe_avant_01": 0.1973,
+        "jupe_avant_d_01": 0.1386,
+        "jupe_avant_avant_d_01": 0.6641
+      }
+    }
+  },
   "surfaces": [
     {
       "nom": "parchemin",
@@ -20,7 +46,7 @@
     }
   ],
   "glb": {
-    "sha256": "e77b17bf728fbb15b6cfdb1c6b33ee45e24efe8633092916fc4d6ace8dc9cbbc",
-    "octets": 65168
+    "sha256": "d34402d6ad8d59ec36d660a40aaa979687f59b35c439106c39e17c20b37a97e7",
+    "octets": 205176
   }
 }
