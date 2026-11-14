@@ -41,7 +41,11 @@ import { rollTest } from './tests';
 import { hasActiveFlag } from './activeFlags';
 import { itemCapability } from './capabilities';
 import { dailyWaterLitres } from './seaWeather';
-import { findTraitById, refLabel } from '../data';
+import { findTraitById, findTrappingById, refLabel } from '../data';
+import { garanti } from '../lib/garanti';
+import { rule } from './policy';
+import { dayIndex, MINUTES_PER_DAY } from './clock';
+import { VIVRES_DE_CALE } from './seaNavigation';
 import { RULE_REF, type CodexTarget } from './ruleRefs';
 import { traceLineOf } from './traceLine';
 import type { Id } from '../data/schemas/grammaire/ref';
@@ -335,13 +339,82 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
 /** Contenance d'un tonneau d'eau douce, en litres. MDG 14 l.242 */
 export const LITRES_PAR_TONNEAU = 145;
 
-/** Vivres de la cale du navire, en jours-homme par vivre (`sea-navigation.json` `longsVoyages.vivresDeCale`).
- *  MDG 14 l.245-252, l.238, l.263 */
-export type VivresDeCale = Partial<Record<Id<'trapping'>, number>>;
+/** Un lot de la cale : `rations` jours-homme d'un vivre (`sea-navigation.json` `longsVoyages.vivresDeCale`)
+ *  embarqués à la minute `entre` (`gameTime`). MDG 14 l.238, l.245-252, l.263 */
+export interface LotDeVivres { vivre: Id<'trapping'>; entre: number; rations: number }
 
-/** Total des rations (jours-homme) de la cale, tous vivres confondus. */
-export function rationsDeCale(provisions: VivresDeCale | undefined): number {
-  return Object.values(provisions ?? {}).reduce<number>((s, n) => s + Math.max(0, n ?? 0), 0);
+/** Quantités de vivres demandées, en jours-homme par vivre (commande d'avitaillement). MDG 14 l.248-252 */
+export type QuantitesDeVivres = Partial<Record<Id<'trapping'>, number>>;
+
+/** Total des rations (jours-homme) de la cale, tous vivres et lots confondus. */
+export function rationsDeCale(lots: readonly LotDeVivres[] | undefined): number {
+  return (lots ?? []).reduce((s, l) => s + l.rations, 0);
+}
+
+/** Rations (jours-homme) de la cale d'un seul vivre, tous lots confondus. */
+export function rationsDuVivre(lots: readonly LotDeVivres[] | undefined, vivre: Id<'trapping'>): number {
+  return rationsDeCale((lots ?? []).filter((l) => l.vivre === vivre));
+}
+
+/** Le vivre pourrit-il (il n'est pas une ration `isRations` prévue pour tenir en mer) ? MDG 14 l.238, l.263 */
+export function vivrePerissable(vivre: Id<'trapping'>): boolean {
+  return !itemCapability(garanti(findTrappingById(vivre), vivre, 'vivre de la cale'), 'isRations');
+}
+
+/** Le lot a-t-il pourri à la minute `now` : vivre périssable embarqué depuis la durée de la règle
+ *  `mer-vivres-frais-peremption-jours` (maison). MDG 14 l.238 ; LDB 47 l.93-97 */
+export function lotPerime(lot: LotDeVivres, now: number): boolean {
+  return vivrePerissable(lot.vivre) && dayIndex(now) - dayIndex(lot.entre) >= rule('mer-vivres-frais-peremption-jours');
+}
+
+/** Embarque `rations` jours-homme de `vivre` à la minute `now` : le lot rejoint celui du même vivre embarqué le même jour. */
+export function embarquerDesVivres(lots: readonly LotDeVivres[], vivre: Id<'trapping'>, rations: number, now: number): LotDeVivres[] {
+  if (rations <= 0) return [...lots];
+  const i = lots.findIndex((l) => l.vivre === vivre && dayIndex(l.entre) === dayIndex(now));
+  if (i < 0) return [...lots, { vivre, entre: now, rations }];
+  return lots.map((l, j) => j === i ? { ...l, rations: l.rations + rations } : l);
+}
+
+/** Retire `n` jours-homme de `vivre`, du lot le plus vieux au plus jeune ; un lot vidé sort de la cale. */
+export function retirerDuVivre(lots: readonly LotDeVivres[], vivre: Id<'trapping'>, n: number): LotDeVivres[] {
+  let reste = Math.max(0, n);
+  const pris = new Map<LotDeVivres, number>();
+  for (const l of [...lots].filter((x) => x.vivre === vivre).sort((a, b) => a.entre - b.entre)) {
+    const m = Math.min(reste, l.rations);
+    pris.set(l, m);
+    reste -= m;
+  }
+  return lots.map((l) => ({ ...l, rations: l.rations - (pris.get(l) ?? 0) })).filter((l) => l.rations > 0);
+}
+
+/** Ce que l'équipage a mangé de la cale (`mangerLaCale`) : lots restants, jours-homme manquants, et le vivre
+ *  qui fit SEUL le repas du dernier jour couvert en entier (absent : mêlé, ou à court). */
+export interface RepasDeLaCale { lots: LotDeVivres[]; manque: number; seul?: Id<'trapping'> }
+
+/** `bouches` rations par jour pendant `jours` jours depuis la minute `now` : chaque jour, vivre après vivre dans
+ *  l'ordre de `VIVRES_DE_CALE.vivres`, du lot le plus vieux au plus jeune, sans toucher un lot pourri ce
+ *  jour-là (`lotPerime`). PUR. MDG 14 l.166, l.171, l.238, l.263 */
+export function mangerLaCale(lots: readonly LotDeVivres[], bouches: number, jours: number, now: number): RepasDeLaCale {
+  const rang = (l: LotDeVivres) => VIVRES_DE_CALE.vivres.indexOf(l.vivre);
+  const cale = [...lots].sort((a, b) => rang(a) - rang(b) || a.entre - b.entre).map((l) => ({ ...l }));
+  let manque = 0;
+  let seul: Id<'trapping'> | undefined;
+  for (let k = 0; k < jours; k++) {
+    const jour = now + k * MINUTES_PER_DAY;
+    let reste = bouches;
+    const manges = new Set<Id<'trapping'>>();
+    for (const l of cale) {
+      if (reste === 0) break;
+      if (l.rations === 0 || lotPerime(l, jour)) continue;
+      const m = Math.min(reste, l.rations);
+      l.rations -= m;
+      reste -= m;
+      manges.add(l.vivre);
+    }
+    manque += reste;
+    seul = reste === 0 && manges.size === 1 ? [...manges][0] : undefined;
+  }
+  return { lots: cale.filter((l) => l.rations > 0), manque, seul };
 }
 
 /** Manifeste d'avitaillement AU DÉPART (#241/#245) : vivres/eau disponibles vs requis pour couvrir
@@ -349,9 +422,10 @@ export function rationsDeCale(provisions: VivresDeCale | undefined): number {
  *  PUR — aucune mutation, aucune consommation. `waterLitres` = tonneaux du navire (`CampaignVessel.waterLitres`,
  *  absent = ravitaillement réputé assuré, cf. en-tête) ; l'eau requise suit le régime de bord médian
  *  (`dailyWaterLitres('mediane')`, MDG 14 l.242 — la bande de Température réelle n'est tirée qu'en mer).
- *  `crew` (#245) = effectif PNJ nominal présent (`count`) et ses vivres de cale (`provisions`, `rationsDeCale`) :
+ *  `crew` (#245) = effectif PNJ nominal présent (`count`) et ses vivres de cale (`provisions`), comptés pour ce
+ *  que l'équipage en mangera avant péremption depuis la minute `now` (`mangerLaCale`, MDG 14 l.238) :
  *  l'équipage mange 1 ration/jour (pas de Brouet), les héros suivent Brouet (LDB 10 l.139) sur leurs rations
- *  portées. Rations disponibles = celles des héros + vivres de cale. `crew` absent : voyage à terre
+ *  portées. Rations disponibles = celles des héros + les jours-homme de cale que l'équipage mangera. `crew` absent : voyage à terre
  *  (`travelFlow`), seuls les héros comptent. */
 export interface ProvisioningManifest {
   joursEstimes: number;
@@ -365,14 +439,15 @@ export interface ProvisioningManifest {
 }
 
 export function provisioningManifest(
-  party: Combatant[], waterLitres: number | undefined, joursEstimes: number,
-  crew: { count?: number; provisions?: VivresDeCale } = {},
+  party: Combatant[], waterLitres: number | undefined, joursEstimes: number, now: number,
+  crew: { count?: number; provisions?: readonly LotDeVivres[] } = {},
 ): ProvisioningManifest {
   const alive = party.filter((h) => !h.dead);
   const days = Math.max(0, joursEstimes);
   const crewCount = Math.max(0, crew.count ?? 0);
   const souls = alive.length + crewCount;
-  const rationsDispo = alive.reduce((sum, h) => sum + rationCount(h), 0) + rationsDeCale(crew.provisions);
+  const rationsDispo = alive.reduce((sum, h) => sum + rationCount(h), 0)
+    + crewCount * days - mangerLaCale(crew.provisions ?? [], crewCount, days, now).manque;
   // Ogre (ADE II 2 l.708) : facteur ×2 sur les vivres/eau requis, PAR TÊTE — `traitConsumptionFactor`.
   const rationsRequises =
     alive.reduce((sum, h) => sum + (hasBrouet(h) ? Math.ceil(days / 2) : days) * traitConsumptionFactor(h), 0) + crewCount * days;

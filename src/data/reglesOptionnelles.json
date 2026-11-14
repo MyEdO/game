@@ -1157,6 +1157,30 @@
     "hint": "« Un membre d’équipage boit 2 à 3 litres d’eau par jour » (hors bandes Caniculaire/Chaude, déjà chiffrées à 4 L/3 L) : le canon donne une fourchette, pas une valeur unique. Défaut : borne haute (3 L)."
   },
   {
+    "id": "mer-vivres-frais-peremption-jours",
+    "type": "reglesOptionnelles",
+    "label": "Péremption des vivres frais de la cale (jours)",
+    "ref": "MDG 14 l.238",
+    "maison": "MDG 14 l.238 dit seulement que la nourriture du marché « va vite pourrir », sans durée ; le voisin LDB 47 l.93-97 (Conservation : « ils ne pourriront pas », une journée de vivres préservée des jours) chiffre la conservation en jours : défaut maison = une semaine.",
+    "group": "Voyage",
+    "kind": "param",
+    "default": 7,
+    "min": 1,
+    "max": 30,
+    "hint": "« se contenter d'acheter n'importe quelle nourriture disponible sur le marché revient à risquer un désastre lors d'une longue expédition, car elle va vite pourrir » : le canon ne chiffre pas la durée. Défaut : 7 jours après l'embarquement, le lot de vivres frais est jeté ; les biscuits de mer et la nourriture préservée ne périment pas."
+  },
+  {
+    "id": "mer-moral-maladie-contagieuse-a-bord",
+    "type": "reglesOptionnelles",
+    "label": "La maladie contagieuse d’un Personnage fait rage au sein de l’équipage",
+    "ref": "MDG 14 l.172",
+    "maison": "MDG 14 l.172 donne le facteur « La maladie fait rage au sein de l'équipage | –2d10 » sans dire quand il s'applique ; l.208 (« Si un membre d'équipage souffre d'une maladie comportant le symptôme toux et éternuements, tout le monde à bord y est exposé ») fait de la maladie contagieuse d'un seul l'affaire de tout le bord, et l.143 compte les Personnages parmi les officiers au Moral : défaut maison = actif dès qu'un Personnage vivant porte une maladie contagieuse déclarée.",
+    "group": "Voyage",
+    "kind": "flag",
+    "default": true,
+    "hint": "Au recalcul hebdomadaire du Moral, le facteur « La maladie fait rage au sein de l'équipage » (–2d10) compte quand au moins un Personnage vivant porte une maladie contagieuse déclarée (toux et éternuements), incubation exclue. Désactiver : ce facteur ne compte jamais de lui-même."
+  },
+  {
     "id": "exposition-tests-nuit-difficile",
     "type": "reglesOptionnelles",
     "label": "Exposition : Tests par nuit (difficile)",

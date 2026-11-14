@@ -50,7 +50,8 @@ import { checkBattleOver } from './combatFlow';
 import { humanizeFlow } from './codex/humanize';
 import { currentPort, devisDAchatEnPort, ouvrirLePort, vivresAchetables } from './portFlow';
 import { CAMPAIGN_VESSEL_CARRIER_ID } from './carriers';
-import type { VivresDeCale } from '../engine/provisions';
+import type { QuantitesDeVivres } from '../engine/provisions';
+import { lotsDeCale, quantitesDeCale } from '../engine/caleDeTest.testkit';
 import { setVesselSchema, adjustVesselSchema } from '../data/schemas/defs-scenes/effets';
 
 let banc: Banc;
@@ -79,7 +80,8 @@ function etatFrais(): void {
 }
 
 const FRAIS = 'nourriture-courses-journee', PRESERVEE = 'ration-nourriture-preservee', BISCUITS = 'ration-biscuits-de-mer';
-const vivres = (v: Record<string, number>) => v as VivresDeCale;
+const vivres = (v: Record<string, number>) => lotsDeCale(v, get().gameTime);
+const commande = (v: Record<string, number>) => v as QuantitesDeVivres;
 
 const drapeau = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag, value: true } as Effect as never });
 
@@ -425,7 +427,7 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
       vessel: { ...get().vessel!, provisions: vivres({ [FRAIS]: 41, [PRESERVEE]: 7, [BISCUITS]: 1 }) },
     });
     applyEffects(get, set, [surLeNavire([{ op: 'provisions', gateesPct: 50 }])]);
-    expect(get().vessel!.provisions).toEqual({ [FRAIS]: 21, [PRESERVEE]: 4, [BISCUITS]: 1 });
+    expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [FRAIS]: 21, [PRESERVEE]: 4, [BISCUITS]: 1 });
     expect(get().party.map(rations)).toEqual([2, 2, 0]);
   });
 
@@ -442,7 +444,7 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
     const equipage = shipboardSouls(get()).crew;
     expect(equipage).toBeGreaterThan(0);
     applyEffects(get, set, [surLeNavire([{ op: 'provisions', jours: 3, vivre: { id: FRAIS } }])]);
-    expect(get().vessel!.provisions).toEqual({ [PRESERVEE]: 5, [FRAIS]: 3 * equipage });
+    expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [PRESERVEE]: 5, [FRAIS]: 3 * equipage });
   });
 
   it('manne de Manann jouée en mer : des vivres frais entrent en cale et le Moral monte (l.235-236)', () => {
@@ -498,16 +500,32 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
       { type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS }, provisions: 40 } as never,
       { type: 'ops', on: 'navire', ops: [{ op: 'provisions', rations: 12, vivre: { id: FRAIS } }] } as never,
     ]);
-    expect(get().vessel!.provisions).toEqual({ [BISCUITS]: 40, [FRAIS]: 12 });
+    expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 40, [FRAIS]: 12 });
     applyEffects(get, set, [{ type: 'adjustVessel', vivre: { id: FRAIS }, provisions: 3 } as never]);
-    expect(get().vessel!.provisions).toEqual({ [BISCUITS]: 40, [FRAIS]: 3 });
+    expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 40, [FRAIS]: 3 });
     expect(get().journal).toContain(t('eff.navireModifie', { parts: t('eff.navireProvisions', { n: 43 }) }));
+  });
+
+  it('la pénurie gâte chaque vivre du lot le plus vieux au plus jeune (MDG 15 l.169-170)', () => {
+    const now = get().gameTime;
+    set({ vessel: { ...get().vessel!, provisions: [{ vivre: FRAIS, entre: now, rations: 10 }, { vivre: FRAIS, entre: now - 2 * MINUTES_PER_DAY, rations: 10 }] } });
+    applyEffects(get, set, [surLeNavire([{ op: 'provisions', gateesPct: 50 }])]);
+    expect(get().vessel!.provisions).toEqual([{ vivre: FRAIS, entre: now, rations: 10 }]);
+  });
+
+  it('adjustVessel embarque l’écart daté de maintenant, sans rajeunir le vieux frais, et retire du plus vieux au plus jeune (MDG 14 l.238)', () => {
+    const now = get().gameTime, vieux = now - 2 * MINUTES_PER_DAY;
+    set({ vessel: { ...get().vessel!, provisions: [{ vivre: FRAIS, entre: vieux, rations: 10 }] } });
+    applyEffects(get, set, [{ type: 'adjustVessel', vivre: { id: FRAIS }, provisions: 15 } as never]);
+    expect(get().vessel!.provisions).toEqual([{ vivre: FRAIS, entre: vieux, rations: 10 }, { vivre: FRAIS, entre: now, rations: 5 }]);
+    applyEffects(get, set, [{ type: 'adjustVessel', vivre: { id: FRAIS }, provisions: 4 } as never]);
+    expect(get().vessel!.provisions).toEqual([{ vivre: FRAIS, entre: now, rations: 4 }]);
   });
 
   it('adjustVessel sur une cale non suivie active le suivi du vivre nommé', () => {
     expect(get().vessel!.provisions).toBeUndefined();
     applyEffects(get, set, [{ type: 'adjustVessel', vivre: { id: PRESERVEE }, provisions: 8 } as never]);
-    expect(get().vessel!.provisions).toEqual({ [PRESERVEE]: 8 });
+    expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [PRESERVEE]: 8 });
   });
 
   it('manne de Manann sans vivres d’équipage suivis : le journal le dit, le Moral monte quand même', () => {
@@ -1100,9 +1118,9 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     const caisses = (v.cargo ?? []).reduce((s, l) => s + l.enc, 0);
     expect(caisses).toBeGreaterThanOrEqual(2);
     expect(caisses).toBeLessThanOrEqual(20);
-    expect(Object.keys(v.provisions!)).toEqual([BISCUITS]);
-    expect(v.provisions![BISCUITS as keyof VivresDeCale]).toBeGreaterThanOrEqual(1);
-    expect(v.provisions![BISCUITS as keyof VivresDeCale]).toBeLessThanOrEqual(100);
+    expect(Object.keys(quantitesDeCale(v.provisions))).toEqual([BISCUITS]);
+    expect(quantitesDeCale(v.provisions)[BISCUITS]).toBeGreaterThanOrEqual(1);
+    expect(quantitesDeCale(v.provisions)[BISCUITS]).toBeLessThanOrEqual(100);
     expect(v.waterLitres! % 145).toBe(0);
     expect(v.waterLitres! / 145).toBeGreaterThanOrEqual(2);
     expect(v.waterLitres! / 145).toBeLessThanOrEqual(20);
@@ -1406,13 +1424,13 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     set({ vessel: { ...get().vessel!, provisions: vivres({ [PRESERVEE]: 10 }), waterLitres: 100 } });
     creditBourse(get, set, get().party[0].id, { gold: 10, silver: 0, brass: 0 });
   };
-  const cale = () => ({ provisions: get().vessel!.provisions, eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) });
+  const cale = () => ({ provisions: quantitesDeCale(get().vessel!.provisions), eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) });
   const RATION_PRESERVEE = 2 * 12, RATION_BISCUITS = 12, TONNEAU = 8 * 12 + 6;
 
   it('Avitaillement à quai : biscuits et préservée au prix du catalogue, tonneaux à 8/6, chaque vivre à sa part de la cale (MDG 14 l.242, l.248-252)', () => {
     aQuai(null);
     const avant = cale();
-    get().avitaillerLeNavire(vivres({ [BISCUITS]: 3, [PRESERVEE]: 5 }), 2);
+    get().avitaillerLeNavire(commande({ [BISCUITS]: 3, [PRESERVEE]: 5 }), 2);
     expect(cale()).toEqual({
       provisions: { [PRESERVEE]: 15, [BISCUITS]: 3 },
       eau: avant.eau! + 2 * 145,
@@ -1428,7 +1446,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     ]);
     set({ journal: [] });
     const avant = cale();
-    get().avitaillerLeNavire(vivres({ [FRAIS]: 4 }), 0);
+    get().avitaillerLeNavire(commande({ [FRAIS]: 4 }), 0);
     expect(cale()).toEqual(avant);
     expect(get().journal).toEqual([t('port.vivreHorsVente', { vivre: 'Nourriture, courses/journée' })]);
   });
@@ -1436,7 +1454,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
   it('Avitaillement hors quai : refus nommé, rien ne change', () => {
     set({ vessel: { ...get().vessel!, provisions: vivres({ [PRESERVEE]: 10 }), waterLitres: 100 }, journal: [] });
     const avant = cale();
-    get().avitaillerLeNavire(vivres({ [PRESERVEE]: 5 }), 2);
+    get().avitaillerLeNavire(commande({ [PRESERVEE]: 5 }), 2);
     expect(cale()).toEqual(avant);
     expect(get().journal).toEqual([t('port.pasAQuai')]);
   });
@@ -1446,7 +1464,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     set({ journal: [] });
     const avant = cale();
     const rations = Math.floor(avant.bourse / RATION_PRESERVEE) + 1;
-    get().avitaillerLeNavire(vivres({ [PRESERVEE]: rations }), 0);
+    get().avitaillerLeNavire(commande({ [PRESERVEE]: rations }), 0);
     expect(cale()).toEqual(avant);
     expect(get().journal).toEqual([t('port.avitaillementTropCher', { cost: formatMoney(fromBrass(rations * RATION_PRESERVEE)) })]);
   });
@@ -1454,7 +1472,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
   it('Bonne pêche : le frais s’achète à 3 sous de cuivre la ration-jour à l’escale, plus après l’appareillage ; la préservée garde son prix (MDG 15 l.262)', () => {
     aQuai('bonne-peche');
     let avant = cale();
-    get().avitaillerLeNavire(vivres({ [FRAIS]: 4, [PRESERVEE]: 1 }), 0);
+    get().avitaillerLeNavire(commande({ [FRAIS]: 4, [PRESERVEE]: 1 }), 0);
     expect(cale()).toEqual({ ...avant, provisions: { [PRESERVEE]: 11, [FRAIS]: 4 }, bourse: avant.bourse - 4 * 3 - RATION_PRESERVEE });
     set({ lieu: 'B' });
     get().partirEnVoyage('r1', 'mer');
@@ -1462,7 +1480,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     escale(null);
     set({ journal: [] });
     avant = cale();
-    get().avitaillerLeNavire(vivres({ [FRAIS]: 4 }), 0);
+    get().avitaillerLeNavire(commande({ [FRAIS]: 4 }), 0);
     expect(cale()).toEqual(avant);
     expect(get().journal).toEqual([t('port.vivreHorsVente', { vivre: 'Nourriture, courses/journée' })]);
   });
@@ -1601,7 +1619,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     jour('ile-inconnue');
     avanceEtapeCascade(get, undefined, () => 'oui');
     expect(get().vessel!.waterLitres).toBeGreaterThanOrEqual(2 * 145);
-    expect(get().vessel!.provisions![FRAIS as keyof VivresDeCale]).toBeGreaterThan(0);
+    expect(quantitesDeCale(get().vessel!.provisions)[FRAIS]).toBeGreaterThan(0);
   });
 
   it('`marcheDuPort` est inerte dans `applyOps` (op du monde)', () => {

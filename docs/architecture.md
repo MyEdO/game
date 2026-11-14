@@ -418,7 +418,7 @@ src/engine/                 Règles WFRP4, PUR + testé, sans hôte (mur `murs/s
   corruption.ts               Corruption & mutations (LDB 19 : expositions, seuil, limites → damné)
   grimoire.ts                 apprentissage/mémorisation des sorts (coûts par Talent) + lecture au livre
   travel.ts                   voyage RAW (#T2) : vitesses km/h, 6 h/jour, marche forcée, coûts diligence/barge
-  provisions.ts               rations & Faim (LDB 18 l.337-342) : consommation/jour, Tests, malus, Brouet
+  provisions.ts               rations & Faim (LDB 18 l.337-342) : consommation/jour, Tests, malus, Brouet ; lots datés de la cale (MDG 14 l.238)
   axes.ts                      axes de forces/faiblesses (#409, mécanique MAISON) : axisScore/axesProfile/
                                 partyCoverage/dominantAxes depuis `data/axes.json` (`derivation` en ids de
                                 skills/talents) — SOURCE UNIQUE du mini-radar, du rail de composition (#417)

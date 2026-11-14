@@ -25,6 +25,8 @@ import { installCost } from '../engine/shipBuild';
 import { shipboardSouls } from './shipCrew';
 import { refusDeGesteSurLeGroupe } from './bourseFlow';
 import { t } from '../i18n';
+import { rule } from '../engine/policy';
+import { lotsDeCale } from '../engine/caleDeTest.testkit';
 
 const COGUE = findVehicleById('cogue')!;
 const navire = (patch: Partial<CampaignVessel> = {}): CampaignVessel =>
@@ -95,14 +97,22 @@ describe('#3059 — dossier du navire : composé des sources du noyau', () => {
   it('cale au-delà du plafond dur : le dossier porte le refus d’appareiller du départ en mer', () => {
     const vessel = navire({ cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 2 * COGUE.ship!.capacity, basePriceGold: 10 }], crewLost: 1 });
     const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
-    const dossier = dossierDuNavire(vessel, party)!;
+    const dossier = dossierDuNavire(vessel, party, 0)!;
     expect(dossier.refusDAppareiller).toBe(raisonDuRefusDAppareiller(refusDAppareiller(vessel)!));
     expect(dossier.crewCount).toBe(shipboardSouls({ party, vessel }).crew);
     expect(dossier.crewCount).toBe(Math.max(0, (COGUE.ship!.crew ?? 0) - 1));
   });
 
+  it('MDG 14 l.238 — autonomie en vivres : un frais seul nourrit l’équipage jusqu’à sa péremption, pas au-delà', () => {
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
+    const equipage = shipboardSouls({ party, vessel: navire() }).crew;
+    const peremption = rule('mer-vivres-frais-peremption-jours');
+    const vessel = navire({ provisions: lotsDeCale({ 'nourriture-courses-journee': equipage * (peremption + 5) }, 0) });
+    expect(dossierDuNavire(vessel, party, 0)!.provisionDays).toBe(peremption);
+  });
+
   it('cale nominale : aucun refus d’appareiller', () => {
-    expect(dossierDuNavire(navire(), tousLesHerosDeScenario(idsDeTest).slice(0, 1))!.refusDAppareiller).toBeNull();
+    expect(dossierDuNavire(navire(), tousLesHerosDeScenario(idsDeTest).slice(0, 1), 0)!.refusDAppareiller).toBeNull();
   });
 });
 

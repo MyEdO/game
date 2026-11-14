@@ -16,7 +16,7 @@ import { toBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { itemFromTrappingById } from '../engine/items';
-import type { VivresDeCale } from '../engine/provisions';
+import { lotsDeCale, quantitesDeCale } from '../engine/caleDeTest.testkit';
 import { bankWithdraw } from './interludeFlow';
 import { traumaById } from '../engine/trauma';
 import { byId, maladies, species } from '../data';
@@ -1087,7 +1087,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
   });
 
   const FRAIS = 'nourriture-courses-journee', PRESERVEE = 'ration-nourriture-preservee', BISCUITS = 'ration-biscuits-de-mer';
-  const cale = (v: Record<string, number>) => v as VivresDeCale;
+  const cale = (v: Record<string, number>) => lotsDeCale(v, get().gameTime);
 
   it('#245 — l’équipage mange les vivres de cale ; à court → facteur de Moral « nourriture-insuffisante » (MDG 14 l.171)', () => {
     // 15 PNJ × 7 jours = 105 rations requises. Vivres de cale 20 + 20 + 10 = 50 < 105 → disette.
@@ -1095,7 +1095,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(v.provisions).toEqual({ [FRAIS]: 0, [PRESERVEE]: 0, [BISCUITS]: 0 });
+    expect(quantitesDeCale(v.provisions)).toEqual({});
     expect(v.morale.factors).toContain('nourriture-insuffisante');
   });
 
@@ -1105,7 +1105,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     driveFast();
     const v = get().vessel!;
     // 15 PNJ × 7 jours = 105 : les 30 frais, puis 75 des 100 préservées ; les biscuits restent entiers.
-    expect(v.provisions).toEqual({ [FRAIS]: 0, [PRESERVEE]: 25, [BISCUITS]: 70 });
+    expect(quantitesDeCale(v.provisions)).toEqual({ [PRESERVEE]: 25, [BISCUITS]: 70 });
     expect(v.morale.factors).not.toContain('nourriture-insuffisante');
   });
 
@@ -1115,7 +1115,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(v.provisions).toEqual({ [PRESERVEE]: 0, [BISCUITS]: 45 });
+    expect(quantitesDeCale(v.provisions)).toEqual({ [BISCUITS]: 45 });
     expect(v.morale.factors).toEqual(['nourriture-biscuits-de-mer']);
   });
 
@@ -1124,7 +1124,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(v.provisions).toEqual({ [PRESERVEE]: 0, [BISCUITS]: 65 });
+    expect(quantitesDeCale(v.provisions)).toEqual({ [BISCUITS]: 65 });
     expect(v.morale.factors).toEqual([]);
   });
 
@@ -1133,8 +1133,65 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(v.provisions).toEqual({ [BISCUITS]: 0 });
+    expect(quantitesDeCale(v.provisions)).toEqual({});
     expect(v.morale.factors).toEqual(['nourriture-insuffisante']);
+  });
+
+  it('#4058 — frais pour tout l’effectif chaque jour → « nourriture-au-dessus-des-rations » (MDG 14 l.156)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [FRAIS]: 120, [BISCUITS]: 50 }) } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    expect(get().vessel!.morale.factors).toEqual(['nourriture-au-dessus-des-rations']);
+  });
+
+  it('#4058 — frais épuisé, dernier jour aux biscuits → « nourriture-biscuits-de-mer » remplace le facteur du frais (MDG 14 l.156, l.166)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [FRAIS]: 30, [BISCUITS]: 100 }), morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-au-dessus-des-rations'] } } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    expect(get().vessel!.morale.factors).toEqual(['nourriture-biscuits-de-mer']);
+  });
+
+  it('#4058 — dernier jour mêlé (frais puis préservée) → aucun facteur de nourriture (MDG 14 l.156)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [FRAIS]: 100, [PRESERVEE]: 50 }), morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-au-dessus-des-rations'] } } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    expect(get().vessel!.morale.factors).toEqual([]);
+  });
+
+  describe('#4058 — le frais pourrit (règle `mer-vivres-frais-peremption-jours`, MDG 14 l.238)', () => {
+    afterEach(() => resetRule('mer-vivres-frais-peremption-jours'));
+
+    it('le voyage rapide ne mange pas un lot qui pourrit en route : l’équipage passe aux biscuits', () => {
+      setRule('mer-vivres-frais-peremption-jours', 3);
+      // Frais embarqué la veille : pourri au 3e jour de la traversée (jour 2 depuis le départ).
+      set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: [
+        ...lotsDeCale({ [FRAIS]: 100 }, get().gameTime - 24 * 60), ...cale({ [BISCUITS]: 100 }),
+      ] } });
+      get().partirEnVoyage('r1', 'mer', { fast: true });
+      driveFast();
+      const v = get().vessel!;
+      // 15 PNJ : 2 jours de frais (30), 5 jours de biscuits (75) ; le reste du frais est jeté à l'arrivée.
+      expect(quantitesDeCale(v.provisions)).toEqual({ [BISCUITS]: 25 });
+      expect(v.morale.factors).toEqual(['nourriture-biscuits-de-mer']);
+    });
+
+    it('en mer, le frais pourri sort de la cale au passage de l’horloge, journal à l’appui', () => {
+      setRule('mer-vivres-frais-peremption-jours', 3);
+      set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [FRAIS]: 200, [PRESERVEE]: 10, [BISCUITS]: 10 }) } });
+      get().partirEnVoyage('r1', 'mer', { fast: true });
+      driveFast();
+      // 3 jours de frais (45) mangés, puis 10 préservées et 10 biscuits, le reste à court ; à l'arrivée les 155 frais pourris partent.
+      expect(quantitesDeCale(get().vessel!.provisions)).toEqual({});
+      expect(get().journal).toContain(t('eff.provisionsPourries', { perdues: 155, vivre: 'Nourriture, courses/journée', total: 0 }));
+    });
+
+    it('à quai, la durée suit la règle : posée à 1 jour, le frais de la veille est jeté, la préservée et les biscuits restent', () => {
+      setRule('mer-vivres-frais-peremption-jours', 1);
+      set({ vessel: { ...get().vessel!, provisions: cale({ [FRAIS]: 12, [PRESERVEE]: 5, [BISCUITS]: 7 }) }, journal: [] });
+      get().avancerLeTemps(24 * 60);
+      expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [PRESERVEE]: 5, [BISCUITS]: 7 });
+      expect(get().journal).toContain(t('eff.provisionsPourries', { perdues: 12, vivre: 'Nourriture, courses/journée', total: 12 }));
+    });
   });
 
   it('palier DÉSASTREUX (Humeur de Manann effondrée) : équipage manquant, cargaison perdue, coque meurtrie, 3 Critiques', () => {

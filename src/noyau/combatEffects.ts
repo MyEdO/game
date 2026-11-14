@@ -92,7 +92,7 @@ import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
 import { avecSequelles, traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
 import { DAY_PHASES, MINUTES_PER_DAY, dayIndex, minutesUntilNext, scheduleAt } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
-import { feedFromMeal, applyFaimTest, applySoifTest, rationsDeCale } from '../engine/provisions';
+import { feedFromMeal, applyFaimTest, applySoifTest, embarquerDesVivres, rationsDeCale, rationsDuVivre, retirerDuVivre } from '../engine/provisions';
 import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } from '../engine/exposure';
 import { findSpellById } from '../data/index';
 import { toBrass, fromBrass, toMoney, formatMoney } from '../engine/money';
@@ -2162,7 +2162,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           ...(e.hullMax != null ? { wounds: { current: e.hullCurrent ?? e.hullMax, max: e.hullMax } } : {}),
           ...(e.saboteurDR != null ? { saboteurDR: e.saboteurDR } : {}),
           ...(e.waterLitres != null ? { waterLitres: Math.max(0, e.waterLitres) } : {}),
-          ...(e.vivre && e.provisions != null ? { provisions: { [e.vivre.id]: e.provisions } } : {}),
+          ...(e.vivre && e.provisions != null ? { provisions: embarquerDesVivres([], e.vivre.id, e.provisions, env.get().gameTime) } : {}),
           ...(e.crew && e.crew.length ? { crew: e.crew.filter((h) => h.roleId && h.count > 0) } : {}),
         },
       });
@@ -2187,7 +2187,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.morale != null) { next.morale = { ...vessel.morale, score: e.morale }; parts.push(t('eff.navireMoral', { n: e.morale })); }
       if (e.saboteurDR != null) { next.saboteurDR = clampSaboteurDR(e.saboteurDR); parts.push(t('eff.navireSabotage', { n: next.saboteurDR })); }
       if (e.waterLitres != null) { next.waterLitres = Math.max(0, e.waterLitres); parts.push(t('eff.navireEau', { n: next.waterLitres })); }
-      if (e.vivre && e.provisions != null) { next.provisions = { ...(vessel.provisions ?? {}), [e.vivre.id]: e.provisions }; parts.push(t('eff.navireProvisions', { n: rationsDeCale(next.provisions) })); }
+      if (e.vivre && e.provisions != null) {
+        // Valeur absolue d'auteur : l'écart s'embarque daté de maintenant, ou se retire du lot le plus vieux au plus jeune.
+        const lots = vessel.provisions ?? [];
+        const ecart = e.provisions - rationsDuVivre(lots, e.vivre.id);
+        next.provisions = ecart >= 0 ? embarquerDesVivres(lots, e.vivre.id, ecart, env.get().gameTime) : retirerDuVivre(lots, e.vivre.id, -ecart);
+        parts.push(t('eff.navireProvisions', { n: rationsDeCale(next.provisions) }));
+      }
       if (e.crew && e.crew.length) { next.crew = e.crew.filter((h) => h.roleId && h.count > 0); parts.push(t('eff.navireEquipage', { n: next.crew.reduce((s, h) => s + h.count, 0) })); }
       // Blessures de coque : valeur ABSOLUE d'auteur → seam `setVesselHull` (#308, pas d'écriture directe
       // de `vessel.wounds` — resynchronise aussi la copie de travail `travelPlan.vehicle` si active).

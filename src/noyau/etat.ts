@@ -311,10 +311,10 @@ export interface CampaignVessel {
   /** Eau douce embarquée (litres — tonneau : 145 L, MDG 14 l.242). Absent = eau non suivie, l'accès
    *  à l'eau suit la règle `penurie-d-eau` (`upkeep.ts`, `hasWater`). */
   waterLitres?: number;
-  /** VIVRES de l'équipage PNJ embarqués, en jours-homme par vivre de la cale (`VivresDeCale`), mangés par
-   *  `consumeCrewProvisions` (`seaVoyageFlow.ts`). MDG 14 l.171, l.238, l.245-252. Absent = vivres de
-   *  l'équipage non suivis. #245 */
-  provisions?: import('../engine/provisions').VivresDeCale;
+  /** VIVRES de l'équipage PNJ embarqués, en lots datés de la cale (`LotDeVivres`), mangés par
+   *  `consumeCrewProvisions` (`seaVoyageFlow.ts`), le périssable pourri purgé par `purgeSurAvanceDHorloge`.
+   *  MDG 14 l.171, l.238, l.245-252. Absent = vivres de l'équipage non suivis. #245 ; #4058 */
+  provisions?: import('../engine/provisions').LotDeVivres[];
   /** Milles de la DERNIÈRE traversée accomplie — vente à un port PRODUCTEUR : « Si le bateau a
    *  parcouru plus de 100 milles » (MDG 15 l.366). Absent = navire à quai depuis sa mise à l'eau. */
   lastVoyageMilles?: number;

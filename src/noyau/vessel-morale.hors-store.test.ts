@@ -1,5 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { resolveShoreLeaveDesertion, semainesDuConseil, choixDePaieOuverts, resolveVesselWeek } from './shipCrew';
@@ -13,6 +13,10 @@ import { t } from '../i18n';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { setCadence } from '../engine/cadence';
 import { fixtureText } from '../i18n/fixtureText';
+import { contractDisease, contagiousDiseases } from '../engine/disease';
+import { deFixe } from '../engine/dice.testkit';
+import { findMoraleFactor } from '../engine/crewMorale';
+import { setRule, resetRule } from '../engine/policy';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -48,7 +52,7 @@ describe('Moral du navire de campagne — recalcul hebdomadaire dans l’entreti
 
   it('#1652 — le facteur « nourriture-biscuits-de-mer » tire −1d10 au recalcul hebdomadaire (MDG 14 l.143, l.166)', () => {
     const vessel = { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } };
-    const r = resolveVesselWeek(vessel, { gold: 0, silver: 0, brass: 0 }, null, 1, { int: () => 4 });
+    const r = resolveVesselWeek(vessel, { gold: 0, silver: 0, brass: 0 }, null, 1, false, { int: () => 4 });
     expect(r.factorRolls).toEqual([{ id: 'nourriture-biscuits-de-mer', label: 'La nourriture est uniquement composée de biscuits de mer', rolled: -4 }]);
     expect(r.after).toBe(71);
   });
@@ -56,6 +60,53 @@ describe('Moral du navire de campagne — recalcul hebdomadaire dans l’entreti
   it('sans navire (vessel null) → aucun effet, aucun plantage', () => {
     banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
     expect(banc.getState().vessel).toBeNull();
+  });
+});
+
+describe('#4058 — « La maladie fait rage au sein de l’équipage » (MDG 14 l.172, l.208 ; règle maison `mer-moral-maladie-contagieuse-a-bord`)', () => {
+  afterEach(() => resetRule('mer-moral-maladie-contagieuse-a-bord'));
+  const MALADIE = findMoraleFactor('maladie-fait-rage')!.label;
+  /** Le premier Personnage du groupe porte `maladie` (incubation et durée en jours), puis une semaine passe. */
+  function uneSemaineMalade(maladie: string, incubation: number): void {
+    const [pj] = banc.getState().party;
+    banc.setState({
+      party: [{ ...pj, diseases: [contractDisease(maladie, deFixe(1), { incubation, duration: 30 })!] }],
+      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+    });
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
+  }
+
+  it('un Personnage porte une maladie contagieuse déclarée → le recalcul compte −2d10, jamais persisté', () => {
+    uneSemaineMalade('verole-urticante', 0);
+    expect(contagiousDiseases(banc.getState().party[0]).length).toBe(1);
+    const v = banc.getState().vessel!;
+    expect(v.morale.lastMoraleWeek).toBe(1);
+    expect(v.morale.score).toBeLessThan(75);
+    expect(banc.getState().journal.join('\n')).toContain(`${MALADIE} : -`);
+    expect(v.morale.factors).toEqual([]);
+  });
+
+  it('maladie non contagieuse → aucun facteur de maladie', () => {
+    uneSemaineMalade('courante-galopante', 0);
+    expect(banc.getState().party[0].diseases).toHaveLength(1);
+    expect(contagiousDiseases(banc.getState().party[0])).toEqual([]);
+    expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
+    expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
+  });
+
+  it('maladie contagieuse encore en incubation → aucun facteur de maladie', () => {
+    uneSemaineMalade('verole-urticante', 20);
+    expect(banc.getState().party[0].diseases?.[0]?.phase).toBe('incubation');
+    expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
+    expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
+  });
+
+  it('règle désactivée → aucun facteur de maladie', () => {
+    setRule('mer-moral-maladie-contagieuse-a-bord', false);
+    uneSemaineMalade('verole-urticante', 0);
+    expect(contagiousDiseases(banc.getState().party[0]).length).toBe(1);
+    expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
+    expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
   });
 });
 

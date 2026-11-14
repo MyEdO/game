@@ -10,6 +10,7 @@ import { findSpellById } from '../../data';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile } from '../../engine/magic';
 import { spellEffectOps } from '../../engine/flowCore';
 import { avanceEtapeCascade, draineCascade } from '../../noyau/cascade.testkit';
+import { lotPerime, rationsDuVivre } from '../../engine/provisions';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -148,13 +149,17 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
     expect(get().journal.join('\n')).toMatch(/Accostage|Marienburg/);
   });
 
+  it('MDG 14 l.238 — la cale part fraîche : aucun lot n’a pourri à l’heure du lancement', () => {
+    expect(get().vessel!.provisions!.every((l) => !lotPerime(l, get().gameTime))).toBe(true);
+  });
+
   it('#1652 — la cale passe aux biscuits de mer : le facteur de Moral est posé avant le premier recalcul hebdomadaire (MDG 14 l.143, l.166)', () => {
     const semaine = get().vessel!.morale.lastMoraleWeek;
     get().partirEnVoyage('route-marienburg', 'mer', { cadence: 'jourParJour' });
     sailToPort();
     const v = get().vessel!;
     expect(v.morale.lastMoraleWeek).toBe(semaine);
-    expect(v.provisions).toMatchObject({ 'nourriture-courses-journee': 0 });
+    expect(rationsDuVivre(v.provisions, 'nourriture-courses-journee')).toBe(0);
     expect(v.morale.factors).toContain('nourriture-biscuits-de-mer');
   });
 

@@ -77,7 +77,9 @@ export function demarrerLeLancement(get: Get, set: Set, l: LancementDeScenario):
   // Bourse et navire APRÈS le reset que pose le chargement de la scène.
   const lead = get().party[0];
   if (l.bourse && lead) creditBourse(get, set, lead.id, l.bourse);
-  if (l.vessel) set({ vessel: { ...l.vessel, morale: { ...l.vessel.morale, lastMoraleWeek: semaineDuJour(dayIndex(get().gameTime)) } } }); // MDG 14 l.143
+  // Le Moral et les vivres de la cale partent du lancement. MDG 14 l.143, l.238
+  const now = get().gameTime;
+  if (l.vessel) set({ vessel: { ...l.vessel, morale: { ...l.vessel.morale, lastMoraleWeek: semaineDuJour(dayIndex(now)) }, ...(l.vessel.provisions ? { provisions: l.vessel.provisions.map((lot) => ({ ...lot, entre: now })) } : {}) } });
   if (l.combatDirect) get().lancerLeCombat(l.combatDirect);
   if (l.semainesDInterlude) get().ouvrirLInterlude(l.semainesDInterlude);
   if (l.massBattle) get().amorcerLaBataille(l.massBattle);
