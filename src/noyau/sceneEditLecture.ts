@@ -71,7 +71,9 @@ import {
   type RegistreCreable,
 } from '../data/schemas/defs-scenes/ecritures-du-narratif';
 import { FORMES_D_ETAT, etatDeclare, valeursDeclarees } from '../data/schemas/defs-scenes/formes-d-etat';
-import { collectionDe, idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
+import { collectionDe, entreesDeLaPortee } from '../data/schemas/grammaire/collection-cle';
+import { libelleDeLElement } from '../data/schemas/grammaire/cle-d-espace';
+import { LIBELLE_AU_LABEL } from '../data/schemas/grammaire/sourcesDeSpecs';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
 import { declarationDeFeuilleDId, porteeDuJugementLocal } from '../data/schemas/grammaire/ref';
 import { entree as trappingEntree } from '../data/schemas/defs/trappings';
@@ -1272,12 +1274,14 @@ type Ouvreur = readonly [unknown, unknown];
  *  la carte du monde de son projet et son projet. */
 const ouvreursDuCadre = (porteur: Ouvreur, { scene, projet }: CadreDuPorteur): readonly Ouvreur[] => [porteur, [sceneSchema, scene], [worldMapSchema, projet.worldMap], [projetSchema, projet]];
 
-/** Les ids qu'admet la portée que déclare une feuille parmi `noeuds` (`porteeDuJugementLocal` : `ref(portee)`, ou
- *  `idDe(type, sousListe, { portee })`), résolus par le parse (`idsDeLaPortee`) sur le premier des `ouvreurs` qui l'ouvre ;
+/** Chaque entrée qu'admet la portée que déclare une feuille parmi `noeuds` (`porteeDuJugementLocal` : `ref(portee)`, ou
+ *  `idDe(type, sousListe, { portee })`), résolue par le parse (`entreesDeLaPortee`) sur le premier des `ouvreurs` qui
+ *  l'ouvre : son id, et son libellé, lu comme celui d'une entrée du catalogue (`LIBELLE_AU_LABEL`), sinon son id ;
  *  `undefined` sans une telle feuille, ou si aucun ne l'ouvre. */
-function idsDeLaFeuilleLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly string[] | undefined {
+function entreesDeLaFeuilleLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly { id: string; libelle: string }[] | undefined {
   const portee = noeuds.map((n) => porteeDuJugementLocal(n)).find((p) => p !== undefined);
-  return portee && ouvreurs.map(([ouvreur, valeur]) => idsDeLaPortee(ouvreur, valeur, portee)).find((ids) => ids !== undefined);
+  const entrees = portee && ouvreurs.map(([ouvreur, valeur]) => entreesDeLaPortee(ouvreur, valeur, portee)).find((e) => e !== undefined);
+  return entrees && [...entrees].map(([id, e]) => ({ id, libelle: (estObjet(e) ? libelleDeLElement(e, LIBELLE_AU_LABEL.champs) : undefined) ?? id }));
 }
 
 /** Les choix du catalogue d'une feuille `idDe(type, sousListe, { portee })` parmi `noeuds` (`choixDeLaFeuilleDId`), qu'une
@@ -1285,14 +1289,15 @@ function idsDeLaFeuilleLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouv
 const choixDuCatalogueOuvert = (noeuds: readonly unknown[]): ChoixDuContexte[] =>
   noeuds.map(declarationDeFeuilleDId).flatMap((d) => (d?.portee ? choixDeLaFeuilleDId(d).map((e) => ({ valeur: e.id, libelle: e.label, refus: null })) : []));
 
-/** Les choix d'une référence LOCALE aux nœuds `noeuds`, parmi les portées des `ouvreurs` : d'une feuille locale, chaque
- *  id que sa portée admet, après ceux de son catalogue si elle est ouverte (`choixDuCatalogueOuvert`) ; d'une référence
- *  `{ id }` dont l'identifiant en est une, chacun posé entier ; `undefined` sinon. */
+/** Les choix d'une référence LOCALE aux nœuds `noeuds`, parmi les portées des `ouvreurs`, chacun sous le libellé de son
+ *  entrée (`entreesDeLaFeuilleLocale`) : d'une feuille locale, chaque id que sa portée admet, après ceux de son catalogue
+ *  si elle est ouverte (`choixDuCatalogueOuvert`) ; d'une référence `{ id }` dont l'identifiant en est une, chacun posé
+ *  entier ; `undefined` sinon. */
 function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly ChoixDuContexte[] | undefined {
-  const ids = idsDeLaFeuilleLocale(noeuds, ouvreurs);
-  if (ids) return [...choixDuCatalogueOuvert(noeuds), ...ids.map((id) => ({ valeur: id, libelle: id, refus: null }))];
-  const emboites = idsDeLaFeuilleLocale(ouverts(pasDeDonnee(noeuds, 'id')), ouvreurs);
-  return emboites?.map((id) => ({ valeur: { id }, libelle: id, refus: null }));
+  const entrees = entreesDeLaFeuilleLocale(noeuds, ouvreurs);
+  if (entrees) return [...choixDuCatalogueOuvert(noeuds), ...entrees.map(({ id, libelle }) => ({ valeur: id, libelle, refus: null }))];
+  const emboites = entreesDeLaFeuilleLocale(ouverts(pasDeDonnee(noeuds, 'id')), ouvreurs);
+  return emboites?.map(({ id, libelle }) => ({ valeur: { id }, libelle, refus: null }));
 }
 
 /** Les choix que le contexte du porteur de sorte `sorte`, de donnée `donnee`, pose au chemin `chemin` de sa donnée, dans

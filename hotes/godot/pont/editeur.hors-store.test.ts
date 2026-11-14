@@ -2182,14 +2182,15 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     e = presser(boutonDe(presser(boutonDe(e, 'document/scene')), 'logique/declencheur/t-pont'));
     e = choisir(choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'effet'), 'valeur/flow/effet/type', (v) => (v as { type: string }).type === 'giveTrapping');
     e = choisir(e, 'valeur/flow/effet/trappingId', (v) => v === 'lumignon');
-    expect(valeursDeLInspecteur(e, 'valeur/flow/effet/trappingId').find((b) => b.presse)?.libelle, 'l’objet de campagne, offert au choix, choisi').toBe('lumignon');
+    const choisi = (e: Edition) => { const b = valeursDeLInspecteur(e, 'valeur/flow/effet/trappingId').find((v) => v.presse); return [b?.libelle, (b?.jeu as { args: unknown[] } | undefined)?.args[2]]; };
+    expect(choisi(e), 'l’objet de campagne, offert au choix sous son libellé, choisi').toEqual(['Lanterne', 'lumignon']);
     presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/lumignon'));
     e = nommer('falot');
     const refus = boutonDe(e, 'objets/supprimer').refus;
     expect(refus).toContain(`scène « ${(presser(boutonDe(e, 'document/scene')).vue.zones['editeur.titre'][0]).texte} »`);
     expect(erreurDe(appel('editer', boutonDe(presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/falot')), 'objets/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
     e = presser(boutonDe(presser(boutonDe(e, 'document/scene')), 'logique/declencheur/t-pont'));
-    expect(valeursDeLInspecteur(e, 'valeur/flow/effet/trappingId').find((b) => b.presse)?.libelle, 'le don suit le renommage').toBe('falot');
+    expect(choisi(e), 'le don suit le renommage').toEqual(['Lanterne', 'falot']);
     e = choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'sequence');
     e = presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/falot'));
     expect(boutonDe(e, 'objets/supprimer').refus, 'sans référence').toBeNull();

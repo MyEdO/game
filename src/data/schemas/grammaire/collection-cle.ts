@@ -269,11 +269,18 @@ export const porteesOuvertes = (noeud: unknown): readonly PorteeLocale[] => (est
 const ouvreurDeLaPortee = (schema: unknown, valeur: unknown, portee: PorteeLocale): Ouvreur | undefined =>
   ouverts([schema], valeur).map((n) => (estObjet(n) ? OUVREURS.get(n) : undefined)).find((o) => o?.marques.has(portee));
 
-/** Les ids qu'admet la portée `portee` sous le schéma `schema`, de valeur `valeur` : ceux des entrées de sa collection,
- *  sous l'objet qui l'ouvre (`ouvreurDeLaPortee`) ; `undefined` si aucun ne l'ouvre, ou si sa collection n'est pas une
- *  liste. SEULE lecture des ids d'une portée, celle du parse. */
+/** Les entrées qu'admet la portée `portee` sous le schéma `schema`, de valeur `valeur`, par id : celles de sa collection,
+ *  sous l'objet qui l'ouvre (`ouvreurDeLaPortee`), que chacun de ses filtres retient (`entreesSousLaMarque`) ; aucune pour
+ *  une portée déclarée vide ; `undefined` si aucun ne l'ouvre, ou si sa collection n'est pas une liste. SEULE lecture des
+ *  entrées d'une portée, celle du parse. */
+export function entreesDeLaPortee(schema: unknown, valeur: unknown, portee: PorteeLocale): ReadonlyMap<string, unknown> | undefined {
+  return entreesSousLaMarque(ouvreurDeLaPortee(schema, valeur, portee)?.marques.get(portee), valeur, portee);
+}
+
+/** Les ids des entrées qu'admet la portée `portee` sous le schéma `schema`, de valeur `valeur` (`entreesDeLaPortee`). */
 export function idsDeLaPortee(schema: unknown, valeur: unknown, portee: PorteeLocale): readonly string[] | undefined {
-  return idsSousLaMarque(ouvreurDeLaPortee(schema, valeur, portee)?.marques.get(portee), valeur, portee);
+  const entrees = entreesDeLaPortee(schema, valeur, portee);
+  return entrees && [...entrees.keys()];
 }
 
 /** Les sites de la portée `portee` sous le schéma `schema`, de valeur `valeur`, telle quelle, fautive ou non : les
@@ -290,18 +297,12 @@ export function sitesDeLaPortee(
     'portee' in j && j.portee === portee && j.refus === undefined ? [{ chemin: j.chemin, id: j.id, parCle: j.parCle }] : []);
 }
 
-/** Les ids de la collection de la portée `portee`, de marque `marque`, dans la valeur `valeur` de l'objet qui l'ouvre :
- *  ceux des entrées que chacun de ses filtres retient (`retenuParFiltre`) ; aucun pour une portée déclarée vide. */
-function idsSousLaMarque(marque: MarqueDeCollection | 'vide' | undefined, valeur: unknown, portee: PorteeLocale): readonly string[] | undefined {
-  const entrees = entreesSousLaMarque(marque, valeur, portee);
-  return entrees && [...entrees.keys()];
-}
-
 /** La valeur au chemin `chemin` de `valeur`, `undefined` dès qu'un segment n'est le champ d'aucun objet. */
 const valeurAuChemin = (valeur: unknown, chemin: readonly string[]): unknown => chemin.reduce<unknown>((v, cle) => (estObjet(v) ? v[cle] : undefined), valeur);
 
-/** Les entrées de la collection de la portée `portee` par id, sous les mêmes règles que `idsSousLaMarque`. La collection se
- *  lit au chemin pointé `portee.collection` de `valeur` (`narratif.objets`). */
+/** Les entrées de la collection de la portée `portee`, de marque `marque`, par id, dans la valeur `valeur` de l'objet qui
+ *  l'ouvre : celles que chacun de ses filtres retient (`retenuParFiltre`) ; aucune pour une portée déclarée vide. La
+ *  collection se lit au chemin pointé `portee.collection` de `valeur` (`narratif.objets`). */
 function entreesSousLaMarque(marque: MarqueDeCollection | 'vide' | undefined, valeur: unknown, portee: PorteeLocale): ReadonlyMap<string, unknown> | undefined {
   if (marque === 'vide') return new Map();
   const collection = valeurAuChemin(valeur, portee.collection.split('.'));

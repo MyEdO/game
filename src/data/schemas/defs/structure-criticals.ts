@@ -12,7 +12,7 @@ export const rangee = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   /** Blessures supplémentaires de la Structure (0 = Triviale ; null = détruite). */
-  wounds: z.union([z.number(), z.null()]),
+  wounds: z.number().nullable(),
   trivial: z.boolean().optional(),
   destroyed: z.boolean().optional(),
   note: z.string(),
