@@ -261,7 +261,7 @@ function buildRow(jr: JsonRow & { min: number; max: number }): Row {
 /** UN DOCUMENT de `miscast.json` : une table tirable, son identité STABLE, son libellé JOUEUR, sa
  *  provenance et ses rangées. Identité et charge sont le MÊME objet : aucun pointeur ne les relie plus
  *  (#1467 L1b). La catégorie Codex de ses LIGNES se lit par `categorieDeLaNiche` (`src/data`). */
-export type MiscastTableDef = EntreeDe<typeof miscastDef>;
+type MiscastTableDef = EntreeDe<typeof miscastDef>;
 
 /** Une ligne de table d'Imparfaite/Colère telle que la DONNÉE la porte : fourchette + id STABLE +
  *  libellé. Forme de `TableStepRow` (noyau/cascade) — les rangées entrent aux tables tirables PAR
@@ -277,7 +277,7 @@ export interface MiscastTableRow {
  *  d'étape, rangées portées, libellé JOUEUR — sans marque de livre (`docs/charte-ui.md`) : le jeu de
  *  tables en vigueur est une RÈGLE, pas une information d'écran.
  *  Une table de plus est un DOCUMENT de plus dans le fichier, aucune ligne de code. */
-export const MISCAST_TABLES = datasetDe<typeof miscastDef>(miscastJson);
+export const MISCAST_TABLES: MiscastTableDef[] = datasetDe<typeof miscastDef>(miscastJson);
 
 const TABLE_IDS_LDB: Record<MiscastSeverity, string> = { mineure: 'miscast-mineure', majeure: 'miscast-majeure', colere: 'miscast-colere' };
 const TABLE_IDS_VDM: Record<MiscastSeverity, string> = { mineure: 'miscast-mineure-vdm', majeure: 'miscast-majeure-vdm', colere: 'miscast-colere' };

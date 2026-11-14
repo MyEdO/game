@@ -82,7 +82,7 @@ import { oupsDie } from '../../data/oups';
 import { interludeEventDie } from '../../data/interludeEvents';
 import { peripetieDie } from '../../data/peripeties';
 import { traumaLabelOf } from '../../engine/trauma';
-import { spellOps, type Flow, type FlowTestNode } from '../../engine/flowCore';
+import { spellOps, type Flow, type FlowTest, type FlowTestNode } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp } from '../../engine/ops';
 import { noeudAmputation } from '../../engine/critical';
 import { CRIT_TABLE_LOCATION, critiqueDie, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
@@ -750,7 +750,7 @@ function libelleDeJet(n: FlowTestNode): string {
  *  (`noeudAmputation`) — jamais re-décrits ici : la vue et le jeu ne peuvent pas diverger. */
 function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKey): CodexItem {
   const jet = e.test;
-  const amputation = noeudAmputation(e, jeu, CRIT_TABLE_LOCATION[table]);
+  const amputation = e.amputation && noeudAmputation(e, e.amputation, jeu, CRIT_TABLE_LOCATION[table]);
   const jetsAmp = noeudsDeTest(amputation);
   return depuisEnveloppe(e, {
     sub: bandeAuDe(critiqueDie(jeu, table), e.min, e.max),
@@ -804,7 +804,7 @@ function crewTargetLabel(cible: CrewTarget): string {
  *  vocabulaire que les autres Critiques (`critEntryItem`). */
 function shipCritEntryItem(e: ShipCritEntry, jeu: ShipCritSet): CodexItem {
   const ch = e.crewHit;
-  const jet = ch?.test?.test;
+  const jet: FlowTest | undefined = ch?.test?.test;
   const sujet = jet && (testSkillLabel(jet) ?? '');
   return depuisEnveloppe(e, {
     sub: jeu.die ? bandeAuDe(jeu.die, e.min, e.max) : undefined,

@@ -83,14 +83,6 @@ export function plaieDAmputation(location: HitLocation): SequelleNeuve {
 }
 
 /**
- * Règle de COMPTAGE/AGRÉGATION d'une séquelle CUMULATIVE, déclarée sur SON entrée de `traumas.json` —
- * LDB 18 l.247 (dents), l.251 (doigts), l.273 (œil), l.277 (oreille), l.281 (orteils). Le moteur
- * (`permanentAmputations`, `consolidateAmputations`) applique la règle DÉCLARÉE : il n'énumère aucune
- * séquelle par id.
- */
-export type TraumaCumul = NonNullable<TraumaFiche['cumul']>;
-
-/**
  * Fiche de Traumatisme (registre `traumas.json`, app-owned) : mécanique = `ops` (OpPassive[]), `desc` =
  * texte canon LDB 18 VERBATIM (DISPLAY-ONLY, jamais parsé). Couvre déchirures/fractures par localisation
  * et toutes les séquelles permanentes d'amputation (+ Cécité/Surdité agrégées). `kind`/`severity` portés
@@ -403,7 +395,7 @@ export function amputationCombatPenalty(c: Combatant, weapon: Weapon): number {
   return penalty;
 }
 
-/** Fiches à règle de cumul déclarée (`TraumaCumul`) — l'ordre du registre fixe l'ordre de consolidation. */
+/** Fiches à règle de cumul déclarée (`TraumaFiche['cumul']`) — l'ordre du registre fixe l'ordre de consolidation. */
 const cumulFiches = memoParVersion('traumas', () => TRAUMA_FICHES.filter((f) => f.cumul));
 const IS_CUMUL = (t: Trauma): boolean => cumulFiches().some((f) => f.id === t.traumaId);
 

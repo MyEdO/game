@@ -15,7 +15,7 @@ import { hitLocationByShape, locationLabel } from './combat';
 import { BodyShape, Combatant, HitLocation } from './types';
 import {
   CRITIQUE_DOCS, critTableKeyFor, critiqueDie, critiqueDoc, critiqueTable,
-  type CritEntry, type CritTable, type CritTableKey, type JeuDeCritique,
+  type Amputation, type CritEntry, type CritTable, type CritTableKey, type JeuDeCritique,
 } from '../data/criticals';
 import { memoParVersion } from '../data/versionDataset';
 import { traumaById, traumaFicheById, stampCriticalEscalation, fireCritTriggers, type SequelleNeuve } from './trauma';
@@ -72,9 +72,7 @@ const feuille = (ops: GameOp[]): Flow => ({ kind: 'effet', effet: { type: 'ops',
  * `triggeredTestStepId` keye par (porteur, libellé, Compétence) — deux « Résistance » homonymes
  * rendraient la seconde étape injoignable.
  */
-export function noeudAmputation(entry: CritEntry, jeu: JeuDeCritique, location: HitLocation): Flow | undefined {
-  const amp = entry.amputation;
-  if (!amp) return undefined;
+export function noeudAmputation(entry: CritEntry, amp: Amputation, jeu: JeuDeCritique, location: HitLocation): Flow {
   const enjeu = enjeuDeRangee(jeu, location, entry.id);
   const perteGateeParCeTest = !!amp.loss && !amp.loss.difficulty;
   const amputer = feuille([{
@@ -493,7 +491,7 @@ export function resolveCritique(
   // aucun dé n'est tiré. `timing: 'postEncounter'` (l.171 : « Une fois la rencontre terminée… ») → le nœud
   // est ARMÉ sur le marqueur `pendingAmputation`, ouvert par la porte au foyer de fin de combat.
   if (!entry.lethal && entry.amputation) {
-    const noeud = noeudAmputation(entry, jeu, location)!;
+    const noeud = noeudAmputation(entry, entry.amputation, jeu, location);
     if (entry.amputation.timing === 'postEncounter') traumas.push({ label: entry.label, location, pendingAmputation: noeud });
     else tests.push(noeud);
   }

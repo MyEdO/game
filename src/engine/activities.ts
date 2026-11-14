@@ -74,9 +74,6 @@ export type BattleTestModPool = Extract<BattleOutcomeTarget, 'allyTestMod' | 'fi
  *  `armyMight` = Puissance courante des deux armées (ADE II 8 l.71). Une mesure de plus s'ajoute ici et
  *  dans son résolveur, jamais un mot-clef par Activité. */
 export type BattleMeasure = 'armyMight';
-/** Difficulté DÉRIVÉE : écart d'une mesure d'armée, arrondi au pas `roundTo` (10 = « à la dizaine la
- *  plus proche », l.71), lu comme un modificateur de Test (`difficultyFromModifier`). */
-export type BattleDifficultyFrom = NonNullable<ActivityDef['difficultyFrom']>;
 export type BattleOutcomeScale = 'fixed' | 'perDR' | 'perHit' | 'perKill';
 export type BattleOutcome = NonNullable<OutcomeBand['battle']>[number];
 
@@ -227,18 +224,6 @@ export function battleOutcomeAmount(o: BattleOutcome, r: BattleResolution): numb
 export function matchBattleOutcomes(def: ActivityDef, r: BattleResolution): OutcomeBand[] {
   return matchOutcomes(def, r).filter((b) => battleCondMet(b.when, r));
 }
-
-/** UN modificateur de situation d'un Test d'Activité : une quantité (`FormuleSansTirage`) éventuellement GATÉE
- *  par une `Condition` évaluée sur l'ACTEUR du Test (`when` absent = toujours). `label` nomme la ligne
- *  quand plusieurs termes se cumulent ; à défaut, l'appelant nomme la ligne unique. */
-export type ActivityTestMod = NonNullable<ActivityDef['testMods']>[number];
-
-/** UN dé de MONDE attaché à une Activité : un pourcentage d'auteur (`cible`, une `Formula` — donc un
- *  `{rule}` éditable), les `ops` appliquées à l'acteur quand le dé PASSE sous la cible, et une
- *  `unless` qui EXEMPTE l'acteur du tirage (« à moins qu'ils n'aient déjà une Carrière de Mendiant, ou
- *  une autre Carrière sans ressources », LDB 09 l.99 — exprimée par un prédicat GÉNÉRAL sur le Statut,
- *  jamais par un id de carrière). Le dé passe par la PORTE (`worldStep`), comme tout dé de monde. */
-export type ActivityWorldRoll = NonNullable<ActivityDef['worldRolls']>[number];
 
 /**
  * CONTEXTE d'évaluation des `Condition` d'une Activité (gates `testMods.when`, `worldRolls.unless`) :
