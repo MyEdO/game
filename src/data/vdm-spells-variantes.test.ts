@@ -239,7 +239,7 @@ describe('desc EFFECTIVE ⇄ op EFFECTIVE — les deux disent la MÊME règle so
       // L'op de base ne dit PAS la règle que la desc effective affiche…
       expect(c.vdm.every((re) => re.test(sansRepublication)), `${c.id}`).toBe(false);
       // …que la desc effective, elle, porte en entier : c'est la divergence que #880 ferme.
-      expect(c.vdm.every((re) => re.test(eff.desc)), `${c.id}`).toBe(true);
+      expect(c.vdm.every((re) => re.test(eff.desc ?? '')), `${c.id}`).toBe(true);
     });
   }
 });

@@ -66,7 +66,7 @@ describe('la vitrine des effets de l’atelier (#3777, #3783, #3825, #3822)', ()
     expect(v.souffles.map((s) => s.id)).toEqual(breathTypes.map((b) => b.id));
     expect(zoneDe(v.souffles.find((s) => s.id === 'feu')!.effet)).toMatchObject({ trajet: { projectile: 'jet-de-flammes' }, nappe: { visuel: 'nappe-de-flammes' } });
     expect(zoneDe(v.souffles.find((s) => s.id === 'froid')!.effet)).toMatchObject({ trajet: { projectile: 'jet-de-souffle' }, nappe: { visuel: 'nuage' } });
-    const rendusDeZone = new Set([...deZone.map((m) => m.rendu!.id), ...breathTypes.map((b) => b.rendu.id)]);
+    const rendusDeZone = new Set<string>([...deZone.map((m) => m.rendu!.id), ...breathTypes.map((b) => b.rendu.id)]);
     expect(v.armes.filter((a) => rendusDeZone.has(a.id)).map((a) => a.id)).toEqual([]);
   });
 

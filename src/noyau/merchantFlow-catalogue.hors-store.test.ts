@@ -29,7 +29,8 @@ describe('catalogEntryOf — donnée réelle', () => {
     }
     const terrestre = vehicles.find((x) => x.purchase && !x.ship && !ids.has(x.id))!;
     expect(catalogEntryOf(terrestre.id)).toMatchObject({ label: terrestre.label, price: terrestre.purchase!.price, unit: { kind: 'vehicule-terrestre', id: terrestre.id } });
-    const bete = creatures.find((c) => c.purchase && !ids.has(c.id) && !vehicles.some((v) => v.id === c.id && v.purchase && !v.ship))!;
+    const vehiculesTerrestres = new Set<string>(vehicles.filter((v) => v.purchase && !v.ship).map((v) => v.id));
+    const bete = creatures.find((c) => c.purchase && !ids.has(c.id) && !vehiculesTerrestres.has(c.id))!;
     expect(catalogEntryOf(bete.id)).toMatchObject({ label: bete.label, price: bete.purchase!.price, unit: { kind: 'bete', id: bete.id } });
   });
 });

@@ -611,7 +611,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
   });
 
   it("immunité de Domaine (Manifestation de Ghur) : une émission, sans Blessure ni Critique", () => {
-    const bete = { ...findSpellById('carreau')!, domainId: { id: 'bete' } };
+    const bete = { ...findSpellById('carreau')!, domainId: { id: 'bete' } as const };
     const { emis, cible } = lance((c) => { c.traits = [...(c.traits ?? []), { id: 'manifestation-de-ghur' }] as never; }, { sort: bete });
     expect(emis).toEqual([{ phase: 'applyCast', to: cible.id, critiques: 0, woundsLost: 0, cwAuMoment: 0 }]);
   });

@@ -71,7 +71,7 @@ const mage = (Int = 30): Combatant =>
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, wounds: blessuresDeBase(10),
     skills: [{ name: 'Langue', spec: 'Magick', characteristic: 'intelligence', advances: 1 }],
   })) as unknown as Combatant;
-const dart: SpellLike = { label: 'Fléchette', ecole: 'Sort des Arcanes', cn: 3, desc: 'Projectile magique. Dégâts +4.' };
+const dart: SpellLike = { label: 'Fléchette', ecole: 'Sort des Arcanes', cn: 3 };
 
 describe('rederiveCastSL — +1 DR sur une incantation figée', () => {
   it('+1 DR fait franchir le seuil NI (DR < NI → cast)', () => {

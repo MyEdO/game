@@ -1,8 +1,8 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
- * Schéma de `spells.json` — dérivé de l'inventaire COMPLET des clés (script node, n=416/416), de
- * `SpellData` (`src/data/index.ts`), `SpellRange`/`SpellTarget` (`src/engine/spellRange.ts`),
- * `SpellDuration` (`src/engine/spellDuration.ts`) et `Formula` (`src/engine/ops.ts`).
+ * Schéma de `spells.json`, d'où dérivent `SpellData` (`src/data/index.ts`), `SpellRange`/`SpellTarget`
+ * (`src/engine/spellRange.ts`) et `SpellDuration` (`src/engine/spellDuration.ts`) ; ses formules sont
+ * `Formula` (`src/engine/ops.ts`).
  * `effects` (`Flow<EffectOp>`) : MÊME algèbre que talents/etats (`engine/flowCore.ts`), PROMUE dans
  * `grammaire/mecanique.ts` (famille `mecaniqueDe`, `conditionSchema`) et `grammaire/valeurs.ts` (`formulaSchema`).
  */
@@ -25,7 +25,7 @@ function* opsPortees(noeud: unknown): Generator<Record<string, unknown>> {
   for (const v of Object.values(n)) yield* opsPortees(v);
 }
 
-/** `SpellRange` (`engine/spellRange.ts`). */
+/** Portée d'un Sort (`SpellRange` en dérive, `engine/spellRange.ts`). */
 const spellRangeSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('self') }), { kind: { label: 'Type' } }),
   nommerChamps(z.strictObject({ kind: z.literal('touch') }), { kind: { label: 'Type' } }),
@@ -33,7 +33,7 @@ const spellRangeSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }),
 ]);
 
-/** `SpellTarget` (`engine/spellRange.ts`). `maison` : valeur maison ÉDITABLE portant sa
+/** Cible d'un Sort (`SpellTarget` en dérive, `engine/spellRange.ts`). `maison` : valeur maison ÉDITABLE portant sa
  *  justification, quand le RAW laisse un point ouvert — AGENTS.md règle 7. */
 const spellTargetSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('self') }), { kind: { label: 'Type' } }),
@@ -49,7 +49,7 @@ const spellTargetSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }),
 ]);
 
-/** `SpellDuration` (`engine/spellDuration.ts`). */
+/** Durée d'un Sort (`SpellDuration` en dérive, `engine/spellDuration.ts`). */
 const spellDurationSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('instant') }), { kind: { label: 'Type' } }),
   nommerChamps(z.strictObject({ kind: z.literal('rounds'), value: formulaSchema, plus: z.literal(true).optional() }), { kind: { label: 'Type' }, value: { label: 'Valeur' }, plus: { label: 'Ajout' } }),
@@ -101,7 +101,7 @@ const ritualSchema = nommerChamps(z.strictObject({
   consequences: { label: 'Conséquences' },
 });
 
-// ── SpellData (src/data/index.ts) ───────────────────────────────────────────────────────────────
+// ── Champs d'où dérive SpellData (src/data/index.ts) ───────────────────────────────────────────────────────────────
 /** Champs PROPRES d'une entrée de `spells.json` — l'enveloppe (id/label/desc/source/alsoIn/variants)
  *  est posée par `document()`. */
 const champs = {
