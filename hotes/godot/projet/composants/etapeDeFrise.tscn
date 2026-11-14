@@ -1,0 +1,32 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+
+[node name="Etape" type="Label"]
+horizontal_alignment = 1
+
+[node name="nom" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "nom"
+
+[node name="ton" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="Dessus" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -11.0
+offset_top = -35.0
+offset_right = 11.0
+offset_bottom = -13.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Dessus"]
+script = ExtResource("2_zone")
+source = "elements"

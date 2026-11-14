@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://dsx168evvoaqr"
-path="res://.godot/imported/Spectral-Medium.ttf-0c656d57f485bd8a2c9e27118b8a059a.fontdata"
+uid="uid://bioybjimnh3at"
+path="res://.godot/imported/GrenzeGotisch-wght.ttf-ca25da76f2d2a87d86cca73bb856e3e1.fontdata"
 
 [deps]
 
-source_file="res://polices/Spectral-Medium.ttf"
-dest_files=["res://.godot/imported/Spectral-Medium.ttf-0c656d57f485bd8a2c9e27118b8a059a.fontdata"]
+source_file="res://polices/GrenzeGotisch-wght.ttf"
+dest_files=["res://.godot/imported/GrenzeGotisch-wght.ttf-ca25da76f2d2a87d86cca73bb856e3e1.fontdata"]
 
 [params]
 

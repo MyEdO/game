@@ -6,7 +6,7 @@
 [ext_resource type="Theme" path="res://art/frise.tres" id="t_frise"]
 
 [node name="Frise" type="Container"]
-custom_minimum_size = Vector2(0, 60)
+custom_minimum_size = Vector2(0, 52)
 size_flags_horizontal = 3
 theme = ExtResource("t_frise")
 script = ExtResource("1_plan")
@@ -24,4 +24,4 @@ propriete = &"traits"
 [node name="Zone" type="Node" parent="."]
 script = ExtResource("3_zone")
 source = "points"
-formes = PackedStringArray("point:lieuDuPlan")
+formes = PackedStringArray("point:etapeDeFrise")

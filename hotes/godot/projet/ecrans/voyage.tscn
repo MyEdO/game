@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Theme" path="res://art/jour.tres" id="t_jour"]
@@ -55,42 +55,73 @@ size_flags_vertical = 3
 size_flags_horizontal = 3
 theme_type_variation = &"PileSerree"
 
-[node name="Jour" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Gauche"]
+[node name="Temps" type="PanelContainer" parent="Cadre/Marges/Scene/Haut/Gauche"]
+size_flags_horizontal = 0
+theme_type_variation = &"Cartouche"
+
+[node name="Rangee" type="HBoxContainer" parent="Cadre/Marges/Scene/Haut/Gauche/Temps"]
+theme_type_variation = &"RangeeSerree"
+
+[node name="Ciel" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Gauche/Temps/Rangee"]
+alignment = 1
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Gauche/Temps/Rangee/Ciel"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("scene/ciel")
+formes = PackedStringArray("paysage:arche")
+
+[node name="Textes" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Gauche/Temps/Rangee"]
+custom_minimum_size = Vector2(300, 0)
+
+[node name="Jour" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Gauche/Temps/Rangee/Textes"]
 theme = ExtResource("t_jour")
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Gauche/Jour"]
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Gauche/Temps/Rangee/Textes/Jour"]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("scene/jour")
 
-[node name="Moment" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Gauche"]
-theme = ExtResource("t_moment")
+[node name="Date" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Gauche/Temps/Rangee/Textes"]
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Gauche/Moment"]
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Gauche/Temps/Rangee/Textes/Date"]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
-ids = PackedStringArray("scene/moment")
+ids = PackedStringArray("scene/date")
+formes = PackedStringArray("ligne:rubrique")
+
+[node name="Moment" type="HBoxContainer" parent="Cadre/Marges/Scene/Haut/Gauche/Temps/Rangee/Textes"]
+theme = ExtResource("t_moment")
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Gauche/Temps/Rangee/Textes/Moment"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("scene/meteo", "scene/moment")
 
 [node name="Vide" type="Control" parent="Cadre/Marges/Scene/Haut/Gauche"]
 size_flags_vertical = 3
 mouse_filter = 2
 
-[node name="Route" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Gauche"]
-theme = ExtResource("t_moment")
-
-[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Gauche/Route"]
-script = ExtResource("1_zone")
-source = "fenetre.corps"
-ids = PackedStringArray("voyage/route")
-
 [node name="Droite" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut"]
 custom_minimum_size = Vector2(520, 0)
-theme_type_variation = &"PileSerree"
 
-[node name="Carte" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite"]
+[node name="Carte" type="PanelContainer" parent="Cadre/Marges/Scene/Haut/Droite"]
 size_flags_horizontal = 8
+theme_type_variation = &"Cartouche"
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Carte"]
+[node name="Pile" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Carte"]
+
+[node name="Titre" type="CenterContainer" parent="Cadre/Marges/Scene/Haut/Droite/Carte/Pile"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Carte/Pile/Titre"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("voyage/titre")
+formes = PackedStringArray("ligne:rubrique")
+
+[node name="Plan" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Carte/Pile"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Carte/Pile/Plan"]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("voyage/carte")
@@ -188,7 +219,18 @@ source = "groupe.gestes"
 script = ExtResource("1_zone")
 source = "partie.gestes"
 
-[node name="Frise" type="VBoxContainer" parent="Cadre/Marges/Scene"]
+[node name="Frise" type="MarginContainer" parent="Cadre/Marges/Scene"]
+
+[node name="Reste" type="MarginContainer" parent="Cadre/Marges/Scene/Frise"]
+size_flags_horizontal = 8
+size_flags_vertical = 0
+theme_type_variation = &"MargesDuReste"
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Frise/Reste"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("voyage/reste")
+formes = PackedStringArray("puce:reste")
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Scene/Frise"]
 script = ExtResource("1_zone")

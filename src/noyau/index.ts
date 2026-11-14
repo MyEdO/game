@@ -16,7 +16,7 @@ export { argsAvecIntentionLocale, porteesDuTour } from './localIntent';
 export { previewAttack, activeCombatant } from './combatFlow';
 export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
 export { formatMoney } from '../engine/money';
-export { dayIndex, formatImperial, formatJourImperial } from '../engine/clock';
+export { dayIndex, formatDateImperiale, formatImperial, formatJourImperial, toDate } from '../engine/clock';
 export {
   careers,
   conditionLabel,
@@ -64,7 +64,8 @@ export { OPTIONAL_RULES, refusDesSurcharges, ruleOverrides, type OptionalRule, t
 export { valeurConforme, type FormeDeControle } from '../data/schemas/defs/reglesOptionnelles';
 export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, type EtatDeLaBarre, type ActionCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
-export { CADRE_DES_ICONES, ICON_DEFS } from '../data/icons';
+export { CADRE_DES_ICONES, ICON_DEFS, type IconId } from '../data/icons';
+export { CADRE_DES_CADRES, CADRES } from '../data/cadres';
 export { CADRE_DES_FONDS, FONDS } from '../data/fonds';
 export { CADRE_DES_PAYSAGES, COUCHES_DE_PAYSAGE, type IdDeCouche } from '../data/paysages';
 export { ENTREES_DE_DOSSIER } from '../data/dossiers';

@@ -29,7 +29,10 @@ describe('le repos par le pont', () => {
     }
     let c = corps(suite);
     expect(c['scene/moment'], 'la nuit et son lieu, en tête de la scène').toMatchObject({ texte: 'Nuit à l’auberge — Weiler → Steinbruck' });
-    expect(c['scene/paysage'], 'le paysage de la halte : la nuit, et le logis éclairé').toMatchObject({ paysage: ['ciel-nuit', 'relief-terre', 'voile-nuit', 'halte-toit'] });
+    expect(c['scene/ciel'], 'l’objet du temps de la halte : le ciel de nuit dans son arche, sans météo ni jour de route').toMatchObject({ paysage: ['arche-nuit'] });
+    expect(c['scene/meteo'], 'aucun pictogramme de météo à la halte').toBeUndefined();
+    expect(c['scene/date'], 'la date seule').toMatchObject({ texte: expect.stringMatching(/ CI$/) });
+    expect(c['scene/paysage'], 'le paysage de la halte : la nuit sur la voie terrestre à contre-jour, le logis éclairé, le premier plan, la vignette').toMatchObject({ paysage: ['ciel-nuit', 'relief-montagnes-ombre', 'brume-haute-nuit', 'relief-collines-ombre', 'brume-basse-nuit', 'relief-lisiere-ombre', 'relief-route-ombre', 'halte-toit', 'avant-foret-ombre', 'voile-coins'] });
     const couchage = (s: Suite) => bjorn(s).couchage as Choix;
     expect(couchage(suite).type, 'un choix de la carte, en liste').toBe('liste');
     expect(couchage(suite).valeurs.map((b) => [b.libelle, b.presse]), 'les couchages du relais, le sien pressé').toEqual([['Privée', true], ['Commune', false], ['Dehors', false]]);

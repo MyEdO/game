@@ -1,0 +1,15 @@
+[gd_resource type="StyleBox" script_class="CadreDeMatiere" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="1_cadre"]
+[ext_resource type="StyleBox" path="res://art/ombre_de_panneau.tres" id="2_ombre"]
+
+[resource]
+content_margin_left = 18.0
+content_margin_top = 18.0
+content_margin_right = 18.0
+content_margin_bottom = 18.0
+script = ExtResource("1_cadre")
+cadre = "chene-ferre"
+matiere = "prop--bois-chene"
+teinte = Color(0.62, 0.55, 0.48, 1)
+ombre = ExtResource("2_ombre")

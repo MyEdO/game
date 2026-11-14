@@ -6,7 +6,7 @@
 [ext_resource type="Theme" path="res://art/carte_du_voyage.tres" id="t_carte_du_voyage"]
 
 [node name="CarteDuVoyage" type="PanelContainer"]
-custom_minimum_size = Vector2(210, 124)
+custom_minimum_size = Vector2(260, 72)
 theme_type_variation = &"CarteDuVoyage"
 
 [node name="Plan" type="Container" parent="."]
