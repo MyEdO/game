@@ -97,7 +97,7 @@
     "type": "raw.manifest",
     "label": "Humeur de Manann et événements en mer (MDG)",
     "ticket": "#1652",
-    "bloque": "L'équipage, un effectif, ne contracte pas le scorbut : la soupe de chou de la cale n'a pas de mangeur (MDG 14 l.230, l.271), #4058."
+    "bloque": "L'équipage, un effectif, n'a pas d'état de maladie : il ne contracte pas le scorbut, la soupe de chou de la cale n'a pas de mangeur (MDG 14 l.230, l.271), et « La maladie fait rage au sein de l'équipage » (MDG 14 l.172) ne lit que les maladies contagieuses des Personnages (MDG 14 l.208), #4243."
   },
   {
     "id": "4e/maladies#maladie-type",

@@ -25,6 +25,8 @@ const doc = document(
       recommendedPay: z.boolean().optional(),
       /** MDG 14 l.156, l.166 */
       vivreSeul: ref('trapping').optional(),
+      /** MDG 14 l.172, l.208 */
+      contagionABord: z.boolean().optional(),
       source: sourceRefSchema,
     }), {
       id: { label: 'identifiant' },
@@ -33,6 +35,7 @@ const doc = document(
       wageMul: { label: 'multiplicateur de paie' },
       recommendedPay: { label: 'paie recommandée' },
       vivreSeul: { label: 'seul vivre mangé', texte: { regime: 'technique' } },
+      contagionABord: { label: 'maladie contagieuse à bord' },
       source: { label: 'source' },
     }),
     'id',

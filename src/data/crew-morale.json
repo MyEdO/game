@@ -359,6 +359,7 @@
           "sides": 10
         }
       },
+      "contagionABord": true,
       "source": {
         "book": "mer-des-griffes",
         "page": 124,

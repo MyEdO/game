@@ -1132,6 +1132,8 @@ Modificateurs (extrait) : paie généreuse / capitaine compétent → **+2d10** 
 
 **Nourriture** : les trois facteurs de la nourriture s'excluent ; le repas du dernier jour avant le recalcul les choisit : « La nourriture ne se résume pas à de simples rations de base | +1d10 » (`MDG 14 l.156`) quand le seul frais de la cale nourrit tout l'équipage, « La nourriture est uniquement composée de biscuits de mer | –1d10 » (`MDG 14 l.166`) quand ce sont les seuls biscuits, « La nourriture n'est même pas suffisante pour constituer une ration de base | –2d10 » (`MDG 14 l.171`) quand la cale est à court.
 
+**Maladie** : « La maladie fait rage au sein de l'équipage | –2d10 » (`MDG 14 l.172`) ne dit pas quand il s'applique ; « Si un membre d'équipage souffre d'une maladie comportant le symptôme toux et éternuements, tout le monde à bord y est exposé » (`MDG 14 l.208`). Règle maison `mer-moral-maladie-contagieuse-a-bord` (défaut actif) : le facteur entre au recalcul de la semaine, sans se persister, dès qu'un Personnage vivant porte une maladie contagieuse déclarée (incubation exclue) ; les Personnages comptent au Moral (`MDG 14 l.143`). L'effectif de l'équipage n'a pas d'état de maladie.
+
 **Effets du Moral** : 101+ → Tests de Commandement du capitaine +2 DR, tous les Tests d'équipage +1 DR ; 76-100 → Commandement +1 DR ; 51-75 → équipage satisfait (1d100 par membre en relâche, ≤04 ne revient pas) ; 50 ou moins → Commandement –1 DR, Tests d'équipage –1 DR, ≤16 ne revient pas en relâche. `MDG 14 l.186-202`
 
 **Voir aussi :** [Tests d'équipage (MDG)](#tests-déquipage-mdg) (Rude épreuve), [Humeur de Manann et événements en mer (MDG)](#humeur-de-manann-et-événements-en-mer-mdg).
