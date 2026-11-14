@@ -27,13 +27,13 @@ const FOYER = [
 const SITES_ADMIS: readonly (SiteAdmis & { readonly raison: string })[] = [
   { rel: 'src/state/devtools.ts', englobante: 'entreeDeRecette', appele: 'collectionDuDataset', raison: 'observation DEV du catalogue par id, en copie détachée ; aucun objet instancié' },
   { rel: 'src/state/devtools.ts', englobante: 'entreeDeRecette', appele: 'datasetSerializeRoot', raison: 'lecture du schéma de la collection observée en copie détachée DEV ; aucune instanciation ni écriture' },
-  { rel: 'src/data/atelierDuCodex.ts', englobante: 'validateEntry', appele: 'datasetArray', raison: 'existence d’une référence dans le dataset de SON champ niché (`NESTED_REF_FIELDS`) : comparaison, rien n’est instancié' },
-  { rel: 'src/data/atelierDuCodex.ts', englobante: 'editableEntries', appele: 'datasetArray', raison: 'les entrées ÉDITÉES au Codex, qui montre tout le catalogue' },
-  { rel: 'src/data/atelierDuCodex.ts', englobante: 'enregistrerEntree', appele: 'datasetArray', raison: 'l’écriture au seam du dataset édité' },
+  { rel: 'src/data/atelierDuCodex.ts', englobante: 'validateEntry', appele: 'entreesDuDataset', raison: 'existence d’une référence dans le dataset de SON champ niché (`NESTED_REF_FIELDS`) : comparaison, rien n’est instancié' },
+  { rel: 'src/data/atelierDuCodex.ts', englobante: 'editableEntries', appele: 'entreesDuDataset', raison: 'les entrées ÉDITÉES au Codex, qui montre tout le catalogue' },
+  { rel: 'src/data/atelierDuCodex.ts', englobante: 'enregistrerEntree', appele: 'entreesDuDataset', raison: 'l’écriture au seam du dataset édité' },
   { rel: 'src/data/atelierDuCodex.ts', englobante: 'enregistrerEntree', appele: 'datasetSerializeRoot', raison: 'l’écriture au seam du dataset édité' },
   { rel: 'src/ui/editor/codex/CodexEdit.tsx', englobante: 'ProsthesisField', appele: 'datasetArray', raison: 'champ de COMPARAISON (`traumas.prosthesis`, `engine/trauma.ts › prosthesisCancels` compare aux objets portés, n’instancie rien), #1463' },
-  { rel: 'src/ui/compendium/refField/RefField.tsx', englobante: 'useUnivers', appele: 'datasetArray', raison: 'univers d’un sélecteur générique : ses options et sa saisie se jugent sur la sous-liste du nœud du champ (`refusDuNoeud`)' },
-  { rel: 'src/ui/compendium/refField/RefField.tsx', englobante: 'valeursDistinctes', appele: 'datasetArray', raison: 'valeurs distinctes d’un champ (libellés, vocabulaire) proposées à une saisie libre, jamais des ids' },
+  { rel: 'src/ui/compendium/refField/RefField.tsx', englobante: 'useUnivers', appele: 'entreesDuDataset', raison: 'univers d’un sélecteur générique : ses options et sa saisie se jugent sur la sous-liste du nœud du champ (`refusDuNoeud`)' },
+  { rel: 'src/ui/compendium/refField/RefField.tsx', englobante: 'valeursDistinctes', appele: 'entreesDuDataset', raison: 'valeurs distinctes d’un champ (libellés, vocabulaire) proposées à une saisie libre, jamais des ids' },
 ];
 
 const PARAMETRES = {
@@ -44,7 +44,7 @@ const PARAMETRES = {
     { module: 'src/data/schemas/_racines-vivantes.generated.ts', exporte: 'RACINES_VIVANTES' },
   ],
   json: 'trappings.json',
-  seam: { module: 'src/data/overrides.ts', fonctions: ['datasetArray', 'collectionDuDataset', 'datasetSerializeRoot'] },
+  seam: { module: 'src/data/overrides.ts', fonctions: ['datasetArray', 'entreesDuDataset', 'collectionDuDataset', 'datasetSerializeRoot'] },
   dataset: 'trappings',
 } as const;
 const domaine = (rel: string) => !estFichierVitest(rel) && !estKitDeTest(rel);

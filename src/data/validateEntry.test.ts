@@ -1,12 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { validateEntry } from './atelierDuCodex';
-import { traits, entryKey, type MutationData } from '.';
-import { datasetArray, DATASET_KEYS } from './overrides';
+import { entryKey, type MutationData } from '.';
+import { datasetArray, DATASET_KEYS, entreesDuDataset } from './overrides';
 
-type Entry = Record<string, unknown>;
 
 describe('validateEntry — porte d’`enregistrerEntree` (Enregistrer bloqué tant que non vide)', () => {
-  const traitEntries = traits as unknown as Entry[];
+  const traitEntries = entreesDuDataset('traits');
 
   it('entrée réelle saine → aucune erreur', () => {
     expect(validateEntry('traits', traitEntries[0], traitEntries, 0)).toEqual([]);
@@ -43,7 +42,7 @@ describe('validateEntry — porte d’`enregistrerEntree` (Enregistrer bloqué t
  */
 describe('validateEntry — #173 : réf par ID écrasée par un LIBELLÉ (datalist/sélecteur) → bloquant', () => {
   it('mutationTables.entries[].mutation (réf NICHÉE) : id résolvable → OK ; libellé → bloquant', () => {
-    const tables = datasetArray('mutationTables') as unknown as Entry[];
+    const tables = entreesDuDataset('mutationTables');
     const goodId: MutationData['id'] = 'pattes-d-animaux';
     const base = tables[0];
     expect(validateEntry('mutationTables', { ...base, entries: [{ min: 1, max: 100, mutation: goodId }] }, tables, 0)).toEqual([]);
@@ -63,7 +62,7 @@ describe('validateEntry — #173 : réf par ID écrasée par un LIBELLÉ (datali
     // Round-trip de TOUTE la donnée éditable : chaque réf résout déjà (aucun orphelin toléré) —
     // les dotations véhicules (barque/charrette/diligence) sont des références typées `{id, type: 'vehicle'}` (#610, #3012).
     for (const key of DATASET_KEYS) {
-      const arr = datasetArray(key) as unknown as Entry[];
+      const arr = entreesDuDataset(key);
       arr.forEach((entry, i) => {
         const errs = validateEntry(key, entry, arr, i);
         expect(errs, `${key}[${i}] (${entryKey(entry)}) : ${errs.join('; ')}`).toEqual([]);

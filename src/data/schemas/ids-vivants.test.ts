@@ -12,7 +12,6 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { setDataset, datasetArray } from '../overrides';
 import { validateDataset } from './validate';
 import { props } from '../index';
-import type { MaterialEntry } from '../materials.types';
 
 const NEUVE = {
   id: 'sonde-matiere-neuve',
@@ -24,7 +23,7 @@ const NEUVE = {
   metalness: 0,
 } as const;
 
-const AVANT = (datasetArray('materials') as MaterialEntry[]).slice();
+const AVANT = datasetArray('materials').slice();
 afterEach(() => { setDataset('materials', AVANT as never); });
 
 /** Le document `props.json` réel, dont la 1ʳᵉ primitive volumique référence la matière `id`. */

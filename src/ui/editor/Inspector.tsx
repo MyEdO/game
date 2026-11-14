@@ -64,6 +64,7 @@ import {
   libelleDAuteur,
   MERCHANT_ARCHETYPES,
   TAVERN_GAMES,
+  findStructureById,
 } from '../../data';
 import {
   renameActionAuthoree,
@@ -147,7 +148,7 @@ import { CreatureProfile, OptionalTraitsPicker, SpellsField } from './OptionalTr
 import { SeatAssignmentsField } from './SeatAssignmentsField';
 import { type Sel, type Tool, capDeLEntite, capsOfferts, effectZoneRect, lumiereAllumee, effectZoneArea, flowEffectCount } from '../../noyau/sceneEditLecture';
 import { scrollElementIntoPort } from './useEditorView';
-import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
+import type { FireArc, NavalTraitRef } from '../../engine/types';
 import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { RefField } from '../compendium/refField/RefField';
@@ -1225,7 +1226,7 @@ export function Inspector({
                   cfg={{
                     ds: 'structures',
                     single: true,
-                    filter: (e) => (porteAuteur(selW) ? isDoorEdgeStructure(e as unknown as StructureData) : isWallEdgeStructure(e as unknown as StructureData)),
+                    filter: (e) => { const s = findStructureById(String(e.id)); return s !== undefined && (porteAuteur(selW) ? isDoorEdgeStructure(s) : isWallEdgeStructure(s)); },
                   }}
                   fieldKey="Matériau du mur"
                   value={selW.structure}

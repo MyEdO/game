@@ -5,7 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { enregistrerEntree } from './atelierDuCodex';
-import { ancetreDuDe, champDEnTete, datasetArray, deDeLaTable, resetData, setDataset, type DatasetKey } from './overrides';
+import { ancetreDuDe, champDEnTete, datasetArray, deDeLaTable, entreesDuDataset, resetData, setDataset, type DatasetKey } from './overrides';
 import { CATEGORY_DATASET_DERIVE } from './schemas/exposition-derivee';
 import { effectTableDie, findEffectTableById } from './effectTables';
 import { findTableEntry } from '../engine/tables';
@@ -68,10 +68,10 @@ describe('enregistrerEntree — une référence morte d’un champ typé est ref
   /** L'issue d'une entrée `modifiee` de `categorie` à la position 0 ; le dataset reste celui d'avant. */
   const refus = (categorie: string, modifiee: (e: Entree) => Entree): string => {
     const ds = CATEGORY_DATASET_DERIVE[categorie] as DatasetKey;
-    const premiere = (datasetArray(ds) as unknown as Entree[])[0];
+    const premiere = entreesDuDataset(ds)[0];
     const issue = enregistrerEntree(categorie, modifiee(premiere), 0);
     expect(issue.ok, categorie).toBe(false);
-    expect((datasetArray(ds) as unknown as Entree[])[0], categorie).toBe(premiere);
+    expect(entreesDuDataset(ds)[0], categorie).toBe(premiere);
     return issue.ok ? '' : issue.erreurs.join('\n');
   };
 
@@ -84,9 +84,9 @@ describe('enregistrerEntree — une référence morte d’un champ typé est ref
   });
 
   it('une dotation de POSSESSION `{ id, type }` d’un véhicule inconnu', () => {
-    const marchand = (datasetArray('careerLevels') as unknown as Entree[]).findIndex((e) => e.id === 'marchand-1');
-    const entree = (datasetArray('careerLevels') as unknown as Entree[])[marchand];
-    const trappings = (entree.trappings as Entree[]).map((t) => (t.type === 'vehicle' ? { ...t, id: 'vehicule-fantome' } : t));
+    const marchand = datasetArray('careerLevels').findIndex((e) => e.id === 'marchand-1');
+    const entree = datasetArray('careerLevels')[marchand];
+    const trappings = entree.trappings.map((t) => ('type' in t && t.type === 'vehicle' ? { ...t, id: 'vehicule-fantome' } : t));
     const issue = enregistrerEntree('careerLevels', { ...entree, trappings }, marchand);
     expect(issue.ok).toBe(false);
     expect(issue.ok ? '' : issue.erreurs.join('\n')).toMatch(/« vehicule-fantome » est absent du catalogue des véhicules/);
@@ -95,7 +95,7 @@ describe('enregistrerEntree — une référence morte d’un champ typé est ref
 
 describe('enregistrerEntree — écritures d’en-tête de la table (#1667)', () => {
   afterEach(() => resetData());
-  const rangees = () => datasetArray('drunkenness') as unknown as Entree[];
+  const rangees = () => datasetArray('drunkenness');
   const de = (valeur: string) => [{ ancetre: '', champ: 'die', valeur }];
 
   it('le dé posé s’écrit avec l’entrée, et la forme disque le porte', () => {
@@ -129,7 +129,7 @@ describe('enregistrerEntree — écritures d’en-tête de la table (#1667)', ()
     expect(portees.length).toBeGreaterThan(0);
     for (const { categorie, ds, ancetre } of portees) {
       const avantDe = deDeLaTable(ds);
-      const issue = enregistrerEntree(categorie, (datasetArray(ds) as unknown as Entree[])[0], 0, [{ ancetre, champ: 'die', valeur: 'beaucoup' }]);
+      const issue = enregistrerEntree(categorie, entreesDuDataset(ds)[0], 0, [{ ancetre, champ: 'die', valeur: 'beaucoup' }]);
       expect(issue.ok, categorie).toBe(false);
       expect(deDeLaTable(ds), categorie).toBe(avantDe);
     }
@@ -140,9 +140,9 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
   afterEach(() => resetData());
 
   it('table d’effets : le dé et une rangée édités changent ce que tire le lecteur', () => {
-    const tables = datasetArray('effectTables') as unknown as Entree[];
+    const tables = datasetArray('effectTables');
     const index = tables.findIndex((t) => t.id === 'allure-demoniaque-nurgle');
-    const table = tables[index] as { entries: Entree[] };
+    const table = tables[index];
     expect(findTableEntry(findEffectTableById('allure-demoniaque-nurgle').entries, 10).label).toBe(table.entries[9].label);
     const entries = table.entries.map((r, i) => (i === table.entries.length - 1 ? { ...r, max: 20, label: 'Rangée éditée' } : r));
     expect(enregistrerEntree('effectTables', { ...table, die: 'd20', entries }, index).ok).toBe(true);
@@ -151,7 +151,7 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
   });
 
   it('miscast VDM : une rangée puis le dé édités changent ce que tire le lecteur', () => {
-    const rangees = datasetArray('imparfaiteMineureVdm') as unknown as Entree[];
+    const rangees = datasetArray('imparfaiteMineureVdm');
     // Lecture AVANT l'édition : le lecteur mémoïsé est construit, l'édition doit l'invalider.
     expect(miscastRowAt('miscast-mineure-vdm', 1).label).toBe(rangees[0].label);
     expect(enregistrerEntree('imparfaiteMineureVdm', { ...rangees[0], label: 'Contrecoup édité' }, 0).ok).toBe(true);
@@ -161,7 +161,7 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
   });
 
   it('Voyage rapide : une rangée puis le dé édités changent ce que tire le lecteur', () => {
-    const paliers = datasetArray('seaFastVoyage') as unknown as Entree[];
+    const paliers = datasetArray('seaFastVoyage');
     const parfait = paliers.findIndex((p) => p.id === 'parfait');
     // Lecture AVANT l'édition : le lecteur mémoïsé est construit, l'édition doit l'invalider.
     expect(resolveFastVoyage(20, 0, 0, makeRNG(1)).palier.label).toBe(paliers[parfait].label);
@@ -172,8 +172,8 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
   });
 
   it('Dispersion : le dé édité est celui que tire le lecteur', () => {
-    const rangees = datasetArray('dispersion') as unknown as Entree[];
-    setDataset('dispersion', rangees.filter((r) => (r.max as number) <= 8) as never);
+    const rangees = datasetArray('dispersion');
+    setDataset('dispersion', rangees.filter((r) => r.max <= 8));
     expect(enregistrerEntree('dispersion', rangees[0], 0, [{ ancetre: ancetreDuDe('dispersion')!, champ: 'die', valeur: 'd8' }]).ok).toBe(true);
     const plages: number[] = [];
     const de = deSelonLaPlage((_min, max) => { plages.push(max); return max; });
@@ -185,12 +185,12 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
   it('Capricieux et Réaction au Statut : le dé édité est celui que tire le lecteur', () => {
     const plages: number[] = [];
     const de = deSelonLaPlage((_min, max) => { plages.push(max); return max; });
-    const capricieux = datasetArray('tableauCapricieux') as unknown as Entree[];
-    setDataset('tableauCapricieux', capricieux.filter((r) => (r.max as number) <= 3) as never);
+    const capricieux = datasetArray('tableauCapricieux');
+    setDataset('tableauCapricieux', capricieux.filter((r) => r.max <= 3));
     expect(enregistrerEntree('tableauCapricieux', capricieux[0], 0, [{ ancetre: ancetreDuDe('tableauCapricieux')!, champ: 'die', valeur: 'd3' }]).ok).toBe(true);
     expect(tirerLeCapricieux(de)).toEqual({ roll: 3, dr: -1 });
-    const reaction = datasetArray('reactionAuStatut') as unknown as Entree[];
-    setDataset('reactionAuStatut', reaction.filter((r) => (r.max as number) <= 2) as never);
+    const reaction = datasetArray('reactionAuStatut');
+    setDataset('reactionAuStatut', reaction.filter((r) => r.max <= 2));
     expect(enregistrerEntree('reactionAuStatut', reaction[0], 0, [{ ancetre: ancetreDuDe('reactionAuStatut')!, champ: 'die', valeur: 'd2' }]).ok).toBe(true);
     expect(tirerLaReactionAuStatut(de)).toBe('braver-le-statut');
     expect(plages).toEqual([3, 2]);
