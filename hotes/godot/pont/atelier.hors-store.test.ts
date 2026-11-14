@@ -129,7 +129,7 @@ describe('modelesDeLAtelier', () => {
   });
 
   it('les emblèmes sont la sous-liste `embleme` de la garde-robe, chacun réduit à son id, son libellé et son dessin', () => {
-    expect(modeles.emblemes.map(({ id }) => id)).toEqual(['taureau-rouge', 'tete-de-mort-rouge']);
+    expect(modeles.emblemes.map(({ id }) => id)).toEqual(['taureau-rouge', 'tete-de-mort-rouge', 'marteau-de-sigmar']);
     for (const embleme of modeles.emblemes) {
       const entree = gardeRobe.find(({ id }) => id === embleme.id);
       expect(entree?.kind, embleme.id).toBe('embleme');

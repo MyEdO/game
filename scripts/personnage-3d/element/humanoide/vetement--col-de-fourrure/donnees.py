@@ -24,13 +24,13 @@ MANIFESTE = {
 """`couvre` vide : la pèlerine ne cache aucune zone entière (le cou se voit au-dessus, le bas du torse dessous)."""
 MATERIAUX = {'fourrure': ('fourrure', ((0.6, 0.6, 0.6), 0.0, 0.95))}   # gris de construction, sans couleur cuite
 
-CONTOURNE = {'bure': 'humanoide--vetement--bure', 'baudrier': 'humanoide--accessoire--baudrier'}
-MATIERES = {'bure': ['robe'], 'baudrier': ['cuir', 'metal']}
+CONTOURNE = {'bure': 'humanoide--vetement--bure', 'baudrier': 'humanoide--accessoire--baudrier-sur-robe'}
+MATIERES = {'bure': ['robe'], 'baudrier': ['sangle']}
 """Les éléments publiés sous la pèlerine (brief de #3867 : elle passe sur la bure et le baudrier) et leurs matières : elle
 s'y pose au jeu et emprunte, au plus proche, leurs poids (procédure, section 3)."""
 ZONES_DE_LA_BURE = ['cou', 'torse', 'bras_haut_g', 'bras_haut_d']
-"""Zones des meshes de la bure sur lesquels la pèlerine repose, dont elle reprend les clés. Le baudrier publié n'a pas de
-mesh par zone (aucun `extras.zone`) : ses clés ne se reprennent pas ; il touche le corps (0 à 3 mm, base), sous la bure."""
+"""Zones des meshes de la bure sur lesquels la pèlerine repose, dont elle reprend les clés. Le baudrier, posé à 5 mm de la
+bure, en porte les clés."""
 ZONES_DU_CORPS = ['cou', 'torse']
 """Zones de la base que la pèlerine contourne aussi, et dont elle reprend les clés : le cou, au-dessus du col de la bure, et
 le haut du torse entre le cou et ce col, que les visées du trapèze traversent sinon sans rien toucher."""

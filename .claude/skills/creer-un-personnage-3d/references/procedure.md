@@ -243,7 +243,9 @@ Le kit : `element/tissu.py` pour une pièce skinnée (`Base` : repères d'os, su
 éléments publiés contournés, transfert des clés, découpe par zone ; `anneau`, `Maillage`, `emprunter`, `lisser`,
 `joindre`, `Base.nappe`, `lambeaux` pour un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
 sections rondes ou elliptiques, boîte, tube, tore…), `element/lame.py` pour une arme à lame et son fourreau (épée,
-dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), `formes.py` pour les
+dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), de même `element/robe.py` pour une
+robe longue sur le filet `jupe` (robe, bure) et `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
+qu'elle contourne (bandoulière à parchemins, baudrier sur robe), `formes.py` pour les
 clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
 sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au repos, puis ceux des chaînes requises. Un
 élément skinné reçoit les silhouettes déclarées ET toutes les clés `gabarit_*` de la base, celles-ci non déclarées au

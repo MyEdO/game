@@ -345,6 +345,15 @@
     }
   },
   {
+    "id": "baudrier-sur-robe",
+    "type": "garde-robe",
+    "label": "Baudrier sur robe",
+    "kind": "variante",
+    "piece": {
+      "id": "baudrier"
+    }
+  },
+  {
     "id": "bandouliere-a-parchemins",
     "type": "garde-robe",
     "label": "Bandoulière à parchemins",
