@@ -231,7 +231,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   const seaPaceChoices = seaRig ? [0, 1, 2].filter((b) => b === 0 || forcePaceDifficulty(b, seaRig.mode) != null) : [0];
   const seaPaceRefus = seaRig ? forcePaceRefus(party, seaRig.competence) : null;
   // Surcharge de la cale : MDG 12 l.70-75.
-  const seaOverload = vessel ? dossierDuNavire(vessel, party)?.overload ?? null : null;
+  const seaOverload = vessel ? dossierDuNavire(vessel, party, gameTime)?.overload ?? null : null;
   // Population embarquée pour le manifeste d'avitaillement (#245) : MDG 14 l.238.
   const seaCrewCount = shipboardSouls({ party, vessel }).crew;
 
@@ -256,7 +256,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
 
   // Avitaillement au départ EN MER (#241) : le groupe qui appareille sans vivres/eau le SAIT.
   const seaDaysEstimated = mode === 'mer' && selRoute && appareillable ? dureeDeTraversee(selRoute.km, seaM) : 0;
-  const provisions = mode === 'mer' && seaDaysEstimated > 0 ? provisioningManifest(party, vessel?.waterLitres, seaDaysEstimated, { count: seaCrewCount, provisions: vessel?.provisions }) : null;
+  const provisions = mode === 'mer' && seaDaysEstimated > 0 ? provisioningManifest(party, vessel?.waterLitres, seaDaysEstimated, gameTime, { count: seaCrewCount, provisions: vessel?.provisions }) : null;
 
   const libelleDepart = t(mode === 'mer' && provisions && !provisions.suffisant ? 'wm.appareillerQuandMeme' : achat ? 'wm.payerEtPartir' : 'wm.partir');
   const fmtDuration = (p: NonNullable<typeof plan>) =>

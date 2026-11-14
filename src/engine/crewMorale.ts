@@ -90,12 +90,12 @@ export function findMoraleFactor(id: string): MoraleFactor | undefined {
   return MORALE_FACTORS.find((f) => f.id === id);
 }
 
-/** Le facteur de Moral d'une nourriture faite du seul vivre `vivre` (`vivreSeul`), s'il en est un. MDG 14 l.166 */
+/** Le facteur de Moral d'une nourriture faite du seul vivre `vivre` (`vivreSeul`), s'il en est un. MDG 14 l.156, l.166 */
 export function facteurDuVivreSeul(vivre: string): MoraleFactor | undefined {
   return MORALE_FACTORS.find((f) => f.vivreSeul?.id === vivre);
 }
 
-/** Les ids des facteurs de Moral d'une nourriture faite d'un seul vivre (`vivreSeul`). MDG 14 l.166 */
+/** Les ids des facteurs de Moral d'une nourriture faite d'un seul vivre (`vivreSeul`). MDG 14 l.156, l.166 */
 export function facteursDeVivreSeul(): string[] {
   return MORALE_FACTORS.filter((f) => f.vivreSeul).map((f) => f.id);
 }

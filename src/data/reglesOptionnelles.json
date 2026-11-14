@@ -1157,6 +1157,19 @@
     "hint": "« Un membre d’équipage boit 2 à 3 litres d’eau par jour » (hors bandes Caniculaire/Chaude, déjà chiffrées à 4 L/3 L) : le canon donne une fourchette, pas une valeur unique. Défaut : borne haute (3 L)."
   },
   {
+    "id": "mer-vivres-frais-peremption-jours",
+    "type": "reglesOptionnelles",
+    "label": "Péremption des vivres frais de la cale (jours)",
+    "ref": "MDG 14 l.238",
+    "maison": "MDG 14 l.238 dit seulement que la nourriture du marché « va vite pourrir », sans durée ; le voisin LDB 47 l.93-97 (Conservation : « ils ne pourriront pas », une journée de vivres préservée des jours) chiffre la conservation en jours : défaut maison = une semaine.",
+    "group": "Voyage",
+    "kind": "param",
+    "default": 7,
+    "min": 1,
+    "max": 30,
+    "hint": "« se contenter d'acheter n'importe quelle nourriture disponible sur le marché revient à risquer un désastre lors d'une longue expédition, car elle va vite pourrir » : le canon ne chiffre pas la durée. Défaut : 7 jours après l'embarquement, le lot de vivres frais est jeté ; les biscuits de mer et la nourriture préservée ne périment pas."
+  },
+  {
     "id": "exposition-tests-nuit-difficile",
     "type": "reglesOptionnelles",
     "label": "Exposition : Tests par nuit (difficile)",

@@ -23,7 +23,7 @@ const doc = document(
       wageMul: z.number().optional(),
       /** MDG 14. */
       recommendedPay: z.boolean().optional(),
-      /** MDG 14 l.166 */
+      /** MDG 14 l.156, l.166 */
       vivreSeul: ref('trapping').optional(),
       source: sourceRefSchema,
     }), {

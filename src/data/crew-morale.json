@@ -95,6 +95,9 @@
           "sides": 10
         }
       },
+      "vivreSeul": {
+        "id": "nourriture-courses-journee"
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,

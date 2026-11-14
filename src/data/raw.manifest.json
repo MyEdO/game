@@ -97,7 +97,7 @@
     "type": "raw.manifest",
     "label": "Humeur de Manann et événements en mer (MDG)",
     "ticket": "#1652",
-    "bloque": "Le facteur « La nourriture ne se résume pas à de simples rations de base » (MDG 14 l.156) n'a pas de lecteur : la nourriture fraîche de la cale ne pourrit pas (MDG 14 l.238). L'équipage, un effectif, ne contracte pas le scorbut : la soupe de chou de la cale n'a pas de mangeur (MDG 14 l.230, l.271), #4058."
+    "bloque": "L'équipage, un effectif, ne contracte pas le scorbut : la soupe de chou de la cale n'a pas de mangeur (MDG 14 l.230, l.271), #4058."
   },
   {
     "id": "4e/maladies#maladie-type",
