@@ -2171,20 +2171,30 @@ async function parcoursEditeur() {
     const grille = Array.from({ length: 17 * 17 }, (_, i) => [0.1 + 0.05 * (i % 17), 0.1 + 0.05 * Math.floor(i / 17)])
     return grille.reduce((loin, c) => (ecart(auPlan(ed, c)) > ecart(auPlan(ed, loin)) ? c : loin))
   }
-  /** Le pointeur tenu sur le plan de `ed` du point `de` du cadre au point `a`, par deux points entre eux, puis relâché. */
+  /** Le cadre `plan` publié de l'éditeur, en texte : `largeur × hauteur à (x, y)`. */
+  const cadreEnTexte = (plan) => (plan ? `${plan.largeur} × ${plan.hauteur} à (${plan.x}, ${plan.y})` : 'aucun')
+  /** Le pointeur tenu sur le plan de `ed` du point `de` du cadre au point `a`, par deux points entre eux, puis relâché ;
+   *  le cadre du plan publié, celui de la visée, avant l'appui, après l'appui et après le relâché, reste le même. */
   const glisserSurLePlan = async (ed, de, a, qui) => {
     const [x0, y0] = auPlan(ed, de)
     const [x1, y1] = auPlan(ed, a)
+    const cadres = [['visé', ed.plan], ['avant l’appui', (await editeur()).plan]]
     await geste(session, { surface: 'canvas', x: x0, y: y0 }, { qui }, async ({ x, y }, emettre) => {
       await emettre('souris', { type: 'mouseMoved', x, y })
       await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
       await sleep(200)
+      cadres.push(['après l’appui', (await editeur()).plan])
       for (const t of [1 / 3, 2 / 3, 1]) {
         await emettre('souris', { type: 'mouseMoved', x: x0 + t * (x1 - x0), y: y0 + t * (y1 - y0), button: 'left', buttons: 1 })
         await sleep(300)
       }
       await emettre('souris', { type: 'mouseReleased', x: x1, y: y1, button: 'left', clickCount: 1 })
     })
+    cadres.push(['après le relâché', (await editeur()).plan])
+    const textes = cadres.map(([quand, plan]) => `${quand} ${cadreEnTexte(plan)}`)
+    const [vise, ...pendant] = cadres.map(([, plan]) => cadreEnTexte(plan))
+    assert.ok(pendant.every((c) => c === pendant[0]), `${qui} : le cadre du plan à l’écran ne bouge pas pendant le geste — ${textes.join(' ; ')}`)
+    assert.equal(vise, pendant[0], `${qui} : la visée lit le cadre du plan à l’écran à l’appui — ${textes.join(' ; ')}`)
   }
   /** Le plan de la carte sans ses tons : ses lieux, chacun à sa place et nommé, et ses routes. */
   const formeDuPlan = (ed) => JSON.stringify([planDeLaCarte(ed).id, planDeLaCarte(ed).points.map((pt) => [pt.id, pt.nom, pt.x, pt.y]), planDeLaCarte(ed).traits.map((tr) => [tr.id, tr.de, tr.vers])])
@@ -2236,9 +2246,12 @@ async function parcoursEditeur() {
     await cliquerAuPanneau({ element: 'bouton/outil/chemin' })
     ed = await editeur()
     await glisserSurLePlan(ed, [premier.x, premier.y], [second.x, second.y], 'la route tirée')
-    await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.traits ?? []).length === ${traits.length + 1}`)
+    const paire = [premier.id, second.id].sort().join()
+    await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.traits ?? []).some((tr) => tr.id !== 'brouillon/route' && [tr.de, tr.vers].sort().join() === ${JSON.stringify(paire)})`).catch((e) => {
+      if (e.code !== ATTENTE_ECHUE) throw e
+    })
     ed = await editeur()
-    const route = planDeLaCarte(ed).traits.find((tr) => [tr.de, tr.vers].sort().join() === [premier.id, second.id].sort().join())
+    const route = planDeLaCarte(ed).traits.find((tr) => tr.id !== 'brouillon/route' && [tr.de, tr.vers].sort().join() === paire)
     assert.ok(route, `outil Chemin, la route tirée relie les deux lieux : ${JSON.stringify(planDeLaCarte(ed).traits)}`)
     await cliquerAuPanneau({ element: 'bouton/outil/select' })
     await cliquerPoint(...auPlan(ed, [(premier.x + second.x) / 2, (premier.y + second.y) / 2]))
