@@ -10,7 +10,9 @@
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import type { SourceDeLEdition } from './adresseDeProse';
+import { cleDuChapitre, type SourceDeLEdition } from './adresseDeProse';
+import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/source/decoupe';
+import type { PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Dialogue, type EncounterDef, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeur, avecLaValeurDuPorteur, type Segment } from '../sceneEdit';
@@ -25,8 +27,10 @@ import {
   projetAvecLePorteur,
   type AccesDuPorteur,
   type CadreDuPorteur,
+  type DonneeDuPorteur,
   type ProjetDEdition,
   type Sel,
+  type SorteDePorteur,
 } from '../sceneEditLecture';
 import { emptyWorldMap, type WorldMap } from '../worldMap';
 import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
@@ -40,11 +44,11 @@ import {
   champsOfferts,
   choixDuNoeud,
   cleOfferte,
+  clesPosees,
   elementDuNoeud,
   formeAuPoint,
   inferFields,
   kindDuNoeud,
-  recordDuNoeud,
   unionDuNoeud,
   varianteCourante,
   type FieldDesc,
@@ -62,6 +66,7 @@ import type { GameOp } from '../../engine/ops';
 import { choixDeLaFeuilleDId, creatureSemee, findCreatureById } from '../../data';
 import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
 import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
+import { trappingRefSchema } from '../../data/schemas/grammaire/reference';
 import { dialogueNodeSchema, dialogueSchema, encounterDefSchema, victoryConditionSchema } from '../../data/schemas/defs-scenes/scene';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 
@@ -620,10 +625,13 @@ describe('le formulaire d’une rencontre (#3606 M4b)', () => {
   });
 });
 
-/** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`), toutes branches ouvertes,
- *  sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) : `variantes` d'une union nommée, `ajouter`
- *  ou `json` d'une liste, `json` d'une op sans forme déclarée, sinon celle de la feuille (`choix`, `nombre`, `texte`,
- *  `json`). Un nœud déjà descendu ne se redescend pas. */
+/** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`) de chaque porteur de
+ *  `PORTEURS`, toutes branches ouvertes, sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) :
+ *  `variantes` d'une union nommée, puis chaque variante, `ajouter` ou `json` d'une liste, `ajouter` d'un record dont les clés sont posées
+ *  (`clesPosees`), puis sa première entrée, ou `aucune` s'il n'en pose aucune, `json` d'une op sans forme déclarée, sinon
+ *  celle de la feuille (`choix`, `nombre`, `texte`, `json`), sauf d'un champ exigé à formes objet, toujours présent,
+ *  dont l'hôte rend les champs de la forme que dessine sa valeur (`formeAuPoint`). Un nœud déjà descendu ne se redescend
+ *  pas. */
 function saisiesDesFormulaires(): Map<string, string> {
   const saisies = new Map<string, string>();
   const vus = new Set<unknown>();
@@ -636,8 +644,7 @@ function saisiesDesFormulaires(): Map<string, string> {
     for (const c of sous(noeud, tenus)) champ({ ...c, contexte: f.contexte }, `${chemin}/${c.key}`);
   };
   const feuille = (f: FieldDesc, chemin: string) => {
-    const segments = chemin.replace(/<[^>]*>|\{\d*\}/g, '').split('/').slice(1).map((s) => (/^\d+$/.test(s) ? Number(s) : s));
-    const choix = f.contexte?.choix(segments) ?? choixDuNoeud(f.noeud);
+    const choix = f.contexte?.choix(segmentsDe(chemin)) ?? choixDuNoeud(f.noeud);
     const nombre = f.kind === 'number' || bornesAuPoint(f.noeud, undefined) !== undefined;
     saisies.set(chemin, choix ? 'choix' : nombre ? 'nombre' : f.kind === 'text' || f.kind === 'textarea' ? 'texte' : 'json');
   };
@@ -653,6 +660,7 @@ function saisiesDesFormulaires(): Map<string, string> {
         if (v.noeud === undefined) saisies.set(ici, 'json');
         else if (unionDuNoeud(v.noeud)) champ({ ...f, noeud: v.noeud }, ici, [...tenus, u.discriminant]);
         else if (champsDeclares(v.noeud)) objet(v.noeud, f, ici, [...tenus, u.discriminant]);
+        else if (elementDuNoeud(v.noeud) !== undefined) champ({ ...f, noeud: v.noeud }, ici);
         else feuille({ ...f, noeud: v.noeud, kind: kindDuNoeud('', v.noeud) }, ici);
       }
       return;
@@ -663,24 +671,57 @@ function saisiesDesFormulaires(): Map<string, string> {
       if (!vus.has(element)) champ({ ...champDeLElement(f, 0), contexte: f.contexte }, `${chemin}/0`);
       return;
     }
-    const record = recordDuNoeud(f.noeud);
-    if (record && champsDuRecord(f, {}, []).length) return champ({ ...f, key: '{}', kind: kindDuNoeud('', record.valeur), noeud: record.valeur }, `${chemin}/{}`);
+    if (clesPosees(f, segmentsDe(chemin))) {
+      const [entree] = champsDuRecord(f, {}, segmentsDe(chemin));
+      saisies.set(chemin, entree ? 'ajouter' : 'aucune');
+      return entree && champ(entree, `${chemin}/${entree.key}`);
+    }
     const formes = ouverts([f.noeud]).filter((n) => champsDeclares(n));
-    feuille(f, chemin);
+    if (f.nullable || !formes.length) feuille(f, chemin);
     formes.forEach((n, i) => objet(n, f, `${chemin}{${i}}`));
   }
   const vide = emptyScene('s', 4, 4);
-  const porteurs = [
-    ['zone', zone()],
-    ['declencheur', declencheur()],
-    ['entite', { kind: 'personnage', id: 'p', pos: { x: 0, y: 0 }, vehicule: { id: 'x' } }],
-    ['entite', { kind: 'prop', id: 'd', ref: 'x', pos: { x: 0, y: 0 }, usable: { actions: [{ id: 'a' }] } }],
-    ['dialogue', DIALOGUE],
-    ['rencontre', RENCONTRE],
-  ] as const;
-  for (const [sorte, donnee] of porteurs) for (const f of formulaireDe(sorte, donnee as never, { ...CADRE_VIDE, scene: vide })) champ(f, `${sorte}/${f.key}`);
+  const cadre: CadreDuPorteur = { ...CADRE_VIDE, scene: vide, projet: { scenes: [vide], narratif: NARRATIF_VIDE, worldMap: CARTE_DES_PORTEURS } };
+  for (const sorte of Object.keys(PORTEURS) as SorteDePorteur[]) {
+    for (const donnee of PORTEURS[sorte]) for (const f of formulaireDe(sorte, donnee as never, cadre)) champ(f, `${sorte}/${f.key}`);
+  }
   return saisies;
 }
+
+/** Le chemin de données d'un chemin de `saisiesDesFormulaires`, sans ses variantes (`<…>`) ni ses formes (`{N}`), privé
+ *  de sa sorte de porteur. */
+const segmentsDe = (chemin: string): Segment[] => chemin.replace(/<[^>]*>|\{\d*\}/g, '').split('/').slice(1).map((s) => (/^\d+$/.test(s) ? Number(s) : s));
+
+/** La carte où vivent les porteurs de la carte de `PORTEURS` : deux lieux, reliés par une route à pied et en diligence. */
+const CARTE_DES_PORTEURS: WorldMap = {
+  ...emptyWorldMap('monde'),
+  places: [{ id: 'x', label: 'X', pos: { x: 20, y: 20 }, scene: { id: 's' } }, { id: 'y', label: 'Y', pos: { x: 60, y: 20 }, scene: { id: 's' } }],
+  routes: [{ id: 'r', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied', 'diligence'] }],
+};
+
+/** Les données de chaque sorte de porteur que descend `saisiesDesFormulaires` : la table est totale. */
+const PORTEURS: { readonly [S in SorteDePorteur]: readonly DonneeDuPorteur[S][] } = {
+  zone: [zone()],
+  declencheur: [declencheur()],
+  entite: [
+    { kind: 'personnage', id: 'p', pos: { x: 0, y: 0 }, vehicule: { id: 'x' } } as DonneeDuPorteur['entite'],
+    { kind: 'prop', id: 'd', ref: 'x', pos: { x: 0, y: 0 }, usable: { actions: [{ id: 'a' }] } } as unknown as DonneeDuPorteur['entite'],
+  ],
+  dialogue: [DIALOGUE],
+  rencontre: [RENCONTRE],
+  scene: [emptyScene('s', 4, 4)],
+  lieu: CARTE_DES_PORTEURS.places,
+  route: CARTE_DES_PORTEURS.routes,
+  carte: [CARTE_DES_PORTEURS],
+  projet: [{ id: 'projet' }],
+  affaires: [{ id: 'aff', titre: 'La route' }],
+  indices: [{ id: 'ind', affaireId: 'aff', kind: 'indice', titre: 'La lettre', stades: [{ id: 'lue', prose: 'a' }] }],
+  presetsPnj: [{ id: 'pnj-1', base: { id: creatureSemee() } }],
+  documents: [{ id: 'doc', titre: 'L’affiche', prose: 'VOYAGEURS' }],
+  etats: [{ id: 'humeur', label: 'Humeur', maison: 'fixture', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }] } }],
+  ecart: [{ entree: 'EDO-01#x', motif: 'm' }],
+  narratif: [NARRATIF_VIDE],
+};
 
 describe('chaque feuille des formulaires tirés du schéma a un contrôle typé (#3606 M2e)', () => {
   const saisies = saisiesDesFormulaires();
@@ -698,6 +739,29 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
     const horsObjet = ['zone/crossTest/gate<kind=partyDead>/who', 'zone/onCross/0<op=condition>/resolveWindow', 'zone/onCross/0<op=navireMod>/jusqua', 'zone/onCross/0<op=augmentWeapon>/onHitEffects/0/on'];
     expect(horsObjet.map((c) => saisies.get(`${c}<forme=0>`)), 'la variante hors objet se choisit parmi ses valeurs').toEqual(horsObjet.map(() => 'choix'));
+  });
+
+  it('les modes d’une route se choisissent ; ses billets et sa vitesse, l’apparence des objets du profil d’un PNJ s’ajoutent par clé posée ; ses dotations et le choix d’une spécialisation se choisissent par variante nommée (#3606 L6)', () => {
+    const attendues: Record<string, string> = {
+      'route/modes/0': 'choix',
+      'route/billets': 'ajouter',
+      'route/billets/diligence/prix': 'ajouter',
+      'route/billets/diligence/prix/interieur': 'nombre',
+      'route/billets/diligence/suite/0': 'choix',
+      'route/billets/diligence/depuis/id': 'choix',
+      'route/billets/diligence/marchandage/presetId': 'choix',
+      'route/billets/diligence/marchandage/paliers/0/prix/interieur': 'nombre',
+      'route/speed': 'ajouter',
+      'route/speed/pied': 'nombre',
+      'presetsPnj/profil/appearance/apparencesObjets': 'aucune',
+      'presetsPnj/profil/trappings': 'ajouter',
+      'presetsPnj/profil/trappings/0': 'variantes',
+      'presetsPnj/profil/trappings/0<forme=0>/of/0': 'variantes',
+      'presetsPnj/profil/skills/0/choix': 'variantes',
+      'presetsPnj/profil/skills/0/choix<forme=1>': 'ajouter',
+    };
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+    expect(unionDuNoeud(trappingRefSchema)?.variantes.map((v) => v.libelle)).toEqual(['une parmi', 'objet du catalogue', 'ligne de texte', 'mention', 'possession', 'somme d’argent', 'arme au choix']);
   });
 
   it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée, et chaque op non typée', () => {
@@ -740,7 +804,7 @@ describe('l’accès d’un porteur à son document du projet (#3606)', () => {
     expect([porteurDuProjet<Narratif>(LE_NARRATIF, projet(), 'salle', 'narratif'), porteurDuProjet<Narratif>(LE_NARRATIF, projet(), 'salle', 'salle')]).toEqual([{ donnee: NARRATIF_VIDE, chemin: [] }, undefined]);
     const enrichi = { ...NARRATIF_VIDE, presetsPnj: [] };
     expect(projetAvecLePorteur<Narratif>(LE_NARRATIF, projet(), 'salle', NARRATIF_VIDE, enrichi).narratif).toBe(enrichi);
-    expect([porteurDeLaSel(null, 'scene', 'salle'), porteurDeLaSel(null, 'narratif', 'salle')], 'sans sélection, le singulier du document ouvert ; le narratif n’en porte aucun').toEqual([{ sorte: 'scene', id: 'salle' }, undefined]);
+    expect([porteurDeLaSel(null, 'scene', 'salle'), porteurDeLaSel(null, 'narratif', 'salle')], 'sans sélection, le singulier du document ouvert, le narratif compris (#3606 B3)').toEqual([{ sorte: 'scene', id: 'salle' }, { sorte: 'narratif', id: 'narratif' }]);
   });
 });
 
@@ -782,5 +846,126 @@ describe('les porteurs de la carte du monde : lieu, route et carte (#3606 M5)', 
   it('un avertissement de la carte désigne le lieu ou la route qui porte son élément ; sans élément, la carte ; un point d’intérêt, aucun porteur', () => {
     expect([porteurDeLaPortee('worldMap', 'x', projet, 'salle'), porteurDeLaPortee('worldMap', 'r', projet, 'salle'), porteurDeLaPortee('worldMap', undefined, projet, 'salle'), porteurDeLaPortee('worldMap', 'temple', projet, 'salle')])
       .toEqual([{ sorte: 'lieu', id: 'x' }, { sorte: 'route', id: 'r' }, { sorte: 'carte', id: 'carte' }, undefined]);
+  });
+});
+
+describe('les porteurs du narratif : une entrée de chaque registre créable, un écart, le narratif (#3606 M6)', () => {
+  const NARRATIF = {
+    ...NARRATIF_VIDE,
+    affaires: [{ id: 'aff', titre: 'La route' }, { id: 'aff-2', titre: 'Le fleuve' }],
+    indices: [
+      { id: 'ind-lettre', affaireId: 'aff', kind: 'indice', titre: 'La lettre', stades: [{ id: 'lue', prose: 'a' }, { id: 'dechiffree', prose: 'b' }] },
+      { id: 'ind-sceau', affaireId: 'aff', kind: 'indice', titre: 'Le sceau', refs: ['ind-lettre'], stades: [{ id: 'vu', prose: 'c' }] },
+      { id: 'ind-carte', affaireId: 'aff-2', kind: 'rumeur', titre: 'La carte', stades: [{ id: 'dite', prose: 'd' }] },
+    ],
+    documents: [{ id: 'doc-affiche', titre: 'L’affiche', prose: 'VOYAGEURS' }],
+    etats: [{ id: 'humeur', label: 'Humeur', maison: 'fixture', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }] } }],
+    ecartes: [{ entree: 'EDO-01#x', motif: 'm' }],
+  } as typeof NARRATIF_VIDE;
+  const cadre: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF }, source: SANS_SOURCE };
+  const cles = (fs: FieldDesc[]) => fs.map((f) => f.key);
+  const [lettre, sceau] = NARRATIF.indices;
+  const valeurs = (sorte: Parameters<typeof choixDuChamp>[0], donnee: unknown, chemin: Segment[]) => choixDuChamp(sorte, donnee as never, chemin, cadre)?.map((c) => c.valeur);
+
+  it('une sélection d’une entrée d’un registre créable ou d’un écart désigne son porteur, sous la clé de sa collection', () => {
+    expect([porteurDeLaSel({ type: 'indices', id: 'ind-lettre' }, 'narratif', 's'), porteurDeLaSel({ type: 'ecart', id: 'EDO-01#x' }, 'narratif', 's')])
+      .toEqual([{ sorte: 'indices', id: 'ind-lettre' }, { sorte: 'ecart', id: 'EDO-01#x' }]);
+  });
+
+  it('chaque entrée offre les champs de son schéma hors de son identifiant ; un indice, ses stades par rang ; un écart, son motif ; le narratif, son ouverture et sa clôture', () => {
+    expect(cles(formulaireDe('affaires', NARRATIF.affaires[0], cadre))).toEqual(['titre', 'desc']);
+    expect(cles(formulaireDe('documents', NARRATIF.documents[0], cadre))).toEqual(['titre', 'prose', 'source']);
+    expect(cles(formulaireDe('indices', lettre, cadre))).toEqual(['affaireId', 'kind', 'titre', 'refs', 'couvre', 'stades']);
+    expect(cles(formulaireDe('etats', NARRATIF.etats[0], cadre))).toEqual(['label', 'source', 'maison', 'forme']);
+    expect(cles(formulaireDe('ecart', NARRATIF.ecartes![0], cadre))).toEqual(['motif']);
+    expect(cles(formulaireDe('narratif', NARRATIF, cadre))).toEqual(['ouverture', 'cloture']);
+    expect([['stades', 1, 'prose'], ['stades', 1, 'documentId'], ['stades', 1, 'id'], ['stades']].map((c) => avecLaValeurDuPorteur('indices', lettre, c as Segment[], c[2] === 'documentId' ? 'doc-affiche' : 'z', cadre).ok))
+      .toEqual([true, true, false, false]);
+  });
+
+  it('les références du narratif reçoivent leurs choix : l’affaire d’un indice, le document d’un stade, par le registre ; ses renvois, les autres indices hors des renvoyés', () => {
+    expect(valeurs('indices', lettre, ['affaireId'])).toEqual(['aff', 'aff-2']);
+    expect(valeurs('indices', lettre, ['stades', 0, 'documentId'])).toEqual(['doc-affiche']);
+    expect(valeurs('indices', lettre, ['refs', 0])).toEqual(['ind-sceau', 'ind-carte']);
+    expect(valeurs('indices', sceau, ['refs', 1]), 'le renvoi posé ne se repropose pas').toEqual(['ind-carte']);
+    expect(valeurs('indices', sceau, ['refs', 0]), 'le renvoi courant reste offert').toEqual(['ind-lettre', 'ind-carte']);
+  });
+
+  it('au rang qui suit le dernier stade, le stade neuf, d’identifiant frais ; au rang qui suit la dernière valeur d’un état, la valeur neuve', () => {
+    expect(valeurs('indices', lettre, ['stades', 2])).toEqual([{ id: 'stade-3', prose: '' }]);
+    expect(valeurs('etats', NARRATIF.etats[0], ['forme', 'valeurs', 1])).toEqual([{ id: 'valeur-2', label: 'Valeur 2' }]);
+    expect(avecLaValeurDuPorteur('indices', lettre, ['stades', 2], { id: 'autre', prose: '' }, cadre).ok, 'seul l’élément neuf s’ajoute').toBe(false);
+  });
+
+  it('un état héros reçoit son identité neuve absente, puis le repère neuf au rang qui suit le dernier ; seul ce repère s’y ajoute', () => {
+    const heros = { id: 'elu', label: 'Élu', maison: 'fixture', forme: { kind: 'heros' } } as unknown as (typeof NARRATIF.etats)[number];
+    const [neuve] = valeurs('etats', heros, ['forme', 'identite']) as { reperes: unknown[] }[];
+    expect(neuve).toEqual({ ancres: ['Nom'], reperes: [{ id: 'repere-1', fragment: 'Nom' }], lignes: [] });
+    const avec = { ...heros, forme: { kind: 'heros', identite: neuve } } as typeof heros;
+    expect([valeurs('etats', avec, ['forme', 'identite']), valeurs('etats', avec, ['forme', 'identite', 'reperes', 1])]).toEqual([undefined, [{ id: 'repere-2', fragment: '' }]]);
+    expect(avecLaValeurDuPorteur('etats', avec, ['forme', 'identite', 'reperes', 1], { id: 'autre', fragment: '' }, cadre).ok).toBe(false);
+  });
+
+  it('l’identité posée s’écrit par ses champs, jamais ses repères ni ses lignes entiers ni le repère d’une valeur ; elle et chacune de ses lignes se retirent entières, déclarées ; un rang non déclaré, non', () => {
+    const identite = { ancres: ['Nom'], reperes: [{ id: 'repere-1', fragment: 'Nom' }], lignes: [{ espece: 'humain', sexe: 'M', valeurs: [{ repere: 'repere-1', valeur: 'Otto' }] }] };
+    const avec = { id: 'elu', label: 'Élu', maison: 'fixture', forme: { kind: 'heros', identite } } as unknown as (typeof NARRATIF.etats)[number];
+    const ici = (...chemin: Segment[]) => ['forme', 'identite', ...chemin];
+    const ecrit = (chemin: Segment[], v?: unknown) => avecLaValeurDuPorteur('etats', avec, chemin, v, cadre);
+    expect([ecrit(ici('ancres'), ['Nom', 'Baron']), ecrit(ici('reperes', 0, 'fragment'), 'Baron Nom'), ecrit(ici('lignes', 0, 'sexe'), 'F'), ecrit(ici('lignes', 0, 'valeurs', 0, 'valeur'), 'Karl')].map((e) => e.ok))
+      .toEqual([true, true, true, true]);
+    expect([ecrit(ici('lignes', 0, 'valeurs', 0, 'repere'), 'autre'), ecrit(ici('reperes'), []), ecrit(ici('lignes'), []), ecrit(ici(), { ...identite, lignes: [] }), ecrit(ici('reperes', 0, 'id'), 'autre')].map((e) => (e.ok ? 'ok' : e.refus)))
+      .toEqual(['nonOffert', 'nonOffert', 'nonOffert', 'nonOffert', 'nonOffert']);
+    const sansLigne = ecrit(ici('lignes', 0));
+    const sansIdentite = ecrit(ici());
+    expect([sansLigne.ok && (sansLigne.valeur.forme as typeof avec.forme & { identite: typeof identite }).identite.lignes, sansIdentite.ok && sansIdentite.valeur.forme]).toEqual([[], { kind: 'heros' }]);
+    const refus = [ecrit(ici('reperes', 0)), avecLaValeurDuPorteur('indices', lettre, ['stades', 0], undefined, cadre)];
+    expect(refus.map((e) => (e.ok ? 'ok' : e.refus)), 'un rang qu’aucun formulaire ne déclare ne se retire pas').toEqual(['requis', 'requis']);
+  });
+});
+
+describe('l’adresse de prose d’un porteur hors scène : le profil d’un PNJ du narratif (#3606 M6)', () => {
+  const TEXTE = ['# Les Armures', '', 'Une armure protège son porteur des coups, au prix de sa discrétion.', ''].join('\n');
+  const LIVRE = 'livre-de-base';
+  const CHARGEE: SourceDeLEdition = {
+    manifeste: { [LIVRE]: { abbr: 'LDB', chapitres: [{ ch: '01', fichier: '01 - Armures.md', titre: 'Les Armures', octets: TEXTE.length }] } },
+    chapitres: { [cleDuChapitre(LIVRE, '01')]: parseChapitre(TEXTE) },
+  };
+  const ARMURES: Fragment = { kind: 'blocs', sec: 'les-armures', secOcc: 1, b0: 0, b1: 0, sum: '' };
+  const preset = { id: 'pnj-1', base: { id: creatureSemee() } };
+  const cadre = (source: SourceDeLEdition): CadreDuPorteur => ({ scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: { ...NARRATIF_VIDE, presetsPnj: [preset] } }, source });
+
+  it('l’adresse écrite au profil d’un PNJ se scelle sur le chapitre chargé, comme sous un porteur de la scène ; sans lui, elle n’est pas offerte', () => {
+    const vide = { ...preset, profil: { descRef: { book: LIVRE, ch: '01', parts: [] } } } as unknown as PresetPnj;
+    const PARTS: Segment[] = ['profil', 'descRef', 'parts'];
+    const choisie = choixDuChamp('presetsPnj', vide, PARTS, cadre(CHARGEE))?.map((c) => c.valeur).find((v) => (v as Fragment[])[0]?.kind === 'blocs');
+    const ecrite = avecLaValeurDuPorteur('presetsPnj', vide, PARTS, choisie, cadre(CHARGEE));
+    expect(ecrite.ok && (ecrite.valeur.profil as { descRef: DescRef }).descRef.parts).toEqual([{ ...ARMURES, sum: empreinteDe(parseChapitre(TEXTE), ARMURES) }]);
+    expect(avecLaValeurDuPorteur('presetsPnj', vide, PARTS, [{ ...ARMURES, sum: empreinteDe(parseChapitre(TEXTE), ARMURES) }], cadre({ ...CHARGEE, chapitres: {} })), 'même scellé, aucun fragment ne s’ajoute sans son chapitre').toEqual({ ok: false, refus: 'horsSorte' });
+  });
+});
+
+describe('une sous-référence se choisit parmi les sous-entrées de l’entrée que désigne sa référence sœur (`SOUS_REFERENCES`)', () => {
+  const NARRATIF = {
+    ...NARRATIF_VIDE,
+    etats: [
+      { id: 'humeur', label: 'Humeur', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }, { id: 'colere', label: 'Colère' }] } },
+      { id: 'meneur', label: 'Meneur', forme: { kind: 'heros' } },
+    ],
+    indices: [{ id: 'piste', affaireId: 'a', kind: 'indice', titre: 'Piste', stades: [{ id: 'vu', prose: '' }, { id: 'compris', prose: '' }] }],
+  } as unknown as typeof NARRATIF_VIDE;
+  const CADRE: CadreDuPorteur = { ...CADRE_VIDE, projet: { scenes: [], narratif: NARRATIF } };
+  const VALEURS = [{ valeur: 'calme', libelle: 'Calme', refus: null }, { valeur: 'colere', libelle: 'Colère', refus: null }];
+  const avecEffet = (effet: object): Declencheur => ({ ...declencheur(), flow: { kind: 'effet', effet } }) as Declencheur;
+
+  it('la valeur comparée de la clôture, la valeur posée d’un effet et la valeur d’une condition de déclencheur : les valeurs déclarées de l’état désigné', () => {
+    const narratif = { ...NARRATIF, cloture: { when: { kind: 'etat', etat: 'humeur' }, titre: '' } } as typeof NARRATIF;
+    expect(choixDuChamp('narratif', narratif, ['cloture', 'when', 'value'], CADRE)).toEqual(VALEURS);
+    expect(choixDuChamp('declencheur', avecEffet({ type: 'poserEtat', etat: 'humeur', valeur: 'calme' }), ['flow', 'effet', 'valeur'], CADRE)).toEqual(VALEURS);
+    expect(choixDuChamp('declencheur', declencheur({ kind: 'etat', etat: 'humeur' } as Condition), ['when', 'value'], CADRE)).toEqual(VALEURS);
+  });
+
+  it('le stade d’un indice révélé : ses stades, libellés de leur rang ; un état sans valeurs déclarées n’en offre aucune', () => {
+    expect(choixDuChamp('declencheur', avecEffet({ type: 'revealClue', indiceId: 'piste' }), ['flow', 'effet', 'stade'], CADRE)).toEqual([{ valeur: 'vu', libelle: 'stade 1', refus: null }, { valeur: 'compris', libelle: 'stade 2', refus: null }]);
+    expect(choixDuChamp('declencheur', declencheur({ kind: 'etat', etat: 'meneur' } as Condition), ['when', 'value'], CADRE)).toEqual([]);
   });
 });

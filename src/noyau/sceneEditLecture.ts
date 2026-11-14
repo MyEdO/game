@@ -39,7 +39,38 @@ import {
 } from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { mapPlaceSchema, mapRouteSchema, placePoiSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
-import { narratifSchema } from '../data/schemas/defs-scenes/narratif';
+import { repereDIdentiteSchema, valeurDIdentiteSchema } from '../data/schemas/grammaire/campagne';
+import {
+  affaireSchema,
+  documentNarratifSchema,
+  ecartSchema,
+  etatNarratifSchema,
+  formeDEtatSchema,
+  indiceSchema,
+  indiceStadeSchema,
+  narratifSchema,
+  presetPnjSchema,
+  valeurDEtatSchema,
+  type EcartDeFiche,
+  type EtatNarratif,
+  type Indice,
+  type NarratifBlock,
+  type PresetPnj,
+} from '../data/schemas/defs-scenes/narratif';
+import { identiteDe, libelleDeLigne } from './narratifEdit';
+import {
+  IDENTITE,
+  REPERES,
+  STADES,
+  VALEURS_D_ETAT,
+  idFrais,
+  identiteNeuve,
+  lignesNeuves,
+  repereNeuf,
+  type Identite,
+  type RegistreCreable,
+} from '../data/schemas/defs-scenes/ecritures-du-narratif';
+import { FORMES_D_ETAT, etatDeclare, valeursDeclarees } from '../data/schemas/defs-scenes/formes-d-etat';
 import { collectionDe, idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
 import { porteeDeLaFeuille } from '../data/schemas/grammaire/ref';
@@ -48,6 +79,7 @@ import { champsDeclares, choixDuNoeud, formeAuPoint, inferFields, type ChoixDuCo
 import { variantesAChoisir } from './valeursNeuves';
 import { isOptionalNote } from '../engine/statEntry';
 import { chargeLArme, gabaritDObjet } from '../engine/items';
+import { travelModeLabels, travelVehicles, vehicleTravel } from '../engine/travel';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { estObjet } from '../lib/objet.mjs';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
@@ -73,9 +105,10 @@ import {
 import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
 import { ficheDuPersonnage, nomDEntite } from './monde/sceneNpc';
 import { t } from '../i18n';
-import { objetDuNarratif, presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
-import { entreesNarratives, type CleDeReferenceNarrative } from './codex/libellesNarratifs';
+import { mergeCreatureProfile, objetDuNarratif, presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
+import { entreesDeStades, entreesNarratives, type CleDeReferenceNarrative } from './codex/libellesNarratifs';
 import { REFERENCES_NARRATIVES } from '../data/schemas/defs-scenes/registres-narratifs';
+import { SOUS_REFERENCES, type CleDeSousReference } from '../data/schemas/defs-scenes/refs-narratives';
 import { marcheNeuf, peripetieNeuve, portNeuf } from './worldMapEdit';
 import { emptyWorldMap, resolvePortRef, type MapPlace, type MapRoute, type ProjectDoc, type WorldMap } from './worldMap';
 import type { Warning } from './validateScene';
@@ -95,6 +128,7 @@ import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
 import { aretesA } from './monde/wallIndex';
 import type { Rect, Pt, EffectZoneSeed, Segment } from './sceneEdit';
+import { tableTotale } from '../lib/tableTotale';
 
 /** Outil actif (rail de la Palette). `ref` permet la pose DIRECTE d'un décor ou d'une fiche précise.
  *  L'outil d'ENTITÉ est SCINDÉ par `kind` (#877, #1882) : un décor NOMME son type au catalogue, un
@@ -169,9 +203,10 @@ export function structuresDeLArete(paint: WallPaint): StructureData[] {
  *  est leur ENCRE (`zoneInk`, EditorCanvas) : la pièce n'a qu'un liseré, le piège porte l'aplat. */
 export type Layers = { triggers: boolean; spawns: boolean; roofs: boolean; entries: boolean; rest: boolean; zones: boolean };
 
-/** Les types de sélection qui désignent un élément du projet par son seul identifiant : de la scène, ou un lieu et une
- *  route de la carte du monde. */
-type TypeDeSelParId = 'entity' | 'trigger' | 'entry' | 'effectZone' | 'dialogue' | 'encounter' | 'place' | 'route';
+/** Les types de sélection qui désignent un élément du projet par son seul identifiant : de la scène, un lieu et une
+ *  route de la carte du monde, une entrée d'un registre créable du narratif (`RegistreCreable`), sous sa clé, ou un
+ *  écart. */
+type TypeDeSelParId = 'entity' | 'trigger' | 'entry' | 'effectZone' | 'dialogue' | 'encounter' | 'place' | 'route' | RegistreCreable | 'ecart';
 
 /** Sélection unifiée — une seule chose sélectionnée à la fois, sur la carte comme dans les panneaux. */
 export type Sel =
@@ -470,8 +505,12 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
  *  redise sa forme (la palette le construit, le canevas le transmet, la pose le consomme). */
 export type EntityTool = Extract<Tool, { mode: 'entite' }>;
 
-/** La donnée du porteur de chaque sorte de formulaire tiré du schéma. */
-export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue; rencontre: EncounterDef; scene: Scene; lieu: MapPlace; route: MapRoute; carte: WorldMap; projet: ReglagesDuProjet }
+/** La donnée d'une entrée de chaque registre créable du narratif (`RegistreCreable`), sous sa clé. */
+type DonneeDesRegistres = { [R in RegistreCreable]: NarratifBlock[R][number] };
+
+/** La donnée du porteur de chaque sorte de formulaire tiré du schéma : une entrée de chaque registre créable du narratif
+ *  (`DonneeDesRegistres`), un écart et le narratif compris. */
+export interface DonneeDuPorteur extends DonneeDesRegistres { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue; rencontre: EncounterDef; scene: Scene; lieu: MapPlace; route: MapRoute; carte: WorldMap; projet: ReglagesDuProjet; ecart: EcartDeFiche; narratif: NarratifBlock }
 
 /** La sorte d'un porteur de formulaire tiré du schéma. */
 export type SorteDePorteur = keyof DonneeDuPorteur;
@@ -562,6 +601,9 @@ interface FormulaireDuPorteur<D> {
    *  s'atteint sur le plan. */
   logique?: true;
   champs: (donnee: D, cadre: CadreDuPorteur) => CheminsOfferts;
+  /** Les chemins de sa donnée qui se retirent entiers sans s'écrire entiers (`avecLaValeurDuPorteur`) : d'une clé,
+   *  l'objet qu'elle porte ; d'un rang, l'élément de sa liste. */
+  retraits?: (donnee: D) => CheminsOfferts;
   choix?: (donnee: D, chemin: readonly Segment[], cadre: CadreDuPorteur) => readonly ChoixDuContexte[] | undefined;
 }
 
@@ -662,17 +704,13 @@ function choixDuProfil(ent: SceneEntity, presetDe: ResolveurDePreset): readonly 
 /** L'apparence des objets d'un personnage, par objet (`EntityAppearance.apparencesObjets`). */
 const APPARENCES_D_OBJETS = ['appearance', 'apparencesObjets'] as const;
 
-/** Les choix que le contexte du personnage `ent`, dans le cadre `cadre`, pose à l'apparence de ses objets
- *  (`APPARENCES_D_OBJETS`), sous elle au chemin `reste` : ses clés, chaque objet de ses armes (`armesDEntite`, sur ce qu'il
- *  déclare dans sa scène, `equipementDAuteurDe`) dont l'apparence se choisit (`objetsAApparenceChoisie`) ; d'un objet,
- *  chacune de ses apparences choisissables (`apparencesChoisissablesDObjet`), posée entière ou par son identifiant. #2948 */
-function choixDesApparencesDObjets(ent: SceneEntity, reste: readonly Segment[], { scene, projet: { narratif } }: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
-  const objet = objetDuNarratif(narratif);
+/** Les choix posés à l'apparence des objets d'un porteur dont les armes sont `armes`, l'objet résolu par `objet`, sous
+ *  elle au chemin `reste` : ses clés, chaque objet de ces armes dont l'apparence se choisit (`objetsAApparenceChoisie`) ;
+ *  d'un objet, chacune de ses apparences choisissables (`apparencesChoisissablesDObjet`), posée entière ou par son
+ *  identifiant. #2948 */
+function choixDesApparencesDObjets(armes: () => ReturnType<typeof armesDEntite>, objet: ReturnType<typeof objetDuNarratif>, reste: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
   const [trappingId, cle, ...plus] = reste;
-  if (trappingId === undefined) {
-    const ids = objetsAApparenceChoisie(armesDEntite(objet, ent.creature?.id, equipementDAuteurDe(ent, scene)), objet);
-    return ids.map((id) => ({ valeur: id, libelle: objet(id)?.label ?? id, refus: null }));
-  }
+  if (trappingId === undefined) return objetsAApparenceChoisie(armes(), objet).map((id) => ({ valeur: id, libelle: objet(id)?.label ?? id, refus: null }));
   if (typeof trappingId !== 'string' || plus.length || (cle !== undefined && cle !== 'id')) return undefined;
   return apparencesChoisissablesDObjet(trappingId, objet).map((a) => ({ valeur: cle === undefined ? { id: a.id } : a.id, libelle: a.label, refus: null }));
 }
@@ -713,14 +751,18 @@ function choixDesPostes(ent: SceneEntity, reste: readonly Segment[], { scene, pr
 }
 
 /** Les choix que le contexte d'un personnage pose au chemin `chemin` de sa donnée, dans le cadre `cadre` : ceux de son
- *  profil personnalisé (`choixDuProfil`), de ses postes (`choixDesPostes`), de
- *  l'apparence de ses objets (`choixDesApparencesDObjets`), d'un sort choisi (`choixDesSorts`), de ses options
+ *  profil personnalisé (`choixDuProfil`), de ses postes (`choixDesPostes`), de l'apparence de ses objets
+ *  (`APPARENCES_D_OBJETS`, `choixDesApparencesDObjets`), les armes de ce qu'il déclare dans sa scène
+ *  (`armesDEntite`, `equipementDAuteurDe`), d'un sort choisi (`choixDesSorts`), de ses options
  *  (`choixDesOptions`). */
 function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const { narratif } = cadre.projet;
   if (chemin.length === 1 && chemin[0] === 'statblock') return choixDuProfil(ent, presetDuNarratif(narratif));
   if (chemin[0] === 'postes') return choixDesPostes(ent, chemin.slice(1), cadre);
-  if (APPARENCES_D_OBJETS.every((cle, i) => chemin[i] === cle)) return choixDesApparencesDObjets(ent, chemin.slice(APPARENCES_D_OBJETS.length), cadre);
+  if (APPARENCES_D_OBJETS.every((cle, i) => chemin[i] === cle)) {
+    const objet = objetDuNarratif(narratif);
+    return choixDesApparencesDObjets(() => armesDEntite(objet, ent.creature?.id, equipementDAuteurDe(ent, cadre.scene)), objet, chemin.slice(APPARENCES_D_OBJETS.length));
+  }
   const [rang, ...reste] = chemin.slice(SORTS_CHOISIS.length);
   const sorts = SORTS_CHOISIS.every((cle, i) => chemin[i] === cle) && typeof rang === 'number' && !reste.length;
   return sorts ? choixDesSorts(ent, rang, presetDuNarratif(narratif)) : choixDesOptions(ent, chemin);
@@ -820,14 +862,57 @@ function choixDuLieu(lieu: MapPlace, chemin: readonly Segment[], cadre: CadreDuP
 const departsDuBillet = (route: MapRoute, cle: Segment | undefined, { projet }: CadreDuPorteur): readonly ChoixDuContexte[] =>
   (route.from ? [route.from] : [route.a, route.b]).map(({ id }) => ({ valeur: cle === undefined ? { id } : id, libelle: projet.worldMap?.places.find((p) => p.id === id)?.label ?? id, refus: null }));
 
-/** Les choix que le contexte de la route `route` pose au chemin `chemin` de sa donnée : au rang qui suit sa dernière
- *  péripétie, la péripétie neuve (`peripetieNeuve`) ; au départ d'un de ses billets, ses départs (`departsDuBillet`) ;
- *  à son embuscade, de son point d'entrée, ceux de sa scène (`entreesDeLaScene`), de sa rencontre, chaque rencontre de
- *  sa scène. #3606 */
+/** Les modes de la route `route` que retient `retenu`, chacun à son libellé (`travelModeLabels`). */
+const modesDeLaRoute = (route: MapRoute, retenu: (mode: string) => boolean = () => true): ChoixDuContexte[] =>
+  route.modes.filter(retenu).map((mode) => ({ valeur: mode, libelle: travelModeLabels()[mode] ?? mode, refus: null }));
+
+/** Les modes de voyage que la route `route` offre au rang `rang` de ses modes : à pied et chaque véhicule à passage
+ *  payant (`travelVehicles`), hors de ceux qu'elle offre déjà, le courant restant offert, chacun à son libellé. LDB 51
+ *  l.178-189 */
+const modesDeVoyage = (route: MapRoute, rang: number): ChoixDuContexte[] =>
+  ['pied', ...travelVehicles().map((v) => v.id)]
+    .filter((mode) => mode === route.modes[rang] || !route.modes.includes(mode))
+    .map((mode) => ({ valeur: mode, libelle: travelModeLabels()[mode] ?? mode, refus: null }));
+
+/** Les clés des prix d'un billet en `mode` (`prixParClasseSchema`) : chaque classe de passage de son véhicule. */
+const classesDuBillet = (mode: Segment): ChoixDuContexte[] =>
+  (typeof mode === 'string' ? vehicleTravel(mode)?.classes ?? [] : []).map((c) => ({ valeur: c.id, libelle: c.label, refus: null }));
+
+/** Les routes que la suite du billet en `mode` de la route `route` couvre au rang `rang` : chaque autre route de la carte
+ *  qui offre ce mode, hors de celles que sa suite couvre déjà, la courante restant offerte, chacune nommée par ses
+ *  extrémités. EDO 01 l.142 */
+function suitesDuBillet(route: MapRoute, mode: Segment, rang: number, { projet }: CadreDuPorteur): ChoixDuContexte[] {
+  const carte = projet.worldMap;
+  const suite = route.billets?.[mode as keyof NonNullable<MapRoute['billets']>]?.suite ?? [];
+  const nom = (ref: { id: string }) => carte?.places.find((p) => p.id === ref.id)?.label ?? ref.id;
+  return (carte?.routes ?? [])
+    .filter((r) => r.id !== route.id && r.modes.includes(mode as string) && (r.id === suite[rang] || !suite.includes(r.id)))
+    .map((r) => ({ valeur: r.id, libelle: `${nom(r.a)} → ${nom(r.b)}`, refus: null }));
+}
+
+/** Les choix que le contexte d'un billet de la route `route`, en `mode`, pose sous lui au chemin `reste` : ses départs
+ *  (`departsDuBillet`) ; les routes de sa suite (`suitesDuBillet`) ; les clés de son prix et de celui de chaque palier
+ *  de son marchandage (`classesDuBillet`). EDO 01 l.142 */
+function choixDuBillet(route: MapRoute, mode: Segment, reste: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
+  const [cle, ...sous] = reste;
+  if (cle === 'depuis' && (sous.length === 0 || (sous.length === 1 && sous[0] === 'id'))) return departsDuBillet(route, sous[0], cadre);
+  if (cle === 'prix' && !sous.length) return classesDuBillet(mode);
+  if (cle === 'suite' && sous.length === 1 && typeof sous[0] === 'number') return suitesDuBillet(route, mode, sous[0], cadre);
+  const [paliers, rang, prix, ...plus] = sous;
+  return cle === 'marchandage' && paliers === 'paliers' && typeof rang === 'number' && prix === 'prix' && !plus.length ? classesDuBillet(mode) : undefined;
+}
+
+/** Les choix que le contexte de la route `route` pose au chemin `chemin` de sa donnée : chacun de ses modes
+ *  (`modesDeVoyage`) ; les clés de ses billets, chacun
+ *  de ses modes à passage payant (`vehicleTravel`), et sous l'un d'eux, ceux du billet (`choixDuBillet`) ; les clés de
+ *  sa vitesse, chacun de ses modes ; au rang qui suit sa dernière péripétie, la péripétie neuve (`peripetieNeuve`) ; à
+ *  son embuscade, de son point d'entrée, ceux de sa scène (`entreesDeLaScene`), de sa rencontre, chaque rencontre de sa
+ *  scène. #3606 */
 function choixDeLaRoute(route: MapRoute, chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const [ambush, cle, ...reste] = chemin;
-  const [depuis, feuille, ...plus] = reste;
-  if (ambush === 'billets' && depuis === 'depuis' && (feuille === undefined || feuille === 'id') && !plus.length) return departsDuBillet(route, feuille, cadre);
+  if (ambush === 'billets') return cle === undefined ? modesDeLaRoute(route, (mode) => vehicleTravel(mode) !== undefined) : choixDuBillet(route, cle, reste, cadre);
+  if (ambush === 'speed') return cle === undefined ? modesDeLaRoute(route) : undefined;
+  if (ambush === 'modes' && typeof cle === 'number' && !reste.length) return modesDeVoyage(route, cle);
   if (ambush === 'perils' && cle === (route.perils?.length ?? 0) && !reste.length) {
     const neuve = peripetieNeuve();
     return [{ valeur: neuve, libelle: neuve.label, refus: null }];
@@ -838,6 +923,129 @@ function choixDeLaRoute(route: MapRoute, chemin: readonly Segment[], cadre: Cadr
   if (cle !== 'encounter') return undefined;
   return (cadre.projet.scenes.find((sc) => sc.id === id)?.encounters ?? []).map((e) => ({ valeur: e.id, libelle: e.id, refus: null }));
 }
+
+/** Les champs qu'offre, sous la sous-collection à clé au chemin `parent`, de ses éléments `elements` de schéma
+ *  `schema` : de chacun, à son rang, chaque champ hors de son identifiant, que le geste dédié change en propageant
+ *  (`renommerElement`) ; le rang qui suit le dernier, où l'élément neuf s'ajoute. La sous-collection entière n'est pas
+ *  offerte : aucun raccourcissement ne la réécrit, son élément se retire par le geste dédié (`retirerElement`). #3606 B8 */
+const champsDesElements = (parent: readonly Segment[], schema: unknown, elements: readonly unknown[]): CheminsOfferts =>
+  [...elements.flatMap((_, i) => champsSauf(schema, ['id']).map(([cle]) => [...parent, i, cle])), [...parent, elements.length]];
+
+/** Les lignes de l'identité d'un état. */
+const LIGNES = [...IDENTITE, 'lignes'] as const;
+
+/** Les champs qu'offre le formulaire d'un indice : chacun de son schéma hors de son identifiant et de ses stades, et
+ *  ceux de ses stades (`champsDesElements`). */
+const champsDeLIndice = (indice: Indice): CheminsOfferts =>
+  [...champsSauf(indiceSchema, ['id', 'stades']), ...champsDesElements(STADES, indiceStadeSchema, indice.stades)];
+
+/** `chemin` est-il, sous `parent`, le rang qui suit les `n` éléments de sa sous-collection ? */
+const auRangNeuf = (chemin: readonly Segment[], parent: readonly Segment[], n: number): boolean =>
+  chemin.length === parent.length + 1 && parent.every((cle, i) => chemin[i] === cle) && chemin[parent.length] === n;
+
+/** L'élément neuf posé par son identifiant, seul choix. */
+const poseNeuf = <V extends { id: string }>(valeur: V): readonly ChoixDuContexte[] => [{ valeur, libelle: valeur.id, refus: null }];
+
+/** Les choix que le contexte de l'indice `indice`, dans le cadre `cadre`, pose au chemin `chemin` de sa donnée : au rang
+ *  qui suit son dernier stade, le stade neuf, d'identifiant frais (`idFrais`), à prose vide (`NarratifEditor`, `addStade`) ;
+ *  à un de ses renvois (`refs`), chaque autre indice de son narratif, hors de ceux qu'il renvoie déjà, le courant restant
+ *  offert. #3606 */
+function choixDeLIndice(indice: Indice, chemin: readonly Segment[], { projet: { narratif } }: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
+  if (auRangNeuf(chemin, STADES, indice.stades.length)) return poseNeuf({ id: idFrais('stade', indice.stades), prose: '' });
+  const [refs, rang, ...reste] = chemin;
+  if (refs !== 'refs' || typeof rang !== 'number' || reste.length) return undefined;
+  const poses = indice.refs ?? [];
+  return narratif.indices
+    .filter((i) => i.id !== indice.id && (i.id === poses[rang] || !poses.includes(i.id)))
+    .map((i) => ({ valeur: i.id, libelle: i.titre || i.id, refus: null }));
+}
+
+/** Les champs d'une valeur d'une ligne d'identité, hors de son repère, que posent la couverture de l'identité
+ *  (`etatCouvert`) et le renommage du repère (`renommeAuProjet`). */
+const CHAMPS_DE_LA_VALEUR_D_IDENTITE = champsSauf(valeurDIdentiteSchema, ['repere']);
+
+/** Les champs qu'offre l'identité `identite` : ses ancres, entières ; ses repères par élément (`champsDesElements`) ; de
+ *  chacune de ses lignes, son espèce, son sexe et, de chacune de ses valeurs, ses champs hors de son repère
+ *  (`CHAMPS_DE_LA_VALEUR_D_IDENTITE`) ; le rang qui suit sa dernière ligne, où la ligne neuve s'ajoute. Ses repères et ses
+ *  lignes entiers ne sont pas offerts : une ligne se retire par son retrait déclaré (`retraitsDeLEtat`). */
+const champsDeLIdentite = (identite: Identite): CheminsOfferts => [
+  [...IDENTITE, 'ancres'],
+  ...champsDesElements(REPERES, repereDIdentiteSchema, identite.reperes),
+  ...identite.lignes.flatMap((l, j) => [
+    [...LIGNES, j, 'espece'],
+    [...LIGNES, j, 'sexe'],
+    ...l.valeurs.flatMap((_, k) => CHAMPS_DE_LA_VALEUR_D_IDENTITE.map(([c]) => [...LIGNES, j, 'valeurs', k, c])),
+  ]),
+  [...LIGNES, identite.lignes.length],
+];
+
+/** Les champs qu'offre le formulaire d'un état : chacun de son schéma hors de son identifiant et de sa forme ; de sa forme
+ *  courante (`formeAuPoint`), chaque champ hors de son discriminant, ses valeurs déclarées par élément
+ *  (`champsDesElements`), son identité présente par ses champs (`champsDeLIdentite`), absente entière, où elle se pose.
+ *  Changer de forme n'y est pas offert. */
+function champsDeLEtat(etat: EtatNarratif): CheminsOfferts {
+  const identite = identiteDe(etat);
+  const forme = champsSauf(formeAuPoint(formeDEtatSchema, etat.forme)!.noeud, ['kind', 'valeurs', ...(identite ? ['identite'] : [])]).map((c) => ['forme', ...c]);
+  const valeurs = FORMES_D_ETAT[etat.forme.kind].valeursDeclarees ? champsDesElements(VALEURS_D_ETAT, valeurDEtatSchema, valeursDeclarees(etat)) : [];
+  return [...champsSauf(etatNarratifSchema, ['id', 'forme']), ...forme, ...valeurs, ...(identite ? champsDeLIdentite(identite) : [])];
+}
+
+/** Les retraits déclarés de l'état `etat` : son identité, et chacune de ses lignes. */
+const retraitsDeLEtat = (etat: EtatNarratif): CheminsOfferts => {
+  const identite = identiteDe(etat);
+  return identite ? [IDENTITE, ...identite.lignes.map((_, j) => [...LIGNES, j])] : [];
+};
+
+/** Les choix que le contexte de l'état `etat` pose au chemin `chemin` de sa donnée : au rang qui suit sa dernière valeur
+ *  déclarée, la valeur neuve, d'identifiant frais (`idFrais`), libellée de son rang (`NarratifEditor`, « Ajouter une
+ *  valeur ») ; à son identité absente, l'identité neuve (`identiteNeuve`) ; au rang qui suit son dernier repère, le
+ *  repère neuf (`repereNeuf`) ; au rang qui suit sa dernière ligne, chaque ligne neuve (`lignesNeuves`), libellée de son
+ *  espèce et de son sexe, que l'écriture de l'état couvre (`etatCouvert`). #3606 */
+function choixDeLEtat(etat: EtatNarratif, chemin: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
+  const valeurs = valeursDeclarees(etat);
+  if (FORMES_D_ETAT[etat.forme.kind].valeursDeclarees) {
+    return auRangNeuf(chemin, VALEURS_D_ETAT, valeurs.length) ? poseNeuf({ id: idFrais('valeur', valeurs), label: t('ecran.editeur.narratif.valeurNeuve', { n: valeurs.length + 1 }) }) : undefined;
+  }
+  const identite = identiteDe(etat);
+  if (!identite) return chemin.length === IDENTITE.length && IDENTITE.every((cle, i) => chemin[i] === cle) ? [{ valeur: identiteNeuve(), libelle: t('ecran.editeur.narratif.identiteNeuve'), refus: null }] : undefined;
+  if (auRangNeuf(chemin, REPERES, identite.reperes.length)) return poseNeuf(repereNeuf(identite));
+  return auRangNeuf(chemin, LIGNES, identite.lignes.length) ? lignesNeuves(identite).map((l) => ({ valeur: l, libelle: libelleDeLigne(l), refus: null })) : undefined;
+}
+
+/** Les choix que le contexte du PNJ `preset`, dans le cadre `cadre`, pose au chemin `chemin` de sa donnée : à
+ *  l'apparence de ses objets et à celle de son profil (`APPARENCES_DU_PRESET`, `choixDesApparencesDObjets`), les armes de son profil fusionné à sa créature de base
+ *  (`mergeCreatureProfile`, `armesDEntite`), comme l'éditeur web (`NarratifEditor`, `PresetForm`). #3606 */
+function choixDuPreset(preset: PresetPnj, chemin: readonly Segment[], { projet: { narratif } }: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
+  const apparences = APPARENCES_DU_PRESET.find((prefixe) => prefixe.every((cle, i) => chemin[i] === cle));
+  if (!apparences) return undefined;
+  const objet = objetDuNarratif(narratif);
+  const base = preset.base ? findCreatureById(preset.base.id) : undefined;
+  const fusion = base ? mergeCreatureProfile(base, preset.profil) : preset.profil ?? {};
+  return choixDesApparencesDObjets(() => armesDEntite(objet, undefined, { traits: fusion.traits, char: fusion.char }), objet, chemin.slice(apparences.length));
+}
+
+/** L'apparence des objets d'un PNJ, par objet : la sienne (`PresetPnj.apparence.apparencesObjets`), et celle de son profil
+ *  (`PresetPnj.profil.appearance.apparencesObjets`). */
+const APPARENCES_DU_PRESET = [['apparence', 'apparencesObjets'], ['profil', 'appearance', 'apparencesObjets']] as const;
+
+/** Ce que déclare le formulaire d'une entrée de chaque registre créable du narratif (`RegistreCreable`) : son schéma,
+ *  ses champs, chacun hors de son identifiant, que le renommage propage (`renommeAuProjet`), et les choix de son
+ *  contexte ; d'un indice, ses champs (`champsDeLIndice`) aux choix de son contexte (`choixDeLIndice`) ; d'un PNJ, les
+ *  choix du sien (`choixDuPreset`) ; d'un état, ses champs (`champsDeLEtat`), ses retraits déclarés (`retraitsDeLEtat`)
+ *  et les choix de son contexte (`choixDeLEtat`). */
+const FORMULAIRES_DES_REGISTRES: { readonly [R in RegistreCreable]: Pick<FormulaireDuPorteur<DonneeDuPorteur[R]>, 'schema' | 'champs' | 'retraits' | 'choix'> } = {
+  affaires: { schema: affaireSchema, champs: () => champsSauf(affaireSchema, ['id']) },
+  indices: { schema: indiceSchema, champs: champsDeLIndice, choix: choixDeLIndice },
+  presetsPnj: { schema: presetPnjSchema, champs: () => champsSauf(presetPnjSchema, ['id']), choix: choixDuPreset },
+  documents: { schema: documentNarratifSchema, champs: () => champsSauf(documentNarratifSchema, ['id']) },
+  etats: { schema: etatNarratifSchema, champs: champsDeLEtat, retraits: retraitsDeLEtat, choix: choixDeLEtat },
+};
+
+/** Le formulaire d'une entrée de chaque registre créable du narratif (`FORMULAIRES_DES_REGISTRES`) : dans la collection
+ *  du narratif sous la clé du registre, sélectionnée sous elle, désignée par la portée `narratif`, listé à la zone
+ *  Logique. */
+const formulairesDesRegistres = tableTotale(Object.keys(FORMULAIRES_DES_REGISTRES) as RegistreCreable[],
+  (registre) => ({ acces: { document: 'narratif', collection: registre }, sel: registre, portee: 'narratif', logique: true, ...FORMULAIRES_DES_REGISTRES[registre] })) as { readonly [R in RegistreCreable]: FormulaireDuPorteur<DonneeDuPorteur[R]> };
 
 /** Le formulaire d'une entité, par son type : d'un personnage, ses champs (`champsDuPersonnage`), aux choix de son
  *  contexte (`choixDuPersonnage`) ; d'un décor, ses actions authorées (`ACTIONS_DU_DECOR`), aux choix de son contexte
@@ -857,8 +1065,10 @@ const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur
  *  de la scène, porteur singulier de son document, son message de départ ; d'un lieu, ses champs (`champsDuLieu`), aux
  *  choix de son contexte (`choixDuLieu`) ; d'une route, les siens (`CHAMPS_DE_LA_ROUTE`), aux choix de son contexte
  *  (`choixDeLaRoute`) ; de la carte, porteur singulier de son document, son libellé, son fond et ses réglages ; de ses
- *  réglages, porteur singulier de leur document, ses axes actifs. Chacun
- *  déclare la portée des avertissements qui le désignent ; ceux de la carte, la portée `worldMap`. */
+ *  réglages, porteur singulier de leur document, ses axes actifs ; d'une entrée de chaque registre créable du narratif,
+ *  le sien (`formulairesDesRegistres`) ; d'un écart, son motif, son entrée se changeant par le renommage ; du narratif,
+ *  porteur singulier de son document, son ouverture et sa clôture. Chacun déclare la portée des avertissements qui le
+ *  désignent ; ceux de la carte, la portée `worldMap` ; ceux du narratif, la portée `narratif`. */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { acces: { document: 'scene', collection: 'effectZones' }, sel: 'effectZone', schema: sceneEffectZoneSchema, champs: (zone) => [['crossTest'], ['onCross'], ['perRound'], ['rendu'], ...(zone.barrier ? [['barrier', 'blockGroups']] : [])] },
   declencheur: { acces: { document: 'scene', collection: 'triggers' }, sel: 'trigger', schema: triggerSchema, portee: 'trigger', logique: true, champs: () => [['when'], ['flow']] },
@@ -877,6 +1087,9 @@ export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<
   route: { acces: { document: 'carte', collection: 'routes' }, sel: 'route', schema: mapRouteSchema, portee: 'worldMap', logique: true, champs: () => CHAMPS_DE_LA_ROUTE, choix: choixDeLaRoute },
   carte: { acces: { document: 'carte' }, schema: worldMapSchema, portee: 'worldMap', champs: () => [['label'], ['background'], ['params']] },
   projet: { acces: { document: 'projet' }, schema: projetSchema, champs: () => [['activeAxes']] },
+  ...formulairesDesRegistres,
+  ecart: { acces: { document: 'narratif', collection: 'ecartes' }, sel: 'ecart', schema: ecartSchema, portee: 'narratif', logique: true, champs: () => [['motif']] },
+  narratif: { acces: { document: 'narratif' }, schema: narratifSchema, portee: 'narratif', champs: () => [['ouverture'], ['cloture']] },
 };
 
 /** Le porteur de formulaire que la sélection `sel` désigne, le document `document` ouvert où la scène d'identifiant
@@ -959,6 +1172,10 @@ export function porteursDuProjet<D>(acces: AccesDuPorteur<D>, projet: ProjetDEdi
   return (doc === undefined ? [] : porteurs(doc)) as readonly D[];
 }
 
+/** L'identifiant du porteur `porteur` d'accès `acces`, là où la scène `sceneId` est montrée (`lectureDe`). */
+export const idDuPorteur = <D>(acces: AccesDuPorteur<D>, porteur: D, sceneId: string): string =>
+  lectureDe(acces as AccesDuPorteur<unknown>).id(porteur, sceneId)!;
+
 /** Le porteur d'accès `acces` et d'identifiant `id` du projet `projet` où la scène `sceneId` est montrée, et son chemin
  *  depuis son document ; `undefined` sans lui. */
 export function porteurDuProjet<D>(acces: AccesDuPorteur<D>, projet: ProjetDEdition, sceneId: string, id: string): { donnee: D; chemin: Segment[] } | undefined {
@@ -995,15 +1212,54 @@ export function ecritureOfferte(offerts: CheminsOfferts, chemin: readonly Segmen
 }
 
 /** Le formulaire tiré du schéma du porteur de sorte `sorte` (`FORMULAIRES`) : le nœud où s'écrit sa donnée `donnee`, à
- *  travers les unions de son schéma (`formeAuPoint`), et les champs que sa donnée offre dans le cadre `cadre`. */
-export function formeDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): { noeud: unknown; champs: CheminsOfferts } {
+ *  travers les unions de son schéma (`formeAuPoint`), les champs que sa donnée offre dans le cadre `cadre`, et ses
+ *  retraits déclarés, aucun s'il n'en déclare pas. */
+export function formeDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): { noeud: unknown; champs: CheminsOfferts; retraits: CheminsOfferts } {
   const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
-  return { noeud: formeAuPoint(formulaire.schema, donnee)?.noeud, champs: formulaire.champs(donnee, cadre) };
+  return { noeud: formeAuPoint(formulaire.schema, donnee)?.noeud, champs: formulaire.champs(donnee, cadre), retraits: retraitsDuPorteur(sorte, donnee) };
+}
+
+/** Les retraits déclarés du porteur de sorte `sorte`, de donnée `donnee` (`FormulaireDuPorteur.retraits`) ; aucun s'il
+ *  n'en déclare pas. */
+export function retraitsDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S]): CheminsOfferts {
+  const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
+  return formulaire.retraits?.(donnee) ?? [];
+}
+
+/** La clé qui identifie l'élément `element` de la liste de nœud `noeud` (`listeCle`, `collectionDe`) ; `undefined` d'une
+ *  liste sans clé. */
+export function cleDeLElement(noeud: unknown, element: unknown): string | undefined {
+  const marque = collectionDe(noeud);
+  return marque?.forme === 'liste' ? marque.de(element) : undefined;
 }
 
 /** La clé `cle` est-elle une référence narrative (`REFERENCES_NARRATIVES`) ? */
 const estReferenceNarrative = (cle: Segment | undefined): cle is CleDeReferenceNarrative =>
   typeof cle === 'string' && Object.prototype.hasOwnProperty.call(REFERENCES_NARRATIVES, cle);
+
+/** La clé `cle` est-elle une sous-référence narrative (`SOUS_REFERENCES`) ? */
+const estSousReference = (cle: Segment | undefined): cle is CleDeSousReference =>
+  typeof cle === 'string' && Object.prototype.hasOwnProperty.call(SOUS_REFERENCES, cle);
+
+/** Le registre de la référence parente d'une sous-référence. */
+type RegistreDeSousReference = (typeof REFERENCES_NARRATIVES)[(typeof SOUS_REFERENCES)[CleDeSousReference]];
+
+/** Les sous-entrées de l'entrée `id` de chaque registre qu'une sous-référence désigne, dans le narratif `narratif` : les
+ *  stades d'un indice (`entreesDeStades`), les valeurs déclarées d'un état (`valeursDeclarees`). */
+const SOUS_ENTREES_DESIGNEES: { readonly [R in RegistreDeSousReference]: (narratif: NarratifBlock, id: string) => readonly { id: string; label: string }[] } = {
+  indices: entreesDeStades,
+  etats: (narratif, id) => valeursDeclarees(etatDeclare(narratif.etats, id)),
+};
+
+/** Les choix de la sous-référence au chemin `chemin` de la donnée `donnee`, sous la clé `cle` : quand sa référence
+ *  parente, sa clé sœur (`SOUS_REFERENCES`), désigne une entrée, chacune de ses sous-entrées (`SOUS_ENTREES_DESIGNEES`) ;
+ *  `undefined` sans elle, où la clé n'est pas une sous-référence. */
+function choixDeLaSousReference(donnee: unknown, chemin: readonly Segment[], cle: CleDeSousReference, narratif: NarratifBlock): readonly ChoixDuContexte[] | undefined {
+  const parente = SOUS_REFERENCES[cle];
+  const porteur = chemin.slice(0, -1).reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
+  const id = estObjet(porteur) ? porteur[parente] : undefined;
+  return typeof id === 'string' ? SOUS_ENTREES_DESIGNEES[REFERENCES_NARRATIVES[parente]](narratif, id).map((e) => ({ valeur: e.id, libelle: e.label, refus: null })) : undefined;
+}
 
 /** Un objet qui ouvre des portées locales (`ouvrirPortees`), avec son nœud : son schéma et sa valeur. */
 type Ouvreur = readonly [unknown, unknown];
@@ -1031,8 +1287,9 @@ function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly
 
 /** Les choix que le contexte du porteur de sorte `sorte`, de donnée `donnee`, pose au chemin `chemin` de sa donnée, dans
  *  leur ordre, dans le cadre `cadre` : sous une adresse de prose, ceux de son `Source/` (`choixSousUneAdresse`) ; d'une
- *  référence narrative, chaque entrée du registre que son narratif désigne (`entreesNarratives`) ; d'une référence
- *  locale, chaque élément que sa portée admet, ouverte par le porteur, sa scène ou son projet
+ *  référence narrative, chaque entrée du registre que son narratif désigne (`entreesNarratives`) ; d'une
+ *  sous-référence, chaque sous-entrée de l'entrée que désigne sa référence parente (`choixDeLaSousReference`) ; d'une
+ *  référence locale, chaque élément que sa portée admet, ouverte par le porteur, sa scène ou son projet
  *  (`choixDeLaReferenceLocale`, `ouvreursDuCadre`), restreints à ceux de son porteur s'il en pose (`FORMULAIRES`) ;
  *  sinon ceux de son porteur ; `undefined` : ceux du nœud. */
 export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
@@ -1041,6 +1298,8 @@ export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeD
   const deLAdresse = choixSousUneAdresse(formulaire.schema, donnee, chemin, cadre.source);
   if (deLAdresse) return deLAdresse;
   if (estReferenceNarrative(cle)) return entreesNarratives(cadre.projet.narratif, cle).map((e) => ({ valeur: e.id, libelle: e.label, refus: null }));
+  const sous = estSousReference(cle) ? choixDeLaSousReference(donnee, chemin, cle, cadre.projet.narratif) : undefined;
+  if (sous) return sous;
   const locaux = choixDeLaReferenceLocale(noeudsAuChemin(formulaire.schema, donnee, chemin), ouvreursDuCadre([formulaire.schema, donnee], cadre));
   const duPorteur = formulaire.choix?.(donnee, chemin, cadre);
   return locaux && duPorteur ? duPorteur.filter((c) => locaux.some((l) => jsonCanonique(l.valeur) === jsonCanonique(c.valeur))) : locaux ?? duPorteur;

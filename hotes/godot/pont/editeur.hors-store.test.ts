@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 import { fabricationAtouts, findCreatureById, traits } from '../../../src/data';
 import { dotationsDuPnj, emplacementsDeDotation } from '../../../src/engine/trappingChoices';
 import { adresseDeCreation } from '../../../src/engine/adresseDeCreation';
+import { travelVehicles } from '../../../src/engine/travel';
 import { statblockDeLaCreature } from '../../../src/data/valeursNeuves';
 import { emptyScene } from '../../../src/noyau/monde/scene';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
@@ -616,6 +617,46 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     const ferme = presser(boutonDe(annule, 'lieu/plan'));
     expect([planDe(ferme).id, boutonDe(ferme, 'lieu/plan').presse]).toEqual(['carte/plan', false]);
   });
+
+  it('un billet se pose au clic sur un mode payant de la route : son prix par classe, son départ parmi ses extrémités, sa suite parmi les autres routes du mode, son vendeur parmi les PNJ (#3606 L6)', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ecrire = (chemin: (string | number)[], valeur: unknown) => editionDe(appel('editer', { type: 'valeur', args: [{ sorte: 'route', id: 'route-futaie' }, chemin, valeur] }));
+    const ids = (x: Edition) => x.vue.zones['editeur.inspecteur'].map((el) => el.id);
+    const narratif = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'document/narratif'));
+    const carte = presser(boutonDe(presser(boutonDe(narratif, 'logique/presetsPnj/ajouter')), 'document/carte'));
+    const diligence = (x: Edition) => presser(valeursDeLInspecteur(x, 'valeur/modes/ajouter').find((b) => b.libelle === 'Diligence')!);
+    const route = presser(boutonDe(carte, 'logique/route/route-futaie'));
+    expect(ids(route).filter((id) => id.startsWith('valeur/billets')), 'à pied seulement, aucun billet ne s’offre').toEqual([]);
+    expect(valeursDeLInspecteur(route, 'valeur/modes/ajouter').map((b) => b.libelle), 'les modes s’ajoutent parmi ceux qu’elle n’offre pas').toEqual(travelVehicles().map((v) => v.label));
+    const deuxModes = diligence(route);
+    const billets = presser(boutonDe(deuxModes, 'valeur/billets/ajouter'));
+    expect(ids(billets).filter((id) => /^valeur\/billets\/[^/]+\/ajouter$/.test(id)), 'seul le mode payant s’offre').toEqual(['valeur/billets/diligence/ajouter']);
+    const billet = presser(boutonDe(billets, 'valeur/billets/diligence/ajouter'));
+    expect(ids(billet).filter((id) => /^valeur\/billets\/diligence\/prix\//.test(id))).toEqual(['valeur/billets/diligence/prix/interieur', 'valeur/billets/diligence/prix/exterieur']);
+    const prix = ecrire(['billets', 'diligence', 'prix', 'interieur'], 30);
+    const departs = valeursDeLInspecteur(prix, 'valeur/billets/diligence/depuis/ajouter');
+    expect(departs.map((b) => b.libelle)).toEqual(['Le Bourg de l’Arène', 'La Vieille Futaie']);
+    const depuis = presser(departs[0]);
+    const suites = valeursDeLInspecteur(depuis, 'valeur/billets/diligence/suite/ajouter');
+    expect(suites.map((b) => b.id), 'les autres routes du mode seules').toEqual(['valeur/billets/diligence/suite/ajouter/0']);
+    const suite = presser(suites[0]);
+    const vendu = presser(boutonDe(suite, 'valeur/billets/diligence/marchandage/ajouter'));
+    const vendeurs = valeursDeLInspecteur(vendu, 'valeur/billets/diligence/marchandage/presetId');
+    expect(vendeurs).toHaveLength(1);
+    const fini = presser(vendeurs[0]);
+    const champ = (id: string) => fini.vue.zones['editeur.inspecteur'].find((el) => el.id === id);
+    expect([
+      (champ('valeur/billets/diligence/prix/interieur') as Formulaire).champs[2],
+      valeursDeLInspecteur(fini, 'valeur/billets/diligence/depuis/id').find((b) => b.presse)?.libelle,
+      valeursDeLInspecteur(fini, 'valeur/billets/diligence/suite/0').find((b) => b.presse)?.id,
+      valeursDeLInspecteur(fini, 'valeur/billets/diligence/marchandage/presetId').find((b) => b.presse)?.id,
+    ]).toEqual([expect.objectContaining({ valeur: 30 }), 'Le Bourg de l’Arène', 'valeur/billets/diligence/suite/0/0', vendeurs[0].id]);
+    expect(refusDuRetraitDuMode(appel), 'le mode qui porte le billet ne se retire pas').toBe(true);
+  });
+
+  /** Le retrait du mode `diligence` de la route `route-futaie`, qui porte un billet, est-il refusé ? */
+  const refusDuRetraitDuMode = (appel: ReturnType<typeof table>['appel']) => !appel('editer', { type: 'valeur', args: [{ sorte: 'route', id: 'route-futaie' }, ['modes'], ['pied']] }).ok;
 
   it('sur la carte sans sélection, les axes actifs du projet s’ajoutent parmi ceux du catalogue, et se retirent', () => {
     const { appel } = table();
@@ -1962,5 +2003,183 @@ describe('le retrait d’un champ que son objet exige, par le pont (#3606)', () 
     const lue = ecrite();
     expect([lue.dialogues?.find((d) => d.id === 'dlg-flux')?.nodes[0].choices[0].flow, lue.entities.find((x) => x.id === 'ombre')?.statblock?.label, lue.effectZones?.find((z) => z.id === 'z-porte')?.crossTest], 'le flux et le profil entiers, la porte retirée')
       .toEqual([FLUX, findCreatureById('l-ombre-du-fleuve')!.label, { skill: { id: 'athletisme' }, difficulty: 'intermediaire' }]);
+  });
+});
+
+describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
+  const manuscrit = listerProjetsLivres().find((rel) => rel.split('/').pop()! in PROJETS_MANUSCRITS)!;
+  type Servi = { id: string; scenes: { triggers?: unknown[] }[]; narratif: { affaires: unknown[]; indices: unknown[] } };
+  const servi = lireProjetLivre(manuscrit) as Servi;
+  /** Le projet servi, son narratif enrichi d'une affaire et d'un indice à deux stades, que révèle un déclencheur de sa
+   *  première scène. */
+  const SERVI: Servi = {
+    ...servi,
+    scenes: servi.scenes.map((sc, i) => (i ? sc : {
+      ...sc,
+      triggers: [...(sc.triggers ?? []), { id: 't-pont', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'revealClue', indiceId: 'ind-pont', stade: 'lu' } }] } }],
+    })),
+    narratif: {
+      ...servi.narratif,
+      affaires: [...servi.narratif.affaires, { id: 'aff-pont', titre: 'L’affaire du pont' }],
+      indices: [...servi.narratif.indices, { id: 'ind-pont', affaireId: 'aff-pont', kind: 'indice', titre: 'La lettre', stades: [{ id: 'lu', prose: 'a' }, { id: 'vu', prose: 'b' }] }],
+    },
+  };
+  /** Une table ouverte sur ce projet, le narratif ouvert. */
+  function surLeNarratif() {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: SERVI.id, projet: JSON.stringify(SERVI) }));
+    return { appel, presser, ouverte, narratif: presser(boutonDe(ouverte, 'document/narratif')) };
+  }
+  const inspecte = (e: Edition, id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id);
+  const liste = (e: Edition, sorte: string) => ((e.vue.zones['editeur.logique'].find((el) => el.id === `logique/${sorte}/liste`) as Choix | undefined)?.valeurs ?? []).map((b) => b.libelle);
+  /** Le déclencheur `t-pont` du projet que rend l'enregistrement de l'édition `e`. */
+  function revele(presser: (b: Bouton) => Edition, e: Edition): unknown {
+    const depot = presser(boutonDe(e, 'enregistrer')).depot!;
+    const projet = JSON.parse(depot.texte) as { scenes: { triggers: { id: string; flow: { etapes: { effet: unknown }[] } }[] }[] };
+    return projet.scenes[0].triggers.find((tr) => tr.id === 't-pont')!.flow.etapes[0].effet;
+  }
+
+  it('le menu Fichier ouvre le narratif, sans cran : ses registres à la zone Logique, comptés, les zones de la scène vides, son inspecteur à son ouverture et sa clôture ; il rend la scène', () => {
+    const { presser, ouverte, narratif } = surLeNarratif();
+    const z = narratif.vue.zones;
+    expect([boutonDe(narratif, 'document/narratif').presse, boutonDe(narratif, 'annuler').refus !== null]).toEqual([true, true]);
+    expect([z['editeur.scenes'], z['editeur.outils'], z['editeur.options'], z['editeur.couches'], z['editeur.carte']]).toEqual([[], [], [], [], []]);
+    expect(z['editeur.logique'].filter((el) => el.type === 'ligne').map((el) => el.id)).toEqual(['logique/affaires', 'logique/indices', 'logique/presetsPnj', 'logique/documents', 'logique/etats', 'logique/ecart']);
+    expect(z['editeur.logique'].filter((el): el is Ligne => el.type === 'ligne' && el.texte.startsWith('ecran.')), 'chaque registre a son texte').toEqual([]);
+    expect([...new Set(z['editeur.inspecteur'].map((el) => el.id.split('/').slice(0, 2).join('/')))]).toEqual(['valeur/ouverture', 'valeur/cloture']);
+    const scene = presser(boutonDe(narratif, 'document/scene'));
+    expect([boutonDe(scene, 'document/scene').presse, scene.vue.zones['editeur.titre']]).toEqual([true, ouverte.vue.zones['editeur.titre']]);
+  });
+
+  it('« Ajouter » crée une entrée de chaque registre créable, sélectionnée, son inspecteur à son nom et à son formulaire ; un champ s’y écrit', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    let e = narratif;
+    for (const sorte of ['affaires', 'indices', 'presetsPnj', 'documents', 'etats']) {
+      const avant = liste(e, sorte);
+      e = presser(boutonDe(e, `logique/${sorte}/ajouter`));
+      const neuve = liste(e, sorte).filter((id) => !avant.includes(id));
+      expect([neuve.length, boutonDe(e, `logique/${sorte}/${neuve[0]}`).presse, inspecte(e, 'nommer')], sorte).toEqual([1, true, expect.objectContaining({ champs: [expect.objectContaining({ valeur: neuve[0] })] })]);
+    }
+    const affaire = presser(boutonDe(e, 'logique/affaires/aff-pont'));
+    const ecrite = editionDe(appel('editer', { type: 'valeur', args: [{ sorte: 'affaires', id: 'aff-pont' }, ['titre'], 'La route d’Altdorf'] }));
+    expect([inspecte(affaire, 'valeur/titre'), inspecte(ecrite, 'valeur/titre')]).toMatchObject([{ type: 'formulaire' }, { type: 'formulaire', champs: [{}, {}, { valeur: 'La route d’Altdorf' }] }]);
+  });
+
+  it('un indice que désigne une scène se renomme, la scène suit, une annulation défait les deux ; un identifiant pris se refuse, dit ; le supprimer se refuse, dit', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const indice = presser(boutonDe(narratif, 'logique/indices/ind-pont'));
+    expect(erreurDe(appel('editer', { type: 'nommer', args: ['aff-pont'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « aff-pont » déjà porté par l\'affaire « L’affaire du pont »' });
+    const refus = boutonDe(indice, 'indices/supprimer').refus;
+    expect(refus).toMatch(/^Encore désigné par : scène/);
+    expect(erreurDe(appel('editer', boutonDe(indice, 'indices/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    const renomme = editionDe(appel('editer', { type: 'nommer', args: ['ind-missive'] }));
+    expect([boutonDe(renomme, 'logique/indices/ind-missive').presse, revele(presser, renomme)]).toEqual([true, { type: 'revealClue', indiceId: 'ind-missive', stade: 'lu' }]);
+    editionDe(appel('editer', { edition: { geste: 'enregistrement', reussi: false } }));
+    const annule = editionDe(appel('editer', { edition: { geste: 'annuler' } }));
+    expect([liste(annule, 'indices').includes('ind-pont'), boutonDe(annule, 'enregistrer').refus], 'le projet, scène comprise, est celui du dépôt').toEqual([true, 'Rien à enregistrer']);
+  });
+
+  it('un stade s’ajoute, se renomme, se retire ; un stade désigné, comme le dernier, ne se retire pas, dit', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const indice = presser(boutonDe(narratif, 'logique/indices/ind-pont'));
+    const ajoute = presser(boutonDe(indice, 'valeur/stades/ajouter'));
+    expect(inspecte(ajoute, 'identifier/stade/stade-3')).toMatchObject({ type: 'formulaire' });
+    const renomme = editionDe(appel('editer', { type: 'identifier', args: ['stade-3', 'releve'] }));
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['releve', 'vu'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « vu » déjà porté par le stade 2' });
+    expect(boutonDe(renomme, 'stade/lu/supprimer').refus).toMatch(/^Encore désigné par : scène/);
+    const retire = presser(boutonDe(renomme, 'stade/releve/supprimer'));
+    expect(retire.vue.zones['editeur.inspecteur'].some((el) => el.id === 'identifier/stade/releve')).toBe(false);
+    const seul = presser(boutonDe(presser(boutonDe(retire, 'logique/indices/ajouter')), 'logique/indices/ajouter'));
+    const id = liste(seul, 'indices').slice(-1)[0];
+    expect(boutonDe(presser(boutonDe(seul, `logique/indices/${id}`)), 'stade/stade-1/supprimer').refus).toBe('Un indice garde au moins un stade.');
+  });
+
+  it('un écart s’ajoute par la liste des entrées libres de la zone Logique ; son entrée se change au choix parmi la sienne et les libres', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const offre = narratif.vue.zones['editeur.logique'].find((el) => el.id === 'logique/ecart/ajouter') as Choix;
+    expect([offre.type, offre.valeurs.every((b) => b.id.startsWith('logique/ecart/ajouter/'))]).toEqual(['liste', true]);
+    const [premiere, seconde] = offre.valeurs.map((b) => b.id.slice('logique/ecart/ajouter/'.length));
+    const ecarte = presser(offre.valeurs[0]);
+    const reste = (ecarte.vue.zones['editeur.logique'].find((el) => el.id === 'logique/ecart/ajouter') as Choix).valeurs.map((b) => b.id);
+    expect([liste(ecarte, 'ecart'), boutonDe(ecarte, `logique/ecart/${premiere}`).presse, reste.includes(offre.valeurs[0].id)]).toEqual([[premiere], true, false]);
+    expect(inspecte(ecarte, 'valeur/motif')).toMatchObject({ type: 'formulaire' });
+    const nom = (inspecte(ecarte, 'nommer') as Formulaire).champs[0];
+    expect(nom.type === 'saisieChoix' && [nom.valeurs.find((v) => v.presse)?.valeur, nom.valeurs.length, nom.valeurs.some((v) => v.valeur === seconde)]).toEqual([premiere, reste.length + 1, true]);
+    const deplace = editionDe(appel('editer', { type: 'nommer', args: [seconde] }));
+    expect([liste(deplace, 'ecart'), boutonDe(deplace, `logique/ecart/${seconde}`).presse]).toEqual([[seconde], true]);
+  });
+
+  it('une faute du narratif se lit à la zone de validation avant l’enregistrement : « Y aller », depuis la scène, rouvre le narratif sur son porteur ; corrigée, elle s’efface', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const offre = narratif.vue.zones['editeur.logique'].find((el) => el.id === 'logique/ecart/ajouter') as Choix;
+    const entree = offre.valeurs[0].id.slice('logique/ecart/ajouter/'.length);
+    const ecarte = presser(offre.valeurs[0]);
+    const releves = (e: Edition) => e.vue.zones['editeur.validation'].filter((el): el is Ligne => el.type === 'ligne' && /^validation\/\d+$/.test(el.id) && el.texte.includes(entree));
+    const [faute] = releves(ecarte);
+    expect(faute?.texte).toMatch(/motif vide/);
+    const scene = presser(boutonDe(ecarte, 'document/scene'));
+    const vu = presser(boutonDe(scene, `${faute.id}/aller`));
+    expect([boutonDe(vu, 'document/narratif').presse, boutonDe(vu, `logique/ecart/${entree}`).presse]).toEqual([true, true]);
+    const corrige = editionDe(appel('editer', { type: 'valeur', args: [{ sorte: 'ecart', id: entree }, ['motif'], 'Hors du chapitre'] }));
+    expect(releves(corrige)).toEqual([]);
+  });
+
+  it('un état change de forme par les boutons de son inspecteur, la courante pressée ; avec une identité, l’autre forme se refuse, dite', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const etat = presser(boutonDe(narratif, 'logique/etats/ajouter'));
+    expect([boutonDe(etat, 'etat/forme/heros').presse, boutonDe(etat, 'etat/forme/enum').refus]).toEqual([true, null]);
+    const enumere = presser(boutonDe(etat, 'etat/forme/enum'));
+    expect([boutonDe(enumere, 'etat/forme/enum').presse, inspecte(enumere, 'identifier/valeur/valeur-1')?.type]).toEqual([true, 'formulaire']);
+    const heros = presser(boutonDe(enumere, 'etat/forme/heros'));
+    const ajout = inspecte(heros, 'valeur/forme/identite/ajouter') as Choix;
+    const identite = presser(ajout.valeurs[0]);
+    const refus = boutonDe(identite, 'etat/forme/enum').refus;
+    expect(refus).toBe('Retirez d’abord l’identité de l’état : une autre forme n’en porte pas.');
+    expect(erreurDe(appel('editer', boutonDe(identite, 'etat/forme/enum').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+  });
+
+  it('l’identité d’un état héros : ses repères s’ajoutent, s’identifient et se retirent par leurs gestes, le dernier refusé, dit', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const etat = presser(boutonDe(narratif, 'logique/etats/ajouter'));
+    const identite = presser((inspecte(etat, 'valeur/forme/identite/ajouter') as Choix).valeurs[0]);
+    expect(boutonDe(identite, 'repere/repere-1/supprimer').refus).toBe('Une identité garde au moins un repère.');
+    const ajoute = presser(boutonDe(identite, 'valeur/forme/identite/reperes/ajouter'));
+    expect(inspecte(ajoute, 'identifier/repere/repere-2')).toMatchObject({ type: 'formulaire' });
+    const renomme = editionDe(appel('editer', { type: 'identifier', args: ['repere-2', 'titre'] }));
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['titre', 'repere-1'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « repere-1 » déjà porté par le repère 1' });
+    const retire = presser(boutonDe(renomme, 'repere/titre/supprimer'));
+    expect([inspecte(renomme, 'identifier/repere/titre')?.type, inspecte(retire, 'identifier/repere/titre')]).toEqual(['formulaire', undefined]);
+  });
+
+  it('l’identité d’un état héros : une ligne s’ajoute par son espèce et son sexe, se retire par son bouton, l’identité aussi, et l’état change alors de forme ; ni les repères ni le repère d’une valeur ne s’écrivent au formulaire', () => {
+    const { presser, narratif } = surLeNarratif();
+    const etat = presser(boutonDe(narratif, 'logique/etats/ajouter'));
+    const identite = presser((inspecte(etat, 'valeur/forme/identite/ajouter') as Choix).valeurs[0]);
+    const deux = presser((inspecte(presser((inspecte(identite, 'valeur/forme/identite/lignes/ajouter') as Choix).valeurs[0]), 'valeur/forme/identite/lignes/ajouter') as Choix).valeurs[0]);
+    const ids = deux.vue.zones['editeur.inspecteur'].map((el) => el.id);
+    expect(ids.filter((id) => /^valeur\/forme\/identite\/(reperes|lignes)\/\d+\/retirer$|^valeur\/forme\/identite\/retirer$|valeurs\/\d+\/repere/.test(id)), 'les retraits déclarés, seuls')
+      .toEqual(['valeur/forme/identite/lignes/0/retirer', 'valeur/forme/identite/lignes/1/retirer', 'valeur/forme/identite/retirer']);
+    const une = presser(boutonDe(deux, 'valeur/forme/identite/lignes/0/retirer'));
+    expect(une.vue.zones['editeur.inspecteur'].filter((el) => /^valeur\/forme\/identite\/lignes\/\d+\/retirer$/.test(el.id)).map((el) => el.id)).toEqual(['valeur/forme/identite/lignes/0/retirer']);
+    const sans = presser(boutonDe(une, 'valeur/forme/identite/retirer'));
+    expect([boutonDe(sans, 'etat/forme/enum').refus, inspecte(sans, 'valeur/forme/identite/ajouter')?.type]).toEqual([null, 'choix']);
+    expect(boutonDe(presser(boutonDe(sans, 'etat/forme/enum')), 'etat/forme/enum').presse).toBe(true);
+  });
+
+  it('le choix d’une spécialisation au profil d’un PNJ se choisit par variante nommée ; la liste des spécialisations parmi lesquelles choisir s’écrit élément par élément (#3606 L6)', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const preset = { id: 'pnj-metier', base: { id: 'humain' }, profil: { skills: [{ id: 'metier', choix: true, value: 40 }] } };
+    const projet = { ...SERVI, narratif: { ...SERVI.narratif, presetsPnj: [...((SERVI.narratif as { presetsPnj?: unknown[] }).presetsPnj ?? []), preset] } };
+    const ouverte = editionDe(appel('editer', { ouvrir: SERVI.id, projet: JSON.stringify(projet) }));
+    const pnj = presser(boutonDe(presser(boutonDe(ouverte, 'document/narratif')), 'logique/presetsPnj/pnj-metier'));
+    const CHOIX = 'valeur/profil/skills/0/choix';
+    const variantes = (inspecte(pnj, `${CHOIX}/forme`) as Choix).valeurs;
+    expect(variantes.map((b) => [b.libelle, b.presse])).toEqual([['spécialisation au choix', true], ['spécialisation parmi', false]]);
+    const parmi = presser(variantes[1]);
+    const ajoutee = presser(boutonDe(parmi, `${CHOIX}/ajouter`));
+    const ecrite = editionDe(appel('editer', { type: 'valeur', args: [{ sorte: 'presetsPnj', id: 'pnj-metier' }, ['profil', 'skills', 0, 'choix', 0], 'forgeron'] }));
+    expect([inspecte(ajoutee, `${CHOIX}/0`)?.type, (inspecte(ecrite, `${CHOIX}/0`) as Formulaire).champs[2]]).toEqual(['formulaire', expect.objectContaining({ valeur: 'forgeron' })]);
   });
 });
