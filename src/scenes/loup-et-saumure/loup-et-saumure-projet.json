@@ -2295,7 +2295,7 @@
               "id": "metier",
               "spec": "charpentier"
              },
-             "difficulty": "intermediaire",
+             "difficulty": "complexe",
              "label": "Réparation temporaire du Grimm",
              "drCible": 5,
              "flag": "ls_coque_reparee"

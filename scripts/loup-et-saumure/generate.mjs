@@ -537,7 +537,8 @@ scenes.push(scene({
           {
             id: 'superviser-reparation',
             label: 'Superviser la réparation',
-            flow: flowOf([{ type: 'extendedTest', skill: { id: 'metier', spec: 'charpentier' }, difficulty: 'intermediaire', label: 'Réparation temporaire du Grimm', drCible: 5, flag: 'ls_coque_reparee' }]),
+            // MDG 13 l.649
+            flow: flowOf([{ type: 'extendedTest', skill: { id: 'metier', spec: 'charpentier' }, difficulty: 'complexe', label: 'Réparation temporaire du Grimm', drCible: 5, flag: 'ls_coque_reparee' }]),
             next: { id: 'rp1' },
           },
           { id: 'plus-tard', label: 'Plus tard', flow: flowOf([{ type: 'endDialogue' }]) },
