@@ -278,7 +278,7 @@ describe('le pont rejoint un salon', () => {
     expect(appel('nouvelles')).toEqual(RIEN);
     expect(ruleOverrides()[PLAFOND.id], 'les règles de l’hôte restent').toBe(8);
     expect(stockage.getItem(cleDEmplacement(AUTO_SLOT)), 'l’emplacement automatique du joueur écrasé').toBe(OCTETS_DU_JOUEUR);
-    expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre']);
+    expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre', 'fermer']);
   });
 
   it('M4 — `quitter` puis `{ salon: \'quitter\' }` : emplacement et règles intacts, `quitter` sans `quittee`', async () => {
@@ -302,7 +302,7 @@ describe('le pont rejoint un salon', () => {
     const { appel } = invite();
     const ws = await assis(appel);
     ws.dropFromServer(4404, 'room fermée');
-    expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre']);
+    expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre', 'fermer']);
     appel('salon', { type: 'rejoindre', args: ['abc-23', 'Anna'] });
     await vi.advanceTimersByTimeAsync(0);
     const lignes = lignesDeQuittee(appel('nouvelles'));
@@ -322,7 +322,7 @@ describe('M5 — la jonction', () => {
     for (const [m, e] of [['ouvrir', {}], ['charger', { charger: AUTO_SLOT }], ['demarrer', { scenario: 'voyage' }]] as const) expect(erreurDe(appel(m, e)).message, m).toBe(`${m} : un salon se rejoint ; quitter le salon d’abord`);
     expect(appel('nouvelles')).toEqual(RIEN);
     expect(gestes(zonesDe(appel))).toEqual(['quitter']);
-    expect(gestes((appel('salon', { salon: 'quitter' }) as unknown as { zones: ZonesDuSalon }).zones)).toEqual(['heberger', 'rejoindre']);
+    expect(gestes((appel('salon', { salon: 'quitter' }) as unknown as { zones: ZonesDuSalon }).zones)).toEqual(['heberger', 'rejoindre', 'fermer']);
     expect(quitteeDe(appel('nouvelles'))).toEqual([]);
     expect(appel('nouvelles')).toEqual(RIEN);
     await vi.advanceTimersByTimeAsync(0);
@@ -343,7 +343,7 @@ describe('M5 — la jonction', () => {
       await vi.advanceTimersByTimeAsync(0);
       expect(quitteeDe(appel('nouvelles')), code).toEqual([texte]);
       const z = zonesDe(appel);
-      expect([gestes(z), z['salon.etat']], texte).toEqual([['heberger', 'rejoindre'], []]);
+      expect([gestes(z), z['salon.etat']], texte).toEqual([['heberger', 'rejoindre', 'fermer'], []]);
       expect(vi.getTimerCount(), texte).toBe(0);
     }
   });
@@ -369,7 +369,7 @@ describe('M6, M7, M8 — chez un invité', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(appel('erreursGlobales')).toEqual({ ok: true, erreurs: [{ message: 'lecture impossible', source: 'reseau' }] });
     expect(quitteeDe(appel('nouvelles'))).toEqual([t('coop.joinFailed')]);
-    expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre']);
+    expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre', 'fermer']);
     expect(vi.getTimerCount()).toBe(0);
     expect(appel('ouvrir', { graine: 1 }), 'la jonction tient encore').toMatchObject({ ok: true });
   });

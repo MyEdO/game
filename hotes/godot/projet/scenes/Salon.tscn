@@ -1,0 +1,69 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/salon.gd" id="1_salon"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="Theme" path="res://art/cartes.tres" id="t_cartes"]
+
+[node name="Salon" type="CanvasLayer"]
+layer = 3
+script = ExtResource("1_salon")
+
+[node name="Cadre" type="PanelContainer" parent="."]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -360.0
+offset_top = -300.0
+offset_right = 360.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("t_cartes")
+theme_type_variation = &"Fenetre"
+
+[node name="Pile" type="VBoxContainer" parent="Cadre"]
+theme_type_variation = &"PileAeree"
+layout_mode = 2
+
+[node name="Etat" type="VBoxContainer" parent="Cadre/Pile"]
+theme_type_variation = &"PileSerree"
+layout_mode = 2
+
+[node name="Zone" type="Node" parent="Cadre/Pile/Etat"]
+script = ExtResource("2_zone")
+source = "salon.etat"
+
+[node name="Journal" type="VBoxContainer" parent="Cadre/Pile"]
+theme_type_variation = &"PileSerree"
+layout_mode = 2
+
+[node name="Zone" type="Node" parent="Cadre/Pile/Journal"]
+script = ExtResource("2_zone")
+source = "journal.lignes"
+
+[node name="Defilement" type="ScrollContainer" parent="Cadre/Pile"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Sieges" type="VBoxContainer" parent="Cadre/Pile/Defilement"]
+theme_type_variation = &"PileSerree"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Cadre/Pile/Defilement/Sieges"]
+script = ExtResource("2_zone")
+source = "salon.sieges"
+
+[node name="Gestes" type="HBoxContainer" parent="Cadre/Pile"]
+theme_type_variation = &"RangeeAeree"
+layout_mode = 2
+alignment = 2
+
+[node name="Zone" type="Node" parent="Cadre/Pile/Gestes"]
+script = ExtResource("2_zone")
+source = "salon.gestes"

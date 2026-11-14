@@ -31,11 +31,13 @@ const PARAMETRE_DE_RECETTE := "recette"
 ## Si la partie à démarrer est la scène que l'éditeur a mise à l'essai (`demarrer { essai }`), plutôt que le scénario du
 ## paramètre `scenario`.
 var essai := false
-## Si la partie à ouvrir est une partie au groupe (`ouvrir`), que le joueur compose puis lance sur une campagne du jeu
-## (`lancer`), plutôt qu'un scénario de test : « Jouer » de l'accueil le pose.
-var au_groupe := false
-## Si le combat s'ouvre sur les sauvegardes à charger (`sauvegardes`), sans partie : « Reprendre » de l'accueil le pose.
-var reprise := false
+## L'entrée de l'accueil (`EntreeDeLAccueil`) que le combat suit à son ouverture, vide sans entrée suivie : `jouer`, une
+## partie au groupe (`ouvrir`) ; `reprendre`, les sauvegardes à charger (`sauvegardes`), sans partie ; `salon`, le
+## panneau du salon (`PanneauDuSalon`), sans partie.
+var entree := ""
+## Les lignes d'une session du salon finie (`nouvelles`, `quittee`) que le combat rechargé montre au panneau du salon,
+## vide sans elles : posées par le combat qui quitte sa partie, vidées par `PanneauDuSalon.ouvrir`.
+var fin_du_salon: Array = []
 ## L'emplacement de la sauvegarde que le combat charge à son ouverture (`charger`), `null` sans chargement demandé.
 var a_charger: Variant = null
 ## Si une recette pilote le jeu (`PARAMETRE_DE_RECETTE`) : l'écran se publie (`publier_l_ecran`), une image ne se dessine

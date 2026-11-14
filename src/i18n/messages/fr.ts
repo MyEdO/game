@@ -1309,6 +1309,7 @@ export const fr = {
   'ecran.salon.ia': 'IA (aucun MJ)',
   'ecran.salon.code': 'Partie {code}',
   'ecran.salon.quitter': 'Quitter le salon',
+  'ecran.salon.fermer': 'Fermer',
   'ecran.salon.absent': ' — reconnexion…',
   'ecran.salon.champ.code': 'Code de la partie',
   'ecran.salon.enCours.heberger': 'Ouverture du salon…',

@@ -1,6 +1,7 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il ouvre une partie au
-## groupe (`ouvrir`, `PontDuNoyau.au_groupe`), que le joueur compose puis lance sur une campagne du jeu (`lancer`),
-## charge une sauvegarde (`charger`, `PontDuNoyau.a_charger`) ou montre celles à charger (`PontDuNoyau.reprise`), ou démarre la partie des
+## groupe (`ouvrir`, l'entrée `jouer` de `PontDuNoyau.entree`), que le joueur compose puis lance sur une campagne du jeu (`lancer`),
+## charge une sauvegarde (`charger`, `PontDuNoyau.a_charger`), montre celles à charger (l'entrée `reprendre`) ou le panneau
+## du salon (l'entrée `salon`, `PanneauDuSalon`), ou démarre la partie des
 ## paramètres `scenario` et `graine` (`PontDuNoyau.parametre`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
 ## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (son manifeste,
 ## `monde`, et les seuls morceaux dont l'empreinte a bougé, `morceaux`), à nouveau chaque fois que la partie change de
@@ -40,7 +41,8 @@ extends Node
 ## }` à `creation`, `{ roster }` à `roster`, `{ lancer }` à `lancer`, `{ quitter }` à `quitter`, d'où il revient à l'accueil, `{ sauvegardes }`
 ## au panneau des sauvegardes (`sauvegardes`), `{ reglages }` au panneau des réglages (`reglages`,
 ## `projet/scripts/reglages.gd`), `{ sauvegarder }` à `sauvegarder`, `{ charger }` à `charger`, la partie
-## ouverte quittée d'abord et le combat rechargé, toute autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
+## ouverte quittée d'abord et le combat rechargé, `{ salon }` au panneau du salon (`salon`, `projet/scripts/salon.gd`),
+## toute autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
 ## imbriquée y montre le champ que sa `source` nomme. L'icône (`icone`) et le fond (`fond`) ne portent que l'id de
 ## leur dessin : `Dessin` (`projet/scripts/dessin.gd`) le lit au catalogue que la construction dépose une fois dans le
 ## projet (`art/dessins.json`, `hotes/godot/asset/dessins.ts`) et le trace aux couleurs du thème. Le plan (`plan`) est le seul composant qui se dessine : son
@@ -72,6 +74,7 @@ extends Node
 @onready var _scenarios: Control = $Scenarios/Cadre
 @onready var _sauvegardes: Control = $Sauvegardes/Cadre
 @onready var _reglages: PanneauDesReglages = $Reglages
+@onready var _salon: PanneauDuSalon = $Salon
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
@@ -113,6 +116,10 @@ func _ready() -> void:
 	for zone in Zone.racines(_sauvegardes):
 		zone.geste.connect(_jouer)
 	_reglages.change.connect(_publier_l_ecran)
+	_salon.change.connect(_publier_l_ecran)
+	_salon.ferme.connect(_fermer_le_salon)
+	_salon.suite.connect(_suivre)
+	_salon.fini.connect(_finir_le_salon)
 	var entree := {}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
@@ -124,10 +131,13 @@ func _ready() -> void:
 		if reponse.get("ok") != true:
 			_montrer_les_sauvegardes(_pont.appeler("sauvegardes"))
 		return
-	if _pont.reprise:
+	if _pont.entree == "reprendre":
 		_montrer_les_sauvegardes(_pont.appeler("sauvegardes"))
 		return
-	if _pont.au_groupe:
+	if _pont.entree == "salon":
+		_salon.ouvrir()
+		return
+	if _pont.entree == "jouer":
 		_suivre(_pont.appeler("ouvrir", entree))
 		return
 	var scenario := _pont.parametre("scenario")
@@ -170,7 +180,8 @@ func _indexer_les_modeles() -> bool:
 ## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,
 ## un geste sur le roster de l'hôte à `roster` (`_jouer_le_roster`), la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), le panneau des sauvegardes à ouvrir à
 ## `sauvegardes` ou à fermer (`_fermer_les_sauvegardes`), l'emplacement où écrire à `sauvegarder`, celui à charger à
-## `_charger`, le panneau des réglages à ouvrir à `PanneauDesReglages.ouvrir`, toute autre à `jouer`.
+## `_charger`, le panneau des réglages à ouvrir à `PanneauDesReglages.ouvrir`, le panneau du salon à ouvrir à
+## `PanneauDuSalon.ouvrir`, toute autre à `jouer`.
 func _jouer(jeu: Dictionary) -> void:
 	if jeu.has("quitter"):
 		_quitter()
@@ -192,6 +203,9 @@ func _jouer(jeu: Dictionary) -> void:
 		return
 	if jeu.has("roster"):
 		_jouer_le_roster(jeu)
+		return
+	if jeu.has("salon"):
+		_salon.ouvrir()
 		return
 	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "lancer" if jeu.has("lancer") else "jouer", jeu))
 
@@ -222,9 +236,8 @@ func _quitter() -> void:
 
 ## L'accueil revient, plus rien ne disant au combat comment s'ouvrir.
 func _revenir_a_l_accueil() -> void:
-	_pont.au_groupe = false
+	_pont.entree = ""
 	_pont.essai = false
-	_pont.reprise = false
 	get_tree().change_scene_to_file("res://scenes/Accueil.tscn")
 
 
@@ -252,10 +265,31 @@ func _fermer_les_sauvegardes() -> void:
 func _charger(emplacement: Variant) -> void:
 	if not _vue.is_empty() and _pont.appeler("quitter").get("ok") != true:
 		return
-	_pont.au_groupe = false
-	_pont.essai = false
-	_pont.reprise = false
 	_pont.a_charger = emplacement
+	_recharger_sur("")
+
+
+## Le panneau du salon fermé (`PanneauDuSalon.ferme`) : sur la partie ouverte, ou, sans partie, sur l'accueil.
+func _fermer_le_salon() -> void:
+	if _vue.is_empty():
+		_revenir_a_l_accueil()
+
+
+## Une session du salon finie (`PanneauDuSalon.fini`) pendant une partie montrée : ses lignes posées
+## (`PontDuNoyau.fin_du_salon`), le combat se recharge sur le panneau du salon, sans partie ; sans partie, le panneau
+## les montre lui-même.
+func _finir_le_salon(lignes: Array) -> void:
+	if _vue.is_empty():
+		return
+	_pont.fin_du_salon = lignes
+	_recharger_sur("salon")
+
+
+## Le combat rechargé, son monde reposé de zéro, sur l'entrée de l'accueil `entree` (`PontDuNoyau.entree`), hors de
+## l'essai de l'éditeur.
+func _recharger_sur(entree: String) -> void:
+	_pont.entree = entree
+	_pont.essai = false
 	get_tree().reload_current_scene()
 
 
@@ -263,7 +297,8 @@ func _reprendre(jeton: int) -> void:
 	_suivre(_pont.appeler("reprendre", {jeton = jeton}))
 
 
-## Une `Suite` du contrat : sa vue montrée, ses effets rendus, sa musique jouée, son journal écrit, ses jetons armés.
+## Une `Suite` du contrat : sa vue montrée, ses effets rendus, sa musique jouée, son journal écrit, ses jetons armés,
+## puis le panneau du salon relu (`PanneauDuSalon.relire`).
 func _suivre(reponse: Dictionary) -> void:
 	if reponse.get("ok") != true:
 		return
@@ -286,6 +321,7 @@ func _suivre(reponse: Dictionary) -> void:
 	Zone.montrer_toutes(_zones, _vue.zones.merged(_ajouts))
 	for programme in reponse.programmes:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
+	_salon.relire()
 	_publier_l_ecran.call_deferred()
 
 
@@ -384,14 +420,14 @@ func _publier_l_ecran() -> void:
 	_publication.demander()
 
 
-## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), les curseurs du panneau des réglages
+## Ce que l'écran porte : ses boutons et ceux des panneaux (`PontDuNoyau.boutons_a_l_ecran`), les curseurs du panneau des réglages
 ## (`PontDuNoyau.curseurs_a_l_ecran`), le point de chaque case du plateau, si la caméra glisse (`Monde.glisse`), si la
 ## vision se fond encore (`VolumeDeScene.part_du_fondu`), la part de l'écran où le monde se voit (`Monde.cadre`), ce
 ## que porte le corps de chaque combattant dessiné (`Plateau.corps`) et les navires posés (`Plateau.navires`).
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
 	return {
-		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes, _reglages.racine()]), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()]),
+		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes, _reglages.racine(), _salon.racine()]), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()]),
 		cases = _plateau.points(), glisse = _monde.glisse(), fondu = _monde.volume.part_du_fondu() != 1.0,
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
 	}
