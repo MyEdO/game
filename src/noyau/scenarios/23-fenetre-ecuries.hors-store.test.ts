@@ -88,7 +88,7 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
     expect(homme.z).toBe(1);
     expect(scene.encounters.find((e) => e.id === 'enc-homme-de-main')?.members).toEqual([{ entityId: 'homme-de-main' }]);
     const dlg = scene.dialogues.find((d) => d.id === homme.dialogueId?.id)!;
-    expect(JSON.stringify(dlg)).toContain('"encounter":"enc-homme-de-main"');
+    expect(JSON.stringify(dlg)).toContain('"encounter":{"id":"enc-homme-de-main"}');
   });
 
   beforeEach(() => banc.setState({ battle: null, flags: {}, pendingTest: null, dialogue: null }));

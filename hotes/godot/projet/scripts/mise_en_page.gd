@@ -6,7 +6,8 @@
 ## appui sur ce qui est porté et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
-## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
+## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan, le point du plan sous le pointeur et
+## sa case, le coin de ce qui se pose sous un lieu, la
 ## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait (celle d'un
 ## morceau ou d'une nappe) et à celui de la vision, la part d'un fondu de la vision après un pas de temps, l'état fondu
 ## d'une case et le plus grand de deux, la teinte d'instance d'un état, le relief d'un matériau à son facteur, et l'abscisse
@@ -795,6 +796,18 @@ static func echelle_de_motif() -> Vector3:
 ## la marge du plan autour.
 static func point_du_plan(taille: Vector2, x: float, y: float) -> Vector2:
 	return Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) + Vector2(x, y) * (taille - Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) * 2.0)
+
+
+## Le point du cadre d'un plan de `largeur` sur `hauteur` pixels sous son point `ou`, l'inverse de `point_du_plan`, en
+## `unites` par côté du cadre.
+static func point_sous_le_plan(largeur: float, hauteur: float, ou: Vector2, unites: float) -> Vector2:
+	var marge := Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN)
+	return (ou - marge) / (Vector2(largeur, hauteur) - marge * 2.0) * unites
+
+
+## La case entière qui contient le point `f`.
+static func case_du_point(f: Vector2) -> Vector2i:
+	return Vector2i(floori(f.x), floori(f.y))
 
 
 ## Le coin d'un contrôle de `largeur` sur `hauteur` centré sous le point du plan `centre`, de rayon `rayon`, gardé dans

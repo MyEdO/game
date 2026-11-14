@@ -21,11 +21,11 @@ import {
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
-  WATER_EXPOSURE, navalPorts,
+  WATER_EXPOSURE, navalPorts, STEAM_BREAKDOWNS,
   seaNavigation, seaPerils, seaWeather, shipConstruction,
   disponibilite, riverNavigation, seaCargo, landCargo,
   GRAPPLE, STAKES,
-  regles, MERCHANT_ARCHETYPES, TAVERN_GAMES,
+  regles, MERCHANT_ARCHETYPES, TAVERN_GAMES, ACTIVITIES,
 } from './index';
 // #157 : catalogues de CONTENU déjà chargés par un module dédié (`src/data/*.ts` ou `src/engine/*.ts`,
 // pas la façade `index.ts`) — importés DIRECTEMENT ici (même patron que `massBattle*` ci-dessus, qui
@@ -33,7 +33,6 @@ import {
 // même que celle lue par le moteur → l'édition Codex (splice en place) reste visible en jeu.
 import { TRAUMA_FICHES } from '../engine/trauma';
 import { versDisque } from './schemas/grammaire/prose';
-import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, encounterTable } from '../engine/travelTables';
 import { OBSESSIONS } from './obsessions';
@@ -42,7 +41,6 @@ import { CARGO_ENTRIES } from '../engine/cargo';
 import { MANANN_FACTORS, BOARD_EVENTS, PORT_EVENTS, FAST_VOYAGE_PALIERS } from '../engine/seaVoyage';
 import { RIVER_PERILS } from '../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../engine/crewMorale';
-import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, DATASETS_EDITABLES_DERIVE } from './schemas/exposition-derivee';
 import { poserRegimeVivant } from './schemas/grammaire/idsVivants';
 import { atteindre, elementDeLaListe, idsDeLEspace, lectureDeLEspace, type AccesAuxDocuments } from './schemas/grammaire/collection-cle';
@@ -150,7 +148,7 @@ const ARRAYS = {
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   // #168 : catalogue UNIQUE des Activités (interlude/voyage/mer/bataille de masse) exposé au Codex —
-  // MÊME référence d'array que le moteur (`engine/activities.ts::ACTIVITIES`, singleton JSON) → l'édition
+  // MÊME référence d'array que le moteur (`ACTIVITIES`, singleton JSON) → l'édition
   // Codex (splice en place) reste visible en jeu. Fichier `activities.json` (défaut), racine = le tableau.
   activities: ACTIVITIES,
   // #157 : catalogues de CONTENU app-owned (façade `index.ts` ou module dédié), exposés au Codex.
@@ -263,6 +261,13 @@ export const OBJECT_DATASET_KEYS = Object.keys(OBJECTS) as ObjectDatasetKey[];
 /** Tableau live d'un dataset (même référence que l'export façade → lecture/itération par les consommateurs). */
 export function datasetArray<K extends DatasetKey>(key: K): (typeof ARRAYS)[K] {
   return ARRAYS[key];
+}
+
+/** Les entrées d'un dataset-tableau vues comme objets JSON : lecture GÉNÉRIQUE (atelier du Codex, suggestions de
+ *  saisie) d'un dataset que sa clé ne nomme qu'à l'exécution. Mêmes entrées que `datasetArray`, dans une liste neuve. */
+export function entreesDuDataset(key: DatasetKey): Record<string, unknown>[] {
+  const entrees: readonly unknown[] = ARRAYS[key];
+  return entrees.filter(estObjet);
 }
 
 /** Objet live d'un dataset-objet (même référence que l'export façade → vue live des consommateurs). */

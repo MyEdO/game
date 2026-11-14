@@ -1258,7 +1258,7 @@ export const sinPointsSchema = nommerChamps(z.strictObject({ sinPoints: z.litera
 
 /** `Formula` du dialecte de la Colère des dieux : une formule GÉNÉRALE, le terme de Péché, ou leur
  *  SOMME — la seule composition que le livre imprime (« 1d10 + (Points de Péché) »). */
-export const formulaSinSchema: z.ZodType<unknown> = z.union([
+export const formulaSinSchema = z.union([
   formulaSchema,
   sinPointsSchema,
   nommerChamps(z.strictObject({ sum: z.array(z.union([formulaSchema, sinPointsSchema])) }), { sum: { label: "somme" } }),

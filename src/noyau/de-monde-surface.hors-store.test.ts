@@ -13,7 +13,7 @@ import {
   startCascade,
   pushStep,
   suspendActiveCascade,
-  poserCurseurCascade,
+  curseurPose,
   stepReady,
 } from './cascade';
 import { fixtureText } from '../i18n/fixtureText';
@@ -368,18 +368,19 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
  * flux RNG : sans troncature, les périls suivants rejoueraient leurs dés après le combat.
  */
 describe('#1426 Q1 — `stopSequence` TRONQUE la séquence au goulot partagé (parité du `break`)', () => {
-  /** Route à 3 périls d'auteur À 100 % ; le rang `interrompt` porte un `startCombat`. */
+  /** Route à 3 périls d'auteur À 100 % ; le rang `interrompt` porte une `transition`. */
   const routeAvecPerils = (interrompt: number): MapRoute => ({
     id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 10, modes: ['pied'],
     perils: [0, 1, 2].map((i) => ({
       label: `P${i}`, chancePct: 100,
-      effects: i === interrompt ? [{ type: 'startCombat' as const, encounter: 'enc-x' }] : [{ type: 'journal' as const, desc: `note ${i}` }],
+      effects: i === interrompt ? [{ type: 'transition' as const, scene: { id: 'clairiere' } }] : [{ type: 'journal' as const, desc: `note ${i}` }],
     })),
   } as MapRoute);
 
   function planSur(route: MapRoute): void {
+    get().chargerLeProjet({ scenes: [emptyScene('route', 2, 2), emptyScene('clairiere', 2, 2)], entryId: 'route', worldMap: { id: 'm', label: 'm', places: [], routes: [route] }, projet: null });
     set({
-      worldMap: { id: 'm', nom: 'm', places: [], routes: [route] } as unknown as WorldMap,
+      journal: [],
       travelPlan: { routeId: 'r1', fromPlaceId: 'A', toPlaceId: 'B', mode: 'pied', hoursPerDay: 8, km: 10, kmDone: 0, interrupted: false } as never,
     });
   }
@@ -885,7 +886,7 @@ function sitesCurseurALaMain(): string[] {
  * `pendingCascade` court-circuite ce seam : la table reste non tirée, `stepReady` la refuse et
  * `jetValider('cascade')` devient un no-op DÉFINITIF — la séquence est perdue avec le geste du joueur.
  *
- * Deux cas : la PORTE publique (`poserCurseurCascade`) fait le travail, et aucun site de production
+ * Deux cas : la PORTE publique (`curseurPose`) fait le travail, et aucun site de production
  * de `src/**` ne l'écrit à la main (garde STRUCTURELLE ci-dessous — un `cursor:` de plus la rougit).
  */
 describe('#1426 — les portes du curseur', () => {
@@ -899,7 +900,7 @@ describe('#1426 — les portes du curseur', () => {
     });
     const casc = get().pendingCascade!;
     expect(casc.participants[1].table!.result, 'la table n’est pas tirée au BUILD').toBeUndefined();
-    poserCurseurCascade(get, set, casc, 1);
+    set({ pendingCascade: curseurPose(get, casc, 1) });
     const apres = get().pendingCascade!;
     expect(apres.cursor).toBe(1);
     expect(apres.participants[1].table!.result, 'posé le curseur, le socle a tiré au RANG de l’étape').toBeTruthy();
@@ -917,7 +918,7 @@ describe('#1426 — les portes du curseur', () => {
    */
   it('GARDE STRUCTURELLE — aucun site de `src/**` n’écrit `cursor:` dans un littéral `pendingCascade` hors du pilote', () => {
     const fautifs = sitesCurseurALaMain();
-    expect(fautifs, 'poser le curseur passe par `cascade.poserCurseurCascade`/`curseurPose` — sinon le seam du pilote est court-circuité').toEqual([]);
+    expect(fautifs, 'poser le curseur passe par `cascade.curseurPose` — sinon le seam du pilote est court-circuité').toEqual([]);
   });
 
   /**

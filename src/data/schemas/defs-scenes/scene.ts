@@ -36,9 +36,18 @@ import {
   settlementSchema,
 } from '../grammaire/valeurs';
 import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
-import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
+import { conditionSchema, executeesDe, flowTestSchema, variante } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
-import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, DIALOGUES_DE_LA_SCENE, PORTEES_DE_LA_SCENE, ptSchema, wallSideSchema } from './communs';
+import {
+  competenceChiffreeSchema,
+  couvreSchema,
+  customStatblockSchema,
+  DIALOGUES_DE_LA_SCENE,
+  PERSONNAGES_DE_LA_SCENE,
+  PORTEES_DE_LA_SCENE,
+  ptSchema,
+  wallSideSchema,
+} from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, type PorteeLocale } from '../grammaire/ref';
 import { champsDeChoix } from '../grammaire/choixDeCreation';
@@ -59,6 +68,10 @@ export type Terrain = string & {};
 
 /** Les nœuds du dialogue, que désignent `start` et `choices[].next`. */
 const NOEUDS = { collection: 'nodes', catalogue: 'nœuds du dialogue' } as const satisfies PorteeLocale;
+/** Les membres de la rencontre, que désigne la cible de son objectif `woundsThreshold`. #3606 */
+export const MEMBRES_DE_LA_RENCONTRE = { collection: 'members', catalogue: 'membres de la rencontre' } as const satisfies PorteeLocale;
+/** Les montures de la rencontre, ses membres qui portent `mount`, que désigne la monture chevauchée d'un membre. #3606 */
+export const MONTURES_DE_LA_RENCONTRE = { collection: 'members', catalogue: 'montures de la rencontre', retient: [{ champ: 'mount' }] } as const satisfies PorteeLocale;
 
 /** `Dir8` (`geometry/dir8.ts`) — orientation MONDE éditable, projetée au rendu. MÊME vocabulaire que le cap
  *  d'une place assise de décor (`defs/props.ts`) : la const NOMMÉE de la grammaire est partagée (#1694). */
@@ -587,14 +600,14 @@ export const dialogueChoiceSchema = nommerChamps(z.strictObject({
   flow: sceneFlowSchema.optional(),
   next: ref(NOEUDS).optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, icon: { label: "icône" , texte: { regime: "technique"} }, when: { label: "condition" }, cost: { label: "coût" }, flow: { label: "enchaînement", transparent: true }, next: { label: "nœud suivant" , texte: { regime: "technique"} } });
-/** `DialogueNode` — `speakerId` = entité de la scène dont le portrait/nom porte CE nœud. Réplique :
+/** `DialogueNode` — `speakerId` = personnage de la scène dont le portrait/nom porte CE nœud. Réplique :
  *  `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
 export const dialogueNodeSchema = proseNommee(nommerChamps(z.strictObject({
   id: z.string(),
-  /** Id d'une `SceneEntity` de la scène courante → son PORTRAIT et son NOM (label) pour CE nœud.
+  /** Un personnage de la scène courante → son PORTRAIT et son NOM (label) pour CE nœud.
    *  Permet d'alterner les interlocuteurs dans une même conversation. À défaut, l'interlocuteur de
    *  SESSION (`state.dialogue.speakerId`, posé par `interagirAvecLEntite` ou `startDialogue.speakerId`). */
-  speakerId: z.string().optional(),
+  speakerId: ref(PERSONNAGES_DE_LA_SCENE).optional(),
   choices: listeCle(dialogueChoiceSchema, 'id'),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, speakerId: { label: "locuteur" , texte: { regime: "technique"} }, choices: { label: "réponses" } }), 'dialogues[].nodes[].desc');
 /** `Dialogue` — arbre de nœuds, `start` le nœud d'entrée. */
@@ -638,8 +651,8 @@ export const threatTierSchema = z.enum(['dangereuse', 'tresDangereuse', 'extreme
  *  Round `rounds + 1` (le groupe a tenu N Rounds complets). `reachZone` réutilise le rectangle de zone
  *  des `Trigger`/`SceneEffectZone` (`inRect`, `combatGeometry.ts`) — aucun 2e mécanisme de zone.
  *  `woundsThreshold` (#215) : sortie à seuil de dommage partiel — une cible à `atOrBelowPercent` % de
- *  ses Blessures de départ OU MOINS sort du combat : `targetId` référence l'id STABLE d'une entité de
- *  scène (`SceneEntity.id` = `Combatant.id` au spawn, identité unifiée) ; absent, CHAQUE adversaire sort
+ *  ses Blessures de départ OU MOINS sort du combat : `targetId` désigne un membre de la rencontre
+ *  (`MEMBRES_DE_LA_RENCONTRE`, son `entityId` = `Combatant.id` au spawn) ; absent, CHAQUE adversaire sort
  *  ainsi, et la victoire vient quand aucun ne reste (`MDG 15 l.143`, `l.166-168`). Un navire amène son
  *  pavillon, une créature est repoussée. Le RAW ne chiffre AUCUN seuil de reddition ; seul précédent
  *  chiffré, le monstre marin à la moitié de ses Blessures (`MDG 15 l.143`, `l.166-168`).
@@ -652,18 +665,18 @@ export const threatTierSchema = z.enum(['dangereuse', 'tresDangereuse', 'extreme
  *  règle 7. Testé PAR-COUP (`resolveFirstBlood`, combatFlow.ts) — pas un seuil cumulatif comme
  *  `woundsThreshold`. */
 export const victoryConditionSchema = z.discriminatedUnion('type', [
-  nommerChamps(z.strictObject({ type: z.literal('allEnemiesDead') }), { type: { label: "type"  } }),
-  nommerChamps(z.strictObject({ type: z.literal('destroyStructure'), edge: architectureEdgeRefSchema }), { type: { label: "type"  }, edge: { label: "arête" } }),
-  nommerChamps(z.strictObject({ type: z.literal('surviveRounds'), rounds: z.number() }), { type: { label: "type"  }, rounds: { label: "Rounds" } }),
-  nommerChamps(z.strictObject({
+  variante('Tous les ennemis hors d’action', nommerChamps(z.strictObject({ type: z.literal('allEnemiesDead') }), { type: { label: "type"  } })),
+  variante('Détruire une structure', nommerChamps(z.strictObject({ type: z.literal('destroyStructure'), edge: architectureEdgeRefSchema }), { type: { label: "type"  }, edge: { label: "arête" } })),
+  variante('Survivre N Rounds', nommerChamps(z.strictObject({ type: z.literal('surviveRounds'), rounds: z.number() }), { type: { label: "type"  }, rounds: { label: "Rounds" } })),
+  variante('Atteindre une zone', nommerChamps(z.strictObject({
     type: z.literal('reachZone'),
     rect: architectureRectSchema,
     camp: campSchema.optional(),
-  }), { type: { label: "type"  }, rect: { label: "rectangle" }, camp: { label: "camp"  } }),
-  /** Sortie à seuil de dommage partiel (#215) — `targetId` = `SceneEntity.id`, absent = chaque adversaire. */
-  nommerChamps(z.strictObject({ type: z.literal('woundsThreshold'), targetId: z.string().optional(), atOrBelowPercent: z.number() }), { type: { label: "type"  }, targetId: { label: "cible" , texte: { regime: "technique"} }, atOrBelowPercent: { label: "seuil en pourcentage" } }),
+  }), { type: { label: "type"  }, rect: { label: "rectangle" }, camp: { label: "camp"  } })),
+  /** Sortie à seuil de dommage partiel (#215) — `targetId` parmi les membres de la rencontre, absent = chaque adversaire. */
+  variante('Sortie à seuil de dommage', nommerChamps(z.strictObject({ type: z.literal('woundsThreshold'), targetId: ref(MEMBRES_DE_LA_RENCONTRE).optional(), atOrBelowPercent: z.number() }), { type: { label: "type"  }, targetId: { label: "cible" , texte: { regime: "technique"} }, atOrBelowPercent: { label: "seuil en pourcentage" } })),
   /** Duel judiciaire (`NADJ 06 l.175-177`) — `threshold` ÉDITABLE, défaut 3. */
-  nommerChamps(z.strictObject({ type: z.literal('firstBlood'), threshold: z.number().optional() }), { type: { label: "type"  }, threshold: { label: "seuil" } }),
+  variante('Duel judiciaire — premier sang', nommerChamps(z.strictObject({ type: z.literal('firstBlood'), threshold: z.number().optional() }), { type: { label: "type"  }, threshold: { label: "seuil" } })),
 ]);
 
 /** Membre d'une rencontre : RÉFÉRENCE une `SceneEntity` (kind 'personnage') de la scène — c'est
@@ -679,12 +692,12 @@ export const encounterMemberSchema = nommerChamps(z.strictObject({
   ai: z.boolean().optional(),
   /** Combat monté (`LDB 14`) : cet acteur est une MONTURE rideable (peut être enfourché). */
   mount: z.boolean().optional(),
-  /** id d'entité de la monture chevauchée au spawn (pré-monté) — réf stable (≠ ancien index `rides`). */
-  ridesEntityId: z.string().optional(),
+  /** La monture chevauchée au spawn (pré-monté), parmi les montures de la rencontre. */
+  ridesEntityId: ref(MONTURES_DE_LA_RENCONTRE).optional(),
 }), { entityId: { label: "entité" , texte: { regime: "technique"} }, side: { label: "côté"  }, ai: { label: "intelligence artificielle" }, mount: { label: "monture" }, ridesEntityId: { label: "monture" , texte: { regime: "technique"} } });
 
 /** `EncounterDef` — les circonstances d'Avantage initial (`AA 11 l.53-65`) et la fin de combat. */
-export const encounterDefSchema = nommerChamps(z.strictObject({
+export const encounterDefSchema = nommerChamps(ouvrirPortees(z.strictObject({
   id: z.string(),
   /** Membres référençant des entités de la scène (peuplés par l'éditeur, ou à l'authoring via
    *  `buildEncounter`). SOURCE UNIQUE lue par le runtime — chaque membre pointe une `SceneEntity`
@@ -734,7 +747,7 @@ export const encounterDefSchema = nommerChamps(z.strictObject({
    *  (`ADE II 08 l.292`). */
   siege: z.boolean().optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, members: { label: "participants" }, onVictory: { label: "à la victoire" }, victoryCondition: { label: "condition de victoire" }, surprise: { label: "surprise"  }, maneuverability: { label: "manœuvrabilité"  }, threat: { label: "menace" }, terrain: { label: "terrain" }, banRanged: { label: "interdire le tir" }, siege: { label: "siège" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+}), [MEMBRES_DE_LA_RENCONTRE, MONTURES_DE_LA_RENCONTRE]), { id: { label: "identifiant" , texte: { regime: "technique"} }, members: { label: "participants" }, onVictory: { label: "à la victoire" }, victoryCondition: { label: "condition de victoire" }, surprise: { label: "surprise"  }, maneuverability: { label: "manœuvrabilité"  }, threat: { label: "menace" }, terrain: { label: "terrain" }, banRanged: { label: "interdire le tir" }, siege: { label: "siège" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
 // ── Couches, zones, murs ────────────────────────────────────────────────────────────────────────
 

@@ -700,7 +700,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone1"
+         "encounter": {
+          "id": "enc-zone1"
+         }
         }
        }
       ]
@@ -7628,7 +7630,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone2"
+         "encounter": {
+          "id": "enc-zone2"
+         }
         }
        }
       ]
@@ -7650,7 +7654,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-ruines-tresor"
+         "encounter": {
+          "id": "enc-ruines-tresor"
+         }
         }
        }
       ]
@@ -8676,7 +8682,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone3"
+         "encounter": {
+          "id": "enc-zone3"
+         }
         }
        }
       ]
@@ -9766,7 +9774,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone4"
+         "encounter": {
+          "id": "enc-zone4"
+         }
         }
        }
       ]
@@ -10697,7 +10707,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone5"
+         "encounter": {
+          "id": "enc-zone5"
+         }
         }
        }
       ]
@@ -10719,7 +10731,9 @@
       },
       {
        "entityId": "enemy-enc-zone5-2",
-       "ridesEntityId": "enemy-enc-zone5-1"
+       "ridesEntityId": {
+        "id": "enemy-enc-zone5-1"
+       }
       },
       {
        "entityId": "enemy-enc-zone5-3",
@@ -10727,7 +10741,9 @@
       },
       {
        "entityId": "enemy-enc-zone5-4",
-       "ridesEntityId": "enemy-enc-zone5-3"
+       "ridesEntityId": {
+        "id": "enemy-enc-zone5-3"
+       }
       },
       {
        "entityId": "enemy-enc-zone5-5"
@@ -11998,7 +12014,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone6"
+         "encounter": {
+          "id": "enc-zone6"
+         }
         }
        }
       ]
@@ -13211,7 +13229,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone7"
+         "encounter": {
+          "id": "enc-zone7"
+         }
         }
        }
       ]
@@ -14220,7 +14240,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone8"
+         "encounter": {
+          "id": "enc-zone8"
+         }
         }
        }
       ]
@@ -15355,7 +15377,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone9"
+         "encounter": {
+          "id": "enc-zone9"
+         }
         }
        }
       ]
@@ -15377,7 +15401,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-caverne-ogre"
+         "encounter": {
+          "id": "enc-caverne-ogre"
+         }
         }
        }
       ]
@@ -16851,7 +16877,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone10"
+         "encounter": {
+          "id": "enc-zone10"
+         }
         }
        }
       ]
@@ -18114,7 +18142,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone11"
+         "encounter": {
+          "id": "enc-zone11"
+         }
         }
        }
       ]
@@ -19258,7 +19288,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone12"
+         "encounter": {
+          "id": "enc-zone12"
+         }
         }
        }
       ]
@@ -20736,7 +20768,9 @@
             "kind": "effet",
             "effet": {
              "type": "startCombat",
-             "encounter": "enc-zone13"
+             "encounter": {
+              "id": "enc-zone13"
+             }
             }
            }
           ]
@@ -20940,7 +20974,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-zone13"
+         "encounter": {
+          "id": "enc-zone13"
+         }
         }
        }
       ]
@@ -22702,7 +22738,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-foret-harde"
+         "encounter": {
+          "id": "enc-foret-harde"
+         }
         }
        }
       ]
@@ -22724,7 +22762,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-foret-bande"
+         "encounter": {
+          "id": "enc-foret-bande"
+         }
         }
        }
       ]
@@ -24155,7 +24195,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-marais"
+         "encounter": {
+          "id": "enc-marais"
+         }
         }
        }
       ]
@@ -25452,7 +25494,9 @@
         "kind": "effet",
         "effet": {
          "type": "startCombat",
-         "encounter": "enc-village"
+         "encounter": {
+          "id": "enc-village"
+         }
         }
        }
       ]

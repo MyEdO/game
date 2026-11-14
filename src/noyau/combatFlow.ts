@@ -604,7 +604,6 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import {
   runCascadeImmediate,
   rollTableStep,
-  poserCurseurCascade,
   lireEnSeuil,
   pushStep,
   evaluerRangeeBatch,
@@ -2206,7 +2205,7 @@ export function applyCriticalToTarget(
       revealLines.push(`  ↳ ${text}.`);
       details.push({ text, note: t.desc });
     }
-    // Cumuls par comptage (LDB 18) : chaque séquelle applique SA règle déclarée (`TraumaCumul`) —
+    // Cumuls par comptage (LDB 18) : chaque séquelle applique SA règle déclarée (`TraumaFiche['cumul']`) —
     // agrégation par bras/porteur, effet par palier, et escalade au seuil (main tranchée, Cécité, Surdité).
     for (const l of consolidateAmputations(target)) {
       log.push(`  ↳ ${l}`);
@@ -6000,14 +5999,9 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
     chosenTableRolls: pc.chosenTableRolls,
     extraTargets: inZone.slice(1),
   });
-  // Avance au-delà de l'étape cast (résolue) : conséquences appendues → jouées ; aucune → ferme.
-  if (castStepIdx >= 0) {
-    const casc = get().pendingCascade;
-    if (casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) {
-      if (casc.participants.length > castStepIdx + 1) poserCurseurCascade(get, set, casc, castStepIdx + 1);
-      else set({ pendingCascade: null });
-    }
-  }
+  // L'hôte d'incantation se clôt par la sortie d'hôte (#4248) ; la reprise de l'IA revient à l'appelant.
+  const casc = get().pendingCascade;
+  if (castStepIdx >= 0 && casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) sortirDeLHote(get, set, { pendingCast: null }, () => {});
 }
 
 /** Contexte de visibilité OPTIONNEL pour filtrer des cibles de sort par Ligne de Vue (LDB 46
@@ -7594,7 +7588,7 @@ function victoryConditionMet(vc: VictoryCondition | undefined, battle: BattleSta
     }
     case 'woundsThreshold': {
       if (vc.targetId === undefined) return !enemiesAlive;
-      const target = inBattleId(battle, vc.targetId);
+      const target = inBattleId(battle, vc.targetId.id);
       return !!target && auSeuilDeBlessures(target, vc.atOrBelowPercent);
     }
     case 'firstBlood':
@@ -7619,7 +7613,7 @@ function resolveSurrenderThreshold(battle: BattleState, vc: VictoryCondition | u
   if (vc?.type !== 'woundsThreshold') return [];
   const cibles = vc.targetId === undefined
     ? battle.combatants.filter((c) => c.kind === 'ennemi' && !c.inert)
-    : [inBattleId(battle, vc.targetId)].filter((c): c is Combatant => !!c);
+    : [inBattleId(battle, vc.targetId.id)].filter((c): c is Combatant => !!c);
   return cibles.filter((c) => !isOutOfAction(c) && auSeuilDeBlessures(c, vc.atOrBelowPercent)).map((c) => {
     c.outOfRencontre = true;
     if (estNavire(c)) {

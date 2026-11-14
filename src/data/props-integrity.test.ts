@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { idDeFixture } from './idDeFixture.testkit';
 import { readFileSync } from 'node:fs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { schema as propsSchema } from './schemas/defs/props';
@@ -31,7 +32,7 @@ const RECETTE_MINIMALE: PropVolumeRecipe = { capIdentite: 'S', primitives: [{ ki
 /** Un corps de 3,6 m × 1 m : deux cases sur une à l'échelle du monde. */
 const RECETTE_2X1: PropVolumeRecipe = { capIdentite: 'S', primitives: [{ kind: 'box', center: { xM: 0, yM: 0, hM: 0.5 }, size: { xM: 3.6, yM: 1, hM: 1 }, material: 'bois-chene' }] };
 
-const propFixture = (patch: Partial<PropData>): PropData => ({ id: 'x', type: 'props', label: 'X d’épreuve', solid: true, volume: RECETTE_MINIMALE, ...patch });
+const propFixture = (patch: Partial<PropData>): PropData => ({ id: idDeFixture('prop', 'x'), type: 'props', label: 'X d’épreuve', solid: true, volume: RECETTE_MINIMALE, ...patch });
 
 describe('props.json — formes strictes de la recette volumique et des places assises', () => {
   it('refuse une primitive inconnue, un matériau absent et un matériau d’un AUTRE domaine — au PARSE', () => {
@@ -137,7 +138,7 @@ describe('props.json — formes strictes de la recette volumique et des places a
 
   /** La POPULATION livrée le respecte : aucune cote de plan hors des clés à suffixe `M`. */
   it('le catalogue RÉEL n’écrit plus une seule cote en cases', () => {
-    const brut = JSON.parse(readFileSync(new URL('./props.json', import.meta.url), 'utf8')) as unknown[];
+    const brut = props;
     const fautes: string[] = [];
     const CLES_MORTES = new Set(['x', 'y', 'h', 'radius', 'radiusTiles']);
     // Un champ compte des CASES et non des mètres — il garde donc ses noms nus, et tout ce qui vit
@@ -268,7 +269,7 @@ describe('validatePropCatalog — invariants de données du décor', () => {
 
   it('refuse une recette dont le REPÈRE déclaré n’est pas celui qu’implémente `rotatePropLocal`', () => {
     const primitives: PropPrimitive[] = [{ kind: 'box', center: { xM: 0, yM: 0, hM: 0.5 }, size: { xM: 1, yM: 1, hM: 1 }, material: 'bois-chene' }];
-    const auNord = propFixture({ volume: { capIdentite: 'N', primitives } as unknown as PropData['volume'] });
+    const auNord = propFixture({ volume: Object.assign({ capIdentite: 'S' as const, primitives }, { capIdentite: 'N' }) });
     expect(validatePropCatalog([auNord], MPT)).toContain('x: recette au repère « N » (seul S est implémenté)');
     expect(validatePropCatalog([propFixture({ volume: { capIdentite: 'S', primitives } })], MPT)).toEqual([]);
   });
@@ -434,10 +435,10 @@ describe('FERMETURE — une primitive est une COQUILLE CLOSE', () => {
   });
 
   it('le validateur refuse un cylindre à 12 côtés arrivé par la DONNÉE (le JSON n’est pas typé à l’exécution)', () => {
-    const douze = { kind: 'cylinder', center: { xM: 0, yM: 0, hM: 0.5 }, axis: 'h', radiusM: 0.3, longueurM: 1, sides: 12, material: 'fer-noirci' } as unknown as PropPrimitive;
+    const huit: PropPrimitive = { kind: 'cylinder', center: { xM: 0, yM: 0, hM: 0.5 }, axis: 'h', radiusM: 0.3, longueurM: 1, sides: 8, material: 'fer-noirci' };
+    const douze = Object.assign(structuredClone(huit), { sides: 12 });
     expect(validatePropCatalog([propFixture({ volume: { capIdentite: 'S', primitives: [douze] } })], MPT))
       .toEqual(['x: cylindre à 12 côtés (admis : 8 ou 16)']);
-    const huit: PropPrimitive = { ...(douze as { kind: 'cylinder' } & PropPrimitive), sides: 8 };
     expect(validatePropCatalog([propFixture({ volume: { capIdentite: 'S', primitives: [huit] } })], MPT)).toEqual([]);
   });
 });
@@ -461,7 +462,8 @@ describe('AXE — un cylindre dit son axe, et un cylindre couché ne passe pas s
   });
 
   it('le validateur refuse un axe inconnu arrivé par la DONNÉE (le JSON n’est pas typé à l’exécution)', () => {
-    const z = { ...debout, axis: 'z' } as unknown as PropPrimitive;
+    const valide: PropPrimitive = { kind: 'cylinder', center: { xM: 0, yM: 0, hM: 0.5 }, axis: 'h', radiusM: 0.3, longueurM: 1, sides: 8, material: 'fer-noirci' };
+    const z = Object.assign(valide, { axis: 'z' });
     expect(validatePropCatalog([propFixture({ volume: { capIdentite: 'S', primitives: [z] } })], MPT))
       .toEqual(['x: cylindre d’axe « z » (admis : h, x, y)']);
   });

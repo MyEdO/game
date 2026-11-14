@@ -9,6 +9,8 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CodexEdit } from '../editor/codex/CodexEdit';
 import { resetData, setDataset } from '../../data/overrides';
+import type { CritEntry } from '../../data/criticals';
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -33,7 +35,7 @@ const optionsDe = (champ: HTMLSelectElement): [string, string][] =>
   [...champ.options].map((o) => [o.value, o.textContent ?? '']);
 
 /** Critique NOMMÉ du banc : une séquelle de nouvelle occurrence, rien d'autre de la table réelle. */
-const CRITIQUE_DE_BANC = {
+const CRITIQUE_DE_BANC: CritEntry = {
   id: 'critique-de-banc',
   min: 1,
   max: 100,
@@ -72,7 +74,7 @@ describe('CodexEdit — séquelles d’un Critique, liste de références au cat
 
   it('chaque rangée porte son id, et le choix d’une option écrit l’id dans la liste', () => {
     setDataset('traumas', [traumaDeBanc('surdite', 'Surdité'), traumaDeBanc('fracture-mineure', 'Fracture mineure')]);
-    setDataset('criticalsTete', [{ ...CRITIQUE_DE_BANC, escalation: { onRepeat: { traumas: ['surdite', 'fracture-mineure'] } } }]);
+    setDataset('criticalsTete', [{ ...CRITIQUE_DE_BANC, escalation: { onRepeat: { traumas: ['surdite', idDeFixture('trauma', 'fracture-mineure')] } } }]);
 
     monter('criticalsTete', CRITIQUE_DE_BANC.id);
     expect([rangee(1).value, rangee(2).value]).toEqual(['surdite', 'fracture-mineure']);

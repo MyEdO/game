@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { props } from '../../data';
 import { setDataset } from '../../data/overrides';
-import { empreinteDuProp, validatePropCatalog, type PropData } from '../../data/props.types';
+import { idDeFixture } from '../../data/idDeFixture.testkit';
+import { empreinteDuProp, validatePropCatalog, type PropData, type PropPrimitive } from '../../data/props.types';
 import { decorsEnCase, decorsEnCaseEtage } from '../../noyau/monde/decorIndex';
 import { DIR4_ORDER, type Dir4 } from '../../geometry/dir8';
 import { propFootTiles } from '../../noyau/monde/footprint';
@@ -36,12 +37,12 @@ import { buildProps } from '../builders/props';
  * et sa scène en mémoire, sans passer par ce registre.
  */
 const ID = 'banquette-de-fixture-3x1';
-const tabouret = (xM: number) => [
+const tabouret = (xM: number): PropPrimitive[] => [
   { kind: 'cylinder', axis: 'h', center: { xM, yM: -0.4, hM: 0.425 }, radiusM: 0.32, longueurM: 0.07, sides: 16, material: 'bois-chene' },
   { kind: 'cylinder', axis: 'h', center: { xM, yM: -0.4, hM: 0.195 }, radiusM: 0.15, longueurM: 0.39, sides: 8, material: 'fer-noirci' },
 ];
-const NEUF = {
-  id: ID,
+const NEUF: PropData = {
+  id: idDeFixture('prop', ID),
   type: 'props',
   label: 'Banquette de fixture',
   solid: true,
@@ -64,7 +65,7 @@ const NEUF = {
     facing: 'S',
     approach: { x: 0, y: -1 },
   })),
-} as unknown as PropData;
+};
 
 const POS = { x: 5, y: 5 };
 const scèneAu = (facing: Dir4): Scene => {
@@ -125,7 +126,7 @@ describe('meuble multi-case NEUF : la donnée suffit, aucune couture ne le conna
     expect(validatePropCatalog([NEUF], mpt)).toEqual([]);
     // PRÉMISSE — la même fiche, abords posés SUR leur siège, est refusée trois fois : le validateur
     // mesure l'empreinte 3×1 par la donnée (`data/props.types.ts:607`, abord dans l'empreinte).
-    const abordsSurLeSiege = { ...NEUF, seatSlots: NEUF.seatSlots!.map((s) => ({ ...s, approach: { x: 0, y: 0 } })) } as PropData;
+    const abordsSurLeSiege: PropData = { ...NEUF, seatSlots: NEUF.seatSlots?.map((s) => ({ ...s, approach: { x: 0, y: 0 } })) };
     expect(validatePropCatalog([abordsSurLeSiege], mpt).filter((e) => e.includes('tombe sur la case')), 'un abord par place dans le corps')
       .toHaveLength(3);
 

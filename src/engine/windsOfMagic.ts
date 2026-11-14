@@ -19,13 +19,14 @@ import { findTableEntry } from './tables';
 import type { Combatant } from './types';
 import type { ModLine } from './combat';
 import ventsJson from '../data/vents-tourbillonnants.json';
-import { deDeTirageDe, rangeesDe } from '../data/rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/rangees';
 import type * as vents from '../data/schemas/defs/vents-tourbillonnants';
 import { effectiveTalents } from './talentEffects';
 
 /** Le Tableau VIVANT — la collection que le Codex expose et édite (`ventsTourbillonnants`,
  *  `data/overrides.ts`, `src/noyau/codex/registry.ts`) ; le lookup n'en lit que `min`/`max`/`mod`. */
-export const windsOfMagicTable = rangeesDe<typeof vents>(ventsJson);
+type LigneDesVents = RangeeDe<typeof vents>;
+export const windsOfMagicTable: LigneDesVents[] = rangeesDe<typeof vents>(ventsJson);
 
 /** Modificateur (LDB 46 l.183-190) pour un jet donné — lecture LIVE de la donnée éditable. */
 export function windsModFromRoll(roll: number): number {

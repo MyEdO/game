@@ -44,6 +44,8 @@ const cible = (E = 30): Combatant =>
 
 const LOCS: readonly HitLocation[] = LOCALISATIONS_DE_COUP;
 const JEUX: JeuDeCritique[] = ['ldb', 'aa'];
+/** Une ligne d'Amputation tirée : son jeu, sa Localisation, l'id attendu, le dé naturel et le dépassement. */
+type CasDAmputation = { jeu: JeuDeCritique; loc: HitLocation; id: string; de: number; overkill: number };
 
 /** Étapes d'un Flow rendu en `sequence` (le nœud puis sa suite) — lecture NOMINATIVE, aucune forme supposée. */
 const flowEtapes = (f: Flow | undefined): Flow[] => (f && f.kind === 'sequence' ? f.etapes : f ? [f] : []);
@@ -485,9 +487,9 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
   // ESCALADE de la ligne (LDB 18 l.122 « Pour chaque Round au cours duquel vous ne recevez pas d'Aide
   // Médicale, vous perdez un autre doigt » ; l.180 pour le délai de Chirurgie) : elle vit SUR la plaie
   // chirurgicale, que le nœud d'Amputation ne pose qu'à la porte — le critère doit donc la CRÉER.
-  it.each([
-    { jeu: 'ldb' as JeuDeCritique, loc: 'brasD' as HitLocation, id: 'main-ouverte', de: 88, overkill: 0 },
-    { jeu: 'aa' as JeuDeCritique, loc: 'brasD' as HitLocation, id: 'aa-bras-116', de: 98, overkill: 2 }, // 98 + 2×10 = 118
+  it.each<CasDAmputation>([
+    { jeu: 'ldb', loc: 'brasD', id: 'main-ouverte', de: 88, overkill: 0 },
+    { jeu: 'aa', loc: 'brasD', id: 'aa-bras-116', de: 98, overkill: 2 }, // 98 + 2×10 = 118
   ])('« Main ouverte » ($jeu, l.122) : la plaie chirurgicale PORTE l’escalade par Round', ({ jeu, loc, id, de, overkill }) => {
     const r = resolveCritique(jeu, cible(), loc, seq(de), { overkill });
     expect(r.entryId).toBe(id);
@@ -498,9 +500,9 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
     expect(plaie.location).toBe(loc);
   });
 
-  it.each([
-    { jeu: 'ldb' as JeuDeCritique, loc: 'jambeD' as HitLocation, id: 'pied-ecrase', de: 92, overkill: 0 },
-    { jeu: 'aa' as JeuDeCritique, loc: 'jambeD' as HitLocation, id: 'aa-jambe-106', de: 90, overkill: 2 }, // 90 + 2×10 = 110
+  it.each<CasDAmputation>([
+    { jeu: 'ldb', loc: 'jambeD', id: 'pied-ecrase', de: 92, overkill: 0 },
+    { jeu: 'aa', loc: 'jambeD', id: 'aa-jambe-106', de: 90, overkill: 2 }, // 90 + 2×10 = 110
   ])('« Pied écrasé » ($jeu, l.180) : la MEME plaie porte le délai de Chirurgie', ({ jeu, loc, id, de, overkill }) => {
     const r = resolveCritique(jeu, cible(), loc, seq(de, 5), { overkill });
     expect(r.entryId).toBe(id);
@@ -534,9 +536,9 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
 // ---------------------------------------------------------------------------------------------
 // AMPUTATION DIFFÉRÉE — même patron pour les deux jeux (« Une fois la rencontre terminée… »).
 // ---------------------------------------------------------------------------------------------
-describe.each([
-  { jeu: 'ldb' as JeuDeCritique, roll: 48 },
-  { jeu: 'aa' as JeuDeCritique, roll: 58 },
+describe.each<{ jeu: JeuDeCritique; roll: number }>([
+  { jeu: 'ldb', roll: 48 },
+  { jeu: 'aa', roll: 58 },
 ])('amputation DIFFÉRÉE ($jeu) — « Une fois la rencontre terminée… » (l.171)', ({ jeu, roll }) => {
   const marqueur = () => resolveCritique(jeu, cible(30), 'jambeD', seq(roll)); // un seul dé : rien d'autre ne tire
 

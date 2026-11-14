@@ -85,7 +85,7 @@ import { HEAL_SKILL } from '../engine/healing';
 import { ouvrirLeMedecin } from './medicFlow';
 import { ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions } from './combatFlow';
 import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
-import { placeById } from './worldMap';
+import { placeById, quaiDuGroupe } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
 import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
@@ -2164,6 +2164,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           ...(e.waterLitres != null ? { waterLitres: Math.max(0, e.waterLitres) } : {}),
           ...(e.vivre && e.provisions != null ? { provisions: embarquerDesVivres([], e.vivre.id, e.provisions, env.get().gameTime) } : {}),
           ...(e.crew && e.crew.length ? { crew: e.crew.filter((h) => h.roleId && h.count > 0) } : {}),
+          ...quaiDuGroupe(env.get()),
         },
       });
       env.log(t('eff.navirePossede', { name: e.label?.trim() || v.label }));
@@ -2211,15 +2212,14 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   // ── Combat & social ────────────────────────────────────────────────────
   startCombat: {
     group: 'Combat & social', label: libelleEffet('startCombat'), icon: 'action/attaquer',
-    make: () => ({ type: 'startCombat', encounter: '' }),
-    apply: (e, env) => { env.get().lancerLeCombat(e.encounter); },
-    refs: (e, ctx) => ctx.encounterIds.has(e.encounter) ? [] : [{ level: 'error', message: `Effet → rencontre inexistante « ${e.encounter} »` }],
+    make: () => ({ type: 'startCombat', encounter: { id: '' } }),
+    apply: (e, env) => { env.get().lancerLeCombat(e.encounter.id); },
   },
   startPursuit: {
     group: 'Combat & social', label: libelleEffet('startPursuit'), icon: 'voyage/a-pied',
-    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureSemee() } }], encounter: '' }),
-    apply: (e, env) => { startGroundPursuit(env.get, env.set, { partyRole: e.partyRole, distance: e.distance, escapeAt: e.escapeAt, skill: e.skill.id, foes: e.foes, encounter: e.encounter || undefined, policy: e.policy }); },
-    refs: (e, ctx) => {
+    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureSemee() } }] }),
+    apply: (e, env) => { startGroundPursuit(env.get, env.set, { partyRole: e.partyRole, distance: e.distance, escapeAt: e.escapeAt, skill: e.skill.id, foes: e.foes, encounter: e.encounter?.id, policy: e.policy }); },
+    refs: (e) => {
       const issues: EffectRefIssue[] = [];
       if (!e.foes?.length) issues.push({ level: 'error', message: 'Poursuite : aucun adversaire' });
       // Chaque adversaire est une RÉFÉRENCE : c'est sur la fiche que se lisent son Mouvement et sa
@@ -2229,7 +2229,6 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           issues.push({ level: 'error', message: `Poursuite → créature inexistante « ${f.ref.id || '(aucune)'} »` });
         }
       }
-      if (e.encounter && !ctx.encounterIds.has(e.encounter)) issues.push({ level: 'error', message: `Poursuite → rencontre inexistante « ${e.encounter} »` });
       return issues;
     },
   },

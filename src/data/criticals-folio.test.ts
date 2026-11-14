@@ -29,7 +29,7 @@ const OU: Record<JeuDeCritique, { book: string; abbr: string; chapitre: number }
   ldb: { book: 'livre-de-base', abbr: 'LDB', chapitre: 18 },
   aa: { book: 'aux-armes', abbr: 'AA', chapitre: 7 },
 };
-const JEUX = Object.keys(OU) as JeuDeCritique[];
+const JEUX: JeuDeCritique[] = ['ldb', 'aa'];
 const refDe = (jeu: JeuDeCritique) => `${OU[jeu].abbr} ${String(OU[jeu].chapitre).padStart(2, '0')}`;
 const lignesDe = (jeu: JeuDeCritique) => chapitres(OU[jeu].abbr, OU[jeu].chapitre) ?? [];
 

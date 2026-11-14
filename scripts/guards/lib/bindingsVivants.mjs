@@ -136,8 +136,10 @@ export function documentsDesRacinesVivantes() {
  *     local désigne alors le DOCUMENT (`'vehicles.json'`), jamais une clé devinée du nom de fichier ;
  *   - l'ALIAS NU de niveau module (`const VEHICLES_LIST = vehiclesJson as VehicleData[]`,
  *     `export const IMPERIAL_MONTHS: ImperialMonth[] = calendarMonths`) — il ne copie rien, il donne
- *     un second nom au MÊME tableau vivant. Le nom dérivé hérite du dataset (même contamination par nom
- *     que celle d'`indexFiges`), et les chaînes d'alias suivent, les déclarations étant en ordre. */
+ *     un second nom au MÊME tableau vivant ; la lecture par la porte (`datasetDe<…>(miscastJson)`,
+ *     `rangeesDe<…>(json, …)`) aussi, la porte rendant la racine qu'elle reçoit. Le nom dérivé hérite
+ *     du dataset (même contamination par nom que celle d'`indexFiges`), et les chaînes d'alias
+ *     suivent, les déclarations étant en ordre. */
 export function nomsVivantsDuFichier(chemin, src, parBinding) {
   const noms = new Map();
   for (const m of src.matchAll(/import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"][^'"]+['"]/g)) {
@@ -160,8 +162,9 @@ export function nomsVivantsDuFichier(chemin, src, parBinding) {
     // ANCRÉE aux deux bouts et ses parties libres sont bornées : sur une déclaration-monstre (littéral
     // de milliers de caractères) elle échoue sans backtracking.
     const texte = decl.texte.replace(/\s+/g, ' ').trim();
-    const m = texte.match(/^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)(?:\s*:\s*[^=]{0,200})?\s*=\s*([A-Za-z_$][\w$]*)\s*!?\s*(?:as\s+[^;]{0,200})?;?\s*$/);
-    if (m && noms.has(m[2]) && !noms.has(m[1])) noms.set(m[1], noms.get(m[2]));
+    const m = texte.match(/^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)(?:\s*:\s*[^=]{0,200})?\s*=\s*(?:(?:datasetDe|rangeesDe)\s*<[^;]{0,200}>\s*\(\s*([A-Za-z_$][\w$]*)(?:\s*,[^;)]{0,200})?\s*\)|([A-Za-z_$][\w$]*))\s*!?\s*(?:as\s+[^;]{0,200})?;?\s*$/);
+    const source = m && (m[2] ?? m[3]);
+    if (source && noms.has(source) && !noms.has(m[1])) noms.set(m[1], noms.get(source));
   }
   return noms;
 }
@@ -350,6 +353,8 @@ function motifsDeLecture(noms, espaces, parBinding, accesseurs = new Set()) {
   // Le MEMBRE d'un espace de noms et l'accès par la CLÉ s'enveloppent aussi bien qu'un binding nommé.
   const parLaCle = `datasetArray\\s*\\(\\s*['"][\\w$-]+['"]\\s*\\)(?:\\s+as\\s[^;=)]*)?`;
   for (const m of enveloppes(parLaCle)) out.push(['datasetArray(…)', m]);
+  // `entreesDuDataset` (`src/data/overrides.ts`) rend une COPIE : tout appel au niveau module fige le dataset à l'import.
+  out.push(['entreesDuDataset(…)', `(?<![.\\w])entreesDuDataset\\s*\\(`]);
   // `import * as D` ne nomme rien : c'est le MEMBRE qui désigne le dataset — tout le vocabulaire du
   // seam est donc candidat derrière un espace de noms, pas seulement ce que le fichier importe.
   for (const espace of espaces) {
@@ -412,7 +417,7 @@ export function indexFiges(chemin, src, parBinding, vivants = accesseursVivants(
   const noms = nomsVivantsDuFichier(chemin, src, parBinding);
   const espaces = espacesDeNomsDuFichier(src);
   const accesseurs = accesseursDuFichier(src, vivants);
-  if (!noms.size && !espaces.length && !accesseurs.size && !src.includes('datasetArray')) return [];
+  if (!noms.size && !espaces.length && !accesseurs.size && !/datasetArray|entreesDuDataset/.test(src)) return [];
   const out = [];
   // Motifs COMPILÉS une fois, refaits seulement quand le vocabulaire grandit (contamination par nom
   // dérivé) : les recompiler à chaque déclaration coûtait |déclarations| × |motifs| regex par fichier.

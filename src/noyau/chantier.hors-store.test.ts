@@ -19,7 +19,7 @@ import type { CampaignVessel } from './etat';
 import { ameliorationsAuChantier, devisDeChantier, devisDAmelioration, dossierDuNavire, raisonDuRefusDAppareiller, refusDAppareiller } from './seaVoyageFlow';
 import { resolvePortRef } from './worldMap';
 import { PORT_A_CHANTIER, PORT_SANS_CHANTIER } from '../data/navalPorts.testkit';
-import { refusDEntrerAuPort } from './portFlow';
+import { refusAQuai, rolesRecrutables } from './portFlow';
 import { plafondDePlanque } from './seaActivities';
 import { installCost } from '../engine/shipBuild';
 import { shipboardSouls } from './shipCrew';
@@ -32,7 +32,7 @@ const COGUE = findVehicleById('cogue')!;
 const navire = (patch: Partial<CampaignVessel> = {}): CampaignVessel =>
   ({ vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, ...patch }) as CampaignVessel;
 
-/** Partie à quai : un héros à la bourse `bourse`, le navire `vessel`. */
+/** Partie à quai : un héros à la bourse `bourse` au lieu `A`, le navire `vessel` à quai à ce lieu (`escale`). */
 function aQuai(vessel: CampaignVessel, bourse: Money, mode: 'local' | 'invite' = 'local', etat: Partial<EtatDeJeu> = {}): Partie {
   const entrees: EntreesDeLaPartie = { graine: 2, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   return creerPartie({
@@ -40,7 +40,9 @@ function aQuai(vessel: CampaignVessel, bourse: Money, mode: 'local' | 'invite' =
     party: tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => withBourseMoney(h, bourse, idsDeTest)),
     scene: { ...emptyScene('port', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     gameTime: 8 * 60,
-    vessel,
+    worldMap: { id: 'm', label: 'Mer', places: [{ id: 'A', label: 'Port', pos: { x: 0, y: 0 }, scene: { id: 'port' } }], routes: [] },
+    lieu: 'A',
+    vessel: { escale: 'A', ...vessel },
     net: { ...etatInitialDuJeu().net, mode },
     ...etat,
   }, entrees);
@@ -159,7 +161,7 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
       vessel: null,
     }, entrees);
     try {
-      const refus = refusDEntrerAuPort(partie.etat());
+      const refus = refusAQuai(partie.etat());
       expect(refus).toBe(t('port.sansNavire'));
       partie.envoyer({ type: 'ouvrirLePort', args: [] });
       expect(partie.etat().port).toBeNull();
@@ -359,5 +361,52 @@ describe('#4052 — le Blindage ne s’installe que sur un chantier naval spéci
 
   it.each([SANS, AVEC])('Lissage, sans exigence de chantier, reste proposé à %s', (portRef) => {
     expect(auChantier(portRef, 'lissage')?.refus).toBeNull();
+  });
+});
+
+describe('#4214 — un geste à quai porte sur le navire à quai au lieu du groupe (`refusAQuai`)', () => {
+  const riche = { gold: 100000, silver: 0, brass: 0 };
+  /** Le groupe à Dietershafen (`D`, chantier naval spécialisé, MDG 03 l.196), le navire à quai à `escale`. */
+  const groupeADietershafen = (escale: string, vessel: Partial<CampaignVessel> = {}) => aQuai(navire({ escale, ...vessel }), riche, 'local', {
+    worldMap: {
+      id: 'm', label: 'Mer', routes: [], places: [
+        { id: 'S', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'salzenmund' }, port: resolvePortRef({ ref: 'salzenmund' }) },
+        { id: 'D', label: 'Dietershafen', pos: { x: 1, y: 0 }, scene: { id: 'port' }, port: resolvePortRef({ ref: 'dietershafen' }) },
+      ],
+    },
+    lieu: 'D',
+  });
+  const navireAbime = { wounds: { current: B - 4, max: B }, fouling: { level: 2, lastWeek: 0 }, waterLitres: 0 };
+  const role = rolesRecrutables()[0].id;
+  const gestes = [
+    ['installerLAmelioration', ['blindage-fer', 1]], ['reparerLeNavire', []], ['carenerLeNavire', []],
+    ['ouvrirLePort', []], ['recruterLEquipage', [role, 1]], ['avitaillerLeNavire', [{}, 1]],
+  ] as const;
+
+  it.each(gestes)('groupe à Dietershafen, navire à Salzenmund : %s refusé avec sa cause, rien de payé ni posé', (type, args) => {
+    const partie = groupeADietershafen('S', navireAbime);
+    try {
+      const avant = { bourse: bourseDuGroupe(partie), vessel: partie.etat().vessel };
+      partie.envoyer({ type, args: [...args] } as never);
+      expect(partie.etat().journal.some((l) => l.includes(t('port.pasAQuai')))).toBe(true);
+      expect(bourseDuGroupe(partie)).toBe(avant.bourse);
+      expect(partie.etat().vessel).toEqual(avant.vessel);
+      expect(partie.etat().port).toBeNull();
+    } finally {
+      partie.fermer();
+    }
+  });
+
+  it.each(gestes)('groupe et navire à Dietershafen : %s accepté', (type, args) => {
+    const partie = groupeADietershafen('D', navireAbime);
+    try {
+      const avant = partie.etat().vessel;
+      partie.envoyer({ type, args: [...args] } as never);
+      expect(partie.etat().journal.some((l) => l.includes(t('port.pasAQuai')))).toBe(false);
+      if (type === 'ouvrirLePort') expect(partie.etat().port?.placeId).toBe('D');
+      else expect(partie.etat().vessel).not.toEqual(avant);
+    } finally {
+      partie.fermer();
+    }
   });
 });

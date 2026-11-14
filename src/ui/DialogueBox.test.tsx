@@ -3,7 +3,7 @@
  * DialogueBox — résolution du locuteur 100 % PAR ID (#669) : `DialogueNode.speakerId` (nœud) ou
  * `dialogue.speakerId` (session) référence une `SceneEntity` de la scène → SON `label` sert de nom
  * affiché. Preuve : deux entités distinctes (e1/e2), deux nœuds — un sans `speakerId` (retombe sur
- * la session) puis un avec `speakerId: 'e2'` — le nom affiché passe d'Alice à Bob. Patron réel du
+ * la session) puis un avec `speakerId: { id: 'e2' }` — le nom affiché passe d'Alice à Bob. Patron réel du
  * repo pour les tests interactifs (`createRoot`/`act`, cf. `EtatPanel.behavior.test.tsx`) —
  * `@testing-library` n'est pas une dépendance de ce dépôt.
  */
@@ -35,7 +35,7 @@ const dlg: Dialogue = {
   start: { id: 'n1' },
   nodes: [
     { id: 'n1', desc: 'Réplique de session.', choices: [{ id: 'suite', label: 'Suite', next: { id: 'n2' } }] },
-    { id: 'n2', speakerId: 'e2', desc: 'Réplique de Bob.', choices: [] },
+    { id: 'n2', speakerId: { id: 'e2' }, desc: 'Réplique de Bob.', choices: [] },
   ],
 };
 

@@ -10,7 +10,7 @@ import type { Jeu } from './etat';
 import type { GesteDuNoyau } from './actionsDuNoyau';
 import { lieuDuGroupe, placeServices, serviceIcon, type ResolvedPlaceService } from './worldMap';
 import { planDepuis, trajetsDepuis, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
-import { refusDEntrerAuPort } from './portFlow';
+import { refusAQuai } from './portFlow';
 import { entreesDuLieu, refusDEntrerAuPoint } from './lieuFlow';
 import { sceneDuRegistre } from './monde/registreDesScenes';
 import { identitesResolues, nommer } from './monde/identites';
@@ -40,7 +40,7 @@ function gestesDuService(s: Jeu, svc: ResolvedPlaceService): GesteDuService[] {
     const dormir: GesteDuService[] = svc.rest ? [{ id: 'dormir', libelle: t('lieu.dormir'), geste: { verbe: 'ouvrirLeRepos', args: [] }, refus: null }] : [];
     return [...dormir, { id: 'informations', libelle: t('lieu.informations'), geste: { verbe: 'recueillirLesRumeurs', args: [] }, refus: null }];
   }
-  if (svc.category === 'port' || svc.opensScreen === 'port') return entrer({ verbe: 'ouvrirLePort', args: [] }, refusDEntrerAuPort(s));
+  if (svc.category === 'port' || svc.opensScreen === 'port') return entrer({ verbe: 'ouvrirLePort', args: [] }, refusAQuai(s));
   if (svc.category === 'marche') return entrer({ verbe: 'ouvrirLeMarche', args: [] });
   if (svc.merchantArchetype) return entrer({ verbe: 'ouvrirLaBoutique', args: [svc.id] });
   return [];

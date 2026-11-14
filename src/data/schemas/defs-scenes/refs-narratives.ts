@@ -28,7 +28,7 @@ type Chemin = readonly (string | number)[];
 export type CleDeReference = keyof typeof REFERENCES_NARRATIVES;
 
 /** SOUS-RÉFÉRENCES : clé → la référence PARENTE du même porteur, dont elle désigne une sous-entrée. */
-const SOUS_REFERENCES = {
+export const SOUS_REFERENCES = {
   stade: 'indiceId',
   valeur: 'etat',
   value: 'etat',

@@ -35,7 +35,7 @@ import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { dossierDe, porteeDeGarde } from '../../../scripts/guards/lib/couches.mjs';
 import { codexLookupById } from './registry';
-import { ACTIONS, ACTIVITY_STAKES, STAKES, cibleCodex, crewTestTypes } from '../../data/index';
+import { ACTIONS, ACTIVITIES, STAKES, cibleCodex, crewTestTypes } from '../../data/index';
 import type { FoyerDeRegle } from '../../data/schemas/grammaire/valeurs';
 
 export interface CodexRefLiteral {
@@ -220,7 +220,7 @@ describe('refs Codex écrites EN LITTÉRAL — chacune pointe une fiche RÉELLE'
     // la DONNÉE : le parse juge l'id dans l'espace de son type, cette sonde juge la FICHE que le ⓘ
     // ouvre (`cibleCodex` → `codexLookupById`) — le popover muet à l'écran, la garde verte, sinon.
     const porteurs: Record<string, readonly { id: string; rule?: FoyerDeRegle }[]> = {
-      'actions.json': ACTIONS, 'activities.json': ACTIVITY_STAKES, 'crew-test-types.json': crewTestTypes,
+      'actions.json': ACTIONS, 'activities.json': ACTIVITIES, 'crew-test-types.json': crewTestTypes,
       'stakes.json': STAKES,
     };
     const portees = Object.entries(porteurs).flatMap(([f, l]) => l.flatMap((e) => (e.rule ? [{ f, id: e.id, cible: cibleCodex(e.rule) }] : [])));
@@ -233,7 +233,7 @@ describe('refs Codex écrites EN LITTÉRAL — chacune pointe une fiche RÉELLE'
 
   it('FICHE EN LECTURE : chaque porteur de foyer exposé au Codex montre sa section « Règle » vers la fiche du foyer', () => {
     const exposes: Record<string, readonly { id: string; rule?: FoyerDeRegle }[]> = {
-      activities: ACTIVITY_STAKES, crewTestTypes, stakes: STAKES,
+      activities: ACTIVITIES, crewTestTypes, stakes: STAKES,
     };
     const ecarts = Object.entries(exposes).flatMap(([categorie, l]) => l.flatMap((e) => {
       if (!e.rule) return [];

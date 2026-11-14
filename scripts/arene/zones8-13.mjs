@@ -593,7 +593,7 @@ export function makeZone13() {
           ],
           [
             { type: 'journal', desc: 'UNE PIÈCE TINTE. L’œil du dragon s’ouvre — d’or en fusion.' },
-            { type: 'startCombat', encounter: 'enc-zone13' },
+            { type: 'startCombat', encounter: { id: 'enc-zone13' } },
           ],
         ), true),
       }),

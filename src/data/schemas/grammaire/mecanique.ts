@@ -6,6 +6,7 @@ import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './
  * op par op ; `OPS_NON_TYPEES` porte celles qui restent à décrire (lot L1c #1468).
  */
 import { z } from 'zod';
+import { estObjet } from '../../../lib/objet.mjs';
 import { validerApparenceDonnee } from './valeurs';
 import { proseNommee } from './prose';
 import { declarerEnfants } from './descente';
@@ -81,8 +82,9 @@ import { VIVRES_DE_CALE } from '../../../engine/seaNavigation';
 export type RegimeDeListe = 'passive' | 'executee';
 const REGIMES_DES_LISTES = new WeakMap<object, RegimeDeListe>();
 
-/** La variante `noeud` d'une union (`Condition`, `Flow`, sélecteur, fenêtre, cible), nommée `label` à l'affichage. */
-const variante = <T extends z.ZodType>(label: string, noeud: T): T => nommerNoeud(noeud, { label });
+/** La variante `noeud` d'une union (`Condition`, `Flow`, sélecteur, fenêtre, cible, objectif de victoire), nommée
+ *  `label` à l'affichage. */
+export const variante = <T extends z.ZodType>(label: string, noeud: T): T => nommerNoeud(noeud, { label });
 
 /** Le régime d'une liste d'ops, `undefined` hors de `passifsDe` et `executeesDe`. */
 export function regimeDeListe(noeud: unknown): RegimeDeListe | undefined {
@@ -1294,9 +1296,9 @@ type ChampExigibleDuTest = 'skill' | 'difficulty';
 /** RESSERREMENT, au PORTEUR, du Test qu'il compose par identité sous sa clé `test` : les `champs` que le
  *  nœud partagé laisse facultatifs y sont exigés. Un clone resserré du nœud perdrait sa pose
  *  (`interne/concepts.ts`) ; le `superRefine` du porteur la garde. */
-export function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
-  return (porteur: Readonly<Record<string, unknown>>, ctx: z.RefinementCtx): void => {
-    const test = porteur.test;
+function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
+  return (porteur: object, ctx: z.RefinementCtx): void => {
+    const test: unknown = Reflect.get(porteur, 'test');
     if (typeof test !== 'object' || test === null) return;
     for (const champ of champs)
       if (Reflect.get(test, champ) === undefined)
@@ -1305,8 +1307,8 @@ export function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
 }
 
 /** Refuse au Test de `porteur` tout champ de DÉCISION (`CHAMPS_DE_DECISION`) : c'est le porteur qui la tient. */
-function refuserLaDecision(porteur: Readonly<Record<string, unknown>>, ctx: z.RefinementCtx, raison: string): void {
-  const test = porteur.test;
+function refuserLaDecision(porteur: object, ctx: z.RefinementCtx, raison: string): void {
+  const test: unknown = Reflect.get(porteur, 'test');
   if (typeof test !== 'object' || test === null) return;
   for (const champ of CHAMPS_DE_DECISION)
     if (Reflect.get(test, champ) !== undefined)
@@ -1315,20 +1317,25 @@ function refuserLaDecision(porteur: Readonly<Record<string, unknown>>, ctx: z.Re
 
 /** Le Test que son PORTEUR fixe (`JetFixe`, `engine/flowCore.ts`) : les `champs` exigés (`exigerDuTest`),
  *  aucun champ de décision — sa Difficulté est celle qu'il déclare. */
-export function fixerLeTest(...champs: readonly ChampExigibleDuTest[]) {
+function fixerLeTest(...champs: readonly ChampExigibleDuTest[]) {
   const exiger = exigerDuTest(...champs);
-  return (porteur: Readonly<Record<string, unknown>>, ctx: z.RefinementCtx): void => {
+  return (porteur: object, ctx: z.RefinementCtx): void => {
     exiger(porteur, ctx);
     refuserLaDecision(porteur, ctx, 'ce porteur fixe sa Difficulté, il ne la décide pas.');
   };
 }
 
 /** Le `porteur` dont le Test fixe les `champs` (`fixerLeTest`), sa sortie resserrée d'autant (`JetFixe`, `engine/flowCore.ts`) :
- *  le prédicat ne se joue que sur un porteur sans faute, dont `fixerLeTest` a vérifié le Test. */
-export function porteurDeTestFixe<S extends z.ZodType<{ test: z.output<typeof flowTestSchema> }>, const K extends ChampExigibleDuTest>(porteur: S, ...champs: readonly K[]) {
+ *  le prédicat ne se joue que sur un porteur sans faute, dont `fixerLeTest` a vérifié le Test. Le porteur est un nœud
+ *  qui compose `flowTestSchema` sous `test`, ou l'entrée d'un document (`affinerEntree`) dont le schéma le compose. */
+export function porteurDeTestFixe<S extends z.ZodType<object>, const K extends ChampExigibleDuTest>(porteur: S, ...champs: readonly K[]) {
   type Sortie = z.output<S>;
+  type Test = z.output<typeof flowTestSchema>;
   return porteur.superRefine(fixerLeTest(...champs)).refine(
-    (v: Sortie): v is Sortie & { test: Required<Pick<Sortie['test'], K>> } => champs.every((c) => v.test[c] !== undefined),
+    (v: Sortie): v is Sortie & { test: Test & Required<Pick<Test, K>> } => {
+      const test: unknown = Reflect.get(v, 'test');
+      return estObjet(test) && champs.every((c) => test[c] !== undefined);
+    },
     { when: (p) => p.issues.length === 0 },
   );
 }

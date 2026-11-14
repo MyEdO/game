@@ -67,7 +67,7 @@ describe('atelier du Codex — noms positionnés des champs en rangée (#1993)',
 
   type Yeux = { id: string; label: string; color?: Record<string, string> };
   const yeuxARecord = (): Yeux => {
-    const e = (datasetArray('eyes') as Yeux[]).find((x) => Object.keys(x.color ?? {}).length >= 2);
+    const e = datasetArray('eyes').find((x) => Object.keys(x.color ?? {}).length >= 2);
     expect(e, 'aucune couleur d’yeux à record de deux clés — la mesure ne porte sur rien').toBeTruthy();
     return e!;
   };

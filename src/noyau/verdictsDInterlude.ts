@@ -3,7 +3,17 @@
  * `noyau/favorFlow.ts`) et l'écran d'interlude les lisent, sans que l'un importe l'autre.
  * Le geste applique le verdict en tête (`refuseSi`) ; l'écran le lit sans le recalculer.
  */
-import { advancementBaseId, findCareerById, findSpellById, findTalentById, findTrappingById, levelsForCareer, libelleOuAbsence, refLabel } from '../data';
+import {
+  ACTIVITIES,
+  advancementBaseId,
+  findCareerById,
+  findSpellById,
+  findTalentById,
+  findTrappingById,
+  levelsForCareer,
+  libelleOuAbsence,
+  refLabel,
+} from '../data';
 import { interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { t, type MsgKey } from '../i18n';
 import type {
@@ -25,7 +35,7 @@ import { identiteDeCiblage, refDeCible, type RefDeCible } from '../engine/psych/
 import { actorStatus } from '../engine/social';
 import { fromBrass, toBrass, toMoney, priceToMoney, formatMoney } from '../engine/money';
 import {
-  ACTIVITIES, RESOLVER_OWNER, activityAvailableAt, activityById, cleDEntrainement, craftSpecOf, entrainementOptions, learnOptionOf, metierOf, orderBlockOf, statusIncomeMax, travelActivitySpec,
+  RESOLVER_OWNER, activityAvailableAt, activityById, cleDEntrainement, craftSpecOf, entrainementOptions, learnOptionOf, metierOf, orderBlockOf, statusIncomeMax, travelActivitySpec,
   type ActivityDef, type EntrainementOption, type GenreDeDepot, type ResolverOf, type TravelActivitySpec, type VoieDActivite,
 } from '../engine/activities';
 import { outOfTradeReason } from '../engine/disponibilite';

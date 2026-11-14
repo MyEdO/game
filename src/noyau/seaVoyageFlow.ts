@@ -77,6 +77,7 @@ import {
   libelleOuAbsence,
   testSkillLabel,
   findNavalPortById,
+  type SteamBreakdownEntry,
 } from '../data';
 import { profilNavalDe } from '../engine/coque';
 import {
@@ -91,7 +92,6 @@ import {
   milieuDuVoyage,
   STEAM_SKILL,
   type PropulsionDuNavire,
-  type SteamBreakdownEntry,
 } from '../engine/shipBuild';
 import { COMPETENCE_DU_MODE, estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { deMonde, formatDice, roll as rollDice, tirer, type RNG, type Tirage } from '../engine/dice';
@@ -151,7 +151,7 @@ import {
 import type { NightEntry } from './restFlow';
 import { mangerLaCale, provisioningManifest, rationsDeCale, type LotDeVivres } from '../engine/provisions';
 import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, mouvementDeLaBourseDuGroupe } from './bourseFlow';
+import { partyMoneyTotal, payFromGroup, mouvementDeLaBourseDuGroupe } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog, jouerFlowEntier, revealPurpose, runFlow } from './combatEffects';
@@ -172,6 +172,7 @@ import type { Get, Set } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { CampaignVessel, Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
+import { refusDeGesteAQuai } from './portFlow';
 import {
   openWorldTest,
   composeRollLabel,
@@ -2399,7 +2400,7 @@ export interface DevisDeChantier {
   foulLevel: number; carenagePct: number; carenageGold: number; refusCarenage: string | null;
 }
 
-export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusHote: string | null): DevisDeChantier {
+export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusDuQuai: string | null): DevisDeChantier {
   const v = findVehicleById(vessel.vehicleId);
   const { max, current, missing } = blessuresDeCoqueARestaurer(vessel);
   const lissage = shipHasNavalTrait(vesselNavalTraits(vessel), 'lissage');
@@ -2409,10 +2410,10 @@ export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusHote
   const carenageGold = Math.ceil((v?.purchase?.price?.gold ?? 0) * (carenagePct / 100));
   return {
     max, current, missing, lissage, reparationGold, foulLevel, carenagePct, carenageGold,
-    refusReparation: refusHote ?? (missing <= 0 && !vessel.criticals?.length && !vessel.reparationTemporaire ? t('sv.hullIntact')
+    refusReparation: refusDuQuai ?? (missing <= 0 && !vessel.criticals?.length && !vessel.reparationTemporaire ? t('sv.hullIntact')
       : !canAfford(bourse, toMoney({ gold: reparationGold })) ? t('sv.yardTooExpensive', { cost: reparationGold })
       : null),
-    refusCarenage: refusHote ?? (foulLevel <= 0 && !modificateursAuCarenage(vessel.modificateurs).length ? t('sv.hullClean')
+    refusCarenage: refusDuQuai ?? (foulLevel <= 0 && !modificateursAuCarenage(vessel.modificateurs).length ? t('sv.hullClean')
       : carenageGold > 0 && !canAfford(bourse, toMoney({ gold: carenageGold })) ? t('sv.careenTooExpensive', { cost: carenageGold, pct: carenagePct })
       : null),
   };
@@ -2426,7 +2427,7 @@ export function portRepairVessel(get: Get, set: Set): string[] {
   const vessel = get().vessel;
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   if (!vessel || !v?.hull) { refuserGeste(get, set, t('sv.noVesselToRepair')); return []; }
-  const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()));
+  const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteAQuai(get()));
   if (devis.refusReparation) { refuserGeste(get, set, devis.refusReparation); return []; }
   const { max, missing, lissage } = devis;
   const rng = battleRng();
@@ -2455,7 +2456,7 @@ export function portCareenVessel(get: Get, set: Set): string[] {
   const vessel = get().vessel;
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   if (!vessel || !v) { refuserGeste(get, set, t('sv.noVesselToCareen')); return []; }
-  const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()));
+  const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteAQuai(get()));
   if (devis.refusCarenage) { refuserGeste(get, set, devis.refusCarenage); return []; }
   const { carenageGold: cost, carenagePct: pct } = devis;
   const costMoney = toMoney({ gold: cost });
@@ -2470,7 +2471,7 @@ export function portCareenVessel(get: Get, set: Set): string[] {
  *  `installerLAmelioration` et de l'écran du port. PUR. MDG 15 l.255 ; MDG 12 l.230 */
 export type DevisDAmelioration = { traitId: string; label: string; enc: number | null } & ({ refus: null; gold: number; duree: Formula } | { refus: string; gold: number | null; duree: Formula | null });
 
-export function devisDAmelioration(vessel: CampaignVessel | null, traitId: string, units: number, bourse: Money, refusHote: string | null, portRef: string | undefined): DevisDAmelioration {
+export function devisDAmelioration(vessel: CampaignVessel | null, traitId: string, units: number, bourse: Money, refusDuQuai: string | null, portRef: string | undefined): DevisDAmelioration {
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   const entry = findNavalTrait(traitId);
   const label = entry?.label ?? traitId;
@@ -2481,18 +2482,18 @@ export function devisDAmelioration(vessel: CampaignVessel | null, traitId: strin
   const duree: Formula = vessel.constructeurDEscale?.duree ?? (entry.install.jours && installAmount(entry.install.jours, v.ship.lengthM)) ?? REPARATION.joursDePose;
   if (gold == null) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeEmbedded', { label }) };
   if (entry.install.chantierSpecialise && !(portRef && findNavalPortById(portRef)?.chantierNavalSpecialise)) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeNeedsShipyard', { label }) };
-  if (refusHote) return { traitId, label, gold, enc, duree, refus: refusHote };
+  if (refusDuQuai) return { traitId, label, gold, enc, duree, refus: refusDuQuai };
   if (!canAfford(bourse, toMoney({ gold }))) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeTooExpensive', { label, gold }) };
   return { traitId, label, gold, enc, duree, refus: null };
 }
 
 /** Améliorations proposées au chantier : celles à pose chiffrée que le navire ne porte pas encore, chacune
  *  avec son devis (une unité). */
-export function ameliorationsAuChantier(vessel: CampaignVessel, bourse: Money, refusHote: string | null, portRef: string | undefined): DevisDAmelioration[] {
+export function ameliorationsAuChantier(vessel: CampaignVessel, bourse: Money, refusDuQuai: string | null, portRef: string | undefined): DevisDAmelioration[] {
   const owned = new Set((vessel.upgrades ?? []).map((u) => u.id));
   return NAVAL_TRAITS
     .filter((tr) => tr.kind === 'amelioration' && tr.install && !owned.has(tr.id))
-    .map((tr) => devisDAmelioration(vessel, tr.id, 1, bourse, refusHote, portRef))
+    .map((tr) => devisDAmelioration(vessel, tr.id, 1, bourse, refusDuQuai, portRef))
     .filter((d) => d.gold != null);
 }
 
@@ -2501,7 +2502,7 @@ export function ameliorationsAuChantier(vessel: CampaignVessel, bourse: Money, r
  *  multiples, etc. MDG 12 l.230 ; MDG 12 l.293 ; MDG 15 l.255 */
 export function installerLAmelioration(get: Get, set: Set, traitId: string, units = 1): string[] {
   const vessel = get().vessel;
-  const devis = devisDAmelioration(vessel, traitId, units, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()), lieuDuGroupe(get())?.port?.ref);
+  const devis = devisDAmelioration(vessel, traitId, units, partyMoneyTotal(get), refusDeGesteAQuai(get()), lieuDuGroupe(get())?.port?.ref);
   if (devis.refus !== null) { refuserGeste(get, set, devis.refus); return []; }
   const navire = garanti(vessel, 'vessel', 'navire du devis d’Amélioration');
   const { gold, enc, label } = devis;

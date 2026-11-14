@@ -13,7 +13,7 @@ import {
   STAKES,
   regles, skills, symptoms, etats, talents, qualities, spells,
   psychologies, seaShanties, crewTestTypes, maladies, maneuvers, resolveStake,
-  mutations, mutationTables, interludeEvents, trappings, traits, creatures, ACTIVITY_STAKES,
+  mutations, mutationTables, interludeEvents, trappings, traits, creatures, ACTIVITIES,
 } from './index';
 import { CATEGORY_BY_SOURCE_KIND } from '../engine/types';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
@@ -49,7 +49,7 @@ const PROBE_ID: Record<string, string> = {
   spells: spells[0].id, talents: talents[0].id, traits: traits[0].id, trappings: trappings[0].id,
   qualities: qualities[0].id, maladies: maladies[0].id, symptoms: symptoms[0].id,
   mutations: mutations[0].id, etats: etats[0].id, psychologies: psychologies[0].id,
-  maneuvers: maneuvers[0].id, creatures: creatures[0].id, activities: ACTIVITY_STAKES[0].id,
+  maneuvers: maneuvers[0].id, creatures: creatures[0].id, activities: ACTIVITIES[0].id,
   regles: regles[0].id, tavernGames: 'cerevis',
   imparfaiteMineure: 'mineure-signe-de-sorciere', imparfaiteMajeure: 'majeure-voix-fantomatiques',
   imparfaiteMineureVdm: 'mineure-vdm-signe-de-sorciere', imparfaiteMajeureVdm: 'majeure-vdm-voix-fantomatiques',

@@ -30,7 +30,7 @@ import { schema as activitiesSchema } from '../data/schemas/defs/activities';
 import { actorStatus, statusMeets } from '../engine/social';
 import { aPassifVisible } from '../engine/trauma';
 import { buildActorView } from '../engine/actorView';
-import { careers } from '../data';
+import { ACTIVITIES, careers } from '../data';
 import { buildActivityWorldRollSteps } from './activityWorldRolls';
 import { interludeCatalog } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
@@ -440,11 +440,13 @@ describe('Vue d’acteur — `visiblePassive` ne balaie qu’à la LECTURE, et u
  * la donnée réelle mutée, au chemin de l'Activité.
  */
 describe('`testMods.mod` est DÉTERMINISTE — garde de DONNÉE (#1612)', () => {
-  const REELLES = JSON.parse(readFileSync(join(ROOT, 'src/data/activities.json'), 'utf8')) as Record<string, unknown>[];
-  const CIBLE = REELLES.findIndex((a) => Array.isArray(a.testMods) && a.testMods.length > 0);
-  const dope = (mod: unknown): Record<string, unknown>[] => {
-    const m = JSON.parse(JSON.stringify(REELLES)) as Record<string, unknown>[];
-    (m[CIBLE].testMods as Record<string, unknown>[])[0].mod = mod;
+  const REELLES = ACTIVITIES;
+  const CIBLE = REELLES.findIndex((a) => (a.testMods?.length ?? 0) > 0);
+  const dope = (mod: unknown) => {
+    const m = structuredClone(REELLES);
+    const [premier] = m[CIBLE]?.testMods ?? [];
+    if (premier === undefined) throw new Error('aucune Activité à `testMods` : la sonde ne mesure rien.');
+    Object.assign(premier, { mod });
     return m;
   };
 

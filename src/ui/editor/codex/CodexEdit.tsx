@@ -11,7 +11,6 @@ import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetS
 import { datasetArray, datasetObject, datasetFile, datasetObjectFile, ancetreDuDe, deDeLaTable, type DatasetKey } from '../../../data/overrides';
 import { editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
-import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
 import {
   metaPourFichier,
   chargeDiscriminee,
@@ -82,7 +81,7 @@ import type { Flow } from '../../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW, flowDeFeuilles, type EffectOp, type EffectTrigger, type FlowTest, type TriggeredEffect } from '../../../engine/flowCore';
 import { effectOnSchema, effectTriggerSchema, familleDesEffets } from '../../../data/schemas/grammaire/mecanique';
 import { ChipDeRefus } from '../../ChipDeRefus';
-import type { DetailText, ManeuverDef, ManeuverMeasure } from '../../../data';
+import { maladies, type DetailText, type ManeuverDef, type ManeuverMeasure, type SteamBreakdownEntry } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
 import type { AttackKind } from '../../../engine/creatureAttacks';
 import { WeaponField } from '../WeaponField';
@@ -1358,7 +1357,6 @@ function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['dis
   const de = deDeLaTableTiree(value);
   const [bas, haut] = [totalDuDe(de, de.n), facesDuDe(de)];
   const libelleDe = formatDice(de);
-  const maladieOpts = datasetArray('maladies') as { id: string; label: string }[];
   const poser = (entries: WaterExposureData['diseases']['entries']) => onChange({ die, entries });
   const set = (i: number, patch: Partial<WaterExposureData['diseases']['entries'][number]>) => poser(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   return (
@@ -1368,15 +1366,14 @@ function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['dis
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
           <label className="dr">{libelleDe}&nbsp;<NumberField variant="nu" label={`Plage ${libelleDe} — borne basse`} min={bas} max={haut} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label={`Plage ${libelleDe} — borne haute`} min={bas} max={haut} value={r.max} onChange={(max) => set(i, { max })} /></label>
-          <select value={r.disease} onChange={(e) => set(i, { disease: e.target.value })}>
-            <option value="">— (choisir une maladie) —</option>
-            {maladieOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          <select value={r.disease} onChange={(e) => { const m = maladies.find((o) => o.id === e.target.value); if (m) set(i, { disease: m.id }); }}>
+            {maladies.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
           <label className="dr"><input type="checkbox" checked={!!r.rerollUnlessWounded} onChange={(e) => set(i, { rerollUnlessWounded: e.target.checked || undefined })} /> relance si indemne</label>
           <button className="btn small danger" title="Retirer" onClick={() => poser(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => poser([...list, { min: bas, max: bas, disease: '' }])}>+ Maladie</button>
+      <button className="btn small" onClick={() => poser([...list, { min: bas, max: bas, disease: maladies[0].id }])}>+ Maladie</button>
     </div>
   );
 }

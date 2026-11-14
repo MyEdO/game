@@ -16,7 +16,7 @@ import { seasonOfMonth } from '../engine/travelStages';
 import { t } from '../i18n';
 import { activeDayWeather, activeExposureSeverity } from './combatFlow';
 import { tableSpec, tableStepDef } from './cascade';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade, type PoseDe } from './cascade.testkit';
 import { creditBourse } from './bourseFlow';
 import { sceneLieu } from './restFlow';
 import { PERIPETIES, peripetieSeuilDie } from '../data/peripeties';
@@ -77,6 +77,17 @@ function poseMeteo(id: string): void {
   const saison = seasonOfMonth(toDate(get().gameTime).month);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
   get().jetImposerLeResultat('cascadeTirage', rangee.min, meteo.id);
+}
+
+/** La route tend son embuscade (`ambush`) dans la scène de départ, sur « Attaqués ! » (table d10). */
+const embuscadeDeRoute: Partial<MapRouteTrace> = { perilDie: 8, ambush: { scene: { id: 'scene-depart' }, encounter: 'enc-brigands' } };
+const attaques = PERIPETIES.find((p) => p.kind === 'attaque')!;
+/** POSE le seuil atteint puis « Attaqués ! » sur la table des péripéties ; tout autre dé tombe de lui-même. */
+const poseEmbuscade: PoseDe = (etape) => (etape.kind === 'perilATerre' ? 8 : etape.kind === 'perilATerreTable' ? attaques.roll : undefined);
+/** Le dé de seuil de la route ne tombe plus : la reprise ne rejoue pas l'embuscade. */
+function neutraliseLaRoute(): void {
+  const wm = get().worldMap!;
+  set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perilDie: 0 })) } });
 }
 
 /** Les `kind` des étapes de la NUIT de halte, couchage dehors et sans repas. */
@@ -146,10 +157,10 @@ describe('#2533 — interruption puis reprise à budget nul : le jour interrompu
   it('l’embuscade se joue sous la météo du jour ; la reprise clôt ce jour au log, puis la halte du soir', () => {
     setRule('voyage-etapes', true);
     setDesFixes(true);
-    setup(map({ km: 60, perils: [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
+    setup(map({ km: 60, ...embuscadeDeRoute }), 'clair');
     get().partirEnVoyage('r1', 'pied');
     poseMeteo('pluie-diluvienne');
-    draineCascade(get);
+    draineCascade(get, 200, poseEmbuscade);
     expect(get().travelPlan?.interrupted).toBe(true);
     expect(activeDayWeather(get), 'le jour interrompu garde sa météo').toBe('pluie-diluvienne');
     get().fenetreFermer('recitDeVoyage'); // « Faire face » : le combat s'ouvre
@@ -157,8 +168,7 @@ describe('#2533 — interruption puis reprise à budget nul : le jour interrompu
 
     // Victoire simulée, puis reprise le MÊME jour : les 6 h sont marchées (LDB 51 l.195).
     set({ battle: null, mode: 'exploration' });
-    const wm = get().worldMap!;
-    set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });
+    neutraliseLaRoute();
     get().reprendreLeVoyage();
     expect(get().pendingCascade, 'aucun jour de 0 h : ni météo ni péripétie').toBeNull();
     expect(get().pendingRest?.travelHalt).toBe(true);
@@ -175,16 +185,15 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
   function jourInterrompu(): unknown {
     setRule('voyage-etapes', true);
     setDesFixes(true);
-    setup(map({ km: 60, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
+    setup(map({ km: 60, ...embuscadeDeRoute }), 'clair');
     get().partirEnVoyage('r1', 'pied');
     poseMeteo('pluie-diluvienne');
-    draineCascade(get);
+    draineCascade(get, 200, poseEmbuscade);
     const jours = get().travelPlan!.recap!.days;
     const jour = structuredClone(jours[jours.length - 1]);
     get().fenetreFermer('recitDeVoyage');
     set({ battle: null, mode: 'exploration' });
-    const wm = get().worldMap!;
-    set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });
+    neutraliseLaRoute();
     return jour;
   }
 
@@ -201,20 +210,19 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
 describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI, une journée NEUVE part', () => {
   afterEach(() => { resetRule('voyage-allures'); });
 
-  /** Embuscade du jour, « Faire face », victoire simulée et péril d'auteur neutralisé. */
+  /** Embuscade du jour, « Faire face », victoire simulée et route neutralisée. */
   function interromptPuisVainc(): void {
-    draineCascade(get);
+    setDesFixes(true); // « Dés fixés » : le banc pose le dé de l'embuscade
+    draineCascade(get, 200, poseEmbuscade);
     expect(get().travelPlan?.interrupted).toBe(true);
     get().fenetreFermer('recitDeVoyage');
     set({ battle: null, mode: 'exploration' });
-    const wm = get().worldMap!;
-    set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });
+    neutraliseLaRoute();
   }
-  const brigands = [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat' as const, encounter: 'enc-brigands' }] }];
 
   it('transport (diligence), reprise le même jour : le jour interrompu entre au log, la journée neuve a sa météo', () => {
     setRule('voyage-etapes', true);
-    setup(map({ km: 200, modes: ['diligence', 'pied'], perils: brigands }));
+    setup(map({ km: 200, modes: ['diligence', 'pied'], ...embuscadeDeRoute }));
     creditBourse(get, set, 'h', { gold: 5, silver: 0, brass: 0 });
     get().partirEnVoyage('r1', 'diligence', { classeId: 'exterieur' });
     interromptPuisVainc();
@@ -228,7 +236,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
 
   it('à pied, nuit passée en scène puis reprise : une carte = un jour, la journée neuve a sa météo', () => {
     setRule('voyage-etapes', true);
-    setup(map({ km: 60, perils: brigands }));
+    setup(map({ km: 60, ...embuscadeDeRoute }));
     get().partirEnVoyage('r1', 'pied');
     interromptPuisVainc();
     get().offrirLeRepos({ lieu: sceneLieu(get), places: { camp: true } });
@@ -243,7 +251,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
 
   it('allure forcée, conducteur joueur : la journée neuve ouvre la Conduite d’attelage à la porte, aucun Test roulé hors porte', () => {
     setRule('voyage-allures', true);
-    setup(map({ km: 300, modes: ['diligence', 'pied'], perils: brigands }), undefined,
+    setup(map({ km: 300, modes: ['diligence', 'pied'], ...embuscadeDeRoute }), undefined,
       [hero({ skills: [{ id: 'conduite-d-attelage', advances: 60 }] } as Partial<Combatant>)]);
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
     get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });

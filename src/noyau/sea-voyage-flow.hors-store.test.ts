@@ -1017,29 +1017,24 @@ describe('Périls d’AUTEUR lus au fil des jours en mer — C.22 (route.perils)
     expect(get().journal.some((l) => l.includes('Péripétie : Récif affleurant'))).toBe(true);
   });
 
-  it('un péril d’auteur `startCombat` INTERROMPT la traversée (comme l’embuscade)', () => {
-    const krakenScene = emptyScene('scene-test', 10, 10); krakenScene.id = 'port-a'; krakenScene.label = 'Mer';
-    const enc = buildEncounter({ id: 'enc-kraken', enemies: [{ statblock: { type: 'statblock', label: 'Kraken', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
-    krakenScene.entities.push(...enc.entities); krakenScene.encounters = [enc.encounter];
-    const combatPeril: WorldMap = {
+  it('un péril d’auteur `transition` INTERROMPT la traversée (comme l’embuscade)', () => {
+    const port = emptyScene('scene-test', 2, 2); port.id = 'port-a'; port.label = 'Port';
+    const ilot = emptyScene('scene-test', 10, 10); ilot.id = 'ilot'; ilot.label = 'Îlot';
+    const perilDeTransition: WorldMap = {
       ...seaMap,
-      routes: [{ ...seaMap.routes[0], perils: [{ label: 'Kraken', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-kraken' }] }] }],
+      routes: [{ ...seaMap.routes[0], perils: [{ label: 'Îlot en vue', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'ilot' } }] }] }],
     };
-    set({ scene: krakenScene as never, worldMap: combatPeril } as never);
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', combatPeril.routes[0])!;
+    get().chargerLeProjet({ scenes: [port, ilot], entryId: 'port-a', worldMap: perilDeTransition, projet: null });
+    set({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [] } as never); // lancerLaScene remet le vessel de campagne — repose-le
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', perilDeTransition.routes[0])!;
     set({ travelPlan: plan } as never);
     runSeaDay(get, set);
     // Le péril d'auteur est une ÉTAPE de monde (#1426) : son dé se joue dans la cascade du jour, comme
-    // celui du péril à 100 % du cas précédent — on la déroule jusqu'à ce que le combat prenne la main.
-    for (let i = 0; i < 30 && get().pendingCascade && !get().battle; i++) stepCascade();
-    expect(get().travelPlan!.interrupted).toBe(true); // la traversée s’arrête sur le combat d’auteur
-    expect(get().battle).toBeTruthy();
-    // La ligne du péril est la CONSÉQUENCE de son étape, écrite par le routage unique
-    // (`combatLog.journaliser`) : le combat d'auteur étant OUVERT à cet instant, elle va au `battle.log`
-    // — la surface que le joueur regarde en combat — et non au journal d'exploration, non ouvrable là.
-    // On lit donc UNE surface, NOMMÉE : le journal du combat ouvert.
-    const lues = get().battle!.log.map((e) => e.text);
-    expect(lues.some((l) => l.includes('Péripétie : Kraken'))).toBe(true);
+    // celui du péril à 100 % du cas précédent — on la déroule jusqu'à ce que la traversée s'arrête.
+    for (let i = 0; i < 30 && get().pendingCascade && !get().travelPlan!.interrupted; i++) stepCascade();
+    expect(get().travelPlan!.interrupted).toBe(true); // la traversée s’arrête sur le péril d’auteur
+    expect(get().scene!.id).toBe('ilot'); // la mer applique ses effets sur-le-champ
+    expect(get().journal.some((l) => l.includes('Péripétie : Îlot en vue'))).toBe(true);
   });
 });
 
@@ -1486,7 +1481,7 @@ describe('services portuaires (#30)', () => {
   beforeEach(freshState);
 
   it('réparation au port : 1 CO par Blessure restaurée (MDG 13 l.643), le temps de chantier passe', () => {
-    set({ vessel: { ...get().vessel!, wounds: { current: 40, max: 50 } } });
+    set({ vessel: { ...get().vessel!, escale: 'A', wounds: { current: 40, max: 50 } } });
     creditBourse(get, set, get().party[0].id, { gold: 20, silver: 0, brass: 0 });
     const t0 = get().gameTime;
     const lines = portRepairVessel(get, set);
@@ -1501,6 +1496,7 @@ describe('services portuaires (#30)', () => {
   });
 
   it('pose d’une Amélioration : coût par bande de Taille (MDG 12) — Nid-de-pie sur une cogue (25 m, Moyenne) = 5 CO', () => {
+    set({ vessel: { ...get().vessel!, escale: 'A' } });
     creditBourse(get, set, get().party[0].id, { gold: 10, silver: 0, brass: 0 });
     const lines = installerLAmelioration(get, set, 'nid-de-pie');
     expect(lines[0]).toContain('Nid-de-pie');

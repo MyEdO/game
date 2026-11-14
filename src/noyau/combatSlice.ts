@@ -316,7 +316,6 @@ import {
   setCascadeAmount,
   suspendActiveCascade,
   reprendreLaPile,
-  poserCurseurCascade,
   sortirDeLHote,
 } from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
@@ -1666,7 +1665,7 @@ export function createCombatSlice(get: Get, set: Set) {
       });
       roster.forEach(({ m }, i) => {
         if (m.ridesEntityId == null) return;
-        const mi = idxByEntity.get(m.ridesEntityId);
+        const mi = idxByEntity.get(m.ridesEntityId.id);
         const mount = mi == null ? undefined : enemies[mi];
         if (!mount) return;
         mount.mountable = true;
@@ -3332,24 +3331,16 @@ export function cloturesDuCombat(get: Get, set: Set) {
           opposedOutcome: pc.opposedOutcome,
         });
       }
-      // Avance la cascade au-delà de l'étape `jet:'incantation'` (résolue, CastModal éteint) : des conséquences
-      // appendues (Critique/Imparfaite/Colère) → la cascade les joue (cursor+1) ; aucune → ferme la situation.
-      // (Si pas de cascade d'incantation hôte — test/IA direct — on laisse intacte la cascade que les
-      // conséquences ont éventuellement démarrée elles-mêmes, cursor déjà sur la 1ʳᵉ conséquence.)
-      let fermeLHote = false;
-      if (castStepIdx >= 0) {
-        const casc = get().pendingCascade;
-        if (casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) {
-          if (casc.participants.length > castStepIdx + 1) poserCurseurCascade(get, set, casc, castStepIdx + 1);
-          else fermeLHote = true;
-        }
-      }
+      // L'étape `jet:'incantation'` encore au curseur se clôt par la sortie d'hôte (#4248), qui décide seule
+      // de la suite : conséquences appendues (Critique/Imparfaite/Colère) jouées, ou situation fermée. Sans
+      // hôte au curseur (test/IA direct), la cascade que les conséquences ont démarrée reste intacte.
+      const casc = get().pendingCascade;
+      const sortDeLHote = castStepIdx >= 0 && !!casc && casc.purpose === 'combat' && casc.cursor === castStepIdx;
       // Lanceur ENNEMI (modale témoin) : le tour de l'IA était suspendu → reprise. No-op si une autre
       // interaction bloquante s'est ouverte (Destin, révélations, OU la cascade de conséquences encore
       // ouverte) — elle reprendra elle-même (validation d'étape → resumeSuspendedAI à la clôture).
       const reprendreLEnnemi = (): void => { if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set); };
-      // La situation fermée libère le slot par la sortie d'hôte (#4006).
-      if (fermeLHote) sortirDeLHote(get, set, {}, reprendreLEnnemi);
+      if (sortDeLHote) sortirDeLHote(get, set, { pendingCast: null }, reprendreLEnnemi);
       else reprendreLEnnemi();
     },
     contreSort: () => {

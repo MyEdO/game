@@ -1,7 +1,7 @@
 /**
  * #2968 L15, #3606 M2d — le nœud d'un dialogue (`start`, `choices[].next`), le dialogue d'une entité (`dialogueId`) et
- * d'un effet `startDialogue`, et l'entité d'un effet (`startDialogue.speakerId`, `openMerchant.entityId`,
- * `medicalAid.entityId`) se désignent par `ref(portee)` : `{ id }` jugé au parse contre la collection `nodes` du MÊME
+ * d'un effet `startDialogue`, le locuteur d'un nœud (`nodes[].speakerId`, #3606 M3b0) et l'entité d'un effet
+ * (`startDialogue.speakerId`, `openMerchant.entityId`, `medicalAid.entityId`) se désignent par `ref(portee)` : `{ id }` jugé au parse contre la collection `nodes` du MÊME
  * dialogue, `dialogues` ou `entities` de la MÊME scène, que chacun ouvre (`ouvrirPortees`). Fixtures : référence
  * connue, inconnue, écrite en id nu, d'une portée ÉTRANGÈRE (le nœud d'un autre dialogue, le dialogue ou l'entité
  * d'une autre scène), entité de la scène hors du filtre de la portée (un décor n'est ni personnage ni marchand), et
@@ -50,6 +50,10 @@ const PORTEURS = [
   {
     porteur: 'scenes[].entities[].dialogueId', chemin: `entities.${RANG_ENTITE}.dialogueId`, connue: 'dlg-garde', etrangere: 'dlg-prisonnier', catalogue: 'dialogues de la scène', collection: 'dialogues',
     avec: (v: unknown) => hub((c) => Object.assign(c.entities[RANG_ENTITE], { dialogueId: v })),
+  },
+  {
+    porteur: 'scenes[].dialogues[].nodes[].speakerId', chemin: 'dialogues.0.nodes.0.speakerId', connue: 'maitre', etrangere: 'prisonnier', catalogue: 'personnages de la scène', collection: 'entities', horsDuFiltre: ['orn-echoppe-etal'],
+    avec: (v: unknown) => hub((c) => Object.assign(c.dialogues[0].nodes[0], { speakerId: v })),
   },
   {
     porteur: 'effet startDialogue.dialogue', chemin: `${EFFET}.dialogue`, connue: 'dlg-garde', etrangere: 'dlg-prisonnier', catalogue: 'dialogues de la scène', collection: 'dialogues',

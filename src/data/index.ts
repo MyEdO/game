@@ -73,6 +73,7 @@ import skillsJson from './skills.json';
 import talentsJson from './talents.json';
 import etatsJson from './etats.json';
 import psychologyJson from './psychology.json';
+import type * as psychologyDef from './schemas/defs/psychology';
 import maladiesJson from './maladies.json';
 import traitsJson from './traits.json';
 import qualitiesJson from './qualities.json';
@@ -146,7 +147,6 @@ import type { qualityCapabilitiesSchema } from './schemas/defs/qualities';
 import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import type * as activitiesDef from './schemas/defs/activities';
 import { datasetDe, type DatasetDe, type EntreeDe } from './datasets';
-import type { PropData } from './props.types';
 import type * as pregensDef from './schemas/defs/pregens';
 import type { MerchantArchetypeDef } from './merchants.types';
 import type * as criticalsDef from './schemas/defs/criticals';
@@ -244,7 +244,9 @@ import tavernGamesJson from './tavernGames.json';
 import peripetiesJson from './peripeties.json';
 import reseauRoutierJson from './reseau-routier.json';
 import massBattleJson from './mass-battle.json';
+import type * as massBattleDef from './schemas/defs/mass-battle';
 import grappleJson from './grapple.json';
+import type * as grappleDef from './schemas/defs/grapple';
 import reglesJson from './regles.json';
 import disponibiliteJson from './disponibilite.json';
 import waterExposureJson from './water-exposure.json';
@@ -259,14 +261,14 @@ import type * as actionsDef from './schemas/defs/actions';
 import axesJson from './axes.json';
 import seaNavigationJson from './sea-navigation.json';
 import seaPerilsJson from './sea-perils.json';
+import seaEventsJson from './sea-events.json';
+import steamBreakdownJson from './steam-breakdown.json';
 import seaWeatherJson from './sea-weather.json';
 import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
 import seaCargoJson from './sea-cargo.json';
 import landCargoJson from './land-cargo.json';
-import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, Difficulty, type StakeForm } from '../engine/types';
-// type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
-import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle';
+import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type StakeForm } from '../engine/types';
 import { formatDice } from '../engine/dice';
 import { formuleDeMonnaie, type Money } from '../engine/money';
 // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
@@ -276,67 +278,28 @@ import {
 } from '../engine/size';
 import type { VarianteDeCible } from './schemas/grammaire/valeurs';
 import type * as seaNavigationDef from './schemas/defs/sea-navigation';
-import type { SeaPerilsData } from './schemas/defs/sea-perils';
 import type * as seaCargoDef from './schemas/defs/sea-cargo';
+import type * as propsDef from './schemas/defs/props';
+import type * as reglesDef from './schemas/defs/regles';
+import type * as waterExposureDef from './schemas/defs/water-exposure';
+import type * as seaPerilsDef from './schemas/defs/sea-perils';
+import type * as seaShantiesDef from './schemas/defs/sea-shanties';
+import type * as seaEventsDef from './schemas/defs/sea-events';
+import type * as steamBreakdownDef from './schemas/defs/steam-breakdown';
 import type * as landCargoDef from './schemas/defs/land-cargo';
 
 /** Règle d'EMPOIGNADE en DONNÉE (LDB 14 l.159-169) : `init` = ops à la touche d'une Empoignade déclarée
  *  (Empêtré + relation via le flag `grapple`) ; `win` = les 3 options du Test opposé GAGNÉ (l.161), appliquées
  *  avec `ctx.sl = DR`. La mécanique vit ICI (GameOp éditables), le flux `pendingGrapple` n'orchestre que le choix. */
-export interface GrappleRule {
-  init: import('../engine/ops').GameOp[];
-  win: { degats: import('../engine/ops').GameOp[]; empetrer: import('../engine/ops').GameOp[]; liberer: import('../engine/ops').GameOp[] };
-  source?: SourceRef;
-}
-export const GRAPPLE = grappleJson as GrappleRule;
+export const GRAPPLE = datasetDe<typeof grappleDef>(grappleJson);
 
-/**
- * Dataset dont la prose est ADRESSÉE (`descRef`, #1389) : sur le DISQUE, l'entrée porte son adresse
- * et PAS de `desc` — c'est la forme que TypeScript voit du module JSON. Le module CHARGÉ, lui, est
- * toujours MATÉRIALISÉ : le plugin `wfrp:prose-source` (`scripts/source/prose-source-plugin.mjs`,
- * pendant Vite de `materialiser`) injecte dans chaque nœud adressé la `desc` que son adresse résout,
- * au build comme en dev et sous vitest — c'est la SEULE porte de chargement des `src/data/*.json`.
- * Ce helper NOMME cet écart à UN endroit, au lieu d'un `as unknown as` recopié par famille migrée.
- */
-const adressee = <T>(json: unknown): T[] => json as T[];
-
-/** Mode d'exposition hydrique (MSRC 16 l.5/37) : ingestion volontaire (« boit de l'eau de rivière sans
- *  la faire bouillir ») ou immersion (chute/nage — « uniquement à l'immersion » pour le tableau 2). */
-export type WaterExposureMode = 'ingestion' | 'immersion';
-/** Dérivation AUTOMATIQUE d'un modificateur d'exposition depuis le Combatant (tableau 2 « Blessures et
- *  États », MSRC 16 l.35-47) : PB restants/perdus, PAR pion d'un État, présence d'un État. */
-export type WaterExposureAuto =
-  | { kind: 'woundsRemaining'; op: '<='; value: number }
-  | { kind: 'woundsLost'; op: '>='; value: number }
-  | { kind: 'woundsLost'; op: 'between'; min: number; max: number }
-  | { kind: 'perCondition'; condition: string }
-  | { kind: 'hasCondition'; condition: string };
-/** Un modificateur d'exposition hydrique : tableau 1 « Source d'eau » (choix d'AUTEUR de la zone d'eau)
- *  ou tableau 2 « Blessures et États » (dérivé du Combatant via `auto`). « Tous les modificateurs
- *  peuvent être cumulés » (MSRC 16 l.13). NB : « Par État Assommé » (MSRC) → id LDB `sonne` (le LDB 16 n'a
- *  pas d'État « Assommé » ; le même chapitre écrit « État *Sonné* » p.92 — glissement de traduction). */
-export interface WaterExposureModifier {
-  id: string;
-  label: string;
-  mod: number;
-  appliesTo: WaterExposureMode[];
-  table: 'source-d-eau' | 'blessures-et-etats';
-  auto?: WaterExposureAuto;
-}
-/** Tables d'exposition hydrique (MSRC 16 l.13-63) : Test de Résistance Intermédiaire modifié ; raté →
- *  dé de `diseases` « +10 pour chaque DR négatif » → maladie CONTRACTÉE (le Test d'exposition EST le test — pas de
- *  second Test de Contraction). `rerollUnlessWounded` : « Relancez si le Personnage n'est pas blessé ». */
-export interface WaterExposureData {
-  id: string;
-  label: string;
-  desc: string;
-  test: { skill: RefDesignee; difficulty: import('../engine/types').Difficulty };
-  rollModPerNegativeSL: number;
-  modifiers: WaterExposureModifier[];
-  diseases: { die: string; entries: { min: number; max: number; disease: string; rerollUnlessWounded?: boolean }[] };
-  source: SourceRef;
-}
-export const WATER_EXPOSURE = waterExposureJson as WaterExposureData;
+/** Tables d'exposition hydrique (MSRC 16 l.13-63), lues par `engine/waterExposure.ts`. */
+export type WaterExposureData = DatasetDe<typeof waterExposureDef>;
+/** Un modificateur d'exposition hydrique (MSRC 16 l.13, l.23-47). */
+export type WaterExposureModifier = WaterExposureData['modifiers'][number];
+/** Mode d'exposition hydrique (MSRC 16 l.5, l.37). */
+export type WaterExposureMode = WaterExposureModifier['appliesTo'][number];
+export const WATER_EXPOSURE = datasetDe<typeof waterExposureDef>(waterExposureJson);
 
 /** CASCADE d'un enjeu de `stakes.json` : la famille de jets qu'il sert — ses valeurs sont celles de
  *  `StakeKey.dataset` (`schemas/defs/stakes.ts`). */
@@ -356,7 +319,7 @@ export type CombatStakeId = IdsParEspace['stakes.json?cascade=combat'];
 /** ENJEU d'une ACTIVITÉ (#1117 L3) — porté par l'ENTITÉ elle-même (`activities.json`), pas par un
  *  fichier d'enjeux tiers : une Activité EST déjà une entrée Codex éditable qui porte sa règle en
  *  `desc` verbatim. Le catalogue au type de son schéma. */
-export const ACTIVITY_STAKES = datasetDe<typeof activitiesDef>(activitiesStakeJson);
+export const ACTIVITIES = datasetDe<typeof activitiesDef>(activitiesStakeJson);
 
 /** REGISTRE DES ACTIONS de combat (`actions.json`, spec HUD « Zone 12 ») : une entrée = un acte
  *  offert au joueur, avec son identité STABLE, son affichage, sa règle Codex, son coût et les IDS
@@ -527,7 +490,7 @@ const STAKE_ENTRY_POOLS: Partial<Record<CleCodex, PoolDEntrees>> = {
   etats: (id) => etats.some((e) => e.id === id),
   creatures: (id) => creatures.some((c) => c.id === id),
   regles: (id) => regles.some((r) => r.id === id),
-  activities: (id) => ACTIVITY_STAKES.some((a) => a.id === id),
+  activities: (id) => ACTIVITIES.some((a) => a.id === id),
   // La COMPÉTENCE testée est le foyer quand le jet n'existe que par elle (cumuler l'Avantage :
   // Intuition/Savoir/Survie/Prière portent chacune SA phrase de combat, LDB 09).
   skills: (id) => !!byId('skill', id),
@@ -626,7 +589,7 @@ function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; 
     // (catégorie Codex `activities`, où vit sa `desc` verbatim) — une fiche `regles.json` doublon
     // serait le péché de l'amendement A. Une entrée peut NOMMER un autre foyer (`rule`) quand la
     // règle vit ailleurs (Augure → la table des Symboles).
-    const e = ACTIVITY_STAKES.find((x) => x.id === key.kind);
+    const e = ACTIVITIES.find((x) => x.id === key.kind);
     if (!e?.stake) return undefined;
     return { text: e.stake, rule: e.rule ? cibleCodex(e.rule) : { category: 'activities', id: e.id } };
   }
@@ -980,7 +943,7 @@ export interface TrappingData {
   /** Encombrement (Points d'Encombrement). Honnête : la donnée porte aussi des STRINGS pour des cas
    *  NON-ENCOMBRANTS / non chiffrés — `'ND'` (ateliers : on ne les transporte pas) et `'Variable'`
    *  (arme improvisée). Ces strings sont traitées comme 0 au calcul (`itemFromTrappingById`). */
-  enc: number | 'ND' | 'Variable' | null;
+  enc?: number | 'ND' | 'Variable' | null;
   /** Taille PRÉVUE pour l'objet (ADE II 2 l.706-710) — présente sur la version « taille ogre » d'une
    *  possession ordinaire (`enc` reste la valeur CLASSIQUE, doublée au runtime, `totalEncumbrance`). Absente
    *  sur le catalogue NATIVEMENT ogre (massue ogre, pansière ogre… l.604 : Enc déjà entré à sa valeur pleine,
@@ -991,7 +954,7 @@ export interface TrappingData {
    *  « Variable » l.31) ou null, VALIDÉ au chargement par le schéma zod (`schemas/defs/trappings.ts`).
    *  NE conflate PLUS aucune Portée de tir : ni nombre, ni formule « BFx3 » (→ `range:{bf}`), ni
    *  modificateur de munition « Moitié de l'arme »/« +50 »/« Comme l'arme » (→ `ammoRangeMod`). */
-  reach: import('../engine/types').ReachValue | null;
+  reach?: import('../engine/types').ReachValue | null;
   /** Portée de TIR — SPEC non résolue (`WeaponRangeSpec`) : `number` = mètres FIXES (arc/arbalète/
    *  pistolet…), `{bf}` = Bonus de Force × bf mètres (armes de JET — javelot/bombe…). Absent/null pour
    *  la mêlée et les munitions (qui héritent de l'arme). Résolue à l'usage par `effectiveRange`. */
@@ -1000,10 +963,10 @@ export interface TrappingData {
    *  `{add}` mètres ±). Appliqué en combat (`porteeDeTir`) à l'arme qui tire cette munition. « Comme
    *  l'arme » = absent/null (Portée de l'arme inchangée). Sorti de `reach` (qui n'est qu'une Allonge mêlée). */
   ammoRangeMod?: import('../engine/types').AmmoRangeMod | null;
-  loc: string | null;
-  pa: number | null;
+  loc?: string | null;
+  pa?: number | null;
   /** Dégâts d'arme STRUCTURÉS (cf. `WeaponDamageSpec`) — remplace la chaîne « +BF+4 » re-parsée au runtime. */
-  damage: import('../engine/types').WeaponDamageSpec | null;
+  damage?: import('../engine/types').WeaponDamageSpec | null;
   /** Qualités d'arme/armure (`QualityRef` : id + Indice éventuel « Solide 3 » → value, spec = arg éventuel). */
   qualities: QualityRef[];
   desc?: string;
@@ -1105,13 +1068,11 @@ export type CreatureData = EntreeDe<typeof creaturesDef>;
 export interface StatusData {
   /** id STABLE (slug du libellé) — cible des instances (`ConditionInstance.name` / `PsychAffliction.type`). */
   id: string;
-  type: 'etats';
+  type: 'psychology';
   label: string;
-  desc: string;
-  /** ADRESSE du passage quand la prose n'est pas recopiée (#1389). Elle vit À CÔTÉ de la `desc` dans
-   *  la vue TS parce qu'un module CHARGÉ porte les deux : l'adresse authorée, et le texte que le
-   *  plugin en matérialise (`adressee`, plus bas). Sur le DISQUE, l'une exclut l'autre (V1 du refine
-   *  `grammaire/prose.ts`). */
+  /** Prose : `desc` inline ou son adresse `descRef` (#1389), que le plugin `wfrp:prose-source` matérialise en `desc`
+   *  au chargement (V1 du refine `grammaire/prose.ts`). */
+  desc?: string;
   descRef?: DescRef;
   source: SourceRef;
   /** Modificateurs PASSIFS continus (pénalité de Test, `incomingAttackMod`, `sbBonus`…) en `OpPassive[]`, lus
@@ -1234,29 +1195,8 @@ export type DomainData = EntreeDe<typeof domainsDef>;
 /** Sort (LDB 46-50), son id fermé sur l'union générée (`Id<'spell'>`). */
 export type SpellData = EntreeDe<typeof spellsDef>;
 
-/** Signe astral (ADE II) : table d100 (`rand` = borne haute cumulée), flavor + effet de création. */
-export interface StarData {
-  /** id STABLE (slug du libellé) — `Combatant.star` le stocke, le runtime résout par `findStarById`
-   *  (≠ libellé — multilangue-safe). */
-  id: string;
-  label: string;
-  rand: number;
-  signe: string;
-  classique: string;
-  ascendant: string;
-  dates: string;
-  dieux: string;
-  apparence: string;
-  /** Effet ADE II appliqué AUX ATTRIBUTS DE DÉPART (ch.03 l.38) — donnée éditable au Codex
-   *  (`GameOpEditor`) : `charMod` (±carac) et/ou `grantTalent` (talent octroyé). Appliqué une
-   *  fois à la création (cf. `applyStarOps`), pas collecté en passif continu. */
-  ops?: import('../engine/ops').GameOp[];
-  /** L'Étoile du Sorcier (ADE II 3 l.63) : fourchette du 1d10 interne parmi les variantes partageant
-   *  `rand:100`, dans la forme que `findTableEntry` lit. Absent = pas de sous-tirage (signe simple). */
-  sub?: { min: number; max: number };
-  desc?: string;
-  source: SourceRef;
-}
+/** Signe astral (ADE II 3), une rangée du Tableau des Signes astrologiques (`stars.json`). */
+export type StarData = RangeeDe<typeof signesAstrologiques>;
 /** Lieu (Glorieux Reikland, LDB) : hiérarchie par `parent` (label d'un autre lieu). */
 export type LocationData = EntreeDe<typeof locationsDef>;
 /** Ouvrage WFRP4 référencé (bibliographie). `desc` = présentation en texte/Markdown (règle 5). */
@@ -1296,34 +1236,12 @@ export const etats = datasetDe<typeof etatsDef>(etatsJson);
  *  étendue…) — prose du livre ADRESSÉE au `Source/` (`descRef`, #1887) ou inline (`desc`, stock
  *  `PROSE_INLINE_TOLEREE`), app-owned. Routées en tooltip
  *  `CodexRef` (catégorie `regles`). */
-export interface RegleData {
-  id: string;
-  type: 'regles';
-  label: string;
-  desc: string;
-  source: SourceRef;
-  /** Les valeurs que le livre chiffre, lues par `engine/reglesChiffrees.ts` (schéma `defs/regles.ts`). */
-  rangees?: RangeeDeRegleData[];
-  /** Les Tests que la règle nomme, lus par `engine/reglesChiffrees.ts` (`testDeRegle`) ; la Difficulté y
-   *  est exigée par le schéma. */
-  tests?: TestDeRegleData[];
-}
-export interface TestDeRegleData {
-  id: string;
-  label: string;
-  source: SourceRef;
-  test: import('../engine/flowCore').JetFixe<'skill' | 'difficulty'>;
-}
-export interface RangeeDeRegleData {
-  id: string;
-  label: string;
-  palier?: Difficulty;
-  valeur?: number;
-  famille: import('../engine/types').ModFamille;
-  seuil?: number;
-  plafond?: number;
-}
-export const regles = adressee<RegleData>(reglesJson);
+export type RegleData = EntreeDe<typeof reglesDef>;
+/** Un Test que la règle nomme, lu par `engine/reglesChiffrees.ts` (`testDeRegle`). */
+export type TestDeRegleData = NonNullable<RegleData['tests']>[number];
+/** Une valeur que le livre chiffre, lue par `engine/reglesChiffrees.ts`. */
+export type RangeeDeRegleData = NonNullable<RegleData['rangees']>[number];
+export const regles = datasetDe<typeof reglesDef>(reglesJson);
 /** Index VIVANT par `id` STABLE : `regles` est routé par le seam `ARRAYS` d'`overrides.ts`. */
 const regleParId = indexParId('regles', regles);
 /** Résout une fiche de Règle par son `id` STABLE. */
@@ -1461,13 +1379,14 @@ export type FamilleDuKit = StructureAppearanceDef['kit'];
  *  même patron que `maladies`/`DiseaseDef`). Noms préfixés `massBattle*` : `structures` est déjà pris par
  *  le catalogue de structures de siège JOUABLES ci-dessus (schéma différent : BE/B structuré + traits
  *  `{id}[]`, quand mass-battle.json reste `be`/`wounds`/`traits` en chaîne verbatim imprimée). */
-export const massBattlePowerEstimate = massBattleJson.powerEstimate as PowerEstimateRow[];
-export const massBattleMightModifiers = massBattleJson.mightModifiers as MightModifierRow[];
-export const massBattleWarMachines = massBattleJson.warMachines as WarMachineRow[];
-export const massBattleStructures = massBattleJson.structures as MassBattleStructureRow[];
-export const massBattleHazards = massBattleJson.hazards.entries as HazardRow[];
+const massBattle = datasetDe<typeof massBattleDef>(massBattleJson);
+export const massBattlePowerEstimate = massBattle.powerEstimate;
+export const massBattleMightModifiers = massBattle.mightModifiers;
+export const massBattleWarMachines = massBattle.warMachines;
+export const massBattleStructures = massBattle.structures;
+export const massBattleHazards = massBattle.hazards.entries;
 /** Le dé des Facteurs environnementaux (ADE II 08 l.311), lu sur leur nœud à l'appel. */
-export const massBattleHazardsDie = (): DeDeTable => deDeLaTableTiree(massBattleJson.hazards);
+export const massBattleHazardsDie = (): DeDeTable => deDeLaTableTiree(massBattle.hazards);
 
 /** LES matières du monde (#1686) — donnée pure, UN document, le domaine PORTÉ par l'entrée. */
 export const materials = datasetDe<typeof materialsDef>(materialsJson);
@@ -1588,10 +1507,20 @@ export function findNavalPortById(id: string): NavalPortData | undefined {
  *  `engine/seaPerils.ts`, `engine/seaWeather.ts`, `engine/shipBuild.ts`) que `WATER_EXPOSURE` ci-dessus. Types réutilisés DEPUIS le schéma zod (`schemas/defs/*`, porte
  *  `datasetDe`) — pas de redéclaration divergente. */
 export const seaNavigation = datasetDe<typeof seaNavigationDef>(seaNavigationJson);
-export const seaPerils = seaPerilsJson as SeaPerilsData;
+/** Périls en mer (MDG 13 l.423-564), lus par `engine/seaPerils.ts`. */
+export type SeaPerilsData = DatasetDe<typeof seaPerilsDef>;
+export const seaPerils = datasetDe<typeof seaPerilsDef>(seaPerilsJson);
 export type SeaWeatherData = DatasetDe<typeof seaWeatherDef>;
 export const seaWeather = datasetDe<typeof seaWeatherDef>(seaWeatherJson);
 export const shipConstruction = datasetDe<typeof shipConstructionDef>(shipConstructionJson);
+/** Humeur de Manann, événements de bord et d'escale, Voyage rapide (MDG 15 l.32-263), lus par `engine/seaVoyage.ts`. */
+export type SeaEventsData = DatasetDe<typeof seaEventsDef>;
+export const seaEvents = datasetDe<typeof seaEventsDef>(seaEventsJson);
+/** Le tableau PANNE DE VAPEUR (MDG 12 l.313-352), lu par `engine/shipBuild.ts`. */
+export type SteamBreakdownEntry = RangeeDe<typeof steamBreakdownDef>;
+export const STEAM_BREAKDOWNS: SteamBreakdownEntry[] = rangeesDe<typeof steamBreakdownDef>(steamBreakdownJson);
+/** Le dé du tableau PANNE DE VAPEUR, lu à l'appel. */
+export const steamBreakdownDie = (): DeDeTable => deDeTirageDe<typeof steamBreakdownDef>(steamBreakdownJson);
 
 /** LOT 2 #422 : Navigation fluviale (MSRC 7) — pendant fluvial de `seaNavigation`, même patron
  *  d'export (référence LIVE au même fichier physique relu par `engine/riverNavigation.ts`). */
@@ -1615,23 +1544,10 @@ const lieuServiceById = new Map<string, LieuServiceData>(lieuxServices.map((s) =
 export function findLieuServiceById(id: string): LieuServiceData | undefined {
   return lieuServiceById.get(id);
 }
-/** Chanson de marins (MDG 09 l.218-248, payload du Talent Chanson de marin) — catalogue app-owned.
- *  `crewOps` = effet exprimé dans la langue UNIQUE `GameOp[]`, appliqué à CHAQUE membre d'équipage pendant
- *  l'effet (3 min + DR du Test de Divertissement (Chant) en minutes, 1 chanson par quart — activation
- *  `chanterLaChanson`, noyau/combatSlice). `captainOps` = ops appliquées au seul CAPITAINE (titulaire du
- *  rôle — « Suivez le capitaine », l.246-248). `note` = clause RAW laissée à l'arbitrage MJ (intention/
- *  conséquence de Test non suivies par le moteur) — affichée, jamais un effet inventé. */
-export interface SeaShantyData {
-  id: string;
-  type: 'sea-shanties';
-  label: string;
-  desc: string;
-  crewOps?: import('../engine/ops').GameOp[];
-  captainOps?: import('../engine/ops').GameOp[];
-  note?: string;
-  source: SourceRef;
-}
-export const seaShanties = seaShantiesJson as SeaShantyData[];
+/** Chanson de marins (MDG 09 l.218-248), payload du Talent Chanson de marin ; ses ops jouées par `chanterLaChanson`
+ *  (`noyau/combatSlice`). */
+export type SeaShantyData = EntreeDe<typeof seaShantiesDef>;
+export const seaShanties = datasetDe<typeof seaShantiesDef>(seaShantiesJson);
 const chansonMarinParId = indexParId('seaShanties', seaShanties);
 export function findSeaShantyById(id: string): SeaShantyData | undefined {
   return chansonMarinParId(id);
@@ -1703,7 +1619,7 @@ export const findRenduById = indexParId('rendus', rendus);
  *  hors du chargeur pour rester importables sans lui (cf. `props.types.ts`). */
 export type { PropData, PropMaterialData, PropMaterialId, PropPoint3, PropSize3, PropPrimitive, PropVolumeRecipe, PropSeatSlot } from './props.types';
 export { validatePropCatalog } from './props.types';
-export const props = propsJson as PropData[];
+export const props = datasetDe<typeof propsDef>(propsJson);
 /** Type de décor par id — `undefined` en entrée rend `undefined` : une entité qui ne NOMME aucun type
  *  n'en résout aucun, exactement comme une ref hors registre (#877). */
 export const findPropById = indexParId('props', props);
@@ -1750,7 +1666,8 @@ export const tableDesCheveux = datasetDe<typeof couleurDesCheveux>(hairsJson);
 /** Les rangées du Tableau de couleur des yeux. */
 export const eyes = rangeesDe<typeof couleurDesYeux>(tableDesYeux);
 /** Les rangées du Tableau de couleur des cheveux. */
-export const hairs = rangeesDe<typeof couleurDesCheveux>(tableDesCheveux);
+type CouleurDeCheveux = RangeeDe<typeof couleurDesCheveux>;
+export const hairs: CouleurDeCheveux[] = rangeesDe<typeof couleurDesCheveux>(tableDesCheveux);
 /** Le dé du Tableau de couleur des yeux, lu à l'appel. */
 export const eyesDie = (): DeDeTable => deDeTirageDe<typeof couleurDesYeux>(tableDesYeux);
 /** Le dé du Tableau de couleur des cheveux, lu à l'appel. */
@@ -1797,7 +1714,7 @@ export const semencesDeScene = datasetDe<typeof semencesDeSceneDef>(semencesDeSc
 /** Défauts du COMPILATEUR de scène (#1716) — lus par `mapSpec.ts`/`buildBoardingScene`, éditables au Codex. */
 export const defautsDeCompilation = datasetDe<typeof defautsDeCompilationDef>(defautsDeCompilationJson);
 /** Les rangées du Tableau des Signes astrologiques (`stars.json`). */
-export const stars = rangeesDe<typeof signesAstrologiques>(starsJson) as StarData[];
+export const stars = rangeesDe<typeof signesAstrologiques>(starsJson);
 /** Le dé du Tableau des Signes astrologiques, lu à l'appel. */
 export const starDie = (): DeDeTable => deDeTirageDe<typeof signesAstrologiques>(starsJson);
 /** Le dé qui départage les variantes d'un même seuil (`StarData.sub`), lu à l'appel. */
@@ -1975,7 +1892,8 @@ export const cargaisonsAleatoires = datasetDe<typeof tableauDesCargaisons>(carga
 /** Événements « Entre deux aventures » (LDB d100) — app-owned éditable ; consommé par `interludeEvents.ts`. */
 export const interludeEvents = rangeesDe<typeof tableauDesEvenements>(interludeEventsJson);
 /** Péripéties de voyage (1d10) — app-owned éditable ; consommé par `peripeties.ts` (même référence). */
-export const peripeties = rangeesDe<typeof tableDesPeripeties>(peripetiesJson);
+type Peripetie = RangeeDe<typeof tableDesPeripeties>;
+export const peripeties: Peripetie[] = rangeesDe<typeof tableDesPeripeties>(peripetiesJson);
 
 /** Réseau routier impérial (EDOC 3 « Les routes et grandes routes » et EDOC 6 « Patrouilleurs
  *  routiers ») — catalogue de CALIBRATION d'une `MapRoute` : classes de route et leurs largeurs,
@@ -1998,7 +1916,7 @@ export function findConditionById(id: string): EtatData | undefined {
 
 /** États PSYCHOLOGIQUES (LDB 21) — base app-owned éditable au Codex, prose ADRESSÉE au `Source/`
  *  (`descRef`, #1389 : première famille migrée). */
-export const psychologies = adressee<PsychologyData>(psychologyJson);
+export const psychologies: PsychologyData[] = datasetDe<typeof psychologyDef>(psychologyJson);
 const psychologieParId = indexParId('psychologies', psychologies);
 /** Résout un état psychologique par son `id` STABLE (`PsychType`). Absent → undefined (folding inerte). */
 export function findPsychologyById(id: string): PsychologyData | undefined {
@@ -2201,6 +2119,9 @@ export function byId<T extends TypeResolu>(type: T, id: string): EntiteDe<T> | u
  * la `SkillInstance` runtime est toujours concrète.
  */
 export type SkillRef = RefASpecialisation & { value: number };
+/** `SkillRef` d'un porteur qui DÉSIGNE (`competenceChiffreeSchema`, `schemas/defs-scenes/communs.ts`) : la scène
+ *  et le `CustomStatblock` ne portent aucun emplacement (`choix`). */
+export type SkillRefDesignee = RefDesignee & { value: number };
 /** Libellé d'affichage d'une `SkillRef` : « Langue (Magick) 63 », « Savoir (Au choix) 65 »,
  *  « Métier (Armurier ou Forgeron) 50 ». */
 export function skillRefLabel(ref: SkillRef): PlayerText {

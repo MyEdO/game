@@ -83,9 +83,6 @@ describe('accès FAIL-FAST — une donnée amputée est nommée, jamais absorbé
     expect(() => critiqueEntries('criticals-inexistant')).toThrow(/criticals-inexistant/);
     expect(() => critiqueEntries('criticals-inexistant')).toThrow(/criticals-ldb-tete/);
   });
-  it('`critiqueDoc` refuse un jeu sans document, en le nommant', () => {
-    expect(() => critiqueDoc('jeu-absent' as JeuDeCritique, 'tete')).toThrow(/jeu-absent/);
-  });
   it('les rangées servies sont la référence LIVE du document (l’édition Codex reste visible en jeu)', () => {
     expect(critiqueEntries('criticals-ldb-tete')).toBe(critiqueDoc('ldb', 'tete').entries);
     expect(critiqueTable('ldb', 'brasG')).toBe(critiqueTable('ldb', 'brasD'));

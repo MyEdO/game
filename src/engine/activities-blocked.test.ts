@@ -8,7 +8,8 @@
  * catalogues jouables. Aucune liste d'exception ici : le périmètre est DÉRIVÉ du catalogue.
  */
 import { describe, it, expect } from 'vitest';
-import { ACTIVITIES, activitiesFor, type ActivityContext, type ActivityDef } from './activities';
+import { activitiesFor, type ActivityContext, type ActivityDef } from './activities';
+import { ACTIVITIES } from '../data';
 
 const CONTEXTS: ActivityContext[] = ['interlude', 'voyage', 'mer', 'bataille', 'bataille-round', 'auberge'];
 
