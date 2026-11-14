@@ -59,8 +59,7 @@ import { garanti } from '../lib/garanti';
 import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
 import type { CampaignVessel, Jeu } from './etat';
-import { itemCapability } from '../engine/capabilities';
-import type { VivresDeCale } from '../engine/provisions';
+import { vivrePerissable, type QuantitesDeVivres } from '../engine/provisions';
 import type { Id } from '../data/schemas/grammaire/ref';
 import type { IdDeCargaison, IdDePorteurDeCargaison } from './designations';
 import { CAMPAIGN_VESSEL_CARRIER_ID } from './carriers';
@@ -548,7 +547,7 @@ export function renvoyerLEquipage(get: Get, set: Set, roleId: string, count = 1)
 export function vivresAchetables(vessel: CampaignVessel): { id: Id<'trapping'>; prix: Money }[] {
   return VIVRES_DE_CALE.vivres.flatMap((id) => {
     const objet = garanti(findTrappingById(id), id, 'vivre de la cale');
-    if (itemCapability(objet, 'isRations')) return [{ id, prix: priceToMoney(objet.price ?? null) }];
+    if (!vivrePerissable(id)) return [{ id, prix: priceToMoney(objet.price ?? null) }];
     return vessel.rationsDEscale !== undefined ? [{ id, prix: fromBrass(vessel.rationsDEscale) }] : [];
   });
 }
@@ -558,7 +557,7 @@ export function vivresAchetables(vessel: CampaignVessel): { id: Id<'trapping'>; 
  *  SOURCE UNIQUE d'`avitaillerLeNavire` et de l'écran d'escale. PUR. MDG 14 l.238, l.248-252 ; MDG 15 l.262 */
 export interface DevisDAvitaillement { vivres: { id: Id<'trapping'>; prix: Money }[]; tonneau: Money; total: Money; refus: string | null }
 
-export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusHote: string | null, quantites: VivresDeCale, tonneaux: number): DevisDAvitaillement {
+export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusHote: string | null, quantites: QuantitesDeVivres, tonneaux: number): DevisDAvitaillement {
   const tonneau = priceToMoney(garanti(findTrappingById(VIVRES_DE_CALE.tonneau), VIVRES_DE_CALE.tonneau, 'objet de cale').price ?? null);
   const vivres = vessel ? vivresAchetables(vessel) : [];
   const demandes = Object.entries(quantites) as [Id<'trapping'>, number][];
@@ -579,7 +578,7 @@ export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusH
 
 /** AVITAILLEMENT de la cale à quai : le groupe paie le devis (`devisDAvitaillement`), chaque vivre va à sa part des
  *  vivres de la cale, les tonneaux à son eau douce. Renvoie le journal. MDG 14 l.238-252 ; MDG 15 l.262 */
-export function avitaillerLeNavire(get: Get, set: Set, quantites: VivresDeCale, tonneaux: number): string[] {
+export function avitaillerLeNavire(get: Get, set: Set, quantites: QuantitesDeVivres, tonneaux: number): string[] {
   const devis = devisDAvitaillement(get().vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()), quantites, tonneaux);
   if (devis.refus) { refuserGeste(get, set, devis.refus); return []; }
   payFromGroup(get, set, devis.total, { purpose: 'avitaillement navire' });

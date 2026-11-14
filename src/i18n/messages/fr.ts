@@ -2849,6 +2849,7 @@ export const fr = {
   'eff.meteoImposee': 'Le navire — {label} : météo imposée pendant {n} jour(s).',
   'eff.provisionsJours': 'Provisions de bord : +{n} jour(s) de vivres pour {equipage} marin(s) (+{rations} rations de « {vivre} », reste {total}).',
   'eff.provisionsGatees': 'Provisions de bord : {perdues} ration(s) gâtée(s) en cale (reste {total}).',
+  'eff.provisionsPourries': 'Provisions de bord : {perdues} ration(s) de {vivre} pourrie(s) en cale (reste {total}).',
   'eff.cargaison': 'Cargaison trouvée : {enc} Enc de {cargo}.',
   'eff.cargaisonPerdue': '{pct} % de la cargaison perdus : {enc} Enc.',
   'eff.perteAuDechargement': 'Au prochain déchargement dans ce port, {enc} Enc de cargaison disparaîtront.',
