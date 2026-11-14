@@ -4,11 +4,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import { adresseUnPassage, descRefSchema, MIN_FRAGMENTS } from './valeurs';
-import reglesJson from '../../regles.json';
-import psychologyJson from '../../psychology.json';
+import { psychologies, regles } from '../../index';
 
-const adresses = [...(reglesJson as { descRef?: unknown }[]), ...(psychologyJson as { descRef?: unknown }[])]
-  .map((e) => e.descRef).filter((r): r is { parts: unknown[] } => r != null);
+const adresses = [...regles, ...psychologies].flatMap((e) => (e.descRef === undefined ? [] : [e.descRef]));
 
 describe('adresseUnPassage — même seuil que le schéma', () => {
   it('chaque adresse de la donnée réelle désigne un passage, et le schéma l’accepte', () => {

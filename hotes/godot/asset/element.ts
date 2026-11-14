@@ -19,7 +19,16 @@
  * libre des `cases` de ses ponts que son modèle rogne (`EmprisesDesCases`, #3767).
  */
 import { estObjet } from '../../../src/lib/objet.mjs';
-import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, FIRE_ARCS, matieresDeDecor, type CodeDEcartDeCle, type EmprisesDesCases, type FireArc } from '../../../src/noyau/index.ts';
+import {
+  ecartsDeCleDElement,
+  emplacementDePiece,
+  estEmplacement,
+  FIRE_ARCS,
+  matieresDeDecor,
+  type CodeDEcartDeCle,
+  type EmprisesDesCases,
+  type FireArc,
+} from '../../../src/noyau/index.ts';
 import { ecartsAuGlb, ecartsAuxMatieres, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import { estListeDeChaines, estRepere, estTriplet, rangDeCase, TOLERANCE_DES_POIDS, type EmplacementOffert, type Repere } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';

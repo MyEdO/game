@@ -60,14 +60,18 @@ export function isEngagedWith(a: Combatant, bId: string): boolean {
  *  Idempotent (LDB 13 l.169-171). À appeler sur TOUTE attaque de mêlée résolue
  *  (touche ou non : « ou que vous êtes attaqué » LDB 13 l.171). */
 export function engage(a: Combatant, b: Combatant): void {
-  for (const [x, y] of [
-    [a, b],
-    [b, a],
-  ] as const) {
-    x.engagedWith ??= [];
+  setEngaged(a, b);
+  for (const [x, y] of [[a, b], [b, a]] as const) {
     x.meleeThisRound ??= [];
-    if (!x.engagedWith.includes(y.id)) x.engagedWith.push(y.id);
     if (!x.meleeThisRound.includes(y.id)) x.meleeThisRound.push(y.id);
+  }
+}
+
+/** Pose le lien Engagé symétriquement, sans marquer de coup échangé (LDB 13 l.169-171). Idempotent. */
+export function setEngaged(a: Combatant, b: Combatant): void {
+  for (const [x, y] of [[a, b], [b, a]] as const) {
+    x.engagedWith ??= [];
+    if (!x.engagedWith.includes(y.id)) x.engagedWith.push(y.id);
   }
 }
 

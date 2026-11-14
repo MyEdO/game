@@ -5,7 +5,8 @@ import { createHero } from './character';
 import { effectiveChar } from './characteristics';
 import { designationsFor, skillSlots, talentSlots, availableChars } from './careerSlots';
 import { isCareerLevelComplete } from './advancement';
-import { levelsForCareer } from '../data';
+import { levelsForCareer, pregens } from '../data';
+import { ficheDuPretire } from '../data/pregens';
 import { idsDeTest } from './idsDeTest.testkit';
 import { tableTotale } from '../lib/tableTotale';
 import { CHAR_KEYS, type Characteristics, type Combatant } from './types';
@@ -134,6 +135,12 @@ describe('heroDeFiche — le héros d\'une fiche imprimée', () => {
     expect(gamelles.map((i) => [i.kind, i.trappingId, i.enc])).toEqual([['misc', undefined, 0], ['misc', undefined, 0]]);
     expect(new Set(gamelles.map((i) => i.uid)).size).toBe(2);
     expect(h.items?.find((i) => i.trappingId === 'fronde')?.equipped).toBe(true);
+  });
+
+  // ZI 14 l.125
+  it('une possession de fiche à Atout attaché donne un objet qui porte cet Atout', () => {
+    const h = heroDeFiche(ficheDuPretire({ ...pregens[0], trappings: [{ id: 'vetements', qualities: [{ id: 'raffine' }] }] }), idsDeTest);
+    expect(h.items?.find((i) => i.trappingId === 'vetements')?.qualities?.map((q) => q.id)).toContain('raffine');
   });
 
   it('aucun dé consommé ; la même création le consomme (espion câblé)', () => {

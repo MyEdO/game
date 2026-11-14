@@ -12,7 +12,18 @@ import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync
 import { join, dirname, relative, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { ACTION_PROLOGUE, DOCUMENTAIRE, CI_SEULEMENT_PRODUIT, COMMANDE_CLASSER, CONDITION_PRODUIT, ID_PROLOGUE, classer, classerPush, baseDuDiff, gatesSautables } from './classerPush.mjs'
+import {
+  ACTION_PROLOGUE,
+  DOCUMENTAIRE,
+  CI_SEULEMENT_PRODUIT,
+  COMMANDE_CLASSER,
+  CONDITION_PRODUIT,
+  ID_PROLOGUE,
+  classer,
+  classerPush,
+  baseDuDiff,
+  gatesSautables,
+} from './classerPush.mjs'
 import { envDeDepotForge, envGitFeint, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gatesDeCi, jobsRequis, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
 import { stepsDu } from './workflowsDuDepot.mjs'

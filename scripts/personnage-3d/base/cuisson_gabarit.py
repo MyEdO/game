@@ -8,6 +8,7 @@ import numpy as np
 
 from formes import aretes_des_triangles, aux_noeuds, decalages, positions, poser_la_cle
 from poids import cadence, instants, jumeaux, peau_lineaire, poses
+from portage import lire_os_des_silhouettes, portages_des_silhouettes, vers_le_mesh
 from script_node import lancer
 from noms_silhouettes import SILHOUETTES
 
@@ -45,25 +46,35 @@ def squelette_du_gabarit(rig):
                    'boneInverse': matrice(mondes[b.name].inverted())} for b in rig.data.bones]
 
 
-def corps_du_gabarit(peau, noms, squelette, champs=None):
-    """L'entrée `corps` de `gabarit.mjs` pour `peau`, aux nœuds de ses sommets jumeaux, et ce `noeud` par sommet : les
-    silhouettes sont `champs` (nom -> décalages par sommet), à défaut les shape keys de `SILHOUETTES` de `peau`."""
+def corps_du_gabarit(peau, rig, champs=None):
+    """L'entrée `corps` de `gabarit.mjs` pour `peau` skinnée à `rig`, aux nœuds de ses sommets jumeaux, et ce `noeud`
+    par sommet. Les silhouettes sont `champs` (nom -> résidus par sommet, portage nul), à défaut les shape keys de
+    `SILHOUETTES` de `peau`, T = C + d̃ (#4002 issuecomment-6817454030) : C le portage des os de la table de `rig`
+    (`portage.lire_os_des_silhouettes`) sous les poids de `peau`, d̃ = T − C ; repère du mesh."""
+    noms, squelette = squelette_du_gabarit(rig)
     x, w = peau_lineaire(peau, noms)
     _, noeud = np.unique(jumeaux(x), return_inverse=True)
     poids = aux_noeuds(w, noeud)
+    portages = {}
     if champs is None:
-        champs = {nom: decalages(peau, nom) for nom in SILHOUETTES
+        totaux = {nom: decalages(peau, nom) for nom in SILHOUETTES
                   if peau.data.shape_keys and nom in peau.data.shape_keys.key_blocks}
+        tables = {nom: t for nom, t in lire_os_des_silhouettes(rig).items() if nom in totaux}
+        portages = {nom: vers_le_mesh(peau, c) for nom, (_, c) in portages_des_silhouettes(rig, w, noms, tables).items()}
+        champs = {nom: t - portages[nom] if nom in portages else t for nom, t in totaux.items()}
     corps = {'positions': aux_noeuds(x[:, :3], noeud).tolist(),
              'aretes': aretes_des_triangles(peau, noeud).tolist(),
              'poids': [[(int(o), float(ws[o])) for o in np.flatnonzero(ws)] for ws in poids],
-             'squelette': squelette, 'silhouettes': formes_aux_noeuds(champs, noeud)}
+             'squelette': squelette, 'silhouettes': formes_aux_noeuds(champs, portages, noeud)}
     return corps, noeud
 
 
-def formes_aux_noeuds(champs, noeud):
-    """Les silhouettes `champs` (nom -> décalages par sommet) de l'entrée `corps` de `gabarit.mjs`, aux nœuds `noeud`."""
-    return [{'nom': nom, 'deltas': aux_noeuds(d, noeud).tolist()} for nom, d in champs.items()]
+def formes_aux_noeuds(champs, portages, noeud):
+    """Les silhouettes de l'entrée `corps` de `gabarit.mjs`, aux nœuds `noeud` : `deltas` les résidus `champs` (nom ->
+    décalages par sommet), `portage` le portage `portages` (nom -> décalages par sommet), nul sans entrée."""
+    return [{'nom': nom, 'deltas': aux_noeuds(d, noeud).tolist(),
+             'portage': aux_noeuds(portages[nom] if nom in portages else np.zeros_like(d), noeud).tolist()}
+            for nom, d in champs.items()]
 
 
 def cuisson_des_champs(rig, peau, table):
@@ -71,14 +82,13 @@ def cuisson_des_champs(rig, peau, table):
     `gabarit_*` que `gabarit.mjs` (opération `cles`) cuit sur eux, sous les poids courants de `peau`. La clé croisée
     d'une silhouette ne lit que son champ (`cuire` de `gabarit.ts`) : seuls les champs changés depuis l'appel précédent
     repassent par `gabarit.mjs`."""
-    noms, squelette = squelette_du_gabarit(rig)
-    corps, noeud = corps_du_gabarit(peau, noms, squelette, {})
+    corps, noeud = corps_du_gabarit(peau, rig, {})
     vus, cles, croisees = {}, {}, {}
 
     def cuire(champs):
         changes = {nom: d for nom, d in champs.items() if nom not in vus or not np.array_equal(vus[nom], d)}
         if changes or not cles:
-            entree = {'operation': 'cles', 'table': table, 'corps': {**corps, 'silhouettes': formes_aux_noeuds(changes, noeud)}}
+            entree = {'operation': 'cles', 'table': table, 'corps': {**corps, 'silhouettes': formes_aux_noeuds(changes, {}, noeud)}}
             sortie = json.loads(lancer(ICI / 'gabarit.mjs', [], json.dumps(entree)))
             for nom in changes:
                 vus[nom] = changes[nom].copy()
@@ -91,11 +101,10 @@ def cuisson_des_champs(rig, peau, table):
 
 
 def cuire_gabarit(rig, peaux, table, captures=None):
-    noms, squelette = squelette_du_gabarit(rig)
     references = []
     decalage = 0
     for peau in peaux:
-        corps, noeud = corps_du_gabarit(peau, noms, squelette)
+        corps, noeud = corps_du_gabarit(peau, rig)
         nombre = len(noeud)
         entree = {'table': table, 'corps': corps}
         resultat = json.loads(lancer(ICI / 'gabarit.mjs', [], json.dumps(entree)))
@@ -129,9 +138,10 @@ def clips_plantes(declaration):
 
 @contextmanager
 def groupes_de_peau(rig, clips, table, etats, plantes, diagnostic=None):
-    """Les noms d'os de `rig` et, par jeu de facteurs des `etats`, `(etats, matrices, longueurs des clips)` : les
-    matrices de peau de `gabarit.mjs` (opération `matrices`) au repos puis à chaque instant des `clips`, jambes pliées
-    sur les clips de `plantes` (`clips_plantes`), lues en memmap."""
+    """Les noms d'os de `rig` et, par jeu de facteurs des `etats`, `(etats, matrices, longueurs des clips)` : par état,
+    les matrices de peau de `gabarit.mjs` (opération `matrices`) au repos puis à chaque instant des `clips`, jambes
+    pliées sur les clips de `plantes` (`clips_plantes`), lues en memmap ; une pile par fichier, partagée entre les
+    états de mêmes facteurs et de mêmes poids des silhouettes à os (#4002 issuecomment-6817454030)."""
     noms, squelette = squelette_du_gabarit(rig)
     with TemporaryDirectory(prefix='gabarit-peau-') as dossier:
         chemin = Path(dossier) / 'poses.bin'
@@ -147,20 +157,25 @@ def groupes_de_peau(rig, clips, table, etats, plantes, diagnostic=None):
             diagnostic['echantillons'] = [{'clip': 'repos', 't': 0.0}] + [
                 {'clip': a.name, 't': float(t / cadence())} for a in clips for t in instants(a)]
             diagnostic['etats'] = [g['etats'] for g in groupes]
-        piles, fichiers = [], []
+        piles, fichiers, jeux = [], [], {}
         try:
             for groupe in groupes:
-                fichier = np.memmap(groupe['fichier'], dtype=np.float32, mode='r')
-                fichiers.append(fichier)
-                matrices = fichier.reshape(-1, len(noms), 4, 4)
-                piles.append((groupe['etats'], matrices, [len(p) for p in des_clips]))
-            print('GABARIT_MATRICES', len(etats), 'états', len(piles), 'jeux', len(piles[0][1]), 'échantillons', flush=True)
+                for nom in groupe['fichiers']:
+                    if nom not in jeux:
+                        fichier = np.memmap(nom, dtype=np.float32, mode='r')
+                        fichiers.append(fichier)
+                        jeux[nom] = fichier.reshape(-1, len(noms), 4, 4)
+                piles.append((groupe['etats'], [jeux[groupe['fichiers'][j]] for j in groupe['jeux']],
+                              [len(p) for p in des_clips]))
+            print('GABARIT_MATRICES', len(etats), 'états', len(jeux), 'jeux', len(piles[0][1][0]), 'échantillons',
+                  flush=True)
             yield noms, piles
         finally:
             for fichier in fichiers:
                 fichier._mmap.close()
             piles.clear()
             fichiers.clear()
+            jeux.clear()
 
 
 def vers_gltf(x):

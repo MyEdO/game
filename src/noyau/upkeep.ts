@@ -28,7 +28,7 @@
 import { battleRng } from './battleRng';
 import { tickCampaignVesselWeek } from './shipCrew';
 import { dayIndex } from '../engine/clock';
-import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal } from '../engine/provisions';
+import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal, lotPerime, rationsDeCale } from '../engine/provisions';
 import { testValue } from '../engine/skills';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { loseWounds, removeActiveEffects, syncDerivedConditions } from '../engine/conditions';
@@ -37,7 +37,7 @@ import type { NightStakeId } from '../data/index';
 import { rollStep } from './rollSeam';
 import type { ModLine } from '../engine/combat';
 import { dailyDiseaseUpkeep } from '../engine/rest';
-import { conditionLabel } from '../data';
+import { conditionLabel, refLabel } from '../data';
 import { t } from '../i18n';
 import { rule } from '../engine/policy';
 import { tickTraumaRecovery } from '../engine/trauma';
@@ -91,7 +91,24 @@ const dissipationsDHorloge: string[] = [];
  *  mer, chantier naval) dissipe ce qui est échu, y compris ceux qui n'appellent PAS `runDailyUpkeep` (le voyage terrestre et la journée de
  *  mer diffèrent l'entretien à la cascade de nuit). Les lignes attendent le prochain bilan. */
 export function purgeSurAvanceDHorloge(get: Get, set: Set): void {
-  dissipationsDHorloge.push(...purgeClockEffects(get, set));
+  dissipationsDHorloge.push(...purgeClockEffects(get, set), ...jeterLesVivresPourris(get, set));
+}
+
+/** Jette de la cale du navire de campagne les lots de vivres pourris (`lotPerime`) à l'heure de jeu, au port
+ *  comme en mer. RENVOIE les lignes, une par vivre (déjà au journal). MDG 14 l.238 ; LDB 47 l.93-97 ; #4058 */
+function jeterLesVivresPourris(get: Get, set: Set): string[] {
+  const vessel = get().vessel;
+  if (!vessel?.provisions) return [];
+  const now = get().gameTime;
+  const pourris = vessel.provisions.filter((l) => lotPerime(l, now));
+  if (!pourris.length) return [];
+  const provisions = vessel.provisions.filter((l) => !lotPerime(l, now));
+  set({ vessel: { ...vessel, provisions } });
+  const lignes = [...new Set(pourris.map((l) => l.vivre))].map((vivre) => t('eff.provisionsPourries', {
+    perdues: rationsDeCale(pourris.filter((l) => l.vivre === vivre)), vivre: refLabel('trappings', { id: vivre }), total: rationsDeCale(provisions),
+  }));
+  get().ecrireAuJournal(lignes);
+  return lignes;
 }
 
 /** Purge les effets « pour la prochaine aventure » (`ActiveEffect.duration.scale === 'adventure'` —

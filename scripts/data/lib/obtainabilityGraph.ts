@@ -19,7 +19,7 @@ import { join } from 'node:path';
 import {
   talents, rangeesDesTalentsAleatoires, spells, careerLevels, species, creatures, mutations, stars, trappingsInstanciables, gods, effectTables,
   findTalentById, specPoolOf,
-  type AdvancementRef, type TalentData,
+  type AdvancementRef, type SpellData, type TalentData,
 } from '../../../src/data/index';
 
 export interface CasterInfo { obtainable: boolean; specs: Set<string>; anyUnspecialized: boolean }
@@ -162,7 +162,7 @@ export function computeObtainability(root: string): ObtainabilityResult {
     CASTER_TALENTS.filter((t) => t.codexOnly === true).map((t) => t.combat!.castingKind!)
       .filter((k) => CASTER_TALENTS.filter((t) => t.combat!.castingKind === k).every((t) => t.codexOnly === true)),
   );
-  const familyById = new Map(spells.map((sp) => [sp.id, sp.family]));
+  const familyById = new Map<string, SpellData['family']>(spells.map((sp) => [sp.id, sp.family]));
   const spellNever = spellVerdicts.filter((v) => {
     if (v.reachable) return false;
     if (famillesCodexOnly.has(familyById.get(v.id)!)) return false;

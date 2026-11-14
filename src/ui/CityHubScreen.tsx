@@ -21,7 +21,7 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { ActivityPane } from './ActivityPane';
 import { Prose } from './Prose';
 import { GatedAction, raisonSi } from './GatedAction';
-import { refusDEntrerAuPort } from '../noyau/portFlow';
+import { refusAQuai } from '../noyau/portFlow';
 
 /**
  * HUB DE VILLE (#343) — l'écran UNIQUE d'un LIEU de la carte : on n'empile plus des boutons flottants
@@ -72,7 +72,6 @@ export function CityHubScreen({
   const tradeRumours = useGame((s) => s.tradeRumours);
   const ouvrirLeRepos = useGame((s) => s.ouvrirLeRepos);
   const ouvrirLePort = useGame((s) => s.ouvrirLePort);
-  const vessel = useGame((s) => s.vessel);
   const ouvrirLeMarche = useGame((s) => s.ouvrirLeMarche);
   const ouvrirLaBoutique = useGame((s) => s.ouvrirLaBoutique);
   const recueillirLesRumeurs = useGame((s) => s.recueillirLesRumeurs);
@@ -89,7 +88,7 @@ export function CityHubScreen({
 
   // « Entrer » un écran plein-champ existant : on FERME le hub d'abord (pas de ScreenShell imbriqué).
   const enter = (open: () => void) => { onClose(); open(); };
-  const refusPort = refusDEntrerAuPort({ vessel });
+  const refusPort = useGame(refusAQuai);
 
   /** OUVREURS par écran DÉCLARÉ (`ResolvedPlaceService.opensScreen`) : la valeur du catalogue choisit
    *  l'ouvreur ET sa garde. Table TOTALE de l'union — un écran de plus ne compile pas sans sa ligne. */
@@ -122,7 +121,7 @@ export function CityHubScreen({
             </>
           }
         >
-          {/* Jamais une promesse d'action impossible (cf. `refusDEntrerAuPort`) : sans offre de
+          {/* Jamais une promesse d'action impossible (cf. `refusAQuai`) : sans offre de
               couchage effective (`svc.rest`), les prix de chambre/repas ne s'affichent pas — ils ne
               mènent nulle part ici (recette 2026-07-12). */}
           {svc.rest

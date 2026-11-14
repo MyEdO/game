@@ -3,9 +3,10 @@
  * L'écran du port lit les verdicts du NOYAU (#3059) : la pose d'une Amélioration se ferme sur le refus de
  * `devisDAmelioration`, l'achat de cargaison sur celui de `devisDAchatEnPort` (cale au plafond dur, bourse sous
  * le prix plancher au meilleur Marchandage). MDG 12 l.195-364 ; MDG 12 l.70-75 ; MDG 15 l.319-349 ; MDG 15 l.335 ;
- * LDB 59 l.43.
+ * LDB 59 l.43 ; MDG 12 l.230.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { quantitesDeCale } from '../engine/caleDeTest.testkit';
 import { acheterAuMarche } from '../noyau/cargaison.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act } from 'react';
@@ -14,12 +15,13 @@ import { PortView } from './PortView';
 import { useGame } from '../state/store';
 import { emptyScene } from '../noyau/monde/scene';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
-import { findVehicleById, NAVAL_TRAITS } from '../data';
+import { findNavalTrait, findVehicleById, NAVAL_TRAITS } from '../data';
+import { PORT_A_CHANTIER, PORT_SANS_CHANTIER } from '../data/navalPorts.testkit';
 import { installCost } from '../engine/shipBuild';
 import { overloadMaxEnc } from '../engine/seaVoyage';
 import { t } from '../i18n';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
-import type { WorldMap } from '../noyau/worldMap';
+import { resolvePortRef, type WorldMap } from '../noyau/worldMap';
 import type { CampaignVessel } from '../noyau/etat';
 import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { toBrass } from '../engine/money';
@@ -35,12 +37,12 @@ const carte: WorldMap = {
 const COGUE = findVehicleById('cogue')!;
 
 /** Port FIXÉ : une offre de 5 Enc de bois à 10 CO, groupe d'un seul héros sans le sou ni Négociateur (il mène
- *  donc le Marchandage), le navire `vessel`. */
+ *  donc le Marchandage) au lieu `A`, le navire `vessel`, à quai à `A` sauf `escale` contraire. */
 function ouvrir(vessel: CampaignVessel): void {
   const port = structuredClone(carte.places[0].port!);
   useGame.setState({
     party: tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => ({ ...h, talents: [], items: (h.items ?? []).filter((i) => i.trappingId !== 'bourse') })),
-    possessions: [], vessel, worldMap: carte, journal: [], battle: null, travelPlan: null,
+    possessions: [], vessel: { escale: 'A', ...vessel }, worldMap: carte, lieu: 'A', journal: [], battle: null, travelPlan: null,
     port: { placeId: 'A', label: 'Salzenmund', port, offers: [{ cargoId: 'bois-mer', label: 'Bois', enc: 5, basePrice: 10, surplus: false }] },
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     net: { ...get().net, mode: 'local' },
@@ -112,6 +114,20 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
     expect(offre, 'escale sans offre').toBeTruthy();
     expect(geste('cargaison', `port-buy-${offre.cargoId}`)).toEqual({ ferme: 'true', raison: t('port.holdFull') });
   });
+
+  /** Le lieu `A` est le port `ref` du catalogue, l'escale ouverte en porte la `ref`, la bourse est pleine. */
+  const auPort = (ref: string) => {
+    const port = resolvePortRef({ ref })!;
+    useGame.setState({ worldMap: { ...carte, places: [{ ...carte.places[0], port }] }, port: { ...get().port!, ref, port: structuredClone(port) } });
+    creditBourse(get, useGame.setState, get().party[0].id, { gold: 100000, silver: 0, brass: 0 });
+  };
+
+  it('Blindage : fermé sur le refus du noyau au port sans chantier naval spécialisé, ouvert au port qui en a un', () => {
+    auPort(PORT_SANS_CHANTIER);
+    expect(geste('coque', 'port-upgrade-blindage-fer')).toEqual({ ferme: 'true', raison: t('sv.upgradeNeedsShipyard', { label: findNavalTrait('blindage-fer')!.label }) });
+    auPort(PORT_A_CHANTIER);
+    expect(geste('coque', 'port-upgrade-blindage-fer')).toEqual({ ferme: null, raison: null });
+  });
 });
 
 /** Saisit `n` dans le champ de nom accessible `nom`, sous `hote`. */
@@ -125,7 +141,7 @@ function saisir(hote: HTMLElement, nom: string, n: number): void {
 }
 
 describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au devis du noyau (MDG 14 l.238, l.248-252 ; MDG 15 l.262)', () => {
-  const navire = (patch: Partial<CampaignVessel>): CampaignVessel => ({ vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, provisions: {}, waterLitres: 0, ...patch });
+  const navire = (patch: Partial<CampaignVessel>): CampaignVessel => ({ vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, provisions: [], waterLitres: 0, ...patch });
   /** Les champs de quantité de l'onglet Escale, par nom accessible. */
   const champsDEscale = (patch: Partial<CampaignVessel>): string[] => {
     ouvrir(navire(patch));
@@ -172,12 +188,12 @@ describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au de
     const bouton = hote.querySelector('button[aria-label="Avitailler la cale"]') as HTMLButtonElement;
     act(() => bouton.click());
     act(() => root.unmount());
-    expect({ provisions: get().vessel!.provisions, eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) })
+    expect({ provisions: quantitesDeCale(get().vessel!.provisions), eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) })
       .toEqual({ provisions: { 'ration-biscuits-de-mer': 3, 'ration-nourriture-preservee': 2 }, eau: 145, bourse: 240 - (3 * 12 + 2 * 24 + 102) });
   });
 
   it('hors quai : l’avitaillement est fermé, raison = le refus du noyau', () => {
-    ouvrir(navire({}));
+    ouvrir(navire({ escale: 'B' }));
     expect(geste('escale', 'port-avitailler')).toEqual({ ferme: 'true', raison: t('port.pasAQuai') });
   });
 });

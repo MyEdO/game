@@ -3,7 +3,9 @@
 avant ce test en CI), reproduit le manifeste publié sous `hotes/godot/projet/modeles/` (`ecarts_du_manifeste`), son empreinte de GLB à part,
 et la forme du GLB publié (`forme`, `ecarts`), au flottant près, avec l'enveloppe de production et les licences des packs
 de la base : sur la même roue bpy, la file de fusion de #3795 a reconstruit chaque GLB à quelques dizaines d'octets du
-publié, et une position d'emplacement au dernier chiffre arrondi près."""
+publié, et une position d'emplacement au dernier chiffre arrondi près. Ses clés de forme (`cles`) : celles de la base, les
+silhouettes qu'elle déclare suivies de ses clés `gabarit_*`, et les clés propres du GLB publié (ni l'une ni l'autre), aux
+mêmes valeurs, qu'une reprise (`element/publie.py`) garde."""
 import hashlib
 import json
 import os
@@ -13,9 +15,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import numpy as np
+
 ICI = Path(__file__).resolve().parent
 sys.path.insert(0, str(ICI))
-from glb import lire_glb  # noqa: E402
+from glb import lire_accesseur, lire_glb  # noqa: E402
 from production import CACHE_DES_MODELES, MODELES  # noqa: E402
 
 ECART_DE_POSITION_MAX = 1e-4   # m, entre deux bornes de positions ou deux translations de nœud
@@ -66,6 +70,41 @@ def ecarts(a, b):
     return fautes
 
 
+def cles(chemin):
+    """Les clés de forme du GLB `chemin`, par mesh : `{nom: décalages des sommets de ses primitives mises bout à bout}`,
+    dans l'ordre des cibles."""
+    doc, binaire = lire_glb(chemin)
+    return {m.get('name'): {nom: np.concatenate([lire_accesseur(doc, binaire, p['targets'][k]['POSITION']) for p in m['primitives']])
+                            for k, nom in enumerate(m.get('extras', {}).get('targetNames', []))}
+            for m in doc.get('meshes', [])}
+
+
+def gabarits(chemin):
+    """Les clés `gabarit_*` de la base `chemin`, dans l'ordre des cibles de son premier mesh qui en porte."""
+    doc, _ = lire_glb(chemin)
+    return [k for k in next(m['extras']['targetNames'] for m in doc['meshes'] if m.get('extras', {}).get('targetNames'))
+            if k.startswith('gabarit_')]
+
+
+def ecarts_des_cles(produites, publiees, silhouettes, de_gabarit):
+    """Les écarts des clés `produites` (`cles`) aux attendues, par mesh : les clés de la base, `silhouettes` suivies de
+    `de_gabarit`, à l'identique et dans cet ordre ; les autres, celles de `publiees` pour ce mesh, aux mêmes noms et au même
+    décalage à `ECART_DE_POSITION_MAX` près."""
+    de_base = lambda k: k in silhouettes or k.startswith('gabarit_')
+    fautes = []
+    for m, produit in produites.items():
+        if produit and [k for k in produit if de_base(k)] != silhouettes + de_gabarit:
+            fautes.append((m, 'clés de base', [k for k in produit if de_base(k)]))
+        propres = {k: v for k, v in produit.items() if not de_base(k)}
+        attendues = {k: v for k, v in publiees.get(m, {}).items() if not de_base(k)}
+        if propres.keys() != attendues.keys():
+            fautes.append((m, 'clés propres', sorted(propres), sorted(attendues)))
+            continue
+        fautes += [(m, k, 'décalages') for k in propres
+                   if propres[k].shape != attendues[k].shape or np.abs(propres[k] - attendues[k]).max() > ECART_DE_POSITION_MAX]
+    return fautes
+
+
 def ecarts_du_manifeste(a, b, chemin='manifeste'):
     """Les écarts entre deux manifestes : chaque clé, chaque longueur et chaque valeur non numérique à l'identique, chaque
     nombre à `ECART_DE_VALEUR_MAX` près."""
@@ -109,6 +148,9 @@ class Reconstruction(unittest.TestCase):
                 publie = lire(publie)
                 self.assertEqual(ecarts_du_manifeste({k: v for k, v in manifeste.items() if k != 'glb'}, {k: v for k, v in publie.items() if k != 'glb'}), [])
                 self.assertEqual(ecarts(forme(produit / f'{id_}.glb'), forme(CACHE_DES_MODELES / f"{publie['glb']['sha256']}.glb")), [])
+                de_la_base = lire(MODELES / f'{base}.manifeste.json')
+                self.assertEqual(ecarts_des_cles(cles(produit / f'{id_}.glb'), cles(CACHE_DES_MODELES / f"{publie['glb']['sha256']}.glb"),
+                                                 de_la_base['silhouettes'], gabarits(CACHE_DES_MODELES / f"{de_la_base['glb']['sha256']}.glb")), [])
 
 
 if __name__ == '__main__':

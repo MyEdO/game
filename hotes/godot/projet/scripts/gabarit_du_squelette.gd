@@ -13,14 +13,23 @@ extends SkeletonModifier3D
 
 ## @contrat Gabarit d'une base
 ## Godot applique actuellement (1) la lecture du plus bas des os `appuis.pieds` sans gabarit, (2) la composition des
-## facteurs après le clip, puis (3) la translation qui ramène ces os à leur minimum de (1), dans `GabaritDuSquelette`
-## ; à l'étape (2), sur le clip engagé à son lecteur (`AnimationPlayer.assigned_animation`,
+## facteurs et des translations de `deplacementsDesOs` après le clip, la translation ajoutée après le Y multiplié
+## (`poserEnfantsDuGabarit`), puis (3) la translation qui ramène ces os à leur minimum de (1), dans
+## `GabaritDuSquelette` ; à l'étape (2), sur le clip engagé à son lecteur (`AnimationPlayer.assigned_animation`,
 ## `MontageDeComposition.lecteur`) s'il est dans `clipsPlantes`, il plie les jambes comme `poserLeGabarit`, dans le
-## repère du squelette : il monte la racine et pose la visée de chaque pied, puis des modificateurs natifs posés à sa
-## suite, `TwoBoneIK3D` (le genou vers sa place courante) et `CopyTransformModifier3D` (l'orientation de la visée),
-## plient chaque jambe, avant la translation (3) (recette `projet/recettes/marche-au-gabarit.gd`, legs 0,62, 1 et
-## 1,12). `TwoBoneIK3D` mesure les os sur leurs positions de pose sans l'échelle de pose de leurs parents (Godot 4.7)
-## : sa cible se pose à l'échelle de cette mesure autour de la hanche (`MiseEnPage.visee_de_l_ik`). Le lot GD devra
+## repère du squelette : il monte la racine et pose la visée de chaque pied, translatée du déplacement que les seules
+## translations donnent à ce pied, puis des modificateurs natifs posés à sa suite, `TwoBoneIK3D` (le genou vers sa
+## place courante) et `CopyTransformModifier3D` (l'orientation de la visée), plient chaque jambe, avant la
+## translation (3) (recettes `projet/recettes/marche-au-gabarit.gd`, legs 0,62, 1 et 1,12, et
+## `projet/recettes/os-deplaces-du-gabarit.gd`).
+## `MontageDeComposition` compense les translations dans les liaisons de chaque pièce skinnée, fondue ou dessinée
+## seule : la liaison de l'os b devient `Transform3D(Basis.IDENTITY, -R_b.basis⁻¹·D_b)·liaison`, R_b son repos
+## global sans gabarit et D_b son déplacement au repos (`GabaritDuSquelette.deplacement_au_repos`). Au repos, la peau
+## vaut ainsi bind et clés quels que soient ses poids ; une pièce rigide suit son os. Une pièce dessinée seule
+## reçoit une copie de son skin, celui du GLB restant aux lecteurs du bind d'origine (recette
+## `projet/recettes/os-deplaces-du-gabarit.gd`).
+## `TwoBoneIK3D` mesure les os sur leurs positions de pose sans l'échelle de pose de leurs parents (Godot 4.7) : sa
+## cible se pose à l'échelle de cette mesure autour de la hanche (`MiseEnPage.visee_de_l_ik`). Le lot GD devra
 ## remplacer (1) par le minimum des copies `appuis.plusBas` skinnées sans gabarit et sans clés `gabarit_*`, (2) par la
 ## même mesure avec les binds compensés et les formes au gabarit, et (3) par la translation vers `sl` fois le minimum
 ## de (1). Le code de l'hôte reste celui des os jusqu'à ce lot. `appuis.pieds` reste consommé par les surfaces de
@@ -32,8 +41,10 @@ signal mesure
 ## Le rang de l'os `racine` du gabarit, -1 sans gabarit.
 var _racine := -1
 var _echelle := 1.0
-## Par rang d'os enfant d'un os de `enfantsDe`, son facteur.
-var _facteurs: Dictionary = {}
+## Par rang d'os que la pose déplace (`enfantsDuGabarit`) : chaque enfant d'un os de `enfantsDe` et chaque os de
+## `deplacementsDesOs`, `[facteur, translation]` ; facteur 1 sans parent dans `enfantsDe`, translation nulle sans
+## déplacement.
+var _enfants: Dictionary = {}
 ## Les rangs des os de `pieds`.
 var _pieds: Array[int] = []
 ## Par jambe de `jambes`, les rangs de sa cuisse, de son mollet et de son pied (`jambesDuGabarit`).
@@ -64,7 +75,7 @@ func poser(gabarit: Dictionary) -> Array[String]:
 	var squelette := get_skeleton()
 	var absents: Array[String] = []
 	_racine = -1
-	_facteurs.clear()
+	_enfants.clear()
 	_pieds.clear()
 	_jambes.clear()
 	_clips_plantes = []
@@ -82,7 +93,14 @@ func poser(gabarit: Dictionary) -> Array[String]:
 			absents.append(parent)
 			continue
 		for enfant in squelette.get_bone_children(rang):
-			_facteurs[enfant] = float(gabarit.enfantsDe[parent])
+			_enfants[enfant] = [float(gabarit.enfantsDe[parent]), Vector3.ZERO]
+	for nom in gabarit.deplacementsDesOs:
+		var rang := squelette.find_bone(nom)
+		if rang == -1:
+			absents.append(nom)
+			continue
+		var translation: Array = gabarit.deplacementsDesOs[nom]
+		_enfants.get_or_add(rang, [1.0, Vector3.ZERO])[1] = Vector3(translation[0], translation[1], translation[2])
 	for pied in gabarit.pieds:
 		var rang := squelette.find_bone(pied)
 		if rang == -1:
@@ -180,8 +198,10 @@ func porter_au_sol(squelette: Skeleton3D) -> void:
 		_mesures.image = _mesure(squelette, _hauteur_sans_gabarit)
 
 
-## Sur la pose courante, l'échelle de la racine et la position des enfants ; si `plante`, la visée de chaque jambe prise
-## avant les enfants, puis la racine montée et les jambes à plier (`poserLeGabarit`). `TwoBoneIK3D` mesure les os de
+## Sur la pose courante, l'échelle de la racine et la position des enfants, le Y multiplié par son facteur puis la
+## translation ajoutée (`poserEnfantsDuGabarit`) ; si `plante`, la visée de chaque jambe prise avant les enfants et
+## translatée du déplacement de son pied sous les seules translations (`deplacementsMondeDesOs`), puis la racine
+## montée et les jambes à plier (`poserLeGabarit`). `TwoBoneIK3D` mesure les os de
 ## la jambe sur ses positions de pose et ses bases de repos, sans l'échelle de pose de leurs parents
 ## (`TwoBoneIK3D::_get_bone_global_rest`, Godot 4.7) : sa cible se pose à l'échelle de cette mesure autour de la hanche
 ## (`MiseEnPage.visee_de_l_ik`), le triangle de la jambe restant semblable, et l'orientation du pied reste celle de sa
@@ -194,11 +214,12 @@ func _poser_sur(squelette: Skeleton3D, plante: bool) -> void:
 	var extensions: Array[float] = []
 	if plante:
 		for rang in _jambes.size():
-			_visees[rang].transform = squelette.get_bone_global_pose(_jambes[rang][2])
+			_visees[rang].transform = squelette.get_bone_global_pose(_jambes[rang][2]).translated(_deplacement(squelette, _jambes[rang][2], false))
 			extensions.append(MiseEnPage.extension_de_jambe(_longueur(squelette, _jambes[rang][0], _jambes[rang][2]),
 				_longueur(squelette, _jambes[rang][0], _jambes[rang][1]), _longueur(squelette, _jambes[rang][1], _jambes[rang][2])))
-	for enfant in _facteurs:
-		squelette.set_bone_pose_position(enfant, MiseEnPage.position_au_gabarit(squelette.get_bone_pose_position(enfant), _facteurs[enfant]))
+	for enfant in _enfants:
+		var au_gabarit := MiseEnPage.position_au_gabarit(squelette.get_bone_pose_position(enfant), _enfants[enfant][0])
+		squelette.set_bone_pose_position(enfant, Transform3D(Basis.IDENTITY, au_gabarit).translated(_enfants[enfant][1]).origin)
 	if not plante:
 		return
 	var montee := INF
@@ -215,6 +236,28 @@ func _poser_sur(squelette: Skeleton3D, plante: bool) -> void:
 		_visees[rang].transform = Transform3D(visee.basis, hanche).translated(MiseEnPage.visee_de_l_ik(visee.translated(-hanche).origin,
 			squelette.get_bone_global_pose(_jambes[rang][0]).basis.get_scale().y, squelette.get_bone_global_rest(_jambes[rang][0]).basis.get_scale().y))
 		_genoux[rang].position = _origine(squelette, _jambes[rang][1])
+
+
+## Le déplacement de l'os `os` au repos sans gabarit, dans le repère du squelette, sous les seules translations du
+## gabarit posé : celui de son parent plus la base de repos du parent appliquée à sa translation ; nul sans gabarit.
+## `MontageDeComposition` en compense les liaisons des pièces skinnées.
+func deplacement_au_repos(os: int) -> Vector3:
+	return _deplacement(get_skeleton(), os, true)
+
+
+## Le déplacement de l'os `os` sous les seules translations de `_enfants`, sur la pose courante ou, `au_repos`, au repos
+## sans gabarit : la somme, sur l'os et chacun de ses ascendants, de sa translation dans la base de son parent.
+func _deplacement(squelette: Skeleton3D, os: int, au_repos: bool) -> Vector3:
+	var deplacement := Vector3.ZERO
+	var rang := os
+	while rang != -1:
+		var parent := squelette.get_bone_parent(rang)
+		var base := Basis.IDENTITY
+		if parent != -1:
+			base = (squelette.get_bone_global_rest(parent) if au_repos else squelette.get_bone_global_pose(parent)).basis
+		deplacement = Transform3D(base, deplacement).translated_local(_enfants.get(rang, [1.0, Vector3.ZERO])[1]).origin
+		rang = parent
+	return deplacement
 
 
 ## La racine translatée verticalement dans le repère de son parent (la verticale monde rapportée au repère du squelette,

@@ -61,7 +61,17 @@ import { BASE_HUMAINE, CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, baseDEspece, cl
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { bandeAuDe } from '../../engine/tables';
 import { formatDice } from '../../engine/dice';
-import { brancheChoisie, dotationsDuHeros, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
+import {
+  brancheChoisie,
+  dotationsDuHeros,
+  emplacementsDeDotation,
+  estEmplacementDeDotation,
+  estEmplacementRacine,
+  idChoisi,
+  sousEmplacement,
+  type ChoixDeDotation,
+  type EmplacementDeDotation,
+} from '../../engine/trappingChoices';
 import { idsDeLaSousListe, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';

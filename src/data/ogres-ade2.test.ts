@@ -116,10 +116,10 @@ describe('#61 — les 4 PNJ ogres nommés (ADE II 1 l.217/231 / ADE II 2 l.484/4
       }
     }
   });
-  it('Isrogdal porte la pansière ogre et sa massue ogre (réfs par id, plus des [] vides)', () => {
+  it('Isrogdal porte la pansière ogre et son arme simple (massue) (réfs par id, plus des [] vides)', () => {
     const ids = findCreatureById('isrogdal-lempresse')!.trappings!.filter((t) => 'id' in t).map((t) => (t as { id: string }).id);
     expect(ids).toContain('pansiere-ogre');
-    expect(ids).toContain('massue-ogre');
+    expect(findCreatureById('isrogdal-lempresse')!.trappings).toContainEqual({ id: 'arme-simple', spec: 'massue' });
     expect(ids).toContain('coup-de-poing');
   });
   it('Golgfag / Hrothyogg : PAS de statbloc en VF (prose seule, ADE II 1 l.198/210) → absents du bestiaire (règle 1)', () => {

@@ -13,7 +13,22 @@ import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { inspect } from 'node:util'
 import { CHAMPS_DE_CLE, CHAMPS_D_ECHEANCE, SEPARATEUR_DE_REMEDE, cleDeSite, sitesEnEntrees } from './stock.mjs'
-import { DECROISSANT, FORMAT_JSON, FORMAT_MJS, REMESURE, SOUS_LOT, comptesParFamille, ecartDeRegeneration, entreesRegenerees, formatDe, lireEntreesDeSite, lireStockJson, texteDeStock, texteEnPlace, texteRegenere } from './stockDeSites.mjs'
+import {
+  DECROISSANT,
+  FORMAT_JSON,
+  FORMAT_MJS,
+  REMESURE,
+  SOUS_LOT,
+  comptesParFamille,
+  ecartDeRegeneration,
+  entreesRegenerees,
+  formatDe,
+  lireEntreesDeSite,
+  lireStockJson,
+  texteDeStock,
+  texteEnPlace,
+  texteRegenere,
+} from './stockDeSites.mjs'
 import { jouerModules, lotDeLaLigne, modulesQuiMesurent, regenererStock } from './regenStock.mts'
 import { scanConstructionsReservees, ECRITURE_DE_STOCK_JSON } from './canonUnique.mjs'
 import { listerDossier } from './lister.mjs'

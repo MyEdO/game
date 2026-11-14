@@ -26,7 +26,13 @@ import {
 } from '../../scripts/docs/lib/structures-scan.mjs';
 import { champsSansSlot, slotsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
 import { COLLECTIONS_A_COMPTE_PAR_NOM, ecartsDeCollection, occurrencesDe } from '../../scripts/guards/lib/occurrencesStock.mjs';
-import { CLES_POSEES_INCONDITIONNELLEMENT, clesDeclareesJamaisPortees, INVENTAIRE as COLLECTIONS_D_INVENTAIRE, inventaireDe, SANS_LOT } from '../../scripts/guards/lib/inventaireDeDette.mts';
+import {
+  CLES_POSEES_INCONDITIONNELLEMENT,
+  clesDeclareesJamaisPortees,
+  INVENTAIRE as COLLECTIONS_D_INVENTAIRE,
+  inventaireDe,
+  SANS_LOT,
+} from '../../scripts/guards/lib/inventaireDeDette.mts';
 import {
   ANGLES_MORTS,
   CLES_DE_VALEUR,

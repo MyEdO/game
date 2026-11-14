@@ -11,7 +11,9 @@ import { createRoot } from 'react-dom/client';
 import { EffectFields, effectSummary, type Ctx } from './EffectList';
 import { RefField } from '../compendium/refField/RefField';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
-import { trappings, type TrappingData } from '../../data';
+import { trappings } from '../../data';
+import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { dansLaSousListe, idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../../data/schemas/grammaire/sousListes';
 import type { Effect } from '../../data/schemas/defs-scenes/effets';
@@ -21,9 +23,9 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const OBJET_DU_PROJET: TrappingData = { ...trappings.find((t) => t.id === 'dague')!, id: 'projet-sceau-du-comte', label: 'Sceau du comte' };
+const OBJET_DU_PROJET = objetDeCampagne({ id: 'projet-sceau-du-comte', label: 'Sceau du comte' });
 const SERVICE = trappings.find((t) => !dansLaSousListe(INSTANCIABLE_PAR_ID, t))!;
-const ctx = (objets: readonly TrappingData[]): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, narratif: { ...emptyNarratif(), objets: [...objets] } });
+const ctx = (objets: NarratifBlock['objets']): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, narratif: { ...emptyNarratif(), objets: [...objets] } });
 const effetVide = { type: 'giveTrapping', custom: '' } as Effect;
 
 /** Monte `rendu` le temps de `lire(host)` — démonté et retiré du document ensuite. */
@@ -45,7 +47,7 @@ const optionsResolues = (champ: HTMLInputElement): string[] =>
   [...(document.getElementById(champ.getAttribute('list')!)?.querySelectorAll('option') ?? [])].map((o) => (o as HTMLOptionElement).value);
 
 /** Monte l'Effet, saisit `texte` dans le champ objet ; rend les émissions, le refus, l'affichage et les options. */
-function saisir(texte: string, objets: readonly TrappingData[] = [], effet: Effect = effetVide) {
+function saisir(texte: string, objets: NarratifBlock['objets'] = [], effet: Effect = effetVide) {
   const emis: Effect[] = [];
   return monte(<EffectFields effect={effet} ctx={ctx(objets)} onChange={(e) => { emis.push(e); }} />, (host) => {
     const champ = host.querySelector<HTMLInputElement>('input[list]')!;

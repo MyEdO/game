@@ -8,7 +8,21 @@
 import type { Combatant } from './types';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
 import { levelsForCareer } from '../data';
-import { acquerirTalent, availableChars, freeSlotFor, inCareerStatus, parseRefKey, prisParLesAutres, refKey, skillSlots, slotCovers, talentMaxReached, talentSlots, wildcardSpecs, type CareerSlot } from './careerSlots';
+import {
+  acquerirTalent,
+  availableChars,
+  freeSlotFor,
+  inCareerStatus,
+  parseRefKey,
+  prisParLesAutres,
+  refKey,
+  skillSlots,
+  slotCovers,
+  talentMaxReached,
+  talentSlots,
+  wildcardSpecs,
+  type CareerSlot,
+} from './careerSlots';
 import { applyTalentAcquisition, competencesAjouteesPar, deplierAjouts, talentsAjoutesALaCarriere, talentsAjoutesPar } from './talentEffects';
 import { augmenterLaCompetence } from './character';
 import { blessuresReconciliees } from './characteristics';

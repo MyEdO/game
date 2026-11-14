@@ -3,7 +3,16 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { suiteDesEntrees } from '../grammaire/cle-d-espace';
-import { cibleEtendueSchema, difficultySchema, enumNomme, hitLocationSchema, maisonSchema, plageOuverteSchema, sourceRefSchema, formulaSchema } from '../grammaire/valeurs';
+import {
+  cibleEtendueSchema,
+  difficultySchema,
+  enumNomme,
+  hitLocationSchema,
+  maisonSchema,
+  plageOuverteSchema,
+  sourceRefSchema,
+  formulaSchema,
+} from '../grammaire/valeurs';
 import { executeesDe, flowSchema, noeudTest, passifsDe } from '../grammaire/mecanique';
 import { idDe, refs } from '../grammaire/ref';
 
@@ -90,7 +99,7 @@ export const amputationSchema = nommerChamps(z.strictObject({
   loss: { label: 'perte' },
 });
 
-export const rangee = nommerChamps(z.strictObject({
+const rangeeAPlat = z.strictObject({
   ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
@@ -104,6 +113,13 @@ export const rangee = nommerChamps(z.strictObject({
   maison: maisonSchema.optional(),
   desc: z.string(),
   source: sourceRefSchema,
+});
+type RangeeAPlat = z.output<typeof rangeeAPlat>;
+
+/** Une Blessure critique, à sa bande du dé : seule sa borne HAUTE s'ouvre (AA 07 l.105, l.131, l.157, l.183). */
+export const rangee = nommerChamps(rangeeAPlat.refine((r): r is RangeeAPlat & { min: number } => r.min !== null, {
+  path: ['min'],
+  error: 'borne basse requise : seule la borne haute d’une table de Critiques s’ouvre.',
 }), {
   ...metaDesChamps(plageOuverteSchema, { exigees: true }),
   id: { label: 'identifiant' },

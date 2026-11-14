@@ -9,7 +9,9 @@ import { findCreatureById, type SpellData, findSpellById } from '../data';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, Weapon } from '../engine/types';
 import type { CastResult } from '../engine/magic';
+import type { GameOp } from '../engine/ops';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { idDeFixture } from '../data/idDeFixture.testkit';
 
 /**
  * IA — ÉVALUATEUR DE SORT op-driven (remplace `aiBestMissile`/`aiFocusPlan`/`aiAreaSpell`, supprimés).
@@ -33,11 +35,11 @@ function foeAt(id: string, x: number, y: number): Combatant {
 
 /** `SpellData` réduit aux champs lus par l'évaluateur (effects/missile/damage/opposed). */
 function spellData(over: Partial<SpellData> = {}): SpellData {
-  return { id: 'sp', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, ...over } as SpellData;
+  return { id: idDeFixture('spell', 'sp'), type: 'spells', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, ...over };
 }
-const doOps = (ops: unknown[], on: 'target' | 'caster' = 'target') => ({ kind: 'effet', effet: { type: 'ops', on, ops } }) as unknown as SpellData['effects'];
+const doOps = (ops: GameOp[], on: 'target' | 'caster' = 'target'): SpellData['effects'] => ({ kind: 'effet', effet: { type: 'ops', on, ops } });
 function castable(over: Partial<CastableSpell> & { id?: string } = {}): CastableSpell {
-  const data = over.data ?? spellData({ id: over.id ?? 'sp', missile: true, damage: 8 });
+  const data = over.data ?? spellData({ id: idDeFixture('spell', over.id ?? 'sp'), missile: true, damage: 8 });
   return { id: over.id ?? data.id, data, cn: over.cn ?? data.cn ?? 0, range: over.range ?? null, shape: over.shape ?? 'single', landProb: over.landProb ?? 1, focusState: over.focusState ?? 'none', active: over.active ?? false };
 }
 
@@ -134,7 +136,7 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
   });
 
   // ── ZdE NET : anti tir-ami (indiscriminée, RAW) + buff/soin de zone ──────────────────────────────
-  const areaDmg = (radius: number) => castable({ id: 'comete', shape: { area: { radius } }, range: 20, data: spellData({ id: 'comete', effects: doOps([{ op: 'wounds', amount: 8 }]) }) });
+  const areaDmg = (radius: number) => castable({ id: 'comete', shape: { area: { radius } }, range: 20, data: spellData({ id: idDeFixture('spell', 'comete'), effects: doOps([{ op: 'wounds', amount: 8 }]) }) });
 
   it('AoE indiscriminée : un allié SEUL dans le rayon (1 ennemi touché ≈ 1 allié) → net ≤ 0 → ne se canarde PAS', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [] });
@@ -158,7 +160,7 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [MELEE], characteristics: C });
     const foe = mk('h', 'heros', { x: 5, y: 14 }, { characteristics: C }); // ennemi très loin (rien à frapper/approcher d'utile)
     const ally = mk('a', 'ennemi', { x: 5, y: 6 }, { weapons: [MELEE], characteristics: C }); // allié armé adjacent
-    const buff = castable({ id: 'prouesses', shape: { area: { radius: 2 } }, range: null, data: spellData({ id: 'prouesses', effects: doOps([{ op: 'charMod', characteristic: 'capacite-de-combat', mod: 20 }]) }) });
+    const buff = castable({ id: 'prouesses', shape: { area: { radius: 2 } }, range: null, data: spellData({ id: idDeFixture('spell', 'prouesses'), effects: doOps([{ op: 'charMod', characteristic: 'capacite-de-combat', mod: 20 }]) }) });
     const a = chooseEnemyAction(input(e, [foe], { spells: [buff], squad: [ally] }));
     expect(a.kind).toBe('incantationDeZone'); // le buff de zone couvre soi + l'allié armé → bénéfice marginal > 0
     if (a.kind === 'incantationDeZone') expect(a.spell).toBe('prouesses');

@@ -14,7 +14,7 @@ import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefI
 import { STAKES, regles } from './index';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
-const RULE_BY_ID = new Map(regles.map((r) => [r.id, r]));
+const RULE_BY_ID = new Map<string, (typeof regles)[number]>(regles.map((r) => [r.id, r]));
 /** Fiches de `regles.json` référencées par la nuit — les foyers d'un AUTRE type (amendement A,
  *  2026-08-06 : l'entité qui PORTE la règle d'abord) ont leur propre garde de source et sortent de ce
  *  périmètre. */
@@ -87,7 +87,7 @@ describe('stakes.json, cascade de nuit — chaque enjeu porte sa règle (#1117 L
       const lines = chapterLines(r.source.book, note);
       // Chaque paragraphe du desc est une LIGNE du chapitre — on retient la position de la première.
       let first: number | null = null;
-      for (const para of r.desc.split('\n\n')) {
+      for (const para of (r.desc ?? '').split('\n\n')) {
         const at = lines.indexOf(para);
         if (at < 0) {
           defauts.push(`${id} : paragraphe absent du chapitre cité (${note}) — « ${coupeAuMot(para, 60)} »`);

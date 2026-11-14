@@ -26,7 +26,20 @@ import { resolveQualities } from '../engine/qualities/dispatch';
 import { traitLisible } from '../engine/traits/dispatch';
 import { formatMoney } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
-import { careerLabelFor, charAbr, findCreatureById, findSpeciesById, findSpellById, findTalentById, findTraitById, mentionsParNature, qualityRefLabel, skillInstanceLabel, sourceRefLabel, talentConcrete } from '../data';
+import {
+  careerLabelFor,
+  charAbr,
+  findCreatureById,
+  findSpeciesById,
+  findSpellById,
+  findTalentById,
+  findTraitById,
+  mentionsParNature,
+  qualityRefLabel,
+  skillInstanceLabel,
+  sourceRefLabel,
+  talentConcrete,
+} from '../data';
 import type { NatureDeMention, SourceRef } from '../data/schemas/grammaire/valeurs';
 
 /** Une Caractéristique : son abréviation, son nom, sa valeur effective (`effectiveChar`). */
@@ -175,7 +188,7 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
       return pa > 0 ? [{ localisation: locationLabel(l, c.bodyShape), pa }] : [];
     }),
     traits: (c.traits ?? []).map((tp) => ({ libelle: traitLisible(tp, nom), desc: effectiveEntry(findTraitById(tp.id))?.desc ?? null })),
-    mutations: (c.mutations ?? []).map((m) => ({ libelle: m.label, desc: m.desc })),
+    mutations: (c.mutations ?? []).map((m) => ({ libelle: m.label, desc: m.desc ?? null })),
     competences: c.skills.map((sk) => ({
       libelle: skillInstanceLabel(sk), valeur: testValue(c, { skill: sk }),
       caracteristique: effectiveSkillCharKey(c, { skill: sk }), avances: sk.advances,

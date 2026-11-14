@@ -3,13 +3,14 @@
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
-## appui sur ce qui est porté et sa place à côté des autres objets du même point, le coin d'une bulle au-dessus
+## appui sur ce qui est porté et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
-## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
+## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan, le point du plan sous le pointeur et
+## sa case, le coin de ce qui se pose sous un lieu, la
 ## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait (celle d'un
 ## morceau ou d'une nappe) et à celui de la vision, la part d'un fondu de la vision après un pas de temps, l'état fondu
-## d'une case et le plus grand de deux, la teinte d'instance d'un état, et l'abscisse
+## d'une case et le plus grand de deux, la teinte d'instance d'un état, le relief d'un matériau à son facteur, et l'abscisse
 ## sur un rayon d'un point, d'un point au-delà de celui qu'il touche et du bout de chaque tronçon dont il reprend. Seul
 ## script où l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et
 ## des fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
@@ -30,6 +31,9 @@ const ZOOM_MAXIMAL := 3.0
 const TOLERANCE_D_IMAGE := 0.001
 ## Le jeu, en mètres, entre les boîtes de deux objets rangés côte à côte au même point (`decalage_a_cote`).
 const JEU_ENTRE_RANGES := 0.02
+## Le tour, autour de l'axe de son os, au-delà duquel un objet rangé à côté des précédents d'un point passerait de
+## l'autre côté du corps : il s'empile alors sur eux (`tour_dans_la_place`, #4254).
+const PLACE_DU_POINT := QUART_DE_TOUR
 ## Le jeu, en mètres, entre un objet rangé et ce qui est porté dessous (`recul_d_appui`, `pivot_sur_la_case`).
 const JEU_DE_RANGEMENT := 0.005
 ## Le côté, en mètres, des cases où un objet rangé se confronte à ce qui est porté dessous (`case_de_contact`).
@@ -275,6 +279,12 @@ static func texel_de_vision(case: Vector2i, couche: int, rangees_par_plan: int) 
 	return Vector2i(case.x, case.y + couche * rangees_par_plan)
 
 
+## La taille d'une image rangée comme le masque de la vision (`texel_de_vision`) : `largeur` cases de large, `couches`
+## plans de `rangees_par_plan` rangées.
+static func taille_du_masque(largeur: int, couches: int, rangees_par_plan: int) -> Vector2i:
+	return Vector2i(largeur, couches * rangees_par_plan)
+
+
 ## La part, de 0 à 1, d'un fondu de `duree` secondes parvenu à la part `part`, `secondes` secondes plus tard.
 static func part_du_fondu(part: float, secondes: float, duree: float) -> float:
 	return minf(1.0, part + secondes / duree)
@@ -291,13 +301,20 @@ static func plus_grand_etat(etat: float, autre: float) -> float:
 	return maxf(etat, autre)
 
 
-## La teinte, en sRGB, de l'instance d'une pièce à l'état `etat` (de 0 à 1) sous les teintes `teintes` (inconnue,
-## explorée, vue) : sa part de lumière (`art/monde.gdshader`, `part_de_lumiere`) portée en sRGB (`en_srgb`).
-static func teinte_d_instance(etat: float, teintes: Vector3) -> float:
+## La part de lumière linéaire, de 0 à 1, de ce qui est à l'état `etat` (de 0 à 1) sous les teintes `teintes`
+## (inconnue, explorée, vue) : la jumelle de `part_de_lumiere` de `art/vision.gdshaderinc`.
+static func part_de_lumiere(etat: float, teintes: Vector3) -> float:
 	var exploree := 128.0 / 255.0
-	var sous := lerpf(teintes.x, teintes.y, clampf(etat / exploree, 0.0, 1.0))
-	var dessus := lerpf(teintes.y, teintes.z, clampf((etat - exploree) / (1.0 - exploree), 0.0, 1.0))
-	return Color(sous, sous, sous).linear_to_srgb().r if etat < exploree else Color(dessus, dessus, dessus).linear_to_srgb().r
+	if etat < exploree:
+		return lerpf(teintes.x, teintes.y, clampf(etat / exploree, 0.0, 1.0))
+	return lerpf(teintes.y, teintes.z, clampf((etat - exploree) / (1.0 - exploree), 0.0, 1.0))
+
+
+## La teinte, en sRGB, de l'instance d'une pièce à l'état `etat` (de 0 à 1) sous les teintes `teintes` (inconnue,
+## explorée, vue) : sa part de lumière (`part_de_lumiere`) portée en sRGB.
+static func teinte_d_instance(etat: float, teintes: Vector3) -> float:
+	var part := part_de_lumiere(etat, teintes)
+	return Color(part, part, part).linear_to_srgb().r
 
 
 ## L'abscisse du point `point` sur le rayon de sens `-rayon.z` (unitaire), comptée depuis l'abscisse `depuis`.
@@ -577,6 +594,12 @@ static func echelle_composee(echelle_du_squelette: float, echelle: float) -> flo
 	return echelle_du_squelette * echelle
 
 
+## L'intensité `relief` de la carte de normales d'un matériau (`normal_scale`) portée au facteur `facteur` de sa surface
+## (`reliefs` de la composition, #4002).
+static func relief_au_facteur(relief: float, facteur: float) -> float:
+	return relief * facteur
+
+
 ## L'échelle de l'orbite qui cadre un corps de sommet `sommet` comme elle cadre, à l'échelle 1, le corps neutre de sommet
 ## `sommet_neutre`.
 static func echelle_de_cadrage(sommet: float, sommet_neutre: float) -> float:
@@ -690,6 +713,13 @@ static func tour_a_cote(emplacement: Basis, point: Vector3, tour: float, sens: f
 	return tour + debut_precedent - jeu - fin
 
 
+## Le tour `tour` d'un objet rangé à côté des précédents d'un point, gardé s'il reste dans la place du point
+## (`PLACE_DU_POINT`), nul sinon : l'objet s'empile alors sur eux. Un rouleau large, à côté d'un bâton au dos, passait
+## devant la poitrine, une faux à côté d'un bâton à l'épaule se couchait en travers des épaules (#4254).
+static func tour_dans_la_place(tour: float) -> float:
+	return tour if absf(tour) <= PLACE_DU_POINT else 0.0
+
+
 ## L'azimut du point `point` autour de l'axe Y de son os (atan2 de x sur z), compté depuis l'azimut `depuis`, dans
 ## ]-π, π].
 static func azimut(point: Vector3, depuis: float) -> float:
@@ -766,6 +796,18 @@ static func echelle_de_motif() -> Vector3:
 ## la marge du plan autour.
 static func point_du_plan(taille: Vector2, x: float, y: float) -> Vector2:
 	return Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) + Vector2(x, y) * (taille - Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) * 2.0)
+
+
+## Le point du cadre d'un plan de `largeur` sur `hauteur` pixels sous son point `ou`, l'inverse de `point_du_plan`, en
+## `unites` par côté du cadre.
+static func point_sous_le_plan(largeur: float, hauteur: float, ou: Vector2, unites: float) -> Vector2:
+	var marge := Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN)
+	return (ou - marge) / (Vector2(largeur, hauteur) - marge * 2.0) * unites
+
+
+## La case entière qui contient le point `f`.
+static func case_du_point(f: Vector2) -> Vector2i:
+	return Vector2i(floori(f.x), floori(f.y))
 
 
 ## Le coin d'un contrôle de `largeur` sur `hauteur` centré sous le point du plan `centre`, de rayon `rayon`, gardé dans

@@ -2,7 +2,7 @@
  * PÉRILS D'AUTEUR D'UNE ROUTE (#1426) — SOURCE UNIQUE, partagée par le voyage TERRESTRE
  * (`travelFlow`) et MARITIME (`seaVoyageFlow`). Un péril d'auteur (`MapRoute.perils`) est une chance
  * par jour (`chancePct`) posée à l'ÉDITEUR ; s'il se déclenche, ses `Effect[]` s'appliquent, et un
- * effet `startCombat`/`transition` INTERROMPT le trajet.
+ * effet `transition` INTERROMPT le trajet.
  *
  * Ce que ce module remplace : deux boucles `for (peril of route.perils) { if (d100 > chancePct)
  * continue; … }` qui roulaient leur dé en silence — un dé de MONDE que le siège qui possède
@@ -35,9 +35,9 @@ import { tablesPosees, type FragmentDeTables, type InterruptionDePeril, type Par
 
 export const AUTHOR_PERIL_KIND = 'perilDeScene';
 
-/** Un péril d'auteur INTERROMPT-il le trajet ? (effet de combat ou de transition de scène). */
-export function perilInterrupts(effects: Effect[] | undefined): boolean {
-  return (effects ?? []).some((e) => e.type === 'startCombat' || e.type === 'transition');
+/** Un péril d'auteur INTERROMPT-il le trajet ? (transition de scène). */
+function perilInterrupts(effects: Effect[] | undefined): boolean {
+  return (effects ?? []).some((e) => e.type === 'transition');
 }
 
 /**

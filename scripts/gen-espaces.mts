@@ -30,7 +30,21 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import type { SchemaDef } from '../src/data/schemas/types';
 import type { AccesAuxDocuments, CollectionDeFichier, MarqueDeCollection } from '../src/data/schemas/grammaire/collection-cle';
-import { baseDe, champsDiscriminants, cleDesLibelles, cleDesSpecs, cleDuVocabulaire, cleFiltree, cleNichee, HORS_DE_LA_GRAPHIE, lireCleDEspace, pasDeLaSuite, suiteAvecPas, suivreLeChemin, type PasResolu } from '../src/data/schemas/grammaire/cle-d-espace';
+import {
+  baseDe,
+  champsDiscriminants,
+  cleDesLibelles,
+  cleDesSpecs,
+  cleDuVocabulaire,
+  cleFiltree,
+  cleNichee,
+  HORS_DE_LA_GRAPHIE,
+  lireCleDEspace,
+  pasDeLaSuite,
+  suiteAvecPas,
+  suivreLeChemin,
+  type PasResolu,
+} from '../src/data/schemas/grammaire/cle-d-espace';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from '../src/data/schemas/grammaire/sourcesDeSpecs';
 import { parUnitesDeCode } from './guards/lib/lister.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';

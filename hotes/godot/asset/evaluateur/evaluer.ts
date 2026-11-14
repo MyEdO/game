@@ -24,7 +24,15 @@ import { mesurerAppuis, poserPieds, surfacesDesPieds, type AppuisDuClip, type Po
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
 import { gardeTranchantDuRigide } from './gardes/tranchantDuRigide.ts';
-import { aretesDe, gardeEtirement, gardeEtirementAuRepos, mesurerEtirement, piresAretes, type MesureDEtirement, type RapportDArete } from './gardes/etirement.ts';
+import {
+  aretesDe,
+  gardeEtirement,
+  gardeEtirementAuRepos,
+  mesurerEtirement,
+  piresAretes,
+  type MesureDEtirement,
+  type RapportDArete,
+} from './gardes/etirement.ts';
 import { gardePiedsAuSol, plusBas, type NiveauDuCorps } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids } from './gardes/poids.ts';
@@ -32,8 +40,23 @@ import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from '.
 import { etenduesDesSegments, gardeSegments, type MesuresDesSegments } from './gardes/segments.ts';
 import { gardeSuiviDuCorps } from './gardes/suiviDuCorps.ts';
 import { suivreLesAmplitudes } from './gardes/amplitude.ts';
-import { gardePercementAuRepos, gardeTraversee, indicesDe, lierLesCouches, mesurerTraversee, positionsDe, sansLesZonesMasquees, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
-import { gardeMembreDansUnVetement, mesurerMembresDansUnVetement, pairesHorsDeZone, zonesVoisines, type MembreDUnEchantillon } from './gardes/membreDansUnVetement.ts';
+import {
+  gardePercementAuRepos,
+  gardeTraversee,
+  indicesDe,
+  lierLesCouches,
+  mesurerTraversee,
+  positionsDe,
+  sansLesZonesMasquees,
+  type TraverseeDUnEchantillon,
+} from './gardes/traversee.ts';
+import {
+  gardeMembreDansUnVetement,
+  mesurerMembresDansUnVetement,
+  pairesHorsDeZone,
+  zonesVoisines,
+  type MembreDUnEchantillon,
+} from './gardes/membreDansUnVetement.ts';
 import { gardeMembres, mesurerMembres, ZONES_DES_MEMBRES, ZONES_DU_TRONC, type MembreDansLeTronc } from './gardes/membres.ts';
 import { COUCHES, RANG_DU_CORPS, type CategorieDElement, type Couche } from '../element.ts';
 import { meshesDuCorps, peauDeLaTenue, zoneDe } from './corps.ts';
@@ -182,14 +205,14 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
 
   ecarts.push(...gardeSuiviDuCorps(base.scene, corps, elements.flatMap((e) => e.skinnes), libelle));
 
-  const pose = manifeste && table ? poseDuGabarit({ ...manifeste, gabarit: table }, facteurs) : null;
+  const pose = manifeste && table ? poseDuGabarit({ ...manifeste, gabarit: table }, facteurs, poidsDesSilhouettes) : null;
   const etendues = () => etenduesDesSegments(poseDeRepos(base.scene, corpsSkinne), corpsSkinne, Object.keys(pose?.echellesDesOs ?? {}));
   const neutre = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormesDe(manifeste, FACTEURS_NEUTRES)).positions;
   if (manifeste) poserFormes(base.scene, poidsDesFormesDe(manifeste, FACTEURS_NEUTRES)(poidsDesSilhouettes));
   const sansGabarit = pose ? etendues() : null;
   poserFormes(base.scene, poids);
   const fondue = poseDeRepos(base.scene, meshes).positions;
-  const gabarit = manifeste && table ? appliquerGabarit(base.scene, facteurs, { ...manifeste, gabarit: table }, base.squelette ?? undefined) : null;
+  const gabarit = manifeste && table ? appliquerGabarit(base.scene, facteurs, { ...manifeste, gabarit: table }, poidsDesSilhouettes, base.squelette ?? undefined) : null;
   base.scene.updateMatrixWorld(true);
   const segments = pose && sansGabarit ? gardeSegments(sansGabarit, etendues(), pose) : null;
 
@@ -213,7 +236,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const masques = new Set([...corps, ...declarees.flatMap((d) => d.meshes)].filter((m) => !visibles.has(m)));
 
   const chaines = manifeste?.chaines ?? {};
-  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, poidsDesFormes });
+  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, osDesSilhouettes: table?.osDesSilhouettes, poidsDesFormes });
   const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
   const couvre = ordreDesCouches<(typeof declareesMontrees)[number]>(peau.map((c) => neutre.get(c) as Float32Array));
   const pile = poserLaPile([pieceDe(RANG_DU_CORPS, montre(corpsSkinne, RANG_DU_CORPS), false), ...declareesMontrees], couvre, fondue, new Set(Object.values(chaines).flat()), peau);

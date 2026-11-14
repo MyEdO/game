@@ -7,7 +7,18 @@
  */
 import { Scene, sceneMetresPerTile } from './monde/scene';
 import { Pt } from './monde/path';
-import { computeVisible, computeLightField, ambientScalar, baseSightTiles, darkSightTiles, mapLights, combatantLights, buildOpaque, type LightSource, type Occ } from './monde/vision';
+import {
+  computeVisible,
+  computeLightField,
+  ambientScalar,
+  baseSightTiles,
+  darkSightTiles,
+  mapLights,
+  combatantLights,
+  buildOpaque,
+  type LightSource,
+  type Occ,
+} from './monde/vision';
 import { memoByRef, memoByRefDeps } from './monde/sceneMemo';
 import { meneurDuMonde } from './monde/combatants';
 import { smokeOf } from './monde/combatGeometry';

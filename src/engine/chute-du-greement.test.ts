@@ -7,11 +7,13 @@ import { applyFall } from './movement';
 import { hullShipSize, shipSizeOfLength } from './shipBuild';
 import { makeRNG, roll as rollDes } from './dice';
 import { hasCondition } from './conditions';
-import { SHIP_CRIT_SET, findFallTable, type ShipCritEntry } from '../data/shipCriticals';
+import { SHIP_CRIT_SET, SHIP_CRITICAL_TABLES, findFallTable } from '../data/shipCriticals';
 import { findVehicleById, shipConstruction } from '../data';
 import type { Combatant } from './types';
 import { schema as shipCriticalsSchema } from '../data/schemas/defs/ship-criticals';
+import type * as shipCriticalsDef from '../data/schemas/defs/ship-criticals';
 import shipCriticalsJson from '../data/ship-criticals.json';
+import { datasetDe } from '../data/datasets';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
@@ -84,7 +86,7 @@ describe('les CINQ rangées du gréement jouent leur Test (MDG 13, règle 7 : pl
   });
 
   it('les 5 sont exactement celles dont la prose dit « Si un Personnage se TROUVE dans le gréement »', () => {
-    const table = SHIP_CRIT_SET.tables.greement as ShipCritEntry[];
+    const table = SHIP_CRITICAL_TABLES.greement;
     const avecCoup = table.filter((e) => e.crewHit).map((e) => e.id);
     const presenceImmediate = table.filter((e) => /se trouve dans le gréement/.test(e.note)).map((e) => e.id);
     expect(avecCoup).toEqual(ATTENDU.map(([, id]) => id));
@@ -180,8 +182,8 @@ describe('la TABLE de hauteur (MDG 13 l.684-688) est en donnée, et elle est TOT
  * refuse AVANT, nominativement.
  */
 describe('la table de chute est FERMÉE au parse (stations et Tailles du catalogue, jamais du texte libre)', () => {
-  const doc = () => structuredClone(shipCriticalsJson) as Record<string, unknown>;
-  const bande0 = (d: Record<string, unknown>) => (d.tablesDeChute as { bandes: Record<string, unknown>[] }[])[0].bandes[0];
+  const doc = () => structuredClone(datasetDe<typeof shipCriticalsDef>(shipCriticalsJson));
+  const bande0 = (d: ReturnType<typeof doc>) => d.tablesDeChute[0].bandes[0];
 
   it('le JSON RÉEL passe (sinon les refus ci-dessous ne prouveraient rien)', () => {
     expect(shipCriticalsSchema.safeParse(doc()).success).toBe(true);
@@ -189,7 +191,7 @@ describe('la table de chute est FERMÉE au parse (stations et Tailles du catalog
 
   it('clé de station INCONNUE (« nid-de-pi ») → refus NOMINATIF, jamais une colonne muette', () => {
     const d = doc();
-    bande0(d).hauteurs = { greement: { dice: { n: 1, sides: 10 } }, 'nid-de-pi': 12 };
+    Object.assign(bande0(d), { hauteurs: { greement: { dice: { n: 1, sides: 10 } }, 'nid-de-pi': 12 } });
     const r = shipCriticalsSchema.safeParse(d);
     expect(r.success).toBe(false);
     const dit = JSON.stringify(r.success ? [] : r.error.issues);
@@ -199,7 +201,7 @@ describe('la table de chute est FERMÉE au parse (stations et Tailles du catalog
 
   it('Taille de bateau INCONNUE (« gigantesque ») → refus, le tableau standard est fermé (MDG 12 l.122-129)', () => {
     const d = doc();
-    bande0(d).tailles = ['gigantesque'];
+    Object.assign(bande0(d), { tailles: ['gigantesque'] });
     expect(shipCriticalsSchema.safeParse(d).success).toBe(false);
   });
 });

@@ -49,7 +49,16 @@ import { rollLine, type RollLineDecl, type RollLineSpec } from './ligneDeJet';
 import type { OupsResolved } from '../engine/oups';
 import type { RecapLine, RecapTone } from './recapLine';
 import type { ModLine } from '../engine/combat';
-import { startCascade, runCascadeImmediate, rollBatchParticipant, pushStep, tableStepPosee, clampStepAmount, porteursDeLEtape, compteurDeSequence } from './cascade';
+import {
+  startCascade,
+  runCascadeImmediate,
+  rollBatchParticipant,
+  pushStep,
+  tableStepPosee,
+  clampStepAmount,
+  porteursDeLEtape,
+  compteurDeSequence,
+} from './cascade';
 import { tablesPosees, type GenreDEtape, type GenreDeCascade } from './tablesPosees';
 import { testValue, partyBest, partyAssisted, type SupportDetail } from '../engine/skills';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';

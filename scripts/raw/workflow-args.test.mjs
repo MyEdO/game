@@ -10,7 +10,16 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { REGISTRE_LIVRES } from './_lib.mjs'
-import { argsDeDossierDeChapitre, argsDeTableSimulee, ecrireFiche, famillesDeLaFiche, ficheDuRun, lireRendu, perimetreDeCoeur, valeurDeDrapeau } from './workflow-args.mjs'
+import {
+  argsDeDossierDeChapitre,
+  argsDeTableSimulee,
+  ecrireFiche,
+  famillesDeLaFiche,
+  ficheDuRun,
+  lireRendu,
+  perimetreDeCoeur,
+  valeurDeDrapeau,
+} from './workflow-args.mjs'
 import { chargerDossiers } from './lib/dossiers.mjs'
 import { FAMILLES_DE_DOSSIER, PREFIXES_D_ID, STATUTS_DE_BEAT, ficheDeDossier } from '../../src/data/source/dossier.ts'
 import { coeursDeDomaines, coeursDuRegistre, domainesDe } from './_lib.mjs'

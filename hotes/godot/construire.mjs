@@ -37,7 +37,7 @@
 // épinglé ; à côté, les modèles en scène et les avis de licence, Node et les paquets npm des deux bundles compris ;
 // puis l'exécutable joue une partie sur son noyau embarqué
 // (`jouerLExecutable`). `--rendus` joue en rendu réel, sous chacun des deux rendus du projet (`RENDUS`), les recettes
-// déclarant `const RECETTE_RENDUE := true` (`rendre`) ; la CI le joue (`npm run godot:rendus`). L'import de ce module
+// déclarant `const RECETTE_RENDUE := true` (`rendre`), sur le pont vivant comme la sonde ; la CI le joue (`npm run godot:rendus`). L'import de ce module
 // ne lance aucun mode ; il charge les assets par `listage.mjs` (#3963).
 import { fileURLToPath } from 'node:url'
 import { spawn, spawnSync } from 'node:child_process'
@@ -470,10 +470,11 @@ function godot(binaire, projet, args) {
 const DONNEES_DE_L_UTILISATEUR = process.platform === 'linux' ? 'XDG_DATA_HOME' : null
 
 /** Chaque lancement de `lancements` (`{ commande, args(donnees), juger({ lignes, echec }) }`) mené de front
- *  (`enFileBornee`), un par cœur, là où chacun a ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`), à la suite
- *  ailleurs : chacun reçoit un dossier `donnees` neuf sous le projet `copie`, s'arrête à `ECHEANCE_MS`, et `juger` rend
- *  ses erreurs à sa sortie. Rend les erreurs de tous. */
-async function menerDeFront(copie, lancements) {
+ *  (`enFileBornee`), autant que la machine a de fois `coeurs` cœurs, ce qu'un lancement en tient (au moins un, #3950),
+ *  là où chacun a ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`), à la suite ailleurs : chacun reçoit un
+ *  dossier `donnees` neuf sous le projet `copie`, s'arrête à `ECHEANCE_MS`, et `juger` rend ses erreurs à sa sortie.
+ *  Rend les erreurs de tous. */
+async function menerDeFront(copie, lancements, coeurs = 1) {
   const erreurs = await enFileBornee(lancements.map(({ commande, args, juger }) => async (signal) => {
     const donnees = mkdtempSync(join(copie, 'donnees-'))
     const arret = AbortSignal.any([signal, AbortSignal.timeout(ECHEANCE_MS)])
@@ -481,18 +482,22 @@ async function menerDeFront(copie, lancements) {
       commande, args(donnees), DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: donnees } : {},
       (tuer) => arret.addEventListener('abort', tuer, { once: true }),
     ))
-  }), { deFront: DONNEES_DE_L_UTILISATEUR ? availableParallelism() : 1 })
+  }), { deFront: DONNEES_DE_L_UTILISATEUR ? Math.max(1, Math.floor(availableParallelism() / coeurs)) : 1 })
   return erreurs.flat()
 }
 
+/** Les arguments du pont d'une recette lancée avec ses données `donnees` (`menerDeFront`) : `--pont=<VIVANT>`, que la
+ *  copie ne porte pas sous `res://../vivant.mjs`, et `--stockage=<fichier à elle>`, pour qu'aucune ne touche aux
+ *  sauvegardes de l'utilisateur ni à celles d'une autre. */
+const argumentsDuPont = (donnees) => ['--', `--pont=${VIVANT}`, `--stockage=${join(donnees, 'stockage.json')}`]
+
 /** Chaque recette de `recettes` jouée par l'éditeur `binaire` sans écran sur le projet importé `copie`, menées de
- *  front (`menerDeFront`) ; chacune reçoit `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`, et
- *  `--stockage=<fichier à elle>`, pour qu'aucune ne touche aux sauvegardes de l'utilisateur ni à celles d'une autre.
- *  Sa sortie s'imprime à sa fin, d'un bloc ; rend les erreurs de toutes. */
+ *  front (`menerDeFront`), avec les arguments du pont (`argumentsDuPont`). Sa sortie s'imprime à sa fin, d'un bloc ;
+ *  rend les erreurs de toutes. */
 function jouerLesRecettes(binaire, copie, recettes) {
   return menerDeFront(copie, recettes.map((recette) => ({
     commande: binaire,
-    args: (donnees) => ['--headless', '--path', copie, '--script', recette, '--', `--pont=${VIVANT}`, `--stockage=${join(donnees, 'stockage.json')}`],
+    args: (donnees) => ['--headless', '--path', copie, '--script', recette, ...argumentsDuPont(donnees)],
     juger: ({ lignes, echec }) => {
       console.log(`[godot] recette autonome : ${recette}\n${lignes.join('\n')}`)
       return [...erreursDe(lignes), ...echec]
@@ -561,9 +566,12 @@ const RENDUS = ['forward_plus', 'gl_compatibility']
 /** L'écran virtuel qui porte un rendu réel là où aucun écran n'est ouvert (la CI, un conteneur). */
 const ECRAN_VIRTUEL = process.platform === 'linux' && !process.env.DISPLAY ? ['xvfb-run', '-a', '-s', '-screen 0 1280x720x24'] : []
 
+/** Les cœurs que tient une recette rendue : son moteur en rendu réel et son pont (#3950). */
+const COEURS_D_UNE_RECETTE_RENDUE = 2
+
 /** Le projet importé par l'éditeur `binaire`, puis chaque recette déclarant `const RECETTE_RENDUE := true` jouée en
  *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui), menées de front
- *  (`menerDeFront`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
+ *  (`menerDeFront`), chacune tenant `COEURS_D_UNE_RECETTE_RENDUE` cœurs, avec les arguments du pont (`argumentsDuPont`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
  *  pas, et que Godot remplace, est une erreur. Son verdict est son code de sortie et ce qu'elle écrit jusqu'à sa ligne
  *  de clôture (`erreurs=<n>`) ; ce que le moteur écrit ensuite en se fermant n'en est pas. */
 function rendre(binaire, { figerLesDessins }) {
@@ -574,7 +582,7 @@ function rendre(binaire, { figerLesDessins }) {
     const [commande, ...prefixe] = [...ECRAN_VIRTUEL, binaire]
     const erreurs = await menerDeFront(copie, recettes.flatMap((recette) => RENDUS.map((rendu) => ({
       commande,
-      args: () => [...prefixe, '--path', copie, '--rendering-method', rendu, '--audio-driver', 'Dummy', '--script', recette],
+      args: (donnees) => [...prefixe, '--path', copie, '--rendering-method', rendu, '--audio-driver', 'Dummy', '--script', recette, ...argumentsDuPont(donnees)],
       juger: ({ lignes, echec }) => {
         console.log(`[godot] recette rendue sous ${rendu} : ${recette}\n${lignes.join('\n')}`)
         const cloture = lignes.findLastIndex((l) => /\] erreurs=\d+$/.test(l.trim()))
@@ -585,7 +593,7 @@ function rendre(binaire, { figerLesDessins }) {
           ...(lignes.some((l) => l.includes(` rendu=${rendu}`)) ? [] : [`${recette} : le rendu ${rendu} demandé n'est pas celui qui a rendu`]),
         ]
       },
-    }))))
+    }))), COEURS_D_UNE_RECETTE_RENDUE)
     if (!erreurs.length) console.log(`[godot] ${recettes.length} recette(s) rendue(s) sous ${RENDUS.join(' et ')}`)
     return erreurs
   })

@@ -3,14 +3,23 @@
  * (pion sur le terrain, panneau Perso, ordre de bataille, fiche express au survol).
  * Aucune règle ici : on lit `conditions[]` et `activeEffects[]` déjà gérés par le moteur.
  */
-import { CHAR_LABELS, DIFFICULTY_LABELS, CATEGORY_BY_SOURCE_KIND, type ConditionInstance, type ActiveEffect, type CharKey, type Combatant, type EffectSource } from '../engine/types';
+import {
+  CHAR_LABELS,
+  DIFFICULTY_LABELS,
+  CATEGORY_BY_SOURCE_KIND,
+  type ConditionInstance,
+  type ActiveEffect,
+  type CharKey,
+  type Combatant,
+  type EffectSource,
+} from '../engine/types';
 import type { IconId } from '../data/icons';
 import type { VerrouDesMots } from '../noyau/fabriquesDuNoyau';
 import {
   conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel,
   creatures, maladies, maneuvers, mutations, qualities, regles, symptoms, talents, findTrappingById, traits,
 } from '../data';
-import { ACTIVITIES } from '../engine/activities';
+import { ACTIVITIES } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { deElide } from '../i18n';
 import { MISCAST_TABLES, categorieDesLignesDeLaTable } from '../engine/miscast';

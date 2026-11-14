@@ -344,13 +344,12 @@ describe('#4005 — la Rencontre tirée est l’événement du jour, rangé à l
   });
 
   it('interruption puis reprise : l’événement reste avec le jour interrompu et ne fuit pas dans le jour repris', () => {
-    jourDeRencontre(map({ km: 60, perilDie: 0, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-test' }] }] }));
+    jourDeRencontre(map({ km: 60, perilDie: 0, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'lieu-b-scene' } }] }] }));
     drainCascade();
     expect(get().travelPlan!.interrupted, 'la péripétie interrompt le jour de la Rencontre').toBe(true);
     get().fenetreFermer('recitDeVoyage');
-    expect(get().battle, 'l’acquittement lance le combat différé').toBeTruthy();
-    // victoire simulée, route sans péripétie : la reprise ouvre le jour suivant (patron de `travel.hors-store.test.ts`)
-    set({ battle: null, mode: 'exploration' });
+    expect(get().scene?.id, 'l’acquittement joue la transition différée').toBe('lieu-b-scene');
+    // route sans péripétie : la reprise ouvre le jour suivant (patron de `travel.hors-store.test.ts`)
     set({ worldMap: { ...get().worldMap!, routes: get().worldMap!.routes.map((x) => ({ ...x, perils: [] })) } });
     get().reprendreLeVoyage();
     expect(get().travelPlan!.log!.slice(-1)[0].events, 'le jour interrompu, clos au log, porte l’événement').toEqual([evenementAttendu()]);
@@ -380,14 +379,14 @@ describe('enchaînement JOUR → halte de nuit → reprise → arrivée', () => 
     expect(get().lieu).toBe('pb');
   });
 
-  it('péripétie de combat pendant le jour : le voyage est INTERROMPU (recap.then), pas de halte', () => {
+  it('péripétie de transition pendant le jour : le voyage est INTERROMPU (recap.then), pas de halte', () => {
     seedBattleRng(1);
     const h = hero({ items: [ration('r1')] });
-    setup(map({ km: 30, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-test' }] }] }), [h]);
+    setup(map({ km: 30, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'lieu-b-scene' } }] }] }), [h]);
     get().partirEnVoyage('r1', 'pied');
     drainCascade();
     const st = get();
-    expect(st.battle).toBeNull(); // différé derrière le récit
+    expect(st.scene?.id).toBe('lieu-a-scene'); // différé derrière le récit
     expect(st.travelRecap?.then?.kind).toBe('effects');
     expect(st.travelPlan?.interrupted).toBe(true);
     expect(st.pendingRest).toBeFalsy(); // interrompu → pas de halte de nuit

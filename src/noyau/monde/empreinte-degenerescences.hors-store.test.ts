@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 import { props } from '../../data';
 import { empreinteDeriveeDuProp, type PropData } from '../../data/props.types';
 import { DIR4_ORDER } from '../../geometry/dir8';
@@ -32,12 +33,12 @@ describe('empreinte dérivée — aucune dégénérescence', () => {
   it('une recette dont TOUT le corps est siège garde une empreinte d’au moins une case', () => {
     const base = props.find((p) => p.id === 'tabouret')!;
     const [assise] = base.volume!.primitives;
-    const toutSiege = {
+    const toutSiege: PropData = {
       ...base,
-      id: 'tout-siege-de-fixture',
+      id: idDeFixture('prop', 'tout-siege-de-fixture'),
       volume: { ...base.volume!, primitives: [assise] },
       seatSlots: [{ id: 'place-1', anchor: { xM: assise.center.xM, yM: assise.center.yM, hM: 2 }, facing: 'S', approach: { x: 0, y: -1 } }],
-    } as PropData;
+    };
     for (const facing of DIR4_ORDER) {
       const { w, h } = empreinteDeriveeDuProp(toutSiege, facing, 2);
       expect(w * h, `cap ${facing}`).toBeGreaterThanOrEqual(1);

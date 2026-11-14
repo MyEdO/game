@@ -6,7 +6,16 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { ciblePsy } from '../engine/psych/ciblage';
 import { psychologies } from '../data';
 import { Combatant } from '../engine/types';
-import { EtatPanel, zoneAfflictions, ETAT_ANCHOR_CRITIQUES, ETAT_ANCHOR_MALADIES, ETAT_ANCHOR_MUTATIONS, ETAT_ANCHOR_TRAUMAS, ETAT_ANCHOR_PSYCHOLOGIE, ETAT_ANCHOR_ENCOMBREMENT } from './EtatPanel';
+import {
+  EtatPanel,
+  zoneAfflictions,
+  ETAT_ANCHOR_CRITIQUES,
+  ETAT_ANCHOR_MALADIES,
+  ETAT_ANCHOR_MUTATIONS,
+  ETAT_ANCHOR_TRAUMAS,
+  ETAT_ANCHOR_PSYCHOLOGIE,
+  ETAT_ANCHOR_ENCOMBREMENT,
+} from './EtatPanel';
 import { traumaById, consolidateAmputations, traumaCharPenalties, avecSequelles } from '../engine/trauma';
 import { useGame } from '../state/store';
 import { combattantDeTest, blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';

@@ -7,7 +7,16 @@ import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CharScreen, StarScreen, DetailsScreen } from './CharacterCreator';
-import { newDraft, withSpecies, withCareer, withCharMode, rollDraftChars, withStar, withStarTalentSpec, type CreatorDraft } from '../../noyau/creation/brouillon';
+import {
+  newDraft,
+  withSpecies,
+  withCareer,
+  withCharMode,
+  rollDraftChars,
+  withStar,
+  withStarTalentSpec,
+  type CreatorDraft,
+} from '../../noyau/creation/brouillon';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

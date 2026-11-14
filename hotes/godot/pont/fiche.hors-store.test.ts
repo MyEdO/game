@@ -10,12 +10,15 @@ import { describe, it, expect } from 'vitest';
 import { drainer, erreurDe, ficheDuHeros, sectionDeLaFiche, suiteDe, table, enFocus } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Choix, Entite, Puce } from '../../../src/hote/elements';
-import { findCreatureById, sourceRefLabel } from '../../../src/data';
-import talents from '../../../src/data/talents.json';
-import traits from '../../../src/data/traits.json';
-import spells from '../../../src/data/spells.json';
+import { findCreatureById, findSpellById, findTalentById, findTraitById, sourceRefLabel } from '../../../src/data';
 
 const { appel } = table();
+
+/** La description d'une entrée du catalogue ; son absence fait échouer le test. */
+const descDe = (entree: { id: string; desc?: string } | undefined): string => {
+  if (entree?.desc === undefined) throw new Error(`entrée sans description : ${entree?.id ?? 'introuvable'}`);
+  return entree.desc;
+};
 
 /** Les puces de la section `id` de la fiche ouverte. */
 const puces = (s: Suite, id: string): Puce[] => sectionDeLaFiche(s.vue, id) as Puce[];
@@ -64,12 +67,12 @@ describe('la fiche d’un combattant par le pont', () => {
     expect(termes.slice(1).map((p) => p.libelle), 'ses Dégâts résolus, son Allonge, ses Atouts et Défauts, chacun en puce')
       .toEqual([expect.stringMatching(/^Dégâts \+BF\+\d+ \(\d+\)$/), expect.stringMatching(/^Allonge /), 'Assommante', 'Défensive']);
     const perspicace = puces(s, 'talents').find((p) => p.libelle === 'Perspicace');
-    expect(perspicace?.detail, 'un Talent se nomme ; sa description au survol').toBe(talents.find((x) => x.id === 'perspicace')!.desc);
+    expect(perspicace?.detail, 'un Talent se nomme ; sa description au survol').toBe(descDe(findTalentById('perspicace')));
     const arcanes = puces(s, 'talents').find((p) => p.libelle === 'Magie des Arcanes (Feu)')!.detail!;
-    expect(talents.find((x) => x.id === 'magie-des-arcanes')!.desc!.startsWith(arcanes.replace(/…$/, '')), 'une description longue : son premier paragraphe, coupé au mot').toBe(true);
+    expect(descDe(findTalentById('magie-des-arcanes')).startsWith(arcanes.replace(/…$/, '')), 'une description longue : son premier paragraphe, coupé au mot').toBe(true);
     expect(arcanes.length <= 300 && !arcanes.includes('\n'), 'qui se lit d’un coup d’œil').toBe(true);
     const flechette = puces(s, 'sorts').find((p) => p.libelle === 'Fléchette');
-    expect(flechette?.detail, 'un sort se nomme ; sa description au survol').toBe(spells.find((x) => x.id === 'flechette')!.desc);
+    expect(flechette?.detail, 'un sort se nomme ; sa description au survol').toBe(findSpellById('flechette')?.desc);
     expect(s.vue.zones['fiche.source'], 'un héros n’a pas de profil sourcé').toEqual([]);
 
     const possessions = sectionDeLaFiche(s.vue, 'possessions') as Bouton[];
@@ -111,7 +114,7 @@ describe('la fiche d’un combattant par le pont', () => {
     expect(armes(s).map((a) => [a.nom, ...(a.elements as Puce[]).map((p) => [p.libelle, p.valeur])]), 'une arme : la valeur de son Test, ses Dégâts résolus')
       .toEqual([['Arme', ['Test', '35'], ['Dégâts +8 (8)', null]]]);
     expect(puces(s, 'armure').map((p) => [p.libelle, p.valeur])[0], 'les PA de chaque localisation qui en porte').toEqual(['Tête', '3']);
-    expect(puces(s, 'traits').find((p) => p.libelle === 'Belliqueux')?.detail, 'un Trait se nomme ; sa description au survol').toBe(traits.find((x) => x.id === 'belliqueux')!.desc);
+    expect(puces(s, 'traits').find((p) => p.libelle === 'Belliqueux')?.detail, 'un Trait se nomme ; sa description au survol').toBe(descDe(findTraitById('belliqueux')));
     expect(s.vue.zones['fiche.source'].map((l) => l.texte), 'la source du profil dont il est l’instance').toEqual([`Profil : ${sourceRefLabel(findCreatureById('orc')!.source)}`]);
   });
 
