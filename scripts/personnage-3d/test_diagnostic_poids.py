@@ -14,7 +14,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 import poids
 import humanoide
-from diagnostic_poids import decrire_aretes as decrire_traces, imprimer_retournements, retournements_neufs
+from diagnostic_poids import decrire_aretes as decrire_traces, imprimer_retournements, recharger, retournements_neufs
 from test_silhouettes import groupe_a_un_clip
 
 
@@ -132,7 +132,7 @@ def preparation_cuite(rapport_repos, capture=None, topologie=None):
     def groupes(rig, clips, table, demandes, plantes, diagnostic):
         appels.append(clips)
         diagnostic.update(etats=[demandes], echantillons=[{'clip': 'repos', 't': 0}])
-        yield ['os'], [(demandes, pile, ())]
+        yield ['os'], [(demandes, [pile] * len(demandes), ())]
 
     with ExitStack() as ressources, contextlib.redirect_stdout(io.StringIO()):
         ressources.enter_context(mock.patch.object(humanoide, 'groupes_de_peau', groupes))
@@ -175,6 +175,14 @@ class RetournementsNeufs(unittest.TestCase):
         etat, faces = retournement_sous_le_clip([[1, 0], [0, 1], [1, 0]], au_repos=True)
         self.assertEqual(retournements_neufs(etat, faces), {'aretes': 0, 'faces': 0})
 
+
+    def test_le_retournement_d_un_etat_se_lit_sous_sa_pile(self):
+        etat, faces = retournement_sous_le_clip([[1, 0], [0, 1], [1, 0]])
+        groupe = etat['groupes'][0]
+        immobile = np.tile(np.eye(4, dtype=np.float32), (2, 2, 1, 1))
+        positions = np.concatenate([groupe[0], groupe[0]])
+        etat['groupes'] = [poids.GroupePondere(positions, positions, [immobile, groupe[2][0]], [], (), groupe.clips)]
+        self.assertEqual(retournements_neufs(etat, faces), {'aretes': 1, 'faces': 1})
 
 class PorteDeCuisson(unittest.TestCase):
     def test_les_moteurs_lisent_la_topologie_recue(self):
@@ -249,7 +257,7 @@ class SauvegardeDuRefus(unittest.TestCase):
             with np.load(prefixe + '-refus.npz', allow_pickle=False) as z:
                 configuration = json.loads(str(z['configuration']))
                 self.assertEqual(len([k for k in z.files if k.startswith('matrices_')]), 1)
-                recharges = [poids.GroupePondere(z[g['positions']], z[g['references']], z[g['matrices']], g['cellules'], (),
+                recharges = [poids.GroupePondere(z[g['positions']], z[g['references']], recharger(z, g), g['cellules'], (),
                                                   g['clips'])
                              for g in configuration['groupes']]
                 self.assertEqual([g.clips for g in recharges], [g.clips for g in groupes])
@@ -260,6 +268,34 @@ class SauvegardeDuRefus(unittest.TestCase):
                 with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(RuntimeError) as second:
                     poids.refuser_correction(rejoue, 0)
                 self.assertEqual(second.exception.diagnostic, refuse.exception.diagnostic)
+
+    def test_la_sauvegarde_decrit_la_pile_de_chaque_etat_et_la_relit_partagee(self):
+        x = np.array([[0, 0, 0, 1], [1, 0, 0, 1]], dtype=np.float32)
+        w = np.array([[1, 0], [0, 1]], dtype=np.float32)
+        a = np.tile(np.eye(4, dtype=np.float32), (2, 2, 1, 1))
+        a[1, 1, 0, 3] = 4
+        b = a.copy()
+        b[1, 1, 0, 3] = 5
+        groupes = [poids.GroupePondere(np.array([x, x, x]), np.array([x, x, x]), [a, b, a], [], (), (1,)),
+                   groupe_a_un_clip(x[None], x[None], b, [])]
+        contexte = {'etats': [[{'nom': 'a'}, {'nom': 'b'}, {'nom': 'a-bis'}], [{'nom': 'b-seul'}]],
+                    'echantillons': [{'clip': 'repos', 't': 0}, {'clip': 'course', 't': .1}]}
+        entree = poids.preparer_correction('peau', x, w, np.arange(2), np.array([[0, 1]]), groupes, [0], contexte)
+        with tempfile.TemporaryDirectory(prefix='r12-piles-') as dossier:
+            prefixe = str(Path(dossier) / 'diagnostic')
+            with mock.patch.dict('os.environ', DIAGNOSTIC_POIDS_PREFIXE=prefixe), contextlib.redirect_stdout(io.StringIO()), \
+                    self.assertRaises(RuntimeError):
+                poids.refuser_correction(entree, 0)
+            with np.load(prefixe + '-refus.npz', allow_pickle=False) as z:
+                configuration = json.loads(str(z['configuration']))
+                self.assertEqual(sorted(k for k in z.files if k.startswith('matrices_')), ['matrices_0', 'matrices_1'])
+                self.assertEqual([g['matrices'] for g in configuration['groupes']], [[0, 1, 0], [1]])
+                relues = [recharger(z, g) for g in configuration['groupes']]
+        self.assertIs(relues[0][0], relues[0][2])
+        self.assertIsNot(relues[0][0], relues[0][1])
+        for lus, groupe in zip(relues, groupes):
+            for pile, originale in zip(lus, groupe[2]):
+                np.testing.assert_array_equal(pile, originale)
 
     def test_le_succes_ne_sauvegarde_rien(self):
         x = np.array([[0, 0, 0, 1], [1, 0, 0, 1]], dtype=np.float32)

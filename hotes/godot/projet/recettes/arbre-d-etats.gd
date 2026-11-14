@@ -27,7 +27,7 @@ const MEME_POSE := 0.0001
 ## L'angle (rad) dont chaque os est tourné avant la photo du studio : la pose qu'un clip joué avant elle aurait laissée.
 const POSE_D_AVANT := 0.3
 ## Un gabarit qui abaisse le haut de la tête de la base (`gabarit` de `composer`).
-const GABARIT := {racine = {os = "root", echelle = 0.74}, enfantsDe = {thigh_l = 0.62, calf_l = 0.62, thigh_r = 0.62, calf_r = 0.62}, pieds = ["foot_l", "foot_r"], jambes = ["thigh_l", "calf_l", "thigh_r", "calf_r"], clipsPlantes = []}
+const GABARIT := {racine = {os = "root", echelle = 0.74}, enfantsDe = {thigh_l = 0.62, calf_l = 0.62, thigh_r = 0.62, calf_r = 0.62}, pieds = ["foot_l", "foot_r"], jambes = ["thigh_l", "calf_l", "thigh_r", "calf_r"], clipsPlantes = [], deplacementsDesOs = {}}
 const CLIPS_DU_VEHICULE := {repos = "v_repos", marche = "v_marche", melee = "v_melee", tir = "v_tir", coup = "v_coup", mort = "v_mort"}
 var _fautes: Array[String] = []
 var _arbre: EtatsDuCorps = null

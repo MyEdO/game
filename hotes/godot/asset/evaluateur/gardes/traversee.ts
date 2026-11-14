@@ -17,9 +17,10 @@
  * couvre. Sur une arête vive, c'est la normale du triangle.
  *
  * Au repos neutre, une arête du sujet qui traverse l'endroit de sa couverture un nombre impair de fois en sort par un
- * bout (`croiserLaCouverture`). Ce bout est percé s'il est à plus de `ECART_DE_SUIVI_M` devant son triangle couvrant
- * le plus proche : `couche-percee-au-repos`, un écart par (sujet, couverture), avec le compte et le pire écart. Une
- * couche qui longe sa couverture sans la traverser, comme un col sous une écharpe, ne la perce pas.
+ * bout (`croiserLaCouverture`). Ce bout est percé s'il est à plus de `ECART_DE_SUIVI_M` devant le triangle couvrant le
+ * plus proche qui lui fait face (`FACE_COUVRANTE`) : `couche-percee-au-repos`, un écart par (sujet, couverture), avec
+ * le compte et le pire écart. Une couche qui longe sa couverture sans la traverser, comme un col sous une écharpe, ne
+ * la perce pas ; sortir par le chant d'une pièce épaisse, comme la joue au-delà d'une barbe, non plus.
  */
 import { Triangle, Vector3, type Mesh, type SkinnedMesh } from 'three';
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';
@@ -106,6 +107,10 @@ function normaleFondue(ns: Float32Array, a: number, b: number, c: number, u: num
  *  surface est lisse à cet endroit. */
 export const SURFACE_LISSE = 0.5;
 
+/** Le cosinus, entre la normale d'un triangle de la couverture et le dehors d'un sommet, à partir duquel le triangle
+ *  fait face au sommet ; en deçà, le sommet le voit plus de chant que de face. */
+export const FACE_COUVRANTE = Math.SQRT1_2;
+
 /** Ce que `couverture`, d'endroit `surface`, fait des sommets de `sujet`, de dehors `ns`, dans la pose `repos`. */
 function releverSous(sujet: Mesh, ns: Float32Array, couverture: SkinnedMesh, surface: Couverture, repos: Pick<Pose, 'positions'>): ReleveSous {
   const ps = positionsDe(repos, sujet), n = ps.length / 3;
@@ -114,9 +119,10 @@ function releverSous(sujet: Mesh, ns: Float32Array, couverture: SkinnedMesh, sur
   const devant = new Float32Array(n).fill(-Infinity);
   for (let s = 0; s < n; s++) {
     let retenu = -1, auPlusPresDerriere = Infinity, bx = 0, by = 0, bz = 0;
-    visiterLaCouverture(ps[s * 3], ps[s * 3 + 1], ps[s * 3 + 2], ns[s * 3], ns[s * 3 + 1], ns[s * 3 + 2], surface, (e, t, a, b, c) => {
+    const face = FACE_COUVRANTE * Math.hypot(ns[s * 3], ns[s * 3 + 1], ns[s * 3 + 2]);
+    visiterLaCouverture(ps[s * 3], ps[s * 3 + 1], ps[s * 3 + 2], ns[s * 3], ns[s * 3 + 1], ns[s * 3 + 2], surface, (e, t, a, b, c, tx, ty, tz) => {
       if (e > 0 && e < auPlusPresDerriere) { retenu = t; auPlusPresDerriere = e; bx = a; by = b; bz = c; }
-      if (e < 0 && e > devant[s]) devant[s] = e;
+      if (e < 0 && e > devant[s] && tx * ns[s * 3] + ty * ns[s * 3 + 1] + tz * ns[s * 3 + 2] >= face) devant[s] = e;
     });
     if (retenu < 0) continue;
     const [a, b, c] = [surface.indices[retenu], surface.indices[retenu + 1], surface.indices[retenu + 2]];
