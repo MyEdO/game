@@ -33,6 +33,10 @@ CHARNIERE_M = 0.10
 FONDU_D_OS_M = 0.12
 """Hauteur, en mètres, autour de l'articulation de deux os d'un brin, sur laquelle une nappe passe de l'un à l'autre
 (`Filet.poids`)."""
+EGALITE_DE_ZONE_M = 1e-5
+"""Écart de distance, en mètres, sous lequel deux zones sont aussi proches d'une face (`Base.zones_des_faces`) : le
+point le plus proche d'une face posée sur la couture de deux zones est sur leurs deux bords, à des distances que
+l'arrondi de la machine départage (la robe de #4002 : 61 faces à égalité, écarts de 1e-8 à 3e-7 m)."""
 
 
 def direction(theta):
@@ -294,12 +298,16 @@ class Base:
         return copies[0]
 
     def zones_des_faces(self, piece):
-        """Par face de `piece`, la zone de la base la plus proche de son centre au repos."""
+        """Par face de `piece`, la zone de la base la plus proche de son centre au repos ; des zones à égalité
+        (`EGALITE_DE_ZONE_M`), la première par nom."""
         noms = sorted(self.zones)
-        sup = self.porteur(noms)
-        bornes = np.cumsum([len(self.corps(n)[1]) for n in noms])
-        return [noms[int(np.searchsorted(bornes, sup['arbre'].find_nearest(piece.matrix_world @ p.center)[2], side='right'))]
-                for p in piece.data.polygons]
+        arbres = [porteur_de(*self.corps(n))['arbre'] for n in noms]
+        zones = []
+        for p in piece.data.polygons:
+            centre = piece.matrix_world @ p.center
+            d = np.array([a.find_nearest(centre)[3] for a in arbres])
+            zones.append(noms[int(np.flatnonzero(d <= d.min() + EGALITE_DE_ZONE_M)[0])])
+        return zones
 
     def decouper_par_zone(self, piece):
         """La pièce découpée (`decouper`) en un objet par zone du corps (#2972) : chaque face va à la zone de la base la
