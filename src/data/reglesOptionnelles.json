@@ -1346,6 +1346,38 @@
     "hint": "Après une réparation temporaire, le navire teste son Endurance chaque jour de voyage et à chaque Test de Manœuvre (MDG 13 l.651) ; chaque échec inflige 1d10–4 Dégâts. La Mer de Griffe ne chiffre pas la Difficulté de ce Test : défaut Accessible (+20), comme au fleuve (MSRC 7 l.117)."
   },
   {
+    "id": "mer-reparation-temporaire-reparation-difficulte",
+    "type": "reglesOptionnelles",
+    "label": "Réparation temporaire : Difficulté du Test de réparation du navire",
+    "ref": "MDG 13 l.649",
+    "maison": "MDG 13 l.649 fait aller le Test de réparation temporaire « de Complexe (–10) à Très Difficile (–30) en fonction des conditions de travail », sans les chiffrer : Difficulté maison, défaut Complexe (–10), le bas de la fourchette. Le Test d’équipage d’Entretien qui le remplace (MDG 14 l.120) la reçoit.",
+    "group": "Voyage",
+    "kind": "mode",
+    "default": "complexe",
+    "options": [
+      "complexe",
+      "difficile",
+      "tresDifficile"
+    ],
+    "hint": "« Le Test de Métier (Constructeur de navires) ou de Métier (Charpentier) pour cela va de Complexe (–10) à Très Difficile (–30) en fonction des conditions de travail » (MDG 13 l.649). Le Test d’équipage d’Entretien du soir, qui le remplace (MDG 14 l.120), se joue à cette Difficulté : défaut Complexe (–10)."
+  },
+  {
+    "id": "fleuve-reparation-temporaire-reparation-difficulte",
+    "type": "reglesOptionnelles",
+    "label": "Réparation temporaire : Difficulté du Test de réparation du bateau",
+    "ref": "MSRC 7 l.115",
+    "maison": "MSRC 7 l.115 fait aller les Tests de réparation temporaire « de Complexe (–10) à Très Difficile (–30), selon les circonstances », sans les chiffrer : Difficulté maison, défaut Complexe (–10), le bas de la fourchette.",
+    "group": "Voyage",
+    "kind": "mode",
+    "default": "complexe",
+    "options": [
+      "complexe",
+      "difficile",
+      "tresDifficile"
+    ],
+    "hint": "« Les Tests de Métier (Construction de bateaux) ou Métier (Charpentier) nécessaires pour y arriver vont de Complexe (–10) à Très Difficile (–30), selon les circonstances » (MSRC 7 l.115). Le calfatage d’une coque percée et la réparation du gréement en route se jouent à cette Difficulté : défaut Complexe (–10)."
+  },
+  {
     "id": "fleuve-reparation-temporaire-navigation",
     "type": "reglesOptionnelles",
     "label": "Réparation temporaire : Test d’Endurance du bateau à chaque Test de Navigation",

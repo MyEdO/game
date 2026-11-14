@@ -164,12 +164,24 @@ class EcartDesAretes(unittest.TestCase):
             self.assertAlmostEqual(float(ecart[frontiere]), float(attendu), places=5)
             self.assertEqual(ecart[numpy.arange(len(ecart)) != frontiere].max(), 0)
 
-    def test_l_ecart_lit_le_minimum_interieur_de_clip(self):
+    def test_l_ecart_ignore_le_minimum_strictement_interieur_de_clip(self):
+        """#4002 : au milieu de la cellule, l'arête écrasée à 0,005 / 1,5 sous le clip ; ses coins sains."""
         clip = numpy.eye(4)
         clip[2, 2] = .01
         etat = arete_aux_coins_valides(.5, clip)
-        numpy.testing.assert_array_equal(etat['horsClip'], [True])
-        self.assertAlmostEqual(float(poids.ecart_des_aretes(etat)[0]), numpy.log(ETIREMENT_EN_CLIP[0] / (.005 / 1.5)), places=9)
+        self.assertLess(.005 / 1.5, ETIREMENT_EN_CLIP[0])
+        numpy.testing.assert_array_equal(etat['horsClip'], [False])
+        self.assertEqual(float(poids.ecart_des_aretes(etat)[0]), 0.0)
+
+    def test_l_ecart_lit_l_ecrasement_d_un_etat_en_clip(self):
+        """#4002 : l'arête de la chaîne, écrasée à 0,005 sous le clip de l'état neutre."""
+        x, w, jumeau, aretes, matrices = chaine(0.0)
+        clip = numpy.eye(4)
+        clip[0, 0] = .005
+        groupes = [groupe_a_un_clip(x[None], x[None], numpy.array([matrices[0], [clip] * matrices.shape[1]]), [])]
+        etat = preparer_correction('clip', x, w, jumeau, aretes, groupes)
+        self.assertTrue(etat['horsClip'].all())
+        numpy.testing.assert_allclose(poids.ecart_des_aretes(etat), numpy.log(ETIREMENT_EN_CLIP[0] / .005), rtol=1e-5)
 
     def test_l_ecart_lit_le_minimum_interieur_au_repos(self):
         etat = arete_aux_coins_valides(.1)

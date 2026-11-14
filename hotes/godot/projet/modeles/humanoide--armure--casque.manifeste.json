@@ -10,22 +10,6 @@
   },
   "couche": "armure",
   "couvre": [],
-  "silhouettes": [
-    "feminin",
-    "carrure_moins",
-    "carrure_plus",
-    "corpulence"
-  ],
-  "surfaces": [
-    {
-      "nom": "metal",
-      "palette": "metal"
-    },
-    {
-      "nom": "fleuron",
-      "palette": "accent"
-    }
-  ],
   "emplacements": {
     "cimier": {
       "os": "Head",
@@ -41,8 +25,24 @@
       ]
     }
   },
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "metal",
+      "palette": "metal"
+    },
+    {
+      "nom": "fleuron",
+      "palette": "accent"
+    }
+  ],
   "glb": {
-    "sha256": "057c4bafe1b4dd22bee1ae329c09f6cf4b8be0fdd2c2bcffadaf28bca985afe5",
-    "octets": 307904
+    "sha256": "a898fcf9b9afa4fd9172703f4e48ad54696cfc72a05d17885c55d6f29278ba6b",
+    "octets": 202964
   }
 }

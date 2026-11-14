@@ -6,7 +6,7 @@ from time import perf_counter
 import numpy as np
 
 from cuisson_gabarit import groupes_de_peau, vers_gltf
-from pas_des_poids import appliquer, melanges_par_lots, par_groupes
+from pas_des_poids import appliquer, melanges_par_lots, par_groupes, piles_distinctes
 from poids import peau_lineaire
 from script_node import lancer
 from sol import deplacements
@@ -19,7 +19,7 @@ def etats_des_appuis(table, silhouettes):
 
 def selectionner_sommets(w, x, deltas, groupes, axe_vertical=2):
     def selectionner_groupe(groupe):
-        etats, matrices, _ = groupe
+        etats, piles, _ = groupe
         retenus = set()
         positions = []
         for etat in etats:
@@ -28,10 +28,11 @@ def selectionner_sommets(w, x, deltas, groupes, axe_vertical=2):
                 if poids:
                     p[:, :3] += poids * deltas[nom]
             positions.append(p)
-        for melange in melanges_par_lots(w, matrices):
-            for p in positions:
-                altitude = appliquer(melange, p)[:, :, axe_vertical]
-                retenus.update(np.flatnonzero((altitude == altitude.min(axis=1, keepdims=True)).any(axis=0)).tolist())
+        for pile, portes in piles_distinctes(piles):
+            for melange in melanges_par_lots(w, pile):
+                for e in portes:
+                    altitude = appliquer(melange, positions[e])[:, :, axe_vertical]
+                    retenus.update(np.flatnonzero((altitude == altitude.min(axis=1, keepdims=True)).any(axis=0)).tolist())
         return retenus
     return sorted(set().union(*par_groupes(selectionner_groupe, groupes)))
 

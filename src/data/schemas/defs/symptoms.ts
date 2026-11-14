@@ -1,7 +1,6 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
- * Schéma de `symptoms.json` — dérivé de l'inventaire COMPLET des clés (script node, n=16/16) et de
- * `SymptomData`/`SymptomCapabilities` (`src/data/index.ts`).
+ * Schéma de `symptoms.json`, d'où dérivent `SymptomData`/`SymptomCapabilities` (`src/data/index.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -11,8 +10,8 @@ import { difficultySchema, hitLocationSchema } from '../grammaire/valeurs';
 export const file = 'symptoms.json';
 export const famille = 'entite';
 
-/** `SymptomCapabilities` (`src/data/index.ts`) — sac de flags CLOS. */
-const symptomCapabilitiesSchema = nommerChamps(z.strictObject({
+/** Sac de flags CLOS d'un symptôme. */
+export const symptomCapabilitiesSchema = nommerChamps(z.strictObject({
   blocksHealing: z.boolean().optional(),
   amputation: z.boolean().optional(),
   contagious: z.boolean().optional(),

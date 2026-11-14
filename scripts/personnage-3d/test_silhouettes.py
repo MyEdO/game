@@ -1,7 +1,9 @@
 """silhouettes.correction sur un cylindre synthétique, contre une résolution KKT directe du même problème, et ses
 erreurs nommées ; silhouettes.raboter_sous_correction, rabot mesuré sur les clés corrigées jusqu'aux bornes
-d'étirement, du repère du mesh au repère monde et retour ; formes.raboter, rabot des clés marquées ; silhouettes.mesurer_domaine,
-mesure incrémentale égale à la porte de construction ; silhouettes.fondu, une part par nœud."""
+d'étirement, du repère du mesh au repère monde et retour ; formes.raboter, rabot des clés marquées à leur force et sa
+pente ; silhouettes.parts_des_fautes, part de chaque nom aux sites en faute ; silhouettes.mesurer_domaine,
+mesure incrémentale égale à la porte de construction ; silhouettes.fondu, une part par nœud ; silhouette à os et socle
+du rabot (#4002 issuecomment-6826035694)."""
 import contextlib
 import io
 import json
@@ -17,13 +19,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 import silhouettes  # noqa: E402
 import humanoide  # noqa: E402
-from formes import RABOT, STAGNATION_M, aux_noeuds, raboter, rapports, region_locale, retournees_par  # noqa: E402
+from formes import PENTE_DU_RABOT, RABOT, STAGNATION_M, aux_noeuds, raboter, rapports, region_locale, retournees_par  # noqa: E402
 import noms_silhouettes  # noqa: E402
 from pas_des_poids import melanges_par_lots, minimum_du_carre  # noqa: E402
 from poids import PASSES_MAX, GroupePondere, decouper_trace, etats_ponderes, extremes, integrer_trace, preparer_correction, verifier_repos_cuit  # noqa: E402
 from seuils import ETIREMENT_DES_CLES, ETIREMENT_EN_CLIP, MAJORITE_DU_POIDS, SOL_TOLERANCE_M  # noqa: E402
 from silhouettes import (AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, correction, fondu,  # noqa: E402
-                         mesurer_domaine, raboter_sous_correction, refuser_les_inertes)
+                         mesurer_domaine, par_nom, raboter_sous_correction, refuser_les_inertes)
 from cuisson_gabarit import etats_aux_facteurs_neutres, etats_du_gabarit  # noqa: E402
 
 SECTEURS, NIVEAUX = 12, 14
@@ -34,6 +36,16 @@ HAUTEUR = 0.1 * (NIVEAUX - 1)
 
 def hors_de(r, bornes):
     return (r < bornes[0]) | (r > bornes[1])
+
+
+def un_site_par_nom(masques):
+    """La mesure `(fautes, parts)` d'un site par nom de `masques` (nom -> booléen par arête) : le site du nom en faute
+    aux arêtes de son masque, où il a la part 1 et les autres noms la part 0."""
+    fautes = numpy.stack(list(masques.values()))
+    parts = {nom: numpy.zeros(fautes.shape) for nom in masques}
+    for i, nom in enumerate(masques):
+        parts[nom][i] = fautes[i]
+    return fautes, parts
 
 
 def rotation():
@@ -80,13 +92,11 @@ def anneau(x, niveau, sommets=None, os=None):
             'centre': centre.tolist(), 'rayon': float(numpy.linalg.norm(radial, axis=1).mean()), 'axe': axe.tolist()}
 
 
-def anneaux(x, niveaux, le_plus_epais=None):
-    liste = [anneau(x, niveau) for niveau in niveaux]
-    epais = int(numpy.argmax([a['rayon'] for a in liste])) if le_plus_epais is None else le_plus_epais
-    return {'anneaux': liste, 'lePlusEpais': epais}
+def anneaux(x, niveaux):
+    return {'anneaux': [anneau(x, niveau) for niveau in niveaux]}
 
 
-def kkt(x, aretes, noeud, fixe, lus, d0, rapport):
+def kkt(x, aretes, noeud, fixe, lus, d0):
     """Le même problème que `correction`, posé sommet par sommet et résolu par son système KKT entier, sa source la
     moyenne de `d0` sur les sommets de chaque nœud."""
     nv = len(x)
@@ -123,18 +133,6 @@ def kkt(x, aretes, noeud, fixe, lus, d0, rapport):
         somme_nulle([v])
     for a in lus['anneaux']:
         somme_nulle([v['indice'] for v in a['sommets']])
-    if rapport is not None:
-        epais = lus['anneaux'][lus['lePlusEpais']]
-        s = numpy.array([v['indice'] for v in epais['sommets']])
-        axe = numpy.array(epais['axe'])
-        u = x[s] - epais['centre']
-        u -= (u @ axe)[:, None] * axe
-        u /= numpy.linalg.norm(u, axis=1, keepdims=True) * len(s)
-        ligne = numpy.zeros(taille)
-        for c in range(3):
-            ligne[c * nv + s] = u[:, c]
-        lignes.append(ligne)
-        cibles.append((rapport - 1) * epais['rayon'])
     lignes = numpy.array(lignes)
     systeme = numpy.block([[hessienne, lignes.T], [lignes, numpy.zeros((len(lignes), len(lignes)))]])
     solution = numpy.linalg.lstsq(systeme, numpy.concatenate([gradient, cibles]), rcond=None)[0]
@@ -161,9 +159,8 @@ class Correction(unittest.TestCase):
         fixe = self.fixe if fixe is None else fixe
         corriges, sonde = correction(self.x, self.aretes, self.noeud, fixe, lus)(champs)
         self.assertEqual(set(sonde), {'noeuds_libres', 'contraintes', 'resolution_s'})
-        for (d0, rapport), d in zip(champs, corriges):
-            ecart = numpy.abs(d - kkt(self.x, self.aretes, self.noeud, fixe, lus, d0, rapport)).max()
-            self.assertLess(ecart, TOLERANCE, f'rapport {rapport}')
+        for d0, d in zip(champs, corriges):
+            self.assertLess(numpy.abs(d - kkt(self.x, self.aretes, self.noeud, fixe, lus, d0)).max(), TOLERANCE)
 
     def assert_liees(self, fixe, lus, champs, attendues):
         with self.assertRaises(ContraintesLiees) as leve:
@@ -174,8 +171,8 @@ class Correction(unittest.TestCase):
     def test_reutilise_le_laplacien_prepare_pour_chaque_resolution(self):
         with mock.patch.object(silhouettes, 'lancer', wraps=silhouettes.lancer) as lancer:
             corriger = correction(self.x, self.aretes, self.noeud, self.fixe, anneaux(self.x, NIVEAUX_DES_ANNEAUX))
-            for rapport in (None, 1.7):
-                (champ,), _ = corriger([(self.cle(), rapport)])
+            for _ in range(2):
+                (champ,), _ = corriger([self.cle()])
                 self.assertEqual(champ.shape, self.x.shape)
                 self.assertTrue(numpy.isfinite(champ).all())
         preparation, *resolutions = [json.loads(appel.args[2]) for appel in lancer.call_args_list]
@@ -189,72 +186,60 @@ class Correction(unittest.TestCase):
 
     def test_egale_la_resolution_kkt_directe(self):
         self.assert_comme_kkt(anneaux(self.x, NIVEAUX_DES_ANNEAUX),
-                              [(self.cle(), None), (self.cle(), 0.72), (self.cle(), 1.7)])
+                              [self.cle(), self.cle(), self.cle()])
 
     def test_des_poids_un_rendent_la_correction_sans_poids(self):
         corriger = correction(self.x, self.aretes, self.noeud, self.fixe, anneaux(self.x, NIVEAUX_DES_ANNEAUX))
-        champs = [(self.cle(), None), (self.cle(), 1.7)]
+        champs = [self.cle(), self.cle()]
         sans, _ = corriger(champs)
         avec, _ = corriger(champs, [numpy.ones(len(self.x)), None])
         for a, b in zip(sans, avec):
             self.assertLess(numpy.abs(a - b).max(), TOLERANCE)
 
-    def test_les_poids_tiennent_les_contraintes_et_epargnent_les_noeuds_de_poids_faible(self):
-        """Une carrure seule : la part imposée va aux nœuds de poids un, la moitié x > 0 de poids 1e-3 en reçoit peu."""
+    def test_la_somme_sur_chaque_anneau_tenu_est_nulle_et_les_poids_epargnent_les_noeuds_de_poids_faible(self):
+        """La part imposée, l'écart à la correction sans anneau, va aux nœuds de poids un : la moitié x > 0 de poids
+        1e-3 en reçoit peu."""
         lus = anneaux(self.x, NIVEAUX_DES_ANNEAUX)
         corriger = correction(self.x, self.aretes, self.noeud, self.fixe, lus)
+        d0 = self.cle()
+        (libre,), _ = correction(self.x, self.aretes, self.noeud, self.fixe, {'anneaux': []})([d0])
         faibles = self.x[:, 0] > 0
-        (sans,), _ = corriger([(numpy.zeros_like(self.x), 1.7)])
-        (avec,), _ = corriger([(numpy.zeros_like(self.x), 1.7)], [numpy.where(faibles, 1e-3, 1.0)])
-        self.assertLess(numpy.abs(avec[faibles]).max(), 0.01 * numpy.abs(sans[faibles]).max())
+        (sans,), _ = corriger([d0])
+        (avec,), _ = corriger([d0], [numpy.where(faibles, 1e-3, 1.0)])
         for anneau in lus['anneaux']:
             s = numpy.array([v['indice'] for v in anneau['sommets']])
-            self.assertLess(numpy.abs(avec[s].sum(axis=0)).max(), TOLERANCE, anneau['os'])
-        epais = lus['anneaux'][lus['lePlusEpais']]
-        s = numpy.array([v['indice'] for v in epais['sommets']])
-        axe = numpy.array(epais['axe'])
-        radial = self.x[s] - numpy.array(epais['centre'])
-        radial -= (radial @ axe)[:, None] * axe
-        radial /= numpy.linalg.norm(radial, axis=1, keepdims=True)
-        self.assertAlmostEqual(float((avec[s] * radial).sum(axis=1).mean()), 0.7 * epais['rayon'], places=9)
+            self.assertGreater(numpy.abs(libre[s].sum(axis=0)).max(), 1e-3, anneau['os'])
+            for d in (sans, avec):
+                self.assertLess(numpy.abs(d[s].sum(axis=0)).max(), TOLERANCE, anneau['os'])
+        self.assertLess(numpy.abs(avec - libre)[faibles].max(), 0.01 * numpy.abs(sans - libre)[faibles].max())
 
     def test_moyenne_aux_noeuds_une_source_non_nulle_aux_fixes_et_discordante_entre_jumeaux(self):
         d0 = self.lisse() + 0.01 * self.rng.standard_normal(self.x.shape)
         jumeaux = numpy.flatnonzero(self.noeud != numpy.arange(len(self.x)))
         self.assertGreater(numpy.abs(d0[jumeaux] - d0[self.noeud[jumeaux]]).min(), 0.0)
         self.assertGreater(numpy.abs(d0[self.fixe]).min(), 0.0)
-        self.assert_comme_kkt(anneaux(self.x, NIVEAUX_DES_ANNEAUX), [(d0, 1.7)])
+        self.assert_comme_kkt(anneaux(self.x, NIVEAUX_DES_ANNEAUX), [d0])
 
-    def test_un_anneau_le_plus_epais_tout_fixe_se_tient_sans_rapport_vise(self):
-        self.assert_comme_kkt(anneaux(self.x, (0, *NIVEAUX_DES_ANNEAUX), le_plus_epais=0), [(self.cle(), None)])
+    def test_un_anneau_tout_fixe_ne_porte_aucune_contrainte(self):
+        self.assert_comme_kkt(anneaux(self.x, (0, *NIVEAUX_DES_ANNEAUX)), [self.cle()])
 
-    def test_un_rapport_vise_sur_un_anneau_le_plus_epais_tout_fixe_leve_contraintes_liees(self):
-        self.assert_liees(self.fixe, anneaux(self.x, (0, *NIVEAUX_DES_ANNEAUX), le_plus_epais=0),
-                          [(self.cle(), None), (self.cle(), 1.7)], ['niveau_0 épaisseur'])
+    def test_un_corps_sans_noeud_libre_rend_un_champ_nul(self):
+        self.assert_comme_kkt(anneaux(self.x, NIVEAUX_DES_ANNEAUX), [self.cle()], fixe=numpy.ones(len(self.x), dtype=bool))
 
-    def test_un_corps_sans_noeud_libre_rend_un_champ_nul_et_ne_porte_aucune_epaisseur(self):
-        tout = numpy.ones(len(self.x), dtype=bool)
-        lus = anneaux(self.x, NIVEAUX_DES_ANNEAUX, le_plus_epais=2)
-        self.assert_comme_kkt(lus, [(self.cle(), None)], fixe=tout)
-        self.assert_liees(tout, lus, [(self.cle(), 1.7)], ['niveau_6 épaisseur'])
-
-    def test_une_epaisseur_sur_le_seul_noeud_libre_de_l_anneau_le_plus_epais_leve_contraintes_liees(self):
+    def test_un_anneau_d_un_seul_noeud_libre_se_tient(self):
         fixe = self.fixe.copy()
         s = sommets_du_niveau(6)
         fixe[s] = True
         fixe[s[3]] = False
-        lus = anneaux(self.x, (4, 6, 9), le_plus_epais=1)
-        self.assert_comme_kkt(lus, [(self.cle(), None)], fixe=fixe)
-        self.assert_liees(fixe, lus, [(self.cle(), 1.7)], ['niveau_6 centre', 'niveau_6 épaisseur'])
+        self.assert_comme_kkt(anneaux(self.x, (4, 6, 9)), [self.cle()], fixe=fixe)
 
     def test_deux_anneaux_dont_la_part_libre_est_le_meme_noeud_levent_contraintes_liees(self):
         fixe = self.fixe.copy()
         s = sommets_du_niveau(6)
         fixe[s] = True
         fixe[[s[0], s[-1]]] = False
-        lus = {'anneaux': [anneau(self.x, 9), anneau(self.x, 6, s[0:3], 'A'), anneau(self.x, 6, [s[-1], *s[3:5]], 'B')],
-               'lePlusEpais': 0}
-        self.assert_liees(fixe, lus, [(self.cle(), None)], ['A centre', 'B centre'])
+        lus = {'anneaux': [anneau(self.x, 9), anneau(self.x, 6, s[0:3], 'A'), anneau(self.x, 6, [s[-1], *s[3:5]], 'B')]}
+        self.assert_liees(fixe, lus, [self.cle()], ['A centre', 'B centre'])
 
     def test_une_composante_libre_sans_arete_vers_un_noeud_fixe_leve_composante_sans_appui(self):
         with self.assertRaises(ComposanteSansAppui) as leve:
@@ -274,11 +259,12 @@ class LissageSousCorrection(unittest.TestCase):
         z = self.x[:, 2]
         self.libre = numpy.clip((numpy.minimum(z, HAUTEUR - z) - 0.05) / 0.2, 0.0, 1.0)
         self.vus = []
-        corriger = correction(self.x, self.aretes, self.noeud, self.libre == 0, anneaux(self.x, NIVEAUX_DES_ANNEAUX))
+        self.correction = correction(self.x, self.aretes, self.noeud, self.libre == 0,
+                                     anneaux(self.x, NIVEAUX_DES_ANNEAUX))
 
         def corriger_et_noter(champs, repartitions=None):
-            corriges, sonde = corriger(champs, repartitions)
-            self.vus.append(([d for d, _ in champs], corriges))
+            corriges, sonde = self.correction(champs, repartitions)
+            self.vus.append((list(champs), corriges))
             return corriges, sonde
 
         self.corriger = corriger_et_noter
@@ -297,16 +283,146 @@ class LissageSousCorrection(unittest.TestCase):
     def finir_et_raboter(self, bruts, bornes=BORNES, vers_le_monde=None, rabot=None):
         vers_le_monde = numpy.eye(3) if vers_le_monde is None else vers_le_monde
         repos = self.x @ numpy.linalg.inv(vers_le_monde)
+        return self.raboter(bruts, lambda champs: un_site_par_nom({nom: hors_de(rapports(repos, d, self.aretes), bornes)
+                                                                   for nom, d in champs.items()}),
+                            vers_le_monde, rabot)
+
+    def raboter(self, bruts, hors, vers_le_monde=None, rabot=None, portes=None):
         with contextlib.redirect_stdout(io.StringIO()):
-            return raboter_sous_correction(bruts, self.noeud, self.aretes, self.libre, self.corriger, vers_le_monde,
-                                          lambda champs: {nom: hors_de(rapports(repos, d, self.aretes), bornes)
-                                                          for nom, d in champs.items()}, rabot)
+            return raboter_sous_correction(bruts, self.noeud, self.aretes, self.libre, self.corriger,
+                                           numpy.eye(3) if vers_le_monde is None else vers_le_monde, hors, rabot,
+                                           portes)
+
+    def porte(self):
+        """Une silhouette à os sur le cylindre : les sommets tenus (`libre` nul) tout à un os rigide de déplacement
+        `RIGIDE`, le portage C ailleurs une rampe le long de l'axe. Rend T = C + H et C."""
+        c = numpy.where((self.libre == 0)[:, None], self.RIGIDE, 0.04 * numpy.outer(self.x[:, 2], [1.0, 0.5, 0.0]))
+        return c + self.translation(), c
+
+    RIGIDE = numpy.array([0.03, -0.02, 0.01])
+
+    def deux_os(self):
+        """Deux os sur le cylindre, l'enfant (moitié haute) déplacé de `D` sous un parent immobile : C rigide par os.
+        Rend T = C + H et C."""
+        c = numpy.where((self.x[:, 2] > HAUTEUR / 2)[:, None], self.D, 0.0)
+        return c + self.translation(), c
+
+    D = numpy.array([0.05, -0.03, 0.02])
+
+    def arete_libre(self, niveau):
+        """L'arête du cercle `niveau` entre ses deux premiers secteurs, ses deux nœuds de `libre` un."""
+        s = sommets_du_niveau(niveau)
+        arete = numpy.flatnonzero((self.aretes == sorted(self.noeud[s[:2]])).all(axis=1))[0]
+        self.assertEqual(self.libre[self.aretes[arete]].min(), 1.0)
+        return arete
+
+    def test_un_nom_porte_rend_le_fondu_de_son_portage_sans_correction_ni_rabot(self):
+        """#4002 issuecomment-6826035694 : `hors` marque toutes ses arêtes à chaque mesure."""
+        t, c = self.porte()
+        tenus = self.libre == 0
+        self.assertTrue(tenus.any())
+        bruts = {'k': t, 'r': self.translation()}
+        partout = numpy.ones(len(self.aretes), dtype=bool)
+        finis, rabot = self.raboter(bruts, lambda champs: un_site_par_nom({
+            'k': partout, 'r': hors_de(rapports(self.x, champs['r'], self.aretes), self.BORNES)}), portes={'k': c})
+        self.assertEqual(list(finis), ['k', 'r'])
+        self.assertEqual(list(rabot), ['r'])
+        numpy.testing.assert_allclose(finis['k'], c + self.libre[:, None] * (t - c), rtol=0, atol=1e-12)
+        numpy.testing.assert_array_equal(finis['k'][tenus], numpy.tile(self.RIGIDE, (tenus.sum(), 1)))
+        self.assertTrue(self.vus)
+        for champs, _ in self.vus:
+            self.assertEqual(len(champs), 1)
+            numpy.testing.assert_array_equal(champs[0][tenus], 0.0)
+
+    def test_une_arete_en_defaut_sans_la_cle_rabotee_ne_la_rabote_pas(self):
+        """#4002 issuecomment-6826035694 : l'arête marquée pour `r` dès que le champ porté de `k` y est non nul."""
+        t, c = self.deux_os()
+        socle = self.arete_libre(4)
+        brut = self.translation()
+
+        def hors(champs):
+            marque = numpy.zeros(len(self.aretes), dtype=bool)
+            marque[socle] = bool(numpy.abs(champs['k'][self.aretes[socle]]).max() > 0)
+            return un_site_par_nom({'k': numpy.zeros(len(self.aretes), dtype=bool), 'r': marque})
+
+        with mock.patch.object(silhouettes, 'PASSES_DE_RABOT', 10):
+            finis, rabot = self.raboter({'k': t, 'r': brut}, hors, portes={'k': c})
+        numpy.testing.assert_array_equal(rabot['r'], 1.0)
+        (attendu,), _ = self.correction([self.libre[:, None] * brut])
+        numpy.testing.assert_allclose(finis['r'], attendu, rtol=0, atol=1e-9)
+
+    def test_une_arete_en_defaut_par_la_cle_rabotee_se_rabote_hors_du_socle(self):
+        """#4002 issuecomment-6826035694 : l'arête `defaut`, marquée pour `r`, un champ radial, tant que son champ y
+        dépasse `seuil`."""
+        t, c = self.deux_os()
+        socle, defaut = self.arete_libre(4), self.arete_libre(9)
+        seuil = 0.02
+
+        def hors(champs):
+            marque = numpy.zeros(len(self.aretes), dtype=bool)
+            marque[socle] = bool(numpy.abs(champs['k'][self.aretes[socle]]).max() > 0)
+            marque[defaut] = bool(numpy.linalg.norm(champs['r'][self.aretes[defaut]], axis=1).max() > seuil)
+            return un_site_par_nom({'k': numpy.zeros(len(self.aretes), dtype=bool), 'r': marque})
+
+        with mock.patch.object(silhouettes, 'PASSES_DE_RABOT', 80):
+            finis, rabot = self.raboter({'k': t, 'r': self.x * [1.0, 1.0, 0.0]}, hors, portes={'k': c})
+        self.assertLess(rabot['r'][self.aretes[defaut]].max(), 1.0)
+        self.assertLessEqual(numpy.linalg.norm(finis['r'][self.aretes[defaut]], axis=1).max(), seuil)
+        numpy.testing.assert_array_equal(rabot['r'][numpy.isin(self.noeud, self.aretes[socle])], 1.0)
+
+    def test_une_faute_de_site_a_champ_nul_reste_au_socle_quand_le_nom_y_a_une_part(self):
+        """#4002 : le site A, en faute à l'arête `a` quels que soient les champs, n'y donne une part à `r` que quand le
+        champ de `r` y est non nul ; le site B, en faute à l'arête `b` tant que le champ radial de `r` y dépasse `seuil`,
+        lui donne toujours la part 1."""
+        a, b = self.arete_libre(4), self.arete_libre(9)
+        seuil = 0.02
+
+        def hors(avec_a):
+            def mesurer(champs):
+                fautes = numpy.zeros((2, len(self.aretes)), dtype=bool)
+                parts = numpy.zeros(fautes.shape)
+                fautes[0, a] = avec_a
+                parts[0, a] = avec_a and bool(numpy.abs(champs['r'][self.aretes[a]]).max() > 0)
+                fautes[1, b] = bool(numpy.linalg.norm(champs['r'][self.aretes[b]], axis=1).max() > seuil)
+                parts[1, b] = fautes[1, b]
+                return fautes, {'r': parts}
+            return mesurer
+
+        finis = {}
+        passes = {}
+        for avec_a in (True, False):
+            self.vus = []
+            with mock.patch.object(silhouettes, 'PASSES_DE_RABOT', 80):
+                finis[avec_a], _ = self.raboter({'r': self.x * [1.0, 1.0, 0.0]}, hors(avec_a))
+            passes[avec_a] = len(self.vus)
+        self.assertGreater(numpy.abs(finis[True]['r'][self.aretes[a]]).max(), 0)
+        self.assertEqual(passes[True], passes[False])
+        numpy.testing.assert_array_equal(finis[True]['r'], finis[False]['r'])
+        self.assertLessEqual(numpy.linalg.norm(finis[True]['r'][self.aretes[b]], axis=1).max(), seuil)
+
+    def test_sans_nom_a_raboter_ni_correction_ni_mesure(self):
+        """#4002 issuecomment-6826035694."""
+        t, c = self.porte()
+        u, d = self.deux_os()
+
+        def hors(_):
+            raise AssertionError('hors appelé')
+
+        def corriger(*_):
+            raise AssertionError('corriger appelé')
+
+        self.corriger = corriger
+        finis, rabot = self.raboter({'k': t, 'j': u}, hors, portes={'j': d, 'k': c})
+        self.assertEqual(list(finis), ['k', 'j'])
+        self.assertEqual(rabot, {})
+        numpy.testing.assert_allclose(finis['k'], c + self.libre[:, None] * (t - c), rtol=0, atol=1e-12)
+        numpy.testing.assert_allclose(finis['j'], d + self.libre[:, None] * (u - d), rtol=0, atol=1e-12)
 
     def hors(self, champ, bornes=BORNES):
         return int(hors_de(rapports(self.x, champ, self.aretes), bornes).sum())
 
     def test_le_champ_rendu_est_la_correction_du_dernier_rabot_et_tient_les_bornes(self):
-        fini = self.finir({'k': (self.translation(), None)})['k']
+        fini = self.finir({'k': self.translation()})['k']
         _, (corrige,) = self.vus[-1]
         self.assertTrue(numpy.array_equal(fini, corrige))
         self.assertEqual(self.hors(fini), 0)
@@ -315,7 +431,7 @@ class LissageSousCorrection(unittest.TestCase):
     def test_le_tour_suivant_repart_du_rabot_cumule_et_ne_rabote_plus_les_memes_cles(self):
         brut = numpy.zeros_like(self.x)
         brut[:, 1] = 0.3 * numpy.sin(25 * self.x[:, 2])
-        bruts = {'k': (brut, None)}
+        bruts = {'k': brut}
         fini, rabot = self.finir_et_raboter(bruts)
         self.assertLess(rabot['k'].min(), 1.0)
         vus = len(self.vus)
@@ -329,34 +445,38 @@ class LissageSousCorrection(unittest.TestCase):
         bas = self.x[:, 2] < HAUTEUR / 2
 
         def projeter(champs, repartitions=None):
-            self.vus.append([d.copy() for d, _ in champs])
-            return [numpy.where(bas[:, None], 0.0, d) for d, _ in champs], {'bouchon': 'projette'}
+            self.vus.append([d.copy() for d in champs])
+            return [numpy.where(bas[:, None], 0.0, d) for d in champs], {'bouchon': 'projette'}
 
         self.corriger = projeter
         brut = numpy.zeros_like(self.x)
         brut[:, 1] = numpy.where(bas, 0.3 * numpy.sin(15 * self.x[:, 2]), 0.01)
         self.assertGreater(self.hors(brut * self.libre[:, None]), 0)
-        fini = self.finir({'k': (brut, None)})['k']
+        fini = self.finir({'k': brut})['k']
         self.assertTrue(numpy.array_equal(fini, numpy.where(bas[:, None], 0.0, brut * self.libre[:, None])))
         self.assertEqual(len(self.vus), 1)
 
-    def test_une_correction_infaisable_leve_au_bout_des_passes(self):
-        """Une carrure de rapport 1,7 porte le cercle de l'anneau le plus épais à 1,7 fois son rayon, au-delà de 1,6."""
-        radial = self.x * [1.0, 1.0, 0.0]
+    def test_un_defaut_que_le_rabot_ne_guerit_pas_leve_au_bout_des_passes(self):
+        """`hors` marque toute arête de la zone libre où le champ est non nul : aucun rabot ne l'annule."""
+        dans = (self.libre[self.aretes] == 1.0).all(axis=1)
+
+        def hors(champs):
+            return un_site_par_nom({nom: dans & (numpy.abs(d[self.aretes]).max(axis=(1, 2)) > 0)
+                                    for nom, d in champs.items()})
+
         with mock.patch.object(silhouettes, 'PASSES_DE_RABOT', 4), self.assertRaises(RuntimeError) as leve:
-            self.finir({'k': (0.21 * radial, 1.7)}, bornes=(0.6, 1.6))
+            self.raboter({'k': self.translation()}, hors)
         self.assertRegex(str(leve.exception), r'^[1-9]\d* arête\(s\) hors bornes après 4 passes de rabot$')
 
     def test_la_correction_se_fait_au_repere_monde_et_le_champ_revient_au_repere_du_mesh(self):
         """Les mêmes clés, au repère monde sous l'identité, et au repère d'un mesh tourné : le champ rendu au repère du
-        mesh, porté au monde, est celui du monde ; la carrure vise un rayon, mesuré au monde."""
+        mesh, porté au monde, est celui du monde."""
         radial = self.x * [1.0, 1.0, 0.0]
-        au_monde = {'t': (self.translation(), None), 'c': (0.1 * radial, 1.2)}
+        au_monde = {'t': self.translation(), 'c': 0.2 * radial}
         attendus = self.finir(au_monde)
         vers_le_monde = rotation()
         vers_le_mesh = numpy.linalg.inv(vers_le_monde)
-        rendus = self.finir({nom: (d @ vers_le_mesh, r) for nom, (d, r) in au_monde.items()},
-                               vers_le_monde=vers_le_monde)
+        rendus = self.finir({nom: d @ vers_le_mesh for nom, d in au_monde.items()}, vers_le_monde=vers_le_monde)
         for nom, attendu in attendus.items():
             self.assertGreater(numpy.abs(attendu @ vers_le_mesh - attendu).max(), 1e-2, nom)
             self.assertLess(numpy.abs(rendus[nom] @ vers_le_monde - attendu).max(), 1e-9, nom)
@@ -411,7 +531,8 @@ class Rabot(unittest.TestCase):
             self.raboter(self.bosse, facteur, lambda _: marque)
         self.assertRegex(str(leve.exception), r'^1 arête\(s\) hors bornes aux deux extrémités tenues')
 
-    def test_une_passe_ne_rabote_que_les_noeuds_des_aretes_marquees(self):
+    def test_une_passe_rabote_les_noeuds_des_aretes_marquees_et_leur_pente_seulement(self):
+        """#4002 : `RABOT` aux nœuds de l'arête marquée, `RABOT ** (1 − r / (PENTE_DU_RABOT + 1))` à r anneaux."""
         champ = 0.03 * numpy.random.default_rng(3101).standard_normal(self.x.shape)
         marque = numpy.zeros(len(self.aretes), dtype=bool)
         marque[0] = True
@@ -419,11 +540,14 @@ class Rabot(unittest.TestCase):
         resultat, passes = self.raboter(champ, hors=lambda _: next(mesures))
         self.assertEqual(passes, 1)
         valeur = aux_noeuds(champ, self.noeud)
-        dans = region_locale(self.aretes, marque, 0, len(valeur))
         attendu = valeur.copy()
-        attendu[dans] = RABOT * valeur[dans]
-        self.assertTrue(numpy.array_equal(resultat, attendu[self.noeud]))
-        self.assertGreater(int((~dans[self.noeud]).sum()), len(self.x) // 2)
+        vus = numpy.zeros(len(valeur), dtype=bool)
+        for r in range(PENTE_DU_RABOT + 1):
+            anneau = region_locale(self.aretes, marque, r, len(valeur)) & ~vus
+            attendu[anneau] = RABOT ** (1 - r / (PENTE_DU_RABOT + 1)) * valeur[anneau]
+            vus |= anneau
+        numpy.testing.assert_allclose(resultat, attendu[self.noeud], rtol=1e-12, atol=0)
+        self.assertGreater(int((~vus[self.noeud]).sum()), len(self.x) // 2)
 
     def test_la_region_gagne_un_anneau_quand_la_cle_y_stagne(self):
         marque = numpy.zeros(len(self.aretes), dtype=bool)
@@ -438,8 +562,9 @@ class Rabot(unittest.TestCase):
         mesures = iter([marque, marque, numpy.zeros_like(marque)])
         resultat, passes = self.raboter(champ, hors=lambda _: next(mesures))
         self.assertEqual(passes, 2)
-        self.assertTrue(numpy.allclose(resultat[self.noeud == voisin], RABOT * champ[self.noeud == voisin]))
-        self.assertTrue(numpy.array_equal(resultat[self.noeud == loin], champ[self.noeud == loin]))
+        pente = 1 / (PENTE_DU_RABOT + 1)
+        self.assertTrue(numpy.allclose(resultat[self.noeud == voisin], RABOT ** (2 - pente) * champ[self.noeud == voisin]))
+        self.assertTrue(numpy.allclose(resultat[self.noeud == loin], RABOT ** (2 - 3 * pente) * champ[self.noeud == loin]))
 
     def test_la_region_gagne_un_anneau_quand_la_mesure_rend_aux_noeuds_ce_que_la_passe_leur_ote(self):
         marque = numpy.zeros(len(self.aretes), dtype=bool)
@@ -458,7 +583,46 @@ class Rabot(unittest.TestCase):
 
         resultat, passes, _ = raboter(champ[:, None], self.noeud, self.aretes, self.facteur, rendre, PASSES_MAX)
         self.assertEqual(passes, 2)
-        self.assertTrue(numpy.allclose(resultat[self.noeud == voisin, 0], RABOT * champ[self.noeud == voisin]))
+        self.assertTrue(numpy.allclose(resultat[self.noeud == voisin, 0],
+                                       RABOT ** (2 - 1 / (PENTE_DU_RABOT + 1)) * champ[self.noeud == voisin]))
+
+    def test_la_pente_monte_de_l_arete_marquee_a_un_et_s_arrete_apres_pente_du_rabot_anneaux(self):
+        """#4002 : une chaîne de nœuds, son arête du milieu marquée une passe."""
+        n = 2 * PENTE_DU_RABOT + 8
+        aretes = numpy.column_stack([numpy.arange(n - 1), numpy.arange(1, n)])
+        milieu = n // 2 - 1
+        force = numpy.zeros((len(aretes), 1))
+        force[milieu] = 1.0
+        forces = iter([force, numpy.zeros_like(force)])
+        champ = numpy.ones((n, 1, 3))
+        resultat, passes, cumul = raboter(champ, numpy.arange(n), aretes, numpy.ones(n),
+                                          lambda pile, _: (pile, next(forces)), PASSES_MAX)
+        self.assertEqual(passes, 1)
+        numpy.testing.assert_array_equal(resultat[:, 0, 0], cumul[:, 0])
+        distance = numpy.minimum(numpy.abs(numpy.arange(n) - milieu), numpy.abs(numpy.arange(n) - milieu - 1))
+        facteurs = [cumul[distance == r, 0] for r in range(PENTE_DU_RABOT + 2)]
+        for f in facteurs:
+            self.assertEqual(numpy.ptp(f), 0.0)
+        facteurs = [f[0] for f in facteurs]
+        self.assertAlmostEqual(facteurs[0], RABOT, places=12)
+        self.assertLess(facteurs[1], 1.0)
+        self.assertTrue(all(a < b for a, b in zip(facteurs, facteurs[1:])), facteurs)
+        numpy.testing.assert_array_equal(cumul[distance > PENTE_DU_RABOT, 0], 1.0)
+
+    def test_une_cle_de_force_moitie_descend_moins_vite_qu_une_cle_de_force_un(self):
+        """#4002 : deux clés marquées sur la même arête, forces 1 et 0,5, une passe."""
+        marque = numpy.zeros((len(self.aretes), 2))
+        marque[0] = [1.0, 0.5]
+        forces = iter([marque, numpy.zeros_like(marque)])
+        champ = numpy.stack([self.bosse, self.bosse], axis=1)
+        _, passes, cumul = raboter(champ, self.noeud, self.aretes, self.facteur,
+                                   lambda pile, _: (pile, next(forces)), PASSES_MAX)
+        self.assertEqual(passes, 1)
+        bouts = numpy.isin(self.noeud, self.aretes[0])
+        numpy.testing.assert_allclose(cumul[bouts, 0], RABOT, rtol=1e-12)
+        numpy.testing.assert_allclose(cumul[bouts, 1], RABOT ** 0.5, rtol=1e-12)
+        self.assertTrue((cumul[:, 1] >= cumul[:, 0]).all())
+        self.assertTrue((cumul[:, 1] > cumul[:, 0])[cumul[:, 0] < 1].all())
 
     def test_le_rabot_garde_la_direction_de_la_cle_et_rend_ses_bornes(self):
         rabote, passes = self.raboter(self.bosse)
@@ -519,7 +683,7 @@ class DomaineDesSilhouettes(unittest.TestCase):
         self.champs = {'feminin': lo * d, 'carrure_moins': lo * d}
 
     def mesure(self, etats=None, monde=None):
-        return mesurer_domaine(self.w, self.x, self.aretes, [(self.etats if etats is None else etats, self.matrices, ())], numpy.eye(3) if monde is None else monde)
+        return mesurer_domaine(self.w, self.x, self.aretes, [(self.etats if etats is None else etats, pile_partagee(self.etats if etats is None else etats, self.matrices), ())], numpy.eye(3) if monde is None else monde)
 
     def test_un_coin_hors_est_refuse_puis_corrige_collectivement(self):
         sans_coins = {'cellulesSilhouettes': [], 'etats': [e
@@ -527,10 +691,10 @@ class DomaineDesSilhouettes(unittest.TestCase):
         for e in sans_coins['etats']:
             champ = sum(e['poidsSilhouettes'][n] * d for n, d in self.champs.items())
             self.assertFalse(hors_de(rapports(self.p, champ, self.aretes), ETIREMENT_DES_CLES).any(), e['nom'])
-        self.assertFalse(any(m.any() for m in self.mesure(sans_coins)(self.champs).values()))
-        marques = self.mesure()(self.champs)
+        self.assertFalse(any(m.any() for m in par_nom(*self.mesure(sans_coins)(self.champs)).values()))
+        marques = par_nom(*self.mesure()(self.champs))
         self.assertTrue(all(m.any() for m in marques.values()))
-        groupes = etats_ponderes(self.x, self.champs, [(self.etats, self.matrices, ())])
+        groupes = etats_ponderes(self.x, self.champs, [(self.etats, pile_partagee(self.etats, self.matrices), ())])
         etat = preparer_correction('coin', self.x, self.w, self.noeud, self.aretes, groupes)
         with contextlib.redirect_stdout(io.StringIO()), self.assertRaisesRegex(RuntimeError, 'clause R'):
             verifier_repos_cuit(etat)
@@ -540,12 +704,12 @@ class DomaineDesSilhouettes(unittest.TestCase):
                               anneaux(self.p, NIVEAUX_DES_ANNEAUX))
         mesure = self.mesure()
         with contextlib.redirect_stdout(io.StringIO()):
-            finis, _ = raboter_sous_correction({n: (d, None) for n, d in self.champs.items()}, self.noeud, self.aretes,
+            finis, _ = raboter_sous_correction(dict(self.champs), self.noeud, self.aretes,
                                               libre, corriger, numpy.eye(3), mesure)
-        self.assertFalse(any(m.any() for m in self.mesure()(finis).values()))
+        self.assertFalse(any(m.any() for m in par_nom(*self.mesure()(finis)).values()))
         for nom in self.champs:
             self.assertGreater(numpy.abs(finis[nom] - self.champs[nom]).max(), 0)
-        groupes = etats_ponderes(self.x, finis, [(self.etats, self.matrices, ())])
+        groupes = etats_ponderes(self.x, finis, [(self.etats, pile_partagee(self.etats, self.matrices), ())])
         etat = preparer_correction('coin', self.x, self.w, self.noeud, self.aretes, groupes)
         with contextlib.redirect_stdout(io.StringIO()):
             verifier_repos_cuit(etat)
@@ -555,9 +719,9 @@ class DomaineDesSilhouettes(unittest.TestCase):
         monde = rotation()
         for facteur in (1, 0.5, 0.5):
             champs = {n: d * facteur for n, d in self.champs.items()}
-            obtenu = mesure(champs)
-            entier = self.mesure()(champs)
-            tourne = self.mesure(monde=monde)({n: d @ monde.T for n, d in champs.items()})
+            obtenu = par_nom(*mesure(champs))
+            entier = par_nom(*self.mesure()(champs))
+            tourne = par_nom(*self.mesure(monde=monde)({n: d @ monde.T for n, d in champs.items()}))
             for nom in champs:
                 numpy.testing.assert_array_equal(obtenu[nom], entier[nom])
                 numpy.testing.assert_array_equal(tourne[nom], entier[nom])
@@ -569,20 +733,20 @@ class DomaineDesSilhouettes(unittest.TestCase):
                               anneaux(self.p, NIVEAUX_DES_ANNEAUX))
         temoin = numpy.zeros_like(self.p)
         temoin[self.noeud == self.noeud[8 * (SECTEURS + 1) + 7], 1] = .001
-        (temoin,), _ = corriger([(temoin, None)])
+        (temoin,), _ = corriger([temoin])
         champs = {**self.champs, 'temoin': temoin}
         mesure = self.mesure()
 
         def hors(courants):
-            marques = mesure({n: courants[n] for n in self.champs})
-            return {**marques, 'temoin': numpy.zeros(len(self.aretes), dtype=bool)}
+            fautes, pese = mesure({n: courants[n] for n in self.champs})
+            return fautes, {**pese, 'temoin': numpy.zeros_like(fautes)}
 
         with contextlib.redirect_stdout(io.StringIO()):
-            finis, _ = raboter_sous_correction({n: (d, None) for n, d in champs.items()}, self.noeud, self.aretes,
+            finis, _ = raboter_sous_correction(champs, self.noeud, self.aretes,
                                               libre, corriger, numpy.eye(3), hors)
         numpy.testing.assert_allclose(finis['temoin'], temoin, rtol=0, atol=TOLERANCE)
         self.assertTrue(all(numpy.abs(finis[n] - champs[n]).max() > 0 for n in self.champs))
-        self.assertFalse(any(m.any() for m in hors(finis).values()))
+        self.assertFalse(any(m.any() for m in par_nom(*hors(finis)).values()))
 
 
 class DomaineDuGabarit(unittest.TestCase):
@@ -598,8 +762,8 @@ class DomaineDuGabarit(unittest.TestCase):
         jeux = {}
         for etat in etats['etats']:
             jeux.setdefault(json.dumps(etat['facteurs'], sort_keys=True), []).append(etat)
-        self.groupes = [({'etats': jeu, 'cellulesSilhouettes': etats['cellulesSilhouettes']}, numpy.eye(4)[None, None], ())
-                        for jeu in jeux.values()]
+        self.groupes = [({'etats': jeu, 'cellulesSilhouettes': etats['cellulesSilhouettes']},
+                         pile_partagee({'etats': jeu}, numpy.eye(4)[None, None]), ()) for jeu in jeux.values()]
         self.cles = sorted({nom for e in etats['etats'] for poids in (e['poidsGabarit'], e['poidsReference'])
                             for nom in poids if nom.startswith('gabarit_')})
         self.champs = {n: numpy.zeros_like(self.p) for n in ('feminin', 'carrure_plus')}
@@ -617,18 +781,18 @@ class DomaineDuGabarit(unittest.TestCase):
         loin = int(numpy.argmax(numpy.linalg.norm(self.p - self.p[self.b], axis=1)))
         derivees = self.derivees('gabarit_legs_plus_feminin', si=lambda champs: champs['feminin'][loin].any())
         mesure = mesurer_domaine(self.w, self.x, self.aretes, self.groupes, numpy.eye(3), derivees)
-        self.assertFalse(any(m.any() for m in mesure(self.champs).values()))
+        self.assertFalse(any(m.any() for m in par_nom(*mesure(self.champs)).values()))
         champs = {**self.champs, 'feminin': self.champs['feminin'].copy()}
         champs['feminin'][self.noeud == self.noeud[loin]] = [0, 0, 1e-4]
-        incremental = mesure(champs)
-        frais = mesurer_domaine(self.w, self.x, self.aretes, self.groupes, numpy.eye(3), derivees)(champs)
+        incremental = par_nom(*mesure(champs))
+        frais = par_nom(*mesurer_domaine(self.w, self.x, self.aretes, self.groupes, numpy.eye(3), derivees)(champs))
         self.assertTrue(incremental['feminin'].any())
         for nom in champs:
             numpy.testing.assert_array_equal(incremental[nom], frais[nom])
 
     def test_une_cle_croisee_trop_etiree_marque_sa_silhouette(self):
-        marques = mesurer_domaine(self.w, self.x, self.aretes, self.groupes, numpy.eye(3),
-                                  self.derivees('gabarit_legs_plus_feminin', facteur=-5))(self.champs)
+        marques = par_nom(*mesurer_domaine(self.w, self.x, self.aretes, self.groupes, numpy.eye(3),
+                                           self.derivees('gabarit_legs_plus_feminin', facteur=-5))(self.champs))
         self.assertTrue(marques['feminin'].any())
 
     def test_une_cle_croisee_hors_bornes_marque_sa_silhouette_aux_seuls_etats_du_gabarit(self):
@@ -636,19 +800,26 @@ class DomaineDuGabarit(unittest.TestCase):
         neutres = [(d, m, c) for d, m, c in self.groupes if all(not p for p in d['etats'][0]['poidsGabarit'].values())]
         self.assertEqual(len(neutres), 1)
         sans = mesurer_domaine(self.w, self.x, self.aretes, neutres, numpy.eye(3), self.derivees('gabarit_legs_plus_feminin'))
-        self.assertFalse(any(m.any() for m in sans(self.champs).values()))
-        marques = mesurer_domaine(self.w, self.x, self.aretes, self.groupes, numpy.eye(3),
-                                  self.derivees('gabarit_legs_plus_feminin'))(self.champs)
+        self.assertFalse(any(m.any() for m in par_nom(*sans(self.champs)).values()))
+        marques = par_nom(*mesurer_domaine(self.w, self.x, self.aretes, self.groupes, numpy.eye(3),
+                                           self.derivees('gabarit_legs_plus_feminin'))(self.champs))
         self.assertTrue(marques['feminin'].any())
         self.assertFalse(marques['carrure_plus'].any())
         nulles = mesurer_domaine(self.w, self.x, self.aretes, self.groupes, numpy.eye(3),
                                  lambda champs: {nom: numpy.zeros_like(self.p) for nom in self.cles})(self.champs)
-        self.assertFalse(any(m.any() for m in nulles.values()))
+        self.assertFalse(any(m.any() for m in par_nom(*nulles).values()))
 
 
 def groupe_a_un_clip(positions, references, matrices, cellules, demandes=()):
-    """`GroupePondere` dont les échantillons de `matrices` après le repos forment un seul clip."""
-    return GroupePondere(positions, references, matrices, cellules, demandes, (len(matrices) - 1,) if len(matrices) > 1 else ())
+    """`GroupePondere` dont tous les états partagent la pile `matrices`, ses échantillons après le repos formant un seul
+    clip."""
+    return GroupePondere(positions, references, [matrices] * len(positions), cellules, demandes,
+                         (len(matrices) - 1,) if len(matrices) > 1 else ())
+
+
+def pile_partagee(domaine, pile):
+    """La pile `pile` partagée par référence entre tous les états de `domaine` (`cuisson_gabarit.groupes_de_peau`)."""
+    return [pile] * len(domaine['etats'])
 
 
 def domaine_a_facteurs_neutres():
@@ -671,8 +842,26 @@ def arete_du_domaine(interieur=True, clip=None, z=.1):
     matrices = numpy.eye(4)[None, None]
     if clip is not None:
         matrices = numpy.concatenate([matrices, clip[None, None]])
-    groupes = etats_ponderes(x, champs, [(demandes, matrices, () if clip is None else (1,))])
+    groupes = etats_ponderes(x, champs, [(demandes, pile_partagee(demandes, matrices), () if clip is None else (1,))])
     return x, w, aretes, demandes, champs, matrices, groupes
+
+
+def arete_au_coin_ecrase():
+    """Une arête sous `domaine_a_facteurs_neutres`, son second sommet en (1, 0, 1), que `corpulence` porte en (0, 0, 1)
+    et `carrure_moins` en (1, 1, 1) ; à l'identité puis sous un clip qui écrase z à 0,001 : l'état `corpulence` y a
+    l'arête à 0,001 / √2, les autres états restent sains. (x, w, arêtes, demandes, champs, matrices, indice de l'état
+    `corpulence`)."""
+    x = numpy.array([[0, 0, 0, 1], [1, 0, 1, 1]], dtype=float)
+    champs = {nom: numpy.zeros((2, 3)) for nom in ('corpulence', 'carrure_moins')}
+    champs['corpulence'][1] = [-1, 0, 0]
+    champs['carrure_moins'][1] = [0, 1, 0]
+    clip = numpy.eye(4)
+    clip[2, 2] = .001
+    demandes = domaine_a_facteurs_neutres()
+    ecrase = next(i for i, e in enumerate(demandes['etats'])
+                  if e['poidsSilhouettes'] == {'corpulence': 1, 'carrure_moins': 0})
+    return (x, numpy.ones((2, 1)), numpy.array([[0, 1]]), demandes, champs, numpy.array([[numpy.eye(4)], [clip]]),
+            ecrase)
 
 
 class MinimumContinu(unittest.TestCase):
@@ -687,60 +876,70 @@ class MinimumContinu(unittest.TestCase):
         self.assertAlmostEqual(minimum['rapport'], .1 / numpy.sqrt(2.01), places=12)
         self.assertAlmostEqual(minimum['poids']['corpulence'], .5)
         self.assertAlmostEqual(minimum['poids']['carrure_moins'], .5)
-        marques = mesurer_domaine(w, x, aretes, [(demandes, matrices, ())], numpy.eye(3))(champs)
+        marques = par_nom(*mesurer_domaine(w, x, aretes, [(demandes, pile_partagee(demandes, matrices), ())],
+                                           numpy.eye(3))(champs))
         self.assertTrue(all(m[0] for m in marques.values()))
 
-    def test_le_minimum_interieur_de_clip_refuse_malgre_les_coins_valides(self):
+    def test_un_ecrasement_strictement_interieur_entre_coins_sains_en_clip_n_est_pas_une_faute(self):
+        """#4002 : au poids (0,5, 0,5), l'arête vaut (0, 0, 0,005) sous le clip, rapport 0,005 / 1,5 ; ses coins sains."""
         clip = numpy.eye(4)
         clip[2, 2] = .01
-        x, w, aretes, _, champs, _, groupes = arete_du_domaine(clip=clip, z=.5)
+        x, w, aretes, demandes, champs, matrices, groupes = arete_du_domaine(clip=clip, z=.5)
+        milieu = (x[1, :3] + .5 * (champs['corpulence'][1] + champs['carrure_moins'][1])) @ clip[:3, :3]
+        self.assertAlmostEqual(float(numpy.linalg.norm(milieu)) / 1.5, .005 / 1.5, places=12)
+        self.assertLess(.005 / 1.5, ETIREMENT_EN_CLIP[0])
         etat = preparer_correction('clip-interieur', x, w, numpy.arange(2), aretes, groupes)
         trace = etat['traces'][0]
+        self.assertGreaterEqual(float(trace.bas.min()), ETIREMENT_EN_CLIP[0])
         self.assertTrue((trace.cotes_clip < 0).all())
-        self.assertFalse(etat['horsRepos'][0])
-        self.assertTrue(etat['horsClip'][0])
-        self.assertAlmostEqual(trace.domaine_clip.bas[0], .005 / 1.5, places=12)
-        self.assertTrue(trace.domaine_clip.exact[0])
-        self.assertTrue(numpy.isfinite(trace.domaine_clip.bas[0]))
-        for nom in champs:
-            self.assertAlmostEqual(trace.domaine_clip.poids[nom][0], .5)
+        self.assertFalse(etat['hors'].any())
+        fautes, _ = mesurer_domaine(w, x, aretes, [(demandes, pile_partagee(demandes, matrices), (1,))], numpy.eye(3))(champs)
+        self.assertFalse(fautes.any())
+
+    def test_un_coin_ecrase_en_clip_est_une_faute_de_son_etat(self):
+        """#4002 : `arete_au_coin_ecrase`."""
+        x, w, aretes, domaine, champs, matrices, ecrase = arete_au_coin_ecrase()
+        groupes = etats_ponderes(x, champs, [(domaine, pile_partagee(domaine, matrices), (1,))])
+        traces = []
+        extremes(w, aretes, groupes, traces)
+        numpy.testing.assert_array_equal(numpy.flatnonzero(traces[0].cotes_clip[:, 0] >= 0), [ecrase])
+        self.assertEqual(traces[0].cotes_clip[ecrase, 0], 0)
+        self.assertAlmostEqual(traces[0].bas[ecrase, 0], .001 / numpy.sqrt(2), places=9)
+        etat = preparer_correction('coin', x, w, numpy.arange(2), aretes, groupes)
+        numpy.testing.assert_array_equal(etat['horsClip'], [True])
+        fautes, parts = mesurer_domaine(w, x, aretes, [(domaine, pile_partagee(domaine, matrices), (1,))],
+                                        numpy.eye(3))(champs)
+        numpy.testing.assert_array_equal(numpy.flatnonzero(fautes[:, 0]), [ecrase])
+        self.assertEqual((parts['corpulence'][ecrase, 0], parts['carrure_moins'][ecrase, 0]), (1.0, 0.0))
 
     def test_la_finition_marque_les_cles_d_un_defaut_de_clip(self):
-        clip = numpy.eye(4)
-        clip[2, 2] = .01
-        x, w, aretes, demandes, champs, matrices, _ = arete_du_domaine(clip=clip, z=.5)
-        au_repos = mesurer_domaine(w, x, aretes, [(demandes, matrices[:1], ())], numpy.eye(3))(champs)
-        self.assertFalse(any(m.any() for m in au_repos.values()))
-        en_clip = mesurer_domaine(w, x, aretes, [(demandes, matrices[:1], ()), (demandes, matrices, (1,))], numpy.eye(3))(champs)
-        self.assertTrue(all(m[0] for m in en_clip.values()))
+        """#4002 : `arete_au_coin_ecrase`, mesurée au repos puis au repos et en clip."""
+        x, w, aretes, demandes, champs, matrices, ecrase = arete_au_coin_ecrase()
+        au_repos = mesurer_domaine(w, x, aretes, [(demandes, pile_partagee(demandes, matrices[:1]), ())], numpy.eye(3))(champs)
+        self.assertFalse(any(m.any() for m in par_nom(*au_repos).values()))
+        fautes, parts = mesurer_domaine(w, x, aretes, [(demandes, pile_partagee(demandes, matrices[:1]), ()),
+                                                       (demandes, pile_partagee(demandes, matrices), (1,))],
+                                        numpy.eye(3))(champs)
+        self.assertEqual({nom: bool(m[0]) for nom, m in par_nom(fautes, parts).items()},
+                         {'corpulence': True, 'carrure_moins': False})
+        n = len(demandes['etats'])
+        self.assertEqual(fautes.shape, (2 * n + 2, len(aretes)))
+        self.assertEqual(list(parts), list(champs))
+        for nom, p in parts.items():
+            self.assertEqual(p.shape, fautes.shape)
+            numpy.testing.assert_array_equal(p[~fautes], 0.0)
+        numpy.testing.assert_array_equal(numpy.flatnonzero(fautes[:, 0]), [n + ecrase])
+        self.assertEqual(parts['corpulence'][n + ecrase, 0], 1.0)
 
     def test_une_topologie_absente_est_un_refus_nomme(self):
         x, _, _, demandes, champs, matrices, _ = arete_du_domaine()
         with self.assertRaisesRegex(RuntimeError, 'topologie-silhouettes-absente'):
-            etats_ponderes(x, champs, [({'etats': demandes['etats']}, matrices, ())])
+            etats_ponderes(x, champs, [({'etats': demandes['etats']}, pile_partagee(demandes, matrices), ())])
 
     def test_un_groupe_sans_topologie_est_un_refus_nomme(self):
         x, w, aretes, _, _, matrices, groupes = arete_du_domaine()
         with self.assertRaisesRegex(RuntimeError, 'topologie-silhouettes-absente'):
             extremes(w, aretes, [tuple(groupes[0])])
-
-    def test_un_minimum_de_clip_au_coin_neutre_reste_dans_la_trace(self):
-        domaine = domaine_a_facteurs_neutres()
-        x = numpy.array([[0, 0, 0, 1], [0, 0, 1, 1]], dtype=float)
-        w, aretes = numpy.ones((2, 1)), numpy.array([[0, 1]])
-        champs = {nom: numpy.zeros((2, 3)) for nom in ('corpulence', 'carrure_moins')}
-        champs['corpulence'][1] = [1, 0, 0]
-        champs['carrure_moins'][1] = [0, 1, 0]
-        clip = numpy.eye(4)
-        clip[2, 2] = .001
-        matrices = numpy.array([[numpy.eye(4)], [clip]])
-        traces = []
-        groupes = etats_ponderes(x, champs, [(domaine, matrices, (1,))])
-        extremes(w, aretes, groupes, traces)
-        self.assertEqual(traces[0].domaine_clip.cotes[0], 0)
-        self.assertTrue(traces[0].domaine_clip.exact[0])
-        self.assertAlmostEqual(traces[0].domaine_clip.bas[0], .001)
-        self.assertTrue(all(p[0] == 0 for p in traces[0].domaine_clip.poids.values()))
 
     def test_le_repli_ne_remesure_que_les_aretes_incompletes(self):
         clip = numpy.eye(4)
@@ -751,11 +950,11 @@ class MinimumContinu(unittest.TestCase):
         g = groupes[0]
         positions = numpy.concatenate([g[0], g[0] + [3, 0, 0, 0]], axis=1)
         references = numpy.concatenate([g[1], g[1] + [3, 0, 0, 0]], axis=1)
-        matrices = numpy.concatenate([g[2], g[2]], axis=1)
+        pile = numpy.concatenate([g[2][0], g[2][0]], axis=1)
         w = numpy.column_stack([w, numpy.zeros_like(w)])
         w[2:] = [0, 1]
-        matrices[1:, 1] = numpy.eye(4)
-        groupe = GroupePondere(positions, references, matrices, g.cellules, g.demandes, g.clips)
+        pile[1:, 1] = numpy.eye(4)
+        groupe = GroupePondere(positions, references, [pile] * len(positions), g.cellules, g.demandes, g.clips)
         tailles = []
         def melanges(poids, pile):
             tailles.append(len(poids))
@@ -792,13 +991,12 @@ class MinimumContinu(unittest.TestCase):
         traces = []
         extremes(w, aretes, groupes, traces)
         self.assertTrue(traces[0].domaine_repos.exact[0])
-        self.assertTrue(traces[0].domaine_clip.exact[0])
 
     def test_une_topologie_declaree_incomplete_est_refusee(self):
         x, _, _, demandes, champs, matrices, _ = arete_du_domaine()
         incomplets = {**demandes, 'etats': [e for e in demandes['etats'] if sum(v != 0 for v in e['poidsSilhouettes'].values()) <= 1]}
         with self.assertRaisesRegex(RuntimeError, r"cellule-incomplete : .+ : coin absent .*corpulence.*carrure_moins"):
-            etats_ponderes(x, champs, [(incomplets, matrices, ())])
+            etats_ponderes(x, champs, [(incomplets, pile_partagee(incomplets, matrices), ())])
 
     def test_les_compteurs_suivent_la_remesure_et_la_decoupe(self):
         def mesurer(fixture):
@@ -824,6 +1022,66 @@ class MinimumContinu(unittest.TestCase):
             numpy.array([[-2., 0, 0]]), numpy.array([[-2., 0, 0]]))
         self.assertEqual(valeur[0], 0)
         self.assertAlmostEqual(uv[0].sum(), .5)
+
+
+class PartsDesFautes(unittest.TestCase):
+    """#4002 : silhouettes.parts_des_fautes par `mesurer_domaine`, sur une arête unité le long de x sous
+    `domaine_a_facteurs_neutres`, ses champs posés au second sommet ; le site lu est l'état où les deux noms pèsent 1."""
+
+    def mesurer(self, corpulence, carrure_moins, portes=()):
+        x = numpy.array([[0, 0, 0, 1], [1, 0, 0, 1]], dtype=float)
+        w, aretes = numpy.ones((2, 1)), numpy.array([[0, 1]])
+        demandes = domaine_a_facteurs_neutres()
+        champs = {n: numpy.zeros((2, 3)) for n in ('corpulence', 'carrure_moins')}
+        champs['corpulence'][1], champs['carrure_moins'][1] = corpulence, carrure_moins
+        mesure = mesurer_domaine(w, x, aretes, [(demandes, pile_partagee(demandes, numpy.eye(4)[None, None]), ())],
+                                 numpy.eye(3), portes=portes)
+        fautes, parts = mesure(champs)
+        coin = next(i for i, e in enumerate(demandes['etats'])
+                    if e['poidsSilhouettes'] == {'corpulence': 1, 'carrure_moins': 1})
+        self.assertTrue(fautes[coin, 0])
+        return {nom: p[coin, 0] for nom, p in parts.items()}, (fautes, parts), (x, w, aretes, champs, mesure)
+
+    def exces(self, *decalages):
+        return numpy.log(numpy.linalg.norm(numpy.array([1.0, 0, 0]) + sum(decalages)) / ETIREMENT_DES_CLES[1])
+
+    def test_le_nom_dont_le_retrait_rend_les_bornes_a_la_part_un_l_autre_zero_et_n_est_pas_rabote(self):
+        parts, mesure, (x, w, aretes, champs, hors) = self.mesurer([4, 0, 0], [0, 0, 0])
+        self.assertEqual(parts, {'corpulence': 1.0, 'carrure_moins': 0.0})
+        marques = par_nom(*mesure)
+        self.assertTrue(marques['corpulence'][0])
+        self.assertFalse(marques['carrure_moins'][0])
+        with contextlib.redirect_stdout(io.StringIO()):
+            finis, rabot = raboter_sous_correction(champs, numpy.arange(2), aretes, numpy.ones(2),
+                                                   lambda d, _=None: (d, {}), numpy.eye(3), hors)
+        self.assertLess(rabot['corpulence'].max(), 1.0)
+        numpy.testing.assert_array_equal(rabot['carrure_moins'], 1.0)
+        self.assertFalse(any(m.any() for m in par_nom(*hors(finis)).values()))
+
+    def test_des_gains_positifs_inegaux_rendent_des_parts_proportionnelles(self):
+        corpulence, carrure = numpy.array([4.0, 0, 0]), numpy.array([3.0, 0, 0])
+        parts, _, _ = self.mesurer(corpulence, carrure)
+        avec = self.exces(corpulence, carrure)
+        gains = {'corpulence': (avec - self.exces(carrure)) / avec, 'carrure_moins': (avec - self.exces(corpulence)) / avec}
+        self.assertTrue(0 < gains['carrure_moins'] < gains['corpulence'] < 1)
+        self.assertAlmostEqual(parts['corpulence'], 1.0, places=9)
+        self.assertAlmostEqual(parts['carrure_moins'], gains['carrure_moins'] / gains['corpulence'], places=6)
+
+    def test_sans_gain_positif_chaque_nom_qui_pese_a_la_part_un(self):
+        corpulence, carrure = numpy.array([3.0, 5, 0]), numpy.array([0.0, -5, 0])
+        parts, _, _ = self.mesurer(corpulence, carrure)
+        avec = self.exces(corpulence, carrure)
+        self.assertGreater(avec, 0)
+        self.assertGreater(self.exces(carrure), avec)
+        self.assertGreater(self.exces(corpulence), avec)
+        self.assertEqual(parts, {'corpulence': 1.0, 'carrure_moins': 1.0})
+
+
+    def test_un_nom_porte_n_entre_pas_aux_gains_et_le_rabote_qui_pese_prend_le_repli(self):
+        """Seule la carrure portée a un gain au site ; le raboté, nul à l'arête, n'en a aucun."""
+        parts, (fautes, toutes), _ = self.mesurer([0, 0, 0], [4, 0, 0], portes=['carrure_moins'])
+        self.assertEqual(parts, {'corpulence': 1.0, 'carrure_moins': 0.0})
+        numpy.testing.assert_array_equal(toutes['carrure_moins'], 0.0)
 
 
 class PublicationDesSilhouettes(unittest.TestCase):

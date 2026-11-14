@@ -803,7 +803,7 @@ describe('Dégâts d’armure (LDB 63 l.19-21)', () => {
 
 /** Mutation fabriquée : `ap` partout, marquée hors Déviation ou non. */
 const mutationAP = (id: string, amount: number, noDeviation?: boolean): Mutation =>
-  ({ id, label: id, desc: '', kind: 'physique', roll: 0, passive: [{ op: 'ap', amount, ...(noDeviation ? { noDeviation } : {}) }] });
+  ({ id, type: 'mutations', label: id, desc: '', kind: 'physique', roll: 0, passive: [{ op: 'ap', amount, ...(noDeviation ? { noDeviation } : {}) }] });
 
 /** LDB 85 l.325, l.447 ; LDB 63 l.19 ; LDB 62 l.135 */
 describe('endommagerLEquipementPorte — toutes les Armures et Armes portées subissent 1 Dégât', () => {

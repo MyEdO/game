@@ -165,7 +165,7 @@ describe('Flow — Lumière de guérison : Résistance Difficile (−20) → Tr�
 
 // ── Contradictions FRANCHES desc ⇄ op (#880) ──────────────────────────────────────────────────────
 /** Label d'un Trait par son id (le label est de l'AFFICHAGE — la donnée, elle, est keyée par id). */
-const TRAIT_LABEL = new Map(traits.map((t) => [t.id, t.label]));
+const TRAIT_LABEL = new Map<string, string>(traits.map((t) => [t.id, t.label]));
 
 /**
  * Texte de RÈGLE d'un Flow d'effets : la prose des ops PLUS le rendu des Conditions STRUCTURELLES

@@ -131,6 +131,14 @@ import type * as booksDef from './schemas/defs/books';
 import { books } from './livres';
 import type * as vehiclesDef from './schemas/defs/vehicles';
 import type * as qualitiesDef from './schemas/defs/qualities';
+import type * as tavernGamesDef from './schemas/defs/tavernGames';
+import type * as talentsDef from './schemas/defs/talents';
+import type * as traitsDef from './schemas/defs/traits';
+import type * as etatsDef from './schemas/defs/etats';
+import type * as maladiesDef from './schemas/defs/maladies';
+import type * as symptomsDef from './schemas/defs/symptoms';
+import type * as mutationsDef from './schemas/defs/mutations';
+import type { symptomCapabilitiesSchema } from './schemas/defs/symptoms';
 import type { qualityCapabilitiesSchema } from './schemas/defs/qualities';
 import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import type * as activitiesDef from './schemas/defs/activities';
@@ -143,7 +151,6 @@ import type * as miscastDef from './schemas/defs/miscast';
 import type * as structureCriticalsDef from './schemas/defs/structure-criticals';
 import type * as artilleryMisfireDef from './schemas/defs/artillery-misfire';
 import type * as crewTestTypesDef from './schemas/defs/crew-test-types';
-import type { VisuelDeLumiere } from './schemas/defs/lightTones';
 import type * as signesAstrologiques from './schemas/defs/stars';
 import type * as couleurDesYeux from './schemas/defs/eyes';
 import type * as couleurDesCheveux from './schemas/defs/hairs';
@@ -255,8 +262,6 @@ import riverNavigationJson from './river-navigation.json';
 import seaCargoJson from './sea-cargo.json';
 import landCargoJson from './land-cargo.json';
 import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, Difficulty, type StakeForm } from '../engine/types';
-import type { MutationData } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
-import type { DiseaseDef } from './schemas/defs/maladies';
 // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
 import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle';
 import { formatDice } from '../engine/dice';
@@ -508,7 +513,7 @@ const STAKE_ENTRY_POOLS: Partial<Record<CleCodex, PoolDEntrees>> = {
   mutationTables: (id) => mutationTables.some((t) => t.id === id),
   // Un jeu de taverne PORTE sa règle (sa fiche Codex la recopie verbatim) : c'est le foyer des effets
   // qu'une partie inflige (l'ivresse d'un jeu à boire, NADJ 16 l.90).
-  tavernGames: (id) => (tavernGamesJson as { id: string }[]).some((g) => g.id === id),
+  tavernGames: (id) => TAVERN_GAMES.some((g) => g.id === id),
   // Catégories atteignables par l'ENTITÉ SOURCE d'un effet (`CATEGORY_BY_SOURCE_KIND`, engine/types) —
   // la table est TOTALE côté source, donc le pool l'est aussi : sans elles, un jet exigé par un objet
   // ou un Talent replierait en silence sur le foyer de son `kind`.
@@ -829,96 +834,12 @@ export function specEntryLabel(e: SpecEntry): PlayerText {
  *  (Difficulté du Venin — vocabulaire `Difficulty`). Absent = specs inline (`SpecEntry[]`). */
 export type SpecsSource = z.output<typeof specsSourceSchema>;
 export type SkillData = EntreeDe<typeof skillsDef>;
-/** UN « matcher » de Test (recodage de la ligne « Tests : » du livre, cf. `TalentTest`) : à quel(s)
- *  Test(s) le talent se rapporte. `skill` (référence de Compétence `{id, spec?}`, XOR `characteristic`) OU `characteristic`
- *  (Caractéristique nue). La `spec` de la référence est la spécialisation FIXE ; `specFromInstance` =
- *  « (Au choix) » → matche la spec CHOISIE de l'instance (`t.spec`). `when` = contexte MÉCANISABLE (Condition combat — auto si vraie) ; `manual` =
- *  contexte NARRATIF inmécanisable (« quand vous soulevez ») → advisory, JAMAIS auto-appliqué. */
-export interface TestMatch {
-  skill?: RefDesignee;
-  characteristic?: import('../engine/types').CharKey;
-  specFromInstance?: boolean;
-  /** EXCLUT une spécialisation (matche toute spec SAUF celle-ci) — Linguistique « Langue (toutes) » qui
-   *  « ne fonctionne pas avec Langue (Magick) » : `{ skill:{id:'langue'}, exceptSpec:'magick' }`. */
-  exceptSpec?: string;
-  when?: import('../engine/flowCore').Condition;
-  manual?: boolean;
-}
-/** Champ « Tests » d'un Talent (LDB 10 : +1 DR/niveau sur un Test lié RÉUSSI). `raw` = la ligne du livre
- *  VERBATIM (affichage Codex, rule 5) ; `matches` = la forme STRUCTURÉE id-based lue par la logique
- *  (`talentTestSLBonus`/`castTestTalentDR`) — la logique ne lit JAMAIS `raw`. */
-export interface TalentTest {
-  raw: string;
-  matches: TestMatch[];
-}
-export interface TalentData {
-  /** Identifiant STABLE (slug du libellé d'origine) — cible des références structurées, robuste au
-   *  renommage du `label`. Source unique pour `findTalentById`. */
-  id: string;
-  type: 'talents';
-  label: string;
-  /** Maxi d'acquisitions (LDB 10 « Schéma des Talents ») : un nombre fixe, ou le BONUS d'une
-   *  caractéristique (`{bonusOf}`, structuré — remplace la chaîne « Bonus de X » re-parsée par regex),
-   *  ou `null` = sans limite (ex-« Aucun »). */
-  max: number | { bonusOf: import('../engine/types').CharKey } | 'sortsDuDomaine' | null;
-  /** Ligne « Tests » recodée : `{ raw verbatim (Codex), matches[] structuré (logique) }`. `null` = le
-   *  talent ne se rapporte à aucun Test. */
-  test: TalentTest | null;
-  desc: string;
-  specs?: SpecEntry[];
-  /** Catégorie de Taille CONFÉRÉE par le talent (Massif → `grande`, Petit → `petite`, LDB 85 l.344-354) —
-   *  lue par `createHero` (#572), même vocabulaire que la Taille de créature (`SizeCategory`). */
-  size?: import('../engine/size').SizeCategory;
-  /** Source du pool de spéc (via `SPEC_SOURCES`/`specPoolOf`/`specLabel`) : `arcaneDomains` (Magie des
-   *  Arcanes → Domaines `arcane` de `domains.json`, AFFICHE le Lore), `cultBlessings`/`cultMiracles`/
-   *  `cultChaos` (Béni / Invocation / Magie du Chaos → `gods.id` filtrés, AFFICHE le nom du dieu) ou
-   *  `seaShanties` (Chanson de marin). Quand présent, `specs[]` est ABSENT (le pool dérive). */
-  specsSource?: SpecsSource;
-  /** Ids de `groups.json` accordés au porteur du Talent (`groupesDe`). Absent = aucun Groupe. */
-  grantGroups?: string[];
-  /** Le `spec` de ce Talent nomme une entrée de son registre (`SPEC_SOURCES[specsSource].entree`) dont les
-   *  `grantGroups` sont accordés au porteur (`groupesDe`) — Béni (Sigmar) fait un « sigmarite ». Absent =
-   *  aucun Groupe. */
-  grantSpecGroups?: true;
-  /** Le `spec` de ce Talent nomme un Domaine arcanique (`DomainData.id`) que le porteur PRATIQUE — il
-   *  compte donc dans les Domaines TENUS et sous le plafond d'apprentissage (`LDB 46 l.177`, repris
-   *  `VDM 02 l.190-192`), lu par `heldArcaneDomains` (`engine/careerSlots`). Volontairement DISTINCT de
-   *  `specsSource: 'arcaneDomains'`, qui ne décrit que le POOL de spécialisations offert au picker : un
-   *  Talent futur pourrait nommer un Domaine sans en octroyer la pratique. */
-  grantsArcaneDomain?: true;
-  /** Le domaine de ce Talent accepte-t-il un TEXTE LIBRE hors `specs[]` ? Même sémantique que
-   *  `SkillData.specsOpen` (absent/`false` = FERMÉ, `spec` DOIT être un id de `specs[]`). */
-  specsOpen?: boolean;
-  /** Trait de créature conféré, la spécialisation de l'instance en argument (`traitsConferes`). LDB 10 l.506, l.548 */
-  confereTrait?: { id: string };
-  source: SourceRef;
-  /** Emplacements SECONDAIRES du même Talent (`sourceRefs.ts`), l'ancre `source` restant la seule à
-   *  porter la `desc`. */
-  alsoIn?: SecondaryRef[];
-  /** Effets MÉCANIQUES authorés (déclencheur → ops du Flow) — Talents « effet sur événement » (Assaut
-   *  féroce `onHit`, Frappe réactive `onCharged`…), appliqués par `noyau/triggeredEffects` exactement comme
-   *  les traits. Type-only (le moteur reste pur). Édité au Codex par `TriggeredEffectsField`. */
-  effects?: TriggeredEffect[];
-  /** Modificateurs PASSIFS continus (Coup puissant, Dur à cuire…) en `OpPassive[]` — MÊME vocabulaire que les
-   *  sorts/traits, lus par le collecteur passif (`talentPassiveMods` → `passiveMods`, kind `intrinseque`,
-   *  répété par niveau). Édité au Codex par `GameOpEditor`. L'octroi d'attaque gratuite (Frénésie) vit ici :
-   *  `grantFreeAttack{when:'available'}`, lu par `availableAttacks`. */
-  passive?: import('../engine/ops').OpPassive[];
-  /** Capacités de combat/jeu (LDB 10) en DONNÉE : sac de flags lu par `featuresOf`/`dispatch` (Coup
-   *  puissant `meleeDamageBonus`, Riposte, Tueur, castingKind…). Remplace les `combatFeatures/defs/*.ts`. */
-  combat?: import('../engine/combatFeatures/types').CombatFeature;
-  /** `true` = contenu de RÉFÉRENCE (PNJ/campagne scriptée), pas un Talent de progression PJ standard —
-   *  le RAW lui-même le dit explicite (« ne sont pas accessibles à d'autres personnes dans des
-   *  circonstances normales », EDOC 13 l.83 ; « Carrière destinée uniquement aux PNJ … avec la
-   *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
-   *  Lu par `computeObtainability` (`scripts/data/lib/obtainabilityGraph.ts`, #326) pour exempter la
-   *  garde `obtainability-guard.test.ts` — jamais un silence sur un Talent sans chemin d'octroi PJ. */
-  codexOnly?: true;
-  /** Arbitrage NON-verbatim documentant l'entrée (même patron que `TraitData.maison`/`CreatureData.maison`) —
-   *  porte la CITATION du passage et la couture qui manque quand le Talent n'a PAS de `passive`/`effects`/`combat`
-   *  alors que sa prose donne une mécanique (#1011). Jamais lu par le moteur. */
-  maison?: string;
-}
+/** Talent (LDB 10), son id fermé sur l'union générée (`Id<'talent'>`). */
+export type TalentData = EntreeDe<typeof talentsDef>;
+/** Champ « Tests » d'un Talent (LDB 10) : `raw` verbatim (Codex), `matches` lus par la logique. */
+export type TalentTest = NonNullable<TalentData['test']>;
+/** UN « matcher » de Test d'un Talent (`TalentTest.matches`). */
+export type TestMatch = TalentTest['matches'][number];
 /** Capacités IRRÉDUCTIBLES d'un objet (drapeaux NON exprimables en GameOp) — canal `capabilities`, MÊME
  *  logique que `TraitCapabilities`/`QualityCapabilities` : règles que le moteur INTERROGE par id, jamais
  *  par le nom FR de l'objet. Lues par `engine/capabilities` (`itemCapability` par-objet, `hasCapability`
@@ -1228,8 +1149,8 @@ export interface CreatureData {
    *  faute de statbloc imprimé) — même patron que `ActivityData.maison`, `TraumaData.maison`. */
   maison?: string;
 }
-/** Base PARTAGÉE d'un STATUT porté pilotant des effets en DONNÉES — soit un État (LDB 16, `EtatData`), soit
- *  un état psychologique (LDB 21, `PsychologyData`). Porte le vocabulaire commun : modificateurs PASSIFS
+/** Base d'un état psychologique porté (LDB 21, `PsychologyData`), de même vocabulaire que l'État (LDB 16,
+ *  `EtatData`, dérivé de `schemas/defs/etats.ts`). Porte le vocabulaire commun : modificateurs PASSIFS
  *  (`passive: OpPassive[]`, MÊME éditeur `GameOpEditor` que traits/atouts) ET effets DÉCLENCHÉS
  *  (`effects: TriggeredEffect[]`). Folding UNIQUE : `passiveMods` (passifs) + `fireStatusEffects` (déclenchés)
  *  itèrent indifféremment États et états psy → zéro duplication de schéma ni de collecteur. */
@@ -1254,67 +1175,12 @@ export interface StatusData {
   /** Restriction d'Action / de Mouvement / de défense imposée par le STATUT (États : À Terre/Sonné/
    *  Inconscient/Surpris/Empêtré ; et Psychologie — « Etat comme Psy »), lue en DONNÉES par les prédicats
    *  moteur `canTakeAction`/`effectiveMovement`/`cannotDefend` via le collecteur `conditionGating` (jamais
-   *  une branche par-nom). Sur `StatusData` → partagée par `EtatData` ET `PsychologyData`. */
+   *  une branche par-nom). Même forme que le `gating` de l'État (`schemas/defs/etats.ts`). */
   gating?: { action?: 'none'; movement?: 'none' | 'half' | 'crawl'; cannotDefend?: true };
 }
 
-export interface EtatData extends StatusData {
-  /** Ids de `groups.json` accordés au porteur tant qu'il porte l'État (`groupesDe`). Absent = aucun Groupe. */
-  grantGroups?: string[];
-  /** Type de Dégâts (`DamageTypeData.id`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
-  typeDeDegats?: { id: string };
-  /** La marque de l'État sur son porteur (#3834) : sa teinte, son visuel et son son en boucle. */
-  marqueCouleur: string;
-  marqueVisuel?: VisuelDeLumiere;
-  marqueSon?: { id: string };
-  /** Les magnitudes du `passive` sont-elles multipliées par le nombre de pions (Exténué −10/pion, LDB 16
-   *  l.90) ? Appliqué à l'émission par le collecteur `passiveMods`. Défaut (absent) : magnitude fixe. */
-  perStack?: boolean;
-  /** Le nombre de pions vu par les `effects` (le `{stacks:'self'}` des dégâts par-round) est RÉDUIT du
-   *  niveau de cette capacité de combat chez la cible — ex. Hémorragique réduit par Endurci (`bleedIgnore`,
-   *  LDB 10). Clé de `CombatFeature` ; lu génériquement par `fireConditionEffects` (jamais codé par-nom). */
-  stacksReducedBy?: string;
-  /** Récupération de l'État par une ACTION (LDB 16 : Empêtré « se libérer » l.66 = Test OPPOSÉ de Force
-   *  contre la source de l'empêtrement ; En flammes « se rouler » l.84 = Test d'Athlétisme simple). Lue par
-   *  l'action `recover` (IA inline ET flux joueur — SOURCE UNIQUE `resolveRecoverTest`) au lieu des branches
-   *  par-nom. `opposedBy:'source'` → opposé contre la Force d'entrave : `escapeStrength` FIGÉE en priorité
-   *  (vaut même source absente), sinon Force de la source VIVANTE. Retire 1 + DR pions sur succès. */
-  recover?: { skill?: RefDesignee; characteristic?: import('../engine/types').CharKey; opposedBy?: 'source'; difficulty?: import('../engine/types').Difficulty; opposedDifficulty?: import('../engine/types').Difficulty; enjeu: string; form: StakeForm };
-  /** VERROU DE TYPE : tant que cette Condition est fausse, AUCUNE instance de cet État ne se retire
-   *  (À Terre — `LDB 18 l.15`). Même champ, même algèbre et même porte de parse que le verrou d'INSTANCE
-   *  (`ConditionInstance.lockedUntil`) ; lu par `isConditionLocked`. */
-  lockedUntil?: import('../engine/flowCore').Condition;
-  /** Ce que le joueur lit quand `lockedUntil` tient (fragment français, éditable). */
-  lockedReason?: string;
-  /** Blessures RENDUES quand une dépense de Détermination retire cet État — `LDB 17 l.61`. Le soin
-   *  précède le retrait : c'est lui qui lève le verrou d'À Terre. */
-  resolveHeals?: number;
-  /** Cet État VERROUILLE l'Action : le Mouvement + l'Action doivent servir à fuir/se cacher (Brisé, LDB 16
-   *  l.52). Drapeau DÉCLARATIF lu en DONNÉES par `isActionLocked`/`restrictingConditions` (engine/conditions),
-   *  partagé par le gate de hotbar (`armerLeMode`) ET l'IA (dépense PROACTIVE de Détermination pour se
-   *  ressaisir) — plus de nom d'État en dur. */
-  restrictsAction?: boolean;
-  /** Cet État ne porte JAMAIS plus d'un pion, quelle que soit la cause — LDB 16 l.115 (Inconscient :
-   *  « soit vous êtes *Inconscient*, soit vous ne l'êtes pas »), l.37 (À Terre), l.137 (Surpris).
-   *  Drapeau DÉCLARATIF lu par `addCondition`/`syncDerivedConditions` (engine/conditions) — la pose,
-   *  dérivée ou native, y est bornée à 1 par CONSTRUCTION. */
-  nonCumulable?: boolean;
-  /** Cet État SUIT le porteur hors du combat (LDB 16 : Brisé l.57, Empoisonné l.70, En flammes l.77,
-   *  Exténué l.91, Hémorragique l.107, Inconscient l.116 ; Munition logée LDB 62 l.250) — par opposition
-   *  au transitoire, retiré au teardown. Drapeau DÉCLARATIF lu par `isPersistentCondition`
-   *  (engine/persistence), seul juge du report vers le groupe et du carry-in au combat suivant. */
-  persistsAfterCombat?: boolean;
-  /** AFFICHAGE (couche UI, hors RAW LDB 16) : icône du registre `<Icon>` (id `famille/nom`) + sévérité
-   *  0-100 (≥50 = incapacitant → créneau unique de l'ordre de bataille). Lus par `effectIcons.conditionMeta`. */
-  icon?: IconId;
-  severity?: number;
-  /** Dangerosité IA de l'État infligé, en « Blessures espérées » (contrôle > simple malus) — lue par
-   *  `aiSpellValue.opValue` (`op:'condition'`). Absente → menace mineure (1). */
-  aiThreat?: number;
-  /** Arbitrage NON-verbatim documentant l'entrée (même patron que `TraitData.maison`/`NavalTraitData.maison`/
-   *  `CreatureData.maison`) — porte la CITATION du passage et la couture qui manque. Jamais lu par le moteur. */
-  maison?: string;
-}
+/** État (LDB 16), son id fermé sur l'union générée (`Id<'etat'>`). */
+export type EtatData = EntreeDe<typeof etatsDef>;
 
 /** État PSYCHOLOGIQUE en DONNÉES (LDB 21) — `id` = `PsychType` (`frenesie`, à terme `peur`/`terreur`/…).
  *  Étend `StatusData` (passive/effects mutualisés) ; n'ajoute que la capacité propre à la psychologie. */
@@ -1467,145 +1333,16 @@ export interface ManeuverDef {
  *  NI un effet déclenché (`effects`), mais une règle que le moteur INTERROGE. Édité au Codex. Le
  *  seuil/type éventuel (Démoniaque 8+, Immunité (Poison)) vient de l'INDICE/arg de l'INSTANCE, pas d'ici. */
 export type TraitCapabilities = z.infer<typeof traitCapabilitiesSchema>;
-/** Trait de créature (LDB 85) : libellé canonique + desc VERBATIM (affichée à l'inspecteur). */
-export interface TraitData {
-  /** Identifiant STABLE (slug du libellé) — clé d'instance/lookup, indépendant de la langue. */
-  id: string;
-  type: 'traits';
-  label: string;
-  /** Sens de la valeur NUMÉRIQUE `value` de l'instance (Difficulté, Indice, Degré…) — `label` affiché
-   *  devant/autour du nombre. Absent = le trait ne porte pas de valeur numérique. */
-  indice?: { label: string };
-  /** L'Indice est un nombre de PA, qu'une instance peut poser Localisation par Localisation
-   *  (`TraitPose.parLocalisation`), sa matière avec (`TraitPose.matiere`) — lus par `armureDuTrait`, la saisie
-   *  et les migrations. LDB 85 l.37-39. */
-  parLocalisation?: boolean;
-  /** L'instance porte-t-elle un champ `range` (portée en mètres/cases : Souffle, Aura…) ? Absent/`false` = non. */
-  range?: boolean;
-  /** Trait d'ATTAQUE : son Indice est celui des Dégâts (« +N ») et une instance peut conférer des Traits à
-   *  ses touches (`TraitPose.confere`). LDB 85 l.31-33 ; ZI 03 l.75, l.77 */
-  attaque?: boolean;
-  /** L'Indice de Dégâts du Trait inclut déjà le Bonus de Force (`WeaponDamageSpec.bfInclus`). LDB 85 l.35,
-   *  l.47, l.83, l.237, l.405 */
-  bfInclus?: true;
-  /** Une instance peut fixer la Difficulté des Tests qui éliminent l'État que le Trait inflige
-   *  (`TraitPose.difficulte`). LDB 16 l.70 ; MDG 16 l.226 */
-  difficulte?: boolean;
-  /** Registre de l'ARGUMENT `arg` du trait (catalogue `SPEC_SOURCES` : `ciblesPsy`/`diseases`/`sizes`/
-   *  `mutations`/`breathTypes`/`weaponGroups*`…). Le pool DÉRIVE alors du registre, jamais d'une liste en dur. */
-  specsSource?: SpecsSource;
-  /** L'`arg` de ce Trait nomme une entrée de son registre (`SPEC_SOURCES[specsSource].entree`) dont les
-   *  `grantGroups` sont accordés au porteur (`groupesDe`). Absent = l'`arg` n'ouvre aucun Groupe. */
-  grantSpecGroups?: true;
-  /** L'`arg` accepte un TEXTE LIBRE (argument authentiquement descriptif, hors registre). Absent/`false`
-   *  = FERMÉ (l'`arg` DOIT être un id du pool `specsSource`). */
-  specsOpen?: boolean;
-  /** Trait EXCLU d'un octroi EN MASSE des Traits d'une créature — `LDB 48 l.23` : « Gagnez tous les
-   *  Traits standards de la créature sauf Bestial. » Lu par `polymorphOps` (`engine/polymorph`). */
-  nonTransferable?: boolean;
-  desc: string;
-  source: SourceRef;
-  /** Emplacement SECONDAIRE (#563) — même Trait réimprimé/à cheval ailleurs (ex. Fouissement : ZI 23
-   *  ET 134). Accessors `allLocations`/`sourceBooks` (`src/data/sourceRefs.ts`). */
-  alsoIn?: SecondaryRef[];
-  /** Effets MÉCANIQUES authorés (déclencheur → ops du Flow) — Traits « effet sur événement » (Toile,
-   *  Sang corrosif, Régénération…) appliqués par `noyau/triggeredEffects`, jamais par un handler en dur.
-   *  Type-only (le moteur reste pur : la donnée référence le Flow sans en dépendre à l'exécution). */
-  effects?: TriggeredEffect[];
-  /** Manœuvres OCTROYÉES par ce trait (Morsure, Attaque caudale, Souffle…) — `RefDesignee[]` vers le dataset
-   *  `maneuvers`. Un trait d'attaque naturelle octroie sa/ses manœuvre(s) ; `engine/creatureAttacks`
-   *  les résout par id (`findManeuverById`). Le trait Souffle en octroie plusieurs (un par Type). */
-  grantsManeuvers?: RefDesignee[];
-  /** Modificateurs de PROFIL PASSIFS (Élite +20 CC/CT/FM, Brutal −1 M…) en `OpPassive[]` — le MÊME vocabulaire
-   *  d'ops que les sorts et `Trauma.ops`, CONTINUS (sans wrapper Flow/déclencheur, ≠ `effects`) : édités par
-   *  `GameOpEditor` (le composant de liste d'ops existant), lus par le collecteur passif (`traitPassiveMods`
-   *  → liveTraits) qui leur AFFECTE le `kind` `intrinseque` (comme la séquelle dérive le sien). */
-  passive?: import('../engine/ops').OpPassive[];
-  /** Drapeaux de CAPACITÉ irréductibles (décisions IA/psy, résolution, build/déplacement/vision) —
-   *  lus PAR ID par `engine/traits/dispatch`. Édité au Codex. */
-  capabilities?: TraitCapabilities;
-  /** Capacités d'AUTRES traits du même porteur ANNULÉES par ce trait (« entraîné à IGNORER son Trait
-   *  X » — LDB 85 : Dressé (Dompté) ignore Bestial). Mécanisme GÉNÉRIQUE de suppression, lu par
-   *  `traitCapability` : une capacité supprimée par n'importe quel trait porté répond false. */
-  suppressesCapabilities?: (keyof TraitCapabilities)[];
-  /** AURA de combat : projette des `passive` OpPassive[] sur les combattants À PORTÉE (Perturbant : −20 aux
-   *  Tests à `rangeChar` mètres, LDB 85 l.262 ; `affects` = quel camp est touché ; l'émetteur ne se touche
-   *  jamais).
-   *  Recalculée chaque Round par le hook GÉNÉRIQUE `recompute-auras`, accumulée dans `Combatant.auraMods`
-   *  (emballée en `PassiveMod`, le trait émetteur en `src`), lue par `combatTestPenaltyParts` — pool
-   *  NON-CUMUL, « une seule fois, peu importe le nombre d'ennemis Perturbants » — et par
-   *  `skillDRBonus`/`charDRBonusOf`. Aucun code par-nom. */
-  aura?: {
-    rangeChar: CharKey;
-    affects?: 'ennemis' | 'allies' | 'tous';
-    passive: import('../engine/ops').OpPassive[];
-  };
-  /** Trait STANDARD (LDB 76 l.28-31 : « ajoutés à la liste Facultative de TOUTES les créatures ») —
-   *  proposé par le picker de Traits facultatifs sur n'importe quel bestiaire. Édité au Codex. */
-  standard?: boolean;
-  /** Arbitrage NON-verbatim documentant l'entrée (même patron que `NavalTraitData.maison`/`CreatureData.maison`) —
-   *  porte la CITATION du passage et la couture qui manque quand le Trait n'a PAS de `passive`/`effects`/`aura`
-   *  alors que sa prose donne une mécanique (#1011). Jamais lu par le moteur. */
-  maison?: string;
-}
+/** Trait de créature (LDB 85), son id fermé sur l'union générée (`Id<'trait'>`). */
+export type TraitData = EntreeDe<typeof traitsDef>;
 /** Capacités irréductibles d'une qualité (`qualityCapabilitiesSchema`, `schemas/defs/qualities.ts`). */
 export type QualityCapabilities = z.output<typeof qualityCapabilitiesSchema>;
 /** Atout/Défaut d'arme, d'armure ou d'objet. LDB 60 ; LDB 62-63 */
 export type QualityData = EntreeDe<typeof qualitiesDef>;
-/** Capacités IRRÉDUCTIBLES d'un symptôme de maladie — drapeaux lus par la machinerie de cycle
- *  (`engine/disease`), pour les comportements non exprimables en GameOp continu. */
-export interface SymptomCapabilities {
-  blocksHealing?: boolean;   // « Blessé »/Gangrène : bloque la guérison d'1 PB par symptôme (LDB 20 l.145)
-  amputation?: boolean;      // Gangrène : Test quotidien, échecs > BE → Localisation perdue (l.176)
-  contagious?: boolean;      // Toux & éternuements : expose l'entourage (l.206)
-  nausea?: boolean;          // Nausée : Sonné sur Test de déplacement raté en combat (l.194)
-  endTest?: boolean;         // Persistant : Test de fin de Durée (difficulté portée par l'instance, l.200)
-  persistentActive?: boolean; // Vers de carie : la phase active NE guérit JAMAIS naturellement (dégénérescence quotidienne jusqu'à la Mort, MSRC 16 l.90-101)
-}
-/** Symptôme de maladie (LDB 20) — entité de DONNÉE éditable au Codex, mécaniques en GameOp / 3 canaux
- *  (comme un trait/qualité). `passive` = pénalités continues (charMod) ; `passiveBySeverity` = ops de
- *  chaque palier ATTEINT par l'instance, l'op de même cible REMPLACÉE (`symptomPassive`,
- *  LDB 20 l.157/l.170) ; `onTick` = Test de cycle quotidien +
- *  conséquence GameOp appliquée par la cascade (différée/influençable) ; `capabilities` = règles
- *  irréductibles lues par la machinerie de maladie. */
-export interface SymptomData {
-  id: string;
-  type: 'symptoms';
-  label: string;
-  desc: string;
-  source?: SourceRef;
-  passive?: import('../engine/ops').OpPassive[];
-  passiveBySeverity?: { moderee?: import('../engine/ops').OpPassive[]; grave?: import('../engine/ops').OpPassive[] };
-  /** Effets DÉCLENCHÉS du symptôme (MÊME `TriggeredEffect` que Traits/Atouts/États) — dispatchés par
-   *  `fireTriggers` quand le porteur est actif (Crampes abdominales : `onOwnTestFailed` → Sonné/FM/
-   *  Inconscient par paliers de `slThreshold`, MSRC 16 l.152-158). Source du dispatcher via
-   *  `effectSourcesOf` (les symptômes ACTIFS deviennent une source, comme les États). */
-  effects?: TriggeredEffect[];
-  /** Cycle de PHASE ACTIVE. `test` = le nœud `test` du Flow (`engine/flowCore.ts`) : le jet ET sa
-   *  conséquence (branche `fail`). `ops` = la conséquence CERTAINE d'un cycle sans jet (éclatement du
-   *  Vers du Reik, d'issue invariante — MSRC 16 l.142) : l'un OU l'autre, jamais les deux.
-   *  `difficultyBySeverity` INDEXE la Difficulté du nœud sur la sévérité de l'instance (Toxine,
-   *  LDB 20 l.215 : Modéré→Facile, Grave→Accessible) — clé absente pour la sévérité portée = Difficulté
-   *  du nœud inchangée. Lu par `symptomOnTick`. `afterDays`/`once` cadencent le cycle sur la phase
-   *  ACTIVE (Vers de carie : Test quotidien À PARTIR de J+7, MSRC 16 l.90 ; Vers du Reik : 7ᵉ jour). */
-  onTick?: {
-    test?: import('../engine/flowCore').NoeudDecideAuPorteur;
-    ops?: import('../engine/ops').GameOp[];
-    difficultyBySeverity?: Partial<Record<'moderee' | 'grave', import('../engine/types').Difficulty>>;
-    /** Ne se déclenche qu'à partir du Nᵉ jour de PHASE ACTIVE (1 = premier jour actif). Absent = dès le 1ᵉʳ. */
-    afterDays?: number;
-    /** UNE seule fois, au jour `afterDays` exact (Vers du Reik) ; absent/false = quotidien (Vers de carie). */
-    once?: boolean;
-  };
-  /** Passifs conditionnés à la VISIBILITÉ de la lésion (Vers du Reik : « si l'ampoule se trouve à un endroit
-   *  visible… −10 Sociabilité », MSRC 16 l.140) — appliqués SEULEMENT si la localisation tirée à l'entrée en
-   *  phase active (`Disease.blisterLocation`) ∈ `visibleLocations`. Jet de Localisation canonique (`hitLocation`). */
-  visiblePassive?: import('../engine/ops').OpPassive[];
-  /** Localisations comptées comme VISIBLES (arbitrage `maison` : tête/bras visibles, corps/jambes couverts) —
-   *  gate de `visiblePassive`. Éditable au Codex. */
-  visibleLocations?: import('../engine/types').HitLocation[];
-  capabilities?: SymptomCapabilities;
-}
+/** Capacités irréductibles d'un symptôme (`symptomCapabilitiesSchema`, `schemas/defs/symptoms.ts`). */
+export type SymptomCapabilities = z.output<typeof symptomCapabilitiesSchema>;
+/** Symptôme de maladie (LDB 20), son id fermé sur l'union générée (`Id<'symptome'>`). */
+export type SymptomData = EntreeDe<typeof symptomsDef>;
 /** Domaine de magie (Couleur, LDB 48) : ses ATTRIBUTS éditables au Codex — riders « à la touche »
  *  (`effects`, gatés par les Conditions Flow `relation`/`has`), mitigation de Projectile
  *  (`missile`), ops post-incantation au lanceur (`casterOps`). Le `label` correspond au `subType`
@@ -1866,8 +1603,8 @@ export const classes = datasetDe<typeof classesDef>(classesJson);
 export const careers = datasetDe<typeof careersDef>(careersJson);
 export const careerLevels = datasetDe<typeof careerLevelsDef>(careerLevelsJson);
 export const skills = datasetDe<typeof skillsDef>(skillsJson);
-export const talents = talentsJson as TalentData[];
-export const etats = etatsJson as EtatData[];
+export const talents = datasetDe<typeof talentsDef>(talentsJson);
+export const etats = datasetDe<typeof etatsDef>(etatsJson);
 /** Procédures / options de jeu (Sombre Pacte, modes d'attaque/défense, Empoignade, Focalisation
  *  étendue…) — prose du livre ADRESSÉE au `Source/` (`descRef`, #1887) ou inline (`desc`, stock
  *  `PROSE_INLINE_TOLEREE`), app-owned. Routées en tooltip
@@ -1909,9 +1646,9 @@ export function findRegleById(id: string): RegleData | undefined {
 /** Tables numériques de Disponibilité & de Troc (LDB 59 « Faire son marché » p.290-291) — app-owned
  *  éditable ; consommé par `engine/disponibilite` (mêmes références). */
 export const disponibilite = datasetDe<typeof disponibiliteDef>(disponibiliteJson);
-/** Maladies (LDB 20) — app-owned éditable au Codex ; le COMPORTEMENT (cycle/symptômes) vit dans
- *  `engine/disease`, le type `DiseaseDef` dérive du schéma (`schemas/defs/maladies.ts`). */
-export const maladies = maladiesJson as DiseaseDef[];
+/** Maladie (LDB 20), son id fermé sur l'union générée (`Id<'maladie'>`) ; le cycle vit dans `engine/disease`. */
+export type DiseaseDef = EntreeDe<typeof maladiesDef>;
+export const maladies = datasetDe<typeof maladiesDef>(maladiesJson);
 const maladieParId = indexParId('maladies', maladies);
 /** Résout une Maladie par son `id` STABLE. */
 export function findDiseaseById(id: string): DiseaseDef | undefined {
@@ -1922,7 +1659,7 @@ export function diseaseLabel(id: string): PlayerText {
   return dataLabel(maladieParId(id)?.label, id);
 }
 // Traits app-owned — TOUT dans `traits.json` ; chaque entrée garde sa vraie `source`.
-export const traits = traitsJson as TraitData[];
+export const traits = datasetDe<typeof traitsDef>(traitsJson);
 const traitParLabelMinuscule = indexParChamp('traits', traits, (t) => t.label.toLowerCase());
 /** `id` STABLE d'un Trait depuis un LIBELLÉ d'AUTHORING (statbloc saisi, migration), casse ignorée —
  *  `undefined` si le texte ne nomme aucun trait du catalogue. La couture label→id vit ICI, au
@@ -1933,6 +1670,8 @@ const traitParId = indexParId('traits', traits);
 /** Trait par `id` STABLE (slug) — lookup runtime indépendant de la langue. */
 export const findTraitById: (id: string) => TraitData | undefined = traitParId;
 export const qualities = datasetDe<typeof qualitiesDef>(qualitiesJson);
+/** Jeux de taverne (NADJ 16), servis par régime par `findTavernGameById` (`engine/tavernGame.ts`). */
+export const TAVERN_GAMES = datasetDe<typeof tavernGamesDef>(tavernGamesJson);
 /** Index des Atouts/Défauts par `id` STABLE (slug) — lookup runtime indépendant de la langue (dispatch). */
 const qualiteParId = indexParId('qualities', qualities);
 /** Atouts de Fabrication (LDB 60 l.9-32) — DÉRIVÉS de la donnée : les qualités `atout` d'objet que la
@@ -1951,7 +1690,7 @@ export function fabricationAtoutQuality(id: string): QualityRef | undefined {
   return q && (q.indice ? { id: q.id, value: 1 } : { id: q.id });
 }
 /** Symptômes de maladie (LDB 20) — entités de DONNÉE éditables au Codex (passive/onTick/capabilities). */
-export const symptoms = symptomsJson as SymptomData[];
+export const symptoms = datasetDe<typeof symptomsDef>(symptomsJson);
 const symptomeParId = indexParId('symptoms', symptoms);
 export const findSymptomById: (id: string) => SymptomData | undefined = symptomeParId;
 /** Libellé FR d'un symptôme par son id (repli sur l'id si inconnu). */
@@ -1972,7 +1711,9 @@ export const symptomInstanceLabel = (inst: { symptomId: string; severity?: 'mode
 };
 /** Mutations (entités) + Tables de Corruption (plages de leur dé → réf), DÉCOUPLÉES (cf. data/mutations.ts) —
  *  app-owned éditables au Codex. Le runtime du tirage (`rollMutation`) vit dans `mutations.ts`. */
-export const mutations = mutationsJson as MutationData[];
+/** Mutation au catalogue (LDB 19), son id fermé sur l'union générée de `mutations.json`. */
+export type MutationData = EntreeDe<typeof mutationsDef>;
+export const mutations = datasetDe<typeof mutationsDef>(mutationsJson);
 export const mutationTables = datasetDe<typeof tablesDeCorruption>(mutationTablesJson);
 /** Tables d'EFFETS référençables (`tables.json`, tirées par l'op `rollTable` variante `tableId`) —
  *  loader + lookup fail-fast dans `data/effectTables.ts` (importe le type `GameOp` du moteur, réservé). */
