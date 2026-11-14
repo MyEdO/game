@@ -485,6 +485,9 @@ const ATTENDU = {
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
+    // +1 le 2026-11-13 (#3412) : le banc du séquenceur de vite.config.ts pose ses fixtures sous un `mkdtempSync`
+    // d'os.tmpdir(), `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/partition.test.mjs',
     // +1 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
     // qu'atteint `perimetre.mjs` (mesures de la machine, par sa seule CLI) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
     // dans les bancs — l'arbre n'est jamais écrit.
