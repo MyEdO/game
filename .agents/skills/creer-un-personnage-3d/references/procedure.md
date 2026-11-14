@@ -242,7 +242,8 @@ revient à l'orchestrateur, qui l'ajoute au kit. Les preuves (rendus, mesures, c
 
 Le kit : `element/tissu.py` pour une pièce skinnée (`Base` : repères d'os, surfaces porteuses, coupes des zones,
 éléments publiés contournés, transfert des clés, découpe par zone ; `anneau`, `Maillage`, `emprunter`, `lisser`,
-`joindre`, `Base.nappe`, `lambeaux` pour un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
+`joindre`, `joindre_les_surfaces`, `direction_spatiale`, `selon` pour une cote par azimut, `Base.nappe`, `lambeaux` pour
+un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
 sections rondes ou elliptiques, boîte, tube, tore…), `element/lame.py` pour une arme à lame et son fourreau (épée,
 dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), de même `element/robe.py` pour une
 robe longue sur le filet `jupe` (robe, bure) et `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
