@@ -2193,6 +2193,17 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     expect(boutonDe(presser(boutonDe(sans, 'etat/forme/enum')), 'etat/forme/enum').presse).toBe(true);
   });
 
+  it('un choix parmi des entrées se rend en liste quel que soit son compte : la scène d’un lieu ; un choix parmi un ensemble fermé garde ses boutons : la catégorie d’un objet (#4171)', () => {
+    const { presser, ouverte, narratif } = surLeNarratif();
+    const objet = inspecte(presser(boutonDe(narratif, 'logique/objets/ajouter')), 'valeur/categorie') as Choix;
+    expect([objet.type, objet.valeurs.length], 'la catégorie d’un objet, une énumération fermée').toEqual(['choix', 5]);
+    const carte = presser(boutonDe(narratif, 'document/carte'));
+    const [lieu] = (carte.vue.zones['editeur.logique'].find((el) => el.id === 'logique/lieu/liste') as Choix).valeurs;
+    const scene = inspecte(presser(boutonDe(carte, lieu.id)), 'valeur/scene/id') as Choix;
+    const scenes = (ouverte.vue.zones['editeur.scenes'].find((el) => el.id === 'scenes') as Choix).valeurs;
+    expect([scene.type, scene.valeurs.map((b) => b.libelle)], 'la scène d’un lieu, parmi les scènes du projet').toEqual(['liste', scenes.map((b) => b.libelle)]);
+  });
+
   it('un objet s’ajoute, s’écrit, se renomme ; choisi au don d’un déclencheur, il suit son renommage ; le retirer se refuse, le lieu dit ; sans référence, il se retire, une annulation le rend (#4171)', () => {
     const { appel, presser, narratif } = surLeNarratif();
     const choisir = (e: Edition, id: string, voulue: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulue((b.jeu as { args: unknown[] }).args[2]))!);

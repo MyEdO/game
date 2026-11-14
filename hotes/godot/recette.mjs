@@ -2110,16 +2110,18 @@ async function parcoursEditeur() {
     await cliquerBouton(quoi)
   }
   /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie : la liste amenée sur le panneau,
-   *  cliquée, attendue ouverte, le pointeur sorti d'elle ; son article désigné au clavier (`designerALaListe`), puis
-   *  Entrée ; l'écran attendu ensuite : la valeur pressée, sinon la condition `attendu`. */
+   *  cliquée, attendue ouverte, le pointeur sorti d'elle ; son article, celui de son rang parmi les articles de même
+   *  libellé, désigné au clavier (`designerALaListe`), puis Entrée ; l'écran attendu ensuite : la valeur pressée, sinon
+   *  la condition `attendu`. */
   const choisirALaListe = async (liste, id, zone = 'editeur.options', attendu = null) => {
     const valeurs = (await editeur()).zones[zone].find((el) => el.id === liste).valeurs
     const libelle = valeurs.find((b) => b.id === id).libelle
+    const homonymesAvant = valeurs.slice(0, valeurs.findIndex((b) => b.id === id)).filter((b) => b.libelle === libelle).length
     const fait = attendu ?? `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`
     const quoi = { element: `liste/${liste}` }
     const deroulante = await amenerAuPanneau(quoi)
-    const rang = deroulante.choix.indexOf(libelle)
-    assert.ok(rang >= 0, `${libelle} est offert : ${deroulante.choix.join(', ')}`)
+    const rang = deroulante.choix.flatMap((texte, n) => (texte === libelle ? [n] : []))[homonymesAvant] ?? -1
+    assert.ok(rang >= 0, `${libelle} (${id}) est offert : ${deroulante.choix.join(', ')}`)
     await geste(session, { surface: 'canvas', x: deroulante.x, y: deroulante.y }, { qui: `liste ${liste}` }, clic())
     await attendreLaListe(quoi, (l) => l.ouverte, 'est ouverte au clic')
     await geste(session, { surface: 'canvas', x: 1000, y: 700 }, { qui: `le pointeur hors de la liste ${liste}` }, ({ x, y }, emettre) => emettre('souris', { type: 'mouseMoved', x, y }))
@@ -3046,8 +3048,8 @@ async function parcoursEditeur() {
   e = await editeur()
   const scenesOffertes = inspecte(e, `${pasDOps}/scene/id`).valeurs
   assert.equal(scenesOffertes.length, e.zones['editeur.scenes'].find((el) => el.id === 'scenes').valeurs.length, 'la scène de la transition se choisit parmi les scènes du projet, exactement')
-  await cliquerAuPanneau({ element: `bouton/${scenesOffertes[0].id}` })
-  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${pasDOps}/scene/id')?.valeurs.find((b) => b.id === '${scenesOffertes[0].id}')?.presse === true`)
+  assert.equal(inspecte(e, `${pasDOps}/scene/id`).type, 'liste', 'la scène, choix parmi des entrées, se choisit en liste')
+  await choisirALaListe(`${pasDOps}/scene/id`, scenesOffertes[0].id, 'editeur.inspecteur')
   e = await editeur()
   assert.equal(inspecte(e, `${pasDOps}/scene/id`).valeurs.find((b) => b.presse)?.jeu.args[2], scenesOffertes[0].jeu.args[2], 'la scène choisie est écrite')
   noter(`le flux du même déclencheur, un pas « ${pressee(`valeur/flow/etapes/${rangDuPas}/kind`)} » d’effet « ${pressee(`${pasDOps}/type`)} » : la scène choisie à la liste des ${scenesOffertes.length} scènes du projet, « ${pressee(`${pasDOps}/scene/id`)} »`)
