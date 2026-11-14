@@ -7,20 +7,23 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
  * engine) et d'un inventaire EXHAUSTIF par script (histogramme de TOUTES les entrées du dataset).
  */
 import { z } from 'zod';
-import { tableTotale } from '../../../lib/tableTotale';
 import { document } from '../grammaire/document';
 import {
+  ammoRangeModSchema,
   availabilitySchema,
+  consumableDurationSchema,
+  contenantSchema,
+  entrainementDeProtheseSchema,
   enumNomme,
-  formulaSchema,
-  genreDArmeSchema,
+  itemCapabilitiesSchema,
   moneySchema,
   reachSchema,
   sizeCategorySchema,
   weaponDamageSpecSchema,
+  weaponRangeSpecSchema,
 } from '../grammaire/valeurs';
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
-import { manieAussiSchema, qualityRefSchema } from '../grammaire/reference';
+import { manieAussiSchema, qualityRefSchema, weaponSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
 import { ref, refs, refusDeLEntree } from '../grammaire/ref';
 import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
@@ -53,86 +56,6 @@ export const trappingCategorieSchema = enumNomme({
   armor: 'Armures',
   trapping: 'Équipement',
 });
-
-/** `WeaponRangeSpec` : mètres fixes, ou Bonus de Force × bf (armes de jet). */
-const weaponRangeSpecSchema = z.union([z.number(), nommerChamps(z.strictObject({ bf: z.number() }), { bf: { label: 'Bonus de Force' } })]);
-
-/** `AmmoRangeMod` : fraction de la Portée de l'arme, ou ± mètres. */
-const ammoRangeModSchema = z.union([nommerChamps(z.strictObject({ mult: z.number() }), { mult: { label: 'Multiplicateur' } }), nommerChamps(z.strictObject({ add: z.number() }), { add: { label: 'Ajout' } })]);
-
-/** `ItemCapabilities` (`src/data/index.ts`) — sac de drapeaux IRRÉDUCTIBLES, tous optionnels. */
-export const itemCapabilitiesSchema = nommerChamps(z.strictObject({
-  preventForcedDrop: z.boolean().optional(),
-  weatherProtection: z.boolean().optional(),
-  isShelter: z.boolean().optional(),
-  isRations: z.boolean().optional(),
-  isGrimoire: z.boolean().optional(),
-  lockpicks: z.boolean().optional(),
-  scurvyGuard: z.boolean().optional(),
-  sealskin: z.boolean().optional(),
-  shipParts: z.boolean().optional(),
-  disarmImmune: z.boolean().optional(),
-  ropeMode: z.boolean().optional(),
-  waterContainer: z.boolean().optional(),
-  improvisedWithoutCharge: z.boolean().optional(),
-}), {
-  preventForcedDrop: { label: 'Empêche la perte forcée' },
-  weatherProtection: { label: 'Protection contre les intempéries' },
-  isShelter: { label: 'Abri' },
-  isRations: { label: 'Rations' },
-  isGrimoire: { label: 'Grimoire' },
-  lockpicks: { label: 'Crochets' },
-  scurvyGuard: { label: 'Protection contre le scorbut' },
-  sealskin: { label: 'Peau de phoque' },
-  shipParts: { label: 'Pièces de navire' },
-  disarmImmune: { label: 'Immunité au désarmement' },
-  ropeMode: { label: 'Usage de la corde' },
-  waterContainer: { label: 'Récipient d’eau' },
-  improvisedWithoutCharge: { label: 'Improvisée sans Charge' },
-});
-
-/** Une capacité de `itemCapabilitiesSchema`, nommée par le libellé de son champ (`skills.tool.capability`). */
-export const capaciteDObjetSchema = enumNomme(tableTotale(itemCapabilitiesSchema.keyof().options, (cle) => metaDesChamps(itemCapabilitiesSchema, { exigees: true })[cle].label));
-
-/** LDB 73 */
-const weaponSchema = nommerChamps(z.strictObject({
-  label: z.string(),
-  type: genreDArmeSchema,
-  damage: weaponDamageSpecSchema,
-  reach: z.union([reachSchema, z.null()]).optional(),
-  range: z.union([weaponRangeSpecSchema, z.null()]).optional(),
-  qualities: z.array(qualityRefSchema),
-  subType: ref('weaponGroup').optional(),
-  weaponGroup: ref('weaponGroup').optional(),
-  soloSimple: z.boolean().optional(),
-  indirect: z.boolean().optional(),
-  /** LDB 62 l.278 */
-  bladed: z.boolean().optional(),
-  /** LDB 47 */
-  organicProjectile: z.boolean().optional(),
-  hands: z.union([z.literal(1), z.literal(2)]).optional(),
-}), {
-  label: { label: 'Libellé' },
-  type: { label: 'Type' },
-  damage: { label: 'Dégâts' },
-  reach: { label: 'Allonge' },
-  range: { label: 'Portée' },
-  qualities: { label: 'Qualités' },
-  subType: { label: 'Sous-type' },
-  weaponGroup: { label: 'Groupe d’armes' },
-  soloSimple: { label: 'Simple à manier seul' },
-  indirect: { label: 'Tir indirect' },
-  bladed: { label: 'Arme à lame' },
-  organicProjectile: { label: 'Projectile organique' },
-  hands: { label: 'Mains' },
-});
-
-/** `ConsumableDuration` (`src/engine/consumables.ts`) — UNE durée par objet (minutes/heures/jours). */
-const consumableDurationSchema = nommerChamps(z.strictObject({
-  minutes: formulaSchema.optional(),
-  hours: formulaSchema.optional(),
-  days: formulaSchema.optional(),
-}), { minutes: { label: 'Minutes' }, hours: { label: 'Heures' }, days: { label: 'Jours' } });
 
 const doc = document(
   'trappings',
@@ -176,14 +99,7 @@ const doc = document(
     /** AA 08 l.188 ; AA 08 l.190 ; AA 08 l.314 ; AA 08 l.343 */
     manieAussi: manieAussiSchema.optional(),
     /** LDB 73 l.19/23 */
-    prosthesisTraining: z
-      .array(nommerChamps(z.strictObject({ px: z.number(), label: z.string(), reduces: z.number().optional(), grants: z.enum(['movement', 'all']).optional() }), {
-        px: { label: 'Points d’Expérience' },
-        label: { label: 'Libellé' },
-        reduces: { label: 'Réductions' },
-        grants: { label: 'Accorde' },
-      }))
-      .optional(),
+    prosthesisTraining: z.array(entrainementDeProtheseSchema).optional(),
     /** LDB 61 l.5 */
     enc: z.union([z.number(), z.literal('ND'), z.literal('Variable'), z.null()]).optional(),
     /** ADE II 2 l.706-710 */
@@ -201,7 +117,7 @@ const doc = document(
     qualities: z.array(qualityRefSchema),
     consumable: flowSchema.optional(),
     consumableDuration: consumableDurationSchema.optional(),
-    container: nommerChamps(z.strictObject({ capacity: z.number() }), { capacity: { label: 'Capacité' } }).optional(),
+    container: contenantSchema.optional(),
     /** VDM 02 l.165 */
     niPerGram: z.number().optional(),
     /** VDM 02 l.163-165 */
@@ -340,6 +256,9 @@ const doc = document(
 );
 
 export const schema = doc.schema;
+/** L'ENTRÉE scellée (une possession), pour l'embarquement (`defs-scenes/narratif.ts`, `objets`) — `schema`
+ *  emballe le FICHIER (`z.array`, famille `entite`). */
+export const entree = doc.entree;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;

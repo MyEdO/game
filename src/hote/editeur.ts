@@ -221,8 +221,8 @@ export interface ZonesDeLEditeur {
   /**
    * la logique du document ouvert : pour chaque sorte de porteur qui s'y liste (`FORMULAIRES`, `logique`) et vit
    * dans ce document (le déclencheur, le dialogue, la rencontre de la scène ; le lieu et la route de la carte du
-   * monde ; une entrée de chaque registre créable du narratif, sous la clé du registre, `affaires`, `indices`,
-   * `presetsPnj`, `documents`, `etats`, et l'écart, `ecart`), la ligne `logique/<sorte>` qui compte ses porteurs, puis,
+   * monde ; une entrée de chaque registre créable du narratif, sous la clé du registre (`RegistreCreable`), et l'écart,
+   * `ecart`), la ligne `logique/<sorte>` qui compte ses porteurs, puis,
    * s'il en a, chacun en liste par son identifiant (l'entrée de fiche d'un écart), pressé s'il est sélectionné, qui joue
    * `{ geste: 'selectionner', porteur: { sorte, id } }` ; puis, quand sa sorte se crée (`creer`,
    * `ECRITURES_DES_PORTEURS`), « Ajouter », `{ geste: 'ajouter', sorte }`, qui pose un porteur neuf et le sélectionne
@@ -1363,8 +1363,8 @@ function elementsDuFormulaire(porteur: PorteurDeValeur, champs: readonly FieldDe
 
 /** Les éléments du champ `f` du porteur `porteur`, de valeur `valeur` (`undefined` : absent), au chemin `ici`, d'id
  *  `valeur/<chemin>`, chacun jouant `{ geste: 'valeur', porteur, chemin, valeur }`. Un objet (`champsDeclares`)
- *  présent : son libellé, ses champs offerts (`champsOfferts`), et « Retirer » si son absence est admise ; absent :
- *  « Ajouter » (`ajoutDeLObjet`). Une union nommée : sa variante (`elementsDeLUnion`). Une
+ *  présent : son libellé, ses champs offerts (`champsOfferts`), et « Retirer » si son absence est admise ; absent ou
+ *  vide (`null`, un objet nullable) : « Ajouter » (`ajoutDeLObjet`). Une union nommée : sa variante (`elementsDeLUnion`). Une
  *  liste : ses éléments (`elementsDeLaListe`). Un record dont les clés sont posées (`clesPosees`) : ses entrées (`elementsDuRecord`). Un objet d'une union sans variantes nommées : son libellé et les champs
  *  de la branche qu'il dessine (`formeAuPoint`), et « Retirer » si son absence est admise. Tout autre champ : l'élément de sa valeur (`elementDeValeur`), puis, si
  *  son absence est admise, « Aucune » sous un choix, pressé quand il est absent, ou « Retirer » sous un champ présent.
@@ -1375,7 +1375,7 @@ function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown
   const retirer = retirable ? [bouton(`${id}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: f.label }), ecrireLaValeur(porteur, ici))] : [];
   if (f.contexte && estChampDAdresse(f.noeud)) return elementsDeLAdresse(porteur, f, valeur, ici, retirer, f.contexte.source);
   if (champsDeclares(f.noeud)) {
-    if (valeur === undefined) return ajoutDeLObjet(porteur, f, ici);
+    if (valeur == null) return ajoutDeLObjet(porteur, f, ici);
     const objet = valeur as Record<string, unknown>;
     return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsSous(f, ici, f.noeud, objet), objet, ici), ...retirer];
   }

@@ -7,7 +7,7 @@ import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './
  */
 import { z } from 'zod';
 import { estObjet } from '../../../lib/objet.mjs';
-import { validerApparenceDonnee } from './valeurs';
+import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from './valeurs';
 import { proseNommee } from './prose';
 import { declarerEnfants } from './descente';
 import { marquerProduit } from './interne/produits';
@@ -757,14 +757,14 @@ const DECLARATIONS_D_OPS = {
   }), { op: { label: "opération"  }, days: { label: "jours" }, dice: { label: "dés" }, disease: { label: "maladie" , texte: { regime: "technique"} }, oncePerDisease: { label: "une fois par maladie" }, daysPerSL: { label: "jours par DR" } }),
   diseaseTestMod: nommerChamps(z.strictObject({ op: z.literal('diseaseTestMod'), diseases: refs('maladie').optional(), amount: z.number() }), { op: { label: "opération"  }, diseases: { label: "maladies" , texte: { regime: "technique"} }, amount: { label: "quantité" } }),
   suppressSymptom: nommerChamps(z.strictObject({ op: z.literal('suppressSymptom'), symptomId: idDe('symptome') }), { op: { label: "opération"  }, symptomId: { label: "symptôme" , texte: { regime: "technique"} } }),
-  giveTrapping: nommerChamps(z.strictObject({
+  giveTrapping: nommerChamps(avecApparenceDObjetDonne(z.strictObject({
     op: z.literal('giveTrapping'),
     apparence: ref('apparence').optional(),
-    trappingId: idDe('trapping', INSTANCIABLE_PAR_ID, { ouverte: true }).optional(),
+    trappingId: idDe('trapping', INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET }).optional(),
     custom: z.string().optional(),
     count: z.number().optional(),
     perSL: perSLSchema.optional(),
-  }).superRefine(validerApparenceDonnee), { op: { label: "opération"  }, apparence: { label: "apparence" }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, count: { label: "nombre" }, perSL: { label: "par DR" } }),
+  })), { op: { label: "opération"  }, apparence: { label: "apparence" }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, count: { label: "nombre" }, perSL: { label: "par DR" } }),
   /** `summon` — la créature invoquée se nomme par un id du bestiaire (`idDe('creature')`) : une op
    *  sans créature est refusée AU PARSE (#1882), jamais spawnée. `addTraits` : instances de Trait
    *  (`grammaire/reference.ts › traitInstanceSchema`), dont l'`id` est une feuille `idDe('trait')`. */

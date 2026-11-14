@@ -188,6 +188,7 @@ export function renderFields(fieldGroups) {
 const DECORATEURS_ZOD = {
   'src/data/schemas/grammaire/meta.ts': ['nommerChamps', 'nommerNoeud'],
   'src/data/schemas/grammaire/interne/produits.ts': ['marquerProduit'],
+  'src/data/schemas/grammaire/valeurs.ts': ['avecApparenceDObjetDonne'],
 }
 
 /** Déballe `z.lazy(() => X)`, `X.superRefine(…)`, `X.optional()`… jusqu'à l'appel `z.strictObject`. */

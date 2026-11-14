@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { exigerUnRefus, parseProject } from '../worldMap';
 import { emptyNarratif } from './campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
+import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { emptyScene } from './scene';
 import { avecLesEntreesDeSpecs, CREEE, FERMEE, LIBELLE, OUVERTE } from '../../data/schemas/grammaire/specs.testkit';
 
@@ -34,7 +35,7 @@ const validNarratif = (): NarratifBlock => ({
     { id: 'ru-taverne', affaireId: 'af-sel', kind: 'rumeur', titre: 'On chuchote', stades: [{ id: 'st1', prose: 'Une rumeur.' }], refs: ['in-quai'] },
   ],
   presetsPnj: [{ id: 'pnj-marin', base: { id: GLOBAL_CREATURE } }],
-  objets: [{ id: 'obj-lettre', label: 'Lettre cachetée', categorie: 'trapping', subType: null } as NarratifBlock['objets'][number]],
+  objets: [objetDeCampagne({ id: 'obj-lettre', label: 'Lettre cachetée' })],
 });
 
 describe('paquet de campagne — bloc narratif', () => {

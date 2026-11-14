@@ -11,12 +11,6 @@
  * Chemin RÉEL : `SCENARIOS` (registre `scripts/gen-registry.mjs`) est ce que `test-scenarios/index.ts`
  * trie pour le menu ; chaque entrée porte ses scènes DÉJÀ construites (`scene`, `extraScenes`) —
  * aucune reconstruction ici, on parse exactement les objets que le lancement charge.
- *
- * ANGLE MORT CHIFFRÉ : ces verts ne valent qu'À CONCURRENCE des trous de `TROUS_DE_VALIDATION`
- * (`trous-de-validation.ts`) que le corpus TRAVERSE — mesuré le 2026-08-25 sur les 85 scènes :
- * `statblock` (19 occurrences, 8 scènes), `optionals` (14 entrées, 13 scènes), `postes`
- * (18 entrées, 6 scènes) ; le 4ᵉ trou (`narratif.ts:objets`) n'est pas atteint par ce corpus.
- * Sous ces champs, `z.custom` accepte tout : le parse y est un passe-droit, pas une validation.
  */
 import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';

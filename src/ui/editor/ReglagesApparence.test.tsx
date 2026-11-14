@@ -12,7 +12,8 @@ import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { ObjetDonneField } from './ObjetDonneField';
 import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
-import { findCreatureById, findTrappingById } from '../../data';
+import { findCreatureById } from '../../data';
+import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { EffectFields } from './EffectList';
 import { GameOpEditor } from './GameOpEditor';
 import type { Effect } from '../../data/schemas/defs-scenes/effets';
@@ -34,7 +35,7 @@ const selectDe = (container: HTMLElement, libelle: string): HTMLSelectElement =>
 
 describe('apparence donnée — effets et ops', () => {
   it('les options de l’objet de campagne suivent sa shape locale et son défaut', () => {
-    const objet = { ...findTrappingById('arme-simple')!, id: 'hache-de-campagne', label: 'Hache du projet', shape: { id: 'hache' }, formChoices: ['hache'] };
+    const objet = objetDeCampagne({ id: 'hache-de-campagne', label: 'Hache du projet', shape: { id: 'hache' }, formChoices: ['hache'] });
     let value: { trappingId: string; apparence?: { id: string } } = { trappingId: objet.id };
     const root = monterRacine(null);
     const render = () => root.rendre(<ObjetDonneField objets={[objet]} value={value} onChange={(next) => { value = next; render(); }} />);

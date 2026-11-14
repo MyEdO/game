@@ -92,19 +92,19 @@ describe('objet de campagne — jugé sur l’entrée résolue', () => {
     expect(() => itemFromTrappingById(OBJET.id, idsDeTest, resoudre([{ ...OBJET, service: true }]))).toThrow(/INSTANCIABLE_PAR_ID/);
   });
 
-  it('l’Effet qui le cite passe le parse : la feuille est OUVERTE aux ids absents du catalogue', () => {
+  it('l’Effet et l’op qui le citent passent le parse hors de tout document : la feuille sous portée admet l’id absent du catalogue sans le juger', () => {
     expect(effet(OBJET.id).success).toBe(true);
+    expect(op(OBJET.id).success).toBe(true);
   });
 });
 
-describe('Effet `giveTrapping` — la feuille ouverte juge un id PRÉSENT', () => {
+describe('Effet `giveTrapping` — la feuille sous portée juge un id PRÉSENT', () => {
   it('un tarif de service est refusé au parse, message de la sous-liste', () => {
     const service = trappings.find((t) => t.service)!;
     expect(messages(effet(service.id))).toBe(`« ${service.id} » porte le marqueur « service » : cette référence l'exclut du catalogue des objets (trappings.json).`);
   });
 
-  it('l’op `giveTrapping` et la forme de `grantWeapon` refusent un id absent (feuilles fermées)', () => {
-    expect(op('campagne-sceau-du-comte').success).toBe(false);
+  it('la forme de `grantWeapon` refuse un id absent (feuille sans portée)', () => {
     expect(forme('campagne-sceau-du-comte').success).toBe(false);
   });
 });

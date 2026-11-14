@@ -18,6 +18,7 @@ import { emptyScene, type Scene } from './monde/scene';
 import { emptyNarratif } from './monde/campaignNarratif';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { WorldMap } from './worldMap';
+import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { campagneALancer, lancerCampagne, campagneDuJeu, diligenceCampaign } from '../scenes/campaign';
 import { applyEffects } from './combatEffects';
@@ -42,7 +43,7 @@ const narratif: NarratifBlock = {
   affaires: [{ id: 'snap-aff', titre: 'Le Corbeau noir' }],
   indices: [],
   presetsPnj: [{ id: 'snap-pnj', profil: {} }],
-  objets: [{ id: OBJET_ID, label: 'Lame maudite', categorie: 'melee', subType: null } as NarratifBlock['objets'][number]],
+  objets: [objetDeCampagne({ id: OBJET_ID, label: 'Lame maudite' })],
 };
 
 const worldMap: WorldMap = {

@@ -2457,6 +2457,101 @@ async function parcoursEditeur() {
     await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0]?.texte === ${JSON.stringify(titre)}`)
     noter(`menu Fichier, « ${boutonDeLEditeur(await editeur(), 'document/scene').libelle} » : ${titre}`)
   }
+  /** Un objet du narratif (#4171) : ajouté, son libellé et sa catégorie écrits, renommé ; choisi parmi les objets
+   *  qu'offre le don d'un Effet « Donner un objet » du déclencheur de la scène, renommé encore, le don le suit ;
+   *  « Supprimer » refusé, la scène dite ; le don rendu à une séquence, l'objet retiré, une annulation le rend ;
+   *  « Annuler » jusqu'au narratif d'avant ; la scène rendue. */
+  const etapeDeLObjet = async () => {
+    const titre = (await editeur()).zones['editeur.titre'][0].texte
+    const ouvrirLeNarratif = async () => {
+      await cliquerAuPanneau({ element: 'bouton/document/narratif' })
+      await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.logique'] ?? []).some((el) => el.id === 'logique/objets')`)
+    }
+    const revenirALaSceneEditee = async () => {
+      await cliquerAuPanneau({ element: 'bouton/document/scene' })
+      await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0]?.texte === ${JSON.stringify(titre)} && !(globalThis.wfrpEcran.editeur.zones['editeur.logique'] ?? []).some((el) => el.id === 'logique/objets')`)
+    }
+    /** L'objet `id` choisi à la zone Logique du narratif, à son inspecteur. */
+    const choisirLObjet = async (id) => {
+      await choisirALaListe('logique/objets/liste', `logique/objets/${id}`, 'editeur.logique')
+      await waitFor(session, `${montre('valeur/categorie')} && globalThis.wfrpEcran.editeur.zones['editeur.inspecteur'].find((el) => el.id === 'nommer')?.champs[0].valeur === '${id}'`)
+    }
+    /** Le déclencheur `id` choisi à la zone Logique de la scène, à son inspecteur. */
+    const choisirLeDeclencheur = async (id) => {
+      await choisirALaListe('logique/declencheur/liste', id, 'editeur.logique')
+      await waitFor(session, montre('valeur/flow/kind'))
+    }
+    const compte = (ed) => ed.zones['editeur.logique'].find((el) => el.id === 'logique/objets').texte
+    /** L'expression de la page vraie quand la zone Logique liste l'objet `id`. */
+    const objetALaListe = (id) => `(globalThis.wfrpEcran?.editeur?.zones['editeur.logique'].find((el) => el.id === 'logique/objets/liste')?.valeurs ?? []).some((b) => b.id === 'logique/objets/${id}')`
+    /** L'expression de la page de l'objet que donne l'Effet inspecté. */
+    const donne = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/flow/effet/trappingId')?.valeurs.find((b) => b.presse)?.jeu.args[2]`
+    const renommer = async (de, vers) => {
+      await taper('saisieTexte/nommer/nom', vers)
+      await cliquerAuPanneau({ element: 'formulaire/nommer' })
+      await waitFor(session, `${objetALaListe(vers)} && !${objetALaListe(de)}`)
+    }
+    await ouvrirLeNarratif()
+    let ed = await editeur()
+    const avant = narratifVu(ed)
+    const objets = listeDe(ed, 'objets')
+    await cliquerAuPanneau({ element: 'bouton/logique/objets/ajouter' })
+    await waitFor(session, `${listeLongue('objets', objets.length + 1)} && ${montre('valeur/categorie')}`)
+    ed = await editeur()
+    const objet = listeDe(ed, 'objets').find((id) => !objets.includes(id))
+    assert.ok(compte(ed) === `Objets (${objets.length + 1})` && boutonDeLEditeur(ed, `logique/objets/${objet}`)?.presse && inspecte(ed, 'nommer')?.champs[0].valeur === objet, `« Ajouter un objet » : l’objet neuf compté, choisi, à son inspecteur : ${compte(ed)}, ${objet}`)
+    await taper('saisieTexte/valeur/label/valeur', 'Lanterne')
+    await cliquerAuPanneau({ element: 'formulaire/valeur/label' })
+    await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/label')?.champs ?? []).some((c) => c.valeur === 'Lanterne')`)
+    await choisirAuChamp('valeur/categorie', (v) => v === 'ammunition', `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/categorie')?.valeurs.find((b) => b.presse)?.jeu.args[2] === 'ammunition'`)
+    await renommer(objet, 'lumignon')
+    ed = await editeur()
+    noter(`menu Fichier, « Narratif », « ${boutonDeLEditeur(ed, 'logique/objets/ajouter').libelle} » : ${objet}, ${compte(ed)} ; son libellé écrit : « Lanterne », sa catégorie : « ${inspecte(ed, 'valeur/categorie').valeurs.find((b) => b.presse).libelle} », renommé « lumignon »`)
+    await capturer('4171-l4-1-objet')
+    await revenirALaSceneEditee()
+    ed = await editeur()
+    const [declencheur] = ed.zones['editeur.logique'].find((el) => el.id === 'logique/declencheur/liste').valeurs
+    await choisirLeDeclencheur(declencheur.id)
+    await choisirAuChamp('valeur/flow/kind', (v) => v?.kind === 'effet', montre('valeur/flow/effet/type'))
+    await choisirAuChamp('valeur/flow/effet/type', (v) => v?.type === 'giveTrapping', montre('valeur/flow/effet/trappingId'))
+    ed = await editeur()
+    const offert = inspecte(ed, 'valeur/flow/effet/trappingId').valeurs.find((b) => b.jeu.args[2] === 'lumignon')
+    assert.ok(offert, `le don de l’Effet « Donner un objet » offre l’objet de campagne : ${inspecte(ed, 'valeur/flow/effet/trappingId').valeurs.slice(-3).map((b) => b.libelle).join(', ')}`)
+    await choisirAuChamp('valeur/flow/effet/trappingId', (v) => v === 'lumignon', `${donne} === 'lumignon'`)
+    noter(`menu Fichier, « Scène », le déclencheur ${declencheur.libelle} choisi à la zone Logique, son flux « Effet », « ${inspecte(ed, 'valeur/flow/effet/type').valeurs.find((b) => b.presse).libelle} », l’objet « ${offert.libelle} » choisi parmi ${inspecte(ed, 'valeur/flow/effet/trappingId').valeurs.length} offerts`)
+    await ouvrirLeNarratif()
+    await choisirLObjet('lumignon')
+    await renommer('lumignon', 'falot')
+    ed = await editeur()
+    const refus = boutonDeLEditeur(ed, 'objets/supprimer')?.refus
+    assert.ok(refus?.includes(`scène « ${titre} »`), `« Supprimer » refusé tant que le don du déclencheur désigne l’objet, la scène dite : ${refus}`)
+    noter(`menu Fichier, « Narratif », « lumignon » renommé « falot » ; « Supprimer » refusé : ${refus}`)
+    await revenirALaSceneEditee()
+    await choisirLeDeclencheur(declencheur.id)
+    await waitFor(session, `${donne} === 'falot'`)
+    await choisirAuChamp('valeur/flow/kind', (v) => v?.kind === 'sequence', `!${montre('valeur/flow/effet/trappingId')}`)
+    noter(`menu Fichier, « Scène », le déclencheur ${declencheur.libelle} : son don désigne « falot » ; son flux rendu à « ${inspecte(await editeur(), 'valeur/flow/kind').valeurs.find((b) => b.presse).libelle} »`)
+    await ouvrirLeNarratif()
+    await choisirLObjet('falot')
+    assert.equal(boutonDeLEditeur(await editeur(), 'objets/supprimer')?.refus, null, '« Supprimer » offert, l’objet sans référence')
+    await cliquerAuPanneau({ element: 'bouton/objets/supprimer' })
+    await waitFor(session, `${listeLongue('objets', objets.length)} && !${objetALaListe('falot')}`)
+    const retire = compte(await editeur())
+    await cliquerAuPanneau({ element: 'bouton/annuler' })
+    await waitFor(session, objetALaListe('falot'))
+    ed = await editeur()
+    assert.equal(compte(ed), `Objets (${objets.length + 1})`, '« Annuler » rend l’objet retiré')
+    noter(`« Supprimer » : ${retire} ; « Annuler » : ${compte(ed)}, « falot » rendu`)
+    let annulations = 0
+    for (; narratifVu(ed) !== avant; ed = await editeur()) {
+      assert.ok(annulations < 20, `« Annuler » rend le narratif d’avant en moins de 20 fois : ${narratifVu(ed)}`)
+      await cliquerAuPanneau({ element: 'bouton/annuler' })
+      annulations++
+    }
+    noter(`« Annuler » ${annulations} fois : ${compte(ed)}`)
+    await revenirALaSceneEditee()
+    noter(`menu Fichier, « ${boutonDeLEditeur(await editeur(), 'document/scene').libelle} » : ${titre}`)
+  }
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
   assert.equal(boutonDeLEditeur(e, 'enregistrer')?.refus, 'Rien à enregistrer', 'la carte s’ouvre telle que le dépôt la sert')
@@ -3232,6 +3327,7 @@ async function parcoursEditeur() {
   noter(`« Supprimer » : ${(await editeur()).zones['editeur.logique'].find((el) => el.id === 'logique/rencontre').texte}`)
   await etapeDeLEmbuscade()
   await etapeDuNarratif()
+  await etapeDeLObjet()
   await cliquerAuPanneau({ element: 'bouton/tester' })
   await waitFor(session, '!globalThis.wfrpEcran?.editeur && !!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   const v = await vue()
