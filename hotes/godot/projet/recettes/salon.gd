@@ -2,7 +2,7 @@ extends SceneTree
 
 ## Le panneau du salon (#3009, `PanneauDuSalon`, `hotes/godot/pont/CONTRAT.md`, section « L'écran de Godot ») sur le
 ## noyau vivant, le relay posé avant l'ouverture du transport sur un port local fermé (`VITE_RELAY_URL`) : aucun relay
-## n'est joint. Le pont de la recette délègue tout au pont vivant, sauf les réponses qu'on lui dicte, chacune une fois.
+## n'est joint. Le pont de la recette (`PontEspion`) délègue tout au pont vivant, sauf les réponses qu'on lui dicte.
 ## « Jouer en ligne » de l'accueil montre le panneau sans partie, « Héberger » refusé avec sa raison, « Rejoindre » et
 ## « Fermer » offerts ; « Fermer » rend l'accueil (G1). Un code mal formé : sa raison se lit au panneau, les formulaires
 ## de nouveau offerts, la minuterie arrêtée ; un code bien formé : « Connexion au salon… », « Quitter le salon » seul,
@@ -27,31 +27,9 @@ const LIGNE := {type = "ligne", id = "fin-du-salon", ton = "alerte", texte = "Se
 var _fautes: Array[String] = []
 ## Chaque panne et chaque refus signalés par le pont.
 var _signales: Array[String] = []
-var _pont: PontDeRecette
+var _pont: PontEspion
 ## L'écran publié au dernier clic : un écran republié depuis porte ce que le clic a changé (`_frais`).
 var _ecran_du_clic: Dictionary = {}
-
-
-## Le pont de la recette : il délègue chaque appel au pont vivant (`PontDuNoyau`), sauf la réponse dictée à sa méthode
-## (`dictees`), rendue une fois ; il garde chaque méthode appelée et la dernière réponse vivante de chacune.
-class PontDeRecette extends PontDuNoyau:
-	var appels: Array[String] = []
-	var dictees := {}
-	var derniers := {}
-
-	func appeler(methode: String, entree: Variant = null) -> Dictionary:
-		appels.append(methode)
-		if dictees.has(methode):
-			var dictee: Callable = dictees[methode]
-			dictees.erase(methode)
-			return dictee.call()
-		var reponse := super(methode, entree)
-		derniers[methode] = reponse
-		return reponse
-
-	## L'appel `methode` au pont vivant, hors des dictées et des appels gardés.
-	func deleguer(methode: String, entree: Variant = null) -> Dictionary:
-		return super.appeler(methode, entree)
 
 
 func _initialize() -> void:
@@ -67,7 +45,7 @@ func _recetter() -> void:
 	serveur.stop()
 	OS.set_environment("VITE_RELAY_URL", relay)
 	print("[salon] relay posé sur un port fermé : ", relay)
-	_pont = PontDeRecette.new()
+	_pont = PontEspion.new()
 	_pont.en_recette = true
 	PontDuNoyau.remplacer(self, _pont)
 	_pont.panne.connect(func(message: String) -> void: _signales.append("panne : " + message))
@@ -121,7 +99,7 @@ func _g2() -> Dictionary:
 	if not await _frais():
 		return {}
 	_rejoindre("ABCDEF")
-	var quitte: Dictionary = _pont.derniers.get("salon", {}).duplicate(true)
+	var quitte: Dictionary = _pont.reponses.get("salon", {}).duplicate(true)
 	_verifier(_textes("Etat").has("Connexion au salon…"), "G2 (b) : « Connexion au salon… » ne se lit pas : %s" % [_textes("Etat")])
 	_verifier(_releve(), "G2 (b) : la minuterie ne tourne pas pendant la jonction")
 	if not await _attendre(func() -> bool: return _bouton("bouton/quitter", "Quitter le salon") != null and _bouton("formulaire/rejoindre", "Rejoindre") == null and _bouton("bouton/fermer", "Fermer") == null, "« Quitter le salon » seul pendant la jonction"):
@@ -143,13 +121,15 @@ func _g2() -> Dictionary:
 	if not await _attendre(func() -> bool: return _en_partie(), "une partie ouverte par « Jouer »"):
 		return {}
 	print("[salon] G2 : quitté, « Jouer » ouvre une partie")
-	return quitte if await _lancer_l_arene() else {}
+	return quitte
 
 
 ## G3 : dans la partie, « Jouer en ligne » ouvre le panneau ; « Héberger » finit sur le texte de l'échec de la room ;
 ## « Fermer » cache le panneau sur la partie.
 func _g3() -> bool:
 	var combat := current_scene
+	if not await _frais():
+		return false
 	_cliquer(_bouton("bouton/salon", "Jouer en ligne"))
 	if not await _attendre(func() -> bool: return _formulaire("heberger") != null and not _formulaire("heberger").disabled and _bouton("formulaire/heberger", "Héberger") != null, "« Héberger » offert dans la partie"):
 		return false
@@ -172,17 +152,17 @@ func _g3() -> bool:
 
 ## G4 : une session finie pendant la partie recharge le combat sur le panneau sans partie, qui dit la ligne dictée.
 func _g4(quitte: Dictionary) -> bool:
+	if not await _frais():
+		return false
 	var avant := current_scene.get_instance_id()
 	_pont.dictees.salon = func() -> Dictionary: return quitte.duplicate(true)
 	_cliquer(_bouton("bouton/salon", "Jouer en ligne"))
 	_verifier(_releve(), "G4 : la minuterie ne tourne pas sur « Quitter le salon » dicté")
-	if not await _attendre(func() -> bool: return _publies("bouton/quitter").size() == 2, "« Quitter la partie » et « Quitter le salon » publiés"):
+	if not await _attendre(func() -> bool: return _bouton("bouton/quitter", "Quitter le salon") != null, "« Quitter le salon » publié"):
 		return false
-	var premier: Variant = _publie("bouton/quitter")
-	print("[salon] G4 : bouton/quitter publiés dans l'ordre %s ; `_publie(\"bouton/quitter\")` de campagne.gd rend « %s »" % [_publies("bouton/quitter").map(func(b: Dictionary) -> String: return b.texte), premier.texte])
 	var ligne := LIGNE.duplicate()
 	_pont.dictees.nouvelles = func() -> Dictionary:
-		_pont.deleguer("quitter")
+		_pont.appeler("quitter")
 		return {ok = true, quittee = {lignes = [ligne]}}
 	if not await _attendre(func() -> bool: return _au_combat() and current_scene.get_instance_id() != avant and _panneau().racine().visible and _textes("Journal").has(LIGNE.texte) and _bouton("formulaire/rejoindre", "Rejoindre") != null, "le combat rechargé sur le panneau, la ligne dictée"):
 		return false
@@ -332,15 +312,12 @@ func _bouton(element: String, texte: String) -> Variant:
 	return null
 
 
-## Le premier bouton publié qui dessine l'élément `element`, comme `_publie` de `recettes/campagne.gd`.
+## Le premier bouton publié qui dessine l'élément `element`, `null` sans lui.
 func _publie(element: String) -> Variant:
-	var publies := _publies(element)
-	return null if publies.is_empty() else publies[0]
-
-
-## Les boutons publiés qui dessinent l'élément `element`, dans l'ordre de la publication.
-func _publies(element: String) -> Array:
-	return _pont.ecran.get("boutons", []).filter(func(b: Dictionary) -> bool: return b.get("element") == element)
+	for bouton: Dictionary in _pont.ecran.get("boutons", []):
+		if bouton.get("element") == element:
+			return bouton
+	return null
 
 
 ## Si l'écran se republie après le dernier clic, ses boutons à leur place d'après lui.

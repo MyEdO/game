@@ -15,9 +15,11 @@ export type OuvertureDuSalon = null | { enCours: 'heberger' | 'rejoindre' } | { 
 
 /**
  * @contrat Vue
- * Les zones du salon, que la méthode `salon` rend avec ou sans partie ouverte. Le formulaire « Héberger » (son verbe
- * et une chaîne par champ), le `jeu` de « Quitter le salon » et celui d'une valeur de `salon.sieges` sont les gestes
- * que la méthode `salon` reçoit, lus dans les zones d'avant le geste.
+ * Les zones du salon, que la méthode `salon` rend avec ou sans partie ouverte. Elle reçoit, lus dans les zones d'avant
+ * le geste :
+ * - les formulaires « Héberger » et « Rejoindre », chacun par son verbe et une chaîne par champ ;
+ * - le `jeu` de « Quitter le salon » ;
+ * - le `jeu` d'une valeur de `salon.sieges`.
  */
 export interface ZonesDuSalon {
   /** en session, le code de la room, chaque siège de la table (son nom, « (vous) », « reconnexion »), et chez un invité
