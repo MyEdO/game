@@ -1,0 +1,47 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "cordeliere"
+  },
+  "liaison": {
+    "mode": "surface"
+  },
+  "couche": "armure",
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "emplacements": {
+    "ceinture_avant": {
+      "os": "jupe_avant_01",
+      "position": [
+        -0.000056,
+        0.142264,
+        0.022697
+      ],
+      "rotation": [
+        -0.127848,
+        0,
+        -3.141593
+      ],
+      "poids": {
+        "jupe_avant_01": 0.971,
+        "jupe_avant_avant_g_01": 0.029
+      }
+    }
+  },
+  "surfaces": [
+    {
+      "nom": "corde",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "c530278151b31dc2a1ac8145f27f4a879f7d110f1eac58ab723ad7c91118a568",
+    "octets": 211212
+  }
+}

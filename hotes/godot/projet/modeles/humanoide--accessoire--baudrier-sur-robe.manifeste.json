@@ -1,0 +1,28 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "baudrier-sur-robe"
+  },
+  "liaison": {
+    "mode": "surface"
+  },
+  "couche": "armure",
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "sangle",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "4dee6b8ea5e642df36306313952bac4fbb35109d3762e991a38606c86e6436a4",
+    "octets": 217404
+  }
+}

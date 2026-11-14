@@ -35,7 +35,7 @@ import {
 } from '../../../engine/types';
 import type { Slot } from '../../../lib/palette';
 import type { Sexe as SexeDApparence } from '../../../lib/sexe';
-import { ref, refOuSpec, idDe, refs, specDe, refTypee, type PorteeLocale, type RefTypee } from './ref';
+import { ref, refOuSpec, idDe, recordDIds, refs, specDe, refTypee, type PorteeLocale, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { controlerSousPortee, listeCle } from './collection-cle';
@@ -842,7 +842,7 @@ export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexa
 /** Le libellé de chaque emplacement de palette (`SLOTS`, `src/lib/palette.ts`). */
 const LIBELLES_DES_SLOTS = {
   peau: 'Peau', cheveux: 'Cheveux', yeux: 'Yeux', vet1: 'Étoffe principale', vet2: 'Étoffe secondaire', cuir: 'Cuir', metal: 'Métal',
-  corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume',
+  corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume', vegetal: 'Végétal',
 } as const satisfies Readonly<Record<Slot, string>>;
 
 /** Un emplacement de palette. */
@@ -1180,10 +1180,11 @@ export function avecApparenceDObjetDonne<N extends z.ZodType<{ trappingId?: stri
 const idDApparence = (apparence: unknown): string | undefined => (estObjet(apparence) && typeof apparence.id === 'string' ? apparence.id : undefined);
 
 /** Apparence par objet porté, clé = id de trapping du catalogue ou objet de la campagne (`OBJETS_DU_PROJET`) :
- *  `EntityAppearance.apparencesObjets`, presets de personnage (#3086). */
-export const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>, Record<string, { id: string }>> = controlerSousPortee(
-  z.record(idDe('trapping', undefined, { portee: OBJETS_DU_PROJET }), ref('apparence')).superRefine((v, ctx) => {
-    for (const [trappingId, apparence] of Object.entries(v)) if (findTrappingById(trappingId)) signaler(ctx, fautesDApparence(trappingId, apparence.id, findTrappingById, [trappingId, 'id']));
+ *  `EntityAppearance.apparencesObjets`, presets de personnage (#3086). Ses clés sont celles d'un `recordDIds`, qui laisse
+ *  la référence d'apparence jugée au parse de mesure. */
+export const apparencesDObjetsSchema: z.ZodType<Partial<Record<string, { id: string }>>, Partial<Record<string, { id: string }>>> = controlerSousPortee(
+  recordDIds('trapping', ref('apparence'), undefined, { portee: OBJETS_DU_PROJET }).superRefine((v, ctx) => {
+    for (const [trappingId, apparence] of Object.entries(v)) if (apparence && findTrappingById(trappingId)) signaler(ctx, fautesDApparence(trappingId, apparence.id, findTrappingById, [trappingId, 'id']));
   }),
   OBJETS_DU_PROJET,
   (valeur, entree) =>

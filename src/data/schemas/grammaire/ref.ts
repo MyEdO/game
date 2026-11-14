@@ -484,16 +484,20 @@ export function idDe<T extends TypeEntite, S extends SousListe | undefined = und
   return feuilleDId(type, sousListe, options?.portee, true);
 }
 
+/** Le site d'une feuille d'id, tel que l'écrit son appel : il désigne son espace (`idsDesignes`). */
+function siteDeFeuille(type: TypeEntite, sousListe: SousListe | undefined, portee: PorteeLocale | undefined): string {
+  return (sousListe === undefined
+    ? `idDe('${type}'`
+    : typeof sousListe === 'string'
+      ? `idDe('${type}', '${sousListe}'`
+      : `idDe('${type}', { horsMarqueurs: [${sousListe.horsMarqueurs.map((m) => `'${m}'`).join(', ')}] }`) + (portee ? `, { portee: '${portee.collection}' })` : ')');
+}
+
 /** Le corps de `idDe`. `avecRepere` : la feuille émet son repère au parse de mesure ; sans repère, le
  *  porteur l'émet lui-même (`recordDIds`, dont la clé ne doit porter aucune issue pour que zod en parse
  *  la valeur). */
 function feuilleDId<T extends TypeEntite, S extends SousListe | undefined>(type: T, sousListe: S | undefined, portee: PorteeLocale | undefined, avecRepere: boolean): z.ZodType<Id<T, S>, string> {
-  const site =
-    (sousListe === undefined
-      ? `idDe('${type}'`
-      : typeof sousListe === 'string'
-        ? `idDe('${type}', '${sousListe}'`
-        : `idDe('${type}', { horsMarqueurs: [${sousListe.horsMarqueurs.map((m) => `'${m}'`).join(', ')}] }`) + (portee ? `, { portee: '${portee.collection}' })` : ')');
+  const site = siteDeFeuille(type, sousListe, portee);
   const feuille = z
     .string()
     .superRefine((v, ctx) => {
@@ -672,13 +676,17 @@ export function refs(cible: TypeEntite | PorteeLocale, opts?: { min?: number; so
 /** Record PARTIEL keyé par les ids de `type` (aucune donnée n'y couvre tout l'espace) : une clé refusée porte le message de sa feuille `idDe`, qui nomme le
  *  catalogue, jamais la « clé invalide » générique de zod. `sousListe` restreint chaque clé comme `idDe`.
  *  Au parse de mesure, la clé n'émet pas son repère (zod ne parserait plus la valeur) : le record le pose
- *  sur chaque clé, en `invalid_key`, après le parse de la valeur. */
-export function recordDIds<T extends TypeEntite, V extends z.ZodType, S extends SousListe | undefined = undefined>(type: T, valeur: V, sousListe?: S) {
+ *  sur chaque clé, en `invalid_key`, après le parse de la valeur. `portee` : comme `idDe`, une clé absente de l'espace
+ *  désigne une entrée de la portée locale, sans repère. */
+export function recordDIds<T extends TypeEntite, V extends z.ZodType, S extends SousListe | undefined = undefined>(type: T, valeur: V, sousListe?: S, options?: { readonly portee?: PorteeLocale }) {
+  const portee = options?.portee;
+  const site = siteDeFeuille(type, sousListe, portee);
   return z
-    .partialRecord(feuilleDId(type, sousListe, undefined, false), valeur, { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message })
+    .partialRecord(feuilleDId(type, sousListe, portee, false), valeur, { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message })
     .superRefine((v, ctx) => {
       if (!parseDeMesure) return;
       for (const cle of Object.keys(v)) {
+        if (portee && !idsDesignes(espaceDe(type), site).has(cle)) continue;
         const repere: z.core.$ZodIssueCustom = { code: 'custom', path: [], message: `repère de recordDIds('${type}')`, params: { [REPERE]: type } };
         ctx.addIssue({ code: 'invalid_key', origin: 'record', path: [cle], input: cle, issues: [repere], continue: true });
       }

@@ -193,7 +193,9 @@ déclare `blason: true` sur chaque surface qui reçoit l'emblème, dite surface 
 vient de la donnée du porteur, `embleme` de son apparence ou de sa composition (#3155), et se pose
 au montage (#3111). Un insigne d'uniforme est la pièce `insigne` (accessoire) à surface
 `blason` ; un signe peint sur une armure (tassette, brassard) est un emblème, reçu par une surface
-`blason` de la pièce.
+`blason` de la pièce. Un symbole religieux porté (`symbole-religieux`) a la forme de son dieu : il se modèle, une
+apparence de l'objet par dieu (`symbole_de_sigmar`, forme `symbole_religieux`) ; l'emblème du culte se pose sur la
+surface `blason` d'un autre objet, la couverture du livre de prières (#3867).
 
 Le matériau d'une surface `blason` ne couvre que la face porteuse : toute face de ce matériau reçoit
 l'emblème. Son îlot UV de `TEXCOORD_0` remplit le carré [0,1]², à l'échelle uniforme, sans miroir,
@@ -220,9 +222,11 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
 
 - `donnees.py` : `MANIFESTE`, les champs publiés propres à l'élément (`categorie`, `cle`, `liaison`, et pour une pièce
   skinnée `couche`, `couvre`, `chaines`) ; `MATERIAUX`, `{nom: (emplacement de palette, matière)}` (`habillage.py`,
-  section 9), en gris de construction ; `BUDGET_TRIANGLES` (section 7) ; `PRISE` pour un rigide ; chaque dimension en
-  mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE à trancher en revue), jamais enfouie
-  dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et la coiffure) nomme ses ids.
+  section 9), en gris de construction ; `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces
+  `blason`, section 2), exportés avec leurs UV comme ceux d'un véhicule ; `BUDGET_TRIANGLES` (section 7) ; `PRISE`
+  pour un rigide ; chaque dimension en mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE
+  à trancher en revue), jamais enfouie dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et
+  la coiffure) nomme ses ids.
 - `modele.py` : la construction seule. Un rigide : `construire(D, materiaux)` rend ses objets, bâtis dans le repère de
   sa prise. Une pièce skinnée : `construire(D, materiaux, base)` rend la pièce jointe, ses clés transférées.
 - Une pièce skinnée publiée dont l'atelier est perdu se reprend de son GLB épinglé (#3761) : `modele.py` tient en
@@ -240,7 +244,9 @@ Le kit : `element/tissu.py` pour une pièce skinnée (`Base` : repères d'os, su
 éléments publiés contournés, transfert des clés, découpe par zone ; `anneau`, `Maillage`, `emprunter`, `lisser`,
 `joindre`, `Base.nappe`, `lambeaux` pour un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
 sections rondes ou elliptiques, boîte, tube, tore…), `element/lame.py` pour une arme à lame et son fourreau (épée,
-dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), `formes.py` pour les
+dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), de même `element/robe.py` pour une
+robe longue sur le filet `jupe` (robe, bure) et `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
+qu'elle contourne (bandoulière à parchemins, baudrier sur robe), `formes.py` pour les
 clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
 sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au repos, puis ceux des chaînes requises. Un
 élément skinné reçoit les silhouettes déclarées ET toutes les clés `gabarit_*` de la base, celles-ci non déclarées au

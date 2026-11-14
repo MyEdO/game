@@ -780,6 +780,8 @@ func _attache_du_point(point: Dictionary) -> Dictionary:
 ## personnage (`MiseEnPage.sens_vers_l_avant`) : tourné autour de l'axe de l'os pour que ses sommets posés passent à
 ## `JEU_ENTRE_RANGES` de ceux du précédent (`MiseEnPage.tour_a_cote`, en `PASSES_DE_TOUR` corrections depuis
 ## l'écart de leurs boîtes, `MiseEnPage.decalage_a_cote`), ou, sur l'axe, décalé le long de l'axe X du rangement ;
+## un objet que ce tour sortirait de la place du point (`MiseEnPage.tour_dans_la_place`) se pose sur le point, appuyé
+## sur les objets déjà posés au point comme sur ce qui est porté (`_porte_range`) ;
 ## chaque objet à plat, sa plus petite largeur sur la normale sortante (`MiseEnPage.lacet_a_plat`), appuyé sur ce qui
 ## est porté dessous (`_poser_range`), les meshes d'un objet ensemble ; un objet qui pendrait jusqu'au sol de la pose de
 ## repos passe en bandoulière (`MiseEnPage.biais_de_rangement`, vers `DROITE_DU_PERSONNAGE`), le milieu de sa boîte sur
@@ -823,6 +825,7 @@ func _ranger() -> void:
 		var tour := 0.0
 		var precedente := AABB()
 		var azimuts := Vector2()
+		var poses := portes.duplicate()
 		for id: String in ids:
 			var rangees: Array = _rangements[id]
 			var bruts := _sommets_ranges(rangees, Transform3D.IDENTITY)
@@ -842,9 +845,14 @@ func _ranger() -> void:
 				for _passe in PASSES_DE_TOUR:
 					var etendue := _azimuts(bruts, _poser_range(rangement, tour, decalage), depuis)
 					tour = MiseEnPage.tour_a_cote(emplacement.basis, emplacement.origin, tour, sens, azimuts.x, azimuts.y, etendue.x, etendue.y)
+				var dans_la_place := MiseEnPage.tour_dans_la_place(tour)
+				if dans_la_place != tour:
+					rangement.portes = poses
+				tour = dans_la_place
 			var pose := _poser_range(rangement, tour, decalage)
 			for rangee in rangees:
 				rangee.noeud.transform = pose
+				poses.append(_porte_range(rangee, pose, os))
 			precedente = boite
 			azimuts = _azimuts(bruts, pose, depuis)
 
@@ -986,6 +994,17 @@ func _portes_au_repos() -> Array[Dictionary]:
 		portes.append({maille = mesh.mesh.generate_triangle_mesh(), boite = mesh.mesh.get_aabb(),
 			vers_le_mesh = [os.affine_inverse(), liaison.affine_inverse()], vers_le_squelette = [liaison, os]})
 	return portes
+
+
+## Ce que porte un objet rangé de mesh `rangee` (`_rangements`), posé par `pose` dans l'os de repos `os`, comme ce qui
+## est porté au repos (`_portes_au_repos`) : ses triangles et sa boîte dans le repère du mesh, et les transformations de
+## ce repère à celui du squelette et retour (`_par`).
+static func _porte_range(rangee: Dictionary, pose: Transform3D, os: Transform3D) -> Dictionary:
+	var piece: MeshInstance3D = rangee.piece
+	var noeud: Node3D = rangee.noeud
+	return {maille = piece.mesh.generate_triangle_mesh(), boite = piece.mesh.get_aabb(),
+		vers_le_mesh = [os.affine_inverse(), pose.affine_inverse(), noeud.global_transform, piece.global_transform.affine_inverse()],
+		vers_le_squelette = [piece.global_transform, noeud.global_transform.affine_inverse(), pose, os]}
 
 
 ## Le point `point` passé par les transformations `chaine`, dans leur ordre.

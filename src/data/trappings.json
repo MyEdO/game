@@ -4170,6 +4170,12 @@
     "id": "symbole-religieux",
     "type": "trappings",
     "label": "Symbole religieux",
+    "shape": {
+      "id": "symbole_religieux"
+    },
+    "rangement": {
+      "id": "cou"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "vetements-et-accessoires"
@@ -6606,6 +6612,9 @@
     "id": "livre-apothicaire",
     "type": "trappings",
     "label": "Livre (Apothicaire)",
+    "shape": {
+      "id": "livre"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "livres-et-documents"
@@ -6632,6 +6641,9 @@
     "id": "livre-art",
     "type": "trappings",
     "label": "Livre (Art)",
+    "shape": {
+      "id": "livre"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "livres-et-documents"
@@ -6658,6 +6670,9 @@
     "id": "livre-cryptographie",
     "type": "trappings",
     "label": "Livre (Cryptographie)",
+    "shape": {
+      "id": "livre"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "livres-et-documents"
@@ -6684,6 +6699,9 @@
     "id": "livre-ingenierie",
     "type": "trappings",
     "label": "Livre (Ingénierie)",
+    "shape": {
+      "id": "livre"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "livres-et-documents"
@@ -6710,6 +6728,9 @@
     "id": "livre-loi",
     "type": "trappings",
     "label": "Livre (Loi)",
+    "shape": {
+      "id": "livre"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "livres-et-documents"
@@ -6736,6 +6757,9 @@
     "id": "livre-magie",
     "type": "trappings",
     "label": "Livre (Magie)",
+    "shape": {
+      "id": "livre"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "livres-et-documents"
@@ -6762,6 +6786,9 @@
     "id": "livre-medecine",
     "type": "trappings",
     "label": "Livre (Médecine)",
+    "shape": {
+      "id": "livre"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "livres-et-documents"
@@ -6788,6 +6815,9 @@
     "id": "livre-religion",
     "type": "trappings",
     "label": "Livre (Religion)",
+    "shape": {
+      "id": "livre"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "livres-et-documents"
@@ -6814,6 +6844,9 @@
     "id": "grimoire",
     "type": "trappings",
     "label": "Grimoire",
+    "shape": {
+      "id": "livre"
+    },
     "capabilities": {
       "isGrimoire": true
     },
@@ -8636,6 +8669,9 @@
     "id": "belladone",
     "type": "trappings",
     "label": "Belladone",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -8742,6 +8778,9 @@
     "id": "faxtoryll",
     "type": "trappings",
     "label": "Faxtoryll",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -8882,6 +8921,9 @@
     "id": "racine-de-terre",
     "type": "trappings",
     "label": "Racine de terre",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -8930,6 +8972,9 @@
     "id": "soude-commune",
     "type": "trappings",
     "label": "Soude commune",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -9016,6 +9061,9 @@
     "id": "gesundheit",
     "type": "trappings",
     "label": "Gesundheit",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -9073,6 +9121,9 @@
     "id": "racine-des-tombes",
     "type": "trappings",
     "label": "Racine des tombes",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -9197,6 +9248,9 @@
     "id": "rouille-mouchetee",
     "type": "trappings",
     "label": "Rouille mouchetée",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -16911,6 +16965,9 @@
     "id": "les-ecrits-de-sedelmann",
     "type": "trappings",
     "label": "Les Écrits de Sedelmann",
+    "shape": {
+      "id": "livre"
+    },
     "capabilities": {
       "isGrimoire": true
     },
@@ -16932,6 +16989,9 @@
     "id": "les-livres-de-wa",
     "type": "trappings",
     "label": "Les Livres de WA",
+    "shape": {
+      "id": "livre"
+    },
     "capabilities": {
       "isGrimoire": true
     },
@@ -16953,6 +17013,9 @@
     "id": "les-livres-caches-de-chamon",
     "type": "trappings",
     "label": "Les Livres cachés de Chamon",
+    "shape": {
+      "id": "livre"
+    },
     "capabilities": {
       "isGrimoire": true
     },
@@ -16974,6 +17037,9 @@
     "id": "le-tome-de-pouvoir-de-krampi",
     "type": "trappings",
     "label": "Le Tome de pouvoir de Krampi",
+    "shape": {
+      "id": "livre"
+    },
     "capabilities": {
       "isGrimoire": true
     },

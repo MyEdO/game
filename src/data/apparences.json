@@ -155,6 +155,37 @@
     "label": "Amulette"
   },
   {
+    "id": "symbole_religieux",
+    "type": "apparences",
+    "label": "Symbole religieux"
+  },
+  {
+    "id": "symbole_de_sigmar",
+    "type": "apparences",
+    "label": "Marteau de Sigmar",
+    "forme": {
+      "id": "symbole_religieux"
+    }
+  },
+  {
+    "id": "livre",
+    "type": "apparences",
+    "label": "Livre"
+  },
+  {
+    "id": "faux",
+    "type": "apparences",
+    "label": "Faux",
+    "forme": {
+      "id": "improvisee"
+    }
+  },
+  {
+    "id": "herbes",
+    "type": "apparences",
+    "label": "Herbes"
+  },
+  {
     "id": "cimeterre",
     "type": "apparences",
     "label": "Cimeterre"

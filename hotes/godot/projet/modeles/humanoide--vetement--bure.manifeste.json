@@ -1,0 +1,62 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "bure"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "tenue",
+  "couvre": [
+    "torse",
+    "hanches",
+    "bras_haut_g",
+    "bras_haut_d",
+    "cuisse_g",
+    "cuisse_d",
+    "genou_g",
+    "genou_d"
+  ],
+  "chaines": [
+    "jupe"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "emplacements": {
+    "ceinture_avant": {
+      "os": "spine_01",
+      "position": [
+        0,
+        0.000628,
+        0.114434
+      ],
+      "rotation": [
+        -0.101727,
+        0,
+        0
+      ],
+      "poids": {
+        "pelvis": 0.4342,
+        "spine_01": 0.456,
+        "spine_02": 0.0935,
+        "thigh_l": 0.0164
+      }
+    }
+  },
+  "surfaces": [
+    {
+      "nom": "robe",
+      "palette": "vet1"
+    }
+  ],
+  "glb": {
+    "sha256": "d1b219fb1099c842604b87338a99149373a38d5a2cf5523fe4a97253160a96e3",
+    "octets": 710964
+  }
+}

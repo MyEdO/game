@@ -373,6 +373,17 @@ def porteur_de(P, T, W):
     return {'P': P, 'T': T, 'W': W, 'arbre': BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)}
 
 
+def sur_le_porteur(porteur_, origine, direction, portee):
+    """Le point et la normale sortante de la surface porteuse touchés par la visée de `origine` + `portee` · `direction`
+    vers `origine`."""
+    touche = porteur_['arbre'].ray_cast(Vector((origine + portee * direction).tolist()), Vector((-direction).tolist()),
+                                        portee)
+    if touche[0] is None:
+        raise ValueError(f'{origine} : aucune surface porteuse le long de {direction}')
+    normale = np.array(touche[1])
+    return np.array(touche[0]), normale if normale @ direction > 0 else -normale
+
+
 def repere_de_plan(normale, haut, signe):
     """Repère (u, v) d'un plan de coupe : u, la projection de `haut` sur le plan ; v = signe·(normale × u), pour que
     les deux côtés d'un corps symétrique se lisent dans le même sens."""

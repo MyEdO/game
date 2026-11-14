@@ -139,7 +139,7 @@ const NOMMES = [
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|distance|zone|adversairesAutour|toutAutour|soi',
-  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume',
+  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume|vegetal',
   'physique|mentale',
   // `availabilitySchema`, `dispoPctAvailabilitySchema`, `harvestRaritySchema`, `harvestDangerSchema` (#3691) :
   // Disponibilité (LDB 59) et récolte (ZI 13 l.286), en ids nommés.

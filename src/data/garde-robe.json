@@ -54,6 +54,12 @@
     "kind": "emplacement"
   },
   {
+    "id": "ceinture_avant_d",
+    "type": "garde-robe",
+    "label": "Ceinture, devant droit",
+    "kind": "emplacement"
+  },
+  {
     "id": "ceinture_arriere",
     "type": "garde-robe",
     "label": "Ceinture, derrière",
@@ -233,6 +239,13 @@
     "categorie": "vetement"
   },
   {
+    "id": "col-de-fourrure",
+    "type": "garde-robe",
+    "label": "Col de fourrure",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
     "id": "insigne",
     "type": "garde-robe",
     "label": "Insigne",
@@ -283,6 +296,16 @@
     }
   },
   {
+    "id": "sceau-de-cire",
+    "type": "garde-robe",
+    "label": "Sceau de cire",
+    "kind": "piece",
+    "categorie": "accessoire",
+    "emplacement": {
+      "id": "ceinture_avant_d"
+    }
+  },
+  {
     "id": "casque-a-cornes",
     "type": "garde-robe",
     "label": "Casque à cornes",
@@ -328,12 +351,39 @@
     }
   },
   {
+    "id": "baudrier-sur-robe",
+    "type": "garde-robe",
+    "label": "Baudrier sur robe",
+    "kind": "variante",
+    "piece": {
+      "id": "baudrier"
+    }
+  },
+  {
     "id": "bandouliere-a-parchemins",
     "type": "garde-robe",
     "label": "Bandoulière à parchemins",
     "kind": "variante",
     "piece": {
       "id": "baudrier"
+    }
+  },
+  {
+    "id": "bure",
+    "type": "garde-robe",
+    "label": "Robe de bure",
+    "kind": "variante",
+    "piece": {
+      "id": "robe"
+    }
+  },
+  {
+    "id": "cordeliere",
+    "type": "garde-robe",
+    "label": "Cordelière",
+    "kind": "variante",
+    "piece": {
+      "id": "ceinture"
     }
   },
   {
@@ -533,6 +583,12 @@
     "kind": "coiffure"
   },
   {
+    "id": "calvitie-et-barbe-rase",
+    "type": "garde-robe",
+    "label": "Couronne dégarnie et barbe rase",
+    "kind": "coiffure"
+  },
+  {
     "id": "taureau-rouge",
     "type": "garde-robe",
     "label": "Tête de taureau rouge",
@@ -545,6 +601,13 @@
     "label": "Tête de mort rouge",
     "kind": "embleme",
     "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><g fill=\"#b01c1c\" fill-rule=\"evenodd\"><path d=\"M128 20 C68 20 36 62 36 112 C36 146 54 168 78 176 L78 206 L178 206 L178 176 C202 168 220 146 220 112 C220 62 188 20 128 20 Z M70 114 C70 90 114 90 114 116 C114 140 70 140 70 114 Z M142 116 C142 90 186 90 186 114 C186 140 142 140 142 116 Z M128 140 L114 168 L142 168 Z M100 184 h8 v16 h-8 Z M124 184 h8 v16 h-8 Z M148 184 h8 v16 h-8 Z\"/><path d=\"M82 212 H174 V224 C174 234 160 240 128 240 C96 240 82 234 82 224 Z M104 212 h6 v14 h-6 Z M125 212 h6 v14 h-6 Z M146 212 h6 v14 h-6 Z\"/></g></svg>"
+  },
+  {
+    "id": "marteau-de-sigmar",
+    "type": "garde-robe",
+    "label": "Marteau de Sigmar",
+    "kind": "embleme",
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><g fill=\"#c9ccd1\" stroke=\"#3a3c40\" stroke-width=\"6\" stroke-linejoin=\"round\"><path d=\"M20 40 L84 66 L84 50 L172 50 L172 66 L236 40 L236 136 L172 110 L172 126 L84 126 L84 110 L20 136 Z\"/><path d=\"M116 126 L140 126 L140 236 L116 236 Z\"/><path d=\"M128 62 L142 88 L128 114 L114 88 Z\"/></g></svg>"
   },
   {
     "id": "uniforme-de-soldat",
