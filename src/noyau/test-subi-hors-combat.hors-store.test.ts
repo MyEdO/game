@@ -37,9 +37,7 @@ import type { Combatant, EffectSource } from '../engine/types';
 import type { GameOp } from '../engine/ops';
 import { t } from '../i18n';
 import crits from '../data/criticals.json';
-import etats from '../data/etats.json';
-import talents from '../data/talents.json';
-import spells from '../data/spells.json';
+import { findConditionById, findTalentById, spells } from '../data';
 import shipCrits from '../data/ship-criticals.json';
 import { desDuTest } from '../engine/dice.testkit';
 
@@ -92,14 +90,18 @@ function rangeeSonneSurLaCible(): Rangee {
 }
 
 /** Le Test de fin de Round d'un État (`etats.json`) — celui de Sonné porte un `si` de branche. */
-const noeudDEtat = (id: string): NoeudTest =>
-  (etats as { id: string; effects?: { flow: Flow }[] }[]).find((e) => e.id === id)!
-    .effects!.find((x) => x.flow.kind === 'test')!.flow as NoeudTest;
+const noeudDEtat = (id: string): NoeudTest => {
+  const noeud = findConditionById(id)?.effects?.find((x) => x.flow.kind === 'test')?.flow;
+  if (noeud?.kind !== 'test') throw new Error(`aucun nœud \`test\` aux effets de l'État « ${id} »`);
+  return noeud;
+};
 
 /** Le nœud `test` d'un talent (Mâchoires d'acier : branche `on:'caster'`, auto-portée). */
-const noeudDeTalent = (id: string): NoeudTest =>
-  (talents as { id: string; effects?: { flow: Flow }[] }[]).find((t) => t.id === id)!
-    .effects!.find((x) => x.flow.kind === 'test')!.flow as NoeudTest;
+const noeudDeTalent = (id: string): NoeudTest => {
+  const noeud = findTalentById(id)?.effects?.find((x) => x.flow.kind === 'test')?.flow;
+  if (noeud?.kind !== 'test') throw new Error(`aucun nœud \`test\` aux effets du talent « ${id} »`);
+  return noeud;
+};
 
 /** Feuilles `ops` d'un Flow (branches comprises) — sert à CHOISIR un nœud par sa forme. */
 function feuilles(f: Flow | undefined): { on?: string; ops: GameOp[] }[] {
@@ -123,7 +125,7 @@ function noeudsTest(f: unknown, out: NoeudTest[] = []): NoeudTest[] {
 /** L'ENTITÉ PORTEUSE du sort d'où vient le nœud — tout producteur réel la passe à la porte, et un
  *  Test enfoui dans une branche en dérive son enjeu. */
 function sourceDuSort(node: NoeudTest): EffectSource {
-  const sp = (spells as { id: string; effects?: Flow }[]).find((s) => noeudsTest(s.effects).includes(node))!;
+  const sp = spells.find((s) => noeudsTest(s.effects).includes(node))!;
   return { kind: 'sort', id: sp.id };
 }
 
@@ -139,7 +141,7 @@ function ligneDeLaConsequence(): string {
 /** Un nœud de `spells.json` dont une branche porte une feuille `on:'caster'` MESURABLE (une ligne
  *  nommant le porteur) : c'est le seul moyen de distinguer le LANCEUR du SUJET dans la conséquence. */
 function noeudDeSortACaster(): NoeudTest {
-  for (const sp of spells as { effects?: Flow }[]) {
+  for (const sp of spells) {
     for (const n of noeudsTest(sp.effects)) {
       const caster = [...feuilles(n.reussite), ...feuilles(n.echec)]
         .filter((e) => e.on === 'caster' && e.ops.some((o) => o.op !== 'narrative'));
@@ -244,7 +246,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
 
   it('T5 — Test IMBRIQUÉ dans la branche : la 2ᵉ suspension s’ouvre sur le SUJET, meta sérialisable', () => {
     // Le nœud de `spells.json` dont la branche porte elle-même un `test` (trouvé par sa forme).
-    const node = (spells as { effects?: Flow }[])
+    const node = spells
       .flatMap((sp) => noeudsTest(sp.effects))
       .find((n) => noeudsTest(n.echec).length > 0 || noeudsTest(n.reussite).length > 0)!;
     expect(node, 'aucun nœud de sort à Test imbriqué — le scan a glissé').toBeTruthy();
@@ -262,7 +264,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
   });
 
   it('T5b — branche à `choice` : la cascade s’ouvre hors combat, chez le SUJET', () => {
-    const node = (spells as { effects?: Flow }[])
+    const node = spells
       .flatMap((sp) => noeudsTest(sp.effects))
       .find((n) => n.echec?.kind === 'choix' || n.reussite?.kind === 'choix')!;
     expect(node, 'aucun nœud de sort à `choice` en branche — le scan a glissé').toBeTruthy();

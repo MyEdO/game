@@ -167,7 +167,7 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
     const { priest, ally } = pair();
     const wiz = herosDeScenario(idsDeTest, 'sorcier');
     banc.setState({ party: [wiz, priest, ally] as Combatant[] });
-    const sort = { ...findSpellById('benediction-de-bataille')!, type: 'Magie des Arcanes', cn: 0 }; // gabarit +10 CC 6 rounds en SORT
+    const sort = { ...findSpellById('benediction-de-bataille')!, family: 'arcane' as const, cn: 0 }; // gabarit +10 CC 6 rounds en SORT
     applyCast(banc.getState, banc.setState, wiz, priest, sort, okRes(4), false, false, undefined, {
       durationMult: 2,
       extraTargets: [ally],

@@ -176,7 +176,7 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
  * (les autres à zéro), sur les trois `kind`, avec son contrôle POSITIF non nul : une composante
  * silencieusement débranchée, ou branchée sur le mauvais `kind`, tombe ici.
  */
-const SORT = (domainId: string): SpellLike => ({ id: 's', label: 'S', ecole: 'Magie des Arcanes', family: 'arcane', domainId: { id: domainId }, cn: 0, desc: '' });
+const SORT = (domainId: string): SpellLike => ({ id: 's', label: 'S', ecole: 'Magie des Arcanes', family: 'arcane', domainId: { id: domainId }, cn: 0 });
 const mage = (over: Record<string, unknown>) => ({ ...(mk('M') as unknown as Record<string, unknown>), ...over } as unknown as Combatant);
 /** Aucun modificateur porté : isole la composante fournie par le CONTEXTE (mer, vent, lieu). */
 const NU = () => mage({ items: [], talents: [] });

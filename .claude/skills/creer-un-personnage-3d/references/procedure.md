@@ -70,7 +70,8 @@ les `LICENSE-<pack>.txt` qu'elle écrit, un pack sans `--licence-<pack>`, et un 
 absent, hors des dossiers ancêtres de sa source, vide, ou dont la licence déclarée (ligne
 `License:`, sinon titre) manque à `hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
 déclaration du corps (`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence,
-`clips`, la table rôle d'animation → clip dont le rôle `marche` est la marche plantée, et `surfaces`, les matériaux du corps
+`bornesArticulaires`, `clips`, la table rôle d'animation → clip dont le rôle `marche` est la marche plantée, `clipsDeuxMains`
+(#3319), `prisesOccupees` (#3806), et `surfaces`, les matériaux du corps
 et leur emplacement de palette, sans `blason`, chacun avec, en option, `parSexe` : par sexe, le matériau d'un corps
 donneur que la construction recouche sur les UV de la surface et exporte en variante `KHR_materials_variants` du nom du
 sexe, #3188), la vitesse au sol du clip du rôle `marche` mesurée par l'évaluateur, et
@@ -223,6 +224,11 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et la coiffure) nomme ses ids.
 - `modele.py` : la construction seule. Un rigide : `construire(D, materiaux)` rend ses objets, bâtis dans le repère de
   sa prise. Une pièce skinnée : `construire(D, materiaux, base)` rend la pièce jointe, ses clés transférées.
+- Une pièce skinnée publiée dont l'atelier est perdu se reprend de son GLB épinglé (#3761) : `modele.py` tient en
+  `from publie import reprendre`, et `donnees.py` ne porte que `MANIFESTE` (les champs publiés, `emplacements` compris),
+  `MATERIAUX` (valeurs des matériaux du GLB publié) et `BUDGET_TRIANGLES` (son compte de triangles). `element/publie.py`
+  garde du publié le repos, les poids, les normales, la découpe en meshes et les clés propres (`visage_inverse`), et
+  retransfère de la base courante les silhouettes et les clés `gabarit_*`. Une pièce neuve ne passe jamais par là.
 
 Le constructeur commun `element/construire.py` ouvre la base épinglée, appelle le modèle, contrôle le budget, pend le
 rigide à l'os de sa prise ou découpe la pièce par zone, exporte l'élément seul et écrit son dossier de production
@@ -241,7 +247,11 @@ manifeste, par `Base.transferer(piece, zones)` depuis la copie jointe des zones 
 le plus proche (une liaison de surface tourne l'écart au corps avec sa normale) ; une pièce longue
 dont le corps se tasse sous une clé (robe jusqu'aux chevilles sous `gabarit_legs_moins`) passe ses `bornes`. Une arête
 que la clé retourne est lissée comme une arête hors bornes ; la nappe intérieure d'une double nappe porte les clés de
-sa jumelle extérieure (liées chacune au plus près, elles divergeaient et le lissage gagnait toute la pièce). 
+sa jumelle extérieure (liées chacune au plus près, elles divergeaient et le lissage gagnait toute la pièce).
+Sous une silhouette à os (`gabarit.osDesSilhouettes` du manifeste de base : la carrure écarte les épaules et les
+hanches), les hôtes déplacent les os et compensent les liaisons : au repos, une pièce skinnée vaut son bind plus ses
+clés quels que soient ses poids, et une pièce rigide suit son os. L'élément ne déclare rien : ses clés transférées
+portent le déplacement entier. L'évaluateur et `rendu.py` déplacent les os de la même table.
 
 Une pièce ne se pondère jamais contre une autre pièce : ses poids sont ceux de son porteur, le corps. Le montage résout
 la pile des couches de la tenue réellement portée (`resoudreLaPile`, `hotes/godot/asset/pile.ts`), par les mêmes règles
@@ -251,7 +261,8 @@ triangles entièrement couverts ne se dessinent plus. La pièce lui doit trois c
 - sa `couche` déclarée, qui dit ce qui la couvre ; à couche égale, un `accessoire` se porte par-dessus ;
 - au repos et sous chaque silhouette, rester derrière ce qui la couvre : le montage laisse dehors ce qui le perce de
   plus de 1 cm, et la porte nomme (`couche-percee-au-repos`) l'arête qui traverse l'endroit de sa couverture et en sort
-  de plus de 5 mm ; longer sa couverture sans la traverser, comme un col sous une écharpe, n'est pas la percer ;
+  de plus de 5 mm devant un triangle qui lui fait face ; longer sa couverture sans la traverser, comme un col sous une
+  écharpe, n'est pas la percer, ni sortir par le chant d'une pièce épaisse, comme la joue au-delà d'une barbe ;
 - les mêmes poids, sommet pour sommet, sur les deux faces d'une épaisseur : le montage garde rigide ce que son auteur
   a lié pareil.
 
@@ -447,7 +458,8 @@ rapport en donne le bilan (`mesures.pile` : points retenus, suiveurs, reculés, 
 La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant la surface de celle qui
 la couvre ; un triangle de la couverture qui se couche seul en pose ne fait rien passer devant lui.
 `couche-percee-au-repos` : au repos neutre, une arête d'une couche traverse l'endroit de celle qui la couvre et en
-sort devant. `membre-dans-un-vetement` : en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
+sort devant un triangle qui lui fait face ; sortir par le chant d'une pièce épaisse, comme la joue au-delà d'une
+barbe, n'est pas la percer. `membre-dans-un-vetement` : en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
 manche de l'autre bras. Le tissu pincé n'en est pas : là où le vêtement repose sur le corps d'une autre zone,
 le membre qui l'y presse ne le traverse pas. D'un vêtement à doublure, seul compte l'endroit : la main posée devant
 lui est derrière sa doublure sans l'avoir traversé.

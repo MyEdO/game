@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { formuleSansTirageSchema } from './valeurs';
 import { gameOpSchema } from './mecanique';
 import { entree as sortSchema } from '../defs/spells';
+import { spells } from '../../index';
 import type { FormuleSansTirage } from '../../../engine/ops';
 
 /** CONTRAT (#2817) : une quantité lue AVANT tout jet — portée, cibles et zone d'un Sort, bonus de DR,
@@ -56,11 +55,10 @@ describe('les champs de requête prennent la grammaire sans tirage', () => {
     expect(messages(r)).toContain('{dice}');
   });
 
-  const SORTS = JSON.parse(readFileSync(join(process.cwd(), 'src/data/spells.json'), 'utf8')) as Record<string, unknown>[];
-  const sortDope = (champ: Record<string, unknown>): Record<string, unknown> => ({ ...SORTS[0], ...champ });
+  const sortDope = (champ: Record<string, unknown>): Record<string, unknown> => ({ ...spells[0], ...champ });
 
   it('le sort de base des fixtures passe tel quel', () => {
-    expect(sortSchema.safeParse(SORTS[0]).success).toBe(true);
+    expect(sortSchema.safeParse(spells[0]).success).toBe(true);
   });
 
   it.each([

@@ -13,7 +13,7 @@ import { mountProfileForCreature } from './mountTravel';
 import type { MountInjury } from './mountTravel';
 import { mountIncidentEffects } from './travelTables';
 import type { CrewHire, ShipMoraleState } from './crewMorale';
-import type { VivresDeCale } from './provisions';
+import type { LotDeVivres } from './provisions';
 import type { ManannMood, MeteoImposeeDuNavire, ModificateurDuNavire } from './seaVoyage';
 import { findVehicleById, findCreatureById, tailleDuProfil } from '../data';
 import { SIZE_SHIPBOARD_ENC, type SizeCategory } from './size';
@@ -50,7 +50,7 @@ export interface NavalPossessionState {
   modificateurs?: ModificateurDuNavire[];
   meteosImposees?: MeteoImposeeDuNavire[];
   waterLitres?: number;
-  provisions?: VivresDeCale;
+  provisions?: LotDeVivres[];
   lastVoyageMilles?: number;
   crewLost?: number;
   wagesOwed?: number;

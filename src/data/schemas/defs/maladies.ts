@@ -1,7 +1,7 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 20. */
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
+import { document } from '../grammaire/document';
 import { flowSchema, noeudTest, passifsDe } from '../grammaire/mecanique';
 import { idDe } from '../grammaire/ref';
 import { diceSpecSchema, difficultySchema, symptomSeveritySchema } from '../grammaire/valeurs';
@@ -75,4 +75,3 @@ export const exposition = doc.exposition;
 export type DiseaseTime = z.infer<typeof diseaseTimeSchema>;
 /** Instance de symptôme, par `z.input` : l'état d'une maladie portée (`Disease.symptoms`) porte des ids nus. */
 export type DiseaseSymptom = z.input<typeof diseaseSymptomSchema>;
-export type DiseaseDef = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

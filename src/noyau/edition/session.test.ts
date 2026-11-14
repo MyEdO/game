@@ -67,8 +67,17 @@ import { identiteNeuve } from '../../data/schemas/defs-scenes/ecritures-du-narra
 import { refusDeForme } from '../narratifEdit';
 import { clotureSchema, ouvertureSchema } from '../../data/schemas/grammaire/campagne';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
-import { creatures, findCreatureById, MERCHANT_ARCHETYPES, navalPorts, siegeEngines, spells, talents, traits } from '../../data';
-import { TAVERN_GAMES } from '../../engine/tavernGame';
+import {
+  creatures,
+  findCreatureById,
+  MERCHANT_ARCHETYPES,
+  navalPorts,
+  siegeEngines,
+  spells,
+  talents,
+  traits,
+  TAVERN_GAMES,
+} from '../../data';
 import { listesDeSorts, refusDesSortsChoisis } from '../../engine/sortsDuPnj';
 import { inventaireApres } from '../../engine/items';
 import type { Segment } from '../sceneEdit';

@@ -17,9 +17,9 @@ class SelectionDesMinima(unittest.TestCase):
         matrices = np.tile(np.eye(4, dtype=np.float32), (2, 2, 1, 1))
         matrices[1, 1, 2, 3] = -2
         etats = [{'poidsSilhouettes': {}, 'poidsGabarit': {}}]
-        self.assertEqual(selectionner_sommets(w, x, {}, [(etats, matrices, (2,))]), [0, 1])
-        self.assertEqual(selectionner_sommets(w, x, {}, [(etats, matrices[:1], (1,)), (etats, matrices[1:], (1,))]), [0, 1])
-        self.assertEqual(selectionner_sommets(w, x, {}, [(etats, matrices[:1], (1,))]), [0])
+        self.assertEqual(selectionner_sommets(w, x, {}, [(etats, [matrices], (2,))]), [0, 1])
+        self.assertEqual(selectionner_sommets(w, x, {}, [(etats, [matrices[:1]], (1,)), (etats, [matrices[1:]], (1,))]), [0, 1])
+        self.assertEqual(selectionner_sommets(w, x, {}, [(etats, [matrices[:1]], (1,))]), [0])
 
     def test_le_non_pied_devenu_minimum_et_les_ex_aequo_sont_conserves(self):
         x = np.array([[0, 0, 0, 1], [1, 0, 1, 1], [2, 0, 1, 1]], dtype=np.float32)
@@ -28,9 +28,20 @@ class SelectionDesMinima(unittest.TestCase):
         d = np.array([[0, 0, 0], [0, 0, -2], [0, 0, -2]], dtype=np.float32)
         etats = [{'poidsSilhouettes': {}, 'poidsGabarit': {}},
                  {'poidsSilhouettes': {}, 'poidsGabarit': {'gabarit': 1}}]
-        self.assertEqual(selectionner_sommets(w, x, {'gabarit': d}, [(etats, m, (1,))]), [0, 1, 2])
-        self.assertEqual(selectionner_sommets(w, x, {'gabarit': d}, [(etats[:1], m, (1,))]), [0])
+        self.assertEqual(selectionner_sommets(w, x, {'gabarit': d}, [(etats, [m, m], (1,))]), [0, 1, 2])
+        self.assertEqual(selectionner_sommets(w, x, {'gabarit': d}, [(etats[:1], [m], (1,))]), [0])
 
+
+    def test_chaque_etat_est_pose_par_sa_pile(self):
+        x = np.array([[0, 0, 0, 1], [1, 0, 0, 1]], dtype=np.float32)
+        w = np.eye(2, dtype=np.float32)
+        a = np.tile(np.eye(4, dtype=np.float32), (1, 2, 1, 1))
+        b = a.copy()
+        a[0, 0, 2, 3] = -1
+        b[0, 1, 2, 3] = -1
+        etats = [{'poidsSilhouettes': {}, 'poidsGabarit': {}}] * 2
+        self.assertEqual(selectionner_sommets(w, x, {}, [(etats, [a, b], ())]), [0, 1])
+        self.assertEqual(selectionner_sommets(w, x, {}, [(etats, [a, a], ())]), [0])
 
 class CopiesDAppui(unittest.TestCase):
     def test_les_copies_de_la_bande_sont_des_candidats_valides_qui_suivent_leur_sommet_en_repere_gltf(self):

@@ -34,6 +34,7 @@ import { battleRng } from './battleRng';
 import { draineCascade } from './cascade.testkit';
 import { sceneLieu } from './restFlow';
 import { emptyScene, type Scene } from './monde/scene';
+import { findDiseaseById, findSymptomById, maladies } from '../data';
 
 const DATA = join(fileURLToPath(new URL('..', import.meta.url)), 'data');
 
@@ -131,23 +132,21 @@ export function decorHorsCombat(): Partial<Jeu> {
   };
 }
 
-const lireDonnee = <T extends { id: string }>(fichier: string): T[] =>
-  JSON.parse(readFileSync(join(DATA, fichier), 'utf8')) as T[];
-
 /** La PORTE MALADIE d'un nœud, lue à son CHAMP porteur : la maladie à contracter, le symptôme dont
  *  l'étape `maladie-test-quotidien` porte le jet, et les jours de phase active avant qu'il ne tombe. `undefined`
  *  pour tout autre nœud. Un symptôme qu'aucune maladie ne porte LÈVE (nœud injouable, nommé). */
 export function porteDeMaladie(n: Noeud): { maladie: string; symptomId: string; jours: number } | undefined {
   if (n.fichier === 'maladies.json' && n.chemin === '.dailyTest.test') {
-    const dz = lireDonnee<{ id: string; dailyTest: { symptomId: string } }>('maladies.json').find((m) => m.id === n.entryId)!;
-    return { maladie: n.entryId, symptomId: dz.dailyTest.symptomId, jours: 0 };
+    const quotidien = findDiseaseById(n.entryId)?.dailyTest;
+    if (!quotidien) throw new Error(`maladie « ${n.entryId} » : aucun Test quotidien (\`dailyTest\`) dans maladies.json`);
+    return { maladie: n.entryId, symptomId: quotidien.symptomId, jours: 0 };
   }
   if (n.fichier === 'symptoms.json' && n.chemin === '.onTick.test') {
-    const porteuse = lireDonnee<{ id: string; symptoms?: { symptomId: string }[] }>('maladies.json')
-      .find((m) => (m.symptoms ?? []).some((x) => x.symptomId === n.entryId));
+    const porteuse = maladies.find((m) => m.symptoms.some((x) => x.symptomId === n.entryId));
     if (!porteuse) throw new Error(`symptôme « ${n.entryId} » : aucune maladie de maladies.json ne le porte`);
-    const sym = lireDonnee<{ id: string; onTick: { afterDays?: number } }>('symptoms.json').find((x) => x.id === n.entryId)!;
-    return { maladie: porteuse.id, symptomId: n.entryId, jours: sym.onTick.afterDays ?? 0 };
+    const cycle = findSymptomById(n.entryId)?.onTick;
+    if (!cycle) throw new Error(`symptôme « ${n.entryId} » : aucun cycle (\`onTick\`) dans symptoms.json`);
+    return { maladie: porteuse.id, symptomId: n.entryId, jours: cycle.afterDays ?? 0 };
   }
   return undefined;
 }

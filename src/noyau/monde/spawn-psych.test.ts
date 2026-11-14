@@ -47,7 +47,7 @@ describe('spawn — Groupes & traits psy ciblés (P3)', () => {
   it('creatureToCombatant : Talent Béni(Sigmar/Ulric) de la donnée → Groupe religieux (fixe le trou Phase 2)', () => {
     const pretreUlric = findCreatureById('frere-bengt')!;
     expect(groupesDe(creatureToCombatant(pretreUlric, 'e5', { x: 0, y: 0 }))).toContain('ulricain');
-    const pretreSigmar = { ...pretreUlric, id: 'pretre-sigmar', talents: pretreUlric.talents.map((t) => (t.id === 'beni' ? { ...t, spec: 'sigmar' } : t)) };
+    const pretreSigmar = { ...pretreUlric, talents: pretreUlric.talents.map((t) => (t.id === 'beni' ? { ...t, spec: 'sigmar' } : t)) };
     expect(groupesDe(creatureToCombatant(pretreSigmar, 'e4', { x: 0, y: 0 }))).toContain('sigmarite');
   });
 });

@@ -1,6 +1,6 @@
 /**
- * Schéma de `mutations.json` — Mutations (entités, LDB 19 l.112-165 + suppléments), miroir de
- * `MutationData` (`src/data/mutations.ts`, `MutationDeCatalogue` de `src/engine/corruption.ts`). L'état
+ * Schéma de `mutations.json` — Mutations (entités, LDB 19 l.112-165 + suppléments), d'où dérive
+ * `MutationData` (`src/data/index.ts`). L'état
  * d'exécution (`EtatDeMutation` : `roll`, `usure`, `talentsAcquis`) n'appartient PAS à l'entité éditable — porté
  * seulement par l'INSTANCE tirée ou attachée (hors dataset).
  */

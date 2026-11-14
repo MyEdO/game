@@ -650,20 +650,19 @@ export function DomainEffectsField(
     onCastBonus: (v: DomainData['castBonus']) => void; onMissile: (v: DomainData['missile']) => void; onCasterOps: (v: DomainData['casterOps']) => void;
   },
 ) {
-  const etatOpts = datasetArray('etats') as { id: string; label: string }[];
+  const etatOpts = datasetArray('etats');
   return (
     <div className="ed-field">
       <span>attributs du domaine (LDB 48 — bonus d'incantation conditionnel / mitigation de Projectile / ops au lanceur)</span>
       <div className="ed-subfield">
-        <label className="dr"><input type="checkbox" checked={!!castBonus} onChange={(e) => onCastBonus(e.target.checked ? { perCondition: '', radiusStat: 'force-mentale', bonus: 10 } : undefined)} /> Bonus d'incantation conditionnel</label>
+        <label className="dr"><input type="checkbox" checked={!!castBonus} onChange={(e) => onCastBonus(e.target.checked && etatOpts[0] ? { perCondition: etatOpts[0].id, radiusStat: 'force-mentale', bonus: 10 } : undefined)} /> Bonus d'incantation conditionnel</label>
         {castBonus && (
           <div className="tf-row">
             <label className="dr">par État
               {/* #173 : `perCondition` est l'id de l'État (résolu par `stacks(c, cb.perCondition)`,
                   noyau/combatFlow.ts — cf. ConditionInstance.name), pas son libellé → sélecteur id→label,
                   pas de datalist par label. */}
-              <select value={castBonus.perCondition} onChange={(e) => onCastBonus({ ...castBonus, perCondition: e.target.value })}>
-                <option value="">— (choisir un État) —</option>
+              <select value={castBonus.perCondition} onChange={(e) => { const etat = etatOpts.find((o) => o.id === e.target.value); if (etat) onCastBonus({ ...castBonus, perCondition: etat.id }); }}>
                 {etatOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
               </select>
             </label>

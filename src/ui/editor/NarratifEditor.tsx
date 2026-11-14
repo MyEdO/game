@@ -12,7 +12,6 @@ import { FORMES_D_ETAT, valeursDeclarees, type FormeDEtatKind } from '../../data
 import { SourceRefField, useSaisieEnCours } from '../SourceRefField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { ProseField } from '../ProseField';
-import type { DescRef } from '../../data/schemas/grammaire/valeurs';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { estDerive } from '../../noyau/codex/editFields';
 import { RefNarrativeField } from '../compendium/refField/RefField';
@@ -964,10 +963,10 @@ function PresetForm({ porteur, preset, refusDe, onRename, onPatch, refus, onRemo
   const base = preset.base ? findCreatureById(preset.base.id) : undefined;
   const fusion = base ? mergeCreatureProfile(base, profil) : profil;
   const descAdressee = estDerive({ ...profil }, 'desc');
-  const { descRef } = profil as { descRef?: DescRef };
+  const { descRef } = profil;
 
   /** `profil` patché : une clé à `undefined` se retire, et `profil` vide aussi. */
-  const profilPatche = (patch: Partial<CreatureData> & { descRef?: undefined }): Partial<CreatureData> | undefined => {
+  const profilPatche = (patch: Partial<CreatureData>): Partial<CreatureData> | undefined => {
     const next = Object.fromEntries(Object.entries({ ...profil, ...patch }).filter(([, v]) => v !== undefined)) as Partial<CreatureData>;
     return Object.keys(next).length ? next : undefined;
   };

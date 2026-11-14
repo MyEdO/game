@@ -13,7 +13,7 @@ import { makeRNG } from '../../engine/dice';
 import { miscastTableId, miscastTableRows, rollMiscast, type MiscastSeverity } from '../../engine/miscast';
 import activities from '../../data/activities.json';
 import mutations from '../../data/mutations.json';
-import maneuvers from '../../data/maneuvers.json';
+import { maneuvers } from '../../data';
 import maladies from '../../data/maladies.json';
 import trappings from '../../data/trappings.json';
 

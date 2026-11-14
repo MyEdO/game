@@ -1324,6 +1324,16 @@ export function fixerLeTest(...champs: readonly ChampExigibleDuTest[]) {
   };
 }
 
+/** Le `porteur` dont le Test fixe les `champs` (`fixerLeTest`), sa sortie resserrée d'autant (`JetFixe`, `engine/flowCore.ts`) :
+ *  le prédicat ne se joue que sur un porteur sans faute, dont `fixerLeTest` a vérifié le Test. */
+export function porteurDeTestFixe<S extends z.ZodType<{ test: z.output<typeof flowTestSchema> }>, const K extends ChampExigibleDuTest>(porteur: S, ...champs: readonly K[]) {
+  type Sortie = z.output<S>;
+  return porteur.superRefine(fixerLeTest(...champs)).refine(
+    (v: Sortie): v is Sortie & { test: Required<Pick<Sortie['test'], K>> } => champs.every((c) => v.test[c] !== undefined),
+    { when: (p) => p.issues.length === 0 },
+  );
+}
+
 /** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à sa cible
  *  (`cibleEtendueSchema`) (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite).
  *  Sa décision est celle d'un Test de flux (`decisionDuTestSchema`). */

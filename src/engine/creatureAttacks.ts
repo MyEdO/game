@@ -17,10 +17,19 @@ import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from './types';
 import type { GameOp } from './ops';
 
 /** Type d'attaque naturelle (geste + règle distincts). Sert UNIQUEMENT à l'anim/pose/icône. */
-export type AttackKind = 'arme' | 'morsure' | 'caudale' | 'cornes' | 'souffle' | 'vomi' | 'tentacules' | 'etreinte' | 'regard' | 'langue' | 'hurlement' | 'pietinement';
+export type AttackKind = ManeuverDef['kind'];
 
 /** Déclenchement RAW : action normale, gratuite (coût en Avantage), ou gratuite à la Charge. */
-export type AttackTrigger = 'action' | 'free' | 'charge';
+export type AttackTrigger = ManeuverDef['activation'];
+
+/** L'état que la COMPOSITION d'une manœuvre pose sur son entrée de catalogue (`souffleDuType`) : les valeurs
+ *  des trous de son enjeu (`stake`). Aucune entrée de `maneuvers.json` ne le porte. */
+export interface EtatDeComposition {
+  enjeu?: Record<string, string>;
+}
+
+/** Une manœuvre telle que la joue le résolveur : son entrée de catalogue, et l'état de sa composition. */
+export type ManoeuvreComposee = ManeuverDef & EtatDeComposition;
 
 export interface CreatureAttack {
   /** Clé de l'attaque parmi celles du porteur (`clesDesAttaques`) : l'id de sa manœuvre, distingué par le
@@ -41,7 +50,7 @@ export interface CreatureAttack {
   avantage: number;
   /** Caractéristique du jet d'attaquant (capacite-de-combat mêlée / capacite-de-tir distance·zone) ;
    *  absent = pas de jet d'attaquant (Hurlement : chaque cible teste sa Résistance). */
-  stat?: 'capacite-de-combat' | 'capacite-de-tir';
+  stat?: ManeuverDef['stat'];
   /** Gestion de l'Avantage dépensé : `fixe` (défaut) / `variable` (Regard) / `tout` (Hurlement). */
   modeDAvantage?: ManeuverDef['modeDAvantage'];
   /** Attaque de ZONE (Souffle/Vomi) — dérivé de `def.ciblage === 'zone'`. */
@@ -55,7 +64,7 @@ export interface CreatureAttack {
   /** Aspect/Type entre parenthèses (Souffle : Feu/Froid/… ; affiché au feed). */
   type?: string;
   /** La MANŒUVRE de 1ʳᵉ classe résolue (profil + effets AUTHORÉS) — source de TOUTE la résolution. */
-  def: ManeuverDef;
+  def: ManoeuvreComposee;
   /** Traits que confère l'attaque (`TraitPose.confere`). ZI 03 l.75, l.77 */
   confere?: TraitInstance[];
 }
@@ -115,7 +124,7 @@ function feuilleTypee(feuille: Flow & { kind: 'effet'; effet: EffectOp }, tranch
 /** Le Souffle `base` composé avec les règles et le rendu de son Type ; sans Type, le Souffle seul. Les
  *  règles suivent les Dégâts dans leur liste d'ops : elles lisent les Blessures subies (`woundsDealt`).
  *  LDB 85 l.320-329 ; EDOC 13 l.237 */
-export function souffleDuType(base: ManeuverDef, typeId: string | undefined, difficulte?: Difficulty): ManeuverDef {
+export function souffleDuType(base: ManeuverDef, typeId: string | undefined, difficulte?: Difficulty): ManoeuvreComposee {
   const type = findBreathTypeById(typeId);
   const regles = type ? typesAppliques(type) : [];
   const ignoreAP = regles.some((r) => r.ignoreAP);
@@ -137,7 +146,7 @@ export function souffleDuType(base: ManeuverDef, typeId: string | undefined, dif
 
 /** La manœuvre que l'instance tire d'un octroi : composée avec son Type quand le Trait prend un Type de
  *  Souffle pour argument. LDB 85 l.322 */
-function manoeuvreDeLInstance(id: string, inst: TraitInstance): ManeuverDef | undefined {
+function manoeuvreDeLInstance(id: string, inst: TraitInstance): ManoeuvreComposee | undefined {
   const def = findManeuverById(id);
   return def && findTraitById(inst.id)?.specsSource === 'breathTypes' ? souffleDuType(def, inst.arg, inst.difficulte) : def;
 }
@@ -223,7 +232,7 @@ export function selfManeuversOf(c: Combatant): ManeuverDef[] {
  *  dérivé de la DONNÉE — aucun nom d'entité en dur). */
 function formTagOf(def: ManeuverDef, opName: 'transform' | 'endTransform'): string | undefined {
   for (const e of def.effects ?? [])
-    for (const o of spellEffectOps(e.flow)) if (o.op === opName) return (o as Extract<GameOp, { op: 'transform' | 'endTransform' }>).tag;
+    for (const o of spellEffectOps(e.flow)) if ((o.op === 'transform' || o.op === 'endTransform') && o.op === opName) return o.tag;
   return undefined;
 }
 

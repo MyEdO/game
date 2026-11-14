@@ -9,7 +9,7 @@ import { triggeredEffectSchema } from '../grammaire/mecanique';
 export const file = 'maneuvers.json';
 export const famille = 'entite';
 
-/** `ManeuverMeasure` (`src/data/index.ts`) — Portée/Souffle en mètres = `bonus(ref) + plus`. */
+/** Portée/Souffle en mètres (`ManeuverMeasure` en dérive, `src/data/index.ts`) = `bonus(ref) + plus`. */
 const maneuverMeasure = nommerChamps(z.strictObject({
   bonusOf: charKeySchema.optional(),
   plus: z.number().optional(),

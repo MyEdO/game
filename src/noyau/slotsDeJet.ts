@@ -43,7 +43,7 @@ export const PORTEURS_D_ETAPE: readonly PorteurDEtape[] = Object.values(PENDING_
  * INCONDITIONNELLEMENT (`{...props!}` sur un hook rendu `null` donne `{}` à `RollShell`, donc un crash).
  *
  * Trois causes, toutes portées ici — le slot VIDE, l'ACTEUR absent de son ensemble, et la donnée portée par
- * l'ÉTAPE (Maladresse : `PENDING_BY_JET.fumble` est `null`, son corps vit dans `step.maladresse`).
+ * l'ÉTAPE (Maladresse : `PENDING_BY_JET.maladresse` est `null`, son corps vit dans `step.maladresse`).
  * Une étape déjà VALIDÉE (`committed`) est hors sujet : elle a rendu sa donnée et se ferme.
  * Prédicat PUR (aucun runtime importé) et TOTAL sur les `HostJet`.
  */
@@ -75,13 +75,16 @@ export function sansCorps(s: Partial<Jeu>, step: CascadeStep | undefined): boole
 }
 
 /**
- * HÔTE EN ATTENTE (#1765) — « cette étape-jet attend que sa fenêtre rende sa donnée » : son slot vit et elle
- * n'est pas validée (`committed`). Le curseur ne la franchit pas — ni par un « Suivant », ni par « Tout
- * lancer » : c'est sa fenêtre qui la rend (`jetValider('defense')` pose `committed`, `jetValider('attaque')` vide son
- * slot). Prédicat PUR et TOTAL sur les `HostJet`, lu par `cascade.stepReady`.
+ * HÔTE EN ATTENTE (#1765) — « cette étape-jet attend que sa fenêtre rende sa donnée » : elle n'est pas validée
+ * (`committed`) et sa donnée manque — le slot vit encore, ou, pour la Maladresse (#3982), dont la donnée vit SUR
+ * l'étape, les Oups ! ne sont pas tirés (`step.maladresse.result`). Le curseur ne la franchit pas — ni par un
+ * « Suivant », ni par « Tout lancer » : c'est sa fenêtre qui la rend (`jetValider('defense')` pose `committed`,
+ * `jetValider('attaque')` vide son slot, `jetLancer('maladresse')` tire les Oups !). Prédicat PUR et TOTAL sur les
+ * `HostJet`, lu par `cascade.stepReady`.
  */
 export function hoteEnAttente(s: Partial<Jeu>, step: CascadeStep): boolean {
   if (!step.jet || step.committed) return false;
+  if (step.jet === 'maladresse') return step.maladresse?.result == null;
   const slot = PENDING_BY_JET[step.jet];
   return slot != null && s[slot] != null;
 }

@@ -32,6 +32,8 @@ const MAILLAGES := &"maillages_de_pile"
 ## Le rang de la couche `peau` dans `couches` de `modeles` (`COUCHES`, `asset/element.ts`) : ses éléments montés qui
 ## couvrent une zone sont de la peau de la tenue (`_empiler`, #3842).
 const RANG_DE_LA_PEAU := 0
+## La métadonnée d'une pièce skinnée dont le skin est une copie aux liaisons compensées (`refondre`) : le skin du GLB.
+const SKIN := &"skin_de_l_auteur"
 ## Le calque des corps, la troisième couche de rendu (`VisualInstance3D.layers`) : celui d'une pièce dessinée seule et
 ## de la fusion ; une pièce fondue (`refondre`) n'est sur aucun. La lampe d'une source portée l'exclut de son ombre
 ## (`Foyer`).
@@ -674,13 +676,14 @@ func role_a_rejouer() -> String:
 
 
 ## Les os qui portent `piece` : celui de son `BoneAttachment3D` pour un mesh rigide (l'import glTF le pose sous l'attache
-## de son os) ; pour un mesh skinné, le nom de chaque liaison de son skin (`Skin.get_bind_name`, posé à l'import par
-## `scene_lue`) ; aucun pour un mesh à la racine.
+## de son os) ; pour un mesh skinné, le nom de chaque liaison du skin de son auteur (`Skin.get_bind_name`, posé à
+## l'import par `scene_lue`, `_skin_de_l_auteur`) ; aucun pour un mesh à la racine.
 func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
 	var noms: Array[String] = []
-	if piece.skin != null:
-		for liaison in piece.skin.get_bind_count():
-			noms.append(String(piece.skin.get_bind_name(liaison)))
+	var skin := _skin_de_l_auteur(piece)
+	if skin != null:
+		for liaison in skin.get_bind_count():
+			noms.append(String(skin.get_bind_name(liaison)))
 	elif piece.get_parent() is BoneAttachment3D:
 		noms.append((piece.get_parent() as BoneAttachment3D).bone_name)
 	return noms
@@ -968,17 +971,18 @@ static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depu
 
 ## Ce qui est porté, au repos : par mesh skinné de la base et des éléments montés, ses triangles (`maille`) et sa boîte
 ## (`boite`) dans son repère, et les transformations (`_par`) du repère du squelette au sien (`vers_le_mesh`) et retour
-## (`vers_le_squelette`), par le premier os de son skin à son repos.
+## (`vers_le_squelette`), par le premier os du skin de son auteur (`_skin_de_l_auteur`) à son repos.
 func _portes_au_repos() -> Array[Dictionary]:
 	var meshes: Array = _pieces_de_la_base.duplicate()
 	for id in pieces:
 		meshes.append_array(pieces[id])
 	var portes: Array[Dictionary] = []
 	for mesh: MeshInstance3D in meshes:
-		if mesh.skin == null:
+		var skin := _skin_de_l_auteur(mesh)
+		if skin == null:
 			continue
-		var os := squelette.get_bone_global_rest(squelette.find_bone(mesh.skin.get_bind_name(0)))
-		var liaison := mesh.skin.get_bind_pose(0)
+		var os := squelette.get_bone_global_rest(squelette.find_bone(skin.get_bind_name(0)))
+		var liaison := skin.get_bind_pose(0)
 		portes.append({maille = mesh.mesh.generate_triangle_mesh(), boite = mesh.mesh.get_aabb(),
 			vers_le_mesh = [os.affine_inverse(), liaison.affine_inverse()], vers_le_squelette = [liaison, os]})
 	return portes
@@ -1036,16 +1040,18 @@ func choisir_l_embleme(id: String, embleme: String) -> String:
 ## Chaque élément monté s'habille, au montage et à chaque composition, de la `palette` de la dernière réponse de
 ## `composer`, chaque emplacement de palette que colore la `palette` de son entrée de `montes` (sa teinte) pris à
 ## celle-ci quand cette entrée monte cet élément, et de l'emblème demandé à son emplacement ; la base posée s'habille
-## des `materiaux` et de la palette de la même réponse, à sa pose et à chaque composition. Habiller, c'est rendre
+## des `materiaux`, de la palette et des `reliefs` de la même réponse, à sa pose et à chaque composition. Habiller, c'est rendre
 ## d'abord à chaque surface de ses meshes son override ; sur la base, chaque surface dont le matériau actif porte (par
 ## `resource_name`) le `nom` d'une surface que `materiaux` nomme prend en override le matériau du GLB de ce nom, ceux
 ## qu'aucune primitive ne porte compris (`GLTFState.get_materials`, relevés par nom à la lecture du GLB,
 ## `MontageDeComposition.materiaux_de_la_base`), un nom absent du GLB ajoutant `materiau-absent : <nom>` aux `erreurs`
 ## ; puis c'est donner à chaque surface dont le matériau actif porte (par `resource_name`) le `nom` d'une de ses
 ## `surfaces` un matériau propre (`MontageDeComposition.materiau_local`, `projet/scripts/montage_de_composition.gd`)
-## si la palette colore son emplacement de palette, si elle est `blason` sous un emblème demandé, ou si la texture de
-## sa `matiere` est au projet : celle-ci l'habille comme le monde (section « Monde », `VolumeDeScene.texturer`), projetée sur
-## les trois axes du repère du mesh, l'albédo à blanc ; la couleur y remplace l'albédo du GLB, texture comprise, pour
+## si la palette colore son emplacement de palette, si elle est `blason` sous un emblème demandé, si la texture de
+## sa `matiere` est au projet, ou, sur la base, si `reliefs` lui donne un facteur autre que 1 ; le `normal_scale` de ce
+## matériau propre est celui du matériau actif, remplaçant compris, multiplié par ce facteur (1 sans facteur). La
+## texture de la `matiere` habille la surface comme le monde (section « Monde », `VolumeDeScene.texturer`), projetée
+## sur les trois axes du repère du mesh, l'albédo à blanc ; la couleur y remplace l'albédo du GLB, texture comprise, pour
 ## que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; l'emblème en
 ## devient la couche *detail* (`detail_enabled`, `detail_albedo`, `detail_blend_mode` mix), lue aux UV du GLB :
 ## `detail_uv_layer` UV1, ou UV2 sur une surface à matière texturée, dont la matière projette l'UV1, la pièce recevant
@@ -1078,9 +1084,10 @@ func _habiller(id: String) -> bool:
 	return posee
 
 
-## Les meshes de la base posée habillés des matériaux de la composition et de sa palette (`peindre`, `surfaces` de la
-## base) : chaque surface que `materiaux` nomme prend le matériau de la base de ce nom (`materiaux_de_la_base`), un nom
-## absent du GLB ajoutant `materiau-absent` aux erreurs ; puis les pièces refondues (`refondre`).
+## Les meshes de la base posée habillés des matériaux de la composition, de sa palette et de ses `reliefs` (`peindre`,
+## `surfaces` de la base) : chaque surface que `materiaux` nomme prend le matériau de la base de ce nom
+## (`materiaux_de_la_base`), un nom absent du GLB ajoutant `materiau-absent` aux erreurs ; puis les pièces refondues
+## (`refondre`).
 func habiller_la_base() -> void:
 	if base.is_empty():
 		return
@@ -1092,20 +1099,21 @@ func habiller_la_base() -> void:
 			erreurs.append("materiau-absent : %s" % materiaux[surface])
 		else:
 			remplacants[surface] = remplacant
-	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), _locaux, remplacants)
+	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), _locaux, remplacants, composee.get("reliefs", {}))
 	_demander_la_refonte()
 
 
 ## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` prend le matériau que
 ## `remplacants` donne à ce nom, puis reçoit un matériau propre (`materiau_local`) si `palette` colore son emplacement de
-## palette, si elle est `blason` et `texture` n'est pas nulle, ou si la texture de sa `matiere` est au projet : celle-ci
+## palette, si elle est `blason` et `texture` n'est pas nulle, si la texture de sa `matiere` est au projet, ou si
+## `reliefs` donne à ce nom un facteur autre que 1, qui multiplie son `normal_scale` (#4002) : celle-ci
 ## l'habille comme le monde (`VolumeDeScene.texturer`), l'albédo à blanc ; la couleur remplace l'albédo du GLB,
 ## texture comprise,
 ## pour que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; `texture`
 ## devient la couche de détail, en mélange, lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les
 ## trois axes (`_uv2_des_emblemes`). Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une
 ## surface au moins. Chaque matériau propre se tient dans `locaux`, ceux du porteur, qui lâche ceux d'avant de chaque mesh.
-static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, locaux: Dictionary, remplacants: Dictionary = {}) -> bool:
+static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, locaux: Dictionary, remplacants: Dictionary = {}, reliefs: Dictionary = {}) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
@@ -1126,7 +1134,8 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 			var blason: bool = texture != null and surface.get("blason", false)
 			var matiere := _matiere_texturee(surface)
 			var texturee := not matiere.is_empty()
-			if couleur == null and not blason and not texturee:
+			var relief: float = reliefs.get(surface.nom, 1.0)
+			if couleur == null and not blason and not texturee and relief == 1.0:
 				continue
 			var local := materiau_local(piece, rang, locaux)
 			if local == null:
@@ -1138,6 +1147,7 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 				local.albedo_texture = null
 			if couleur != null:
 				local.albedo_color = Color(couleur)
+			local.normal_scale = MiseEnPage.relief_au_facteur(local.normal_scale, relief)
 			if blason:
 				local.detail_enabled = true
 				local.detail_albedo = texture
@@ -1233,11 +1243,13 @@ func _rasteriser_l_embleme(id: String) -> ImageTexture:
 ## Le gabarit de la composition (`gabarit` de `composer`, aucun sans composition) remis au modificateur du squelette
 ## (`GabaritDuSquelette`, `CONTRAT.md`, « Gabarit d'une base »), qui le pose sur la pose de chaque image, au repos comme
 ## pendant un clip ; le squelette remis à sa pose de repos, puis le clip engagé reposé à son instant. Rend chaque os qu'il
-## nomme et que la base n'a pas ; aucun sans modificateur.
+## nomme et que la base n'a pas ; aucun sans modificateur. Les liaisons des pièces skinnées compensent ses translations
+## (`_liaison_compensee`) : les pièces se refondent (`refondre`).
 func poser_le_gabarit() -> Array[String]:
 	if gabarit == null:
 		return []
 	var absents := gabarit.poser(composee.get("gabarit", {}))
+	_demander_la_refonte()
 	squelette.reset_bone_poses()
 	if lecteur != null and lecteur.assigned_animation != "":
 		lecteur.seek(lecteur.current_animation_position, true)
@@ -1292,9 +1304,10 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 ## l'image, chaque mesh visible du modèle, de la base comme des éléments montés, en un seul `MeshInstance3D` skinné sous
 ## le squelette de la base (`fusion`) : une surface par matériau équivalent (même classe, mêmes valeurs, mêmes
 ## textures), sur un `Skin` qui réunit les liaisons de chaque pièce, une liaison nommée par os et par repère. Une pièce
-## skinnée y garde ses liaisons, une pièce rigide se lie à l'os de son `BoneAttachment3D`, au repère de la pièce dans
-## cet os, chaque sommet tout entier sur lui. La pièce fondue reste à sa place, sur aucun calque (`layers` 0) : ni
-## dessinée ni skinnée, elle garde ses matériaux, son mesh et sa visibilité, que lisent l'écran et les recettes. Reste
+## skinnée y garde ses liaisons, compensées des translations du gabarit (section « Gabarit d'une base »), une pièce
+## rigide se lie à l'os de son `BoneAttachment3D`, au repère de la pièce dans cet os, chaque sommet tout entier sur lui.
+## La pièce fondue reste à sa place, sur aucun calque (`layers` 0) : ni dessinée ni skinnée, elle garde ses
+## matériaux, son mesh et sa visibilité, que lisent l'écran et les recettes. Reste
 ## dessinée seule une pièce dont le skin n'est pas dans le repère du squelette, une pièce rigide portée par un nœud
 ## `top_level` (un objet rangé qui suit des `poids`, `_suivre_les_poids`) ou dont un matériau projette ses UV dans le
 ## repère du mesh (`uv1_triplanar` ou `uv2_triplanar` hors du monde), une surface qui n'est pas en triangles ou qui
@@ -1334,7 +1347,9 @@ func _refondre_la_demande() -> void:
 
 ## Les meshes visibles du modèle fondus en `fusion`, une surface par matériau équivalent (`_signature`), chaque pièce
 ## fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; chaque maillage que la pile résout fondu tel
-## qu'elle le rend (`_empiler`) ; l'ancienne `fusion` libérée, aucune sans squelette ou sans pièce à fondre.
+## qu'elle le rend (`_empiler`) ; l'ancienne `fusion` libérée, aucune sans squelette ou sans pièce à fondre. Chaque
+## liaison d'une pièce skinnée, fondue ou gagnée par la pile, est compensée (`_liaison_compensee`) ; une pièce skinnée
+## dessinée seule porte la copie compensée du skin de son auteur (`_skin_compense`), une pièce fondue le sien.
 func refondre() -> void:
 	_refonte_demandee = false
 	if is_instance_valid(fusion):
@@ -1350,12 +1365,16 @@ func refondre() -> void:
 		var piece := noeud as MeshInstance3D
 		var renvois := _renvois(piece, skin, liaisons)
 		piece.layers = CALQUE if renvois.is_empty() else 0
+		var auteur := _skin_de_l_auteur(piece)
+		if auteur != null:
+			piece.set_meta(SKIN, auteur)
+			piece.skin = _skin_compense(auteur) if renvois.is_empty() else auteur
 		if renvois.is_empty():
 			continue
 		fondues[piece] = renvois
-		if piece.skin != null:
-			for liaison in piece.skin.get_bind_count():
-				reperes.get_or_add(piece.skin.get_bind_name(liaison), piece.skin.get_bind_pose(liaison))
+		if auteur != null:
+			for liaison in auteur.get_bind_count():
+				reperes.get_or_add(auteur.get_bind_name(liaison), _liaison_compensee(auteur.get_bind_name(liaison), auteur.get_bind_pose(liaison)))
 	var resolus := _empiler(fondues)
 	var outils := {}
 	for piece: MeshInstance3D in fondues:
@@ -1507,7 +1526,8 @@ func pile_posee() -> Dictionary:
 	return pile.bilan if _pile_fondue != "" and pile.get("signature") == _pile_fondue else {}
 
 
-## Par liaison de `piece` (une seule pour une pièce rigide), le rang de la liaison de `skin` qui la porte, ajoutée à
+## Par liaison de `piece` (une seule pour une pièce rigide ; celles du skin de son auteur, compensées, pour une pièce
+## skinnée), le rang de la liaison de `skin` qui la porte, ajoutée à
 ## `skin` et à `liaisons` (par os et repère) si elle est neuve ; vide si `piece` ne se fond pas : invisible dans le
 ## modèle, déjà fondue elle-même, ou hors des cas de `refondre`. Le repère d'une pièce rigide dans l'os de son
 ## `BoneAttachment3D` compose les repères des nœuds qui l'y portent (chaque axe par la base du porteur, l'origine par son
@@ -1534,8 +1554,9 @@ func _renvois(piece: MeshInstance3D, skin: Skin, liaisons: Dictionary) -> Packed
 	if piece.skin != null:
 		if not piece.global_transform.is_equal_approx(squelette.global_transform):
 			return renvois
-		for liaison in piece.skin.get_bind_count():
-			renvois.append(_liaison(skin, liaisons, piece.skin.get_bind_name(liaison), piece.skin.get_bind_pose(liaison)))
+		var auteur := _skin_de_l_auteur(piece)
+		for liaison in auteur.get_bind_count():
+			renvois.append(_liaison(skin, liaisons, auteur.get_bind_name(liaison), _liaison_compensee(auteur.get_bind_name(liaison), auteur.get_bind_pose(liaison))))
 		return renvois
 	if attache == null or not _sans_projection(piece):
 		return renvois
@@ -1567,6 +1588,30 @@ static func _liaison(skin: Skin, liaisons: Dictionary, os: StringName, repere_: 
 		liaisons[cle] = skin.get_bind_count()
 		skin.add_named_bind(os, repere_)
 	return liaisons[cle]
+
+
+## Le skin de l'auteur de `piece` (son GLB, partagé entre personnages) : celui que garde `SKIN` si elle porte une
+## copie compensée, le sien sinon ; `null` pour une pièce rigide.
+static func _skin_de_l_auteur(piece: MeshInstance3D) -> Skin:
+	return piece.get_meta(SKIN) if piece.has_meta(SKIN) else piece.skin
+
+
+## La copie de `auteur` propre au personnage, chaque liaison compensée (`_liaison_compensee`).
+func _skin_compense(auteur: Skin) -> Skin:
+	var copie := auteur.duplicate() as Skin
+	for liaison in copie.get_bind_count():
+		copie.set_bind_pose(liaison, _liaison_compensee(copie.get_bind_name(liaison), copie.get_bind_pose(liaison)))
+	return copie
+
+
+## La liaison `liaison` de l'os `os` compensée du déplacement au repos de cet os sous le gabarit
+## (`GabaritDuSquelette.deplacement_au_repos`, `CONTRAT.md`, « Gabarit d'une base ») : translatée de l'opposé de ce
+## déplacement rapporté à la base de repos de l'os ; inchangée sans gabarit.
+func _liaison_compensee(os: StringName, liaison: Transform3D) -> Transform3D:
+	if gabarit == null:
+		return liaison
+	var rang := squelette.find_bone(os)
+	return liaison.translated(-MiseEnPage.dans_la_base(squelette.get_bone_global_rest(rang).basis, gabarit.deplacement_au_repos(rang)))
 
 
 ## La clé des matériaux équivalents de `materiau` : sa classe et la valeur de chacune de ses propriétés enregistrées,

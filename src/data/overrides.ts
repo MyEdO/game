@@ -25,7 +25,7 @@ import {
   seaNavigation, seaPerils, seaWeather, shipConstruction,
   disponibilite, riverNavigation, seaCargo, landCargo,
   GRAPPLE, STAKES,
-  regles, MERCHANT_ARCHETYPES,
+  regles, MERCHANT_ARCHETYPES, TAVERN_GAMES,
 } from './index';
 // #157 : catalogues de CONTENU déjà chargés par un module dédié (`src/data/*.ts` ou `src/engine/*.ts`,
 // pas la façade `index.ts`) — importés DIRECTEMENT ici (même patron que `massBattle*` ci-dessus, qui
@@ -36,7 +36,6 @@ import { versDisque } from './schemas/grammaire/prose';
 import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, encounterTable } from '../engine/travelTables';
-import { TAVERN_GAMES } from '../engine/tavernGame';
 import { OBSESSIONS } from './obsessions';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { CARGO_ENTRIES } from '../engine/cargo';

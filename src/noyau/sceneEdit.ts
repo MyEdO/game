@@ -1430,8 +1430,8 @@ interface EcritureDuPorteur<D> {
 function deLaScene<D>(e: EcritureDeScene<D>): EcritureDuPorteur<D>;
 function deLaScene(e: Omit<EcritureDeScene<never>, 'ecrire'>): Omit<EcritureDuPorteur<never>, 'ecrire'>;
 function deLaScene<D>(e: Partial<EcritureDeScene<D>>): Partial<EcritureDuPorteur<D>> {
-  const { lire, ecrire } = DOCUMENTS.scene;
   const releve = (projet: ProjetDEdition, sceneId: string, f: (scene: Scene) => Scene): ProjetDEdition => {
+    const { lire, ecrire } = DOCUMENTS.scene;
     const scene = lire(projet, sceneId)!;
     const ecrite = f(scene);
     return ecrite === scene ? projet : ecrire(projet, sceneId, ecrite);
@@ -1439,10 +1439,12 @@ function deLaScene<D>(e: Partial<EcritureDeScene<D>>): Partial<EcritureDuPorteur
   const { ecrire: ecrireLaScene, creer, renommer, retirer, renommerElement } = e;
   return {
     ...(ecrireLaScene && { ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D): EcritureDeValeur<ProjetDEdition> => {
+      const { lire, ecrire } = DOCUMENTS.scene;
       const ecrite = ecrireLaScene(lire(projet, sceneId)!, avant, apres);
       return ecrite.ok ? { ok: true, valeur: ecrire(projet, sceneId, ecrite.valeur) } : ecrite;
     } }),
     ...(creer && { creer: (projet: ProjetDEdition, sceneId: string) => {
+      const { lire, ecrire } = DOCUMENTS.scene;
       const cree = creer(lire(projet, sceneId)!);
       return { projet: ecrire(projet, sceneId, cree.scene), id: cree.id };
     } }),

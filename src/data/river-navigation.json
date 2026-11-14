@@ -194,8 +194,6 @@
     }
   },
   "temporaryRepair": {
-    "difficulty": "complexe",
-    "charpentierPenalty": -10,
     "woundsPerRepair": {
       "dice": {
         "n": 1,

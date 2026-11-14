@@ -10,7 +10,7 @@
 ## sa case, le coin de ce qui se pose sous un lieu, la
 ## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait (celle d'un
 ## morceau ou d'une nappe) et à celui de la vision, la part d'un fondu de la vision après un pas de temps, l'état fondu
-## d'une case et le plus grand de deux, la teinte d'instance d'un état, et l'abscisse
+## d'une case et le plus grand de deux, la teinte d'instance d'un état, le relief d'un matériau à son facteur, et l'abscisse
 ## sur un rayon d'un point, d'un point au-delà de celui qu'il touche et du bout de chaque tronçon dont il reprend. Seul
 ## script où l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et
 ## des fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
@@ -589,6 +589,12 @@ static func plus_haut(hauteur: float, autre: float) -> float:
 ## L'échelle monde d'un os d'échelle `echelle` dans un squelette d'échelle monde `echelle_du_squelette`.
 static func echelle_composee(echelle_du_squelette: float, echelle: float) -> float:
 	return echelle_du_squelette * echelle
+
+
+## L'intensité `relief` de la carte de normales d'un matériau (`normal_scale`) portée au facteur `facteur` de sa surface
+## (`reliefs` de la composition, #4002).
+static func relief_au_facteur(relief: float, facteur: float) -> float:
+	return relief * facteur
 
 
 ## L'échelle de l'orbite qui cadre un corps de sommet `sommet` comme elle cadre, à l'échelle 1, le corps neutre de sommet
