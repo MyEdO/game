@@ -604,7 +604,6 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import {
   runCascadeImmediate,
   rollTableStep,
-  poserCurseurCascade,
   lireEnSeuil,
   pushStep,
   evaluerRangeeBatch,
@@ -6000,14 +5999,9 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
     chosenTableRolls: pc.chosenTableRolls,
     extraTargets: inZone.slice(1),
   });
-  // Avance au-delà de l'étape cast (résolue) : conséquences appendues → jouées ; aucune → ferme.
-  if (castStepIdx >= 0) {
-    const casc = get().pendingCascade;
-    if (casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) {
-      if (casc.participants.length > castStepIdx + 1) poserCurseurCascade(get, set, casc, castStepIdx + 1);
-      else set({ pendingCascade: null });
-    }
-  }
+  // L'hôte d'incantation se clôt par la sortie d'hôte (#4248) ; la reprise de l'IA revient à l'appelant.
+  const casc = get().pendingCascade;
+  if (castStepIdx >= 0 && casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) sortirDeLHote(get, set, { pendingCast: null }, () => {});
 }
 
 /** Contexte de visibilité OPTIONNEL pour filtrer des cibles de sort par Ligne de Vue (LDB 46
