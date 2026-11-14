@@ -4810,7 +4810,7 @@ export const fr = {
   'codex.fiche.niveauX': '{v}{levels} niveau(x)',
   'codex.fiche.caseS': '{n}×{n2} case(s)',
   'codex.fiche.plancher2': '−{movePenalty} (plancher {moveFloor})',
-  'codex.fiche.charpentierBlessures': '{v} (Charpentier {charpentierPenalty}, {v2} Blessures)',
+  'codex.fiche.difficulteBlessures': '{v} ({v2} Blessures)',
   'codex.fiche.plages': '{length} plages {die}',
   'codex.fiche.jours': '{days} jours',
   'codex.fiche.plagesEdoc8': '{length} plages {die} (EDOC 8)',
