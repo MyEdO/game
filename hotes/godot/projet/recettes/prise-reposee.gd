@@ -162,7 +162,7 @@ func _verifier_cote_a_cote() -> void:
 
 
 ## Deux objets rangés au même point de la hanche, le second trop large pour tenir à côté du premier sans passer de
-## l'autre côté du corps (`MiseEnPage.s_empile`, #4254) : il s'empile sur le premier, son milieu sur la normale sortante
+## l'autre côté du corps (`MiseEnPage.tour_dans_la_place`, #4254) : il s'empile sur le premier, son milieu sur la normale sortante
 ## de l'emplacement, sa face arrière au-dessus de la face avant du premier.
 func _verifier_l_empilement() -> void:
 	var squelette := _squelette()

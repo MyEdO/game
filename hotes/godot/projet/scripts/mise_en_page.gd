@@ -32,7 +32,7 @@ const TOLERANCE_D_IMAGE := 0.001
 ## Le jeu, en mètres, entre les boîtes de deux objets rangés côte à côte au même point (`decalage_a_cote`).
 const JEU_ENTRE_RANGES := 0.02
 ## Le tour, autour de l'axe de son os, au-delà duquel un objet rangé à côté des précédents d'un point passerait de
-## l'autre côté du corps : il s'empile alors sur eux (`s_empile`, #4254).
+## l'autre côté du corps : il s'empile alors sur eux (`tour_dans_la_place`, #4254).
 const PLACE_DU_POINT := QUART_DE_TOUR
 ## Le jeu, en mètres, entre un objet rangé et ce qui est porté dessous (`recul_d_appui`, `pivot_sur_la_case`).
 const JEU_DE_RANGEMENT := 0.005
@@ -713,11 +713,11 @@ static func tour_a_cote(emplacement: Basis, point: Vector3, tour: float, sens: f
 	return tour + debut_precedent - jeu - fin
 
 
-## Vrai si un objet rangé au tour `tour` à côté des précédents d'un point sort de la place du point
-## (`PLACE_DU_POINT`) : un rouleau large, à côté d'un bâton au dos, passait devant la poitrine, une faux à côté d'un
-## bâton à l'épaule se couchait en travers des épaules (#4254).
-static func s_empile(tour: float) -> bool:
-	return absf(tour) > PLACE_DU_POINT
+## Le tour `tour` d'un objet rangé à côté des précédents d'un point, gardé s'il reste dans la place du point
+## (`PLACE_DU_POINT`), nul sinon : l'objet s'empile alors sur eux. Un rouleau large, à côté d'un bâton au dos, passait
+## devant la poitrine, une faux à côté d'un bâton à l'épaule se couchait en travers des épaules (#4254).
+static func tour_dans_la_place(tour: float) -> float:
+	return tour if absf(tour) <= PLACE_DU_POINT else 0.0
 
 
 ## L'azimut du point `point` autour de l'axe Y de son os (atan2 de x sur z), compté depuis l'azimut `depuis`, dans
