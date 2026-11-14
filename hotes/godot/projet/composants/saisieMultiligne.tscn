@@ -20,6 +20,7 @@ propriete = &"theme_type_variation"
 custom_minimum_size = Vector2(0, 96)
 size_flags_horizontal = 3
 wrap_mode = 1
+scroll_fit_content_height = true
 
 [node name="valeur" type="Node" parent="Texte"]
 script = ExtResource("1_liaison")

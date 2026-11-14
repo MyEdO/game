@@ -118,6 +118,8 @@ import {
   visionDuMonde,
   type VisionDuMonde,
   projetEdite,
+  ENTREES_DE_DOSSIER,
+  refusDuRenommage,
 } from '../../../src/noyau/index';
 import {
   ErreurDeGeste,
@@ -734,6 +736,9 @@ function calquesGardes(texte: string): unknown {
     return null;
   }
 }
+
+/** Les identifiants des entrées des fiches de dossier commitées, que le pont sert à la session d'édition qu'il ouvre. */
+const ENTREES_SERVIES = ENTREES_DE_DOSSIER.map((e) => e.id);
 
 /** L'index des chapitres du `Source/` que porte `texte`, le texte que sert le poste (`servir.mjs`, `source/manifest.json`) :
  *  du JSON, par livre son sigle et ses chapitres, chacun sa graphie et son titre. */
@@ -1739,7 +1744,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * nœud d'un dialogue), `args` l'élément puis l'identifiant saisi, qui décrit la scène, `args` la description ou rien, ou qui ajoute un
      * drapeau de départ, `args` son nom ; ou `{ type: 'valeur', args: [porteur, chemin, valeur?] }` : un formulaire
      * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
-     * pour retirer le champ (section « Éditeur »)
+     * pour retirer le champ, ou, d'un retrait déclaré de son porteur, l'objet ou l'élément entier (section « Éditeur »)
      *
      * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, depot?, essai?,
      * planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du chapitre que la session se
@@ -1747,7 +1752,11 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison (supprimer une rencontre que lance une
      * embuscade de route de la carte du monde), comme un formulaire refusé et un enregistrement que la porte refuse ;
      * nommer une rencontre que lance une embuscade de route la renomme aussi à cette embuscade ; ouvrir la carte du
-     * monde du menu Fichier (`{ geste: 'document' }`) la crée vide au projet qui n'en a pas ; la carte ouverte, le
+     * monde du menu Fichier (`{ geste: 'document' }`) la crée vide au projet qui n'en a pas ; nommer une entrée du
+     * narratif, ou identifier sa sous-entrée, d'un identifiant vide ou déjà porté se refuse en `regle`, avec sa raison
+     * (`refusDuRenommage`), et le renommage retenu se propage aux scènes et à la carte, sur un seul cran ; changer la forme
+     * d'un état du narratif (`{ geste: 'forme', kind }`) qu'une référence désigne ou qui porte une identité se refuse en
+     * `regle`, avec sa raison (`refusDeForme`) ; la carte ouverte, le
      * pointeur la sélectionne, glisse un lieu, en pose un à l'outil Lieu et tire une route à l'outil Chemin, et les zones
      * propres à la scène se vident ; le plan d'un lieu ouvert (`lieu/plan`), le pointeur y désigne, glisse et épingle
      * ses points d'intérêt au point du cadre de ce plan, aux mêmes unités
@@ -1763,7 +1772,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         valider(e.calques === undefined || typeof e.calques === 'string', 'editer : calques, le texte des calques que l’hôte garde');
         const gardes = e.calques === undefined ? undefined : calquesGardes(e.calques as string);
         const manifeste = e.manifeste === undefined ? null : manifesteServi(e.manifeste);
-        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false, gardes, manifeste) : ouvrirLEdition(projetServi(campagne!.id, e.projet), true, gardes, manifeste);
+        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false, gardes, manifeste, ENTREES_SERVIES) : ouvrirLEdition(projetServi(campagne!.id, e.projet), true, gardes, manifeste, ENTREES_SERVIES);
       } else {
         valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
         const s = edition!.session;
@@ -1785,7 +1794,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
           if (b!.refus) throw new ErreurDeGeste('regle', `editer : ${b!.refus}`);
         }
         const geste = nomme ?? (e.edition as GesteDEdition);
-        const refusDeValeur = geste.geste === 'valeur' ? refusDeLaValeurDit(s, geste) : null;
+        const refusDeValeur = geste.geste === 'valeur' ? refusDeLaValeurDit(s, geste) : geste.geste === 'nommer' || geste.geste === 'identifier' ? refusDuRenommage(s, geste) : null;
         if (refusDeValeur) throw new ErreurDeGeste('regle', `editer : ${refusDeValeur}`);
         if (geste.geste === 'enregistrer') {
           const passe = texteAEnregistrer(s);

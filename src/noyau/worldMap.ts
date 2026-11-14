@@ -13,10 +13,10 @@
 import type { IconId } from '../data/icons';
 import type { Scene } from './monde/scene';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
-import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { z } from 'zod';
-import type { refusRouteSchema } from '../data/schemas/defs-scenes/worldmap';
+import type { refusRouteSchema, routePerilSchema, worldMapParamsSchema } from '../data/schemas/defs-scenes/worldmap';
+import type { provenanceDeValeurSchema } from '../data/schemas/grammaire/route';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
 import { normalizeScene } from './monde/scene';
@@ -105,11 +105,7 @@ export interface PlaceService {
 }
 
 /** Péripétie d'AUTEUR sur une route : tirée chaque jour de voyage à `chancePct` %. */
-export interface RoutePeril {
-  label: string;
-  chancePct: number;
-  effects: Effect[];
-}
+export type RoutePeril = z.infer<typeof routePerilSchema>;
 
 /** Route entre deux lieux (`a` ↔ `b`, bidirectionnelle par défaut), praticable ou fermable. */
 export type MapRoute = MapRouteTrace & Praticabilite;
@@ -136,11 +132,8 @@ export interface RouteBillet extends ProvenanceDeValeur {
   marchandage?: { presetId: string; paliers?: PalierDeBillet[] };
 }
 
-/** Provenance d'une valeur d'auteur de route (`provenanceDeValeurSchema`) : `source` ou `maison`. */
-export interface ProvenanceDeValeur {
-  source?: SourceRef;
-  maison?: string;
-}
+/** Provenance d'une valeur d'auteur de route : `source` ou `maison`. */
+export type ProvenanceDeValeur = z.infer<typeof provenanceDeValeurSchema>;
 
 /** Clé d'un billet : sa première route, son véhicule et son lieu de départ — un billet se marchande
  *  UNE fois (EDO 01 l.142). */
@@ -205,14 +198,8 @@ export interface MapRouteTrace {
   couvre?: string[];
 }
 
-export interface WorldMapParams {
-  /** Heures de voyage par jour sans Test (RAW LDB 51 l.195, défaut 6). */
-  hoursPerDay?: number;
-  /** Plafond de marche forcée (heures/jour) — LDB 51 l.195 : silence, valeur maison (défaut 10). */
-  forcedMaxHours?: number;
-  /** Seuil d10 de péripétie par défaut des routes (défaut 8, LDB 51 l.208 ; 0 = désactivé). */
-  perilDie?: number;
-}
+/** Réglages RAW de voyage au niveau de la carte. */
+export type WorldMapParams = z.infer<typeof worldMapParamsSchema>;
 
 export interface WorldMap {
   id: string;

@@ -165,6 +165,7 @@ export {
   refusDOuvrage,
   refusDeLaValeur,
   refusDeRetrait,
+  refusDuRenommage,
   idDeLaSceneEditee,
   projetEdite,
   sceneEditee,
@@ -192,13 +193,19 @@ export {
 } from './edition/session';
 export { OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, type OutilDeLaCarte, type OutilDuPlanDuLieu } from './edition/pointeur';
 export { orienterRoute } from './worldMapEdit';
+export { refusDeForme } from './narratifEdit';
+export { FORMES_D_ETAT, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
+export { SOUS_ENTREES } from '../data/schemas/defs-scenes/ecritures-du-narratif';
 export {
   FORMULAIRES,
   accesDe,
+  cleDeLElement,
   formulaireDe,
+  retraitsDuPorteur,
   porteurDeLaSel,
   porteurDuProjet,
   porteursDuProjet,
+  idDuPorteur,
   type DonneeDuPorteur,
   type SorteDeDocument,
   type SorteDePorteur,
@@ -211,9 +218,9 @@ export {
   champsDuRecord,
   champsOfferts,
   choixDuNoeud,
+  clesPosees,
   elementDuNoeud,
   formeAuPoint,
-  recordDuNoeud,
   unionDuNoeud,
   varianteCourante,
   type FieldDesc,
