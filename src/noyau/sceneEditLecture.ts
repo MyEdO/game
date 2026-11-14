@@ -58,7 +58,18 @@ import {
   type PresetPnj,
 } from '../data/schemas/defs-scenes/narratif';
 import { identiteDe, libelleDeLigne } from './narratifEdit';
-import { IDENTITE, REPERES, STADES, VALEURS_D_ETAT, idFrais, identiteNeuve, lignesNeuves, repereNeuf, type Identite, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
+import {
+  IDENTITE,
+  REPERES,
+  STADES,
+  VALEURS_D_ETAT,
+  idFrais,
+  identiteNeuve,
+  lignesNeuves,
+  repereNeuf,
+  type Identite,
+  type RegistreCreable,
+} from '../data/schemas/defs-scenes/ecritures-du-narratif';
 import { FORMES_D_ETAT, etatDeclare, valeursDeclarees } from '../data/schemas/defs-scenes/formes-d-etat';
 import { collectionDe, idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
