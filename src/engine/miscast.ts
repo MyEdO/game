@@ -25,14 +25,14 @@ import { categorieDeLaNiche, findDomainById, combatStakeRef } from '../data';
 import { suiteDesEntrees } from '../data/schemas/grammaire/cle-d-espace';
 import { GameOp, Formula } from './ops';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSource, type EffectSourceKind } from './types';
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
 // Type-only (effacé à la compilation, comme `domainAttributes`/`ops` importent déjà `TriggeredEffect`) :
 // le nœud de Test imbriqué d'une entrée de table EST un nœud de Flow `test` — la STRUCTURE de logique
 // partagée du jeu (noyau engine `flowCore`, feuille EffectOp), exécutée cadence-aware par `runCombatFlow`.
 // AUCUNE dépendance runtime au store : les tables restent du moteur pur (`rollMiscast` testable seul).
 import { poserEnjeu, type Flow, type FlowTest } from './flowCore';
 import miscastJson from '../data/miscast.json';
-import { deDeTirageDe } from '../data/rangees';
+import { deDeTirageDe, type RangeeDe } from '../data/rangees';
+import { datasetDe, type EntreeDe } from '../data/datasets';
 import type * as miscastDef from '../data/schemas/defs/miscast';
 import { DATASET_DE_LA_CATEGORIE, type CleDeDataset } from '../data/schemas/_cles-de-dataset.generated';
 import { memoParVersion } from '../data/versionDataset';
@@ -106,70 +106,14 @@ export type JsonFormula =
   | { sum: JsonFormula[] }
   | { times: { of: JsonFormula; factor: JsonFormula } };
 
-/**
- * Un `GameOp` unique tel que stocké dans le JSON. Miroir de l'union `GameOp` runtime, avec
- * `JsonFormula` à la place de `Formula` — `durationRounds` est un champ du `GameOp` `condition`
- * lui-même (`engine/ops.ts`).
- */
-type JsonOp = {
-  op: string;
-  // condition
-  id?: { id: string };
-  value?: JsonFormula;
-  durationRounds?: JsonFormula;
-  /** `GameOp['condition'].perRound` / gate d'État — LITTÉRAUX (pas des formules) : recopiés tels quels. */
-  perRound?: true;
-  unlessCondition?: { id: string };
-  /** `GameOp['condition'].escapeStrength` (Empêtré : force de désengagement, ex. Tenue indisciplinée
-   *  LDB 46) — déjà une `Formula` runtime valide, jamais sin-paramétrée : copiée telle quelle. */
-  escapeStrength?: Formula;
-  // wounds / corruption
-  amount?: JsonFormula;
-  /** Mitigation déclarée du `wounds` (LDB 46 / LDB 40) — recopiée telle quelle dans le `GameOp`. */
-  ignoreTB?: boolean;
-  ignoreAP?: boolean;
-  // castPenalty
-  skill?: RefDesignee;
-  mod?: number;
-  blocked?: boolean;
-  maxZeroDR?: boolean;
-  rounds?: JsonFormula;
-  hours?: JsonFormula;
-  minutes?: JsonFormula;
-  days?: JsonFormula;
-  // suppressTalents, deitySkillMod, deityBan
-  talents?: { id: string }[];
-  durationDays?: JsonFormula;
-  // deitySkillMod
-  pick?: 'all' | 'random';
-  durationHours?: JsonFormula;
-};
+/** Un `GameOp` de la Colère des dieux tel que la donnée le porte, ses formules au dialecte du Péché (`formulaSinSchema`). */
+type JsonOp = NonNullable<JsonRow['ops']>[number];
 
-/** Spec d'un test imbriqué telle que stockée dans le JSON (même forme que `NestedTest`, en `JsonOp[]`). */
-interface JsonNestedTest {
-  test: FlowTest;
-  onFail: JsonOp[];
-  onFailHard?: { dr: number; ops: JsonOp[] };
-}
+/** Test imbriqué d'une rangée tel que la donnée le porte. */
+type JsonNestedTest = NonNullable<JsonRow['test']>;
 
-/** Une rangée de table telle que stockée dans le JSON. `id` (#422, exposition Codex) est l'identité
- *  d'affichage/navigation — jamais lue par ce module. */
-interface JsonRow {
-  id: string;
-  min: number;
-  /** `null` : « 151+ » (LDB 40 l.89). */
-  max: number | null;
-  label: string;
-  ops?: JsonOp[];
-  /** Ops appliqués aux CIBLES de l'incantation qui a déclenché le tirage (`MiscastResult.targetOps`). */
-  targetOps?: JsonOp[];
-  test?: JsonNestedTest;
-  reroll?: 'majeure' | 'mineure-x2';
-  /** CLÉ d'une table déclarée par le Domaine du lanceur (`domains.json` → `tables`) : la rangée tire
-   *  sur la table de SON Vent (`VDM 02 l.238`). Résolue en op `rollTable`/`tableId` à la RÉSOLUTION,
-   *  quand le Domaine est connu — le lien Domaine→table vit en donnée, jamais dans ce fichier. */
-  domainTable?: string;
-}
+/** Une rangée de table telle que la donnée la porte. */
+type JsonRow = RangeeDe<typeof miscastDef>;
 
 // ---------------------------------------------------------------------------
 // JSON → résolution runtime
@@ -292,7 +236,7 @@ interface Row {
 }
 
 /** Bâtit un `Row` runtime à partir d'un `JsonRow`. */
-function buildRow(jr: JsonRow & { max: number }): Row {
+function buildRow(jr: JsonRow & { min: number; max: number }): Row {
   const row: Row = { id: jr.id, min: jr.min, max: jr.max, label: jr.label };
   if (jr.reroll) row.reroll = jr.reroll;
   if (jr.domainTable) row.domainTable = jr.domainTable;
@@ -317,17 +261,7 @@ function buildRow(jr: JsonRow & { max: number }): Row {
 /** UN DOCUMENT de `miscast.json` : une table tirable, son identité STABLE, son libellé JOUEUR, sa
  *  provenance et ses rangées. Identité et charge sont le MÊME objet : aucun pointeur ne les relie plus
  *  (#1467 L1b). La catégorie Codex de ses LIGNES se lit par `categorieDeLaNiche` (`src/data`). */
-export interface MiscastTableDef {
-  id: string;
-  label: string;
-  /** Dé de tirage du document (`options.deDeTirage`), lu par `miscastDie`. */
-  die: string;
-  /** Folio du TABLEAU source dont cette table est le tirage. */
-  source: { book: string; page: number; note?: string };
-  entries: JsonRow[];
-}
-
-const data = miscastJson as unknown as MiscastTableDef[];
+export type MiscastTableDef = EntreeDe<typeof miscastDef>;
 
 /** Une ligne de table d'Imparfaite/Colère telle que la DONNÉE la porte : fourchette + id STABLE +
  *  libellé. Forme de `TableStepRow` (noyau/cascade) — les rangées entrent aux tables tirables PAR
@@ -343,7 +277,7 @@ export interface MiscastTableRow {
  *  d'étape, rangées portées, libellé JOUEUR — sans marque de livre (`docs/charte-ui.md`) : le jeu de
  *  tables en vigueur est une RÈGLE, pas une information d'écran.
  *  Une table de plus est un DOCUMENT de plus dans le fichier, aucune ligne de code. */
-export const MISCAST_TABLES: MiscastTableDef[] = data;
+export const MISCAST_TABLES = datasetDe<typeof miscastDef>(miscastJson);
 
 const TABLE_IDS_LDB: Record<MiscastSeverity, string> = { mineure: 'miscast-mineure', majeure: 'miscast-majeure', colere: 'miscast-colere' };
 const TABLE_IDS_VDM: Record<MiscastSeverity, string> = { mineure: 'miscast-mineure-vdm', majeure: 'miscast-majeure-vdm', colere: 'miscast-colere' };

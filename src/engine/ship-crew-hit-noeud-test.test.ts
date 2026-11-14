@@ -18,22 +18,16 @@
  */
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { applyCrewHit, exposedCrew, rollShipCritical, shipCritEntryCodexCategory } from './shipCritical';
 import { spellOps } from './flowCore';
 import { makeRNG, type RNG } from './dice';
 import { resolveStake } from '../data';
 import type { Combatant, ShipPoste } from './types';
-import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritEntry, type ShipCritKey, type ShipCritSet } from '../data/shipCriticals';
+import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritKey, type ShipCritSet } from '../data/shipCriticals';
 import { shipCrewHitSchema, flowSchema, noeudTest } from '../data/schemas/grammaire/mecanique';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const DATA = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'data');
-const lire = (f: string) => JSON.parse(readFileSync(join(DATA, f), 'utf8')) as { tables: Record<string, ShipCritEntry[]> };
-const FICHIERS = ['river-criticals.json', 'ship-criticals.json'] as const;
 const JEUX: [ShipCritSet, string][] = [[RIVER_CRIT_SET, 'river-criticals.json'], [SHIP_CRIT_SET, 'ship-criticals.json']];
 
 /** LE schéma du PORTEUR, celui que `shipCritEntrySchema` compose — jamais une recomposition locale :
@@ -42,11 +36,10 @@ const schemaDuCoup = shipCrewHitSchema;
 
 /** Les porteurs de coup, LUS dans la donnée — jamais une liste d'ids écrite ici. */
 const coups = () =>
-  FICHIERS.flatMap((f) =>
-    Object.values(lire(f).tables)
-      .flat()
-      .filter((e) => e.crewHit)
-      .map((e) => ({ fichier: f, id: e.id, hit: e.crewHit! })),
+  JEUX.flatMap(([jeu, fichier]) =>
+    Object.values(jeu.tables)
+      .flatMap((rows) => rows ?? [])
+      .flatMap((e) => (e.crewHit ? [{ fichier, id: e.id, hit: e.crewHit }] : [])),
   );
 
 /** Les porteurs de coup RÉSOLUS par le producteur (dé FORCÉ sur le `min` de la rangée → c'est bien SA
@@ -181,7 +174,7 @@ describe('coup à l’équipage — le moteur DÉSIGNE et REND, il ne roule plus
           ? posteCrewAttendu(coqueAvecPostes(ids), temoins, rngTemoin)
           : exposedCrew(temoins).filter((c) => ('role' in cible
             ? c.shipRole === cible.role.id
-            : c.shipStation !== undefined && cible.stations.includes(c.shipStation)));
+            : cible.stations.some((s) => s === c.shipStation)));
 
         expect(out.victims, `${fichier}/${id} seed ${seed} : victimes`).toEqual(attendues.map((c) => c.id));
         expect(rng.tirages, `${fichier}/${id} seed ${seed} : un dé d’ISSUE est encore tiré`).toEqual(rngTemoin.tirages);

@@ -5,21 +5,18 @@
  *  - Opérations bancaires : LDB 23 l.164-176
  *  - Revenus : LDB 08 l.105-120 (`gainDeStatut`, `engine/money`)
  */
-import type { Equipe } from './relations';
-import type { IconId } from '../data/icons';
 import { RNG, roll, rollDice } from './dice';
 import { Money, fromBrass, toBrass, priceToMoney, gainDeStatut, enPieces, PA_PER_SC, type StatusTier } from './money';
-import type { CharKey, Combatant, Difficulty, SkillInstance, Availability, StakeForm } from './types';
-import type { Formula, FormuleSansTirage, GameOp } from './ops';
+import type { CharKey, Combatant, Difficulty, SkillInstance, Availability } from './types';
+import type { GameOp } from './ops';
 import { valeurSansTirage } from './formule';
-import { evalCondition, type Condition, type ConditionCtx, type FlowTest } from './flowCore';
+import { evalCondition, type ConditionCtx } from './flowCore';
 import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
 import { bestSkilledOption, peutTenter, refusNePeutTenter, testValue, type TestDesigne } from './skills';
 import { maxBy } from './pick';
 import type { PlayerText } from '../i18n/playerText';
 import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
-import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
 import { easeDifficulty, estJete, clampTarget, cibleDuTest, ECHEC_SANS_JET, type EchecSansJet } from './tests';
 import {
   trappingsInstanciables,
@@ -34,6 +31,7 @@ import {
   qualities,
   type TalentData,
   type TrappingData,
+  ACTIVITIES,
 } from '../data';
 import { memoParVersion } from '../data/versionDataset';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars, refKey } from './careerSlots';
@@ -41,7 +39,9 @@ import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTE_PAR_DEFAUT } from './types';
 import { isTradable } from './disponibilite';
-import activitiesJson from '../data/activities.json';
+import type { EntreeDe, EntreeVivante } from '../data/datasets';
+import type * as activitiesDef from '../data/schemas/defs/activities';
+import type { TestDOption } from '../data/schemas/defs/activities';
 import { parLibelle } from '../lib/ordre.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -76,19 +76,9 @@ export type BattleTestModPool = Extract<BattleOutcomeTarget, 'allyTestMod' | 'fi
 export type BattleMeasure = 'armyMight';
 /** Difficulté DÉRIVÉE : écart d'une mesure d'armée, arrondi au pas `roundTo` (10 = « à la dizaine la
  *  plus proche », l.71), lu comme un modificateur de Test (`difficultyFromModifier`). */
-export interface BattleDifficultyFrom {
-  gap: BattleMeasure;
-  roundTo?: number;
-}
+export type BattleDifficultyFrom = NonNullable<ActivityDef['difficultyFrom']>;
 export type BattleOutcomeScale = 'fixed' | 'perDR' | 'perHit' | 'perKill';
-export interface BattleOutcome {
-  /** `might`/`startMight` portent un `side` (armée visée) ; les modificateurs de Test sont toujours alliés. */
-  side?: Equipe;
-  target: BattleOutcomeTarget;
-  scale: BattleOutcomeScale;
-  /** Montant SIGNÉ (gain +, réduction −). Pour `perDR`/`perHit`/`perKill`, multiplié par le compteur. */
-  amount: number;
-}
+export type BattleOutcome = NonNullable<OutcomeBand['battle']>[number];
 
 /** Issue de PORTÉE ÉTAPE (Activité de voyage EDOC 8 OU Rencontre EDOC) — effet qui ne porte PAS sur
  *  un seul Combatant (donc pas un `GameOp`) mais sur l'Étape/le groupe : interprété par la boucle de
@@ -172,25 +162,7 @@ export const resolversOwnedBy = (owner: ResolverOwner): ActivityResolver[] =>
  *  tables RAW) et porte la Maladresse ; `ops` = effet mécanique (GameOp, langue UNIQUE des effets) ;
  *  `resolver` = logique bespoke nommée (cf. dispatch d'interlude) ; `payoutPct` = rendu monétaire d'un
  *  retrait de dépôt (Mécénat : 120/100/50/0) ; `note` = texte de résultat VERBATIM de la source. */
-export interface OutcomeBand {
-  on?: 'reussite' | 'echec' | 'maladresse';
-  minSL?: number;
-  maxSL?: number;
-  ops?: GameOp[];
-  resolver?: ActivityResolver;
-  payoutPct?: number;
-  note?: string;
-  /** Issue(s) de BATAILLE (ADE II 8) portant sur l'ARMÉE (delta de Puissance / modificateur de Test),
-   *  gated par `when` — appliquées par le résolveur `battle` de `runActivityResolver`. */
-  battle?: BattleOutcome[];
-  /** Condition SUPPLÉMENTAIRE (au-delà de `on`/`minSL`/`maxSL`) évaluée sur les compteurs de la résolution
-   *  de bataille : `generalDown` (Succès Stupéfiant → le capitaine/général tombe, l.208/217) ;
-   *  `intervention`/`noIntervention` (Duel l.225 : un AUTRE PJ a frappé, ou non) ; `combatWon`/`combatLost`
-   *  (victoire / DÉFAITE d'une Scène de COMBAT — Percée l.175, Duel l.223). Absente = pas de gate en plus. */
-  when?: BattleCond;
-  /** Scène(s) IMPOSÉE(S) au Round suivant si cette bande matche (enchaînements l.169/175/208/217/225). */
-  chains?: string[];
-}
+export type OutcomeBand = NonNullable<ActivityDef['outcomes']>[number];
 
 /** Condition d'issue de bataille évaluée sur la résolution d'une Scène/Activité (compteurs de combat +
  *  succès/DR). Voir `BattleResolution` (noyau/massBattleFlow). */
@@ -259,24 +231,14 @@ export function matchBattleOutcomes(def: ActivityDef, r: BattleResolution): Outc
 /** UN modificateur de situation d'un Test d'Activité : une quantité (`FormuleSansTirage`) éventuellement GATÉE
  *  par une `Condition` évaluée sur l'ACTEUR du Test (`when` absent = toujours). `label` nomme la ligne
  *  quand plusieurs termes se cumulent ; à défaut, l'appelant nomme la ligne unique. */
-export interface ActivityTestMod {
-  when?: Condition;
-  mod: FormuleSansTirage;
-  label?: string;
-}
+export type ActivityTestMod = NonNullable<ActivityDef['testMods']>[number];
 
 /** UN dé de MONDE attaché à une Activité : un pourcentage d'auteur (`cible`, une `Formula` — donc un
  *  `{rule}` éditable), les `ops` appliquées à l'acteur quand le dé PASSE sous la cible, et une
  *  `unless` qui EXEMPTE l'acteur du tirage (« à moins qu'ils n'aient déjà une Carrière de Mendiant, ou
  *  une autre Carrière sans ressources », LDB 09 l.99 — exprimée par un prédicat GÉNÉRAL sur le Statut,
  *  jamais par un id de carrière). Le dé passe par la PORTE (`worldStep`), comme tout dé de monde. */
-export interface ActivityWorldRoll {
-  id: string;
-  label: string;
-  cible: Formula;
-  ops: GameOp[];
-  unless?: Condition;
-}
+export type ActivityWorldRoll = NonNullable<ActivityDef['worldRolls']>[number];
 
 /**
  * CONTEXTE d'évaluation des `Condition` d'une Activité (gates `testMods.when`, `worldRolls.unless`) :
@@ -319,9 +281,6 @@ export function activityAvailableAt(def: ActivityDef, placeId: string | null): b
   return !def.where?.length || (placeId != null && def.where.includes(placeId));
 }
 
-/** Test d'une OPTION d'Activité : le `FlowTest` de la donnée, qui nomme sa Compétence OU sa
- *  Caractéristique (`flowTestSchema`, #1657 B3-3), et sa Difficulté. */
-export type TestDOption = Pick<FlowTest, 'difficulty'> & ({ skill: RefDesignee; characteristic?: never } | { skill?: never; characteristic: CharKey });
 
 /** Ce que désigne le Test d'une option : sa Compétence, sinon sa Caractéristique. PUR. */
 export function designeDe(test: TestDOption): TestDesigne {
@@ -349,135 +308,7 @@ export function testsDeLActivite(def: Pick<ActivityDef, 'tests'>): TestDesigne[]
  *  - `stageOutcome` pour les effets de portée Étape (voyage) que `GameOp` n'exprime pas ;
  *  - `resolver` (nom) pour réutiliser une logique existante (`'forage'`, `'masterWeapon'`, `'mecenat'`…).
  */
-export interface ActivityDef {
-  /** id STABLE (slug). */
-  id: string;
-  label: string;
-  /** Icône du registre (`src/data/icons`, id `famille/nom`) — affichée par les volets/boutons
-   *  d'Activité. REQUIS ; icône ∈ registre validé par `data-wellformed.test.ts`. */
-  icon: IconId;
-  contexts: ActivityContext[];
-  source: { book: string; page: number };
-  /** Tests AU CHOIX, chacun avec sa Difficulté ; l'acteur tente le meilleur qu'il peut tenter. LDB 23 l.209 ; AA 12 l.49 */
-  tests?: TestDOption[];
-  /** Difficulté du Test dont la donnée ne nomme pas le sujet : compétence libre (`freeSkill`) ou
-   *  résolveur qui le dérive du héros (`SKILL_DERIVING_RESOLVERS`). Absent avec `tests`. */
-  difficulty?: Difficulty;
-  /** Compétence LIBRE choisie par le joueur parmi ces Compétences ; une référence sans `spec` couvre
-   *  toutes ses Spécialisations (EDOC 8 l.172). */
-  freeSkill?: RefDesignee[];
-  /** Test ÉTENDU (LDB 12) : DR requis = `drPerStage` × nombre d'Étapes (Établir des cartes, EDOC 8 l.161). */
-  extended?: { drPerStage: number };
-  /** RAW EDOC 8 l.133 : échouer le Test d'une Activité octroie un État Exténué. */
-  failExtenue?: boolean;
-  /** Modificateurs de SITUATION du Test de cette Activité, en DONNÉE — chaque entrée est une `FormuleSansTirage`
-   *  (donc un `{rule}` éditable pour ce que le livre ne chiffre pas) éventuellement GATÉE par une
-   *  `Condition` évaluée sur l'acteur (`activityTestMod`). Mendier (LDB 09 l.97) : « la Difficulté est
-   *  modifiée par le discours choisi pour mendier et à quel point votre apparence peut susciter la
-   *  sympathie » — un terme inconditionnel (le discours) et un terme gaté (`visiblePassive`). Absent =
-   *  aucun modificateur ; le TOTAL forme UNE seule ligne de mod à l'écran (`activityModLines`). */
-  testMods?: ActivityTestMod[];
-  /** Modificateur météo PAR météo (id de `Weather`) au Test de l'Activité — DONNÉE (fini le `def.id ===`
-   *  en dur) : Plein air « -10 par degré de temps éloigné de Beau temps » (EDOC 8 l.141), Approvisionnement
-   *  « -10 par temps sec » (l.56). Absent/météo non listée = 0. */
-  weatherMod?: Record<string, number>;
-  /** Résolveur BESPOKE nommé (réutilise une logique existante plutôt que de la dupliquer). */
-  resolver?: ActivityResolver;
-  /** Effet mécanique de réussite, en `GameOp` (langue UNIQUE des effets, appliquée par `applyOps`). */
-  onSuccess?: GameOp[];
-  /** Description VERBATIM (Markdown) de la source — rendue par `<Prose>` (règle 5, jamais de paraphrase). */
-  desc?: string;
-  /** DÉS de MONDE déclenchés APRÈS la résolution du Test de l'Activité — forme GÉNÉRALE en donnée
-   *  (« être surpris à mendier par ses pairs », LDB 09 l.99) : le pourcentage vit dans une règle
-   *  optionnelle, l'issue en `GameOp`, et l'exemption en `Condition` sur l'acteur. */
-  worldRolls?: ActivityWorldRoll[];
-  /** Table d'issues par bande de DR (« RÉSULTATS DU TEST DE… », ACE Annexe I) — prime sur `onSuccess`. */
-  outcomes?: OutcomeBand[];
-  /** Gate GÉOGRAPHIQUE : ids de lieux de la carte du monde (`MapPlace.id`) où l'Activité est proposable
-   *  (ACE Annexe I = « à Altdorf »). Absent = partout — résolu par `activityAvailableAt`. */
-  where?: string[];
-  /** Mise MINIMALE d'un dépôt bancaire de cette Activité (Mécénat : « au moins 5 CO », ACE 12 l.49). */
-  minInvest?: Partial<Money>;
-  /** Issue de portée Étape (voyage). */
-  stageOutcome?: StageOutcome;
-  /** Indisponible si le héros porte un État Exténué cette Étape (Récupérer, EDOC 8 l.176). */
-  unavailableIfExtenue?: boolean;
-  // ── Activités & Scènes de BATAILLE (ADE II 8, contextes 'bataille'/'bataille-round') ──
-  /** Test COMBINÉ (LDB 12 l.202-206) : UN jet confronté aux DEUX premiers `tests` (Infiltration Discrétion+
-   *  Perception l.75 ; Repérage Chevaucher+Perception l.102). RÉUSSIT si les deux cibles sont atteintes. */
-  combined?: boolean;
-  /** Test à SOUTIEN multi-PJ (LDB 12 l.187-200) : le meneur lance, les assistants CAPABLES ajoutent +10
-   *  (plafonné). SEULE Activité de préparation soutenable = Planification (l.81). Les Scènes de Test/Tenue
-   *  d'un Round sont AUSSI multi-PJ (l.116-118). Incompatible avec `combined` (le RAW n'octroie d'aide à
-   *  aucun Test combiné). */
-  assisted?: boolean;
-  /** Prérequis (flags de préparation) à satisfaire pour proposer l'Activité : Infiltration ⇐ 'planned'
-   *  (Planification réussie, l.73) ; Sabotage ⇐ 'scouted' (Repérage réussi, l.104). */
-  requires?: string[];
-  /** Flag de préparation OCTROYÉ sur réussite (débloque une Activité dépendante) : Planification → 'planned' ;
-   *  Repérage → 'scouted'. */
-  grantsFlag?: string;
-  /** RÉSERVOIR de modificateur que le Test de CETTE Activité consomme — le pendant LECTEUR d'un
-   *  `BattleOutcome.target` accumulé par d'autres issues : Repérage (+10, l.100) et Infiltration
-   *  (+20, l.75) créditent `planningBonus`, que le Test de Planification dépense. Absent = Test
-   *  sans modificateur d'armée. */
-  testModFrom?: BattleTestModPool;
-  /** Difficulté DÉRIVÉE de l'état des armées au lieu de la `difficulty` fixe (Discours inspirant,
-   *  ADE II 8 l.71 : « une Difficulté déterminée par la différence de Puissance entre les armées,
-   *  arrondie à la dizaine la plus proche »). L'ÉCART (`gap`) est une mesure NOMMÉE de la bataille,
-   *  arrondi au pas `roundTo`, puis converti en Difficulté par `difficultyFromModifier` — un écart
-   *  favorable facilite le Test. */
-  difficultyFrom?: BattleDifficultyFrom;
-  /** Genre d'une Scène de Round ('bataille-round') : `test` (Test de Compétence des PJ, delta de Puissance
-   *  par l'issue) ; `combat` (rencontre tactique — `lancerLeCombat` — touches/kills nourrissent le delta) ;
-   *  `threat` (Scène MENACE qui s'IMPOSE et pénalise les autres Scènes tant qu'elle vit, Intrus l.219) ;
-   *  `hold` (Tenez votre position l.161 : Test OPPOSÉ récurrent, Point de rupture entre Rounds) ;
-   *  `rally` (Rassemblement l.122 : Test de Résistance qui soigne les héros). Absent = Activité ordinaire. */
-  sceneKind?: 'test' | 'combat' | 'threat' | 'hold' | 'rally';
-  /** Scène 'combat'/'threat' : id de rencontre de la scène à démarrer (`lancerLeCombat`). */
-  encounter?: string;
-  /** Durée max en Rounds de Combat (indicatif narratif, l.139/157/175…). */
-  rounds?: number;
-  /** Paramètre d'une Scène « Tenez votre position » (sceneKind 'hold', l.161) : seuil du Point de rupture
-   *  (10 RAW), Rounds max avant écrasement (5 RAW), bonus cumulatif d'opposition par Round tenu (+10). */
-  hold?: { breakpoint: number; maxRounds: number; enemyBonusPerHold: number };
-  /** Pénalité d'une Scène MENACE (sceneKind 'threat', Intrus l.219) infligée aux Tests des autres Scènes. */
-  threat?: { penalty: number };
-  /** Condition de chute du général/capitaine ennemi (`generalDown`) pour CETTE Scène : 'success' = sur un
-   *  simple Succès (Ligne de mire, ADE II 8 l.208) ; 'stupefying' = Succès Stupéfiant (DR ≥ 6) requis
-   *  pour se rapprocher au Corps à corps (Survol, l.217). Absent = pas de général à faire tomber. */
-  generalDownOn?: 'success' | 'stupefying';
-  /** Gate de CLASSE : « N'importe quel Personnage peut entreprendre n'importe quelle Activité […], mais
-   *  si vous n'appartenez pas à la Classe spécifiée […] tous les Tests que vous faites sont plus durs
-   *  d'un Niveau de Difficulté » — `classes` = ids de `ClassData` couvrant l'Activité ; `outsidePenalty`
-   *  = crans (sens `easeDifficulty`, positif = DURCIT). `scope` distingue le VERBE de la source :
-   *  `'current'` (LDB 23 l.197 « appartenez ») = Classe COURANTE du héros ; `'ever'` (AA 12 l.5 « n'a
-   *  JAMAIS appartenu ») = Classe d'une Carrière un jour PORTÉE (`everBelongedClasses`). Défaut
-   *  `'current'`. Appliqué par le chemin UNIQUE `classGatedDifficulty`, jamais par-activité. */
-  classGate?: { classes: string[]; outsidePenalty: number; scope?: 'current' | 'ever' };
-  /** Dette BLOQUANTE : le sous-système qui porterait l'issue de cette Activité n'est pas modélisé,
-   *  donc aucune bande d'issue ne s'écrit fidèlement. `activitiesFor` (porte UNIQUE des catalogues
-   *  jouables) la retire de tous les contextes : elle n'est ni proposée ni consommatrice de créneau.
-   *  L'entrée reste au catalogue (Codex/Compendium, `desc` verbatim, éditable) et redevient jouable
-   *  par le SEUL retrait de ce champ, une fois `ticket` soldé et l'issue écrite. */
-  blocked?: { ticket: string; raison: string };
-  /** Note MAISON (règle stricte 7 : contextuel/« au MJ » → donnée taguée, jamais un nombre nu
-   *  silencieux) — porte la trace éditable d'une valeur mécanique absente LITTÉRALEMENT du texte RAW.
-   *  Ex. Semer la dissension — Émeute (LDB 23 l.242) : Difficulté « déterminée par la façon dont la
-   *  cible peut être mal vue », sans table de résolution → `difficulty:'intermediaire'` est le repli.
-   *  DISPLAY/DOC only, jamais lu pour de la mécanique (comme `criticals.ts` `maison`, #195). */
-  maison?: string;
-  /** ENJEU du jet (#1117) : ce que le Test de CETTE Activité met en jeu, en descripteur MÉCANIQUE
-   *  (ce que le résolveur applique) et/ou verbatim court. Donnée ÉDITABLE au Codex, jamais un texte
-   *  écrit au call-site — les surfaces (volet d'Activité, modale de jet) le résolvent par la porte
-   *  unique `resolveStake` (`src/data/index.ts`, dataset `activite`). */
-  stake?: string;
-  /** FORME DÉCLARÉE du `stake` — même contrat que `stakes.form` (garde de forme). */
-  stakeForm?: StakeForm;
-  /** FOYER de la règle derrière le jet : l'ENTITÉ qui la porte. Absent = l'Activité elle-même
-   *  (sa `desc` verbatim, catégorie Codex `activities`) — jamais une fiche `regles.json` doublon. */
-  rule?: FoyerDeRegle;
-}
+export type ActivityDef = EntreeVivante<EntreeDe<typeof activitiesDef>>;
 
 /** Résolveurs qui DÉRIVENT leur compétence du héros au moment d'ouvrir le jet (`openCatalogActivity`,
  *  `src/noyau/interludeFlow.ts`) : leur Activité n'a donc pas de `tests` en donnée, mais elle LANCE.
@@ -537,8 +368,6 @@ export function statusIncomeMax(tier: StatusTier, standing: number): Money {
   return fromBrass(toBrass(enPieces(unite, de.n * de.sides + (de.plus ?? 0))));
 }
 
-/** Catalogue app-owned des Activités (data-driven, éditable). */
-export const ACTIVITIES = activitiesJson as ActivityDef[];
 /** Activité par `id` STABLE. */
 export const activityById = (id: string): ActivityDef | undefined => ACTIVITIES.find((a) => a.id === id);
 /** Activités proposables dans un contexte donné (interlude / voyage / mer) — porte UNIQUE des
@@ -617,7 +446,7 @@ export function travelActivitySpec(
   if (!activiteTenue(def, opts.freeSkill)) return null;
   const skillMod = opts.skillMod ?? 0;
   const voies: readonly VoieDActivite[] = opts.voies
-    ?? (def.freeSkill ? [{ test: { skill: opts.freeSkill! } }] : (def.tests ?? []).map((o) => ({ test: designeDe(o), difficulty: o.difficulty })));
+    ?? (def.freeSkill ? [{ test: { skill: opts.freeSkill! } }] : (def.tests ?? []).map((o: TestDOption) => ({ test: designeDe(o), difficulty: o.difficulty })));
   // Activité SANS Test (Récupérer) : pas d'étape-jet.
   if (!voies.length) return { activityId: def.id, actorId: actor.id, value: 0, target: null, skillMod, drTarget };
   const situation = activityTestMod(def, actor);

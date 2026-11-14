@@ -94,7 +94,8 @@ export function ShantyModal() {
       outcome={r && chosen
         ? resultLines(freeCons(r.success
             ? [
-                { text: t('crew.shantyPorte', { shanty: chosen.label, min: dureeDeChanson(r.sl), desc: chosen.desc }), icon: 'son/musique', tone: 'reussite' as const },
+                { text: t('crew.shantyPorte', { shanty: chosen.label, min: dureeDeChanson(r.sl) }), icon: 'son/musique', tone: 'reussite' as const },
+                ...(chosen.desc ? [{ text: chosen.desc, tone: 'reussite' as const }] : []),
                 ...(chosen.note ? [{ text: `— ${chosen.note}`, tone: 'neutre' as const }] : []),
               ]
             : [t('crew.shantyAPlat')]))

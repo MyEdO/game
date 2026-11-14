@@ -1,9 +1,9 @@
 import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 /** MDG 13 l.423-564 */
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
+import { document } from '../grammaire/document';
 import { cibleEtendueSchema, difficultySchema, shipSizeSchema, sourceRefSchema } from '../grammaire/valeurs';
-import { fixerLeTest, flowTestSchema } from '../grammaire/mecanique';
+import { flowTestSchema, porteurDeTestFixe } from '../grammaire/mecanique';
 import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'sea-perils.json';
@@ -32,7 +32,7 @@ const seaHazardDef = nommerChamps(z.strictObject({
       }),
     )
     .optional(),
-  freeTest: nommerChamps(z.strictObject({ test: flowTestSchema, ...cibleEtendueSchema.shape }).superRefine(fixerLeTest('difficulty')), {
+  freeTest: nommerChamps(porteurDeTestFixe(z.strictObject({ test: flowTestSchema, ...cibleEtendueSchema.shape }), 'difficulty'), {
     test: { label: 'Test' },
     ...metaDesChamps(cibleEtendueSchema, { exigees: true }),
   }).optional(),
@@ -51,7 +51,7 @@ const seaHazardDef = nommerChamps(z.strictObject({
   source: { label: 'Source' },
 });
 
-/** `StraitDef` (`src/engine/seaPerils.ts`). */
+/** `SeaPerilsData['detroits']` (`src/data/index.ts`). */
 const straitDef = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
@@ -96,7 +96,7 @@ const champs = {
   detroits: z.array(straitDef),
   /** L'espace des tourbillons : le `tourbillon` d'une op `perilDeMer` y résout. */
   tourbillons: listeCle(whirlpoolDef, 'id', { espace: {} }),
-  tourbillonSwim: nommerChamps(z.strictObject({ test: flowTestSchema, source: sourceRefSchema }).superRefine(fixerLeTest('skill', 'difficulty')), { test: { label: 'Test' }, source: { label: 'Source' } }),
+  tourbillonSwim: nommerChamps(porteurDeTestFixe(z.strictObject({ test: flowTestSchema, source: sourceRefSchema }), 'skill', 'difficulty'), { test: { label: 'Test' }, source: { label: 'Source' } }),
   gestionDesPerils: z.array(
     nommerChamps(z.strictObject({ distanceM: z.number(), spot: difficultySchema, avoid: difficultySchema, source: sourceRefSchema }), {
       distanceM: { label: 'Distance (m)' },
@@ -125,4 +125,3 @@ const doc = document(
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-export type SeaPerilsData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

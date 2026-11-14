@@ -1786,7 +1786,8 @@ function hauteurDeChute(o: Extract<GameOp, { op: 'fall' }>, target: Combatant, c
   if (!taille) throw new Error(`op « fall » (« ${table.label} ») : aucune Taille de coque au contexte (ctx.hull) — la hauteur se lit par la Taille du bateau (MDG 12 l.122-129).`);
   const bande = table.bandes.find((b) => b.tailles.includes(taille));
   if (!bande) throw new Error(`op « fall » (« ${table.label} ») : aucune bande ne couvre la Taille « ${taille} ».`);
-  const hauteur = target.shipStation === undefined ? undefined : structuredClone(bande.hauteurs[target.shipStation]); // #2097
+  const colonne = Object.entries(bande.hauteurs).find(([station]) => station === target.shipStation)?.[1];
+  const hauteur = colonne === undefined ? undefined : structuredClone(colonne); // #2097
   if (hauteur === undefined) throw new Error(`op « fall » (« ${table.label} ») : ${target.label} n'a pas de colonne de hauteur pour la station « ${target.shipStation ?? '—'} ».`);
   return { hauteur, table: table.label };
 }

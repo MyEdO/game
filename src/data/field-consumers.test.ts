@@ -381,9 +381,8 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
  * hors du type de l'entrée le dit par sa raison (`RAISONS_DES_ZEROS`) ; il reste au rapport.
  */
 const ZEROS: Readonly<Record<string, readonly string[]>> = {
-  ActivityDef: ['rounds', 'stake', 'stakeForm', 'unavailableIfExtenue'],
+  ActivityDef: ['rounds', 'stakeForm', 'unavailableIfExtenue'],
   BookData: ['dir', 'language', 'niveauDeSection', 'pdf', 'teneur'],
-  CritDoc: ['die'],
   DomainData: ['grantGroups'],
   EntreeDeGardeRobe: ['svg'],
   EtatData: ['severity'],
@@ -391,7 +390,6 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   LocationData: ['prefix', 'suffix'],
   ManeuverDef: ['stakeForm'],
   MaterialEntry: ['E', 'built', 'palette', 'planInner'],
-  MiscastTableDef: ['die'],
   PlanDEspece: ['corps', 'echelle', 'famille', 'omis'],
   PsychologyData: ['stakeForm'],
   QualityData: ['aspect'],
@@ -425,11 +423,9 @@ const RAISONS_DES_ZEROS: Readonly<Record<string, string>> = {
   'BookData.niveauDeSection': 'lu sous la vue `EntreeDeLivre` par `scripts/raw/_lib.mjs#niveauxDeSectionDe`',
   'BookData.pdf': 'lu sous la vue `EntreeDeLivre` par `scripts/raw/_lib.mjs#pdfDe`',
   'BookData.teneur': 'lu sous la vue `EntreeDeLivre` par `scripts/raw/_lib.mjs#teneursDe`',
-  'CritDoc.die': 'lu par la porte `deDeTirageDe` (`src/data/rangees.ts`), qui lit `die` à la racine JSON du document',
   'EntreeDeGardeRobe.svg': 'lu par l’hôte Godot, hors du corpus `src/` : l’emblème offert à l’atelier (`hotes/godot/pont/atelier.ts`)',
   'MaterialEntry.E': 'lu par clé dynamique : `sh[part]`, pente de toit à son orientation (`panFill`, `src/gameIso/authoring/roofsSvg.ts`)',
   'MaterialEntry.palette': 'lu par l’hôte Godot, hors du corpus `src/` : `findTeinteById(…)?.palette` (`hotes/godot/pont/atelier.ts`, `hotes/godot/pont/composition.ts`)',
-  'MiscastTableDef.die': 'lu par la porte `deDeTirageDe` (`src/data/rangees.ts`), qui lit `die` à la racine JSON du document',
   'PlanDEspece.echelle': 'lu par `jugerDeclaration` (`scripts/personnage-3d/base/declaration.mjs`), qui juge l’échelle d’art du porteur d’une base',
   'TrappingData.service': 'lu par clé dynamique : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`)',
   'WeaponGroupData.combat': 'lu par clé dynamique : discriminant de l’espace `weaponGroups.json?combat=…` (`grammaire/sourcesDeSpecs.ts`), filtré par `grammaire/cle-d-espace.ts`',

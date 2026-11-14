@@ -392,19 +392,19 @@ export function critiquesDuCoup(c: Combatant, coup: CoupACompter, jeu: JeuDeCrit
 
 const rangeesOuvertes = memoParVersion(
   ['criticalsTete', 'criticalsBras', 'criticalsCorps', 'criticalsJambe', 'aaCriticalsTete', 'aaCriticalsBras', 'aaCriticalsCorps', 'aaCriticalsJambe'],
-  (): Map<CritTable, (CritEntry & { max: number })[]> => new Map(CRITIQUE_DOCS.map((d) => [d.entries, tableOuverte(d.entries)])),
+  (): Map<CritTable, (CritEntry & { min: number; max: number })[]> => new Map(CRITIQUE_DOCS.map((d) => [d.entries, tableOuverte(d.entries)])),
 );
 
 /** Les rangées d'une table de Critiques telles que `findTableEntry` les lit : AA 07 l.105, l.131,
  *  l.157, l.183 ouverts par `tableOuverte`. Mémoïsées sur les datasets du seam. */
-function rangeesLues(table: CritTable): (CritEntry & { max: number })[] {
+function rangeesLues(table: CritTable): (CritEntry & { min: number; max: number })[] {
   const rangees = rangeesOuvertes().get(table);
   if (!rangees) throw new Error('rangeesLues : table de Critiques absente de CRITIQUE_DOCS.');
   return rangees;
 }
 
 /** Lignes de la table d'un (jeu, clé), lues par `rangeesLues`. */
-export function critTableRows(jeu: JeuDeCritique, key: CritTableKey): (CritEntry & { max: number })[] {
+export function critTableRows(jeu: JeuDeCritique, key: CritTableKey): (CritEntry & { min: number; max: number })[] {
   return rangeesLues(critiqueDoc(jeu, key).entries);
 }
 

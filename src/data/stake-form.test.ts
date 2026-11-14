@@ -14,8 +14,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
-import { STAKES, ACTIVITY_STAKES, etats } from './index';
-import { ACTIVITIES } from '../engine/activities';
+import { STAKES, ACTIVITIES, etats } from './index';
 import { STAKE_FORMS, type StakeForm } from '../engine/types';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
@@ -96,7 +95,7 @@ describe('etats — la FORME de chaque enjeu de récupération est tenue', () =>
  * échantillon.
  */
 describe('activities — la FORME de chaque enjeu d’Activité est déclarée et tenue (#1117 L3)', () => {
-  const avecEnjeu = ACTIVITY_STAKES.filter((a) => a.stake);
+  const avecEnjeu = ACTIVITIES.filter((a) => a.stake);
 
   it('toute Activité qui porte un enjeu DÉCLARE sa forme', () => {
     const sans = avecEnjeu.filter((a) => !STAKE_FORMS.includes(a.stakeForm as StakeForm)).map((a) => a.id);

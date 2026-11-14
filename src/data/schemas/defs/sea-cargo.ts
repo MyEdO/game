@@ -11,7 +11,7 @@ import {
   prixDuLivreSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
-import { fixerLeTest, flowTestSchema } from '../grammaire/mecanique';
+import { flowTestSchema, porteurDeTestFixe } from '../grammaire/mecanique';
 
 export const file = 'sea-cargo.json';
 export const famille = 'config';
@@ -103,7 +103,7 @@ const champs = {
     paliers: { label: 'Paliers' },
     source: { label: 'Source' },
   }),
-  opportunite: nommerChamps(z.strictObject({
+  opportunite: nommerChamps(porteurDeTestFixe(z.strictObject({
     encInvestiMax: z.boolean(),
     test: flowTestSchema,
     ...cibleEtendueSchema.shape,
@@ -122,7 +122,7 @@ const champs = {
       }),
     ),
     source: sourceRefSchema,
-  }).superRefine(fixerLeTest('skill', 'difficulty')), {
+  }), 'skill', 'difficulty'), {
     encInvestiMax: { label: 'Investissement maximal (Enc)' },
     test: { label: 'Test' },
     ...metaDesChamps(cibleEtendueSchema, { exigees: true }),

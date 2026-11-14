@@ -390,7 +390,9 @@ function natureDuType(root, type) {
 }
 
 /** Les alias qui ADOPTENT une entrée dérivée (`type X = EntreeDe<typeof def>`, `DatasetDe` ou `RangeeDe`), par fichier
- *  de donnée du def (`export const file`) : le nom sous lequel le dépôt lit cette entrée. */
+ *  de donnée du def (`export const file`) et par GENRE d'entrée (`RangeeDe` : la rangée ; sinon : le document) : le nom
+ *  sous lequel le dépôt lit cette entrée. Deux alias du même genre : le premier en (module, position), quel que soit
+ *  l'ordre du corpus. */
 function aliasAdoptants(root, program, files) {
   const adoptants = new Map()
   for (const f of files) {
@@ -401,11 +403,18 @@ function aliasAdoptants(root, program, files) {
       return ns && ts.isNamespaceImport(ns) ? [[ns.name.text, resolve(dirname(sf.fileName), `${i.moduleSpecifier.text}.ts`)]] : []
     }))
     for (const n of sf.statements) {
-      if (!ts.isTypeAliasDeclaration(n) || !ts.isTypeReferenceNode(n.type) || !['EntreeDe', 'DatasetDe', 'RangeeDe'].includes(n.type.typeName.getText())) continue
-      const arg = n.type.typeArguments?.[0]
+      if (!ts.isTypeAliasDeclaration(n)) continue
+      // Une entrée VIVANTE (`EntreeVivante<EntreeDe<…>>`, `src/data/datasets.ts`) adopte l'entrée qu'elle rouvre.
+      const vivante = ts.isTypeReferenceNode(n.type) && n.type.typeName.getText() === 'EntreeVivante' ? n.type.typeArguments?.[0] : n.type
+      if (!vivante || !ts.isTypeReferenceNode(vivante) || !['EntreeDe', 'DatasetDe', 'RangeeDe'].includes(vivante.typeName.getText())) continue
+      const arg = vivante.typeArguments?.[0]
       const module = arg && ts.isTypeQueryNode(arg) ? defs.get(arg.exprName.getText()) : undefined
       const file = module && /^export const file = '([^']+)';$/m.exec(program.getSourceFile(module)?.text ?? '')?.[1]
-      if (file) adoptants.set(file, { decl: n, type: n.name.text, home: norm(relative(root, sf.fileName)) })
+      if (!file) continue
+      const cle = `${file}#${vivante.typeName.getText() === 'RangeeDe' ? 'rangee' : 'entree'}`
+      const candidat = { decl: n, type: n.name.text, home: norm(relative(root, sf.fileName)) }
+      const tenant = adoptants.get(cle)
+      if (!tenant || parUnites(candidat.home, tenant.home) < 0 || (candidat.home === tenant.home && n.getStart() < tenant.decl.getStart())) adoptants.set(cle, candidat)
     }
   }
   return adoptants
@@ -426,7 +435,8 @@ export function ciblesDeCatalogue(root, session, files, definitions = SCHEMA_DEF
   const cibles = new Map(), sorties = []
   for (const d of [...definitions].sort((a, b) => parUnites(a.file, b.file))) {
     // L'ENTRÉE d'un document à rangées est sa rangée (`documentARangees.mts`, #3012).
-    const entree = estDocumentARangees(d.schema, d.famille) ? ['entries', '[]'] : []
+    const aRangees = estDocumentARangees(d.schema, d.famille)
+    const entree = aRangees ? ['entries', '[]'] : []
     const declares = champsDeclares(d.schema).filter(p => entree.every((k, i) => p[i] === k))
     while (declares.length && ['[]', '{}'].includes(declares[0][entree.length]) && declares.every(p => p[entree.length] === declares[0][entree.length])) entree.push(declares[0][entree.length])
     const cles = declares.filter(p => p.length === entree.length + 1).map(p => p.at(-1))
@@ -435,7 +445,7 @@ export function ciblesDeCatalogue(root, session, files, definitions = SCHEMA_DEF
     // Une entrée DÉRIVÉE n'a pas de déclaration propre — instanciation d'alias générique (`DatasetDuDocument`), ou
     // union des cas d'une charge par discriminant : elle se nomme par l'alias du dépôt qui l'adopte.
     const derivee = n => n.decl ? n.decl.typeParameters?.length > 0 : n.composee
-    const adoptee = n => !derivee(n) ? n : adoptants.get(d.file) ?? (n.decl ? { raison: 'type dérivé sans alias qui l’adopte (`EntreeDe`/`DatasetDe`/`RangeeDe`)' } : n)
+    const adoptee = n => !derivee(n) ? n : adoptants.get(`${d.file}#${aRangees ? 'rangee' : 'entree'}`) ?? (n.decl ? { raison: 'type dérivé sans alias qui l’adopte (`EntreeDe`/`DatasetDe`/`RangeeDe`)' } : n)
     const natures = vues.flatMap(c => typesDuChemin(checker, c, entree.slice(c.path.length)).map(t => ({ ...adoptee(natureDuType(root, t)), site: siteDe(root, c.node) })))
     for (const n of natures.filter(n => n.decl)) {
       const cle = `${n.home}#${n.type}`

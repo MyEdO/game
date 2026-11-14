@@ -37,7 +37,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
 import { noeudsDeTest, KIND_PAR_FICHIER } from './noeudsDeTest.testkit';
 import { resolveStake, findById, combatStakeRef, regles, type StakeRef, TAVERN_GAMES } from '../data';
-import { ACTIVITIES } from '../engine/activities';
+import { ACTIVITIES } from '../data';
 import { CRITIQUE_DOCS } from '../data/criticals';
 import { scanFlowTestEngineRoll, siteLabel } from '../../scripts/guards/lib/flowTestEngineRoll.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
