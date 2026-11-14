@@ -1,0 +1,9 @@
+const ev=require("/home/user/game/src/data/sea-events.json");
+function walk(f,acc,path){ if(!f||typeof f!=="object")return;
+  if(f.kind==="test") acc.push("test"+(f.test&&f.test.crewTestType?"(crew:"+f.test.crewTestType+")":""));
+  else if(f.kind==="choice") acc.push("choice");
+  else if(f.kind==="do"&&f.effect){ const on=f.effect.on; acc.push("do:"+f.effect.type+(on?"@"+JSON.stringify(on):"")); }
+  else acc.push(f.kind);
+  for(const k of ["steps","success","fail","oui","non","then","else"]) { const v=f[k]; if(Array.isArray(v)) v.forEach(x=>walk(x,acc)); else walk(v,acc);} }
+for (const set of ["boardEvents","portEvents"]) { const arr=ev[set].entries; console.log("##",set,arr.length);
+for(const e of arr){const acc=[]; walk(e.consequence,acc); console.log(e.id, e.min+"-"+e.max, acc.join(" | ")||"(sans consequence)");}}

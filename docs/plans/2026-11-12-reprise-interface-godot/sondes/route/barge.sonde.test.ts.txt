@@ -1,0 +1,21 @@
+import { describe, expect, it } from '/home/user/game/node_modules/vitest/dist/index.js';
+import { departDeLaCarte, drainer, gestesDessines, table } from '/home/user/game/hotes/godot/pont/pont.testkit';
+import type { Bouton, Element } from '/home/user/game/src/hote/elements';
+
+describe('sonde : paysage d’un trajet en barge sur une route de barge', () => {
+  it('commerce-fluvial, Grünburg → Hornlach en barge', () => {
+    const { pont, appel } = table();
+    const jouer = (jeu: Bouton['jeu']) => drainer(appel, appel('jouer', jeu)).suite;
+    let s = drainer(appel, appel('demarrer', { scenario: 'commerce-fluvial', graine: 7 })).suite;
+    for (let pas = 0; s.vue.projection.fenetre && pas < 10; pas++) s = jouer(gestesDessines(s.vue).find((x): x is Bouton => x.type === 'bouton' && !x.refus)!.jeu);
+    s = jouer(s.vue.zones['exploration.gestes'].find((b: Bouton) => b.libelle === 'Carte du monde')!.jeu);
+    const depart = departDeLaCarte(s.vue, 'r-grunburg-hornlach');
+    console.log('modes', depart.valeurs.map((v) => [v.libelle, v.refus]));
+    const barge = depart.valeurs.find((v) => /barge/i.test(v.libelle))!;
+    s = jouer(barge.jeu);
+    const c = Object.fromEntries(s.vue.zones['fenetre.corps'].map((e: Element) => [e.id, e]));
+    console.log('disposition', s.vue.disposition, 'route', JSON.stringify(c['voyage/route']), 'paysage', JSON.stringify(c['scene/paysage']));
+    pont.fermer?.();
+    expect(c['scene/paysage']).toBeDefined();
+  });
+});

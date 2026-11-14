@@ -1,0 +1,26 @@
+
+===== INJECTION test sous applier mer (graine 1, Navigation ordinaire) (graine 1)
+[applier mer-evenement-de-bord] AVANT runFlow slot=null pile=[] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=8 lines=1 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+[applier mer-evenement-de-bord] APRES runFlow slot=test[Survie en extérieur] cursor=0/1 cur=jetDeTestDeScene pile=[] pendingTest=Survie en extérieur/roll=null travelPlan=true daysAtSea=0 daysToEvent=8 lines=1 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+apres runSeaDay : slot=travelDay[Journée en mer] cursor=1/2 cur=merProgressionChoix pile=[test:Survie en extérieur@0/1] pendingTest=Survie en extérieur/roll=null travelPlan=true daysAtSea=0 daysToEvent=8 lines=1 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+pas 0 jetValider(test) -> slot=null pile=[test:Survie en extérieur@0/1] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=8 lines=1 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+pas 1 : AUCUN slot ni pendingTest -> stop
+FINAL slot=null pile=[test:Survie en extérieur@0/1] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=8 lines=1 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+journal(queue): ["Météo du jour : Légères · Médiane · Brume · Brise fraîche — vent de est (cap est).","Navigation ordinaire — Navigation ordinaire. Rien ne se passe, cette partie du voyage se déroule paisiblement.","Sorcier réussit."]
+
+===== INJECTION choice sous applier mer (graine 1, Navigation ordinaire) (graine 1)
+[applier mer-evenement-de-bord] AVANT runFlow slot=null pile=[] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=8 lines=1 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+[applier mer-evenement-de-bord] APRES runFlow slot=test[Sonde injectée] cursor=0/1 cur=choixDeFlux pile=[] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=8 lines=1 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+apres runSeaDay : slot=travelDay[Journée en mer] cursor=1/2 cur=merProgressionChoix pile=[test:Sonde injectée@0/1] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=8 lines=1 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+pas 0 avanceEtape(merProgressionChoix) -> slot=travelDay[Journée en mer] cursor=2/3 cur=equipage-progression pile=[test:Sonde injectée@0/1] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=8 lines=1 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+pas 1 avanceEtape(equipage-progression) -> slot=travelDay[Journée en mer] cursor=3/4 cur=equipage-orientation pile=[test:Sonde injectée@0/1] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=8 lines=2 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+pas 2 avanceEtape(equipage-orientation) -> slot=seaScorbut[Entretien — Maladies] cursor=0/1 cur=mer-mal-de-mer pile=[test:Sonde injectée@0/1] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=8 lines=4 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+pas 3 avanceEtape(mer-mal-de-mer) -> slot=test[Sonde injectée] cursor=0/1 cur=choixDeFlux pile=[] pendingTest=null travelPlan=true daysAtSea=1 daysToEvent=8 lines=0 events=0 log=1 pendingRest=true shoreLeave=false gameTime=1080 recap=false
+>>> pendingRest ouvert (on continue de jouer le slot restant)
+pas 4 avanceEtape(choixDeFlux) -> slot=travelDay[Journée en mer] cursor=0/1 cur=merProgressionChoix pile=[] pendingTest=null travelPlan=true daysAtSea=1 daysToEvent=7 lines=1 events=0 log=1 pendingRest=true shoreLeave=false gameTime=1080 recap=false
+pas 5 avanceEtape(merProgressionChoix) -> slot=travelDay[Journée en mer] cursor=1/2 cur=equipage-progression pile=[] pendingTest=null travelPlan=true daysAtSea=1 daysToEvent=7 lines=1 events=0 log=1 pendingRest=true shoreLeave=false gameTime=1080 recap=false
+pas 6 avanceEtape(equipage-progression) -> slot=travelDay[Journée en mer] cursor=2/3 cur=equipage-orientation pile=[] pendingTest=null travelPlan=true daysAtSea=1 daysToEvent=7 lines=2 events=0 log=1 pendingRest=true shoreLeave=false gameTime=1080 recap=false
+pas 7 avanceEtape(equipage-orientation) -> slot=null pile=[] pendingTest=null travelPlan=true daysAtSea=2 daysToEvent=7 lines=0 events=0 log=1 pendingRest=true shoreLeave=false gameTime=1080 recap=false
+pas 8 : AUCUN slot ni pendingTest -> stop
+FINAL slot=null pile=[] pendingTest=null travelPlan=true daysAtSea=2 daysToEvent=7 lines=0 events=0 log=1 pendingRest=true shoreLeave=false gameTime=1080 recap=false
+journal(queue): ["Tueur reçoit 1 État Exténué.","Sorcier reçoit 1 État Exténué.","Météo du jour : Aucune · Médiane · Dégagé · Vent modéré — vent de ouest (cap est).","Progression du jour : 0 milles (DR d'équipage -14).","Orientation (DR -3) : Le bateau a dévié de sa trajectoire. Lancez le dé dans le tableau Changement de cap.","Changement de cap (1d10 7, dérive bâbord) : Le Navigateur a vraiment du mal à garder le cap. Ajoutez 25 % au temps que prendra le navire pour atteindre sa prochaine destination voulue."]

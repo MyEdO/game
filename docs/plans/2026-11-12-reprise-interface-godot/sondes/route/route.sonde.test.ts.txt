@@ -1,0 +1,51 @@
+import { it } from '/home/user/game/node_modules/vitest/dist/index.js';
+import { writeFileSync } from 'node:fs';
+import { creerPont } from '/home/user/game/hotes/godot/pont/pont';
+import { enFocus, gestesDessines } from '/home/user/game/hotes/godot/pont/dessines';
+import { horlogeVirtuelle } from '/home/user/game/src/noyau/index';
+
+const resume = (e: any): string => {
+  if (!e) return '';
+  const t = e.type;
+  if (t === 'ligne') return `L[${e.id}] ${e.texte}`;
+  if (t === 'jet') return `JET[${e.id}] qui=${e.qui} ${e.libelle} cible=${e.cible ?? ''} de=${e.de ?? ''} issue=${e.issue ?? ''} ${JSON.stringify(Object.keys(e))}`;
+  if (t === 'bouton') return `B[${e.id}] ${e.libelle}${e.focus ? ' *' : ''}${e.refus ? ' (refus ' + e.refus + ')' : ''}`;
+  if (t === 'choix' || t === 'liste') return `C[${e.id}] ${e.libelle}: ${e.valeurs.map((v: any) => v.libelle).join(' | ')}`;
+  if (t === 'entite') return `E[${e.id}] ${e.nom} {${(e.elements ?? []).map(resume).join(' ; ')}}`;
+  if (t === 'plan') return `PLAN[${e.id}]`;
+  if (t === 'paysage') return `PAYSAGE ${e.paysage.join(',')}`;
+  return `${t}[${e.id}] ${JSON.stringify(e).slice(0, 200)}`;
+};
+
+it('sonde route', () => {
+  const out: string[] = [];
+  for (const graine of [7, 1, 2, 3, 4, 5]) {
+    const pont = creerPont();
+    const appeler = (m: string, e: unknown) => { const r = JSON.parse(pont.appeler(m, JSON.stringify(e))); if (!r.ok) throw new Error(m + JSON.stringify(r)); return r; };
+    const lignes: string[] = [];
+    const jouer = (m: string, e: unknown) => {
+      let s = appeler(m, e); lignes.push(...s.zones['journal.lignes'].map((l: any) => l.texte));
+      horlogeVirtuelle((jeton: any) => { s = appeler('reprendre', { jeton }); lignes.push(...s.zones['journal.lignes'].map((l: any) => l.texte)); return s.programmes; }, s.programmes).vider();
+      return s;
+    };
+    let s = jouer('demarrer', { scenario: 'voyage', graine });
+    for (let pas = 0; s.vue.projection.fenetre && pas < 20; pas++) s = jouer('jouer', enFocus(s.vue)?.jeu ?? gestesDessines(s.vue)[0].jeu);
+    s = jouer('jouer', s.vue.zones['exploration.gestes'].find((b: any) => b.libelle === 'Carte du monde').jeu);
+    const plan = s.vue.zones['fenetre.corps'].find((e: any) => e.type === 'plan');
+    s = jouer('jouer', plan.points.flatMap((p: any) => p.elements).find((e: any) => e.id === 'r-grandroute').valeurs[0].jeu);
+    out.push(`\n===== graine ${graine}`);
+    for (let pas = 0; pas < 60 && s.vue.projection.fenetre; pas++) {
+      const z = s.vue.zones;
+      out.push(`--- pas ${pas} disposition=${s.vue.disposition} titre=${(z['fenetre.titre'][0] as any)?.texte} etape=${JSON.stringify(s.vue.projection.fenetre?.etape ?? null).slice(0, 160)}`);
+      for (const k of ['fenetre.corps', 'fenetre.reglages', 'fenetre.gestes']) for (const e of z[k] ?? []) out.push(`   ${k}: ${resume(e)}`);
+      for (const h of z['groupe.heros']) { const j = h.elements.filter((e: any) => e.type === 'jet' || (e.type === 'bouton' && !e.id.startsWith('fiche/'))); if (j.length) out.push(`   heros ${h.nom}: ${j.map(resume).join(' ; ')}`); }
+      if (lignes.length) { out.push(...lignes.map((l) => `   journal+ ${l}`)); lignes.length = 0; }
+      if (z['fenetre.titre'][0] && /arriv|Récit|récit/i.test((z['fenetre.titre'][0] as any).texte) && s.vue.disposition !== 'voyage' && s.vue.disposition !== 'repos') break;
+      const g = enFocus(s.vue)?.jeu ?? gestesDessines(s.vue).flatMap((x: any) => (x.type === 'choix' ? x.valeurs : [])).find((b: any) => !b.refus)?.jeu;
+      if (!g) break;
+      s = jouer('jouer', g);
+    }
+    pont.fermer();
+  }
+  writeFileSync('/tmp/claude-0/-home-user/47cccebd-91e8-5432-b0c8-43d48aefbcdb/scratchpad/sonde/route.txt', out.join('\n'));
+});

@@ -1,0 +1,152 @@
+import { it, vi } from 'vitest';
+import { writeFileSync } from 'node:fs';
+import { idsDeTest } from '/home/user/game/src/engine/idsDeTest.testkit';
+import { ouvrirLeBanc, type Banc } from '/home/user/game/src/noyau/banc.testkit';
+import { tousLesHerosDeScenario } from '/home/user/game/src/scenes/test-scenarios/_heros';
+import { buildSeaPlan, runSeaDay } from '/home/user/game/src/noyau/seaVoyageFlow';
+import { seedBattleRng } from '/home/user/game/src/noyau/battleRng';
+import { emptyScene } from '/home/user/game/src/noyau/monde/scene';
+import { avanceEtapeCascade } from '/home/user/game/src/noyau/cascade.testkit';
+import * as cascadeNs from '/home/user/game/src/noyau/cascade';
+import { tablesPosees } from '/home/user/game/src/noyau/tablesPosees';
+import { createHero, skillCharacteristicById } from '/home/user/game/src/engine/character';
+import { buildScene } from '/home/user/game/src/noyau/mapSpec';
+import { creditBourse } from '/home/user/game/src/noyau/bourseFlow';
+
+import { TABLES as T0 } from '/home/user/game/src/noyau/activityWorldRolls';
+import { TABLES as T1 } from '/home/user/game/src/noyau/authorPerils';
+import { TABLES as T2 } from '/home/user/game/src/noyau/combat/hitModifiers';
+import { TABLES as T3 } from '/home/user/game/src/noyau/combat/roundHooks';
+import { TABLES as T4 } from '/home/user/game/src/noyau/combat/triggeredTest';
+import { TABLES as T5 } from '/home/user/game/src/noyau/combat/turnHooks';
+import { TABLES as T6 } from '/home/user/game/src/noyau/combatEffects';
+import { TABLES as T7 } from '/home/user/game/src/noyau/combatFlow';
+import { TABLES as T8 } from '/home/user/game/src/noyau/combatManeuvers';
+import { TABLES as T9 } from '/home/user/game/src/noyau/conversation';
+import { TABLES as T10 } from '/home/user/game/src/noyau/corruptionFlow';
+import { TABLES as T11 } from '/home/user/game/src/noyau/encounterPsychFlow';
+import { TABLES as T12 } from '/home/user/game/src/noyau/horloge';
+import { TABLES as T13 } from '/home/user/game/src/noyau/innFlow';
+import { TABLES as T14 } from '/home/user/game/src/noyau/interactionsDExploration';
+import { TABLES as T15 } from '/home/user/game/src/noyau/interludeFlow';
+import { TABLES as T16 } from '/home/user/game/src/noyau/issueDeCombat';
+import { TABLES as T17 } from '/home/user/game/src/noyau/landMarketFlow';
+import { TABLES as T18 } from '/home/user/game/src/noyau/merchantFlow';
+import { TABLES as T19 } from '/home/user/game/src/noyau/portFlow';
+import { TABLES as T20 } from '/home/user/game/src/noyau/pursuitFlow';
+import { TABLES as T21 } from '/home/user/game/src/noyau/restFlow';
+import { TABLES as T22 } from '/home/user/game/src/noyau/riverVoyageFlow';
+import { TABLES as T23 } from '/home/user/game/src/noyau/seaActivities';
+import { TABLES as T24 } from '/home/user/game/src/noyau/seaVoyageFlow';
+import { TABLES as T25 } from '/home/user/game/src/noyau/sequenceCore';
+import { TABLES as T26 } from '/home/user/game/src/noyau/shipwreck';
+import { TABLES as T27 } from '/home/user/game/src/noyau/tavernFlow';
+import { TABLES as T28 } from '/home/user/game/src/noyau/testsDeScene';
+import { TABLES as T29 } from '/home/user/game/src/noyau/travelFlow';
+import { TABLES as T30 } from '/home/user/game/src/noyau/travelPostes';
+const SOURCES: any[] = [T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,T16,T17,T18,T19,T20,T21,T22,T23,T24,T25,T26,T27,T28,T29,T30];
+let banc: Banc;
+const get = () => banc.getState() as any;
+const set = (e: any) => banc.setState(e);
+const F = '/tmp/claude-0/-home-user/47cccebd-91e8-5432-b0c8-43d48aefbcdb/scratchpad/juge-4006/inv.txt';
+const out: string[] = [];
+const ecritures: Record<string, number> = {};
+let MODE = '';
+let entreesSousSlot = 0; let entrees = 0; const slotsALEntree: Record<string, number> = {};
+
+function instrumenter() {
+  let ro = 0; let n = 0;
+  for (const T of SOURCES) { const A: any = (T as any).appliers; if (!A) continue;
+  for (const k of Object.keys(A)) { n++;
+    const orig = A[k];
+    const d = Object.getOwnPropertyDescriptor(A, k);
+    if (!d || !d.writable) { ro++; out.push('APPLIER NON INSTRUMENTE (lecture seule): ' + k); continue; }
+    A[k] = (g: any, s: any, step: any, ...rest: any[]) => {
+      const B = g().pendingCascade; const battleB = g().battle;
+      const r = orig(g, s, step, ...rest);
+      const Af = g().pendingCascade;
+      if (Af && Af !== B && !(!battleB && g().battle)) {
+        const local = !(B && B.participants.some((x: any) => x.id === step.id));
+        const cle = `${MODE} | applier=${k} | pilote=${local ? 'LOCAL(immediat)' : 'slot:' + B.purpose} | slotAvant=${B ? B.purpose : 'null'} -> slotApres=${Af.purpose}[${Af.title}] cur=${Af.participants[Af.cursor]?.kind}`;
+        ecritures[cle] = (ecritures[cle] ?? 0) + 1;
+      }
+      return r;
+    };
+  } }
+  out.push('appliers instrumentes: ' + n + ' lecture seule: ' + ro);
+  const origJ = cascadeNs.jouerLaJournee;
+  vi.spyOn(cascadeNs, 'jouerLaJournee', 'get').mockReturnValue(((g: any, s: any, steps: any, ctx: any, cmd: any) => {
+    entrees++;
+    const sl = g().pendingCascade;
+    if (sl) { entreesSousSlot++; const c = `${MODE} slot=${sl.purpose}[${sl.title}]`; slotsALEntree[c] = (slotsALEntree[c] ?? 0) + 1; }
+    return origJ(g, s, steps, ctx, cmd);
+  }) as any);
+}
+
+function piloter(max = 80): string {
+  for (let i = 0; i < max; i++) {
+    const g = get();
+    if (g.pendingRest) return 'halte';
+    if (g.travelRecap || !g.travelPlan) return 'arrivee/fin';
+    if (g.battle) return 'combat';
+    if (g.pendingTest) { if (g.pendingTest.roll == null) g.jetLancer('test'); get().jetValider('test'); }
+    else if (g.pendingCascade) avanceEtapeCascade(get);
+    else return 'MORT(aucun slot, pas de halte)';
+    banc.reprendreTout();
+  }
+  return 'boucle';
+}
+
+const seaMap: any = { id: 'm', label: 'Mer', places: [
+  { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'port-a' } },
+  { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'port-b' }, port: { taille: 3, richesse: 3, production: ['bois-mer'] } }],
+  routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }] };
+function mer(graine: number, evenement: boolean) {
+  seedBattleRng(graine);
+  set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+    battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null, pendingRest: null, pendingTest: null,
+    pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
+    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [] });
+  const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+  set({ travelPlan: { ...plan, sea: { ...plan.sea!, ...(evenement ? { daysToEvent: 1 } : {}), forcedEventId: undefined } } });
+  runSeaDay(get, set);
+  return piloter();
+}
+function skill(c: any, id: string, adv: number, spec?: string) { c.skills.push({ id, spec, characteristic: skillCharacteristicById(id), advances: adv }); }
+function crew() {
+  const gunnar: any = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
+  skill(gunnar, 'ramer', 50); skill(gunnar, 'voile', 45, 'chaland');
+  const otto = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
+  const lise = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Lise', motivation: 'x', seed: 13, id: 'r-lise' });
+  return [gunnar, otto, lise];
+}
+const quai = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] } as any);
+function fleuveOuTerre(graine: number, mode: 'barge' | 'pied', perilDie: number | undefined) {
+  seedBattleRng(graine);
+  const route: any = { id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 90, modes: ['barge', 'pied'], river: true, inns: true, ...(perilDie != null ? { perilDie } : {}) };
+  const map: any = { id: 'm', label: 'Le Reik', places: [{ id: 'A', label: 'G', pos: { x: 0, y: 0 }, scene: { id: 'quai-a' } }, { id: 'B', label: 'Alt', pos: { x: 90, y: 0 }, scene: { id: 'quai-b' } }], routes: [route] };
+  set({ party: crew(), battle: null, suspendedCascades: [], pendingTest: null });
+  get().chargerLeProjet({ scenes: [quai('quai-a', 'G'), quai('quai-b', 'Alt')], entryId: 'quai-a', worldMap: map, projet: null });
+  set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
+  creditBourse(get, set, get().party[0].id, { gold: 500, silver: 0, brass: 0 });
+  get().partirEnVoyage('r-reik', mode, { cadence: 'jourParJour' });
+  return piloter();
+}
+
+it('inventaire', () => {
+  instrumenter();
+  banc = ouvrirLeBanc();
+  const issues: Record<string, number> = {};
+  const note = (k: string) => { issues[k] = (issues[k] ?? 0) + 1; };
+  for (let g = 1; g <= 150; g++) { MODE = 'mer-evt'; note(MODE + ' -> ' + mer(g, true)); }
+  for (let g = 1; g <= 60; g++) { MODE = 'mer'; note(MODE + ' -> ' + mer(g, false)); }
+  for (let g = 1; g <= 60; g++) { MODE = 'fleuve'; try { note(MODE + ' -> ' + fleuveOuTerre(g, 'barge', undefined)); } catch (e: any) { note(MODE + ' THROW ' + String(e.message).slice(0, 80)); } }
+  for (let g = 1; g <= 60; g++) { MODE = 'terre'; try { note(MODE + ' -> ' + fleuveOuTerre(g, 'pied', undefined)); } catch (e: any) { note(MODE + ' THROW ' + String(e.message).slice(0, 80)); } }
+  for (let g = 1; g <= 60; g++) { MODE = 'terre-peril'; try { note(MODE + ' -> ' + fleuveOuTerre(g, 'pied', 10)); } catch (e: any) { note(MODE + ' THROW ' + String(e.message).slice(0, 80)); } }
+  { const P: any = tablesPosees().appliers; let vus = 0; for (const k of Object.keys(P)) if (String(P[k]).includes('slotApres')) vus++; out.push('tablesPosees voit instrumentes ' + vus + ' / ' + Object.keys(P).length); }
+  out.push('ISSUES ' + JSON.stringify(issues, null, 1));
+  out.push(`jouerLaJournee entrees=${entrees} sousSlotVivant=${entreesSousSlot} ` + JSON.stringify(slotsALEntree, null, 1));
+  out.push('ECRITURES DU SLOT PAR UN APPLIER (hors combat):');
+  for (const [k, n] of Object.entries(ecritures).sort()) out.push(`  ${n}x ${k}`);
+  writeFileSync(F, out.join('\n'));
+});
