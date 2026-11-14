@@ -1225,23 +1225,34 @@ export const menaceSchema = specFermeeDe('talent', 'resistance');
  *  forme partagée du Test de flux et du Test étendu, sans refine. */
 export const decisionDuTestSchema = nommerChamps(z.strictObject({
   easierIf: facilitationSchema.optional(),
+  /** MDG 15 l.197, l.231 */
   gate: conditionSchema.optional(),
+  /** LDB 16 l.54 */
   difficultyBy: z.array(nommerChamps(z.strictObject({ cond: conditionSchema, difficulty: difficultySchema }), { cond: { label: "condition" }, difficulty: { label: "difficulté"  } })).optional(),
 }), { easierIf: { label: "facilité conditionnelle" }, gate: { label: "condition d’accès" }, difficultyBy: { label: "difficultés conditionnelles" } });
+
+/** Le Test qui PEUT porter une décision, tel que le DÉCLARENT `jetSchema` et `decisionDuTestSchema` : la cible de
+ *  `src/decision-du-test-guard.test.ts`. */
+export type JetDecidable = z.output<typeof jetSchema> & z.output<typeof decisionDuTestSchema>;
 
 export const flowTestSchema = nommerChamps(z.strictObject({
   /** ENJEU du Test (#1117) — cf. `stakeRefSchema`. */
   stake: stakeRefSchema.optional(),
   ...jetSchema.shape,
+  /** LDB 18 */
   sense: senseSchema.optional(),
   /** MDG 15 l.144-145 */
   crewTestType: idDe('crewTestType').optional(),
   requireSL: z.number().optional(),
   label: z.string().optional(),
   tool: z.string().optional(),
+  /** LDB 21 */
   vsGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
+  /** LDB 08 */
   vsStatus: statutSchema.optional(),
+  /** LDB 08 l.63 */
   begging: z.boolean().optional(),
+  /** MSRC 15 l.149-159 */
   vsCapricieux: z.boolean().optional(),
   ...decisionDuTestSchema.shape,
   argDifficulty: z.boolean().optional(),
@@ -1253,14 +1264,19 @@ export const flowTestSchema = nommerChamps(z.strictObject({
   noSupport: z.boolean().optional(),
   /** Tag MENACE du talent « Résistance (Menace) » (LDB 10 l.1016-1020). */
   menace: menaceSchema.optional(),
+  /** LDB 62 l.235 */
   opposed: nommerChamps(z
     .strictObject({
       attacker: charKeySchema,
       attackerSkill: idDe('skill').optional(),
       attackerLabel: z.string().optional(),
+      /** LDB 62 l.280 */
       bonusSL: z.number().optional(),
+      /** LDB 85 */
       attackerBonusSL: z.number().optional(),
-    }), { attacker: { label: "attaquant"  }, attackerSkill: { label: "Compétence de l’attaquant" , texte: { regime: "technique"} }, attackerLabel: { label: "nom de l’attaquant" , texte: { regime: "technique"} }, bonusSL: { label: "bonus de DR" }, attackerBonusSL: { label: "bonus de DR de l’attaquant" } })
+      /** LDB 62 l.235, l.280 ; LDB 12 l.160 */
+      defenderMustWin: z.boolean().optional(),
+    }), { attacker: { label: "attaquant"  }, attackerSkill: { label: "Compétence de l’attaquant" , texte: { regime: "technique"} }, attackerLabel: { label: "nom de l’attaquant" , texte: { regime: "technique"} }, bonusSL: { label: "bonus de DR" }, attackerBonusSL: { label: "bonus de DR de l’attaquant" }, defenderMustWin: { label: "le défenseur doit l’emporter" } })
     .optional(),
 }).superRefine((v, ctx) => {
   // UN JET NOMME CE QU'IL TESTE (#1657 B3-3). Sans `skill` ni `characteristic`, la porte n'a rien à

@@ -25,9 +25,9 @@
  */
 import type { z } from 'zod';
 import type { IconId } from '../data/icons';
-import type { effectTargetingSchema, effectTriggerSchema, triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
+import type { effectTargetingSchema, effectTriggerSchema, flowTestSchema, triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
 import { toDate } from './clock';
-import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
+import type { CharKey, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
 import {
@@ -39,17 +39,15 @@ import {
   valeurNonLiee,
   type Formula,
   type GameOp,
-  type PairedSense,
 } from './ops';
 import type { CibleEnVue } from './psychology';
-import { refCouvre, type Id, type RefDesignee } from '../data/schemas/grammaire/ref';
+import { refCouvre, type Id } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 // Type SEUL (effacé à la compilation — aucun cycle runtime) : `StakeRef` est la forme canonique de la
 // zone d'enjeu, et la redéclarer ici serait la 2ᵉ source du même vocabulaire que #1117 combat.
 import type { StakeRef } from '../data';
 import { actorStatus, statusMeets, type PorteurDeStatut } from './social';
 import { gelerLaConstante } from '../lib/gelerProfond';
-import type { MenaceId } from './menace';
 import { estObjet } from '../lib/objet.mjs';
 
 /** Fenêtre horaire d'un trigger/Condition (heure-du-jour, `before` EXCLUSIF). Champs absents = borne
@@ -477,107 +475,9 @@ export function conditionCtx(s: { flags: Record<string, boolean>; gameTime: numb
   return { flags: s.flags, gameTime: s.gameTime, party: s.party, money: s.money, etats: s.etats };
 }
 
-/** Spécification d'un jet de compétence/caractéristique différé (→ modale) — TOUT le métier du Test,
- *  SANS les branches (portées par le nœud Flow `test`). Source UNIQUE : `Effect` 'test' est normalisé
- *  vers cette forme à l'exécution (un seul ouvreur de modale `openSkillTest`). */
-export interface FlowTest {
-  /** ENJEU du Test (#1117). C'est la TROISIÈME forme qui lance (après l'étape de cascade posée à la
-   *  main et la `RollRequest` du seam) : `resolveFlowTest` bâtit son étape via
-   *  `simpleTriggeredTestStep`, qui n'a aucun moyen de deviner ce que le Flow met en jeu — le
-   *  producteur le fournit ici. DEUX provenances, une seule porte de résolution (`resolveStake`) :
-   *  le MOTEUR nomme un dataset (`combatStakeRef`…), un DOCUMENT de campagne écrit sa phrase
-   *  (`AuthoredStake` — arbitrage user 2026-08-12, l'enjeu d'un Flow authoré s'authore dans la scène,
-   *  et `validateScene` le refuse muet). Pur-donnée dans les deux cas : la valeur voyage en save et
-   *  en JSON de campagne. */
-  stake?: StakeRef;
-  /** Compétence testée (XOR `characteristic`) — référence EMBOÏTÉE `{ id, spec? }`. La `spec` cible
-   *  QUELLE instance est testée quand le héros en possède plusieurs (Métier (Serrurier), Savoir (Magie)…) ;
-   *  sinon la première suffit. */
-  skill?: RefDesignee;
-  /** Sens SOLLICITÉ par ce Test de Perception (LDB 18) — authoré sur le nœud de test d'une scène/dialogue :
-   *  `'vue'` (repérer un mouvement, lire, guetter l'horizon) ou `'ouie'` (écouter à une porte, entendre une
-   *  approche). Restreint le malus de Surdité (`skillMod{sense:'ouie'}`) au seul Test auditif, symétrique à
-   *  la Cécité (qui nomme ses compétences en donnée). Absent = Test générique/ambigu → malus appliqué par
-   *  défaut (conservateur : un sourd rate les indices sonores d'une vigilance générale). Lu par `openSkillTest`
-   *  → `testValue`. */
-  sense?: PairedSense;
-  characteristic?: CharKey;
-  /** TEST D'ÉQUIPAGE de ce type (`crew-test-types.json`, XOR `skill`/`characteristic`) : l'équipage du navire
-   *  le joue par ses rôles (MDG 14 l.39), la branche suit son verdict. MDG 15 l.144-145 */
-  crewTestType?: string;
-  difficulty?: Difficulty;
-  /** DR minimum requis (défaut 0 = simple réussite). */
-  requireSL?: number;
-  label?: string;
-  /** Outil utilisé : `trappingId` de la possession cataloguée (ex. `'marteau'`) — résolu au runtime
-   *  par id STABLE (`i.trappingId === tool`), jamais par libellé. Sa qualité d'artisanat module l'issue /
-   *  casse l'objet. */
-  tool?: string;
-  /** Groupes de l'interlocuteur : malus Animosité/Préjugé sur un Test de Sociabilité (LDB 21). */
-  vsGroups?: string[];
-  /** Statut de la cible (« Argent 3 ») : mod social d'Échelon/Standing sur un Test social (LDB 08). */
-  vsStatus?: string;
-  /** Le Test social est une mendicité (option « Mendicité et Statut », LDB 08 l.63). */
-  begging?: boolean;
-  /** L'interlocuteur est une créature CAPRICIEUSE (Trait Capricieux, MSRC 15 l.149-159) : un tirage UNE
-   *  fois sur sa table (`tirerLeCapricieux`) décale le DR du Test de Sociabilité. Authoré sur le Test
-   *  d'un dialogue mené avec la créature. */
-  vsCapricieux?: boolean;
-  /** Difficulté réduite si l'allégeur possède la compétence/le talent requis (`resoudreFlowTest`). */
-  easierIf?: { hasSkill?: { id: string; spec?: string }; hasTalent?: string; steps?: number };
-  /** La difficulté EFFECTIVE vient de l'argument d'instance du porteur (« Venin (Difficile) ») —
-   *  substituée à la collecte (`withArg`/`effectsOf`) ; `difficulty` ci-dessus est le défaut (arg absent).
-   *  GATE reportée de l'op `test` (sémantique IDENTIQUE) — honorée par `resolveFlowTest`. */
-  argDifficulty?: boolean;
-  /** Le Test n'a lieu que si la cible appartient à l'un de ces Groupes (Épée de justice : « Criminel »).
-   *  Sinon = no-op. Même `groupMatch` que l'op `test`. */
-  onlyGroups?: string[];
-  /** Le Test est sauté si la cible appartient à l'un de ces Groupes (Morsure de l'hiver : hors
-   *  Mort-vivant/Démon). Même `groupMatch` que l'op `test`. */
-  exceptGroups?: string[];
-  /** GATE générique : le Test n'a lieu QUE si cette Condition est vraie (sinon no-op — ni étape ni branche,
-   *  comme `onlyGroups`). Généralise ces gates à l'algèbre de Conditions (Brisé : « pas
-   *  Engagé OU Cœur vaillant, ET pions restants »). Évaluée AVANT le jet par `resolveFlowTest`/`resolveInlineFlowTest`,
-   *  par testeur ; dans un Flow de scène (`runFlow`), sur chaque héros : seuls ceux qui l'ouvrent peuvent jeter
-   *  (MDG 15 l.197, l.231). */
-  gate?: Condition;
-  /** SOUTIEN (LDB 12 l.197) — TRI-ÉTAT, jamais une denylist par id de Compétence/Caractéristique ;
-   *  coupé à la source par `openSkillTest` (`combatEffects.ts`) :
-   *   - ABSENT : défaut de la VOIE qui ouvre le Test — scène/dialogue soutenable, effet DÉCLENCHÉ
-   *     (`routeTriggeredTest`) et consommable NON soutenables (le sujet subit, l.197) ;
-   *   - `true` : jamais soutenable, quelle que soit la voie ;
-   *   - `false` : soutenable malgré la voie (Test de SOIN d'un nécessaire — soigner n'est pas résister). */
-  noSupport?: boolean;
-  /** MENACE à laquelle ce Test RÉSISTE (tag du talent « Résistance (Menace) », LDB 10 l.1016-1020 :
-   *  `poison` pour Venin/lames empoisonnées…). Copié sur l'étape de cascade du héros → offre
-   *  l'auto-succès du talent (verbe `resist`, cf. engine/menace). Absent = Test non couvert. */
-  menace?: MenaceId;
-  /** Difficulté DYNAMIQUE : la PREMIÈRE Condition vraie impose sa difficulté ; sinon `difficulty`
-   *  (`resoudreFlowTest`). Brisé : LDB 16 l.54. */
-  difficultyBy?: { cond: Condition; difficulty: Difficulty }[];
-  /** Test OPPOSÉ (Assommante, LDB 62 l.235 : « Test opposé Force/Résistance ») : le côté qui jette CE
-   *  Test (`skill`/`characteristic` ci-dessus) est le DÉFENSEUR (la cible/victime) ; l'ATTAQUANT (le
-   *  porteur de l'effet) oppose `attacker`[+`attackerSkill`], pré-jeté et FIGÉ. L'issue success/sl du
-   *  défenseur vient de `resolveOpposed(jetDéfenseur, jetAttaquantFigé)` (PAS `roll ≤ target`) ; la
-   *  BRANCHE prise se lit au socle (`opposedBranchSuccess`, engine/tests) — jamais recomposée ici.
-   *  Calque la mécanique figée de `recover`/`disengage` (l'opposant garde son jet, reroll-aware). */
-  opposed?: { attacker: CharKey; attackerSkill?: string; attackerLabel?: string;
-    /** Bonus de DR ajouté au jet du DÉFENSEUR (celui qui passe CE Test) AVANT l'opposition — Piège-lame
-     *  (LDB 62 l.280 : « en ajoutant votre DR obtenu au précédent Test de Corps à corps »). Modifie À LA
-     *  FOIS le vainqueur et la marge nette (il s'additionne au `sl` du défenseur dans `resolveOpposed`).
-     *  Absent = 0 (Assommante). */
-    bonusSL?: number;
-    /** Bonus de DR ajouté au jet de l'ATTAQUANT figé (`aT`) AVANT l'opposition — Furtif (LDB 85) sur le
-     *  Test de Discrétion de l'embusqueur : « Ajoutez son bonus d'Agilité au DR de tous ses Tests de
-     *  Discrétion ». Baké dans `aT.sl` au pré-jet → suit la voie cascade (meta `aT`) ET inline à
-     *  l'identique. Absent = 0. */
-    attackerBonusSL?: number;
-    /** Le DÉFENSEUR (le jeteur) est-il le camp que le RAW nomme « vous », celui qui doit REMPORTER pour
-     *  que la conséquence tombe ? `true` : la conséquence est en branche `reussite` (Piège-lame, LDB 62
-     *  l.280). Absent : le jeteur RÉSISTE, la conséquence est en branche `echec` (Assommante, l.235).
-     *  Lu au SEUL cas d'égalité parfaite — cf. `opposedBranchSuccess` (LDB 12 l.160). */
-    defenderMustWin?: boolean };
-}
+/** Spécification d'un jet de compétence/caractéristique différé (→ modale) : la sortie de `flowTestSchema`
+ *  (`data/schemas/grammaire/mecanique.ts`), sans les branches (portées par le nœud Flow `test`). */
+export type FlowTest = z.output<typeof flowTestSchema>;
 
 /** Les champs de la DÉCISION d'un `FlowTest`, lus par `resoudreFlowTest` (`engine/decisionDuTest.ts`) seul. */
 export const CHAMPS_DE_DECISION = ['gate', 'difficultyBy', 'easierIf'] satisfies readonly (keyof FlowTest)[];

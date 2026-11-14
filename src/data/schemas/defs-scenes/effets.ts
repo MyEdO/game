@@ -42,7 +42,7 @@ import {
   wallSideSchema,
 } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
-import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest } from '../../../engine/flowCore';
+import type { EffectOp, Flow as CoreFlow } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
 import { dataLabel } from '../../index';
 import type { PlayerText } from '../../../i18n/playerText';
@@ -590,14 +590,12 @@ export type Flow = CoreFlow<Effect>;
 
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 
-/** L'Effet `extendedTest` : sa décision (`difficulty`, `CHAMPS_DE_DECISION`) est celle d'un `FlowTest`, que
- *  `resoudreFlowTest` (`engine/decisionDuTest.ts`) lit seule. */
-export type TestEtendu = Omit<z.infer<typeof extendedTestSchema>, ChampDeDecision | 'difficulty'> & Pick<FlowTest, ChampDeDecision | 'difficulty'>;
+/** L'Effet `extendedTest`. */
+export type TestEtendu = z.infer<typeof extendedTestSchema>;
 
 /**
  * Union des variantes d'effet de scène + la feuille `ops`. Chaque variante est le
- * `z.infer` de son schéma ci-dessus, hors `DelayedEffect`/`PetitePriere` (manuscrites) et `TestEtendu`
- * (décision typée par `FlowTest`). `EffectOp` (`type:'ops'`) est le membre POSSÉDÉ par le moteur
+ * `z.infer` de son schéma ci-dessus, hors `DelayedEffect`/`PetitePriere` (manuscrites). `EffectOp` (`type:'ops'`) est le membre POSSÉDÉ par le moteur
  * (feuille par défaut du `Flow<E>` générique).
  */
 export type Effect =

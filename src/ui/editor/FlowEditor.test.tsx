@@ -3,13 +3,14 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { FlowEditor } from './FlowEditor';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
-import { EMPTY_FLOW } from '../../engine/flowCore';
+import { EMPTY_FLOW, type FlowTest } from '../../engine/flowCore';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
 import { idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../../data/schemas/grammaire/sousListes';
+import { flowTestSchema } from '../../data/schemas/grammaire/mecanique';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -17,7 +18,7 @@ beforeAll(() => {
 afterEach(demonterRacines);
 
 const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, narratif: emptyNarratif() };
-const testFlow = (skill: string, vsGroups?: string[]): Flow => ({
+const testFlow = (skill: NonNullable<FlowTest['skill']>['id'], vsGroups?: FlowTest['vsGroups']): Flow => ({
   kind: 'test',
   test: { skill: { id: skill }, ...(vsGroups ? { vsGroups } : {}) },
   reussite: EMPTY_FLOW,
@@ -26,7 +27,7 @@ const testFlow = (skill: string, vsGroups?: string[]): Flow => ({
 
 describe('FlowEditor — nœud Test : champ Interlocuteur/groupes (P3)', () => {
   it('un Test de SOCIABILITÉ (Charme) expose le champ des groupes de l’interlocuteur', () => {
-    const [groupe] = idsDeLaSousListe('groupe', DECLARABLE_PAR_UN_PORTEUR);
+    const [groupe] = flowTestSchema.shape.vsGroups.unwrap().parse(idsDeLaSousListe('groupe', DECLARABLE_PAR_UN_PORTEUR));
     const html = renderToStaticMarkup(<FlowEditor flow={testFlow('charme', [groupe])} onChange={() => {}} ctx={ctx} />);
     expect(html).toMatch(/Interlocuteur/i);
     expect(html).toContain(`value="${groupe}" selected=""`); // la valeur courante est choisie

@@ -22,7 +22,7 @@ import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_L
 import { isSocialTest } from '../../engine/skills';
 import { menaceIds } from '../../engine/menace';
 import { ListeDIds, RefField } from '../compendium/refField/RefField';
-import { flowTestSchema, menaceSchema } from '../../data/schemas/grammaire/mecanique';
+import { facilitationSchema, flowTestSchema, menaceSchema } from '../../data/schemas/grammaire/mecanique';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { refLabel } from '../../data';
@@ -187,14 +187,14 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
             label="Groupes de l’interlocuteur"
             title="Animosité et Préjugé du jeteur envers ces Groupes modifient le Test de Sociabilité"
             value={test.vsGroups}
-            onChange={(vsGroups) => upd({ vsGroups })}
+            onChange={(ids) => { const lus = flowTestSchema.shape.vsGroups.safeParse(ids); upd({ vsGroups: lus.success ? lus.data : undefined }); }}
           />
         </div>
       )}
       <div className="tf-row">
         <span className="dr">Plus facile si</span>
         <RefField cfg={{ ds: 'skills', single: true, spec: true }} fieldKey="compétence" value={easierIf?.hasSkill} onChange={(v) => setEase({ hasSkill: (v as { id: string; spec?: string } | null) ?? undefined })} nullable />
-        <RefField cfg={{ ds: 'talents', single: true }} fieldKey="ou talent" value={easierIf?.hasTalent} onChange={(v) => setEase({ hasTalent: (v as string | null) || undefined })} nullable />
+        <RefField cfg={{ ds: 'talents', single: true }} fieldKey="ou talent" value={easierIf?.hasTalent} onChange={(v) => { const lu = facilitationSchema.shape.hasTalent.safeParse(v || undefined); setEase({ hasTalent: lu.success ? lu.data : undefined }); }} nullable />
         <label className="dr">−<NumberField variant="nu" label="Crans de facilité" min={1} value={easierIf?.steps ?? 1} onChange={(steps) => setEase({ steps })} /> cran(s)</label>
         {/* Menace du talent « Résistance (Menace) » (LDB 10) : tag qui offre son auto-succès sur CE Test.
             Les options sont les SPECS AUTHORÉES du talent (`menaceIds`, lues au catalogue) — l'auteur

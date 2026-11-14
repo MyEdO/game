@@ -11,9 +11,12 @@ import { actorHasSkill } from './skills';
 import { hasTalent } from './magic';
 import { easeDifficulty } from './tests';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
+import type { JetDecidable, SujetDuJet } from '../data/schemas/grammaire/mecanique';
 
-/** Ce que la décision lit hors du `FlowTest`. */
+/** Ce que la décision lit d'un Test : le jet et sa décision, ses Groupes, son soutien. */
+type TestAResoudre = JetDecidable & Pick<FlowTest, 'noSupport' | 'onlyGroups' | 'exceptGroups'>;
+
+/** Ce que la décision lit hors du Test. */
 export interface ContexteDuTest {
   /** Évalue `gate` et chaque `difficultyBy[].cond`. */
   cc: ConditionCtx;
@@ -40,14 +43,14 @@ export interface DecisionDuTest {
 }
 
 /** Ceux dont la possession allège : le sujet seul sur un Test subi (LDB 12 l.197), sinon le groupe vivant. */
-function allegeurs(ft: FlowTest, ctx: ContexteDuTest): readonly Combatant[] {
+function allegeurs(ft: TestAResoudre, ctx: ContexteDuTest): readonly Combatant[] {
   const seul = ctx.sujet ? [ctx.sujet] : [];
   if (ft.noSupport === true || !ctx.groupe) return seul;
   return ctx.groupe.filter((c) => !c.dead);
 }
 
 /** La cause qui allège `ft` dans ce contexte, ou rien. */
-function causeDAllegement(ft: FlowTest, ctx: ContexteDuTest): CauseDAllegement | undefined {
+function causeDAllegement(ft: TestAResoudre, ctx: ContexteDuTest): CauseDAllegement | undefined {
   const e = ft.easierIf;
   if (!e) return undefined;
   const pool = allegeurs(ft, ctx);
@@ -57,7 +60,7 @@ function causeDAllegement(ft: FlowTest, ctx: ContexteDuTest): CauseDAllegement |
 }
 
 /** Les Groupes du sujet ouvrent-ils le Test (`onlyGroups`/`exceptGroups`) ? Sans sujet imposé, rien à juger. */
-function groupesOuvrent(ft: FlowTest, sujet: Combatant | undefined): boolean {
+function groupesOuvrent(ft: TestAResoudre, sujet: Combatant | undefined): boolean {
   if (!sujet) return true;
   const siens = groupesDe(sujet);
   if (ft.onlyGroups && !ft.onlyGroups.some((g) => groupMatch(g, siens))) return false;
@@ -65,7 +68,7 @@ function groupesOuvrent(ft: FlowTest, sujet: Combatant | undefined): boolean {
 }
 
 /** LDB 16 l.54 · LDB 12 l.166 · LDB 12 l.197 */
-export function resoudreFlowTest(ft: FlowTest, ctx: ContexteDuTest): DecisionDuTest {
+export function resoudreFlowTest(ft: TestAResoudre, ctx: ContexteDuTest): DecisionDuTest {
   const declaree = ft.difficulty ?? DIFFICULTE_PAR_DEFAUT;
   const dynamique = ft.difficultyBy?.find((d) => evalCondition(d.cond, ctx.cc))?.difficulty ?? declaree;
   const allegePar = causeDAllegement(ft, ctx);
