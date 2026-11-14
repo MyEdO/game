@@ -650,7 +650,7 @@ export function DomainEffectsField(
     onCastBonus: (v: DomainData['castBonus']) => void; onMissile: (v: DomainData['missile']) => void; onCasterOps: (v: DomainData['casterOps']) => void;
   },
 ) {
-  const etatOpts = datasetArray('etats') as { id: string; label: string }[];
+  const etatOpts = datasetArray('etats');
   return (
     <div className="ed-field">
       <span>attributs du domaine (LDB 48 — bonus d'incantation conditionnel / mitigation de Projectile / ops au lanceur)</span>

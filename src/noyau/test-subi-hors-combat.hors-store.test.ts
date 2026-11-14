@@ -37,8 +37,7 @@ import type { Combatant, EffectSource } from '../engine/types';
 import type { GameOp } from '../engine/ops';
 import { t } from '../i18n';
 import crits from '../data/criticals.json';
-import etats from '../data/etats.json';
-import { findTalentById } from '../data';
+import { findConditionById, findTalentById } from '../data';
 import spells from '../data/spells.json';
 import shipCrits from '../data/ship-criticals.json';
 import { desDuTest } from '../engine/dice.testkit';
@@ -92,9 +91,11 @@ function rangeeSonneSurLaCible(): Rangee {
 }
 
 /** Le Test de fin de Round d'un État (`etats.json`) — celui de Sonné porte un `si` de branche. */
-const noeudDEtat = (id: string): NoeudTest =>
-  (etats as { id: string; effects?: { flow: Flow }[] }[]).find((e) => e.id === id)!
-    .effects!.find((x) => x.flow.kind === 'test')!.flow as NoeudTest;
+const noeudDEtat = (id: string): NoeudTest => {
+  const noeud = findConditionById(id)?.effects?.find((x) => x.flow.kind === 'test')?.flow;
+  if (noeud?.kind !== 'test') throw new Error(`aucun nœud \`test\` aux effets de l'État « ${id} »`);
+  return noeud;
+};
 
 /** Le nœud `test` d'un talent (Mâchoires d'acier : branche `on:'caster'`, auto-portée). */
 const noeudDeTalent = (id: string): NoeudTest => {
