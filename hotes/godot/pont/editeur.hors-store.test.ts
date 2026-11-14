@@ -2176,14 +2176,14 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     let e = presser(boutonDe(narratif, 'logique/objets/ajouter'));
     const [objet] = liste(e, 'objets').filter((id) => !avant.includes(id));
     expect([compte(e), boutonDe(e, `logique/objets/${objet}`).presse, inspecte(e, 'valeur/categorie')?.type]).toEqual([`Objets (${avant.length + 1})`, true, 'choix']);
-    e = choisir(editionDe(appel('editer', { type: 'valeur', args: [{ sorte: 'objets', id: objet }, ['label'], 'Lanterne'] })), 'valeur/categorie', (v) => v === 'ammunition');
+    choisir(editionDe(appel('editer', { type: 'valeur', args: [{ sorte: 'objets', id: objet }, ['label'], 'Lanterne'] })), 'valeur/categorie', (v) => v === 'ammunition');
     e = nommer('lumignon');
     expect([(inspecte(e, 'valeur/label') as Formulaire).champs[2], valeursDeLInspecteur(e, 'valeur/categorie').find((b) => b.presse)?.libelle, liste(e, 'objets').includes('lumignon')]).toEqual([expect.objectContaining({ valeur: 'Lanterne' }), 'Munitions', true]);
     e = presser(boutonDe(presser(boutonDe(e, 'document/scene')), 'logique/declencheur/t-pont'));
     e = choisir(choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'effet'), 'valeur/flow/effet/type', (v) => (v as { type: string }).type === 'giveTrapping');
     e = choisir(e, 'valeur/flow/effet/trappingId', (v) => v === 'lumignon');
     expect(valeursDeLInspecteur(e, 'valeur/flow/effet/trappingId').find((b) => b.presse)?.libelle, 'l’objet de campagne, offert au choix, choisi').toBe('lumignon');
-    e = presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/lumignon'));
+    presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/lumignon'));
     e = nommer('falot');
     const refus = boutonDe(e, 'objets/supprimer').refus;
     expect(refus).toContain(`scène « ${(presser(boutonDe(e, 'document/scene')).vue.zones['editeur.titre'][0]).texte} »`);
@@ -2198,7 +2198,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     e = presser(boutonDe(e, 'annuler'));
     expect([compte(e), liste(e, 'objets').includes('falot')], 'une annulation rend l’objet').toEqual([`Objets (${avant.length + 1})`, true]);
     /** Le narratif tel que l'auteur le voit sans sélection, comme la recette le lit : les comptes de la zone Logique et le titre de l'ouverture. */
-    const vu = (x: Edition) => JSON.stringify([x.vue.zones['editeur.logique'].filter((el): el is Ligne => el.type === 'ligne').map((el) => el.texte), (inspecte(x, 'valeur/ouverture/titre') as Formulaire | undefined)?.champs.map((c) => c.valeur) ?? null]);
+    const vu = (x: Edition) => JSON.stringify([x.vue.zones['editeur.logique'].filter((el): el is Ligne => el.type === 'ligne').map((el) => el.texte), (inspecte(x, 'valeur/ouverture/titre') as Formulaire | undefined)?.champs.map((c) => (c as { valeur?: unknown }).valeur) ?? null]);
     for (let n = 0; vu(e) !== vu(narratif); n++) {
       expect([n < 20, boutonDe(e, 'document/narratif').presse], 'chaque annulation garde le narratif ouvert').toEqual([true, true]);
       e = presser(boutonDe(e, 'annuler'));
