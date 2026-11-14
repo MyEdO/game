@@ -3,7 +3,8 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { architectureSelectionForWarning, validateScene, type Warning } from './validateScene';
 import { emptyNarratif } from './monde/campaignNarratif';
-import { resolveStake, matieresDe, findTrappingById, terrains } from '../data';
+import { resolveStake, matieresDe, terrains } from '../data';
+import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { emptyScene, startOf, type Scene } from './monde/scene';
 import * as zones from './monde/zones';
 import { scenePlanDefects } from './planDefects';
@@ -25,7 +26,7 @@ const msgs = (w: Warning[]) => w.map((x) => x.message);
 
 describe('validateScene', () => {
   it('le verdict de l’éditeur suit les objets de campagne, y compris quand seul le narratif change', () => {
-    const objet = { ...findTrappingById('arme-simple')!, id: 'hache-du-projet', shape: { id: 'hache' }, formChoices: ['hache'] };
+    const objet = objetDeCampagne({ id: 'hache-du-projet', shape: { id: 'hache' }, formChoices: ['hache'] });
     const narratif = { ...emptyNarratif(), objets: [objet] };
     const s = base();
     s.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 },
@@ -34,6 +35,15 @@ describe('validateScene', () => {
     expect(erreurs(narratif)).toEqual([]);
     const change = erreurs({ ...narratif, objets: [{ ...objet, shape: { id: 'epee' }, formChoices: ['epee'] }] });
     expect(change.some((w) => w.message.includes(objet.id) && w.message.includes('hache_naine'))).toBe(true);
+  });
+  it('avec un narratif, un objet donné ni au catalogue ni dans la campagne est refusé, à son lieu', () => {
+    const narratif = { ...emptyNarratif(), objets: [objetDeCampagne()] };
+    const s = base();
+    s.entities.push({ id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 2, y: 2 },
+      usable: { actions: [{ id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: 'objet-fantome' }] } } }] } });
+    expect(validateScene([s], undefined, narratif).filter((w) => w.level === 'error').map((w) => `${w.scope}/${w.refId} :: ${w.message}`)).toEqual([
+      'entity/coffre :: entité « coffre » › utilisable › actions « ouvrir » › effet Effets mécaniques › opérations 1 › objet : « objet-fantome » est absent du catalogue des objets de la campagne (collection « narratif.objets » du document).',
+    ]);
   });
   it('scène propre = 0 avertissement', () => {
     expect(validateScene([base()])).toEqual([]);
@@ -427,6 +437,23 @@ describe('validateScene', () => {
     };
     expect(erreursSur('dlg-fantome', { type: 'startDialogue', dialogue: { id: 'dlg-fantome' } })).toEqual([expect.stringContaining('« dlg-fantome » est absent du catalogue des dialogues de la scène')]);
     expect(erreursSur('fantome', { type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'fantome' } })).toEqual([expect.stringContaining('« fantome » est absent du catalogue des personnages de la scène')]);
+  });
+
+  it('la rencontre d’un `startCombat` ou d’un `startPursuit` : absente de la scène, une seule erreur, celle du parse ; présente, aucune (#3606 M4a)', () => {
+    const scene = (effet: Effect) => {
+      const s = base();
+      s.encounters = [{ id: 'enc-presente', members: [] }];
+      s.triggers.push({ id: 't-rencontre', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([effet]) });
+      return s;
+    };
+    const combat = (id: string): Effect => ({ type: 'startCombat', encounter: { id } });
+    const poursuite = (id: string): Effect => ({ type: 'startPursuit', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: 'humain' } }], encounter: { id } });
+    const surRencontres = (s: Scene) => msgs(validateScene([s])).filter((m) => m.includes('catalogue des rencontres de la scène'));
+    expect(surRencontres(scene(combat('enc-fantome')))).toEqual([expect.stringContaining('« enc-fantome » est absent du catalogue des rencontres de la scène')]);
+    expect(surRencontres(scene(poursuite('enc-fantome')))).toEqual([expect.stringContaining('« enc-fantome » est absent du catalogue des rencontres de la scène')]);
+    expect(msgs(validateScene([scene(combat('enc-fantome'))])).filter((m) => m.includes('« enc-fantome »'))).toHaveLength(1);
+    expect(surRencontres(scene(combat('enc-presente')))).toEqual([]);
+    expect(surRencontres(scene(poursuite('enc-presente')))).toEqual([]);
   });
 
   /**

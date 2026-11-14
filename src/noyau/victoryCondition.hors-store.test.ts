@@ -109,7 +109,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       const enemy = b.combatants.find((c) => c.kind === 'ennemi')!;
       enemy.wounds = blessuresDeBase(10, 4, enemy); // 40% < 50%
       banc.setState({
-        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, atOrBelowPercent: 50 } },
+        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: { id: enemy.id }, atOrBelowPercent: 50 } },
       });
       const over = checkBattleOver(banc.getState, banc.setState);
       draineCascade(banc.getState);
@@ -127,7 +127,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       const enemy = b.combatants.find((c) => c.kind === 'ennemi')!;
       enemy.wounds = blessuresDeBase(10, 5, enemy); // 50% = 50%
       banc.setState({
-        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, atOrBelowPercent: 50 } },
+        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: { id: enemy.id }, atOrBelowPercent: 50 } },
       });
       expect(checkBattleOver(banc.getState, banc.setState)).toBe(true);
       expect(banc.getState().battle!.combatants.find((c) => c.id === enemy.id)!.outOfRencontre).toBe(true);
@@ -139,7 +139,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       const enemy = b.combatants.find((c) => c.kind === 'ennemi')!;
       enemy.wounds = blessuresDeBase(10, 8, enemy); // 80% ≥ 50%
       banc.setState({
-        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, atOrBelowPercent: 50 } },
+        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: { id: enemy.id }, atOrBelowPercent: 50 } },
       });
       const over = checkBattleOver(banc.getState, banc.setState);
       expect(over).toBe(false);
@@ -155,7 +155,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       enemy.wounds = blessuresDeBase(10, 0, enemy);
       enemy.dead = true;
       banc.setState({
-        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, atOrBelowPercent: 50 } },
+        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: { id: enemy.id }, atOrBelowPercent: 50 } },
       });
       const over = checkBattleOver(banc.getState, banc.setState);
       draineCascade(banc.getState);

@@ -464,7 +464,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     banc.getState().jetLancer('cascadeTirage', dev[0].id);
     const apres = etapesDeviation()[0];
     expect(apres.deviation?.mode === 'melee' ? apres.deviation.suite : undefined, 'le PLI post-dé reconduit la suite dans la `PendingDeviation`').toEqual({ deferAttackerAdvantage: true });
-    resolveDeviation(banc.getState, banc.setState, apres.deviation!, true);
+    resolveDeviation(banc.getState, banc.setState, apres.id, apres.deviation!, true);
     expect(brute.advantage, 'Avantage DIFFÉRÉ (LDB 10 l.767-773) : la reprise d’après-Déviation ne le crédite pas').toBe(0);
     expect(etapesDeviation(), 'une seule fenêtre de Critique pour ce coup').toHaveLength(1);
   });

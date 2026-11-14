@@ -463,7 +463,7 @@ async function main() {
 
       // SAUVETAGE PAR LE DESTIN d'un héros au coup fatal : décision de combat, champ lisible.
       await cadrePose(
-        `{ pendingFateSave: { heroId: window.__wfrp.battle().combatants.find((c) => c.kind === 'heros').id, source: 'hit' } }`,
+        `{ pendingFateSave: ((h) => ({ heroId: h.id, source: 'hit', avantLeCoup: structuredClone(h) }))(window.__wfrp.battle().combatants.find((c) => c.kind === 'heros')) }`,
         'Le Destin', 'sauvetage par le Destin', { cadre: true, pied: true },
       );
       await evaluate(session, `window.__game.setState({ pendingFateSave: null })`);

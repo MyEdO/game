@@ -18,33 +18,22 @@ import {
   massBattlePowerEstimate, massBattleMightModifiers, massBattleWarMachines, massBattleStructures, massBattleHazards,
 } from '../data';
 import { rollTest, difficultyFromModifier, type TestResult } from './tests';
-import type { Money } from './money';
-import { type Availability, type Difficulty } from './types';
+import { type Difficulty } from './types';
 import { RNG } from './dice';
 import { findTableEntry } from './tables';
 
 // ── Tables verbatim (`mass-battle.json`) ─────────────────────────────────────────────────────────
 
-/** Une ligne de la table d'estimation par force relative (l.26-33) : Puissance alliée/ennemie de départ. */
-export interface PowerEstimateRow extends Record<Equipe, number> { id: string; label: string; example: string }
-/** Un modificateur de Puissance par ASPECT d'armée (l.36-47) : ±10/±20/±30 selon équipement/Vétérans/Taille. */
-export interface MightModifierRow { id: string; label: string; mod: number; example: string }
-/** Une machine de guerre (l.235-247) — statistiques verbatim ; `siege` = porte l'Atout Siège. */
-export interface WarMachineRow { id: string; label: string; price: Money; crew: number; availability: Availability; range: string; damage: string; traits: string; siege: boolean }
-/** Une structure ciblable par les armes de siège (l.282-288) : BE + Blessures + Atout. */
-export interface StructureRow { id: string; label: string; be: number; wounds: number; traits: string }
-/** Un facteur environnemental d'aléa de bataille (l.311-322, 1d10) — texte verbatim. */
-export interface HazardRow { id: string; min: number; max: number; label: string; desc: string }
-
-// Les 5 tableaux sont maintenant portés par la facade `data/index.ts` (seam `overrides.ts` — édition
-// Codex) ; ce module en reste le PROPRIÉTAIRE des types (import type ré-emprunté par la facade, comme
-// `maladies`/`DiseaseDef`) et de la logique PURE ci-dessous. Mêmes références vivantes (pas de copie) :
-// une édition Codex persistée ici se reflète immédiatement dans ces constantes.
-export const POWER_ESTIMATE: PowerEstimateRow[] = massBattlePowerEstimate;
-export const MIGHT_MODIFIERS: MightModifierRow[] = massBattleMightModifiers;
-export const WAR_MACHINES: WarMachineRow[] = massBattleWarMachines;
-export const STRUCTURES: StructureRow[] = massBattleStructures;
-export const BATTLE_HAZARDS: HazardRow[] = massBattleHazards;
+// Les 5 tables (`mass-battle.json`, l.26-33, l.36-47, l.235-247, l.282-288, l.311-322) sont portées par la façade
+// `data/index.ts` (seam `overrides.ts` — édition Codex), au type de leur schéma (`schemas/defs/mass-battle.ts`).
+// Mêmes références vivantes (pas de copie) : une édition Codex persistée se reflète immédiatement dans ces constantes.
+export const POWER_ESTIMATE = massBattlePowerEstimate;
+export const MIGHT_MODIFIERS = massBattleMightModifiers;
+export const WAR_MACHINES = massBattleWarMachines;
+export const STRUCTURES = massBattleStructures;
+export const BATTLE_HAZARDS = massBattleHazards;
+/** Un facteur environnemental d'aléa de bataille (l.311-322). */
+export type HazardRow = (typeof BATTLE_HAZARDS)[number];
 
 export const MIGHT_MIN = 0;
 export const MIGHT_MAX = 100;

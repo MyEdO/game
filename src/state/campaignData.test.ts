@@ -12,14 +12,9 @@ import type { Combatant } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-/** Objet de campagne (id NON-colluant avec le global) : type `melee` → `kind:'melee'` distingue une
- *  vraie résolution catalogue-campagne d'un repli `customTrapping` (kind `misc`, label = id brut). */
-const LAME_CAMPAGNE = 'campagne-lame-maudite';
-
 const narratif: NarratifBlock = {
   ...emptyNarratif(),
   presetsPnj: [{ id: 'pnj-baron-caché' }],
-  objets: [{ id: LAME_CAMPAGNE, label: 'Lame maudite', categorie: 'melee', subType: null } as NarratifBlock['objets'][number]],
 };
 
 function hero(): Combatant {

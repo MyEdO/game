@@ -20,10 +20,12 @@ import {
   qualities,
   trappings,
   type BrancheDeDotation,
+  type JokerDArme,
   type QualityData,
   type TrappingRef,
 } from '../data/index';
 import { setDataset } from '../data/overrides';
+import type { EntreeVivante } from '../data/datasets';
 
 const dot = adresseDeCreation.dotation;
 const avecFixture = <T>(fn: () => T): T => avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, fn);
@@ -147,7 +149,7 @@ describe('resolveTrappingChoices — les choix par adresse', () => {
 
   it('fabricationAtouts() est DÉRIVÉ de qualities.json (atout/objet, hors magie), pas une liste codée', () => {
     const modele = qualities.find((q) => q.polarite === 'atout' && q.subType === 'objet')!;
-    const fixture = (id: string, patch: Partial<QualityData> = {}): QualityData => ({ ...modele, id, label: id, capabilities: undefined, ...patch });
+    const fixture = (id: string, patch: Partial<QualityData> = {}): EntreeVivante<QualityData> => ({ ...modele, id, label: id, capabilities: undefined, ...patch });
     const initiales = qualities.slice();
     try {
       setDataset('qualities', [
@@ -220,7 +222,7 @@ describe('valeursDeLEmplacement — le domaine d’une arme au choix', () => {
   });
 
   it('chaque Groupe d’armes nommé par un joker de la donnée offre au moins une arme', () => {
-    const groupes = new Set<string>();
+    const groupes = new Set<NonNullable<JokerDArme['groupe']>['id']>();
     const lire = (refs: readonly BrancheDeDotation[]): void => refs.forEach((r) => ('pick' in r ? lire(r.of) : 'wildcard' in r && r.groupe && groupes.add(r.groupe.id)));
     careerLevels.forEach((l) => lire(l.trappings));
     expect(groupes.size).toBeGreaterThan(0);

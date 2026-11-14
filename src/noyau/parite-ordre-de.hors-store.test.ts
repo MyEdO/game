@@ -42,7 +42,7 @@ const PA_TOTAL = 18;
 const lastCrit = (c: Combatant): string | undefined => (c.critEntriesSuffered ?? [])[(c.critEntriesSuffered ?? []).length - 1];
 /** PA d'armure naturelle d'une mutation (`ap` par Localisation) : la source d'où se dérive le PA d'un héros. LDB 19 */
 const mutationDePA = (pa: ArmourPoints): Mutation => ({
-  id: 'peau-de-test', label: 'Peau de test', desc: '', kind: 'physique', roll: 0,
+  id: 'peau-de-test', type: 'mutations', label: 'Peau de test', desc: '', kind: 'physique', roll: 0,
   passive: (Object.entries(pa) as [HitLocation, number][]).filter(([, n]) => n > 0).map(([loc, amount]) => ({ op: 'ap', loc, amount })),
 });
 const paTotalDe = (c: Combatant): number => Object.values(c.armour).reduce((s, v) => s + v, 0);

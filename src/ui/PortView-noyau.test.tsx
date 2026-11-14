@@ -6,6 +6,7 @@
  * LDB 59 l.43 ; MDG 12 l.230.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { quantitesDeCale } from '../engine/caleDeTest.testkit';
 import { acheterAuMarche } from '../noyau/cargaison.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act } from 'react';
@@ -36,12 +37,12 @@ const carte: WorldMap = {
 const COGUE = findVehicleById('cogue')!;
 
 /** Port FIXÉ : une offre de 5 Enc de bois à 10 CO, groupe d'un seul héros sans le sou ni Négociateur (il mène
- *  donc le Marchandage), le navire `vessel`. */
+ *  donc le Marchandage) au lieu `A`, le navire `vessel`, à quai à `A` sauf `escale` contraire. */
 function ouvrir(vessel: CampaignVessel): void {
   const port = structuredClone(carte.places[0].port!);
   useGame.setState({
     party: tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => ({ ...h, talents: [], items: (h.items ?? []).filter((i) => i.trappingId !== 'bourse') })),
-    possessions: [], vessel, worldMap: carte, journal: [], battle: null, travelPlan: null,
+    possessions: [], vessel: { escale: 'A', ...vessel }, worldMap: carte, lieu: 'A', journal: [], battle: null, travelPlan: null,
     port: { placeId: 'A', label: 'Salzenmund', port, offers: [{ cargoId: 'bois-mer', label: 'Bois', enc: 5, basePrice: 10, surplus: false }] },
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     net: { ...get().net, mode: 'local' },
@@ -140,7 +141,7 @@ function saisir(hote: HTMLElement, nom: string, n: number): void {
 }
 
 describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au devis du noyau (MDG 14 l.238, l.248-252 ; MDG 15 l.262)', () => {
-  const navire = (patch: Partial<CampaignVessel>): CampaignVessel => ({ vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, provisions: {}, waterLitres: 0, ...patch });
+  const navire = (patch: Partial<CampaignVessel>): CampaignVessel => ({ vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, provisions: [], waterLitres: 0, ...patch });
   /** Les champs de quantité de l'onglet Escale, par nom accessible. */
   const champsDEscale = (patch: Partial<CampaignVessel>): string[] => {
     ouvrir(navire(patch));
@@ -187,12 +188,12 @@ describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au de
     const bouton = hote.querySelector('button[aria-label="Avitailler la cale"]') as HTMLButtonElement;
     act(() => bouton.click());
     act(() => root.unmount());
-    expect({ provisions: get().vessel!.provisions, eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) })
+    expect({ provisions: quantitesDeCale(get().vessel!.provisions), eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) })
       .toEqual({ provisions: { 'ration-biscuits-de-mer': 3, 'ration-nourriture-preservee': 2 }, eau: 145, bourse: 240 - (3 * 12 + 2 * 24 + 102) });
   });
 
   it('hors quai : l’avitaillement est fermé, raison = le refus du noyau', () => {
-    ouvrir(navire({}));
+    ouvrir(navire({ escale: 'B' }));
     expect(geste('escale', 'port-avitailler')).toEqual({ ferme: 'true', raison: t('port.pasAQuai') });
   });
 });

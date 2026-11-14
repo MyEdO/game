@@ -2,19 +2,25 @@
 son `modele.py`, l'exporte en GLB et écrit son dossier de production (`production.py`), que valide
 `npm run godot:valider -- <element.json> <base.manifeste.json> <glb>` et qu'importe `node hotes/godot/importer.mjs`.
 
-Les GLB lus viennent du cache des modèles (`CACHE_DES_MODELES` de `hotes/godot/asset/release.ts`, rempli par
-`npm run caches-3d`), chacun sous l'empreinte que le dépôt épingle dans `hotes/godot/projet/modeles/<id>.manifeste.json` :
-la base, et les éléments publiés qu'une pièce contourne. L'élément reçoit les licences des packs de la base, dont il
+Les GLB lus viennent du cache des modèles (`CACHE_DES_MODELES` de `hotes/godot/asset/release.ts`, rempli par son
+`recupererModeles`, que joue `npm run godot:sonde`), chacun sous l'empreinte que le dépôt épingle dans
+`hotes/godot/projet/modeles/<id>.manifeste.json` : la base, les éléments publiés qu'une pièce contourne, et l'élément
+lui-même pour une reprise. L'élément reçoit les licences des packs de la base, dont il
 emprunte le squelette.
 
 `donnees.py` porte `MANIFESTE` (les champs publiés propres à l'élément : `categorie`, `cle`, `liaison`, et pour une pièce
 skinnée `couche`, `couvre`, `chaines`), `MATERIAUX` (`{nom: (emplacement de palette, matière)}`, `habillage.py`),
+`BLASONS` s'il en a (les matériaux qui reçoivent l'emblème, exportés avec leurs UV, comme ceux d'un véhicule),
 `BUDGET_TRIANGLES`, et chaque dimension nommée avec sa source. `modele.py` porte `construire`, selon la liaison :
 - `rigide` : `construire(D, materiaux)` rend les objets, bâtis dans le repère de la prise `PRISE` (une prise du manifeste
   de base) ; ils pendent à l'os de cette prise ;
 - `squelette` : `construire(D, materiaux, base)` reçoit la base au repos (`tissu.Base`) et rend la pièce jointe, ses clés
   transférées (`Base.transferer`) ; elle est découpée par zone et exportée avec l'armature, sans clip ; les emplacements
-  qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste.
+  qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste ;
+- `squelette` ou `surface` repris du GLB publié (`element/publie.py`, #3761) : `modele.py` porte `reprendre(materiaux, base,
+  glb)` au lieu de `construire` et reçoit le GLB épinglé de l'élément ; `donnees.py` ne porte que `MANIFESTE` (ses
+  `emplacements` recopiés du manifeste publié), `MATERIAUX` (valeurs lues dans les matériaux du GLB publié) et
+  `BUDGET_TRIANGLES`.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/construire.py humanoide/rigide--baton \\
         --sortie <dossier neuf hors du dépôt>
@@ -66,7 +72,7 @@ def epingle(id_, cache):
     attendue = lire(MODELES / f"{id_}.manifeste.json")["glb"]["sha256"]
     chemin = cache / f"{attendue}.glb"
     if not chemin.exists():
-        raise ValueError(f"{chemin} : GLB de {id_} absent du cache des modèles (npm run caches-3d)")
+        raise ValueError(f"{chemin} : GLB de {id_} absent du cache des modèles (npm run godot:sonde)")
     empreinte = hashlib.sha256(chemin.read_bytes()).hexdigest()
     if empreinte != attendue:
         raise ValueError(f"{chemin} : empreinte {empreinte}, {id_} épinglé est {attendue}")
@@ -128,10 +134,10 @@ def verifier_les_normales(objets):
         raise ValueError(f"coins d'un même sommet aux normales presque égales, fusion à l'export instable : {fautes}")
 
 
-def exporter(chemin, rig, objets, skinne):
-    """Exporte `rig` et `objets` seuls, sans clip, leurs normales vérifiées (`verifier_les_normales`) ; une pièce skinnée
-    garde ses clés, et chaque objet ses propriétés en `extras` : `zone` d'une pièce skinnée, `fourreau` d'un rigide
-    (`element/lame.py`)."""
+def exporter(chemin, rig, objets, skinne, avec_uv):
+    """Exporte `rig` et `objets` seuls, sans clip, leurs normales vérifiées (`verifier_les_normales`), leurs UV si
+    `avec_uv` ; une pièce skinnée garde ses clés, et chaque objet ses propriétés en `extras` : `zone` d'une pièce skinnée,
+    `fourreau` d'un rigide (`element/lame.py`)."""
     verifier_les_normales(objets)
     bpy.ops.object.select_all(action="DESELECT")
     rig.select_set(True)
@@ -140,7 +146,7 @@ def exporter(chemin, rig, objets, skinne):
     bpy.context.view_layer.objects.active = rig
     bpy.ops.export_scene.gltf(filepath=str(chemin), export_format="GLB", use_selection=True, export_animations=False,
                               export_skins=True, export_morph=skinne, export_morph_normal=False, export_extras=True,
-                              export_yup=True, export_apply=False, export_texcoords=False, export_normals=True,
+                              export_yup=True, export_apply=False, export_texcoords=avec_uv, export_normals=True,
                               export_tangents=False, export_materials="EXPORT", export_cameras=False,
                               export_lights=False)
     return chemin.read_bytes()
@@ -183,18 +189,24 @@ def construire_rigide(D, modele, manifeste_de_base, glb_de_base, temporaire):
     objets = modele.construire(D, habillage.materiaux(D["MATERIAUX"]))
     triangles = triangles_de(objets, D["BUDGET_TRIANGLES"])
     attache = pendre(objets, rig, prise)
-    octets = exporter(temporaire, rig, objets, skinne=False)
+    octets = exporter(temporaire, rig, objets, skinne=False, avec_uv=bool(D.get("BLASONS")))
     verifier_la_pendaison(temporaire, prise["os"], attache)
     return octets, objets, {}, triangles
 
 
-def construire_squelette(D, modele, manifeste_de_base, glb_de_base, cache, temporaire):
-    """La pièce du modèle, ses clés transférées, découpée par zone et exportée avec l'armature de la base."""
+def construire_squelette(D, modele, manifeste_de_base, glb_de_base, cache, id_, temporaire):
+    """La pièce du modèle, ses clés transférées, découpée par zone, ou les objets repris du GLB publié de `id_`
+    (`reprendre`), exportés avec l'armature de la base."""
     base = tissu.Base(glb_de_base, manifeste_de_base, lambda id_: epingle(id_, cache))
-    piece = modele.construire(D, habillage.materiaux(D["MATERIAUX"]), base)
-    triangles = triangles_de([piece], D["BUDGET_TRIANGLES"])
-    objets = base.decouper_par_zone(piece)
-    octets = exporter(temporaire, base.rig, objets, skinne=True)
+    materiaux = habillage.materiaux(D["MATERIAUX"])
+    if hasattr(modele, "reprendre"):
+        objets = modele.reprendre(materiaux, base, epingle(id_, cache))
+        triangles = triangles_de(objets, D["BUDGET_TRIANGLES"])
+    else:
+        piece = modele.construire(D, materiaux, base)
+        triangles = triangles_de([piece], D["BUDGET_TRIANGLES"])
+        objets = base.decouper_par_zone(piece)
+    octets = exporter(temporaire, base.rig, objets, skinne=True, avec_uv=bool(D.get("BLASONS")))
     offerts = {"emplacements": base.emplacements} if base.emplacements else {}
     return octets, objets, {"silhouettes": list(manifeste_de_base["silhouettes"]), **offerts}, triangles
 
@@ -221,12 +233,13 @@ def main():
         octets, objets, propres, triangles = construire_rigide(D, modele, manifeste_de_base, glb_de_base, temporaire)
     elif mode in ("squelette", "surface"):
         octets, objets, propres, triangles = construire_squelette(D, modele, manifeste_de_base, glb_de_base, args.cache,
-                                                                  temporaire)
+                                                                  id_, temporaire)
     else:
         raise ValueError(f"{args.element} : liaison {mode} sans constructeur")
     temporaire.unlink()
     utilises = {m.name for o in objets for m in o.data.materials}
-    manifeste = {"schema": 3, "base": base, **M, **propres, "surfaces": habillage.surfaces(utilises, D["MATERIAUX"], [])}
+    surfaces = habillage.surfaces(utilises, D["MATERIAUX"], D.get("BLASONS", ()))
+    manifeste = {"schema": 3, "base": base, **M, **propres, "surfaces": surfaces}
     licences = {l["fichier"]: MODELES / l["fichier"] for l in lire(MODELES / f"{base}.provenance.json")["licences_de_pack"]}
     ecrit = ecrire_le_dossier(sortie / id_, id_, octets, manifeste, licences)
     print("GLB", id_, ecrit["glb"]["octets"], ecrit["glb"]["sha256"], "TRIANGLES", triangles)

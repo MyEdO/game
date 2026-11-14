@@ -82,7 +82,6 @@ export interface SpellLike {
   domainId?: { id: string };
   cn: number | null;
   duration?: SpellDuration | null;
-  desc: string;
   /** Famille d'incantation STABLE (discriminant moteur, multilangue) — cf. SpellData.family. */
   family?: import('./combatFeatures/types').CastingKind;
   /** Projectile magique + Dégâts — DONNÉE (multilangue), cf. SpellData. Remplace les regex sur la desc. */

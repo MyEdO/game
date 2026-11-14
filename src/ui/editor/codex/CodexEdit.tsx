@@ -11,7 +11,6 @@ import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetS
 import { datasetArray, datasetObject, datasetFile, datasetObjectFile, ancetreDuDe, deDeLaTable, type DatasetKey } from '../../../data/overrides';
 import { editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
-import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
 import {
   metaPourFichier,
   chargeDiscriminee,
@@ -78,10 +77,11 @@ import type { GameOp } from '../../../engine/ops';
 import type { ConsumableDuration } from '../../../engine/consumables';
 import { JsonField } from '../JsonField';
 import type { EntityAppearance } from '../../../engine/authoringAppearance';
-import type { Flow, TriggeredEffect } from '../../../data/schemas/defs-scenes/effets';
-import { EMPTY_FLOW, type EffectTrigger, type FlowTest } from '../../../engine/flowCore';
+import type { Flow } from '../../../data/schemas/defs-scenes/effets';
+import { EMPTY_FLOW, flowDeFeuilles, type EffectOp, type EffectTrigger, type FlowTest, type TriggeredEffect } from '../../../engine/flowCore';
 import { effectOnSchema, effectTriggerSchema, familleDesEffets } from '../../../data/schemas/grammaire/mecanique';
-import type { DetailText, ManeuverDef, ManeuverMeasure } from '../../../data';
+import { ChipDeRefus } from '../../ChipDeRefus';
+import { maladies, type DetailText, type ManeuverDef, type ManeuverMeasure, type SteamBreakdownEntry } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
 import type { AttackKind } from '../../../engine/creatureAttacks';
 import { WeaponField } from '../WeaponField';
@@ -875,6 +875,7 @@ function SpellEffectsField({ value, onChange }: { value: Flow | undefined; onCha
  *  record `traits.json`/`qualities.json` au save → `noyau/triggeredEffects` les applique en jeu. */
 function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclenchés (déclencheur → Flow d’ops, comme un sort)' }: { value: TriggeredEffect[] | undefined; onChange: (v: TriggeredEffect[]) => void; noeud?: unknown; label?: string }) {
   const ctx = useMemo(() => ({ ...ctxDeCatalogue('declenche'), famille: familleDesEffets(noeud) }), [noeud]);
+  const [refus, setRefus] = useState<string>();
   const list = value ?? [];
   const set = (i: number, patch: Partial<TriggeredEffect>) => onChange(list.map((e, j) => (j === i ? { ...e, ...patch } : e)));
   const add = () => onChange([...list, { trigger: 'onHit', on: 'victime', flow: EMPTY_FLOW }]);
@@ -882,6 +883,7 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
   return (
     <div className="ed-field">
       <span>{label}</span>
+      {refus && <ChipDeRefus refus={{ message: refus }} />}
       {list.map((eff, i) => (
         <div className="ed-subfield trait-effect" key={cles[i]}>
           <div className="tf-row">
@@ -917,7 +919,11 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
             </label>
             <button className="btn small danger" title="Supprimer l’effet" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctx} onChange={(flow) => set(i, { flow })} />
+          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctx} onChange={(flow) => {
+            const admis = flowDeFeuilles(flow, (e): e is EffectOp => e.type === 'ops');
+            setRefus(admis ? undefined : 'Un effet déclenché n’enchaîne que des opérations : cet Effet est refusé, le Flow reste inchangé.');
+            if (admis) set(i, { flow });
+          }} />
         </div>
       ))}
       <button className="btn small" onClick={add}>+ Effet de trait</button>
@@ -1351,7 +1357,6 @@ function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['dis
   const de = deDeLaTableTiree(value);
   const [bas, haut] = [totalDuDe(de, de.n), facesDuDe(de)];
   const libelleDe = formatDice(de);
-  const maladieOpts = datasetArray('maladies') as { id: string; label: string }[];
   const poser = (entries: WaterExposureData['diseases']['entries']) => onChange({ die, entries });
   const set = (i: number, patch: Partial<WaterExposureData['diseases']['entries'][number]>) => poser(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   return (
@@ -1361,15 +1366,14 @@ function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['dis
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
           <label className="dr">{libelleDe}&nbsp;<NumberField variant="nu" label={`Plage ${libelleDe} — borne basse`} min={bas} max={haut} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label={`Plage ${libelleDe} — borne haute`} min={bas} max={haut} value={r.max} onChange={(max) => set(i, { max })} /></label>
-          <select value={r.disease} onChange={(e) => set(i, { disease: e.target.value })}>
-            <option value="">— (choisir une maladie) —</option>
-            {maladieOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          <select value={r.disease} onChange={(e) => { const m = maladies.find((o) => o.id === e.target.value); if (m) set(i, { disease: m.id }); }}>
+            {maladies.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
           <label className="dr"><input type="checkbox" checked={!!r.rerollUnlessWounded} onChange={(e) => set(i, { rerollUnlessWounded: e.target.checked || undefined })} /> relance si indemne</label>
           <button className="btn small danger" title="Retirer" onClick={() => poser(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => poser([...list, { min: bas, max: bas, disease: '' }])}>+ Maladie</button>
+      <button className="btn small" onClick={() => poser([...list, { min: bas, max: bas, disease: maladies[0].id }])}>+ Maladie</button>
     </div>
   );
 }

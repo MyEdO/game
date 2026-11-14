@@ -16,7 +16,7 @@ import { t } from '../i18n';
 import { applyOps } from './ops';
 import { CRITIQUE_DOCS } from '../data/criticals';
 import { spellOps } from './flowCore';
-import miscastJson from '../data/miscast.json';
+import { miscastTableRows, rollMiscast } from './miscast';
 import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
 import { schema as etatsSchema } from '../data/schemas/defs/etats';
 import { etats, findConditionById } from '../data';
@@ -163,17 +163,14 @@ describe('Données — verrous & escapeStrength câblés (RAW)', () => {
 
   it('Imparfaite « Tenue indisciplinée » (LDB 46) : Empêtré avec Force d’évasion 1d10×5', () => {
     // Adressée PAR ID stable (le libellé est de l'affichage — et il est HOMONYME entre les jeux LDB et VDM).
-    type Ligne = { id: string; label: string; ops?: { op: string; id?: { id: string }; escapeStrength?: unknown }[] };
-    const docs = miscastJson as unknown as { id: string; entries: Ligne[] }[];
-    const mineure = docs.find((d) => d.id === 'miscast-mineure');
-    if (!mineure) throw new Error('tableau « miscast-mineure » absent de miscast.json');
-    const entry = mineure.entries.find((e) => e.id === 'mineure-tenue-indisciplinee')!;
-    const op = entry.ops!.find((o) => o.op === 'condition')!;
-    expect(op.id).toEqual({ id: 'empetre' });
+    const ligne = miscastTableRows('miscast-mineure').find((e) => e.id === 'mineure-tenue-indisciplinee');
+    if (!ligne) throw new Error('ligne « mineure-tenue-indisciplinee » absente de miscast-mineure');
+    const { ops } = rollMiscast('mineure', desDuTest, 0, undefined, ligne.min);
+    expect(ops.find((o) => o.op === 'condition')).toMatchObject({ id: { id: 'empetre' } });
     // Résolution du 1d10×5 (multiple de 5, borné 5..50) via applyOps.
     for (let i = 0; i < 20; i++) {
       const c = mk();
-      applyOps(c, entry.ops as import('./ops').GameOp[], { idNeuf: idsDeTest, rng: desDuTest, label: 'Tenue indisciplinée' });
+      applyOps(c, structuredClone(ops), { idNeuf: idsDeTest, rng: desDuTest, label: 'Tenue indisciplinée' });
       const inst = c.conditions.find((x) => x.id === 'empetre')!;
       expect(inst.escapeStrength! % 5).toBe(0);
       expect(inst.escapeStrength).toBeGreaterThanOrEqual(5);

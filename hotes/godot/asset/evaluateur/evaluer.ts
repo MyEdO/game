@@ -205,14 +205,14 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
 
   ecarts.push(...gardeSuiviDuCorps(base.scene, corps, elements.flatMap((e) => e.skinnes), libelle));
 
-  const pose = manifeste && table ? poseDuGabarit({ ...manifeste, gabarit: table }, facteurs) : null;
+  const pose = manifeste && table ? poseDuGabarit({ ...manifeste, gabarit: table }, facteurs, poidsDesSilhouettes) : null;
   const etendues = () => etenduesDesSegments(poseDeRepos(base.scene, corpsSkinne), corpsSkinne, Object.keys(pose?.echellesDesOs ?? {}));
   const neutre = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormesDe(manifeste, FACTEURS_NEUTRES)).positions;
   if (manifeste) poserFormes(base.scene, poidsDesFormesDe(manifeste, FACTEURS_NEUTRES)(poidsDesSilhouettes));
   const sansGabarit = pose ? etendues() : null;
   poserFormes(base.scene, poids);
   const fondue = poseDeRepos(base.scene, meshes).positions;
-  const gabarit = manifeste && table ? appliquerGabarit(base.scene, facteurs, { ...manifeste, gabarit: table }, base.squelette ?? undefined) : null;
+  const gabarit = manifeste && table ? appliquerGabarit(base.scene, facteurs, { ...manifeste, gabarit: table }, poidsDesSilhouettes, base.squelette ?? undefined) : null;
   base.scene.updateMatrixWorld(true);
   const segments = pose && sansGabarit ? gardeSegments(sansGabarit, etendues(), pose) : null;
 
@@ -236,7 +236,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const masques = new Set([...corps, ...declarees.flatMap((d) => d.meshes)].filter((m) => !visibles.has(m)));
 
   const chaines = manifeste?.chaines ?? {};
-  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, poidsDesFormes });
+  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, osDesSilhouettes: table?.osDesSilhouettes, poidsDesFormes });
   const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
   const couvre = ordreDesCouches<(typeof declareesMontrees)[number]>(peau.map((c) => neutre.get(c) as Float32Array));
   const pile = poserLaPile([pieceDe(RANG_DU_CORPS, montre(corpsSkinne, RANG_DU_CORPS), false), ...declareesMontrees], couvre, fondue, new Set(Object.values(chaines).flat()), peau);

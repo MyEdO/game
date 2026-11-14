@@ -10,7 +10,7 @@ import { createRoot, type Root } from 'react-dom/client';
 
 import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray, setDataset } from '../../data/overrides';
-import type { SkillRef } from '../../data';
+import { findCreatureById } from '../../data';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -23,8 +23,6 @@ afterEach(() => {
   act(() => { root.unmount(); });
   container.remove();
 });
-
-type Creature = { id: string; skills: SkillRef[] };
 
 function saisir(champ: HTMLTextAreaElement, valeur: string) {
   act(() => {
@@ -40,7 +38,7 @@ const premiereLigneAPlus = (texte: string, pas: number): string => {
 
 describe('atelier du Codex — Compétences d’une créature', () => {
   it('taper puis un seul clic sur « Enregistrer » enregistre le texte tapé', async () => {
-    const avant = (datasetArray('creatures') as Creature[]).slice();
+    const avant = datasetArray('creatures').slice();
     const cible = avant.find((c) => c.skills.length && /\d+$/.test(String(c.skills[0].value ?? '')))!;
     try {
       container = document.createElement('div');
@@ -64,10 +62,10 @@ describe('atelier du Codex — Compétences d’une créature', () => {
       act(() => { enregistrer.focus(); });
       await act(async () => { enregistrer.click(); });
 
-      const posee = (datasetArray('creatures') as Creature[]).find((c) => c.id === cible.id)!;
-      expect(posee.skills[0].value).toBe(Number(cible.skills[0].value) + 2);
+      const posee = findCreatureById(cible.id);
+      expect(posee?.skills[0].value).toBe(Number(cible.skills[0].value) + 2);
     } finally {
-      setDataset('creatures', avant as never);
+      setDataset('creatures', avant);
     }
   });
 });

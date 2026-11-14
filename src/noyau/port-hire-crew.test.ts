@@ -18,7 +18,8 @@ import { initialNet } from './etat';
 function mkStore(vessel: CampaignVessel | null) {
   const hero = ensureBourse({ id: 'h1', label: 'h1', items: [] } as unknown as Combatant, idsDeTest);
   bourseInstanceOf(hero)!.money = fromBrass(100000);
-  let state = { vessel, party: [hero], journal: [] as string[], net: initialNet() };
+  const worldMap = { id: 'm', label: 'Mer', places: [{ id: 'A', label: 'Port', pos: { x: 0, y: 0 } }], routes: [] };
+  let state = { vessel, party: [hero], journal: [] as string[], net: initialNet(), lieu: 'A', worldMap };
   const log = (msg: string | string[]) => {
     state = { ...state, journal: [...state.journal.slice(-40), ...(Array.isArray(msg) ? msg : [msg])] };
   };
@@ -28,7 +29,7 @@ function mkStore(vessel: CampaignVessel | null) {
 }
 
 const baseVessel = (crew?: CampaignVessel['crew']): CampaignVessel => ({
-  vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, ...(crew ? { crew } : {}),
+  vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, escale: 'A', ...(crew ? { crew } : {}),
 });
 
 describe('recruterLEquipage / renvoyerLEquipage (#228)', () => {
