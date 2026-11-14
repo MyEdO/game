@@ -33,7 +33,7 @@ import { confirmBattleActivity, engagerLaBataille, battlePrepEntries, soutienCou
 import {
   craftTarget, craftSpecOf, metierOf, qualitesDArtisanat, statusIncome, statusIncomeMax, bankWithdrawOutcome, seuilDePerteBancaire, bankPayout, apprenticeshipTutorCost,
   entrainementTutorCost,
-  ACTIVITIES, activitiesFor, activityById, learnOptionOf, matchOutcomes, activityAvailableAt,
+  activitiesFor, activityById, learnOptionOf, matchOutcomes, activityAvailableAt,
   RESOLVER_OWNER,
   type ActivityDef, type ActivityResolver, type GenreDeDepot, type ResolverOf,
 } from '../engine/activities';
@@ -68,6 +68,7 @@ import {
   combatStakeRef,
   libelleOuAbsence,
   testSkillLabel,
+  ACTIVITIES,
 } from '../data';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { findTableEntry } from '../engine/tables';

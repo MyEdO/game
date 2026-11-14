@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { idDeFixture } from '../../../data/idDeFixture.testkit';
 import { DIR4_ORDER, type Dir4, type Dir8 } from '../../../geometry/dir8';
 import { findPropById } from '../../../data';
 import { CAP_IDENTITE_PROP, capVolumique, type PropData } from '../../../data/props.types';
@@ -13,7 +14,7 @@ import type { Face } from './types';
  * matériau, l'orientation vers le dehors et l'absence de face dégénérée.
  */
 const PROP_TROIS_PRIMITIVES: PropData = {
-  id: 'banc-d-epreuve',
+  id: idDeFixture('prop', 'banc-d-epreuve'),
   type: 'props',
   label: 'Banc d’épreuve',
   solid: true,

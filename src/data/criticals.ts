@@ -1,12 +1,12 @@
-import type { HitLocation, Difficulty } from '../engine/types';
+import type { HitLocation } from '../engine/types';
 import type { FlowTestNode } from '../engine/flowCore';
-import type { Formula, GameOp, OpPassive } from '../engine/ops';
-import type { CibleEtendue, SourceRef } from './schemas/grammaire/valeurs';
-import type { DocumentARangees } from './schemas/grammaire/document';
 import criticalsJson from './criticals.json';
 import { deDeTirageDe } from './rangees';
+import { datasetDe, type EntreeDe, type EntreeVivante } from './datasets';
 import type { DeDeTable } from '../engine/tables';
 import type * as critiquesDef from './schemas/defs/criticals';
+import type { amputationSchema, critEscalationSchema } from './schemas/defs/criticals';
+import type { z } from 'zod';
 
 /**
  * Tables de Blessures critiques par Localisation — LES DEUX systèmes (#1657 B2a, #1682) : le Livre de
@@ -25,39 +25,7 @@ import type * as critiquesDef from './schemas/defs/criticals';
  * (instantané + sauvetage par Destin — PAS un simple `reduceToZero`). `traumas` = SPEC de Trauma à
  * engendrer. `desc` = texte canon (LONG TERME), verbatim.
  */
-export interface CritEntry {
-  /** id STABLE (slug) — toute référence passe par l'id, jamais le `label` (affichage). */
-  id: string;
-  min: number;
-  /** `null` : AA 07 l.105, l.131, l.157, l.183. */
-  max: number | null;
-  label: string;
-  /** Effet IMMÉDIAT du coup (PB + États), appliqué par `applyOps`. Absent = aucun effet immédiat (létal). */
-  ops?: GameOp[];
-  /** Jet de la rangée (LDB 18 « Réussissez un Test de Résistance… » / AA 07 « sous peine de… ») —
-   *  nœud `test` du Flow, la forme UNIQUE du jet en donnée. Auto-résolu (seedé) : l'ÉCHEC applique
-   *  les ops de sa branche `fail`. */
-  test?: CritTestNode;
-  lethal?: boolean;
-  /** Amputation (LDB 18 l.237) déclarée STRUCTURELLEMENT, jamais lue par regex sur `desc`. */
-  amputation?: Amputation;
-  /** Traumatismes ENGENDRÉS (LDB 18) — refs d'id de fiches `traumas.json` ; la localisation vient de la table. */
-  traumas?: string[];
-  /** Escalade GATÉE d'une Blessure critique : sans soin, la séquelle S'AGGRAVE (ou n'est levée que par
-   *  un traitement). `perRound` (« Main ouverte ») : une unité de séquelle de plus par Round de combat
-   *  tant que l'Aide Médicale n'est pas reçue. `apresDelai` (« Pied écrasé ») : séquelle posée si la
-   *  Chirurgie de la plaie n'intervient pas dans le délai. `medicalAidGate` (« Épaule luxée »/« Genou
-   *  démis ») : membre désactivé jusqu'à un Test étendu de Guérison réussi APRÈS Aide Médicale. */
-  escalation?: CritEscalation;
-  /** Note MAISON (#195) — porte la trace éditable d'une valeur mécanique absente LITTÉRALEMENT du texte
-   *  RAW (règle stricte 7 : contextuel/« au MJ » → donnée taguée, jamais un nombre nu silencieux). Ex.
-   *  « Orteil contusionné » : le texte dit « jusqu'à la fin du prochain tour », `durationRounds: 2` en est
-   *  la traduction en Rounds. Éditable au Compendium ; DISPLAY/DOC only (jamais lu pour de la mécanique). */
-  maison?: string;
-  /** Texte canon (LONG TERME), DISPLAY-ONLY — jamais parsé pour de la mécanique. */
-  desc: string;
-  source: SourceRef;
-}
+export type CritEntry = CritDoc['entries'][number];
 
 /** Le nœud `test` du `Flow` (`engine/flowCore.ts`) tel qu'une rangée de Critique le porte — la forme
  *  UNIQUE du jet en donnée, partagée avec les sorts, les talents et les scènes. Jamais une graphie
@@ -65,11 +33,10 @@ export interface CritEntry {
 export type CritTestNode = FlowTestNode;
 
 /** SYSTÈME de règles dont un tableau est tiré — le DISCRIMINANT de la collection (`jeu` du document). */
-export type JeuDeCritique = 'ldb' | 'aa';
+export type JeuDeCritique = CritDoc['jeu'];
 
-/** Famille de Localisation d'un tableau : les 4 tables couvrent les 6 `HitLocation` (bras gauche = bras
- *  droit, jambe gauche = jambe droite — LDB 18 : une SEULE table par membre). */
-export type CritTableKey = 'tete' | 'bras' | 'corps' | 'jambe';
+/** Famille de Localisation d'un tableau : les 4 tables couvrent les 6 `HitLocation` (LDB 18). */
+export type CritTableKey = CritDoc['localisation'];
 
 /** Amputation (LDB 18 l.237) — SOURCE UNIQUE de forme, partagée par les DEUX jeux, résolue par
  *  `noeudAmputation` (`src/engine/critical.ts`), qui en FABRIQUE le/les nœud(s) `test` — le moteur ne
@@ -83,81 +50,20 @@ export type CritTableKey = 'tete' | 'bras' | 'corps' | 'jambe';
  *    présent → Test SÉPARÉ dont la RÉUSSITE annule toute l'amputation (« Coupure à l'orteil » : `loss.difficulty`
  *    Intermédiaire, `difficulty` Accessible). Absent → le Test `difficulty` détermine LUI-MÊME la perte (« Pied
  *    écrasé » : un seul Test Accessible). `loss.perDR` → nombre d'orteils = 1 + DR en dessous de 0 (« Pied écrasé »). */
-export interface Amputation {
-  difficulty: Difficulty;
-  sequels: string[];
-  /** Unités que CETTE ligne fait perdre à ses séquelles CUMULATIVES (`TraumaFiche.cumul`) — `Formula`,
-   *  défaut 1. C'est la LIGNE qui porte la quantité (« Perdez 1d10 dents », LDB 18 tables Tête
-   *  `bouche-explosee`/`machoire-mutilee` ; AA 07 `aa-tete-66`/`aa-tete-95`), jamais la séquelle : une
-   *  ligne future « perdez 2 dents » s'écrit ici. Une séquelle NON cumulative l'ignore (« perdez votre
-   *  langue ET 1d10 dents » : seules les dents comptent). Cumulé avec `loss.perDR`. */
-  unites?: Formula;
-  timing?: 'postEncounter';
-  loss?: { difficulty?: Difficulty; perDR?: boolean };
-}
+export type Amputation = z.output<typeof amputationSchema>;
 
 /** Déclaration d'escalade gatée par les soins — partagée par les deux jeux. Instanciée par
  *  `stampCriticalEscalation` (trauma.ts) sur la plaie chirurgicale du critique. */
-export interface CritEscalation {
-  /** Escalade PÉRIODIQUE tant que l'Aide Médicale n'est pas reçue (« Main ouverte », LDB 18 / AA 07 l.127) :
-   *  `unites` (défaut 1) unité(s) de la séquelle `versTraumaId` ajoutée(s) à CHAQUE fin de Round de combat.
-   *  L'escalade s'arrête d'elle-même quand le cumul de cette séquelle a franchi SON seuil (`TraumaCumul.escalade`). */
-  perRound?: { versTraumaId: string; unites?: number };
-  /** Escalade À ÉCHÉANCE si la Chirurgie de la plaie n'intervient pas dans le délai (« Pied écrasé »,
-   *  LDB 18 l.180) : `jours` (`Formula`) décomptés à l'entretien, puis pose de la séquelle `versTraumaId`. */
-  apresDelai?: { jours: Formula; versTraumaId: string };
-  /** « Épaule luxée » (AA 07 l.125 / LDB 18 l.120) / « Genou démis » (AA 07 l.179 / LDB 18 l.179) : le membre est
-   *  DÉSACTIVÉ (séquelle portant `disable` en `ops` passives : bras `maxWeaponHands:1` / jambe `moveScale`),
-   *  en attente d'Aide Médicale (`awaitingMedicalAid`). Après l'Aide Médicale, un Test ÉTENDU de Guérison
-   *  Accessible (+20) de `drCible` DR rend l'usage du membre : la séquelle est retirée et `recoveryPenalty`
-   *  (charMod −10 / `moveScale` jambe, durée 1d10 jours) est posé à la cible. Instancié par
-   *  `stampCriticalEscalation` (nouvelle séquelle, pas une plaie chirurgicale) ; joué à l'Infirmerie (acte
-   *  « Guérison », `medicFlow`). */
-  medicalAidGate?: { label: string; disable: OpPassive[]; recoveryPenalty: GameOp[] } & CibleEtendue;
-  /** « Réouverture » (LDB 18 l.101/118/143/145/148/175 ; AA 07 l.119/147/149/152/175) : tant que la plaie n'a
-   *  pas été recousue par Chirurgie, chaque nouveau Dégât à la MÊME Localisation octroie `amount` État
-   *  Hémorragique. `stampCriticalEscalation` pose une séquelle chirurgicale (`Trauma.bleedOnReinjury`,
-   *  `needsSurgery`) que la Chirurgie retire ; le déclencheur est `reinjuryBleed` au point d'application des
-   *  Dégâts localisés (`applyAttackResult`/Projectile). `label` = nom de la plaie (liste de Chirurgie). */
-  bleedOnReinjury?: { amount: number; label: string };
-  /** « Si vous tombez une seconde fois sur cette blessure… » (Blessure majeure à l'oreille, LDB 18 l.71 /
-   *  AA 07 l.96) : à la 2e OCCURRENCE de CETTE entrée sur le personnage (compteur `critEntriesSuffered`),
-   *  l'effet ALTERNATIF s'applique — `traumas` REMPLACE les séquelles de base (perte auditive partielle →
-   *  Surdité totale), `ops` s'AJOUTE à l'effet immédiat de base. Évalué par `resolveCritique`. */
-  onRepeat?: { traumas?: string[]; ops?: GameOp[] };
-  /** « Si vous recevez une autre Blessure critique à la tête alors que vous êtes Exténué… » (Commotion
-   *  cérébrale, LDB 18 l.74) : `stampCriticalEscalation` pose une séquelle porteuse de `Trauma.critTrigger`
-   *  (dédupliquée) ; tant que le personnage porte l'État `whileCondition`, tout critique SUBSÉQUENT à
-   *  `location` (ou toute Localisation si absente) impose le `test` de sauvegarde, évalué par
-   *  `fireCritTriggers` au point unique de résolution. `label` = nom de la séquelle affichée. */
-  onNextCritWhileCondition?: {
-    label: string;
-    location?: HitLocation;
-    whileCondition: string;
-    test: CritTestNode;
-  };
-  /** Séquelle POST-guérison (LDB 18 l.61 « Blessure spectaculaire » / l.72 « Nez cassé » : « Une fois que la
-   *  blessure est guérie… ») : `stampCriticalEscalation` pose un marqueur `Trauma.onHealGrant` ; la Blessure
-   *  critique est réputée GUÉRIE quand tous les États `whenClear` sont retirés (LDB 18 « Guérir les Blessures
-   *  critiques » : « pas guéries tant que tous les États associés n'ont pas été retirés ») — `settleHealedCriticals`
-   *  (déclenché au retrait d'État, `removeCondition`) octroie alors la cicatrice `scar` (fiche `traumas.json`,
-   *  éditable). `scar` = id de fiche de séquelle ; `whenClear` = États dont le retrait signale la guérison. */
-  onHealGrant?: { scar: string; whenClear: string[] };
-}
+export type CritEscalation = z.output<typeof critEscalationSchema>;
 export type CritTable = CritEntry[];
 
 /** Un document-table de `criticals.json` : l'ENVELOPPE de la fabrique (identité, `source`…), ses
  *  rangées (`DocumentARangees`, `grammaire/document.ts`) et son dé de tirage (`die`), plus SON jeu et
  *  SA Localisation. */
-export interface CritDoc extends DocumentARangees<CritEntry> {
-  type: 'criticals';
-  die: string;
-  jeu: JeuDeCritique;
-  localisation: CritTableKey;
-}
+export type CritDoc = EntreeVivante<EntreeDe<typeof critiquesDef>>;
 
 /** Les 8 documents-tables, dans leur ordre authoré (LDB puis Aux Armes). */
-export const CRITIQUE_DOCS = criticalsJson as unknown as CritDoc[];
+export const CRITIQUE_DOCS: CritDoc[] = datasetDe<typeof critiquesDef>(criticalsJson);
 
 /**
  * Rangées LIVE d'UN document-table, par id de DOCUMENT — FAIL-FAST : un id absent laisserait une

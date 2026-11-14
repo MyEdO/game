@@ -2,7 +2,7 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { CODEX, combatantSections } from './registry';
 import { HEROS_DE_SCENARIO, herosDeScenario, type RoleDeScenario } from '../../scenes/test-scenarios/_heros';
-import miscastRawJson from '../../data/miscast.json';
+import { MISCAST_TABLES } from '../../engine/miscast';
 
 /**
  * Garde-fou anti-régression de la classe de bug « [object Object] » au Codex.
@@ -74,15 +74,14 @@ describe('Codex — aucun champ structuré rendu brut', () => {
  */
 describe('Codex — la mitigation affichée est celle de la DONNÉE', () => {
   it('chaque mitigation (`ignoreAP`, `ignoreTB`) n’est dite QUE là où la donnée la déclare', () => {
-    const documents = miscastRawJson as unknown as { entries?: { label: string; ops?: { op: string; ignoreAP?: boolean; ignoreTB?: boolean }[] }[] }[];
     /** Les DEUX mitigations déclarables, chacune avec la phrase que le Codex imprime. */
     const MITIGATIONS = [
       { champ: 'ignoreAP', phrase: 'les PA' },
       { champ: 'ignoreTB', phrase: 'le Bonus d’Endurance' },
     ] as const;
     const porteurs = new Map(MITIGATIONS.map((m) => [m.champ, new Set<string>()]));
-    for (const doc of documents) {
-      for (const e of doc.entries ?? []) {
+    for (const doc of MISCAST_TABLES) {
+      for (const e of doc.entries) {
         for (const o of e.ops ?? []) {
           if (o.op !== 'wounds') continue;
           for (const m of MITIGATIONS) if (o[m.champ] === true) porteurs.get(m.champ)!.add(e.label);

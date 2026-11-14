@@ -14,7 +14,8 @@ import {
   ACTIONS, NAVAL_TRAITS, apparences, careers, conditionIds, crewRoles, findConditionById, findCreatureById, findSeaShantyById,
   findTrappingById, maneuvers, pregens, profilsStandard, shipStations, skills, spells, talents, trappingsInstanciables, TAVERN_GAMES,
 } from '../data';
-import { ACTIVITIES, cleDEntrainement, entrainementOptions, libelleDEntrainement, qualitesDArtisanat } from '../engine/activities';
+import { ACTIVITIES } from '../data';
+import { cleDEntrainement, entrainementOptions, libelleDEntrainement, qualitesDArtisanat } from '../engine/activities';
 import { parseRefKey } from '../engine/careerSlots';
 import { libelleDePsy } from '../engine/psych/ciblage';
 import { travelVehicles, vehicleTravel } from '../engine/travel';

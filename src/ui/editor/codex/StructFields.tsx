@@ -40,7 +40,19 @@ import { harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type Ma
 import type { Id, RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { missileBypassSchema } from '../../../data/schemas/defs/domains';
-import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, idDObjet, trappingsInstanciables } from '../../../data';
+import {
+  specEntryId,
+  specEntryLabel,
+  charAbr,
+  findCreatureById,
+  findVehicleById,
+  idDObjet,
+  trappingsInstanciables,
+  shipStations,
+  crewRoles,
+  findShipStation,
+  findCrewRoleById,
+} from '../../../data';
 import { slugId } from '../../../data/slug';
 import { ConditionEditor } from '../ConditionEditor';
 import { isOptionalNote, type OptionalEntry } from '../../../engine/statEntry';
@@ -203,8 +215,8 @@ export function ShipCrewHitField({ value, onChange }: { value: ShipCrewHitValue 
   const mode = value ? modeDeCible(value.crewTarget) : 'poste';
   const versCible = (m: 'poste' | 'stations' | 'role') => patch({
     crewTarget: m === 'poste' ? { poste: true }
-      : m === 'stations' ? { stations: [String(datasetArray('shipStations')[0]?.id ?? '')] }
-        : { role: { id: String(datasetArray('crewRoles')[0]?.id ?? '') } },
+      : m === 'stations' ? { stations: [shipStations[0].id] }
+        : { role: { id: crewRoles[0].id } },
   });
   return (
     <div className="ed-field">
@@ -224,14 +236,14 @@ export function ShipCrewHitField({ value, onChange }: { value: ShipCrewHitValue 
             <RefField
               cfg={CFG_STATIONS} fieldKey="stations" label="Stations touchées"
               value={(value.crewTarget as { stations: string[] }).stations.map((id) => ({ id }))}
-              onChange={(v) => patch({ crewTarget: { stations: (v as { id: string }[]).map((r) => r.id) } })}
+              onChange={(v) => patch({ crewTarget: { stations: (v as { id: string }[]).flatMap((r) => findShipStation(r.id)?.id ?? []) } })}
             />
           )}
           {mode === 'role' && (
             <RefField
               cfg={CFG_ROLE} fieldKey="crewRole" label="Rôle touché"
               value={(value.crewTarget as { role: { id: string } }).role.id}
-              onChange={(v) => patch({ crewTarget: { role: { id: String(v) } } })}
+              onChange={(v) => { const role = findCrewRoleById(String(v)); if (role) patch({ crewTarget: { role: { id: role.id } } }); }}
             />
           )}
           <OptionChooser

@@ -1,5 +1,6 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
+import type { CritEscalation } from '../data/criticals';
 import { receiveMedicalAid, tickTraumaEscalation, tickTraumaRecovery, stampCriticalEscalation,
   recoverableTraumas, hasRecoverableTrauma, hasLimbAwaitingAid, recoverDisabledLimb, cannotWieldTwoHanded,
   traumaMovementHalved, reinjuryBleed, removeSurgicalTrauma } from './trauma';
@@ -27,9 +28,9 @@ const plaie = (loc: HitLocation, extra: Partial<Trauma> = {}): Trauma =>
   ({ uid: `plaie-${loc}`, label: 'Amputation', location: loc, needsSurgery: true, desc: 'x', ...extra });
 
 /** Escalade « Main ouverte » telle qu'elle est DÉCLARÉE en donnée (`criticals.json`, les deux jeux). */
-const FINGER_PER_ROUND = { versTraumaId: 'doigt-ampute' };
+const FINGER_PER_ROUND: NonNullable<CritEscalation['perRound']> = { versTraumaId: 'doigt-ampute' };
 /** Escalade « Pied écrasé » DÉCLARÉE : délai 1d10 jours puis perte du membre. */
-const FOOT_AFTER_DELAY = { jours: { dice: { n: 1, sides: 10 } }, versTraumaId: 'membre-inferieur-ampute' };
+const FOOT_AFTER_DELAY: NonNullable<CritEscalation['apresDelai']> = { jours: { dice: { n: 1, sides: 10 } }, versTraumaId: 'membre-inferieur-ampute' };
 
 /** RNG qui débite une séquence fixe (int() ignore min/max — tests ciblés). */
 const seq = (vals: number[]): RNG => desEnSuite(vals, { boucle: true });

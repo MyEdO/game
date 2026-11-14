@@ -2206,7 +2206,7 @@ export function applyCriticalToTarget(
       revealLines.push(`  ↳ ${text}.`);
       details.push({ text, note: t.desc });
     }
-    // Cumuls par comptage (LDB 18) : chaque séquelle applique SA règle déclarée (`TraumaCumul`) —
+    // Cumuls par comptage (LDB 18) : chaque séquelle applique SA règle déclarée (`TraumaFiche['cumul']`) —
     // agrégation par bras/porteur, effet par palier, et escalade au seuil (main tranchée, Cécité, Surdité).
     for (const l of consolidateAmputations(target)) {
       log.push(`  ↳ ${l}`);

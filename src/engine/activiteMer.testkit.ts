@@ -1,4 +1,5 @@
-import { ACTIVITIES, activityById, type ActivityDef } from './activities';
+import { activityById, type ActivityDef } from './activities';
+import { ACTIVITIES } from '../data';
 import { setDataset } from '../data/overrides';
 
 /**

@@ -36,9 +36,9 @@ import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { Combatant, EffectSource } from '../engine/types';
 import type { GameOp } from '../engine/ops';
 import { t } from '../i18n';
-import crits from '../data/criticals.json';
+import { CRITIQUE_DOCS } from '../data/criticals';
 import { findConditionById, findTalentById, spells } from '../data';
-import shipCrits from '../data/ship-criticals.json';
+import { SHIP_CRITICAL_TABLES } from '../data/shipCriticals';
 import { desDuTest } from '../engine/dice.testkit';
 
 let banc: Banc;
@@ -75,15 +75,16 @@ function allerRetourJSON(): void {
 
 // ── La DONNÉE, trouvée par sa FORME (jamais par un id recopié) ─────────────────────────────────
 
-type Rangee = { id: string; label: string; test: NoeudTest };
 /** La rangée de Critique dont l'échec pose UN Sonné sur la CIBLE — « Nez cassé » (LDB 15). */
-function rangeeSonneSurLaCible(): Rangee {
-  for (const table of crits as { entries?: Rangee[] }[]) {
-    for (const e of table.entries ?? []) {
-      const f = e.test?.echec as { effet?: { type?: string; on?: string; ops?: GameOp[] } } | undefined;
-      if (f?.effet?.on !== 'target' || f.effet.type !== 'ops') continue;
-      const ops = f.effet.ops ?? [];
-      if (ops.length === 1 && ops[0].op === 'condition' && (ops[0] as { id: { id: string } }).id.id === 'sonne') return e;
+function rangeeSonneSurLaCible() {
+  for (const table of CRITIQUE_DOCS) {
+    for (const e of table.entries) {
+      const test = e.test;
+      if (test === undefined) continue;
+      const f = test.echec;
+      if (f.kind !== 'effet' || f.effet.on !== 'target' || f.effet.type !== 'ops') continue;
+      const [op, ...reste] = f.effet.ops;
+      if (reste.length === 0 && op?.op === 'condition' && op.id.id === 'sonne') return { label: e.label, test };
     }
   }
   throw new Error('aucune rangée de Critique à branche `on:target` posant un Sonné — le scan a glissé');
@@ -308,9 +309,8 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     // `subi` ne transporte que ce qui se résout par ID. Une branche qui exige une COQUE (op `fall` d'un
     // Critique de navire) n'a pas sa place derrière la modale : sa porte est `bandeTriggeredTest`, qui
     // tient la coque au site. Reprise sans elle → fail-fast NOMMÉ, jamais une hauteur tirée dans le vide.
-    const node = (shipCrits as { tables: Record<string, { crewHit?: { test?: NoeudTest } }[]> })
-      .tables.greement.map((r) => r.crewHit?.test).find((t) => t && JSON.stringify(t).includes('"fall"'))!;
-    expect(node, 'aucun nœud de Critique de coque à branche `fall` — le scan a glissé').toBeTruthy();
+    const node = SHIP_CRITICAL_TABLES.greement.map((r) => r.crewHit?.test).find((t) => t !== undefined && JSON.stringify(t).includes('"fall"'));
+    if (node === undefined) throw new Error('aucun nœud de Critique de coque à branche `fall` — le scan a glissé');
     const sujet = decor();
     routeTriggeredTest(get, set, sujet, sujet, node, { idNeuf: idsDeTest, rng: desDuTest, label: 'Critique de coque' });
     expect(get().pendingTest!.subi, 'aucun `hull` n’entre dans le marqueur').toEqual({ label: 'Critique de coque' });

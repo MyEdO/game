@@ -27,18 +27,13 @@
  * Blessures par réparation, puis Test d'Endurance par jour de voyage et à chaque Manœuvre — chaque
  * échec inflige 1d10−4 Dégâts. Lissage : réparation +50 % sinon perte du bénéfice (ch.12 l.295).
  */
-import { shipConstruction } from '../data';
-import steamBreakdownJson from '../data/steam-breakdown.json';
-import { findTableEntry, findTableEntryIndex, tableOuverte, type DeDeTable } from './tables';
+import { shipConstruction, STEAM_BREAKDOWNS, steamBreakdownDie, type SteamBreakdownEntry } from '../data';
+import { findTableEntry, findTableEntryIndex, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { rollDice, tirer, type RNG, type Tirage } from './dice';
+import { rollDice, tirer, type RNG } from './dice';
 import { REPARATION } from './seaNavigation';
-import { deDeTirageDe, rangeesDe } from '../data/rangees';
-import type * as panneDeVapeur from '../data/schemas/defs/steam-breakdown';
 import { rollTest } from './tests';
 import { DIFFICULTE_PAR_DEFAUT, type Difficulty } from './types';
-import type { JetFixe } from './flowCore';
-import type { CibleEtendue } from '../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findVehicleById } from '../data';
 import { profilNavalDe } from './coque';
@@ -270,29 +265,6 @@ export function rollPortRepair(skillValue: number, woundsMissing: number, rng: R
 }
 
 // ── Panne de Vapeur (MDG 12 l.313-352) ────────────────────────────────────────────────────────
-
-export interface SteamBreakdownEntry {
-  min: number;
-  max: number;
-  id: string;
-  label: string;
-  desc: string;
-  mMod?: number;
-  mSet?: number;
-  durationRounds?: Tirage;
-  /** Refroidissement obligatoire avant réparation (Rupture du réservoir, MDG 12 l.344) : « attendre
-   *  20+1d10 minutes » — minutes d'horloge d'immobilisation du moteur. */
-  coolMinutes?: Tirage;
-  failDamage?: Tirage;
-  engineDestroyed?: boolean;
-  hullCritical?: boolean;
-  compartmentDamage?: number;
-  restart?: ({ test: JetFixe<'difficulty'> } & Partial<CibleEtendue>)[];
-}
-
-export const STEAM_BREAKDOWNS = rangeesDe<typeof panneDeVapeur>(steamBreakdownJson) as SteamBreakdownEntry[];
-/** Le dé du tableau PANNE DE VAPEUR, lu à l'appel. */
-export const steamBreakdownDie = (): DeDeTable => deDeTirageDe<typeof panneDeVapeur>(steamBreakdownJson);
 
 /** Tirage du tableau PANNE DE VAPEUR (ch.12 l.313 : « Chaque fois que quelqu'un obtient un double sur
  *  un Test de Métier (Ingénieur) raté, que le résultat est un Échec Stupéfiant ou que le bateau subit

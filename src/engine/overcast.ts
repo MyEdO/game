@@ -11,7 +11,7 @@ import type { SpellRange, SpellTarget } from './spellRange';
 import type { SpellDuration } from './spellDuration';
 import { rule } from './policy';
 import surincantationJson from '../data/surincantation.json';
-import { rangeesDe } from '../data/rangees';
+import { rangeesDe, type RangeeDe } from '../data/rangees';
 import { findTierEntry } from './tables';
 import type * as surincantation from '../data/schemas/defs/surincantation';
 
@@ -81,7 +81,8 @@ function overcastModel(source: OvercastSource): 'ldb' | 'vdm' {
  *  La table EFFECTIVEMENT lue par le moteur — MÊME référence que le module JSON (singleton ESM) :
  *  une édition au Compendium est vue en direct, et la garde de parité (`overcast.test.ts`) refuse
  *  toute ré-inscription en dur (une copie littérale ne serait plus la même référence). */
-export const VDM_OVERCAST = rangeesDe<typeof surincantation>(surincantationJson);
+type LigneDeSurincantation = RangeeDe<typeof surincantation>;
+export const VDM_OVERCAST: LigneDeSurincantation[] = rangeesDe<typeof surincantation>(surincantationJson);
 
 /** Rangée atteinte par `dr` DR dépensés sur une colonne (`findTierEntry`) ; `undefined` en dessous
  *  du plus petit palier. */
