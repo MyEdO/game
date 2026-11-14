@@ -1708,20 +1708,11 @@ function poserLeCurseur(get: Get, p: PendingCascade, arrivee = true): PendingCas
 }
 
 /**
- * PORTE PUBLIQUE du curseur (#1426) — poser le curseur d'une cascade OUVERTE sur l'étape `i`. Tout
- * site qui reprend la main sur une cascade hôte (fold d'incantation, re-ciblage du lanceur d'un Test)
- * passe par ICI : un `set({ pendingCascade: { …casc, cursor: i } })` écrit à la main court-circuite le
- * pilote, et une table qu'aucun siège ne joue reste alors non tirée — `jetValider('cascade')` fermé pour toujours.
- */
-export function poserCurseurCascade(get: Get, set: Set, casc: PendingCascade, i: number): void {
-  set({ pendingCascade: curseurPose(get, casc, i) });
-}
-
-/**
- * LA MÊME PORTE, rendue en VALEUR (#1426) — pour un site qui doit publier `pendingCascade` DANS LE
- * MÊME `set` qu'un autre champ : le réglage `test.testeur` change le porteur du Test ET celui de l'étape,
- * et deux `set` successifs publient entre eux un état où les deux porteurs divergent (un abonné rend
- * cet inter-état). Une seule implémentation — `poserCurseurCascade` délègue ici.
+ * PORTE PUBLIQUE du curseur (#1426), rendue en VALEUR — pose le curseur d'une cascade OUVERTE sur
+ * l'étape `i` : un `{ …casc, cursor: i }` écrit à la main court-circuite le pilote, et une table qu'aucun
+ * siège ne joue reste alors non tirée. En valeur, le site publie `pendingCascade` DANS LE MÊME `set`
+ * qu'un autre champ : le réglage `test.testeur` change le porteur du Test ET celui de l'étape, et deux
+ * `set` successifs publient entre eux un état où les deux porteurs divergent (un abonné rend cet inter-état).
  */
 export function curseurPose(get: Get, casc: PendingCascade, i: number): PendingCascade {
   return poserLeCurseur(get, { ...casc, cursor: i });
