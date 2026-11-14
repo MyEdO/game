@@ -11,11 +11,11 @@
   "surfaces": [
     {
       "nom": "couverture",
-      "palette": "vet2"
+      "palette": "cuir"
     },
     {
       "nom": "plat",
-      "palette": "vet2",
+      "palette": "cuir",
       "blason": true
     },
     {

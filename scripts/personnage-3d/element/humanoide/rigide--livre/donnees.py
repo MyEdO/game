@@ -24,13 +24,14 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'couverture': ('vet2', ((0.45, 0.45, 0.45), 0.0, 0.8)),
-    'plat': ('vet2', ((0.45, 0.45, 0.45), 0.0, 0.8)),
+    'couverture': ('cuir', ((0.45, 0.45, 0.45), 0.0, 0.8)),
+    'plat': ('cuir', ((0.45, 0.45, 0.45), 0.0, 0.8)),
     'pages': ('corne', ((0.75, 0.75, 0.75), 0.0, 0.9)),
     'metal': ('metal', ((0.66, 0.66, 0.66), 0.6, 0.45)),
     'cuir': ('cuir', ((0.5, 0.5, 0.5), 0.0, 0.9)),
 }
-"""La couverture prend `vet2`, le bleu-gris que le preset `pretre` y pose (orchestrateur, 2026-11-10). `SLOTS` n'a pas
+"""La couverture prend `cuir`, une reliure de cuir : `vet2` habille aussi les bandages et le rouleau de couchage, sable dans
+l'illustration, et le bleu-gris de la couverture n'a aucun emplacement libre dans le preset `pretre`. `SLOTS` n'a pas
 d'emplacement de parchemin : la tranche des pages prend `corne`, l'ivoire de l'os et de la corne, le plus proche de la
 tranche claire de l'illustration ; un preset qui ne le colore pas lui laisse son gris clair de construction. `plat` : le
 champ carré du plat avant, seule face du matériau, qui reçoit l'emblème du porteur (`BLASONS`)."""

@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "sceau-de-cire"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "couche": "armure",
+  "surfaces": [
+    {
+      "nom": "parchemin",
+      "palette": "corne"
+    },
+    {
+      "nom": "cire",
+      "palette": "accent"
+    }
+  ],
+  "glb": {
+    "sha256": "e77b17bf728fbb15b6cfdb1c6b33ee45e24efe8633092916fc4d6ace8dc9cbbc",
+    "octets": 65168
+  }
+}
