@@ -17,7 +17,8 @@ import type { RNG } from './dice';
 import { toBrass } from './money';
 import { AVAILABILITIES } from './types';
 import { parseRefKey } from './careerSlots';
-import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entrainementTutorRange, entrainementOptions, cleDEntrainement, libelleDEntrainement, bankWithdrawOutcome, seuilDePerteBancaire, statusIncome, ACTIVITIES, activitiesFor, activityById,
+import { ACTIVITIES } from '../data';
+import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entrainementTutorRange, entrainementOptions, cleDEntrainement, libelleDEntrainement, bankWithdrawOutcome, seuilDePerteBancaire, statusIncome, activitiesFor, activityById,
   aggregateActivityOutcomes, STAGE_OUTCOME_AGG, type TravelActivityResult,
   defaultTravelRole, stageAssignmentFromRoles, matchOutcomes, activityAvailableAt } from './activities';
 import { byId } from '../data';

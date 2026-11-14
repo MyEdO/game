@@ -77,6 +77,7 @@ import {
   libelleOuAbsence,
   testSkillLabel,
   findNavalPortById,
+  type SteamBreakdownEntry,
 } from '../data';
 import { profilNavalDe } from '../engine/coque';
 import {
@@ -91,7 +92,6 @@ import {
   milieuDuVoyage,
   STEAM_SKILL,
   type PropulsionDuNavire,
-  type SteamBreakdownEntry,
 } from '../engine/shipBuild';
 import { COMPETENCE_DU_MODE, estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { deMonde, formatDice, roll as rollDice, tirer, type RNG, type Tirage } from '../engine/dice';

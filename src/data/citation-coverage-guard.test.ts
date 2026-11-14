@@ -5,6 +5,7 @@ import { auditDataset, EXEMPT_DATASETS, exemptionDeDataset, isCitedItem } from '
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { SANS_LIVRE_DEFINITIF } from './schemas/grammaire/sans-livre';
 import { estObjet } from '../lib/objet.mjs';
+import { MISCAST_TABLES } from '../engine/miscast';
 
 /**
  * Garde-fou « citation par ENTRÉE » (#309, phase 1 — suite #278/#281). #278/#281 gardent la FORME
@@ -109,10 +110,7 @@ describe('garde-fou « citation par entrée » — couverture source:{book,page}
     // `miscast.json` (famille `entite`, charge `options.rangee`) : documents ET rangées sont comptés.
     // Sans le bras `array-of-documents` d'`auditDataset`, le scan s'arrêtait au premier niveau et les
     // rangées — qui portent CHACUNE leur `source` — sortaient de la garde en silence.
-    const reel = JSON.parse(readFileSync(join(DATA_DIR, 'miscast.json'), 'utf8')) as {
-      id: string;
-      entries: { id: string; source?: unknown }[];
-    }[];
+    const reel = MISCAST_TABLES;
     const audit = auditDataset(reel);
     expect(audit.shape).toBe('array-of-documents');
     expect(audit.total).toBe(reel.length + reel.reduce((n, d) => n + d.entries.length, 0));

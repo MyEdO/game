@@ -9,6 +9,13 @@ import { emptyScene, heightAt, sceneMetresPerTile, type Scene, type SceneEntity 
 import { seatSlotsOf } from '../../noyau/monde/seating';
 import type { Dir4 } from '../../geometry/dir8';
 
+/** Le décor du catalogue par id — FAIL-FAST : un id absent ne mesurerait rien. */
+const propDe = (id: string | undefined): PropData => {
+  const prop = findPropById(id);
+  if (prop === undefined) throw new Error(`décor « ${id} » absent du catalogue`);
+  return prop;
+};
+
 /**
  * L'ANCRE D'UNE PLACE EST CELLE DU DÉCOR (#1509 L5′).
  *
@@ -33,7 +40,7 @@ const n6 = (v: number) => v.toFixed(6);
  */
 function ancreGeometrique(sc: Scene, entId: string): { x: number; y: number; sol: number } {
   const ent = sc.entities.find((e) => e.id === entId)!;
-  const prop = findPropById(ent.decor?.id) as PropData;
+  const prop = propDe(ent.decor?.id);
   const mpt = sceneMetresPerTile(sc);
   const el = buildProps(sc).find((e) => e.entId === entId)!;
   expect(estPropVolumique(el), `${ent.decor?.id} doit sortir en VOLUME (sinon rien n’est mesuré)`).toBe(true);
@@ -50,7 +57,7 @@ function ancreGeometrique(sc: Scene, entId: string): { x: number; y: number; sol
  *  cap de l'instance (`rotatePropLocal`, la même rotation que la géométrie applique). */
 function ancreDeLaPlace(sc: Scene, entId: string, slotId: string): { x: number; y: number } {
   const ent = sc.entities.find((e) => e.id === entId)!;
-  const prop = findPropById(ent.decor?.id) as PropData;
+  const prop = propDe(ent.decor?.id);
   const place = seatSlotsOf(sc, entId).find((s) => s.slotId === slotId)!;
   const slot = prop.seatSlots!.find((s) => s.id === slotId)!;
   const [rx, ry] = rotatePropLocal(slot.anchor.xM / sceneMetresPerTile(sc), slot.anchor.yM / sceneMetresPerTile(sc), capVolumique(ent.facing)!);
@@ -156,7 +163,7 @@ describe('meuble à places de DEUX cases — l’ancre des places EST celle de l
   const MPT = 2;
   const CAPS: Dir4[] = ['N', 'E', 'S', 'O'];
 
-  const prop = findPropById(REF) as PropData;
+  const prop = propDe(REF);
   const scene = (facing: Dir4): Scene => ({
     ...emptyScene('scene-test', 12, 12),
     metresPerTile: MPT,

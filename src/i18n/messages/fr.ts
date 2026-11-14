@@ -3242,6 +3242,7 @@ export const fr = {
   'crew.shantyLabel': 'Chanson de marin — {label}',
   'crew.shantyStart': '{name} entonne « {shanty} » ({min} min).',
   'crew.shantyPorte': '« {shanty} » porte {min} minute(s) : {desc}',
+  'crew.shantyPorteSansTexte': '« {shanty} » porte {min} minute(s).',
   'crew.shantyAPlat': 'La chanson tombe à plat — aucun effet (le quart est consommé).',
   'crew.noCaptain': 'Aucun Capitaine à bord : la chanson ne trouve pas son héros.',
   'crew.shantyEnd': "La chanson de {name} s'interrompt.",

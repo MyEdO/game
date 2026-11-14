@@ -20,12 +20,8 @@ import {
 } from './navalTraits';
 import { resolveCollision } from './collision';
 import { installCost } from './shipBuild';
-import navalTraitsData from '../data/naval-traits.json';
-import { findVehicleById, findNavalTrait, findCrewTestTypeById } from '../data';
+import { findVehicleById, findNavalTrait, findCrewTestTypeById, NAVAL_TRAITS } from '../data';
 import type { Combatant } from './types';
-
-/** Forme LUE du catalogue naval par ce fichier : la référence de Compétence d'une op y est EMBOÎTÉE. */
-type NavalEntree = { id: string; passive?: { op: string; skill?: { id: string }; bonus?: number }[] };
 
 /**
  * EFFETS des Traits & Améliorations de navire (MDG 12) — DATA-DRIVEN : les valeurs vivent dans le catalogue
@@ -91,13 +87,13 @@ describe('navalSkillTestDR — Peu maniable → DR de Voile/Ramer, op skillDRBon
 
 describe('navalSkillTestDR — non-régression sur le catalogue entier (#221, 20 entrées)', () => {
   it.each(
-    (navalTraitsData as NavalEntree[])
-      .filter((e) => e.passive?.some((op) => op.op === 'skillDRBonus' && op.skill))
+    NAVAL_TRAITS
+      .filter((e) => e.passive?.some((op) => op.op === 'skillDRBonus' && op.skill !== undefined))
       .map((e) => e.id),
   )('%s : DR par compétence inchangé, indépendant de `testType`', (id) => {
-    const entry = (navalTraitsData as NavalEntree[]).find((e) => e.id === id)!;
-    for (const op of entry.passive!.filter((o) => o.op === 'skillDRBonus' && o.skill)) {
-      expect(navalSkillTestDR([{ id }], op.skill!.id)).toBe(op.bonus);
+    for (const op of NAVAL_TRAITS.find((e) => e.id === id)?.passive ?? []) {
+      if (op.op !== 'skillDRBonus' || op.skill === undefined) continue;
+      expect(navalSkillTestDR([{ id }], op.skill.id)).toBe(op.bonus);
     }
   });
   it('une op `testType` SANS `skill` (Proue-idole de Stromfels) ne matche JAMAIS `navalSkillTestDR`', () => {

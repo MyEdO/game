@@ -1474,13 +1474,14 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     // Les textes attendus sont LUS DANS LA DONNÉE (aucune chaîne de règle recopiée dans ce test) : c'est
     // le contrat « le texte de règle affiché est du verbatim recollable dans `Source/` » (AGENTS.md 5).
     const fiche = regles.find((r) => r.id === 'charger')!;
+    const prose = regles.flatMap((r) => (r.id === 'charger' && r.desc !== undefined ? [r.desc] : []))[0];
     const qualite = findQualityById('recharge')!;
-    expect(fiche.desc.length, 'la fiche regles/charger doit porter son verbatim').toBeGreaterThan(80);
+    expect(prose.length, 'la fiche regles/charger doit porter son verbatim').toBeGreaterThan(80);
     expect(qualite.desc, 'la qualité recharge doit porter son verbatim').toBeTruthy();
     const popCharge = survol('g2-charge');
     const popRech = survol('g4-recharger');
     expect(popCharge.title).toBe(fiche.label);
-    expect(popCharge.body).toBe(verbatimAttendu(fiche.desc));
+    expect(popCharge.body).toBe(verbatimAttendu(prose));
     // Le corps est BORNÉ par la primitive : la porte vers la fiche complète doit donc être là.
     expect(popCharge.porte, 'verbatim borné sans porte vers la fiche').toBe('Ouvrir la fiche');
     expect(popCharge.source, 'la source de la règle se lit à l’infobulle').toContain('165');
@@ -1509,7 +1510,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     expect(gate.getAttribute('title')).toBeNull();
     const popGate = survol('g2-charge');
     expect(popGate.refus, 'la raison se lit au survol').toContain('Engagé');
-    expect(popGate.body, 'la même boîte porte encore le verbatim de la règle').toBe(verbatimAttendu(fiche.desc));
+    expect(popGate.body, 'la même boîte porte encore le verbatim de la règle').toBe(verbatimAttendu(prose));
     expect(quitterRefus(gate), 'l’infobulle meurt quand le pointeur s’en va').toBeNull();
     expect(refusAuFocus(gate as HTMLElement), 'le FOCUS (clavier, manette) l’ouvre aussi').toContain('Engagé');
     expect(casesGauche().length).toBe(6);

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { trappings, type TrappingData } from './index';
 
 /**
  * Objets maudits (VDM 12 l.790-926) — chacun porte un Bienfait, un Méfait et un Déclencheur.
@@ -14,23 +15,15 @@ import { fileURLToPath } from 'node:url';
  */
 
 type Op = { op: string; mod?: number; amount?: number; resource?: string; skill?: string; ignoreTB?: boolean; ignoreAP?: boolean };
-type Trapping = {
-  id: string; label?: string; desc?: string; categorie?: string; subType: { id: string } | null; enc?: unknown; reach?: unknown; hands?: number; pa?: number | null;
-  damage?: { plusBF: boolean; flat: number } | null;
-  qualities: { id: string }[]; passive?: Op[]; onHitEffects?: unknown[];
-  consumable?: unknown; consumableDuration?: unknown;
-  alsoIn?: { book: string; page: number; quote?: string }[];
-};
-
-const TRAPPINGS: Trapping[] = JSON.parse(readFileSync(fileURLToPath(new URL('./trappings.json', import.meta.url)), 'utf8'));
-const byId = (id: string): Trapping => {
+const TRAPPINGS = trappings;
+const byId = (id: string): TrappingData => {
   const e = TRAPPINGS.find((t) => t.id === id);
   if (!e) throw new Error(`trapping introuvable : ${id}`);
   return e;
 };
-const isCursed = (t: Trapping): boolean => t.qualities.some((q) => q.id === 'maudit');
+const isCursed = (t: TrappingData): boolean => t.qualities.some((q) => q.id === 'maudit');
 /** Modificateur passif FAVORABLE (le Bienfait mécanique d'un objet maudit). */
-const boons = (t: Trapping): Op[] => (t.passive ?? []).filter((o) => (o.mod ?? 0) > 0);
+const boons = (t: TrappingData) => (t.passive ?? []).filter((o) => 'mod' in o && typeof o.mod === 'number' && o.mod > 0);
 
 describe('objets maudits — aucun Bienfait mécanique sans son Méfait', () => {
   it('tout objet `maudit` porteur d’un modificateur passif favorable porte un effet déclenché', () => {
@@ -53,8 +46,8 @@ describe('objets maudits — aucun Bienfait mécanique sans son Méfait', () => 
   it('Bottes du remords soudain : le seul passif est un MALUS de Discrétion (VDM 12 l.810)', () => {
     const ops = byId('bottes-du-remords-soudain').passive ?? [];
     expect(ops).toHaveLength(1);
-    expect(ops[0].skill).toEqual({ id: 'discretion' });
-    expect(ops[0].mod).toBeLessThan(0);
+    expect(ops[0]).toMatchObject({ skill: { id: 'discretion' } });
+    expect(ops.every((o) => 'mod' in o && typeof o.mod === 'number' && o.mod < 0)).toBe(true);
   });
 
   it('Cotte de mailles de bravoure usurpée : 3 PA de mailles Bras+Corps, aucun Bienfait — Méfait (Test de Calme à chaque coup encaissé, difficulté dégressive, fuite, PA suspendus) non exprimable (VDM 12 l.815/819)', () => {
@@ -75,7 +68,7 @@ describe('armures — le PA annoncé dans la desc concorde avec le champ `pa` d�
   const PA_MENTION = /(\d+)\s*(?:Points? d['’]Armure|PA\b)/gi;
 
   const armures = TRAPPINGS.filter(
-    (t): t is Trapping & { pa: number; desc: string } =>
+    (t): t is TrappingData & { pa: number; desc: string } =>
       t.categorie === 'armor' && typeof t.pa === 'number' && typeof t.desc === 'string',
   );
 

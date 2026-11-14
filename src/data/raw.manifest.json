@@ -120,6 +120,60 @@
     "bloque": "Mercenaires particuliers (LDB 22 l.135) : −20 % des coûts d'Entraînement et d'Apprentissage particulier pour les Compétences et Talents martiaux, +20 % aux Tests adaptés d'Entraînement au Combat — aucune classification « martial » des Compétences et Talents dans la donnée"
   },
   {
+    "id": "4e/activites#allie-inculpe",
+    "type": "raw.manifest",
+    "label": "Allié inculpé",
+    "bloque": "Allié inculpé (LDB 22 l.12) : ni le Test de Savoir (Loi) Accessible (+20) au prix d'une Activité, ni les trois Activités de groupe qui disculpent, ni la Faveur Majeure gagnée ou la pendaison de l'allié — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni Test, ni dépense d'Activité, ni Faveur"
+  },
+  {
+    "id": "4e/activites#encheres-esoteriques",
+    "type": "raw.manifest",
+    "label": "Enchères ésotériques",
+    "bloque": "Enchères ésotériques (LDB 22 l.16) : ni l'achat du vieux livre à 10 CO, ni le +20 des Lettrés à l'Activité Recherche de Savoir — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni achat ni bonus d'Activité"
+  },
+  {
+    "id": "4e/activites#imprevu",
+    "type": "raw.manifest",
+    "label": "Imprévu",
+    "bloque": "Imprévu (LDB 22 l.24) : ni le Test de Dressage (Cheval) Accessible (+20) pour rattraper la monture, ni sa perte à l'échec — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni Test ni perte de monture"
+  },
+  {
+    "id": "4e/activites#meteo-defavorable",
+    "type": "raw.manifest",
+    "label": "Météo défavorable",
+    "bloque": "Météo défavorable (LDB 22 l.56) : ni le −10 aux Tests de Compétences sociales, ni le +20 % au prix des aliments pour la prochaine aventure — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte aucun effet différé à la prochaine aventure"
+  },
+  {
+    "id": "4e/activites#maladie-pernicieuse",
+    "type": "raw.manifest",
+    "label": "Maladie pernicieuse",
+    "bloque": "Maladie pernicieuse (LDB 22 l.68) : ni le Test d'Endurance Facile (+40), ni le Flux Sanglant contracté à l'échec — la maladie existe (`flux-sanglant`, `src/data/maladies.json`) mais `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni Test ni contagion"
+  },
+  {
+    "id": "4e/activites#colporteur",
+    "type": "raw.manifest",
+    "label": "Colporteur",
+    "bloque": "Colporteur (LDB 22 l.99) : ni la dépense de 3 sc, ni le +10 à toutes les Activités Dernières nouvelles — l'Activité existe (`dernieres-nouvelles`, `src/data/activities.json`) mais `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni dépense ni bonus d'Activité"
+  },
+  {
+    "id": "4e/activites#animal-domestique-malade",
+    "type": "raw.manifest",
+    "label": "Animal domestique malade",
+    "bloque": "Animal domestique malade (LDB 22 l.103) : ni le Test de Soin aux animaux Intermédiaire (+0), ni la mort de l'animal à l'échec — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni Test ni perte d'animal"
+  },
+  {
+    "id": "4e/activites#soupconne-d-heresie",
+    "type": "raw.manifest",
+    "label": "Soupçonné d'hérésie",
+    "bloque": "Soupçonné d'hérésie (LDB 22 l.119) : ni le Test de Charme Très Difficile (−30), ni la némésis Répurgateur gagnée à l'échec — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni Test ni némésis"
+  },
+  {
+    "id": "4e/activites#consideration-inattendue",
+    "type": "raw.manifest",
+    "label": "Considération inattendue",
+    "bloque": "Considération inattendue (LDB 22 l.131) : aucun don (objet de grande qualité ou bourse, disponible au début de la prochaine aventure) — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte aucun don, et la nature du dédommagement, laissée au MJ par le RAW, attend son arbitrage maison"
+  },
+  {
     "id": "4e/activites#dressage",
     "type": "raw.manifest",
     "label": "Dressage",

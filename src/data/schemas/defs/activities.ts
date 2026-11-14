@@ -22,6 +22,14 @@ import {
 import { conditionSchema, executeesDe, flowTestSchema, stageOutcomeSchema } from '../grammaire/mecanique';
 import { refOuSpec, refs } from '../grammaire/ref';
 
+type TestDeFlux = z.output<typeof flowTestSchema>;
+/** Un Test au choix d'une Activité : sa Compétence OU sa Caractéristique (#1657 B3-3). */
+export type TestDOption = TestDeFlux & (
+  | { skill: NonNullable<TestDeFlux['skill']>; characteristic?: undefined }
+  | { skill?: undefined; characteristic: NonNullable<TestDeFlux['characteristic']> }
+);
+const designeSaVoie = (t: TestDeFlux): t is TestDOption => (t.skill === undefined) !== (t.characteristic === undefined);
+
 export const file = 'activities.json';
 export const famille = 'entite';
 
@@ -296,7 +304,10 @@ const doc = document(
         if (a.stakeForm && !a.stake) {
           ctx.addIssue({ code: 'custom', message: `${a.id} : forme d’enjeu déclarée sans enjeu` });
         }
-      }),
+      }).refine((e): e is { tests?: TestDOption[] } => {
+        const tests: unknown = Reflect.get(e, 'tests');
+        return tests === undefined || (Array.isArray(tests) && tests.every(designeSaVoie));
+      }, { path: ['tests'], error: 'un Test au choix nomme sa Compétence ou sa Caractéristique.', when: (p) => p.issues.length === 0 }),
   },
 );
 
