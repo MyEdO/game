@@ -4,7 +4,7 @@
 ## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
 ## appui sur ce qui est porté et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
-## d'un point, le bas d'une fenêtre posée au-dessus du meuble de l'actif, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
+## d'un point, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan, le point du plan sous le pointeur et
 ## sa case, le coin de ce qui se pose sous un lieu, la
@@ -77,6 +77,8 @@ const LACETS_DES_BORDS := {proue = 0.0, tribord = -PI / 2.0, poupe = PI, babord 
 const ECART_DE_BULLE := 12.0
 ## L'écart d'une fenêtre posée en bas de la scène au bas de la scène et au meuble de l'actif, en pixels.
 const ECART_DU_MEUBLE := 8.0
+## La hauteur au-delà de laquelle la liste ouverte d'une pastille défile, en pixels.
+const HAUTEUR_DE_LISTE := 320.0
 ## La largeur, en pixels, au-delà de laquelle le texte d'une bulle se replie au mot (`Bulle`).
 const LARGEUR_DE_BULLE := 420.0
 ## La hauteur, au-dessus du sol de sa case, du nom d'une entité de la scène.
@@ -798,6 +800,17 @@ static func bulle_au_dessus(point: Vector2, largeur: float, hauteur: float) -> V
 ## meuble), à `ECART_DU_MEUBLE` de lui et du bas de la scène.
 static func au_dessus_du_meuble(hauteur: float) -> float:
 	return -ECART_DU_MEUBLE - (hauteur + ECART_DU_MEUBLE if hauteur > 0.0 else 0.0)
+
+
+## Le coin haut-gauche d'une liste de `taille` ouverte au-dessus d'un socle dont le haut est à `haut`, à
+## `ECART_DU_MEUBLE` de lui, son bord gauche à `gauche`, tenue dans un écran de `largeur`.
+static func coin_de_la_liste(gauche: float, haut: float, largeur: float, taille: Vector2) -> Vector2:
+	return Vector2(clampf(gauche, 0.0, largeur - taille.x), maxf(haut - ECART_DU_MEUBLE - taille.y, 0.0))
+
+
+## La hauteur du défilement d'une liste ouverte dont le contenu mesure `contenu`, bornée à `HAUTEUR_DE_LISTE`.
+static func hauteur_de_liste(contenu: float) -> float:
+	return minf(contenu, HAUTEUR_DE_LISTE)
 
 
 ## L'échelle de projection d'une texture du sol dans le repère du volume, en mètres : un motif tous les

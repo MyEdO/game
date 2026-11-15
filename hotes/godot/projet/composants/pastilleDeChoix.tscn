@@ -1,13 +1,76 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=6 format=3]
 
-[ext_resource type="PackedScene" path="res://composants/pastilleOuvrante.tscn" id="1_pastille"]
-[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="Script" path="res://scripts/pastille_de_choix.gd" id="1_pastille"]
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="2_liaison"]
+[ext_resource type="Script" path="res://scripts/dessin.gd" id="3_dessin"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="4_zone"]
+[ext_resource type="Theme" path="res://art/fin_du_tour.tres" id="t_fin"]
 
-[node name="PastilleDeChoix" instance=ExtResource("1_pastille")]
+[node name="PastilleDeChoix" type="Control" node_paths=PackedStringArray("pastille", "liste")]
+custom_minimum_size = Vector2(34, 34)
+size_flags_vertical = 4
+script = ExtResource("1_pastille")
+pastille = NodePath(".")
+liste = NodePath("Liste")
 
-[node name="Valeurs" type="HFlowContainer" parent="Liste"]
+[node name="Presser" type="Button" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+custom_minimum_size = Vector2(34, 34)
+theme = ExtResource("t_fin")
+icon_alignment = 1
+
+[node name="libelle" type="Node" parent="Presser"]
+script = ExtResource("2_liaison")
+champ = "libelle"
+propriete = &"tooltip_text"
+
+[node name="Dessin" type="Node" parent="Presser"]
+script = ExtResource("3_dessin")
+champ = "icone"
+
+[node name="refus" type="Node" parent="Presser"]
+script = ExtResource("2_liaison")
+champ = "refus"
+propriete = &"disabled"
+
+[node name="infobulle" type="Node" parent="Presser"]
+script = ExtResource("2_liaison")
+champ = "refus"
+propriete = &"tooltip_text"
+a_la_suite = true
+
+[node name="ton" type="Node" parent="Presser"]
+script = ExtResource("2_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="Liste" type="PanelContainer" parent="."]
+visible = false
+z_index = 1
+theme_type_variation = &"Panneau"
+
+[node name="Pile" type="VBoxContainer" parent="Liste"]
 custom_minimum_size = Vector2(240, 0)
+theme_type_variation = &"PileSerree"
 
-[node name="Zone" type="Node" parent="Liste/Valeurs"]
-script = ExtResource("2_zone")
+[node name="Titre" type="Label" parent="Liste/Pile"]
+theme_type_variation = &"Rubrique"
+
+[node name="libelle" type="Node" parent="Liste/Pile/Titre"]
+script = ExtResource("2_liaison")
+champ = "libelle"
+
+[node name="Defilement" type="ScrollContainer" parent="Liste/Pile"]
+horizontal_scroll_mode = 0
+
+[node name="Valeurs" type="VBoxContainer" parent="Liste/Pile/Defilement"]
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Liste/Pile/Defilement/Valeurs"]
+script = ExtResource("4_zone")
 source = "valeurs"
+formes = PackedStringArray("bouton:valeurDeListe")

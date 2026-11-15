@@ -4,11 +4,13 @@
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 [ext_resource type="Theme" path="res://art/ecran.tres" id="t_ecran"]
 
-[node name="MenuDeLaPartie" type="Control"]
+[node name="MenuDeLaPartie" type="Control" node_paths=PackedStringArray("pastille", "liste")]
 custom_minimum_size = Vector2(34, 34)
 mouse_filter = 2
 theme = ExtResource("t_ecran")
 script = ExtResource("1_menu")
+pastille = NodePath("Pastille")
+liste = NodePath("Liste")
 
 [node name="Liste" type="PanelContainer" parent="."]
 visible = false

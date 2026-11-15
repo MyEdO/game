@@ -55,8 +55,9 @@ extends Node
 ## la carrière, les Blessures en trait, puis une ligne de ce que la carte porte d'autre), « Quitter la partie » et «
 ## Nouveau héros » au pied du journal ; avant le lancement, les pré-tirés à recruter et les campagnes à lancer se
 ## rangent en deux colonnes sur la scène ; la barre du combat (`combat.offres`) tient le meuble de l'actif, à droite de
-## son portrait : l'Action (`economie/action`) en plaques (`plaque`), chaque autre choix en pastille (`pastilleDeChoix`,
-## `pastilleDeListe`) qui ouvre sa liste au-dessus du meuble, sauf la part du tour (`economie/aucun`), en bas à droite
+## son portrait : l'Action (`economie/action`) en plaques (`plaque`), chaque autre choix en pastille (`pastilleDeChoix`)
+## qui ouvre au-dessus du meuble sa liste, son libellé en titre et ses valeurs en colonne, chacune avec son refus, une
+## seule liste ouverte dans l'écran, menu de la partie compris (`Ouvrante`), sauf la part du tour (`economie/aucun`), en bas à droite
 ## de la scène ; en combat, le panneau du journal se cache et ses lignes passent à la chronique : ses trois dernières
 ## s'écrivent sur la scène, en bas à droite au-dessus de la fin du tour (`Chronique`, `Zone.derniers`), et sa pastille
 ## (`journal.titre`, en `pictogramme`) l'ouvre entière, en défilement sur un parchemin

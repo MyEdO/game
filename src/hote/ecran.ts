@@ -102,6 +102,7 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
    * son Mouvement en entité `mouvement` : un jeton par case (`jeton/<n>`), en `reussite` tant qu'il reste, puis ce qui
    * reste sur le total en ligne `reste`.
    * aucune quand une fenêtre de jet tient la main : la fenêtre prend sa place.
+   * aucune quand le combat est fini : la victoire ou la défaite se pose seule sur son voile.
    */
   'combat.actif': Entite[];
   /**
@@ -1175,7 +1176,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id) && !portes.has(g.id)),
     'combat.tour': c ? [ligne('tour', c.tour === null ? t('ecran.round', { round: c.round }) : t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
     'combat.ordre': c ? ordreDuTour(etat, c, fiche) : [],
-    'combat.actif': c?.actif && !fenetreDuJeu(etat)?.etape?.jet ? [actifDuCombat(c.actif)] : [],
+    'combat.actif': c?.actif && !c.fin && !fenetreDuJeu(etat)?.etape?.jet ? [actifDuCombat(c.actif)] : [],
     'combat.avis': c ? avisDuCombat(c, fenetre !== null) : [],
     'combat.apercu': c ? [apercuDe(etat, c)].flatMap((a) => (a === null ? [] : [ligne('apercu', a)])) : [],
     'combat.offres': c ? offresDuCombat(c) : [],
