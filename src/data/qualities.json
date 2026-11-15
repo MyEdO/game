@@ -1164,10 +1164,10 @@
     "label": "Magique",
     "polarite": "atout",
     "subType": "arme",
-    "desc": "L'arme est considérée comme Magique : ses attaques blessent les créatures Éthérées.",
+    "desc": "Toutes les armes magiques peuvent blesser les créatures normalement immunisées aux attaques non magiques, telles que celles dotées du Trait de créature Éthéré.",
     "source": {
-      "book": "livre-de-base",
-      "page": 339
+      "book": "archives-de-l-empire-2",
+      "page": 58
     },
     "capabilities": {
       "magic": true
@@ -1244,6 +1244,85 @@
       "book": "mer-des-griffes",
       "page": 48
     }
+  },
+  {
+    "id": "malepierre",
+    "type": "qualities",
+    "label": "Malepierre",
+    "polarite": "atout",
+    "subType": "arme",
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "archiseigneur-des-mers-vrisk-gratte-le-fer",
+          "secOcc": 1,
+          "b0": 16,
+          "b1": 16,
+          "sum": "3a78e4233660e80a"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 157,
+      "note": "MDG 16 l.515 — l'Atout vaut pour toute arme qui le porte : MDG 16 l.534 le donne au canon naval à malefoudre, et la VO (Le Rat Cornu – Compagnon, p.32) dit « any attack »."
+    },
+    "effects": [
+      {
+        "trigger": "onCrit",
+        "on": "victime",
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "corruptionExposure",
+                "level": "mineure",
+                "nature": "physique"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "zap",
+    "type": "qualities",
+    "label": "ZAP !",
+    "polarite": "atout",
+    "subType": "arme",
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "pieces-d-artillerie",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "a08d895af0cc93f3"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 157,
+      "note": "MDG 16 l.536"
+    },
+    "passive": [
+      {
+        "op": "armourPierce",
+        "amount": 1,
+        "bypass": "metal"
+      }
+    ]
   },
   {
     "id": "equipe",

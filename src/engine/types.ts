@@ -312,6 +312,9 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  MÊME vocabulaire que le `passive` d'un Atout/Défaut du registre, lus au MÊME point (`weaponPassiveOps`,
    *  engine/qualities/dispatch). VDM 05 Défaut : « −1 DR à tous les Tests pour attaquer avec elle ». */
   passive?: import('./ops').OpPassive[];
+  /** Passifs d'ARME portés en DONNÉE par le catalogue (`TrappingData.passifDArme`), lus au MÊME point
+   *  (`weaponPassiveOps`). ZI 13 l.199 */
+  passifDArme?: import('./ops').OpPassive[];
   /** Qualités NEUTRALISÉES sur cette arme par id (altération `augmentWeapon.removeQualities`) — retirées
    *  APRÈS la fusion des qualités de FAMILLE (`resolveQualities`), qui sont sur le même plan RAW. */
   removedQualities?: string[];

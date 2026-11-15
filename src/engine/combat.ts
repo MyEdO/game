@@ -54,7 +54,7 @@ import { maniementRetenu, speDeCorpsACorps } from './weaponGroup';
 import { traumaDodgePenaltyParts, amputationCombatPenalty, passiveTestModParts, passivePartLine } from './trauma';
 import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
-import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
+import { SIZE_RANGED_MOD, SIZE_LABEL, possessionASaTaille, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
 import { ignoredArmourAP, activeLoadout, porteeDeTir, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom, sourceCombattant, sousPeur, vise } from './psychology';
@@ -911,20 +911,8 @@ export function attackModifiers(
   // Frappe assommante (Tête + arme Assommante) / Tir mortel (distance) : pas de pénalité (LDB 10).
   if (opts.location && !(target && sizeGap(target.size, attacker.size) >= 2)
       && !ignoresCalledShotPenalty(attacker, opts.kind, opts.location, hasQuality(weapon, 'assommante'))) out.push(ligneDeRegle('viser-une-localisation', 'localisation'));
-  // Possession pas prévue pour la Taille du porteur (ADE II 2 l.710), ex. un ogre maniant
-  // une arme de Taille Moyenne. Symétrique quand `sizeFor` est POSÉ (une arme taillée pour une Taille
-  // devient réellement inadaptée à une autre, ADE II 2 l.604). Sans `sizeFor` (possession ORDINAIRE
-  // du catalogue) : la LDB ne cite aucune pénalité d'équipement pour un porteur plus PETIT que la
-  // Moyenne (Talent Petit, LDB 10 l.939-943, muet sur l'équipement) — seul un porteur plus GRAND que la
-  // Moyenne (ex. ogre) subit le malus, l'objet ordinaire étant implicitement taillé pour la Moyenne.
-  // Une arme NATURELLE (`Weapon.natural` — dents/griffes/cornes) ou SIZELESS (trait « Arme » générique
-  // sans objet de catalogue résolu, `creatureEquip.weaponFromTrait`) est PAR DÉFINITION à la Taille de
-  // son porteur : jamais de « Possession pas à sa taille », qui vise un OBJET manufacturé réel (ADE II
-  // ch.02 l.604-710).
-  const gearSize = effectiveSize(weapon.sizeFor);
-  const carrierSize = effectiveSize(attacker.size);
-  if (!weapon.natural && !weapon.sizeless && gearSize !== carrierSize
-      && (weapon.sizeFor !== undefined || SIZE_ORDER[carrierSize] > SIZE_ORDER.moyenne)) {
+  // ADE II 2 l.604 ; ADE II 2 l.710. Arme naturelle ou sizeless : jamais (`Weapon.natural`, `Weapon.sizeless`).
+  if (!weapon.natural && !weapon.sizeless && !possessionASaTaille(weapon.sizeFor, attacker.size)) {
     out.push(ligneDeRegle('possession-pas-a-sa-taille', 'possession-pas-a-sa-taille'));
   }
   // Main secondaire (LDB 14 l.78) ; Ambidextre la réduit via le registre combatFeatures.

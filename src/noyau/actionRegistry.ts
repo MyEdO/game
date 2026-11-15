@@ -322,7 +322,7 @@ export const ACTION_GATES: Record<GateDAction, (ctx: ActionCtx) => ActionGate> =
   'battement-connu': ({ active }) => (hasBattement(active) ? ok : no(t('agate.noBattement'))),
   'distraire-connu': ({ active }) => (hasDistraire(active) ? ok : no(t('agate.noDistraire'))),
   'frenesie-possible': ({ active }) => (isFrenzyCapable(active) && !isFrenzied(active) ? ok : no(t('agate.noFrenzy'))),
-  'equipe-a-aider': ({ active, battle }) => (canAidTeam(active, battle.combatants) ? ok : no(t('agate.noTeamToAid'))),
+  'equipe-a-aider': ({ active, battle, scene }) => (canAidTeam(scene, active, battle.combatants) ? ok : no(t('agate.noTeamToAid'))),
   monte: ({ active }) => (active.mountId ? ok : no(t('agate.notMounted'))),
   'poste-servi': ({ active }) => (active.mannedPoste ? ok : no(t('agate.noPosteManned'))),
   /** La barre : le BARREUR la tient (`shipOfCrew`), et la COQUE elle-même (`manoeuvrerLeNavire` accepte l'un ou l'autre). */

@@ -5,9 +5,23 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
-import { trappings, trappingsInstanciables, armesChoisissables, trappingDesObjetsPuisDuCatalogue, type TrappingData } from './index';
+import {
+  trappings,
+  trappingsInstanciables,
+  armesChoisissables,
+  trappingDesObjetsPuisDuCatalogue,
+  careers,
+  findQualityById,
+  findTrappingById,
+  findSpeciesById,
+  groupeDeLArme,
+  speciesSize,
+  type TrappingData,
+} from './index';
 import { setDataset } from './overrides';
 import { itemFromTrappingById } from '../engine/items';
+import { isMagicWeapon } from '../engine/qualities/dispatch';
+import { dotationsDuHeros, dotationsDuPnj, emplacementsDeDotation, valeursDeLEmplacement } from '../engine/trappingChoices';
 import { craftCatalog, orderCatalog } from '../engine/activities';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import { idsDeLaSousListe } from './schemas/grammaire/ref';
@@ -106,5 +120,49 @@ describe('Effet `giveTrapping` — la feuille sous portée juge un id PRÉSENT',
 
   it('la forme de `grantWeapon` refuse un id absent (feuille sans portée)', () => {
     expect(forme('campagne-sceau-du-comte').success).toBe(false);
+  });
+});
+
+describe('arme au choix — aucune arme magique (ZI 13 l.862 ; VDM 12 l.3)', () => {
+  const qualitesMagiques = (id: string): string[] =>
+    (findTrappingById(id)?.qualities ?? []).filter((r) => findQualityById(r.id)?.capabilities?.magic).map((r) => r.id);
+  const jokers = careers
+    .flatMap((c) => emplacementsDeDotation([...dotationsDuHeros(c.id), ...dotationsDuPnj(c.id, 4)]))
+    .filter((e) => e.sorte === 'joker');
+
+  it('`armesChoisissables` n’offre aucune arme à qualité `capabilities.magic`', () => {
+    expect(armesChoisissables().filter((a) => qualitesMagiques(a.id).length > 0).map((a) => a.id)).toEqual([]);
+  });
+
+  it('aucun joker d’arme de carrière, de Groupe ou nu, n’offre d’arme magique (`valeursDeLEmplacement`)', () => {
+    expect(jokers.some((e) => e.ref.groupe !== undefined) && jokers.some((e) => e.ref.groupe === undefined)).toBe(true);
+    for (const e of jokers) expect(valeursDeLEmplacement(e, 'moyenne').filter((v) => qualitesMagiques(String(v)).length > 0), e.adresse).toEqual([]);
+  });
+
+  it.each(['broyeur-d-os', 'silence', 'vision-de-vie', 'baton-enchante'])('%s, instanciée, est une arme magique', (id) => {
+    expect(isMagicWeapon(itemFromTrappingById(id, idsDeTest)!)).toBe(true);
+  });
+});
+
+describe('arme au choix — à la Taille du porteur (ADE II 2 l.604 ; ADE II 2 l.710 ; arbitrage #4110)', () => {
+  const jokers = careers
+    .flatMap((c) => emplacementsDeDotation([...dotationsDuHeros(c.id), ...dotationsDuPnj(c.id, 4)]))
+    .filter((e) => e.sorte === 'joker');
+  const armesDOgre = trappingsInstanciables().filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && t.sizeFor === 'grande');
+
+  it('aucun joker d’arme de carrière n’offre à un porteur de Taille Moyenne une arme taillée pour la Grande', () => {
+    for (const e of jokers) expect(valeursDeLEmplacement(e, 'moyenne').filter((v) => findTrappingById(String(v))!.sizeFor === 'grande'), e.adresse).toEqual([]);
+  });
+
+  it('un ogre se voit offrir les armes d’ogre du Groupe du joker, et elles seules', () => {
+    const ogre = speciesSize(findSpeciesById('ogres')!);
+    expect(ogre).toBe('grande');
+    expect(armesDOgre.length).toBeGreaterThan(0);
+    for (const e of jokers) {
+      const groupe = e.ref.groupe?.id;
+      const attendues = armesDOgre.filter((t) => groupe === undefined || groupeDeLArme(t)?.id === groupe).map((t) => t.id);
+      expect(new Set(valeursDeLEmplacement(e, ogre)), e.adresse).toEqual(new Set(attendues));
+    }
+    expect(jokers.some((e) => valeursDeLEmplacement(e, ogre).length > 0)).toBe(true);
   });
 });

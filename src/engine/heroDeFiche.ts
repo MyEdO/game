@@ -6,7 +6,7 @@ import type { Combatant, Characteristics, CharKey, HeroDetails, ItemInstance, Sk
 import { CHAR_KEYS } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { ObjetDeCatalogue } from '../data/schemas/grammaire/reference';
-import { findSpeciesById, levelsForCareer } from '../data';
+import { findSpeciesById, levelsForCareer, speciesSize } from '../data';
 import { acquerirTalent, freeSlotFor, refKey, skillSlots, talentSlots, talentSlotsUpTo, type PorteurDeTalents } from './careerSlots';
 import { assemblerLeHeros, augmenterLaCompetence, type CreateHeroOptions } from './character';
 import { carriereActuelle, designationsDeCarriere, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
@@ -84,7 +84,7 @@ function inventaireDeLaFiche(fiche: FicheDeHeros, carriere: string, idNeuf: Fabr
 export function heroDeFiche(fiche: FicheDeHeros, idNeuf: FabriqueDId): Combatant {
   const espece = findSpeciesById(fiche.speciesId);
   if (!espece) throw new Error(`Espèce inconnue : ${fiche.speciesId}`);
-  const refus = refusDuParcours(fiche.parcours);
+  const refus = refusDuParcours(fiche.parcours, speciesSize(espece));
   if (refus) throw new Error(`Fiche « ${fiche.id} » : ${refus}`);
   const actuelle = carriereActuelle(fiche.parcours)!;
 
