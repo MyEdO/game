@@ -45,7 +45,7 @@ describe('unicité d’un id', () => {
   it('nomme le porteur d’un autre registre, la règle globale, une sous-entrée sœur', () => {
     const n = narratif();
     expect(porteurDeLId(n, { registre: 'affaires', id: 'aff' }, 'ind-sceau')).toBe('l\'indice « Le sceau »');
-    expect(porteurDeLId(n, { registre: 'affaires', id: 'aff' }, creatures[0].id)).toBe('la règle globale (créature/possession)');
+    expect(porteurDeLId(n, { registre: 'affaires', id: 'aff' }, creatures[0].id)).toBe('la règle globale (créature, possession, véhicule ou structure)');
     expect(porteurDeLId(n, { registre: 'indices', id: 'ind-lettre', sous: 'lue' }, 'dechiffree')).toBe('le stade 2');
     expect(porteurDeLId(n, { registre: 'etats', id: 'humeur', sous: 'calme' }, 'furieux')).toBe('la valeur 2');
     expect(porteurDeLId(n, { registre: 'affaires', id: 'aff' }, 'aff')).toBeNull();
@@ -138,8 +138,8 @@ describe('objets du narratif : sites par clé ∪ sites de la portée ouverte su
     const pris = [autre.id, 'arme-simple', creatures[0].id];
     expect(pris.map((id) => refusDeRenommage(p.narratif, cible, id))).toEqual([
       'Identifiant « hache-de-campagne » déjà porté par l\'objet « Hache de campagne »',
-      'Identifiant « arme-simple » déjà porté par la règle globale (créature/possession)',
-      `Identifiant « ${creatures[0].id} » déjà porté par la règle globale (créature/possession)`,
+      'Identifiant « arme-simple » déjà porté par la règle globale (créature, possession, véhicule ou structure)',
+      `Identifiant « ${creatures[0].id} » déjà porté par la règle globale (créature, possession, véhicule ou structure)`,
     ]);
     expect(pris.map((id) => renommeAuProjet(p, cible, id))).toEqual(pris.map(() => p));
   });

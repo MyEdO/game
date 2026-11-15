@@ -1355,7 +1355,6 @@ function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle
  *  l'appelant), ce qui co-localise la validation d'un effet AVEC son application (fin du switch parallèle). */
 export interface EffectRefCtx {
   sceneIds: ReadonlySet<string>;
-  encounterIds: ReadonlySet<string>;
   /** Les personnages de la scène (`PERSONNAGES_DE_LA_SCENE`). */
   entityIds: ReadonlySet<string>;
   /** LA FICHE derrière une entité `personnage`, par la MÊME projection que le runtime (`sceneNpc`) —
@@ -2217,7 +2216,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   startPursuit: {
     group: 'Combat & social', label: libelleEffet('startPursuit'), icon: 'voyage/a-pied',
-    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureSemee() } }] }),
+    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ id: creatureSemee() }] }),
     apply: (e, env) => { startGroundPursuit(env.get, env.set, { partyRole: e.partyRole, distance: e.distance, escapeAt: e.escapeAt, skill: e.skill.id, foes: e.foes, encounter: e.encounter?.id, policy: e.policy }); },
     refs: (e) => {
       const issues: EffectRefIssue[] = [];
@@ -2225,8 +2224,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Chaque adversaire est une RÉFÉRENCE : c'est sur la fiche que se lisent son Mouvement et sa
       // valeur de Test — une référence cassée n'a aucune stat à offrir.
       for (const f of e.foes ?? []) {
-        if ('id' in f.ref && !findCreatureById(f.ref.id)) {
-          issues.push({ level: 'error', message: `Poursuite → créature inexistante « ${f.ref.id || '(aucune)'} »` });
+        if ('id' in f && !findCreatureById(f.id)) {
+          issues.push({ level: 'error', message: `Poursuite → créature inexistante « ${f.id || '(aucune)'} »` });
         }
       }
       return issues;
@@ -2236,9 +2235,6 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Combat & social', label: libelleEffet('startMassBattle'), icon: 'outil-de-carte/depart',
     make: () => ({ type: 'startMassBattle', battle: { puissanceAlliee: 50, puissanceEnnemie: 50, plannedRounds: 3 } }),
     apply: (e, env) => { env.get().amorcerLaBataille(e.battle); }, // ouvre l'écran de bataille sur le spec authoré (ADE II 08)
-    // Les rencontres mappées aux Scènes de combat/menace doivent exister dans la scène courante.
-    refs: (e, ctx) => Object.entries(e.battle.sceneEncounters ?? {}).flatMap(([sceneId, encId]) =>
-      ctx.encounterIds.has(encId) ? [] : [{ level: 'error' as const, message: `Combat de masse → rencontre inexistante « ${encId} » (Scène ${sceneId})` }]),
   },
   openMerchant: {
     group: 'Combat & social', label: libelleEffet('openMerchant'), icon: 'marchand/panier',

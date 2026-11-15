@@ -448,7 +448,7 @@ import {
   meleeWeaponInRange,
   pickAttackWeaponList,
 } from './mount';
-import { couvertDArete, couvertDuTir, lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
+import { couvertDuCoup, couvertDuTir, lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
 import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { coverModifier, couvertDepuisDifficulte, couvertLePlusProtecteur } from '../engine/cover';
 import { couvertDuPoste } from '../engine/navalTraits';
@@ -1159,10 +1159,10 @@ export function attackEnv(
   }
   // Mêlée : la météo (tempête/neige) pénalise l'attaque ; la neige pénalise aussi l'esquive (dodgeMods).
   if (sc.attaque) env.push(sc.attaque);
-  // Le coup par-dessus une arête : arbitrage #4105 du 2026-11-13 ; croisée, règle `combat-croisee-melee-difficulte`.
+  // Le coup par-dessus une arête : arbitrages #4105 du 2026-11-13 et #4291 du 2026-11-15 ; croisée, règle `combat-croisee-melee-difficulte`.
   if (corpsA && corpsC) {
     const croisee = couvertDepuisDifficulte(rule('combat-croisee-melee-difficulte'));
-    couvrir(couvertDArete(scene, corpsA, corpsC, () => croisee));
+    couvrir(couvertDuCoup(scene, corpsA, corpsC, () => croisee));
   }
   // Météo « Tests physiques » (EDOC 8 l.82) : canal unique `weatherTestMods` (attackModifiers, `attacker.envWeather`),
   // pour l'attaque, la défense et les activités (#341).

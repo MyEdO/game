@@ -29,10 +29,9 @@ import {
 } from '../grammaire/valeurs';
 import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, refuserLeVivreDuNavire } from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
-import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
+import { idDe, recordDIds, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
-import { listeCle } from '../grammaire/collection-cle';
 import {
   customStatblockSchema,
   DIALOGUES_DE_LA_SCENE,
@@ -73,16 +72,6 @@ export const favorLevelSchema = enumNomme({
 });
 /** `CrewHire` (`engine/crewMorale.ts`) — un rôle d'équipage salarié et son effectif. */
 export const crewHireSchema = nommerChamps(z.strictObject({ roleId: idDe('crewRole', undefined, { nue: true }), count: z.number() }), { roleId: { label: "rôle" , texte: { regime: "technique"} }, count: { label: "nombre" } });
-/** `PursuitFoeRef` (`noyau/pursuitFlow.ts`) — adversaire de poursuite : une RÉFÉRENCE de vivant
- *  (`livingRefSchema` — bestiaire ou statbloc d'éditeur), jamais des stats recopiées. Son Mouvement et
- *  sa valeur de Test de Mouvement se LISENT sur la fiche référencée, résolus au démarrage
- *  (`noyau/pursuitFlow`). `id` est posé à l'ouverture quand l'auteur n'en écrit pas — il sert aux
- *  décisions de camp (`PursuitPolicy.prioritaires`). */
-/** LDB 15 l.94 */
-export const pursuitFoeSchema = nommerChamps(z.strictObject({
-  id: z.string().optional(),
-  ref: livingRefSchema,
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, ref: { label: "référence" } });
 /** LDB 15 l.94. */
 export const pursuitPolicySchema = nommerChamps(z.strictObject({
   sacrifice: z.enum(['jamais', 'toujours', 'si-ecart']).optional(),
@@ -105,8 +94,8 @@ export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
   /** ADE II 8 l.128. */
   situations: z.array(z.array(z.string())).optional(),
   situationSize: z.number().optional(),
-  /** Rencontres à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène → id d'encounter). */
-  sceneEncounters: z.record(z.string(), z.string()).optional(),
+  /** Rencontres de la scène à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène). */
+  sceneEncounters: recordDIds('activity', ref(RENCONTRES_DE_LA_SCENE)).optional(),
   /** ADE II 8 l.81. */
   modificateurAllie: z.number().optional(),
 }), { nomDesAllies: { label: "nom des alliés" , texte: { regime: "designation"} }, nomDesEnnemis: { label: "nom des ennemis" , texte: { regime: "designation"} }, puissanceAlliee: { label: "puissance alliée" }, puissanceEnnemie: { label: "puissance ennemie" }, plannedRounds: { label: "Rounds prévus" }, scenes: { label: "Scènes" , texte: { regime: "technique"} }, situations: { label: "situations" , texte: { regime: "technique"} }, situationSize: { label: "taille de situation" }, sceneEncounters: { label: "rencontres de scène" , texte: { regime: "technique"} }, modificateurAllie: { label: "modificateur allié" } }), 'massBattle.terrain');
@@ -411,8 +400,10 @@ export const moveEntitySchema = nommerChamps(z.strictObject({
   remove: z.boolean().optional(),
 }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, to: { label: "destination" }, remove: { label: "retirer" } });
 
+/** Le son joué, au registre audio : FORME DE SORTIE déclarée nue (patron `sortSchema`). */
+const sonJoueSchema: z.ZodType<string, string> = idDe('son');
 /** Son PONCTUEL (cloche de minuit, cri hors-champ…) — id du registre audio (#701). */
-export const playSfxSchema = nommerChamps(z.strictObject({ type: z.literal('playSfx'), id: z.string() }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } });
+export const playSfxSchema = nommerChamps(z.strictObject({ type: z.literal('playSfx'), id: sonJoueSchema }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } });
 
 /** LDB 40 l.25-29, l.36, l.46 */
 export const giveSinSchema = nommerChamps(z.strictObject({
@@ -499,7 +490,7 @@ export const startPursuitSchema = nommerChamps(z.strictObject({
   distance: z.number(),
   escapeAt: z.number().optional(),
   skill: refOuSpec('skill'),
-  foes: listeCle(pursuitFoeSchema, 'id'),
+  foes: z.array(livingRefSchema),
   encounter: ref(RENCONTRES_DE_LA_SCENE).optional(),
   policy: pursuitPolicySchema.optional(),
 }), { type: { label: "type"  }, partyRole: { label: "rôle du groupe"  }, distance: { label: "distance" }, escapeAt: { label: "distance de fuite" }, skill: { label: "Compétence" }, foes: { label: "adversaires" }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, policy: { label: "décisions de poursuite" } });
