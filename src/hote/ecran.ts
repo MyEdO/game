@@ -524,10 +524,10 @@ function champDeBataille(etat: Jeu): Element[] {
 
 type Repos = NonNullable<ReturnType<typeof reposEnVue>>;
 
-/** Un réglage d'un dormeur en choix : chaque valeur que le lieu lui offre, la sienne pressée. */
+/** Un réglage d'un dormeur en choix : chaque valeur que le lieu lui offre, la sienne pressée, chacune fermée par sa raison. */
 const choixDuDormeur = (id: string, c: Repos['dormeurs'][number]['couchage']): Choix => ({
   type: 'choix', id, ton: 'neutre', libelle: c.libelle, focus: false, refus: null,
-  valeurs: c.valeurs.map((v, i): Bouton => ({ type: 'bouton', id: String(i), libelle: v.libelle, jeu: { type: v.geste.verbe, args: v.geste.args }, presse: v.choisie, focus: false, refus: null })),
+  valeurs: c.valeurs.map((v, i): Bouton => ({ type: 'bouton', id: String(i), libelle: v.libelle, jeu: { type: v.geste.verbe, args: v.geste.args }, presse: v.choisie, focus: false, refus: v.refus })),
 });
 
 /** La nuit à régler (`reposEnVue`) : la tête de sa scène (`scene` : le paysage de la halte, le temps sous le ciel de

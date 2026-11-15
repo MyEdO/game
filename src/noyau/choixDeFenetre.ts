@@ -49,7 +49,7 @@ import {
   optionsDeTroc, refusDAjout, refusDeMarchandage, refusDeRecherche, refusDeRefusDuMarche, sellRefusal, type MerchantState, type ModeDeMarche,
 } from './merchantFlow';
 import { findTrappingById } from '../data/index';
-import { dormeurDuRepos, foodOptions, lodgingOptions, nourrituresDeTroupe } from './restFlow';
+import { couchagesDeLaNuit, dormeurDuRepos, foodOptions, nourrituresDeTroupe } from './restFlow';
 import { itemLabel } from '../engine/items';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
 import { battleSceneById, herosQuiSePostent, postesDeBataille, refusDAlea, refusDeMelee, refusDeRassemblement, refusDeSceneDeBataille } from './massBattleFlow';
@@ -347,7 +347,7 @@ export const OUVERTS_DU_CHOIX = {
   repos: {
     couchage: reglage('repos', 'couchage', (s, pid) => {
       const nuit = nuitDuDormeur(s, pid);
-      return nuit ? lodgingOptions(nuit.p.places).map((v) => duRepos(v, 'couchage')) : [];
+      return nuit ? couchagesDeLaNuit(nuit.p, s.party, pid).map((c) => ouverte(c.id, c.libelle, c.refus)) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.lodging ?? null)),
     pitance: reglage('repos', 'pitance', (s, pid) => {
       const nuit = nuitDuDormeur(s, pid);
