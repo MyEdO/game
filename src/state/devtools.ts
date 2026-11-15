@@ -125,7 +125,7 @@ import { hoverTargeting } from '../noyau/targeting';
 import { maneuverShip } from '../noyau/shipManeuver';
 import { etageActif, getViewZ, setViewZ } from './viewLevel';
 import { setRevealAll, computeStateVisible } from '../noyau/visionState';
-import { canonEdge, doorIsOpen, emptyScene, porteEnJeu } from '../noyau/monde/scene';
+import { canonEdge, doorIsOpen, emptyScene, porteEnJeu, sceneMetresPerTile } from '../noyau/monde/scene';
 import { rule, surchargerUneSaisie, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
 import type { FormeDeControle } from '../data/schemas/defs/reglesOptionnelles';
 import { remettreUneRegleMaisonWeb } from './reglesMaison';
@@ -1395,7 +1395,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }
       const refus = refusDeDefenseReactive(g(), att, def, arme);
       if (refus === 'non-surfacee') return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
-      if (refus === 'hors-allonge') return `✗ ${att.label} n'est pas au contact de ${def.label} (${distanceEnClair(g().scene, att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
+      if (refus === 'hors-allonge') return `✗ ${att.label} n'est pas au contact de ${def.label} (${distanceEnClair(g().scene, att, def)} > allonge ${reachTiles(arme, sceneMetresPerTile(g().scene))}) — __wfrp.place() d'abord`;
       if (refus === 'ne-peut-se-defendre') return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
       return `✗ ${def.label} n'a aucune Défense opposable à l'attaque de ${att.label} (${arme.label})`;
     },
@@ -1433,7 +1433,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!kind) return `✗ « ${type} » n'est pas une gratuite disponible de ${att.label} contre ${def.label} — disponibles : ${disponibles.join(', ')}`;
       const arme = armeDeLaGratuite(att, kind)!;
       const refus = refusDeDefenseReactive(g(), att, def, arme);
-      if (refus === 'hors-allonge') return `✗ ${def.label} est hors de portée de ${att.label} (${distanceEnClair(g().scene, att, def)} > ${reachTiles(arme)}) — __wfrp.place() d'abord`;
+      if (refus === 'hors-allonge') return `✗ ${def.label} est hors de portée de ${att.label} (${distanceEnClair(g().scene, att, def)} > ${reachTiles(arme, sceneMetresPerTile(g().scene))}) — __wfrp.place() d'abord`;
       if (refus === 'non-surfacee') return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
       if (refus === 'ne-peut-se-defendre') return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
       donnerLeTour(b, idx);

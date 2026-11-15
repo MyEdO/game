@@ -81,7 +81,7 @@ export const zoneCovers = (z: BattleZone, p: Pt): boolean =>
 export const losBlockingTiles = (zones: BattleZone[] | undefined): Pt[] =>
   (zones ?? []).filter((z) => z.blocksLoS).flatMap((z) => z.tiles);
 
-/** Disque de Chebyshev (ZdE « rayon N mètres » — 1 case = 2 m, cohérent applyAreaAttack). `z` propagé
+/** Disque de Chebyshev de `radiusTiles` cases (`porteeEnCases` d'un rayon en mètres). `z` propagé
  *  sur chaque case (défaut absent/0, byte-identique sans lui) — un disque posé à l'étage `z` ne
  *  couvre pas les cases de même (x,y) au rez (`zoneCovers` compare `t.z ?? 0`). */
 export function discTiles(center: Pt, radiusTiles: number, z?: number): Pt[] {
@@ -236,11 +236,6 @@ export function zonesRoundTick(
     }
   }
   return out;
-}
-
-/** Résout une formule de longueur/rayon en MÈTRES vers des cases (1 case = 2 m, min 1). */
-export function metersToTiles(meters: number): number {
-  return Math.max(1, Math.ceil(meters / 2));
 }
 
 /** Longueur d'un mur en mètres : base + extension « +X m par +N DR » (Mur de feu, LDB 47). */
