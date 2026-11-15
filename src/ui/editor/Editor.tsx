@@ -448,7 +448,7 @@ export function Editor({
     const active = p.scenes[rang];
     const apres = p.scenes.slice(rang + 1);
     const memes = (a: Scene[], b: Scene[]) => a.length === b.length && a.every((s, i) => s === b[i]);
-    if (renommage) reecrireHistorique((s) => renommeRef({ scenes: [s] }, renommage.cible, renommage.nouveau).scenes[0]);
+    if (renommage) reecrireHistorique((s) => renommeRef({ scenes: [s] }, renommage.cible, renommage.nouveau, []).scenes[0]);
     if (active !== scene) setSceneNoHistory(active);
     if (!memes(avant, voisines.avant) || !memes(apres, voisines.apres)) setVoisines({ avant, apres });
     if (p.worldMap !== worldMap) setWorldMap(p.worldMap);

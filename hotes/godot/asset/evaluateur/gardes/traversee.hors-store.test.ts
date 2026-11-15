@@ -123,6 +123,23 @@ describe('traversee', () => {
     expect(gardePercementAuRepos(percements, libelle)).toEqual([expect.objectContaining({ garde: 'traversee', code: 'couche-percee-au-repos', mesh: 'tissu', seuil: -ECART_DE_SUIVI_M })]);
   });
 
+  it('au repos, sortir d’une pièce épaisse par son chant ne la perce pas ; sortir par sa face, si', () => {
+    /** Une bande fermée de 15 mm d'épaisseur, longue en Y : face de z = 0,012, chants inclinés de 2 mm sur leur hauteur
+     *  jusqu'à x = ±0,052, envers à z = −0,003. */
+    const coupe = [[-0.05, 0.012], [0.05, 0.012], [0.052, -0.003], [-0.052, -0.003]];
+    const bande = new SkinnedMesh(new BufferGeometry());
+    bande.geometry.setAttribute('position', new BufferAttribute(Float32Array.from([-0.2, 0.2].flatMap((y) => coupe.flatMap(([x, z]) => [x, y, z]))), 3));
+    bande.geometry.setIndex([0, 1, 5, 0, 5, 4, 1, 2, 6, 1, 6, 5, 2, 3, 7, 2, 7, 6, 3, 0, 4, 3, 4, 7, 0, 3, 2, 0, 2, 1, 4, 6, 7, 4, 5, 6]);
+    /** Le sujet plan à z = 0, plus large que la bande (x = ±0,06), son sommet central à la hauteur `z`. */
+    const sujet = (z: number) => Float32Array.from([-1, 0, 1].flatMap((y) => [-1, 0, 1].flatMap((x) => [x * 0.06, y * 0.06, x === 0 && y === 0 ? z : 0])));
+    const perce = (z: number) => {
+      const pose = { positions: new Map<Mesh, Float32Array>([[peau, sujet(z)], [bande, (bande.geometry.getAttribute('position') as BufferAttribute).array as Float32Array]]) };
+      return lier([peau], [element(1, [bande], pose)], pose).percements;
+    };
+    expect(perce(0)).toEqual([]);
+    expect(perce(0.02).map((p) => [p.sommets, p.pire])).toEqual([[1, expect.closeTo(-0.008, 6)]]);
+  });
+
   describe('même couche : celui dont les sommets sont devant l’autre au repos le couvre', () => {
     const autre = maillage(SkinnedMesh, carre(0.005));
     autre.name = 'autre';

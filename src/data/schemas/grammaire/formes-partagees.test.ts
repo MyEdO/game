@@ -14,7 +14,6 @@ import localisation from '../../localisation.json';
 import structureCriticals from '../../structure-criticals.json';
 import riverCriticals from '../../river-criticals.json';
 import shipCriticals from '../../ship-criticals.json';
-import waterExposure from '../../water-exposure.json';
 import mutationTables from '../../mutationTables.json';
 import obsessions from '../../obsessions.json';
 import miscast from '../../miscast.json';
@@ -46,7 +45,8 @@ import { menaceIds } from '../../../engine/menace';
 import { dotationsDuHeros, resolveTrappingChoices } from '../../../engine/trappingChoices';
 import { adresseDeCreation } from '../../../engine/adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE } from '../../dotations.fixture';
-import type { CareerLevelData } from '../../index';
+import { WATER_EXPOSURE, type CareerLevelData } from '../../index';
+import { CRITIQUE_DOCS } from '../../criticals';
 
 
 /** Les paths de DONNÉE des fautes de `valeur` au schéma de `fichier` — le LIEU rendu nomme un élément
@@ -79,7 +79,7 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
     expect(trappingRefSchema.safeParse({ vehicleId: 'chariot-leger' }).success).toBe(false);
     expect(trappingRefSchema.safeParse({ id: 'mule', type: 'vehicle' }).success).toBe(false);
     expect(trappingRefSchema.safeParse({ id: 'mule', type: 'monture' }).success).toBe(false);
-    expect(trappingRefSchema.safeParse({ id: 'epee-de-cour', type: 'vehicle', qualityChoice: true }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ id: 'epee-de-cour', type: 'vehicle', qualityChoice: 'qualite' }).success).toBe(false);
   });
 
   it('accepte une somme, un objet à sa valeur, une mention de nature connue ; refuse une nature inconnue (#4053)', () => {
@@ -103,13 +103,22 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
   it('refuse un lot hors d’un « 1 parmi », un lot d’un seul membre, un membre de lot à Atout au choix', () => {
     expect(trappingRefSchema.safeParse({ lot: [{ id: 'arc' }, { id: 'fleche' }] }).success).toBe(false);
     expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc' }] }] }).success).toBe(false);
-    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc', qualityChoice: true }, { id: 'fleche' }] }] }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc', qualityChoice: 'qualite' }, { id: 'fleche' }] }] }).success).toBe(false);
   });
 
   it('accepte un joker d’arme restreint à un Groupe d’armes, et un joker à Atout au choix ; refuse un Groupe d’armure', () => {
     expect(trappingRefSchema.safeParse({ wildcard: 'arme', groupe: { id: 'deux-mains' } }).success).toBe(true);
-    expect(trappingRefSchema.safeParse({ wildcard: 'arme', qualityChoice: true }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ wildcard: 'arme', qualityChoice: 'qualite' }).success).toBe(true);
     expect(trappingRefSchema.safeParse({ wildcard: 'arme', groupe: { id: 'plate' } }).success).toBe(false);
+  });
+
+  it('l’Atout au choix porte sa classe de qualité (LDB 60 l.7 ; LDB 60 l.11) : `qualite` ou `haute` sur un objet, `qualite` seule sur un joker', () => {
+    expect(trappingRefSchema.safeParse({ id: 'costume-de-cour', qualityChoice: 'qualite' }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ id: 'costume-de-cour', count: { fixed: 4 }, qualityChoice: 'haute' }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ id: 'costume-de-cour', qualityChoice: true }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ id: 'costume-de-cour', qualityChoice: 'superieure' }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ wildcard: 'arme', qualityChoice: 'haute' }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ wildcard: 'arme', qualityChoice: true }).success).toBe(false);
   });
 
   it('refuse un « 2 parmi » : `brancheChoisie` ne retient qu’une branche', () => {
@@ -147,7 +156,7 @@ describe('classes.json — une Classe ne porte que des dotations sans texte', ()
   it('une Classe nommée qui porte un joker d’arme, simple, à Groupe ou à Atout, ou un lot dans un « 1 parmi », est refusée', () => {
     expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme' }])), 'joker simple').toEqual(expect.stringContaining(`« ${classe.id} »`));
     expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', groupe: { id: 'deux-mains' } }])), 'joker à Groupe').toEqual(expect.stringContaining(`« ${classe.id} »`));
-    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', qualityChoice: true }])), 'joker à Atout').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', qualityChoice: 'qualite' }])), 'joker à Atout').toEqual(expect.stringContaining(`« ${classe.id} »`));
     expect.soft(validateDataset('classes.json', classeDotee([{ pick: 1, of: [{ lot: [{ id: 'arc' }, { id: 'fleche' }] }, { id: 'dague' }] }])), 'lot').toEqual(expect.stringContaining(`« ${classe.id} »`));
   });
 });
@@ -184,7 +193,7 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
   /** Position d'un jeu de taverne par son ID (jamais par sa place : la donnée est réordonnable au Codex). */
   const jeuDeTaverne = (id: string) => String((tavernGames as ReadonlyArray<{ id: string }>).findIndex((j) => j.id === id));
   /** Position d'un document-table de Blessures critiques par son ID — même règle : jamais par son rang. */
-  const docCritique = (id: string) => String((criticals as ReadonlyArray<{ id: string }>).findIndex((d) => d.id === id));
+  const docCritique = (id: string) => String(CRITIQUE_DOCS.findIndex((d) => d.id === id));
 
   /**
    * Chaque document ADOPTANT est mesuré sur SA donnée réelle : on ampute la première rangée à deux
@@ -203,7 +212,7 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
     // Descente EXPLICITE : `modifiers[].auto` porte aussi deux bornes (`{kind:'woundsLost', op:'between'}`),
     // mais ce sont des bornes de BLESSURES PERDUES dans une condition — pas une rangée de table de
     // tirage, donc hors composition. La table lue par `findTableEntry` est `diseases`.
-    ['water-exposure.json', waterExposure, ['diseases']],
+    ['water-exposure.json', WATER_EXPOSURE, ['diseases']],
     ['mutationTables.json', mutationTables],
     ['obsessions.json', obsessions],
     ['miscast.json', miscast],
@@ -434,13 +443,15 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
  */
 describe('water-exposure › auto.between — les deux bornes du prédicat', () => {
   it('sa donnée réelle passe, le MÊME prédicat sans `max` est REFUSÉ', () => {
-    const doc = waterExposure as { modifiers: ReadonlyArray<Record<string, unknown>> };
+    const doc = WATER_EXPOSURE;
     expect(validateDataset('water-exposure.json', doc)).toBeNull();
-    const i = doc.modifiers.findIndex((m) => (m.auto as { op?: string } | undefined)?.op === 'between');
+    const i = doc.modifiers.findIndex((m) => m.auto !== undefined && 'op' in m.auto && m.auto.op === 'between');
     expect(i, 'aucun prédicat `between` : la sonde ne mesure rien.').toBeGreaterThanOrEqual(0);
-    const auto = doc.modifiers[i].auto as Record<string, unknown>;
-    const { max: _absente, ...ampute } = auto;
-    const modifiers = doc.modifiers.map((m, j) => (j === i ? { ...m, auto: ampute } : m));
+    const modifiers = doc.modifiers.map((m, j) => {
+      if (j !== i || m.auto === undefined || !('max' in m.auto)) return m;
+      const { max: _absente, ...ampute } = m.auto;
+      return { ...m, auto: ampute };
+    });
     expect(
       validateDataset('water-exposure.json', { ...doc, modifiers }),
       'un prédicat `between` sans borne haute est accepté',

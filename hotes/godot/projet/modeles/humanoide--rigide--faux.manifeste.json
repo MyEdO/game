@@ -1,0 +1,25 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "faux"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois"
+    },
+    {
+      "nom": "metal",
+      "palette": "metal"
+    }
+  ],
+  "glb": {
+    "sha256": "142e4c7fbe12dd80d247d3cb14bfe7c814594247a13697a851d4d8e6979a409d",
+    "octets": 61788
+  }
+}

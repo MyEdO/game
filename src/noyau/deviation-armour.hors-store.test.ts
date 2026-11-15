@@ -192,7 +192,8 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     setBattle([e, h]);
     const suspended = applyAttackResult(banc.getState, banc.setState, e, h, critWeapon, critRes());
     expect(suspended).toBe(OPS_DIFFEREES);
-    resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, true); // « Dévier »
+    const tiree = tireLaSeverite();
+    resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, true); // « Dévier »
     const hh = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken).toBe(1); // pièce endommagée (−1 PA)
     expect(hh.armour.corps).toBe(2);                                       // PA re-dérivée
@@ -238,7 +239,8 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     setBattle([h, e]);
     banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
     applyAttackResult(banc.getState, banc.setState, h, e, critWeapon, critRes());
-    resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, false); // « Subir »
+    const tiree = tireLaSeverite();
+    resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, false); // « Subir »
     const ee = banc.getState().battle!.combatants.find((c) => c.id === 'e1')!;
     expect(ee.armour.corps, 'aucun PA sacrifié : le MJ a refusé la Déviation').toBe(3);
     expect(ee.criticalWounds ?? 0, 'le Critique refusé doit s’appliquer').toBe(1);
@@ -263,7 +265,8 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     setBattle([e, h]);
     const suspended = applyAttackResult(banc.getState, banc.setState, e, h, critWeapon, critRes());
     expect(suspended).toBe(OPS_DIFFEREES);
-    resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, true);
+    const tiree = tireLaSeverite();
+    resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, true);
     const hh = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken).toBe(1); // pièce portée endommagée
     expect(hh.armour.corps).toBe(3);                                      // (3−1) porté + 1 Écailles

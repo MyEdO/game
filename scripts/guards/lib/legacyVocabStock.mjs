@@ -182,13 +182,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/schemas/grammaire/reference.ts",
-    motif: "désormais",
-    ancre: "seconde graphie de la même chose, que rien ne lisait — elle est désormais REFUSÉE au parse. */",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/variants-integrity.test.ts",
     motif: "désormais",
     ancre: "désormais adoptés : aucun ne se lit plus au nœud zod. */",
@@ -493,13 +486,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/i18n/messages/fr.ts",
     motif: "désormais",
     ancre: "— sans accent), le CÔTÉ de dérive et les Compétences lancées (Voile/Ramer/Résistance, désormais lues",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/i18n/messages/fr.ts",
-    motif: "désormais",
-    ancre: "`craft.*`, LDB 60 l.7/11/42). La fonction rend désormais un id STABLE ; ces clés en sont l'affichage.",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

@@ -19,7 +19,8 @@ import { RNG } from './dice';
 import { bonus, effectiveChar } from './characteristics';
 import { talentCorruptionThreshold } from './combatFeatures/dispatch';
 import { findTableEntry } from './tables';
-import { natureDeMutationDe } from '../data';
+import { natureDeMutationDe, type MutationData } from '../data';
+import type { EntreeVivante } from '../data/datasets';
 import { acquerirTalent, retirerTalent } from './careerSlots';
 import { passiveCharSum } from './trauma';
 import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';
@@ -29,7 +30,6 @@ import type { OpPassive } from './ops';
 import { traitsOctroyes } from './traitOctroye';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { mutationKindSchema } from '../data/schemas/grammaire/valeurs';
-import type { TriggeredEffect } from './flowCore';
 
 export type ExposureLevel = 'mineure' | 'moderee' | 'majeure';
 
@@ -57,35 +57,6 @@ export function corruptionEaseSteps(c: Combatant): number {
  *  décide. `toute` = Chaos non aligné (table EDOC élargie). */
 export type ChaosAlign = 'toute' | 'khorne' | 'nurgle' | 'slaanesh' | 'tzeentch';
 
-/** Une mutation au CATALOGUE (`mutations.json`) : identité et effets, sans rien de l'instance subie. */
-export interface MutationDeCatalogue {
-  /** `id` STABLE (slug) — clé de résolution runtime/données (registre, table de Corruption, rendu).
-   *  « On ne se base plus sur le label » : le `label` ne sert qu'à l'affichage. */
-  id: string;
-  label: string;
-  /** Description VERBATIM (LDB 19, colonne « Description Effet ») — affichage seul, jamais lue par le moteur.
-   *  Les mutations n'ont pas de flavor en source : c'est donc le texte d'effet littéral du livre. */
-  desc: string;
-  kind: 'physique' | 'mentale';
-  /** TOUTE la mécanique de la mutation en `GameOp[]` — MÊME vocabulaire/éditeur (GameOpEditor) que
-   *  traits et sorts : charMod/moveMod/skillMod/testMod (collecteur passif unifié engine/trauma) ;
-   *  `ap` (armure naturelle, loc absent = toutes — lue par mutationArmourBonus) ; `grantNaturalWeapon`
-   *  (arme de créature, lue par recomputeLoadout) ; `grantTrait` / `grantPsychTrait` (traits de créature
-   *  et psychologiques conférés, posés par attachMutation). Plus aucun champ ad hoc. */
-  passive?: OpPassive[];
-  /** Effets DÉCLENCHÉS de la mutation — MÊME vocabulaire que `TraitData.effects`/`SymptomData.effects`,
-   *  dispatchés par l'unique `fireTriggers` (aucun chemin par KIND). Sert les mutations à cadence :
-   *  Haine sporadique re-tire sa Cible à chaque `onDayStart` (EDOC 12 l.217). */
-  effects?: TriggeredEffect[];
-  /** Partie non modélisée de l'effet — verbatim, arbitrage MJ (rien d'inventé). */
-  note?: string;
-  /** Provenance livre/page — LDB 19 IMPLICITE si absent ; EXPLICITE pour les suppléments (EDO Appendice 2…). */
-  source?: { book: string; page: number };
-  /** Pointeur de SOUS-TABLE (ex. « Tête bestiale » EDOC → re-tirer sur la sous-table Tête Bestiale) :
-   *  `rollMutation` re-tire sur `${subTable}-${alignement}` (suffixe hérité de la table courante). */
-  subTable?: string;
-}
-
 /** L'ÉTAT d'exécution d'une mutation SUBIE, que l'instance porte en plus de son entrée de catalogue. */
 export interface EtatDeMutation {
   /** Jet d100 sur le tableau (traçabilité). */
@@ -98,8 +69,8 @@ export interface EtatDeMutation {
   talentsAcquis?: RefDesignee[];
 }
 
-/** Mutation subie (donnée persistée ; cf. Tableaux LDB 19 l.112/140) : son entrée de catalogue et son état. */
-export interface Mutation extends MutationDeCatalogue, EtatDeMutation {}
+/** Mutation subie (donnée persistée ; cf. Tableaux LDB 19 l.112/140) : son entrée de catalogue, écrite au régime vivant (une mutation maison du Codex la porte aussi), et son état. */
+export type Mutation = EntreeVivante<MutationData> & EtatDeMutation;
 
 // ---------------------------------------------------------------------------
 // Gains de Corruption (l.30-75)

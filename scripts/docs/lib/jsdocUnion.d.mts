@@ -69,3 +69,9 @@ export function readUnionMembers(
 ): { rows: UnionMemberRow[]; rawCount: number };
 
 export function renderFields(fieldGroups: string[][]): string;
+
+export function readSchemaUnionMembers(sf: SourceFile, text: string, nom: string, tool: string): {
+  decl: VariableDeclaration;
+  doc: string | null;
+  rows: { name: string; texte: string; fieldGroups: string[][]; role: string | null }[];
+};

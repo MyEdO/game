@@ -14,7 +14,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { document } from '../grammaire/document';
 import { difficultySchema, enumNomme, palierSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
-import { fixerLeTest, flowTestSchema } from '../grammaire/mecanique';
+import { flowTestSchema, porteurDeTestFixe } from '../grammaire/mecanique';
 
 export const file = 'regles.json';
 export const famille = 'entite';
@@ -51,15 +51,15 @@ const rangeeSchema = nommerChamps(z.strictObject({
  *  nomme, et la forme unique d'un jet en donnée (`flowTestSchema`), sous la clé que lit le moteur
  *  (`testDeRegle`, `TESTS_DE_REGLE`). Sa compétence et sa Difficulté sont exigées : le livre les nomme ; son
  *  libellé est UN, celui de l'entrée — `test.label` est refusé. */
-const testDeRegleSchema = nommerChamps(z.strictObject({
+const testDeRegleSchema = nommerChamps(porteurDeTestFixe(z.strictObject({
   id: z.string(),
   label: z.string().min(1),
   source: sourceRefSchema,
   test: flowTestSchema,
-}).superRefine(fixerLeTest('skill', 'difficulty')).superRefine((t, ctx) => {
+}).superRefine((t, ctx) => {
   if (t.test.label !== undefined)
     ctx.addIssue({ code: 'custom', path: ['test', 'label'], message: `test « ${t.id} » : le libellé est celui de l'entrée (\`label\`), pas du Test.` });
-}), {
+}), 'skill', 'difficulty'), {
   id: { label: 'Identifiant', texte: { regime: 'technique' } },
   label: { label: 'Libellé', texte: { regime: 'designation' } },
   source: { label: 'Source' },

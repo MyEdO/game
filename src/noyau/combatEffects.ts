@@ -85,14 +85,14 @@ import { HEAL_SKILL } from '../engine/healing';
 import { ouvrirLeMedecin } from './medicFlow';
 import { ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions } from './combatFlow';
 import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
-import { placeById } from './worldMap';
+import { placeById, quaiDuGroupe } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
 import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
 import { avecSequelles, traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
 import { DAY_PHASES, MINUTES_PER_DAY, dayIndex, minutesUntilNext, scheduleAt } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
-import { feedFromMeal, applyFaimTest, applySoifTest, rationsDeCale } from '../engine/provisions';
+import { feedFromMeal, applyFaimTest, applySoifTest, embarquerDesVivres, rationsDeCale, rationsDuVivre, retirerDuVivre } from '../engine/provisions';
 import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } from '../engine/exposure';
 import { findSpellById } from '../data/index';
 import { toBrass, fromBrass, toMoney, formatMoney } from '../engine/money';
@@ -2162,8 +2162,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           ...(e.hullMax != null ? { wounds: { current: e.hullCurrent ?? e.hullMax, max: e.hullMax } } : {}),
           ...(e.saboteurDR != null ? { saboteurDR: e.saboteurDR } : {}),
           ...(e.waterLitres != null ? { waterLitres: Math.max(0, e.waterLitres) } : {}),
-          ...(e.vivre && e.provisions != null ? { provisions: { [e.vivre.id]: e.provisions } } : {}),
+          ...(e.vivre && e.provisions != null ? { provisions: embarquerDesVivres([], e.vivre.id, e.provisions, env.get().gameTime) } : {}),
           ...(e.crew && e.crew.length ? { crew: e.crew.filter((h) => h.roleId && h.count > 0) } : {}),
+          ...quaiDuGroupe(env.get()),
         },
       });
       env.log(t('eff.navirePossede', { name: e.label?.trim() || v.label }));
@@ -2187,7 +2188,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.morale != null) { next.morale = { ...vessel.morale, score: e.morale }; parts.push(t('eff.navireMoral', { n: e.morale })); }
       if (e.saboteurDR != null) { next.saboteurDR = clampSaboteurDR(e.saboteurDR); parts.push(t('eff.navireSabotage', { n: next.saboteurDR })); }
       if (e.waterLitres != null) { next.waterLitres = Math.max(0, e.waterLitres); parts.push(t('eff.navireEau', { n: next.waterLitres })); }
-      if (e.vivre && e.provisions != null) { next.provisions = { ...(vessel.provisions ?? {}), [e.vivre.id]: e.provisions }; parts.push(t('eff.navireProvisions', { n: rationsDeCale(next.provisions) })); }
+      if (e.vivre && e.provisions != null) {
+        // Valeur absolue d'auteur : l'écart s'embarque daté de maintenant, ou se retire du lot le plus vieux au plus jeune.
+        const lots = vessel.provisions ?? [];
+        const ecart = e.provisions - rationsDuVivre(lots, e.vivre.id);
+        next.provisions = ecart >= 0 ? embarquerDesVivres(lots, e.vivre.id, ecart, env.get().gameTime) : retirerDuVivre(lots, e.vivre.id, -ecart);
+        parts.push(t('eff.navireProvisions', { n: rationsDeCale(next.provisions) }));
+      }
       if (e.crew && e.crew.length) { next.crew = e.crew.filter((h) => h.roleId && h.count > 0); parts.push(t('eff.navireEquipage', { n: next.crew.reduce((s, h) => s + h.count, 0) })); }
       // Blessures de coque : valeur ABSOLUE d'auteur → seam `setVesselHull` (#308, pas d'écriture directe
       // de `vessel.wounds` — resynchronise aussi la copie de travail `travelPlan.vehicle` si active).
@@ -2205,15 +2212,14 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   // ── Combat & social ────────────────────────────────────────────────────
   startCombat: {
     group: 'Combat & social', label: libelleEffet('startCombat'), icon: 'action/attaquer',
-    make: () => ({ type: 'startCombat', encounter: '' }),
-    apply: (e, env) => { env.get().lancerLeCombat(e.encounter); },
-    refs: (e, ctx) => ctx.encounterIds.has(e.encounter) ? [] : [{ level: 'error', message: `Effet → rencontre inexistante « ${e.encounter} »` }],
+    make: () => ({ type: 'startCombat', encounter: { id: '' } }),
+    apply: (e, env) => { env.get().lancerLeCombat(e.encounter.id); },
   },
   startPursuit: {
     group: 'Combat & social', label: libelleEffet('startPursuit'), icon: 'voyage/a-pied',
-    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureSemee() } }], encounter: '' }),
-    apply: (e, env) => { startGroundPursuit(env.get, env.set, { partyRole: e.partyRole, distance: e.distance, escapeAt: e.escapeAt, skill: e.skill.id, foes: e.foes, encounter: e.encounter || undefined, policy: e.policy }); },
-    refs: (e, ctx) => {
+    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureSemee() } }] }),
+    apply: (e, env) => { startGroundPursuit(env.get, env.set, { partyRole: e.partyRole, distance: e.distance, escapeAt: e.escapeAt, skill: e.skill.id, foes: e.foes, encounter: e.encounter?.id, policy: e.policy }); },
+    refs: (e) => {
       const issues: EffectRefIssue[] = [];
       if (!e.foes?.length) issues.push({ level: 'error', message: 'Poursuite : aucun adversaire' });
       // Chaque adversaire est une RÉFÉRENCE : c'est sur la fiche que se lisent son Mouvement et sa
@@ -2223,7 +2229,6 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           issues.push({ level: 'error', message: `Poursuite → créature inexistante « ${f.ref.id || '(aucune)'} »` });
         }
       }
-      if (e.encounter && !ctx.encounterIds.has(e.encounter)) issues.push({ level: 'error', message: `Poursuite → rencontre inexistante « ${e.encounter} »` });
       return issues;
     },
   },

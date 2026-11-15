@@ -62,7 +62,7 @@ extends Node
 ## de la carte (`voyage/titre`, en `rubrique`) sur la carte du trajet (`voyage/carte`, en `carteDuVoyage` : chaque
 ## lieu, le départ et l'arrivée nommés, le groupe sur sa route) ; à droite le récit : le
 ## titre de ce qui tient la journée, le journal de la partie, ses dernières lignes au pied et le reste au défilement, les jets qu'aucun
-## héros ne jette (`jets/`), puis ses gestes ; au pied les km qui restent avant l'arrivée (`voyage/reste`, en `reste`)
+## héros ne jette (`jets/`), le choix de sa cadence (`voyage/cadence`), puis ses gestes ; au pied les km qui restent avant l'arrivée (`voyage/reste`, en `reste`)
 ## sur la frise (`voyage/frise`, en `frise`, chaque point en `etapeDeFrise` : le départ, chaque nuit passée en route à
 ## son km sous son croissant, le groupe, l'arrivée).
 ## Le jet d'un héros (en `jetDeHeros` : son dé dans une pastille à son ton, puis son test et son issue) et les gestes

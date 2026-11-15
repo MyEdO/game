@@ -53,29 +53,29 @@ describe('sitesDuProjet — chaque référence, à son chemin', () => {
 describe('referencesA — qui désigne une entrée', () => {
   it('un document : la scène ET le stade qui le portent, lieux nommés', () => {
     const p = projet();
-    const sites = referencesA(p, { registre: 'documents', id: 'doc' });
-    expect(sites.map((s) => lieuDuSite(p, s))).toEqual([{ racine: 'scene', nom: 'Le relais' }, { racine: 'indice', nom: 'ind' }]);
+    const sites = referencesA(p, { registre: 'documents', id: 'doc' }, []);
+    expect(sites.map((s) => lieuDuSite(p, s))).toEqual([{ racine: 'scene', nom: 'Le relais' }, { racine: 'registre', registre: 'indices', entree: p.narratif.indices[0] }]);
   });
 
   it('un stade : seul le site `stade` de CET indice', () => {
-    const sites = referencesA(projet(), { registre: 'indices', id: 'ind', sous: 'dechiffree' });
+    const sites = referencesA(projet(), { registre: 'indices', id: 'ind', sous: 'dechiffree' }, []);
     expect(sites.map((s) => s.chemin.join('.'))).toEqual(['scenes.0.triggers.0.flow.etapes.1.effet']);
   });
 
   it('une entrée que rien ne désigne : aucun site', () => {
-    expect(referencesA(projet(), { registre: 'presetsPnj', id: 'autre' })).toEqual([]);
+    expect(referencesA(projet(), { registre: 'presetsPnj', id: 'autre' }, [])).toEqual([]);
   });
 });
 
 describe('renommeRef — le renommage propagé, PUR', () => {
   it('un indice renommé : scène, carte réécrites ; racines intactes non copiées ; l’original inchangé', () => {
     const p = projet();
-    const r = renommeRef(p, { registre: 'indices', id: 'ind' }, 'ind2');
-    expect(referencesA(r, { registre: 'indices', id: 'ind2' }).length).toBe(2);
-    expect(referencesA(r, { registre: 'indices', id: 'ind' })).toEqual([]);
+    const r = renommeRef(p, { registre: 'indices', id: 'ind' }, 'ind2', []);
+    expect(referencesA(r, { registre: 'indices', id: 'ind2' }, []).length).toBe(2);
+    expect(referencesA(r, { registre: 'indices', id: 'ind' }, [])).toEqual([]);
     expect(r.scenes[1]).toBe(p.scenes[1]);
     expect(r.narratif).toBe(p.narratif);
-    expect(referencesA(p, { registre: 'indices', id: 'ind' }).length).toBe(2);
+    expect(referencesA(p, { registre: 'indices', id: 'ind' }, []).length).toBe(2);
   });
 
   it('une valeur d’état renommée : la valeur posée (`poserEtat.valeur`) et comparée (`etat.value`) de CET état bougent, pas une homonyme', () => {
@@ -84,16 +84,16 @@ describe('renommeRef — le renommage propagé, PUR', () => {
       { kind: 'effet', effet: { type: 'poserEtat', etat: 'issue', valeur: 'relache' } },
       { kind: 'effet', effet: { type: 'poserEtat', etat: 'autre', valeur: 'relache' } },
     ] } }] as never;
-    expect(referencesA(p, { registre: 'etats', id: 'issue', sous: 'relache' }).map((x) => `${x.chemin.join('.')}:${x.cle}`))
+    expect(referencesA(p, { registre: 'etats', id: 'issue', sous: 'relache' }, []).map((x) => `${x.chemin.join('.')}:${'cle' in x ? x.cle : ''}`))
       .toEqual(['scenes.1.triggers.0.flow.etapes.0.effet:valeur', 'scenes.1.triggers.0.when:value']);
-    const r = renommeRef(p, { registre: 'etats', id: 'issue', sous: 'relache' }, 'libere');
+    const r = renommeRef(p, { registre: 'etats', id: 'issue', sous: 'relache' }, 'libere', []);
     const t = (r.scenes[1].triggers as unknown as { when: unknown; flow: { etapes: { effet: unknown }[] } }[])[0];
     expect(t.when).toEqual({ kind: 'etat', etat: 'issue', value: 'libere' });
     expect(t.flow.etapes.map((x) => x.effet)).toEqual([{ type: 'poserEtat', etat: 'issue', valeur: 'libere' }, { type: 'poserEtat', etat: 'autre', valeur: 'relache' }]);
   });
 
   it('un stade renommé : seul le `stade` de l’Effect bouge', () => {
-    const r = renommeRef(projet(), { registre: 'indices', id: 'ind', sous: 'dechiffree' }, 'traduite');
+    const r = renommeRef(projet(), { registre: 'indices', id: 'ind', sous: 'dechiffree' }, 'traduite', []);
     expect(r.scenes[0].triggers[0].flow.etapes[1].effet).toEqual({ type: 'revealClue', indiceId: 'ind', stade: 'traduite' });
   });
 });

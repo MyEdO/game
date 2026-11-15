@@ -1,11 +1,15 @@
 {
   "model": "humanoide--vetement--haut-de-chausses.glb",
-  "model_sha256": "40331ce8f7784869dc9c7e87afcf69370475b39137ac8864a3f3e21bb477e7a6",
-  "importe_le": "2026-11-06",
+  "model_sha256": "2166344afde6f4db582bd6e29e2d23e5594ed63fb580bcb9ac089a29df9da687",
+  "importe_le": "2026-11-14",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

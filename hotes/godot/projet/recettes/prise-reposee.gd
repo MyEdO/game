@@ -29,6 +29,7 @@ func _recetter() -> void:
 	for cible in ["secondaire", "main", "ceinture_avant"]:
 		await _verifier(cible)
 	await _verifier_cote_a_cote()
+	await _verifier_l_empilement()
 	await _verifier_l_appui()
 	await _verifier_la_bandouliere()
 	for faute in _fautes:
@@ -155,6 +156,50 @@ func _verifier_cote_a_cote() -> void:
 	if not juste:
 		_fautes.append("côte à côte : écart angulaire %.4f rad (positif attendu), vers l'avant %.4f" % [ecart, avant])
 	print("[prise-reposee] côte à côte : %s" % ("OK" if juste else "KO"))
+	montage.free()
+	squelette.queue_free()
+	await process_frame
+
+
+## Deux objets rangés au même point de la hanche, le second trop large pour tenir à côté du premier sans passer de
+## l'autre côté du corps (`MiseEnPage.tour_dans_la_place`, #4254) : il s'empile sur le premier, son milieu sur la normale sortante
+## de l'emplacement, sa face arrière au-dessus de la face avant du premier.
+func _verifier_l_empilement() -> void:
+	var squelette := _squelette()
+	var montage := MontageDeComposition.new()
+	montage.base = {points = [HANCHE, MAIN, OFF]}
+	montage.squelette = squelette
+	var pieces: Array[MeshInstance3D] = []
+	for rang in 2:
+		var import := BoneAttachment3D.new()
+		import.bone_name = "main_d"
+		squelette.add_child(import)
+		var piece := MeshInstance3D.new()
+		var boite := BoxMesh.new()
+		boite.size = Vector3(0.2 + 0.6 * rang, 0.25, 0.08)
+		boite.subdivide_width = 16
+		boite.subdivide_height = 4
+		piece.mesh = boite
+		piece.transform = _repere(MAIN.attache) * Transform3D(Basis.IDENTITY, Vector3(0.0, 0.12, 0.04))
+		import.add_child(piece)
+		montage.call("_poser_la_piece", piece, ["main_d"] as Array[String], squelette, "ceinture_g" if rang == 0 else "ceinture_g#2")
+		pieces.append(piece)
+	montage.call("_ranger")
+	await process_frame
+	var os := squelette.global_transform * squelette.get_bone_global_pose(squelette.find_bone("bassin"))
+	var emplacement := _repere(HANCHE.attache)
+	var sortante := Vector3(emplacement.origin.x, 0.0, emplacement.origin.z).normalized()
+	var bas := -emplacement.basis.y
+	bas = (bas - sortante * bas.dot(sortante)).normalized()
+	var cotes := pieces.map(func(piece: MeshInstance3D) -> Dictionary: return _cotes(piece, os * emplacement.origin, os.basis * sortante, os.basis * bas.cross(sortante)))
+	var dessus: float = cotes[1].arriere - (cotes[0].arriere + cotes[0].epaisseur)
+	var milieu := os.affine_inverse() * (pieces[1].global_transform * pieces[1].get_aabb().get_center()) - emplacement.origin
+	var hors_normale := absf(milieu.dot(bas.cross(sortante)))
+	var juste := dessus > 0.0 and hors_normale < 0.001
+	if not juste:
+		_fautes.append("empilement : face arrière du second à %.4f de la face avant du premier (positive attendue), milieu à %.4f de la normale"
+			% [dessus, hors_normale])
+	print("[prise-reposee] empilement : %s" % ("OK" if juste else "KO"))
 	montage.free()
 	squelette.queue_free()
 	await process_frame

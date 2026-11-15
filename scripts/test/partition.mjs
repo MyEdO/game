@@ -1,6 +1,6 @@
-// Logique PURE du lanceur de suite `scripts/test/run.mjs` : partition des fichiers de test par
-// environnement, répartition des workers, routage des filtres. Aucun spawn ; le seul accès disque
-// est la mesure système `mesureMemoireDisponibleMo`.
+// Logique PURE du lanceur de suite `scripts/test/run.mjs`, du séquenceur de `vite.config.ts` et du mur de
+// `scripts/test/perimetre.mjs` : partition des fichiers de test par environnement, répartition des workers,
+// routage des filtres. Aucun spawn ; le seul accès disque est la mesure système `mesureMemoireDisponibleMo`.
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import os from 'node:os'
@@ -35,6 +35,18 @@ export const REGEX_ENV_DOCBLOCK = /@(?:vitest|jest)-environment\s+([\w-]+)\b/
 /** Environnement d'un fichier de test, du docblock ou, à défaut, de `test.environment`. */
 export function environnementDe(code, defaut = 'node') {
   return code.match(REGEX_ENV_DOCBLOCK)?.[1] || defaut
+}
+
+/** Les `elements` regroupés par `environnementDe(element)`, groupes dans l'ordre de première apparition, ordre
+ *  interne conservé : Vitest ne réemploie un worker que pour un fichier suivant de même environnement
+ *  (node_modules/vitest/dist/chunks/index.DpLw24bj.js:11549, #3412). PURE. */
+export function grouperParEnvironnement(elements, environnementDe) {
+  const groupes = new Map()
+  for (const element of elements) {
+    const environnement = environnementDe(element)
+    groupes.set(environnement, [...(groupes.get(environnement) ?? []), element])
+  }
+  return [...groupes.values()].flat()
 }
 
 /** Deux seaux : `jsdom` (docblock jsdom) et `node` (tout le reste). Le seau ne décide QUE du

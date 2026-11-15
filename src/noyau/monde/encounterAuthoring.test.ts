@@ -39,7 +39,7 @@ describe('buildEncounter — authoring terse → entités + members canoniques',
     ] });
     const [cheval, bandit] = encounter.members!;
     expect(cheval).toEqual({ entityId: 'enemy-e-0', side: 'allie', mount: true });
-    expect(bandit).toEqual({ entityId: 'enemy-e-1', ridesEntityId: 'enemy-e-0' });
+    expect(bandit).toEqual({ entityId: 'enemy-e-1', ridesEntityId: { id: 'enemy-e-0' } });
   });
 
   it('surprise + onVictory (Flow) passent sur la rencontre', () => {

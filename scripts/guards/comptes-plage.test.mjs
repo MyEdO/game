@@ -421,7 +421,7 @@ test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un
     const fondation = shaDe(depot, 'HEAD')
     const typee = commiter({ 'src/data/spells.json': (t) => ajouterOp((o) => o.op === 'freeReroll')(ajouterOp((o) => o.op === 'reduceDiseaseDays')(t)) }, 'ops de donnée')
     const lache = commiter({
-      'src/data/schemas/defs/creatures.ts': (t) => t.replace('skills: z.array(competenceChiffreeAEmplacementSchema),', 'skills: z.array(z.any()),').replace("spells: refs('spell'),", 'spells: z.array(z.string()),'),
+      'src/data/schemas/defs/creatures.ts': (t) => t.replace('skills: z.array(competenceChiffreeAEmplacementSchema),', 'skills: z.array(z.custom<{ value: number }>()),').replace("spells: refs('spell'),", 'spells: z.array(z.string()),'),
       'src/data/schemas/grammaire/mecanique.ts': remplacer("  'arrowWard', 'attackKeyword',", "  'arrowWard', 'sondeNonTypee', 'attackKeyword',"),
     }, 'schéma et op\n\nCLIQUET: scripts/guards/lib/structuresStock.mjs +1 — op de plus, déclarée au message')
     // Le générateur de la tête importe du src que la base n'a pas, et le src de la tête lit une sortie que le

@@ -23,8 +23,8 @@
 ## vue montrée, chaque corps changé, chaque défilement, chaque onglet et chaque cadrage du monde, il publie ce que
 ## l'écran porte, une fois l'interface mise en page (`PublicationDeLEcran`), que la recette lit ; hors recette, rien. La
 ## bulle de l'aperçu
-## (`combat.apercu`) se tient au-dessus de sa case. Le monde se cadre sur la scène (`Monde.cadre`), la part de l'écran que
-## l'interface lui laisse.
+## (`combat.apercu`) se tient au-dessus de sa case. Le monde se cadre sur la scène (`Monde.cadre`), la part de la fenêtre
+## que l'ossature de l'interface lui laisse, sur laquelle des panneaux se posent.
 extends Node
 
 ## @contrat L'écran de Godot
@@ -91,6 +91,8 @@ var _zones: Array[Zone] = []
 var _ajouts := {}
 ## La publication de l'écran, attendue jusqu'à ce que l'interface soit mise en page (`_publier_l_ecran`).
 var _publication: PublicationDeLEcran
+## Les attentes au pont en vol : le fichier du roster. Une reprise dont l'attente n'y est plus rend la main.
+var _en_vol := {}
 
 
 func _ready() -> void:
@@ -134,6 +136,12 @@ func _ready() -> void:
 	if not _pont.essai and scenario == "":
 		scenario = await _choisir_un_scenario()
 	_suivre(_pont.appeler("demarrer", entree.merged({essai = true} if _pont.essai else {scenario = scenario})))
+
+
+## Sorti de l'arbre (l'accueil revenu, `_revenir_a_l_accueil`), il n'y revient pas (#4195) : ses attentes en vol sont
+## abandonnées (`_en_vol`).
+func _exit_tree() -> void:
+	_en_vol.clear()
 
 
 ## Le scénario que le joueur choisit au panneau des scénarios (`scenarios`, #3786) : l'id que porte le bouton pressé
@@ -199,7 +207,11 @@ func _jouer_le_roster(jeu: Dictionary) -> void:
 	if reponse.has("fichier"):
 		_pont.enregistrer_un_fichier(PontDuNoyau.HEROS, reponse.fichier.nom, reponse.fichier.texte)
 	if reponse.has("choix"):
+		var jeton := RefCounted.new()
+		_en_vol[jeton] = true
 		var choisi := await _pont.choisir_un_fichier(PontDuNoyau.HEROS)
+		if not _en_vol.erase(jeton):
+			return
 		_suivre(_pont.appeler("roster", {roster = {importe = choisi.octets.get_string_from_utf8() if choisi.has("octets") else null}}))
 
 
@@ -376,13 +388,16 @@ func _publier_l_ecran() -> void:
 
 ## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), les curseurs du panneau des réglages
 ## (`PontDuNoyau.curseurs_a_l_ecran`), le point de chaque case du plateau, si la caméra glisse (`Monde.glisse`), si la
-## vision se fond encore (`VolumeDeScene.part_du_fondu`), la part de l'écran où le monde se voit (`Monde.cadre`), ce
-## que porte le corps de chaque combattant dessiné (`Plateau.corps`) et les navires posés (`Plateau.navires`).
+## vision se fond encore (`VolumeDeScene.part_du_fondu`), la part de la fenêtre que l'ossature laisse à la scène
+## (`Monde.cadre`), l'emprise de ses panneaux (`PontDuNoyau.panneaux_a_l_ecran`), ce que porte le corps de chaque
+## combattant dessiné (`Plateau.corps`) et les navires posés (`Plateau.navires`).
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
+	var racines := [_ecran, _scenarios, _sauvegardes, _reglages.racine()]
 	return {
-		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes, _reglages.racine()]), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()]),
-		cases = _plateau.points(), glisse = _monde.glisse(), fondu = _monde.volume.part_du_fondu() != 1.0,
+		boutons = PontDuNoyau.boutons_a_l_ecran(racines), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()]),
+		panneaux = PontDuNoyau.panneaux_a_l_ecran(racines), cases = _plateau.points(), glisse = _monde.glisse(),
+		fondu = _monde.volume.part_du_fondu() != 1.0,
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
 	}
 

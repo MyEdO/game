@@ -833,7 +833,7 @@ describe('renvoi Codex au niveau ÉTAPE (#1117)', () => {
     for (const f of regles.filter((r) => ids.has(r.id))) {
       expect(f.source.book).toBe('mort-sur-le-reik-compagnon');
       expect(f.source.note).toMatch(/^MSRC 7 l\.\d+$/);
-      expect(f.desc.length, 'le verbatim est présent').toBeGreaterThan(60);
+      expect(f.desc?.length, 'le verbatim est présent').toBeGreaterThan(60);
     }
   });
 });

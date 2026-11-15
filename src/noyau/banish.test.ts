@@ -3,7 +3,7 @@ import { fireTriggers, applyTriggeredEffects } from './triggeredEffects';
 import { hasCondition, COND } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
-import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../engine/flowCore';
 import { desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 

@@ -10,7 +10,9 @@
  * (`refsNarrativesPendantes` : `entity.presetId`, Effects). `activeAxes` résout au registre par `refs('axe')`. Les invariants du bloc narratif restent portés par
  * `narratifSchema`. Anti-collisions et résolutions de spécialisation restent des `superRefine`. La racine
  * OUVRE la portée des scènes (`ouvrirPortees`, `SCENES_DU_PROJET`) : une scène visée est un `ref(portee)`,
- * jugé contre les `scenes` du MÊME projet, hors de l'index des ids.
+ * jugé contre les `scenes` du MÊME projet, hors de l'index des ids ; et celle des objets de la campagne
+ * (`OBJETS_DU_PROJET`) : un objet donné ou une clé d'apparence par objet absents du catalogue sont jugés
+ * contre `narratif.objets`.
  *
  * L'ENVELOPPE est PLATE (#1467 L1b) : les champs d'identité vivent à la RACINE, sans poche `meta`.
  * L'identité n'est plus facultative (arbitrage utilisateur 2026-08-31, AskUser verbatim : « Un projet
@@ -23,11 +25,12 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { refs } from '../grammaire/ref';
+import { OBJETS_DU_PROJET } from '../grammaire/valeurs';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { SCENES_DU_PROJET } from './communs';
 import { sceneSchema } from './scene';
 import { worldMapSchema } from './worldmap';
-import { narratifSchema, validerReferencesDObjetsDansCampagne, type NarratifBlock } from './narratif';
+import { narratifSchema, type NarratifBlock } from './narratif';
 import { refsNarrativesPendantes, type NarratifAReferences } from './refs-narratives';
 
 /** Provenance d'une campagne AUTHORÉE À L'ÉDITEUR : aucun livre ne la publie, et un folio ne se
@@ -85,12 +88,11 @@ export const projetDoc = document(
         icon: { label: 'Icône', texte: { regime: 'technique', usage: 'id de l’icône du projet' } },
       }).superRefine((valeur, ctx) => {
         const doc = valeur as { scenes: unknown[]; worldMap?: unknown; narratif: NarratifAReferences & NarratifBlock };
-        validerReferencesDObjetsDansCampagne(doc.narratif.objets, ctx);
         /** FK INTRA-document (#671, #679) : toute référence narrative des scènes (`presetId` d'entité,
          *  `documentId`/`indiceId`/`stade` d'Effect, Flows portés compris) et de la carte du monde résout
          *  au narratif du document — visiteur unique `./refs-narratives.ts`. */
         for (const f of refsNarrativesPendantes(doc, doc.narratif)) ctx.addIssue({ code: 'custom', path: [...f.chemin], message: f.message });
-      }), [SCENES_DU_PROJET]),
+      }), [SCENES_DU_PROJET, OBJETS_DU_PROJET]),
   },
 );
 

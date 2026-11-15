@@ -16,8 +16,9 @@ import {
   isDeprived,
   thirstCharPenalties,
   provisioningManifest,
-  type VivresDeCale,
 } from './provisions';
+import { lotsDeCale } from './caleDeTest.testkit';
+import { rule } from './policy';
 import { effectiveChar } from './characteristics';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 import { RULE_REF } from './ruleRefs';
@@ -269,7 +270,7 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
   describe('provisioningManifest — manifeste d\'avitaillement au départ (#241)', () => {
     it('suffisant : rations et eau couvrent les jours estimés', () => {
       const party = [hero({ rations: 5 }), hero({ rations: 5 })];
-      const m = provisioningManifest(party, 100, 3);
+      const m = provisioningManifest(party, 100, 3, 0);
       expect(m.joursEstimes).toBe(3);
       expect(m.rationsDispo).toBe(10);
       expect(m.rationsRequises).toBe(6); // 2 héros × 3 jours
@@ -280,7 +281,7 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
 
     it('insuffisant en vivres', () => {
       const party = [hero({ rations: 1 })];
-      const m = provisioningManifest(party, 100, 5);
+      const m = provisioningManifest(party, 100, 5, 0);
       expect(m.rationsDispo).toBe(1);
       expect(m.rationsRequises).toBe(5);
       expect(m.suffisant).toBe(false);
@@ -288,28 +289,28 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
 
     it('insuffisant en eau seule (vivres suffisants)', () => {
       const party = [hero({ rations: 10 })];
-      const m = provisioningManifest(party, 5, 5); // besoin 15 L, dispo 5
+      const m = provisioningManifest(party, 5, 5, 0); // besoin 15 L, dispo 5
       expect(m.eauRequiseLitres).toBe(15);
       expect(m.suffisant).toBe(false);
     });
 
     it('waterLitres absent : ravitaillement réputé assuré, ne bloque pas', () => {
       const party = [hero({ rations: 10 })];
-      const m = provisioningManifest(party, undefined, 5);
+      const m = provisioningManifest(party, undefined, 5, 0);
       expect(m.eauDispoLitres).toBeNull();
       expect(m.suffisant).toBe(true);
     });
 
     it('Brouet : 1 ration couvre 2 jours de voyage', () => {
       const party = [hero({ rations: 2, brouet: true })];
-      const m = provisioningManifest(party, 100, 4);
+      const m = provisioningManifest(party, 100, 4, 0);
       expect(m.rationsRequises).toBe(2); // ceil(4/2)
       expect(m.suffisant).toBe(true);
     });
 
     it('héros morts exclus du manifeste', () => {
       const party = [hero({ rations: 0 }), { ...hero({ rations: 0 }), dead: true }];
-      const m = provisioningManifest(party, 100, 3);
+      const m = provisioningManifest(party, 100, 3, 0);
       expect(m.rationsRequises).toBe(3); // un seul héros vivant compté
       expect(m.souls).toBe(1);
     });
@@ -317,7 +318,7 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
     it('#245 — l’équipage PNJ compte dans la population (eau ET vivres)', () => {
       const party = [hero({ rations: 6 }), hero({ rations: 6 })]; // 2 héros, 12 rations portées
       // 10 marins PNJ embarqués, 30 jours-homme de vivres de cale sur deux vivres.
-      const m = provisioningManifest(party, 1000, 3, { count: 10, provisions: { 'nourriture-courses-journee': 12, 'ration-biscuits-de-mer': 18 } as VivresDeCale });
+      const m = provisioningManifest(party, 1000, 3, 0, { count: 10, provisions: lotsDeCale({ 'nourriture-courses-journee': 12, 'ration-biscuits-de-mer': 18 }, 0) });
       expect(m.souls).toBe(12); // 2 héros + 10 PNJ
       expect(m.eauRequiseLitres).toBe(12 * 3 * 3); // souls × jours × 3 L (médiane) = 108
       expect(m.rationsRequises).toBe(2 * 3 + 10 * 3); // héros (6) + équipage (30) = 36
@@ -327,16 +328,26 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
 
     it('#245 — vivres de cale insuffisants pour l’équipage → manifeste en déficit', () => {
       const party = [hero({ rations: 10 })];
-      const m = provisioningManifest(party, 1000, 5, { count: 8, provisions: { 'ration-nourriture-preservee': 5 } as VivresDeCale }); // équipage requiert 40, cale 5
+      const m = provisioningManifest(party, 1000, 5, 0, { count: 8, provisions: lotsDeCale({ 'ration-nourriture-preservee': 5 }, 0) }); // équipage requiert 40, cale 5
       expect(m.souls).toBe(9);
       expect(m.rationsRequises).toBe(5 + 40);
       expect(m.rationsDispo).toBe(10 + 5); // 15 < 45
       expect(m.suffisant).toBe(false);
     });
 
+    it('MDG 14 l.238 — frais seul qui pourrit avant la fin de la traversée : la part pourrie ne compte pas, manifeste en déficit', () => {
+      const peremption = rule('mer-vivres-frais-peremption-jours');
+      const jours = peremption + 3;
+      // 4 marins, de quoi manger `jours` jours en volume, mais tout en frais embarqué à l'heure du départ.
+      const m = provisioningManifest([], 1000, jours, 0, { count: 4, provisions: lotsDeCale({ 'nourriture-courses-journee': 4 * jours }, 0) });
+      expect(m.rationsRequises).toBe(4 * jours);
+      expect(m.rationsDispo).toBe(4 * peremption); // mangé jusqu'à la péremption, le reste pourrit
+      expect(m.suffisant).toBe(false);
+    });
+
     it('#513 — ogre (ADE II 2 l.708) : rations ET eau requises ×2 (Trait racial `ogre`)', () => {
       const party = [hero({ rations: 10, traits: [{ id: 'ogre' }] }), hero({ rations: 10 })];
-      const m = provisioningManifest(party, 1000, 3);
+      const m = provisioningManifest(party, 1000, 3, 0);
       expect(m.rationsRequises).toBe(3 * 2 + 3); // ogre × facteur 2, humain × 1
       expect(m.eauRequiseLitres).toBe(2 * 3 * 3 + 1 * 3 * 3); // ogre × facteur 2, humain × 1, 3 L/jour (médiane)
     });

@@ -404,8 +404,8 @@ src/engine/                 Règles WFRP4, PUR + testé, sans hôte (mur `murs/s
                               Consommée par : sorts, Imparfaites (miscast), mutations, traits, qualités
                               (`passive`), effets déclenchés (`Flow`/`Trigger`), CONSOMMABLES. Jalon 2.6 :
                               PerSL (échelle par DR), onlyGroups, grantTrait/grantTalent/augmentWeapon/…
-                              CATALOGUE GÉNÉRÉ des ops (+ `Condition`/`Flow`/`EffectTrigger` de
-                              flowCore.ts) : `docs/vocabulaire-mecanique.md` (`npm run docs:vocabulaire`)
+                              CATALOGUE GÉNÉRÉ des ops (+ `Condition`/`Flow` de flowCore.ts,
+                              `EffectTrigger` de son schéma) : `docs/vocabulaire-mecanique.md` (`npm run docs:vocabulaire`)
                               — index par CONCEPT en français, résolution mesurée (« exécutée » /
                               « inerte au switch » / « hors switch » : les deux dernières = impur résolu
                               par src/state, ou passif lu par un collecteur — jamais « inutilisable »),
@@ -418,7 +418,7 @@ src/engine/                 Règles WFRP4, PUR + testé, sans hôte (mur `murs/s
   corruption.ts               Corruption & mutations (LDB 19 : expositions, seuil, limites → damné)
   grimoire.ts                 apprentissage/mémorisation des sorts (coûts par Talent) + lecture au livre
   travel.ts                   voyage RAW (#T2) : vitesses km/h, 6 h/jour, marche forcée, coûts diligence/barge
-  provisions.ts               rations & Faim (LDB 18 l.337-342) : consommation/jour, Tests, malus, Brouet
+  provisions.ts               rations & Faim (LDB 18 l.337-342) : consommation/jour, Tests, malus, Brouet ; lots datés de la cale (MDG 14 l.238)
   axes.ts                      axes de forces/faiblesses (#409, mécanique MAISON) : axisScore/axesProfile/
                                 partyCoverage/dominantAxes depuis `data/axes.json` (`derivation` en ids de
                                 skills/talents) — SOURCE UNIQUE du mini-radar, du rail de composition (#417)
@@ -976,10 +976,11 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
 Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit — RESTENT en l'état
 (lever = travail coop futur, hors #254 qui ferme sur DOCUMENTATION seule) :
 
-- **Cadence COMMANDÉE désactivée hors mode local** — `src/noyau/voyageCadence.ts` (`traverseeCommandee`)
-  est la source unique de « commandée ET locale » : elle garde la résolution d'un bloc du jour
-  (`jouerLaJournee` commandée, dans `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans
-  `seaVoyageFlow.runSeaDay`/`continueSeaDayFromPostProgression`) ET la porte d'un jet sous ordres
+- **Cadence COMMANDÉE désactivée hors mode local** — `src/noyau/voyageCadence.ts` (`cadenceAUnEffet`,
+  source unique de « locale », lue par `traverseeCommandee`, source unique de « commandée ET locale ») garde la
+  résolution d'un bloc du jour (`jouerLaJournee` commandée, dans `travelFlow.runTravelDays`,
+  `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans `seaVoyageFlow.jouerLesEtapesDuJour`,
+  commune aux deux entrées du jour `runSeaDay` et `continueSeaDayFromPostProgression`) ET la porte d'un jet sous ordres
   (`rollSeam.surfaceDesTenus`, via `resoluSousOrdres`). En coop, la cadence reste JOUR-PAR-JOUR quels que
   soient les ordres : chaque jet de route ouvre la fenêtre de son porteur. Raison technique : la résolution
   immédiate est un bloc synchrone HÔTE-SEUL qui ne passe par AUCUN owner/intent du registre de modales

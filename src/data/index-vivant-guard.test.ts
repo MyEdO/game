@@ -182,6 +182,9 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     expect(indexFiges('copie.ts', parEspaceDeNoms, parBinding)).toHaveLength(1);
     const parLaCle = `import { datasetArray } from '../data/overrides';\nconst IDS = new Set(datasetArray('traits').map((t) => t.id));\n`;
     expect(indexFiges('copie.ts', parLaCle, parBinding)).toHaveLength(1);
+    // `entreesDuDataset` rend une copie : l'appel nu au niveau module fige déjà le dataset.
+    const parCopie = `import { entreesDuDataset } from '../data/overrides';\nconst TOUTES = entreesDuDataset(cle);\n`;
+    expect(indexFiges('copie.ts', parCopie, parBinding)).toHaveLength(1);
   });
 
   it('CONTRÔLE POSITIF : les dérivations qui prennent le dataset EN ARGUMENT (enveloppes) et les méthodes à COPIE', () => {
@@ -270,10 +273,10 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     const reel = readFileSync(join(RACINE, 'src/engine/miscast.ts'), 'utf8');
     const noms = nomsVivantsDuFichier('src/engine/miscast.ts', reel, parBinding);
     expect(noms.get('miscastJson')).toBe('miscast.json');
-    expect(noms.get('data'), 'l’alias nu hérite du dataset').toBe('miscast.json');
+    expect(noms.get('MISCAST_TABLES'), 'l’alias par la porte hérite du dataset').toBe('miscast.json');
     // Le fichier RÉEL est propre ; la même vue réinjectée dans une COPIE est vue.
     expect(indexFiges('src/engine/miscast.ts', reel, parBinding)).toEqual([]);
-    const injecte = `${reel}\nconst MINEURES = data.filter((t) => t.id === 'miscast-mineure');\n`;
+    const injecte = `${reel}\nconst MINEURES = MISCAST_TABLES.filter((t) => t.id === 'miscast-mineure');\n`;
     expect(indexFiges('src/engine/copie.ts', injecte, parBinding)).toHaveLength(1);
     const alias = `import vehiclesJson from '../data/vehicles.json';\nconst LISTE = vehiclesJson as VehicleData[];\nconst PAR_ID = new Map(LISTE.map((v) => [v.id, v]));\n`;
     expect(indexFiges('src/engine/copie.ts', alias, parBinding)).toHaveLength(1);

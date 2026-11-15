@@ -122,6 +122,17 @@ test('clôture morte : autorise les familles suivantes et les docs, apprend puis
   for (const charge of b.options.lancements) if (charge.sortie) assert.equal(existsSync(charge.sortie), false)
 })
 
+test('apprentissage du surcoût (#3412) : le lancement vitest simule son mur sous les environnements du plan', async (t) => {
+  const b = bancDeCloture(t, 'src/a.test.tsx', ['vitest'])
+  const lus = []
+  b.options.environnementDe = (test) => { lus.push(test); return test.endsWith('.tsx') ? 'jsdom' : 'node' }
+  const durees = { [join(b.options.racine, 'src/a.test.tsx')]: 3, [join(b.options.racine, 'src/b.test.ts')]: 2 }
+  const lancer = async () => { writeFileSync(b.options.lancements[0].sortie, JSON.stringify({ workers: 1, durees, echecs: [] })); return { code: 0, arret: { etat: 'mort' } } }
+  await executerLancements(b.options, { lancer })
+  assert.deepEqual([...new Set(lus)].sort(), ['src/a.test.tsx', 'src/b.test.ts'])
+  assert.equal(b.ecritures.filter(([nom]) => nom === SURCOUTS).length, 1)
+})
+
 test('refus d’admission : un lanceur qui rend `CODE_DIFFERE` est nommé avec sa raison, jamais compté rouge sans fichier', async (t) => {
   const b = bancDeCloture(t, 'scripts/a.test.mjs', ['vitest', 'node'])
   const ligne = '[memoire] MEMOIRE_INSUFFISANTE : minimum 5408 Mo, disponible 4656 Mo'
@@ -684,9 +695,34 @@ test('paquet achevé : apprentissage visible avant le suivant interrompu, rouge 
   assert.equal(existsSync(b.options.lancements[1].sortie), true)
 })
 
-/** Le mur du plan de `durees` (`{ [test]: ms }`), tous au rang touché, sur `workers`. */
-const murDuPlan = (durees, workers) => planDExecution(new Map(Object.keys(durees).map((t) => [t, { rang: 0 }])),
-  { estimations: new Map(Object.entries(durees).map(([t, ms]) => [t, { ms }])), workers }).murMs
+/** Le mur du plan de `durees` (`{ [test]: ms }`), tous au rang touché, sur `workers`, sous `environnementDe`. */
+const murDuPlan = (durees, workers, environnementDe) => planDExecution(new Map(Object.keys(durees).map((t) => [t, { rang: 0 }])),
+  { estimations: new Map(Object.entries(durees).map(([t, ms]) => [t, { ms }])), workers, environnementDe }).murMs
+
+/** Vitest mêlé (#3412) : durées décroissantes a, b, c, d, environnements jsdom, node, node, jsdom. */
+const VITEST_MELE = { 'src/a.test.tsx': 3000, 'src/b.test.ts': 2000, 'src/c.test.ts': 2000, 'src/d.test.tsx': 1000 }
+const environnementDuMele = (t) => (t.endsWith('.tsx') ? 'jsdom' : 'node')
+
+test('ordreDuLanceur : vitest groupe l’ordre par durée décroissante par environnement, dans l’ordre de première apparition (#3412)', () => {
+  const ordre = (environnementDe) => ordreDuLanceur('vitest', Object.entries(VITEST_MELE).reverse(), { environnementDe }).map(([t]) => t)
+  assert.deepEqual(ordre(environnementDuMele), ['src/a.test.tsx', 'src/d.test.tsx', 'src/b.test.ts', 'src/c.test.ts'])
+  assert.deepEqual(ordre(undefined), ['src/a.test.tsx', 'src/b.test.ts', 'src/c.test.ts', 'src/d.test.tsx'], 'environnement illisible : un seul groupe')
+})
+
+test('mur simulé (#3412) : le plan et le surcoût simulent l’ordre groupé par environnement — 5 s groupé contre 4 s sans environnement', () => {
+  assert.equal(murDuPlan(VITEST_MELE, { vitest: 2 }, environnementDuMele), 5000)
+  assert.equal(murDuPlan(VITEST_MELE, { vitest: 2 }), 4000)
+  assert.equal(surcoutObserve('vitest', 6000, VITEST_MELE, { vitest: 2 }, environnementDuMele), 1000)
+  assert.equal(bilanDuLancement('vitest', 6000, { appris: VITEST_MELE, workers: 2 }, 2, environnementDuMele).surcout, 1000)
+})
+
+test('plan du lancement (#3412) : le mur vitest simule l’ordre groupé par les environnements lus des docblocks, rendus pour l’apprentissage', (t) => {
+  const mesures = mesuresDuLancement(t, VITEST_MELE)
+  const lire = (rels) => new Map(rels.map((r) => [r, r.endsWith('.tsx') ? '// @vitest-environment jsdom\n' : 'export {}\n']))
+  const r = planDuLancement(new Map(Object.keys(VITEST_MELE).map((f) => [f, { rang: 0 }])), { mesures, lire, budget: 180, workersDe: () => ({ vitest: 2, node: 1 }) })
+  assert.equal(r.plan.murParFamille.vitest, 5000)
+  assert.deepEqual(Object.keys(VITEST_MELE).map(r.environnementDe), ['jsdom', 'node', 'node', 'jsdom'])
+})
 
 test('mur simulé (sonde 1 #2474) : node démarre ses fichiers dans l’ordre LEXICAL — a, b à 1 s puis c à 3 s sur 2 workers : 4 s ; Vitest par durée décroissante : 3 s', () => {
   assert.equal(murDuPlan({ 'scripts/c.test.mjs': 3000, 'scripts/b.test.mjs': 1000, 'scripts/a.test.mjs': 1000 }, { node: 2 }), 4000)
@@ -1195,8 +1231,8 @@ const ORDRE_WINDOWS = ['B2/x', 'Z', 'a-b/x', 'a.test', 'a2/x', 'aB/x', 'a/Y2', '
 
 test('ordreDuLanceur : node trie le chemin au séparateur NATIF — l’ordre mesuré sous Windows avec \\, l’ordre POSIX avec /', () => {
   const melange = [...ORDRE_WINDOWS].reverse().map((t) => [t, 1])
-  assert.deepEqual(ordreDuLanceur('node', melange, '\\').map(([t]) => t), ORDRE_WINDOWS)
-  assert.deepEqual(ordreDuLanceur('node', melange, '/').map(([t]) => t),
+  assert.deepEqual(ordreDuLanceur('node', melange, { separateur: '\\' }).map(([t]) => t), ORDRE_WINDOWS)
+  assert.deepEqual(ordreDuLanceur('node', melange, { separateur: '/' }).map(([t]) => t),
     ['B2/x', 'Z', 'a-b/x', 'a.test', 'a/Y2', 'a/x', 'a/y', 'a2/x', 'aB/x', 'a_b/x', 'b', 'é/x'].map((n) => `${n}.test.mjs`))
 })
 

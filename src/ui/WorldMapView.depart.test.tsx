@@ -17,6 +17,8 @@ import { creditBourse } from '../noyau/bourseFlow';
 import type { Combatant, ItemInstance } from '../engine/types';
 import { setRule, resetRule } from '../engine/policy';
 import type { Possession } from '../engine/possession';
+import { t } from '../i18n';
+import { DEFAULT_VOYAGE_ORDERS } from '../noyau/voyageCadence';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -116,5 +118,29 @@ describe('WorldMapView — le départ lit `refusDeDepart`', () => {
     await choisirBourgB({ km: 12, modes: ['diligence'] }, [h], () => creditBourse(useGame.getState, useGame.setState, h.id, { gold: 1, silver: 0, brass: 0 }));
     expect(depart().getAttribute('aria-disabled')).not.toBe('true');
     expect(raison()).toBeNull();
+  });
+});
+
+describe('WorldMapView — la cadence se choisit au départ à terre, là où elle a un effet (`cadenceAUnEffet`)', () => {
+  const cadences = () => [...container.querySelectorAll<HTMLButtonElement>('.wm-modes button')];
+  const cadence = (texte: string) => cadences().find((b) => b.textContent?.trim() === texte);
+  const commandee = String(t('wm.traverseeCommandee'));
+  const jourParJour = String(t('wm.jourParJour'));
+  afterEach(() => useGame.setState({ travelPlan: null, pendingCascade: null, pendingRest: null }));
+
+  it('à pied en local : le sélecteur est dessiné, au défaut `DEFAULT_VOYAGE_ORDERS`, et « Jour par jour » part avec le trajet', async () => {
+    await choisirBourgB({}, [marcheur()]);
+    const presse = cadences().filter((b) => b.getAttribute('aria-pressed') === 'true').map((b) => b.textContent?.trim());
+    expect(presse).toEqual([DEFAULT_VOYAGE_ORDERS.cadence === 'commande' ? commandee : jourParJour]);
+    await act(async () => { cadence(jourParJour)!.click(); });
+    await act(async () => { depart().click(); });
+    expect(useGame.getState().travelPlan?.orders?.cadence).toBe('jourParJour');
+  });
+
+  it('hors mode local : aucun sélecteur de cadence', async () => {
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'hote' } });
+    await choisirBourgB({}, [marcheur()]);
+    expect(depart(), 'le panneau de départ est rendu').toBeTruthy();
+    expect(cadences()).toEqual([]);
   });
 });

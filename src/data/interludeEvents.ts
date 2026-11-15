@@ -14,7 +14,7 @@ import interludeEventsJson from './interludeEvents.json';
 import { deDeTirageDe, type RangeeDe } from './rangees';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 
-/** Une rangée du Tableau des Événements (`interludeEvents.json`) ; `atelierNote` n'est jamais affichée ni journalisée. */
+/** Une rangée du Tableau des Événements (`interludeEvents.json`). */
 export type InterludeEvent = RangeeDe<typeof tableauDesEvenements>;
 /** Les effets d'un événement d'interlude (`partyWide` : LDB 22 l.5). */
 export type InterludeEventFx = NonNullable<InterludeEvent['fx']>;

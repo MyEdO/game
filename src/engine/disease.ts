@@ -45,6 +45,7 @@ import {
   SYMPTOM_SEVERITIES,
   memoParVersion,
   type SymptomCapabilities,
+  type DiseaseDef,
 } from '../data';
 import type { GameOp, OpPassive, PassiveMod } from './ops';
 import type { PsychTrait } from './psychology';
@@ -54,7 +55,7 @@ import { fateSaveOrDie } from './fortune';
 import { addCondition } from './conditions';
 import { sourceSuspended, suspendSource } from './suspension'; // module FEUILLE : suspension GÉNÉRALE d'une source passive
 import type { CodexTarget } from './ruleRefs';
-import type { DiseaseDef, DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
+import type { DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
 
 /** Unité d'un temps de maladie (incubation/durée). La base de calcul/stockage reste la MINUTE (`clock.ts`). */
 const UNIT_MINUTES: Record<DiseaseTime['unit'], number> = { days: MINUTES_PER_DAY, hours: 60, minutes: 1 };

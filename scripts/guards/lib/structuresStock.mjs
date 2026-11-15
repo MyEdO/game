@@ -23,6 +23,9 @@ export const STRUCTURES_CIBLES = [
   { concept: "prose-nommee", signature: "texte+…", date: "2026-10-08" },
   { concept: "reference", signature: "id", date: "2026-08-23" },
   { concept: "reference", signature: "id,spec", date: "2026-08-23" },
+  // #4110
+  { concept: "reference", signature: "id,qualityChoice", date: "2026-11-13" },
+  { concept: "reference", signature: "id,qualityChoice,spec", date: "2026-11-13" },
   { concept: "reference", signature: "choix,id", date: "2026-08-23" },
   { concept: "reference", signature: "id,type", date: "2026-08-23" },
   { concept: "reference", signature: "count,id,type", date: "2026-08-23" },

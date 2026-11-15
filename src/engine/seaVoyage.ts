@@ -16,17 +16,15 @@
  *    bien, Prix d'offre par Richesse+Taille+Demande) ; brader à 25 % du prix de base (l.399).
  *  - Cargaisons (l.402-436) : type au d100 PAR SAISON, prix de base par saison (Vin : 3d10 CO).
  */
-import seaEventsJson from '../data/sea-events.json';
 import { t } from '../i18n';
-import { seaCargo, type SeaCargoData } from '../data';
-import { deDeLaTableTiree, findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte, type DeDeTable } from './tables';
+import { seaCargo, seaEvents, type SeaCargoData, type SeaEventsData } from '../data';
+import { deDeLaTableTiree, findTableEntry, findTableEntryIndex, tableOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, rollDice, tirerSigne, type EffetSigne, type RNG } from './dice';
+import { d10, rollDice, tirerSigne, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
 import type { SeaWeather } from './seaWeather';
 import type { AggravationMeteo } from './ops';
-import type { Flow, JetFixe } from './flowCore';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
@@ -39,7 +37,8 @@ export { type CargoDef, type CargoLot, isEchangeable, cargoTotalEnc, removeCargo
 
 // ── Types de la donnée ───────────────────────────────────────────────────────────────────────────
 
-export interface ManannFactor { id: string; label: string; effect: EffetSigne }
+/** Un facteur d'Humeur de Manann (MDG 15 l.83-129). */
+export type ManannFactor = SeaEventsData['manann']['factors'][number];
 
 /** Climat imposé par un événement : les seuls axes qu'il fixe. MDG 15 l.189, l.199, l.219, l.226, l.248, l.257 */
 type MeteoImposee = Partial<SeaWeather>;
@@ -71,22 +70,11 @@ export const sommeDesModificateurs = (mods: readonly ModificateurDuNavire[] | un
 export const meteosActives = (meteos: readonly MeteoImposeeDuNavire[] | undefined, now: number): MeteoImposeeDuNavire[] =>
   (meteos ?? []).filter((m) => m.jusqua > now);
 
-/** Un Événement de bord ou d'escale : sa suite mécanique est un `Flow` (`consequence`, joué par `runFlow`) ; sans
- *  elle, la rangée est narrative. `relache` : la rangée ne se joue qu'avec la relâche à terre accordée ;
- *  `taillePortMax` : qu'à l'escale d'un port de Taille au plus celle-ci (`resolvePortArrival`) ; `maison` : la
- *  raison des valeurs posées là où le livre laisse la main au MJ. MDG 15 l.245, l.249, l.260 */
-export type SeaEventDef = BandeOuverte & { id: string; label: string; desc: string; relache?: true; taillePortMax?: number; consequence?: Flow; maison?: string };
+/** Un Événement de bord ou d'escale (MDG 15 l.134, l.243), joué par `runFlow` (`consequence`). */
+export type SeaEventDef = SeaEventsData['boardEvents']['entries'][number];
 
-/** Palier du VOYAGE RAPIDE (l.33-37) : cran du dé de sa table ; sa `consequence` (`runFlow`), absente pour un
- *  palier sans perte. */
-export type FastVoyagePalier = BandeOuverte & { id: string; label: string; desc: string; consequence?: Flow };
-
-const EVENTS = seaEventsJson as unknown as {
-  manann: { base: number; portEventMod: number; factors: ManannFactor[] };
-  boardEvents: { die: string; entries: SeaEventDef[] };
-  portEvents: { die: string; entries: SeaEventDef[] };
-  fastVoyage: { die: string; entries: FastVoyagePalier[] };
-};
+/** Palier du VOYAGE RAPIDE (MDG 15 l.33-37), joué par `runFlow` (`consequence`). */
+export type FastVoyagePalier = SeaEventsData['fastVoyage']['entries'][number];
 
 /** Palier de SURCHARGE de la cale (MDG 12 l.70-75) : `pctDepuis` = seuil strict (>) en % de la Contenance,
  *  `mMod`/`drDeManoeuvre` = −M et −DR Manœuvre appliqués au navire. */
@@ -94,27 +82,26 @@ type OverloadPalier = SeaCargoData['surcharge']['paliers'][number];
 
 const CARGO = seaCargo;
 
-export const MANANN_FACTORS = EVENTS.manann.factors;
-export const BOARD_EVENTS = EVENTS.boardEvents.entries;
-export const PORT_EVENTS = EVENTS.portEvents.entries;
-export const FAST_VOYAGE_PALIERS = EVENTS.fastVoyage.entries;
+export const MANANN_FACTORS = seaEvents.manann.factors;
+export const BOARD_EVENTS = seaEvents.boardEvents.entries;
+export const PORT_EVENTS = seaEvents.portEvents.entries;
+export const FAST_VOYAGE_PALIERS = seaEvents.fastVoyage.entries;
 /** Les tables d'événements et de paliers telles que `findTableEntry` les lit (`tableOuverte`) : leurs
  *  bandes extrêmes sont ouvertes (MDG 15). Mémoïsées sur leur dataset quand le Codex les édite. */
 export const evenementsDeBord = memoParVersion('seaBoardEvents', () => tableOuverte(BOARD_EVENTS));
 /** Le dé du Tableau des événements de bord, lu à l'appel. */
-export const deDesEvenementsDeBord = (): DeDeTable => deDeLaTableTiree(EVENTS.boardEvents);
+export const deDesEvenementsDeBord = (): DeDeTable => deDeLaTableTiree(seaEvents.boardEvents);
 const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(PORT_EVENTS));
 /** Le dé du Tableau des événements d'escale, lu à l'appel. */
-export const deDesEvenementsDePort = (): DeDeTable => deDeLaTableTiree(EVENTS.portEvents);
+export const deDesEvenementsDePort = (): DeDeTable => deDeLaTableTiree(seaEvents.portEvents);
 const paliersDeVoyageRapide = memoParVersion('seaFastVoyage', () => tableOuverte(FAST_VOYAGE_PALIERS));
 /** Le dé du tableau du Voyage rapide, lu à l'appel. */
-export const deDuVoyageRapide = (): DeDeTable => deDeLaTableTiree(EVENTS.fastVoyage);
-/** `test` exige `skill` et `difficulty` au parse (`exigerDuTest`, `defs/sea-cargo.ts`). */
-export const OPPORTUNITE = CARGO.opportunite as SeaCargoData['opportunite'] & { test: JetFixe<'skill' | 'difficulty'> };
+export const deDuVoyageRapide = (): DeDeTable => deDeLaTableTiree(seaEvents.fastVoyage);
+export const OPPORTUNITE = CARGO.opportunite;
 /** La table du Prix d'offre telle que `findTableEntry` la lit (`tableOuverte`, tronc commun — sa
  *  dernière bande est OUVERTE, MDG 15 l.383 « 4 ou plus »). */
 const bandesDuPrixDOffre = memoParVersion('seaCargo', () => tableOuverte(CARGO.vente.prixDOffre));
-export const findManannFactor = (id: string): ManannFactor | undefined => EVENTS.manann.factors.find((f) => f.id === id);
+export const findManannFactor = (id: string): ManannFactor | undefined => seaEvents.manann.factors.find((f) => f.id === id);
 
 // ── Surcharge de la cale (MDG 12 l.70-75) ──────────────────────────────────────────────────────
 
@@ -172,7 +159,7 @@ export interface ManannMood {
 }
 
 /** Humeur de Manann d'un registre NEUF, sa base lue à l'appel. */
-export const manannBase = (): ManannMood => ({ score: EVENTS.manann.base, applied: [] });
+export const manannBase = (): ManannMood => ({ score: seaEvents.manann.base, applied: [] });
 
 /** Applique un facteur d'Humeur (id du tableau EFFET SUR L'HUMEUR DE MANANN) : roule ses dés signés,
  *  UNE seule fois par navire (l.85) — déjà appliqué → no-op. PUR (nouvel état). */
@@ -203,7 +190,7 @@ export const seaBoardEventById = (id: string): SeaEventDef | undefined => BOARD_
 /** Tire un ÉVÉNEMENT DE PORT à l'accostage (l.127-129) au dé de sa table, ±1 selon le signe de l'Humeur ;
  *  il « se produit dans les 2d10 heures après accostage ». PUR. */
 export function rollPortEvent(manannScore: number, rng: RNG): { roll: number; hours: number; event: SeaEventDef } {
-  const mod = manannScore < 0 ? -EVENTS.manann.portEventMod : manannScore > 0 ? EVENTS.manann.portEventMod : 0;
+  const mod = manannScore < 0 ? -seaEvents.manann.portEventMod : manannScore > 0 ? seaEvents.manann.portEventMod : 0;
   const roll = rollDice(deDesEvenementsDePort(), rng) + mod;
   return { roll, hours: d10(rng) + d10(rng), event: findTableEntry(evenementsDePort(), roll) };
 }

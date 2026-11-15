@@ -370,16 +370,18 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
   ];
 }
 
-/** Les modes de voyage d'un trajet en choix, titré de sa longueur : chacun avec ses jours de route, fermé avec sa
- *  raison. Le même élément part du lieu (`ecranDuLieu`) et de la carte (`trajetsDeLaCarte`). */
-const departDuTrajet = (tr: TrajetEnVue): Choix => ({
-  type: 'choix', id: tr.route, ton: 'neutre', libelle: tr.distance, focus: false, refus: null,
-  valeurs: tr.modes.map((m) => boutonDeGeste(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)),
-});
+/** Les départs d'un trajet, un choix par cadence offerte (`id` : la route, suivie de la cadence), titré de sa
+ *  longueur et de ce que la cadence change : chacun de ses modes avec ses jours de route, fermé avec sa raison. Le
+ *  même élément part du lieu (`ecranDuLieu`) et de la carte (`trajetsDeLaCarte`). */
+const departDuTrajet = (tr: TrajetEnVue): Choix[] => tr.departs.map((d) => ({
+  type: 'choix', id: d.cadence ? `${tr.route}/${d.cadence}` : tr.route, ton: 'neutre', focus: false, refus: null,
+  libelle: d.cadence ? t('ecran.carte.depart', { distance: tr.distance, cadence: t(`ecran.cadence.${d.cadence}`) }) : tr.distance,
+  valeurs: d.modes.map((m) => boutonDeGeste(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)),
+}));
 
 /** Le plan de la carte en élément : chaque lieu à sa place, celui du groupe en `alerte`, chaque route qui part d'ici
  *  en `reussite` ; sous chaque lieu, `sous`. */
-const planDeLaCarte = (id: string, plan: PlanDeLaCarte, sous: (l: LieuDuPlan) => Element[]): Plan => ({
+export const planDeLaCarte = (id: string, plan: PlanDeLaCarte, sous: (l: LieuDuPlan) => Element[]): Plan => ({
   type: 'plan', id,
   points: plan.lieux.map((l) => ({ type: 'point', id: l.id, nom: l.nom, x: l.x, y: l.y, ton: l.ici ? 'alerte' : 'neutre', elements: sous(l) })),
   traits: plan.routes.map((r) => ({ id: r.route, de: r.de, vers: r.vers, ton: r.depuisIci ? 'reussite' : 'neutre' })),
@@ -391,7 +393,7 @@ function trajetsDeLaCarte(etat: Jeu): Element[] {
   const c = carteEnVue(etat);
   if (!c) return [];
   return [
-    planDeLaCarte('carte/plan', c.plan, (l) => l.trajets.map(departDuTrajet)),
+    planDeLaCarte('carte/plan', c.plan, (l) => l.trajets.flatMap(departDuTrajet)),
     ...(c.reprendre ? [boutonDeGeste('carte/reprendre', t('ecran.carte.reprendre'), c.reprendre, null)] : []),
   ];
 }
@@ -423,7 +425,7 @@ function ecranDuLieu(etat: Jeu): Element[] {
       type: 'entite', id: `poi/${id}`, ton: 'neutre', nom, elements: [boutonDeGeste(g.id, g.libelle, g.geste, g.refus)],
     })),
     ...(l.trajets.length ? [ligne('lieu/trajets', t('ecran.lieu.trajets'))] : []),
-    ...l.trajets.map((tr): Entite => ({ type: 'entite', id: `trajet/${tr.route}`, ton: 'neutre', nom: tr.vers, elements: [departDuTrajet(tr)] })),
+    ...l.trajets.map((tr): Entite => ({ type: 'entite', id: `trajet/${tr.route}`, ton: 'neutre', nom: tr.vers, elements: departDuTrajet(tr) })),
   ];
 }
 
@@ -699,8 +701,8 @@ function carteDuVoyage(v: Voyage): Plan {
 
 /** Le trajet en cours (`voyageEnVue`) : hors d'une halte, qui tient la sienne (`nuitDuRepos`), la tête de sa scène
  *  (`scene` : son paysage, le ciel du moment, le jour de route, la météo et le moment du jour, un jour de route par
- *  nuit passée en route) ; puis le titre de sa carte et sa carte (`carteDuVoyage`), les km qui restent avant l'arrivée
- *  et sa frise (`friseDuVoyage`). */
+ *  nuit passée en route) ; puis le titre de sa carte et sa carte (`carteDuVoyage`), les km qui restent avant l'arrivée,
+ *  le choix de sa cadence, celle qu'il joue pressée, et sa frise (`friseDuVoyage`). */
 function voyage(etat: Jeu): Element[] {
   const v = voyageEnVue(etat);
   if (!v) return [];
@@ -711,6 +713,10 @@ function voyage(etat: Jeu): Element[] {
     ligne('voyage/titre', t('ecran.voyage.titre', { arrivee: v.vers })),
     carteDuVoyage(v),
     puce('voyage/reste', t('ecran.voyage.reste', { arrivee: v.vers }), String(v.km - v.fait)),
+    ...(v.cadences.length ? [{
+      type: 'choix', id: 'voyage/cadence', ton: 'neutre', libelle: t('ecran.voyage.cadence'), focus: false, refus: null,
+      valeurs: v.cadences.map((c) => boutonDeGeste(c.cadence, t(`ecran.cadence.${c.cadence}`), c.geste, null, c.cadence === v.cadence)),
+    } satisfies Choix] : []),
     friseDuVoyage(v),
   ];
 }

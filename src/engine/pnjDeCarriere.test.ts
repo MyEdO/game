@@ -19,6 +19,8 @@ import { actorStatus } from './social';
 import { adresseDeCreation } from './adresseDeCreation';
 import { fabricationAtouts, findTrappingById, groupeDeLArme, levelsForCareer } from '../data';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
+import { dotationsDuPnj, emplacementsDeDotation, valeursDeLEmplacement } from './trappingChoices';
+import { craftAtoutCount } from './qualities/craftEconomy';
 import { availableChars, skillSlots, talentSlots } from './careerSlots';
 import { isCareerLevelComplete } from './advancement';
 import { augmenterLaCompetence } from './character';
@@ -167,7 +169,7 @@ describe('armes au choix du PNJ : joker d’un Groupe d’armes, joker à Atout 
     avecFixture(() => {
       const items = porte({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([0])]: 'fouet', [dot([2])]: 0, [dot([2, 0])]: 0, [dot([4])]: 0, [dot([6])]: 'rapiere' } }).items!;
       expect(items.filter((i) => groupeDeLArme(findTrappingById(i.trappingId!)!)?.id === 'deux-mains')).toHaveLength(1);
-      expect(items.find((i) => i.trappingId === 'rapiere')!.qualities.filter((q) => fabricationAtouts().includes(q.id))).toHaveLength(1);
+      expect(items.find((i) => i.trappingId === 'rapiere')!.qualities.filter((q) => fabricationAtouts().some((a) => a === q.id))).toHaveLength(1);
     });
   });
   it('refuse une arme hors du Groupe du joker, admet une arme du Groupe et un Atout de Fabrication', () => {
@@ -175,6 +177,23 @@ describe('armes au choix du PNJ : joker d’un Groupe d’armes, joker à Atout 
       expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([5])]: 'rapiere' } })).toMatch(/valeur/);
       expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([5])]: 'grande-hache', [dot([6])]: 'rapiere', [dot([6, 0])]: 'solide' } })).toBeUndefined();
     });
+  });
+});
+
+describe('Atouts au choix d’une dotation de Haute Qualité : le Noble 4 (LDB 08 l.987, arbitrage #4053)', () => {
+  const habits = () => emplacementsDeDotation(dotationsDuPnj('noble', 4)).find((e) => e.sorte === 'atout' && 'id' in e.ref && e.ref.id === 'costume-de-cour' && e.ref.qualityChoice === 'haute')!;
+  const habitsDeHauteQualite = (c: Combatant) => c.items!.filter((i) => i.trappingId === 'costume-de-cour' && craftAtoutCount(i) === 2);
+  const quantite = (c: Combatant) => habitsDeHauteQualite(c).reduce((n, i) => n + (i.qty ?? 1), 0);
+  it('les quatre Habits de cour portent les deux Atouts choisis par l’auteur', () => {
+    const noble = porte({ carrieres: { noble: 4 }, dotationsDeCarriere: { [habits().adresse]: 'leger+solide' } });
+    expect(quantite(noble)).toBe(4);
+    for (const i of habitsDeHauteQualite(noble)) expect(i.qualities).toEqual([{ id: 'leger' }, { id: 'solide', value: 1 }]);
+  });
+  it('sans choix, les quatre Habits de cour portent une des combinaisons offertes, tirée à graine fixe', () => {
+    const noble = porte({ carrieres: { noble: 4 } });
+    expect(quantite(noble)).toBe(4);
+    const offertes = valeursDeLEmplacement(habits());
+    for (const i of habitsDeHauteQualite(noble)) expect(offertes).toContain(i.qualities.flatMap((q) => Array.from({ length: q.value ?? 1 }, () => q.id)).sort().join('+'));
   });
 });
 

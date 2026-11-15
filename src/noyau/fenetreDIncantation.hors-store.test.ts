@@ -11,6 +11,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { fenetreDIncantation, refusDuChoixCritique, refusDeLaForme, refusDuPasDeSurincantation, refusDeLaPose, refusDuReglage } from './fenetreDIncantation';
 import { castSpell } from './combatFlow';
 import { spells, findSpellById, type SpellData } from '../data/index';
+import type { EntreeVivante } from '../data/datasets';
 import { setDataset } from '../data/overrides';
 import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { createHero } from '../engine/character';
@@ -24,18 +25,21 @@ import { REGLAGE_DE_L_AXE } from './reglagesDuJet';
 
 const carreau = findSpellById('carreau')!;
 /** Sorts d'épreuve, clones du Carreau (Magie des Arcanes, une cible à portée) : seuls NI, Projectile, effets et Durée changent. */
-const epreuve = (id: string, champs: Partial<SpellData>): SpellData => ({ ...carreau, id, label: id, ...champs } as SpellData);
-const BLESSURES = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 3 }] } }] } as SpellData['effects'];
+const epreuve = (id: string, champs: Partial<SpellData>): EntreeVivante<SpellData> => ({ ...carreau, id, label: id, ...champs });
+const BLESSURES: SpellData['effects'] = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 3 }] } }] };
 const ROUNDS = { kind: 'rounds', value: { charOf: 'force-mentale' } } as const;
 const armure = findSpellById('armure-aethyrique')!;
+/** L'anatomie d'un Rituel du catalogue (VDM 02 l.377-393), que l'épreuve reprend. */
+const anatomie = findSpellById('art-de-la-malediction')?.ritual;
+if (!anatomie) throw new Error('art-de-la-malediction ne porte plus son anatomie de Rituel');
 const FIXTURES = {
   // Rituel au NI réduit pour un lanceur du Domaine du Feu (VDM 02 l.398) : armure durable, donc dissipable.
-  rituel: { ...armure, id: 'epreuve-rituel', label: 'epreuve-rituel', cn: 10, isRitual: true, ritual: { reduced: { domains: ['feu'], cn: 4 } } } as SpellData,
+  rituel: { ...armure, id: 'epreuve-rituel', label: 'epreuve-rituel', cn: 10, isRitual: true, ritual: { ...anatomie, reduced: { domains: ['feu'], cn: 4, xp: anatomie.xp } } },
   degats: epreuve('epreuve-degats', { cn: 0, missile: false, effects: BLESSURES }),
   sansDegats: epreuve('epreuve-sans-degats', { cn: 0, missile: false, duration: ROUNDS }),
   puissance: epreuve('epreuve-puissance', { cn: 30, missile: false, duration: ROUNDS }),
   priere: epreuve('epreuve-priere', { cn: 4, missile: false, family: 'beni', duration: ROUNDS }),
-} satisfies Record<string, SpellData>;
+} satisfies Record<string, EntreeVivante<SpellData>>;
 
 const original = [...spells];
 beforeAll(() => { setDataset('spells', [...original, ...Object.values(FIXTURES)]); });

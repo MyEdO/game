@@ -88,7 +88,7 @@ describe('sélecteurs dédiés', () => {
     const quittee = fermeeASpecs('skill', 1);
     const [spec] = catalogueSpecs('skill', quittee);
     const visee = autreQue(quittee);
-    let dernier = { type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: quittee, spec }, foes: [], encounter: '' } as unknown as Effect;
+    let dernier = { type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: quittee, spec }, foes: [] } as unknown as Effect;
     function Banc() {
       const [e, setE] = useState(dernier);
       return <EffectFields effect={e} ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE }} onChange={(n) => { dernier = n; setE(n); }} />;
