@@ -434,12 +434,13 @@
     "traits": [],
     "encLimit": 30,
     "couvertPenalty": "complexe",
+    "occulte": false,
     "taille": "grande",
     "source": {
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : muret de pierres empilées sans mortier, à hauteur d’appui (Limite d’Encombrement 30) — encombrement d’une créature Grande.",
+    "maison": "opacité maison : aucun folio ne déclare une Structure transparente (LDB 14 l.86, LDB 85 l.329). Arbitrage utilisateur 2026-11-13 (#4105, commentaire 6849608906) : « Le coup passe par-dessus clôture, muret ou bastingage avec le malus de couvert de l'obstacle (-10 à -30) ; fenêtre -30 ; meurtrière : pas de coup. » Le muret se regarde par-dessus, il ne coupe pas la Ligne de Vue. Il garde son couvert Complexe (AA 10 l.48) et reste INFRANCHISSABLE. Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : muret de pierres empilées sans mortier, à hauteur d’appui (Limite d’Encombrement 30) — encombrement d’une créature Grande.",
     "desc": "Les murs en pierres sèches incluent toutes les Structures de pierre fabriquées avec des rochers qui ne sont ni taillés ni fixés pour rester en place."
   },
   {

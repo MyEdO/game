@@ -37,7 +37,7 @@ import type {
 } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
-import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource, type Main } from '../engine/types';
+import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type CoverClass, type EffectSource, type Main } from '../engine/types';
 import { rule } from '../engine/policy';
 import { battleRng } from './battleRng';
 import { ev, evDEtat, evLines, journaliser, type CombatEvent, type CombatEventKind } from './combatLog';
@@ -129,7 +129,7 @@ import { sizeGap } from '../engine/size';
 import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { effectifAuContact } from './combat/surnombre';
-import { distanceDeCombat, distanceDeContact, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
+import { corpsDe, distanceDeCombat, distanceDeContact, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
 import {
   applyTriggeredEffects,
@@ -448,9 +448,9 @@ import {
   meleeWeaponInRange,
   pickAttackWeaponList,
 } from './mount';
-import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
+import { couvertDArete, couvertDuTir, lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
 import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
-import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
+import { coverModifier, couvertDepuisDifficulte, couvertLePlusProtecteur } from '../engine/cover';
 import { couvertDuPoste } from '../engine/navalTraits';
 import {
   shipOfCrew,
@@ -1091,14 +1091,23 @@ export function attackEnv(
   // Empoignade (LDB 14 l.169) : un attaquant NON partie à l'Empoignade, mêlée comme tir.
   const gm = grappleEnvMod(attacker, target, enBataille?.combatants ?? []);
   if (gm) env.push(gm);
+  // Couvert de la cible (LDB 14 l.72, l.81, l.86), au tir comme au corps à corps.
+  const couvrir = (cover: CoverClass) => {
+    if (cover !== 'none') env.push({ label: tr('cf.libelleDuCouvert', { cover }), value: coverModifier(cover), famille: 'circonstance', ref: RULE_REF['cible-sous-couverture'] });
+  };
+  // Coup sur une STRUCTURE : on vise sa FACE exposée (la case côté attaquant) — sinon l'arête de la structure
+  // elle-même coupe la LdV vers la case DERRIÈRE elle (un canon ne « voit pas à travers » la porte qu'il vise).
+  const viseeDe = (from: Pt): Pt => (isStructure(target) ? structureAimCell(from, target) : target.pos!);
+  // Corps du couvert d'arête : l'attaquant par sa géométrie d'attaque (`attackGeomOf`) ; la cible avec sa monture
+  // (`mountOf`, LDB 14), ou la face visée d'une Structure.
+  const corpsA = corpsDe(enBataille ? attackGeomOf(enBataille, attacker, weapon) : attacker);
+  const corpsC = isStructure(target) ? corpsA && { pos: viseeDe(corpsA.pos) } : corpsDe((enBataille && mountOf(enBataille, target)) || target);
   if (weapon.type === 'distance') {
     const battle = garanti(enBataille, attacker.id, 'combat du tir');
     const occupants = battle.combatants
       .filter((c) => c.id !== attacker.id && c.id !== target.id && !isOutOfAction(c) && c.pos)
       .map((c) => c.pos!);
-    // Tir sur une STRUCTURE : on vise sa FACE exposée (la case côté tireur) — sinon l'arête de la structure
-    // elle-même coupe la LdV vers la case DERRIÈRE elle (un canon ne « voit pas à travers » la porte qu'il vise).
-    const losTo = isStructure(target) ? structureAimCell(attacker.pos!, target) : target.pos!;
+    const losTo = viseeDe(attacker.pos!);
     const los = lineOfSightCover(scene, attacker.pos!, losTo, occupants, smokeOf(battle));
     if (los.blocked) return { env, blocked: true, inMelee: false, crowd: [], cm: null, sc }; // pas de LdV (LDB 13 l.114)
     // Météo du JOUR (EDOC 8) : le tir sous l'orage encaisse la pénalité de temps (Pluie -10 l.76,
@@ -1118,8 +1127,8 @@ export function attackEnv(
     // MDG 12 l.364, MSRC f.66 l.111) reçoit sa classe par le MÊME chemin que le couvert de terrain — le plus
     // protecteur des deux (`DeckCoverClass ⊂ CoverClass`). `crewPosteOf` couvre tout l'équipage (chef ET support).
     const servi = crewPosteOf(target.id, battle.combatants);
-    const cover = servi ? couvertLePlusProtecteur(los.cover, couvertDuPoste(servi.hull, servi.poste)) : los.cover;
-    if (cover !== 'none') env.push({ label: tr('cf.libelleDuCouvert', { cover }), value: coverModifier(cover), famille: 'circonstance', ref: RULE_REF['cible-sous-couverture'] });
+    const cover = couvertDuTir(scene, los.cover, corpsA!, corpsC!);
+    couvrir(servi ? couvertLePlusProtecteur(cover, couvertDuPoste(servi.hull, servi.poste)) : cover);
     // Vision nocturne / Infravision (LDB 85) ou Talent Vision nocturne : annule la pénalité d'obscurité.
     // Cible dissimulée (LDB 14 l.75) et météo (l.76, l.82) : sommées sous le plafond de `combineMods` (LDB 14 l.95).
     if (sc.concealed && !seesInDark(attacker)) env.push({ label: sc.concealedLabel, value: -20, famille: 'circonstance', ref: RULE_REF['cible-dissimulee'] });
@@ -1150,9 +1159,13 @@ export function attackEnv(
   }
   // Mêlée : la météo (tempête/neige) pénalise l'attaque ; la neige pénalise aussi l'esquive (dodgeMods).
   if (sc.attaque) env.push(sc.attaque);
-  // La pénalité météo « Tests physiques » (EDOC 8 l.82) n'est PLUS ajoutée ici : le CANAL UNIQUE
-  // `weatherTestMods` (attackModifiers, lu depuis `attacker.envWeather`) la porte pour l'attaque ET la défense
-  // ET les activités — jamais recâblée par surface (#341). Seuls les mods météo WEAPON-contextuels restent (tir).
+  // Le coup par-dessus une arête : arbitrage #4105 du 2026-11-13 ; croisée, règle `combat-croisee-melee-difficulte`.
+  if (corpsA && corpsC) {
+    const croisee = couvertDepuisDifficulte(rule('combat-croisee-melee-difficulte'));
+    couvrir(couvertDArete(scene, corpsA, corpsC, () => croisee));
+  }
+  // Météo « Tests physiques » (EDOC 8 l.82) : canal unique `weatherTestMods` (attackModifiers, `attacker.envWeather`),
+  // pour l'attaque, la défense et les activités (#341).
   // Flanc/dos (LDB 14 l.62) : attaquer un adversaire ENGAGÉ dans le dos ou sur les côtés —
   // orientation du défenseur AVANT cette attaque (il se retourne vers l'attaquant ENSUITE, applyAttackResult).
   const tFacing = get().facing?.[target.id]; // `facing` peut être absent (état épars / contexte sans orientation)

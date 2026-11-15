@@ -27,9 +27,9 @@ import { Scene, sceneMetresPerTile } from './scene';
 import { positionPosee } from './spawn';
 import { reachable, flyReachable, distancesDeMarcheVers, manhattan, pointDeCase, Pt, tileKey, tileFromKey, type TraverseCapability } from './path';
 import { chebyshev } from '../../engine/grid';
-import { footprintChebyshev, footprintN, distanceDeContact } from './footprint';
+import { corpsDe, footprintChebyshev, footprintN, distanceDeContact } from './footprint';
 import { effectifAuContactParmi } from '../combat/surnombre';
-import { makeLosMemo, type LosMemo } from './lineOfSight';
+import { couvertDuTir, makeLosMemo, type LosMemo } from './lineOfSight';
 import { COVER_ORDER } from '../../engine/cover';
 import { rangeBandModifier, outnumberMod, canFireWhileEngaged, type ModLine } from '../../engine/combat';
 import { porteeDeTir } from '../../engine/items';
@@ -912,7 +912,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     let meilleur = 0;
     for (const h of heroes) {
       const c = los.cover(h.pos!, from);
-      const rang = COVER_ORDER.indexOf(c.cover);
+      const rang = COVER_ORDER.indexOf(c.blocked ? c.cover : couvertDuTir(scene, c.cover, corpsDe(h)!, { pos: from, size: enemy.size, footprint: enemy.footprint }));
       if (rang > meilleur) meilleur = rang;
     }
     memoCover.set(k, meilleur);
