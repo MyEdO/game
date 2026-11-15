@@ -447,8 +447,8 @@ export const ECRIT_LU = {
       '(l’entrée d’hôte `scripts/entree-d-hote.mjs` et le greffon `proseSource()`), Source/ (la prose adressée que le ' +
       'greffon matérialise) et tsconfig.json (`transformWithOxc` de Vite). `--pont-seul` ne charge aucun asset : ' +
       '`chargerAssets` (hotes/godot/asset/charger.mjs) n’est appelé que par `editeur`, `modeleDExport` et `deposerLesAssets` ' +
-      '(hotes/godot/construire.mjs), sous `--sonde`, `--rendus`, `--export`, `--bureau` et `--ouvrir` ; aucun écrivain ne joue : ' +
-      '`recupererModeles` (#2948) ne joue que sous ces cinq modes, `deposerLesModeles` (hotes/godot/listage.mjs) que ' +
+      '(hotes/godot/construire.mjs), sous `--sonde`, `--rendus`, `--coop`, `--export`, `--bureau` et `--ouvrir` ; aucun écrivain ne joue : ' +
+      '`recupererModeles` (#2948) ne joue que sous ces six modes, `deposerLesModeles` (hotes/godot/listage.mjs) que ' +
       'sous `--export` et `--bureau`, dans leur `--sortie` (#3778), `deposerLesPlanches` (hotes/godot/planches.mjs, #3935) que sous `--export`, ' +
       '`deposerLesAvis` (hotes/godot/avis.mjs, #4063) que sous `--export` et `--bureau`, dans leur `--sortie` ; ' +
       'le stockage du bundle exécuté est `stockageDuProcessus(null)` (hotes/godot/stockage.mjs, #3009), en mémoire seule',
@@ -510,6 +510,31 @@ export const ECRIT_LU = {
       'tsconfig.json et package.json. Écrit sous hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`) ; ' +
       '`deposerLesAvis` (hotes/godot/avis.mjs, #4063) n’écrit que sous `--export` et `--bureau`, dans leur `--sortie` ; ' +
       'le stockage du pont (hotes/godot/stockage.mjs, #3009) n’y est jamais ouvert, faute de pont vivant',
+  },
+  'godot:coop': {
+    ecrit: [],
+    ecritFerme: {
+      'hotes/godot/projet/modeles/':
+        'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs) : `recupererModeles` n’y écrit ' +
+        'un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par temporaire exclusif puis renommage ; ' +
+        '`godot:coop` suit `godot:sonde` dans le job `godot` de ci.yml comme dans la lane `types` du rejeu local ' +
+        '(`LANE_LOCALE_DE_JOB`), une SÉRIE : il ne lui reste rien à écrire',
+      'server/.wrangler/':
+        '`wrangler dev` (`npm run relay:dev`, lancé par `leRelayLocal`, hotes/godot/construire.mjs, #3009) y bâtit le ' +
+        'Worker sous `tmp/`, qu’il vide à son arrêt ; l’état du Durable Object va au dossier temporaire de ' +
+        '`--persist-to`, que le mode efface ; `.wrangler/` est gitignoré (server/.gitignore), et la seule autre gate ' +
+        'lectrice de server/, `server:typecheck`, ne compile que `server/src/` (server/tsconfig.json)',
+    },
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'Source/', 'tsconfig.json', 'package.json'],
+    prerequis: [{ chemin: 'server/node_modules', pose: 'npm --prefix server ci' }],
+    raison:
+      '`godot --headless --import` sur une COPIE du projet sous `os.tmpdir()`, que le mode efface, puis le relay local ' +
+      '(`npm run relay:dev`, server/, sur un port libre de la boucle locale, son état sous `os.tmpdir()`) et les deux ' +
+      'recettes de la coop (`RECETTES_DE_LA_COOP`, hotes/godot/construire.mjs, #3009) lancées ensemble, chacune avec ' +
+      '`--pont=<hotes/godot/vivant.mjs>`, `--stockage=` et ses données d’utilisateur dans la COPIE ; LIT ce que lit ' +
+      '`godot:sonde`, et server/ (le Worker, sa config et ses dépendances). Le relay est arrêté à la fin, son groupe de ' +
+      'processus entier ; `deposerLesAvis`, `deposerLesModeles` et `deposerLesPlanches` n’écrivent que sous `--export` ' +
+      'et `--bureau`',
   },
   'godot:recette': {
     ecrit: [],

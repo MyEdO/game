@@ -713,7 +713,9 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             sous Windows et en garde le dossier en artefact. Deux rendus dessinent les mêmes scènes : Forward+ hors d'une page,
                             le rendu de compatibilité dans la page ou en repli ; `--rendus` (`npm run godot:rendus`,
                             étape de la CI) joue en rendu réel, sous chacun des deux, les recettes déclarant
-                            `const RECETTE_RENDUE := true`.
+                            `const RECETTE_RENDUE := true`. `--coop` (`npm run godot:coop`, étape de la CI, #3009)
+                            lance le relay local (`npm run relay:dev`) et joue la coop par deux processus Godot sans
+                            écran, l'hôte et l'invité (`projet/recettes/coop-hote.gd`, `coop-invite.gd`).
   etalons/                  l'étalon de chaque planche (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des
                             étalons validés). Une planche (un état de partie figé par le pont, que le jeu montre à
                             `?planche=<nom>`) est un dérivé de l'export, jamais commitée : `construire.mjs --export`

@@ -289,6 +289,7 @@ describe('le pont rejoint un salon', () => {
       await recevoir(ws, instantanes[instantanes.length - 1]);
       suiteDe(appel('nouvelles'));
       expect(appel(...fin), fin[0]).toMatchObject({ ok: true });
+      await vi.advanceTimersByTimeAsync(0);
       expect(ws.closedWith, fin[0]).not.toBeNull();
       expect(ruleOverrides()[PLAFOND.id], fin[0]).toBe(8);
       expect(stockage.getItem(cleDEmplacement(AUTO_SLOT)), fin[0]).toBe(OCTETS_DU_JOUEUR);

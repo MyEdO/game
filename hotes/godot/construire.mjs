@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// LA CONSTRUCTION DE L'HÔTE GODOT (#2928) : six modes.
+// LA CONSTRUCTION DE L'HÔTE GODOT (#2928) : sept modes.
 // `--pont-seul` bâtit le bundle du pont par `vite build` en production, en bibliothèque, format iife, depuis l'entrée d'hôte unique
 // (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis `hotes/godot/pont/entree.ts`, avec le greffon
 // `proseSource()`) ; le bundle tient seul dans une page et expose `globalThis.wfrpPont` (`hotes/godot/pont/CONTRAT.md`).
@@ -26,7 +26,7 @@
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
 // travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
-// du profil Godot (`export_templates`). Avant d'ouvrir Godot, `--sonde`, `--rendus`, `--export` et `--bureau` déposent les GLB, les textures et le
+// du profil Godot (`export_templates`). Avant d'ouvrir Godot, `--sonde`, `--rendus`, `--coop`, `--export` et `--bureau` déposent les GLB, les textures et le
 // kit des arêtes du projet, tirés de la Release des modèles et vérifiés par l'empreinte de leur provenance commitée
 // (`recupererModeles`, #2948 ; `recupererEpingles`, #3476), et la copie reçoit le catalogue des dessins
 // (`deposerLesDessins`, #3935). `--ouvrir` dépose de même les GLB, les textures, le kit et le catalogue des dessins, ce
@@ -37,11 +37,14 @@
 // épinglé ; à côté, les modèles en scène et les avis de licence, Node et les paquets npm des deux bundles compris ;
 // puis l'exécutable joue une partie sur son noyau embarqué
 // (`jouerLExecutable`). `--rendus` joue en rendu réel, sous chacun des deux rendus du projet (`RENDUS`), les recettes
-// déclarant `const RECETTE_RENDUE := true` (`rendre`), sur le pont vivant comme la sonde ; la CI le joue (`npm run godot:rendus`). L'import de ce module
+// déclarant `const RECETTE_RENDUE := true` (`rendre`), sur le pont vivant comme la sonde ; la CI le joue (`npm run godot:rendus`).
+// `--coop` (#3009) lance le relay local (`npm run relay:dev`, `server/` installé) et joue la coop par deux processus Godot
+// sans écran, l'hôte et l'invité (`coop`) ; la CI le joue (`npm run godot:coop`). L'import de ce module
 // ne lance aucun mode ; il charge les assets par `listage.mjs` (#3963).
 import { fileURLToPath } from 'node:url'
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
+import { createServer } from 'node:net'
 import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { availableParallelism, homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
@@ -62,7 +65,7 @@ import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBu
 import { stockageDuProcessus } from './stockage.mjs'
 
 let assetsCharges = null
-/** Les assets que `--sonde`, `--rendus`, `--export`, `--bureau` et `--ouvrir` lisent (`chargerAssets`), chargés à la première demande, jamais à l'import. */
+/** Les assets que `--sonde`, `--rendus`, `--coop`, `--export`, `--bureau` et `--ouvrir` lisent (`chargerAssets`), chargés à la première demande, jamais à l'import. */
 const assets = () => (assetsCharges ??= chargerAssets([
   "export { figerLesDessins } from '/hotes/godot/asset/dessins.ts';",
   "export { figerVuesDeLEcran, figerLesPlanches } from '/hotes/godot/recettes/ecran.ts';",
@@ -79,18 +82,19 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const PROJET = join(RACINE, 'hotes', 'godot', 'projet')
 /** Le pont vivant que l'hôte natif lance (`--pont=<chemin>`, `vivant.mjs`). */
 const VIVANT = join(RACINE, 'hotes', 'godot', 'vivant.mjs')
-const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus | --ouvrir
+const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus | --ouvrir | --coop
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
   --sonde             les GLB tirés de la Release, le projet importé, chaque script contrôlé et les recettes autonomes exécutées par l'éditeur Godot épinglé
   --export            le bundle, l'export Web du projet, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
   --rendus            le projet importé et les recettes rendues jouées en rendu réel sous chacun des deux rendus, Forward+ et compatibilité, par l'éditeur Godot épinglé
   --bureau            l'exécutable de bureau de cette plateforme, son noyau embarqué, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, puis la partie vivante jouée par l'exécutable
   --ouvrir            les GLB tirés de la Release et le catalogue des dessins déposés, puis l'éditeur Godot épinglé ouvert sur le projet en place, qui y joue sur le noyau vivant
+  --coop              le projet importé, le relay local lancé (npm run relay:dev, server/ installé) et la coop jouée par deux processus Godot sans écran, l'hôte et l'invité (Linux seul)
   --sortie <dossier>  le dossier où les écrire (sans lui, --pont-seul n'écrit rien)
   GODOT=<binaire>     un éditeur Godot de la version épinglée, à la place du téléchargement (le modèle d'export n'en dépend pas)`
 
 /** Les modes : l'option qui choisit chacun. */
-const MODES = { '--pont-seul': 'pont', '--sonde': 'sonde', '--export': 'export', '--bureau': 'bureau', '--rendus': 'rendus', '--ouvrir': 'ouvrir' }
+const MODES = { '--pont-seul': 'pont', '--sonde': 'sonde', '--export': 'export', '--bureau': 'bureau', '--rendus': 'rendus', '--ouvrir': 'ouvrir', '--coop': 'coop' }
 
 /** Les options de la ligne de commande, ou l'erreur qui les refuse. */
 function lireOptions(argv) {
@@ -103,7 +107,7 @@ function lireOptions(argv) {
   }
   if (!options.mode) return { erreur: `un mode attendu : ${Object.keys(MODES).join(', ')}` }
   if ((options.mode === 'export' || options.mode === 'bureau') && !options.sortie) return { erreur: `--${options.mode} attend --sortie <dossier>` }
-  if (['sonde', 'ouvrir', 'rendus'].includes(options.mode) && options.sortie) return { erreur: `--${options.mode} : --sortie hors de propos` }
+  if (['sonde', 'ouvrir', 'rendus', 'coop'].includes(options.mode) && options.sortie) return { erreur: `--${options.mode} : --sortie hors de propos` }
   return { options }
 }
 
@@ -479,15 +483,20 @@ const lancementsDeFront = (coeurs) => (DONNEES_DE_L_UTILISATEUR ? Math.max(1, Ma
  *  dossier `donnees` neuf sous le projet `copie`, s'arrête à `ECHEANCE_MS`, et `juger` rend ses erreurs à sa sortie.
  *  Rend les erreurs de tous. */
 async function menerDeFront(copie, lancements, coeurs = 1) {
-  const erreurs = await enFileBornee(lancements.map(({ commande, args, juger }) => async (signal) => {
-    const donnees = mkdtempSync(join(copie, 'donnees-'))
-    const arret = AbortSignal.any([signal, AbortSignal.timeout(ECHEANCE_MS)])
-    return juger(await lancerSansTenirLeFil(
-      commande, args(donnees), DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: donnees } : {},
-      (tuer) => arret.addEventListener('abort', tuer, { once: true }),
-    ))
-  }), { deFront: lancementsDeFront(coeurs) })
+  const erreurs = await enFileBornee(lancements.map((lancement) => (signal) => lancerAvecSesDonnees(copie, lancement, signal)), { deFront: lancementsDeFront(coeurs) })
   return erreurs.flat()
+}
+
+/** Le lancement `{ commande, args(donnees), juger({ lignes, echec }) }` sans tenir le fil, un dossier `donnees` neuf
+ *  sous le projet `copie` pour ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`), `env` ajouté à son
+ *  environnement, tué à `signal` ou à `ECHEANCE_MS` : les erreurs que `juger` rend à sa sortie. */
+async function lancerAvecSesDonnees(copie, { commande, args, juger }, signal, env = {}) {
+  const donnees = mkdtempSync(join(copie, 'donnees-'))
+  const arret = AbortSignal.any([signal, AbortSignal.timeout(ECHEANCE_MS)])
+  return juger(await lancerSansTenirLeFil(
+    commande, args(donnees), { ...env, ...(DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: donnees } : {}) },
+    (tuer) => arret.addEventListener('abort', tuer, { once: true }),
+  ))
 }
 
 /** Les arguments du pont d'une recette lancée avec ses données `donnees` (`menerDeFront`) : `--pont=<VIVANT>`, que la
@@ -507,6 +516,99 @@ function jouerLesRecettes(binaire, copie, recettes) {
       return [...erreursDe(lignes), ...echec]
     },
   })))
+}
+
+/** Les recettes de la coop à deux processus (`coop`), l'hôte puis l'invité. */
+const RECETTES_DE_LA_COOP = ['res://recettes/coop-hote.gd', 'res://recettes/coop-invite.gd']
+
+/** L'attente la plus longue du relay local, de son lancement à sa première room. */
+const ATTENTE_DU_RELAY_MS = 120_000
+
+/** Un port de la boucle locale libre à l'instant. */
+async function unPortLibre() {
+  const serveur = createServer().listen(0, '127.0.0.1')
+  await once(serveur, 'listening')
+  const { port } = serveur.address()
+  serveur.close()
+  return port
+}
+
+/** Le relay local de la coop (`npm run relay:dev`, `server/`), sur un port libre de la boucle locale, son état dans un
+ *  dossier temporaire, sans télémétrie : son `url` une fois que `POST /rooms` y rend une room, ou les `erreurs` de son
+ *  lancement ; `arreter()` tue tout son groupe de processus (npm, wrangler, workerd), efface son état et rend les
+ *  erreurs de son arrêt, dont un processus qui lui survit. */
+async function leRelayLocal() {
+  const port = await unPortLibre()
+  const etat = mkdtempSync(join(tmpdir(), 'wfrp-relay-'))
+  const args = ['run', 'relay:dev', '--', '--', '--port', String(port), '--ip', '127.0.0.1', '--persist-to', etat]
+  const { fd, bilan, clore } = journaliser('npm', args)
+  const relay = spawn('npm', args, { cwd: RACINE, detached: true, stdio: ['ignore', fd, fd], env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } })
+  const sortie = once(relay, 'exit')
+  let fini = null
+  void sortie.then(([status, signal]) => { fini = { status, signal } })
+  const groupeVivant = () => {
+    try {
+      process.kill(-relay.pid, 0)
+      return true
+    } catch {
+      return false
+    }
+  }
+  const arreter = async () => {
+    if (groupeVivant()) process.kill(-relay.pid, 'SIGTERM')
+    await sortie
+    const limite = Date.now() + 5_000
+    while (groupeVivant() && Date.now() < limite) await new Promise((r) => setTimeout(r, 50))
+    const survivants = groupeVivant()
+    if (survivants) process.kill(-relay.pid, 'SIGKILL')
+    clore()
+    rmSync(etat, { recursive: true, force: true })
+    return survivants ? [`le relay local laisse des processus après son arrêt (groupe ${relay.pid})`] : []
+  }
+  const url = `http://127.0.0.1:${port}`
+  const debut = performance.now()
+  while (fini === null && performance.now() - debut < ATTENTE_DU_RELAY_MS) {
+    const room = await fetch(`${url}/rooms`, { method: 'POST' }).then((r) => r.ok, () => false)
+    if (room) {
+      console.log(`[godot] relay local sur ${url}, prêt en ${Math.round(performance.now() - debut)} ms`)
+      return { url, erreurs: [], arreter }
+    }
+    await new Promise((r) => setTimeout(r, 250))
+  }
+  const { lignes } = bilan({ status: fini?.status ?? null, signal: fini?.signal ?? null })
+  return { url, erreurs: [`le relay local (npm ${args.join(' ')}) ne rend aucune room en ${ATTENTE_DU_RELAY_MS} ms${fini ? `, sorti (${fini.signal ?? fini.status})` : ''} :\n${lignes.slice(-FIN_DE_SORTIE).join('\n')}`], arreter }
+}
+
+/** La coop à deux processus Godot (#3009) : le projet importé par l'éditeur `binaire` sur une copie, le relay local
+ *  lancé (`leRelayLocal`), puis les deux recettes de `RECETTES_DE_LA_COOP` lancées ensemble, sans écran, chacune avec
+ *  les arguments du pont (`argumentsDuPont`), ses données d'utilisateur à elle (`lancerAvecSesDonnees`), le relay en
+ *  `VITE_RELAY_URL` et, en `--echange=<dossier>`, le dossier qu'elles partagent pour s'y passer le code de la room.
+ *  Le relay est arrêté à la fin, quoi qu'il arrive. Refusée là où les lancements partagent `user://`
+ *  (`DONNEES_DE_L_UTILISATEUR`). Rend les erreurs des deux recettes et du relay. */
+function coop(binaire, { figerLesDessins }) {
+  if (!DONNEES_DE_L_UTILISATEUR) return [`--coop : ${process.platform} ne sépare pas les données d'utilisateur de deux lancements de Godot (Linux seul)`]
+  return surUneCopie(binaire, figerLesDessins, async (copie) => {
+    const relay = await leRelayLocal()
+    const erreurs = [...relay.erreurs]
+    try {
+      if (erreurs.length) return erreurs
+      const echange = mkdtempSync(join(copie, 'echange-'))
+      const debut = performance.now()
+      const jouees = await Promise.all(RECETTES_DE_LA_COOP.map((recette) => lancerAvecSesDonnees(copie, {
+        commande: binaire,
+        args: (donnees) => ['--headless', '--path', copie, '--script', recette, ...argumentsDuPont(donnees), `--echange=${echange}`],
+        juger: ({ lignes, echec }) => {
+          console.log(`[godot] recette de la coop : ${recette}\n${lignes.join('\n')}`)
+          return [...erreursDe(lignes), ...echec]
+        },
+      }, AbortSignal.timeout(ECHEANCE_MS), { VITE_RELAY_URL: relay.url })))
+      erreurs.push(...jouees.flat())
+      if (!erreurs.length) console.log(`[godot] coop à deux processus jouée en ${Math.round(performance.now() - debut)} ms`)
+      return erreurs
+    } finally {
+      erreurs.push(...await relay.arreter())
+    }
+  })
 }
 
 /** Le catalogue des dessins (`figerLesDessins`) déposé sous `art/dessins.json` du projet `projet`, que lit `projet/scripts/dessin.gd`. */
@@ -778,6 +880,7 @@ async function principal() {
     return verdict(await sonder(await editeur(), a))
   }
   if (options.mode === 'rendus') return verdict(await rendre(await editeur(), await deposerLesAssets()))
+  if (options.mode === 'coop') return verdict(await coop(await editeur(), await deposerLesAssets()))
   if (options.mode === 'ouvrir') {
     deposerLesDessins(PROJET, (await deposerLesAssets()).figerLesDessins)
     return ouvrir(await editeur())
