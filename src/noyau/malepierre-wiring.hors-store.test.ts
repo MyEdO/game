@@ -131,7 +131,7 @@ describe('Malepierre — câblage PROD (Incantation, `incanterLeSort`/`jetLancer
     expect(castNearCorruption(banc.getState)).toBe(true);
   });
 
-  it('LDB 46 l.173 « … entraîne une influence corruptrice » : câblée via le `corruptionExposure` DÉJÀ porté par l’entrée (réutilisé, pas un second chemin)', () => {
+  it('LDB 46 l.173 « … entraîne une influence corruptrice » : le Test d’Exposition Modérée (LDB 19 l.51) s’ouvre chez le lanceur', () => {
     setRule(RULE, true);
     const w = sorcier();
     w.items = [itemFromTrappingById('malepierre-brute', idsDeTest)!];
@@ -139,7 +139,8 @@ describe('Malepierre — câblage PROD (Incantation, `incanterLeSort`/`jetLancer
     banc.getState().incanterLeSort(w.id, spellId, w.id);
     banc.getState().jetLancer('incantation');
     banc.getState().jetValider('incantation');
-    expect(banc.getState().journal.some((l) => l.includes('Exposition moderee'))).toBe(true); // « être en contact » (LDB 19 l.51) — pas « à proximité » (l.40, mineure)
+    // « être en contact » (LDB 19 l.51) — pas « à proximité » (l.40, mineure) ; Test de Résistance ou de Calme (LDB 19 l.29).
+    expect(banc.getState().pendingCorruption).toMatchObject({ heroId: w.id, level: 'moderee', nature: 'physique', natureFixee: true, menace: 'corruption' });
   });
 
   it('dé CHOISI (Résilience `jetImposerLeResultat@incantation`) : le doublement porte sur le NOUVEAU DR, une seule consommation (pas le montant du jet d’origine, périmé)', () => {
