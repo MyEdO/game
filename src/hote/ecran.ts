@@ -370,14 +370,12 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
   ];
 }
 
-/** Les départs d'un trajet, un choix par cadence offerte (`id` : la route, suivie de la cadence), titré de sa
- *  longueur et de ce que la cadence change : chacun de ses modes avec ses jours de route, fermé avec sa raison. Le
- *  même élément part du lieu (`ecranDuLieu`) et de la carte (`trajetsDeLaCarte`). */
-const departDuTrajet = (tr: TrajetEnVue): Choix[] => tr.departs.map((d) => ({
-  type: 'choix', id: d.cadence ? `${tr.route}/${d.cadence}` : tr.route, ton: 'neutre', focus: false, refus: null,
-  libelle: d.cadence ? t('ecran.carte.depart', { distance: tr.distance, cadence: t(`ecran.cadence.${d.cadence}`) }) : tr.distance,
-  valeurs: d.modes.map((m) => boutonDeGeste(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)),
-}));
+/** Le départ d'un trajet, un choix (`id` : la route) titré de sa longueur : chacun de ses modes avec ses jours de
+ *  route, fermé avec sa raison. Le même élément part du lieu (`ecranDuLieu`) et de la carte (`trajetsDeLaCarte`). */
+const departDuTrajet = (tr: TrajetEnVue): Choix => ({
+  type: 'choix', id: tr.route, ton: 'neutre', focus: false, refus: null, libelle: tr.distance,
+  valeurs: tr.modes.map((m) => boutonDeGeste(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)),
+});
 
 /** Le plan de la carte en élément : chaque lieu à sa place, celui du groupe en `alerte`, chaque route qui part d'ici
  *  en `reussite` ; sous chaque lieu, `sous`. */
@@ -393,13 +391,13 @@ function trajetsDeLaCarte(etat: Jeu): Element[] {
   const c = carteEnVue(etat);
   if (!c) return [];
   return [
-    planDeLaCarte('carte/plan', c.plan, (l) => l.trajets.flatMap(departDuTrajet)),
+    planDeLaCarte('carte/plan', c.plan, (l) => l.trajets.map(departDuTrajet)),
     ...(c.reprendre ? [boutonDeGeste('carte/reprendre', t('ecran.carte.reprendre'), c.reprendre, null)] : []),
   ];
 }
 
-/** L'écran du lieu (`lieuEnVue`), dont le nom est le titre de la fenêtre : sa description (`lieu/description`),
- *  quand il en a une ; le plan de la carte vu d'ici (`lieu/plan`, `planDeLaCarte`, rien sous ses lieux) et le bouton
+/** L'écran du lieu (`lieuEnVue`), dont le nom est le titre de la fenêtre : la date impériale (`lieu/date`), puis sa
+ *  description (`lieu/description`), quand il en a une ; le plan de la carte vu d'ici (`lieu/plan`, `planDeLaCarte`, rien sous ses lieux) et le bouton
  *  qui ouvre la carte (`lieu/carte`) ; sous leur titre (`lieu/services`), chacun de ses services en entité, son fond
  *  (`fond`), son icône (`icone`), le boniment de son hôte (`accueil`) et ce qu'on y fait en boutons fermés avec leur raison, chacun des points d'intérêt de son plan et son
  *  entrée ; puis, sous leur titre (`lieu/trajets`), chaque trajet qui en part, sa destination et son départ
@@ -408,6 +406,7 @@ function ecranDuLieu(etat: Jeu): Element[] {
   const l = lieuEnVue(etat);
   if (!l) return [];
   return [
+    ligne('lieu/date', formatDateImperiale(etat.gameTime)),
     ...(l.prose ? [ligne('lieu/description', l.prose)] : []),
     planDeLaCarte('lieu/plan', l.plan, () => []),
     boutonDeGeste('lieu/carte', l.carte.libelle, l.carte.geste, l.carte.refus),
@@ -425,7 +424,7 @@ function ecranDuLieu(etat: Jeu): Element[] {
       type: 'entite', id: `poi/${id}`, ton: 'neutre', nom, elements: [boutonDeGeste(g.id, g.libelle, g.geste, g.refus)],
     })),
     ...(l.trajets.length ? [ligne('lieu/trajets', t('ecran.lieu.trajets'))] : []),
-    ...l.trajets.map((tr): Entite => ({ type: 'entite', id: `trajet/${tr.route}`, ton: 'neutre', nom: tr.vers, elements: departDuTrajet(tr) })),
+    ...l.trajets.map((tr): Entite => ({ type: 'entite', id: `trajet/${tr.route}`, ton: 'neutre', nom: tr.vers, elements: [departDuTrajet(tr)] })),
   ];
 }
 
@@ -712,7 +711,7 @@ function voyage(etat: Jeu): Element[] {
     ...(reposEnVue(etat) ? [] : scene(etat, paysageDuVoyage(v), temps)),
     ligne('voyage/titre', t('ecran.voyage.titre', { arrivee: v.vers })),
     carteDuVoyage(v),
-    puce('voyage/reste', t('ecran.voyage.reste', { arrivee: v.vers }), String(v.km - v.fait)),
+    puce('voyage/reste', t('ecran.voyage.reste'), String(v.km - v.fait)),
     ...(v.cadences.length ? [{
       type: 'choix', id: 'voyage/cadence', ton: 'neutre', libelle: t('ecran.voyage.cadence'), focus: false, refus: null,
       valeurs: v.cadences.map((c) => boutonDeGeste(c.cadence, t(`ecran.cadence.${c.cadence}`), c.geste, null, c.cadence === v.cadence)),

@@ -12,6 +12,7 @@ import type { SaveGame } from '../../../src/noyau/index';
 import type { Pont, Suite } from './pont';
 import { encounterTable } from '../../../src/engine/travelTables';
 import { noteEvent } from '../../../src/noyau/evenementDuJour';
+import { DEFAULT_VOYAGE_ORDERS } from '../../../src/noyau/voyageCadence';
 
 let ouvert: Pont | null = null;
 afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
@@ -29,7 +30,7 @@ function enRoute() {
     s = jouer(gestesDessines(s.vue).find((x): x is Bouton => x.type === 'bouton' && !x.refus)!.jeu);
   }
   s = jouer(s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
-  s = jouer(departDeLaCarte(s.vue, 'r-grandroute', 'jourParJour').valeurs[0].jeu);
+  s = jouer(departDeLaCarte(s.vue, 'r-grandroute').valeurs[0].jeu);
   return { suite: s, lignes, jouer, appel, stockage };
 }
 
@@ -37,16 +38,16 @@ const corps = (s: Suite) => Object.fromEntries(s.vue.zones['fenetre.corps'].map(
 const geste = (s: Suite, libelle: string) => gestesDessines(s.vue).find((x): x is Bouton => x.type === 'bouton' && x.libelle === libelle);
 
 describe('la journée de route par le pont', () => {
-  it('la cadence choisie au départ est celle du plan, pressée en route ; le choix servi en route la change', () => {
+  it('le départ part sous les ordres par défaut, pressés en route ; le choix servi en route change la cadence', () => {
     const r = enRoute();
     const cadence = (s: Suite) => corps(s)['voyage/cadence'] as Choix;
     const ordres = () => {
       expect(r.appel('sauvegarder', { sauvegarder: 1 }).ok, 'la partie se sauvegarde en route').toBe(true);
       return (JSON.parse(r.stockage.getItem(cleDEmplacement(1))!) as SaveGame).data.travelPlan?.orders;
     };
-    expect(ordres(), 'le départ jour par jour, joué tel que servi, pose sa cadence au plan').toEqual({ cadence: 'jourParJour' });
-    expect(cadence(r.suite).valeurs.map((b) => [b.libelle, b.presse]), 'chaque cadence, celle que le trajet joue pressée').toEqual([
-      ['Sous vos ordres', false], ['Jour par jour', true],
+    expect(ordres(), 'le départ, joué tel que servi, pose les ordres par défaut au plan').toEqual(DEFAULT_VOYAGE_ORDERS);
+    expect(cadence(r.suite).valeurs.map((b) => [b.libelle, b.presse]), 'chaque cadence, celle du défaut en premier, celle que le trajet joue pressée').toEqual([
+      ['Jour par jour', true], ['Sous vos ordres', false],
     ]);
     const s = r.jouer(cadence(r.suite).valeurs.find((b) => b.id === 'commande')!.jeu);
     expect(ordres(), 'le choix servi en route, joué tel quel, change la cadence du plan').toEqual({ cadence: 'commande' });
@@ -64,7 +65,7 @@ describe('la journée de route par le pont', () => {
     expect(c['scene/meteo'], 'le pictogramme de la météo du jour').toMatchObject({ type: 'icone', icone: 'meteo/sec' });
     expect((c['scene/moment'] as Ligne).texte, 'le moment du jour et la météo').toBe('Après-midi · temps sec');
     expect((c['voyage/titre'] as Ligne).texte, 'le titre de la carte : la route de l’arrivée').toBe('La route de Steinbruck');
-    expect(c['voyage/reste'], 'un seul chiffre : les km qui restent avant l’arrivée').toMatchObject({ type: 'puce', valeur: '6', libelle: 'km avant Steinbruck' });
+    expect(c['voyage/reste'], 'un seul chiffre : les km qui restent avant l’arrivée, et leur unité').toMatchObject({ type: 'puce', valeur: '6', libelle: 'km' });
     const frise = c['voyage/frise'] as Plan;
     expect(frise.points.map((p) => [p.id, p.nom, p.x, p.ton]), 'la frise : le départ nommé, le groupe à son km, l’arrivée nommée').toEqual([['depart', 'Weiler', 0, 'neutre'], ['ici', '', 0.8, 'reussite'], ['arrivee', 'Steinbruck', 1, 'neutre']]);
     expect(frise.traits.map((x) => x.ton), 'la route faite, puis celle qui reste').toEqual(['alerte', 'neutre']);

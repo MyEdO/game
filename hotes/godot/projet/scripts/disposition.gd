@@ -31,10 +31,11 @@ extends Node
 ## lieu et la carte du monde sont la couche « monde », plein écran, jamais une fenêtre posée par-dessus : chacun hérite
 ## du cadre `projet/cadres/monde.tscn`, posé sous les panneaux de la scène comme toute disposition, le titre en grand
 ## et les gestes en tête, la bourse du groupe dessous quand l'écran la montre (`bourse`), et n'y ajoute que son
-## contenu. L'écran du lieu (`projet/ecrans/ecranDuLieu.tscn`) ouvre la carte en tête (`lieu/carte`), dit sa
-## description sous son titre quand il en a une (`lieu/description`) et se partage en deux : à gauche le plan de la
+## contenu. L'écran du lieu (`projet/ecrans/ecranDuLieu.tscn`) ouvre la carte en tête (`lieu/carte`), dit sous son
+## titre la date impériale (`lieu/date`, en `rubrique`) puis sa description quand il en a une (`lieu/description`) et
+## se partage en deux : à gauche le plan de la
 ## carte vu d'ici, sur son parchemin (`lieu/plan`, ici en `alerte`) puis, sous leur titre (`lieu/trajets`), les
-## trajets qui en partent, un par ligne, chacun sa destination et son départ ; à droite, sous leur titre
+## trajets qui en partent, un par ligne, chacun sa destination, sa distance et ses moyens ; à droite, sous leur titre
 ## (`lieu/services`), ses services (`service/` : le fond de leur vignette, leur icône, le boniment de leur hôte, ce
 ## qu'on y fait) et les points d'intérêt de son plan qui mènent à une scène (`poi/`, chacun le choix `ecranDuLieu`
 ## `entrer`), en cartes ; la carte (`projet/ecrans/carteDuMonde.tscn`),
@@ -62,7 +63,8 @@ extends Node
 ## de la carte (`voyage/titre`, en `rubrique`) sur la carte du trajet (`voyage/carte`, en `carteDuVoyage` : chaque
 ## lieu, le départ et l'arrivée nommés, le groupe sur sa route) ; à droite le récit : le
 ## titre de ce qui tient la journée, le journal de la partie, ses dernières lignes au pied et le reste au défilement, les jets qu'aucun
-## héros ne jette (`jets/`), le choix de sa cadence (`voyage/cadence`), puis ses gestes ; au pied les km qui restent avant l'arrivée (`voyage/reste`, en `reste`)
+## héros ne jette (`jets/`), le choix de sa cadence (`voyage/cadence`), puis ses gestes ; au pied les km qui restent
+## avant l'arrivée, le chiffre et son unité (`voyage/reste`, en `reste`)
 ## sur la frise (`voyage/frise`, en `frise`, chaque point en `etapeDeFrise` : le départ, chaque nuit passée en route à
 ## son km sous son croissant, le groupe, l'arrivée).
 ## Le jet d'un héros (en `jetDeHeros` : son dé dans une pastille à son ton, puis son test et son issue) et les gestes

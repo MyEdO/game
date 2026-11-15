@@ -32,8 +32,8 @@ describe('la cadence d’un trajet en vue', () => {
     return { joue: v.cadence, gestes: v.cadences };
   }
 
-  const gestes = [fixer('commande'), fixer('jourParJour')];
-  it('sous ordres : la cadence jouée, et le geste qui fixe chacune, celle des ordres en premier', () => {
+  const gestes = [fixer('jourParJour'), fixer('commande')];
+  it('sous ordres : la cadence jouée, et le geste qui fixe chacune, celle du défaut en premier', () => {
     expect(cadence({ cadence: 'commande' })).toEqual({ joue: 'commande', gestes });
   });
 

@@ -40,6 +40,7 @@ import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engi
 import { lignesDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
 import { ligneAllureForcee } from '../engine/vehicle';
+import { DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -799,22 +800,23 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
     for (let i = 0; i < 40 && get().pendingCascade && get().pendingCascade!.purpose !== 'travelDay'; i++) avanceEtapeCascade(get);
   };
 
-  it('sous ordres (défaut du départ), quatre postes tenus : du départ à la halte sans arrêt, chaque Test au journal', () => {
+  it('sous ordres, quatre postes tenus : du départ à la halte sans arrêt, chaque Test au journal', () => {
     setRule('voyage-etapes', true);
     seedBattleRng(1);
     setup(map({ km: 30, perilDie: 0 }), quatrePostes());
-    get().partirEnVoyage('r1', 'pied');
-    expect(get().travelPlan!.orders, 'le plan de terre porte les ordres par défaut').toEqual({ cadence: 'commande' });
+    get().partirEnVoyage('r1', 'pied', { cadence: 'commande' });
+    expect(get().travelPlan!.orders, 'le plan de terre porte les ordres du départ').toEqual({ cadence: 'commande' });
     expect(get().pendingCascade, 'aucune fenêtre ne s’ouvre dans la journée').toBeNull();
     expect(get().pendingRest, 'la journée va à la halte').toBeTruthy();
     for (const label of ['Hilda', 'Gunther', 'Elsa', 'Bruno']) expect(traceDe(label).length, `le Test de poste de ${label} laisse sa ligne`).toBeGreaterThanOrEqual(1);
   });
 
-  it('jour par jour, la même journée s’arrête sur la bande des postes', () => {
+  it('jour par jour (défaut du départ), la même journée s’arrête sur la bande des postes', () => {
     setRule('voyage-etapes', true);
     seedBattleRng(1);
     setup(map({ km: 30, perilDie: 0 }), quatrePostes());
-    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
+    get().partirEnVoyage('r1', 'pied');
+    expect(get().travelPlan!.orders, 'le plan de terre porte les ordres par défaut').toEqual(DEFAULT_VOYAGE_ORDERS);
     passerLaMeteo();
     const pc = get().pendingCascade!;
     expect(pc.purpose).toBe('travelDay');
@@ -825,7 +827,7 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
   it('une péripétie éreintante joue son Test d’office et laisse sa trace (perilATerreSurvie)', () => {
     seedBattleRng(2);
     setup(map({ km: 12, perilDie: 8 }), [hero({ items: [ration('r1')], skills: [{ id: 'survie-en-exterieur', advances: 20 } as any, { id: 'perception', advances: 20 } as any] })]);
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'commande' });
     expect(get().pendingCascade, 'le Test de la péripétie n’ouvre aucune fenêtre').toBeNull();
     expect(get().lieu).toBe('pb');
     expect(get().journal).toContain('Hilda — Survie en extérieur : 29/70 → réussi (DR +5).');
@@ -835,7 +837,7 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
   it('une péripétie qui ouvre un combat arrête le jour par l’interruption de terre', () => {
     seedBattleRng(326);
     setup(routeAEmbuscade(), [hero({ skills: [{ id: 'perception', advances: 20 } as any] })]);
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'commande' });
     expect(get().pendingCascade).toBeNull();
     expect(get().travelPlan!.interrupted).toBe(true);
     expect(get().travelRecap!.then?.kind).toBe('ambush');
@@ -864,7 +866,7 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
     setup(map({ km: 60, perilDie: 0 }), [hero({ items: [ration('r1'), ration('r2'), ration('r3')], skills: [{ id: 'survie-en-exterieur', advances: 20 } as any] })]);
     setRule('voyage-etapes', true);
     banc.setState({ party: get().party.map((h) => ({ ...h, travelRole: { activityId: 'approvisionnement' } })) });
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'commande' });
     expect(get().pendingCascade, 'jour 1 : aucune fenêtre').toBeNull();
     expect(get().pendingRest).toBeTruthy();
     get().fixerLaCadence('jourParJour');
@@ -879,21 +881,21 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
     const h = hero({ id: 'h', skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
     setup({ ...map({ km: 20, perilDie: 0 }), routes: [{ ...map().routes[0], km: 20, modes: ['diligence', 'pied'], perilDie: 0 }] }, [h]);
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
-    get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });
+    get().partirEnVoyage('r1', 'diligence', { allure: 'galop', cadence: 'commande' });
     expect(get().pendingCascade, 'aucune fenêtre ne s’ouvre dans la journée').toBeNull();
     const kms = get().journal.filter((l) => l.includes('(allure forcée)')).length;
     expect(kms, 'prémisse : des km au pas de course').toBeGreaterThan(0);
     expect(traceDe('Hilda').length, 'chaque km joué laisse sa ligne').toBe(kms);
   });
 
-  /** Chaque moyen de terre, sous les ordres du départ puis jour par jour : en selle, transport payant, attelage conduit. */
+  /** Chaque moyen de terre, sous ordres puis sans cadence déclarée : en selle, transport payant, attelage conduit. */
   const monture = (uid: string, ownerId: string): Possession => ({ uid, ownerId, nature: 'bete', ref: { id: 'cheval-de-monte' }, location: { kind: 'avec-le-groupe' }, items: [] } as Possession);
   it.each([
     { moyen: 'en selle', mode: 'monture', opts: { allure: 'trot' }, montures: true },
     { moyen: 'transport payant', mode: 'diligence', opts: {}, montures: false },
     { moyen: 'attelage conduit au galop', mode: 'diligence', opts: { allure: 'galop' }, montures: false },
-  ] as const)('$moyen : sans cadence déclarée, aucune fenêtre ; jour par jour, la journée ouvre la sienne', ({ mode, opts, montures }) => {
-    for (const cadence of [undefined, 'jourParJour'] as const) {
+  ] as const)('$moyen : sous ordres, aucune fenêtre ; sans cadence déclarée, jour par jour, la journée ouvre la sienne', ({ mode, opts, montures }) => {
+    for (const cadence of ['commande', undefined] as const) {
       setRule('voyage-etapes', true);
       setRule('voyage-allures', true);
       seedBattleRng(1);
@@ -905,11 +907,11 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
       creditBourse(get, set, 'h1', { gold: 500, silver: 0, brass: 0 });
       get().partirEnVoyage('r1', mode, { ...opts, ...(cadence ? { cadence } : {}) });
       if (cadence) {
+        expect(get().pendingCascade, 'sous ordres : aucune fenêtre').toBeNull();
+        expect(get().lieu, 'la route va au bout sans arrêt').toBe('pb');
+      } else {
         expect(get().travelPlan?.mode, 'le trajet part par ce moyen').toBe(mode);
         expect(get().pendingCascade?.purpose, 'jour par jour : la journée ouvre sa fenêtre').toBe('travelDay');
-      } else {
-        expect(get().pendingCascade, 'sous les ordres du départ : aucune fenêtre').toBeNull();
-        expect(get().lieu, 'la route va au bout sans arrêt').toBe('pb');
       }
     }
   });
@@ -919,7 +921,7 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
     seedBattleRng(1);
     setup(map({ km: 30, perilDie: 0 }), quatrePostes());
     banc.setState({ net: { ...get().net, mode: 'hote' } });
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'commande' });
     expect(get().travelPlan!.orders).toEqual({ cadence: 'commande' });
     expect(get().pendingCascade?.purpose, 'la journée ouvre ses fenêtres').toBe('travelDay');
   });
