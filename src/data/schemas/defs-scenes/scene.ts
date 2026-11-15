@@ -55,7 +55,7 @@ import { parcoursDe, refusDuParcours, type ParcoursDeCarriere } from '../../../e
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
-import { estUnNavireAPonts, findTrappingById, siegeEngines } from '../../index';
+import { estUnNavireAPonts, findCreatureById, findTrappingById, siegeEngines, tailleDuProfil } from '../../index';
 import { chargeLArme } from '../../../engine/items';
 import { capDecorAdmis } from '../../props.types';
 import { estCardinal } from '../../../geometry/dir8';
@@ -200,14 +200,14 @@ export type InventaireDAuteur = z.input<typeof inventaireDAuteurSchema>;
 
 /** La faute d'un personnage porté à un parcours de carrière (`parcoursDe`), `undefined` s'il est admis ou n'en porte
  *  pas : un parcours part d'un profil du Bestiaire (`creature`), sans statbloc ni preset, et la carrière actuelle
- *  l'habille, sans tenue d'auteur (EDO 11 l.19) ; puis `refusDuParcours`. Des choix de carrière sans carrière
- *  sont refusés. */
+ *  l'habille, sans tenue d'auteur (EDO 11 l.19) ; puis `refusDuParcours`, à la Taille du profil (`tailleDuProfil`).
+ *  Des choix de carrière sans carrière sont refusés. */
 export function refusDuPnjDeCarriere(ent: Partial<ParcoursDeCarriere> & { statblock?: unknown; presetId?: string; creature?: { id: string }; appearance?: { tenue?: string } }): string | undefined {
   const parcours = parcoursDe(ent);
   if (!parcours) return ent.talentsDeCarriere || ent.competencesDeCarriere || ent.dotationsDeCarriere ? 'choix de carrière sans carrière' : undefined;
   if (ent.statblock || ent.presetId || !ent.creature) return 'un PNJ de carrière part d’un profil du Bestiaire (« creature »), sans statbloc ni preset';
   if (ent.appearance?.tenue) return 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur';
-  return refusDuParcours(parcours);
+  return refusDuParcours(parcours, tailleDuProfil(findCreatureById(ent.creature.id) ?? {}));
 }
 
 /** Un élément de `combat.optionals` d'une entité de scène (`LDB 76 l.45`) : un Trait posé, ou une note « swap » du
