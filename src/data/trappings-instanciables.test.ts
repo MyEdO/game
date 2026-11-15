@@ -5,9 +5,20 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
-import { trappings, trappingsInstanciables, armesChoisissables, trappingDesObjetsPuisDuCatalogue, type TrappingData } from './index';
+import {
+  trappings,
+  trappingsInstanciables,
+  armesChoisissables,
+  trappingDesObjetsPuisDuCatalogue,
+  careers,
+  findQualityById,
+  findTrappingById,
+  type TrappingData,
+} from './index';
 import { setDataset } from './overrides';
 import { itemFromTrappingById } from '../engine/items';
+import { isMagicWeapon } from '../engine/qualities/dispatch';
+import { dotationsDuHeros, dotationsDuPnj, emplacementsDeDotation, valeursDeLEmplacement } from '../engine/trappingChoices';
 import { craftCatalog, orderCatalog } from '../engine/activities';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import { idsDeLaSousListe } from './schemas/grammaire/ref';
@@ -106,5 +117,26 @@ describe('Effet `giveTrapping` — la feuille sous portée juge un id PRÉSENT',
 
   it('la forme de `grantWeapon` refuse un id absent (feuille sans portée)', () => {
     expect(forme('campagne-sceau-du-comte').success).toBe(false);
+  });
+});
+
+describe('arme au choix — aucune arme magique (ZI 13 l.862 ; VDM 12 l.3)', () => {
+  const qualitesMagiques = (id: string): string[] =>
+    (findTrappingById(id)?.qualities ?? []).filter((r) => findQualityById(r.id)?.capabilities?.magic).map((r) => r.id);
+  const jokers = careers
+    .flatMap((c) => emplacementsDeDotation([...dotationsDuHeros(c.id), ...dotationsDuPnj(c.id, 4)]))
+    .filter((e) => e.sorte === 'joker');
+
+  it('`armesChoisissables` n’offre aucune arme à qualité `capabilities.magic`', () => {
+    expect(armesChoisissables().filter((a) => qualitesMagiques(a.id).length > 0).map((a) => a.id)).toEqual([]);
+  });
+
+  it('aucun joker d’arme de carrière, de Groupe ou nu, n’offre d’arme magique (`valeursDeLEmplacement`)', () => {
+    expect(jokers.some((e) => e.ref.groupe !== undefined) && jokers.some((e) => e.ref.groupe === undefined)).toBe(true);
+    for (const e of jokers) expect(valeursDeLEmplacement(e).filter((v) => qualitesMagiques(String(v)).length > 0), e.adresse).toEqual([]);
+  });
+
+  it.each(['broyeur-d-os', 'silence', 'vision-de-vie', 'baton-enchante'])('%s, instanciée, est une arme magique', (id) => {
+    expect(isMagicWeapon(itemFromTrappingById(id, idsDeTest)!)).toBe(true);
   });
 });

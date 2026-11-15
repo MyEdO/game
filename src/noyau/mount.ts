@@ -14,7 +14,7 @@ import { bonusDeForce } from '../engine/characteristics';
 import { assertAttackWeapon } from '../engine/combat';
 import { ligneDeRegle } from '../engine/reglesChiffrees';
 import { reachTiles, meleeReachTiles } from '../engine/engagement';
-import { Scene, isWalkable } from './monde/scene';
+import { Scene, isWalkable, sceneMetresPerTile } from './monde/scene';
 import { occupiesTile, footprintN, distanceDeContact } from './monde/footprint';
 import { placeCombatant } from './monde/spawn';
 import { isSkittishMount } from '../engine/traits/dispatch';
@@ -103,7 +103,7 @@ export const attackGeomOf = (battle: BattleState, c: Combatant, weapon: Weapon |
  *  — mieux vaut un choix cohérent qu'aucun. `undefined` si aucune arme de mêlée n'atteint la cible. */
 export function meleeWeaponInRangeList(scene: Scene | null, combatants: Combatant[], attacker: Combatant, target: Combatant, weapons: Weapon[] = attacker.weapons): Weapon | undefined {
   const tGeom = combatGeomOfList(combatants, target);
-  const inRange = weapons.filter((w) => w.type === 'melee' && distanceDeContact(scene, attackGeomOfList(combatants, attacker, w), tGeom) <= reachTiles(w));
+  const inRange = weapons.filter((w) => w.type === 'melee' && distanceDeContact(scene, attackGeomOfList(combatants, attacker, w), tGeom) <= reachTiles(w, sceneMetresPerTile(scene)));
   return inRange.find((w) => !structureImmune(w, target)) ?? inRange[0];
 }
 export function meleeWeaponInRange(scene: Scene | null, battle: BattleState, attacker: Combatant, target: Combatant): Weapon | undefined {
@@ -155,7 +155,7 @@ export function pickAttackWeaponList(scene: Scene | null, combatants: Combatant[
     }
   }
   const personal = personalWeaponsOf(attacker);
-  if (!combatants) return assertAttackWeapon(personal, distanceDeContact(scene, attacker, target) <= meleeReachTiles(personal));
+  if (!combatants) return assertAttackWeapon(personal, distanceDeContact(scene, attacker, target) <= meleeReachTiles(personal, sceneMetresPerTile(scene)));
   return meleeWeaponInRangeList(scene, combatants, attacker, target, personal) ?? assertAttackWeapon(personal, false);
 }
 export function pickAttackWeapon(scene: Scene | null, battle: BattleState, attacker: Combatant, target: Combatant, weaponUid?: string): Weapon {

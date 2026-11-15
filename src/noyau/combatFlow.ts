@@ -192,6 +192,7 @@ import {
   rederiveCastSL,
   zdeDiameterMeters,
   zdeRadiusTiles,
+  rayonDeGabaritEnCases,
   isArcaneSpell,
   castInfoIsPrayer,
   focusSkillFor,
@@ -360,7 +361,7 @@ function critRollTwiceFor(c: Combatant | undefined | null): boolean {
   return !!c && (hasActiveFlag(c, 'critRollTwice') || hasCritRollTwiceTalent(c));
 }
 import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironmentBonus } from '../engine/domainAttributes';
-import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './monde/zones';
+import { decayZones, discTiles, wallTiles, clampZoneTiles, resolveZoneMeters, type BattleZone } from './monde/zones';
 import { entreeEnRencontre, sortieDeRencontre } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
 import {
@@ -510,7 +511,7 @@ import { weatherExposure, type ExposureSeverity } from '../engine/exposure';
 import type { TravelRecapDay } from './travelFlow';
 import { groupeAPoudre, maniementRetenu, weaponGroup } from '../engine/weaponGroup';
 import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, tileKey, tileFromKey, Pt, climbTraverseFor } from './monde/path';
-import { chebyshev } from '../engine/grid';
+import { casesDansLaPortee, chebyshev } from '../engine/grid';
 import { adversairesDe, chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './monde/ai';
 import { resolveRun, chargeReach, testDuCavalier, distanceDeCourse } from '../engine/movement';
 import type { RNG } from '../engine/dice';
@@ -806,7 +807,7 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   // MÊME arbitrage que `firedWeapon`) — le gate ne doit pas mentir sur une AUTRE arme que celle qui tirera.
   const w = b
     ? pickAttackWeaponList(get().scene, b.combatants, active, target, weaponUid)
-    : (weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : undefined) ?? assertAttackWeapon(active.weapons, distanceDeContact(get().scene, active, target) <= meleeReachTiles(active.weapons));
+    : (weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : undefined) ?? assertAttackWeapon(active.weapons, distanceDeContact(get().scene, active, target) <= meleeReachTiles(active.weapons, sceneMetresPerTile(get().scene)));
   const distanceTiles = b ? distanceDeCombat(get().scene, attackGeomOf(b, active, w), combatGeomOf(b, target)) : distanceDeCombat(get().scene, active, target);
   // Machine de guerre ADE II (Qualité `equipe`, ch.08 l.233) sous LA MOITIÉ de l'Équipe requise : INUTILISABLE
   // — mêlée (bélier, Force) ET distance, donc AVANT le early-return ranged-only ci-dessous.
@@ -1121,7 +1122,7 @@ export function attackEnv(
     }
     // Commandant d'équipe (AA 13 l.29-35) : un chef de pièce dirigé tire au score de Projectiles de son
     // commandant — re-validé ICI (vivant + à portée de voix) → un delta sur la base du chef (aperçu ET résolution).
-    const tcMod = teamCommandMod(attacker, weapon, battle.combatants);
+    const tcMod = teamCommandMod(scene, attacker, weapon, battle.combatants);
     if (tcMod) env.push(tcMod);
     // Couvert de PONT du défenseur (#248) : un servant à un poste couvert (Sabord/Plat-bord/Murs blindés,
     // MDG 12 l.364, MSRC f.66 l.111) reçoit sa classe par le MÊME chemin que le couvert de terrain — le plus
@@ -1211,7 +1212,7 @@ export function resolveAttack(
   // La série d'attaques subies déclare le contact de mêlée, sans case (MDG 15 l.163-164) ; hors d'elle, la grille de
   // la bataille le mesure (Allonge incluse, RAW-3).
   if (weapon.type === 'melee' && !auContactDeLaSerie(get(), attacker, target)
-    && distanceSur(garanti(battle, attacker.id, 'combat de la mêlée')) > reachTiles(weapon)) return null;
+    && distanceSur(garanti(battle, attacker.id, 'combat de la mêlée')) > reachTiles(weapon, mpt)) return null;
   // (Sonné → +1 Avantage à l'attaquant en mêlée, LDB 16 l.125 : DÉJÀ géré par le flux d'attaque existant.)
   const { env, blocked, inMelee, crowd, cm, flankRear } = attackEnv(get, attacker, target, weapon, { dansLeTas, tirImmobile });
   if (blocked) return null; // pas de Ligne de Vue (mur/décor/fumée) → pas de tir (LDB 13 l.114)
@@ -1311,7 +1312,7 @@ export function dualStrikeTargets(scene: Scene | null, battle: BattleState, atta
   return battle.combatants.filter((c) => {
     if (c.kind === attacker.kind || isOutOfAction(c)) return false;
     if (!attacker.pos || !c.pos) return true;
-    return distanceDeContact(scene, attacker, c) <= reachTiles(offWeapon);
+    return distanceDeContact(scene, attacker, c) <= reachTiles(offWeapon, sceneMetresPerTile(scene));
   });
 }
 
@@ -1379,13 +1380,13 @@ export function previewAttack(
   const base = combatValue(attacker, kind, weapon);
   const loc = location ?? 'corps';
   const soak = (dmg + 20) - woundsFromHit(weapon, target, loc, dmg + 20, 0, 1, attacker.size);
-  if (kind === 'melee' && dist > reachTiles(weapon)) return { weapon, kind, inRange: false, blocked: false, target: 0, base, mods: [], dmg, soak, difficulty: 'intermediaire' };
+  if (kind === 'melee' && dist > reachTiles(weapon, mpt)) return { weapon, kind, inRange: false, blocked: false, target: 0, base, mods: [], dmg, soak, difficulty: 'intermediaire' };
   const { env, blocked } = attackEnv(get, attacker, target, weapon, opts);
   if (blocked) return { weapon, kind, inRange: true, blocked: true, target: 0, base, mods: [], dmg, soak, difficulty: 'intermediaire' };
   const distanceTiles = kind === 'distance' ? dist : undefined;
   const mods = attackModifiers(attacker, target, weapon, { kind, location, distanceTiles, env, metresPerTile: mpt });
   const rangeM = porteeDeTir(attacker, weapon); // Portée résolue (jet `{bf}` → BF×N) + modificateur de la munition sélectionnée ; null = hors bande
-  const inRange = kind === 'distance' ? (rangeM != null && rangeBandModifier(dist, rangeM, mpt) != null) : dist <= reachTiles(weapon);
+  const inRange = kind === 'distance' ? (rangeM != null && rangeBandModifier(dist, rangeM, mpt) != null) : dist <= reachTiles(weapon, mpt);
   // Ligne montée par le MONTEUR CANONIQUE (#1153) : base de combat NUE, composantes fondues dans la
   // valeur (lignes volatiles de Caractéristique — issue #202 — et mods de Test char-qualifiés) en
   // chips, PALIER composé par les circonstances (LDB 14 l.91-96) et MÊME écrêtage que le jet
@@ -1908,7 +1909,7 @@ export function aiApproachPlan(
   if (M <= 0) return none;
   const adversaires = adversairesDe(input);
   const atContact = (a: EnemyAction): boolean =>
-    a.kind === 'deplacement' && distanceDeContact(input.scene, { ...enemy, pos: positionPosee(input.scene, a.to) }, adversaires.find((h) => h.id === a.thenTargetId) ?? adversaires[0]) <= meleeReachTiles(enemy.weapons);
+    a.kind === 'deplacement' && distanceDeContact(input.scene, { ...enemy, pos: positionPosee(input.scene, a.to) }, adversaires.find((h) => h.id === a.thenTargetId) ?? adversaires[0]) <= meleeReachTiles(enemy.weapons, sceneMetresPerTile(input.scene));
   if (atContact(action)) return none; // la Marche suffit déjà
   // Charge (portée de Course, sans Test — LDB 15 l.35-37).
   const courseBudget = chargeReach(M, runMultiplier(geom.traits));
@@ -3508,7 +3509,7 @@ export function inFiringBand(scene: Scene | null, shooter: Combatant, target: Co
     const rm = porteeDeTir(shooter, weapon);
     return rm != null && rangeBandModifier(distanceDeCombat(scene, shooter, target), rm, sceneMetresPerTile(scene)) != null;
   }
-  return distanceDeContact(scene, shooter, target) <= reachTiles(weapon);
+  return distanceDeContact(scene, shooter, target) <= reachTiles(weapon, sceneMetresPerTile(scene));
 }
 
 /** Alliés (même camp) encore actifs, hors `c`, et À PORTÉE de `weapon` (LDB 14 l.30 : « à distance »).
@@ -3937,7 +3938,7 @@ function verdictDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant
     return modesDeTir.length ? { refus: null, modesDeTir } : { refus: 'tir-non-opposable' };
   }
   if (weapon?.type !== 'melee') return { refus: 'sans-arme-de-coup' };
-  if (!auContactDeLaSerie(s, attacker, target) && distanceDeContact(s.scene, attacker, target) > reachTiles(weapon)) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
+  if (!auContactDeLaSerie(s, attacker, target) && distanceDeContact(s.scene, attacker, target) > reachTiles(weapon, sceneMetresPerTile(s.scene))) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
   if (cannotDefend(target)) return { refus: 'ne-peut-se-defendre' }; // LDB 16 l.135
   return { refus: null };
 }
@@ -4039,7 +4040,7 @@ export function surfacedDefensePending(s: Jeu, attacker: Combatant, target: Comb
   if (s.battle && victimeDuCoup(s.battle, target, pa).id !== target.id) return false;
   if (!defenseSurfaced(s, target) || cannotDefend(target) || isInanimate(target)) return false;
   if (weapon.type === 'distance') return rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene)).length > 0;
-  return weapon.type === 'melee' && distanceDeContact(s.scene, attacker, target) <= reachTiles(weapon);
+  return weapon.type === 'melee' && distanceDeContact(s.scene, attacker, target) <= reachTiles(weapon, sceneMetresPerTile(s.scene));
 }
 
 /**
@@ -5332,8 +5333,8 @@ export function finishPlayerAction(get: Get, set: SetFn, lines: string[], kind: 
 export function castTargetBlock(get: Get, caster: Combatant, spell: SpellData, target: Combatant): { reason: 'range' | 'los'; detail: PlayerText } | null {
   if (!get().battle || !caster.pos || !target.pos || caster.id === target.id) return null;
   const range = spell.breathAttack
-    ? Math.max(1, Math.ceil((bonus(effectiveChar(caster, 'endurance')) + 20) / 2))
-    : spellRangeTiles(spell.range, caster);
+    ? porteeEnCases(bonus(effectiveChar(caster, 'endurance')) + 20, sceneMetresPerTile(get().scene))
+    : spellRangeTiles(spell.range, caster, sceneMetresPerTile(get().scene));
   if (range != null && distanceDeCombat(get().scene, caster, target) > range)
     return { reason: 'range', detail: tr('cf.sortHorsDePortee', { spell: spell.label, range }) };
   if (castSightBlocked(get, caster.pos, target.pos))
@@ -5841,7 +5842,7 @@ export function zoneRadiusMeters(spell: NonNullable<ReturnType<typeof findSpell>
  *  PLANCHER, minimum 0 — un gabarit plus petit que la case ne couvre aucune case au-delà du centre
  *  posé, et c'est la règle de POSE, pas celle d'une portée (cf. `porteeEnCases`). */
 export const zoneRadiusTilesAt = (r0m: number, alloc: number, mpt: number): number =>
-  Math.max(0, Math.floor((r0m * zoneDiameterMultiplier('arcane', alloc)) / mpt));
+  rayonDeGabaritEnCases(r0m * zoneDiameterMultiplier('arcane', alloc), mpt);
 
 /** Ouvre la modale d'un sort de ZONE — flux « jet PUIS pose » (LDB 47 l.15/28) : pas de cible à
  *  désigner, le centre se choisit APRÈS le jet et la Surincantation (+Zone agrandit le gabarit).
@@ -5898,7 +5899,7 @@ export function openCastCascade(get: Get, set: SetFn, caster: Combatant): boolea
  *  une source neuve fait nommer par le compilateur chaque site à compléter. Souffle et
  *  Vomissement n'en sont pas : LDB 85, `applyAreaAttack`. */
 export type PlacingZone = { source: ZoneEnPose['source']; label: string; casterId: string; radius: number; rangeTiles: number | null };
-export function placingZoneOf(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim' | 'battle'>): PlacingZone | null {
+export function placingZoneOf(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim' | 'battle' | 'scene'>): PlacingZone | null {
   const zp = zoneEnPose(s);
   switch (zp?.source) {
     case 'incantation': {
@@ -5907,7 +5908,7 @@ export function placingZoneOf(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim' | '
       const spell = effectiveSpellOf(pc);
       return {
         source: 'incantation', label: spell?.label ?? pc.spellId, casterId: pc.casterId, radius: zp.zone.radius,
-        rangeTiles: spell && caster ? spellRangeTiles(spell.range, caster) : null,
+        rangeTiles: spell && caster ? spellRangeTiles(spell.range, caster, sceneMetresPerTile(s.scene)) : null,
       };
     }
     // Pilonnage INDIRECT (AA 10 l.169/171) : l'ancre est le servant (`casterId`).
@@ -5938,9 +5939,9 @@ export function zoneSousLeCurseur(get: Get, hover: Pt): { radius: number; valide
   const active = s.mode === 'battle' ? activeCombatant(battle) : undefined;
   if (battle.action !== 'incantation' || !battle.selectedSpellId || active?.kind !== 'heros' || s.pendingCast || !active.pos) return null;
   const spell = findSpellById(battle.selectedSpellId);
-  const radius = spell ? zdeRadiusTiles(spell.target, active) : null;
+  const radius = spell ? zdeRadiusTiles(spell.target, active, sceneMetresPerTile(s.scene)) : null;
   if (!spell || radius == null) return null;
-  return { radius, valide: placedZoneValidAt(get, { casterId: active.id, rangeTiles: spellRangeTiles(spell.range, active) }, hover) };
+  return { radius, valide: placedZoneValidAt(get, { casterId: active.id, rangeTiles: spellRangeTiles(spell.range, active, sceneMetresPerTile(s.scene)) }, hover) };
 }
 
 /** Dépose la zone en cours sur `pt` — dispatch par source (chaque consommateur garde ses gates). */
@@ -5967,7 +5968,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   if (!caster?.pos || !spell) return;
   const res = pc.result;
   if (!castAfterCrit(res, pc.critChoice)) return;
-  const range = spellRangeTiles(spell.range, caster);
+  const range = spellRangeTiles(spell.range, caster, sceneMetresPerTile(get().scene));
   if (range != null && chebyshev(caster.pos, pt) > range) {
     get().ecrireAuJournal(tr('cf.zoneHorsDePortee', { spell: spell.label, range }));
     return;
@@ -6085,13 +6086,13 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
     const focusState: CastableSpell['focusState'] = ready ? 'ready'
       : (!hasAllySummon && landProb < 0.5 && isArcaneSpell(data) && !!focusSkillFor(enemy, data)) ? 'focusable'
         : 'none';
-    const radius = hasAllySummon ? null : zdeRadiusTiles(data.target, enemy);
+    const radius = hasAllySummon ? null : zdeRadiusTiles(data.target, enemy, sceneMetresPerTile(scene));
     const shape: CastableSpell['shape'] = hasAllySummon ? 'self'
       : radius != null ? { area: { radius } }
         : (data.range?.kind === 'self' || data.target?.kind === 'self') ? 'self'
           : 'single';
     spells.push({
-      id: data.id, data, cn, range: spellRangeTiles(data.range, enemy), shape, landProb, focusState,
+      id: data.id, data, cn, range: spellRangeTiles(data.range, enemy, sceneMetresPerTile(scene)), shape, landProb, focusState,
       active: isSpellActive(data, enemy, battle),
     });
   }
@@ -6174,7 +6175,7 @@ export function aiOvercastPlan(
   const budget = castOvercastBudget(spell, res, critChoice);
   if (budget <= 0) return {};
   const axes = overcastAxesFor(spell, missile);
-  const range = spellRangeTiles(spell.range, caster) ?? Infinity;
+  const range = spellRangeTiles(spell.range, caster, sceneMetresPerTile(scene)) ?? Infinity;
   const extras = !axes.includes('targets') ? [] : combatants
     .filter((t) => t.kind !== caster.kind && t.id !== targetId && !isOutOfAction(t) && t.pos && distanceDeCombat(scene, caster, t) <= range && !spellSightBlocked(sight, caster, t))
     .sort((a, b) => distanceDeCombat(scene, caster, a) - distanceDeCombat(scene, caster, b))
@@ -6213,7 +6214,7 @@ export function overcastTargetCandidates(
   rangeSteps: number,
   sight?: SpellSight,
 ): Combatant[] {
-  const range = effectiveSpellRangeTiles(spell.range, caster, source, rangeSteps);
+  const range = effectiveSpellRangeTiles(spell.range, caster, source, rangeSteps, sceneMetresPerTile(scene));
   return pool.filter((m) => {
     if (m.id === targetId) return false;
     if (missile ? m.kind === caster.kind || isOutOfAction(m) : m.kind !== caster.kind || m.dead || m.outOfRencontre) return false;
@@ -6265,7 +6266,7 @@ export function counterspellCandidates(
     if (!knowsCastingSkill(c, { id: 'langue', spec: 'magick' })) return false;
     if (c.id === target.id) return true;
     if (!c.pos || !target.pos) return false;
-    if (distanceDeCombat(scene, c, target) > Math.max(1, Math.floor(effectiveChar(c, 'force-mentale') / sceneMetresPerTile(scene)))) return false;
+    if (distanceDeCombat(scene, c, target) > casesDansLaPortee(effectiveChar(c, 'force-mentale'), sceneMetresPerTile(scene))) return false;
     return !scene || losClear(scene, c.pos, target.pos, smokeOf(battle));
   });
 }
@@ -6784,8 +6785,8 @@ export function applyCast(
       ? {
         hitIds: [target.id, ...extraTargets.map((t) => t.id)], bounce: 0,
         maxBounces: Math.max(0, resolveFormula(chainOp.maxBounces, caster, battleRng())),
-        hopTiles: Math.max(1, Math.ceil(Math.max(0, resolveFormula(chainOp.hopMeters, caster, battleRng())) / 2)),
-        initialRange: spellRangeTiles(spell.range, caster), res,
+        hopTiles: porteeEnCases(Math.max(0, resolveFormula(chainOp.hopMeters, caster, battleRng())), sceneMetresPerTile(get().scene)),
+        initialRange: spellRangeTiles(spell.range, caster, sceneMetresPerTile(get().scene)), res,
       }
       : undefined;
     // Sort offensif : lanceur vers la cible, cible vers le lanceur.
@@ -6870,7 +6871,7 @@ export function applyCast(
       // l'obstacle ; la collision est journalisée (Dégâts = distance restante, MJ).
       for (const op of spellOps(spell.effects, 'caster')) {
         if (op.op !== 'push' || !battle || !caster.pos) continue;
-        const pushTiles = Math.max(1, Math.floor(resolveFormula(op.meters, caster, battleRng()) / 2));
+        const pushTiles = casesDansLaPortee(resolveFormula(op.meters, caster, battleRng()), sceneMetresPerTile(get().scene));
         for (const t of [target, ...extraTargets]) {
           if (t.id === caster.id || !t.pos || isOutOfAction(t)) continue;
           const r = pushAway(get().scene!, caster.pos, t.pos, pushTiles, { blocked: occupied(battle, t) });
@@ -6878,7 +6879,7 @@ export function applyCast(
             const fromPos = { ...t.pos };
             placeCombatant(t, get().scene, r.dest);
             bus.emit(EVT.ANIM_MOVE, { id: t.id, path: [{ ...r.dest }] });
-            logLines.push(tr('cf.pousse', { name: t.label, m: r.pushed * 2 }));
+            logLines.push(tr('cf.pousse', { name: t.label, m: r.pushed * sceneMetresPerTile(get().scene) }));
             applyZoneCrossings(get, set, t, [...tilesBetween(fromPos, r.dest), { ...r.dest }]); // une poussée TRAVERSE (Mur de feu, L11)
           }
           if (r.collided) logLines.push(tr('cf.percuteUnObstacle', { name: t.label }));
@@ -6917,7 +6918,7 @@ export function applyCast(
             * Math.max(0, resolveFormula(tpOp.perSL.metersFormula, caster, battleRng()));
         }
         if (battle && caster.pos) {
-          const tpTiles = Math.max(1, Math.floor(meters / 2));
+          const tpTiles = casesDansLaPortee(meters, sceneMetresPerTile(get().scene));
           teleportReach = flyReachable(get().scene!, caster.pos, tpTiles, moveEnv(battle, caster));
           logLines.push(tr('cf.teleportationAuChoix', { name: caster.label, m: meters }));
         } else {
@@ -7041,8 +7042,8 @@ function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, opDeZon
   // Cases BORNÉES à la carte au SITE D'ÉCRITURE (`clampZoneTiles`) : la géométrie de pose est non
   // bornée, une zone posée au coin déborderait en cases négatives stockées dans `battle.zones`.
   const rawTiles = clampZoneTiles(pz.shape === 'wall'
-    ? wallTiles(caster.pos, target.pos, metersToTiles(resolveZoneMeters(pz.lengthMeters ?? 2, pz.lengthPerSL, caster, sl, battleRng())))
-    : discTiles(target.pos, metersToTiles(discRadiusM)), get().scene?.dimensions);
+    ? wallTiles(caster.pos, target.pos, porteeEnCases(resolveZoneMeters(pz.lengthMeters ?? 2, pz.lengthPerSL, caster, sl, battleRng()), sceneMetresPerTile(get().scene)))
+    : discTiles(target.pos, porteeEnCases(discRadiusM, sceneMetresPerTile(get().scene))), get().scene?.dimensions);
   // z propagé sur chaque case (défaut 0, cf. zoneAreaTiles §782/#799) : une zone posée à l'étage `target.pos.z`
   // ne couvre pas les cases de même (x,y) à un autre étage (zoneCovers compare `t.z ?? 0` / `p.z ?? 0`).
   const tiles = target.pos.z ? rawTiles.map((t) => ({ ...t, z: target.pos!.z })) : rawTiles;
@@ -7113,7 +7114,7 @@ function domainBreathType(caster: Combatant): string | undefined {
 export function domainCastBonus(s: Jeu, caster: Combatant, spell: { domainId?: { id: string } }): number {
   const cb = findDomainById(spell.domainId?.id)?.castBonus;
   if (!cb || !caster.pos) return 0;
-  const radius = Math.max(1, Math.ceil(bonusDe(caster, cb.radiusStat) / 2));
+  const radius = porteeEnCases(bonusDe(caster, cb.radiusStat), sceneMetresPerTile(s.scene));
   let pions = 0;
   for (const c of s.battle?.combatants ?? []) {
     if (!c.pos || isOutOfAction(c)) continue;
@@ -8410,7 +8411,7 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
   const tgt = inBattleId(get().battle!, mv.thenTargetId);
   // La Course a consommé l'Action (LDB 15 l.41) → pas d'attaque en arrivant ; ni quand l'Action est due
   // à une Prière (LDB 40 l.74).
-  if (!tgt || mv.couru || !canTakeAction(enemy) || refusPriereImposee(enemy) || distanceDeContact(get().scene, enemy, tgt) > meleeReachTiles(enemy.weapons)) {
+  if (!tgt || mv.couru || !canTakeAction(enemy) || refusPriereImposee(enemy) || distanceDeContact(get().scene, enemy, tgt) > meleeReachTiles(enemy.weapons, sceneMetresPerTile(get().scene))) {
     armerLaSuite(get, set, enemy, { kind: 'avancer' }, approachMs(get, path));
     return;
   }
@@ -9156,7 +9157,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   if (enemy.riderId) {
     const skittish = isSkittishMount(enemy.traits); // Nerveux (LDB 14 l.182) → la monture passe son tour
     const foe = skittish || !canAct ? undefined
-      : battle.combatants.find((c) => c.kind !== enemy.kind && !isOutOfAction(c) && !!c.pos && distanceDeContact(get().scene, enemy, c) <= meleeReachTiles(enemy.weapons));
+      : battle.combatants.find((c) => c.kind !== enemy.kind && !isOutOfAction(c) && !!c.pos && distanceDeContact(get().scene, enemy, c) <= meleeReachTiles(enemy.weapons, sceneMetresPerTile(get().scene)));
     if (foe) { attackThenAdvance(foe); return; }
     return advanceTurn(get, set);
   }
@@ -9209,7 +9210,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const chosenAoe = input.spells.find((s) => s.id === action.spell);
       const aoeSp = resolveSpell(action.spell);
       const aoeRadius = (chosenAoe && typeof chosenAoe.shape === 'object' ? chosenAoe.shape.area.radius : undefined)
-        ?? (aoeSp ? zdeRadiusTiles(aoeSp.target, enemy) ?? 1 : 1);
+        ?? (aoeSp ? zdeRadiusTiles(aoeSp.target, enemy, sceneMetresPerTile(input.scene)) ?? 1 : 1);
       set({ actorAoe: { casterId: enemy.id, center, radius: aoeRadius } });
       bus.emit(EVT.SCENE_DIRTY);
       armerLaSuite(get, set, enemy, { kind: 'zone', spellId: action.spell, centre: center }, TEMPO.aimTelegraph);

@@ -325,7 +325,7 @@ export const TABLES = {
     },
     {
       // Perturbante (LDB 62 l.272-274) : mode « Repousser » armé → l'attaque réussie ne cause PAS de
-      // Dégâts, l'adversaire recule d'1 m par DR du Test opposé (1 case = 2 m, LDB 15 l.12).
+      // Dégâts, l'adversaire recule d'1 m par DR du Test opposé, en cases à l'échelle de la scène (LDB 15 l.12).
       id: 'pushback',
       order: 50,
       apply: ({ get, attacker, target, weapon, attaque, res }) => {
@@ -333,7 +333,7 @@ export const TABLES = {
           attacker.pushbackMode = false; // consommé par cette attaque (réussie ou non)
           if (res.hit) {
             const meters = Math.max(0, res.netSL);
-            const wanted = Math.floor(meters / 2);
+            const wanted = Math.floor(meters / sceneMetresPerTile(get().scene));
             const moved = pushBackTiles(get, attacker, target, wanted);
             res = {
               ...res, woundsLost: 0, damage: 0, touche: undefined, // #1595 c.6221792068 Q2 : le Coup Critique demeure
