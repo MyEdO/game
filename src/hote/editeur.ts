@@ -74,7 +74,9 @@ import { tableTotale } from '../lib/tableTotale';
  * 'identifier', id }` (`renameEffectZone`, `renameScene`), refusé comme un nom vide ou déjà pris ; celui qui change
  * l'identifiant d'une action authorée du décor sélectionné, `{ type: 'identifier', args: [action, id] }`, en `{ geste:
  * 'identifier', id, element: action }` (`renameActionAuthoree`), ou d'un nœud du dialogue sélectionné, `{ type:
- * 'identifier', args: [noeud, id] }`, en `{ geste: 'identifier', id, element: noeud }` (`noeudRenomme`), refusé de même ;
+ * 'identifier', args: [noeud, id] }`, en `{ geste: 'identifier', id, element: noeud }`, ou d'une réponse d'un de ses
+ * nœuds, adressée par lui, `{ type: 'identifier', args: [noeud, reponse, id] }`, en `{ geste: 'identifier', id, element:
+ * reponse, parent: noeud }` (`elementDuDialogueRenomme`), refusé de même, le refus du dialogue dit ;
  * celui qui nomme une entrée sélectionnée du narratif lui donne cet identifiant, propagé aux scènes, à la carte et au
  * narratif sur un seul cran (`renommeAuProjet`), et celui d'un écart change son entrée vers une entrée libre ; celui qui
  * change l'identifiant d'un stade de l'indice ou d'une valeur de l'état sélectionné, `{ type: 'identifier', args:
@@ -346,7 +348,10 @@ export interface ZonesDeLEditeur {
    * D'un dialogue : le formulaire qui le renomme, de son identifiant (`renameDialogue`) ; pour chacun de ses nœuds, la
    * ligne `dialogue/noeud/<id>`, « ▶ » devant le nœud de départ, son identifiant, l'extrait de sa réplique et les nœuds
    * où mènent ses réponses (« → n2, n3 »), puis le formulaire qui change son identifiant, `{ type: 'identifier', args:
-   * [noeud, id] }`, refusé vide ou déjà porté par un autre nœud (`noeudRenomme`) ; le formulaire tiré du schéma
+   * [noeud, id] }`, refusé vide ou déjà porté par un autre nœud, et, de chacune de ses réponses, le formulaire
+   * `identifier/choix/<noeud>/<reponse>` qui change son identifiant, `{ type: 'identifier', args: [noeud, reponse, id] }`,
+   * refusé vide ou déjà porté par une autre réponse du nœud, chaque refus dit (`elementDuDialogueRenomme`,
+   * `refusDuRenommage`) ; le formulaire tiré du schéma
    * (`formulaireDe('dialogue', …)`) de son nœud de départ, de ses nœuds, chacun sous la ligne qui porte son identifiant,
    * et des entrées qu'il couvre ; le supprimer, `{ geste: 'supprimer' }`, refusé avec sa raison tant qu'une référence le
    * désigne (`refusDeRetrait`, `removeDialogue`).
@@ -730,13 +735,15 @@ const formulaireDeLIdentifiant = (id: string): Formulaire =>
   formulaireAUnChamp('identifier', t('ecran.editeur.identifier'), 'id', t('ecran.editeur.identifiant'), id, false);
 
 /** Le formulaire qui change l'identifiant de chaque élément d'identifiant `ids` de la sous-collection `famille` du porteur
- *  sélectionné (`renommerElement`), l'élément désigné par son identifiant en vigueur, en saisie fixe, son champ prérempli
- *  de lui, libellé `libelle`. */
-const identifiantsDesElements = (famille: 'action' | 'noeud' | 'stade' | 'valeur' | 'repere', ids: readonly string[], libelle: (id: string) => string): Formulaire[] => ids.map((el) => {
-  const id = `identifier/${famille}/${el}`;
+ *  sélectionné (`renommerElement`), l'élément désigné par son identifiant en vigueur, précédé de son parent `parent`
+ *  quand sa clé n'est unique que dans lui (la réponse, dans son nœud), chacun en saisie fixe, son champ prérempli de
+ *  lui, libellé `libelle`. */
+const identifiantsDesElements = (famille: 'action' | 'noeud' | 'choix' | 'stade' | 'valeur' | 'repere', ids: readonly string[], libelle: (id: string) => string, parent?: string): Formulaire[] => ids.map((el) => {
+  const id = `identifier/${famille}/${parent === undefined ? '' : `${parent}/`}${el}`;
   return {
     type: 'formulaire', id, libelle: libelle(el), verbe: 'identifier', focus: false, refus: null,
     champs: [
+      ...(parent === undefined ? [] : [{ type: 'fixe' as const, id: `${id}/parent`, nom: 'parent', optionnel: false, valeur: parent }]),
       { type: 'fixe', id: `${id}/${famille}`, nom: famille, optionnel: false, valeur: el },
       { type: 'saisieTexte', id: `${id}/id`, ton: 'neutre', nom: 'id', optionnel: false, libelle: t('ecran.editeur.identifiant'), valeur: el },
     ],
@@ -1750,7 +1757,7 @@ const LONGUEUR_DE_L_EXTRAIT = 60;
 
 /** Les éléments propres du dialogue `dlg` : pour chacun de ses nœuds, sa ligne, le marqueur du départ, son
  *  identifiant, l'extrait de sa réplique et les nœuds où mènent ses réponses, puis le formulaire qui change son
- *  identifiant (`identifiantsDesElements`). #3606 */
+ *  identifiant et celui de chacune de ses réponses, adressée par lui (`identifiantsDesElements`). #3606 #4234 */
 function noeudsDuDialogue(_s: SessionDEdition, dlg: DonneeDuPorteur['dialogue']): (Choix | Ligne | Bouton | Formulaire)[] {
   return dlg.nodes.flatMap((n) => {
     const vers = n.choices.flatMap((c) => (c.next ? [c.next.id] : []));
@@ -1762,6 +1769,7 @@ function noeudsDuDialogue(_s: SessionDEdition, dlg: DonneeDuPorteur['dialogue'])
     return [
       ligne(`dialogue/noeud/${n.id}`, texte),
       ...identifiantsDesElements('noeud', [n.id], (id) => t('ecran.editeur.noeud.identifier', { id })),
+      ...identifiantsDesElements('choix', n.choices.map((c) => c.id), (id) => t('ecran.editeur.choix.identifier', { id }), n.id),
     ];
   });
 }
@@ -2356,7 +2364,8 @@ const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.i
  *  sélection ou la scène (`formulaireDuNom`), `{ geste: 'nommer', nom }`, le nom saisi, absent s'il est laissé vide ;
  *  celui qui change l'identifiant de la scène, de la carte du monde ou de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }`, ou
  *  d'un élément d'un porteur, l'action d'un décor ou le nœud d'un dialogue (`identifiantsDesElements`), `{ geste: 'identifier',
- *  id, element }`, l'élément, quand un formulaire des zones désigne cet élément ; celui
+ *  id, element }`, ou la réponse d'un nœud, `{ geste: 'identifier', id, element, parent }`, quand les saisies fixes d'un
+ *  formulaire des zones sont exactement les arguments qui précèdent l'identifiant ; celui
  *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui ajoute un drapeau de départ à la
  *  scène, vrai ; celui qui pose une troupe du personnage sélectionné, `{ geste: 'troupe', nombre }`, un entier entre
  *  `BORNES_DE_LA_TROUPE` ; celui qui écrit une valeur d'un formulaire tiré du schéma (`elementDeValeur`), `args` son porteur,
@@ -2375,11 +2384,13 @@ export function gesteDuFormulaire(z: Pick<ZonesDeLEditeur, 'editeur.inspecteur'>
     return offert && valeur.length <= 1 ? { geste: 'valeur', porteur: porteur as PorteurDeValeur, chemin: chemin as Segment[], ...(valeur.length ? { valeur: valeur[0] } : {}) } : undefined;
   }
   if (jeu.type === 'identifier') {
-    const [premier, second, ...reste] = jeu.args as unknown[];
-    const [element, id] = jeu.args.length === 2 ? [premier, second] : [undefined, premier];
-    const offert = formulaires.some(({ champs: [designe] }) => (designe.type === 'fixe' ? designe.valeur === element : element === undefined));
-    if (!offert || reste.length || typeof id !== 'string') return undefined;
-    return typeof element === 'string' ? { geste: 'identifier', id, element } : { geste: 'identifier', id };
+    const designe = (jeu.args as unknown[]).slice(0, -1);
+    const id: unknown = jeu.args[jeu.args.length - 1];
+    const pose = jsonCanonique(designe);
+    const offert = formulaires.some((f) => jsonCanonique(f.champs.flatMap((c) => (c.type === 'fixe' ? [c.valeur] : []))) === pose);
+    if (!offert || typeof id !== 'string') return undefined;
+    const [element, parent] = [...designe].reverse() as (string | undefined)[];
+    return { geste: 'identifier', id, ...(element === undefined ? {} : { element }), ...(parent === undefined ? {} : { parent }) };
   }
   if (jeu.type === 'troupe') {
     const [nombre, ...reste] = jeu.args as unknown[];

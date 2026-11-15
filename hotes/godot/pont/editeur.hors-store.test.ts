@@ -430,6 +430,21 @@ describe('l’éditeur de carte par le pont, la logique (#3606 M3b2)', () => {
     expect(ajoutee.vue.zones['editeur.inspecteur'].some((el) => el.id === 'identifier/noeud/salut')).toBe(false);
   });
 
+  it('chaque réponse d’un nœud porte le formulaire de son identifiant, adressée par son nœud ; le doublon dans le nœud se refuse dit, libre dans un autre (#4234)', () => {
+    const { presser, appel } = ajoute();
+    const reponse = (e: Edition, noeud: number) => presser(valeursDeLInspecteur(e, `valeur/nodes/${noeud}/choices/ajouter`)[0]);
+    const deuxNoeuds = presser(valeursDeLInspecteur(editionDe(appel('editer', { type: 'nommer', args: ['reponses'] })), 'valeur/nodes/ajouter')[0]);
+    const pleines = reponse(reponse(reponse(deuxNoeuds, 0), 0), 1);
+    expect((inspecte(pleines, 'identifier/choix/n1/choix-0') as Formulaire).champs.map((c) => [c.type, c.type === 'fixe' ? c.valeur : null])).toEqual([['fixe', 'n1'], ['fixe', 'choix-0'], ['saisieTexte', null]]);
+    expect(inspecte(pleines, 'identifier/choix/n2/choix-0')).toMatchObject({ type: 'formulaire', libelle: 'Identifier la réponse « choix-0 »' });
+    const renommee = editionDe(appel('editer', { type: 'identifier', args: ['n1', 'choix-0', 'accepter'] }));
+    expect(['identifier/choix/n1/accepter', 'identifier/choix/n1/choix-1', 'identifier/choix/n2/choix-0'].map((id) => inspecte(renommee, id)?.type)).toEqual(['formulaire', 'formulaire', 'formulaire']);
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['n1', 'choix-1', 'accepter'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « accepter » déjà porté par la réponse 1' });
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['n2', 'choix-1', 'x'] })).categorie, 'la réponse d’un autre nœud ne s’adresse pas par celui-ci').toBe('validation');
+    const ailleurs = editionDe(appel('editer', { type: 'identifier', args: ['n2', 'choix-0', 'accepter'] }));
+    expect(inspecte(ailleurs, 'identifier/choix/n2/accepter')?.type).toBe('formulaire');
+  });
+
   it('un dialogue qu’un personnage désigne ne se supprime pas, la raison dite ; désigné ailleurs, il se supprime', () => {
     const { appel, jouer, presser, ajoutee } = ajoute();
     const id = ((inspecte(ajoutee, 'nommer') as Formulaire).champs[0] as { valeur: string }).valeur;

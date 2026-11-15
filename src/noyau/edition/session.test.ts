@@ -960,6 +960,28 @@ describe('les dialogues de la scène éditée, par la table d’écriture de leu
     expect([suite.nodes.map((n) => n.id), suite.nodes.map((n) => n.choices[0].next?.id)]).toEqual([['n1', 'suite'], ['suite', 'suite']]);
     expect(sceneEditee(jouer(s, { geste: 'identifier', element: 'n1', id: 'tete' })).dialogues[0].start).toEqual({ id: 'tete' });
     expect(jouer(s, { geste: 'identifier', element: 'n1', id: 'n2' })).toBe(s);
+    expect([refusDuRenommage(s, { geste: 'identifier', element: 'n1', id: 'n2' }), refusDuRenommage(s, { geste: 'identifier', element: 'n1', id: ' ' })]).toEqual(['Identifiant « n2 » déjà porté par le nœud 2', 'Identifiant vide']);
+  });
+
+  it('identifier une réponse d’un nœud, adressée par son nœud, la renomme sur un cran ; vide ou déjà portée dans le nœud, le refus se dit ; libre dans un autre nœud (#4234)', () => {
+    const scene = { ...AUBERGE, dialogues: [dialogue('libre', [
+      { id: 'n1', choices: [{ id: 'choix-1', label: 'Oui', next: { id: 'n2' } }, { id: 'choix-2', label: 'Non' }] },
+      { id: 'n2', choices: [{ id: 'choix-1', label: 'Fin' }] },
+    ])] };
+    const s = jouer(ouverteSur(scene), { geste: 'selectionner', porteur: { sorte: 'dialogue', id: 'libre' } });
+    const accepter: GesteDEdition = { geste: 'identifier', parent: 'n1', element: 'choix-1', id: ' accepter ' };
+    const renomme = jouer(s, accepter);
+    expect(sceneEditee(renomme).dialogues[0].nodes.map((n) => n.choices.map((c) => c.id))).toEqual([['accepter', 'choix-2'], ['choix-1']]);
+    expect(sceneEditee(renomme).dialogues[0].nodes[0].choices[0]).toEqual({ id: 'accepter', label: 'Oui', next: { id: 'n2' } });
+    expect(renomme.historique.passe.length, 'un seul cran').toBe(s.historique.passe.length + 1);
+    expect(sceneEditee(jouer(renomme, { geste: 'annuler' }))).toEqual(sceneEditee(s));
+    const doublon: GesteDEdition = { geste: 'identifier', parent: 'n1', element: 'choix-2', id: 'accepter' };
+    expect([jouer(renomme, doublon), refusDuRenommage(renomme, doublon)]).toEqual([renomme, 'Identifiant « accepter » déjà porté par la réponse 1']);
+    const vide: GesteDEdition = { geste: 'identifier', parent: 'n1', element: 'choix-2', id: ' ' };
+    expect([jouer(renomme, vide), refusDuRenommage(renomme, vide)]).toEqual([renomme, 'Identifiant vide']);
+    const ailleurs: GesteDEdition = { geste: 'identifier', parent: 'n2', element: 'choix-1', id: 'accepter' };
+    expect(refusDuRenommage(renomme, ailleurs), 'l’identité d’une réponse est unique dans son nœud').toBeNull();
+    expect(sceneEditee(jouer(renomme, ailleurs)).dialogues[0].nodes.map((n) => n.choices.map((c) => c.id))).toEqual([['accepter', 'choix-2'], ['accepter']]);
   });
 
   it('le déclencheur se renomme et se retire par la table de sa sorte, comme avant elle', () => {

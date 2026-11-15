@@ -1741,7 +1741,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * 'decrire' | 'drapeau', args }` : le formulaire de l'inspecteur
      * qui nomme la sélection ou la scène, `args` le nom saisi ou rien, qui change l'identifiant de la zone d'effet
      * sélectionnée, `args` l'identifiant saisi, ou celui d'un élément du porteur sélectionné (l'action d'un décor, le
-     * nœud d'un dialogue), `args` l'élément puis l'identifiant saisi, qui décrit la scène, `args` la description ou rien, ou qui ajoute un
+     * nœud d'un dialogue), `args` l'élément puis l'identifiant saisi, ou celui de la réponse d'un nœud, `args` le nœud,
+     * la réponse puis l'identifiant saisi, qui décrit la scène, `args` la description ou rien, ou qui ajoute un
      * drapeau de départ, `args` son nom ; ou `{ type: 'valeur', args: [porteur, chemin, valeur?] }` : un formulaire
      * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
      * pour retirer le champ, ou, d'un retrait déclaré de son porteur, l'objet ou l'élément entier (section « Éditeur »)
@@ -1753,7 +1754,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * embuscade de route de la carte du monde), comme un formulaire refusé et un enregistrement que la porte refuse ;
      * nommer une rencontre que lance une embuscade de route la renomme aussi à cette embuscade ; ouvrir la carte du
      * monde du menu Fichier (`{ geste: 'document' }`) la crée vide au projet qui n'en a pas ; nommer une entrée du
-     * narratif, ou identifier sa sous-entrée, d'un identifiant vide ou déjà porté se refuse en `regle`, avec sa raison
+     * narratif, ou identifier sa sous-entrée, le nœud d'un dialogue ou la réponse d'un nœud, d'un identifiant vide ou
+     * déjà porté se refuse en `regle`, avec sa raison
      * (`refusDuRenommage`), et le renommage retenu se propage aux scènes et à la carte, sur un seul cran ; changer la forme
      * d'un état du narratif (`{ geste: 'forme', kind }`) qu'une référence désigne ou qui porte une identité se refuse en
      * `regle`, avec sa raison (`refusDeForme`) ; la carte ouverte, le

@@ -531,7 +531,8 @@ export interface SessionDEdition {
  *  reprend le nom de sa fiche ; le déclencheur, le dialogue et la rencontre y prennent leur identifiant, par la table de leur
  *  sorte, `renommer`) ;
  *  changer l'identifiant de la zone d'effet sélectionnée, de l'élément `element` de la sous-collection à clé du porteur
- *  sélectionné (l'action d'un décor, le nœud d'un dialogue, par la table, `renommerElement`), ou sans sélection du
+ *  sélectionné (l'action d'un décor, le nœud d'un dialogue, par la table, `renommerElement`), adressé par son parent
+ *  `parent` quand sa clé n'est unique que dans lui (la réponse d'un nœud), ou sans sélection du
  *  porteur singulier du document ouvert qui s'identifie (`gestesDuSingulier`, la scène) ; éditer une autre scène du projet, en ajouter une vide, dupliquer
  *  ou retirer l'éditée ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
  *  sur la case pointée, la dupliquer ; poser une troupe de `nombre` copies du personnage sélectionné (`poserUneTroupe`,
@@ -575,7 +576,7 @@ export type GesteDEdition =
   | { geste: 'scenes'; quoi: 'aller'; id: string }
   | { geste: 'scenes'; quoi: 'ajouter' | 'dupliquer' | 'retirer' }
   | { geste: 'nommer'; nom?: string }
-  | { geste: 'identifier'; id: string; element?: string }
+  | { geste: 'identifier'; id: string; element?: string; parent?: string }
   | { geste: 'entree'; z: number }
   | { geste: 'copier' }
   | { geste: 'coller' }
@@ -1077,7 +1078,7 @@ export function refusDuRenommage(s: SessionDEdition, g: Extract<GesteDEdition, {
   const refus = porteur && s.sel ? ECRITURES_DES_PORTEURS[porteur.sorte].refusDeRenommer : undefined;
   if (!porteur || !refus) return null;
   if (g.geste === 'nommer') return refus(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.nom ?? '', undefined, s.entreesDeFiche);
-  return g.element === undefined ? null : refus(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.id, g.element, s.entreesDeFiche);
+  return g.element === undefined ? null : refus(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.id, g.element, s.entreesDeFiche, g.parent);
 }
 
 /** La session après le geste `g`, sur la couche éditée, l'une de la vue (`vueDeLaScene`) : les ponts d'un navire en sont.
@@ -1243,7 +1244,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       if (g.element !== undefined) {
         const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
         const renommer = porteur && ECRITURES_DES_PORTEURS[porteur.sorte].renommerElement;
-        const renomme = porteur && renommer ? renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.element, g.id) : projetEdite(s);
+        const renomme = porteur && renommer ? renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.element, g.id, g.parent) : projetEdite(s);
         return renomme === projetEdite(s) ? s : ecrireLeProjet(s, renomme, s.sel);
       }
       if (s.sel === null) return gestesDuSingulier(s)?.identifier(g.id) ?? s;
