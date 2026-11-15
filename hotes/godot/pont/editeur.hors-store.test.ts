@@ -22,7 +22,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fabricationAtouts, findCreatureById, traits } from '../../../src/data';
+import { choixDeLaFeuilleDId, fabricationAtouts, findCreatureById, traits } from '../../../src/data';
 import { dotationsDuPnj, emplacementsDeDotation } from '../../../src/engine/trappingChoices';
 import { adresseDeCreation } from '../../../src/engine/adresseDeCreation';
 import { travelVehicles } from '../../../src/engine/travel';
@@ -2259,6 +2259,15 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const valeurs = (x: Edition) => (inspecte(x, 'valeur/hands') as Choix).valeurs.map((b) => [(b.jeu as { args: unknown[] }).args[2], b.presse]);
     expect([inspecte(objet, 'valeur/hands')?.type, valeurs(objet)]).toEqual(['choix', [[1, false], [2, false]]]);
     expect(valeurs(choisir(objet, 'valeur/hands', (v) => v === 2)), 'le nombre écrit, jamais la chaîne').toEqual([[1, false], [2, true]]);
+  });
+
+  it('la Carrière d’une Condition de clôture se choisit au catalogue des carrières (#4234)', () => {
+    const { presser, narratif } = surLeNarratif();
+    const ouverte = narratif.vue.zones['editeur.inspecteur'].some((el) => el.id.startsWith('valeur/cloture/when')) ? narratif : presser(boutonDe(narratif, 'valeur/cloture/ajouter'));
+    const variante = ouverte.vue.zones['editeur.inspecteur'].flatMap((el) => (el.type === 'choix' || el.type === 'liste' ? el.valeurs : el.type === 'bouton' ? [el] : []))
+      .find((b) => b.id.startsWith('valeur/cloture/when') && (b.jeu as { args?: { kind?: string }[] }).args?.[2]?.kind === 'career')!;
+    const carrieres = valeursDeLInspecteur(presser(variante), 'valeur/cloture/when/id').map((b) => (b.jeu as { args: unknown[] }).args[2]);
+    expect(carrieres).toEqual(choixDeLaFeuilleDId({ type: 'career' }).map((e) => e.id));
   });
 
   it('le choix d’une spécialisation au profil d’un PNJ se choisit par variante nommée ; la liste des spécialisations parmi lesquelles choisir s’écrit élément par élément (#3606 L6)', () => {

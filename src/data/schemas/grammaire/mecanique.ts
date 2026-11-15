@@ -1082,6 +1082,18 @@ const conditionDeTalentSchema = refOuSpec('talent', {
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
 }) as z.ZodType<Extract<Condition, { kind: 'talent' }>> & z.core.$ZodTypeDiscriminable;
 
+/** `{ kind: 'career' }` — un héros du groupe exerce la Carrière (`flowCore.ts`, `evalCondition`). */
+const conditionDeCarriereSchema = ref('career', {
+  kind: nommerNoeud(z.literal('career'), { nom: 'type' }),
+  who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
+}) as z.ZodType<Extract<Condition, { kind: 'career' }>> & z.core.$ZodTypeDiscriminable;
+
+/** `{ kind: 'species' }` — un héros du groupe est de l'Espèce (`flowCore.ts`, `evalCondition`). */
+const conditionDEspeceSchema = ref('species', {
+  kind: nommerNoeud(z.literal('species'), { nom: 'type' }),
+  who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
+}) as z.ZodType<Extract<Condition, { kind: 'species' }>> & z.core.$ZodTypeDiscriminable;
+
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
 const ALGEBRES_DE_CONDITION = new Map<string, z.ZodType<Condition>>();
 
@@ -1122,8 +1134,8 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
       variante('État de campagne', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('etat'), etat: z.string().min(1, 'Condition « etat » : nommez l’état de campagne lu.'), value: z.string().optional() }), { kind: { label: "type"  }, etat: { label: "état de campagne" , texte: { regime: "technique"} }, value: { label: "valeur" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.etat')),
       variante('Compétence du groupe', conditionDeCompetenceSchema),
       variante('Talent du groupe', conditionDeTalentSchema),
-      variante('Carrière du groupe', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('career'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.career')),
-      variante('Espèce du groupe', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('species'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.species')),
+      variante('Carrière du groupe', conditionDeCarriereSchema),
+      variante('Espèce du groupe', conditionDEspeceSchema),
       variante('Statut du groupe ≥', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: statutSchema, who: partySelectorSchema.optional() }), { kind: { label: "type"  }, atLeast: { label: "minimum" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.status')),
       variante('État du porteur (comparaison)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('compare'), subject: compareSubjectSchema, op: compareOpSchema, value: compareValueSchema }), { kind: { label: "type"  }, subject: { label: "sujet" }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.compare')),
       variante('Marge (DR)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('slThreshold'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.slThreshold')),

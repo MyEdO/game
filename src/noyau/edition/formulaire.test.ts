@@ -36,7 +36,7 @@ import {
 import { emptyWorldMap, type WorldMap } from '../worldMap';
 import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
-import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
+import { givePossessionSchema, playSfxSchema } from '../../data/schemas/defs-scenes/effets';
 import { entree as objetDeCampagneSchema } from '../../data/schemas/defs/trappings';
 import {
   bornesAuPoint,
@@ -785,6 +785,26 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     };
     expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
     expect(unionDuNoeud(new Map(champsDeclares(objetDeCampagneSchema)).get('price'))?.variantes.map((v) => v.libelle)).toEqual(['montant', 'non disponible']);
+  });
+
+  it('la carrière et l’espèce d’une Condition se choisissent à leur catalogue (#4234)', () => {
+    const attendues: Record<string, string> = {
+      'zone/crossTest/gate<kind=career>/id': 'choix',
+      'zone/crossTest/gate<kind=species>/id': 'choix',
+    };
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+  });
+
+  it('la carrière et l’espèce d’une Condition, le son d’un effet refusent au parse un id hors de leur catalogue (#4234)', () => {
+    const [son] = idsDe('son');
+    expect([
+      conditionSchema.safeParse({ kind: 'career', id: 'soldat' }).success,
+      conditionSchema.safeParse({ kind: 'career', id: 'inconnue' }).success,
+      conditionSchema.safeParse({ kind: 'species', id: 'halflings' }).success,
+      conditionSchema.safeParse({ kind: 'species', id: 'inconnue' }).success,
+      playSfxSchema.safeParse({ type: 'playSfx', id: son }).success,
+      playSfxSchema.safeParse({ type: 'playSfx', id: 'inconnu' }).success,
+    ]).toEqual([true, false, true, false, true, false]);
   });
 
   it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée et chaque op non typée', () => {

@@ -400,7 +400,7 @@ export const moveEntitySchema = nommerChamps(z.strictObject({
 }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, to: { label: "destination" }, remove: { label: "retirer" } });
 
 /** Son PONCTUEL (cloche de minuit, cri hors-champ…) — id du registre audio (#701). */
-export const playSfxSchema = nommerChamps(z.strictObject({ type: z.literal('playSfx'), id: z.string() }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } });
+export const playSfxSchema = ref('son', { type: nommerNoeud(z.literal('playSfx'), { nom: 'type' }) }) as z.ZodType<{ type: 'playSfx'; id: string }> & z.core.$ZodTypeDiscriminable;
 
 /** LDB 40 l.25-29, l.36, l.46 */
 export const giveSinSchema = nommerChamps(z.strictObject({
