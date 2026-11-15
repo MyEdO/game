@@ -84,6 +84,8 @@ var _vision_en_attente: Variant = null
 ## liée à la vision comme les nappes.
 var _sols: ImageTexture = null
 var _voiles := {}
+## La matière de la brume de la vision (`brumer`), liée à la vision et aux sols comme un voile, `null` sans elle.
+var _brume: ShaderMaterial = null
 ## Les groupes d'arêtes à teindre à la prochaine image dessinée (`_teindre_le_pose`), chacun en clé, et ceux que chaque
 ## pas du fondu reteint (`avancer_le_fondu`) : ceux dont une case change d'état d'une vision à l'autre
 ## (`_change_d_etat`), tous quand la vision se pose sans fondu (`_mesurer_le_fondu`).
@@ -234,9 +236,8 @@ func avancer_le_fondu(secondes: float) -> void:
 	if _part_du_fondu == 1.0:
 		return
 	_part_du_fondu = MiseEnPage.part_du_fondu(_part_du_fondu, secondes, DUREE_DU_FONDU_S)
-	for matieres: Dictionary in [_matieres_masquees, _matieres_des_nappes, _voiles]:
-		for matiere: ShaderMaterial in matieres.values():
-			matiere.set_shader_parameter("vision_fondu", _part_du_fondu)
+	for matiere in _matieres_de_la_vision():
+		matiere.set_shader_parameter("vision_fondu", _part_du_fondu)
 	_a_teindre.merge(_du_fondu)
 	if _part_du_fondu != 1.0:
 		return
@@ -248,11 +249,20 @@ func avancer_le_fondu(secondes: float) -> void:
 	voir(attendue)
 
 
-## La vision posée (`voir`) liée à chaque matière des morceaux, des nappes et des voiles des navires (`_lier_la_vision_a`).
+## La vision posée (`voir`) liée à chaque matière qui la lit (`_matieres_de_la_vision`, `_lier_la_vision_a`).
 func _lier_la_vision() -> void:
-	for matieres: Dictionary in [_matieres_masquees, _matieres_des_nappes, _voiles]:
-		for matiere: ShaderMaterial in matieres.values():
-			_lier_la_vision_a(matiere)
+	for matiere in _matieres_de_la_vision():
+		_lier_la_vision_a(matiere)
+
+
+## Les matières qui lisent la vision : celles des morceaux, des nappes, des voiles des navires et de la brume.
+func _matieres_de_la_vision() -> Array[ShaderMaterial]:
+	var matieres: Array[ShaderMaterial] = []
+	for parmi: Dictionary in [_matieres_masquees, _matieres_des_nappes, _voiles]:
+		matieres.append_array(parmi.values())
+	if _brume != null:
+		matieres.append(_brume)
+	return matieres
 
 
 ## Les groupes d'arêtes du fondu de la vision posée (`voir`, `_du_fondu`), à teindre à la prochaine image dessinée
@@ -300,6 +310,14 @@ func voile(navire: String) -> ShaderMaterial:
 	return _voiles[navire]
 
 
+## La matière `matiere` de la brume de la vision (`Lumiere.brume`, `art/brume-de-la-vision.gdshader`) liée, comme un
+## voile, à la vision posée (`voir`) et au sol de chaque case du volume posé (`_batir_les_sols`), son fondu compris.
+func brumer(matiere: ShaderMaterial) -> void:
+	_brume = matiere
+	_brume.set_shader_parameter("sols", _sols)
+	_lier_la_vision_a(_brume)
+
+
 ## Le voile du navire `navire` (`voile`) oublié.
 func oublier_le_voile(navire: String) -> void:
 	_voiles.erase(navire)
@@ -319,6 +337,8 @@ func _batir_les_sols(hauteurs: Array) -> void:
 	_sols = ImageTexture.create_from_image(image)
 	for matiere: ShaderMaterial in _voiles.values():
 		matiere.set_shader_parameter("sols", _sols)
+	if _brume != null:
+		_brume.set_shader_parameter("sols", _sols)
 
 
 ## Rien de posé : ni morceau, ni nappe, ni arête.
