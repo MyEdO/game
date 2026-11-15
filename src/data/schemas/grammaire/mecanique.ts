@@ -1454,14 +1454,18 @@ export const effectOnSchema = enumNomme({
  *  Engagés (`engages`), les adversaires que le porteur EMPOIGNE actuellement (`empoigne`, = ses
  *  `grapplingWith` — la « victime absorbée » de l'Absorption pour la digestion/redirection), ou —
  *  géométrie — TOUS les combattants à `radiusMeters` d'un centre (l'arc d'Azyr :
- *  `{ near: 'victime', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus.
+ *  `{ near: 'victime', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus, sauf
+ *  `centreCompris` qui inclut le CENTRE seul : avec `near:'soi'` le centre est le porteur, avec
+ *  `near:'victime'` le porteur reste exclu (aucun porteur réel ne s'y vise). `radiusInnerMeters`
+ *  fait une COURONNE : la distance doit DÉPASSER ce rayon intérieur. Les deux rayons passent par la
+ *  même conversion en cases (`porteeEnCases`), d'où des couronnes jointives sans recouvrement (#4202).
  *  `{ pick: 'engages', ... }` : SÉLECTIONNE jusqu'à `max` adversaires Engagés non encore empoignés, les
  *  plus PROCHES d'abord, de Taille ≤ la sienne si `sizeAtMost:'soi'` — la capacité restante tient compte
  *  des `grapplingWith` déjà tenus (« elle absorbe un adversaire », Absorption EDO 11 l.222). Réutilisable
  *  par tout effet « happe le plus proche petit ennemi engagé ». */
 export const effectTargetingSchema = z.union([
   variante('Cible désignée', effectOnSchema),
-  nommerChamps(z.strictObject({ near: z.enum(['victime', 'soi']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
+  nommerChamps(z.strictObject({ near: z.enum(['victime', 'soi']), radiusMeters: z.number(), radiusInnerMeters: z.number().optional(), centreCompris: z.literal(true).optional() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" }, radiusInnerMeters: { label: "au-delà de (mètres)" }, centreCompris: { label: "centre compris" } }),
   nommerChamps(z.strictObject({ pick: z.literal('engages'), sizeAtMost: z.literal('soi').optional(), max: z.number() }), { pick: { label: "sélection"  }, sizeAtMost: { label: "Taille maximale"  }, max: { label: "maximum" } }),
 ]);
 

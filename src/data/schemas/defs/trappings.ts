@@ -86,6 +86,8 @@ const doc = document(
     organicProjectile: z.boolean().optional(),
     /** ADE II 8 l.243 */
     onHitEffects: z.array(triggeredEffectSchema).optional(),
+    /** The Horned Rat Companion 03 l.23-31 ; #4202 */
+    effects: z.array(triggeredEffectSchema).optional(),
     /** ZI 13 l.199 */
     passifDArme: passifsDe().optional(),
     /** ADE II 8 l.251/253 */
@@ -169,6 +171,7 @@ const doc = document(
       hint: 'Approximation maison : le projectile est organique (arrêté par le Bouclier anti-flèches)',
     },
     onHitEffects: { label: 'Effets à la touche', hint: 'Effets déclenchés au moment où l’arme touche sa cible' },
+    effects: { label: 'Effets déclenchés', hint: 'Effets déclenchés tant que l’objet est porté ou tenu' },
     passifDArme: { label: 'Effets passifs de l’arme', hint: 'Effets continus de l’arme elle-même lors de ses attaques, distincts de ceux du porteur' },
     minRangeBand: {
       label: 'Portée minimale de tir',

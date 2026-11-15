@@ -14117,7 +14117,72 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "effects": [
+      {
+        "trigger": "onRoundStart",
+        "on": {
+          "near": "soi",
+          "radiusMeters": 2,
+          "centreCompris": true
+        },
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "corruptionExposure",
+                "level": "majeure",
+                "nature": "physique"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "trigger": "onRoundStart",
+        "on": {
+          "near": "soi",
+          "radiusMeters": 4,
+          "radiusInnerMeters": 2
+        },
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "corruptionExposure",
+                "level": "moderee",
+                "nature": "physique"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "trigger": "onRoundStart",
+        "on": {
+          "near": "soi",
+          "radiusMeters": 8,
+          "radiusInnerMeters": 4
+        },
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "corruptionExposure",
+                "level": "mineure",
+                "nature": "physique"
+              }
+            ]
+          }
+        }
+      }
+    ]
   },
   {
     "id": "boulet",
@@ -18183,34 +18248,9 @@
         "trigger": "onHit",
         "on": {
           "near": "soi",
-          "radiusMeters": 6
+          "radiusMeters": 6,
+          "centreCompris": true
         },
-        "flow": {
-          "kind": "si",
-          "condition": {
-            "kind": "slThreshold",
-            "op": "<=",
-            "value": 3
-          },
-          "alors": {
-            "kind": "effet",
-            "effet": {
-              "type": "ops",
-              "ops": [
-                {
-                  "op": "wounds",
-                  "amount": 1,
-                  "ignoreTB": true,
-                  "ignoreAP": true
-                }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "trigger": "onHit",
-        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -18238,49 +18278,9 @@
         "trigger": "onHit",
         "on": {
           "near": "soi",
-          "radiusMeters": 6
+          "radiusMeters": 6,
+          "centreCompris": true
         },
-        "flow": {
-          "kind": "si",
-          "condition": {
-            "kind": "slThreshold",
-            "op": "<=",
-            "value": 3
-          },
-          "alors": {
-            "kind": "test",
-            "test": {
-              "skill": {
-                "id": "resistance"
-              },
-              "difficulty": "complexe",
-              "label": "Déchireur de sociabilité"
-            },
-            "reussite": {
-              "kind": "sequence",
-              "etapes": []
-            },
-            "echec": {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": {
-                      "id": "assourdi"
-                    },
-                    "value": 1
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      {
-        "trigger": "onHit",
-        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {

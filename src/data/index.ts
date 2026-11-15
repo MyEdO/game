@@ -906,6 +906,9 @@ export interface TrappingData {
    *  affectée » (ADE II 8 l.243). Propagé Trapping → ItemInstance → Weapon (`onHitEffects`), dispatché
    *  par `fireTriggers('onHit')` sur la cible primaire ET les cibles de la zone d'Explosion. */
   onHitEffects?: TriggeredEffect[];
+  /** Effets DÉCLENCHÉS de l'objet PORTÉ ou TENU (`isHeld`), lus au catalogue par `effectSourcesOf`, jamais
+   *  copiés sur l'instance. #4202 */
+  effects?: TriggeredEffect[];
   /** Passifs de l'ARME elle-même (vocabulaire de `weaponPassiveOps`), ≠ `passive` du PORTEUR. Propagé
    *  Trapping → ItemInstance → Weapon (`passifDArme`). ZI 13 l.199 */
   passifDArme?: import('../engine/ops').OpPassive[];
