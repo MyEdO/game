@@ -9,7 +9,7 @@ MANIFESTE = {
     'couvre': ['hanches', 'cuisse_g', 'cuisse_d', 'genou_g', 'genou_d'],
 }
 MATERIAUX = {
-    'haut_de_chausses': ('vet1', ((0.62, 0.62, 0.62), 0.0, 0.87)),
-    'creves': ('vet2', ((0.62, 0.62, 0.62), 0.0, 0.87)),
+    'haut_de_chausses': ('vet1', 'drap-terne'),
+    'creves': ('vet2', 'toile-ecrue'),
 }
 BUDGET_TRIANGLES = 1596

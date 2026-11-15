@@ -29,7 +29,7 @@ import {
   type EmprisesDesCases,
   type FireArc,
 } from '../../../src/noyau/index.ts';
-import { ecartsAuGlb, ecartsAuxMatieres, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
+import { ecartsAuGlb, ecartsAuxMatieres, ecartsDesMatieresAuxUv, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import { estListeDeChaines, estRepere, estTriplet, rangDeCase, TOLERANCE_DES_POIDS, type EmplacementOffert, type Repere } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
@@ -337,7 +337,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
 
   if (brut.surfaces !== undefined) {
     const { surfaces, ecarts: deForme } = lireSurfaces(brut.surfaces, 'element');
-    for (const e of [...deForme, ...ecartsAuxMatieres(surfaces, matieresDeDecor()), ...ecartsAuGlb(surfaces, glb)]) refus(e.code, e.ou, e.detail);
+    for (const e of [...deForme, ...ecartsAuxMatieres(surfaces, matieresDeDecor()), ...ecartsAuGlb(surfaces, glb), ...(regle.base ? ecartsDesMatieresAuxUv(surfaces, glb) : [])]) refus(e.code, e.ou, e.detail);
   }
 
   if (brut.glb !== undefined) {

@@ -18,7 +18,7 @@ MANIFESTE = {
     'couche': 'dessous',
     'couvre': ['avant_bras_g', 'avant_bras_d'],
 }
-MATERIAUX = {'bandages': ('vet2', ((0.8, 0.78, 0.72), 0.0, 0.9))}
+MATERIAUX = {'bandages': ('vet2', 'toile-ecrue')}
 """Illustration : bandes écrues, la teinte de la robe de dessous ; `vet2`, en gris de construction."""
 
 BUDGET_TRIANGLES = 2500           # procédure du skill, section 7 : vêtement par pièce

@@ -8,7 +8,7 @@ MANIFESTE = {
     'couche': 'armure',
 }
 MATERIAUX = {
-    'cuir': ('cuir', ((0.4, 0.4, 0.4), 0.0, 0.87)),
-    'metal': ('metal', ((0.62, 0.62, 0.62), 0.6, 0.87)),
+    'cuir': ('cuir', 'cuir-tanne'),
+    'metal': ('metal', 'acier-battu'),
 }
 BUDGET_TRIANGLES = 432

@@ -34,7 +34,8 @@
   "surfaces": [
     {
       "nom": "metal",
-      "palette": "metal"
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     },
     {
       "nom": "fleuron",
@@ -42,7 +43,7 @@
     }
   ],
   "glb": {
-    "sha256": "a898fcf9b9afa4fd9172703f4e48ad54696cfc72a05d17885c55d6f29278ba6b",
-    "octets": 202964
+    "sha256": "d5b14a22129b2cb7f75d6a16d2d427e6656f8b7f91da96da23c97c91821052ff",
+    "octets": 339172
   }
 }

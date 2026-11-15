@@ -11,11 +11,12 @@
   "surfaces": [
     {
       "nom": "cuir",
-      "palette": "cuir"
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
     }
   ],
   "glb": {
-    "sha256": "902b57f48bbc9714db7faf656d6c6a884aca007872b0d73187f8bfe00c5d0769",
-    "octets": 60224
+    "sha256": "5bd2d39c9884251cb560ebfb9185c95cf396459809ab44b1881a607981c164b1",
+    "octets": 68848
   }
 }

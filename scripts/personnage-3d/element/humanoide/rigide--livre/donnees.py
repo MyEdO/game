@@ -24,11 +24,11 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'couverture': ('cuir', ((0.45, 0.45, 0.45), 0.0, 0.8)),
-    'plat': ('cuir', ((0.45, 0.45, 0.45), 0.0, 0.8)),
+    'couverture': ('cuir', 'cuir-tanne'),
+    'plat': ('cuir', 'cuir-tanne'),
     'pages': ('corne', ((0.75, 0.75, 0.75), 0.0, 0.9)),
-    'metal': ('metal', ((0.66, 0.66, 0.66), 0.6, 0.45)),
-    'cuir': ('cuir', ((0.5, 0.5, 0.5), 0.0, 0.9)),
+    'metal': ('metal', 'acier-battu'),
+    'cuir': ('cuir', 'cuir-tanne'),
 }
 """La couverture prend `cuir`, une reliure de cuir : `vet2` habille aussi les bandages et le rouleau de couchage, sable dans
 l'illustration, et le bleu-gris de la couverture n'a aucun emplacement libre dans le preset `pretre`. `SLOTS` n'a pas

@@ -3,7 +3,8 @@
  * prend la couleur ; une surface `blason: true` reçoit au montage l'emblème choisi (#3111) et porte l'UV `TEXCOORD_0` ;
  * `parSexe` nomme, par sexe du porteur, le matériau du GLB qui remplace le sien (#3188), sa variante
  * `KHR_materials_variants` du nom du sexe sur chaque primitive de la surface ; une surface `matiere` s'habille de la
- * texture de cette matière de décor du monde, `prop--<id>` (#2987). Un élément (`element.ts`) et une base
+ * texture de cette matière de décor du monde, `prop--<id>` (#2987), lue aux UV `TEXCOORD_0` sur un élément qui a une base
+ * hors d'un blason (#4313). Un élément (`element.ts`) et une base
  * (`manifesteDeBase.ts`) les déclarent ; seul un élément admet blason et matière, seule une base `parSexe`.
  */
 import { estObjet } from '../../../src/lib/objet.mjs';
@@ -91,4 +92,12 @@ export function ecartsAuGlb(surfaces: readonly Surface[], glb: Pick<ContenuGlb, 
       .map(([sexe, nom]): EcartDeSurface => ({ code: 'surface-absente', ou: `surfaces.${i}.parSexe.${sexe}`, detail: `${nom} n’est pas, sur chaque primitive du matériau ${s.nom}, sa variante \`KHR_materials_variants\` « ${sexe} »` }));
     return [...(s.blason && glb.materiauxSansUv.has(s.nom) ? [{ code: 'uv-absente' as const, ou: `surfaces.${i}.blason`, detail: `une primitive du matériau ${s.nom} n’a pas d’attribut \`TEXCOORD_0\` où poser l’emblème` }] : []), ...sansVariante];
   });
+}
+
+/** Les écarts des surfaces `surfaces` d'un élément qui a une base au GLB lu `glb` : une matière hors d'un blason dont une
+ *  primitive n'a pas d'UV où lire sa texture (#4313). */
+export function ecartsDesMatieresAuxUv(surfaces: readonly Surface[], glb: Pick<ContenuGlb, 'materiauxSansUv'>): EcartDeSurface[] {
+  return surfaces.flatMap((s, i): EcartDeSurface[] => s.matiere !== undefined && !s.blason && glb.materiauxSansUv.has(s.nom)
+    ? [{ code: 'uv-absente', ou: `surfaces.${i}.matiere`, detail: `une primitive du matériau ${s.nom} n’a pas d’attribut \`TEXCOORD_0\` où lire la texture de ${s.matiere}` }]
+    : []);
 }

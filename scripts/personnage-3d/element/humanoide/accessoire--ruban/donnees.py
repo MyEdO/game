@@ -7,5 +7,5 @@ MANIFESTE = {
     'liaison': {'mode': 'surface'},
     'couche': 'tenue',
 }
-MATERIAUX = {'ruban': ('vet1', ((0.15, 0.15, 0.15), 0.0, 0.87))}
+MATERIAUX = {'ruban': ('vet1', 'toile-ecrue')}
 BUDGET_TRIANGLES = 580

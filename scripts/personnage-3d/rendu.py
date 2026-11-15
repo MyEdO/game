@@ -7,13 +7,16 @@ rendu. Si le manifeste voisin de `--input` porte `gabarit.osDesSilhouettes`, cha
 de son déplacement aux mêmes poids (`deplacements_des_os`), comme dans les hôtes : au repos, rien ne change ; sous un
 clip, chaque os tourne autour de sa tête déplacée, et un rigide monté suit son os. Sous `corpulence`, la force de la
 normal map de chaque surface de peau de ce manifeste suit son `reliefDeCorpulence` (`facteur_de_relief`, #4002).
-`bornes` et `studio` cadrent et éclairent aussi la revue d'un véhicule (`vehicule/revue.py`).
+`bornes` et `studio` cadrent et éclairent aussi la revue d'un véhicule (`vehicule/revue.py`), que `habiller_le_modele`
+habille.
 
 Une tenue se rend montée sur sa base : `--input` est la base, chaque `--element` un GLB d'élément, chacun avec son manifeste
 voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import), comme l'évaluateur. Les zones
 que couvrent les éléments sont masquées sur la base, un rigide pend à l'os de même nom de la base, une pièce skinnée suit
 son armature. `--preset` colore chaque surface à l'emplacement de palette que lui donne son manifeste, de la couleur que
-le preset de personnage (`src/data/presets-de-personnage.json`) y pose au nuancier (`src/data/materials.json`) ; `--clip`
+le preset de personnage (`src/data/presets-de-personnage.json`) y pose au nuancier (`src/data/materials.json`) ; chaque
+surface d'un élément qui déclare une `matiere` s'habille comme le jeu l'habille, de sa texture du catalogue
+`CATALOGUE` (`habiller_le_modele`, aux UV du mesh, #4313), teinte de cette couleur ; `--clip`
 pose la base à l'image `--image` d'un de ses clips, sans quoi elle reste au repos. `--illustration` pose l'illustration
 directrice à gauche des vues de face, de trois-quarts et de dos dans `planche.png` : un rendu se montre à côté d'elle.
 
@@ -34,7 +37,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 from glb import lire_glb  # noqa: E402
 from noms_silhouettes import CORPULENCE  # noqa: E402
 
-DONNEES = Path(__file__).resolve().parents[2] / 'src' / 'data'
+DEPOT = Path(__file__).resolve().parents[2]
+DONNEES = DEPOT / 'src' / 'data'
+CATALOGUE = DEPOT / 'hotes' / 'godot' / 'projet' / 'textures'
+"""Le catalogue des textures de matière du jeu."""
+METRES_PAR_MOTIF = 2.0
+"""`MiseEnPage.METRES_PAR_MOTIF` du monde Godot."""
 ETENDUE_DU_STUDIO = 1.82
 """L'étendue, en mètres, pour laquelle les puissances des lumières du studio sont réglées : la hauteur du corps de la
 base humanoïde. Les lumières se placent à des distances proportionnelles à l'étendue du modèle ; leur puissance suit son
@@ -219,6 +227,77 @@ def colorer(objets, surfaces, palette):
                 principled.inputs['Base Color'].default_value = (*couleur, 1)
 
 
+def habiller(bpy, mat, surface, couche, emblem, par_uv, couleur):
+    """La surface du manifeste comme le jeu l'habille (`MontageDeComposition.peindre`) : la texture de sa `matiere` du
+    catalogue, sa texture neutre (`<matiere>.neutre.jpg`) si `couleur` est donnée et que le catalogue la porte, teinte de
+    `couleur` (linéaire) ; lue aux UV `couche` si `par_uv` et que la surface n'est pas `blason`, projetée sinon dans le
+    repère de l'objet (Box, fondu 0.2) ; un motif tous les `METRES_PAR_MOTIF` ; sans matière, la couleur de son
+    matériau ; l'emblème `emblem` en couche de détail (UV `couche`) si `blason` et qu'il est donné."""
+    nt = mat.node_tree
+    bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
+    base = bsdf.inputs["Base Color"]
+    sortie = None
+    if surface.get("matiere"):
+        for lien in list(nt.links):
+            if lien.to_socket == base:
+                nt.links.remove(lien)
+        echelle = nt.nodes.new("ShaderNodeMapping")
+        echelle.inputs["Scale"].default_value = (1 / METRES_PAR_MOTIF,) * 3
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        if par_uv and not surface.get("blason"):
+            coord = nt.nodes.new("ShaderNodeUVMap")
+            coord.uv_map = couche
+            nt.links.new(coord.outputs["UV"], echelle.inputs["Vector"])
+        else:
+            coord = nt.nodes.new("ShaderNodeTexCoord")
+            nt.links.new(coord.outputs["Object"], echelle.inputs["Vector"])
+            tex.projection, tex.projection_blend = "BOX", 0.2
+        neutre = CATALOGUE / f"{surface['matiere']}.neutre.jpg"
+        image = neutre if couleur is not None and neutre.exists() else CATALOGUE / f"{surface['matiere']}.jpg"
+        tex.image = bpy.data.images.load(str(image.resolve(strict=True)), check_existing=True)
+        nt.links.new(echelle.outputs["Vector"], tex.inputs["Vector"])
+        sortie = tex.outputs["Color"]
+        if couleur is not None:
+            teinte = nt.nodes.new("ShaderNodeMix")
+            teinte.data_type, teinte.blend_type = "RGBA", "MULTIPLY"
+            teinte.inputs["Factor"].default_value = 1.0
+            nt.links.new(sortie, next(s for s in teinte.inputs if s.name == "A" and s.type == "RGBA"))
+            next(s for s in teinte.inputs if s.name == "B" and s.type == "RGBA").default_value = (*couleur, 1)
+            sortie = next(s for s in teinte.outputs if s.type == "RGBA")
+    if surface.get("blason") and emblem is not None:
+        uv = nt.nodes.new("ShaderNodeUVMap")
+        uv.uv_map = couche
+        det = nt.nodes.new("ShaderNodeTexImage")
+        det.image, det.extension = emblem, "CLIP"
+        nt.links.new(uv.outputs["UV"], det.inputs["Vector"])
+        mix = nt.nodes.new("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        nt.links.new(det.outputs["Alpha"], mix.inputs["Factor"])
+        a = next(s for s in mix.inputs if s.name == "A" and s.type == "RGBA")
+        if sortie is not None:
+            nt.links.new(sortie, a)
+        else:
+            a.default_value = base.default_value
+        nt.links.new(det.outputs["Color"], next(s for s in mix.inputs if s.name == "B" and s.type == "RGBA"))
+        sortie = next(s for s in mix.outputs if s.type == "RGBA")
+    if sortie is not None:
+        nt.links.new(sortie, base)
+
+
+def habiller_le_modele(bpy, objets, manifeste, emblem, par_uv, palette):
+    """Chaque matériau des `objets` d'un modèle que nomme une surface de son `manifeste` habillé une fois (`habiller`),
+    teint de la couleur de `palette` à son emplacement s'il en a une."""
+    surfaces = {s["nom"]: s for s in manifeste.get("surfaces", [])}
+    vus = set()
+    for o in objets:
+        for mat in o.data.materials if o.type == "MESH" else []:
+            surface = surfaces.get(mat.name.split(".")[0]) if mat else None
+            if surface and mat.name not in vus:
+                vus.add(mat.name)
+                habiller(bpy, mat, surface, o.data.uv_layers[0].name if o.data.uv_layers else "", emblem, par_uv,
+                         palette.get(surface["palette"]))
+
+
 def planche(bpy, chemins, sortie):
     """Les images `chemins` côte à côte, chacune ramenée à la hauteur de la première vue rendue, dans `sortie`."""
     import numpy as np
@@ -369,10 +448,11 @@ def main():
             deplacer_les_os(bpy, rig, deplacements)
         elements = [(importer(bpy, Path(glb).resolve(strict=True)), manifeste_voisin(Path(glb))) for glb in args.element]
         monter(bpy, base, rig, elements)
-        if args.preset:
-            palette = palette_du_preset(args.preset)
-            for objets, manifeste in [(base, manifeste_voisin(source))] + elements:
-                colorer(objets, {s['nom']: s['palette'] for s in manifeste.get('surfaces', [])}, palette)
+        palette = palette_du_preset(args.preset) if args.preset else {}
+        for objets, manifeste in [(base, manifeste_voisin(source))] + elements:
+            colorer(objets, {s['nom']: s['palette'] for s in manifeste.get('surfaces', [])}, palette)
+        for objets, manifeste in elements:
+            habiller_le_modele(bpy, objets, manifeste, None, True, palette)
         if args.clip:
             action = bpy.data.actions.get(args.clip)
             if action is None:

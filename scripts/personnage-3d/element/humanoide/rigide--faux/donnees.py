@@ -24,8 +24,8 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'bois': ('bois', ((0.46, 0.46, 0.46), 0.0, 0.87)),
-    'metal': ('metal', ((0.66, 0.66, 0.66), 0.6, 0.4)),
+    'bois': ('bois', 'bois-chene'),
+    'metal': ('metal', 'acier-battu'),
 }
 
 BUDGET_TRIANGLES = 1200          # procédure du skill, section 7 : rigide tenu

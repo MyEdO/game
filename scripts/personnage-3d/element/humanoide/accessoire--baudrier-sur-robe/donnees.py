@@ -22,7 +22,7 @@ MANIFESTE = {
 (`manteau`)."""
 
 MATERIAUX = {
-    'sangle': ('cuir', ((0.4, 0.4, 0.4), 0.0, 0.87)),
+    'sangle': ('cuir', 'cuir-tanne'),
 }
 """La surface `sangle` du kit, à l'emplacement `cuir` du baudrier publié. HYPOTHÈSE : sans la boucle de métal du baudrier publié, que
 l'inventaire de l'illustration ne relève pas. Gris de construction."""

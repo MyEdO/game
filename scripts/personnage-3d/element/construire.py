@@ -10,7 +10,8 @@ emprunte le squelette.
 
 `donnees.py` porte `MANIFESTE` (les champs publiés propres à l'élément : `categorie`, `cle`, `liaison`, et pour une pièce
 skinnée `couche`, `couvre`, `chaines`), `MATERIAUX` (`{nom: (emplacement de palette, matière)}`, `habillage.py`),
-`BLASONS` s'il en a (les matériaux qui reçoivent l'emblème, exportés avec leurs UV, comme ceux d'un véhicule),
+`BLASONS` s'il en a (les matériaux qui reçoivent l'emblème, qui gardent leurs UV, comme ceux d'un véhicule ; tout autre
+matériau s'exporte aux UV en mètres de `maille.poser_les_uv_en_metres`, #4313),
 `BUDGET_TRIANGLES`, et chaque dimension nommée avec sa source. `modele.py` porte `construire`, selon la liaison :
 - `rigide` : `construire(D, materiaux)` rend les objets, bâtis dans le repère de la prise `PRISE` (une prise du manifeste
   de base) ; ils pendent à l'os de cette prise ;
@@ -42,6 +43,7 @@ sys.path[:0] = [str(ICI), str(ICI.parent), str(ICI.parent / "base")]
 import bpy  # noqa: E402
 from mathutils import Euler, Matrix, Quaternion, Vector  # noqa: E402
 import habillage  # noqa: E402
+import maille  # noqa: E402
 import tissu  # noqa: E402
 from glb import lire_glb  # noqa: E402
 from production import CACHE_DES_MODELES, MODELES, dossier_de_sortie, ecrire_le_dossier  # noqa: E402
@@ -134,11 +136,13 @@ def verifier_les_normales(objets):
         raise ValueError(f"coins d'un même sommet aux normales presque égales, fusion à l'export instable : {fautes}")
 
 
-def exporter(chemin, rig, objets, skinne, avec_uv):
-    """Exporte `rig` et `objets` seuls, sans clip, leurs normales vérifiées (`verifier_les_normales`), leurs UV si
-    `avec_uv` ; une pièce skinnée garde ses clés, et chaque objet ses propriétés en `extras` : `zone` d'une pièce skinnée,
-    `fourreau` d'un rigide (`element/lame.py`)."""
+def exporter(chemin, rig, objets, skinne, blasons):
+    """Exporte `rig` et `objets` seuls, sans clip, leurs normales vérifiées (`verifier_les_normales`), leurs UV en mètres
+    posées hors des matériaux de `blasons` (`maille.poser_les_uv_en_metres`, #4313) ; une pièce skinnée garde ses clés, et
+    chaque objet ses propriétés en `extras` : `zone` d'une pièce skinnée, `fourreau` d'un rigide (`element/lame.py`)."""
     verifier_les_normales(objets)
+    for objet in objets:
+        maille.poser_les_uv_en_metres(objet, blasons)
     bpy.ops.object.select_all(action="DESELECT")
     rig.select_set(True)
     for objet in objets:
@@ -146,8 +150,8 @@ def exporter(chemin, rig, objets, skinne, avec_uv):
     bpy.context.view_layer.objects.active = rig
     bpy.ops.export_scene.gltf(filepath=str(chemin), export_format="GLB", use_selection=True, export_animations=False,
                               export_skins=True, export_morph=skinne, export_morph_normal=False, export_extras=True,
-                              export_yup=True, export_apply=False, export_texcoords=avec_uv, export_normals=True,
-                              export_tangents=False, export_materials="EXPORT", export_cameras=False,
+                              export_yup=True, export_apply=False, export_texcoords=True, export_normals=True,
+                              export_tangents=True, export_materials="EXPORT", export_cameras=False,
                               export_lights=False)
     return chemin.read_bytes()
 
@@ -189,7 +193,7 @@ def construire_rigide(D, modele, manifeste_de_base, glb_de_base, temporaire):
     objets = modele.construire(D, habillage.materiaux(D["MATERIAUX"]))
     triangles = triangles_de(objets, D["BUDGET_TRIANGLES"])
     attache = pendre(objets, rig, prise)
-    octets = exporter(temporaire, rig, objets, skinne=False, avec_uv=bool(D.get("BLASONS")))
+    octets = exporter(temporaire, rig, objets, skinne=False, blasons=D.get("BLASONS", ()))
     verifier_la_pendaison(temporaire, prise["os"], attache)
     return octets, objets, {}, triangles
 
@@ -206,7 +210,7 @@ def construire_squelette(D, modele, manifeste_de_base, glb_de_base, cache, id_, 
         piece = modele.construire(D, materiaux, base)
         triangles = triangles_de([piece], D["BUDGET_TRIANGLES"])
         objets = base.decouper_par_zone(piece)
-    octets = exporter(temporaire, base.rig, objets, skinne=True, avec_uv=bool(D.get("BLASONS")))
+    octets = exporter(temporaire, base.rig, objets, skinne=True, blasons=D.get("BLASONS", ()))
     offerts = {"emplacements": base.emplacements} if base.emplacements else {}
     return octets, objets, {"silhouettes": list(manifeste_de_base["silhouettes"]), **offerts}, triangles
 
