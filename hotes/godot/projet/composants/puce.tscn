@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/bulle.gd" id="2_bulle"]
+[ext_resource type="Script" path="res://scripts/geste.gd" id="3_geste"]
+[ext_resource type="Theme" path="res://art/puce_qui_se_presse.tres" id="4_presse"]
 
 [node name="Puce" type="PanelContainer"]
 size_flags_vertical = 4
@@ -32,6 +34,32 @@ mouse_filter = 1
 script = ExtResource("2_bulle")
 
 [node name="detail" type="Node" parent="Bulle"]
+script = ExtResource("1_liaison")
+champ = "detail"
+propriete = &"tooltip_text"
+
+[node name="Presser" type="Button" parent="."]
+theme = ExtResource("4_presse")
+mouse_default_cursor_shape = 2
+
+[node name="jeu" type="Node" parent="Presser"]
+script = ExtResource("1_liaison")
+champ = "jeu"
+propriete = &"visible"
+
+[node name="Geste" type="Node" parent="Presser"]
+script = ExtResource("3_geste")
+
+[node name="Bulle" type="Control" parent="Presser"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("2_bulle")
+
+[node name="detail" type="Node" parent="Presser/Bulle"]
 script = ExtResource("1_liaison")
 champ = "detail"
 propriete = &"tooltip_text"

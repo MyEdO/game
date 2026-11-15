@@ -200,6 +200,9 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 	match e.type:
 		"bouton":
 			_attendre(vue, e.id, func() -> void: (noeud.get_node("Presser") as BaseButton).pressed.emit(), e.jeu)
+		"puce":
+			if e.jeu != null:
+				_attendre(vue, e.id, func() -> void: (noeud.get_node("Presser") as BaseButton).pressed.emit(), e.jeu)
 		"choix":
 			for v in e.valeurs:
 				var bouton := _composant_de(noeud, v)

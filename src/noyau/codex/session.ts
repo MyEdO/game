@@ -21,7 +21,7 @@ import { noeudDeLEntree, noeudsDesEntrees, schemaForFile } from '../../data/sche
 import { noeudsAuChemin } from '../../data/schemas/grammaire/descente';
 import type { Manifeste } from '../../data/source/chapitres';
 import { t as tr } from '../../i18n';
-import { CODEX_GROUPS, categoryByKey, clustersIn, codexLookupById, type CodexGroup, type CodexItem } from './registry';
+import { CODEX_GROUPS, categoryByKey, clustersIn, codexLookupById, type CibleDuCompendium, type CodexGroup, type CodexItem } from './registry';
 import { facetRows, filterItems, type FacetSelection } from './search';
 import { reverseGroups, type ReverseGroup } from './relations';
 import { champsOfferts, type FieldDesc } from './editFields';
@@ -108,8 +108,6 @@ export type GesteDuCompendium =
   | { geste: 'enregistrement'; reussi: boolean; refus?: string }
   | { geste: 'chapitre'; book: string; ch: string; texte: string | null };
 
-/** La cible d'une ouverture du Compendium : une entrée d'une catégorie, et son instance. */
-export interface CibleDuCompendium { categorie: string; id: string; instance?: string }
 
 /** Le Compendium ouvert sur la première famille, le `Source/` d'index `manifeste` servi, les paquets `paquets` lus ; sur
  *  l'entrée `cible`, si elle est donnée, comme un renvoi suivi (`suivre`). */

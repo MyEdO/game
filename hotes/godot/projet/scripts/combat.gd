@@ -42,6 +42,7 @@ extends Node
 ## au panneau des sauvegardes (`sauvegardes`), `{ reglages }` au panneau des réglages (`reglages`,
 ## `projet/scripts/reglages.gd`), `{ sauvegarder }` à `sauvegarder`, `{ charger }` à `charger`, la partie
 ## ouverte quittée d'abord et le combat rechargé, `{ salon }` au panneau du salon (`salon`, `projet/scripts/salon.gd`),
+## `{ compendium }` au panneau du Compendium (`compendium`, `projet/scripts/panneau_du_compendium.gd`),
 ## toute autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
 ## imbriquée y montre le champ que sa `source` nomme. L'icône (`icone`) et le fond (`fond`) ne portent que l'id de
 ## leur dessin : `Dessin` (`projet/scripts/dessin.gd`) le lit au catalogue que la construction dépose une fois dans le
@@ -76,6 +77,7 @@ extends Node
 @onready var _reglages: PanneauDesReglages = $Reglages
 @onready var _menu: MenuDeLaPartie = $Ecran/Interface/MenuDeLaPartie
 @onready var _salon: PanneauDuSalon = $Salon
+@onready var _compendium: PanneauDuCompendium = $Compendium
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
@@ -122,6 +124,7 @@ func _ready() -> void:
 	_salon.ferme.connect(_fermer_le_salon)
 	_salon.suite.connect(_suivre)
 	_salon.fini.connect(_finir_le_salon)
+	_compendium.change.connect(_publier_l_ecran)
 	var entree := {}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
@@ -148,7 +151,7 @@ func _ready() -> void:
 	_suivre(_pont.appeler("demarrer", entree.merged({essai = true} if _pont.essai else {scenario = scenario})))
 
 
-## Sorti de l'arbre (l'accueil revenu, `_revenir_a_l_accueil`), il n'y revient pas (#4195) : ses attentes en vol sont
+## Sorti de l'arbre (l'accueil revenu, `PontDuNoyau.revenir_a_l_accueil`), il n'y revient pas (#4195) : ses attentes en vol sont
 ## abandonnées (`_en_vol`).
 func _exit_tree() -> void:
 	_en_vol.clear()
@@ -183,7 +186,7 @@ func _indexer_les_modeles() -> bool:
 ## un geste sur le roster de l'hôte à `roster` (`_jouer_le_roster`), la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), le panneau des sauvegardes à ouvrir à
 ## `sauvegardes` ou à fermer (`_fermer_les_sauvegardes`), l'emplacement où écrire à `sauvegarder`, celui à charger à
 ## `_charger`, le panneau des réglages à ouvrir à `PanneauDesReglages.ouvrir`, le panneau du salon à ouvrir à
-## `PanneauDuSalon.ouvrir`, toute autre à `jouer`.
+## `PanneauDuSalon.ouvrir`, le renvoi d'un terme de la fiche à `PanneauDuCompendium.ouvrir`, toute autre à `jouer`.
 func _jouer(jeu: Dictionary) -> void:
 	if jeu.has("quitter"):
 		_quitter()
@@ -209,6 +212,9 @@ func _jouer(jeu: Dictionary) -> void:
 	if jeu.has("salon"):
 		_salon.ouvrir()
 		return
+	if jeu.has("compendium"):
+		_compendium.ouvrir(jeu.compendium)
+		return
 	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "lancer" if jeu.has("lancer") else "jouer", jeu))
 
 
@@ -233,14 +239,7 @@ func _jouer_le_roster(jeu: Dictionary) -> void:
 func _quitter() -> void:
 	if _pont.appeler("quitter").get("ok") != true:
 		return
-	_revenir_a_l_accueil()
-
-
-## L'accueil revient, plus rien ne disant au combat comment s'ouvrir.
-func _revenir_a_l_accueil() -> void:
-	_pont.entree = ""
-	_pont.essai = false
-	get_tree().change_scene_to_file("res://scenes/Accueil.tscn")
+	_pont.revenir_a_l_accueil()
 
 
 ## Le panneau des sauvegardes montre les zones de `reponse` (`sauvegardes`, `sauvegarder`) ; une réponse refusée le
@@ -256,7 +255,7 @@ func _montrer_les_sauvegardes(reponse: Dictionary) -> void:
 ## Le panneau des sauvegardes fermé : sur la partie ouverte, ou, sans partie, sur l'accueil.
 func _fermer_les_sauvegardes() -> void:
 	if _vue.is_empty():
-		_revenir_a_l_accueil()
+		_pont.revenir_a_l_accueil()
 		return
 	_sauvegardes.visible = false
 	_publier_l_ecran.call_deferred()
@@ -274,7 +273,7 @@ func _charger(emplacement: Variant) -> void:
 ## Le panneau du salon fermé (`PanneauDuSalon.ferme`) : sur la partie ouverte, ou, sans partie, sur l'accueil.
 func _fermer_le_salon() -> void:
 	if _vue.is_empty():
-		_revenir_a_l_accueil()
+		_pont.revenir_a_l_accueil()
 
 
 ## Une session du salon finie (`PanneauDuSalon.fini`) pendant une partie montrée : ses lignes posées
@@ -429,12 +428,13 @@ func _publier_l_ecran() -> void:
 ## combattant dessiné (`Plateau.corps`) et les navires posés (`Plateau.navires`).
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
-	var racines := [_ecran, _scenarios, _sauvegardes, _reglages.racine(), _salon.racine()]
+	var racines := [_ecran, _scenarios, _sauvegardes, _reglages.racine(), _salon.racine(), _compendium.racine()]
 	return {
 		boutons = PontDuNoyau.boutons_a_l_ecran(racines), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()]),
 		panneaux = PontDuNoyau.panneaux_a_l_ecran(racines), cases = _plateau.points(), glisse = _monde.glisse(),
 		fondu = _monde.volume.part_du_fondu() != 1.0,
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
+		compendium = {zones = _compendium.vues()},
 	}
 
 

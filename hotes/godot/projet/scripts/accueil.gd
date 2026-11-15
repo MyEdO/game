@@ -8,14 +8,14 @@ extends CenterContainer
 ## L'entrée de l'application est un menu (`scenes/Accueil.tscn`, `run/main_scene`) qui montre la zone `accueil.gestes`
 ## de la méthode `accueil` : « Jouer » ouvre une partie au groupe (`ouvrir`), « Reprendre » montre les sauvegardes à
 ## charger (`sauvegardes`), « Jouer en ligne » montre le panneau du salon sans partie (`salon`), chacune au combat, qui
-## suit l'entrée de l'accueil (`PontDuNoyau.entree`) ; « Combat » démarre un scénario de test, « Atelier » et « Éditeur »
-## ouvrent leur scène, « Options » ouvre le panneau des réglages (`reglages`).
+## suit l'entrée de l'accueil (`PontDuNoyau.entree`) ; « Combat » démarre un scénario de test, « Atelier », « Éditeur » et
+## « Compendium » ouvrent leur scène, « Options » ouvre le panneau des réglages (`reglages`).
 
 ## La scène de chaque entrée de l'accueil (`EntreeDeLAccueil`).
 const SCENES := {
 	jouer = "res://scenes/Combat.tscn", reprendre = "res://scenes/Combat.tscn", salon = "res://scenes/Combat.tscn",
 	combat = "res://scenes/Combat.tscn",
-	atelier = "res://scenes/Atelier.tscn", editeur = "res://scenes/Editeur.tscn",
+	atelier = "res://scenes/Atelier.tscn", editeur = "res://scenes/Editeur.tscn", compendium = "res://scenes/Compendium.tscn",
 }
 
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")

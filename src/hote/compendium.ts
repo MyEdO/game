@@ -89,7 +89,7 @@ const boutonDuGeste = (s: SessionDuCompendium, id: string, libelle: string, g: G
 const suivre = (id: string, ref: { category: string; id: string; label: string; show?: string }, texte = ref.show ?? ref.label): Bouton =>
   bouton(id, texte, jeu({ geste: 'suivre', categorie: ref.category, id: ref.id, ...(ref.show !== undefined && ref.show !== ref.label ? { instance: ref.show } : {}) }));
 
-const puce = (id: string, libelle: string, valeur: string | null, detail: string | null = null): Puce => ({ type: 'puce', id, ton: 'neutre', libelle, valeur, detail });
+const puce = (id: string, libelle: string, valeur: string | null, detail: string | null = null): Puce => ({ type: 'puce', id, ton: 'neutre', libelle, valeur, detail, jeu: null });
 
 /** Les éléments de la rangée `r` de la fiche, d'id `id` : une prose, une ligne ; un couple clé/valeur, une puce, un bouton
  *  qui suit son libellé lié ; une référence, un bouton qui la suit ; une pastille, une puce ; un choix d'avancement, sa
