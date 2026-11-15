@@ -439,7 +439,7 @@ describe('validateScene', () => {
     expect(erreursSur('fantome', { type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'fantome' } })).toEqual([expect.stringContaining('« fantome » est absent du catalogue des personnages de la scène')]);
   });
 
-  it('la rencontre d’un `startCombat` ou d’un `startPursuit` : absente de la scène, une seule erreur, celle du parse ; présente, aucune (#3606 M4a)', () => {
+  it('la rencontre d’un `startCombat`, d’un `startPursuit` ou d’une Scène de bataille rangée : absente de la scène, une seule erreur, celle du parse ; présente, aucune (#3606 M4a, #4234)', () => {
     const scene = (effet: Effect) => {
       const s = base();
       s.encounters = [{ id: 'enc-presente', members: [] }];
@@ -448,12 +448,15 @@ describe('validateScene', () => {
     };
     const combat = (id: string): Effect => ({ type: 'startCombat', encounter: { id } });
     const poursuite = (id: string): Effect => ({ type: 'startPursuit', distance: 4, skill: { id: 'athletisme' }, foes: [{ id: 'humain' }], encounter: { id } });
+    const bataille = (id: string): Effect => ({ type: 'startMassBattle', battle: { puissanceAlliee: 50, puissanceEnnemie: 50, sceneEncounters: { charge: { id } } } });
     const surRencontres = (s: Scene) => msgs(validateScene([s])).filter((m) => m.includes('catalogue des rencontres de la scène'));
     expect(surRencontres(scene(combat('enc-fantome')))).toEqual([expect.stringContaining('« enc-fantome » est absent du catalogue des rencontres de la scène')]);
     expect(surRencontres(scene(poursuite('enc-fantome')))).toEqual([expect.stringContaining('« enc-fantome » est absent du catalogue des rencontres de la scène')]);
     expect(msgs(validateScene([scene(combat('enc-fantome'))])).filter((m) => m.includes('« enc-fantome »'))).toHaveLength(1);
     expect(surRencontres(scene(combat('enc-presente')))).toEqual([]);
     expect(surRencontres(scene(poursuite('enc-presente')))).toEqual([]);
+    expect(msgs(validateScene([scene(bataille('enc-fantome'))])).filter((m) => m.includes('« enc-fantome »'))).toEqual([expect.stringContaining('« enc-fantome » est absent du catalogue des rencontres de la scène')]);
+    expect(surRencontres(scene(bataille('enc-presente')))).toEqual([]);
   });
 
   /**

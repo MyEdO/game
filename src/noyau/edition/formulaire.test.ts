@@ -795,16 +795,17 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     expect(unionDuNoeud(new Map(champsDeclares(objetDeCampagneSchema)).get('price'))?.variantes.map((v) => v.libelle)).toEqual(['montant', 'non disponible']);
   });
 
-  it('une référence à un vocabulaire se choisit parmi ses ids, nommés par sa table ; les rencontres d’une bataille rangée s’ajoutent par activité offerte, chacune en texte (#4234)', () => {
+  it('une référence à un vocabulaire se choisit parmi ses ids, nommés par sa table ; les rencontres d’une bataille rangée s’ajoutent par activité offerte, chacune désignée comme la rencontre d’un `startCombat` (#4234)', () => {
     const rencontres = 'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters';
     const attendues: Record<string, string> = {
       'declencheur/flow<kind=effet>/effet<type=playSfx>/id': 'choix',
       'lieu/backdrop/id': 'choix',
       'lieu/market/backdrop/id': 'choix',
       [rencontres]: 'ajouter',
-      [`${rencontres}/${choixDeLaFeuilleDId({ type: 'activity' })[0].id}`]: 'texte',
     };
     expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+    // La rencontre d'une activité est une référence locale à la scène : même saisie que celle d'un `startCombat`.
+    expect(saisies.get(`${rencontres}/${choixDeLaFeuilleDId({ type: 'activity' })[0].id}/id`)).toBe(saisies.get('declencheur/flow<kind=effet>/effet<type=startCombat>/encounter/id'));
     expect(choixDuNoeud(idDe('son'))).toEqual(Object.entries(VOCABULAIRES.sons).map(([valeur, libelle]) => ({ valeur, libelle })));
     expect(choixDuNoeud(idDe('colonneDuMarchand'))).toEqual(Object.entries(VOCABULAIRES.colonnesDuMarchand).map(([valeur, libelle]) => ({ valeur, libelle })));
   });

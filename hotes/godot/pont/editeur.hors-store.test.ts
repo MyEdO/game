@@ -2279,19 +2279,23 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     expect(valeurs(choisir(objet, 'valeur/hands', (v) => v === 2)), 'le nombre écrit, jamais la chaîne').toEqual([[1, false], [2, true]]);
   });
 
-  it('le son d’un Effet se choisit au registre des sons ; une rencontre d’une bataille rangée s’écrit à une activité offerte, en texte (#4234)', () => {
+  it('le son d’un Effet se choisit au registre des sons ; la rencontre d’une activité d’une bataille rangée se choisit parmi celles de la scène (#4234)', () => {
     const { appel, presser, narratif } = surLeNarratif();
     const choisir = (e: Edition, id: string, voulue: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulue((b.jeu as { args: unknown[] }).args[2]))!);
-    const effet = (type: string) => choisir(choisir(presser(boutonDe(presser(boutonDe(narratif, 'document/scene')), 'logique/declencheur/t-pont')), 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'effet'), 'valeur/flow/effet/type', (v) => (v as { type: string }).type === type);
+    const scene = presser(boutonDe(narratif, 'document/scene'));
+    const ajoutee = presser(boutonDe(scene, 'logique/rencontre/ajouter'));
+    const rencontre = (ajoutee.vue.zones['editeur.logique'].find((el) => el.id === 'logique/rencontre/liste') as Choix).valeurs.find((b) => b.presse)!.libelle;
+    const effet = (type: string) => choisir(choisir(presser(boutonDe(ajoutee, 'logique/declencheur/t-pont')), 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'effet'), 'valeur/flow/effet/type', (v) => (v as { type: string }).type === type);
     const son = inspecte(effet('playSfx'), 'valeur/flow/effet/id') as Choix;
     expect([son.type, son.valeurs.map((b) => [(b.jeu as { args: unknown[] }).args[2], b.libelle])]).toEqual(['liste', Object.entries(VOCABULAIRES.sons)]);
     const RENCONTRES = 'valeur/flow/effet/battle/sceneEncounters';
     const ouvert = presser(boutonDe(effet('startMassBattle'), `${RENCONTRES}/ajouter`));
-    const charge = inspecte(ouvert, `${RENCONTRES}/charge`) as Formulaire;
-    const [porteur, chemin] = charge.champs.map((c) => (c.type === 'fixe' ? c.valeur : undefined));
-    const e = editionDe(appel('editer', { type: 'valeur', args: [porteur, chemin, 'enc-pont'] }));
-    const depot = JSON.parse(presser(boutonDe(e, 'enregistrer')).depot!.texte) as { scenes: { triggers: { id: string; flow: { effet?: { battle?: unknown } } }[] }[] };
-    expect([charge.type, chemin, depot.scenes[0].triggers.find((tr) => tr.id === 't-pont')!.flow.effet!.battle]).toEqual(['formulaire', ['flow', 'effet', 'battle', 'sceneEncounters', 'charge'], expect.objectContaining({ sceneEncounters: { charge: 'enc-pont' } })]);
+    const charge = valeursDeLInspecteur(ouvert, `${RENCONTRES}/charge/ajouter`);
+    expect(charge.map((b) => [b.libelle, (b.jeu as { args: unknown[] }).args[2]])).toEqual([[rencontre, { id: rencontre }]]);
+    const [porteur, chemin] = (charge[0].jeu as { args: unknown[] }).args;
+    expect(appel('editer', { type: 'valeur', args: [porteur, chemin, { id: 'enc-absente' }] }), 'une rencontre absente de la scène est refusée').toMatchObject({ ok: false, erreur: { categorie: 'validation' } });
+    const depot = JSON.parse(presser(boutonDe(presser(charge[0]), 'enregistrer')).depot!.texte) as { scenes: { triggers: { id: string; flow: { effet?: { battle?: unknown } } }[] }[] };
+    expect(depot.scenes[0].triggers.find((tr) => tr.id === 't-pont')!.flow.effet!.battle).toEqual(expect.objectContaining({ sceneEncounters: { charge: { id: rencontre } } }));
   });
 
   it('la Carrière d’une Condition de clôture se choisit au catalogue des carrières (#4234)', () => {

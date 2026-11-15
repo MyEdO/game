@@ -152,17 +152,16 @@ function litterauxDesSchemas(modules: readonly Module[] = contenusDesModules()):
     for (const d of n.declarationList.declarations) {
       if (!ts.isIdentifier(d.name) || !d.initializer) continue;
       let lit: string | null = null;
-      /** Le texte de `z.literal('x')`, nu ou premier argument d'un nommage (`nommerNoeud(z.literal('x'), …)`). */
-      const litteral = (e: ts.Expression | undefined): string | undefined => {
-        if (!e || !ts.isCallExpression(e)) return undefined;
-        if (ts.isPropertyAccessExpression(e.expression) && e.expression.name.text === 'literal')
-          return ts.isStringLiteralLikeNode(e.arguments[0]) ? e.arguments[0].text : undefined;
-        return litteral(e.arguments[0]);
-      };
       const chercher = (x: ts.Node): void => {
-        const trouve = ts.isPropertyAssignment(x) && x.name.getText() === 'type' ? litteral(x.initializer) : undefined;
-        if (trouve !== undefined) {
-          lit ??= trouve;
+        if (
+          ts.isPropertyAssignment(x) &&
+          x.name.getText() === 'type' &&
+          ts.isCallExpression(x.initializer) &&
+          ts.isPropertyAccessExpression(x.initializer.expression) &&
+          x.initializer.expression.name.text === 'literal' &&
+          ts.isStringLiteralLikeNode(x.initializer.arguments[0])
+        ) {
+          lit ??= (x.initializer.arguments[0] as ts.StringLiteral).text;
           return;
         }
         x.forEachChild(chercher);

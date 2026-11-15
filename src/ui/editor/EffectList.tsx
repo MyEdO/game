@@ -1172,10 +1172,10 @@ function MassBattleFields({ identite, battle, onChange, ctx }: { identite: strin
           <div key={id} className="fieldrow">
             <span className="dr" style={{ minWidth: 140 }}>{battleSceneById(id)?.label ?? id}</span>
             <select
-              value={b.sceneEncounters?.[id] ?? ''}
+              value={b.sceneEncounters?.[id]?.id ?? ''}
               onChange={(ev) => {
                 const next = { ...(b.sceneEncounters ?? {}) };
-                if (ev.target.value) next[id] = ev.target.value; else delete next[id];
+                if (ev.target.value) next[id] = { id: ev.target.value }; else delete next[id];
                 set({ sceneEncounters: Object.keys(next).length ? next : undefined });
               }}
             >

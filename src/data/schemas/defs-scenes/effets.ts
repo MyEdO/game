@@ -93,8 +93,8 @@ export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
   /** ADE II 8 l.128. */
   situations: z.array(z.array(z.string())).optional(),
   situationSize: z.number().optional(),
-  /** Rencontres à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène → id d'encounter). */
-  sceneEncounters: recordDIds('activity', z.string()).optional(),
+  /** Rencontres de la scène à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène). */
+  sceneEncounters: recordDIds('activity', ref(RENCONTRES_DE_LA_SCENE)).optional(),
   /** ADE II 8 l.81. */
   modificateurAllie: z.number().optional(),
 }), { nomDesAllies: { label: "nom des alliés" , texte: { regime: "designation"} }, nomDesEnnemis: { label: "nom des ennemis" , texte: { regime: "designation"} }, puissanceAlliee: { label: "puissance alliée" }, puissanceEnnemie: { label: "puissance ennemie" }, plannedRounds: { label: "Rounds prévus" }, scenes: { label: "Scènes" , texte: { regime: "technique"} }, situations: { label: "situations" , texte: { regime: "technique"} }, situationSize: { label: "taille de situation" }, sceneEncounters: { label: "rencontres de scène" , texte: { regime: "technique"} }, modificateurAllie: { label: "modificateur allié" } }), 'massBattle.terrain');
@@ -400,7 +400,9 @@ export const moveEntitySchema = nommerChamps(z.strictObject({
 }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, to: { label: "destination" }, remove: { label: "retirer" } });
 
 /** Son PONCTUEL (cloche de minuit, cri hors-champ…) — id du registre audio (#701). */
-export const playSfxSchema = ref('son', { type: nommerNoeud(z.literal('playSfx'), { nom: 'type' }) }) as z.ZodType<{ type: 'playSfx'; id: string }> & z.core.$ZodTypeDiscriminable;
+/** Le son joué, au registre audio : FORME DE SORTIE déclarée nue (patron `sortSchema`). */
+const sonJoueSchema: z.ZodType<string, string> = idDe('son');
+export const playSfxSchema = nommerChamps(z.strictObject({ type: z.literal('playSfx'), id: sonJoueSchema }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } });
 
 /** LDB 40 l.25-29, l.36, l.46 */
 export const giveSinSchema = nommerChamps(z.strictObject({

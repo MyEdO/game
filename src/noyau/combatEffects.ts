@@ -74,7 +74,6 @@ import {
   combatStakeRef,
   flowStakeRef,
   testSkillLabel,
-  type FlowStakeId,
 } from '../data';
 import { moraleBase } from '../engine/crewMorale';
 import { clampSaboteurDR, semaineDuJour, shipboardSouls } from './shipCrew';
@@ -1356,7 +1355,6 @@ function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle
  *  l'appelant), ce qui co-localise la validation d'un effet AVEC son application (fin du switch parallèle). */
 export interface EffectRefCtx {
   sceneIds: ReadonlySet<string>;
-  encounterIds: ReadonlySet<string>;
   /** Les personnages de la scène (`PERSONNAGES_DE_LA_SCENE`). */
   entityIds: ReadonlySet<string>;
   /** LA FICHE derrière une entité `personnage`, par la MÊME projection que le runtime (`sceneNpc`) —
@@ -2237,9 +2235,6 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Combat & social', label: libelleEffet('startMassBattle'), icon: 'outil-de-carte/depart',
     make: () => ({ type: 'startMassBattle', battle: { puissanceAlliee: 50, puissanceEnnemie: 50, plannedRounds: 3 } }),
     apply: (e, env) => { env.get().amorcerLaBataille(e.battle); }, // ouvre l'écran de bataille sur le spec authoré (ADE II 08)
-    // Les rencontres mappées aux Scènes de combat/menace doivent exister dans la scène courante.
-    refs: (e, ctx) => Object.entries(e.battle.sceneEncounters ?? {}).flatMap(([sceneId, encId]) =>
-      ctx.encounterIds.has(encId) ? [] : [{ level: 'error' as const, message: `Combat de masse → rencontre inexistante « ${encId} » (Scène ${sceneId})` }]),
   },
   openMerchant: {
     group: 'Combat & social', label: libelleEffet('openMerchant'), icon: 'marchand/panier',
@@ -2320,7 +2315,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   // ── Tests ──────────────────────────────────────────────────────────────
   extendedTest: {
     group: 'Tests', label: libelleEffet('extendedTest'), icon: 'interface/cle',
-    make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', drCible: 5, flag: '', stake: { key: { dataset: 'flux', kind: 'test-etendu' satisfies FlowStakeId } } }),
+    make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', drCible: 5, flag: '', stake: flowStakeRef('test-etendu') }),
     suspensif: true,
     apply: (e, env, suite) => {
       // Test ÉTENDU (LDB 12 l.187-200) : le meilleur du groupe enchaîne les Rounds, SOUTENU par les autres

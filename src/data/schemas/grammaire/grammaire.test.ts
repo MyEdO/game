@@ -450,6 +450,9 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
     expect(entreePartielle.safeParse({ max: 2 }).success).toBe(true);
     expect(entreePartielle.safeParse({}).success).toBe(true);
     expect(entreePartielle.safeParse({ inconnu: 1 }).success).toBe(false);
+    // Une surcharge n'a pas d'identité : l'`id` de l'entrée n'est pas un champ du patch.
+    expect(entreePartielle.safeParse({ id: 'autre' }).success).toBe(false);
+    expect(REPLIQUES.record.entreePartielle.safeParse({ id: 'autre' }).success).toBe(false);
     // Consommateur mesuré `defs-scenes/narratif.ts:49` : `.partial().optional()` — le sceau le sert.
     expect(entreePartielle.optional().safeParse(undefined).success).toBe(true);
     expect(entreePartielle.optional().safeParse({ max: 2 }).success).toBe(true);

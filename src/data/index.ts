@@ -631,11 +631,11 @@ export function trousDeLEnjeu(key: StakeKey): string[] | undefined {
  *  jamais silencieux). `entryCategory` = la catégorie FOURNIE par le producteur, pour les clés dont le
  *  dataset ne peut pas la déclarer (`entryFromSource` : l'entité source d'un effet peut être de
  *  n'importe quelle nature). */
-function stakeRef(
-  dataset: StakeDataset,
+function stakeRef<D extends StakeDataset>(
+  dataset: D,
   kind: string,
   opts: { entryId?: string; entryCategory?: string; values?: Record<string, string | number> } = {},
-): StakeRef {
+): CatalogStake & { key: { dataset: D } } {
   if (!stakeEntry({ dataset, kind })) {
     throw new Error(`stakeRef('${dataset}/${kind}') : aucune entrée d'enjeu — une surface qui LANCE dit ce qu'elle met en jeu`);
   }
@@ -695,11 +695,15 @@ export function stateRecoveryStakeRef(etatId: string): StakeRef {
 }
 
 /** Enjeu d'une MODALE MONO (#1117 L1b, `stakeRef`) : le TYPE ferme l'id (`FlowStakeId`, généré) en
- *  PREMIER rideau, le throw est le second. `entryId` = la chanson chantée, le type de Test d'équipage. */
+ *  PREMIER rideau, le throw est le second. `entryId` = la chanson chantée, le type de Test d'équipage.
+ *  Sans `values`, l'enjeu a la forme qu'un document saisit (`catalogStakeSchema`) : un Effet en pose un
+ *  par défaut sans recopier sa clé. */
+export function flowStakeRef(id: FlowStakeId, opts?: { entryId?: string }): CatalogStake & { key: { dataset: 'flux' }; values?: never };
+export function flowStakeRef(id: FlowStakeId, opts: { entryId?: string; values: Record<string, string | number> }): CatalogStake;
 export function flowStakeRef(
   id: FlowStakeId,
   opts?: { entryId?: string; values?: Record<string, string | number> },
-): StakeRef {
+): CatalogStake {
   return stakeRef('flux', id, opts);
 }
 
