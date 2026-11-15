@@ -29,23 +29,30 @@ MATERIAUX = {'robe': ('vet1', ((0.55, 0.57, 0.6), 0.0, 0.87))}   # gris de const
 
 # --- Maillage ---
 BUDGET_TRIANGLES = 2500            # procédure, section 7 : vêtement par pièce
-SEGMENTS_CORPS = 24                # bure
+SEGMENTS_CORPS = 20                # HYPOTHÈSE de maillage : les colonnes du pourpoint (`vetement--pourpoint-matelasse`), que ses
+                                   # basques couvrent facette pour facette, sans corde qui rentre entre deux colonnes
 EPAISSEUR = 0.002                  # bure
 DEGAGEMENT_MIN = 0.004             # bure
 LISSAGE_POIDS = 2                  # bure
 BORNES_DES_CLES = (0.27, 2.5)      # bure : la jupe longue suit le bas de jambe tassé sous `gabarit_legs_moins`
 
 # --- Ceinture : (ancre, décalage, aisance, demi-ouverture) ; ancres et sens dans `vetement--robe/donnees.py`. Deux
-# anneaux fermés à la taille, au bas du torse (HYPOTHÈSE : la ceinture de la jupe, cachée sous le pourpoint) ---
-CORSAGE = [('bas', 0.0, 0.008, 0.0), ('bas', 0.05, 0.010, 0.0)]
+# anneaux fermés à la taille, au bas du torse (HYPOTHÈSE : la ceinture de la jupe, cachée sous le pourpoint). Le bas
+# 2 cm sous le premier anneau du pourpoint : quand la cuisse monte, la bande qui descend de cet anneau aux basques se
+# plie autour de lui ; posé à sa hauteur, l'anneau de la jupe passait devant elle (`couche-traversee` jusqu'à 15 mm,
+# Melee_Hook sous `carrure_plus`). Le haut à 4 cm, entre la côte et la première couture du pourpoint (2 et 6 cm) : à
+# 5 cm et 10 mm d'aisance, au ras de cette couture, il en sortait sous `corpulence` ; à 3 cm, la bande qui le joint au bas
+# s'écrasait dans le dos penché (`arete-ecrasee`, Melee_Hook sous `carrure_moins`) ---
+CORSAGE = [('bas', 0.0, 0.008, 0.0), ('bas', 0.04, 0.008, 0.0)]
 
 # --- Jupe : rangées horizontales sous la ceinture, posées et pondérées sur le filet `jupe` de la base (`tissu.Filet`) ---
-Z_HANCHES = 0.90                   # bure
-AISANCE_HANCHES = 0.04             # bure
 OURLET_ROBE = 0.08                 # illustration : les pointes des lambeaux à ~1115 px, 45 px au-dessus des plantes
 LAMBEAUX_ROBE = {'profondeur': 0.06, 'creux': 0.15, 'graine': 'humanoide--vetement--jupe'}
 """Illustration : les lambeaux de l'ourlet montent d'environ 35 px au-dessus de leurs pointes, 6 cm (`tissu.lambeaux`)."""
-RANGEES_JUPE = [1.00, 0.90, 0.76, 0.60, 0.44, 0.28]   # bure
+RANGEES_JUPE = [1.00, 0.93, 0.86, 0.76, 0.60, 0.44, 0.28]
+"""HYPOTHÈSE de maillage : celles de la bure, 0,90 remplacée par les rangées des basques du pourpoint (0,93 et son ourlet
+0,86), que la jupe suit dessous sommet pour sommet ; aux rangées de la bure, la jupe passait devant les basques (porte,
+`couche-traversee`)."""
 OUVERTURE_TAILLE = 0.0             # illustration : la jupe est fermée
 OUVERTURE_OURLET = 0.0
 

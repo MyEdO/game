@@ -21,11 +21,14 @@ MANIFESTE = {
     'cle': {'piece': 'pourpoint-matelasse'},
     'liaison': {'mode': 'squelette'},
     'couche': 'tenue',
-    'couvre': ['torse', 'bras_haut_g', 'bras_haut_d', 'avant_bras_g', 'avant_bras_d'],
+    'couvre': ['torse', 'hanches', 'bras_haut_g', 'bras_haut_d', 'avant_bras_g', 'avant_bras_d'],
     'chaines': ['jupe'],
 }
-"""`couvre` : les zones que couvre le pourpoint publié ; les hanches, sous ses basques courtes qui s'ouvrent en
-marchant, restent à la jupe. `chaines` : ses basques pendent sur le filet `jupe`, comme la jupe dessous."""
+"""`couvre` : les hanches avec le torse, comme la bure (`vetement--bure`) : les basques, fermées, les couvrent jusqu'à
+leur ourlet (0,86 m), où s'arrête le mesh `hanches` de la jupe (0,86 à 1,08 m), masqué dessous au montage. Laissé à la
+jupe, ce mesh passait devant la bande qui joint le corsage aux basques, là où elle se plie quand la cuisse monte
+(`couche-traversee` de 6 à 18 mm sous `corpulence` et `carrure_plus`, ClimbUp_1m, Melee_Hook, Sword_Heavy_Combo).
+`chaines` : ses basques pendent sur le filet `jupe`, comme la jupe dessous."""
 MATERIAUX = {'robe': ('vet2', ((0.55, 0.57, 0.6), 0.0, 0.87))}   # l'emplacement du pourpoint publié ; gris de construction
 
 # --- Maillage ---
@@ -33,18 +36,24 @@ BUDGET_TRIANGLES = 2500            # procédure, section 7 : vêtement par pièc
 SEGMENTS_CORPS = 20                # HYPOTHÈSE de maillage : le budget, tenu par les anneaux des côtes
 SEGMENTS_MANCHE = 10               # robe
 EPAISSEUR = 0.002                  # robe
-DEGAGEMENT_MIN = 0.004             # robe
+DEGAGEMENT_MIN = 0.010             # HYPOTHÈSE : les basques posées 6 mm au-dessus de la jupe (`vetement--jupe`, 0,004)
+"""Sous la charnière du filet `jupe` (1,04 m, base), basques et jupe se posent sur le filet au même jeu, dégagement plus
+épaisseur (`robe.py`, `rayon`) : à 0,004 comme la jupe, la jupe sortait devant les basques (porte, `couche-traversee`
+18 à 150 par passe, `couche-percee-au-repos` à 13 mm). 0,010 ne touche rien d'autre : chaque anneau du corsage et des
+manches a déjà au moins 10 mm d'aisance."""
 LISSAGE_POIDS = 2                  # robe
 BORNES_DES_CLES = (0.27, 2.5)      # robe
 
 # --- Corsage : (ancre, décalage, aisance, demi-ouverture) ; ancres et sens dans `vetement--robe/donnees.py`. Fermé à
 # chaque anneau. Les côtes : un anneau creux (couture, `AISANCE_COUTURE`) puis un anneau gonflé (`AISANCE_COTE`), à
-# ~4 cm l'un de l'autre, des basques au col (illustration : ~25 px entre deux coutures) ---
+# ~4 cm l'un de l'autre, des basques au col (illustration : ~25 px entre deux coutures). La première côte à 2 cm au-dessus
+# du bas du torse (HYPOTHÈSE) : posée au bas même, à 4 cm de la première rangée des basques, la bande qui les joint
+# devant s'étirait jusqu'à 4,05 fois sa longueur quand la cuisse monte (porte, ClimbUp_1m, seuil 3,51) ---
 AISANCE_COUTURE = 0.010            # HYPOTHÈSE : la couture piquée, au plus près du corps sous la doublure
 AISANCE_COTE = 0.036               # HYPOTHÈSE : la côte gonfle d'environ 25 mm (illustration : les côtes ressortent en
                                    # bourrelets nets au contour des bras et du dos)
-CORSAGE = [('bas', 0.0, AISANCE_COTE, 0.0), ('bas', 0.04, AISANCE_COUTURE, 0.0), ('bas', 0.08, AISANCE_COTE, 0.0),
-           ('bas', 0.12, AISANCE_COUTURE, 0.0), ('aisselle', -0.12, AISANCE_COTE, 0.0),
+CORSAGE = [('bas', 0.02, AISANCE_COTE, 0.0), ('bas', 0.06, AISANCE_COUTURE, 0.0), ('bas', 0.10, AISANCE_COTE, 0.0),
+           ('bas', 0.14, AISANCE_COUTURE, 0.0), ('aisselle', -0.12, AISANCE_COTE, 0.0),
            ('aisselle', -0.08, AISANCE_COUTURE, 0.0), ('aisselle', -0.04, AISANCE_COTE, 0.0),
            ('aisselle', 0.0, AISANCE_COUTURE, 0.0), ('aisselle', 0.045, AISANCE_COTE, 0.0),
            ('aisselle', 0.09, AISANCE_COUTURE, 0.0), ('cou', -0.03, 0.026, 0.0), ('cou', 0.0, 0.026, 0.0),
@@ -53,8 +62,6 @@ CORSAGE = [('bas', 0.0, AISANCE_COTE, 0.0), ('bas', 0.04, AISANCE_COUTURE, 0.0),
 # foulard (`vetement--foulard`).
 
 # --- Basques : rangées sous le corsage, posées et pondérées sur le filet `jupe` de la base (`tissu.Filet`) ---
-Z_HANCHES = 0.90                   # robe
-AISANCE_HANCHES = 0.055            # HYPOTHÈSE : au-dessus de la jupe (`vetement--jupe`, 0,04), que le pourpoint couvre
 OURLET_ROBE = 0.86                 # illustration : le bas du pourpoint tombe sous le haut des hanches (y ~700 px)
 RANGEES_JUPE = [1.00, 0.93]        # HYPOTHÈSE de maillage
 OUVERTURE_TAILLE = 0.0             # illustration : fermé
@@ -69,9 +76,14 @@ RAYON_DE_COUPE_MAX = 0.12          # robe
 _COTES_DE_MANCHE = [-0.10, 0.08, 0.24, 0.40, 0.56, 0.72, 0.88, 1.04, 1.20, 1.36, 1.52, 1.68, 1.80]
 """Fractions de `upperarm` (base : avant-bras ~0,85 fois le bras), une côte puis une couture tous les ~4 cm, de l'épaule
 au poignet (1,80, au-dessus de la main)."""
-MANCHE = [(f, AISANCE_COTE if k % 2 == 0 else AISANCE_COUTURE, 0.0) for k, f in enumerate(_COTES_DE_MANCHE[:-1])] + \
+MANCHE = [(_COTES_DE_MANCHE[0], AISANCE_COUTURE, 0.0)] + \
+         [(f, AISANCE_COTE if k % 2 == 0 else AISANCE_COUTURE, 0.0) for k, f in enumerate(_COTES_DE_MANCHE[1:-1], 1)] + \
          [(_COTES_DE_MANCHE[-1], 0.010, 0.0)]
-# illustration : la manche se resserre au poignet (dernier anneau à 10 mm).
+# illustration : la manche se resserre au poignet (dernier anneau à 10 mm). HYPOTHÈSE : l'anneau d'emmanchure, dans
+# l'épaule, est la couture qui joint la manche au corps ; gonflé en côte (36 mm), la bande qui le joint au corsage
+# s'écrasait derrière l'aisselle droite quand le bras frappe (`arete-ecrasee` 0,006 pour un seuil de 0,01, Melee_Hook sous
+# `feminin`). À 20 mm, ou en côte à -0,05 de `upperarm`, l'emmanchure s'étirait sous la hotte (`accessoire--hotte`)
+# jusqu'à 4,8 fois sa longueur.
 ANGLE_DU_PAN = 170.0               # robe (aucun pan : sans effet)
 INCLINAISON_DU_PAN = 20.0          # robe (aucun pan : sans effet)
 RACCORD_EPAULE = 2.0               # au-delà du dernier anneau : la manche entière emprunte au bras, sommet par sommet
