@@ -134,7 +134,7 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
   'dialogue.reponses': Bouton[];
   /** le titre du journal. */
   'journal.titre': Ligne[];
-  /** chaque héros du groupe en carte (`herosDuGroupe`) : ses Blessures, sa bourse, le bouton qui ouvre sa fiche,
+  /** chaque héros du groupe en carte (`herosDuGroupe`) : sa carrière, ses Blessures, le bouton qui ouvre sa fiche,
    *  pressé quand elle est ouverte, qui la ferme alors, ses États, puis ce que la fenêtre dit de lui : le jet qu'il jette
    *  en route et les gestes qui le désignent, sa nuit à la halte ; avant le lancement, « Renvoyer », dont le `jeu` est
    *  l'intention du noyau qui le renvoie (`intentionDeRenvoi`), refusé avec sa raison (`refusDeRenvoyer`). */
@@ -142,7 +142,7 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
   /**
    * la fiche ouverte (`ficheDuPorteur`, surface du noyau), en statbloc : le combattant en entité : son espèce et sa
    * carrière, chacune en ligne, ses Blessures en jauge, ses Points de Destin, de Chance, de Résilience et de
-   * Détermination quand il en a, chacun de ses États en puces.
+   * Détermination quand il en a, sa bourse s'il est un héros du groupe, chacun de ses États en puces.
    */
   'fiche.porteur': Entite[];
   /** « Fermer ». */
@@ -937,9 +937,9 @@ function gestesDesCartes(etat: Jeu, gestes: (Bouton | Choix | Formulaire)[]): { 
   return { restants, parHeros };
 }
 
-/** Chaque héros du groupe en carte (`heros/`) : son portrait, son nom, ses Blessures en jauge, sa bourse, le bouton qui ouvre sa
- *  fiche, pressé quand elle est ouverte, qui la ferme alors, ses États en puces, puis ce que la fenêtre dit de lui
- *  (`surLesCartes`) et les gestes qui le désignent (`gestesDesCartes`), `gestes` ; en `alerte` quand l'un d'eux a le
+/** Chaque héros du groupe en carte (`heros/`) : son portrait, son nom, sa carrière en ligne s'il en a une, ses Blessures
+ *  en jauge, le bouton qui ouvre sa fiche, pressé quand elle est ouverte, qui la ferme alors, ses États en puces, puis
+ *  ce que la fenêtre dit de lui (`surLesCartes`) et les gestes qui le désignent (`gestesDesCartes`), `gestes` ; en `alerte` quand l'un d'eux a le
  *  focus : c'est à lui d'agir ; tant qu'aucune partie n'est en cours (`partieEnCours`), le bouton qui le renvoie,
  *  refusé par `refusDeRenvoyer`. */
 function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<string, Bouton[]>): Entite[] {
@@ -951,8 +951,8 @@ function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<stri
       type: 'entite', id: `heros/${h.id}`, ton: (gestes.get(h.id) ?? []).some((g) => g.focus) ? 'alerte' : 'neutre', nom: f.nom,
       elements: [
         { type: 'portrait', id: 'portrait', combattant: h.id },
+        ...(f.carriere === null ? [] : [ligne('carriere', f.carriere)]),
         jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
-        puce('bourse', t('ecran.bourse'), f.bourse),
         boutonDeFiche(`fiche/${h.id}`, t('ecran.fiche.ouvrir'), presse ? null : { porteur: h.id }, presse),
         ...etatsEnPuces(f.etats),
         ...(parHeros.get(h.id) ?? []),
@@ -970,8 +970,8 @@ const nombre = (n: number): string | null => (n > 1 ? t('ecran.fiche.nombre', { 
 const etatsEnPuces = (etats: FicheDuPorteur['etats']): Puce[] => etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte'));
 
 /** Le porteur de la fiche, la tête de son statbloc : son nom ; son espèce et sa carrière, chacune en ligne ; ses Blessures en jauge ;
- *  ses Points de Destin, de Chance, de Résilience et de Détermination, s'il en a ; chacun de ses États en puce. */
-function porteurDeLaFiche(f: FicheDuPorteur): Entite {
+ *  ses Points de Destin, de Chance, de Résilience et de Détermination, s'il en a ; sa bourse, s'il est un héros du groupe ; chacun de ses États en puce. */
+function porteurDeLaFiche(etat: Jeu, f: FicheDuPorteur): Entite {
   const points = ([['destin', t('ecran.destin'), f.destin], ['chance', t('ecran.fiche.chance'), f.chance], ['resilience', t('ecran.fiche.resilience'), f.resilience], ['determination', t('ecran.fiche.determination'), f.determination]] as const)
     .flatMap(([id, libelle, valeur]) => (valeur === null ? [] : [puce(id, libelle, String(valeur))]));
   return {
@@ -981,6 +981,7 @@ function porteurDeLaFiche(f: FicheDuPorteur): Entite {
       ...(f.carriere === null ? [] : [ligne('carriere', f.carriere)]),
       jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
       ...points,
+      ...(etat.party.some((h) => h.id === f.id) ? [puce('bourse', t('ecran.bourse'), f.bourse)] : []),
       ...etatsEnPuces(f.etats),
     ],
   };
@@ -1104,7 +1105,7 @@ function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLE
   if (!ouverte || !f) return { 'fiche.porteur': [], 'fiche.gestes': [], 'fiche.profil': [], 'fiche.sections': [], 'fiche.source': [], 'fiche.objet': [] };
   const sections = sectionsDeLaFiche(f, ouverte);
   return {
-    'fiche.porteur': [porteurDeLaFiche(f)],
+    'fiche.porteur': [porteurDeLaFiche(etat, f)],
     'fiche.gestes': [boutonDeFiche('fermer', t('ecran.fiche.fermer'), null, false)],
     'fiche.profil': profilDeLaFiche(f),
     'fiche.sections': (Object.keys(SECTIONS_DU_STATBLOC) as (keyof typeof SECTIONS_DU_STATBLOC)[]).flatMap((k): Entite[] =>

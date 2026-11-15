@@ -124,8 +124,8 @@ const sortsConnus = (c: Combatant, priere: boolean): EntreeDeLaFiche[] =>
     return sp && isPrayerFamily(sp.family) === priere ? [{ libelle: sp.label, desc: sp.desc ?? null }] : [];
   });
 
-/** L'en-tête de la fiche : son porteur, ses Blessures, ses États et sa bourse, ce que la carte d'un héros montre. */
-export type EnTeteDeFiche = Pick<FicheDuPorteur, 'id' | 'nom' | 'blessures' | 'etats' | 'bourse'>;
+/** L'en-tête de la fiche : son porteur, sa carrière, ses Blessures et ses États, ce que la carte d'un héros montre. */
+export type EnTeteDeFiche = Pick<FicheDuPorteur, 'id' | 'nom' | 'carriere' | 'blessures' | 'etats'>;
 
 /** Le combattant `c` s'il a une fiche : une coque (navire, engin) n'a pas de profil de personnage. */
 const aUneFiche = (c: Combatant | undefined): c is Combatant => !!c && !isVehicle(c) && !isEngin(c);
@@ -134,9 +134,9 @@ const aUneFiche = (c: Combatant | undefined): c is Combatant => !!c && !isVehicl
 const enTeteDuCombattant = (c: Combatant): EnTeteDeFiche => ({
   id: c.id,
   nom: c.label,
+  carriere: c.career ? careerLabelFor(c) : null,
   blessures: [c.wounds.current, c.wounds.max],
   etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
-  bourse: formatMoney(bourseOf(c)),
 });
 
 /** La fiche du porteur `id` (`porteurParId` : le combattant en combat, le héros du groupe hors combat), `null` sans
@@ -172,11 +172,11 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
   return {
     ...enTeteDuCombattant(c),
     espece: findSpeciesById(c.species)?.label ?? null,
-    carriere: c.career ? careerLabelFor(c) : null,
     destin: c.fate ?? null,
     chance: c.fortune ?? null,
     resilience: c.resilience ?? null,
     determination: c.resolve ?? null,
+    bourse: formatMoney(bourseOf(c)),
     mouvement: effectiveMovement(c),
     caracteristiques: CHAR_KEYS.map((cle) => ({ cle, abrege: charAbr(cle), libelle: CHAR_LABELS[cle], valeur: effectiveChar(c, cle) })),
     armes: c.weapons.map((w) => ({
