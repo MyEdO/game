@@ -143,13 +143,13 @@ horizontal_scroll_mode = 0
 [node name="Rangs" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre"]
 size_flags_vertical = 3
 mouse_filter = 2
-theme_type_variation = &"PileSerree"
+theme_type_variation = &"PileTassee"
 alignment = 2
 
 [node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre/Rangs"]
 script = ExtResource("1_zone")
 source = "combat.ordre"
-formes = PackedStringArray("entite:rang")
+formes = PackedStringArray("entite:rang", "entite.alerte:rangDeLActif")
 
 [node name="Gauche" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps"]
 visible = false
@@ -160,13 +160,6 @@ theme_type_variation = &"Panneau"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Gauche"]
 
-[node name="Actif" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Gauche/Pile"]
-
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Gauche/Pile/Actif" node_paths=PackedStringArray("masque")]
-script = ExtResource("1_zone")
-source = "combat.actif"
-masque = NodePath("../../..")
-
 [node name="Avis" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Gauche/Pile"]
 
 [node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Gauche/Pile/Avis" node_paths=PackedStringArray("masque")]
@@ -174,19 +167,52 @@ script = ExtResource("1_zone")
 source = "combat.avis"
 masque = NodePath("../../..")
 
-[node name="Tour" type="HFlowContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Gauche/Pile"]
-theme_type_variation = &"FluxSerre"
+[node name="Actif" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
+visible = false
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_top = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Gauche/Pile/Tour" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif"]
+script = ExtResource("1_zone")
+source = "combat.actif"
+formes = PackedStringArray("entite:meuble")
+repli = true
+
+[node name="Tour" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
+visible = false
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+offset_top = -8.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Tour"]
 script = ExtResource("1_zone")
 source = "combat.offres"
-masque = NodePath("../../..")
 ids = PackedStringArray("economie/aucun")
+formes = PackedStringArray("choix:finDuTour")
+repli = true
 
-[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene" node_paths=PackedStringArray("journal", "coin_du_pied")]
+[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene" node_paths=PackedStringArray("journal", "coin_du_pied", "actif")]
 script = ExtResource("2_disposition")
 journal = NodePath("../../../../Droite")
 coin_du_pied = NodePath("../../../Pied/Rangee/Coin")
+actif = NodePath("../Actif")
 
 [node name="Dialogue" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
 visible = false

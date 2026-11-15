@@ -4,7 +4,7 @@
  * Godot le joue (le début du round, la barre de l'actif, la charge armée, la fenêtre d'attaque avant puis après le
  * jet, chaque fois le geste en focus pressé), puis le combat poursuivi en joueur pressé (chaque fenêtre par son geste en
  * focus ou sa première valeur ouverte, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
- * Critique, la fiche du premier héros ouverte par son bouton, son statbloc, sa première possession choisie (ses gestes
+ * Critique, la fiche du premier héros de l'ordre du tour ouverte par le bouton de son rang, son statbloc, sa première possession choisie (ses gestes
  * refusés en combat), la fiche de la cible de la charge, le combat poursuivi de même jusqu'à sa fin (la fenêtre de sa
  * fin, sa sortie en focus), puis, chacun sur un pont neuf, le premier document de la liasse de `documents-edo` lu, et
  * dans `magie` la Fléchette choisie parmi les sorts de l'actif, la fiche du lanceur, sa fenêtre d'incantation avant puis après le jet et un pas
@@ -48,10 +48,12 @@ import {
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 import type { Listage } from './atelier';
 
-/** Une vue de l'écran figée : son nom, sa disposition, ses zones, et l'intention de chaque formulaire par son id. */
+/** Une vue de l'écran figée : son nom, sa disposition, si elle est en combat, ses zones, et l'intention de chaque
+ *  formulaire par son id. */
 export interface VueFigee {
   nom: string;
   disposition: string | null;
+  combat: boolean;
   zones: ZonesDeLEcran & ZonesDeLaSuite;
   attendus: Record<string, Jeu>;
 }
@@ -230,7 +232,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   /** La suite `s` de la partie de `p` figée : sa vue, nommée `titre`, et sa planche, nommée `nom`. */
   const figer = (p: ReturnType<typeof unPont>, nom: string, titre: string, s: Suite) => {
     vues.push({
-      nom: titre, disposition: s.vue.disposition, zones: { ...s.vue.zones, 'journal.lignes': [...lignes] },
+      nom: titre, disposition: s.vue.disposition, combat: s.vue.projection.combat !== null, zones: { ...s.vue.zones, 'journal.lignes': [...lignes] },
       attendus: Object.fromEntries(Object.values(s.vue.zones).flatMap((z) => formulaires(z)).map((f) => [f.id, telQueDessine(f)])),
     });
     planches.push(p.planche(nom, titre, s));
@@ -282,7 +284,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     s = jouer('jouer', presse(s));
   }
   figer(dome, 'coup-critique', 'Coup Critique', s);
-  s = appeler('fiche', s.vue.zones['groupe.heros'][0].elements.find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'))!.jeu);
+  s = appeler('fiche', s.vue.zones['combat.ordre'].flatMap((r) => r.elements).find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'))!.jeu);
   figer(dome, 'fiche-du-heros', 'fiche du héros, son statbloc', s);
   const possessions = s.vue.zones['fiche.sections'].find((e) => e.id === 'section/possessions')!.elements;
   s = appeler('fiche', possessions.find((e): e is Bouton => e.type === 'bouton')!.jeu);
@@ -441,6 +443,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   vues.push({
     nom: 'formulaire de chaque saisie',
     disposition: null,
+    combat: false,
     zones: { ...vides, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.corps': [CURSEUR], 'fenetre.gestes': [...elementsDesGestes([FORMULAIRE, REFUSE]), CASES], 'journal.lignes': [...lignes] },
     attendus: { [FORMULAIRE.cle]: { type: FORMULAIRE.verbe, args: ARGUMENTS_DU_FORMULAIRE }, [CASES.id]: { type: CASES.verbe, args: [['a']] } },
   });

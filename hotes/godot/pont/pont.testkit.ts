@@ -46,12 +46,14 @@ export function morceauxDe(appel: ReturnType<typeof table>['appel'], source: 'pa
 /** La vue d'une réponse qui en porte une. */
 export const vueDe = (r: Reponse): VueDuPont => (r as { vue: VueDuPont }).vue;
 
-/** Le bouton qui ouvre la fiche d'un héros du groupe (`groupe.heros`), sa carte nommée par son nom ou son rang. */
+/** Le bouton qui ouvre la fiche d'un héros du groupe : sur sa carte (`groupe.heros`), en combat sur son rang de
+ *  l'ordre du tour (`combat.ordre`) ; la carte ou le rang nommé par son nom, ou par son rang parmi ceux qui en portent un. */
 export function ficheDuHeros(vue: VueDuPont, heros: string | number): Bouton {
-  const cartes = vue.zones['groupe.heros'];
-  const carte = typeof heros === 'number' ? cartes[heros] : cartes.find((c) => c.nom === heros);
-  const bouton = carte?.elements.find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'));
-  if (!bouton) throw new Error(`aucune carte du groupe pour ${heros}`);
+  const deFiche = (e: Element): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/');
+  const porteurs = [...vue.zones['groupe.heros'], ...vue.zones['combat.ordre']].filter((p) => p.elements.some(deFiche));
+  const porteur = typeof heros === 'number' ? porteurs[heros] : porteurs.find((c) => c.nom === heros);
+  const bouton = porteur?.elements.find(deFiche);
+  if (!bouton) throw new Error(`aucune carte du groupe ni rang de l’ordre du tour pour ${heros}`);
   return bouton;
 }
 

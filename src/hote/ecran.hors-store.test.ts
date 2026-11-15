@@ -157,7 +157,7 @@ describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
 
 describe('la carte d’un héros lit l’en-tête de sa fiche, pas la fiche (#3975)', () => {
   it('dessiner l’écran sans fiche ouverte ne calcule aucune fiche', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(nouvelEntete('porte-close', { graine: 7 }), () => {});
     try {
       const etat = partie.etat();
       const ns = fiches as unknown as Record<string, unknown>;

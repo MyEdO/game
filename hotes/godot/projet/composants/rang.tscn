@@ -1,63 +1,88 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 [ext_resource type="Theme" path="res://art/rang.tres" id="t_rang"]
+[ext_resource type="Theme" path="res://art/discret.tres" id="t_discret"]
 
-[node name="Rang" type="VBoxContainer"]
+[node name="Rang" type="PanelContainer"]
 size_flags_horizontal = 0
 theme = ExtResource("t_rang")
+theme_type_variation = &"Enveloppe"
+
+[node name="Colonne" type="VBoxContainer" parent="."]
 theme_type_variation = &"PileTassee"
 
-[node name="Rangee" type="HBoxContainer" parent="."]
+[node name="Rangee" type="HBoxContainer" parent="Colonne"]
 theme_type_variation = &"RangeeSerree"
 
-[node name="Cadre" type="PanelContainer" parent="Rangee"]
+[node name="Cadre" type="PanelContainer" parent="Colonne/Rangee"]
 size_flags_vertical = 4
 
-[node name="ton" type="Node" parent="Rangee/Cadre"]
+[node name="ton" type="Node" parent="Colonne/Rangee/Cadre"]
 script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"
 
-[node name="Pile" type="VBoxContainer" parent="Rangee/Cadre"]
-theme_type_variation = &"PileTassee"
-
-[node name="Portrait" type="HBoxContainer" parent="Rangee/Cadre/Pile"]
+[node name="Portrait" type="HBoxContainer" parent="Colonne/Rangee/Cadre"]
 alignment = 1
 
-[node name="Zone" type="Node" parent="Rangee/Cadre/Pile/Portrait"]
+[node name="Zone" type="Node" parent="Colonne/Rangee/Cadre/Portrait"]
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("portrait")
+formes = PackedStringArray("portrait:portraitDuRang")
 
-[node name="Vie" type="HBoxContainer" parent="Rangee/Cadre/Pile"]
+[node name="Pile" type="VBoxContainer" parent="Colonne/Rangee"]
+size_flags_vertical = 4
+theme_type_variation = &"PileTassee"
 
-[node name="Zone" type="Node" parent="Rangee/Cadre/Pile/Vie"]
+[node name="Tete" type="HBoxContainer" parent="Colonne/Rangee/Pile"]
+theme_type_variation = &"RangeeSerree"
+
+[node name="Nom" type="Label" parent="Colonne/Rangee/Pile/Tete"]
+custom_minimum_size = Vector2(130, 0)
+size_flags_vertical = 4
+mouse_filter = 1
+text_overrun_behavior = 3
+
+[node name="nom" type="Node" parent="Colonne/Rangee/Pile/Tete/Nom"]
+script = ExtResource("1_liaison")
+champ = "nom"
+
+[node name="infobulle" type="Node" parent="Colonne/Rangee/Pile/Tete/Nom"]
+script = ExtResource("1_liaison")
+champ = "nom"
+propriete = &"tooltip_text"
+
+[node name="ton" type="Node" parent="Colonne/Rangee/Pile/Tete/Nom"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="Fiche" type="HBoxContainer" parent="Colonne/Rangee/Pile/Tete"]
+size_flags_vertical = 4
+theme = ExtResource("t_discret")
+
+[node name="Zone" type="Node" parent="Colonne/Rangee/Pile/Tete/Fiche"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("fiche/")
+repli = true
+
+[node name="Vie" type="HBoxContainer" parent="Colonne/Rangee/Pile"]
+
+[node name="Zone" type="Node" parent="Colonne/Rangee/Pile/Vie"]
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("blessures")
 formes = PackedStringArray("jauge:vie")
 
-[node name="Nom" type="Label" parent="Rangee"]
-custom_minimum_size = Vector2(80, 0)
-size_flags_vertical = 4
-autowrap_mode = 3
-
-[node name="nom" type="Node" parent="Rangee/Nom"]
-script = ExtResource("1_liaison")
-champ = "nom"
-
-[node name="ton" type="Node" parent="Rangee/Nom"]
-script = ExtResource("1_liaison")
-champ = "ton"
-propriete = &"theme_type_variation"
-
-[node name="Round" type="PanelContainer" parent="."]
+[node name="Round" type="PanelContainer" parent="Colonne"]
 size_flags_horizontal = 0
 theme_type_variation = &"Medaillon"
 
-[node name="Zone" type="Node" parent="Round" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Colonne/Round" node_paths=PackedStringArray("masque")]
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("round")

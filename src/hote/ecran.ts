@@ -93,11 +93,14 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
    * chaque combattant de l'ordre du tour en vue en rang `ordre/<id>`, celui qui joue en bas : son portrait, ses
    * Blessures en jauge ; celui qui joue en `alerte`, un ennemi en `echec` ; ceux qui ont déjà joué ce round au-dessus,
    * le premier d'entre eux portant en ligne `round` le round qui commence avec lui.
+   * un héros du groupe y porte le bouton qui ouvre sa fiche (`fiche/<id>`), le même qu'à sa carte hors combat.
    */
   'combat.ordre': Entite[];
   /**
-   * l'actif en entité : ses Blessures et son Mouvement en jauges, son Avantage, son Action, chacun de ses États en
-   * puce.
+   * l'actif en entité : son portrait, ses Blessures en jauge, son Avantage en puce, son Action en puce, en `reussite`
+   * tant qu'elle reste à jouer, chacun de ses États en puce.
+   * son Mouvement en entité `mouvement` : un jeton par case (`jeton/<n>`), en `reussite` tant qu'il reste, puis ce qui
+   * reste sur le total en ligne `reste`.
    */
   'combat.actif': Entite[];
   /**
@@ -136,7 +139,8 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
   'dialogue.reponses': Bouton[];
   /** le titre du journal. */
   'journal.titre': Ligne[];
-  /** chaque héros du groupe en carte (`herosDuGroupe`) : sa carrière, ses Blessures, le bouton qui ouvre sa fiche,
+  /** hors combat, chaque héros du groupe en carte (`herosDuGroupe`) ; en combat, aucune : l'ordre du tour les porte.
+   *  Chaque carte : sa carrière, ses Blessures, le bouton qui ouvre sa fiche,
    *  pressé quand elle est ouverte, qui la ferme alors, ses États, puis ce que la fenêtre dit de lui : le jet qu'il jette
    *  en route et les gestes qui le désignent, sa nuit à la halte ; avant le lancement, « Renvoyer », dont le `jeu` est
    *  l'intention du noyau qui le renvoie (`intentionDeRenvoi`), refusé avec sa raison (`refusDeRenvoyer`). */
@@ -843,13 +847,23 @@ function issueDeLEtape(etat: Jeu): Element[] {
 /** Une jauge de `courant` sur `max`. */
 const jauge = (id: string, libelle: string, [courant, max]: readonly [number, number]): Element => ({ type: 'jauge', id, ton: 'neutre', libelle, courant, max, texte: t('ecran.jauge', { courant, max }) });
 
-/** L'actif du combat : son nom, ses Blessures et son Mouvement en jauges, puis son Avantage, son Action et chacun de
- *  ses États en puces. */
+/** Le Mouvement de l'actif, `[restant, total]` : un jeton par case, en `reussite` tant qu'il reste, puis ce qui reste. */
+const mouvementEnJetons = ([restant, total]: readonly [number, number]): Entite => ({
+  type: 'entite', id: 'mouvement', ton: 'neutre', nom: t('ecran.jauge.mouvement'),
+  elements: [
+    ...Array.from({ length: total }, (_, i) => puce(`jeton/${i}`, t('ecran.jauge', { courant: i + 1, max: total }), null, null, i < restant ? 'reussite' : 'neutre')),
+    ligne('reste', t('ecran.jauge', { courant: restant, max: total })),
+  ],
+});
+
+/** L'actif du combat : son nom, son portrait, ses Blessures en jauge, son Mouvement en jetons (`mouvementEnJetons`),
+ *  puis son Avantage, son Action et chacun de ses États en puces. */
 const actifDuCombat = (actif: NonNullable<Combat['actif']>): Entite => ({
   type: 'entite', id: actif.id, ton: 'neutre', nom: actif.nom,
   elements: [
+    { type: 'portrait', id: 'portrait', combattant: actif.id },
     jauge('blessures', t('ecran.jauge.blessures'), actif.pb),
-    jauge('mouvement', t('ecran.jauge.mouvement'), actif.mouvement),
+    mouvementEnJetons(actif.mouvement),
     puce('avantage', t('ecran.avantage'), String(actif.avantage)),
     puce('action', t('ecran.action'), t(`ecran.action.${actif.action}`), null, actif.action === 'libre' ? 'reussite' : 'neutre'),
     ...etatsEnPuces(actif.etats),
@@ -898,8 +912,9 @@ function offresDuCombat(c: Combat): Choix[] {
 /** L'ordre du tour en vue (`ordreEnVue`), du dernier à jouer en haut à celui qui joue en bas : ceux qui ont déjà joué ce
  *  round (avant `battle.turn` dans `battle.order`) jouent au round suivant, au-dessus de ceux qui restent. Chaque
  *  combattant en rang (`ordre/`) : son portrait, ses Blessures en jauge ; celui qui joue en `alerte`, un ennemi en
- *  `echec` ; le premier du round suivant porte le round qui commence avec lui (`round`). */
-function ordreDuTour(etat: Jeu, c: Combat): Entite[] {
+ *  `echec` ; le premier du round suivant porte le round qui commence avec lui (`round`) ; un héros du groupe, le bouton
+ *  qui ouvre sa fiche (`boutonDeFiche`), pressé quand elle est ouverte (`ouverte`), qui la ferme alors. */
+function ordreDuTour(etat: Jeu, c: Combat, ouverte: FicheOuverte | null): Entite[] {
   const b = garanti(etat.battle, 'ordre', 'combat en cours');
   const aJoue = (id: string): boolean => b.order.indexOf(id) < b.turn;
   const ordre = ordreEnVue(etat);
@@ -907,12 +922,14 @@ function ordreDuTour(etat: Jeu, c: Combat): Entite[] {
   return [...ordre.filter((id) => !aJoue(id)), ...suivant].flatMap((id): Entite[] => {
     const x = porteurParId(etat, id);
     if (!x) return [];
+    const presse = ouverte?.porteur === id;
     return [{
       type: 'entite', id: `ordre/${id}`, ton: id === c.actif?.id ? 'alerte' : x.kind === 'ennemi' ? 'echec' : 'neutre', nom: x.label,
       elements: [
         { type: 'portrait', id: 'portrait', combattant: id },
         jauge('blessures', t('ecran.jauge.blessures'), [x.wounds.current, x.wounds.max]),
         ...(id === suivant[0] ? [ligne('round', t('ecran.round', { round: c.round + 1 }))] : []),
+        ...(etat.party.some((h) => h.id === id) ? [boutonDeFiche(`fiche/${id}`, t('ecran.fiche.ouvrir'), presse ? null : { porteur: id }, presse)] : []),
       ],
     }];
   }).reverse();
@@ -1148,7 +1165,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'fenetre.reglages': gestes.filter((g) => reglages.has(g.id) && !portes.has(g.id)),
     'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id) && !portes.has(g.id)),
     'combat.tour': c ? [ligne('tour', c.tour === null ? t('ecran.round', { round: c.round }) : t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
-    'combat.ordre': c ? ordreDuTour(etat, c) : [],
+    'combat.ordre': c ? ordreDuTour(etat, c, fiche) : [],
     'combat.actif': c?.actif ? [actifDuCombat(c.actif)] : [],
     'combat.avis': c ? avisDuCombat(c, fenetre !== null) : [],
     'combat.apercu': c ? [apercuDe(etat, c)].flatMap((a) => (a === null ? [] : [ligne('apercu', a)])) : [],
@@ -1158,7 +1175,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     })),
     ...zonesDuDialogue(etat, fenetre !== null),
     'journal.titre': c ? [ligne('journal', t('ecran.journal'))] : [],
-    'groupe.heros': herosDuGroupe(etat, fiche, gestesSurLesCartes),
+    'groupe.heros': c ? [] : herosDuGroupe(etat, fiche, gestesSurLesCartes),
     ...zonesDeLaFiche(etat, fiche),
     ...zonesDeLaCreation(etat, panneau && 'creation' in panneau ? panneau.creation : null),
     ...zonesDeLaPartie(etat, roster),

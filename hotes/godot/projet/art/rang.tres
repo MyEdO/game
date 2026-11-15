@@ -6,32 +6,32 @@
 [sub_resource type="StyleBoxEmpty" id="Sans_cadre"]
 
 [sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Laiton"]
-content_margin_left = 8.0
-content_margin_top = 8.0
-content_margin_right = 8.0
-content_margin_bottom = 8.0
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
 script = ExtResource("1_cadre")
 cadre = "laiton"
 
 [sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Laiton_de_l_actif"]
-content_margin_left = 13.0
-content_margin_top = 13.0
-content_margin_right = 13.0
-content_margin_bottom = 13.0
-script = ExtResource("1_cadre")
-cadre = "laiton"
-
-[sub_resource type="StyleBoxFlat" id="Fer_sur_cire"]
 content_margin_left = 8.0
 content_margin_top = 8.0
 content_margin_right = 8.0
 content_margin_bottom = 8.0
-bg_color = Color(0.58, 0.11, 0.08, 1)
+script = ExtResource("1_cadre")
+cadre = "laiton"
+
+[sub_resource type="StyleBoxFlat" id="Fer_sur_cire"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.34, 0.08, 0.06, 1)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
 border_width_bottom = 3
-border_color = Color(0.14, 0.14, 0.15, 1)
+border_color = Color(0.05, 0.045, 0.04, 1)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -46,7 +46,7 @@ neutre/font_sizes/font_size = 16
 neutre/fonts/font = ExtResource("2_titres")
 neutre/styles/panel = SubResource("Laiton")
 echec/base_type = &"PanelContainer"
-echec/colors/font_color = Color(0.8, 0.3, 0.22, 1)
+echec/colors/font_color = Color(0.953, 0.902, 0.784, 1)
 echec/font_sizes/font_size = 16
 echec/fonts/font = ExtResource("2_titres")
 echec/styles/panel = SubResource("Fer_sur_cire")

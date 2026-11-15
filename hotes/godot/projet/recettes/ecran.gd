@@ -40,8 +40,8 @@ func _recetter() -> void:
 	var ecran: Node = load("res://scenes/Ecran.tscn").instantiate()
 	root.add_child(ecran)
 	for vue in vues:
-		await _recetter_la_vue(_disposer(ecran, vue.disposition), vue)
-	var zones := _disposer(ecran, null)
+		await _recetter_la_vue(_disposer(ecran, vue.disposition, vue.combat), vue)
+	var zones := _disposer(ecran, null, false)
 	Zone.montrer_toutes(zones, {})
 	_verifier(not (ecran.get_node(SCENE).find_child("Cadre", true, false) as Control).visible, "sans fenêtre, le cadre de la fenêtre se cache")
 	for scene in _dedicaces(ECRANS):
@@ -57,9 +57,9 @@ func _recetter() -> void:
 
 
 ## Les zones de l'écran, la disposition de `disposition` posée (`Disposition.disposer`) : chacune rend son geste joué.
-func _disposer(ecran: Node, disposition: Variant) -> Array[Zone]:
+func _disposer(ecran: Node, disposition: Variant, en_combat: bool) -> Array[Zone]:
 	var posee := ecran.get_node(SCENE + "/Disposition") as Disposition
-	posee.disposer(disposition)
+	posee.disposer(disposition, en_combat)
 	_posees[posee.scene] = true
 	_journal = posee.journal
 	var zones := Zone.racines(ecran)

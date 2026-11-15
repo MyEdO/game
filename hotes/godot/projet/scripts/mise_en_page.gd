@@ -4,7 +4,7 @@
 ## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
 ## appui sur ce qui est porté et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
-## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
+## d'un point, le bas d'une fenêtre posée au-dessus du meuble de l'actif, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan, le point du plan sous le pointeur et
 ## sa case, le coin de ce qui se pose sous un lieu, la
@@ -75,6 +75,8 @@ const LACETS_DES_CAPS := {N = 0.0, NO = PI / 4.0, O = PI / 2.0, SO = 3.0 * PI / 
 const LACETS_DES_BORDS := {proue = 0.0, tribord = -PI / 2.0, poupe = PI, babord = PI / 2.0}
 ## L'écart, en pixels, entre une bulle et le point de l'écran qu'elle désigne.
 const ECART_DE_BULLE := 12.0
+## L'écart d'une fenêtre posée en bas de la scène au bas de la scène et au meuble de l'actif, en pixels.
+const ECART_DU_MEUBLE := 8.0
 ## La largeur, en pixels, au-delà de laquelle le texte d'une bulle se replie au mot (`Bulle`).
 const LARGEUR_DE_BULLE := 420.0
 ## La hauteur, au-dessus du sol de sa case, du nom d'une entité de la scène.
@@ -784,6 +786,12 @@ static func pivot_sur_la_case(angle: float, case: Vector2i, haut: float, dessus:
 ## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.
 static func bulle_au_dessus(point: Vector2, largeur: float, hauteur: float) -> Vector2:
 	return Vector2(point.x - largeur / 2.0, point.y - hauteur - ECART_DE_BULLE)
+
+
+## Le décalage vertical du bas d'une fenêtre posée en bas de la scène, au-dessus d'un meuble de `hauteur` (0 : aucun
+## meuble), à `ECART_DU_MEUBLE` de lui et du bas de la scène.
+static func au_dessus_du_meuble(hauteur: float) -> float:
+	return -ECART_DU_MEUBLE - (hauteur + ECART_DU_MEUBLE if hauteur > 0.0 else 0.0)
 
 
 ## L'échelle de projection d'une texture du sol dans le repère du volume, en mètres : un motif tous les

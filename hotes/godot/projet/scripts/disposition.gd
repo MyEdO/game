@@ -1,7 +1,8 @@
 ## La disposition de la fenêtre (#3328) : la scène d'éditeur, sans script, qui range les zones de la fenêtre qui tient
 ## la main. Celle que la vue nomme (`vue.disposition`, `res://ecrans/<disposition>.tscn`) quand elle existe, sinon la
-## générique (`GENERIQUE`) ; elle s'instancie juste après ce nœud, au-dessus du round, de l'ordre et de l'actif
-## (`Hud`), sous le dialogue et le groupe, et remplace la précédente.
+## générique (`GENERIQUE`) ; elle s'instancie juste après ce nœud, au-dessus du round, de l'ordre (`Hud`), du meuble de
+## l'actif (`Actif`) et de la fin du tour (`Tour`), sous le dialogue et le groupe, et remplace la précédente. En combat,
+## la générique se pose en bas au centre, au-dessus du meuble de l'actif quand il se montre, à sa place sinon.
 class_name Disposition
 extends Node
 
@@ -9,8 +10,13 @@ extends Node
 ## L'écran (`projet/scenes/Ecran.tscn`) se partage en trois : le journal à droite, le groupe au pied, et la scène
 ## (`Scene`), l'espace qui reste, que la fiche ouverte rétrécit à sa gauche, où se posent la disposition, le round en
 ## cartouche en haut à gauche (`Hud/Tour`, `Cartouche`), l'ordre du tour en colonne au bord gauche, celui qui joue en bas
-## (`Hud/Corps/Ordre`, chaque rang en `rang`), l'actif et le dialogue, et où se cadre le monde (`Monde.cadre`) ; rien
-## ne recouvre le groupe ni le journal. Le coin bas-droit
+## (`Hud/Corps/Ordre`, chaque rang en `rang`, celui qui joue en `rangDeLActif`, un héros avec le bouton de sa fiche),
+## le meuble de l'actif en bas au centre (`Actif`, en `meuble` : ses Blessures en jauge, son Mouvement en jetons, un
+## losange par case, son Action en sceau de cire, son Avantage, ses États, puis son portrait et son nom), la fin du tour
+## en bas à droite (`Tour`, la part du tour de `combat.offres`, `economie/aucun`, en `finDuTour` : « Fin du tour » en
+## gros bouton rond de laiton, les autres en pastilles discrètes à sa gauche), les avis du combat (`Hud/Corps/Gauche`)
+## et le dialogue, et où se cadre le monde (`Monde.cadre`) ; rien ne recouvre le groupe ni le journal. En combat, la
+## fenêtre générique se pose en bas au centre, au-dessus du meuble de l'actif. Le coin bas-droit
 ## de la fenêtre est réservé à la pastille du menu de la partie (`partie.menu`, `projet/scenes/MenuDeLaPartie.tscn`), qui
 ## ouvre au-dessus d'elle les gestes du groupe et de la partie (`groupe.gestes`, `partie.gestes`) : le journal s'arrête
 ## au-dessus d'elle (`Droite/Pile/Coin`), et, le journal caché, le bandeau des héros lui laisse sa largeur à droite
@@ -22,8 +28,8 @@ extends Node
 ## générique `projet/ecrans/fenetre.tscn` sinon. Une disposition dédiée range autrement les mêmes sources : une zone qui
 ## nomme des `ids` n'en montre que ces éléments, un id fini par `/` nommant toute la famille des ids qui commencent par
 ## lui, une zone sans `ids` ceux qu'aucune autre zone de sa source ne nomme (`Zone.montrer_toutes`), si bien qu'aucun
-## élément ne se perd. Les fenêtres de jet héritent du cadre `projet/cadres/fenetre_de_jet.tscn`, posé en bas à droite
-## de la scène, à l'écart du panneau de l'actif (`Hud/Corps/Gauche`) en haut à gauche. L'écran d'attaque
+## élément ne se perd. Les fenêtres de jet héritent du cadre `projet/cadres/fenetre_de_jet.tscn`, posé à droite de la
+## scène au-dessus de la fin du tour, à l'écart de l'ordre du tour au bord gauche. L'écran d'attaque
 ## (`projet/ecrans/cascade/attaque.tscn`) montre la cible,
 ## l'arme et ses pastilles, le jet de l'attaquant face à celui de la défense (le nombre à atteindre et le dé en gros),
 ## l'issue, les options du coup puis les gestes en rangée ; l'écran de Défense (`projet/ecrans/cascade/defense.tscn`),
@@ -87,18 +93,27 @@ const LIGNES_DU_JOURNAL := "journal.lignes"
 @export var journal: Control
 ## La place que le bandeau des héros réserve à droite au menu de la partie, tenue quand le journal est caché.
 @export var coin_du_pied: Control
+## Le meuble de l'actif, au-dessus duquel la générique se pose en combat.
+@export var actif: Control
 
 ## Le chemin de la scène posée, `""` avant la première.
 var scene := ""
 var _posee: Node = null
+var _en_combat := false
 
 
-## La scène de `disposition` posée (`null` : la générique) ; vrai si elle a remplacé la précédente, ses zones neuves.
-func disposer(disposition: Variant) -> bool:
+func _ready() -> void:
+	actif.resized.connect(_caler)
+	actif.visibility_changed.connect(_caler)
+
+
+## La scène de `disposition` posée (`null` : la générique), `en_combat` ou non ; vrai si elle a remplacé la précédente,
+## ses zones neuves.
+func disposer(disposition: Variant, en_combat: bool) -> bool:
 	var chemin := GENERIQUE
 	if disposition != null and ResourceLoader.exists("res://ecrans/%s.tscn" % disposition):
 		chemin = "res://ecrans/%s.tscn" % disposition
-	if chemin == scene:
+	if chemin == scene and en_combat == _en_combat:
 		return false
 	if _posee != null:
 		_posee.get_parent().remove_child(_posee)
@@ -108,4 +123,22 @@ func disposer(disposition: Variant) -> bool:
 	journal.visible = not Zone.racines(_posee).any(func(zone: Zone) -> bool: return zone.source == LIGNES_DU_JOURNAL)
 	coin_du_pied.visible = not journal.visible
 	scene = chemin
+	_en_combat = en_combat
+	_caler()
 	return true
+
+
+## En combat, la générique posée en bas au centre, à sa largeur minimale, au-dessus du meuble de l'actif s'il se
+## montre (`MiseEnPage.au_dessus_du_meuble`).
+func _caler() -> void:
+	if not _en_combat or scene != GENERIQUE:
+		return
+	var cadre := _posee as Control
+	var bas := MiseEnPage.au_dessus_du_meuble(actif.size.y if actif.visible else 0.0)
+	cadre.anchor_left = 0.5
+	cadre.anchor_right = 0.5
+	cadre.offset_left = 0.0
+	cadre.offset_right = 0.0
+	cadre.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	cadre.offset_top = bas
+	cadre.offset_bottom = bas

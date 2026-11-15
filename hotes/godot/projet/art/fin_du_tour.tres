@@ -1,0 +1,87 @@
+[gd_resource type="Theme" load_steps=7 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
+
+[sub_resource type="StyleBoxFlat" id="Repos"]
+bg_color = Color(0.66, 0.52, 0.25, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.36, 0.26, 0.1, 1)
+corner_radius_top_left = 44
+corner_radius_top_right = 44
+corner_radius_bottom_right = 44
+corner_radius_bottom_left = 44
+shadow_color = Color(0, 0, 0, 0.55)
+shadow_size = 4
+
+[sub_resource type="StyleBoxFlat" id="Survol"]
+bg_color = Color(0.85, 0.7, 0.38, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.36, 0.26, 0.1, 1)
+corner_radius_top_left = 44
+corner_radius_top_right = 44
+corner_radius_bottom_right = 44
+corner_radius_bottom_left = 44
+shadow_color = Color(0, 0, 0, 0.55)
+shadow_size = 4
+
+[sub_resource type="StyleBoxFlat" id="Presse"]
+bg_color = Color(0.36, 0.26, 0.1, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.85, 0.7, 0.38, 1)
+corner_radius_top_left = 44
+corner_radius_top_right = 44
+corner_radius_bottom_right = 44
+corner_radius_bottom_left = 44
+
+[sub_resource type="StyleBoxFlat" id="Ferme"]
+bg_color = Color(0.16, 0.155, 0.15, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.05, 0.045, 0.04, 1)
+corner_radius_top_left = 44
+corner_radius_top_right = 44
+corner_radius_bottom_right = 44
+corner_radius_bottom_left = 44
+
+[sub_resource type="StyleBoxFlat" id="Focus"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.953, 0.902, 0.784, 1)
+corner_radius_top_left = 46
+corner_radius_top_right = 46
+corner_radius_bottom_right = 46
+corner_radius_bottom_left = 46
+expand_margin_left = 3.0
+expand_margin_top = 3.0
+expand_margin_right = 3.0
+expand_margin_bottom = 3.0
+
+[resource]
+Button/colors/font_color = Color(0.133, 0.102, 0.067, 1)
+Button/colors/font_hover_color = Color(0.133, 0.102, 0.067, 1)
+Button/colors/font_focus_color = Color(0.133, 0.102, 0.067, 1)
+Button/colors/font_pressed_color = Color(0.953, 0.902, 0.784, 1)
+Button/colors/font_hover_pressed_color = Color(0.953, 0.902, 0.784, 1)
+Button/colors/font_disabled_color = Color(0.42, 0.4, 0.37, 1)
+Button/font_sizes/font_size = 16
+Button/fonts/font = ExtResource("1_titres")
+Button/styles/normal = SubResource("Repos")
+Button/styles/hover = SubResource("Survol")
+Button/styles/pressed = SubResource("Presse")
+Button/styles/hover_pressed = SubResource("Presse")
+Button/styles/disabled = SubResource("Ferme")
+Button/styles/focus = SubResource("Focus")

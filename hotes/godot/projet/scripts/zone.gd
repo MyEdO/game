@@ -1,7 +1,8 @@
 ## Une zone de l'écran (#3328, `src/hote/elements.ts`) : les éléments d'une source dessinés dans le conteneur qui la
 ## porte, son parent, chacun par le composant de son type (`res://composants/<type>.tscn`, une scène sans script), ou
-## par celui que la zone lui donne à cet usage (`formes`, #3935).
-## Les éléments se réconcilient par type et par id : un élément déjà dessiné garde son nœud, un élément parti le quitte,
+## par celui que la zone lui donne à cet usage (`formes`, #3935), à son ton s'il en a un.
+## Les éléments se réconcilient par type et par id : un élément déjà dessiné garde son nœud tant que sa forme ne change
+## pas (son ton peut la changer), un élément parti le quitte,
 ## l'ordre suit la source ; en `ajout` (un journal), un élément déjà dessiné reste tel quel et le nouveau s'ajoute au
 ## pied, montré par le défilement qui le contient. Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`,
 ## `Saisie`, `Portrait` et `Dessin` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, rangé comme une source
@@ -27,7 +28,8 @@ signal geste(jeu: Dictionary)
 @export var repli := false
 ## Sans initialiseur : l'export Web de Godot 4.7 perd la valeur posée d'un `PackedStringArray` initialisé par `[]`.
 @export var ids: PackedStringArray
-## La forme d'un type d'élément dans cette zone, `<type>:<forme>` : le composant `res://composants/<forme>.tscn`.
+## La forme d'un type d'élément dans cette zone, `<type>:<forme>` : le composant `res://composants/<forme>.tscn` ;
+## `<type>.<ton>:<forme>`, celle d'un élément de ce type à ce ton, qui prime.
 @export var formes: PackedStringArray
 
 const META := &"element"
@@ -47,8 +49,13 @@ func montrer(elements: Array) -> void:
 		var noeud: Node = dessines.get(cle)
 		if noeud != null and ajout:
 			continue
+		var composant := "res://composants/%s.tscn" % _forme(e)
+		if noeud != null and noeud.scene_file_path != composant:
+			conteneur.remove_child(noeud)
+			noeud.queue_free()
+			noeud = null
 		if noeud == null:
-			noeud = load("res://composants/%s.tscn" % _forme(e.type)).instantiate()
+			noeud = load(composant).instantiate()
 			noeud.set_meta(META, cle)
 			conteneur.add_child(noeud)
 		conteneur.move_child(noeud, -1)
@@ -74,12 +81,14 @@ func montrer(elements: Array) -> void:
 		pages.set_tab_hidden(pages.get_tab_idx_from_control(conteneur as Control), not conteneur.get_children().any(func(n: Node) -> bool: return n.has_meta(META)))
 
 
-## Le composant du type `type` dans cette zone : celui de `formes`, sinon celui de son nom.
-func _forme(type: String) -> String:
-	for forme in formes:
-		if forme.begins_with(type + ":"):
-			return forme.trim_prefix(type + ":")
-	return type
+## Le composant de l'élément `e` dans cette zone : celui de `formes` à son type et à son ton, sinon à son type, sinon
+## celui du nom de son type.
+func _forme(e: Dictionary) -> String:
+	for prefixe in ["%s.%s:" % [e.type, e.get("ton", "")], e.type + ":"]:
+		for forme in formes:
+			if forme.begins_with(prefixe):
+				return forme.trim_prefix(prefixe)
+	return e.type
 
 
 ## La clé de l'élément `e`, que porte son composant (`META`) : son type et son id.

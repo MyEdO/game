@@ -50,11 +50,12 @@ extends Node
 ## contrôle, chacun à la couleur de son ton, et pose sous chaque point son composant (`point` : son nom, puis ses
 ## éléments). Le `detail` d'une puce ou d'une ligne se pose sur sa `Bulle` (`projet/scripts/bulle.gd`), qui couvre le
 ## composant et montre au survol la bulle du thème repliée au mot. Les héros du groupe se rangent en cartes au pied de
-## l'écran (`projet/composants/heros.tscn` : le portrait, le nom, la carrière, les Blessures en trait, puis une ligne
+## l'écran hors combat (`projet/composants/heros.tscn` : le portrait, le nom, la carrière, les Blessures en trait, puis une ligne
 ## de ce que la carte porte d'autre), « Quitter la partie » et « Nouveau héros » au pied du journal ; avant le lancement, les
-## pré-tirés à recruter et les campagnes à lancer se rangent en deux colonnes sur la scène ; la barre du combat (`combat.offres`) les surmonte, chacun de ses choix
-## en onglet, sauf la part du tour (`economie/aucun`), au panneau de l'actif ; la création ouverte se pose au centre,
-## sa page titrée en tête, ses rubriques défilant dessous, ses gestes en rangée au pied ; la conversation se pose en bas
+## pré-tirés à recruter et les campagnes à lancer se rangent en deux colonnes sur la scène ; la barre du combat
+## (`combat.offres`) tient le pied, chacun de ses choix en onglet, sauf la part du tour (`economie/aucun`), en bas à
+## droite de la scène ; la création ouverte se pose au centre, sa page titrée en tête, ses rubriques défilant dessous,
+## ses gestes en rangée au pied ; la conversation se pose en bas
 ## au centre, son interlocuteur en titre, sa réplique, puis ses réponses l'une sous l'autre ; la fiche ouverte se pose
 ## à gauche de la scène, qu'elle rétrécit, en statbloc au thème `art/statbloc.tres` (papier, encre), chaque section en
 ## onglet, la possession choisie et ses gestes sous ses sections.
@@ -315,7 +316,7 @@ func _suivre(reponse: Dictionary) -> void:
 	if _vue.lumiere != null:
 		_lumiere.eclairer(_vue.lumiere, _vue.plateau.metresParCase)
 	_musique.jouer(_vue.musique)
-	if _disposition.disposer(_vue.disposition):
+	if _disposition.disposer(_vue.disposition, _vue.projection.combat != null):
 		_relier()
 	Portrait.corps = _vue.corps.combattants
 	for source in reponse.zones:
