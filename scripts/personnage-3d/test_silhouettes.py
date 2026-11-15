@@ -3,7 +3,8 @@ erreurs nommées ; silhouettes.raboter_sous_correction, rabot mesuré sur les cl
 d'étirement, du repère du mesh au repère monde et retour ; formes.raboter, rabot des clés marquées à leur force et sa
 pente ; silhouettes.parts_des_fautes, part de chaque nom aux sites en faute ; silhouettes.mesurer_domaine,
 mesure incrémentale égale à la porte de construction ; silhouettes.fondu, une part par nœud ; silhouette à os et socle
-du rabot (#4002 issuecomment-6826035694)."""
+du rabot (#4002 issuecomment-6826035694) ; silhouettes.ajuster, corps amené sur un donneur sans froisser ses arêtes
+(#3173)."""
 import contextlib
 import io
 import json
@@ -19,12 +20,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 import silhouettes  # noqa: E402
 import humanoide  # noqa: E402
-from formes import PENTE_DU_RABOT, RABOT, STAGNATION_M, aux_noeuds, raboter, rapports, region_locale, retournees_par  # noqa: E402
+from formes import (PENTE_DU_RABOT, RABOT, STAGNATION_M, aux_noeuds, raboter, rapports,  # noqa: E402
+                    region_locale, retournees_par)
 import noms_silhouettes  # noqa: E402
 from pas_des_poids import melanges_par_lots, minimum_du_carre  # noqa: E402
 from poids import PASSES_MAX, GroupePondere, decouper_trace, etats_ponderes, extremes, integrer_trace, preparer_correction, verifier_repos_cuit  # noqa: E402
 from seuils import ETIREMENT_DES_CLES, ETIREMENT_EN_CLIP, MAJORITE_DU_POIDS, SOL_TOLERANCE_M  # noqa: E402
-from silhouettes import (AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, correction, fondu,  # noqa: E402
+from silhouettes import (AJUSTEMENT, AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, ajuster, correction, fondu,  # noqa: E402
                          mesurer_domaine, par_nom, raboter_sous_correction, refuser_les_inertes)
 from cuisson_gabarit import etats_aux_facteurs_neutres, etats_du_gabarit  # noqa: E402
 
@@ -137,6 +139,47 @@ def kkt(x, aretes, noeud, fixe, lus, d0):
     systeme = numpy.block([[hessienne, lignes.T], [lignes, numpy.zeros((len(lignes), len(lignes)))]])
     solution = numpy.linalg.lstsq(systeme, numpy.concatenate([gradient, cibles]), rcond=None)[0]
     return solution[:taille].reshape(3, nv).T
+
+
+class Ajustement(unittest.TestCase):
+    """Une grille plane de 13 × 13 sommets au pas de 0,1 m, le dernier sommet jumeau du premier de sa rangée ; le
+    donneur `plie` est la grille levée de 3 cm dont les colonnes 5 à 7 sont rabattues sur la colonne 6."""
+    COTE = 13
+
+    def setUp(self):
+        n = self.COTE
+        self.x = numpy.array([(0.1 * i, 0.1 * j, 0.0) for j in range(n) for i in range(n)] + [(0.0, 0.0, 0.0)])
+        self.noeud = numpy.arange(len(self.x))
+        self.noeud[-1] = 0
+        rang = numpy.arange(n * n).reshape(n, n)
+        self.aretes = numpy.concatenate([numpy.stack([rang[:, :-1].ravel(), rang[:, 1:].ravel()], axis=1),
+                                         numpy.stack([rang[:-1].ravel(), rang[1:].ravel()], axis=1)])
+
+    @staticmethod
+    def plie(y):
+        dans = (y[:, 0] > 0.45) & (y[:, 0] < 0.75)
+        return numpy.stack([numpy.where(dans, 0.6, y[:, 0]), y[:, 1], numpy.full(len(y), 0.03)], axis=1)
+
+    def test_un_donneur_translate_se_rejoint_sans_changer_une_arete(self):
+        y, raidies = ajuster(self.x, self.noeud, self.aretes, lambda y: self.x + (0.0, 0.0, 0.05))
+        numpy.testing.assert_allclose(y, self.x + (0.0, 0.0, 0.05), atol=1e-7)
+        self.assertEqual(raidies, 0)
+
+    def test_un_pli_du_donneur_ne_raidit_que_ses_aretes_et_laisse_le_reste_au_donneur(self):
+        self.assertEqual(float(rapports(self.x, self.plie(self.x) - self.x, self.aretes).min()), 0.0)
+        lus = []
+        y, raidies = ajuster(self.x, self.noeud, self.aretes, lambda y: lus.append(y) or self.plie(y))
+        r = rapports(self.x, y - self.x, self.aretes)
+        self.assertGreaterEqual(r.min(), AJUSTEMENT['bornes'][0])
+        self.assertLessEqual(r.max(), AJUSTEMENT['bornes'][1])
+        pres = (numpy.abs(self.x[self.aretes, 0] - 0.6) < 0.25).all(axis=1)
+        self.assertGreater(raidies, 0)
+        self.assertLessEqual(raidies, int(pres.sum()))
+        loin = numpy.abs(self.x[:, 0] - 0.6) > 0.35
+        self.assertLess(numpy.linalg.norm(y - self.plie(y), axis=1)[loin].max(), 0.005)
+        numpy.testing.assert_allclose(y[:, 2], 0.03, atol=1e-6)
+        numpy.testing.assert_array_equal(y[-1], y[0])
+        self.assertGreater(numpy.abs(lus[-1] - self.x).max(), 0.02)
 
 
 class Correction(unittest.TestCase):
