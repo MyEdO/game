@@ -168,7 +168,9 @@ import type { Get, Set } from './flowTypes';
 import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
-import { lieuDuGroupe, placeById, placeServices, type WorldMap } from './worldMap';
+import { lieuDuGroupe, placeById, type WorldMap } from './worldMap';
+import { hebergementsDuLieu } from './lieuFlow';
+import { refuserGeste } from './refusVisible';
 import { sceneDuRegistre } from './monde/registreDesScenes';
 import { garanti } from '../lib/garanti';
 import { stepPrecision } from './rollSeam';
@@ -642,17 +644,17 @@ export interface OpenRestOpts {
   travelMarch?: string[];
 }
 
-/** Le repos qu'offre l'endroit où se tient le groupe : à un lieu de la carte, l'auberge de ses services
- *  (`placeServices`), à la qualité de la scène du lieu ; ailleurs, la scène à la position du groupe
- *  (`restPlacesHere`) ; `null` : aucun. */
-export function reposDuLieu(get: Get): OpenRestOpts | null {
+/** Le repos qu'offre l'endroit où se tient le groupe : à un lieu de la carte, l'établissement d'hébergement
+ *  `hebergementId` (`hebergementsDuLieu`), ses places et son nom d'auteur (le nom du lieu sans lui), à la qualité de la scène
+ *  du lieu ; ailleurs, la scène à la position du groupe (`restPlacesHere`) ; `null` : aucun. */
+export function reposDuLieu(get: Get, hebergementId?: string): OpenRestOpts | null {
   const s = get();
   const ici = lieuDuGroupe(s);
   if (ici) {
-    const scene = sceneDuRegistre(ici.scene.id);
-    const auberge = placeServices(ici, scene).find((svc) => svc.category === 'auberge' && svc.rest);
-    const quality = scene?.rest?.quality;
-    return auberge?.rest ? { places: auberge.rest, lieu: libelleOuAbsence(ici, 'lieu', ici.id), ...(quality ? { quality } : {}) } : null;
+    const etablissement = hebergementsDuLieu(s).find((svc) => svc.id === hebergementId);
+    const quality = sceneDuRegistre(ici.scene.id)?.rest?.quality;
+    const lieu = etablissement?.nommeParLAuteur ? dataLabel(etablissement.label) : libelleOuAbsence(ici, 'lieu', ici.id);
+    return etablissement?.rest ? { places: etablissement.rest, lieu, ...(quality ? { quality } : {}) } : null;
   }
   const scene = restPlacesHere(s);
   return scene && { places: scene.places, lieu: sceneLieu(get), quality: scene.quality };
@@ -662,7 +664,7 @@ export function reposDuLieu(get: Get): OpenRestOpts | null {
 export function ouvrirLeRepos(get: Get, set: Set, opts: OpenRestOpts): void {
   const st = get();
   if (st.battle || st.pendingRest) return;
-  const places = opts.places ?? { maison: true, camp: true };
+  const places = { ...(opts.places ?? { maison: true, camp: true }) }; // #2097
   const perHero: PendingRest['perHero'] = {};
   for (const h of st.party) {
     if (h.dead) continue;
@@ -807,9 +809,10 @@ export function validationsDuRepos(get: Get, set: Set) {
 
 export function creerActionsDuRepos(get: Get, set: Set) {
   return {
-    ouvrirLeRepos: () => {
-      const repos = reposDuLieu(get);
+    ouvrirLeRepos: (hebergementId) => {
+      const repos = reposDuLieu(get, hebergementId);
       if (repos) ouvrirLeRepos(get, set, repos);
+      else if (lieuDuGroupe(get())) refuserGeste(get, set, t('lieu.hebergementInconnu', { service: hebergementId ?? '' }));
     },
     offrirLeRepos: (opts) => ouvrirLeRepos(get, set, opts),
     // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).

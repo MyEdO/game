@@ -723,12 +723,14 @@ type FeuilleOuReservee<T extends TypeEntite> = z.ZodUnion<readonly [z.ZodType<Id
 /** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`) ; sans
  *  `extra`, la sous-liste se nomme seule (`ref('material', undefined, 'objet')`) et la sortie reste `{ id }`.
  *  Sur une PORTÉE LOCALE, `{ id }` d'une entrée de sa collection. Sur une feuille `ouReserve(idDe(type), …)`,
- *  `{ id }` d'une entrée du catalogue ou d'une valeur réservée. */
+ *  `{ id }` d'une entrée du catalogue ou d'une valeur réservée. Sur une feuille `idDe(type, …, { portee, nue })`,
+ *  `{ id }` d'une entrée du catalogue ou de la collection de sa portée. */
 export function ref(portee: PorteeLocale): ReturnType<typeof objetDeRef<z.ZodString, Record<never, never>>>;
 export function ref<T extends TypeEntite>(feuille: FeuilleOuReservee<T>): ReturnType<typeof objetDeRef<FeuilleOuReservee<T>, Record<never, never>>>;
+export function ref(feuille: z.ZodType<string, string>): ReturnType<typeof objetDeRef<z.ZodType<string, string>, Record<never, never>>>;
 export function ref<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, extra?: undefined, sousListe?: S): ReturnType<typeof objetDeRef<z.ZodType<Id<T, S>, string>, Record<never, never>>>;
 export function ref<T extends TypeEntite, E extends Record<string, z.ZodType>, S extends SousListe | undefined = undefined>(type: T, extra: E, sousListe?: S): ReturnType<typeof objetDeRef<z.ZodType<Id<T, S>, string>, E>>;
-export function ref(cible: TypeEntite | PorteeLocale | FeuilleOuReservee<TypeEntite>, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {
+export function ref(cible: TypeEntite | PorteeLocale | FeuilleOuReservee<TypeEntite> | z.ZodType<string, string>, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {
   const extraDuPorteur = extra ?? {};
   const feuille = typeof cible === 'string' ? idDe(cible, sousListe) : '_zod' in cible ? cible : feuilleLocale(cible);
   return objetDeRef(feuille, extraDuPorteur, metasExtra(extra), 'ref', extraDuPorteur);

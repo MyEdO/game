@@ -37,7 +37,7 @@ function tavernMap(): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
     places: [
-      { id: 'A', label: 'Auberge du Cerf', pos: { x: 0, y: 0 }, scene: { id: 'auberge-a' } },
+      { id: 'A', label: 'Auberge du Cerf', pos: { x: 0, y: 0 }, scene: { id: 'auberge-a' }, services: [{ id: 'cerf', kind: { id: 'auberge' } }] },
       { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'altdorf-b' }, market: { taille: 4, richesse: 4, produits: ['commerce-terre'] } },
     ],
     routes: [],
@@ -69,7 +69,7 @@ describe('#352 — Recueillir des informations à l’auberge (activité canoniq
   it('succès (Ragot élevé) : une rumeur ajoutée au board tradeRumours, aucun Exténué, l’horloge avance', () => {
     launch(60, 7);
     const before = get().gameTime;
-    recueillirLesRumeurs(get, set);
+    recueillirLesRumeurs(get, set, 'cerf');
     drainCascade();
     expect(get().tradeRumours.length).toBe(1);
     expect(get().tradeRumours[0].placeId).toBe('B'); // AUTRE Lieu à `market`
@@ -80,7 +80,7 @@ describe('#352 — Recueillir des informations à l’auberge (activité canoniq
   it('échec (aucune Compétence Ragot) : aucune rumeur, Exténué octroyé (EDOC 8 l.133), l’horloge avance quand même', () => {
     launch(0, 42);
     const before = get().gameTime;
-    recueillirLesRumeurs(get, set);
+    recueillirLesRumeurs(get, set, 'cerf');
     drainCascade();
     expect(get().tradeRumours.length).toBe(0);
     expect(stacks(get().party[0], 'extenue')).toBeGreaterThan(0);
