@@ -9,5 +9,5 @@ MANIFESTE = {
     'couvre': [],
     'emplacements': {'poitrine': {'os': 'spine_03', 'position': [0, -0.002592, 0.175228], 'rotation': [0.226485, 0, 0]}},
 }
-MATERIAUX = {'acier': ('metal', ((0.7, 0.72, 0.75), 0.0, 0.87))}
+MATERIAUX = {'acier': ('metal', 'acier-battu')}
 BUDGET_TRIANGLES = 948

@@ -10,6 +10,8 @@ le geste ; un défaut de la base, du kit partagé ou d'une pièce voisine revien
 - **Lis le skill `.agents/skills/creer-un-personnage-3d/SKILL.md`** et suis sa procédure : elle porte
   la chaîne, les commandes et les interdits. Le contrat de l'élément et l'illustration directrice
   nommés au brief font la barre.
+- **Chaque surface nomme sa matière du catalogue** (procédure, section 3), jamais un aplat ; une matière qui manque
+  revient à l'orchestrateur. Tes rendus passent par `rendu.py --preset`, qui habille la pièce comme le jeu.
 - **Ta source vit dans le dépôt** : un élément sur base dans `scripts/personnage-3d/element/<base>/<categorie>--<valeur>/`
   (`donnees.py`, `modele.py`, section 3 de la procédure), un véhicule dans `scripts/personnage-3d/vehicule/<type>/`
   (chapitre 9) : les dossiers que le brief te donne. Tu construis par le constructeur commun, jamais par un

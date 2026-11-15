@@ -1087,8 +1087,11 @@ func choisir_l_embleme(id: String, embleme: String) -> String:
 ## si la palette colore son emplacement de palette, si elle est `blason` sous un emblème demandé, si la texture de
 ## sa `matiere` est au projet, ou, sur la base, si `reliefs` lui donne un facteur autre que 1 ; le `normal_scale` de ce
 ## matériau propre est celui du matériau actif, remplaçant compris, multiplié par ce facteur (1 sans facteur). La
-## texture de la `matiere` habille la surface comme le monde (section « Monde », `VolumeDeScene.texturer`), projetée
-## sur les trois axes du repère du mesh, l'albédo à blanc ; la couleur y remplace l'albédo du GLB, texture comprise, pour
+## texture de la `matiere` habille la surface comme le monde (section « Monde », `VolumeDeScene.texturer`), l'albédo à
+## blanc : sa texture neutre, `<matiere>.neutre.jpg`, si la palette colore la surface et qu'elle est au projet, sa
+## texture sinon (#4313) ; lue aux UV du GLB, en mètres, sur une surface qui n'est pas `blason` d'un élément monté ou de
+## la base, projetée sur les trois axes du repère du mesh sur une surface `blason` et sur un véhicule ou une pièce
+## d'Amélioration (section « Corps d'un combattant »). La couleur y remplace l'albédo du GLB, texture comprise, pour
 ## que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; l'emblème en
 ## devient la couche *detail* (`detail_enabled`, `detail_albedo`, `detail_blend_mode` mix), lue aux UV du GLB :
 ## `detail_uv_layer` UV1, ou UV2 sur une surface à matière texturée, dont la matière projette l'UV1, la pièce recevant
@@ -1114,7 +1117,7 @@ func _habiller(id: String) -> bool:
 	var palette: Dictionary = composee.get("palette", {}).duplicate()
 	if monte.get("element") == element:
 		palette.merge(monte.get("palette", {}), true)
-	var posee := peindre(pieces[id], modeles.surfaces[element], texture, palette, _locaux)
+	var posee := peindre(pieces[id], modeles.surfaces[element], texture, palette, _locaux, true)
 	if texture != null and not posee:
 		erreurs.append("blason-sans-surface : %s" % element)
 	_demander_la_refonte()
@@ -1136,7 +1139,7 @@ func habiller_la_base() -> void:
 			erreurs.append("materiau-absent : %s" % materiaux[surface])
 		else:
 			remplacants[surface] = remplacant
-	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), _locaux, remplacants, composee.get("reliefs", {}))
+	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), _locaux, true, remplacants, composee.get("reliefs", {}))
 	_demander_la_refonte()
 
 
@@ -1144,13 +1147,14 @@ func habiller_la_base() -> void:
 ## `remplacants` donne à ce nom, puis reçoit un matériau propre (`materiau_local`) si `palette` colore son emplacement de
 ## palette, si elle est `blason` et `texture` n'est pas nulle, si la texture de sa `matiere` est au projet, ou si
 ## `reliefs` donne à ce nom un facteur autre que 1, qui multiplie son `normal_scale` (#4002) : celle-ci
-## l'habille comme le monde (`VolumeDeScene.texturer`), l'albédo à blanc ; la couleur remplace l'albédo du GLB,
-## texture comprise,
+## l'habille comme le monde (`VolumeDeScene.texturer`), l'albédo à blanc, de sa texture neutre si `palette` colore la
+## surface et qu'elle est au projet (#4313), lue aux UV du mesh si `par_uv` et que la surface n'est pas `blason`,
+## projetée sur les trois axes sinon ; la couleur remplace l'albédo du GLB, texture comprise,
 ## pour que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; `texture`
 ## devient la couche de détail, en mélange, lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les
 ## trois axes (`_uv2_des_emblemes`). Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une
 ## surface au moins. Chaque matériau propre se tient dans `locaux`, ceux du porteur, qui lâche ceux d'avant de chaque mesh.
-static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, locaux: Dictionary, remplacants: Dictionary = {}, reliefs: Dictionary = {}) -> bool:
+static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, locaux: Dictionary, par_uv: bool, remplacants: Dictionary = {}, reliefs: Dictionary = {}) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
@@ -1178,7 +1182,9 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 			if local == null:
 				continue
 			if texturee:
-				VolumeDeScene.texturer(local, matiere)
+				var neutre := VolumeDeScene.texture_neutre_de(matiere)
+				var albedo := neutre if couleur != null and ResourceLoader.exists(neutre) else VolumeDeScene.texture_de(matiere)
+				VolumeDeScene.texturer(local, matiere, albedo, surface.get("blason", false) or not par_uv)
 				local.albedo_color = Color.WHITE
 			elif couleur != null:
 				local.albedo_texture = null

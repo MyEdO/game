@@ -8,5 +8,5 @@ MANIFESTE = {
     'couche': 'tenue',
     'couvre': ['torse', 'bras_haut_g', 'bras_haut_d', 'avant_bras_g', 'avant_bras_d'],
 }
-MATERIAUX = {'pourpoint': ('vet2', ((0.8, 0.78, 0.72), 0.0, 0.87))}
+MATERIAUX = {'pourpoint': ('vet2', 'drap-terne')}
 BUDGET_TRIANGLES = 1520

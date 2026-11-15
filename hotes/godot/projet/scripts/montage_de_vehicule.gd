@@ -276,7 +276,7 @@ static func boite(noeud: Node, dans: Node3D) -> Variant:
 ## aucun) (`MontageDeComposition.peindre`, les `surfaces` de l'élément), ses matériaux propres tenus dans `locaux` ; rend
 ## si l'emblème est posé sur une surface.
 static func peindre_l_element(scene: Node3D, element: String, palette: Dictionary, texture: ImageTexture, locaux: Dictionary) -> bool:
-	return MontageDeComposition.peindre(scene.find_children("*", "MeshInstance3D", true, false), MontageDeComposition.modeles.surfaces[element], texture, palette, locaux)
+	return MontageDeComposition.peindre(scene.find_children("*", "MeshInstance3D", true, false), MontageDeComposition.modeles.surfaces[element], texture, palette, locaux, false)
 
 
 ## La scène `piece` d'une pièce montée sous la scène `scene` de son véhicule, au poste `poste` (`postes` du corps) : à

@@ -23,15 +23,17 @@
   "surfaces": [
     {
       "nom": "bois",
-      "palette": "bois"
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
     },
     {
       "nom": "metal",
-      "palette": "metal"
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     }
   ],
   "glb": {
-    "sha256": "7e9321ba279e1cc2126fe5a3bcdb3cc951ccaccef0a1bbe812405bd1c3ed9c70",
-    "octets": 59492
+    "sha256": "79a2009abec2df259580944f3c30d7b1083c01608be644766e0655382e06d608",
+    "octets": 64808
   }
 }

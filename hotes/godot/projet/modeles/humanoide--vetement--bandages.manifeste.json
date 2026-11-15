@@ -22,11 +22,12 @@
   "surfaces": [
     {
       "nom": "bandages",
-      "palette": "vet2"
+      "palette": "vet2",
+      "matiere": "prop--toile-ecrue"
     }
   ],
   "glb": {
-    "sha256": "69ec4760d7af8b33acfee40f33a02eaf7c9651c878588ee6d8ca40cba88c2a54",
-    "octets": 240980
+    "sha256": "3b88c8bdee09c8ac73f04a0a764bbd42f1e910f9dece4fbc880f26fe52173db5",
+    "octets": 326164
   }
 }

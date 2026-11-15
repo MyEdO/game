@@ -252,6 +252,42 @@
     "metalness": 0
   },
   {
+    "id": "laine",
+    "type": "materials",
+    "label": "Laine",
+    "domain": "prop",
+    "color": "#8a8272",
+    "roughness": 0.95,
+    "metalness": 0
+  },
+  {
+    "id": "fourrure",
+    "type": "materials",
+    "label": "Fourrure",
+    "domain": "prop",
+    "color": "#6b5a48",
+    "roughness": 1,
+    "metalness": 0
+  },
+  {
+    "id": "acier-battu",
+    "type": "materials",
+    "label": "Acier battu",
+    "domain": "prop",
+    "color": "#8b9096",
+    "roughness": 0.45,
+    "metalness": 0.4
+  },
+  {
+    "id": "mailles",
+    "type": "materials",
+    "label": "Mailles",
+    "domain": "prop",
+    "color": "#6f7377",
+    "roughness": 0.5,
+    "metalness": 0.4
+  },
+  {
     "id": "tuile",
     "type": "materials",
     "label": "Tuile",

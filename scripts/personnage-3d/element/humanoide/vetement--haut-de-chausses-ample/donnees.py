@@ -8,5 +8,5 @@ MANIFESTE = {
     'couche': 'tenue',
     'couvre': ['hanches', 'cuisse_g', 'cuisse_d', 'genou_g', 'genou_d'],
 }
-MATERIAUX = {'haut_de_chausses': ('vet2', ((0.62, 0.62, 0.62), 0.0, 0.87))}
+MATERIAUX = {'haut_de_chausses': ('vet2', 'drap-terne')}
 BUDGET_TRIANGLES = 1944
