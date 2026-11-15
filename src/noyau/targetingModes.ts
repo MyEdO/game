@@ -661,7 +661,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       // sinon un héros mixte mêlée+distance ne pourrait jamais tirer une cible éloignée (LDB Armes l.297-298).
       const battleNow = get().battle!;
       const w = pickAttackWeapon(get().scene, battleNow, active, target, option.weaponUid);
-      if (w.type === 'melee' && distanceDeContact(get().scene, attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w)) {
+      if (w.type === 'melee' && distanceDeContact(get().scene, attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w, sceneMetresPerTile(get().scene))) {
         refuserGesteDuSiege(get, set, t('cs.meleeOutOfRange')); // aucune arme à distance dispo → mêlée hors de portée
         return;
       }

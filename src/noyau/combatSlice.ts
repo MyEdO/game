@@ -1286,7 +1286,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
       if (!active || isOutOfAction(active) || !canTakeAction(active) || !hasCommandTeam(active)) return;
-      const chiefs = teamCommandTargets(active, battle.combatants);
+      const chiefs = teamCommandTargets(get().scene, active, battle.combatants);
       if (!chiefs.length) return;
       const onSuccess: Flow = {
         kind: 'sequence',
