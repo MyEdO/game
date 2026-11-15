@@ -10,8 +10,8 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, intentionDeRenvoi, partieEnCours, refusDeRenvoyer, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatDateImperiale, formatJourImperial, toDate, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, enTeteDuPorteur, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf, nomEnVue, porteurEnVue,
-  type CombatEvent, type Equipe, type EntreeDeLaFiche, type IconId, type IdDeCouche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
+  ACTIONS, avecSigne, batailleEnVue, intentionDeRenvoi, partieEnCours, refusDeRenvoyer, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatDateImperiale, formatJourImperial, toDate, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, cibleDuCodex, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, enTeteDuPorteur, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf, nomEnVue, porteurEnVue,
+  type CombatEvent, type Equipe, type EntreeDeLaFiche, type Renvoyable, type IconId, type IdDeCouche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
@@ -32,6 +32,7 @@ import {
   type Formulaire,
   type Icone,
   type Jet,
+  type Jeu as JeuDeLHote,
   type Ligne,
   type PanneauDeLHote,
   type Paysage,
@@ -135,26 +136,33 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
   /** le titre du journal. */
   'journal.titre': Ligne[];
   /** chaque héros du groupe en carte (`herosDuGroupe`) : sa carrière, ses Blessures, le bouton qui ouvre sa fiche,
-   *  pressé quand elle est ouverte, qui la ferme alors, ses États, puis ce que la fenêtre dit de lui : le jet qu'il jette
+   *  pressé quand elle est ouverte, qui la ferme alors, ses États, chacun pressé qui ouvre le Compendium sur lui (la
+   *  puce d'un terme de la fiche, `fiche.porteur`), puis ce que la fenêtre dit de lui : le jet qu'il jette
    *  en route et les gestes qui le désignent, sa nuit à la halte ; avant le lancement, « Renvoyer », dont le `jeu` est
    *  l'intention du noyau qui le renvoie (`intentionDeRenvoi`), refusé avec sa raison (`refusDeRenvoyer`). */
   'groupe.heros': Entite[];
   /**
    * la fiche ouverte (`ficheDuPorteur`, surface du noyau), en statbloc : le combattant en entité : son espèce et sa
-   * carrière, chacune en ligne, ses Blessures en jauge, ses Points de Destin, de Chance, de Résilience et de
-   * Détermination quand il en a, sa bourse s'il est un héros du groupe, chacun de ses États en puces.
+   * carrière, chacune en puce, ses Blessures en jauge, ses Points de Destin, de Chance, de Résilience et de
+   * Détermination quand il en a, sa bourse s'il est un héros du groupe, chacun de ses États en puces, puis le bouton
+   * « Compendium » (`renvoi`) de la créature du bestiaire qu'il désigne. Chaque terme de la fiche qui désigne une entrée
+   * du Codex (une puce, ou le bouton « Compendium » d'une entité qui la nomme) a pour `jeu` `{ compendium: { geste:
+   * 'suivre', categorie, id, instance? } }`, son nom montré en instance quand il diffère de celui de l'entrée, que
+   * l'hôte ouvre au Compendium (`compendium { ouvrir, categorie, id, instance? }`) ; une puce sans entrée, `null`.
    */
   'fiche.porteur': Entite[];
   /** « Fermer ». */
   'fiche.gestes': Bouton[];
   /**
    * une puce par colonne du profil : le Mouvement, chaque Caractéristique par son abréviation, les Blessures
-   * maximales ; son nom au détail.
+   * maximales ; son nom au détail ; chacune qui ouvre le Compendium sur sa règle.
    */
   'fiche.profil': Puce[];
   /**
-   * chaque section non vide en entité, dans l'ordre du statbloc, son nom au bandeau : Attaques, chaque arme en entité,
-   * la valeur de son Test, ses Dégâts, son Allonge ou sa Portée, ses Atouts et Défauts, chacun en puce ; Armure, les PA
+   * chaque section non vide en entité, dans l'ordre du statbloc, son nom au bandeau ; chaque terme qui désigne une
+   * entrée du Codex l'ouvre au Compendium (`fiche.porteur`) : Attaques, chaque arme en entité,
+   * la valeur de son Test, ses Dégâts, son Allonge ou sa Portée, ses Atouts et Défauts, chacun en puce, et le bouton
+   * « Compendium » (`renvoi`) de l'arme du catalogue ; Armure, les PA
    * de chaque localisation couverte ; Traits et Mutations, chacun sa description au détail ; Compétences, la valeur de
    * chaque Test, sa Caractéristique et ses Augmentations au détail ; Talents et son niveau, Sorts, Prières, chacun sa
    * description au détail ; Possessions, chaque possession en bouton qui la nomme, son nombre quand il y en a
@@ -163,22 +171,24 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
    * au libellé, ses mentions et leur nombre en valeur.
    */
   'fiche.sections': Entite[];
-  /** le livre et la page du profil dont le combattant est l'instance. */
-  'fiche.source': Ligne[];
+  /** le livre et la page du profil dont le combattant est l'instance, en puce qui ouvre le Compendium sur ce livre
+   *  (`terme`). */
+  'fiche.source': Puce[];
   /**
-   * la possession choisie en entité, au ton `reussite` quand elle est équipée : son nombre, son argent et son contenant
-   * en puces, puis chacun de ses gestes, lus du noyau (`gestesDeLObjet`), en bouton ou en liste qui joue son verbe par
-   * `jouer`, refusé avec la raison que le verbe applique, en combat celle de l'inventaire : la porter, pressé quand
-   * elle l'est ; la tenir en main principale ou secondaire, pressé pour la main qui la tient, qu'il vide ; l'utiliser ;
-   * la ranger dans chaque contenant où elle tient, ou l'en sortir ; la donner à chaque porteur à ses côtés ; la poser
-   * au sol, à la case du groupe, avec le contenu de son contenant (`poserLObjet`) ; l'évaluer, la détecter.
+   * la possession choisie en entité, au ton `reussite` quand elle est équipée : son nombre, son argent et son
+   * contenant en puces, le bouton « Compendium » (`renvoi`) de l'objet du catalogue qu'elle instancie, puis chacun de
+   * ses gestes, lus du noyau (`gestesDeLObjet`), en bouton ou en liste qui joue son verbe par `jouer`, refusé avec la
+   * raison que le verbe applique, en combat celle de l'inventaire : la porter, pressé quand elle l'est ; la tenir en
+   * main principale ou secondaire, pressé pour la main qui la tient, qu'il vide ; l'utiliser ; la ranger dans chaque
+   * contenant où elle tient, ou l'en sortir ; la donner à chaque porteur à ses côtés ; la poser au sol, à la case du
+   * groupe, avec le contenu de son contenant (`poserLObjet`) ; l'évaluer, la détecter.
    */
   'fiche.objet': Entite[];
 }
 
 type Combat = NonNullable<Projection['combat']>;
 
-const puce = (id: string, libelle: string, valeur: string | null, detail: string | null = null, ton: Ton = 'neutre'): Puce => ({ type: 'puce', id, ton, libelle, valeur, detail });
+const puce = (id: string, libelle: string, valeur: string | null, detail: string | null = null, ton: Ton = 'neutre'): Puce => ({ type: 'puce', id, ton, libelle, valeur, detail, jeu: null });
 
 /** Les modificateurs `mods` d'un jet, chacun une puce. */
 const puces = (id: string, mods: readonly ModLine[] | undefined): Puce[] =>
@@ -951,7 +961,7 @@ function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<stri
       type: 'entite', id: `heros/${h.id}`, ton: (gestes.get(h.id) ?? []).some((g) => g.focus) ? 'alerte' : 'neutre', nom: f.nom,
       elements: [
         { type: 'portrait', id: 'portrait', combattant: h.id },
-        ...(f.carriere === null ? [] : [ligne('carriere', f.carriere)]),
+        ...(f.carriere === null ? [] : [ligne('carriere', f.carriere.libelle)]),
         jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
         boutonDeFiche(`fiche/${h.id}`, t('ecran.fiche.ouvrir'), presse ? null : { porteur: h.id }, presse),
         ...etatsEnPuces(f.etats),
@@ -963,37 +973,63 @@ function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<stri
   });
 }
 
+/** Le geste qui ouvre le Compendium sur l'entrée que désigne le terme `r` de la fiche (`{ compendium }`, le renvoi
+ *  suivi), `null` sans entrée au Codex. */
+const renvoiDe = (r: Renvoyable): JeuDeLHote | null => (r.renvoi ? { compendium: { geste: 'suivre', ...r.renvoi } } : null);
+
+/** La puce `p` d'un terme `r` de la fiche, pressée : elle ouvre le Compendium sur l'entrée qu'il désigne (`renvoiDe`). */
+const terme = (p: Puce, r: Renvoyable): Puce => ({ ...p, jeu: renvoiDe(r) });
+
+/** Le bouton qui ouvre le Compendium sur l'entrée que désigne `r`, s'il en désigne une : celui d'une entité (une arme,
+ *  une possession), qui la nomme déjà. */
+const boutonDuRenvoi = (r: Renvoyable): Bouton[] => {
+  const jeu = renvoiDe(r);
+  return jeu ? [{ type: 'bouton', id: 'renvoi', libelle: t('ecran.fiche.compendium'), jeu, presse: false, focus: false, refus: null }] : [];
+};
+
 /** Un nombre d'exemplaires, dit quand il y en a plusieurs. */
 const nombre = (n: number): string | null => (n > 1 ? t('ecran.fiche.nombre', { nombre: n }) : null);
 
-/** Chaque État en puce, en `alerte`. */
-const etatsEnPuces = (etats: FicheDuPorteur['etats']): Puce[] => etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte'));
+/** Chaque État en puce, en `alerte`, qui ouvre le Compendium sur lui (`terme`). */
+const etatsEnPuces = (etats: FicheDuPorteur['etats']): Puce[] => etats.map((e) => {
+  const libelle = conditionLabel(e.id);
+  return terme(puce(`etat/${e.id}`, libelle, String(e.valeur), null, 'alerte'), { libelle, renvoi: cibleDuCodex('etats', e.id) });
+});
 
-/** Le porteur de la fiche, la tête de son statbloc : son nom ; son espèce et sa carrière, chacune en ligne ; ses Blessures en jauge ;
- *  ses Points de Destin, de Chance, de Résilience et de Détermination, s'il en a ; sa bourse, s'il est un héros du groupe ; chacun de ses États en puce. */
+/** Le porteur de la fiche, la tête de son statbloc : son nom ; son espèce et sa carrière, chacune en puce qui ouvre le
+ *  Compendium sur elle (`terme`) ; ses Blessures en jauge ;
+ *  ses Points de Destin, de Chance, de Résilience et de Détermination, s'il en a ; sa bourse, s'il est un héros du groupe ; chacun de ses États en puce ;
+ *  le bouton qui ouvre le Compendium sur la créature du bestiaire qu'il désigne. */
 function porteurDeLaFiche(etat: Jeu, f: FicheDuPorteur): Entite {
   const points = ([['destin', t('ecran.destin'), f.destin], ['chance', t('ecran.fiche.chance'), f.chance], ['resilience', t('ecran.fiche.resilience'), f.resilience], ['determination', t('ecran.fiche.determination'), f.determination]] as const)
     .flatMap(([id, libelle, valeur]) => (valeur === null ? [] : [puce(id, libelle, String(valeur))]));
   return {
     type: 'entite', id: f.id, ton: 'neutre', nom: f.nom,
     elements: [
-      ...(f.espece === null ? [] : [ligne('espece', f.espece)]),
-      ...(f.carriere === null ? [] : [ligne('carriere', f.carriere)]),
+      ...(f.espece === null ? [] : [terme(puce('espece', f.espece.libelle, null), f.espece)]),
+      ...(f.carriere === null ? [] : [terme(puce('carriere', f.carriere.libelle, null), f.carriere)]),
       jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
       ...points,
       ...(etat.party.some((h) => h.id === f.id) ? [puce('bourse', t('ecran.bourse'), f.bourse)] : []),
       ...etatsEnPuces(f.etats),
+      ...(f.profil === null ? [] : boutonDuRenvoi(f.profil)),
     ],
   };
 }
 
+/** La colonne `id` du profil, d'abréviation `abrege`, de valeur `valeur`, de nom `nom` au détail : elle ouvre le
+ *  Compendium sur sa règle, l'entrée `regle` des Caractéristiques (`terme`). */
+const colonne = (id: string, abrege: string, valeur: number, nom: string, regle: string): Puce =>
+  terme(puce(id, abrege, String(valeur), nom), { libelle: nom, renvoi: cibleDuCodex('characteristics', regle) });
+
 /** Le profil du statbloc de `f`, une puce par colonne, son nom au détail : le Mouvement, chaque Caractéristique par
  *  son abréviation, les Blessures à leur maximum. */
 const profilDeLaFiche = (f: FicheDuPorteur): Puce[] => [
-  puce('profil/m', t('ecran.statbloc.m'), String(f.mouvement), t('ecran.jauge.mouvement')),
-  ...f.caracteristiques.map((c) => puce(`carac/${c.cle}`, c.abrege, String(c.valeur), c.libelle)),
-  puce('profil/b', t('ecran.statbloc.b'), String(f.blessures[1]), t('ecran.jauge.blessures')),
+  colonne('profil/m', t('ecran.statbloc.m'), f.mouvement, t('ecran.jauge.mouvement'), 'mouvement'),
+  ...f.caracteristiques.map((c) => colonne(`carac/${c.cle}`, c.abrege, c.valeur, c.libelle, c.cle)),
+  colonne('profil/b', t('ecran.statbloc.b'), f.blessures[1], t('ecran.jauge.blessures'), 'blessure'),
 ];
+
 
 /** Les sections du statbloc, dans l'ordre où il les montre (l'Atelier des PNJ, #3678), et la clé du catalogue de
  *  leur bandeau. */
@@ -1009,11 +1045,12 @@ const SECTIONS_DU_STATBLOC = {
   possessions: 'ecran.statbloc.possessions',
 } as const;
 
-/** Une entrée nommée du profil en puce, le premier paragraphe de sa description au détail. */
-const entrees = (id: string, liste: readonly EntreeDeLaFiche[]): Puce[] => liste.map((x, i) => puce(`${id}/${i}`, x.libelle, null, resume(x.desc)));
+/** Une entrée nommée du profil en puce (`terme`), le premier paragraphe de sa description au détail. */
+const entrees = (id: string, liste: readonly EntreeDeLaFiche[]): Puce[] => liste.map((x, i) => terme(puce(`${id}/${i}`, x.libelle, null, resume(x.desc)), x));
 
-/** Chaque section du statbloc de `f`, ses termes en éléments : chaque arme en entité, la valeur de son Test, ses Dégâts et
- *  son Allonge ou sa Portée, ses Atouts et Défauts, chacun en puce ; les Points d'Armure de chaque localisation qui en
+/** Chaque section du statbloc de `f`, ses termes en éléments, chacun qui désigne une entrée du Codex pressé qui ouvre le
+ *  Compendium sur elle (`terme`, `boutonDuRenvoi`) : chaque arme en entité, la valeur de son Test, ses Dégâts et son
+ *  Allonge ou sa Portée, ses Atouts et Défauts, chacun en puce, et le bouton de l'arme ; les Points d'Armure de chaque localisation qui en
  *  porte ; ses Traits et ses Mutations ; ses Compétences, la valeur de leur Test, leur Caractéristique et leurs
  *  Augmentations au détail, par nom ; ses Talents et leur niveau ; ses sorts ; ses prières ; chacune de ses
  *  possessions en bouton qui la nomme, les équipées d'abord : il la choisit (`ouverte.objet`) ; la choisie, pressée,
@@ -1026,7 +1063,8 @@ function sectionsDeLaFiche(f: FicheDuPorteur, ouverte: FicheOuverte): Record<key
       elements: [
         puce('test', t('ecran.statbloc.test'), String(a.valeur)),
         ...a.stats.map((x, j) => puce(`stat/${j}`, x, null)),
-        ...a.qualites.map((x, j) => puce(`qualite/${j}`, x, null)),
+        ...a.qualites.map((x, j) => terme(puce(`qualite/${j}`, x.libelle, null), x)),
+        ...boutonDuRenvoi(a),
       ],
     })),
     armure: f.armure.map((a, i) => puce(`armure/${i}`, a.localisation, String(a.pa))),
@@ -1035,10 +1073,10 @@ function sectionsDeLaFiche(f: FicheDuPorteur, ouverte: FicheOuverte): Record<key
     competences: f.competences
       .map((c, i) => {
         const k = carac.get(c.caracteristique)!;
-        return puce(`competence/${i}`, c.libelle, String(c.valeur), t('ecran.fiche.competence', { carac: k.abrege, base: k.valeur, avances: c.avances }));
+        return terme(puce(`competence/${i}`, c.libelle, String(c.valeur), t('ecran.fiche.competence', { carac: k.abrege, base: k.valeur, avances: c.avances })), c);
       })
       .sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr')),
-    talents: f.talents.map((x, i) => puce(`talent/${i}`, x.libelle, nombre(x.fois), resume(x.desc))),
+    talents: f.talents.map((x, i) => terme(puce(`talent/${i}`, x.libelle, nombre(x.fois), resume(x.desc)), x)),
     sorts: entrees('sort', f.sorts),
     prieres: entrees('priere', f.prieres),
     possessions: [
@@ -1069,7 +1107,8 @@ const listeDObjet = (id: string, libelle: string, g: GesteAChoix<unknown>): Choi
 });
 
 /** La possession choisie de la fiche `f` (`FicheOuverte.objet`) en entité : son nom, au ton `reussite` quand elle est
- *  équipée ; son nombre, son argent et le contenant où elle est rangée en puces ; puis chacun de ses gestes
+ *  équipée ; son nombre, son argent et le contenant où elle est rangée en puces ; le bouton qui ouvre le Compendium sur
+ *  l'objet du catalogue qu'elle instancie ; puis chacun de ses gestes
  *  (`gestesDeLObjet`), refusé avec sa raison : la porter, la tenir dans une main, l'utiliser, la ranger dans un
  *  contenant ou l'en sortir, la donner à un porteur à ses côtés, la poser au sol, l'évaluer, la détecter. */
 function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): Entite[] {
@@ -1084,6 +1123,7 @@ function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): En
     p.nombre > 1 ? puce('nombre', t('ecran.fiche.nombre', { nombre: p.nombre }), null) : null,
     p.argent === null ? null : puce('argent', p.argent, null),
     p.contenant === null ? null : puce('contenant', t('ecran.objet.contenant', { contenant: p.contenant }), null),
+    ...boutonDuRenvoi(p),
     simple('porter', g.porter?.porte),
     ...(g.mains ? (['main', 'secondaire'] as const).map((m) => boutonDeGeste(m, t(`ecran.objet.${m}`), g.mains![m].geste, g.mains![m].refus, g.mains![m].tenue)) : []),
     simple('utiliser'),
@@ -1110,7 +1150,7 @@ function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLE
     'fiche.profil': profilDeLaFiche(f),
     'fiche.sections': (Object.keys(SECTIONS_DU_STATBLOC) as (keyof typeof SECTIONS_DU_STATBLOC)[]).flatMap((k): Entite[] =>
       sections[k].length ? [{ type: 'entite', id: `section/${k}`, ton: 'neutre', nom: t(SECTIONS_DU_STATBLOC[k]), elements: sections[k] }] : []),
-    'fiche.source': f.source === null ? [] : [ligne('source', t('ecran.statbloc.source', { source: f.source }))],
+    'fiche.source': f.source === null ? [] : [terme(puce('source', t('ecran.statbloc.source', { source: f.source.libelle }), null), f.source)],
     'fiche.objet': objetDeLaFiche(etat, f, ouverte),
   };
 }

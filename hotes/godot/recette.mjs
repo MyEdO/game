@@ -88,8 +88,9 @@
 // - `bataille` (`--scenario bataille-de-masse`) : l'interlude clos, la bataille montre ses armées et les Scènes du
 //   Round ; « Résoudre » ouvre le jet de la première Scène à postes, lancé à l'Entrée puis appliqué : la Scène se
 //   ferme ; le Test spectaculaire ouvre l'entre-deux-Rounds, « Round suivant » le Round 2.
-// - `fiche` : la fenêtre du round à l'Entrée, puis le statbloc du premier héros ouvert par son bouton, celui d'un ennemi
-//   de l'ordre du tour, donc en vue, dont la case montre le monde (`auMonde`), ouvert au clic droit sur elle, et la fiche fermée par son bouton « Fermer ».
+// - `fiche` : la fenêtre du round à l'Entrée, puis le statbloc du premier héros ouvert par son bouton, la puce d'un de
+//   ses Talents pressée à son onglet ouvre le Compendium sur son entrée, l'atelier caché, et « Fermer » le cache sur la
+//   fiche ; puis le statbloc d'un ennemi de l'ordre du tour, donc en vue, dont la case montre le monde (`auMonde`), ouvert au clic droit sur elle, et la fiche fermée par son bouton « Fermer ».
 // - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le statbloc de Apothicaire, sa
 //   carte amenée à la molette dans la rangée du groupe, son armure choisie à l'onglet de ses possessions puis ôtée par « Porter », sa potion choisie.
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
@@ -180,7 +181,7 @@
 // - `compendium` (#4020), servi avec une copie des fichiers de l'atelier du Compendium (`servir.mjs`, `depot`) :
 //   « Compendium » ouvre ses familles ; les talents choisis à la liste de leur famille, leur première entrée à la
 //   liste des entrées, la fiche la montre ; « Modifier », le libellé tapé au formulaire de l'atelier, « Enregistrer »
-//   ferme l'atelier, la fiche dit le libellé neuf et la copie du dépôt le porte.
+//   ferme l'atelier, la fiche dit le libellé neuf et la copie du dépôt le porte ; « Fermer » rend l'accueil.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à la liste de tête « Corps », aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -1809,6 +1810,20 @@ async function parcoursFiche() {
   assert.equal(zone(v, 'fiche.porteur')[0]?.nom, heros.nom, 'le bouton de sa carte ouvre le statbloc du héros')
   noter(`carte « ${heros.nom} » : ${zone(v, 'fiche.profil').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')}`)
   await capturer('3678-statbloc-1-heros')
+  const talents = zone(v, 'fiche.sections').find((s) => s.id === 'section/talents')
+  const talent = talents?.elements.find((e) => e.type === 'puce' && e.jeu !== null)
+  assert.ok(talent, `un Talent du héros désigne son entrée du Codex : ${JSON.stringify(talents?.elements.map((e) => [e.id, e.jeu]))}`)
+  await cliquerBouton({ onglet: talents.nom })
+  await cliquerBouton({ element: `puce/${talent.id}` })
+  await waitFor(session, `globalThis.wfrpEcran?.compendium?.zones?.['compendium.fiche']?.[0]?.nom === ${JSON.stringify(talent.libelle)}`, { timeoutMs: 30000 })
+  const [, atelier] = await attendreALEcran((e) => e.boutons.some((b) => b.cle === 'compendium/fermer') && { offert: e.compendium.zones['compendium.atelier'].some((b) => b.id === 'modifier'), modifier: e.boutons.find((b) => b.element === 'bouton/modifier') })
+  assert.ok(atelier?.offert, `la session offre « Modifier » : ${JSON.stringify(atelier)}`)
+  assert.equal(atelier.modifier, undefined, 'au combat, le Compendium s’ouvre en consultation : l’atelier caché')
+  noter(`la puce « ${talent.libelle} » de la fiche ouvre le Compendium sur son entrée (${JSON.stringify(talent.jeu.compendium)})`)
+  await capturer('4020-compendium-depuis-la-fiche')
+  await cliquerBouton({ cle: 'compendium/fermer' })
+  await waitFor(session, `Object.keys(globalThis.wfrpEcran?.compendium?.zones ?? { x: 1 }).length === 0`)
+  assert.equal((await vue()).zones['fiche.porteur'][0]?.nom, heros.nom, '« Fermer » cache le Compendium sur la fiche toujours ouverte')
   const publie = await ecranPose()
   const [cle, ennemi] = Object.entries(v.occupants).find(([k, id]) => element(v, 'combat.ordre', `ordre/${id}`)?.ton === 'echec' && auMonde(publie, publie.cases[k]))
   const [px, py] = publie.cases[cle]
@@ -1817,7 +1832,7 @@ async function parcoursFiche() {
   await nouvelEcran()
   v = await vue()
   assert.equal(v.zones['fiche.porteur'][0]?.id, ennemi, 'le clic droit sur sa case ouvre le statbloc de l’ennemi')
-  noter(`clic droit sur ${cle} : ${zone(v, 'fiche.porteur')[0].nom} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')} ; ${zone(v, 'fiche.source').map((l) => l.texte).join('')}`)
+  noter(`clic droit sur ${cle} : ${zone(v, 'fiche.porteur')[0].nom} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')} ; ${zone(v, 'fiche.source').map((p) => p.libelle).join('')}`)
   await capturer('3678-statbloc-2-ennemi')
   await cliquerBouton({ element: 'bouton/fermer' })
   v = await vue()
@@ -4212,6 +4227,10 @@ async function parcoursCompendium() {
   assert.equal(ecrit?.label, LIBELLE, `la copie du dépôt porte le libellé neuf de ${premiere.id}`)
   noter(`« Modifier », le libellé « ${LIBELLE} » tapé, « Enregistrer » : l’atelier fermé, la fiche et la copie du dépôt le disent`)
   await capturer('compendium-enregistre')
+  await cliquerBouton({ cle: 'compendium/fermer' })
+  const [, accueil] = await attendreALEcran((e) => e.boutons.some((b) => b.texte === 'Compendium'))
+  assert.ok(accueil, '« Fermer » rend l’accueil')
+  noter('« Fermer » rend l’accueil')
 }
 
 const PARCOURS = {

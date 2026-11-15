@@ -2900,6 +2900,16 @@ export function codexLookupById(category: string | undefined, id: string | undef
   return categoryIndex(category)?.get(id);
 }
 
+/** La cible d'une ouverture du Compendium : une entrée d'une catégorie, et son instance. */
+export interface CibleDuCompendium { categorie: string; id: string; instance?: string }
+
+/** La cible de l'entrée `id` de la catégorie `categorie` (`codexLookupById`), et son `instance` quand le terme qui la
+ *  désigne en est une ; `null` sans `id` ou sans cette entrée au Codex. */
+export function cibleDuCodex(categorie: string, id: string | undefined, instance?: string): CibleDuCompendium | null {
+  const item = codexLookupById(categorie, id);
+  return item ? { categorie, id: item.id, ...(instance === undefined ? {} : { instance }) } : null;
+}
+
 const [tete, brasG, brasD, corps, jambeG, jambeD] = LOCALISATIONS_DE_COUP;
 const ARMOUR_LOCS: readonly HitLocation[] = [tete, corps, brasG, brasD, jambeG, jambeD];
 

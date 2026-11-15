@@ -47,7 +47,7 @@ function element(r: RubriqueDeCreation): Element {
       type: r.options.length > RANGEE_AU_PLUS ? 'liste' : 'choix', id: r.id, ton: 'neutre', libelle: r.libelle, focus: false, refus: null,
       valeurs: r.options.map((o, i) => bouton(`${r.id}/${i}`, o.libelle, o.geste, o.refus, o.choisie)),
     } satisfies Choix;
-    case 'valeur': return { type: 'puce', id: r.id, ton: 'neutre', libelle: r.libelle, valeur: r.valeur, detail: resume(r.detail) } satisfies Puce;
+    case 'valeur': return { type: 'puce', id: r.id, ton: 'neutre', libelle: r.libelle, valeur: r.valeur, detail: resume(r.detail), jeu: null } satisfies Puce;
   }
 }
 

@@ -1,0 +1,26 @@
+[gd_resource type="Theme" load_steps=3 format=3]
+
+[sub_resource type="StyleBoxEmpty" id="Sans_fond"]
+
+[sub_resource type="StyleBoxFlat" id="Survol_de_puce"]
+draw_center = false
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.851, 0.706, 0.416, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+expand_margin_left = 6.0
+expand_margin_top = 1.0
+expand_margin_right = 6.0
+expand_margin_bottom = 1.0
+
+[resource]
+Button/styles/normal = SubResource("Sans_fond")
+Button/styles/hover = SubResource("Survol_de_puce")
+Button/styles/pressed = SubResource("Survol_de_puce")
+Button/styles/hover_pressed = SubResource("Survol_de_puce")
+Button/styles/focus = SubResource("Survol_de_puce")
