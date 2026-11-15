@@ -84,7 +84,6 @@ extends Node
 @onready var _scenarios: Control = $Scenarios/Cadre
 @onready var _sauvegardes: Control = $Sauvegardes/Cadre
 @onready var _reglages: PanneauDesReglages = $Reglages
-@onready var _menu: MenuDeLaPartie = $Ecran/Interface/MenuDeLaPartie
 @onready var _salon: PanneauDuSalon = $Salon
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
@@ -127,7 +126,6 @@ func _ready() -> void:
 	for zone in Zone.racines(_sauvegardes):
 		zone.geste.connect(_jouer)
 	_reglages.change.connect(_publier_l_ecran)
-	_menu.change.connect(_publier_l_ecran)
 	_salon.change.connect(_publier_l_ecran)
 	_salon.ferme.connect(_fermer_le_salon)
 	_salon.suite.connect(_suivre)
@@ -400,17 +398,12 @@ func _process(_delta: float) -> void:
 		_apercu.position = MiseEnPage.bulle_au_dessus(point, _apercu.size.x, _apercu.size.y)
 
 
-## Les zones de l'écran, la disposition posée : chacune relie son geste au jeu ; chaque défilement republie l'écran, ses
-## boutons à l'écran changeant avec lui.
+## Les zones de l'écran, la disposition posée : chacune relie son geste au jeu ; chaque onglet changé republie l'écran.
 func _relier() -> void:
 	_zones = Zone.racines(_ecran)
 	for zone in _zones:
 		if not zone.geste.is_connected(_jouer):
 			zone.geste.connect(_jouer)
-	for defilement: ScrollContainer in _ecran.find_children("*", "ScrollContainer", true, false):
-		for barre: ScrollBar in [defilement.get_v_scroll_bar(), defilement.get_h_scroll_bar()]:
-			if not barre.value_changed.is_connected(_republier):
-				barre.value_changed.connect(_republier)
 	for onglets in _ecran.find_children("*", "TabContainer", true, false):
 		if not (onglets as TabContainer).tab_changed.is_connected(_republier):
 			(onglets as TabContainer).tab_changed.connect(_republier)
