@@ -170,9 +170,9 @@ export interface SceneEntity {
     spells?: string[];
     /** Caractéristiques aléatoires au spawn (LDB 77 l.108 : −10 + 2d10, graine stable par id). */
     randomChars?: boolean;
-    /** Compétences d'AUTEUR ajoutées (réfs `SkillRef`) — fusionnées par-dessus celles du bestiaire au spawn.
+    /** Compétences d'AUTEUR ajoutées (réfs `SkillRefDesignee`) — fusionnées par-dessus celles du bestiaire au spawn.
      *  Qualifie p.ex. un servant de pièce pour le Groupe de Projectiles APPROPRIÉ à son engin (AA 10 l.230). */
-    skills?: import('../../data').SkillRef[];
+    skills?: import('../../data').SkillRefDesignee[];
     /** Invisible en EXPLORATION (embuscade) : n'apparaît qu'au combat. `false`/absent = PNJ visible
      *  qui devient hostile au déclenchement. */
     hiddenUntilCombat?: boolean;
@@ -213,10 +213,10 @@ export type Dialogue = z.infer<typeof dialogueSchema>;
  *  (jamais un nom en clair stocké, #669 ; son nom se lit par `nomDEntite`). `undefined` sans speaker. */
 export function speakerEntity(
   entities: readonly SceneEntity[],
-  node: { speakerId?: string },
+  node: Pick<DialogueNode, 'speakerId'>,
   dialogue: { speakerId?: string }
 ): SceneEntity | undefined {
-  const id = node.speakerId ?? dialogue.speakerId;
+  const id = node.speakerId?.id ?? dialogue.speakerId;
   return id ? entities.find((e) => e.id === id) : undefined;
 }
 
@@ -475,11 +475,12 @@ export function heightAt(scene: Pick<Scene, 'dimensions' | 'layers'>, x: number,
 }
 
 /** Le plafond (m) de la case `p` : le plus bas des sols posés plus haut que le sien sur une couche au-dessus de la
- *  sienne, dans sa colonne ; `Infinity` à ciel ouvert. PUR. */
+ *  sienne, dans sa colonne, une tuile effondrée (`tileCollapsed`) n'étant plus un sol ; `Infinity` à ciel ouvert.
+ *  PUR. */
 export function plafondDe(scene: SceneDuVolume, p: Pt): number {
   const sol = heightAt(scene, p.x, p.y, p.z ?? 0);
   const dessus = scene.layers
-    .filter((l) => l.z > (p.z ?? 0) && !estAbsent(tileAt(scene, p.x, p.y, l.z)))
+    .filter((l) => l.z > (p.z ?? 0) && !estAbsent(tileAt(scene, p.x, p.y, l.z)) && !tileCollapsed(scene, p.x, p.y, l.z))
     .map((l) => heightAt(scene, p.x, p.y, l.z))
     .filter((h) => h > sol);
   return Math.min(Infinity, ...dessus);

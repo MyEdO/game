@@ -5,7 +5,17 @@
  * (`FermetureDuJet`). Le duel est celui de `combatDeTest.testkit.ts`, ses pendings posés comme `jetsEnVue`.
  */
 import { describe, it, expect } from 'vitest';
-import { VERBE_DE_REGLAGE, creerPartie, etatInitialDuJeu, fenetreDeDetermination, fermeturesDeLaFenetre, fenetreDuJeu, libelleDeLaFermeture, type EntreesDeLaPartie, type Jeu } from './index';
+import {
+  VERBE_DE_REGLAGE,
+  creerPartie,
+  etatInitialDuJeu,
+  fenetreDeDetermination,
+  fermeturesDeLaFenetre,
+  fenetreDuJeu,
+  libelleDeLaFermeture,
+  type EntreesDeLaPartie,
+  type Jeu,
+} from './index';
 import { t } from '../i18n';
 import { fermeturesDuFlux } from './verbesOuverts';
 import { rollOups } from '../engine/oups';
@@ -16,7 +26,16 @@ import { evaluateTest, type TestResult } from '../engine/tests';
 import { setDesFixes } from '../engine/fixedDie';
 import { resetRule, setRule } from '../engine/policy';
 import type { AttackResult, RollBreakdown } from '../engine/combat';
-import type { CascadeStep, OppositionParticipant, PendingAttack, PendingCascade, PendingCast, PendingCastOpposition, PendingDefense, PendingTest } from './pendings';
+import type {
+  CascadeStep,
+  OppositionParticipant,
+  PendingAttack,
+  PendingCascade,
+  PendingCast,
+  PendingCastOpposition,
+  PendingDefense,
+  PendingTest,
+} from './pendings';
 import type { HostJet } from './slotsDeJet';
 import type { FermetureDuJet } from './rollFlowFactory';
 import { fixtureText } from '../i18n/fixtureText';

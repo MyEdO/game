@@ -8,11 +8,36 @@ import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { PlayerText } from '../i18n/playerText';
 import type { Jeu, BattleState, ShootingStanceKey, GesteDeSuite, TourEnCours } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDeTouche, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration, IssueDEmpoignade, ReactionDeBouclier, RevealEntry } from './pendings';
+import type {
+  PendingCast,
+  PendingDeviation,
+  PendingCritSeverity,
+  CoupSuspendu,
+  CoupDeTouche,
+  CoupDuMarin,
+  DecisionDeCritique,
+  DeviationCtx,
+  PendingBladeTrap,
+  FreeAttackFreeze,
+  BladeTrapFreeze,
+  ScheduledRespawn,
+  PendingReload,
+  PendingAttack,
+  CascadeTableDecl,
+  CascadeTableDone,
+  PendingMiscastStep,
+  CascadeStep,
+  BatchParticipant,
+  PendingCounterspell,
+  CounterParticipant,
+  CounterDeclaration,
+  IssueDEmpoignade,
+  ReactionDeBouclier,
+  RevealEntry,
+} from './pendings';
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
 import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource, type Main } from '../engine/types';
-import type { FateSaveSource } from '../engine/fortune';
 import { rule } from '../engine/policy';
 import { battleRng } from './battleRng';
 import { ev, evDEtat, evLines, journaliser, type CombatEvent, type CombatEventKind } from './combatLog';
@@ -24,11 +49,78 @@ import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
-import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, defenseValueModParts, DEFENSE_LABEL, type DefenseMode, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree, attackTestOf } from '../engine/combat';
+import {
+  resolveMelee,
+  resolveRanged,
+  bestRangedDefense,
+  rangedDefenseModes,
+  rollRangedAttacker,
+  combatValue,
+  hasWeaponGroupSkill,
+  weaponGroupSkillMode,
+  attackModifiers,
+  rollMeleeAttacker,
+  rollDisengageAttack,
+  rollGrappleForce,
+  assertAttackWeapon,
+  hitLocationByShape,
+  locationLabel,
+  lancerDeLaSecondeMain,
+  woundsFromHit,
+  compteDuCoup,
+  apresDeviations,
+  localisationRelanceeDe,
+  sansLeCoupCritiqueIgnore,
+  type CompteDuCoup,
+  toucheAuJetPose,
+  rangeBandModifier,
+  rangeBandName,
+  belowMinRangeBand,
+  resolveStrayRangedHit,
+  resolveMeleePassive,
+  toucheDuTestDeDefense,
+  armeDeMainPrincipale,
+  coupAApplique,
+  finishMelee,
+  rollMeleeDefender,
+  AttackResult,
+  ModLine,
+  outnumberMod,
+  crowdMod,
+  defenseTargetMods,
+  composeAttack,
+  frozenDifficulty,
+  type DifficultyShown,
+  defenseValue,
+  defenseValueModParts,
+  DEFENSE_LABEL,
+  type DefenseMode,
+  attackHandGate,
+  conditionModLines,
+  canFireWhileEngaged,
+  ligneDuCoup,
+  freeAttackWeapon,
+  defaultParryWeapon,
+  advantageModLine,
+  toucheAvecPrise,
+  toucheNonIgnoree,
+  attackTestOf,
+} from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
-import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles } from '../engine/engagement';
+import {
+  engage,
+  markAttacked,
+  isEngaged,
+  decayEngagement,
+  chargeAdvantage,
+  disengageFrom,
+  clearEngagementOf,
+  areInContact,
+  reachTiles,
+  meleeReachTiles,
+} from '../engine/engagement';
 import { areGrappling, clearGrapple, grappleEnvMod } from '../engine/grapple';
 import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
@@ -39,8 +131,33 @@ import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refu
 import { effectifAuContact } from './combat/surnombre';
 import { distanceDeCombat, distanceDeContact, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
-import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed, ciblesDeLEffet, flowOffert, type TriggerCtx } from './triggeredEffects';
-import { reloadGrantsAssessAdvantage, hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, contresEpuisees, talentCritExtraWounds, arcaneDomainIdOf, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
+import {
+  applyTriggeredEffects,
+  maneuverEffectsOf,
+  freeAttackSourcesOf,
+  triggerEffectOps,
+  fireOwnTestFailed,
+  ciblesDeLEffet,
+  flowOffert,
+  type TriggerCtx,
+} from './triggeredEffects';
+import {
+  reloadGrantsAssessAdvantage,
+  hasStealAdvantage,
+  stealsOneAdvantage,
+  shieldAdvantageLevel,
+  shieldReactionCost,
+  contreSurDefenseGagnee,
+  contresEpuisees,
+  talentCritExtraWounds,
+  arcaneDomainIdOf,
+  hasBattement,
+  hasDistraire,
+  canPreemptRanged,
+  hasInstinctiveDiction,
+  hasCritRollTwiceTalent,
+  fleeMovementBonus,
+} from '../engine/combatFeatures/dispatch';
 import {
   isStupid,
   flyMeters, runMultiplier,
@@ -94,9 +211,28 @@ import {
   type SpellLike,
   resolveMagicMissile, resolveCasting,
 } from '../engine/magic';
-import { type OvercastAxis, type OvercastSource, type OvercastSpell, overcastSourceOf, overcastDurationParts, overcastAxesFor, extraTargetCapacity, zoneDiameterMultiplier } from '../engine/overcast';
+import {
+  type OvercastAxis,
+  type OvercastSource,
+  type OvercastSpell,
+  overcastSourceOf,
+  overcastDurationParts,
+  overcastAxesFor,
+  extraTargetCapacity,
+  zoneDiameterMultiplier,
+} from '../engine/overcast';
 import type { SpellRange } from '../engine/spellRange';
-import { certainFlowOps, evalCondition, spellFlowFor, spellOps, flowHasFreeAttack, flattenFlow, EMPTY_FLOW, type FlowTest, type EffectTrigger } from '../engine/flowCore';
+import {
+  certainFlowOps,
+  evalCondition,
+  spellFlowFor,
+  spellOps,
+  flowHasFreeAttack,
+  flattenFlow,
+  EMPTY_FLOW,
+  type FlowTest,
+  type EffectTrigger,
+} from '../engine/flowCore';
 import { combatConditionCtx } from './combat/flowEval';
 import { applyOps, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
 import { applySummon } from './summonFlow';
@@ -114,10 +250,36 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, miscastDie, categorieDesLignesDeLaTable, MISCAST_TABLES, MISCAST_DATASETS,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleBrute, cibleMesuree, estJete, reverseRoll, type VainqueurOppose } from '../engine/tests';
+import {
+  opposedTest,
+  rollTest,
+  evaluateTest,
+  resolveOpposed,
+  isDoubleRoll,
+  easeDifficulty,
+  hydrateTR,
+  cibleBrute,
+  cibleMesuree,
+  estJete,
+  reverseRoll,
+  type VainqueurOppose,
+} from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
 import { testValue, soutienDetail, type SupportDetail, type TestDesigne } from '../engine/skills';
-import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
+import {
+  findManeuverById,
+  findDomainById,
+  findPsychologyById,
+  diseaseLabel,
+  refLabel,
+  findVehicleById,
+  combatStakeRef,
+  GRAPPLE,
+  type SpellData,
+  type ManeuverDef,
+  libelleOuAbsence,
+  SPEC_SOURCES,
+} from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, monterLesVagues, resolveShipUnits, withCrewActed } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
@@ -135,12 +297,57 @@ import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
-import { recomputeLoadout, weaponWithAmmo, loadedAmmo, porteeDeTir, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, laisserTomber, rederiverLArmeTenue, endommagerLArmeTenue } from '../engine/items';
+import {
+  recomputeLoadout,
+  weaponWithAmmo,
+  loadedAmmo,
+  porteeDeTir,
+  loadWeapon,
+  unloadWeapon,
+  setReloadProgress,
+  spendChamberedRound,
+  consumeAmmo,
+  ammoFamily,
+  ammoFamilyLabel,
+  damageArmour,
+  deviatableArmourAt,
+  casserLaPieceBaclee,
+  lacherLArme,
+  laisserTomber,
+  rederiverLArmeTenue,
+  endommagerLArmeTenue,
+} from '../engine/items';
 import { crochetDuSol } from './objetsAuSol';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND, isActionLocked } from '../engine/conditions';
-import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, souffleDuType, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
+import {
+  isOutOfAction,
+  addCondition,
+  appliquerMortSubite,
+  removeCondition,
+  hasCondition,
+  cannotDefend,
+  canTakeAction,
+  applyZeroWounds,
+  loseWounds,
+  inDeathCondition,
+  stacks,
+  recoveredStacks,
+  incomingMeleeAdvantage,
+  effectRef,
+  COND,
+  isActionLocked,
+} from '../engine/conditions';
+import {
+  creatureAttacks,
+  attaquesNaturelles,
+  attaqueNaturelle,
+  selfManeuversOf,
+  selfManeuverApplicable,
+  souffleDuType,
+  type AttackKind,
+  type CreatureAttack,
+} from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
 /** Deux lancers de Blessure Critique, dont le porteur CHOISIT le résultat gardé (LDB 41 l.170) :
@@ -156,9 +363,41 @@ import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironment
 import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './monde/zones';
 import { entreeEnRencontre, sortieDeRencontre } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
-import { resolveCritique, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
+import {
+  resolveCritique,
+  jeuDeCritique,
+  critiquesDuCoup,
+  relanceLaLocalisation,
+  estUnCoupCritique,
+  type CauseCoupCritique,
+  porteurDeCritique,
+  regimeDePorteur,
+  type OrigineCritique,
+  REGIMES_DE_CRITIQUE,
+  type OptionsCritique,
+  critiqueTriviale,
+  critWoundLocation,
+  critImmediateSummary,
+  opRestitueeParLeBandeau,
+  prendreAmputationsDifferees,
+  critTableKeyFor,
+  critTableRows,
+  type CriticalResolved,
+  type CritTableKey,
+} from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
-import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
+import {
+  isFumble,
+  rollOups,
+  desDOups,
+  desDeBrisDeLame,
+  casseSurMaladresse,
+  CLE_SOLIDE,
+  ligneDeSolide,
+  SOURCE_SOLIDE,
+  type OupsResolved,
+  type DemandeDeCasse,
+} from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE } from '../engine/artilleryMisfire';
 import { artilleryMisfireDie } from '../data/artilleryMisfire';
 import { ARTILLERY_MISFIRE } from '../data/artilleryMisfire';
@@ -175,23 +414,90 @@ import { findSpell, findSpellById } from '../data/index';
 const resolveSpell = (id: string) => findSpellById(id);
 import { toBrass, fromBrass } from '../engine/money';
 import { partyMoneyTotal, condCtx } from './bourseFlow';
-import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollapsed, parapetTilesAbove, heightAt, surfaceDAtterrissage, structureIsDown, climbEdgeBetween, type VictoryCondition } from './monde/scene';
+import {
+  Scene,
+  sceneMetresPerTile,
+  isMerScene,
+  setStructureDown,
+  setTileCollapsed,
+  parapetTilesAbove,
+  heightAt,
+  surfaceDAtterrissage,
+  structureIsDown,
+  climbEdgeBetween,
+  type VictoryCondition,
+} from './monde/scene';
 import { STEP_MAX_M } from './monde/relief';
 import { placeCombatant, positionPosee, spawnEnemy } from './monde/spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
-import { sweepDismountDeaths, mountedAttackMods, defenseDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
+import {
+  sweepDismountDeaths,
+  mountedAttackMods,
+  defenseDodgeMods,
+  mountMovement,
+  mouvementDeCourse,
+  mountOf,
+  chargeDmgProxy,
+  mountUp,
+  mountableNear,
+  movementRemaining,
+  canMove,
+  riderFearSize,
+  combatGeomOf,
+  attackGeomOf,
+  meleeWeaponInRange,
+  pickAttackWeaponList,
+} from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
 import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
 import { couvertDuPoste } from '../engine/navalTraits';
-import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf, rechargeDuTour, posteDeLaBataille } from './monde/shipPostes';
+import {
+  shipOfCrew,
+  mountedWeaponBears,
+  servingCrewPresent,
+  servablePostes,
+  serveAtPoste,
+  crewPosteOf,
+  rechargeDuTour,
+  posteDeLaBataille,
+} from './monde/shipPostes';
 import { isVehicle, profilNavalDe, estNavire } from '../engine/coque';
 import { targetArc, headingToBear } from './monde/fireArc';
 import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, idDeSource, libelleDeSource, sourceDejaAffrontee, type SourceEnVue, refreshAllDefendedPsych, sansPeurFace, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTriggers, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, type PsychAffliction, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import {
+  fearSourceFor,
+  idDeSource,
+  libelleDeSource,
+  sourceDejaAffrontee,
+  type SourceEnVue,
+  refreshAllDefendedPsych,
+  sansPeurFace,
+  sansPeurVs,
+  failConditionAmount,
+  isPsychImmune,
+  isFrenzied,
+  clearPsychOf,
+  targetedTriggers,
+  supersededLines,
+  psychResolution,
+  psychBranchOps,
+  psychBranchFlow,
+  cibleLabel,
+  PsychType,
+  type PsychAffliction,
+  psychTest,
+  sousPeur,
+  indiceDePeur,
+  vise,
+  ciblesDePulsion,
+  pasDePeur,
+  issueDePeur,
+  sansPeurLabel,
+} from '../engine/psychology';
 import { subirLaTerreur } from './cibleAcquise';
 import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
 import { sceneCombatModifiers } from './monde/sceneRules';
@@ -233,29 +539,128 @@ export function activeCombatant(battle: BattleState): Combatant | undefined {
 }
 
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, ouvrirChute, cloturer, comptePasDifferes, confierLaSuite, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, jouerLesClotures, OPS_DIFFEREES, type Applique } from './combatEffects';
+import {
+  pushReveal,
+  pushCombatStep,
+  applyEffects,
+  gearFromEffects,
+  drainPendingLog,
+  ouvrirChute,
+  cloturer,
+  comptePasDifferes,
+  confierLaSuite,
+  ctxRepris,
+  revealPurpose,
+  nePeutPasDifferer,
+  jouerFlowEntier,
+  jouerLesClotures,
+  OPS_DIFFEREES,
+  type Applique,
+} from './combatEffects';
 import { teamCommandMod } from './monde/commandTeam';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
 import { aiDriven, controlsCombatant, defenseSurfaced } from './netOwnership';
 import { jetSurfaced, tenuParUnHumain } from './sieges';
 import { resolveRecoverTest } from './combat/recover';
-import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './combat/turnHooks'; // effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
-import { runCombatFlow, routeTriggeredTest, bandeTriggeredTest, rollFrozenOpposedAttacker, frozenOpposedBatchStep, simpleBatchTestStep } from './combat/triggeredTest'; // usage interne (applyCast : exécuteur de Flow de sort EN COMBAT, after-aware → canal de journal unique ; Surprise : opposition figée + bande de guetteurs)
+// effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
+import {
+  fireTurnStartTriggers,
+  fireTurnEndTriggers,
+  resolveActGates,
+} from './combat/turnHooks';
+// usage interne (applyCast : exécuteur de Flow de sort EN COMBAT, after-aware → canal de journal unique ; Surprise : opposition figée + bande de guetteurs)
+import {
+  runCombatFlow,
+  routeTriggeredTest,
+  bandeTriggeredTest,
+  rollFrozenOpposedAttacker,
+  frozenOpposedBatchStep,
+  simpleBatchTestStep,
+} from './combat/triggeredTest';
 // Sauvegardes post-touche en registre `HitModifier` ordonné (noyau/combat/hitModifiers, module FEUILLE).
 import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
-import { bestDefenseMode, hasFreeWeaponAttack, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue, distraireAttackBase, distraireDefenseBase } from './combatManeuvers';
+import {
+  bestDefenseMode,
+  hasFreeWeaponAttack,
+  freeAttackCost,
+  freeAttackTargetOk,
+  gratuitesRestantes,
+  MELEE_MANEUVER_KINDS,
+  rollManeuverAttacker,
+  maneuverAttackerDifficulty,
+  resolveManeuver,
+  availableFreeAttackOps,
+  resolveBattement,
+  battementEligible,
+  resolveDistraire,
+  distraireEligible,
+  distraireAttackValue,
+  distraireDefenseValue,
+  distraireAttackBase,
+  distraireDefenseBase,
+} from './combatManeuvers';
 import { testFlow } from './monde/flow';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, evaluerRangeeBatch, sortirDeLHote, type TableStepDef, type CascadeApplier } from './cascade';
+import {
+  runCascadeImmediate,
+  rollTableStep,
+  lireEnSeuil,
+  pushStep,
+  evaluerRangeeBatch,
+  sortirDeLHote,
+  type TableStepDef,
+  type CascadeApplier,
+} from './cascade';
 import { inversionDeTalent } from '../engine/reverseToken';
 import { effectiveTalents } from '../engine/talentEffects';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
-import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup, Suite } from './pendings';
+import type {
+  CascadeStepMeta,
+  ChaineDeBalayage,
+  EnchainementDuCoup,
+  TirsDeBordee,
+  RebondDeChaine,
+  SeuilDeSauvegarde,
+  SauvegardeSuite,
+  SuiteDeCoup,
+  ToucheDeProjectile,
+  PendingCasseDArme,
+  QueueDuCoup,
+  Suite,
+} from './pendings';
 import { APRES_COUP, type IssueOpposee, type PendingApproach } from './pendings';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
-import { freeCons, resultLines, rollStep, rollSansPilote, surfaceOf, surfaceRow, monoStep, pousseSi, hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory, stepDetail, stepPrecision, stepPsych, stepSansPeur, type ChoiceSpec, type Consequence, type TableSpec } from './rollSeam';
+import {
+  freeCons,
+  resultLines,
+  rollStep,
+  rollSansPilote,
+  surfaceOf,
+  surfaceRow,
+  monoStep,
+  pousseSi,
+  hostStep,
+  idDansLaSequence,
+  openSequence,
+  openBand,
+  pushHost,
+  pushTableDone,
+  pushTable,
+  pushChoice,
+  pushDisplay,
+  pushDie,
+  tableStep,
+  makeBandFactory,
+  stepDetail,
+  stepPrecision,
+  stepPsych,
+  stepSansPeur,
+  type ChoiceSpec,
+  type Consequence,
+  type TableSpec,
+} from './rollSeam';
 import { rollLine, type RollLineParts } from './ligneDeJet';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -1380,12 +1785,11 @@ export function resolveGrappleOpposed(get: Get, actor: Combatant, foe: Combatant
  *  qui coûte le moins de Mouvement (point d'arrivée d'une Charge). */
 export function bestAdjacentReachable(reach: Map<string, number>, scene: Scene | null, mover: Combatant, target: Combatant): Pt | null {
   const mpt = sceneMetresPerTile(scene);
-  const n = footprintN(mover);
   let best: Pt | null = null;
   let bestD = Infinity;
   for (const k of reach.keys()) {
     const t = tileFromKey(k);
-    if (distanceDeContact(scene, { ...mover, pos: positionPosee(scene, n, t) }, target, mpt) !== 1) continue;
+    if (distanceDeContact(scene, { ...mover, pos: positionPosee(scene, t) }, target, mpt) !== 1) continue;
     const d = reach.get(k)!;
     if (d < bestD) {
       bestD = d;
@@ -1492,7 +1896,7 @@ export function aiApproachPlan(
   if (M <= 0) return none;
   const adversaires = adversairesDe(input);
   const atContact = (a: EnemyAction): boolean =>
-    a.kind === 'deplacement' && distanceDeContact(input.scene, { ...enemy, pos: positionPosee(input.scene, footprintN(enemy), a.to) }, adversaires.find((h) => h.id === a.thenTargetId) ?? adversaires[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
+    a.kind === 'deplacement' && distanceDeContact(input.scene, { ...enemy, pos: positionPosee(input.scene, a.to) }, adversaires.find((h) => h.id === a.thenTargetId) ?? adversaires[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
   if (atContact(action)) return none; // la Marche suffit déjà
   // Charge (portée de Course, sans Test — LDB 15 l.35-37).
   const courseBudget = chargeReach(M, runMultiplier(geom.traits));
@@ -1627,18 +2031,25 @@ export function attackPlan(get: Get, active: Combatant, target: Combatant, opts?
   return { kind: 'deplacementEtAttaque', dest, path: pathTo(scene, active.pos!, dest, env) ?? [], cost: reach.get(tileKey(dest.x, dest.y, dest.z))! };
 }
 
-/** Mort d'un combattant : pour un héros à Destin, suspend (pendingFateSave) au lieu de mourir
- *  (LDB 17 l.29) ; sinon finalise la mort. `restoreWounds` = PB d'avant le coup létal.
+/** Mort d'un combattant sous un coup : pour un héros à Destin, suspend (pendingFateSave) au lieu de mourir
+ *  (LDB 17 l.29) ; sinon finalise la mort. `avantLeCoup` = le porteur tel qu'avant le coup létal, pris avant
+ *  ses Blessures et ses Critiques (`instantaneAvantLeCoup`), que « Comment ça a pu rater ? » restaure (LDB 17 l.32).
  *  `foe` : l'auteur du coup direct, d'où se lisent les Cibles d'une Animosité si le Destin est dépensé
  *  (`ciblesDAnimositeAcquise`, ADE II 09 l.15) ; absent pour la mort lente. */
-export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source: FateSaveSource, restoreWounds?: number, foe?: Combatant): void {
+export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, avantLeCoup: Combatant, foe?: Combatant): void {
   // Le vrai gate est la RESSOURCE (`fate > 0`, présente sur tout kind), pas le `kind` : un combattant à
   // Destin (héros, ou ennemi conduit doté de Destin) est sauvé ; sinon la mort est finalisée.
   if ((hero.fate ?? 0) > 0) {
-    set({ pendingFateSave: { heroId: hero.id, source, restoreWounds, ...(foe ? { foeId: foe.id } : {}) } });
+    set({ pendingFateSave: { heroId: hero.id, source: 'hit', avantLeCoup, ...(foe ? { foeId: foe.id } : {}) } });
   } else {
     hero.dead = true;
   }
+}
+
+/** Le porteur tel qu'avant le coup : copie profonde, prise avant toute écriture du coup sur lui (Blessures, Critiques,
+ *  séquelles, États). LDB 17 l.32 */
+export function instantaneAvantLeCoup(porteur: Combatant): Combatant {
+  return structuredClone(porteur);
 }
 
 /** Émet le déclencheur `onSlain` UNE seule fois pour un combattant mis HORS DE COMBAT — effets de DONNÉE
@@ -1793,7 +2204,7 @@ export function applyCriticalToTarget(
       revealLines.push(`  ↳ ${text}.`);
       details.push({ text, note: t.desc });
     }
-    // Cumuls par comptage (LDB 18) : chaque séquelle applique SA règle déclarée (`TraumaCumul`) —
+    // Cumuls par comptage (LDB 18) : chaque séquelle applique SA règle déclarée (`TraumaFiche['cumul']`) —
     // agrégation par bras/porteur, effet par palier, et escalade au seuil (main tranchée, Cécité, Surdité).
     for (const l of consolidateAmputations(target)) {
       log.push(`  ↳ ${l}`);
@@ -2045,15 +2456,15 @@ function deflectCrit(target: Combatant, location: HitLocation, log: string[]): b
 }
 
 /** Triptyque PARTAGÉ d'application d'un Critique (mêlée/opposé/magie) : applique la table puis finalise
- *  une éventuelle mort par le chemin normal. `woundsBefore` = PB AVANT les dégâts de base (passé par
+ *  une éventuelle mort par le chemin normal. `avantLeCoup` = le porteur AVANT les dégâts de base (pris par
  *  l'appelant → restauration Destin correcte au Subir). */
 function applyCritAndFinalize(
   get: Get, set: SetFn, target: Combatant, location: HitLocation, overkill: number, origine: OrigineCritique,
-  log: string[], ctx: DeviationCtx, auteur: Combatant | undefined, woundsBefore: number, crit?: CriticalResolved, suppressReveal?: boolean,
+  log: string[], ctx: DeviationCtx, auteur: Combatant | undefined, avantLeCoup: Combatant, crit?: CriticalResolved, suppressReveal?: boolean,
   surLeCritique?: (crit: CriticalResolved) => void,
 ): boolean {
   const lethal = applyCriticalToTarget(target, location, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get, origine, surLeCritique });
-  if (lethal) finalizeHeroDeath(get, set, target, 'hit', woundsBefore, auteur);
+  if (lethal) finalizeHeroDeath(get, set, target, avantLeCoup, auteur);
   return lethal;
 }
 
@@ -2097,8 +2508,9 @@ interface DeviationStepSpec {
 }
 
 /** Pousse l'étape « Blessure critique » — tirage de sévérité et/ou choix Dévier/Subir dans UNE fenêtre.
- *  Builder UNIQUE des 3 chemins. */
-function pushDeviationStep(set: SetFn, spec: DeviationStepSpec): void {
+ *  Builder UNIQUE des 3 chemins. Rend l'id de l'étape poussée. */
+function pushDeviationStep(set: SetFn, spec: DeviationStepSpec): string {
+  let etapeId = '';
   const options = spec.offerte
     ? [{ key: 'devier', label: tr('opt.devier') }, { key: 'subir', label: tr('opt.subir') }]
     : undefined;
@@ -2110,7 +2522,7 @@ function pushDeviationStep(set: SetFn, spec: DeviationStepSpec): void {
   if (spec.severite) {
     const sev = spec.severite;
     pushTable(set, (index) => ({
-      id: `cons-deviation-${spec.targetId}-${sev.charge.location}-${index}`,
+      id: (etapeId = `cons-deviation-${spec.targetId}-${sev.charge.location}-${index}`),
       // Le titre d'étape porte la LOCALISATION : c'est elle qui dit sur QUELLE table le dé se pose.
       kind: 'deviation', actorId: spec.targetId, icon: 'journal/critique',
       label: sev.label,
@@ -2121,15 +2533,28 @@ function pushDeviationStep(set: SetFn, spec: DeviationStepSpec): void {
       // le fait descendre à la Blessure tirée (catégorie déclarée par la table de la Localisation).
       stake: combatStakeRef('critique-severite'),
     }));
-    return;
+    return etapeId;
   }
   const dev = spec.pretire!;
   pushChoice(set, (index) => ({
-    id: `cons-deviation-${dev.targetId}-${index}`, kind: 'deviation', actorId: dev.targetId, icon: 'feu/explosif',
+    id: (etapeId = `cons-deviation-${dev.targetId}-${index}`), kind: 'deviation', actorId: dev.targetId, icon: 'feu/explosif',
     label: tr('step.critDevier'),
     options: options ?? [{ key: 'devier', label: tr('opt.devier') }, { key: 'subir', label: tr('opt.subir') }],
     defaultChoice: 'devier', deviation: dev, reveal: dev.reveal,
   }));
+  return etapeId;
+}
+
+/** Suspend à l'étape `etapeId` la Blessure critique de `porteurId`, avec le porteur d'avant le coup. LDB 17 l.32 */
+function suspendreLeCritique(set: SetFn, etapeId: string, porteurId: string, avantLeCoup: Combatant): void {
+  set((s: Jeu) => ({ critiquesSuspendus: [...s.critiquesSuspendus, { etapeId, porteurId, avantLeCoup }] }));
+}
+
+/** Le porteur d'avant le coup de la Blessure critique suspendue à l'étape `etapeId`, retirée des suspendues. */
+function reprendreLeCritiqueSuspendu(get: Get, set: SetFn, etapeId: string): Combatant {
+  const suspendu = garanti(get().critiquesSuspendus.find((c) => c.etapeId === etapeId), etapeId, 'Blessure critique suspendue');
+  set((s: Jeu) => ({ critiquesSuspendus: s.critiquesSuspendus.filter((c) => c !== suspendu) }));
+  return suspendu.avantLeCoup;
 }
 
 /** LDB 60 l.50. */
@@ -2159,6 +2584,7 @@ export function applyCoupCritiqueSec(
   ctx: { attackerId?: string; weapon?: string; weaponObj?: Weapon },
   log: string[],
   auteur: Combatant | undefined,
+  avantLeCoup: Combatant,
 ): void {
   // LDB 14 l.3 ; LDB 46 l.30 : un seul Critique ; LDB 18 l.44, l.46 (Mort subite).
   const coup = { coupCritique: cause, prise: true, current: victim.wounds.current };
@@ -2182,13 +2608,14 @@ export function applyCoupCritiqueSec(
     // Porteur blindé TENU : on SUSPEND pour son choix Dévier/Subir (étape `self`, Critique « sec » pré-tiré).
     const { crit } = resolveCritSeverity(victim, loc, 0, c2.critTwice); // dé de sévérité par l'étape à table (seam UNIQUE)
     const reveal = previewCritEntry(victim, crit, entree.origine, ctx);
-    pushDeviationStep(set, { targetId: victim.id, offerte: true, pretire: {
+    const etapeId = pushDeviationStep(set, { targetId: victim.id, offerte: true, pretire: {
       mode: 'self', attackerId: ctx.attackerId ?? '', targetId: victim.id, location: loc, crit,
-      origine: entree.origine, overkill: 0, woundsBefore: victim.wounds.current, reveal, resumeAfter: true, ctx: c2,
+      origine: entree.origine, overkill: 0, reveal, resumeAfter: true, ctx: c2,
     } });
+    suspendreLeCritique(set, etapeId, victim.id, avantLeCoup);
     return;
   }
-  const lethal = applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, auteur, victim.wounds.current);
+  const lethal = applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, auteur, avantLeCoup);
   breakBacleArmour(victim, loc, log); // LDB 60 l.50
   apresLeCritiqueDe({ get, set, auteur, cible: victim, lieu: loc, log, arme: ctx.weaponObj })(lethal, entree.origine); // #316
 }
@@ -2383,8 +2810,8 @@ interface ApplicationDesCritiques {
   log: string[];
   ctx: DeviationCtx;
   auteur: Combatant | undefined;
-  /** PB AVANT les Blessures du coup (restauration Destin au Subir). */
-  currentBefore: number;
+  /** Le porteur AVANT les Blessures du coup (restauration Destin, LDB 17 l.32). */
+  avantLeCoup: Combatant;
   /** Le jet de toucher (révélation d'une Déviation de l'automate). */
   roll: number;
   /** Après une Blessure critique INFLIGÉE (Frappe blessante, `onCrit`). */
@@ -2419,7 +2846,7 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
     if (!devie) {
       // « Subir » applique LA Blessure déjà montrée, sans la re-révéler ; le Critique d'une fenêtre sans voies
       // (pose du dé, #942 L4) garde sa révélation.
-      lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.auteur, a.currentBefore, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
+      lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.auteur, a.avantLeCoup, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
       a.apres?.(lethal, entree.origine);
       infligees++;
     }
@@ -2441,12 +2868,14 @@ interface EncaissementDuCoup {
   /** Le jet de toucher (révélation d'une Déviation de l'automate). */
   roll: number;
   arme?: Weapon;
+  /** La cible avant toute écriture du coup sur elle (`instantaneAvantLeCoup`, LDB 17 l.32). */
+  avantLeCoup: Combatant;
 }
 
 /** Les Blessures d'un coup d'arme, puis ses Blessures critiques planifiées, sur la cible : LDB 13 l.161 ;
  *  LDB 18 l.53 ; AA 07 l.25. */
 function encaisserLeCoup(e: EncaissementDuCoup): { lancerDuTableau?: number; infligees: number } {
-  const { get, set, cible, log } = e;
+  const { get, set, cible, log, avantLeCoup } = e;
   const { lieu, compte: { blessures } } = e.compte;
   const currentBefore = cible.wounds.current;
   cible.wounds.current = Math.max(0, currentBefore - blessures);
@@ -2456,7 +2885,7 @@ function encaisserLeCoup(e: EncaissementDuCoup): { lancerDuTableau?: number; inf
     if (reinj > 0) { addCondition(cible, COND.hemorragique, reinj); log.push(tr('cf.rechuteHemorragie', { name: cible.label, n: reinj, loc: locationLabel(lieu, cible.bodyShape) })); }
   }
   const applique = appliquerLesCritiques({
-    get, set, target: cible, compte: e.compte, plan: e.plan, log, ctx: e.ctx, auteur: e.auteur, currentBefore, roll: e.roll,
+    get, set, target: cible, compte: e.compte, plan: e.plan, log, ctx: e.ctx, auteur: e.auteur, avantLeCoup, roll: e.roll,
     apres: apresLeCritiqueDe({ get, set, auteur: e.auteur, cible, lieu, log, arme: e.arme, woundsDealt: blessures }),
   });
   if (regimeDePorteur(cible).clore) cloreLeCoup(get, cible, currentBefore, log);
@@ -2526,7 +2955,7 @@ function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides
   if (!planifie) return null;
   if (planifie.compte.compte.blessures > 0) lignes.push(tr('op.blessures', { name: marin.label, n: planifie.compte.compte.blessures, mitig: '' }));
   encaisserLeCoup({
-    get, set, auteur: attaquant, cible: marin, compte: planifie.compte, plan: planifie.plan, log: lignes, roll: touche.roll, arme: touche.arme,
+    get, set, auteur: attaquant, cible: marin, compte: planifie.compte, plan: planifie.plan, log: lignes, roll: touche.roll, arme: touche.arme, avantLeCoup: instantaneAvantLeCoup(marin),
     ctx: { attackerId: attaquant.id, attackerKind: attaquant.kind, weapon: touche.libelle, ...(touche.arme ? { weaponObj: touche.arme } : {}), critTwice: twice },
   });
   return lignes;
@@ -2646,9 +3075,9 @@ function appliquerLaTouche(
     attacker.aiming = false;
     if (weapon.type === 'melee' && !isInanimate(target)) engage(attacker, target); // Engagé symétrique (LDB 13 l.174-175) — jamais avec un objet INANIMÉ
     if (!isInanimate(target)) markAttacked(attacker, target); // trace orientée du Round (LDB 85 l.383, `agressifEnvers`)
-    const currentBefore = target.wounds.current;
+    const avantLeCoup = instantaneAvantLeCoup(target);
     target.wounds.current = 0;
-    finalizeHeroDeath(get, set, target, 'hit', currentBefore, attacker); // Destin possible (héros) ; sinon mort directe
+    finalizeHeroDeath(get, set, target, avantLeCoup, attacker); // Destin possible (héros) ; sinon mort directe
     delierLeHorsDeCombat(get, target);
     if (attacker.pos && target.pos) {
       set((s: Jeu) => ({ facing: { ...s.facing, [attacker.id]: facingToward(attacker.pos!, target.pos!), [target.id]: facingToward(target.pos!, attacker.pos!) } }));
@@ -2682,6 +3111,7 @@ function appliquerLaTouche(
 
   if (weapon.type === 'melee' && !isInanimate(target)) engage(attacker, target); // Engagé symétrique sur toute attaque de mêlée (LDB 13 l.169-171) — jamais avec un objet INANIMÉ
   if (!isInanimate(target)) markAttacked(attacker, target); // trace orientée du Round (LDB 85 l.383, `agressifEnvers`) — tir compris
+  const avantLeCoup = instantaneAvantLeCoup(target); // LDB 17 l.32 — avant Renversement, Empoignade et Blessures
   const critLog: string[] = [...tiersLog];
   // Avantage de l'attaquant (LDB 13 l.123, étape « 1 : Lancer pour Toucher ») — crédité AVANT le bloc
   // Critique (LDB 13 l.177, après les étapes 2 et 3) : un déclencheur `onCrit` lit ainsi la MÊME réserve
@@ -2715,7 +3145,7 @@ function appliquerLaTouche(
     if (relance) res.location = lieu;
     res.woundsLost = blessures;
     const { lancerDuTableau, infligees } = encaisserLeCoup({
-      get, set, auteur: attacker, cible: target, compte: coupCompte, plan, log: critLog, ctx: ctxCrit, roll: res.attackerRoll, arme: weapon,
+      get, set, auteur: attacker, cible: target, compte: coupCompte, plan, log: critLog, ctx: ctxCrit, roll: res.attackerRoll, arme: weapon, avantLeCoup,
     });
     res.critiques = infligees;
     if (lancerDuTableau != null) res.lancerDuTableau = lancerDuTableau;
@@ -2729,7 +3159,7 @@ function appliquerLaTouche(
     // (a) Attaquant : Critique au jet mais échange PERDU (pas de touche) → le défenseur subit un Critique sec.
     if (ad && ad.success && isDoubleRoll(ad.roll) && !res.hit && !isOutOfAction(target)) {
       critLog.push(tr('cf.critiqueMalgreLaDefaite', { name: attacker.label }));
-      applyCoupCritiqueSec(get, set, target, ad.roll, 'double', { attackerId: attacker.id, weapon: weapon?.label, weaponObj: weapon }, critLog, attacker);
+      applyCoupCritiqueSec(get, set, target, ad.roll, 'double', { attackerId: attacker.id, weapon: weapon?.label, weaponObj: weapon }, critLog, attacker, avantLeCoup);
     }
     // (b) Défenseur : LDB 13 l.183 ; LDB 62 l.278. `res.parryWeapon` n'est posé qu'en Parade (finishMelee).
     if (dd.success && isDoubleRoll(dd.roll) && !isOutOfAction(attacker) && res.parryWeapon) {
@@ -2737,10 +3167,10 @@ function appliquerLaTouche(
         // Folding P3b : le choix Piéger/Critique devient une ÉTAPE de la séquence (texte + options),
         // au lieu d'une modale `pendingBladeTrap` séparée. L'applier 'piegeALame' appelle resolveBladeTrap.
         const pbt: PendingBladeTrap = { defenderId: target.id, attackerId: attacker.id, weapon, parryWeaponUid: res.parryWeapon.uid!, defSL: dd.sl, roll: dd.roll };
-        pushChoice(set, choixPiegeLame(pbt, target, attacker, res.parryWeapon));
+        proposerLePiegeALame(set, pbt, target, attacker, res.parryWeapon);
       } else {
         critLog.push(tr('cf.critiqueEnDefense', { name: target.label }));
-        applyCoupCritiqueSec(get, set, attacker, dd.roll, 'double', { attackerId: target.id, weapon: res.parryWeapon?.label, weaponObj: res.parryWeapon }, critLog, target);
+        applyCoupCritiqueSec(get, set, attacker, dd.roll, 'double', { attackerId: target.id, weapon: res.parryWeapon?.label, weaponObj: res.parryWeapon }, critLog, target, instantaneAvantLeCoup(attacker));
       }
     }
   }
@@ -3440,6 +3870,14 @@ export function choixPiegeLame(pbt: PendingBladeTrap, defenseur: Combatant, atta
       tr('cf.piegeLameIssue', { dr: pbt.defSL, foe: attaquant.label }),
     ]),
   };
+}
+
+/** Pousse le choix Piéger/Critique (`choixPiegeLame`) et y suspend le Coup Critique sur l'attaquant, avec l'attaquant
+ *  d'avant le coup. LDB 62 l.278 ; LDB 17 l.32 */
+export function proposerLePiegeALame(set: SetFn, pbt: PendingBladeTrap, defenseur: Combatant, attaquant: Combatant, parade: Weapon): void {
+  const choix = choixPiegeLame(pbt, defenseur, attaquant, parade);
+  pushChoice(set, choix);
+  suspendreLeCritique(set, choix.id, attaquant.id, instantaneAvantLeCoup(attaquant));
 }
 
 /** REFUS d'ouverture : un producteur déclare une frappe par-dessus une défense vivante. DEV = throw
@@ -4440,11 +4878,12 @@ function resumeMeleeAfterSuspension(
  *  (`dev.crit`) tel quel ; « Dévier » l'ignore (−1 PA). Union discriminée :
  *  - `melee` → RÉ-ENTRE `applyAttackResult` avec la décision (son tail décision-indépendant tourne UNE fois) ;
  *  - `self` → le Critique pré-tiré d'`applyCoupCritiqueSec`. */
-export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, deviate: boolean): void {
+export function resolveDeviation(get: Get, set: SetFn, etapeId: string, dev: PendingDeviation, deviate: boolean): void {
   if (dev.mode !== 'self') {
     reprendreLeCoup(get, set, dev, { crit: dev.crit, deviation: deviate ? 'devier' : 'subir' });
     return;
   }
+  const avantLeCoup = reprendreLeCritiqueSuspendu(get, set, etapeId);
   const target = porteurParId(get(), dev.targetId);
   if (!target) {
     journaliser(get, set, [tr('cascade.cibleDisparue', { label: tr('step.critDevier') })], 'information');
@@ -4454,7 +4893,7 @@ export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, de
   if (deviate) deflectCrit(target, dev.location, log); // −1 PA, Critique ignoré
   else {
     const auteur = dev.ctx.attackerId ? porteurParId(get(), dev.ctx.attackerId) : undefined;
-    const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, auteur, dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
+    const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, auteur, avantLeCoup, dev.crit, true); // Subir : Critique pré-tiré
     apresLeCritiqueDe({ get, set, auteur, cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(lethal, dev.origine); // #316
   }
   if (estUnCoupCritique(dev.origine)) breakBacleArmour(target, dev.location, log); // LDB 60 l.50
@@ -5563,14 +6002,9 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
     chosenTableRolls: pc.chosenTableRolls,
     extraTargets: inZone.slice(1),
   });
-  // Avance au-delà de l'étape cast (résolue) : conséquences appendues → jouées ; aucune → ferme.
-  if (castStepIdx >= 0) {
-    const casc = get().pendingCascade;
-    if (casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) {
-      if (casc.participants.length > castStepIdx + 1) poserCurseurCascade(get, set, casc, castStepIdx + 1);
-      else set({ pendingCascade: null });
-    }
-  }
+  // L'hôte d'incantation se clôt par la sortie d'hôte (#4248) ; la reprise de l'IA revient à l'appelant.
+  const casc = get().pendingCascade;
+  if (castStepIdx >= 0 && casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) sortirDeLHote(get, set, { pendingCast: null }, () => {});
 }
 
 /** Contexte de visibilité OPTIONNEL pour filtrer des cibles de sort par Ligne de Vue (LDB 46
@@ -6050,6 +6484,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   // LDB 18 l.53 ; LDB 63 l.32.
   const avecLaLigne = (applique: AttackResult): string[] => [ligneDuCoup(applique), ...lignes].filter(Boolean);
   if (!toucheAvecPrise(coup) || !mres.woundsLost) return clore(get, ch, avecLaLigne(coup), mres, 0);
+  const avantLeCoup = instantaneAvantLeCoup(cible);
   const currentBefore = cible.wounds.current;
   const twice = critRollTwiceFor(caster);
   const touche: ToucheDeProjectile = { ...ch, mres };
@@ -6067,7 +6502,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   const mReinj = reinjuryBleed(cible, loc);
   if (mReinj > 0) { addCondition(cible, COND.hemorragique, mReinj); lignes.push(tr('cf.rechuteHemorragie', { name: cible.label, n: mReinj, loc: locationLabel(loc, cible.bodyShape) })); }
   const { infligees } = appliquerLesCritiques({
-    get, set, target: cible, compte, plan, log: lignes, auteur: caster, currentBefore, roll: mres.roll ?? 0,
+    get, set, target: cible, compte, plan, log: lignes, auteur: caster, avantLeCoup, roll: mres.roll ?? 0,
     ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice, coup: suspendu },
     apres: apresLeCritiqueDe({ get, set, auteur: caster, cible, lieu: loc, log: lignes, woundsDealt: compte.compte.blessures }),
   });
@@ -6400,7 +6835,7 @@ export function applyCast(
             continue;
           }
         }
-        const blessuresAvant = t.wounds.current;
+        const avantLeCoup = crit && choice === 'critique' ? instantaneAvantLeCoup(t) : null; // LDB 17 l.32 — avant les Dégâts du Sort
         logLines.push(
           // Tout sort passe par le système Flow/EffectOp : `spell.effects` (Flow éditable, feuilles
           // `on:'target'`) → `runCombatFlow` (exécuteur unique, after-aware) → applyOps. Les feuilles
@@ -6410,8 +6845,8 @@ export function applyCast(
           })),
         );
         // LDB 46 l.30 ; LDB 18 l.21
-        if (crit && choice === 'critique' && t.wounds.current < blessuresAvant) {
-          applyCoupCritiqueSec(get, set, t, res.roll, 'incantation-critique', { attackerId: caster.id, weapon: spell.label }, logLines, caster);
+        if (avantLeCoup && t.wounds.current < avantLeCoup.wounds.current) {
+          applyCoupCritiqueSec(get, set, t, res.roll, 'incantation-critique', { attackerId: caster.id, weapon: spell.label }, logLines, caster, avantLeCoup);
         }
         // Métamorphose (Forme bestiale, LDB 48) : op `polymorph` du Flow (on:'target') — appliquée
         // ci-dessus par runCastFlow → applyOps (expansion charMod différentiel + grantTrait via
@@ -7156,7 +7591,7 @@ function victoryConditionMet(vc: VictoryCondition | undefined, battle: BattleSta
     }
     case 'woundsThreshold': {
       if (vc.targetId === undefined) return !enemiesAlive;
-      const target = inBattleId(battle, vc.targetId);
+      const target = inBattleId(battle, vc.targetId.id);
       return !!target && auSeuilDeBlessures(target, vc.atOrBelowPercent);
     }
     case 'firstBlood':
@@ -7181,7 +7616,7 @@ function resolveSurrenderThreshold(battle: BattleState, vc: VictoryCondition | u
   if (vc?.type !== 'woundsThreshold') return [];
   const cibles = vc.targetId === undefined
     ? battle.combatants.filter((c) => c.kind === 'ennemi' && !c.inert)
-    : [inBattleId(battle, vc.targetId)].filter((c): c is Combatant => !!c);
+    : [inBattleId(battle, vc.targetId.id)].filter((c): c is Combatant => !!c);
   return cibles.filter((c) => !isOutOfAction(c) && auSeuilDeBlessures(c, vc.atOrBelowPercent)).map((c) => {
     c.outOfRencontre = true;
     if (estNavire(c)) {
@@ -8565,7 +9000,7 @@ function runShipAI(get: Get, set: SetFn, ship: Combatant): void {
   const primary = mostArmedSide(ship);
   const inRange = shipMaxPosteRange(ship) > 0 && distMetres <= shipMaxPosteRange(ship);
   const desired = inRange && primary ? headingToBear(primary, bearing) : bearing;
-  maneuverShip(get, ship.id, shipTurnToward(heading, desired)); // vire (si Test réussi) + avance ; journalise
+  maneuverShip(get, set, ship.id, shipTurnToward(heading, desired)); // vire (si Test réussi) + avance ; journalise
   endShipTurn(get, set, ship);
 }
 
@@ -9002,7 +9437,7 @@ export const TABLES = {
         reprendreLeCoup(get, set, dev, { crit: dev.crit });
         return;
       }
-      resolveDeviation(get, set, dev, step.chosen === 'devier');
+      resolveDeviation(get, set, step.id, dev, step.chosen === 'devier');
     },
     /**
      * La LIGNE tirée (`result.id` via le dé posé, jamais un re-lookup local) résout le contrecoup. Une
@@ -9078,6 +9513,7 @@ export const TABLES = {
     piegeALame: (get, set, step) => {
       const pbt = step.piegeLame;
       if (!pbt) return;
+      const avantLeCoup = reprendreLeCritiqueSuspendu(get, set, step.id);
       const defender = porteurParId(get(), pbt.defenderId);
       const attacker = porteurParId(get(), pbt.attackerId);
       if (!defender || !attacker) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
@@ -9086,7 +9522,7 @@ export const TABLES = {
         const parryWeaponObj = defender.weapons.find((w) => w.uid === pbt.parryWeaponUid);
         const parryWeaponName = parryWeaponObj?.label ?? 'arme';
         const lines = [tr('cf.critiqueEnDefense', { name: defender.label })];
-        applyCoupCritiqueSec(get, set, attacker, pbt.roll, 'double', { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines, defender);
+        applyCoupCritiqueSec(get, set, attacker, pbt.roll, 'double', { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines, defender, avantLeCoup);
         journaliser(get, set, lines, 'information', { actorId: defender.id, targetId: attacker.id });
         set(touchActors(get()));
         bus.emit(EVT.SCENE_DIRTY);

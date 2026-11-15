@@ -46,6 +46,7 @@ const cible = (): Combatant =>
 
 const REFERENCE = reference as unknown as Record<string, unknown>;
 const DEPASSEMENT: Record<JeuDeCritique, number> = { ldb: 2, aa: 8 };
+const JEUX: readonly JeuDeCritique[] = ['ldb', 'aa'];
 const LOCS: readonly HitLocation[] = LOCALISATIONS_DE_COUP;
 
 describe('invariance du RNG des Blessures critiques — référence figée AVANT la fusion des lecteurs', () => {
@@ -67,7 +68,7 @@ describe('invariance du RNG des Blessures critiques — référence figée AVANT
     const divergences: string[] = [];
     for (let seed = 1; seed <= 40; seed++) {
       for (const loc of LOCS) {
-        for (const jeu of ['ldb', 'aa'] as JeuDeCritique[]) {
+        for (const jeu of JEUX) {
           const overkill = seed % 2 === 0 ? DEPASSEMENT[jeu] : 0;
           const cle = `${jeu}|${seed}|${loc}|${overkill}`;
           const { naturel, ...resolu } = resolveCritique(jeu, cible(), loc, makeRNG(seed), { overkill });

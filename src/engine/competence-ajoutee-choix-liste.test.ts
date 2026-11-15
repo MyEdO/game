@@ -7,10 +7,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { Combatant } from './types';
 import { competenceEnCarriere } from './talentEffects';
-import type { TalentData } from '../data';
 import { setDataset, datasetArray } from '../data/overrides';
 
-const TALENTS_LIVRES = [...(datasetArray('talents') as TalentData[])];
+const TALENTS_LIVRES = [...datasetArray('talents')];
 
 beforeEach(() => {
   setDataset(

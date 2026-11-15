@@ -16,9 +16,8 @@ import { parseProject } from './worldMap';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { Scene } from './monde/scene';
 import type { CustomStatblock } from '../engine/statblock';
-import { creatures, findTalentById, findTraitById } from '../data';
+import { creatures, findTalentById, findTraitById, mutations } from '../data';
 import { mutationById } from '../data/mutations';
-import mutationsJson from '../data/mutations.json';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';
 import { mutationsAtSpawn, markMutationsAtSpawn } from '../engine/traits/dispatch';
 import { attachMutation } from '../engine/corruption';
@@ -175,10 +174,10 @@ describe('mutations au spawn — garde de propriété sur les statblocs livrés 
 
   it('chaque op-kind de mutation est CLASSÉ : couvert, ou reste nommé (#1853 L2/L3)', () => {
     const classes = new Set<string>([...OPS_ACQUISITION, ...OPS_LECTURE_VIVE, ...OPS_RESTE_L2]);
-    const kinds = new Set((mutationsJson as { passive?: { op: string }[] }[]).flatMap((m) => (m.passive ?? []).map((o) => o.op)));
+    const kinds = new Set(mutations.flatMap((m) => (m.passive ?? []).map((o) => o.op)));
     expect([...kinds].filter((k) => !classes.has(k)), 'op-kinds hors classement').toEqual([]);
     const declenches = new Set<string>(OPS_DECLENCHES);
-    const kindsDEffet = new Set((mutationsJson as { effects?: unknown }[]).flatMap((m) => opsDe(m.effects)));
+    const kindsDEffet = new Set(mutations.flatMap((m) => opsDe(m.effects)));
     expect([...kindsDEffet].filter((k) => !declenches.has(k)), 'op-kinds d’`effects` hors classement').toEqual([]);
   });
 
@@ -248,7 +247,7 @@ describe('porte de SCHÉMA : l’arg d’un trait à source FERMÉE résout dans
   });
 
   it('un statbloc VALIDÉ ne fait jamais lever le spawn, quel que soit l’arg de mutation', () => {
-    const args = [...(mutationsJson as { id: string; label: string }[]).flatMap((m) => [m.id, m.label]), 'Cornes', ''];
+    const args = [...mutations.flatMap((m) => [m.id, m.label]), 'Cornes', ''];
     for (const traitId of SPAWN_TRAITS) for (const arg of args) {
       const parse = customStatblockSchema.safeParse(statbloc([{ id: traitId, arg }]));
       if (parse.success) expect(() => statblockToCombatant(parse.data as CustomStatblock, 'x', ORIGINE), `${traitId}(${arg})`).not.toThrow();

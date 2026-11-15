@@ -12,7 +12,7 @@ import { datasetArray } from '../../../data/overrides';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const objets = datasetArray('trappings') as { id: string; label: string }[];
+const objets = datasetArray('trappings');
 const libelles = objets.map((o) => o.label.toLowerCase());
 const cible = objets.find((o) => /^[a-zà-ÿ]{4,}$/i.test(o.label) && libelles.filter((l) => l === o.label.toLowerCase()).length === 1)!;
 const autre = objets.find((o) => o.id !== cible.id)!;

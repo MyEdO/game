@@ -1062,7 +1062,9 @@
      },
      "victoryCondition": {
       "type": "woundsThreshold",
-      "targetId": "cogue-pirate",
+      "targetId": {
+       "id": "cogue-pirate"
+      },
       "atOrBelowPercent": 40
      }
     }

@@ -1,4 +1,17 @@
-import { affectationPowerShell, basenameExecutable, CHANGEMENTS_DE_REPERTOIRE, cheminsDe, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance, gitSubcommand, jetonNu, pipelinesDeJetons, sansRedirections, texteDuSegment, versCheminNatif } from './commandeShell.mjs'
+import {
+  affectationPowerShell,
+  basenameExecutable,
+  CHANGEMENTS_DE_REPERTOIRE,
+  cheminsDe,
+  cibleDeLaCommande,
+  ciblesDeRedirectionAvecProvenance,
+  gitSubcommand,
+  jetonNu,
+  pipelinesDeJetons,
+  sansRedirections,
+  texteDuSegment,
+  versCheminNatif,
+} from './commandeShell.mjs'
 import { readFileSync } from 'node:fs'
 import { VARIABLES_AMORCEES, ciblesDEcritureJS, repertoireTemporaire } from './ecrituresFichiers.mjs'
 

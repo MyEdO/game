@@ -12,11 +12,22 @@
 import { nomDe } from '../engine/nom';
 import { type Combatant, type Weapon, type HitLocation, type EffectSource } from '../engine/types';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { TriggeredEffect, Flow } from '../data/schemas/defs-scenes/effets';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { OpsCtx, GameOp } from '../engine/ops';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
-import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, flowHasFreeAttack, spellEffectOps, EMPTY_FLOW, reecrireFlow, reecrireLesOps } from '../engine/flowCore';
+import {
+  ARG_TEMPLATE,
+  INDICE_TEMPLATE,
+  type EffectTrigger,
+  flowHasTest,
+  flowHasFreeAttack,
+  spellEffectOps,
+  EMPTY_FLOW,
+  reecrireFlow,
+  reecrireLesOps,
+  type TriggeredEffect,
+} from '../engine/flowCore';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { weaponIdentity } from '../engine/items';
 import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
@@ -33,7 +44,16 @@ import { chebyshev } from '../engine/grid';
 import { tileSeenByFoe } from './monde/lineOfSight';
 import { smokeOf, combatantsWithinRadius, porteeEnCases } from './monde/combatGeometry';
 import { sceneMetresPerTile } from './monde/scene';
-import { findTraitById, findQualityById, findTalentById, findConditionById, findPsychologyById, findSymptomById, findMutationById, testSkillLabel } from '../data';
+import {
+  findTraitById,
+  findQualityById,
+  findTalentById,
+  findConditionById,
+  findPsychologyById,
+  findSymptomById,
+  findMutationById,
+  testSkillLabel,
+} from '../data';
 import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { activeSymptoms } from '../engine/disease';
 import { difficulteDeLArg, rollTest } from '../engine/tests';
@@ -82,7 +102,7 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
     for (const k in out) { if (out[k] === ARG_TEMPLATE) out[k] = arg; else if (out[k] === INDICE_TEMPLATE) out[k] = value; }
     return out as unknown as GameOp;
   };
-  const visit = (f: Flow): Flow => {
+  const visit = (f: TriggeredEffect['flow']): TriggeredEffect['flow'] => {
     if (f.kind === 'test') {
       // Nœud Flow `test` dont la difficulté vient de l'arg d'instance (Venin, `LDB 85 l.423`) : on
       // substitue `test.difficulty` (mêmes sémantique/gate que l'ancienne op `test.argDifficulty`).
@@ -560,7 +580,7 @@ export function fireOwnTestFailed(get: Get, actor: Combatant | string, opts: { s
   }
 }
 
-/** CŒUR GÉNÉRIQUE du folding des STATUTS portés (`StatusData` : États OU psy) : applique les `effects` de
+/** CŒUR GÉNÉRIQUE du folding des STATUTS portés (États OU psy) : applique les `effects` de
  *  chaque statut pour `trigger`, avec son nombre de pions (`stacks`). SOURCE UNIQUE — `fireConditionEffects`
  *  et `firePsychEffects` y délèguent (zéro copie du cœur `applyTriggeredEffects`). Le `[...snapshot]` côté
  *  appelant protège l'itération d'une auto-dissipation (`removeCondition`/`endPsych`) qui mute la collection. */

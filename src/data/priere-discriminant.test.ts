@@ -20,30 +20,30 @@ const FAMILLES_PRIERE = ['beni', 'invocation'];
 describe('dataset — la famille COMMANDE la branche de résolution', () => {
   it('`castInfo(s).skill === "priere"` ⇔ famille Béni/Invocation, sur tout le catalogue', () => {
     const divergentes = spells
-      .filter((s) => (castInfo(s as SpellLike).skill.id === 'priere') !== FAMILLES_PRIERE.includes(s.family))
-      .map((s) => `${s.id} (family=${s.family} → skill=${castInfo(s as SpellLike).skill.id})`);
+      .filter((s) => (castInfo(s).skill.id === 'priere') !== FAMILLES_PRIERE.includes(s.family))
+      .map((s) => `${s.id} (family=${s.family} → skill=${castInfo(s).skill.id})`);
     expect(divergentes).toEqual([]);
   });
 
   it('aucune Bénédiction/Miracle ne se voit opposer un Niveau d’Incantation', () => {
     const avecNI = spells
-      .filter((s) => FAMILLES_PRIERE.includes(s.family) && castInfo(s as SpellLike).requireNI)
+      .filter((s) => FAMILLES_PRIERE.includes(s.family) && castInfo(s).requireNI)
       .map((s) => s.id);
     expect(avecNI).toEqual([]);
   });
 
   it('une Prière n’est pas dissipable ; un Sort arcanique l’est (`LDB 46 l.156`)', () => {
-    const dissipables = spells.filter((s) => FAMILLES_PRIERE.includes(s.family) && isDispellableSpell(s as SpellLike));
+    const dissipables = spells.filter((s) => FAMILLES_PRIERE.includes(s.family) && isDispellableSpell(s));
     expect(dissipables.map((s) => s.id)).toEqual([]);
-    expect(spells.filter((s) => s.family === 'arcane').every((s) => isDispellableSpell(s as SpellLike))).toBe(true);
+    expect(spells.filter((s) => s.family === 'arcane').every((s) => isDispellableSpell(s))).toBe(true);
   });
 });
 
 describe('câblage — le moteur lit la FAMILLE, jamais un champ-drapeau', () => {
   /** Littéral NU : la famille tranche seule, la donnée ne porte aucun champ-drapeau. */
-  const beni: SpellLike = { label: 'Bénédiction témoin', ecole: 'Béni', family: 'beni', cn: null, desc: '' };
-  const invocation: SpellLike = { label: 'Miracle témoin', ecole: 'Miracle', family: 'invocation', cn: null, desc: '' };
-  const arcane: SpellLike = { label: 'Sort témoin', ecole: 'Arcane', family: 'arcane', cn: 4, desc: '' };
+  const beni: SpellLike = { label: 'Bénédiction témoin', ecole: 'Béni', family: 'beni', cn: null };
+  const invocation: SpellLike = { label: 'Miracle témoin', ecole: 'Miracle', family: 'invocation', cn: null };
+  const arcane: SpellLike = { label: 'Sort témoin', ecole: 'Arcane', family: 'arcane', cn: 4 };
 
   it('Béni et Invocation roulent le Test de Prière, sans Niveau d’Incantation', () => {
     expect(castInfo(beni)).toEqual({ skill: { id: 'priere' }, requireNI: false });
@@ -61,7 +61,7 @@ describe('câblage — le moteur lit la FAMILLE, jamais un champ-drapeau', () =>
   });
 
   it('une famille ABSENTE reste un Sort (aucun repli sur `cn: null`)', () => {
-    expect(castInfo({ label: 'Sans famille', ecole: '?', cn: null, desc: '' })).toEqual({ skill: { id: 'langue', spec: 'magick' }, requireNI: true, caracDuDomaine: true });
+    expect(castInfo({ label: 'Sans famille', ecole: '?', cn: null })).toEqual({ skill: { id: 'langue', spec: 'magick' }, requireNI: true, caracDuDomaine: true });
   });
 });
 

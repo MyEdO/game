@@ -113,7 +113,7 @@ qui le rend inutile.
 | `hote` | module commun aux hôtes du noyau, et leurs services d'hôte : entropie, stockage web | la porte du noyau, `scenes`, feuilles | oui |
 | `hoteTexte`, `hotes` (`hotes/`) | hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` | oui |
 | `web` | services d'exécution du navigateur : minuteries, IndexedDB, fichiers | feuilles | non |
-| `net`, `audio` | services de l'hôte web | feuilles (`net` : et `hote` en type ; `audio` : et `hote`, `data`) | non |
+| `audio` | service de l'hôte web | `hote`, `data`, feuilles | non |
 | `state` | adaptateur du store web : pose le résultat du noyau, sélectionne pour l'affichage, persiste | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` compris) ; `ui` en type seul | non |
 | `ui`, `gameIso` | présentation de l'hôte web, deux zones qui s'importent l'une l'autre | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` : `ui` seule) | non |
 | racine de `src/` | entrée de l'hôte web (`main.tsx`) et tests transverses | tout | non |
@@ -242,8 +242,8 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             que la donnée compose, pour que `src/data` n'importe rien de `src/gameIso`
                             (#2884) — `materials.types.ts` (`DetailRecipe`, `MaterialRef` lus par le
                             rendu ; `Grade`, lien vertical lu par le noyau pour le déplacement),
-                            `structureAppearance.types.ts` (`StructureAppearanceDef`, `WALL_PARTS`),
-                            `ambiance.types.ts` (`AmbianceDef`, `Visibility`)
+                            `structureAppearance.types.ts` (`WALL_PARTS`),
+                            `ambiance.types.ts` (`Visibility`)
                             VALEURS NEUVES de l'atelier qui ne lisent que schémas et donnée
                             (`valeursNeuves.ts`) : le défaut d'une union fermée est son premier membre, lu au schéma
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
@@ -404,8 +404,8 @@ src/engine/                 Règles WFRP4, PUR + testé, sans hôte (mur `murs/s
                               Consommée par : sorts, Imparfaites (miscast), mutations, traits, qualités
                               (`passive`), effets déclenchés (`Flow`/`Trigger`), CONSOMMABLES. Jalon 2.6 :
                               PerSL (échelle par DR), onlyGroups, grantTrait/grantTalent/augmentWeapon/…
-                              CATALOGUE GÉNÉRÉ des ops (+ `Condition`/`Flow`/`EffectTrigger` de
-                              flowCore.ts) : `docs/vocabulaire-mecanique.md` (`npm run docs:vocabulaire`)
+                              CATALOGUE GÉNÉRÉ des ops (+ `Condition`/`Flow` de flowCore.ts,
+                              `EffectTrigger` de son schéma) : `docs/vocabulaire-mecanique.md` (`npm run docs:vocabulaire`)
                               — index par CONCEPT en français, résolution mesurée (« exécutée » /
                               « inerte au switch » / « hors switch » : les deux dernières = impur résolu
                               par src/state, ou passif lu par un collecteur — jamais « inutilisable »),
@@ -418,7 +418,7 @@ src/engine/                 Règles WFRP4, PUR + testé, sans hôte (mur `murs/s
   corruption.ts               Corruption & mutations (LDB 19 : expositions, seuil, limites → damné)
   grimoire.ts                 apprentissage/mémorisation des sorts (coûts par Talent) + lecture au livre
   travel.ts                   voyage RAW (#T2) : vitesses km/h, 6 h/jour, marche forcée, coûts diligence/barge
-  provisions.ts               rations & Faim (LDB 18 l.337-342) : consommation/jour, Tests, malus, Brouet
+  provisions.ts               rations & Faim (LDB 18 l.337-342) : consommation/jour, Tests, malus, Brouet ; lots datés de la cale (MDG 14 l.238)
   axes.ts                      axes de forces/faiblesses (#409, mécanique MAISON) : axisScore/axesProfile/
                                 partyCoverage/dominantAxes depuis `data/axes.json` (`derivation` en ids de
                                 skills/talents) — SOURCE UNIQUE du mini-radar, du rail de composition (#417)
@@ -633,7 +633,10 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             `reglages.ts` (les préférences et les règles maison en zones `reglages.*`, chaque entrée
                             rendue par la forme de son contrôle, et `jouerUnReglage`, le geste qui en règle une et
                             la persiste), `accueil.ts` (les entrées de l'hôte avant toute partie, zone
-                            `accueil.gestes`),
+                            `accueil.gestes`), `salon.ts` (`zonesDuSalon` : le salon de la coop en zones `salon.*`,
+                            pur de l'état, de l'ouverture que l'hôte tient et du réseau ; les attributions de siège
+                            sont les offres du noyau, `siegesOfferts` ; et `lireUnGesteDuSalon`, le geste de salon
+                            lu dans les zones d'avant le geste, ou refusé),
                             `sauvegardes.ts` (les emplacements de sauvegarde sur le même `Stockage` : écrire, lire, retirer,
                             lister ; une save d'un autre format ou illisible est REJETÉE et RETIRÉE à la lecture,
                             son retrait cumulé dans le témoin, que `prendreLesRetraitsDeSauvegardes` consomme pour
@@ -711,11 +714,13 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             le rendu de compatibilité dans la page ou en repli ; `--rendus` (`npm run godot:rendus`,
                             étape de la CI) joue en rendu réel, sous chacun des deux, les recettes déclarant
                             `const RECETTE_RENDUE := true`.
-  etalons/                  les planches (`planches/<nom>.json`, un état de partie enregistré depuis le pont par
-                            `etalons.mjs --enregistrer`, que le jeu montre à `?planche=<nom>`), l'étalon de chacune
-                            (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des étalons validés). `npm run
-                            godot:etalons` exporte le jeu et refuse tout pixel d'écart entre une planche et son étalon
-                            (#3935, `.claude/rules/ecrans-godot.md`).
+  etalons/                  l'étalon de chaque planche (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des
+                            étalons validés). Une planche (un état de partie figé par le pont, que le jeu montre à
+                            `?planche=<nom>`) est un dérivé de l'export, jamais commitée : `construire.mjs --export`
+                            la dépose sous `<export>/planches/` (`planches.mjs`). `npm run godot:etalons` exporte le
+                            jeu et refuse tout pixel d'écart entre une planche et son étalon, dans le seul Chromium
+                            épinglé (`EPINGLE`, `planches.mjs`) sous Linux x86-64 ; le canari le joue (#3935,
+                            `.claude/rules/ecrans-godot.md`).
 src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du noyau (store Zustand), sélectionne
                             pour l'affichage et persiste (saves, roster, bibliothèque, préférences), sans
                             décider d'aucun effet de jeu (§ Couches).
@@ -886,7 +891,7 @@ src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arè
                             L'Arène déroge ainsi à `user-doctrine-campagne-jamais-generee-par-script` : #1601.
                             + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
 src/noyau/intentionsDeSiege.ts  Allowlist coop : la classe de chaque action du noyau (invité, hôte,
-                            local), `GUEST_INTENTS` que `reseau.ts` enrobe chez l'invité, `refusDuVerbeDHote`
+                            local), `GUEST_INTENTS` que `reseau.ts` enrobe chez l'invité, `refusChezLInvite`
                             que `Partie.envoyer` lit chez l'invité, et `appliquerLIntentionDUnSiege`, seul point
                             d'entrée d'une intention chez l'hôte.
 src/state/intents.ts        Classe coop des actions de l'adaptateur web (local, hôte).
@@ -899,10 +904,11 @@ src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios 
                             largeurs inégales / char inconnu → throw. Entités/props/départ : poser des
                             MARQUEURS custom dans l'ASCII (ex. `@BFLr`), nettoyer avant le parse (`replace`)
                             puis scanner leurs positions.
-src/net/                    compress.ts : la compression de l'hôte web (CompressionStream), port `Compression` du relay
 src/hote/coop/              Coop en ligne, plateforme injectée : protocol.ts, session.ts, relay.ts (RelayClient
                             heartbeat/backoff, RoomHost = un Transport virtuel par siège, RoomGuest), salon.ts
-                            (politique de session) ; `src/state/netFlow.ts` en branche les ports web.
+                            (politique de session), page.ts (ports de la page : adresse du relay, `fetch`,
+                            socket, stockage du jeton), compression.ts (CompressionStream, port `Compression`) ;
+                            `src/state/netFlow.ts` les compose avec la minuterie, la panne et l'abonnement web.
                             L'attribution des sièges (héros, emplacement, rôle MJ) n'y vit pas : trois verbes
                             `hôte` du noyau (`src/noyau/reseau.ts`, `affecter…`) sur les fonctions pures
                             de `src/noyau/sieges.ts`

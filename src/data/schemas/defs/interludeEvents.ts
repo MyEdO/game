@@ -42,9 +42,6 @@ export const rangee = nommerChamps(z.strictObject({
   label: z.string(),
   desc: z.string().min(1),
   fx: fxSchema.optional(),
-  /** Note d'atelier — JAMAIS affichée au joueur ni journalisée (contrairement à `desc`) : précise
-   *  ce que `fx` ne modélise pas pour cet événement, à l'usage des auteurs de données. */
-  atelierNote: z.string().optional(),
   source: sourceRefSchema,
 }), {
   id: { label: 'identifiant' },
@@ -53,7 +50,6 @@ export const rangee = nommerChamps(z.strictObject({
   label: { label: 'libellé' },
   desc: { label: 'texte' },
   fx: { label: 'Effets sur la trésorerie', hint: 'Impact chiffré argent/revenu/banque/activité' },
-  atelierNote: { label: 'Note d’atelier', hint: 'Note interne aux auteurs de données — jamais affichée ni journalisée' },
   source: { label: 'source' },
 });
 

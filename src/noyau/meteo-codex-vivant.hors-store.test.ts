@@ -29,13 +29,13 @@ const TABLE = 'stage-weather-printemps';
 afterEach(() => { setDataset('weather', SAISONS_LIVREES); });
 
 /** La saison ciblée, telle que la donnée VIVANTE la porte à cet instant. */
-const printemps = (): Saison => (datasetArray('weather') as Saison[]).find((s) => s.id === 'printemps')!;
+const printemps = (): Saison => datasetArray('weather').find((s) => s.id === 'printemps')!;
 /** Une rangée de la TABLE DE CASCADE, par id de météo (jamais par index). */
 const rangee = (id: string) => tableStepDef(TABLE)!.rows!.find((r) => r.id === id)!;
 
 /** Le geste de `CodexEdit.save` : pose mémoire, validation de la racine disque, reprise au refus. */
 function sauver(saisons: Saison[]): string | null {
-  const avant = [...(datasetArray('weather') as Saison[])];
+  const avant = [...datasetArray('weather')];
   setDataset('weather', saisons);
   const err = validateDataset(datasetFile('weather'), datasetSerializeRoot('weather'));
   if (err) setDataset('weather', avant);
@@ -44,7 +44,7 @@ function sauver(saisons: Saison[]): string | null {
 
 /** La saison `printemps` avec ses rangées retouchées par id de météo. */
 const editee = (patch: Record<string, Partial<Range>>): Saison[] =>
-  (datasetArray('weather') as Saison[]).map((s) => (s.id !== 'printemps' ? s : {
+  datasetArray('weather').map((s) => (s.id !== 'printemps' ? s : {
     ...s,
     entries: s.entries.map((r) => (patch[r.weather] ? { ...r, ...patch[r.weather] } : r)),
   }));

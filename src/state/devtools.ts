@@ -68,7 +68,27 @@ import { translaterFormation } from '../noyau/monde/shipPostes';
 import { actorIn, ecrireActeur, inBattleId } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { touchActors } from '../noyau/combatOrParty';
-import { checkBattleOver, etatDeTourNeuf, subirLaCharge, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, armeDeLaGratuite, fileDesGratuites, refusDeDefenseReactive, choixPiegeLame, firedWeapon, type PlacingZone } from '../noyau/combatFlow';
+import {
+  checkBattleOver,
+  etatDeTourNeuf,
+  subirLaCharge,
+  approachFearTrigger,
+  aiTurnLog,
+  clearAiTurnLog,
+  maybeRunEnemyTurn,
+  applyHullCriticalToTarget,
+  maybeOpenDefense,
+  defenseEnCours,
+  placingZoneOf,
+  effectiveSpellOf,
+  aiCreatureFreeAttacks,
+  armeDeLaGratuite,
+  fileDesGratuites,
+  refusDeDefenseReactive,
+  firedWeapon,
+  type PlacingZone,
+  proposerLePiegeALame,
+} from '../noyau/combatFlow';
 import { aiDriven } from '../noyau/netOwnership';
 import { FLOW_VERBS, fluxAccepte, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from '../noyau/flowVerbs';
 import { distanceDeContact } from '../noyau/monde/footprint';
@@ -80,7 +100,6 @@ import { setAiTrace } from '../noyau/monde/ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer, applyEffects } from '../noyau/combatEffects';
 import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
-import { pushChoice } from '../noyau/rollSeam';
 import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById, findPsychologyById, psychologies, psychologyLabel } from '../data';
 import { verdictApprentissage } from '../engine/grimoire';
 import { spawnEnemy } from '../noyau/monde/spawn';
@@ -140,7 +159,14 @@ import { modaleDuDessus, type LayerPlan } from './dismissStack';
 import { getStagePan } from './stagePan';
 import { lacetActif, SENSIBILITE_DRAG_DEG_PX } from './stageYaw';
 import { CLES_DE_DATASET, type CleDeDataset } from '../data/schemas/_cles-de-dataset.generated';
-import { collectionDuDataset, datasetSerializeRoot, datasetObjectSerializeRoot, OBJECT_DATASET_KEYS, type DatasetKey, type ObjectDatasetKey } from '../data/overrides';
+import {
+  collectionDuDataset,
+  datasetSerializeRoot,
+  datasetObjectSerializeRoot,
+  OBJECT_DATASET_KEYS,
+  type DatasetKey,
+  type ObjectDatasetKey,
+} from '../data/overrides';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../data/schemas/exposition-derivee';
 import { SCHEMA_DEFS } from '../data/schemas/_registry.generated';
 import { collectionALaCle } from '../data/schemas/grammaire/collection-cle';
@@ -1472,7 +1498,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const ship = inBattleId(b, shipId);
       if (!b || !ship) return '✗ navire introuvable (combat uniquement)';
       const before = g().facing[shipId];
-      const r = maneuverShip(() => useGame.getState(), shipId, typeof side === 'number' ? side : side === 'tribord' ? 2 : -2, helmsmanId);
+      const r = maneuverShip(() => useGame.getState(), useGame.setState, shipId, typeof side === 'number' ? side : side === 'tribord' ? 2 : -2, helmsmanId);
       if (!r) return '✗ manœuvre impossible';
       return r.success
         ? `✓ ${ship.label} vire (DR ${r.dr}, barreur ${r.helmsman ?? '—'}) : ${before} → ${g().facing[shipId]}`
@@ -2010,7 +2036,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!weapon.uid) weapon.uid = `dev-blade-${attackerId}`; // uid universel requis pour cibler la lame
       if (!parade.uid) parade.uid = `dev-parry-${defenderId}`;
       const pbt: PendingBladeTrap = { defenderId, attackerId, weapon, parryWeaponUid: parade.uid, defSL, roll: 33 };
-      pushChoice(useGame.setState, choixPiegeLame(pbt, defender, attacker, parade));
+      proposerLePiegeALame(useGame.setState, pbt, defender, attacker, parade);
       useGame.setState(touchActors);
       return `✓ Piège-lame : ${defender.label} pare ${attacker.label} (${weapon.label}, +${defSL} DR) → choix Piéger/Critique`;
     },

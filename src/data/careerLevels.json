@@ -2189,7 +2189,8 @@
         "pick": 1,
         "of": [
           {
-            "id": "pinceau"
+            "id": "pinceau",
+            "spec": "brosse"
           },
           {
             "id": "ciseau"
@@ -3047,7 +3048,7 @@
         "id": "encre"
       },
       {
-        "id": "feuille-de-parchemin",
+        "id": "parchemin",
         "count": {
           "fixed": 10
         }
@@ -3509,7 +3510,10 @@
     ],
     "trappings": [
       {
-        "id": "clef"
+        "id": "clef",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "lanterne"
@@ -6707,7 +6711,10 @@
         "id": "cape"
       },
       {
-        "id": "couteau-de-lancer"
+        "id": "couteau-de-lancer",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "lacet-etrangleur"
@@ -6867,7 +6874,10 @@
         "nature": "intangible"
       },
       {
-        "id": "tatouage"
+        "id": "tatouage",
+        "count": {
+          "fixed": 2
+        }
       }
     ],
     "characteristics": [
@@ -6992,7 +7002,10 @@
         "id": "tete-de-geant"
       },
       {
-        "id": "hache-de-lancer"
+        "id": "hache-de-lancer",
+        "count": {
+          "fixed": 2
+        }
       }
     ],
     "characteristics": [
@@ -7853,7 +7866,10 @@
         "nature": "vehicule"
       },
       {
-        "id": "carte"
+        "id": "carte",
+        "count": {
+          "fixed": 2
+        }
       }
     ],
     "characteristics": [
@@ -9180,7 +9196,10 @@
         }
       },
       {
-        "id": "carte"
+        "id": "carte",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "souvenirs",
@@ -13831,7 +13850,10 @@
     "trappings": [
       {
         "id": "carte",
-        "spec": "maritimes"
+        "spec": "maritime",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "cogue",
@@ -13975,8 +13997,11 @@
     ],
     "trappings": [
       {
-        "id": "barque-fluviale",
-        "type": "vehicle"
+        "id": "arme-simple",
+        "spec": "Gaffe"
+      },
+      {
+        "id": "veste-de-cuir"
       },
       {
         "id": "lampe-tempete"
@@ -15599,11 +15624,26 @@
     ],
     "trappings": [
       {
+        "id": "arme-simple",
+        "spec": "Pioche"
+      },
+      {
+        "id": "cheval-de-trait",
+        "type": "creature"
+      },
+      {
+        "id": "charrette",
+        "type": "vehicle"
+      },
+      {
+        "id": "veste-de-cuir"
+      },
+      {
         "id": "corde"
       },
       {
-        "id": "barque-fluviale",
-        "type": "vehicle"
+        "id": "outils-professionnels",
+        "spec": "Voleur"
       }
     ],
     "characteristics": [
@@ -15653,7 +15693,10 @@
         "id": "sac-de-couchage"
       },
       {
-        "id": "carte"
+        "id": "carte",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "tente"
@@ -16249,7 +16292,10 @@
     ],
     "trappings": [
       {
-        "id": "bougie"
+        "id": "bougie",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "craie"
@@ -16258,7 +16304,10 @@
         "id": "poupee"
       },
       {
-        "id": "epingle"
+        "id": "epingle",
+        "count": {
+          "fixed": 2
+        }
       }
     ],
     "characteristics": [
@@ -16689,7 +16738,10 @@
             "id": "masque"
           },
           {
-            "id": "echarpe"
+            "id": "echarpe",
+            "count": {
+              "fixed": 2
+            }
           }
         ]
       }
@@ -18097,7 +18149,8 @@
         "spec": "grossière"
       },
       {
-        "id": "casserole"
+        "id": "casserole",
+        "spec": "batée"
       },
       {
         "id": "pelle"
@@ -21066,7 +21119,10 @@
       },
       {
         "id": "lettre-de-nomination",
-        "spec": "lettres de marque"
+        "spec": "lettre de marque",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "selle-et-harnais"
@@ -21326,10 +21382,6 @@
       {
         "id": "cheval-de-guerre-leger",
         "type": "creature"
-      },
-      {
-        "id": "arme-simple",
-        "qualityChoice": true
       },
       {
         "id": "lettre-de-nomination",
@@ -22362,7 +22414,10 @@
     "trappings": [
       {
         "id": "livre",
-        "spec": "tableaux balistiques"
+        "spec": "tableaux balistiques",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "balle-et-poudre",
@@ -22889,10 +22944,12 @@
     ],
     "trappings": [
       {
-        "id": "licence-de-guilde"
+        "id": "lettre-de-nomination",
+        "spec": "lettre de marque"
       },
       {
         "id": "vetements",
+        "spec": "de voyage",
         "qualityChoice": true
       }
     ],
@@ -23965,7 +24022,10 @@
     "trappings": [
       {
         "id": "carte",
-        "spec": "de navigation"
+        "spec": "de navigation",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "longue-vue"
@@ -27607,7 +27667,8 @@
         "id": "robe-de-sorcier-fonctionnelle"
       },
       {
-        "text": "Faux"
+        "id": "hallebarde",
+        "spec": "faux"
       }
     ],
     "characteristics": [

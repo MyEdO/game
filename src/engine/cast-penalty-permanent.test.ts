@@ -14,7 +14,7 @@ import type { Mutation } from './corruption';
 
 /** `skill` absent = TOUTE magie (l'idiome d'absence de l'op, `src/engine/ops.ts`). */
 const banMutation = (skill?: 'langue' | 'focalisation' | 'priere'): Mutation => ({
-  id: 'test-ban', label: 'Interdiction (test)', desc: '', kind: 'physique', roll: 0,
+  id: 'test-ban', type: 'mutations', label: 'Interdiction (test)', desc: '', kind: 'physique', roll: 0,
   passive: [{ op: 'castPenalty', ...(skill ? { skill: { id: skill } } : {}), blocked: true }],
 });
 

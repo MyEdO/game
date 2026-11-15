@@ -15,7 +15,20 @@ import merchantsJson from '../../merchants.json';
 import skillsJson from '../../skills.json';
 import talentsJson from '../../talents.json';
 import traitsJson from '../../traits.json';
-import { adressesDesEntreesEmbarquees, document, documentDeLEntreePartielle, exclusiviteAdapteDe, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type DeclarationExposition, type Exposition, type CleExigible, type DocumentHandle } from './document';
+import {
+  adressesDesEntreesEmbarquees,
+  document,
+  documentDeLEntreePartielle,
+  exclusiviteAdapteDe,
+  CLES_ENVELOPPE,
+  CLES_EXIGIBLES,
+  META_CHARGE,
+  optionsEnum,
+  type DeclarationExposition,
+  type Exposition,
+  type CleExigible,
+  type DocumentHandle,
+} from './document';
 import { libelleDeValeur, metaDesChamps, valeursDe, nommerNoeud } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';

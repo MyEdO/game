@@ -4,7 +4,18 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { combatStakeRef } from '../data';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
-import { startCascade, type CascadeApplier, stepInteraction, stepReady, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, compteurDeSequence } from './cascade';
+import {
+  startCascade,
+  type CascadeApplier,
+  stepInteraction,
+  stepReady,
+  runCascadeImmediate,
+  pushStep,
+  stepOpposedFreeze,
+  advanceCascade,
+  resolveRemainingCascade,
+  compteurDeSequence,
+} from './cascade';
 import { freeCons, monoStep, displayStep, buildBand } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { spyApplier } from './cascade.testkit';

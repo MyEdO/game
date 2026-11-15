@@ -1,0 +1,29 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "pilosite",
+  "cle": {
+    "coiffure": "calvitie-et-barbe-rase"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "peau",
+  "couvre": [],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "poil",
+      "palette": "cheveux"
+    }
+  ],
+  "glb": {
+    "sha256": "86753d0b83242d8470530cab355a0e242c73ee9a064b95c836b777122a57e6ae",
+    "octets": 268904
+  }
+}

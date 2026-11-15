@@ -25,8 +25,9 @@ export { DOSSIER_DES_MODELES }
  * tel que le site le publie :
  *
  * - `GET modeles/listage.json` : le listage,
- *   `{ manifestes: Record<id, manifeste>, osDesRigides: Record<id, string[]>, erreurs: string[], forme }`, relu à
- *   chaque appel par le serveur du dossier vivant, en `Cache-Control: no-store`. `forme` nomme le fichier de
+ *   `{ manifestes: Record<id, manifeste>, osDesRigides: Record<id, string[]>, erreurs: string[], forme }`, que le
+ *   serveur du dossier vivant calcule à son lancement puis à nouveau quand un fichier du dossier change, en
+ *   `Cache-Control: no-store`. `forme` nomme le fichier de
  *   `fichiers` (réponse de `modeles`) que Godot demande pour chaque modèle : `glb` au dossier vivant, que Godot lit à
  *   l'exécution ; `scene` au dossier déposé par l'export, qui ne porte aucun GLB mais, pour chaque modèle du listage,
  *   la scène que Godot en a fabriquée à l'export (`projet/outils/fabrique_de_modeles.gd`) : la scène lue comme à
@@ -41,7 +42,7 @@ export { DOSSIER_DES_MODELES }
  *   nom, dont un nœud a plusieurs parents, dont la parenté boucle ou dont une racine de scène a un parent. `erreurs`
  *   porte, une ligne chacun, le manifeste illisible, le GLB illisible, le refus d'un manifeste et le dossier des
  *   modèles illisible. Godot passe `manifestes` et `osDesRigides` tels quels à `modeles`, qui ne les revalide pas :
- *   la validation et la lecture des os lisent le GLB, côté Node : au serveur à chaque appel, à l'export une fois.
+ *   la validation et la lecture des os lisent le GLB, côté Node : au serveur à chaque changement du dossier, à l'export une fois.
  * - `GET modeles/<fichier>` : chaque fichier du dossier des modèles (manifeste, GLB ou scène fabriquée), servi en
  *   `Cache-Control: no-store` par le serveur du dossier vivant. Un chemin hors du dossier ou qui ne s'ouvre pas en
  *   fichier reçoit 404.

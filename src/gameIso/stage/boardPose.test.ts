@@ -1,6 +1,13 @@
 import { DoubleSide, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, PointLight, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
-import { billboardDepthOffsetUnits, billboardPose, BILLBOARD_DEPTH_BIAS_M, DEPTH_BUFFER_BITS, type BillboardSubject, type TintAt } from '../backends/webgl/sceneMeshes';
+import {
+  billboardDepthOffsetUnits,
+  billboardPose,
+  BILLBOARD_DEPTH_BIAS_M,
+  DEPTH_BUFFER_BITS,
+  type BillboardSubject,
+  type TintAt,
+} from '../backends/webgl/sceneMeshes';
 import { affineCamera } from '../backends/webgl/cameras';
 import { FOV_X } from '../pov/camera';
 import { TEINTE_PLEINE, billboardMaterial, boardCenter, poseBoards, UP_ECRAN_COUCHE, type Board, type FrameLights } from './boardPose';

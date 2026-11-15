@@ -25,7 +25,7 @@ beforeAll(async () => {
   writeFileSync(join(racine, 'modeles', LISTAGE), '{}');
   mkdirSync(noyau);
   writeFileSync(join(noyau, PONT), "globalThis.wfrpPont = { appelerEnOctets: (methode) => (localStorage.setItem('appelee', methode), JSON.stringify({ ok: true, methode })), octets: () => null }");
-  tuyau = ouvrirLeProcessus((await empaqueterLeProcessus(noyau)).chemin, `--stockage=${stockage}`);
+  tuyau = ouvrirLeProcessus((await empaqueterLeProcessus(noyau)).chemin, [`--stockage=${stockage}`]);
   url = (JSON.parse(await tuyau.prochaine()) as { url: string }).url;
 }, 60_000);
 afterAll(() => {

@@ -257,7 +257,7 @@ describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l�
     // Reprise d'une attaque SUSPENDUE par la fenêtre de Critique de la victime (`resolveDeviation` est
     // le corps de l'applier `deviation`) : c'est là que la Maladresse du défenseur s'appende.
     banc.setState({ pendingDefense: null, pendingCascade: null } as never);
-    resolveDeviation(banc.getState, banc.setState, {
+    resolveDeviation(banc.getState, banc.setState, 'cons-deviation-reprise', {
       mode: 'melee', attackerId: enemy.id, targetId: hero.id, weapon: sword, res,
       crit, decides: [], reveal: previewCritEntry(hero, crit, 'coup-critique', { attackerId: enemy.id, weapon: sword.label }), resumeAfter: false,
     }, true);

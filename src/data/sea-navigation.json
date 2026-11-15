@@ -538,12 +538,8 @@
         "sides": 10
       }
     },
-    "charpentierPenalty": -10,
     "lissageRepairSurcoutPct": 50,
     "temporaire": {
-      "difficultyMin": "complexe",
-      "difficultyMax": "tresDifficile",
-      "hoursPerRepair": 1,
       "woundsPerRepair": {
         "dice": {
           "n": 1,

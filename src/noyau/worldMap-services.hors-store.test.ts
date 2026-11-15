@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { restServicePrice } from './restFlow';
 import { placeServices, type MapPlace } from './worldMap';
-import { refusDEntrerAuPort } from './portFlow';
+import { refusAQuai } from './portFlow';
 import { t } from '../i18n';
 import { findTrappingById } from '../data';
 import { toBrass, priceToMoney } from '../engine/money';
@@ -41,12 +41,16 @@ describe('placeServices — composition des services d’un lieu au hub (#343)',
   });
 });
 
-describe('refusDEntrerAuPort — porte du bouton « Entrer au port », appliquée par ouvrirLePort', () => {
+describe('refusAQuai — le navire de campagne à quai au lieu du groupe (#4214)', () => {
+  const carte = { id: 'm', label: 'Mer', places: [{ id: 'S', label: 'Salzenmund', pos: { x: 0, y: 0 } }, { id: 'D', label: 'Dietershafen', pos: { x: 1, y: 0 } }], routes: [] } as never;
   it('sans navire de campagne : refus nommé', () => {
-    expect(refusDEntrerAuPort({ vessel: null })).toBe(t('port.sansNavire'));
+    expect(refusAQuai({ vessel: null, lieu: 'D', worldMap: carte })).toBe(t('port.sansNavire'));
   });
-  it('avec un navire de campagne : aucun refus', () => {
-    expect(refusDEntrerAuPort({ vessel: { vehicleId: 'barge' } as never })).toBeNull();
+  it('navire à quai au lieu du groupe : aucun refus', () => {
+    expect(refusAQuai({ vessel: { vehicleId: 'barge', escale: 'D' } as never, lieu: 'D', worldMap: carte })).toBeNull();
+  });
+  it.each([['à quai ailleurs', 'S'], ['en mer', undefined]])('navire %s : refus nommé', (_cas, escale) => {
+    expect(refusAQuai({ vessel: { vehicleId: 'barge', escale } as never, lieu: 'D', worldMap: carte })).toBe(t('port.pasAQuai'));
   });
 });
 

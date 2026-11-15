@@ -64,7 +64,7 @@ export function resolveQualities(w: QualityCarrier | undefined): ResolvedQuality
     const data = findQualityById(q.id);
     out.push({ def: { key: data?.label ?? q.id }, id: q.id, data, caps: data?.capabilities, indice: q.value });
   }
-  const beaten = new Set(out.flatMap((r) => r.caps?.beats ?? []));
+  const beaten = new Set<string>(out.flatMap((r) => r.caps?.beats ?? []));
   // Neutralisations d'une ALTÉRATION (op `augmentWeapon`) : par id, et par POLARITÉ lue dans le REGISTRE
   // (`QualityData.polarite`) — jamais une liste d'ids en dur. Appliquées APRÈS la fusion de famille : le RAW
   // (« Tous les Atouts de l'arme disparaissent », VDM 05) ne distingue pas propre et famille.

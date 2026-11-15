@@ -542,7 +542,7 @@ ${lignesNonVersionnes}
 
 Ne sont pas non plus dans le clone, parce que ce ne sont pas des fichiers :
 
-- **Compte Cloudflare du relay coop** — URL de prod dans \`src/state/netFlow.ts\` (\`RELAY_URL_PROD\`) ;
+- **Compte Cloudflare du relay coop** — URL de prod dans \`src/hote/coop/page.ts\` (\`RELAY_URL_PROD\`) ;
   redéployable via \`npm run relay:deploy\` (\`${script('relay:deploy')}\`).
 - **Publication du jeu** — workflow \`.github/workflows/deploy.yml\` (« ${DEPLOY.nom} »,
   ${DEPLOY.declencheurs.join(', ')}) ; il build le COMMIT de la ref lancée sur un runner propre et le publie pour sa

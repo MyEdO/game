@@ -2,7 +2,7 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { tileEdge, type Dims } from '../../geometry/iso';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { aretesUtilisables } from '../../noyau/aretes';
@@ -20,6 +20,7 @@ import { projeterAretes, type AreteProjetee } from './aretesProjetees';
 import { resoudrePixel, type CadreDePick, type EtatDePick } from './pickResolve';
 import { VH, VW } from './useStageCamera';
 import { useStagePointer, type StagePointer } from './useStagePointer';
+import { piloterLePointeurFin } from './pointeur.testkit';
 import { AreteOverlay } from './AreteOverlay';
 
 /**
@@ -38,12 +39,7 @@ import { AreteOverlay } from './AreteOverlay';
  */
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: vi.fn() });
-// `matches: true` = pointeur FIN (souris), défaut de ce banc. `restoreMocks: true` (vite.config.ts)
-// rend le `vi.fn()` nu entre deux tests.
-beforeEach(() => {
-  vi.mocked(window.matchMedia).mockReturnValue({ matches: true } as unknown as MediaQueryList);
-});
+piloterLePointeurFin();
 
 const dims: Dims = { w: 5, h: 4, rot: 0, view: 'iso' };
 const CID = 'structure-1-1-E-0';

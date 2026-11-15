@@ -16,10 +16,10 @@ import {
 } from '../data/index';
 import { parseTraitInstance } from '../data/refFormatLivre';
 import { travelVehicles, travelModeLabels } from '../engine/travel';
-import { consolidateAmputations, traumaById, type TraumaFiche, avecSequelles } from '../engine/trauma';
+import { consolidateAmputations, traumaById, avecSequelles } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
 import { mutationTableIds, mutationTablePlayerLabel, mutationTableRows, type MutationTable } from '../data/mutations';
-import { rollMiscast, miscastRowAt, type MiscastTableRow } from '../engine/miscast';
+import { rollMiscast, miscastRowAt } from '../engine/miscast';
 import { makeRNG } from '../engine/dice';
 import { tableTotale } from '../lib/tableTotale';
 import { tableStepDef, tableStepIds } from './cascade';
@@ -54,9 +54,9 @@ const CARACS_LIVREES = [...characteristics];
 const ETATS_LIVRES = [...etats];
 const SAISONS_LIVREES = [...weather];
 const VEHICULES_LIVRES = [...vehicles];
-const TRAUMAS_LIVRES = [...(datasetArray('traumas') as TraumaFiche[])];
-const TABLES_MUTATION_LIVREES = [...(datasetArray('mutationTables') as MutationTable[])];
-const MISCAST_MINEURE_LIVREE = [...(datasetArray('imparfaiteMineure') as MiscastTableRow[])];
+const TRAUMAS_LIVRES = [...datasetArray('traumas')];
+const TABLES_MUTATION_LIVREES = [...datasetArray('mutationTables')];
+const MISCAST_MINEURE_LIVREE = [...datasetArray('imparfaiteMineure')];
 /** Les datasets des vues dérivées migrées (#1692) : restaurés par le seam, comme les autres. */
 const LISTES_LIVREES = tableTotale(
   ['cargoes', 'cargaisonsAleatoires', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
@@ -145,7 +145,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     // La sonde du juge, promue en cas POSITIF : `mutations.ts` indexait `mutationTables` à l'import
     // (`TABLE_BY_ID`/`ROWS_BY_TABLE`/`MUTATION_TABLE_IDS`), si bien qu'une édition au Codex laissait
     // les lignes d'étape, le libellé et le registre des tables tirables sur l'état d'AVANT.
-    const tables = datasetArray('mutationTables') as MutationTable[];
+    const tables = datasetArray('mutationTables');
     const physique = tables.find((t) => t.id === 'physique')!;
     const avant = mutationTableRows('physique')[0];
     expect(mutationTablePlayerLabel('physique')).toBe('Tableau de Corruption physique');
@@ -205,7 +205,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
   it('une règle de CUMUL éditée (`traumas.json`) : la consolidation applique la NOUVELLE', () => {
     // `engine/trauma.ts` lit `traumas.json` par import direct + alias (`FICHES`) : les fiches à cumul
     // étaient filtrées une fois à l'import — un seuil d'escalade édité au Codex ne changeait rien.
-    const fiches = datasetArray('traumas') as TraumaFiche[];
+    const fiches = datasetArray('traumas');
     const doigt = fiches.find((f) => f.id === 'doigt-ampute')!;
     expect(doigt.cumul!.escalade!.atLeast).toBe(4);
     const porteur = (): Combatant => ({

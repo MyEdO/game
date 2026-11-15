@@ -1474,13 +1474,14 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     // Les textes attendus sont LUS DANS LA DONNÉE (aucune chaîne de règle recopiée dans ce test) : c'est
     // le contrat « le texte de règle affiché est du verbatim recollable dans `Source/` » (AGENTS.md 5).
     const fiche = regles.find((r) => r.id === 'charger')!;
+    const prose = regles.flatMap((r) => (r.id === 'charger' && r.desc !== undefined ? [r.desc] : []))[0];
     const qualite = findQualityById('recharge')!;
-    expect(fiche.desc.length, 'la fiche regles/charger doit porter son verbatim').toBeGreaterThan(80);
+    expect(prose.length, 'la fiche regles/charger doit porter son verbatim').toBeGreaterThan(80);
     expect(qualite.desc, 'la qualité recharge doit porter son verbatim').toBeTruthy();
     const popCharge = survol('g2-charge');
     const popRech = survol('g4-recharger');
     expect(popCharge.title).toBe(fiche.label);
-    expect(popCharge.body).toBe(verbatimAttendu(fiche.desc));
+    expect(popCharge.body).toBe(verbatimAttendu(prose));
     // Le corps est BORNÉ par la primitive : la porte vers la fiche complète doit donc être là.
     expect(popCharge.porte, 'verbatim borné sans porte vers la fiche').toBe('Ouvrir la fiche');
     expect(popCharge.source, 'la source de la règle se lit à l’infobulle').toContain('165');
@@ -1509,7 +1510,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     expect(gate.getAttribute('title')).toBeNull();
     const popGate = survol('g2-charge');
     expect(popGate.refus, 'la raison se lit au survol').toContain('Engagé');
-    expect(popGate.body, 'la même boîte porte encore le verbatim de la règle').toBe(verbatimAttendu(fiche.desc));
+    expect(popGate.body, 'la même boîte porte encore le verbatim de la règle').toBe(verbatimAttendu(prose));
     expect(quitterRefus(gate), 'l’infobulle meurt quand le pointeur s’en va').toBeNull();
     expect(refusAuFocus(gate as HTMLElement), 'le FOCUS (clavier, manette) l’ouvre aussi').toContain('Engagé');
     expect(casesGauche().length).toBe(6);
@@ -3475,7 +3476,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('DEUX gestes secondaires sur le même hôte (entrée FABRIQUÉE) : panneau ancré, 2 candidats, Échap gratuit', () => {
     const fabrique: ActionDef = {
-      id: idDeFixture('action', 'test-geste-2e-fabrique'), label: 'Geste fabriqué', icon: 'drapeau/focalisation',
+      id: idDeFixture('action', 'test-geste-2e-fabrique'), type: 'actions', label: 'Geste fabriqué', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
@@ -3516,7 +3517,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('APPUI LONG puis `contextmenu` NATIF : UN seul déclenchement (le doigt ne bascule pas le panneau)', () => {
     const fabrique: ActionDef = {
-      id: idDeFixture('action', 'test-geste-2e-fabrique'), label: 'Geste fabriqué', icon: 'drapeau/focalisation',
+      id: idDeFixture('action', 'test-geste-2e-fabrique'), type: 'actions', label: 'Geste fabriqué', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
@@ -3613,7 +3614,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('CLIC DROIT MAINTENU (contextmenu À L’APPUI, macOS/Linux) : le minuteur d’appui long ne rejoue pas le geste', () => {
     const fabrique: ActionDef = {
-      id: idDeFixture('action', 'test-geste-2e-fabrique'), label: 'Geste fabriqué', icon: 'drapeau/focalisation',
+      id: idDeFixture('action', 'test-geste-2e-fabrique'), type: 'actions', label: 'Geste fabriqué', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
@@ -3662,7 +3663,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       return h;
     };
     const fabrique: ActionDef = {
-      id: idDeFixture('action', 'test-geste-2e-rechargement'), label: 'Geste de recharge', icon: 'drapeau/focalisation',
+      id: idDeFixture('action', 'test-geste-2e-rechargement'), type: 'actions', label: 'Geste de recharge', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'rechargement' }, gate: 'toujours',
       run: 'rechargerLArme', candidates: 'armes-a-distance', coutAction: 'gratuit',
     };

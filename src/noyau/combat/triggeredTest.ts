@@ -29,7 +29,20 @@ import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import type { Combatant, Difficulty, EffectSource } from '../../engine/types';
 import { dataLabel, derivedStake, testSkillLabel } from '../../data';
 import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
-import { type EffectOp, type FlowTest, type ConditionCtx, type ArretDeFlow, type PasDeFlow, type ResteDuFlow, executerFlow, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, EMPTY_FLOW } from '../../engine/flowCore';
+import {
+  type EffectOp,
+  type FlowTest,
+  type ConditionCtx,
+  type ArretDeFlow,
+  type PasDeFlow,
+  type ResteDuFlow,
+  executerFlow,
+  flowHasImpureOp,
+  flowHasOpADe,
+  flowHasTest,
+  poserEnjeu,
+  EMPTY_FLOW,
+} from '../../engine/flowCore';
 import { resoudreFlowTest } from '../../engine/decisionDuTest';
 import { combatConditionCtx, runPureFlowLines } from './flowEval';
 import type { Get, Set as SetFn } from '../flowTypes';

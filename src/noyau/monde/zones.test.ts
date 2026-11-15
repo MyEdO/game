@@ -6,7 +6,18 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from '../../engine/types';
 import type { RNG } from '../../engine/dice';
-import { wallTiles, discTiles, decayZones, crossZones, zonesRoundTick, losBlockingTiles, sceneZonesToBattle, zoneCovers, barrierTilesFor, type BattleZone } from './zones';
+import {
+  wallTiles,
+  discTiles,
+  decayZones,
+  crossZones,
+  zonesRoundTick,
+  losBlockingTiles,
+  sceneZonesToBattle,
+  zoneCovers,
+  barrierTilesFor,
+  type BattleZone,
+} from './zones';
 import type { SceneEffectZone } from './scene';
 import { findSpellById } from '../../data';
 import { deFixe } from '../../engine/dice.testkit';

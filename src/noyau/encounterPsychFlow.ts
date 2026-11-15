@@ -24,7 +24,24 @@ import { enEmbuscade } from './visionDuGroupe';
 import { etiquetteDeScene } from './monde/porteurs';
 import { encounterPsych } from '../engine/encounterPsych';
 import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
-import { cibleLabel, idDeSource, libelleDeSource, sourceCombattant, type SourceEnVue, PsychType, psychTest, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych, sansPeurFace } from '../engine/psychology';
+import {
+  cibleLabel,
+  idDeSource,
+  libelleDeSource,
+  sourceCombattant,
+  type SourceEnVue,
+  PsychType,
+  psychTest,
+  failConditionAmount,
+  psychResolution,
+  psychBranchOps,
+  psychBranchFlow,
+  supersededLines,
+  isPsychImmune,
+  refreshAllDefendedPsych,
+  endEncounterPsych,
+  sansPeurFace,
+} from '../engine/psychology';
 import { refLabel, combatStakeRef } from '../data';
 import { applyOps } from '../engine/ops';
 import { t } from '../i18n';

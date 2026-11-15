@@ -51,7 +51,22 @@
 // La lib CALCULE ; le VERDICT appartient à l'appelant (le pre-push refuse, la mesure a posteriori
 // échoue). Elle reste PURE dans son cœur (`refusDeLaPlage`, `reclassementsDeLaPlage`) : les lectures
 // git passent par les questions du dépôt de `cwd` (`depotDe`, `gitPorte.mjs`).
-import { GitIndisponible, TRONC, arbreVide, baseCommune, basesCommunes, ceQueFaitLeCommit, communeDesParents, ceQuiChange, depotDe, grapheDe, journalDe, lireEnLot, rangDuTronc, refusDeGit } from './gitPorte.mjs'
+import {
+  GitIndisponible,
+  TRONC,
+  arbreVide,
+  baseCommune,
+  basesCommunes,
+  ceQueFaitLeCommit,
+  communeDesParents,
+  ceQuiChange,
+  depotDe,
+  grapheDe,
+  journalDe,
+  lireEnLot,
+  rangDuTronc,
+  refusDeGit,
+} from './gitPorte.mjs'
 import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFautifs, nonCouvertesDuBilan, refusSousLaPorte } from './stocksNominatifs.mjs'
 import { deplaceLaFrontiere, ecartsDeReclassement, franchisDuCommit, lignesDeReclassement } from './reclassementCss.mjs'
 import { coteCss, sourceGit } from './cssImages.mjs'

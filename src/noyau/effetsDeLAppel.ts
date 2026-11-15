@@ -9,7 +9,27 @@
 import { allMusicDefs } from '../data/sons/musique';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
-import { ambiance, breathTypes, conditionLabel, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type ManeuverDef, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
+import {
+  ambiance,
+  breathTypes,
+  conditionLabel,
+  domains,
+  etats,
+  findDomainById,
+  findRenduById,
+  findSpellById,
+  findTrappingById,
+  findWeaponGroupById,
+  lightTones,
+  maneuvers,
+  rendus,
+  siegeEngines,
+  type DomainData,
+  type ManeuverDef,
+  type Projectile,
+  type RenduDef,
+  type VisuelDEffet,
+} from '../data';
 import { sonDEffet, sonsDEffet, type SonDEffet } from '../data/sons/registre';
 import { castInfoIsPrayer } from '../engine/magic';
 import type { Weapon } from '../engine/types';

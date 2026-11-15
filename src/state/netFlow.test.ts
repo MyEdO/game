@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RELAY_URL_PROD, applyNetSnapshot, relayHttpUrl, salon } from './netFlow';
+import { applyNetSnapshot, salon } from './netFlow';
+import { t } from '../i18n';
 import { instantaneDeLaCoop } from '../noyau/coop';
 import { initialNet } from '../noyau/etat';
 import { useGame } from './store';
@@ -33,34 +34,21 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('URL du relais selon le mode Vite', () => {
-  it.each(['test', 'development'])('sans override en mode %s : relais local', (mode) => {
-    vi.stubEnv('MODE', mode);
-    expect(relayHttpUrl()).toBe('http://localhost:8787');
+describe('le salon du web, par les ports de la page', () => {
+  it('héberge : POST /rooms au relais local, socket hôte de la room, mode hôte', async () => {
+    vi.stubGlobal('fetch', async () => ({ ok: true, json: async () => ({ code: 'ABC234', hostToken: 'HT' }) }));
+    expect(await useGame.getState().netHostStart('Anne')).toBeNull();
+    expect(FakeSocket.instances.map((s) => new URL(s.url).pathname)).toEqual(['/room/ABC234']);
+    expect(useGame.getState().net).toMatchObject({ mode: 'hote', roomCode: 'ABC234' });
   });
 
-  it('sans override en production : le Worker', () => {
-    vi.stubEnv('PROD', true);
-    expect(relayHttpUrl()).toBe(RELAY_URL_PROD);
-  });
-
-  it.each([false, true])('override explicite prioritaire (PROD=%s)', (prod) => {
-    vi.stubEnv('PROD', prod);
-    vi.stubEnv('VITE_RELAY_URL', 'http://localhost:8799');
-    expect(relayHttpUrl()).toBe('http://localhost:8799');
-    vi.stubEnv('VITE_RELAY_URL', RELAY_URL_PROD);
-    expect(relayHttpUrl()).toBe(RELAY_URL_PROD);
-  });
-});
-
-describe('relais local injoignable', () => {
-  it('héberger refuse et conserve le mode local lorsque POST /rooms échoue', async () => {
+  it('héberger le dit et conserve le mode local lorsque POST /rooms échoue', async () => {
     const urls: string[] = [];
     vi.stubGlobal('fetch', async (url: string) => {
       urls.push(url);
       throw new TypeError('Failed to fetch');
     });
-    expect(await salon.heberger(useGame.getState, 'Anne')).toBe(false);
+    expect(await useGame.getState().netHostStart('Anne')).toBe(t('coop.hote.erreur'));
     expect(urls).toEqual(['http://localhost:8787/rooms']);
     expect(useGame.getState().net.mode).toBe('local');
     expect(FakeSocket.instances).toHaveLength(0);

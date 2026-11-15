@@ -66,7 +66,7 @@ func _recetter() -> void:
 	volume.voir(_vision(LARGEUR, HAUTEUR, 2, etats.merged({Vector3i(0, 0, 0): VUE})))
 	if volume.part_du_fondu() == 1.0:
 		_fautes.append("aucun fondu en cours au changement de scène")
-	var petite := [_dalles("sol/0/0/0", PETITE, Rect2i(0, 0, PETITE, PETITE), 0, 0.0).merged({rangee = 0, empreinte = "petite"})]
+	var petite := [_dalles("sol/0/0/0", PETITE, Rect2i(0, 0, PETITE, PETITE), 0, 0.0).merged({rangee = 0, empreinte = "petite"}, true)]
 	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [_plat(0, PETITE, PETITE)], morceaux = petite}, toits = [], couronnes = []},
 		{volume = petite, toits = [], couronnes = []})
 	var etats_neufs := {Vector3i(0, 1, 0): EXPLOREE}

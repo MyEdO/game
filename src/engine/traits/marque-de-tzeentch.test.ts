@@ -9,7 +9,7 @@ import { makeRNG, hashSeed } from '../dice';
 import { markMutationsAtSpawn } from './dispatch';
 import { rollMutation } from '../../data/mutations';
 import { statblockToCombatant } from '../../noyau/monde/spawn';
-import creatures from '../../data/creatures.json';
+import { findCreatureById } from '../../data';
 import type { Combatant } from '../types';
 import { ciblePsy } from '../psych/ciblage';
 
@@ -82,9 +82,9 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
   });
 
   it('Statbloc Nurgle (Fr\'hough Mournbreath, LDB 84 l.53) : Animosité (Tzeentch) portée là où elle peut se déclencher — sans Immunité (Psychologie)', () => {
-    const hough = (creatures as any[]).find((x) => x.id === 'fr-hough-mournbreath');
-    expect(hough.traits.some((t: any) => t.id === 'immunite-psychologique')).toBe(false);
-    expect(hough.traits.some((t: any) => t.id === 'animosite' && t.arg === 'tzeentch')).toBe(true);
+    const traits = findCreatureById('fr-hough-mournbreath')?.traits ?? [];
+    expect(traits.some((t) => t.id === 'immunite-psychologique')).toBe(false);
+    expect(traits.some((t) => t.id === 'animosite' && t.arg === 'tzeentch')).toBe(true);
   });
 
   it('Les 10 Talents achetables hors-Carrière au tarif normal (grantCareerTalent, étendu aux Traits)', () => {

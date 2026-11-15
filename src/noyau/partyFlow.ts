@@ -4,10 +4,31 @@
  * (caractéristiques/compétences/talents/carrière, prothèses), consommables de fiche, butin.
  */
 import { Combatant, CharKey, CHAR_LABELS, ItemInstance, type Main } from '../engine/types';
-import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetSlot, equipConflicts, canStow, isOffHandEligible, setADeuxMains } from '../engine/items';
+import {
+  choisirApparenceDObjet,
+  recomputeLoadout,
+  loadoutCreate,
+  loadoutDelete,
+  loadoutSetSlot,
+  equipConflicts,
+  canStow,
+  isOffHandEligible,
+  setADeuxMains,
+} from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
-import { resolveCarrier, porteurLocalise, porteurDeLObjet, refusSansPorteur, refusDuHerosPorteur, lotDeLObjet, sansLeLot, avecLeLot, ecrireLesPorteurs, type Carrier } from './monde/carrier';
+import {
+  resolveCarrier,
+  porteurLocalise,
+  porteurDeLObjet,
+  refusSansPorteur,
+  refusDuHerosPorteur,
+  lotDeLObjet,
+  sansLeLot,
+  avecLeLot,
+  ecrireLesPorteurs,
+  type Carrier,
+} from './monde/carrier';
 import { carriersColocated } from '../engine/cargo';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusDepensePx, refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';

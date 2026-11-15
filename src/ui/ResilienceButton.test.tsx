@@ -121,7 +121,7 @@ describe('ResilienceButton — pool, le BOUTON porte sa règle (#945, #1078)', (
   });
 
   it('les fiches `regles` DOUBLONS sont MORTES — un seul foyer par règle (amendement A)', () => {
-    const doublons = regles.filter((r) => r.id === 'je-ne-faillirai-pas' || r.id === 'je-te-renie').map((r) => r.id);
+    const doublons = regles.filter((r) => ['je-ne-faillirai-pas', 'je-te-renie'].includes(r.id)).map((r) => r.id);
     expect(doublons, 'entrée regles/* réintroduite : deux foyers pour le même texte').toEqual([]);
   });
 

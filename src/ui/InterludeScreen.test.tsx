@@ -22,9 +22,18 @@ import { interludeEventFor } from '../data/interludeEvents';
 import { sousLeDe } from '../data/deDeLaTable.testkit';
 import { InterludeScreen, type InterludeSeam } from './InterludeScreen';
 import { ciblePsy } from '../engine/psych/ciblage';
-import { ACTIVITIES, activityById, cleDEntrainement, craftCatalog, craftSpecOf, entrainementOptions, learnableTalents, metierOf, orderCatalog } from '../engine/activities';
+import {
+  activityById,
+  cleDEntrainement,
+  craftCatalog,
+  craftSpecOf,
+  entrainementOptions,
+  learnableTalents,
+  metierOf,
+  orderCatalog,
+} from '../engine/activities';
 import careers from '../data/careers.json';
-import { findTrappingById } from '../data';
+import { ACTIVITIES, findTrappingById } from '../data';
 import type { Combatant } from '../engine/types';
 import { avecActivite } from '../engine/activiteMer.testkit';
 import { testValue } from '../engine/skills';

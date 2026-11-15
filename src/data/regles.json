@@ -1694,6 +1694,54 @@
     }
   },
   {
+    "id": "reparation-temporaire-navire",
+    "type": "regles",
+    "label": "Réparations temporaires d’un navire",
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "reparations-temporaires",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 1,
+          "sum": "33558a1597d63c4e"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 116,
+      "note": "MDG 13 l.651"
+    }
+  },
+  {
+    "id": "reparation-temporaire-bateau",
+    "type": "regles",
+    "label": "Réparations temporaires d’un bateau",
+    "descRef": {
+      "book": "mort-sur-le-reik-compagnon",
+      "ch": "07",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "reparations-temporaires",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 1,
+          "sum": "78db006ee885dfaf"
+        }
+      ]
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 30,
+      "note": "MSRC 7 l.117"
+    }
+  },
+  {
     "id": "guerison-des-blessures",
     "type": "regles",
     "label": "Guérison des Blessures",

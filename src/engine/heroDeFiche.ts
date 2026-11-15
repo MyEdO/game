@@ -5,6 +5,7 @@
 import type { Combatant, Characteristics, CharKey, HeroDetails, ItemInstance, SkillInstance } from './types';
 import { CHAR_KEYS } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import type { ObjetDeCatalogue } from '../data/schemas/grammaire/reference';
 import { findSpeciesById, levelsForCareer } from '../data';
 import { acquerirTalent, freeSlotFor, refKey, skillSlots, talentSlots, talentSlotsUpTo, type PorteurDeTalents } from './careerSlots';
 import { assemblerLeHeros, augmenterLaCompetence, type CreateHeroOptions } from './character';
@@ -27,8 +28,9 @@ export interface FicheDeHeros {
   charAdvances: Partial<Record<CharKey, number>>;
   skills: readonly (RefDesignee & { advances: number })[];
   talents: readonly (RefDesignee & { times: number })[];
-  /** Possessions, chacune à sa quantité imprimée : un objet du catalogue, ou la ligne de la fiche hors catalogue. */
-  trappings: readonly ((RefDesignee | { text: string }) & { qte: number })[];
+  /** Possessions, chacune à sa quantité imprimée : un objet du catalogue avec ses Atouts attachés, ou la ligne de la
+   *  fiche hors catalogue. */
+  trappings: readonly ((Pick<ObjetDeCatalogue, 'id' | 'spec' | 'qualities'> | { text: string }) & { qte: number })[];
   /** Tous les sorts de la fiche, Bénédictions comprises. */
   spells: readonly string[];
   fate: number;

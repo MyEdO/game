@@ -4,7 +4,25 @@ import { targetedTrigger, targetCausedSourcesFor, targetCausedTrigger, sourceCom
 import type { Combatant } from './types';
 import { addCondition, removeCondition } from './conditions';
 import { combattantDeTest } from './combattantDeTest.testkit';
-import { creatures, domains, etats, findCreatureById, groups, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById, psychologies, SPEC_SOURCES, talents, traits, type GroupData, type SpecsSource } from '../data';
+import {
+  creatures,
+  domains,
+  etats,
+  findCreatureById,
+  groups,
+  findGodById,
+  findGroupById,
+  findSpeciesById,
+  findTalentById,
+  findTraitById,
+  psychologies,
+  SPEC_SOURCES,
+  talents,
+  traits,
+  type CreatureData,
+  type GroupData,
+  type SpecsSource,
+} from '../data';
 import { resetData, setDataset } from '../data/overrides';
 import type { EntreeVivante } from '../data/datasets';
 import { idDeFixture } from '../data/idDeFixture.testkit';
@@ -164,11 +182,15 @@ describe('Groupes du Tableau des Obsessions portés par le moteur (EDOC 12 l.180
   });
 
   it('genre : une créature reçoit les Groupes déclarés de son genre, de genre en genre (Monstres compris)', () => {
-    const fiche = (id: string, champs: { grantGroups?: string[]; genre?: { id: string } }) => ({ ...creatures[0], id, grantGroups: undefined, genre: undefined, ...champs });
+    const fiche = (id: string, champs: Partial<Pick<CreatureData, 'grantGroups' | 'genre'>>): EntreeVivante<CreatureData> => ({ ...creatures[0], id, grantGroups: undefined, genre: undefined, ...champs });
     try {
-      setDataset('creatures', [...creatures, fiche('genre-fixture', { grantGroups: ['monstres'] }), fiche('espece-fixture', { grantGroups: ['groupe-fixture'], genre: { id: 'genre-fixture' } })]);
-      expect(groupsFor({ creature: { genre: { id: 'espece-fixture' } } })).toEqual(['groupe-fixture', 'monstres']);
-      expect(groupsFor({ creature: { grantGroups: ['groupe-fixture'] } })).toEqual(['groupe-fixture']);
+      setDataset('creatures', [
+        ...creatures,
+        fiche('genre-fixture', { grantGroups: ['monstres'] }),
+        fiche('espece-fixture', { grantGroups: [idDeFixture('groupe', 'groupe-fixture')], genre: { id: idDeFixture('creature', 'genre-fixture') } }),
+      ]);
+      expect(groupsFor({ creature: { genre: { id: idDeFixture('creature', 'espece-fixture') } } })).toEqual(['groupe-fixture', 'monstres']);
+      expect(groupsFor({ creature: { grantGroups: [idDeFixture('groupe', 'groupe-fixture')] } })).toEqual(['groupe-fixture']);
     } finally {
       resetData();
     }

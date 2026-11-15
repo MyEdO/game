@@ -15,7 +15,7 @@ import { hitLocationByShape, locationLabel } from './combat';
 import { BodyShape, Combatant, HitLocation } from './types';
 import {
   CRITIQUE_DOCS, critTableKeyFor, critiqueDie, critiqueDoc, critiqueTable,
-  type CritEntry, type CritTable, type CritTableKey, type JeuDeCritique,
+  type Amputation, type CritEntry, type CritTable, type CritTableKey, type JeuDeCritique,
 } from '../data/criticals';
 import { memoParVersion } from '../data/versionDataset';
 import { traumaById, traumaFicheById, stampCriticalEscalation, fireCritTriggers, type SequelleNeuve } from './trauma';
@@ -72,9 +72,7 @@ const feuille = (ops: GameOp[]): Flow => ({ kind: 'effet', effet: { type: 'ops',
  * `triggeredTestStepId` keye par (porteur, libellé, Compétence) — deux « Résistance » homonymes
  * rendraient la seconde étape injoignable.
  */
-export function noeudAmputation(entry: CritEntry, jeu: JeuDeCritique, location: HitLocation): Flow | undefined {
-  const amp = entry.amputation;
-  if (!amp) return undefined;
+export function noeudAmputation(entry: CritEntry, amp: Amputation, jeu: JeuDeCritique, location: HitLocation): Flow {
   const enjeu = enjeuDeRangee(jeu, location, entry.id);
   const perteGateeParCeTest = !!amp.loss && !amp.loss.difficulty;
   const amputer = feuille([{
@@ -227,27 +225,14 @@ interface RegimeCritique {
 }
 
 /**
- * CE QUE COÛTE UN JEU DE PLUS — une DÉCLARATION ici, et rien d'autre : la séquence de résolution, le
- * lookup, la lecture des id subis et l'exposition Codex sont entièrement pilotés par la DONNÉE (les
- * documents-tables de `criticals.json`). Table ouverte à l'écriture pour que la morsure N+1
- * (`crit-n-plus-1.test.ts`) puisse en poser une et la retirer — le moteur, lui, ne l'écrit jamais.
+ * CE QUE COÛTE UN JEU DE PLUS — sa valeur au schéma (`jeu`, `schemas/defs/criticals.ts`) et une DÉCLARATION ici, totale
+ * sur les jeux : la séquence de résolution, le lookup, la lecture des id subis et l'exposition Codex sont pilotés par la
+ * DONNÉE (les documents-tables de `criticals.json`).
  */
-export const REGIMES_DE_CRITIQUE: Record<string, RegimeCritique> = {
+export const REGIMES_DE_CRITIQUE: Readonly<Record<JeuDeCritique, RegimeCritique>> = {
   ldb: { severite: severiteLdb, journal: 'Blessure critique' },
   aa: { severite: (_target, overkill) => aaCriticalOffset(overkill), journal: 'Blessure critique AA' },
 };
-
-/** Régime d'un jeu — FAIL-FAST NOMINATIF : un document-table dont le `jeu` n'a pas de régime déclaré
- *  se résoudrait sinon sur `undefined`, et le critique crasherait loin de sa cause. */
-function regimeDe(jeu: JeuDeCritique): RegimeCritique {
-  const regime = REGIMES_DE_CRITIQUE[jeu];
-  if (!regime) {
-    throw new Error(
-      `resolveCritique : le jeu « ${jeu} » n'a pas de régime déclaré (REGIMES_DE_CRITIQUE : ${Object.keys(REGIMES_DE_CRITIQUE).join(', ')}) — un tableau de plus déclare SA sévérité et SON libellé de journal.`,
-    );
-  }
-  return regime;
-}
 
 /**
  * Le JEU qui résout un Coup Critique : l'approche alternative d'Aux Armes quand la règle facultative
@@ -392,19 +377,19 @@ export function critiquesDuCoup(c: Combatant, coup: CoupACompter, jeu: JeuDeCrit
 
 const rangeesOuvertes = memoParVersion(
   ['criticalsTete', 'criticalsBras', 'criticalsCorps', 'criticalsJambe', 'aaCriticalsTete', 'aaCriticalsBras', 'aaCriticalsCorps', 'aaCriticalsJambe'],
-  (): Map<CritTable, (CritEntry & { max: number })[]> => new Map(CRITIQUE_DOCS.map((d) => [d.entries, tableOuverte(d.entries)])),
+  (): Map<CritTable, (CritEntry & { min: number; max: number })[]> => new Map(CRITIQUE_DOCS.map((d) => [d.entries, tableOuverte(d.entries)])),
 );
 
 /** Les rangées d'une table de Critiques telles que `findTableEntry` les lit : AA 07 l.105, l.131,
  *  l.157, l.183 ouverts par `tableOuverte`. Mémoïsées sur les datasets du seam. */
-function rangeesLues(table: CritTable): (CritEntry & { max: number })[] {
+function rangeesLues(table: CritTable): (CritEntry & { min: number; max: number })[] {
   const rangees = rangeesOuvertes().get(table);
   if (!rangees) throw new Error('rangeesLues : table de Critiques absente de CRITIQUE_DOCS.');
   return rangees;
 }
 
 /** Lignes de la table d'un (jeu, clé), lues par `rangeesLues`. */
-export function critTableRows(jeu: JeuDeCritique, key: CritTableKey): (CritEntry & { max: number })[] {
+export function critTableRows(jeu: JeuDeCritique, key: CritTableKey): (CritEntry & { min: number; max: number })[] {
   return rangeesLues(critiqueDoc(jeu, key).entries);
 }
 
@@ -466,7 +451,7 @@ export function resolveCritique(
   options: OptionsCritique = {},
 ): CriticalResolved {
   const { overkill = 0, twice = false, forcedRoll } = options;
-  const regime = regimeDe(jeu);
+  const regime = REGIMES_DE_CRITIQUE[jeu];
   const be = bonus(effectiveChar(target, 'endurance'));
   const raw = forcedRoll ?? lancerDuTableau(jeu, location, rng, twice);
   const roll = Math.max(1, raw + regime.severite(target, overkill));
@@ -493,7 +478,7 @@ export function resolveCritique(
   // aucun dé n'est tiré. `timing: 'postEncounter'` (l.171 : « Une fois la rencontre terminée… ») → le nœud
   // est ARMÉ sur le marqueur `pendingAmputation`, ouvert par la porte au foyer de fin de combat.
   if (!entry.lethal && entry.amputation) {
-    const noeud = noeudAmputation(entry, jeu, location)!;
+    const noeud = noeudAmputation(entry, entry.amputation, jeu, location);
     if (entry.amputation.timing === 'postEncounter') traumas.push({ label: entry.label, location, pendingAmputation: noeud });
     else tests.push(noeud);
   }

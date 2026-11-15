@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { brumeSheetGeometry, buildBrumeSheets, retainBrumeSheets } from './weatherSheets';
 import { sceneGroundSpan } from '../../../noyau/monde/meteo';
 import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../../noyau/monde/scene';
-import type { WeatherBrumeDef } from '../../../data/ambiance.types';
+import type { WeatherBrumeDef } from '../../../data';
 
 const BRUME: WeatherBrumeDef = {
   color: '#aab4bd',

@@ -7,7 +7,7 @@
  * (`decidingSeat`) — le siège de l'intent pendant son application, jamais le seul `net.mySeat` de l'HÔTE.
  * L'intent acceptée d'un invité sur son PROPRE héros agit : le pending est posé.
  *
- * Ce test exerce la chaîne de `appliquerLIntentionDUnSiege` (celle que le salon appelle, `hote/coop/salon.ts`), sur DEUX
+ * Ce test exerce la chaîne de `appliquerLIntentionDUnSiege` (celle que l'hôte passe à `heberger`, `hote/coop/salon.ts`), sur DEUX
  * verbes ouvreurs de la barre : `faireUnBattement` (offre `battement`, exposé par #1017) et `rompreLEngagement` (offre
  * `disengage`, d'une autre famille — la même garde les sert, ce qui prouve que la CLASSE est fermée, pas un cas).
  */

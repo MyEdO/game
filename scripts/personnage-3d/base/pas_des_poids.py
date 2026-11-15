@@ -52,6 +52,15 @@ def melanges_par_lots(w, matrices):
         yield (w @ lot.transpose(1, 0, 2, 3).reshape(lot.shape[1], n * 16)).reshape(len(w), n, 4, 4)[:, :, :3, :]
 
 
+def piles_distinctes(piles):
+    """Les piles distinctes de `piles`, une par état d'un groupe, par identité d'objet dans l'ordre de première
+    apparition, chacune avec les indices des états qui la portent : `[(pile, états)]`."""
+    distinctes = {}
+    for e, pile in enumerate(piles):
+        distinctes.setdefault(id(pile), (pile, []))[1].append(e)
+    return list(distinctes.values())
+
+
 def appliquer(melange, x):
     """Les sommets `x` (homogènes) sous leurs matrices mélangées `melange` (`melanges_par_lots`) : (lot, sommets, 3)."""
     return numpy.einsum('snij,sj->nsi', melange, x)
@@ -98,15 +107,19 @@ def minimum_du_carre(p, a, b):
 
 def longueurs_de_reference(w, groupe, touches, locales):
     """Par état de `groupe` et arête (`locales`, indices dans `touches`), sa longueur de référence `l_b(w)` : la
-    référence de l'état posée par `pile[0]` mélangée par `w`. (états, arêtes)."""
-    _, references, pile = groupe
-    repos = next(melanges_par_lots(w[touches], pile[:1]))
-    posees = numpy.array([appliquer(repos, r[touches])[0] for r in references])
+    référence de l'état posée par le premier échantillon de sa pile mélangé par `w`. (états, arêtes)."""
+    _, references, piles = groupe
+    posees = [None] * len(references)
+    for pile, etats in piles_distinctes(piles):
+        repos = next(melanges_par_lots(w[touches], pile[:1]))
+        for e in etats:
+            posees[e] = appliquer(repos, references[e][touches])[0]
+    posees = numpy.array(posees)
     return numpy.linalg.norm(posees[:, locales[:, 0]] - posees[:, locales[:, 1]], axis=2)
 
 
 class Lot(NamedTuple):
-    """Les échantillons `debut` à `debut + n` de la pile d'un groupe, par état, échantillon et arête : le vecteur de
+    """Les échantillons `debut` à `debut + n` des piles d'un groupe, par état, échantillon et arête : le vecteur de
     l'arête (type des positions), sa norme (float64) et son rapport à la longueur de référence (type des vecteurs ; 1 où
     la référence est nulle)."""
     debut: int
@@ -117,29 +130,32 @@ class Lot(NamedTuple):
 
 def mesurer_par_lots(w, groupe, touches, locales, longueurs):
     """Les `Lot` de `groupe` sous les poids `w`, arêtes `locales` dans `touches`, longueurs de référence `longueurs`
-    (`longueurs_de_reference`) : le noyau commun de `poids.extremes` et de `Region.balayer`."""
-    positions, _, pile = groupe
+    (`longueurs_de_reference`) : le noyau commun de `poids.extremes` et de `Region.balayer`. Chaque état est déformé
+    par sa pile, un mélange par pile distincte et par lot."""
+    positions, _, piles = groupe
+    distinctes = piles_distinctes(piles)
     valides = longueurs > 0
     xs = positions[:, touches]
-    forme = (len(positions), min(LOT, len(pile)), len(locales))
-    type_ = numpy.result_type(xs.dtype, pile.dtype, w.dtype)
+    echantillons = len(piles[0])
+    forme = (len(positions), min(LOT, echantillons), len(locales))
+    type_ = numpy.result_type(xs.dtype, *(pile.dtype for pile, _ in distinctes), w.dtype)
     vecteurs = numpy.empty((*forme, 3), dtype=type_)
     normes = numpy.empty(forme)
     rapports = numpy.ones(forme, dtype=type_)
     extremites = numpy.empty((2, *forme[1:], 3), dtype=type_)
-    debut = 0
-    for melange in melanges_par_lots(w[touches], pile):
-        n = melange.shape[1]
-        for e in range(len(positions)):
-            p = appliquer(melange, xs[e])
-            for k in (0, 1):
-                numpy.take(p, locales[:, k], axis=1, out=extremites[k, :n])
-            numpy.subtract(extremites[0, :n], extremites[1, :n], out=vecteurs[e, :n])
-            numpy.einsum('...i,...i->...', vecteurs[e, :n], vecteurs[e, :n], dtype=numpy.float64, out=normes[e, :n])
-            numpy.sqrt(normes[e, :n], out=normes[e, :n])
-            numpy.divide(normes[e, :n], longueurs[e], out=rapports[e, :n], where=valides[e])
+    for debut in range(0, echantillons, LOT):
+        for pile, etats in distinctes:
+            melange = next(melanges_par_lots(w[touches], pile[debut:debut + LOT]))
+            n = melange.shape[1]
+            for e in etats:
+                p = appliquer(melange, xs[e])
+                for k in (0, 1):
+                    numpy.take(p, locales[:, k], axis=1, out=extremites[k, :n])
+                numpy.subtract(extremites[0, :n], extremites[1, :n], out=vecteurs[e, :n])
+                numpy.einsum('...i,...i->...', vecteurs[e, :n], vecteurs[e, :n], dtype=numpy.float64, out=normes[e, :n])
+                numpy.sqrt(normes[e, :n], out=normes[e, :n])
+                numpy.divide(normes[e, :n], longueurs[e], out=rapports[e, :n], where=valides[e])
         yield Lot(debut, vecteurs[:, :n], normes[:, :n], rapports[:, :n])
-        debut += n
 
 
 class MinimumDeCellule(NamedTuple):
@@ -367,7 +383,8 @@ class Region:
     def balayer(self, w):
         """Les sorties de chaque groupe sous `w`, par `par_groupes`, retenues par `retenir`, sans garder les vecteurs. Le
         noyau `mesurer_par_lots` et `minima_des_cellules` est celui de `poids.extremes` : sous les mêmes octets de `w`,
-        rapports et décisions sont les siens, marges de clip mises à part."""
+        rapports et décisions sont les siens, marges de clip mises à part ; en clip, les seuls états, des deux côtés
+        (#4002)."""
         violations = par_groupes(lambda g: self.balayer_groupe(w, g), range(len(self.groupes)))
         return [violation for du_groupe in violations for violation in du_groupe]
 
@@ -382,12 +399,14 @@ class Region:
             coupe = min(n, max(0, 1 - lot.debut))
             for de, a in ((0, coupe), (coupe, n)):
                 if de < a:
+                    au_repos = lot.debut + de == 0
                     seuils = seuils_de_balayage(lot.debut + de)
                     self.relever_etats(releves, lot.rapports[:, de:a].astype(numpy.float64), lot.debut + de, seuils,
-                                       not cellules)
-                    for c, minimum in enumerate(minima_des_cellules(lot.vecteurs[:, de:a], lot.normes[:, de:a], longueurs,
-                                                                    cellules, seuils[0])):
-                        self.relever_cellule(releves, minimum, lot.debut + de, seuils[0], len(positions) + c)
+                                       not (cellules and au_repos))
+                    if au_repos:
+                        for c, minimum in enumerate(minima_des_cellules(lot.vecteurs[:, de:a], lot.normes[:, de:a],
+                                                                        longueurs, cellules, seuils[0])):
+                            self.relever_cellule(releves, minimum, lot.debut + de, seuils[0], len(positions) + c)
         violations = []
         for source, haut, arete, instant, _, u, v, rapport in retenir(releves, groupe.clauses):
             source = int(source)
@@ -415,44 +434,60 @@ class Region:
             releves.append(numpy.column_stack([numpy.full(len(instant), float(source)), numpy.zeros(len(instant)), arete,
                                                instant_initial + instant, rapports, minimum.uv[instant, arete], rapports]))
 
-    def point(self, g, coins, u, v, sommet):
-        """Le sommet `sommet` à l'état `coins[0]` ou au point (`u`, `v`) de la cellule `coins` : homogène."""
-        positions = self.groupes[g][0]
-        p = positions[coins[0], sommet].astype(numpy.float64)
-        if len(coins) > 1:
-            p = p + u * (positions[coins[1], sommet] - p) + v * (positions[coins[2], sommet] - p)
-        return p
+    def par_pile(self, g, coins, combiner, sommet):
+        """Le sommet `sommet` des états `coins` combiné par `combiner` (linéaire, de leurs positions homogènes), réparti
+        par pile : `[(pile, p)]`, sa position déformée étant la somme de chaque `pile` appliquée à son `p`. Des coins de
+        même pile se combinent avant la déformation ; sinon chaque coin porte sa part sous sa pile."""
+        positions, _, piles = self.groupes[g]
+        xs = [positions[c, sommet] for c in coins]
+        if len({id(piles[c]) for c in coins}) == 1:
+            return [(piles[coins[0]], combiner(xs))]
+        return [(piles[c], combiner([x if j == i else numpy.zeros_like(x) for j, x in enumerate(xs)]))
+                for i, c in enumerate(coins)]
 
     def plans_de(self, w, violation):
         """Les plans d'une violation. Plan bas : `n` fixe, le vecteur de l'arête au point critique sans les poids,
-        transporté par la matrice moyenne de l'arête ; sur une cellule, aux quatre coins. Plan haut : `n` = e/|e|."""
+        transporté par la matrice moyenne de l'arête ; sur une cellule, aux quatre coins. Plan haut : `n` = e/|e|. Chaque
+        état est posé par sa pile, la référence par celle de `coins[0]`."""
         g, arete, instant, haut, coins, u, v, _ = violation
-        positions, references, pile = self.groupes[g]
+        _, references, piles = self.groupes[g]
         a, b = (int(s) for s in self.aretes[arete])
-        pose = pile[instant].astype(numpy.float64)[:, :3, :]
-        pa, pb = self.point(g, coins, u, v, a), self.point(g, coins, u, v, b)
-        ma, mb = (numpy.einsum('o,oij->ij', w[s], pose) for s in (a, b))
-        if haut:
-            n = ma @ pa - mb @ pb
-        else:
-            n = 0.5 * (ma + mb)[:3, :3] @ (pa - pb)[:3]
+        poses = {}
+
+        def pose_de(pile):
+            if id(pile) not in poses:
+                poses[id(pile)] = pile[instant].astype(numpy.float64)[:, :3, :]
+            return poses[id(pile)]
+
+        def point(xs):
+            p = xs[0].astype(numpy.float64)
+            return p + u * (xs[1] - p) + v * (xs[2] - p) if len(xs) > 1 else p
+
+        termes = []
+        for (pile, pa), (_, pb) in zip(*(self.par_pile(g, coins[:3], point, s) for s in (a, b))):
+            ma, mb = (numpy.einsum('o,oij->ij', w[s], pose_de(pile)) for s in (a, b))
+            termes.append(ma @ pa - mb @ pb if haut else 0.5 * (ma + mb)[:3, :3] @ (pa - pb)[:3])
+        n = numpy.sum(termes, axis=0)
         n = n / max(numpy.linalg.norm(n), 1e-30)
         bornes = bornes_de_l_instant(instant)
         facteur = bornes[1] * MARGE_PLAN_HAUT if haut else bornes[0] * MARGE_PLAN_BAS
         signe = -1.0 if haut else 1.0
-        repos = pile[0].astype(numpy.float64)[:, :3, :]
+        repos = piles[coins[0]][0].astype(numpy.float64)[:, :3, :]
         ra, rb = references[coins[0], a].astype(numpy.float64), references[coins[0], b].astype(numpy.float64)
         eb = numpy.einsum('o,oij->ij', w[a], repos) @ ra - numpy.einsum('o,oij->ij', w[b], repos) @ rb
         m = eb / max(numpy.linalg.norm(eb), 1e-30)
         os_ra = facteur * numpy.einsum('i,oij,j->o', m, repos, ra)
         os_rb = facteur * numpy.einsum('i,oij,j->o', m, repos, rb)
         coins_du_plan = [coins] if len(coins) == 1 else [(c,) for c in coins[:3]] + [(coins[1], coins[2], coins[0])]
+
+        def coin(xs):
+            return xs[0].astype(numpy.float64) + (xs[1] - xs[2] if len(xs) > 1 else 0.0)
+
         plans = []
         for co in coins_du_plan:
-            ca, cb = (positions[co[0], s].astype(numpy.float64) + (positions[co[1], s] - positions[co[2], s] if len(co) > 1 else 0.0)
-                      for s in (a, b))
-            plans.append(Plan(signe, a, b, numpy.einsum('i,oij,j->o', n, pose, ca) - os_ra,
-                              numpy.einsum('i,oij,j->o', n, pose, cb) - os_rb))
+            os_a, os_b = (numpy.sum([numpy.einsum('i,oij,j->o', n, pose_de(pile), c) for pile, c in self.par_pile(g, co, coin, s)],
+                                    axis=0) for s in (a, b))
+            plans.append(Plan(signe, a, b, os_a - os_ra, os_b - os_rb))
         return plans
 
     def resoudre(self, plans):

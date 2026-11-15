@@ -182,13 +182,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/schemas/grammaire/reference.ts",
-    motif: "désormais",
-    ancre: "seconde graphie de la même chose, que rien ne lisait — elle est désormais REFUSÉE au parse. */",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/variants-integrity.test.ts",
     motif: "désormais",
     ancre: "désormais adoptés : aucun ne se lit plus au nœud zod. */",
@@ -213,13 +206,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/engine/combat.ts",
     motif: "désormais",
     ancre: "*Groupées* — chaque Spécialisation (désormais un `spec` = id de Groupe, cf. `SkillData.specsSource`)",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/engine/combatFeatures/types.ts",
-    motif: "désormais",
-    ancre: "(Le +DR de Talent — Menaçant → Intimidation — est désormais la règle UNIVERSELLE `talentTestSLBonus`",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

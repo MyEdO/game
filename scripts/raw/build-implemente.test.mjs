@@ -290,6 +290,49 @@ test('isDeadExport : appelant UNIQUEMENT en commentaire → toujours mort (le co
   assert.equal(isDeadExport('ghost', 'src/engine/orphan.ts', index), true)
 })
 
+test('isDeadExport : nom présent ailleurs seulement comme PARTIE d’un mot plus long → toujours mort', () => {
+  const index = makeIndex([
+    { rel: 'src/engine/orphan.ts', content: ['export function ghost() {}'].join('\n') },
+    { rel: 'src/noyau/other.ts', content: ['const ghostly = myGhost + ghost_2 + ghost2', 'export const y = ghostly'].join('\n') },
+  ])
+  assert.equal(isDeadExport('ghost', 'src/engine/orphan.ts', index), true)
+})
+
+test('isDeadExport : nom à `$` — appelé ailleurs → pas mort, sans appelant → mort ; voisin accentué', () => {
+  const def = { rel: 'src/engine/fr.ts', content: ['export const prix$ht = 1', 'export function degats() {}'].join('\n') }
+  const appelant = { rel: 'src/noyau/use.ts', content: ['import { prix$ht, degats } from "../engine/fr"', 'const dégâts = degatsé(prix$ht)'].join('\n') }
+  const muet = { rel: 'src/noyau/use.ts', content: ['const prix = ht + degatsx', 'export const z = prix$htx'].join('\n') }
+  const appele = makeIndex([def, appelant])
+  assert.equal(isDeadExport('prix$ht', 'src/engine/fr.ts', appele), false)
+  assert.equal(isDeadExport('degats', 'src/engine/fr.ts', appele), false)
+  const orphelin = makeIndex([def, muet])
+  assert.equal(isDeadExport('prix$ht', 'src/engine/fr.ts', orphelin), true)
+  assert.equal(isDeadExport('degats', 'src/engine/fr.ts', orphelin), true)
+})
+
+test('isDeadExport : verdict égal à la recherche `\\b<nom>\\b` sur chaque autre texte non-test', () => {
+  const noms = [
+    'alpha', 'beta', 'gamma', 'delta', 'absent', 'alph', 'lpha', 'alpha2', 'Alpha', 'seul',
+    '$prix', 'prix', 'a$b', 'b$', '$absent', 'forc', 'eta', 'ts', '_interne', 'k9',
+  ]
+  const defFileDe = (i) => `src/engine/def${i}.ts`
+  const index = makeIndex([
+    ...noms.map((n, i) => ({ rel: defFileDe(i), content: `export const ${n} = 0` })),
+    { rel: 'src/noyau/a.ts', content: ['const x = alpha + beta_ + alpha2 + x$prix + a$b', '// gamma en commentaire', 'forcé(éta)'].join('\n') },
+    { rel: 'src/noyau/b.ts', content: ['use(delta, b$, _interne)', 'const k = mk9 + seul_', 'y.prix + dégâts'].join('\n') },
+    { rel: 'src/data/c.json', content: ['{ "id": "gamma-z", "n": "Alpha" }'].join('\n') },
+    { rel: 'src/noyau/c.test.ts', content: ['seul(beta)'].join('\n'), isTest: true },
+  ])
+  const echappe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const verdicts = noms.map((n, i) => {
+    const re = new RegExp(`\\b${echappe(n)}\\b`)
+    const appele = [...index.nonCommentText].some(([rel, text]) => rel !== defFileDe(i) && re.test(text))
+    return [n, !appele]
+  })
+  assert.ok(verdicts.some(([, mort]) => mort) && verdicts.some(([, mort]) => !mort), 'fixture dégénérée')
+  assert.deepEqual(noms.map((n, i) => [n, isDeadExport(n, defFileDe(i), index)]), verdicts)
+})
+
 test('closureOf : suit les imports DYNAMIQUES import(\'…\') (lazy) — #487 correctif', () => {
   const root = mkdtempSync(join(tmpdir(), 'bi-clo-'))
   mkdirSync(join(root, 'src', 'noyau'), { recursive: true })

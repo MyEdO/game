@@ -570,7 +570,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const mpt = sceneMetresPerTile(scene); // m/case de la scène (échelle RAW, défaut 2) → convertit la hauteur en cases
   // Au contact depuis la case candidate `a`, l'ennemi posé là (`positionPosee`), mesuré par `distanceDeContact`.
   const withinMelee = (a: Pt, h: Combatant) =>
-    distanceDeContact(scene, { ...enemy, pos: positionPosee(scene, footprintN(enemy), a) }, h, mpt) <= mr;
+    distanceDeContact(scene, { ...enemy, pos: positionPosee(scene, a) }, h, mpt) <= mr;
   // Au CONTACT par empreinte (LDB 15 l.12) : un grand ennemi touche depuis n'importe quelle de ses tuiles.
   // `distanceDeContact` plie empreinte ET Δhauteur (même `mpt`) → s'aligne sur la grille d'engagement de la résolution.
   const inMelee = (h: Combatant) => distanceDeContact(scene, enemy, h, mpt) <= mr;

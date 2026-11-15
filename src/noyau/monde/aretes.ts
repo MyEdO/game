@@ -4,13 +4,28 @@
  * famille (`StructureAppearanceDef.kit`, par l'apparence de l'arête, `apparenceDArete`), et à quelle hauteur.
  */
 import { structureAppearances } from '../../data';
-import type { FamilleDuKit, StructureAppearanceDef } from '../../data/structureAppearance.types';
+import type { FamilleDuKit, StructureAppearanceDef } from '../../data';
+import type { EntreeVivante } from '../../data/datasets';
 import { apparenceDArete, edgeKey, facadeEdges } from './facades';
 import { walkNeighbors, type Pt } from './path';
 import { inMapBounds } from './zones';
 import { EYE_H, hauteurDeLOeil } from './iso';
 import { METRES_PER_LEVEL } from './relief';
-import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, tileAt, tuilesEffondreesSignature, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
+import {
+  casesDeFace,
+  heightAt,
+  isWalkable,
+  piedDeLArete,
+  porteEnJeu,
+  sceneMetresPerTile,
+  structureIsDown,
+  tileAt,
+  tuilesEffondreesSignature,
+  wallEnds,
+  wallIsOpen,
+  type Scene,
+  type WallSeg,
+} from './scene';
 import { estAbsent } from './terrain';
 import { versionDesDatasets } from '../../data/versionDataset';
 import { memoByRef, memoByRefDeps } from './sceneMemo';
@@ -42,7 +57,7 @@ export interface AreteDegagee { cle: string; abattueSous: Rot[] }
 
 const CRANS: readonly Rot[] = [0, 1, 2, 3];
 
-const APPARENCES: ReadonlyMap<string, StructureAppearanceDef> = new Map(structureAppearances.map((a) => [a.id, a]));
+const APPARENCES: ReadonlyMap<string, EntreeVivante<StructureAppearanceDef>> = new Map(structureAppearances.map((a) => [a.id, a]));
 
 /** La pièce de l'arête du segment `seg` de `scene` : une porte en jeu (`porteEnJeu`) ouverte si elle laisse passer
  *  (`wallIsOpen`), une brèche pour tout autre segment qui laisse passer, une fenêtre (`window`, `shuttered`), sinon un

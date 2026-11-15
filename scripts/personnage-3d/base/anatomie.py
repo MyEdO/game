@@ -89,12 +89,17 @@ AXES_DU_PERSONNAGE = Matrix(((1, 0, 0), (0, 0, -1), (0, 1, 0)))
 """Les axes glTF du personnage (+X, +Y, +Z en colonnes) dans le repère Blender."""
 
 
+def cote_de_l_os(nom):
+    """Le côté de l'os `nom`, `g` ou `d` par son suffixe `_l`/`_r`, `None` sans côté."""
+    return {'l': 'g', 'r': 'd'}.get(nom.rsplit('_', 1)[-1]) if '_' in nom else None
+
+
 def zone_de_l_os(nom):
     prefixe = nom.split('_')[0]
     if prefixe not in ZONE_DE_L_OS:
         raise RuntimeError(f'os « {nom} » : aucune zone')
     zone = ZONE_DE_L_OS[prefixe]
-    cote = {'l': 'g', 'r': 'd'}.get(nom.rsplit('_', 1)[-1]) if '_' in nom else None
+    cote = cote_de_l_os(nom)
     return f'{zone}_{cote}' if cote and f'{zone}_{cote}' in ZONES else zone
 
 

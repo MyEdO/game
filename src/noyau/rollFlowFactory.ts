@@ -34,7 +34,13 @@ import { gainCorruption } from './corruptionFlow';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { PORTEURS_D_ETAPE } from './slotsDeJet';
 import { bumpSL, evaluateTest, maxForcedRoll, forcedTR, bestForcedRoll, cibleBrute, type TestResult } from '../engine/tests';
-import { applyReverse, reverseAvailable as engineReverseAvailable, reversePreview as engineReversePreview, type EvaluationDeRangee, type IssueDuDe } from '../engine/reverseToken';
+import {
+  applyReverse,
+  reverseAvailable as engineReverseAvailable,
+  reversePreview as engineReversePreview,
+  type EvaluationDeRangee,
+  type IssueDuDe,
+} from '../engine/reverseToken';
 import { clampFixedRoll } from '../engine/fixedDie';
 import { TestOutcome } from '../engine/testOutcome';
 import { canFixDie, influencesLocally } from './netOwnership';

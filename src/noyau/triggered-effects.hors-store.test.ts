@@ -17,7 +17,7 @@ import { evalCondition, spellEffectOps } from '../engine/flowCore';
 import { applyOps } from '../engine/ops';
 import { makeRNG } from '../engine/dice';
 import type { Combatant, Weapon } from '../engine/types';
-import type { Flow } from '../data/schemas/defs-scenes/effets';
+import type { Flow } from '../engine/flowCore';
 import { reluDans } from './combatDeTest.testkit';
 
 let banc: Banc;
