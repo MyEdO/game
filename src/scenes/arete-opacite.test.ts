@@ -13,6 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, areteOcculte, wallBetween, wallIsOpen, setDoorOpen, setStructureDown, wallOnSight, type Scene, type WallSeg } from '../noyau/monde/scene';
 import { couvertDArete } from '../noyau/monde/lineOfSight';
+import { cranDeCouvertEnMoins } from '../engine/cover';
 import { buildOpaque } from '../noyau/monde/vision';
 import { structures, findStructureById } from '../data';
 import diligenceCampaign from './diligence/diligence-projet.json';
@@ -26,11 +27,14 @@ const sceneAvec = (seg: Partial<WallSeg>): Scene => {
 };
 const ARETE = (s: Scene): WallSeg => s.walls![0];
 
+/** Les Structures déclarées non occultantes : la clôture et la herse (#1680), le muret (#4105, 2026-11-13). */
+const TRANSPARENTES = ['cloture-en-clayonnage', 'herse', 'mur-en-pierres-seches'];
+
 describe('areteOcculte — la liste de CE QUI LAISSE VOIR est nominative et sourcée', () => {
-  it('exactement deux Structures sont déclarées non occultantes, et chacune porte son `maison`', () => {
+  it('exactement les Structures de `TRANSPARENTES` sont déclarées non occultantes, et chacune porte son `maison`', () => {
     const transparentes = structures.filter((s) => s.occulte === false).map((s) => s.id).sort();
     // Verrou NOMINATIF : un ajout futur passe par CE test, jamais par un `occulte: false` discret.
-    expect(transparentes).toEqual(['cloture-en-clayonnage', 'herse']);
+    expect(transparentes).toEqual(TRANSPARENTES);
     // Contrat du schéma (`schemas/defs/structures.ts`) : `occulte: false` ne cite aucun folio, il porte
     // son `maison`, qui NOMME le passage dont la décision est tirée. Le passage se reconnaît à la
     // graphie des réfs RAW du dépôt — `refsInLine`, seul lecteur TYPÉ (`.d.mts`) consommable depuis `src`, dérivé de `scripts/raw/_lib.mjs` :
@@ -45,7 +49,7 @@ describe('areteOcculte — la liste de CE QUI LAISSE VOIR est nominative et sour
 
   it('toutes les AUTRES Structures occultent — aucune n’est muette par omission de lecture', () => {
     const occultantes = structures.filter((s) => s.occulte !== false);
-    expect(occultantes.length).toBe(structures.length - 2);
+    expect(occultantes.length).toBe(structures.length - TRANSPARENTES.length);
     for (const s of occultantes) expect(areteOcculte(emptyScene('scene-test', 1, 1), { x: 0, y: 0, side: 'E', structure: s.id } as WallSeg)).toBe(true);
   });
 });
@@ -57,6 +61,7 @@ describe('areteOcculte — les défauts OCCULTENT, seul un arbitrage déclaré l
     ['mur d’habitation (aucun champ `occulte`)', { structure: 'mur-a-ossature-en-bois' }, true],
     ['clôture en clayonnage (`occulte: false`)', { structure: 'cloture-en-clayonnage' }, false],
     ['herse (`occulte: false`)', { structure: 'herse' }, false],
+    ['mur en pierres sèches (`occulte: false`)', { structure: 'mur-en-pierres-seches' }, false],
   ])('%s → occulte = %s', (_nom, seg, attendu) => {
     const s = sceneAvec(seg as Partial<WallSeg>);
     expect(areteOcculte(s, ARETE(s))).toBe(attendu);
@@ -81,7 +86,7 @@ describe('areteOcculte — les défauts OCCULTENT, seul un arbitrage déclaré l
 });
 
 describe('OPACITÉ ≠ FRANCHISSABILITÉ — on voit à travers une herse, on ne la traverse pas', () => {
-  it.each(['cloture-en-clayonnage', 'herse'])('%s : non occultante ET infranchissable', (structure) => {
+  it.each(TRANSPARENTES)('%s : non occultante ET infranchissable', (structure) => {
     const s = sceneAvec({ structure });
     expect(areteOcculte(s, ARETE(s))).toBe(false);
     // `wallBetween` ne lit PAS l'opacité : l'arête tient, donc elle barre le pas.
@@ -100,6 +105,7 @@ describe('PARITÉ des deux lecteurs — combat et vision ne divergent jamais sur
     ['mur-a-ossature-en-bois', true],
     ['cloture-en-clayonnage', false],
     ['herse', false],
+    ['mur-en-pierres-seches', false],
   ])('%s : `wallOnSight` (défaut) et le Set d’opacité de la vision disent la même chose', (structure, bloque) => {
     const s = sceneAvec({ structure });
     // Lecteur 1 — défaut d'`edgeBlocks` de `wallOnSight` (combat), sur le couple de cases que l'arête sépare.
@@ -135,7 +141,7 @@ describe('La Diligence — les six box migrées prennent le profil AA du clayonn
     // Tireur et cible de part et d'autre de l'arête (21,29,E) — le couple exact que l'arête sépare.
     const from = { x: 21, y: 29 };
     const to = { x: 22, y: 29 };
-    expect(couvertDArete(scene, from, to)).toBe('none');
+    expect(couvertDArete(scene, { pos: from }, { pos: to }, cranDeCouvertEnMoins)).toBe('none');
     expect(wallOnSight(scene, from, to, 0)).toBe(false);
   });
 
@@ -149,7 +155,7 @@ describe('La Diligence — les six box migrées prennent le profil AA du clayonn
     };
     const from = { x: 21, y: 29 };
     const to = { x: 22, y: 29 };
-    expect(couvertDArete(avant, from, to)).toBe('imparfaite');
+    expect(couvertDArete(avant, { pos: from }, { pos: to }, cranDeCouvertEnMoins)).toBe('imparfaite');
     expect(wallOnSight(avant, from, to, 0)).toBe(true);
     // Et la Structure d'avant était deux fois plus solide, avec une Limite d'Encombrement.
     const mur = findStructureById('mur-a-ossature-en-bois')!;

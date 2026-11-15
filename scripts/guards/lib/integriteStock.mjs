@@ -20,6 +20,7 @@ export const MAISON_SANS_SOURCE = [
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["auberge-recueillir-informations-minutes","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["chute-tombant-non-debout","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["cible-vulnerable-pct","maison","",""]', occurrence: 1 },
+  { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["combat-croisee-melee-difficulte","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["combat-portee-voix-m","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["combat-round-secondes","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["engin-de-siege-vitesse-de-poussee","maison","",""]', occurrence: 1 },

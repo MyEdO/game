@@ -531,6 +531,7 @@
     "type": "structureAppearance",
     "label": "Mur en pierres sèches",
     "kit": "pierre",
+    "wallHeightM": 1,
     "detail": {
       "seedScope": "edge",
       "courses": {

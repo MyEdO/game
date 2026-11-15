@@ -142,6 +142,27 @@ export function distanceDeCombat(a: Combatant, b: Combatant, mpt = 2): number {
 /** Le corps de `c` est-il porté par la scène : une structure de siège (ses arêtes), un navire sur ses ponts ? */
 export const porteParLaScene = (c: Combatant): boolean => isStructure(c) || !!c.surSesPonts;
 
+/** Un corps posé : son ancre (coin NO) et ce dont `footprintN` tire son côté, lus sur le MÊME objet. */
+export interface Corps { pos: Pt; size?: SizeCategory; footprint?: number }
+
+/** Le corps d'un combattant posé, `undefined` sans `pos`. */
+export const corpsDe = (c: Pick<Combatant, 'pos' | 'size' | 'footprint'>): Corps | undefined =>
+  c.pos && { pos: c.pos, size: c.size, footprint: c.footprint };
+
+/** Toutes les paires (case de `a`, case de `b`) de deux empreintes, avec leur distance de Chebyshev. */
+function pairesDeCases(aPos: Pt, an: number, bPos: Pt, bn: number): { ta: Pt; tb: Pt; d: number }[] {
+  const out: { ta: Pt; tb: Pt; d: number }[] = [];
+  for (const ta of footprintTiles(aPos, an)) for (const tb of footprintTiles(bPos, bn)) out.push({ ta, tb, d: chebyshev(ta, tb) });
+  return out;
+}
+
+/** Les paires de cases EN REGARD de deux corps : celles à la plus petite distance de Chebyshev (`footprintChebyshev`). */
+export function pairesEnRegard(a: Corps, b: Corps): [Pt, Pt][] {
+  const an = footprintN(a), bn = footprintN(b);
+  const d = footprintChebyshev(a.pos, an, b.pos, bn);
+  return pairesDeCases(a.pos, an, b.pos, bn).filter((p) => p.d === d).map((p) => [p.ta, p.tb]);
+}
+
 /** Distance horizontale de contact : la plus petite distance de Chebyshev entre une case de chaque empreinte que
  *  nulle arête pleine (`wallOnSight`, à la couche la plus haute des deux) ne sépare ; `Infinity` s'il n'y en a aucune.
  *  Un corps porté par la scène n'est séparé de personne par une arête. LDB 13 l.94 ; LDB 13 l.114. */
@@ -150,11 +171,7 @@ function horizontalDeContact(scene: Scene | null, a: Combatant, b: Combatant, aP
   if (!scene?.walls?.length || porteParLaScene(a) || porteParLaScene(b)) return footprintChebyshev(aPos, an, bPos, bn);
   const z = Math.max(aPos.z ?? 0, bPos.z ?? 0);
   let best = Infinity;
-  for (const ta of footprintTiles(aPos, an))
-    for (const tb of footprintTiles(bPos, bn)) {
-      const d = chebyshev(ta, tb);
-      if (d < best && !wallOnSight(scene, ta, tb, z)) best = d;
-    }
+  for (const { ta, tb, d } of pairesDeCases(aPos, an, bPos, bn)) if (d < best && !wallOnSight(scene, ta, tb, z)) best = d;
   return best;
 }
 
