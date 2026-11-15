@@ -504,7 +504,7 @@ async function attendreSortie(chrome, delaiMs = 5000) {
 }
 
 /**
- * Les TROIS VUES DE RÉFÉRENCE de toute recette (#1847), lues à leur source UNIQUE
+ * Les VUES DE RÉFÉRENCE de toute recette (#1847), lues à leur source UNIQUE
  * `scripts/recette/vues-recette.json` — jamais recopiées : trois adresses divergeaient (1440×900,
  * 1600×900, `HEIGHT = 800`) et aucune ne rendait l'écran de l'utilisateur. Mesure du 2026-09-20 :
  * 2560×1440 à 150 % = 1707×960px CSS, `availHeight` 912, fenêtre Chrome utile ≈ 745-780px.
@@ -515,7 +515,7 @@ export const VUES_RECETTE = JSON.parse(
   readFileSync(fileURLToPath(new URL('./vues-recette.json', import.meta.url)), 'utf8'),
 );
 
-/** Une vue par son nom (`bureau`, `portable`, `mobile`) — lève sur un nom inconnu plutôt que de
+/** Une vue par son nom (`bureau`, `portable`) — lève sur un nom inconnu plutôt que de
  *  rendre `undefined`, qu'un appelant transformerait en viewport `NaN×NaN` sans rien dire. */
 export function vueRecette(nom) {
   const v = VUES_RECETTE.find((x) => x.nom === nom);
@@ -528,7 +528,7 @@ export function vueRecette(nom) {
 export const VUE_REFERENCE = vueRecette('bureau');
 
 /**
- * Déroule `fn({ nom, largeur, hauteur })` sur CHACUNE des trois vues, viewport posé et laissé au
+ * Déroule `fn({ nom, largeur, hauteur })` sur CHACUNE des vues, viewport posé et laissé au
  * calme avant l'appel (un DOM à moitié reposé rend toute mesure aveugle). Helper de sonde : une
  * recette qui ne juge qu'une vue ne juge pas la hauteur.
  */
@@ -547,10 +547,10 @@ export async function pourChaqueVue(session, fn, { reposMs = 500 } = {}) {
  * l'utilisateur a RÉELLEMENT devant lui. Le défaut historique de 1280 a fait juger « étriqués »
  * pendant deux jours des écrans qui rendaient juste à leur largeur de référence (lot « matières &
  * proportions », #393), et les 900px de haut des recettes suivantes ne tiennent sur AUCUN de ses
- * écrans. Une recette responsive passe sa vue explicitement (`pourChaqueVue`, `setMobileViewport`).
+ * écrans. Une recette responsive passe sa vue explicitement (`pourChaqueVue`, `setViewport`).
  * `args` : des drapeaux de Chrome propres à la recette (le WebGL logiciel de l'hôte Godot, `hotes/godot/recette.mjs`).
  */
-export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, mobile = false, timeoutMs = 10000, args = [] } = {}) {
+export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, timeoutMs = 10000, args = [] } = {}) {
   const lancement = chromeDeLaMachine(chromePath);
   const profile = join(os.tmpdir(), nomDeProfil(process.pid));
   mkdirSync(profile, { recursive: true });
@@ -578,7 +578,7 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
     await session.rpc('Page.enable');
     await session.rpc('Runtime.enable');
     await session.rpc('Emulation.setDeviceMetricsOverride', {
-      width, height, deviceScaleFactor: 1, mobile,
+      width, height, deviceScaleFactor: 1, mobile: false,
     });
     // Les téléchargements vont DANS le profil jetable (`dernierTelechargement`) : purgés avec lui.
     const telechargements = join(profile, DOSSIER_TELECHARGEMENTS);
@@ -971,8 +971,8 @@ export async function gotoScreen(session, name, { settleMs = 600, timeoutMs = 45
 
 /**
  * Capture un PNG nommé dans `dir` (créé si absent) — retourne le chemin écrit.
- * `ancre` (sélecteur) fait DÉFILER l'élément en vue avant la capture : à 360 px les écrans s'empilent
- * et le sujet d'une recette se retrouve sous le pli — une capture le montrerait absent alors qu'il est
+ * `ancre` (sélecteur) fait DÉFILER l'élément en vue avant la capture : aux largeurs étroites les écrans
+ * s'empilent et le sujet d'une recette se retrouve sous le pli — une capture le montrerait absent alors qu'il est
  * seulement plus bas.
  *
  * Par défaut, la capture ne CHANGE RIEN à l'état qu'elle capture (#2001 E : le retrait du focus
@@ -1132,18 +1132,11 @@ export async function emulateReducedMotion(session) {
   await session.rpc('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
 }
 
-/** Redimensionne le viewport (mobile = largeur ≤ 480px active l'émulation tactile). */
+/** Redimensionne le viewport. */
 export async function setViewport(session, width, height) {
   await session.rpc('Emulation.setDeviceMetricsOverride', {
-    width, height, deviceScaleFactor: 1, mobile: width <= 480,
+    width, height, deviceScaleFactor: 1, mobile: false,
   });
-}
-
-/** Raccourci `setViewport` à la vue MOBILE de `vues-recette.json` — la source unique, jamais un
- *  couple recopié ici (charte-ui.md : testable dès 360px). */
-export async function setMobileViewport(session) {
-  const { largeur, hauteur } = vueRecette('mobile');
-  await setViewport(session, largeur, hauteur);
 }
 
 /**
@@ -2221,7 +2214,7 @@ export async function poserFichier(session, selecteur, chemin, { dans } = {}) {
 
 /**
  * VERDICT DE DÉBORDEMENT à la largeur courante — le contrôle le plus fréquent de la règle stricte 4
- * (« utilisable à 360 px ») : un écran qui déborde ne se voit pas sur une capture, il se MESURE.
+ * (responsive en largeur) : un écran qui déborde ne se voit pas sur une capture, il se MESURE.
  * Rend `{ vw, docSW, debordants }` : largeur du viewport, largeur du document (elles doivent être
  * ÉGALES — un `scrollWidth` plus grand = la page pousse latéralement), et les éléments dont le bord
  * droit dépasse le viewport, avec leur balise, leur nom accessible et leur bord droit.

@@ -2,7 +2,7 @@
 // commandes de l'agent ; chaque commande est un script `.mjs` client qui s'attache (`attacherSession`,
 // `lib.mjs`), joue, lit, et se détache. Voir docs/recette-navigateur.md § « Session tenue ».
 //
-//   node scripts/recette/session.mjs ouvrir [url] [--vue bureau|portable|mobile] [--inactivite <ms>]
+//   node scripts/recette/session.mjs ouvrir [url] [--vue bureau|portable] [--inactivite <ms>]
 //        → GARDIEN, à lancer EN FOND : vit jusqu'à `fermer` ou au délai d'inactivité ;
 //   node scripts/recette/session.mjs fermer   → idempotent (gardien vivant : signal ; mort : purge vérifiée) ;
 //   node scripts/recette/session.mjs etat     → le fichier de session et la vie du gardien ;
