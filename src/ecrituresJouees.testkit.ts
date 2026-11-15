@@ -1,10 +1,14 @@
 /**
- * L'ALLER-RETOUR DE L'ÉDITEUR GODOT (#3606, garde #841) : les écritures que le formulaire tiré du schéma offre à
- * l'inspecteur de la scène sans sélection, d'une zone d'effet, d'un déclencheur, d'un personnage, d'un dialogue, d'une rencontre, d'un décor et d'une coque, et le navire que pose l'outil navire, jouées comme la méthode `editer` du pont les joue
- * (`hotes/godot/pont/pont.ts`) : le jeu d'un élément des zones passé en JSON, validé par `gesteDuFormulaire` ou
- * `boutonDeLEdition`, puis joué par `editer` sur la session d'édition ; le document relu avant et après. Partagé par la garde (`src/scene-field-editability-guard.test.ts`) et par la copie de
- * mesure de #841 ; la garde décide de ce qu'une écriture crédite (`ecritureCreditee`).
+ * L'ALLER-RETOUR DE L'ÉDITEUR GODOT (#3606, garde #841, #4234) : un banc par racine de `RACINES` — la scène
+ * (`ecrituresJouees`, `ecrituresDesPorteursSeuls`), la carte du monde (`ecrituresDeLaCarte`) et le narratif
+ * (`ecrituresDuNarratif`) —, chacun la liste des écritures que les zones de l'éditeur offrent, jouées comme la méthode
+ * `editer` du pont les joue (`hotes/godot/pont/pont.ts`) : le jeu d'un élément des zones passé en JSON, validé par
+ * `gesteDuFormulaire` ou `boutonDeLEdition`, puis joué par `editer` sur la session d'édition ; le document relu avant et
+ * après. La garde décide de ce qu'une écriture crédite (`scripts/guards/lib/editabiliteDesChamps.mjs`) ; `garderLaRacine`
+ * en pilote l'audit, une fois par racine (`src/{scene,carte,narratif}-field-editability-guard.test.ts`).
  */
+import { fileURLToPath } from 'node:url';
+import { it, expect } from 'vitest';
 import { allBuiltinCampaigns, paquetDuJeu } from './scenes/campaign';
 import {
   editer,
@@ -21,7 +25,8 @@ import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession, zonesDeLEdi
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import { ENTREES_DE_DOSSIER } from './data/dossiers';
 import { estObjet } from './lib/objet.mjs';
-import type { EcritureJouee } from '../scripts/guards/lib/sceneFieldEditability.mjs';
+import { auditerLEditabilite, orphanFields, programmeDuPerimetre, RACINES, type EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
+import { detenteur } from './lib/detenteur.testkit';
 // @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
 import { CORPUS_DISQUE, manifesteDe, texteDuChapitre } from '../scripts/source/prose-source-plugin.mjs';
 
@@ -99,10 +104,14 @@ function gesteDuJeu(zones: Inspecteur & Partial<ZonesDeLEditeur>, jeu: Jeu): Ges
   return gesteDuFormulaire(zones, recu);
 }
 
+/** Les boutons des zones `zones` : chaque bouton, et chaque valeur d'un choix ou d'une liste. */
+const boutonsDesZones = (zones: ZonesDeLEditeur) =>
+  Object.values(zones).flat().flatMap((e: Choix | Ligne | Bouton | Formulaire) => (e.type === 'bouton' ? [e] : e.type === 'choix' || e.type === 'liste' ? e.valeurs : []));
+
 /** La session `s` où joue le bouton d'id `id` de ses zones. */
 function presser(s: SessionDEdition, id: string): SessionDEdition {
   const zones = zonesDeLEditeur(s);
-  const b = Object.values(zones).flat().flatMap((e: Choix | Ligne | Bouton | Formulaire) => (e.type === 'bouton' ? [e] : e.type === 'choix' || e.type === 'liste' ? e.valeurs : [])).find((v) => v.id === id);
+  const b = boutonsDesZones(zones).find((v) => v.id === id);
   const geste = b && gesteDuJeu(zones, b.jeu);
   if (!geste) throw new Error(`aucun bouton ${id} dans les zones de l’éditeur`);
   return jouer(s, geste);
@@ -204,17 +213,18 @@ function ecrire(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'vale
   return suite;
 }
 
-/** La session `s` où la zone Logique ajoute un porteur de sorte `sorte` (`logique/<sorte>/ajouter`), sélectionné ;
- *  l'écriture de sa collection entière, le porteur neuf compris, avec son chemin depuis son document, s'ajoute à `out`. */
-function ajouter(s: SessionDEdition, sorte: SorteDePorteur, out: EcritureJouee[]): SessionDEdition {
-  const avant = documentDu(s, sorte);
-  const suite = presser(s, `logique/${sorte}/ajouter`);
+/** La session `suite`, tirée de `s` par un outil ou un bouton qui crée un porteur de sorte `sorte`, sélectionné ;
+ *  l'écriture de sa collection entière, avec son chemin depuis son document, s'ajoute à `out`. */
+function cree(s: SessionDEdition, suite: SessionDEdition, sorte: SorteDePorteur, out: EcritureJouee[]): SessionDEdition {
   const porteur = porteurChoisi(suite);
-  const cree = porteur?.sorte === sorte ? porteurDu(suite, porteur) : undefined;
-  if (!cree) throw new Error(`la zone Logique n’a pas ajouté de porteur ${sorte}`);
-  out.push({ avant, apres: documentDu(suite, sorte), chemin: cree.chemin.slice(0, -1), valeur: porteursDe(suite, sorte), saisie: 'bouton' });
+  const neuf = porteur?.sorte === sorte ? porteurDu(suite, porteur) : undefined;
+  if (!neuf) throw new Error(`aucun porteur ${sorte} créé`);
+  out.push({ avant: documentDu(s, sorte), apres: documentDu(suite, sorte), chemin: neuf.chemin.slice(0, -1), valeur: porteursDe(suite, sorte), saisie: 'bouton' });
   return suite;
 }
+
+/** La session `s` où la zone Logique ajoute un porteur de sorte `sorte` (`logique/<sorte>/ajouter`, `cree`). */
+const ajouter = (s: SessionDEdition, sorte: SorteDePorteur, out: EcritureJouee[]): SessionDEdition => cree(s, presser(s, `logique/${sorte}/ajouter`), sorte, out);
 
 /** Le chemin, dans la donnée `donnee`, de l'élément de liste d'identifiant `id`, le premier en profondeur. */
 function cheminDeLElement(donnee: unknown, id: string): Segment[] | undefined {
@@ -537,16 +547,6 @@ export function ecrituresDesPorteursSeuls(): EcritureJouee[] {
   });
 }
 
-/** La session `suite`, tirée de `s` par un outil ou un bouton qui crée un porteur de sorte `sorte`, sélectionné ;
- *  l'écriture de sa collection entière, avec son chemin depuis son document, s'ajoute à `out`. */
-function cree(s: SessionDEdition, suite: SessionDEdition, sorte: SorteDePorteur, out: EcritureJouee[]): SessionDEdition {
-  const porteur = porteurChoisi(suite);
-  const neuf = porteur?.sorte === sorte ? porteurDu(suite, porteur) : undefined;
-  if (!neuf) throw new Error(`aucun porteur ${sorte} créé`);
-  out.push({ avant: documentDu(s, sorte), apres: documentDu(suite, sorte), chemin: neuf.chemin.slice(0, -1), valeur: porteursDe(suite, sorte), saisie: 'bouton' });
-  return suite;
-}
-
 /** La session `s` où le bouton d'id `id` est pressé ; l'écriture du champ `champ` du porteur sélectionné, relu après,
  *  s'ajoute à `out`. */
 function consigner(s: SessionDEdition, id: string, champ: Segment[], out: EcritureJouee[]): SessionDEdition {
@@ -559,9 +559,7 @@ function consigner(s: SessionDEdition, id: string, champ: Segment[], out: Ecritu
 }
 
 /** Les ids des boutons des zones de la session `s` qui commencent par `prefixe`. */
-const boutonsDe = (s: SessionDEdition, prefixe: string): string[] => Object.values(zonesDeLEditeur(s)).flat()
-  .flatMap((e: Choix | Ligne | Bouton | Formulaire) => (e.type === 'bouton' ? [e] : e.type === 'choix' || e.type === 'liste' ? e.valeurs : []))
-  .map((b) => b.id).filter((id) => id.startsWith(prefixe));
+const boutonsDe = (s: SessionDEdition, prefixe: string): string[] => boutonsDesZones(zonesDeLEditeur(s)).map((b) => b.id).filter((id) => id.startsWith(prefixe));
 
 /** Le premier bouton des zones de la session `s` dont l'id commence par `prefixe`. */
 function premierBouton(s: SessionDEdition, prefixe: string): string {
@@ -642,10 +640,22 @@ const UNIONS_DE_L_OBJET = [
 /** Les ids des choix de l'inspecteur de la session `s` qui satisfont `motif`. */
 const choixDe = (s: SessionDEdition, motif: RegExp): string[] => inspecteur(s)['editeur.inspecteur'].filter((e) => (e.type === 'choix' || e.type === 'liste') && motif.test(e.id)).map((e) => e.id);
 
+/** Le bouton qui ajoute un repère à l'identité d'un état. */
+const REPERE_AJOUTE = 'valeur/forme/identite/reperes/ajouter';
+
+/** La session `s` où un repère s'ajoute à l'identité de l'état sélectionné, qui porte déjà une ligne : l'écriture de ses
+ *  lignes, dont chacune gagne la valeur du repère neuf (`etatCouvert`), s'ajoute à `out` (`consigner`). */
+function repereSurLesLignes(s: SessionDEdition, out: EcritureJouee[]): SessionDEdition {
+  const etat = porteurDu(s, porteurChoisi(s)!)!.donnee as { forme: { identite?: { lignes: unknown[] } } };
+  if (!etat.forme.identite?.lignes.length) throw new Error('l’identité de l’état ne porte aucune ligne où le repère neuf pose sa valeur');
+  return consigner(s, REPERE_AJOUTE, ['forme', 'identite', 'lignes'], out);
+}
+
 /** Les écritures du narratif de la première campagne du jeu : chacun des `REGISTRES` ajouté à la zone Logique, joué à
- *  son inspecteur, chaque élément renommé (`identifierChaque`), puis lui-même (`renommer`) ; un indice d'une seconde affaire ; chaque forme de dotation d'un PNJ ; chaque forme d'état ; un
+ *  son inspecteur, chaque élément renommé (`identifierChaque`), puis lui-même (`renommer`) ; un indice d'une seconde affaire ; chaque forme de dotation d'un PNJ ; chaque forme d'état, sur
+ *  l'identité d'un état à lignes, un repère ajouté (`repereSurLesLignes`) ; un
  *  second indice qui renvoie au premier ; un PNJ d'une créature de base armée (`ENROLE`), l'apparence de ses objets ;
- *  un objet et un écart de fiche, renommé (`renommer`) ; les `UNIONS_DU_PNJ` et `UNIONS_DE_L_OBJET`, l'arme dérivée d'un objet et l'adresse de
+ *  un objet et un écart de fiche, chacun renommé (`renommer`) ; les `UNIONS_DU_PNJ` et `UNIONS_DE_L_OBJET`, l'arme dérivée d'un objet et l'adresse de
  *  prose de sa description (`composerLAdresse`) ; puis le narratif singulier. Chacun joué à son inspecteur. */
 export function ecrituresDuNarratif(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
@@ -656,12 +666,15 @@ export function ecrituresDuNarratif(): EcritureJouee[] {
   jouerLInspecteur(ajouter(ajouter(s, 'affaires', []), 'indices', out), out, ['valeur/affaireId']);
   const avecProfil = presser(presser(s, `logique/presetsPnj/${(porteursDe(s, 'presetsPnj')[0] as { id: string }).id}`), 'valeur/profil/trappings/ajouter');
   for (const id of choixDe(avecProfil, /^valeur\/profil\/trappings\/\d+\/forme$/)) jouerLesVariantes(avecProfil, id, out);
-  for (const id of boutonsDe(s, 'etat/forme/')) s = jouerLInspecteur(consigner(ajouter(s, 'etats', out), id, ['forme'], out), out);
+  for (const id of boutonsDe(s, 'etat/forme/')) {
+    s = jouerLInspecteur(consigner(ajouter(s, 'etats', out), id, ['forme'], out), out);
+    if (boutonsDe(s, REPERE_AJOUTE).length) s = repereSurLesLignes(s, out);
+  }
   s = jouerLInspecteur(ajouter(s, 'indices', out), out, ['valeur/refs']);
   const pnj = ajouter(s, 'presetsPnj', out);
   s = jouerLInspecteur(ecrire(pnj, gesteDuChoix(pnj, 'valeur/base/id', (v) => v === ENROLE.fiche), 'saisieChoix', out), out, ['valeur/apparence', 'valeur/profil']);
   for (const id of choixDe(s, /^valeur\/profil\/trappings\/\d+\/forme$/)) jouerLesVariantes(s, id, out);
-  s = jouerLInspecteur(ajouter(s, 'objets', out), out);
+  s = renommer(jouerLInspecteur(ajouter(s, 'objets', out), out), out, 'objets-joue');
   s = renommer(jouerLInspecteur(cree(s, presser(s, premierBouton(s, 'logique/ecart/ajouter/')), 'ecart', out), out), out);
   for (const { boutons, choix } of UNIONS_DU_PNJ) jouerLesVariantes(boutons.reduce(presser, ajouter(s, 'presetsPnj', out)), choix, out);
   const objet = ajouter(s, 'objets', out);
@@ -670,4 +683,26 @@ export function ecrituresDuNarratif(): EcritureJouee[] {
   composerLAdresse(jouerLInspecteur(objet, out, ['valeur/descRef/']), 'valeur/descRef/', out);
   jouerLInspecteur(presser(presser(s, 'document/scene'), 'document/narratif'), out);
   return out;
+}
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+
+/** La GARDE #841 de la racine `racine` de `RACINES`, à appeler dans le `describe` de son fichier : l'audit du dépôt, les
+ *  écritures du banc `banc` comprises, sans aucun orphelin, et son périmètre d'au moins `plancher` champs, chaque cas
+ *  borné à `delai` ms. Rend le programme du périmètre, les écritures et l'audit, partagés avec les autres cas du
+ *  fichier. */
+export function garderLaRacine(racine: keyof typeof RACINES, banc: () => EcritureJouee[], { plancher, delai }: { plancher: number; delai: number }) {
+  const perimetre = detenteur(() => programmeDuPerimetre(ROOT, Object.values(RACINES)), (session) => session.dispose());
+  const ecritures = detenteur(banc);
+  const audit = detenteur(() => auditerLEditabilite(ROOT, perimetre(), { racine: RACINES[racine], ecrituresJouees: ecritures() }));
+  it(`aucun champ de la racine ${racine} n’est orphelin`, { timeout: delai }, () => {
+    const orphelins = orphanFields(audit());
+    // Rendu en TEXTE : l'échec NOMME les champs et leur `fichier:ligne`.
+    const detail = orphelins.map((r) => `${r.id} (${r.at}) — écrivains : ${r.pipeline.join(', ') || 'AUCUN'}`).join('\n');
+    expect(orphelins.map((r) => r.id), detail).toEqual([]);
+  });
+  it(`le périmètre de la racine ${racine} ne s’effondre pas`, { timeout: delai }, () => {
+    expect(audit().length, 'périmètre effondré').toBeGreaterThanOrEqual(plancher);
+  });
+  return { perimetre, ecritures, audit };
 }

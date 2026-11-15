@@ -7,16 +7,14 @@ import { tmpdir } from 'node:os';
 import * as ts from 'typescript/unstable/ast';
 import {
   ALLER_RETOUR,
-  auditSceneFieldEditability,
+  auditerLEditabilite,
   documentDeclarations,
   orphanFields,
-  sceneScope,
-  programmeDuPerimetre,
+  perimetreDeLaRacine,
   RACINES,
-} from '../scripts/guards/lib/sceneFieldEditability.mjs';
+} from '../scripts/guards/lib/editabiliteDesChamps.mjs';
 import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../scripts/guards/lib/tsProgram.mjs';
-import { detenteur } from './lib/detenteur.testkit';
-import { ecrituresDesPorteursSeuls, ecrituresJouees } from './ecrituresJouees.testkit';
+import { ecrituresDesPorteursSeuls, ecrituresJouees, garderLaRacine } from './ecrituresJouees.testkit';
 
 /**
  * GARDE #841 — « toute donnée de la scène s'édite au clic, sans dépendre d'une IA » (directive
@@ -53,14 +51,6 @@ declare const a: never[];
 export const pont = { editer() { ${Object.values(appels).flat().map((f) => `${f}(...a);`).join(' ')} } };\n`,
 });
 
-/**
- * CLIQUET DÉCROISSANT — les champs du document de scène qu'AUCUN geste de l'éditeur Godot n'écrit
- * aujourd'hui. La liste NOMME chaque trou (jamais une exemption par forme de fichier, de type ou de
- * nom) et l'assertion est une ÉGALITÉ : un trou nouveau échoue, un trou comblé échoue aussi tant que
- * la ligne n'est pas retirée. Elle ne peut donc que décroître.
- */
-const TROUS_CONNUS: string[] = [];
-
 describe('#841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR', () => {
   it('une session possédée conserve l’erreur d’analyse et celle de fermeture', () => {
     const root = fs.mkdtempSync(path.join(tmpdir(), 'ts7-scene-fermeture-'));
@@ -70,7 +60,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     const close = vi.spyOn(API.prototype, 'close');
     try {
       let erreur: unknown;
-      try { auditSceneFieldEditability(root, undefined, { racine: RACINES.scene }); } catch (e) { erreur = e; }
+      try { auditerLEditabilite(root, undefined, { racine: RACINES.scene }); } catch (e) { erreur = e; }
       expect(erreur).toBeInstanceOf(Error);
       if (!(erreur instanceof Error)) throw erreur;
       expect(erreur.name).toBe('AggregateError');
@@ -87,30 +77,27 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     const session = virtualProgram({});
     const close = vi.spyOn(API.prototype, 'close');
     try {
-      expect(() => auditSceneFieldEditability(VIRTUAL_ROOT, session, { racine: RACINES.scene })).toThrow('src/noyau/monde/scene.ts absent du programme');
+      expect(() => auditerLEditabilite(VIRTUAL_ROOT, session, { racine: RACINES.scene })).toThrow('src/noyau/monde/scene.ts absent du programme');
       expect(close).not.toHaveBeenCalled();
     } finally { close.mockRestore(); session.dispose(); }
   });
-  // scripts/guards/lib/tsProgram.mjs ; src/analyse-retention-guard.test.ts
-  const perimetre = detenteur(() => programmeDuPerimetre(ROOT, Object.values(RACINES)), (session) => session.dispose());
-  /** L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`). */
-  const ecritures = detenteur(() => ecrituresJouees());
-  const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { racine: RACINES.scene, ecrituresJouees: ecritures() }));
-
-  it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 100_000 }, () => {
-    const orphelins = orphanFields(auditReel());
-    // Rendu en TEXTE : l'échec doit NOMMER les champs et leur `fichier:ligne`, pas afficher « …(9) ».
-    const detail = orphelins
-      .map((r) => `${r.id} (${r.at}) — écrivains : ${r.pipeline.join(', ') || 'AUCUN'}`)
-      .join('\n');
-    expect(ids(orphelins).sort(), detail).toEqual([...TROUS_CONNUS].sort());
-  });
+  // CLIQUET DE COMPTE — le mode de panne à fermer est l'EFFONDREMENT SILENCIEUX du périmètre :
+  // 243 champs → 102 sans un seul rouge (mesure #1466 T3-b q24, la frontière par TYPE lâchant sur
+  // tout corps passé en `z.infer`). Aucune refonte de frontière ne ferme ce mode seule.
+  // 239 = mesure du 2026-08-25 (243 de l'étalon, moins les 4 `victoryCondition.edge.*` remappés sur
+  // `ArchitectureEdgeRef.*` par la réutilisation du type — la liste positive du périmètre dérivé les couvre).
+  // 416 = mesure du 2026-11-12 (#3606 M2f1 : `FRONTIERE` retirée, corps des fabriques et annotations de type descendus).
+  // 415 = mesure du 2026-11-12 (#3606 S0 : les compétences de scène DÉSIGNENT, `RefASpecialisation.choix` sort).
+  // 415 = mesure du 2026-11-15 (#4234 : un champ requis à un seul littéral qui ne discrimine aucune union sort par son
+  // type, `CustomStatblock.type` ; `OptionalSwap.note`, discriminant de PRÉSENCE, reste).
+  // L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`).
+  const { perimetre, ecritures, audit: auditReel } = garderLaRacine('scene', ecrituresJouees, { plancher: 415, delai: 100_000 });
 
   it('l’aller-retour partagé crédite tout ce que crédite chaque porteur joué SEUL à ses branches', { timeout: 120_000 }, () => {
     // Un porteur rejoué ne s'ajoute pas à `out` aux empreintes déjà jouées (`ecrituresJouees.testkit.ts`) : une offre ainsi
     // sautée ne doit cacher aucune des offres qu'elle ouvre (`SceneEntity.combat.spells` sous `combat/ajouter`).
     const ligne = (r: { id: string; authors: string[] }) => `${r.id} ← ${r.authors.join(', ')}`;
-    const avecLesSeuls = auditSceneFieldEditability(ROOT, perimetre(), { racine: RACINES.scene, ecrituresJouees: [...ecritures(), ...ecrituresDesPorteursSeuls()] });
+    const avecLesSeuls = auditerLEditabilite(ROOT, perimetre(), { racine: RACINES.scene, ecrituresJouees: [...ecritures(), ...ecrituresDesPorteursSeuls()] });
     expect(avecLesSeuls.map(ligne)).toEqual(auditReel().map(ligne));
   });
 
@@ -139,12 +126,12 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
 
   it('une racine est un argument : le programme partagé porte la carte du monde et le narratif, une racine introuvable lève en se nommant (#4234)', { timeout: 120_000 }, () => {
     for (const racine of [RACINES.carte, RACINES.narratif]) {
-      const scope = sceneScope(perimetre(), ROOT, racine);
+      const scope = perimetreDeLaRacine(perimetre(), ROOT, racine);
       expect(scope.length, `périmètre de \`${racine.type}\``).toBeGreaterThan(0);
       expect(scope.every((e) => e.id.length > 0)).toBe(true);
     }
-    expect(() => sceneScope(perimetre(), ROOT, { ...RACINES.carte, type: 'CarteAbsente' })).toThrow('type `CarteAbsente` introuvable dans src/noyau/worldMap.ts');
-    expect(() => sceneScope(perimetre(), ROOT, { ...RACINES.narratif, fichierType: 'src/noyau/absent.ts' })).toThrow('src/noyau/absent.ts absent du programme');
+    expect(() => perimetreDeLaRacine(perimetre(), ROOT, { ...RACINES.carte, type: 'CarteAbsente' })).toThrow('type `CarteAbsente` introuvable dans src/noyau/worldMap.ts');
+    expect(() => perimetreDeLaRacine(perimetre(), ROOT, { ...RACINES.narratif, fichierType: 'src/noyau/absent.ts' })).toThrow('src/noyau/absent.ts absent du programme');
     expect(() => documentDeclarations(perimetre(), ROOT, { ...RACINES.narratif, schema: 'absentSchema' })).toThrow('`absentSchema` introuvable dans src/data/schemas/defs-scenes/narratif.ts');
   });
 
@@ -161,7 +148,7 @@ export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
     const jouee = (apres: Record<string, unknown>, chemin: (string | number)[], valeur: unknown, saisie: string, avant: Record<string, unknown> = {}) =>
       ({ avant: doc(avant), apres: doc(apres), chemin: ['effectZones', 0, ...chemin], valeur, saisie });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
         jouee({ crossTest: { difficulty: 'x', seuil: { n: 1 } } }, ['crossTest'], { difficulty: 'x', seuil: { n: 1 } }, 'bouton'),
         jouee({ area: { kind: 'disc', radius: 3 } }, ['area', 'radius'], 3, 'saisieNombre'),
         jouee({ perRound: [] }, ['perRound'], [], 'saisieJson'),
@@ -176,6 +163,27 @@ export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
     } finally { program.dispose(); }
   });
 
+  it('un objet ou une liste que le geste n’a pas CHANGÉ ne crédite rien : ajouter une route ne crédite pas la liste d’une route déjà là', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export interface Route { id: string; couvre?: string[] }
+export interface Scene { id: string; routes: Route[] }\n`,
+    });
+    const avant = { id: 's', routes: [{ id: 'a', couvre: ['x'] }] };
+    const apres = { id: 's', routes: [{ id: 'a', couvre: ['x'] }, { id: 'b' }] };
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        { avant, apres, chemin: ['routes'], valeur: apres.routes, saisie: 'bouton' },
+        // La même liste, GRANDIE par le geste, est créditée.
+        { avant: apres, apres: { id: 's', routes: [{ id: 'a', couvre: ['x', 'y'] }, { id: 'b' }] }, chemin: ['routes', 0], valeur: { id: 'a', couvre: ['x', 'y'] }, saisie: 'bouton' },
+      ] });
+      expect(rows.filter((r) => r.authors.length).map((r) => r.id).sort()).toEqual(['Route.couvre', 'Scene.routes']);
+      const seul = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        { avant, apres, chemin: ['routes'], valeur: apres.routes, saisie: 'bouton' },
+      ] });
+      expect(seul.filter((r) => r.authors.length).map((r) => r.id)).toEqual(['Scene.routes']);
+    } finally { program.dispose(); }
+  });
+
   it('le choix d’une VARIANTE ne crédite que son discriminant et les objets qu’il pose : un scalaire du corps neuf attend le contrôle qui l’écrit', () => {
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': `export interface Rect { kind: 'rect'; w: number }
@@ -186,7 +194,7 @@ export interface Scene { id: string; area: Rect | Disc | Libre; autre?: Rect | D
     const doc = (plus: Record<string, unknown> = {}) => ({ id: 's', area: { kind: 'disc', radius: 2 }, ...plus });
     const libre = doc({ area: { kind: 'libre', n: 0 } });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
         // Une variante quittée : son discriminant et chaque champ que la variante pose.
         { avant: doc(), apres: libre, chemin: ['area', 'kind'], valeur: 'libre', saisie: 'saisieChoix', variante: 'kind' },
         { avant: doc(), apres: libre, chemin: ['area', 'n'], valeur: 0, saisie: 'saisieChoix', variante: 'kind' },
@@ -214,7 +222,7 @@ export interface Scene { id: string; parts: Cellule[]; reperes: Repere[]; valeur
       valeurs: [{ repere: 'r', valeur: 'x' }, { repere: 'autre', valeur: 'y' }], v: { kind: 'a', n: 5 }, ...plus,
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
         // L'adresse d'une prose change : le produit rescelle son empreinte.
         { avant: doc(), apres: doc({ parts: [{ kind: 'cellule', row: '2', sum: 'bbbb' }] }), chemin: ['parts', 0, 'row'], valeur: '2', saisie: 'saisieChoix' },
         // Un repère renommé : le produit réécrit chaque valeur qui le désignait.
@@ -246,7 +254,7 @@ export type Scene = (typeof sceneSchema)['sortie'];\n`,
     });
     const doc = (arme: number) => ({ id: 's', arme: { id: arme }, bouclier: { id: 0 }, embleme: { id: 'e' } });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
         { avant: doc(0), apres: doc(1), chemin: ['arme', 'id'], valeur: 1, saisie: 'saisieNombre' },
       ] });
       expect(rows.filter((r) => r.id.endsWith('.id') && r.id !== 'Scene.id').map((r) => [r.id, r.authors])).toEqual([
@@ -265,7 +273,7 @@ export interface Scene { id: string; a: Base; b: Derivee }\n`,
     });
     const doc = (id: string) => ({ id: 's', a: { id: 'a' }, b: { id } });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
         { avant: doc('b'), apres: doc('c'), chemin: ['b', 'id'], valeur: 'c', saisie: 'saisieTexte' },
       ] });
       expect(rows.filter((r) => r.id.endsWith('.id') && r.id !== 'Scene.id').map((r) => [r.id, r.authors])).toEqual([['Base.id', [ALLER_RETOUR]]]);
@@ -310,7 +318,7 @@ export const tracerCalque = () => {
       ...pontQuiEdite({ 'src/noyau/edition/Zonage': ['zoner', 'empiler'], 'src/noyau/edition/Calque': ['tracerCalque'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual([]);
       for (const id of ['SceneEffectZone.id', 'SceneEffectZone.tiles']) {
         expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/noyau/edition/Zonage.ts']);
@@ -320,7 +328,7 @@ export const tracerCalque = () => {
   });
 
   it('le périmètre se dérive du type `Scene` — types imbriqués, unions et littéraux anonymes compris', () => {
-    const scope = sceneScope(perimetre(), ROOT, RACINES.scene);
+    const scope = perimetreDeLaRacine(perimetre(), ROOT, RACINES.scene);
     const all = new Set(ids(scope));
     // Champs qu'un scanner limité aux interfaces atteignables « à la main » manque : ils vivent dans
     // des types que seule la traversée du type `Scene` ramène.
@@ -349,16 +357,6 @@ export const tracerCalque = () => {
     ]) {
       expect(all, `${id} hors du périmètre dérivé`).toContain(id);
     }
-    // CLIQUET DE COMPTE — le mode de panne à fermer est l'EFFONDREMENT SILENCIEUX du périmètre :
-    // 243 champs → 102 sans un seul rouge (mesure #1466 T3-b q24, la frontière par TYPE lâchant sur
-    // tout corps passé en `z.infer`). Aucune refonte de frontière ne ferme ce mode seule.
-    // 239 = mesure du 2026-08-25 (243 de l'étalon, moins les 4 `victoryCondition.edge.*` remappés sur
-    // `ArchitectureEdgeRef.*` par la réutilisation du type — la liste positive ci-dessus les couvre).
-    // 416 = mesure du 2026-11-12 (#3606 M2f1 : `FRONTIERE` retirée, corps des fabriques et annotations de type descendus).
-    // 415 = mesure du 2026-11-12 (#3606 S0 : les compétences de scène DÉSIGNENT, `RefASpecialisation.choix` sort).
-    // 414 = mesure du 2026-11-15 (#4234 : un champ requis à un seul littéral qui ne discrimine aucune union sort par son
-    // type, `CustomStatblock.type` et `OptionalSwap.note`).
-    expect(scope.length, 'périmètre effondré').toBeGreaterThanOrEqual(414);
   });
 
   it('un champ REQUIS à un seul littéral, lu dans son porteur, sort du périmètre, sauf s’il discrimine une union ; deux littéraux ou un littéral optionnel y restent', () => {
@@ -369,10 +367,28 @@ export interface B { kind: 'b'; y: number }
 export interface Scene { id: string; fixe: Fixe<'statblock'>; vrai: true; deux: 'a' | 'b'; option?: true; forme: A | B }\n`,
     });
     try {
-      expect(ids(sceneScope(program, VIRTUAL_ROOT, RACINES.scene)).sort()).toEqual([
+      expect(ids(perimetreDeLaRacine(program, VIRTUAL_ROOT, RACINES.scene)).sort()).toEqual([
         'A.kind', 'A.x', 'B.kind', 'B.y', 'Fixe.n', 'Scene.deux', 'Scene.fixe', 'Scene.forme', 'Scene.id', 'Scene.option',
       ]);
     } finally { program.dispose(); }
+  });
+
+  it('un discriminant reste au périmètre quel que soit l’ordre des chemins qui atteignent son porteur, et un discriminant de PRÉSENCE aussi', () => {
+    const A = `export interface A { kind: 'a'; x: number }
+export interface B { kind: 'b'; y: number }
+export interface Swap { note: 'swap'; n: number }
+export interface Trait { id: string }\n`;
+    for (const scene of [
+      'export interface Scene { id: string; seul: A; forme: A | B; option: Trait | Swap }',
+      'export interface Scene { id: string; forme: A | B; seul: A; option: Trait | Swap }',
+    ]) {
+      const program = virtualProgram({ 'src/noyau/monde/scene.ts': `${A}${scene}\n` });
+      try {
+        expect(ids(perimetreDeLaRacine(program, VIRTUAL_ROOT, RACINES.scene)).sort(), scene).toEqual([
+          'A.kind', 'A.x', 'B.kind', 'B.y', 'Scene.forme', 'Scene.id', 'Scene.option', 'Scene.seul', 'Swap.n', 'Swap.note', 'Trait.id',
+        ]);
+      } finally { program.dispose(); }
+    }
   });
 
   it('le périmètre inclut par IDENTITÉ — une feuille d’un AUTRE module composée par le document y entre, et la marche descend dans le corps d’une fabrique', () => {
@@ -394,7 +410,7 @@ export const sceneSchema = forme({ id: '', cost: moneySchema.sortie, when: condi
 export type Scene = (typeof sceneSchema)['sortie'];\n`,
     });
     try {
-      const all = ids(sceneScope(program, VIRTUAL_ROOT, RACINES.scene));
+      const all = ids(perimetreDeLaRacine(program, VIRTUAL_ROOT, RACINES.scene));
       expect(all, 'les champs déclarés par le shape du document').toEqual(
         expect.arrayContaining(['Scene.id', 'Scene.cost', 'Scene.when'])
       );
@@ -420,7 +436,7 @@ export const murSchema = forme({
 export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc: Vocabulaire }\n`,
     });
     try {
-      const all = ids(sceneScope(program, VIRTUAL_ROOT, RACINES.scene));
+      const all = ids(perimetreDeLaRacine(program, VIRTUAL_ROOT, RACINES.scene));
       expect(all, 'le corps inféré du schéma est dans le périmètre et porte le nom du schéma').toContain(
         'Mur.x'
       );
@@ -487,7 +503,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
-    const scope: { id: string; decl: ts.Declaration }[] = sceneScope(perimetre(), ROOT, RACINES.scene);
+    const scope: { id: string; decl: ts.Declaration }[] = perimetreDeLaRacine(perimetre(), ROOT, RACINES.scene);
     const horsDocument = scope.filter((r) => !DOC.includes(fichier(r)));
     expect(
       horsDocument.map((r) => `${r.id} @ ${fichier(r)}`).sort(),
@@ -591,6 +607,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'OptionalSwap.grant @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.grant.value @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.label @ src/data/schemas/grammaire/reference.ts',
+      'OptionalSwap.note @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.remove @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.size @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.wounds @ src/data/schemas/grammaire/reference.ts',
@@ -737,7 +754,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`;
       ...pontQuiEdite({ 'src/noyau/edition/renommer': ['renommer'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, web, { racine: RACINES.scene });
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, web, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual(['Scene.notes']);
       expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/renommer.ts']);
     } finally { web.dispose(); }
@@ -748,7 +765,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`;
       ...pontQuiEdite({ 'src/noyau/edition/notes': ['saisirNotes'], 'src/noyau/edition/renommer': ['renommer'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, godot, { racine: RACINES.scene });
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, godot, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual([]);
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/edition/notes.ts']);
     } finally { godot.dispose(); }
@@ -765,7 +782,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       ...pontQuiEdite({ 'src/noyau/edition/Editeur': ['renommer'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(rows).sort()).toEqual(['Scene.champFraisSansControle', 'Scene.id']);
       expect(ids(orphanFields(rows))).toEqual(['Scene.champFraisSansControle']);
 
@@ -790,7 +807,7 @@ export const visible = (flags: Record<string, boolean>, gameTime: number) =>
       ...pontQuiEdite({ 'src/noyau/edition/Editeur': ['renommer', 'visible'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
       // …et le témoin positif du même fichier : `id` est bien crédité, la garde n'est pas aveugle.
       expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/Editeur.ts']);
@@ -809,11 +826,11 @@ export const poser = (s: Scene, n: number): Scene => ({ ...s, id: s.id, armure: 
       ...pontQuiEdite({ 'src/noyau/edition/Armure': ['poser'] }),
     });
     try {
-      const scope = sceneScope(program, VIRTUAL_ROOT, RACINES.scene);
+      const scope = perimetreDeLaRacine(program, VIRTUAL_ROOT, RACINES.scene);
       expect(ids(scope).sort()).toEqual(['Scene.armure', 'Scene.armure.droite', 'Scene.armure.gauche', 'Scene.id']);
       const porteur = scope.find((e) => e.id === 'Scene.armure')!.decl;
       expect(scope.find((e) => e.id === 'Scene.armure.gauche')!.decl, 'rattachée à la déclaration du champ porteur').toBe(porteur);
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(rows.find((r) => r.id === 'Scene.armure.gauche')?.authors).toEqual(['src/noyau/edition/Armure.ts']);
       expect(ids(orphanFields(rows)), 'la clé jamais écrite reste orpheline').toEqual(['Scene.armure.droite']);
     } finally { program.dispose(); }
@@ -831,7 +848,7 @@ export const poserMur = (s: Scene, x: number): Scene => ({ ...s, walls: [...s.wa
       ...pontQuiEdite({ 'src/noyau/edition/Inspecteur': ['cocherFenetre', 'poserMur'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual([]);
 
     } finally { program.dispose(); }
@@ -865,7 +882,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'renommer'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
       // Témoins positifs : la primitive APPELÉE crédite, et l'écriture directe de la primitive atteinte aussi.
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
@@ -893,7 +910,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'basculer', 'renommer'] }),
     });
     try {
-      expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual(['Scene.flags']);
+      expect(ids(orphanFields(auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual(['Scene.flags']);
 
     } finally { program.dispose(); }
   });
@@ -917,7 +934,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'renommer'] }),
     });
     try {
-      expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual([]);
+      expect(ids(orphanFields(auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual([]);
 
     } finally { program.dispose(); }
   });
@@ -938,7 +955,7 @@ export function creerPont(s: Scene) {
 }\n`,
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
       expect(ids(orphanFields(rows)).sort()).toEqual(['Scene.flags', 'Scene.id']);
     } finally { program.dispose(); }
@@ -968,7 +985,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'voir', 'renommer'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
       expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
     } finally { program.dispose(); }
@@ -990,7 +1007,7 @@ export const copier = (p: Partie, modele: Partie): Partie => ({ ...p, foot: mode
       ...pontQuiEdite({ 'src/noyau/edition/Poignee': ['redimensionner'], 'src/noyau/edition/Copie': ['copier'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       for (const id of ['Emprise.x', 'Emprise.w']) expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/noyau/edition/Poignee.ts']);
     } finally { program.dispose(); }
   });

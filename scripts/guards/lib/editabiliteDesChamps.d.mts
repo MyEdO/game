@@ -1,5 +1,4 @@
-import type { Declaration, Node, SourceFile } from 'typescript/unstable/ast';
-import type { Checker } from 'typescript/unstable/sync';
+import type { Declaration, Node } from 'typescript/unstable/ast';
 import type { SessionProgramme } from './tsProgram.mjs';
 
 /** Une racine auditée : le schéma d'où part la marche d'identité, le type d'où part le périmètre. */
@@ -8,7 +7,7 @@ export interface Racine { fichierSchema: string; schema: string; fichierType: st
 export const RACINES: { scene: Racine; carte: Racine; narratif: Racine };
 
 /** Un champ du document d'une racine, dérivé de son type. */
-export interface SceneField {
+export interface ChampDuDocument {
   /** Identité stable `Porteur.champ` (`WallSeg.window`, `Scene.rest.auberge`) — un homonyme d'un
    *  autre porteur est une entrée DISTINCTE. */
   id: string;
@@ -43,30 +42,13 @@ export function documentDeclarations(program: SessionProgramme, root: string, ra
 
 /** Le Program du périmètre de cette garde pour les `racines`, bâti à chaque appel : l'appelant le tient et le libère. */
 export function programmeDuPerimetre(root: string, racines: readonly Racine[]): SessionProgramme;
-export function sceneScope(program: SessionProgramme, root: string, racine: Racine): SceneField[];
-/** Clé d'identité d'un champ : sa déclaration, ou `id du porteur#nom` pour une propriété synthétique ou produite par
- *  une fabrique. */
-export function cleDuChamp(champ: SceneField): Declaration | string;
-/** Portées d'exécution atteintes depuis la méthode `editer` du pont Godot par fermeture transitive des appels. */
-export function auteurReachableScopes(checker: Checker, program: SessionProgramme, root: string): Set<Node>;
-export function fieldsWrittenIn(
-  checker: Checker,
-  sourceFile: SourceFile,
-  cles: Map<Declaration | string, string>,
-  fieldNames: Set<string>,
-  creditable?: (node: Node) => boolean
-): Set<string>;
+/** Les champs du document de la `racine`, dérivés de son type (règle C de l'en-tête du module comprise). */
+export function perimetreDeLaRacine(program: SessionProgramme, root: string, racine: Racine): ChampDuDocument[];
 /** Une écriture que l'aller-retour de l'éditeur joue : le document avant et après, le chemin écrit depuis la racine du
  *  document, la valeur jouée, la saisie qui l'a portée et, issue du choix d'une variante, la clé de son discriminant. */
 export interface EcritureJouee { avant: unknown; apres: unknown; chemin: (string | number)[]; valeur: unknown; saisie: string; variante?: string }
 /** La marque d'un crédit par aller-retour dans la colonne `authors`. */
 export const ALLER_RETOUR: string;
-/** Ids de champ du périmètre auxquels la propriété `name` de `type` se rattache. */
-export function idsOf(checker: Checker, cles: Map<Declaration | string, string>, type: unknown, name: string): Set<string>;
-/** Ids de champ du périmètre que le dernier pas de `chemin` écrit dans `doc`, marché sur le type de la racine. */
-export function idsDuChemin(checker: Checker, cles: Map<Declaration | string, string>, typeRacine: unknown, doc: unknown, chemin: readonly (string | number)[]): Set<string>;
-/** Le document a changé au chemin, la valeur relue est la jouée, la saisie n'est pas du JSON. */
-export function ecritureCreditee(e: EcritureJouee): boolean;
 /** `program` absent : bâti pour CET appel (~8 s). `ecrituresJouees` : créditées par aller-retour (`ALLER_RETOUR`). */
-export function auditSceneFieldEditability(root: string, program: SessionProgramme | undefined, options: { racine: Racine; ecrituresJouees?: readonly EcritureJouee[] }): FieldEditability[];
+export function auditerLEditabilite(root: string, program: SessionProgramme | undefined, options: { racine: Racine; ecrituresJouees?: readonly EcritureJouee[] }): FieldEditability[];
 export function orphanFields(rows: FieldEditability[]): FieldEditability[];
