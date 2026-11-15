@@ -1,14 +1,14 @@
 import { useState, useMemo } from 'react';
 import { useGame } from '../state/store';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
-import { placeServices, produitsDuProfil, lieuAUnPlan, serviceIcon, poiIcon, type ResolvedPlaceService, type MapPlace } from '../noyau/worldMap';
+import { produitsDuProfil, lieuAUnPlan, serviceIcon, poiIcon, nomDuPoi, type ResolvedPlaceService, type MapPlace } from '../noyau/worldMap';
 import type { Scene } from '../noyau/monde/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
-import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
-import { restServicePrice, type RestPlaces } from '../noyau/restFlow';
+import { restServicePrice } from '../noyau/restFlow';
 import { findCargoEntryById } from '../engine/cargo';
 import { innGatherInfoMinutes } from '../noyau/innFlow';
+import { servicesDuLieu } from '../noyau/lieuFlow';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
 import { Tabs, type TabItem } from './composites/Tabs';
@@ -54,16 +54,13 @@ function ProfileSynth({ taille, richesse, production }: { taille: number; riches
   );
 }
 
-/** Coquille store-connectée : lit le lieu courant, liste ses services et rend le service sélectionné.
- *  `rest` = offre de couchage À LA POSITION du groupe (`restPlacesHere`) : sert le panneau d'auberge, et
- *  fonde un service « Repos » de repli si le lieu offre un couchage sans auberge déclarée (camp/maison).
- *  `onClose` = fermer le hub (rendu par `CampaignView`). */
+/** Coquille store-connectée : lit le lieu courant, liste ses services (`servicesDuLieu`, la liste du noyau) et rend le
+ *  service sélectionné. `onClose` = fermer le hub (rendu par `CampaignView`). */
 export function CityHubScreen({
-  place, scene, rest, onClose,
+  place, scene, onClose,
 }: {
   place: MapPlace;
   scene?: Scene;
-  rest?: { places: RestPlaces; quality: QualiteDeRepos } | null;
   onClose: () => void;
 }) {
   const party = useGame((s) => s.party);
@@ -78,7 +75,8 @@ export function CityHubScreen({
   const recueillirLesRumeurs = useGame((s) => s.recueillirLesRumeurs);
   const choisir = useGame((s) => s.fenetreChoisir);
 
-  const services = placeServices(place, scene, rest?.places);
+  const lieu = useGame((s) => s.lieu);
+  const services = servicesDuLieu({ lieu, worldMap });
   const [selId, setSelId] = useState<string | null>(services[0]?.id ?? null);
   const sel = services.find((s) => s.id === selId) ?? services[0];
 
@@ -98,12 +96,11 @@ export function CityHubScreen({
   };
 
   /** Panneau de détail d'un SERVICE résolu — source UNIQUE, appelée pour la sélection de l'onglet
-   *  Services ET pour un POI de plan ciblant un `serviceKind` (#345 : zéro copie du renderer). */
+   *  Services ET pour un POI de plan ciblant un `service` (#345 : zéro copie du renderer). */
   const renderServiceDetail = (svc: ResolvedPlaceService | undefined): React.ReactNode => {
     if (!svc) return <p className="city-hub-empty">Ce lieu n’offre encore aucun service.</p>;
-    // `svc.desc` vient TOUJOURS du catalogue `lieux-services.json` (`placeServices`,
-    // `noyau/worldMap.ts:317-348` : `desc: def?.desc`), où `svc.id` EST l'id de l'entrée.
-    const porteurSvc = { type: 'lieux-services', id: svc.id, chemin: 'desc' };
+    // `svc.desc` vient TOUJOURS de l'entrée `svc.kind` du catalogue `lieux-services.json` (`placeServices`).
+    const porteurSvc = { type: 'lieux-services', id: svc.kind, chemin: 'desc' };
     if (svc.category === 'auberge') {
       return (
         <ActivityPane
@@ -115,8 +112,8 @@ export function CityHubScreen({
           porteur={porteurSvc}
           actions={
             <>
-              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => ouvrirLeRepos()}>Dormir</button>}
-              <button type="button" className="btn btn-primary" onClick={recueillirLesRumeurs}>
+              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => ouvrirLeRepos(svc.id)}>Dormir</button>}
+              <button type="button" className="btn btn-primary" onClick={() => recueillirLesRumeurs(svc.id)}>
                 Recueillir des informations (≈{Math.round(innGatherInfoMinutes() / 60)} h)
               </button>
             </>
@@ -239,7 +236,8 @@ export function CityHubScreen({
   // Cartouche du libellé au patron worldmap (`wm-cartouche-bg`/`fg`) mais TOUJOURS visible (pas
   // seulement au survol : un plan de ville dense reste petit, ses POI restent peu nombreux).
   const poiMarkers: MapMarker[] = poi.map((p) => {
-    const w = Math.max(9, p.label.length * 1.3 + 3.4);
+    const nom = nomDuPoi(p, services);
+    const w = Math.max(9, nom.length * 1.3 + 3.4);
     return {
       id: p.id,
       x: p.pos.x,
@@ -260,14 +258,14 @@ export function CityHubScreen({
           </g>
           <g transform="translate(0 4.7)">
             <rect x={-w / 2} y="-2.1" width={w} height="3.4" rx="1.6" fill="var(--wm-cartouche-bg)" opacity="0.9" />
-            <text y="0.25" textAnchor="middle" fontSize="2.3" fontWeight={poiSel?.id === p.id ? 700 : 500} fill="var(--wm-cartouche-fg)">{p.label}</text>
+            <text y="0.25" textAnchor="middle" fontSize="2.3" fontWeight={poiSel?.id === p.id ? 700 : 500} fill="var(--wm-cartouche-fg)">{nom}</text>
           </g>
         </>
       ),
     };
   });
 
-  const poiService = poiSel?.serviceKind;
+  const poiService = poiSel?.service;
   const poiServiceTarget = poiService ? services.find((s) => s.id === poiService.id) : undefined;
   let poiDetail: React.ReactNode;
   if (!poiSel) {

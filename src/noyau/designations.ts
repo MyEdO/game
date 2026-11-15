@@ -7,7 +7,7 @@
  */
 import type { Jeu } from './etat';
 import { portesDuMobile } from './marcheDuGroupe';
-import { entreesDuLieu } from './lieuFlow';
+import { echoppesDuLieu, entreesDuLieu, hebergementsDuLieu } from './lieuFlow';
 import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
 import {
@@ -37,7 +37,7 @@ import { idsDuCoupleMonte } from './targetingModes';
 import { reponsesDuNoeud } from './dialogue';
 import { plaiesDeLOperation } from './acteDeSoin';
 import { seaActivitiesCatalog } from './seaActivities';
-import { catalogEntryOf, echoppesDuLieu, libelleDeLaRepartition } from './merchantFlow';
+import { catalogEntryOf, libelleDeLaRepartition } from './merchantFlow';
 import { bulkCarriers } from './carriers';
 import { offresDeCargaison } from './cargaison';
 import { libelleDuDepot } from './interludeEnVue';
@@ -136,8 +136,10 @@ export type IdDeCompetenceOuDeTalent = string;
 export type IdDEntrainement = string;
 /** Une offre nommée d'une entité de la scène courante (`ActionOfferte.id`, `actionsDe`). */
 export type IdDActionDEntite = string;
-/** Un service à échoppe du lieu où se tient le groupe (`placeServices`, `merchantArchetype`), par son `id`. */
-export type IdDeServiceDuLieu = string;
+/** Une échoppe du lieu où se tient le groupe (`echoppesDuLieu`), par son `id`. */
+export type IdDEchoppeDuLieu = string;
+/** Un établissement d'hébergement du lieu où se tient le groupe (`hebergementsDuLieu`), par son `id`. */
+export type IdDHebergementDuLieu = string;
 /** Une ligne de la table des facteurs environnementaux de la bataille de masse (`mass-battle.json › hazards`). ADE II 08 l.309 */
 export type IdDAleaDeBataille = string;
 /** Une Scène de la situation du Round de la bataille de masse (`MassBattleState.situation`). ADE II 08 l.116 */
@@ -338,7 +340,8 @@ export const DESIGNATIONS = {
   },
   IdDEntrainement: { mot: 'id d’Entraînement', lire: (s) => sansDoublon(lesEntrainements(s).map(cleDEntrainement)), nom: (_s) => (cle) => libelleDEntrainement(parseRefKey(cle)) },
   IdDActionDEntite: { mot: 'id d’offre d’entité', lire: (s) => sansDoublon(ids(lesActionsDEntite(s))), nom: (s) => parLabel(lesActionsDEntite(s)) },
-  IdDeServiceDuLieu: { mot: 'id de service du lieu', lire: (s) => ids(echoppesDuLieu(s)), nom: (s) => parLabel(echoppesDuLieu(s)) },
+  IdDEchoppeDuLieu: { mot: 'id d’échoppe du lieu', lire: (s) => ids(echoppesDuLieu(s)), nom: (s) => parLabel(echoppesDuLieu(s)) },
+  IdDHebergementDuLieu: { mot: 'id d’hébergement du lieu', lire: (s) => ids(hebergementsDuLieu(s)), nom: (s) => parLabel(hebergementsDuLieu(s)) },
   IdDAleaDeBataille: { mot: 'id d’aléa de bataille', lire: () => ids(BATTLE_HAZARDS), nom: (_s) => parLabel(BATTLE_HAZARDS) },
   IdDeSceneDeBataille: { mot: 'id de Scène de bataille', lire: (s) => s.massBattle?.situation ?? [], nom: (_s) => (id) => battleSceneById(id)?.label ?? null },
   IdDePosteDeBataille: { mot: 'id de poste de bataille', lire: (s) => (s.massBattle ? ids(postesDeBataille(s.massBattle)) : []), nom: (_s) => parLabel(ACTIVITIES) },

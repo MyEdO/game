@@ -14,12 +14,20 @@ import { planChrome } from '../PlanChrome';
 import { VB_W, VB_H } from '../worldMapViewport';
 import { Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
-import { type MapPlace, type PlacePoi, resolvePortRef, placeServices, poiIcon } from '../../noyau/worldMap';
-import { marcheNeuf, portNeuf, type PatchDeLieu } from '../../noyau/worldMapEdit';
+import { type MapPlace, type PlacePoi, resolvePortRef, placeServices, poiIcon, nomDuPoi } from '../../noyau/worldMap';
+import {
+  etablissementAjoute,
+  etablissementRetire,
+  marcheNeuf,
+  portNeuf,
+  refusDeRetirerLEtablissement,
+  typesDEtablissement,
+  type PatchDeLieu,
+} from '../../noyau/worldMapEdit';
 import { LAND_RICHESSE_ROWS, VOIE_TERRESTRE, type LandMarketProfile } from '../../engine/landCargo';
 import { VOIE_MARITIME, type PortProfile } from '../../engine/seaVoyage';
 import { CARGO_ENTRIES, isEchangeable, marchandisesDe, type Voie } from '../../engine/cargo';
-import { navalPorts, findNavalPortById, lieuxServices } from '../../data';
+import { navalPorts, findNavalPortById } from '../../data';
 import { IconField, BackdropField, RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
 import { CouvreField } from './CouvreField';
@@ -46,6 +54,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
 }) {
   const [placeTab, setPlaceTab] = useState<'lieu' | 'commerce' | 'plan'>('lieu');
   const [poiSel, setPoiSel] = useState<string | null>(null);
+  const [refusDeRetrait, setRefusDeRetrait] = useState<{ lieu: string; texte: string } | null>(null);
 
   return (
     <>
@@ -84,8 +93,9 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
 
           {/* ── Services du lieu (auberge/temple/forgeron/guilde…, catalogue lieux-services.json #343) ── */}
           <div className="mini-title">Services du lieu</div>
-          {lieuxServices.map((sv) => {
-            const has = (place.services ?? []).some((s) => s.kind.id === sv.id);
+          {typesDEtablissement().map((sv) => {
+            const deCeType = (place.services ?? []).filter((s) => s.kind.id === sv.id);
+            const has = deCeType.length > 0;
             return (
               <label
                 key={sv.id}
@@ -96,15 +106,22 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                   type="checkbox"
                   checked={has}
                   onChange={() => {
-                    const cur = place.services ?? [];
-                    const next = has ? cur.filter((s) => s.kind.id !== sv.id) : [...cur, { kind: { id: sv.id } }];
-                    updPlace(place.id, { services: next.length ? next : undefined });
+                    setRefusDeRetrait(null);
+                    if (!has) return updPlace(place.id, etablissementAjoute(place, sv.id));
+                    const refus = deCeType.map((e) => refusDeRetirerLEtablissement(place, e.id)).find((r) => r !== undefined);
+                    if (refus) return setRefusDeRetrait({ lieu: place.id, texte: refus });
+                    const retire = deCeType.reduce<MapPlace | undefined>((lieu, e) => {
+                      const patch = lieu && etablissementRetire(lieu, e.id);
+                      return patch && { ...lieu, ...patch };
+                    }, place);
+                    if (retire) updPlace(place.id, { services: retire.services });
                   }}
                 />
                 {sv.icon && <Icon id={sv.icon} size="sm" />} {sv.label}
               </label>
             );
           })}
+          {refusDeRetrait?.lieu === place.id && <p className="hint" role="alert">{refusDeRetrait.texte}</p>}
         </>
       )}
       {placeTab === 'commerce' && (
@@ -278,28 +295,30 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
           {(() => {
             const poiList = place.poi ?? [];
             const activePoiId = poiList.some((p) => p.id === poiSel) ? poiSel : null;
-            const updPoi = (id: string, patch: Partial<PlacePoi>) =>
-              updPlace(place.id, { poi: poiList.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
+            const services = placeServices(place);
+            const updPoi = (id: string, f: (x: PlacePoi) => PlacePoi) =>
+              updPlace(place.id, { poi: poiList.map((x) => (x.id === id ? f(x) : x)) });
             return (
               <>
                 {poiList.map((poi) => (
                   <div key={poi.id} className={`wme-poi${activePoiId === poi.id ? ' active' : ''}`}>
-                    <label className="ed-field">Libellé
-                      <input value={poi.label} onChange={(e) => updPoi(poi.id, { label: e.target.value })} />
-                    </label>
-                    <IconField label="Icône" value={poi.icon} onChange={(icon) => updPoi(poi.id, { icon })} />
+                    {poi.sceneId != null && (
+                      <label className="ed-field">Libellé
+                        <input value={poi.label} onChange={(e) => updPoi(poi.id, (x) => (x.sceneId ? { ...x, label: e.target.value } : x))} />
+                      </label>
+                    )}
+                    <IconField label="Icône" value={poi.icon} onChange={(icon) => updPoi(poi.id, (x) => ({ ...x, icon }))} />
                     <label className="ed-field">Cible (scène OU service, exclusif)
                       <select
-                        value={poi.sceneId != null ? 'scene' : poi.serviceKind != null ? 'service' : ''}
+                        value={poi.sceneId != null ? 'scene' : 'service'}
                         onChange={(e) => {
-                          if (e.target.value === 'scene') updPoi(poi.id, { sceneId: { id: scenes[0]?.id ?? '' }, serviceKind: undefined });
-                          else if (e.target.value === 'service') updPoi(poi.id, { serviceKind: { id: lieuxServices[0]?.id ?? '' }, sceneId: undefined });
-                          else updPoi(poi.id, { sceneId: undefined, serviceKind: undefined });
+                          const { id, pos, icon } = poi;
+                          if (e.target.value === 'scene') updPoi(poi.id, (x) => ({ id, pos, icon, label: nomDuPoi(x, services), sceneId: { id: scenes[0]?.id ?? '' } }));
+                          else updPoi(poi.id, () => ({ id, pos, icon, service: { id: services[0]?.id ?? '' } }));
                         }}
                       >
-                        <option value="">— choisir —</option>
                         <option value="scene">Scène du projet</option>
-                        <option value="service">Service (catalogue)</option>
+                        <option value="service">Service du lieu</option>
                       </select>
                     </label>
                     {poi.sceneId != null && (
@@ -309,17 +328,17 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                         getId={(s) => s.id}
                         getLabel={(s) => `${s.label} (${s.id})`}
                         value={poi.sceneId.id}
-                        onChange={(v) => updPoi(poi.id, { sceneId: { id: v } })}
+                        onChange={(v) => updPoi(poi.id, (x) => (x.sceneId ? { ...x, sceneId: { id: v } } : x))}
                       />
                     )}
-                    {poi.serviceKind != null && (
+                    {poi.service != null && (
                       <RefSelect
                         label="Service"
-                        options={lieuxServices}
+                        options={services}
                         getId={(sv) => sv.id}
                         getLabel={(sv) => sv.label}
-                        value={poi.serviceKind.id}
-                        onChange={(v) => updPoi(poi.id, { serviceKind: { id: v } })}
+                        value={poi.service.id}
+                        onChange={(v) => updPoi(poi.id, (x) => (x.service ? { ...x, service: { id: v } } : x))}
                       />
                     )}
                     <div className="bar">
@@ -342,7 +361,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                   className="btn small"
                   onClick={() => {
                     const id = idDEntropie('poi');
-                    const p: PlacePoi = { id, label: 'Nouveau point', pos: { x: 50, y: 50 } };
+                    const p: PlacePoi = { id, label: 'Nouveau point', pos: { x: 50, y: 50 }, sceneId: { id: scenes[0]?.id ?? '' } };
                     updPlace(place.id, { poi: [...poiList, p] });
                     setPoiSel(id);
                   }}
@@ -365,14 +384,14 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                           <circle r="1.5" fill="var(--wm-badge-bg)" stroke="var(--wm-age-spot)" strokeWidth="0.22" />
                           <g style={{ color: 'var(--wm-marker-icon)' }}>
                             {/* Aperçu TRUTHFUL : même résolution d'icône par cible que le hub joueur (#371). */}
-                            <IconG id={poiIcon(poi, placeServices(place))} x={-1.05} y={-1.05} size={2.1} />
+                            <IconG id={poiIcon(poi, services)} x={-1.05} y={-1.05} size={2.1} />
                           </g>
                         </>
                       ),
                     }))}
                     onBackgroundClick={activePoiId ? (p) => {
                       const pos = { x: Math.round((p.x / VB_W) * 100), y: Math.round((p.y / VB_H) * 100) };
-                      updPoi(activePoiId, { pos });
+                      updPoi(activePoiId, (x) => ({ ...x, pos }));
                     } : undefined}
                   />
                   <p className="hint">{activePoiId ? 'Cliquez le plan pour placer le POI sélectionné.' : 'Sélectionnez « Placer sur le plan » sur un POI, puis cliquez ce plan.'}</p>

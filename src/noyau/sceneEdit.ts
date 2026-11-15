@@ -53,7 +53,7 @@ import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
-import type { MapPlace, MapRoute, PlacePoi, WorldMap } from './worldMap';
+import { type MapPlace, type MapRoute, type PlacePoi, type WorldMap } from './worldMap';
 import {
   ajouterLieu,
   ajouterPoi,
@@ -62,6 +62,8 @@ import {
   majCarte,
   majLieu,
   majRoute,
+  etablissementRetire,
+  refusDeRetirerLEtablissement,
   supprimerLieu,
   supprimerRoute,
   type PatchDeCarte,
@@ -1484,6 +1486,13 @@ function embuscadesDeLaRencontre(projet: ProjetDEdition, sceneId: string, id: st
   return routes.length ? tr('ecran.editeur.rencontre.embuscade', { id, routes: routes.join(', ') }) : undefined;
 }
 
+/** Ce qui refuse de retirer l'établissement `element` du lieu `id` de la carte du projet `projet`
+ *  (`refusDeRetirerLEtablissement`) ; `undefined` hors d'un établissement. #4277 */
+function refusDeRetirerLElement(projet: ProjetDEdition, _sceneId: string, id: string, element?: string): string | undefined {
+  const lieu = projet.worldMap?.places.find((p) => p.id === id);
+  return lieu && element !== undefined ? refusDeRetirerLEtablissement(lieu, element) : undefined;
+}
+
 /** Le projet `projet` où la rencontre `de` de la scène `sceneId` prend l'identifiant `vers` (`renameEncounter`), propagé
  *  à l'embuscade de chaque route qui la lance (`routesDeLEmbuscade`). #3606 */
 function rencontreRenommee(projet: ProjetDEdition, sceneId: string, de: string, vers: string): ProjetDEdition {
@@ -1715,7 +1724,8 @@ const ecrituresDesRegistres = tableTotale(Object.keys(CORPS_NEUFS) as RegistreCr
  *  dit (`refusDIdentifierDansLeDialogue`) ; d'une rencontre, sa création
  *  (`addEncounter`), son renommage propagé aux embuscades de route (`rencontreRenommee`), son retrait
  *  (`removeEncounter`), refusé tant qu'une embuscade de route la lance (`embuscadesDeLaRencontre`) ; d'un lieu, son
- *  écriture (`majLieu`), sa création (`lieuCree`) et son retrait, ses routes avec lui (`supprimerLieu`) ; d'une route,
+ *  écriture (`majLieu`), sa création (`lieuCree`) et son retrait, ses routes avec lui (`supprimerLieu`), et celui d'un de
+ *  ses établissements (`etablissementRetire`), refusé tant qu'un point d'intérêt le vise (`refusDeRetirerLElement`) ; d'une route,
  *  son écriture (`routeEcrite`), sa création depuis le lieu
  *  sélectionné vers l'un de ceux qu'il rejoint (`routeCreee`, `lieuxAJoindre`) et son retrait (`supprimerRoute`) ; de la
  *  carte, son écriture (`majCarte`) et son retrait du projet, qui n'offre plus de voyage ; des réglages du projet et du
@@ -1738,6 +1748,11 @@ export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureD
     ecrire: (projet, _sceneId, avant, apres) => ({ ok: true, valeur: surLaCarte(projet, (carte) => majLieu(carte, avant.id, patchEntre(avant, apres))) }),
     creer: lieuCree,
     retirer: (projet, _sceneId, id) => surLaCarte(projet, (carte) => supprimerLieu(carte, id)),
+    retirerElement: (projet, _sceneId, id, element) => surLaCarte(projet, (carte) => {
+      const patch = etablissementRetire(carte.places.find((p) => p.id === id)!, element);
+      return patch ? majLieu(carte, id, patch) : carte;
+    }),
+    refusDeRetirer: refusDeRetirerLElement,
   },
   route: {
     ecrire: routeEcrite,

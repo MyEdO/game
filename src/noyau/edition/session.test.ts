@@ -17,7 +17,7 @@ import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
-import { emptyWorldMap, resolvePortRef, type WorldMap } from '../worldMap';
+import { emptyWorldMap, placeServices, resolvePortRef, type WorldMap } from '../worldMap';
 import {
   avertissementsDeLaSession,
   cadreDeLaSession,
@@ -1257,14 +1257,15 @@ describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses r
     expect(carte(jouer(deux, { geste: 'annuler' })).places.map((p) => p.id)).toEqual(['lieu-0']);
   });
 
-  it('un lieu écrit son libellé, son port neuf et ses services ; son entrée parmi celles de sa scène ; chaque écriture s’annule', () => {
+  it('un lieu écrit son libellé, son port neuf ; son entrée parmi celles de sa scène ; ses établissements ne s’écrivent pas en bloc ; chaque écriture s’annule', () => {
     const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } });
     const ecrit = jouer(s,
       valeur('lieu', 'x', ['label'], 'Ubersreik'),
       valeur('lieu', 'x', ['port'], portNeuf()),
-      valeur('lieu', 'x', ['services'], [{ kind: { id: 'auberge' } }]),
+      { geste: 'ajouterEtablissement', kind: 'auberge' },
       valeur('lieu', 'x', ['entry'], 'quai'));
-    expect(carte(ecrit).places[0]).toEqual({ ...RELIEE.places[0], label: 'Ubersreik', port: portNeuf(), services: [{ kind: { id: 'auberge' } }], entry: 'quai' });
+    expect(carte(ecrit).places[0]).toEqual({ ...RELIEE.places[0], label: 'Ubersreik', port: portNeuf(), services: [{ id: 'auberge', kind: { id: 'auberge' } }], entry: 'quai' });
+    expect(refusDeLaValeur(s, valeur('lieu', 'x', ['services'], [{ id: 'auberge', kind: { id: 'auberge' } }])), 'une seule voie : l’outil dédié').toBe('nonOffert');
     expect(choixDuChamp('lieu', carte(s).places[0], ['entry'], cadreDeLaSession(s))?.map((c) => c.valeur)).toEqual(['porte', 'quai']);
     const ports = choixDuChamp('lieu', carte(s).places[0], ['port'], cadreDeLaSession(s));
     expect([ports?.map((c) => c.valeur), choixDuChamp('lieu', carte(ecrit).places[0], ['port'], cadreDeLaSession(ecrit))]).toEqual([[portNeuf(), ...navalPorts.map((p) => resolvePortRef({ ref: p.id }))], undefined]);
@@ -1408,7 +1409,7 @@ describe('les points d’intérêt d’un lieu, sur le plan du lieu de la carte 
   const CARTE: WorldMap = {
     ...emptyWorldMap('monde'),
     places: [
-      { id: 'x', label: 'X', pos: { x: 60, y: 60 }, scene: { id: 'bourg' }, poi: [{ id: 'forge', label: 'Forge', pos: { x: 20, y: 30 }, serviceKind: { id: 'forgeron' } }] },
+      { id: 'x', label: 'X', pos: { x: 60, y: 60 }, scene: { id: 'bourg' }, poi: [{ id: 'forge', pos: { x: 20, y: 30 }, service: { id: 'forgeron' } }] },
       { id: 'y', label: 'Y', pos: { x: 20, y: 30 }, scene: { id: 'val' } },
     ],
     routes: [],
@@ -1444,7 +1445,33 @@ describe('les points d’intérêt d’un lieu, sur le plan du lieu de la carte 
     const nomme = jouer(pose, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['poi', 1, 'label'], valeur: 'Auberge' });
     expect(poiDe(nomme)?.[1].label).toBe('Auberge');
     expect(refusDeLaValeur(pose, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['poi', 1, 'pos'], valeur: { x: 1, y: 1 } }), 'sa position ne s’écrit qu’au plan').toBe('nonOffert');
-    expect(choixDuChamp('lieu', carte(pose).places[0], ['poi', 1, 'sceneId'], cadreDeLaSession(pose))?.map((c) => c.valeur), 'sa scène parmi celles du projet').toEqual([{ id: 'bourg' }, { id: 'val' }]);
+    expect(refusDeLaValeur(pose, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['poi', 1, 'sceneId'], valeur: { id: 'val' } }), 'sa cible ne s’écrit que par son écrivain').toBe('nonOffert');
+  });
+
+  it('le point désigné vise une scène ou un service résolu du lieu, sur un cran : vers un service, son nom part, il prend celui du service ; vers une scène, il prend le nom de la scène ; une cible absente, c’est sans objet', () => {
+    const s = jouer(surLePlan(), { geste: 'appui', point: pt(20, 30) }, { geste: 'relache', point: pt(20, 30) }, { geste: 'ajouterEtablissement', kind: 'forgeron' });
+    const versLaScene = jouer(s, { geste: 'ciblerPoi', cible: { scene: 'val' } });
+    expect([poiDe(versLaScene)?.[0], versLaScene.historique.passe.length]).toEqual([{ id: 'forge', pos: { x: 20, y: 30 }, label: emptyScene('val', 6, 6).label, sceneId: { id: 'val' } }, s.historique.passe.length + 1]);
+    const versLeService = jouer(versLaScene, { geste: 'ciblerPoi', cible: { service: 'forgeron' } });
+    expect(poiDe(versLeService)?.[0]).toEqual({ id: 'forge', pos: { x: 20, y: 30 }, service: { id: 'forgeron' } });
+    expect([jouer(s, { geste: 'ciblerPoi', cible: { service: 'temple' } }), jouer(s, { geste: 'ciblerPoi', cible: { scene: 'absente' } }), jouer(s, { geste: 'ciblerPoi', cible: { service: 'forgeron' } })]).toEqual([s, s, s]);
+    expect(jouer(surLePlan(), { geste: 'ciblerPoi', cible: { scene: 'val' } }), 'sans point désigné').toEqual(surLePlan());
+  });
+
+  it('un établissement s’ajoute au lieu sélectionné par son type, sous un identifiant dérivé du type et libre au lieu ; son nom s’écrit au formulaire, vidé il reprend celui du catalogue ; il se retire, refusé tant qu’un point d’intérêt le vise', () => {
+    const s = jouer(surLePlan(), { geste: 'ajouterEtablissement', kind: 'auberge' }, { geste: 'ajouterEtablissement', kind: 'auberge' });
+    expect(carte(s).places[0].services).toEqual([{ id: 'auberge', kind: { id: 'auberge' } }, { id: 'auberge-2', kind: { id: 'auberge' } }]);
+    expect([jouer(s, { geste: 'ajouterEtablissement', kind: 'port' }), jouer(s, { geste: 'ajouterEtablissement', kind: 'inconnu' })], 'le port et le marché sont des profils du lieu').toEqual([s, s]);
+    const nomme = jouer(s, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['services', 1, 'label'], valeur: 'Le Cerf blanc' });
+    expect(placeServices(carte(nomme).places[0]).map((sv) => sv.label)).toEqual(['Auberge', 'Le Cerf blanc']);
+    const vide = jouer(nomme, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['services', 1, 'label'] });
+    expect(carte(vide).places[0].services?.[1]).toEqual({ id: 'auberge-2', kind: { id: 'auberge' } });
+    expect(refusDeLaValeur(s, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['services', 1, 'id'], valeur: 'autre' }), 'son identifiant est posé à sa création').toBe('nonOffert');
+    const vise = jouer(s, { geste: 'appui', point: pt(20, 30) }, { geste: 'relache', point: pt(20, 30) }, { geste: 'ciblerPoi', cible: { service: 'auberge-2' } });
+    expect([jouer(vise, { geste: 'supprimer', element: 'auberge-2' }), refusDeRetrait(vise, 'auberge-2')]).toEqual([vise, 'Le point d’intérêt « Auberge » mène à cet établissement : retirez-le ou changez sa cible d’abord.']);
+    const retire = jouer(vise, { geste: 'supprimer', element: 'auberge' });
+    expect([carte(retire).places[0].services, retire.sel]).toEqual([[{ id: 'auberge-2', kind: { id: 'auberge' } }], { type: 'place', id: 'x' }]);
+    expect(carte(jouer(retire, { geste: 'annuler' }))).toEqual(carte(vise));
   });
 
   it('retirer le point d’intérêt désigné l’ôte du lieu sur un cran, la liste vidée retirée ; sans point désigné, c’est sans objet', () => {

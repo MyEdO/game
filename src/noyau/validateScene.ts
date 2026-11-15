@@ -28,7 +28,7 @@ import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combat
 import { nomDEntite, sceneNpc } from './monde/sceneNpc';
 import { refusDesSortsChoisis } from '../engine/sortsDuPnj';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
-import { placeServices, type WorldMap } from './worldMap';
+import { nomDuPoi, placeServices, type WorldMap } from './worldMap';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './monde/seating';
 import { fauteDAppui, type FauteDAppui } from './monde/poseDuDecor';
@@ -192,12 +192,19 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // Scènes visées : leur portée s'ouvre à la racine du projet (`projetSchema`), hors de la carte validée seule.
     for (const p of worldMap.places) {
       if (!sceneIds.has(p.scene.id)) addWm(p.id, `Lieu « ${p.label} » → scène inexistante « ${p.scene.id} »`);
-      // Le schéma juge le service au catalogue ; ici, le LIEU doit le résoudre (`placeServices`, source unique,
-      // `noyau/worldMap.ts`), port et marché AUTOMATIQUES compris, ce que `CityHubScreen` résout à l'affichage (#360).
-      const resolvedServiceIds = new Set(placeServices(p).map((s) => s.id));
+      // Le schéma juge le service au catalogue ou aux établissements du lieu ; ici, le LIEU doit le résoudre
+      // (`placeServices` à la scène du lieu, source unique, `noyau/worldMap.ts`), port, marché et auberge AUTOMATIQUES
+      // compris (#360), chacun sous un id unique (#4277).
+      const resolus = placeServices(p, project.find((sc) => sc.id === p.scene.id));
+      const resolvedServiceIds = new Set<string>();
+      for (const s of resolus) {
+        if (resolvedServiceIds.has(s.id)) addWm(p.id, `Lieu « ${p.label} » → deux services du lieu portent l’identifiant « ${s.id} »`);
+        resolvedServiceIds.add(s.id);
+      }
       for (const poi of p.poi ?? []) {
-        if (poi.sceneId != null && !sceneIds.has(poi.sceneId.id)) addWm(poi.id, `POI « ${poi.label} » → scène inexistante « ${poi.sceneId.id} »`);
-        if (poi.serviceKind != null && !resolvedServiceIds.has(poi.serviceKind.id)) addWm(poi.id, `POI « ${poi.label} » → service absent du lieu « ${poi.serviceKind.id} »`);
+        const nom = nomDuPoi(poi, resolus);
+        if (poi.sceneId != null && !sceneIds.has(poi.sceneId.id)) addWm(poi.id, `POI « ${nom} » → scène inexistante « ${poi.sceneId.id} »`);
+        if (poi.service != null && !resolvedServiceIds.has(poi.service.id)) addWm(poi.id, `POI « ${nom} » → service absent du lieu « ${poi.service.id} »`);
       }
     }
     for (const r of worldMap.routes) {

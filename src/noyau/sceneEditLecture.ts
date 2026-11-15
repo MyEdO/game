@@ -38,7 +38,7 @@ import {
   type Terrain,
 } from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
-import { mapPlaceSchema, mapRouteSchema, placePoiSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
+import { mapPlaceSchema, mapRouteSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { repereDIdentiteSchema, valeurDIdentiteSchema } from '../data/schemas/grammaire/campagne';
 import {
   affaireSchema,
@@ -823,12 +823,16 @@ const champsSauf = (schema: unknown, exclues: readonly string[]): CheminsOfferts
   champsDeclares(schema)!.flatMap(([cle]) => (exclues.includes(cle) ? [] : [[cle]]));
 
 /** Les champs qu'offre le formulaire d'un lieu : chacun de son schéma, hors de son identifiant, de sa position sur la
- *  carte (`pos`, donnée spatiale) et de ses points d'intérêt ; de chacun d'eux, à son rang, chaque champ hors de son
- *  identifiant et de sa position sur le plan. #3606 */
-const CHAMPS_DU_LIEU = champsSauf(mapPlaceSchema, ['id', 'pos', 'poi']);
-const CHAMPS_DU_POI = champsSauf(placePoiSchema, ['id', 'pos']);
-const champsDuLieu = (lieu: MapPlace): CheminsOfferts =>
-  [...CHAMPS_DU_LIEU, ...(lieu.poi ?? []).flatMap((_, i) => CHAMPS_DU_POI.map(([cle]) => ['poi', i, cle]))];
+ *  carte (`pos`, donnée spatiale), de ses établissements et de ses points d'intérêt ; de chacun de ses établissements, à
+ *  son rang, son nom et son repos, son type et son identifiant posés à sa création (`etablissementAjoute`) ; de chacun de
+ *  ses points d'intérêt, à son rang, son icône et, s'il mène à une scène, son nom, sa position posée au plan, sa cible
+ *  par son écrivain (`ciblerPoi`). #3606 #4277 */
+const CHAMPS_DU_LIEU = champsSauf(mapPlaceSchema, ['id', 'pos', 'services', 'poi']);
+const champsDuLieu = (lieu: MapPlace): CheminsOfferts => [
+  ...CHAMPS_DU_LIEU,
+  ...(lieu.services ?? []).flatMap((_, i) => [['services', i, 'label'], ['services', i, 'rest']]),
+  ...(lieu.poi ?? []).flatMap((p, i) => [...(p.sceneId ? [['poi', i, 'label']] : []), ['poi', i, 'icon']]),
+];
 
 /** Les champs qu'offre le formulaire d'une route : chacun de son schéma, hors de son identifiant, de ses extrémités et
  *  de son sens, que pose sa liaison (`lierLieux`). #3606 */
