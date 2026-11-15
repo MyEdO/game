@@ -12,9 +12,9 @@ import { AUTO_SLOT, SAVE_SLOTS, lireLaSauvegarde } from './sauvegardes';
  */
 export interface ZonesDeLAccueil {
   /**
-   * « Jouer », « Reprendre », « Combat », « Atelier » et « Éditeur », dont le `jeu` `{ accueil }` nomme l'entrée que
-   * l'hôte suit (`EntreeDeLAccueil`), puis « Options », dont le `jeu` `{ reglages: true }` ouvre le panneau des
-   * réglages. « Reprendre » est refusé quand aucun emplacement du stockage ne porte de sauvegarde.
+   * « Jouer », « Reprendre », « Jouer en ligne », « Combat », « Atelier » et « Éditeur », dont le `jeu` `{ accueil }`
+   * nomme l'entrée que l'hôte suit (`EntreeDeLAccueil`), puis « Options », dont le `jeu` `{ reglages: true }` ouvre le
+   * panneau des réglages. « Reprendre » est refusé quand aucun emplacement du stockage ne porte de sauvegarde.
    */
   'accueil.gestes': Bouton[];
 }
@@ -22,6 +22,7 @@ export interface ZonesDeLAccueil {
 const LIBELLES = {
   jouer: 'ecran.accueil.jouer',
   reprendre: 'ecran.accueil.reprendre',
+  salon: 'coop.title.local',
   combat: 'ecran.accueil.combat',
   atelier: 'ecran.accueil.atelier',
   editeur: 'ecran.accueil.editeur',

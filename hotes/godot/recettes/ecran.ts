@@ -97,6 +97,8 @@ export interface ReponsesCommunes {
   modeles: unknown;
   /** Les préférences de confort par défaut. */
   preferences: unknown;
+  /** Les zones du salon, sans entrée. */
+  salon: unknown;
 }
 
 /** L'entrée de `morceaux` qui demande à la partie chaque clé du manifeste `monde` (la réponse de `monde`). */
@@ -200,7 +202,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     const reponse = (methode: string, entree: unknown = null): unknown => JSON.parse(pont.appeler(methode, entree === null ? null : JSON.stringify(entree)));
     const communes = (): ReponsesCommunes => {
       const monde = reponse('monde') as MondeDuPont;
-      return { monde, morceaux: reponse('morceaux', toutesLesCles(monde)), modeles, preferences: reponse('preferences') };
+      return { monde, morceaux: reponse('morceaux', toutesLesCles(monde)), modeles, preferences: reponse('preferences'), salon: reponse('salon') };
     };
     const planche = (nom: string, titre: string, s: Suite): Planche => ({
       nom, titre,
@@ -336,7 +338,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   s = voyage.jouer('jouer', s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
   figer(voyage, 'carte-du-monde', 'carte du monde', s);
   const plan = s.vue.zones['fenetre.corps'].find((e): e is Plan => e.type === 'plan')!;
-  s = voyage.jouer('jouer', plan.points.flatMap((p) => p.elements).find((e): e is Choix => e.id === 'r-grandroute')!.valeurs[0].jeu);
+  s = voyage.jouer('jouer', plan.points.flatMap((p) => p.elements).find((e): e is Choix => e.id === 'r-grandroute/jourParJour')!.valeurs[0].jeu);
   figer(voyage, 'voyage-jets', 'voyage : la journée arrêtée aux jets des héros', s);
   for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'recit/issue'); pas++) {
     if (pas > 80) throw new Error(`aucun récit de voyage après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
@@ -410,7 +412,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
     'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],
     'groupe.heros': [], 'fiche.porteur': [], 'fiche.gestes': [], 'fiche.profil': [], 'fiche.sections': [], 'fiche.source': [], 'fiche.objet': [],
-    'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [], 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': [],
+    'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [], 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': [], 'partie.menu': [],
   };
   const atelier = unPont([]);
   s = viderLesFenetres(atelier.jouer, atelier.jouer('demarrer', { scenario: 'marche-equipement', graine: 7 }));

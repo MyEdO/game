@@ -2,8 +2,8 @@
  * LA PARTIE HORS DE SA SCÈNE (#3009), commune aux hôtes du noyau : tant qu'aucune partie n'est en cours
  * (`partieEnCours`), chaque pré-tiré de la donnée en entité, avec le bouton qui le recrute, chaque héros du roster de
  * l'hôte en entité, avec le bouton qui le recrute et celui qui le retire du roster (`{ roster }`), et chaque campagne
- * du jeu (`allBuiltinCampaigns`) en entité, avec le bouton qui la lance (`{ lancer }`) ; à tout moment, le bouton qui
- * ouvre ses sauvegardes (`{ sauvegardes }`) et celui qui quitte la partie (`{ quitter }`). Le noyau juge chaque refus.
+ * du jeu (`allBuiltinCampaigns`) en entité, avec le bouton qui la lance (`{ lancer }`) ; à tout moment, ses gestes
+ * (`partie.gestes`) et le menu qui les offre (`partie.menu`). Le noyau juge chaque refus.
  */
 import { herosDuRosterOfferts, partieEnCours, pretiresOfferts, refusDeLancer, type Jeu as Partie } from '../noyau/index';
 import { t } from '../i18n';
@@ -47,10 +47,14 @@ export interface ZonesDeLaPartie {
   'groupe.campagnes': Entite[];
   /**
    * « Sauvegardes », dont le `jeu` `{ sauvegardes: true }` ouvre le panneau des sauvegardes (méthode `sauvegardes`),
-   * « Options », dont le `jeu` `{ reglages: true }` ouvre le panneau des réglages (méthode `reglages`), puis
+   * « Options », dont le `jeu` `{ reglages: true }` ouvre le panneau des réglages (méthode `reglages`),
+   * « Jouer en ligne », dont le `jeu` `{ salon: true }` ouvre le panneau du salon (méthode `salon`), puis
    * « Quitter la partie », dont le `jeu` `{ quitter: true }` appelle la méthode `quitter`.
    */
   'partie.gestes': Bouton[];
+  /** le menu qui offre les gestes du groupe et de la partie (`groupe.gestes`, `partie.gestes`) : son nom, que dit son
+   *  infobulle, et son icône. */
+  'partie.menu': Entite[];
 }
 
 /** Un bouton d'une carte du groupe à composer. */
@@ -67,12 +71,15 @@ export function zonesDeLaPartie(etat: Pick<Partie, 'battle' | 'party' | 'net' | 
   const gestes: Bouton[] = [
     { type: 'bouton', id: 'sauvegardes', libelle: t('ecran.partie.sauvegardes'), jeu: { sauvegardes: true }, presse: false, focus: false, refus: null },
     { type: 'bouton', id: 'reglages', libelle: t('ecran.partie.reglages'), jeu: { reglages: true }, presse: false, focus: false, refus: null },
+    { type: 'bouton', id: 'salon', libelle: t('coop.title.local'), jeu: { salon: true }, presse: false, focus: false, refus: null },
     { type: 'bouton', id: 'quitter', libelle: t('ecran.partie.quitter'), jeu: { quitter: true }, presse: false, focus: false, refus: null },
   ];
-  if (partieEnCours(etat)) return { 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': gestes };
+  const menu: Entite[] = [{ type: 'entite', id: 'menu', ton: 'neutre', nom: t('ecran.partie.menu'), elements: [{ type: 'icone', id: 'icone', icone: 'interface/reglages' }] }];
+  if (partieEnCours(etat)) return { 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': gestes, 'partie.menu': menu };
   const refus = refusDeLancer(etat);
   return {
     'partie.gestes': gestes,
+    'partie.menu': menu,
     'groupe.pretires': pretiresOfferts(etat).map((p) => carte(`pretire/${p.id}`, p, [bouton(`recruter/${p.id}`, t('ecran.groupe.recruter'), p.recrutement, p.refus)])),
     'groupe.roster': herosDuRosterOfferts(etat, roster.heros).map((h) => carte(`roster/${h.id}`, h, [
       bouton(`recruter/${h.id}`, t('ecran.groupe.recruter'), { roster: { recruter: h.id } }, h.refus),

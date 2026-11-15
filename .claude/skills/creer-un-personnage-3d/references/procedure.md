@@ -241,7 +241,8 @@ revient à l'orchestrateur, qui l'ajoute au kit. Les preuves (rendus, mesures, c
 
 Le kit : `element/tissu.py` pour une pièce skinnée (`Base` : repères d'os, surfaces porteuses, coupes des zones,
 éléments publiés contournés, transfert des clés, découpe par zone ; `anneau`, `Maillage`, `emprunter`, `lisser`,
-`joindre`, `Base.nappe`, `lambeaux` pour un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
+`joindre`, `joindre_les_surfaces`, `direction_spatiale`, `selon` pour une cote par azimut, `Base.nappe`, `lambeaux` pour
+un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
 sections rondes ou elliptiques, boîte, tube, tore…), `element/lame.py` pour une arme à lame et son fourreau (épée,
 dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), de même `element/robe.py` pour une
 robe longue sur le filet `jupe` (robe, bure) et `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
@@ -354,7 +355,7 @@ et son roulis sont ceux du maniement de l'arme dans les clips dérivés (`SECOND
 repos, attaque et marche : poing fermé sur le manche, bras sans torsion. Un rendu Blender des clips montre la main
 gauche ouverte à la cote du clip : seul Godot la ferme et la ramène sur la seconde prise (`seconde_prise.gd`). Le poing
 fermé de la base r24 ne laisse qu'un passage d'environ 7 mm de rayon, et l'origine de la prise `main` est sur la paume :
-centrer le manche au meilleur passage (`AXE_DANS_LA_PRISE` du bâton) et consigner l'écart restant.
+centrer le manche au meilleur passage (`AXE_DANS_LA_PRISE`, `scripts/personnage-3d/base/anatomie.py`) et consigner l'écart restant.
 
 Peau et gant restent distincts. Enveloppe fine, épaisseur bornée par courbure/arêtes, pas de
 gonflement global ; examiner paume, dos, dessous et creux. Pour une prise plate, regarder les deux

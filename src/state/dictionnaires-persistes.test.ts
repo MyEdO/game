@@ -1,6 +1,6 @@
 /** Les dictionnaires du navigateur se relisent VALEUR par valeur contre leur registre (#2404) : une valeur
  *  non conforme est ignorée, son défaut s'applique. */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { loadKeyOverrides } from './keybindingsPrefs';
 import { KEYBINDINGS, effectiveCodes, effectiveMods, surchargeDe } from './clavier/keybindings';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
@@ -9,9 +9,6 @@ const poser = (cle: string, valeur: unknown) => localStorage.setItem(cle, JSON.s
 
 beforeEach(() => {
   poserLeLocalStorage();
-});
-afterEach(() => {
-  delete (globalThis as { localStorage?: Storage }).localStorage;
 });
 
 describe('touches (`wfrp4.keys`)', () => {

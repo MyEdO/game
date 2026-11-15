@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=32 format=3]
+[gd_resource type="Theme" load_steps=27 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 
@@ -13,35 +13,11 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="Cadre_de_fenetre"]
-bg_color = Color(0.11, 0.1, 0.09, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.55, 0.47, 0.33, 1)
-content_margin_left = 12.0
-content_margin_top = 12.0
-content_margin_right = 12.0
-content_margin_bottom = 12.0
-
 [sub_resource type="StyleBoxFlat" id="Fond_du_monde"]
 bg_color = Color(0.086, 0.075, 0.059, 1)
 
 [sub_resource type="StyleBoxFlat" id="Fond_du_paysage"]
 bg_color = Color(0.114, 0.098, 0.075, 1)
-
-[sub_resource type="StyleBoxFlat" id="Cadre_de_la_carte_du_voyage"]
-bg_color = Color(0.114, 0.098, 0.075, 0.94)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.353, 0.306, 0.227, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="Fond_de_puce"]
 bg_color = Color(0.2, 0.18, 0.15, 1)
@@ -89,64 +65,64 @@ content_margin_left = 12.0
 content_margin_top = 5.0
 content_margin_right = 12.0
 content_margin_bottom = 5.0
-bg_color = Color(0.165, 0.137, 0.094, 1)
+bg_color = Color(0.11, 0.075, 0.045, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.29, 0.247, 0.173, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+border_color = Color(0.66, 0.52, 0.25, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
 
 [sub_resource type="StyleBoxFlat" id="Bouton_survol"]
 content_margin_left = 12.0
 content_margin_top = 5.0
 content_margin_right = 12.0
 content_margin_bottom = 5.0
-bg_color = Color(0.208, 0.173, 0.118, 1)
+bg_color = Color(0.15, 0.105, 0.065, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.42, 0.353, 0.227, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+border_color = Color(0.85, 0.7, 0.38, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
 
 [sub_resource type="StyleBoxFlat" id="Bouton_presse"]
 content_margin_left = 12.0
 content_margin_top = 5.0
 content_margin_right = 12.0
 content_margin_bottom = 5.0
-bg_color = Color(0.227, 0.184, 0.11, 1)
+bg_color = Color(0.06, 0.04, 0.025, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.851, 0.706, 0.416, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+border_color = Color(0.36, 0.26, 0.1, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
 
 [sub_resource type="StyleBoxFlat" id="Bouton_refuse"]
 content_margin_left = 12.0
 content_margin_top = 5.0
 content_margin_right = 12.0
 content_margin_bottom = 5.0
-bg_color = Color(0.106, 0.094, 0.075, 1)
+bg_color = Color(0.05, 0.045, 0.04, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.173, 0.149, 0.114, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+border_color = Color(0.42, 0.4, 0.37, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
 
 [sub_resource type="StyleBoxFlat" id="Anneau_reussite"]
 bg_color = Color(0, 0, 0, 0)
@@ -195,22 +171,6 @@ corner_radius_top_left = 999
 corner_radius_top_right = 999
 corner_radius_bottom_right = 999
 corner_radius_bottom_left = 999
-
-[sub_resource type="StyleBoxFlat" id="Cadre_de_portrait"]
-bg_color = Color(0.165, 0.141, 0.11, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.56, 0.46, 0.28, 1)
-content_margin_left = 2.0
-content_margin_top = 2.0
-content_margin_right = 2.0
-content_margin_bottom = 2.0
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="Carte_de_service"]
 content_margin_left = 1.0
@@ -269,17 +229,6 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
-[sub_resource type="StyleBoxFlat" id="Fond_du_recit"]
-content_margin_left = 20.0
-content_margin_top = 14.0
-content_margin_right = 20.0
-content_margin_bottom = 16.0
-bg_color = Color(0.086, 0.075, 0.059, 0.9)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
 [sub_resource type="StyleBoxFlat" id="Fond_du_journal"]
 content_margin_left = 18.0
 content_margin_top = 14.0
@@ -298,22 +247,6 @@ bg_color = Color(0.114, 0.098, 0.075, 1)
 border_width_top = 1
 border_color = Color(0.227, 0.196, 0.149, 1)
 
-[sub_resource type="StyleBoxFlat" id="Parchemin"]
-content_margin_left = 1.0
-content_margin_top = 1.0
-content_margin_right = 1.0
-content_margin_bottom = 1.0
-bg_color = Color(0.831, 0.761, 0.6, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.36, 0.3, 0.2, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
 [sub_resource type="StyleBoxFlat" id="Medaillon"]
 content_margin_left = 6.0
 content_margin_top = 6.0
@@ -331,18 +264,23 @@ corner_radius_bottom_right = 999
 corner_radius_bottom_left = 999
 
 [sub_resource type="StyleBoxFlat" id="Fond_de_vie"]
-bg_color = Color(0.227, 0.196, 0.149, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
+bg_color = Color(0, 0, 0, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.66, 0.52, 0.25, 1)
+anti_aliasing = false
 
 [sub_resource type="StyleBoxFlat" id="Plein_de_vie"]
-bg_color = Color(0.651, 0.212, 0.149, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
+bg_color = Color(0.58, 0.11, 0.08, 1)
+border_width_top = 1
+border_color = Color(0.8, 0.3, 0.22, 1)
+expand_margin_left = -1.0
+expand_margin_top = -1.0
+expand_margin_right = -1.0
+expand_margin_bottom = -1.0
+anti_aliasing = false
 
 [sub_resource type="StyleBoxFlat" id="Bouton_focus"]
 bg_color = Color(0, 0, 0, 0)
@@ -350,11 +288,11 @@ border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.851, 0.706, 0.416, 1)
-corner_radius_top_left = 7
-corner_radius_top_right = 7
-corner_radius_bottom_right = 7
-corner_radius_bottom_left = 7
+border_color = Color(0.85, 0.7, 0.38, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
 draw_center = false
 expand_margin_left = 2.0
 expand_margin_top = 2.0
@@ -409,15 +347,13 @@ Monde/styles/panel = SubResource("Fond_du_monde")
 Paysage/base_type = &"PanelContainer"
 Paysage/styles/panel = SubResource("Fond_du_paysage")
 CarteDuVoyage/base_type = &"PanelContainer"
-CarteDuVoyage/styles/panel = SubResource("Cadre_de_la_carte_du_voyage")
+Cartouche/base_type = &"PanelContainer"
 Fenetre/base_type = &"PanelContainer"
-Fenetre/styles/panel = SubResource("Cadre_de_fenetre")
 Puce/base_type = &"PanelContainer"
 Puce/styles/panel = SubResource("Fond_de_puce")
 TeteDEntite/base_type = &"PanelContainer"
 TeteDEntite/styles/panel = SubResource("Sans_fond")
 Portrait/base_type = &"PanelContainer"
-Portrait/styles/panel = SubResource("Cadre_de_portrait")
 Entite/base_type = &"PanelContainer"
 Entite/styles/panel = SubResource("Sans_fond")
 reussite/base_type = &"Label"
@@ -431,19 +367,17 @@ alerte/colors/font_color = Color(0.95, 0.75, 0.35, 1)
 alerte/styles/panel = SubResource("Anneau_alerte")
 Chiffre/base_type = &"Label"
 Chiffre/font_sizes/font_size = 30
-De/base_type = &"Label"
-De/font_sizes/font_size = 18
 Discret/base_type = &"Label"
 Discret/colors/font_color = Color(0.725, 0.671, 0.573, 1)
 TooltipPanel/styles/panel = SubResource("Fond_de_bulle")
 TooltipLabel/colors/font_color = Color(0.92, 0.88, 0.8, 1)
 ProgressBar/styles/background = SubResource("Fond_de_jauge")
 ProgressBar/styles/fill = SubResource("Plein_de_jauge")
-Button/colors/font_color = Color(0.9, 0.86, 0.78, 1)
-Button/colors/font_hover_color = Color(1, 0.95, 0.85, 1)
-Button/colors/font_pressed_color = Color(1, 0.88, 0.6, 1)
-Button/colors/font_hover_pressed_color = Color(1, 0.9, 0.65, 1)
-Button/colors/font_disabled_color = Color(0.5, 0.47, 0.42, 1)
+Button/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+Button/colors/font_hover_color = Color(0.953, 0.902, 0.784, 1)
+Button/colors/font_pressed_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/font_hover_pressed_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/font_disabled_color = Color(0.42, 0.4, 0.37, 1)
 Button/styles/normal = SubResource("Bouton_repos")
 Button/styles/hover = SubResource("Bouton_survol")
 Button/styles/pressed = SubResource("Bouton_presse")
@@ -451,10 +385,14 @@ Button/styles/hover_pressed = SubResource("Bouton_presse")
 Button/styles/disabled = SubResource("Bouton_refuse")
 Button/styles/focus = SubResource("Bouton_focus")
 Button/colors/font_focus_color = Color(0.953, 0.902, 0.784, 1)
+Dessin/colors/chene_clair = Color(0.15, 0.105, 0.065, 1)
+Dessin/colors/chene_sombre = Color(0.06, 0.04, 0.025, 1)
 CarteDeService/base_type = &"PanelContainer"
 CarteDeService/styles/panel = SubResource("Carte_de_service")
 Vignette/base_type = &"PanelContainer"
 Vignette/styles/panel = SubResource("Masque_de_vignette")
+MargesDuReste/base_type = &"MarginContainer"
+MargesDuReste/constants/margin_right = 40
 MargesDeCarte/base_type = &"MarginContainer"
 MargesDeCarte/constants/margin_left = 14
 MargesDeCarte/constants/margin_top = 12
@@ -465,13 +403,11 @@ RangeeDeTrajet/styles/panel = SubResource("Rangee_de_trajet")
 CarteDeHeros/base_type = &"PanelContainer"
 CarteDeHeros/styles/panel = SubResource("Carte_de_heros")
 Recit/base_type = &"PanelContainer"
-Recit/styles/panel = SubResource("Fond_du_recit")
 Journal/base_type = &"PanelContainer"
 Journal/styles/panel = SubResource("Fond_du_journal")
 Pied/base_type = &"PanelContainer"
 Pied/styles/panel = SubResource("Fond_du_pied")
 Parchemin/base_type = &"PanelContainer"
-Parchemin/styles/panel = SubResource("Parchemin")
 Medaillon/base_type = &"PanelContainer"
 Medaillon/styles/panel = SubResource("Medaillon")
 Vie/base_type = &"ProgressBar"
@@ -488,20 +424,52 @@ Dessin/colors/parchment = Color(0.871, 0.796, 0.616, 1)
 Dessin/colors/gold = Color(0.722, 0.569, 0.184, 1)
 Dessin/colors/gold2 = Color(0.847, 0.725, 0.329, 1)
 Dessin/colors/accent = Color(0.486, 0.114, 0.071, 1)
+Dessin/colors/chene = Color(0.11, 0.075, 0.045, 1)
+Dessin/colors/fer = Color(0.16, 0.155, 0.15, 1)
+Dessin/colors/fer_clair = Color(0.42, 0.4, 0.37, 1)
+Dessin/colors/fer_sombre = Color(0.05, 0.045, 0.04, 1)
+Dessin/colors/laiton_clair = Color(0.85, 0.7, 0.38, 1)
+Dessin/colors/laiton = Color(0.66, 0.52, 0.25, 1)
+Dessin/colors/laiton_sombre = Color(0.36, 0.26, 0.1, 1)
+Dessin/colors/roussi = Color(0.42, 0.24, 0.08, 1)
+Dessin/colors/cire = Color(0.58, 0.11, 0.08, 1)
+Dessin/colors/cire_claire = Color(0.8, 0.3, 0.22, 1)
+Dessin/colors/cire_sombre = Color(0.3, 0.05, 0.035, 1)
 Dessin/colors/ciel_aube_haut = Color(0.173, 0.208, 0.322, 1)
 Dessin/colors/ciel_aube_bas = Color(0.69, 0.478, 0.361, 1)
-Dessin/colors/ciel_jour_haut = Color(0.2, 0.282, 0.369, 1)
-Dessin/colors/ciel_jour_bas = Color(0.518, 0.592, 0.627, 1)
+Dessin/colors/ciel_jour_haut = Color(0.231, 0.431, 0.698, 1)
+Dessin/colors/ciel_jour_bas = Color(0.529, 0.706, 0.871, 1)
 Dessin/colors/ciel_soir_haut = Color(0.165, 0.173, 0.267, 1)
 Dessin/colors/ciel_soir_bas = Color(0.416, 0.333, 0.376, 1)
 Dessin/colors/ciel_nuit_haut = Color(0.063, 0.071, 0.11, 1)
 Dessin/colors/ciel_nuit_bas = Color(0.169, 0.188, 0.282, 1)
 Dessin/colors/colline_loin = Color(0.29, 0.365, 0.322, 1)
 Dessin/colors/colline = Color(0.231, 0.29, 0.196, 1)
-Dessin/colors/pre = Color(0.184, 0.231, 0.149, 1)
 Dessin/colors/route = Color(0.478, 0.384, 0.22, 1)
 Dessin/colors/eau = Color(0.204, 0.337, 0.42, 1)
 Dessin/colors/sapin = Color(0.141, 0.2, 0.165, 1)
+Dessin/colors/ciel_aube_horizon = Color(0.95, 0.78, 0.55, 1)
+Dessin/colors/ciel_jour_horizon = Color(0.93, 0.91, 0.82, 1)
+Dessin/colors/ciel_soir_horizon = Color(0.94, 0.72, 0.48, 1)
+Dessin/colors/ciel_nuit_horizon = Color(0.24, 0.25, 0.34, 1)
+Dessin/colors/astre = Color(1, 0.945, 0.79, 1)
+Dessin/colors/astre_halo = Color(0.94, 0.627, 0.376, 1)
+Dessin/colors/lune = Color(0.875, 0.89, 0.95, 1)
+Dessin/colors/nuage = Color(0.165, 0.185, 0.29, 1)
+Dessin/colors/montagne = Color(0.62, 0.52, 0.6, 1)
+Dessin/colors/crete = Color(0.24, 0.227, 0.298, 1)
+Dessin/colors/lisiere = Color(0.129, 0.122, 0.169, 1)
+Dessin/colors/talus = Color(0.11, 0.102, 0.106, 1)
+Dessin/colors/brume_aube = Color(0.9, 0.72, 0.56, 1)
+Dessin/colors/brume_jour = Color(0.84, 0.89, 0.93, 1)
+Dessin/colors/brume_soir = Color(0.72, 0.55, 0.49, 1)
+Dessin/colors/brume_nuit = Color(0.1, 0.12, 0.2, 1)
+Dessin/colors/nuage_jour = Color(0.86, 0.89, 0.93, 1)
+Dessin/colors/montagne_jour = Color(0.55, 0.64, 0.78, 1)
+Dessin/colors/colline_jour = Color(0.4, 0.53, 0.26, 1)
+Dessin/colors/feuillu = Color(0.47, 0.6, 0.27, 1)
+Dessin/colors/herbe = Color(0.36, 0.48, 0.2, 1)
+Dessin/colors/sous_bois = Color(0.08, 0.13, 0.07, 1)
 PileTassee/base_type = &"VBoxContainer"
 PileTassee/constants/separation = 5
 RangeeDeCarte/base_type = &"HBoxContainer"

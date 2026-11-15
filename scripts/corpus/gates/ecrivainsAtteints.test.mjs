@@ -485,6 +485,9 @@ const ATTENDU = {
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
+    // +1 le 2026-11-13 (#3412) : le banc du séquenceur de vite.config.ts pose ses fixtures sous un `mkdtempSync`
+    // d'os.tmpdir(), `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/partition.test.mjs',
     // +1 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
     // qu'atteint `perimetre.mjs` (mesures de la machine, par sa seule CLI) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
     // dans les bancs — l'arbre n'est jamais écrit.
@@ -886,9 +889,10 @@ const ATTENDU = {
   'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
   'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
   'godot:rendus': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
-  // #3945, ECRIT_LU (`scripts/gates/toutes.mjs`) : le lot écrit le journal de chaque jeu sous `dist/godot-recettes/`,
-  // et lance `recette.mjs --natif` en sous-processus, dont `piloter` (`construire.mjs`) dépose les GLB (`ecritFerme`).
-  'godot:recette': ['hotes/godot/lot-de-recettes.mjs'],
+  // #3945, #3412, ECRIT_LU (`scripts/gates/toutes.mjs`) : le lot écrit le journal de chaque jeu sous `dist/godot-recettes/`,
+  // lit `jeuxPilotesDeFront` de `construire.mjs`, et lance `recette.mjs --natif` en sous-processus, dont `piloter`
+  // (`construire.mjs`) dépose les GLB (`ecritFerme`).
+  'godot:recette': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/lot-de-recettes.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
   // #3145, ECRIT_LU (`scripts/gates/toutes.mjs`) : `environnement.mjs` écrit le venv et son témoin sous
   // `~/.cache/wfrp-personnage-3d/`, hors de l'arbre.
   'personnage-3d:tests': ['scripts/personnage-3d/environnement.mjs'],

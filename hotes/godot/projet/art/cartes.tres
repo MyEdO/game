@@ -1,4 +1,16 @@
-[gd_resource type="Theme" format=3]
+[gd_resource type="Theme" load_steps=6 format=3]
+
+[ext_resource type="StyleBox" path="res://art/cadre_de_fenetre.tres" id="1_fenetre"]
+[ext_resource type="StyleBox" path="res://art/bouton_repos.tres" id="b_repos"]
+[ext_resource type="StyleBox" path="res://art/bouton_survol.tres" id="b_survol"]
+[ext_resource type="StyleBox" path="res://art/bouton_presse.tres" id="b_presse"]
+[ext_resource type="StyleBox" path="res://art/bouton_ferme.tres" id="b_ferme"]
 
 [resource]
+Button/styles/normal = ExtResource("b_repos")
+Button/styles/hover = ExtResource("b_survol")
+Button/styles/pressed = ExtResource("b_presse")
+Button/styles/hover_pressed = ExtResource("b_presse")
+Button/styles/disabled = ExtResource("b_ferme")
+Fenetre/styles/panel = ExtResource("1_fenetre")
 HFlowContainer/constants/h_separation = 32

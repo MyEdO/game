@@ -314,13 +314,14 @@ func _publier_l_ecran() -> void:
 	_publication.demander()
 
 
-## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), ses champs de texte
+## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), l'emprise de ses panneaux
+## (`PontDuNoyau.panneaux_a_l_ecran`), ses champs de texte
 ## (`PontDuNoyau.saisies_a_l_ecran`), le défilement de son panneau (`PontDuNoyau.defilement_publie`), le point de
 ## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones, sa surcouche, le nombre d'arêtes posées
 ## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue, et le cadre du plan montré
 ## (`_cadre_du_plan`).
 func _ecran_publie() -> Dictionary:
-	return {boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), panneau = PontDuNoyau.defilement_publie(_defilement), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.volume.ce_qui_est_pose().aretes, noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose(), plan = _cadre_du_plan()}}
+	return {boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), panneaux = PontDuNoyau.panneaux_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), panneau = PontDuNoyau.defilement_publie(_defilement), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.volume.ce_qui_est_pose().aretes, noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose(), plan = _cadre_du_plan()}}
 
 
 ## Le cadre 0..1 du plan montré à l'écran (`Plan.cadre`), `{ x, y, largeur, hauteur }`, `null` sans plan montré.

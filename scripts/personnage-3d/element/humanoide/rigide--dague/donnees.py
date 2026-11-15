@@ -9,9 +9,6 @@ environ 530 px/m.
 
 Repère de la prise `main` de la base (`element/lame.py`). Mètres.
 """
-import runpy
-from pathlib import Path
-
 MANIFESTE = {
     'categorie': 'rigide',
     'cle': {'apparence': 'dague'},
@@ -26,8 +23,6 @@ MATERIAUX = {
 
 BUDGET_TRIANGLES = 1200          # procédure du skill, section 7 : rigide tenu
 
-AXE_DANS_LA_PRISE = runpy.run_path(str(Path(__file__).parent.parent / 'rigide--baton' / 'donnees.py'))['AXE_DANS_LA_PRISE']
-"""Le passage libre du poing fermé de la base, mesuré pour le bâton : la fusée y passe comme le fût."""
 
 FUSEE = {'longueur': 0.09, 'rayon': 0.011, 'segments': 8}
 """Illustration : environ 45 px de la garde au pommeau, en partie cachée par la liasse ; 9 cm, une pleine main."""

@@ -29,7 +29,7 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     symptôme de maladie, un `{ window: … }` de condition temporelle ou un `{ flags }` passé en
 //     lecture à un contexte d'évaluation ne créditent rien : leur type porteur n'est pas celui du
 //     document de scène.
-//  3. CRÉDIT RATTACHÉ À UN APPELANT. Une primitive d'édition (`BRIDGE_PATH`) ne crédite que
+//  3. CRÉDIT RATTACHÉ À UN APPELANT. Une primitive d'édition (`AUTHOR_PATH`) ne crédite que
 //     si sa fonction porteuse est ATTEINTE depuis la méthode `editer` du pont
 //     Godot (`ENTREE_GODOT`) par une chaîne d'appels résolue au TypeChecker
 //     (`auteurReachableScopes`). L'EXISTENCE d'un écrivain ne prouve rien : une primitive
@@ -83,9 +83,9 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     LITTÉRALE crédite ce champ du type de `o` (`ecrituresParCle`) ;
 //   - une écriture par index/clé dynamique hors de ce helper (`obj[k] = v`, `Object.entries(...).forEach`), que seul
 //     l'aller-retour joué crédite ;
-//   - une écriture depuis un fichier hors `BRIDGE_PATH`/`PIPELINE_PATH` : les scripts `.mjs` de
+//   - une écriture depuis un fichier hors `AUTHOR_PATH`/`PIPELINE_PATH` : les scripts `.mjs` de
 //     `scripts/`, non typés par le `tsconfig`, et l'interface web n'alimentent AUCUNE colonne.
-//   - une écriture de `BRIDGE_PATH` appelée INDIRECTEMENT (table de dispatch, callback, `obj[k]()`) :
+//   - une écriture d'`AUTHOR_PATH` appelée INDIRECTEMENT (table de dispatch, callback, `obj[k]()`) :
 //     la fermeture d'appels de `auteurReachableScopes` déclare ses propres angles morts, à lire là-bas.
 // Un littéral qui traverse le paramètre de type `U` d'un `Array.prototype.map` perd sa freshness, ce qui prive
 // `getContextualType` de tout rattachement (`SceneEffectZone.tiles` ← `src/noyau/mapSpec.ts`) : `positionTypes` le
@@ -120,7 +120,7 @@ const ENTREE_GODOT = { fichier: `${PONT}/pont.ts`, methode: 'editer' };
  *  chaîne d'appels partant d'`ENTREE_GODOT`. Une définition, fût-elle exportée, testée et ré-exportée par l'éditeur, ne
  *  crédite rien : `Scene.flags` ← `setSceneFlags`, exportée, testée et appelée par AUCUN geste d'édition, est
  *  précisément le défaut de #841 — le travail s'arrête à la porte de l'éditeur. */
-const BRIDGE_PATH = [
+const AUTHOR_PATH = [
   sous(PONT),
   sous(DOSSIER_HOTE),
   (rel) => path.posix.dirname(norm(rel)) === dossierDe('noyau') && /Edit[^/]*\.ts$/.test(rel),
@@ -136,7 +136,7 @@ const BRIDGE_PATH = [
 const PIPELINE_PATH = [(rel) => norm(rel) === `${dossierDe('noyau')}/mapSpec.ts`, sous(dossierDe('scenes'))];
 
 const isPipelinePath = (rel) => PIPELINE_PATH.some((dans) => dans(rel));
-const isAuthorPath = (rel) => BRIDGE_PATH.some((dans) => dans(rel));
+const isAuthorPath = (rel) => AUTHOR_PATH.some((dans) => dans(rel));
 const isTestFile = (rel) => estFichierVitest(rel) || estKitDeTest(rel);
 
 /** Les RACINES auditées (#4234) : le schéma d'où part la marche d'IDENTITÉ (`fichierSchema`, `schema`) et le type d'où
@@ -565,7 +565,7 @@ function writtenNames(checker, prop) {
  * champ dans le document : les mappings (`Partial<WallSeg>`, `Pick`, accès indexé) sont donc suivis,
  * les homonymes d'autres types écartés.
  * `creditable(node)` filtre les sites d'écriture retenus — c'est par lui que passe l'exigence
- * d'ATTEIGNABILITÉ depuis un chemin d'auteur pour les fichiers de `BRIDGE_PATH`.
+ * d'ATTEIGNABILITÉ depuis `ENTREE_GODOT` pour les fichiers d'`AUTHOR_PATH`.
  * @returns {Set<string>} ids de champ (`Porteur.champ`)
  */
 function fieldsWrittenIn(checker, sourceFile, cles, fieldNames, creditable = () => true) {
@@ -817,13 +817,13 @@ function calleeDeclarations(checker, call) {
 
 /**
  * Portées d'exécution ATTEIGNABLES par l'auteur, par fermeture transitive des appels depuis une racine : l'éditeur
- * Godot (`ENTREE_GODOT`, la seule méthode `editer` du pont). Le crédit d'un fichier de `BRIDGE_PATH` en dépend : une
+ * Godot (`ENTREE_GODOT`, la seule méthode `editer` du pont). Le crédit d'un fichier d'`AUTHOR_PATH` en dépend : une
  * primitive que personne n'appelle n'est pas un chemin d'édition, c'est une définition.
  *
  * CE QUE CETTE FERMETURE NE VOIT PAS — donc autant de sources d'orphelins RAPPORTÉS à tort :
  *   - un appel INDIRECT (primitive rangée dans une table de dispatch, passée en callback, atteinte
  *     par `obj[k]()`) : aucun `CallExpression` ne nomme sa cible, aucune arête n'est bâtie ;
- *   - un appel depuis un fichier hors `BRIDGE_PATH` (moteur, store) que l'éditeur déclencherait ;
+ *   - un appel depuis un fichier hors `AUTHOR_PATH` (moteur) que l'éditeur déclencherait ;
  *   - à l'inverse elle SUR-crédite : un callback jamais rappelé compte pour sa porteuse. La frontière mesurée est
  *     celle de la méthode `editer` : tout ce qu'elle appelle, l'essai de la scène compris.
  * Un pont présent au programme sans sa méthode `editer` lève : la racine Godot ne se perd pas en silence.

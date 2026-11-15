@@ -16,14 +16,7 @@ import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
-from tissu import Maillage, direction, emprunter, enveloppe_convexe, lambeaux, lisser, porteur_de, rayon_a_l_enveloppe, voisinage
-
-
-def joindre_les_surfaces(morceaux):
-    """Positions, triangles et poids de morceaux (positions, triangles, poids) joints."""
-    decalages = np.cumsum([0] + [len(p) for p, _, _ in morceaux[:-1]])
-    return (np.concatenate([p for p, _, _ in morceaux]), np.concatenate([t + k for (_, t, _), k in zip(morceaux, decalages)]),
-            np.concatenate([w for _, _, w in morceaux]))
+from tissu import Maillage, direction, emprunter, enveloppe_convexe, joindre_les_surfaces, lambeaux, lisser, porteur_de, rayon_a_l_enveloppe, voisinage
 
 
 def aretes(T):

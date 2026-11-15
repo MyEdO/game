@@ -3,7 +3,7 @@
 ## disposition qu'elle nomme. Chaque zone de la scène lit une source de la vue et chaque source a sa zone, hors des
 ## zones d'un panneau que la disposition cache (le journal sous une scène qui le tient, `Disposition.journal`) ; chaque
 ## élément a son composant, dans l'ordre de la zone qui le range, et aucun ne reste sans zone ; chaque texte qu'il dit
-## (`DITS`) se lit à l'écran, ou au survol de son contrôle ; chaque geste pressé joue l'intention que l'élément porte,
+## (`DITS`) se lit à l'écran, au survol de son contrôle ou au menu de la partie ouvert ; chaque geste pressé joue l'intention que l'élément porte,
 ## un formulaire celle que la vue attend, un curseur glissé ou réglé par sa boîte à nombre sa valeur (#4081) ; le geste
 ## en focus le prend. Remontrée, une vue garde ses nœuds et ne joue rien (sa pose remet chaque curseur) ; vidée, une
 ## zone les quitte et la fenêtre se cache, le journal garde ses lignes. Chaque disposition dédiée (`res://ecrans/`) est
@@ -64,9 +64,13 @@ func _disposer(ecran: Node, disposition: Variant) -> Array[Zone]:
 	_journal = posee.journal
 	var zones := Zone.racines(ecran)
 	for zone in zones:
-		if zone.geste.get_connections().is_empty():
-			zone.geste.connect(func(jeu: Dictionary) -> void: _joues.append(jeu))
+		if not zone.geste.is_connected(_noter):
+			zone.geste.connect(_noter)
 	return zones
+
+
+func _noter(jeu: Dictionary) -> void:
+	_joues.append(jeu)
 
 
 ## Les scènes de disposition dédiées sous `dossier`, hors de la générique.
@@ -161,11 +165,12 @@ func _textes(noeud: Node) -> Array:
 	return textes
 
 
-## Visible, ou dans un onglet que son `TabContainer` ne montre pas : il se lit en choisissant son onglet.
+## Visible, ou dans un onglet que son `TabContainer` ne montre pas, ou dans le menu de la partie fermé : il se lit en
+## choisissant son onglet, en ouvrant le menu.
 func _lisible(n: Control) -> bool:
 	var c: Node = n
 	while c is Control:
-		if not (c as Control).visible and not c.get_parent() is TabContainer:
+		if not (c as Control).visible and not c.get_parent() is TabContainer and not c.get_parent() is MenuDeLaPartie:
 			return false
 		c = c.get_parent()
 	return true

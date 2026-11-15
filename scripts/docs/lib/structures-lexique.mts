@@ -306,6 +306,8 @@ export const CONCEPTS: readonly Concept[] = [
     signatures: [
       { sig: 'id', statut: 'cible' },
       { sig: 'id,spec', statut: 'cible' },
+      { sig: 'id,qualityChoice', statut: 'cible', note: 'objet doté dont les Atouts sont au choix : `qualityChoice` porte sa classe de qualité (`classeDeQualiteSchema`, #4110)' },
+      { sig: 'id,qualityChoice,spec', statut: 'cible', note: 'idem, avec sa précision' },
       { sig: 'choix,id', statut: 'cible', note: 'choix borné / libre (DESIGN v2 S2)' },
       { sig: 'id,type', statut: 'cible', note: 'référence polymorphe : le `type` nomme l’espace où l’`id` résout (`refTypee`, foyer de règle #2820)' },
       { sig: 'count,id,type', statut: 'cible' },
@@ -335,7 +337,6 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'count,id', statut: 'historique' },
       { sig: 'count,text', statut: 'historique' },
       { sig: 'id,times', statut: 'historique' },
-      { sig: 'id,qualityChoice', statut: 'historique' },
       { sig: 'ref', statut: 'historique', note: 'ref emboîtée {ref:{id,spec}} ou id nu sous `ref`' },
       { sig: 'wildcard', statut: 'historique' },
       { sig: 'specOptions,wildcard', statut: 'historique' },

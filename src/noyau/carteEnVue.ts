@@ -1,7 +1,7 @@
 /**
  * LA CARTE DU MONDE EN VUE (#3328) — ce qu'un hôte montre de la carte qui tient la main : son plan, et sous chaque
  * lieu chaque trajet que la carte trace jusqu'à lui depuis le lieu du groupe (`routesCliquables`), sa longueur et chacun de ses modes
- * de voyage, écrit en verbe du noyau (`partirEnVoyage`) avec ce qui le ferme maintenant (`refusDeDepart`) et la durée que
+ * de voyage, par cadence là où elle a un effet (`cadenceAUnEffet`), écrit en verbe du noyau (`partirEnVoyage`) avec ce qui le ferme maintenant (`refusDeDepart`) et la durée que
  * son devis prévoit (`devisDeTrajet`) ; un voyage interrompu se reprend (`reprendreLeVoyage`). Lecteur PUR, lu par les hôtes
  * du noyau (`hote/ecran.ts`).
  */
@@ -15,14 +15,19 @@ import { routeDistanceLabel, travelModeLabels, type TravelMode } from '../engine
 import { rule } from '../engine/policy';
 import { fenetreDuJeu } from './combatAuto';
 import { garanti } from '../lib/garanti';
+import { CADENCES_AU_CHOIX, cadenceAUnEffet, type VoyageCadence } from './voyageCadence';
 
 /** Un mode de voyage d'un trajet : son nom, le verbe qui part (`geste`), pourquoi il ne part pas maintenant (`refus`,
  *  `null` s'il part) et les jours de route que son devis prévoit (`null` : aucun plan, en mer). */
 export interface ModeDuTrajet { mode: TravelMode; libelle: string; geste: GesteDuNoyau; refus: string | null; jours: number | null }
 
+/** Les départs d'un trajet sous une cadence (`null` : là où elle n'a aucun effet, aucune n'est offerte) : chacun de
+ *  ses modes, son geste parti sous elle. */
+export interface DepartDuTrajet { cadence: VoyageCadence | null; modes: ModeDuTrajet[] }
+
 /** Un trajet depuis le lieu du groupe : sa route, sa destination (`destination`, son id ; `vers`, son nom), sa
- *  longueur dite, et ses modes. */
-export interface TrajetEnVue { route: string; destination: string; vers: string; distance: string; modes: ModeDuTrajet[] }
+ *  longueur dite, et ses départs, un par cadence offerte, celle de `DEFAULT_VOYAGE_ORDERS` en premier. */
+export interface TrajetEnVue { route: string; destination: string; vers: string; distance: string; departs: DepartDuTrajet[] }
 
 /** Un lieu sur le plan : son nom, sa position dans le cadre de la carte (0..1 sur chaque axe), s'il est celui où se
  *  tient le groupe, et chaque trajet qui y mène depuis lui. */
@@ -45,22 +50,28 @@ function modesDuTrajet(s: Jeu, modes: readonly TravelMode[]): TravelMode[] {
   return [...modes, ...(enSelle ? ['monture'] : [])];
 }
 
-/** Chaque trajet que la carte trace depuis le lieu `ici` (`routesCliquables`) et ses modes. PUR. */
+/** Chaque trajet que la carte trace depuis le lieu `ici` (`routesCliquables`) et ses départs. PUR. */
 export function trajetsDepuis(s: Jeu, map: WorldMap, ici: MapPlace): TrajetEnVue[] {
   const libelles = travelModeLabels();
-  return routesCliquables(map, ici.id, condCtx(() => s)).map(({ route }): TrajetEnVue => ({
-    route: route.id,
-    destination: otherEnd(route, ici.id),
-    vers: garanti(placeById(map, otherEnd(route, ici.id)), route.id, 'destination du trajet').label,
-    distance: routeDistanceLabel(route.km, route.sea),
-    modes: modesDuTrajet(s, route.modes).map((mode) => ({
+  const cadences = cadenceAUnEffet(s) ? CADENCES_AU_CHOIX : [null];
+  return routesCliquables(map, ici.id, condCtx(() => s)).map(({ route }): TrajetEnVue => {
+    const modes = modesDuTrajet(s, route.modes).map((mode) => ({
       mode,
       libelle: garanti(libelles[mode], mode, 'mode de voyage'),
-      geste: { verbe: 'partirEnVoyage', args: [route.id, mode] },
       refus: refusDeDepart(s, route.id, mode),
       jours: devisDeTrajet(s, route, ici.id, mode).plan?.days ?? null,
-    })),
-  }));
+    }));
+    return {
+      route: route.id,
+      destination: otherEnd(route, ici.id),
+      vers: garanti(placeById(map, otherEnd(route, ici.id)), route.id, 'destination du trajet').label,
+      distance: routeDistanceLabel(route.km, route.sea),
+      departs: cadences.map((cadence) => ({
+        cadence,
+        modes: modes.map((m) => ({ ...m, geste: { verbe: 'partirEnVoyage', args: cadence ? [route.id, m.mode, { cadence }] : [route.id, m.mode] } })),
+      })),
+    };
+  });
 }
 
 /** Le plan de la carte `map` vu du lieu `ici`, chacun de ses `trajets` (`trajetsDepuis`) sous sa destination. PUR. */

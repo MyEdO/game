@@ -1,0 +1,38 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "jupe"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "dessous",
+  "couvre": [
+    "hanches",
+    "cuisse_g",
+    "cuisse_d",
+    "genou_g",
+    "genou_d"
+  ],
+  "chaines": [
+    "jupe"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "robe",
+      "palette": "vet1"
+    }
+  ],
+  "glb": {
+    "sha256": "96b4a0c85aa62cdaaa827a2a178db38b114d58e256c3ea839d1ee27781f27f5f",
+    "octets": 403852
+  }
+}

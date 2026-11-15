@@ -24,7 +24,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
-import { applyOups, applyAttackResult, applyBladeTrap, resolveAttack } from './combatFlow';
+import { applyOups, applyAttackResult, applyBladeTrap, firedWeapon, resolveAttack } from './combatFlow';
 import { OPS_DIFFEREES } from './combatEffects';
 import { emptyScene } from './monde/scene';
 import { runCascadeImmediate, stepInteraction } from './cascade';
@@ -629,7 +629,7 @@ describe('l’arme BRISÉE quitte les mains — un ennemi à arme de statbloc, s
     applyOups(banc.getState, banc.setState, brute, gourdin, MALADRESSE);
     expect(brises(), lignesLues().join(' | ')).toHaveLength(1);
     expect(brisee(gourdin), 'le gourdin brisé a quitté les mains').toBe(true);
-    const coup = resolveAttack(banc.getState, brute, cible);
+    const coup = resolveAttack(banc.getState, brute, cible, firedWeapon(banc.getState().scene, brute, cible, undefined, banc.getState().battle?.combatants));
     expect(coup, 'l’attaque n’est pas refusée').not.toBeNull();
     expect(isUnarmed(coup!.weapon), `arme de l’attaque : ${coup!.weapon.label}`).toBe(true);
     applyOups(banc.getState, banc.setState, brute, coup!.weapon, MALADRESSE);
@@ -642,7 +642,7 @@ describe('l’arme BRISÉE quitte les mains — un ennemi à arme de statbloc, s
     applyOups(banc.getState, banc.setState, brute, pistolet, INCIDENT);
     expect(brises(), lignesLues().join(' | ')).toHaveLength(1);
     expect(brisee(pistolet), 'le pistolet détruit a quitté les mains').toBe(true);
-    const coup = resolveAttack(banc.getState, brute, cible);
+    const coup = resolveAttack(banc.getState, brute, cible, firedWeapon(banc.getState().scene, brute, cible, undefined, banc.getState().battle?.combatants));
     expect(coup && isUnarmed(coup.weapon), `arme de l’attaque : ${coup?.weapon.label}`).toBe(true);
   });
 });
@@ -686,7 +686,7 @@ describe('désarmé de sa SEULE arme : l’ennemi frappe ensuite aux Mains nues'
     applyBladeTrap(banc.getState, banc.setState, cible, { attackerId: 'brute', weaponUid: 'lame-e', defSL: 0, attackerSL: 0 }, 2);
     expect(lignesLues().some((l) => /arrachée/.test(l)), lignesLues().join(' | ')).toBe(true);
     expect(brisee(lame), 'la lame a quitté les mains').toBe(true);
-    const coup = resolveAttack(banc.getState, brute, cible);
+    const coup = resolveAttack(banc.getState, brute, cible, firedWeapon(banc.getState().scene, brute, cible, undefined, banc.getState().battle?.combatants));
     expect(coup && isUnarmed(coup.weapon), `arme de l’attaque : ${coup?.weapon.label}`).toBe(true);
   });
 });

@@ -88,7 +88,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
     setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, ...embuscadeDeRoute }), 'clair');
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     poseMeteo('pluie-diluvienne');
     draineCascade(get, 200, poseEmbuscade);
     const jours = get().travelPlan!.recap!.days;

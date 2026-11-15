@@ -53,8 +53,6 @@ CORSAGE = [('bas', 0.0, 0.008, 0.0), ('bas', 0.12, 0.014, 0.0), ('aisselle', -0.
 # (preset `pretre`, build 0,8), que la bure suit par ses clés.
 
 # --- Jupe : rangées horizontales sous le corsage, posées et pondérées sur le filet `jupe` de la base (`tissu.Filet`) ---
-Z_HANCHES = 0.90                   # base (robe)
-AISANCE_HANCHES = 0.04             # robe
 OURLET_ROBE = 0.12                 # illustration : les pointes des lambeaux de l'ourlet à ~1025 px, 53 px au-dessus des plantes
                                    # (au-dessus de la cheville : tête de `foot_*` à 0,096 m, base) ; les pieds nus dessous
 LAMBEAUX_ROBE = {'profondeur': 0.08, 'creux': 0.15, 'graine': 'humanoide--vetement--bure'}

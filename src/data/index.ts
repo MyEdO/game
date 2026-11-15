@@ -6,7 +6,7 @@
 import type { IconId } from './icons/types';
 import type { EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
-import { listeEt, t } from '../i18n';
+import { listeEt, t, type MsgKey } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, MatiereDArmure } from './schemas/grammaire/valeurs';
 import {
   dansLaSousListe,
@@ -44,7 +44,7 @@ import {
 } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
-import type { DotationDeMention, DotationDePossession, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
+import type { ClasseDeQualite, DotationDeMention, DotationDePossession, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import {
   natureDeMentionSchema,
@@ -1297,14 +1297,14 @@ const qualiteParId = indexParId('qualities', qualities);
 export const fabricationAtouts = memoParVersion('qualities', (): QualityData['id'][] =>
   qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet' && !q.capabilities?.magic).map((q) => q.id),
 );
-/** Atout de fabrication par DÉFAUT (fallback maison quand le joueur ne choisit pas ; le RAW n'en fixe
- *  aucun — un objet de qualité a toujours UN Atout, LDB 60 l.11). */
+/** Atout de Fabrication d'un emplacement « Atouts au choix » que personne n'a choisi. LDB 60 l.11 ; LDB 60 l.26 */
 export const DEFAULT_FABRICATION_ATOUT = 'raffine';
-/** `QualityRef` d'un Atout de fabrication résolu au registre, `undefined` hors registre — une qualité INDICÉE
- *  (`indice`) prend l'Indice 1 par défaut d'un Atout UNIQUE de fabrication (LDB 60 l.30). */
-export function fabricationAtoutQuality(id: string): QualityRef | undefined {
+/** Les `QualityRef` de l'Atout de Fabrication `id` pris `prises` fois : une entrée d'Indice `prises` s'il est indicé,
+ *  `prises` entrées sinon. LDB 60 l.30-32 */
+export function fabricationAtoutQuality(id: string, prises: number): QualityRef[] {
   const q = qualiteParId(id);
-  return q && (q.indice ? { id: q.id, value: 1 } : { id: q.id });
+  if (!q) return [];
+  return q.indice ? [{ id: q.id, value: prises }] : Array.from({ length: prises }, () => ({ id: q.id }));
 }
 /** Symptômes de maladie (LDB 20) — entités de DONNÉE éditables au Codex (passive/onTick/capabilities). */
 export const symptoms = datasetDe<typeof symptomsDef>(symptomsJson);
@@ -2370,8 +2370,8 @@ export function chaosSpellsOf(god: string): string[] {
  *  `resolveTrappingChoices` (`src/engine/trappingChoices.ts`) avant matérialisation ; non tranchés, ils
  *  restent tels quels et ne produisent aucun objet.
  *  Une ref `{id}` peut aussi porter des Atouts d'objet ATTACHÉS (`qualities`, ex. Fabrication LDB
- *  ch.60 « Solide »/« Raffiné »/« Léger »/« Pratique ») ou un EMPLACEMENT « Atout au choix »
- *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`
+ *  ch.60 « Solide »/« Raffiné »/« Léger »/« Pratique ») ou un EMPLACEMENT « Atouts au choix »
+ *  (`qualityChoice`, sa classe de qualité, LDB 60 l.7 ; LDB 60 l.11) — résolu par `resolveTrappingChoices` en `qualities`
  *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). Annotation de
  *  `trappingRefSchema` (`schemas/grammaire/reference.ts`). */
 export type { CountSpec, DotationDePossession, DotationDeMention, QualityRef, Somme, TrappingRef };
@@ -2644,6 +2644,8 @@ export function advancementLabel(category: string, a: AdvancementRef): PlayerTex
 export function advancementBaseId(a: AdvancementRef): string | undefined {
   return 'id' in a ? a.id : undefined;
 }
+/** Clé du libellé d'un emplacement « Atouts au choix », par classe de qualité. */
+const CLE_DE_QUALITE_AU_CHOIX = { qualite: 'ref.qualiteAuChoix', haute: 'ref.hauteQualiteAuChoix' } as const satisfies Record<ClasseDeQualite, MsgKey>;
 /** Libellé d'affichage d'une dotation ou d'une option de « 1 parmi » (`BrancheDeDotation`) : « Marteau », « Pamphlétaire (3) »,
  *  « Chiffon (1d10) », « Outils professionnels (Maréchal-ferrant) » (`spec`, rendue par `refLabel` comme toute autre
  *  `RefDesignee` — `LDB 08 l.1130`), « Bijoux valant 3d10 couronnes d'or » (`valeur`), somme d'argent
@@ -2667,7 +2669,7 @@ export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {
             : dataLabel(findCreatureById(ref.id)?.label, ref.id);
   const quantite: CountSpec | undefined = 'count' in ref ? ref.count : undefined;
   const count = quantite ? ('fixed' in quantite ? ` (${quantite.fixed})` : ` (${formatDice(quantite.roll)})`) : '';
-  if ('qualityChoice' in ref && ref.qualityChoice) return t('ref.qualiteAuChoix', { base: base + count });
+  if ('qualityChoice' in ref && ref.qualityChoice) return t(CLE_DE_QUALITE_AU_CHOIX[ref.qualityChoice], { base: base + count });
   const quality = 'qualities' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})` : '';
   const libelle = base + count + quality;
   return 'valeur' in ref && ref.valeur ? t('ref.valant', { base: libelle, somme: libelleDeLaSomme(ref.valeur) }) : dataLabel(libelle);

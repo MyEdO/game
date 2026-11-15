@@ -4,7 +4,7 @@ extends SceneTree
 ## (`--pont=<chemin>` après `--`, que `construire.mjs --rendus` passe) : le script commun des recettes rendues d'un
 ## navire, `voile-de-la-caraque.gd` et `voile-de-la-barge.gd`, qui déclarent `RECETTE_RENDUE` et leur scénario
 ## (`_scenario`) ; lui ne le déclare pas, `rendre` ne le joue pas seul. La partie tourne sur son pont espion
-## (`PontEspion`) et son combat (`scenes/Combat.tscn`). Le monde, le navire, les cases que couvrent ses morceaux, leur
+## (`PontDuNavire`) et son combat (`scenes/Combat.tscn`). Le monde, le navire, les cases que couvrent ses morceaux, leur
 ## sol (`monde.hauteurs`) et le masque (la réponse `vision`) viennent du pont. Calques de l'écran et combattants cachés,
 ## tonemap linéaire (la part se lit en lumière linéaire), brouillard volumétrique coupé, MSAA coupé (une arête ne mêle
 ## pas deux positions), le fondu avancé par la recette seule, sous la caméra tactique centrée sur le navire servi, dans
@@ -21,9 +21,9 @@ extends SceneTree
 ## vision au pixel ; sous chacun des trois regards (tactique, plateau, immersion, `_uniformes`), tout exploré (octets à
 ## 128), puis tout inconnu (à 0), chaque surface lue (sous la caméra tactique, le plancher, le flanc et la mâture au
 ## moins) prend la part de son état (`_borne_du_pilote`) ; à mi-fondu de la vue vers l'inconnu, la part qu'elle prend
-## explorée ; coupé sous son avant-dernière couche de pont, ce que la coupe découvre est, voilé, ce qu'il est sans
-## voile ; sous l'œil de l'immersion, sur une case de pont couverte, elle et ce qui est dessous vus, le reste inconnu, le
-## plafond à la part 1. Les appels de dessin, voilé et sans voile, imprimés.
+## explorée ; coupé sous son avant-dernière couche de pont, ce que la coupe découvre (ses pixels intérieurs) est, voilé,
+## ce qu'il est sans voile ; sous l'œil de l'immersion, sur une case de pont couverte, elle et ce qui est dessous vus,
+## le reste inconnu, le plafond à la part 1. Les appels de dessin, voilé et sans voile, imprimés.
 ##
 ## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
 
@@ -81,16 +81,13 @@ var _meilleurs := {}
 var _sortie := ""
 
 
-## Le pont du noyau vivant, sur la partie du scénario `scenario` : il garde la dernière réponse de chaque méthode, et
-## chaque morceau reçu.
-class PontEspion extends PontDuNoyau:
+## Le pont espion sur la partie du scénario `scenario` : il garde chaque morceau reçu.
+class PontDuNavire extends PontEspion:
 	var scenario := ""
-	var reponses := {}
 	var morceaux: Array = []
 
 	func appeler(methode: String, entree: Variant = null) -> Dictionary:
 		var reponse := super(methode, entree)
-		reponses[methode] = reponse
 		if methode == "morceaux":
 			morceaux.append_array(reponse.get("volume", []))
 		return reponse
@@ -141,7 +138,7 @@ func _recetter() -> void:
 func _demarrer(scenario: String) -> Node:
 	_nom = scenario
 	_signales.clear()
-	var pont := PontEspion.new()
+	var pont := PontDuNavire.new()
 	pont.scenario = scenario
 	PontDuNoyau.remplacer(self, pont)
 	pont.panne.connect(func(message: String) -> void: _signales.append("panne : " + message))
@@ -572,7 +569,8 @@ func _chrono(etape: String, debut: int) -> void:
 
 
 ## Coupé sous le sol le plus bas de son avant-dernière couche de pont : ce que la coupe découvre (les pixels que la coupe
-## change, où le navire coupé rend l'image sans lui) est, voilé, ce qu'il est sans voile.
+## change, où le navire coupé rend l'image sans lui, intérieurs : un pixel du navire coupé de la couleur exacte de ce
+## qu'il cache n'en est pas) est, voilé, ce qu'il est sans voile.
 func _coupe() -> void:
 	var couche: int = _couches[_couches.size() - 2]
 	var coupe := INF
@@ -591,6 +589,7 @@ func _coupe() -> void:
 		for x in range(0, coupee.get_width(), 2):
 			if coupee.get_pixel(x, y) != entier.get_pixel(x, y) and coupee.get_pixel(x, y) == sans.get_pixel(x, y):
 				decouverts.append(Vector2i(x, y))
+	decouverts = PIXELS.interieur(decouverts)
 	print("[voile-du-navire] %s, coupé sous %.2f m : %d pixels découverts" % [_nom, coupe, decouverts.size()])
 	if decouverts.size() < DECOUVERTS_LISIBLES:
 		_fautes.append("%s : coupé, %d pixels découverts, au moins %d attendus" % [_nom, decouverts.size(), DECOUVERTS_LISIBLES])

@@ -96,11 +96,12 @@ export const fr = {
   // LDB 18 l.53, l.55 ; AA 07 l.32 ; LDB 17 l.68 — lues par `phraseDeTouche` et `CritLocationPicker`.
   'touche.nouvelleLocalisation': 'nouvelle Localisation : {lieu}',
   'touche.nouvelleLocalisationAuChoix': 'au choix (Je ne faillirai pas !)',
-  // La ligne de touche (`phraseDeTouche`, `engine/combat.ts`), les noms par `nomDe` (#4017). LDB 18 l.53 ; MDG 13 l.605 ; AA 10 l.98.
+  // La ligne de touche (`phraseDeTouche`, `engine/combat.ts`), les noms par `nomDe` (#4017). LDB 18 l.53 ; MDG 13 l.605 ; AA 10 l.98 ; ADE II 08 l.292.
   'touche.tete': '{attaquant} touche {cible}',
   'touche.teteDuSort': '{attaquant} lance {sort} sur {cible}',
   'touche.localisee': '{tete} ({lieu})',
   'touche.chiffree': '{tete} : {degats} dégâts − {absorbes} ({mitigation}) = {blessures} Blessures',
+  'touche.degatsDoubles': '{degats}, doublés (Atout Siège), soit {total}',
   'touche.critique': '{phrase} — CRITIQUE !',
   'touche.mitigationStructure': 'BE {be} × {mult} (Taille {taille} contre {tailleAttaquant}) = {total}, +PA',
   'touche.mitigationNulle': 'rien',
@@ -1076,6 +1077,9 @@ export const fr = {
   'ecran.lieu.services': 'Ce qu’on peut faire ici',
   'ecran.lieu.trajets': 'Partir',
   'ecran.carte.mode': '{mode} · {jours} j',
+  'ecran.carte.depart': '{distance} · {cadence}',
+  'ecran.cadence.commande': 'Sous vos ordres',
+  'ecran.cadence.jourParJour': 'Jour par jour',
   'ecran.bourse': 'Bourse',
   'ecran.marche.enc': '{enc} Enc',
   'ecran.marche.dispo': 'Disponible',
@@ -1092,8 +1096,12 @@ export const fr = {
   'ecran.marche.vers': 'Vers',
   'ecran.marche.aDeplacer': 'Enc à déplacer',
   'ecran.voyage.moment': '{moment} · {meteo}',
-  'ecran.voyage.route': '{moyen} · {fait} km sur {km}',
-  'ecran.voyage.nuit': 'Nuit {nuit}',
+  'ecran.voyage.date': '{date} · {route}',
+  'ecran.voyage.premierJour': '1ᵉʳ jour de route',
+  'ecran.voyage.jourDeRoute': '{jour}ᵉ jour de route',
+  'ecran.voyage.titre': 'La route de {arrivee}',
+  'ecran.voyage.reste': 'km avant {arrivee}',
+  'ecran.voyage.cadence': 'Cadence du voyage',
   'ecran.echoppe.article': '{nom} · {prix}',
   'ecran.echoppe.panier': 'Panier',
   'ecran.echoppe.ligne': '{nom} ×{qty}',
@@ -1385,10 +1393,12 @@ export const fr = {
   'ecran.accueil.atelier': 'Atelier',
   'ecran.accueil.editeur': 'Éditeur',
   'ecran.partie.quitter': 'Quitter la partie',
+  'ecran.partie.menu': 'Menu de la partie',
   'ecran.salon.mj': 'Maître du Jeu',
   'ecran.salon.ia': 'IA (aucun MJ)',
   'ecran.salon.code': 'Partie {code}',
   'ecran.salon.quitter': 'Quitter le salon',
+  'ecran.salon.fermer': 'Fermer',
   'ecran.salon.absent': ' — reconnexion…',
   'ecran.salon.champ.code': 'Code de la partie',
   'ecran.salon.enCours.heberger': 'Ouverture du salon…',
@@ -4169,13 +4179,6 @@ export const fr = {
   'statut.echelon.argent': 'Argent',
   'statut.echelon.or': 'Or',
 
-  // ── #1318 V8c₅ — CLASSE DE QUALITÉ d'un objet artisanal (`engine/qualities/craftEconomy.ts`,
-  // `craft.*`, LDB 60 l.7/11/42). La fonction rend désormais un id STABLE ; ces clés en sont l'affichage.
-  'craft.classHaute': 'Haute Qualité',
-  'craft.classQualite': 'Qualité',
-  'craft.classDefectueuse': 'Défectueuse',
-  'craft.classStandard': 'Standard',
-
   // ── #1318 V8c₅ — MODIFICATEUR DE STATUT en Charme social (`engine/social.ts`, LDB 08 l.57-63).
   'social.statusMod': 'Statut ({beg}{side}) {sign}{mod}',
   'social.fragBegging': 'mendicité ',
@@ -4258,6 +4261,7 @@ export const fr = {
   'ref.armeAuChoix': 'Arme (au choix)',
   'ref.armeDuGroupeAuChoix': 'Arme du groupe {groupe} (au choix)',
   'ref.qualiteAuChoix': '{base} (qualité au choix)',
+  'ref.hauteQualiteAuChoix': '{base} (Haute Qualité au choix)',
   'ref.valant': '{base} valant {somme}',
   // Réf de source d'une entrée (`data/index.ts#sourceRefLabel`) : titre du livre, puis la page.
   'ref.sourcePage': '{livre} p. {page}',

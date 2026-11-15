@@ -1,6 +1,8 @@
 // Le voile de la vision sur un navire monté (`VolumeDeScene.voile`, #3950) : posé en `material_overlay` sur chacun de
 // ses meshes (`MontageDeVehicule.voiler`), il multiplie ce qui est déjà dessiné du mesh par la part de lumière linéaire
-// (`part_de_lumiere`, `art/vision.gdshaderinc`) de la case que sa surface regarde, sans éclairage ni brouillard. Dans le
+// (`part_de_lumiere`, `art/vision.gdshaderinc`) de la case que sa surface regarde, sans éclairage ni brouillard, une
+// fois par pixel : le pochoir (`stencil_mode`) écarte tout fragment du voile après le premier qui passe la profondeur
+// de la surface dessinée, les faces coïncidentes comprises. Dans le
 // repère de la carte (`MODEL_MATRIX`, le nœud des navires frère du monde, tous deux à l'identité), la normale tournée
 // vers l'œil : le point regardé est à la hauteur du fragment décalée d'une demi-case le long de la normale, et décalé
 // à l'horizontale le long de la projection horizontale de la normale (nulle pour une normale verticale), d'une
@@ -14,6 +16,7 @@
 // s'y porte en sRGB (`recettes/voile-du-navire.gd`).
 shader_type spatial;
 render_mode unshaded, blend_mul, fog_disabled, depth_draw_never, cull_disabled;
+stencil_mode read, write, compare_not_equal, 1;
 
 #include "res://art/vision.gdshaderinc"
 uniform float coupe : hint_range(0.0, 1.0) = 0.0;

@@ -4,8 +4,8 @@
  * partie rendue au noyau (`figerUnePartie`), l'adresse de la partie (`parametres`), puis, sur son pont, « La fenêtre des
  * écuries » jouée comme le combat (`projet/scripts/combat.gd`) la joue : `demarrer`, chaque fenêtre de l'entrée par
  * son geste en focus (`jouer`), chacun sous la clé de l'entrée que Godot envoie ; le manifeste du monde de la scène (`monde`), la géométrie de toutes
- * ses clés (`morceaux`, source `partie`), le masque du regard (`retrait`), la vision du groupe (`vision`) et les arêtes
- * (`aretes`) ; puis le clic du champ sur `CASE_DEGAGEE` (`jouer`), qui change l'empreinte du masque
+ * ses clés (`morceaux`, source `partie`), le masque du regard (`retrait`), la vision du groupe (`vision`), les arêtes
+ * (`aretes`) et les zones du salon que le combat relit après chaque suite (`salon`) ; puis le clic du champ sur `CASE_DEGAGEE` (`jouer`), qui change l'empreinte du masque
  * (`plateau.cleDuRetrait`) sans changer la clé du monde (`plateau.cleDuMonde`) ni celle des arêtes
  * (`plateau.cleDesAretes`), le masque d'après (`retraitDuClic`) et la vision d'après (`visionDuClic`) ;
  * enfin une case d'un morceau que le masque d'après retire et que celui d'avant gardait (`retireeParLeClic`), et
@@ -72,6 +72,7 @@ export function figerLeDegagement(listage: Listage) {
     const retrait = appel('retrait') as unknown as RetraitDuMonde;
     const vision = appel('vision');
     const aretes = appel('aretes');
+    const salon = appel('salon');
     const occupant = s.vue.occupants[`${CASE_DEGAGEE.x},${CASE_DEGAGEE.y},0`];
     const clic = { type: s.vue.champ, args: occupant ? [CASE_DEGAGEE, occupant] : [CASE_DEGAGEE] };
     if (clic.type === null) throw new Error('dégagement figé : le champ ne se clique pas après les fenêtres');
@@ -95,6 +96,7 @@ export function figerLeDegagement(listage: Listage) {
       retrait: { null: retrait },
       vision: { null: vision },
       aretes: { null: aretes },
+      salon: { null: salon },
       retraitDuClic: { null: retraitDuClic },
       visionDuClic: { null: visionDuClic },
       case: CASE_DEGAGEE,

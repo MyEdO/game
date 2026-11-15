@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, wallBetween, isWalkable, wallIsOpen, doorIsOpen, doorAt, type WallSeg } from './scene';
+import { emptyScene, wallBetween, isWalkable, wallIsOpen, doorIsOpen, doorAt, type WallSeg, type Scene } from './scene';
 import { roofHidden } from './buildings';
-import { lineOfSightCover } from './lineOfSight';
+import { couvertDuTir, lineOfSightCover } from './lineOfSight';
 
 /**
  * Modèle « relief unifié » : un bâtiment n'est plus une entité monolithique (périmètre implicite +
@@ -68,8 +68,9 @@ describe('INVARIANT COMBAT — la fenêtre n’ouvre pas le passage, coûte un c
   it('COUVERT : la croisée coûte un cran à la Structure qui la porte (AA 10 l.122)', () => {
     const tireur = { x: 1, y: 1 };
     const cible = { x: 2, y: 2 };
-    expect(lineOfSightCover(plain(), tireur, cible, []).cover).toBe('totale');
-    expect(lineOfSightCover(win(), tireur, cible, []).cover).toBe('moyenne');
+    const couvert = (sc: Scene) => couvertDuTir(sc, lineOfSightCover(sc, tireur, cible, []).cover, { pos: tireur }, { pos: cible });
+    expect(couvert(plain())).toBe('totale');
+    expect(couvert(win())).toBe('moyenne');
   });
 });
 

@@ -30,7 +30,7 @@ describe('le journal daté par le pont', () => {
     };
     avancer();
     s = jouer('jouer', s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
-    s = jouer('jouer', departDeLaCarte(s.vue, 'r-grandroute').valeurs[0].jeu);
+    s = jouer('jouer', departDeLaCarte(s.vue, 'r-grandroute', 'jourParJour').valeurs[0].jeu);
     avancer('ecranDuLieu');
     const jours = lignes.filter((l) => l.id.startsWith('journal/jour/'));
     const rangs = jours.map((l) => Number(l.id.split('/')[2]));
