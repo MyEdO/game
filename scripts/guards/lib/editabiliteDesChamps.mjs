@@ -824,6 +824,8 @@ function calleeDeclarations(checker, call) {
  *   - un appel INDIRECT (primitive rangée dans une table de dispatch, passée en callback, atteinte
  *     par `obj[k]()`) : aucun `CallExpression` ne nomme sa cible, aucune arête n'est bâtie ;
  *   - un appel depuis un fichier hors `AUTHOR_PATH` (moteur) que l'éditeur déclencherait ;
+ *   - une écriture au CORPS DE MODULE d'un fichier d'`AUTHOR_PATH` (table de constantes, corps neuf par défaut) : elle
+ *     ne crédite jamais, un défaut posé n'est pas un geste d'auteur ;
  *   - à l'inverse elle SUR-crédite : un callback jamais rappelé compte pour sa porteuse. La frontière mesurée est
  *     celle de la méthode `editer` : tout ce qu'elle appelle, l'essai de la scène compris.
  * Un pont présent au programme sans sa méthode `editer` lève : la racine Godot ne se perd pas en silence.

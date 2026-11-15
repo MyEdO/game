@@ -42,7 +42,7 @@ export function documentDeclarations(program: SessionProgramme, root: string, ra
 
 /** Le Program du périmètre de cette garde pour les `racines`, bâti à chaque appel : l'appelant le tient et le libère. */
 export function programmeDuPerimetre(root: string, racines: readonly Racine[]): SessionProgramme;
-/** Les champs du document de la `racine`, dérivés de son type (règle C de l'en-tête du module comprise). */
+/** Les champs du document de la `racine`, dérivés de son type (sa frontière : point 1 de l'en-tête du module). */
 export function perimetreDeLaRacine(program: SessionProgramme, root: string, racine: Racine): ChampDuDocument[];
 /** Une écriture que l'aller-retour de l'éditeur joue : le document avant et après, le chemin écrit depuis la racine du
  *  document, la valeur jouée, la saisie qui l'a portée et, issue du choix d'une variante, la clé de son discriminant. */
