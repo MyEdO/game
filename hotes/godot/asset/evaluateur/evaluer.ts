@@ -3,7 +3,7 @@
  * squelette de la base, valide le manifeste de base, pose gabarit et silhouettes, mesure au repos les shape keys de la
  * base (`gardes/silhouettes.ts`), échantillonne les clips, puis appelle chaque garde de `gardes/` : `poids`,
  * `enroulement`, `budget`, `pistesDEchelle`, `chaines`, `echelleDuRigide`, `tranchantDuRigide`, `silhouettes`, `segments`, `appuis`,
- * `piedsAuSol`, `etirement`, `suiviDuCorps`, `traversee`, `membreDansUnVetement`, `membres`, `amplitude`.
+ * `piedsAuSol`, `etirement`, `suiviDuCorps`, `traversee`, `membreDansUnVetement`, `membres`, `amplitude`, `poignets`.
  * Le corps est l'ensemble des meshes de zone de la base (`extras.zone`) ; une base sans zone est un corps d'un seul
  * tenant : ses meshes skinnés.
  */
@@ -40,6 +40,7 @@ import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from '.
 import { etenduesDesSegments, gardeSegments, type MesuresDesSegments } from './gardes/segments.ts';
 import { gardeSuiviDuCorps } from './gardes/suiviDuCorps.ts';
 import { suivreLesAmplitudes } from './gardes/amplitude.ts';
+import { suivreLesPoignets } from './gardes/poignets.ts';
 import {
   gardePercementAuRepos,
   gardeTraversee,
@@ -261,6 +262,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const repos = poseDeRepos(base.scene, meshes);
   const suiviDesChaines = suivreLesChaines(base.scene, chaines, repos);
   const amplitudes = suivreLesAmplitudes(base.scene, manifeste?.bornesArticulaires ?? {}, repos);
+  const poignets = suivreLesPoignets(base.scene, manifeste?.prises ? [manifeste.prises.main.os, manifeste.prises.secondaire.os] : []);
   const aretes = new Map(meshes.map((m) => [m, aretesDe(m)]));
   ecarts.push(...gardeEtirementAuRepos(aretes, libelle, sansCles, repos));
   const niveaux: NiveauDuCorps[] = [];
@@ -290,11 +292,12 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     etirements.push(mesurerEtirement(aretes, sansCles, e));
     suiviDesChaines.echantillon(e);
     amplitudes.echantillon(e);
+    poignets.echantillon(e);
     if (manifeste && e.clip === manifeste.clips.marche) posesDesPieds.push(...poserPieds(e, surfaces, racine));
   }
   const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.marche]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
   ecarts.push(...appuis.ecarts);
-  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...gardeMembreDansUnVetement(membresSousVetement, libelle, Object.fromEntries(clips.flatMap((c) => (entree.plafondsDesMembres?.[c.name] ? [[c.name, entree.plafondsDesMembres[c.name]]] : [])))), ...gardeMembres(membresDansLeTronc, libelle), ...amplitudes.ecarts());
+  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...gardeMembreDansUnVetement(membresSousVetement, libelle, Object.fromEntries(clips.flatMap((c) => (entree.plafondsDesMembres?.[c.name] ? [[c.name, entree.plafondsDesMembres[c.name]]] : [])))), ...gardeMembres(membresDansLeTronc, libelle), ...amplitudes.ecarts(), ...poignets.ecarts());
   if (sontNeutres(facteurs) && Object.values(poids).every((p) => p === 0)) ecarts.push(...gardePercementAuRepos(couches.percements, libelle));
 
   const parMesh = meshes.map((m) => ({ mesh: libelle(m), triangles: trianglesDe(m) }));
