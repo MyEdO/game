@@ -355,7 +355,7 @@ et son roulis sont ceux du maniement de l'arme dans les clips dérivés (`SECOND
 repos, attaque et marche : poing fermé sur le manche, bras sans torsion. Un rendu Blender des clips montre la main
 gauche ouverte à la cote du clip : seul Godot la ferme et la ramène sur la seconde prise (`seconde_prise.gd`). Le poing
 fermé de la base r24 ne laisse qu'un passage d'environ 7 mm de rayon, et l'origine de la prise `main` est sur la paume :
-centrer le manche au meilleur passage (`AXE_DANS_LA_PRISE` du bâton) et consigner l'écart restant.
+centrer le manche au meilleur passage (`AXE_DANS_LA_PRISE`, `scripts/personnage-3d/base/anatomie.py`) et consigner l'écart restant.
 
 Peau et gant restent distincts. Enveloppe fine, épaisseur bornée par courbure/arêtes, pas de
 gonflement global ; examiner paume, dos, dessous et creux. Pour une prise plate, regarder les deux

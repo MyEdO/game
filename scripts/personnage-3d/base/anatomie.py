@@ -67,6 +67,9 @@ l'emplacement est sur l'axe de l'os."""
 POING = {'main': ('r', 'Sword_Idle', 8), 'secondaire': ('l', 'Idle_Shield_Loop', 44)}
 """Par prise : le côté de la main, le clip et l'image où le poing fermé tient sa poignée."""
 DOIGTS_DU_POING = ('index', 'middle', 'ring', 'pinky')
+AXE_DANS_LA_PRISE = (-0.015, 0.015)
+"""(x, z) du centre du plus grand passage libre commun aux deux poings fermés de la base r24, en `Hampe_Repos_Loop`, la
+main gauche sur la seconde prise ; sur l'axe de la prise, la paume touche le manche qui y passe."""
 
 SEGMENTS_DU_GABARIT = {
     'legs': ('thigh_l', 'calf_l', 'thigh_r', 'calf_r'),

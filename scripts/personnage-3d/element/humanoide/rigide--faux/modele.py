@@ -1,8 +1,9 @@
 """Géométrie de `humanoide--rigide--faux` : un manche droit de bois le long du +Y de la prise, centré sur
-`AXE_DANS_LA_PRISE`, sa virole au haut, et la lame en croissant qui en part vers +Z (le sens du tranchant), courbée vers
+`AXE_DANS_LA_PRISE` (`base/anatomie.py`), sa virole au haut, et la lame en croissant qui en part vers +Z (le sens du tranchant), courbée vers
 le talon, plate dans le plan (y, z) du manche, son fil sur le creux."""
 import math
 
+from anatomie import AXE_DANS_LA_PRISE
 from maille import Maille, cylindre, objet
 
 
@@ -34,7 +35,7 @@ def lame(m, D, depart, cu):
 def construire(D, materiaux):
     talon = -D['PRISE_DEPUIS_TALON']
     tete = D['LONGUEUR'] - D['PRISE_DEPUIS_TALON']
-    cu, cw = D['AXE_DANS_LA_PRISE']
+    cu, cw = AXE_DANS_LA_PRISE
     centre = (cu, 0.0, cw)
     M, V = D['MANCHE'], D['VIROLE']
     m = Maille(list(materiaux.values()))
