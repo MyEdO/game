@@ -1,6 +1,12 @@
 import { correspondGlob } from '../../guards/lib/lister.mjs'
 import { MOTIF_CATALOGUES } from '../../raw/motif-catalogues.mjs'
-import { SORTIES as SORTIES_DU_REGISTRE, SORTIE_FORMATS as SORTIE_DES_FORMATS, SORTIE_VERBES as SORTIE_DES_VERBES, SORTIE_NOMS_DE_PARAMETRE, SORTIE_COMBATTANTS_DE_L_ETAT } from './cibles-registres.mjs'
+import {
+  SORTIES as SORTIES_DU_REGISTRE,
+  SORTIE_FORMATS as SORTIE_DES_FORMATS,
+  SORTIE_VERBES as SORTIE_DES_VERBES,
+  SORTIE_NOMS_DE_PARAMETRE,
+  SORTIE_COMBATTANTS_DE_L_ETAT,
+} from './cibles-registres.mjs'
 
 /** Les cibles LITTÉRALES (sans joker) de `cibles` : celles dont la présence se mesure sur le disque. PURE. */
 export const ciblesLitterales = (cibles) => cibles.filter((cible) => !cible.includes('*'))

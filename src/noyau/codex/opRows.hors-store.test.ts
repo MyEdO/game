@@ -5,11 +5,26 @@ import type { GameOp } from '../../engine/ops';
 import { newOp } from '../valeursNeuves';
 import { OP_REF_FIELDS, opRefValue, opWithRefValue } from '../../data/refsDOp';
 import { OP_LABEL } from '../../data/schemas/grammaire/mecanique';
-import { datasetArray } from '../../data/overrides';
+import { entreesDuDataset } from '../../data/overrides';
 import { opRow, opRows, tableRows } from './opRows';
 import { humanizeFormula, humanizeOp } from './humanize';
 import { codexLookupById } from './registry';
-import { characteristics, talents, skills, traits, psychologies, etats, trappings, maladies, symptoms, creatures, mutations, findSymptomById, effectTables, groupLabel } from '../../data';
+import {
+  characteristics,
+  talents,
+  skills,
+  traits,
+  psychologies,
+  etats,
+  trappings,
+  maladies,
+  symptoms,
+  creatures,
+  mutations,
+  findSymptomById,
+  effectTables,
+  groupLabel,
+} from '../../data';
 import type { CharKey } from '../../engine/types';
 import { psychBranchOps } from '../../engine/psychology';
 import { spellOps } from '../../engine/flowCore';
@@ -34,7 +49,7 @@ function sample(kind: GameOp['op']): GameOp {
   let o = { ...newOp(kind) } as Record<string, unknown>;
   for (const f of OP_REF_FIELDS[kind] ?? []) {
     const v = opRefValue(o, f.field);
-    if (v == null || v === '') o = opWithRefValue(o, f.field, (datasetArray(f.ds) as { id?: string }[])[0]?.id);
+    if (v == null || v === '') o = opWithRefValue(o, f.field, entreesDuDataset(f.ds)[0]?.id);
   }
   return o as unknown as GameOp;
 }

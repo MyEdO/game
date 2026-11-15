@@ -17,7 +17,14 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Condition, EffectOp, PartySelector } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { contexteDeTestSchema } from '../../data/schemas/grammaire/valeurs';
-import { armourBypassCategorieSchema, loseTurnWhatSchema, ressourceDeDestinSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
+import {
+  armourBypassCategorieSchema,
+  loseTurnWhatSchema,
+  ressourceDeDestinSchema,
+  senseSchema,
+  tablesDeCiblesSchema,
+  zoneShapeSchema,
+} from '../../data/schemas/grammaire/mecanique';
 import { INDICE_TEMPLATE, seuilDeBourse, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
 import { estCausePersistante, estPoseDEtat, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
@@ -369,7 +376,10 @@ function humanizeFall(tableId: string): string {
   if (!table) return t('codex.chute.inconnue', { table: tableId });
   const stations = [...new Set(table.bandes.flatMap((b) => Object.keys(b.hauteurs)))];
   const colonnes = stations.map((id) => {
-    const parBande = table.bandes.map((b) => (b.hauteurs[id] === undefined ? '—' : `${humanizeFormula(b.hauteurs[id])}`));
+    const parBande = table.bandes.map((b) => {
+      const hauteur = Object.entries(b.hauteurs).find(([station]) => station === id)?.[1];
+      return hauteur === undefined ? '—' : humanizeFormula(hauteur);
+    });
     return `${refLabel('shipStations', { id })} ${parBande.join('/')} m`;
   });
   return t('codex.chute', { table: table.label, colonnes: colonnes.join(', ') });

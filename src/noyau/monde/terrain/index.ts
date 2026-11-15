@@ -16,7 +16,7 @@
  */
 import { terrains } from '../../../data/index';
 import { memoParVersion } from '../../../data/versionDataset';
-import type { TerrainDef, TerrainStops } from '../../../data/terrains.types';
+import type { TerrainDef } from '../../../data';
 import type { Terrain } from '../../../data/schemas/defs-scenes/scene';
 
 
@@ -41,7 +41,7 @@ export function tousLesTerrains(): readonly TerrainDef[] {
  * un arrêt émis hors ordre est inerte, sans un mot. L'ordre est aussi exigé au PARSE
  * (`schemas/defs/terrains.ts`) ; le tri ici rend l'émission indépendante de l'ordre des clés du Record.
  */
-export const terrainStopsOrdonnes = (stops: TerrainStops): [string, string][] =>
+export const terrainStopsOrdonnes = (stops: TerrainDef['stops']): [string, string][] =>
   Object.entries(stops).sort((a, b) => Number.parseInt(a[0], 10) - Number.parseInt(b[0], 10));
 
 /** Ids du dataset, dans l'ordre authoré. */

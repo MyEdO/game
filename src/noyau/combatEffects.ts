@@ -9,7 +9,19 @@ import { armChapterRecapIfDue } from './chapitreRecap';
 import { ouvrirLaFinDeSeance } from './partyFlow';
 import { tableTotale } from '../lib/tableTotale';
 import { tablesPosees, type ClotureApplier, type FragmentDeTables, type PartDeTable } from './tablesPosees';
-import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite, RevealEntry } from './pendings';
+import type {
+  LootGear,
+  CascadeStep,
+  CascadeStepMeta,
+  CascadeTableDone,
+  Cloture,
+  OpsCtxPorte,
+  PendingCascade,
+  PendingTest,
+  ScheduledEffect,
+  Suite,
+  RevealEntry,
+} from './pendings';
 import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
 import { Combatant, type ModLine } from '../engine/types';
@@ -26,7 +38,19 @@ import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
 import { dialoguesDeLaScene } from './monde/scene';
-import { bestForTests, partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
+import {
+  bestForTests,
+  partyBest,
+  partyAssisted,
+  peutTenter,
+  possesses,
+  soutienDetail,
+  isSocialTest,
+  socialPsychMod,
+  socialPsychLabel,
+  socialPsychLines,
+  testValue,
+} from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, tirerLeCapricieux, tirerLaReactionAuStatut } from '../engine/social';
 import { statutDeDonnee } from '../engine/money';
 import { restoreFortune } from '../engine/fortune';
@@ -38,7 +62,19 @@ import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, 
 import type { IdDeLigneDeButin } from './designations';
 import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { revealClue, discreditClue } from './monde/clues';
-import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
+import {
+  creatureSemee,
+  navireSeme,
+  findCreatureById,
+  findVehicleById,
+  refLabel,
+  WATER_EXPOSURE,
+  diseaseLabel,
+  nightStakeRef,
+  combatStakeRef,
+  flowStakeRef,
+  testSkillLabel,
+} from '../data';
 import { moraleBase } from '../engine/crewMorale';
 import { clampSaboteurDR, semaineDuJour, shipboardSouls } from './shipCrew';
 import { harvestProfileFor, harvestSizeOf, harvestYield, testsDeRecolte } from '../engine/harvest';
@@ -49,14 +85,14 @@ import { HEAL_SKILL } from '../engine/healing';
 import { ouvrirLeMedecin } from './medicFlow';
 import { ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions } from './combatFlow';
 import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
-import { placeById } from './worldMap';
+import { placeById, quaiDuGroupe } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
 import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
 import { avecSequelles, traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
 import { DAY_PHASES, MINUTES_PER_DAY, dayIndex, minutesUntilNext, scheduleAt } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
-import { feedFromMeal, applyFaimTest, applySoifTest, rationsDeCale } from '../engine/provisions';
+import { feedFromMeal, applyFaimTest, applySoifTest, embarquerDesVivres, rationsDeCale, rationsDuVivre, retirerDuVivre } from '../engine/provisions';
 import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } from '../engine/exposure';
 import { findSpellById } from '../data/index';
 import { toBrass, fromBrass, toMoney, formatMoney } from '../engine/money';
@@ -68,7 +104,22 @@ import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
 import { flowFromEffects, testFlow } from './monde/flow';
-import { type FlowTest, type ConditionCtx, type EffectOp, type CibleDeRole, type CibleDeVolontaires, type Condition, flowEffects, evalCondition, executerFlow, leafOpsCtx, lierLesTirages, EMPTY_FLOW, type ArretDeFlow, type ResteDuFlow } from '../engine/flowCore';
+import {
+  type FlowTest,
+  type ConditionCtx,
+  type EffectOp,
+  type CibleDeRole,
+  type CibleDeVolontaires,
+  type Condition,
+  flowEffects,
+  evalCondition,
+  executerFlow,
+  leafOpsCtx,
+  lierLesTirages,
+  EMPTY_FLOW,
+  type ArretDeFlow,
+  type ResteDuFlow,
+} from '../engine/flowCore';
 import { buildActorView } from '../engine/actorView';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
@@ -999,7 +1050,7 @@ export function openSkillTest(
     // Bonus de Carac). Calculé par candidat car le sélecteur laisse le joueur choisir qui lance. `noSupport`
     // (l.197 : maladie/poison/peur/danger) coupe le Soutien à la source ; adjacence (l.196), gate GÉOMÉTRIQUE
     // via `distanceDeContact`, active quand `actor.pos` est posé (combat en cours).
-    const soutD = spec.noSupport ? null : soutienDetail(living, actor, spec, battle && actor.pos ? (c) => !!c.pos && distanceDeContact(actor, c) <= 1 : undefined);
+    const soutD = spec.noSupport ? null : soutienDetail(living, actor, spec, battle && actor.pos ? (c) => !!c.pos && distanceDeContact(get().scene, actor, c) <= 1 : undefined);
     const sout = soutD?.bonus ?? 0;
     // `spec.sense` (vue/ouïe, LDB 18) restreint le malus de Surdité au seul Test de Perception auditif — le
     // Soutien (`sout`, plafonné au Bonus de Carac du meneur) et le mod social ne dépendent pas du sens.
@@ -2111,8 +2162,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           ...(e.hullMax != null ? { wounds: { current: e.hullCurrent ?? e.hullMax, max: e.hullMax } } : {}),
           ...(e.saboteurDR != null ? { saboteurDR: e.saboteurDR } : {}),
           ...(e.waterLitres != null ? { waterLitres: Math.max(0, e.waterLitres) } : {}),
-          ...(e.vivre && e.provisions != null ? { provisions: { [e.vivre.id]: e.provisions } } : {}),
+          ...(e.vivre && e.provisions != null ? { provisions: embarquerDesVivres([], e.vivre.id, e.provisions, env.get().gameTime) } : {}),
           ...(e.crew && e.crew.length ? { crew: e.crew.filter((h) => h.roleId && h.count > 0) } : {}),
+          ...quaiDuGroupe(env.get()),
         },
       });
       env.log(t('eff.navirePossede', { name: e.label?.trim() || v.label }));
@@ -2136,7 +2188,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.morale != null) { next.morale = { ...vessel.morale, score: e.morale }; parts.push(t('eff.navireMoral', { n: e.morale })); }
       if (e.saboteurDR != null) { next.saboteurDR = clampSaboteurDR(e.saboteurDR); parts.push(t('eff.navireSabotage', { n: next.saboteurDR })); }
       if (e.waterLitres != null) { next.waterLitres = Math.max(0, e.waterLitres); parts.push(t('eff.navireEau', { n: next.waterLitres })); }
-      if (e.vivre && e.provisions != null) { next.provisions = { ...(vessel.provisions ?? {}), [e.vivre.id]: e.provisions }; parts.push(t('eff.navireProvisions', { n: rationsDeCale(next.provisions) })); }
+      if (e.vivre && e.provisions != null) {
+        // Valeur absolue d'auteur : l'écart s'embarque daté de maintenant, ou se retire du lot le plus vieux au plus jeune.
+        const lots = vessel.provisions ?? [];
+        const ecart = e.provisions - rationsDuVivre(lots, e.vivre.id);
+        next.provisions = ecart >= 0 ? embarquerDesVivres(lots, e.vivre.id, ecart, env.get().gameTime) : retirerDuVivre(lots, e.vivre.id, -ecart);
+        parts.push(t('eff.navireProvisions', { n: rationsDeCale(next.provisions) }));
+      }
       if (e.crew && e.crew.length) { next.crew = e.crew.filter((h) => h.roleId && h.count > 0); parts.push(t('eff.navireEquipage', { n: next.crew.reduce((s, h) => s + h.count, 0) })); }
       // Blessures de coque : valeur ABSOLUE d'auteur → seam `setVesselHull` (#308, pas d'écriture directe
       // de `vessel.wounds` — resynchronise aussi la copie de travail `travelPlan.vehicle` si active).
@@ -2154,15 +2212,14 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   // ── Combat & social ────────────────────────────────────────────────────
   startCombat: {
     group: 'Combat & social', label: libelleEffet('startCombat'), icon: 'action/attaquer',
-    make: () => ({ type: 'startCombat', encounter: '' }),
-    apply: (e, env) => { env.get().lancerLeCombat(e.encounter); },
-    refs: (e, ctx) => ctx.encounterIds.has(e.encounter) ? [] : [{ level: 'error', message: `Effet → rencontre inexistante « ${e.encounter} »` }],
+    make: () => ({ type: 'startCombat', encounter: { id: '' } }),
+    apply: (e, env) => { env.get().lancerLeCombat(e.encounter.id); },
   },
   startPursuit: {
     group: 'Combat & social', label: libelleEffet('startPursuit'), icon: 'voyage/a-pied',
-    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureSemee() } }], encounter: '' }),
-    apply: (e, env) => { startGroundPursuit(env.get, env.set, { partyRole: e.partyRole, distance: e.distance, escapeAt: e.escapeAt, skill: e.skill.id, foes: e.foes, encounter: e.encounter || undefined, policy: e.policy }); },
-    refs: (e, ctx) => {
+    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureSemee() } }] }),
+    apply: (e, env) => { startGroundPursuit(env.get, env.set, { partyRole: e.partyRole, distance: e.distance, escapeAt: e.escapeAt, skill: e.skill.id, foes: e.foes, encounter: e.encounter?.id, policy: e.policy }); },
+    refs: (e) => {
       const issues: EffectRefIssue[] = [];
       if (!e.foes?.length) issues.push({ level: 'error', message: 'Poursuite : aucun adversaire' });
       // Chaque adversaire est une RÉFÉRENCE : c'est sur la fiche que se lisent son Mouvement et sa
@@ -2172,7 +2229,6 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           issues.push({ level: 'error', message: `Poursuite → créature inexistante « ${f.ref.id || '(aucune)'} »` });
         }
       }
-      if (e.encounter && !ctx.encounterIds.has(e.encounter)) issues.push({ level: 'error', message: `Poursuite → rencontre inexistante « ${e.encounter} »` });
       return issues;
     },
   },
@@ -2272,7 +2328,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const battle = env.get().battle;
       const pool = battle?.combatants.filter((c) => c.kind === 'heros') ?? env.get().party;
       const leader = partyBest(pool, e)?.actor;
-      const eligible = battle && leader?.pos ? (c: Combatant) => !!c.pos && distanceDeContact(leader, c) <= 1 : undefined;
+      const eligible = battle && leader?.pos ? (c: Combatant) => !!c.pos && distanceDeContact(env.get().scene, leader, c) <= 1 : undefined;
       const best = leader ? partyAssisted(pool, e, undefined, eligible) : null;
       if (!best) return;
       const { joue, difficulty } = resoudreFlowTest(e, { cc: condCtx(env.get), groupe: env.get().party });

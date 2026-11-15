@@ -79,13 +79,13 @@ describe('États récurrents (« un par Round »)', () => {
     const c = pair().ally;
     c.items = [];
     // Durée 1 Round portée à 3 par Surincantation de Durée → 3 Rations (1 par Round actif).
-    applyOps(c, [{ op: 'perRound', ops: [{ op: 'giveTrapping', custom: 'Ration (1 jour)' }] }],
+    applyOps(c, [{ op: 'perRound', ops: [{ op: 'giveTrapping', trappingId: 'ration' }] }],
       { idNeuf: idsDeTest, rng: desDuTest, label: 'Récolte de Rhya', defaultDurationRounds: 3 });
-    expect((c.items ?? []).filter((it) => /^ration/i.test(it.label)).length).toBe(0); // rien à l'incantation
+    expect((c.items ?? []).filter((it) => it.trappingId === 'ration').length).toBe(0); // rien à l'incantation
     endOfRound(c, makeRNG(1), idsDeTest);
     endOfRound(c, makeRNG(1), idsDeTest);
     endOfRound(c, makeRNG(1), idsDeTest);
-    expect((c.items ?? []).filter((it) => /^ration/i.test(it.label)).length).toBe(3);
+    expect((c.items ?? []).filter((it) => it.trappingId === 'ration').length).toBe(3);
     expect(c.activeEffects?.length ?? 0).toBe(0); // effet porteur dissipé après 3 Rounds
   });
 });
@@ -167,7 +167,7 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
     const { priest, ally } = pair();
     const wiz = herosDeScenario(idsDeTest, 'sorcier');
     banc.setState({ party: [wiz, priest, ally] as Combatant[] });
-    const sort = { ...findSpellById('benediction-de-bataille')!, type: 'Magie des Arcanes', cn: 0 }; // gabarit +10 CC 6 rounds en SORT
+    const sort = { ...findSpellById('benediction-de-bataille')!, family: 'arcane' as const, cn: 0 }; // gabarit +10 CC 6 rounds en SORT
     applyCast(banc.getState, banc.setState, wiz, priest, sort, okRes(4), false, false, undefined, {
       durationMult: 2,
       extraTargets: [ally],

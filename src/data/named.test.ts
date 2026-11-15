@@ -1,15 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { isNamed, creatures, findCreatureById, type CreatureData } from './index';
+import { idDeFixture } from './idDeFixture.testkit';
 
 /** Fabrique un `CreatureData` synthétique minimal — seul `named` est lu par `isNamed`,
  *  le reste est rempli avec des valeurs neutres puis surchargé par `over`. */
 const creature = (over: Partial<CreatureData>): CreatureData =>
   ({
-    id: 'x', label: 'X', title: null, folder: null, char: {},
+    id: idDeFixture('creature', 'x'), type: 'creatures', label: 'X', title: null, folder: null, char: {},
     traits: [], optionals: [], skills: [], talents: [], trappings: [], spells: [],
-    desc: null, source: { book: 'LDB', page: 0 },
+    source: { book: 'LDB', page: 0 }, appearance: { species: 'humains-reiklander' },
     ...over,
-  } as CreatureData);
+  });
 
 describe('isNamed — source UNIQUE de la nommé-ité (jamais via `title`)', () => {
   it('`named: true` → true', () => {

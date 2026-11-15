@@ -61,7 +61,7 @@ describe('Refus d’un geste en coop : dit au siège qui a agi, jamais chez l’
       expect(s[pending], 'le geste refusé est parti').toBeFalsy();
       expect(s.refus, 'le refus de l’invité s’affiche chez l’hôte').toBeNull();
       const doc = s.battle!.combatants.find((c) => c.id === 'doc')!;
-      expect(actionGate(entree, { active: doc, battle: s.battle!, netMode: 'invite', gameTime: s.gameTime })).toEqual({ ok: false, reason: t('agate.actionSpent') });
+      expect(actionGate(entree, { scene: banc.getState().scene, active: doc, battle: s.battle!, netMode: 'invite', gameTime: s.gameTime })).toEqual({ ok: false, reason: t('agate.actionSpent') });
     });
 
     it(`${entree} (${verbe}) en partie locale, Action dépensée : refusé, et le bandeau le dit`, () => {

@@ -23,16 +23,17 @@ import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import type { BattleState, Jeu } from './etat';
 import type { GesteDuNoyau, VerbesDeLaBarre } from './actionsDuNoyau';
+import type { Scene } from './monde/scene';
 
 /** Pour chaque verbe à argument omissible, l'appel qui l'omet et celui qui désigne le candidat que son CORPS prend alors
  *  (`combatSlice.ts`), lu aux fonctions mêmes que lit le corps. */
-const CAS_DU_CORPS: { readonly [V in keyof VerbesDeLaBarre]?: (a: Combatant, b: BattleState) => { omis: unknown[]; designe: unknown }[] } = {
+const CAS_DU_CORPS: { readonly [V in keyof VerbesDeLaBarre]?: (a: Combatant, b: BattleState, scene: Scene | null) => { omis: unknown[]; designe: unknown }[] } = {
   rechargerLArme: (a, b) => [{ omis: [], designe: rechargeDuTour(a, b, undefined)?.arme.uid }],
   aspergerDEau: (a, b) => [{ omis: [], designe: waterSprayCandidates(a, b.combatants.filter((c) => c.kind === a.kind))[0]?.id }],
   faireUnBattement: (a, b) => [{ omis: [], designe: battementFoes(a, b)[0]?.id }],
   tenterDeDistraire: (a, b) => [{ omis: [], designe: distraireFoes(a, b)[0]?.id }],
-  monterEnSelle: (a, b) => [{ omis: [], designe: mountablesNear(b, a)[0]?.id }],
-  servirLePoste: (a, b) => [{ omis: [], designe: servablePostes(a, b.combatants)[0]?.poste.item.uid }],
+  monterEnSelle: (a, b, scene) => [{ omis: [], designe: mountablesNear(b, scene, a)[0]?.id }],
+  servirLePoste: (a, b, scene) => [{ omis: [], designe: servablePostes(scene, a, b.combatants)[0]?.poste.item.uid }],
   chanterLaChanson: (a) => [{ omis: [], designe: a.id }],
   manoeuvrerLeNavire: (a) => [{ omis: [], designe: a.id }],
   // La munition se désigne toujours ; l'arme omise est la première arme à distance du porteur.
@@ -60,7 +61,7 @@ function ecartsDuTour(s: Jeu, ou: string): string[] {
   const barre = etatDeLaBarre(s);
   if (barre.forme !== 'ouverte') return [];
   const ecarts: string[] = [];
-  const offres = offresDeLActif({ active: barre.active, battle: barre.battle, netMode: s.net.mode, gameTime: s.gameTime, state: s });
+  const offres = offresDeLActif({ scene: s.scene, active: barre.active, battle: barre.battle, netMode: s.net.mode, gameTime: s.gameTime, state: s });
   for (const o of offres) {
     if (!o.geste || !estVerbeDeLaBarre(o.geste.verbe)) continue;
     const v = refusDuGeste(s, o.geste);
@@ -71,7 +72,7 @@ function ecartsDuTour(s: Jeu, ou: string): string[] {
     if (!o.gate.ok && seuleEntree && 'refus' in v && v.refus !== o.gate.reason) ecarts.push(`${ou} ${o.actionId} fermée (${o.gate.reason}), refusée d'une autre raison : ${v.refus}`);
   }
   for (const [verbe, cas] of Object.entries(CAS_DU_CORPS)) {
-    for (const { omis, designe } of cas!(barre.active, barre.battle)) {
+    for (const { omis, designe } of cas!(barre.active, barre.battle, s.scene)) {
       const vOmis = refusDuGeste(s, { verbe, args: omis } as GesteDuNoyau);
       const args = Array.isArray(designe) ? designe : [designe];
       const vDesigne = args.includes(undefined) ? undefined : refusDuGeste(s, { verbe, args } as GesteDuNoyau);
@@ -119,7 +120,7 @@ describe('#3610 — Dissiper : le mode s’offre une fois, chaque Sort dissipabl
     const cible = mk('cible', { kind: 'ennemi', pos: { x: 5, y: 5 }, activeEffects: [sort('malefice', 'e1'), sort('aveuglement', 'e2')] } as never);
     banc.setState({ battle: { combatants: [mk('mage'), cible], order: ['mage', 'cible'], turn: 0, round: 1, acted: false, over: null, log: [], reachable: new Map(), movementUsed: 0 } as never });
     const s = banc.getState();
-    const offres = offresDeLActif({ active: s.battle!.combatants[0], battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime, state: s });
+    const offres = offresDeLActif({ scene: s.scene, active: s.battle!.combatants[0], battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime, state: s });
     expect(offres.filter((o) => o.actionId === 'dissipation').map((o) => o.geste)).toEqual([{ verbe: 'armerLeMode', args: ['dissipation'] }]);
     expect(offres.filter((o) => o.actionId === 'dissipation-sort').map((o) => o.geste)).toEqual([
       { verbe: 'dissiperLeSort', args: ['mage', 'malefice', 'e1'] },

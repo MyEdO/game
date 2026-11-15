@@ -13,7 +13,7 @@ import { draineCascade } from './cascade.testkit';
 import { emptyScene } from './monde/scene';
 import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
-import { ACTIVITIES } from '../engine/activities';
+import { ACTIVITIES } from '../data';
 import { learnableSpells } from '../engine/grimoire';
 import { spells } from '../data';
 import { refusDeLaComposition, refusDeRetrait } from './verdictsDInterlude';

@@ -54,14 +54,14 @@ const champs = {
   horsDeControle: nommerChamps(z.strictObject({ navPenalty: z.number(), source: sourceRefSchema }), { navPenalty: { label: 'Pénalité de Navigation' }, source: { label: 'Source' } }),
   echouage: nommerChamps(z.strictObject({ hullDamage: z.number(), source: sourceRefSchema }), { hullDamage: { label: 'Dégâts de coque' }, source: { label: 'Source' } }),
   temporaryRepair: nommerChamps(z.strictObject({
-    difficulty: difficultySchema,
-    charpentierPenalty: z.number(),
     woundsPerRepair: tirageSchema,
+    enduranceDifficulty: difficultySchema,
+    failDamage: tirageSchema,
     source: sourceRefSchema,
   }), {
-    difficulty: { label: 'Difficulté' },
-    charpentierPenalty: { label: 'Pénalité de Charpentier' },
     woundsPerRepair: { label: 'Blessures par réparation' },
+    enduranceDifficulty: { label: 'Difficulté du Test d’Endurance' },
+    failDamage: { label: 'Dégâts à l’échec' },
     source: { label: 'Source' },
   }),
 };
@@ -87,7 +87,7 @@ const doc = document(
     capsize: { label: 'Chavirage', hint: 'Difficultés d’amener la voile et de redresser, pénalité cumulative' },
     horsDeControle: { label: 'Hors de contrôle', hint: 'Malus au Test de Navigation quand le bateau est hors de contrôle' },
     echouage: { label: 'Échouage', hint: 'Dégâts de coque infligés par un échouage' },
-    temporaryRepair: { label: 'Réparation temporaire', hint: 'Difficulté, malus de Charpentier, Blessures réparées par Test' },
+    temporaryRepair: { label: 'Réparation temporaire', hint: 'Blessures réparées par Test, Test d’Endurance de suivi' },
   },
   { codex: { keys: ['riverNavigation'] }, edit: { object: 'unique' } },
 );

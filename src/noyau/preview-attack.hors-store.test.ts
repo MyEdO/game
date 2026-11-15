@@ -709,10 +709,10 @@ describe('ATTAQUE NATURELLE : le gel du jet ne la transforme pas en arme tenue (
     const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
     const battle = { combatants: [a, b] } as never;
     const pa = { attackerId: a.id, targetId: b.id, location: null, result: null, freeKind: 'morsure' } as unknown as PendingAttack;
-    expect(attackWeaponOf(battle, a, b, pa).type, 'la morsure est une attaque de MÊLÉE').toBe('melee');
+    expect(attackWeaponOf(banc.getState().scene, battle, a, b, pa).type, 'la morsure est une attaque de MÊLÉE').toBe('melee');
 
     // Et APRÈS le gel du jet (l'objet arme figé est l'arme TENUE) : la morsure prime toujours.
     const gele = { ...pa, weapon: flechettes } as unknown as PendingAttack;
-    expect(attackWeaponOf(battle, a, b, gele).type, 'le gel ne prime jamais sur l’attaque naturelle').toBe('melee');
+    expect(attackWeaponOf(banc.getState().scene, battle, a, b, gele).type, 'le gel ne prime jamais sur l’attaque naturelle').toBe('melee');
   });
 });

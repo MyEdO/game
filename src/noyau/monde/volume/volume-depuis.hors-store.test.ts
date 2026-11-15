@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { volumeDepuis, volumeDuMonde, type EtatDuVolume, type VolumeDuMonde } from './volume';
-import { emptyScene, setTileCollapsed, structureDownKey, type Scene, type SceneEntity } from '../scene';
+import { collapsedTileKey, emptyScene, setTileCollapsed, structureDownKey, type Scene, type SceneEntity } from '../scene';
 import { buildScene } from '../../mapSpec';
 import { poserLesNavires, provenanceDesNavires } from '../../planDeNavire';
 import { bumperDataset } from '../../../data/versionDataset';
@@ -148,6 +148,40 @@ describe('volumeDepuis : la reprise rend le calcul entier (#3993)', () => {
       etat = repris.etat;
     }
     for (const [k, vu] of vus.entries()) expect(vu.volume, `volume ${k} relu`).toEqual(entier(vu.scene).volume);
+  });
+
+  it('effondré puis intact (drapeau rendu à `false`), et deux scènes aux mêmes couches dont les effondrements diffèrent, en alternance (#4044)', () => {
+    const a = setTileCollapsed(s, 4, 7, 1);
+    const b = setTileCollapsed(s, 5, 8, 1);
+    const intacte: Scene = { ...a, flags: { ...a.flags, [collapsedTileKey(4, 7, 1)]: false } };
+    for (const t of [a, b, intacte]) expect(t.layers, 'mêmes couches').toBe(s.layers);
+    let etat = avant.etat;
+    for (const [k, scene] of [a, intacte, a, b, a, b, s].entries()) etat = reprendEgal(scene, etat, `pas ${k}`).etat;
+  });
+
+  it('deux scènes aux mêmes couches, une tuile d’étage effondrée chacune, calculées l’une après l’autre : le sol de la seconde suit ses seuls effondrements (#4044)', () => {
+    const trianglesDeSol = (v: VolumeDuMonde, x: number, y: number, z: number) =>
+      v.morceaux.filter((m) => m.cle.startsWith('sol/')).reduce((n, m) => n + m.cases.filter((_, k) => k % 3 === 0 && m.cases[k] === x && m.cases[k + 1] === y && m.cases[k + 2] === z).length, 0);
+    const a = setTileCollapsed(s, 4, 7, 1);
+    const b = setTileCollapsed(s, 5, 8, 1);
+    expect(b.layers, 'mêmes couches').toBe(a.layers);
+    entier(a);
+    const v = entier(b).volume;
+    expect(trianglesDeSol(v, 5, 8, 1), 'la tuile effondrée de b').toBe(0);
+    expect(trianglesDeSol(v, 4, 7, 1), 'la tuile intacte de b').toBeGreaterThan(0);
+  });
+
+  it('une tuile crénelée du chemin de ronde effondrée : ses crêtes tombent, aucune ne ceint le trou ; la reprise reste le calcul entier (#4044)', () => {
+    let ronde = s;
+    for (let y = 7; y <= 8; y++) for (let x = 3; x <= 6; x++) ronde = paintCrenellated(ronde, { x, y }, 'mur-en-pierre', 1, 1);
+    const effondree = setTileCollapsed(ronde, 5, 8, 1);
+    const cretes = (t: Scene) => [...entier(t).etat.cretes.keys()].sort();
+    const avant = cretes(ronde);
+    const cleDeLaCase = '5,8,1|';
+    expect(avant.some((c) => c.startsWith(cleDeLaCase)), 'la tuile porte des crêtes avant').toBe(true);
+    expect(cretes(effondree), 'celles d’avant, moins celles de la tuile effondrée').toEqual(avant.filter((c) => !c.startsWith(cleDeLaCase)));
+    let etat = entier(ronde).etat;
+    for (const [k, scene] of [effondree, ronde, effondree].entries()) etat = reprendEgal(scene, etat, `pas ${k}`).etat;
   });
 
   it('la scène à navire : une case d’eau peinte, la mer reprise', () => {

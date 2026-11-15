@@ -134,9 +134,9 @@ interface Foo {
   });
 
   it('faux positif écarté : un paramètre `name` d\'une fonction-type membre d\'une interface n\'est '
-    + 'PAS un champ (preuve TDD — `netHostStart: (name: string) => Promise<boolean>`, `ts.Parameter` '
+    + 'PAS un champ (preuve TDD — `netHostStart: (name: string) => Promise<string | null>`, `ts.Parameter` '
     + 'exclu par construction)', () => {
-    expect(nameFieldLines('x.ts', 'interface X { netHostStart: (name: string) => Promise<boolean>; }')).toEqual([]);
+    expect(nameFieldLines('x.ts', 'interface X { netHostStart: (name: string) => Promise<string | null>; }')).toEqual([]);
   });
 
   it('un champ `name` niché derrière du JSX/générique imbriqué est DÉTECTÉ (preuve TDD — l\'AST ne '

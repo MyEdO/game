@@ -67,7 +67,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     expect(belier.resolveChar).toBe('force');
     expect(belier.weaponGroup).toBe('machine-de-guerre');
     expect(belier.qualities.map((q) => q.id).sort()).toEqual(['belier', 'devastatrice', 'equipe', 'percutante', 'siege'].sort());
-    const w = firedWeapon(soldat, porte, belier.uid, banc.getState().battle!.combatants);
+    const w = firedWeapon(banc.getState().scene, soldat, porte, belier.uid, banc.getState().battle!.combatants);
     expect(w.crewTeamIncomplete).toBeUndefined(); // Équipe au complet → arme nette
   });
 
@@ -97,7 +97,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     // Arme EXPLICITE (Bélier) : le Soldat garde SON arme personnelle en plus du poste servi (kind-agnostique,
     // comme un canonnier qui garde sa dague) — l'auto-sélection `attackWeapon` prendrait sinon sa propre arme.
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const r = resolveAttack(() => banc.getState(), soldat, porte, undefined, false, false, false, firedWeapon(soldat, porte, belier.uid, banc.getState().battle!.combatants));
+    const r = resolveAttack(() => banc.getState(), soldat, porte, undefined, false, false, false, firedWeapon(banc.getState().scene, soldat, porte, belier.uid, banc.getState().battle!.combatants));
     expect(r).not.toBeNull();
     expect(r!.weapon.resolveChar).toBe('force'); // le jet qui vient de se résoudre était bien un Test de Force
     expect(r!.res.hit).toBe(true); // Force 90 → Test quasi-garanti
@@ -109,7 +109,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     // Neutralise 3 des 5 servants PNJ (jamais le chef) → 3/6 restants (chef + 2 servants).
     for (const c of crew.filter((x) => x.id !== soldat.id).slice(0, 3)) c.wounds = { ...c.wounds, current: 0 };
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const w = firedWeapon(soldat, porte, belier.uid, banc.getState().battle!.combatants);
+    const w = firedWeapon(banc.getState().scene, soldat, porte, belier.uid, banc.getState().battle!.combatants);
     expect(w.crewTeamIncomplete).toBe(true);
     expect(firedAttackBlock(() => banc.getState(), soldat, porte, belier.uid)).toBeNull(); // toujours utilisable
   });
@@ -259,7 +259,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     expect(ram.pos).toEqual({ x: 4, y: 5 }); // formation rigide : offset chef↔engin inchangé après 2 poussées cumulées
     seedBattleRng(1);
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const r = resolveAttack(() => banc.getState(), soldat, porte, undefined, false, false, false, firedWeapon(soldat, porte, belier.uid, banc.getState().battle!.combatants));
+    const r = resolveAttack(() => banc.getState(), soldat, porte, undefined, false, false, false, firedWeapon(banc.getState().scene, soldat, porte, belier.uid, banc.getState().battle!.combatants));
     expect(r).not.toBeNull();
     expect(r!.res.hit).toBe(true); // Force 90 → Test quasi-garanti
     expect(r!.res.woundsLost ?? 0).toBeGreaterThan(0); // la porte encaisse RÉELLEMENT, après le trajet poussé
@@ -278,7 +278,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     pushBy(2);
     pushBy(1); // coque adjacente à la porte ; le chef (3,5) en reste à distance 2
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const w = firedWeapon(soldat, porte, undefined, banc.getState().battle!.combatants);
+    const w = firedWeapon(banc.getState().scene, soldat, porte, undefined, banc.getState().battle!.combatants);
     expect(w.uid).not.toBe(belier.uid); // jamais auto-choisi
     expect(w.type).toBe('melee'); // une arme PERSONNELLE (ou le repli générique), jamais la pièce
   });
@@ -290,7 +290,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     soldat.pos = { x: 0, y: 0 }; // chef très loin — hors-sujet pour la pièce servie
     placeCombatant(soldat, banc.getState().scene!, soldat.pos);
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const w = firedWeapon(soldat, porte, belier.uid, banc.getState().battle!.combatants);
+    const w = firedWeapon(banc.getState().scene, soldat, porte, belier.uid, banc.getState().battle!.combatants);
     expect(w.uid).toBe(belier.uid);
   });
 

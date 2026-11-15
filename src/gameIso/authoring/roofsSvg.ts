@@ -17,6 +17,7 @@
 import { diamondPath, footprintDepth, isSquareView, tileCenter, type Dims } from '../../geometry/iso';
 import { roofMaterial } from '../../noyau/monde/volume/matieres';
 import type { RoofMaterialDef } from '../../data/materials.types';
+import type { EntreeVivante } from '../../data/datasets';
 import { ROOF_SLOPE_M } from '../../noyau/monde/volume/toits';
 import { roofCourseStepM } from '../detail/courses';
 import { ISO_PX_PER_M } from '../../noyau/monde/iso';
@@ -51,7 +52,7 @@ const RIDGE_CAP_W = 0.9; // liseré CLAIR (`ridgeCap`) posé sur le dessus → l
 /** Ton d'une face de toit depuis la def (zéro littéral) : les faces de VOLUME d'avant-toit résolvent leur
  *  ton DÉDIÉ (`soffite` = dessous débordant ombré ; `fascia` = planche de rive sombre) ; un pan ordinaire
  *  suit son orientation N/E/S/O. */
-function panFill(sh: RoofMaterialDef, part: string): string {
+function panFill(sh: EntreeVivante<RoofMaterialDef>, part: string): string {
   if (part === 'soffite') return sh.soffite ?? sh.S ?? sh.N!;
   if (part === 'fascia') return sh.fascia ?? sh.line ?? sh.S ?? sh.N!;
   return sh[part as 'N' | 'E' | 'S' | 'O'] ?? sh.N!;

@@ -127,7 +127,7 @@ export const ECRIT_LU = {
     },
     lit: [
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', ...DOSSIERS_DES_ZONES, 'Source/',
-      'CLAUDE.md', 'AGENTS.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
+      'CLAUDE.md', 'AGENTS.md', 'oxlint.config.mjs', 'oxlint.noms-par-ligne.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts', 'vitest.noyau.config.ts', '.mcp.json',
     ],
     raison: RETRAIT_WORKTREE_FERME +
@@ -146,6 +146,7 @@ export const ECRIT_LU = {
       'les autres fixtures vivent sous os.tmpdir() ; le banc de configuration de lancerLint copie le fichier jugé dans sa fixture temporaire, ' +
       'y écrit .lint-PID-aléatoire.config.mjs et y mesure cette écriture avec le collecteur de lectures, puis exige la suppression de la configuration ; ' +
       'fichiersLus (scripts/test/lib/bancLister.mjs) copie les fichiers armés et les fichiers d’ignore suivis sous mkdtempSync de os.tmpdir(), y lance la commande du lint, puis rmSync en finally ; ' +
+      'nomsParLigneLint.test.mjs (#3821) pose ses fixtures sous mkdtempSync de os.tmpdir(), y lance oxlint --fix sous oxlint.noms-par-ligne.config.mjs, puis rmSync en finally ; ' +
       'enregistreur-lectures.mjs n’écrit sa sortie que si WFRP_LECTURES_RACINE et WFRP_LECTURES_SORTIE sont fournis, avec WFRP_LECTURES_IGNORES requis ; ' +
       'ces variables sont absentes du banc lintStage : installer rend un collecteur sur la fixture temporaire, restauré en finally avant son retrait ; ' +
       'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
@@ -309,7 +310,7 @@ export const ECRIT_LU = {
   },
   'test:runner': {
     ecrit: [],
-    lit: ['scripts/', 'package.json', '.npmrc', '.claude/settings.json', '.codex/hooks.json'],
+    lit: ['scripts/', 'package.json', '.npmrc', '.claude/settings.json', '.codex/hooks.json', 'vite.config.ts'],
     raison: RETRAIT_WORKTREE_FERME +
       'gitDeBanc.test.mjs importe installer du collecteur et ses dépendances sous scripts/ : aucune SORTIE fournie, aucun flush appelé ; ' +
       'ses captures Git restent en mémoire sur des dépôts instanceDeDepot sous os.tmpdir(), restaurés puis supprimés en finally ; ' +
@@ -327,7 +328,8 @@ export const ECRIT_LU = {
       '(node_modules/.cache/docs-fraicheur.json) que depuis `executer` sous la porte `import.meta.main` de build-all.mjs, ' +
       'que les bancs de la gate n’appellent pas ; +1 le 2026-10-15 (#2603) : `purgerPerimes.mjs`, atteint par `perimetre.mjs` → ' +
       '`memosDAnalyse.mjs`, ne purge que le dossier de mémos de son appelant (node_modules/.cache/perimetre, ou un ' +
-      '`mkdtempSync` d’os.tmpdir() des bancs)',
+      '`mkdtempSync` d’os.tmpdir() des bancs) ; +1 le 2026-11-13 (#3412) : `partition.test.mjs` importe vite.config.ts (LU) ' +
+      'et trie par son séquenceur des fixtures posées sous un `mkdtempSync` d’os.tmpdir(), `rmSync` en finally',
   },
   'test:noyau': {
     ecrit: [],
@@ -500,9 +502,9 @@ export const ECRIT_LU = {
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
     raison:
       '`godot --headless --import`, puis chaque recette sous `recettes/` déclarant `const RECETTE_RENDUE := true` jouée ' +
-      'en rendu réel sous `--rendering-method forward_plus` puis `gl_compatibility` (hotes/godot/construire.mjs, #3951), ' +
+      'en rendu réel sous `--rendering-method forward_plus` et `gl_compatibility`, menées de front deux cœurs chacune, son moteur et son pont (hotes/godot/construire.mjs, #3951, #3950), ' +
       'sur une COPIE du projet sous `os.tmpdir()`, que le mode efface, et sur un écran (`xvfb-run` sans `DISPLAY`) ; ' +
-      'aucune recette rendue ne reçoit le pont vivant ; LIT ce que lit `godot:sonde` : hotes/ (le projet et son ' +
+      'LIT ce que lit `godot:sonde` : hotes/ (le projet et son ' +
       'constructeur), scripts/, les zones du noyau chargées par `chargerAssets`, leurs catalogues et Source/, ' +
       'tsconfig.json et package.json. Écrit sous hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`) ; ' +
       '`deposerLesAvis` (hotes/godot/avis.mjs, #4063) n’écrit que sous `--export` et `--bureau`, dans leur `--sortie` ; ' +

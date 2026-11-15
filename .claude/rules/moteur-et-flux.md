@@ -3,7 +3,6 @@ paths:
   - "src/engine/**"
   - "src/state/**"
   - "src/noyau/**"
-  - "src/net/**"
 ---
 
 # Moteur et flux de state

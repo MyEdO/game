@@ -10,7 +10,6 @@ import { createRoot, type Root } from 'react-dom/client';
 import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray, resetData } from '../../data/overrides';
 import { grilleDesPonts } from '../../data/schemas/grammaire/carte-ascii';
-import type { VehicleData } from '../../engine/types';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -25,7 +24,7 @@ afterEach(() => {
   resetData();
 });
 
-const caraque = () => (datasetArray('vehicles') as VehicleData[]).find((v) => v.id === 'caraque')!;
+const caraque = () => datasetArray('vehicles').find((v) => v.id === 'caraque')!;
 
 function monter() {
   container = document.createElement('div');

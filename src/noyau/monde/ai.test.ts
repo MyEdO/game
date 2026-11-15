@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, EnemyTurnInput, type CastableSpell } from './ai';
 import { emptyScene } from './scene';
 import { manhattan } from './path';
+import { distanceDeContact } from './footprint';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { SpellData } from '../../data';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
@@ -12,10 +14,10 @@ const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false
 /** Sort RÉSOLU minimal (`CastableSpell`) — porte un `data: SpellData` réduit aux champs lus par
  *  l'évaluateur (effects/missile/damage/opposed). Défaut = Projectile magique mono-cible jouable. */
 function spellData(over: Partial<SpellData> = {}): SpellData {
-  return { id: 'sp', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, ...over } as SpellData;
+  return { id: idDeFixture('spell', 'sp'), type: 'spells', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, ...over };
 }
 function castable(over: Partial<CastableSpell> & { id?: string } = {}): CastableSpell {
-  const data = over.data ?? spellData({ id: over.id ?? 'sp', missile: true, damage: 8 });
+  const data = over.data ?? spellData({ id: idDeFixture('spell', over.id ?? 'sp'), missile: true, damage: 8 });
   return { id: over.id ?? data.id, data, cn: over.cn ?? data.cn ?? 0, range: over.range ?? null, shape: over.shape ?? 'single', landProb: over.landProb ?? 1, focusState: over.focusState ?? 'none', active: over.active ?? false };
 }
 
@@ -132,7 +134,7 @@ describe("IA d'ennemi (chooseEnemyAction, pure)", () => {
     expect(a.kind).toBe('deplacement'); // délaisse le costaud adjacent pour fondre sur le blessé
     if (a.kind === 'deplacement') {
       expect(a.thenTargetId).toBe('weak');
-      expect(manhattan(a.to, weak.pos!)).toBe(1); // se met au contact du blessé
+      expect(distanceDeContact(scene, { ...e, pos: a.to }, weak)).toBe(1); // se met au contact du blessé
     }
   });
 
@@ -207,4 +209,22 @@ describe('IA — vision réciproque (perceived)', () => {
     const seen = mk('seen', 'heros', { x: 5, y: 9 });
     expect(chooseEnemyAction(input(e, [seen], { perceived: new Set(['5,9,0']) })).kind).toBe('tir');
   });
+});
+
+describe("IA — départ où l'empreinte ne tient pas (`walkReachableFrom`)", () => {
+  // Créature aquatique de mêlée DANS l'eau (0,1), héros sur l'herbe à 7 cases : la marche de l'IA (sans nage) en sort.
+  const s = emptyScene('scene-test', 9, 3);
+  s.layers[0].tiles[1 * 9 + 0] = 'eau';
+  const e = mk('e', 'ennemi', { x: 0, y: 1 }, { movement: 4, traits: [{ id: 'aquatique' }] });
+  const h = mk('h', 'heros', { x: 7, y: 1 });
+  for (const [cas, perceived] of [['cible perçue', undefined], ['aucune cible perçue (anti-immobilisme)', new Set<string>()]] as const) {
+    it(`${cas} : sort vers sa cible`, () => {
+      const a = chooseEnemyAction(input(e, [h], { scene: s, ...(perceived ? { perceived } : {}) }));
+      expect(a.kind).toBe('deplacement');
+      if (a.kind === 'deplacement') {
+        expect(a.thenTargetId).toBe('h');
+        expect(manhattan(a.to, h.pos!)).toBeLessThan(manhattan(e.pos!, h.pos!));
+      }
+    });
+  }
 });

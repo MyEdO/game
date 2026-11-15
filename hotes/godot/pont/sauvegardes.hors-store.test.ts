@@ -103,6 +103,20 @@ describe('sauvegarder et reprendre par le pont', () => {
     expect(erreurDe(appel('sauvegarder', { sauvegarder: 1 }))).toEqual({ categorie: 'regle', message: `sauvegarder : ${t('store.saveKo')}` });
   });
 
+  it('un héros du groupe qui porte un État que le jeu ne connaît plus : son retrait est dit au journal de la `Suite` de `charger`', () => {
+    const { pont, appel, stockage } = table();
+    ouvert = pont;
+    const s = suiteDe(appel('ouvrir', { graine: 7 }));
+    appel('jouer', s.vue.zones['groupe.pretires'][0].elements.find((x): x is Bouton => x.type === 'bouton')!.jeu);
+    expect(appel('sauvegarder', { sauvegarder: 1 }).ok).toBe(true);
+    appel('quitter');
+    const save = JSON.parse(stockage.getItem(cleDEmplacement(1))!);
+    save.data.party[0].conditions = [...(save.data.party[0].conditions ?? []), { id: 'etat-inconnu', value: 1 }];
+    stockage.setItem(cleDEmplacement(1), JSON.stringify(save));
+    const charge = suiteDe(appel('charger', { charger: 1, graine: 7 }));
+    expect(charge.journal.map((l) => ('texte' in l ? l.texte : null))).toEqual([t('saveload.elague', { liste: t('elagage.etats', { ids: 'etat-inconnu' }) })]);
+  });
+
   it('une sauvegarde d’un autre format est retirée du stockage à la lecture, et dite une fois', () => {
     const { appel, stockage } = table();
     stockage.setItem(cleDEmplacement(3), JSON.stringify({ version: 'un-autre-format', savedAt: 'x', data: {} }));

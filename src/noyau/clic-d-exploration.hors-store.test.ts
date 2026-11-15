@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { intentionDuClicDExploration } from './interactionsDExploration';
 import { emptyScene, type Scene, type SceneEntity } from './monde/scene';
+import { terrainAbsent } from './monde/terrain';
 import type { Pt } from './monde/path';
 import type { Combatant } from '../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -114,6 +115,15 @@ describe('intentionDuClicDExploration — figurant, décor, sol', () => {
   it('figurant injoignable : le refus nomme sa case', () => {
     poser([badaud, ...enceinte()], { x: 0, y: 0 });
     expect(clic(SUR, 'pnj-1')).toEqual({ kind: 'injoignable', message: `Marche refusée : aucun chemin du groupe ne mène à (${SUR.x},${SUR.y}).` });
+  });
+
+  it('une case sans chemin d’une scène à plusieurs couches : le refus nomme sa case et son étage (#4040)', () => {
+    poser([], { x: 0, y: 0 });
+    const scene = banc.getState().scene!;
+    const seule = (i: number) => i === SUR.y * 12 + SUR.x;
+    const etage = { z: 1, tiles: scene.layers[0].tiles.map((t, i) => (seule(i) ? t : terrainAbsent())), height: scene.layers[0].tiles.map((_, i) => (seule(i) ? 3 : 0)) };
+    banc.setState({ scene: { ...scene, layers: [...scene.layers, etage] } });
+    expect(clic({ ...SUR, z: 1 }, null)).toEqual({ kind: 'injoignable', message: `Marche refusée : aucun chemin du groupe ne mène à (${SUR.x},${SUR.y}) à l’étage 1.` });
   });
 
   it('décor bloquant à portée : il le dit', () => {

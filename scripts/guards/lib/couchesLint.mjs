@@ -35,7 +35,21 @@ import { extname, relative } from 'node:path';
 import picomatch from 'picomatch';
 import { cibleLexicale, posix } from './interneLint.mjs';
 import { nomDe, visiteurDArcs } from './arcsDImport.mjs';
-import { COUCHES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe, estZone, fermeParLaSurvie, fermeture, horsZoneOuvert, outillageAtteint, ouvertes, paquetFerme, porteManquee, zoneDe } from './couches.mjs';
+import {
+  COUCHES,
+  SURFACE_DU_NOYAU,
+  ZONES_SANS_REEXPORTATION,
+  dossierDe,
+  estZone,
+  fermeParLaSurvie,
+  fermeture,
+  horsZoneOuvert,
+  outillageAtteint,
+  ouvertes,
+  paquetFerme,
+  porteManquee,
+  zoneDe,
+} from './couches.mjs';
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { estFichierVitest, estSuiteVitest } from './fichierVitest.mjs';
 import { correspondGlob } from './lister.mjs';

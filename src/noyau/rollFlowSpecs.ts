@@ -11,7 +11,57 @@
  */
 import type { Jeu } from './etat';
 import type { IdDeRangee } from './designations';
-import type { IssueOpposee, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard, PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery, PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple, PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound, PendingForceDoor, PendingEtalLot, EtalLotRow, ForceDoorParticipant, PendingCastOpposition, OppositionParticipant, PendingCascade, CascadeStep, CascadeRoll, BatchParticipant } from './pendings';
+import type {
+  IssueOpposee,
+  PendingBattement,
+  PendingDistraire,
+  PendingManeuver,
+  PendingRun,
+  PendingFall,
+  TombantParticipant,
+  PendingShipManeuver,
+  ShipManeuverParticipant,
+  PendingShipBattery,
+  ShipBatteryParticipant,
+  PendingShanty,
+  PendingFocus,
+  PendingDispel,
+  PendingFrenzy,
+  PendingApproach,
+  PendingWard,
+  PendingReload,
+  PendingStateRecovery,
+  PendingTest,
+  PendingSteamSave,
+  PendingAppraise,
+  PendingBargain,
+  PendingHeal,
+  PendingSurgery,
+  PendingCorruption,
+  PendingAttack,
+  PendingHandGate,
+  PendingDefense,
+  PendingCast,
+  PendingDisengage,
+  FleeSlot,
+  FleeBackstabSlot,
+  PendingAuContact,
+  PendingGrapple,
+  PendingCounterspell,
+  CounterParticipant,
+  PendingExtendedTest,
+  ExtendedTestRound,
+  PendingForceDoor,
+  PendingEtalLot,
+  EtalLotRow,
+  ForceDoorParticipant,
+  PendingCastOpposition,
+  OppositionParticipant,
+  PendingCascade,
+  CascadeStep,
+  CascadeRoll,
+  BatchParticipant,
+} from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } from './interludeFlow';
 import type { Combatant, ReverseQuery, Weapon } from '../engine/types';
@@ -22,8 +72,27 @@ import { HEAL_SKILL, IDS_DU_TEST_DE_SOIN, type TestDeSoin } from '../engine/heal
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, fluxAccepte, rangeeFacultative, viseUneRangee, type FlowKey, type FluxDuVerbe, type RollVerb } from './flowVerbs';
 import { refuserGeste } from './refusVisible';
-import { deDuJet, FERMETURES_DITES, makeRollFlow, type FermetureDuJet, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
-import { declarationDuReglage, declarationDuReglageNomme, fermetureDeLaPhase, type CorpsDesReglages, type DeclarationDuReglage, type FluxRegle, type ReglageDuJet, type VerbeDeReglage } from './reglagesDuJet';
+import {
+  deDuJet,
+  FERMETURES_DITES,
+  makeRollFlow,
+  type FermetureDuJet,
+  type ForcedPick,
+  type RollFlowSpec,
+  type RollFlowHandlers,
+  type RollFlowLens,
+  type PendingBase,
+} from './rollFlowFactory';
+import {
+  declarationDuReglage,
+  declarationDuReglageNomme,
+  fermetureDeLaPhase,
+  type CorpsDesReglages,
+  type DeclarationDuReglage,
+  type FluxRegle,
+  type ReglageDuJet,
+  type VerbeDeReglage,
+} from './reglagesDuJet';
 import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
@@ -36,28 +105,106 @@ import {
   lancerLAttaque, lancerLIncantation, renoncerALIncantation, laisserPasserLeContreSort,
   resolveAttack, attackWeaponOf, firedWeapon, effectiveSpellOf, disengageOutcome, castContextMods, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor, clearApproachMoves, overcastReset, withPreRollFixedDie,
 } from './combatFlow';
-import { bestDefenseMode, rollManeuverAttacker, maneuverAttackerDifficulty, ligneDAttaquantDeManoeuvre, distraireAttackValue, distraireAttackBase } from './combatManeuvers';
+import {
+  bestDefenseMode,
+  rollManeuverAttacker,
+  maneuverAttackerDifficulty,
+  ligneDAttaquantDeManoeuvre,
+  distraireAttackValue,
+  distraireAttackBase,
+} from './combatManeuvers';
 import { bus, EVT } from './bus';
 import { campRestitue, campSpend } from './combat/advantagePool';
 import { attaqueDeCle } from '../engine/creatureAttacks';
 import { mouvementDeCourse, chargeDmgProxy, defenseDodgeMods } from './mount';
-import { sceneMetresPerTile } from './monde/scene';
+import { sceneMetresPerTile, type Scene } from './monde/scene';
 import { metresRetenus, phaseDeChute, rangeesDuesDeChute, refusDesDeclarationsDues, tombantsNommes } from './fallMove';
-import { REDERIVATIONS, attackTestOf, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
-import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, cibleBrute, cibleDuTest, cibleMesuree, jetPose, type JetPose, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
+import {
+  REDERIVATIONS,
+  attackTestOf,
+  rederivePassiveAttack,
+  resolveBackstabAttack,
+  backstabWeapon,
+  finishMelee,
+  finishRanged,
+  rollMeleeDefender,
+  defaultParryWeapon,
+  rollDisengageAttack,
+  rollGrappleForce,
+  frozenDifficulty,
+  type AttackResult,
+  type DefenseSub,
+} from '../engine/combat';
+import {
+  rollTest,
+  resolveOpposed,
+  opposedBranchSuccess,
+  bumpSL,
+  type TestResult,
+  evaluateTest,
+  evaluateCombinedTest,
+  bestForcedRoll,
+  forcedTR,
+  hydrateTR,
+  cibleBrute,
+  cibleDuTest,
+  cibleMesuree,
+  jetPose,
+  type JetPose,
+  estJete,
+  refusSansJet,
+  type EchecSansJet,
+} from '../engine/tests';
 import type { Difficulty } from '../engine/types';
 import { d100 } from '../engine/dice';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
-import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, toutResoudre, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady, sortirDeLHote } from './cascade';
+import {
+  deDEtape,
+  maladresseCourante,
+  poserLeDeDEtape,
+  refusDuDeDEtape,
+  refusHorsDeLEtapeCourante,
+  tirerLeDeDEtape,
+  refusDuJetDEtape,
+  toutResoudre,
+  rollBatchParticipant,
+  forceBatchParticipant,
+  evaluerRangeeBatch,
+  opposedCascadeRoll,
+  stepOpposedFreeze,
+  lireDeEtape,
+  roulerDeEtape,
+  stepInteraction,
+  stepReady,
+  sortirDeLHote,
+} from './cascade';
 import { rollLine, type RollLineParts } from './ligneDeJet';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
 import { activityModLines } from '../engine/activities';
 import { testValue, effectiveSkillCharKey, skillBaseValue } from '../engine/skills';
 import { skillDRBonus, charDRBonusOf, offTerrainTestDR } from '../engine/ops';
-import { resolveFocus, resolveMagicMissile, resolveCasting, rederiveCastSL, castTestDRMods, talentTestSLBonus, resolveCounterspell, counterspellOutcomeFrom, withCastTestDRMods, castTestOf, castTestTarget, castInfoIsPrayer, counterspellValue, malepierreDR, malepierreReserveOf, castingNumberOf, type CastResult } from '../engine/magic';
+import {
+  resolveFocus,
+  resolveMagicMissile,
+  resolveCasting,
+  rederiveCastSL,
+  castTestDRMods,
+  talentTestSLBonus,
+  resolveCounterspell,
+  counterspellOutcomeFrom,
+  withCastTestDRMods,
+  castTestOf,
+  castTestTarget,
+  castInfoIsPrayer,
+  counterspellValue,
+  malepierreDR,
+  malepierreReserveOf,
+  castingNumberOf,
+  type CastResult,
+} from '../engine/magic';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { rule } from '../engine/policy';
 import { t } from '../i18n';
@@ -73,10 +220,10 @@ import { findSpellById, byId } from '../data/index';
  *  choisi) : Test opposé si un défenseur a joué, attaque passive sinon — partagé attaque/force.
  *  La Difficulté VOYAGE avec le résultat d'origine (`frozenDifficulty`) : ce re-jet n'a plus le
  *  contexte (distance, env, flanc/dos) qui l'a composée, et dépenser un point ne la change pas. */
-export function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack, atk2: TestResult, combatants?: Combatant[]): AttackResult {
+export function rederiveAttack(scene: Scene | null, attacker: Combatant, target: Combatant, p: PendingAttack, atk2: TestResult, combatants?: Combatant[]): AttackResult {
   // L'arme FIGÉE au jet prime : `Combatant.weapons` ne porte que le loadout ACTIF, donc un uid seul
   // peut être introuvable et rendre la main à l'auto-choix (un tir au contact redeviendrait une frappe).
-  const weapon = p.weapon ?? firedWeapon(attacker, target, p.weaponUid, combatants, p.harpoonRopeCut);
+  const weapon = p.weapon ?? firedWeapon(scene, attacker, target, p.weaponUid, combatants, p.harpoonRopeCut);
   const r = p.result!;
   const compo = frozenDifficulty(r.attackerDetail);
   const dmgProxy = chargeDmgProxy(combatants, attacker, p.fromCharge);
@@ -734,7 +881,7 @@ export const FLOWS = paresseux({
       read: (p) => (p.result?.attackerDetail ? { ...deDuJet(p.result.attackerDetail), roll: p.result.attackerRoll } : null),
       write: (s, p, actor, _g, tr) => {
         const t = actorIn(s, p.targetId);
-        return actor && t ? { result: rederiveAttack(actor, t, p, tr, s.battle?.combatants) } : null;
+        return actor && t ? { result: rederiveAttack(s.scene, actor, t, p, tr, s.battle?.combatants) } : null;
       },
       // Test opposé : « vous l'emportez avec au moins DR +1 » (LDB 17 l.68) — cf. INVARIANT de `resolve`.
       floorSL: (p) => plancherOpposeForce(p.result?.defenderDetail?.sl ?? 0, false),
@@ -754,11 +901,11 @@ export const FLOWS = paresseux({
         // policy-aware), jamais le dé raté courant. Test opposé : « vous l'emportez avec au moins DR +1 ».
         const aDie = bestForcedRoll(ad.target);
         const atk2 = forcedTR(aDie, cibleBrute(ad), Math.max(evaluateTest(aDie, cibleBrute(ad)).sl, plancherOpposeForce(defSL, false)), ad.base);
-        return { result: rederiveAttack(actor, target, p, atk2, s.battle?.combatants) };
+        return { result: rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants) };
       }
       const battle = s.battle;
       if (!battle) return null;
-      const r = resolveAttack(get, actor, target, p.location ?? undefined, p.fromCharge, p.dansLeTas, p.tirImmobile, attackWeaponOf(battle, actor, target, p), p.withhold);
+      const r = resolveAttack(get, actor, target, p.location ?? undefined, p.fromCharge, p.dansLeTas, p.tirImmobile, attackWeaponOf(s.scene, battle, actor, target, p), p.withhold);
       // MÊME gel que `jetLancer('attaque')` : l'OBJET arme réellement tiré (jamais l'uid, qui porte le choix du
       // joueur et discrimine l'attaque naturelle) — sans lui, toute re-dérivation re-passe par
       // `pickAttackWeaponList`, qui reprend la MÊLÉE dès qu'elle est à portée (`mount.ts`).
@@ -777,7 +924,7 @@ export const FLOWS = paresseux({
         if (!target) return null;
         const ad = p.result!.attackerDetail!;
         const atk2 = bumpSL(hydrateTR(ad));
-        return { result: rederiveAttack(actor, target, p, atk2, s.battle?.combatants) };
+        return { result: rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants) };
       },
     },
     // Inversion de Test (LDB 23 l.209 « Entraînement au Combat » : Corps à corps/Projectiles — CHOIX
@@ -787,7 +934,7 @@ export const FLOWS = paresseux({
         const target = actorIn(s, p.targetId); if (!target) return null;
         // Le Talent d'Inversion porte sur la COMPETENCE reellement lancee (LDB 23 l.209) : l'arme
         // FIGEE au jet fait foi, jamais un re-choix qui pourrait basculer melee/distance.
-        const weapon = p.weapon ?? firedWeapon(actor, target, p.weaponUid, s.battle?.combatants, p.harpoonRopeCut);
+        const weapon = p.weapon ?? firedWeapon(s.scene, actor, target, p.weaponUid, s.battle?.combatants, p.harpoonRopeCut);
         return attackTestOf(actor, weapon, weapon.type === 'distance' ? 'distance' : 'melee'); // Spécialisation comprise (LDB 23 l.209)
       },
       current: (p) => (p.result?.attackerDetail ? { roll: p.result.attackerDetail.roll, target: p.result.attackerDetail.target } : null),
@@ -798,7 +945,7 @@ export const FLOWS = paresseux({
         // — ni forcer un succès, `forcedTR`) ; seule la voie Talent (gate stricte échec→succès dans
         // `applyReverse`) garantit `tr.success:true` par construction.
         const atk2 = hydrateTR({ roll: tr.roll, ...cibleMesuree(ad), base: ad.base, success: tr.success, sl: tr.sl });
-        return { patch: { result: rederiveAttack(actor, target, p, atk2, s.battle?.combatants) }, issue: tr };
+        return { patch: { result: rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants) }, issue: tr };
       },
     },
     refusDAnnuler: (_s, pa) => refusDAnnulerLAttaque(pa),

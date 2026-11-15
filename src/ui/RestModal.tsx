@@ -6,7 +6,16 @@ import { CharFrame } from './CharFrame';
 import { StateChips } from './StateChips';
 import { Coins } from './Coins';
 import { OptionChooser } from './OptionChooser';
-import { lodgingOptions, foodOptions, nourrituresDeTroupe, restCost, partsDuRepos, noteDAubergeCouverte, type RestLodging, type RestFood } from '../noyau/restFlow';
+import {
+  lodgingOptions,
+  foodOptions,
+  nourrituresDeTroupe,
+  restCost,
+  partsDuRepos,
+  noteDAubergeCouverte,
+  type RestLodging,
+  type RestFood,
+} from '../noyau/restFlow';
 import { refusDeLaValidationNommee } from '../noyau/validationDeFenetre';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { exposureTestCount, exposureShelterFromTent } from '../engine/exposure';

@@ -19,7 +19,17 @@
 import { readFileSync } from 'node:fs'
 import { livreDuReleve } from './releve.mjs'
 import { CONSIGNE_DE_TRI, nommeUnDeSesTermes, sectionsDuPaquet, texteDe } from './paquet.mjs'
-import { aligner, couvertureDe, estErreur, filDuChapitre, fragmentBlocs, normText, resoudreAdresse, unitesDuBloc, unitesDuTexte } from '../../src/data/source/decoupe.ts'
+import {
+  aligner,
+  couvertureDe,
+  estErreur,
+  filDuChapitre,
+  fragmentBlocs,
+  normText,
+  resoudreAdresse,
+  unitesDuBloc,
+  unitesDuTexte,
+} from '../../src/data/source/decoupe.ts'
 
 /** Les rôles d'une ligne retenue, ceux de la consigne du rappel. */
 export const ROLES = ['définit', 'modifie', 'déclenche', 'consomme']

@@ -12,12 +12,12 @@ import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
 import {
   ACTIONS, NAVAL_TRAITS, apparences, careers, conditionIds, crewRoles, findConditionById, findCreatureById, findSeaShantyById,
-  findTrappingById, maneuvers, pregens, profilsStandard, shipStations, skills, spells, talents, trappingsInstanciables,
+  findTrappingById, maneuvers, pregens, profilsStandard, shipStations, skills, spells, talents, trappingsInstanciables, TAVERN_GAMES,
 } from '../data';
-import { ACTIVITIES, cleDEntrainement, entrainementOptions, libelleDEntrainement, qualitesDArtisanat } from '../engine/activities';
+import { ACTIVITIES } from '../data';
+import { cleDEntrainement, entrainementOptions, libelleDEntrainement, qualitesDArtisanat } from '../engine/activities';
 import { parseRefKey } from '../engine/careerSlots';
 import { libelleDePsy } from '../engine/psych/ciblage';
-import { TAVERN_GAMES } from '../engine/tavernGame';
 import { travelVehicles, vehicleTravel } from '../engine/travel';
 import { actionsDe } from './monde/usable';
 import { creneauxDuHeros } from './partyFlow';
@@ -236,7 +236,7 @@ const nomDePossession = (s: Jeu): Nommer => indexe(s.possessions, (p) => p.uid, 
 const lignesDuButin = (s: Jeu) => [...(s.pendingLoot?.gear ?? []), ...(s.pendingVictory?.gear ?? [])];
 const lesAttaques = (s: Jeu) => {
   const actif = s.battle ? activeCombatant(s.battle) : undefined;
-  return actif && s.battle ? availableAttacks(actif, s.battle) : [];
+  return actif && s.battle ? availableAttacks(s.scene, actif, s.battle) : [];
 };
 const lesRamassables = (s: Jeu) =>
   (s.scene?.entities ?? []).flatMap((e) => entityPickables(e, s.flags, objetDuNarratif(s.campaignNarratif), s.objetsAuSol));

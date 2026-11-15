@@ -447,6 +447,40 @@
     }
   },
   {
+    "id": "mer-reparation-temporaire",
+    "type": "stakes",
+    "label": "Réparation temporaire",
+    "cascade": "voyage",
+    "template": "Échec : la réparation temporaire cède, la coque subit {degats} Dégâts.",
+    "form": "descripteur",
+    "rule": {
+      "id": "reparation-temporaire-navire",
+      "type": "regle"
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 116,
+      "note": "MDG 13 l.651"
+    }
+  },
+  {
+    "id": "fleuve-reparation-temporaire",
+    "type": "stakes",
+    "label": "Réparation temporaire",
+    "cascade": "voyage",
+    "template": "Échec : la réparation temporaire se fragilise, la coque subit {degats} Dégâts.",
+    "form": "descripteur",
+    "rule": {
+      "id": "reparation-temporaire-bateau",
+      "type": "regle"
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 30,
+      "note": "MSRC 7 l.117"
+    }
+  },
+  {
     "id": "mer-forcer-le-rythme",
     "type": "stakes",
     "label": "Forcer le rythme",
@@ -2079,7 +2113,7 @@
     "type": "stakes",
     "label": "Escalade d’une paroi",
     "cascade": "combat",
-    "template": "Réussite : vous prenez pied en haut. Échec : vous lâchez prise et retombez au pied — {metres} m de chute, 3 Dégâts par mètre +1d10 réduits par le seul Bonus d’Endurance (PA ignorés), et l’État À Terre si les Blessures perdues le dépassent.",
+    "template": "Réussite : vous franchissez la paroi. Échec : vous lâchez prise et retombez au pied — {metres} m de chute, 3 Dégâts par mètre +1d10 réduits par le seul Bonus d’Endurance (PA ignorés), et l’État À Terre si les Blessures perdues le dépassent.",
     "form": "descripteur",
     "rule": {
       "id": "chute",

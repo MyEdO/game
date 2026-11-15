@@ -1325,7 +1325,7 @@ Changer la forme du familier modifie le NI :
 
 ## Nouvelles Activités magiques (VDM)
 
-**Sources RAW :** `VDM 02 l.769`, `l.777`, `l.783`, `l.787-790`, `l.794`, `l.796`, `l.798`
+**Sources RAW :** `VDM 02 l.769`, `l.777`, `l.783`, `l.787-790`, `l.794`, `l.796`, `l.798`, `VDM 12 l.356`
 
 VDM ajoute des Activités disponibles entre deux aventures pour les lanceurs de sorts (les Activités de confection d'objets magiques restant dans *Archives de l'Empire Vol. II*).
 
@@ -1336,6 +1336,7 @@ VDM ajoute des Activités disponibles entre deux aventures pour les lanceurs de 
 
 > **Verbatim** (l.777) : « Afin de représenter ce second avantage, le NI du Rituel est réduit de moitié (arrondi à l'entier supérieur). »
 > **Verbatim** (l.783) : « Pour améliorer son familier, le sorcier qui l'a créé doit choisir cette Activité et effectuer un Test de **Recherche Difficile (−20)**. »
+> **Verbatim** (`VDM 12 l.356`) : « L'acquisition des locaux et de l'équipement requis pour un laboratoire alchimique coûte 100 CO. Un laboratoire de piètre qualité coûte 50 CO, mais impose −1 DR aux Tests de brassage. Un laboratoire de bonne qualité coûte 200 CO et donne +1 DR aux Tests de brassage. »
 
 **Voir aussi :** [La Magie Rituelle (VDM)](#la-magie-rituelle-nouveau--vdm), [Créer un familier (VDM)](#créer-un-familier--traits-de-familier-vdm)
 

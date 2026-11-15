@@ -402,7 +402,7 @@ describe('plan de l’Opéra — mobilier posé sur le plan (#1780)', () => {
 
   it('BALUSTRADES : elles ne retirent QUE les cases de rive, et n’enclavent aucune case de l’étage', () => {
     // La balustrade est un décor SOLIDE (`props.json` `balustrade-loge`) : elle MURE sa case pour la
-    // marche (`isWalkable` → `entityBlockedAt`, `src/noyau/monde/scene.ts:540`). Connexité lue à la SOURCE
+    // marche (`isWalkable` → `entityBlockedAt`, `src/noyau/monde/scene.ts`). Connexité lue à la SOURCE
     // UNIQUE (`walkComponentAt`, `src/noyau/monde/path.ts:175`) : 8-connexe et cross-couche, donc plus
     // permissive qu'un flood 4-connexe — une case enclavée y reste une composante de plus.
     const meuble = operaPlanConstruit.scene; // la scène RÉELLE du scénario (plan + mobilier)

@@ -6,7 +6,7 @@
  * de scène se fusionnant par `withGiveQualities`.
  *
  * PORTÉE — deux signaux, tous deux tirés de la DONNÉE du catalogue (aucune liste de mots écrite ici) :
- *  1. HOMONYMIE de `label` (« Ration (1 jour) » ⇄ `ration`) ;
+ *  1. HOMONYMIE de `label` (« Vivres, 1 jour » ⇄ `ration`) ;
  *  2. FORME de famille : le libellé matche une entrée de `formChoices` d'un objet générique
  *     (« Épée » ⇄ `arme-simple`, dont les formes sont epee/hache/masse/marteau_guerre/demi_lance —
  *     LDB 62 l.125-127 : l'Arme simple couvre « les épées, les haches, les marteaux… »).
@@ -24,23 +24,21 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import trappings from './trappings.json';
+import { trappings } from './index';
 import { replier } from '../lib/ordre.mjs';
 
 const DATA_DIR = __dirname;
 const SCENES_DIR = join(DATA_DIR, '..', 'scenes');
 
 /** Clé de rapprochement d'un libellé : `replier`, sans suffixe entre parenthèses
- *  (« Ration (1 jour) » ⇄ « Ration »), espaces normalisés. */
+ *  (« Bouclier (Grand) » ⇄ « Bouclier »), espaces normalisés. */
 function key(label: string): string {
   return replier(label).replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-type Trapping = { id: string; label: string; formChoices?: string[] };
-
 const CATALOG = new Map<string, string>(); // clé de libellé → id de catalogue
 const FORMS = new Map<string, { id: string; form: string }>(); // clé d'une FORME de famille → entrée porteuse
-for (const t of trappings as Trapping[]) {
+for (const t of trappings) {
   if (!CATALOG.has(key(t.label))) CATALOG.set(key(t.label), t.id);
   // `formChoices` (ids de forme, ex. 'marteau_guerre') : la donnée DIT elle-même quelles armes
   // concrètes une entrée générique couvre — c'est la source du 2ᵉ signal, jamais une liste écrite ici.

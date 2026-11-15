@@ -19,9 +19,22 @@ import type { JSX } from 'react';
  * `AGENTS.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
  */
 import { useId, useMemo, useState } from 'react';
-import { datasetArray, type DatasetKey } from '../../../data/overrides';
+import { entreesDuDataset, type DatasetKey } from '../../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
-import { TYPES, catalogueSpecs, entreeOuverte, espaceDe, estFeuilleDId, estSpecialisable, refusDeLEntree, declarationDeFeuilleDId, declarationDeRefASpecialisation, declarationDeRefTypee, type FeuilleDId, type TypeEntite } from '../../../data/schemas/grammaire/ref';
+import {
+  TYPES,
+  catalogueSpecs,
+  entreeOuverte,
+  espaceDe,
+  estFeuilleDId,
+  estSpecialisable,
+  refusDeLEntree,
+  declarationDeFeuilleDId,
+  declarationDeRefASpecialisation,
+  declarationDeRefTypee,
+  type FeuilleDId,
+  type TypeEntite,
+} from '../../../data/schemas/grammaire/ref';
 import { datasetDeLEspaceDuType, specLabel } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../../data/schemas/defs-scenes/registres-narratifs';
@@ -100,7 +113,7 @@ export function cfgDuType(type: TypeEntite): (RefDatasetCfg & { single: true }) 
  *  `undefined` sinon. */
 export function cfgDeLaFeuille(noeud: unknown): (RefDatasetCfg & { single: true }) | undefined {
   const feuille = noeud === undefined ? undefined : ouverts([noeud]).map(declarationDeFeuilleDId).find((d) => d !== undefined);
-  return !feuille || feuille.ouverte ? undefined : cfgDuType(feuille.type);
+  return !feuille || feuille.portee ? undefined : cfgDuType(feuille.type);
 }
 
 /** Config `single` à `spec` d'un champ dont le NŒUD est une référence à spécialisation (`refOuSpec`,
@@ -332,9 +345,9 @@ type Entree = { id: string; e: Record<string, unknown> };
 function useUnivers(source: DatasetKey | EntreesCfg['entrees'], entreesEnTete: Champ['entreesEnTete']): readonly Entree[] {
   const version = useVersionDesDatasets();
   return useMemo(() => {
-    const enTete = entreesEnTete.map((e) => ({ id: e.id, e: e as Record<string, unknown> }));
+    const enTete = entreesEnTete.map((e): Entree => ({ id: e.id, e }));
     const pris = new Set(enTete.map((x) => x.id));
-    const entrees = (typeof source === 'string' ? datasetArray(source) : source) as Record<string, unknown>[];
+    const entrees: readonly Record<string, unknown>[] = typeof source === 'string' ? entreesDuDataset(source) : source;
     const deLaSource = entrees.map((e) => ({ id: String(e.id ?? ''), e })).filter((x) => !pris.has(x.id));
     return [...enTete, ...deLaSource];
   }, [source, entreesEnTete, version]);
@@ -495,7 +508,7 @@ function FreeRefField(
 /** Valeurs DISTINCTES et non vides du champ `champ` des entrées du dataset `ds`, dans l'ordre du
  *  dataset : suggestions d'une saisie libre (`SaisieSuggeree`). */
 function valeursDistinctes(ds: DatasetKey, champ: string): string[] {
-  return [...new Set((datasetArray(ds) as Record<string, unknown>[]).flatMap((e) => (typeof e[champ] === 'string' && e[champ] ? [e[champ]] : [])))];
+  return [...new Set(entreesDuDataset(ds).flatMap((e) => (typeof e[champ] === 'string' && e[champ] ? [e[champ]] : [])))];
 }
 
 /** `valeursDistinctes` de `ds` (absent : aucune suggestion), recalculées à chaque écriture au seam

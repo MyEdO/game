@@ -7,7 +7,8 @@ extends PontDuNoyau.Transport
 ## `hotes/godot/vivant.mjs` sous l'éditeur ; dans un exécutable (#3951), `noyau/node` sur `noyau/vivant.mjs`, à côté de
 ## l'exécutable.
 ## Il lui passe `--stockage=<fichier>`, le fichier où vivent les sauvegardes : le paramètre `--stockage=<fichier>` du
-## lancement, à défaut `stockage.json` sous le dossier des données de l'utilisateur (`user://`).
+## lancement, à défaut `stockage.json` sous le dossier des données de l'utilisateur (`user://`), sauf sous une recette,
+## un script en boucle principale, qui sans ce paramètre ne lui passe aucun fichier (`fichier_du_stockage`).
 ## Une ligne se termine par `\n`. Son entrée standard reçoit une ligne par requête, `[methode, json|null]`.
 ## Sa sortie standard porte d'abord la ligne d'annonce `{"url":"http://127.0.0.1:<port>/"}`,
 ## l'adresse du serveur du jeu, attendue `ATTENTE_S` au plus, puis une réponse par requête.
@@ -117,11 +118,10 @@ func ouvrir() -> bool:
 	if _pid != 0:
 		return await _ouvert
 	var lancement := _lancement()
-	var stockage := parametre("stockage")
-	var options := PackedStringArray([
-		lancement[1],
-		"--stockage=" + (stockage if stockage != "" else ProjectSettings.globalize_path("user://stockage.json")),
-	])
+	var options := PackedStringArray([lancement[1]])
+	var stockage := fichier_du_stockage(parametre("stockage"), get_tree().get_script() != null)
+	if stockage != "":
+		options.append("--stockage=" + stockage)
 	var lance := OS.execute_with_pipe(lancement[0], options, true)
 	if lance.is_empty():
 		_mort = true
@@ -147,6 +147,16 @@ func ouvrir() -> bool:
 			_mourir("annonce illisible du processus du pont : %s" % str(annonce).left(200))
 	_ouvert.emit(_url != "")
 	return _url != ""
+
+
+## Le fichier de stockage passé au processus : `demande` si elle est donnée ; sinon aucun, la chaîne vide, quand un
+## script tient la boucle principale (`boucle_scriptee`, une recette) ; sinon `stockage.json` sous `user://`.
+static func fichier_du_stockage(demande: String, boucle_scriptee: bool) -> String:
+	if demande != "":
+		return demande
+	if boucle_scriptee:
+		return ""
+	return ProjectSettings.globalize_path("user://stockage.json")
 
 
 func est_ouvert() -> bool:

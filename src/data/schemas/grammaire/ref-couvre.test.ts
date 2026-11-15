@@ -3,7 +3,12 @@
  * et SA SOURCE UNIQUE. La garde cherche la FORME `spec == null || spec === …`, pas un nom.
  */
 import { describe, it, expect } from 'vitest';
-import { COUVERTURE_DE_SPEC, IDENTITE_D_INSTANCE, constructionsReserveesDuCorpus, scanConstructionsReservees } from '../../../../scripts/guards/lib/canonUnique.mjs';
+import {
+  COUVERTURE_DE_SPEC,
+  IDENTITE_D_INSTANCE,
+  constructionsReserveesDuCorpus,
+  scanConstructionsReservees,
+} from '../../../../scripts/guards/lib/canonUnique.mjs';
 import { corpusDesGardes } from '../../../../scripts/guards/lib/commentPoison.mjs';
 import { memeSpecialisation, refCouvre } from './ref';
 

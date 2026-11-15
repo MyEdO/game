@@ -21,6 +21,7 @@ extends SceneTree
 ## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
 
 const RECETTE_RENDUE := true
+const PIXELS := preload("res://recettes/lecture_des_pixels.gd")
 const LARGEUR := 8
 const HAUTEUR := 6
 const METRES_PAR_CASE := 2.0
@@ -36,23 +37,10 @@ const CREUX_DU_PILOTE := 0.1
 ## Le mur du kit sépare la case (2, 4), la sienne, de sa voisine (2, 3) ; la boîte, (5, 4) de (5, 3).
 const MUR := {cle = "kit", famille = "colombage", milieu = {x = 2.0, y = 3.5}, cases = [{x = 2, y = 4, z = 0}, {x = 2, y = 3, z = 0}]}
 const BOITE := {cle = "boite", famille = null, milieu = {x = 5.0, y = 3.5}, cases = [{x = 5, y = 4, z = 0}, {x = 5, y = 3, z = 0}]}
-## La luminance (linéaire) d'un pixel du témoin sous laquelle sa part ne se lit pas.
-const LUMINANCE_LISIBLE := 0.02
-## L'écart de canal au-delà duquel un pixel est d'un objet : ce que l'objet change à ses pixels, au-dessus de ce que son
-## absence change au brouillard et aux ombres autour.
-const ECART_DE_L_OBJET := 0.03
 ## Le moins de pixels (un sur deux de chaque sens) loin du bord d'un mur cadré de près, et la part d'entre eux que le
 ## rendu peut mêler au sol vu à travers la pièce du kit (un pixel sur 15 500 en tactique).
 const INTERIEUR_LISIBLE := 40
 const PIXELS_MELES := 0.001
-## L'éclairage d'un extérieur du jeu (`vue.lumiere` de `zones-pieces`) : un ciel, que les faces reflètent.
-const LUMIERE_DU_JEU := {
-	soleil = {vers = {x = 0.652, y = 0.552, z = 0.520}, couleur = "#fff3df", energie = 1.3},
-	ambiante = {couleur = "#5b83ac", energie = 0.75},
-	ciel = {zenith = "#5b83ac", horizon = "#9fb2c6"},
-	brume = {couleur = "#9fb2c6", debutCases = 8, finCases = 32, depuisLOeil = false},
-	sources = [],
-}
 var _fautes: Array[String] = []
 
 
@@ -69,30 +57,30 @@ func _recetter() -> void:
 	for regard in ["plateau", "tactique", "immersion"]:
 		regarder(monde, regard)
 		volume.voir(null)
-		var temoin := await _image()
+		var temoin := await PIXELS.image(self)
 		var masques := {}
 		for nom: String in objets:
 			for vu: Node3D in objets[nom]:
 				vu.visible = false
-			var sans := await _image()
+			var sans := await PIXELS.image(self)
 			for vu: Node3D in objets[nom]:
 				vu.visible = true
-			masques[nom] = _masque(temoin, sans)
+			masques[nom] = PIXELS.masque(temoin, sans)
 			if masques[nom].is_empty():
 				_fautes.append("%s, %s : aucun pixel à l'écran" % [regard, nom])
-		var sol := _hors_des(temoin, masques.values())
+		var sol := PIXELS.hors_des(temoin, masques.values())
 		var explorees := {}
 		volume.voir(_vision(func(_case: Vector2i, _couche: int) -> int: return VUE))
-		if (await _image()).get_data() != temoin.get_data():
+		if (await PIXELS.image(self)).get_data() != temoin.get_data():
 			_fautes.append("%s : la vision toute vue n'est pas le témoin" % regard)
 		for etat: Array in [[EXPLOREE, TEINTES.explored, "explorée"], [INCONNUE, TEINTES.unknown, "inconnue"]]:
 			volume.voir(null)
 			volume.voir(_vision(func(_case: Vector2i, _couche: int) -> int: return etat[0]))
-			var voilee := await _image()
-			var du_sol := _part(temoin, voilee, sol)
+			var voilee := await PIXELS.image(self)
+			var du_sol := PIXELS.part(temoin, voilee, sol)
 			print("[voile-du-bati] %s, %s : sol %.3f" % [regard, etat[2], du_sol])
 			for nom: String in objets:
-				var part := _part(temoin, voilee, masques[nom])
+				var part := PIXELS.part(temoin, voilee, masques[nom])
 				if etat[0] == EXPLOREE:
 					explorees[nom] = part
 				print("[voile-du-bati] %s, %s : %s %.3f, attendue %.3f" % [regard, etat[2], nom, part, etat[1]])
@@ -102,7 +90,7 @@ func _recetter() -> void:
 					_fautes.append("%s, %s : %s à la part %.3f, le sol voisin %.3f" % [regard, etat[2], nom, part, du_sol])
 		volume.voir(null)
 		volume.voir(_vision(func(_case: Vector2i, couche: int) -> int: return VUE if couche == 0 else EXPLOREE))
-		var par_couche := _part(temoin, await _image(), masques.toit)
+		var par_couche := PIXELS.part(temoin, await PIXELS.image(self), masques.toit)
 		print("[voile-du-bati] %s, première couche vue, seconde explorée : toit %.3f, à l'explorée %.3f" % [regard, par_couche, explorees.toit])
 		if absf(par_couche - explorees.toit) > TOLERANCE / 2.0:
 			_fautes.append("%s : le toit de la seconde couche à la part %.3f, pas à celle de l'explorée de son plan %.3f" % [regard, par_couche, explorees.toit])
@@ -110,15 +98,15 @@ func _recetter() -> void:
 		volume.voir(_vision(func(_case: Vector2i, _couche: int) -> int: return VUE))
 		volume.voir(_vision(func(_case: Vector2i, _couche: int) -> int: return INCONNUE))
 		volume.avancer_le_fondu(volume.DUREE_DU_FONDU_S / 2.0)
-		var fondue := await _image()
+		var fondue := await PIXELS.image(self)
 		for nom: String in objets:
-			var part := _part(temoin, fondue, masques[nom])
+			var part := PIXELS.part(temoin, fondue, masques[nom])
 			print("[voile-du-bati] %s, mi-fondu : %s %.3f, à l'explorée %.3f" % [regard, nom, part, explorees[nom]])
 			if absf(part - explorees[nom]) > TOLERANCE / 2.0:
 				_fautes.append("%s, mi-fondu : %s à la part %.3f, à l'explorée %.3f" % [regard, nom, part, explorees[nom]])
 		volume.avancer_le_fondu(volume.DUREE_DU_FONDU_S)
 		volume.voir(null)
-		if (await _image()).get_data() != temoin.get_data():
+		if (await PIXELS.image(self)).get_data() != temoin.get_data():
 			_fautes.append("%s : sans vision, l'image n'est pas celle du témoin" % regard)
 		await _entre(monde, regard, objets)
 	await _a_l_ombre(monde, objets)
@@ -168,17 +156,17 @@ func _entre(monde: Monde, regard: String, objets: Dictionary) -> void:
 	if regard != "immersion":
 		monde.cadrer(Vector3(3.5, 0.0, 3.5), 0.0, Monde.DISTANCE_MIN)
 	volume.voir(_vision(func(_c: Vector2i, _couche: int) -> int: return VUE))
-	var temoin := await _image()
+	var temoin := await PIXELS.image(self)
 	var masques := {}
 	for nom in ["mur du kit", "boîte"]:
 		for vu: Node3D in objets[nom]:
 			vu.visible = false
-		var sans := await _image()
+		var sans := await PIXELS.image(self)
 		for vu: Node3D in objets[nom]:
 			vu.visible = true
-		masques[nom] = _interieur(_masque(temoin, sans))
+		masques[nom] = PIXELS.interieur(PIXELS.masque(temoin, sans))
 	volume.voir(_vision(func(c: Vector2i, _couche: int) -> int: return INCONNUE if c.y == 4 else VUE))
-	var entre := await _image()
+	var entre := await PIXELS.image(self)
 	for nom in ["mur du kit", "boîte"]:
 		var teintes: Array = objets[nom].map(func(vu: MultiMeshInstance3D) -> Color: return vu.multimesh.get_instance_color(0))
 		var autres: int = masques[nom].filter(func(pixel: Vector2i) -> bool: return temoin.get_pixelv(pixel) != entre.get_pixelv(pixel)).size()
@@ -188,14 +176,14 @@ func _entre(monde: Monde, regard: String, objets: Dictionary) -> void:
 	volume.voir(null)
 
 
-## Sous l'éclairage d'un extérieur du jeu (`LUMIERE_DU_JEU`), sous deux caméras : la tactique d'un demi-tour (azimut
+## Sous l'éclairage d'un extérieur du jeu (`PIXELS.LUMIERE_DU_JEU`), sous deux caméras : la tactique d'un demi-tour (azimut
 ## 180), en plongée vers la face du mur du kit et de la boîte que son soleil laisse à l'ombre, et l'œil de l'immersion
 ## au ras du sol, qui le voit en rasant : toute explorée, toute inconnue, chacun, le sol compris, à la part de lumière
 ## de son état, contre le témoin sans vision, au plus `TOLERANCE` au-dessus et `CREUX_DU_PILOTE` de plus au-dessous. Le
 ## brouillard volumétrique, que la vision ne voile pas, coupé.
 func _a_l_ombre(monde: Monde, objets: Dictionary) -> void:
 	var volume := monde.volume
-	(monde.get_node("Lumiere") as Lumiere).eclairer(LUMIERE_DU_JEU, METRES_PAR_CASE)
+	(monde.get_node("Lumiere") as Lumiere).eclairer(PIXELS.LUMIERE_DU_JEU, METRES_PAR_CASE)
 	(monde.get_node("Lumiere/Environnement") as WorldEnvironment).environment.volumetric_fog_enabled = false
 	var lus := objets.merged({sol = [monde.get_node("VolumeDeScene/Volume/Morceaux").get_child(0).get_node("Vu")]})
 	for camera in ["en plongée", "au ras du sol"]:
@@ -206,23 +194,23 @@ func _a_l_ombre(monde: Monde, objets: Dictionary) -> void:
 			monde.regarder("immersion")
 			monde.poser_l_oeil(Vector3(LARGEUR / 2.0, 3.5, HAUTEUR + 4.0), 0.0, -0.25)
 		volume.voir(null)
-		var temoin := await _image()
+		var temoin := await PIXELS.image(self)
 		var masques := {}
 		for nom: String in lus:
 			for vu: Node3D in lus[nom]:
 				vu.visible = false
-			var sans := await _image()
+			var sans := await PIXELS.image(self)
 			for vu: Node3D in lus[nom]:
 				vu.visible = true
-			masques[nom] = _masque(temoin, sans)
+			masques[nom] = PIXELS.masque(temoin, sans)
 		for etat: Array in [[EXPLOREE, TEINTES.explored, "explorée"], [INCONNUE, TEINTES.unknown, "inconnue"]]:
 			volume.voir(null)
 			volume.voir(_vision(func(_case: Vector2i, _couche: int) -> int: return etat[0]))
-			var voilee := await _image()
+			var voilee := await PIXELS.image(self)
 			for nom: String in masques:
 				if masques[nom].is_empty():
 					continue
-				var part := _part(temoin, voilee, masques[nom])
+				var part := PIXELS.part(temoin, voilee, masques[nom])
 				print("[voile-du-bati] sous le ciel du jeu, %s, %s : %s %.3f, attendue %.3f" % [camera, etat[2], nom, part, etat[1]])
 				if part - etat[1] > TOLERANCE or part - etat[1] < -(TOLERANCE + CREUX_DU_PILOTE):
 					_fautes.append("sous le ciel du jeu, %s, %s : %s à la part %.3f, attendue %.3f" % [camera, etat[2], nom, part, etat[1]])
@@ -241,54 +229,14 @@ func _objets(monde: Monde) -> Dictionary:
 	return objets
 
 
-## Les pixels (un sur deux de chaque sens) où un canal de `avec` s'écarte de `sans` de plus de `ECART_DE_L_OBJET`, d'une
-## luminance lisible dans `avec`.
-func _masque(avec: Image, sans: Image) -> Array[Vector2i]:
-	var pixels: Array[Vector2i] = []
-	for y in range(0, avec.get_height(), 2):
-		for x in range(0, avec.get_width(), 2):
-			var ecart := avec.get_pixel(x, y) - sans.get_pixel(x, y)
-			if maxf(absf(ecart.r), maxf(absf(ecart.g), absf(ecart.b))) > ECART_DE_L_OBJET and _luminance(avec.get_pixel(x, y)) > LUMINANCE_LISIBLE:
-				pixels.append(Vector2i(x, y))
-	return pixels
 
 
-## Les pixels (un sur deux de chaque sens) d'une luminance lisible dans `image` hors de chacun de `masques` : le sol.
-func _hors_des(image: Image, masques: Array) -> Array[Vector2i]:
-	var pris := {}
-	for masque: Array in masques:
-		for pixel: Vector2i in masque:
-			pris[pixel] = true
-	var pixels: Array[Vector2i] = []
-	for y in range(0, image.get_height(), 2):
-		for x in range(0, image.get_width(), 2):
-			if not pris.has(Vector2i(x, y)) and _luminance(image.get_pixel(x, y)) > LUMINANCE_LISIBLE:
-				pixels.append(Vector2i(x, y))
-	return pixels
 
 
-## La médiane, sur les pixels `pixels`, de la luminance de `voilee` rapportée à celle de `temoin`.
-func _part(temoin: Image, voilee: Image, pixels: Array[Vector2i]) -> float:
-	var parts := PackedFloat32Array()
-	for pixel in pixels:
-		parts.append(_luminance(voilee.get_pixelv(pixel)) / _luminance(temoin.get_pixelv(pixel)))
-	parts.sort()
-	return parts[parts.size() / 2] if not parts.is_empty() else -1.0
 
 
-## Les pixels de `masque` dont les quatre voisins à deux pixels sont aussi dans `masque` : loin de son bord, que le rendu
-## lisse avec ce qui l'entoure.
-func _interieur(masque: Array[Vector2i]) -> Array[Vector2i]:
-	var dedans := {}
-	for pixel in masque:
-		dedans[pixel] = true
-	return masque.filter(func(pixel: Vector2i) -> bool: return [Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2)].all(func(pas: Vector2i) -> bool: return dedans.has(pixel + pas)))
 
 
-## La luminance linéaire de la couleur `couleur` d'un pixel sRGB.
-func _luminance(couleur: Color) -> float:
-	var lineaire := couleur.srgb_to_linear()
-	return 0.2126 * lineaire.r + 0.7152 * lineaire.g + 0.0722 * lineaire.b
 
 
 ## La vision (`VisionDuMonde`) des deux couches, chaque case à l'état que `etat_de` lui donne (sa case et l'indice de sa
@@ -318,10 +266,3 @@ static func _dalles(cle: String, cases: Rect2i, z: int, hauteur: float, matiere:
 			de_chaque.append_array([x, y, z, x, y, z])
 	return {cle = cle, empreinte = cle, positions = positions, normales = normales, couleurs = couleurs, cases = de_chaque,
 		surfaces = [{debut = 0, fin = positions.size() / 3, matiere = matiere}]}
-
-
-func _image() -> Image:
-	for _image_rendue in 12:
-		await process_frame
-	await RenderingServer.frame_post_draw
-	return root.get_texture().get_image()

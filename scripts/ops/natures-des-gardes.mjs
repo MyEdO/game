@@ -30,17 +30,29 @@ export const MODULES_DE_LA_STRUCTURE = Object.freeze(['arcsDImport.mjs', 'couche
  *  ou présents ce jour-là sans ligne. */
 export const NATURES_HORS_ANNEXE = Object.freeze({
   'arretNatif.mjs': 'OUTIL',
+  'blocsDeFusion.mjs': 'OUTIL',
   'categorieDeRefus.mjs': 'OUTIL',
+  'chargementDUnModule.mjs': 'GARDE',
   'clesCanoniques.mjs': 'OUTIL',
   'clesDeStockage.mjs': 'GARDE',
+  'declarationsDImport.mjs': 'OUTIL',
+  'delegueDeVerbeManuscrit.mjs': 'GARDE',
+  'difficulteParDefaut.mjs': 'GARDE',
   'fermetureDuNoyau.mjs': 'GARDE',
   'fileBornee.mjs': 'OUTIL',
   'gdscript.mjs': 'OUTIL',
   'gdscriptSansRegle.mjs': 'GARDE',
+  'gesteDeTour.mjs': 'GARDE',
+  'litterauxDeSilhouettes.mjs': 'GARDE',
   'modulesSubstitues.mjs': 'GARDE',
+  'nomsParLigneLint.mjs': 'GARDE',
   'porteursDesComptes.mjs': 'OUTIL',
   'racinesPresentes.mjs': 'OUTIL',
   'reexportations.mjs': 'GARDE',
+  'retourDuRig.mjs': 'GARDE',
+  'routeursDeTest.mjs': 'OUTIL',
+  'schemaFieldConsumers.mjs': 'OUTIL',
+  'verbatimsUtilisateur.mjs': 'GARDE',
 })
 
 /** Les natures de l'annexe A d'un texte du plan : `module` → `Nature`. PUR. */

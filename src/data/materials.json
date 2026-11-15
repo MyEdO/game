@@ -750,6 +750,20 @@
     "color": "#7a7670"
   },
   {
+    "id": "fourrure-rousse",
+    "type": "materials",
+    "label": "Fourrure rousse",
+    "domain": "couleur",
+    "color": "#683b2d"
+  },
+  {
+    "id": "vert-feuille",
+    "type": "materials",
+    "label": "Vert feuille",
+    "domain": "couleur",
+    "color": "#55703a"
+  },
+  {
     "id": "plume-rousse",
     "type": "materials",
     "label": "Plume rousse",

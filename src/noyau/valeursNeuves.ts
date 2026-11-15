@@ -20,7 +20,19 @@ import { CONDITION_TOUJOURS, recast } from '../data/valeursNeuves';
 import type { Condition } from '../engine/flowCore';
 import { terrainsElectifs } from './monde/terrain';
 import { EFFECT_HANDLERS } from './combatEffects';
-import { admetUneListe, bornesDuNoeud, champsDeclares, choixDuNoeud, kindDuNoeud, recordDuNoeud, unionDuNoeud, varianteCourante, videDuNoeud, type UnionDuNoeud, type VarianteDuNoeud } from './codex/editFields';
+import {
+  admetUneListe,
+  bornesDuNoeud,
+  champsDeclares,
+  choixDuNoeud,
+  kindDuNoeud,
+  recordDuNoeud,
+  unionDuNoeud,
+  varianteCourante,
+  videDuNoeud,
+  type UnionDuNoeud,
+  type VarianteDuNoeud,
+} from './codex/editFields';
 
 
 /** Règles optionnelles NUMÉRIQUES (`kind: 'param'`) — seules éligibles au terme `{rule}` d'une Formula

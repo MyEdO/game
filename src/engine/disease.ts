@@ -31,13 +31,22 @@ import { RNG, roll, rollDice, formatDice } from './dice';
 import { MINUTES_PER_DAY } from './clock';
 import { findTableEntry } from './tables';
 import { spellOps, type FlowTestNode } from './flowCore';
-import locJson from '../data/localisation.json';
-// Table de Localisation CANONIQUE (`src/data/localisation.json`, humanoïde) via la primitive `findTableEntry`
-// — MÊME source/lookup que `engine/combat.hitLocation`, réutilisée ici sans cycle (json + tables = feuilles).
-const HUMANOID_LOC = (locJson as { personnage: { shapes: Record<string, { min: number; max: number; loc: HitLocation }[]> } }).personnage.shapes.humanoide;
-const rollBlisterLocation = (rng: RNG): HitLocation => findTableEntry(HUMANOID_LOC, roll(1, 100, rng)).loc;
+// Table de Localisation CANONIQUE (`tablesDeLocalisation`, humanoïde) via la primitive `findTableEntry` — MÊME
+// source/lookup que `engine/combat.hitLocation`, lue à l'appel.
+const rollBlisterLocation = (rng: RNG): HitLocation => findTableEntry(tablesDeLocalisation.personnage.shapes.humanoide, roll(1, 100, rng)).loc;
 import { rollTest } from './tests';
-import { maladies, diseaseLabel, findSymptomById, symptomLabel, conditionLabel, SYMPTOM_SEVERITIES, memoParVersion, type SymptomCapabilities } from '../data';
+import {
+  maladies,
+  tablesDeLocalisation,
+  diseaseLabel,
+  findSymptomById,
+  symptomLabel,
+  conditionLabel,
+  SYMPTOM_SEVERITIES,
+  memoParVersion,
+  type SymptomCapabilities,
+  type DiseaseDef,
+} from '../data';
 import type { GameOp, OpPassive, PassiveMod } from './ops';
 import type { PsychTrait } from './psychology';
 import { traitOctroye } from './psych/opsPsy';
@@ -46,7 +55,7 @@ import { fateSaveOrDie } from './fortune';
 import { addCondition } from './conditions';
 import { sourceSuspended, suspendSource } from './suspension'; // module FEUILLE : suspension GÉNÉRALE d'une source passive
 import type { CodexTarget } from './ruleRefs';
-import type { DiseaseDef, DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
+import type { DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
 
 /** Unité d'un temps de maladie (incubation/durée). La base de calcul/stockage reste la MINUTE (`clock.ts`). */
 const UNIT_MINUTES: Record<DiseaseTime['unit'], number> = { days: MINUTES_PER_DAY, hours: 60, minutes: 1 };

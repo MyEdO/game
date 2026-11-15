@@ -439,7 +439,8 @@ const identiteDe = (o: Obj): { cle: string; valeur: string } | null => {
 
 /**
  * Parcours de tout objet sous `racine`, avec le CHAMP porteur (clé du parent) et son chemin. Un objet
- * que `saute` retient n'est ni visité ni descendu — sauf `racine` elle-même.
+ * que `saute` retient n'est ni visité ni descendu — sauf `racine` elle-même. Le `of` d'un choix
+ * `{pick, of}` (`parmi`, `grammaire/ref.ts`) est transparent : ses options gardent le champ du choix.
  */
 function parcourir(
   racine: unknown,
@@ -450,7 +451,7 @@ function parcourir(
     if (Array.isArray(n)) return void n.forEach((x) => marche(x, champ, chemin, true));
     if (!estObjet(n) || (n !== racine && saute(n))) return;
     visite(n, champ, chemin, dansTableau);
-    for (const [k, v] of Object.entries(n)) marche(v, k, chemin ? `${chemin}.${k}` : k, false);
+    for (const [k, v] of Object.entries(n)) marche(v, k === 'of' && 'pick' in n ? champ : k, chemin ? `${chemin}.${k}` : k, false);
   };
   marche(racine, '', '', false);
 }

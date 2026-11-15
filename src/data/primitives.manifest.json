@@ -661,11 +661,11 @@
   {
     "id": "porteeLocale",
     "type": "primitives.manifest",
-    "label": "ref(portee)/ouvrirPortees/PorteeLocale",
+    "label": "ref(portee)/ouvrirPortees/PorteeLocale/controlerSousPortee/sitesDeLaPortee",
     "fichier": "src/data/schemas/grammaire/collection-cle.ts",
-    "concept": "une référence `{ id }` vers une entrée d'une collection du MÊME document (`ref(portee)`, `grammaire/ref.ts`), ou une liste de ses ids (`refs(portee)`), jugée au parse par l'objet qui porte cette liste à clé et OUVRE la portée (`ouvrirPortees`) ; un id local n'entre dans aucun espace de l'index des ids",
-    "perimetre": "tables arcaniques d'un phénomène (`arcane-phenomena.json › phenomena[].fluxTableId`, `› tableId`), nœuds d'un dialogue (`scenes[].dialogues[].start`, `› nodes[].choices[].next`) et dialogues d'une scène (`scenes[].entities[].dialogueId`), lieux et routes d'une carte (`worldMap.routes[].a`, `› b`, `› from`, `› billets{}.depuis`, `› billets{}.suite`), scènes d'un projet ouvertes à sa racine (`worldMap.places[].scene`, `› poi[].sceneId`, `worldMap.routes[].ambush.scene`, effet `transition.scene`), clé `id` offerte au formulaire de l'atelier (`cleOfferte`), slots du parse de mesure (cible `local:<collection>`), migration d'un catalogue lu dans le document (`CibleLocale` de `scripts/migrations/lib/idNuEnRef.mjs`)",
-    "verrou": "src/data/schemas/defs/tables-arcaniques-portee-locale.test.ts, src/data/schemas/defs-scenes/dialogues-et-noeuds.test.ts, src/data/schemas/defs-scenes/routes-et-lieux.test.ts, src/data/schemas/defs-scenes/scenes-visees.test.ts, src/data/schemas/espaces-contrat.test.ts"
+    "concept": "une référence `{ id }` vers une entrée d'une collection du MÊME document (`ref(portee)`, `grammaire/ref.ts`), ou une liste de ses ids (`refs(portee)`), jugée au parse par l'objet qui porte cette liste à clé, au chemin pointé `portee.collection`, et OUVRE la portée (`ouvrirPortees`) ; une feuille `idDe(type, sousListe, { portee })` y juge un id absent de son catalogue (catalogue ∪ portée), en valeur ou en clé de record ; un document qui désigne la portée sans l'ouvrir l'ouvre VIDE (`ouvrirLesPorteesSansCollection`, `document()`) : la feuille y vaut son catalogue seul et refuse comme lui (`refusDeLaRefLocale`) ; `controlerSousPortee` déclare sur un nœud un contrôle que l'ouvreur exécute avec les entrées de la collection que leur propre nœud accepte ; un objet qui rouvre la même portée sous un ouvreur (ouvreur intérieur) est une frontière : ce qu'il porte, lui seul le juge ; `sitesDeLaPortee` rend, sur une valeur telle quelle, fautive ou non, les références que l'ouvreur ADMET, par la co-descente même de son jugement au parse (`entreesDeLaPortee` rend les entrées de la collection par id, `idsDeLaPortee` leurs ids ; le choix d'une référence locale à l'atelier les offre sous leur libellé, sinon leur id) ; un id local n'entre dans aucun espace de l'index des ids",
+    "perimetre": "tables arcaniques d'un phénomène (`arcane-phenomena.json › phenomena[].fluxTableId`, `› tableId`), nœuds d'un dialogue (`scenes[].dialogues[].start`, `› nodes[].choices[].next`) et dialogues d'une scène (`scenes[].entities[].dialogueId`), lieux et routes d'une carte (`worldMap.routes[].a`, `› b`, `› from`, `› billets{}.depuis`, `› billets{}.suite`), scènes d'un projet ouvertes à sa racine (`worldMap.places[].scene`, `› poi[].sceneId`, `worldMap.routes[].ambush.scene`, effet `transition.scene`), objets de la campagne ouverts à la racine du projet (`OBJETS_DU_PROJET`, `narratif.objets` : effet et GameOp `giveTrapping.trappingId`, clés `apparencesObjets` et l'apparence de l'objet donné), clé `id` offerte au formulaire de l'atelier (`cleOfferte`), slots du parse de mesure (cible `local:<collection>`), migration d'un catalogue lu dans le document (`CibleLocale` de `scripts/migrations/lib/idNuEnRef.mjs`)",
+    "verrou": "src/data/schemas/defs/tables-arcaniques-portee-locale.test.ts, src/data/schemas/defs-scenes/dialogues-et-noeuds.test.ts, src/data/schemas/defs-scenes/routes-et-lieux.test.ts, src/data/schemas/defs-scenes/scenes-visees.test.ts, src/data/schemas/defs-scenes/projet-schema.test.ts, src/data/schemas/grammaire/apparences-objets.test.ts, src/data/schemas/espaces-contrat.test.ts"
   },
   {
     "id": "dialoguesDeLaScene",
@@ -1650,7 +1650,7 @@
     "type": "primitives.manifest",
     "label": "memoByRef/memoByRefDeps/memoByDeps",
     "fichier": "src/noyau/monde/sceneMemo.ts",
-    "concept": "mémoïsation par IDENTITÉ, sans invalidation manuelle : `memoByRef` par référence de la clé (gelée en développement), `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoByRefDeps` un `memoByDeps` par clé",
+    "concept": "mémoïsation par IDENTITÉ, sans invalidation manuelle : `memoByRef` par référence de la clé (gelée en développement), `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoByRefDeps` un `memoByDeps` par clé ; `memoByRef` et `memoByRefDeps` oublient toute valeur retenue à une écriture au catalogue (`versionDesDatasets`), un `memoByDeps` nu qui lit un catalogue reçoit cette version en dépendance",
     "perimetre": "tout cache dérivé de la `Scene` ou d'un objet de donnée (volume du monde, toits, arêtes, opacité, cuisson du rendu web), et tout calcul qui reprend sa variante précédente",
     "verrou": "src/noyau/monde/sceneMemo.test.ts ; mémo nourri d'un corpus refusé (`MEMOS`, `scripts/guards/lib/analyseRetenue.mjs`, `src/analyse-retention-guard.test.ts`)"
   },
@@ -1792,11 +1792,29 @@
   {
     "id": "threeWay",
     "type": "primitives.manifest",
-    "label": "threeWay",
+    "label": "threeWay/threeWayDiff3",
     "fichier": "scripts/git-hooks/three-way.mjs",
-    "concept": "fusion à trois voies d'un texte par `git merge-file`",
-    "perimetre": "pilote de fusion des stocks de sites",
-    "verrou": "merge-stocks.test.mjs"
+    "concept": "fusion à trois voies d'un texte par `git merge-file`, au style ordinaire ou `diff3`",
+    "perimetre": "pilotes de fusion (stocks de sites, imports)",
+    "verrou": "merge-stocks.test.mjs, merge-imports.test.mjs"
+  },
+  {
+    "id": "segmentsDeFusion",
+    "type": "primitives.manifest",
+    "label": "segmentsDeFusion/tailleDeMarqueur",
+    "fichier": "scripts/guards/lib/blocsDeFusion.mjs",
+    "concept": "sortie de `git merge-file --diff3` lue en segments (lignes fusionnées, blocs en conflit avec leur base) ; taille de marqueur qu'aucune ligne des textes n'imite",
+    "perimetre": "tout outil qui lit les blocs en conflit d'une fusion",
+    "verrou": "synchroniser.test.mjs, merge-imports.test.mjs"
+  },
+  {
+    "id": "declarationsDImport",
+    "type": "primitives.manifest",
+    "label": "declarationsDImport/unNomParLigne",
+    "fichier": "scripts/guards/lib/declarationsDImport.mjs",
+    "concept": "déclarations `import` et `export … from` de premier niveau d'un module, lues par l'arbre syntaxique : clé, liaisons, réimpression à un nom par ligne",
+    "perimetre": "tout outil qui lit ou réécrit les imports d'un module",
+    "verrou": "merge-imports.test.mjs"
   },
   {
     "id": "litteralJs",
@@ -2326,7 +2344,7 @@
     "label": "enBase64/depuisBase64",
     "fichier": "src/lib/base64.ts",
     "concept": "base64 des octets (RFC 4648, section 4) dans les deux sens, par blocs sous la borne d’arguments de String.fromCharCode ; seul site de btoa et atob",
-    "perimetre": "toute couche : masque du retrait du monde (src/noyau/monde/volume/volume.ts), maillages de la pile du pont Godot (hotes/godot/pont/pile.ts), base64url des payloads coop (src/net/compress.ts)",
+    "perimetre": "toute couche : masque du retrait du monde (src/noyau/monde/volume/volume.ts), maillages de la pile du pont Godot (hotes/godot/pont/pile.ts), base64url des payloads coop (src/hote/coop/compression.ts)",
     "verrou": "murs/base64 et murs/base64-hote d’oxlint.config.mjs (banc scripts/guards/lib/lint-parite.test.mjs) ; src/lib/base64.test.ts"
   },
   {

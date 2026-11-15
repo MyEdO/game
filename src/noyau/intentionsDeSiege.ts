@@ -17,16 +17,17 @@
  *  - tout autre verbe : une entrée de `CLASSE_DES_ACTIONS_DU_NOYAU` (verbes de `ActionsDuNoyau`) ou de la
  *    table de l'adaptateur (`state/intents.ts`, ses actions d'interface), tables TOTALES sur
  *    `ActionManuscrite` — une action ajoutée sans classe ne compile pas.
- * `invité` = l'invité la DEMANDE à l'hôte (`netFlow` l'enrobe) ; `hôte` = écran ou décision pilotés
- * par l'hôte ; `local` = état d'écran du client, jamais un intent. La machinerie (`MachinerieDuNoyau`) n'est pas un
- * verbe et n'a pas de classe (#3370). Chez l'invité, une action
- * hors allowlist s'exécute dans son store (`netFlow` n'enrobe que l'allowlist) ; chez l'hôte, toute
- * intention d'un siège passe par `appliquerLIntentionDUnSiege`.
+ * `invité` = l'invité la DEMANDE à l'hôte (`transmettreLesIntentions` l'enrobe, `reseau.ts`) ; `hôte` = écran ou
+ * décision pilotés par l'hôte ; `local` = état d'écran du client, jamais un intent. La machinerie (`MachinerieDuNoyau`)
+ * n'est pas un verbe et n'a pas de classe (#3370). Chez l'invité, `transmettreLesIntentions` n'enrobe que l'allowlist :
+ * par une `Partie` (`Partie.envoyer`), un verbe `hôte` ou une intention à siège se refuse (`refusChezLInvite`) ; l'action de l'état appelée
+ * sans elle se joue dans sa copie. Chez l'hôte, toute intention d'un siège passe par `appliquerLIntentionDUnSiege`.
  */
 import { coopFlowIntents, type FLOW_VERBS, type NomDeVerbeDeJet } from './flowVerbs';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { LOCALES_AU_CLIENT } from './coop';
 import type { Get } from './flowTypes';
+import type { Jeu } from './etat';
 import { intentAllowedFor, withActingSeat } from './netOwnership';
 import { t } from '../i18n';
 
@@ -108,7 +109,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ═══ hôte / local : émis par un écran ═══
   // Élection LOCALE d'écran, hors réseau PAR CONSTRUCTION (même famille que `localIntent`) : le clic
   // qui élit le porteur du mode Dissiper n'engage rien — il ouvre le choix du Sort CHEZ CE JOUEUR.
-  // `emettreIntentInvite` (`hote/coop/salon.ts`) le joue dans le store de l'émetteur et n'envoie aucun intent ; le
+  // `emettreIntentInvite` (`reseau.ts`) le joue dans le store de l'émetteur et n'envoie aucun intent ; le
   // COMMIT, lui (`dissiperLeSort`), est exposé. Voyager le ferait naître chez l'HÔTE.
   designerLeSupport: 'local',
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
@@ -122,7 +123,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   changerDeCarriere: 'hôte', designerLeCreneau: 'hôte', entrainerLaProthese: 'hôte', acheterLaComposante: 'hôte',
   retirerLaComposante: 'hôte', ecrireLHistorique: 'hôte', rompreLaFaveur: 'hôte',
   ouvrirLeMedecin: 'hôte', evaluerLObjet: 'hôte',
-  // ── Possessions / inventaire / équipement (lot coop non ouvert) ───────────────────────────────
+  // ── Possessions / inventaire / équipement ──────────────────────────────────────────────────────
   equiperLObjet: 'hôte', rangerLObjet: 'hôte', transmettreLObjet: 'hôte', poserLApparence: 'hôte',
   garnirLaPanoplie: 'hôte', creerLaPanoplie: 'hôte', supprimerLaPanoplie: 'hôte',
   cederLaPossession: 'hôte', renommerLaPossession: 'hôte', recupererLaPossession: 'hôte',
@@ -133,6 +134,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   installerLAmelioration: 'hôte', recruterLEquipage: 'hôte', renvoyerLEquipage: 'hôte', avitaillerLeNavire: 'hôte', recueillirLesRumeurs: 'hôte',
   // ── Navire / rôles / conseil de bord ──────────────────────────────────────────────────────────
   affecterAuRoleABord: 'hôte', affecterALaStation: 'hôte', affecterAuRoleDeMarche: 'hôte', approvisionnerLaPiece: 'hôte',
+  // ── Sièges de la coop : l'attribution des héros, des emplacements et du rôle MJ (`noyau/sieges.ts`) ──────────
+  affecterLeHerosAuSiege: 'hôte', affecterLEmplacementAuSiege: 'hôte', affecterLeSiegeMJ: 'hôte',
   // ── Décisions de GROUPE (taverne, poursuite) ──────────────────────────────────────────────────
   jouerALaTaverne: 'hôte', ouvrirLesJeux: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
@@ -146,6 +149,16 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
 type Classes = typeof CLASSE_DES_ACTIONS_DU_NOYAU;
 /** Actions manuscrites d'une classe donnée. */
 export type ActionDeClasse<C extends ClasseCoop> = { [K in keyof Classes]: Classes[K] extends C ? K : never }[keyof Classes];
+
+/** Chez un invité, une intention qui porte un siège (#3009) ou dont le verbe est de classe `hôte` (#2895) ne se joue
+ *  pas : le texte de son refus ; `null` sinon. */
+export function refusChezLInvite(s: Pick<Jeu, 'net'>, intention: { type: string; siege?: number }): string | null {
+  if (s.net.mode !== 'invite') return null;
+  if (intention.siege !== undefined) return t('coop.siegeHoteSeul');
+  const classe: ClasseCoop | undefined = (CLASSE_DES_ACTIONS_DU_NOYAU as Readonly<Record<string, ClasseCoop>>)[intention.type];
+  if (classe !== 'hôte') return null;
+  return t('coop.hoteSeul');
+}
 
 const INVITEES = (Object.keys(CLASSE_DES_ACTIONS_DU_NOYAU) as (keyof Classes)[]).filter((a) => CLASSE_DES_ACTIONS_DU_NOYAU[a] === 'invité');
 

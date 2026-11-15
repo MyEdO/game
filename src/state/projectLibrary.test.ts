@@ -1,5 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { projectsLoad, projectSave, projectRemove, publishedProjects, initLibrary, __resetLibraryForTest, campagneDeLEntree, estRefusee, projetDeLEntree } from './projectLibrary';
+import {
+  projectsLoad,
+  projectSave,
+  projectRemove,
+  publishedProjects,
+  initLibrary,
+  __resetLibraryForTest,
+  campagneDeLEntree,
+  estRefusee,
+  projetDeLEntree,
+} from './projectLibrary';
 import { type SavedProject } from '../noyau/persistance/bibliotheque';
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
 import { brancherBasesSimulees, brancherOuvertures } from '../web/indexedDb.testkit';
@@ -51,7 +61,6 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     poserLeLocalStorage();
   });
   afterEach(() => {
-    delete (globalThis as { localStorage?: Storage }).localStorage;
     __setFabriqueIdbForTest(null);
   });
 
@@ -556,7 +565,6 @@ describe('`wfrp4-library` — déclarée, recréée si elle s’en écarte (#240
     poserLeLocalStorage();
   });
   afterEach(() => {
-    delete (globalThis as { localStorage?: Storage }).localStorage;
     __setFabriqueIdbForTest(null);
   });
 

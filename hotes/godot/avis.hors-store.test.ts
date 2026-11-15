@@ -69,7 +69,7 @@ describe('avisDesPaquets', () => {
   });
 
   it('chaque paquet npm fondu dans le bundle du pont a son texte', async () => {
-    const avis = avisDesPaquets((await empaqueter(null)).modules);
+    const avis = avisDesPaquets((await empaqueter(null, 'production')).modules);
     expect(avis.filter((a) => a.texte === null).map((a) => `${a.oeuvre} : ${a.source}`), `paquets du bundle : ${avis.map((a) => a.oeuvre).join(', ')}`).toEqual([]);
   }, 120_000);
 });

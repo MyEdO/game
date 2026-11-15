@@ -10,6 +10,7 @@ import { etatIdsConnus } from '../../engine/conditions';
 import { t } from '../../i18n';
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
@@ -101,7 +102,7 @@ describe('opValue — DÉFAUT signé (longue traîne) : jamais de faux 0 silenci
 describe('oppositionDiscount — Sorts de Contact / résistés (LDB 46 l.103-105)', () => {
   const caster = () => combatant({ characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 } });
   const target = () => combatant({ id: 'h', characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 } });
-  const spell = (opposed?: SpellData['opposed']): SpellData => ({ id: 'sp', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', opposed, source: { book: 'LDB', page: 0 } } as SpellData);
+  const spell = (opposed?: SpellData['opposed']): SpellData => ({ id: idDeFixture('spell', 'sp'), type: 'spells', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', opposed, source: { book: 'LDB', page: 0 } });
 
   it('Sort de Contact (opposé) → escompte < 1', () => {
     expect(oppositionDiscount(spell({ kind: 'contact' }), caster(), target())).toBeLessThan(1);

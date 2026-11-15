@@ -59,10 +59,8 @@ describe('Inspecteur — un jeu de taverne orphelin se signale', () => {
   });
 });
 
-type Jeu = { id: string; specials?: Record<string, unknown>[] };
-
 describe('Codex — les Spéciaux d’un jeu de taverne s’éditent au clic', () => {
-  const avant = (datasetArray('tavernGames') as Jeu[]).slice();
+  const avant = datasetArray('tavernGames').slice();
   afterEach(() => setDataset('tavernGames', avant as never));
 
   it('Arène : modifier, ajouter, retirer une rangée ; le Talent se choisit au catalogue ; la sauvegarde passe le schéma', async () => {
@@ -104,7 +102,7 @@ describe('Codex — les Spéciaux d’un jeu de taverne s’éditent au clic', (
     expect(enregistrer.disabled).toBe(false);
     await act(async () => { enregistrer.click(); });
     expect(c.querySelector('.codex-edit-errors'), 'le schéma a refusé la sauvegarde').toBeNull();
-    const arene = (datasetArray('tavernGames') as Jeu[]).find((g) => g.id === 'arene')!;
+    const arene = datasetArray('tavernGames').find((g) => g.id === 'arene')!;
     expect(arene.specials).toEqual([
       { effet: 'cran', hasTalent: 'tireur-embusque', steps: 2, source: { book: 'nuits-agitees-et-dures-journees', page: 93, note: 'NADJ 16 l.82' } },
       { effet: 'difficulte', hasTalent: 'tireur-de-precision', difficulty: 'facile', source: { book: 'nuits-agitees-et-dures-journees', page: 93 } },
@@ -119,7 +117,7 @@ describe('Codex — les Spéciaux d’un jeu de taverne s’éditent au clic', (
     saisir(crans, '');
     await act(async () => { c.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!.click(); });
     expect(c.querySelector('.codex-edit-errors')?.textContent, 'un cran vidé n’est pas enregistré à 0').toContain('« Crans (plus facile si positif) » est requis');
-    expect((datasetArray('tavernGames') as Jeu[]).find((g) => g.id === 'arene')!.specials![0].steps, 'la donnée garde son cran').toBe(1);
+    expect(datasetArray('tavernGames').find((g) => g.id === 'arene')!.specials![0].steps, 'la donnée garde son cran').toBe(1);
   });
 
   it('Dominos, sans Spécial : la première rangée se pose de toute pièce, Talent compris', async () => {
@@ -146,7 +144,7 @@ describe('Codex — les Spéciaux d’un jeu de taverne s’éditent au clic', (
     act(() => { page.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
     await act(async () => { c.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!.click(); });
     expect(c.querySelector('.codex-edit-errors'), 'le schéma a refusé la sauvegarde').toBeNull();
-    expect((datasetArray('tavernGames') as Jeu[]).find((g) => g.id === 'dominos')!.specials).toEqual([
+    expect(datasetArray('tavernGames').find((g) => g.id === 'dominos')!.specials).toEqual([
       { effet: 'cran', hasTalent: 'tireur-d-elite', steps: 1, source: { book: 'nuits-agitees-et-dures-journees', page: 93 } },
     ]);
   });

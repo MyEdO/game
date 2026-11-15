@@ -14,7 +14,18 @@ import { t } from '../i18n';
 import { signature, type ParametreDeVerbe } from '../hote/formes';
 import { VERBES } from '../hote/verbes.generated';
 import { parametresDuGeste } from '../hote/gestes';
-import { apercuDe, combattantsTries, projeter as projeterAuxBornes, type Apercu, type BornesDeLaProjection, type CaseAtteignable, type CombattantProjete, type OffreEnVue, type Projection, type ProprietaireDeLaFenetre } from '../hote/projection';
+import {
+  apercuDe,
+  combattantsTries,
+  projeter as projeterAuxBornes,
+  type Apercu,
+  type BornesDeLaProjection,
+  type CaseAtteignable,
+  type CombattantProjete,
+  type OffreEnVue,
+  type Projection,
+  type ProprietaireDeLaFenetre,
+} from '../hote/projection';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { appelEcrit } from './outils';
 
@@ -304,7 +315,7 @@ export function rendreLesOffres(etat: Jeu, offres: readonly Offre[], options: { 
   if (!choisies.length) {
     const barre = etatDeLaBarre(etat);
     const pertinence = options.id && barre.forme === 'ouverte' && ACTIONS.some((a) => a.id === options.id)
-      ? actionGate(options.id, { active: barre.active, battle: barre.battle, netMode: etat.net.mode, gameTime: etat.gameTime })
+      ? actionGate(options.id, { active: barre.active, battle: barre.battle, scene: etat.scene, netMode: etat.net.mode, gameTime: etat.gameTime })
       : undefined;
     const raison = pertinence && !pertinence.ok ? ` : ${pertinence.reason}` : '';
     return [`aucune offre${options.id ? ` ${options.id}` : options.toutes ? '' : ` ouverte (${appelEcrit('lire', { quoi: 'offres', toutes: true })})`}${raison}`];

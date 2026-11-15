@@ -48,7 +48,7 @@ export const adresseDeCreation = {
   // eslint-disable-next-line murs/marques -- #1988 : fabrique, gabarit de la famille `signe` — composer l'adresse EST son corps de métier (cf. JSDoc).
   signe: (k: number): AdresseDeCreation => marquer(`signe:${k}`),
   /** `chemin` : la position dans la liste des dotations (`dotationsDuHeros`, `dotationsDuPnj`), puis l'index de branche de chaque `{pick, of}`
-   *  traversé (`emplacementsDeDotation`, `engine/trappingChoices.ts`). */
+   *  traversé, et le segment `0` de l'Atout au choix d'un joker (`sousEmplacements`, `engine/trappingChoices.ts`). */
   // eslint-disable-next-line murs/marques -- #1988 : fabrique, gabarit de la famille `dotation` — composer l'adresse EST son corps de métier (cf. JSDoc).
   dotation: (chemin: readonly number[]): AdresseDeCreation => marquer(`dotation:${chemin.join('.')}`),
 };

@@ -1,48 +1,52 @@
 /**
  * LE SALON COOP (#3556) sur ports factices (`relay.testkit.ts`) et le banc du noyau : création et échec de la room,
  * format du code et délai de connexion, reprise par jeton, grâce et présence, diffusion lissée sous backpressure,
- * départ en intention d'une action d'invité (et élection locale), attribution des sièges au lobby.
+ * enrobage des intentions de l'invité ; le rappel d'intention de l'hôte, la panne des chaînes, une ouverture à la fois et
+ * son abandon par `quitter` (#3009).
  */
-import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { BUFFER_MAX, GRACE_MS, cleDuJeton, creerLeSalon, emettreIntentInvite, netAssign, netAssignSlot, setGmSeat, type PortsDuSalon, type ReponseDuRelais, type Salon } from './salon';
-import { FakeSocket, portsDuTest } from './relay.testkit';
-import { PROTOCOL_VERSION, serializeMessage } from './protocol';
+import { BUFFER_MAX, GRACE_MS, cleDuJeton, creerLeSalon, type AppliquerLIntention, type PortsDuSalon, type ReponseDuRelais, type Salon } from './salon';
+import { FakeSocket, instantanesAuSiege1, portsDuTest, roomOuverte, stockageEnMap } from './relay.testkit';
+import { PROTOCOL_VERSION, parseMessage, serializeMessage } from './protocol';
 import { ouvrirLeBanc, type Banc } from '../../noyau/banc.testkit';
-import { buildDeLaCoop } from '../../noyau/coop';
-import { initialNet, type NetState } from '../../noyau/etat';
-import { tableDeDissipation } from '../../noyau/tableDeDissipation.testkit';
-import { applyEffects } from '../../noyau/combatEffects';
-import { affichés, narratif, hero as heroDesIndices, fixtureScene } from '../../noyau/monde/clues.fixture';
-import { tousLesHerosDeScenario } from '../../scenes/test-scenarios/_heros';
-import { spawnEnemy } from '../../noyau/monde/spawn';
+import { appliquerLInstantane, buildDeLaCoop, instantaneDeLaCoop } from '../../noyau/coop';
+import { etatInitialDuJeu, initialNet } from '../../noyau/etat';
+import { appliquerLIntentionDUnSiege } from '../../noyau/intentionsDeSiege';
 import { t } from '../../i18n';
 
 const BASE = 'http://localhost:8787';
 
 /** Les ports factices d'un salon, et ce qu'ils ont vu. */
-function ports(banc: Banc, fetch: PortsDuSalon['fetch']) {
-  const stocke = new Map<string, string>();
-  const invite = { intercepter: vi.fn(), restaurer: vi.fn() };
+function ports(banc: Banc, fetch: PortsDuSalon['fetch'], panne?: PortsDuSalon['panne']) {
+  const { stocke, stockage } = stockageEnMap();
   const p: PortsDuSalon = {
-    ...portsDuTest(),
+    ...portsDuTest(undefined, panne),
     relais: () => BASE,
     fetch,
-    stockage: () => ({ getItem: (k) => stocke.get(k) ?? null, setItem: (k, v) => { stocke.set(k, v); } }),
+    stockage,
     abonner: (ecouteur) => banc.subscribe(ecouteur),
-    invite,
   };
-  return { p, stocke, invite };
+  return { p, stocke };
 }
 
-const roomOuverte = async (): Promise<ReponseDuRelais> => ({ ok: true, json: async () => ({ code: 'ABC234', hostToken: 'HT' }) });
+/** Le rappel d'intention de l'hôte web. */
+const appliquerDuBanc: AppliquerLIntention = (action, args, siege) => { appliquerLIntentionDUnSiege(banc.getState, siege, action, args); };
 
-/** Les instantanés que la socket hôte a envoyés au siège 1. */
-const instantanesAuSiege1 = (ws: FakeSocket) => ws.sent.flatMap((raw) => {
-  if (raw === 'ping') return [];
-  const env = JSON.parse(raw) as { to?: number; data?: string; z?: string };
+/** Une intention du siège 1, telle que la socket hôte la reçoit. */
+const intentionDuSiege1 = (action: string, args: unknown[]) => JSON.stringify({ from: 1, data: serializeMessage({ kind: 'intent', action, args, seat: 0 }) });
+
+/** Un instantané de l'hôte au temps `gameTime`, tel que la socket de l'invité le reçoit (`z` : compressé). */
+const instantaneRecu = (gameTime: number, champ: 'data' | 'z' = 'data') => {
+  const texte = serializeMessage({ kind: 'snapshot', data: JSON.parse(JSON.stringify(instantaneDeLaCoop({ ...etatInitialDuJeu(), gameTime }))) });
+  return JSON.stringify(champ === 'z' ? { z: `z:${texte}` } : { data: texte });
+};
+
+/** Les intentions que la socket de l'invité a envoyées. */
+const intentionsEmises = (ws: FakeSocket) => ws.sent.flatMap((raw) => {
+  const env = JSON.parse(raw) as { data?: string; z?: string };
   const texte = env.data ?? env.z?.slice(2);
-  return env.to === 1 && texte && (JSON.parse(texte) as { kind: string }).kind === 'snapshot' ? [texte] : [];
+  const m = texte ? parseMessage(texte) : null;
+  return m?.kind === 'intent' ? [m.action] : [];
 });
 
 let banc: Banc;
@@ -54,15 +58,15 @@ beforeEach(() => {
   salon = null;
 });
 afterEach(() => {
-  salon?.quitter(banc.setState);
+  salon?.quitter(banc.getState);
   vi.useRealTimers();
 });
 
 /** Un hôte dont la room est ouverte, le siège 1 assis et son handshake accompli. */
-async function hoteAvecUnInvite() {
-  const { p } = ports(banc, roomOuverte);
+async function hoteAvecUnInvite(appliquer: AppliquerLIntention = appliquerDuBanc, panne?: PortsDuSalon['panne']) {
+  const { p } = ports(banc, roomOuverte, panne);
   salon = creerLeSalon(p);
-  expect(await salon.heberger(banc.getState, banc.setState, 'Hôte')).toBe(true);
+  expect(await salon.heberger(banc.getState, appliquer, 'Hôte')).toBeNull();
   const ws = FakeSocket.last!;
   ws.open();
   ws.receive(JSON.stringify({ evt: 'join', seat: 1, name: 'Anna' }));
@@ -72,10 +76,13 @@ async function hoteAvecUnInvite() {
 }
 
 describe('salon — l’hôte', () => {
-  it('relay injoignable : héberger refuse, reste local, sans socket ni minuterie', async () => {
+  it.each([
+    ['fetch rejeté', async (): Promise<ReponseDuRelais> => { throw new TypeError('Failed to fetch'); }],
+    ['réponse non ok', async (): Promise<ReponseDuRelais> => ({ ok: false, json: async () => ({}) })],
+  ])('relay injoignable (%s) : héberger le dit, reste local, sans socket ni minuterie', async (_cas, repondre) => {
     const urls: string[] = [];
-    salon = creerLeSalon(ports(banc, async (url) => { urls.push(url); throw new TypeError('Failed to fetch'); }).p);
-    expect(await salon.heberger(banc.getState, banc.setState, 'Anne')).toBe(false);
+    salon = creerLeSalon(ports(banc, async (url) => { urls.push(url); return repondre(); }).p);
+    expect(await salon.heberger(banc.getState, appliquerDuBanc, 'Anne')).toBe(t('coop.hote.erreur'));
     expect(urls).toEqual([`${BASE}/rooms`]);
     expect(banc.getState().net.mode).toBe('local');
     expect(FakeSocket.instances).toHaveLength(0);
@@ -84,13 +91,13 @@ describe('salon — l’hôte', () => {
 
   it('room créée : mode hôte, code de la room, socket hôte par jeton', async () => {
     salon = creerLeSalon(ports(banc, roomOuverte).p);
-    expect(await salon.heberger(banc.getState, banc.setState, 'Hôte')).toBe(true);
+    expect(await salon.heberger(banc.getState, appliquerDuBanc, 'Hôte')).toBeNull();
     expect(banc.getState().net).toMatchObject({ mode: 'hote', roomCode: 'ABC234', seatNames: { 0: 'Hôte' } });
     const url = new URL(FakeSocket.last!.url);
     expect([url.origin, url.pathname, url.searchParams.get('token')]).toEqual(['ws://localhost:8787', '/room/ABC234', 'HT']);
   });
 
-  it('coupure d’un invité : présence `away`, siège réservé GRACE_MS ; reprise avant la fin, rien ne ferme', async () => {
+  it('coupure d’un invité : présence `absent`, siège réservé GRACE_MS ; reprise avant la fin, rien ne ferme', async () => {
     const ws = await hoteAvecUnInvite();
     expect(banc.getState().net.presence[1]).toBe('present');
     ws.receive(JSON.stringify({ evt: 'gone', seat: 1 }));
@@ -123,18 +130,65 @@ describe('salon — l’hôte', () => {
     await vi.advanceTimersByTimeAsync(1_000);
     expect(instantanesAuSiege1(ws).length - auJoin).toBe(1);
   });
+
+  it('l’intention d’un siège arrive au rappel de `heberger`, et à lui seul : un rappel qui ne fait rien laisse l’état', async () => {
+    const vues: [string, unknown[], number][] = [];
+    const ws = await hoteAvecUnInvite((action, args, siege) => { vues.push([action, args, siege]); });
+    const avant = banc.getState();
+    ws.receive(intentionDuSiege1('terminerLeTour', [7]));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(vues).toEqual([['terminerLeTour', [7], 1]]);
+    expect(banc.getState()).toBe(avant);
+  });
+
+  it('le rappel d’intention lève sur la première : la panne la reçoit une fois, la seconde arrive au rappel', async () => {
+    const vues: string[] = [];
+    const pannes: unknown[] = [];
+    const ws = await hoteAvecUnInvite((action) => {
+      vues.push(action);
+      if (vues.length === 1) throw new Error('rappel');
+    }, (e) => pannes.push(e));
+    ws.receive(intentionDuSiege1('A', []));
+    ws.receive(intentionDuSiege1('B', []));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(vues).toEqual(['A', 'B']);
+    expect(pannes.map((e) => (e as Error).message)).toEqual(['rappel']);
+  });
+
+  it('en session, héberger le dit sans rien ouvrir', async () => {
+    await hoteAvecUnInvite();
+    expect(await salon!.heberger(banc.getState, appliquerDuBanc, 'Autre')).toBe(t('coop.alreadyInSession'));
+    expect(FakeSocket.instances).toHaveLength(1);
+  });
 });
+
+/** Un invité assis au siège 2 de la room `ABC234`, l'instantané reçu appliqué à son banc. */
+async function inviteAssis() {
+  salon = creerLeSalon(ports(banc, roomOuverte).p);
+  const joining = salon.rejoindre(banc.getState, (data) => banc.setState(appliquerLInstantane(data, banc.getState()).etat), 'ABC234', 'Anna');
+  const ws = FakeSocket.last!;
+  ws.open();
+  ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'TOK' }));
+  expect(await joining).toBeNull();
+  return ws;
+}
+
+/** La session de l'invité est finie : `net` initial, actions d'origine. */
+function finie() {
+  expect(banc.getState().net).toEqual(initialNet());
+  expect(banc.getState().marquerLesIndices, 'les actions d’origine ne sont pas restaurées').toBe(banc.actions.marquerLesIndices);
+}
 
 describe('salon — l’invité', () => {
   it('un code hors format est refusé sans connexion', async () => {
     salon = creerLeSalon(ports(banc, roomOuverte).p);
-    expect(await salon.rejoindre(banc.getState, banc.setState, () => {}, 'abc-23', 'Anne')).toBe(t('coop.badCode'));
+    expect(await salon.rejoindre(banc.getState, () => {}, 'abc-23', 'Anne')).toBe(t('coop.badCode'));
     expect(FakeSocket.instances).toHaveLength(0);
   });
 
   it('rejoindre expire après fermeture 1006 et retry, sans socket ni minuterie survivante', async () => {
     salon = creerLeSalon(ports(banc, roomOuverte).p);
-    const joining = salon.rejoindre(banc.getState, banc.setState, () => {}, 'abc234', 'Anne & Bob');
+    const joining = salon.rejoindre(banc.getState, () => {}, 'abc234', 'Anne & Bob');
     const first = FakeSocket.last!;
     const url = new URL(first.url);
     expect([url.origin, url.pathname, url.searchParams.get('name')]).toEqual(['ws://localhost:8787', '/room/ABC234', 'Anne & Bob']);
@@ -143,18 +197,67 @@ describe('salon — l’invité', () => {
     expect(FakeSocket.instances).toHaveLength(2);
     await vi.advanceTimersByTimeAsync(14_000);
     expect(await joining).toBe(t('coop.joinFailed'));
-    expect(banc.getState().net.mode).toBe('local');
+    finie();
     expect(FakeSocket.instances[1].closedWith).not.toBeNull();
     expect(vi.getTimerCount()).toBe(0);
     await vi.advanceTimersByTimeAsync(120_000);
     expect(FakeSocket.instances).toHaveLength(2);
   });
 
+  it('premier instantané de l’hôte : appliqué, `net` invité au siège donné, l’action de l’allowlist part en intention', async () => {
+    const ws = await inviteAssis();
+    const hote = { ...etatInitialDuJeu(), gameTime: 4242, net: { ...initialNet(), mode: 'hote' as const, roomCode: 'ABC234' } };
+    ws.receive(JSON.stringify({ data: serializeMessage({ kind: 'hello', protocol: PROTOCOL_VERSION, build: buildDeLaCoop(), label: 'Hôte' }) }));
+    ws.receive(JSON.stringify({ data: serializeMessage({ kind: 'snapshot', data: JSON.parse(JSON.stringify(instantaneDeLaCoop(hote))) }) }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(banc.getState().gameTime, 'l’instantané n’est pas appliqué').toBe(4242);
+    expect(banc.getState().net).toMatchObject({ mode: 'invite', mySeat: 2 });
+    banc.getState().marquerLesIndices([]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(intentionsEmises(ws)).toEqual(['marquerLesIndices']);
+  });
+
+  it('fatal du relay une fois assis : la raison au journal, la session finie', async () => {
+    const ws = await inviteAssis();
+    ws.dropFromServer(4404, 'room inconnue');
+    expect(banc.getState().journal).toContain(t('coop.reason', { reason: 'room inconnue' }));
+    finie();
+  });
+
+  it('socket fermée une fois assis, sans reprise dans le délai de reconnexion : la session finie', async () => {
+    await inviteAssis();
+    for (let i = 0; i < 30 && banc.getState().net.mode === 'invite'; i++) {
+      FakeSocket.last!.dropFromServer();
+      await vi.advanceTimersByTimeAsync(10_000);
+    }
+    finie();
+  });
+
+  it('l’instantané qui lève au rappel : la panne la reçoit une fois, le second arrive au rappel', async () => {
+    const pannes: unknown[] = [];
+    const vus: number[] = [];
+    salon = creerLeSalon(ports(banc, roomOuverte, (e) => pannes.push(e)).p);
+    const joining = salon.rejoindre(banc.getState, (data) => {
+      vus.push(data.gameTime as number);
+      if (vus.length === 1) throw new Error('instantané');
+    }, 'ABC234', 'Anna');
+    const ws = FakeSocket.last!;
+    ws.open();
+    ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'TOK' }));
+    expect(await joining).toBeNull();
+    ws.receive(JSON.stringify({ data: serializeMessage({ kind: 'hello', protocol: PROTOCOL_VERSION, build: buildDeLaCoop(), label: 'Hôte' }) }));
+    ws.receive(instantaneRecu(1));
+    ws.receive(instantaneRecu(2));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(vus).toEqual([1, 2]);
+    expect(pannes.map((e) => (e as Error).message)).toEqual(['instantané']);
+  });
+
   it('reprise : le jeton stocké de la room rejoint par token ; assis, le jeton reçu se stocke et l’enrobage se pose', async () => {
-    const { p, stocke, invite } = ports(banc, roomOuverte);
+    const { p, stocke } = ports(banc, roomOuverte);
     stocke.set(cleDuJeton('ABC234'), 'ANCIEN');
     salon = creerLeSalon(p);
-    const joining = salon.rejoindre(banc.getState, banc.setState, () => {}, 'ABC234', 'Anna');
+    const joining = salon.rejoindre(banc.getState, () => {}, 'ABC234', 'Anna');
     const ws = FakeSocket.last!;
     expect(new URL(ws.url).searchParams.get('token')).toBe('ANCIEN');
     expect(new URL(ws.url).searchParams.get('name')).toBeNull();
@@ -163,120 +266,173 @@ describe('salon — l’invité', () => {
     expect(await joining).toBeNull();
     expect(stocke.get(cleDuJeton('ABC234'))).toBe('NEUF');
     expect(banc.getState().net).toMatchObject({ mode: 'invite', mySeat: 2, roomCode: 'ABC234' });
-    expect(invite.intercepter).toHaveBeenCalledTimes(1);
-    salon.quitter(banc.setState);
-    expect(invite.restaurer).toHaveBeenCalled();
+    expect(banc.getState().marquerLesIndices, 'l’enrobage n’est pas posé').not.toBe(banc.actions.marquerLesIndices);
+    salon.quitter(banc.getState);
+    expect(banc.getState().marquerLesIndices, 'les actions d’origine ne sont pas restaurées').toBe(banc.actions.marquerLesIndices);
     expect(banc.getState().net).toEqual(initialNet());
   });
 });
 
-const caseDe = (id: string) => ({ ...banc.getState().battle!.combatants.find((c) => c.id === id)!.pos! });
-
-describe('salon — l’action d’un invité part en intention, sauf l’élection locale', () => {
-  it('Dissiper, porteur à 2 Sorts : l’élection se joue chez l’émetteur, rien ne part (LDB 46 l.158-162)', () => {
-    banc.setState(tableDeDissipation('invite', { e1: 2 }));
-    const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'cliquerLaCase', banc.getState().cliquerLaCase as never, envoyer, [caseDe('e1'), 'e1']);
-    expect(banc.getState().dispelCarrierId, 'l’élection n’a pas eu lieu chez l’ÉMETTEUR').toBe('e1');
-    expect(envoyer, 'l’élection est partie chez l’hôte').not.toHaveBeenCalled();
-    expect(banc.getState().pendingDispel).toBeNull();
+describe('salon — une ouverture à la fois, que `quitter` achève', () => {
+  it('quitter pendant une jonction : abandonnée dans l’appel, sans minuterie ; un `seated` tardif n’assoit ni ne stocke ; héberger ensuite tient plus de 15 s', async () => {
+    const { p, stocke } = ports(banc, roomOuverte);
+    salon = creerLeSalon(p);
+    const joining = salon.rejoindre(banc.getState, () => {}, 'ABC234', 'Anna');
+    const ws = FakeSocket.last!;
+    ws.open();
+    let issue: string | null | undefined;
+    void joining.then((i) => { issue = i; });
+    salon.quitter(banc.getState);
+    await Promise.resolve();
+    expect(issue).toBe(t('coop.ouvertureAbandonnee'));
+    expect(vi.getTimerCount()).toBe(0);
+    ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'TARD' }));
+    expect(stocke.has(cleDuJeton('ABC234'))).toBe(false);
+    finie();
+    expect(await salon.heberger(banc.getState, appliquerDuBanc, 'Anna')).toBeNull();
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(banc.getState().net).toMatchObject({ mode: 'hote', roomCode: 'ABC234' });
   });
 
-  it('Dissiper, porteur à 1 Sort : rien à élire, rien d’armé : le geste part tel quel', () => {
-    banc.setState(tableDeDissipation('invite', { e1: 1 }));
-    const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'cliquerLaCase', banc.getState().cliquerLaCase as never, envoyer, [caseDe('e1'), 'e1']);
-    expect(banc.getState().dispelCarrierId).toBeNull();
-    expect(banc.getState().pendingDispel, 'le commit s’est joué EN LOCAL').toBeNull();
-    expect(envoyer.mock.calls).toEqual([['cliquerLaCase', [caseDe('e1'), 'e1']]]);
+  it('un instantané décompressé après le `quitter` d’un invité assis n’arrive pas au rappel', async () => {
+    const vus: unknown[] = [];
+    salon = creerLeSalon(ports(banc, roomOuverte).p);
+    const joining = salon.rejoindre(banc.getState, (data) => vus.push(data), 'ABC234', 'Anna');
+    const ws = FakeSocket.last!;
+    ws.open();
+    ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'TOK' }));
+    expect(await joining).toBeNull();
+    ws.receive(JSON.stringify({ data: serializeMessage({ kind: 'hello', protocol: PROTOCOL_VERSION, build: buildDeLaCoop(), label: 'Hôte' }) }));
+    ws.receive(instantaneRecu(5, 'z'));
+    salon.quitter(banc.getState);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(vus).toEqual([]);
   });
 
-  it('carnet : `marquerLesIndices` part en intention et ne se joue pas localement (#2415)', () => {
-    banc.setState({ party: [heroDesIndices()] });
-    banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-o')], entryId: 'scene-o', narratif, projet: null });
-    applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
-    const envoyer = vi.fn();
-    const vus = affichés(banc.getState().clues, ['ind-lettre']);
-    emettreIntentInvite(banc.getState, 'marquerLesIndices', banc.getState().marquerLesIndices as never, envoyer, [vus]);
-    expect(envoyer).toHaveBeenCalledWith('marquerLesIndices', [vus]);
-    expect(banc.getState().clues['ind-lettre'].vuParSiège, 'le marquage s’est joué EN LOCAL').toBeUndefined();
+  it('un invité assis quitte, socket à fermeture différée : un seul `bye`, aucun envoi après `close()`', async () => {
+    salon = creerLeSalon({ ...ports(banc, roomOuverte).p, socket: (url) => new FakeSocket(url, true) });
+    const joining = salon.rejoindre(banc.getState, () => {}, 'ABC234', 'Anna');
+    const ws = FakeSocket.last!;
+    ws.open();
+    ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'TOK' }));
+    expect(await joining).toBeNull();
+    const apresClose: string[] = [];
+    ws.onSend = (d) => { if (ws.closedWith) apresClose.push(d); };
+    salon.quitter(banc.getState);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(ws.sent.filter((d) => d === JSON.stringify({ ctl: 'bye' }))).toHaveLength(1);
+    expect(apresClose).toEqual([]);
   });
 
-  it('clics du champ : la frappe d’un ennemi et le clic-sol partent, l’action locale ne joue pas', () => {
-    const h = tousLesHerosDeScenario(idsDeTest)[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
-    const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 });
-    const w = 22, hh = 16;
-    banc.setState({
-      battle: { combatants: [h, enemy], order: ['h1', 'e1'], baseOrder: ['h1', 'e1'], turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as never,
-      scene: { id: 's', dimensions: { w, h: hh }, layers: [{ z: 0, tiles: new Array(w * hh).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] } as never,
-      party: [h], mode: 'battle', net: { ...initialNet(), mode: 'invite', mySeat: 0, ownership: { h1: 0 } },
-    });
-    const local = vi.fn();
-    const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'cliquerLaCase', local, envoyer, [{ x: 7, y: 10 }, 'e1', { confirm: true }]);
-    emettreIntentInvite(banc.getState, 'cliquerLaCase', local, envoyer, [{ x: 12, y: 4 }, undefined, { confirm: false }]);
-    expect(envoyer.mock.calls.map(([action]) => action)).toEqual(['cliquerLaCase', 'cliquerLaCase']);
-    expect(local, 'le geste s’est joué en local au lieu de partir à l’hôte').not.toHaveBeenCalled();
+  it('quitter pendant le `fetch` de héberger, qui ne se règle jamais : abandonné dans l’appel', async () => {
+    salon = creerLeSalon(ports(banc, () => new Promise<ReponseDuRelais>(() => {})).p);
+    let issue: string | null | undefined;
+    void salon.heberger(banc.getState, appliquerDuBanc, 'Hôte').then((i) => { issue = i; });
+    salon.quitter(banc.getState);
+    await Promise.resolve();
+    expect(issue).toBe(t('coop.ouvertureAbandonnee'));
   });
-});
 
-describe('salon — le verbe de l’offre d’un invité : il part, l’attaque s’arme avant', () => {
-  /** Le duel du héros `h1` de l'invité (siège 0 de la table) contre `e1`, à son tour. */
-  function duel(): void {
-    const h = tousLesHerosDeScenario(idsDeTest)[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
-    const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 });
-    const w = 22, hh = 16;
-    banc.setState({
-      battle: { combatants: [h, enemy], order: ['h1', 'e1'], baseOrder: ['h1', 'e1'], turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as never,
-      scene: { id: 's', dimensions: { w, h: hh }, layers: [{ z: 0, tiles: new Array(w * hh).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] } as never,
-      party: [h], mode: 'battle', screen: 'campaign', net: { ...initialNet(), mode: 'invite', mySeat: 0, ownership: { h1: 0 } }, localIntent: null,
-    });
+  it('quitter pendant le `fetch` de héberger, qui répond après coup : ni socket, ni mode, ni abonnement', async () => {
+    let repondre!: (r: ReponseDuRelais) => void;
+    const abonnes: unknown[] = [];
+    const { p } = ports(banc, () => new Promise<ReponseDuRelais>((r) => { repondre = r; }));
+    salon = creerLeSalon({ ...p, abonner: (e) => { abonnes.push(e); return () => {}; } });
+    const hebergement = salon.heberger(banc.getState, appliquerDuBanc, 'Hôte');
+    salon.quitter(banc.getState);
+    expect(await hebergement).toBe(t('coop.ouvertureAbandonnee'));
+    repondre(await roomOuverte());
+    await vi.advanceTimersByTimeAsync(0);
+    expect(FakeSocket.instances).toHaveLength(0);
+    expect(banc.getState().net.mode).toBe('local');
+    expect(abonnes).toEqual([]);
+  });
+
+  it('héberger pendant une jonction, rejoindre pendant une jonction : refusés sans socket ; la jonction aboutit', async () => {
+    salon = creerLeSalon(ports(banc, roomOuverte).p);
+    const joining = salon.rejoindre(banc.getState, () => {}, 'ABC234', 'Anna');
+    const ws = FakeSocket.last!;
+    expect(await salon.heberger(banc.getState, appliquerDuBanc, 'Anna')).toBe(t('coop.alreadyInSession'));
+    expect(await salon.rejoindre(banc.getState, () => {}, 'XYZ789', 'Anna')).toBe(t('coop.alreadyInSession'));
+    expect(FakeSocket.instances).toHaveLength(1);
+    ws.open();
+    ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'TOK' }));
+    expect(await joining).toBeNull();
+    expect(banc.getState().net).toMatchObject({ mode: 'invite', mySeat: 2 });
+  });
+
+  it('rejoindre pendant un héberger en vol : refusé sans socket ; l’hébergement aboutit', async () => {
+    let repondre!: (r: ReponseDuRelais) => void;
+    salon = creerLeSalon(ports(banc, () => new Promise<ReponseDuRelais>((r) => { repondre = r; })).p);
+    const hebergement = salon.heberger(banc.getState, appliquerDuBanc, 'Hôte');
+    expect(await salon.rejoindre(banc.getState, () => {}, 'ABC234', 'Anna')).toBe(t('coop.alreadyInSession'));
+    expect(FakeSocket.instances).toHaveLength(0);
+    repondre(await roomOuverte());
+    expect(await hebergement).toBeNull();
+    expect(banc.getState().net.mode).toBe('hote');
+  });
+
+  /** Des ports dont la première socket lève à la construction ; les suivantes sont saines. */
+  function portsASocketQuiLeve(fetch: PortsDuSalon['fetch'] = roomOuverte) {
+    const boom = new Error('socket');
+    const pannes: unknown[] = [];
+    const abonnes: unknown[] = [];
+    let leve = true;
+    const { p } = ports(banc, fetch, (e) => pannes.push(e));
+    const sabotes: PortsDuSalon = {
+      ...p,
+      socket: (url) => {
+        if (leve) { leve = false; throw boom; }
+        return new FakeSocket(url);
+      },
+      abonner: (e) => { abonnes.push(e); return p.abonner(e); },
+    };
+    return { sabotes, boom, pannes, abonnes };
   }
 
-  it('un verbe de la barre (`terminerLeTour`) part tel quel et ne se joue pas chez l’émetteur', () => {
-    duel();
-    const local = vi.fn();
-    const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'terminerLeTour', local, envoyer, []);
-    expect(envoyer.mock.calls).toEqual([['terminerLeTour', []]]);
-    expect(local).not.toHaveBeenCalled();
-    expect(banc.getState().localIntent).toBeNull();
+  it('P11a — la socket de héberger lève : l’échec de héberger, la panne une fois, local sans abonnement ; héberger ensuite aboutit', async () => {
+    const { sabotes, boom, pannes, abonnes } = portsASocketQuiLeve();
+    salon = creerLeSalon(sabotes);
+    expect(await salon.heberger(banc.getState, appliquerDuBanc, 'Hôte')).toBe(t('coop.hote.erreur'));
+    expect(pannes).toEqual([boom]);
+    expect(banc.getState().net.mode).toBe('local');
+    expect(abonnes).toEqual([]);
+    expect(await salon.heberger(banc.getState, appliquerDuBanc, 'Hôte')).toBeNull();
+    expect(banc.getState().net).toMatchObject({ mode: 'hote', roomCode: 'ABC234' });
   });
 
-  it('`armerLAttaque`, joué chez l’hôte : son intention s’arme chez l’émetteur AVANT l’envoi', () => {
-    duel();
-    const local = vi.fn();
-    const armeeALEnvoi: (string | null)[] = [];
-    const envoyer = vi.fn(() => { armeeALEnvoi.push(banc.getState().localIntent?.actionId ?? null); });
-    emettreIntentInvite(banc.getState, 'armerLAttaque', local, envoyer, ['arme']);
-    expect(envoyer.mock.calls).toEqual([['armerLAttaque', ['arme']]]);
-    expect(armeeALEnvoi, 'l’intention n’était pas armée quand l’offre est partie').toEqual(['attaque']);
-    expect(local, 'le corps s’est joué chez l’émetteur').not.toHaveBeenCalled();
-  });
-});
-
-describe('salon — lobby : une attribution refusée laisse `net` inchangé et dit son refus (#3059 F10)', () => {
-  const hote = (): NetState => ({ ...initialNet(), mode: 'hote', roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna' }, rangs: { h: 0 } });
-  beforeEach(() => { banc.setState({ net: hote(), party: [{ ...tousLesHerosDeScenario(idsDeTest)[0], id: 'h' }], battle: null }); });
-
-  it('netAssignSlot vers un emplacement occupé, puis hors de la table ; netAssign et setGmSeat hors de la table', () => {
-    const avant = banc.getState().net;
-    const journal = banc.getState().journal.length;
-    netAssignSlot(banc.getState, banc.setState, 0, 1);
-    netAssignSlot(banc.getState, banc.setState, 1, 7);
-    netAssign(banc.getState, banc.setState, 'h', 7);
-    netAssign(banc.getState, banc.setState, 'absent', 1);
-    setGmSeat(banc.getState, banc.setState, 7);
-    expect(banc.getState().net).toBe(avant);
-    expect(banc.getState().journal.slice(journal)).toEqual([
-      t('coop.assign.slotTaken'), t('coop.assign.seatUnknown'), t('coop.assign.seatUnknown'), t('coop.assign.heroAbsent'), t('coop.assign.seatUnknown'),
-    ]);
+  it('P11b — la socket de rejoindre lève : l’échec de rejoindre, la panne une fois, sans minuterie ; rejoindre ensuite aboutit', async () => {
+    const { sabotes, boom, pannes } = portsASocketQuiLeve();
+    salon = creerLeSalon(sabotes);
+    expect(await salon.rejoindre(banc.getState, () => {}, 'ABC234', 'Anna')).toBe(t('coop.joinFailed'));
+    expect(pannes).toEqual([boom]);
+    expect(vi.getTimerCount()).toBe(0);
+    const joining = salon.rejoindre(banc.getState, () => {}, 'ABC234', 'Anna');
+    const ws = FakeSocket.last!;
+    ws.open();
+    ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'TOK' }));
+    expect(await joining).toBeNull();
+    expect(banc.getState().net).toMatchObject({ mode: 'invite', mySeat: 2 });
   });
 
-  it('les mêmes gestes vers un emplacement vide et un siège de la table s’appliquent', () => {
-    netAssignSlot(banc.getState, banc.setState, 1, 1);
-    netAssign(banc.getState, banc.setState, 'h', 1);
-    setGmSeat(banc.getState, banc.setState, 1);
-    expect(banc.getState().net).toMatchObject({ slots: [0, 1, 0, 0], ownership: { h: 1 }, gmSeat: 1 });
+  it('P11c — le stockage du jeton lève à la lecture : l’échec de rejoindre, la panne une fois, sans socket ni minuterie', async () => {
+    const boom = new Error('lecture');
+    const pannes: unknown[] = [];
+    const { p } = ports(banc, roomOuverte, (e) => pannes.push(e));
+    salon = creerLeSalon({ ...p, stockage: () => ({ getItem: () => { throw boom; }, setItem: () => {} }) });
+    expect(await salon.rejoindre(banc.getState, () => {}, 'ABC234', 'Anna')).toBe(t('coop.joinFailed'));
+    expect(pannes).toEqual([boom]);
+    expect(FakeSocket.instances).toHaveLength(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each(['', '   '])('nom vide ou fait d’espaces (%j) : héberger et rejoindre le disent, rien d’ouvert', async (nom) => {
+    const urls: string[] = [];
+    salon = creerLeSalon(ports(banc, async (url) => { urls.push(url); return roomOuverte(); }).p);
+    expect(await salon.heberger(banc.getState, appliquerDuBanc, nom)).toBe(t('coop.nomRequis'));
+    expect(await salon.rejoindre(banc.getState, () => {}, 'ABC234', nom)).toBe(t('coop.nomRequis'));
+    expect(urls).toEqual([]);
+    expect(FakeSocket.instances).toHaveLength(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

@@ -9,12 +9,13 @@
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import navalProgressionJson from '../data/naval-progression.json';
-import { rangeesDe } from '../data/rangees';
+import { rangeesDe, type RangeeDe } from '../data/rangees';
 import type * as progressionDeNavire from '../data/schemas/defs/naval-progression';
 
 /** La table de Progression VIVANTE — la collection que le Codex édite (`navalProgression`,
  *  `data/overrides.ts`). */
-export const NAVAL_PROGRESSION = rangeesDe<typeof progressionDeNavire>(navalProgressionJson);
+type PalierDeProgressionNavale = RangeeDe<typeof progressionDeNavire>;
+export const NAVAL_PROGRESSION: PalierDeProgressionNavale[] = rangeesDe<typeof progressionDeNavire>(navalProgressionJson);
 /** La table telle que `findTableEntry` la lit (`tableOuverte`) : « 4 ou plus » et « –5 ou moins »
  *  (MDG 13 l.71, l.75) sont ouvertes. Mémoïsée sur le dataset, que le Codex édite. */
 const progression = memoParVersion('navalProgression', () => tableOuverte(NAVAL_PROGRESSION));

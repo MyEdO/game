@@ -211,7 +211,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   // LA GARDE UNIQUE ci-dessous (§ Phase 3 complétude) : aucune liste de domaines n'est tenue ici.
   describe('sanité de catalogue — specsSource déclaré, specs[] bien formées (Phase 3)', () => {
     it('skills.json/talents.json : specsSource migré → pool DÉRIVÉ (aucun specs[] inline), ids connus du registre', () => {
-      const WEAPON_GROUP_IDS = new Set(weaponGroups.map((g) => g.id));
+      const WEAPON_GROUP_IDS = new Set<string>(weaponGroups.map((g) => g.id));
       const DOMAIN_IDS = new Set<string>(domains.map((d) => d.id));
       const GOD_IDS = new Set<string>(gods.map((g) => g.id));
       const cases: [ 'skills' | 'talents', string, SpecsSource, (id: string) => boolean ][] = [

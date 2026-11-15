@@ -166,6 +166,18 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
     expect(champsPresentes()).toEqual(expect.arrayContaining((['min', 'max', 'mod'] as const).map((k) => libelleDuChamp(k, rangee))));
   });
 
+  it('Carrières : les bornes d’une substitution ne se présentent qu’avec `aLaPlaceDe` (AA 05 l.137)', () => {
+    const bornes = (presentes: string[]) => presentes.filter((l) => /^(Espèces|Talent) de la substitution/.test(l));
+    monte('careers', 'nonne');
+    expect(bornes(champsPresentes())).toEqual(expect.arrayContaining(['Espèces de la substitution (Races)', 'Talent de la substitution']));
+    act(() => { root.unmount(); });
+    container.remove();
+    monte('careers', 'soldat');
+    const presentes = champsPresentes();
+    expect(presentes, 'le formulaire de Soldat n’est pas monté').toContain('Classe');
+    expect(bornes(presentes)).toEqual([]);
+  });
+
   it('TÉMOIN — un document sans `chargeParDiscriminant` DÉCLARÉ garde l’union', () => {
     expect(chargeDiscriminee('reglesOptionnelles.json', {})).toBeUndefined();
     // Une valeur INCONNUE du discriminant ne fabrique pas une charge : l'union reprend (saisie en cours).

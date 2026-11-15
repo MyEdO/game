@@ -16,7 +16,7 @@ import { toBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { itemFromTrappingById } from '../engine/items';
-import type { VivresDeCale } from '../engine/provisions';
+import { lotsDeCale, quantitesDeCale } from '../engine/caleDeTest.testkit';
 import { bankWithdraw } from './interludeFlow';
 import { traumaById } from '../engine/trauma';
 import { byId, maladies, species } from '../data';
@@ -1039,29 +1039,24 @@ describe('Périls d’AUTEUR lus au fil des jours en mer — C.22 (route.perils)
     expect(get().journal.some((l) => l.includes('Péripétie : Récif affleurant'))).toBe(true);
   });
 
-  it('un péril d’auteur `startCombat` INTERROMPT la traversée (comme l’embuscade)', () => {
-    const krakenScene = emptyScene('scene-test', 10, 10); krakenScene.id = 'port-a'; krakenScene.label = 'Mer';
-    const enc = buildEncounter({ id: 'enc-kraken', enemies: [{ statblock: { type: 'statblock', label: 'Kraken', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
-    krakenScene.entities.push(...enc.entities); krakenScene.encounters = [enc.encounter];
-    const combatPeril: WorldMap = {
+  it('un péril d’auteur `transition` INTERROMPT la traversée (comme l’embuscade)', () => {
+    const port = emptyScene('scene-test', 2, 2); port.id = 'port-a'; port.label = 'Port';
+    const ilot = emptyScene('scene-test', 10, 10); ilot.id = 'ilot'; ilot.label = 'Îlot';
+    const perilDeTransition: WorldMap = {
       ...seaMap,
-      routes: [{ ...seaMap.routes[0], perils: [{ label: 'Kraken', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-kraken' }] }] }],
+      routes: [{ ...seaMap.routes[0], perils: [{ label: 'Îlot en vue', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'ilot' } }] }] }],
     };
-    set({ scene: krakenScene as never, worldMap: combatPeril } as never);
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', combatPeril.routes[0])!;
+    get().chargerLeProjet({ scenes: [port, ilot], entryId: 'port-a', worldMap: perilDeTransition, projet: null });
+    set({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [] } as never); // lancerLaScene remet le vessel de campagne — repose-le
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', perilDeTransition.routes[0])!;
     set({ travelPlan: plan } as never);
     runSeaDay(get, set);
     // Le péril d'auteur est une ÉTAPE de monde (#1426) : son dé se joue dans la cascade du jour, comme
-    // celui du péril à 100 % du cas précédent — on la déroule jusqu'à ce que le combat prenne la main.
-    for (let i = 0; i < 30 && get().pendingCascade && !get().battle; i++) stepCascade();
-    expect(get().travelPlan!.interrupted).toBe(true); // la traversée s’arrête sur le combat d’auteur
-    expect(get().battle).toBeTruthy();
-    // La ligne du péril est la CONSÉQUENCE de son étape, écrite par le routage unique
-    // (`combatLog.journaliser`) : le combat d'auteur étant OUVERT à cet instant, elle va au `battle.log`
-    // — la surface que le joueur regarde en combat — et non au journal d'exploration, non ouvrable là.
-    // On lit donc UNE surface, NOMMÉE : le journal du combat ouvert.
-    const lues = get().battle!.log.map((e) => e.text);
-    expect(lues.some((l) => l.includes('Péripétie : Kraken'))).toBe(true);
+    // celui du péril à 100 % du cas précédent — on la déroule jusqu'à ce que la traversée s'arrête.
+    for (let i = 0; i < 30 && get().pendingCascade && !get().travelPlan!.interrupted; i++) stepCascade();
+    expect(get().travelPlan!.interrupted).toBe(true); // la traversée s’arrête sur le péril d’auteur
+    expect(get().scene!.id).toBe('ilot'); // la mer applique ses effets sur-le-champ
+    expect(get().journal.some((l) => l.includes('Péripétie : Îlot en vue'))).toBe(true);
   });
 });
 
@@ -1109,7 +1104,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
   });
 
   const FRAIS = 'nourriture-courses-journee', PRESERVEE = 'ration-nourriture-preservee', BISCUITS = 'ration-biscuits-de-mer';
-  const cale = (v: Record<string, number>) => v as VivresDeCale;
+  const cale = (v: Record<string, number>) => lotsDeCale(v, get().gameTime);
 
   it('#245 — l’équipage mange les vivres de cale ; à court → facteur de Moral « nourriture-insuffisante » (MDG 14 l.171)', () => {
     // 15 PNJ × 7 jours = 105 rations requises. Vivres de cale 20 + 20 + 10 = 50 < 105 → disette.
@@ -1117,7 +1112,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(v.provisions).toEqual({ [FRAIS]: 0, [PRESERVEE]: 0, [BISCUITS]: 0 });
+    expect(quantitesDeCale(v.provisions)).toEqual({});
     expect(v.morale.factors).toContain('nourriture-insuffisante');
   });
 
@@ -1127,7 +1122,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     driveFast();
     const v = get().vessel!;
     // 15 PNJ × 7 jours = 105 : les 30 frais, puis 75 des 100 préservées ; les biscuits restent entiers.
-    expect(v.provisions).toEqual({ [FRAIS]: 0, [PRESERVEE]: 25, [BISCUITS]: 70 });
+    expect(quantitesDeCale(v.provisions)).toEqual({ [PRESERVEE]: 25, [BISCUITS]: 70 });
     expect(v.morale.factors).not.toContain('nourriture-insuffisante');
   });
 
@@ -1137,7 +1132,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(v.provisions).toEqual({ [PRESERVEE]: 0, [BISCUITS]: 45 });
+    expect(quantitesDeCale(v.provisions)).toEqual({ [BISCUITS]: 45 });
     expect(v.morale.factors).toEqual(['nourriture-biscuits-de-mer']);
   });
 
@@ -1146,7 +1141,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(v.provisions).toEqual({ [PRESERVEE]: 0, [BISCUITS]: 65 });
+    expect(quantitesDeCale(v.provisions)).toEqual({ [BISCUITS]: 65 });
     expect(v.morale.factors).toEqual([]);
   });
 
@@ -1155,8 +1150,65 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(v.provisions).toEqual({ [BISCUITS]: 0 });
+    expect(quantitesDeCale(v.provisions)).toEqual({});
     expect(v.morale.factors).toEqual(['nourriture-insuffisante']);
+  });
+
+  it('#4058 — frais pour tout l’effectif chaque jour → « nourriture-au-dessus-des-rations » (MDG 14 l.156)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [FRAIS]: 120, [BISCUITS]: 50 }) } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    expect(get().vessel!.morale.factors).toEqual(['nourriture-au-dessus-des-rations']);
+  });
+
+  it('#4058 — frais épuisé, dernier jour aux biscuits → « nourriture-biscuits-de-mer » remplace le facteur du frais (MDG 14 l.156, l.166)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [FRAIS]: 30, [BISCUITS]: 100 }), morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-au-dessus-des-rations'] } } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    expect(get().vessel!.morale.factors).toEqual(['nourriture-biscuits-de-mer']);
+  });
+
+  it('#4058 — dernier jour mêlé (frais puis préservée) → aucun facteur de nourriture (MDG 14 l.156)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [FRAIS]: 100, [PRESERVEE]: 50 }), morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-au-dessus-des-rations'] } } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    expect(get().vessel!.morale.factors).toEqual([]);
+  });
+
+  describe('#4058 — le frais pourrit (règle `mer-vivres-frais-peremption-jours`, MDG 14 l.238)', () => {
+    afterEach(() => resetRule('mer-vivres-frais-peremption-jours'));
+
+    it('le voyage rapide ne mange pas un lot qui pourrit en route : l’équipage passe aux biscuits', () => {
+      setRule('mer-vivres-frais-peremption-jours', 3);
+      // Frais embarqué la veille : pourri au 3e jour de la traversée (jour 2 depuis le départ).
+      set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: [
+        ...lotsDeCale({ [FRAIS]: 100 }, get().gameTime - 24 * 60), ...cale({ [BISCUITS]: 100 }),
+      ] } });
+      get().partirEnVoyage('r1', 'mer', { fast: true });
+      driveFast();
+      const v = get().vessel!;
+      // 15 PNJ : 2 jours de frais (30), 5 jours de biscuits (75) ; le reste du frais est jeté à l'arrivée.
+      expect(quantitesDeCale(v.provisions)).toEqual({ [BISCUITS]: 25 });
+      expect(v.morale.factors).toEqual(['nourriture-biscuits-de-mer']);
+    });
+
+    it('en mer, le frais pourri sort de la cale au passage de l’horloge, journal à l’appui', () => {
+      setRule('mer-vivres-frais-peremption-jours', 3);
+      set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [FRAIS]: 200, [PRESERVEE]: 10, [BISCUITS]: 10 }) } });
+      get().partirEnVoyage('r1', 'mer', { fast: true });
+      driveFast();
+      // 3 jours de frais (45) mangés, puis 10 préservées et 10 biscuits, le reste à court ; à l'arrivée les 155 frais pourris partent.
+      expect(quantitesDeCale(get().vessel!.provisions)).toEqual({});
+      expect(get().journal).toContain(t('eff.provisionsPourries', { perdues: 155, vivre: 'Nourriture, courses/journée', total: 0 }));
+    });
+
+    it('à quai, la durée suit la règle : posée à 1 jour, le frais de la veille est jeté, la préservée et les biscuits restent', () => {
+      setRule('mer-vivres-frais-peremption-jours', 1);
+      set({ vessel: { ...get().vessel!, provisions: cale({ [FRAIS]: 12, [PRESERVEE]: 5, [BISCUITS]: 7 }) }, journal: [] });
+      get().avancerLeTemps(24 * 60);
+      expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [PRESERVEE]: 5, [BISCUITS]: 7 });
+      expect(get().journal).toContain(t('eff.provisionsPourries', { perdues: 12, vivre: 'Nourriture, courses/journée', total: 12 }));
+    });
   });
 
   it('palier DÉSASTREUX (Humeur de Manann effondrée) : équipage manquant, cargaison perdue, coque meurtrie, 3 Critiques', () => {
@@ -1451,7 +1503,7 @@ describe('services portuaires (#30)', () => {
   beforeEach(freshState);
 
   it('réparation au port : 1 CO par Blessure restaurée (MDG 13 l.643), le temps de chantier passe', () => {
-    set({ vessel: { ...get().vessel!, wounds: { current: 40, max: 50 } } });
+    set({ vessel: { ...get().vessel!, escale: 'A', wounds: { current: 40, max: 50 } } });
     creditBourse(get, set, get().party[0].id, { gold: 20, silver: 0, brass: 0 });
     const t0 = get().gameTime;
     const lines = portRepairVessel(get, set);
@@ -1466,6 +1518,7 @@ describe('services portuaires (#30)', () => {
   });
 
   it('pose d’une Amélioration : coût par bande de Taille (MDG 12) — Nid-de-pie sur une cogue (25 m, Moyenne) = 5 CO', () => {
+    set({ vessel: { ...get().vessel!, escale: 'A' } });
     creditBourse(get, set, get().party[0].id, { gold: 10, silver: 0, brass: 0 });
     const lines = installerLAmelioration(get, set, 'nid-de-pie');
     expect(lines[0]).toContain('Nid-de-pie');

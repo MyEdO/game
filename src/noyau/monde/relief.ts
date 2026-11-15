@@ -26,8 +26,8 @@ export const metricToLift = (metres: number): number => metres / METRES_PER_LEVE
 
 /**
  * Dénivelé maximal (m) d'un PAS marchable entre deux cases voisines ; au-delà, FALAISE (chute, Escalade).
- * Seuil de « en contrebas » (`combatFlow.ts`, LDB 14 l.67). Aucune règle ne chiffre le dénivelé de case :
- * invariant de géométrie (même nature que le seuil de dead-ground de `lineOfSight.ts`), hors `OPTIONAL_RULES`.
+ * Seuil de « en contrebas » (`combatFlow.ts`, LDB 14 l.67). Invariant de géométrie de la grille, comme le seuil
+ * d'angle mort de `lineOfSight.ts`, hors `OPTIONAL_RULES` (#151).
  */
 export const STEP_MAX_M = 1.0;
 

@@ -7,7 +7,15 @@ import { nomDe } from '../engine/nom';
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
-import { ACTION_GATES, actionGate, armeADistanceParDefaut, etatDeLaBarre, refusDeLOffreHorsDuTour, type ContexteDOffre, type EtatDeLaBarre } from './actionRegistry';
+import {
+  ACTION_GATES,
+  actionGate,
+  armeADistanceParDefaut,
+  etatDeLaBarre,
+  refusDeLOffreHorsDuTour,
+  type ContexteDOffre,
+  type EtatDeLaBarre,
+} from './actionRegistry';
 import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { CounterParticipant, CounterDeclaration, IssueDEmpoignade, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
@@ -21,8 +29,98 @@ import { rollLine, type RollLineParts } from './ligneDeJet';
 import { toRecapLines } from './recapLine';
 import { attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { activeCombatant, jetDeRecharge, appliquerLaRecharge, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, poursuivreLaSerie, advanceTurn, resolveRoundBoundary, enterRoundStartPause, lancerLeRound, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
-import { auContactEligible, grappleActionEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, attaqueImmediate, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, adversairesDuBattement, adversairesADistraire } from './combatManeuvers';
+import {
+  activeCombatant,
+  jetDeRecharge,
+  appliquerLaRecharge,
+  advanceCombatJet,
+  STANCE_BLOCK,
+  firedWeapon,
+  openAttackCascade,
+  poserLeTestDeMain,
+  poserLEtapeDAttaque,
+  startDisengage,
+  completeFlee,
+  startAuContact,
+  startGrapple,
+  resolveGrappleWin,
+  applyAttackResult,
+  jouerLesTirsDeBordee,
+  openSurfacedDefense,
+  castSpell,
+  applyCast,
+  effectiveSpellOf,
+  finishPlayerAction,
+  applyMiscast,
+  useSpellComponent,
+  checkBattleOver,
+  resumeEnemyTurn,
+  poursuivreLaSerie,
+  advanceTurn,
+  resolveRoundBoundary,
+  enterRoundStartPause,
+  lancerLeRound,
+  inFiringBand,
+  maybeRunEnemyTurn,
+  resumeSuspendedAI,
+  resumeManeuverDefense,
+  attackerFumbled,
+  applyOups,
+  jouerLApresCoup,
+  ciblesDuBalayage,
+  ciblesDeLaDoubleFrappe,
+  resolveDualSecond,
+  overcastTargetCandidates,
+  overcastReset,
+  drainerLesGratuites,
+  attackWeaponOf,
+  victimeDuCoup,
+  applyWail,
+  spellSightOf,
+  castZoneSpell,
+  castCommitZone,
+  zoneRadiusTilesAt,
+  routeCounterspell,
+  applyCounterspellOutcome,
+  applyCounterspellFallback,
+  counterspellJoinable,
+  counterspellDeclarePhase,
+  counterspellRolls,
+  resumeAfterCounterspell,
+  openCastOppositionStep,
+  castExtraTargets,
+  resolveCastChain,
+  applySurprise,
+  resolveMovement,
+  retenuParLaPeur,
+  markActed,
+  noteApproachMove,
+  clearApproachMoves,
+  frenzyTarget,
+  finishCombatEnd,
+  battleAreaTargets,
+  siegeBlastRadiusTiles,
+  startleOnStormAtCombatStart,
+  stampEnvWeatherAtCombatStart,
+  windsOfMagicAtCombatStart,
+  releaseSeatsOfCombatants,
+} from './combatFlow';
+import {
+  auContactEligible,
+  grappleActionEligible,
+  hasFreeWeaponAttack,
+  resolveManeuver,
+  availableAttacks,
+  attaqueImmediate,
+  startBattement,
+  startDistraire,
+  resolveBattement,
+  resolveDistraire,
+  battementFoes,
+  distraireFoes,
+  adversairesDuBattement,
+  adversairesADistraire,
+} from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
 import { hasBattement, hasDistraire, dualStrikeDefensePenalty } from '../engine/combatFeatures/dispatch';
@@ -46,20 +144,39 @@ import { courseArmee, intentionDuClic, intentionDuProprietaire } from './localIn
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refuseSi } from './verrousDeFiche';
 import { crochetDuSol, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
-import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, drainPendingLog } from './combatEffects';
+import {
+  nePeutPasDifferer,
+  jouerFlowEntier,
+  OPS_DIFFEREES,
+  entityPickables,
+  cleFeuilleRamassee,
+  applyEffects,
+  openSkillTest,
+  drainPendingLog,
+} from './combatEffects';
 import { combatConditionCtx } from './combat/flowEval';
 import type { MovementBlockReason } from './combatFlow';
 import { t } from '../i18n';
 import { backstabWeapon, attackHandGate, issueAuJet, coupAApplique } from '../engine/combat';
-import { disengageFrom, isEngaged, setContact, clearContact, meleeReachRank } from '../engine/engagement';
-import { clearGrapple } from '../engine/grapple';
+import { disengageFrom, isEngaged, setContact, setEngaged, clearContact, meleeReachRank } from '../engine/engagement';
+import { clearGrapple, setGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
 import { groupAdvantage, mirrorPools } from '../engine/advantagePool';
 import { campGain, campSpend, startAdvantagePools } from './combat/advantagePool';
 import { combatSubstitute, skillAdvantageCap } from '../engine/skillCombatApps';
 import { byId } from '../data/index';
 import { rule } from '../engine/policy';
-import { isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, castAfterCrit, focusCriticalDR, consumeMalepierre, malepierreItemOf, castingNumberOf } from '../engine/magic';
+import {
+  isArcaneSpell,
+  isMagicMissile,
+  castBlockedBy,
+  spellTargetCount,
+  castAfterCrit,
+  focusCriticalDR,
+  consumeMalepierre,
+  malepierreItemOf,
+  castingNumberOf,
+} from '../engine/magic';
 import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurationParts } from '../engine/overcast';
 import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
@@ -74,8 +191,38 @@ import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, canTakeAction, peutEntrerEnFrenesie, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
-import { modesDOuverture, HEAL_MODES, raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, applyHealWounds, soinDOuverture, refusDuTestDeSoin, difficulteDuSoin, actePanse, retirerUnBandage, IDS_DU_TEST_DE_SOIN } from '../engine/healing';
+import {
+  isOutOfAction,
+  addCondition,
+  removeCondition,
+  canTakeAction,
+  peutEntrerEnFrenesie,
+  stacks,
+  recoveredStacks,
+  COND,
+  releaseConditionLocks,
+  raisonRefusDetermination,
+  refusDeDetermination,
+  fenetreDetermination,
+  syncDerivedConditions,
+  isConditionLocked,
+  soinDeDetermination,
+} from '../engine/conditions';
+import {
+  modesDOuverture,
+  HEAL_MODES,
+  raisonDeModeDeSoinEnCombat,
+  resolveWoundsHeal,
+  resolveBleedHeal,
+  resolveExtractLodgedAmmo,
+  applyHealWounds,
+  soinDOuverture,
+  refusDuTestDeSoin,
+  difficulteDuSoin,
+  actePanse,
+  retirerUnBandage,
+  IDS_DU_TEST_DE_SOIN,
+} from '../engine/healing';
 import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuTestDuSoin } from './soin';
 import { soinDeLActe } from './acteDeSoin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
@@ -85,13 +232,44 @@ import { entreeEnRencontre } from '../engine/persistence';
 import { testValue, actorHasSkill, soutienDetail, type SupportDetail } from '../engine/skills';
 import { spawnEnemy, placeCombatant } from './monde/spawn';
 import { ficheDEntite } from './monde/sceneNpc';
-import { applyShipPostes, autoFormCrews, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned, rechargeDuTour, posteDeLaBataille } from './monde/shipPostes';
+import {
+  applyShipPostes,
+  autoFormCrews,
+  shipOfCrew,
+  servablePostes,
+  serveAtPoste,
+  leaveChef,
+  isPosteManned,
+  rechargeDuTour,
+  posteDeLaBataille,
+} from './monde/shipPostes';
 import { pushEligible, pushCrewOk, pushReachable } from './siegePush';
 import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
-import { crewTestContributors, navigationDuNavire, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShantyToCrew, quartIndex, quartChante, chanteurDuNavire, withCrewActed, chansonsDuChanteur } from './shipCrew';
+import {
+  crewTestContributors,
+  navigationDuNavire,
+  shipCrewAssignments,
+  shipMoraleScore,
+  shipUndercrew,
+  shipSaboteurDR,
+  applyShantyToCrew,
+  quartIndex,
+  quartChante,
+  chanteurDuNavire,
+  withCrewActed,
+  chansonsDuChanteur,
+} from './shipCrew';
 import { freeActFirst } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
-import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbut, continueSeaDayAfterExposure, continueSeaDayAfterExhaustion, runSeaDay, finalizePortArrival } from './seaVoyageFlow';
+import {
+  resolveSteamSave,
+  continueSeaDayAfterCascade,
+  continueSeaDayAfterScorbut,
+  continueSeaDayAfterExposure,
+  continueSeaDayAfterExhaustion,
+  runSeaDay,
+  finalizePortArrival,
+} from './seaVoyageFlow';
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
@@ -130,7 +308,16 @@ import { distanceDeCombat, distanceDeContact } from './monde/footprint';
 import { combatOrder, rollInitiative } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './monde/scene';
 import { bus, EVT } from './bus';
-import { advanceCascade, maladresseCourante, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, reprendreLaPile, poserCurseurCascade, sortirDeLHote } from './cascade';
+import {
+  advanceCascade,
+  maladresseCourante,
+  finalizeCascade,
+  setCascadeChoice,
+  setCascadeAmount,
+  suspendActiveCascade,
+  reprendreLaPile,
+  sortirDeLHote,
+} from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS, jetImmunise, rangeesAReglerIci, type CloturesDuJet } from './rollFlowSpecs';
@@ -171,7 +358,7 @@ function refusDuTourDe(s: Jeu, acteurId: string, horsDuTour: string): string | n
  *  Refusé, il se dit par `refuserGesteDuSiege` quand l'acteur est piloté (`controlsCombatant`) : au siège
  *  local seulement, jamais chez l'hôte pour un invité. Un acteur de l'IA est refusé sans bandeau. `true` = refusé. */
 function refuseParSonEntree(get: Get, set: Set, entree: string, active: Combatant, battle: BattleState, args?: ContexteDOffre): boolean {
-  const verdict = actionGate(entree, { active, battle, netMode: get().net.mode, gameTime: get().gameTime, args });
+  const verdict = actionGate(entree, { active, battle, scene: get().scene, netMode: get().net.mode, gameTime: get().gameTime, args });
   if (verdict.ok) return false;
   if (controlsCombatant(get(), active)) refuserGesteDuSiege(get, set, verdict.reason!);
   return true;
@@ -604,7 +791,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || !scene || battle.over || battle.movementUsed > 0) return;
       const active = activeCombatant(battle);
       if (!active || active.mountId) return;
-      const montures = mountablesNear(battle, active);
+      const montures = mountablesNear(battle, scene, active);
       // Monture EXPLICITE (pastille de CETTE monture) → elle, et seulement si elle est enfourchable ;
       // sinon (touche du registre) → la plus proche. Même patron que `servirLePoste`.
       const mount = mountId ? montures.find((m) => m.id === mountId) : montures[0];
@@ -835,7 +1022,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Pièce INDIRECTE servie (mortier/catapulte, AA 10 l.169/171) : ARMER l'option « Servir … » ouvre le PLACEUR
       // DE CASE (le tir vise un point au sol, pas un combattant) ; le désarmer (retour à 'arme') le referme.
       if (next === attaqueId) {
-        const opt = availableAttacks(active, battle).find((o) => o.id === attaqueId);
+        const opt = availableAttacks(get().scene, active, battle).find((o) => o.id === attaqueId);
         if (opt?.indirect && opt.weaponUid) {
           const w = active.weapons.find((x) => x.uid === opt.weaponUid);
           if (w?.uid) set({ pendingSiegeAim: { gunnerId: active.id, weaponUid: w.uid, radius: siegeBlastRadiusTiles(active, w, get().scene), rangeTiles: null } });
@@ -848,7 +1035,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active) return;
       // Les attaques IMMÉDIATES que l'offre `attaque-zone` énumère (`attaques-de-zone`), abordables (`availableAttacks`).
-      if (!availableAttacks(active, battle).some((x) => x.kind === kind && attaqueImmediate(x))) return;
+      if (!availableAttacks(get().scene, active, battle).some((x) => x.kind === kind && attaqueImmediate(x))) return;
       set({ battle: { ...battle, action: null } }); // referme le menu avant la résolution
       // Hurlement (LDB 85 l.170) : PAS de jet d'attaquant — chaque cible tire son 1d10 + Test de
       // Résistance (jets SUBIS montrés au feed). Aucune modale différable → résolution immédiate (le
@@ -1034,7 +1221,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || isOutOfAction(active)) return;
-      const servable = servablePostes(active, battle.combatants);
+      const servable = servablePostes(get().scene, active, battle.combatants);
       // Pièce DÉSIGNÉE (clic sur la pièce) → ce poste ; sinon (bouton hotbar) → le 1er servable.
       const chosen = posteUid === undefined ? servable[0] : servable.find((sp) => sp.poste.item.uid === posteUid);
       if (!chosen) return;
@@ -1147,12 +1334,12 @@ export function createCombatSlice(get: Get, set: Set) {
       // Cible VALIDE seulement (arme à distance + bande de portée + Ligne de Vue) — sinon on N'OUVRE PAS la
       // modale (le tir résolu hors-tour heurterait la cascade). Le refus se DIT au point du geste
       // (`refusVisible`) : le survol, lui, ne montre plus rien sur une cible invalide (arbitrage 2026-08-24).
-      const weapon = firedWeapon(hero, target, undefined, battle.combatants);
       const scene = get().scene;
+      const weapon = firedWeapon(scene, hero, target, undefined, battle.combatants);
       const blocked = !!(hero.pos && target.pos && scene) && !losClear(scene, hero.pos, target.pos, smokeOf(battle));
       // Chaque cause dit LA SIENNE : une cible hors de portée n'annonce pas un mur qui n'existe pas.
       if (weapon.type !== 'distance') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
-      if (!inFiringBand(hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.horsDePortee'));
+      if (!inFiringBand(scene, hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.horsDePortee'));
       if (blocked) return void refuserGeste(get, set, t('cf.ligneDeVueMasquee'));
       // Le tir se résout par la modale de jet NORMALE (jetLancer('attaque')/jetValider('attaque')) ; le tireur n'est PAS actif.
       // `pendingAttack.interrupt` → jetValider('attaque') applique le tir sans avancer le tour + épuise son tour normal.
@@ -1256,7 +1443,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active) return;
-      if (STANCE_BLOCK[stance](battle, active)) return;
+      if (STANCE_BLOCK[stance](get().scene, battle, active)) return;
       const armee = battle.stances?.[active.id] ?? {};
       set({ battle: { ...battle, stances: { ...battle.stances, [active.id]: { ...armee, [stance]: !armee[stance] } } } });
     },
@@ -1270,7 +1457,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active) return;
       const recharge = rechargeDuTour(active, battle, weaponUid);
-      if (recharge) set({ pendingReload: jetDeRecharge(recharge.porteur, recharge.arme, battle.combatants) });
+      if (recharge) set({ pendingReload: jetDeRecharge(get().scene, recharge.porteur, recharge.arme, battle.combatants) });
     },
     seRemettreDeLEtat: (etat: string) => {
       const { battle } = get();
@@ -1478,7 +1665,7 @@ export function createCombatSlice(get: Get, set: Set) {
       });
       roster.forEach(({ m }, i) => {
         if (m.ridesEntityId == null) return;
-        const mi = idxByEntity.get(m.ridesEntityId);
+        const mi = idxByEntity.get(m.ridesEntityId.id);
         const mount = mi == null ? undefined : enemies[mi];
         if (!mount) return;
         mount.mountable = true;
@@ -1599,6 +1786,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // l'écriture de pose du combat — donc avant toute capture de mutation, et sans une seconde
       // écriture de scène. `all` = tous les participants, groupe compris.
       const deboutScene = releaseSeatsOfCombatants(get().scene, all, get().party);
+      get().marquerUnCombatOuvert();
       set({ ...resetFields('combatStart'), battle, mode: 'battle', pendingRoundStart: { round: battle.round }, scene: deboutScene });
       // Effets « début de combat » authorés de chaque combattant (inerte tant qu'aucune donnée ne porte
       // un effet `onCombatStart`) — APRÈS la pose du `battle`, journalisés dans le journal de combat.
@@ -1634,7 +1822,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const { active, battle } = barre;
       // État qui verrouille l'Action (LDB 16 l.52) : le gate du registre `hors-verrou-d-etat`, celui des offres.
       // Seule la fermeture (null) passe.
-      const verrou = ACTION_GATES['hors-verrou-d-etat']({ active, battle, gameTime: get().gameTime });
+      const verrou = ACTION_GATES['hors-verrou-d-etat']({ active, battle, scene: get().scene, gameTime: get().gameTime });
       if (!verrou.ok && a !== null) return void refuserGesteDuSiege(get, set, garanti(verrou.reason, 'hors-verrou-d-etat', 'refus du mode'));
       // Pas d'Action ce tour (Sonné LDB 16 l.125 / Surpris l.135 — lu en DONNÉES via `canTakeAction`/gating,
       // jamais une branche par-nom) ; les manœuvres gratuites (Se relever, Se désengager…) sont des slots
@@ -1667,6 +1855,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (battle.action !== 'soins') return void refuserGesteDuSiege(get, set, t('heal.soinNonArme')); // le commit du mode armé (`HEAL_MODE`)
       const target = inBattleId(battle, targetId);
       if (!target) return void refuserGesteDuSiege(get, set, t('medic.patientIntrouvable'));
+      if (!campAuContact(get().scene, battle, healer).some((c) => c.id === target.id)) return void refuserGesteDuSiege(get, set, t('cf.horsDePortee'));
       // L'acte d'ouverture : le premier que le soigneur ouvre sur la cible ; il se change par `jetRegler('soins', 'mode')`.
       const mode = modesDOuverture(target, healer)[0] ?? HEAL_MODES[0];
       const ouverture = soinDOuverture(healer, mode);
@@ -1697,7 +1886,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || battle.acted || !canTakeAction(active) || !hasWaterContainer(active)) return;
-      const candidates = waterSprayCandidates(active, campAuContact(battle, active));
+      const candidates = waterSprayCandidates(active, campAuContact(get().scene, battle, active));
       const target = cibleId ? candidates.find((c) => c.id === cibleId) : candidates[0];
       if (!target) return;
       target.wateredThisRound = true;
@@ -1832,7 +2021,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const mine = domainsOf(lanceur);
       const sup = soutienDetail(population, lanceur, { skill: { id: 'langue', spec: 'magick' }, characteristic: 'intelligence' },
         (c) => c.kind === lanceur.kind && [...domainsOf(c)].some((d) => mine.has(d))
-          && (!battle || !lanceur.pos || (!!c.pos && distanceDeContact(lanceur, c) <= 1)));
+          && (!battle || !lanceur.pos || (!!c.pos && distanceDeContact(get().scene, lanceur, c) <= 1)));
       const value = testValue(lanceur, { skill: { id: 'langue', spec: 'magick' } }) + sup.bonus;
       set({
         pendingDispel: {
@@ -1899,13 +2088,21 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
   const issues = {
     eviter: () => {
       const p = get().pendingFateSave;
-      if (!p) return;
+      if (p?.source !== 'hit') return; // `fateSaveOptions` : seul un coup s'évite
       const hero = porteurParId(get(), p.heroId);
       set({ pendingFateSave: null });
       if (!hero) return;
+      // LDB 17 l.32 : le porteur rendu à son état d'avant le coup, puis le Point de Destin dépensé.
+      for (const cle of Object.keys(hero)) if (!(cle in p.avantLeCoup)) delete (hero as unknown as Record<string, unknown>)[cle];
+      Object.assign(hero, p.avantLeCoup);
+      // Les liens levés par la mise hors de combat (`clearEngagementOf`), reposés des deux côtés sur les vivants ; un lien
+      // vers un absent ou un hors de combat sort de la liste du héros.
+      for (const [cle, lier] of [['engagedWith', setEngaged], ['contactWith', setContact], ['grapplingWith', setGrapple]] as const) {
+        const vivants = (hero[cle] ?? []).map((id) => porteurParId(get(), id)).filter((o): o is Combatant => !!o && !isOutOfAction(o));
+        if (hero[cle]) hero[cle] = vivants.map((o) => o.id);
+        for (const o of vivants) lier(hero, o);
+      }
       hero.fate = (hero.fate ?? 0) - 1;
-      if (p.restoreWounds != null) hero.wounds.current = p.restoreWounds; // annule tout le coup (restaure les PB)
-      hero.criticalWounds = Math.max(0, (hero.criticalWounds ?? 0) - 1);
       const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
       journaliser(get, set, [t('cs.fateDodge', { name: hero.label })], 'information', { actorId: hero.id });
       if (anim) journaliser(get, set, [anim], 'peur', { actorId: hero.id });
@@ -2056,7 +2253,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const attaquant = pa ? inBattleId(battle, pa.attackerId) : undefined;
         if (!battle || !pa || !pa.forcee || !pa.result || !cible || !attaquant) return;
         const victime = victimeDuCoup(battle, cible, pa);
-        if (!issueAuJet(victime, coupAApplique(pa.result, pa.grapple, victime), attackWeaponOf(battle, attaquant, cible, pa), attaquant).compte.relance) return;
+        if (!issueAuJet(victime, coupAApplique(pa.result, pa.grapple, victime), attackWeaponOf(get().scene, battle, attaquant, cible, pa), attaquant).compte.relance) return;
         set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
       },
     },
@@ -2688,7 +2885,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const total = maneuverCrewTotal(p.participants, p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR); // Σ DR (essentiel ×2) + Moral + Manque de bras + sabotage
       const result = deriveManeuverFromCrew(ship, total, milieuDuVoyage(get().travelPlan)); // virage si le Test d'équipage est réussi (MDG 14 l.13)
       set({ pendingShipManeuver: null });
-      applyShipManeuver(get, p.shipId, result, p.turnSteps); // vire (si succès) + avance ; logue
+      applyShipManeuver(get, set, p.shipId, result, p.turnSteps); // vire (si succès) + avance ; logue ; Test de la réparation temporaire
       const bM = get().battle!;
       set({ battle: { ...markActed(get, set), action: null, preview: null, crewActed: withCrewActed(bM.crewActed, p.shipId, p.participants.map((x) => x.id)) } }); // un jet = une Action ; marins engagés ce Round
       bus.emit(EVT.SCENE_DIRTY);
@@ -2847,7 +3044,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // Arme RÉELLEMENT employée (arme naturelle d'une manœuvre de trait comprise) : primitive
       // PARTAGÉE avec la modale d'attaque (#1026) — deux résolutions divergentes rendraient deux
       // verdicts d'interposition opposés pour le même `pa`.
-      const weapon = attacker && target ? attackWeaponOf(battle, attacker, target, pa) : undefined;
+      const weapon = attacker && target ? attackWeaponOf(get().scene, battle, attacker, target, pa) : undefined;
       // Défense SURFACÉE du défenseur (#989) : le jet d'attaquant est FINAL (influence jouée) — on interpose
       // SA fenêtre de défense AVANT toute application, dans la cascade d'attaque EN COURS (le curseur passe
       // sur l'étape 'defense'). `jetValider('defense')` rend la main ICI avec le résultat opposé (`pa.defended`) →
@@ -3134,24 +3331,16 @@ export function cloturesDuCombat(get: Get, set: Set) {
           opposedOutcome: pc.opposedOutcome,
         });
       }
-      // Avance la cascade au-delà de l'étape `jet:'incantation'` (résolue, CastModal éteint) : des conséquences
-      // appendues (Critique/Imparfaite/Colère) → la cascade les joue (cursor+1) ; aucune → ferme la situation.
-      // (Si pas de cascade d'incantation hôte — test/IA direct — on laisse intacte la cascade que les
-      // conséquences ont éventuellement démarrée elles-mêmes, cursor déjà sur la 1ʳᵉ conséquence.)
-      let fermeLHote = false;
-      if (castStepIdx >= 0) {
-        const casc = get().pendingCascade;
-        if (casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) {
-          if (casc.participants.length > castStepIdx + 1) poserCurseurCascade(get, set, casc, castStepIdx + 1);
-          else fermeLHote = true;
-        }
-      }
+      // L'étape `jet:'incantation'` encore au curseur se clôt par la sortie d'hôte (#4248), qui décide seule
+      // de la suite : conséquences appendues (Critique/Imparfaite/Colère) jouées, ou situation fermée. Sans
+      // hôte au curseur (test/IA direct), la cascade que les conséquences ont démarrée reste intacte.
+      const casc = get().pendingCascade;
+      const sortDeLHote = castStepIdx >= 0 && !!casc && casc.purpose === 'combat' && casc.cursor === castStepIdx;
       // Lanceur ENNEMI (modale témoin) : le tour de l'IA était suspendu → reprise. No-op si une autre
       // interaction bloquante s'est ouverte (Destin, révélations, OU la cascade de conséquences encore
       // ouverte) — elle reprendra elle-même (validation d'étape → resumeSuspendedAI à la clôture).
       const reprendreLEnnemi = (): void => { if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set); };
-      // La situation fermée libère le slot par la sortie d'hôte (#4006).
-      if (fermeLHote) sortirDeLHote(get, set, {}, reprendreLEnnemi);
+      if (sortDeLHote) sortirDeLHote(get, set, { pendingCast: null }, reprendreLEnnemi);
       else reprendreLEnnemi();
     },
     contreSort: () => {

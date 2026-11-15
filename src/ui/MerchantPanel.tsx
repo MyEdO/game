@@ -10,7 +10,28 @@ import { gabaritDObjet, isWeaponActive, type GabaritDObjet } from '../engine/ite
 import { MERCHANT_COL_RENDERERS } from '../noyau/colonnesDuMarchand';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
-import { libelleDeLaRepartition, sellGain, devisDeVente, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus, prixDeLigne, remiseDAchatPct, devisDuPanier, refusDAjout, coutDeReparation, refusDeReparation, optionsDeTroc, devisDeTroc, demandeDuTroc, exemplaireCede, BROUILLON_DE_TROC_VIDE, type ContexteDAchat, type ModeDeMarche } from '../noyau/merchantFlow';
+import {
+  libelleDeLaRepartition,
+  sellGain,
+  devisDeVente,
+  sellBuyerAvailability,
+  sellRefusal,
+  catalogEntryOf,
+  appraiseRefus,
+  prixDeLigne,
+  remiseDAchatPct,
+  devisDuPanier,
+  refusDAjout,
+  coutDeReparation,
+  refusDeReparation,
+  optionsDeTroc,
+  devisDeTroc,
+  demandeDuTroc,
+  exemplaireCede,
+  BROUILLON_DE_TROC_VIDE,
+  type ContexteDAchat,
+  type ModeDeMarche,
+} from '../noyau/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';

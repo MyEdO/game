@@ -48,7 +48,15 @@ import { NumberField } from '../NumberField';
 import { OptionChooser } from '../OptionChooser';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Prose } from '../Prose';
-import { PHRASE_LIGNE_AMBIGUE_TABLE, PHRASE_REFUS, cleSection, libelleChapitre, libelleSection, libelleTable, sectionsOrdonnees } from '../../noyau/edition/adresseDeProse';
+import {
+  PHRASE_LIGNE_AMBIGUE_TABLE,
+  PHRASE_REFUS,
+  cleSection,
+  libelleChapitre,
+  libelleSection,
+  libelleTable,
+  sectionsOrdonnees,
+} from '../../noyau/edition/adresseDeProse';
 
 /** Le chapitre n'offre plus AUCUN bloc à citer — la seule raison qui parle du CHAPITRE. */
 const RAISON_EPUISE = 'Ce chapitre n’a aucun bloc adressable de plus.';

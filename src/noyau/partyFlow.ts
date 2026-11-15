@@ -4,10 +4,31 @@
  * (caractéristiques/compétences/talents/carrière, prothèses), consommables de fiche, butin.
  */
 import { Combatant, CharKey, CHAR_LABELS, ItemInstance, type Main } from '../engine/types';
-import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetSlot, equipConflicts, canStow, isOffHandEligible, setADeuxMains } from '../engine/items';
+import {
+  choisirApparenceDObjet,
+  recomputeLoadout,
+  loadoutCreate,
+  loadoutDelete,
+  loadoutSetSlot,
+  equipConflicts,
+  canStow,
+  isOffHandEligible,
+  setADeuxMains,
+} from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
-import { resolveCarrier, porteurLocalise, porteurDeLObjet, refusSansPorteur, refusDuHerosPorteur, lotDeLObjet, sansLeLot, avecLeLot, ecrireLesPorteurs, type Carrier } from './monde/carrier';
+import {
+  resolveCarrier,
+  porteurLocalise,
+  porteurDeLObjet,
+  refusSansPorteur,
+  refusDuHerosPorteur,
+  lotDeLObjet,
+  sansLeLot,
+  avecLeLot,
+  ecrireLesPorteurs,
+  type Carrier,
+} from './monde/carrier';
 import { carriersColocated } from '../engine/cargo';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusDepensePx, refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
@@ -766,10 +787,11 @@ export function refusDeRenvoyer(s: Pick<Jeu, 'battle' | 'net' | 'party'>, heroId
   return refusDeComposerLeHeros(s, heroId, decidingSeat(s));
 }
 
-/** Raison du refus de LANCER la partie avec ce groupe : un groupe vide, ou un siège invité qui a encore des
- *  emplacements à remplir (`seatSlotsRemaining`) ; `null` si elle se lance. Verdict UNIQUE de `lancerCampagne`
- *  (`scenes/campaign.ts`), du pont d'un hôte (`lancer`) et de l'écran d'équipe. */
+/** Raison du refus de LANCER la partie avec ce groupe : un invité (l'hôte lance), un groupe vide, ou un siège invité
+ *  qui a encore des emplacements à remplir (`seatSlotsRemaining`) ; `null` si elle se lance. Verdict UNIQUE de
+ *  `lancerCampagne` (`scenes/campaign.ts`), du pont d'un hôte (`lancer`) et de l'écran d'équipe. */
 export function refusDeLancer(s: Pick<Jeu, 'net' | 'party'>): string | null {
+  if (s.net.mode === 'invite') return t('party.guest.waiting');
   if (s.party.length === 0) return t('party.action.start.empty');
   const invites = new Set(s.net.slots.filter((seat) => seat !== 0));
   return [...invites].some((seat) => seatSlotsRemaining(s, seat) > 0) ? t('party.action.start.guestPending') : null;

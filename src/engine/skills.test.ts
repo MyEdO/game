@@ -1,5 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { testValue, testValueParts, testValueSplit, rawCombatTestBase, partyBest, partyAssisted, skillCharKeyById, bestForTests, bestForCombined, bestAssistedOption, skillBaseValue, possesses } from './skills';
+import {
+  testValue,
+  testValueParts,
+  testValueSplit,
+  rawCombatTestBase,
+  partyBest,
+  partyAssisted,
+  skillCharKeyById,
+  bestForTests,
+  bestForCombined,
+  bestAssistedOption,
+  skillBaseValue,
+  possesses,
+} from './skills';
 import { Combatant, SkillInstance } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 

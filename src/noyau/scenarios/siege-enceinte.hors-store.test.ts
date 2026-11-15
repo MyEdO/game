@@ -172,7 +172,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     placeCombatant(hero, scene, hero.pos);            // RAFRAÎCHIT pos.h depuis le relief (4 m) — comme en production
     const foot = { x: 8, y: MOUTH_ROW - 1, h: heightAt(scene, 8, MOUTH_ROW - 1, 0) }; // assaillant au pied du mur (z=0, 0 m)
     // Δhauteur 4 m ÷ 2 m/case = 2 cases de séparation verticale → distance 2 (mêlée refusée à travers le vide).
-    expect(distanceDeContact(hero, { pos: foot } as never)).toBe(2);
+    expect(distanceDeContact(banc.getState().scene, hero, { pos: foot } as never)).toBe(2);
     expect(lineOfSightCover(scene, hero.pos, { x: 8, y: 10 }, []).blocked).toBe(false); // pilonne le champ
   });
 

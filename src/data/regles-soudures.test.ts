@@ -43,7 +43,7 @@ export function amputations(fiches: typeof regles): string[] {
       let j = i;
       while (j < L.length && !/\S/.test(L[j])) j++;
       const tete = (L[j] ?? '').replace(/^.*<\/span>/, '').trim().split(' ').slice(0, 3).join(' ');
-      if (tete && !r.desc.includes(tete)) out.push(`${r.id} : l.${i} se termine sur « …${t.slice(-24)} », la suite « ${tete}… » manque à la desc`);
+      if (tete && !r.desc?.includes(tete)) out.push(`${r.id} : l.${i} se termine sur « …${t.slice(-24)} », la suite « ${tete}… » manque à la desc`);
     }
   }
   return out;
@@ -56,7 +56,7 @@ describe('regles.json — aucune fiche n’AMPUTE le RAW à une soudure de folio
 
   it('FAIL-CLOSED : une fiche amputée synthétique est DÉTECTÉE', () => {
     const fuite = regles.find((r) => r.id === 'fuite')!;
-    const mutilee = { ...fuite, desc: fuite.desc.replace(/Comme vous lui tournez le dos.*$/s, "comme d'habitude.") };
+    const mutilee = { ...fuite, desc: fuite.desc?.replace(/Comme vous lui tournez le dos.*$/s, "comme d'habitude.") };
     expect(amputations([mutilee] as typeof regles)).toHaveLength(1);
     expect(amputations([fuite] as typeof regles)).toEqual([]);
   });

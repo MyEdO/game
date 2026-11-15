@@ -4734,6 +4734,8 @@ Infliger un Critique à une Structure est bien plus difficile que contre un Pers
 
 `AA 10 l.116-128`
 
+- **Lecture S3, silence du texte, règle maison** (#4044 c.6849120484) : le livre ne dit pas ce que devient ce qui repose sur une Structure détruite sans en faire partie. « La Structure entière s'écroule. » (`AA 10 l.127`) ne porte que sur elle, et le profil d'un mur « ne représente qu'une bande de mur de 5 mètres de long, donc même si cette partie est détruite, la majorité de la Structure peut rester intacte » (`AA 10 l.102`). Règle maison : au-dessus d'un mur abattu, le mur de l'étage reste debout ; seul le plancher d'étage que la Structure portait tombe.
+
 #### Réparer les Structures
 
 - **Hors combat (permanent)** : Test de **Métier (Charpentier) Accessible (+20)** (bois) ou **Métier (Maçon) Accessible (+20)** (pierre). Chaque Test réussi prend **1d10 heures** et restaure **1d10 Blessures**. `AA 10 l.132`

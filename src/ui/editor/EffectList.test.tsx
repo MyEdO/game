@@ -21,7 +21,7 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
+const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, narratif: emptyNarratif() };
 
 describe('terrain de bataille — prose et provenance', () => {
   it('la saisie multiligne et les bascules conservent le texte, le folio et les autres champs à la sérialisation', async () => {
@@ -106,7 +106,7 @@ describe('EffectList — Effet setTime (jour/nuit via trigger, #T1c)', () => {
 describe('selects guidés (audit M9) — fini les ids à taper', () => {
   it('learnSpell : sorts de la base en optgroups (plus de « libellé exact »)', () => {
     const html = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'learnSpell', spell: '', heroId: '' }]} onChange={() => {}} ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE }} />,
+      <EffectList effects={[{ type: 'learnSpell', spell: '', heroId: '' }]} onChange={() => {}} ctx={ctx} />,
     );
     expect(html).toContain('<optgroup');
     expect(html).toContain('Fléchette');
@@ -115,7 +115,7 @@ describe('selects guidés (audit M9) — fini les ids à taper', () => {
 
   it('transition : scènes du projet + points d’entrée quand le contexte les fournit', () => {
     const ctx = {
-      encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE,
+      encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, narratif: emptyNarratif(),
       scenes: [
         { id: 'sc-a', nom: 'Village', entries: [] },
         { id: 'sc-b', nom: 'Taverne', entries: ['porte', 'cave'] },
@@ -133,12 +133,12 @@ describe('selects guidés (audit M9) — fini les ids à taper', () => {
   it('openMerchant : entités marchandes de la scène (ou explication si aucune)', () => {
     const withM = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openMerchant', entityId: { id: '' } }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, merchants: [{ id: 'armurier', label: 'Maître armurier' }] }} />,
+        ctx={{ ...ctx, merchants: [{ id: 'armurier', label: 'Maître armurier' }] }} />,
     );
     expect(withM).toContain('Maître armurier (armurier)');
     const without = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openMerchant', entityId: { id: '' } }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, merchants: [] }} />,
+        ctx={{ ...ctx, merchants: [] }} />,
     );
     expect(without).toContain('Aucune entité marchande');
   });
@@ -178,13 +178,13 @@ describe('#94 — Effets santé éditables (ambitionLost/inflictThirst/inflictPs
   it('openPort : lieux de la carte du monde (ou explication si aucun)', () => {
     const withP = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openPort', placeId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, places: [{ id: 'port-marienburg', label: 'Marienburg' }] }} />,
+        ctx={{ ...ctx, places: [{ id: 'port-marienburg', label: 'Marienburg' }] }} />,
     );
     expect(withP).toContain('Marienburg (port-marienburg)');
     expect(withP).not.toMatch(/id du lieu/);
     const without = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openPort', placeId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, places: [] }} />,
+        ctx={{ ...ctx, places: [] }} />,
     );
     expect(without).toContain('Aucun lieu sur la carte du monde');
   });
@@ -571,20 +571,20 @@ describe('#679 — les références narratives s’éditent par le sélecteur un
     expect(effectSummary({ type: 'revealClue', indiceId: 'ind-lettre', stade: 'dechiffree' }, ctxProjet)).toBe('Indice : La lettre chiffrée → stade 2');
   });
 
-  it('racine de catalogue : « + Effet », « + Bloc » et le changement de type taisent les trois Effects à réf narrative ; la racine de projet les offre', async () => {
-    const narratifs = [EFFECT_LABEL.document, EFFECT_LABEL.revealClue, EFFECT_LABEL.discreditClue];
+  it('racine de catalogue : « + Effet », « + Bloc » et le changement de type n’offrent que la feuille `ops`, et une autre feuille y dit son refus ; la racine de projet offre tout', async () => {
+    const types = Object.values(EFFECT_LABEL);
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root: Root = createRoot(container);
     const entreesDe = async (menu: HTMLDetailsElement) => {
       const boite = await ouvrirMenu(menu);
-      const vus = narratifs.filter((l) => entreeDe(boite, l));
-      const journal = !!entreeDe(boite, EFFECT_LABEL.journal);
+      const vus = types.filter((l) => entreeDe(boite, l));
       await act(async () => { menu.querySelector('summary')!.click(); });
-      return { vus, journal };
+      return vus;
     };
+    const refus = 'Ce catalogue n’admet que des opérations : cet Effet ne s’y pose pas.';
     try {
-      for (const [c, attendu] of [[ctxDeCatalogue('consommable'), []], [ctxProjet, narratifs]] as const) {
+      for (const [c, attendu, refuse] of [[ctxDeCatalogue('declenche'), [EFFECT_LABEL.ops], true], [ctxProjet, types, false]] as const) {
         await act(async () => {
           root.render(
             <>
@@ -594,10 +594,9 @@ describe('#679 — les références narratives s’éditent par le sélecteur un
           );
         });
         for (const menu of [menuDe(container, '+ Effet'), menuDe(container, '+ Bloc'), menuDe(container, /^Type :/)]) {
-          const { vus, journal } = await entreesDe(menu);
-          expect(journal).toBe(true);
-          expect(vus).toEqual(attendu);
+          expect(await entreesDe(menu)).toEqual(attendu);
         }
+        expect([...container.querySelectorAll('.hint')].some((p) => p.textContent === refus)).toBe(refuse);
       }
     } finally {
       await act(async () => { root.unmount(); });

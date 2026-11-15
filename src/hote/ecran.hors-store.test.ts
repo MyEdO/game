@@ -64,7 +64,7 @@ describe('la fenêtre du Destin (`fenetre.corps`, `fenetre.gestes`)', () => {
     try {
       const heros = partie.etat().battle!.combatants.find((c) => c.kind === 'heros')!;
       const ecran = (source: NonNullable<Jeu['pendingFateSave']>['source']) => {
-        const etat = { ...partie.etat(), pendingFateSave: { heroId: heros.id, source } };
+        const etat: Jeu = { ...partie.etat(), pendingFateSave: source === 'hit' ? { heroId: heros.id, source, avantLeCoup: structuredClone(heros) } : { heroId: heros.id, source } };
         const fenetre = fenetreADessiner(etat);
         return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetre, null, SANS_ROSTER);
       };

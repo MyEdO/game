@@ -19,6 +19,7 @@ import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { LIBELLES_DES_ICONES } from '../../icons';
 import { traitCapabilitiesSchema } from '../defs/traits';
+import { itemCapabilitiesSchema } from './valeurs';
 import { GATES_D_ACTION, MODES_DE_CIBLAGE, PORTEES_D_INTENTION, RUNS_D_ACTION, SELECTEURS_D_ACTION } from '../defs/actions';
 
 /** Les ids AUTHORÉS des deux racines, tels que `npm run gen` les relève — la référence qui dit d'un
@@ -138,7 +139,7 @@ const NOMMES = [
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|distance|zone|adversairesAutour|toutAutour|soi',
-  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume',
+  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume|vegetal',
   'physique|mentale',
   // `availabilitySchema`, `dispoPctAvailabilitySchema`, `harvestRaritySchema`, `harvestDangerSchema` (#3691) :
   // Disponibilité (LDB 59) et récolte (ZI 13 l.286), en ids nommés.
@@ -157,6 +158,8 @@ const NOMMES = [
   'cran|difficulte',
   // `typeDePossessionSchema` (#3012) : le `type` d'une dotation de POSSESSION, bête ou véhicule.
   'creature|vehicle',
+  // `classeDeQualiteSchema` (#4110) : la classe de qualité d'une dotation dont les Atouts sont au choix (LDB 60 l.7 ; LDB 60 l.11).
+  'qualite|haute',
   // `difficultySchema` (#1921) : l'échelle canon des Difficultés (LDB 12 l.143-151, EDO App.2), nommée
   // par `DIFFICULTY_LABELS` ; `couvertDifficultySchema` en est le sous-univers de couvert (AA 10 l.28-51).
   'tresFacile|facile|accessible|intermediaire|complexe|difficile|tresDifficile|presqueImpossible|impossible',
@@ -250,8 +253,10 @@ const NOMMES = [
   'groupe|heros|navire|membreAuHasard|target|caster',
   // `capaciteDeTraitSchema` (#4056) : une capacité de Trait, nommée par le libellé de son champ (`traits.suppressesCapabilities`).
   Object.keys(traitCapabilitiesSchema.shape).join('|'),
+  // `capaciteDObjetSchema` (#4056) : une capacité d'objet, nommée par le libellé de son champ (`skills.tool.capability`).
+  Object.keys(itemCapabilitiesSchema.shape).join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
-  'personne|immeuble|titre|intangible',
+  'personne|bete|vehicule|immeuble|titre|intangible',
 ].sort();
 
 /**

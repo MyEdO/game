@@ -130,10 +130,10 @@ const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: numb
   ],
   M: [
     ['caisse', 13, 1, 'S', { x: -1, y: -1 }], ['caisse', 13, 1, 'S', { x: -1, y: 1 }], ['tonneau', 13, 1, 'S', { x: 1, y: -1 }],
-    ['tonneau', 15, 1, 'S', { x: -1, y: 1 }], ['tonneau', 15, 1, 'S', { x: 1, y: 1 }], ['etagere', 13, 0, 'S', { x: 0, y: 1 }],
+    ['tonneau', 15, 1, 'S', { x: -1, y: 1 }], ['tonneau', 15, 1, 'S', { x: 1, y: 1 }], ['banc', 13, 0, 'S', { x: 0, y: 1 }],
   ],
-  N: [['etagere', 13, 4, 'N', { x: 0, y: -1 }]],
-  A: [['rack-armes', 14, 3, 'S', { x: 0, y: 1 }]],
+  N: [['coffre', 13, 4, 'N', { x: 0, y: -1 }]],
+  A: [['coffre', 14, 3, 'S', { x: 0, y: 1 }]],
   K: [['brasero', 16, 3, 'S', { x: 0.5, y: -1 }], ['marmite', 16, 3, 'S', { x: -1, y: -1 }]],
   Q: [
     ['hamac', 3, 1, 'S', { x: 0, y: -1 }], ['hamac', 3, 1, 'S', { x: 0, y: 1 }],

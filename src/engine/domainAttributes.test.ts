@@ -5,7 +5,20 @@ import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant, ItemInstance } from './types';
 import type { RNG } from './dice';
-import { hasArcaneTalent, metalAPAt, domainMissileMods, domainOnHitEffects, domainCasterOps, isLiving, domainSeaFocalisationDR, domainSeaFocalisationDoubled, domainSeaFocusCritMiscastMajeure, domainSeaIncantationDR, domainSeaWidensCritFumble, domainWindDR } from './domainAttributes';
+import {
+  hasArcaneTalent,
+  metalAPAt,
+  domainMissileMods,
+  domainOnHitEffects,
+  domainCasterOps,
+  isLiving,
+  domainSeaFocalisationDR,
+  domainSeaFocalisationDoubled,
+  domainSeaFocusCritMiscastMajeure,
+  domainSeaIncantationDR,
+  domainSeaWidensCritFumble,
+  domainWindDR,
+} from './domainAttributes';
 import { resolveFocus, resolveCasting, castLandProbability } from './magic';
 import { findDomainById } from '../data';
 import { evaluateMissile } from './magic';

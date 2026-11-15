@@ -212,6 +212,7 @@
       "src/hote/coop/salon.ts",
       "src/hote/coop/session.ts",
       "src/noyau/coop.ts",
+      "src/noyau/reseau.ts",
       "src/state/intents.ts",
       "src/noyau/intentionsDeSiege.ts",
       "src/ui/CoopLobby.tsx",

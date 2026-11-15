@@ -4,7 +4,20 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { combatStakeRef } from '../data';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
-import { startCascade, type CascadeApplier, stepInteraction, stepReady, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, resumeSuspendedCascade, setClotureDeCascade, compteurDeSequence } from './cascade';
+import {
+  startCascade,
+  type CascadeApplier,
+  stepInteraction,
+  stepReady,
+  runCascadeImmediate,
+  pushStep,
+  stepOpposedFreeze,
+  advanceCascade,
+  resolveRemainingCascade,
+  resumeSuspendedCascade,
+  setClotureDeCascade,
+  compteurDeSequence,
+} from './cascade';
 import { buildSeaPlan } from './seaVoyageFlow';
 import { freeCons, monoStep, displayStep, buildBand } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
