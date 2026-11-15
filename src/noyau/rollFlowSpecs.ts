@@ -248,7 +248,7 @@ export function rederiveAttack(scene: Scene | null, attacker: Combatant, target:
     // de defense FIGE. Sans eux, la rangee defenseur repartait sur une Parade a base 0.
     const sub = mode === 'social' ? { base: dd.base, label: dd.label } : undefined;
     return weapon.type === 'distance'
-      ? finishRanged(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, 2, compo, p.withhold)
+      ? finishRanged(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, sceneMetresPerTile(scene), compo, p.withhold)
       : finishMelee(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, [], dodge, dmgProxy, r.parryWeapon, p.withhold, sub, compo);
   }
   return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'distance' ? 'distance' : 'melee', { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, p.withhold, compo, dmgProxy);
@@ -262,7 +262,7 @@ export function parryWeaponOf(defender: Combatant, p: PendingDefense): Weapon | 
 /** Résout le résultat d'une défense réactive : TIR DÉFENDU (`finishRanged`, opposition RAW à distance —
  *  Protectrice 2+/Bout Portant/tireur Engagé) OU mêlée (`finishMelee`), selon le type d'arme FIGÉE de
  *  l'attaquant. `p.distanceTiles` sert au breakdown Projectiles ; l'arme de parade est `parryWeaponOf`. */
-function finishDefenseResult(attacker: Combatant, defender: Combatant, p: PendingDefense, def: TestResult, dodgeMods: ModLine[] = [], metresPerTile = 2): AttackResult {
+function finishDefenseResult(attacker: Combatant, defender: Combatant, p: PendingDefense, def: TestResult, dodgeMods: ModLine[] | undefined, metresPerTile: number): AttackResult {
   const sub = defenseSubOf(defender, p);
   const parry = parryWeaponOf(defender, p);
   const atk = forcedOpposedAtk(p, def);

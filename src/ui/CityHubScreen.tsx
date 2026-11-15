@@ -5,6 +5,7 @@ import { placeServices, produitsDuProfil, lieuAUnPlan, serviceIcon, poiIcon, typ
 import type { Scene } from '../noyau/monde/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { restServicePrice, type RestPlaces } from '../noyau/restFlow';
 import { findCargoEntryById } from '../engine/cargo';
 import { innGatherInfoMinutes } from '../noyau/innFlow';
@@ -62,7 +63,7 @@ export function CityHubScreen({
 }: {
   place: MapPlace;
   scene?: Scene;
-  rest?: { places: RestPlaces; quality: 'normale' | 'pietre' } | null;
+  rest?: { places: RestPlaces; quality: QualiteDeRepos } | null;
   onClose: () => void;
 }) {
   const party = useGame((s) => s.party);

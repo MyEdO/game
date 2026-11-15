@@ -10,7 +10,9 @@ que meuvent les os libres ; la seconde
 prise de chaque arme tourne comme celle des clips de son maniement ;
 sous une silhouette à os, les têtes déplacées et le tronc posé sont ceux du squelette déplacé explicite, et un point du
 bras se mesure sur sa tête d'os déplacée, tournée par les axes du bras ; le prix du tronc compte la prise à sa marge ;
-une prise dans un tronc plan en sort à sa marge le long de la normale, une prise dehors ne bouge pas (#4002)."""
+une prise dans un tronc plan en sort à sa marge le long de la normale, une prise dehors ne bouge pas (#4002) ;
+le chemin d'un clip garde sa famille de poses tant qu'en changer paie plus que le prix qu'il y gagne, et en change sur
+l'intervalle le plus long, et son roulis suit le repère de l'arme qui tourne sur son manche (#3878)."""
 import json
 import math
 import sys
@@ -23,9 +25,9 @@ from mathutils import Matrix, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from deux_mains import (CLIPS, MARGE_DES_BORNES, POIGNET, PRONATION, SECONDES, TRONC, ChaineDuBras,  # noqa: E402
-                        PeauDuBras, PeauDuTronc, bras, cle, coude, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe,
-                        pousser, prix_du_tronc, repere_de_l_arme, tronc_pose)
+from deux_mains import (CLIPS, CONTINUITE, MARGE_DES_BORNES, POIGNET, PRONATION, SECONDES, TOURS, TRONC,  # noqa: E402
+                        ChaineDuBras, PeauDuBras, PeauDuTronc, bras, chemin, cle, coude, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe,
+                        pousser, prix_du_tronc, repere_de_l_arme, tour_du_repere, tronc_pose)
 from sol import ecarts_des_os, rotations_de_peau, tetes_deplacees  # noqa: E402
 from test_sol import DECALAGE, DEPLACEMENTS, PARENT, POIDS, PROPRE, SOMMET, TETES, autour_de_l_avant, peaux  # noqa: E402
 
@@ -66,7 +68,8 @@ class Bras(unittest.TestCase):
         main = (devant @ Matrix.Rotation(math.radians(tourne), 3, 'Y')).to_4x4()
         main.translation = cible
         un = Matrix.Identity(3)
-        return main, bras(self.EPAULE, self.AXES, main, (L1, L2), Vector((0.55, 0.35, -0.75)), un, un, PRONATION['l'], bornes)
+        essais = bras(self.EPAULE, self.AXES, main, (L1, L2), Vector((0.55, 0.35, -0.75)), un, un, PRONATION['l'], bornes)
+        return main, min(essais(TOURS), key=lambda e: e[0])
 
     def test_une_borne_de_l_avant_bras_ecarte_l_ik_de_la_pose_qui_en_sort(self):
         _, (_, humerus, avant_bras, _, _, _) = self.poser(0)
@@ -230,6 +233,30 @@ class Interpolation(unittest.TestCase):
         self.assertAlmostEqual(((prise + seconde) / 2 - Vector((0, -0.3, 1.2))).length, 0, places=6)
 
 
+class Chemin(unittest.TestCase):
+    VALEURS = ([0, 90], [0], [0])
+    """Deux familles de poses à 90° de roulis l'une de l'autre, les coudes fixes."""
+
+    def etats(self, prix, durees, tours=None):
+        prix = [numpy.array(p, dtype=float).reshape(2, 1, 1) for p in prix]
+        return [e[0] for e in chemin(prix, [self.VALEURS] * len(prix), durees, tours or [0.0] * len(prix))]
+
+    def test_il_garde_sa_famille_quand_une_image_seule_prefere_l_autre(self):
+        saut = 90 ** 2 / CONTINUITE['vitesse'] ** 2
+        ailleurs = 10 * saut
+        self.assertEqual(self.etats([[0, ailleurs], [saut, 0], [0, ailleurs]], [0.0, 1.0, 1.0]), [0, 0, 0])
+        self.assertEqual(self.etats([[0, ailleurs], [3 * saut, 0], [0, ailleurs]], [0.0, 1.0, 1.0]), [0, 1, 0])
+
+    def test_il_change_de_famille_sur_l_intervalle_le_plus_long(self):
+        self.assertEqual(self.etats([[0, 1e6], [0, 0], [0, 0], [1e6, 0]], [0.0, 1.0, 4.0, 1.0]), [0, 0, 1, 1])
+
+
+    def test_le_roulis_suit_le_repere_de_l_arme_qui_tourne_sur_son_manche(self):
+        self.assertEqual(self.etats([[0, 0], [0, 0]], [0.0, 1.0], [0.0, -90.0]), [0, 1])
+        self.assertEqual(self.etats([[0, 0], [0, 0]], [0.0, 1.0], [0.0, 90.0]), [1, 0])
+        self.assertEqual(self.etats([[0, 0], [0, 0]], [0.0, 1.0], [0.0, 270.0]), [0, 1])
+
+
 class RepereDeLArme(unittest.TestCase):
     def test_son_y_va_vers_le_fer_et_son_x_au_plus_pres_du_flanc(self):
         flanc, direction = Vector((1, 0, 0)), Vector((0.2, 0.5, -0.8)).normalized()
@@ -241,6 +268,14 @@ class RepereDeLArme(unittest.TestCase):
         x = axes @ Vector((1, 0, 0))
         self.assertAlmostEqual(x.cross(flanc).dot(direction), 0, places=6)
         self.assertGreater(x.dot(flanc), 0)
+
+    def test_son_tour_sur_le_manche_se_lit_quand_le_manche_passe_pres_du_flanc(self):
+        flanc = Vector((1, 0, 0))
+        avant, apres = (repere_de_l_arme(flanc, Vector(), Vector((1, 0, z))).to_3x3() for z in (0.1, -0.1))
+        self.assertAlmostEqual(abs(tour_du_repere(avant, apres)), 180, places=4)
+        tourne = Matrix.Rotation(math.radians(30), 3, avant.col[1]) @ avant
+        self.assertAlmostEqual(tour_du_repere(avant, tourne), 30, places=4)
+        self.assertAlmostEqual(tour_du_repere(tourne, avant), -30, places=4)
 
 
 class Clips(unittest.TestCase):

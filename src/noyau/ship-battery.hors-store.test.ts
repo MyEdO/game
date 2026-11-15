@@ -9,6 +9,7 @@ import { rollCrewRole } from './shipManeuver';
 import { makeRNG } from '../engine/dice';
 import { jete } from '../engine/tests.testkit';
 import { rangeBandName, toucheAuJetPose } from '../engine/combat';
+import { sceneMetresPerTile } from './monde/scene';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { resolveVolley } from '../engine/volley';
 import { jouerLesTirsDeBordee } from './combatFlow';
@@ -103,7 +104,7 @@ describe('bordée — la portée se juge aux BANDES, jamais à la Portée moyenn
 
   it('120 m (bande LONGUE) : le tir PART — la bande porte son malus, elle ne refuse pas', () => {
     monter(enemyHull({ x: 5 + 60, y: 5 })); // 60 cases × 2 m = 120 m
-    expect(rangeBandName(60, canon), 'témoin : 120 m avec Portée 75 est bien la bande Longue').toBe('Longue');
+    expect(rangeBandName(60, canon, sceneMetresPerTile(banc.getState().scene)), 'témoin : 120 m avec Portée 75 est bien la bande Longue').toBe('Longue');
     banc.getState().ouvrirLaBordee('ship', 'target');
     expect(banc.getState().pendingShipBattery, 'un tir à portée Longue doit ouvrir son Test d’équipage').not.toBeNull();
     expect(banc.getState().refus).toBeNull();
@@ -111,7 +112,7 @@ describe('bordée — la portée se juge aux BANDES, jamais à la Portée moyenn
 
   it('230 m (au-delà d’Extrême = 225 m) : refus DIT, aucun Test ouvert', () => {
     monter(enemyHull({ x: 5 + 115, y: 5 })); // 115 cases × 2 m = 230 m
-    expect(rangeBandName(115, canon), 'témoin : 230 m est hors de toute bande').toBeNull();
+    expect(rangeBandName(115, canon, sceneMetresPerTile(banc.getState().scene)), 'témoin : 230 m est hors de toute bande').toBeNull();
     banc.getState().ouvrirLaBordee('ship', 'target');
     expect(banc.getState().pendingShipBattery, 'aucune volée hors de portée').toBeNull();
     expect(banc.getState().refus?.texte, 'et le refus se dit au point du geste').toBeTruthy();

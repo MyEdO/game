@@ -48,7 +48,7 @@ describe('la projection lit les lecteurs du jeu', () => {
       const { combattants } = pageDeLaCarte(etat);
       expect(combattants.length, 'témoin : la carte liste les combattants').toBe(b.combatants.length);
       for (const c of combattants) {
-        const vrai = distanceDeCombat(actif, b.combatants.find((x) => x.id === c.id)!);
+        const vrai = distanceDeCombat(etat.scene, actif, b.combatants.find((x) => x.id === c.id)!);
         expect(c.distance, `${c.id} : distance de la vue`).toBe(Number.isFinite(vrai) ? vrai : null);
       }
     });

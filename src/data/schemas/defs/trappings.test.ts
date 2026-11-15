@@ -6,8 +6,9 @@
 import { describe, expect, it } from 'vitest';
 import { schema } from './trappings';
 import { trappings } from '../../index';
+import { versDisque } from '../grammaire/prose';
 
-const clone = () => structuredClone(trappings);
+const clone = () => structuredClone(versDisque(trappings));
 const refus = (doc: unknown): string[] => {
   const r = schema.safeParse(doc);
   expect(r.success, 'le document a parsé alors qu’il devait être REFUSÉ').toBe(false);
@@ -16,7 +17,7 @@ const refus = (doc: unknown): string[] => {
 
 describe('trappings.json — une armure porte son type d’armure (#2948)', () => {
   it('le document réel parse', () => {
-    expect(schema.safeParse(trappings).success).toBe(true);
+    expect(schema.safeParse(versDisque(trappings)).success).toBe(true);
   });
 
   it.each([

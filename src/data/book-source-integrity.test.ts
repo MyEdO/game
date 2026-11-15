@@ -67,7 +67,7 @@ describe('cœur de règles — une graphie par corps de règles (#1825)', () => 
  * 157 dettes affichées, CI verte). Le relever est un geste délibéré, visible en revue — l'inverse
  * d'un append discret. Il ne DESCEND qu'en soldant des folios au Source.
  */
-const FOLIO_RATCHET_MAX = 108;
+const FOLIO_RATCHET_MAX = 103;
 
 describe('intégrité du folio — source.page pointe sur la page qui porte la desc (#536)', () => {
   const { violations } = AUDIT;

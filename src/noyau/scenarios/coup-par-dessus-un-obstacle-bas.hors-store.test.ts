@@ -218,6 +218,20 @@ describe('#4105 lot 2 — la croisée ouverte en mêlée', () => {
   });
 });
 
+describe('#4291 — le couvert du coup porte sur son passage, dans les deux sens', () => {
+  afterEach(() => resetRule('combat-croisee-melee-difficulte'));
+  it('en diagonale par le coin de la croisée, l’arête du côté de l’attaquant couvre la cible comme celle de son côté', () => {
+    const { H, E, poser } = duel();
+    poser(H, SOUS_LA_CROISEE);
+    poser(E, { x: 4, y: 8, z: 0 });
+    expect(contact(H, E)).toBe(1);
+    expect(couvertMelee(H, E), 'la croisée est du côté de l’attaquant').toBe(-30);
+    expect(couvertMelee(E, H), 'la croisée est du côté de la cible').toBe(-30);
+    setRule('combat-croisee-melee-difficulte', 'difficile');
+    expect(couvertMelee(H, E)).toBe(-20);
+  });
+});
+
 describe('#4105 lot 2 — non-régression (verts avant et après le lot)', () => {
   it('le tir par la croisée ouverte garde un cran de moins que son mur : aucune ligne', () => {
     const { H, E, poser } = duel();

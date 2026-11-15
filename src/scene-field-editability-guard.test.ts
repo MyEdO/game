@@ -7,26 +7,25 @@ import { tmpdir } from 'node:os';
 import * as ts from 'typescript/unstable/ast';
 import {
   ALLER_RETOUR,
-  auditSceneFieldEditability,
+  auditerLEditabilite,
   documentDeclarations,
   orphanFields,
-  sceneScope,
-  programmeDuPerimetre,
-} from '../scripts/guards/lib/sceneFieldEditability.mjs';
+  perimetreDeLaRacine,
+  RACINES,
+} from '../scripts/guards/lib/editabiliteDesChamps.mjs';
 import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../scripts/guards/lib/tsProgram.mjs';
-import { detenteur } from './lib/detenteur.testkit';
-import { ecrituresDesPorteursSeuls, ecrituresJouees } from './ecrituresJouees.testkit';
+import { ecrituresDesPorteursSeuls, ecrituresJouees, garderLaRacine } from './ecrituresJouees.testkit';
 
 /**
  * GARDE #841 — « toute donnée de la scène s'édite au clic, sans dépendre d'une IA » (directive
  * utilisateur du 2026-07-26, verbatim : « Assure toi toujours qu'on doit pouvoir éditer toutes les
- * données de la scene, on ne doit pas dépendre d'une IA »). Tout champ de Scene a un chemin d'écriture
- * d'auteur : l'éditeur Godot, de la seule méthode `editer` du pont (#3508 décision 8, #3606).
+ * données de la scene, on ne doit pas dépendre d'une IA »). Tout champ d'une racine de `RACINES` a un chemin
+ * d'écriture d'auteur : l'éditeur Godot, méthode `editer` du pont (#3508 décision 8, #4234), seule interface créditée.
  *
  * Le défaut que cette garde ferme n'est pas une liste de 22 champs — c'est la CLASSE : un champ peut
  * naître au modèle, être lu par le moteur, et n'avoir pour seul écrivain le compilateur d'authoring
- * (`mapSpec.ts`) ou un script. Rien ne casse ; l'auteur découvre le trou en cherchant le contrôle qui
- * n'existe pas.
+ * (`mapSpec.ts`), un script ou l'interface web (`src/ui/**`). Rien ne casse ; l'auteur découvre le trou en
+ * cherchant le contrôle qui n'existe pas.
  *
  * Deux propriétés font que cette garde MESURE quelque chose, et elles sont éprouvées ici :
  *  - le périmètre se DÉRIVE du type `Scene` par le TypeChecker (types imbriqués, unions, littéraux
@@ -44,13 +43,13 @@ const ROOT = path.resolve(__dirname, '..');
 
 const ids = (rows: { id: string }[]) => rows.map((r) => r.id);
 
-/**
- * CLIQUET DÉCROISSANT — les champs du document de scène que l'éditeur Godot n'écrit
- * aujourd'hui. La liste NOMME chaque trou (jamais une exemption par forme de fichier, de type ou de
- * nom) et l'assertion est une ÉGALITÉ : un trou nouveau échoue, un trou comblé échoue aussi tant que
- * la ligne n'est pas retirée. Elle ne peut donc que décroître.
- */
-const TROUS_CONNUS: string[] = [];
+/** Le pont Godot virtuel dont la méthode `editer` (`ENTREE_GODOT`) appelle chaque fonction nommée de chaque module
+ *  (chemin depuis la racine, sans extension) : la racine unique du crédit d'auteur. */
+const pontQuiEdite = (appels: Record<string, string[]>) => ({
+  'hotes/godot/pont/pont.ts': `${Object.entries(appels).map(([module, fonctions]) => `import { ${fonctions.join(', ')} } from '${path.posix.relative('hotes/godot/pont', module)}';`).join('\n')}
+declare const a: never[];
+export const pont = { editer() { ${Object.values(appels).flat().map((f) => `${f}(...a);`).join(' ')} } };\n`,
+});
 
 describe('#841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR', () => {
   it('une session possédée conserve l’erreur d’analyse et celle de fermeture', () => {
@@ -61,7 +60,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     const close = vi.spyOn(API.prototype, 'close');
     try {
       let erreur: unknown;
-      try { auditSceneFieldEditability(root); } catch (e) { erreur = e; }
+      try { auditerLEditabilite(root, undefined, { racine: RACINES.scene }); } catch (e) { erreur = e; }
       expect(erreur).toBeInstanceOf(Error);
       if (!(erreur instanceof Error)) throw erreur;
       expect(erreur.name).toBe('AggregateError');
@@ -78,30 +77,27 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     const session = virtualProgram({});
     const close = vi.spyOn(API.prototype, 'close');
     try {
-      expect(() => auditSceneFieldEditability(VIRTUAL_ROOT, session)).toThrow('src/noyau/monde/scene.ts absent du programme');
+      expect(() => auditerLEditabilite(VIRTUAL_ROOT, session, { racine: RACINES.scene })).toThrow('src/noyau/monde/scene.ts absent du programme');
       expect(close).not.toHaveBeenCalled();
     } finally { close.mockRestore(); session.dispose(); }
   });
-  // scripts/guards/lib/tsProgram.mjs ; src/analyse-retention-guard.test.ts
-  const perimetre = detenteur(() => programmeDuPerimetre(ROOT), (session) => session.dispose());
-  /** L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`). */
-  const ecritures = detenteur(() => ecrituresJouees());
-  const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: ecritures() }));
-
-  it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 120_000 }, () => {
-    const orphelins = orphanFields(auditReel());
-    // Rendu en TEXTE : l'échec doit NOMMER les champs et leur `fichier:ligne`, pas afficher « …(9) ».
-    const detail = orphelins
-      .map((r) => `${r.id} (${r.at}) — écrivains : ${r.pipeline.join(', ') || 'AUCUN'}`)
-      .join('\n');
-    expect(ids(orphelins).sort(), detail).toEqual([...TROUS_CONNUS].sort());
-  });
+  // CLIQUET DE COMPTE — le mode de panne à fermer est l'EFFONDREMENT SILENCIEUX du périmètre :
+  // 243 champs → 102 sans un seul rouge (mesure #1466 T3-b q24, la frontière par TYPE lâchant sur
+  // tout corps passé en `z.infer`). Aucune refonte de frontière ne ferme ce mode seule.
+  // 239 = mesure du 2026-08-25 (243 de l'étalon, moins les 4 `victoryCondition.edge.*` remappés sur
+  // `ArchitectureEdgeRef.*` par la réutilisation du type — la liste positive du périmètre dérivé les couvre).
+  // 416 = mesure du 2026-11-12 (#3606 M2f1 : `FRONTIERE` retirée, corps des fabriques et annotations de type descendus).
+  // 415 = mesure du 2026-11-12 (#3606 S0 : les compétences de scène DÉSIGNENT, `RefASpecialisation.choix` sort).
+  // 415 = mesure du 2026-11-15 (#4234 : un champ requis à un seul littéral qui ne discrimine aucune union sort par son
+  // type, `CustomStatblock.type` ; `OptionalSwap.note`, discriminant de PRÉSENCE, reste).
+  // L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`).
+  const { perimetre, ecritures, audit: auditReel } = garderLaRacine('scene', ecrituresJouees, { plancher: 415, delai: 100_000 });
 
   it('l’aller-retour partagé crédite tout ce que crédite chaque porteur joué SEUL à ses branches', { timeout: 120_000 }, () => {
     // Un porteur rejoué ne s'ajoute pas à `out` aux empreintes déjà jouées (`ecrituresJouees.testkit.ts`) : une offre ainsi
     // sautée ne doit cacher aucune des offres qu'elle ouvre (`SceneEntity.combat.spells` sous `combat/ajouter`).
     const ligne = (r: { id: string; authors: string[] }) => `${r.id} ← ${r.authors.join(', ')}`;
-    const avecLesSeuls = auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: [...ecritures(), ...ecrituresDesPorteursSeuls()] });
+    const avecLesSeuls = auditerLEditabilite(ROOT, perimetre(), { racine: RACINES.scene, ecrituresJouees: [...ecritures(), ...ecrituresDesPorteursSeuls()] });
     expect(avecLesSeuls.map(ligne)).toEqual(auditReel().map(ligne));
   });
 
@@ -128,11 +124,23 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     expect(auditReel().find((r) => r.id === 'SceneEffectZone.crossTest')?.authors).toContain(ALLER_RETOUR);
   });
 
-  it('une écriture jouée crédite le DERNIER pas de son chemin et, d’un objet écrit entier, chacune de ses clés, marchés sur le type `Scene`, si le document a changé, la valeur relue est la jouée et la saisie n’est pas du JSON', () => {
+  it('une racine est un argument : le programme partagé porte la carte du monde et le narratif, une racine introuvable lève en se nommant (#4234)', { timeout: 120_000 }, () => {
+    for (const racine of [RACINES.carte, RACINES.narratif]) {
+      const scope = perimetreDeLaRacine(perimetre(), ROOT, racine);
+      expect(scope.length, `périmètre de \`${racine.type}\``).toBeGreaterThan(0);
+      expect(scope.every((e) => e.id.length > 0)).toBe(true);
+    }
+    expect(() => perimetreDeLaRacine(perimetre(), ROOT, { ...RACINES.carte, type: 'CarteAbsente' })).toThrow('type `CarteAbsente` introuvable dans src/noyau/worldMap.ts');
+    expect(() => perimetreDeLaRacine(perimetre(), ROOT, { ...RACINES.narratif, fichierType: 'src/noyau/absent.ts' })).toThrow('src/noyau/absent.ts absent du programme');
+    expect(() => documentDeclarations(perimetre(), ROOT, { ...RACINES.narratif, schema: 'absentSchema' })).toThrow('`absentSchema` introuvable dans src/data/schemas/defs-scenes/narratif.ts');
+  });
+
+  it('une écriture jouée crédite le DERNIER pas de son chemin et, d’un objet écrit entier, ses seuls objets et listes, marchés sur le type `Scene`, si le document a changé, la valeur relue est la jouée et la saisie n’est pas du JSON : un scalaire du corps écrit attend le contrôle qui l’écrit', () => {
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': `export interface Rect { kind: 'rect'; w: number }
 export interface Disc { kind: 'disc'; radius: number }
-export interface Test { difficulty: string }
+export interface Seuil { n: number }
+export interface Test { difficulty: string; seuil?: Seuil }
 export interface SceneEffectZone { id: string; area: Rect | Disc; crossTest?: Test; perRound?: unknown[]; tags?: Record<string, { n: number }> }
 export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
     });
@@ -140,8 +148,8 @@ export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
     const jouee = (apres: Record<string, unknown>, chemin: (string | number)[], valeur: unknown, saisie: string, avant: Record<string, unknown> = {}) =>
       ({ avant: doc(avant), apres: doc(apres), chemin: ['effectZones', 0, ...chemin], valeur, saisie });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { ecrituresJouees: [
-        jouee({ crossTest: { difficulty: 'x' } }, ['crossTest'], { difficulty: 'x' }, 'bouton'),
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        jouee({ crossTest: { difficulty: 'x', seuil: { n: 1 } } }, ['crossTest'], { difficulty: 'x', seuil: { n: 1 } }, 'bouton'),
         jouee({ area: { kind: 'disc', radius: 3 } }, ['area', 'radius'], 3, 'saisieNombre'),
         jouee({ perRound: [] }, ['perRound'], [], 'saisieJson'),
         jouee({}, ['tags', 'a', 'n'], 1, 'saisieNombre'),
@@ -150,8 +158,85 @@ export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
       expect(rows.filter((r) => r.authors.length).map((r) => [r.id, r.authors])).toEqual([
         ['Disc.radius', [ALLER_RETOUR]],
         ['SceneEffectZone.crossTest', [ALLER_RETOUR]],
-        ['Test.difficulty', [ALLER_RETOUR]],
+        ['Test.seuil', [ALLER_RETOUR]],
       ]);
+    } finally { program.dispose(); }
+  });
+
+  it('un objet ou une liste que le geste n’a pas CHANGÉ ne crédite rien : ajouter une route ne crédite pas la liste d’une route déjà là', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export interface Route { id: string; couvre?: string[] }
+export interface Scene { id: string; routes: Route[] }\n`,
+    });
+    const avant = { id: 's', routes: [{ id: 'a', couvre: ['x'] }] };
+    const apres = { id: 's', routes: [{ id: 'a', couvre: ['x'] }, { id: 'b' }] };
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        { avant, apres, chemin: ['routes'], valeur: apres.routes, saisie: 'bouton' },
+        // La même liste, GRANDIE par le geste, est créditée.
+        { avant: apres, apres: { id: 's', routes: [{ id: 'a', couvre: ['x', 'y'] }, { id: 'b' }] }, chemin: ['routes', 0], valeur: { id: 'a', couvre: ['x', 'y'] }, saisie: 'bouton' },
+      ] });
+      expect(rows.filter((r) => r.authors.length).map((r) => r.id).sort()).toEqual(['Route.couvre', 'Scene.routes']);
+      const seul = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        { avant, apres, chemin: ['routes'], valeur: apres.routes, saisie: 'bouton' },
+      ] });
+      expect(seul.filter((r) => r.authors.length).map((r) => r.id)).toEqual(['Scene.routes']);
+    } finally { program.dispose(); }
+  });
+
+  it('le choix d’une VARIANTE ne crédite que son discriminant et les objets qu’il pose : un scalaire du corps neuf attend le contrôle qui l’écrit', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export interface Rect { kind: 'rect'; w: number }
+export interface Disc { kind: 'disc'; radius: number }
+export interface Libre { kind: string; n: number }
+export interface Scene { id: string; area: Rect | Disc | Libre; autre?: Rect | Disc }\n`,
+    });
+    const doc = (plus: Record<string, unknown> = {}) => ({ id: 's', area: { kind: 'disc', radius: 2 }, ...plus });
+    const libre = doc({ area: { kind: 'libre', n: 0 } });
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        // Une variante quittée : son discriminant et chaque champ que la variante pose.
+        { avant: doc(), apres: libre, chemin: ['area', 'kind'], valeur: 'libre', saisie: 'saisieChoix', variante: 'kind' },
+        { avant: doc(), apres: libre, chemin: ['area', 'n'], valeur: 0, saisie: 'saisieChoix', variante: 'kind' },
+        // Un champ absent : la variante entière.
+        { avant: doc(), apres: doc({ autre: { kind: 'disc', radius: 3 } }), chemin: ['autre'], valeur: { kind: 'disc', radius: 3 }, saisie: 'saisieChoix', variante: 'kind' },
+        // Le contrôle qui écrit un scalaire.
+        { avant: doc({ area: { kind: 'rect', w: 1 } }), apres: doc({ area: { kind: 'rect', w: 2 } }), chemin: ['area', 'w'], valeur: 2, saisie: 'saisieNombre' },
+      ] });
+      expect(rows.filter((r) => r.authors.length).map((r) => r.id).sort()).toEqual(['Disc.kind', 'Libre.kind', 'Rect.w', 'Scene.autre']);
+    } finally { program.dispose(); }
+  });
+
+  it('une écriture jouée crédite aussi tout scalaire qui EXISTAIT au même chemin avant et a changé, hors de son chemin et hors du choix d’une variante : un scalaire neuf, déplacé ou homonyme d’une variante quittée attend son contrôle', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export interface Cellule { kind: 'cellule'; row: string; sum: string }
+export interface Repere { id: string }
+export interface Valeur { repere: string; valeur: string; note?: string }
+export interface A { kind: 'a'; n: number }
+export interface B { kind: 'b'; n: number }
+export interface Effet { id: string; type: string }
+export interface Scene { id: string; parts: Cellule[]; reperes: Repere[]; valeurs: Valeur[]; v: A | B; effects?: Effet[] }\n`,
+    });
+    const doc = (plus: Record<string, unknown> = {}) => ({
+      id: 's', parts: [{ kind: 'cellule', row: '1', sum: 'aaaa' }], reperes: [{ id: 'r' }],
+      valeurs: [{ repere: 'r', valeur: 'x' }, { repere: 'autre', valeur: 'y' }], v: { kind: 'a', n: 5 }, ...plus,
+    });
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        // L'adresse d'une prose change : le produit rescelle son empreinte.
+        { avant: doc(), apres: doc({ parts: [{ kind: 'cellule', row: '2', sum: 'bbbb' }] }), chemin: ['parts', 0, 'row'], valeur: '2', saisie: 'saisieChoix' },
+        // Un repère renommé : le produit réécrit chaque valeur qui le désignait.
+        { avant: doc(), apres: doc({ reperes: [{ id: 'q' }], valeurs: [{ repere: 'q', valeur: 'x' }, { repere: 'autre', valeur: 'y' }] }), chemin: ['reperes', 0, 'id'], valeur: 'q', saisie: 'saisieTexte' },
+        // Un repère ajouté : le produit pose, hors du chemin écrit, un scalaire absent avant.
+        { avant: doc(), apres: doc({ reperes: [{ id: 'r' }, { id: 'neuf' }], valeurs: [{ repere: 'r', valeur: 'x', note: '' }, { repere: 'autre', valeur: 'y' }] }), chemin: ['reperes', 1], valeur: { id: 'neuf' }, saisie: 'saisieChoix' },
+        // Un Effet ajouté : son corps neuf pose des scalaires absents avant.
+        { avant: doc(), apres: doc({ effects: [{ id: '', type: 'setObjective' }] }), chemin: ['effects'], valeur: [{ id: '', type: 'setObjective' }], saisie: 'saisieChoix' },
+        // Deux valeurs échangées : leurs scalaires changent de rang, sous le chemin écrit.
+        { avant: doc(), apres: doc({ valeurs: [{ repere: 'autre', valeur: 'y' }, { repere: 'r', valeur: 'x' }] }), chemin: ['valeurs'], valeur: [{ repere: 'autre', valeur: 'y' }, { repere: 'r', valeur: 'x' }], saisie: 'bouton' },
+        // Une variante remplacée : `n`, homonyme, est posé par le corps neuf.
+        { avant: doc(), apres: doc({ v: { kind: 'b', n: 0 } }), chemin: ['v', 'kind'], valeur: 'b', saisie: 'saisieChoix', variante: 'kind' },
+      ] });
+      expect(rows.filter((r) => r.authors.length).map((r) => r.id).sort()).toEqual(['B.kind', 'Cellule.row', 'Cellule.sum', 'Repere.id', 'Scene.effects', 'Scene.valeurs', 'Valeur.repere']);
     } finally { program.dispose(); }
   });
 
@@ -169,7 +254,7 @@ export type Scene = (typeof sceneSchema)['sortie'];\n`,
     });
     const doc = (arme: number) => ({ id: 's', arme: { id: arme }, bouclier: { id: 0 }, embleme: { id: 'e' } });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { ecrituresJouees: [
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
         { avant: doc(0), apres: doc(1), chemin: ['arme', 'id'], valeur: 1, saisie: 'saisieNombre' },
       ] });
       expect(rows.filter((r) => r.id.endsWith('.id') && r.id !== 'Scene.id').map((r) => [r.id, r.authors])).toEqual([
@@ -188,21 +273,11 @@ export interface Scene { id: string; a: Base; b: Derivee }\n`,
     });
     const doc = (id: string) => ({ id: 's', a: { id: 'a' }, b: { id } });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { ecrituresJouees: [
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
         { avant: doc('b'), apres: doc('c'), chemin: ['b', 'id'], valeur: 'c', saisie: 'saisieTexte' },
       ] });
       expect(rows.filter((r) => r.id.endsWith('.id') && r.id !== 'Scene.id').map((r) => [r.id, r.authors])).toEqual([['Base.id', [ALLER_RETOUR]]]);
     } finally { program.dispose(); }
-  });
-
-  /** Le pont d'une fixture : sa méthode `editer` appelle chaque fonction nommée de chaque module, seule racine du chemin
-   *  d'auteur. */
-  const pontQuiAppelle = (appels: Record<string, string[]>) => ({
-    'hotes/godot/pont/pont.ts': `${Object.entries(appels).map(([module, fonctions]) => `import { ${fonctions.join(', ')} } from '../../../${module.replace(/\.ts$/, '')}';`).join('\n')}
-declare const a: any;
-export function creerPont() {
-  return { editer() { ${Object.values(appels).flat().map((f) => `${f}(a, a);`).join(' ')} } };
-}\n`,
   });
 
   it('NON VACANTE (c) : à travers `Array.map`, seule l’annotation de la COLLECTION crédite — pas un homonyme', () => {
@@ -211,7 +286,7 @@ export function creerPont() {
 export interface Scene { id: string; effectZones: SceneEffectZone[]; layers: SceneEffectZone[] }\n`,
       // (a) annotation de collection, (b) type de retour annoté, (c) `push` dans un tableau annoté,
       // (d) `map` imbriqué — les quatre formes réelles du dépôt.
-      'src/hote/Zonage.ts': `import type { Scene, SceneEffectZone } from '../noyau/monde/scene';
+      'src/noyau/edition/Zonage.ts': `import type { Scene, SceneEffectZone } from '../monde/scene';
 declare const blocs: { key: string; cells: number[]; sous: { key: string; cells: number[] }[] }[];
 declare function setScene(s: Scene): void;
 
@@ -233,27 +308,27 @@ export const empiler = (s: Scene): Scene => {
 };\n`,
       // Même forme de littéral, même dossier, même `Array.map` — mais l'annotation désigne un type
       // ÉTRANGER qui partage `id` et `tiles`. Aucun crédit ne doit lui être attribué.
-      'src/hote/Calque.ts': `interface RegionDeCalque { id: string; tiles: number[] }
+      'src/noyau/edition/Calque.ts': `interface RegionDeCalque { id: string; tiles: number[] }
 declare const blocs: { key: string; cells: number[] }[];
 declare function tracer(regions: RegionDeCalque[]): void;
 export const tracerCalque = () => {
   const regions: RegionDeCalque[] = blocs.map((b) => ({ id: b.key, tiles: b.cells }));
   tracer(regions);
 };\n`,
-      ...pontQuiAppelle({ 'src/hote/Zonage.ts': ['zoner', 'empiler'], 'src/hote/Calque.ts': ['tracerCalque'] }),
+      ...pontQuiEdite({ 'src/noyau/edition/Zonage': ['zoner', 'empiler'], 'src/noyau/edition/Calque': ['tracerCalque'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual([]);
       for (const id of ['SceneEffectZone.id', 'SceneEffectZone.tiles']) {
-        expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/hote/Zonage.ts']);
+        expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/noyau/edition/Zonage.ts']);
       }
 
     } finally { program.dispose(); }
   });
 
   it('le périmètre se dérive du type `Scene` — types imbriqués, unions et littéraux anonymes compris', () => {
-    const scope = sceneScope(perimetre(), ROOT);
+    const scope = perimetreDeLaRacine(perimetre(), ROOT, RACINES.scene);
     const all = new Set(ids(scope));
     // Champs qu'un scanner limité aux interfaces atteignables « à la main » manque : ils vivent dans
     // des types que seule la traversée du type `Scene` ramène.
@@ -282,14 +357,52 @@ export const tracerCalque = () => {
     ]) {
       expect(all, `${id} hors du périmètre dérivé`).toContain(id);
     }
-    // CLIQUET DE COMPTE — le mode de panne à fermer est l'EFFONDREMENT SILENCIEUX du périmètre :
-    // 243 champs → 102 sans un seul rouge (mesure #1466 T3-b q24, la frontière par TYPE lâchant sur
-    // tout corps passé en `z.infer`). Aucune refonte de frontière ne ferme ce mode seule.
-    // 239 = mesure du 2026-08-25 (243 de l'étalon, moins les 4 `victoryCondition.edge.*` remappés sur
-    // `ArchitectureEdgeRef.*` par la réutilisation du type — la liste positive ci-dessus les couvre).
-    // 416 = mesure du 2026-11-12 (#3606 M2f1 : `FRONTIERE` retirée, corps des fabriques et annotations de type descendus).
-    // 415 = mesure du 2026-11-12 (#3606 S0 : les compétences de scène DÉSIGNENT, `RefASpecialisation.choix` sort).
-    expect(scope.length, 'périmètre effondré').toBeGreaterThanOrEqual(415);
+  });
+
+  it('un champ REQUIS à un seul littéral, lu dans son porteur, sort du périmètre, sauf s’il discrimine une union ; deux littéraux ou un littéral optionnel y restent', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export interface Fixe<T extends string> { type: T; n: number }
+export interface A { kind: 'a'; x: number }
+export interface B { kind: 'b'; y: number }
+export interface Scene { id: string; fixe: Fixe<'statblock'>; vrai: true; deux: 'a' | 'b'; option?: true; forme: A | B }\n`,
+    });
+    try {
+      expect(ids(perimetreDeLaRacine(program, VIRTUAL_ROOT, RACINES.scene)).sort()).toEqual([
+        'A.kind', 'A.x', 'B.kind', 'B.y', 'Fixe.n', 'Scene.deux', 'Scene.fixe', 'Scene.forme', 'Scene.id', 'Scene.option',
+      ]);
+    } finally { program.dispose(); }
+  });
+
+  it('un discriminant reste au périmètre quel que soit l’ordre des chemins qui atteignent son porteur, et un discriminant de PRÉSENCE aussi', () => {
+    const A = `export interface A { kind: 'a'; x: number }
+export interface B { kind: 'b'; y: number }
+export interface Swap { note: 'swap'; n: number }
+export interface Trait { id: string }\n`;
+    for (const scene of [
+      'export interface Scene { id: string; seul: A; forme: A | B; option: Trait | Swap }',
+      'export interface Scene { id: string; forme: A | B; seul: A; option: Trait | Swap }',
+    ]) {
+      const program = virtualProgram({ 'src/noyau/monde/scene.ts': `${A}${scene}\n` });
+      try {
+        expect(ids(perimetreDeLaRacine(program, VIRTUAL_ROOT, RACINES.scene)).sort(), scene).toEqual([
+          'A.kind', 'A.x', 'B.kind', 'B.y', 'Scene.forme', 'Scene.id', 'Scene.option', 'Scene.seul', 'Swap.n', 'Swap.note', 'Trait.id',
+        ]);
+      } finally { program.dispose(); }
+    }
+  });
+
+  it('un discriminant de PRÉSENCE est l’UNIQUE candidat de son union, comme à l’éditeur (`discriminantDePresence`) : deux candidats, aucun', () => {
+    for (const [swap, attendu] of [
+      ["export interface Swap { note: 'swap'; sorte: 'x' }", ['Scene.id', 'Scene.option', 'Trait.id']],
+      ["export interface Swap { note: 'swap'; label: string }", ['Scene.id', 'Scene.option', 'Swap.label', 'Swap.note', 'Trait.id']],
+    ] as const) {
+      const program = virtualProgram({
+        'src/noyau/monde/scene.ts': `${swap}\nexport interface Trait { id: string }\nexport interface Scene { id: string; option: Swap | Trait }\n`,
+      });
+      try {
+        expect(ids(perimetreDeLaRacine(program, VIRTUAL_ROOT, RACINES.scene)).sort(), swap).toEqual(attendu);
+      } finally { program.dispose(); }
+    }
   });
 
   it('le périmètre inclut par IDENTITÉ — une feuille d’un AUTRE module composée par le document y entre, et la marche descend dans le corps d’une fabrique', () => {
@@ -311,7 +424,7 @@ export const sceneSchema = forme({ id: '', cost: moneySchema.sortie, when: condi
 export type Scene = (typeof sceneSchema)['sortie'];\n`,
     });
     try {
-      const all = ids(sceneScope(program, VIRTUAL_ROOT));
+      const all = ids(perimetreDeLaRacine(program, VIRTUAL_ROOT, RACINES.scene));
       expect(all, 'les champs déclarés par le shape du document').toEqual(
         expect.arrayContaining(['Scene.id', 'Scene.cost', 'Scene.when'])
       );
@@ -337,7 +450,7 @@ export const murSchema = forme({
 export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc: Vocabulaire }\n`,
     });
     try {
-      const all = ids(sceneScope(program, VIRTUAL_ROOT));
+      const all = ids(perimetreDeLaRacine(program, VIRTUAL_ROOT, RACINES.scene));
       expect(all, 'le corps inféré du schéma est dans le périmètre et porte le nom du schéma').toContain(
         'Mur.x'
       );
@@ -353,7 +466,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     // (`src/engine/`) et du noyau restent hors de cette classe.
     const program = perimetre();
     const checker = program.checker;
-    const docNodes = documentDeclarations(program, ROOT);
+    const docNodes = documentDeclarations(program, ROOT, RACINES.scene);
     const sf = program.program.getSourceFileNames().map((f) => program.program.getSourceFile(f)).find((x) => x?.fileName.endsWith('src/noyau/monde/scene.ts'));
     const sym = sf && checker.getExportsOfModule(checker.getSymbolAtLocation(sf)!).find((x) => x.name === 'Scene');
     if (!sym) throw new Error('type `Scene` introuvable');
@@ -381,7 +494,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   });
 
   it('l’inclusion par IDENTITÉ est LOAD-BEARING sur le programme RÉEL — la frontière par MODULE perd des champs NOMMÉS', () => {
-    // Rabattre `declaredInScene` sur les deux FICHIERS du document perd les champs nommés ici (mutation
+    // Rabattre `duDocument` sur les deux FICHIERS du document perd les champs nommés ici (mutation
     // mesurée) : ce sont les seuls du périmètre déclarés hors du document.
     // #1463 (2026-10-26) : le Trait POSÉ du document est la forme INFÉRÉE de son schéma
     // (`traitInstanceSchema`, `TraitPose`) et non plus l'instance RÉSOLUE du moteur — la rangée de Trait
@@ -404,7 +517,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
-    const scope: { id: string; decl: ts.Declaration }[] = sceneScope(perimetre(), ROOT);
+    const scope: { id: string; decl: ts.Declaration }[] = perimetreDeLaRacine(perimetre(), ROOT, RACINES.scene);
     const horsDocument = scope.filter((r) => !DOC.includes(fichier(r)));
     expect(
       horsDocument.map((r) => `${r.id} @ ${fichier(r)}`).sort(),
@@ -469,7 +582,6 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CustomStatblock.traits.range @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.source @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.value @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.type @ src/data/schemas/defs-scenes/communs.ts',
       'Dialogue.start.id @ src/data/schemas/grammaire/ref.ts',
       'DialogueNode.adapteDe @ src/data/schemas/grammaire/prose.ts',
       'DialogueNode.desc @ src/data/schemas/grammaire/prose.ts',
@@ -643,18 +755,48 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   const programAvec = (patch: Record<string, string>) =>
     repoProgram(ROOT, (fileNames) => fileNames.filter((f) => DOCUMENT.includes(path.relative(ROOT, f).split(path.sep).join('/'))), patch);
 
+  it('l’interface web ne crédite rien : un champ écrit par le seul `src/ui/**` est orphelin, le même écrit par une primitive atteinte depuis `editer` est crédité', () => {
+    const SCENE = { 'src/noyau/monde/scene.ts': `export interface Scene { id: string; notes: string }\n` };
+    const NOTES = `import type { Scene } from '../../noyau/monde/scene';
+export const saisirNotes = (s: Scene, v: string): Scene => ({ ...s, notes: v });\n`;
+    const RENOMMER = `import type { Scene } from '../../noyau/monde/scene';
+export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`;
+    const web = virtualProgram({
+      ...SCENE,
+      'src/ui/editor/Notes.tsx': NOTES,
+      'src/noyau/edition/renommer.ts': RENOMMER,
+      ...pontQuiEdite({ 'src/noyau/edition/renommer': ['renommer'] }),
+    });
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, web, { racine: RACINES.scene });
+      expect(ids(orphanFields(rows))).toEqual(['Scene.notes']);
+      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/renommer.ts']);
+    } finally { web.dispose(); }
+    const godot = virtualProgram({
+      ...SCENE,
+      'src/noyau/edition/notes.ts': NOTES,
+      'src/noyau/edition/renommer.ts': RENOMMER,
+      ...pontQuiEdite({ 'src/noyau/edition/notes': ['saisirNotes'], 'src/noyau/edition/renommer': ['renommer'] }),
+    });
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, godot, { racine: RACINES.scene });
+      expect(ids(orphanFields(rows))).toEqual([]);
+      expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/edition/notes.ts']);
+    } finally { godot.dispose(); }
+  });
+
   it('NON VACANTE (a) : un champ frais, écrit par personne, est rapporté orphelin', () => {
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': `export interface Scene {
   id: string;
   champFraisSansControle?: string;
 }\n`,
-      'src/hote/Editeur.ts': `import type { Scene } from '../noyau/monde/scene';
+      'src/noyau/edition/Editeur.ts': `import type { Scene } from '../monde/scene';
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
-      ...pontQuiAppelle({ 'src/hote/Editeur.ts': ['renommer'] }),
+      ...pontQuiEdite({ 'src/noyau/edition/Editeur': ['renommer'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(rows).sort()).toEqual(['Scene.champFraisSansControle', 'Scene.id']);
       expect(ids(orphanFields(rows))).toEqual(['Scene.champFraisSansControle']);
 
@@ -667,22 +809,22 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
   id: string;
   flags: Record<string, boolean>;
 }\n`,
-      // Deux littéraux de forme IDENTIQUE, dans le même module d'éditeur : seul celui dont le type
+      // Deux littéraux de forme IDENTIQUE, dans le même dossier d'éditeur : seul celui dont le type
       // porteur est `Scene` écrit la scène. L'autre remplit le contexte d'évaluation d'un `when`.
-      'src/hote/Editeur.ts': `import type { Scene } from '../noyau/monde/scene';
+      'src/noyau/edition/Editeur.ts': `import type { Scene } from '../monde/scene';
 interface ContexteDeCondition { flags: Record<string, boolean>; gameTime: number }
 declare function evalCondition(ctx: ContexteDeCondition): boolean;
 
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });
 export const visible = (flags: Record<string, boolean>, gameTime: number) =>
   evalCondition({ flags, gameTime });\n`,
-      ...pontQuiAppelle({ 'src/hote/Editeur.ts': ['renommer', 'visible'] }),
+      ...pontQuiEdite({ 'src/noyau/edition/Editeur': ['renommer', 'visible'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
       // …et le témoin positif du même fichier : `id` est bien crédité, la garde n'est pas aveugle.
-      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/hote/Editeur.ts']);
+      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/Editeur.ts']);
 
     } finally { program.dispose(); }
   });
@@ -692,18 +834,18 @@ export const visible = (flags: Record<string, boolean>, gameTime: number) =>
       'src/noyau/monde/scene.ts': `export type Cote = 'gauche' | 'droite';
 export interface Scene { id: string; armure: Record<Cote, number> }\n`,
       // Clé CALCULÉE pilotée par un littéral (l'idiome des rangées de l'inspecteur) : seul `gauche` s'écrit.
-      'src/hote/Armure.ts': `import type { Scene } from '../noyau/monde/scene';
+      'src/noyau/edition/Armure.ts': `import type { Scene } from '../monde/scene';
 const COTE = 'gauche' as const;
 export const poser = (s: Scene, n: number): Scene => ({ ...s, id: s.id, armure: { ...s.armure, [COTE]: n } });\n`,
-      ...pontQuiAppelle({ 'src/hote/Armure.ts': ['poser'] }),
+      ...pontQuiEdite({ 'src/noyau/edition/Armure': ['poser'] }),
     });
     try {
-      const scope = sceneScope(program, VIRTUAL_ROOT);
+      const scope = perimetreDeLaRacine(program, VIRTUAL_ROOT, RACINES.scene);
       expect(ids(scope).sort()).toEqual(['Scene.armure', 'Scene.armure.droite', 'Scene.armure.gauche', 'Scene.id']);
       const porteur = scope.find((e) => e.id === 'Scene.armure')!.decl;
       expect(scope.find((e) => e.id === 'Scene.armure.gauche')!.decl, 'rattachée à la déclaration du champ porteur').toBe(porteur);
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
-      expect(rows.find((r) => r.id === 'Scene.armure.gauche')?.authors).toEqual(['src/hote/Armure.ts']);
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      expect(rows.find((r) => r.id === 'Scene.armure.gauche')?.authors).toEqual(['src/noyau/edition/Armure.ts']);
       expect(ids(orphanFields(rows)), 'la clé jamais écrite reste orpheline').toEqual(['Scene.armure.droite']);
     } finally { program.dispose(); }
   });
@@ -712,23 +854,23 @@ export const poser = (s: Scene, n: number): Scene => ({ ...s, id: s.id, armure: 
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': `export interface WallSeg { x: number; window?: boolean }
 export interface Scene { walls: WallSeg[] }\n`,
-      'src/hote/Inspecteur.ts': `import type { Scene, WallSeg } from '../noyau/monde/scene';
+      'src/noyau/edition/Inspecteur.ts': `import type { Scene, WallSeg } from '../monde/scene';
 declare function patchWall(s: Scene, i: number, patch: Partial<WallSeg>): Scene;
 declare function setScene(s: Scene): void;
 export const cocherFenetre = (s: Scene, i: number, v: boolean) => setScene(patchWall(s, i, { window: v }));
 export const poserMur = (s: Scene, x: number): Scene => ({ ...s, walls: [...s.walls, { x }] });\n`,
-      ...pontQuiAppelle({ 'src/hote/Inspecteur.ts': ['cocherFenetre', 'poserMur'] }),
+      ...pontQuiEdite({ 'src/noyau/edition/Inspecteur': ['cocherFenetre', 'poserMur'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual([]);
 
     } finally { program.dispose(); }
   });
 
   // Reconstitution du défaut RÉEL de `Scene.flags` : une primitive de `sceneEdit.ts` peut être complète, testée et
-  // ré-exportée par l'éditeur sans qu'aucun geste ne l'appelle — le travail s'arrête à la porte de l'éditeur, et seul un
-  // APPELANT distingue ce cas d'un vrai chemin d'édition.
+  // ré-exportée par l'éditeur sans qu'aucun geste d'édition ne l'appelle — le travail s'arrête à la porte de l'éditeur,
+  // et seul un APPELANT depuis `editer` distingue ce cas d'un vrai chemin d'édition.
   const PRIMITIVES = {
     'src/noyau/monde/scene.ts': `export interface Scene { id: string; flags: Record<string, boolean>; notes: string }\n`,
     'src/noyau/sceneEdit.ts': `import type { Scene } from '../noyau/monde/scene';
@@ -741,56 +883,56 @@ export function setNotes(s: Scene, v: string): Scene {
     'src/hote/editorState.ts': `export { setSceneFlags, setNotes } from '../noyau/sceneEdit';\n`,
   };
 
-  it('NON VACANTE (d) : une primitive RÉ-EXPORTÉE mais jamais APPELÉE ne crédite rien', () => {
+  it('NON VACANTE (d) : une primitive d’édition RÉ-EXPORTÉE mais jamais APPELÉE ne crédite rien', () => {
     const program = virtualProgram({
       ...PRIMITIVES,
       // L'inspecteur appelle `setNotes` et n'appelle jamais `setSceneFlags` — exactement l'état du
       // dépôt au 2026-07-26. Le ré-export n'est PAS un appelant.
-      'src/hote/Inspecteur.ts': `import type { Scene } from '../noyau/monde/scene';
-import { setNotes } from './editorState';
+      'src/noyau/edition/inspecteur.ts': `import type { Scene } from '../monde/scene';
+import { setNotes } from '../../hote/editorState';
 declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
-      ...pontQuiAppelle({ 'src/hote/Inspecteur.ts': ['saisirNotes', 'renommer'] }),
+      ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'renommer'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
-      // Témoins positifs : la primitive APPELÉE crédite, et l'écriture directe de l'inspecteur aussi.
+      // Témoins positifs : la primitive APPELÉE crédite, et l'écriture directe de la primitive atteinte aussi.
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
-      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/hote/Inspecteur.ts']);
+      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/inspecteur.ts']);
 
     } finally { program.dispose(); }
   });
 
-  it('NON VACANTE (e) : un HOMONYME appelé depuis l’éditeur ne réveille pas la primitive muette', () => {
+  it('NON VACANTE (e) : un HOMONYME appelé depuis `editer` ne réveille pas la primitive muette', () => {
     const program = virtualProgram({
       ...PRIMITIVES,
       // Même NOM, autre module (hors chemin de l'auteur) : la fermeture d'appels résout un SYMBOLE,
       // pas un nom — l'appel ci-dessous ne rend pas `sceneEdit.setSceneFlags` atteignable.
-      'src/noyau/runtimeFlags.ts': `import type { Scene } from '../noyau/monde/scene';
+      'src/state/runtimeFlags.ts': `import type { Scene } from '../noyau/monde/scene';
 export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
   return { ...s, flags: patch };
 }\n`,
-      'src/hote/Inspecteur.ts': `import type { Scene } from '../noyau/monde/scene';
-import { setNotes } from './editorState';
-import { setSceneFlags } from '../noyau/runtimeFlags';
+      'src/noyau/edition/inspecteur.ts': `import type { Scene } from '../monde/scene';
+import { setNotes } from '../../hote/editorState';
+import { setSceneFlags } from '../../state/runtimeFlags';
 declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const basculer = (s: Scene, k: string) => setScene(setSceneFlags(s, { [k]: true }));
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
-      ...pontQuiAppelle({ 'src/hote/Inspecteur.ts': ['saisirNotes', 'basculer', 'renommer'] }),
+      ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'basculer', 'renommer'] }),
     });
     try {
-      expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program)))).toEqual(['Scene.flags']);
+      expect(ids(orphanFields(auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual(['Scene.flags']);
 
     } finally { program.dispose(); }
   });
 
-  it('un APPELANT de l’éditeur, même indirect via une autre primitive appelée, crédite', () => {
+  it('un APPELANT depuis `editer`, même indirect via une autre primitive appelée, crédite', () => {
     const program = virtualProgram({
       ...PRIMITIVES,
-      // Chaîne `Inspecteur → setNotes → setSceneFlags` : l'atteignabilité est TRANSITIVE.
+      // Chaîne `editer → saisirNotes → setNotes → setSceneFlags` : l'atteignabilité est TRANSITIVE.
       'src/noyau/sceneEdit.ts': `import type { Scene } from '../noyau/monde/scene';
 export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
   return { ...s, flags: { ...s.flags, ...patch } };
@@ -798,22 +940,22 @@ export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
 export function setNotes(s: Scene, v: string): Scene {
   return setSceneFlags({ ...s, notes: v }, { touche: true });
 }\n`,
-      'src/hote/Inspecteur.ts': `import type { Scene } from '../noyau/monde/scene';
-import { setNotes } from './editorState';
+      'src/noyau/edition/inspecteur.ts': `import type { Scene } from '../monde/scene';
+import { setNotes } from '../../hote/editorState';
 declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
-      ...pontQuiAppelle({ 'src/hote/Inspecteur.ts': ['saisirNotes', 'renommer'] }),
+      ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'renommer'] }),
     });
     try {
-      expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program)))).toEqual([]);
+      expect(ids(orphanFields(auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual([]);
 
     } finally { program.dispose(); }
   });
 
   it('le chemin Godot crédite : une primitive atteinte depuis la méthode `editer` du pont, et elle seule', () => {
-    // `setNotes` n'est appelée que par `editer`, `setSceneFlags` que par une autre méthode
-    // du pont (la partie, que l'auteur n'édite pas).
+    // `setNotes` n'est appelée que par `editer`, `setSceneFlags` que par une autre méthode du pont (la partie, que
+    // l'auteur n'édite pas).
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': PRIMITIVES['src/noyau/monde/scene.ts'],
       'src/noyau/sceneEdit.ts': PRIMITIVES['src/noyau/sceneEdit.ts'],
@@ -827,27 +969,9 @@ export function creerPont(s: Scene) {
 }\n`,
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
       expect(ids(orphanFields(rows)).sort()).toEqual(['Scene.flags', 'Scene.id']);
-    } finally { program.dispose(); }
-  });
-
-  it('une portée atteinte fait atteindre le CORPS DE MODULE de son fichier ; celui d’un module dont rien n’est appelé ne crédite rien', () => {
-    const program = virtualProgram({
-      'src/noyau/monde/scene.ts': PRIMITIVES['src/noyau/monde/scene.ts'],
-      'src/hote/Defauts.ts': `import type { Scene } from '../noyau/monde/scene';
-const SCENE_VIDE: Scene = { id: '', flags: {}, notes: '' };
-export const nouvelle = (): Scene => SCENE_VIDE;\n`,
-      'src/hote/Muet.ts': `import type { Scene } from '../noyau/monde/scene';
-const AUTRE: Pick<Scene, 'id'> = { id: 'x' };
-export const autre = () => AUTRE;\n`,
-      ...pontQuiAppelle({ 'src/hote/Defauts.ts': ['nouvelle'] }),
-    });
-    try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
-      expect(ids(orphanFields(rows))).toEqual([]);
-      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/hote/Defauts.ts']);
     } finally { program.dispose(); }
   });
 
@@ -866,16 +990,16 @@ function lire<T extends object, K extends keyof T>(o: T, k: K): T[K] {
 }
 export const setNotes = (s: Scene, v: string): Scene => champ(s, 'notes', v);
 export const drapeaux = (s: Scene) => lire(s, 'flags');\n`,
-      'src/hote/Inspecteur.ts': `import type { Scene } from '../noyau/monde/scene';
-import { drapeaux, setNotes } from '../noyau/sceneEdit';
+      'src/noyau/edition/inspecteur.ts': `import type { Scene } from '../monde/scene';
+import { drapeaux, setNotes } from '../sceneEdit';
 declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const voir = (s: Scene) => drapeaux(s);
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
-      ...pontQuiAppelle({ 'src/hote/Inspecteur.ts': ['saisirNotes', 'voir', 'renommer'] }),
+      ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'voir', 'renommer'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
       expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
     } finally { program.dispose(); }
@@ -888,17 +1012,17 @@ export interface Partie { id: string; foot: Emprise }
 export interface Scene { parts: Partie[] }\n`,
       // `Rect` n'est pas `Emprise` : le rectangle tiré au pointeur écrit `foot.x` et `foot.w`. Recopier l'emprise d'une
       // autre partie (`foot: modele.foot`) n'écrit rien.
-      'src/hote/Poignee.ts': `import type { Partie, Scene } from '../noyau/monde/scene';
+      'src/noyau/edition/Poignee.ts': `import type { Partie, Scene } from '../monde/scene';
 interface Rect { x: number; w: number }
 declare function rectTire(): Rect;
 export const redimensionner = (s: Scene): Scene => ({ ...s, parts: s.parts.map((p): Partie => ({ ...p, foot: rectTire() })) });\n`,
-      'src/hote/Copie.ts': `import type { Partie } from '../noyau/monde/scene';
+      'src/noyau/edition/Copie.ts': `import type { Partie } from '../monde/scene';
 export const copier = (p: Partie, modele: Partie): Partie => ({ ...p, foot: modele.foot });\n`,
-      ...pontQuiAppelle({ 'src/hote/Poignee.ts': ['redimensionner'], 'src/hote/Copie.ts': ['copier'] }),
+      ...pontQuiEdite({ 'src/noyau/edition/Poignee': ['redimensionner'], 'src/noyau/edition/Copie': ['copier'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
-      for (const id of ['Emprise.x', 'Emprise.w']) expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/hote/Poignee.ts']);
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      for (const id of ['Emprise.x', 'Emprise.w']) expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/noyau/edition/Poignee.ts']);
     } finally { program.dispose(); }
   });
 });

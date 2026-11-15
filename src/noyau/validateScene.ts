@@ -238,7 +238,6 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     }
   }
   for (const s of project) {
-    const encIds = new Set(s.encounters.map((e) => e.id));
     const { w, h } = s.dimensions;
     const within = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h;
     const add = (
@@ -251,9 +250,9 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // Le monde où l'on marche et où l'on pose : la scène et les ponts de ses navires, comme au jeu (`poserLesNavires`).
     const vue = poserLesNavires(s);
     // Contexte de réfs PARTAGÉ pour cette scène : les `refs?` des handlers (noyau/combatEffects) le lisent
-    // pour valider leurs réfs cassées (dialogue/rencontre/scène) et valeurs invalides (souffle de zone).
+    // pour valider leurs réfs cassées (scène, personnage) et valeurs invalides (souffle de zone).
     const refCtx: EffectRefCtx = {
-      sceneIds, encounterIds: encIds,
+      sceneIds,
       entityIds: new Set(idsDeLaPortee(sceneSchema, s, PERSONNAGES_DE_LA_SCENE)),
       npcSheet: (id) => sceneNpc(s, id, presetDe),
       within,

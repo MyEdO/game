@@ -9,6 +9,7 @@ import { schema as schemaObjets } from './trappings';
 import { schema as schemaMarchands } from './merchants';
 import trappingsJson from '../../trappings.json';
 import merchantsJson from '../../merchants.json';
+import { versDisque } from '../grammaire/prose';
 
 type Entree = Record<string, unknown>;
 
@@ -24,7 +25,7 @@ const messages = (schema: z.ZodType, doc: unknown): string => {
 /** Les champs d'une valeur objet, aucun sinon. */
 const champsDe = (v: unknown): Entree => (typeof v === 'object' && v !== null ? { ...v } : {});
 
-const objets: readonly Entree[] = trappingsJson;
+const objets: readonly Entree[] = versDisque(trappingsJson);
 const objet = (id: string): Entree => {
   const e = objets.find((t) => t.id === id);
   expect(e, `${id} absent de trappings.json`).toBeDefined();
@@ -42,7 +43,7 @@ const PORTEURS = [
 
 describe('#2968 L07 — Groupe d’objet et munition désignés par `ref(type)`', () => {
   it('les documents réels parsent', () => {
-    expect(schemaObjets.safeParse(trappingsJson).success).toBe(true);
+    expect(schemaObjets.safeParse(versDisque(trappingsJson)).success).toBe(true);
     expect(schemaMarchands.safeParse(merchantsJson).success).toBe(true);
   });
 

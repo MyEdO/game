@@ -15,9 +15,9 @@
  * RAW :
  *  - Récupération (LDB 18 l.296) : Résistance +20 après « une bonne nuit de sommeil » → DR+BE PB,
  *    + BE/jour inconditionnel — le canon ne module PAS la récupération par la qualité du lit ;
- *  - Prix (LDB 66 l.5-28) : chambre commune 10 sc/pers · privée 10 pa pour 2 (la grande pour 4
- *    coûte le double → regrouper par paires est équivalent, coût auto) · repas 1 pa ; PIÈTRE = ½
- *    prix, et la nourriture piètre expose à la Courante galopante (10 %, LDB 66 l.5) ;
+ *  - Prix (LDB 66 l.12-16, l.28) : chambre commune par personne · privée pour 2 (grande chambre
+ *    pour 4 : regrouper par paires est équivalent, coût auto) · repas ; qualité de la
+ *    chambre et du repas : `QUALITE_DU_REPOS` (LDB 66 l.5) ;
  *  - Dehors : Exposition (LDB 18 l.327-334 — engine/exposure) selon `activeExposureSeverity` (combatFlow) ;
  *  - Faim (LDB 18 l.337-343) : un héros sans pitance ne récupère pas (engine/provisions).
  */
@@ -71,6 +71,7 @@ import { toBrass, fromBrass, priceToMoney, type Money } from '../engine/money';
 import { payFromGroup, totalDesBourses } from './bourseFlow';
 import { findTrappingById, nightStakeRef, refLabel, testSkillLabel, libelleOuAbsence, type StakeRef } from '../data';
 import { diseaseLabel } from '../data';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { aubeApresNuits, MINUTES_PER_DAY, dayIndex } from '../engine/clock';
 import { runDailyUpkeep } from './upkeep';
 import { continueTravelAfterNight } from './travelFlow';
@@ -148,8 +149,8 @@ export interface PendingRest extends PendingBase {
   /** OÙ le groupe passe la nuit, nommé par l'APPELANT d'`ouvrirLeRepos` (relais ou bivouac de la route,
    *  bord du bateau, scène courante) — seul lieu du titre de la modale. */
   lieu: PlayerText;
-  /** Piètre : ½ prix, nourriture à risque (Courante galopante 10 %) — LDB 66. */
-  quality: 'normale' | 'pietre';
+  /** Qualité de la chambre et du repas (`QUALITE_DU_REPOS`). */
+  quality: QualiteDeRepos;
   days: number;
   perHero: Record<string, { lodging: RestLodging; food: RestFood }>;
   phase: 'setup';
@@ -458,7 +459,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   }
   // Tests d'entretien DIFFÉRÉS (faim, soif, maladie, convalescence, dessoûlage) → étapes influençables.
   steps.push(...deferredUpkeepSteps(party, deferred, steps.length));
-  // CONTAGION (promiscuité — Toux et éternuements, LDB 20 l.206 + tambouille piètre) → un jet de Résistance influençable par héros exposé.
+  // CONTAGION (promiscuité — Toux et éternuements, LDB 20 l.206 + repas de la qualité à risque, LDB 66 l.5) → un jet de Résistance influençable par héros exposé.
   for (const c of [...collectContagion(party), ...(opts.extraContagion ?? [])]) {
     const h = party.find((x) => x.id === c.heroId);
     if (!h || h.dead) continue;
@@ -540,7 +541,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
 
 /** Prix RAW de l'hébergement et du repas d'auberge (LDB 66 l.12-16) — SOURCE UNIQUE le catalogue
  *  `trappings.json` (ids de service), plus AUCUNE constante dupliquée : le hub de ville (#343) et
- *  `restCost` lisent le MÊME tarif. Piètre = ½ (appliqué par `restCost`). */
+ *  `restCost` lisent le MÊME tarif, au facteur de `QUALITE_DU_REPOS` (appliqué par `restCost`). */
 function serviceBrass(id: string): number {
   const t = findTrappingById(id);
   if (!t) throw new Error(`restCost : tarif de service introuvable au catalogue "${id}" (trappings.json).`);
@@ -551,6 +552,14 @@ const PRICE_BRASS = {
   privee: serviceBrass('chambre-privee-nuit'),
   repas: serviceBrass('repas-auberge'),
 } as const;
+
+/** La qualité d'une chambre et d'un repas : facteur des prix listés, risque (en %) d'exposition à la
+ *  Courante galopante du repas consommé. LDB 66 l.5 */
+const QUALITE_DU_REPOS = {
+  pietre: { prix: 0.5, courante: 10 },
+  normale: { prix: 1, courante: 0 },
+  grande: { prix: 2, courante: 0 },
+} as const satisfies Record<QualiteDeRepos, { prix: number; courante: number }>;
 
 /** Tarif d'un service d'auberge en monnaie (LDB 66 l.12-16, source unique catalogue) — affiché par le
  *  panneau d'auberge du hub de ville (#343), aligné au débit de `restCost`. */
@@ -586,7 +595,7 @@ export function nourrituresDeTroupe(places: RestPlaces): RestFood[] {
  *  invités (LDB 66 l.28), sa part est sa moitié (valeur d'ingénierie, la source ne partage pas la
  *  chambre) ; chambre commune et repas par convive. La somme des parts EST `restCost`. */
 export function partsDuRepos(p: PendingRest, party: Combatant[]): Record<string, Money> {
-  const half = p.quality === 'pietre' ? 0.5 : 1;
+  const facteur = QUALITE_DU_REPOS[p.quality].prix;
   const heroes = party.filter((h) => !h.dead && p.perHero[h.id]);
   const enPrivee = heroes.filter((h) => p.perHero[h.id].lodging === 'privee');
   const parts: Record<string, Money> = {};
@@ -597,7 +606,7 @@ export function partsDuRepos(p: PendingRest, party: Combatant[]): Record<string,
     const chambre = lodging === 'privee' ? (seul ? PRICE_BRASS.privee : i % 2 === 0 ? Math.ceil(PRICE_BRASS.privee / 2) : Math.floor(PRICE_BRASS.privee / 2))
       : lodging === 'commune' ? PRICE_BRASS.commune : 0;
     const brass = chambre + (food === 'repas' ? PRICE_BRASS.repas : 0);
-    parts[h.id] = fromBrass(Math.ceil(brass * half) * Math.max(1, p.days));
+    parts[h.id] = fromBrass(Math.ceil(brass * facteur) * Math.max(1, p.days));
   }
   return parts;
 }
@@ -609,7 +618,7 @@ export function restCost(p: PendingRest, party: Combatant[]): Money {
 
 /** Offre de repos À LA POSITION DU GROUPE : zone de repos (rect d'auteur) prioritaire, sinon
  *  réglage de scène, sinon camp (défaut). PARAMÉTRABLE SUR LA ZONE dans l'éditeur. */
-export function restPlacesHere(st: Jeu): { places: RestPlaces; quality: 'normale' | 'pietre' } | null {
+export function restPlacesHere(st: Jeu): { places: RestPlaces; quality: QualiteDeRepos } | null {
   const sc = st.scene;
   if (!sc) return null;
   const pos = st.partyPos;
@@ -625,7 +634,7 @@ export function restPlacesHere(st: Jeu): { places: RestPlaces; quality: 'normale
 export interface OpenRestOpts {
   lieu: PlayerText;
   places?: RestPlaces;
-  quality?: 'normale' | 'pietre';
+  quality?: QualiteDeRepos;
   days?: number;
   travelHalt?: boolean;
   /** Le jour de voyage CLOS par cette halte — rejoint `travelPlan.log`, sa seule demeure. */
@@ -702,18 +711,19 @@ function dormir(get: Get, set: Set): void {
   const cost = restCost(p, get().party);
   if (toBrass(cost) > 0) payFromGroup(get, set, cost, { purpose: 'auberge' });
 
-  // 2. Pitance AVANT la nuit (un héros nourri n'est plus affamé). La tambouille PIÈTRE (ch.66 l.51,
-  //    10 %) expose à un Test de Résistance vs Courante Galopante — DIFFÉRÉ en étape de cascade.
+  // 2. Pitance AVANT la nuit (un héros nourri n'est plus affamé). Le repas d'auberge expose au risque de
+  //    Courante galopante de sa qualité (`QUALITE_DU_REPOS`, LDB 66 l.5) — Test DIFFÉRÉ en étape de cascade.
   //    `party` est relu APRÈS le débit : `payFromGroup` remplace les objets héros des bourses ponctionnées,
   //    et `feedFromMeal` mute EN PLACE — nourrir un objet héros périmé laisserait le dormeur affamé.
   const party = get().party;
   const extraContagion: ContagionSpec[] = [];
+  const risqueDuRepas = QUALITE_DU_REPOS[p.quality].courante;
   for (const h of party) {
     const cfg = p.perHero[h.id];
     if (!cfg || h.dead) continue;
     if (cfg.food === 'repas' || cfg.food === 'maison') {
       feedFromMeal(h);
-      if (cfg.food === 'repas' && p.quality === 'pietre' && rng.int(1, 100) <= 10 && contractionDue(h, 'courante-galopante')) {
+      if (cfg.food === 'repas' && risqueDuRepas > 0 && rng.int(1, 100) <= risqueDuRepas && contractionDue(h, 'courante-galopante')) {
         extraContagion.push({ heroId: h.id, diseaseName: 'courante-galopante', difficulty: diseaseDefs()['courante-galopante']?.contractDifficulty ?? 'accessible' });
       }
     }
@@ -754,7 +764,7 @@ export function nightTitle(p: PendingRest, party: Combatant[]): string {
 /** Ouvre (ou enchaîne) UNE nuit de repos (#347) : reconstruit `buildNightCascade` pour CETTE nuit et
  *  l'ouvre en cascade influençable, en portant `nightsLeft` (nuits ENCORE à enchaîner après celle-ci)
  *  sur la cascade — sa clôture (`continueRestNights`, appelée par `dispatchCascadeDone`) reprend alors
- *  la nuit suivante. `extraContagion` (tambouille piètre) ne s'applique qu'à la nuit d'ARRIVÉE (repas
+ *  la nuit suivante. `extraContagion` (repas de la qualité à risque) ne s'applique qu'à la nuit d'ARRIVÉE (repas
  *  du soir posé une fois en amont par `dormir`).
  */
 export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: number, extraContagion: ContagionSpec[] = []): void {

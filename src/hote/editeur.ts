@@ -16,7 +16,7 @@ import {
   assoirALaPlace, idDuCorps, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, idDeLaSceneEditee, projetEdite, sceneEditee, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
+  ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, QUALITES_DE_REPOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, retraitOffert, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, formulaireDe, refusDeLaValeur, type Segment,
   allMusicDefs, apparencesDeLOuverture, ciblesDAncreDeBataille, groupesDuLieu,
@@ -73,7 +73,9 @@ import { tableTotale } from '../lib/tableTotale';
  * 'identifier', id }` (`renameEffectZone`, `renameScene`), refusé comme un nom vide ou déjà pris ; celui qui change
  * l'identifiant d'une action authorée du décor sélectionné, `{ type: 'identifier', args: [action, id] }`, en `{ geste:
  * 'identifier', id, element: action }` (`renameActionAuthoree`), ou d'un nœud du dialogue sélectionné, `{ type:
- * 'identifier', args: [noeud, id] }`, en `{ geste: 'identifier', id, element: noeud }` (`noeudRenomme`), refusé de même ;
+ * 'identifier', args: [noeud, id] }`, en `{ geste: 'identifier', id, element: noeud }`, ou d'une réponse d'un de ses
+ * nœuds, adressée par lui, `{ type: 'identifier', args: [noeud, reponse, id] }`, en `{ geste: 'identifier', id, element:
+ * reponse, parent: noeud }` (`elementDuDialogueRenomme`), refusé de même, le refus du dialogue dit ;
  * celui qui nomme une entrée sélectionnée du narratif lui donne cet identifiant, propagé aux scènes, à la carte et au
  * narratif sur un seul cran (`renommeAuProjet`), et celui d'un écart change son entrée vers une entrée libre ; celui qui
  * change l'identifiant d'un stade de l'indice ou d'une valeur de l'état sélectionné, `{ type: 'identifier', args:
@@ -246,14 +248,14 @@ export interface ZonesDeLEditeur {
    * départ (`startMessage`), son texte en `saisieMultiligne`, vidé le retirant avec sa provenance, la matière de
    * chaque partie de relief (`PARTS_RELIEF`) en liste parmi `matieresDe('relief')`,
    * sa toiture par défaut, couverture en liste, pente et comble à la réglette, son repos sur place, ses lieux et sa
-   * qualité piètre, ses drapeaux de départ, chacun pressé s'il est vrai, que sa pression bascule, puis en liste, à
+   * qualité (`QUALITES_DE_REPOS`), ses drapeaux de départ, chacun pressé s'il est vrai, que sa pression bascule, puis en liste, à
    * retirer, et le formulaire qui en ajoute un, vrai, puis ses ancres de bataille : de chacune sa Scène de Round en
    * liste (`ciblesDAncreDeBataille`), sa case, la poser à la case pointée, refusé sans case pointée, la retirer, puis
    * en liste chaque Scène de Round à ancrer.
    *
    * Chaque bouton joue `{ geste: 'scene', patch }` (`PatchDeScene`), `patch` portant `scalaires` (`desc`, `ambiance`,
    * `weather`, `couvre`, `groups`, `metresPerTile`, `ambientLight`, `environment`, `null` retirant le champ),
-   * `dimensions`, `nord` (`null` : vers le haut du plan), `relief`, `toiture`, `repos` (`lieux`, `pietre`), `drapeaux`
+   * `dimensions`, `nord` (`null` : vers le haut du plan), `relief`, `toiture`, `repos` (`lieux`, `qualite`), `drapeaux`
    * (`null` retirant le drapeau), `musique` (`{ piste, id }`, `id` `null` : silence, absent : automatique) ou `stations` (`{ ajouter }`, `{ rang, sceneId?, pos? }`
    * ou `{ retirer }`, refusé à un rang absent).
    *
@@ -345,7 +347,10 @@ export interface ZonesDeLEditeur {
    * D'un dialogue : le formulaire qui le renomme, de son identifiant (`renameDialogue`) ; pour chacun de ses nœuds, la
    * ligne `dialogue/noeud/<id>`, « ▶ » devant le nœud de départ, son identifiant, l'extrait de sa réplique et les nœuds
    * où mènent ses réponses (« → n2, n3 »), puis le formulaire qui change son identifiant, `{ type: 'identifier', args:
-   * [noeud, id] }`, refusé vide ou déjà porté par un autre nœud (`noeudRenomme`) ; le formulaire tiré du schéma
+   * [noeud, id] }`, refusé vide ou déjà porté par un autre nœud, et, de chacune de ses réponses, le formulaire
+   * `identifier/choix/<noeud>/<reponse>` qui change son identifiant, `{ type: 'identifier', args: [noeud, reponse, id] }`,
+   * refusé vide ou déjà porté par une autre réponse du nœud, chaque refus dit (`elementDuDialogueRenomme`,
+   * `refusDuRenommage`) ; le formulaire tiré du schéma
    * (`formulaireDe('dialogue', …)`) de son nœud de départ, de ses nœuds, chacun sous la ligne qui porte son identifiant,
    * et des entrées qu'il couvre ; le supprimer, `{ geste: 'supprimer' }`, refusé avec sa raison tant qu'une référence le
    * désigne (`refusDeRetrait`, `removeDialogue`).
@@ -359,7 +364,8 @@ export interface ZonesDeLEditeur {
    * montures, la liste des membres sans « Retirer », « Monter » ni « Ajouter » ; la supprimer, refusé avec sa raison
    * comme un dialogue, ou tant qu'une embuscade de route la lance, la route dite (`removeEncounter`, `embuscadesDeLaRencontre`).
    *
-   * La carte du monde ouverte, sans sélection : le formulaire tiré du schéma de son porteur singulier (`{ sorte: 'carte',
+   * La carte du monde ouverte, sans sélection : `identifier`, le formulaire qui change son identifiant, refusé comme
+   * celui d'une scène ; le formulaire tiré du schéma de son porteur singulier (`{ sorte: 'carte',
    * id }`), puis celui des réglages du projet (`{ sorte: 'projet', id: 'projet' }`), ses axes actifs parmi ceux du
    * catalogue, absents valant le socle, puis `carte/retirer`, « Retirer du projet », `{ geste: 'supprimer' }`, qui retire
    * la carte du projet sur un cran et rouvre la scène. D'un lieu : `lieu/plan`, « Plan du lieu », pressé quand son plan
@@ -439,11 +445,11 @@ export interface ZonesDeLEditeur {
    * (`saisieNombre`, au pas de 1 s'il est entier, `saisieTexte`, `saisieJson`), un texte ou un JSON laissé vide
    * retirant le champ, et « Retirer » pour un nombre présent dont l'absence est admise ;
    *
-   * d'une zone de repos, chacun de ses lieux (auberge, chez soi, camper) et sa qualité piètre ; la supprimer, un
+   * d'une zone de repos, chacun de ses lieux (auberge, chez soi, camper) et sa qualité (`QUALITES_DE_REPOS`) ; la supprimer, un
    * déclencheur refusé avec sa raison comme un dialogue.
    *
    * Chaque bouton joue `{ geste: 'zone', patch }` (`patchZone`, `src/noyau/sceneEdit.ts`), `patch` portant `z`, `once`,
-   * `lieux`, `pietre`, `presentation` (`null` : non déclarée), `forme`, `pleine`, `blocksLoS`, `barrier` ou `couvre`
+   * `lieux`, `qualite`, `presentation` (`null` : non déclarée), `forme`, `pleine`, `blocksLoS`, `barrier` ou `couvre`
    * (`null` : aucune), ou, du formulaire tiré du schéma, `{ geste: 'valeur', porteur, chemin, valeur? }`.
    *
    * D'un corps : le formulaire qui le nomme, son type de bâtiment en liste, sans type ou chaque type de
@@ -718,18 +724,20 @@ const formulaireDeLaTroupe = (): Formulaire => ({
   champs: [{ type: 'saisieNombre', id: 'troupe/nombre', ton: 'neutre', nom: 'nombre', optionnel: false, libelle: t('ecran.editeur.troupe.nombre'), valeur: BORNES_DE_LA_TROUPE.min, ...BORNES_DE_LA_TROUPE, pas: 1 }],
 });
 
-/** Le formulaire qui change l'identifiant `id` de la sélection, ou de la scène sans elle. */
+/** Le formulaire qui change l'identifiant `id` de la sélection, ou du porteur singulier du document ouvert sans elle. */
 const formulaireDeLIdentifiant = (id: string): Formulaire =>
   formulaireAUnChamp('identifier', t('ecran.editeur.identifier'), 'id', t('ecran.editeur.identifiant'), id, false);
 
 /** Le formulaire qui change l'identifiant de chaque élément d'identifiant `ids` de la sous-collection `famille` du porteur
- *  sélectionné (`renommerElement`), l'élément désigné par son identifiant en vigueur, en saisie fixe, son champ prérempli
- *  de lui, libellé `libelle`. */
-const identifiantsDesElements = (famille: 'action' | 'noeud' | 'stade' | 'valeur' | 'repere', ids: readonly string[], libelle: (id: string) => string): Formulaire[] => ids.map((el) => {
-  const id = `identifier/${famille}/${el}`;
+ *  sélectionné (`renommerElement`), l'élément désigné par son identifiant en vigueur, précédé de son parent `parent`
+ *  quand sa clé n'est unique que dans lui (la réponse, dans son nœud), chacun en saisie fixe, son champ prérempli de
+ *  lui, libellé `libelle`. */
+const identifiantsDesElements = (famille: 'action' | 'noeud' | 'choix' | 'stade' | 'valeur' | 'repere', ids: readonly string[], libelle: (id: string) => string, parent?: string): Formulaire[] => ids.map((el) => {
+  const id = `identifier/${famille}/${parent === undefined ? '' : `${parent}/`}${el}`;
   return {
     type: 'formulaire', id, libelle: libelle(el), verbe: 'identifier', focus: false, refus: null,
     champs: [
+      ...(parent === undefined ? [] : [{ type: 'fixe' as const, id: `${id}/parent`, nom: 'parent', optionnel: false, valeur: parent }]),
       { type: 'fixe', id: `${id}/${famille}`, nom: famille, optionnel: false, valeur: el },
       { type: 'saisieTexte', id: `${id}/id`, ton: 'neutre', nom: 'id', optionnel: false, libelle: t('ecran.editeur.identifiant'), valeur: el },
     ],
@@ -1332,7 +1340,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
     const repos = scene.restZones![sel.idx];
     propre.push(
       choix('zone/lieux', t('ecran.editeur.zone.lieux'), LIEUX.map((l) => boutonDEdition(`zone/lieux/${l}`, t(`ecran.editeur.zone.lieu.${l}`), sur({ lieux: { [l]: !repos.places[l] } }), !!repos.places[l]))),
-      boutonDEdition('zone/pietre', t('ecran.editeur.zone.pietre'), sur({ pietre: repos.quality !== 'pietre' }), repos.quality === 'pietre'),
+      choix('zone/qualite', t('ecran.editeur.zone.qualite'), QUALITES_DE_REPOS.map(([q, libelle]) => boutonDEdition(`zone/qualite/${q}`, libelle, sur({ qualite: q }), (repos.quality ?? 'normale') === q))),
     );
   }
   return [ligne('zone/poignee', t('ecran.editeur.zone.poignee')), ...propre, boutonDEdition('zone/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' })];
@@ -1506,7 +1514,7 @@ const LONGUEUR_DE_L_EXTRAIT = 60;
 
 /** Les éléments propres du dialogue `dlg` : pour chacun de ses nœuds, sa ligne, le marqueur du départ, son
  *  identifiant, l'extrait de sa réplique et les nœuds où mènent ses réponses, puis le formulaire qui change son
- *  identifiant (`identifiantsDesElements`). #3606 */
+ *  identifiant et celui de chacune de ses réponses, adressée par lui (`identifiantsDesElements`). #3606 #4234 */
 function noeudsDuDialogue(_s: SessionDEdition, dlg: DonneeDuPorteur['dialogue']): (Choix | Ligne | Bouton | Formulaire)[] {
   return dlg.nodes.flatMap((n) => {
     const vers = n.choices.flatMap((c) => (c.next ? [c.next.id] : []));
@@ -1518,6 +1526,7 @@ function noeudsDuDialogue(_s: SessionDEdition, dlg: DonneeDuPorteur['dialogue'])
     return [
       ligne(`dialogue/noeud/${n.id}`, texte),
       ...identifiantsDesElements('noeud', [n.id], (id) => t('ecran.editeur.noeud.identifier', { id })),
+      ...identifiantsDesElements('choix', n.choices.map((c) => c.id), (id) => t('ecran.editeur.choix.identifier', { id }), n.id),
     ];
   });
 }
@@ -1620,13 +1629,16 @@ function inspecteurDeLaLogique<S extends SorteDePorteur>(s: SessionDEdition, sor
  *  projet (ses axes actifs), que l'éditeur règle sur l'écran de la carte (#409). */
 const DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE = ['carte', 'projet'] as const;
 
-/** L'inspecteur de la carte du monde ouverte de la session `s`, sans sélection : le formulaire tiré du schéma du porteur
- *  singulier de chacun de ses documents (`DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE`, `porteurDeLaSel`). */
-const inspecteurDeLaCarte = (s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] =>
-  DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE.flatMap((document) => {
+/** L'inspecteur de la carte du monde ouverte de la session `s`, sans sélection : le formulaire qui change son
+ *  identifiant (`formulaireDeLIdentifiant`), puis le formulaire tiré du schéma du porteur singulier de chacun de ses
+ *  documents (`DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE`, `porteurDeLaSel`). */
+const inspecteurDeLaCarte = (s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] => [
+  formulaireDeLIdentifiant(projetEdite(s).worldMap!.id),
+  ...DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE.flatMap((document) => {
     const porteur = porteurDeLaSel(null, document, idDeLaSceneEditee(s))!;
     return formulaireDuPorteur(s, porteur, porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee);
-  });
+  }),
+];
 
 /** L'inspecteur de la sélection de la session `s` (`editeur.inspecteur`) : de l'entité, de l'entrée, de la zone, d'un
  *  autre porteur de formulaire du projet (`inspecteurDeLaLogique`), d'un ouvrage d'architecture ou de l'arête
@@ -1745,7 +1757,7 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
     ...reglette('scene/toiture/pente', t('ecran.editeur.toiture.pente', { v: toit.pitchDeg }), toit.pitchDeg, PAS_DE_PENTE, (v) => sur({ toiture: { pitchDeg: v } })),
     ...reglette('scene/toiture/comble', t('ecran.editeur.toiture.comble', { v: toit.riseMaxStoreys }), toit.riseMaxStoreys, PAS_D_ETAGE, (v) => sur({ toiture: { riseMaxStoreys: v } })),
     choix('scene/repos', t('ecran.editeur.scene.repos'), LIEUX.map((l) => boutonDEdition(`scene/repos/${l}`, t(`ecran.editeur.zone.lieu.${l}`), sur({ repos: { lieux: { [l]: !repos[l] } } }), !!repos[l]))),
-    boutonDEdition('scene/repos/pietre', t('ecran.editeur.zone.pietre'), sur({ repos: { pietre: repos.quality !== 'pietre' } }), repos.quality === 'pietre'),
+    choix('scene/repos/qualite', t('ecran.editeur.zone.qualite'), QUALITES_DE_REPOS.map(([q, libelle]) => boutonDEdition(`scene/repos/qualite/${q}`, libelle, sur({ repos: { qualite: q } }), (repos.quality ?? 'normale') === q))),
     ...(Object.keys(scene.flags).length ? [
       choix('scene/drapeau', t('ecran.editeur.scene.drapeaux'), Object.entries(scene.flags).map(([cle, valeur]) => boutonDEdition(`scene/drapeau/${cle}`, cle, sur({ drapeaux: { [cle]: !valeur } }), valeur))),
       choix('scene/drapeau/retirer', t('ecran.editeur.scene.drapeau.retirer'), Object.keys(scene.flags).map((cle) => boutonDEdition(`scene/drapeau/retirer/${cle}`, cle, sur({ drapeaux: { [cle]: null } }))), 'liste'),
@@ -2107,9 +2119,10 @@ const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.i
 
 /** Le geste du formulaire de l'inspecteur que portent les zones `z`, joué `{ type, args }` : celui qui nomme la
  *  sélection ou la scène (`formulaireDuNom`), `{ geste: 'nommer', nom }`, le nom saisi, absent s'il est laissé vide ;
- *  celui qui change l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }`, ou
+ *  celui qui change l'identifiant de la scène, de la carte du monde ou de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }`, ou
  *  d'un élément d'un porteur, l'action d'un décor ou le nœud d'un dialogue (`identifiantsDesElements`), `{ geste: 'identifier',
- *  id, element }`, l'élément, quand un formulaire des zones désigne cet élément ; celui
+ *  id, element }`, ou la réponse d'un nœud, `{ geste: 'identifier', id, element, parent }`, quand les saisies fixes d'un
+ *  formulaire des zones sont exactement les arguments qui précèdent l'identifiant ; celui
  *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui ajoute un drapeau de départ à la
  *  scène, vrai ; celui qui pose une troupe du personnage sélectionné, `{ geste: 'troupe', nombre }`, un entier entre
  *  `BORNES_DE_LA_TROUPE` ; celui qui écrit une valeur d'un formulaire tiré du schéma (`valeurDuFormulaire`), `args` son porteur,
@@ -2124,11 +2137,13 @@ export function gesteDuFormulaire(z: Pick<ZonesDeLEditeur, 'editeur.inspecteur'>
     return lu && { ...lu, porteur: lu.porteur as PorteurDeValeur };
   }
   if (jeu.type === 'identifier') {
-    const [premier, second, ...reste] = jeu.args as unknown[];
-    const [element, id] = jeu.args.length === 2 ? [premier, second] : [undefined, premier];
-    const offert = formulaires.some(({ champs: [designe] }) => (designe.type === 'fixe' ? designe.valeur === element : element === undefined));
-    if (!offert || reste.length || typeof id !== 'string') return undefined;
-    return typeof element === 'string' ? { geste: 'identifier', id, element } : { geste: 'identifier', id };
+    const designe = (jeu.args as unknown[]).slice(0, -1);
+    const id: unknown = jeu.args[jeu.args.length - 1];
+    const pose = jsonCanonique(designe);
+    const offert = formulaires.some((f) => jsonCanonique(f.champs.flatMap((c) => (c.type === 'fixe' ? [c.valeur] : []))) === pose);
+    if (!offert || typeof id !== 'string') return undefined;
+    const [element, parent] = [...designe].reverse() as (string | undefined)[];
+    return { geste: 'identifier', id, ...(element === undefined ? {} : { element }), ...(parent === undefined ? {} : { parent }) };
   }
   if (jeu.type === 'troupe') {
     const [nombre, ...reste] = jeu.args as unknown[];

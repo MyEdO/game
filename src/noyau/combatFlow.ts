@@ -192,6 +192,7 @@ import {
   rederiveCastSL,
   zdeDiameterMeters,
   zdeRadiusTiles,
+  rayonDeGabaritEnCases,
   isArcaneSpell,
   castInfoIsPrayer,
   focusSkillFor,
@@ -238,7 +239,7 @@ import { applyOps, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, ty
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
-import { gainCorruption, testDExposition } from './corruptionFlow';
+import { gainCorruption, testDExposition, crochetsDeCorruption } from './corruptionFlow';
 import { corruptionGain, EXPOSURE_LADDER, type ExposureLevel } from '../engine/corruption';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { critTableSchema } from '../data/schemas/defs/criticals';
@@ -360,7 +361,7 @@ function critRollTwiceFor(c: Combatant | undefined | null): boolean {
   return !!c && (hasActiveFlag(c, 'critRollTwice') || hasCritRollTwiceTalent(c));
 }
 import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironmentBonus } from '../engine/domainAttributes';
-import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './monde/zones';
+import { decayZones, discTiles, wallTiles, clampZoneTiles, resolveZoneMeters, type BattleZone } from './monde/zones';
 import { entreeEnRencontre, sortieDeRencontre } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
 import {
@@ -448,7 +449,7 @@ import {
   meleeWeaponInRange,
   pickAttackWeaponList,
 } from './mount';
-import { couvertDArete, couvertDuTir, lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
+import { couvertDuCoup, couvertDuTir, lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
 import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { coverModifier, couvertDepuisDifficulte, couvertLePlusProtecteur } from '../engine/cover';
 import { couvertDuPoste } from '../engine/navalTraits';
@@ -510,7 +511,7 @@ import { weatherExposure, type ExposureSeverity } from '../engine/exposure';
 import type { TravelRecapDay } from './travelFlow';
 import { groupeAPoudre, maniementRetenu, weaponGroup } from '../engine/weaponGroup';
 import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, tileKey, tileFromKey, Pt, climbTraverseFor } from './monde/path';
-import { chebyshev } from '../engine/grid';
+import { casesDansLaPortee, chebyshev } from '../engine/grid';
 import { adversairesDe, chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './monde/ai';
 import { resolveRun, chargeReach, testDuCavalier, distanceDeCourse } from '../engine/movement';
 import type { RNG } from '../engine/dice';
@@ -806,8 +807,8 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   // MÊME arbitrage que `firedWeapon`) — le gate ne doit pas mentir sur une AUTRE arme que celle qui tirera.
   const w = b
     ? pickAttackWeaponList(get().scene, b.combatants, active, target, weaponUid)
-    : (weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : undefined) ?? assertAttackWeapon(active.weapons, distanceDeContact(get().scene, active, target) <= meleeReachTiles(active.weapons));
-  const distanceTiles = b ? distanceDeCombat(attackGeomOf(b, active, w), combatGeomOf(b, target)) : distanceDeCombat(active, target);
+    : (weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : undefined) ?? assertAttackWeapon(active.weapons, distanceDeContact(get().scene, active, target) <= meleeReachTiles(active.weapons, sceneMetresPerTile(get().scene)));
+  const distanceTiles = b ? distanceDeCombat(get().scene, attackGeomOf(b, active, w), combatGeomOf(b, target)) : distanceDeCombat(get().scene, active, target);
   // Machine de guerre ADE II (Qualité `equipe`, ch.08 l.233) sous LA MOITIÉ de l'Équipe requise : INUTILISABLE
   // — mêlée (bélier, Force) ET distance, donc AVANT le early-return ranged-only ci-dessous.
   const required = warMachineCrewRequired(w);
@@ -836,8 +837,8 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   // trébuchet/mortier : rien sous la Portée Courte (l.251). DONNÉE générique `w.minRangeBand` (pas un flag par-machine).
   if (w.minRangeBand) {
     const rangeM = porteeDeTir(active, w);
-    if (rangeM != null && belowMinRangeBand(distanceTiles, rangeM, w.minRangeBand))
-      return { reason: 'portee-min', detail: `${w.label} ne peut pas tirer d'aussi près (${rangeBandName(distanceTiles, rangeM) ?? 'trop proche'}).` };
+    if (rangeM != null && belowMinRangeBand(distanceTiles, rangeM, w.minRangeBand, sceneMetresPerTile(get().scene)))
+      return { reason: 'portee-min', detail: `${w.label} ne peut pas tirer d'aussi près (${rangeBandName(distanceTiles, rangeM, sceneMetresPerTile(get().scene)) ?? 'trop proche'}).` };
   }
   // Pièce d'artillerie à ARC (poste) : ne porte que dans son arc. NAVAL = relatif au cap de la coque support
   // (`shipOfCrew` → `facing[ship.id]`, `ship.pos`). EMPLACEMENT AU SOL (siège) : pas de coque (`shipOfCrew`
@@ -1121,7 +1122,7 @@ export function attackEnv(
     }
     // Commandant d'équipe (AA 13 l.29-35) : un chef de pièce dirigé tire au score de Projectiles de son
     // commandant — re-validé ICI (vivant + à portée de voix) → un delta sur la base du chef (aperçu ET résolution).
-    const tcMod = teamCommandMod(attacker, weapon, battle.combatants);
+    const tcMod = teamCommandMod(scene, attacker, weapon, battle.combatants);
     if (tcMod) env.push(tcMod);
     // Couvert de PONT du défenseur (#248) : un servant à un poste couvert (Sabord/Plat-bord/Murs blindés,
     // MDG 12 l.364, MSRC f.66 l.111) reçoit sa classe par le MÊME chemin que le couvert de terrain — le plus
@@ -1159,10 +1160,10 @@ export function attackEnv(
   }
   // Mêlée : la météo (tempête/neige) pénalise l'attaque ; la neige pénalise aussi l'esquive (dodgeMods).
   if (sc.attaque) env.push(sc.attaque);
-  // Le coup par-dessus une arête : arbitrage #4105 du 2026-11-13 ; croisée, règle `combat-croisee-melee-difficulte`.
+  // Le coup par-dessus une arête : arbitrages #4105 du 2026-11-13 et #4291 du 2026-11-15 ; croisée, règle `combat-croisee-melee-difficulte`.
   if (corpsA && corpsC) {
     const croisee = couvertDepuisDifficulte(rule('combat-croisee-melee-difficulte'));
-    couvrir(couvertDArete(scene, corpsA, corpsC, () => croisee));
+    couvrir(couvertDuCoup(scene, corpsA, corpsC, () => croisee));
   }
   // Météo « Tests physiques » (EDOC 8 l.82) : canal unique `weatherTestMods` (attackModifiers, `attacker.envWeather`),
   // pour l'attaque, la défense et les activités (#341).
@@ -1206,12 +1207,12 @@ export function resolveAttack(
   // `weapon` est la pièce de mêlée servie — jamais pour une arme personnelle (`attackGeomOf`).
   const distanceSur = (grille: BattleState) => {
     const a = attackGeomOf(grille, attacker, weapon), t = combatGeomOf(grille, target);
-    return weapon.type === 'melee' ? distanceDeContact(get().scene, a, t) : distanceDeCombat(a, t);
+    return weapon.type === 'melee' ? distanceDeContact(get().scene, a, t) : distanceDeCombat(get().scene, a, t);
   };
   // La série d'attaques subies déclare le contact de mêlée, sans case (MDG 15 l.163-164) ; hors d'elle, la grille de
   // la bataille le mesure (Allonge incluse, RAW-3).
   if (weapon.type === 'melee' && !auContactDeLaSerie(get(), attacker, target)
-    && distanceSur(garanti(battle, attacker.id, 'combat de la mêlée')) > reachTiles(weapon)) return null;
+    && distanceSur(garanti(battle, attacker.id, 'combat de la mêlée')) > reachTiles(weapon, mpt)) return null;
   // (Sonné → +1 Avantage à l'attaquant en mêlée, LDB 16 l.125 : DÉJÀ géré par le flux d'attaque existant.)
   const { env, blocked, inMelee, crowd, cm, flankRear } = attackEnv(get, attacker, target, weapon, { dansLeTas, tirImmobile });
   if (blocked) return null; // pas de Ligne de Vue (mur/décor/fumée) → pas de tir (LDB 13 l.114)
@@ -1311,7 +1312,7 @@ export function dualStrikeTargets(scene: Scene | null, battle: BattleState, atta
   return battle.combatants.filter((c) => {
     if (c.kind === attacker.kind || isOutOfAction(c)) return false;
     if (!attacker.pos || !c.pos) return true;
-    return distanceDeContact(scene, attacker, c) <= reachTiles(offWeapon);
+    return distanceDeContact(scene, attacker, c) <= reachTiles(offWeapon, sceneMetresPerTile(scene));
   });
 }
 
@@ -1369,7 +1370,7 @@ export function previewAttack(
   // cavalier/cible monté (LDB 14 — le reach/la bande de portée se mesurent du couple, pas du cavalier 1×1),
   // ou de la COQUE SEULEMENT si `weapon` est la pièce de mêlée servie (`attackGeomOf`) — jamais pour une
   // arme personnelle. L'aperçu DOIT rejouer EXACTEMENT la même géométrie que `attackPlan`/la résolution.
-  const mesure = (a: Combatant, b: Combatant): number => (kind === 'melee' ? distanceDeContact(get().scene, a, b) : distanceDeCombat(a, b));
+  const mesure = (a: Combatant, b: Combatant): number => (kind === 'melee' ? distanceDeContact(get().scene, a, b) : distanceDeCombat(get().scene, a, b));
   const dist = battle
     ? mesure(attackGeomOf(battle, attacker, weapon), combatGeomOf(battle, target))
     : mesure(attacker, target);
@@ -1379,13 +1380,13 @@ export function previewAttack(
   const base = combatValue(attacker, kind, weapon);
   const loc = location ?? 'corps';
   const soak = (dmg + 20) - woundsFromHit(weapon, target, loc, dmg + 20, 0, 1, attacker.size);
-  if (kind === 'melee' && dist > reachTiles(weapon)) return { weapon, kind, inRange: false, blocked: false, target: 0, base, mods: [], dmg, soak, difficulty: 'intermediaire' };
+  if (kind === 'melee' && dist > reachTiles(weapon, mpt)) return { weapon, kind, inRange: false, blocked: false, target: 0, base, mods: [], dmg, soak, difficulty: 'intermediaire' };
   const { env, blocked } = attackEnv(get, attacker, target, weapon, opts);
   if (blocked) return { weapon, kind, inRange: true, blocked: true, target: 0, base, mods: [], dmg, soak, difficulty: 'intermediaire' };
   const distanceTiles = kind === 'distance' ? dist : undefined;
   const mods = attackModifiers(attacker, target, weapon, { kind, location, distanceTiles, env, metresPerTile: mpt });
   const rangeM = porteeDeTir(attacker, weapon); // Portée résolue (jet `{bf}` → BF×N) + modificateur de la munition sélectionnée ; null = hors bande
-  const inRange = kind === 'distance' ? (rangeM != null && rangeBandModifier(dist, rangeM, mpt) != null) : dist <= reachTiles(weapon);
+  const inRange = kind === 'distance' ? (rangeM != null && rangeBandModifier(dist, rangeM, mpt) != null) : dist <= reachTiles(weapon, mpt);
   // Ligne montée par le MONTEUR CANONIQUE (#1153) : base de combat NUE, composantes fondues dans la
   // valeur (lignes volatiles de Caractéristique — issue #202 — et mods de Test char-qualifiés) en
   // chips, PALIER composé par les circonstances (LDB 14 l.91-96) et MÊME écrêtage que le jet
@@ -1797,12 +1798,11 @@ export function resolveGrappleOpposed(get: Get, actor: Combatant, foe: Combatant
 /** Case ATTEIGNABLE d'où `mover`, posé là (`positionPosee`), est au contact de `target` (`distanceDeContact` = 1) et
  *  qui coûte le moins de Mouvement (point d'arrivée d'une Charge). */
 export function bestAdjacentReachable(reach: Map<string, number>, scene: Scene | null, mover: Combatant, target: Combatant): Pt | null {
-  const mpt = sceneMetresPerTile(scene);
   let best: Pt | null = null;
   let bestD = Infinity;
   for (const k of reach.keys()) {
     const t = tileFromKey(k);
-    if (distanceDeContact(scene, { ...mover, pos: positionPosee(scene, t) }, target, mpt) !== 1) continue;
+    if (distanceDeContact(scene, { ...mover, pos: positionPosee(scene, t) }, target) !== 1) continue;
     const d = reach.get(k)!;
     if (d < bestD) {
       bestD = d;
@@ -1909,7 +1909,7 @@ export function aiApproachPlan(
   if (M <= 0) return none;
   const adversaires = adversairesDe(input);
   const atContact = (a: EnemyAction): boolean =>
-    a.kind === 'deplacement' && distanceDeContact(input.scene, { ...enemy, pos: positionPosee(input.scene, a.to) }, adversaires.find((h) => h.id === a.thenTargetId) ?? adversaires[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
+    a.kind === 'deplacement' && distanceDeContact(input.scene, { ...enemy, pos: positionPosee(input.scene, a.to) }, adversaires.find((h) => h.id === a.thenTargetId) ?? adversaires[0]) <= meleeReachTiles(enemy.weapons, sceneMetresPerTile(input.scene));
   if (atContact(action)) return none; // la Marche suffit déjà
   // Charge (portée de Course, sans Test — LDB 15 l.35-37).
   const courseBudget = chargeReach(M, runMultiplier(geom.traits));
@@ -1940,7 +1940,7 @@ export function frenzyTarget(get: Get, c: Combatant): Combatant | null {
   const visible = [...sourcesEnVue(battle, scene, c, (e) => e.kind !== c.kind && !isOutOfAction(e))];
   if (!visible.length) return null;
   return visible.sort((a, b) => {
-    const da = distanceDeCombat(c, a), db = distanceDeCombat(c, b);
+    const da = distanceDeCombat(scene, c, a), db = distanceDeCombat(scene, c, b);
     if (da !== db) return da - db;
     return a.wounds.current - b.wounds.current;
   })[0];
@@ -3302,7 +3302,7 @@ function appliquerLaTouche(
   // les États « infligés par l'arme » sont propagés par le chemin GÉNÉRIQUE onHit (cf. `hitSecondary`).
   if (battle && res.hit && weapon.type === 'distance' && res.damage != null && attacker.pos && target.pos && !isOutOfAction(target)) {
     const area = resolveWeaponArea(get, set, {
-      attacker, primaryTarget: target, weapon, damage: res.damage, location: res.location ?? 'corps', distanceTiles: distanceDeCombat(attacker, target), margin: res.netSL,
+      attacker, primaryTarget: target, weapon, damage: res.damage, location: res.location ?? 'corps', distanceTiles: distanceDeCombat(get().scene, attacker, target), margin: res.netSL,
     }, battleAreaTargets(get), battleRng());
     log.push(...evLines(area.lines, 'tir', attacker.id, target.id));
   }
@@ -3503,19 +3503,19 @@ export function defenderFumbled(res: AttackResult, parryWeapon?: Weapon, defende
 /** La cible est-elle dans une bande de tir/portée VALIDE de `weapon` pour `shooter` (LDB 14 l.54-84) ?
  *  Tir → bande de portée non nulle (munition + BF inclus) ; mêlée → Allonge (`reachTiles`). Position
  *  inconnue (tests) → vrai (aucun filtre géométrique). Source UNIQUE du test « à distance de frappe ». */
-export function inFiringBand(scene: Scene | null, shooter: Combatant, target: Combatant, weapon: Weapon, metresPerTile = 2): boolean {
+export function inFiringBand(scene: Scene | null, shooter: Combatant, target: Combatant, weapon: Weapon): boolean {
   if (!shooter.pos || !target.pos) return true;
   if (weapon.type === 'distance') {
     const rm = porteeDeTir(shooter, weapon);
-    return rm != null && rangeBandModifier(distanceDeCombat(shooter, target), rm, metresPerTile) != null;
+    return rm != null && rangeBandModifier(distanceDeCombat(scene, shooter, target), rm, sceneMetresPerTile(scene)) != null;
   }
-  return distanceDeContact(scene, shooter, target) <= reachTiles(weapon);
+  return distanceDeContact(scene, shooter, target) <= reachTiles(weapon, sceneMetresPerTile(scene));
 }
 
 /** Alliés (même camp) encore actifs, hors `c`, et À PORTÉE de `weapon` (LDB 14 l.30 : « à distance »).
  *  Sans position connue (tests), on ne filtre pas. Hors bataille, aucun : #3892 (P2). */
-function alliesAtRange(scene: Scene | null, battle: BattleState | null, c: Combatant, weapon: Weapon, metresPerTile = 2): Combatant[] {
-  return (battle?.combatants ?? []).filter((x) => x.id !== c.id && x.kind === c.kind && !isOutOfAction(x) && inFiringBand(scene, c, x, weapon, metresPerTile));
+function alliesAtRange(scene: Scene | null, battle: BattleState | null, c: Combatant, weapon: Weapon): Combatant[] {
+  return (battle?.combatants ?? []).filter((x) => x.id !== c.id && x.kind === c.kind && !isOutOfAction(x) && inFiringBand(scene, c, x, weapon));
 }
 
 /**
@@ -3531,7 +3531,6 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
     .filter((s) => !faits.includes(s.id) && aiDriven(get(), s) && canPreemptRanged(s) && canTakeAction(s) && !s.loseNextAction && !isOutOfAction(s) && !!s.pos)
     .sort((a, b) => tirRapideTimes(b) - tirRapideTimes(a)); // LDB 11 l.103
   const scene = get().scene!;
-  const mpt = sceneMetresPerTile(scene);
   const smoke = smokeOf(battle);
   let vus = faits;
   for (const shooter of shooters) {
@@ -3541,8 +3540,8 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
     const t0 = battle.combatants
       .filter((f) => f.kind !== shooter.kind && !isOutOfAction(f) && !!f.pos)
       .map((f) => ({ f, weapon: firedWeapon(get().scene, shooter, f, undefined, battle.combatants) }))
-      .filter((x) => x.weapon.type === 'distance' && inFiringBand(get().scene, shooter, x.f, x.weapon, mpt))
-      .sort((a, b) => distanceDeCombat(shooter, a.f) - distanceDeCombat(shooter, b.f))
+      .filter((x) => x.weapon.type === 'distance' && inFiringBand(get().scene, shooter, x.f, x.weapon))
+      .sort((a, b) => distanceDeCombat(get().scene, shooter, a.f) - distanceDeCombat(get().scene, shooter, b.f))
       .find((x) => losClear(scene, shooter.pos!, isStructure(x.f) ? structureAimCell(shooter.pos!, x.f) : x.f.pos!, smoke))?.f;
     if (!t0) continue;
     const weapon = firedWeapon(get().scene, shooter, t0, undefined, battle.combatants);
@@ -3730,7 +3729,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       break;
     }
     case 'hitAlly': {
-      const allies = alliesAtRange(get().scene, battle, c, weapon, sceneMetresPerTile(get().scene));
+      const allies = alliesAtRange(get().scene, battle, c, weapon);
       if (allies.length) {
         const ally = allies[battleRng().int(0, allies.length - 1)];
         const loc = hitLocationByShape(reverseRoll(r.roll), ally.bodyShape);
@@ -3935,11 +3934,11 @@ function verdictDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant
   if (!defenseSurfaced(s, target)) return { refus: 'non-surfacee' };
   // TIR : LDB 62 l.296 ; LDB 14 l.40 ; LDB 14 l.44. LoS acquise : l'IA ne tire que si elle voit (doAttack).
   if (weapon?.type === 'distance') {
-    const modesDeTir = rangedDefenseModes(attacker, target, weapon, distanceDeCombat(attacker, target), true, sceneMetresPerTile(s.scene));
+    const modesDeTir = rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene));
     return modesDeTir.length ? { refus: null, modesDeTir } : { refus: 'tir-non-opposable' };
   }
   if (weapon?.type !== 'melee') return { refus: 'sans-arme-de-coup' };
-  if (!auContactDeLaSerie(s, attacker, target) && distanceDeContact(s.scene, attacker, target) > reachTiles(weapon)) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
+  if (!auContactDeLaSerie(s, attacker, target) && distanceDeContact(s.scene, attacker, target) > reachTiles(weapon, sceneMetresPerTile(s.scene))) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
   if (cannotDefend(target)) return { refus: 'ne-peut-se-defendre' }; // LDB 16 l.135
   return { refus: null };
 }
@@ -3970,7 +3969,7 @@ export function maybeOpenDefense(
   if (verdict.modesDeTir) {
     const modes = verdict.modesDeTir;
     const mpt = sceneMetresPerTile(get().scene);
-    const dist = distanceDeCombat(attacker, target);
+    const dist = distanceDeCombat(get().scene, attacker, target);
     const { env } = attackEnv(get, attacker, target, weapon);
     const atk = rollRangedAttacker(attacker, target, weapon, battleRng(), dist, undefined, env, mpt); // tir figé
     const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
@@ -4040,8 +4039,8 @@ export function surfacedDefensePending(s: Jeu, attacker: Combatant, target: Comb
   if (pa.siege) return false;
   if (s.battle && victimeDuCoup(s.battle, target, pa).id !== target.id) return false;
   if (!defenseSurfaced(s, target) || cannotDefend(target) || isInanimate(target)) return false;
-  if (weapon.type === 'distance') return rangedDefenseModes(attacker, target, weapon, distanceDeCombat(attacker, target), true, sceneMetresPerTile(s.scene)).length > 0;
-  return weapon.type === 'melee' && distanceDeContact(s.scene, attacker, target) <= reachTiles(weapon);
+  if (weapon.type === 'distance') return rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene)).length > 0;
+  return weapon.type === 'melee' && distanceDeContact(s.scene, attacker, target) <= reachTiles(weapon, sceneMetresPerTile(s.scene));
 }
 
 /**
@@ -4055,7 +4054,7 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
   if (!surfacedDefensePending(get(), attacker, target, weapon, pa)) return false;
   const atk = hydrateTR(pa.result!.attackerDetail!);
   const mpt = sceneMetresPerTile(get().scene);
-  const dist = distanceDeCombat(attacker, target);
+  const dist = distanceDeCombat(get().scene, attacker, target);
   // Contexte d'OPPOSITION transporté À L'IDENTIQUE de l'appel inline (`resolveAttack`) : `env` (breakdown
   // d'attaque), « Retenir ses coups » (AA 07 l.59-61) et le proxy de Charge montée (LDB 14 l.183) — sans
   // eux, la même attaque donnerait des Dégâts différents selon qu'elle traverse ou non la fenêtre.
@@ -5217,8 +5216,8 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   // Ops IMMÉDIATS de la rangée (États, Blessures et leur mitigation DÉCLARÉE, Corruption,
   // pénalités/blocages d'incantation, réduction à 0) — applicateur unique, AVANT le Test imbriqué
   // que la même rangée porte (LDB 46 l.55-75, LDB 40 l.56-89).
-  /** Contexte d'application des ops de la rangée au combattant `c` : la Corruption lui revient. */
-  const ctxPour = (c: Combatant): OpsCtx => ({ idNeuf: get().forgerUnId,
+  /** Contexte d'application des ops de la rangée. */
+  const opsCtx: OpsCtx = { idNeuf: get().forgerUnId,
     rng: battleRng(),
     label: m.label,
     now: get().gameTime,
@@ -5226,16 +5225,15 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
     // ligne) dans la catégorie que sa table déclare — sans lui, la pastille d'un effet durable
     // (« Purifier la chair », `LDB 40 l.75`) s'afficherait nue, sans fiche ni popover.
     source: miscastRowSource(miscastTableId(severity), m.rowId),
-    onCorruption: followsCharacterRules(c) ? (n, align) => gainCorruption(get, set, c, n, align) : undefined, ...campAdvantageHooks(get), ...crochetDuSol(get, set),
-  });
-  const opsCtx = ctxPour(caster);
+    ...crochetsDeCorruption(get, set), ...campAdvantageHooks(get), ...crochetDuSol(get, set),
+  };
   lines.push(...applyOps(caster, m.ops, opsCtx));
   // « vos cibles » (LDB 40 l.64) : les cibles de l'incantation, le lanceur en contexte (sa divinité).
   if (m.targetOps.length) {
     const cibles = (ctx.targetIds ?? []).map((id) => actorIn(get(), id)).filter((c): c is Combatant => !!c);
     if (!cibles.length) lines.push(tr('cf.incantationImparfaiteSansCible', { label: m.label }));
     for (const c of cibles) {
-      const cibleCtx: OpsCtx = { ...ctxPour(c), caster };
+      const cibleCtx: OpsCtx = { ...opsCtx, caster };
       lines.push(...applyOps(c, m.targetOps, cibleCtx));
     }
   }
@@ -5335,9 +5333,9 @@ export function finishPlayerAction(get: Get, set: SetFn, lines: string[], kind: 
 export function castTargetBlock(get: Get, caster: Combatant, spell: SpellData, target: Combatant): { reason: 'range' | 'los'; detail: PlayerText } | null {
   if (!get().battle || !caster.pos || !target.pos || caster.id === target.id) return null;
   const range = spell.breathAttack
-    ? Math.max(1, Math.ceil((bonus(effectiveChar(caster, 'endurance')) + 20) / 2))
-    : spellRangeTiles(spell.range, caster);
-  if (range != null && distanceDeCombat(caster, target) > range)
+    ? porteeEnCases(bonus(effectiveChar(caster, 'endurance')) + 20, sceneMetresPerTile(get().scene))
+    : spellRangeTiles(spell.range, caster, sceneMetresPerTile(get().scene));
+  if (range != null && distanceDeCombat(get().scene, caster, target) > range)
     return { reason: 'range', detail: tr('cf.sortHorsDePortee', { spell: spell.label, range }) };
   if (castSightBlocked(get, caster.pos, target.pos))
     return { reason: 'los', detail: tr('cf.sansLigneDeVue', { spell: spell.label }) };
@@ -5388,7 +5386,7 @@ export function lancerLAttaque(get: Get, set: SetFn): void {
   // qui reprend la mêlée dès qu'elle est à portée. `weaponUid` n'est JAMAIS réécrit : il porte le
   // choix du JOUEUR, et son absence discrimine l'attaque naturelle (`attackWeaponOf`, #1026).
   set({ pendingAttack: { ...pa, result: r.res, victimId: r.victim?.id, weapon: r.weapon,
-    distanceTiles: distanceDeCombat(attacker, target), dodgeMods: defenseDodgeMods(get(), target) } });
+    distanceTiles: distanceDeCombat(get().scene, attacker, target), dodgeMods: defenseDodgeMods(get(), target) } });
 }
 
 /** Test d'Incantation (verbe `lancer` du flux `incantation`, `FLOWS.incantation.onRoll`). */
@@ -5428,7 +5426,7 @@ export function lancerLIncantation(get: Get, set: SetFn): void {
     ? { critChoice: defaultCritChoice(res, sortInfligeDesDegats(spell)) }
     : {};
   const auto = aiDriven(get(), caster) && pc.missile && !pc.zone
-    ? aiOvercastPlan(caster, pc.targetId, spell, res, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile, critIA.critChoice)
+    ? aiOvercastPlan(get().scene, caster, pc.targetId, spell, res, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile, critIA.critChoice)
     : {};
   set({ pendingCast: { ...pc, result: res, ...auto, ...critIA } });
   // Dissipation (LDB 46 l.156) : le Contre-sort s'aiguille ICI, AU JET, pour TOUT lanceur (héros,
@@ -5844,7 +5842,7 @@ export function zoneRadiusMeters(spell: NonNullable<ReturnType<typeof findSpell>
  *  PLANCHER, minimum 0 — un gabarit plus petit que la case ne couvre aucune case au-delà du centre
  *  posé, et c'est la règle de POSE, pas celle d'une portée (cf. `porteeEnCases`). */
 export const zoneRadiusTilesAt = (r0m: number, alloc: number, mpt: number): number =>
-  Math.max(0, Math.floor((r0m * zoneDiameterMultiplier('arcane', alloc)) / mpt));
+  rayonDeGabaritEnCases(r0m * zoneDiameterMultiplier('arcane', alloc), mpt);
 
 /** Ouvre la modale d'un sort de ZONE — flux « jet PUIS pose » (LDB 47 l.15/28) : pas de cible à
  *  désigner, le centre se choisit APRÈS le jet et la Surincantation (+Zone agrandit le gabarit).
@@ -5901,7 +5899,7 @@ export function openCastCascade(get: Get, set: SetFn, caster: Combatant): boolea
  *  une source neuve fait nommer par le compilateur chaque site à compléter. Souffle et
  *  Vomissement n'en sont pas : LDB 85, `applyAreaAttack`. */
 export type PlacingZone = { source: ZoneEnPose['source']; label: string; casterId: string; radius: number; rangeTiles: number | null };
-export function placingZoneOf(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim' | 'battle'>): PlacingZone | null {
+export function placingZoneOf(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim' | 'battle' | 'scene'>): PlacingZone | null {
   const zp = zoneEnPose(s);
   switch (zp?.source) {
     case 'incantation': {
@@ -5910,7 +5908,7 @@ export function placingZoneOf(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim' | '
       const spell = effectiveSpellOf(pc);
       return {
         source: 'incantation', label: spell?.label ?? pc.spellId, casterId: pc.casterId, radius: zp.zone.radius,
-        rangeTiles: spell && caster ? spellRangeTiles(spell.range, caster) : null,
+        rangeTiles: spell && caster ? spellRangeTiles(spell.range, caster, sceneMetresPerTile(s.scene)) : null,
       };
     }
     // Pilonnage INDIRECT (AA 10 l.169/171) : l'ancre est le servant (`casterId`).
@@ -5941,9 +5939,9 @@ export function zoneSousLeCurseur(get: Get, hover: Pt): { radius: number; valide
   const active = s.mode === 'battle' ? activeCombatant(battle) : undefined;
   if (battle.action !== 'incantation' || !battle.selectedSpellId || active?.kind !== 'heros' || s.pendingCast || !active.pos) return null;
   const spell = findSpellById(battle.selectedSpellId);
-  const radius = spell ? zdeRadiusTiles(spell.target, active) : null;
+  const radius = spell ? zdeRadiusTiles(spell.target, active, sceneMetresPerTile(s.scene)) : null;
   if (!spell || radius == null) return null;
-  return { radius, valide: placedZoneValidAt(get, { casterId: active.id, rangeTiles: spellRangeTiles(spell.range, active) }, hover) };
+  return { radius, valide: placedZoneValidAt(get, { casterId: active.id, rangeTiles: spellRangeTiles(spell.range, active, sceneMetresPerTile(s.scene)) }, hover) };
 }
 
 /** Dépose la zone en cours sur `pt` — dispatch par source (chaque consommateur garde ses gates). */
@@ -5970,7 +5968,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   if (!caster?.pos || !spell) return;
   const res = pc.result;
   if (!castAfterCrit(res, pc.critChoice)) return;
-  const range = spellRangeTiles(spell.range, caster);
+  const range = spellRangeTiles(spell.range, caster, sceneMetresPerTile(get().scene));
   if (range != null && chebyshev(caster.pos, pt) > range) {
     get().ecrireAuJournal(tr('cf.zoneHorsDePortee', { spell: spell.label, range }));
     return;
@@ -6088,13 +6086,13 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
     const focusState: CastableSpell['focusState'] = ready ? 'ready'
       : (!hasAllySummon && landProb < 0.5 && isArcaneSpell(data) && !!focusSkillFor(enemy, data)) ? 'focusable'
         : 'none';
-    const radius = hasAllySummon ? null : zdeRadiusTiles(data.target, enemy);
+    const radius = hasAllySummon ? null : zdeRadiusTiles(data.target, enemy, sceneMetresPerTile(scene));
     const shape: CastableSpell['shape'] = hasAllySummon ? 'self'
       : radius != null ? { area: { radius } }
         : (data.range?.kind === 'self' || data.target?.kind === 'self') ? 'self'
           : 'single';
     spells.push({
-      id: data.id, data, cn, range: spellRangeTiles(data.range, enemy), shape, landProb, focusState,
+      id: data.id, data, cn, range: spellRangeTiles(data.range, enemy, sceneMetresPerTile(scene)), shape, landProb, focusState,
       active: isSpellActive(data, enemy, battle),
     });
   }
@@ -6162,6 +6160,7 @@ export function overcastReset(pc: Pick<PendingCast, 'zone'>, mpt: number): Parti
  *  et budget : les MÊMES lectures que le joueur (`overcastAxesFor`, `castOvercastBudget`). Retourne
  *  le patch de pendingCast ({} si rien). */
 export function aiOvercastPlan(
+  scene: Scene | null,
   caster: Combatant,
   targetId: string,
   spell: OvercastSpell & { range: SpellRange | null },
@@ -6176,10 +6175,10 @@ export function aiOvercastPlan(
   const budget = castOvercastBudget(spell, res, critChoice);
   if (budget <= 0) return {};
   const axes = overcastAxesFor(spell, missile);
-  const range = spellRangeTiles(spell.range, caster) ?? Infinity;
+  const range = spellRangeTiles(spell.range, caster, sceneMetresPerTile(scene)) ?? Infinity;
   const extras = !axes.includes('targets') ? [] : combatants
-    .filter((t) => t.kind !== caster.kind && t.id !== targetId && !isOutOfAction(t) && t.pos && distanceDeCombat(caster, t) <= range && !spellSightBlocked(sight, caster, t))
-    .sort((a, b) => distanceDeCombat(caster, a) - distanceDeCombat(caster, b))
+    .filter((t) => t.kind !== caster.kind && t.id !== targetId && !isOutOfAction(t) && t.pos && distanceDeCombat(scene, caster, t) <= range && !spellSightBlocked(sight, caster, t))
+    .sort((a, b) => distanceDeCombat(scene, caster, a) - distanceDeCombat(scene, caster, b))
     .slice(0, extraTargetCapacity(source, budget, 1))
     .map((t) => t.id);
   // Allocation MINIMALE couvrant les cibles retenues — indépendante du modèle (LDB : 1 pas = 1 cible
@@ -6202,6 +6201,7 @@ export function aiOvercastPlan(
  *  adversaire encore en combat (un figurant à 0 PB est mort, LDB 18 l.42-46) ; un sort bénéfique
  *  vise un allié non mort/évacué (l'Inconscient reste soignable). Aligné sur aiOvercastPlan/ZdE. */
 export function overcastTargetCandidates(
+  scene: Scene | null,
   pool: Combatant[],
   caster: Combatant,
   targetId: string,
@@ -6214,11 +6214,11 @@ export function overcastTargetCandidates(
   rangeSteps: number,
   sight?: SpellSight,
 ): Combatant[] {
-  const range = effectiveSpellRangeTiles(spell.range, caster, source, rangeSteps);
+  const range = effectiveSpellRangeTiles(spell.range, caster, source, rangeSteps, sceneMetresPerTile(scene));
   return pool.filter((m) => {
     if (m.id === targetId) return false;
     if (missile ? m.kind === caster.kind || isOutOfAction(m) : m.kind !== caster.kind || m.dead || m.outOfRencontre) return false;
-    if (range != null && caster.pos && m.pos && distanceDeCombat(caster, m) > range) return false;
+    if (range != null && caster.pos && m.pos && distanceDeCombat(scene, caster, m) > range) return false;
     // Ligne de Vue (LDB 46 l.121) : une cible supplémentaire doit aussi être visible du lanceur.
     return !spellSightBlocked(sight, caster, m);
   });
@@ -6251,12 +6251,12 @@ export function effectiveSpellOf(pc: { spellId: string; grimoire?: boolean }): R
 }
 
 /** Contre-lanceurs ÉLIGIBLES à la Dissipation contre un Sort de `caster` visant `target` : LDB 46 l.156. Portée :
- *  `floor(FM / 2)` cases (`distanceDeCombat`) ; Ligne de Vue scène + fumée.
+ *  FM mètres convertis en cases au plancher par `sceneMetresPerTile` (`distanceDeCombat`) ; Ligne de Vue scène + fumée.
  *  Restriction de camp par HOSTILITÉ effective, jamais par `kind` (#1029, cf. `effectivelyHostile`,
  *  `src/engine/relations.ts` — maison UNIQUE du camp) ; `l.156` ne porte aucune clause de camp. */
 export function counterspellCandidates(
   battle: BattleState | null,
-  scene: Scene | null | undefined,
+  scene: Scene | null,
   caster: Combatant,
   target: Combatant,
 ): Combatant[] {
@@ -6266,7 +6266,7 @@ export function counterspellCandidates(
     if (!knowsCastingSkill(c, { id: 'langue', spec: 'magick' })) return false;
     if (c.id === target.id) return true;
     if (!c.pos || !target.pos) return false;
-    if (distanceDeCombat(c, target) > Math.max(1, Math.floor(effectiveChar(c, 'force-mentale') / 2))) return false;
+    if (distanceDeCombat(scene, c, target) > casesDansLaPortee(effectiveChar(c, 'force-mentale'), sceneMetresPerTile(scene))) return false;
     return !scene || losClear(scene, c.pos, target.pos, smokeOf(battle));
   });
 }
@@ -6296,7 +6296,7 @@ export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatan
   }
   // Surincantation : le surplus a changé — re-plan IA (lanceur ennemi), remise à zéro sinon.
   const oc = aiDriven(get(), caster) && pc.missile && !pc.zone
-    ? aiOvercastPlan(caster, pc.targetId, spell, next, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile, pc.critChoice)
+    ? aiOvercastPlan(get().scene, caster, pc.targetId, spell, next, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile, pc.critChoice)
     : {};
   set({ pendingCast: { ...pc, result: next, ...overcastReset(pc, sceneMetresPerTile(get().scene)), ...oc } });
   const b = get().battle;
@@ -6364,17 +6364,17 @@ interface PasseDuLancer {
   conjureForm?: ConjureForm;
 }
 
-/** Le contexte d'ops d'une passe de Flow de sort sur `t` : SITE UNIQUE des passes cible, lanceur, Projectile
+/** Le contexte d'ops d'une passe de Flow de sort : SITE UNIQUE des passes cible, lanceur, Projectile
  *  et lancer garanti. `sourceSpellId`, Prières comprises, est l'IDENTITÉ du sort que lisent
- *  `isSpellActive`/`buildAiInput` (LDB 46 l.116-121) ; `onCorruption` suit le personnage (#143). */
-function ctxDuLancer(get: Get, set: SetFn, t: Combatant, caster: Combatant, spell: SortJoue, p: PasseDuLancer): OpsCtx {
+ *  `isSpellActive`/`buildAiInput` (LDB 46 l.116-121). Les crochets de Corruption viennent de `applyLeafOps`. */
+function ctxDuLancer(get: Get, set: SetFn, caster: Combatant, spell: SortJoue, p: PasseDuLancer): OpsCtx {
   return {
     rng: battleRng(), idNeuf: get().forgerUnId, caster, label: spell.label, now: get().gameTime, sl: p.sl,
     overcastDurationSteps: p.overcastDurationSteps, chosenTableRolls: p.chosenTableRolls,
     ...p.duree,
     ...(p.sourceSpell ? { sourceSpell: p.sourceSpell } : {}), sourceSpellId: spell.id,
     ...(p.conjureForm ? { conjureForm: p.conjureForm } : {}),
-    onCorruption: followsCharacterRules(t) ? (n, align) => gainCorruption(get, set, t, n, align) : undefined, ...campAdvantageHooks(get), ...crochetDuSol(get, set),
+    ...campAdvantageHooks(get), ...crochetDuSol(get, set),
   };
 }
 
@@ -6386,10 +6386,10 @@ function lancerLeSortGaranti(get: Get, set: SetFn, caster: Combatant, target: Co
   const sl = spell.cn ?? 0;
   const sourceSpell = sourceDissipableDe(spell, caster);
   const lignes = runCastFlow(get, set, target, caster, spellFlowFor(spell.effects, 'target'),
-    ctxDuLancer(get, set, target, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell }));
+    ctxDuLancer(get, set, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell }));
   if (spellOps(spell.effects, 'caster').length) {
     lignes.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'),
-      ctxDuLancer(get, set, caster, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell })));
+      ctxDuLancer(get, set, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell })));
   }
   return lignes;
 }
@@ -6531,7 +6531,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
     // appliquée par `dureeDuLancer` comme dans la branche non-projectile. Sans elle, les effets
     // durables d'un Projectile (dont ses États PORTÉS) ignoraient les DR dépensés sur la Durée.
     const { mult: ocMult, bonusRounds: ocBonus } = overcastDurationParts(overcastSourceOf(spell), ch.overcastDurationSteps ?? 0);
-    lignes.push(...runCastFlow(get, set, cible, caster, spellFlowFor(spell.effects, 'target'), ctxDuLancer(get, set, cible, caster, spell, {
+    lignes.push(...runCastFlow(get, set, cible, caster, spellFlowFor(spell.effects, 'target'), ctxDuLancer(get, set, caster, spell, {
       sl: spellSLFor(mres.sl, cible, ch.zoneTalentMod), duree: dureeDuLancer(get, caster, spell, ocMult, ocBonus),
       overcastDurationSteps: ch.overcastDurationSteps, chosenTableRolls: ch.chosenTableRolls,
       sourceSpell: ch.sourceSpell, conjureForm: ch.conjureForm,
@@ -6617,9 +6617,9 @@ function jouerLeRebond(get: Get, set: SetFn, touche: ToucheDeProjectile): string
     // La cible du maillon suivant (`LDB 47 l.340`).
     const next = battle.combatants
       .filter((c) => c.kind !== caster.kind && !hitIds.includes(c.id) && !isOutOfAction(c) && c.pos
-        && distanceDeCombat(prev, c) <= rebond.hopTiles
-        && (rebond.initialRange == null || distanceDeCombat(caster, c) <= rebond.initialRange))
-      .sort((a, b) => distanceDeCombat(prev, a) - distanceDeCombat(prev, b))[0];
+        && distanceDeCombat(get().scene, prev, c) <= rebond.hopTiles
+        && (rebond.initialRange == null || distanceDeCombat(get().scene, caster, c) <= rebond.initialRange))
+      .sort((a, b) => distanceDeCombat(get().scene, prev, a) - distanceDeCombat(get().scene, prev, b))[0];
     if (!next) break;
     // « infligeant de nouveau les mêmes Dégâts » : le jet ORIGINAL du lancement, ré-évalué CONTRE cette
     // cible — le résultat déjà atténué de la précédente (Résistance à la Magie, loc de Critique) la
@@ -6785,8 +6785,8 @@ export function applyCast(
       ? {
         hitIds: [target.id, ...extraTargets.map((t) => t.id)], bounce: 0,
         maxBounces: Math.max(0, resolveFormula(chainOp.maxBounces, caster, battleRng())),
-        hopTiles: Math.max(1, Math.ceil(Math.max(0, resolveFormula(chainOp.hopMeters, caster, battleRng())) / 2)),
-        initialRange: spellRangeTiles(spell.range, caster), res,
+        hopTiles: porteeEnCases(Math.max(0, resolveFormula(chainOp.hopMeters, caster, battleRng())), sceneMetresPerTile(get().scene)),
+        initialRange: spellRangeTiles(spell.range, caster, sceneMetresPerTile(get().scene)), res,
       }
       : undefined;
     // Sort offensif : lanceur vers la cible, cible vers le lanceur.
@@ -6854,7 +6854,7 @@ export function applyCast(
           // Tout sort passe par le système Flow/EffectOp : `spell.effects` (Flow éditable, feuilles
           // `on:'target'`) → `runCombatFlow` (exécuteur unique, after-aware) → applyOps. Les feuilles
           // `on:'caster'` sont appliquées à part.
-          ...runCastFlow(get, set, t, caster, spellFlowFor(spell.effects, 'target'), ctxDuLancer(get, set, t, caster, spell, {
+          ...runCastFlow(get, set, t, caster, spellFlowFor(spell.effects, 'target'), ctxDuLancer(get, set, caster, spell, {
             sl: opp ? opp.margin : slFor(t), duree, overcastDurationSteps, chosenTableRolls, sourceSpell, conjureForm: extras?.conjureForm,
           })),
         );
@@ -6871,7 +6871,7 @@ export function applyCast(
       // l'obstacle ; la collision est journalisée (Dégâts = distance restante, MJ).
       for (const op of spellOps(spell.effects, 'caster')) {
         if (op.op !== 'push' || !battle || !caster.pos) continue;
-        const pushTiles = Math.max(1, Math.floor(resolveFormula(op.meters, caster, battleRng()) / 2));
+        const pushTiles = casesDansLaPortee(resolveFormula(op.meters, caster, battleRng()), sceneMetresPerTile(get().scene));
         for (const t of [target, ...extraTargets]) {
           if (t.id === caster.id || !t.pos || isOutOfAction(t)) continue;
           const r = pushAway(get().scene!, caster.pos, t.pos, pushTiles, { blocked: occupied(battle, t) });
@@ -6879,7 +6879,7 @@ export function applyCast(
             const fromPos = { ...t.pos };
             placeCombatant(t, get().scene, r.dest);
             bus.emit(EVT.ANIM_MOVE, { id: t.id, path: [{ ...r.dest }] });
-            logLines.push(tr('cf.pousse', { name: t.label, m: r.pushed * 2 }));
+            logLines.push(tr('cf.pousse', { name: t.label, m: r.pushed * sceneMetresPerTile(get().scene) }));
             applyZoneCrossings(get, set, t, [...tilesBetween(fromPos, r.dest), { ...r.dest }]); // une poussée TRAVERSE (Mur de feu, L11)
           }
           if (r.collided) logLines.push(tr('cf.percuteUnObstacle', { name: t.label }));
@@ -6918,7 +6918,7 @@ export function applyCast(
             * Math.max(0, resolveFormula(tpOp.perSL.metersFormula, caster, battleRng()));
         }
         if (battle && caster.pos) {
-          const tpTiles = Math.max(1, Math.floor(meters / 2));
+          const tpTiles = casesDansLaPortee(meters, sceneMetresPerTile(get().scene));
           teleportReach = flyReachable(get().scene!, caster.pos, tpTiles, moveEnv(battle, caster));
           logLines.push(tr('cf.teleportationAuChoix', { name: caster.label, m: meters }));
         } else {
@@ -6974,7 +6974,7 @@ export function applyCast(
     // Effets sur le LANCEUR (feuilles `on:'caster'` de `spell.effects` — Vol de vie « retirez tout État
     // Exténué dont vous souffrez », buffs de soi d'un sort offensif) : appliqués UNE seule fois par lancement.
     if (spellOps(spell.effects, 'caster').length) {
-      logLines.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'), ctxDuLancer(get, set, caster, caster, spell, {
+      logLines.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'), ctxDuLancer(get, set, caster, spell, {
         sl: slFor(caster), duree: dureeDuLancer(get, caster, spell, durationMult, durationBonusRounds),
         overcastDurationSteps, chosenTableRolls, sourceSpell, conjureForm: extras?.conjureForm,
       })));
@@ -7042,8 +7042,8 @@ function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, opDeZon
   // Cases BORNÉES à la carte au SITE D'ÉCRITURE (`clampZoneTiles`) : la géométrie de pose est non
   // bornée, une zone posée au coin déborderait en cases négatives stockées dans `battle.zones`.
   const rawTiles = clampZoneTiles(pz.shape === 'wall'
-    ? wallTiles(caster.pos, target.pos, metersToTiles(resolveZoneMeters(pz.lengthMeters ?? 2, pz.lengthPerSL, caster, sl, battleRng())))
-    : discTiles(target.pos, metersToTiles(discRadiusM)), get().scene?.dimensions);
+    ? wallTiles(caster.pos, target.pos, porteeEnCases(resolveZoneMeters(pz.lengthMeters ?? 2, pz.lengthPerSL, caster, sl, battleRng()), sceneMetresPerTile(get().scene)))
+    : discTiles(target.pos, porteeEnCases(discRadiusM, sceneMetresPerTile(get().scene))), get().scene?.dimensions);
   // z propagé sur chaque case (défaut 0, cf. zoneAreaTiles §782/#799) : une zone posée à l'étage `target.pos.z`
   // ne couvre pas les cases de même (x,y) à un autre étage (zoneCovers compare `t.z ?? 0` / `p.z ?? 0`).
   const tiles = target.pos.z ? rawTiles.map((t) => ({ ...t, z: target.pos!.z })) : rawTiles;
@@ -7114,11 +7114,11 @@ function domainBreathType(caster: Combatant): string | undefined {
 export function domainCastBonus(s: Jeu, caster: Combatant, spell: { domainId?: { id: string } }): number {
   const cb = findDomainById(spell.domainId?.id)?.castBonus;
   if (!cb || !caster.pos) return 0;
-  const radius = Math.max(1, Math.ceil(bonusDe(caster, cb.radiusStat) / 2));
+  const radius = porteeEnCases(bonusDe(caster, cb.radiusStat), sceneMetresPerTile(s.scene));
   let pions = 0;
   for (const c of s.battle?.combatants ?? []) {
     if (!c.pos || isOutOfAction(c)) continue;
-    if (distanceDeCombat(caster, c) <= radius) pions += stacks(c, cb.perCondition);
+    if (distanceDeCombat(s.scene, caster, c) <= radius) pions += stacks(c, cb.perCondition);
   }
   return cb.bonus * pions;
 }
@@ -7151,7 +7151,7 @@ export function castWardLine(s: Jeu, target: Combatant, spell: SpellLike): ModLi
     if (isOutOfAction(w) || !w.pos) continue;
     for (const e of w.activeEffects ?? []) {
       if (!e.castWard) continue;
-      if (distanceDeCombat(w, target) > porteeEnCases(e.castWard.radiusMeters, sceneMetresPerTile(s.scene))) continue;
+      if (distanceDeCombat(s.scene, w, target) > porteeEnCases(e.castWard.radiusMeters, sceneMetresPerTile(s.scene))) continue;
       if (!best || Math.abs(e.castWard.mod) > Math.abs(best.value))
         best = { label: e.label, value: e.castWard.mod, famille: 'jet', ref: effectRef(e), by: [{ id: w.id }] };
     }
@@ -8411,7 +8411,7 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
   const tgt = inBattleId(get().battle!, mv.thenTargetId);
   // La Course a consommé l'Action (LDB 15 l.41) → pas d'attaque en arrivant ; ni quand l'Action est due
   // à une Prière (LDB 40 l.74).
-  if (!tgt || mv.couru || !canTakeAction(enemy) || refusPriereImposee(enemy) || distanceDeContact(get().scene, enemy, tgt) > meleeReachTiles(enemy.weapons)) {
+  if (!tgt || mv.couru || !canTakeAction(enemy) || refusPriereImposee(enemy) || distanceDeContact(get().scene, enemy, tgt) > meleeReachTiles(enemy.weapons, sceneMetresPerTile(get().scene))) {
     armerLaSuite(get, set, enemy, { kind: 'avancer' }, approachMs(get, path));
     return;
   }
@@ -9157,7 +9157,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   if (enemy.riderId) {
     const skittish = isSkittishMount(enemy.traits); // Nerveux (LDB 14 l.182) → la monture passe son tour
     const foe = skittish || !canAct ? undefined
-      : battle.combatants.find((c) => c.kind !== enemy.kind && !isOutOfAction(c) && !!c.pos && distanceDeContact(get().scene, enemy, c) <= meleeReachTiles(enemy.weapons));
+      : battle.combatants.find((c) => c.kind !== enemy.kind && !isOutOfAction(c) && !!c.pos && distanceDeContact(get().scene, enemy, c) <= meleeReachTiles(enemy.weapons, sceneMetresPerTile(get().scene)));
     if (foe) { attackThenAdvance(foe); return; }
     return advanceTurn(get, set);
   }
@@ -9210,7 +9210,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const chosenAoe = input.spells.find((s) => s.id === action.spell);
       const aoeSp = resolveSpell(action.spell);
       const aoeRadius = (chosenAoe && typeof chosenAoe.shape === 'object' ? chosenAoe.shape.area.radius : undefined)
-        ?? (aoeSp ? zdeRadiusTiles(aoeSp.target, enemy) ?? 1 : 1);
+        ?? (aoeSp ? zdeRadiusTiles(aoeSp.target, enemy, sceneMetresPerTile(input.scene)) ?? 1 : 1);
       set({ actorAoe: { casterId: enemy.id, center, radius: aoeRadius } });
       bus.emit(EVT.SCENE_DIRTY);
       armerLaSuite(get, set, enemy, { kind: 'zone', spellId: action.spell, centre: center }, TEMPO.aimTelegraph);
@@ -9309,7 +9309,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const { plan, ran } = aiApproachPlan(input, geom, action, battleRng());
       const mv = plan.kind === 'deplacement' ? plan : action;
       const charge = !refusDeCharge(battle, enemy); // LDB 15 l.35 : verdict lu AVANT le déplacement
-      const distBefore = distanceDeCombat(enemy, targetOf(mv.thenTargetId)); // distance de combat AVANT le déplacement
+      const distBefore = distanceDeCombat(scene, enemy, targetOf(mv.thenTargetId)); // distance de combat AVANT le déplacement
       const fromPos = { ...enemy.pos! }; // position AVANT déplacement (déclenchement de Peur à l'approche)
       const path = pathTo(scene, enemy.pos!, mv.to, { blocked: input.blocked, foot: sizeFootprint(geom.size), traverse: input.traverse });
       const pas = Math.max(0, (path?.length ?? 1) - 1);
@@ -9659,7 +9659,7 @@ export const TABLES = {
       // Cible ou coque disparue : CE maillon est perdu et se DIT (applier `operationsDe`) ; les suivants jouent.
       const cible = actorIn(get(), c.cibleId);
       if (!cible) { journaliser(get, set, [tr('cascade.cibleDisparue', { label })], 'information'); return; }
-      const opsCtx = ctxRepris(get, set, c.ctx, cible);
+      const opsCtx = ctxRepris(get, set, c.ctx);
       if (!opsCtx) { journaliser(get, set, [tr('cascade.coqueDisparue', { label })], 'information'); return; }
       runCombatFlow({ get, set, target: cible, caster: opsCtx.caster ?? cible, label, opsCtx }, c.flow);
     },

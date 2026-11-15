@@ -23,8 +23,16 @@ import {
   type RefTypee,
   type TypeEntite,
 } from './schemas/grammaire/ref';
-import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
-import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
+import {
+  cleNichee,
+  libelleDeLElement,
+  lireCleDEspace,
+  pasDeLaSuite,
+  retenuParFiltre,
+  suivreLeChemin,
+  vocabulaireDuFichier,
+} from './schemas/grammaire/cle-d-espace';
+import { VOCABULAIRES, type NomDeVocabulaire } from './schemas/grammaire/vocabulaires';
 import {
   CATEGORIE_CODEX_DU_FICHIER,
   CLES_CODEX,
@@ -623,11 +631,11 @@ export function trousDeLEnjeu(key: StakeKey): string[] | undefined {
  *  jamais silencieux). `entryCategory` = la catégorie FOURNIE par le producteur, pour les clés dont le
  *  dataset ne peut pas la déclarer (`entryFromSource` : l'entité source d'un effet peut être de
  *  n'importe quelle nature). */
-function stakeRef(
-  dataset: StakeDataset,
+function stakeRef<D extends StakeDataset>(
+  dataset: D,
   kind: string,
   opts: { entryId?: string; entryCategory?: string; values?: Record<string, string | number> } = {},
-): StakeRef {
+): CatalogStake & { key: { dataset: D } } {
   if (!stakeEntry({ dataset, kind })) {
     throw new Error(`stakeRef('${dataset}/${kind}') : aucune entrée d'enjeu — une surface qui LANCE dit ce qu'elle met en jeu`);
   }
@@ -687,11 +695,15 @@ export function stateRecoveryStakeRef(etatId: string): StakeRef {
 }
 
 /** Enjeu d'une MODALE MONO (#1117 L1b, `stakeRef`) : le TYPE ferme l'id (`FlowStakeId`, généré) en
- *  PREMIER rideau, le throw est le second. `entryId` = la chanson chantée, le type de Test d'équipage. */
+ *  PREMIER rideau, le throw est le second. `entryId` = la chanson chantée, le type de Test d'équipage.
+ *  Sans `values`, l'enjeu a la forme qu'un document saisit (`catalogStakeSchema`) : un Effet en pose un
+ *  par défaut sans recopier sa clé. */
+export function flowStakeRef(id: FlowStakeId, opts?: { entryId?: string }): CatalogStake & { key: { dataset: 'flux' }; values?: never };
+export function flowStakeRef(id: FlowStakeId, opts: { entryId?: string; values: Record<string, string | number> }): CatalogStake;
 export function flowStakeRef(
   id: FlowStakeId,
   opts?: { entryId?: string; values?: Record<string, string | number> },
-): StakeRef {
+): CatalogStake {
   return stakeRef('flux', id, opts);
 }
 
@@ -894,6 +906,9 @@ export interface TrappingData {
    *  affectée » (ADE II 8 l.243). Propagé Trapping → ItemInstance → Weapon (`onHitEffects`), dispatché
    *  par `fireTriggers('onHit')` sur la cible primaire ET les cibles de la zone d'Explosion. */
   onHitEffects?: TriggeredEffect[];
+  /** Passifs de l'ARME elle-même (vocabulaire de `weaponPassiveOps`), ≠ `passive` du PORTEUR. Propagé
+   *  Trapping → ItemInstance → Weapon (`passifDArme`). ZI 13 l.199 */
+  passifDArme?: import('../engine/ops').OpPassive[];
   /** PORTÉE MINIMALE de tir (bande) : la cible plus proche que cette bande REFUSE le tir (≠ malus). Machines
    *  de siège à distance = `'courte'` (pas de Bout Portant, ADE II 8 l.253) ; trébuchet/mortier =
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
@@ -1279,11 +1294,13 @@ export const qualities = datasetDe<typeof qualitiesDef>(qualitiesJson);
 export const TAVERN_GAMES = datasetDe<typeof tavernGamesDef>(tavernGamesJson);
 /** Index des Atouts/Défauts par `id` STABLE (slug) — lookup runtime indépendant de la langue (dispatch). */
 const qualiteParId = indexParId('qualities', qualities);
+/** Qualité MAGIQUE : `capabilities.magic` (Magique, ADE II 04 l.214 ; Maudit, VDM 12 l.786-788). */
+const estQualiteMagique = (q: QualityData | undefined): boolean => q?.capabilities?.magic === true;
 /** Atouts de Fabrication (LDB 60 l.9-32) — DÉRIVÉS de la donnée : les qualités `atout` d'objet que la
  *  Compétence Métier produit, donc hors qualités MAGIQUES (`capabilities.magic` : Maudit, VDM 12
- *  folio 170, est un Atout d'objet qu'aucun artisan ne fabrique). */
+ *  l.786-788, est un Atout d'objet qu'aucun artisan ne fabrique). */
 export const fabricationAtouts = memoParVersion('qualities', (): QualityData['id'][] =>
-  qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet' && !q.capabilities?.magic).map((q) => q.id),
+  qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet' && !estQualiteMagique(q)).map((q) => q.id),
 );
 /** Atout de Fabrication d'un emplacement « Atouts au choix » que personne n'a choisi. LDB 60 l.11 ; LDB 60 l.26 */
 export const DEFAULT_FABRICATION_ATOUT = 'raffine';
@@ -2265,10 +2282,12 @@ export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | n
 /** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156) et les munitions. */
 const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege', 'munitions']);
 /** ARMES choisissables `{ id, label, groupe }` : toute Possession `melee`/`distance` hors « Mains nues »
- *  (`TrappingData.unarmed`) et hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`), triée au
- *  libellé. `id` = `trappingId` STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`). */
-export const armesChoisissables = memoParVersion('trappings', () => trappingsInstanciables()
+ *  (`TrappingData.unarmed`), hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`) et hors des armes
+ *  magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3), triée au libellé. `id` = `trappingId`
+ *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`). */
+export const armesChoisissables = memoParVersion(['trappings', 'qualities'], () => trappingsInstanciables()
   .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed && !FAMILLES_HORS_ARMES_PORTEES.has(t.subType?.id ?? ''))
+  .filter((t) => !t.qualities.some((r) => estQualiteMagique(qualiteParId(r.id))))
   .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id }))
   .sort((a, b) => parLibelle(a.label, b.label)));
 /** Résout une Qualité par son `id` STABLE. */
@@ -2438,14 +2457,27 @@ function collectionDuType(type: TypeEntite): DatasetDeCategorie | undefined {
 export function datasetDeLEspaceDuType(type: TypeEntite): CleDeDataset | undefined {
   return collectionDuType(type)?.cle;
 }
-/** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées vivantes de l'espace de son type
- *  qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de la donnée ; LÈVE si aucun dataset ne porte
- *  l'espace (`datasetDeLEspaceDuType`). */
-export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type' | 'sousListe'>): { id: string; label: string }[] {
+/** Les entrées `{ id, label }` de l'espace de `type`, dans l'ordre de leur source : la collection vivante de son dataset
+ *  (`collectionDuType`), sinon la table de son vocabulaire (`VOCABULAIRES`), sinon les ids qu'admet sa validation
+ *  (`idsDe`), chacun au libellé de son entrée dans la racine vivante de son fichier (`RACINES_VIVANTES`, au bout des
+ *  champs de sa niche), à défaut l'id. */
+function entreesDuType(type: TypeEntite): readonly { id: string; label: string }[] {
   const d = collectionDuType(type);
-  if (d === undefined) throw new Error(`choixDeLaFeuilleDId : aucun dataset ne porte l’espace ${espaceDe(type)}.`);
+  if (d !== undefined) return collectionDeRacine(d);
+  const { fichier, niche } = lireCleDEspace(espaceDe(type));
+  const nom = vocabulaireDuFichier(fichier) as NomDeVocabulaire | undefined;
+  if (nom !== undefined) return Object.entries(VOCABULAIRES[nom]).map(([id, label]) => ({ id, label }));
+  const pas = pasDeLaSuite(niche ?? '');
+  const lues = pas.every((p): p is { champ: string } => 'champ' in p) ? suivreLeChemin(RACINES_VIVANTES[fichier], pas) : undefined;
+  const entrees = Array.isArray(lues) ? lues.filter(estObjet) : [];
+  return [...idsDe(type)].map((id) => ({ id, label: libelleDeLElement(entrees.find((e) => e.id === id) ?? {}, LIBELLE_AU_LABEL.champs) ?? id }));
+}
+/** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées de l'espace de son type
+ *  (`entreesDuType`) qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de leur source. */
+export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type' | 'sousListe'>): { id: string; label: string }[] {
+  const entrees = entreesDuType(type);
   const admis = new Set(sousListe === undefined ? idsDe(type) : idsDeLaSousListe(type, sousListe));
-  return collectionDeRacine(d).filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
+  return entrees.filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
 }
 /** Libellé d'affichage d'un id, par source de spéc, tel que sa déclaration le dit (`SourceDeSpecs.libelle`) :
  *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers (`entree`) ; sinon l'id. */

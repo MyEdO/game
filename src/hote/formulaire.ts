@@ -7,7 +7,7 @@
  */
 import {
   bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, clesPosees, cleDeLElement, designeDesEntrees, elementDuNoeud,
-  estChampDAdresse, etatDeLAdresse, formeAuPoint, gestesDeLaListe, PHRASE_REFUS, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir,
+  estChampDAdresse, etatDeLAdresse, formeAuPoint, gestesDeLaListe, identiteTenue, PHRASE_REFUS, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir,
   type CheminsOfferts, type FieldDesc, type RefusDeValeur, type Segment, type SourceDeLEdition,
 } from '../noyau/index';
 import { t } from '../i18n';
@@ -129,14 +129,15 @@ function elementsDuFormulaire(ecrivain: EcrivainDuFormulaire, champs: readonly F
 }
 
 /** Les éléments du champ `f` du porteur de `ecrivain`, de valeur `valeur` (`undefined` : absent), au chemin `ici`, d'id
- *  `valeur/<chemin>`, chacun jouant le geste `valeur` (`GesteDuFormulaire`). Un objet (`champsDeclares`)
+ *  `valeur/<chemin>`, chacun jouant le geste `valeur` (`GesteDuFormulaire`), sans les clés `tenus` (l'identité que
+ *  tient la liste qui le porte, `identiteTenue`). Un objet (`champsDeclares`)
  *  présent : son libellé, ses champs offerts (`champsOfferts`), et « Retirer » si son absence est admise ; absent ou
  *  vide (`null`, un objet nullable) : « Ajouter » (`ajoutDeLObjet`). Une union nommée : sa variante (`elementsDeLUnion`). Une
  *  liste : ses éléments (`elementsDeLaListe`). Un record dont les clés sont posées (`clesPosees`) : ses entrées (`elementsDuRecord`). Un objet d'une union sans variantes nommées : son libellé et les champs
  *  de la branche qu'il dessine (`formeAuPoint`), et « Retirer » si son absence est admise. Tout autre champ : l'élément de sa valeur (`elementDeValeur`), puis, si
  *  son absence est admise, « Aucune » sous un choix, pressé quand il est absent, ou « Retirer » sous un champ présent.
  *  « Retirer » ne se pose que là où son contexte écrit le champ entier (`ContexteDuChamp.ecrivable`). */
-function elementsDuChamp(ecrivain: EcrivainDuFormulaire, f: FieldDesc, valeur: unknown, ici: Segment[]): ElementDuFormulaire[] {
+function elementsDuChamp(ecrivain: EcrivainDuFormulaire, f: FieldDesc, valeur: unknown, ici: Segment[], tenus: readonly string[] = []): ElementDuFormulaire[] {
   const id = `valeur/${ici.join('/')}`;
   const retirable = valeur !== undefined && f.nullable && (f.contexte?.ecrivable(ici, valeur) ?? true);
   const retirer = retirable ? [bouton(`${id}/retirer`, t('ecran.formulaire.valeur.retirer', { libelle: f.label }), ecrire(ecrivain, ici))] : [];
@@ -144,13 +145,13 @@ function elementsDuChamp(ecrivain: EcrivainDuFormulaire, f: FieldDesc, valeur: u
   if (champsDeclares(f.noeud)) {
     if (valeur == null) return ajoutDeLObjet(ecrivain, f, ici);
     const objet = valeur as Record<string, unknown>;
-    return [ligne(id, f.label), ...elementsDuFormulaire(ecrivain, champsSous(f, ici, f.noeud, objet), objet, ici), ...retirer];
+    return [ligne(id, f.label), ...elementsDuFormulaire(ecrivain, champsSous(f, ici, f.noeud, objet, tenus), objet, ici), ...retirer];
   }
-  if (unionDuNoeud(f.noeud)) return elementsDeLUnion(ecrivain, f, valeur, ici);
+  if (unionDuNoeud(f.noeud)) return elementsDeLUnion(ecrivain, f, valeur, ici, tenus);
   if (elementDuNoeud(f.noeud) !== undefined) return elementsDeLaListe(ecrivain, f, valeur, ici);
   if (clesPosees(f, ici)) return elementsDuRecord(ecrivain, f, valeur, ici, retirer);
   const forme = formeAuPoint(f.noeud, valeur)?.noeud;
-  if (estObjet(valeur) && champsDeclares(forme)) return [ligne(id, f.label), ...elementsDuFormulaire(ecrivain, champsSous(f, ici, forme, valeur), valeur, ici), ...retirer];
+  if (estObjet(valeur) && champsDeclares(forme)) return [ligne(id, f.label), ...elementsDuFormulaire(ecrivain, champsSous(f, ici, forme, valeur, tenus), valeur, ici), ...retirer];
   const a = argumentDeValeur(f, valeur, ici);
   const aucune = a.saisie === 'choix' && f.nullable ? [bouton(`${id}/aucune`, t('ecran.formulaire.valeur.aucune'), ecrire(ecrivain, ici), valeur === undefined)] : [];
   return [elementDeValeur(id, ecrivain, ici, f, a), ...(a.saisie === 'choix' ? aucune : retirer)];
@@ -227,7 +228,8 @@ function elementsDeLUnion(ecrivain: EcrivainDuFormulaire, f: FieldDesc, valeur: 
 
 /** Les éléments du champ liste `f` (`elementDuNoeud`), de valeur `valeur`, au chemin `ici` : présente, son libellé puis
  *  chacun de ses éléments, au chemin de son rang (`champDeLElement`), la clé qui l'identifie à son libellé
- *  (`cleDeLElement`, sinon son identifiant s'il en porte un, #3606), ses éléments, « Retirer » et, hors du premier,
+ *  (`cleDeLElement`, sinon son identifiant s'il en porte un, #3606), ses éléments hors de l'identité que la liste tient
+ *  (`identiteTenue`), « Retirer » et, hors du premier,
  *  « Monter » ; puis « Ajouter » (`ajoutALaListe`). Chaque bouton écrit la liste entière (`gestesDeLaListe`). Une liste
  *  à laquelle rien ne s'ajoute (un élément récursif, sans valeur neuve ni choix) : la saisie de sa valeur entière
  *  (`argumentDeValeur`), en JSON. Une liste que son contexte n'écrit pas entière (`ContexteDuChamp.ecrivable`) : son
@@ -241,14 +243,14 @@ function elementsDeLaListe(ecrivain: EcrivainDuFormulaire, f: FieldDesc, valeur:
     const cle = cleDeLElement(f.noeud, e) ?? (estObjet(e) && typeof e.id === 'string' ? e.id : undefined);
     return cle === undefined ? rangee : { ...rangee, label: t('ecran.formulaire.valeur.elementCle', { libelle: rangee.label, id: cle }) };
   };
-  if (!(f.contexte?.ecrivable(ici, valeur) ?? true)) return [ligne(id, f.label), ...liste.flatMap((e, rang) => elementsDuChamp(ecrivain, champ(e, rang), e, [...ici, rang])), ...ajoutAuRangNeuf(ecrivain, f, [...ici, liste.length])];
+  if (!(f.contexte?.ecrivable(ici, valeur) ?? true)) return [ligne(id, f.label), ...liste.flatMap((e, rang) => elementsDuChamp(ecrivain, champ(e, rang), e, [...ici, rang], identiteTenue(f.noeud, e))), ...ajoutAuRangNeuf(ecrivain, f, [...ici, liste.length])];
   const element = elementDuNoeud(f.noeud);
   const gestes = gestesDeLaListe(liste, valeurNeuveDe(element));
   const elements = liste.flatMap((e, rang) => {
     const { label } = champ(e, rang);
     const { retirer, monter } = gestes.elements[rang];
     return [
-      ...elementsDuChamp(ecrivain, champ(e, rang), e, [...ici, rang]),
+      ...elementsDuChamp(ecrivain, champ(e, rang), e, [...ici, rang], identiteTenue(f.noeud, e)),
       bouton(`${id}/${rang}/retirer`, t('ecran.formulaire.valeur.retirer', { libelle: label }), ecrire(ecrivain, ici, retirer)),
       ...(monter ? [bouton(`${id}/${rang}/monter`, t('ecran.formulaire.valeur.monter', { libelle: label }), ecrire(ecrivain, ici, monter))] : []),
     ];

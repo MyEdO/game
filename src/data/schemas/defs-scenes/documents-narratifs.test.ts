@@ -77,7 +77,7 @@ describe('registre `documents` — un registre narratif comme les autres (table 
 
   it('un id de document qui résout dans la règle globale est refusé, nommé', () => {
     expect(fautes(narratif({ documents: [ENTREE_DE.documents('gobelin')] }), narratifSchema)).toEqual([
-      'document « gobelin » › identifiant :: l\'id de document « gobelin » collisionne avec un id de la règle globale (créature/possession).',
+      'document « gobelin » › identifiant :: l\'id de document « gobelin » collisionne avec un id de la règle globale (créature, possession, véhicule ou structure).',
     ]);
   });
 

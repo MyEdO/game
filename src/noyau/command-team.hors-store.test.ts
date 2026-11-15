@@ -91,15 +91,15 @@ describe('(B) teamCommandTargets / canAidTeam — disponibilité', () => {
 
   it('un chef servant une Arme d’équipe À PORTÉE de voix → cible offerte ; canAidTeam vrai', () => {
     const { commander, chief, all } = setup({ x: 9, y: 6 }); // 2 cases du chef → 4 m ≤ 50
-    const targets = teamCommandTargets(commander, all);
+    const targets = teamCommandTargets(null, commander, all);
     expect(targets.map((c) => c.id)).toContain(chief.id);
-    expect(canAidTeam(commander, all)).toBe(true);
+    expect(canAidTeam(null, commander, all)).toBe(true);
   });
 
   it('chef HORS portée de voix → aucune cible ; canAidTeam faux', () => {
     const { commander, all } = setup({ x: 39, y: 39 }); // très loin (> 25 cases)
-    expect(teamCommandTargets(commander, all)).toHaveLength(0);
-    expect(canAidTeam(commander, all)).toBe(false);
+    expect(teamCommandTargets(null, commander, all)).toHaveLength(0);
+    expect(canAidTeam(null, commander, all)).toBe(false);
   });
 
   it('sans Talent → canAidTeam faux même à portée d’un chef', () => {
@@ -108,7 +108,7 @@ describe('(B) teamCommandTargets / canAidTeam — disponibilité', () => {
     const noTalent = mkCommander('cmd', { x: 9, y: 6 }, {}, false);
     const all = [mkEmplacement(poste), noTalent, chief];
     applyShipPostes(all);
-    expect(canAidTeam(noTalent, all)).toBe(false);
+    expect(canAidTeam(null, noTalent, all)).toBe(false);
   });
 });
 
@@ -205,16 +205,16 @@ describe('(E) combat-portee-voix-m — la règle éditable pilote la portée', (
   it('défaut 50 m : un chef à 60 m est hors de portée ; porter la règle à 100 m l’offre', () => {
     const { commander, all } = setup({ x: 37, y: 6 }); // 30 cases → 60 m
     expect(voiceCommandRangeM()).toBe(50);
-    expect(teamCommandTargets(commander, all)).toHaveLength(0);
+    expect(teamCommandTargets(null, commander, all)).toHaveLength(0);
     setRule('combat-portee-voix-m', 100);
     expect(voiceCommandRangeM()).toBe(100);
-    expect(teamCommandTargets(commander, all).map((c) => c.id)).toContain('chief');
+    expect(teamCommandTargets(null, commander, all).map((c) => c.id)).toContain('chief');
   });
 
   it('réduire la règle à 4 m retire un chef qui était offert à 10 m', () => {
     const { commander, all } = setup({ x: 12, y: 6 }); // 5 cases → 10 m
-    expect(teamCommandTargets(commander, all).map((c) => c.id)).toContain('chief');
+    expect(teamCommandTargets(null, commander, all).map((c) => c.id)).toContain('chief');
     setRule('combat-portee-voix-m', 4);
-    expect(teamCommandTargets(commander, all)).toHaveLength(0);
+    expect(teamCommandTargets(null, commander, all)).toHaveLength(0);
   });
 });

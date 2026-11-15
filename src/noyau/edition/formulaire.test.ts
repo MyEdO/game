@@ -36,7 +36,7 @@ import {
 import { emptyWorldMap, type WorldMap } from '../worldMap';
 import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
-import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
+import { givePossessionSchema, playSfxSchema } from '../../data/schemas/defs-scenes/effets';
 import { entree as objetDeCampagneSchema } from '../../data/schemas/defs/trappings';
 import {
   bornesAuPoint,
@@ -45,10 +45,10 @@ import {
   champsDuRecord,
   champsOfferts,
   choixDuNoeud,
-  cleOfferte,
   clesPosees,
   elementDuNoeud,
   formeAuPoint,
+  identiteTenue,
   inferFields,
   kindDuNoeud,
   unionDuNoeud,
@@ -56,16 +56,18 @@ import {
   type FieldDesc,
 } from '../codex/editFields';
 import { ouverts } from '../../data/schemas/grammaire/descente';
+import { listeCle } from '../../data/schemas/grammaire/collection-cle';
 import { tableTotale } from '../../lib/tableTotale';
 import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
 import { conditionSchema, flowTestSchema, OP_DEFS, OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
-import { idDe, idsDe, idsDeLaSousListe, refOuSpec } from '../../data/schemas/grammaire/ref';
+import { idDe, idsDe, idsDeLaSousListe, refOuSpec, TYPES, type TypeEntite } from '../../data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../../data/schemas/grammaire/sousListes';
+import { VOCABULAIRES } from '../../data/schemas/grammaire/vocabulaires';
 import { CONDITION_TOUJOURS, recast, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { DIFFICULTY_LABELS } from '../../engine/types';
 import type { Condition } from '../../engine/flowCore';
 import type { GameOp } from '../../engine/ops';
-import { choixDeLaFeuilleDId, creatureSemee, findCreatureById } from '../../data';
+import { choixDeLaFeuilleDId, creatureSemee, findCreatureById, seaPerils } from '../../data';
 import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
 import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
 import { trappingRefSchema } from '../../data/schemas/grammaire/reference';
@@ -137,7 +139,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
     expect(unionDuNoeud(champ(champs, z, 'crossTest', 'gate').noeud)?.discriminant).toBe('kind');
     expect(valeurNeuveDe(elementDuNoeud(champ(champs, z, 'crossTest', 'difficultyBy').noeud))).toEqual({ cond: CONDITION_TOUJOURS, difficulty: 'tresFacile' });
     const enjeu = champ(champs, z, 'crossTest', 'stake');
-    expect([champsDeclares(enjeu.noeud), unionDuNoeud(enjeu.noeud)?.variantes.map((v) => v.cle), elementDuNoeud(enjeu.noeud)], 'une union sans discriminant se choisit par ses branches, de clé leur rang').toEqual([undefined, ['0', '1', '2'], undefined]);
+    expect([champsDeclares(enjeu.noeud), unionDuNoeud(enjeu.noeud)?.variantes.map((v) => v.cle), elementDuNoeud(enjeu.noeud)], 'une union sans discriminant se choisit par ses branches, de clé leur rang').toEqual([undefined, ['0', '1'], undefined]);
   });
 
   it('une référence se choisit dans la sous-liste que sa feuille déclare', () => {
@@ -169,6 +171,13 @@ describe('la description du formulaire d’une zone d’effet', () => {
     const u = unionDuNoeud(noeud)!;
     expect(varianteCourante(u, valeur)).toMatchObject({ cle: 'statusMod', noeud: undefined });
     expect(formeAuPoint(noeud, valeur)).toBeUndefined();
+  });
+});
+
+describe('la référence au catalogue d’un type', () => {
+  it('s’offre en choix pour tout type : les ids qu’admet sa validation, chacun au libellé de son entrée', () => {
+    for (const type of Object.keys(TYPES) as TypeEntite[]) expect(choixDuNoeud(idDe(type))?.map((o) => o.valeur).sort(), type).toEqual([...idsDe(type)].sort());
+    expect(choixDuNoeud(idDe('seaHazard'))).toEqual(seaPerils.hazards.map((h) => ({ valeur: h.id, libelle: h.label })));
   });
 });
 
@@ -230,9 +239,15 @@ describe('la valeur neuve d’un nœud', () => {
 describe('l’écriture bornée par le formulaire', () => {
   const schema = z.strictObject({ a: z.strictObject({ id: z.string(), n: z.number().optional(), b: z.strictObject({ m: z.number().optional() }).optional() }).optional() });
 
-  it('refuse une clé `id` d’identité, qui se change par son geste dédié ; une référence `idDe` s’écrit', () => {
-    expect(avecLaValeur(schema, { a: { id: 'x' } }, ['a', 'id'], 'y')).toEqual({ ok: false, refus: 'nonOffert' });
+  it('une clé `id` hors de toute liste-clé est une désignation, qui s’écrit ; la clé d’une liste-clé est une identité, qui se change par son geste dédié, sauf la référence', () => {
+    expect(avecLaValeur(schema, { a: { id: 'x' } }, ['a', 'id'], 'y')).toEqual({ ok: true, valeur: { a: { id: 'y' } } });
     expect(avecLaValeur(schema, { a: { id: 'x' } }, ['a', 'n'], 2)).toEqual({ ok: true, valeur: { a: { id: 'x', n: 2 } } });
+    const identifiee = z.strictObject({ l: listeCle(z.strictObject({ nom: z.string(), n: z.number().optional() }), 'nom').optional() });
+    expect([avecLaValeur(identifiee, { l: [{ nom: 'x' }] }, ['l', 0, 'nom'], 'y'), avecLaValeur(identifiee, { l: [{ nom: 'x' }] }, ['l', 0, 'n'], 2)])
+      .toEqual([{ ok: false, refus: 'nonOffert' }, { ok: true, valeur: { l: [{ nom: 'x', n: 2 }] } }]);
+    const [premiere, seconde] = choixDeLaFeuilleDId({ type: 'skill' });
+    const designee = z.strictObject({ l: listeCle(z.strictObject({ skill: idDe('skill') }), 'skill').optional() });
+    expect(avecLaValeur(designee, { l: [{ skill: premiere.id }] }, ['l', 0, 'skill'], seconde.id), 'la clé qui est une référence se choisit').toEqual({ ok: true, valeur: { l: [{ skill: seconde.id }] } });
   });
 
   it('un conteneur vidé par le retrait de son dernier champ part avec lui, de proche en proche, tant que son absence est admise', () => {
@@ -638,7 +653,7 @@ function saisiesDesFormulaires(): Map<string, string> {
   const saisies = new Map<string, string>();
   const vus = new Set<unknown>();
   const sous = (noeud: unknown, tenus: readonly string[] = []): FieldDesc[] => (champsDeclares(noeud) ?? [])
-    .filter(([cle, n]) => !tenus.includes(cle) && cleOfferte(cle, n))
+    .filter(([cle]) => !tenus.includes(cle))
     .map(([cle, n]) => inferFields([{}], { noeud, niveau: 'profondeur' }).find((c) => c.key === cle) ?? { key: cle, label: cle, kind: kindDuNoeud(cle, n), nullable: true, noeud: n });
   const objet = (noeud: unknown, f: FieldDesc, chemin: string, tenus: readonly string[] = []) => {
     if (vus.has(noeud)) return;
@@ -654,7 +669,7 @@ function saisiesDesFormulaires(): Map<string, string> {
     if (champsDeclares(f.noeud)) return objet(f.noeud, f, chemin, tenus);
     const u = unionDuNoeud(f.noeud);
     if (u) {
-      if (!tenus.length) saisies.set(chemin, 'variantes');
+      if (!chemin.endsWith('>')) saisies.set(chemin, 'variantes');
       if (vus.has(u.noeud)) return;
       vus.add(u.noeud);
       for (const v of u.variantes) {
@@ -670,7 +685,7 @@ function saisiesDesFormulaires(): Map<string, string> {
     const element = elementDuNoeud(f.noeud);
     if (element !== undefined) {
       saisies.set(chemin, valeurNeuveDe(element) !== undefined || choixDuNoeud(element) ? 'ajouter' : 'json');
-      if (!vus.has(element)) champ({ ...champDeLElement(f, 0), contexte: f.contexte }, `${chemin}/0`);
+      if (!vus.has(element)) champ({ ...champDeLElement(f, 0), contexte: f.contexte }, `${chemin}/0`, identiteTenue(f.noeud, undefined));
       return;
     }
     if (clesPosees(f, segmentsDe(chemin))) {
@@ -780,11 +795,43 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     expect(unionDuNoeud(new Map(champsDeclares(objetDeCampagneSchema)).get('price'))?.variantes.map((v) => v.libelle)).toEqual(['montant', 'non disponible']);
   });
 
-  it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée et chaque op non typée', () => {
-    expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual([
-      'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters',
-      ...OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`),
-    ].sort());
+  it('une référence à un vocabulaire se choisit parmi ses ids, nommés par sa table ; les rencontres d’une bataille rangée s’ajoutent par activité offerte, chacune désignée comme la rencontre d’un `startCombat` (#4234)', () => {
+    const rencontres = 'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters';
+    const attendues: Record<string, string> = {
+      'declencheur/flow<kind=effet>/effet<type=playSfx>/id': 'choix',
+      'lieu/backdrop/id': 'choix',
+      'lieu/market/backdrop/id': 'choix',
+      [rencontres]: 'ajouter',
+    };
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+    // La rencontre d'une activité est une référence locale à la scène : même saisie que celle d'un `startCombat`.
+    expect(saisies.get(`${rencontres}/${choixDeLaFeuilleDId({ type: 'activity' })[0].id}/id`)).toBe(saisies.get('declencheur/flow<kind=effet>/effet<type=startCombat>/encounter/id'));
+    expect(choixDuNoeud(idDe('son'))).toEqual(Object.entries(VOCABULAIRES.sons).map(([valeur, libelle]) => ({ valeur, libelle })));
+    expect(choixDuNoeud(idDe('colonneDuMarchand'))).toEqual(Object.entries(VOCABULAIRES.colonnesDuMarchand).map(([valeur, libelle]) => ({ valeur, libelle })));
+  });
+
+  it('la carrière et l’espèce d’une Condition se choisissent à leur catalogue (#4234)', () => {
+    const attendues: Record<string, string> = {
+      'zone/crossTest/gate<kind=career>/id': 'choix',
+      'zone/crossTest/gate<kind=species>/id': 'choix',
+    };
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+  });
+
+  it('la carrière et l’espèce d’une Condition, le son d’un effet refusent au parse un id hors de leur catalogue (#4234)', () => {
+    const [son] = idsDe('son');
+    expect([
+      conditionSchema.safeParse({ kind: 'career', id: 'soldat' }).success,
+      conditionSchema.safeParse({ kind: 'career', id: 'inconnue' }).success,
+      conditionSchema.safeParse({ kind: 'species', id: 'halflings' }).success,
+      conditionSchema.safeParse({ kind: 'species', id: 'inconnue' }).success,
+      playSfxSchema.safeParse({ type: 'playSfx', id: son }).success,
+      playSfxSchema.safeParse({ type: 'playSfx', id: 'inconnu' }).success,
+    ]).toEqual([true, false, true, false, true, false]);
+  });
+
+  it('se saisit encore en JSON EXACTEMENT : chaque op non typée', () => {
+    expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual(OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`).sort());
   });
 });
 

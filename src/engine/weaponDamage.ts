@@ -125,9 +125,12 @@ export function improvisedProfile(w: Weapon, resolveTrapping: ResolveTrapping = 
   // `resolveQualities` réinjecterait les qualités de FAMILLE du Groupe (ex. Rapide/Empaleuse d'Escrime).
   // `subType`/`weaponGroup` restent INTACTS : `combatValue`/`talentDamageBonus` (lus par `subType`)
   // doivent voir la MÊME Spé qu'avant improvisation (une arme usée reste de son Groupe pour la
-  // compétence, seules ses qualités changent).
+  // compétence, seules ses qualités changent). Une arme qui « n'est plus identifiable » perd aussi ses
+  // effets propres de catalogue (`passifDArme`, `onHitEffects`). LDB 62 l.135
   return {
     ...w,
+    passifDArme: undefined,
+    onHitEffects: undefined,
     damage: { ...t.damage },
     qualities: (t.qualities ?? []).map(qualityInstance),
     reach: t.reach ?? undefined,

@@ -842,11 +842,16 @@ export function conditionModLines(c: Combatant, ctx: EtatTestCtx = {}): ModLine[
   return combatTestPenaltyParts(c, ctx);
 }
 
+/** Contexte d'une attaque pour `attackModifiers` : une distance mesurée (`distanceTiles`, en cases) voyage avec
+ *  l'échelle de sa scène (`metresPerTile`, `sceneMetresPerTile`), LDB 15 l.12. */
+export type AttackModOpts = { kind: 'melee' | 'distance'; location?: HitLocation | null; env?: ModLine[]; flankRear?: boolean }
+  & ({ distanceTiles?: undefined } | { distanceTiles: number; metresPerTile: number });
+
 export function attackModifiers(
   attacker: Combatant,
   target: Combatant | null,
   weapon: Weapon,
-  opts: { kind: 'melee' | 'distance'; location?: HitLocation | null; distanceTiles?: number; env?: ModLine[]; flankRear?: boolean; metresPerTile?: number },
+  opts: AttackModOpts,
 ): ModLine[] {
   const out: ModLine[] = [];
   const adv = advantageModLine(attacker);
@@ -1414,25 +1419,25 @@ export function resolveMelee(
 
 /** Bande de portée applicable : la première rangée de `portee-d-une-arme` (`LDB 62 l.196-206`, `LDB 14
  *  l.50-86`) dont le plafond, en facteur de la Portée `rangeMeters`, contient la distance ; `undefined` au-delà.
- *  `metresPerTile` = échelle de la Scène (défaut 2 m/case, `LDB 15 l.12`, PUR — jamais lu depuis l'état de jeu). */
-function rangeBandAt(distanceTiles: number, rangeMeters: number, metresPerTile = 2): RangeeDeRegleData | undefined {
+ *  `metresPerTile` = échelle de la Scène (`sceneMetresPerTile`), LDB 15 l.12. */
+function rangeBandAt(distanceTiles: number, rangeMeters: number, metresPerTile: number): RangeeDeRegleData | undefined {
   const m = distanceTiles * metresPerTile;
   return rangeesDeRegle('portee-d-une-arme').find((b) => m <= rangeMeters * b.plafond!);
 }
 
 /** Modificateur de portée d'un tir ; null si hors de portée. */
-export function rangeBandModifier(distanceTiles: number, rangeMeters: number, metresPerTile = 2): number | null {
+export function rangeBandModifier(distanceTiles: number, rangeMeters: number, metresPerTile: number): number | null {
   const b = rangeBandAt(distanceTiles, rangeMeters, metresPerTile);
   return b ? modDeRangee(b) : null;
 }
 
 /** Nom de la bande de portée — pour l'affichage. */
-export function rangeBandName(distanceTiles: number, rangeMeters: number, metresPerTile = 2): string | null {
+export function rangeBandName(distanceTiles: number, rangeMeters: number, metresPerTile: number): string | null {
   return rangeBandAt(distanceTiles, rangeMeters, metresPerTile)?.label ?? null;
 }
 
 /** id STABLE de la bande de portée courante (≠ libellé) ; null si hors de portée. */
-export function rangeBandId(distanceTiles: number, rangeMeters: number, metresPerTile = 2): RangeBandId | null {
+export function rangeBandId(distanceTiles: number, rangeMeters: number, metresPerTile: number): RangeBandId | null {
   return (rangeBandAt(distanceTiles, rangeMeters, metresPerTile)?.id as RangeBandId | undefined) ?? null;
 }
 
@@ -1440,7 +1445,7 @@ export function rangeBandId(distanceTiles: number, rangeMeters: number, metresPe
  *  siège ADE II 8 l.251/253 : « à Bout Portant » / « distance inférieure à leur Portée Courte ») ? C'est
  *  un REFUS, pas un malus. `false` si l'arme n'a pas de minimale, ou si la cible est HORS de portée (autre
  *  gate) — on ne refuse QUE parce qu'elle est trop proche. */
-export function belowMinRangeBand(distanceTiles: number, rangeMeters: number, minBand: RangeBandId, metresPerTile = 2): boolean {
+export function belowMinRangeBand(distanceTiles: number, rangeMeters: number, minBand: RangeBandId, metresPerTile: number): boolean {
   const cur = rangeBandId(distanceTiles, rangeMeters, metresPerTile);
   if (cur == null) return false; // hors de portée : géré ailleurs, pas « trop proche »
   const ordre: readonly RangeBandId[] = RANGEES_DE_REGLE['portee-d-une-arme'];
@@ -1462,7 +1467,7 @@ export function rangedDefenseModes(
   weapon: Weapon,
   distanceTiles: number | undefined,
   los: boolean,
-  metresPerTile = 2,
+  metresPerTile: number,
 ): ('parade' | 'esquive')[] {
   if (cannotDefend(defender)) return []; // Surpris / À Terre… : pas de réaction (LDB 16)
   const modes = new Set<'parade' | 'esquive'>();
@@ -1482,8 +1487,8 @@ export function bestRangedDefense(
   defender: Combatant,
   weapon: Weapon,
   distanceTiles: number | undefined,
-  los = true,
-  metresPerTile = 2,
+  los: boolean,
+  metresPerTile: number,
 ): { mode: 'parade' | 'esquive'; parryWeapon?: Weapon } | undefined {
   const modes = rangedDefenseModes(attacker, defender, weapon, distanceTiles, los, metresPerTile);
   if (!modes.length) return undefined;
@@ -1499,11 +1504,11 @@ export function resolveRanged(
   defender: Combatant,
   weapon: Weapon,
   rng: RNG,
-  distanceTiles?: number,
-  location?: HitLocation,
-  env: ModLine[] = [],
-  defense?: { mode: 'parade' | 'esquive'; parryWeapon?: Weapon; dodgeMods?: ModLine[] },
-  metresPerTile = 2,
+  distanceTiles: number | undefined,
+  location: HitLocation | undefined,
+  env: ModLine[] | undefined,
+  defense: { mode: 'parade' | 'esquive'; parryWeapon?: Weapon; dodgeMods?: ModLine[] } | undefined,
+  metresPerTile: number,
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
   const atkVal = combatValue(attacker, 'distance', weapon);
@@ -1530,10 +1535,10 @@ export function rollRangedAttacker(
   defender: Combatant,
   weapon: Weapon,
   rng: RNG,
-  distanceTiles?: number,
-  location?: HitLocation,
-  env: ModLine[] = [],
-  metresPerTile = 2,
+  distanceTiles: number | undefined,
+  location: HitLocation | undefined,
+  env: ModLine[] | undefined,
+  metresPerTile: number,
 ): TestResult {
   const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile });
   const t = rollTest(combatValue(attacker, 'distance', weapon), 'intermediaire', rng, combineMods(mods));
@@ -1551,12 +1556,12 @@ export function finishRanged(
   def: TestResult,
   defenseMode: DefenseMode, // le tir n'ouvre que Parade/Esquive (cf. rangedDefenseModes) — 'social' n'y parvient jamais
   tirage: TirageDeLocalisation,
-  distanceTiles?: number,
-  location?: HitLocation,
-  env: ModLine[] = [],
-  parryWeapon?: Weapon,
-  dodgeMods: ModLine[] = [],
-  metresPerTile = 2,
+  distanceTiles: number | undefined,
+  location: HitLocation | undefined,
+  env: ModLine[] | undefined,
+  parryWeapon: Weapon | undefined,
+  dodgeMods: ModLine[] | undefined,
+  metresPerTile: number,
   compo?: DifficultyComposition, // Difficulté FIGÉE par le jet d'origine (#1153 L4) ; absente = composée ici
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {

@@ -64,10 +64,10 @@ import { sizeGap } from '../engine/size';
 /** Op d'attaque gratuite (Frénésie/talent) — narrowing partagé. */
 type GrantFreeAttackOp = Extract<GameOp, { op: 'grantFreeAttack' }>;
 import { distanceDeContact } from './monde/footprint';
-import type { Scene } from './monde/scene';
+import { sceneMetresPerTile, type Scene } from './monde/scene';
 import { type Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
-import { combatantsWithinRadius } from './monde/combatGeometry';
+import { combatantsWithinRadius, porteeEnCases } from './monde/combatGeometry';
 import { smokeZone } from './monde/lineOfSight';
 import { clampZoneTiles, discTiles } from './monde/zones';
 import { applyTriggeredEffects, maneuverEffects } from './triggeredEffects';
@@ -381,8 +381,6 @@ function measureMeters(spec: ManeuverMeasure | undefined, ref: Combatant): numbe
   const m = (spec.bonusOf ? bonusDe(ref, spec.bonusOf) : 0) + (spec.plus ?? 0);
   return m > 0 ? m : null;
 }
-/** Mètres → CASES (grille 2 m/case), min 1 ; null conservé. */
-const tilesOf = (meters: number | null): number | null => (meters == null ? null : Math.max(1, Math.ceil(meters / 2)));
 
 /** Jet du DÉFENSEUR opposé à la manœuvre, selon `def.defense`. `null` = pas d'opposition (Résistance/
  *  auto sans jet — le `test` op de l'effet roule lui-même, Hurlement). 'init' = Initiative (Regard) ;
@@ -408,20 +406,21 @@ function emitAoe(get: Get, de: string, center: Pt, radius: number, rendu: string
  *  d'impact ou de population) — pure, partagée par la résolution (`resolveManeuver`) et l'affichage
  *  (`maneuverDefensePending`). `chosenTarget` = clic joueur ; absent ou écarté → le plus proche. */
 interface CiblesDeManoeuvre { affected: Combatant[]; center: Combatant | null; blast?: number; radius?: number }
-function ciblesDeManoeuvre(battle: BattleState, attacker: Combatant, def: ManeuverDef, chosenTarget?: Combatant): CiblesDeManoeuvre {
+function ciblesDeManoeuvre(scene: Scene | null, battle: BattleState, attacker: Combatant, def: ManeuverDef, chosenTarget?: Combatant): CiblesDeManoeuvre {
+  const mpt = sceneMetresPerTile(scene);
   const alive = (c: Combatant) => c.kind !== attacker.kind && !isOutOfAction(c) && !!c.pos;
   const inPlay = (c: Combatant) => c.id !== attacker.id && !isOutOfAction(c) && !!c.pos; // population SANS camp (`toutAutour`)
   const nearest = (cands: Combatant[]) => cands.reduce((p, c) => (chebyshev(attacker.pos!, p.pos!) <= chebyshev(attacker.pos!, c.pos!) ? p : c));
   if (def.ciblage === 'soi') return { affected: [], center: null };
   if (def.ciblage === 'zone') {
-    const rangeTiles = tilesOf(measureMeters(def.range, attacker)) ?? Math.max(1, Math.ceil(bonus(effectiveChar(attacker, 'endurance')) / 2));
+    const rangeTiles = porteeEnCases(measureMeters(def.range, attacker) ?? bonus(effectiveChar(attacker, 'endurance')), mpt);
     const foes = combatantsWithinRadius(attacker.pos!, rangeTiles, battle.combatants, alive);
     const center = chosenTarget && alive(chosenTarget) && chebyshev(attacker.pos!, chosenTarget.pos!) <= rangeTiles
       ? chosenTarget : foes[0] ?? null; // `foes` est trié par distance (combatantsWithinRadius) → le plus proche d'abord
     if (!center) return { affected: [], center: null };
     // Rayon de Souffle : `blast` résolu contre la CIBLE au centre (« Bonus de Force » → BF de la cible, RAW l.251 ;
     // Vomi « 2 mètres » → littéral, 1 case). Aucune regex `/force/i` — la mesure structurée porte le référent.
-    const blast = tilesOf(measureMeters(def.blast, center)) ?? 1;
+    const blast = porteeEnCases(measureMeters(def.blast, center) ?? 0, mpt);
     return { affected: combatantsWithinRadius(center.pos!, blast, battle.combatants, alive), center, blast };
   }
   if (def.ciblage === 'adversairesAutour' || def.ciblage === 'toutAutour') {
@@ -433,7 +432,7 @@ function ciblesDeManoeuvre(battle: BattleState, attacker: Combatant, def: Maneuv
     // l.11 : « effectuer une attaque gratuite de hurlement contre ses ennemis »).
     // « créatures vivantes » exclut aussi l'objet INANIMÉ (structure de siège, véhicule-coque) — dans les
     // DEUX populations : un chariot n'entend pas un hurlement.
-    const radius = Math.max(1, Math.ceil(effectiveChar(attacker, 'initiative') / 2));
+    const radius = porteeEnCases(effectiveChar(attacker, 'initiative'), mpt);
     const pop = def.ciblage === 'toutAutour' ? inPlay : alive;
     const affected = combatantsWithinRadius(attacker.pos!, radius, battle.combatants, (c) => pop(c) && !isInanimate(c) && !traitCapability(c.traits, 'undead'));
     return { affected, center: null, radius };
@@ -464,7 +463,7 @@ export function maneuverDefensePending(s: Jeu): boolean {
   const def = attaqueDeCle(attacker.traits ?? [], pm.attaque)?.def;
   if (!def) return false;
   const chosen = pm.targetId ? inBattleId(battle, pm.targetId) : undefined;
-  return defenseursSurfacesDeManoeuvre(s, def, pm.result, ciblesDeManoeuvre(battle, attacker, def, chosen).affected).length > 0;
+  return defenseursSurfacesDeManoeuvre(s, def, pm.result, ciblesDeManoeuvre(s.scene, battle, attacker, def, chosen).affected).length > 0;
 }
 
 /**
@@ -524,7 +523,7 @@ export function resolveManeuver(
 
   // Cibles AFFECTÉES (`ciblesDeManoeuvre`, la géométrie partagée avec l'affichage) + émissions propres
   // à la géométrie.
-  const { affected, center, blast, radius } = ciblesDeManoeuvre(battle, attacker, def, chosenTarget);
+  const { affected, center, blast, radius } = ciblesDeManoeuvre(get().scene, battle, attacker, def, chosenTarget);
   if (def.ciblage === 'zone') {
     if (!center) { flushLog(); return false; }
     faceTarget(center); // le centre de la zone = ce que l'attaquant vise (cliqué, ou recentré sur le plus proche)
