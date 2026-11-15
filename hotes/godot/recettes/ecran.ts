@@ -410,7 +410,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
     'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],
     'groupe.heros': [], 'fiche.porteur': [], 'fiche.gestes': [], 'fiche.profil': [], 'fiche.sections': [], 'fiche.source': [], 'fiche.objet': [],
-    'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [], 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': [],
+    'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [], 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': [], 'partie.menu': [],
   };
   const atelier = unPont([]);
   s = viderLesFenetres(atelier.jouer, atelier.jouer('demarrer', { scenario: 'marche-equipement', graine: 7 }));

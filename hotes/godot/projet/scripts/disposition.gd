@@ -7,7 +7,11 @@ extends Node
 ## @contrat L'écran de Godot
 ## L'écran (`projet/scenes/Ecran.tscn`) se partage en trois : le journal à droite, le groupe au pied, et la scène
 ## (`Scene`), l'espace qui reste, que la fiche ouverte rétrécit à sa gauche, où se posent la disposition, le tour, l'actif
-## et le dialogue, et où se cadre le monde (`Monde.cadre`) ; rien ne recouvre le groupe ni le journal. Une disposition
+## et le dialogue, et où se cadre le monde (`Monde.cadre`) ; rien ne recouvre le groupe ni le journal. Le coin bas-droit
+## de la fenêtre est réservé à la pastille du menu de la partie (`partie.menu`, `projet/scenes/MenuDeLaPartie.tscn`), qui
+## ouvre au-dessus d'elle les gestes du groupe et de la partie (`groupe.gestes`, `partie.gestes`) : le journal s'arrête
+## au-dessus d'elle (`Droite/Pile/Coin`), et, le journal caché, le bandeau des héros lui laisse sa largeur à droite
+## (`coin_du_pied`) ; aucune disposition ne pose ces gestes. Une disposition
 ## qui range elle-même les lignes du journal (`journal.lignes`) le tient dans sa scène : son panneau se cache et la
 ## scène prend sa largeur. Les zones de la
 ## fenêtre vivent dans sa disposition, une scène d'éditeur sans script que le nœud `Disposition`
@@ -76,6 +80,8 @@ const LIGNES_DU_JOURNAL := "journal.lignes"
 
 ## Le panneau du journal de l'écran, caché sous une disposition qui range elle-même ses lignes.
 @export var journal: Control
+## La place que le bandeau des héros réserve à droite au menu de la partie, tenue quand le journal est caché.
+@export var coin_du_pied: Control
 
 ## Le chemin de la scène posée, `""` avant la première.
 var scene := ""
@@ -95,5 +101,6 @@ func disposer(disposition: Variant) -> bool:
 	_posee = load(chemin).instantiate()
 	add_sibling(_posee)
 	journal.visible = not Zone.racines(_posee).any(func(zone: Zone) -> bool: return zone.source == LIGNES_DU_JOURNAL)
+	coin_du_pied.visible = not journal.visible
 	scene = chemin
 	return true

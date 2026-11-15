@@ -1,3 +1,5 @@
+import type { CadreDef } from './types';
+
 /**
  * Le dessin d'un cadre rond (#3935) : un carré du cadre des cadres aux angles arrondis au rayon `RAYON`, que ses
  * tranches de `RAYON` découpent en quatre quarts de disque ; tracé à `2 × RAYON` de côté, ses bords et son centre
@@ -28,3 +30,20 @@ export const reflet = (retrait: number, couleur: string, opacite: number) => {
   const point = (degres: number) => [RAYON + r * Math.cos((degres * Math.PI) / 180), RAYON + r * Math.sin((degres * Math.PI) / 180)].map((v) => v.toFixed(2)).join(' ');
   return `<path d="M${point(200)} A${r} ${r} 0 0 1 ${point(250)}" fill="none" stroke="var(${couleur})" stroke-width="1.5" stroke-linecap="round" opacity="${opacite}"/>`;
 };
+
+/** Une pastille (#3935) : le listel bombé d'un disque de `metal` (`clair` en haut à gauche, `sombre` en bas à droite,
+ *  inversés quand la pastille est `enfoncee`), son champ en creux de `champ`, un reflet sur le listel. */
+export const pastille = (id: string, label: string, champ: string, clair: string, metal: string, sombre: string, enfoncee = false): CadreDef => ({
+  id,
+  label,
+  tranches: [RAYON, RAYON, RAYON, RAYON],
+  svg:
+    moities(id) +
+    `<rect ${contour(0)} fill="var(${sombre})"/>` +
+    `<rect ${contour(1)} fill="var(${metal})"/>` +
+    anneau(id, 1.5, enfoncee ? sombre : clair, enfoncee ? clair : sombre, 0.9) +
+    `<rect ${contour(4)} fill="var(--shadow-ink)"/>` +
+    `<rect ${contour(5)} fill="var(${champ})"/>` +
+    anneau(id, 5.5, '--shadow-ink', clair, 0.6) +
+    (enfoncee ? '' : reflet(2, clair, 0.9)),
+});

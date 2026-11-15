@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Theme" path="res://art/jour.tres" id="t_jour"]
@@ -6,7 +6,6 @@
 [ext_resource type="Theme" path="res://art/titre_du_recit.tres" id="t_titre_du_recit"]
 [ext_resource type="Theme" path="res://art/etape_du_monde.tres" id="t_etape_du_monde"]
 [ext_resource type="Theme" path="res://art/journal.tres" id="t_journal"]
-[ext_resource type="Theme" path="res://art/discret.tres" id="t_discret"]
 [ext_resource type="Texture2D" path="res://art/fondu_de_la_chronique.tres" id="t_fondu"]
 [ext_resource type="Texture2D" path="res://art/fondu_du_paysage.tres" id="t_fondu_du_paysage"]
 
@@ -202,22 +201,6 @@ source = "fenetre.gestes"
 [node name="Vide" type="Control" parent="Cadre/Marges/Scene/Haut/Droite"]
 size_flags_vertical = 3
 mouse_filter = 2
-
-[node name="Groupe" type="HBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite"]
-size_flags_horizontal = 8
-theme = ExtResource("t_discret")
-
-[node name="Heros" type="HBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Groupe"]
-
-[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Groupe/Heros"]
-script = ExtResource("1_zone")
-source = "groupe.gestes"
-
-[node name="Partie" type="HBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Groupe"]
-
-[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Groupe/Partie"]
-script = ExtResource("1_zone")
-source = "partie.gestes"
 
 [node name="Frise" type="MarginContainer" parent="Cadre/Marges/Scene"]
 

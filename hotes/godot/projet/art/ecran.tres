@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=14 format=3]
+[gd_resource type="Theme" load_steps=19 format=3]
 
 [ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
 [ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="5_rubriques"]
@@ -48,6 +48,39 @@ content_margin_bottom = 6.0
 script = ExtResource("2_cadre")
 cadre = "laiton"
 
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_repos"]
+script = ExtResource("2_cadre")
+cadre = "pastille"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_survol"]
+script = ExtResource("2_cadre")
+cadre = "pastille-survol"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_presse"]
+script = ExtResource("2_cadre")
+cadre = "pastille-presse"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_ferme"]
+script = ExtResource("2_cadre")
+cadre = "pastille-ferme"
+
+[sub_resource type="StyleBoxFlat" id="Pastille_focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.85, 0.7, 0.38, 1)
+corner_radius_top_left = 19
+corner_radius_top_right = 19
+corner_radius_bottom_right = 19
+corner_radius_bottom_left = 19
+draw_center = false
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
 [resource]
 Button/styles/normal = ExtResource("b_repos")
 Button/styles/hover = ExtResource("b_survol")
@@ -58,6 +91,13 @@ Cartouche/styles/panel = SubResource("Cartouche")
 CarteDuVoyage/styles/panel = SubResource("Parchemin")
 Fenetre/styles/panel = ExtResource("4_fenetre")
 Parchemin/styles/panel = SubResource("Parchemin")
+Pastille/base_type = &"Button"
+Pastille/styles/normal = SubResource("Pastille_repos")
+Pastille/styles/hover = SubResource("Pastille_survol")
+Pastille/styles/pressed = SubResource("Pastille_presse")
+Pastille/styles/hover_pressed = SubResource("Pastille_presse")
+Pastille/styles/disabled = SubResource("Pastille_ferme")
+Pastille/styles/focus = SubResource("Pastille_focus")
 Portrait/styles/panel = SubResource("Laiton")
 Recit/styles/panel = SubResource("Cadre_du_recit")
 Rubrique/base_type = &"Label"

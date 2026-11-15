@@ -4,8 +4,9 @@ extends SceneTree
 ## l'arbre, l'accueil (`scenes/Accueil.tscn`) publie ses entrées ; « Options » ouvre le panneau des réglages, où une
 ## préférence se règle, au curseur ou au bouton, et repose le volume des bus ; « Jouer » ouvre le combat sur une partie au groupe, sans
 ## scène, ses pré-tirés et ses campagnes montrés ; deux pré-tirés recrutés à leur bouton entrent au groupe, chacun en
-## carte avec son renvoi ; « Lancer » de la Diligence pose sa scène ; « Sauvegardes » ouvre le panneau des
-## emplacements, l'emplacement 1 écrit à son bouton se charge ensuite ; « Quitter la partie » rend l'accueil ;
+## carte avec son renvoi ; « Lancer » de la Diligence pose sa scène et sa pastille du menu de la partie ; « Sauvegardes »
+## du menu ouvre le panneau des emplacements, l'emplacement 1 écrit à son bouton se charge ensuite ; « Quitter la
+## partie » du menu rend l'accueil ;
 ## « Reprendre » montre les sauvegardes, l'automatique gardée en quittant, et l'emplacement 1 chargé rend la partie, son
 ## groupe et sa scène ; quittée, « Jouer » de nouveau, un pré-tiré recruté, l'Arène lancée, sans relancer le processus du
 ## noyau ; quittée, « Jouer » montre au roster le héros créé et engagé par le pont avant le premier clic, « Recruter »
@@ -37,12 +38,11 @@ func _recetter() -> void:
 	var ouvert := await _pont.rejoindre(func(message: String) -> void: _signales.append("refus : " + message), func(message: String) -> void: _signales.append("panne : " + message))
 	var cree := _creer_un_heros() if ouvert else ""
 	if cree != "" and await _regler_a_l_accueil() and await _jouer_une_campagne(2, "la-diligence") and await _sauvegarder_puis_reprendre():
-		_cliquer(_publie("bouton/quitter"))
-		if await _attendre(func() -> bool: return _au_menu(), "l'accueil après « Quitter la partie »"):
+		if await _presser_au_menu("quitter") and await _attendre(func() -> bool: return _au_menu(), "l'accueil après « Quitter la partie »"):
 			print("[campagne] partie quittée : l'accueil")
 			if await _jouer_une_campagne(1, "arene"):
-				_cliquer(_publie("bouton/quitter"))
-				await _composer_du_roster(cree)
+				if await _presser_au_menu("quitter"):
+					await _composer_du_roster(cree)
 	_fautes.append_array(_signales)
 	current_scene.queue_free()
 	await create_timer(Foyer.SON_LIBERE_S).timeout
@@ -160,7 +160,7 @@ func _jouer_une_campagne(nombre: int, campagne: String) -> bool:
 	if not await _attendre(func() -> bool: return _publie("bouton/lancer/" + campagne) != null, "« Lancer » de %s" % campagne):
 		return false
 	_cliquer(_publie("bouton/lancer/" + campagne))
-	if not await _attendre(func() -> bool: return current_scene.get("_vue").projection.scene != null and _publie("bouton/quitter") != null and _renvois() == 0 and _recrues().is_empty(), "la scène de %s, « Quitter la partie » offert, la composition retirée" % campagne):
+	if not await _attendre(func() -> bool: return current_scene.get("_vue").projection.scene != null and _publie("entite/menu") != null and _renvois() == 0 and _recrues().is_empty(), "la scène de %s, le menu de la partie offert, la composition retirée" % campagne):
 		return false
 	vue = current_scene.get("_vue")
 	print("[campagne] %s lancée : scène %s" % [campagne, vue.projection.scene.id])
@@ -276,16 +276,18 @@ func _id_au_roster(nom: String) -> String:
 ## depuis « Reprendre » de l'accueil : si elle revient, son groupe et sa scène ceux d'avant.
 func _sauvegarder_puis_reprendre() -> bool:
 	var avant: Dictionary = current_scene.get("_vue")
-	_cliquer(_publie("bouton/sauvegardes"))
+	if not await _presser_au_menu("sauvegardes"):
+		return false
 	if not await _attendre(func() -> bool: return _publie("bouton/sauvegarder/1") != null, "le panneau des sauvegardes, l'emplacement 1 à écrire"):
 		return false
 	_cliquer(_publie("bouton/sauvegarder/1"))
 	if not await _attendre(func() -> bool: return _publie("bouton/charger/1") != null, "l'emplacement 1 écrit, qui se charge"):
 		return false
 	_cliquer(_publie("bouton/fermer"))
-	if not await _attendre(func() -> bool: return _publie("bouton/fermer") == null and _publie("bouton/quitter") != null, "le panneau fermé sur la partie"):
+	if not await _attendre(func() -> bool: return _publie("bouton/fermer") == null and _publie("entite/menu") != null, "le panneau fermé sur la partie"):
 		return false
-	_cliquer(_publie("bouton/quitter"))
+	if not await _presser_au_menu("quitter"):
+		return false
 	if not await _attendre(func() -> bool: return _au_menu(), "l'accueil après la sauvegarde"):
 		return false
 	_cliquer(_texte("Reprendre"))
@@ -302,12 +304,21 @@ func _sauvegarder_puis_reprendre() -> bool:
 	return true
 
 
-## Si le combat est la scène courante, une partie en scène montrée, « Quitter la partie » publié.
+## Si le combat est la scène courante, une partie en scène montrée, la pastille du menu de la partie publiée.
 func _en_partie() -> bool:
 	if current_scene == null or current_scene.scene_file_path != COMBAT:
 		return false
 	var vue: Dictionary = current_scene.get("_vue")
-	return not vue.is_empty() and vue.projection.scene != null and _publie("bouton/quitter") != null
+	return not vue.is_empty() and vue.projection.scene != null and _publie("entite/menu") != null
+
+
+## Le geste `geste` de la partie pressé dans son menu, ouvert à sa pastille : si le menu l'a offert.
+func _presser_au_menu(geste: String) -> bool:
+	_cliquer(_publie("entite/menu"))
+	if not await _attendre(func() -> bool: return _publie("bouton/" + geste) != null, "« %s » au menu de la partie ouvert" % geste):
+		return false
+	_cliquer(_publie("bouton/" + geste))
+	return true
 
 
 ## Si l'accueil est la scène courante et publie « Jouer ».

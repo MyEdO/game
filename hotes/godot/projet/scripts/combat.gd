@@ -72,6 +72,7 @@ extends Node
 @onready var _scenarios: Control = $Scenarios/Cadre
 @onready var _sauvegardes: Control = $Sauvegardes/Cadre
 @onready var _reglages: PanneauDesReglages = $Reglages
+@onready var _menu: MenuDeLaPartie = $Ecran/Interface/MenuDeLaPartie
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
@@ -111,6 +112,7 @@ func _ready() -> void:
 	for zone in Zone.racines(_sauvegardes):
 		zone.geste.connect(_jouer)
 	_reglages.change.connect(_publier_l_ecran)
+	_menu.change.connect(_publier_l_ecran)
 	var entree := {}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
