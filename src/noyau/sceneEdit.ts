@@ -18,6 +18,7 @@ import {
   type SceneStationAnchor,
   type Dialogue,
   type DialogueChoice,
+  type DialogueNode,
   type Trigger,
   type EncounterDef,
   CellSide,
@@ -51,6 +52,7 @@ import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import type { MapPlace, MapRoute, PlacePoi, WorldMap } from './worldMap';
 import {
   ajouterLieu,
@@ -65,7 +67,7 @@ import {
   type PatchDeCarte,
   type PatchDeRoute,
 } from './worldMapEdit';
-import { t as tr } from '../i18n';
+import { t as tr, type MsgKey } from '../i18n';
 import { nextEntityId } from '../lib/entityId';
 import { creatures, findCreatureById, findPropById, refEstVolumique, semencesDeScene, siegeEngines } from '../data';
 import { siegeEmplacementEntity } from './monde/siegeEmplacement';
@@ -119,7 +121,7 @@ import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { SOUS_ENTREES, ajouteEntree, etatCouvert, indiceCouple, type CorpsNeuf, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
 import type { CibleNarrative } from '../data/schemas/defs-scenes/refs-narratives';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
-import { refusDeRenommage, refusDeRetrait as refusDeRetraitNarratif, renommeAuProjet, retireDuProjet } from './narratifEdit';
+import { refusDId, refusDeRenommage, refusDeRetrait as refusDeRetraitNarratif, renommeAuProjet, retireDuProjet } from './narratifEdit';
 import {
   choixDuChamp,
   DOCUMENTS,
@@ -1096,18 +1098,21 @@ export function addRestZone(scene: Scene, rect: Rect, z = 0): { scene: Scene; id
 
 /** Patche la zone de repos d'indice `idx`. */
 export function patchRestZone(scene: Scene, idx: number, patch: Partial<NonNullable<Scene['restZones']>[number]>): Scene {
-  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? { ...z, ...patch } : z)) };
+  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? (patch.quality ? champ({ ...z, ...patch }, 'quality', qualiteEcrite(patch.quality)) : { ...z, ...patch }) : z)) };
 }
 
+/** `q` telle que le document l'écrit : « normale » est l'absence du champ. */
+const qualiteEcrite = (q: QualiteDeRepos): QualiteDeRepos | undefined => (q === 'normale' ? undefined : q);
+
 /** Ce que l'inspecteur écrit sur la zone sélectionnée (`patchZone`) : sa couche ; d'un déclencheur, s'il ne joue
- *  qu'une fois ; d'une zone de repos, ses lieux et sa qualité piètre ; d'une zone d'effet, son nom, sa nature (`null` :
+ *  qu'une fois ; d'une zone de repos, ses lieux et sa qualité ; d'une zone d'effet, son nom, sa nature (`null` :
  *  non déclarée), sa forme, son emprise rendue pleine (`clearEffectZoneCarve`), si elle masque la ligne de vue et si
  *  elle barre le passage ; d'un déclencheur ou d'une zone d'effet, les entrées de fiche qu'il couvre (`null` : aucune). */
 export interface PatchDeZone {
   z?: number;
   once?: boolean;
   lieux?: NonNullable<Scene['restZones']>[number]['places'];
-  pietre?: boolean;
+  qualite?: QualiteDeRepos;
   nom?: string;
   presentation?: 'interior' | 'exterior' | null;
   forme?: ZoneArea['kind'];
@@ -1173,14 +1178,16 @@ function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity):
 /** Ce qu'une table d'écriture déclare d'un porteur de la scène : la scène où sa donnée `avant` devient `apres`, ou son
  *  refus ; et, pour la sorte qui les a, la scène où un porteur neuf est créé, sous son identifiant ; celle où le porteur
  *  `de` prend l'identifiant `vers`, propagé à ce qui le désigne dans la scène ; celle où le porteur `id` est retiré ;
- *  celle où l'élément `de` de la sous-collection à clé du porteur `id` prend l'identifiant `vers`. Un renommage sous un
- *  identifiant vide ou déjà pris rend la scène telle quelle. */
+ *  celle où l'élément `de` de la sous-collection à clé du porteur `id`, adressé par son parent `parent` quand sa clé n'est
+ *  unique que dans lui, prend l'identifiant `vers`, et ce qui refuse de donner l'identifiant `vers` à cet élément, dit
+ *  (`null` : retenu). Un renommage sous un identifiant vide ou déjà pris rend la scène telle quelle. */
 interface EcritureDeScene<D> {
   ecrire: (scene: Scene, avant: D, apres: D) => EcritureDeValeur<Scene>;
   creer?: (scene: Scene) => { scene: Scene; id: string };
   renommer?: (scene: Scene, de: string, vers: string) => Scene;
   retirer?: (scene: Scene, id: string) => Scene;
-  renommerElement?: (scene: Scene, id: string, de: string, vers: string) => Scene;
+  renommerElement?: (scene: Scene, id: string, de: string, vers: string, parent?: string) => Scene;
+  refusDeRenommer?: (scene: Scene, id: string, vers: string, element: string | undefined, parent?: string) => string | null;
 }
 
 /** Ce que la table d'écriture d'une sorte de porteur déclare, sur le projet `projet` où la scène `sceneId` est
@@ -1188,8 +1195,9 @@ interface EcritureDeScene<D> {
  *  porteur neuf est créé depuis la sélection `depuis`, avec l'identifiant `avec` qu'elle offre (`avecs`), sous son
  *  identifiant (`undefined` : refusé), et ce qui refuse cette création, dit ; celui où le porteur `de` prend
  *  l'identifiant `vers`, propagé à ce qui le désigne, et ce qui refuse de donner l'identifiant `vers` au porteur `id`, ou
- *  à son élément `element`, dit (`null` : retenu) ; celui où le porteur `id` est retiré ; celui où l'élément `de` de la
- *  sous-collection à clé du porteur `id` prend l'identifiant `vers` ; celui où son élément `element` est retiré ; et ce
+ *  à son élément `element`, adressé par son parent `parent` quand sa clé n'est unique que dans lui, dit (`null` :
+ *  retenu) ; celui où le porteur `id` est retiré ; celui où l'élément `de` de la sous-collection à clé du porteur `id`,
+ *  adressé de même, prend l'identifiant `vers` ; celui où son élément `element` est retiré ; et ce
  *  qui refuse le retrait du porteur `id`, ou de son élément `element`, dit. Un renommage sous un identifiant vide ou déjà
  *  pris rend le projet tel quel. `entrees` : les identifiants des entrées des fiches de dossier que l'hôte sert à la
  *  session (`SessionDEdition`, `entreesDeFiche`). #3606 */
@@ -1199,9 +1207,9 @@ interface EcritureDuPorteur<D> {
   refusDeCreer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel) => string | undefined;
   avecs?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, entrees: readonly string[]) => readonly string[];
   renommer?: (projet: ProjetDEdition, sceneId: string, de: string, vers: string, entrees: readonly string[]) => ProjetDEdition;
-  refusDeRenommer?: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, entrees: readonly string[]) => string | null;
+  refusDeRenommer?: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, entrees: readonly string[], parent?: string) => string | null;
   retirer?: (projet: ProjetDEdition, sceneId: string, id: string) => ProjetDEdition;
-  renommerElement?: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string) => ProjetDEdition;
+  renommerElement?: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string, parent?: string) => ProjetDEdition;
   retirerElement?: (projet: ProjetDEdition, sceneId: string, id: string, element: string) => ProjetDEdition;
   refusDeRetirer?: (projet: ProjetDEdition, sceneId: string, id: string, element?: string) => string | undefined;
 }
@@ -1217,7 +1225,7 @@ function deLaScene<D>(e: Partial<EcritureDeScene<D>>): Partial<EcritureDuPorteur
     const ecrite = f(scene);
     return ecrite === scene ? projet : ecrire(projet, sceneId, ecrite);
   };
-  const { ecrire: ecrireLaScene, creer, renommer, retirer, renommerElement } = e;
+  const { ecrire: ecrireLaScene, creer, renommer, retirer, renommerElement, refusDeRenommer } = e;
   return {
     ...(ecrireLaScene && { ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D): EcritureDeValeur<ProjetDEdition> => {
       const { lire, ecrire } = DOCUMENTS.scene;
@@ -1231,7 +1239,8 @@ function deLaScene<D>(e: Partial<EcritureDeScene<D>>): Partial<EcritureDuPorteur
     } }),
     ...(renommer && { renommer: (projet: ProjetDEdition, sceneId: string, de: string, vers: string) => releve(projet, sceneId, (sc) => renommer(sc, de, vers)) }),
     ...(retirer && { retirer: (projet: ProjetDEdition, sceneId: string, id: string) => releve(projet, sceneId, (sc) => retirer(sc, id)) }),
-    ...(renommerElement && { renommerElement: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string) => releve(projet, sceneId, (sc) => renommerElement(sc, id, de, vers)) }),
+    ...(renommerElement && { renommerElement: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string, parent?: string) => releve(projet, sceneId, (sc) => renommerElement(sc, id, de, vers, parent)) }),
+    ...(refusDeRenommer && { refusDeRenommer: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, _entrees: readonly string[], parent?: string) => refusDeRenommer(DOCUMENTS.scene.lire(projet, sceneId)!, id, vers, element, parent) }),
   };
 }
 
@@ -1273,11 +1282,37 @@ function actionRenommee(scene: Scene, id: string, de: string, vers: string): Sce
   return ent && renommees !== actions ? editEntity(scene, id, { usable: { ...ent.usable, actions: renommees } }) : scene;
 }
 
-/** La scène `scene` où le nœud `de` du dialogue `id` prend l'identifiant `vers` (`renameDialogueNode`). */
-function noeudRenomme(scene: Scene, id: string, de: string, vers: string): Scene {
+/** Les éléments du dialogue `dialogue` sœurs de celui qu'adresse le parent `parent`, et le texte qui nomme le n-ième :
+ *  ses nœuds sans parent, les réponses du nœud `parent` (`dialogueNodeSchema.choices`, liste-clé du nœud) ; `undefined`
+ *  pour un nœud absent. */
+function soeursDansLeDialogue(dialogue: Dialogue, parent: string | undefined): { elements: readonly { id: string }[]; porteur: MsgKey } | undefined {
+  if (parent === undefined) return { elements: dialogue.nodes, porteur: 'ecran.editeur.noeud.porteur' };
+  const noeud = dialogue.nodes.find((n) => n.id === parent);
+  return noeud && { elements: noeud.choices, porteur: 'ecran.editeur.choix.porteur' };
+}
+
+/** Le refus de donner l'identifiant `vers` à l'élément `element` du dialogue `id` de la scène `scene`, adressé par son
+ *  parent `parent` (`soeursDansLeDialogue`) : vide, ou déjà porté par un de ses sœurs (`refusDId`) ; `null` s'il est
+ *  retenu, inchangé, ou sans élément désigné. */
+function refusDIdentifierDansLeDialogue(scene: Scene, id: string, vers: string, element: string | undefined, parent?: string): string | null {
   const dialogue = scene.dialogues.find((d) => d.id === id);
-  const renomme = dialogue && renameDialogueNode(dialogue, de, vers);
-  return dialogue && renomme !== dialogue ? replaceDialogue(scene, id, renomme!) : scene;
+  const soeurs = dialogue && soeursDansLeDialogue(dialogue, parent);
+  if (element === undefined || !soeurs?.elements.some((e) => e.id === element)) return null;
+  return refusDId(element, vers.trim(), (candidat) => {
+    const j = soeurs.elements.findIndex((e) => e.id === candidat);
+    return j >= 0 ? tr(soeurs.porteur, { n: j + 1 }) : null;
+  });
+}
+
+/** La scène `scene` où l'élément `de` du dialogue `id`, adressé par son parent `parent`, prend l'identifiant `vers`
+ *  (rogné) : le nœud, propagé (`renameDialogueNode`), ou la réponse du nœud `parent` ; telle quelle, l'élément absent,
+ *  l'identifiant inchangé ou refusé (`refusDIdentifierDansLeDialogue`). */
+function elementDuDialogueRenomme(scene: Scene, id: string, de: string, vers: string, parent?: string): Scene {
+  const dialogue = scene.dialogues.find((d) => d.id === id);
+  const next = vers.trim();
+  if (!dialogue || !soeursDansLeDialogue(dialogue, parent)?.elements.some((e) => e.id === de) || next === de || refusDIdentifierDansLeDialogue(scene, id, next, de, parent)) return scene;
+  const reponseRenommee = (n: DialogueNode): DialogueNode => (n.id === parent ? { ...n, choices: n.choices.map((c) => (c.id === de ? { ...c, id: next } : c)) } : n);
+  return replaceDialogue(scene, id, parent === undefined ? renameDialogueNode(dialogue, de, next) : { ...dialogue, nodes: dialogue.nodes.map(reponseRenommee) });
 }
 
 /** Le projet `projet` dont la carte du monde devient celle que `f` écrit ; tel quel sans carte. */
@@ -1452,7 +1487,8 @@ const ecrituresDesRegistres = tableTotale(Object.keys(CORPS_NEUFS) as RegistreCr
  *  d'une rencontre ou de la scène, le remplacement dans son document (`remplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le
  *  renommage d'une action d'un décor (`actionRenommee`) ; d'un déclencheur, son renommage (`renameTrigger`) et son
  *  retrait (`deleteSel`) ; d'un dialogue, sa création (`addDialogue`), son renommage (`renameDialogue`), son retrait
- *  (`removeDialogue`) et le renommage d'un de ses nœuds (`noeudRenomme`) ; d'une rencontre, sa création
+ *  (`removeDialogue`), le renommage d'un de ses nœuds ou de la réponse d'un nœud (`elementDuDialogueRenomme`) et son refus
+ *  dit (`refusDIdentifierDansLeDialogue`) ; d'une rencontre, sa création
  *  (`addEncounter`), son renommage propagé aux embuscades de route (`rencontreRenommee`), son retrait
  *  (`removeEncounter`), refusé tant qu'une embuscade de route la lance (`embuscadesDeLaRencontre`) ; d'un lieu, son
  *  écriture (`majLieu`), sa création (`lieuCree`) et son retrait, ses routes avec lui (`supprimerLieu`) ; d'une route,
@@ -1466,7 +1502,7 @@ export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureD
   zone: { ecrire: remplace('zone') },
   declencheur: { ...deLaScene({ renommer: renameTrigger, retirer: (scene, id) => deleteSel(scene, { type: 'trigger', id }) }), ecrire: remplace('declencheur') },
   entite: deLaScene({ ecrire: sceneAvecLEntite, renommerElement: actionRenommee }),
-  dialogue: { ...deLaScene({ creer: addDialogue, renommer: renameDialogue, retirer: removeDialogue, renommerElement: noeudRenomme }), ecrire: remplace('dialogue') },
+  dialogue: { ...deLaScene({ creer: addDialogue, renommer: renameDialogue, retirer: removeDialogue, renommerElement: elementDuDialogueRenomme, refusDeRenommer: refusDIdentifierDansLeDialogue }), ecrire: remplace('dialogue') },
   rencontre: {
     ...deLaScene({ creer: addEncounter, retirer: removeEncounter }),
     ecrire: remplace('rencontre'),
@@ -1565,7 +1601,7 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
       restZones: (scene.restZones ?? []).map((r, i) => {
         if (i !== sel.idx) return r;
         const out = { ...r, rect: patch.z === undefined ? r.rect : rectALaCouche(r.rect, patch.z), places: { ...r.places, ...patch.lieux } };
-        return patch.pietre === undefined ? out : champ(out, 'quality', patch.pietre ? 'pietre' : undefined);
+        return patch.qualite ? champ(out, 'quality', qualiteEcrite(patch.qualite)) : out;
       }),
     };
   }
@@ -1727,12 +1763,13 @@ export function setNorthDeg(scene: Scene, deg: number | undefined): Scene {
   return champ(scene, 'northDeg', deg === undefined || !Number.isFinite(deg) ? undefined : ((deg % 360) + 360) % 360);
 }
 
-/** Renomme la scène éditée. Refusé (scène rendue inchangée) pour un id vide, ou déjà porté par une autre
- *  scène du projet (`autres`) : les transitions et la carte du monde désignent une scène par son id. */
-export function renameScene(scene: Scene, autres: readonly Pick<Scene, 'id'>[], to: string): Scene {
+/** Renomme la racine éditée du projet, une scène ou la carte du monde. Refusé (racine rendue inchangée) pour un id
+ *  vide, ou déjà porté par une autre racine (`autres`) : les transitions et la carte du monde désignent une scène par
+ *  son id, et `validateScene` range les fautes de la carte sous le sien. */
+export function renameScene<R extends Pick<Scene, 'id'>>(racine: R, autres: readonly Pick<Scene, 'id'>[], to: string): R {
   const next = to.trim();
-  if (!next || next === scene.id || autres.some((s) => s.id === next)) return scene;
-  return { ...scene, id: next };
+  if (!next || next === racine.id || autres.some((s) => s.id === next)) return racine;
+  return { ...racine, id: next };
 }
 
 /** Réécrit le point d'entrée `id` : sa case est plafonnée à la carte et ramenée à une case entière
@@ -1795,7 +1832,8 @@ export function patchSceneRoofDefaults(scene: Scene, patch: Partial<SceneRoofDef
 
 /** Patche l'offre de repos de la scène entière, à partir de l'offre effective (`reposDeScene`). */
 export function setSceneRest(scene: Scene, patch: Partial<NonNullable<Scene['rest']>>): Scene {
-  return { ...scene, rest: { ...reposDeScene(scene), ...patch } };
+  const rest = { ...reposDeScene(scene), ...patch };
+  return { ...scene, rest: patch.quality ? champ(rest, 'quality', qualiteEcrite(patch.quality)) : rest };
 }
 
 /** Fusionne des flags initiaux dans `scene.flags` (état de départ : porte ouverte, jalon posé…). */

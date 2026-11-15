@@ -404,7 +404,7 @@ function doctrineWeights(id: DoctrineId): Weights {
  * - fragilité : (1 + (PBmax − PBcourant)/PBmax) → un héros entamé est ~2× plus « intéressant » (on
  *   sécurise l'élimination, LDB tactique). PUR. NaN-garde sur les dégâts (Caractéristiques absentes).
  */
-function targetThreat(enemy: Combatant, hero: Combatant, mpt = 2): number {
+function targetThreat(enemy: Combatant, hero: Combatant, mpt: number): number {
   const dist = chebyshev(enemy.pos!, hero.pos!);
   const reachability = 1 / (1 + 0.15 * dist); // 1 au contact, décroissance douce
   const maxW = Math.max(1, hero.wounds.max);
@@ -412,8 +412,8 @@ function targetThreat(enemy: Combatant, hero: Combatant, mpt = 2): number {
   // Danger brut du héros = meilleure espérance de SON coup contre l'ennemi (réciprocité).
   const meleeW = hero.weapons?.find((w) => w.type === 'melee');
   const rangedW = hero.weapons?.find((w) => w.type === 'distance');
-  const dmgMelee = meleeW ? finite(expectedDamage(hero, enemy, meleeW, 'melee'), NaN) : NaN;
-  const dmgRanged = rangedW ? finite(expectedDamage(hero, enemy, rangedW, 'distance', dist, undefined, mpt), NaN) : NaN;
+  const dmgMelee = meleeW ? finite(expectedDamage(hero, enemy, meleeW, { kind: 'melee' }), NaN) : NaN;
+  const dmgRanged = rangedW ? finite(expectedDamage(hero, enemy, rangedW, { kind: 'distance', distanceTiles: dist, metresPerTile: mpt }), NaN) : NaN;
   const cand = [dmgMelee, dmgRanged].filter((d) => Number.isFinite(d)) as number[];
   const danger = cand.length ? Math.max(...cand) : 1; // pas de Caractéristiques chiffrables → danger neutre (1)
   return Math.max(1, danger) * reachability * fragility;
@@ -566,14 +566,14 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const los = input.losMemo ?? makeLosMemo(scene, smoke ?? []);
   // Portée de mêlée = Allonge de l'arme (RAW-3, LDB 62 l.163/164) ; 1 case par défaut. Diagonale incluse
   // (Chebyshev). Source unique partagée avec le héros et la résolution → symétrie héros/ennemi.
-  const mr = meleeReachTiles(enemy.weapons);
-  const mpt = sceneMetresPerTile(scene); // m/case de la scène (échelle RAW, défaut 2) → convertit la hauteur en cases
+  const mpt = sceneMetresPerTile(scene); // LDB 15 l.12
+  const mr = meleeReachTiles(enemy.weapons, mpt);
   // Au contact depuis la case candidate `a`, l'ennemi posé là (`positionPosee`), mesuré par `distanceDeContact`.
   const withinMelee = (a: Pt, h: Combatant) =>
-    distanceDeContact(scene, { ...enemy, pos: positionPosee(scene, a) }, h, mpt) <= mr;
+    distanceDeContact(scene, { ...enemy, pos: positionPosee(scene, a) }, h) <= mr;
   // Au CONTACT par empreinte (LDB 15 l.12) : un grand ennemi touche depuis n'importe quelle de ses tuiles.
-  // `distanceDeContact` plie empreinte ET Δhauteur (même `mpt`) → s'aligne sur la grille d'engagement de la résolution.
-  const inMelee = (h: Combatant) => distanceDeContact(scene, enemy, h, mpt) <= mr;
+  // `distanceDeContact` plie empreinte ET Δhauteur à l'échelle de la scène → s'aligne sur la grille d'engagement de la résolution.
+  const inMelee = (h: Combatant) => distanceDeContact(scene, enemy, h) <= mr;
 
   // Possède-t-il un sort OFFENSIF jouable (data-driven : Projectile ou op de dégât/contrôle hostile) ? Si
   // oui, il LANCE plutôt que de tirer (parité avec l'ancien `offensiveSpell == null` du gate de tir).
@@ -836,8 +836,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     const dmg = src.kind === 'spell'
       ? src.value
       : src.kind === 'distance'
-        ? finite(expectedDamage(enemy, target, src.weapon, 'distance', src.dist, undefined, mpt), 0)
-        : finite(expectedDamage(enemy, target, src.weapon, 'melee', undefined, outnumberEnvMelee(target)), 0);
+        ? finite(expectedDamage(enemy, target, src.weapon, { kind: 'distance', distanceTiles: src.dist, metresPerTile: mpt }), 0)
+        : finite(expectedDamage(enemy, target, src.weapon, { kind: 'melee', env: outnumberEnvMelee(target) }), 0);
     const threat = finite(targetThreat(enemy, target, mpt), 0);
     const securesKill = dmg >= target.wounds.current && target.wounds.current > 0 ? Weff.killSecure : 0;
     const overkill = isNeutralized(target) ? Weff.overkill : 0;
@@ -873,8 +873,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     for (const { h, melee, ranged } of heroThreatWeapons) {
       if (!h.pos) continue;
       const dist = chebyshev(to, h.pos);
-      const dm = melee ? finite(expectedDamage(h, here, melee, 'melee'), 0) : 0;
-      const dr = ranged ? finite(expectedDamage(h, here, ranged, 'distance', dist, undefined, mpt), 0) : 0;
+      const dm = melee ? finite(expectedDamage(h, here, melee, { kind: 'melee' }), 0) : 0;
+      const dr = ranged ? finite(expectedDamage(h, here, ranged, { kind: 'distance', distanceTiles: dist, metresPerTile: mpt }), 0) : 0;
       total += Math.max(dm, dr); // le héros joue SON meilleur coup contre nous depuis cette case
     }
     return total;

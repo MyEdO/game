@@ -11,18 +11,18 @@ import { trappings } from '../data';
 describe('belowMinRangeBand — comparaison ordinale des bandes', () => {
   const R = 120; // canon : Bout portant ≤12 m, Courte ≤60 m, Moyenne ≤120 m (1 case = 2 m)
   it('minimale « courte » : Bout Portant refusé, Courte et au-delà autorisés', () => {
-    expect(belowMinRangeBand(2, R, 'courte')).toBe(true); // 4 m → Bout portant → refusé
-    expect(belowMinRangeBand(20, R, 'courte')).toBe(false); // 40 m → Courte → autorisé
-    expect(belowMinRangeBand(40, R, 'courte')).toBe(false); // 80 m → Moyenne → autorisé
+    expect(belowMinRangeBand(2, R, 'courte', 2)).toBe(true); // 4 m → Bout portant → refusé
+    expect(belowMinRangeBand(20, R, 'courte', 2)).toBe(false); // 40 m → Courte → autorisé
+    expect(belowMinRangeBand(40, R, 'courte', 2)).toBe(false); // 80 m → Moyenne → autorisé
   });
   it('minimale « moyenne » : Bout Portant ET Courte refusés, Moyenne et au-delà autorisés', () => {
-    expect(belowMinRangeBand(2, R, 'moyenne')).toBe(true); // Bout portant → refusé
-    expect(belowMinRangeBand(20, R, 'moyenne')).toBe(true); // Courte → refusé (sous la Portée Courte, l.251)
-    expect(belowMinRangeBand(40, R, 'moyenne')).toBe(false); // Moyenne → autorisé
+    expect(belowMinRangeBand(2, R, 'moyenne', 2)).toBe(true); // Bout portant → refusé
+    expect(belowMinRangeBand(20, R, 'moyenne', 2)).toBe(true); // Courte → refusé (sous la Portée Courte, l.251)
+    expect(belowMinRangeBand(40, R, 'moyenne', 2)).toBe(false); // Moyenne → autorisé
   });
   it('cible HORS de portée → pas « trop proche » (false, géré par un autre gate)', () => {
-    expect(rangeBandId(400, R)).toBeNull();
-    expect(belowMinRangeBand(400, R, 'courte')).toBe(false);
+    expect(rangeBandId(400, R, 2)).toBeNull();
+    expect(belowMinRangeBand(400, R, 'courte', 2)).toBe(false);
   });
 });
 
@@ -42,16 +42,16 @@ describe('catalogue ADE II — portée minimale des machines de siège à distan
       expect(m.minRangeBand).toBeDefined();
       expect(Number.isFinite(range)).toBe(true);
       // Distance 0 → Bout Portant : REFUSÉ pour les 9 (l.253 : « pas à Bout Portant »).
-      expect(belowMinRangeBand(0, range, m.minRangeBand!)).toBe(true);
+      expect(belowMinRangeBand(0, range, m.minRangeBand!, 2)).toBe(true);
       // Distance en bande MOYENNE (m = Portée) : AUTORISÉ pour les 9 (jamais un refus au-delà de Courte).
-      expect(belowMinRangeBand(range / 2, range, m.minRangeBand!)).toBe(false);
+      expect(belowMinRangeBand(range / 2, range, m.minRangeBand!, 2)).toBe(false);
     });
 
     it(`${m.id} : à Courte portée, refusé SSI trébuchet/mortier (l.251 « sous la Portée Courte »)`, () => {
       const courteTiles = Math.round(range * 0.15); // m ≈ 0,3×Portée → strictement dans la bande Courte
-      expect(rangeBandId(courteTiles, range)).toBe('courte'); // garde-fou : la distance choisie EST « Courte »
+      expect(rangeBandId(courteTiles, range, 2)).toBe('courte'); // garde-fou : la distance choisie EST « Courte »
       // Seul trébuchet/mortier (minimale « moyenne ») refusent la Courte ; les autres l'autorisent.
-      expect(belowMinRangeBand(courteTiles, range, m.minRangeBand!)).toBe(m.minRangeBand === 'moyenne');
+      expect(belowMinRangeBand(courteTiles, range, m.minRangeBand!, 2)).toBe(m.minRangeBand === 'moyenne');
     });
   }
 

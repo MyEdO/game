@@ -13,8 +13,11 @@ import { itemFromTrappingById } from '../engine/items';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
-import { restPlacesHere, lodgingOptions } from './restFlow';
+import { restPlacesHere, lodgingOptions, restServicePrice } from './restFlow';
+import { makeRNG } from '../engine/dice';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { addRestZone } from './sceneEdit';
+import { restSchema } from '../data/schemas/defs-scenes/effets';
 import { resolveStake } from '../data';
 import { contractDisease, tickDisease, diseaseDefs } from '../engine/disease';
 import { spellOps } from '../engine/flowCore';
@@ -346,6 +349,56 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
   });
 });
 
+describe('qualité de l’hébergement — prix et Courante galopante (LDB 66 l.5)', () => {
+  /** Les deux héros prennent l'offre par défaut de l'auberge : une chambre privée partagée et deux repas. */
+  const nuitALAuberge = (quality: QualiteDeRepos): void => {
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true }, quality });
+    expect(Object.values(banc.getState().pendingRest!.perHero)).toEqual([{ lodging: 'privee', food: 'repas' }, { lodging: 'privee', food: 'repas' }]);
+    banc.getState().fenetreValider('repos');
+  };
+  const prixListes = toBrass(restServicePrice('privee')) + 2 * toBrass(restServicePrice('repas'));
+
+  it('piètre : la moitié des prix listés ; normale : les prix listés ; grande : le double', () => {
+    const payes = (['pietre', 'normale', 'grande'] as const).map((q) => {
+      setGroupPurse({ gold: 2, silver: 0, brass: 0 });
+      nuitALAuberge(q);
+      walkCascade();
+      return 480 - toBrass(partyMoneyTotal(banc.getState));
+    });
+    expect(payes).toEqual([prixListes / 2, prixListes, prixListes * 2]);
+  });
+
+  it('seul le repas de piètre qualité expose à la Courante galopante, sur le d100 ≤ 10', () => {
+    const graine = Array.from({ length: 1000 }, (_, i) => i + 1).find((s) => makeRNG(s).int(1, 100) <= 10)!;
+    const exposes = (quality: QualiteDeRepos): string[] => {
+      banc.setState({ party: [hero(), hero({ id: 'h2', label: 'Bruno' })] });
+      setGroupPurse({ gold: 2, silver: 0, brass: 0 });
+      seedBattleRng(graine);
+      nuitALAuberge(quality);
+      const steps = banc.getState().pendingCascade!.participants;
+      const ids = steps.filter((s) => s.kind === 'contagion' && s.meta?.diseaseName === 'courante-galopante')
+        .flatMap((s) => s.participants?.map((r) => r.id) ?? (s.actorId ? [s.actorId] : []));
+      walkCascade();
+      return ids;
+    };
+    expect(exposes('pietre')).toContain('h1');
+    expect([exposes('normale'), exposes('grande')]).toEqual([[], []]);
+  });
+
+  it('le seuil du risque est 10 % : le d100 à 11 n’expose pas le premier dormeur de piètre qualité', () => {
+    expect(makeRNG(65).int(1, 100)).toBe(11);
+    banc.setState({ party: [hero(), hero({ id: 'h2', label: 'Bruno' })] });
+    setGroupPurse({ gold: 2, silver: 0, brass: 0 });
+    seedBattleRng(65);
+    nuitALAuberge('pietre');
+    const exposes = banc.getState().pendingCascade!.participants
+      .filter((s) => s.kind === 'contagion' && s.meta?.diseaseName === 'courante-galopante')
+      .flatMap((s) => s.participants?.map((r) => r.id) ?? (s.actorId ? [s.actorId] : []));
+    walkCascade();
+    expect(exposes).not.toContain('h1');
+  });
+});
+
 describe('restPlacesHere — offre paramétrable sur la ZONE', () => {
   it('zone de repos prioritaire sur la scène ; scène sans rien = camp ; tout à false = interdit', () => {
     const sc = emptyScene('scene-test', 10, 10);
@@ -397,6 +450,13 @@ describe('effet `rest` (éditeur)', () => {
     expect(p.places.maison).toBe(true);
     banc.getState().fenetreValider('repos');
     expect((banc.getState().gameTime ?? 0)).toBeGreaterThan(t0);
+  });
+
+  it('trois qualités : la nuit à l’auberge porte la qualité de l’effet, et le schéma refuse une autre', () => {
+    applyEffects(banc.getState, banc.setState, [{ type: 'rest', lodging: 'auberge', quality: 'grande' }]);
+    expect(banc.getState().pendingRest!.quality).toBe('grande');
+    expect(restSchema.safeParse({ type: 'rest', quality: 'grande' }).success).toBe(true);
+    expect(restSchema.safeParse({ type: 'rest', quality: 'luxe' }).success).toBe(false);
   });
 });
 

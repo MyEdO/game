@@ -138,7 +138,7 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     const { H, E, poser } = duel('embuscade-fluviale', 'enc-fluvial');
     poser(E, { x: 3, y: 8, z: 0 });
     poser(H, { x: 4, y: 8, z: 1 });
-    expect(distanceDeCombat(H, E)).toBe(Math.max(1, Math.abs((H.pos!.h ?? 0) - (E.pos!.h ?? 0)) / 2));
+    expect(distanceDeCombat(banc.getState().scene, H, E)).toBe(Math.max(1, Math.abs((H.pos!.h ?? 0) - (E.pos!.h ?? 0)) / 2));
   });
 
   it('le plafond se lit à la scène où le combattant se tient : à ciel ouvert sous la trappe, sous le pont, puis sorti', () => {
@@ -146,11 +146,11 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     const contact = () => distanceDeContact(banc.getState().scene, E, H);
     poser(H, { x: 5, y: 7, z: 1 });
     poser(E, { x: 4, y: 7, z: 0 });
-    expect(contact(), 'sous la trappe, à ciel ouvert').toBe(distanceDeCombat(E, H));
+    expect(contact(), 'sous la trappe, à ciel ouvert').toBe(distanceDeCombat(banc.getState().scene, E, H));
     poser(E, { x: 5, y: 6, z: 0 });
     expect(contact(), 'sous le pont').toBe(Infinity);
     poser(E, { x: 4, y: 7, z: 0 });
-    expect(contact(), 'sorti de sous le pont').toBe(distanceDeCombat(E, H));
+    expect(contact(), 'sorti de sous le pont').toBe(distanceDeCombat(banc.getState().scene, E, H));
   });
 });
 
@@ -211,7 +211,7 @@ describe('#4090 — siege-enceinte : deux hauteurs que rien ne sépare', () => {
     collapseStructure(banc.getState, banc.setState, herse);
     const [E1, H1] = [E, H].map((c) => banc.getState().battle!.combatants.find((x) => x.id === c.id)!);
     expect([E1.pos, H1.pos], 'personne n’a bougé').toEqual([posE, posH]);
-    expect(distanceDeContact(banc.getState().scene, E1, H1)).toBe(distanceDeCombat(E1, H1));
+    expect(distanceDeContact(banc.getState().scene, E1, H1)).toBe(distanceDeCombat(banc.getState().scene, E1, H1));
   });
 
   it('pied de rampe (2,41,0) à 0 m et rampe (3,41,0) à 2 m : mêlée offerte, avec « En contrebas »', () => {

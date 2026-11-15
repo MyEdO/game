@@ -49,6 +49,7 @@ import {
   paintEffectZone,
   clearEffectZoneCarve,
   patchZone,
+  setSceneRest,
 } from './sceneEdit';
 import { TOUS_CALQUES } from './sceneEdit.testkit';
 import { validateScene } from './validateScene';
@@ -295,9 +296,13 @@ describe('édition de scène — patchZone et la poignée de la sélection', () 
     const trig = patchZone(s, { type: 'trigger', id: 'trig-0' }, { once: false, z: 1 }).triggers[0];
     expect(trig).not.toHaveProperty('once');
     expect(trig.rect).toEqual({ x: 4, y: 4, w: 2, h: 2, z: 1 });
-    const repos = patchZone(s, { type: 'restZone', idx: 0 }, { lieux: { auberge: true }, pietre: true }).restZones![0];
+    const repos = patchZone(s, { type: 'restZone', idx: 0 }, { lieux: { auberge: true }, qualite: 'pietre' }).restZones![0];
     expect(repos).toMatchObject({ places: { ...s.restZones![0].places, auberge: true }, quality: 'pietre' });
-    expect(patchZone(s, { type: 'restZone', idx: 0 }, { pietre: false, z: 0 }).restZones![0]).not.toHaveProperty('quality');
+    expect((['normale', 'grande'] as const).map((qualite) => patchZone(s, { type: 'restZone', idx: 0 }, { qualite, z: 0 }).restZones![0].quality)).toEqual([undefined, 'grande']);
+    const retiree = patchZone(patchZone(s, { type: 'restZone', idx: 0 }, { qualite: 'pietre' }), { type: 'restZone', idx: 0 }, { qualite: 'normale' }).restZones![0];
+    expect(retiree, '« normale » retire le champ, jamais ne l’écrit').not.toHaveProperty('quality');
+    expect(patchZone(s, { type: 'restZone', idx: 0 }, { qualite: 'normale' }).restZones, 'normale sur une zone sans qualité ne change rien').toEqual(s.restZones);
+    expect(setSceneRest(setSceneRest(s, { quality: 'grande' }), { quality: 'normale' }).rest, 'même retrait pour la scène').not.toHaveProperty('quality');
   });
   it('une zone d’effet découpée emporte son emprise à sa nouvelle couche ; sa nature, sa forme, son aire entière', () => {
     const { scene, id } = addEffectZone(emptyScene('z', 8, 8), { x: 1, y: 1, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.room);

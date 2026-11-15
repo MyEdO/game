@@ -486,7 +486,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       etats: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
-      'Bloc narratif › PNJ « gobelin » › identifiant :: l\'id de preset PNJ « gobelin » collisionne avec un id de la règle globale (créature/possession).',
+      'Bloc narratif › PNJ « gobelin » › identifiant :: l\'id de preset PNJ « gobelin » collisionne avec un id de la règle globale (créature, possession, véhicule ou structure).',
     ]);
   });
 

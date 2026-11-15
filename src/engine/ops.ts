@@ -43,7 +43,7 @@ import type { SeaWeather } from './seaWeather';
 import type { CustomStatblock } from './statblock';
 import { ALL_MAGIC, type CastPenalty, type Difficulty, type Main } from './types';
 import { refCouvre, type Id, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
-import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
+import { contexteDeTestSchema, exposureLevelSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
@@ -632,9 +632,9 @@ export type GameOp =
    *  « enlevez 1 point de Péché, ou 2 sur un Succès Impressionnant ») — jamais sous 0. COUTURE UNIQUE
    *  du Péché : l'Effet de scène `giveSin` passe par CETTE op (une seule implémentation). */
   | { op: 'sinMod'; amount: number }
-  /** EXPOSITION à une Influence corruptrice (LDB 19 l.23-75) : Test différé par MODALE
-   *  (pendingCorruption) — op IMPURE résolue par la couche state via `ctx.onCorruptionExposure`
-   *  (même patron que `ctx.onCorruption`) ; sans contexte (moteur pur), journalisée sans jet.
+  /** EXPOSITION à une Influence corruptrice (LDB 19 l.29) : op IMPURE résolue par le noyau via
+   *  `ctx.onCorruptionExposure` (`noyau/corruptionFlow.crochetsDeCorruption`), qui reçoit la cible ;
+   *  sans contexte (moteur pur), journalisée sans jet.
    *  `nature` absente = indéterminée → le joueur choisit le Test de `influences-corruptrices` dans la modale.
    *  DEUX SENS, une seule op — `easeSteps` présent = la cible est ABRITÉE : l'op pose une protection
    *  (`ActiveEffect.corruptionEase`, N crans) qui ATTÉNUE toute Influence subie tant qu'elle dure
@@ -1459,9 +1459,9 @@ export interface OpsCtx {
   /** Forme choisie par le lanceur pour une arme invoquée à forme libre (op `grantWeapon` +
    *  `chooseForm`) — fixe Groupe/allonge/mains. Défaut (absent) : la 1ʳᵉ forme proposée. */
   conjureForm?: ConjureForm;
-  /** Branché par le store : EXPOSITION corruptrice (op `corruptionExposure`) → Test différé par modale
-   *  (pendingCorruption). Sans hook (moteur pur/tests), l'op est journalisée inerte. */
-  onCorruptionExposure?: (level: ExposureLevel, nature?: NatureDInfluence) => string[];
+  /** EXPOSITION corruptrice (op `corruptionExposure`) de `cible`, au niveau déjà atténué — fourni par
+   *  `noyau/corruptionFlow.crochetsDeCorruption`. Sans hook (moteur pur/tests), l'op est journalisée inerte. */
+  onCorruptionExposure?: (cible: Combatant, level: ExposureLevel, nature?: NatureDInfluence) => string[];
   /** Branché par la couche state : NOTIFICATION des mouvements d'État posés par ces ops (`condition` /
    *  `removeCondition`) — l'id part À CÔTÉ de la ligne, appariée 1:1 avec elle (#1330). Le moteur NOTIFIE :
    *  aucun texte n'en dépend, et sans hook les lignes rendues sont STRICTEMENT identiques. */
@@ -1569,9 +1569,9 @@ export interface OpsCtx {
   hiddenFromFoes?: boolean;
   engaged?: boolean;
   nearestFoeDist?: number;
-  /** Gain de Corruption AVEC seuil → mutation (corruptionFlow) ; sans contexte
-   *  store, l'op `corruption` incrémente simplement le compteur. */
-  onCorruption?: (n: number, align?: ChaosAlign) => string[];
+  /** Gain de Corruption de `cible` AVEC seuil → mutation (`noyau/corruptionFlow.crochetsDeCorruption`) ;
+   *  sans hook, l'op `corruption` incrémente simplement le compteur. */
+  onCorruption?: (cible: Combatant, n: number, align?: ChaosAlign) => string[];
   /** GAIN d'Avantage de l'op `gainAdvantage`, fourni par le noyau (`noyau/combat/advantagePool.ts`
    *  `campGain` : seul point de gain en combat, AA 11 l.11-13, LDB 10 l.364). Absent : primitif
    *  `engine/advantage.gainAdvantage`. */
@@ -1875,17 +1875,17 @@ export const OPS_CTX_GELES = [
 ] as const;
 /** PAR RÉFÉRENCE : des Combattants — leur ID voyage, l'état les redonne (`actorIn`/`coqueParId`). */
 export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
-/** REBÂTIS à la reprise par un chemin NOMMÉ : le rng et la fabrique d'ids de la partie, les hooks de Corruption et d'Avantage
- *  branchés sur l'état (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur
- *  les étapes sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'onCorruption', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'des'] as const;
+/** REBÂTIS à la reprise par un chemin NOMMÉ (`noyau/combatEffects.ctxRepris`) : le rng et la fabrique d'ids de la partie,
+ *  les hooks de Corruption (`noyau/corruptionFlow.crochetsDeCorruption`), d'Avantage et du sol, qui reçoivent leur
+ *  cible en argument (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur les étapes
+ *  sœurs — jamais recopiés). */
+export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE dans un contexte PORTÉ
  *  (`noyau/combatEffects.porterOpsCtx` : feuille à dé, Test ou choix surfacé) est un fail-fast NOMMÉ,
  *  jamais une perte muette. Ils ne sont posés que par des appels directs à `applyOps`, qui ne portent
- *  aucun contexte : horloge d'effets de `conditions.ts` (`onCondition`), interlude
- *  (`onCorruptionExposure`), Critique de `noyau/combatFlow.ts` (`surLigne`, que les ops imbriquées
- *  d'`applyOps` ne reçoivent pas). */
-export const OPS_CTX_HORS_CANAL = ['onCorruptionExposure', 'onCondition', 'surLigne'] as const;
+ *  aucun contexte : horloge d'effets de `conditions.ts` (`onCondition`), Critique de `noyau/combatFlow.ts`
+ *  (`surLigne`, que les ops imbriquées d'`applyOps` ne reçoivent pas). */
+export const OPS_CTX_HORS_CANAL = ['onCondition', 'surLigne'] as const;
 
 type CleClassee =
   | (typeof OPS_CTX_GELES)[number] | (typeof OPS_CTX_PAR_REFERENCE)[number]
@@ -2021,6 +2021,11 @@ export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}
       return (c.traumas ?? []).some((tr) => tr.awaitingMedicalAid) || aUnVerrouLevePar(c, 'medicalAid') ? null : t('op.sansAideMedicaleAttendue', { name: c.label });
     default: return null;
   }
+}
+
+/** La ligne de journal d'un Test d'Exposition dû par `c`, niveau libellé. LDB 19 l.29 */
+export function ligneDExposition(c: Combatant, level: ExposureLevel): string {
+  return t('op.expositionALaCorruption', { name: c.label, level: libelleDeValeur(exposureLevelSchema, level) });
 }
 
 /** La raison pour laquelle les ops de RÉUSSITE `ops` d'un geste délibéré (Activité, consommable) n'auraient
@@ -2364,7 +2369,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           target.corruption = Math.max(0, before + amount);
           lines.push(t('op.corruptionRetiree', { name: target.label, delta: target.corruption - before, total: target.corruption }));
         } else if (ctx.onCorruption) {
-          lines.push(...ctx.onCorruption(amount, o.align));
+          lines.push(...ctx.onCorruption(target, amount, o.align));
         } else {
           // Sans contexte store (moteur pur, tests unitaires) : simple incrément — align ignoré.
           target.corruption = (target.corruption ?? 0) + amount;
@@ -2388,16 +2393,14 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           lines.push(t('op.corruptionAllegee', { name: target.label, n: o.easeSteps, src: nomDeSource(ctx) }));
           break;
         }
-        // Test d'Exposition différé (LDB 19 l.23-75) : le store ouvre la modale (pendingCorruption) ;
-        // moteur pur sans hook → journalisé inerte (rien de tiré en silence). Le niveau posé est celui
-        // ATTÉNUÉ par les abris que la cible porte — sous le premier cran, l'Influence ne s'applique plus.
+        // LDB 19 l.29 ; VDM 05 (abri). Moteur pur sans hook : journalisé inerte, rien de tiré en silence.
         const level = easeExposure(o.level ?? 'mineure', corruptionEaseSteps(target));
         if (level == null) {
           lines.push(t('op.corruptionConjuree', { name: target.label }));
           break;
         }
-        if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(level, o.nature));
-        else lines.push(t('op.expositionALaCorruption', { name: target.label, level }));
+        if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(target, level, o.nature));
+        else lines.push(ligneDExposition(target, level));
         break;
       }
       case 'gainResource': {

@@ -6,7 +6,7 @@
  *
  * « À portée de voix » n'est chiffrée NULLE PART (AA 13 l.35, LDB 09 l.128) : la portée est une RÈGLE
  * ÉDITABLE (`combat-portee-voix-m`, `engine/policy.ts`), lue à chaque mesure, jamais une constante
- * enterrée. Mesurée par le MÊME mécanisme d'aura que les Traits (Chebyshev × 2 m/case, cf.
+ * enterrée. Mesurée par le MÊME mécanisme d'aura que les Traits (Chebyshev × échelle de la scène, cf.
  * `noyau/combat/roundHooks` `recompute-auras`).
  */
 import { combatValue, type ModLine } from '../../engine/combat';
@@ -16,6 +16,7 @@ import { isOutOfAction } from '../../engine/conditions';
 import { rule } from '../../engine/policy';
 import { chebyshev } from '../../engine/grid';
 import type { Combatant, Weapon } from '../../engine/types';
+import { sceneMetresPerTile, type Scene } from './scene';
 
 /** id du Défaut « Arme d'équipe » (registre de qualités) — même littéral que `engine/crewedWeapon`. */
 const ARME_D_EQUIPE = 'arme-d-equipe';
@@ -25,9 +26,9 @@ export function voiceCommandRangeM(): number {
   return rule('combat-portee-voix-m') as number;
 }
 
-/** Deux combattants sont-ils à portée de voix l'un de l'autre ? (géométrie d'aura : Chebyshev × 2 m/case). */
-function withinVoice(a: Combatant, b: Combatant): boolean {
-  return !!a.pos && !!b.pos && chebyshev(a.pos, b.pos) * 2 <= voiceCommandRangeM();
+/** Deux combattants sont-ils à portée de voix l'un de l'autre ? (géométrie d'aura : Chebyshev × `sceneMetresPerTile`). */
+function withinVoice(scene: Scene | null, a: Combatant, b: Combatant): boolean {
+  return !!a.pos && !!b.pos && chebyshev(a.pos, b.pos) * sceneMetresPerTile(scene) <= voiceCommandRangeM();
 }
 
 /** Le combattant SERT-il une Arme d'équipe (chef de pièce d'une arme au Défaut `arme-d-equipe`) ? On lit la
@@ -39,7 +40,7 @@ export function servesTeamWeapon(c: Combatant): boolean {
 
 /** Chefs de pièce QUE `commander` peut diriger MAINTENANT : un combattant de SON camp, encore en action,
  *  servant une Arme d'équipe À PORTÉE de voix. SOURCE UNIQUE de l'éligibilité (affordance JOUEUR + IA). PURE. */
-export function teamCommandTargets(commander: Combatant, combatants: Combatant[]): Combatant[] {
+export function teamCommandTargets(scene: Scene | null, commander: Combatant, combatants: Combatant[]): Combatant[] {
   if (!commander.pos) return [];
   return combatants.filter(
     (c) =>
@@ -47,23 +48,23 @@ export function teamCommandTargets(commander: Combatant, combatants: Combatant[]
       c.kind === commander.kind && // on ne dirige QUE sa propre équipe
       !isOutOfAction(c) &&
       servesTeamWeapon(c) &&
-      withinVoice(commander, c),
+      withinVoice(scene, commander, c),
   );
 }
 
 /** `commander` peut-il lancer l'action « Diriger l'équipe » ? (porte le Talent ET ≥ 1 chef dirigeable à portée). */
-export function canAidTeam(commander: Combatant, combatants: Combatant[]): boolean {
-  return hasCommandTeam(commander) && teamCommandTargets(commander, combatants).length > 0;
+export function canAidTeam(scene: Scene | null, commander: Combatant, combatants: Combatant[]): boolean {
+  return hasCommandTeam(commander) && teamCommandTargets(scene, commander, combatants).length > 0;
 }
 
 /** Le commandant ENCORE valide pour CE chef de pièce : il existe, est en action, porte le Talent, ET reste à
  *  portée de voix. Re-validé à CHAQUE tir (pas d'expiry à gérer) — s'il meurt ou s'éloigne, `undefined` →
  *  le bonus lapse de lui-même. PURE. */
-export function effectiveCommander(chief: Combatant, combatants: Combatant[]): Combatant | undefined {
+export function effectiveCommander(scene: Scene | null, chief: Combatant, combatants: Combatant[]): Combatant | undefined {
   const id = chief.teamCommanderId;
   if (!id) return undefined;
   const cmd = combatants.find((c) => c.id === id);
-  if (!cmd || isOutOfAction(cmd) || !hasCommandTeam(cmd) || !withinVoice(chief, cmd)) return undefined;
+  if (!cmd || isOutOfAction(cmd) || !hasCommandTeam(cmd) || !withinVoice(scene, chief, cmd)) return undefined;
   return cmd;
 }
 
@@ -72,10 +73,10 @@ export function effectiveCommander(chief: Combatant, combatants: Combatant[]): C
  *  commandant. `null` si le chef ne tire pas la pièce servie, n'a pas de commandant lié, ou que le commandant
  *  a lapsé (mort / hors portée). Substitution de SCORE : `famille: 'jet'` — hors du plafond « Combiner
  *  les Difficultés » (`LDB 14 l.48/95`). PURE — couvre l'aperçu ET la résolution (même `env`). */
-export function teamCommandMod(chief: Combatant, weapon: Weapon, combatants: Combatant[]): ModLine | null {
+export function teamCommandMod(scene: Scene | null, chief: Combatant, weapon: Weapon, combatants: Combatant[]): ModLine | null {
   // Seulement quand le chef tire l'ARME D'ÉQUIPE servie (« quand ils tirent avec l'arme », AA 13 l.35).
   if (!chief.mannedPoste || chief.teamCommanderId == null || weapon.uid !== chief.mannedPoste.item.uid) return null;
-  const cmd = effectiveCommander(chief, combatants);
+  const cmd = effectiveCommander(scene, chief, combatants);
   if (!cmd) return null;
   const delta = combatValue(cmd, 'distance', weapon) - combatValue(chief, 'distance', weapon);
   if (delta === 0) return null; // aucune substitution à montrer

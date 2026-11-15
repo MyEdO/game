@@ -322,7 +322,8 @@ export const TABLES = {
       order: 50,
       run: ({ get, battle }) => {
         // Portée de l'aura : `distanceDeCombat` (footprint.ts), relief compris (#805).
-        const mpt = sceneMetresPerTile(get().scene);
+        const scene = get().scene;
+        const mpt = sceneMetresPerTile(scene);
         for (const c of battle.combatants) c.auraMods = undefined; // recalcul intégral chaque Round
         for (const src of battle.combatants) {
           if (isOutOfAction(src) || !src.pos) continue;
@@ -338,7 +339,7 @@ export const TABLES = {
               // `affects` absent ou `all` = aucun filtre de camp (Perturbant, LDB 85 l.262 : « Toute personne »).
               if (aura.affects === 'ennemis' && sameCamp) continue;
               if (aura.affects === 'allies' && !sameCamp) continue;
-              if (distanceDeCombat(src, c, mpt) * mpt <= rangeM) c.auraMods = [...(c.auraMods ?? []), ...projected];
+              if (distanceDeCombat(scene, src, c) * mpt <= rangeM) c.auraMods = [...(c.auraMods ?? []), ...projected];
             }
           }
         }

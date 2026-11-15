@@ -95,6 +95,9 @@ var cadre := Rect2():
 
 func _ready() -> void:
 	_lacet = _pivot.rotation.y
+	var brume := ($Lumiere as Lumiere).brume
+	if brume != null:
+		volume.brumer(brume)
 
 
 ## Le monde du manifeste `monde` (`{ monde, toits, couronnes }`, méthode `monde`) posé par le volume
@@ -638,8 +641,8 @@ func _zoomer(sens: float) -> void:
 ## La part est exacte par passe de lumière ; sous un soleil qui porte une ombre, le pilote de compatibilité somme deux
 ## passes déjà encodées en sRGB, et la part rendue s'abaisse avec la luminance du pixel, mesurée jusqu'à 0,10 sous la
 ## teinte (#3950, `CREUX_DU_PILOTE` de `hotes/godot/recette.mjs`). Sous Forward+, le brouillard volumétrique
-## (`scenes/Lumiere.tscn`) diffuse une lumière que la vision ne voile pas : mesuré sous le ciel du jeu, une case inconnue
-## se rend à 0,17 de sa lumière au soleil et jusqu'à 0,26 sur une face à l'ombre, pour 0,15 (#4066).
+## (`scenes/Lumiere.tscn`) diffuse dans l'air de chaque case la part de lumière de son état, celle de la case du bord
+## hors de la carte (`Lumiere.brume`, `VolumeDeScene.brumer`, `art/brume-de-la-vision.gdshader`, #4066).
 ##
 ## `Monde.poser_la_meteo` pose la météo (`meteo`) dans le volume par son nœud `Meteo` (`projet/scripts/meteo.gd`,
 ## #4081) : une averse par boîte, instance de `projet/effets/meteo/averse.tscn`, étirée dans le sens de sa chute, et

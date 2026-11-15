@@ -21,3 +21,7 @@ export interface GridPt {
 export function chebyshev(a: GridPt, b: GridPt): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 }
+
+/** Portée en MÈTRES → cases entières qu'elle couvre sans la dépasser, plancher d'UNE case, à l'échelle de la
+ *  scène (`metresPerTile`, `sceneMetresPerTile`). LDB 15 l.12. */
+export const casesDansLaPortee = (metres: number, metresPerTile: number): number => Math.max(1, Math.floor(metres / metresPerTile));

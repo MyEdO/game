@@ -407,7 +407,8 @@ export interface DocumentHandle<T extends string, S = unknown, E = unknown> {
    */
   readonly entree: z.ZodType<E>;
   /**
-   * L'entrée en PATCH (tous champs optionnels), dérivée AVANT le sceau puis SCELLÉE à son tour :
+   * L'entrée en PATCH (tous champs optionnels, sans l'`id` : une surcharge n'a pas d'identité),
+   * dérivée AVANT le sceau puis SCELLÉE à son tour :
    * `.partial()` rend un `ZodObject` NU, que `.extend` rouvrirait — la fabrique n'expose aucun nœud
    * extensible, fût-il voisin. `.optional()`/`safeParse` restent servis.
    * Consommateur mesuré : `narratif.ts` (`presetPnjSchema.profil`, profil de PNJ embarqué) — il
@@ -702,11 +703,13 @@ export function document<T extends string, F extends FamilleDocument, C extends 
           }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.rangees', champsDuDef)
         : complet;
   const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };
-  // PROSE de la partielle : les verrous de `avecProse` ci-dessous, sans obligation (#2206).
-  const partielle = marquerProduit(corps.partial(), 'document', 'entreePartielle', champsDuDef).superRefine(
+  // PROSE de la partielle : les verrous de `avecProse` ci-dessous, sans obligation (#2206). Une
+  // surcharge ne porte pas l'identité de ce qu'elle surcharge : l'`id` n'est pas un champ du patch.
+  const partielle = marquerProduit(corps.omit({ id: true }).partial(),'document', 'entreePartielle', champsDuDef).superRefine(
     refineProse({ type, exigeProse: false, porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
-  const entreePartielle: z.ZodType<unknown> = nommerChamps(partielle, noms).pipe(z.transform((v) => v));
+  const { id: _identite, ...nomsDuPatch } = noms;
+  const entreePartielle: z.ZodType<unknown> = nommerChamps(partielle, nomsDuPatch).pipe(z.transform((v) => v));
   const clesEntree: readonly string[] = Object.keys(corps.shape);
   // Un MARQUEUR d'espace est un champ de l'entrée : un nom hors de ses clés ouvrirait une sous-liste
   // qu'aucune donnée ne saurait jamais remplir (`gen-espaces` admet une sous-liste marquée VIDE).

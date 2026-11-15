@@ -22,7 +22,7 @@ import type { GameOp, OpPassive } from '../ops';
  *  VDM 05 *Défaut*) — retirées APRÈS la fusion de famille ; `passive` : ops passives conférées par cette
  *  même altération, lues au MÊME point que le `passive` d'un Atout de registre (`weaponPassiveOps`). */
 export type QualityCarrier = { qualities: QualityInstance[]; weaponGroup?: string | null; subType?: string | null; noFamilyQualities?: boolean;
-  removedQualities?: string[]; removedTypes?: ('atout' | 'defaut')[]; passive?: OpPassive[] };
+  removedQualities?: string[]; removedTypes?: ('atout' | 'defaut')[]; passive?: OpPassive[]; passifDArme?: OpPassive[] };
 
 /** Une qualité résolue présente sur un objet : sa définition de registre (libellé), son id STABLE, sa
  *  donnée mécanique (`qualities.json` → passive/capabilities/effects) et son Indice éventuel. */
@@ -42,12 +42,13 @@ export interface ResolvedQuality {
 /** Ops passives de la qualité (lecture par id dans la donnée). */
 const passiveOf = (id: string): GameOp[] => findQualityById(id)?.passive ?? [];
 
-/** SOURCE UNIQUE des ops PASSIVES d'ARME à consulter : celles des qualités présentes (registre, par id) +
+/** SOURCE UNIQUE des ops PASSIVES d'ARME à consulter : celles des qualités présentes (registre, par id),
  *  celles conférées par une ALTÉRATION de l'arme (`Weapon.passive`, op `augmentWeapon.passive` — VDM 05
- *  *Défaut* « −1 DR à tous les Tests pour attaquer avec elle »). Tout lecteur de passif d'arme passe ICI. */
+ *  *Défaut*) et celles de l'arme de catalogue (`Weapon.passifDArme`, ZI 13 l.199). Tout lecteur de passif
+ *  d'arme passe ICI. */
 export function weaponPassiveOps(w: QualityCarrier | undefined): GameOp[] {
   if (!w) return [];
-  return [...resolveQualities(w).flatMap((r) => passiveOf(r.id)), ...(w.passive ?? [])];
+  return [...resolveQualities(w).flatMap((r) => passiveOf(r.id)), ...(w.passive ?? []), ...(w.passifDArme ?? [])];
 }
 
 /** Qualités du registre présentes sur l'objet (normalisées, avec id/donnée/Indice). Chaînes inconnues
@@ -273,7 +274,7 @@ export function hasBladeTrap(w: QualityCarrier | undefined): boolean {
   return resolveQualities(w).some((r) => r.caps?.piegeALame);
 }
 
-/** Arme MAGIQUE (qualité enchantée, ADE II) : ses attaques comptent comme magiques (Éthéré, LDB 85). */
+/** Arme MAGIQUE : une qualité `capabilities.magic`. ADE II 04 l.214 */
 export function isMagicWeapon(w: QualityCarrier | undefined): boolean {
   return resolveQualities(w).some((r) => r.caps?.magic);
 }

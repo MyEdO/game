@@ -65,6 +65,7 @@ import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { RNG } from '../engine/dice';
 import { effectiveTalents } from '../engine/talentEffects';
 import { campAdvantageHooks } from './combat/advantagePool';
+import { crochetsDeCorruption } from './corruptionFlow';
 import { routeTriggeredTest } from './combat/triggeredTest';
 
 /** TAGUE des effets authorés de l'ENTITÉ dont ils sont tirés — « les GameOps sont rattachés à quelque
@@ -241,7 +242,7 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
         c.id !== actor.id && c.kind !== actor.kind && !isOutOfAction(c)
         && isEngagedWith(c, actor.id) && !held.includes(c.id)
         && (on.sizeAtMost !== 'soi' || SIZE_ORDER[effectiveSize(c.size)] <= selfSize));
-      eligible.sort((a, b) => distanceDeCombat(actor, a) - distanceDeCombat(actor, b)); // les plus proches d'abord
+      eligible.sort((a, b) => distanceDeCombat(get().scene, actor, a) - distanceDeCombat(get().scene, actor, b)); // les plus proches d'abord
       return eligible.slice(0, capacity);
     }
     // GÉOMÉTRIE : tous les combattants à portée d'un centre (arc d'Azyr, Trait/Talent d'aire)
@@ -253,7 +254,7 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
     // de GameOps à TOUTES les cibles du rayon — MÊME collecte que munitions/zoneBlast/manœuvres.
     return combatantsWithinRadius(center.pos, radius, battle.combatants,
       (c) => c.id !== center.id && c.id !== actor.id && !isOutOfAction(c),
-      (_ctr, c) => distanceDeCombat(center, c));
+      (_ctr, c) => distanceDeCombat(get().scene, center, c));
   }
   return battle.combatants.filter((c) => c.id !== actor.id && isEngagedWith(c, actor.id)); // 'engages'
 }
@@ -498,6 +499,7 @@ export function applyTriggeredEffects(
       // `runPureFlowLines`, qui LÈVE (jamais de branche succès muette). Le contexte de la touche
       // (`woundsDealt`/`margin→sl`/`location`/`attackKind`) voyage dans l'opsCtx pour les Conditions `si`.
       const flowCtx: OpsCtx = { rng, idNeuf: get().forgerUnId, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, affliction: ctx.affliction, cibleEnVue: cibleEnVueDeLInstance(), location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
+        ...(ctx.set ? crochetsDeCorruption(get, ctx.set) : {}),
         // Tampon de ré-entrance : un sous-Test (FM de palier 2 des Crampes) routé en cascade ne ré-émettra
         // pas `onOwnTestFailed` (son étape porte `meta.noOwnTestFailed`, cf. resolveFlowTest/commitStep).
         ...(trigger === 'onOwnTestFailed' ? { noReentryOwnTestFailed: true } : {}) };

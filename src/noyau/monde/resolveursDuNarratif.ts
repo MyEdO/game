@@ -7,7 +7,7 @@
 import { memoByRef } from './sceneMemo';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { TrappingResolver } from '../../engine/items';
-import type { DocumentNarratif, Indice, NarratifBlock, PresetPnj } from '../../data/schemas/defs-scenes/narratif';
+import type { DocumentNarratif, Indice, NarratifBlock, PresetPnj, ProfilDePreset } from '../../data/schemas/defs-scenes/narratif';
 import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { findCreatureById, findTrappingById, trappingDesObjetsPuisDuCatalogue, type CreatureData } from '../../data';
 
@@ -60,7 +60,7 @@ export function nomDePreset(p: PresetPnj): string | undefined {
  * `profil` en fournit un (pas de fusion par-élément — un profil qui liste des traits redéfinit la
  * liste).
  */
-export function mergeCreatureProfile(base: CreatureData, profil?: Partial<CreatureData>): CreatureData {
+export function mergeCreatureProfile(base: CreatureData, profil?: ProfilDePreset): CreatureData {
   if (!profil) return base;
   const { char, ...rest } = profil;
   return {
@@ -72,7 +72,8 @@ export function mergeCreatureProfile(base: CreatureData, profil?: Partial<Creatu
 
 /** Résout un preset de PNJ nommé en une `CreatureData` prête à spawner + son apparence embarquée.
  *  `base` présente → créature globale surchargée (`mergeCreatureProfile`) ; sinon `profil` sert de
- *  profil ad hoc complet. `undefined` si le preset est inconnu OU si sa `base` est introuvable
+ *  profil ad hoc complet, sous l'identité du preset (son id ne collisionne avec aucune créature,
+ *  `narratifSchema`). `undefined` si le preset est inconnu OU si sa `base` est introuvable
  *  (fail-doux : `narratifSchema` a déjà rejeté un projet à base invalide au parse). */
 export function resolvePresetCreature(presetId: string, presetDe: ResolveurDePreset): { creature: CreatureData; apparence?: EntityAppearance } | undefined {
   const preset = presetDe(presetId);
@@ -82,5 +83,5 @@ export function resolvePresetCreature(presetId: string, presetDe: ResolveurDePre
     if (!base) return undefined;
     return { creature: mergeCreatureProfile(base, preset.profil), apparence: preset.apparence };
   }
-  return { creature: preset.profil as CreatureData, apparence: preset.apparence };
+  return { creature: { ...preset.profil, id: preset.id } as CreatureData, apparence: preset.apparence };
 }

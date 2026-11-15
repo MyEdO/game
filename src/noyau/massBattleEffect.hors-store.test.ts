@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
-import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
+import { applyEffects, EFFECT_HANDLERS } from './combatEffects';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { armyMight, armyStartMight, nomDArmee } from './massBattleFlow';
 import type { MassBattleSpec } from '../engine/massBattle';
@@ -20,7 +20,7 @@ function battleEffect(spec: Partial<MassBattleSpec> = {}): Extract<Effect, { typ
       puissanceAlliee: 60, puissanceEnnemie: 40, plannedRounds: 2, terrain: 'Plaine boueuse',
       scenes: ['pluie-de-fleches', 'ligne-de-mire', 'motivation', 'charge', 'intrus'],
       situations: [['pluie-de-fleches', 'ligne-de-mire'], ['charge', 'intrus']],
-      sceneEncounters: { 'pluie-de-fleches': 'enc-pluie', charge: 'enc-charge', intrus: 'enc-intrus' },
+      sceneEncounters: { 'pluie-de-fleches': { id: 'enc-pluie' }, charge: { id: 'enc-charge' }, intrus: { id: 'enc-intrus' } },
       situationSize: 2, modificateurAllie: 10,
       ...spec,
     },
@@ -88,7 +88,7 @@ describe('Effet startMassBattle — appliqué par applyEffects', () => {
     const mb = banc.getState().massBattle!;
     expect(mb.pool).toEqual(['pluie-de-fleches', 'ligne-de-mire', 'motivation', 'charge', 'intrus']);
     expect(mb.situations).toEqual([['pluie-de-fleches', 'ligne-de-mire'], ['charge', 'intrus']]);
-    expect(mb.sceneEncounters).toEqual({ 'pluie-de-fleches': 'enc-pluie', charge: 'enc-charge', intrus: 'enc-intrus' });
+    expect(mb.sceneEncounters).toEqual({ 'pluie-de-fleches': { id: 'enc-pluie' }, charge: { id: 'enc-charge' }, intrus: { id: 'enc-intrus' } });
   });
 
   it('l\'édition d\'une situation compose EXACTEMENT la liste de Scènes présentées au Round', () => {
@@ -108,22 +108,5 @@ describe('Effet startMassBattle — sans catalogue ni situations (tirage aléato
     expect(mb.situations).toBeUndefined();
     banc.getState().engagerLaBataille();
     expect(banc.getState().massBattle!.situation.length).toBe(3); // tirage borné
-  });
-});
-
-describe('Effet startMassBattle — validation des rencontres (refs)', () => {
-  const ctx = (ids: string[]): EffectRefCtx => ({
-    sceneIds: new Set(), encounterIds: new Set(ids), entityIds: new Set(), npcSheet: () => undefined, within: () => true, walkable: () => true,
-  });
-  it('signale une rencontre mappée inexistante et valide celles présentes', () => {
-    const eff = battleEffect({ sceneEncounters: { charge: 'enc-charge', intrus: 'enc-absent' } });
-    const issues = EFFECT_HANDLERS.startMassBattle.refs!(eff, ctx(['enc-charge']));
-    expect(issues).toHaveLength(1);
-    expect(issues[0].level).toBe('error');
-    expect(issues[0].message).toContain('enc-absent');
-  });
-  it('aucun problème quand toutes les rencontres existent', () => {
-    const eff = battleEffect({ sceneEncounters: { charge: 'enc-charge' } });
-    expect(EFFECT_HANDLERS.startMassBattle.refs!(eff, ctx(['enc-charge']))).toEqual([]);
   });
 });

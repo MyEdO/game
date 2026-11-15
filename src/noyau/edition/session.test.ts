@@ -960,6 +960,28 @@ describe('les dialogues de la scène éditée, par la table d’écriture de leu
     expect([suite.nodes.map((n) => n.id), suite.nodes.map((n) => n.choices[0].next?.id)]).toEqual([['n1', 'suite'], ['suite', 'suite']]);
     expect(sceneEditee(jouer(s, { geste: 'identifier', element: 'n1', id: 'tete' })).dialogues[0].start).toEqual({ id: 'tete' });
     expect(jouer(s, { geste: 'identifier', element: 'n1', id: 'n2' })).toBe(s);
+    expect([refusDuRenommage(s, { geste: 'identifier', element: 'n1', id: 'n2' }), refusDuRenommage(s, { geste: 'identifier', element: 'n1', id: ' ' })]).toEqual(['Identifiant « n2 » déjà porté par le nœud 2', 'Identifiant vide']);
+  });
+
+  it('identifier une réponse d’un nœud, adressée par son nœud, la renomme sur un cran ; vide ou déjà portée dans le nœud, le refus se dit ; libre dans un autre nœud (#4234)', () => {
+    const scene = { ...AUBERGE, dialogues: [dialogue('libre', [
+      { id: 'n1', choices: [{ id: 'choix-1', label: 'Oui', next: { id: 'n2' } }, { id: 'choix-2', label: 'Non' }] },
+      { id: 'n2', choices: [{ id: 'choix-1', label: 'Fin' }] },
+    ])] };
+    const s = jouer(ouverteSur(scene), { geste: 'selectionner', porteur: { sorte: 'dialogue', id: 'libre' } });
+    const accepter: GesteDEdition = { geste: 'identifier', parent: 'n1', element: 'choix-1', id: ' accepter ' };
+    const renomme = jouer(s, accepter);
+    expect(sceneEditee(renomme).dialogues[0].nodes.map((n) => n.choices.map((c) => c.id))).toEqual([['accepter', 'choix-2'], ['choix-1']]);
+    expect(sceneEditee(renomme).dialogues[0].nodes[0].choices[0]).toEqual({ id: 'accepter', label: 'Oui', next: { id: 'n2' } });
+    expect(renomme.historique.passe.length, 'un seul cran').toBe(s.historique.passe.length + 1);
+    expect(sceneEditee(jouer(renomme, { geste: 'annuler' }))).toEqual(sceneEditee(s));
+    const doublon: GesteDEdition = { geste: 'identifier', parent: 'n1', element: 'choix-2', id: 'accepter' };
+    expect([jouer(renomme, doublon), refusDuRenommage(renomme, doublon)]).toEqual([renomme, 'Identifiant « accepter » déjà porté par la réponse 1']);
+    const vide: GesteDEdition = { geste: 'identifier', parent: 'n1', element: 'choix-2', id: ' ' };
+    expect([jouer(renomme, vide), refusDuRenommage(renomme, vide)]).toEqual([renomme, 'Identifiant vide']);
+    const ailleurs: GesteDEdition = { geste: 'identifier', parent: 'n2', element: 'choix-1', id: 'accepter' };
+    expect(refusDuRenommage(renomme, ailleurs), 'l’identité d’une réponse est unique dans son nœud').toBeNull();
+    expect(sceneEditee(jouer(renomme, ailleurs)).dialogues[0].nodes.map((n) => n.choices.map((c) => c.id))).toEqual([['accepter', 'choix-2'], ['accepter']]);
   });
 
   it('le déclencheur se renomme et se retire par la table de sa sorte, comme avant elle', () => {
@@ -990,7 +1012,7 @@ describe('les rencontres de la scène éditée, par la table d’écriture de le
     entities: ['cavalier', 'cheval', 'archer', 'badaud'].map(personnage),
     triggers: [
       { id: 'lisiere', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'startCombat', encounter: { id: 'enc-bois' } }] as Effect[]) },
-      { id: 'pont', rect: { x: 1, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: 'humain' } }], encounter: { id: 'enc-pont' } }] as Effect[]) },
+      { id: 'pont', rect: { x: 1, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ id: 'humain' }], encounter: { id: 'enc-pont' } }] as Effect[]) },
     ],
     encounters: [
       { id: 'enc-bois', members: [{ entityId: 'cavalier', ridesEntityId: { id: 'cheval' } }, { entityId: 'cheval', mount: true }, { entityId: 'archer' }] },
@@ -1215,6 +1237,16 @@ describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses r
     expect(refusDeLaValeur(s, valeur('carte', 'carte', ['places'], []))).toBe('nonOffert');
   });
 
+  it('la carte s’identifie comme une scène, sur un cran : ni vide, ni l’identifiant d’une scène, qu’une scène ne prend pas non plus', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' });
+    const identifiee = jouer(s, { geste: 'identifier', id: ' reikland ' });
+    expect([carte(identifiee).id, identifiee.historique.passe.length]).toEqual(['reikland', s.historique.passe.length + 1]);
+    expect([jouer(identifiee, { geste: 'identifier', id: 'val' }), jouer(identifiee, { geste: 'identifier', id: ' ' })]).toEqual([identifiee, identifiee]);
+    const surLaScene = jouer(identifiee, { geste: 'document', document: 'scene' });
+    expect(jouer(surLaScene, { geste: 'identifier', id: 'reikland' }), 'l’identifiant de la carte').toBe(surLaScene);
+    expect(jouer(surLaScene, { geste: 'identifier', id: 'monde' }), 'celui qu’annuler lui rend').toBe(surLaScene);
+  });
+
   it('ajouter un lieu le pose au centre des bornes, décalé s’il en chevauche un, sous un identifiant frais, sélectionné sur un cran ; sa position ne s’écrit pas au formulaire', () => {
     const s = jouer(ouvert(), { geste: 'document', document: 'carte' });
     const un = jouer(s, { geste: 'ajouter', sorte: 'lieu' });
@@ -1343,10 +1375,11 @@ describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses r
     expect([perdue.historique, perdue.geste]).toEqual([s.historique, null]);
   });
 
-  it('sans sélection sur la carte, nommer et identifier sont sans objet : la scène garde son nom et son identifiant ; supprimer retire la carte du projet sur un cran, la scène redevenant ouverte', () => {
+  it('sans sélection sur la carte, nommer est sans objet et identifier change l’identifiant de la carte : la scène garde les siens ; supprimer retire la carte du projet sur un cran, la scène redevenant ouverte', () => {
     const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' });
     expect(jouer(s, { geste: 'nommer', nom: 'Autre' })).toBe(s);
-    expect(jouer(s, { geste: 'identifier', id: 'autre' })).toBe(s);
+    const identifiee = jouer(s, { geste: 'identifier', id: 'autre' });
+    expect([carte(identifiee).id, sceneEditee(identifiee)]).toEqual(['autre', sceneEditee(s)]);
     const retiree = jouer(s, { geste: 'supprimer' });
     expect([retiree.document, projetEdite(retiree).worldMap, retiree.historique.passe.length]).toEqual(['scene', undefined, s.historique.passe.length + 1]);
     expect(carte(jouer(retiree, { geste: 'annuler' }))).toEqual(RELIEE);

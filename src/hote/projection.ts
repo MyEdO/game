@@ -189,8 +189,8 @@ export const proprietaireDeLaFenetre = (etat: Jeu, id: string | undefined | null
 /** `c` est hors du combat : mort, ou sorti de la rencontre. */
 export const horsCombat = (c: Combatant): boolean => !!c.dead || !!c.outOfRencontre;
 
-function combattant(c: Combatant, actif: Combatant | undefined, facing: Jeu['facing']): CombattantProjete {
-  const d = actif ? distanceDeCombat(actif, c) : Infinity;
+function combattant(etat: Jeu, c: Combatant, actif: Combatant | undefined): CombattantProjete {
+  const d = actif ? distanceDeCombat(etat.scene, actif, c) : Infinity;
   return {
     id: c.id,
     nom: c.label,
@@ -203,7 +203,7 @@ function combattant(c: Combatant, actif: Combatant | undefined, facing: Jeu['fac
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
     horsCombat: horsCombat(c),
     portee: porteeDuCombattant(c),
-    vehicule: vehiculeDuCombattant(c, facing[c.id]),
+    vehicule: vehiculeDuCombattant(c, etat.facing[c.id]),
   };
 }
 
@@ -220,7 +220,7 @@ export function combattantsTries(etat: Jeu): CombattantProjete[] {
   if (!b) return [];
   const actif = actifEnVue(etat);
   const rangDe = (c: CombattantProjete): number => (c.id === actif?.id ? -2 : c.engage ? -1 : (c.distance ?? Infinity));
-  return b.combatants.filter((c) => combattantEnVue(etat, c)).map((c) => combattant(c, actif, etat.facing)).sort((x, y) => rangDe(x) - rangDe(y));
+  return b.combatants.filter((c) => combattantEnVue(etat, c)).map((c) => combattant(etat, c, actif)).sort((x, y) => rangDe(x) - rangDe(y));
 }
 
 /** L'ordre du tour (`battle.order`) réduit aux combattants en vue (`porteurEnVue`). */
@@ -313,7 +313,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           tour: b.turn < 0 || !actif ? null : ordre.indexOf(actif.id) + 1,
           tours: ordre.length,
           fin: b.over,
-          actif: actif && mvt ? { ...combattant(actif, actif, etat.facing), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
+          actif: actif && mvt ? { ...combattant(etat, actif, actif), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
           apercu: apercuDe(etat),
           barre: { forme: barre.forme, raison: barre.forme === 'ouverte' ? null : barre.raison },
           intention: etat.localIntent?.actionId ?? null,
@@ -329,7 +329,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           groupe: [etat.partyPos.x, etat.partyPos.y],
           etage: etat.scene.layers.length > 1 ? (etat.partyPos.z ?? 0) : null,
           cap: capDuGroupe(etat),
-          heros: etat.party.map((h) => ({ ...combattant(h, undefined, etat.facing), pos: [etat.partyPos.x, etat.partyPos.y, etat.partyPos.z ?? 0] })),
+          heros: etat.party.map((h) => ({ ...combattant(etat, h, undefined), pos: [etat.partyPos.x, etat.partyPos.y, etat.partyPos.z ?? 0] })),
           gestes: tranche(gestesDExploration(etat), bornes.gestes),
           entites: tranche(etat.scene.entities.filter((e) => !estPoseParSesPonts(etat.scene!, e.id) && entiteConnue(etat, e)).map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
         },
