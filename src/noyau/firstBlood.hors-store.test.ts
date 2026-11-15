@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
-import { applyAttackResult, checkBattleOver, firedAttackBlock, resolveAttack, doAttack } from './combatFlow';
+import { applyAttackResult, checkBattleOver, firedAttackBlock, firedWeapon, resolveAttack, doAttack } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
@@ -112,7 +112,7 @@ describe('Duel judiciaire — restriction d\'armes à distance (#471, NADJ 06 l.
     H.pos = { x: 0, y: 0 };
     E.pos = { x: 5, y: 0 };
     banc.setState({ battle: { ...banc.getState().battle!, banRanged: true } });
-    const r = resolveAttack(banc.getState, H, E);
+    const r = resolveAttack(banc.getState, H, E, firedWeapon(banc.getState().scene, H, E, undefined, banc.getState().battle?.combatants));
     expect(r).toBeNull();
   });
 
@@ -140,7 +140,7 @@ describe('Duel judiciaire — restriction d\'armes à distance (#471, NADJ 06 l.
     H.weapons = [RANGED];
     H.pos = { x: 0, y: 0 };
     E.pos = { x: 5, y: 0 };
-    const r = resolveAttack(banc.getState, H, E);
+    const r = resolveAttack(banc.getState, H, E, firedWeapon(banc.getState().scene, H, E, undefined, banc.getState().battle?.combatants));
     expect(r).not.toBeNull();
   });
 
@@ -150,7 +150,7 @@ describe('Duel judiciaire — restriction d\'armes à distance (#471, NADJ 06 l.
     H.pos = { x: 0, y: 0 };
     E.pos = { x: 5, y: 0 };
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood' } } });
-    expect(resolveAttack(banc.getState, H, E)).toBeNull();
+    expect(resolveAttack(banc.getState, H, E, firedWeapon(banc.getState().scene, H, E, undefined, banc.getState().battle?.combatants))).toBeNull();
     expect(firedAttackBlock(banc.getState, H, E)).toMatchObject({ reason: 'armeBannie' });
   });
 
@@ -160,7 +160,7 @@ describe('Duel judiciaire — restriction d\'armes à distance (#471, NADJ 06 l.
     H.pos = { x: 0, y: 0 };
     E.pos = { x: 5, y: 0 };
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood' }, banRanged: false } });
-    expect(resolveAttack(banc.getState, H, E)).not.toBeNull();
+    expect(resolveAttack(banc.getState, H, E, firedWeapon(banc.getState().scene, H, E, undefined, banc.getState().battle?.combatants))).not.toBeNull();
     expect(firedAttackBlock(banc.getState, H, E)).toBeNull();
   });
 });

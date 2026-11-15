@@ -8,7 +8,7 @@ import type { SpellData } from '../../data';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+const RANGED: Weapon = { label: 'Arc', uid: 'arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
 
 /** Sort RÉSOLU minimal (`CastableSpell`) — porte un `data: SpellData` réduit aux champs lus par
  *  l'évaluateur (effects/missile/damage/opposed). Défaut = Projectile magique mono-cible jouable. */
@@ -112,7 +112,7 @@ describe("IA d'ennemi (chooseEnemyAction, pure)", () => {
   it('arme à distance → tient la position et tire (pas de charge en mêlée)', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [RANGED] });
     const h = mk('h', 'heros', { x: 1, y: 1 });
-    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'tir', targetId: 'h' });
+    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'tir', targetId: 'h', weaponUid: 'arc' });
   });
 
   it('sort offensif jouable (missile en portée) → incante sur la cible', () => {
@@ -157,7 +157,7 @@ describe("IA d'ennemi (chooseEnemyAction, pure)", () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [RANGED] });
     const dying = mk('dying', 'heros', { x: 5, y: 7 }, { wounds: blessuresDeBase(10, 0) }); // 0 PB encore là
     const standing = mk('standing', 'heros', { x: 5, y: 8 }, { wounds: blessuresDeBase(10, 4) });
-    expect(chooseEnemyAction(input(e, [dying, standing]))).toEqual({ kind: 'tir', targetId: 'standing' });
+    expect(chooseEnemyAction(input(e, [dying, standing]))).toEqual({ kind: 'tir', targetId: 'standing', weaponUid: 'arc' });
   });
 
   it('anti-acharnement : si la SEULE cible est neutralisée, on l’achève (dernier recours)', () => {

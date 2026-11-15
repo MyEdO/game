@@ -758,7 +758,7 @@ export const FLOWS = paresseux({
       }
       const battle = s.battle;
       if (!battle) return null;
-      const r = resolveAttack(get, actor, target, p.location ?? undefined, p.fromCharge, p.dansLeTas, p.tirImmobile, attackWeaponOf(s.scene, battle, actor, target, p), p.withhold);
+      const r = resolveAttack(get, actor, target, attackWeaponOf(s.scene, battle, actor, target, p), p.location ?? undefined, p.fromCharge, p.dansLeTas, p.tirImmobile, p.withhold);
       // MÊME gel que `jetLancer('attaque')` : l'OBJET arme réellement tiré (jamais l'uid, qui porte le choix du
       // joueur et discrimine l'attaque naturelle) — sans lui, toute re-dérivation re-passe par
       // `pickAttackWeaponList`, qui reprend la MÊLÉE dès qu'elle est à portée (`mount.ts`).

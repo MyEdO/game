@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 let silence = false;
 
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { openRoundEndCascade, openCombatEndCascade, aiCreatureFreeAttacks, maybeOpenDefense, resolveAttack, attackerFumbled } from './combatFlow';
+import { openRoundEndCascade, openCombatEndCascade, aiCreatureFreeAttacks, maybeOpenDefense, firedWeapon, resolveAttack, attackerFumbled } from './combatFlow';
 import { gainCorruption } from './corruptionFlow';
 import { createHero } from '../engine/character';
 import { buildWeapon } from '../engine/items';
@@ -222,7 +222,7 @@ function behavioralFloor(): void {
     E.pos = { x: 11, y: 10 };
     E.weapons = [buildWeapon({ label: 'Épée', attackKind: 'arme', damage: { plusBF: true, flat: 4 }, uid: 'epee' })];
     H.conditions = []; // pas Surpris → peut se défendre
-    expect(maybeOpenDefense(get, set, E, H), 'attaque IA sur héros doit OUVRIR la défense').toBe(true);
+    expect(maybeOpenDefense(get, set, E, H, E.weapons[0]), 'attaque IA sur héros doit OUVRIR la défense').toBe(true);
     expect(get().pendingCascade?.participants.some((s) => s.kind === 'jetDeDefense' && s.actorId === H.id), 'défense réactive doit REMONTER').toBeTruthy();
   }
   // 6) Défense d'une manœuvre de ZONE (Souffle, LDB 85) — gaté `defenseSurfaced` (cadence-agnostique).
@@ -301,12 +301,12 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
     let seed = 0;
     for (let sd = 1; sd <= 500 && !seed; sd++) {
       seedBattleRng(sd);
-      const r = resolveAttack(get, E, H);
+      const r = resolveAttack(get, E, H, firedWeapon(get().scene, E, H, undefined, get().battle?.combatants));
       if (r && attackerFumbled(r.res, r.weapon)) seed = sd;
     }
     expect(seed, 'une graine de Maladresse existe').toBeGreaterThan(0);
     seedBattleRng(seed);
-    const r = resolveAttack(get, E, H)!; // résultat de Maladresse RÉEL (pas fabriqué)
+    const r = resolveAttack(get, E, H, firedWeapon(get().scene, E, H, undefined, get().battle?.combatants))!; // résultat de Maladresse RÉEL (pas fabriqué)
     set({ pendingAttack: { attackerId: E.id, targetId: H.id, location: r.res.location ?? null, result: r.res, victimId: r.victim?.id, weaponUid: E.weapons[0].uid } });
     get().jetValider('attaque');
     // La défense du héros est SURFACÉE (#989) : `jetValider('attaque')` interpose SA fenêtre — le héros défend,

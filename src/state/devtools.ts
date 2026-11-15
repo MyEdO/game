@@ -68,7 +68,7 @@ import { translaterFormation } from '../noyau/monde/shipPostes';
 import { actorIn, ecrireActeur, inBattleId } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { touchActors } from '../noyau/combatOrParty';
-import { checkBattleOver, etatDeTourNeuf, subirLaCharge, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, armeDeLaGratuite, fileDesGratuites, refusDeDefenseReactive, choixPiegeLame, type PlacingZone } from '../noyau/combatFlow';
+import { checkBattleOver, etatDeTourNeuf, subirLaCharge, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, armeDeLaGratuite, fileDesGratuites, refusDeDefenseReactive, choixPiegeLame, firedWeapon, type PlacingZone } from '../noyau/combatFlow';
 import { aiDriven } from '../noyau/netOwnership';
 import { FLOW_VERBS, fluxAccepte, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from '../noyau/flowVerbs';
 import { distanceDeContact } from '../noyau/monde/footprint';
@@ -1361,17 +1361,17 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (idx < 0) return `✗ ${att.label} est absent de l'ordre d'initiative`;
       if (!aiDriven(g(), att)) return `✗ ${att.label} est piloté par un joueur : son attaque passe par la modale d'attaque`;
       if (defenseEnCours(g())) return '✗ une Défense est déjà ouverte — la résoudre d\'abord';
-      if (maybeOpenDefense(() => useGame.getState(), useGame.setState, att, def, undefined, undefined, att.chargedThisTurn)) {
+      const arme = firedWeapon(g().scene, att, def, undefined, b.combatants);
+      if (maybeOpenDefense(() => useGame.getState(), useGame.setState, att, def, arme, undefined, att.chargedThisTurn)) {
         const apres = g().battle!;
         if (apres.turn !== idx) donnerLeTour(apres, idx);
         return `✓ ${att.label} attaque ${def.label} — modale de Défense ouverte`;
       }
-      const arme = att.weapons[0];
       const refus = refusDeDefenseReactive(g(), att, def, arme);
       if (refus === 'non-surfacee') return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
       if (refus === 'hors-allonge') return `✗ ${att.label} n'est pas au contact de ${def.label} (${distanceEnClair(g().scene, att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
       if (refus === 'ne-peut-se-defendre') return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
-      return `✗ ${def.label} n'a aucune Défense opposable à l'attaque de ${att.label}${arme ? ` (${arme.label})` : ''}`;
+      return `✗ ${def.label} n'a aucune Défense opposable à l'attaque de ${att.label} (${arme.label})`;
     },
 
     /** SETUP de recette : l'ennemi `attaquantId` (piloté par l'IA) déclare une ATTAQUE GRATUITE de créature

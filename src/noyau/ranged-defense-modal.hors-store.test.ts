@@ -1,7 +1,10 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
-import { maybeOpenDefense } from './combatFlow';
+import { applyIncomingMeleeAdvantage, doAttack, maybeOpenDefense } from './combatFlow';
+import { OPS_DIFFEREES } from './combatEffects';
+import { inBattleId } from './monde/combatants';
+import { addCondition, COND } from '../engine/conditions';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
@@ -22,9 +25,9 @@ const bow: Weapon = { name: 'Arc', type: 'distance', damage: { plusBF: false, fl
 const sword: Weapon = { name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 const shield: Weapon = { name: 'Bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sh', qualities: [{ id: 'protectrice', value: 2 }] } as unknown as Weapon;
 
-function setup(heroWeapons: Weapon[], enemyPos: { x: number; y: number }) {
+function setup(heroWeapons: Weapon[], enemyPos: { x: number; y: number }, enemyWeapons: Weapon[] = [bow]) {
   seedBattleRng(7);
-  const enemy = mk('e', 'ennemi', enemyPos, [bow]);
+  const enemy = mk('e', 'ennemi', enemyPos, enemyWeapons);
   const hero = mk('h', 'heros', { x: 0, y: 0 }, heroWeapons);
   const battle: BattleState = {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
@@ -38,7 +41,7 @@ function setup(heroWeapons: Weapon[], enemyPos: { x: number; y: number }) {
 describe('maybeOpenDefense — tir sur un héros (T3)', () => {
   it('héros à bouclier Protectrice 2+, tir à distance moyenne → modale (Parade, arme = bouclier)', () => {
     const { enemy, hero } = setup([sword, shield], { x: 10, y: 0 }); // 10 tuiles : pas bout portant
-    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero, enemy.weapons[0])).toBe(true);
     const pd = banc.getState().pendingDefense!;
     expect(pd.weapon.type).toBe('distance');
     expect(pd.modes).toEqual(['parade']);
@@ -49,13 +52,33 @@ describe('maybeOpenDefense — tir sur un héros (T3)', () => {
 
   it('héros nu, tir à distance moyenne → PAS de modale (tir non opposable → false)', () => {
     const { enemy, hero } = setup([sword], { x: 10, y: 0 });
-    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(false);
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero, enemy.weapons[0])).toBe(false);
     expect(banc.getState().pendingDefense).toBeNull();
   });
 
   it('héros nu, tir à Bout Portant (1 tuile) → modale (Esquive)', () => {
     const { enemy, hero } = setup([sword], { x: 1, y: 0 });
-    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero, enemy.weapons[0])).toBe(true);
     expect(banc.getState().pendingDefense!.modes).toContain('esquive');
+  });
+});
+
+describe('le coup de l’IA résout son arme une fois : tireur à profil [mêlée, distance] (#4187)', () => {
+  const arc: Weapon = { ...bow, uid: 'arc' } as Weapon;
+
+  it('doAttack : le tir sur un héros à bouclier ouvre la fenêtre de défense AU TIR', () => {
+    const { enemy, hero } = setup([sword, shield], { x: 10, y: 0 }, [sword, arc]);
+    expect(doAttack(banc.getState, banc.setState, enemy, hero)).toBe(OPS_DIFFEREES);
+    expect(banc.getState().pendingDefense!.weapon.type).toBe('distance');
+  });
+
+  it('applyIncomingMeleeAdvantage : cible Sonnée, le tir ne donne aucun Avantage, la mêlée +1 (LDB 16 l.125)', () => {
+    const { enemy, hero } = setup([sword], { x: 1, y: 0 }, [sword, arc]);
+    addCondition(hero, COND.sonne);
+    const tireur = () => inBattleId(banc.getState().battle!, enemy.id)!;
+    applyIncomingMeleeAdvantage(banc.getState, tireur(), hero, arc);
+    expect(tireur().advantage, 'tir : aucun Avantage de mêlée').toBe(0);
+    applyIncomingMeleeAdvantage(banc.getState, tireur(), hero, sword);
+    expect(tireur().advantage, 'mêlée : +1 Avantage').toBe(1);
   });
 });

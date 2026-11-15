@@ -394,3 +394,16 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     expect(banc.getState().pendingCleave?.restitution, 'la restitution d’ouverture reste celle de la chaîne').toEqual({ prevActed: false });
   });
 });
+
+// La gratuite de talent juge l'arme du coup (`firedWeapon`), pas la première arme portée — #4187.
+describe('Gratuite de talent : l’arme du coup ouvre la porte de mêlée', () => {
+  const arc: Weapon = { name: 'Arc', label: 'Arc', uid: 'arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [] } as unknown as Weapon;
+  for (const ordre of [[sword, arc], [arc, sword]]) {
+    it(`[${ordre.map((w) => w.label).join(', ')}] au contact : la gratuite est jouée`, () => {
+      const { enemy, hero } = setup(false);
+      enemy.weapons = ordre;
+      accorderLAttaqueGratuite(banc.getState, banc.setState, enemy, { op: 'grantFreeAttack', weapon: 'held', when: 'immediate' }, { targetId: hero.id, key: 'arme', cap: 1 });
+      expect(banc.getState().battle!.combatants.find((c) => c.id === enemy.id)!.freeAttacksThisTurn?.arme ?? 0).toBe(1);
+    });
+  }
+});

@@ -54,7 +54,7 @@ export type ShootingStanceKey = keyof ShootingStance;
  *  (`frappePilotee`), qui porte en `reprise` le geste de l'IA qu'elle a devancé dans un tour décidé. */
 export type GesteDeSuite =
   | { kind: 'frappePilotee'; pa: PendingAttack; reprise?: GesteDeSuite }
-  | { kind: 'frappe'; cibleId: string }
+  | { kind: 'frappe'; cibleId: string; weaponUid?: string }
   | { kind: 'avancer' }
   | { kind: 'sort'; spellId: string; cibleId: string }
   | { kind: 'zone'; spellId: string; centre: Pt }

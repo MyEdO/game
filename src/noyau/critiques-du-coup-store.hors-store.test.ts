@@ -841,7 +841,7 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     let tir: ReturnType<typeof resolveAttack> = null;
     for (let graine = 1; graine < 60 && !tir?.victim; graine++) {
       banc.getState().ensemencerLeTirage(graine);
-      tir = resolveAttack(banc.getState, H, cible, undefined, false, true, false, arc);
+      tir = resolveAttack(banc.getState, H, cible, arc, undefined, false, true, false);
     }
     const { victim, res, weapon } = tir!;
     expect(victim, 'une graine touche le tas').toBeDefined();
@@ -872,7 +872,7 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     let tir: ReturnType<typeof resolveAttack> = null;
     for (let graine = 1; graine < 200 && !tir?.victim; graine++) {
       banc.getState().ensemencerLeTirage(graine);
-      tir = resolveAttack(banc.getState, tireur, H, undefined, false, false, false, arc);
+      tir = resolveAttack(banc.getState, tireur, H, arc, undefined, false, false, false);
     }
     const { victim, res, weapon } = tir!;
     expect(victim?.id, 'une graine dévie sur l’allié').toBe(voisin.id);

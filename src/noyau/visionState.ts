@@ -143,7 +143,7 @@ export function perceivedTiles(s: VisionInput, viewer: Combatant): Set<string> {
   const { light, smoke } = sceneLightField(s, occ);
   return computeVisible(
     s.scene,
-    [{ pos: viewer.pos, radiusTiles: baseSightTiles(s.scene, s.gameTime), darkTiles: darkSightTiles(viewer) }],
+    [{ pos: viewer.pos, z: viewer.pos.z, radiusTiles: baseSightTiles(s.scene, s.gameTime), darkTiles: darkSightTiles(viewer) }],
     light,
     smoke,
     occ,
