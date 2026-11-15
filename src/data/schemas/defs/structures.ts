@@ -71,19 +71,13 @@ const doc = document(
     /** LDB 14 l.86 ; LDB 85 l.329 */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id: string; occulte?: unknown; arreteLeCoup?: unknown; maison?: unknown; taille?: unknown };
+        const e = v as { id: string; occulte?: unknown; maison?: unknown; taille?: unknown };
         const sansRaison = typeof e.maison !== 'string' || !e.maison;
         if (e.occulte === false && sansRaison)
           ctx.addIssue({
             code: 'custom',
             path: ['maison'],
             message: `${e.id} : \`occulte: false\` sans \`maison\` — aucun folio ne rend une Structure transparente (LDB 14 l.86), l’arbitrage se nomme.`,
-          });
-        if (e.arreteLeCoup === true && e.occulte !== false)
-          ctx.addIssue({
-            code: 'custom',
-            path: ['arreteLeCoup'],
-            message: `${e.id} : \`arreteLeCoup\` sans \`occulte: false\` — une Structure occultante sépare déjà le contact.`,
           });
         if (e.taille != null && sansRaison)
           ctx.addIssue({
