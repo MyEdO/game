@@ -1291,11 +1291,13 @@ export const qualities = datasetDe<typeof qualitiesDef>(qualitiesJson);
 export const TAVERN_GAMES = datasetDe<typeof tavernGamesDef>(tavernGamesJson);
 /** Index des Atouts/Défauts par `id` STABLE (slug) — lookup runtime indépendant de la langue (dispatch). */
 const qualiteParId = indexParId('qualities', qualities);
+/** Qualité MAGIQUE : `capabilities.magic` (Magique, ADE II 04 l.214 ; Maudit, VDM 12 l.786-788). */
+const estQualiteMagique = (q: QualityData | undefined): boolean => q?.capabilities?.magic === true;
 /** Atouts de Fabrication (LDB 60 l.9-32) — DÉRIVÉS de la donnée : les qualités `atout` d'objet que la
  *  Compétence Métier produit, donc hors qualités MAGIQUES (`capabilities.magic` : Maudit, VDM 12
- *  folio 170, est un Atout d'objet qu'aucun artisan ne fabrique). */
+ *  l.786-788, est un Atout d'objet qu'aucun artisan ne fabrique). */
 export const fabricationAtouts = memoParVersion('qualities', (): QualityData['id'][] =>
-  qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet' && !q.capabilities?.magic).map((q) => q.id),
+  qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet' && !estQualiteMagique(q)).map((q) => q.id),
 );
 /** Atout de Fabrication d'un emplacement « Atouts au choix » que personne n'a choisi. LDB 60 l.11 ; LDB 60 l.26 */
 export const DEFAULT_FABRICATION_ATOUT = 'raffine';
@@ -2277,10 +2279,12 @@ export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | n
 /** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156) et les munitions. */
 const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege', 'munitions']);
 /** ARMES choisissables `{ id, label, groupe }` : toute Possession `melee`/`distance` hors « Mains nues »
- *  (`TrappingData.unarmed`) et hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`), triée au
- *  libellé. `id` = `trappingId` STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`). */
-export const armesChoisissables = memoParVersion('trappings', () => trappingsInstanciables()
+ *  (`TrappingData.unarmed`), hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`) et hors des armes
+ *  magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3), triée au libellé. `id` = `trappingId`
+ *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`). */
+export const armesChoisissables = memoParVersion(['trappings', 'qualities'], () => trappingsInstanciables()
   .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed && !FAMILLES_HORS_ARMES_PORTEES.has(t.subType?.id ?? ''))
+  .filter((t) => !t.qualities.some((r) => estQualiteMagique(qualiteParId(r.id))))
   .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id }))
   .sort((a, b) => parLibelle(a.label, b.label)));
 /** Résout une Qualité par son `id` STABLE. */

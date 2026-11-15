@@ -566,8 +566,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const los = input.losMemo ?? makeLosMemo(scene, smoke ?? []);
   // Portée de mêlée = Allonge de l'arme (RAW-3, LDB 62 l.163/164) ; 1 case par défaut. Diagonale incluse
   // (Chebyshev). Source unique partagée avec le héros et la résolution → symétrie héros/ennemi.
-  const mr = meleeReachTiles(enemy.weapons);
   const mpt = sceneMetresPerTile(scene); // LDB 15 l.12
+  const mr = meleeReachTiles(enemy.weapons, mpt);
   // Au contact depuis la case candidate `a`, l'ennemi posé là (`positionPosee`), mesuré par `distanceDeContact`.
   const withinMelee = (a: Pt, h: Combatant) =>
     distanceDeContact(scene, { ...enemy, pos: positionPosee(scene, a) }, h) <= mr;

@@ -8,31 +8,35 @@ const w = (over: Partial<Weapon>): Weapon => ({ label: 'X', type: 'melee', damag
 
 /**
  * Allonge = portée d'ENGAGEMENT/d'attaque de mêlée (LDB 62 l.163 « Très longue » → 4 m ; l.164
- * « Considérable » → 6 m), convertie en cases avec 1 case = 2 m (LDB 15 l.12). L'axe des sept
+ * « Considérable » → 6 m), convertie en cases à l'échelle de la scène, plancher 1 (LDB 15 l.12). L'axe des sept
  * longueurs (l.156-164) est keyé par `ReachId` : AUCUNE comparaison de libellé ici.
  */
 describe('reachTiles — Allonge d’engagement', () => {
-  it('Très longue = 2 cases (4 m)', () => expect(reachTiles(w({ reach: 'Très longue' }))).toBe(2));
-  it('Considérable = 3 cases (6 m)', () => expect(reachTiles(w({ reach: 'Considérable' }))).toBe(3));
+  it('Très longue = 2 cases (4 m)', () => expect(reachTiles(w({ reach: 'Très longue' }), 2)).toBe(2));
+  it('Considérable = 3 cases (6 m)', () => expect(reachTiles(w({ reach: 'Considérable' }), 2)).toBe(3));
   it('Moyenne / Longue / Très courte = contact (1 case)', () => {
-    expect(reachTiles(w({ reach: 'Moyenne' }))).toBe(1);
-    expect(reachTiles(w({ reach: 'Longue' }))).toBe(1);
-    expect(reachTiles(w({ reach: 'Très courte' }))).toBe(1);
+    expect(reachTiles(w({ reach: 'Moyenne' }), 2)).toBe(1);
+    expect(reachTiles(w({ reach: 'Longue' }), 2)).toBe(1);
+    expect(reachTiles(w({ reach: 'Très courte' }), 2)).toBe(1);
+  });
+  it('à 10 m par case, Très longue et Considérable tiennent dans la case de contact (plancher 1)', () => {
+    expect(reachTiles(w({ reach: 'Très longue' }), 10)).toBe(1);
+    expect(reachTiles(w({ reach: 'Considérable' }), 3)).toBe(2);
   });
   it('arme à distance, sans Allonge, ou absente → 1', () => {
-    expect(reachTiles(w({ type: 'distance', reach: null }))).toBe(1);
-    expect(reachTiles(w({ reach: null }))).toBe(1);
-    expect(reachTiles(undefined)).toBe(1);
+    expect(reachTiles(w({ type: 'distance', reach: null }), 2)).toBe(1);
+    expect(reachTiles(w({ reach: null }), 2)).toBe(1);
+    expect(reachTiles(undefined, 2)).toBe(1);
   });
 });
 
 describe('meleeReachTiles — Allonge de l’arme de mêlée d’un combattant', () => {
   it('prend l’arme de MÊLÉE (ignore l’arme à distance)', () => {
-    expect(meleeReachTiles([w({ type: 'distance' }), w({ reach: 'Très longue' })])).toBe(2);
+    expect(meleeReachTiles([w({ type: 'distance' }), w({ reach: 'Très longue' })], 2)).toBe(2);
   });
   it('arme de mêlée normale → 1 ; aucune arme → 1', () => {
-    expect(meleeReachTiles([w({ reach: 'Moyenne' })])).toBe(1);
-    expect(meleeReachTiles([])).toBe(1);
+    expect(meleeReachTiles([w({ reach: 'Moyenne' })], 2)).toBe(1);
+    expect(meleeReachTiles([], 2)).toBe(1);
   });
 });
 

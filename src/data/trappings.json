@@ -14811,7 +14811,7 @@
       "book": "zoo-imperial",
       "page": 115
     },
-    "desc": "Marteau de guerre magique dont la tête a été forgée avec des os de stégadon réduits en poudre, et dont le cri se fait entendre à chaque coup. S'il tue un ennemi, le son devient assourdissant : les créatures vivantes dans un rayon de 10 mètres (sauf l'utilisateur) doivent réussir un Test de Résistance Intermédiaire (+0) ou subir un État Assourdi et 1d10 Blessures qui ignorent l'armure (mais pas le Bonus d'Endurance).",
+    "desc": "La tête de ce marteau a été forgée avec les os réduits en poudre d'une grande créature, dont le cri se fait entendre à chaque coup porté. Si le marteau est utilisé pour tuer un ennemi, ce son devient assourdissant. Les créatures vivantes dans un rayon de 10 mètres, à l'exception de l'utilisateur du marteau, doivent effectuer un Test de **Résistance Intermédiaire (+0)** ou subir un État *Assourdi* et 1d10 Blessures qui ignorent l'armure, mais pas le Bonus d'Endurance.",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -14828,6 +14828,9 @@
       },
       {
         "id": "lente"
+      },
+      {
+        "id": "magique"
       }
     ],
     "enc": 3,
@@ -14856,7 +14859,7 @@
       "book": "zoo-imperial",
       "page": 116
     },
-    "desc": "Arme simple (épée) ou dague magique dont la poignée creuse contient une mèche de cheveux de sirène. La lame gagne l'Atout Dévastatrice, mais l'utilisateur est incapable de parler ou de produire le moindre son tant qu'il la manie ; cela vaut aussi pour quiconque est blessé par cette arme. Si la mèche a été prise par la force, l'utilisateur ne peut pas utiliser le Talent Chanceux tant qu'il tient ou porte Silence.",
+    "desc": "Des armes de ce type ont été forgées à de nombreuses occasions, mais ceux qui connaissent l'histoire de ces artefacts savent que leur fabrication est infortunée. La lame en elle-même doit être bien conçue et incorporer des minerais rares et des poudres spéciales pour retenir les Vents de Magie. De plus, la poignée doit être creuse et contenir une mèche de cheveux de sirène. On pensait autrefois que cette mèche devait être donnée de plein gré par la créature, mais il a ensuite été prouvé que ce n'était pas nécessaire.\n\nUne fois forgée, la lame se distingue par son tranchant redoutable et obtient l'Atout Dévastatrice. Cependant, l'utilisateur est dans l'incapacité de parler ou de produire le moindre son tant qu'il manie cette arme. Les bruits de pas et autres sons indirects peuvent être entendus, mais aucune tentative de parler ou crier ne sera audible. Cela s'applique également aux personnes blessées par cette arme, quelle que soit la gravité de la plaie.\n\nSi la mèche de cheveux utilisée pour fabriquer cette arme a été donnée de plein gré, il n'y a aucun autre effet. Toutefois, si elle a été prise par la force, l'utilisateur ne pourra pas utiliser le Talent Chanceux tant qu'il tient ou porte Silence.",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -14867,6 +14870,9 @@
     "qualities": [
       {
         "id": "devastatrice"
+      },
+      {
+        "id": "magique"
       }
     ],
     "enc": 1,
@@ -14915,6 +14921,9 @@
       },
       {
         "id": "inoffensive"
+      },
+      {
+        "id": "magique"
       }
     ],
     "enc": 1,
@@ -16838,6 +16847,9 @@
       },
       {
         "id": "defensive"
+      },
+      {
+        "id": "magique"
       }
     ],
     "desc": "Un bâton enchanté est conçu de manière à attirer les Vents de Magie que le lanceur de sorts utilise.\n\nPar exemple, un sorcier Flamboyant peut arborer un petit brasero et plusieurs clefs en bronze sur son bâton, représentant physiquement et symboliquement *Aqshy*. Celui d'un sorcier dissident peut avoir des os cliquetants et des symboles cabalistiques destinés à attirer *Dhar*. S'il peut toujours être utilisé comme un bâton de combat, il procure également d'autres avantages.\n\nTant qu'un lanceur de sorts porte un bâton enchanté, il réduit de 1 le NI des Sorts du Domaine associé, jusqu'à un minimum de 0. Ceci s'applique également à n'importe quel Sort d'Arcane qu'il lance.",

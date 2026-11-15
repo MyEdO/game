@@ -35,7 +35,6 @@ import {
   qualityRefLabel,
   findQualityById,
   advancementLabel,
-  armesChoisissables,
   type TrappingRef,
   estDotationDObjet,
   levelsForCareer,
@@ -68,7 +67,9 @@ import {
   estEmplacementDeDotation,
   estEmplacementRacine,
   idChoisi,
+  libelleDeLaValeur,
   sousEmplacement,
+  valeursDeLEmplacement,
   type ChoixDeDotation,
   type EmplacementDeDotation,
 } from '../../engine/trappingChoices';
@@ -1830,10 +1831,11 @@ export function PettySpellsSection({ d, setD }: StepProps) {
   );
 }
 
-/** Picker d'arme de l'emplacement `{wildcard:'arme'}` — icône + libellé (`MediaSelect`, MÊME rendu
- *  que le Sac/`EquipmentPanel`), filtrable (`SearchFilterField`, 100+ armes). */
-function WeaponWildcardPicker({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
-  const { search, setSearch, filtered } = useFilteredList(armesChoisissables(), (w) => w.label);
+/** Picker d'arme de l'emplacement `{wildcard:'arme'}` `emplacement` parmi ses valeurs (`valeursDeLEmplacement`) —
+ *  icône + libellé (`MediaSelect`, MÊME rendu que le Sac/`EquipmentPanel`), filtrable (`SearchFilterField`, 100+ armes). */
+function WeaponWildcardPicker({ emplacement, value, onChange }: { emplacement: EmplacementDeDotation; value?: string; onChange: (v: string) => void }) {
+  const armes = valeursDeLEmplacement(emplacement).map((v) => ({ id: String(v), label: libelleDeLaValeur(emplacement, v) }));
+  const { search, setSearch, filtered } = useFilteredList(armes, (w) => w.label);
   const options: MediaOption[] = filtered.map((w) => {
     const item = gabaritDObjet(w.id);
     return { key: w.id, media: item ? <ItemIcon item={item} size="sm" /> : undefined, label: w.label };
@@ -1877,7 +1879,7 @@ export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
   }
   const value = idChoisi(emplacement, choices);
   if (emplacement.sorte === 'joker') {
-    if (emplacement.ref.wildcard === 'arme') return <WeaponWildcardPicker value={value} onChange={(v) => onChoicesChange(adresse, v)} />;
+    if (emplacement.ref.wildcard === 'arme') return <WeaponWildcardPicker emplacement={emplacement} value={value} onChange={(v) => onChoicesChange(adresse, v)} />;
     return <p className="hint">Aucun catalogue d'objets pour la catégorie « {emplacement.ref.wildcard} » : cet emplacement ne peut pas être choisi.</p>;
   }
   const options = fabricationAtouts().map((atoutId) => {

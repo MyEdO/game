@@ -1164,10 +1164,10 @@
     "label": "Magique",
     "polarite": "atout",
     "subType": "arme",
-    "desc": "L'arme est considérée comme Magique : ses attaques blessent les créatures Éthérées.",
+    "desc": "Toutes les armes magiques peuvent blesser les créatures normalement immunisées aux attaques non magiques, telles que celles dotées du Trait de créature Éthéré.",
     "source": {
-      "book": "livre-de-base",
-      "page": 339
+      "book": "archives-de-l-empire-2",
+      "page": 58
     },
     "capabilities": {
       "magic": true
