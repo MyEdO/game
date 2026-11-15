@@ -12,7 +12,8 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     propriétés, éléments de tableau, membres d'union, types littéraux anonymes, valeurs d'index
 //     (`Record<string,V>`), clés LITTÉRALES d'un type mappé (`Record<'a' | 'b', V>`, un shape dérivé
 //     par `tableTotale`) — propriétés SYNTHÉTIQUES, sans déclaration, rattachées à la déclaration du
-//     champ qui porte le type. Aucune liste de types recopiée à la main.
+//     champ qui porte le type. Aucune liste de types recopiée à la main. Le périmètre est ce que l'auteur CHOISIT : un
+//     champ requis à un seul littéral, lu dans son porteur, qui ne discrimine aucune union, n'en est pas (`sceneScope`).
 //  2. CRÉDIT RATTACHÉ AU TYPE. Un écrivain ne compte que si le champ qu'il écrit REMONTE
 //     à la déclaration exacte du champ dans le document — pour une propriété synthétique, au type
 //     mappé qui la porte et à son nom (`idsOf`). Une propriété PRODUITE PAR UNE FABRIQUE (déclarée dans le corps d'une
@@ -31,10 +32,12 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     complète, testée, ré-exportée par l'éditeur et jamais appelée EST le défaut de #841.
 //  4. CRÉDIT PAR ALLER-RETOUR. Une écriture générique (le geste `valeur` du formulaire tiré du schéma, à clé calculée,
 //     que le scan ne voit pas) crédite le dernier pas d'un chemin qu'un aller-retour a JOUÉ en jouant `editer`, et, d'un
-//     objet ou d'une liste écrits entiers, chaque clé qu'ils portent, de proche en proche (`cheminsEcrits`), comme le scan
-//     crédite chaque propriété d'un littéral ; le choix d'une variante, son seul discriminant et les objets qu'il pose
-//     (`ecrituresJouees` d'`auditSceneFieldEditability`) : le document a changé à ce chemin, la valeur relue est la
-//     valeur jouée, la saisie n'est pas du JSON (`ecritureCreditee`). Le chemin se joint au périmètre en marchant le
+//     objet ou d'une liste écrits entiers, chaque objet et liste qu'ils portent, de proche en proche (`cheminsEcrits`) :
+//     un scalaire n'est crédité que s'il est la valeur jouée elle-même ; le choix d'une variante, de plus, son
+//     discriminant (`ecrituresJouees` d'`auditSceneFieldEditability`) : le document a changé à ce chemin, la valeur relue est la
+//     valeur jouée, la saisie n'est pas du JSON (`ecritureCreditee`). Hors du choix d'une variante, elle crédite aussi
+//     chaque scalaire que le document portait déjà, hors de ce chemin, et que le geste change (`scalairesChanges`) ; un
+//     scalaire absent avant n'est crédité que par le contrôle qui l'écrit. Le chemin se joint au périmètre en marchant le
 //     type de la racine (`idsDuChemin`, par `idsOf`) : aucun second nommage.
 //
 // FRONTIÈRE DU PÉRIMÈTRE — par PROPRIÉTÉ, et l'appartenance se juge par IDENTITÉ, jamais par
@@ -315,12 +318,17 @@ export function sceneScope(program, root, racine) {
     out.push(champ);
   };
 
-  const visit = (type, ownerPath, parentDecl) => {
+  /** Le type de la propriété `p`, lu dans son porteur. */
+  const typeDansLePorteur = (p) => (p.declarations?.length ? checker.getTypeOfSymbolAtLocation(p, p.declarations[0].resolve()) : checker.getTypeOfSymbol(p));
+
+  /** `alternatives` : les membres de l'union dont `type` est une branche, pour juger un discriminant. */
+  const visit = (type, ownerPath, parentDecl, alternatives = []) => {
     if (!type || seenTypes.has(type)) return;
     seenTypes.add(type);
 
     if ((type.isUnionType() || type.isIntersectionType())) {
-      for (const m of type.getTypes()) visit(m, ownerPath, parentDecl);
+      const branches = type.isUnionType() ? flatten(type) : alternatives;
+      for (const m of type.getTypes()) visit(m, ownerPath, parentDecl, branches);
       return;
     }
     if (checker.isArrayType(type) || checker.isTupleType(type)) {
@@ -334,16 +342,25 @@ export function sceneScope(program, root, racine) {
 
     // Un objet dont aucune propriété n'est déclarée par le document (un type MANUSCRIT du moteur, cf. FRONTIÈRE en
     // tête) : on ne descend pas.
-    // Un champ dont le type est UN SEUL littéral de chaîne (le discriminant d'un document qui
-    // S'ANNONCE : `Scene.type: 'scene'`, #1552) n'a pas de contrôle d'auteur PAR CONSTRUCTION — il n'a
-    // qu'une valeur, il n'y a rien à choisir. Exclusion STRUCTURELLE (la forme du type), jamais par
-    // nom de champ : une union (`'interieur' | 'exterieur'`) reste dans le périmètre, elle SE CHOISIT.
-    const discriminant = (p) => {
-      const t = checker.getTypeAtLocation(p.declarations[0].resolve());
-      return !!(t.flags & TypeFlags.StringLiteral);
+    // Un champ REQUIS dont le type, lu dans son porteur, est UN SEUL littéral (`Scene.type: 'scene'`, #1552 ;
+    // `z.literal('statblock')` ; le `type: T` d'une interface générique instanciée à `'x'`) n'a pas de contrôle d'auteur
+    // PAR CONSTRUCTION — il n'a qu'une valeur, il n'y a rien à choisir —, sauf s'il DISCRIMINE une union : une autre
+    // branche porte le même champ à un autre type, et le choix de la variante l'écrit. Exclusion STRUCTURELLE (la forme
+    // du type), jamais par nom de champ : une union (`'interieur' | 'exterieur'`) ou un littéral optionnel (`true |
+    // undefined`) reste dans le périmètre, il SE CHOISIT. Le type de la DÉCLARATION n'en dit rien : celui d'un shape zod
+    // est le schéma, celui d'une interface générique son paramètre. Un type atteint par plusieurs chemins est jugé au
+    // premier (`seenTypes`) : ses `alternatives` sont celles de ce chemin-là.
+    const uneSeuleValeur = (p) => {
+      const t = typeDansLePorteur(p);
+      if (!(t.flags & TypeFlags.Literal)) return false;
+      return !alternatives.some((a) => {
+        const autre = a !== type && checker.getPropertyOfType(a, p.name);
+        return !!autre && typeDansLePorteur(autre) !== t;
+      });
     };
     const proprietes = checker.getPropertiesOfType(type);
-    const dedans = proprietes.filter((p) => duDocument(p.declarations?.[0]?.resolve()) && !discriminant(p));
+    const duType = proprietes.filter((p) => duDocument(p.declarations?.[0]?.resolve()));
+    const dedans = duType.filter((p) => !uneSeuleValeur(p));
     // Clés LITTÉRALES d'un type mappé : sans déclaration, elles sont du document quand le champ qui porte
     // le type en est.
     const synthetiques = duDocument(parentDecl) ? proprietes.filter((p) => !p.declarations?.length) : [];
@@ -358,7 +375,7 @@ export function sceneScope(program, root, racine) {
     const named = type.getAliasSymbol()?.name ?? type.getSymbol()?.name;
     const owner =
       (named && !named.startsWith('__') ? named : undefined) ??
-      dedans.map((p) => schemaOwner(p.declarations[0].resolve())).find(Boolean) ??
+      duType.map((p) => schemaOwner(p.declarations[0].resolve())).find(Boolean) ??
       ownerPath;
     for (const prop of dedans) {
       const decl = prop.declarations[0].resolve();
@@ -459,13 +476,33 @@ const cheminsPoses = (chemin, valeur) =>
     ? [[chemin, valeur], ...Object.entries(valeur).flatMap(([cle, v]) => cheminsPoses([...chemin, Array.isArray(valeur) ? Number(cle) : cle], v))]
     : [[chemin, valeur]];
 
-/** Les chemins que crédite l'écriture `{ chemin, valeur, variante }` (`cheminsPoses`). Issue du choix d'une variante
- *  (`variante`, la clé de son discriminant), elle ne crédite que son discriminant, posé à son chemin ou juste sous lui, et
- *  les objets et listes qu'elle pose : un scalaire du corps neuf n'est crédité que par le contrôle qui l'écrit. */
+/** Les chemins que crédite l'écriture `{ chemin, valeur, variante }` (`cheminsPoses`) : chaque objet et liste qu'elle
+ *  pose ; un scalaire, s'il est la valeur jouée elle-même, à son chemin, ou, issue du choix d'une variante (`variante`,
+ *  la clé de son discriminant), s'il est ce discriminant, posé à son chemin ou juste sous lui. Un scalaire du corps d'un
+ *  objet ou d'une liste écrits entiers n'est crédité que par le contrôle qui l'écrit. */
 const cheminsEcrits = ({ chemin, valeur, variante }) =>
   cheminsPoses(chemin, valeur)
-    .filter(([c, v]) => variante === undefined || (v !== null && typeof v === 'object') || (c.length - chemin.length <= 1 && c[c.length - 1] === variante))
+    .filter(([c, v]) => (v !== null && typeof v === 'object') || (variante === undefined ? c.length === chemin.length : c.length - chemin.length <= 1 && c[c.length - 1] === variante))
     .map(([c]) => c);
+
+/** Les chemins des scalaires que le document change de `avant` à `apres` hors du chemin `chemin` : présents au même
+ *  chemin des deux, de valeur différente. */
+const scalairesChanges = (avant, apres, chemin) => {
+  const out = [];
+  const objet = (v) => v !== null && typeof v === 'object';
+  const marcher = (a, b, at) => {
+    if (a === b || (at.length === chemin.length && at.every((pas, i) => pas === chemin[i]))) return;
+    if (!objet(a) && !objet(b)) { if (a !== undefined && b !== undefined) out.push(at); return; }
+    if (!objet(a) || !objet(b) || Array.isArray(a) !== Array.isArray(b)) return;
+    for (const cle of Object.keys(a)) if (cle in b) marcher(a[cle], b[cle], [...at, Array.isArray(a) ? Number(cle) : cle]);
+  };
+  marcher(avant, apres, []);
+  return out;
+};
+
+/** Les chemins que crédite l'écriture `e` : ceux qu'elle écrit (`cheminsEcrits`) et, hors du choix d'une variante, chaque
+ *  scalaire qu'elle change ailleurs (`scalairesChanges`). */
+const cheminsCredites = (e) => [...cheminsEcrits(e), ...(e.variante === undefined ? scalairesChanges(e.avant, e.apres, e.chemin) : [])];
 
 /** Une écriture jouée crédite-t-elle son dernier pas ? Le document a changé à son chemin, la valeur relue est la valeur
  *  jouée, et la saisie n'est pas du JSON (`saisieJson`). */
@@ -804,7 +841,7 @@ export function auteurReachableScopes(checker, program, root) {
  * Audite le dépôt : pour chaque champ du document de la `racine` (`RACINES`), qui l'écrit et par quel chemin. Une écriture jouée par
  * l'éditeur (`ecrituresJouees`, un aller-retour qui joue `editer` : le document avant et après, le chemin écrit depuis
  * la racine du document, la valeur jouée et sa saisie) crédite, quand `ecritureCreditee`, le dernier pas de chacun des chemins qu'elle
- * écrit (`cheminsEcrits`, `idsDuChemin`), sous la marque `ALLER_RETOUR`.
+ * crédite (`cheminsCredites`, `idsDuChemin`), sous la marque `ALLER_RETOUR`.
  * @param {string} root racine du dépôt
  * @param {import('./tsProgram.mjs').SessionProgramme} [program] programme déjà construit — absent, bâti pour CET appel
  * @param {{ racine: { fichierSchema: string, schema: string, fichierType: string, type: string }, ecrituresJouees?: { avant: unknown, apres: unknown, chemin: (string | number)[], valeur: unknown, saisie: string, variante?: string }[] }} options
@@ -861,7 +898,7 @@ export function auditSceneFieldEditability(root, program, { racine, ecrituresJou
   }
   const typeRacine = typeDeRacine(program, root, racine);
   for (const e of ecrituresJouees.filter(ecritureCreditee))
-    for (const id of cheminsEcrits(e).flatMap((chemin) => [...idsDuChemin(checker, cles, typeRacine, e.apres, chemin)])) {
+    for (const id of cheminsCredites(e).flatMap((chemin) => [...idsDuChemin(checker, cles, typeRacine, e.apres, chemin)])) {
       const row = rows.get(id);
       if (row && !row.authors.includes(ALLER_RETOUR)) row.authors.push(ALLER_RETOUR);
     }

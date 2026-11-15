@@ -97,7 +97,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
   const ecritures = detenteur(() => ecrituresJouees());
   const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { racine: RACINES.scene, ecrituresJouees: ecritures() }));
 
-  it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 120_000 }, () => {
+  it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 100_000 }, () => {
     const orphelins = orphanFields(auditReel());
     // Rendu en TEXTE : l'échec doit NOMMER les champs et leur `fichier:ligne`, pas afficher « …(9) ».
     const detail = orphelins
@@ -148,11 +148,12 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     expect(() => documentDeclarations(perimetre(), ROOT, { ...RACINES.narratif, schema: 'absentSchema' })).toThrow('`absentSchema` introuvable dans src/data/schemas/defs-scenes/narratif.ts');
   });
 
-  it('une écriture jouée crédite le DERNIER pas de son chemin et, d’un objet écrit entier, chacune de ses clés, marchés sur le type `Scene`, si le document a changé, la valeur relue est la jouée et la saisie n’est pas du JSON', () => {
+  it('une écriture jouée crédite le DERNIER pas de son chemin et, d’un objet écrit entier, ses seuls objets et listes, marchés sur le type `Scene`, si le document a changé, la valeur relue est la jouée et la saisie n’est pas du JSON : un scalaire du corps écrit attend le contrôle qui l’écrit', () => {
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': `export interface Rect { kind: 'rect'; w: number }
 export interface Disc { kind: 'disc'; radius: number }
-export interface Test { difficulty: string }
+export interface Seuil { n: number }
+export interface Test { difficulty: string; seuil?: Seuil }
 export interface SceneEffectZone { id: string; area: Rect | Disc; crossTest?: Test; perRound?: unknown[]; tags?: Record<string, { n: number }> }
 export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
     });
@@ -161,7 +162,7 @@ export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
       ({ avant: doc(avant), apres: doc(apres), chemin: ['effectZones', 0, ...chemin], valeur, saisie });
     try {
       const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
-        jouee({ crossTest: { difficulty: 'x' } }, ['crossTest'], { difficulty: 'x' }, 'bouton'),
+        jouee({ crossTest: { difficulty: 'x', seuil: { n: 1 } } }, ['crossTest'], { difficulty: 'x', seuil: { n: 1 } }, 'bouton'),
         jouee({ area: { kind: 'disc', radius: 3 } }, ['area', 'radius'], 3, 'saisieNombre'),
         jouee({ perRound: [] }, ['perRound'], [], 'saisieJson'),
         jouee({}, ['tags', 'a', 'n'], 1, 'saisieNombre'),
@@ -170,7 +171,7 @@ export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
       expect(rows.filter((r) => r.authors.length).map((r) => [r.id, r.authors])).toEqual([
         ['Disc.radius', [ALLER_RETOUR]],
         ['SceneEffectZone.crossTest', [ALLER_RETOUR]],
-        ['Test.difficulty', [ALLER_RETOUR]],
+        ['Test.seuil', [ALLER_RETOUR]],
       ]);
     } finally { program.dispose(); }
   });
@@ -194,7 +195,40 @@ export interface Scene { id: string; area: Rect | Disc | Libre; autre?: Rect | D
         // Le contrôle qui écrit un scalaire.
         { avant: doc({ area: { kind: 'rect', w: 1 } }), apres: doc({ area: { kind: 'rect', w: 2 } }), chemin: ['area', 'w'], valeur: 2, saisie: 'saisieNombre' },
       ] });
-      expect(rows.filter((r) => r.authors.length).map((r) => r.id).sort()).toEqual(['Libre.kind', 'Rect.w', 'Scene.autre']);
+      expect(rows.filter((r) => r.authors.length).map((r) => r.id).sort()).toEqual(['Disc.kind', 'Libre.kind', 'Rect.w', 'Scene.autre']);
+    } finally { program.dispose(); }
+  });
+
+  it('une écriture jouée crédite aussi tout scalaire qui EXISTAIT au même chemin avant et a changé, hors de son chemin et hors du choix d’une variante : un scalaire neuf, déplacé ou homonyme d’une variante quittée attend son contrôle', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export interface Cellule { kind: 'cellule'; row: string; sum: string }
+export interface Repere { id: string }
+export interface Valeur { repere: string; valeur: string; note?: string }
+export interface A { kind: 'a'; n: number }
+export interface B { kind: 'b'; n: number }
+export interface Effet { id: string; type: string }
+export interface Scene { id: string; parts: Cellule[]; reperes: Repere[]; valeurs: Valeur[]; v: A | B; effects?: Effet[] }\n`,
+    });
+    const doc = (plus: Record<string, unknown> = {}) => ({
+      id: 's', parts: [{ kind: 'cellule', row: '1', sum: 'aaaa' }], reperes: [{ id: 'r' }],
+      valeurs: [{ repere: 'r', valeur: 'x' }, { repere: 'autre', valeur: 'y' }], v: { kind: 'a', n: 5 }, ...plus,
+    });
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        // L'adresse d'une prose change : le produit rescelle son empreinte.
+        { avant: doc(), apres: doc({ parts: [{ kind: 'cellule', row: '2', sum: 'bbbb' }] }), chemin: ['parts', 0, 'row'], valeur: '2', saisie: 'saisieChoix' },
+        // Un repère renommé : le produit réécrit chaque valeur qui le désignait.
+        { avant: doc(), apres: doc({ reperes: [{ id: 'q' }], valeurs: [{ repere: 'q', valeur: 'x' }, { repere: 'autre', valeur: 'y' }] }), chemin: ['reperes', 0, 'id'], valeur: 'q', saisie: 'saisieTexte' },
+        // Un repère ajouté : le produit pose, hors du chemin écrit, un scalaire absent avant.
+        { avant: doc(), apres: doc({ reperes: [{ id: 'r' }, { id: 'neuf' }], valeurs: [{ repere: 'r', valeur: 'x', note: '' }, { repere: 'autre', valeur: 'y' }] }), chemin: ['reperes', 1], valeur: { id: 'neuf' }, saisie: 'saisieChoix' },
+        // Un Effet ajouté : son corps neuf pose des scalaires absents avant.
+        { avant: doc(), apres: doc({ effects: [{ id: '', type: 'setObjective' }] }), chemin: ['effects'], valeur: [{ id: '', type: 'setObjective' }], saisie: 'saisieChoix' },
+        // Deux valeurs échangées : leurs scalaires changent de rang, sous le chemin écrit.
+        { avant: doc(), apres: doc({ valeurs: [{ repere: 'autre', valeur: 'y' }, { repere: 'r', valeur: 'x' }] }), chemin: ['valeurs'], valeur: [{ repere: 'autre', valeur: 'y' }, { repere: 'r', valeur: 'x' }], saisie: 'bouton' },
+        // Une variante remplacée : `n`, homonyme, est posé par le corps neuf.
+        { avant: doc(), apres: doc({ v: { kind: 'b', n: 0 } }), chemin: ['v', 'kind'], valeur: 'b', saisie: 'saisieChoix', variante: 'kind' },
+      ] });
+      expect(rows.filter((r) => r.authors.length).map((r) => r.id).sort()).toEqual(['B.kind', 'Cellule.row', 'Cellule.sum', 'Repere.id', 'Scene.effects', 'Scene.valeurs', 'Valeur.repere']);
     } finally { program.dispose(); }
   });
 
@@ -322,7 +356,23 @@ export const tracerCalque = () => {
     // `ArchitectureEdgeRef.*` par la réutilisation du type — la liste positive ci-dessus les couvre).
     // 416 = mesure du 2026-11-12 (#3606 M2f1 : `FRONTIERE` retirée, corps des fabriques et annotations de type descendus).
     // 415 = mesure du 2026-11-12 (#3606 S0 : les compétences de scène DÉSIGNENT, `RefASpecialisation.choix` sort).
-    expect(scope.length, 'périmètre effondré').toBeGreaterThanOrEqual(415);
+    // 414 = mesure du 2026-11-15 (#4234 : un champ requis à un seul littéral qui ne discrimine aucune union sort par son
+    // type, `CustomStatblock.type` et `OptionalSwap.note`).
+    expect(scope.length, 'périmètre effondré').toBeGreaterThanOrEqual(414);
+  });
+
+  it('un champ REQUIS à un seul littéral, lu dans son porteur, sort du périmètre, sauf s’il discrimine une union ; deux littéraux ou un littéral optionnel y restent', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export interface Fixe<T extends string> { type: T; n: number }
+export interface A { kind: 'a'; x: number }
+export interface B { kind: 'b'; y: number }
+export interface Scene { id: string; fixe: Fixe<'statblock'>; vrai: true; deux: 'a' | 'b'; option?: true; forme: A | B }\n`,
+    });
+    try {
+      expect(ids(sceneScope(program, VIRTUAL_ROOT, RACINES.scene)).sort()).toEqual([
+        'A.kind', 'A.x', 'B.kind', 'B.y', 'Fixe.n', 'Scene.deux', 'Scene.fixe', 'Scene.forme', 'Scene.id', 'Scene.option',
+      ]);
+    } finally { program.dispose(); }
   });
 
   it('le périmètre inclut par IDENTITÉ — une feuille d’un AUTRE module composée par le document y entre, et la marche descend dans le corps d’une fabrique', () => {
@@ -502,7 +552,6 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CustomStatblock.traits.range @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.source @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.value @ src/data/schemas/grammaire/reference.ts',
-      'CustomStatblock.type @ src/data/schemas/defs-scenes/communs.ts',
       'Dialogue.start.id @ src/data/schemas/grammaire/ref.ts',
       'DialogueNode.adapteDe @ src/data/schemas/grammaire/prose.ts',
       'DialogueNode.desc @ src/data/schemas/grammaire/prose.ts',
@@ -542,7 +591,6 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'OptionalSwap.grant @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.grant.value @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.label @ src/data/schemas/grammaire/reference.ts',
-      'OptionalSwap.note @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.remove @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.size @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.wounds @ src/data/schemas/grammaire/reference.ts',
