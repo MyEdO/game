@@ -399,9 +399,9 @@ export const moveEntitySchema = nommerChamps(z.strictObject({
   remove: z.boolean().optional(),
 }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, to: { label: "destination" }, remove: { label: "retirer" } });
 
-/** Son PONCTUEL (cloche de minuit, cri hors-champ…) — id du registre audio (#701). */
 /** Le son joué, au registre audio : FORME DE SORTIE déclarée nue (patron `sortSchema`). */
 const sonJoueSchema: z.ZodType<string, string> = idDe('son');
+/** Son PONCTUEL (cloche de minuit, cri hors-champ…) — id du registre audio (#701). */
 export const playSfxSchema = nommerChamps(z.strictObject({ type: z.literal('playSfx'), id: sonJoueSchema }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } });
 
 /** LDB 40 l.25-29, l.36, l.46 */

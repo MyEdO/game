@@ -6,7 +6,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  * Frontière RÉFÉRENCE vs NARRATIF : le narratif est EMBARQUÉ dans le document de campagne et
  * RÉFÉRENCE la règle globale (`src/data`) PAR ID — jamais copiée, jamais réinjectée. L'invariant
  * est gardé ICI : aucun id narratif ne collisionne avec un id de la règle globale
- * (créature/possession), et les registres (`REGISTRES_NARRATIFS`) n'ont aucun id en commun.
+ * (créature, possession, véhicule ou structure), et les registres (`REGISTRES_NARRATIFS`) n'ont aucun id en commun.
  *
  * #2427 ; fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`.
  */
@@ -19,7 +19,7 @@ import { ref } from '../grammaire/ref';
 import { champAdapteDe, proseNommee, META_ADAPTE_DE } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
 import { entree as trappingEntree } from '../defs/trappings';
-import { findCreatureById, findTrappingById } from '../../index';
+import { findCreatureById, findStructureById, findTrappingById, findVehicleById } from '../../index';
 import type { CreatureData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
 import { exclusiviteAdapteDe, refuserSansProvenance } from '../grammaire/document';
@@ -123,8 +123,10 @@ export const ecartSchema = nommerChamps(z.strictObject({
   motif: z.string().regex(/\S/, 'motif vide.'),
 }), { entree: { label: "entrée" , texte: { regime: "technique"} }, motif: { label: "motif" , texte: { regime: "atelier",usage: "motif d’écart du dossier de chapitre"} } });
 
-/** Un id narratif COLLISIONNE avec la règle globale s'il résout déjà comme créature OU possession. */
-export const collisionneAvecLeGlobal = (id: string): boolean => !!findCreatureById(id) || !!findTrappingById(id);
+/** Un id narratif COLLISIONNE avec la règle globale s'il résout déjà dans un catalogue que `creatureId` désigne :
+ *  créature, possession, véhicule ou structure (#4234). */
+export const collisionneAvecLeGlobal = (id: string): boolean =>
+  !!findCreatureById(id) || !!findTrappingById(id) || !!findVehicleById(id) || !!findStructureById(id);
 
 /**
  * Sémantique du bloc narratif — unicité des ids INTER-registres (l'unicité DANS un registre est la
@@ -142,7 +144,7 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
     (nb[reg.cle] as readonly { id: string }[]).forEach(({ id }, i) => {
       const autre = registreDe.get(id);
       if (autre && autre !== reg) faute([reg.cle, i, 'id'], `l'id ${reg.de} « ${id} » collisionne avec un id ${autre.de}.`);
-      if (collisionneAvecLeGlobal(id)) faute([reg.cle, i, 'id'], `l'id ${reg.de} « ${id} » collisionne avec un id de la règle globale (créature/possession).`);
+      if (collisionneAvecLeGlobal(id)) faute([reg.cle, i, 'id'], `l'id ${reg.de} « ${id} » collisionne avec un id de la règle globale (créature, possession, véhicule ou structure).`);
       if (!autre) registreDe.set(id, reg);
     });
   }

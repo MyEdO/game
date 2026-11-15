@@ -16,7 +16,8 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     (`perimetreDeLaRacine`) : un champ REQUIS dont le type, lu dans son porteur, est UN SEUL littéral n'en est pas, sauf
 //     s'il DISCRIMINE l'une des unions par lesquelles son porteur est atteint, sur tous les chemins de la marche : une
 //     autre branche objet de l'union porte le même champ à un autre type, ou, toutes ses branches objets, une seule ne
-//     le porte pas et chacune des autres le porte à un littéral texte (discriminant de PRÉSENCE).
+//     le porte pas et chacune des autres le porte à un littéral texte, seule clé de l'union dans ce cas (discriminant de
+//     PRÉSENCE).
 //  2. CRÉDIT RATTACHÉ AU TYPE. Un écrivain ne compte que si le champ qu'il écrit REMONTE
 //     à la déclaration exacte du champ dans le document — pour une propriété synthétique, au type
 //     mappé qui la porte et à son nom (`idsOf`). Une propriété PRODUITE PAR UNE FABRIQUE (déclarée dans le corps d'une
@@ -398,17 +399,23 @@ export function perimetreDeLaRacine(program, root, racine) {
   // PAR CONSTRUCTION — il n'a qu'une valeur, il n'y a rien à choisir —, sauf s'il DISCRIMINE l'une des unions par
   // lesquelles son porteur est atteint (`unionsDe`, tous chemins) : une autre branche objet porte le même champ à un
   // autre type, ou, toutes ses branches objets, une seule ne le porte pas et chacune des autres le porte à un littéral
-  // texte (discriminant de PRÉSENCE, `discriminantDePresence` de `src/noyau/codex/editFields.ts`) ; le choix de la
-  // variante l'écrit. Exclusion STRUCTURELLE (la forme du type), jamais par nom de champ : une union
+  // texte (discriminant de PRÉSENCE, `discriminantDePresence` de `src/noyau/codex/editFields.ts`), s'il est l'UNIQUE
+  // clé de l'union à le faire ; le choix de la variante l'écrit. Exclusion STRUCTURELLE (la forme du type), jamais par nom de champ : une union
   // (`'interieur' | 'exterieur'`) ou un littéral optionnel (`true | undefined`) reste dans le périmètre, il SE CHOISIT.
   // Le type de la DÉCLARATION n'en dit rien : celui d'un shape zod est le schéma, celui d'une interface générique son
   // paramètre.
   const objet = (b) => !!(b.flags & (TypeFlags.Object | TypeFlags.Intersection));
+  const portesDe = (branches, nom) => branches.map((a) => (objet(a) ? checker.getPropertyOfType(a, nom) : undefined));
+  const dePresence = (branches, nom) => {
+    const portes = portesDe(branches, nom);
+    return portes.filter((autre) => !autre).length === 1 && portes.every((autre) => !autre || typeDansLePorteur(autre).isStringLiteralType());
+  };
   const discrimine = ({ porteur, prop, t }) =>
     (unionsDe.get(porteur) ?? []).some((branches) => {
-      const portes = branches.map((a) => (objet(a) ? checker.getPropertyOfType(a, prop.name) : undefined));
-      return portes.some((autre, i) => !!autre && branches[i] !== porteur && typeDansLePorteur(autre) !== t) ||
-        (branches.every(objet) && portes.filter((autre) => !autre).length === 1 && portes.every((autre) => !autre || typeDansLePorteur(autre).isStringLiteralType()));
+      if (portesDe(branches, prop.name).some((autre, i) => !!autre && branches[i] !== porteur && typeDansLePorteur(autre) !== t)) return true;
+      if (!branches.every(objet)) return false;
+      const candidates = new Set(branches.flatMap((a) => checker.getPropertiesOfType(a).map((p) => p.name).filter((nom) => dePresence(branches, nom))));
+      return candidates.size === 1 && candidates.has(prop.name);
     });
   for (const { champ, litteral } of candidats) if (!litteral || discrimine(litteral)) noter(champ);
   return out;

@@ -498,7 +498,7 @@ describe('NarratifEditor — l\'éditeur ne produit jamais un bloc invalide (#67
     click(btn('Le Marché noir'));
     setValue(field('Identifiant'), global);
     expect(last.affaires[0].id).toBe('affaire-a');
-    expect(message(field('Identifiant'))).toBe(`Identifiant « ${global} » déjà porté par la règle globale (créature/possession) : non retenu. L'identifiant retenu reste « affaire-a ».`);
+    expect(message(field('Identifiant'))).toBe(`Identifiant « ${global} » déjà porté par la règle globale (créature, possession, véhicule ou structure) : non retenu. L'identifiant retenu reste « affaire-a ».`);
     expect(narratifSchema.safeParse({ ...last, affaires: [{ ...last.affaires[0], id: global }] }).success, 'le schéma accepte l’id global').toBe(false);
   });
 

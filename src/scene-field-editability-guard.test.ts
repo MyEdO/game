@@ -391,6 +391,20 @@ export interface Trait { id: string }\n`;
     }
   });
 
+  it('un discriminant de PRÉSENCE est l’UNIQUE candidat de son union, comme à l’éditeur (`discriminantDePresence`) : deux candidats, aucun', () => {
+    for (const [swap, attendu] of [
+      ["export interface Swap { note: 'swap'; sorte: 'x' }", ['Scene.id', 'Scene.option', 'Trait.id']],
+      ["export interface Swap { note: 'swap'; label: string }", ['Scene.id', 'Scene.option', 'Swap.label', 'Swap.note', 'Trait.id']],
+    ] as const) {
+      const program = virtualProgram({
+        'src/noyau/monde/scene.ts': `${swap}\nexport interface Trait { id: string }\nexport interface Scene { id: string; option: Swap | Trait }\n`,
+      });
+      try {
+        expect(ids(perimetreDeLaRacine(program, VIRTUAL_ROOT, RACINES.scene)).sort(), swap).toEqual(attendu);
+      } finally { program.dispose(); }
+    }
+  });
+
   it('le périmètre inclut par IDENTITÉ — une feuille d’un AUTRE module composée par le document y entre, et la marche descend dans le corps d’une fabrique', () => {
     // Réplique STRUCTURELLE du seam réel (`sceneSchema` compose `moneyPartialSchema`, feuille de
     // `grammaire/valeurs.ts`, et `conditionSchema`, produit de la fabrique `conditionDe` de `grammaire/`) : le schéma

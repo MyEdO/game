@@ -4847,7 +4847,7 @@ export const fr = {
   'narratifEdit.idVide': 'Identifiant vide',
   'narratifEdit.idPorte': 'Identifiant « {candidat} » déjà porté par {porteur}',
   'narratifEdit.porteur.entree': '{nom} « {libelle} »',
-  'narratifEdit.porteur.regleGlobale': 'la règle globale (créature/possession)',
+  'narratifEdit.porteur.regleGlobale': 'la règle globale (créature, possession, véhicule ou structure)',
   'narratifEdit.porteur.stade': 'le stade {n}',
   'narratifEdit.porteur.valeur': 'la valeur {n}',
   'narratifEdit.porteur.repere': 'le repère {n}',
