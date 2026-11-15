@@ -12,6 +12,7 @@ import {
   orphanFields,
   sceneScope,
   programmeDuPerimetre,
+  RACINES,
 } from '../scripts/guards/lib/sceneFieldEditability.mjs';
 import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../scripts/guards/lib/tsProgram.mjs';
 import { detenteur } from './lib/detenteur.testkit';
@@ -20,13 +21,13 @@ import { ecrituresDesPorteursSeuls, ecrituresJouees } from './ecrituresJouees.te
 /**
  * GARDE #841 — « toute donnée de la scène s'édite au clic, sans dépendre d'une IA » (directive
  * utilisateur du 2026-07-26, verbatim : « Assure toi toujours qu'on doit pouvoir éditer toutes les
- * données de la scene, on ne doit pas dépendre d'une IA »). Tout champ de Scene a un chemin d'écriture
- * d'auteur : l'interface web (`src/ui/**`) ou l'éditeur Godot (méthode `editer` du pont, #3508 décision 8).
+ * données de la scene, on ne doit pas dépendre d'une IA »). Tout champ d'une racine de `RACINES` a un chemin
+ * d'écriture d'auteur : l'éditeur Godot, méthode `editer` du pont (#3508 décision 8, #4234), seule interface créditée.
  *
  * Le défaut que cette garde ferme n'est pas une liste de 22 champs — c'est la CLASSE : un champ peut
  * naître au modèle, être lu par le moteur, et n'avoir pour seul écrivain le compilateur d'authoring
- * (`mapSpec.ts`) ou un script. Rien ne casse ; l'auteur découvre le trou en cherchant le contrôle qui
- * n'existe pas.
+ * (`mapSpec.ts`), un script ou l'interface web (`src/ui/**`). Rien ne casse ; l'auteur découvre le trou en
+ * cherchant le contrôle qui n'existe pas.
  *
  * Deux propriétés font que cette garde MESURE quelque chose, et elles sont éprouvées ici :
  *  - le périmètre se DÉRIVE du type `Scene` par le TypeChecker (types imbriqués, unions, littéraux
@@ -44,8 +45,16 @@ const ROOT = path.resolve(__dirname, '..');
 
 const ids = (rows: { id: string }[]) => rows.map((r) => r.id);
 
+/** Le pont Godot virtuel dont la méthode `editer` (`ENTREE_GODOT`) appelle chaque fonction nommée de chaque module
+ *  (chemin depuis la racine, sans extension) : la racine unique du crédit d'auteur. */
+const pontQuiEdite = (appels: Record<string, string[]>) => ({
+  'hotes/godot/pont/pont.ts': `${Object.entries(appels).map(([module, fonctions]) => `import { ${fonctions.join(', ')} } from '${path.posix.relative('hotes/godot/pont', module)}';`).join('\n')}
+declare const a: never[];
+export const pont = { editer() { ${Object.values(appels).flat().map((f) => `${f}(...a);`).join(' ')} } };\n`,
+});
+
 /**
- * CLIQUET DÉCROISSANT — les champs du document de scène qu'AUCUN contrôle d'interface n'écrit
+ * CLIQUET DÉCROISSANT — les champs du document de scène qu'AUCUN geste de l'éditeur Godot n'écrit
  * aujourd'hui. La liste NOMME chaque trou (jamais une exemption par forme de fichier, de type ou de
  * nom) et l'assertion est une ÉGALITÉ : un trou nouveau échoue, un trou comblé échoue aussi tant que
  * la ligne n'est pas retirée. Elle ne peut donc que décroître.
@@ -61,7 +70,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     const close = vi.spyOn(API.prototype, 'close');
     try {
       let erreur: unknown;
-      try { auditSceneFieldEditability(root); } catch (e) { erreur = e; }
+      try { auditSceneFieldEditability(root, undefined, { racine: RACINES.scene }); } catch (e) { erreur = e; }
       expect(erreur).toBeInstanceOf(Error);
       if (!(erreur instanceof Error)) throw erreur;
       expect(erreur.name).toBe('AggregateError');
@@ -78,15 +87,15 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     const session = virtualProgram({});
     const close = vi.spyOn(API.prototype, 'close');
     try {
-      expect(() => auditSceneFieldEditability(VIRTUAL_ROOT, session)).toThrow('src/noyau/monde/scene.ts absent du programme');
+      expect(() => auditSceneFieldEditability(VIRTUAL_ROOT, session, { racine: RACINES.scene })).toThrow('src/noyau/monde/scene.ts absent du programme');
       expect(close).not.toHaveBeenCalled();
     } finally { close.mockRestore(); session.dispose(); }
   });
   // scripts/guards/lib/tsProgram.mjs ; src/analyse-retention-guard.test.ts
-  const perimetre = detenteur(() => programmeDuPerimetre(ROOT), (session) => session.dispose());
+  const perimetre = detenteur(() => programmeDuPerimetre(ROOT, Object.values(RACINES)), (session) => session.dispose());
   /** L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`). */
   const ecritures = detenteur(() => ecrituresJouees());
-  const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: ecritures() }));
+  const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { racine: RACINES.scene, ecrituresJouees: ecritures() }));
 
   it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 120_000 }, () => {
     const orphelins = orphanFields(auditReel());
@@ -101,7 +110,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     // Un porteur rejoué ne s'ajoute pas à `out` aux empreintes déjà jouées (`ecrituresJouees.testkit.ts`) : une offre ainsi
     // sautée ne doit cacher aucune des offres qu'elle ouvre (`SceneEntity.combat.spells` sous `combat/ajouter`).
     const ligne = (r: { id: string; authors: string[] }) => `${r.id} ← ${r.authors.join(', ')}`;
-    const avecLesSeuls = auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: [...ecritures(), ...ecrituresDesPorteursSeuls()] });
+    const avecLesSeuls = auditSceneFieldEditability(ROOT, perimetre(), { racine: RACINES.scene, ecrituresJouees: [...ecritures(), ...ecrituresDesPorteursSeuls()] });
     expect(avecLesSeuls.map(ligne)).toEqual(auditReel().map(ligne));
   });
 
@@ -128,6 +137,17 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     expect(auditReel().find((r) => r.id === 'SceneEffectZone.crossTest')?.authors).toContain(ALLER_RETOUR);
   });
 
+  it('une racine est un argument : le programme partagé porte la carte du monde et le narratif, une racine introuvable lève en se nommant (#4234)', { timeout: 120_000 }, () => {
+    for (const racine of [RACINES.carte, RACINES.narratif]) {
+      const scope = sceneScope(perimetre(), ROOT, racine);
+      expect(scope.length, `périmètre de \`${racine.type}\``).toBeGreaterThan(0);
+      expect(scope.every((e) => e.id.length > 0)).toBe(true);
+    }
+    expect(() => sceneScope(perimetre(), ROOT, { ...RACINES.carte, type: 'CarteAbsente' })).toThrow('type `CarteAbsente` introuvable dans src/noyau/worldMap.ts');
+    expect(() => sceneScope(perimetre(), ROOT, { ...RACINES.narratif, fichierType: 'src/noyau/absent.ts' })).toThrow('src/noyau/absent.ts absent du programme');
+    expect(() => documentDeclarations(perimetre(), ROOT, { ...RACINES.narratif, schema: 'absentSchema' })).toThrow('`absentSchema` introuvable dans src/data/schemas/defs-scenes/narratif.ts');
+  });
+
   it('une écriture jouée crédite le DERNIER pas de son chemin et, d’un objet écrit entier, chacune de ses clés, marchés sur le type `Scene`, si le document a changé, la valeur relue est la jouée et la saisie n’est pas du JSON', () => {
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': `export interface Rect { kind: 'rect'; w: number }
@@ -140,7 +160,7 @@ export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
     const jouee = (apres: Record<string, unknown>, chemin: (string | number)[], valeur: unknown, saisie: string, avant: Record<string, unknown> = {}) =>
       ({ avant: doc(avant), apres: doc(apres), chemin: ['effectZones', 0, ...chemin], valeur, saisie });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { ecrituresJouees: [
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
         jouee({ crossTest: { difficulty: 'x' } }, ['crossTest'], { difficulty: 'x' }, 'bouton'),
         jouee({ area: { kind: 'disc', radius: 3 } }, ['area', 'radius'], 3, 'saisieNombre'),
         jouee({ perRound: [] }, ['perRound'], [], 'saisieJson'),
@@ -169,7 +189,7 @@ export type Scene = (typeof sceneSchema)['sortie'];\n`,
     });
     const doc = (arme: number) => ({ id: 's', arme: { id: arme }, bouclier: { id: 0 }, embleme: { id: 'e' } });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { ecrituresJouees: [
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
         { avant: doc(0), apres: doc(1), chemin: ['arme', 'id'], valeur: 1, saisie: 'saisieNombre' },
       ] });
       expect(rows.filter((r) => r.id.endsWith('.id') && r.id !== 'Scene.id').map((r) => [r.id, r.authors])).toEqual([
@@ -188,7 +208,7 @@ export interface Scene { id: string; a: Base; b: Derivee }\n`,
     });
     const doc = (id: string) => ({ id: 's', a: { id: 'a' }, b: { id } });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { ecrituresJouees: [
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
         { avant: doc('b'), apres: doc('c'), chemin: ['b', 'id'], valeur: 'c', saisie: 'saisieTexte' },
       ] });
       expect(rows.filter((r) => r.id.endsWith('.id') && r.id !== 'Scene.id').map((r) => [r.id, r.authors])).toEqual([['Base.id', [ALLER_RETOUR]]]);
@@ -201,7 +221,7 @@ export interface Scene { id: string; a: Base; b: Derivee }\n`,
 export interface Scene { id: string; effectZones: SceneEffectZone[]; layers: SceneEffectZone[] }\n`,
       // (a) annotation de collection, (b) type de retour annoté, (c) `push` dans un tableau annoté,
       // (d) `map` imbriqué — les quatre formes réelles du dépôt.
-      'src/ui/Zonage.ts': `import type { Scene, SceneEffectZone } from '../noyau/monde/scene';
+      'src/noyau/edition/Zonage.ts': `import type { Scene, SceneEffectZone } from '../monde/scene';
 declare const blocs: { key: string; cells: number[]; sous: { key: string; cells: number[] }[] }[];
 declare function setScene(s: Scene): void;
 
@@ -223,26 +243,27 @@ export const empiler = (s: Scene): Scene => {
 };\n`,
       // Même forme de littéral, même dossier, même `Array.map` — mais l'annotation désigne un type
       // ÉTRANGER qui partage `id` et `tiles`. Aucun crédit ne doit lui être attribué.
-      'src/ui/Calque.ts': `interface RegionDeCalque { id: string; tiles: number[] }
+      'src/noyau/edition/Calque.ts': `interface RegionDeCalque { id: string; tiles: number[] }
 declare const blocs: { key: string; cells: number[] }[];
 declare function tracer(regions: RegionDeCalque[]): void;
 export const tracerCalque = () => {
   const regions: RegionDeCalque[] = blocs.map((b) => ({ id: b.key, tiles: b.cells }));
   tracer(regions);
 };\n`,
+      ...pontQuiEdite({ 'src/noyau/edition/Zonage': ['zoner', 'empiler'], 'src/noyau/edition/Calque': ['tracerCalque'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual([]);
       for (const id of ['SceneEffectZone.id', 'SceneEffectZone.tiles']) {
-        expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/ui/Zonage.ts']);
+        expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/noyau/edition/Zonage.ts']);
       }
 
     } finally { program.dispose(); }
   });
 
   it('le périmètre se dérive du type `Scene` — types imbriqués, unions et littéraux anonymes compris', () => {
-    const scope = sceneScope(perimetre(), ROOT);
+    const scope = sceneScope(perimetre(), ROOT, RACINES.scene);
     const all = new Set(ids(scope));
     // Champs qu'un scanner limité aux interfaces atteignables « à la main » manque : ils vivent dans
     // des types que seule la traversée du type `Scene` ramène.
@@ -300,7 +321,7 @@ export const sceneSchema = forme({ id: '', cost: moneySchema.sortie, when: condi
 export type Scene = (typeof sceneSchema)['sortie'];\n`,
     });
     try {
-      const all = ids(sceneScope(program, VIRTUAL_ROOT));
+      const all = ids(sceneScope(program, VIRTUAL_ROOT, RACINES.scene));
       expect(all, 'les champs déclarés par le shape du document').toEqual(
         expect.arrayContaining(['Scene.id', 'Scene.cost', 'Scene.when'])
       );
@@ -326,7 +347,7 @@ export const murSchema = forme({
 export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc: Vocabulaire }\n`,
     });
     try {
-      const all = ids(sceneScope(program, VIRTUAL_ROOT));
+      const all = ids(sceneScope(program, VIRTUAL_ROOT, RACINES.scene));
       expect(all, 'le corps inféré du schéma est dans le périmètre et porte le nom du schéma').toContain(
         'Mur.x'
       );
@@ -342,7 +363,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     // (`src/engine/`) et du noyau restent hors de cette classe.
     const program = perimetre();
     const checker = program.checker;
-    const docNodes = documentDeclarations(program, ROOT);
+    const docNodes = documentDeclarations(program, ROOT, RACINES.scene);
     const sf = program.program.getSourceFileNames().map((f) => program.program.getSourceFile(f)).find((x) => x?.fileName.endsWith('src/noyau/monde/scene.ts'));
     const sym = sf && checker.getExportsOfModule(checker.getSymbolAtLocation(sf)!).find((x) => x.name === 'Scene');
     if (!sym) throw new Error('type `Scene` introuvable');
@@ -370,7 +391,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   });
 
   it('l’inclusion par IDENTITÉ est LOAD-BEARING sur le programme RÉEL — la frontière par MODULE perd des champs NOMMÉS', () => {
-    // Rabattre `declaredInScene` sur les deux FICHIERS du document perd les champs nommés ici (mutation
+    // Rabattre `duDocument` sur les deux FICHIERS du document perd les champs nommés ici (mutation
     // mesurée) : ce sont les seuls du périmètre déclarés hors du document.
     // #1463 (2026-10-26) : le Trait POSÉ du document est la forme INFÉRÉE de son schéma
     // (`traitInstanceSchema`, `TraitPose`) et non plus l'instance RÉSOLUE du moteur — la rangée de Trait
@@ -393,7 +414,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
-    const scope: { id: string; decl: ts.Declaration }[] = sceneScope(perimetre(), ROOT);
+    const scope: { id: string; decl: ts.Declaration }[] = sceneScope(perimetre(), ROOT, RACINES.scene);
     const horsDocument = scope.filter((r) => !DOC.includes(fichier(r)));
     expect(
       horsDocument.map((r) => `${r.id} @ ${fichier(r)}`).sort(),
@@ -632,17 +653,48 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   const programAvec = (patch: Record<string, string>) =>
     repoProgram(ROOT, (fileNames) => fileNames.filter((f) => DOCUMENT.includes(path.relative(ROOT, f).split(path.sep).join('/'))), patch);
 
+  it('l’interface web ne crédite rien : un champ écrit par le seul `src/ui/**` est orphelin, le même écrit par une primitive atteinte depuis `editer` est crédité', () => {
+    const SCENE = { 'src/noyau/monde/scene.ts': `export interface Scene { id: string; notes: string }\n` };
+    const NOTES = `import type { Scene } from '../../noyau/monde/scene';
+export const saisirNotes = (s: Scene, v: string): Scene => ({ ...s, notes: v });\n`;
+    const RENOMMER = `import type { Scene } from '../../noyau/monde/scene';
+export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`;
+    const web = virtualProgram({
+      ...SCENE,
+      'src/ui/editor/Notes.tsx': NOTES,
+      'src/noyau/edition/renommer.ts': RENOMMER,
+      ...pontQuiEdite({ 'src/noyau/edition/renommer': ['renommer'] }),
+    });
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, web, { racine: RACINES.scene });
+      expect(ids(orphanFields(rows))).toEqual(['Scene.notes']);
+      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/renommer.ts']);
+    } finally { web.dispose(); }
+    const godot = virtualProgram({
+      ...SCENE,
+      'src/noyau/edition/notes.ts': NOTES,
+      'src/noyau/edition/renommer.ts': RENOMMER,
+      ...pontQuiEdite({ 'src/noyau/edition/notes': ['saisirNotes'], 'src/noyau/edition/renommer': ['renommer'] }),
+    });
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, godot, { racine: RACINES.scene });
+      expect(ids(orphanFields(rows))).toEqual([]);
+      expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/edition/notes.ts']);
+    } finally { godot.dispose(); }
+  });
+
   it('NON VACANTE (a) : un champ frais, écrit par personne, est rapporté orphelin', () => {
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': `export interface Scene {
   id: string;
   champFraisSansControle?: string;
 }\n`,
-      'src/ui/Editeur.ts': `import type { Scene } from '../noyau/monde/scene';
+      'src/noyau/edition/Editeur.ts': `import type { Scene } from '../monde/scene';
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
+      ...pontQuiEdite({ 'src/noyau/edition/Editeur': ['renommer'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(rows).sort()).toEqual(['Scene.champFraisSansControle', 'Scene.id']);
       expect(ids(orphanFields(rows))).toEqual(['Scene.champFraisSansControle']);
 
@@ -657,19 +709,20 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
 }\n`,
       // Deux littéraux de forme IDENTIQUE, dans le même dossier d'éditeur : seul celui dont le type
       // porteur est `Scene` écrit la scène. L'autre remplit le contexte d'évaluation d'un `when`.
-      'src/ui/Editeur.ts': `import type { Scene } from '../noyau/monde/scene';
+      'src/noyau/edition/Editeur.ts': `import type { Scene } from '../monde/scene';
 interface ContexteDeCondition { flags: Record<string, boolean>; gameTime: number }
 declare function evalCondition(ctx: ContexteDeCondition): boolean;
 
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });
 export const visible = (flags: Record<string, boolean>, gameTime: number) =>
   evalCondition({ flags, gameTime });\n`,
+      ...pontQuiEdite({ 'src/noyau/edition/Editeur': ['renommer', 'visible'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
       // …et le témoin positif du même fichier : `id` est bien crédité, la garde n'est pas aveugle.
-      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/ui/Editeur.ts']);
+      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/Editeur.ts']);
 
     } finally { program.dispose(); }
   });
@@ -679,17 +732,18 @@ export const visible = (flags: Record<string, boolean>, gameTime: number) =>
       'src/noyau/monde/scene.ts': `export type Cote = 'gauche' | 'droite';
 export interface Scene { id: string; armure: Record<Cote, number> }\n`,
       // Clé CALCULÉE pilotée par un littéral (l'idiome des rangées de l'inspecteur) : seul `gauche` s'écrit.
-      'src/ui/Armure.ts': `import type { Scene } from '../noyau/monde/scene';
+      'src/noyau/edition/Armure.ts': `import type { Scene } from '../monde/scene';
 const COTE = 'gauche' as const;
 export const poser = (s: Scene, n: number): Scene => ({ ...s, id: s.id, armure: { ...s.armure, [COTE]: n } });\n`,
+      ...pontQuiEdite({ 'src/noyau/edition/Armure': ['poser'] }),
     });
     try {
-      const scope = sceneScope(program, VIRTUAL_ROOT);
+      const scope = sceneScope(program, VIRTUAL_ROOT, RACINES.scene);
       expect(ids(scope).sort()).toEqual(['Scene.armure', 'Scene.armure.droite', 'Scene.armure.gauche', 'Scene.id']);
       const porteur = scope.find((e) => e.id === 'Scene.armure')!.decl;
       expect(scope.find((e) => e.id === 'Scene.armure.gauche')!.decl, 'rattachée à la déclaration du champ porteur').toBe(porteur);
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
-      expect(rows.find((r) => r.id === 'Scene.armure.gauche')?.authors).toEqual(['src/ui/Armure.ts']);
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      expect(rows.find((r) => r.id === 'Scene.armure.gauche')?.authors).toEqual(['src/noyau/edition/Armure.ts']);
       expect(ids(orphanFields(rows)), 'la clé jamais écrite reste orpheline').toEqual(['Scene.armure.droite']);
     } finally { program.dispose(); }
   });
@@ -698,24 +752,24 @@ export const poser = (s: Scene, n: number): Scene => ({ ...s, id: s.id, armure: 
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': `export interface WallSeg { x: number; window?: boolean }
 export interface Scene { walls: WallSeg[] }\n`,
-      'src/ui/Inspecteur.ts': `import type { Scene, WallSeg } from '../noyau/monde/scene';
+      'src/noyau/edition/Inspecteur.ts': `import type { Scene, WallSeg } from '../monde/scene';
 declare function patchWall(s: Scene, i: number, patch: Partial<WallSeg>): Scene;
 declare function setScene(s: Scene): void;
 export const cocherFenetre = (s: Scene, i: number, v: boolean) => setScene(patchWall(s, i, { window: v }));
 export const poserMur = (s: Scene, x: number): Scene => ({ ...s, walls: [...s.walls, { x }] });\n`,
+      ...pontQuiEdite({ 'src/noyau/edition/Inspecteur': ['cocherFenetre', 'poserMur'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual([]);
 
     } finally { program.dispose(); }
   });
 
-  // Reconstitution du défaut RÉEL de `Scene.flags` : `sceneEdit.ts` n'est pas une interface. Une
-  // primitive qui y vit peut être complète, testée et ré-exportée par l'éditeur sans qu'aucun
-  // composant ne l'appelle — le travail s'arrête à la porte de l'interface, et seul un APPELANT
-  // distingue ce cas d'un vrai chemin d'édition.
-  const PONT = {
+  // Reconstitution du défaut RÉEL de `Scene.flags` : une primitive de `sceneEdit.ts` peut être complète, testée et
+  // ré-exportée par l'éditeur sans qu'aucun geste d'édition ne l'appelle — le travail s'arrête à la porte de l'éditeur,
+  // et seul un APPELANT depuis `editer` distingue ce cas d'un vrai chemin d'édition.
+  const PRIMITIVES = {
     'src/noyau/monde/scene.ts': `export interface Scene { id: string; flags: Record<string, boolean>; notes: string }\n`,
     'src/noyau/sceneEdit.ts': `import type { Scene } from '../noyau/monde/scene';
 export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
@@ -724,57 +778,59 @@ export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
 export function setNotes(s: Scene, v: string): Scene {
   return { ...s, notes: v };
 }\n`,
-    'src/ui/editor/editorState.ts': `export { setSceneFlags, setNotes } from '../../noyau/sceneEdit';\n`,
+    'src/hote/editorState.ts': `export { setSceneFlags, setNotes } from '../noyau/sceneEdit';\n`,
   };
 
-  it('NON VACANTE (d) : une primitive hors interface RÉ-EXPORTÉE mais jamais APPELÉE ne crédite rien', () => {
+  it('NON VACANTE (d) : une primitive d’édition RÉ-EXPORTÉE mais jamais APPELÉE ne crédite rien', () => {
     const program = virtualProgram({
-      ...PONT,
+      ...PRIMITIVES,
       // L'inspecteur appelle `setNotes` et n'appelle jamais `setSceneFlags` — exactement l'état du
       // dépôt au 2026-07-26. Le ré-export n'est PAS un appelant.
-      'src/ui/editor/Inspecteur.ts': `import type { Scene } from '../../noyau/monde/scene';
-import { setNotes } from './editorState';
+      'src/noyau/edition/inspecteur.ts': `import type { Scene } from '../monde/scene';
+import { setNotes } from '../../hote/editorState';
 declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
+      ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'renommer'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
-      // Témoins positifs : la primitive APPELÉE crédite, et l'écriture directe de l'interface aussi.
+      // Témoins positifs : la primitive APPELÉE crédite, et l'écriture directe de la primitive atteinte aussi.
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
-      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/ui/editor/Inspecteur.ts']);
+      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/inspecteur.ts']);
 
     } finally { program.dispose(); }
   });
 
-  it('NON VACANTE (e) : un HOMONYME appelé depuis l’interface ne réveille pas la primitive muette', () => {
+  it('NON VACANTE (e) : un HOMONYME appelé depuis `editer` ne réveille pas la primitive muette', () => {
     const program = virtualProgram({
-      ...PONT,
+      ...PRIMITIVES,
       // Même NOM, autre module (hors chemin de l'auteur) : la fermeture d'appels résout un SYMBOLE,
       // pas un nom — l'appel ci-dessous ne rend pas `sceneEdit.setSceneFlags` atteignable.
       'src/state/runtimeFlags.ts': `import type { Scene } from '../noyau/monde/scene';
 export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
   return { ...s, flags: patch };
 }\n`,
-      'src/ui/editor/Inspecteur.ts': `import type { Scene } from '../../noyau/monde/scene';
-import { setNotes } from './editorState';
+      'src/noyau/edition/inspecteur.ts': `import type { Scene } from '../monde/scene';
+import { setNotes } from '../../hote/editorState';
 import { setSceneFlags } from '../../state/runtimeFlags';
 declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const basculer = (s: Scene, k: string) => setScene(setSceneFlags(s, { [k]: true }));
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
+      ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'basculer', 'renommer'] }),
     });
     try {
-      expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program)))).toEqual(['Scene.flags']);
+      expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual(['Scene.flags']);
 
     } finally { program.dispose(); }
   });
 
-  it('un APPELANT d’interface, même indirect via une autre primitive appelée, crédite', () => {
+  it('un APPELANT depuis `editer`, même indirect via une autre primitive appelée, crédite', () => {
     const program = virtualProgram({
-      ...PONT,
-      // Chaîne `Inspecteur → setNotes → setSceneFlags` : l'atteignabilité est TRANSITIVE.
+      ...PRIMITIVES,
+      // Chaîne `editer → saisirNotes → setNotes → setSceneFlags` : l'atteignabilité est TRANSITIVE.
       'src/noyau/sceneEdit.ts': `import type { Scene } from '../noyau/monde/scene';
 export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
   return { ...s, flags: { ...s.flags, ...patch } };
@@ -782,24 +838,25 @@ export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
 export function setNotes(s: Scene, v: string): Scene {
   return setSceneFlags({ ...s, notes: v }, { touche: true });
 }\n`,
-      'src/ui/editor/Inspecteur.ts': `import type { Scene } from '../../noyau/monde/scene';
-import { setNotes } from './editorState';
+      'src/noyau/edition/inspecteur.ts': `import type { Scene } from '../monde/scene';
+import { setNotes } from '../../hote/editorState';
 declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
+      ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'renommer'] }),
     });
     try {
-      expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program)))).toEqual([]);
+      expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual([]);
 
     } finally { program.dispose(); }
   });
 
   it('le chemin Godot crédite : une primitive atteinte depuis la méthode `editer` du pont, et elle seule', () => {
-    // Aucun fichier d'interface : `setNotes` n'est appelée que par `editer`, `setSceneFlags` que par une autre méthode
-    // du pont (la partie, que l'auteur n'édite pas).
+    // `setNotes` n'est appelée que par `editer`, `setSceneFlags` que par une autre méthode du pont (la partie, que
+    // l'auteur n'édite pas).
     const program = virtualProgram({
-      'src/noyau/monde/scene.ts': PONT['src/noyau/monde/scene.ts'],
-      'src/noyau/sceneEdit.ts': PONT['src/noyau/sceneEdit.ts'],
+      'src/noyau/monde/scene.ts': PRIMITIVES['src/noyau/monde/scene.ts'],
+      'src/noyau/sceneEdit.ts': PRIMITIVES['src/noyau/sceneEdit.ts'],
       'hotes/godot/pont/pont.ts': `import type { Scene } from '../../../src/noyau/monde/scene';
 import { setNotes, setSceneFlags } from '../../../src/noyau/sceneEdit';
 export function creerPont(s: Scene) {
@@ -810,7 +867,7 @@ export function creerPont(s: Scene) {
 }\n`,
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
       expect(ids(orphanFields(rows)).sort()).toEqual(['Scene.flags', 'Scene.id']);
     } finally { program.dispose(); }
@@ -818,7 +875,7 @@ export function creerPont(s: Scene) {
 
   it('le helper à CLÉ `champ<T, K extends keyof T>(o, k, v)` qui écrit `o[k]` crédite la clé littérale passée, un lecteur de même signature rien', () => {
     const program = virtualProgram({
-      'src/noyau/monde/scene.ts': PONT['src/noyau/monde/scene.ts'],
+      'src/noyau/monde/scene.ts': PRIMITIVES['src/noyau/monde/scene.ts'],
       'src/noyau/sceneEdit.ts': `import type { Scene } from '../noyau/monde/scene';
 function champ<T extends object, K extends keyof T>(o: T, k: K, v: T[K] | undefined): T {
   const out = { ...o };
@@ -831,15 +888,16 @@ function lire<T extends object, K extends keyof T>(o: T, k: K): T[K] {
 }
 export const setNotes = (s: Scene, v: string): Scene => champ(s, 'notes', v);
 export const drapeaux = (s: Scene) => lire(s, 'flags');\n`,
-      'src/ui/editor/Inspecteur.ts': `import type { Scene } from '../../noyau/monde/scene';
-import { drapeaux, setNotes } from '../../noyau/sceneEdit';
+      'src/noyau/edition/inspecteur.ts': `import type { Scene } from '../monde/scene';
+import { drapeaux, setNotes } from '../sceneEdit';
 declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const voir = (s: Scene) => drapeaux(s);
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
+      ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'voir', 'renommer'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
       expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
     } finally { program.dispose(); }
@@ -852,16 +910,17 @@ export interface Partie { id: string; foot: Emprise }
 export interface Scene { parts: Partie[] }\n`,
       // `Rect` n'est pas `Emprise` : le rectangle tiré au pointeur écrit `foot.x` et `foot.w`. Recopier l'emprise d'une
       // autre partie (`foot: modele.foot`) n'écrit rien.
-      'src/ui/editor/Poignee.ts': `import type { Partie, Scene } from '../../noyau/monde/scene';
+      'src/noyau/edition/Poignee.ts': `import type { Partie, Scene } from '../monde/scene';
 interface Rect { x: number; w: number }
 declare function rectTire(): Rect;
 export const redimensionner = (s: Scene): Scene => ({ ...s, parts: s.parts.map((p): Partie => ({ ...p, foot: rectTire() })) });\n`,
-      'src/ui/editor/Copie.ts': `import type { Partie } from '../../noyau/monde/scene';
+      'src/noyau/edition/Copie.ts': `import type { Partie } from '../monde/scene';
 export const copier = (p: Partie, modele: Partie): Partie => ({ ...p, foot: modele.foot });\n`,
+      ...pontQuiEdite({ 'src/noyau/edition/Poignee': ['redimensionner'], 'src/noyau/edition/Copie': ['copier'] }),
     });
     try {
-      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
-      for (const id of ['Emprise.x', 'Emprise.w']) expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/ui/editor/Poignee.ts']);
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      for (const id of ['Emprise.x', 'Emprise.w']) expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/noyau/edition/Poignee.ts']);
     } finally { program.dispose(); }
   });
 });

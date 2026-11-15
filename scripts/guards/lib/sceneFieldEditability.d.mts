@@ -2,12 +2,17 @@ import type { Declaration, Node, SourceFile } from 'typescript/unstable/ast';
 import type { Checker } from 'typescript/unstable/sync';
 import type { SessionProgramme } from './tsProgram.mjs';
 
-/** Un champ du document de scène, dérivé du type `Scene`. */
+/** Une racine auditée : le schéma d'où part la marche d'identité, le type d'où part le périmètre. */
+export interface Racine { fichierSchema: string; schema: string; fichierType: string; type: string }
+/** Les racines auditées : la scène, la carte du monde, le narratif. */
+export const RACINES: { scene: Racine; carte: Racine; narratif: Racine };
+
+/** Un champ du document d'une racine, dérivé de son type. */
 export interface SceneField {
   /** Identité stable `Porteur.champ` (`WallSeg.window`, `Scene.rest.auberge`) — un homonyme d'un
    *  autre porteur est une entrée DISTINCTE. */
   id: string;
-  /** Nom du type porteur, ou le chemin depuis `Scene` pour un type littéral anonyme. */
+  /** Nom du type porteur, ou le chemin depuis le type de la racine pour un type littéral anonyme. */
   owner: string;
   field: string;
   /** La déclaration du champ ; pour une propriété synthétique, celle du champ qui porte le type mappé. */
@@ -23,27 +28,26 @@ export interface FieldEditability {
   field: string;
   /** `fichier:ligne` de la DÉCLARATION du champ. */
   at: string;
-  /** Fichiers du chemin de l'AUTEUR qui l'écrivent : `src/ui/**` (interface), et les primitives d'édition (pont Godot,
-   *  `src/hote/`, modules d'édition du noyau) pour les seules écritures dont la fonction porteuse est APPELÉE depuis
-   *  l'interface ou la méthode `editer` du pont. */
+  /** Fichiers du chemin de l'AUTEUR qui l'écrivent : les primitives d'édition (pont Godot, `src/hote/`, modules
+   *  d'édition du noyau) pour les seules écritures dont la fonction porteuse est APPELÉE depuis la méthode `editer` du
+   *  pont ; et `ALLER_RETOUR` pour une écriture jouée. */
   authors: string[];
   /** Fichiers du PIPELINE d'authoring (compilateur MapSpec, scènes en dur) qui l'écrivent. */
   pipeline: string[];
 }
 
 /** Ensemble d'IDENTITÉS du document : les déclarations de propriété des shapes atteints depuis
- *  `sceneSchema`, corps des fabriques et annotations de type de la donnée compris, `z.custom` et types du moteur
- *  exclus. */
-export function documentDeclarations(program: SessionProgramme, root: string): Set<Node>;
+ *  le schéma de la racine, corps des fabriques et annotations de type de la donnée compris, `z.custom` et types du
+ *  moteur exclus. */
+export function documentDeclarations(program: SessionProgramme, root: string, racine: Racine): Set<Node>;
 
-/** Le Program du périmètre de cette garde, bâti à chaque appel : l'appelant le tient et le libère. */
-export function programmeDuPerimetre(root: string): SessionProgramme;
-export function sceneScope(program: SessionProgramme, root: string): SceneField[];
+/** Le Program du périmètre de cette garde pour les `racines`, bâti à chaque appel : l'appelant le tient et le libère. */
+export function programmeDuPerimetre(root: string, racines: readonly Racine[]): SessionProgramme;
+export function sceneScope(program: SessionProgramme, root: string, racine: Racine): SceneField[];
 /** Clé d'identité d'un champ : sa déclaration, ou `id du porteur#nom` pour une propriété synthétique ou produite par
  *  une fabrique. */
 export function cleDuChamp(champ: SceneField): Declaration | string;
-/** Portées d'exécution atteintes depuis `src/ui/**` ou la méthode `editer` du pont Godot par fermeture transitive des
- *  appels. */
+/** Portées d'exécution atteintes depuis la méthode `editer` du pont Godot par fermeture transitive des appels. */
 export function auteurReachableScopes(checker: Checker, program: SessionProgramme, root: string): Set<Node>;
 export function fieldsWrittenIn(
   checker: Checker,
@@ -59,10 +63,10 @@ export interface EcritureJouee { avant: unknown; apres: unknown; chemin: (string
 export const ALLER_RETOUR: string;
 /** Ids de champ du périmètre auxquels la propriété `name` de `type` se rattache. */
 export function idsOf(checker: Checker, cles: Map<Declaration | string, string>, type: unknown, name: string): Set<string>;
-/** Ids de champ du périmètre que le dernier pas de `chemin` écrit dans `doc`, marché sur le type `Scene`. */
-export function idsDuChemin(checker: Checker, cles: Map<Declaration | string, string>, scene: unknown, doc: unknown, chemin: readonly (string | number)[]): Set<string>;
+/** Ids de champ du périmètre que le dernier pas de `chemin` écrit dans `doc`, marché sur le type de la racine. */
+export function idsDuChemin(checker: Checker, cles: Map<Declaration | string, string>, typeRacine: unknown, doc: unknown, chemin: readonly (string | number)[]): Set<string>;
 /** Le document a changé au chemin, la valeur relue est la jouée, la saisie n'est pas du JSON. */
 export function ecritureCreditee(e: EcritureJouee): boolean;
 /** `program` absent : bâti pour CET appel (~8 s). `ecrituresJouees` : créditées par aller-retour (`ALLER_RETOUR`). */
-export function auditSceneFieldEditability(root: string, program?: SessionProgramme, options?: { ecrituresJouees?: readonly EcritureJouee[] }): FieldEditability[];
+export function auditSceneFieldEditability(root: string, program: SessionProgramme | undefined, options: { racine: Racine; ecrituresJouees?: readonly EcritureJouee[] }): FieldEditability[];
 export function orphanFields(rows: FieldEditability[]): FieldEditability[];

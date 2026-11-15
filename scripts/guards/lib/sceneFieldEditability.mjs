@@ -1,19 +1,20 @@
 import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
-// Mécanique de scan du garde-fou « tout champ de Scene a un chemin d'écriture d'auteur » (#841) : l'interface web
-// (`src/ui/**`) ou l'éditeur Godot (méthode `editer` du pont, `hotes/godot/pont/CONTRAT.md`, #3508 décision 8).
+// Mécanique de scan du garde-fou « tout champ d'un document édité a un chemin d'écriture d'auteur » (#841, #4234) :
+// pour chaque racine de `RACINES` (scène, carte du monde, narratif), l'éditeur Godot, méthode `editer` du pont
+// (`hotes/godot/pont/CONTRAT.md`, #3508 décision 8), est la seule interface d'auteur.
 //
-// Le défaut fermé : un champ du document de Scène qui n'est joignable QUE par le compilateur d'authoring
-// (`mapSpec.ts`) ou un script `.mjs` — donc par un agent, jamais par un auteur au clic. L'omission est SILENCIEUSE :
-// le champ existe au modèle, le moteur le lit, aucun test ne casse. La garde ferme la CLASSE ; quatre exigences la
-// rendent réfutable :
+// Le défaut fermé : un champ du document qui n'est joignable QUE par le compilateur d'authoring
+// (`mapSpec.ts`), un script `.mjs` ou l'interface web (`src/ui/**`) — donc jamais par l'éditeur de l'auteur.
+// L'omission est SILENCIEUSE : le champ existe au modèle, le moteur le lit, aucun test ne casse. La garde ferme la
+// CLASSE ; quatre exigences la rendent réfutable :
 //
-//  1. PÉRIMÈTRE DÉRIVÉ. Les champs surveillés se déduisent du type `Scene` par le TypeChecker —
+//  1. PÉRIMÈTRE DÉRIVÉ. Les champs surveillés se déduisent du type de la RACINE (`RACINES`) par le TypeChecker —
 //     propriétés, éléments de tableau, membres d'union, types littéraux anonymes, valeurs d'index
 //     (`Record<string,V>`), clés LITTÉRALES d'un type mappé (`Record<'a' | 'b', V>`, un shape dérivé
 //     par `tableTotale`) — propriétés SYNTHÉTIQUES, sans déclaration, rattachées à la déclaration du
 //     champ qui porte le type. Aucune liste de types recopiée à la main.
 //  2. CRÉDIT RATTACHÉ AU TYPE. Un écrivain ne compte que si le champ qu'il écrit REMONTE
-//     à la déclaration exacte du champ dans `scene.ts` — pour une propriété synthétique, au type
+//     à la déclaration exacte du champ dans le document — pour une propriété synthétique, au type
 //     mappé qui la porte et à son nom (`idsOf`). Une propriété PRODUITE PAR UNE FABRIQUE (déclarée dans le corps d'une
 //     fonction nommée de la grammaire : `objetDeRef`, `proseNommee`…) n'a qu'une déclaration pour autant de produits
 //     que d'appels : elle se nomme, comme la synthétique, par son PORTEUR (le type du produit) et son nom
@@ -23,8 +24,8 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     symptôme de maladie, un `{ window: … }` de condition temporelle ou un `{ flags }` passé en
 //     lecture à un contexte d'évaluation ne créditent rien : leur type porteur n'est pas celui du
 //     document de scène.
-//  3. CRÉDIT RATTACHÉ À UN APPELANT. Hors interface (`BRIDGE_PATH`), une primitive ne crédite que
-//     si sa fonction porteuse est ATTEINTE depuis `src/ui/**` ou depuis la méthode `editer` du pont
+//  3. CRÉDIT RATTACHÉ À UN APPELANT. Une primitive d'édition (`BRIDGE_PATH`) ne crédite que
+//     si sa fonction porteuse est ATTEINTE depuis la méthode `editer` du pont
 //     Godot (`ENTREE_GODOT`) par une chaîne d'appels résolue au TypeChecker
 //     (`auteurReachableScopes`). L'EXISTENCE d'un écrivain ne prouve rien : une primitive
 //     complète, testée, ré-exportée par l'éditeur et jamais appelée EST le défaut de #841.
@@ -34,14 +35,14 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     crédite chaque propriété d'un littéral
 //     (`ecrituresJouees` d'`auditSceneFieldEditability`) : le document a changé à ce chemin, la valeur relue est la
 //     valeur jouée, la saisie n'est pas du JSON (`ecritureCreditee`). Le chemin se joint au périmètre en marchant le
-//     type `Scene` (`idsDuChemin`, par `idsOf`) : aucun second nommage.
+//     type de la racine (`idsDuChemin`, par `idsOf`) : aucun second nommage.
 //
 // FRONTIÈRE DU PÉRIMÈTRE — par PROPRIÉTÉ, et l'appartenance se juge par IDENTITÉ, jamais par
 // module. L'ENSEMBLE D'IDENTITÉS du document se construit en marchant les schémas depuis
-// `sceneSchema` (`data/schemas/defs-scenes/scene.ts`) : toute `PropertyAssignment` d'un shape
+// le schéma de la racine (`sceneSchema`, `data/schemas/defs-scenes/scene.ts`) : toute `PropertyAssignment` d'un shape
 // atteint en fait partie, y compris celles d'un schéma FEUILLE d'un autre module (`communs.ts` :
 // `ptSchema` ; `grammaire/valeurs.ts` : `moneyPartialSchema`) que le document compose. S'y ajoutent les `PropertySignature` des
-// types encore MANUSCRITS (`src/noyau/monde/scene.ts`). Une frontière posée sur le MODULE perdrait ces
+// types encore MANUSCRITS du fichier du type de la racine (`src/noyau/monde/scene.ts`). Une frontière posée sur le MODULE perdrait ces
 // feuilles dès qu'un corps manuscrit passe en `z.infer` (`DialogueChoice.cost.{gold,silver,brass}`, déclarés par
 // `grammaire/valeurs.ts:moneyPartialSchema`).
 // La marche suit chaque identifiant jusqu'à sa déclaration : le schéma d'un `const`, le CORPS d'une fabrique (une
@@ -56,7 +57,7 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // `zod/v4/core/util.d.cts`, alors que ses PROPRIÉTÉS pointent la ligne exacte du shape. Une
 // frontière posée sur le type lâcherait donc en silence dès qu'un corps manuscrit passe en
 // `z.infer` ; d'où aussi le CLIQUET DE COMPTE de la garde. La frontière reste structurelle : une propriété ajoutée
-// demain dans un module du document, atteignable depuis `Scene`, entre d'elle-même dans le périmètre.
+// demain dans un module du document, atteignable depuis le type de la racine, entre d'elle-même dans le périmètre.
 //
 // CE QUE CE DÉTECTEUR NE VOIT PAS — à lire AVANT de conclure d'une colonne vide qu'un champ est
 // mort. Le scan reconnaît une écriture par le type PORTEUR du littéral, obtenu soit du type
@@ -71,8 +72,8 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     LITTÉRALE crédite ce champ du type de `o` (`ecrituresParCle`) ;
 //   - une écriture par index/clé dynamique hors de ce helper (`obj[k] = v`, `Object.entries(...).forEach`), que seul
 //     l'aller-retour joué crédite ;
-//   - une écriture depuis un fichier hors `AUTHOR_PATH`/`PIPELINE_PATH` : les scripts `.mjs` de
-//     `scripts/`, non typés par le `tsconfig`, n'alimentent AUCUNE colonne.
+//   - une écriture depuis un fichier hors `BRIDGE_PATH`/`PIPELINE_PATH` : les scripts `.mjs` de
+//     `scripts/`, non typés par le `tsconfig`, et l'interface web n'alimentent AUCUNE colonne.
 //   - une écriture de `BRIDGE_PATH` appelée INDIRECTEMENT (table de dispatch, callback, `obj[k]()`) :
 //     la fermeture d'appels de `auteurReachableScopes` déclare ses propres angles morts, à lire là-bas.
 // Un littéral qui traverse le paramètre de type `U` d'un `Array.prototype.map` perd sa freshness, ce qui prive
@@ -91,29 +92,22 @@ import { dossierDe, porteeDeGarde } from './couches.mjs';
 /** `rel` (relatif à la racine, séparateurs quelconques) est-il sous le dossier `dossier` ? */
 const sous = (dossier) => (rel) => norm(rel).startsWith(`${dossier}/`);
 
-/** Les deux chemins d'auteur, dérivés de `COUCHES` (`porteeDeGarde`) : l'interface web (`ui`, qui lève dès que la zone
- *  quitte la table, #3556 lot D) et les zones des hôtes du noyau (`hote`, le modèle de vue commun ; `hotes`, le pont
- *  Godot). */
-const [DOSSIER_HOTE, DOSSIER_HOTES, DOSSIER_UI] = porteeDeGarde(['hote', 'hotes'], ['ui']);
+/** Les zones des hôtes du noyau, dérivées de `COUCHES` (`porteeDeGarde`, qui lève si l'une quitte la table ou cesse de
+ *  survivre à la bascule) : `hote`, le modèle de vue commun ; `hotes`, le pont Godot. */
+const [DOSSIER_HOTE, DOSSIER_HOTES] = porteeDeGarde(['hote', 'hotes']);
 
-/** Fichiers d'INTERFACE : un écrivain qui y vit est joignable au clic par construction — l'auteur
- *  ouvre l'écran. Crédit DIRECT. */
-const UI_PATH = [sous(DOSSIER_UI)];
-
-/** Le point d'entrée de l'éditeur Godot : la méthode `editer` du pont (`hotes/godot/pont/CONTRAT.md`, #3508). Hors
- *  interface, il est la seule racine de la fermeture d'appels côté Godot : le pont sert aussi la partie, que l'auteur
- *  n'édite pas. */
+/** Le point d'entrée de l'éditeur Godot : la méthode `editer` du pont (`hotes/godot/pont/CONTRAT.md`, #3508). Il est la
+ *  seule racine de la fermeture d'appels : le pont sert aussi la partie, que l'auteur n'édite pas. */
 const PONT = `${DOSSIER_HOTES}/godot/pont`;
 const ENTREE_GODOT = { fichier: `${PONT}/pont.ts`, methode: 'editer' };
 
-/** Primitives d'édition qui ne sont PAS une interface : le pont Godot et le modèle de vue commun des hôtes
- *  (`src/hote/`), les modules d'édition du noyau (`src/noyau/*Edit*.ts`, dont `sceneEdit.ts` et ses lectures
- *  `sceneEditLecture.ts`), la session, le pointeur et l'historique de l'éditeur (`src/noyau/edition/`, #3508) et le
- *  parseur de saisie « format livre » (`src/data/refFormatLivre.ts`) n'ont aucun écran. Une écriture
- *  qui y vit ne crédite QUE si sa fonction porteuse est ATTEINTE par une chaîne d'appels partant de
- *  `src/ui/**` ou d'`ENTREE_GODOT`. Une définition, fût-elle exportée, testée et ré-exportée par l'éditeur, ne crédite
- *  rien : `Scene.flags` ← `setSceneFlags`, exportée, testée et appelée par AUCUN composant,
- *  est précisément le défaut de #841 — le travail s'arrête à la porte de l'interface. */
+/** Le chemin d'écriture de l'AUTEUR : le pont Godot et le modèle de vue commun des hôtes (`src/hote/`), les modules
+ *  d'édition du noyau (`src/noyau/*Edit*.ts`, dont `sceneEdit.ts` et ses lectures `sceneEditLecture.ts`), la session,
+ *  le pointeur et l'historique de l'éditeur (`src/noyau/edition/`, #3508) et le parseur de saisie « format livre »
+ *  (`src/data/refFormatLivre.ts`). Une écriture qui y vit ne crédite QUE si sa fonction porteuse est ATTEINTE par une
+ *  chaîne d'appels partant d'`ENTREE_GODOT`. Une définition, fût-elle exportée, testée et ré-exportée par l'éditeur, ne
+ *  crédite rien : `Scene.flags` ← `setSceneFlags`, exportée, testée et appelée par AUCUN geste d'édition, est
+ *  précisément le défaut de #841 — le travail s'arrête à la porte de l'éditeur. */
 const BRIDGE_PATH = [
   sous(PONT),
   sous(DOSSIER_HOTE),
@@ -122,9 +116,6 @@ const BRIDGE_PATH = [
   (rel) => norm(rel) === `${dossierDe('data')}/refFormatLivre.ts`,
 ];
 
-/** Chemin d'écriture ATTEIGNABLE PAR L'AUTEUR = interface + primitives réellement appelées par elle. */
-const AUTHOR_PATH = [...UI_PATH, ...BRIDGE_PATH];
-
 /** Fichiers qui n'écrivent QUE via le pipeline : compilateur d'authoring, scènes en dur.
  *  Un champ dont c'est le SEUL écrivain est exactement le défaut de #841.
  *  Les scripts `.mjs` de `scripts/` ne sont pas typés par le `tsconfig` du dépôt : ils ne peuvent
@@ -132,16 +123,17 @@ const AUTHOR_PATH = [...UI_PATH, ...BRIDGE_PATH];
  *  que de la colonne `authors`. */
 const PIPELINE_PATH = [(rel) => norm(rel) === `${dossierDe('noyau')}/mapSpec.ts`, sous(dossierDe('scenes'))];
 
-const isUiPath = (rel) => UI_PATH.some((dans) => dans(rel));
 const isPipelinePath = (rel) => PIPELINE_PATH.some((dans) => dans(rel));
-const isAuthorPath = (rel) => AUTHOR_PATH.some((dans) => dans(rel));
+const isAuthorPath = (rel) => BRIDGE_PATH.some((dans) => dans(rel));
 const isTestFile = (rel) => estFichierVitest(rel) || estKitDeTest(rel);
 
-const SCENE_FILE = 'src/noyau/monde/scene.ts';
-
-/** Racine de la marche d'IDENTITÉ : le schéma du document. */
-const SCHEMA_FILE = 'src/data/schemas/defs-scenes/scene.ts';
-const SCHEMA_ROOT = 'sceneSchema';
+/** Les RACINES auditées (#4234) : le schéma d'où part la marche d'IDENTITÉ (`fichierSchema`, `schema`) et le type d'où
+ *  part le périmètre (`fichierType`, `type`). */
+export const RACINES = {
+  scene: { fichierSchema: 'src/data/schemas/defs-scenes/scene.ts', schema: 'sceneSchema', fichierType: 'src/noyau/monde/scene.ts', type: 'Scene' },
+  carte: { fichierSchema: 'src/data/schemas/defs-scenes/worldmap.ts', schema: 'worldMapSchema', fichierType: 'src/noyau/worldMap.ts', type: 'WorldMap' },
+  narratif: { fichierSchema: 'src/data/schemas/defs-scenes/narratif.ts', schema: 'narratifSchema', fichierType: 'src/data/schemas/defs-scenes/narratif.ts', type: 'NarratifBlock' },
+};
 
 /** Nom du `export const xSchema` dont le shape porte cette déclaration de propriété — chaînes
  *  `.optional()`/`.array()` traversées. Un littéral INLINE ne nomme rien. */
@@ -190,35 +182,34 @@ export const cleDuChamp = (e) => (e.porteur !== undefined ? `${e.porteur}#${e.fi
 
 const norm = (p) => p.replace(/\\/g, '/');
 
-/** Le Program du dépôt pour le PÉRIMÈTRE de cette garde — les fichiers scannés (interface, pont,
- *  pipeline) plus le document et son schéma. Aucune rétention (`tsProgram.mjs`). */
-export function programmeDuPerimetre(root) {
+/** Le Program du dépôt pour le PÉRIMÈTRE de cette garde — les fichiers scannés (chemin de l'auteur,
+ *  pipeline) plus le type et le schéma de chacune des `racines` (`RACINES`). Aucune rétention (`tsProgram.mjs`). */
+export function programmeDuPerimetre(root, racines) {
   const key = norm(path.resolve(root));
-  // Racines = les fichiers SCANNÉS plus le schéma ; TypeScript tire leur fermeture d'imports, donc
+  const documents = new Set(racines.flatMap((r) => [r.fichierType, r.fichierSchema]));
+  // Racines = les fichiers SCANNÉS plus les documents ; TypeScript tire leur fermeture d'imports, donc
   // les types restent complets tout en évitant de compiler le dépôt entier.
   return repoProgram(key, (fileNames) =>
     fileNames.filter((f) => {
       const rel = path.relative(key, f);
-      return (
-        !isTestFile(rel) &&
-        (isAuthorPath(rel) || isPipelinePath(rel) || norm(rel) === SCENE_FILE || norm(rel) === SCHEMA_FILE)
-      );
+      return !isTestFile(rel) && (isAuthorPath(rel) || isPipelinePath(rel) || documents.has(norm(rel)));
     })
   );
 }
 
-/** Le type `Scene` du document, au TypeChecker du programme. */
-function sceneType(program, root) {
+/** Le type de la `racine`, au TypeChecker du programme. */
+function typeDeRacine(program, root, racine) {
   const checker = program.checker;
-  const sf = sceneSourceFile(program, root);
-  if (!sf) throw new Error(`${SCENE_FILE} absent du programme`);
-  const sceneSym = checker.getExportsOfModule(checker.getSymbolAtLocation(sf)).find((s) => s.name === 'Scene');
-  if (!sceneSym) throw new Error('type `Scene` introuvable');
-  return checker.getDeclaredTypeOfSymbol(sceneSym);
+  const sf = fichierSource(program, root, racine.fichierType);
+  if (!sf) throw new Error(`${racine.fichierType} absent du programme`);
+  const sym = checker.getExportsOfModule(checker.getSymbolAtLocation(sf)).find((s) => s.name === racine.type);
+  if (!sym) throw new Error(`type \`${racine.type}\` introuvable dans ${racine.fichierType}`);
+  return checker.getDeclaredTypeOfSymbol(sym);
 }
 
-function sceneSourceFile(program, root) {
-  const want = norm(path.resolve(root, SCENE_FILE));
+/** Le fichier `fichier` (relatif à `root`) du programme. */
+function fichierSource(program, root, fichier) {
+  const want = norm(path.resolve(root, fichier));
   return program.program.getSourceFileNames().map((file) => program.program.getSourceFile(file)).find((sf) => norm(sf.fileName) === want);
 }
 
@@ -251,16 +242,15 @@ const isCustomSchema = (init) =>
   init.expression.name.text === 'custom';
 
 /**
- * ENSEMBLE D'IDENTITÉS du document : les `PropertyAssignment` des shapes atteints depuis
- * `sceneSchema`, corps des fabriques et annotations de type de la donnée compris, `z.custom` et types du moteur exclus
- * (cf. FRONTIÈRE en tête). Vide si le module de schémas n'est pas
- * dans le programme — les programmes VIRTUELS des preuves ne déclarent que `src/noyau/monde/scene.ts`.
+ * ENSEMBLE D'IDENTITÉS du document de la `racine` : les `PropertyAssignment` des shapes atteints depuis son schéma,
+ * corps des fabriques et annotations de type de la donnée compris, `z.custom` et types du moteur exclus
+ * (cf. FRONTIÈRE en tête). Vide si le fichier du schéma n'est pas
+ * dans le programme — les programmes VIRTUELS des preuves ne déclarent que le fichier du type.
  * @returns {Set<import('typescript/unstable/ast').Node>}
  */
-export function documentDeclarations(program, root) {
+export function documentDeclarations(program, root, racine) {
   const checker = program.checker;
-  const want = norm(path.resolve(root, SCHEMA_FILE));
-  const sf = program.program.getSourceFileNames().map((file) => program.program.getSourceFile(file)).find((s) => norm(s.fileName) === want);
+  const sf = fichierSource(program, root, racine.fichierSchema);
   const noeuds = new Set();
   if (!sf) return noeuds;
 
@@ -274,12 +264,12 @@ export function documentDeclarations(program, root) {
   for (const st of sf.statements) {
     if (!ts.isVariableStatement(st)) continue;
     for (const d of st.declarationList.declarations)
-      if (ts.isIdentifier(d.name) && d.name.text === SCHEMA_ROOT) enfiler(d);
+      if (ts.isIdentifier(d.name) && d.name.text === racine.schema) enfiler(d);
   }
-  if (file.length === 0) throw new Error(`\`${SCHEMA_ROOT}\` introuvable dans ${SCHEMA_FILE}`);
-  // Les types encore MANUSCRITS du document (`SCENE_FILE`) : leurs annotations mènent aux types de la donnée qu'ils
+  if (file.length === 0) throw new Error(`\`${racine.schema}\` introuvable dans ${racine.fichierSchema}`);
+  // Les types encore MANUSCRITS du document (le fichier du type) : leurs annotations mènent aux types de la donnée qu'ils
   // composent (`SceneEntity.calage` : `Calage`).
-  const manuscrit = sceneSourceFile(program, root);
+  const manuscrit = fichierSource(program, root, racine.fichierType);
   for (const st of manuscrit?.statements ?? []) if (ts.isInterfaceDeclaration(st) || ts.isTypeAliasDeclaration(st)) enfiler(st);
 
   for (let i = 0; i < file.length; i++) {
@@ -297,19 +287,19 @@ export function documentDeclarations(program, root) {
 }
 
 /**
- * Champs du DOCUMENT de scène, dérivés du type `Scene` par le TypeChecker.
+ * Champs du DOCUMENT de la `racine`, dérivés de son type par le TypeChecker.
  * @returns {{ id: string, owner: string, field: string, decl: import('typescript/unstable/ast').Declaration }[]}
  */
-export function sceneScope(program, root) {
+export function sceneScope(program, root, racine) {
   const checker = program.checker;
-  const scene = sceneType(program, root);
+  const typeRacine = typeDeRacine(program, root, racine);
 
-  // Périmètre par IDENTITÉ : les shapes atteints depuis `sceneSchema`, plus les corps encore
-  // MANUSCRITS de `src/noyau/monde/scene.ts`.
-  const docNodes = documentDeclarations(program, root);
-  const sceneFile = norm(path.resolve(root, SCENE_FILE));
-  const declaredInScene = (decl) =>
-    !!decl && (docNodes.has(decl) || norm(decl.getSourceFile().fileName) === sceneFile);
+  // Périmètre par IDENTITÉ : les shapes atteints depuis le schéma de la racine, plus les corps encore
+  // MANUSCRITS du fichier de son type.
+  const docNodes = documentDeclarations(program, root, racine);
+  const fichierType = norm(path.resolve(root, racine.fichierType));
+  const duDocument = (decl) =>
+    !!decl && (docNodes.has(decl) || norm(decl.getSourceFile().fileName) === fichierType);
 
   const out = [];
   const seenTypes = new Set();
@@ -353,10 +343,10 @@ export function sceneScope(program, root) {
       return !!(t.flags & TypeFlags.StringLiteral);
     };
     const proprietes = checker.getPropertiesOfType(type);
-    const dedans = proprietes.filter((p) => declaredInScene(p.declarations?.[0]?.resolve()) && !discriminant(p));
+    const dedans = proprietes.filter((p) => duDocument(p.declarations?.[0]?.resolve()) && !discriminant(p));
     // Clés LITTÉRALES d'un type mappé : sans déclaration, elles sont du document quand le champ qui porte
     // le type en est.
-    const synthetiques = declaredInScene(parentDecl) ? proprietes.filter((p) => !p.declarations?.length) : [];
+    const synthetiques = duDocument(parentDecl) ? proprietes.filter((p) => !p.declarations?.length) : [];
     for (const prop of synthetiques) {
       const owner = schemaCompose(parentDecl) ?? ownerPath;
       const id = `${owner}.${prop.name}`;
@@ -378,7 +368,7 @@ export function sceneScope(program, root) {
     }
   };
 
-  visit(scene, 'Scene', undefined);
+  visit(typeRacine, racine.type, undefined);
   return out;
 }
 
@@ -418,10 +408,10 @@ export function idsOf(checker, cles, type, name) {
 }
 
 /** Ids de champ du périmètre que le DERNIER pas du chemin `chemin` écrit dans le document `doc`, marché sur le type
- *  `Scene` : un rang mène à l'élément d'un tableau, une clé à la propriété (`idsOf`) ou à la valeur d'un index ; un
+ *  `typeRacine` : un rang mène à l'élément d'un tableau, une clé à la propriété (`idsOf`) ou à la valeur d'un index ; un
  *  membre d'union dont un discriminant littéral contredit la valeur du document est écarté. */
-export function idsDuChemin(checker, cles, scene, doc, chemin) {
-  let types = [scene];
+export function idsDuChemin(checker, cles, typeRacine, doc, chemin) {
+  let types = [typeRacine];
   let valeur = doc;
   let ids = new Set();
   for (const pas of chemin) {
@@ -491,7 +481,7 @@ function writtenNames(checker, prop) {
 /**
  * Champs du périmètre ÉCRITS par un fichier, rattachés au TYPE porteur.
  * Le crédit exige que la propriété écrite remonte à la déclaration exacte du
- * champ dans `scene.ts` : les mappings (`Partial<WallSeg>`, `Pick`, accès indexé) sont donc suivis,
+ * champ dans le document : les mappings (`Partial<WallSeg>`, `Pick`, accès indexé) sont donc suivis,
  * les homonymes d'autres types écartés.
  * `creditable(node)` filtre les sites d'écriture retenus — c'est par lui que passe l'exigence
  * d'ATTEIGNABILITÉ depuis un chemin d'auteur pour les fichiers de `BRIDGE_PATH`.
@@ -745,20 +735,16 @@ function calleeDeclarations(checker, call) {
 }
 
 /**
- * Portées d'exécution ATTEIGNABLES par l'auteur, par fermeture transitive des appels depuis deux racines : l'interface
- * web (`UI_PATH`, tout le fichier) et l'éditeur Godot (`ENTREE_GODOT`, la seule méthode `editer` du pont). Le crédit
- * d'un fichier de `BRIDGE_PATH` en dépend : une primitive que personne n'appelle n'est pas un chemin d'édition, c'est
- * une définition.
+ * Portées d'exécution ATTEIGNABLES par l'auteur, par fermeture transitive des appels depuis une racine : l'éditeur
+ * Godot (`ENTREE_GODOT`, la seule méthode `editer` du pont). Le crédit d'un fichier de `BRIDGE_PATH` en dépend : une
+ * primitive que personne n'appelle n'est pas un chemin d'édition, c'est une définition.
  *
  * CE QUE CETTE FERMETURE NE VOIT PAS — donc autant de sources d'orphelins RAPPORTÉS à tort :
  *   - un appel INDIRECT (primitive rangée dans une table de dispatch, passée en callback, atteinte
  *     par `obj[k]()`) : aucun `CallExpression` ne nomme sa cible, aucune arête n'est bâtie ;
- *   - un appel depuis un fichier hors `AUTHOR_PATH` (moteur, store) qu'un écran déclencherait ;
- *   - à l'inverse elle SUR-crédite : une fonction d'un fichier d'interface est réputée atteignable
- *     même si aucun écran ne la monte, et un callback jamais rappelé compte pour sa porteuse. La
- *     frontière mesurée est celle du FICHIER — « une primitive hors interface a-t-elle un appelant
- *     dans l'interface ? » — pas la vivacité d'un composant. Côté Godot, elle est celle de la méthode
- *     `editer` : tout ce qu'elle appelle, l'essai de la scène compris.
+ *   - un appel depuis un fichier hors `BRIDGE_PATH` (moteur, store) que l'éditeur déclencherait ;
+ *   - à l'inverse elle SUR-crédite : un callback jamais rappelé compte pour sa porteuse. La frontière mesurée est
+ *     celle de la méthode `editer` : tout ce qu'elle appelle, l'essai de la scène compris.
  * Un pont présent au programme sans sa méthode `editer` lève : la racine Godot ne se perd pas en silence.
  * @returns {Set<import('typescript/unstable/ast').Node>}
  */
@@ -782,7 +768,6 @@ export function auteurReachableScopes(checker, program, root) {
     if (sf.isDeclarationFile) continue;
     const rel = path.relative(root, sf.fileName);
     if (rel.startsWith('..') || isTestFile(rel) || !isAuthorPath(rel)) continue;
-    const ui = isUiPath(rel);
     if (norm(rel) === ENTREE_GODOT.fichier) {
       const entrees = [];
       const chercher = (n) => {
@@ -793,21 +778,10 @@ export function auteurReachableScopes(checker, program, root) {
       if (entrees.length !== 1) throw new Error(`${ENTREE_GODOT.fichier} : ${entrees.length} méthode(s) \`${ENTREE_GODOT.methode}\`, l’entrée de l’éditeur Godot en attend une`);
       seed(entrees[0]);
     }
-    if (ui) {
-      seed(sf);
-      // Le corps de module d'une primitive IMPORTÉE par l'interface s'exécute au chargement.
-      for (const st of sf.statements) {
-        const spec = ts.isImportDeclaration(st) || ts.isExportDeclaration(st) ? st.moduleSpecifier : undefined;
-        if (!spec) continue;
-        for (const d of checker.getSymbolAtLocation(spec)?.declarations ?? [])
-          if (ts.isSourceFile(d.resolve())) seed(d.resolve());
-      }
-    }
     const walk = (node) => {
       if (ts.isCallExpression(node)) {
         const targets = calleeDeclarations(checker, node);
-        // Depuis l'interface, tout appel part d'un contexte déjà atteignable : le fichier fait foi.
-        for (const from of ui ? [sf] : owningScopes(node)) for (const to of targets) edge(from, to);
+        for (const from of owningScopes(node)) for (const to of targets) edge(from, to);
       }
       node.forEachChild(walk);
     };
@@ -819,25 +793,25 @@ export function auteurReachableScopes(checker, program, root) {
 }
 
 /**
- * Audite le dépôt : pour chaque champ du document de scène, qui l'écrit et par quel chemin. Une écriture jouée par
+ * Audite le dépôt : pour chaque champ du document de la `racine` (`RACINES`), qui l'écrit et par quel chemin. Une écriture jouée par
  * l'éditeur (`ecrituresJouees`, un aller-retour qui joue `editer` : le document avant et après, le chemin écrit depuis
- * la scène, la valeur jouée et sa saisie) crédite, quand `ecritureCreditee`, le dernier pas de chacun des chemins qu'elle
+ * la racine du document, la valeur jouée et sa saisie) crédite, quand `ecritureCreditee`, le dernier pas de chacun des chemins qu'elle
  * écrit (`cheminsEcrits`, `idsDuChemin`), sous la marque `ALLER_RETOUR`.
  * @param {string} root racine du dépôt
  * @param {import('./tsProgram.mjs').SessionProgramme} [program] programme déjà construit — absent, bâti pour CET appel
- * @param {{ ecrituresJouees?: { avant: unknown, apres: unknown, chemin: (string | number)[], valeur: unknown, saisie: string }[] }} [options]
+ * @param {{ racine: { fichierSchema: string, schema: string, fichierType: string, type: string }, ecrituresJouees?: { avant: unknown, apres: unknown, chemin: (string | number)[], valeur: unknown, saisie: string }[] }} options
  * @returns {{ id: string, owner: string, field: string, at: string, authors: string[], pipeline: string[] }[]}
  */
-export function auditSceneFieldEditability(root, program, { ecrituresJouees = [] } = {}) {
+export function auditSceneFieldEditability(root, program, { racine, ecrituresJouees = [] }) {
   if (!program) {
-    const session = programmeDuPerimetre(root);
+    const session = programmeDuPerimetre(root, [racine]);
     const erreurs = [];
-    try { return auditSceneFieldEditability(root, session, { ecrituresJouees }); }
+    try { return auditSceneFieldEditability(root, session, { racine, ecrituresJouees }); }
     catch (erreur) { erreurs.push(erreur); }
     finally { libererSessions([session], erreurs); }
   }
   const checker = program.checker;
-  const scope = sceneScope(program, root);
+  const scope = sceneScope(program, root, racine);
   const cles = new Map(scope.map((e) => [cleDuChamp(e), e.id]));
   const fieldNames = new Set(scope.map((e) => e.field));
   const rows = new Map(
@@ -859,8 +833,8 @@ export function auditSceneFieldEditability(root, program, { ecrituresJouees = []
   );
 
   const reachable = auteurReachableScopes(checker, program, root);
-  // Hors interface, une écriture ne crédite que si l'une de ses portées d'exécution est atteinte
-  // depuis `src/ui/**` ou `ENTREE_GODOT` : le crédit exige un APPELANT, jamais la seule existence d'une définition.
+  // Une écriture d'auteur ne crédite que si l'une de ses portées d'exécution est atteinte depuis `ENTREE_GODOT` : le
+  // crédit exige un APPELANT, jamais la seule existence d'une définition.
   const atteinte = (node) => owningScopes(node).some((s) => reachable.has(s));
 
   for (const sf of program.program.getSourceFileNames().map((file) => program.program.getSourceFile(file))) {
@@ -871,15 +845,15 @@ export function auditSceneFieldEditability(root, program, { ecrituresJouees = []
     const author = isAuthorPath(rel);
     const pipeline = isPipelinePath(rel);
     if (!author && !pipeline) continue;
-    const creditable = author && !isUiPath(rel) ? atteinte : () => true;
+    const creditable = author ? atteinte : () => true;
     for (const id of fieldsWrittenIn(checker, sf, cles, fieldNames, creditable)) {
       const row = rows.get(id);
       if (row) (author ? row.authors : row.pipeline).push(norm(rel));
     }
   }
-  const scene = sceneType(program, root);
+  const typeRacine = typeDeRacine(program, root, racine);
   for (const e of ecrituresJouees.filter(ecritureCreditee))
-    for (const id of cheminsEcrits(e.chemin, e.valeur).flatMap((chemin) => [...idsDuChemin(checker, cles, scene, e.apres, chemin)])) {
+    for (const id of cheminsEcrits(e.chemin, e.valeur).flatMap((chemin) => [...idsDuChemin(checker, cles, typeRacine, e.apres, chemin)])) {
       const row = rows.get(id);
       if (row && !row.authors.includes(ALLER_RETOUR)) row.authors.push(ALLER_RETOUR);
     }
