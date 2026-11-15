@@ -37,7 +37,7 @@ function partie() {
 const parId = (elements: readonly Element[]) => Object.fromEntries(elements.map((e) => [e.id, e]));
 const carte = (suite: Suite): Bouton => suite.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!;
 /** Le mode `mode` du trajet `route` de la carte ouverte. */
-const mode = (suite: Suite, route: string, m: string): Bouton => departDeLaCarte(suite.vue, route).valeurs.find((b) => b.id === m)!;
+const mode = (suite: Suite, route: string, m: string): Bouton => departDeLaCarte(suite.vue, route, 'jourParJour').valeurs.find((b) => b.id === m)!;
 
 describe('le voyage par le pont', () => {
   it('la carte du monde : chaque lieu au plan, et sous chaque destination son trajet, sa longueur et ses modes avec leurs jours de route', () => {
@@ -48,11 +48,16 @@ describe('le voyage par le pont', () => {
     expect(Object.keys(corps), 'le plan seul : aucun trajet en liste à côté').toEqual(['carte/plan']);
     const plan = corps['carte/plan'] as Plan;
     const departs = plan.points.map((pt) => [pt.nom, pt.ton, pt.elements.map((x) => [(x as Choix).libelle, (x as Choix).valeurs.map((b) => [b.libelle, b.refus])])]);
-    expect(departs, 'chaque lieu au plan, celui du groupe distingué, sous chaque destination son départ ; la longue route ne part pas de Weiler').toEqual([
+    const [ordres, jourParJour] = ['Sous vos ordres', 'Jour par jour'];
+    expect(departs, 'chaque lieu au plan, celui du groupe distingué, sous chaque destination son départ par cadence, celle des ordres en premier ; la longue route ne part pas de Weiler').toEqual([
       ['Weiler', 'alerte', []],
-      ['Federholz', 'neutre', [['24 km', [['À pied · 1 j', null]]]]],
-      ['Steinbruck', 'neutre', [['30 km', [['À pied · 2 j', null], ['Diligence · 1 j', null]]]]],
+      ['Federholz', 'neutre', [[`24 km · ${ordres}`, [['À pied · 1 j', null]]], [`24 km · ${jourParJour}`, [['À pied · 1 j', null]]]]],
+      ['Steinbruck', 'neutre', [[`30 km · ${ordres}`, [['À pied · 2 j', null], ['Diligence · 1 j', null]]], [`30 km · ${jourParJour}`, [['À pied · 2 j', null], ['Diligence · 1 j', null]]]]],
       ['Altdorf', 'neutre', []],
+    ]);
+    expect(departDeLaCarte(suite.vue, 'r-grandroute', 'jourParJour').valeurs.map((b) => b.jeu), 'chaque mode part sous la cadence de son choix').toEqual([
+      { type: 'partirEnVoyage', args: ['r-grandroute', 'pied', { cadence: 'jourParJour' }] },
+      { type: 'partirEnVoyage', args: ['r-grandroute', 'diligence', { cadence: 'jourParJour' }] },
     ]);
     expect(plan.points.every((pt) => pt.x >= 0 && pt.x <= 1 && pt.y >= 0 && pt.y <= 1), 'chaque lieu dans le cadre du plan').toBe(true);
     expect(plan.traits.map((tr) => [tr.id, tr.ton]), 'chaque route, celles qui partent d’ici distinguées').toEqual([['r-piste', 'reussite'], ['r-grandroute', 'reussite'], ['r-longue', 'neutre']]);
@@ -89,7 +94,7 @@ describe('le voyage par le pont', () => {
     expect([(corps['lieu/services'] as Ligne).texte, (corps['lieu/trajets'] as Ligne).texte], 'chaque rubrique sous son titre').toEqual(['Ce qu’on peut faire ici', 'Partir']);
     expect(gestes('service/forgeron'), 'le forgeron : son échoppe').toEqual([['Entrer', 'ouvrirLaBoutique']]);
     const retour = corps['trajet/r-grandroute'] as Entite;
-    expect([retour.nom, retour.elements.map((x) => (x as Choix).libelle)], 'le trajet qui en part, le même départ que sur la carte').toEqual(['Weiler', ['30 km']]);
+    expect([retour.nom, retour.elements.map((x) => (x as Choix).libelle)], 'le trajet qui en part, le même départ que sur la carte').toEqual(['Weiler', ['30 km · Sous vos ordres', '30 km · Jour par jour']]);
 
     const explorer = suite.vue.zones['fenetre.gestes'].find((b): b is Bouton => b.type === 'bouton' && b.libelle === 'Explorer')!;
     suite = p.jouer(explorer);

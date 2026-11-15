@@ -97,6 +97,7 @@ ids = PackedStringArray("voyage/carte")
 formes = PackedStringArray("plan:carteDuVoyage")
 
 [node name="Fond" type="PanelContainer" parent="Cadre/Marges/Scene/Haut/Droite"]
+size_flags_vertical = 3
 theme_type_variation = &"Recit"
 
 [node name="Recit" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Fond"]
@@ -112,7 +113,8 @@ masque = NodePath("../../../../../../../..")
 
 [node name="Fondu" type="TextureRect" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit"]
 clip_children = 1
-custom_minimum_size = Vector2(0, 104)
+custom_minimum_size = Vector2(0, 27)
+size_flags_vertical = 3
 texture = ExtResource("t_fondu")
 expand_mode = 1
 
@@ -167,10 +169,6 @@ theme_type_variation = &"RangeeSerree"
 [node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit/Gestes"]
 script = ExtResource("1_zone")
 source = "fenetre.gestes"
-
-[node name="Vide" type="Control" parent="Cadre/Marges/Scene/Haut/Droite"]
-size_flags_vertical = 3
-mouse_filter = 2
 
 [node name="Groupe" type="HBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite"]
 size_flags_horizontal = 8
