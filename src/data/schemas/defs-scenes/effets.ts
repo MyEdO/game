@@ -31,7 +31,6 @@ import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema 
 import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
-import { listeCle } from '../grammaire/collection-cle';
 import {
   customStatblockSchema,
   DIALOGUES_DE_LA_SCENE,
@@ -72,16 +71,6 @@ export const favorLevelSchema = enumNomme({
 });
 /** `CrewHire` (`engine/crewMorale.ts`) — un rôle d'équipage salarié et son effectif. */
 export const crewHireSchema = nommerChamps(z.strictObject({ roleId: idDe('crewRole', undefined, { nue: true }), count: z.number() }), { roleId: { label: "rôle" , texte: { regime: "technique"} }, count: { label: "nombre" } });
-/** `PursuitFoeRef` (`noyau/pursuitFlow.ts`) — adversaire de poursuite : une RÉFÉRENCE de vivant
- *  (`livingRefSchema` — bestiaire ou statbloc d'éditeur), jamais des stats recopiées. Son Mouvement et
- *  sa valeur de Test de Mouvement se LISENT sur la fiche référencée, résolus au démarrage
- *  (`noyau/pursuitFlow`). `id` est posé à l'ouverture quand l'auteur n'en écrit pas — il sert aux
- *  décisions de camp (`PursuitPolicy.prioritaires`). */
-/** LDB 15 l.94 */
-export const pursuitFoeSchema = nommerChamps(z.strictObject({
-  id: z.string().optional(),
-  ref: livingRefSchema,
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, ref: { label: "référence" } });
 /** LDB 15 l.94. */
 export const pursuitPolicySchema = nommerChamps(z.strictObject({
   sacrifice: z.enum(['jamais', 'toujours', 'si-ecart']).optional(),
@@ -498,7 +487,7 @@ export const startPursuitSchema = nommerChamps(z.strictObject({
   distance: z.number(),
   escapeAt: z.number().optional(),
   skill: refOuSpec('skill'),
-  foes: listeCle(pursuitFoeSchema, 'id'),
+  foes: z.array(livingRefSchema),
   encounter: ref(RENCONTRES_DE_LA_SCENE).optional(),
   policy: pursuitPolicySchema.optional(),
 }), { type: { label: "type"  }, partyRole: { label: "rôle du groupe"  }, distance: { label: "distance" }, escapeAt: { label: "distance de fuite" }, skill: { label: "Compétence" }, foes: { label: "adversaires" }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, policy: { label: "décisions de poursuite" } });

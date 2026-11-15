@@ -9,6 +9,7 @@ import { LIBELLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/gramma
 import { derouleEnum, libelleDeValeur, metaDesChamps, nomDeNoeud, valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { declarationDEnfants, defDe, enfantsDe, ouverts, pasDeDonnee, valeursAdmises } from '../../data/schemas/grammaire/descente';
+import { collectionDe } from '../../data/schemas/grammaire/collection-cle';
 import { aLaFormeDe, declarationDeFeuilleDId, estRefEmboitee, porteeDeLaFeuille } from '../../data/schemas/grammaire/ref';
 import { declarationProseNommee } from '../../data/schemas/grammaire/prose';
 import { OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
@@ -176,7 +177,8 @@ export function champsDeclares(noeud: unknown): (readonly [string, unknown])[] |
  *  entrées de chacune de ses références `idDe` fermées qu'un dataset porte, sa sous-liste comprise
  *  (`choixDeLaFeuilleDId`), et des valeurs de ses énumérations et littéraux membres ; sinon, de sa seule forme,
  *  les valeurs d'une énumération (`libelleDeValeur`), d'un littéral (`libelleDuLitteral`), faux et vrai d'un
- *  booléen ; `undefined` pour tout autre nœud. */
+ *  booléen ; de plusieurs formes qui sont chacune un choix (une union de littéraux), la réunion, sans doublon, de leurs
+ *  valeurs ; `undefined` pour tout autre nœud. */
 export function choixDuNoeud(noeud: unknown): ValeurDuChoix[] | undefined {
   const formes = ouverts([noeud]);
   const feuilles = formes.map(declarationDeFeuilleDId).filter((d) => d !== undefined && !d.portee && datasetDeLEspaceDuType(d.type) !== undefined);
@@ -187,6 +189,12 @@ export function choixDuNoeud(noeud: unknown): ValeurDuChoix[] | undefined {
       .filter((o) => !vus.has(o.valeur) && !!vus.add(o.valeur));
   }
   const n = seuleForme(noeud);
+  if (n === undefined) {
+    const branches = formes.filter((f) => !estTransparent(f)).map(choixDuNoeud);
+    if (branches.length < 2 || branches.some((b) => b === undefined)) return undefined;
+    const vus = new Set<unknown>();
+    return (branches as ValeurDuChoix[][]).flat().filter((o) => !vus.has(o.valeur) && !!vus.add(o.valeur));
+  }
   const def = defDe(n);
   const nommees = (valeurs: readonly (string | number | boolean)[], libelle: (v: string | number | boolean) => string): ValeurDuChoix[] => valeurs.map((valeur) => ({ valeur, libelle: libelle(valeur) }));
   switch (def?.type) {
@@ -376,9 +384,13 @@ export function formeAuPoint(noeud: unknown, valeur: unknown): { noeud: unknown;
 export const designeDesEntrees = (noeud: unknown): boolean =>
   ouverts([noeud]).some((n) => declarationDeFeuilleDId(n) !== undefined || porteeDeLaFeuille(n) !== undefined || estRefEmboitee(n));
 
-/** La clé `cle`, de nœud `noeud`, s'écrit-elle au formulaire ? Une clé `id` qui n'est pas une référence
- *  (`designeDesEntrees`) est une identité, qui se change par son geste dédié, qui la propage. */
-export const cleOfferte = (cle: string, noeud: unknown): boolean => cle !== 'id' || designeDesEntrees(noeud);
+/** L'identité que tient, à son élément `element`, la liste de nœud `liste` (`listeCle`, `collectionDe`) : sa clé, qui se
+ *  change par son geste dédié, qui la propage, sauf une référence (`designeDesEntrees`) ; aucune d'une liste sans clé. */
+export function identiteTenue(liste: unknown, element: unknown): string[] {
+  const marque = ouverts([liste]).map((n) => collectionDe(n)).find((m) => m?.forme === 'liste');
+  const cle = marque && ouverts([elementDuNoeud(liste)], element).flatMap((n) => champsDeclares(n) ?? []).find(([c]) => c === marque.nom);
+  return cle && !designeDesEntrees(cle[1]) ? [marque.nom] : [];
+}
 
 /** La fermeture `ouverts` du nœud offre-t-elle une forme OBJET à clés déclarées qui porte toutes les
  *  clés de l'échantillon (pour une union, la variante objet que l'échantillon satisfait) ? */
@@ -531,7 +543,8 @@ export function inferFields(entries: Record<string, unknown>[], regime: RegimeDe
 }
 
 /** Les champs qu'offre le formulaire de la valeur objet `donnee` du nœud `noeud` (`inferFields` au régime `profondeur`),
- *  sans les discriminants `tenus` que tient le choix d'une variante (`formeAuPoint`), ni une identité (`cleOfferte`). */
+ *  sans les clés `tenus` : les discriminants que tient le choix d'une variante (`formeAuPoint`), l'identité que tient sa
+ *  liste (`identiteTenue`). */
 export function champsOfferts(noeud: unknown, donnee: Record<string, unknown>, tenus: readonly string[] = []): FieldDesc[] {
-  return inferFields([donnee], { noeud, niveau: 'profondeur' }).filter((f) => !tenus.includes(f.key) && cleOfferte(f.key, f.noeud));
+  return inferFields([donnee], { noeud, niveau: 'profondeur' }).filter((f) => !tenus.includes(f.key));
 }

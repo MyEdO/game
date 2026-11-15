@@ -432,7 +432,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=effet.effet|type=startMassBattle', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=effet.effet|type=startMassBattle.battle', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=effet.effet|type=startPursuit', occurrence: 1 },
-  { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=effet.effet|type=startPursuit.foes[]', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=effet.effet|type=startPursuit.policy', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=effet.effet|type=transition', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=effet.effet|type=transitionBack', occurrence: 1 },

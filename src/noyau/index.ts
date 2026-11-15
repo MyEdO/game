@@ -222,6 +222,7 @@ export {
   designeDesEntrees,
   elementDuNoeud,
   formeAuPoint,
+  identiteTenue,
   unionDuNoeud,
   varianteCourante,
   type FieldDesc,

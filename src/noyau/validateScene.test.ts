@@ -447,7 +447,7 @@ describe('validateScene', () => {
       return s;
     };
     const combat = (id: string): Effect => ({ type: 'startCombat', encounter: { id } });
-    const poursuite = (id: string): Effect => ({ type: 'startPursuit', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: 'humain' } }], encounter: { id } });
+    const poursuite = (id: string): Effect => ({ type: 'startPursuit', distance: 4, skill: { id: 'athletisme' }, foes: [{ id: 'humain' }], encounter: { id } });
     const surRencontres = (s: Scene) => msgs(validateScene([s])).filter((m) => m.includes('catalogue des rencontres de la scène'));
     expect(surRencontres(scene(combat('enc-fantome')))).toEqual([expect.stringContaining('« enc-fantome » est absent du catalogue des rencontres de la scène')]);
     expect(surRencontres(scene(poursuite('enc-fantome')))).toEqual([expect.stringContaining('« enc-fantome » est absent du catalogue des rencontres de la scène')]);

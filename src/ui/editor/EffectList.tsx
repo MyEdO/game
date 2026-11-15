@@ -913,18 +913,15 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               </select>
             </label>
             <div className="eff-list-head">Adversaires
-              <button type="button" className="btn small" onClick={() => upd({ foes: [...(e.foes ?? []), { ref: { id: creatureSemee() } }] })}>+ adversaire</button>
+              <button type="button" className="btn small" onClick={() => upd({ foes: [...(e.foes ?? []), { id: creatureSemee() }] })}>+ adversaire</button>
             </div>
             <span className="branch-label">Chaque adversaire est une créature du bestiaire : son Mouvement et sa valeur de Test se lisent sur SA fiche.</span>
-            {(e.foes ?? []).map((f: { id?: string; ref: { id?: string } }, i: number) => {
-              const patchFoe = (patch: Partial<typeof f>) => upd({ foes: (e.foes ?? []).map((x: typeof f, k: number) => (k === i ? { ...x, ...patch } : x)) });
-              return (
-                <div key={i} className="eff-row">
-                  <RefField cfg={{ ds: 'creatures', single: true }} fieldKey="Créature" value={f.ref?.id ?? ''} onChange={(v) => { if (v) patchFoe({ ref: { id: v as string } }); }} />
-                  <button type="button" className="btn small" onClick={() => upd({ foes: (e.foes ?? []).filter((_: typeof f, k: number) => k !== i) })}>×</button>
-                </div>
-              );
-            })}
+            {(e.foes ?? []).map((f: { id?: string }, i: number) => (
+              <div key={i} className="eff-row">
+                <RefField cfg={{ ds: 'creatures', single: true }} fieldKey="Créature" value={f.id ?? ''} onChange={(v) => { if (v) upd({ foes: (e.foes ?? []).map((x: typeof f, k: number) => (k === i ? { id: v as string } : x)) }); }} />
+                <button type="button" className="btn small" onClick={() => upd({ foes: (e.foes ?? []).filter((_: typeof f, k: number) => k !== i) })}>×</button>
+              </div>
+            ))}
           </div>
         )}
         {effect.type === 'startMassBattle' && (

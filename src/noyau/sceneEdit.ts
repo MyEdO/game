@@ -96,9 +96,9 @@ import {
 import {
   champsDeclares,
   choixDuNoeud,
-  cleOfferte,
   elementDuNoeud,
   formeAuPoint,
+  identiteTenue,
   recordDuNoeud,
   unionDuNoeud,
   varianteCourante,
@@ -1190,8 +1190,9 @@ function ecrit(o: unknown, [cle, ...reste]: readonly Segment[], valeur: unknown,
  *  ou celui qui suit son dernier, où l'élément s'ajoute ; une clé du record présent (`recordDuNoeud`) qu'il porte, ou
  *  qu'il offre (`champsDuRecord`) : l'un des choix admis que le contexte y pose, sinon une clé qu'admet son nœud ; une clé
  *  déclarée de l'objet présent (`champsDeclares`), à travers ses unions (`formeAuPoint`), ni discriminant que tient le
- *  choix d'une variante, ni identité (`cleOfferte`) ; `undefined` si le formulaire ne l'offre pas. */
-function noeudDuPas(noeud: unknown, point: unknown, pas: Segment, poses: () => readonly ChoixDuContexte[] | undefined): unknown {
+ *  choix d'une variante, ni l'identité `tenue` que tient la liste qui le porte (`identiteTenue`) ; `undefined` si le
+ *  formulaire ne l'offre pas. */
+function noeudDuPas(noeud: unknown, point: unknown, pas: Segment, poses: () => readonly ChoixDuContexte[] | undefined, tenue: readonly string[]): unknown {
   if (typeof pas === 'number') {
     const element = elementDuNoeud(formeAuPoint(noeud, point)?.noeud ?? noeud);
     return element !== undefined && Array.isArray(point) && Number.isInteger(pas) && pas >= 0 && pas <= point.length ? element : undefined;
@@ -1205,20 +1206,25 @@ function noeudDuPas(noeud: unknown, point: unknown, pas: Segment, poses: () => r
   }
   const forme = formeAuPoint(noeud, point);
   const n = forme && champsDeclares(forme.noeud)?.find(([cle]) => cle === pas)?.[1];
-  return n !== undefined && !forme!.tenus.includes(pas) && cleOfferte(pas, n) ? n : undefined;
+  return n !== undefined && !forme!.tenus.includes(pas) && !tenue.includes(pas) ? n : undefined;
 }
 
 /** Les nœuds de chaque pas du chemin `chemin` (`noeudDuPas`) depuis la donnée `donnee` de l'objet de schéma `objet`, aux
- *  choix `choix` que pose le contexte de son porteur, et la valeur au bout ; `undefined` si le formulaire n'offre pas
- *  l'un de ses pas, ou s'il est vide. */
+ *  choix `choix` que pose le contexte de son porteur, et la valeur au bout ; l'identité que tient une liste
+ *  (`identiteTenue`) reportée au pas qui suit son rang ; `undefined` si le formulaire n'offre pas l'un de ses pas, ou
+ *  s'il est vide. */
 function noeudsDuChemin(objet: unknown, donnee: Objet, chemin: readonly Segment[], choix: ContexteDuChamp['choix']): { noeuds: unknown[]; point: unknown } | undefined {
   const noeuds: unknown[] = [];
   let point: unknown = donnee;
+  let tenue: readonly string[] = [];
   for (const [rang, pas] of chemin.entries()) {
-    const noeud = noeudDuPas(noeuds.length ? noeuds[noeuds.length - 1] : objet, point, pas, () => choix(chemin.slice(0, rang)));
+    const parent = noeuds.length ? noeuds[noeuds.length - 1] : objet;
+    const noeud = noeudDuPas(parent, point, pas, () => choix(chemin.slice(0, rang)), tenue);
     if (noeud === undefined) return undefined;
     noeuds.push(noeud);
-    point = (point as Record<Segment, unknown>)[pas];
+    const suivant = (point as Record<Segment, unknown>)[pas];
+    tenue = typeof pas === 'number' ? identiteTenue(formeAuPoint(parent, point)?.noeud ?? parent, suivant) : [];
+    point = suivant;
   }
   return noeuds.length ? { noeuds, point } : undefined;
 }

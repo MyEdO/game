@@ -990,7 +990,7 @@ describe('les rencontres de la scène éditée, par la table d’écriture de le
     entities: ['cavalier', 'cheval', 'archer', 'badaud'].map(personnage),
     triggers: [
       { id: 'lisiere', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'startCombat', encounter: { id: 'enc-bois' } }] as Effect[]) },
-      { id: 'pont', rect: { x: 1, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: 'humain' } }], encounter: { id: 'enc-pont' } }] as Effect[]) },
+      { id: 'pont', rect: { x: 1, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ id: 'humain' }], encounter: { id: 'enc-pont' } }] as Effect[]) },
     ],
     encounters: [
       { id: 'enc-bois', members: [{ entityId: 'cavalier', ridesEntityId: { id: 'cheval' } }, { entityId: 'cheval', mount: true }, { entityId: 'archer' }] },

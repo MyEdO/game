@@ -45,10 +45,10 @@ import {
   champsDuRecord,
   champsOfferts,
   choixDuNoeud,
-  cleOfferte,
   clesPosees,
   elementDuNoeud,
   formeAuPoint,
+  identiteTenue,
   inferFields,
   kindDuNoeud,
   unionDuNoeud,
@@ -56,6 +56,7 @@ import {
   type FieldDesc,
 } from '../codex/editFields';
 import { ouverts } from '../../data/schemas/grammaire/descente';
+import { listeCle } from '../../data/schemas/grammaire/collection-cle';
 import { tableTotale } from '../../lib/tableTotale';
 import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
 import { conditionSchema, flowTestSchema, OP_DEFS, OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
@@ -137,7 +138,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
     expect(unionDuNoeud(champ(champs, z, 'crossTest', 'gate').noeud)?.discriminant).toBe('kind');
     expect(valeurNeuveDe(elementDuNoeud(champ(champs, z, 'crossTest', 'difficultyBy').noeud))).toEqual({ cond: CONDITION_TOUJOURS, difficulty: 'tresFacile' });
     const enjeu = champ(champs, z, 'crossTest', 'stake');
-    expect([champsDeclares(enjeu.noeud), unionDuNoeud(enjeu.noeud)?.variantes.map((v) => v.cle), elementDuNoeud(enjeu.noeud)], 'une union sans discriminant se choisit par ses branches, de clé leur rang').toEqual([undefined, ['0', '1', '2'], undefined]);
+    expect([champsDeclares(enjeu.noeud), unionDuNoeud(enjeu.noeud)?.variantes.map((v) => v.cle), elementDuNoeud(enjeu.noeud)], 'une union sans discriminant se choisit par ses branches, de clé leur rang').toEqual([undefined, ['0', '1'], undefined]);
   });
 
   it('une référence se choisit dans la sous-liste que sa feuille déclare', () => {
@@ -230,9 +231,15 @@ describe('la valeur neuve d’un nœud', () => {
 describe('l’écriture bornée par le formulaire', () => {
   const schema = z.strictObject({ a: z.strictObject({ id: z.string(), n: z.number().optional(), b: z.strictObject({ m: z.number().optional() }).optional() }).optional() });
 
-  it('refuse une clé `id` d’identité, qui se change par son geste dédié ; une référence `idDe` s’écrit', () => {
-    expect(avecLaValeur(schema, { a: { id: 'x' } }, ['a', 'id'], 'y')).toEqual({ ok: false, refus: 'nonOffert' });
+  it('une clé `id` hors de toute liste-clé est une désignation, qui s’écrit ; la clé d’une liste-clé est une identité, qui se change par son geste dédié, sauf la référence', () => {
+    expect(avecLaValeur(schema, { a: { id: 'x' } }, ['a', 'id'], 'y')).toEqual({ ok: true, valeur: { a: { id: 'y' } } });
     expect(avecLaValeur(schema, { a: { id: 'x' } }, ['a', 'n'], 2)).toEqual({ ok: true, valeur: { a: { id: 'x', n: 2 } } });
+    const identifiee = z.strictObject({ l: listeCle(z.strictObject({ nom: z.string(), n: z.number().optional() }), 'nom').optional() });
+    expect([avecLaValeur(identifiee, { l: [{ nom: 'x' }] }, ['l', 0, 'nom'], 'y'), avecLaValeur(identifiee, { l: [{ nom: 'x' }] }, ['l', 0, 'n'], 2)])
+      .toEqual([{ ok: false, refus: 'nonOffert' }, { ok: true, valeur: { l: [{ nom: 'x', n: 2 }] } }]);
+    const [premiere, seconde] = choixDeLaFeuilleDId({ type: 'skill' });
+    const designee = z.strictObject({ l: listeCle(z.strictObject({ skill: idDe('skill') }), 'skill').optional() });
+    expect(avecLaValeur(designee, { l: [{ skill: premiere.id }] }, ['l', 0, 'skill'], seconde.id), 'la clé qui est une référence se choisit').toEqual({ ok: true, valeur: { l: [{ skill: seconde.id }] } });
   });
 
   it('un conteneur vidé par le retrait de son dernier champ part avec lui, de proche en proche, tant que son absence est admise', () => {
@@ -638,7 +645,7 @@ function saisiesDesFormulaires(): Map<string, string> {
   const saisies = new Map<string, string>();
   const vus = new Set<unknown>();
   const sous = (noeud: unknown, tenus: readonly string[] = []): FieldDesc[] => (champsDeclares(noeud) ?? [])
-    .filter(([cle, n]) => !tenus.includes(cle) && cleOfferte(cle, n))
+    .filter(([cle]) => !tenus.includes(cle))
     .map(([cle, n]) => inferFields([{}], { noeud, niveau: 'profondeur' }).find((c) => c.key === cle) ?? { key: cle, label: cle, kind: kindDuNoeud(cle, n), nullable: true, noeud: n });
   const objet = (noeud: unknown, f: FieldDesc, chemin: string, tenus: readonly string[] = []) => {
     if (vus.has(noeud)) return;
@@ -654,7 +661,7 @@ function saisiesDesFormulaires(): Map<string, string> {
     if (champsDeclares(f.noeud)) return objet(f.noeud, f, chemin, tenus);
     const u = unionDuNoeud(f.noeud);
     if (u) {
-      if (!tenus.length) saisies.set(chemin, 'variantes');
+      if (!chemin.endsWith('>')) saisies.set(chemin, 'variantes');
       if (vus.has(u.noeud)) return;
       vus.add(u.noeud);
       for (const v of u.variantes) {
@@ -670,7 +677,7 @@ function saisiesDesFormulaires(): Map<string, string> {
     const element = elementDuNoeud(f.noeud);
     if (element !== undefined) {
       saisies.set(chemin, valeurNeuveDe(element) !== undefined || choixDuNoeud(element) ? 'ajouter' : 'json');
-      if (!vus.has(element)) champ({ ...champDeLElement(f, 0), contexte: f.contexte }, `${chemin}/0`);
+      if (!vus.has(element)) champ({ ...champDeLElement(f, 0), contexte: f.contexte }, `${chemin}/0`, identiteTenue(f.noeud, undefined));
       return;
     }
     if (clesPosees(f, segmentsDe(chemin))) {

@@ -74,6 +74,7 @@ import {
   combatStakeRef,
   flowStakeRef,
   testSkillLabel,
+  type FlowStakeId,
 } from '../data';
 import { moraleBase } from '../engine/crewMorale';
 import { clampSaboteurDR, semaineDuJour, shipboardSouls } from './shipCrew';
@@ -2217,7 +2218,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   startPursuit: {
     group: 'Combat & social', label: libelleEffet('startPursuit'), icon: 'voyage/a-pied',
-    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureSemee() } }] }),
+    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ id: creatureSemee() }] }),
     apply: (e, env) => { startGroundPursuit(env.get, env.set, { partyRole: e.partyRole, distance: e.distance, escapeAt: e.escapeAt, skill: e.skill.id, foes: e.foes, encounter: e.encounter?.id, policy: e.policy }); },
     refs: (e) => {
       const issues: EffectRefIssue[] = [];
@@ -2225,8 +2226,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Chaque adversaire est une RÉFÉRENCE : c'est sur la fiche que se lisent son Mouvement et sa
       // valeur de Test — une référence cassée n'a aucune stat à offrir.
       for (const f of e.foes ?? []) {
-        if ('id' in f.ref && !findCreatureById(f.ref.id)) {
-          issues.push({ level: 'error', message: `Poursuite → créature inexistante « ${f.ref.id || '(aucune)'} »` });
+        if ('id' in f && !findCreatureById(f.id)) {
+          issues.push({ level: 'error', message: `Poursuite → créature inexistante « ${f.id || '(aucune)'} »` });
         }
       }
       return issues;
@@ -2319,7 +2320,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   // ── Tests ──────────────────────────────────────────────────────────────
   extendedTest: {
     group: 'Tests', label: libelleEffet('extendedTest'), icon: 'interface/cle',
-    make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', drCible: 5, flag: '', stake: flowStakeRef('test-etendu') }),
+    make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', drCible: 5, flag: '', stake: { key: { dataset: 'flux', kind: 'test-etendu' satisfies FlowStakeId } } }),
     suspensif: true,
     apply: (e, env, suite) => {
       // Test ÉTENDU (LDB 12 l.187-200) : le meilleur du groupe enchaîne les Rounds, SOUTENU par les autres

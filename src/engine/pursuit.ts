@@ -47,7 +47,7 @@ export interface PursuitRunner {
 
 /** Un adversaire de la poursuite (côté opposé au groupe) — Mouvement (bonus de DR de vitesse, l.105-108)
  *  et valeur de Test de Mouvement. `label` = affichage (aucune logique keyée dessus) ; `id` est posé à
- *  l'ouverture (l'auteur n'a pas à en écrire un) et sert aux décisions de camp (l.94). */
+ *  l'ouverture (`resolvePursuitFoe`, `noyau/pursuitFlow.ts`), jamais par l'auteur. */
 export interface PursuitFoe {
   id?: string;
   /** Nommé par `nomDe` sur sa fiche (#4017). */

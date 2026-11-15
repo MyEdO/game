@@ -397,6 +397,7 @@ describe('l’éditeur de carte par le pont, la logique (#3606 M3b2)', () => {
     expect(inspecte(ajoutee, 'nommer')).toMatchObject({ type: 'formulaire', champs: [{ valeur: choisi[0].libelle }] });
     expect(inspecte(ajoutee, 'dialogue/noeud/n1')).toMatchObject({ type: 'ligne', texte: '▶ n1' });
     expect(inspecte(ajoutee, 'valeur/nodes/0')).toMatchObject({ type: 'ligne', texte: 'nœuds 1 « n1 »' });
+    expect(ajoutee.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => /^valeur\/nodes\/0\/[^/]+$/.test(id)), 'l’identité d’un nœud, clé de sa liste, ne se saisit pas : elle se change par son geste dédié (#4234)').toEqual(['valeur/nodes/0/choices', 'valeur/nodes/0/desc', 'valeur/nodes/0/retirer']);
     expect(boutonDe(ajoutee, 'dialogue/supprimer').refus, 'un dialogue que rien ne désigne se retire').toBeNull();
   });
 
@@ -2242,6 +2243,22 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
       e = presser(boutonDe(e, 'annuler'));
     }
     expect(boutonDe(e, 'enregistrer').refus, 'annulé jusqu’à l’ajout, le projet, scène comprise, est celui du dépôt').toBe('Rien à enregistrer');
+  });
+
+  it('l’objectif qu’efface l’Effet d’un déclencheur, une désignation hors de toute liste-clé, se saisit et s’écrit ; les mains d’un objet se choisissent parmi 1 et 2, écrites en nombre (#4234)', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const choisir = (e: Edition, id: string, voulue: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulue((b.jeu as { args: unknown[] }).args[2]))!);
+    let e = presser(boutonDe(presser(boutonDe(narratif, 'document/scene')), 'logique/declencheur/t-pont'));
+    e = choisir(choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'effet'), 'valeur/flow/effet/type', (v) => (v as { type: string }).type === 'clearObjective');
+    const objectif = inspecte(e, 'valeur/flow/effet/id') as Formulaire;
+    const [porteur, chemin] = objectif.champs.map((c) => (c.type === 'fixe' ? c.valeur : undefined));
+    e = editionDe(appel('editer', { type: 'valeur', args: [porteur, chemin, 'obj-pont'] }));
+    const depot = JSON.parse(presser(boutonDe(e, 'enregistrer')).depot!.texte) as { scenes: { triggers: { id: string; flow: { effet?: unknown } }[] }[] };
+    expect([objectif.type, depot.scenes[0].triggers.find((tr) => tr.id === 't-pont')!.flow.effet]).toEqual(['formulaire', { type: 'clearObjective', id: 'obj-pont' }]);
+    const objet = presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/ajouter'));
+    const valeurs = (x: Edition) => (inspecte(x, 'valeur/hands') as Choix).valeurs.map((b) => [(b.jeu as { args: unknown[] }).args[2], b.presse]);
+    expect([inspecte(objet, 'valeur/hands')?.type, valeurs(objet)]).toEqual(['choix', [[1, false], [2, false]]]);
+    expect(valeurs(choisir(objet, 'valeur/hands', (v) => v === 2)), 'le nombre écrit, jamais la chaîne').toEqual([[1, false], [2, true]]);
   });
 
   it('le choix d’une spécialisation au profil d’un PNJ se choisit par variante nommée ; la liste des spécialisations parmi lesquelles choisir s’écrit élément par élément (#3606 L6)', () => {
