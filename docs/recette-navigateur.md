@@ -101,9 +101,9 @@ compile à froid ou la machine est chargée — mesuré de 35 s à 8 min, fricti
 > dev » ci-dessous), jamais laissé vivant. Un `npm run dev` sans `timeout`, ou sous PowerShell (où
 > `timeout` est le `timeout.exe` de Windows), est refusé par la garde `appel-borne` (#2603).
 
-> **L'étalon se juge aux TROIS VUES, source unique `scripts/recette/vues-recette.json`** (#1847) :
-> `bureau` (la fenêtre réelle de l'utilisateur, et le viewport par DÉFAUT du kit), `portable` et
-> `mobile` — leurs dimensions se LISENT dans le fichier, jamais recopiées ici. Le fichier ne porte QUE
+> **L'étalon se juge aux VUES de la source unique `scripts/recette/vues-recette.json`** (#1847) :
+> `bureau` (la fenêtre réelle de l'utilisateur, et le viewport par DÉFAUT du kit) et `portable` —
+> leurs dimensions se LISENT dans le fichier, jamais recopiées ici. Le fichier ne porte QUE
 > des vues ; le kit les expose par `VUES_RECETTE`, `vueRecette`, `VUE_REFERENCE` et l'helper
 > `pourChaqueVue`.
 >
@@ -118,18 +118,18 @@ compile à froid ou la machine est chargée — mesuré de 35 s à 8 min, fricti
 > pendant deux jours des écrans qui rendaient juste à leur largeur de référence (lot « matières &
 > proportions », #393) ; les 900px de HAUT qui lui ont succédé ne tiennent sur AUCUN écran de
 > l'utilisateur (mesure 2026-09-20 : fenêtre utile ≈ 745-780px). Ces vues ne remplacent pas la passe
-> de largeur 900/700/560/360 de la charte : ce sont les fenêtres où l'on REGARDE, pas des
+> de largeur 900/700/560 de la charte : ce sont les fenêtres où l'on REGARDE, pas des
 > breakpoints. Voir `docs/charte-ui.md` § « La HAUTEUR réelle ».
 
 ### CLI — `scripts/recette/shot-screen.mjs`
 
 ```
 node scripts/recette/shot-screen.mjs --screen gallery --out <dossier absolu>
-node scripts/recette/shot-screen.mjs --screen menu --mobile
+node scripts/recette/shot-screen.mjs --screen menu --width 1366 --height 650
 ```
 
 Options : `--screen <id>` (obligatoire, un id de `SCREENS`, `src/noyau/etat.ts`), `--out <dir>`
-(absolu obligatoire s’il est explicite ; défaut `DOSSIER_CAPTURES` temporaire canonique hors arbre), `--url <url>` (défaut : le port de CET arbre, cf. `scripts/port-dev.mjs`), `--mobile` (vue `mobile` de `vues-recette.json`),
+(absolu obligatoire s’il est explicite ; défaut `DOSSIER_CAPTURES` temporaire canonique hors arbre), `--url <url>` (défaut : le port de CET arbre, cf. `scripts/port-dev.mjs`),
 `--width`/`--height`, `--settle <ms>`. Exit ≠ 0 si la console a remonté une erreur/exception après
 l'ouverture de l'écran.
 
@@ -137,11 +137,11 @@ l'ouverture de l'écran.
 
 ```
 node scripts/recette/hud-clickables.mjs
-node scripts/recette/hud-clickables.mjs --widths 700,560,360
+node scripts/recette/hud-clickables.mjs --widths 900,700,560
 ```
 
 Vérifie par `elementFromPoint` et par les boîtes rendues qu'aucune surface du HUD n'en recouvre une
-autre ni ne sort du champ, en exploration puis en combat, à 1707/1100/900/700/560/360 (options
+autre ni ne sort du champ, en exploration puis en combat, à 1707/1100/900/700/560 (options
 `--widths`, `--url`) : chaque portrait du groupe et chaque case du pont reçoit SON clic, la piste du
 groupe (`.pd-track`) tient sur UNE ligne, le fil d'événements ne mord pas sur la frise d'initiative,
 la piste `.is-tiles` défile au lieu de déborder, la frise en bande va jusqu'au bord droit (réserve
@@ -218,8 +218,8 @@ node scripts/recette/console-pont-formes.mjs --widths 900,700 --mesures
 node scripts/recette/console-pont-formes.mjs --stress 105
 ```
 
-Sonde les DEUX ponts, dans cet ordre. **Passe EXPLORATION** d'abord, aux trois vues jugées
-(les trois vues de `vues-recette.json`), une conversation EN COURS et le panneau du tiroir-journal DÉPLOYÉ :
+Sonde les DEUX ponts, dans cet ordre. **Passe EXPLORATION** d'abord, aux vues jugées
+(celles de `vues-recette.json`), une conversation EN COURS et le panneau du tiroir-journal DÉPLOYÉ :
 c'est là que vit le défaut fondateur du ticket #1848 (le bandeau de dialogue passant sous le pont
 léger) et une sonde qui n'irait qu'au combat mentirait par couverture. Elle refuse : un pont
 d'exploration absent, un dialogue ou un panneau non montés (elle s'annonce AVEUGLE plutôt que de se
@@ -229,7 +229,7 @@ est relevée `descendant` : ce n'est pas une occlusion.
 
 **Passe COMBAT** ensuite : le PONT DE CONSOLE dans ses TROIS formes — pont complet (tour du joueur), forme spectatrice
 (tour non contrôlé), ouverture de combat — aux vues `bureau` et `portable` de `vues-recette.json`, aux
-largeurs 1100 / 900 / 700 / 560 de la charte, et à la vue `mobile`. Refuse : une région qui ampute son contenu (`scrollHeight > clientHeight` sur `.cc-dock` et
+largeurs 1100 / 900 / 700 / 560 de la charte. Refuse : une région qui ampute son contenu (`scrollHeight > clientHeight` sur `.cc-dock` et
 chacune de ses régions), une bande dont la hauteur RENDUE est plus COURTE que sa hauteur DÉCLARÉE
 (`--cc-deck-h`, une réserve qui mentirait) ou qui en dérive de plus de 6px, un contrôle du pont qui
 sort du champ, un pont qui recouvre le fil ou la frise, une bande dont la hauteur CHANGE d'une forme
@@ -260,7 +260,7 @@ node scripts/recette/hauteur-reelle.mjs --vues portable --mesures
 ```
 
 La garde de l'invariant de HAUTEUR (#1847, `docs/charte-ui.md` § « La HAUTEUR réelle »). Pour CHACUNE
-des trois vues de `vues-recette.json`, elle OUVRE : les écrans `menu`, `party`, `creator`,
+des vues de `vues-recette.json`, elle OUVRE : les écrans `menu`, `party`, `creator`,
 `compendium`, `editor`, `test`, `coop` ; la campagne en exploration ; le menu système (vraie frappe
 d'Échap) et ses sous-écrans Options, Options/Clavier et Coopération (vrais clics) ; la fenêtre de jet
 d'ouverture de combat, puis le combat. Un écran hors de cette liste n'est pas gardé — l'y ajouter est
@@ -280,8 +280,7 @@ Les quatre VERDICTS sont des détecteurs PURS (`scripts/recette/detecteurs-haute
 fixtures rouge/verte par `detecteurs-hauteur.test.mjs` (gate `test:recette`) — la MESURE vit dans la
 sonde, le JUGEMENT dans le détecteur. La sonde IMPRIME son relevé à chaque écran, défaut ou non
 (page, cadres défilants, corps/boîte/bandes de la fenêtre de jet) : `--mesures` suspend le verdict et
-ne garde que ce relevé. Exit ≠ 0 avec la liste des défauts. Résidu mesuré sur l'arbre : Codex à
-360×740, page 3007/740 — #1860 ; la sonde reste donc à 1 défaut, sans exemption.
+ne garde que ce relevé. Exit ≠ 0 avec la liste des défauts, sans exemption.
 
 ### Socle — `scripts/recette/lib.mjs`
 
@@ -289,7 +288,7 @@ ne garde que ce relevé. Exit ≠ 0 avec la liste des défauts. Résidu mesuré 
 |---|---|
 | `openApp` + `MARQUEUR_MENU` | `openApp(url = DEFAULT_URL, { timeoutMs = 45000, console, ...opts })` — l'URL est le PREMIER argument, `opts` sont ceux de `launchSession`. Attend le serveur (`checkServer`), lance Chrome headless, navigue, puis attend l'app PRÊTE : `__wfrp.screen` posé (chargement async, cf. `src/main.tsx`) ET, sur l'écran `menu`, le menu principal MONTÉ — `MARQUEUR_MENU` = `.menu-tools`, la section « Atelier » qui porte « Scénarios de test », rendue en dernier (friction #2415 : `__wfrp` prêt rendait la main avant le montage, et le premier clic de menu échouait). `timeoutMs` est la borne UNIQUE de l'amorçage : attente du serveur, URL CDP de Chrome (`launchSession`) et app prête — un premier chargement à froid a été mesuré à 21 s sur un worktree neuf. Le refus DISTINGUE « `__wfrp` absent » (mauvaise URL, build cassé, serveur non-DEV), « app trop lente à s'installer » et « app installée, menu non monté » |
 | `gotoScreen` | `session, id, { timeoutMs = 45000, intervalMs = 200, settleMs = 600 }` : attend l’API, le screen demandé au store, `.app.app-<id>` montée, aucune `.lazy-fallback`, et `APP_READY` pour le menu. Échéance nommant API, store, classe et chargement ; `settleMs` est un confort après cette preuve. Ne prépare pas un interlude sans état ni un overlay à fallback nul : ajouter `waitFor` sur leur prédicat de résultat. |
-| `shot` | capture PNG nommée (`session, nom, dossier, { ancre, neutraliser = false }`), dossier absolu créé si absent ; défaut `DOSSIER_CAPTURES` hors arbre (`os.tmpdir()/recette-captures/<hash racine>`), partagé par les trois CLI. Un dossier relatif explicite lève avant CDP/écriture ; rend le chemin écrit. Le même nom dans ce dossier stable remplace volontairement la capture précédente. `{ancre}` fait DÉFILER un sélecteur en vue avant la capture — à 360 px les écrans s'empilent et le sujet passe sous le pli. Par DÉFAUT la capture ne change RIEN à l'état qu'elle capture (#2001 E : un `blur` d'office fermait le tiroir du journal avant la photo). `{neutraliser:true}` se DEMANDE : `Escape` si le focus est sur un `<select>` (son popup est NATIF et reste ouvert après `selectOption`), puis `blur` du focus. ⚠ Ce retrait MUTE l'écran : tout ce qui se ferme à la perte du focus se ferme avec lui, et une mesure clavier est cassée — jamais de `shot` neutralisant entre le focus posé et la frappe qui le consomme |
+| `shot` | capture PNG nommée (`session, nom, dossier, { ancre, neutraliser = false }`), dossier absolu créé si absent ; défaut `DOSSIER_CAPTURES` hors arbre (`os.tmpdir()/recette-captures/<hash racine>`), partagé par les trois CLI. Un dossier relatif explicite lève avant CDP/écriture ; rend le chemin écrit. Le même nom dans ce dossier stable remplace volontairement la capture précédente. `{ancre}` fait DÉFILER un sélecteur en vue avant la capture — aux largeurs étroites les écrans s'empilent et le sujet passe sous le pli. Par DÉFAUT la capture ne change RIEN à l'état qu'elle capture (#2001 E : un `blur` d'office fermait le tiroir du journal avant la photo). `{neutraliser:true}` se DEMANDE : `Escape` si le focus est sur un `<select>` (son popup est NATIF et reste ouvert après `selectOption`), puis `blur` du focus. ⚠ Ce retrait MUTE l'écran : tout ce qui se ferme à la perte du focus se ferme avec lui, et une mesure clavier est cassée — jamais de `shot` neutralisant entre le focus posé et la frappe qui le consomme |
 | `dernierTelechargement` | le DERNIER fichier téléchargé par la page (`session, { timeoutMs = 15000 }`) → `{ chemin, nom, contenu }`, contenu lu en UTF-8 : le plus récent du dossier `telechargements` du profil jetable (`DOSSIER_TELECHARGEMENTS`, posé par `launchSession`) que la session n'a pas encore rendu. Attend un fichier COMPLET (aucun `.crdownload`) ; à l'échéance, LÈVE en nommant le dossier et les téléchargements en cours. Geste : cliquer le VRAI bouton d'export (« Exporter JSON », « Exporter forme dépôt (dev) » de l'éditeur), puis lire. Le dossier est purgé avec le profil |
 | `consoleGuard` | collecte la console de LA session courante (piège du buffer partagé, § « Pièges vécus » ci-dessous), TOUS niveaux avec leur niveau (`log`, `info`, `warning`, `error`), les exceptions et les entrées `Log` (réseau, 404, CSP, avertissements du navigateur). `errors()` JUGE (erreurs `Runtime` et `Log`, exceptions) ; `warnings()` se LISTE au rendu — une absence d'export n'est jamais un « zéro » ; `log`/`info` sont enregistrés sans juger. « Console à 0 erreur » = `errors()` vide DEPUIS L'AMORÇAGE : `openApp(url, { console: true })` pose le garde AVANT `Page.navigate` (`session.console`), `Log.enable` compris |
 | `ouvrirRound` | OUVRE le Round en pause (« Commencer le combat » / « Commencer le round N ») au vrai bouton de phase — `cliquerAction(session, 'debut-de-round', { racine: '.cc-phase' })`. C'est le premier geste après `__wfrp.fight(id)` |
@@ -299,7 +298,7 @@ ne garde que ce relevé. Exit ≠ 0 avec la liste des défauts. Résidu mesuré 
 | `espionReseau` ⚠ à POSER AVANT le geste mesuré | les URL que la page DEMANDE : patch `fetch`/`XMLHttpRequest` DANS la page **et** `Network.requestWillBeSent` (CDP), réunis. `await esp.urls()` rend tout, `await esp.correspondant('/source/')` filtre. C'est la preuve d'une requête ABSENTE (« la fiche du Codex ne charge aucun chapitre »). **Jamais l'inventaire de ressources de l'API `performance`** : son tampon est BORNÉ (250 entrées) et l'app le sature à l'amorçage — il a rendu un faux « aucune requête » en recette C5 |
 | `freezeTimeout` / `unfreezeTimeout` | Remplace les délais des FUTURS timeouts par une séquence, dernier délai répété : `[0]` accélère, `[60000]` retarde, `[]` garde les délais demandés. Noyau unique partagé avec `__wfrp.freezeTimeout([60000])` / `__wfrp.unfreezeTimeout()` en navigateur interactif, sans app nécessaire au wrapper. Aucun callback perdu. La restauration ne reprogramme pas les timeouts déjà armés ; intervalles, CSS et `requestAnimationFrame` continuent : aucune pause globale. |
 | `emulateReducedMotion` | force `prefers-reduced-motion: reduce` (CDP `Emulation.setEmulatedMedia`) |
-| `setViewport` / `setMobileViewport` | viewport explicite / vue `mobile` de `vues-recette.json` (charte-ui.md — testable dès 360px) |
+| `setViewport` | viewport explicite (`width`, `height`) |
 | `clickButtonByText` | trouve un contrôle (`SELECTEUR_CONTROLES` : `<button>`, `[role="button"]`, `<summary>` — source unique, partagée avec `survoler` et `infobulleDe`) par son NOM ACCESSIBLE (`session, texte, { exact = true, dans, rangee, modifiers, attendreChangement = false, attenteMs = ATTENTE_CIBLE }` — correspondance EXACTE par défaut) : son `aria-label` explicite, sinon son texte ; `title` si le nom obtenu est vide (`CORPS_NOM_ACCESSIBLE`, partagé avec `survoler` et `infobulleDe`) — un portrait `button.ptile` peut porter ses Blessures (`14/14`) en texte : l'ARIA nommant le héros et son geste prime ; un bouton du dock d'exploration (`.worldmap-btn`) peut se nommer par son `title` ; `scrollIntoView`, PUIS lit son rect et clique via un VRAI clic CDP (`Input.dispatchMouseEvent` pressed+released) — SCROLL-AWARE : lire le rect AVANT le scroll fait rater le clic SILENCIEUSEMENT (aucune erreur, aucun effet). Correspondance EXACTE par défaut (texte ENTIER, espaces et apostrophes normalisés) — une sous-chaîne trouvait cinq cibles pour « Atelier » ; `{exact:false}` DEMANDE la sous-chaîne, pour un libellé à partie variable ; `{dans}` = sélecteur RACINE où chercher, quand le même libellé vit dans deux zones de l'écran — racine d'une modale : `.modal-overlay` ; racine d'un ÉCRAN PLEIN (`ScreenShell`, `src/ui/ScreenShell.tsx` : bibliothèque de campagnes, carte du monde, port, marché, dossier de navire, carnet, possessions, voyage, hub de ville, sélection du groupe…) : `.worldmap-overlay` — `{ dans: '.modal-overlay' }` n'y trouve RIEN ; `{rangee}` = texte d'une RANGÉE quand chaque rangée d'une liste porte le même bouton (les « Choisir » de la modale « Choisir la campagne » : `{ rangee: 'La Diligence' }`) — seuls comptent les boutons de l'ancêtre le plus proche de ce texte qui en contient un, et une rangée introuvable est un refus qui la nomme (friction mesurée en recette E7, #1343) ; si PLUSIEURS boutons matchent, le clic LÈVE avant tout événement ; préciser `{ dans }` ou `{ rangee }` ; `{attendreChangement}` (`true` = `DELAI_CHANGEMENT`, 2 s, ou un délai en ms) LÈVE si ni le DOM ni l'état du store n'ont bougé après le clic — un clic sans effet ne passe plus en silence (friction #2290) ; l'empreinte ignore les attributs de RENDU réécrits à chaque image (`ATTRIBUTS_VOLATILS` : `data-rendus`, `data-file` du canevas, `src/gameIso/stage/GameStage3D.tsx`), sans quoi l'écran de jeu « bougerait » sans clic ; `{attenteMs}` borne l’apparition du bouton puis le recouvrement transitoire ; une ambiguïté lève immédiatement. L’empreinte d’effet se prend après apparition et ignore la marque de localisation `data-recette-cible` |
 | `cliquerSelecteur` | CLIC RÉEL d'un contrôle désigné par un SÉLECTEUR (`session, selecteur, { modifiers, attendreChangement, attenteMs = ATTENTE_CIBLE }`) — le pendant de `clickButtonByText` quand le contrôle n'a PAS de texte (bouton à glyphe : tiroir du journal `.ld-btn`, ouvreur d'écran). SCROLL-AWARE, et il REFUSE en le nommant : cible absente, boîte 0×0 (non rendue), contrôle FERMÉ (refus de `geste`, raison citée) — jamais un clic silencieux qui n'a rien fait ; `{attendreChangement}` : même contrôle d'effet que `clickButtonByText`. Il ATTEND l'apparition du sélecteur (`attendreSelecteur`, `attenteMs`, 8 s) : juste après « Scénarios de test », `[data-testid="scenario-launch-embuscade"]` n'est pas monté ; à l'échéance, « cliquerSelecteur : « sel » absent du DOM après N ms » |
 | `geste` + `clic` | `geste(session, cible, { intention = 'agir', qui, defiler = true, attenteMs = ATTENTE_CIBLE }, evenements)` : le SEUL émetteur d'événements souris et tactiles du kit (#1953) — il RÉSOUT la cible, la CONTRÔLE au point d'émission, puis appelle `evenements(localisation, emettre)`. `cible` a TROIS formes explicites : `{ nom, selecteur?, libelle? | propre?, dans?, rangee?, exact? }` (nom accessible, texte du sous-élément `libelle`, ou, sous `propre`, ses seuls nœuds texte directs), `{ selecteur, dans? }`, `{ surface, x, y }` (un point d'une surface : une case de carte, `SURFACE_CARTE`) — une chaîne nue est refusée. Chaque forme passe par `querySelectorAll` et LÈVE dès deux candidats, en les nommant. CONTRÔLE : la cible est présente ; `disabled` natif LÈVE toujours ; `aria-disabled` (`GatedAction`) LÈVE sous l'intention `agir`, et sous `lire` le geste a lieu et rend `ferme: { mecanisme, raison }` ; un point HORS FENÊTRE est un verdict nommé ; l'élément au point est la cible ou un descendant, relu jusqu'à `attenteMs` (la scène de dés `div.rm-scene` passe), puis LÈVE en nommant le DERNIER recouvreur — aucun événement émis. `clic({ modifiers, bouton, dureeMs, trajet })` : la triade `mouseMoved`/`mousePressed`/`mouseReleased`, relâchement garanti, appui sans accusé de réception compris. BORNE d'`emettre` : il émet AU POINT CONTRÔLÉ, sauf le glissé bouton tenu, BORNÉ à la fenêtre (un point hors fenêtre LÈVE), dont le relâchement gauche hors du point est un DÉPÔT recontrôlé au point (`pageControler`, mode `couche` : le voile qui l'intercepte est nommé) ; un relâchement REFUSÉ (hors fenêtre, dépôt recouvert) relâche le bouton AU POINT CONTRÔLÉ, puis lève en le disant ; il est RÉVOQUÉ au retour d'`evenements` (de même l'`emettre` de `frappe`) — un `emettre` gardé après le geste LÈVE —, et `geste` comme `frappe` ne rendent qu'après leurs émissions EN VOL (`emettreSous`) : rien ne part après leur retour, et un refus en vol les fait LEVER (joint à l'échec d'`evenements` s'il y en a un). BORNE de réponse : chaque émission `Input` de `geste` et `frappe` LÈVE « `Input.<méthode>` : accusé de réception absent après N ms (la page peut avoir reçu l'événement) » après `delaiEntreeMs` (`DELAI_ENTREE`), option que chaque helper qui les appelle transmet. VERROU du relais : `session.rpc` REFUSE le domaine `Input`, y compris relayé par `Target.sendMessageToTarget` : l'émetteur brut n'est remis qu'à `geste` et `frappe` (garde `src/emetteur-entree-exclusivity-guard.test.ts`) |
@@ -328,8 +327,8 @@ ne garde que ce relevé. Exit ≠ 0 avec la liste des défauts. Résidu mesuré 
 | `appelerWfrp` | APPELLE `window.__wfrp[nom](...args)` (arguments sérialisés en JSON), en attend la promesse, et LÈVE si le résultat est un REFUS — une chaîne qui commence par « ✗ » (#2001 F3 : `editorOpen` rendait son refus, et le script continuait sur le mauvais document). C'est LA voie d'un helper `__wfrp` depuis un script : un `evaluate` nu laisse passer le « ✗ » en silence. `nom` peut porter son plafond d'évaluation, à régler AU-DESSUS du délai que le helper reçoit lui-même : `ready(timeoutMs = 15000)` borne SON attente d'entrée en scène, d'où `appelerWfrp(session, { nom: 'ready', timeoutMs: 65000 }, 60000)` — `ready` attend 60 s, l'évaluation 65 s (un `{ timeoutMs }` seul laisse `ready` à ses 15 s). Rend le résultat |
 | `lireIndexedDB` | LIT, en lecture seule, le magasin `magasin` de la base IndexedDB `base` (`session, base, magasin`) → `[{ cle, valeur }]`. OBSERVATION pure : une base absente n'est jamais ouverte (`indexedDB.open` la CRÉERAIT) — refus NOMMÉ listant les bases présentes ; magasin absent, refus listant les magasins de la base |
 | `mesurerProvenance` | MESURE la provenance d'un texte de campagne rendue dans `selecteur` (`ProvenanceDuTexte`, `src/ui/editor/ProvenanceDuTexte.tsx`, #2001) → `{ sujet, mode, options: [{ libelle, retenue, refus }], adresse, detacher, reference }` : `mode` = l'option retenue (`aria-pressed`), `refus` = la raison liée d'une option refusée, `adresse` = le badge de la copie ADRESSÉE, `detacher` = son bouton « Détacher » (`{ ouvert }`, ou `null`), `reference` = le libellé du champ de référence monté (« Source », « Adapté de ») ou `null`. LÈVE si `selecteur` est absent, ne porte aucune provenance, ou en porte plusieurs (viser un conteneur plus étroit). PNJ : « Chemins canoniques de l'éditeur » |
-| `attendreServeur` / `causeDeServeur` / `checkServer` / `launchSession` | briques bas niveau d'`openApp` (séparément utilisables) — `attendreServeur(url, { timeoutMs = 45000, pasMs = 1000 })` ATTEND la réponse du serveur (connexion refusée retentée, requête en vol bornée par le temps restant) et la rend, ou LÈVE en nommant la dernière cause ; `causeDeServeur(e)` (PURE) dit cette cause en clair (connexion REFUSÉE, réponse LENTE, échec réseau) ; `checkServer(url, { timeoutMs })` = `attendreServeur` puis le contrôle d'arbre SERVI (`verdictArbreServi`) ; `launchSession` prend pour défaut la vue de RÉFÉRENCE `bureau` (§ « L'étalon se juge aux TROIS VUES » ci-dessus), et `args` des drapeaux de Chrome propres à une recette (le WebGL logiciel de `hotes/godot/recette.mjs`) ; Chrome n'est JAMAIS lancé `detached` (`OPTIONS_SPAWN_CHROME`) ; `close()` rend `{ profilPurge }`, purge VÉRIFIÉE (`purgerProfil`) |
-| `VUES_RECETTE` / `vueRecette` / `VUE_REFERENCE` / `pourChaqueVue` | les trois vues jugées, lues à `vues-recette.json` ; `pourChaqueVue` prend la session et une fonction : il pose le viewport, laisse le DOM se reposer, puis appelle la fonction avec `{ nom, largeur, hauteur }`. Un nom de vue inconnu LÈVE, au lieu de rendre un viewport `NaN×NaN` |
+| `attendreServeur` / `causeDeServeur` / `checkServer` / `launchSession` | briques bas niveau d'`openApp` (séparément utilisables) — `attendreServeur(url, { timeoutMs = 45000, pasMs = 1000 })` ATTEND la réponse du serveur (connexion refusée retentée, requête en vol bornée par le temps restant) et la rend, ou LÈVE en nommant la dernière cause ; `causeDeServeur(e)` (PURE) dit cette cause en clair (connexion REFUSÉE, réponse LENTE, échec réseau) ; `checkServer(url, { timeoutMs })` = `attendreServeur` puis le contrôle d'arbre SERVI (`verdictArbreServi`) ; `launchSession` prend pour défaut la vue de RÉFÉRENCE `bureau` (§ « L'étalon se juge aux VUES » ci-dessus), et `args` des drapeaux de Chrome propres à une recette (le WebGL logiciel de `hotes/godot/recette.mjs`) ; Chrome n'est JAMAIS lancé `detached` (`OPTIONS_SPAWN_CHROME`) ; `close()` rend `{ profilPurge }`, purge VÉRIFIÉE (`purgerProfil`) |
+| `VUES_RECETTE` / `vueRecette` / `VUE_REFERENCE` / `pourChaqueVue` | les vues jugées, lues à `vues-recette.json` ; `pourChaqueVue` prend la session et une fonction : il pose le viewport, laisse le DOM se reposer, puis appelle la fonction avec `{ nom, largeur, hauteur }`. Un nom de vue inconnu LÈVE, au lieu de rendre un viewport `NaN×NaN` |
 
 **Capturer un écran** :
 ```js
@@ -349,7 +348,7 @@ La passer EXPLICITEMENT vise un autre serveur (celui que `npm run dev` a imprim�
 ```js
 import { openApp, gotoScreen, selectOption, clickButtonByText, shot, vueRecette } from './scripts/recette/lib.mjs';
 // URL explicite du port dérivé imprimé par `npm run dev` dans CE worktree ; `opts` = ceux de
-// `launchSession` (`{ width, height, mobile, chromePath, args }`).
+// `launchSession` (`{ width, height, chromePath, args }`).
 const { largeur, hauteur } = vueRecette('portable');
 const session = await openApp('http://localhost:5182/', { width: largeur, height: hauteur });
 await gotoScreen(session, 'compendium');
@@ -754,7 +753,7 @@ Trouver le helper par ce qu'on veut FAIRE ; son détail est à sa rangée (table
 | lire IndexedDB | `lireIndexedDB` |
 | mesurer la provenance d'un texte de campagne | `mesurerProvenance` |
 | recharger la page et attendre le menu | `rechargerEtAttendreMenu` |
-| mesurer un débordement à 360 px | `verdictDebordement(session, { dans })` |
+| mesurer un débordement en largeur | `verdictDebordement(session, { dans })` |
 | capturer l'écran, un pion | `shot` · `capturerPion` |
 | lire la console | `session.console.errors()` / `.warnings()` · `consoleGuard` |
 
@@ -1242,7 +1241,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   navigateur, pas au CSS : relever `getBoundingClientRect()` de `.worldmap-canvas`,
   `.map-canvas-frame`, `.wm-zoom` et de l'aside, plus leur `position`/`transform`/`margin` calculés,
   et joindre les 4 rectangles au rapport. Sans ces rectangles, tout nouveau correctif est un pari.
-  L'`aside` ne s'ouvre qu'avec une route SÉLECTIONNÉE : recetter aussi à ~360px.
+  L'`aside` ne s'ouvre qu'avec une route SÉLECTIONNÉE.
 - **Toutes les routes de barge ne sont PAS une descente JOUÉE** (#1117) : la cascade jour-par-jour
   fluviale exige QUATRE conditions (`travelFlow.partirEnVoyage` → `buildRiverPlan`) — la route porte
   `river: true`, le mode choisi est une EMBARCATION, une coque existe, et le groupe compte un
@@ -1340,17 +1339,13 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   depuis ce qu'on mesure.
 - **`browser_resize` seul ne rend PAS le pointeur grossier** : la largeur change,
   `matchMedia('(pointer: coarse)')` reste `false` — toute mesure de cible tactile faite ainsi juge le
-  mode fin. Émulation mesurée (recette 2026-08-07), nettoyage compris :
+  mode fin. L'émulation est celle de la passe « pointeur grossier » de
+  `scripts/recette/hud-clickables.mjs`, nettoyage compris :
   ```js
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send('Emulation.setEmitTouchEventsForMouse', { enabled: true, configuration: 'mobile' });
-  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 560, height: 900, deviceScaleFactor: 1, mobile: true });
+  await session.rpc('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
   // … mesures …
-  await cdp.send('Emulation.clearDeviceMetricsOverride');
-  await cdp.send('Emulation.setEmitTouchEventsForMouse', { enabled: false });
+  await session.rpc('Emulation.setTouchEmulationEnabled', { enabled: false });
   ```
-  Au socle `scripts/recette/lib.mjs`, les mêmes commandes CDP passent par `session.rpc(...)`
-  (`setViewport`/`emulateReducedMotion` en usent déjà).
 - **Activer le siège MJ en SOLO** : menu ☰ en jeu → case « Contrôler aussi les ennemis / le monde
   (MJ) » (`GmSoloToggle`, `src/ui/CoopPanels.tsx`) — observable via `__wfrp` : `net.gmSeat` non nul.
   `__wfrp.gmSeat(true/false)` pose/retire le siège en SETUP (évite les clics répétés à chaque

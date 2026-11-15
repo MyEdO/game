@@ -50,8 +50,8 @@ extends Node
 ## contrôle, chacun à la couleur de son ton, et pose sous chaque point son composant (`point` : son nom, puis ses
 ## éléments). Le `detail` d'une puce ou d'une ligne se pose sur sa `Bulle` (`projet/scripts/bulle.gd`), qui couvre le
 ## composant et montre au survol la bulle du thème repliée au mot. Les héros du groupe se rangent en cartes au pied de
-## l'écran (`projet/composants/heros.tscn` : le portrait, le nom, les Blessures en trait, la bourse, puis ce que la
-## carte porte d'autre), « Quitter la partie » et « Nouveau héros » au pied du journal ; avant le lancement, les
+## l'écran (`projet/composants/heros.tscn` : le portrait, le nom, la carrière, les Blessures en trait, puis une ligne
+## de ce que la carte porte d'autre), « Quitter la partie » et « Nouveau héros » au pied du journal ; avant le lancement, les
 ## pré-tirés à recruter et les campagnes à lancer se rangent en deux colonnes sur la scène ; la barre du combat (`combat.offres`) les surmonte, chacun de ses choix
 ## en onglet, sauf la part du tour (`economie/aucun`), au panneau de l'actif ; la création ouverte se pose au centre,
 ## sa page titrée en tête, ses rubriques défilant dessous, ses gestes en rangée au pied ; la conversation se pose en bas

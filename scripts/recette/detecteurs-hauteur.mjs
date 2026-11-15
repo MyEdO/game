@@ -200,8 +200,8 @@ export function piedHorsChamp(releve) {
 /**
  * CONTENU SOUS LE BORD D'UN CADRE — un cadre (`.modal-body` d'une `Modal`, voile d'une `ScreenShell`)
  * dont le contenu descend sous son bord doit le porter dans un DÉFILEUR : sinon ce contenu est coupé,
- * et aucun geste du joueur ne l'amène à l'écran. Mesure du juge B6 (#1920), planche de navire à
- * 360×740 : corps borné à 665, contenu jusqu'à 987, aucun défileur. La sonde relève, pour chaque
+ * et aucun geste du joueur ne l'amène à l'écran. Mesure du juge B6 (#1920), planche de navire :
+ * corps borné à 665, contenu jusqu'à 987, aucun défileur. La sonde relève, pour chaque
  * cadre, son bord et le plus bas des éléments qu'aucun défileur (jusqu'au cadre) ne ramène ; le
  * verdict est ici. Tolérance d'UN pixel.
  *
@@ -288,7 +288,7 @@ export function enfantsQuiSeChevauchent(releve) {
 /**
  * ONGLET CLIQUÉ HORS DE VUE — après le clic d'un onglet de planche, le joueur voit la barre
  * d'onglets et le haut du corps qu'il vient d'ouvrir, jamais la colonne de présence qui les
- * précède. Mesure du juge B10 (#1920), fiche à 360×740 : barre à 416px sous le haut de la planche
+ * précède. Mesure du juge B10 (#1920), fiche : barre à 416px sous le haut de la planche
  * et 29px du corps d'onglet en vue. Le relevé porte, en coordonnées d'écran, la fenêtre de la planche
  * (`cadre`), la barre d'onglets et le haut du corps d'onglet ; `finDeCourse` dit que la planche ne
  * peut plus descendre. Tolérance d'UN pixel.

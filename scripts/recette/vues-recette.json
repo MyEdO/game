@@ -1,5 +1,4 @@
 [
   { "nom": "bureau", "largeur": 1707, "hauteur": 780 },
-  { "nom": "portable", "largeur": 1366, "hauteur": 650 },
-  { "nom": "mobile", "largeur": 360, "hauteur": 740 }
+  { "nom": "portable", "largeur": 1366, "hauteur": 650 }
 ]

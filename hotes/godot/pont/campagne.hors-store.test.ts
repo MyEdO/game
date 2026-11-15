@@ -4,7 +4,7 @@
  * (`lancer`), la partie quittée (`quitter`), puis une autre ouverte sous le même pont.
  */
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { drainer, erreurDe, suiteDe, table } from './pont.testkit';
+import { boursesDuGroupe, drainer, erreurDe, suiteDe, table } from './pont.testkit';
 import { t } from '../../../src/i18n';
 import { etatInitialDuJeu, pretiresOfferts } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
@@ -67,12 +67,12 @@ describe('jouer une campagne par le pont', () => {
     let s = suiteDe(appel('ouvrir', { graine: 7 }));
     s = suiteDe(appel('jouer', recruter(s.vue, 'harbull-piedvelu').jeu));
     s = suiteDe(appel('jouer', recruter(s.vue, 'werner-murrmann').jeu));
-    const groupe = s.vue.zones['groupe.heros'].map((e) => ({ id: e.id, nom: e.nom, bourse: e.elements.find((x) => x.id === 'bourse') }));
+    const groupe = boursesDuGroupe(appel, s.vue);
     s = drainer(appel, appel('lancer', lancer(s.vue, 'la-diligence').jeu)).suite;
     expect(s.vue.projection.fenetre?.cle, 'la campagne s’ouvre sur sa fenêtre d’ouverture').toBe('ouverture');
     expect(s.vue.plateau, 'la scène d’entrée est posée').not.toBeNull();
     expect(appel('monde'), 'son monde se sert').toMatchObject({ ok: true, monde: expect.anything() });
-    expect(s.vue.zones['groupe.heros'].map((e) => ({ id: e.id, nom: e.nom, bourse: e.elements.find((x) => x.id === 'bourse') })), 'le groupe composé, sa bourse intacte').toEqual(groupe);
+    expect(boursesDuGroupe(appel, s.vue), 'le groupe composé, la bourse de chacun intacte').toEqual(groupe);
     expect(s.vue.zones['groupe.heros'].flatMap((e) => e.elements).some((x) => x.id.startsWith('renvoyer/')), 'plus de renvoi en cours de partie').toBe(false);
     expect(s.vue.zones['groupe.pretires']).toEqual([]);
     expect(s.vue.zones['groupe.campagnes']).toEqual([]);

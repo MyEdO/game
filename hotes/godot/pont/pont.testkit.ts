@@ -55,6 +55,16 @@ export function ficheDuHeros(vue: VueDuPont, heros: string | number): Bouton {
   return bouton;
 }
 
+/** Chaque héros du groupe de `vue`, et sa bourse lue sur sa fiche (`fiche.porteur`), ouverte puis refermée. */
+export function boursesDuGroupe(appel: ReturnType<typeof table>['appel'], vue: VueDuPont): { id: string; nom: string; bourse: Element | undefined }[] {
+  return vue.zones['groupe.heros'].map((carte, i) => {
+    const bourse = suiteDe(appel('fiche', ficheDuHeros(vue, i).jeu)).vue.zones['fiche.porteur'][0].elements.find((e) => e.id === 'bourse');
+    expect(bourse, `${carte.nom} : sa bourse sur sa fiche`).toMatchObject({ type: 'puce' });
+    suiteDe(appel('fiche', { fiche: null }));
+    return { id: carte.id, nom: carte.nom, bourse };
+  });
+}
+
 /** Les éléments de la section `id` du statbloc de la fiche ouverte (`fiche.sections`, `section/<id>`), aucun sans
  *  elle. */
 export const sectionDeLaFiche = (vue: VueDuPont, id: string): Element[] => vue.zones['fiche.sections'].find((e) => e.id === `section/${id}`)?.elements ?? [];
