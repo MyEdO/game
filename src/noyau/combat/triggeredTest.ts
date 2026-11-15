@@ -897,7 +897,7 @@ export const TABLES = {
       // Contexte d'ops PORTÉ (`porterOpsCtx` au mint) : le référent des Formules (le lanceur — Forêt
       // d'épines LDB 48 l.749 : « qui utilise VOTRE Force Mentale »), retrouvé combat OU groupe
       // (`actorIn`), l'entité porteuse (#1262 V2 L6d), l'horloge et les durées du Flow d'origine.
-      const repris = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} }, hero);
+      const repris = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
       if (!repris) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
       const { rng: _rng, ...oc } = repris;
       const exec = {
@@ -935,7 +935,7 @@ export const TABLES = {
       // la cible d'un sort) si présent, sinon le décideur lui-même (Frappe réactive : Test sur soi).
       const tid = typeof step.meta?.choiceTargetId === 'string' ? step.meta.choiceTargetId : undefined;
       const branchTarget = (tid ? actorIn(get(), tid) : undefined) ?? hero;
-      const oc = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} }, branchTarget);
+      const oc = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
       if (!oc) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
       const ctx: ExecCtx = { get, set, target: branchTarget, caster: hero, label: step.label ?? 'Réaction', opsCtx: oc, ...(freeAttack ? { freeAttack } : {}) };
       const branche = can ? (yesFlow ?? EMPTY_FLOW) : (noFlow ?? EMPTY_FLOW);
@@ -954,7 +954,7 @@ export const TABLES = {
       if (!hero || feuille?.kind !== 'effet' || feuille.effet.type !== 'ops' || typeof tid !== 'string') return;
       const cible = actorIn(get(), tid);
       if (!cible || cible.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-      const oc = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} }, cible);
+      const oc = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
       if (!oc) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
       const personne = personnesCandidates(get(), cible).find((p) => p.id === step.chosen);
       const ctx: ExecCtx = { get, set, target: cible, caster: oc.caster ?? hero, label: nomDeSource(oc), opsCtx: oc };

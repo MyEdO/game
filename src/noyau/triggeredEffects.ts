@@ -65,6 +65,7 @@ import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { RNG } from '../engine/dice';
 import { effectiveTalents } from '../engine/talentEffects';
 import { campAdvantageHooks } from './combat/advantagePool';
+import { crochetsDeCorruption } from './corruptionFlow';
 import { routeTriggeredTest } from './combat/triggeredTest';
 
 /** TAGUE des effets authorés de l'ENTITÉ dont ils sont tirés — « les GameOps sont rattachés à quelque
@@ -498,6 +499,7 @@ export function applyTriggeredEffects(
       // `runPureFlowLines`, qui LÈVE (jamais de branche succès muette). Le contexte de la touche
       // (`woundsDealt`/`margin→sl`/`location`/`attackKind`) voyage dans l'opsCtx pour les Conditions `si`.
       const flowCtx: OpsCtx = { rng, idNeuf: get().forgerUnId, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, affliction: ctx.affliction, cibleEnVue: cibleEnVueDeLInstance(), location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
+        ...(ctx.set ? crochetsDeCorruption(get, ctx.set) : {}),
         // Tampon de ré-entrance : un sous-Test (FM de palier 2 des Crampes) routé en cascade ne ré-émettra
         // pas `onOwnTestFailed` (son étape porte `meta.noOwnTestFailed`, cf. resolveFlowTest/commitStep).
         ...(trigger === 'onOwnTestFailed' ? { noReentryOwnTestFailed: true } : {}) };

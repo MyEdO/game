@@ -28,6 +28,7 @@ import { recomputeLoadout } from '../engine/items';
 import {
   corruptionThresholdExceeded,
   corruptionGain,
+  type ExposureLevel,
   mutationLimitExceeded,
   attachMutation,
   type ChaosAlign,
@@ -46,14 +47,16 @@ import { touchActors } from './combatOrParty';
 import { actorIn } from './monde/combatants';
 import type { PendingCascade, PendingCorruption, PendingMutationStep } from './pendings';
 import { rule } from '../engine/policy';
-import { rollTest } from '../engine/tests';
 import { testValue } from '../engine/skills';
+import { ligneDExposition, type OpsCtx } from '../engine/ops';
+import { nomDe } from '../engine/nom';
+import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { pushReveal } from './combatEffects';
 import { checkPartyWiped } from './partyWipe';
 import { journaliser } from './combatLog';
 import { tenuParUnHumain } from './sieges';
 import { followsCharacterRules } from '../engine/relations';
-import { resultLine, freeCons, tableStep } from './rollSeam';
+import { resultLine, freeCons, tableStep, rollSansPilote } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { t, deElide } from '../i18n';
 import { stepDetail } from './rollSeam';
@@ -94,6 +97,44 @@ export function poseCorruptionPending(get: Get, set: Set, pending: PendingCorrup
 }
 
 /**
+ * LES CROCHETS DE CORRUPTION d'`applyOps` (`OpsCtx.onCorruption`, `OpsCtx.onCorruptionExposure`) — SOURCE UNIQUE,
+ * installée aux portes qui tiennent l'état (`combatEffects.applyLeafOps`, `combatEffects.ctxRepris`, le contexte
+ * des effets déclenchés, les `applyOps` directs d'ops d'auteur). La cible arrive en argument, jamais capturée.
+ *
+ * Seul un personnage a des Points de Corruption (#143, `followsCharacterRules`) : hors personnage, aucun point,
+ * aucun Test, aucune ligne. L'exposition d'un porteur tenu par un siège humain ouvre la modale de Corruption
+ * (file #1282) ; sans siège, le Test passe par la porte sans pilote et sa ligne de dé va au journal.
+ * LDB 19 l.29 ; LDB 19 l.70
+ */
+export function crochetsDeCorruption(get: Get, set: Set): Required<Pick<OpsCtx, 'onCorruption' | 'onCorruptionExposure'>> {
+  return {
+    onCorruption: (cible, n, align) => (followsCharacterRules(cible) ? gainCorruption(get, set, cible, n, align) : []),
+    onCorruptionExposure: (cible, level, nature) => {
+      if (!followsCharacterRules(cible)) return [];
+      if (tenuParUnHumain(get(), cible.id)) {
+        poseCorruptionPending(get, set, expositionPending(cible.id, level, nature));
+        return [ligneDExposition(cible, level)];
+      }
+      const { test } = testDExposition(nature ?? NATURES_D_INFLUENCE[0]);
+      const tst = rollSansPilote(get, cible, testValue(cible, test), test.difficulty, battleRng());
+      return [
+        traceLineOf({ who: nomDe(cible), label: testTraceLabel(refLabel('skills', test.skill), test.difficulty), ...tst }),
+        ...denouementDExposition(get, set, cible, level, tst.success, tst.sl),
+      ];
+    },
+  };
+}
+
+/** DÉNOUEMENT d'un Test d'Exposition joué : les Points dus selon le niveau et le DR, puis le seuil
+ *  (`gainCorruption`). Partagé par la modale (`resolveCorruptionPending`) et le Test sans siège. LDB 19 l.35 ;
+ *  LDB 19 l.48 ; LDB 19 l.58 */
+function denouementDExposition(get: Get, set: Set, hero: Combatant, level: ExposureLevel, success: boolean, sl: number, align?: ChaosAlign): string[] {
+  const gain = corruptionGain(level, success, sl);
+  if (gain <= 0) return [resultLine(freeCons([t('cor.repelled', { name: hero.label })]))];
+  return gainCorruption(get, set, hero, gain, align);
+}
+
+/**
  * Ajoute `n` Points de Corruption à `hero`, applique seuil → mutation → limites.
  * Mute le héros EN PLACE (l'appelant pousse le patch de re-rendu) et renvoie les
  * lignes de journal. La révélation (dés du Test/de la table) est poussée en étape d'AFFICHAGE de
@@ -129,7 +170,7 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
   // REPLI AUTO-RÉSOLU — atteint SEULEMENT quand AUCUN siège humain ne tient le porteur (le `return`
   // ci-dessus a déjà emporté tous les autres) : l'automate ne tient aucune modale, ni de seuil, ni de
   // renoncement. Le Test est donc jeté ici et la mutation appliquée d'office.
-  const tst = rollTest(testValue(hero, test), test.difficulty, rng);
+  const tst = rollSansPilote(get, hero, testValue(hero, test), test.difficulty, rng);
   if (tst.success) {
     lines.push(resultLine(freeCons([t('cor.contained', { name: hero.label })])));
     return lines;
@@ -332,13 +373,8 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
     set({ ...touchActors(get()) });
     return;
   }
-  const gain = corruptionGain(pc.level ?? 'mineure', !!pc.success, pc.sl ?? 0);
-  if (gain <= 0) {
-    // Le jet est DÉJÀ affiché par la rangée de la modale de Corruption — pas de re-print (#295 Lot 5).
-    get().ecrireAuJournal(resultLine(freeCons([t('cor.repelled', { name: hero.label })])));
-    return;
-  }
-  for (const l of gainCorruption(get, set, hero, gain, pc.align)) get().ecrireAuJournal(l);
+  // Le jet est DÉJÀ affiché par la rangée de la modale de Corruption — pas de re-print (#295 Lot 5).
+  for (const l of denouementDExposition(get, set, hero, pc.level ?? 'mineure', !!pc.success, pc.sl ?? 0, pc.align)) get().ecrireAuJournal(l);
   set({ ...touchActors(get()) });
 }
 
