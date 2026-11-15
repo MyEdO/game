@@ -38,9 +38,6 @@ PRISE_DEPUIS_TALON = 0.12
 """HYPOTHÈSE : la main près du bout nu, le fer à l'autre bout, comme on brandit une faux d'une main ; tenue au tiers
 (0,55 m), le bout nu passait derrière la main dans la hanche en `Idle_Loop`."""
 
-AXE_DANS_LA_PRISE = (-0.015, 0.015)
-"""(x, z) du centre du plus grand passage libre du poing fermé de la base r24, mesuré pour le bâton
-(`rigide--baton/donnees.py`)."""
 
 MANCHE = {'rayon': 0.015, 'segments': 10}
 """Illustration : environ 12 px de diamètre (2,8 cm) ; 3 cm, le fût du bâton, qui tient dans le poing de la base."""

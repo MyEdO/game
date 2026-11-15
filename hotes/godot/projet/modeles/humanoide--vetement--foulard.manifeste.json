@@ -1,0 +1,29 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "foulard"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "manteau",
+  "couvre": [],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "foulard",
+      "palette": "accent"
+    }
+  ],
+  "glb": {
+    "sha256": "b182adf774579d015e030049e4344639c4ce9a1bce75c3d9b1c047b7df59f783",
+    "octets": 497452
+  }
+}

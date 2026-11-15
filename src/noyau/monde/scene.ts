@@ -864,6 +864,13 @@ export function areteOcculte(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean
   return !wallIsOpen(scene, seg) && !croiseeOuverte(seg) && structureOccultante(seg.structure);
 }
 
+/** Une arête sépare-t-elle deux combattants pour le CORPS À CORPS ? Celle qui coupe la vue (`areteOcculte`), ou celle
+ *  qui tient et dont la Structure déclare `arreteLeCoup` : on la regarde à travers sans frapper par-dessus.
+ *  LDB 13 l.114 ; #4105. */
+export function areteSepareLeCoup(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return areteOcculte(scene, seg) || (!wallIsOpen(scene, seg) && !!seg.structure && findStructureById(seg.structure)?.arreteLeCoup === true);
+}
+
 /** Croisée sans `shuttered` (arbitrage #1712, 2026-09-08) ; aux volets clos, l'arête est son mur. */
 export const croiseeOuverte = (seg: WallSeg): boolean => !!seg.window && !seg.shuttered;
 
@@ -910,6 +917,12 @@ export function wallBetween(scene: Scene, ax: number, ay: number, bx: number, by
  *  divergent sur une Structure déclarée `occulte: false` : elle barre le pas sans couper la vue. */
 export function areteOcculteEntre(scene: Scene, ax: number, ay: number, bx: number, by: number, z = 0): boolean {
   return areteEntre(scene, ax, ay, bx, by, z, (w) => areteOcculte(scene, w));
+}
+
+/** Une arête sépare-t-elle pour le CORPS À CORPS deux cases adjacentes du même étage ? Même arête, même géométrie que
+ *  `areteOcculteEntre`, prédicat `areteSepareLeCoup`. */
+export function areteSepareLeCoupEntre(scene: Scene, ax: number, ay: number, bx: number, by: number, z = 0): boolean {
+  return areteEntre(scene, ax, ay, bx, by, z, (w) => areteSepareLeCoup(scene, w));
 }
 
 /** Un mur d'arête (`Scene.walls`) est-il franchi par la ligne `from`→`to` ? Bloque la vue

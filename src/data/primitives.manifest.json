@@ -966,7 +966,7 @@
     "fichier": "src/ui/editor/CouvreField.tsx",
     "concept": "lien d'un élément du paquet de campagne vers les entrées des fiches de dossier de chapitre commitées (docs/dossiers/<ABBR>/<NN>.json, validées par ficheDeDossier) : CouvreField édite `couvre` (rangées entrée + retrait, sélecteur d'ajout, liste vide qui se dit vide, liste vidée retirée) ; SelecteurDEntreeDeFiche choisit UNE entrée (groupes par fiche et famille, id global + texte court, entrée introuvable affichée comme telle)",
     "perimetre": "inspecteur de scène (entité, zone d'effet, scène), panneau Logique (déclencheur, dialogue, rencontre), carte du monde (lieu, route), éditeur narratif (indice, PNJ, onglet Écarts)",
-    "verrou": "src/ui/editor/CouvreField.test.tsx ; src/scene-field-editability-guard.test.ts"
+    "verrou": "src/ui/editor/CouvreField.test.tsx"
   },
   {
     "id": "freeAttackWeapon",

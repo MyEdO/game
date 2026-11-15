@@ -41,9 +41,10 @@ describe('la fiche d’un combattant par le pont', () => {
     expect(ficheDuHeros(s.vue, 0).presse, 'le héros de la fiche ouverte est pressé').toBe(true);
     const [heros] = s.vue.zones['fiche.porteur'];
     expect(heros.nom).toBe('Ilyanwe la Voilée');
+    expect(heros.elements.some((e) => e.id === 'bourse'), 'un héros du groupe a sa bourse').toBe(true);
     expect(heros.elements.filter((e) => e.type === 'ligne').map((l) => [l.id, l.texte]), 'son espèce et sa carrière, chacune en ligne').toEqual([['espece', 'Hauts elfes'], ['carriere', 'Sorcière']]);
     const points = Object.fromEntries(heros.elements.filter((e): e is Puce => e.type === 'puce').map((p) => [p.libelle, p.valeur]));
-    expect(points, 'ses Points de Destin, de Chance, de Résilience et de Détermination').toEqual({ Destin: '4', Chance: '4', 'Résilience': '3', 'Détermination': '3' });
+    expect(points, 'ses Points de Destin, de Chance, de Résilience et de Détermination, sa bourse').toEqual({ Destin: '4', Chance: '4', 'Résilience': '3', 'Détermination': '3', Bourse: expect.stringMatching(/\d/) });
     const pb = s.vue.projection.combat!.voisins.liste.find((c) => c.id === heros.id)!.pb;
     expect(heros.elements.find((e) => e.id === 'blessures'), 'ses Blessures en jauge').toMatchObject({ type: 'jauge', courant: pb[0], max: pb[1] });
     expect(s.vue.zones['fiche.gestes'].map((b) => b.libelle), 'sa fermeture').toEqual(['Fermer']);
@@ -108,6 +109,7 @@ describe('la fiche d’un combattant par le pont', () => {
     const s = suiteDe(appel('fiche', { fiche: { porteur: 'enemy-enc-dome-1' } }));
     const [orc] = s.vue.zones['fiche.porteur'];
     expect(orc.nom).toBe('Orc');
+    expect(orc.elements.some((e) => e.id === 'bourse'), 'un adversaire n’a pas de bourse').toBe(false);
     expect(orc.elements.map((e) => e.id).filter((id) => ['espece', 'carriere', 'destin', 'chance', 'resilience', 'determination'].includes(id)), 'ni espèce, ni carrière, ni Points pour une créature').toEqual([]);
     expect([0, 1].some((i) => ficheDuHeros(s.vue, i).presse), 'aucun héros pressé').toBe(false);
     expect(s.vue.zones['fiche.sections'].map((e) => e.nom), 'chaque section non vide, dans l’ordre du statbloc').toEqual(['Attaques', 'Armure', 'Traits']);

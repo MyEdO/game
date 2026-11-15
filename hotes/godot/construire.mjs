@@ -469,6 +469,10 @@ function godot(binaire, projet, args) {
  *  partagent `user://` et se jouent à la suite (`menerDeFront`). */
 const DONNEES_DE_L_UTILISATEUR = process.platform === 'linux' ? 'XDG_DATA_HOME' : null
 
+/** Les lancements de Godot que cette machine mène de front quand chacun tient `coeurs` cœurs : autant qu'elle a de fois
+ *  `coeurs` cœurs (au moins un) là où chacun a ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`), un seul ailleurs. */
+const lancementsDeFront = (coeurs) => (DONNEES_DE_L_UTILISATEUR ? Math.max(1, Math.floor(availableParallelism() / coeurs)) : 1)
+
 /** Chaque lancement de `lancements` (`{ commande, args(donnees), juger({ lignes, echec }) }`) mené de front
  *  (`enFileBornee`), autant que la machine a de fois `coeurs` cœurs, ce qu'un lancement en tient (au moins un, #3950),
  *  là où chacun a ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`), à la suite ailleurs : chacun reçoit un
@@ -482,7 +486,7 @@ async function menerDeFront(copie, lancements, coeurs = 1) {
       commande, args(donnees), DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: donnees } : {},
       (tuer) => arret.addEventListener('abort', tuer, { once: true }),
     ))
-  }), { deFront: DONNEES_DE_L_UTILISATEUR ? Math.max(1, Math.floor(availableParallelism() / coeurs)) : 1 })
+  }), { deFront: lancementsDeFront(coeurs) })
   return erreurs.flat()
 }
 
@@ -569,6 +573,10 @@ const ECRAN_VIRTUEL = process.platform === 'linux' && !process.env.DISPLAY ? ['x
 /** Les cœurs que tient une recette rendue : son moteur en rendu réel et son pont (#3950). */
 const COEURS_D_UNE_RECETTE_RENDUE = 2
 
+/** Les jeux pilotés (`piloter`) que cette machine mène de front : chacun tient les cœurs d'une recette rendue, son
+ *  moteur et le processus de son parcours, qui sert son pont (#3412). */
+export const jeuxPilotesDeFront = () => lancementsDeFront(COEURS_D_UNE_RECETTE_RENDUE)
+
 /** Le projet importé par l'éditeur `binaire`, puis chaque recette déclarant `const RECETTE_RENDUE := true` jouée en
  *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui), menées de front
  *  (`menerDeFront`), chacune tenant `COEURS_D_UNE_RECETTE_RENDUE` cœurs, avec les arguments du pont (`argumentsDuPont`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
@@ -604,7 +612,8 @@ const PILOTE = 'res://recettes/pilote.gd'
 const FIN_DU_PILOTE = '[pilote] fin'
 
 /** Le jeu piloté par une recette (#3945) : le projet importé sur une copie par l'éditeur épinglé (`surUneCopie`), puis
- *  `PILOTE` en boucle principale, `args` passés au jeu après `--` et `env` ajouté à son environnement, sans tenir le
+ *  `PILOTE` en boucle principale, `args` passés au jeu après `--` et `env` ajouté à son environnement, avec ses
+ *  données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`) sous la copie, que ses relances gardent, sans tenir le
  *  fil ; sans écran, ou, avec `rendu`, en rendu réel sous cette méthode, sur un écran (`ECRAN_VIRTUEL` sans lui).
  *  `lance(tuer)` est appelé une fois le jeu lancé, `tuer()` le tuant ; à sa sortie, il est relancé sur la même copie
  *  tant que `encore()` le demande. Rend les lignes de chaque sortie jusqu'à `FIN_DU_PILOTE` (ce que le moteur écrit
@@ -616,8 +625,9 @@ export async function piloter({ args, env, rendu, lance, encore }) {
   const erreurs = await surUneCopie(binaire, a.figerLesDessins, async (copie) => {
     const [commande, ...prefixe] = rendu ? [...ECRAN_VIRTUEL, binaire, '--rendering-method', rendu, '--audio-driver', 'Dummy'] : [binaire, '--headless']
     const erreurs = []
+    const donnees = DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: mkdtempSync(join(copie, 'donnees-')) } : {}
     do {
-      const joue = await lancerSansTenirLeFil(commande, [...prefixe, '--path', copie, '--script', PILOTE, '--', ...args], env, lance)
+      const joue = await lancerSansTenirLeFil(commande, [...prefixe, '--path', copie, '--script', PILOTE, '--', ...args], { ...env, ...donnees }, lance)
       const fin = joue.lignes.findLastIndex((l) => l.trim() === FIN_DU_PILOTE)
       const jouees = fin < 0 ? joue.lignes : joue.lignes.slice(0, fin)
       lignes.push(...jouees)

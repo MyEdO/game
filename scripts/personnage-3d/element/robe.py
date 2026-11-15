@@ -5,7 +5,7 @@ Jusqu'à trois nappes doubles jointes en une pièce :
 - `robe` (robe de dessus) : le corsage, anneaux horizontaux coupés dans les zones du tronc et du cou, ouverts devant en
   V là où `CORSAGE` leur donne une demi-ouverture, fermés au-dessus jusqu'au cou ; la jupe, rangées ouvertes devant en V
   sous la ceinture (`OUVERTURE_TAILLE`, `OUVERTURE_OURLET`, fermées à 0), posée au jeu sur le filet `jupe` de la base au
-  repos, jamais à moins du dégagement des jambes, l'ourlet en lambeaux si `LAMBEAUX_ROBE` ; chaque manche, anneaux
+  repos, jamais à moins du dégagement des jambes, l'ourlet en lambeaux si `LAMBEAUX_ROBE` ; chaque manche de `MANCHE` (vide pour une jupe), anneaux
   perpendiculaires à `upperarm`, ajustée jusqu'au coude puis en cloche au-delà, un pan incliné sur l'axe du bras, fermée
   à l'épaule par un cône dans le corps, le bord en lambeaux si `LAMBEAUX_MANCHE` ;
 - `dessous` (robe de dessous, si `MATERIAUX` la nomme) : la jupe fermée, sous la robe de dessus, vue par l'ouverture et
@@ -31,7 +31,6 @@ BRAS = {c: [f'bras_haut_{c}', f'avant_bras_{c}'] for c in 'gd'}
 OS_BRAS = {'g': ('upperarm_l', 'lowerarm_l'), 'd': ('upperarm_r', 'lowerarm_r')}
 JAMBES = [f'{z}_{c}' for z in ('cuisse', 'genou', 'mollet') for c in 'gd']
 PORTEUSES = TRONC + COU + BRAS['g'] + BRAS['d'] + JAMBES
-OS_DES_JAMBES = ('thigh_l', 'thigh_r', 'calf_l', 'calf_r')
 
 
 def unitaire(x):
@@ -97,7 +96,7 @@ def piece_de(D, b, M, mat, surface):
 
 def construire(D, materiaux, b):
     b.exiger(PORTEUSES)
-    porteurs = {'T': b.porteur(TRONC + COU), 'J': b.porteur(TRONC), 'g': b.porteur(['torse'] + BRAS['g']),
+    porteurs = {'T': b.porteur(TRONC + COU), 'g': b.porteur(['torse'] + BRAS['g']),
                 'd': b.porteur(['torse'] + BRAS['d'])}
     robe, dessous, poitrine = Nappe(), Nappe(), Nappe()
     avec_dessous = 'dessous' in materiaux
@@ -146,31 +145,21 @@ def construire(D, materiaux, b):
     filet = b.filet('jupe')
     centre_j = filet.axe
     z_haut = D['RANGEES_JUPE'][0]
+    if filet.part(z_haut) < 1:
+        raise ValueError(f'robe : la première rangée de la jupe ({z_haut} m) monte au-dessus de la charnière du filet `jupe`')
 
     def rayon(z, theta):
         """Rayon de la robe de dessus à la hauteur `z`, direction `theta`."""
         Pz = b.coupe(zones_jupe, (0.0, 0.0, max(z, ourlet_bas)), (0.0, 0.0, 1.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0))
         appui = float(np.linalg.norm(anneau(Pz, centre_j, [direction(theta)], [0.0], 0.0, au_plus_pres=True)[0] - centre_j))
         jeu = D['DEGAGEMENT_MIN'] + (D['ECART_DESSOUS'] if avec_dessous else 0.0) + D['EPAISSEUR']
-        part = filet.part(z)
-        return max((1 - part) * (appui + max(D['AISANCE_HANCHES'], jeu)) + part * (filet.point(z, theta)[0] + jeu), appui + jeu)
-
-    def poids_de_jupe(p, z, theta):
-        part = filet.part(z)
-        w = part * filet.poids(z, theta)
-        if part < 1:
-            corps_ = emprunter(np.array([p[0], p[1], max(z, D['Z_HANCHES'])]), porteurs['J'])[0]
-            for os_ in OS_DES_JAMBES:
-                corps_[b.indice_os['pelvis']] += corps_[b.indice_os[os_]]
-                corps_[b.indice_os[os_]] = 0.0
-            w += (1 - part) * corps_
-        return w
+        return max(filet.point(z, theta)[0] + jeu, appui + jeu)
 
     def rangee(nappe_, zs, thetas_, ecart):
         """Une rangée de jupe : un sommet par (hauteur, angle)."""
         pts = [np.array([centre_j[0], centre_j[1], z]) + np.append((rayon(z, t) - ecart) * direction(t), 0.0)
                for z, t in zip(zs, thetas_)]
-        return (nappe_.poser(pts, [poids_de_jupe(p, z, t) for p, z, t in zip(pts, zs, thetas_)], fixes=True),
+        return (nappe_.poser(pts, [filet.poids(z, t) for z, t in zip(zs, thetas_)], fixes=True),
                 np.array([centre_j[0], centre_j[1], float(np.mean(zs))]))
 
     def colonnes(z):
@@ -200,7 +189,20 @@ def construire(D, materiaux, b):
         for (A, ca), (B, cb) in zip(jupe_dessous, jupe_dessous[1:]):
             dessous.bande(A, B, (ca + cb) / 2)
 
-    # Manches.
+    # Manches, s'il en est : une jupe n'en a pas.
+    if D['MANCHE']:
+        manches(D, b, robe, porteurs)
+    for nom in D.get('EMPLACEMENTS_DEPLACES', []):
+        deplacer(b, robe, nom)
+    piece = joindre([piece_de(D, b, nappe_, materiaux[nom], nom)
+                     for nom, nappe_ in (('robe', robe), ('dessous', dessous), ('poitrine', poitrine)) if nappe_.sommets])
+    b.transferer(piece, PORTEUSES, D['BORNES_DES_CLES'])
+    return piece
+
+
+def manches(D, b, robe, porteurs):
+    """Chaque manche de `robe`, anneaux perpendiculaires à `upperarm` (`MANCHE`), fermée à l'épaule par un cône dans le
+    corps."""
     s = D['SEGMENTS_MANCHE']
     phis = [360.0 * i / s for i in range(s)]
     dirs_m = [np.array([math.cos(math.radians(t)), math.sin(math.radians(t))]) for t in phis]
@@ -244,10 +246,3 @@ def construire(D, materiaux, b):
                           [emprunter(cR, porteurs[c])[0]])[0]
         for i in range(s):
             robe.triangle(R[i], R[(i + 1) % s], fond, cR + (cR - liste[1][1]))
-
-    for nom in D.get('EMPLACEMENTS_DEPLACES', []):
-        deplacer(b, robe, nom)
-    piece = joindre([piece_de(D, b, nappe_, materiaux[nom], nom)
-                     for nom, nappe_ in (('robe', robe), ('dessous', dessous), ('poitrine', poitrine)) if nappe_.sommets])
-    b.transferer(piece, PORTEUSES, D['BORNES_DES_CLES'])
-    return piece

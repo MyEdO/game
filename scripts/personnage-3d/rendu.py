@@ -207,8 +207,9 @@ def palette_du_preset(id_):
 
 
 def colorer(objets, surfaces, palette):
-    """Pose sur la couleur de base de chaque matériau des `objets` la couleur de `palette` à l'emplacement que lui donne
-    `surfaces` (`{nom du matériau: emplacement}`) ; un matériau sans emplacement ou dont la palette ne colore pas
+    """Pose sur la couleur de base de chaque matériau des `objets` d'un modèle (la base ou un élément) la couleur de
+    `palette` à l'emplacement que lui donnent les `surfaces` de ce modèle (`{nom du matériau: emplacement}`), car deux
+    éléments peuvent nommer pareil des matériaux d'emplacements différents ; un matériau sans emplacement ou dont la palette ne colore pas
     l'emplacement garde la sienne."""
     for obj in objets:
         for slot in obj.material_slots if obj.type == 'MESH' else []:
@@ -369,9 +370,9 @@ def main():
         elements = [(importer(bpy, Path(glb).resolve(strict=True)), manifeste_voisin(Path(glb))) for glb in args.element]
         monter(bpy, base, rig, elements)
         if args.preset:
-            manifestes = [manifeste_voisin(source)] + [manifeste for _, manifeste in elements]
-            colorer(bpy.data.objects, {s['nom']: s['palette'] for m in manifestes for s in m.get('surfaces', [])},
-                    palette_du_preset(args.preset))
+            palette = palette_du_preset(args.preset)
+            for objets, manifeste in [(base, manifeste_voisin(source))] + elements:
+                colorer(objets, {s['nom']: s['palette'] for s in manifeste.get('surfaces', [])}, palette)
         if args.clip:
             action = bpy.data.actions.get(args.clip)
             if action is None:

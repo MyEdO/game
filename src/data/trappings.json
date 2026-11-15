@@ -5769,6 +5769,9 @@
     "id": "pilon-et-mortier",
     "type": "trappings",
     "label": "Pilon et Mortier",
+    "shape": {
+      "id": "pilon_et_mortier"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "outils-et-necessaires"
@@ -6952,6 +6955,9 @@
     "id": "livre",
     "type": "trappings",
     "label": "Livre",
+    "shape": {
+      "id": "livre"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "livres-et-documents"

@@ -20,7 +20,7 @@ function auLancement<T>(id: string, faire: (etat: Jeu) => T): T {
 const comparaisons = (etat: Jeu) =>
   [...new Set([...(etat.battle?.combatants ?? []), ...etat.party].map((c) => c.id)), 'sans-porteur'].map((id) => {
     const f = ficheDuPorteur(etat, id);
-    return { id, enTete: enTeteDuPorteur(etat, id), fiche: f && { id: f.id, nom: f.nom, blessures: f.blessures, etats: f.etats, bourse: f.bourse } };
+    return { id, enTete: enTeteDuPorteur(etat, id), fiche: f && { id: f.id, nom: f.nom, carriere: f.carriere, blessures: f.blessures, etats: f.etats } };
   });
 
 describe('l’en-tête de la fiche est celui de la fiche (#3975)', () => {

@@ -1,0 +1,186 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "hotte"
+  },
+  "liaison": {
+    "mode": "surface"
+  },
+  "couche": "armure",
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "emplacements": {
+    "charge_dos": {
+      "os": "spine_03",
+      "position": [
+        -0.080292,
+        0.459996,
+        -0.296587
+      ],
+      "rotation": [
+        0,
+        -2.877208,
+        -0.060145
+      ],
+      "poids": {
+        "spine_02": 0.0885,
+        "spine_03": 0.8282,
+        "neck_01": 0.0594,
+        "clavicle_r": 0.0239
+      }
+    },
+    "charge_dos#2": {
+      "os": "spine_03",
+      "position": [
+        -0.029133,
+        0.465535,
+        -0.284716
+      ],
+      "rotation": [
+        0,
+        -3.039625,
+        -0.023452
+      ],
+      "poids": {
+        "spine_02": 0.0885,
+        "spine_03": 0.8282,
+        "neck_01": 0.0594,
+        "clavicle_r": 0.0239
+      }
+    },
+    "charge_dos#3": {
+      "os": "spine_03",
+      "position": [
+        0.021866,
+        0.45497,
+        -0.292284
+      ],
+      "rotation": [
+        0,
+        3.06692,
+        0.01719
+      ],
+      "poids": {
+        "spine_02": 0.0885,
+        "spine_03": 0.8282,
+        "neck_01": 0.0594,
+        "clavicle_r": 0.0239
+      }
+    },
+    "charge_dos#4": {
+      "os": "spine_03",
+      "position": [
+        0.073007,
+        0.465022,
+        -0.300523
+      ],
+      "rotation": [
+        0,
+        2.903275,
+        0.054346
+      ],
+      "poids": {
+        "spine_02": 0.0885,
+        "spine_03": 0.8282,
+        "neck_01": 0.0594,
+        "clavicle_r": 0.0239
+      }
+    },
+    "charge_dos#5": {
+      "os": "spine_03",
+      "position": [
+        -0.058686,
+        0.48164,
+        -0.363584
+      ],
+      "rotation": [
+        0,
+        -2.981563,
+        -0.036703
+      ],
+      "poids": {
+        "spine_02": 0.0885,
+        "spine_03": 0.8282,
+        "neck_01": 0.0594,
+        "clavicle_r": 0.0239
+      }
+    },
+    "charge_dos#6": {
+      "os": "spine_03",
+      "position": [
+        -0.007332,
+        0.472716,
+        -0.360364
+      ],
+      "rotation": [
+        0,
+        -3.12125,
+        -0.004687
+      ],
+      "poids": {
+        "spine_02": 0.0885,
+        "spine_03": 0.8282,
+        "neck_01": 0.0594,
+        "clavicle_r": 0.0239
+      }
+    },
+    "charge_dos#7": {
+      "os": "spine_03",
+      "position": [
+        0.04402,
+        0.486666,
+        -0.367528
+      ],
+      "rotation": [
+        0,
+        3.022387,
+        0.027398
+      ],
+      "poids": {
+        "spine_02": 0.0885,
+        "spine_03": 0.8282,
+        "neck_01": 0.0594,
+        "clavicle_r": 0.0239
+      }
+    },
+    "charge_dos#8": {
+      "os": "spine_03",
+      "position": [
+        0.090932,
+        0.466561,
+        -0.351769
+      ],
+      "rotation": [
+        0,
+        2.88863,
+        0.057609
+      ],
+      "poids": {
+        "spine_02": 0.0885,
+        "spine_03": 0.8282,
+        "neck_01": 0.0594,
+        "clavicle_r": 0.0239
+      }
+    }
+  },
+  "surfaces": [
+    {
+      "nom": "osier",
+      "palette": "bois"
+    },
+    {
+      "nom": "cuir",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "b9b663f7b343202778ab071b5a4473619c8473483498a5c05211d6a02ece7526",
+    "octets": 298940
+  }
+}

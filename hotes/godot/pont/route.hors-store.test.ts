@@ -79,7 +79,8 @@ describe('la journée de route par le pont', () => {
     expect(cartes.map((h) => h.ton), 'la carte du héros qui doit lancer, en alerte').toEqual(['alerte', 'neutre', 'neutre', 'neutre']);
     for (const h of cartes) {
       const combattant = h.id.slice('heros/'.length);
-      expect(h.elements.slice(0, 2), `${h.nom} : son portrait, puis ses Blessures`).toMatchObject([{ type: 'portrait', combattant }, { type: 'jauge', id: 'blessures' }]);
+      expect(h.elements.slice(0, 3), `${h.nom} : son portrait, sa carrière, puis ses Blessures`).toMatchObject([{ type: 'portrait', combattant }, { type: 'ligne', id: 'carriere', texte: expect.stringMatching(/\S/) }, { type: 'jauge', id: 'blessures' }]);
+      expect(h.elements.some((e) => e.id === 'bourse'), `${h.nom} : sa bourse se lit sur sa fiche, pas sur sa carte`).toBe(false);
       expect(suite.vue.corps.combattants, `${h.nom} : son corps, que son portrait montre hors du plateau`).toHaveProperty([combattant]);
       const jets = h.elements.filter((e): e is Jet => e.type === 'jet');
       expect(jets.map((j) => [j.qui, j.resultat]), `${h.nom} : son jet de l’étape, sur sa carte, à lancer`).toEqual([[null, null]]);

@@ -48,6 +48,16 @@ text_overrun_behavior = 3
 script = ExtResource("1_liaison")
 champ = "nom"
 
+[node name="Etats" type="HBoxContainer" parent="Rangee/Pile/Tete"]
+size_flags_vertical = 4
+theme_type_variation = &"RangeeSerree"
+
+[node name="Zone" type="Node" parent="Rangee/Pile/Tete/Etats" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("etat/")
+masque = NodePath("..")
+
 [node name="Fiche" type="HBoxContainer" parent="Rangee/Pile/Tete"]
 size_flags_vertical = 4
 theme = ExtResource("t_discret")
@@ -60,6 +70,16 @@ ids = PackedStringArray("fiche/")
 [node name="Sante" type="HBoxContainer" parent="Rangee/Pile"]
 theme_type_variation = &"RangeeDeCarte"
 
+[node name="Carriere" type="HBoxContainer" parent="Rangee/Pile/Sante"]
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Rangee/Pile/Sante/Carriere" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("carriere")
+formes = PackedStringArray("ligne:carriere")
+masque = NodePath("..")
+
 [node name="Vie" type="HBoxContainer" parent="Rangee/Pile/Sante"]
 size_flags_horizontal = 3
 
@@ -69,29 +89,11 @@ source = "elements"
 ids = PackedStringArray("blessures")
 formes = PackedStringArray("jauge:vie")
 
-[node name="Bourse" type="HBoxContainer" parent="Rangee/Pile/Sante"]
-
-[node name="Zone" type="Node" parent="Rangee/Pile/Sante/Bourse"]
-script = ExtResource("2_zone")
-source = "elements"
-ids = PackedStringArray("bourse")
-formes = PackedStringArray("puce:bourse")
-
-[node name="Jets" type="VBoxContainer" parent="Rangee/Pile"]
-theme_type_variation = &"PileSerree"
-
-[node name="Zone" type="Node" parent="Rangee/Pile/Jets" node_paths=PackedStringArray("masque")]
-script = ExtResource("2_zone")
-source = "elements"
-ids = PackedStringArray("jets/")
-formes = PackedStringArray("jet:jetDeHeros")
-masque = NodePath("..")
-
 [node name="Elements" type="HFlowContainer" parent="Rangee/Pile"]
 theme_type_variation = &"FluxSerre"
 
 [node name="Zone" type="Node" parent="Rangee/Pile/Elements" node_paths=PackedStringArray("masque")]
 script = ExtResource("2_zone")
 source = "elements"
+formes = PackedStringArray("jet:jetDeHeros")
 masque = NodePath("..")
-

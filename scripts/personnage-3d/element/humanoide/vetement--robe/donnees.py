@@ -61,11 +61,6 @@ RECOUVREMENT_POITRINE = 20.0       # HYPOTHÈSE : la poitrine court sous la robe
 COLONNES_POITRINE = 4              # intervalles de la poitrine par anneau (maillage)
 
 # --- Jupe : rangées horizontales sous le corsage, posées et pondérées sur le filet `jupe` de la base (`tissu.Filet`) ---
-Z_HANCHES = 0.90                   # base : coupe la plus large du bassin et des cuisses (x ±0,18 m)
-AISANCE_HANCHES = 0.04             # HYPOTHÈSE : la robe, froncée sous la ceinture, tombe des hanches sans les mouler ;
-                                   # à moins, le petit rayon du devant étire les arêtes au-delà de la porte en clip (Roll) ;
-                                   # à 0,055, l'ourlet latéral se lie au corps autrement sous `gabarit_legs_moins` et le
-                                   # lissage des clés décolle la pièce (suiviDuCorps/cle-non-suivie)
 # Longueurs : illustration, hauteurs au sol rapportées à la ceinture (centre de la ceinture à y 567 px, sol entre les
 # semelles à y 1095 px ; centre de la ceinture publiée à z 1,098 m, soit 2,08 mm par pixel).
 OURLET_ROBE = 0.40                 # illustration : la robe de dessus tombe à mi-mollet (y ~905 px)

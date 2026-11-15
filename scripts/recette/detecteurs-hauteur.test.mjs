@@ -84,7 +84,7 @@ test('arrondi de sous-pixel : pas un débord', () => {
 })
 
 test('aucune mesure de page : la sonde se déclare AVEUGLE au lieu de se taire', () => {
-  const d = scrollportDePage({ vue: '360×740 (mobile)', ecran: 'editor', page: null })
+  const d = scrollportDePage({ vue: '360×740', ecran: 'editor', page: null })
   assert.equal(d.length, 1)
   assert.match(d[0], /sonde aveugle/)
 })
@@ -93,7 +93,7 @@ test('CADRE qui commence SOUS la fenêtre : le défaut nomme le cadre, pas les 3
   // Mesure du ticket à 360×740 : la page ne déborde que de 3px, mais la cause est un cadre entier
   // hors champ — le chiffre du débord de page était exact et trompeur.
   const d = scrollportDePage({
-    vue: '360×740 (mobile)',
+    vue: '360×740',
     ecran: 'party',
     page: { scrollH: 743, clientH: 740 },
     fenetre: { largeur: 360, hauteur: 740 },
@@ -257,7 +257,7 @@ test('écran sans pied attendu, aucun pied relevé : rien à dire', () => {
 // ── CONTENU SOUS LE BORD D'UN CADRE — mesure du juge B6 (#1920) : planche de navire à 360×740,
 //    corps de la planche borné à 665, contenu jusqu'à 987, aucun défileur. ────────────────────────
 const plancheDeNavire = (sansDefileur) => ({
-  vue: '360×740 (mobile)', ecran: 'planche de navire', cadreExige: true,
+  vue: '360×740', ecran: 'planche de navire', cadreExige: true,
   cadres: [{ sel: 'div.modal', bord: 665, sansDefileur }],
 })
 
@@ -278,7 +278,7 @@ test('élément libre qui dépasse d’un sous-pixel : pas un défaut', () => {
 })
 
 test('écran de cadre NOMMÉ mais aucun cadre relevé : défaut nommé, jamais un vert', () => {
-  const d = contenuSousLeBord({ vue: '360×740 (mobile)', ecran: 'planche de navire', cadreExige: true, cadres: [] })
+  const d = contenuSousLeBord({ vue: '360×740', ecran: 'planche de navire', cadreExige: true, cadres: [] })
   assert.equal(d.length, 1)
   assert.match(d[0], /écran absent/)
 })
@@ -326,7 +326,7 @@ test('preuve DOM de `contenuSousLeBord` (sonde-r3 du juge B8) : planche de navir
 // ── ENFANTS QUI SE CHEVAUCHENT (juge B9, #1920, `sonde-chevauche.mjs`) — fiche à 700×780 : rangées
 //    de la grille comprimées, contenu de l'aside jusqu'à 499, corps d'onglets dès 421. ──────────────
 const planche700 = (mainTop) => ({
-  vue: '700×780 (mobile)', ecran: 'fiche de personnage',
+  vue: '700×780', ecran: 'fiche de personnage',
   cadres: [{ sel: 'div.modal', fratries: [{ parent: 'div.sheet-layout', enfants: [
     { sel: 'aside.sheet-aside', left: 24, right: 676, top: 112, bottom: 499 },
     { sel: 'div.sheet-main', left: 24, right: 676, top: mainTop, bottom: mainTop + 281 },
@@ -335,7 +335,7 @@ const planche700 = (mainTop) => ({
 
 test('contenu d’une colonne qui passe sous la suivante : défaut nommé, avec sa mesure', () => {
   const d = enfantsQuiSeChevauchent(planche700(421))
-  assert.deepEqual(d, ['700×780 (mobile) · fiche de personnage : dans « div.modal », sous « div.sheet-layout », « aside.sheet-aside » (112..499) et « div.sheet-main » (421..702) se CHEVAUCHENT sur 78×652px — l\'un écrit sur l\'autre'])
+  assert.deepEqual(d, ['700×780 · fiche de personnage : dans « div.modal », sous « div.sheet-layout », « aside.sheet-aside » (112..499) et « div.sheet-main » (421..702) se CHEVAUCHENT sur 78×652px — l\'un écrit sur l\'autre'])
 })
 
 test('colonnes empilées l’une sous l’autre : aucun défaut', () => {
@@ -369,14 +369,14 @@ test('le détecteur juge TOUT cadre et toute fratrie, pas seulement la planche',
 // ── ONGLET CLIQUÉ HORS DE VUE — mesure du juge B10 (#1920) : fiche à 360×740, après le clic de
 //    « État », la planche remonte en haut, barre d'onglets à 416px, 29px du corps en vue. ─────────
 const ficheApresClic = (barreTop, extra = {}) => ({
-  vue: '360×740 (mobile)', ecran: 'fiche de personnage', onglet: 'État',
+  vue: '360×740', ecran: 'fiche de personnage', onglet: 'État',
   cadre: { top: 92, bottom: 648 }, barre: { top: 92 + barreTop, bottom: 92 + barreTop + 36 },
   corps: { top: 92 + barreTop + 48 }, ...extra,
 })
 
 test('clic d’onglet qui renvoie la planche en haut : la présence en vue, le corps sous le pli — défaut nommé', () => {
   assert.deepEqual(ongletHorsDeVue(ficheApresClic(416)), [
-    '360×740 (mobile) · fiche de personnage › onglet « État » : la barre d\'onglets est à 416px sous le haut de la planche — la présence reste en vue et 92px du corps ouvert',
+    '360×740 · fiche de personnage › onglet « État » : la barre d\'onglets est à 416px sous le haut de la planche — la présence reste en vue et 92px du corps ouvert',
   ])
 })
 
@@ -410,21 +410,21 @@ test('nom de planche dans son dialogue : aucun défaut', () => {
 })
 
 test('aucun nom relevé : sonde aveugle, défaut nommé — jamais un vert', () => {
-  assert.match(nomRecouvert({ vue: '360×740 (mobile)', ecran: 'fiche de personnage (combat)', nom: null })[0], /sonde aveugle/)
+  assert.match(nomRecouvert({ vue: '360×740', ecran: 'fiche de personnage (combat)', nom: null })[0], /sonde aveugle/)
 })
 
 // ── CLIC D'ONGLET À VIDE — juge de fermeture #1953 sur `077f6be1c` : « État » visé alors qu'il est
 //    déjà l'onglet actif, dès la 2e vue. ──────────────────────────────────────────────────────────
 test('ongletClicAVide : un onglet visé déjà actif, absent ou resté inactif est un défaut ; un onglet inactif activé passe', () => {
-  const ici = { vue: '360×740 (téléphone)', ecran: 'fiche de personnage' }
+  const ici = { vue: '360×740', ecran: 'fiche de personnage' }
   assert.deepEqual(ongletClicAVide({ ...ici, avant: 'État', voulu: 'État', actif: 'État' }), [
-    "360×740 (téléphone) · fiche de personnage : l'onglet visé « État » était déjà actif — contrôle à vide",
+    "360×740 · fiche de personnage : l'onglet visé « État » était déjà actif — contrôle à vide",
   ])
   assert.deepEqual(ongletClicAVide({ ...ici, avant: 'État', voulu: null, actif: 'État' }), [
-    '360×740 (téléphone) · fiche de personnage : aucun onglet INACTIF à cliquer (actif : « État ») — contrôle à vide',
+    '360×740 · fiche de personnage : aucun onglet INACTIF à cliquer (actif : « État ») — contrôle à vide',
   ])
   assert.deepEqual(ongletClicAVide({ ...ici, avant: 'État', voulu: 'Compétences', actif: 'État' }), [
-    '360×740 (téléphone) · fiche de personnage : le clic sur « Compétences » n\'a pas activé l\'onglet (actif : « État »)',
+    '360×740 · fiche de personnage : le clic sur « Compétences » n\'a pas activé l\'onglet (actif : « État »)',
   ])
   assert.deepEqual(ongletClicAVide({ ...ici, avant: 'État', voulu: 'Compétences', actif: 'Compétences' }), [])
 })
