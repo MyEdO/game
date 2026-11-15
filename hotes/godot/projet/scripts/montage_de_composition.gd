@@ -987,7 +987,7 @@ static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depu
 		recul = MiseEnPage.recul_sur_la_case(recul, case_, attache, dessus[case_], arriere[case_])
 	recul = MiseEnPage.recul_d_appui(recul, boite.position.z)
 	if offrant != "":
-		recul = maxf(recul, MiseEnPage.recul_d_appui(-INF, boite.position.z))
+		recul = MiseEnPage.plus_haut(recul, MiseEnPage.recul_d_appui(-INF, boite.position.z))
 	var angle := 0.0
 	for case_: Vector2i in dessus:
 		angle = MiseEnPage.pivot_sur_la_case(angle, case_, attache, dessus[case_], arriere[case_], recul)
