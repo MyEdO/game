@@ -16,10 +16,10 @@ import type { PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { emptyScene, type Dialogue, type EncounterDef, type Scene } from '../monde/scene';
-import { addEffectZone, addTrigger, avecLaValeur, avecLaValeurDuPorteur, type Segment } from '../sceneEdit';
+import { addEffectZone, addTrigger, avecLaValeurDuPorteur } from '../sceneEdit';
+import { avecLaValeur, ecritureOfferte, type Segment } from './formulaire';
 import {
   choixDuChamp,
-  ecritureOfferte,
   formulaireDe,
   porteurDeLaPortee,
   porteurDeLaSel,

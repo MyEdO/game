@@ -82,7 +82,7 @@ import {
 } from '../../data';
 import { listesDeSorts, refusDesSortsChoisis } from '../../engine/sortsDuPnj';
 import { inventaireApres } from '../../engine/items';
-import type { Segment } from '../sceneEdit';
+import type { Segment } from './formulaire';
 import { seatSlotsOf } from '../monde/seating';
 import { props } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';

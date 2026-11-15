@@ -178,6 +178,16 @@ const DESCRIPTION_AU_DETAIL = 300;
 /** Le premier paragraphe d'une description, coupé au mot (`coupeAuMot`) : le détail se lit d'un coup d'œil. */
 export const resume = (desc: string | null): string | null => desc && coupeAuMot(desc.split(/\n\s*\n/)[0], DESCRIPTION_AU_DETAIL);
 
+/** Un bouton qui joue `jeu`. */
+export const bouton = (id: string, libelle: string, jeu: Jeu, presse = false, refus: string | null = null): Bouton => ({
+  type: 'bouton', id, libelle, jeu, presse, focus: false, refus,
+});
+
+/** Un choix (ou une liste) parmi les boutons `valeurs`. */
+export const choix = (id: string, libelle: string, valeurs: Bouton[], type: Choix['type'] = 'choix'): Choix => ({
+  type, id, ton: 'neutre', libelle, focus: false, refus: null, valeurs,
+});
+
 /** Une ligne. */
 export const ligne = (id: string, texte: string, ton: Ton = 'neutre', detail: string | null = null): Ligne => ({ type: 'ligne', id, ton, texte, detail });
 

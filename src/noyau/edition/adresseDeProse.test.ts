@@ -6,7 +6,8 @@
 import { describe, expect, it } from 'vitest';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Scene, type Trigger } from '../monde/scene';
-import { addTrigger, avecLAdresseRescellee, avecLaValeurDuPorteur, type Segment } from '../sceneEdit';
+import { addTrigger, avecLAdresseRescellee, avecLaValeurDuPorteur } from '../sceneEdit';
+import type { Segment } from './formulaire';
 import { choixDuChamp, formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
 import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/source/decoupe';
 import { cleDuChapitre, etatDeLAdresse, type SourceDeLEdition } from './adresseDeProse';
