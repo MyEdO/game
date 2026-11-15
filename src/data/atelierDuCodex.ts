@@ -155,7 +155,7 @@ interface IndexDesReferences {
 }
 
 /** Le dernier index des références (`indexDesReferences`), avec la version des datasets et les paquets qu'il a lus. */
-let dernierIndex: { version: number; paquets: readonly PaquetLu[]; index: IndexDesReferences } | undefined;
+let dernierIndex: { generation: number; paquets: readonly PaquetLu[]; index: IndexDesReferences } | undefined;
 
 /** La clé d'index d'une référence : sa cible et l'id désigné. */
 const cleDeReference = (type: CibleDeReference, id: string): string => `${type}|${id}`;
@@ -188,7 +188,7 @@ function entreesDesCollections(): ReadonlySet<unknown> {
  */
 function indexDesReferences(paquets: readonly PaquetLu[]): IndexDesReferences {
   const version = versionDesDatasets();
-  if (dernierIndex?.version === version && dernierIndex.paquets === paquets) return dernierIndex.index;
+  if (dernierIndex?.generation === version && dernierIndex.paquets === paquets) return dernierIndex.index;
   const typees = new Map<string, Designation[]>();
   const chaines = new Map<string, Designation[]>();
   const identites = entreesDesCollections();
@@ -216,7 +216,7 @@ function indexDesReferences(paquets: readonly PaquetLu[]): IndexDesReferences {
   for (const [fichier, racine] of Object.entries(RACINES_VIVANTES)) lire(fichier, schemaForFile(fichier), racine);
   for (const { fichier, projet } of paquets) lire(fichier, projetSchema, projet);
   const index = { typees, chaines };
-  dernierIndex = { version, paquets, index };
+  dernierIndex = { generation: version, paquets, index };
   return index;
 }
 

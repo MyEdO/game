@@ -245,30 +245,22 @@ export {
   ouvrirLeCompendium,
   renvoisDeLEntree,
   transactionDemandee,
-  type AtelierDuCompendium,
-  type CibleDuCompendium,
   type GesteDuCompendium,
   type RefusDuCompendium,
   type SessionDuCompendium,
-  type TransactionDuCompendium,
 } from './codex/session';
 export {
   CODEX_GROUPS,
   categoryByKey,
   codexGroupLabel,
-  type CodexGroup,
   type CodexItem,
   type CodexRow,
-  type CodexSection,
 } from './codex/registry';
-export { tokenizeLinks, type LinkToken, type ReverseGroup } from './codex/relations';
+export { tokenizeLinks } from './codex/relations';
 export {
-  designations,
   enregistrerEntree,
   isEditableCategory,
   supprimerEntree,
-  type Enregistrement,
-  type PaquetLu,
 } from '../data/atelierDuCodex';
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS, apparencesDeLOuverture } from './monde/facades';
