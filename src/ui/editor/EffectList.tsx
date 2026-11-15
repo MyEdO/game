@@ -1090,11 +1090,11 @@ function firstUnusedScene(used: string[]): string {
 
 /** Scènes de COMBAT/MENACE référencées (catalogue effectif ∪ situations ∪ enchaînements déterministes)
  *  → celles pour lesquelles l'auteur peut mapper une rencontre de la scène courante. */
-function referencedCombatScenes(b: MassBattleSpec): string[] {
+function referencedCombatScenes(b: MassBattleSpec): (keyof NonNullable<MassBattleSpec['sceneEncounters']>)[] {
   const pool = b.scenes && b.scenes.length ? b.scenes : BATTLE_SCENES().map((s) => s.id);
   const ids = new Set<string>([...pool, ...((b.situations ?? []).flat())]);
   for (const id of [...ids]) for (const c of sceneChainIds(id)) ids.add(c);
-  return [...ids].filter((id) => { const k = battleSceneById(id)?.sceneKind; return k === 'combat' || k === 'threat'; });
+  return [...ids].filter((id): id is keyof NonNullable<MassBattleSpec['sceneEncounters']> => { const k = battleSceneById(id)?.sceneKind; return k === 'combat' || k === 'threat'; });
 }
 
 /** Multi-sélection de Scènes de bataille (patron de `ListRefField` sur le catalogue des Scènes de Round) :

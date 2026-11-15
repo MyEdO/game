@@ -31,6 +31,7 @@ import { emptyScene } from '../../../src/noyau/monde/scene';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
 import { idsDeLaSousListe } from '../../../src/data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../../../src/data/schemas/grammaire/sousListes';
+import { VOCABULAIRES } from '../../../src/data/schemas/grammaire/vocabulaires';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 import type { Fragment } from '../../../src/data/source/decoupe';
@@ -2259,6 +2260,21 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const valeurs = (x: Edition) => (inspecte(x, 'valeur/hands') as Choix).valeurs.map((b) => [(b.jeu as { args: unknown[] }).args[2], b.presse]);
     expect([inspecte(objet, 'valeur/hands')?.type, valeurs(objet)]).toEqual(['choix', [[1, false], [2, false]]]);
     expect(valeurs(choisir(objet, 'valeur/hands', (v) => v === 2)), 'le nombre écrit, jamais la chaîne').toEqual([[1, false], [2, true]]);
+  });
+
+  it('le son d’un Effet se choisit au registre des sons ; une rencontre d’une bataille rangée s’écrit à une activité offerte, en texte (#4234)', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const choisir = (e: Edition, id: string, voulue: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulue((b.jeu as { args: unknown[] }).args[2]))!);
+    const effet = (type: string) => choisir(choisir(presser(boutonDe(presser(boutonDe(narratif, 'document/scene')), 'logique/declencheur/t-pont')), 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'effet'), 'valeur/flow/effet/type', (v) => (v as { type: string }).type === type);
+    const son = inspecte(effet('playSfx'), 'valeur/flow/effet/id') as Choix;
+    expect([son.type, son.valeurs.map((b) => [(b.jeu as { args: unknown[] }).args[2], b.libelle])]).toEqual(['liste', Object.entries(VOCABULAIRES.sons)]);
+    const RENCONTRES = 'valeur/flow/effet/battle/sceneEncounters';
+    const ouvert = presser(boutonDe(effet('startMassBattle'), `${RENCONTRES}/ajouter`));
+    const charge = inspecte(ouvert, `${RENCONTRES}/charge`) as Formulaire;
+    const [porteur, chemin] = charge.champs.map((c) => (c.type === 'fixe' ? c.valeur : undefined));
+    const e = editionDe(appel('editer', { type: 'valeur', args: [porteur, chemin, 'enc-pont'] }));
+    const depot = JSON.parse(presser(boutonDe(e, 'enregistrer')).depot!.texte) as { scenes: { triggers: { id: string; flow: { effet?: { battle?: unknown } } }[] }[] };
+    expect([charge.type, chemin, depot.scenes[0].triggers.find((tr) => tr.id === 't-pont')!.flow.effet!.battle]).toEqual(['formulaire', ['flow', 'effet', 'battle', 'sceneEncounters', 'charge'], expect.objectContaining({ sceneEncounters: { charge: 'enc-pont' } })]);
   });
 
   it('la Carrière d’une Condition de clôture se choisit au catalogue des carrières (#4234)', () => {

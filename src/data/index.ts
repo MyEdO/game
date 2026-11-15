@@ -23,8 +23,8 @@ import {
   type RefTypee,
   type TypeEntite,
 } from './schemas/grammaire/ref';
-import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
-import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
+import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin, vocabulaireDuFichier } from './schemas/grammaire/cle-d-espace';
+import { VOCABULAIRES, type NomDeVocabulaire } from './schemas/grammaire/vocabulaires';
 import {
   CATEGORIE_CODEX_DU_FICHIER,
   CLES_CODEX,
@@ -2438,14 +2438,24 @@ function collectionDuType(type: TypeEntite): DatasetDeCategorie | undefined {
 export function datasetDeLEspaceDuType(type: TypeEntite): CleDeDataset | undefined {
   return collectionDuType(type)?.cle;
 }
-/** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées vivantes de l'espace de son type
- *  qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de la donnée ; LÈVE si aucun dataset ne porte
- *  l'espace (`datasetDeLEspaceDuType`). */
-export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type' | 'sousListe'>): { id: string; label: string }[] {
+/** Les entrées `{ id, label }` de l'espace de `type`, dans l'ordre de leur source : la collection vivante de son dataset
+ *  (`collectionDuType`), sinon la table de son vocabulaire (`VOCABULAIRES`) ; `undefined` sans l'une ni l'autre. */
+function entreesDuType(type: TypeEntite): readonly { id: string; label: string }[] | undefined {
   const d = collectionDuType(type);
-  if (d === undefined) throw new Error(`choixDeLaFeuilleDId : aucun dataset ne porte l’espace ${espaceDe(type)}.`);
+  if (d !== undefined) return collectionDeRacine(d);
+  const nom = vocabulaireDuFichier(lireCleDEspace(espaceDe(type)).fichier) as NomDeVocabulaire | undefined;
+  return nom === undefined ? undefined : Object.entries(VOCABULAIRES[nom]).map(([id, label]) => ({ id, label }));
+}
+/** L'espace de `type` a-t-il des entrées à offrir en choix (`entreesDuType`) ? */
+export const typeAChoix = (type: TypeEntite): boolean => entreesDuType(type) !== undefined;
+/** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées de l'espace de son type
+ *  (`entreesDuType`) qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de leur source ; LÈVE si
+ *  l'espace n'en a pas (`typeAChoix`). */
+export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type' | 'sousListe'>): { id: string; label: string }[] {
+  const entrees = entreesDuType(type);
+  if (entrees === undefined) throw new Error(`choixDeLaFeuilleDId : ni dataset ni vocabulaire ne porte l’espace ${espaceDe(type)}.`);
   const admis = new Set(sousListe === undefined ? idsDe(type) : idsDeLaSousListe(type, sousListe));
-  return collectionDeRacine(d).filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
+  return entrees.filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
 }
 /** Libellé d'affichage d'un id, par source de spéc, tel que sa déclaration le dit (`SourceDeSpecs.libelle`) :
  *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers (`entree`) ; sinon l'id. */

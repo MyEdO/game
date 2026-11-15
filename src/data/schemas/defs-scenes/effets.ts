@@ -28,7 +28,7 @@ import {
 } from '../grammaire/valeurs';
 import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, refuserLeVivreDuNavire } from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
-import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
+import { idDe, recordDIds, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import {
@@ -94,7 +94,7 @@ export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
   situations: z.array(z.array(z.string())).optional(),
   situationSize: z.number().optional(),
   /** Rencontres à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène → id d'encounter). */
-  sceneEncounters: z.record(z.string(), z.string()).optional(),
+  sceneEncounters: recordDIds('activity', z.string()).optional(),
   /** ADE II 8 l.81. */
   modificateurAllie: z.number().optional(),
 }), { nomDesAllies: { label: "nom des alliés" , texte: { regime: "designation"} }, nomDesEnnemis: { label: "nom des ennemis" , texte: { regime: "designation"} }, puissanceAlliee: { label: "puissance alliée" }, puissanceEnnemie: { label: "puissance ennemie" }, plannedRounds: { label: "Rounds prévus" }, scenes: { label: "Scènes" , texte: { regime: "technique"} }, situations: { label: "situations" , texte: { regime: "technique"} }, situationSize: { label: "taille de situation" }, sceneEncounters: { label: "rencontres de scène" , texte: { regime: "technique"} }, modificateurAllie: { label: "modificateur allié" } }), 'massBattle.terrain');

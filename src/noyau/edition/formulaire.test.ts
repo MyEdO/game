@@ -62,6 +62,7 @@ import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEditio
 import { conditionSchema, flowTestSchema, OP_DEFS, OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
 import { idDe, idsDe, idsDeLaSousListe, refOuSpec } from '../../data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../../data/schemas/grammaire/sousListes';
+import { VOCABULAIRES } from '../../data/schemas/grammaire/vocabulaires';
 import { CONDITION_TOUJOURS, recast, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { DIFFICULTY_LABELS } from '../../engine/types';
 import type { Condition } from '../../engine/flowCore';
@@ -787,6 +788,20 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     expect(unionDuNoeud(new Map(champsDeclares(objetDeCampagneSchema)).get('price'))?.variantes.map((v) => v.libelle)).toEqual(['montant', 'non disponible']);
   });
 
+  it('une référence à un vocabulaire se choisit parmi ses ids, nommés par sa table ; les rencontres d’une bataille rangée s’ajoutent par activité offerte, chacune en texte (#4234)', () => {
+    const rencontres = 'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters';
+    const attendues: Record<string, string> = {
+      'declencheur/flow<kind=effet>/effet<type=playSfx>/id': 'choix',
+      'lieu/backdrop/id': 'choix',
+      'lieu/market/backdrop/id': 'choix',
+      [rencontres]: 'ajouter',
+      [`${rencontres}/${choixDeLaFeuilleDId({ type: 'activity' })[0].id}`]: 'texte',
+    };
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+    expect(choixDuNoeud(idDe('son'))).toEqual(Object.entries(VOCABULAIRES.sons).map(([valeur, libelle]) => ({ valeur, libelle })));
+    expect(choixDuNoeud(idDe('colonneDuMarchand'))).toEqual(Object.entries(VOCABULAIRES.colonnesDuMarchand).map(([valeur, libelle]) => ({ valeur, libelle })));
+  });
+
   it('la carrière et l’espèce d’une Condition se choisissent à leur catalogue (#4234)', () => {
     const attendues: Record<string, string> = {
       'zone/crossTest/gate<kind=career>/id': 'choix',
@@ -807,11 +822,8 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     ]).toEqual([true, false, true, false, true, false]);
   });
 
-  it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée et chaque op non typée', () => {
-    expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual([
-      'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters',
-      ...OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`),
-    ].sort());
+  it('se saisit encore en JSON EXACTEMENT : chaque op non typée', () => {
+    expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual(OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`).sort());
   });
 });
 
