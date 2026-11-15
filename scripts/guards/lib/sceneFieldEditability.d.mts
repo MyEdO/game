@@ -56,9 +56,9 @@ export function fieldsWrittenIn(
   fieldNames: Set<string>,
   creditable?: (node: Node) => boolean
 ): Set<string>;
-/** Une écriture que l'aller-retour de l'éditeur joue : le document avant et après, le chemin écrit depuis la scène, la
- *  valeur jouée et la saisie qui l'a portée. */
-export interface EcritureJouee { avant: unknown; apres: unknown; chemin: (string | number)[]; valeur: unknown; saisie: string }
+/** Une écriture que l'aller-retour de l'éditeur joue : le document avant et après, le chemin écrit depuis la racine du
+ *  document, la valeur jouée, la saisie qui l'a portée et, issue du choix d'une variante, la clé de son discriminant. */
+export interface EcritureJouee { avant: unknown; apres: unknown; chemin: (string | number)[]; valeur: unknown; saisie: string; variante?: string }
 /** La marque d'un crédit par aller-retour dans la colonne `authors`. */
 export const ALLER_RETOUR: string;
 /** Ids de champ du périmètre auxquels la propriété `name` de `type` se rattache. */

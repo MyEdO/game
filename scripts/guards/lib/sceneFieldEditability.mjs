@@ -32,7 +32,7 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //  4. CRÉDIT PAR ALLER-RETOUR. Une écriture générique (le geste `valeur` du formulaire tiré du schéma, à clé calculée,
 //     que le scan ne voit pas) crédite le dernier pas d'un chemin qu'un aller-retour a JOUÉ en jouant `editer`, et, d'un
 //     objet ou d'une liste écrits entiers, chaque clé qu'ils portent, de proche en proche (`cheminsEcrits`), comme le scan
-//     crédite chaque propriété d'un littéral
+//     crédite chaque propriété d'un littéral ; le choix d'une variante, son seul discriminant et les objets qu'il pose
 //     (`ecrituresJouees` d'`auditSceneFieldEditability`) : le document a changé à ce chemin, la valeur relue est la
 //     valeur jouée, la saisie n'est pas du JSON (`ecritureCreditee`). Le chemin se joint au périmètre en marchant le
 //     type de la racine (`idsDuChemin`, par `idsOf`) : aucun second nommage.
@@ -452,12 +452,20 @@ export const ALLER_RETOUR = 'editer (aller-retour)';
 /** La valeur du document `doc` au chemin `chemin`. */
 const lireAuChemin = (doc, chemin) => chemin.reduce((v, pas) => (v === null || v === undefined ? undefined : v[pas]), doc);
 
-/** Les chemins qu'écrit la valeur `valeur` posée au chemin `chemin` : le sien, et, d'un objet ou d'une liste, celui de
- *  chaque clé ou rang qu'elle porte, de proche en proche. */
-const cheminsEcrits = (chemin, valeur) =>
+/** Les chemins qu'écrit la valeur `valeur` posée au chemin `chemin`, chacun avec sa valeur : le sien, et, d'un objet ou
+ *  d'une liste, celui de chaque clé ou rang qu'elle porte, de proche en proche. */
+const cheminsPoses = (chemin, valeur) =>
   valeur !== null && typeof valeur === 'object'
-    ? [chemin, ...Object.entries(valeur).flatMap(([cle, v]) => cheminsEcrits([...chemin, Array.isArray(valeur) ? Number(cle) : cle], v))]
-    : [chemin];
+    ? [[chemin, valeur], ...Object.entries(valeur).flatMap(([cle, v]) => cheminsPoses([...chemin, Array.isArray(valeur) ? Number(cle) : cle], v))]
+    : [[chemin, valeur]];
+
+/** Les chemins que crédite l'écriture `{ chemin, valeur, variante }` (`cheminsPoses`). Issue du choix d'une variante
+ *  (`variante`, la clé de son discriminant), elle ne crédite que son discriminant, posé à son chemin ou juste sous lui, et
+ *  les objets et listes qu'elle pose : un scalaire du corps neuf n'est crédité que par le contrôle qui l'écrit. */
+const cheminsEcrits = ({ chemin, valeur, variante }) =>
+  cheminsPoses(chemin, valeur)
+    .filter(([c, v]) => variante === undefined || (v !== null && typeof v === 'object') || (c.length - chemin.length <= 1 && c[c.length - 1] === variante))
+    .map(([c]) => c);
 
 /** Une écriture jouée crédite-t-elle son dernier pas ? Le document a changé à son chemin, la valeur relue est la valeur
  *  jouée, et la saisie n'est pas du JSON (`saisieJson`). */
@@ -799,7 +807,7 @@ export function auteurReachableScopes(checker, program, root) {
  * écrit (`cheminsEcrits`, `idsDuChemin`), sous la marque `ALLER_RETOUR`.
  * @param {string} root racine du dépôt
  * @param {import('./tsProgram.mjs').SessionProgramme} [program] programme déjà construit — absent, bâti pour CET appel
- * @param {{ racine: { fichierSchema: string, schema: string, fichierType: string, type: string }, ecrituresJouees?: { avant: unknown, apres: unknown, chemin: (string | number)[], valeur: unknown, saisie: string }[] }} options
+ * @param {{ racine: { fichierSchema: string, schema: string, fichierType: string, type: string }, ecrituresJouees?: { avant: unknown, apres: unknown, chemin: (string | number)[], valeur: unknown, saisie: string, variante?: string }[] }} options
  * @returns {{ id: string, owner: string, field: string, at: string, authors: string[], pipeline: string[] }[]}
  */
 export function auditSceneFieldEditability(root, program, { racine, ecrituresJouees = [] }) {
@@ -853,7 +861,7 @@ export function auditSceneFieldEditability(root, program, { racine, ecrituresJou
   }
   const typeRacine = typeDeRacine(program, root, racine);
   for (const e of ecrituresJouees.filter(ecritureCreditee))
-    for (const id of cheminsEcrits(e.chemin, e.valeur).flatMap((chemin) => [...idsDuChemin(checker, cles, typeRacine, e.apres, chemin)])) {
+    for (const id of cheminsEcrits(e).flatMap((chemin) => [...idsDuChemin(checker, cles, typeRacine, e.apres, chemin)])) {
       const row = rows.get(id);
       if (row && !row.authors.includes(ALLER_RETOUR)) row.authors.push(ALLER_RETOUR);
     }

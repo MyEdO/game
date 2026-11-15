@@ -175,6 +175,29 @@ export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
     } finally { program.dispose(); }
   });
 
+  it('le choix d’une VARIANTE ne crédite que son discriminant et les objets qu’il pose : un scalaire du corps neuf attend le contrôle qui l’écrit', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export interface Rect { kind: 'rect'; w: number }
+export interface Disc { kind: 'disc'; radius: number }
+export interface Libre { kind: string; n: number }
+export interface Scene { id: string; area: Rect | Disc | Libre; autre?: Rect | Disc }\n`,
+    });
+    const doc = (plus: Record<string, unknown> = {}) => ({ id: 's', area: { kind: 'disc', radius: 2 }, ...plus });
+    const libre = doc({ area: { kind: 'libre', n: 0 } });
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        // Une variante quittée : son discriminant et chaque champ que la variante pose.
+        { avant: doc(), apres: libre, chemin: ['area', 'kind'], valeur: 'libre', saisie: 'saisieChoix', variante: 'kind' },
+        { avant: doc(), apres: libre, chemin: ['area', 'n'], valeur: 0, saisie: 'saisieChoix', variante: 'kind' },
+        // Un champ absent : la variante entière.
+        { avant: doc(), apres: doc({ autre: { kind: 'disc', radius: 3 } }), chemin: ['autre'], valeur: { kind: 'disc', radius: 3 }, saisie: 'saisieChoix', variante: 'kind' },
+        // Le contrôle qui écrit un scalaire.
+        { avant: doc({ area: { kind: 'rect', w: 1 } }), apres: doc({ area: { kind: 'rect', w: 2 } }), chemin: ['area', 'w'], valeur: 2, saisie: 'saisieNombre' },
+      ] });
+      expect(rows.filter((r) => r.authors.length).map((r) => r.id).sort()).toEqual(['Libre.kind', 'Rect.w', 'Scene.autre']);
+    } finally { program.dispose(); }
+  });
+
   it('une propriété PRODUITE PAR UNE FABRIQUE est le champ de son TYPE produit : deux produits d’un même type sont un champ, deux de types distincts en sont deux', () => {
     // `objetDeRef` (`grammaire/ref.ts`) : UNE déclaration `id` pour chaque référence qu'il construit ; `ref(0)` et `ref(1)`
     // produisent le même type, `ref('')` un autre.
