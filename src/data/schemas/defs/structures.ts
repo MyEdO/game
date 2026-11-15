@@ -28,6 +28,8 @@ const doc = document(
     couvertPenalty: couvertDifficultySchema.optional(),
     /** LDB 14 l.86 ; LDB 85 l.329 */
     occulte: z.literal(false).optional(),
+    /** LDB 13 l.114 ; #4105 */
+    arreteLeCoup: z.literal(true).optional(),
     /** AA 10 l.98 ; LDB 85 l.344 */
     taille: sizeCategorySchema,
   },
@@ -51,6 +53,10 @@ const doc = document(
       label: 'Laisse voir à travers',
       hint: 'Ne se pose qu’à « faux », et exige un arbitrage maison ; retirer le champ rend la Structure occultante',
     },
+    arreteLeCoup: {
+      label: 'Arrête le coup de corps à corps',
+      hint: 'Ne se pose qu’à « vrai », sur une Structure qui laisse voir à travers : tant qu’elle tient, nul n’est au contact par-dessus',
+    },
     taille: {
       label: 'Taille de la Structure',
       hint: 'Compte son Bonus d’Endurance une fois de plus par catégorie au-dessus de l’attaquant ; exige un arbitrage maison',
@@ -65,13 +71,19 @@ const doc = document(
     /** LDB 14 l.86 ; LDB 85 l.329 */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id: string; occulte?: unknown; maison?: unknown; taille?: unknown };
+        const e = v as { id: string; occulte?: unknown; arreteLeCoup?: unknown; maison?: unknown; taille?: unknown };
         const sansRaison = typeof e.maison !== 'string' || !e.maison;
         if (e.occulte === false && sansRaison)
           ctx.addIssue({
             code: 'custom',
             path: ['maison'],
             message: `${e.id} : \`occulte: false\` sans \`maison\` — aucun folio ne rend une Structure transparente (LDB 14 l.86), l’arbitrage se nomme.`,
+          });
+        if (e.arreteLeCoup === true && e.occulte !== false)
+          ctx.addIssue({
+            code: 'custom',
+            path: ['arreteLeCoup'],
+            message: `${e.id} : \`arreteLeCoup\` sans \`occulte: false\` — une Structure occultante sépare déjà le contact.`,
           });
         if (e.taille != null && sansRaison)
           ctx.addIssue({

@@ -202,4 +202,9 @@ describe('structures.json — le schéma n’accepte qu’une graphie par état 
   it('`occulte: false` AVEC son `maison` passe', () => {
     expect(parse({ ...base, occulte: false, maison: 'AA 10 l.65 — enclos d’animaux' }).success).toBe(true);
   });
+
+  it('`arreteLeCoup` sur une Structure occultante est REFUSÉ, nominativement ; avec `occulte: false`, il passe', () => {
+    expect(refus({ ...base, arreteLeCoup: true })).toContain('`arreteLeCoup` sans `occulte: false`');
+    expect(parse({ ...base, occulte: false, arreteLeCoup: true }).success).toBe(true);
+  });
 });
