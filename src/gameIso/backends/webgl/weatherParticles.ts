@@ -35,7 +35,7 @@
  */
 import * as THREE from 'three';
 import type { WeatherPrecipDef } from '../../../data';
-import { hash32, seedStream } from '../../../data/hash';
+import { hash32, seedStream } from '../../../lib/hash';
 import { MAX_PRECIP, sceneGroundSpan } from '../../../noyau/monde/meteo';
 import { sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
 import { withRenderRank } from './renderRanks';

@@ -6,7 +6,7 @@
 // l'export, ses planches comprises (`planches/`, `planches.mjs`, #3935). Avec `--statique`, l'export seul, tel que le site le publie : ses
 // modèles déposés en scènes fabriquées et ses planches (`construire.mjs --export`, #3946). Avec `--depot`, l'éditeur de carte y
 // lit et y écrit les projets manuscrits du dépôt (`pont/CONTRAT.md`, section « Éditeur ») : `GET /depot/<id>` et
-// `PUT /depot/<id>`, et y lit le `Source/` du dépôt : `GET /source/manifest.json` et `GET /source/<livre>/<NNN>.md`
+// `PUT /depot/<id>`, le Compendium y écrit les données de `src/data` (section « Compendium ») : `PUT /donnees/<fichier>`, et y lit le `Source/` du dépôt : `GET /source/manifest.json` et `GET /source/<livre>/<NNN>.md`
 // (`servirLaSource`, `scripts/source/prose-source-plugin.mjs`). Une requête défaillante reçoit son statut d'erreur, le
 // serveur continue.
 //
@@ -22,6 +22,7 @@ import { servirLaSource } from '../../scripts/source/prose-source-plugin.mjs'
 import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
 import { DOSSIER_DES_MODELES, LISTAGE, listage } from './listage.mjs'
 import { ecouter, rendre, TYPES } from './statique.mjs'
+import { hash32 } from '../../src/lib/hash.ts'
 
 /** Le WebGL 2 de l'export, en logiciel dans un Chrome sans GPU, sans l'avertissement de repli. */
 export const WEBGL_LOGICIEL = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
@@ -79,27 +80,86 @@ function servirLeDepot(req, res, depot, id) {
     if (!rel) return void res.writeHead(404).end()
     if (req.method === 'GET') return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(lireProjetLivre(rel, depot)))
     if (req.method !== 'PUT') return void res.writeHead(405, { Allow: 'GET, PUT' }).end()
-    const blocs = []
-    let taille = 0
-    req.on('data', (bloc) => {
-      taille += bloc.length
-      if (taille <= CORPS_MAX) blocs.push(bloc)
-    })
-    req.on('end', () => {
-      if (taille > CORPS_MAX) return void res.writeHead(413).end()
-      const texte = Buffer.concat(blocs).toString('utf8')
+    lireLeCorps(req, res, (texte) => {
       const refus = refusDuTexte(texte, id)
       if (refus) return void res.writeHead(422, { 'Content-Type': 'text/plain; charset=utf-8' }).end(refus)
-      try {
-        ecrireTexteAtomique(join(dossierDesProjetsLivres(depot), rel), texte)
-        res.writeHead(200).end()
-      } catch (e) {
-        echec(e)
-      }
+      ecrireTexteAtomique(join(dossierDesProjetsLivres(depot), rel), texte)
+      res.writeHead(200).end()
     })
   } catch (e) {
     echec(e)
   }
+}
+
+/** Le corps de la requête `req`, en texte, passé à `suite` ; 413 un corps de plus de `CORPS_MAX` octets, 500 et sa
+ *  raison une `suite` qui lève. */
+function lireLeCorps(req, res, suite) {
+  const blocs = []
+  let taille = 0
+  req.on('data', (bloc) => {
+    taille += bloc.length
+    if (taille <= CORPS_MAX) blocs.push(bloc)
+  })
+  req.on('end', () => {
+    if (taille > CORPS_MAX) return void res.writeHead(413).end()
+    try {
+      suite(Buffer.concat(blocs).toString('utf8'))
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }).end(String(e?.message ?? e))
+    }
+  })
+}
+
+/** Les fichiers de l'atelier du Compendium, par nom leur chemin relatif au dépôt (`SORTIES_DES_ESPACES.atelier`, phase
+ *  2 de `npm run gen`). */
+const FICHIERS_DE_L_ATELIER = 'src/data/schemas/_fichiers-de-l-atelier.generated.json'
+
+/**
+ * Le dépôt servi (`--depot`, ou le pont vivant) reçoit aussi les données du Compendium : `PUT donnees/<fichier>` écrit
+ * son corps à la place du fichier `<fichier>` de l'atelier (`FICHIERS_DE_L_ATELIER`), 200 ; 404 hors de ces fichiers,
+ * 405 une autre méthode, 422 et sa raison un corps qui n'est pas du JSON ou pas en forme dépôt (`materialiser`), 409 si
+ * l'en-tête `If-Match` n'est pas l'empreinte (`hash32`) du fichier sur le disque : le disque a changé depuis l'export du
+ * jeu, relancer l'export (`npm run godot:editeur`).
+ * @contrat Compendium
+ */
+
+/** Pourquoi `texte` ne s'écrit pas à la place d'un fichier de données : ni du JSON, ou une adresse de prose qui ne se
+ *  résout pas, ou un texte déjà matérialisé (`materialiser`) ; `null` s'il s'écrit. */
+function refusDesDonnees(texte) {
+  let doc
+  try {
+    doc = JSON.parse(texte)
+  } catch {
+    return 'JSON illisible'
+  }
+  try {
+    materialiser(doc)
+  } catch (e) {
+    return e.message
+  }
+  return null
+}
+
+/** `PUT donnees/<fichier>` du dépôt `depot` : le corps écrit à la place du fichier de l'atelier `fichier`
+ *  (`ecrireTexteAtomique`), 200 ; 404, 405, 409 ou 422 et sa raison comme le dit le contrat. */
+function servirLesDonnees(req, res, depot, fichier) {
+  let chemins
+  try {
+    chemins = JSON.parse(readFileSync(join(depot, FICHIERS_DE_L_ATELIER), 'utf8'))
+  } catch (e) {
+    return void res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }).end(String(e?.message ?? e))
+  }
+  if (!Object.hasOwn(chemins, fichier)) return void res.writeHead(404).end()
+  if (req.method !== 'PUT') return void res.writeHead(405, { Allow: 'PUT' }).end()
+  lireLeCorps(req, res, (texte) => {
+    const cible = join(depot, chemins[fichier])
+    const texteDit = (statut, raison) => void res.writeHead(statut, { 'Content-Type': 'text/plain; charset=utf-8' }).end(raison)
+    if (req.headers['if-match'] !== String(hash32(readFileSync(cible, 'utf8')))) return texteDit(409, `${fichier} a changé sur le disque depuis l’export du jeu : relancer l’export (npm run godot:editeur)`)
+    const refus = refusDesDonnees(texte)
+    if (refus) return texteDit(422, refus)
+    ecrireTexteAtomique(cible, texte)
+    res.writeHead(200).end()
+  })
 }
 
 /** L'empreinte du dossier `dossier` : le nom, la taille et la date de chacun de ses fichiers ; le code de l'erreur s'il ne
@@ -137,6 +197,7 @@ export function servir({ web, modeles = DOSSIER_DES_MODELES, depot, statique = f
   const lireLeListage = !statique && listageDuDossier(dossier)
   return ecouter((req, res, rel) => {
     if (depot && rel.startsWith('depot/')) return servirLeDepot(req, res, resolve(depot), rel.slice('depot/'.length))
+    if (depot && rel.startsWith('donnees/')) return servirLesDonnees(req, res, resolve(depot), rel.slice('donnees/'.length))
     if (depot && rel.startsWith('source/')) return void (servirLaSource(`/${rel}`, res) || res.writeHead(404).end())
     if (lireLeListage && rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(lireLeListage())
     const sansCache = { 'Cache-Control': 'no-store' }

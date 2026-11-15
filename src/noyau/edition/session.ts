@@ -160,8 +160,7 @@ import type { FormeDEtatKind } from '../../data/schemas/defs-scenes/formes-d-eta
 import { placeServices, type MapPlace, type WorldMap } from '../worldMap';
 import type { CalibProgress } from './calage';
 import type { Manifeste } from '../../data/source/chapitres';
-import { estGraphieDeChapitre, parseChapitre, type ChapitreParse } from '../../data/source/decoupe';
-import { adressesDe, cleDuChapitre } from './adresseDeProse';
+import { adressesDe, avecLeChapitreDemande, avecLeChapitreRecu, sourceServie, type SourceServie } from './adresseDeProse';
 import { caler, calqueNeuf, calquesLus, type CalqueDeCouche, type CalquesDuProjet, type ReglageDuCalque } from './calque';
 
 /** Les tailles du pinceau, en cases de côté. */
@@ -497,15 +496,11 @@ export interface SessionDEdition {
   defaut: string | null;
   /** La couche dont l'hôte charge la planche, `null` sans chargement en cours. */
   chargement: { sceneId: string; z: number } | null;
-  /** L'index des chapitres du `Source/` que l'hôte sert, `null` s'il ne le sert pas. */
-  manifeste: Manifeste | null;
+  /** Le `Source/` que l'hôte sert : son index, les chapitres chargés et celui qu'il charge (`SourceServie`). */
+  source: SourceServie;
   /** Les identifiants des entrées des fiches de dossier que l'hôte sert, que l'écart du narratif écarte ; vides s'il
    *  n'en sert aucune, l'écart n'en offrant alors aucune. */
   entreesDeFiche: readonly string[];
-  /** Chaque chapitre que l'hôte a chargé, par `cleDuChapitre` : parsé, ou `null` s'il n'a pas pu se charger. */
-  chapitres: Readonly<Record<string, ChapitreParse | null>>;
-  /** Le chapitre que l'hôte charge, `null` sans chargement en cours (`avecLeChapitreDemande`). */
-  chapitreEnAttente: { book: string; ch: string } | null;
   /** Les calques que l'hôte gardait étaient d'un autre format, retirés à l'ouverture. */
   ecartes: boolean;
   /** Le plan du lieu sélectionné de la carte du monde, ouvert : le pointeur y va (`planDuLieuOuvert`), et `poi` y est le
@@ -630,7 +625,7 @@ export function ouvrirLEdition(projet: ProjetDEdition, duDepot: boolean, gardes?
     historique: historiqueDe({ projet, sceneId: projet.scenes[0].id }), document: 'scene', outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
     depot: duDepot ? { enregistre: projet, enCours: null } : null,
     calques: calques ?? {}, calage: { step: 'idle' }, chargement: null, ecartes: calques === null, defaut: null,
-    manifeste, entreesDeFiche, chapitres: {}, chapitreEnAttente: null, planDuLieu: null,
+    source: sourceServie(manifeste), entreesDeFiche, planDuLieu: null,
   };
 }
 
@@ -1036,7 +1031,7 @@ function revenir(s: SessionDEdition, sens: 'annuler' | 'retablir'): SessionDEdit
 
 /** Le cadre où vit un porteur de formulaire de la session `s` : sa scène éditée, son projet et le `Source/` que l'hôte
  *  sert. */
-export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), projet: projetEdite(s), source: { manifeste: s.manifeste, chapitres: s.chapitres } });
+export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), projet: projetEdite(s), source: s.source });
 
 /** Ce qu'un geste écrit au formulaire d'un porteur, dans le cadre `cadre` : sa donnée écrite, ou son refus. */
 type EcritureDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur) => EcritureDeValeur<DonneeDuPorteur[S]>;
@@ -1337,9 +1332,8 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'retirerCalque':
       return calqueDeLaCouche(s) ? { ...s, calques: avecLeCalque(s, idDeLaSceneEditee(s), s.z, null), calage: HORS_DU_CALAGE } : s;
     case 'chapitre': {
-      const attendu = s.chapitreEnAttente;
-      if (attendu?.book !== g.book || attendu.ch !== g.ch) return s;
-      return { ...s, chapitreEnAttente: null, chapitres: { ...s.chapitres, [cleDuChapitre(g.book, g.ch)]: g.texte === null ? null : parseChapitre(g.texte) } };
+      const source = avecLeChapitreRecu(s.source, g.book, g.ch, g.texte);
+      return source === s.source ? s : { ...s, source };
     }
   }
 }
@@ -1361,24 +1355,21 @@ function porteurDeLaSelection(s: SessionDEdition): { schema: unknown; donnee: un
   return porteur && donnee && { schema: FORMULAIRES[porteur.sorte].schema, donnee, champs: formeDuPorteur(porteur.sorte, donnee, cadreDeLaSession(s)).champs };
 }
 
-/** La session `s`, le chapitre qu'elle attend posé si elle n'en attend aucun et que l'hôte sert le `Source/` : celui de
- *  la première adresse de prose du porteur sélectionné (`porteurDeLaSelection`, `adressesDe`), sous un champ qu'il
- *  offre (`cheminOffert`), dont le chapitre est choisi et absent des chapitres reçus. Il se demande donc à la sélection d'un porteur dont une adresse a déjà un
- *  chapitre, et au choix d'un chapitre. */
-function avecLeChapitreDemande(s: SessionDEdition): SessionDEdition {
+/** La session `s`, le chapitre qu'elle attend demandé (`avecLeChapitreDemande`) parmi les adresses de prose du porteur
+ *  sélectionné (`porteurDeLaSelection`, `adressesDe`), sous un champ qu'il offre (`cheminOffert`). Il se demande donc à
+ *  la sélection d'un porteur dont une adresse a déjà un chapitre, et au choix d'un chapitre. */
+function avecSonChapitreDemande(s: SessionDEdition): SessionDEdition {
   const porteur = porteurDeLaSelection(s);
-  if (s.chapitreEnAttente || !s.manifeste || !porteur) return s;
-  const manquante = adressesDe(porteur.schema, porteur.donnee)
-    .filter(({ chemin }) => cheminOffert(porteur.champs, chemin))
-    .map(({ adresse }) => adresse)
-    .find((a) => estGraphieDeChapitre(a.ch) && !(cleDuChapitre(a.book, a.ch) in s.chapitres));
-  return manquante ? { ...s, chapitreEnAttente: { book: manquante.book, ch: manquante.ch } } : s;
+  if (!porteur) return s;
+  const adresses = adressesDe(porteur.schema, porteur.donnee).filter(({ chemin }) => cheminOffert(porteur.champs, chemin)).map(({ adresse }) => adresse);
+  const source = avecLeChapitreDemande(s.source, adresses);
+  return source === s.source ? s : { ...s, source };
 }
 
 /** La session après le geste `g` (`editerLaCouche`), son plan du lieu fermé sans son lieu sélectionné (`avecSonPlanDuLieu`),
- *  le chapitre qu'elle attend demandé (`avecLeChapitreDemande`) ; le
+ *  le chapitre qu'elle attend demandé (`avecSonChapitreDemande`) ; le
  *  calage est celui de la couche éditée, changer de couche l'abandonne. */
 export function editer(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
-  const suite = avecLeChapitreDemande(avecSonPlanDuLieu(editerLaCouche(s, g)));
+  const suite = avecSonChapitreDemande(avecSonPlanDuLieu(editerLaCouche(s, g)));
   return suite.z === s.z ? suite : { ...suite, calage: HORS_DU_CALAGE };
 }

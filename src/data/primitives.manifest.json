@@ -2351,9 +2351,9 @@
     "id": "hash32",
     "type": "primitives.manifest",
     "label": "hash32/hash32AuMillieme",
-    "fichier": "src/data/hash.ts",
+    "fichier": "src/lib/hash.ts",
     "concept": "empreinte FNV-1a 32 bits déterministe (Math.imul) : de parts textuelles ou numériques, séparées ; d’un tableau numérique pris au millième, sa longueur comprise, poursuivie depuis une empreinte de départ, sans passer par son texte",
     "perimetre": "toute couche : graines de détail de surface (src/gameIso), empreintes des morceaux, nappes et couronnes du volume du monde (src/noyau/monde/volume/volume.ts), clés du plateau (src/noyau/monde/aretes.ts)",
-    "verrou": "src/data/hash.test.ts"
+    "verrou": "src/lib/hash.test.ts"
   }
 ]

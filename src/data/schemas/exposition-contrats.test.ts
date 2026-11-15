@@ -118,7 +118,7 @@ describe('deriveExposition — refus fail-fast sur defs synthétiques (#1472)', 
       faux('c.json', { codex: { exempt: { kind: 'dette', raison: 'exposition due, lot séparé', ticket: '#1' } }, edit: { none: 'rien' } }),
     ]);
     expect(t.categoryDataset).toEqual({ races: 'species' });
-    expect(t.objectCategory).toEqual({ reglages: { ds: 'reglages', mode: 'unique' } });
+    expect(t.objectCategory).toEqual({ reglages: { ds: 'reglages' } });
     expect([...t.fichiersDeclares]).toEqual(['a.json', 'b.json', 'c.json']);
     expect(Object.keys(t.exempts)).toEqual(['c.json']);
   });
@@ -134,7 +134,7 @@ describe('deriveExposition — refus fail-fast sur defs synthétiques (#1472)', 
       deriveExposition([faux('conf.json', { codex: { keys: [] }, edit: { object: 'unique' } })]),
     ).toThrow(/`conf\.json` s'édite comme dataset-OBJET mais déclare 0 clés Codex/);
     expect(() =>
-      deriveExposition([faux('conf.json', { codex: { keys: ['x', 'y'] }, edit: { object: 'parCle' } })]),
+      deriveExposition([faux('conf.json', { codex: { keys: ['x', 'y'] }, edit: { object: 'unique' } })]),
     ).toThrow(/`conf\.json` s'édite comme dataset-OBJET mais déclare 2 clés Codex/);
   });
 
