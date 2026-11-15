@@ -359,7 +359,7 @@ alignment = 2
 script = ExtResource("1_zone")
 source = "groupe.gestes"
 
-[node name="Partie" type="HBoxContainer" parent="Interface/Ossature/Droite/Pile"]
+[node name="Partie" type="HFlowContainer" parent="Interface/Ossature/Droite/Pile"]
 theme = ExtResource("t_discret")
 alignment = 2
 
