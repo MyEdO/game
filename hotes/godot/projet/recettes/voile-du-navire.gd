@@ -21,9 +21,9 @@ extends SceneTree
 ## vision au pixel ; sous chacun des trois regards (tactique, plateau, immersion, `_uniformes`), tout exploré (octets à
 ## 128), puis tout inconnu (à 0), chaque surface lue (sous la caméra tactique, le plancher, le flanc et la mâture au
 ## moins) prend la part de son état (`_borne_du_pilote`) ; à mi-fondu de la vue vers l'inconnu, la part qu'elle prend
-## explorée ; coupé sous son avant-dernière couche de pont, ce que la coupe découvre est, voilé, ce qu'il est sans
-## voile ; sous l'œil de l'immersion, sur une case de pont couverte, elle et ce qui est dessous vus, le reste inconnu, le
-## plafond à la part 1. Les appels de dessin, voilé et sans voile, imprimés.
+## explorée ; coupé sous son avant-dernière couche de pont, ce que la coupe découvre (ses pixels intérieurs) est, voilé,
+## ce qu'il est sans voile ; sous l'œil de l'immersion, sur une case de pont couverte, elle et ce qui est dessous vus,
+## le reste inconnu, le plafond à la part 1. Les appels de dessin, voilé et sans voile, imprimés.
 ##
 ## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
 
@@ -569,7 +569,8 @@ func _chrono(etape: String, debut: int) -> void:
 
 
 ## Coupé sous le sol le plus bas de son avant-dernière couche de pont : ce que la coupe découvre (les pixels que la coupe
-## change, où le navire coupé rend l'image sans lui) est, voilé, ce qu'il est sans voile.
+## change, où le navire coupé rend l'image sans lui, intérieurs : un pixel du navire coupé de la couleur exacte de ce
+## qu'il cache n'en est pas) est, voilé, ce qu'il est sans voile.
 func _coupe() -> void:
 	var couche: int = _couches[_couches.size() - 2]
 	var coupe := INF
@@ -588,6 +589,7 @@ func _coupe() -> void:
 		for x in range(0, coupee.get_width(), 2):
 			if coupee.get_pixel(x, y) != entier.get_pixel(x, y) and coupee.get_pixel(x, y) == sans.get_pixel(x, y):
 				decouverts.append(Vector2i(x, y))
+	decouverts = PIXELS.interieur(decouverts)
 	print("[voile-du-navire] %s, coupé sous %.2f m : %d pixels découverts" % [_nom, coupe, decouverts.size()])
 	if decouverts.size() < DECOUVERTS_LISIBLES:
 		_fautes.append("%s : coupé, %d pixels découverts, au moins %d attendus" % [_nom, decouverts.size(), DECOUVERTS_LISIBLES])
