@@ -1,13 +1,13 @@
 /**
- * CADENCE de VOYAGE — couche PARTAGÉE mer (`seaVoyageFlow`) ⇄ fluvial (`riverVoyageFlow`) : ordres
- * permanents fixés au départ + politique d'interruption (liste FERMÉE) + accumulation du PROCÈS-VERBAL
- * du jour. Ce n'est PAS une feature « mer » : c'est UNE couche que les deux boucles consomment. Elle ne
- * possède NI la boucle de jours NI la résolution des jets — seulement le régime (auto vs modale par jet)
- * et la brique d'entrée du PV.
+ * CADENCE de VOYAGE — couche PARTAGÉE terre (`travelFlow`) ⇄ mer (`seaVoyageFlow`) ⇄ fluvial (`riverVoyageFlow`) :
+ * ordres permanents fixés au départ, où ils ont un effet (`cadenceAUnEffet`), la porte d'un jet ouvert hors du
+ * pilote du jour (`KINDS_SOUS_ORDRES`) et la brique d'entrée du PROCÈS-VERBAL du jour. Elle ne possède NI la boucle
+ * de jours NI la résolution des jets — seulement le régime (auto vs modale par jet).
  *
  * Doctrine : « aucun jet silencieux ». La route COMMANDÉE ne supprime pas des TRACES, seulement des
- * INTERRUPTIONS — chaque jet de ROUTINE auto-résolu laisse sa ligne au PV DU JOUR (l'auto-pilote pilote
- * LE MÊME flux de jet, jamais un `rollTest` inline). Décision requise = modale/cascade ; routine = PV.
+ * INTERRUPTIONS — chaque jet auto-résolu laisse sa ligne (l'auto-pilote pilote LE MÊME flux de jet, jamais un
+ * `rollTest` inline). Décision requise = modale/cascade ; routine = sa ligne, au journal (au PV pour les bandes d'un
+ * jour de mer).
  */
 import type { IconId } from '../data/icons';
 import type { NightEntry } from './restFlow';
@@ -16,8 +16,8 @@ import type { StakeRef } from '../data';
 import type { Jeu } from './etat';
 import type { GenreDeCascade } from './tablesPosees';
 
-/** COMMANDÉE : les Tests d'équipage de ROUTINE s'auto-résolvent (leurs lignes au PV) ; seules les
- *  décisions interrompent. JOUR-PAR-JOUR : chaque jet ouvre sa modale. */
+/** COMMANDÉE : le pilote du jour joue tout jet d'office (sa ligne au journal) ; seul ce qui ouvre arrête le jour.
+ *  JOUR-PAR-JOUR : chaque jet ouvre sa modale. */
 export type VoyageCadence = 'commande' | 'jourParJour';
 
 /** Ordres permanents d'une traversée, fixés au départ et persistés avec le `TravelPlan`. */
@@ -25,27 +25,33 @@ export interface VoyageOrders {
   cadence: VoyageCadence;
 }
 
-/** Ordres par DÉFAUT d'un `TravelPlan` construit sans cadence explicite — SOURCE UNIQUE, consommée par
- *  `buildSeaPlan`, `buildRiverPlan`, `fixerLaCadence` et le sélecteur de départ de `WorldMapView` (aucune copie en dur du littéral ailleurs). */
+/** Ordres par DÉFAUT d'un `TravelPlan` construit sans cadence explicite — SOURCE UNIQUE, consommée par les plans
+ *  de terre, de mer et de fleuve (`travelFlow`, `buildSeaPlan`, `buildRiverPlan`), `fixerLaCadence`, l'ordre des
+ *  cadences offertes (`CADENCES_AU_CHOIX`) et le sélecteur de départ de `WorldMapView` (aucune copie en dur du
+ *  littéral ailleurs). */
 export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
 
+/** Chaque cadence, une fois. */
+const CADENCES: Record<VoyageCadence, true> = { commande: true, jourParJour: true };
+
+/** Les cadences dans l'ordre où l'écran les offre : celle de `DEFAULT_VOYAGE_ORDERS` en premier. */
+export const CADENCES_AU_CHOIX: readonly VoyageCadence[] = (Object.keys(CADENCES) as VoyageCadence[])
+  .sort((a, b) => Number(b === DEFAULT_VOYAGE_ORDERS.cadence) - Number(a === DEFAULT_VOYAGE_ORDERS.cadence));
+
 /**
- * Tests de ROUTE que des ORDRES COMMANDÉS résolvent d'office à la porte (`rollSeam.surfaceDesTenus`) —
- * LISTE FERMÉE (par `voyage.kind`, en kebab français préfixé de sa route), UNE pour les deux routes. Le jour
- * sous ordres (`traverseeCommandee`) se joue d'un bloc par `runCascadeImmediate`, qu'un choix sans défaut
- * interrompt : au fleuve, chaque jour (`riverVoyageFlow.resolveRiverDay`) ; en mer, les seuls jours de pure
- * routine (`seaVoyageFlow.seaDayAllRoutine`) — un jour de crise, d'infestation ou d'embuscade à venir se
- * joue entier en fenêtre.
- * Mer : jets d'ÉQUIPAGE quotidiens (MDG 13 l.111) et Tests PERSONNELS de l'entretien-survie du bord
- * (MDG 13 l.203-225, 14 l.206-234). Fleuve : dé d'Exposition hydrique et son Test (MSRC 16 l.5-13).
+ * Tests de ROUTE qu'une traversée sous ordres (`resoluSousOrdres`) résout d'office à la PORTE d'un jet ouvert hors
+ * du pilote du jour (`rollSeam.surfaceDesTenus`, son seul lecteur) — LISTE FERMÉE (par `voyage.kind`, en kebab
+ * français préfixé de sa route). Le pilote du jour (`cascade.jouerLaJournee`), lui, ne la lit pas : sous ordres, il
+ * joue tout jet de la journée, terre, fleuve ou mer, et seul ce qui ouvre (une interruption, un combat, une scène)
+ * l'arrête. En mer, seuls les jours de pure routine (`seaVoyageFlow.seaDayAllRoutine`) se jouent sous ordres.
+ * Mer : MDG 13 l.111, MDG 13 l.203-225, 14 l.206-234. Fleuve : MSRC 16 l.5-13.
  * L'Exposition y entre par le `kind` PROPRE à sa route (`merExposition`, `fleuveExposition`) : un ordre
  * de traversée ne commande ni la nuit de camp (`exposition-nocturne`) ni un Effet de scène (`waterExposure`).
- * Ce qui réunit ces jets est l'ORDRE donné au départ, attendu validé en recette #1426 « Traversée
- * commandée sans fenêtre » (#1479).
+ * Attendu validé en recette #1426 « Traversée commandée sans fenêtre » (#1479).
  *
- * INTERROMPENT toujours (hors liste, donc fenêtre) : les CRISES (`equipage-poursuite`, `equipage-tourbillon`), le Test d'équipage d'un Flow (`testDEquipage`)
- * et `equipage-extermination`, `equipage-embuscade` ancrée, `equipage-voyage-rapide`, et tout Test dont l'échec ouvre une
- * DÉCISION. Les urgences (`pendingSteamSave`), les événements de bord à choix, le conseil de bord,
+ * Hors liste, un jet ouvert à la porte garde sa fenêtre : les CRISES (`equipage-poursuite`, `equipage-tourbillon`),
+ * le Test d'équipage d'un Flow (`testDEquipage`), `equipage-extermination`, `equipage-embuscade` ancrée,
+ * `equipage-voyage-rapide`. Les urgences (`pendingSteamSave`), les événements de bord à choix, le conseil de bord,
  * l'atterrage et le combat sont des surfaces PROPRES : ils suspendent la boucle par eux-mêmes.
  */
 export const KINDS_SOUS_ORDRES: ReadonlySet<GenreDeCascade> = new Set<GenreDeCascade>([
@@ -58,14 +64,23 @@ export const KINDS_SOUS_ORDRES: ReadonlySet<GenreDeCascade> = new Set<GenreDeCas
 export type EtatDeTraversee = Pick<Jeu, 'net' | 'travelPlan'>;
 
 /**
- * La traversée se résout-elle SOUS ORDRES ? — SOURCE UNIQUE de « commandée ET locale », lue par la porte
- * d'un jet (`rollSeam.surfaceDesTenus`, via `resoluSousOrdres`) ET par les gardes du jour d'un bloc
- * (`riverVoyageFlow.resolveRiverDay`, `seaVoyageFlow`). La résolution sans fenêtre est un bloc HÔTE-SEUL
- * (`docs/architecture.md`, « Coop en ligne — limitations connues ») : hors mode local, la traversée se
- * joue jour par jour quels que soient ses ordres.
+ * La cadence a-t-elle un effet ? — SOURCE UNIQUE, lue par `traverseeCommandee`, par les vues qui l'offrent
+ * (`carteEnVue.trajetsDepuis`, `voyageEnVue`) et par le sélecteur de départ du web. La résolution sans fenêtre est
+ * un bloc HÔTE-SEUL (`docs/architecture.md`, « Coop en ligne — limitations connues ») : hors mode local, une
+ * traversée se joue jour par jour quels que soient ses ordres.
+ */
+export function cadenceAUnEffet(s: Pick<Jeu, 'net'>): boolean {
+  return s.net.mode === 'local';
+}
+
+/**
+ * La traversée se résout-elle SOUS ORDRES ? — SOURCE UNIQUE de « commandée là où la cadence a un effet », lue par
+ * la porte d'un jet (`rollSeam.surfaceDesTenus`, via `resoluSousOrdres`), par le pilote du jour de chaque route
+ * (`travelFlow`, `riverVoyageFlow.resolveRiverDay`, `seaVoyageFlow`) et par la vue du trajet (`voyageEnVue`). Un
+ * plan sans `orders` se joue jour par jour.
  */
 export function traverseeCommandee(s: EtatDeTraversee): boolean {
-  return s.net.mode === 'local' && s.travelPlan?.orders?.cadence === 'commande';
+  return cadenceAUnEffet(s) && s.travelPlan?.orders?.cadence === 'commande';
 }
 
 /** Un Test de route de `kind` se résout-il d'office ? (traversée sous ordres + `kind` couvert). */

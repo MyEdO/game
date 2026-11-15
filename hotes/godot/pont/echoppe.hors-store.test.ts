@@ -26,7 +26,7 @@ function echoppe() {
   };
   avancer();
   s = jouer(s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
-  s = jouer(departDeLaCarte(s.vue, 'r-grandroute').valeurs[0].jeu);
+  s = jouer(departDeLaCarte(s.vue, 'r-grandroute', 'jourParJour').valeurs[0].jeu);
   avancer('ecranDuLieu');
   s = jouer(((s.vue.zones['fenetre.corps'].find((e) => e.id === 'service/forgeron') as Entite).elements.find((e): e is Bouton => e.type === 'bouton')!).jeu);
   return { suite: s, jouer };

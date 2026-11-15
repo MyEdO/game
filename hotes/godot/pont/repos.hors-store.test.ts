@@ -21,13 +21,14 @@ describe('le repos par le pont', () => {
     let suite = drainer(appel, appel('demarrer', { scenario: 'voyage', graine: 7 })).suite;
     while (suite.vue.projection.fenetre) suite = jouer(focus(suite).jeu);
     suite = jouer(suite.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
-    const route = departDeLaCarte(suite.vue, 'r-grandroute');
+    const route = departDeLaCarte(suite.vue, 'r-grandroute', 'jourParJour');
     suite = jouer(route.valeurs.find((b) => b.id === 'pied')!.jeu);
     for (let pas = 0; suite.vue.disposition !== 'repos'; pas++) {
       expect(pas, 'la journée de route mène à la halte').toBeLessThan(20);
       suite = jouer(focus(suite).jeu);
     }
     let c = corps(suite);
+    expect((c['voyage/cadence'] as Choix).valeurs.map((b) => [b.id, b.presse]), 'à la halte, la cadence du trajet, celle qu’il joue pressée').toEqual([['commande', false], ['jourParJour', true]]);
     expect(c['scene/moment'], 'la nuit et son lieu, en tête de la scène').toMatchObject({ texte: 'Nuit à l’auberge — Weiler → Steinbruck' });
     expect(c['scene/paysage'], 'le paysage de la halte : la nuit, et le logis éclairé').toMatchObject({ paysage: ['ciel-nuit', 'relief-terre', 'voile-nuit', 'halte-toit'] });
     const couchage = (s: Suite) => bjorn(s).couchage as Choix;
