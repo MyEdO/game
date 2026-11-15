@@ -210,6 +210,10 @@ export interface TravelPlan {
   /** Événements RACONTÉS du jour EN COURS, tous milieux (#4005) : seul écrivain `noteEvent`, rangés dans le
    *  `TravelRecapDay` clos à chaque sortie de jour (`rangerLesEvenements`). Absent : aucun événement. */
   evenements?: import('./recapLine').RecapEvent[];
+  /** COMPTE RENDU du jour EN COURS : les rangées des bandes jouées sous `rowSurface: 'pv'`, seul écrivain
+   *  `voyageCadence.noterAuProcesVerbal`, rangées dans le `TravelRecapDay` clos à la sortie du jour. Absent : rien
+   *  n'y est écrit. */
+  procesVerbal?: import('./restFlow').NightEntry[];
 }
 
 /** Entrées d'une journée de route terrestre, figées au build de la cascade `travelDay` : l'horloge/les
