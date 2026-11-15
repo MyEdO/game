@@ -23,9 +23,8 @@ export interface FieldEditability {
   field: string;
   /** `fichier:ligne` de la DÉCLARATION du champ. */
   at: string;
-  /** Fichiers du chemin de l'AUTEUR qui l'écrivent : `src/ui/**` (interface), et les primitives d'édition (pont Godot,
-   *  `src/hote/`, modules d'édition du noyau) pour les seules écritures dont la fonction porteuse est APPELÉE depuis
-   *  l'interface ou la méthode `editer` du pont. */
+  /** Fichiers du chemin de l'AUTEUR qui l'écrivent (pont Godot, `src/hote/`, modules d'édition du noyau), pour les
+   *  seules écritures dont la fonction porteuse est APPELÉE depuis la méthode `editer` du pont. */
   authors: string[];
   /** Fichiers du PIPELINE d'authoring (compilateur MapSpec, scènes en dur) qui l'écrivent. */
   pipeline: string[];
@@ -42,7 +41,7 @@ export function sceneScope(program: SessionProgramme, root: string): SceneField[
 /** Clé d'identité d'un champ : sa déclaration, ou `id du porteur#nom` pour une propriété synthétique ou produite par
  *  une fabrique. */
 export function cleDuChamp(champ: SceneField): Declaration | string;
-/** Portées d'exécution atteintes depuis `src/ui/**` ou la méthode `editer` du pont Godot par fermeture transitive des
+/** Portées d'exécution atteintes depuis la méthode `editer` du pont Godot par fermeture transitive des
  *  appels. */
 export function auteurReachableScopes(checker: Checker, program: SessionProgramme, root: string): Set<Node>;
 export function fieldsWrittenIn(

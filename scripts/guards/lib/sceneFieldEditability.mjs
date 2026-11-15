@@ -1,6 +1,6 @@
 import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
-// Mécanique de scan du garde-fou « tout champ de Scene a un chemin d'écriture d'auteur » (#841) : l'interface web
-// (`src/ui/**`) ou l'éditeur Godot (méthode `editer` du pont, `hotes/godot/pont/CONTRAT.md`, #3508 décision 8).
+// Mécanique de scan du garde-fou « tout champ de Scene a un chemin d'écriture d'auteur » (#841) : l'éditeur
+// Godot, de la seule méthode `editer` du pont (`hotes/godot/pont/CONTRAT.md`, #3508 décision 8, #3606).
 //
 // Le défaut fermé : un champ du document de Scène qui n'est joignable QUE par le compilateur d'authoring
 // (`mapSpec.ts`) ou un script `.mjs` — donc par un agent, jamais par un auteur au clic. L'omission est SILENCIEUSE :
@@ -23,8 +23,8 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     symptôme de maladie, un `{ window: … }` de condition temporelle ou un `{ flags }` passé en
 //     lecture à un contexte d'évaluation ne créditent rien : leur type porteur n'est pas celui du
 //     document de scène.
-//  3. CRÉDIT RATTACHÉ À UN APPELANT. Hors interface (`BRIDGE_PATH`), une primitive ne crédite que
-//     si sa fonction porteuse est ATTEINTE depuis `src/ui/**` ou depuis la méthode `editer` du pont
+//  3. CRÉDIT RATTACHÉ À UN APPELANT. Une primitive du chemin d'auteur (`AUTHOR_PATH`) ne crédite que
+//     si sa fonction porteuse est ATTEINTE depuis la méthode `editer` du pont
 //     Godot (`ENTREE_GODOT`) par une chaîne d'appels résolue au TypeChecker
 //     (`auteurReachableScopes`). L'EXISTENCE d'un écrivain ne prouve rien : une primitive
 //     complète, testée, ré-exportée par l'éditeur et jamais appelée EST le défaut de #841.
@@ -73,7 +73,7 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     l'aller-retour joué crédite ;
 //   - une écriture depuis un fichier hors `AUTHOR_PATH`/`PIPELINE_PATH` : les scripts `.mjs` de
 //     `scripts/`, non typés par le `tsconfig`, n'alimentent AUCUNE colonne.
-//   - une écriture de `BRIDGE_PATH` appelée INDIRECTEMENT (table de dispatch, callback, `obj[k]()`) :
+//   - une écriture de `AUTHOR_PATH` appelée INDIRECTEMENT (table de dispatch, callback, `obj[k]()`) :
 //     la fermeture d'appels de `auteurReachableScopes` déclare ses propres angles morts, à lire là-bas.
 // Un littéral qui traverse le paramètre de type `U` d'un `Array.prototype.map` perd sa freshness, ce qui prive
 // `getContextualType` de tout rattachement (`SceneEffectZone.tiles` ← `src/noyau/mapSpec.ts`) : `positionTypes` le
@@ -91,39 +91,29 @@ import { dossierDe, porteeDeGarde } from './couches.mjs';
 /** `rel` (relatif à la racine, séparateurs quelconques) est-il sous le dossier `dossier` ? */
 const sous = (dossier) => (rel) => norm(rel).startsWith(`${dossier}/`);
 
-/** Les deux chemins d'auteur, dérivés de `COUCHES` (`porteeDeGarde`) : l'interface web (`ui`, qui lève dès que la zone
- *  quitte la table, #3556 lot D) et les zones des hôtes du noyau (`hote`, le modèle de vue commun ; `hotes`, le pont
- *  Godot). */
-const [DOSSIER_HOTE, DOSSIER_HOTES, DOSSIER_UI] = porteeDeGarde(['hote', 'hotes'], ['ui']);
+/** Les zones des hôtes du noyau, dérivées de `COUCHES` (`porteeDeGarde`) : `hote`, le modèle de vue commun ; `hotes`,
+ *  le pont Godot. */
+const [DOSSIER_HOTE, DOSSIER_HOTES] = porteeDeGarde(['hote', 'hotes']);
 
-/** Fichiers d'INTERFACE : un écrivain qui y vit est joignable au clic par construction — l'auteur
- *  ouvre l'écran. Crédit DIRECT. */
-const UI_PATH = [sous(DOSSIER_UI)];
-
-/** Le point d'entrée de l'éditeur Godot : la méthode `editer` du pont (`hotes/godot/pont/CONTRAT.md`, #3508). Hors
- *  interface, il est la seule racine de la fermeture d'appels côté Godot : le pont sert aussi la partie, que l'auteur
- *  n'édite pas. */
+/** Le point d'entrée de l'éditeur Godot : la méthode `editer` du pont (`hotes/godot/pont/CONTRAT.md`, #3508). Il est
+ *  la seule racine de la fermeture d'appels : le pont sert aussi la partie, que l'auteur n'édite pas. */
 const PONT = `${DOSSIER_HOTES}/godot/pont`;
 const ENTREE_GODOT = { fichier: `${PONT}/pont.ts`, methode: 'editer' };
 
-/** Primitives d'édition qui ne sont PAS une interface : le pont Godot et le modèle de vue commun des hôtes
+/** Chemin d'écriture de l'AUTEUR : le pont Godot et le modèle de vue commun des hôtes
  *  (`src/hote/`), les modules d'édition du noyau (`src/noyau/*Edit*.ts`, dont `sceneEdit.ts` et ses lectures
  *  `sceneEditLecture.ts`), la session, le pointeur et l'historique de l'éditeur (`src/noyau/edition/`, #3508) et le
- *  parseur de saisie « format livre » (`src/data/refFormatLivre.ts`) n'ont aucun écran. Une écriture
- *  qui y vit ne crédite QUE si sa fonction porteuse est ATTEINTE par une chaîne d'appels partant de
- *  `src/ui/**` ou d'`ENTREE_GODOT`. Une définition, fût-elle exportée, testée et ré-exportée par l'éditeur, ne crédite
- *  rien : `Scene.flags` ← `setSceneFlags`, exportée, testée et appelée par AUCUN composant,
- *  est précisément le défaut de #841 — le travail s'arrête à la porte de l'interface. */
-const BRIDGE_PATH = [
+ *  parseur de saisie « format livre » (`src/data/refFormatLivre.ts`). Une écriture qui y vit ne
+ *  crédite QUE si sa fonction porteuse est ATTEINTE par une chaîne d'appels partant d'`ENTREE_GODOT`. Une définition,
+ *  fût-elle exportée, testée et ré-exportée, ne crédite rien : `Scene.flags` ← `setSceneFlags`, exportée, testée et
+ *  appelée par AUCUN geste, est précisément le défaut de #841 — le travail s'arrête à la porte de l'éditeur. */
+const AUTHOR_PATH = [
   sous(PONT),
   sous(DOSSIER_HOTE),
   (rel) => path.posix.dirname(norm(rel)) === dossierDe('noyau') && /Edit[^/]*\.ts$/.test(rel),
   sous(`${dossierDe('noyau')}/edition`),
   (rel) => norm(rel) === `${dossierDe('data')}/refFormatLivre.ts`,
 ];
-
-/** Chemin d'écriture ATTEIGNABLE PAR L'AUTEUR = interface + primitives réellement appelées par elle. */
-const AUTHOR_PATH = [...UI_PATH, ...BRIDGE_PATH];
 
 /** Fichiers qui n'écrivent QUE via le pipeline : compilateur d'authoring, scènes en dur.
  *  Un champ dont c'est le SEUL écrivain est exactement le défaut de #841.
@@ -132,7 +122,6 @@ const AUTHOR_PATH = [...UI_PATH, ...BRIDGE_PATH];
  *  que de la colonne `authors`. */
 const PIPELINE_PATH = [(rel) => norm(rel) === `${dossierDe('noyau')}/mapSpec.ts`, sous(dossierDe('scenes'))];
 
-const isUiPath = (rel) => UI_PATH.some((dans) => dans(rel));
 const isPipelinePath = (rel) => PIPELINE_PATH.some((dans) => dans(rel));
 const isAuthorPath = (rel) => AUTHOR_PATH.some((dans) => dans(rel));
 const isTestFile = (rel) => estFichierVitest(rel) || estKitDeTest(rel);
@@ -190,7 +179,7 @@ export const cleDuChamp = (e) => (e.porteur !== undefined ? `${e.porteur}#${e.fi
 
 const norm = (p) => p.replace(/\\/g, '/');
 
-/** Le Program du dépôt pour le PÉRIMÈTRE de cette garde — les fichiers scannés (interface, pont,
+/** Le Program du dépôt pour le PÉRIMÈTRE de cette garde — les fichiers scannés (chemin d'auteur,
  *  pipeline) plus le document et son schéma. Aucune rétention (`tsProgram.mjs`). */
 export function programmeDuPerimetre(root) {
   const key = norm(path.resolve(root));
@@ -494,7 +483,7 @@ function writtenNames(checker, prop) {
  * champ dans `scene.ts` : les mappings (`Partial<WallSeg>`, `Pick`, accès indexé) sont donc suivis,
  * les homonymes d'autres types écartés.
  * `creditable(node)` filtre les sites d'écriture retenus — c'est par lui que passe l'exigence
- * d'ATTEIGNABILITÉ depuis un chemin d'auteur pour les fichiers de `BRIDGE_PATH`.
+ * d'ATTEIGNABILITÉ depuis `ENTREE_GODOT` pour les fichiers d'`AUTHOR_PATH`.
  * @returns {Set<string>} ids de champ (`Porteur.champ`)
  */
 export function fieldsWrittenIn(checker, sourceFile, cles, fieldNames, creditable = () => true) {
@@ -745,20 +734,18 @@ function calleeDeclarations(checker, call) {
 }
 
 /**
- * Portées d'exécution ATTEIGNABLES par l'auteur, par fermeture transitive des appels depuis deux racines : l'interface
- * web (`UI_PATH`, tout le fichier) et l'éditeur Godot (`ENTREE_GODOT`, la seule méthode `editer` du pont). Le crédit
- * d'un fichier de `BRIDGE_PATH` en dépend : une primitive que personne n'appelle n'est pas un chemin d'édition, c'est
+ * Portées d'exécution ATTEIGNABLES par l'auteur, par fermeture transitive des appels depuis une racine : l'éditeur
+ * Godot (`ENTREE_GODOT`, la seule méthode `editer` du pont). Le crédit d'un fichier d'`AUTHOR_PATH` en dépend : une primitive que personne n'appelle n'est pas un chemin d'édition, c'est
  * une définition.
  *
  * CE QUE CETTE FERMETURE NE VOIT PAS — donc autant de sources d'orphelins RAPPORTÉS à tort :
  *   - un appel INDIRECT (primitive rangée dans une table de dispatch, passée en callback, atteinte
  *     par `obj[k]()`) : aucun `CallExpression` ne nomme sa cible, aucune arête n'est bâtie ;
- *   - un appel depuis un fichier hors `AUTHOR_PATH` (moteur, store) qu'un écran déclencherait ;
- *   - à l'inverse elle SUR-crédite : une fonction d'un fichier d'interface est réputée atteignable
- *     même si aucun écran ne la monte, et un callback jamais rappelé compte pour sa porteuse. La
- *     frontière mesurée est celle du FICHIER — « une primitive hors interface a-t-elle un appelant
- *     dans l'interface ? » — pas la vivacité d'un composant. Côté Godot, elle est celle de la méthode
- *     `editer` : tout ce qu'elle appelle, l'essai de la scène compris.
+ *   - un appel depuis un fichier hors `AUTHOR_PATH` (moteur) que l'éditeur déclencherait ;
+ *   - à l'inverse elle SUR-crédite : un callback jamais rappelé compte pour sa porteuse. La frontière mesurée est
+ *     celle de la méthode `editer` : tout ce qu'elle appelle, l'essai de la scène compris.
+ * Une portée atteinte fait atteindre le CORPS DE MODULE de son fichier, chargé avant qu'elle ne joue : une table de
+ * graines (`EFFECT_ZONE_SEEDS`, `src/noyau/sceneEditLecture.ts`) crédite dès qu'une fonction de son module est appelée.
  * Un pont présent au programme sans sa méthode `editer` lève : la racine Godot ne se perd pas en silence.
  * @returns {Set<import('typescript/unstable/ast').Node>}
  */
@@ -770,6 +757,7 @@ export function auteurReachableScopes(checker, program, root) {
     if (n && !reachable.has(n)) {
       reachable.add(n);
       queue.push(n);
+      seed(n.getSourceFile());
     }
   };
   const edge = (from, to) => {
@@ -782,7 +770,6 @@ export function auteurReachableScopes(checker, program, root) {
     if (sf.isDeclarationFile) continue;
     const rel = path.relative(root, sf.fileName);
     if (rel.startsWith('..') || isTestFile(rel) || !isAuthorPath(rel)) continue;
-    const ui = isUiPath(rel);
     if (norm(rel) === ENTREE_GODOT.fichier) {
       const entrees = [];
       const chercher = (n) => {
@@ -793,21 +780,10 @@ export function auteurReachableScopes(checker, program, root) {
       if (entrees.length !== 1) throw new Error(`${ENTREE_GODOT.fichier} : ${entrees.length} méthode(s) \`${ENTREE_GODOT.methode}\`, l’entrée de l’éditeur Godot en attend une`);
       seed(entrees[0]);
     }
-    if (ui) {
-      seed(sf);
-      // Le corps de module d'une primitive IMPORTÉE par l'interface s'exécute au chargement.
-      for (const st of sf.statements) {
-        const spec = ts.isImportDeclaration(st) || ts.isExportDeclaration(st) ? st.moduleSpecifier : undefined;
-        if (!spec) continue;
-        for (const d of checker.getSymbolAtLocation(spec)?.declarations ?? [])
-          if (ts.isSourceFile(d.resolve())) seed(d.resolve());
-      }
-    }
     const walk = (node) => {
       if (ts.isCallExpression(node)) {
         const targets = calleeDeclarations(checker, node);
-        // Depuis l'interface, tout appel part d'un contexte déjà atteignable : le fichier fait foi.
-        for (const from of ui ? [sf] : owningScopes(node)) for (const to of targets) edge(from, to);
+        for (const from of owningScopes(node)) for (const to of targets) edge(from, to);
       }
       node.forEachChild(walk);
     };
@@ -859,8 +835,8 @@ export function auditSceneFieldEditability(root, program, { ecrituresJouees = []
   );
 
   const reachable = auteurReachableScopes(checker, program, root);
-  // Hors interface, une écriture ne crédite que si l'une de ses portées d'exécution est atteinte
-  // depuis `src/ui/**` ou `ENTREE_GODOT` : le crédit exige un APPELANT, jamais la seule existence d'une définition.
+  // Une écriture du chemin d'auteur ne crédite que si l'une de ses portées d'exécution est atteinte
+  // depuis `ENTREE_GODOT` : le crédit exige un APPELANT, jamais la seule existence d'une définition.
   const atteinte = (node) => owningScopes(node).some((s) => reachable.has(s));
 
   for (const sf of program.program.getSourceFileNames().map((file) => program.program.getSourceFile(file))) {
@@ -871,7 +847,7 @@ export function auditSceneFieldEditability(root, program, { ecrituresJouees = []
     const author = isAuthorPath(rel);
     const pipeline = isPipelinePath(rel);
     if (!author && !pipeline) continue;
-    const creditable = author && !isUiPath(rel) ? atteinte : () => true;
+    const creditable = author ? atteinte : () => true;
     for (const id of fieldsWrittenIn(checker, sf, cles, fieldNames, creditable)) {
       const row = rows.get(id);
       if (row) (author ? row.authors : row.pipeline).push(norm(rel));
