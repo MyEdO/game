@@ -7,9 +7,9 @@ extends SceneTree
 ## « Fermer » offerts ; « Fermer » rend l'accueil (G1). Un code mal formé : sa raison se lit au panneau, les formulaires
 ## de nouveau offerts, la minuterie arrêtée ; un code bien formé : « Connexion au salon… », « Quitter le salon » seul,
 ## la minuterie tourne et relève ; « Quitter le salon » rend les formulaires et « Fermer », la minuterie arrêtée ;
-## « Fermer », puis « Jouer » ouvre une partie (G2). Dans la partie, « Jouer en ligne » ouvre le panneau, « Héberger »
-## finit sur le texte de son échec sans autre geste, la minuterie arrêtée ; « Fermer » cache le panneau sur la partie
-## (G3). Une session finie pendant la partie (« Quitter le salon » dicté à `salon`, puis `{ quittee }` à `nouvelles`,
+## « Fermer », puis « Jouer » ouvre une partie (G2). Dans la partie, « Jouer en ligne » du menu de la partie ouvre le
+## panneau, « Héberger » finit sur le texte de son échec sans autre geste, la minuterie arrêtée ; « Fermer » cache le
+## panneau sur la partie (G3). Une session finie pendant la partie (« Quitter le salon » dicté à `salon`, puis `{ quittee }` à `nouvelles`,
 ## la partie vivante quittée d'abord) recharge le combat sur le panneau sans partie, la ligne dictée et les zones
 ## vivantes montrées, la minuterie arrêtée ; « Fermer » rend l'accueil, où « Jouer » ouvre une partie (G4). Hors salon,
 ## aucun `nouvelles` en une seconde, et ni panne ni refus de bout en bout (G5). « Quitter le salon » dicté une fois à
@@ -124,13 +124,14 @@ func _g2() -> Dictionary:
 	return quitte
 
 
-## G3 : dans la partie, « Jouer en ligne » ouvre le panneau ; « Héberger » finit sur le texte de l'échec de la room ;
+## G3 : dans la partie, « Jouer en ligne » du menu de la partie ouvre le panneau ; « Héberger » finit sur le texte de l'échec de la room ;
 ## « Fermer » cache le panneau sur la partie.
 func _g3() -> bool:
 	var combat := current_scene
 	if not await _frais():
 		return false
-	_cliquer(_bouton("bouton/salon", "Jouer en ligne"))
+	if not await _presser_au_menu("salon"):
+		return false
 	if not await _attendre(func() -> bool: return _formulaire("heberger") != null and not _formulaire("heberger").disabled and _bouton("formulaire/heberger", "Héberger") != null, "« Héberger » offert dans la partie"):
 		return false
 	_saisir("heberger/nom", "Hote")
@@ -156,7 +157,8 @@ func _g4(quitte: Dictionary) -> bool:
 		return false
 	var avant := current_scene.get_instance_id()
 	_pont.dictees.salon = func() -> Dictionary: return quitte.duplicate(true)
-	_cliquer(_bouton("bouton/salon", "Jouer en ligne"))
+	if not await _presser_au_menu("salon"):
+		return false
 	_verifier(_releve(), "G4 : la minuterie ne tourne pas sur « Quitter le salon » dicté")
 	if not await _attendre(func() -> bool: return _bouton("bouton/quitter", "Quitter le salon") != null, "« Quitter le salon » publié"):
 		return false
@@ -212,12 +214,13 @@ func _g6(quitte: Dictionary) -> void:
 	print("[salon] G6 : la `Suite` suivante relit le salon vivant, minuterie %s" % ("en marche" if _releve() else "arrêtée"))
 	if not await _frais():
 		return
-	_cliquer(_bouton("bouton/salon", "Jouer en ligne"))
+	if not await _presser_au_menu("salon"):
+		return
 	_verifier(_formulaire("heberger") != null and not _formulaire("heberger").disabled, "G6 : rouvert, le panneau ne montre pas « Héberger »")
 	print("[salon] G6 : rouvert, les formulaires")
 
 
-## Un pré-tiré recruté à son bouton, puis l'Arène lancée : si sa scène se pose, « Jouer en ligne » publié.
+## Un pré-tiré recruté à son bouton, puis l'Arène lancée : si sa scène se pose, la pastille du menu de la partie publiée.
 func _lancer_l_arene() -> bool:
 	if not await _attendre(func() -> bool: return _recrue() != null, "un pré-tiré à recruter"):
 		return false
@@ -225,7 +228,7 @@ func _lancer_l_arene() -> bool:
 	if not await _attendre(func() -> bool: return _renvois() == 1 and _publie("bouton/lancer/arene") != null, "le pré-tiré recruté, « Lancer » de l'Arène"):
 		return false
 	_cliquer(_publie("bouton/lancer/arene"))
-	if not await _attendre(func() -> bool: return _en_partie() and current_scene.get("_vue").projection.scene != null and _renvois() == 0, "la scène de l'Arène, « Jouer en ligne » publié"):
+	if not await _attendre(func() -> bool: return _en_partie() and current_scene.get("_vue").projection.scene != null and _renvois() == 0, "la scène de l'Arène, le menu de la partie offert"):
 		return false
 	print("[salon] Arène lancée : scène %s" % current_scene.get("_vue").projection.scene.id)
 	return true
@@ -278,9 +281,18 @@ func _saisir(id: String, texte: String) -> void:
 	_fautes.append("champ %s absent du panneau" % id)
 
 
-## Si le combat est la scène courante, une partie montrée.
+## Si le combat est la scène courante, une partie montrée, la pastille du menu de la partie publiée.
 func _en_partie() -> bool:
-	return _au_combat() and not current_scene.get("_vue").is_empty() and _bouton("bouton/salon", "Jouer en ligne") != null
+	return _au_combat() and not current_scene.get("_vue").is_empty() and _publie("entite/menu") != null
+
+
+## Le geste `geste` de la partie pressé dans son menu, ouvert à sa pastille : si le menu l'a offert.
+func _presser_au_menu(geste: String) -> bool:
+	_cliquer(_publie("entite/menu"))
+	if not await _attendre(func() -> bool: return _publie("bouton/" + geste) != null, "« %s » au menu de la partie ouvert" % geste):
+		return false
+	_cliquer(_publie("bouton/" + geste))
+	return true
 
 
 func _au_combat() -> bool:

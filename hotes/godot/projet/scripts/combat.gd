@@ -74,6 +74,7 @@ extends Node
 @onready var _scenarios: Control = $Scenarios/Cadre
 @onready var _sauvegardes: Control = $Sauvegardes/Cadre
 @onready var _reglages: PanneauDesReglages = $Reglages
+@onready var _menu: MenuDeLaPartie = $Ecran/Interface/MenuDeLaPartie
 @onready var _salon: PanneauDuSalon = $Salon
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
@@ -116,6 +117,7 @@ func _ready() -> void:
 	for zone in Zone.racines(_sauvegardes):
 		zone.geste.connect(_jouer)
 	_reglages.change.connect(_publier_l_ecran)
+	_menu.change.connect(_publier_l_ecran)
 	_salon.change.connect(_publier_l_ecran)
 	_salon.ferme.connect(_fermer_le_salon)
 	_salon.suite.connect(_suivre)

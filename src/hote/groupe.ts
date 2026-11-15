@@ -3,7 +3,7 @@
  * (`partieEnCours`), chaque pré-tiré de la donnée en entité, avec le bouton qui le recrute, chaque héros du roster de
  * l'hôte en entité, avec le bouton qui le recrute et celui qui le retire du roster (`{ roster }`), et chaque campagne
  * du jeu (`allBuiltinCampaigns`) en entité, avec le bouton qui la lance (`{ lancer }`) ; à tout moment, ses gestes
- * (`partie.gestes`). Le noyau juge chaque refus.
+ * (`partie.gestes`) et le menu qui les offre (`partie.menu`). Le noyau juge chaque refus.
  */
 import { herosDuRosterOfferts, partieEnCours, pretiresOfferts, refusDeLancer, type Jeu as Partie } from '../noyau/index';
 import { t } from '../i18n';
@@ -52,6 +52,9 @@ export interface ZonesDeLaPartie {
    * « Quitter la partie », dont le `jeu` `{ quitter: true }` appelle la méthode `quitter`.
    */
   'partie.gestes': Bouton[];
+  /** le menu qui offre les gestes du groupe et de la partie (`groupe.gestes`, `partie.gestes`) : son nom, que dit son
+   *  infobulle, et son icône. */
+  'partie.menu': Entite[];
 }
 
 /** Un bouton d'une carte du groupe à composer. */
@@ -71,10 +74,12 @@ export function zonesDeLaPartie(etat: Pick<Partie, 'battle' | 'party' | 'net' | 
     { type: 'bouton', id: 'salon', libelle: t('coop.title.local'), jeu: { salon: true }, presse: false, focus: false, refus: null },
     { type: 'bouton', id: 'quitter', libelle: t('ecran.partie.quitter'), jeu: { quitter: true }, presse: false, focus: false, refus: null },
   ];
-  if (partieEnCours(etat)) return { 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': gestes };
+  const menu: Entite[] = [{ type: 'entite', id: 'menu', ton: 'neutre', nom: t('ecran.partie.menu'), elements: [{ type: 'icone', id: 'icone', icone: 'interface/reglages' }] }];
+  if (partieEnCours(etat)) return { 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': gestes, 'partie.menu': menu };
   const refus = refusDeLancer(etat);
   return {
     'partie.gestes': gestes,
+    'partie.menu': menu,
     'groupe.pretires': pretiresOfferts(etat).map((p) => carte(`pretire/${p.id}`, p, [bouton(`recruter/${p.id}`, t('ecran.groupe.recruter'), p.recrutement, p.refus)])),
     'groupe.roster': herosDuRosterOfferts(etat, roster.heros).map((h) => carte(`roster/${h.id}`, h, [
       bouton(`recruter/${h.id}`, t('ecran.groupe.recruter'), { roster: { recruter: h.id } }, h.refus),
