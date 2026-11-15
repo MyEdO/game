@@ -27,7 +27,7 @@ import {
   findSpellById, listesDeSorts, sortsImprimes,
   aLEchelleDesPonts, CAPS_DES_PONTS, TYPES_DE_NAVIRE, vueDeLaScene,
   PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition,
-  OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, orienterRoute, refusDeForme, FORMES_D_ETAT, type FormeDEtatKind, planDuLieuOuvert, type OutilDeLaCarte, type OutilDuPlanDuLieu, type PlanDeLaCarte, type SorteDeDocument,
+  OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, orienterRoute, refusDeForme, FORMES_D_ETAT, type FormeDEtatKind, planDuLieuOuvert, nomDuPoi, placeServices, typesDEtablissement, type OutilDeLaCarte, type OutilDuPlanDuLieu, type PlanDeLaCarte, type SorteDeDocument,
 } from '../noyau/index';
 import { pluriel, t, type MsgKey } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -374,8 +374,15 @@ export interface ZonesDeLEditeur {
    * est celui du lieu sélectionné, que « Annuler » et « Rétablir » gardent tant qu'il est au cran rendu, et sélectionner
    * autre chose le ferme ; son plan ouvert,
    * `lieu/poi/retirer`, « Retirer le point d'intérêt » désigné au plan, refusé sans lui (`{ geste: 'retirerPoi' }`) ;
+   * la cible du point désigné, `lieu/poi/cible`, en liste, `lieu/poi/cible/scene/<id>` ou
+   * `lieu/poi/cible/service/<id>`, la courante pressée (`{ geste: 'ciblerPoi', cible }`) ;
+   * `lieu/etablissements`, le compte de ses établissements ; de chacun, `lieu/etablissement/<id>`, son nom et son
+   * type, et `lieu/etablissement/<id>/retirer`, refusé tant qu'un point d'intérêt le vise (`{ geste: 'supprimer',
+   * element }`) ; `lieu/etablissement/ajouter`, en liste, `lieu/etablissement/ajouter/<type>` par type du catalogue
+   * (`{ geste: 'ajouterEtablissement', kind }`) ;
    * son formulaire tiré du schéma, sa position et la position de ses points d'intérêt exceptées, qui se glissent au
-   * plan ; le supprimer, ses routes avec lui. D'une route : son sens, `route/sens/deux` ou `route/sens/<lieu>`, le courant pressé,
+   * plan, ses établissements par leur nom et leur repos ; le supprimer, ses routes avec lui.
+   * D'une route : son sens, `route/sens/deux` ou `route/sens/<lieu>`, le courant pressé,
    * chacun refusé quand une autre route de la paire l'offre déjà, `{ geste: 'sens', depuis }` (`depuis` nul : les deux
    * sens, `orienterRoute`) ; son formulaire tiré du schéma ; la supprimer.
    *
@@ -1806,13 +1813,34 @@ function sensDeLaRoute(s: SessionDEdition, route: DonneeDuPorteur['route']): Cho
 
 /** Les éléments propres du lieu `lieu` de la session `s` : « Plan du lieu », pressé quand son plan est ouvert, qui
  *  l'ouvre ou le ferme (`{ geste: 'planDuLieu', lieu }`) ; son plan ouvert, « Retirer le point d'intérêt » désigné,
- *  refusé sans lui (`{ geste: 'retirerPoi' }`). #3606 */
-function planDuLieuEnInspecteur(s: SessionDEdition, lieu: DonneeDuPorteur['lieu']): Bouton[] {
+ *  refusé sans lui (`{ geste: 'retirerPoi' }`), et la cible de ce point, chaque scène du projet et chaque service résolu
+ *  du lieu (`placeServices`), la courante pressée (`{ geste: 'ciblerPoi', cible }`) ; ses établissements (`MapPlace.services`),
+ *  chacun nommé avec son type, le bouton qui le retire, refusé avec sa raison (`{ geste: 'supprimer', element }`,
+ *  `refusDeRetrait`), puis un bouton par type d'établissement (`typesDEtablissement`, `{ geste: 'ajouterEtablissement',
+ *  kind }`). #3606 #4277 */
+function propresDuLieu(s: SessionDEdition, lieu: DonneeDuPorteur['lieu']): (Choix | Ligne | Bouton)[] {
   const plan = planDuLieuOuvert(s);
   const ouvert = plan?.lieu.id === lieu.id;
+  const services = placeServices(lieu);
+  const poi = ouvert && plan.poi ? lieu.poi?.find((p) => p.id === plan.poi) : undefined;
+  const etablissements = lieu.services ?? [];
+  const nomDuType = (kind: string) => typesDEtablissement().find((sv) => sv.id === kind)?.label ?? kind;
   return [
     bouton('lieu/plan', t('ecran.editeur.lieu.plan'), { geste: 'planDuLieu', lieu: ouvert ? null : lieu.id }, ouvert),
     ...(ouvert ? [bouton('lieu/poi/retirer', t('ecran.editeur.lieu.poi.retirer'), { geste: 'retirerPoi' }, false, plan.poi ? null : t('ecran.editeur.lieu.poi.aucun'))] : []),
+    ...(poi ? [choix('lieu/poi/cible', t('ecran.editeur.lieu.poi.cible'), [
+      ...projetEdite(s).scenes.map((sc) => bouton(`lieu/poi/cible/scene/${sc.id}`, t('ecran.editeur.lieu.poi.cible.scene', { nom: sc.label || sc.id }), { geste: 'ciblerPoi', cible: { scene: sc.id } }, poi.sceneId?.id === sc.id)),
+      ...services.map((sv) => bouton(`lieu/poi/cible/service/${sv.id}`, t('ecran.editeur.lieu.poi.cible.service', { nom: sv.label }), { geste: 'ciblerPoi', cible: { service: sv.id } }, poi.service?.id === sv.id)),
+    ], 'liste')] : []),
+    ligne('lieu/etablissements', t('ecran.editeur.lieu.etablissements', { n: etablissements.length })),
+    ...etablissements.flatMap((e) => {
+      const nom = services.find((sv) => sv.id === e.id)?.label ?? e.id;
+      return [
+        ligne(`lieu/etablissement/${e.id}`, t('ecran.editeur.lieu.etablissement', { nom, type: nomDuType(e.kind.id) })),
+        bouton(`lieu/etablissement/${e.id}/retirer`, t('ecran.editeur.lieu.etablissement.retirer', { nom }), { geste: 'supprimer', element: e.id }, false, refusDeRetrait(s, e.id)),
+      ];
+    }),
+    choix('lieu/etablissement/ajouter', t('ecran.editeur.lieu.etablissement.ajouter'), typesDEtablissement().map((sv) => bouton(`lieu/etablissement/ajouter/${sv.id}`, sv.label, { geste: 'ajouterEtablissement', kind: sv.id })), 'liste'),
   ];
 }
 
@@ -1849,14 +1877,14 @@ function propresDeLEtat(s: SessionDEdition, etat: DonneeDuPorteur['etats']): (Ch
 
 /** Les éléments propres de l'inspecteur d'un porteur qui se liste à la zone Logique (`FORMULAIRES`, `logique`), par
  *  sorte : les nœuds d'un dialogue (`noeudsDuDialogue`), les membres d'une rencontre (`membresDeLaRencontre`), le sens
- *  d'une route (`sensDeLaRoute`), le plan d'un lieu (`planDuLieuEnInspecteur`), les sous-entrées d'une entrée du narratif
+ *  d'une route (`sensDeLaRoute`), le plan et les établissements d'un lieu (`propresDuLieu`), les sous-entrées d'une entrée du narratif
  *  qui en déclare (`sousEntreesDuRegistre`), la forme d'un état et ses sous-entrées (`propresDeLEtat`) ; sans entrée, aucun. Un déclencheur, une zone de la carte, s'inspecte comme
  *  elle (`inspecteurDeZone`). */
 const PROPRES_DE_LA_LOGIQUE: { readonly [S in SorteDePorteur]?: (s: SessionDEdition, donnee: DonneeDuPorteur[S]) => (Choix | Ligne | Bouton | Formulaire)[] } = {
   dialogue: noeudsDuDialogue,
   rencontre: membresDeLaRencontre,
   route: sensDeLaRoute,
-  lieu: planDuLieuEnInspecteur,
+  lieu: propresDuLieu,
   ...tableTotale(Object.keys(SOUS_ENTREES) as (keyof typeof SOUS_ENTREES)[], (registre) => sousEntreesDuRegistre(registre)),
   etats: propresDeLEtat,
 };
@@ -2226,12 +2254,16 @@ function planDeLEdition(s: SessionDEdition): PlanDeLaCarte {
   };
 }
 
-/** Le plan du lieu ouvert `plan` (`planDuLieuOuvert`) en élément `lieu/plan` : chaque point d'intérêt du lieu à sa
- *  position dans le cadre (`PlacePoi.pos` ÷ `UNITES_DU_PLAN_DE_CARTE`), le désigné en `alerte`, aux unités du pointeur. */
-const planDuLieu = ({ lieu, poi }: NonNullable<ReturnType<typeof planDuLieuOuvert>>): Plan => ({
-  type: 'plan', id: 'lieu/plan', traits: [], unites: UNITES_DU_PLAN_DE_CARTE,
-  points: (lieu.poi ?? []).map((p) => ({ type: 'point', id: p.id, nom: p.label, x: p.pos.x / UNITES_DU_PLAN_DE_CARTE, y: p.pos.y / UNITES_DU_PLAN_DE_CARTE, ton: p.id === poi ? 'alerte' : 'neutre', elements: [] })),
-});
+/** Le plan du lieu ouvert `plan` (`planDuLieuOuvert`) en élément `lieu/plan` : chaque point d'intérêt du lieu, nommé
+ *  (`nomDuPoi`), à sa position dans le cadre (`PlacePoi.pos` ÷ `UNITES_DU_PLAN_DE_CARTE`), le désigné en `alerte`, aux
+ *  unités du pointeur. */
+const planDuLieu = ({ lieu, poi }: NonNullable<ReturnType<typeof planDuLieuOuvert>>): Plan => {
+  const services = placeServices(lieu);
+  return {
+    type: 'plan', id: 'lieu/plan', traits: [], unites: UNITES_DU_PLAN_DE_CARTE,
+    points: (lieu.poi ?? []).map((p) => ({ type: 'point', id: p.id, nom: nomDuPoi(p, services), x: p.pos.x / UNITES_DU_PLAN_DE_CARTE, y: p.pos.y / UNITES_DU_PLAN_DE_CARTE, ton: p.id === poi ? 'alerte' : 'neutre', elements: [] })),
+  };
+};
 
 /** Les zones propres à la carte du monde ouverte de la session `s` : son nom, puis, le plan d'un lieu ouvert
  *  (`planDuLieuOuvert`), ses outils (`OUTILS_DU_PLAN_DU_LIEU`) et ce plan (`planDuLieu`), sinon ceux de la carte

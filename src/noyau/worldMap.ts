@@ -18,7 +18,6 @@ import type { z } from 'zod';
 import type { refusRouteSchema, routePerilSchema, worldMapParamsSchema } from '../data/schemas/defs-scenes/worldmap';
 import type { provenanceDeValeurSchema } from '../data/schemas/grammaire/route';
 import { garanti } from '../lib/garanti';
-import { t } from '../i18n';
 import { normalizeScene } from './monde/scene';
 import type { TravelMode, PalierDeBillet } from '../engine/travel';
 import { isEchangeable, type PortProfile } from '../engine/seaVoyage';
@@ -80,25 +79,26 @@ export interface MapPlace {
 }
 
 /** Un POI de PLAN (#345 phase 5) : cible EXCLUSIVE `sceneId` (transition vers une scène du projet,
- *  `quitterLaScene`) OU `serviceKind` (entrée de `lieux-services.json` que le lieu RÉSOUT — `placeServices`, dont
- *  le port/marché AUTOMATIQUES `'port'`/`'marche'` — le MÊME panneau de service que l'onglet Services),
- *  jamais les deux. `id` STABLE (référencé par l'éditeur et les tests, `validateScene`) ; `label` est
- *  le SEUL champ d'affichage (doctrine ids internes, AGENTS.md). */
-export interface PlacePoi {
+ *  `quitterLaScene`), nommée par son `label`, OU `service` (id d'un service que le lieu RÉSOUT — `placeServices`, dont
+ *  le port/marché AUTOMATIQUES `'port'`/`'marche'` — le MÊME panneau de service que l'onglet Services), nommé par ce
+ *  service (`nomDuPoi`). `id` STABLE (référencé par l'éditeur et les tests, `validateScene`). */
+export type PlacePoi = {
   id: string;
-  label: string;
   pos: { x: number; y: number };
   /** Icône du médaillon (id du registre `src/data/icons`), défaut `navigation/point-d-entree`. */
   icon?: IconId;
-  sceneId?: { id: string };
-  serviceKind?: { id: string };
-}
+} & (
+  | { label: string; sceneId: { id: string }; service?: undefined }
+  | { label?: undefined; sceneId?: undefined; service: { id: string } }
+);
 
-/** Un service EXTENSIBLE attaché à un lieu (catalogue `lieux-services.json`) — hors port/marché, qui
- *  portent leur propre schéma riche. `kind` désigne l'entrée du catalogue ; `label` = surcharge d'affichage
- *  facultative d'auteur ; `rest` = offre de couchage/repas PROPRE à ce service d'hébergement (`hebergement`
- *  du catalogue), à défaut de quoi il dérive de l'offre de repos de la scène (`placeServices`). */
+/** Un ÉTABLISSEMENT attaché à un lieu (catalogue `lieux-services.json`) — hors port/marché, qui portent leur propre
+ *  schéma riche. `id` STABLE, unique dans le lieu (#4277) : un lieu porte plusieurs établissements d'un même type ;
+ *  `kind` désigne l'entrée du catalogue ; `label` = surcharge d'affichage facultative d'auteur ; `rest` = offre de
+ *  couchage/repas PROPRE à cet établissement d'hébergement (`hebergement` du catalogue), à défaut de quoi il dérive de
+ *  l'offre de repos de la scène (`placeServices`). */
 export interface PlaceService {
+  id: string;
   kind: { id: string };
   label?: string;
   rest?: RestPlaces;
@@ -306,10 +306,14 @@ export type PlaceServiceCategory = 'port' | 'marche' | 'auberge' | 'autre';
  *  lieu (#343) et l'auberge. Les payloads métier sont RÉFÉRENCÉS, jamais copiés : `port`/`market`
  *  pointent la donnée existante du nœud, `rest` pointe l'offre propre au service ou celle de la scène. */
 export interface ResolvedPlaceService {
-  /** id de routage : l'entrée du catalogue (`'port'`, `'marche'`, `kind` d'un service déclaré), ou `'repos'` (repli sans auberge). */
+  /** id de routage : `'port'`, `'marche'`, l'`id` d'un établissement déclaré, ou `'auberge'` (dérivée de la scène). */
   id: string;
+  /** L'entrée du catalogue `lieux-services.json` dont le service est une instance. */
+  kind: string;
   category: PlaceServiceCategory;
   label: string;
+  /** Le `label` est le nom que l'auteur a donné à l'établissement (`PlaceService.label`), pas le libellé de son type. */
+  nommeParLAuteur?: true;
   icon?: IconId;
   desc?: string;
   port?: NonNullable<MapPlace['port']>;
@@ -338,18 +342,26 @@ export function serviceIcon(s: ResolvedPlaceService): IconId {
 }
 
 /** Résolution GÉNÉRALE de l'icône d'un marqueur de plan (#371) : l'`icon` authoré du POI PRIME (surcharge
- *  d'auteur) ; sinon l'icône se DÉRIVE de la cible — `serviceKind` → icône du service résolu (`serviceIcon`),
+ *  d'auteur) ; sinon l'icône se DÉRIVE de la cible — `service` → icône du service résolu (`serviceIcon`),
  *  `sceneId` → porte. Défaut ultime `navigation/point-d-entree`. Aucun backfill de donnée : la résolution couvre tout
  *  lieu présent et futur. PUR, source unique des marqueurs du hub, du panneau de détail et de l'éditeur. */
 export function poiIcon(poi: PlacePoi, services: ResolvedPlaceService[]): IconId {
   if (poi.icon) return poi.icon;
-  const service = poi.serviceKind;
+  const service = poi.service;
   if (service) {
     const svc = services.find((s) => s.id === service.id);
     if (svc) return serviceIcon(svc);
   }
   if (poi.sceneId) return 'outil-de-carte/porte';
   return 'navigation/point-d-entree';
+}
+
+/** Le nom d'un point d'intérêt : son `label` s'il mène à une scène, le nom du service résolu qu'il vise sinon
+ *  (`services`, sortie de `placeServices`), son id à défaut. PUR, source unique du nom d'un point d'intérêt. */
+export function nomDuPoi(poi: PlacePoi, services: readonly ResolvedPlaceService[]): string {
+  if (poi.service === undefined) return poi.label;
+  const id = poi.service.id;
+  return services.find((s) => s.id === id)?.label ?? id;
 }
 
 /** id STABLE du marchand VIRTUEL d'un service de lieu (#369) : le service de catalogue (forgeron…) n'a
@@ -377,26 +389,28 @@ export const SERVICE_CITE = { port: 'port', marche: 'marche', auberge: 'auberge'
  * (`place.market`) et les services extensibles du catalogue (`place.services`, `lieux-services.json`),
  * plus l'auberge — déclarée en service propre OU dérivée de l'offre de repos de la scène liée. Zéro
  * duplication de vérité : chaque payload RÉFÉRENCE sa donnée d'origine (port/marché/offre de repos),
- * il n'en est jamais recopié une seconde source. Consommée par le hub de lieu et l'auberge (phase 2) ;
- * les consommateurs actuels (PortView/LandMarketView/restPlacesHere) restent inchangés en phase 1.
+ * il n'en est jamais recopié une seconde source. Consommée par le hub de lieu, l'écran du lieu (`lieuEnVue`), le
+ * repos (`reposDuLieu`), l'auberge (`recueillirLesRumeurs`), l'échoppe (`ouvrirLaBoutique`) et `validateScene`.
  */
-export function placeServices(place: MapPlace, scene?: Scene, reposIci?: RestPlaces | null): ResolvedPlaceService[] {
+export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceService[] {
   const out: ResolvedPlaceService[] = [];
   if (place.port) {
     const def = garanti(findLieuServiceById(SERVICE_CITE.port), SERVICE_CITE.port, 'service de lieu');
-    out.push({ id: 'port', category: 'port', label: def.label, icon: def.icon, desc: def.desc, port: place.port, hostLine: def.hostLine, backdrop: def.backdrop?.id });
+    out.push({ id: 'port', kind: SERVICE_CITE.port, category: 'port', label: def.label, icon: def.icon, desc: def.desc, port: place.port, hostLine: def.hostLine, backdrop: def.backdrop?.id });
   }
   if (place.market) {
     const def = garanti(findLieuServiceById(SERVICE_CITE.marche), SERVICE_CITE.marche, 'service de lieu');
-    out.push({ id: 'marche', category: 'marche', label: def.label, icon: def.icon, desc: def.desc, market: place.market, hostLine: def.hostLine, backdrop: def.backdrop?.id });
+    out.push({ id: 'marche', kind: SERVICE_CITE.marche, category: 'marche', label: def.label, icon: def.icon, desc: def.desc, market: place.market, hostLine: def.hostLine, backdrop: def.backdrop?.id });
   }
   for (const s of place.services ?? []) {
     const def = findLieuServiceById(s.kind.id);
     const auberge = def?.hebergement === true;
     out.push({
-      id: s.kind.id,
+      id: s.id,
+      kind: s.kind.id,
       category: auberge ? 'auberge' : 'autre',
       label: s.label ?? def?.label ?? s.kind.id,
+      ...(s.label !== undefined ? { nommeParLAuteur: true as const } : {}),
       icon: def?.icon,
       desc: def?.desc,
       rest: auberge ? (s.rest ?? sceneAubergeOffer(scene)) : undefined,
@@ -413,11 +427,9 @@ export function placeServices(place: MapPlace, scene?: Scene, reposIci?: RestPla
     const rest = sceneAubergeOffer(scene);
     if (rest) {
       const def = garanti(findLieuServiceById(SERVICE_CITE.auberge), SERVICE_CITE.auberge, 'service de lieu');
-      out.push({ id: 'auberge', category: 'auberge', label: def.label, icon: def.icon, desc: def.desc, rest, hostLine: def.hostLine, backdrop: def.backdrop?.id });
+      out.push({ id: 'auberge', kind: SERVICE_CITE.auberge, category: 'auberge', label: def.label, icon: def.icon, desc: def.desc, rest, hostLine: def.hostLine, backdrop: def.backdrop?.id });
     }
   }
-  // Couchage À LA POSITION du groupe (`reposIci`, camp/maison) sans auberge : service « Repos » de repli.
-  if (reposIci && !out.some((sv) => sv.category === 'auberge')) out.push({ id: 'repos', category: 'auberge', label: t('lieu.repos'), icon: 'navigation/repos', rest: reposIci });
   return out;
 }
 

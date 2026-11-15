@@ -1547,7 +1547,7 @@ export type LandCargoData = DatasetDe<typeof landCargoDef>;
 export const landCargo = datasetDe<typeof landCargoDef>(landCargoJson);
 
 /** Vocabulaire des SERVICES de lieu (#343, `lieux-services.json`) — catalogue EXTENSIBLE désigné par
- *  `ref('serviceDeLieu')` (`MapPlace.services[].kind`, `PlacePoi.serviceKind`) et résolu par `placeServices`
+ *  `ref('serviceDeLieu')` (`MapPlace.services[].kind`, et `PlacePoi.service` hors des établissements du lieu) et résolu par `placeServices`
  *  (`src/noyau/worldMap.ts`). `port`/`marche` y donnent le libellé, l'icône et le fond par défaut du port et du
  *  marché d'un lieu, qui gardent leur propre schéma riche — id STABLE → libellé/icône d'affichage du hub de lieu. */
 export type LieuServiceData = EntreeDe<typeof lieuxServicesDef>;

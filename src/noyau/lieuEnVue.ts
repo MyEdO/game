@@ -1,18 +1,17 @@
 /**
  * LE LIEU EN VUE (#3534) — ce qu'un hôte montre de l'écran du lieu qui tient la main : le nom du lieu, sa description
  * dite aux identités en vigueur (`nommer`), sa place sur le plan de la carte (`planDepuis`) et le geste qui l'ouvre,
- * chacun de ses services (`placeServices`), son icône, son fond,
+ * chacun de ses services (`servicesDuLieu`), son icône, son fond,
  * le boniment de son hôte et ce qu'on y fait, écrit en verbe du noyau avec ce qui le ferme maintenant, les points
  * d'intérêt de son plan qui mènent à une scène et le choix d'y entrer (`entreesDuLieu`, #3611), puis les trajets qui en partent
  * (`trajetsDepuis`). Lecteur PUR, lu par les hôtes du noyau (`hote/ecran.ts`).
  */
 import type { Jeu } from './etat';
 import type { GesteDuNoyau } from './actionsDuNoyau';
-import { lieuDuGroupe, placeServices, serviceIcon, type ResolvedPlaceService } from './worldMap';
+import { lieuDuGroupe, serviceIcon, type ResolvedPlaceService } from './worldMap';
 import { planDepuis, trajetsDepuis, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
 import { refusAQuai } from './portFlow';
-import { entreesDuLieu, refusDEntrerAuPoint } from './lieuFlow';
-import { sceneDuRegistre } from './monde/registreDesScenes';
+import { entreesDuLieu, refusDEntrerAuPoint, servicesDuLieu } from './lieuFlow';
 import { identitesResolues, nommer } from './monde/identites';
 import { fenetreDuJeu } from './combatAuto';
 import { VERBE_DE_CHOIX } from './choixDesFenetres';
@@ -37,8 +36,8 @@ export interface LieuEnVue { nom: string; prose: string | null; plan: PlanDeLaCa
 function gestesDuService(s: Jeu, svc: ResolvedPlaceService): GesteDuService[] {
   const entrer = (geste: GesteDuNoyau, refus: string | null = null): GesteDuService[] => [{ id: 'entrer', libelle: svc.enterLabel ?? t('lieu.entrer'), geste, refus }];
   if (svc.category === 'auberge') {
-    const dormir: GesteDuService[] = svc.rest ? [{ id: 'dormir', libelle: t('lieu.dormir'), geste: { verbe: 'ouvrirLeRepos', args: [] }, refus: null }] : [];
-    return [...dormir, { id: 'informations', libelle: t('lieu.informations'), geste: { verbe: 'recueillirLesRumeurs', args: [] }, refus: null }];
+    const dormir: GesteDuService[] = svc.rest ? [{ id: 'dormir', libelle: t('lieu.dormir'), geste: { verbe: 'ouvrirLeRepos', args: [svc.id] }, refus: null }] : [];
+    return [...dormir, { id: 'informations', libelle: t('lieu.informations'), geste: { verbe: 'recueillirLesRumeurs', args: [svc.id] }, refus: null }];
   }
   if (svc.category === 'port' || svc.opensScreen === 'port') return entrer({ verbe: 'ouvrirLePort', args: [] }, refusAQuai(s));
   if (svc.category === 'marche') return entrer({ verbe: 'ouvrirLeMarche', args: [] });
@@ -50,7 +49,7 @@ function gestesDuService(s: Jeu, svc: ResolvedPlaceService): GesteDuService[] {
 export function lieuEnVue(s: Jeu): LieuEnVue | null {
   const ici = fenetreDuJeu(s)?.cle === 'ecranDuLieu' ? lieuDuGroupe(s) : undefined;
   if (!s.worldMap || !ici) return null;
-  const services = placeServices(ici, sceneDuRegistre(ici.scene.id))
+  const services = servicesDuLieu(s)
     .map((svc): ServiceEnVue => ({
       id: svc.id, nom: svc.label, icone: serviceIcon(svc), fond: svc.backdrop ?? null, accueil: svc.hostLine ?? null,
       gestes: gestesDuService(s, svc),

@@ -7,7 +7,7 @@ import { resetData, setObjectDataset } from '../data/overrides';
 import { semencesDeScene } from '../data';
 import { routesFrom, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import {
-  BORNES_DE_CARTE, ajouterLieu, basculerMode, lierLieux, majCarte, majLieu, majRoute, supprimerLieu, supprimerRoute,
+  BORNES_DE_CARTE, ajouterLieu, basculerMode, ciblerPoi, etablissementAjoute, etablissementRetire, lierLieux, majCarte, majLieu, majRoute, supprimerLieu, supprimerRoute, typesDEtablissement,
 } from './worldMapEdit';
 
 const lieu = (id: string, x: number, y = 50): MapPlace => ({ id, label: id, pos: { x, y }, scene: { id: 's' } });
@@ -148,5 +148,31 @@ describe('patchs et modes', () => {
   it('des modes vidés par un patch retombent à pied', () => {
     const m = carte([lieu('a', 10), lieu('b', 80)], [route('r', 'a', 'b', { sea: true, modes: ['mer'] })]);
     expect(majRoute(m, 'r', { sea: undefined, modes: [] }).routes[0].modes).toEqual(['pied']);
+  });
+});
+
+describe('établissements d’un lieu (#4277)', () => {
+  const avec = (l: MapPlace, ...kinds: string[]) => kinds.reduce((x, k) => ({ ...x, ...etablissementAjoute(x, k) }), l);
+
+  it('un établissement neuf prend l’identifiant de son type, puis le premier suffixe libre, jamais celui d’un service automatique du lieu', () => {
+    expect(avec(lieu('a', 10), 'auberge', 'auberge', 'temple').services).toEqual([
+      { id: 'auberge', kind: { id: 'auberge' } }, { id: 'auberge-2', kind: { id: 'auberge' } }, { id: 'temple', kind: { id: 'temple' } },
+    ]);
+    expect(etablissementAjoute({ ...lieu('a', 10), port: { taille: 2, richesse: 2, production: [] } }, 'port').services?.[0].id).toBe('port-2');
+    expect(typesDEtablissement().map((sv) => sv.id)).not.toContain('port');
+  });
+
+  it('un établissement se retire, la liste vidée retirée ; refusé tant qu’un point d’intérêt le vise', () => {
+    const l = avec(lieu('a', 10), 'auberge', 'forgeron');
+    expect(etablissementRetire(l, 'auberge')).toEqual({ services: [{ id: 'forgeron', kind: { id: 'forgeron' } }] });
+    expect(etablissementRetire(avec(lieu('a', 10), 'auberge'), 'auberge')).toEqual({ services: undefined });
+    expect(etablissementRetire({ ...l, poi: [{ id: 'p', pos: { x: 1, y: 1 }, service: { id: 'forgeron' } }] }, 'forgeron')).toBeUndefined();
+  });
+
+  it('un point d’intérêt change de cible, son identifiant, sa position et son icône gardés', () => {
+    const m = carte([{ ...lieu('a', 10), poi: [{ id: 'p', pos: { x: 1, y: 2 }, icon: 'navigation/repos', label: 'Porte', sceneId: { id: 's' } }] }]);
+    const service = ciblerPoi(m, 'a', 'p', { service: { id: 'auberge' } });
+    expect(service.places[0].poi).toEqual([{ id: 'p', pos: { x: 1, y: 2 }, icon: 'navigation/repos', service: { id: 'auberge' } }]);
+    expect(ciblerPoi(service, 'a', 'p', { label: 'Salle', sceneId: { id: 's' } }).places[0].poi).toEqual([{ id: 'p', pos: { x: 1, y: 2 }, icon: 'navigation/repos', label: 'Salle', sceneId: { id: 's' } }]);
   });
 });

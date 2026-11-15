@@ -20,6 +20,10 @@ import { applyOps, type GameOp } from '../engine/ops';
 import { openPartyTest, freeCons } from './rollSeam';
 import { generateTradeRumour } from './landMarketFlow';
 import { rule } from '../engine/policy';
+import { lieuDuGroupe } from './worldMap';
+import { hebergementsDuLieu } from './lieuFlow';
+import { refuserGeste } from './refusVisible';
+import { t } from '../i18n';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
@@ -32,9 +36,13 @@ export function innGatherInfoMinutes(): number {
   return Number(rule('auberge-recueillir-informations-minutes'));
 }
 
-/** Ouvre le Test de Ragot de l'auberge (activité `recueillir-informations`, contexte `auberge`). Silence
- *  attendu si aucun héros n'a la Compétence (`openRoll` : garde `partyBest` sans candidat, D3). */
-export function recueillirLesRumeurs(get: Get, set: Set): void {
+/** Ouvre le Test de Ragot de l'auberge (activité `recueillir-informations`, contexte `auberge`) ; à un lieu de la
+ *  carte, à son établissement d'hébergement `hebergementId` (`hebergementsDuLieu`), refusé sans lui. Silence attendu si aucun
+ *  héros n'a la Compétence (`openRoll` : garde `partyBest` sans candidat, D3). */
+export function recueillirLesRumeurs(get: Get, set: Set, hebergementId?: string): void {
+  if (lieuDuGroupe(get()) && !hebergementsDuLieu(get()).some((svc) => svc.id === hebergementId)) {
+    return void refuserGeste(get, set, t('lieu.hebergementInconnu', { service: hebergementId ?? '' }));
+  }
   const def = activityById(ACTIVITY_ID);
   const test = def?.tests?.[0];
   if (!def || !test?.skill) return;
@@ -48,7 +56,7 @@ export function recueillirLesRumeurs(get: Get, set: Set): void {
 
 export function creerActionsDeLAuberge(get: Get, set: Set) {
   return {
-    recueillirLesRumeurs: () => recueillirLesRumeurs(get, set),
+    recueillirLesRumeurs: (hebergementId) => recueillirLesRumeurs(get, set, hebergementId),
   } satisfies FabriqueDuNoyau;
 }
 

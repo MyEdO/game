@@ -61,8 +61,8 @@ import { nomEnVue } from './visionDuGroupe';
 import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
 import { sceneNpc } from './monde/sceneNpc';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
-import { cleDeBillet, lieuDuGroupe, placeServiceMerchantId, placeServices, type ResolvedPlaceService } from './worldMap';
-import { sceneDuRegistre } from './monde/registreDesScenes';
+import { cleDeBillet, lieuDuGroupe, placeServiceMerchantId } from './worldMap';
+import { echoppesDuLieu } from './lieuFlow';
 import { ajouterLaPossession } from './possessionsFlow';
 import { traceLineOf } from '../engine/traceLine';
 import { refuserGeste } from './refusVisible';
@@ -433,20 +433,14 @@ export function ouvrirLeMarchand(get: Get, set: Set, entityId: string): void {
   openMerchantByArchetype(get, set, entityId, ent.merchant.archetype.id, ent);
 }
 
-/** Les services à échoppe (`merchantArchetype`) du lieu où se tient le groupe (`lieuDuGroupe`). */
-export function echoppesDuLieu(s: Jeu): ResolvedPlaceService[] {
-  const ici = lieuDuGroupe(s);
-  return ici ? placeServices(ici, sceneDuRegistre(ici.scene.id)).filter((svc) => svc.merchantArchetype) : [];
-}
-
-/** Marchand de LIEU (#369) — ouvre le système marchand EXISTANT pour l'échoppe `serviceId` du lieu du groupe
+/** Marchand de LIEU (#369) — ouvre le système marchand EXISTANT pour l'échoppe `echoppeId` du lieu du groupe
  *  (`echoppesDuLieu`, forgeron du hub de ville…) : même `openMerchantByArchetype`, keyé sur l'id virtuel
  *  `placeServiceMerchantId` (stock persistant propre au lieu+service). Extension du général, pas un fork. */
-export function ouvrirLaBoutique(get: Get, set: Set, serviceId: string): void {
+export function ouvrirLaBoutique(get: Get, set: Set, echoppeId: string): void {
   const ici = lieuDuGroupe(get());
-  const svc = echoppesDuLieu(get()).find((x) => x.id === serviceId);
+  const svc = echoppesDuLieu(get()).find((x) => x.id === echoppeId);
   if (!ici) return void refuserGeste(get, set, t('mf.boutiqueSansLieu'));
-  if (!svc?.merchantArchetype) return void refuserGeste(get, set, t('mf.boutiqueInconnue', { service: serviceId }));
+  if (!svc) return void refuserGeste(get, set, t('mf.boutiqueInconnue', { service: echoppeId }));
   openMerchantByArchetype(get, set, placeServiceMerchantId(ici.id, svc.id), svc.merchantArchetype, undefined, svc.backdrop);
 }
 
@@ -1126,7 +1120,7 @@ function acquitterLEvaluation(get: Get, set: Set): void {
 export function creerActionsDuMarchand(get: Get, set: Set) {
   return {
     ouvrirLeMarchand: (entityId) => ouvrirLeMarchand(get, set, entityId),
-    ouvrirLaBoutique: (serviceId) => ouvrirLaBoutique(get, set, serviceId),
+    ouvrirLaBoutique: (echoppeId) => ouvrirLaBoutique(get, set, echoppeId),
     evaluerLObjet: (aEvaluer, mode) => evaluerLObjet(get, set, aEvaluer, mode),
   } satisfies FabriqueDuNoyau;
 }
