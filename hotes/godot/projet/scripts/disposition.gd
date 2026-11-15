@@ -1,13 +1,16 @@
 ## La disposition de la fenêtre (#3328) : la scène d'éditeur, sans script, qui range les zones de la fenêtre qui tient
 ## la main. Celle que la vue nomme (`vue.disposition`, `res://ecrans/<disposition>.tscn`) quand elle existe, sinon la
-## générique (`GENERIQUE`) ; elle s'instancie juste après ce nœud, sous les panneaux de la scène, et remplace la précédente.
+## générique (`GENERIQUE`) ; elle s'instancie juste après ce nœud, au-dessus du round, de l'ordre et de l'actif
+## (`Hud`), sous le dialogue et le groupe, et remplace la précédente.
 class_name Disposition
 extends Node
 
 ## @contrat L'écran de Godot
 ## L'écran (`projet/scenes/Ecran.tscn`) se partage en trois : le journal à droite, le groupe au pied, et la scène
-## (`Scene`), l'espace qui reste, que la fiche ouverte rétrécit à sa gauche, où se posent la disposition, le tour, l'actif
-## et le dialogue, et où se cadre le monde (`Monde.cadre`) ; rien ne recouvre le groupe ni le journal. Le coin bas-droit
+## (`Scene`), l'espace qui reste, que la fiche ouverte rétrécit à sa gauche, où se posent la disposition, le round en
+## cartouche en haut à gauche (`Hud/Tour`, `Cartouche`), l'ordre du tour en colonne au bord gauche, celui qui joue en bas
+## (`Hud/Corps/Ordre`, chaque rang en `rang`), l'actif et le dialogue, et où se cadre le monde (`Monde.cadre`) ; rien
+## ne recouvre le groupe ni le journal. Le coin bas-droit
 ## de la fenêtre est réservé à la pastille du menu de la partie (`partie.menu`, `projet/scenes/MenuDeLaPartie.tscn`), qui
 ## ouvre au-dessus d'elle les gestes du groupe et de la partie (`groupe.gestes`, `partie.gestes`) : le journal s'arrête
 ## au-dessus d'elle (`Droite/Pile/Coin`), et, le journal caché, le bandeau des héros lui laisse sa largeur à droite
@@ -20,7 +23,7 @@ extends Node
 ## nomme des `ids` n'en montre que ces éléments, un id fini par `/` nommant toute la famille des ids qui commencent par
 ## lui, une zone sans `ids` ceux qu'aucune autre zone de sa source ne nomme (`Zone.montrer_toutes`), si bien qu'aucun
 ## élément ne se perd. Les fenêtres de jet héritent du cadre `projet/cadres/fenetre_de_jet.tscn`, posé en bas à droite
-## de la scène, à l'écart du panneau de l'actif (`Hud/Gauche`) en haut à gauche. L'écran d'attaque
+## de la scène, à l'écart du panneau de l'actif (`Hud/Corps/Gauche`) en haut à gauche. L'écran d'attaque
 ## (`projet/ecrans/cascade/attaque.tscn`) montre la cible,
 ## l'arme et ses pastilles, le jet de l'attaquant face à celui de la défense (le nombre à atteindre et le dé en gros),
 ## l'issue, les options du coup puis les gestes en rangée ; l'écran de Défense (`projet/ecrans/cascade/defense.tscn`),
@@ -29,7 +32,7 @@ extends Node
 ## cible, le jet du lanceur (son NI au libellé), la zone et le budget de Surincantation en pastilles, l'issue, puis
 ## chaque axe que le sort ouvre en choix de pas, de 0 au budget, chaque pas de trop refusé avec sa raison. L'écran du
 ## lieu et la carte du monde sont la couche « monde », plein écran, jamais une fenêtre posée par-dessus : chacun hérite
-## du cadre `projet/cadres/monde.tscn`, posé sous les panneaux de la scène comme toute disposition, le titre en grand
+## du cadre `projet/cadres/monde.tscn`, posé au-dessus du `Hud` et sous le dialogue comme toute disposition, le titre en grand
 ## et les gestes en tête, la bourse du groupe dessous quand l'écran la montre (`bourse`), et n'y ajoute que son
 ## contenu. L'écran du lieu (`projet/ecrans/ecranDuLieu.tscn`) ouvre la carte en tête (`lieu/carte`), dit sous son
 ## titre la date impériale (`lieu/date`, en `rubrique`) puis sa description quand il en a une (`lieu/description`) et

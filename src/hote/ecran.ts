@@ -90,9 +90,11 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
   /** le round et le tour. */
   'combat.tour': Ligne[];
   /**
-   * chaque combattant dans l'ordre du tour en puce : ses Blessures, celui qui joue en `alerte`, un ennemi en `echec`.
+   * chaque combattant de l'ordre du tour en vue en rang `ordre/<id>`, celui qui joue en bas : son portrait, ses
+   * Blessures en jauge ; celui qui joue en `alerte`, un ennemi en `echec` ; ceux qui ont déjà joué ce round au-dessus,
+   * le premier d'entre eux portant en ligne `round` le round qui commence avec lui.
    */
-  'combat.ordre': Puce[];
+  'combat.ordre': Entite[];
   /**
    * l'actif en entité : ses Blessures et son Mouvement en jauges, son Avantage, son Action, chacun de ses États en
    * puce.
@@ -893,14 +895,28 @@ function offresDuCombat(c: Combat): Choix[] {
   });
 }
 
-/** L'ordre du tour en vue (`ordreEnVue`) : chaque combattant en puce, ses Blessures pour valeur ; celui qui joue en
- *  alerte, un ennemi en échec. */
-const ordreDuTour = (etat: Jeu, c: Combat): Puce[] =>
-  ordreEnVue(etat).flatMap((id) => {
+/** L'ordre du tour en vue (`ordreEnVue`), du dernier à jouer en haut à celui qui joue en bas : ceux qui ont déjà joué ce
+ *  round (avant `battle.turn` dans `battle.order`) jouent au round suivant, au-dessus de ceux qui restent. Chaque
+ *  combattant en rang (`ordre/`) : son portrait, ses Blessures en jauge ; celui qui joue en `alerte`, un ennemi en
+ *  `echec` ; le premier du round suivant porte le round qui commence avec lui (`round`). */
+function ordreDuTour(etat: Jeu, c: Combat): Entite[] {
+  const b = garanti(etat.battle, 'ordre', 'combat en cours');
+  const aJoue = (id: string): boolean => b.order.indexOf(id) < b.turn;
+  const ordre = ordreEnVue(etat);
+  const suivant = ordre.filter(aJoue);
+  return [...ordre.filter((id) => !aJoue(id)), ...suivant].flatMap((id): Entite[] => {
     const x = porteurParId(etat, id);
     if (!x) return [];
-    return [puce(`ordre/${id}`, x.label, t('ecran.jauge', { courant: x.wounds.current, max: x.wounds.max }), null, id === c.actif?.id ? 'alerte' : x.kind === 'ennemi' ? 'echec' : 'neutre')];
-  });
+    return [{
+      type: 'entite', id: `ordre/${id}`, ton: id === c.actif?.id ? 'alerte' : x.kind === 'ennemi' ? 'echec' : 'neutre', nom: x.label,
+      elements: [
+        { type: 'portrait', id: 'portrait', combattant: id },
+        jauge('blessures', t('ecran.jauge.blessures'), [x.wounds.current, x.wounds.max]),
+        ...(id === suivant[0] ? [ligne('round', t('ecran.round', { round: c.round + 1 }))] : []),
+      ],
+    }];
+  }).reverse();
+}
 
 /** Le ton de chaque issue du combat. */
 const TON_DE_LA_FIN: Record<NonNullable<Combat['fin']>, Ton> = { victoire: 'reussite', defaite: 'echec' };

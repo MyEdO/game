@@ -1,0 +1,65 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="Theme" path="res://art/rang.tres" id="t_rang"]
+
+[node name="Rang" type="VBoxContainer"]
+size_flags_horizontal = 0
+theme = ExtResource("t_rang")
+theme_type_variation = &"PileTassee"
+
+[node name="Rangee" type="HBoxContainer" parent="."]
+theme_type_variation = &"RangeeSerree"
+
+[node name="Cadre" type="PanelContainer" parent="Rangee"]
+size_flags_vertical = 4
+
+[node name="ton" type="Node" parent="Rangee/Cadre"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="Pile" type="VBoxContainer" parent="Rangee/Cadre"]
+theme_type_variation = &"PileTassee"
+
+[node name="Portrait" type="HBoxContainer" parent="Rangee/Cadre/Pile"]
+alignment = 1
+
+[node name="Zone" type="Node" parent="Rangee/Cadre/Pile/Portrait"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("portrait")
+
+[node name="Vie" type="HBoxContainer" parent="Rangee/Cadre/Pile"]
+
+[node name="Zone" type="Node" parent="Rangee/Cadre/Pile/Vie"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("blessures")
+formes = PackedStringArray("jauge:vie")
+
+[node name="Nom" type="Label" parent="Rangee"]
+custom_minimum_size = Vector2(80, 0)
+size_flags_vertical = 4
+autowrap_mode = 3
+
+[node name="nom" type="Node" parent="Rangee/Nom"]
+script = ExtResource("1_liaison")
+champ = "nom"
+
+[node name="ton" type="Node" parent="Rangee/Nom"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="Round" type="PanelContainer" parent="."]
+size_flags_horizontal = 0
+theme_type_variation = &"Medaillon"
+
+[node name="Zone" type="Node" parent="Round" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("round")
+formes = PackedStringArray("ligne:rubrique")
+masque = NodePath("..")
