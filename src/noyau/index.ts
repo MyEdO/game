@@ -252,6 +252,7 @@ export {
 export {
   CODEX_GROUPS,
   categoryByKey,
+  cibleDuCodex,
   codexGroupLabel,
   type CodexItem,
   type CodexRow,
@@ -307,7 +308,7 @@ export { fenetreDIncantation, type FenetreDIncantation } from './fenetreDIncanta
 export { fenetreDuSoin } from './soin';
 export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
-export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur } from './ficheDuPorteur';
+export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur, type Renvoyable } from './ficheDuPorteur';
 export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
 export { carteEnVue, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
 export { lieuEnVue } from './lieuEnVue';

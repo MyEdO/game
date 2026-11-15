@@ -7,8 +7,8 @@ extends SceneTree
 ## lecture, une fois quand l'élément l'est ; un combattant sans corps sur un véhicule (`Combattant.montrer`,
 ## `MontageDeVehicule`) quand l'élément du véhicule l'est ; des navires (`MontageDesNavires`) dont le navire posé change de
 ## corps et de centre, quand la pièce de son poste l'est ; l'éditeur ouvert (`scripts/editeur.gd`, sur le figé de
-## `recettes/editeur-navire.gd`) quand un dépôt s'écrit au pont ; le Compendium ouvert (`scripts/compendium.gd`) quand
-## ses données s'écrivent au dépôt. Relâchée, la requête ne poursuit rien sur eux : aucune
+## `recettes/editeur-navire.gd`) quand un dépôt s'écrit au pont ; le Compendium ouvert (`scripts/panneau_du_compendium.gd`)
+## quand ses données s'écrivent au dépôt. Relâchée, la requête ne poursuit rien sur eux : aucune
 ## requête ni aucun appel de plus au pont, aucun `habille` ni `pose`, aucune erreur du moteur (comptée par
 ## `hotes/godot/construire.mjs`, `erreursDe`).
 
@@ -165,15 +165,16 @@ func _sortir_le_compendium_en_ecriture() -> void:
 	var compendium: Node = (load("res://scenes/Compendium.tscn") as PackedScene).instantiate()
 	root.add_child(compendium)
 	current_scene = compendium
+	var panneau: PanneauDuCompendium = compendium.get_node("Panneau")
 	for i in IMAGES_D_OUVERTURE:
-		if not compendium.get("_vues").is_empty():
+		if not panneau.vues().is_empty():
 			break
 		await process_frame
-	if compendium.get("_vues").is_empty():
+	if panneau.vues().is_empty():
 		_fautes.append("compendium : il ne s'est pas ouvert")
 		return
 	pont.retient = true
-	compendium._suivre({ok = true, zones = ZONES_DU_COMPENDIUM, donnees = {fichier = "talents.json", texte = "{}", avant = 1}})
+	panneau._suivre({ok = true, zones = ZONES_DU_COMPENDIUM, donnees = {fichier = "talents.json", texte = "{}", avant = 1}})
 	await _sortir(pont, "compendium", compendium, [0])
 
 

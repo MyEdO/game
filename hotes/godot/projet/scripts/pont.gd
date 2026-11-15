@@ -103,6 +103,13 @@ func est_pret() -> bool:
 	return _transport.est_ouvert()
 
 
+## L'accueil revient, plus rien ne disant au combat comment s'ouvrir (`entree` vidée, `essai` levé).
+func revenir_a_l_accueil() -> void:
+	entree = ""
+	essai = false
+	get_tree().change_scene_to_file("res://scenes/Accueil.tscn")
+
+
 ## Le pont rejoint par un écran : chaque refus rendu à `au_refus` (son message), chaque panne à `a_la_panne`, chacun abonné
 ## une fois et désabonné à la libération de son objet ; `true` une fois le lieu du noyau ouvert et les volumes posés
 ## (`regler_les_volumes`), `false` (la panne signalée) s'il ne s'ouvre pas.
@@ -160,10 +167,13 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##
 ## - Au menu : `{ boutons: { texte, x, y }[], curseurs: { element, gauche, droite, y, valeur }[] }`, le texte et le
 ##   centre de chaque bouton actif, et chaque curseur réglable du panneau des réglages (`PontDuNoyau.curseurs_a_l_ecran`).
-## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], curseurs, cases: Record<"x,y,z", [x, y]>,
-##   glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], panneaux: [x, y, largeur, hauteur][],
+## - Au Compendium : `{ boutons: { texte, x, y, element?, cle?, choix?, ids?, retenu? }[], panneaux: [x, y, largeur,
+##   hauteur][], saisies: { texte, x, y, element? }[], compendium: { zones } }`, comme à l'éditeur, et les zones de la
+##   dernière réponse de `compendium` (section « Compendium ») ; « Fermer » porte la clé `compendium/fermer`.
+## - Au combat : `{ boutons: { texte, x, y, element?, cle?, choix?, ids?, retenu? }[], curseurs, cases: Record<"x,y,z",
+##   [x, y]>, glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], panneaux: [x, y, largeur, hauteur][],
 ##   corps: Record<string, { base: string, elements: string[], emblemes: Record<string, string>,
-##   couleurs: Record<string, Record<string, string>> }>, navires: string[] }`,
+##   couleurs: Record<string, Record<string, string>> }>, navires: string[], compendium: { zones } }`,
 ##   plus le point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, si la caméra
 ##   glisse vers un lieu ou pivote (`Monde.glisse` : publié au départ du glissé, où les points de `cases` sont encore
 ##   ceux d'avant, puis à sa fin, où ils tiennent), si la vision posée se fond encore depuis celle d'avant
@@ -178,7 +188,8 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/fin-de-tour`
 ##   pour une offre, `bouton/<clé du geste>` pour un geste de la fenêtre, `bouton/<clé du geste>/<n>` pour la n-ième
 ##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids`, `retenu`, `ouverte` et `designe`, comme à
-##   l'atelier ; `curseurs`, comme au menu.
+##   l'atelier ; `curseurs`, comme au menu ; `compendium`, les zones du Compendium ouvert en consultation depuis une
+##   fiche, vide quand il est caché, ses boutons parmi `boutons`.
 ## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], panneaux: [x, y, largeur, hauteur][],
 ##   saisies: { texte, x, y, element? }[], panneau: { valeur, contenu, page, haut, bas, boutons, saisies },
 ##   cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes, noms, calque, calque_pose } }`, l'emprise de

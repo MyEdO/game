@@ -545,6 +545,7 @@ export const fr = {
   'ecran.fiche.ouvrir': 'Fiche',
   'ecran.fiche.competence': '{carac} {base} + {avances}',
   'ecran.fiche.nombre': '×{nombre}',
+  'ecran.fiche.compendium': 'Compendium',
   'ecran.fiche.possession': '{libelle} ×{nombre}',
   'ecran.statbloc.m': 'M',
   'ecran.statbloc.b': 'B',

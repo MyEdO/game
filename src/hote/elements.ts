@@ -16,8 +16,9 @@ export type Ton = 'neutre' | 'reussite' | 'echec' | 'alerte';
 export interface Ligne { type: 'ligne'; id: string; ton: Ton; texte: string; detail: string | null }
 
 /** Une puce : un libellé et sa valeur (un État et son nombre, un modificateur et son signe). `detail` : ce qu'elle
- *  change, montré à la demande. */
-export interface Puce { type: 'puce'; id: string; ton: Ton; libelle: string; valeur: string | null; detail: string | null }
+ *  change, montré à la demande ; `jeu` : ce qu'elle joue, pressée (le terme d'une fiche ouvre le Compendium sur
+ *  l'entrée qu'il désigne), `null` si elle ne se presse pas. */
+export interface Puce { type: 'puce'; id: string; ton: Ton; libelle: string; valeur: string | null; detail: string | null; jeu: Jeu | null }
 
 /** Une jauge : sa valeur courante sur son maximum, et ce qu'elle dit. */
 export interface Jauge { type: 'jauge'; id: string; ton: Ton; libelle: string; courant: number; max: number; texte: string }
