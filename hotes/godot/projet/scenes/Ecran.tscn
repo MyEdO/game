@@ -253,7 +253,6 @@ repli = true
 
 [node name="Chronique" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
 visible = false
-custom_minimum_size = Vector2(440, 0)
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
@@ -269,7 +268,7 @@ mouse_filter = 2
 theme_type_variation = &"RangeeSerree"
 
 [node name="Panneau" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Chronique"]
-size_flags_horizontal = 3
+custom_minimum_size = Vector2(350, 0)
 size_flags_vertical = 8
 mouse_filter = 2
 theme = ExtResource("t_chronique")

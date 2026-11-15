@@ -61,12 +61,12 @@ extends Node
 ## s'écrivent sur la scène, en bas à droite au-dessus de la fin du tour (`Chronique`, `Zone.derniers`), et sa pastille
 ## (`journal.titre`, en `pictogramme`) l'ouvre entière, en défilement sur un parchemin
 ## (`Disposition.ouvrir_la_chronique`) ; le menu de la partie monte en haut à droite (`MenuDeLaPartie.ancrer`) ; une
-## fenêtre de jet prend la place du meuble de l'actif, que la vue ne sert pas sous elle ; la défaite (`defaite`,
-## `projet/cadres/fin_du_combat.tscn`) se pose au centre sur un voile qui assombrit la scène ; la création ouverte se
-## pose au centre, sa page titrée en tête, ses rubriques défilant dessous, ses gestes en rangée au pied ; la
-## conversation se pose en bas au centre, son interlocuteur en titre, sa réplique, puis ses réponses l'une sous l'autre
-## ; la fiche ouverte se pose à gauche de la scène, qu'elle rétrécit, en statbloc au thème `art/statbloc.tres` (papier,
-## encre), chaque section en onglet, la possession choisie et ses gestes sous ses sections. Un clic droit sur une case
+## fenêtre de jet prend la place du meuble de l'actif, que la vue ne sert pas sous elle ; la victoire et la défaite
+## (`victoire`, `defaite`, `projet/cadres/fin_du_combat.tscn`) se posent au centre sur un voile qui assombrit la
+## scène ; la création ouverte se pose au centre, sa page titrée en tête, ses rubriques défilant dessous, ses gestes
+## en rangée au pied ; la conversation se pose en bas au centre, son interlocuteur en titre, sa réplique, puis ses
+## réponses l'une sous l'autre ; la fiche ouverte se pose à gauche de la scène, qu'elle rétrécit, en statbloc au
+## thème `art/statbloc.tres` (papier, encre), chaque section en onglet, la possession choisie et ses gestes sous ses sections. Un clic droit sur une case
 ## occupée ouvre la fiche de son occupant (`case_inspectee`, `projet/scripts/plateau.gd`). Un refus se dit au-dessus de
 ## l'écran, qui reste tel quel, saisies comprises. Changer l'écran, c'est éditer ces scènes ; un type d'élément nouveau,
 ## c'est un composant.

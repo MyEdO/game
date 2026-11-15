@@ -300,6 +300,16 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   figer(dome, 'fin-du-combat', `fin du combat, ${s.vue.zones['fenetre.titre'][0]?.texte ?? 'sans fenêtre'}`, s);
   fermer();
 
+  const triomphe = unPont([]);
+  s = triomphe.jouer('demarrer', { scenario: 'grimpant', graine: 7 });
+  for (let pas = 0; !fini(s); pas++) {
+    if (pas > 100) throw new Error(`aucune fin du combat de l’araignée après ${pas} gestes`);
+    s = triomphe.jouer('jouer', presse(s));
+  }
+  if (s.vue.disposition !== 'victoire') throw new Error(`le combat de l’araignée finit en ${s.vue.disposition}, pas en victoire`);
+  figer(triomphe, 'victoire', 'fin du combat, Victoire', s);
+  triomphe.fermer();
+
   /** Une fenêtre après l'autre, chacune par son geste pressé, tant qu'une tient la main. */
   const viderLesFenetres = (j: ReturnType<typeof unPont>['jouer'], s: Suite): Suite => {
     for (let pas = 0; s.vue.projection.fenetre; pas++) {
