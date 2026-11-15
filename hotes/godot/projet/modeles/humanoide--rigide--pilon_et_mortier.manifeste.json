@@ -1,0 +1,29 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "pilon_et_mortier"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois"
+    },
+    {
+      "nom": "metal",
+      "palette": "metal"
+    },
+    {
+      "nom": "cuir",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "beea08271175740d181f2be1c0ac91ba3bdb59662430262502ca129816e38c49",
+    "octets": 67876
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "collier_a_cranes"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "metal",
+      "palette": "metal"
+    },
+    {
+      "nom": "os",
+      "palette": "corne"
+    }
+  ],
+  "glb": {
+    "sha256": "a702a397f67b5b33fe4136f741c904dc9b94e8e868e0fed4308c9b217bd70665",
+    "octets": 90980
+  }
+}

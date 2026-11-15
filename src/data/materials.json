@@ -659,6 +659,20 @@
     "color": "#3e4e54"
   },
   {
+    "id": "tissu-vieux-rose",
+    "type": "materials",
+    "label": "Tissu vieux rose",
+    "domain": "couleur",
+    "color": "#8e6468"
+  },
+  {
+    "id": "tissu-vert-sauge",
+    "type": "materials",
+    "label": "Tissu vert sauge",
+    "domain": "couleur",
+    "color": "#7d8a6a"
+  },
+  {
     "id": "cuir-fauve",
     "type": "materials",
     "label": "Cuir fauve",

@@ -45,6 +45,19 @@ def direction(theta):
     return np.array([math.sin(t), -math.cos(t)])
 
 
+def direction_spatiale(phi, e=0.0):
+    """Direction unitaire (x, y, z) d'azimut `phi` (degrés, depuis l'avant -Y vers la gauche +X) et d'élévation `e`
+    (degrés, vers +Z)."""
+    a, b = math.radians(phi), math.radians(e)
+    return np.array([math.cos(b) * math.sin(a), -math.cos(b) * math.cos(a), math.sin(b)])
+
+
+def selon(table, phi):
+    """La valeur de `table` (`[(azimut, valeur)]`, de 0 à 180°) à l'azimut `phi`, interpolée, symétrique."""
+    a, v = zip(*table)
+    return float(np.interp(abs((phi + 180.0) % 360.0 - 180.0), a, v))
+
+
 def fondu(x):
     x = min(1.0, max(0.0, x))
     return x * x * (3 - 2 * x)
@@ -661,6 +674,13 @@ def jumeaux_de(piece):
     attribut.data.foreach_get('value', ecarts)
     piece.data.attributes.remove(attribut)
     return np.arange(len(ecarts)) + ecarts
+
+
+def joindre_les_surfaces(morceaux):
+    """Positions, triangles et poids de morceaux (positions, triangles, poids) joints."""
+    decalages_ = np.cumsum([0] + [len(p) for p, _, _ in morceaux[:-1]])
+    return (np.concatenate([p for p, _, _ in morceaux]), np.concatenate([t + k for (_, t, _), k in zip(morceaux, decalages_)]),
+            np.concatenate([w for _, _, w in morceaux]))
 
 
 def joindre(objets):
