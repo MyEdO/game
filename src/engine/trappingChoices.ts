@@ -26,6 +26,7 @@ import {
 } from '../data/index';
 import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 import { atoutsMinimaux } from './qualities/craftEconomy';
+import { possessionASaTaille, type SizeCategory } from './size';
 
 /** Choix de dotation : index de branche d'un `{pick, of}`, id d'objet d'un `{wildcard}`, clé de combinaison d'Atouts
  *  d'un `{id, qualityChoice}` ou d'un `{wildcard, qualityChoice}` (`valeursDeLEmplacement`). */
@@ -186,14 +187,15 @@ export function atoutChoisi(e: EmplacementAtout, choices: ChoixDeDotation): stri
   return combinaisonChoisie(e, choices).cle;
 }
 
-/** Les valeurs qu'un choix peut poser sur l'emplacement `e` : l'index de chaque branche d'un `{pick, of}`, chaque arme
- *  choisissable d'un `{wildcard}` (`armesChoisissables`), du seul Groupe `groupe` s'il en nomme un, la clé de chaque
- *  combinaison d'Atouts de Fabrication d'un `atout` (LDB 60 l.7-32). */
-export function valeursDeLEmplacement(e: EmplacementDeDotation): (number | string)[] {
+/** Les valeurs qu'un choix peut poser sur l'emplacement `e` d'un porteur de Taille `taille` : l'index de chaque branche
+ *  d'un `{pick, of}`, chaque arme choisissable d'un `{wildcard}` (`armesChoisissables`) à la Taille du porteur
+ *  (`possessionASaTaille`), du seul Groupe `groupe` s'il en nomme un, la clé de chaque combinaison d'Atouts de
+ *  Fabrication d'un `atout` (LDB 60 l.7-32). ADE II 2 l.604 ; ADE II 2 l.710 */
+export function valeursDeLEmplacement(e: EmplacementDeDotation, taille: SizeCategory): (number | string)[] {
   if (e.sorte === 'branches') return e.ref.of.map((_, j) => j);
   if (e.sorte === 'atout') return combinaisonsDAtouts(e).map((c) => c.cle);
   const groupe = e.ref.groupe?.id;
-  return armesChoisissables().filter((a) => groupe === undefined || a.groupe === groupe).map((a) => a.id);
+  return armesChoisissables().filter((a) => (groupe === undefined || a.groupe === groupe) && possessionASaTaille(a.sizeFor, taille)).map((a) => a.id);
 }
 
 /** Le libellé de la valeur `v` de l'emplacement `e` (`valeursDeLEmplacement`) : sa branche, son arme ou ses Atouts. */

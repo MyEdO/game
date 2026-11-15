@@ -409,7 +409,7 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   TraitData: ['difficulte', 'grantSpecGroups', 'specsOpen'],
   TrappingData: [
     'bladed', 'consumableDuration', 'container', 'indirect', 'minRangeBand', 'onHitEffects',
-    'organicProjectile', 'requiresMastery', 'service', 'sizeFor', 'soloSimple',
+    'organicProjectile', 'requiresMastery', 'service', 'soloSimple',
   ],
   WeaponGroupData: ['combat', 'poudre', 'siege'],
 };

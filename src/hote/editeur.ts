@@ -21,7 +21,7 @@ import {
   type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, retraitOffert, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, formulaireDe, refusDeLaValeur, type Segment,
   allMusicDefs, apparencesDeLOuverture, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
-  candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
+  candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, entitySize, estEmplacementRacine, ficheDuCombattant,
   findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacementActif, talentsDuParcours,
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
   findSpellById, listesDeSorts, sortsImprimes,
@@ -938,7 +938,8 @@ function inventaire(ent: Scene['entities'][number]): (Choix | Ligne)[] {
 function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
   if (ent.statblock || ent.presetId || !fichesDePersonnage().some((f) => f.id === ent.creature?.id)) return [];
   const p: ParcoursDeCarriere = parcoursDe(ent) ?? { carrieres: {} };
-  const ecrire = (q: ParcoursDeCarriere): GesteDEdition => ({ geste: 'entite', patch: { parcours: parcoursRetouche(q) } });
+  const taille = entitySize(ent);
+  const ecrire = (q: ParcoursDeCarriere): GesteDEdition => ({ geste: 'entite', patch: { parcours: parcoursRetouche(q, taille) } });
   const actuelle = carriereActuelle(p);
   const refusDeTenue = ent.appearance?.tenue ? t('ecran.editeur.carriere.tenue') : null;
   const tiree = (id: string, choisi: boolean, jeu: GesteDEdition) => boutonDEdition(`${id}/tiree`, t('ecran.editeur.carriere.tiree'), jeu, choisi);
@@ -986,7 +987,7 @@ function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
     const poser = (x?: number | string) => ecrire({ ...p, dotationsDeCarriere: { ...Object.fromEntries(Object.entries(choisis).filter(([a]) => a !== e.adresse)), ...(x === undefined ? {} : { [e.adresse]: x }) } });
     return [choix(id, e.sorte === 'branches' ? t('ecran.editeur.carriere.dotation') : trappingRefLabel(e.ref), [
       tiree(id, v === undefined, poser()),
-      ...valeursDeLEmplacement(e).map((x) => boutonDEdition(`${id}/${x}`, libelleDeLaValeur(e, x), poser(x), v === x)),
+      ...valeursDeLEmplacement(e, taille).map((x) => boutonDEdition(`${id}/${x}`, libelleDeLaValeur(e, x), poser(x), v === x)),
     ], 'liste'), ...(sous ? dotation(sous) : [])];
   };
   return [
