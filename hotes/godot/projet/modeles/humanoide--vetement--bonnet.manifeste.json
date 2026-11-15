@@ -1,0 +1,29 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "bonnet"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "tenue",
+  "couvre": [],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "bonnet",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "24185f2686d3fc00a168ce4d2718827ee83aea574117ff5ab4c8a64fa71c52ff",
+    "octets": 279852
+  }
+}
