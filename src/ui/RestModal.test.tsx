@@ -77,12 +77,34 @@ describe('RestBody — la note d’auberge que la bourse ne couvre pas (LDB 66)'
   it('bourse vide, chambre privée : le total est « over » et Dormir se ferme sur le refus du geste', () => {
     useGame.setState({
       party: [hero], travelPlan: null, net: { ...useGame.getState().net, mode: 'local' },
-      pendingRest: { places: { auberge: true }, lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'privee', food: 'rien' } }, phase: 'setup' } as never,
+      pendingRest: { places: { auberge: true }, lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'chambre-1', food: 'rien' } }, phase: 'setup' } as never,
     });
     const el = document.createElement('div');
     root = createRoot(el);
     act(() => root!.render(<RestBody />));
     expect(el.querySelector('.rest-cost.over')).not.toBeNull();
     expect(el.querySelector('#rest-sleep-reason')?.textContent).toBe(t('jet.ferme.noteNonCouverte'));
+  });
+});
+
+describe('RestBody — « Pour toute la troupe », les chambres de la nuit (LDB 66 l.28)', () => {
+  it('auberge à 4 héros : en « Commune » puis « Chambres », la troupe revient à chambre-1 ×2, chambre-2 ×2', () => {
+    const troupe = ['a', 'b', 'c', 'd'].map((id) => ({ ...hero, id, label: id }));
+    useGame.setState({ party: troupe, battle: null, travelPlan: null, pendingRest: null, net: { ...useGame.getState().net, mode: 'local' } });
+    useGame.getState().offrirLeRepos({ lieu: fixtureText('Auberge'), places: { auberge: true } });
+    const couchages = () => troupe.map((h) => useGame.getState().pendingRest!.perHero[h.id].lodging);
+    const parDefaut = couchages();
+    expect(parDefaut).toEqual(['chambre-1', 'chambre-1', 'chambre-2', 'chambre-2']);
+    const el = document.createElement('div');
+    root = createRoot(el);
+    act(() => root!.render(<RestBody />));
+    const entree = (libelle: string) => [...el.querySelectorAll<HTMLButtonElement>('.rest-master button')].find((b) => b.textContent?.trim() === libelle)!;
+    expect(entree(t('rf.chambres')).getAttribute('aria-pressed')).toBe('true');
+    act(() => entree(t('valeur.couchage.commune')).click());
+    expect(couchages()).toEqual(['commune', 'commune', 'commune', 'commune']);
+    expect(entree(t('rf.chambres')).getAttribute('aria-pressed')).toBe('false');
+    act(() => entree(t('rf.chambres')).click());
+    expect(couchages()).toEqual(parDefaut);
+    expect(entree(t('rf.chambres')).getAttribute('aria-pressed')).toBe('true');
   });
 });

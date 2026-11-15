@@ -8,6 +8,8 @@
 import type { Jeu } from './etat';
 import { portesDuMobile } from './marcheDuGroupe';
 import { echoppesDuLieu, entreesDuLieu, hebergementsDuLieu } from './lieuFlow';
+import { couchagesDeLaNuit } from './restFlow';
+import { libelleDuLitteral } from './libelles';
 import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
 import {
@@ -140,6 +142,8 @@ export type IdDActionDEntite = string;
 export type IdDEchoppeDuLieu = string;
 /** Un établissement d'hébergement du lieu où se tient le groupe (`hebergementsDuLieu`), par son `id`. */
 export type IdDHebergementDuLieu = string;
+/** Un couchage de la nuit à régler (`couchagesDeLaNuit`). LDB 66 */
+export type IdDeCouchage = string;
 /** Une ligne de la table des facteurs environnementaux de la bataille de masse (`mass-battle.json › hazards`). ADE II 08 l.309 */
 export type IdDAleaDeBataille = string;
 /** Une Scène de la situation du Round de la bataille de masse (`MassBattleState.situation`). ADE II 08 l.116 */
@@ -342,6 +346,14 @@ export const DESIGNATIONS = {
   IdDActionDEntite: { mot: 'id d’offre d’entité', lire: (s) => sansDoublon(ids(lesActionsDEntite(s))), nom: (s) => parLabel(lesActionsDEntite(s)) },
   IdDEchoppeDuLieu: { mot: 'id d’échoppe du lieu', lire: (s) => ids(echoppesDuLieu(s)), nom: (s) => parLabel(echoppesDuLieu(s)) },
   IdDHebergementDuLieu: { mot: 'id d’hébergement du lieu', lire: (s) => ids(hebergementsDuLieu(s)), nom: (s) => parLabel(hebergementsDuLieu(s)) },
+  IdDeCouchage: {
+    mot: 'id de couchage',
+    lire: (s) => (s.pendingRest ? ids(couchagesDeLaNuit(s.pendingRest, s.party)) : []),
+    nom: (s) => {
+      const couchages = s.pendingRest ? indexe(couchagesDeLaNuit(s.pendingRest, s.party), (c) => c.id, (c) => c.libelle) : sansNom;
+      return (id) => couchages(id) ?? libelleDuLitteral(id, 'couchage');
+    },
+  },
   IdDAleaDeBataille: { mot: 'id d’aléa de bataille', lire: () => ids(BATTLE_HAZARDS), nom: (_s) => parLabel(BATTLE_HAZARDS) },
   IdDeSceneDeBataille: { mot: 'id de Scène de bataille', lire: (s) => s.massBattle?.situation ?? [], nom: (_s) => (id) => battleSceneById(id)?.label ?? null },
   IdDePosteDeBataille: { mot: 'id de poste de bataille', lire: (s) => (s.massBattle ? ids(postesDeBataille(s.massBattle)) : []), nom: (_s) => parLabel(ACTIVITIES) },

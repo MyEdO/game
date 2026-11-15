@@ -77,7 +77,7 @@
 //   lieu, son service de marché la halle (`marcheDeTerre`) et ses offres ; « Acheter » compose l'achat, « Conclure
 //   l'achat » montre le lot.
 // - `repos` (`--scenario voyage`, #3328) : « Carte du monde », « À pied » part, les fenêtres passent à l'Entrée jusqu'à
-//   la nuit de repos ; le couchage de Bjorn, en chambre privée sur sa carte, passe à « Dehors », puis la nuit se clôt.
+//   la nuit de repos ; le couchage de Bjorn, dans la première chambre sur sa carte, passe à « Dehors », puis la nuit se clôt.
 // - `repit` (`--scenario bataille-de-masse`) : les dés d'Événement tombent, l'entre-deux-aventures montre un onglet par
 //   héros, ses Activités restantes et la liste de l'Activité à composer, chacune fermée par sa raison ; « Revenus »
 //   choisi dans la liste au clavier, « Entreprendre » ouvre son jet, lancé à l'Entrée puis appliqué : l'onglet du héros
@@ -1655,12 +1655,13 @@ async function parcoursRepos() {
   let v = await vue()
   noter(`repos : ${corps(v)}`)
   await capturer('3328-r1-1-nuit')
-  const dormeur = (v) => element(v, 'groupe.heros', 'heros/bjorn').elements.find((x) => x.id === 'couchage').valeurs.map((b) => `${b.libelle}${b.presse ? '*' : ''}`).join(' ')
-  assert.equal(dormeur(v), 'Privée* Commune Dehors', 'Bjorn en chambre privée, sur sa carte')
+  /** Le couchage que Bjorn a pris sur sa carte, par la valeur que son geste choisit. */
+  const couchageDeBjorn = (v) => element(v, 'groupe.heros', 'heros/bjorn').elements.find((x) => x.id === 'couchage').valeurs.filter((b) => b.presse).map((b) => b.jeu.args[2]).join(' ')
+  assert.equal(couchageDeBjorn(v), 'chambre-1', 'Bjorn dans la première chambre, sur sa carte')
   await choisirDansLaListe(undefined, 'Dehors')
-  await attendreLaVue("v.zones['groupe.heros'].find((e) => e.id === 'heros/bjorn').elements.find((x) => x.id === 'couchage').valeurs[2].presse")
+  await attendreLaVue("v.zones['groupe.heros'].find((e) => e.id === 'heros/bjorn').elements.find((x) => x.id === 'couchage').valeurs.find((b) => b.jeu.args[2] === 'dehors').presse")
   v = await vue()
-  noter(`Bjorn : ${dormeur(v)}`)
+  noter(`Bjorn : ${couchageDeBjorn(v)}`)
   await capturer('3328-r1-2-dehors')
   await entrer()
   noter(`après « Dormir » : ${(await vue()).disposition}`)
