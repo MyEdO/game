@@ -2,7 +2,7 @@
  * Schéma de `lieux-services.json` — vocabulaire des SERVICES de lieu (#343) EXTENSIBLES par catalogue
  * (patron `naval-ports.json`). Le port et le marché d'un lieu portent leur propre schéma riche
  * (`MapPlace.port`/`MapPlace.market`) et lisent ici leur libellé, icône et fond par défaut. Désigné par
- * `ref('serviceDeLieu')` (`MapPlace.services[].kind`, `PlacePoi.serviceKind`) et résolu par
+ * `ref('serviceDeLieu')` (`MapPlace.services[].kind`, et `PlacePoi.service` hors des établissements du lieu) et résolu par
  * `placeServices` (`src/noyau/worldMap.ts`) : id STABLE → libellé/icône d'affichage. Vocabulaire
  * app-interne de routage d'écran (id/label/icône), aucune mécanique RAW à sourcer par entrée
  * (cf. `SANS_LIVRE_DEFINITIF`, `grammaire/sans-livre.ts`).

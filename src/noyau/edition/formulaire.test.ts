@@ -33,7 +33,7 @@ import {
   type Sel,
   type SorteDePorteur,
 } from '../sceneEditLecture';
-import { emptyWorldMap, type WorldMap } from '../worldMap';
+import { emptyWorldMap, type MapPlace, type WorldMap } from '../worldMap';
 import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema, playSfxSchema } from '../../data/schemas/defs-scenes/effets';
@@ -873,7 +873,7 @@ describe('l’accès d’un porteur à son document du projet (#3606)', () => {
 
 describe('les porteurs de la carte du monde : lieu, route et carte (#3606 M5)', () => {
   const SALLE: Scene = { ...emptyScene('salle', 4, 4), entryPoints: { porte: { x: 0, y: 0 } } };
-  const POI = { id: 'temple', label: 'Temple', pos: { x: 1, y: 1 }, serviceKind: { id: 'auberge' } };
+  const POI = { id: 'temple', label: 'Temple', pos: { x: 1, y: 1 }, sceneId: { id: 'salle' } };
   const CARTE: WorldMap = {
     ...emptyWorldMap('monde'),
     places: [{ id: 'x', label: 'X', pos: { x: 20, y: 20 }, scene: { id: 'salle' }, poi: [POI] }, { id: 'y', label: 'Y', pos: { x: 60, y: 20 }, scene: { id: 'salle' } }],
@@ -888,10 +888,12 @@ describe('les porteurs de la carte du monde : lieu, route et carte (#3606 M5)', 
       .toEqual([{ sorte: 'lieu', id: 'x' }, { sorte: 'route', id: 'r' }, { sorte: 'carte', id: 'carte' }]);
   });
 
-  it('le lieu offre chaque champ de son schéma hors de son identifiant, de sa position et de la liste de ses points d’intérêt, dont il offre les champs hors identifiant et position', () => {
-    expect(cles(formulaireDe('lieu', CARTE.places[0], cadre))).toEqual(['label', 'scene', 'entry', 'icon', 'port', 'market', 'services', 'backdrop', 'when', 'couvre', 'prose', 'source', 'adapteDe', 'poi']);
-    const lieu = CARTE.places[0];
-    expect([['poi', 0, 'label'], ['poi', 0, 'pos'], ['poi', 0, 'id'], ['poi']].map((c) => avecLaValeurDuPorteur('lieu', lieu, c as Segment[], c[2] === 'label' ? 'Chapelle' : { x: 2, y: 2 }, cadre).ok)).toEqual([true, false, false, false]);
+  it('le lieu offre chaque champ de son schéma hors de son identifiant, de sa position, de ses établissements et de ses points d’intérêt ; d’un établissement, son nom et son repos ; d’un point d’intérêt, son icône et, vers une scène, son nom', () => {
+    expect(cles(formulaireDe('lieu', CARTE.places[0], cadre))).toEqual(['label', 'scene', 'entry', 'icon', 'port', 'market', 'backdrop', 'when', 'couvre', 'prose', 'source', 'adapteDe', 'poi']);
+    const lieu: MapPlace = { ...CARTE.places[0], services: [{ id: 'auberge', kind: { id: 'auberge' } }], poi: [POI, { id: 'forge', pos: { x: 2, y: 2 }, service: { id: 'auberge' } }] };
+    const offert = (c: Segment[], v: unknown) => avecLaValeurDuPorteur('lieu', lieu, c, v, cadre).ok;
+    expect([offert(['poi', 0, 'label'], 'Chapelle'), offert(['poi', 1, 'label'], 'Forge'), offert(['poi', 0, 'pos'], { x: 2, y: 2 }), offert(['poi', 0, 'id'], 'x'), offert(['poi', 0, 'sceneId'], { id: 'salle' }), offert(['poi'], [])]).toEqual([true, false, false, false, false, false]);
+    expect([offert(['services', 0, 'label'], 'Le Cerf'), offert(['services', 0, 'rest'], {}), offert(['services', 0, 'id'], 'x'), offert(['services', 0, 'kind'], { id: 'temple' }), offert(['services'], [])]).toEqual([true, true, false, false, false]);
   });
 
   it('la route offre chaque champ de son schéma hors de son identifiant, de ses extrémités et de son sens ; la carte, son libellé, son fond et ses réglages', () => {

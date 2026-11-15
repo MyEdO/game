@@ -251,7 +251,7 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
     const port = { taille: 4, richesse: 5, production: ['commerce-mer'] };
     const market = { taille: 3, richesse: 4, produits: ['vin-eau-de-vie'] };
     const rest = { auberge: true, camp: true };
-    const p = place({ port, market, services: [{ kind: { id: 'auberge' }, rest }] });
+    const p = place({ port, market, services: [{ id: 'auberge', kind: { id: 'auberge' }, rest }] });
     const svc = placeServices(p);
     expect(svc.map((s) => s.category)).toEqual(['port', 'marche', 'auberge']);
     expect(svc[0].port).toBe(p.port); // référence, pas une copie
@@ -267,7 +267,7 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
   });
 
   it('services de catalogue (temple/forgeron) → catégorie « autre », libellé/icône du catalogue', () => {
-    const svc = placeServices(place({ services: [{ kind: { id: 'temple' } }, { kind: { id: 'forgeron' } }] }));
+    const svc = placeServices(place({ services: [{ id: 'temple', kind: { id: 'temple' } }, { id: 'forgeron', kind: { id: 'forgeron' } }] }));
     expect(svc.map((s) => s.id)).toEqual(['temple', 'forgeron']);
     expect(svc.every((s) => s.category === 'autre')).toBe(true);
     expect(svc[0].label).toBe('Temple');
@@ -276,18 +276,6 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
 
   it('hameau NU (aucun service, aucune scène offrant l\'auberge) → liste VIDE', () => {
     expect(placeServices(place({}))).toEqual([]);
-  });
-
-  it('couchage À LA POSITION du groupe sans auberge (camp) → service « Repos » de repli, qui porte cette offre', () => {
-    const reposIci = { camp: true };
-    const svc = placeServices(place({}), undefined, reposIci);
-    expect(svc.map((s) => [s.id, s.category])).toEqual([['repos', 'auberge']]);
-    expect(svc[0].rest).toBe(reposIci);
-  });
-
-  it('auberge déclarée : aucun « Repos » de repli en sus', () => {
-    const svc = placeServices(place({ services: [{ kind: { id: 'auberge' }, rest: { auberge: true } }] }), undefined, { camp: true });
-    expect(svc.map((s) => s.id)).toEqual(['auberge']);
   });
 
   it('auberge DÉRIVÉE de l\'offre de repos de la scène si non déclarée en service propre', () => {
@@ -300,7 +288,7 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
   it('l\'auberge PROPRE au lieu l\'emporte : pas de doublon avec l\'offre de la scène', () => {
     const scene = { id: 's1', rest: { auberge: true } } as Scene;
     const own = { auberge: true, maison: true };
-    const svc = placeServices(place({ services: [{ kind: { id: 'auberge' }, rest: own }] }), scene);
+    const svc = placeServices(place({ services: [{ id: 'auberge', kind: { id: 'auberge' }, rest: own }] }), scene);
     expect(svc.filter((s) => s.category === 'auberge')).toHaveLength(1);
     expect(svc[0].rest).toBe(own);
   });

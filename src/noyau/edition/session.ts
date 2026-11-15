@@ -154,10 +154,10 @@ import {
   type GesteEnCours,
   type PointDeCarte,
 } from './pointeur';
-import { orienterRoute, retirerPoi } from '../worldMapEdit';
+import { ciblerPoi, etablissementAjoute, type CibleDuPoi, majLieu, orienterRoute, retirerPoi, typesDEtablissement } from '../worldMapEdit';
 import { formeChangee } from '../narratifEdit';
 import type { FormeDEtatKind } from '../../data/schemas/defs-scenes/formes-d-etat';
-import type { MapPlace, WorldMap } from '../worldMap';
+import { placeServices, type MapPlace, type WorldMap } from '../worldMap';
 import type { CalibProgress } from './calage';
 import type { Manifeste } from '../../data/source/chapitres';
 import { estGraphieDeChapitre, parseChapitre, type ChapitreParse } from '../../data/source/decoupe';
@@ -523,7 +523,8 @@ export interface SessionDEdition {
  *  d'écriture de sa sorte (`ECRITURES_DES_PORTEURS`, `creer`), depuis la sélection, avec l'identifiant `avec` que sa
  *  table offre (`avecs`), sélectionné ; orienter la route sélectionnée depuis l'une de ses extrémités, ou dans les deux
  *  sens (`null`, `orienterRoute`) ; donner à l'état sélectionné du narratif la forme neuve `kind` (`formeChangee`) ; ouvrir le plan du lieu `lieu` de la carte du monde ouverte, sélectionné, ou le fermer (`null`, `planDuLieu`) ; retirer le point
- *  d'intérêt désigné sur ce plan (`retirerPoi`) ; ouvrir le document `document` du projet (`ouvrirLeDocument`) ; écrire
+ *  d'intérêt désigné sur ce plan (`retirerPoi`), ou le faire viser la scène `scene` ou le service `service` du lieu (`ciblerPoi`) ; ajouter au lieu
+ *  sélectionné un établissement du type `kind` (`typesDEtablissement`, `etablissementAjoute`) ; ouvrir le document `document` du projet (`ouvrirLeDocument`) ; écrire
  *  une valeur au chemin `chemin` du formulaire du porteur `porteur` (`formulaireDe`, `undefined`
  *  retire le champ, ou l'objet ou l'élément d'un retrait déclaré, `retraitsDuPorteur`), ou y resceller l'adresse de prose au chemin `chemin` après relecture (`avecLAdresseRescellee`) ; nommer l'entité, l'entrée, le
  *  déclencheur, le dialogue, la rencontre, la zone d'effet ou le corps sélectionné, ou sans sélection le porteur singulier du
@@ -564,6 +565,8 @@ export type GesteDEdition =
   | { geste: 'forme'; kind: FormeDEtatKind }
   | { geste: 'planDuLieu'; lieu: string | null }
   | { geste: 'retirerPoi' }
+  | { geste: 'ciblerPoi'; cible: { scene: string } | { service: string } }
+  | { geste: 'ajouterEtablissement'; kind: string }
   | { geste: 'document'; document: SorteDeDocument }
   | { geste: 'valeur'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[]; valeur?: unknown }
   | { geste: 'resceller'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[] }
@@ -871,6 +874,14 @@ export function planDuLieuOuvert(s: SessionDEdition): { lieu: MapPlace; poi: str
   const { planDuLieu: plan, sel } = s;
   const lieu = plan && sel && 'id' in sel && sel.type === FORMULAIRES.lieu.sel ? projetEdite(s).worldMap?.places.find((p) => p.id === sel.id) : undefined;
   return lieu ? { lieu, poi: lieu.poi?.some((x) => x.id === plan!.poi) ? plan!.poi : null } : undefined;
+}
+
+/** La cible `cible` d'un point d'intérêt du lieu `lieu` : la scène du projet parmi `scenes`, dont il prend le nom
+ *  (`poiNeuf`), ou un service résolu du lieu (`placeServices`) ; `undefined` hors d'eux. #4277 */
+function cibleDuPoi(scenes: readonly Pick<Scene, 'id' | 'label'>[], lieu: MapPlace, cible: { scene: string } | { service: string }): CibleDuPoi | undefined {
+  if ('service' in cible) return placeServices(lieu).some((sv) => sv.id === cible.service) ? { service: { id: cible.service } } : undefined;
+  const scene = scenes.find((sc) => sc.id === cible.scene);
+  return scene && { label: scene.label, sceneId: { id: scene.id } };
 }
 
 /** La session `s`, son plan du lieu fermé si la sélection n'en désigne plus le lieu (`planDuLieuOuvert`). */
@@ -1204,6 +1215,20 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       if (!plan?.poi) return s;
       const carte = carteEditee(s);
       return { ...ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), retirerPoi(carte, plan.lieu.id, plan.poi)), s.sel), planDuLieu: { poi: null } };
+    }
+    case 'ciblerPoi': {
+      const plan = planDuLieuOuvert(s);
+      const cible = plan?.poi ? cibleDuPoi(projetEdite(s).scenes, plan.lieu, g.cible) : undefined;
+      if (!plan?.poi || !cible) return s;
+      const carte = carteEditee(s);
+      const ecrite = ciblerPoi(carte, plan.lieu.id, plan.poi, cible);
+      return jsonCanonique(ecrite) === jsonCanonique(carte) ? s : ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), ecrite), s.sel);
+    }
+    case 'ajouterEtablissement': {
+      const carte = projetEdite(s).worldMap;
+      const lieu = s.sel?.type === FORMULAIRES.lieu.sel ? carte?.places.find((p) => p.id === (s.sel as { id: string }).id) : undefined;
+      if (!carte || !lieu || !typesDEtablissement().some((sv) => sv.id === g.kind)) return s;
+      return ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), majLieu(carte, lieu.id, etablissementAjoute(lieu, g.kind))), s.sel);
     }
     case 'sens': {
       const carte = projetEdite(s).worldMap;

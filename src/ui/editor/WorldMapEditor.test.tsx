@@ -28,6 +28,7 @@ import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { lieuxServices, navalPorts } from '../../data';
+import { t } from '../../i18n';
 import { TRAVEL_DEFAULTS } from '../../engine/travel';
 
 beforeAll(() => {
@@ -156,7 +157,7 @@ describe('WorldMapEditor — panneau Lieu (#419)', () => {
     selectPlace('p1');
     const sv = lieuxServices[0];
     click(checkbox(sv.label));
-    expect(lastMap!.places[0].services).toEqual([{ kind: { id: sv.id } }]);
+    expect(lastMap!.places[0].services).toEqual([{ id: sv.id, kind: { id: sv.id } }]);
   });
 });
 
@@ -202,9 +203,11 @@ describe('WorldMapEditor — panneau Lieu / Commerce (#419)', () => {
 });
 
 describe('WorldMapEditor — panneau Lieu / Plan du hub (#419)', () => {
-  it('ajoute un POI, édite son libellé/icône/position, et lie sa cible via le picker de ref UNIQUE (scène puis service)', () => {
+  it('ajoute un POI, édite son libellé/icône/position, et lie sa cible via le picker de ref UNIQUE (scène puis service du lieu)', () => {
     mount();
     selectPlace('p1');
+    const sv = lieuxServices[0];
+    click(checkbox(sv.label));
     click(tab('Plan du hub'));
     click([...container.querySelectorAll('button')].find((b) => b.textContent?.includes("Point d'intérêt"))!);
     expect(lastMap!.places[0].poi).toHaveLength(1);
@@ -231,9 +234,23 @@ describe('WorldMapEditor — panneau Lieu / Plan du hub (#419)', () => {
     expect(lastMap!.places[0].poi![0].sceneId).toEqual({ id: 's2' });
 
     setValue(input('Cible (scène OU service, exclusif)'), 'service');
-    const sv = lieuxServices[0];
     pickRef('Service', sv.label);
-    expect(lastMap!.places[0].poi![0].serviceKind).toEqual({ id: sv.id });
+    expect(lastMap!.places[0].poi![0]).toEqual({ id: lastMap!.places[0].poi![0].id, pos: { x: 75, y: 47 }, icon: 'outil-de-carte/porte', service: { id: sv.id } });
+  });
+
+  it('décocher un type dont un établissement est visé par un point d’intérêt : refusé, et le refus est dit', () => {
+    mount();
+    selectPlace('p1');
+    const sv = lieuxServices[0];
+    click(checkbox(sv.label));
+    click(tab('Plan du hub'));
+    click([...container.querySelectorAll('button')].find((b) => b.textContent?.includes("Point d'intérêt"))!);
+    setValue(input('Cible (scène OU service, exclusif)'), 'service');
+    pickRef('Service', sv.label);
+    click(tab('Lieu'));
+    click(checkbox(sv.label));
+    expect(lastMap!.places[0].services).toEqual([{ id: sv.id, kind: { id: sv.id } }]);
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(t('ecran.editeur.lieu.etablissement.vise', { poi: sv.label }));
   });
 });
 
