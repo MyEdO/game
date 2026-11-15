@@ -20,7 +20,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { ouReserve, roleAmbiantSchema } from '../grammaire/valeurs';
+import { ouReserve, qualiteDeReposSchema, roleAmbiantSchema } from '../grammaire/valeurs';
 import {
   amateurSchema,
   cell2Schema,
@@ -949,7 +949,7 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
       auberge: z.boolean().optional(),
       maison: z.boolean().optional(),
       camp: z.boolean().optional(),
-      quality: z.enum(['normale', 'pietre']).optional(),
+      quality: qualiteDeReposSchema.optional(),
     }), { auberge: { label: "auberge" }, maison: { label: "chez soi" }, camp: { label: "camp" }, quality: { label: "qualité"  } })
     .optional(),
   /** Offre de repos PAR ZONE — prioritaire sur `rest` là où le groupe se tient. */
@@ -958,7 +958,7 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
       nommerChamps(z.strictObject({
         rect: rectSchema,
         places: restPlacesSchema,
-        quality: z.enum(['normale', 'pietre']).optional(),
+        quality: qualiteDeReposSchema.optional(),
       }), { rect: { label: "rectangle" }, places: { label: "lieux" }, quality: { label: "qualité"  } }),
     )
     .optional(),

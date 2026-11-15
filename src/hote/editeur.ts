@@ -16,7 +16,7 @@ import {
   assoirALaPlace, idDuCorps, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, idDeLaSceneEditee, projetEdite, sceneEditee, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
+  ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, QUALITES_DE_REPOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, cleDeLElement, retraitOffert, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, clesPosees, choixDuNoeud, designeDesEntrees, elementDuNoeud, formeAuPoint, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, ciblesDAncreDeBataille, groupesDuLieu,
@@ -247,14 +247,14 @@ export interface ZonesDeLEditeur {
    * départ (`startMessage`), son texte en `saisieMultiligne`, vidé le retirant avec sa provenance, la matière de
    * chaque partie de relief (`PARTS_RELIEF`) en liste parmi `matieresDe('relief')`,
    * sa toiture par défaut, couverture en liste, pente et comble à la réglette, son repos sur place, ses lieux et sa
-   * qualité piètre, ses drapeaux de départ, chacun pressé s'il est vrai, que sa pression bascule, puis en liste, à
+   * qualité (`QUALITES_DE_REPOS`), ses drapeaux de départ, chacun pressé s'il est vrai, que sa pression bascule, puis en liste, à
    * retirer, et le formulaire qui en ajoute un, vrai, puis ses ancres de bataille : de chacune sa Scène de Round en
    * liste (`ciblesDAncreDeBataille`), sa case, la poser à la case pointée, refusé sans case pointée, la retirer, puis
    * en liste chaque Scène de Round à ancrer.
    *
    * Chaque bouton joue `{ geste: 'scene', patch }` (`PatchDeScene`), `patch` portant `scalaires` (`desc`, `ambiance`,
    * `weather`, `couvre`, `groups`, `metresPerTile`, `ambientLight`, `environment`, `null` retirant le champ),
-   * `dimensions`, `nord` (`null` : vers le haut du plan), `relief`, `toiture`, `repos` (`lieux`, `pietre`), `drapeaux`
+   * `dimensions`, `nord` (`null` : vers le haut du plan), `relief`, `toiture`, `repos` (`lieux`, `qualite`), `drapeaux`
    * (`null` retirant le drapeau), `musique` (`{ piste, id }`, `id` `null` : silence, absent : automatique) ou `stations` (`{ ajouter }`, `{ rang, sceneId?, pos? }`
    * ou `{ retirer }`, refusé à un rang absent).
    *
@@ -440,11 +440,11 @@ export interface ZonesDeLEditeur {
    * (`saisieNombre`, au pas de 1 s'il est entier, `saisieTexte`, `saisieJson`), un texte ou un JSON laissé vide
    * retirant le champ, et « Retirer » pour un nombre présent dont l'absence est admise ;
    *
-   * d'une zone de repos, chacun de ses lieux (auberge, chez soi, camper) et sa qualité piètre ; la supprimer, un
+   * d'une zone de repos, chacun de ses lieux (auberge, chez soi, camper) et sa qualité (`QUALITES_DE_REPOS`) ; la supprimer, un
    * déclencheur refusé avec sa raison comme un dialogue.
    *
    * Chaque bouton joue `{ geste: 'zone', patch }` (`patchZone`, `src/noyau/sceneEdit.ts`), `patch` portant `z`, `once`,
-   * `lieux`, `pietre`, `presentation` (`null` : non déclarée), `forme`, `pleine`, `blocksLoS`, `barrier` ou `couvre`
+   * `lieux`, `qualite`, `presentation` (`null` : non déclarée), `forme`, `pleine`, `blocksLoS`, `barrier` ou `couvre`
    * (`null` : aucune), ou, du formulaire tiré du schéma, `{ geste: 'valeur', porteur, chemin, valeur? }`.
    *
    * D'un corps : le formulaire qui le nomme, son type de bâtiment en liste, sans type ou chaque type de
@@ -1573,7 +1573,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
     const repos = scene.restZones![sel.idx];
     propre.push(
       choix('zone/lieux', t('ecran.editeur.zone.lieux'), LIEUX.map((l) => bouton(`zone/lieux/${l}`, t(`ecran.editeur.zone.lieu.${l}`), sur({ lieux: { [l]: !repos.places[l] } }), !!repos.places[l]))),
-      bouton('zone/pietre', t('ecran.editeur.zone.pietre'), sur({ pietre: repos.quality !== 'pietre' }), repos.quality === 'pietre'),
+      choix('zone/qualite', t('ecran.editeur.zone.qualite'), QUALITES_DE_REPOS.map(([q, libelle]) => bouton(`zone/qualite/${q}`, libelle, sur({ qualite: q }), (repos.quality ?? 'normale') === q))),
     );
   }
   return [ligne('zone/poignee', t('ecran.editeur.zone.poignee')), ...propre, bouton('zone/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' })];
@@ -1986,7 +1986,7 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
     ...reglette('scene/toiture/pente', t('ecran.editeur.toiture.pente', { v: toit.pitchDeg }), toit.pitchDeg, PAS_DE_PENTE, (v) => sur({ toiture: { pitchDeg: v } })),
     ...reglette('scene/toiture/comble', t('ecran.editeur.toiture.comble', { v: toit.riseMaxStoreys }), toit.riseMaxStoreys, PAS_D_ETAGE, (v) => sur({ toiture: { riseMaxStoreys: v } })),
     choix('scene/repos', t('ecran.editeur.scene.repos'), LIEUX.map((l) => bouton(`scene/repos/${l}`, t(`ecran.editeur.zone.lieu.${l}`), sur({ repos: { lieux: { [l]: !repos[l] } } }), !!repos[l]))),
-    bouton('scene/repos/pietre', t('ecran.editeur.zone.pietre'), sur({ repos: { pietre: repos.quality !== 'pietre' } }), repos.quality === 'pietre'),
+    choix('scene/repos/qualite', t('ecran.editeur.zone.qualite'), QUALITES_DE_REPOS.map(([q, libelle]) => bouton(`scene/repos/qualite/${q}`, libelle, sur({ repos: { qualite: q } }), (repos.quality ?? 'normale') === q))),
     ...(Object.keys(scene.flags).length ? [
       choix('scene/drapeau', t('ecran.editeur.scene.drapeaux'), Object.entries(scene.flags).map(([cle, valeur]) => bouton(`scene/drapeau/${cle}`, cle, sur({ drapeaux: { [cle]: !valeur } }), valeur))),
       choix('scene/drapeau/retirer', t('ecran.editeur.scene.drapeau.retirer'), Object.keys(scene.flags).map((cle) => bouton(`scene/drapeau/retirer/${cle}`, cle, sur({ drapeaux: { [cle]: null } }))), 'liste'),

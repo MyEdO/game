@@ -126,6 +126,10 @@ export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Me
 /** Le genre d'une arme, d'un Groupe d'arme ou d'une attaque : corps à corps ou à distance (LDB 62). */
 export const genreDArmeSchema = enumNomme({ melee: 'Corps à corps', distance: 'À distance' });
 
+/** Qualité d'une chambre et d'un repas (LDB 66 l.5). */
+export const qualiteDeReposSchema = enumNomme({ pietre: 'Piètre', normale: 'Normale', grande: 'Grande' });
+export type QualiteDeRepos = z.output<typeof qualiteDeReposSchema>;
+
 /** Les rôles d'animation d'ambiance d'une entité de scène. */
 export const roleAmbiantSchema = enumNomme({ repas: 'Se nourrit', priere: 'Prie', tapi: 'Se recroqueville', debout: 'Se tient debout', hurlement: 'Hurle' });
 export type RoleAmbiant = z.infer<typeof roleAmbiantSchema>;

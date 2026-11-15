@@ -61,7 +61,7 @@ export function reposEnVue(s: Jeu): ReposEnVue | null {
   const expositions = exposureTestCount(activeExposureSeverity(() => s), exposureShelterFromTent(s.party));
   const cout = restCost(p, s.party);
   return {
-    nuit: [`${nightTitle(p, s.party)} — ${p.lieu}`, ...(p.days > 1 ? [t('rf.nuits', { n: p.days })] : []), ...(p.quality === 'pietre' ? [t('rf.pietre')] : [])].join(' · '),
+    nuit: [`${nightTitle(p, s.party)} — ${p.lieu}`, ...(p.days > 1 ? [t('rf.nuits', { n: p.days })] : []), ...(p.quality === 'normale' ? [] : [t(`rf.qualite.${p.quality}`)])].join(' · '),
     toit: toitDeLaNuit(p, s.party),
     temps: tempsDeLaNuit(s),
     dormeurs: s.party.filter((h) => !h.dead && p.perHero[h.id]).map((h) => {

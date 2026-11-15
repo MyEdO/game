@@ -97,7 +97,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const exposureTests = exposureTestCount(severity, sheltered);
   const online = net.mode !== 'local';
   const ready = p.readyBySeat ?? {};
-  const reglagesTitle = <>{title}{p.days > 1 ? ` — ${p.days} nuits` : ''}{p.quality === 'pietre' ? ' (piètre)' : ''}</>;
+  const reglagesTitle = <>{title}{p.days > 1 ? ` — ${p.days} nuits` : ''}{p.quality === 'normale' ? '' : ` (${t(`rf.qualite.${p.quality}`)})`}</>;
 
   // Héros affichés (vivants, dotés d'un réglage) ; ÉDITABLES = ceux que le siège local contrôle.
   const heroes = party.filter((h) => !h.dead && p.perHero[h.id]);

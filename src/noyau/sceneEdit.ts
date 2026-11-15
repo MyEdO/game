@@ -51,6 +51,7 @@ import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import type { MapPlace, MapRoute, PlacePoi, WorldMap } from './worldMap';
 import {
   ajouterLieu,
@@ -1104,18 +1105,26 @@ export function addRestZone(scene: Scene, rect: Rect, z = 0): { scene: Scene; id
 
 /** Patche la zone de repos d'indice `idx`. */
 export function patchRestZone(scene: Scene, idx: number, patch: Partial<NonNullable<Scene['restZones']>[number]>): Scene {
-  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? { ...z, ...patch } : z)) };
+  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? (patch.quality ? avecQualite({ ...z, ...patch }, patch.quality) : { ...z, ...patch }) : z)) };
+}
+
+/** `o` à la qualité `q` : « normale » est l'absence du champ, jamais une valeur écrite (LDB 66 l.5). */
+function avecQualite<T extends { quality?: QualiteDeRepos }>(o: T, q: QualiteDeRepos): T {
+  const out = { ...o };
+  if (q === 'normale') delete out.quality;
+  else out.quality = q;
+  return out;
 }
 
 /** Ce que l'inspecteur écrit sur la zone sélectionnée (`patchZone`) : sa couche ; d'un déclencheur, s'il ne joue
- *  qu'une fois ; d'une zone de repos, ses lieux et sa qualité piètre ; d'une zone d'effet, son nom, sa nature (`null` :
+ *  qu'une fois ; d'une zone de repos, ses lieux et sa qualité ; d'une zone d'effet, son nom, sa nature (`null` :
  *  non déclarée), sa forme, son emprise rendue pleine (`clearEffectZoneCarve`), si elle masque la ligne de vue et si
  *  elle barre le passage ; d'un déclencheur ou d'une zone d'effet, les entrées de fiche qu'il couvre (`null` : aucune). */
 export interface PatchDeZone {
   z?: number;
   once?: boolean;
   lieux?: NonNullable<Scene['restZones']>[number]['places'];
-  pietre?: boolean;
+  qualite?: QualiteDeRepos;
   nom?: string;
   presentation?: 'interior' | 'exterior' | null;
   forme?: ZoneArea['kind'];
@@ -1783,7 +1792,7 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
       restZones: (scene.restZones ?? []).map((r, i) => {
         if (i !== sel.idx) return r;
         const out = { ...r, rect: patch.z === undefined ? r.rect : rectALaCouche(r.rect, patch.z), places: { ...r.places, ...patch.lieux } };
-        return patch.pietre === undefined ? out : champ(out, 'quality', patch.pietre ? 'pietre' : undefined);
+        return patch.qualite ? avecQualite(out, patch.qualite) : out;
       }),
     };
   }
@@ -2013,7 +2022,8 @@ export function patchSceneRoofDefaults(scene: Scene, patch: Partial<SceneRoofDef
 
 /** Patche l'offre de repos de la scène entière, à partir de l'offre effective (`reposDeScene`). */
 export function setSceneRest(scene: Scene, patch: Partial<NonNullable<Scene['rest']>>): Scene {
-  return { ...scene, rest: { ...reposDeScene(scene), ...patch } };
+  const rest = { ...reposDeScene(scene), ...patch };
+  return { ...scene, rest: patch.quality ? avecQualite(rest, patch.quality) : rest };
 }
 
 /** Fusionne des flags initiaux dans `scene.flags` (état de départ : porte ouverte, jalon posé…). */

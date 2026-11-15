@@ -134,6 +134,7 @@ import { lancementDuProjet, type LancementDeScenario } from '../lancementDeScena
 import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
 import { choixDuNoeud, elementDuNoeud, type ValeurDuChoix } from '../codex/editFields';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
+import { qualiteDeReposSchema, type QualiteDeRepos } from '../../data/schemas/grammaire/valeurs';
 import { architectureSelectionForWarning, validateScene, type Warning } from '../validateScene';
 import { memoByDeps } from '../monde/sceneMemo';
 import { versionDesDatasets } from '../../data/versionDataset';
@@ -204,7 +205,7 @@ export type Ouvrage = (typeof OUVRAGES)[number];
 
 /** Ce que l'inspecteur de la scène écrit, sans sélection : ses champs scalaires (`null` retire le champ), sa grille,
  *  son nord (`null` : vers le haut du plan), les matières de son relief, sa toiture par défaut, son repos sur place
- *  (lieux offerts, qualité piètre), ses drapeaux de départ (`null` retire le drapeau) ; une piste de sa musique
+ *  (lieux offerts, sa qualité (`QUALITES_DE_REPOS`)), ses drapeaux de départ (`null` retire le drapeau) ; une piste de sa musique
  *  (`setSceneMusic` : `id` absent, la piste du contexte ; `null`, le silence) ; ses ancres de bataille, une ajoutée vers la Scène de
  *  Round `ajouter`, celle de rang `rang` patchée, ou celle de rang `retirer` retirée. */
 export interface PatchDeScene {
@@ -213,7 +214,7 @@ export interface PatchDeScene {
   nord?: number | null;
   relief?: Partial<ReliefDefaults>;
   toiture?: Partial<SceneRoofDefaults>;
-  repos?: { lieux?: PatchDeZone['lieux']; pietre?: boolean };
+  repos?: { lieux?: PatchDeZone['lieux']; qualite?: QualiteDeRepos };
   drapeaux?: Record<string, boolean | null>;
   musique?: { piste: keyof NonNullable<Scene['music']>; id?: string | null };
   stations?: { ajouter: string } | { rang: number; sceneId?: string; pos?: SceneStationAnchor['pos'] } | { retirer: number };
@@ -358,7 +359,7 @@ function scenePatchee(scene: Scene, patch: PatchDeScene): Scene {
     if (matiere) sc = setReliefDefault(sc, part, matiere);
   }
   if (patch.toiture) sc = patchSceneRoofDefaults(sc, patch.toiture);
-  if (patch.repos) sc = setSceneRest(sc, { ...patch.repos.lieux, ...(patch.repos.pietre !== undefined && { quality: patch.repos.pietre ? 'pietre' : undefined }) });
+  if (patch.repos) sc = setSceneRest(sc, { ...patch.repos.lieux, ...(patch.repos.qualite && { quality: patch.repos.qualite }) });
   for (const [cle, valeur] of Object.entries(patch.drapeaux ?? {})) sc = valeur === null ? removeSceneFlag(sc, cle) : setSceneFlags(sc, { [cle]: valeur });
   if (patch.musique) sc = setSceneMusic(sc, patch.musique.piste, patch.musique.id);
   if (patch.stations) sc = stationsPatchees(sc, patch.stations);
@@ -391,6 +392,8 @@ export const PROFILS_DE_TOIT = optionsDuNoeud(roofProfileSchema) as [NonNullable
 
 /** Les météos d'une scène, chacune son libellé ; ses environnements ; ses ambiances. */
 export const METEOS = optionsDuNoeud(sceneWeatherSchema) as [NonNullable<Scene['weather']>, string][];
+/** Les qualités d'une offre de repos, chacune son libellé. */
+export const QUALITES_DE_REPOS = optionsDuNoeud(qualiteDeReposSchema) as [QualiteDeRepos, string][];
 export const ENVIRONNEMENTS = sceneSchema.shape.environment.unwrap().options;
 export const AMBIANCES = sceneSchema.shape.ambiance.unwrap().options;
 

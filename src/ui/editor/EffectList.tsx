@@ -51,7 +51,7 @@ import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
 import { ChaosAlign } from '../../engine/corruption';
-import { chaosAlignSchema, NATURES_D_INFLUENCE, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
+import { chaosAlignSchema, NATURES_D_INFLUENCE, qualiteDeReposSchema, type NatureDInfluence, type QualiteDeRepos } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { POWER_ESTIMATE, clampMight, type MassBattleSpec } from '../../engine/massBattle';
@@ -283,7 +283,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
       const n = e.reward ? (e.reward.kind === 'sequence' ? e.reward.etapes.length : 1) : 0;
       return `Petites Prières (site sacré)${e.heroId ? ` → ${e.heroId}` : ''} · ${n} bloc(s) si exaucée`;
     }
-    case 'rest': return `Repos ${e.days ?? 1} nuit(s) (${e.lodging ?? 'maison'}${e.quality === 'pietre' ? ', piètre' : ''})`;
+    case 'rest': return `Repos ${e.days ?? 1} nuit(s) (${e.lodging ?? 'maison'}${e.quality ? `, ${libelleDeValeur(qualiteDeReposSchema, e.quality)}` : ''})`;
     case 'mealParty': return `Repas du groupe`;
     case 'interlude': return `Interlude : ${e.weeks ?? 1} semaine(s)`;
     case 'grantFavor': return `Faveur ${e.level} envers ${e.owedTo || '?'} (${e.heroId || '1ᵉʳ héros'})`;
@@ -552,9 +552,8 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             </label>
             <label className="dr">
               Qualité
-              <select value={e.quality ?? 'normale'} onChange={(ev) => upd({ quality: ev.target.value === 'pietre' ? 'pietre' : undefined })}>
-                <option value="normale">Normale</option>
-                <option value="pietre">Piètre (½ prix, à risque)</option>
+              <select value={e.quality ?? 'normale'} onChange={(ev) => upd({ quality: ev.target.value === 'normale' ? undefined : (ev.target.value as QualiteDeRepos) })}>
+                {optionsDuNoeud(qualiteDeReposSchema).map(([q, l]) => <option key={q} value={q}>{l}</option>)}
               </select>
             </label>
             <label className="dr">Nuits <NumberField variant="nu" label="Nuits" min={1} value={e.days ?? 1} onChange={(days) => upd({ days })} /></label>
