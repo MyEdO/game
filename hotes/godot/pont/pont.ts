@@ -1852,8 +1852,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * se met à attendre, que l'hôte charge puis rend en `{ compendium: { geste: 'chapitre', book, ch, texte } }` ;
      * `donnees` le `{ fichier, texte, avant }` qu'« Enregistrer » ou « Supprimer » vient d'écrire en mémoire, `avant`
      * l'empreinte (`hash32`) du texte du fichier d'avant, que l'hôte écrit au dépôt (`PUT donnees/<fichier>`) puis dont
-     * il rend l'issue, une issue échouée remettant la donnée en mémoire telle qu'avant ; un bouton ou un formulaire refusé se refuse en `regle`, avec sa raison, comme une transaction que
-     * la donnée refuse
+     * il rend l'issue, une issue échouée remettant la donnée en mémoire telle qu'avant ; un bouton ou un formulaire
+     * refusé se refuse en `regle`, avec sa raison, comme une transaction que la donnée refuse
      */
     compendium(json) {
       const e = entreeDe('compendium', json, (e) => ('ouvrir' in e ? ['ouvrir', 'manifeste', 'categorie', 'id', 'instance'] : 'type' in e ? ['type', 'args'] : ['compendium']));
