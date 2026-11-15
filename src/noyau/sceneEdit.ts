@@ -1105,16 +1105,11 @@ export function addRestZone(scene: Scene, rect: Rect, z = 0): { scene: Scene; id
 
 /** Patche la zone de repos d'indice `idx`. */
 export function patchRestZone(scene: Scene, idx: number, patch: Partial<NonNullable<Scene['restZones']>[number]>): Scene {
-  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? (patch.quality ? avecQualite({ ...z, ...patch }, patch.quality) : { ...z, ...patch }) : z)) };
+  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? (patch.quality ? champ({ ...z, ...patch }, 'quality', qualiteEcrite(patch.quality)) : { ...z, ...patch }) : z)) };
 }
 
-/** `o` à la qualité `q` : « normale » est l'absence du champ, jamais une valeur écrite (LDB 66 l.5). */
-function avecQualite<T extends { quality?: QualiteDeRepos }>(o: T, q: QualiteDeRepos): T {
-  const out = { ...o };
-  if (q === 'normale') delete out.quality;
-  else out.quality = q;
-  return out;
-}
+/** `q` telle que le document l'écrit : « normale » est l'absence du champ. */
+const qualiteEcrite = (q: QualiteDeRepos): QualiteDeRepos | undefined => (q === 'normale' ? undefined : q);
 
 /** Ce que l'inspecteur écrit sur la zone sélectionnée (`patchZone`) : sa couche ; d'un déclencheur, s'il ne joue
  *  qu'une fois ; d'une zone de repos, ses lieux et sa qualité ; d'une zone d'effet, son nom, sa nature (`null` :
@@ -1792,7 +1787,7 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
       restZones: (scene.restZones ?? []).map((r, i) => {
         if (i !== sel.idx) return r;
         const out = { ...r, rect: patch.z === undefined ? r.rect : rectALaCouche(r.rect, patch.z), places: { ...r.places, ...patch.lieux } };
-        return patch.qualite ? avecQualite(out, patch.qualite) : out;
+        return patch.qualite ? champ(out, 'quality', qualiteEcrite(patch.qualite)) : out;
       }),
     };
   }
@@ -2023,7 +2018,7 @@ export function patchSceneRoofDefaults(scene: Scene, patch: Partial<SceneRoofDef
 /** Patche l'offre de repos de la scène entière, à partir de l'offre effective (`reposDeScene`). */
 export function setSceneRest(scene: Scene, patch: Partial<NonNullable<Scene['rest']>>): Scene {
   const rest = { ...reposDeScene(scene), ...patch };
-  return { ...scene, rest: patch.quality ? avecQualite(rest, patch.quality) : rest };
+  return { ...scene, rest: patch.quality ? champ(rest, 'quality', qualiteEcrite(patch.quality)) : rest };
 }
 
 /** Fusionne des flags initiaux dans `scene.flags` (état de départ : porte ouverte, jalon posé…). */
