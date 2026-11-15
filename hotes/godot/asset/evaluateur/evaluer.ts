@@ -58,7 +58,7 @@ import {
   zonesVoisines,
   type MembreDUnEchantillon,
 } from './gardes/membreDansUnVetement.ts';
-import { gardeMembres, mesurerMembres, ZONES_DES_MEMBRES, ZONES_DU_TRONC, type MembreDansLeTronc } from './gardes/membres.ts';
+import { gardeMembres, mesurerMembres, troncDe, ZONES_DES_MEMBRES, ZONES_DU_TRONC, type MembreDansLeTronc } from './gardes/membres.ts';
 import { COUCHES, RANG_DU_CORPS, type CategorieDElement, type Couche } from '../element.ts';
 import { meshesDuCorps, peauDeLaTenue, zoneDe } from './corps.ts';
 import { poserLaPile } from './pile.ts';
@@ -282,7 +282,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const peauxHorsDeZone = pairesHorsDeZone(corpsMontre, corps, zone, voisines, (m) => indicesDe(m, positionsDe(repos, m).length / 3));
   const membresSousVetement: MembreDUnEchantillon[] = [];
   const dansLesZones = (noms: readonly string[]) => corps.filter((m) => noms.includes(zone(m) as string));
-  const [membres, tronc] = [dansLesZones(ZONES_DES_MEMBRES), dansLesZones(ZONES_DU_TRONC)];
+  const [membres, tronc] = [dansLesZones(ZONES_DES_MEMBRES), troncDe(dansLesZones(ZONES_DU_TRONC), repos)];
   const membresDansLeTronc: MembreDansLeTronc[] = [];
   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit)) {
     traversees.push(...mesurerTraversee(couches.liaisons, e));
