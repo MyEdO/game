@@ -133,6 +133,7 @@ export const SORTIES_DES_ESPACES = {
   ids: 'src/data/schemas/_ids.generated.ts',
   cles: 'src/data/schemas/_cles-de-dataset.generated.ts',
   racines: 'src/data/schemas/_racines-vivantes.generated.ts',
+  atelier: 'src/data/schemas/_fichiers-de-l-atelier.generated.json',
 };
 
 /** La sortie des VOCABULAIRES D'ART (option `vocabulaire`), écrite par la phase 1, que lisent

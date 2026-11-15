@@ -177,6 +177,10 @@
 //   une affaire ajoutée, choisie, son titre écrit ; un indice ajouté, un stade ajouté et identifié, le premier retiré,
 //   le dernier refusé, dit ; un état ajouté, sa forme passée à « Issue énumérée », sa valeur neuve à l'inspecteur ; un
 //   écart ajouté par la liste des entrées libres ; « Annuler » jusqu'au narratif d'avant, puis la scène rendue.
+// - `compendium` (#4020), servi avec une copie des fichiers de l'atelier du Compendium (`servir.mjs`, `depot`) :
+//   « Compendium » ouvre ses familles ; les talents choisis à la liste de leur famille, leur première entrée à la
+//   liste des entrées, la fiche la montre ; « Modifier », le libellé tapé au formulaire de l'atelier, « Enregistrer »
+//   ferme l'atelier, la fiche dit le libellé neuf et la copie du dépôt le porte.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à la liste de tête « Corps », aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -289,6 +293,7 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { gestesDessines } from './pont/dessines.ts'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs'
+import { SORTIES_DES_ESPACES } from '../../scripts/docs/lib/cibles-registres.mjs'
 import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
@@ -307,11 +312,17 @@ if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && ex
 
 /** Les projets manuscrits du dépôt, chacun par son chemin relatif au corpus (`listerProjetsLivres`). */
 const MANUSCRITS = listerProjetsLivres().filter((rel) => Object.hasOwn(PROJETS_MANUSCRITS, basename(rel)))
-/** Le dépôt que sert le parcours `editeur` : une copie neuve de ses projets manuscrits, que l'enregistrement écrit. */
-const depot = o.parcours === 'editeur' ? mkdtempSync(join(tmpdir(), 'recette-editeur-')) : null
-for (const rel of depot ? MANUSCRITS : []) {
-  mkdirSync(dirname(join(dossierDesProjetsLivres(depot), rel)), { recursive: true })
-  cpSync(join(dossierDesProjetsLivres(), rel), join(dossierDesProjetsLivres(depot), rel))
+/** Les fichiers de l'atelier du Compendium, par nom leur chemin relatif au dépôt (phase 2 de `npm run gen`). */
+const FICHIERS_DE_L_ATELIER = JSON.parse(readFileSync(SORTIES_DES_ESPACES.atelier, 'utf8'))
+/** Le dépôt que sert le parcours `editeur` ou `compendium` : une copie neuve de ce que son enregistrement écrit, les
+ *  projets manuscrits, ou les fichiers de l'atelier du Compendium et leur liste. */
+const depot = ['editeur', 'compendium'].includes(o.parcours) ? mkdtempSync(join(tmpdir(), `recette-${o.parcours}-`)) : null
+const COPIES = !depot ? [] : o.parcours === 'editeur'
+  ? MANUSCRITS.map((rel) => [join(dossierDesProjetsLivres(), rel), join(dossierDesProjetsLivres(depot), rel)])
+  : [SORTIES_DES_ESPACES.atelier, ...Object.values(FICHIERS_DE_L_ATELIER)].map((rel) => [rel, join(depot, rel)])
+for (const [de, vers] of COPIES) {
+  mkdirSync(dirname(vers), { recursive: true })
+  cpSync(de, vers)
 }
 /** Le dossier des modèles que lisent les preuves : `--modeles`, sinon celui du projet, que le serveur sert ou dont
  *  l'export servi en `--statique` a fabriqué les scènes. */
@@ -466,6 +477,31 @@ async function designerALaListe(quoi, rang) {
     await realKey(session, designe > rang ? FLECHE_HAUT : FLECHE_BAS)
     liste = await attendreLaListe(quoi, (l) => l.ouverte && l.designe !== designe, `désigne un autre article que le ${designe} après la flèche`)
   }
+}
+/** La valeur `id` des valeurs `valeurs` de la liste déroulante `liste`, publiée `deroulante`, choisie : cliquée,
+ *  attendue ouverte, le pointeur sorti d'elle ; son article, celui de son rang parmi les articles de même libellé,
+ *  désigné au clavier (`designerALaListe`), puis Entrée ; l'écran attendu ensuite à la condition `fait`. */
+async function choisirLaValeur(deroulante, liste, valeurs, id, fait) {
+  const libelle = valeurs.find((b) => b.id === id).libelle
+  const homonymesAvant = valeurs.slice(0, valeurs.findIndex((b) => b.id === id)).filter((b) => b.libelle === libelle).length
+  const quoi = { element: `liste/${liste}` }
+  const rang = deroulante.choix.flatMap((texte, n) => (texte === libelle ? [n] : []))[homonymesAvant] ?? -1
+  assert.ok(rang >= 0, `${libelle} (${id}) est offert : ${deroulante.choix.join(', ')}`)
+  await geste(session, { surface: 'canvas', x: deroulante.x, y: deroulante.y }, { qui: `liste ${liste}` }, clic())
+  await attendreLaListe(quoi, (l) => l.ouverte, 'est ouverte au clic')
+  await geste(session, { surface: 'canvas', x: 1000, y: 700 }, { qui: `le pointeur hors de la liste ${liste}` }, ({ x, y }, emettre) => emettre('souris', { type: 'mouseMoved', x, y }))
+  await designerALaListe(quoi, rang)
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await waitFor(session, fait)
+}
+/** Tape `texte` dans la saisie publiée `c`, d'élément `element`, à la place du sien. */
+async function taperDans(c, element, texte) {
+  await geste(session, { surface: 'canvas', x: c.x, y: c.y }, { qui: element }, clic())
+  await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
+  for (let n = 0; n < c.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
+  for (const lettre of texte) await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
+  await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === '${element}')?.texte === ${JSON.stringify(texte)}`)
 }
 /** L'onglet titré du libellé du choix `choix` montré quand `quoi` n'est pas à l'écran : un choix de la barre du combat
  *  (`combat.offres`) est l'un de ses onglets. */
@@ -2127,36 +2163,15 @@ async function parcoursEditeur() {
     await amenerAuPanneau(quoi)
     await cliquerBouton(quoi)
   }
-  /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie : la liste amenée sur le panneau,
-   *  cliquée, attendue ouverte, le pointeur sorti d'elle ; son article, celui de son rang parmi les articles de même
-   *  libellé, désigné au clavier (`designerALaListe`), puis Entrée ; l'écran attendu ensuite : la valeur pressée, sinon
-   *  la condition `attendu`. */
+  /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie, la liste amenée sur le panneau
+   *  (`choisirLaValeur`) ; l'écran attendu ensuite : la valeur pressée, sinon la condition `attendu`. */
   const choisirALaListe = async (liste, id, zone = 'editeur.options', attendu = null) => {
     const valeurs = (await editeur()).zones[zone].find((el) => el.id === liste).valeurs
-    const libelle = valeurs.find((b) => b.id === id).libelle
-    const homonymesAvant = valeurs.slice(0, valeurs.findIndex((b) => b.id === id)).filter((b) => b.libelle === libelle).length
     const fait = attendu ?? `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`
-    const quoi = { element: `liste/${liste}` }
-    const deroulante = await amenerAuPanneau(quoi)
-    const rang = deroulante.choix.flatMap((texte, n) => (texte === libelle ? [n] : []))[homonymesAvant] ?? -1
-    assert.ok(rang >= 0, `${libelle} (${id}) est offert : ${deroulante.choix.join(', ')}`)
-    await geste(session, { surface: 'canvas', x: deroulante.x, y: deroulante.y }, { qui: `liste ${liste}` }, clic())
-    await attendreLaListe(quoi, (l) => l.ouverte, 'est ouverte au clic')
-    await geste(session, { surface: 'canvas', x: 1000, y: 700 }, { qui: `le pointeur hors de la liste ${liste}` }, ({ x, y }, emettre) => emettre('souris', { type: 'mouseMoved', x, y }))
-    await designerALaListe(quoi, rang)
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await waitFor(session, fait)
+    await choisirLaValeur(await amenerAuPanneau({ element: `liste/${liste}` }), liste, valeurs, id, fait)
   }
-  /** Tape `texte` dans la saisie d'élément `element` (`amenerAuPanneau`), à la place du sien. */
-  const taper = async (element, texte) => {
-    const c = await amenerAuPanneau({ element }, 'saisies')
-    await geste(session, { surface: 'canvas', x: c.x, y: c.y }, { qui: element }, clic())
-    await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
-    for (let n = 0; n < c.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
-    for (const lettre of texte) await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
-    await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === '${element}')?.texte === ${JSON.stringify(texte)}`)
-  }
+  /** Tape `texte` dans la saisie d'élément `element` (`amenerAuPanneau`), à la place du sien (`taperDans`). */
+  const taper = async (element, texte) => taperDans(await amenerAuPanneau({ element }, 'saisies'), element, texte)
   const inspecte = (e, id) => e.zones['editeur.inspecteur'].find((el) => el.id === id)
   /** L'inspecteur publié montre-t-il l'élément d'id `id` ? */
   const montre = (id) => `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === '${id}')`
@@ -4157,6 +4172,48 @@ async function parcoursPreset() {
   }
 }
 
+/** Le Compendium (`--parcours compendium`), servi avec une copie des fichiers de l'atelier : « Compendium » du menu
+ *  l'ouvre ; la famille qui offre les talents choisie à son bouton, puis « Talents » à la liste des catégories, et la
+ *  première entrée à la liste des entrées : la fiche la montre. « Modifier » ouvre l'atelier ; son libellé tapé au
+ *  formulaire, puis « Enregistrer », l'atelier se ferme, la fiche dit le libellé neuf, et la copie du dépôt le porte. */
+async function parcoursCompendium() {
+  await cliquerBouton('Compendium')
+  await waitFor(session, `(globalThis.wfrpEcran?.compendium?.zones?.['compendium.familles'] ?? []).length > 0`, { timeoutMs: 120000 })
+  const zones = async () => (await ecran()).compendium.zones
+  const offreLesTalents = (z) => z['compendium.categories'].find((c) => c.valeurs.some((b) => b.id === 'talents'))
+  let z = await zones()
+  for (const famille of z['compendium.familles'][0].valeurs) {
+    if (offreLesTalents(z)) break
+    await cliquerBouton(bouton(famille))
+    z = await zones()
+  }
+  const categories = offreLesTalents(z)
+  assert.ok(categories, `une famille offre les talents : ${z['compendium.familles'][0].valeurs.map((b) => b.id).join(', ')}`)
+  const deroulante = (liste) => attendreLaListe({ element: `liste/${liste}` }, () => true, 'est à l’écran')
+  await choisirLaValeur(await deroulante(categories.id), categories.id, categories.valeurs, 'talents', `(globalThis.wfrpEcran?.compendium?.zones['compendium.liste'] ?? []).length > 0`)
+  const entrees = (await zones())['compendium.liste'][0]
+  const premiere = entrees.valeurs[0]
+  await choisirLaValeur(await deroulante(entrees.id), entrees.id, entrees.valeurs, premiere.id, `globalThis.wfrpEcran?.compendium?.zones['compendium.fiche'][0]?.nom === ${JSON.stringify(premiere.libelle)}`)
+  noter(`les talents choisis à la liste de leur famille, « ${premiere.libelle} » montré à la fiche`)
+  await capturer('compendium-fiche')
+  await cliquerBouton({ element: 'bouton/modifier' })
+  await waitFor(session, `(globalThis.wfrpEcran?.compendium?.zones['compendium.atelier'] ?? []).some((el) => el.id === 'valeur/label')`)
+  const LIBELLE = 'Compendium'
+  const champ = 'saisieTexte/valeur/label/valeur'
+  const [e, saisie] = await attendreALEcran((e) => e.saisies.find((x) => x.element === champ))
+  assert.ok(saisie, `le libellé au formulaire de l’atelier ; saisies : ${e.saisies.map((x) => x.element).join(' | ')}`)
+  await taperDans(saisie, champ, LIBELLE)
+  await cliquerBouton({ element: 'formulaire/valeur/label' })
+  await waitFor(session, `globalThis.wfrpEcran?.compendium?.zones['compendium.atelier'].find((el) => el.id === 'valeur/label')?.champs.some((c) => c.valeur === ${JSON.stringify(LIBELLE)})`)
+  await capturer('compendium-atelier')
+  await cliquerBouton({ element: 'bouton/enregistrer' })
+  await waitFor(session, `JSON.stringify(globalThis.wfrpEcran?.compendium?.zones['compendium.atelier'].map((el) => el.id)) === '["modifier","creer"]' && wfrpEcran.compendium.zones['compendium.fiche'][0]?.nom === ${JSON.stringify(LIBELLE)}`, { timeoutMs: 30000 })
+  const ecrit = JSON.parse(readFileSync(join(depot, FICHIERS_DE_L_ATELIER['talents.json']), 'utf8')).find((t) => t.id === premiere.id)
+  assert.equal(ecrit?.label, LIBELLE, `la copie du dépôt porte le libellé neuf de ${premiere.id}`)
+  noter(`« Modifier », le libellé « ${LIBELLE} » tapé, « Enregistrer » : l’atelier fermé, la fiche et la copie du dépôt le disent`)
+  await capturer('compendium-enregistre')
+}
+
 const PARCOURS = {
   reglages: parcoursReglages,
   combat: parcoursCombat,
@@ -4187,6 +4244,7 @@ const PARCOURS = {
   campagne: parcoursCampagne,
   roster: parcoursRoster,
   editeur: parcoursEditeur,
+  compendium: parcoursCompendium,
   atelier: parcoursAtelier,
   composition: parcoursComposition,
   preset: parcoursPreset,

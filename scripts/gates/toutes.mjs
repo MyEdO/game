@@ -792,7 +792,7 @@ export const ECRIT_LU = {
   },
   'raw:check-renvois': {
     ecrit: [],
-    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'src/data/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
+    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'src/lib/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
     raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres, les chapitres des livres couverts par le lecteur fs (scripts/source/lecteur-fs.mjs), ' +
       'le résolveur PUR src/data/source/renvoi.ts et son stock nominatif scripts/raw/renvois-stock.json ; aucune ' +

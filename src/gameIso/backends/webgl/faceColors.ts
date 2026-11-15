@@ -28,7 +28,7 @@
 import { AMBIANCE } from '../../catalog/ambiance';
 import { couleurDeMatiere, propMaterial, recetteDeMatiere } from '../../../noyau/monde/volume/matieres';
 import { coursesPeriodM, groundPeriodM } from '../../detail/courses';
-import { hash32 } from '../../../data/hash';
+import { hash32 } from '../../../lib/hash';
 import type { DetailRecipe } from '../../../data/materials.types';
 import type { Face } from '../../../noyau/monde/volume/types';
 import { SHADE_CYCLE, type ShadeFamily } from '../../../noyau/monde/volume/worldTris';

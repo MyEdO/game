@@ -1277,7 +1277,7 @@ const choixDuCatalogueOuvert = (noeuds: readonly unknown[]): ChoixDuContexte[] =
  *  entrée (`entreesDeLaFeuilleLocale`) : d'une feuille locale, chaque id que sa portée admet, après ceux de son catalogue
  *  si elle est ouverte (`choixDuCatalogueOuvert`) ; d'une référence `{ id }` dont l'identifiant en est une, chacun posé
  *  entier ; `undefined` sinon. */
-function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly ChoixDuContexte[] | undefined {
+export function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly ChoixDuContexte[] | undefined {
   const entrees = entreesDeLaFeuilleLocale(noeuds, ouvreurs);
   if (entrees) return [...choixDuCatalogueOuvert(noeuds), ...entrees.map(({ id, libelle }) => ({ valeur: id, libelle, refus: null }))];
   const emboites = entreesDeLaFeuilleLocale(ouverts(pasDeDonnee(noeuds, 'id')), ouvreurs);

@@ -34,6 +34,12 @@ import {
   enTeteDuPorteur,
   ficheDuPorteur,
   editer,
+  compendium,
+  enregistrerEntree,
+  ouvrirLeCompendium,
+  supprimerEntree,
+  transactionDemandee,
+  type SessionDuCompendium,
   herosDuRosterOfferts,
   ouvrirLEdition,
   projetDuDepot,
@@ -170,6 +176,8 @@ import {
   surcoucheDeLEdition,
   zonesDeLEditeur,
 } from '../../../src/hote/editeur';
+import { boutonDuCompendium, estLIssueDUneTransaction, gesteDuCompendium, refusDuCompendiumDit, zonesDuCompendium } from '../../../src/hote/compendium';
+import { hash32 } from '../../../src/lib/hash';
 import { allBuiltinCampaigns, campagneDuJeu, lancementDeLaCampagne, paquetDuJeu } from '../../../src/scenes/campaign';
 import { zonesDesScenarios } from '../../../src/hote/scenarios';
 import {
@@ -742,18 +750,18 @@ const ENTREES_SERVIES = ENTREES_DE_DOSSIER.map((e) => e.id);
 
 /** L'index des chapitres du `Source/` que porte `texte`, le texte que sert le poste (`servir.mjs`, `source/manifest.json`) :
  *  du JSON, par livre son sigle et ses chapitres, chacun sa graphie et son titre. */
-function manifesteServi(texte: unknown): NonNullable<SessionDEdition['manifeste']> {
-  valider(typeof texte === 'string', 'editer : manifeste, le texte de l’index des chapitres que sert le poste');
+function manifesteServi(texte: unknown): NonNullable<SessionDEdition['source']['manifeste']> {
+  valider(typeof texte === 'string', 'manifeste, le texte de l’index des chapitres que sert le poste');
   let lu: unknown;
   try {
     lu = JSON.parse(texte as string);
   } catch {
-    throw new ErreurDeGeste('validation', 'editer : manifeste, JSON illisible');
+    throw new ErreurDeGeste('validation', 'manifeste, JSON illisible');
   }
   const chapitre = (c: unknown) => estObjet(c) && typeof c.ch === 'string' && typeof c.titre === 'string';
   const livre = (l: unknown) => estObjet(l) && typeof l.abbr === 'string' && Array.isArray(l.chapitres) && l.chapitres.every(chapitre);
-  valider(estObjet(lu) && Object.values(lu).every(livre), 'editer : manifeste, par livre { abbr, chapitres: { ch, titre }[] }');
-  return lu as NonNullable<SessionDEdition['manifeste']>;
+  valider(estObjet(lu) && Object.values(lu).every(livre), 'manifeste, par livre { abbr, chapitres: { ch, titre }[] }');
+  return lu as NonNullable<SessionDEdition['source']['manifeste']>;
 }
 
 /** Le pont sur le stockage `stockage` de son hôte (`null` : aucun, rien ne se sauvegarde) et sur son réseau `reseau`
@@ -826,6 +834,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
   /** La session de l'éditeur de carte (`editer`), et la scène et la couche du dernier monde qu'elle a rendu. */
   let edition: { session: SessionDEdition; monde: { vue: Scene; z: number } } | null = null;
+  /** La session du Compendium (`compendium`), `null` avant qu'il s'ouvre. */
+  let codex: SessionDuCompendium | null = null;
+  /** La reprise de la dernière transaction du Compendium jouée en mémoire, dont l'hôte n'a pas rendu l'issue. */
+  let reprise: (() => void) | null = null;
   /** Ce qui construit le lancement de la dernière scène mise à l'essai par l'éditeur, que `demarrer { essai }` ouvre. */
   let essai: Parameters<typeof ouvrirLeLancement>[1] | null = null;
 
@@ -1789,7 +1801,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         else if (estLIssueDUnChargement(e.edition)) valider(s.chargement, 'editer : aucun chargement de planche en cours');
         else if (estLIssueDUnChapitre(e.edition)) {
           const { book, ch } = e.edition;
-          valider(s.chapitreEnAttente?.book === book && s.chapitreEnAttente.ch === ch, `editer : chapitre, ${book} ch.${ch} n’est pas le chapitre attendu`);
+          valider(s.source.chapitreEnAttente?.book === book && s.source.chapitreEnAttente.ch === ch, `editer : chapitre, ${book} ch.${ch} n’est pas le chapitre attendu`);
         }
         else if (!estUnGesteDuPointeur(e.edition)) {
           const b = boutonDeLEdition(zonesDeLEditeur(s), e.edition);
@@ -1816,8 +1828,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       edition = { session, monde: neuf ? { vue, z: session.z } : edition!.monde };
       const memoire = memoireDesCalques(avant, session);
       const charge = session.chargement && !avant?.chargement ? session.chargement : null;
-      const attendu = session.chapitreEnAttente;
-      const demande = attendu && (attendu.book !== avant?.chapitreEnAttente?.book || attendu.ch !== avant.chapitreEnAttente.ch) ? attendu : null;
+      const attendu = session.source.chapitreEnAttente;
+      const demande = attendu && (attendu.book !== avant?.source.chapitreEnAttente?.book || attendu.ch !== avant.source.chapitreEnAttente.ch) ? attendu : null;
       return {
         vue: { zones: zonesDeLEditeur(session), couche: session.z },
         surcouche: surcoucheDeLEdition(session),
@@ -1828,6 +1840,82 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         ...(charge ? { planche: { image: cheminDeLaPlanche(projetEdite(session).id, charge.sceneId, charge.z) } } : {}),
         ...(demande ? { chapitre: demande } : {}),
         ...(memoire ? { memoire } : {}),
+      };
+    },
+    /**
+     * `{ ouvrir: true, manifeste?, categorie?, id?, instance? }` : le texte de l'index des chapitres du `Source/` que sert
+     * le poste, et l'entrée où le Compendium s'ouvre, son instance (« 8 Tentacules +8 ») ; ou `{ compendium }` : le geste
+     * du Compendium (`GesteDuCompendium`, `src/noyau/codex/session.ts`) que porte un bouton des zones `compendium.*`, un
+     * qui l'offre sans refus d'abord, l'issue de l'écriture au dépôt (`{ geste: 'enregistrement', reussi, refus? }`,
+     * refusée en `validation` hors d'une transaction demandée) ou celle du chapitre attendu ; ou `{ type: 'recherche' |
+     * 'identifier' | 'enTete' | 'valeur', args }` : un formulaire des zones (section « Compendium »)
+     *
+     * @returns `{ zones, chapitre?, donnees? }` : les zones `compendium.*` ; `chapitre` le `{ book, ch }` que la session
+     * se met à attendre, que l'hôte charge puis rend en `{ compendium: { geste: 'chapitre', book, ch, texte } }` ;
+     * `donnees` le `{ fichier, texte, avant }` qu'« Enregistrer » ou « Supprimer » vient d'écrire en mémoire, `avant`
+     * l'empreinte (`hash32`) du texte du fichier d'avant, que l'hôte écrit au dépôt (`PUT donnees/<fichier>`) puis dont
+     * il rend l'issue, une issue échouée remettant la donnée en mémoire telle qu'avant ; un bouton ou un formulaire
+     * refusé se refuse en `regle`, avec sa raison, comme une transaction que la donnée refuse
+     */
+    compendium(json) {
+      const e = entreeDe('compendium', json, (e) => ('ouvrir' in e ? ['ouvrir', 'manifeste', 'categorie', 'id', 'instance'] : 'type' in e ? ['type', 'args'] : ['compendium']));
+      const avant = 'ouvrir' in e ? null : codex;
+      let donnees: { fichier: string; texte: string; avant: number } | null = null;
+      if ('ouvrir' in e) {
+        valider(e.ouvrir === true, 'compendium : ouvrir, true');
+        const cible = e.categorie === undefined && e.id === undefined ? undefined : e;
+        valider(cible === undefined || (typeof cible.categorie === 'string' && typeof cible.id === 'string' && (cible.instance === undefined || typeof cible.instance === 'string')), 'compendium : categorie et id, l’entrée où il s’ouvre, instance son libellé montré');
+        const manifeste = e.manifeste === undefined ? null : manifesteServi(e.manifeste);
+        const paquets = allBuiltinCampaigns.map((c) => ({ fichier: c.fichier, projet: c.paquet }));
+        reprise = null;
+        codex = ouvrirLeCompendium(manifeste, paquets, cible && { categorie: cible.categorie as string, id: cible.id as string, ...(cible.instance === undefined ? {} : { instance: cible.instance as string }) });
+        valider(!cible || codex.refus === null, `compendium : ${codex.refus}`);
+      } else {
+        valider(codex !== null, 'compendium : aucun Compendium ouvert, compendium { ouvrir } d’abord');
+        const s = codex!;
+        const z = zonesDuCompendium(s);
+        let geste;
+        if ('type' in e) {
+          geste = gesteDuCompendium(z, s, e);
+          valider(geste, 'compendium : un formulaire des zones compendium.*, { type: recherche | identifier | enTete, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
+        } else if (estLIssueDUneTransaction(e.compendium)) {
+          valider(transactionDemandee(s), 'compendium : aucun enregistrement ni suppression en cours');
+          if (!e.compendium.reussi) reprise?.();
+          reprise = null;
+          geste = e.compendium;
+        } else if (estLIssueDUnChapitre(e.compendium)) {
+          const { book, ch } = e.compendium;
+          valider(s.source.chapitreEnAttente?.book === book && s.source.chapitreEnAttente.ch === ch, `compendium : chapitre, ${book} ch.${ch} n’est pas le chapitre attendu`);
+          geste = e.compendium;
+        } else {
+          const b = boutonDuCompendium(z, e.compendium);
+          valider(b, 'compendium : le geste `{ compendium }` d’un bouton des zones compendium.*, l’issue d’une écriture ({ geste: enregistrement, reussi, refus? }) ou celle du chapitre attendu ({ geste: chapitre, book, ch, texte: texte | null })');
+          if (b!.refus) throw new ErreurDeGeste('regle', `compendium : ${b!.refus}`);
+          geste = e.compendium as Parameters<typeof compendium>[1];
+        }
+        let suite = compendium(s, geste!);
+        if (suite.refus !== null && geste!.geste !== 'enregistrement') throw new ErreurDeGeste('regle', `compendium : ${refusDuCompendiumDit(suite.refus)}`);
+        const transaction = transactionDemandee(suite);
+        if (transaction && !transactionDemandee(s)) {
+          const issue = transaction.sorte === 'enregistrer'
+            ? enregistrerEntree(transaction.categorie, transaction.entree, transaction.index, transaction.enTete)
+            : supprimerEntree(transaction.categorie, transaction.index, suite.paquets);
+          if (!issue.ok) {
+            suite = compendium(suite, { geste: 'enregistrement', reussi: false, refus: issue.erreurs.join(' ; ') });
+            codex = suite;
+            throw new ErreurDeGeste('regle', `compendium : ${refusDuCompendiumDit(suite.refus!)}`);
+          }
+          donnees = { fichier: issue.fichier, texte: issue.texte, avant: hash32(issue.avant) };
+          reprise = issue.reprendre;
+        }
+        codex = suite;
+      }
+      const attendu = codex!.source.chapitreEnAttente;
+      const demande = attendu && (attendu.book !== avant?.source.chapitreEnAttente?.book || attendu.ch !== avant.source.chapitreEnAttente.ch) ? attendu : null;
+      return {
+        zones: zonesDuCompendium(codex!),
+        ...(demande ? { chapitre: demande } : {}),
+        ...(donnees ? { donnees } : {}),
       };
     },
     /**

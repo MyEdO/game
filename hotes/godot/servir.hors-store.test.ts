@@ -11,6 +11,8 @@
  * `PUT depot/<id>` écrit à sa place un texte en forme dépôt de ce projet, et refuse tout autre texte sans rien écrire ;
  * `GET source/manifest.json` et `GET source/<livre>/<NNN>.md` rendent l'index des chapitres et le texte d'un chapitre du
  * `Source/` de ce dépôt-ci (#3606 M2g), 404 sans dépôt, export statique ou non.
+ * `PUT donnees/<fichier>` écrit un fichier de l'atelier du Compendium (#4020, section « Compendium ») : seulement l'un de
+ * ses fichiers, en forme dépôt, sur le disque tel que l'export l'a lu (`If-Match`, l'empreinte `hash32` de son texte).
  * Sans export (le pont vivant, `vivant.mjs`), seuls `modeles/`, `depot/` et `source/` répondent.
  */
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -27,6 +29,7 @@ import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { cheminDuDepot } from '../../scripts/source/adresses.mjs';
 import { books } from '../../src/data';
+import { hash32 } from '../../src/lib/hash';
 
 const racine = mkdtempSync(join(tmpdir(), 'servir-3086-'));
 const web = join(racine, 'web');
@@ -213,5 +216,50 @@ describe('servir, le dépôt', () => {
 
   it('une autre méthode reçoit 405', async () => {
     expect((await fetch(`${url}depot/${id}`, { method: 'DELETE' })).status).toBe(405);
+  });
+});
+
+describe('servir, les données du Compendium (#4020)', () => {
+  const depot = join(racine, 'donnees');
+  const FICHIER = 'talents.json';
+  const LISTE = 'src/data/schemas/_fichiers-de-l-atelier.generated.json';
+  const disque = () => readFileSync(join(depot, 'src/data', FICHIER), 'utf8');
+  let url = '';
+
+  beforeAll(async () => {
+    mkdirSync(join(depot, 'src/data/schemas'), { recursive: true });
+    cpSync(LISTE, join(depot, LISTE));
+    cpSync(join('src/data', FICHIER), join(depot, 'src/data', FICHIER));
+    const s = await servir({ web, depot });
+    serveurs.push(s);
+    url = s.url;
+  });
+
+  const ecrire = (texte: string, avant = String(hash32(disque()))) => fetch(`${url}donnees/${FICHIER}`, { method: 'PUT', body: texte, headers: { 'If-Match': avant } });
+
+  it('PUT écrit un texte en forme dépôt à la place du fichier tel que l’export l’a lu', async () => {
+    const texte = disque().replace(/\n$/, ' \n');
+    expect((await ecrire(texte)).status).toBe(200);
+    expect(disque()).toBe(texte);
+  });
+
+  it('PUT refuse en 409 un fichier qui a changé sur le disque depuis l’export, sans rien écrire, et nomme le remède', async () => {
+    const avant = disque();
+    const r = await ecrire('{}', String(hash32(`${avant}x`)));
+    expect([r.status, await r.text()]).toEqual([409, expect.stringContaining('npm run godot:editeur')]);
+    expect(disque()).toBe(avant);
+  });
+
+  it('PUT refuse en 422 un texte illisible, sans rien écrire', async () => {
+    const avant = disque();
+    const r = await ecrire('{');
+    expect([r.status, await r.text()]).toEqual([422, 'JSON illisible']);
+    expect(disque()).toBe(avant);
+  });
+
+  it('un fichier hors de l’atelier reçoit 404, une autre méthode 405, et sans dépôt donnees/ n’est pas servi', async () => {
+    expect((await fetch(`${url}donnees/package.json`, { method: 'PUT', body: '{}' })).status).toBe(404);
+    expect((await fetch(`${url}donnees/${FICHIER}`)).status).toBe(405);
+    expect((await fetch(`${await demarrer()}donnees/${FICHIER}`, { method: 'PUT', body: '{}' })).status).toBe(404);
   });
 });

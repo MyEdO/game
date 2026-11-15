@@ -226,7 +226,7 @@ const porteAlsoIn = (categoryKey: string): boolean => {
   const ds = editableDataset(categoryKey);
   if (ds !== undefined) return noeudDuChamp(datasetFile(ds), 'alsoIn') !== undefined;
   const objet = editableObjectDataset(categoryKey);
-  return objet?.mode === 'unique' && noeudDuChamp(datasetObjectFile(objet.ds), 'alsoIn') !== undefined;
+  return objet !== undefined && noeudDuChamp(datasetObjectFile(objet.ds), 'alsoIn') !== undefined;
 };
 
 /**

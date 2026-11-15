@@ -18,6 +18,7 @@ export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_C
 export { formatMoney } from '../engine/money';
 export { dayIndex, formatDateImperiale, formatImperial, formatJourImperial, toDate } from '../engine/clock';
 export {
+  advancementLabel,
   careers,
   conditionLabel,
   findCareerById,
@@ -232,6 +233,35 @@ export {
 } from './codex/editFields';
 export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 export { type CheminsOfferts, type RefusDeValeur, type Segment } from './edition/formulaire';
+export {
+  atelierIdentifiable,
+  categoriesDeLaFamille,
+  compendium,
+  deDeLAtelier,
+  entreeMontree,
+  entreesListees,
+  facettesOffertes,
+  formulaireDeLAtelier,
+  ouvrirLeCompendium,
+  renvoisDeLEntree,
+  transactionDemandee,
+  type GesteDuCompendium,
+  type RefusDuCompendium,
+  type SessionDuCompendium,
+} from './codex/session';
+export {
+  CODEX_GROUPS,
+  categoryByKey,
+  codexGroupLabel,
+  type CodexItem,
+  type CodexRow,
+} from './codex/registry';
+export { tokenizeLinks } from './codex/relations';
+export {
+  enregistrerEntree,
+  isEditableCategory,
+  supprimerEntree,
+} from '../data/atelierDuCodex';
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS, apparencesDeLOuverture } from './monde/facades';
 export { ciblesDAncreDeBataille } from './massBattleFlow';

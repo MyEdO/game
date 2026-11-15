@@ -5,7 +5,7 @@
  */
 import { OPTIONAL_RULES, loadRuleOverrides, ruleOverrides } from '../engine/policy';
 import { etatIdsConnus } from '../engine/conditions';
-import { hash32 } from '../data/hash';
+import { hash32 } from '../lib/hash';
 import { tableTotale } from '../lib/tableTotale';
 import { etatInitialDuJeu, type EtatDeJeu } from './etat';
 import { reposerPaquetDeCampagne } from './monde/registreDesScenes';
