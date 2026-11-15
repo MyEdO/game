@@ -325,6 +325,23 @@ func suivre_les_listes(racine: Node, republier: Callable) -> void:
 	racine.tree_exited.connect(func() -> void: arbre.node_added.disconnect(suivre))
 
 
+## Sous une recette, `republier` appelé quand le texte d'un champ (`LineEdit`, `TextEdit`) sous `racine`, présent ou à
+## venir, change : l'écran publie ses champs (`saisies_a_l_ecran`).
+func suivre_les_saisies(racine: Node, republier: Callable) -> void:
+	if not en_recette:
+		return
+	var suivre := func(noeud: Node) -> void:
+		if noeud is LineEdit and racine.is_ancestor_of(noeud):
+			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: republier.call())
+		elif noeud is TextEdit and racine.is_ancestor_of(noeud):
+			(noeud as TextEdit).text_changed.connect(republier)
+	for champ in racine.find_children("*", "", true, false):
+		suivre.call(champ)
+	var arbre := get_tree()
+	arbre.node_added.connect(suivre)
+	racine.tree_exited.connect(func() -> void: arbre.node_added.disconnect(suivre))
+
+
 ## Le pont `pont` posé à la place de celui de l'arbre (`/root/Pont`), que chaque écran rejoint ensuite.
 static func remplacer(arbre: SceneTree, pont: PontDuNoyau) -> void:
 	var ancien := arbre.root.get_node_or_null("Pont")
@@ -451,25 +468,26 @@ func adresse(relative: String) -> String:
 	return _transport.adresse(relative)
 
 
-## Le corps de la réponse à `methode` sur `relative`, adresse relative au serveur du jeu (`adresse`), `corps` envoyé ;
+## Le corps de la réponse à `methode` sur `relative`, adresse relative au serveur du jeu (`adresse`), `corps` et les
+## en-têtes `entetes` envoyés ;
 ## vide, et une erreur à `recueil`, si la requête échoue, si la réponse n'est pas un 200 (son corps dit alors pourquoi),
 ## ou si `SILENCE_S` passe sans qu'un octet arrive : le minuteur `silence` repart à chaque image où HTTPRequest a lu un
 ## bloc.
-func requeter(relative: String, recueil: Array[String], methode := HTTPClient.METHOD_GET, corps := "") -> PackedByteArray:
+func requeter(relative: String, recueil: Array[String], methode := HTTPClient.METHOD_GET, corps := "", entetes := PackedStringArray()) -> PackedByteArray:
 	var requete := HTTPRequest.new()
 	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
 	# Sur le Web, le navigateur a déjà décompressé un corps `Content-Encoding: gzip` (GitHub Pages, #3778) : HTTPRequest
 	# ne le décompresse pas une seconde fois (`RESULT_BODY_DECOMPRESS_FAILED`).
 	requete.accept_gzip = false
 	add_child(requete)
-	var code := requete.request(adresse(relative), PackedStringArray(), methode, corps)
+	var code := requete.request(adresse(relative), entetes, methode, corps)
 	if code != OK:
 		requete.queue_free()
 		recueil.append("requete-refusee : %s (%s)" % [relative, error_string(code)])
 		return PackedByteArray()
 	var resultat := []
-	requete.request_completed.connect(func(issue: int, statut: int, entetes: PackedStringArray, recu: PackedByteArray) -> void:
-		resultat.append_array([issue, statut, entetes, recu]), CONNECT_ONE_SHOT)
+	requete.request_completed.connect(func(issue: int, statut: int, en_tete: PackedStringArray, recu: PackedByteArray) -> void:
+		resultat.append_array([issue, statut, en_tete, recu]), CONNECT_ONE_SHOT)
 	var silence := Timer.new()
 	silence.one_shot = true
 	requete.add_child(silence)

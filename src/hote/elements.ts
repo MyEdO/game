@@ -68,8 +68,8 @@ export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engage
 export type GesteDuRoster = { recruter: string } | { retirer: string } | { exporter: string } | { importer: true } | { importe: string | null };
 
 /** Une entrée de l'accueil de l'hôte : le jeu au groupe à composer, les sauvegardes à reprendre, le salon à
- *  rejoindre, le combat d'un scénario de test, l'atelier, l'éditeur de carte. */
-export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'salon' | 'combat' | 'atelier' | 'editeur';
+ *  rejoindre, le combat d'un scénario de test, l'atelier, l'éditeur de carte, le Compendium. */
+export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'salon' | 'combat' | 'atelier' | 'editeur' | 'compendium';
 
 /** L'intention qu'un geste joue : un verbe de la partie et ses arguments, celui d'une offre de l'actif compris
  *  (`Offre.geste`), une suite de verbes

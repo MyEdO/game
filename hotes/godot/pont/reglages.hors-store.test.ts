@@ -110,7 +110,7 @@ describe('l’accueil par le pont', () => {
     expect(accueil(appel).map((b) => [b.id, b.jeu, b.refus])).toEqual([
       ['jouer', { accueil: 'jouer' }, null], ['reprendre', { accueil: 'reprendre' }, t('ecran.accueil.reprendre.aucune')],
       ['salon', { accueil: 'salon' }, null], ['combat', { accueil: 'combat' }, null],
-      ['atelier', { accueil: 'atelier' }, null], ['editeur', { accueil: 'editeur' }, null], ['reglages', { reglages: true }, null],
+      ['atelier', { accueil: 'atelier' }, null], ['editeur', { accueil: 'editeur' }, null], ['compendium', { accueil: 'compendium' }, null], ['reglages', { reglages: true }, null],
     ]);
     ouvert = pont;
     const s = appel('ouvrir', { graine: 7 }) as unknown as { vue: { zones: { 'groupe.pretires': Entite[]; 'partie.gestes': Bouton[] } } };

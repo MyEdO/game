@@ -23,6 +23,7 @@ import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomiq
 import { DOSSIER_DES_MODELES, LISTAGE, listage } from './listage.mjs'
 import { ecouter, rendre, TYPES } from './statique.mjs'
 import { hash32 } from '../../src/lib/hash.ts'
+import { SORTIES_DES_ESPACES } from '../../scripts/docs/lib/cibles-registres.mjs'
 
 /** Le WebGL 2 de l'export, en logiciel dans un Chrome sans GPU, sans l'avertissement de repli. */
 export const WEBGL_LOGICIEL = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
@@ -110,9 +111,8 @@ function lireLeCorps(req, res, suite) {
   })
 }
 
-/** Les fichiers de l'atelier du Compendium, par nom leur chemin relatif au dépôt (`SORTIES_DES_ESPACES.atelier`, phase
- *  2 de `npm run gen`). */
-const FICHIERS_DE_L_ATELIER = 'src/data/schemas/_fichiers-de-l-atelier.generated.json'
+/** Les fichiers de l'atelier du Compendium, par nom leur chemin relatif au dépôt (phase 2 de `npm run gen`). */
+const FICHIERS_DE_L_ATELIER = SORTIES_DES_ESPACES.atelier
 
 /**
  * Le dépôt servi (`--depot`, ou le pont vivant) reçoit aussi les données du Compendium : `PUT donnees/<fichier>` écrit

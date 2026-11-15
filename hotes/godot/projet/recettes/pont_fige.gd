@@ -36,7 +36,7 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 	return fige.get(methode, {}).get(cle, {ok = false, erreur = {categorie = "validation", message = "entrée non figée de %s : %s" % [methode, cle]}})
 
 
-func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.METHOD_GET, _corps := "") -> PackedByteArray:
+func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.METHOD_GET, _corps := "", _entetes := PackedStringArray()) -> PackedByteArray:
 	requetes.append(relative)
 	if relative == "modeles/listage.json":
 		return JSON.stringify(fige.listage).to_utf8_buffer()
