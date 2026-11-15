@@ -157,4 +157,10 @@ export const icons: IconFamily = [
       `<path ${KF} d="M7 10.4 C7.6 9.8 8.4 9.8 9 10.4 M11.6 13.6 C10.6 14.6 8.4 14.6 7.4 13.6"/>` +
       `<path ${KF} d="M13.2 10.8 L14.4 9.6 M16.6 10.8 L15.4 9.6 M13.4 14 C14.4 13.2 15.6 13.2 16.6 14"/>`,
   },
+  {
+    id: 'voyage/nuit-passee',
+    label: 'Nuit passée en route',
+    // Un croissant de lune, posé sur la frise du trajet au km de la nuit.
+    svg: `<path ${F} d="M15 3.4 C10.4 3.2 6.6 6.6 6.2 11.1 C5.8 15.6 9.1 19.5 13.6 20 C14.4 20.1 15.2 20 15.9 19.8 C12.5 17.8 10.8 14.8 10.8 11.6 C10.8 8.4 12.4 5.4 15 3.4 Z"/>`,
+  },
 ];

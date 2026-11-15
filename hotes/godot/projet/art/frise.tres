@@ -1,12 +1,15 @@
-[gd_resource type="Theme" format=3]
+[gd_resource type="Theme" load_steps=2 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="1_rubriques"]
 
 [resource]
-Label/colors/font_color = Color(0.725, 0.671, 0.573, 1)
-Label/font_sizes/font_size = 13
+Label/colors/font_color = Color(0.788, 0.725, 0.584, 1)
+Label/font_sizes/font_size = 14
+Label/fonts/font = ExtResource("1_rubriques")
 alerte/base_type = &"Label"
-alerte/colors/font_color = Color(0.851, 0.706, 0.416, 1)
+alerte/colors/font_color = Color(0.725, 0.255, 0.173, 1)
 reussite/base_type = &"Label"
-reussite/colors/font_color = Color(0.953, 0.902, 0.784, 1)
-reussite/constants/rayon = 8
+reussite/colors/font_color = Color(0.914, 0.863, 0.753, 1)
+reussite/constants/rayon = 7
 Plan/constants/epaisseur = 2
-Plan/constants/rayon = 5
+Plan/constants/rayon = 4
