@@ -61,7 +61,6 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     poserLeLocalStorage();
   });
   afterEach(() => {
-    delete (globalThis as { localStorage?: Storage }).localStorage;
     __setFabriqueIdbForTest(null);
   });
 
@@ -566,7 +565,6 @@ describe('`wfrp4-library` — déclarée, recréée si elle s’en écarte (#240
     poserLeLocalStorage();
   });
   afterEach(() => {
-    delete (globalThis as { localStorage?: Storage }).localStorage;
     __setFabriqueIdbForTest(null);
   });
 

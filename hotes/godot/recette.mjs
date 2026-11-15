@@ -15,7 +15,7 @@
 //   `recupererModeles`), puis `--element` importé (`importer.mjs --sans-publier`) ; le combat ouvert, chaque combattant
 //   à corps de la vue a la base de l'élément, celle que l'écran publie posée (`wfrpEcran.corps`), et le combattant dont
 //   le corps monte `--element` a monté aussi la tête de sa vue et porte, à la ligne de sa prise `secondaire`, l'emblème de sa
-//   donnée (`portee.embleme`) ; sans ces options, le dossier servi est celui du projet, ou, avec `--statique`, celui que l'export a déposé, en scènes fabriquées (#3946). Puis la fenêtre du round à l'Entrée, une charge sur la plus proche des cibles en vue que la charge offre, cliquée à sa case (`casesDesCibles`),
+//   donnée (`portee.embleme`) ; sans ces options, le dossier servi est celui du projet, ou, avec `--statique`, celui que l'export a déposé, en scènes fabriquées (#3946). Puis la fenêtre du round à l'Entrée, l'ordre du tour montré : chaque bouton du cadre publié est sous un panneau publié (`panneaux`), et des cases du cadre aussi ; une charge sur la plus proche des cibles en vue que la charge offre, cliquée à sa case (`casesDesCibles`),
 //   la localisation, le jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche
 //   d'une case (aperçu puis déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de
 //   Godot jusqu'à la Défense du héros visé, l'adversaire en vue ou non, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la
@@ -89,7 +89,7 @@
 //   Round ; « Résoudre » ouvre le jet de la première Scène à postes, lancé à l'Entrée puis appliqué : la Scène se
 //   ferme ; le Test spectaculaire ouvre l'entre-deux-Rounds, « Round suivant » le Round 2.
 // - `fiche` : la fenêtre du round à l'Entrée, puis le statbloc du premier héros ouvert par son bouton, celui d'un ennemi
-//   de l'ordre du tour, donc en vue, dont le cadre du monde montre la case, ouvert au clic droit sur elle, et la fiche fermée par son bouton « Fermer ».
+//   de l'ordre du tour, donc en vue, dont la case montre le monde (`auMonde`), ouvert au clic droit sur elle, et la fiche fermée par son bouton « Fermer ».
 // - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le statbloc de Apothicaire, sa
 //   carte amenée à la molette dans la rangée du groupe, son armure choisie à l'onglet de ses possessions puis ôtée par « Porter », sa potion choisie.
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
@@ -207,7 +207,7 @@
 // - `vision` (`--scenario grimpant`, #3950) : la fenêtre du round à l'Entrée, l'ennemi en vue a son corps posé et son
 //   rang dans l'ordre du tour ; sous chaque regard que la touche V offre au combat (tactique et plateau, `regardDuJeu`
 //   y rendant la tactique pour l'immersion), la caméra posée au même point par `wfrpCadrer` (`CADRAGES_DE_LA_VISION`),
-//   la luminance de chaque case libre du cadre lue sur la capture au point que `wfrpEcran` publie ; le pas du chasseur
+//   la luminance de chaque case libre qui montre le monde (`auMonde`) lue sur la capture au point que `wfrpEcran` publie ; le pas du chasseur
 //   cliqué vers (5, 0) change `vue.vision` et sort l'ennemi de la vue : ni corps posé, ni rang dans l'ordre du tour, sa
 //   case gardée aux occupants ; le fondu fini, sous chaque regard, le même cadrage publie les mêmes points, une case
 //   quittée s'assombrit et une case entrée en vue s'éclaire, chacune dans le rapport des teintes (`vision.teintes`), au
@@ -491,9 +491,20 @@ async function ecranFige() {
   assert.ok(fige, e?.fondu ? 'la vision ne se fond plus avant la capture' : 'la caméra se pose, le plateau à l’écran, avant la capture')
   return e
 }
+/** La fenêtre du jeu, `[x, y, largeur, hauteur]`, sous les deux lieux : `TAILLE` du pilote natif
+ *  (`projet/recettes/pilote.gd`), la page de `pilotage/page.mjs`. */
+const FENETRE = [0, 0, 1280, 720]
+/** Si le point `[px, py]` de l'écran est dans le rectangle `[x, y, largeur, hauteur]`. */
+const dans = ([x, y, l, h], [px, py]) => px >= x && px <= x + l && py >= y && py <= y + h
+/** Le panneau de l'écran publié `e` (`panneaux`) sous lequel est le point `point`, `undefined` sans lui. */
+const panneauSur = (e, point) => e.panneaux.find((p) => dans(p, point))
+/** Si le point `point` de l'écran publié `e` montre le monde : dans son cadre (`cadre`), la fenêtre s'il n'en publie
+ *  pas, et sous aucun de ses panneaux (`panneauSur`). */
+const auMonde = (e, point) => dans(e.cadre ?? FENETRE, point) && !panneauSur(e, point)
 async function cliquerCase({ x, y, z = 0 }) {
   const [e, point] = await attendreALEcran((e) => casesPosees(e)?.[`${x},${y},${z}`])
   assert.ok(point, e?.glisse ? `la caméra ne glisse plus avant le clic sur la case ${x},${y},${z}` : `la case ${x},${y},${z} est à l'écran ; cases : ${Object.keys(e?.cases ?? {}).join(' ')}`)
+  assert.ok(auMonde(e, point), `la case ${x},${y},${z} au point ${point.map(Math.round)} montre le monde : ${panneauSur(e, point) ? `le panneau ${panneauSur(e, point).map(Math.round)} la couvre` : `hors du cadre ${e.cadre.map(Math.round)}`}`)
   await cliquerPoint(...point)
 }
 /** La case de la cible `id`, en vue du groupe ou non (`vue.casesDesCibles`). */
@@ -618,6 +629,14 @@ async function parcoursCombat() {
   assert.deepEqual(zone(v, 'fenetre.titre'), [], 'sans fenêtre, la zone du titre est vide')
   assert.equal(heros?.camp, 'heros', 'un héros est actif')
   assert.equal(v.projection.combat.barre.forme, 'ouverte')
+  assert.ok(zone(v, 'combat.ordre').length > 0, 'l’ordre du tour se montre')
+  const ouvert = await ecranPose()
+  const auCadre = ([x, y]) => dans(ouvert.cadre, [x, y])
+  const nus = ouvert.boutons.filter((b) => auCadre([b.x, b.y]) && !panneauSur(ouvert, [b.x, b.y]))
+  assert.deepEqual(nus, [], `chaque bouton du cadre ${ouvert.cadre.map(Math.round)} est sous un panneau publié ${JSON.stringify(ouvert.panneaux)}`)
+  const couvertes = Object.keys(ouvert.cases).filter((k) => auCadre(ouvert.cases[k]) && panneauSur(ouvert, ouvert.cases[k]))
+  assert.ok(couvertes.length > 0, `une case du cadre est sous un panneau publié ${JSON.stringify(ouvert.panneaux)}`)
+  noter(`ordre du tour montré : ${ouvert.boutons.filter((b) => auCadre([b.x, b.y])).length} boutons du cadre, chacun sous l'un des ${ouvert.panneaux.length} panneaux publiés ; ${couvertes.length} cases du cadre sous un panneau`)
   assert.equal(zone(v, 'combat.actif')[0]?.nom, heros.nom, 'le panneau nomme l’actif')
   noter(`Entrée : fenêtre fermée ; actif ${heros.nom}, barre ouverte`)
   const charge = offre(v, 'charge')
@@ -938,7 +957,7 @@ function pointsDesCasesLibres(e, v) {
   return Object.fromEntries(Object.entries(e.cases).filter(([cle]) => !(cle in v.occupants) && !peintes.has(cle)))
 }
 
-/** La luminance lue à l'écran, sur une capture nommée `nom`, à chaque point du cadre du monde que `points` tire de
+/** La luminance lue à l'écran, sur une capture nommée `nom`, à chaque point qui montre le monde (`auMonde`) que `points` tire de
  *  l'écran publié et de la vue (par défaut, celui de chaque case libre, `pointsDesCasesLibres`) : `luminanceDuCarre`.
  *  Le point publié est le même avant et après la capture. */
 async function luminancesALEcran(nom, points = pointsDesCasesLibres) {
@@ -949,7 +968,7 @@ async function luminancesALEcran(nom, points = pointsDesCasesLibres) {
     const apres = await ecranFige()
     if (JSON.stringify(apres.cases) !== JSON.stringify(avant.cases)) continue
     const lum = {}
-    for (const [cle, point] of Object.entries(points(avant, v))) if (dansLeCadre(avant, point)) lum[cle] = luminanceDuCarre(image, point)
+    for (const [cle, point] of Object.entries(points(avant, v))) if (auMonde(avant, point)) lum[cle] = luminanceDuCarre(image, point)
     return lum
   }
 }
@@ -957,7 +976,7 @@ async function luminancesALEcran(nom, points = pointsDesCasesLibres) {
 /** Le cadrage (`wfrpCadrer`) de chaque regard du combat de `grimpant` aux captures du parcours `vision` : la même
  *  caméra avant et après le pas, donc le même pixel pour le même point d'une case, que la caméra qui suit l'actif
  *  déplacerait ; au pied de la falaise, regardant au nord, d'où le plateau ne cache aucune case du sol, et les cases
- *  du sol que le pas change à l'est des panneaux de l'interface, que l'écran publié ne borne pas. */
+ *  du sol que le pas change à l'écran. */
 const CADRAGES_DE_LA_VISION = {
   tactique: { regard: 'tactique', case: { x: 5, y: 3 }, lacet: 0, zoom: 22 },
   plateau: { regard: 'plateau', case: { x: 5, y: 3 }, lacet: 0, zoom: 22 },
@@ -1413,10 +1432,8 @@ async function parcoursDocument() {
 
 /** La ligne d'engagement de la scène `magie` (`src/scenes/test-scenarios/magie.ts`, `engager-le-combat`), sa colonne. */
 const LIGNE_D_ENGAGEMENT = 16
-/** Si le point `[x, y]` de l'écran est dans le cadre du monde publié (`cadre`), la part que l'interface ne couvre pas. */
-const dansLeCadre = ({ cadre: [x, y, l, h] }, [px, py]) => px >= x && px <= x + l && py >= y && py <= y + h
 /** Le groupe mené au combat de la scène `magie` comme un joueur l'y mène : à chaque pas, un clic sur la case de sa
- *  rangée la plus avancée vers la ligne d'engagement que le cadre du monde montre, chaque fenêtre fermée à l'Entrée,
+ *  rangée la plus avancée vers la ligne d'engagement qui montre le monde (`auMonde`), chaque fenêtre fermée à l'Entrée,
  *  jusqu'au combat. */
 async function engagerLeCombat() {
   for (let pas = 0; !(await vue()).projection.combat; pas++) {
@@ -1426,8 +1443,8 @@ async function engagerLeCombat() {
     const publie = await ecranPose()
     const [gx, gy] = v.projection.exploration.groupe
     const z = v.projection.exploration.etage ?? 0
-    const vers = Array.from({ length: LIGNE_D_ENGAGEMENT - gx }, (_, i) => LIGNE_D_ENGAGEMENT - i).find((x) => publie.cases[`${x},${gy},${z}`] && dansLeCadre(publie, publie.cases[`${x},${gy},${z}`]))
-    assert.ok(vers, `une case de la rangée ${gy} vers l'est se montre dans le cadre ${publie.cadre}`)
+    const vers = Array.from({ length: LIGNE_D_ENGAGEMENT - gx }, (_, i) => LIGNE_D_ENGAGEMENT - i).find((x) => publie.cases[`${x},${gy},${z}`] && auMonde(publie, publie.cases[`${x},${gy},${z}`]))
+    assert.ok(vers, `une case de la rangée ${gy} vers l'est montre le monde, dans le cadre ${publie.cadre} et sous aucun panneau`)
     await cliquerCase({ x: vers, y: gy, z })
     await attendreLaVue(`!!v.projection.fenetre || !!v.projection.combat || v.projection.exploration?.groupe.join() === '${vers},${gy}'`)
   }
@@ -1756,7 +1773,7 @@ async function parcoursFiche() {
   noter(`carte « ${heros.nom} » : ${zone(v, 'fiche.profil').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')}`)
   await capturer('3678-statbloc-1-heros')
   const publie = await ecranPose()
-  const [cle, ennemi] = Object.entries(v.occupants).find(([k, id]) => element(v, 'combat.ordre', `ordre/${id}`)?.ton === 'echec' && dansLeCadre(publie, publie.cases[k]))
+  const [cle, ennemi] = Object.entries(v.occupants).find(([k, id]) => element(v, 'combat.ordre', `ordre/${id}`)?.ton === 'echec' && auMonde(publie, publie.cases[k]))
   const [px, py] = publie.cases[cle]
   await marquer()
   await geste(session, { surface: 'canvas', x: px, y: py }, { qui: `clic droit (${Math.round(px)}, ${Math.round(py)})` }, clic({ bouton: 'right' }))
@@ -2611,9 +2628,9 @@ async function parcoursEditeur() {
     await cliquerAuPanneau({ element: `bouton/${id}` })
     assert.equal(boutonDeLEditeur(await editeur(), id)?.presse, true, `${id} choisi à son bouton`)
   }
-  const cases = (await ecran()).cases
-  const aLEcran = ([x, y]) => x > 360 && x < 1240 && y > 40 && y < 680
-  const depart = Object.keys(cases).map((k) => k.split(',').map(Number)).find(([x, y]) => [0, 1, 2].every((d) => cases[`${x + d},${y}`] && aLEcran(cases[`${x + d},${y}`])) && x > 1 && y > 1)
+  const carte = await ecran()
+  const { cases } = carte
+  const depart = Object.keys(cases).map((k) => k.split(',').map(Number)).find(([x, y]) => [0, 1, 2].every((d) => cases[`${x + d},${y}`] && auMonde(carte, cases[`${x + d},${y}`])) && x > 1 && y > 1)
   assert.ok(depart, 'trois cases voisines à l’écran, hors du panneau')
   const [x0, y0] = depart
   const avant = cases[`${x0 + 2},${y0}`]
@@ -2713,7 +2730,7 @@ async function parcoursEditeur() {
   e = await editeur()
   const catalogue = e.zones['editeur.options'].find((c) => c.id === 'decors').valeurs.find((b) => b.presse)
   /** Une case à l'écran sans repère à deux cases d'elle : aucun décor posé ne la couvre. */
-  const libre = ([x, y]) => aLEcran(cases[`${x},${y}`] ?? [0, 0]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2)
+  const libre = ([x, y]) => cases[`${x},${y}`] && auMonde(carte, cases[`${x},${y}`]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2)
   const [dx, dy] = Object.keys(cases).map((k) => k.split(',').map(Number)).find(([x, y]) => libre([x, y]) && libre([x + 2, y]))
   await cliquerPoint(...cases[`${dx},${dy}`])
   await waitFor(session, '(globalThis.wfrpEcran?.editeur?.surcouche.reperes ?? []).some((r) => r.choisi)')
@@ -2756,7 +2773,7 @@ async function parcoursEditeur() {
   await cliquerAuPanneau({ element: 'bouton/outil/zone' })
   e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'zone/room')?.presse, true, 'l’outil Zone trace d’abord une pièce')
-  const loin = ([x, y]) => aLEcran(cases[`${x},${y}`] ?? [0, 0]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2)
+  const loin = ([x, y]) => cases[`${x},${y}`] && auMonde(carte, cases[`${x},${y}`]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2)
   const auCentre = ([x, y]) => Math.hypot(cases[`${x},${y}`][0] - 800, cases[`${x},${y}`][1] - 380)
   const [zx, zy] = Object.keys(cases).map((k) => k.split(',').map(Number)).filter(([x, y]) => [0, 1, 2, 3].every((d) => loin([x + d, y]) && loin([x + d, y + 1])))
     .sort((a, b) => auCentre(a) - auCentre(b))[0]
@@ -3138,7 +3155,7 @@ async function parcoursEditeur() {
   noter(`« Charger une planche… » : ${ligneDuCalque(e, 'calque')}, coins ${JSON.stringify(e.calque.coins)}, ${ligneDuCalque(e, 'calque/opacite')}, ${ligneDuCalque(e, 'calque/echelle')}`)
   await capturer('3508-l1b-1-planche-posee')
   const rangee = Object.keys(cases).map((k) => k.split(',').map(Number))
-    .find(([x, y]) => Array.from({ length: 20 }, (_, i) => cases[`${x + (i % 10)},${y + Math.floor(i / 10)}`]).every((c) => c && aLEcran(c)))
+    .find(([x, y]) => Array.from({ length: 20 }, (_, i) => cases[`${x + (i % 10)},${y + Math.floor(i / 10)}`]).every((c) => c && auMonde(carte, c)))
   assert.ok(rangee, 'deux rangées de dix cases voisines à l’écran, hors du panneau')
   const [cx, cy] = rangee
   /** Le point de l'écran du nœud au coin bas-droit de la case `x`, `cy` : le milieu des centres des quatre cases qui le bordent. */
@@ -3191,12 +3208,13 @@ async function parcoursEditeur() {
   noter(`« +15° » sur ${ecrite}, ${ailleurs.libelle} choisie à la liste des scènes, « Annuler » : ${ecrite} éditée, le nord rendu au haut du plan`)
   await cliquerAuPanneau({ element: 'bouton/scenes/ajouter' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === 'Nouvelle scène'`)
-  const sceneNeuve = (await ecran()).cases
+  const ecranNeuf = await ecran()
+  const sceneNeuve = ecranNeuf.cases
   const largeur = Math.max(...Object.keys(sceneNeuve).map((k) => Number(k.split(',')[0]))) + 1
   const hauteur = Math.max(...Object.keys(sceneNeuve).map((k) => Number(k.split(',')[1]))) + 1
   /** L'origine du bâti : le bloc de ses cases, de (-1, -1) à (9, 6), à l'écran hors du panneau et dans la carte. */
   const origine = Object.keys(sceneNeuve).map((k) => k.split(',').map(Number))
-    .find(([x, y]) => x >= 1 && y >= 1 && x + 9 < largeur && y + 6 < hauteur && Array.from({ length: 11 * 8 }, (_, i) => sceneNeuve[`${x - 1 + (i % 11)},${y - 1 + Math.floor(i / 11)}`]).every(aLEcran))
+    .find(([x, y]) => x >= 1 && y >= 1 && x + 9 < largeur && y + 6 < hauteur && Array.from({ length: 11 * 8 }, (_, i) => sceneNeuve[`${x - 1 + (i % 11)},${y - 1 + Math.floor(i / 11)}`]).every((c) => c && auMonde(ecranNeuf, c)))
   assert.ok(origine, 'un bloc de onze cases sur huit de la scène neuve à l’écran, hors du panneau')
   const [ox, oy] = origine
   /** Le point de l'écran de la case (`dx`, `dy`) du bâti, tel que l'écran le publie maintenant. */

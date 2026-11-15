@@ -161,13 +161,15 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ## - Au menu : `{ boutons: { texte, x, y }[], curseurs: { element, gauche, droite, y, valeur }[] }`, le texte et le
 ##   centre de chaque bouton actif, et chaque curseur réglable du panneau des réglages (`PontDuNoyau.curseurs_a_l_ecran`).
 ## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], curseurs, cases: Record<"x,y,z", [x, y]>,
-##   glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], corps: Record<string, { base: string, elements: string[],
-##   emblemes: Record<string, string>, couleurs: Record<string, Record<string, string>> }>, navires: string[] }`,
+##   glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], panneaux: [x, y, largeur, hauteur][],
+##   corps: Record<string, { base: string, elements: string[], emblemes: Record<string, string>,
+##   couleurs: Record<string, Record<string, string>> }>, navires: string[] }`,
 ##   plus le point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, si la caméra
 ##   glisse vers un lieu ou pivote (`Monde.glisse` : publié au départ du glissé, où les points de `cases` sont encore
 ##   ceux d'avant, puis à sa fin, où ils tiennent), si la vision posée se fond encore depuis celle d'avant
-##   (`VolumeDeScene.part_du_fondu` : publié à la vue qui la pose, puis à la fin du fondu), la part de l'écran où le
-##   monde se voit, que l'interface ne couvre pas (`Monde.cadre`, vide avant la première mise en page), les ids des
+##   (`VolumeDeScene.part_du_fondu` : publié à la vue qui la pose, puis à la fin du fondu), la part de la fenêtre
+##   que l'ossature de l'interface laisse à la scène (`Monde.cadre`, vide avant la première mise en page), sur laquelle
+##   des panneaux se posent, l'emprise de chaque panneau (`PontDuNoyau.panneaux_a_l_ecran`), les ids des
 ##   navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle posé, et, par id de
 ##   combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de `montes`, l'id de
 ##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre,
@@ -177,10 +179,11 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   pour une offre, `bouton/<clé du geste>` pour un geste de la fenêtre, `bouton/<clé du geste>/<n>` pour la n-ième
 ##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids`, `retenu`, `ouverte` et `designe`, comme à
 ##   l'atelier ; `curseurs`, comme au menu.
-## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], saisies: { texte, x, y, element? }[],
-##   panneau: { valeur, contenu, page, haut, bas, boutons, saisies }, cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes,
-##   noms, calque, calque_pose } }`, chaque champ de texte éditable à l'écran, son texte et son centre
-##   (`PontDuNoyau.saisies_a_l_ecran`), le défilement du panneau d'outils, ses boutons et ses champs défilés hors de
+## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], panneaux: [x, y, largeur, hauteur][],
+##   saisies: { texte, x, y, element? }[], panneau: { valeur, contenu, page, haut, bas, boutons, saisies },
+##   cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes, noms, calque, calque_pose } }`, l'emprise de
+##   chaque panneau (`PontDuNoyau.panneaux_a_l_ecran`), chaque champ de texte éditable à l'écran, son texte et son
+##   centre (`PontDuNoyau.saisies_a_l_ecran`), le défilement du panneau d'outils, ses boutons et ses champs défilés hors de
 ##   son cadre compris (`PontDuNoyau.defilement_publie`), le point de l'écran du sol de
 ##   chaque case de la couche éditée, les zones, la surcouche et le calque de la dernière réponse de `editer` (section
 ##   « Éditeur »), le nombre d'arêtes posées sur le monde, les noms posés sur le monde par case `x,y,z`, et si le calque
@@ -403,6 +406,21 @@ static func curseurs_a_l_ecran(racines: Array, defiles := false) -> Array:
 static func glissiere_publiee(glissiere: Slider) -> Dictionary:
 	var cadre := glissiere.get_global_rect()
 	return {gauche = cadre.position.x, droite = cadre.end.x, y = cadre.get_center().y, valeur = glissiere.value}
+
+
+## L'emprise à l'écran `[x, y, largeur, hauteur]` de chaque `PanelContainer` visible sous `racines` qu'aucun autre
+## `PanelContainer` ne contient : le plus extérieur des panneaux de l'interface.
+static func panneaux_a_l_ecran(racines: Array) -> Array:
+	var panneaux := []
+	for racine in racines:
+		for panneau in racine.find_children("*", "PanelContainer", true, false):
+			var parent: Node = panneau.get_parent()
+			while parent != null and not parent is PanelContainer:
+				parent = parent.get_parent()
+			if panneau.is_visible_in_tree() and parent == null:
+				var emprise: Rect2 = panneau.get_global_rect()
+				panneaux.append([emprise.position.x, emprise.position.y, emprise.size.x, emprise.size.y])
+	return panneaux
 
 
 ## Le défilement vertical `defilement` : sa position (`valeur`, la valeur de sa barre, `ScrollBar.value`), la hauteur

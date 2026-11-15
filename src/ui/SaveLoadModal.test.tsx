@@ -2,7 +2,7 @@
  * SaveLoadModal — rendu des libellés i18n Phase D.
  * Rendu statique via renderToStaticMarkup (pas de DOM, pas de localStorage requis).
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { SaveLoadModal } from './SaveLoadModal';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
@@ -10,9 +10,6 @@ import { poserLeLocalStorage } from '../lib/stockage.testkit';
 describe("SaveLoadModal -- libelles i18n Phase D", () => {
   beforeEach(() => {
     poserLeLocalStorage();
-  });
-  afterEach(() => {
-    delete (globalThis as { localStorage?: Storage }).localStorage;
   });
 
   it("mode save : titre Sauvegarder, emplacements vides, bouton importer, fermer", () => {

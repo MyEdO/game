@@ -310,7 +310,7 @@ export const ECRIT_LU = {
   },
   'test:runner': {
     ecrit: [],
-    lit: ['scripts/', 'package.json', '.npmrc', '.claude/settings.json', '.codex/hooks.json'],
+    lit: ['scripts/', 'package.json', '.npmrc', '.claude/settings.json', '.codex/hooks.json', 'vite.config.ts'],
     raison: RETRAIT_WORKTREE_FERME +
       'gitDeBanc.test.mjs importe installer du collecteur et ses dépendances sous scripts/ : aucune SORTIE fournie, aucun flush appelé ; ' +
       'ses captures Git restent en mémoire sur des dépôts instanceDeDepot sous os.tmpdir(), restaurés puis supprimés en finally ; ' +
@@ -328,7 +328,8 @@ export const ECRIT_LU = {
       '(node_modules/.cache/docs-fraicheur.json) que depuis `executer` sous la porte `import.meta.main` de build-all.mjs, ' +
       'que les bancs de la gate n’appellent pas ; +1 le 2026-10-15 (#2603) : `purgerPerimes.mjs`, atteint par `perimetre.mjs` → ' +
       '`memosDAnalyse.mjs`, ne purge que le dossier de mémos de son appelant (node_modules/.cache/perimetre, ou un ' +
-      '`mkdtempSync` d’os.tmpdir() des bancs)',
+      '`mkdtempSync` d’os.tmpdir() des bancs) ; +1 le 2026-11-13 (#3412) : `partition.test.mjs` importe vite.config.ts (LU) ' +
+      'et trie par son séquenceur des fixtures posées sous un `mkdtempSync` d’os.tmpdir(), `rmSync` en finally',
   },
   'test:noyau': {
     ecrit: [],
