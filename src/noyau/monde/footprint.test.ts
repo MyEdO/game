@@ -97,10 +97,10 @@ describe('footprint — empreinte N×N par Taille (donnée `sizes.json::footprin
   });
 
   it('distanceDeCombat : coïncide avec chebyshev pour le 1×1, mais un grand est au contact par son bord', () => {
-    expect(distanceDeCombat(C(0, 0), C(3, 0))).toBe(3); // deux 1×1 → identique à chebyshev
-    expect(distanceDeCombat(C(5, 5, 'grande'), C(7, 6))).toBe(1); // 2×2 adjacent au bord est
-    expect(distanceDeCombat(C(5, 5, 'grande'), C(8, 6))).toBe(2); // une tuile de marge
-    expect(distanceDeCombat(C(0, 0), {} as Combatant)).toBe(Infinity); // cible non posée
+    expect(distanceDeCombat(null, C(0, 0), C(3, 0))).toBe(3); // deux 1×1 → identique à chebyshev
+    expect(distanceDeCombat(null, C(5, 5, 'grande'), C(7, 6))).toBe(1); // 2×2 adjacent au bord est
+    expect(distanceDeCombat(null, C(5, 5, 'grande'), C(8, 6))).toBe(2); // une tuile de marge
+    expect(distanceDeCombat(null, C(0, 0), {} as Combatant)).toBe(Infinity); // cible non posée
   });
 });
 

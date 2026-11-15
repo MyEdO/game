@@ -981,8 +981,8 @@ describe('Munitions & rechargement', () => {
     expect(full).toBe(60);
     expect(withAmmo).toBe(30);
     // À 6 m (distanceTiles 3) la fourchette se décale : « Bout portant » (pleine) → « Courte portée » (½).
-    expect(rangeBandName(3, full!)).toBe('Bout portant');
-    expect(rangeBandName(3, withAmmo!)).toBe('Courte portée');
+    expect(rangeBandName(3, full!, 2)).toBe('Bout portant');
+    expect(rangeBandName(3, withAmmo!, 2)).toBe('Courte portée');
   });
   it('recomputeLoadout : Arc (sans « Recharge ») → reload 0', () => {
     const c = {

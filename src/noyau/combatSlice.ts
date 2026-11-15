@@ -1339,7 +1339,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const blocked = !!(hero.pos && target.pos && scene) && !losClear(scene, hero.pos, target.pos, smokeOf(battle));
       // Chaque cause dit LA SIENNE : une cible hors de portée n'annonce pas un mur qui n'existe pas.
       if (weapon.type !== 'distance') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
-      if (!inFiringBand(scene, hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.horsDePortee'));
+      if (!inFiringBand(scene, hero, target, weapon)) return void refuserGeste(get, set, t('cf.horsDePortee'));
       if (blocked) return void refuserGeste(get, set, t('cf.ligneDeVueMasquee'));
       // Le tir se résout par la modale de jet NORMALE (jetLancer('attaque')/jetValider('attaque')) ; le tireur n'est PAS actif.
       // `pendingAttack.interrupt` → jetValider('attaque') applique le tir sans avancer le tour + épuise son tour normal.
@@ -2355,7 +2355,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const caster = pool.find((c) => c.id === pc.casterId);
         const spell = findSpellById(pc.spellId);
         if (!caster || !spell) return;
-        const eligibles = new Set(overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).map((c) => c.id));
+        const eligibles = new Set(overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).map((c) => c.id));
         const cap = extraTargetCapacity(overcastSourceOf(spell), pc.overcast?.targets ?? 0, spellTargetCount(spell, caster));
         const refus = ids.length > cap ? t('cast.refus.ciblesAuDela', { cap })
           : new Set(ids).size < ids.length ? t('cast.refus.cibleRepetee')
@@ -3085,7 +3085,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         if (pa.siege && pa.center) {
           const lines = lance.hit && lance.damage != null
             ? [t('cf.impactDeSiege', { name: attacker.label }), ...resolveWeaponArea(get, set,
-                { attacker, weapon, damage: lance.damage, location: lance.location ?? 'corps', distanceTiles: distanceDeCombat(attacker, target), center: pa.center },
+                { attacker, weapon, damage: lance.damage, location: lance.location ?? 'corps', distanceTiles: distanceDeCombat(get().scene, attacker, target), center: pa.center },
                 battleAreaTargets(get), battleRng()).lines]
             : [t('cf.siegeRate', { name: attacker.label })];
           set({ battle: { ...markActed(get, set), action: null, preview: null, log: [...get().battle!.log, ...evLines(lines, 'tir', attacker.id)] } });

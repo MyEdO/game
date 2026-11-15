@@ -241,7 +241,7 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
         c.id !== actor.id && c.kind !== actor.kind && !isOutOfAction(c)
         && isEngagedWith(c, actor.id) && !held.includes(c.id)
         && (on.sizeAtMost !== 'soi' || SIZE_ORDER[effectiveSize(c.size)] <= selfSize));
-      eligible.sort((a, b) => distanceDeCombat(actor, a) - distanceDeCombat(actor, b)); // les plus proches d'abord
+      eligible.sort((a, b) => distanceDeCombat(get().scene, actor, a) - distanceDeCombat(get().scene, actor, b)); // les plus proches d'abord
       return eligible.slice(0, capacity);
     }
     // GÉOMÉTRIE : tous les combattants à portée d'un centre (arc d'Azyr, Trait/Talent d'aire)
@@ -253,7 +253,7 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
     // de GameOps à TOUTES les cibles du rayon — MÊME collecte que munitions/zoneBlast/manœuvres.
     return combatantsWithinRadius(center.pos, radius, battle.combatants,
       (c) => c.id !== center.id && c.id !== actor.id && !isOutOfAction(c),
-      (_ctr, c) => distanceDeCombat(center, c));
+      (_ctr, c) => distanceDeCombat(get().scene, center, c));
   }
   return battle.combatants.filter((c) => c.id !== actor.id && isEngagedWith(c, actor.id)); // 'engages'
 }

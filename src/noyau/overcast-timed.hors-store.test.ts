@@ -107,14 +107,14 @@ describe('overcastTargetCandidates — cibles supplémentaires proposables (moda
     const downed = { ...stub('e3', 'ennemi', 3, 0), conditions: [{ id: 'inconscient', value: 1 }] }; // Mort Subite au dépassement : LDB 18 l.46
     const dead = { ...stub('e4', 'ennemi', 4), dead: true };
     const pool = [caster, stub('e1', 'ennemi', 1), stub('e2', 'ennemi', 2), downed, dead];
-    const ids = overcastTargetCandidates(pool, caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
+    const ids = overcastTargetCandidates(null, pool, caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
     expect(ids).toEqual(['e2']);
   });
 
   it('Projectile : les cibles supplémentaires doivent être À PORTÉE du Sort', () => {
     const caster = stub('w', 'heros', 0); // Carreau : Portée FM mètres → FM 30 = 15 cases
     const far = stub('e3', 'ennemi', 90);
-    const ids = overcastTargetCandidates([caster, stub('e1', 'ennemi', 1), stub('e2', 'ennemi', 2), far], caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
+    const ids = overcastTargetCandidates(null, [caster, stub('e1', 'ennemi', 1), stub('e2', 'ennemi', 2), far], caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
     expect(ids).toEqual(['e2']);
   });
 
@@ -123,7 +123,7 @@ describe('overcastTargetCandidates — cibles supplémentaires proposables (moda
     const ko = stub('h2', 'heros', 1, 0);
     addCondition(ko, 'inconscient', 1);
     const dead = { ...stub('h3', 'heros', 2), dead: true };
-    const ids = overcastTargetCandidates([caster, stub('h1', 'heros', 3), ko, dead], caster, 'h1', { range: null }, false, 'arcane', 0).map((c) => c.id);
+    const ids = overcastTargetCandidates(null, [caster, stub('h1', 'heros', 3), ko, dead], caster, 'h1', { range: null }, false, 'arcane', 0).map((c) => c.id);
     expect(ids).toEqual(['w', 'h2']);
   });
 });

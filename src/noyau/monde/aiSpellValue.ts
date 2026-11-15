@@ -15,7 +15,7 @@ import { fabriqueLocale } from '../../engine/fabriqueDId';
 import { tableTotale } from '../../lib/tableTotale';
 import { Combatant, Weapon, ArmourPoints, CHAR_KEYS } from '../../engine/types';
 import { bonus, effectiveChar, blessuresPosees, forceDuPorteur } from '../../engine/characteristics';
-import { combatValue, attackModifiers, combineMods, woundsFromHit, type ModLine } from '../../engine/combat';
+import { combatValue, attackModifiers, combineMods, woundsFromHit, type AttackModOpts } from '../../engine/combat';
 import { effectiveWeaponDamage } from '../../engine/weaponDamage';
 import { missileDamage } from '../../engine/magic';
 import { formulaExpectation, applyOps, type GameOp } from '../../engine/ops';
@@ -44,9 +44,9 @@ export const finite = (n: number, fallback = 0): number => (Number.isFinite(n) ?
  * Probabilité de TOUCHER (0..1) d'une attaque, dérivée de la valeur cible RAW (base + modificateurs
  * plafonnés par `combineMods`, comme la résolution) : `P = clamp(target, 5, 95) / 100`. PUR, sans dé.
  */
-export function hitProbability(attacker: Combatant, target: Combatant, weapon: Weapon, kind: 'melee' | 'distance', distanceTiles?: number, env?: ModLine[], metresPerTile = 2): number {
-  const val = combatValue(attacker, kind, weapon);
-  const mods = combineMods(attackModifiers(attacker, target, weapon, { kind, distanceTiles, env, metresPerTile }));
+export function hitProbability(attacker: Combatant, target: Combatant, weapon: Weapon, opts: AttackModOpts): number {
+  const val = combatValue(attacker, opts.kind, weapon);
+  const mods = combineMods(attackModifiers(attacker, target, weapon, opts));
   const targetVal = finite(val + mods, NaN);
   if (!Number.isFinite(targetVal)) return NaN;
   return Math.max(5, Math.min(95, targetVal)) / 100;
@@ -57,8 +57,8 @@ export function hitProbability(attacker: Combatant, target: Combatant, weapon: W
  * toucher × Blessures d'un coup MOYEN. Les Blessures réelles passent par `woundsFromHit` (BE + PA à
  * la localisation « corps », qualités d'arme) — MÊME résolveur que le combat.
  */
-export function expectedDamage(attacker: Combatant, target: Combatant, weapon: Weapon, kind: 'melee' | 'distance', distanceTiles?: number, env?: ModLine[], metresPerTile = 2): number {
-  const p = hitProbability(attacker, target, weapon, kind, distanceTiles, env, metresPerTile);
+export function expectedDamage(attacker: Combatant, target: Combatant, weapon: Weapon, opts: AttackModOpts): number {
+  const p = hitProbability(attacker, target, weapon, opts);
   if (!Number.isFinite(p)) return NaN;
   const { bf, passif } = forceDuPorteur(attacker);
   const totalDamage = finite(effectiveWeaponDamage(weapon, { bf: Number.isFinite(bf) ? bf : 0, passif }) + AVG_DR, NaN);
@@ -175,7 +175,7 @@ function bestAttackEV(c: Combatant, foe: Combatant | null): number {
   const target = foe ?? GENERIC_DUMMY;
   let best = 0;
   for (const w of c.weapons ?? []) {
-    const ev = finite(expectedDamage(c, target, w, w.type), 0);
+    const ev = finite(expectedDamage(c, target, w, { kind: w.type }), 0);
     if (ev > best) best = ev;
   }
   return best;

@@ -181,7 +181,7 @@ describe('aiOvercastPlan — Surincantation automatique de l’IA (LDB 47 l.28-3
   it('surplus de 4 DR au-dessus du NI → 2 cibles supplémentaires, les plus proches À PORTÉE', () => {
     const c = eusapia();
     const foes = [foeAt('h1', 1, 0), foeAt('h2', 3, 0), foeAt('h3', 5, 0), foeAt('h4', 90, 0)]; // h4 hors portée
-    const plan = aiOvercastPlan(c, 'h1', carreau, jetDuCarreau(true, 8), foes, undefined, true); // 8 − NI 4 = +4 DR
+    const plan = aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(true, 8), foes, undefined, true); // 8 − NI 4 = +4 DR
     expect(plan.overcast).toEqual({ range: 0, zone: 0, duration: 0, targets: 2, damage: 0 });
     expect(plan.extraTargetIds).toEqual(['h2', 'h3']); // h1 = cible principale, exclue ; h4 trop loin
   });
@@ -189,13 +189,13 @@ describe('aiOvercastPlan — Surincantation automatique de l’IA (LDB 47 l.28-3
   it('DR juste au NI (pas de surplus) ou sort raté → aucun plan', () => {
     const c = eusapia();
     const foes = [foeAt('h1', 1, 0), foeAt('h2', 3, 0)];
-    expect(aiOvercastPlan(c, 'h1', carreau, jetDuCarreau(true, 5), foes, undefined, true)).toEqual({}); // surplus 1 < 2
-    expect(aiOvercastPlan(c, 'h1', carreau, jetDuCarreau(false, 9), foes, undefined, true)).toEqual({});
+    expect(aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(true, 5), foes, undefined, true)).toEqual({}); // surplus 1 < 2
+    expect(aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(false, 9), foes, undefined, true)).toEqual({});
   });
 
   it('budget plafonné par les adversaires disponibles', () => {
     const c = eusapia();
-    const plan = aiOvercastPlan(c, 'h1', carreau, jetDuCarreau(true, 12), [foeAt('h1', 1, 0), foeAt('h2', 2, 0)], undefined, true);
+    const plan = aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(true, 12), [foeAt('h1', 1, 0), foeAt('h2', 2, 0)], undefined, true);
     expect(plan.extraTargetIds).toEqual(['h2']); // budget 4 mais une seule cible en plus
   });
 });
@@ -211,20 +211,20 @@ describe('aiOvercastPlan — axe Dégâts (VDM 02 l.198, option `magie-vdm-incan
   it('option ON, aucune cible neuve à portée → le reliquat ENTIER rejoint l’axe Dégâts (jamais gaspillé)', () => {
     setRule('magie-vdm-incantation', true);
     const c = eusapia();
-    const plan = aiOvercastPlan(c, 'h1', carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)], undefined, true); // 8 − NI 4 = +4 DR, budget VDM = 4
+    const plan = aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)], undefined, true); // 8 − NI 4 = +4 DR, budget VDM = 4
     expect(plan.overcast).toEqual({ range: 0, zone: 0, duration: 0, targets: 0, damage: 4 });
     expect(plan.extraTargetIds).toEqual([]);
   });
 
   it('option OFF (LDB) → aucun axe Dégâts, même sans cible neuve (aucun plan)', () => {
     const c = eusapia();
-    expect(aiOvercastPlan(c, 'h1', carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)], undefined, true)).toEqual({});
+    expect(aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)], undefined, true)).toEqual({});
   });
 
   it('sort NON-missile (`missile=false`) : l’axe Dégâts n’est JAMAIS proposé, même option ON', () => {
     setRule('magie-vdm-incantation', true);
     const c = eusapia();
-    const plan = aiOvercastPlan(c, 'h1', carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)], undefined, false);
+    const plan = aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)], undefined, false);
     expect(plan).toEqual({}); // aucune cible neuve, et l'axe Dégâts fermé par `missile=false` → rien à allouer
   });
 });

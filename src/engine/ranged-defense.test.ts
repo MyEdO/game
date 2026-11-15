@@ -23,48 +23,48 @@ describe('rangedDefenseModes — RAW défense contre les attaques à distance', 
   const w = bow();
 
   it('défaut : AUCUNE défense contre un tir (LDB 13 l.135)', () => {
-    expect(rangedDefenseModes(atk(), def(), w, 5, true)).toEqual([]);
+    expect(rangedDefenseModes(atk(), def(), w, 5, true, 2)).toEqual([]);
   });
 
   it('bouclier Protectrice 2+ en Ligne de Vue → Parade (LDB 62 l.296)', () => {
-    expect(rangedDefenseModes(atk(), def({ weapons: [shield(2)] }), w, 5, true)).toEqual(['parade']);
+    expect(rangedDefenseModes(atk(), def({ weapons: [shield(2)] }), w, 5, true, 2)).toEqual(['parade']);
   });
 
   it('Protectrice 1 ne suffit pas (Indice < 2)', () => {
-    expect(rangedDefenseModes(atk(), def({ weapons: [shield(1)] }), w, 5, true)).toEqual([]);
+    expect(rangedDefenseModes(atk(), def({ weapons: [shield(1)] }), w, 5, true, 2)).toEqual([]);
   });
 
   it('Protectrice 2+ HORS Ligne de Vue → aucune parade', () => {
-    expect(rangedDefenseModes(atk(), def({ weapons: [shield(2)] }), w, 5, false)).toEqual([]);
+    expect(rangedDefenseModes(atk(), def({ weapons: [shield(2)] }), w, 5, false, 2)).toEqual([]);
   });
 
   it('Bout Portant → Esquive (LDB 14 l.40)', () => {
-    expect(rangedDefenseModes(atk(), def(), w, 1, true)).toEqual(['esquive']);
+    expect(rangedDefenseModes(atk(), def(), w, 1, true, 2)).toEqual(['esquive']);
   });
 
   it('tireur Engagé → Parade « n’importe quelle Corps à corps » (LDB 14 l.44)', () => {
-    expect(rangedDefenseModes(atk({ engagedWith: ['d'] }), def(), w, 5, true)).toEqual(['parade']);
+    expect(rangedDefenseModes(atk({ engagedWith: ['d'] }), def(), w, 5, true, 2)).toEqual(['parade']);
   });
 
   it('Bout Portant + bouclier Protectrice 2+ → Parade ET Esquive (le défenseur choisit)', () => {
-    expect(rangedDefenseModes(atk(), def({ weapons: [shield(2)] }), w, 1, true).sort()).toEqual(['esquive', 'parade']);
+    expect(rangedDefenseModes(atk(), def({ weapons: [shield(2)] }), w, 1, true, 2).sort()).toEqual(['esquive', 'parade']);
   });
 
   it('cible qui ne peut pas se défendre (Surpris) → aucun mode', () => {
-    expect(rangedDefenseModes(atk({ engagedWith: ['d'] }), def({ conditions: [{ id: 'surpris' }] as never }), w, 1, true)).toEqual([]);
+    expect(rangedDefenseModes(atk({ engagedWith: ['d'] }), def({ conditions: [{ id: 'surpris' }] as never }), w, 1, true, 2)).toEqual([]);
   });
 });
 
 describe('bestRangedDefense — meilleure défense AUTO contre un tir', () => {
   const w = bow();
   it('aucune exception → undefined (tir non opposé)', () => {
-    expect(bestRangedDefense(atk(), def(), w, 5, true)).toBeUndefined();
+    expect(bestRangedDefense(atk(), def(), w, 5, true, 2)).toBeUndefined();
   });
   it('Bout Portant → esquive', () => {
-    expect(bestRangedDefense(atk(), def(), w, 1, true)?.mode).toBe('esquive');
+    expect(bestRangedDefense(atk(), def(), w, 1, true, 2)?.mode).toBe('esquive');
   });
   it('bouclier Protectrice 2+ → parade avec le bouclier', () => {
-    const r = bestRangedDefense(atk(), def({ weapons: [shield(2)] }), w, 5, true);
+    const r = bestRangedDefense(atk(), def({ weapons: [shield(2)] }), w, 5, true, 2);
     expect(r?.mode).toBe('parade');
     expect(r?.parryWeapon?.qualities.some((q) => q.id === 'protectrice' && q.value === 2)).toBe(true);
   });
@@ -79,11 +79,11 @@ describe('resolveRanged — tir DÉFENDU = Test OPPOSÉ (cœur combineOpposed pa
   const bw: Weapon = { name: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [] } as unknown as Weapon;
 
   it('sans défense → résolution NON opposée (aucun defenderDetail)', () => {
-    const r = resolveRanged(base('a', 'heros'), base('d', 'ennemi'), bw, makeRNG(3), 10);
+    const r = resolveRanged(base('a', 'heros'), base('d', 'ennemi'), bw, makeRNG(3), 10, undefined, undefined, undefined, 2);
     expect(r.defenderDetail).toBeUndefined();
   });
   it('avec défense (esquive) → Test OPPOSÉ (defenderDetail présent)', () => {
-    const r = resolveRanged(base('a', 'heros'), base('d', 'ennemi'), bw, makeRNG(3), 10, undefined, [], { mode: 'esquive' });
+    const r = resolveRanged(base('a', 'heros'), base('d', 'ennemi'), bw, makeRNG(3), 10, undefined, [], { mode: 'esquive' }, 2);
     expect(r.defenderDetail).toBeDefined();
   });
 });

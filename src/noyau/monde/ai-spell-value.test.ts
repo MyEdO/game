@@ -127,7 +127,7 @@ describe('hitProbability — chaque pion d’État coûte sa marche à l’IA (C
   const use = (pions: number) => combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [MELEE], ...(pions ? { conditions: [{ id: 'extenue', value: pions }] } : {}) } as Partial<Combatant>);
 
   it('0 à 5 pions Exténué : 0,40 → 0,05 par marches de 0,10 (plancher 5 %)', () => {
-    const p = [0, 1, 2, 3, 4, 5].map((n) => hitProbability(use(n), cible(), MELEE, 'melee'));
+    const p = [0, 1, 2, 3, 4, 5].map((n) => hitProbability(use(n), cible(), MELEE, { kind: 'melee' }));
     expect(p).toEqual([0.4, 0.3, 0.2, 0.1, 0.05, 0.05]);
     // Non-vacuité : la série doit VRAIMENT décroître (une grandeur constante passerait toute
     // comparaison « ≤ » sans rien prouver), et le 4ᵉ pion doit peser (le plafond l'aurait mangé).

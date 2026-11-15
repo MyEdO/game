@@ -29,7 +29,7 @@ const DIVISION = /\/\s*(?:opts\.mpt\b|mpt\b|MPT\b|metresPerTile\b|sceneMetresPer
 const RECOPIE = /metresPerTile\s*\?\?\s*2/;
 
 /**
- * Les 21 sites DÉCLARÉS, chacun avec son RÔLE. Le texte est la ligne elle-même : il ne dérive pas
+ * Les 22 sites DÉCLARÉS, chacun avec son RÔLE. Le texte est la ligne elle-même : il ne dérive pas
  * avec les numéros de ligne, et un site NEUF porte forcément un texte neuf — donc un rouge nominatif.
  */
 const SITES: readonly { fichier: string; texte: string; role: string }[] = [
@@ -48,6 +48,7 @@ const SITES: readonly { fichier: string; texte: string; role: string }[] = [
   { fichier: 'noyau/monde/combatGeometry.ts', texte: 'export const porteeEnCases = (metres: number, mpt: number): number => Math.max(1, Math.ceil(metres / mpt));', role: 'PORTÉE d’une aura/d’un effet d’aire → cases (arrondi haut, plancher 1)' },
   { fichier: 'noyau/combatFlow.ts', texte: "Math.max(0, Math.floor((r0m * zoneDiameterMultiplier('arcane', alloc)) / mpt));", role: 'GABARIT d’un sort de zone → cases (arrondi bas, plancher 0)' },
   { fichier: 'noyau/combatFlow.ts', texte: 'const tiles = Math.max(1, Math.round(2 / sceneMetresPerTile(get().scene)));', role: 'recul de 2 m d’une règle RAW → cases' },
+  { fichier: 'noyau/combatFlow.ts', texte: "if (distanceDeCombat(scene, c, target) > Math.max(1, Math.floor(effectiveChar(c, 'force-mentale') / sceneMetresPerTile(scene)))) return false;", role: 'PORTÉE de la Dissipation (FM mètres, LDB 46 l.156) → cases (arrondi bas, plancher 1)' },
   { fichier: 'engine/movement.ts', texte: 'return Math.ceil((2 * Math.max(0, metres)) / metresPerTile);', role: 'coût d’ESCALADE (mètres de dénivelé) → budget de Marche en cases' },
   { fichier: 'engine/scatter.ts', texte: 'const distTiles = Math.max(0, Math.round(distM / metresPerTile));', role: 'DISPERSION d’un tir (mètres) → cases' },
   { fichier: 'noyau/monde/relief.ts', texte: 'return Math.abs(hA - hB) / metresPerTile;', role: 'PENTE : dénivelé métrique rapporté au pas de grille' },
