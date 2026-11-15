@@ -12,7 +12,7 @@ import {
   groundAccentsSvg,
   type VerticalFaceCtx,
 } from './detailSvg';
-import { hash32 } from '../../data/hash';
+import { hash32 } from '../../lib/hash';
 import { terrainGradientId } from '../catalog/terrain';
 import type { DetailRecipe } from '../../data/materials.types';
 import type { Dims } from '../../geometry/iso';

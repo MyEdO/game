@@ -18,6 +18,7 @@ export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_C
 export { formatMoney } from '../engine/money';
 export { dayIndex, formatDateImperiale, formatImperial, formatJourImperial, toDate } from '../engine/clock';
 export {
+  advancementLabel,
   careers,
   conditionLabel,
   findCareerById,
@@ -229,6 +230,43 @@ export {
 } from './codex/editFields';
 export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 export { type CheminsOfferts, type RefusDeValeur, type Segment } from './edition/formulaire';
+export {
+  atelierIdentifiable,
+  categoriesDeLaFamille,
+  compendium,
+  deDeLAtelier,
+  entreeMontree,
+  entreesListees,
+  facettesOffertes,
+  formulaireDeLAtelier,
+  ouvrirLeCompendium,
+  renvoisDeLEntree,
+  transactionDemandee,
+  type AtelierDuCompendium,
+  type CibleDuCompendium,
+  type GesteDuCompendium,
+  type RefusDuCompendium,
+  type SessionDuCompendium,
+  type TransactionDuCompendium,
+} from './codex/session';
+export {
+  CODEX_GROUPS,
+  categoryByKey,
+  codexGroupLabel,
+  type CodexGroup,
+  type CodexItem,
+  type CodexRow,
+  type CodexSection,
+} from './codex/registry';
+export { tokenizeLinks, type LinkToken, type ReverseGroup } from './codex/relations';
+export {
+  designations,
+  enregistrerEntree,
+  isEditableCategory,
+  supprimerEntree,
+  type Enregistrement,
+  type PaquetLu,
+} from '../data/atelierDuCodex';
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS, apparencesDeLOuverture } from './monde/facades';
 export { ciblesDAncreDeBataille } from './massBattleFlow';

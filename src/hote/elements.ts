@@ -4,7 +4,7 @@
  * zone, ses textes déjà traduits et son ton ; un hôte range chaque type dans un composant à lui et n'écrit aucun
  * libellé. Les gestes sont des éléments aussi : chacun porte l'intention qu'il joue (`Jeu`), prête à envoyer.
  */
-import type { CreatorDraft, GesteDEdition, GesteDuBrouillon, IdDeCouche, PageDeCreation } from '../noyau/index';
+import type { CreatorDraft, GesteDEdition, GesteDuCompendium, GesteDuBrouillon, IdDeCouche, PageDeCreation } from '../noyau/index';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
 import type { AnySlot, SaveSlot } from './sauvegardes';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -80,7 +80,7 @@ export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'salon' | 'combat' | 'ate
  *  roster de l'hôte (`groupe.ts`), le panneau des sauvegardes à ouvrir ou à fermer, l'emplacement à charger ou celui
  *  où sauvegarder (`sauvegardes.ts`), le panneau des réglages à ouvrir ou à fermer (`reglages.ts`), l'entrée de
  *  l'accueil à suivre (`accueil.ts`), le panneau du salon à ouvrir ou à fermer, le salon à quitter (`salon.ts`). */
-export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot } | { reglages: boolean } | { accueil: EntreeDeLAccueil } | { salon: boolean | 'quitter' };
+export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { compendium: GesteDuCompendium } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot } | { reglages: boolean } | { accueil: EntreeDeLAccueil } | { salon: boolean | 'quitter' };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
  *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */

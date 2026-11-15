@@ -1599,7 +1599,7 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     const manifeste = { 'livre-de-base': { abbr: 'LDB', chapitres: [{ ch: '01', fichier: '01 - Armures.md', titre: 'Les Armures', octets: 1 }] } };
     const avecPnj = { ...NARRATIF, presetsPnj: [{ id: 'pnj-1', base: { id: creatures[0].id }, profil: { descRef: { book: 'livre-de-base', ch: '01', parts: [] } } }] } as unknown as typeof NARRATIF;
     const s = jouer(ouvrirLEdition({ scenes: [RELAIS], narratif: avecPnj } as unknown as Parameters<typeof ouvrirLEdition>[0], false, undefined, manifeste), { geste: 'document', document: 'narratif' });
-    expect([s.chapitreEnAttente, choisir(s, 'presetsPnj', 'pnj-1').chapitreEnAttente]).toEqual([null, { book: 'livre-de-base', ch: '01' }]);
+    expect([s.source.chapitreEnAttente, choisir(s, 'presetsPnj', 'pnj-1').source.chapitreEnAttente]).toEqual([null, { book: 'livre-de-base', ch: '01' }]);
   });
 
   it('la forme d’un état change par son geste, à la forme neuve de l’éditeur web, sur un cran ; refusée tant qu’une référence le désigne ou qu’il porte une identité, dite', () => {

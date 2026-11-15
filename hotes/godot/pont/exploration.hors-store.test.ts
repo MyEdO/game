@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { drainer, erreurDe, table, enFocus, mondeDe, morceauxDe, vueDe } from './pont.testkit';
 import type { MorceauxDuPont } from './pont';
-import { hash32AuMillieme } from '../../../src/data/hash';
+import { hash32AuMillieme } from '../../../src/lib/hash';
 import { depuisBase64 } from '../../../src/lib/base64';
 import { CLIC_DU_CHAMP, type AreteDessinee, type RetraitDuMonde } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';

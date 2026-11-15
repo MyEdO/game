@@ -180,20 +180,20 @@ describe('le chapitre que la session demande', () => {
   it('sélectionner un porteur dont l’adresse a un chapitre le demande ; son texte le charge, son absence s’en souvient, sans le redemander', () => {
     const demande = selectionne(ouverte(MANIFESTE));
     expect(demande.sel).toEqual({ type: 'trigger', id: TRIG.id });
-    expect(demande.chapitreEnAttente).toEqual({ book: LIVRE, ch: '01' });
+    expect(demande.source.chapitreEnAttente).toEqual({ book: LIVRE, ch: '01' });
     expect(editer(demande, { geste: 'chapitre', book: LIVRE, ch: '02', texte: TEXTE }), 'un autre chapitre que l’attendu ne change rien').toBe(demande);
     const chargee = editer(demande, { geste: 'chapitre', book: LIVRE, ch: '01', texte: TEXTE });
-    expect([chargee.chapitreEnAttente, chargee.chapitres[cleDuChapitre(LIVRE, '01')]]).toEqual([null, CHAPITRE]);
+    expect([chargee.source.chapitreEnAttente, chargee.source.chapitres[cleDuChapitre(LIVRE, '01')]]).toEqual([null, CHAPITRE]);
     const introuvable = editer(demande, { geste: 'chapitre', book: LIVRE, ch: '01', texte: null });
-    expect([introuvable.chapitreEnAttente, introuvable.chapitres[cleDuChapitre(LIVRE, '01')]]).toEqual([null, null]);
-    expect(selectionne(introuvable).chapitreEnAttente, 'l’échec gardé, aucune demande en boucle').toBeNull();
-    expect(selectionne(ouverte(null)).chapitreEnAttente, 'sans Source servi, rien ne se demande').toBeNull();
+    expect([introuvable.source.chapitreEnAttente, introuvable.source.chapitres[cleDuChapitre(LIVRE, '01')]]).toEqual([null, null]);
+    expect(selectionne(introuvable).source.chapitreEnAttente, 'l’échec gardé, aucune demande en boucle').toBeNull();
+    expect(selectionne(ouverte(null)).source.chapitreEnAttente, 'sans Source servi, rien ne se demande').toBeNull();
   });
 
   it('choisir un chapitre le demande', () => {
     const chargee = editer(selectionne(ouverte(MANIFESTE)), { geste: 'chapitre', book: LIVRE, ch: '01', texte: TEXTE });
     const autre = editer(chargee, { geste: 'valeur', porteur: { sorte: 'declencheur', id: TRIG.id }, chemin: [...ICI, 'ch'], valeur: '02' });
     expect(adresseDe(sceneEditee(autre).triggers[0])).toEqual({ book: LIVRE, ch: '02', parts: [] });
-    expect(autre.chapitreEnAttente).toEqual({ book: LIVRE, ch: '02' });
+    expect(autre.source.chapitreEnAttente).toEqual({ book: LIVRE, ch: '02' });
   });
 });

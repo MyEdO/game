@@ -27,7 +27,7 @@ import { CORPUS_DISQUE, manifesteDe, texteDuChapitre } from '../scripts/source/p
  *  l'hôte le sert (`GET source/<livre>/<ch>.md`, `texteDuChapitre`). */
 function jouer(s: SessionDEdition, geste: GesteDEdition): SessionDEdition {
   const joue = editer(s, geste);
-  const attendu = joue.chapitreEnAttente;
+  const attendu = joue.source.chapitreEnAttente;
   return attendu ? editer(joue, { geste: 'chapitre', book: attendu.book, ch: attendu.ch, texte: texteDuChapitre(attendu.book, attendu.ch) }) : joue;
 }
 

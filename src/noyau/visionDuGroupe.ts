@@ -7,7 +7,7 @@
 import type { Combatant } from '../engine/types';
 import type { Visibility } from '../data/ambiance.types';
 import { ambiance } from '../data';
-import { hash32AuMillieme } from '../data/hash';
+import { hash32AuMillieme } from '../lib/hash';
 import { campOf } from '../engine/relations';
 import { isStructure, structureFaceCells } from '../engine/structures';
 import { enBase64 } from '../lib/base64';

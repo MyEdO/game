@@ -11,7 +11,7 @@
  */
 import type { ChapitreManifeste, Manifeste } from '../../data/source/chapitres';
 import {
-  MAX_FRAGMENTS, MIN_FRAGMENT, estErreur, estGraphieDeChapitre, fragmentBlocs, fragmentCellule, memeTexte, resoudreAdresse, scelle, stripSpans, tablesDeLaLigne, tablesOf,
+  MAX_FRAGMENTS, MIN_FRAGMENT, estErreur, estGraphieDeChapitre, fragmentBlocs, fragmentCellule, memeTexte, parseChapitre, resoudreAdresse, scelle, stripSpans, tablesDeLaLigne, tablesOf,
   type ChapitreParse, type CodeErreur, type DescRef, type ErreurResolution, type Fragment, type Section, type TableDeSection,
 } from '../../data/source/decoupe';
 import { estAdresseDeProse } from '../../data/schemas/grammaire/valeurs';
@@ -72,6 +72,33 @@ export const libelleChapitre = (c: ChapitreManifeste) => `${c.ch} — ${c.titre 
 export interface SourceDeLEdition {
   manifeste: Manifeste | null;
   chapitres: Readonly<Record<string, ChapitreParse | null>>;
+}
+
+/** Le `Source/` qu'une session d'édition tient de l'hôte : sa source (`SourceDeLEdition`) et le chapitre que l'hôte
+ *  charge, `null` sans chargement en cours (`avecLeChapitreDemande`). */
+export interface SourceServie extends SourceDeLEdition {
+  chapitreEnAttente: { book: string; ch: string } | null;
+}
+
+/** Le `Source/` d'index `manifeste` (`null` : l'hôte ne le sert pas), sans aucun chapitre chargé ni attendu. */
+export const sourceServie = (manifeste: Manifeste | null): SourceServie => ({ manifeste, chapitres: {}, chapitreEnAttente: null });
+
+/** La source `source` où l'issue du chargement du chapitre `ch` du livre `book` est reçue : son texte parsé
+ *  (`parseChapitre`), ou `null` s'il n'a pas pu se charger, plus rien d'attendu ; `source` elle-même si ce n'est pas le
+ *  chapitre qu'elle attend. */
+export function avecLeChapitreRecu(source: SourceServie, book: string, ch: string, texte: string | null): SourceServie {
+  const attendu = source.chapitreEnAttente;
+  if (attendu?.book !== book || attendu.ch !== ch) return source;
+  return { ...source, chapitreEnAttente: null, chapitres: { ...source.chapitres, [cleDuChapitre(book, ch)]: texte === null ? null : parseChapitre(texte) } };
+}
+
+/** La source `source`, le chapitre qu'elle attend posé si elle n'en attend aucun et que l'hôte la sert : celui de la
+ *  première des adresses `adresses` dont le chapitre est choisi et absent des chapitres reçus. Un échec de chargement
+ *  reste reçu (`null`) : il ne se redemande pas. */
+export function avecLeChapitreDemande(source: SourceServie, adresses: readonly Pick<DescRef, 'book' | 'ch'>[]): SourceServie {
+  if (source.chapitreEnAttente || !source.manifeste) return source;
+  const manquante = adresses.find((a) => estGraphieDeChapitre(a.ch) && !(cleDuChapitre(a.book, a.ch) in source.chapitres));
+  return manquante ? { ...source, chapitreEnAttente: { book: manquante.book, ch: manquante.ch } } : source;
 }
 
 /** Le nœud `noeud` d'un champ est-il celui d'une adresse de prose, à travers ses enveloppes (`ouverts`) ? */

@@ -153,30 +153,38 @@ export function payloadDeFamille(liste: unknown, op: string): unknown {
   return regimes && mecaniqueDe(regimes).opDefs[op];
 }
 
-/**
- * NŒUD OBJET de la RANGÉE `entree` du dataset `dataset`, lu sur sa route DÉCLARÉE (`exposition.edit`,
- * `exposition-derivee.ts`) : l'élément de la collection au bout de sa suite (`DATASET_SUITE_DERIVE`,
- * `''` : la collection de racine), la valeur de la collection de racine d'un dataset-OBJET `record`, la
- * racine elle-même d'un dataset-OBJET `single`. Une union DISCRIMINÉE s'y ouvre par la valeur de son
- * discriminant dans `entree` (`ouverts`). LÈVE, en nommant fichier, dataset et suite, sur un dataset
- * sans route, une suite qui ne mène à aucune collection à clé, ou une rangée qui n'a pas UN nœud objet
- * (en nommant en plus la valeur des discriminants) — `RangeeSansNoeud` quand sa forme disque est
- * refusée par chacun des nœuds de son élément, qui en portent les FAUTES.
- */
-export function noeudDeLEntree(dataset: string, entree: object): unknown {
+/** Les nœuds des entrées du dataset `dataset`, lus sur sa route DÉCLARÉE (`exposition.edit`, `exposition-derivee.ts`) :
+ *  ceux de l'élément de la collection au bout de sa suite (`DATASET_SUITE_DERIVE`, `''` : la collection de racine), la
+ *  racine elle-même d'un dataset-OBJET ; et le lieu qui les nomme. LÈVE sur un dataset sans route, ou une suite qui ne
+ *  mène à aucune collection à clé. */
+function routeDesEntrees(dataset: string): { lieu: string; noeuds: readonly unknown[] } {
   const fichier = DATASET_FICHIER_DERIVE[dataset];
   const objet = OBJECT_CATEGORY_DERIVE[dataset];
   const suite = objet ? '' : DATASET_SUITE_DERIVE[dataset];
   const schema = fichier === undefined ? undefined : schemaForFile(fichier);
   const lieu = `noeudDeLEntree : dataset « ${dataset} » (${fichier ?? 'aucun fichier'}, suite « ${suite ?? '(aucune)'} »)`;
   if (!schema || suite === undefined) throw new Error(`${lieu} — aucune route d'édition déclarée (\`exposition.edit\`).`);
-  let noeuds: readonly unknown[];
-  if (objet?.mode === 'unique') noeuds = [schema];
-  else {
-    const collection = atteindre(schema, undefined, suite);
-    if (!collection) throw new Error(`${lieu} — la suite ne mène à aucune collection à clé du schéma.`);
-    noeuds = noeudsDeLElement(collection.noeuds, collection.marque);
-  }
+  if (objet) return { lieu, noeuds: [schema] };
+  const collection = atteindre(schema, undefined, suite);
+  if (!collection) throw new Error(`${lieu} — la suite ne mène à aucune collection à clé du schéma.`);
+  return { lieu, noeuds: noeudsDeLElement(collection.noeuds, collection.marque) };
+}
+
+/** Les nœuds des entrées du dataset `dataset` (`routeDesEntrees`), avant qu'une entrée ouvre l'union d'un document
+ *  discriminé par la valeur de son discriminant. */
+export const noeudsDesEntrees = (dataset: string): readonly unknown[] => routeDesEntrees(dataset).noeuds;
+
+/**
+ * NŒUD OBJET de la RANGÉE `entree` du dataset `dataset`, lu sur sa route DÉCLARÉE (`exposition.edit`,
+ * `exposition-derivee.ts`) : l'élément de la collection au bout de sa suite (`DATASET_SUITE_DERIVE`,
+ * `''` : la collection de racine), la racine elle-même d'un dataset-OBJET. Une union DISCRIMINÉE s'y ouvre par la valeur de son
+ * discriminant dans `entree` (`ouverts`). LÈVE, en nommant fichier, dataset et suite, sur un dataset
+ * sans route, une suite qui ne mène à aucune collection à clé, ou une rangée qui n'a pas UN nœud objet
+ * (en nommant en plus la valeur des discriminants) — `RangeeSansNoeud` quand sa forme disque est
+ * refusée par chacun des nœuds de son élément, qui en portent les FAUTES.
+ */
+export function noeudDeLEntree(dataset: string, entree: object): unknown {
+  const { lieu, noeuds } = routeDesEntrees(dataset);
   const objets = ouverts(noeuds, entree).filter((n) => defDe(n)?.type === 'object');
   if (objets.length !== 1) {
     const discriminants = [...new Set(ouverts(noeuds).map((n) => defDe(n)?.discriminator).filter((d): d is string => d !== undefined))];
