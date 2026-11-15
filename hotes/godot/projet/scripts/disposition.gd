@@ -167,13 +167,13 @@ func ouvrir_la_chronique(ouverte: bool) -> void:
 
 
 ## Les lignes du journal rangées : toutes en défilement hors combat ou la chronique `ouverte`, sur parchemin ; ses
-## seules dernières sur la scène la chronique fermée, sans cadre, laissant passer la souris.
+## seules dernières sur la scène la chronique fermée, sans cadre, laissant passer la souris, bulles comprises.
 func _ranger_les_lignes(en_combat: bool, ouverte: bool) -> void:
 	var defile := ouverte or not en_combat
 	(lignes.get_node("Lignes/Zone") as Zone).derniers = 0 if defile else LIGNES_DE_LA_CHRONIQUE
 	lignes.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if defile else ScrollContainer.SCROLL_MODE_DISABLED
 	lignes.custom_minimum_size.y = HAUTEUR_DE_LA_CHRONIQUE if en_combat and ouverte else 0.0
-	lignes.mouse_filter = Control.MOUSE_FILTER_STOP if defile else Control.MOUSE_FILTER_IGNORE
+	lignes.mouse_behavior_recursive = Control.MOUSE_BEHAVIOR_INHERITED if defile else Control.MOUSE_BEHAVIOR_DISABLED
 	panneau.theme = CHRONIQUE_OUVERTE if ouverte else CHRONIQUE_FERMEE
 	panneau.theme_type_variation = &"Parchemin" if ouverte else &""
 	panneau.mouse_filter = Control.MOUSE_FILTER_STOP if ouverte else Control.MOUSE_FILTER_IGNORE

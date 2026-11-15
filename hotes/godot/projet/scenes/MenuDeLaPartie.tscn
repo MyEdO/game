@@ -38,13 +38,14 @@ script = ExtResource("2_zone")
 source = "partie.gestes"
 masque = NodePath("..")
 
-[node name="Pastille" type="CenterContainer" parent="."]
+[node name="Pastille" type="PanelContainer" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme_type_variation = &"Enveloppe"
 
 [node name="Zone" type="Node" parent="Pastille" node_paths=PackedStringArray("masque")]
 script = ExtResource("2_zone")
