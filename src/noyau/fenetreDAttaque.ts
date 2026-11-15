@@ -11,6 +11,7 @@ import { FLOWS, refusDAnnulerLAttaque } from './rollFlowSpecs';
 import { composeRollLabel, type RollLabelRef } from './rollSeam';
 import { oppositionDuCoup, type OppositionEnVue } from './jetsEnVue';
 import { distanceDeCombat } from './monde/footprint';
+import { sceneMetresPerTile } from './monde/scene';
 import { inBattleId } from './monde/combatants';
 import {
   attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense,
@@ -181,7 +182,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const empoigne = !res && arme.type === 'melee' && isUnarmed(arme) && heros && peutEtreEmpoigne(cible);
   const apercu = !res ? previewAttack(get, attaquant, cible, pa.location ?? undefined, { dansLeTas: pa.dansLeTas, tirImmobile: pa.tirImmobile, weaponUid: pa.weaponUid, harpoonRopeCut: pa.harpoonRopeCut, weapon: arme }) : null;
   // LDB 13 l.135
-  const defenseAuTir = !res && tir ? bestRangedDefense(attaquant, cible, arme, distanceDeCombat(attaquant, cible)) : undefined;
+  const defenseAuTir = !res && tir ? bestRangedDefense(attaquant, cible, arme, distanceDeCombat(s.scene, attaquant, cible), true, sceneMetresPerTile(s.scene)) : undefined;
   const esquive = defenseDodgeMods(s, cible);
   const annonce = res
     ? undefined

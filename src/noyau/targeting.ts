@@ -68,7 +68,7 @@ export function validTargets(get: () => Jeu): Combatant[] {
   const cands = mode.candidates
     ? mode.candidates(get, active)
     : battle.combatants.filter((c) => c.id !== active.id && c.pos && !isOutOfAction(c) && hoverTargeting(get, active, c).kind === 'ok');
-  return [...cands].sort((a, b) => distanceDeCombat(active, a) - distanceDeCombat(active, b));
+  return [...cands].sort((a, b) => distanceDeCombat(get().scene, active, a) - distanceDeCombat(get().scene, active, b));
 }
 
 /** Cible SUIVANTE (Tab) : la plus proche valide, ou la suivante par distance si une est déjà visée —
