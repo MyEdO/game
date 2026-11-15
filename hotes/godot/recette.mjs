@@ -740,8 +740,9 @@ const RECHARGER = 'Recharger les modèles'
 const COPIER = 'Copier la composition'
 const production = (dossier) => JSON.parse(readFileSync(join(dossier, 'manifest.json'), 'utf8'))
 /** Le combat joué en joueur pressé jusqu'à ce que `fini(v)` tienne : chaque fenêtre à l'Entrée, ou par la première
- *  valeur ouverte de ses choix quand aucun geste n'a le focus, chaque tour une charge ou une attaque cliquée sur la
- *  case de la première cible (`caseDeLaCible`), sinon la fin du tour ; `quoi` nomme ce qu'on attend. */
+ *  valeur ouverte et non pressée de ses choix, gestes ou réglages, quand aucun n'a le focus, chaque tour une charge
+ *  ou une attaque cliquée sur la case de la première cible (`caseDeLaCible`), sinon la fin du tour ; `quoi` nomme ce
+ *  qu'on attend. */
 async function jouerEnJoueurPresse(fini, quoi) {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
@@ -750,7 +751,8 @@ async function jouerEnJoueurPresse(fini, quoi) {
     const c = v.projection.combat
     assert.ok(pas < 600 && c, `${quoi} : rien après ${pas} gestes, combat ${c?.fin ?? 'en cours'}`)
     const offres = zone(v, 'combat.offres').flatMap((e) => e.valeurs).filter((b) => !b.refus)
-    const valeur = zone(v, 'fenetre.gestes').some((g) => g.focus) ? null : zone(v, 'fenetre.gestes').flatMap((g) => (g.type === 'choix' ? g.valeurs : [])).find((b) => !b.refus)
+    const choixDeLaFenetre = [...zone(v, 'fenetre.gestes'), ...zone(v, 'fenetre.reglages')]
+    const valeur = choixDeLaFenetre.some((g) => g.focus) ? null : choixDeLaFenetre.flatMap((g) => (g.type === 'choix' ? g.valeurs : [])).find((b) => !b.refus && !b.presse)
     if (v.projection.fenetre && valeur) await cliquerBouton(bouton(valeur))
     else if (v.projection.fenetre) {
       await marquer()
