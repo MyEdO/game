@@ -96,11 +96,12 @@ export const fr = {
   // LDB 18 l.53, l.55 ; AA 07 l.32 ; LDB 17 l.68 — lues par `phraseDeTouche` et `CritLocationPicker`.
   'touche.nouvelleLocalisation': 'nouvelle Localisation : {lieu}',
   'touche.nouvelleLocalisationAuChoix': 'au choix (Je ne faillirai pas !)',
-  // La ligne de touche (`phraseDeTouche`, `engine/combat.ts`), les noms par `nomDe` (#4017). LDB 18 l.53 ; MDG 13 l.605 ; AA 10 l.98.
+  // La ligne de touche (`phraseDeTouche`, `engine/combat.ts`), les noms par `nomDe` (#4017). LDB 18 l.53 ; MDG 13 l.605 ; AA 10 l.98 ; ADE II 08 l.292.
   'touche.tete': '{attaquant} touche {cible}',
   'touche.teteDuSort': '{attaquant} lance {sort} sur {cible}',
   'touche.localisee': '{tete} ({lieu})',
   'touche.chiffree': '{tete} : {degats} dégâts − {absorbes} ({mitigation}) = {blessures} Blessures',
+  'touche.degatsDoubles': '{degats}, doublés (Atout Siège), soit {total}',
   'touche.critique': '{phrase} — CRITIQUE !',
   'touche.mitigationStructure': 'BE {be} × {mult} (Taille {taille} contre {tailleAttaquant}) = {total}, +PA',
   'touche.mitigationNulle': 'rien',

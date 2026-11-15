@@ -26,7 +26,7 @@ import {
 import { bonus, bonusDeForce, bonusPassifDeForce, effectiveChar, baseWithTraits, forceDuPorteur } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
 import { peutEtreEmpoigne } from './grapple';
-import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune } from './structures';
+import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune, siegeMultiplier } from './structures';
 import { agilityTestPenalty } from './encumbrance';
 import { skillBaseValue, testValue, type TestDesigne } from './skills';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
@@ -1738,6 +1738,8 @@ export interface ToucheDuJournal {
   forme?: BodyShape;
   /** Libellé de la mitigation (`BE+PA`, ou le BE multiplié d'une Structure, AA 10 l.98). */
   mitigation: string;
+  /** `siegeMultiplier` du coup quand il dépasse 1 (ADE II 08 l.292) : les Dégâts de `res` le précèdent. */
+  siege?: number;
   coque?: 'petites-armes' | 'taille';
   /** Libellé du Sort d'un Projectile magique (LDB 46 l.30). */
   sort?: string;
@@ -1758,9 +1760,10 @@ export function phraseDeTouche(
   }
   const nomme = res.location ? locationLabel(res.location, touche.forme) : '';
   const localisee = nomme ? t('touche.localisee', { tete, lieu: relance ? t('touche.nouvelleLocalisation', { lieu: nomme }) : nomme }) : tete;
-  const damage = res.damage ?? 0;
+  const damage = (res.damage ?? 0) * (touche.siege ?? 1);
+  const degats = touche.siege ? t('touche.degatsDoubles', { degats: res.damage ?? 0, total: damage }) : damage;
   const blessures = res.woundsLost ?? 0;
-  const phrase = res.sansPrise || res.degatsTransferes ? localisee : t('touche.chiffree', { tete: localisee, degats: damage, absorbes: damage - blessures, mitigation: touche.mitigation, blessures });
+  const phrase = res.sansPrise || res.degatsTransferes ? localisee : t('touche.chiffree', { tete: localisee, degats, absorbes: damage - blessures, mitigation: touche.mitigation, blessures });
   const marquee = critique ? t('touche.critique', { phrase }) : phrase;
   return /[!?…]$/.test(marquee) ? marquee : `${marquee}.`;
 }
@@ -1849,10 +1852,12 @@ function applyHit(
   const mitLabel = beMult > 1
     ? t('touche.mitigationStructure', { be: beBase, mult: beMult, taille: SIZE_LABEL[effectiveSize(structureTaille(defender))], tailleAttaquant: SIZE_LABEL[effectiveSize(attacker.size)], total: beBase * beMult })
     : 'BE+PA';
+  const siege = siegeMultiplier(weapon, defender);
   const newWounds = defender.wounds.current - woundsLost;
   const defeated = newWounds <= 0;
   const touche: ToucheDuJournal = {
     attaquant: nomDe(attacker), cible: nomDe(defender), forme: defender.bodyShape, mitigation: mitLabel,
+    ...(siege > 1 ? { siege } : {}),
     ...(hullBlocked ? { coque: hullAdj.blocked === 'petites-armes' ? 'petites-armes' as const : 'taille' as const } : {}),
   };
   // LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544.

@@ -160,6 +160,47 @@ describe('Bonus d’Endurance compté par catégorie de Taille (AA 10 l.98)', ()
   });
 });
 
+describe('La ligne chiffrée du coup se recompose en Blessures (ADE II 08 l.292 ; AA 10 l.98)', () => {
+  const humain = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Humain', seed: 1 });
+  const atk = { roll: 5, target: 100, success: true, sl: 5, isDouble: false };
+  const marteauDeSiege = mkWeapon({ label: 'Marteau de siège', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'siege' }] });
+  const chiffree = /: (?:(\d+), doublés \(Atout Siège\), soit )?(\d+) dégâts − (-?\d+) \((.+)\) = (\d+) Blessures/;
+  const termes = (cible: Combatant, arme: Weapon) => {
+    const res = resolveMeleePassive(humain, cible, arme, atk, { rng: makeRNG(1595) });
+    const m = chiffree.exec(res.log)!;
+    expect(m, res.log).not.toBeNull();
+    return { res, base: m[1] === undefined ? undefined : Number(m[1]), degats: Number(m[2]), absorbes: Number(m[3]), mitigation: m[4], blessures: Number(m[5]) };
+  };
+
+  it('Atout Siège sur une Structure : la ligne dit le doublement et n’encaisse rien de négatif', () => {
+    const l = termes(struct('porte-de-ville'), marteauDeSiege);
+    expect(l.base).toBe(l.res.damage);
+    expect(l.degats).toBe(2 * l.base!);
+    expect(l.absorbes).toBe(bonus(struct('porte-de-ville').characteristics.endurance));
+    expect(l.degats - l.absorbes).toBe(l.blessures);
+    expect(l.blessures).toBe(l.res.woundsLost);
+  });
+
+  it('Sans Siège sur une Structure : Dégâts du coup, BE multiplié dit, sans doublement', () => {
+    const l = termes(struct('mur-de-chateau'), epee);
+    expect(l.base).toBeUndefined();
+    expect(l.degats).toBe(l.res.damage);
+    expect(l.mitigation).toBe('BE 6 × 3 (Taille Énorme contre Moyenne) = 18, +PA');
+    expect(l.degats - l.absorbes).toBe(l.blessures);
+    expect(l.blessures).toBe(l.res.woundsLost);
+  });
+
+  it('Sur un personnage : Dégâts du coup − BE+PA = Blessures', () => {
+    const cible = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Cible', seed: 2 });
+    const l = termes(cible, epee);
+    expect(l.base).toBeUndefined();
+    expect(l.degats).toBe(l.res.damage);
+    expect(l.mitigation).toBe('BE+PA');
+    expect(l.degats - l.absorbes).toBe(l.blessures);
+    expect(l.blessures).toBe(l.res.woundsLost);
+  });
+});
+
 describe('La Taille d’une Structure ne compte QUE son Bonus d’Endurance (AA 10 l.98)', () => {
   it('aucun `Combatant` bâti par `structureCombatant` ne porte `size` — les 24 entrées du catalogue', () => {
     expect(structures.length).toBeGreaterThan(0);
