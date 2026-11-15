@@ -182,6 +182,7 @@ export {
   OUVRAGES,
   PINCEAUX,
   PROFILS_DE_TOIT,
+  QUALITES_DE_REPOS,
   SORTES_D_OUVERTURE,
   groupesDuLieu,
   versLaFautive,

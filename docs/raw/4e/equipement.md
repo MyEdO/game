@@ -24,6 +24,7 @@
 - [Prothèses](#prothèses)
 - [Outils et nécessaires à effet mécanique](#outils-et-nécessaires-à-effet-mécanique)
 - [Possessions diverses à effet](#possessions-diverses-à-effet)
+- [Nourriture, boisson et hébergement](#nourriture-boisson-et-hébergement)
 - [Catalogue banal — à transcrire séparément](#catalogue-banal--à-transcrire-séparément)
 - [Voir aussi](#voir-aussi)
 - [Implémente (refs code)](#implémente-refs-code)
@@ -454,6 +455,36 @@ Utilisé avec Corde (Enc 1, 8/4 la corde de 10 m). Test d'Athlétisme selon MJ.
 
 ---
 
+## Nourriture, boisson et hébergement
+
+**Source : LDB 66 l.5-28** — prix listés au catalogue (`trappings.json`, LDB 66 l.7-20).
+
+### Qualité des chambres et des repas
+
+> LDB 66 l.5 : « Les chambres et les repas de piètre qualité coûtent la moitié des prix listés, et ceux de grande qualité coûtent le double des prix listés. Consommer des aliments et des boissons de piètre qualité comporte un risque de 10 % d'exposition à la *Courante galopante* (voir page 186). »
+
+| Qualité | Prix | Courante galopante |
+|---|---|---|
+| Piètre | ½ des prix listés | 10 % |
+| Normale | prix listés | — |
+| Grande | double des prix listés | — |
+
+**Taille de la chambre**, distincte de la qualité :
+
+> LDB 66 l.28 : « **Chambre d'auberge :** convient à 2 invités. Les grandes chambres coûtent le double du prix et conviennent à 4 invités. »
+
+**Voir aussi :** [`maladies.md`](maladies.md) — maladies et contraction.
+
+**Implémente :** [État calculé](../implemente.generated.md#4eequipementqualite-des-chambres-et-des-repas)
+
+### Chambre commune — voleurs
+
+> LDB 66 l.26 : « **Chambre, commune :** les invités qui dorment dans des chambres communes doivent se méfier des voleurs. »
+
+**Implémente :** [État calculé](../implemente.generated.md#4eequipementchambre-commune-voleurs)
+
+---
+
 ## Catalogue banal — à transcrire séparément
 
 Les chapitres suivants contiennent essentiellement des **listes de prix** sans règle propre :
@@ -462,7 +493,7 @@ Les chapitres suivants contiennent essentiellement des **listes de prix** sans r
 |---|---|---|
 | **64** — Sacs et contenants | Besaces, sacs à dos, coffres… + capacité (Contenu en Enc) | Catalogue — Disponibilité et Contenu utiles pour l'éditeur |
 | **65** — Vêtements et accessoires | Chemises, manteaux, bottes, bijoux… | Catalogue banal |
-| **66** — Nourriture, boisson et hébergement | Rations, bière, auberge/pension… | Catalogue + règles Faim → [`activites.md`](activites.md) |
+| **66** — Nourriture, boisson et hébergement | Rations, bière, auberge/pension… | Catalogue + qualité → [§ ci-dessus](#nourriture-boisson-et-hébergement) ; règles Faim → [`activites.md`](activites.md) |
 | **68** — Livres et documents | Cartes, parchemins, journaux intimes… | Catalogue banal |
 | **69** — Outils professionnels et Ateliers | Kits par métier (Forgeron, Herboriste…) | Catalogue — requis pour les Activités (voir `activites.md`) |
 | **74** — Possessions diverses | Objet courant (corde, tente, sac de couchage…) | Catalogue — exceptions à effet listées ci-dessus |

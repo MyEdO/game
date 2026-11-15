@@ -25,6 +25,7 @@ import {
   hitLocationSchema,
   moneyPartialSchema,
   natureDInfluenceSchema,
+  qualiteDeReposSchema,
 } from '../grammaire/valeurs';
 import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, refuserLeVivreDuNavire } from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
@@ -281,7 +282,7 @@ export const restSchema = nommerChamps(z.strictObject({
   type: z.literal('rest'),
   days: z.number().optional(),
   lodging: z.enum(['auberge', 'maison', 'camp']).optional(),
-  quality: z.enum(['normale', 'pietre']).optional(),
+  quality: qualiteDeReposSchema.optional(),
 }), { type: { label: "type"  }, days: { label: "jours" }, lodging: { label: "couchage"  }, quality: { label: "qualité"  } });
 
 /** LDB 18 l.338 */

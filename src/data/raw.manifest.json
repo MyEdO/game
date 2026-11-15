@@ -222,5 +222,11 @@
     "label": "Phase d'arrivée",
     "ticket": "#4155",
     "bloque": "Jouée : EDOC 09 l.21. Non jouées : EDOC 09 l.19, l.23."
+  },
+  {
+    "id": "4e/equipement#chambre-commune-voleurs",
+    "type": "raw.manifest",
+    "label": "Chambre commune — voleurs",
+    "bloque": "LDB 66 l.26 ne chiffre ni Test ni effet : jouer la méfiance des voleurs de la chambre commune demande un arbitrage de règle (règle 7 d'AGENTS.md), non tranché."
   }
 ]

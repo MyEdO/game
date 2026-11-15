@@ -312,7 +312,7 @@ describe('l’éditeur de carte par le pont, les zones', () => {
     expect(supprimee.surcouche.poignee).toBeNull();
   });
 
-  it('un déclencheur joue une fois, ou à chaque entrée ; une zone de repos offre ses lieux, piètre ; chacune change de couche', () => {
+  it('un déclencheur joue une fois, ou à chaque entrée ; une zone de repos offre ses lieux et sa qualité ; chacune change de couche', () => {
     const declencheur = tracee('trigger');
     expect(declencheur.posee.surcouche.zones.find((z) => z.choisi)?.sorte).toBe('declencheur');
     expect(boutonDe(declencheur.posee, 'zone/uneFois').presse, 'un déclencheur naît à usage unique').toBe(true);
@@ -325,7 +325,8 @@ describe('l’éditeur de carte par le pont, les zones', () => {
     const camp = boutonDe(repos.posee, 'zone/lieux/camp').presse;
     const auberge = repos.presser(boutonDe(repos.posee, 'zone/lieux/auberge'));
     expect([boutonDe(auberge, 'zone/lieux/auberge').presse, boutonDe(auberge, 'zone/lieux/camp').presse]).toEqual([true, camp]);
-    expect(boutonDe(repos.presser(boutonDe(auberge, 'zone/pietre')), 'zone/pietre').presse).toBe(true);
+    expect((['pietre', 'normale', 'grande'] as const).map((q) => valeursDeLInspecteur(repos.presser(boutonDe(auberge, `zone/qualite/${q}`)), 'zone/qualite').filter((b) => b.presse).map((b) => b.id)),
+      'l’auteur pose chacune des trois qualités (LDB 66 l.5)').toEqual([['zone/qualite/pietre'], ['zone/qualite/normale'], ['zone/qualite/grande']]);
 
     const etage = repos.presser(boutonDe(repos.presser(boutonDe(auberge, 'couche/ajouter')), 'couche/0'));
     repos.presser(boutonDe(etage, 'outil/select'));
@@ -866,6 +867,8 @@ describe('l’éditeur de carte par le pont, la scène', () => {
     expect(nombre(pente, 'scene/toiture/pente')).toBe(nombre(tourne, 'scene/toiture/pente') + 5);
     const camp = boutonDe(pente, 'scene/repos/camp');
     expect(boutonDe(presser(camp), 'scene/repos/camp').presse).toBe(!camp.presse);
+    expect((['grande', 'pietre', 'normale'] as const).map((q) => valeursDeLInspecteur(presser(boutonDe(pente, `scene/repos/qualite/${q}`)), 'scene/repos/qualite').filter((b) => b.presse).map((b) => b.id)),
+      'l’auteur pose chacune des trois qualités de la scène (LDB 66 l.5)').toEqual([['scene/repos/qualite/grande'], ['scene/repos/qualite/pietre'], ['scene/repos/qualite/normale']]);
 
     const drapeau = editionDe(appel('editer', { type: 'drapeau', args: ['pont-leve'] }));
     expect(boutonDe(drapeau, 'scene/drapeau/pont-leve').presse).toBe(true);
