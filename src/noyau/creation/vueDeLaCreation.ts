@@ -18,7 +18,7 @@ import {
   type CharMode, type Compteur, type CreatorDraft, type SkillsSub, type StepId,
 } from './brouillon';
 import {
-  advancementLabel, careerLabelFor, charAbr, classes, DEFAULT_FABRICATION_ATOUT,
+  advancementLabel, careerLabelFor, charAbr, classes,
   findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, offreDuJet, refLabel, species, specLabel, starDie, stars, tableDeCarrieres, talentsAleatoiresDie, varianteDe,
   trappingRefLabel, type AdvancementRef, type SpeciesData,
 } from '../../data';
@@ -30,6 +30,7 @@ import { effectiveChar } from '../../engine/characteristics';
 import { formatMoney } from '../../engine/money';
 import { formatDice, hashSeed } from '../../engine/dice';
 import {
+  atoutChoisi,
   brancheChoisie,
   dotationsDuHeros,
   emplacementsDeDotation,
@@ -335,8 +336,8 @@ function pageDesTalents(d: CreatorDraft): RubriqueDeCreation[] {
   ];
 }
 
-/** Un emplacement de dotation en choix (LDB 05 l.542-583) : une branche, une arme au choix, un Atout de Fabrication
- *  (LDB 60 l.9-32, `DEFAULT_FABRICATION_ATOUT` à défaut), puis l'emplacement qui le suit (`sousEmplacementActif`). */
+/** Un emplacement de dotation en choix (LDB 05 l.542-583) : une branche, une arme au choix, une combinaison d'Atouts de
+ *  Fabrication (LDB 60 l.7-32, `valeurParDefaut` à défaut), puis l'emplacement qui le suit (`sousEmplacementActif`). */
 function dotation(d: CreatorDraft, e: EmplacementDeDotation): RubriqueDeCreation[] {
   const choisis = d.trappingChoices ?? {};
   const sous = sousEmplacementActif(e, choisis);
@@ -351,8 +352,8 @@ function rubriqueDeDotation(e: EmplacementDeDotation, choisis: ChoixDeDotation):
     }
     case 'joker': return choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), idChoisi(e, choisis) === id)));
     case 'atout': {
-      const atout = idChoisi(e, choisis) ?? DEFAULT_FABRICATION_ATOUT;
-      return choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), id === atout)));
+      const atouts = atoutChoisi(e, choisis);
+      return choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((v) => option(libelleDeLaValeur(e, v), geste('dotation', e.adresse, v), v === atouts)));
     }
   }
 }
