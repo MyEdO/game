@@ -45,6 +45,7 @@ export {
   talentsDuParcours,
   type ParcoursDeCarriere,
 } from '../engine/pnjDeCarriere';
+export { entitySize } from './monde/spawn';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
 export { parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
 export {

@@ -13,6 +13,9 @@ import {
   careers,
   findQualityById,
   findTrappingById,
+  findSpeciesById,
+  groupeDeLArme,
+  speciesSize,
   type TrappingData,
 } from './index';
 import { setDataset } from './overrides';
@@ -133,10 +136,33 @@ describe('arme au choix — aucune arme magique (ZI 13 l.862 ; VDM 12 l.3)', () 
 
   it('aucun joker d’arme de carrière, de Groupe ou nu, n’offre d’arme magique (`valeursDeLEmplacement`)', () => {
     expect(jokers.some((e) => e.ref.groupe !== undefined) && jokers.some((e) => e.ref.groupe === undefined)).toBe(true);
-    for (const e of jokers) expect(valeursDeLEmplacement(e).filter((v) => qualitesMagiques(String(v)).length > 0), e.adresse).toEqual([]);
+    for (const e of jokers) expect(valeursDeLEmplacement(e, 'moyenne').filter((v) => qualitesMagiques(String(v)).length > 0), e.adresse).toEqual([]);
   });
 
   it.each(['broyeur-d-os', 'silence', 'vision-de-vie', 'baton-enchante'])('%s, instanciée, est une arme magique', (id) => {
     expect(isMagicWeapon(itemFromTrappingById(id, idsDeTest)!)).toBe(true);
+  });
+});
+
+describe('arme au choix — à la Taille du porteur (ADE II 2 l.604 ; ADE II 2 l.710 ; arbitrage #4110)', () => {
+  const jokers = careers
+    .flatMap((c) => emplacementsDeDotation([...dotationsDuHeros(c.id), ...dotationsDuPnj(c.id, 4)]))
+    .filter((e) => e.sorte === 'joker');
+  const armesDOgre = trappingsInstanciables().filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && t.sizeFor === 'grande');
+
+  it('aucun joker d’arme de carrière n’offre à un porteur de Taille Moyenne une arme taillée pour la Grande', () => {
+    for (const e of jokers) expect(valeursDeLEmplacement(e, 'moyenne').filter((v) => findTrappingById(String(v))!.sizeFor === 'grande'), e.adresse).toEqual([]);
+  });
+
+  it('un ogre se voit offrir les armes d’ogre du Groupe du joker, et elles seules', () => {
+    const ogre = speciesSize(findSpeciesById('ogres')!);
+    expect(ogre).toBe('grande');
+    expect(armesDOgre.length).toBeGreaterThan(0);
+    for (const e of jokers) {
+      const groupe = e.ref.groupe?.id;
+      const attendues = armesDOgre.filter((t) => groupe === undefined || groupeDeLArme(t)?.id === groupe).map((t) => t.id);
+      expect(new Set(valeursDeLEmplacement(e, ogre)), e.adresse).toEqual(new Set(attendues));
+    }
+    expect(jokers.some((e) => valeursDeLEmplacement(e, ogre).length > 0)).toBe(true);
   });
 });
