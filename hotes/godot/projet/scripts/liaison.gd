@@ -11,6 +11,9 @@ extends Node
 @export var champ: String
 @export var propriete: StringName = &"text"
 @export var cacher_si_nul := false
+## Le texte s'écrit à la ligne sous celui que la propriété porte déjà (une liaison sœur l'a posé avant elle) ;
+## `null` n'y ajoute rien.
+@export var a_la_suite := false
 
 
 func poser(element: Dictionary) -> void:
@@ -26,6 +29,11 @@ func poser(element: Dictionary) -> void:
 		return
 	if cible is FlowContainer and valeur is Array:
 		_cocher(cible, valeur)
+		return
+	if a_la_suite:
+		if valeur != null:
+			var avant := str(cible.get(propriete))
+			cible.set(propriete, str(valeur) if avant == "" else "%s\n%s" % [avant, valeur])
 		return
 	if cible is Range:
 		cible.set_block_signals(true)

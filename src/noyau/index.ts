@@ -64,6 +64,7 @@ export { OPTIONAL_RULES, refusDesSurcharges, ruleOverrides, type OptionalRule, t
 export { valeurConforme, type FormeDeControle } from '../data/schemas/defs/reglesOptionnelles';
 export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, type EtatDeLaBarre, type ActionCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
+export { DESSINS_DES_PARTS } from '../data/schemas/defs/actions';
 export { CADRE_DES_ICONES, ICON_DEFS, type IconId } from '../data/icons';
 export { CADRE_DES_CADRES, CADRES } from '../data/cadres';
 export { CADRE_DES_FONDS, FONDS } from '../data/fonds';

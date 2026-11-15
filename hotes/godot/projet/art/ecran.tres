@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=19 format=3]
+[gd_resource type="Theme" load_steps=20 format=3]
 
 [ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
 [ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="5_rubriques"]
@@ -81,6 +81,9 @@ expand_margin_top = 2.0
 expand_margin_right = 2.0
 expand_margin_bottom = 2.0
 
+[sub_resource type="StyleBoxFlat" id="Voile"]
+bg_color = Color(0.02, 0.015, 0.01, 0.62)
+
 [resource]
 Button/styles/normal = ExtResource("b_repos")
 Button/styles/hover = ExtResource("b_survol")
@@ -128,3 +131,5 @@ Description/base_type = &"Label"
 Description/colors/font_color = Color(0.886, 0.816, 0.659, 1)
 Description/font_sizes/font_size = 17
 Description/constants/line_spacing = 0
+Voile/base_type = &"Panel"
+Voile/styles/panel = SubResource("Voile")

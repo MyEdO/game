@@ -4,8 +4,8 @@
 ## Les éléments se réconcilient par type et par id : un élément déjà dessiné garde son nœud tant que sa forme ne change
 ## pas (son ton peut la changer), un élément parti le quitte,
 ## l'ordre suit la source ; en `ajout` (un journal), un élément déjà dessiné reste tel quel et le nouveau s'ajoute au
-## pied, montré par le défilement qui le contient. Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`,
-## `Saisie`, `Portrait` et `Dessin` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, rangé comme une source
+## pied, montré par le défilement qui le contient, ou, en `derniers`, seuls les derniers montrés.
+## Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`, `Saisie`, `Portrait` et `Dessin` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, rangé comme une source
 ## de l'écran entre les zones du composant (`ids`), son `masque` caché quand elle n'a rien à montrer, son geste relayé.
 ## `masque` se cache quand aucune des zones qui le nomment n'a rien à montrer ; en `repli`, le conteneur de la zone se
 ## cache quand elle n'a rien à montrer, sans la place qu'il tiendrait vide dans celui qui le range. Sous un `TabContainer`, chaque élément
@@ -31,6 +31,13 @@ signal geste(jeu: Dictionary)
 ## La forme d'un type d'élément dans cette zone, `<type>:<forme>` : le composant `res://composants/<forme>.tscn` ;
 ## `<type>.<ton>:<forme>`, celle d'un élément de ce type à ce ton, qui prime.
 @export var formes: PackedStringArray
+## En `ajout`, le nombre d'éléments montrés, les derniers ; `0` : tous. Réglé sur une zone posée, il remontre ses
+## éléments.
+@export var derniers := 0:
+	set(n):
+		derniers = n
+		if get_parent() != null:
+			_garder_les_derniers()
 
 const META := &"element"
 
@@ -74,11 +81,24 @@ func montrer(elements: Array) -> void:
 				dessines[cle].queue_free()
 	if ajout and dernier != null:
 		_montrer_le_pied(dernier)
+	if derniers:
+		_garder_les_derniers()
 	if repli:
 		(conteneur as Control).visible = not gardes.is_empty()
 	if conteneur.get_parent() is TabContainer:
 		var pages := conteneur.get_parent() as TabContainer
 		pages.set_tab_hidden(pages.get_tab_idx_from_control(conteneur as Control), not conteneur.get_children().any(func(n: Node) -> bool: return n.has_meta(META)))
+
+
+## Les seuls `derniers` composants dessinés montrés, tous sans `derniers`, le dernier montré par le défilement qui les
+## contient.
+func _garder_les_derniers() -> void:
+	var poses := get_parent().get_children().filter(func(n: Node) -> bool: return n.has_meta(META))
+	var montres := poses.slice(int(MiseEnPage.premier_des_derniers(poses.size(), derniers)))
+	for n in poses:
+		(n as Control).visible = montres.has(n)
+	if not poses.is_empty():
+		_montrer_le_pied(poses[-1])
 
 
 ## Le composant de l'élément `e` dans cette zone : celui de `formes` à son type et à son ton, sinon à son type, sinon

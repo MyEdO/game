@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Script" path="res://scripts/disposition.gd" id="2_disposition"]
@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" path="res://scenes/MenuDeLaPartie.tscn" id="t_menu"]
 [ext_resource type="Theme" path="res://art/cartes.tres" id="t_cartes"]
 [ext_resource type="Theme" path="res://art/jour.tres" id="t_jour"]
+[ext_resource type="Theme" path="res://art/chronique.tres" id="t_chronique"]
 
 [node name="Ecran" type="Node"]
 
@@ -250,11 +251,50 @@ ids = PackedStringArray("economie/aucun")
 formes = PackedStringArray("choix:finDuTour")
 repli = true
 
-[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene" node_paths=PackedStringArray("journal", "coin_du_pied", "actif")]
+[node name="Chronique" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
+visible = false
+custom_minimum_size = Vector2(440, 0)
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+offset_top = -116.0
+offset_right = -8.0
+offset_bottom = -116.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"RangeeSerree"
+
+[node name="Panneau" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Chronique"]
+size_flags_horizontal = 3
+size_flags_vertical = 8
+mouse_filter = 2
+theme = ExtResource("t_chronique")
+
+[node name="Basculer" type="Button" parent="Interface/Ossature/Colonne/Milieu/Scene/Chronique"]
+custom_minimum_size = Vector2(34, 34)
+size_flags_vertical = 8
+theme_type_variation = &"Pastille"
+toggle_mode = true
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Chronique/Basculer"]
+script = ExtResource("1_zone")
+source = "journal.titre"
+formes = PackedStringArray("entite:pictogramme")
+
+[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene" node_paths=PackedStringArray("journal", "coin_du_pied", "actif", "chronique", "lignes", "panneau", "bascule", "menu")]
 script = ExtResource("2_disposition")
 journal = NodePath("../../../../Droite")
 coin_du_pied = NodePath("../../../Pied/Rangee/Coin")
 actif = NodePath("../Actif")
+chronique = NodePath("../Chronique")
+lignes = NodePath("../../../../Droite/Pile/Defilement")
+panneau = NodePath("../Chronique/Panneau")
+bascule = NodePath("../Chronique/Basculer")
+menu = NodePath("../../../../../MenuDeLaPartie")
 
 [node name="Dialogue" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
 visible = false
@@ -411,17 +451,11 @@ custom_minimum_size = Vector2(320, 0)
 theme_type_variation = &"Journal"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Droite"]
-
-[node name="Titre" type="VBoxContainer" parent="Interface/Ossature/Droite/Pile"]
-
-[node name="Zone" type="Node" parent="Interface/Ossature/Droite/Pile/Titre"]
-script = ExtResource("1_zone")
-source = "journal.titre"
+theme = ExtResource("t_journal")
 
 [node name="Defilement" type="ScrollContainer" parent="Interface/Ossature/Droite/Pile"]
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
-theme = ExtResource("t_journal")
 
 [node name="Lignes" type="VBoxContainer" parent="Interface/Ossature/Droite/Pile/Defilement"]
 theme_type_variation = &"PileSerree"
@@ -524,3 +558,5 @@ theme_type_variation = &"alerte"
 [node name="Panne" type="Label" parent="Interface/Avis"]
 horizontal_alignment = 1
 theme_type_variation = &"echec"
+
+[connection signal="toggled" from="Interface/Ossature/Colonne/Milieu/Scene/Chronique/Basculer" to="Interface/Ossature/Colonne/Milieu/Scene/Disposition" method="ouvrir_la_chronique"]

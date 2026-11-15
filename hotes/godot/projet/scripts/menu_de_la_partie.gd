@@ -31,6 +31,23 @@ func _relier_la_pastille(composant: Node) -> void:
 		bouton.pressed.connect(_basculer)
 
 
+## Le menu ancré au coin haut-droit de la fenêtre, sa liste ouverte sous la pastille (`en_haut`), ou au coin bas-droit,
+## sa liste ouverte au-dessus d'elle.
+func ancrer(en_haut: bool) -> void:
+	var bord := 0.0 if en_haut else 1.0
+	var oppose := 1.0 if en_haut else 0.0
+	anchor_top = bord
+	anchor_bottom = bord
+	offset_top = 8.0 if en_haut else -42.0
+	offset_bottom = 42.0 if en_haut else -8.0
+	grow_vertical = Control.GROW_DIRECTION_END if en_haut else Control.GROW_DIRECTION_BEGIN
+	_liste.anchor_top = oppose
+	_liste.anchor_bottom = oppose
+	_liste.offset_top = 8.0 if en_haut else -8.0
+	_liste.offset_bottom = _liste.offset_top
+	_liste.grow_vertical = grow_vertical
+
+
 func _basculer() -> void:
 	if _liste.visible:
 		_fermer()

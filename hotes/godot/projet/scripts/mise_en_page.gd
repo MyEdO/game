@@ -124,6 +124,12 @@ static func largeur_de_bulle(largeur: float) -> float:
 	return minf(LARGEUR_DE_BULLE, ceilf(largeur))
 
 
+## Le rang du premier des `nombre` éléments qui se montre quand seuls les `derniers` se montrent (`0` : tous,
+## `Zone.derniers`).
+static func premier_des_derniers(nombre: int, derniers: int) -> float:
+	return maxf(0.0, nombre - derniers) if derniers else 0.0
+
+
 ## Le diamètre d'une sphère de rayon `rayon` (`SphereMesh.height`).
 static func diametre(rayon: float) -> float:
 	return 2.0 * rayon

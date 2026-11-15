@@ -165,13 +165,13 @@ func _textes(noeud: Node) -> Array:
 	return textes
 
 
-## Visible, ou dans un onglet que son `TabContainer` ne montre pas, dans le menu de la partie fermé, ou dans ce qu'une
-## bascule montre (`toggled`, la liste d'une pastille) : il se lit en choisissant son onglet, en ouvrant le menu, en
-## pressant la bascule.
+## Visible, ou dans un onglet que son `TabContainer` ne montre pas, dans le menu de la partie fermé, dans ce qu'une
+## bascule montre (`toggled`, la liste d'une pastille), ou composant qu'une zone en `derniers` cache (la chronique
+## fermée, que sa pastille ouvre) : il se lit en choisissant son onglet, en ouvrant le menu, en pressant la bascule.
 func _lisible(n: Control) -> bool:
 	var c: Node = n
 	while c is Control:
-		if not (c as Control).visible and not c.get_parent() is TabContainer and not c.get_parent() is MenuDeLaPartie and not _montre_par_une_bascule(c):
+		if not (c as Control).visible and not c.get_parent() is TabContainer and not c.get_parent() is MenuDeLaPartie and not _montre_par_une_bascule(c) and not _cache_par_derniers(c):
 			return false
 		c = c.get_parent()
 	return true
@@ -180,6 +180,11 @@ func _lisible(n: Control) -> bool:
 ## Si une bascule montre `c` (le signal `toggled` d'un bouton relié à lui).
 static func _montre_par_une_bascule(c: Node) -> bool:
 	return c.get_incoming_connections().any(func(l: Dictionary) -> bool: return (l.signal as Signal).get_name() == &"toggled")
+
+
+## Si `c` est un composant de zone que sa zone cache en `derniers` (`Zone.derniers`).
+static func _cache_par_derniers(c: Node) -> bool:
+	return c.has_meta(Zone.META) and c.get_parent().get_children().any(func(z: Node) -> bool: return z is Zone and z.derniers > 0)
 
 
 ## Chaque texte que l'élément `e` et ses éléments imbriqués disent (`DITS`, le nom d'une entité, la valeur d'une

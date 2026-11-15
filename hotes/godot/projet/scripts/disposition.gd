@@ -31,8 +31,9 @@ extends Node
 ## générique `projet/ecrans/fenetre.tscn` sinon. Une disposition dédiée range autrement les mêmes sources : une zone qui
 ## nomme des `ids` n'en montre que ces éléments, un id fini par `/` nommant toute la famille des ids qui commencent par
 ## lui, une zone sans `ids` ceux qu'aucune autre zone de sa source ne nomme (`Zone.montrer_toutes`), si bien qu'aucun
-## élément ne se perd. Les fenêtres de jet héritent du cadre `projet/cadres/fenetre_de_jet.tscn`, posé à droite de la
-## scène au-dessus de la fin du tour, à l'écart de l'ordre du tour au bord gauche. L'écran d'attaque
+## élément ne se perd. Les fenêtres de jet héritent du cadre `projet/cadres/fenetre_de_jet.tscn`, posé en bas au
+## centre de la scène, toujours au même endroit : en combat, à la place du meuble de l'actif, que la vue ne sert pas
+## sous une fenêtre de jet. L'écran d'attaque
 ## (`projet/ecrans/cascade/attaque.tscn`) montre la cible,
 ## l'arme et ses pastilles, le jet de l'attaquant face à celui de la défense (le nombre à atteindre et le dé en gros),
 ## l'issue, les options du coup puis les gestes en rangée ; l'écran de Défense (`projet/ecrans/cascade/defense.tscn`),
@@ -91,6 +92,13 @@ extends Node
 const GENERIQUE := "res://ecrans/fenetre.tscn"
 ## La source des lignes du journal : la disposition qui la range tient le journal dans sa scène.
 const LIGNES_DU_JOURNAL := "journal.lignes"
+## Les lignes du journal que la chronique fermée montre sur la scène, les dernières.
+const LIGNES_DE_LA_CHRONIQUE := 3
+## La hauteur du défilement de la chronique ouverte.
+const HAUTEUR_DE_LA_CHRONIQUE := 420.0
+## Le thème de la chronique fermée, ses lignes claires sur la scène, et celui de la chronique ouverte, sur parchemin.
+const CHRONIQUE_FERMEE := preload("res://art/chronique.tres")
+const CHRONIQUE_OUVERTE := preload("res://art/statbloc.tres")
 
 ## Le panneau du journal de l'écran, caché sous une disposition qui range elle-même ses lignes.
 @export var journal: Control
@@ -98,14 +106,28 @@ const LIGNES_DU_JOURNAL := "journal.lignes"
 @export var coin_du_pied: Control
 ## Le meuble de l'actif, au-dessus duquel la générique se pose en combat.
 @export var actif: Control
+## La chronique posée sur la scène en combat, à la place du panneau du journal.
+@export var chronique: Control
+## Le défilement des lignes du journal (`journal.lignes`), seul : au panneau du journal hors combat, à la chronique en
+## combat (`_ranger_les_lignes`).
+@export var lignes: ScrollContainer
+## Le panneau de la chronique, qui tient les lignes en combat.
+@export var panneau: PanelContainer
+## La pastille de la chronique (`journal.titre`), qui l'ouvre et la ferme (`ouvrir_la_chronique`).
+@export var bascule: Button
+## Le menu de la partie, en haut à droite en combat, en bas à droite sinon.
+@export var menu: MenuDeLaPartie
 
 ## Le chemin de la scène posée, `""` avant la première.
 var scene := ""
 var _posee: Node = null
 var _en_combat := false
+## Le panneau du journal qui tient les lignes hors combat.
+var _pile_du_journal: Node
 
 
 func _ready() -> void:
+	_pile_du_journal = lignes.get_parent()
 	actif.resized.connect(_caler)
 	actif.visibility_changed.connect(_caler)
 
@@ -123,12 +145,38 @@ func disposer(disposition: Variant, en_combat: bool) -> bool:
 		_posee.queue_free()
 	_posee = load(chemin).instantiate()
 	add_sibling(_posee)
-	journal.visible = not Zone.racines(_posee).any(func(zone: Zone) -> bool: return zone.source == LIGNES_DU_JOURNAL)
-	coin_du_pied.visible = not journal.visible
+	journal.visible = not en_combat and not Zone.racines(_posee).any(func(zone: Zone) -> bool: return zone.source == LIGNES_DU_JOURNAL)
+	coin_du_pied.visible = not en_combat and not journal.visible
+	chronique.visible = en_combat
+	if en_combat != _en_combat:
+		lignes.reparent(panneau if en_combat else _pile_du_journal, false)
+		if not en_combat:
+			_pile_du_journal.move_child(lignes, 0)
+		bascule.set_pressed_no_signal(false)
+		_ranger_les_lignes(en_combat, false)
+	menu.ancrer(en_combat)
 	scene = chemin
 	_en_combat = en_combat
 	_caler()
 	return true
+
+
+## La chronique ouverte (`ouverte`, sa pastille pressée) ou fermée.
+func ouvrir_la_chronique(ouverte: bool) -> void:
+	_ranger_les_lignes(true, ouverte)
+
+
+## Les lignes du journal rangées : toutes en défilement hors combat ou la chronique `ouverte`, sur parchemin ; ses
+## seules dernières sur la scène la chronique fermée, sans cadre, laissant passer la souris.
+func _ranger_les_lignes(en_combat: bool, ouverte: bool) -> void:
+	var defile := ouverte or not en_combat
+	(lignes.get_node("Lignes/Zone") as Zone).derniers = 0 if defile else LIGNES_DE_LA_CHRONIQUE
+	lignes.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if defile else ScrollContainer.SCROLL_MODE_DISABLED
+	lignes.custom_minimum_size.y = HAUTEUR_DE_LA_CHRONIQUE if en_combat and ouverte else 0.0
+	lignes.mouse_filter = Control.MOUSE_FILTER_STOP if defile else Control.MOUSE_FILTER_IGNORE
+	panneau.theme = CHRONIQUE_OUVERTE if ouverte else CHRONIQUE_FERMEE
+	panneau.theme_type_variation = &"Parchemin" if ouverte else &""
+	panneau.mouse_filter = Control.MOUSE_FILTER_STOP if ouverte else Control.MOUSE_FILTER_IGNORE
 
 
 ## En combat, la générique posée en bas au centre, à sa largeur minimale, au-dessus du meuble de l'actif s'il se

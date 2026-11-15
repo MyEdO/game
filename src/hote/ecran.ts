@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, intentionDeRenvoi, partieEnCours, refusDeRenvoyer, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatDateImperiale, formatJourImperial, toDate, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, enTeteDuPorteur, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf, nomEnVue, porteurEnVue,
+  ACTIONS, DESSINS_DES_PARTS, avecSigne, batailleEnVue, intentionDeRenvoi, partieEnCours, refusDeRenvoyer, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatDateImperiale, formatJourImperial, toDate, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, enTeteDuPorteur, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf, nomEnVue, porteurEnVue,
   type CombatEvent, type Equipe, type EntreeDeLaFiche, type IconId, type IdDeCouche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -101,6 +101,7 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
    * tant qu'elle reste à jouer, chacun de ses États en puce.
    * son Mouvement en entité `mouvement` : un jeton par case (`jeton/<n>`), en `reussite` tant qu'il reste, puis ce qui
    * reste sur le total en ligne `reste`.
+   * aucune quand une fenêtre de jet tient la main : la fenêtre prend sa place.
    */
   'combat.actif': Entite[];
   /**
@@ -137,8 +138,11 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
    * avec sa raison.
    */
   'dialogue.reponses': Bouton[];
-  /** le titre du journal. */
-  'journal.titre': Ligne[];
+  /**
+   * en combat, le journal en pastille, son nom et son dessin :
+   * elle ouvre la chronique entière ; hors combat, aucune.
+   */
+  'journal.titre': Entite[];
   /** hors combat, chaque héros du groupe en carte (`herosDuGroupe`) ; en combat, aucune : l'ordre du tour les porte.
    *  Chaque carte : sa carrière, ses Blessures, le bouton qui ouvre sa fiche,
    *  pressé quand elle est ouverte, qui la ferme alors, ses États, puis ce que la fenêtre dit de lui : le jet qu'il jette
@@ -881,8 +885,9 @@ function apercuDe(etat: Jeu, c: Combat): string | null {
 
 /** Les offres de l'actif, chacune un bouton qui joue son geste (`Offre.geste`), au dessin de son action, pressée quand
  *  elle est armée, refusée avec sa raison quand elle est fermée ; rangées par la part de l'économie du tour qu'elles prennent, chaque part un
- *  choix qui la nomme une fois, celles qui n'en prennent aucune (la fin du tour) sous le tour. Une offre qui s'offre par
- *  candidat (le sort, l'arme, l'attaque de trait) est un choix à elle, au dessin de son action, sous sa part, en liste au-delà de
+ *  choix qui la nomme une fois, au dessin de sa part (`DESSINS_DES_PARTS`), en `alerte` quand l'une de ses offres est armée, celles qui n'en prennent aucune (la fin du tour) sous le tour. Une offre qui s'offre par
+ *  candidat (le sort, l'arme, l'attaque de trait) est un choix à elle, au dessin de son action, en `alerte` quand l'un de
+ *  ses candidats est armé, sous sa part, en liste au-delà de
  *  `CHOIX_EN_BOUTONS` candidats : chaque candidat un bouton qui le nomme et joue son geste. Une offre sans geste, dont la
  *  case attend un paramètre que seule la console choisit, n'a pas de bouton : fermée, elle reste un choix sans valeur,
  *  refusé avec sa raison. */
@@ -894,7 +899,7 @@ function offresDuCombat(c: Combat): Choix[] {
     type: 'bouton', id: o.id, libelle: action(o).label, jeu: jeuDe(garanti(o.geste, o.id, 'geste de l’offre')), presse: o.armee, focus: false, refus: o.refus, icone: action(o).icon,
   });
   const parCandidat = (o: (typeof offres)[number]): Choix => ({
-    type: o.candidats.length > CHOIX_EN_BOUTONS ? 'liste' : 'choix', id: `offre/${o.id}`, ton: 'neutre', libelle: action(o).label, focus: false, refus: o.refus, icone: action(o).icon,
+    type: o.candidats.length > CHOIX_EN_BOUTONS ? 'liste' : 'choix', id: `offre/${o.id}`, ton: o.candidats.some((k) => k.armee) ? 'alerte' : 'neutre', libelle: action(o).label, focus: false, refus: o.refus, icone: action(o).icon,
     valeurs: o.candidats.flatMap((k): Bouton[] => (k.geste ? [{
       type: 'bouton', id: `${o.id}/${Object.values(k.ctx).join('/')}`, libelle: k.nom, jeu: jeuDe(k.geste), presse: k.armee, focus: false, refus: k.refus,
     }] : [])),
@@ -902,8 +907,12 @@ function offresDuCombat(c: Combat): Choix[] {
   return [...new Set(offres.map((o) => o.economie))].flatMap((e): Choix[] => {
     const part = offres.filter((o) => o.economie === e);
     const uniques = part.filter((o) => !o.candidats.length && o.geste);
+    const dessin: IconId | undefined = (DESSINS_DES_PARTS as Partial<Record<string, IconId>>)[e];
     return [
-      ...(uniques.length ? [{ type: 'choix' as const, id: `economie/${e}`, ton: 'neutre' as const, libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: uniques.map(bouton) }] : []),
+      ...(uniques.length ? [{
+        type: 'choix' as const, id: `economie/${e}`, ton: uniques.some((o) => o.armee) ? 'alerte' as const : 'neutre' as const, libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: uniques.map(bouton),
+        ...(dessin ? { icone: dessin } : {}),
+      }] : []),
       ...part.filter((o) => o.candidats.length || !o.geste).map(parCandidat),
     ];
   });
@@ -1166,7 +1175,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id) && !portes.has(g.id)),
     'combat.tour': c ? [ligne('tour', c.tour === null ? t('ecran.round', { round: c.round }) : t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
     'combat.ordre': c ? ordreDuTour(etat, c, fiche) : [],
-    'combat.actif': c?.actif ? [actifDuCombat(c.actif)] : [],
+    'combat.actif': c?.actif && !fenetreDuJeu(etat)?.etape?.jet ? [actifDuCombat(c.actif)] : [],
     'combat.avis': c ? avisDuCombat(c, fenetre !== null) : [],
     'combat.apercu': c ? [apercuDe(etat, c)].flatMap((a) => (a === null ? [] : [ligne('apercu', a)])) : [],
     'combat.offres': c ? offresDuCombat(c) : [],
@@ -1174,7 +1183,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
       type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, refus: g.refus ?? null,
     })),
     ...zonesDuDialogue(etat, fenetre !== null),
-    'journal.titre': c ? [ligne('journal', t('ecran.journal'))] : [],
+    'journal.titre': c ? [{ type: 'entite', id: 'journal', ton: 'neutre', nom: t('ecran.journal'), elements: [{ type: 'icone', id: 'icone', icone: 'navigation/carnet' }] }] : [],
     'groupe.heros': c ? [] : herosDuGroupe(etat, fiche, gestesSurLesCartes),
     ...zonesDeLaFiche(etat, fiche),
     ...zonesDeLaCreation(etat, panneau && 'creation' in panneau ? panneau.creation : null),
