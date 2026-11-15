@@ -28,6 +28,8 @@ const doc = document(
     couvertPenalty: couvertDifficultySchema.optional(),
     /** LDB 14 l.86 ; LDB 85 l.329 */
     occulte: z.literal(false).optional(),
+    /** LDB 13 l.114 ; #4105 */
+    arreteLeCoup: z.literal(true).optional(),
     /** AA 10 l.98 ; LDB 85 l.344 */
     taille: sizeCategorySchema,
   },
@@ -50,6 +52,10 @@ const doc = document(
     occulte: {
       label: 'Laisse voir à travers',
       hint: 'Ne se pose qu’à « faux », et exige un arbitrage maison ; retirer le champ rend la Structure occultante',
+    },
+    arreteLeCoup: {
+      label: 'Arrête le coup de corps à corps',
+      hint: 'Ne se pose qu’à « vrai », sur une Structure qui laisse voir à travers : tant qu’elle tient, nul n’est au contact par-dessus',
     },
     taille: {
       label: 'Taille de la Structure',
