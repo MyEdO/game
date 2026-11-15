@@ -76,7 +76,7 @@ describe('jouer une campagne par le pont', () => {
     expect(s.vue.zones['groupe.heros'].flatMap((e) => e.elements).some((x) => x.id.startsWith('renvoyer/')), 'plus de renvoi en cours de partie').toBe(false);
     expect(s.vue.zones['groupe.pretires']).toEqual([]);
     expect(s.vue.zones['groupe.campagnes']).toEqual([]);
-    expect(s.vue.zones['partie.gestes'].map((b) => b.jeu), 'la partie se sauvegarde, se règle et se quitte à tout moment').toEqual([{ sauvegardes: true }, { reglages: true }, { quitter: true }]);
+    expect(s.vue.zones['partie.gestes'].map((b) => b.jeu), 'la partie se sauvegarde, se règle, se joue en ligne et se quitte à tout moment').toEqual([{ sauvegardes: true }, { reglages: true }, { salon: true }, { quitter: true }]);
     expect(erreurDe(appel('lancer', { lancer: 'arene' })).message, 'une partie en cours ne se relance pas').toMatch(/déjà en cours/);
   });
 

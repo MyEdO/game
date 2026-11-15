@@ -50,7 +50,7 @@ describe('sauvegarder et reprendre par le pont', () => {
     expect(boutons(emplacement(offerts, AUTO_SLOT)), 'l’emplacement automatique ne s’écrit pas à la main').toEqual([]);
     const ecrire = boutons(emplacement(offerts, 2))[0];
     expect([ecrire.jeu, ecrire.refus]).toEqual([{ sauvegarder: 2 }, null]);
-    expect(avant.vue.zones['partie.gestes'].map((b) => b.jeu), 'le panneau s’ouvre de la partie').toEqual([{ sauvegardes: true }, { reglages: true }, { quitter: true }]);
+    expect(avant.vue.zones['partie.gestes'].map((b) => b.jeu), 'le panneau s’ouvre de la partie').toEqual([{ sauvegardes: true }, { reglages: true }, { salon: true }, { quitter: true }]);
 
     const ecrit = emplacement(zones(appel, 'sauvegarder', ecrire.jeu), 2);
     expect(fiche(ecrit), 'l’emplacement dit la scène sauvegardée').toContain(avant.vue.projection.scene!.nom);
