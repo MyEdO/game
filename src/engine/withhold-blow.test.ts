@@ -1,5 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { resolveMeleePassive, rederivePassiveAttack, weaponInflictsFlames, causeDuCoupCritique, resolveRanged, finishRanged, resolveStrayRangedHit, woundsAtCritLocation } from './combat';
+import {
+  resolveMeleePassive,
+  rederivePassiveAttack,
+  weaponInflictsFlames,
+  causeDuCoupCritique,
+  resolveRanged,
+  finishRanged,
+  resolveStrayRangedHit,
+  woundsAtCritLocation,
+} from './combat';
 import { critiquesDuCoup, relanceLaLocalisation } from './critical';
 import { setRule, resetRule } from './policy';
 import { evaluateTest } from './tests';

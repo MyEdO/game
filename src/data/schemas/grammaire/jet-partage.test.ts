@@ -8,7 +8,7 @@ import { decisionDuTestSchema, extendedTestSchema, flowTestSchema, jetSchema } f
 import { enfantsDe } from './descente';
 import { CHAMPS_DE_DECISION } from '../../../engine/flowCore';
 import { noeudDeLEntree, noeudObjet } from '../validate';
-import etats from '../../etats.json';
+import { etats } from '../../index';
 import tavernGames from '../../tavernGames.json';
 
 const champ = (noeud: unknown, cle: string): unknown => enfantsDe(noeudObjet(noeud)).find((e) => e.cle === cle)?.noeud;
@@ -20,7 +20,8 @@ describe('jetSchema — une forme, trois porteurs', () => {
   });
 
   it('la récupération d’un État compose le jet', () => {
-    const etat = (etats as { id: string; recover?: unknown }[]).find((e) => e.recover)!;
+    const etat = etats.find((e) => e.recover);
+    if (!etat) throw new Error('aucun État ne porte de récupération (`recover`)');
     const recover = champ(noeudDeLEntree('etats', etat), 'recover');
     for (const cle of CLES) expect(champ(recover, cle), cle).toBe(champ(jetSchema, cle));
   });

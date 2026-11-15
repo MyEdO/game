@@ -194,12 +194,18 @@
     }
   },
   "temporaryRepair": {
-    "difficulty": "complexe",
-    "charpentierPenalty": -10,
     "woundsPerRepair": {
       "dice": {
         "n": 1,
         "sides": 10
+      }
+    },
+    "enduranceDifficulty": "accessible",
+    "failDamage": {
+      "dice": {
+        "n": 1,
+        "sides": 10,
+        "plus": -4
       }
     },
     "source": {

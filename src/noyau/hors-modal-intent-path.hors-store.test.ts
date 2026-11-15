@@ -71,13 +71,13 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-modale appartient à son porteur', () => {
   it('précondition : le repli `modalOwnerOf` désigne bien la VICTIME du fateSave (pas l’attaquant)', () => {
     setup();
-    banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'slow' } });
     expect(modalOwnerOf(banc.getState())).toBe('h3');
   });
 
   it('balayage sous fateSave : l’ATTAQUANT clique et enchaîne ; la victime et l’hôte sont refusés', () => {
     setup();
-    banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'slow' } });
     expect(applyIntent(2, 'cliquerLaCase', [{ x: 0, y: 1 }, 'e2']), 'la victime pilotait le balayage d’autrui').toBe('refusee');
     expect(applyIntent(0, 'cliquerLaCase', [{ x: 0, y: 1 }, 'e2']), 'l’hôte n’est pas le porteur du balayage').toBe('refusee');
     expect(banc.getState().pendingAttack).toBeNull();
@@ -97,7 +97,7 @@ describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-mod
 
   it('2ᵉ frappe sous fateSave : le clic appartient à l’attaquant, jamais à la victime', () => {
     setup();
-    banc.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    banc.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: { heroId: 'h3', source: 'slow' } });
     expect(applyIntent(2, 'cliquerLaCase', [{ x: 0, y: 1 }, 'e2'])).toBe('refusee');
     expect(banc.getState().pendingAttack).toBeNull();
     expect(applyIntent(1, 'cliquerLaCase', [{ x: 0, y: 1 }, 'e2'])).toBe('appliquee');
@@ -108,7 +108,7 @@ describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-mod
 
   it('pilonnage indirect (`pendingSiegeAim`) : le clic-CASE appartient à l’ARTILLEUR (AA 10)', () => {
     setup();
-    banc.setState({ pendingSiegeAim: { gunnerId: 'h2', weaponUid: 'm', radius: 1, rangeTiles: null }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    banc.setState({ pendingSiegeAim: { gunnerId: 'h2', weaponUid: 'm', radius: 1, rangeTiles: null }, pendingFateSave: { heroId: 'h3', source: 'slow' } });
     expect(applyIntent(2, 'cliquerLaCase', [{ x: 3, y: 3 }])).toBe('refusee');
     expect(banc.getState().pendingSiegeAim, 'la victime posait le point d’impact de l’artilleur').not.toBeNull();
     expect(applyIntent(1, 'cliquerLaCase', [{ x: 3, y: 3 }])).toBe('appliquee');
@@ -153,7 +153,7 @@ describe('#1016 — hors détenteur, la route ne déplace AUCUN verdict (différ
 
   const ETATS: { nom: string; etat: Record<string, unknown> }[] = [
     { nom: 'tour normal, aucune fenêtre', etat: {} },
-    { nom: 'fateSave d’un AUTRE héros (aucun ciblage détenu)', etat: { pendingFateSave: { heroId: 'h3', source: 'hit' } } },
+    { nom: 'fateSave d’un AUTRE héros (aucun ciblage détenu)', etat: { pendingFateSave: { heroId: 'h3', source: 'slow' } } },
     { nom: 'balayage dont la frappe est OUVERTE (pendingAttack)', etat: { pendingCleave: { attackerId: 'h2', hitIds: [], count: 0 }, pendingAttack: { attackerId: 'h2', targetId: 'e1', location: null, result: null } } },
     { nom: 'Surincantation « +Cible » (fenêtre de MODALE)', etat: { pendingCast: { casterId: 'h2', spellId: 's', pickingTargets: true } } },
     { nom: 'pose de zone d’un SORT (placing, sans centre)', etat: { pendingCast: { casterId: 'h2', spellId: 's', zone: { placing: true, radius: 1 } } } },
@@ -174,7 +174,7 @@ describe('#1016 — hors détenteur, la route ne déplace AUCUN verdict (différ
 describe('#1016 — gestes TERMINAUX de ces mêmes fenêtres (barre d’action / défense en profondeur)', () => {
   it('la sortie du balayage (bouton « Terminer » de la barre) : seul l’attaquant clôt le balayage', () => {
     setup();
-    banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'slow' } });
     expect(applyIntent(2, 'fenetreFermer', ['frappeMortelle'])).toBe('refusee');
     expect(banc.getState().pendingCleave).not.toBeNull();
     expect(applyIntent(1, 'fenetreFermer', ['frappeMortelle'])).toBe('appliquee');
@@ -183,7 +183,7 @@ describe('#1016 — gestes TERMINAUX de ces mêmes fenêtres (barre d’action /
 
   it('la sortie de la 2ᵉ frappe (bouton « Renoncer ») : seul l’attaquant renonce à sa 2ᵉ frappe', () => {
     setup();
-    banc.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    banc.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: { heroId: 'h3', source: 'slow' } });
     expect(applyIntent(2, 'fenetreFermer', ['secondeFrappe'])).toBe('refusee');
     expect(banc.getState().pendingDualStrike).not.toBeNull();
     expect(applyIntent(1, 'fenetreFermer', ['secondeFrappe'])).toBe('appliquee');
@@ -192,7 +192,7 @@ describe('#1016 — gestes TERMINAUX de ces mêmes fenêtres (barre d’action /
 
   it('frapperEnBalayage/frapperDeLaSecondeArme sont la machinerie du clic (#3370) : hors allowlist, même pour le porteur', () => {
     setup();
-    banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'slow' } });
     expect(applyIntent(1, 'frapperEnBalayage', ['e2'])).toBe('hors-allowlist');
     expect(applyIntent(1, 'frapperDeLaSecondeArme', ['e2'])).toBe('hors-allowlist');
     expect(banc.getState().pendingAttack).toBeFalsy();

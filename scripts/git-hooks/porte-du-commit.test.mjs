@@ -46,7 +46,17 @@ import {
 import { apportDeLaResolution, estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
 import { lignesDuContenu } from '../guards/lib/stock.mjs'
-import { GitIndisponible, INDEX, ceQueFaitLeCommit, depotDe, histoireDeHead, patchsParChemin, ecrireBlob, poserDansIndex, reussi } from '../guards/lib/gitPorte.mjs'
+import {
+  GitIndisponible,
+  INDEX,
+  ceQueFaitLeCommit,
+  depotDe,
+  histoireDeHead,
+  patchsParChemin,
+  ecrireBlob,
+  poserDansIndex,
+  reussi,
+} from '../guards/lib/gitPorte.mjs'
 import { depotReel, envDeDepotForge, envGitFeint, ENV_GIT_FEINT, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, gitDeLArbreReel, lancerGit, lancesDeGit, resultatDeGit, sousCommande } from '../test/gitDeBanc.mjs'
 

@@ -1,6 +1,19 @@
 /** Zones 1-7 de l'échelle — refaites en GRAND (24×16 → 32×24), layouts structurés, fouilles,
  *  rencontres enrichies. Ids/flags conservés (`arene-zoneN`, `zoneN_clear`). */
-import { scene, P, hero, resetIds, fouille, fightTrigger, zoneVictory, NUEE_DE_RATS, NUEE_DE_RATS_APPEARANCE, flowOf, testNode, remetLeDocument } from '../campagne/lib.mjs';
+import {
+  scene,
+  P,
+  hero,
+  resetIds,
+  fouille,
+  fightTrigger,
+  zoneVictory,
+  NUEE_DE_RATS,
+  NUEE_DE_RATS_APPEARANCE,
+  flowOf,
+  testNode,
+  remetLeDocument,
+} from '../campagne/lib.mjs';
 
 /** Document du paquet (`narratif.documents`, #679) lu sur la stèle des Ruines. */
 export const DOC_STELE_DES_RUINES = {

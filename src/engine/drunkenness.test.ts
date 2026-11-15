@@ -2,7 +2,17 @@ import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
 import { makeRNG } from './dice';
-import { applyAlcoholTest, drunkPenalty, drunkCharPenalties, isDrunk, alcoholFailures, soberUpDissipate, soberUpHangover, drunkStaggers, DRUNK_CARACS } from './drunkenness';
+import {
+  applyAlcoholTest,
+  drunkPenalty,
+  drunkCharPenalties,
+  isDrunk,
+  alcoholFailures,
+  soberUpDissipate,
+  soberUpHangover,
+  drunkStaggers,
+  DRUNK_CARACS,
+} from './drunkenness';
 import { effectiveChar } from './characteristics';
 import { hasCondition } from './conditions';
 import { applyOps } from './ops';

@@ -8,7 +8,20 @@
  * SOURCE UNIQUE de l'assemblage pour les DEUX backends (iso et POV) — ils dessinent ces mêmes faces,
  * chacun à sa résolution.
  */
-import { heightAt, piedDeLArete, tileAt, wallEnds, doorIsOpen, structureIsDown, porteMasquee, porteSelon, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
+import {
+  heightAt,
+  piedDeLArete,
+  tileAt,
+  wallEnds,
+  doorIsOpen,
+  structureIsDown,
+  porteMasquee,
+  porteSelon,
+  type LectureDArete,
+  type Scene,
+  type WallSeg,
+  type WallSide,
+} from '../../noyau/monde/scene';
 import { findStructureById } from '../../data';
 import { isWallEdgeStructure } from '../../engine/structures';
 import { interiorCells } from '../../noyau/planDefects';

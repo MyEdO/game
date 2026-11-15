@@ -4,11 +4,12 @@ import { indexParId } from './versionDataset';
 import type { TrappingData } from './index';
 import { datasetDe, type EntreeDe } from './datasets';
 import type * as apparencesDef from './schemas/defs/apparences';
+import type * as trappingsDef from './schemas/defs/trappings';
 
 export type TrappingResolver = (id: string) => TrappingData | undefined;
 
 /** Catalogues et lecteurs partagés par le parse et la résolution d’apparence (#2948). */
-export const trappings = trappingsJson as TrappingData[];
+export const trappings: TrappingData[] = datasetDe<typeof trappingsDef>(trappingsJson);
 export type ApparenceData = EntreeDe<typeof apparencesDef>;
 export const apparences = datasetDe<typeof apparencesDef>(apparencesJson);
 export const findTrappingById = indexParId('trappings', trappings);

@@ -256,7 +256,6 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
    *  `depense` : doit vivre dans un appel `depenserPx` ; `moteur` : la dépense pure du moteur, que seul un
    *  flux passé à `depenserPx` importe (test suivant). Clé : `fichier | ligne sans commentaire`. */
   const ECRITURES_XP: Record<string, 'depense' | 'moteur' | 'gain' | 'creation' | 'fixture' | 'type' | 'lecture'> = {
-    'src/data/index.ts | xp: number;': 'type',
     'src/data/schemas/defs/spells.ts | xp: z.number(),': 'type',
     'src/noyau/monde/advancement.ts | xp: number;': 'type',
     'src/noyau/pendings.ts | xp: number;': 'type',

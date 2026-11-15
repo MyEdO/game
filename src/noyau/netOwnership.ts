@@ -5,20 +5,49 @@
  */
 import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
-import { fenetreDuRegistre, modalOwnerOf, horsModalByPending, sortieDeLaFenetre, validationDeLaFenetre, type GesteDeFenetreDeclare, type HorsModalDef, type QuiValideLaFenetre } from './modalArbiter';
+import {
+  fenetreDuRegistre,
+  modalOwnerOf,
+  horsModalByPending,
+  sortieDeLaFenetre,
+  validationDeLaFenetre,
+  type GesteDeFenetreDeclare,
+  type HorsModalDef,
+  type QuiValideLaFenetre,
+} from './modalArbiter';
 import { inBattleId, porteurParId } from './monde/combatants';
 import { porteurDeLObjet } from './monde/carrier';
 import { seatOwns, jetSurfaced, siegeDuHeros, worldSeat } from './sieges';
 import { targetingHolder } from './targetingHolder';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
-import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type NomDeVerbeDeJet, type RollVerb } from './flowVerbs';
+import {
+  FLOW_VERBS,
+  NOM_DU_VERBE_DE_JET,
+  VERBES_DE_JET,
+  estVerbeDeFenetre,
+  fluxAccepte,
+  rangeeFacultative,
+  type FlowVerbs,
+  type JetOwnerRef,
+  type NomDeVerbeDeJet,
+  type RollVerb,
+} from './flowVerbs';
 import type { ActionDeClasse } from './intentionsDeSiege';
 import type { PendingKey } from './stateFields';
 import { declarationDuReglage, estFluxRegle } from './reglagesDuJet';
 import { declarationDuChoix } from './choixDesFenetres';
 import { WORLD_STEP_OWNER } from './pendings';
-import type { CascadeStep, PendingAuContact, PendingBargain, PendingCast, PendingDefense, PendingDisengage, PendingDistraire, PendingGrapple } from './pendings';
+import type {
+  CascadeStep,
+  PendingAuContact,
+  PendingBargain,
+  PendingCast,
+  PendingDefense,
+  PendingDisengage,
+  PendingDistraire,
+  PendingGrapple,
+} from './pendings';
 
 /** Fenêtres HORS-modale indexées par leur `pending*` (#1016) — la possession du CLIC DE CARTE s'y
  *  prend quand `targetingHolder` désigne l'une d'elles. */

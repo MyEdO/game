@@ -1,5 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { crenellatedAt, DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, DEFAULT_TERRAIN, emptyScene, tileAt, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type Scene } from './monde/scene';
+import {
+  crenellatedAt,
+  DEFAULT_RELIEF_DEFAULTS,
+  DEFAULT_ROOF_DEFAULTS,
+  DEFAULT_TERRAIN,
+  emptyScene,
+  tileAt,
+  type ArchitectureBody,
+  type ArchitectureRect,
+  type BuildingMass,
+  type Scene,
+} from './monde/scene';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { semencesDeScene } from '../data';
 import { METRES_PER_LEVEL } from './monde/relief';

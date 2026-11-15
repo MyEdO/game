@@ -15,8 +15,23 @@ import {
 import { craftAtoutCount } from './qualities/craftEconomy';
 import { adresseDeCreation } from './adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
-import { careerLevels, findTrappingById, groupeDeLArme, trappingRefLabel, fabricationAtouts, qualities, qualityInstance, trappings, type BrancheDeDotation, type QualityData, type TrappingRef } from '../data/index';
+import {
+  careerLevels,
+  findTrappingById,
+  groupeDeLArme,
+  trappingRefLabel,
+  fabricationAtouts,
+  qualities,
+  qualityInstance,
+  trappings,
+  type BrancheDeDotation,
+  type JokerDArme,
+  type QualityData,
+  type QualityRef,
+  type TrappingRef,
+} from '../data/index';
 import { setDataset } from '../data/overrides';
+import type { EntreeVivante } from '../data/datasets';
 
 const dot = adresseDeCreation.dotation;
 const avecFixture = <T>(fn: () => T): T => avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, fn);
@@ -141,7 +156,7 @@ describe('resolveTrappingChoices — les choix par adresse', () => {
 
   it('fabricationAtouts() est DÉRIVÉ de qualities.json (atout/objet, hors magie), pas une liste codée', () => {
     const modele = qualities.find((q) => q.polarite === 'atout' && q.subType === 'objet')!;
-    const fixture = (id: string, patch: Partial<QualityData> = {}): QualityData => ({ ...modele, id, label: id, capabilities: undefined, ...patch });
+    const fixture = (id: string, patch: Partial<QualityData> = {}): EntreeVivante<QualityData> => ({ ...modele, id, label: id, capabilities: undefined, ...patch });
     const initiales = qualities.slice();
     try {
       setDataset('qualities', [
@@ -214,7 +229,7 @@ describe('valeursDeLEmplacement — le domaine d’une arme au choix', () => {
   });
 
   it('chaque Groupe d’armes nommé par un joker de la donnée offre au moins une arme', () => {
-    const groupes = new Set<string>();
+    const groupes = new Set<NonNullable<JokerDArme['groupe']>['id']>();
     const lire = (refs: readonly BrancheDeDotation[]): void => refs.forEach((r) => ('pick' in r ? lire(r.of) : 'wildcard' in r && r.groupe && groupes.add(r.groupe.id)));
     careerLevels.forEach((l) => lire(l.trappings));
     expect(groupes.size).toBeGreaterThan(0);
@@ -223,24 +238,20 @@ describe('valeursDeLEmplacement — le domaine d’une arme au choix', () => {
 });
 
 /** Trois Atouts de Fabrication de fixture, dans un ordre de donnée qui n'est pas celui des ids : `raffine`
- *  (`DEFAULT_FABRICATION_ATOUT`) et `alpha-indice` (indicé) peuvent être pris plusieurs fois, `zeta-unique` non ; et un
- *  objet d'Encombrement 1. */
+ *  (`DEFAULT_FABRICATION_ATOUT`) et `alpha-indice` (indicé) peuvent être pris plusieurs fois, `zeta-unique` non. */
 function avecAtoutsDeFixture<T>(fn: () => T): T {
   const modele = qualities.find((q) => q.polarite === 'atout' && q.subType === 'objet')!;
-  const atout = (id: string, patch: Partial<QualityData> = {}): QualityData => ({ ...modele, id, label: id, capabilities: undefined, indice: undefined, ...patch });
+  const atout = (id: string, patch: Partial<QualityData> = {}): EntreeVivante<QualityData> => ({ ...modele, id, label: id, capabilities: undefined, indice: undefined, ...patch });
   const qualitesAvant = qualities.slice();
-  const objetsAvant = trappings.slice();
   setDataset('qualities', [
     atout('raffine', { capabilities: { repetable: true } }),
     atout('zeta-unique'),
     atout('alpha-indice', { indice: { label: 'Indice' }, capabilities: { repetable: true } }),
   ]);
-  setDataset('trappings', [...objetsAvant, { ...findTrappingById('vetements')!, id: 'objet-d-encombrement-1', enc: 1 }]);
   try {
     return fn();
   } finally {
     setDataset('qualities', qualitesAvant);
-    setDataset('trappings', objetsAvant);
   }
 }
 
@@ -250,8 +261,8 @@ describe('emplacement `atout` : les combinaisons d’Atouts de sa classe de qual
     if (e?.sorte !== 'atout') throw new Error(`pas un emplacement atout : ${JSON.stringify(ref)}`);
     return e;
   };
-  const deQualite = () => atoutDe({ id: 'objet-d-encombrement-1', qualityChoice: 'qualite' });
-  const deHauteQualite = () => atoutDe({ id: 'objet-d-encombrement-1', qualityChoice: 'haute' });
+  const deQualite = () => atoutDe({ id: 'costume-de-cour', qualityChoice: 'qualite' });
+  const deHauteQualite = () => atoutDe({ id: 'costume-de-cour', qualityChoice: 'haute' });
   const resolu = (ref: TrappingRef, v?: string) => resolveTrappingChoices([ref], v === undefined ? {} : { [dot([0])]: v })[0];
 
   it('de Qualité : chaque Atout de Fabrication seul, dans l’ordre de la donnée', () => {
@@ -270,27 +281,27 @@ describe('emplacement `atout` : les combinaisons d’Atouts de sa classe de qual
     avecAtoutsDeFixture(() => {
       expect(valeurParDefaut(deQualite())).toBe('raffine');
       expect(valeurParDefaut(deHauteQualite())).toBe('raffine+raffine');
-      expect(resolu({ id: 'objet-d-encombrement-1', qualityChoice: 'haute' })).toEqual({ id: 'objet-d-encombrement-1', qualities: [{ id: 'raffine' }, { id: 'raffine' }] });
+      expect(resolu({ id: 'costume-de-cour', qualityChoice: 'haute' })).toEqual({ id: 'costume-de-cour', qualities: [{ id: 'raffine' }, { id: 'raffine' }] });
     });
   });
 
   it('un Atout indicé pris deux fois est une entrée d’Indice 2, un autre deux entrées ; une paire mixte, une entrée par Atout (LDB 60 l.30-32)', () => {
     avecAtoutsDeFixture(() => {
-      const habit: TrappingRef = { id: 'objet-d-encombrement-1', count: { fixed: 4 }, qualityChoice: 'haute' };
-      expect(resolu(habit, 'alpha-indice+alpha-indice')).toEqual({ id: 'objet-d-encombrement-1', count: { fixed: 4 }, qualities: [{ id: 'alpha-indice', value: 2 }] });
-      expect(resolu(habit, 'raffine+raffine')).toEqual({ id: 'objet-d-encombrement-1', count: { fixed: 4 }, qualities: [{ id: 'raffine' }, { id: 'raffine' }] });
-      expect(resolu(habit, 'alpha-indice+raffine')).toEqual({ id: 'objet-d-encombrement-1', count: { fixed: 4 }, qualities: [{ id: 'raffine' }, { id: 'alpha-indice', value: 1 }] });
+      const habit: TrappingRef = { id: 'costume-de-cour', count: { fixed: 4 }, qualityChoice: 'haute' };
+      expect(resolu(habit, 'alpha-indice+alpha-indice')).toEqual({ id: 'costume-de-cour', count: { fixed: 4 }, qualities: [{ id: 'alpha-indice', value: 2 }] });
+      expect(resolu(habit, 'raffine+raffine')).toEqual({ id: 'costume-de-cour', count: { fixed: 4 }, qualities: [{ id: 'raffine' }, { id: 'raffine' }] });
+      expect(resolu(habit, 'alpha-indice+raffine')).toEqual({ id: 'costume-de-cour', count: { fixed: 4 }, qualities: [{ id: 'raffine' }, { id: 'alpha-indice', value: 1 }] });
     });
   });
 
   it('une valeur hors des combinaisons offertes prend la valeur par défaut, jamais un Atout découpé ou étranger', () => {
     avecAtoutsDeFixture(() => {
-      const habit: TrappingRef = { id: 'objet-d-encombrement-1', qualityChoice: 'haute' };
+      const habit: TrappingRef = { id: 'costume-de-cour', qualityChoice: 'haute' };
       for (const v of ['zeta-unique+zeta-unique', 'zeta-unique+raffine', 'raffine', 'maudit', 'raffine+raffine+raffine']) {
         expect(atoutChoisi(deHauteQualite(), { [dot([0])]: v }), v).toBe('raffine+raffine');
-        expect(resolu(habit, v)!, v).toEqual({ id: 'objet-d-encombrement-1', qualities: [{ id: 'raffine' }, { id: 'raffine' }] });
+        expect(resolu(habit, v)!, v).toEqual({ id: 'costume-de-cour', qualities: [{ id: 'raffine' }, { id: 'raffine' }] });
       }
-      expect(resolu({ id: 'objet-d-encombrement-1', qualityChoice: 'qualite' }, 'raffine+raffine')).toEqual({ id: 'objet-d-encombrement-1', qualities: [{ id: 'raffine' }] });
+      expect(resolu({ id: 'costume-de-cour', qualityChoice: 'qualite' }, 'raffine+raffine')).toEqual({ id: 'costume-de-cour', qualities: [{ id: 'raffine' }] });
     });
   });
 
@@ -314,7 +325,7 @@ describe('emplacement `atout` : les combinaisons d’Atouts de sa classe de qual
     expect(valeurs).not.toEqual(expect.arrayContaining(['leger+leger']));
     expect(valeurs).not.toEqual(expect.arrayContaining(['pratique+pratique']));
     for (const v of valeurs) {
-      const qs = (resolu(habit, v) as { qualities: { id: string; value?: number }[] }).qualities;
+      const qs = (resolu(habit, v) as { qualities: QualityRef[] }).qualities;
       expect(craftAtoutCount({ qualities: qs.map(qualityInstance) }), v).toBe(2);
     }
   });

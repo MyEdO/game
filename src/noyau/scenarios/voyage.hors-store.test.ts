@@ -5,7 +5,10 @@ import { poserLesRegles, resetRule } from '../../engine/policy';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { distributeCredit } from '../../noyau/bourseFlow';
 import { interludeCatalog } from '../../noyau/interludeFlow';
-import { draineCascade } from '../../noyau/cascade.testkit';
+import { draineCascade, type PoseDe } from '../../noyau/cascade.testkit';
+import { AUTHOR_PERIL_KIND } from '../../noyau/authorPerils';
+import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
+import { setDesFixes, resetDesFixes } from '../../engine/fixedDie';
 import { scenario } from '../../scenes/test-scenarios/voyage';
 
 let banc: Banc;
@@ -94,5 +97,26 @@ describe('16-voyage — lieu « altdorf » : Activités d’Altdorf (ACE Annexe 
     banc.setState({ lieu: 'p-village', worldMap: scenarioConstruit.worldMap, massBattle: null });
     const cat = interludeCatalog(banc.getState());
     expect(cat.some((d) => d.id === 'penitence')).toBe(false);
+  });
+});
+
+describe('16-voyage — la piste de Federholz mène à l’embuscade du sous-bois', () => {
+  afterEach(() => resetDesFixes());
+
+  it('péril tiré → récit d’embuscade → la scène d’embuscade ; franchir la bande ouvre la rencontre', () => {
+    setDesFixes(true);
+    banc.getState().fixerLeGroupe(scenario.construire(idsDeTest).party);
+    banc.getState().chargerLeProjet({ scenes: [scenarioConstruit.scene, ...(scenarioConstruit.extraScenes ?? [])], entryId: 'test-voyage-village', worldMap: scenarioConstruit.worldMap!, projet: null });
+    banc.getState().partirEnVoyage('r-piste', 'pied');
+    // Aucune péripétie d10 (seuil manqué) ; le péril d'auteur de la piste survient.
+    const pose: PoseDe = (etape) => (etape.kind === 'perilATerre' ? 1 : etape.kind === AUTHOR_PERIL_KIND ? 1 : undefined);
+    draineCascade(banc.getState, 200, pose);
+    expect(banc.getState().travelRecap?.then?.kind).toBe('effects');
+    banc.getState().fenetreFermer('recitDeVoyage');
+    expect(banc.getState().scene?.id).toBe('test-voyage-embuscade');
+    expect(banc.getState().battle).toBeNull();
+    poserLeGroupe(banc.getState, banc.setState, { x: 5, y: 4 });
+    const ennemis = banc.getState().battle?.combatants.filter((c) => c.kind === 'ennemi').map((c) => c.id);
+    expect(ennemis).toEqual(['enemy-enc-vembuscade-0', 'enemy-enc-vembuscade-1']);
   });
 });

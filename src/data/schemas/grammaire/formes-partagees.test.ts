@@ -14,7 +14,6 @@ import localisation from '../../localisation.json';
 import structureCriticals from '../../structure-criticals.json';
 import riverCriticals from '../../river-criticals.json';
 import shipCriticals from '../../ship-criticals.json';
-import waterExposure from '../../water-exposure.json';
 import mutationTables from '../../mutationTables.json';
 import obsessions from '../../obsessions.json';
 import miscast from '../../miscast.json';
@@ -46,7 +45,8 @@ import { menaceIds } from '../../../engine/menace';
 import { dotationsDuHeros, resolveTrappingChoices } from '../../../engine/trappingChoices';
 import { adresseDeCreation } from '../../../engine/adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE } from '../../dotations.fixture';
-import type { CareerLevelData } from '../../index';
+import { WATER_EXPOSURE, type CareerLevelData } from '../../index';
+import { CRITIQUE_DOCS } from '../../criticals';
 
 
 /** Les paths de DONNÉE des fautes de `valeur` au schéma de `fichier` — le LIEU rendu nomme un élément
@@ -165,7 +165,7 @@ describe('classes.json — une Classe ne porte que des dotations sans texte', ()
  * `plageSchema` (`grammaire/valeurs.ts`, vague `plage` #1463 P1) — les deux bornes d'une rangée de
  * table de tirage se déclarent UNE fois et se composent par la SHAPE. Le spread est un ANGLE MORT du
  * scanner de redéclarations (`scripts/docs/lib/structures-scan.mts` lit les littéraux par AST et ne
- * résout pas un spread, cf. `grammaire/reference.ts:145-146`) : l'extinction d'une ligne de stock ne
+ * résout pas un spread, cf. `talentRefSchema`, `grammaire/reference.ts`) : l'extinction d'une ligne de stock ne
  * prouve donc RIEN sur le parse. Ce gate est POSITIF — il mesure que la garde des bornes tient
  * encore, au schéma partagé ET à chaque site adoptant, par la porte de validation réelle
  * (`validateDataset`).
@@ -193,7 +193,7 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
   /** Position d'un jeu de taverne par son ID (jamais par sa place : la donnée est réordonnable au Codex). */
   const jeuDeTaverne = (id: string) => String((tavernGames as ReadonlyArray<{ id: string }>).findIndex((j) => j.id === id));
   /** Position d'un document-table de Blessures critiques par son ID — même règle : jamais par son rang. */
-  const docCritique = (id: string) => String((criticals as ReadonlyArray<{ id: string }>).findIndex((d) => d.id === id));
+  const docCritique = (id: string) => String(CRITIQUE_DOCS.findIndex((d) => d.id === id));
 
   /**
    * Chaque document ADOPTANT est mesuré sur SA donnée réelle : on ampute la première rangée à deux
@@ -212,7 +212,7 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
     // Descente EXPLICITE : `modifiers[].auto` porte aussi deux bornes (`{kind:'woundsLost', op:'between'}`),
     // mais ce sont des bornes de BLESSURES PERDUES dans une condition — pas une rangée de table de
     // tirage, donc hors composition. La table lue par `findTableEntry` est `diseases`.
-    ['water-exposure.json', waterExposure, ['diseases']],
+    ['water-exposure.json', WATER_EXPOSURE, ['diseases']],
     ['mutationTables.json', mutationTables],
     ['obsessions.json', obsessions],
     ['miscast.json', miscast],
@@ -443,13 +443,15 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
  */
 describe('water-exposure › auto.between — les deux bornes du prédicat', () => {
   it('sa donnée réelle passe, le MÊME prédicat sans `max` est REFUSÉ', () => {
-    const doc = waterExposure as { modifiers: ReadonlyArray<Record<string, unknown>> };
+    const doc = WATER_EXPOSURE;
     expect(validateDataset('water-exposure.json', doc)).toBeNull();
-    const i = doc.modifiers.findIndex((m) => (m.auto as { op?: string } | undefined)?.op === 'between');
+    const i = doc.modifiers.findIndex((m) => m.auto !== undefined && 'op' in m.auto && m.auto.op === 'between');
     expect(i, 'aucun prédicat `between` : la sonde ne mesure rien.').toBeGreaterThanOrEqual(0);
-    const auto = doc.modifiers[i].auto as Record<string, unknown>;
-    const { max: _absente, ...ampute } = auto;
-    const modifiers = doc.modifiers.map((m, j) => (j === i ? { ...m, auto: ampute } : m));
+    const modifiers = doc.modifiers.map((m, j) => {
+      if (j !== i || m.auto === undefined || !('max' in m.auto)) return m;
+      const { max: _absente, ...ampute } = m.auto;
+      return { ...m, auto: ampute };
+    });
     expect(
       validateDataset('water-exposure.json', { ...doc, modifiers }),
       'un prédicat `between` sans borne haute est accepté',

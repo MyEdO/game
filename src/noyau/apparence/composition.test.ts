@@ -4,8 +4,27 @@
  * et la seule validation d'une composition. Les attendus se lisent au catalogue et au schéma, jamais recopiés.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { cataloguesDeComposition, compositionDuPreset, lireComposition, porteeDeComposition, presetDeComposition, type Axe, type Composition } from './composition';
-import { findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTrappingById, findVarianteById, gardeRobe, piecesDeLObjet, presetsDePersonnage, trappingsInstanciables, type PresetDePersonnage } from '../../data';
+import {
+  cataloguesDeComposition,
+  compositionDuPreset,
+  lireComposition,
+  porteeDeComposition,
+  presetDeComposition,
+  type Axe,
+  type Composition,
+} from './composition';
+import {
+  findEnsembleParHabille,
+  findPieceById,
+  findPresetDePersonnageById,
+  findTrappingById,
+  findVarianteById,
+  gardeRobe,
+  piecesDeLObjet,
+  presetsDePersonnage,
+  trappingsInstanciables,
+  type PresetDePersonnage,
+} from '../../data';
 import { resetData, setDataset } from '../../data/overrides';
 import { CLES_ENVELOPPE } from '../../data/schemas/grammaire/document';
 import { file as FICHIER_DES_PRESETS, meta as metaDesPresets } from '../../data/schemas/defs/presets-de-personnage';

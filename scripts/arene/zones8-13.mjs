@@ -1,5 +1,19 @@
 /** Zones 8-13 de l'échelle — le haut du tableau : Fosse, Caverne, Vermine, Cercle, Sépulcre, Dragon. */
-import { scene, P, NPC, hero, resetIds, fouille, fightTrigger, zoneVictory, DRAGON_DES_TENEBRES, DRAGON_DES_TENEBRES_APPEARANCE, flowOf, flagWhen, testNode } from '../campagne/lib.mjs';
+import {
+  scene,
+  P,
+  NPC,
+  hero,
+  resetIds,
+  fouille,
+  fightTrigger,
+  zoneVictory,
+  DRAGON_DES_TENEBRES,
+  DRAGON_DES_TENEBRES_APPEARANCE,
+  flowOf,
+  flagWhen,
+  testNode,
+} from '../campagne/lib.mjs';
 
 // ── Zone 8 — La Fosse (30×20, roche) : gouffres, harde du Chaos, gladiateur ALLIÉ ───────────
 
@@ -579,7 +593,7 @@ export function makeZone13() {
           ],
           [
             { type: 'journal', desc: 'UNE PIÈCE TINTE. L’œil du dragon s’ouvre — d’or en fusion.' },
-            { type: 'startCombat', encounter: 'enc-zone13' },
+            { type: 'startCombat', encounter: { id: 'enc-zone13' } },
           ],
         ), true),
       }),

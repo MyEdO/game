@@ -4,7 +4,7 @@
 ## `tactique` et `plateau`, aux touches d'un jeu de rôle tactique (A/E d'un quart de tour, bouton du milieu tenu
 ## librement, molette pour zoomer, ZQSD pour la faire glisser, Origine pour revenir au lieu suivi), centrée sur lui puis
 ## sur le lieu qu'elle suit (`suivre`) ou qu'on lui pose (`cadrer`), posé au centre de la part de la fenêtre que
-## l'interface laisse au monde (`cadre`), de biais en tactique, à la verticale et sans perspective au plateau ; et l'œil
+## l'ossature de l'interface laisse à la scène (`cadre`), de biais en tactique, à la verticale et sans perspective au plateau ; et l'œil
 ## du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`).
 ## Le clavier ne mène rien pendant une saisie (`clavier_libre`), ni d'une touche qu'une fenêtre incrustée a prise
 ## (`forces_du_clavier`). Il rend la caméra posée (`camera`), le lieu qu'elle suit (`lieu_suivi`), la case du triangle que le rayon du pointeur touche, hors
@@ -83,7 +83,8 @@ var _stations := {}
 ## Les cases (`Vector3i`, leur couche comprise) que qui instancie le monde montre jouables
 ## (`poser_les_cases_jouables`) : le rayon s'y arrête, même retirées.
 var _cases_jouables := {}
-## La part de la fenêtre où le monde se voit, que l'interface ne couvre pas ; vide, toute la fenêtre. Le lieu que
+## La part de la fenêtre que l'ossature de l'interface laisse à la scène, sur laquelle des panneaux se posent ; vide,
+## toute la fenêtre. Le lieu que
 ## regarde la caméra des regards `tactique` et `plateau` se pose en son centre (`_decaler`).
 var cadre := Rect2():
 	set(rect):

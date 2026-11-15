@@ -63,7 +63,7 @@ function freshState() {
     port: null,
     gameTime: 8 * 60,
     lastUpkeepDay: 0,
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, escale: 'A' },
     journal: [],
   } as never);
   creditBourse(get, set, get().party[0].id, { gold: 5000, silver: 0, brass: 0 }); // bourse du groupe (SOCLE POSSESSIONS #531)
@@ -297,7 +297,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     expect((vessel.cargo ?? []).length).toBe(1);
     expect(partyMoneyTotal(get).gold).toBeLessThanOrEqual(before);
     // Vente dans un autre port : on pose le navire à Marienburg (« commerce ») et on solde le lot.
-    set({ vessel: { ...get().vessel!, lastVoyageMilles: 550 }, port: null, lieu: 'B' });
+    set({ vessel: { ...get().vessel!, lastVoyageMilles: 550, escale: 'B' }, port: null, lieu: 'B' });
     get().ouvrirLePort();
     const cargoLen = (get().vessel!.cargo ?? []).length;
     get().fenetreChoisir('port', 'vendre', get().vessel!.cargo![0].uid);
@@ -338,7 +338,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
 
   it('le bradage de cargaison brade à ¼ du prix de base dans un port « commerce »', () => {
     seedBattleRng(2);
-    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-4', cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }] }, lieu: 'B' });
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-4', cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }], escale: 'B' }, lieu: 'B' });
     get().ouvrirLePort();
     const before = partyMoneyTotal(get).gold;
     get().fenetreChoisir('port', 'jeter', 'lot-4');
@@ -348,7 +348,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
 
   it('Gangs des quais : la perte en attente frappe le premier lot déchargé dans ce port, puis se lève (MDG 15 l.250)', () => {
     seedBattleRng(2);
-    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-4', cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }, { uid: 'lot-5', cargoId: 'bois-mer', enc: 10, basePriceGold: 2 }], perteAuDechargement: 30 }, lieu: 'B' });
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-4', cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }, { uid: 'lot-5', cargoId: 'bois-mer', enc: 10, basePriceGold: 2 }], perteAuDechargement: 30, escale: 'B' }, lieu: 'B' });
     get().ouvrirLePort();
     const before = partyMoneyTotal(get).gold;
     get().fenetreChoisir('port', 'jeter', 'lot-4');
@@ -373,7 +373,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
   it('le bradage de cargaison au port : deux lots du même bien, seul le lot désigné quitte la cale, à SON prix', () => {
     seedBattleRng(2);
     const garde = { uid: 'lot-a', cargoId: 'bois-mer', enc: 100, basePriceGold: 2 };
-    set({ vessel: { ...get().vessel!, cargo: [garde, { uid: 'lot-b', cargoId: 'bois-mer', enc: 100, basePriceGold: 6 }] }, lieu: 'B' });
+    set({ vessel: { ...get().vessel!, cargo: [garde, { uid: 'lot-b', cargoId: 'bois-mer', enc: 100, basePriceGold: 6 }], escale: 'B' }, lieu: 'B' });
     get().ouvrirLePort();
     const before = partyMoneyTotal(get).gold;
     get().fenetreChoisir('port', 'jeter', 'lot-b');

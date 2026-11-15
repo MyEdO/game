@@ -1,4 +1,15 @@
-import { BufferGeometry, Float32BufferAttribute, Matrix4, Skeleton, SkinnedMesh, Uint16BufferAttribute, Vector3, type Bone, type Mesh, type Object3D } from 'three';
+import {
+  BufferGeometry,
+  Float32BufferAttribute,
+  Matrix4,
+  Skeleton,
+  SkinnedMesh,
+  Uint16BufferAttribute,
+  Vector3,
+  type Bone,
+  type Mesh,
+  type Object3D,
+} from 'three';
 import { PREFIXE_DES_CLES_DU_GABARIT, type CandidatDAppui } from '../manifesteDeBase.ts';
 
 export function peauxDesCandidats(scene: Object3D, candidats: readonly CandidatDAppui[], source?: Skeleton) {

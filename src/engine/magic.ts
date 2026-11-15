@@ -36,7 +36,14 @@ import type { SpellDuration } from './spellDuration';
 import { type OvercastSource, effectiveRangeMetres, missileOvercastDamageBonus, overcastSourceOf, overcastBudget } from './overcast';
 import { arcaneDomainIdOf, castingKindOf, featuresOf, chaosDomainOf } from './combatFeatures/dispatch';
 import { isPrayerFamily } from './combatFeatures/types';
-import { domainMissileMods, domainSeaFocalisationDR, domainSeaFocalisationDoubled, domainSeaIncantationDR, domainSeaWidensCritFumble, domainWindDR } from './domainAttributes';
+import {
+  domainMissileMods,
+  domainSeaFocalisationDR,
+  domainSeaFocalisationDoubled,
+  domainSeaIncantationDR,
+  domainSeaWidensCritFumble,
+  domainWindDR,
+} from './domainAttributes';
 import type { WindContext } from './domainAttributes';
 import { environmentTestDR, environmentWidensCrit, environmentNIMods } from './magicEnvironment';
 import type { MagicEnvironment } from './magicEnvironment';
@@ -75,7 +82,6 @@ export interface SpellLike {
   domainId?: { id: string };
   cn: number | null;
   duration?: SpellDuration | null;
-  desc: string;
   /** Famille d'incantation STABLE (discriminant moteur, multilangue) — cf. SpellData.family. */
   family?: import('./combatFeatures/types').CastingKind;
   /** Projectile magique + Dégâts — DONNÉE (multilangue), cf. SpellData. Remplace les regex sur la desc. */

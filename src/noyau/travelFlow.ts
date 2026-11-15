@@ -376,7 +376,7 @@ export function devisDeTrajet(s: Jeu, route: MapRoute, fromId: string, mode: Tra
   const premierJour = travelDayBudget(mode, hours, prior);
   const plan = travelPlanCalc(route.km, kmh, hours, premierJour);
   const enRoute = s.party.filter((h) => !h.dead && !h.outOfRencontre);
-  const manifeste = provisioningManifest(enRoute, undefined, plan ? plan.days - 1 : 0);
+  const manifeste = provisioningManifest(enRoute, undefined, plan ? plan.days - 1 : 0, s.gameTime);
   const offre = passagePayant(() => s, route, mode) ? offreDePassage(map, route, mode, fromId, s.billetEnMain, s.marchandagesDeBillet) : undefined;
   const achat = offre && !offre.couvert ? offre : null;
   const classeId = achat ? classeRetenue(achat.tarif, opts.classeId ?? '') : '';

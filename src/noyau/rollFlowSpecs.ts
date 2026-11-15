@@ -11,7 +11,57 @@
  */
 import type { Jeu } from './etat';
 import type { IdDeRangee } from './designations';
-import type { IssueOpposee, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard, PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery, PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple, PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound, PendingForceDoor, PendingEtalLot, EtalLotRow, ForceDoorParticipant, PendingCastOpposition, OppositionParticipant, PendingCascade, CascadeStep, CascadeRoll, BatchParticipant } from './pendings';
+import type {
+  IssueOpposee,
+  PendingBattement,
+  PendingDistraire,
+  PendingManeuver,
+  PendingRun,
+  PendingFall,
+  TombantParticipant,
+  PendingShipManeuver,
+  ShipManeuverParticipant,
+  PendingShipBattery,
+  ShipBatteryParticipant,
+  PendingShanty,
+  PendingFocus,
+  PendingDispel,
+  PendingFrenzy,
+  PendingApproach,
+  PendingWard,
+  PendingReload,
+  PendingStateRecovery,
+  PendingTest,
+  PendingSteamSave,
+  PendingAppraise,
+  PendingBargain,
+  PendingHeal,
+  PendingSurgery,
+  PendingCorruption,
+  PendingAttack,
+  PendingHandGate,
+  PendingDefense,
+  PendingCast,
+  PendingDisengage,
+  FleeSlot,
+  FleeBackstabSlot,
+  PendingAuContact,
+  PendingGrapple,
+  PendingCounterspell,
+  CounterParticipant,
+  PendingExtendedTest,
+  ExtendedTestRound,
+  PendingForceDoor,
+  PendingEtalLot,
+  EtalLotRow,
+  ForceDoorParticipant,
+  PendingCastOpposition,
+  OppositionParticipant,
+  PendingCascade,
+  CascadeStep,
+  CascadeRoll,
+  BatchParticipant,
+} from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } from './interludeFlow';
 import type { Combatant, ReverseQuery, Weapon } from '../engine/types';
@@ -22,8 +72,27 @@ import { HEAL_SKILL, IDS_DU_TEST_DE_SOIN, type TestDeSoin } from '../engine/heal
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, fluxAccepte, rangeeFacultative, viseUneRangee, type FlowKey, type FluxDuVerbe, type RollVerb } from './flowVerbs';
 import { refuserGeste } from './refusVisible';
-import { deDuJet, FERMETURES_DITES, makeRollFlow, type FermetureDuJet, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
-import { declarationDuReglage, declarationDuReglageNomme, fermetureDeLaPhase, type CorpsDesReglages, type DeclarationDuReglage, type FluxRegle, type ReglageDuJet, type VerbeDeReglage } from './reglagesDuJet';
+import {
+  deDuJet,
+  FERMETURES_DITES,
+  makeRollFlow,
+  type FermetureDuJet,
+  type ForcedPick,
+  type RollFlowSpec,
+  type RollFlowHandlers,
+  type RollFlowLens,
+  type PendingBase,
+} from './rollFlowFactory';
+import {
+  declarationDuReglage,
+  declarationDuReglageNomme,
+  fermetureDeLaPhase,
+  type CorpsDesReglages,
+  type DeclarationDuReglage,
+  type FluxRegle,
+  type ReglageDuJet,
+  type VerbeDeReglage,
+} from './reglagesDuJet';
 import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
@@ -36,28 +105,106 @@ import {
   lancerLAttaque, lancerLIncantation, renoncerALIncantation, laisserPasserLeContreSort,
   resolveAttack, attackWeaponOf, firedWeapon, effectiveSpellOf, disengageOutcome, castContextMods, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor, clearApproachMoves, overcastReset, withPreRollFixedDie,
 } from './combatFlow';
-import { bestDefenseMode, rollManeuverAttacker, maneuverAttackerDifficulty, ligneDAttaquantDeManoeuvre, distraireAttackValue, distraireAttackBase } from './combatManeuvers';
+import {
+  bestDefenseMode,
+  rollManeuverAttacker,
+  maneuverAttackerDifficulty,
+  ligneDAttaquantDeManoeuvre,
+  distraireAttackValue,
+  distraireAttackBase,
+} from './combatManeuvers';
 import { bus, EVT } from './bus';
 import { campRestitue, campSpend } from './combat/advantagePool';
 import { attaqueDeCle } from '../engine/creatureAttacks';
 import { mouvementDeCourse, chargeDmgProxy, defenseDodgeMods } from './mount';
 import { sceneMetresPerTile, type Scene } from './monde/scene';
 import { metresRetenus, phaseDeChute, rangeesDuesDeChute, refusDesDeclarationsDues, tombantsNommes } from './fallMove';
-import { REDERIVATIONS, attackTestOf, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
-import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, cibleBrute, cibleDuTest, cibleMesuree, jetPose, type JetPose, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
+import {
+  REDERIVATIONS,
+  attackTestOf,
+  rederivePassiveAttack,
+  resolveBackstabAttack,
+  backstabWeapon,
+  finishMelee,
+  finishRanged,
+  rollMeleeDefender,
+  defaultParryWeapon,
+  rollDisengageAttack,
+  rollGrappleForce,
+  frozenDifficulty,
+  type AttackResult,
+  type DefenseSub,
+} from '../engine/combat';
+import {
+  rollTest,
+  resolveOpposed,
+  opposedBranchSuccess,
+  bumpSL,
+  type TestResult,
+  evaluateTest,
+  evaluateCombinedTest,
+  bestForcedRoll,
+  forcedTR,
+  hydrateTR,
+  cibleBrute,
+  cibleDuTest,
+  cibleMesuree,
+  jetPose,
+  type JetPose,
+  estJete,
+  refusSansJet,
+  type EchecSansJet,
+} from '../engine/tests';
 import type { Difficulty } from '../engine/types';
 import { d100 } from '../engine/dice';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
-import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, toutResoudre, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady, sortirDeLHote } from './cascade';
+import {
+  deDEtape,
+  maladresseCourante,
+  poserLeDeDEtape,
+  refusDuDeDEtape,
+  refusHorsDeLEtapeCourante,
+  tirerLeDeDEtape,
+  refusDuJetDEtape,
+  toutResoudre,
+  rollBatchParticipant,
+  forceBatchParticipant,
+  evaluerRangeeBatch,
+  opposedCascadeRoll,
+  stepOpposedFreeze,
+  lireDeEtape,
+  roulerDeEtape,
+  stepInteraction,
+  stepReady,
+  sortirDeLHote,
+} from './cascade';
 import { rollLine, type RollLineParts } from './ligneDeJet';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
 import { activityModLines } from '../engine/activities';
 import { testValue, effectiveSkillCharKey, skillBaseValue } from '../engine/skills';
 import { skillDRBonus, charDRBonusOf, offTerrainTestDR } from '../engine/ops';
-import { resolveFocus, resolveMagicMissile, resolveCasting, rederiveCastSL, castTestDRMods, talentTestSLBonus, resolveCounterspell, counterspellOutcomeFrom, withCastTestDRMods, castTestOf, castTestTarget, castInfoIsPrayer, counterspellValue, malepierreDR, malepierreReserveOf, castingNumberOf, type CastResult } from '../engine/magic';
+import {
+  resolveFocus,
+  resolveMagicMissile,
+  resolveCasting,
+  rederiveCastSL,
+  castTestDRMods,
+  talentTestSLBonus,
+  resolveCounterspell,
+  counterspellOutcomeFrom,
+  withCastTestDRMods,
+  castTestOf,
+  castTestTarget,
+  castInfoIsPrayer,
+  counterspellValue,
+  malepierreDR,
+  malepierreReserveOf,
+  castingNumberOf,
+  type CastResult,
+} from '../engine/magic';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { rule } from '../engine/policy';
 import { t } from '../i18n';

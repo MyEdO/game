@@ -13,7 +13,7 @@ const FIGE := "res://recettes/vues/repos.json"
 const BASE := "humanoide"
 const HALLEBARDE := "humanoide--rigide--hallebarde"
 ## Un gabarit qui abaisse le haut de la tête de la base (`gabarit` de `composer`).
-const GABARIT := {racine = {os = "root", echelle = 0.74}, enfantsDe = {thigh_l = 0.62, calf_l = 0.62, thigh_r = 0.62, calf_r = 0.62}, pieds = ["foot_l", "foot_r"], jambes = ["thigh_l", "calf_l", "thigh_r", "calf_r"], clipsPlantes = []}
+const GABARIT := {racine = {os = "root", echelle = 0.74}, enfantsDe = {thigh_l = 0.62, calf_l = 0.62, thigh_r = 0.62, calf_r = 0.62}, pieds = ["foot_l", "foot_r"], jambes = ["thigh_l", "calf_l", "thigh_r", "calf_r"], clipsPlantes = [], deplacementsDesOs = {}}
 const CORPS := {base = BASE, gabarit = GABARIT, montes = [{ligne = "main", element = HALLEBARDE}]}
 ## Le corps porté avant `CORPS` dans la seconde histoire.
 const AVANT := {base = BASE}

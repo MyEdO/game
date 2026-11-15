@@ -14,19 +14,36 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
  * (transition/dialogue/combat…) et sur `conditionSchema` : aucune structure n'est recopiée.
  */
 import { z } from 'zod';
-import { validerApparenceDonnee } from '../grammaire/valeurs';
+import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from '../grammaire/valeurs';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
-import { cell2Schema, chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
+import {
+  cell2Schema,
+  chaosAlignSchema,
+  enumNomme,
+  exposureLevelSchema,
+  hitLocationSchema,
+  moneyPartialSchema,
+  natureDInfluenceSchema,
+} from '../grammaire/valeurs';
 import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, refuserLeVivreDuNavire } from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
 import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
-import { customStatblockSchema, DIALOGUES_DE_LA_SCENE, MARCHANDS_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, ptSchema, SCENES_DU_PROJET, wallSideSchema } from './communs';
+import {
+  customStatblockSchema,
+  DIALOGUES_DE_LA_SCENE,
+  MARCHANDS_DE_LA_SCENE,
+  PERSONNAGES_DE_LA_SCENE,
+  ptSchema,
+  RENCONTRES_DE_LA_SCENE,
+  SCENES_DU_PROJET,
+  wallSideSchema,
+} from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
-import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest, TriggeredEffect as CoreTriggeredEffect } from '../../../engine/flowCore';
+import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
 import { dataLabel } from '../../index';
 import type { PlayerText } from '../../../i18n/playerText';
@@ -134,13 +151,13 @@ export const clearObjectiveSchema = nommerChamps(z.strictObject({ type: z.litera
 
 /** Objet donné par `giveTrapping` : feuille OUVERTE de `INSTANCIABLE_PAR_ID`, FORME DE SORTIE déclarée
  *  nue (patron `sortSchema`) — `Effect` est un `z.infer` écrit par l'éditeur et par la console. */
-const objetDonneSchema: z.ZodType<string, string> = idDe('trapping', INSTANCIABLE_PAR_ID, { ouverte: true });
+const objetDonneSchema: z.ZodType<string, string> = idDe('trapping', INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET });
 
 /** Donne un objet à un héros (défaut : le premier). `trappingId` = objet à stats de la campagne
  *  (`narratif.objets`) ou du catalogue, feuille OUVERTE de `INSTANCIABLE_PAR_ID` ; `custom` = objet HORS-base (nom libre — trinket/quête/pièces de monstre) sans
  *  stats. L'objet arrive NON équipé. Champs MAGIQUES optionnels (butin/quête) : `qualities` AJOUTÉES
  *  (Atout/Défaut), `identified:false` = qualités masquées jusqu'à Évaluation (#2), `teinte` = recoloration. */
-export const giveTrappingSchema = nommerChamps(z.strictObject({
+export const giveTrappingSchema = nommerChamps(avecApparenceDObjetDonne(z.strictObject({
   type: z.literal('giveTrapping'),
   trappingId: objetDonneSchema.optional(),
   custom: z.string().optional(),
@@ -158,7 +175,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
   appraiseTriedDay: z.number().optional(),
   /** Valeur de marché propre posée sur l'instance (ex. pièces de monstre récoltées, `ZI`). */
   price: moneyPartialSchema.optional(),
-}).superRefine(validerApparenceDonnee), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTriedBy: { label: "détection tentée par", texte: { regime: "technique"} }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
+})), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTriedBy: { label: "détection tentée par", texte: { regime: "technique"} }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
 
 /** Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre
  *  `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que
@@ -184,7 +201,7 @@ export const giveMoneySchema = nommerChamps(z.strictObject({
  *  authore ses propres octrois via cette action, à tout point narratif (victoire, objectif, dialogue…). */
 export const giveXpSchema = nommerChamps(z.strictObject({ type: z.literal('giveXp'), amount: z.number() }), { type: { label: "type"  }, amount: { label: "quantité" } });
 
-export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('startCombat'), encounter: z.string() }), { type: { label: "type"  }, encounter: { label: "rencontre" , texte: { regime: "technique"} } });
+export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('startCombat'), encounter: ref(RENCONTRES_DE_LA_SCENE) }), { type: { label: "type"  }, encounter: { label: "rencontre" , texte: { regime: "technique"} } });
 
 /** Combat de masse / Puissance de Bataille : ouvre l'écran de bataille sur le
  *  `MassBattleSpec` AUTHORÉ (armées, Rounds prévus, situations de Scènes par Round, rencontres des
@@ -482,7 +499,7 @@ export const startPursuitSchema = nommerChamps(z.strictObject({
   escapeAt: z.number().optional(),
   skill: refOuSpec('skill'),
   foes: listeCle(pursuitFoeSchema, 'id'),
-  encounter: z.string().optional(),
+  encounter: ref(RENCONTRES_DE_LA_SCENE).optional(),
   policy: pursuitPolicySchema.optional(),
 }), { type: { label: "type"  }, partyRole: { label: "rôle du groupe"  }, distance: { label: "distance" }, escapeAt: { label: "distance de fuite" }, skill: { label: "Compétence" }, foes: { label: "adversaires" }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, policy: { label: "décisions de poursuite" } });
 
@@ -571,10 +588,6 @@ export type PetitePriere = { type: 'petitePriere'; heroId?: string; reward: Flow
 /** Flow de SCÈNE/campagne : la feuille `do` porte l'union `Effect` COMPLÈTE. Spécialise le `Flow<E>`
  *  générique de `engine/flowCore`. */
 export type Flow = CoreFlow<Effect>;
-
-/** Effet DÉCLENCHÉ de scène : son `flow` peut porter tout `Effect` (≠ `EffectOp`, défaut du noyau).
- *  Spécialise le `TriggeredEffect<E>` générique de `engine/flowCore`. */
-export type TriggeredEffect = CoreTriggeredEffect<Effect>;
 
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 

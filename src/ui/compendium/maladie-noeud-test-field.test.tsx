@@ -20,23 +20,21 @@ import { createRoot, type Root } from 'react-dom/client';
 
 import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray, setDataset } from '../../data/overrides';
-import type { FlowTestNode } from '../../engine/flowCore';
+import { findSymptomById } from '../../data';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-type Symptome = { id: string; label: string; onTick?: { test?: FlowTestNode; ops?: unknown[] } };
-
 let container: HTMLDivElement;
 let root: Root;
 /** Le dataset est muté EN PLACE par le save (preview mémoire) — on le repose à l'identique. */
-let avant: unknown[];
+let avant = structuredClone(datasetArray('symptoms'));
 
 afterEach(() => {
   act(() => { root.unmount(); });
   container.remove();
-  setDataset('symptoms', avant as never);
+  setDataset('symptoms', avant);
 });
 
 /** Change la valeur d'un `<select>` contrôlé React (setter natif + événement `change`). */
@@ -48,20 +46,24 @@ function choisir(select: HTMLSelectElement, valeur: string) {
   });
 }
 
-const symptome = (id: string) => (datasetArray('symptoms') as unknown as Symptome[]).find((e) => e.id === id)!;
+/** Le nœud `test` du cycle du symptôme `id` ; son absence fait échouer le test. */
+const noeudDuCycle = (id: string) => {
+  const noeud = findSymptomById(id)?.onTick?.test;
+  if (noeud?.kind !== 'test') throw new Error(`le symptôme « ${id} » ne porte pas de nœud \`test\` à son cycle`);
+  return noeud;
+};
 
 describe('atelier du Codex — le cycle d’un symptôme porte un nœud `test`, et n’offre que la branche servie', () => {
   it('changer la Difficulté puis Enregistrer : aucun refus de schéma, le nœud garde sa forme', async () => {
-    avant = structuredClone(datasetArray('symptoms') as unknown[]);
-    const cible = symptome('blesse');
-    expect(cible.onTick?.test?.kind, 'le symptôme mesuré ne porte pas de nœud `test`').toBe('test');
-    expect(cible.onTick!.test!.test.difficulty, 'difficulté de départ (LDB 20)').toBe('accessible');
+    avant = structuredClone(datasetArray('symptoms'));
+    const cible = noeudDuCycle('blesse');
+    expect(cible.test.difficulty, 'difficulté de départ (LDB 20)').toBe('accessible');
 
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
     act(() => {
-      root.render(<CodexEdit categoryKey="symptoms" id={cible.id} onClose={() => {}} />);
+      root.render(<CodexEdit categoryKey="symptoms" id="blesse" onClose={() => {}} />);
     });
 
     // UNE seule branche rendue : celle de l'ÉCHEC (le canal `maladie-test-quotidien` n'applique que celle-là).
@@ -82,11 +84,10 @@ describe('atelier du Codex — le cycle d’un symptôme porte un nœud `test`, 
       'le save a été REFUSÉ par le schéma — le champ ne rend pas la forme que `noeudTest` lit',
     ).toBe('');
 
-    const apres = symptome('blesse');
-    expect(apres.onTick!.test!.kind, 'le nœud a perdu son `kind` (racine `FlowEditor` rebranchée ?)').toBe('test');
-    expect(apres.onTick!.test!.test.difficulty, 'la Difficulté choisie n’est pas descendue dans le nœud').toBe('difficile');
-    expect(apres.onTick!.test!.reussite, 'la branche RÉUSSITE a été perdue').toEqual({ kind: 'sequence', etapes: [] });
-    expect(apres.onTick!.test!.echec, 'la branche ÉCHEC a été perdue').toEqual(cible.onTick!.test!.echec);
-    expect(apres.onTick!.ops, 'le cycle a basculé en effet certain').toBeUndefined();
+    expect(findSymptomById('blesse')?.onTick?.ops, 'le cycle a basculé en effet certain').toBeUndefined();
+    const apres = noeudDuCycle('blesse');
+    expect(apres.test.difficulty, 'la Difficulté choisie n’est pas descendue dans le nœud').toBe('difficile');
+    expect(apres.reussite, 'la branche RÉUSSITE a été perdue').toEqual({ kind: 'sequence', etapes: [] });
+    expect(apres.echec, 'la branche ÉCHEC a été perdue').toEqual(cible.echec);
   });
 });

@@ -24,7 +24,7 @@ import {
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, groupLabel, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
   charAbr, navalPorts, shipConstruction, effectTables, disponibilite, massBattleHazardsDie,
-  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel,
+  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel, TAVERN_GAMES,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
@@ -55,7 +55,6 @@ import { windsOfMagicTable } from '../../engine/windsOfMagic';
 import { miscastDie } from '../../engine/miscast';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, mountIncidentDie, vehicleProblemDie, encounterDie } from '../../engine/travelTables';
 import type { TravelTableEntry } from '../../engine/travelTables';
-import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { OBSESSIONS, obsessionsDie } from '../../data/obsessions';
 import { tableDesCritiquesDeStructure } from '../../engine/structureCritical';
 import { bandeAuDe, deDeLaTableTiree, facesDuDe, fourchette, type DeDeTable, type PorteurDeDe } from '../../engine/tables';
@@ -79,21 +78,20 @@ import { findCargoEntryById, isEchangeable } from '../../engine/cargo';
 import type { SeaEventDef, ManannFactor } from '../../engine/seaVoyage';
 import { RIVER_PERILS } from '../../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../../engine/crewMorale';
-import { STEAM_BREAKDOWNS, steamBreakdownDie } from '../../engine/shipBuild';
 import { oupsDie } from '../../data/oups';
 import { interludeEventDie } from '../../data/interludeEvents';
 import { peripetieDie } from '../../data/peripeties';
 import { traumaLabelOf } from '../../engine/trauma';
-import { spellOps, type Flow, type FlowTestNode } from '../../engine/flowCore';
+import { spellOps, type Flow, type FlowTest, type FlowTestNode } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp } from '../../engine/ops';
 import { noeudAmputation } from '../../engine/critical';
 import { CRIT_TABLE_LOCATION, critiqueDie, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type CrewTarget, type ShipCritEntry, type ShipCritSet } from '../../data/shipCriticals';
 import { datasetArray, datasetObject } from '../../data/overrides';
 import type { CritTableEntry, MiscastRowEntry } from '../../data/overrides';
-import type { RuleValue } from '../../engine/policy';
+import { rule, type RuleValue } from '../../engine/policy';
 import SURINCANTATION from '../../data/surincantation.json';
-import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTable, PhenomenonTestMod, PhenomenonScope } from '../../data/arcanePhenomena';
+import type { ArcanePhenomenon, ArcaneTable, PhenomenonTestMod, PhenomenonScope } from '../../data/arcanePhenomena';
 import type { CastingNumberMod, CastingNumberScope } from '../../engine/castingNumber';
 import { effectiveEntry } from '../../engine/variants';
 import { isOptionalNote, type TraitList } from '../../engine/statEntry';
@@ -103,14 +101,25 @@ import { damageString } from '../../engine/items';
 import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../../engine/weaponStats';
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { talentMaxLabel } from '../../engine/careerSlots';
-import type { AdvancementRef, TrappingRef, WaterExposureModifier, SpellData } from '../../data';
+import { STEAM_BREAKDOWNS, steamBreakdownDie, type AdvancementRef, type TrappingRef, type WaterExposureModifier, type SpellData } from '../../data';
 import { POWER_ESTIMATE, MIGHT_MODIFIERS, WAR_MACHINES, STRUCTURES as MASS_BATTLE_STRUCTURES, BATTLE_HAZARDS } from '../../engine/massBattle';
 import { AVAILABILITIES } from '../../engine/types';
-import { ACTIVITIES, testsDeLActivite } from '../../engine/activities';
+import { testsDeLActivite } from '../../engine/activities';
+import { ACTIVITIES } from '../../data';
 import type { OutcomeBand } from '../../engine/activities';
 import { traitArgSkeleton, traitLisible } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
-import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
+import {
+  CHAR_KEYS,
+  CHAR_LABELS,
+  HIT_LOCATION_LABELS,
+  DIFFICULTY_LABELS,
+  LOCALISATIONS_DE_COUP,
+  type Combatant,
+  type CharKey,
+  type HitLocation,
+  type Difficulty,
+} from '../../engine/types';
 import type { ResolveurDePreset } from '../monde/resolveursDuNarratif';
 import type { Porteur, PorteurDeRangee } from './porteur';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
@@ -337,7 +346,7 @@ const priceLabel = (p: Money | 'ND' | null | undefined): string | null => {
  *  (Bélier `ram` / Siège `siege`, #135) — jamais un total qui suggère un dégât inconditionnel quand la
  *  donnée dit le contraire. `conditionalDamageNote` = SOURCE UNIQUE (`weaponStats.ts`), la MÊME que
  *  `weaponStatParts` pour les armes EN MAIN (Sac/popover/fiche personnage). */
-const damageFact = (t: { damage: import('../../engine/types').WeaponDamageSpec | null; qualities: { id: string; value?: number }[]; onHitEffects?: import('../../engine/flowCore').TriggeredEffect[] }): string | undefined =>
+const damageFact = (t: { damage?: import('../../engine/types').WeaponDamageSpec | null; qualities: { id: string; value?: number }[]; onHitEffects?: import('../../engine/flowCore').TriggeredEffect[] }): string | undefined =>
   join(t.damage ? damageString(t.damage) : null, conditionalDamageNote(t));
 
 /** Nom d'auteur d'un décor de `props.json` (le catalogue n'a pas de catégorie Codex et aucun écran ne
@@ -627,7 +636,7 @@ const traitItem = (t0: (typeof traits)[number]): CodexItem => {
       cap?.psychIndice != null ? fact(tr('codex.fiche.indice'), cap.psychIndice) : null,
     ),
     sections: sections(
-      chips(tr('codex.fiche.manoeuvresConferees'), (t.grantsManeuvers ?? []).map((r) => idRefRow('maneuvers', r.id, r.spec))),
+      chips(tr('codex.fiche.manoeuvresConferees'), (t.grantsManeuvers ?? []).map((r) => idRefRow('maneuvers', r.id))),
       passiveSection(t.passive), effectsSection(t.effects, ETATS_DU_CODEX),
       ...reverseSections('traits', t.id), // Créatures ayant ce trait · Mutations le conférant
     ),
@@ -741,7 +750,7 @@ function libelleDeJet(n: FlowTestNode): string {
  *  (`noeudAmputation`) — jamais re-décrits ici : la vue et le jeu ne peuvent pas diverger. */
 function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKey): CodexItem {
   const jet = e.test;
-  const amputation = noeudAmputation(e, jeu, CRIT_TABLE_LOCATION[table]);
+  const amputation = e.amputation && noeudAmputation(e, e.amputation, jeu, CRIT_TABLE_LOCATION[table]);
   const jetsAmp = noeudsDeTest(amputation);
   return depuisEnveloppe(e, {
     sub: bandeAuDe(critiqueDie(jeu, table), e.min, e.max),
@@ -795,7 +804,7 @@ function crewTargetLabel(cible: CrewTarget): string {
  *  vocabulaire que les autres Critiques (`critEntryItem`). */
 function shipCritEntryItem(e: ShipCritEntry, jeu: ShipCritSet): CodexItem {
   const ch = e.crewHit;
-  const jet = ch?.test?.test;
+  const jet: FlowTest | undefined = ch?.test?.test;
   const sujet = jet && (testSkillLabel(jet) ?? '');
   return depuisEnveloppe(e, {
     sub: jeu.die ? bandeAuDe(jeu.die, e.min, e.max) : undefined,
@@ -1141,10 +1150,7 @@ const CODEX_SPECS = {
   arcanePhenomena: {
     label: 'codex.fiche.magieEnvironnementale', group: 'magie', sourceRef: 'VDM 14',
     build: () => {
-      const d = datasetObject('arcanePhenomena') as {
-        saturationLevels: SaturationLevel[]; windSaturationEffects: WindSaturationEffects[];
-        phenomena: ArcanePhenomenon[]; tables: ArcaneTable[];
-      };
+      const d = datasetObject('arcanePhenomena');
       return [
         ...[...d.saturationLevels].sort((a, b) => a.order - b.order).map((l) => depuisEnveloppe(l, {
           group: tr('codex.fiche.paliersDeSaturation'),
@@ -1343,7 +1349,7 @@ const CODEX_SPECS = {
             rows: [
               { t: 'kv', k: tr('codex.fiche.horsDeControle'), v: tr('codex.fiche.navigation', { navPenalty: n.horsDeControle.navPenalty }) } as CodexRow,
               { t: 'kv', k: tr('codex.fiche.sEchouer'), v: tr('codex.fiche.degatsDeCoque', { hullDamage: n.echouage.hullDamage }) } as CodexRow,
-              { t: 'kv', k: tr('codex.fiche.reparationTemporaire'), v: tr('codex.fiche.charpentierBlessures', { v: DIFFICULTY_LABELS[n.temporaryRepair.difficulty], charpentierPenalty: n.temporaryRepair.charpentierPenalty, v2: formatDice(n.temporaryRepair.woundsPerRepair.dice) }) } as CodexRow,
+              { t: 'kv', k: tr('codex.fiche.reparationTemporaire'), v: tr('codex.fiche.difficulteBlessures', { v: DIFFICULTY_LABELS[rule('fleuve-reparation-temporaire-reparation-difficulte') as Difficulty], v2: formatDice(n.temporaryRepair.woundsPerRepair.dice) }) } as CodexRow,
             ],
           },
         ),

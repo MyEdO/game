@@ -11,7 +11,19 @@ import { empreinteDuProp } from '../../data/props.types';
 import { parLibelle } from '../../lib/ordre.mjs';
 import { PARTS_RELIEF } from '../../data/materials.types';
 import { roofProfileSchema, eaveSideSchema } from '../../data/schemas/defs-scenes/scene';
-import { addArchitectureBody, addBuildingMass, addLayer, fillTerrainRect, paintCrenellated, paintHeight, patchBuildingMass, patchWall, placeEntity, setEdgeWall, setReliefDefault } from '../sceneEdit';
+import {
+  addArchitectureBody,
+  addBuildingMass,
+  addLayer,
+  fillTerrainRect,
+  paintCrenellated,
+  paintHeight,
+  patchBuildingMass,
+  patchWall,
+  placeEntity,
+  setEdgeWall,
+  setReliefDefault,
+} from '../sceneEdit';
 import { emptyScene, setStructureDown, type Scene, type WallSeg, type WallSide } from './scene';
 import { METRES_PER_LEVEL, STEP_MAX_M } from './relief';
 import { estAbsent, terrainBuilt, terrainSolidHeightM } from './terrain';

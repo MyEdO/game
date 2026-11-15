@@ -22,7 +22,7 @@ def mesures_croisees(variante='original'):
     deltas = {nom: np.array(d, dtype=np.float32) for nom, d in entree['deltas'].items()}
     matrices = np.array(entree['matrices'], dtype=np.float32)
     aretes = np.array(entree['aretes'], dtype=int)
-    groupes = etats_ponderes(x, deltas, [({'etats': [entree['etat']], 'cellulesSilhouettes': []}, matrices, (2,))])
+    groupes = etats_ponderes(x, deltas, [({'etats': [entree['etat']], 'cellulesSilhouettes': []}, [matrices], (2,))])
     traces = []
     bas, haut = extremes(w, aretes, groupes, traces)
     entree['reposPython'] = float(traces[0].rapports_repos[0, 0])

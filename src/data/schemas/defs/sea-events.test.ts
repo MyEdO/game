@@ -2,15 +2,13 @@
  *  Événements d’escale (l.129, l.243), patron `structureCriticals.test.ts`. */
 import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
-import seaEventsJson from '../../sea-events.json';
+import { seaEvents } from '../../index';
 
-type Bande = { id: string; min: number | null; max: number | null };
-type Table = { die: string; entries: Bande[] };
-const clone = () => structuredClone(seaEventsJson) as unknown as { boardEvents: Table; fastVoyage: Table; portEvents: Table };
+const clone = () => structuredClone(seaEvents);
 
 describe('sea-events.json — les tables ouvertes couvrent leur jet d’un seul tenant', () => {
   it('le schéma accepte le document RÉEL', () => {
-    expect(validateDataset('sea-events.json', seaEventsJson)).toBeNull();
+    expect(validateDataset('sea-events.json', seaEvents)).toBeNull();
   });
 
   it('REFUSE un Événement de bord du milieu sans plafond', () => {

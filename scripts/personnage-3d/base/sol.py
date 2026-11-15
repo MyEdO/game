@@ -27,16 +27,23 @@ avant correction (`restaurer`, `couper`), et les corrections se reposent à tous
 pour se couper arrête la construction. Un clip dont le pelvis source passe sous le sol n'a pas de sol à
 tenir : il se retire de la base (`retirer_sans_sol`).
 
-Silhouettes (décision 6 du design de #3101). Le sommet le plus bas, de la montée du pelvis aux revérifications, se prend
-au pire coin des shape keys des peaux (`bas`), quels que soient leurs noms. Le jeu pose une shape key de poids c_k dans
-[0, 1] en ajoutant c_k d_k au repos du sommet, d_k son déplacement de la clé de référence à la clé (`deplacements`) ; en
-skinning linéaire, sa hauteur déformée vaut z_0 + Σ_k c_k (M d_k)_z, M la matrice de peau mélangée du sommet, affine en
-chaque c_k. Son minimum sur [0, 1]^K vaut z_0 + Σ_k min(0, (M d_k)_z) : chaque clé prend, pour ce sommet et cet instant,
-le poids 0 ou 1 qui l'abaisse. Le plus bas des sommets à ce coin propre est le plus bas du corps sur toutes les
-combinaisons, car le minimum sur les sommets et le minimum sur les combinaisons commutent. Un sommet déplacé par une clé
-reste un point rigide de ses os : la borne de flèche tient avec r_b mesuré au repos plus Σ_k |d_k| (`geometrie`). La
-plantation et l'IK des pieds se calculent sur le repos sans clé, qui vaut à toute silhouette parce qu'aucune clé ne
-déplace un sommet de pied (décision 4 du même design), ce que `garder_les_pieds` vérifie.
+Silhouettes (décision 6 du design de #3101, #4002). Le sommet le plus bas, de la montée du pelvis aux revérifications,
+se prend au pire coin des shape keys des peaux (`bas`), quels que soient leurs noms. Le jeu pose une shape key de poids
+c_k dans [0, 1] en ajoutant c_k d_k au repos du sommet, d_k son déplacement de la clé de référence à la clé
+(`deplacements`). Une clé portée, celle d'une silhouette à os (`portage.lire_os_des_silhouettes`), translate de plus
+chaque os b de c_k D_b, le déplacement monde de sa tête au repos (`portage.portages_des_silhouettes`), son bind compensé
+de c_k D_b : sa matrice de peau devient S_b(y − c_k D_b) + c_k ΔJ_b, ΔJ_b = ΔJ_p + R_p (D_b − D_p) pour le parent p, ΔJ
+d'une racine D_b, R la rotation de la matrice de peau. En skinning linéaire, la hauteur déformée d'un sommet vaut
+z_0 + Σ_k c_k ((M d_k)_z + Σ_b w_b e_b,z), M sa matrice de peau mélangée, w ses poids, e_b = ΔJ_b − R_b D_b
+(`ecarts_des_os`), nul au repos et pour une clé non portée : affine en chaque c_k. Son minimum sur [0, 1]^K vaut
+z_0 + Σ_k min(0, (M d_k)_z + w · e_k,z) : chaque clé prend, pour ce sommet et cet instant, le poids 0 ou 1 qui
+l'abaisse. Le plus bas des sommets à ce coin propre est le plus bas du corps sur toutes les combinaisons, car le minimum
+sur les sommets et le minimum sur les combinaisons commutent. Un sommet déplacé par une clé reste un point rigide de ses
+os : la borne de flèche tient avec r_b mesuré au repos plus, par clé, |d_k| ou, pour une clé portée,
+|d_k − D_b| + L_b, L_b = Σ |D_a − D_p(a)| sur la chaîne de la racine à b (`geometrie`). Une clé non portée ne déplace
+aucun sommet de pied ; une clé portée le porte rigidement de C = w · D (`portage.portage`) : `garder_les_pieds` le
+vérifie. La plantation et l'IK des pieds se calculent sur la surface du pied à la hauteur de son pire coin des clés
+portées, la plus basse de toutes les silhouettes.
 
 Borne de flèche. Sur un intervalle, paramétré par s dans [0, 1], three tourne chaque os j de sa rotation locale à vitesse
 angulaire constante, d'angle θ_j, et translate linéairement les positions animées. Dans la chaîne de la racine à l'os b,
@@ -68,6 +75,7 @@ from animation import assign_action
 from pas_des_poids import LOT
 from pistes import aller_a, sacs
 from poids import cadence, deformer, instants, peau_lineaire, poses, repos
+from portage import lire_os_des_silhouettes, portages_des_silhouettes
 from seuils import MAJORITE_DU_POIDS, SOL_TOLERANCE_M, TOLERANCE_ECHELLE, TOLERANCE_JUMEAUX_POSITION_M
 
 CLES_CONFONDUES = 1e-4
@@ -132,31 +140,85 @@ def empiler(peaux, noms):
     return numpy.vstack([x for x, _ in parts]), numpy.vstack([w for _, w in parts]), cles, d
 
 
-def bas(w, x, d, matrices):
+def rotations_de_peau(matrices):
+    """La rotation de chaque matrice de peau de `matrices` (…, 4, 4), normalisée comme dans `fleches` : (…, 3, 3)."""
+    return matrices[..., :3, :3] / numpy.linalg.norm(matrices[..., :3, :3], axis=-2, keepdims=True)
+
+
+def tetes_deplacees(matrices, parent, deplacements):
+    """Par échantillon de `matrices` de peau (échantillons, os, 4, 4) et par os b, ΔJ_b, le déplacement de sa tête posée
+    sous la silhouette à os de têtes déplacées `deplacements` (os, 3), repère monde au repos, `parent` l'indice du parent
+    de chaque os (-1 pour une racine) : ΔJ_b = ΔJ_p + R_p (D_b − D_p), ΔJ d'une racine D_b, R la rotation de la matrice
+    de peau (`rotations_de_peau`, docstring du module, #4002) : (échantillons, os, 3)."""
+    rotations = rotations_de_peau(matrices)
+    profondeurs = numpy.zeros(len(parent), dtype=int)
+    for b in range(len(parent)):
+        a = parent[b]
+        while a >= 0:
+            profondeurs[b] += 1
+            a = parent[a]
+    joints = numpy.zeros((len(matrices), len(parent), 3))
+    for b in numpy.argsort(profondeurs, kind='stable'):
+        p = parent[b]
+        joints[:, b] = deplacements[b] if p < 0 else joints[:, p] + rotations[:, p] @ (deplacements[b] - deplacements[p])
+    return joints
+
+
+def ecarts_des_os(matrices, parent, deplacements):
+    """Par échantillon de `matrices` de peau (échantillons, os, 4, 4) et par os b, la hauteur de e_b = ΔJ_b − R_b D_b
+    sous la silhouette à os de têtes déplacées `deplacements` (os, 3) (`tetes_deplacees`, `rotations_de_peau`) :
+    (échantillons, os)."""
+    return (tetes_deplacees(matrices, parent, deplacements)[:, :, 2]
+            - numpy.einsum('nbj,bj->nb', rotations_de_peau(matrices)[:, :, 2, :], deplacements))
+
+
+def ecarts_des_portees(matrices, parent, portees):
+    """Par indice de clé portée de `portees` (indice -> têtes déplacées (os, 3)), ses `ecarts_des_os` sous `matrices`."""
+    return {k: ecarts_des_os(matrices, parent, deplacements) for k, deplacements in portees.items()}
+
+
+def lignes_de_hauteur(w, matrices):
+    """Par lot de `LOT` échantillons de `matrices` de peau, son début et la ligne de hauteur des matrices mélangées des
+    sommets de poids `w` : (sommets, lot, 4)."""
+    for debut in range(0, len(matrices), LOT):
+        lot = matrices[debut:debut + LOT]
+        yield debut, (w @ lot[:, :, 2, :].transpose(1, 0, 2).reshape(lot.shape[1], -1)).reshape(len(w), len(lot), 4)
+
+
+def abaissement(ligne, w, d, ecarts, debut):
+    """Sur la `ligne` de hauteur d'un lot commençant à l'échantillon `debut` (`lignes_de_hauteur`), par échantillon et
+    par sommet de poids `w`, Σ_k min(0, (M d_k)_z + w · e_k,z) sur les shape keys `d`, e_k les `ecarts` de la clé portée
+    d'indice k (`ecarts_des_portees`), nul pour une autre clé (docstring du module) : (lot, sommets)."""
+    termes = numpy.einsum('sni,ksi->kns', ligne[:, :, :3], d)
+    for k, e in ecarts.items():
+        termes[k] += e[debut:debut + ligne.shape[1]] @ w.T
+    return numpy.minimum(0.0, termes).sum(axis=0)
+
+
+def bas(w, x, d, matrices, ecarts):
     """Par échantillon de `matrices` de peau, la hauteur du sommet le plus bas des sommets (`w`, `x`) au pire coin de
-    leurs shape keys `d` (`empiler`) : chaque sommet y prend, par clé, le poids 0 ou 1 qui l'abaisse (docstring du
-    module). Seule la ligne de hauteur des matrices mélangées se calcule."""
+    leurs shape keys `d` (`empiler`), `ecarts` ceux des clés portées (`ecarts_des_portees`) : chaque sommet y prend,
+    par clé, le poids 0 ou 1 qui l'abaisse (`abaissement`). Seule la ligne de hauteur des matrices mélangées se
+    calcule."""
     hauteurs = []
-    for k in range(0, len(matrices), LOT):
-        lot = matrices[k:k + LOT]
-        ligne = (w @ lot[:, :, 2, :].transpose(1, 0, 2).reshape(lot.shape[1], -1)).reshape(len(x), len(lot), 4)
+    for debut, ligne in lignes_de_hauteur(w, matrices):
         z = numpy.einsum('snj,sj->ns', ligne, x)
         if len(d):
-            z += numpy.minimum(0.0, numpy.einsum('sni,ksi->kns', ligne[:, :, :3], d)).sum(axis=0)
+            z += abaissement(ligne, w, d, ecarts, debut)
         hauteurs.append(z.min(axis=1))
     return numpy.concatenate(hauteurs)
 
 
 def bas_des_sources(rig, peaux, clips, pelvis):
     """Par clip de `clips` joué sur son rig source `rig`, ses clés, en images, la hauteur du sommet le plus bas de ses
-    peaux `peaux` à chacune (`bas`), et la hauteur minimale de la tête de `pelvis`."""
+    peaux `peaux` à chacune (`bas`, sans clé portée), et la hauteur minimale de la tête de `pelvis`."""
     noms = [b.name for b in rig.data.bones]
     x, w, _, d = empiler(peaux, noms)
     inverses, i = repos(rig), noms.index(pelvis)
     sources = {}
     for action in clips:
         p = poses(rig, action)
-        sources[action.name] = (numpy.array(instants(action)), bas(w, x, d, p @ inverses), float(p[:, i, 2, 3].min()))
+        sources[action.name] = (numpy.array(instants(action)), bas(w, x, d, p @ inverses, {}), float(p[:, i, 2, 3].min()))
     return sources
 
 
@@ -213,15 +275,20 @@ def garder_les_poids_des_pieds(peau, retouches, surfaces):
                                f'poids, dont {dedans[:8]}')
 
 
-def garder_les_pieds(cles, d, surfaces):
-    """Arrête la construction si une shape key de `cles` (déplacements `d`, `empiler`) déplace un sommet d'une surface
-    de pied de `surfaces` de plus de `TOLERANCE_JUMEAUX_POSITION_M`, l'écart sous lequel deux positions de repos sont un
-    même point : la plantation et l'IK des pieds se calculent sur le repos sans clé (décision 4 du design de #3101)."""
+def garder_les_pieds(cles, d, surfaces, portages):
+    """Arrête la construction si une shape key de `cles` (déplacements `d`, `empiler`) déforme une surface de pied de
+    `surfaces` : un de ses sommets s'écarte de plus de `TOLERANCE_JUMEAUX_POSITION_M`, l'écart sous lequel deux
+    positions de repos sont un même point, de son portage C = w · D (`portages`, nom de clé portée -> (sommets, 3),
+    `portage.portages_des_silhouettes`) pour une clé portée, de son repos pour une autre (décision 4 du design de
+    #3101, #4002)."""
     for pied, surface in surfaces.items():
-        for nom, ecart in zip(cles, numpy.linalg.norm(d[:, surface], axis=2).max(axis=1, initial=0.0)):
+        for nom, delta in zip(cles, d):
+            ecart = numpy.linalg.norm(delta[surface] - portages[nom][surface] if nom in portages else delta[surface],
+                                      axis=1).max(initial=0.0)
             if ecart > TOLERANCE_JUMEAUX_POSITION_M:
-                raise RuntimeError(f'shape key « {nom} » : un sommet de la surface de {pied} déplacé de {ecart:.6f} m, '
-                                   f'au-delà de {TOLERANCE_JUMEAUX_POSITION_M} m ; les silhouettes ne déplacent pas les pieds')
+                reference = 'de son portage par les os' if nom in portages else 'de son repos'
+                raise RuntimeError(f'shape key « {nom} » : un sommet de la surface de {pied} à {ecart:.6f} m {reference}, '
+                                   f'au-delà de {TOLERANCE_JUMEAUX_POSITION_M} m ; une clé ne déforme pas un pied')
 
 
 def retirer_sans_sol(clips, sources, pelvis):
@@ -309,10 +376,12 @@ def poser_les_instants(action, temps):
         ecrire(courbe, points[numpy.argsort(points[:, 0], kind='stable')])
 
 
-def geometrie(rig, w, x, d):
+def geometrie(rig, w, x, d, portees):
     """La géométrie de la borne de flèche du corps (`w`, `x`, shape keys `d`) sur `rig` : par os, l'indice de son parent
     (-1 pour une racine), la matrice de ses ancêtres, lui compris, le rayon r_b de ses sommets pondérés autour de sa
-    tête, au repos plus la somme des normes de leurs déplacements de clé, et s'il porte un sommet."""
+    tête, au repos plus, par clé, la norme du déplacement |d_k| ou, pour une clé portée de `portees` (indice -> têtes
+    déplacées D (os, 3)), |d_k − D_b| + L_b, L_b = Σ |D_a − D_p(a)| de la racine à b (docstring du module, #4002), et
+    s'il porte un sommet."""
     os = rig.data.bones
     indice = {b.name: i for i, b in enumerate(os)}
     parent = numpy.array([indice[b.parent.name] if b.parent else -1 for b in os])
@@ -323,8 +392,12 @@ def geometrie(rig, w, x, d):
             b = b.parent
     tetes = numpy.array([tuple(rig.matrix_world @ b.head_local) for b in os])
     portes = w > 0
-    distances = numpy.linalg.norm(d, axis=2).sum(axis=0)
-    rayons = numpy.array([(numpy.linalg.norm(x[portes[:, i], :3] - tetes[i], axis=1) + distances[portes[:, i]]).max()
+    distances = numpy.linalg.norm(d[[k not in portees for k in range(len(d))]], axis=2).sum(axis=0)
+    chaines = {k: ancetres @ numpy.linalg.norm(numpy.where(parent[:, None] < 0, 0.0, deplacements - deplacements[parent]),
+                                               axis=1) for k, deplacements in portees.items()}
+    rayons = numpy.array([(numpy.linalg.norm(x[portes[:, i], :3] - tetes[i], axis=1) + distances[portes[:, i]]
+                           + sum(numpy.linalg.norm(d[k, portes[:, i]] - deplacements[i], axis=1) + chaines[k][i]
+                                 for k, deplacements in portees.items())).max()
                           if portes[:, i].any() else 0.0 for i in range(len(os))])
     return parent, ancetres, rayons, portes.any(axis=0)
 
@@ -383,12 +456,14 @@ def densifier(rig, action, geo, temps, p):
     return temps, p
 
 
-def plus_bas_garanti(rig, action, w, x, d, inverses, geo):
+def plus_bas_garanti(rig, action, w, x, d, inverses, geo, portees):
     """Sur `action` corrigée, la plus grande borne de flèche, par intervalle entre deux instants le sommet le plus bas
     garanti (le plus bas de ses deux bornes moins sa borne de flèche), et par instant la hauteur du sommet le plus bas,
-    au pire coin des shape keys `d` (`bas`)."""
+    au pire coin des shape keys `d` (`bas`), les clés portées de `portees` sous les poses de `action` corrigée
+    (`ecarts_des_portees`)."""
     p = poses(rig, action)
-    hauteurs = bas(w, x, d, p @ inverses)
+    matrices = p @ inverses
+    hauteurs = bas(w, x, d, matrices, ecarts_des_portees(matrices, geo[0], portees))
     f = fleches(p, geo).max(axis=1)
     return float(f.max()), numpy.minimum(hauteurs[:-1], hauteurs[1:]) - f, hauteurs
 
@@ -634,17 +709,22 @@ def descente_a_portee(hanches, tetes, decalages, allonge):
 def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, table, pelvis, marches):
     """Pose au sol chaque clip de `clips` joué sur les peaux `peaux` du rig, contre `sources` (`bas_des_sources`) ;
     plante les pieds `pieds` des clips de `marches`, sur leurs surfaces (`surfaces_des_pieds`). Le corps se tient au sol au
-    pire coin des shape keys des peaux (`bas`), dont aucune ne déplace un pied (`garder_les_pieds`)."""
+    pire coin des shape keys des peaux (`bas`), les clés portées par les silhouettes à os du rig
+    (`portage.lire_os_des_silhouettes`) comprises ; une clé ne déforme pas un pied (`garder_les_pieds`), et la surface
+    d'un pied se prend au pire coin de ses clés portées (#4002)."""
     racine, segments = table['racine'], table['legs']
     noms = [b.name for b in rig.data.bones]
     indice = {nom: i for i, nom in enumerate(noms)}
     x, w, cles_de_forme, d = empiler(peaux, noms)
+    silhouettes = portages_des_silhouettes(rig, w, noms, lire_os_des_silhouettes(rig))
+    portees = {cles_de_forme.index(nom): numpy.array([tetes[n] for n in noms]) for nom, (tetes, _) in silhouettes.items()}
     surfaces = surfaces_des_pieds(rig, w, pieds)
-    garder_les_pieds(cles_de_forme, d, surfaces)
+    garder_les_pieds(cles_de_forme, d, surfaces, {nom: c for nom, (_, c) in silhouettes.items()})
     hors_pieds = ~numpy.logical_or.reduce(list(surfaces.values()))
     hanche = {pied: jambe(rig, pied, segments)[0] for pied in pieds}
     inverses = repos(rig)
-    geo = geometrie(rig, w, x, d)
+    geo = geometrie(rig, w, x, d, portees)
+    cles_portees = list(portees)
     avant = numpy.array(AXES_DU_PERSONNAGE.col[2])[:2]
     avant /= numpy.linalg.norm(avant)
     inconnues = set(marches) - {a.name for a in clips}
@@ -660,8 +740,14 @@ def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, table, pelvis, mar
         while True:
             brut = figer(action)
             matrices = p @ inverses
-            bas_hors_pieds = bas(w[hors_pieds], x[hors_pieds], d[:, hors_pieds], matrices)
+            ecarts = ecarts_des_portees(matrices, geo[0], portees)
+            bas_hors_pieds = bas(w[hors_pieds], x[hors_pieds], d[:, hors_pieds], matrices, ecarts)
             positions = {pied: deformer(w[s], x[s], matrices) for pied, s in surfaces.items()}
+            if cles_portees:
+                for pied, s in surfaces.items():
+                    positions[pied][:, :, 2] += numpy.concatenate([
+                        abaissement(ligne, w[s], d[cles_portees][:, s], {j: ecarts[k] for j, k in enumerate(cles_portees)}, debut)
+                        for debut, ligne in lignes_de_hauteur(w[s], matrices)])
             bas_du_corps = numpy.minimum(bas_hors_pieds, numpy.min([q[:, :, 2].min(axis=1) for q in positions.values()], axis=0))
             montees = numpy.interp(temps, cles_source, bas_source) - bas_du_corps
             montees += numpy.maximum(0.0, -(bas_hors_pieds + montees))
@@ -684,7 +770,7 @@ def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, table, pelvis, mar
             decalages = {pied: d for pied, d in decalages.items() if d.any()}
             if decalages:
                 tendre_les_jambes(rig, action, decalages, segments)
-            fleche, garantis, hauteurs = plus_bas_garanti(rig, action, w, x, d, inverses, geo)
+            fleche, garantis, hauteurs = plus_bas_garanti(rig, action, w, x, d, inverses, geo, portees)
             garder_les_instants(action, temps, hauteurs)
             coupes = numpy.flatnonzero(garantis < -SOL_TOLERANCE_M)
             if not len(coupes):

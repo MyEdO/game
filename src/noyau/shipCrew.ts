@@ -6,7 +6,25 @@
  */
 import type { Combatant } from '../engine/types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
-import { crewRoleValue, competencesDuRole, moraleBand, moraleBase, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, payChoices, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
+import {
+  crewRoleValue,
+  competencesDuRole,
+  moraleBand,
+  moraleBase,
+  undercrewPenalty,
+  weeklyCrewWageBrass,
+  recalcMorale,
+  payChoiceCostBrass,
+  payChoices,
+  isPayChoice,
+  isFreePayChoice,
+  freePayChoiceId,
+  recommendedPayChoiceId,
+  facteursDeContagionABord,
+  contagionABord,
+  type CrewAssignment,
+  type UndercrewPenalty,
+} from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup } from './bourseFlow';
 import { cadenceAuto } from '../engine/cadence';
@@ -427,10 +445,11 @@ type MoraleRoll = { id: string; label: string; rolled: number };
  * de groupe (gages, sans bénéficiaire unique) est appliqué par l'appelant via `payFromGroup`. La solde =
  * `payChoiceCostBrass(barème, decision)` (le barème `wageMul` de chaque choix, en donnée) ; un choix
  * GRATUIT (`wageMul: 0`, ou un groupe insolvable qui s'y replie) cumule la solde due dans `wagesOwed`. Le facteur de
- * paie n'est injecté que pour le recalcul de CETTE semaine, jamais persisté dans `morale.factors` (édités
- * par l'auteur). #216/#229. RNG injecté.
+ * paie et, sous `contagion` (`contagionABord`, calculé par l'appelant), les facteurs `contagionABord` de la donnée ne
+ * sont injectés que pour le recalcul de CETTE semaine, jamais persistés dans `morale.factors` (édités par l'auteur).
+ * MDG 14 l.172, l.208 ; #216/#229/#4058. RNG injecté.
  */
-export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision: string | null, week: number, rng: RNG): VesselWeekOutcome {
+export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision: string | null, week: number, contagion: boolean, rng: RNG): VesselWeekOutcome {
   const wageBrass = weeklyCrewWageBrass(vessel.crew);
   const lines: string[] = [];
   let paidFactor: string | null = null;
@@ -459,9 +478,8 @@ export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision
     }
     lines.push(paidLine);
   }
-  const factorsThisWeek = paidFactor && !vessel.morale.factors.includes(paidFactor)
-    ? [...vessel.morale.factors, paidFactor]
-    : vessel.morale.factors;
+  const injectes = [...(paidFactor ? [paidFactor] : []), ...(contagion ? facteursDeContagionABord() : [])];
+  const factorsThisWeek = [...vessel.morale.factors, ...injectes.filter((f) => !vessel.morale.factors.includes(f))];
   const before = vessel.morale.score;
   const r = recalcMorale(before, factorsThisWeek, rng);
   const newVessel: CampaignVessel = {
@@ -526,9 +544,10 @@ export function semainesDuConseil(s: Jeu): number {
  *  chaque semaine lit la bourse restante). Renvoie le procès-verbal cumulé du bloc. */
 function reglerLesSemaines(get: Get, set: SetFn, decision: string | null, week: number, rng: RNG): Pick<VesselWeekOutcome, 'factorRolls' | 'delta' | 'before' | 'after' | 'lines'> {
   let vessel = garanti(get().vessel, week, 'navire de campagne');
+  const contagion = contagionABord(get().party);
   const bloc = { factorRolls: [] as MoraleRoll[], delta: 0, before: vessel.morale.score, after: vessel.morale.score, lines: [] as string[] };
   for (let w = vessel.morale.lastMoraleWeek + 1; w <= week; w++) {
-    const out = resolveVesselWeek(vessel, partyMoneyTotal(get), decision, w, rng);
+    const out = resolveVesselWeek(vessel, partyMoneyTotal(get), decision, w, contagion, rng);
     if (out.costBrass > 0) payFromGroup(get, set, fromBrass(out.costBrass), { purpose: 'gages équipage' });
     vessel = out.vessel;
     set({ vessel });
