@@ -56,6 +56,7 @@ import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
+import { estGroupeVivant } from '../../scripts/guards/lib/pid.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { chargerAssets } from './asset/charger.mjs'
 import { avisDeGodot, avisDeNode, avisDesAssets, avisDesPaquets, deposerLesAvis } from './avis.mjs'
@@ -546,14 +547,7 @@ async function leRelayLocal() {
   const sortie = once(relay, 'exit')
   let fini = null
   void sortie.then(([status, signal]) => { fini = { status, signal } })
-  const groupeVivant = () => {
-    try {
-      process.kill(-relay.pid, 0)
-      return true
-    } catch {
-      return false
-    }
-  }
+  const groupeVivant = () => estGroupeVivant(relay.pid)
   const arreter = async () => {
     if (groupeVivant()) process.kill(-relay.pid, 'SIGTERM')
     await sortie
