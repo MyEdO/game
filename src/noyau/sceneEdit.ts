@@ -1951,12 +1951,13 @@ export function setNorthDeg(scene: Scene, deg: number | undefined): Scene {
   return champ(scene, 'northDeg', deg === undefined || !Number.isFinite(deg) ? undefined : ((deg % 360) + 360) % 360);
 }
 
-/** Renomme la scène éditée. Refusé (scène rendue inchangée) pour un id vide, ou déjà porté par une autre
- *  scène du projet (`autres`) : les transitions et la carte du monde désignent une scène par son id. */
-export function renameScene(scene: Scene, autres: readonly Pick<Scene, 'id'>[], to: string): Scene {
+/** Renomme la racine éditée du projet, une scène ou la carte du monde. Refusé (racine rendue inchangée) pour un id
+ *  vide, ou déjà porté par une autre racine (`autres`) : les transitions et la carte du monde désignent une scène par
+ *  son id, et `validateScene` range les fautes de la carte sous le sien. */
+export function renameScene<R extends Pick<Scene, 'id'>>(racine: R, autres: readonly Pick<Scene, 'id'>[], to: string): R {
   const next = to.trim();
-  if (!next || next === scene.id || autres.some((s) => s.id === next)) return scene;
-  return { ...scene, id: next };
+  if (!next || next === racine.id || autres.some((s) => s.id === next)) return racine;
+  return { ...racine, id: next };
 }
 
 /** Réécrit le point d'entrée `id` : sa case est plafonnée à la carte et ramenée à une case entière

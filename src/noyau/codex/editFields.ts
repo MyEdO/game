@@ -13,7 +13,7 @@ import { collectionDe } from '../../data/schemas/grammaire/collection-cle';
 import { aLaFormeDe, declarationDeFeuilleDId, estRefEmboitee, porteeDeLaFeuille } from '../../data/schemas/grammaire/ref';
 import { declarationProseNommee } from '../../data/schemas/grammaire/prose';
 import { OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
-import { choixDeLaFeuilleDId, typeAChoix } from '../../data';
+import { choixDeLaFeuilleDId } from '../../data';
 import type { GameOp } from '../../engine/ops';
 import { libelleDuLitteral } from '../libelles';
 import { estObjet } from '../../lib/objet.mjs';
@@ -174,14 +174,14 @@ export function champsDeclares(noeud: unknown): (readonly [string, unknown])[] |
 }
 
 /** Les valeurs d'un champ À CHOIX, chacune nommée, lues sur la fermeture de son nœud : la réunion, sans doublon, des
- *  entrées de chacune de ses références `idDe` fermées qu'un dataset ou un vocabulaire porte (`typeAChoix`), sa sous-liste comprise
+ *  entrées de chacune de ses références `idDe` fermées, sa sous-liste comprise
  *  (`choixDeLaFeuilleDId`), et des valeurs de ses énumérations et littéraux membres ; sinon, de sa seule forme,
  *  les valeurs d'une énumération (`libelleDeValeur`), d'un littéral (`libelleDuLitteral`), faux et vrai d'un
  *  booléen ; de plusieurs formes qui sont chacune un choix (une union de littéraux), la réunion, sans doublon, de leurs
  *  valeurs ; `undefined` pour tout autre nœud. */
 export function choixDuNoeud(noeud: unknown): ValeurDuChoix[] | undefined {
   const formes = ouverts([noeud]);
-  const feuilles = formes.map(declarationDeFeuilleDId).filter((d) => d !== undefined && !d.portee && typeAChoix(d.type));
+  const feuilles = formes.map(declarationDeFeuilleDId).filter((d) => d !== undefined && !d.portee);
   if (feuilles.length) {
     const vus = new Set<unknown>();
     const membres = formes.filter((n) => !estTransparent(n) && ['enum', 'literal'].includes(defDe(n)?.type ?? '')).flatMap((n) => choixDuNoeud(n) ?? []);

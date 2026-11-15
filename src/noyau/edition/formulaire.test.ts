@@ -60,14 +60,14 @@ import { listeCle } from '../../data/schemas/grammaire/collection-cle';
 import { tableTotale } from '../../lib/tableTotale';
 import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
 import { conditionSchema, flowTestSchema, OP_DEFS, OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
-import { idDe, idsDe, idsDeLaSousListe, refOuSpec } from '../../data/schemas/grammaire/ref';
+import { idDe, idsDe, idsDeLaSousListe, refOuSpec, TYPES, type TypeEntite } from '../../data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../../data/schemas/grammaire/sousListes';
 import { VOCABULAIRES } from '../../data/schemas/grammaire/vocabulaires';
 import { CONDITION_TOUJOURS, recast, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { DIFFICULTY_LABELS } from '../../engine/types';
 import type { Condition } from '../../engine/flowCore';
 import type { GameOp } from '../../engine/ops';
-import { choixDeLaFeuilleDId, creatureSemee, findCreatureById } from '../../data';
+import { choixDeLaFeuilleDId, creatureSemee, findCreatureById, seaPerils } from '../../data';
 import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
 import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
 import { trappingRefSchema } from '../../data/schemas/grammaire/reference';
@@ -171,6 +171,13 @@ describe('la description du formulaire d’une zone d’effet', () => {
     const u = unionDuNoeud(noeud)!;
     expect(varianteCourante(u, valeur)).toMatchObject({ cle: 'statusMod', noeud: undefined });
     expect(formeAuPoint(noeud, valeur)).toBeUndefined();
+  });
+});
+
+describe('la référence au catalogue d’un type', () => {
+  it('s’offre en choix pour tout type : les ids qu’admet sa validation, chacun au libellé de son entrée', () => {
+    for (const type of Object.keys(TYPES) as TypeEntite[]) expect(choixDuNoeud(idDe(type))?.map((o) => o.valeur).sort(), type).toEqual([...idsDe(type)].sort());
+    expect(choixDuNoeud(idDe('seaHazard'))).toEqual(seaPerils.hazards.map((h) => ({ valeur: h.id, libelle: h.label })));
   });
 });
 

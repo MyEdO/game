@@ -360,7 +360,8 @@ export interface ZonesDeLEditeur {
    * montures, la liste des membres sans « Retirer », « Monter » ni « Ajouter » ; la supprimer, refusé avec sa raison
    * comme un dialogue, ou tant qu'une embuscade de route la lance, la route dite (`removeEncounter`, `embuscadesDeLaRencontre`).
    *
-   * La carte du monde ouverte, sans sélection : le formulaire tiré du schéma de son porteur singulier (`{ sorte: 'carte',
+   * La carte du monde ouverte, sans sélection : `identifier`, le formulaire qui change son identifiant, refusé comme
+   * celui d'une scène ; le formulaire tiré du schéma de son porteur singulier (`{ sorte: 'carte',
    * id }`), puis celui des réglages du projet (`{ sorte: 'projet', id: 'projet' }`), ses axes actifs parmi ceux du
    * catalogue, absents valant le socle, puis `carte/retirer`, « Retirer du projet », `{ geste: 'supprimer' }`, qui retire
    * la carte du projet sur un cran et rouvre la scène. D'un lieu : `lieu/plan`, « Plan du lieu », pressé quand son plan
@@ -724,7 +725,7 @@ const formulaireDeLaTroupe = (): Formulaire => ({
   champs: [{ type: 'saisieNombre', id: 'troupe/nombre', ton: 'neutre', nom: 'nombre', optionnel: false, libelle: t('ecran.editeur.troupe.nombre'), valeur: BORNES_DE_LA_TROUPE.min, ...BORNES_DE_LA_TROUPE, pas: 1 }],
 });
 
-/** Le formulaire qui change l'identifiant `id` de la sélection, ou de la scène sans elle. */
+/** Le formulaire qui change l'identifiant `id` de la sélection, ou du porteur singulier du document ouvert sans elle. */
 const formulaireDeLIdentifiant = (id: string): Formulaire =>
   formulaireAUnChamp('identifier', t('ecran.editeur.identifier'), 'id', t('ecran.editeur.identifiant'), id, false);
 
@@ -1863,13 +1864,16 @@ function inspecteurDeLaLogique<S extends SorteDePorteur>(s: SessionDEdition, sor
  *  projet (ses axes actifs), que l'éditeur règle sur l'écran de la carte (#409). */
 const DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE = ['carte', 'projet'] as const;
 
-/** L'inspecteur de la carte du monde ouverte de la session `s`, sans sélection : le formulaire tiré du schéma du porteur
- *  singulier de chacun de ses documents (`DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE`, `porteurDeLaSel`). */
-const inspecteurDeLaCarte = (s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] =>
-  DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE.flatMap((document) => {
+/** L'inspecteur de la carte du monde ouverte de la session `s`, sans sélection : le formulaire qui change son
+ *  identifiant (`formulaireDeLIdentifiant`), puis le formulaire tiré du schéma du porteur singulier de chacun de ses
+ *  documents (`DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE`, `porteurDeLaSel`). */
+const inspecteurDeLaCarte = (s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] => [
+  formulaireDeLIdentifiant(projetEdite(s).worldMap!.id),
+  ...DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE.flatMap((document) => {
     const porteur = porteurDeLaSel(null, document, idDeLaSceneEditee(s))!;
     return formulaireDuPorteur(s, porteur, porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee);
-  });
+  }),
+];
 
 /** L'inspecteur de la sélection de la session `s` (`editeur.inspecteur`) : de l'entité, de l'entrée, de la zone, d'un
  *  autre porteur de formulaire du projet (`inspecteurDeLaLogique`), d'un ouvrage d'architecture ou de l'arête
@@ -2350,7 +2354,7 @@ const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.i
 
 /** Le geste du formulaire de l'inspecteur que portent les zones `z`, joué `{ type, args }` : celui qui nomme la
  *  sélection ou la scène (`formulaireDuNom`), `{ geste: 'nommer', nom }`, le nom saisi, absent s'il est laissé vide ;
- *  celui qui change l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }`, ou
+ *  celui qui change l'identifiant de la scène, de la carte du monde ou de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }`, ou
  *  d'un élément d'un porteur, l'action d'un décor ou le nœud d'un dialogue (`identifiantsDesElements`), `{ geste: 'identifier',
  *  id, element }`, l'élément, quand un formulaire des zones désigne cet élément ; celui
  *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui ajoute un drapeau de départ à la

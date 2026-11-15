@@ -586,7 +586,9 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     expect(planDe(retour).traits.filter((tr) => [tr.de, tr.vers].sort().join() === [depart.id, neuf].sort().join())).toHaveLength(2);
     const sans = presser(boutonDe(retour, 'route/supprimer'));
     expect(sans.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => id.endsWith('/supprimer') || id.endsWith('/retirer'))).toEqual(['carte/retirer']);
-    const retiree = presser(boutonDe(sans, 'carte/retirer'));
+    const identifiee = editionDe(appel('editer', { type: 'identifier', args: ['reikland'] }));
+    expect(identifiee.vue.zones['editeur.inspecteur'].find((el) => el.id === 'identifier'), 'la carte s’identifie à son inspecteur').toMatchObject({ type: 'formulaire', champs: [{ valeur: 'reikland' }] });
+    const retiree = presser(boutonDe(identifiee, 'carte/retirer'));
     expect([boutonDe(retiree, 'document/scene').presse, retiree.vue.zones['editeur.carte']]).toEqual([true, []]);
   });
 

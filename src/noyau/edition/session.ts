@@ -287,9 +287,17 @@ function scenesEnProjet(s: SessionDEdition): ProjectScenes {
   return { avant: scenes.slice(0, rang), scene: scenes[rang], apres: scenes.slice(rang + 1) };
 }
 
-/** Les scènes de chaque cran de l'historique `h` : un identifiant neuf n'en reprend aucun, qu'annuler ou rétablir
- *  ramènerait. */
-const scenesDeLHistorique = (h: Historique<CranDEdition>): Scene[] => [...h.passe, h.present, ...h.futur].flatMap((c) => c.projet.scenes);
+/** Les crans de l'historique `h`, passés, présent et futurs. */
+const cransDe = (h: Historique<CranDEdition>): CranDEdition[] => [...h.passe, h.present, ...h.futur];
+
+/** Les scènes de chaque cran de l'historique `h`. */
+const scenesDeLHistorique = (h: Historique<CranDEdition>): Scene[] => cransDe(h).flatMap((c) => c.projet.scenes);
+
+/** Les racines de chaque cran de l'historique `h`, ses scènes et sa carte du monde, d'un même espace d'identifiants
+ *  (`validateScene` range les fautes de la carte sous le sien) : un identifiant neuf de scène n'en reprend aucun,
+ *  qu'annuler ou rétablir ramènerait. */
+const racinesDeLHistorique = (h: Historique<CranDEdition>): Pick<Scene, 'id'>[] =>
+  cransDe(h).flatMap((c) => [...c.projet.scenes, ...(c.projet.worldMap ? [c.projet.worldMap] : [])]);
 
 /** La session `s` montrant une autre scène : à l'outil de sélection, sur la couche 0, sans sélection, geste, volée,
  *  brouillon, case pointée, défaut suivi ni calage. */
@@ -330,10 +338,10 @@ function allerALaScene(s: SessionDEdition, id: string): SessionDEdition {
 
 /** La session `s` dont la scène éditée `scene` prend l'identifiant `id` (`renameScene`), hors de l'historique : chaque
  *  cran le porte, sa scène montrée comprise, et ses calques le suivent. Telle quelle sous un identifiant vide ou pris
- *  dans un cran. */
+ *  par une racine d'un cran (`racinesDeLHistorique`). */
 function sceneRenommee(s: SessionDEdition, scene: Scene, id: string): SessionDEdition {
   const ancien = idDeLaSceneEditee(s);
-  const renommee = renameScene(scene, scenesDeLHistorique(s.historique).filter((sc) => sc.id !== ancien), id);
+  const renommee = renameScene(scene, racinesDeLHistorique(s.historique).filter((r) => r.id !== ancien), id);
   if (renommee === scene) return s;
   const renommer = (c: CranDEdition): CranDEdition => ({
     projet: { ...c.projet, scenes: c.projet.scenes.map((sc) => (sc.id === ancien ? { ...sc, id: renommee.id } : sc)) },
@@ -894,13 +902,20 @@ const pointeurDeLaSession = (s: SessionDEdition): PointeurDuDocument | undefined
 
 /** Les gestes du porteur singulier du document ouvert de la session `s`, par sorte, quand il les fait, sans eux s'il
  *  n'en a pas : se nommer `nom` (non vide), prendre l'identifiant `id`. La scène se nomme (`setSceneLabel`) et
- *  s'identifie (`sceneRenommee`) ; la carte du monde se nomme à son formulaire (`label`). La table vit dans la fonction :
- *  la fermeture d'appels de la garde #841 suit ses gestes depuis `editer`. */
+ *  s'identifie (`sceneRenommee`) ; la carte du monde se nomme à son formulaire (`label`) et s'identifie comme une scène
+ *  (`renameScene`), sur un cran, hors des identifiants des scènes de chaque cran (`scenesDeLHistorique`). La table vit
+ *  dans la fonction : la fermeture d'appels de la garde #841 suit ses gestes depuis `editer`. */
 const gestesDuSingulier = (s: SessionDEdition) => {
-  const gestes: { readonly [S in SorteDePorteur]?: { nommer: (nom: string) => SessionDEdition; identifier: (id: string) => SessionDEdition } } = {
+  const gestes: { readonly [S in SorteDePorteur]?: { nommer?: (nom: string) => SessionDEdition; identifier: (id: string) => SessionDEdition } } = {
     scene: {
       nommer: (nom) => ecrire(s, setSceneLabel(sceneEditee(s), nom)),
       identifier: (id) => sceneRenommee(s, sceneEditee(s), id),
+    },
+    carte: {
+      identifier: (id) => {
+        const renommee = renameScene(carteEditee(s), scenesDeLHistorique(s.historique), id);
+        return renommee === carteEditee(s) ? s : ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), renommee), s.sel);
+      },
     },
   };
   const singulier = porteurDeLaSel(null, s.document, idDeLaSceneEditee(s));
@@ -1154,7 +1169,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       if (s.sel?.type === 'architectureBody') return ecrireSurLaSelection(s, patchArchitectureBody(scene, s.sel.id, { label: g.nom?.trim() || undefined }), (sc) => sc.architecture);
       if (s.sel === null) {
         const singulier = gestesDuSingulier(s);
-        return singulier && g.nom?.trim() ? singulier.nommer(g.nom.trim()) : s;
+        return singulier?.nommer && g.nom?.trim() ? singulier.nommer(g.nom.trim()) : s;
       }
       if (g.nom === undefined) return s;
       if (s.sel.type === 'entry') {
@@ -1215,7 +1230,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'scenes':
       return g.quoi === 'aller' ? allerALaScene(s, g.id)
         : g.quoi === 'retirer' ? versLaScene(s, deleteProjectScene(scenesEnProjet(s)))
-          : versLaScene(s, (g.quoi === 'ajouter' ? addProjectScene : duplicateProjectScene)(scenesEnProjet(s), nextEntityId('scene', scenesDeLHistorique(s.historique).map((sc) => sc.id))));
+          : versLaScene(s, (g.quoi === 'ajouter' ? addProjectScene : duplicateProjectScene)(scenesEnProjet(s), nextEntityId('scene', racinesDeLHistorique(s.historique).map((r) => r.id))));
     case 'avertissement': {
       const w = avertissementsDeLaSession(s)[g.rang];
       return w && versLaFautive(s, w) ? versLAvertissement(s, scene, w) : s;
