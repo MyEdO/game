@@ -52,6 +52,7 @@ export const JEUX_DU_PARCOURS = {
   roster: { roster: [] },
   reglages: { reglages: [] },
   editeur: { editeur: [] },
+  compendium: { compendium: [] },
   atelier: { atelier: [] },
   composition: {},
   preset: { preset: ['--preset', 'sorcier'] },

@@ -1,0 +1,125 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/compendium.gd" id="1_compendium"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="Theme" path="res://art/avis.tres" id="t_avis"]
+
+[node name="Compendium" type="Node"]
+script = ExtResource("1_compendium")
+
+[node name="Interface" type="CanvasLayer" parent="."]
+
+[node name="Ossature" type="HBoxContainer" parent="Interface"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Ossature"
+
+[node name="Navigation" type="PanelContainer" parent="Interface/Ossature"]
+custom_minimum_size = Vector2(320, 0)
+mouse_force_pass_scroll_events = false
+theme_type_variation = &"Panneau"
+
+[node name="Defilement" type="ScrollContainer" parent="Interface/Ossature/Navigation"]
+horizontal_scroll_mode = 0
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Navigation/Defilement"]
+size_flags_horizontal = 3
+theme_type_variation = &"PileSerree"
+
+[node name="Familles" type="VBoxContainer" parent="Interface/Ossature/Navigation/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Navigation/Defilement/Pile/Familles"]
+script = ExtResource("2_zone")
+source = "compendium.familles"
+
+[node name="Categories" type="VBoxContainer" parent="Interface/Ossature/Navigation/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Navigation/Defilement/Pile/Categories"]
+script = ExtResource("2_zone")
+source = "compendium.categories"
+
+[node name="Recherche" type="VBoxContainer" parent="Interface/Ossature/Navigation/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Navigation/Defilement/Pile/Recherche"]
+script = ExtResource("2_zone")
+source = "compendium.recherche"
+
+[node name="Liste" type="VBoxContainer" parent="Interface/Ossature/Navigation/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Navigation/Defilement/Pile/Liste"]
+script = ExtResource("2_zone")
+source = "compendium.liste"
+
+[node name="Fiche" type="PanelContainer" parent="Interface/Ossature"]
+size_flags_horizontal = 3
+mouse_force_pass_scroll_events = false
+theme_type_variation = &"Panneau"
+
+[node name="Defilement" type="ScrollContainer" parent="Interface/Ossature/Fiche"]
+horizontal_scroll_mode = 0
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Fiche/Defilement"]
+size_flags_horizontal = 3
+theme_type_variation = &"PileSerree"
+
+[node name="Entree" type="VBoxContainer" parent="Interface/Ossature/Fiche/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Fiche/Defilement/Pile/Entree"]
+script = ExtResource("2_zone")
+source = "compendium.fiche"
+
+[node name="Atelier" type="PanelContainer" parent="Interface/Ossature"]
+custom_minimum_size = Vector2(380, 0)
+mouse_force_pass_scroll_events = false
+theme_type_variation = &"Panneau"
+
+[node name="Colonne" type="VBoxContainer" parent="Interface/Ossature/Atelier"]
+theme_type_variation = &"PileSerree"
+
+[node name="Gestes" type="HFlowContainer" parent="Interface/Ossature/Atelier/Colonne"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Atelier/Colonne/Gestes"]
+script = ExtResource("2_zone")
+source = "compendium.atelier"
+ids = PackedStringArray("modifier", "creer", "abandonner", "enregistrer", "supprimer")
+
+[node name="Defilement" type="ScrollContainer" parent="Interface/Ossature/Atelier/Colonne"]
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Atelier/Colonne/Defilement"]
+size_flags_horizontal = 3
+theme_type_variation = &"PileSerree"
+
+[node name="Formulaire" type="VBoxContainer" parent="Interface/Ossature/Atelier/Colonne/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Atelier/Colonne/Defilement/Pile/Formulaire"]
+script = ExtResource("2_zone")
+source = "compendium.atelier"
+
+[node name="Avis" type="VBoxContainer" parent="Interface"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_top = 24.0
+grow_horizontal = 2
+mouse_filter = 2
+theme = ExtResource("t_avis")
+
+[node name="Etat" type="VBoxContainer" parent="Interface/Avis"]
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Interface/Avis/Etat"]
+script = ExtResource("2_zone")
+source = "compendium.etat"
+
+[node name="Refus" type="Label" parent="Interface/Avis"]
+horizontal_alignment = 1
+theme_type_variation = &"alerte"
+
+[node name="Panne" type="Label" parent="Interface/Avis"]
+horizontal_alignment = 1
+theme_type_variation = &"echec"

@@ -12,7 +12,7 @@ import { AUTO_SLOT, SAVE_SLOTS, lireLaSauvegarde } from './sauvegardes';
  */
 export interface ZonesDeLAccueil {
   /**
-   * « Jouer », « Reprendre », « Jouer en ligne », « Combat », « Atelier » et « Éditeur », dont le `jeu` `{ accueil }`
+   * « Jouer », « Reprendre », « Jouer en ligne », « Combat », « Atelier », « Éditeur » et « Compendium », dont le `jeu` `{ accueil }`
    * nomme l'entrée que l'hôte suit (`EntreeDeLAccueil`), puis « Options », dont le `jeu` `{ reglages: true }` ouvre le
    * panneau des réglages. « Reprendre » est refusé quand aucun emplacement du stockage ne porte de sauvegarde.
    */
@@ -26,6 +26,7 @@ const LIBELLES = {
   combat: 'ecran.accueil.combat',
   atelier: 'ecran.accueil.atelier',
   editeur: 'ecran.accueil.editeur',
+  compendium: 'ecran.accueil.compendium',
 } as const satisfies Record<EntreeDeLAccueil, MsgKey>;
 
 /** La zone de l'accueil sur `stockage`. */

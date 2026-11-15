@@ -1428,6 +1428,7 @@ export const fr = {
   'ecran.accueil.combat': 'Combat',
   'ecran.accueil.atelier': 'Atelier',
   'ecran.accueil.editeur': 'Éditeur',
+  'ecran.accueil.compendium': 'Compendium',
   'ecran.partie.quitter': 'Quitter la partie',
   'ecran.partie.menu': 'Menu de la partie',
   'ecran.salon.mj': 'Maître du Jeu',
