@@ -4,7 +4,7 @@
  * un autre sur le même stockage (`charger`), et le point de reprise gardé à l'emplacement automatique en quittant.
  */
 import { afterEach, describe, it, expect } from 'vitest';
-import { drainer, erreurDe, suiteDe, table } from './pont.testkit';
+import { boursesDuGroupe, drainer, erreurDe, suiteDe, table } from './pont.testkit';
 import { t } from '../../../src/i18n';
 import { AUTO_SLOT, cleDEmplacement, nomDEmplacement, type AnySlot } from '../../../src/hote/sauvegardes';
 import type { Bouton, Entite, Ligne } from '../../../src/hote/elements';
@@ -27,7 +27,6 @@ function lancee(appel: Appel, campagne: string): Suite {
   appel('jouer', recruter.jeu);
   return drainer(appel, appel('lancer', { lancer: campagne })).suite;
 }
-const groupe = (s: Suite) => s.vue.zones['groupe.heros'].map((e) => ({ id: e.id, nom: e.nom, bourse: e.elements.find((x) => x.id === 'bourse') }));
 
 describe('sauvegarder et reprendre par le pont', () => {
   it('sans partie : chaque emplacement vide, l’automatique d’abord, rien à charger ni à écrire', () => {
@@ -46,6 +45,7 @@ describe('sauvegarder et reprendre par le pont', () => {
     const { pont, appel, stockage } = table();
     ouvert = pont;
     const avant = lancee(appel, 'la-diligence');
+    const groupe = boursesDuGroupe(appel, avant.vue);
     const offerts = zones(appel);
     expect(boutons(emplacement(offerts, AUTO_SLOT)), 'l’emplacement automatique ne s’écrit pas à la main').toEqual([]);
     const ecrire = boutons(emplacement(offerts, 2))[0];
@@ -62,14 +62,14 @@ describe('sauvegarder et reprendre par le pont', () => {
     const reprise = suiteDe(appel('charger', { charger: 2, graine: 7 }));
     expect(reprise.programmes, 'une suite sans jeton').toEqual([]);
     expect([reprise.vue.projection.scene?.id, reprise.vue.projection.fenetre?.cle], 'la scène et la fenêtre en main').toEqual([avant.vue.projection.scene?.id, avant.vue.projection.fenetre?.cle]);
-    expect(groupe(reprise), 'le groupe, sa bourse intacte').toEqual(groupe(avant));
+    expect(boursesDuGroupe(appel, reprise.vue), 'le groupe, la bourse de chacun intacte').toEqual(groupe);
     expect((appel('monde') as { monde?: unknown }).monde, 'son monde se sert').toBeTruthy();
     expect(reprise.vue.zones['groupe.campagnes'], 'la partie reprise est en cours').toEqual([]);
 
     appel('quitter');
     const autre = table(stockage);
     ouvert = autre.pont;
-    expect(groupe(suiteDe(autre.appel('charger', { charger: 2 }))), 'un pont neuf sur le même stockage la retrouve').toEqual(groupe(avant));
+    expect(boursesDuGroupe(autre.appel, suiteDe(autre.appel('charger', { charger: 2 })).vue), 'un pont neuf sur le même stockage la retrouve').toEqual(groupe);
   });
 
   it('quitter une campagne lancée garde son point de reprise à l’emplacement automatique ; un scénario de test, jamais', () => {
@@ -79,11 +79,11 @@ describe('sauvegarder et reprendre par le pont', () => {
     appel('quitter');
     expect(stockage.getItem(cleDEmplacement(AUTO_SLOT)), 'un scénario de test quitté n’écrit rien').toBeNull();
 
-    const avant = lancee(appel, 'la-diligence');
+    const groupe = boursesDuGroupe(appel, lancee(appel, 'la-diligence').vue);
     appel('quitter');
     const auto = emplacement(zones(appel), AUTO_SLOT);
     expect(boutons(auto).map((b) => b.jeu), 'la campagne quittée se reprend').toEqual([{ charger: AUTO_SLOT }]);
-    expect(groupe(suiteDe(appel('charger', boutons(auto)[0].jeu))), 'où elle a été quittée').toEqual(groupe(avant));
+    expect(boursesDuGroupe(appel, suiteDe(appel('charger', boutons(auto)[0].jeu)).vue), 'où elle a été quittée').toEqual(groupe);
   });
 
   it('en combat, la partie ne s’écrit pas : le noyau dit le refus, au bouton comme à la méthode', () => {

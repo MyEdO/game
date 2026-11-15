@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+
+[node name="Carriere" type="Label"]
+size_flags_horizontal = 3
+mouse_filter = 1
+theme_type_variation = &"Mesure"
+text_overrun_behavior = 3
+
+[node name="texte" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "texte"
+
+[node name="infobulle" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "texte"
+propriete = &"tooltip_text"
