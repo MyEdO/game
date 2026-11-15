@@ -1543,6 +1543,7 @@ const CODEX_SPECS = {
         sections: sections(
           chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel({ id: r.id, value: r.indice })))),
           props.length ? { title: tr('codex.fiche.proprietes'), layout: 'list', rows: [{ t: 'text', text: props.join(' · ') }] } : null,
+          passiveSection(t.passifDArme),
           ...reverseSections('trappings', t.id),
         ),
       });

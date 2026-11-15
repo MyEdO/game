@@ -2335,7 +2335,6 @@ export const fr = {
   'if.contremaitreKo': "{name} ne trouve aucun ancien associé prêt à l'aiguiller cette semaine — l'Activité échoue.",
   'if.contremaitreOk': "{name} obtient les détails d'une mission : {lieu} Objectif : {objectif} Commanditaire : {perso}",
   'if.contremaitreNote': 'La mission elle-même (Test de Corps à corps ou Projectiles Complexe (−10) ; objet convoité + Blessure Critique) exige une résolution de Blessure Critique HORS dégâts de combat — non modélisée (mesure #510).',
-  'if.corruptionTest': "{name} — Test d'Exposition {level} à la Corruption à réaliser.",
   'if.orderInShops': "{label} ({availability}) s'achète chez un marchand — Passer commande sert aux objets que les boutiques ne tiennent pas.",
   'if.orderTooExpensive': 'Commande trop chère ({cost}).',
   'if.orderPlaced': '{name} passe commande : {label} ({cost}) — livraison après la prochaine aventure.',

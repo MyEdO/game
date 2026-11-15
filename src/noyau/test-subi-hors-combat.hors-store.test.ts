@@ -130,17 +130,17 @@ function sourceDuSort(node: NoeudTest): EffectSource {
   return { kind: 'sort', id: sp.id };
 }
 
-/** LA ligne que la feuille `on:'caster'` du nœud retenu produit (`op.expositionALaCorruption`) — elle
- *  NOMME le porteur, donc elle dit LEQUEL des deux acteurs a reçu la conséquence. Distincte de la
- *  ligne de JET, que le sujet produit toujours : sans ce filtre, le banc serait vert à vide. */
-function ligneDeLaConsequence(): string {
-  const lignes = get().journal.filter((l) => /Exposition/.test(l));
-  expect(lignes.length, 'la branche `on:caster` n’a produit AUCUNE conséquence').toBe(1);
-  return lignes[0];
+/** QUI subit la conséquence de la feuille `on:'caster'` du nœud retenu : un Test d'Exposition (LDB 19 l.29),
+ *  dont la modale de Corruption s'ouvre chez le héros qui l'encaisse — elle dit LEQUEL des deux acteurs a
+ *  reçu la conséquence. */
+function porteurDeLExposition(): string {
+  const pc = get().pendingCorruption;
+  expect(pc, 'la branche `on:caster` n’a produit AUCUNE conséquence').toBeTruthy();
+  return pc!.heroId;
 }
 
-/** Un nœud de `spells.json` dont une branche porte une feuille `on:'caster'` MESURABLE (une ligne
- *  nommant le porteur) : c'est le seul moyen de distinguer le LANCEUR du SUJET dans la conséquence. */
+/** Un nœud de `spells.json` dont une branche porte une feuille `on:'caster'` MESURABLE : c'est le seul
+ *  moyen de distinguer le LANCEUR du SUJET dans la conséquence. */
 function noeudDeSortACaster(): NoeudTest {
   for (const sp of spells) {
     for (const n of noeudsTest(sp.effects)) {
@@ -229,9 +229,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     routeTriggeredTest(get, set, sujet, heros('h4'), node, { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort déclenché' });
     allerRetourJSON();
     acquitter({ success: false, sl: -1 });
-    const dit = ligneDeLaConsequence();
-    expect(dit, 'la conséquence `on:caster` doit nommer le LANCEUR (H4)').toContain('H4');
-    expect(dit, 'le sujet n’est pas le lanceur').not.toContain('H3');
+    expect(porteurDeLExposition(), 'la conséquence `on:caster` atteint le LANCEUR').toBe('h4');
   });
 
   it('T4c — lanceur IRRÉSOLUBLE à la reprise : la feuille `on:caster` retombe sur le SUJET', () => {
@@ -242,7 +240,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     routeTriggeredTest(get, set, sujet, heros('h4'), node, { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort déclenché' });
     set({ party: get().party.filter((c) => c.id !== 'h4') as never }); // le lanceur a quitté le groupe
     acquitter({ success: false, sl: -1 });
-    expect(ligneDeLaConsequence(), 'lanceur introuvable → le SUJET porte la conséquence').toContain('H3');
+    expect(porteurDeLExposition(), 'lanceur introuvable → le SUJET porte la conséquence').toBe('h3');
   });
 
   it('T5 — Test IMBRIQUÉ dans la branche : la 2ᵉ suspension s’ouvre sur le SUJET, meta sérialisable', () => {

@@ -13308,21 +13308,32 @@
     "id": "jezail-a-malepierre",
     "type": "trappings",
     "label": "Jezaïl à malepierre",
+    "hands": 2,
     "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
-    "availability": "exotique",
-    "price": {
-      "gold": 0,
-      "silver": 0,
-      "brass": 0
-    },
+    "availability": null,
+    "price": null,
     "source": {
       "book": "zoo-imperial",
-      "page": 45
+      "page": 94,
+      "note": "ZI 13 l.203"
     },
-    "desc": "La contrefaçon skaven du long fusil du Hochland. Utilisez le profil du long fusil, mais ajoutez-y le Défaut Dangereuse. De plus, les cibles qu'elle blesse doivent effectuer un Test de Corruption (Mineure), car ses balles sont incrustées de malepierre.",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 3,
+          "b1": 3,
+          "sum": "a4a5c264975190c5"
+        }
+      ]
+    },
     "reach": null,
     "range": 100,
     "loc": null,
@@ -13333,16 +13344,51 @@
     },
     "qualities": [
       {
+        "id": "devastatrice"
+      },
+      {
         "id": "pointue"
+      },
+      {
+        "id": "a-poudre-noire"
       },
       {
         "id": "precise"
       },
       {
-        "id": "recharge"
+        "id": "recharge",
+        "value": 4
       },
       {
         "id": "dangereuse"
+      }
+    ],
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 0
+          },
+          "alors": {
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "corruptionExposure",
+                  "level": "mineure",
+                  "nature": "physique"
+                }
+              ]
+            }
+          }
+        }
       }
     ],
     "enc": 3,
@@ -13418,17 +13464,27 @@
     "subType": {
       "id": "poudre-noire"
     },
-    "availability": "exotique",
-    "price": {
-      "gold": 0,
-      "silver": 0,
-      "brass": 0
-    },
+    "availability": null,
+    "price": null,
     "source": {
       "book": "zoo-imperial",
-      "page": 45
+      "page": 94,
+      "note": "ZI 13 l.205"
     },
-    "desc": "La version skaven des pistolets humains, « améliorée » selon leurs standards. Atouts À Poudre noire, Dévastatrice, Empaleuse, Perforante ; Défauts Dangereuse et Recharge 1. Ses balles étant incrustées de malepierre, les cibles qu'il blesse doivent effectuer un Test de Corruption (Mineure).",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 4,
+          "b1": 4,
+          "sum": "20ab9efd8607c7d8"
+        }
+      ]
+    },
     "reach": null,
     "range": 20,
     "loc": null,
@@ -13467,6 +13523,494 @@
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 0
+          },
+          "alors": {
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "corruptionExposure",
+                  "level": "mineure",
+                  "nature": "physique"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "trident-de-triton",
+    "type": "trappings",
+    "label": "Trident de Triton",
+    "categorie": "melee",
+    "subType": {
+      "id": "armes-d-hast"
+    },
+    "enc": 250,
+    "availability": null,
+    "price": null,
+    "reach": "Considérable",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 6
+    },
+    "qualities": [
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "empaleuse"
+      },
+      {
+        "id": "magique"
+      },
+      {
+        "id": "percutante"
+      }
+    ],
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "trident-de-triton",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "a67c9e416bb84218"
+        },
+        {
+          "kind": "blocs",
+          "sec": "trident-de-triton",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 2,
+          "sum": "955bf5e89912f4d7"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 149,
+      "note": "MDG 16 l.321-327"
+    }
+  },
+  {
+    "id": "pistolet-patte-d-oie-a-malepierre",
+    "type": "trappings",
+    "label": "Pistolet patte d'oie à malepierre",
+    "categorie": "distance",
+    "subType": {
+      "id": "poudre-noire"
+    },
+    "enc": 1,
+    "availability": null,
+    "price": null,
+    "reach": null,
+    "range": 10,
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": false,
+      "flat": 7
+    },
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "imprecise"
+      },
+      {
+        "id": "malepierre"
+      },
+      {
+        "id": "recharge",
+        "value": 5
+      },
+      {
+        "id": "tir-de-zone",
+        "value": 5
+      }
+    ],
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "archiseigneur-des-mers-vrisk-gratte-le-fer",
+          "secOcc": 1,
+          "b0": 14,
+          "b1": 14,
+          "sum": "c8dfe1d8b5e00961"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 157,
+      "note": "MDG 16 l.508-513"
+    },
+    "shape": {
+      "id": "pistolet_griffon"
+    },
+    "rangement": {
+      "id": "ceinture_d"
+    }
+  },
+  {
+    "id": "malelame-a-deux-mains",
+    "type": "trappings",
+    "label": "Malelame à deux mains",
+    "hands": 2,
+    "categorie": "melee",
+    "subType": {
+      "id": "armes-d-hast"
+    },
+    "enc": 3,
+    "availability": null,
+    "price": null,
+    "reach": "Longue",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 5
+    },
+    "qualities": [
+      {
+        "id": "defensive"
+      },
+      {
+        "id": "empaleuse"
+      },
+      {
+        "id": "taille"
+      }
+    ],
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 1
+          },
+          "alors": {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "resistance"
+              },
+              "difficulty": "accessible"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "condition",
+                    "id": {
+                      "id": "sonne"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "passifDArme": [
+      {
+        "op": "armourPierce",
+        "amount": 0,
+        "bypass": "metal"
+      }
+    ],
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "7c5a615f6971b59a"
+        }
+      ]
+    },
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.199 ; « Assommé » = État Sonné (VO Stunned). Groupe, Enc, Allonge et Dégâts (hallebarde, +1 Dégâts) : VO Le Rat Cornu – Compagnon, p.35. « Peuvent libérer » lu comme permanent (passifDArme)."
+    },
+    "shape": {
+      "id": "hallebarde"
+    },
+    "rangement": {
+      "id": "dos"
+    },
+    "bladed": true
+  },
+  {
+    "id": "malelame-a-une-main",
+    "type": "trappings",
+    "label": "Malelame à une main",
+    "categorie": "melee",
+    "subType": {
+      "id": "base"
+    },
+    "enc": 1,
+    "availability": null,
+    "price": null,
+    "reach": "Moyenne",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 5
+    },
+    "qualities": [
+      {
+        "id": "zap"
+      }
+    ],
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 35,
+      "note": "Arme simple, +1 Dégâts et Atout ZAP ! (VO Warp-Blades). Folio relevé aux renvois internes du livre (« Warp-blades (see page 35) »), l'extraction n'ayant aucune ancre de folio."
+    },
+    "shape": {
+      "id": "epee"
+    },
+    "rangement": {
+      "id": "ceinture_g"
+    },
+    "bladed": true
+  },
+  {
+    "id": "mousquet-a-malepierre",
+    "type": "trappings",
+    "label": "Mousquet à malepierre",
+    "categorie": "distance",
+    "subType": {
+      "id": "poudre-noire"
+    },
+    "enc": 2,
+    "availability": null,
+    "price": null,
+    "reach": null,
+    "range": 40,
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": false,
+      "flat": 8
+    },
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "recharge",
+        "value": 2
+      }
+    ],
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 34,
+      "note": "Nom VF : Altdorf, la Couronne de l'Empire, chapitre « La Cité souterraine », profil du tireur skaven (« mousquet à malepierre »). Nombres : VO Warpmusket. Folio : début de section « Ranged Weapons » au sommaire du livre, l'extraction n'ayant aucune ancre de folio."
+    },
+    "shape": {
+      "id": "arquebuse"
+    },
+    "rangement": {
+      "id": "dos"
+    }
+  },
+  {
+    "id": "etoile-de-malepierre",
+    "type": "trappings",
+    "label": "Étoile de malepierre",
+    "categorie": "distance",
+    "subType": {
+      "id": "lancer"
+    },
+    "enc": 0,
+    "availability": null,
+    "price": null,
+    "reach": null,
+    "range": {
+      "bf": 2
+    },
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 3
+    },
+    "qualities": [
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "malepierre"
+      }
+    ],
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 34,
+      "note": "Nombres : VO Warpstone Star. Folio : début de section « Ranged Weapons » au sommaire du livre, l'extraction n'ayant aucune ancre de folio."
+    },
+    "rangement": {
+      "id": "ceinture_d"
+    }
+  },
+  {
+    "id": "bombe-fumigene",
+    "type": "trappings",
+    "label": "Bombe fumigène",
+    "categorie": "distance",
+    "subType": {
+      "id": "lancer"
+    },
+    "enc": 0,
+    "availability": null,
+    "price": null,
+    "reach": null,
+    "range": {
+      "bf": 3
+    },
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 34,
+      "note": "Nombres : VO Smoke Bomb. Folio : début de section « Ranged Weapons » au sommaire du livre, l'extraction n'ayant aucune ancre de folio."
+    },
+    "shape": {
+      "id": "bombe"
+    },
+    "rangement": {
+      "id": "ceinture_d"
+    }
+  },
+  {
+    "id": "encensoir-de-la-peste",
+    "type": "trappings",
+    "label": "Encensoir de la peste",
+    "categorie": "melee",
+    "subType": {
+      "id": "fleau"
+    },
+    "enc": 3,
+    "availability": null,
+    "price": null,
+    "reach": "Longue",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 4
+    },
+    "qualities": [
+      {
+        "id": "perturbante"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "imprecise"
+      },
+      {
+        "id": "epuisante"
+      },
+      {
+        "id": "malepierre"
+      }
+    ],
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 32,
+      "note": "Nombres : VO Plague Censer. Folio : début de section « Melee Weapons » au sommaire du livre, l'extraction n'ayant aucune ancre de folio."
+    },
+    "shape": {
+      "id": "fleau"
+    },
+    "rangement": {
+      "id": "dos"
+    }
+  },
+  {
+    "id": "boulet",
+    "type": "trappings",
+    "label": "Boulet",
+    "hands": 2,
+    "categorie": "melee",
+    "subType": {
+      "id": "deux-mains"
+    },
+    "availability": null,
+    "price": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [
+      {
+        "id": "a-enroulement"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "dangereuse"
+      }
+    ],
+    "source": {
+      "book": "zoo-imperial",
+      "page": 28,
+      "note": "ZI 02 l.171"
+    },
+    "shape": {
+      "id": "fleau"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {

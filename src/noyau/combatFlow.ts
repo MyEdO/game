@@ -239,7 +239,7 @@ import { applyOps, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, ty
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
-import { gainCorruption, testDExposition } from './corruptionFlow';
+import { gainCorruption, testDExposition, crochetsDeCorruption } from './corruptionFlow';
 import { corruptionGain, EXPOSURE_LADDER, type ExposureLevel } from '../engine/corruption';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { critTableSchema } from '../data/schemas/defs/criticals';
@@ -5216,8 +5216,8 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   // Ops IMMÉDIATS de la rangée (États, Blessures et leur mitigation DÉCLARÉE, Corruption,
   // pénalités/blocages d'incantation, réduction à 0) — applicateur unique, AVANT le Test imbriqué
   // que la même rangée porte (LDB 46 l.55-75, LDB 40 l.56-89).
-  /** Contexte d'application des ops de la rangée au combattant `c` : la Corruption lui revient. */
-  const ctxPour = (c: Combatant): OpsCtx => ({ idNeuf: get().forgerUnId,
+  /** Contexte d'application des ops de la rangée. */
+  const opsCtx: OpsCtx = { idNeuf: get().forgerUnId,
     rng: battleRng(),
     label: m.label,
     now: get().gameTime,
@@ -5225,16 +5225,15 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
     // ligne) dans la catégorie que sa table déclare — sans lui, la pastille d'un effet durable
     // (« Purifier la chair », `LDB 40 l.75`) s'afficherait nue, sans fiche ni popover.
     source: miscastRowSource(miscastTableId(severity), m.rowId),
-    onCorruption: followsCharacterRules(c) ? (n, align) => gainCorruption(get, set, c, n, align) : undefined, ...campAdvantageHooks(get), ...crochetDuSol(get, set),
-  });
-  const opsCtx = ctxPour(caster);
+    ...crochetsDeCorruption(get, set), ...campAdvantageHooks(get), ...crochetDuSol(get, set),
+  };
   lines.push(...applyOps(caster, m.ops, opsCtx));
   // « vos cibles » (LDB 40 l.64) : les cibles de l'incantation, le lanceur en contexte (sa divinité).
   if (m.targetOps.length) {
     const cibles = (ctx.targetIds ?? []).map((id) => actorIn(get(), id)).filter((c): c is Combatant => !!c);
     if (!cibles.length) lines.push(tr('cf.incantationImparfaiteSansCible', { label: m.label }));
     for (const c of cibles) {
-      const cibleCtx: OpsCtx = { ...ctxPour(c), caster };
+      const cibleCtx: OpsCtx = { ...opsCtx, caster };
       lines.push(...applyOps(c, m.targetOps, cibleCtx));
     }
   }
@@ -6365,17 +6364,17 @@ interface PasseDuLancer {
   conjureForm?: ConjureForm;
 }
 
-/** Le contexte d'ops d'une passe de Flow de sort sur `t` : SITE UNIQUE des passes cible, lanceur, Projectile
+/** Le contexte d'ops d'une passe de Flow de sort : SITE UNIQUE des passes cible, lanceur, Projectile
  *  et lancer garanti. `sourceSpellId`, Prières comprises, est l'IDENTITÉ du sort que lisent
- *  `isSpellActive`/`buildAiInput` (LDB 46 l.116-121) ; `onCorruption` suit le personnage (#143). */
-function ctxDuLancer(get: Get, set: SetFn, t: Combatant, caster: Combatant, spell: SortJoue, p: PasseDuLancer): OpsCtx {
+ *  `isSpellActive`/`buildAiInput` (LDB 46 l.116-121). Les crochets de Corruption viennent de `applyLeafOps`. */
+function ctxDuLancer(get: Get, set: SetFn, caster: Combatant, spell: SortJoue, p: PasseDuLancer): OpsCtx {
   return {
     rng: battleRng(), idNeuf: get().forgerUnId, caster, label: spell.label, now: get().gameTime, sl: p.sl,
     overcastDurationSteps: p.overcastDurationSteps, chosenTableRolls: p.chosenTableRolls,
     ...p.duree,
     ...(p.sourceSpell ? { sourceSpell: p.sourceSpell } : {}), sourceSpellId: spell.id,
     ...(p.conjureForm ? { conjureForm: p.conjureForm } : {}),
-    onCorruption: followsCharacterRules(t) ? (n, align) => gainCorruption(get, set, t, n, align) : undefined, ...campAdvantageHooks(get), ...crochetDuSol(get, set),
+    ...campAdvantageHooks(get), ...crochetDuSol(get, set),
   };
 }
 
@@ -6387,10 +6386,10 @@ function lancerLeSortGaranti(get: Get, set: SetFn, caster: Combatant, target: Co
   const sl = spell.cn ?? 0;
   const sourceSpell = sourceDissipableDe(spell, caster);
   const lignes = runCastFlow(get, set, target, caster, spellFlowFor(spell.effects, 'target'),
-    ctxDuLancer(get, set, target, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell }));
+    ctxDuLancer(get, set, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell }));
   if (spellOps(spell.effects, 'caster').length) {
     lignes.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'),
-      ctxDuLancer(get, set, caster, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell })));
+      ctxDuLancer(get, set, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell })));
   }
   return lignes;
 }
@@ -6532,7 +6531,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
     // appliquée par `dureeDuLancer` comme dans la branche non-projectile. Sans elle, les effets
     // durables d'un Projectile (dont ses États PORTÉS) ignoraient les DR dépensés sur la Durée.
     const { mult: ocMult, bonusRounds: ocBonus } = overcastDurationParts(overcastSourceOf(spell), ch.overcastDurationSteps ?? 0);
-    lignes.push(...runCastFlow(get, set, cible, caster, spellFlowFor(spell.effects, 'target'), ctxDuLancer(get, set, cible, caster, spell, {
+    lignes.push(...runCastFlow(get, set, cible, caster, spellFlowFor(spell.effects, 'target'), ctxDuLancer(get, set, caster, spell, {
       sl: spellSLFor(mres.sl, cible, ch.zoneTalentMod), duree: dureeDuLancer(get, caster, spell, ocMult, ocBonus),
       overcastDurationSteps: ch.overcastDurationSteps, chosenTableRolls: ch.chosenTableRolls,
       sourceSpell: ch.sourceSpell, conjureForm: ch.conjureForm,
@@ -6855,7 +6854,7 @@ export function applyCast(
           // Tout sort passe par le système Flow/EffectOp : `spell.effects` (Flow éditable, feuilles
           // `on:'target'`) → `runCombatFlow` (exécuteur unique, after-aware) → applyOps. Les feuilles
           // `on:'caster'` sont appliquées à part.
-          ...runCastFlow(get, set, t, caster, spellFlowFor(spell.effects, 'target'), ctxDuLancer(get, set, t, caster, spell, {
+          ...runCastFlow(get, set, t, caster, spellFlowFor(spell.effects, 'target'), ctxDuLancer(get, set, caster, spell, {
             sl: opp ? opp.margin : slFor(t), duree, overcastDurationSteps, chosenTableRolls, sourceSpell, conjureForm: extras?.conjureForm,
           })),
         );
@@ -6975,7 +6974,7 @@ export function applyCast(
     // Effets sur le LANCEUR (feuilles `on:'caster'` de `spell.effects` — Vol de vie « retirez tout État
     // Exténué dont vous souffrez », buffs de soi d'un sort offensif) : appliqués UNE seule fois par lancement.
     if (spellOps(spell.effects, 'caster').length) {
-      logLines.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'), ctxDuLancer(get, set, caster, caster, spell, {
+      logLines.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'), ctxDuLancer(get, set, caster, spell, {
         sl: slFor(caster), duree: dureeDuLancer(get, caster, spell, durationMult, durationBonusRounds),
         overcastDurationSteps, chosenTableRolls, sourceSpell, conjureForm: extras?.conjureForm,
       })));
@@ -9660,7 +9659,7 @@ export const TABLES = {
       // Cible ou coque disparue : CE maillon est perdu et se DIT (applier `operationsDe`) ; les suivants jouent.
       const cible = actorIn(get(), c.cibleId);
       if (!cible) { journaliser(get, set, [tr('cascade.cibleDisparue', { label })], 'information'); return; }
-      const opsCtx = ctxRepris(get, set, c.ctx, cible);
+      const opsCtx = ctxRepris(get, set, c.ctx);
       if (!opsCtx) { journaliser(get, set, [tr('cascade.coqueDisparue', { label })], 'information'); return; }
       runCombatFlow({ get, set, target: cible, caster: opsCtx.caster ?? cible, label, opsCtx }, c.flow);
     },

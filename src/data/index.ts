@@ -906,6 +906,9 @@ export interface TrappingData {
    *  affectée » (ADE II 8 l.243). Propagé Trapping → ItemInstance → Weapon (`onHitEffects`), dispatché
    *  par `fireTriggers('onHit')` sur la cible primaire ET les cibles de la zone d'Explosion. */
   onHitEffects?: TriggeredEffect[];
+  /** Passifs de l'ARME elle-même (vocabulaire de `weaponPassiveOps`), ≠ `passive` du PORTEUR. Propagé
+   *  Trapping → ItemInstance → Weapon (`passifDArme`). ZI 13 l.199 */
+  passifDArme?: import('../engine/ops').OpPassive[];
   /** PORTÉE MINIMALE de tir (bande) : la cible plus proche que cette bande REFUSE le tir (≠ malus). Machines
    *  de siège à distance = `'courte'` (pas de Bout Portant, ADE II 8 l.253) ; trébuchet/mortier =
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,

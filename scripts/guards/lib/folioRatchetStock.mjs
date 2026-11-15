@@ -138,7 +138,6 @@ export const FOLIO_RATCHET = new Set([
   'trappings.json:hallebarde-arquebuse', // p.100 -> 102
   'trappings.json:haquebute', // p.100 -> 102
   'trappings.json:huile-de-lampe', // p.308 -> 309+
-  'trappings.json:jezail-a-malepierre', // p.45 -> 94
   'trappings.json:lampe-tempete', // p.308 -> 309+
   'trappings.json:livre-medecine', // p.304 -> 305+
   'trappings.json:livre-religion', // p.304 -> 305+
