@@ -23,8 +23,16 @@ import {
   type RefTypee,
   type TypeEntite,
 } from './schemas/grammaire/ref';
-import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
-import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
+import {
+  cleNichee,
+  libelleDeLElement,
+  lireCleDEspace,
+  pasDeLaSuite,
+  retenuParFiltre,
+  suivreLeChemin,
+  vocabulaireDuFichier,
+} from './schemas/grammaire/cle-d-espace';
+import { VOCABULAIRES, type NomDeVocabulaire } from './schemas/grammaire/vocabulaires';
 import {
   CATEGORIE_CODEX_DU_FICHIER,
   CLES_CODEX,
@@ -623,11 +631,11 @@ export function trousDeLEnjeu(key: StakeKey): string[] | undefined {
  *  jamais silencieux). `entryCategory` = la catégorie FOURNIE par le producteur, pour les clés dont le
  *  dataset ne peut pas la déclarer (`entryFromSource` : l'entité source d'un effet peut être de
  *  n'importe quelle nature). */
-function stakeRef(
-  dataset: StakeDataset,
+function stakeRef<D extends StakeDataset>(
+  dataset: D,
   kind: string,
   opts: { entryId?: string; entryCategory?: string; values?: Record<string, string | number> } = {},
-): StakeRef {
+): CatalogStake & { key: { dataset: D } } {
   if (!stakeEntry({ dataset, kind })) {
     throw new Error(`stakeRef('${dataset}/${kind}') : aucune entrée d'enjeu — une surface qui LANCE dit ce qu'elle met en jeu`);
   }
@@ -687,11 +695,15 @@ export function stateRecoveryStakeRef(etatId: string): StakeRef {
 }
 
 /** Enjeu d'une MODALE MONO (#1117 L1b, `stakeRef`) : le TYPE ferme l'id (`FlowStakeId`, généré) en
- *  PREMIER rideau, le throw est le second. `entryId` = la chanson chantée, le type de Test d'équipage. */
+ *  PREMIER rideau, le throw est le second. `entryId` = la chanson chantée, le type de Test d'équipage.
+ *  Sans `values`, l'enjeu a la forme qu'un document saisit (`catalogStakeSchema`) : un Effet en pose un
+ *  par défaut sans recopier sa clé. */
+export function flowStakeRef(id: FlowStakeId, opts?: { entryId?: string }): CatalogStake & { key: { dataset: 'flux' }; values?: never };
+export function flowStakeRef(id: FlowStakeId, opts: { entryId?: string; values: Record<string, string | number> }): CatalogStake;
 export function flowStakeRef(
   id: FlowStakeId,
   opts?: { entryId?: string; values?: Record<string, string | number> },
-): StakeRef {
+): CatalogStake {
   return stakeRef('flux', id, opts);
 }
 
@@ -2438,14 +2450,27 @@ function collectionDuType(type: TypeEntite): DatasetDeCategorie | undefined {
 export function datasetDeLEspaceDuType(type: TypeEntite): CleDeDataset | undefined {
   return collectionDuType(type)?.cle;
 }
-/** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées vivantes de l'espace de son type
- *  qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de la donnée ; LÈVE si aucun dataset ne porte
- *  l'espace (`datasetDeLEspaceDuType`). */
-export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type' | 'sousListe'>): { id: string; label: string }[] {
+/** Les entrées `{ id, label }` de l'espace de `type`, dans l'ordre de leur source : la collection vivante de son dataset
+ *  (`collectionDuType`), sinon la table de son vocabulaire (`VOCABULAIRES`), sinon les ids qu'admet sa validation
+ *  (`idsDe`), chacun au libellé de son entrée dans la racine vivante de son fichier (`RACINES_VIVANTES`, au bout des
+ *  champs de sa niche), à défaut l'id. */
+function entreesDuType(type: TypeEntite): readonly { id: string; label: string }[] {
   const d = collectionDuType(type);
-  if (d === undefined) throw new Error(`choixDeLaFeuilleDId : aucun dataset ne porte l’espace ${espaceDe(type)}.`);
+  if (d !== undefined) return collectionDeRacine(d);
+  const { fichier, niche } = lireCleDEspace(espaceDe(type));
+  const nom = vocabulaireDuFichier(fichier) as NomDeVocabulaire | undefined;
+  if (nom !== undefined) return Object.entries(VOCABULAIRES[nom]).map(([id, label]) => ({ id, label }));
+  const pas = pasDeLaSuite(niche ?? '');
+  const lues = pas.every((p): p is { champ: string } => 'champ' in p) ? suivreLeChemin(RACINES_VIVANTES[fichier], pas) : undefined;
+  const entrees = Array.isArray(lues) ? lues.filter(estObjet) : [];
+  return [...idsDe(type)].map((id) => ({ id, label: libelleDeLElement(entrees.find((e) => e.id === id) ?? {}, LIBELLE_AU_LABEL.champs) ?? id }));
+}
+/** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées de l'espace de son type
+ *  (`entreesDuType`) qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de leur source. */
+export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type' | 'sousListe'>): { id: string; label: string }[] {
+  const entrees = entreesDuType(type);
   const admis = new Set(sousListe === undefined ? idsDe(type) : idsDeLaSousListe(type, sousListe));
-  return collectionDeRacine(d).filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
+  return entrees.filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
 }
 /** Libellé d'affichage d'un id, par source de spéc, tel que sa déclaration le dit (`SourceDeSpecs.libelle`) :
  *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers (`entree`) ; sinon l'id. */

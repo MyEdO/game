@@ -139,6 +139,7 @@ export const TYPES = {
   merchant: { espace: 'merchants.json', catalogue: 'archétypes de marchand' },
   colonneDuMarchand: { espace: 'vocabulaire:colonnesDuMarchand', catalogue: 'colonnes de stats du marchand' },
   action: { espace: 'actions.json', catalogue: 'actions' },
+  activity: { espace: 'activities.json', catalogue: 'activités' },
   location: { espace: 'locations.json', catalogue: 'lieux' },
   serviceDeLieu: { espace: 'lieux-services.json', catalogue: 'services de lieu' },
   // #2968 P-art : registre `src/data/fonds/defs`.

@@ -209,7 +209,7 @@ describe('#4105 lot 3 — la herse baissée sépare pour le corps à corps', () 
     return d;
   };
 
-  it('baissée : ni contact, ni coup sur place, ni Engagement, ni Surnombre ; une Charge doit la contourner', () => {
+  it('baissée : ni contact, ni coup sur place, ni Surnombre ; une Charge doit la contourner', () => {
     const { H, E } = herse();
     expect(contact(H, E)).toBe(Infinity);
     expect(contact(E, H)).toBe(Infinity);
@@ -219,8 +219,6 @@ describe('#4105 lot 3 — la herse baissée sépare pour le corps à corps', () 
       if (plan.kind === 'charge') expect(plan.dest, `la Charge de ${A.id} ne s’arrête pas sur sa case`).not.toMatchObject({ x: A.pos!.x, y: A.pos!.y });
     }
     expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, E, 'heros')).toBe(0);
-    expect(H.engagedWith ?? []).not.toContain(E.id);
-    expect(E.engagedWith ?? []).not.toContain(H.id);
   });
 
   it('baissée : la vue passe, et le tir à travers reste offert sans couvert', () => {

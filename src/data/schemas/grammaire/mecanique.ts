@@ -11,8 +11,7 @@ import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from './valeurs';
 import { proseNommee } from './prose';
 import { declarerEnfants } from './descente';
 import { marquerProduit } from './interne/produits';
-import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
-import { categorieDEntreeAPool, trousDeLEnjeu, type StakeRef } from '../../index';
+import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import {
@@ -1083,6 +1082,18 @@ const conditionDeTalentSchema = refOuSpec('talent', {
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
 }) as z.ZodType<Extract<Condition, { kind: 'talent' }>> & z.core.$ZodTypeDiscriminable;
 
+/** `{ kind: 'career' }` — un héros du groupe exerce la Carrière (`flowCore.ts`, `evalCondition`). */
+const conditionDeCarriereSchema = ref('career', {
+  kind: nommerNoeud(z.literal('career'), { nom: 'type' }),
+  who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
+}) as z.ZodType<Extract<Condition, { kind: 'career' }>> & z.core.$ZodTypeDiscriminable;
+
+/** `{ kind: 'species' }` — un héros du groupe est de l'Espèce (`flowCore.ts`, `evalCondition`). */
+const conditionDEspeceSchema = ref('species', {
+  kind: nommerNoeud(z.literal('species'), { nom: 'type' }),
+  who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
+}) as z.ZodType<Extract<Condition, { kind: 'species' }>> & z.core.$ZodTypeDiscriminable;
+
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
 const ALGEBRES_DE_CONDITION = new Map<string, z.ZodType<Condition>>();
 
@@ -1123,8 +1134,8 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
       variante('État de campagne', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('etat'), etat: z.string().min(1, 'Condition « etat » : nommez l’état de campagne lu.'), value: z.string().optional() }), { kind: { label: "type"  }, etat: { label: "état de campagne" , texte: { regime: "technique"} }, value: { label: "valeur" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.etat')),
       variante('Compétence du groupe', conditionDeCompetenceSchema),
       variante('Talent du groupe', conditionDeTalentSchema),
-      variante('Carrière du groupe', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('career'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.career')),
-      variante('Espèce du groupe', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('species'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.species')),
+      variante('Carrière du groupe', conditionDeCarriereSchema),
+      variante('Espèce du groupe', conditionDEspeceSchema),
       variante('Statut du groupe ≥', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: statutSchema, who: partySelectorSchema.optional() }), { kind: { label: "type"  }, atLeast: { label: "minimum" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.status')),
       variante('État du porteur (comparaison)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('compare'), subject: compareSubjectSchema, op: compareOpSchema, value: compareValueSchema }), { kind: { label: "type"  }, subject: { label: "sujet" }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.compare')),
       variante('Marge (DR)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('slThreshold'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.slThreshold')),
@@ -1185,21 +1196,11 @@ export const catalogStakeSchema = nommerChamps(z.strictObject({
  *  (arbitrage user 2026-08-12, #1262) : elle voyage avec le document et ne pointe aucun dataset. */
 export const authoredStakeSchema = proseNommee(nommerChamps(z.strictObject({}), {}), 'stake.authored');
 
-/** `DerivedStake` (`src/data/index.ts`) — enjeu DÉRIVÉ de l'entité porteuse (`{kind, id}`), calculé
- *  au montage de l'étape par le socle. */
-export const derivedStakeSchema = nommerChamps(z.strictObject({
-  from: nommerChamps(z.strictObject({
-    kind: z.enum(Object.keys(CATEGORY_BY_SOURCE_KIND) as [EffectSourceKind, ...EffectSourceKind[]]),
-    id: z.string(),
-  }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } }),
-}), { from: { label: "provenance" } });
-
-/** `StakeRef` (`src/data/index.ts`) — les TROIS formes d'enjeu d'une entrée de jet, qui passent par
- *  la même porte de résolution (`resolveStake`). */
-export const stakeRefSchema: z.ZodType<StakeRef> = z.union([
+/** L'enjeu SAISI d'une entrée de jet : les deux formes de `StakeRef` (`src/data/index.ts`) qu'un document
+ *  écrit. `DerivedStake` est calculé par le socle (`derivedStake`, #1262) et vit au seul type du runtime. */
+export const stakeRefSchema = z.union([
   catalogStakeSchema,
   authoredStakeSchema,
-  derivedStakeSchema,
 ]);
 
 /** FACILITATION d'un jet par ce que porte le jeteur (Compétence, Talent) : `steps` crans plus facile,

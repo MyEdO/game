@@ -37,6 +37,12 @@ describe('résolveurs de la couche de campagne sur un narratif passé en argumen
     expect(resolvePresetCreature('pnj-baron', presetDuNarratif(emptyNarratif()))).toBeUndefined();
   });
 
+  it('un profil sans base prend l’identité de son preset, jamais une identité saisie', () => {
+    const profil = { label: 'Gus', char: findCreatureById('humain')!.char, traits: [] };
+    const seul: NarratifBlock = { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-gus', profil }] };
+    expect(resolvePresetCreature('pnj-gus', presetDuNarratif(seul))!.creature).toEqual({ ...profil, id: 'pnj-gus' });
+  });
+
   it('un narratif édité (nouvelle identité) se résout à neuf, l’ancien garde ses entrées', () => {
     const edite: NarratifBlock = { ...narratif, presetsPnj: [{ id: 'pnj-baron', base: { id: 'humain' }, profil: { label: 'Le Baron renommé' } }] };
     expect(presetDuNarratif(edite)('pnj-baron')?.profil?.label).toBe('Le Baron renommé');

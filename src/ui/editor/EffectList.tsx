@@ -913,18 +913,15 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               </select>
             </label>
             <div className="eff-list-head">Adversaires
-              <button type="button" className="btn small" onClick={() => upd({ foes: [...(e.foes ?? []), { ref: { id: creatureSemee() } }] })}>+ adversaire</button>
+              <button type="button" className="btn small" onClick={() => upd({ foes: [...(e.foes ?? []), { id: creatureSemee() }] })}>+ adversaire</button>
             </div>
             <span className="branch-label">Chaque adversaire est une créature du bestiaire : son Mouvement et sa valeur de Test se lisent sur SA fiche.</span>
-            {(e.foes ?? []).map((f: { id?: string; ref: { id?: string } }, i: number) => {
-              const patchFoe = (patch: Partial<typeof f>) => upd({ foes: (e.foes ?? []).map((x: typeof f, k: number) => (k === i ? { ...x, ...patch } : x)) });
-              return (
-                <div key={i} className="eff-row">
-                  <RefField cfg={{ ds: 'creatures', single: true }} fieldKey="Créature" value={f.ref?.id ?? ''} onChange={(v) => { if (v) patchFoe({ ref: { id: v as string } }); }} />
-                  <button type="button" className="btn small" onClick={() => upd({ foes: (e.foes ?? []).filter((_: typeof f, k: number) => k !== i) })}>×</button>
-                </div>
-              );
-            })}
+            {(e.foes ?? []).map((f: { id?: string }, i: number) => (
+              <div key={i} className="eff-row">
+                <RefField cfg={{ ds: 'creatures', single: true }} fieldKey="Créature" value={f.id ?? ''} onChange={(v) => { if (v) upd({ foes: (e.foes ?? []).map((x: typeof f, k: number) => (k === i ? { id: v as string } : x)) }); }} />
+                <button type="button" className="btn small" onClick={() => upd({ foes: (e.foes ?? []).filter((_: typeof f, k: number) => k !== i) })}>×</button>
+              </div>
+            ))}
           </div>
         )}
         {effect.type === 'startMassBattle' && (
@@ -1093,11 +1090,11 @@ function firstUnusedScene(used: string[]): string {
 
 /** Scènes de COMBAT/MENACE référencées (catalogue effectif ∪ situations ∪ enchaînements déterministes)
  *  → celles pour lesquelles l'auteur peut mapper une rencontre de la scène courante. */
-function referencedCombatScenes(b: MassBattleSpec): string[] {
+function referencedCombatScenes(b: MassBattleSpec): (keyof NonNullable<MassBattleSpec['sceneEncounters']>)[] {
   const pool = b.scenes && b.scenes.length ? b.scenes : BATTLE_SCENES().map((s) => s.id);
   const ids = new Set<string>([...pool, ...((b.situations ?? []).flat())]);
   for (const id of [...ids]) for (const c of sceneChainIds(id)) ids.add(c);
-  return [...ids].filter((id) => { const k = battleSceneById(id)?.sceneKind; return k === 'combat' || k === 'threat'; });
+  return [...ids].filter((id): id is keyof NonNullable<MassBattleSpec['sceneEncounters']> => { const k = battleSceneById(id)?.sceneKind; return k === 'combat' || k === 'threat'; });
 }
 
 /** Multi-sélection de Scènes de bataille (patron de `ListRefField` sur le catalogue des Scènes de Round) :
@@ -1175,10 +1172,10 @@ function MassBattleFields({ identite, battle, onChange, ctx }: { identite: strin
           <div key={id} className="fieldrow">
             <span className="dr" style={{ minWidth: 140 }}>{battleSceneById(id)?.label ?? id}</span>
             <select
-              value={b.sceneEncounters?.[id] ?? ''}
+              value={b.sceneEncounters?.[id]?.id ?? ''}
               onChange={(ev) => {
                 const next = { ...(b.sceneEncounters ?? {}) };
-                if (ev.target.value) next[id] = ev.target.value; else delete next[id];
+                if (ev.target.value) next[id] = { id: ev.target.value }; else delete next[id];
                 set({ sceneEncounters: Object.keys(next).length ? next : undefined });
               }}
             >

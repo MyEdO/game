@@ -175,3 +175,20 @@ describe('narratifSchema — objet de campagne au schéma du catalogue (#4171)',
     expect(chemins(sans(['id']))).toEqual(['objets.0.id']);
   });
 });
+
+/** #4234 — l'id d'un preset devient le `creatureId` du combattant : il ne collisionne avec AUCUN catalogue que
+ *  `creatureId` désigne (`collisionneAvecLeGlobal`). */
+describe('narratifSchema — id de preset contre les catalogues lus par `creatureId` (#4234)', () => {
+  it.each([
+    ['gobelin', 'créature'],
+    ['arme-simple', 'possession'],
+    ['diligence', 'véhicule et structure'],
+    ['barge', 'véhicule seul'],
+    ['porte', 'structure seule'],
+  ])('« %s » (%s) : refusé au chemin de son id', (id) => {
+    const r = narratifSchema.safeParse({ ...vide, presetsPnj: [{ id, base: { id: 'gobelin' } }] });
+    expect((r.error?.issues ?? []).map((i) => `${i.path.join('.')} :: ${i.message}`)).toEqual([
+      `presetsPnj.0.id :: l'id de preset PNJ « ${id} » collisionne avec un id de la règle globale (créature, possession, véhicule ou structure).`,
+    ]);
+  });
+});
