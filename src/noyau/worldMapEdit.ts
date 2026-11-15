@@ -6,16 +6,21 @@
  */
 import { lieuxServices, semencesDeScene } from '../data';
 import { uniqueSlugId } from '../data/slug';
+import { offreDAubergeSchema } from '../data/schemas/defs-scenes/worldmap';
+import { choixDuNoeud } from './codex/editFields';
 import type { TravelMode } from '../engine/travel';
 import type { LandMarketProfile } from '../engine/landCargo';
 import { t } from '../i18n';
 import {
+  estUnHebergement,
   nomDuPoi,
+  OFFRES_DU_LIVRE,
   placeServices,
   SERVICE_CITE,
   type MapPlace,
   type MapRoute,
   type MapRouteTrace,
+  type OffreDAuberge,
   type PlacePoi,
   type PlaceService,
   type Praticabilite,
@@ -143,6 +148,42 @@ export function etablissementRetire(lieu: MapPlace, id: string): PatchDeLieu | u
   if (poiQuiVise(lieu, id)) return undefined;
   const services = (lieu.services ?? []).filter((sv) => sv.id !== id);
   return { services: services.length ? services : undefined };
+}
+
+/** Les offres d'auberge que vend l'établissement `id` du lieu `lieu` : celles qu'il déclare, sinon celles du livre
+ *  (`OFFRES_DU_LIVRE`) ; `undefined` pour un établissement absent ou qui n'héberge pas (`estUnHebergement`). */
+function offresVendues(lieu: MapPlace, id: string): readonly OffreDAuberge[] | undefined {
+  const service = lieu.services?.find((sv) => sv.id === id);
+  return service && estUnHebergement(service) ? service.rest?.offres ?? OFFRES_DU_LIVRE : undefined;
+}
+
+/** Chaque offre d'auberge du schéma (`offreDAubergeSchema`), à son libellé, vendue ou non par l'établissement `id` du lieu
+ *  `lieu` (`offresVendues`) ; `undefined` pour un établissement absent ou qui n'héberge pas. #4277 */
+export function offresDeLEtablissement(lieu: MapPlace, id: string): { id: OffreDAuberge['id']; libelle: string; vendue: boolean }[] | undefined {
+  const vendues = offresVendues(lieu, id);
+  return vendues && choixDuNoeud(offreDAubergeSchema.shape.id)!.map((o) => ({ id: o.valeur as OffreDAuberge['id'], libelle: o.libelle, vendue: vendues.some((v) => v.id === o.valeur) }));
+}
+
+/** Le patch du lieu `lieu` où les offres d'auberge de son établissement `id` (`offresVendues`) deviennent `f(offres)` ;
+ *  refusé (`undefined`) pour un établissement absent ou qui n'héberge pas, ou quand `f` refuse. #4277 */
+function surLesOffres(lieu: MapPlace, id: string, f: (offres: readonly OffreDAuberge[]) => OffreDAuberge[] | undefined): PatchDeLieu | undefined {
+  const vendues = offresVendues(lieu, id);
+  const offres = vendues && f(vendues);
+  if (!offres) return undefined;
+  return { services: lieu.services!.map((sv) => (sv.id === id ? { ...sv, rest: { ...sv.rest, offres } } : sv)) };
+}
+
+/** Le patch du lieu `lieu` où son établissement `id` vend en plus l'offre du livre `offre`, à sa source, sans prix ni risque
+ *  propres (`OFFRES_DU_LIVRE`) ; refusé pour une offre qu'il vend déjà (`surLesOffres`). #4277 */
+export function offreAjoutee(lieu: MapPlace, id: string, offre: OffreDAuberge['id']): PatchDeLieu | undefined {
+  const neuve: OffreDAuberge = { id: offre, source: OFFRES_DU_LIVRE.find((o) => o.id === offre)!.source };
+  return surLesOffres(lieu, id, (offres) => (offres.some((o) => o.id === offre) ? undefined : [...offres, neuve]));
+}
+
+/** Le patch du lieu `lieu` où son établissement `id` ne vend plus l'offre `offre`, une liste vidée gardée : il ne vend
+ *  alors rien ; refusé pour une offre qu'il ne vend pas (`surLesOffres`). #4277 */
+export function offreRetiree(lieu: MapPlace, id: string, offre: OffreDAuberge['id']): PatchDeLieu | undefined {
+  return surLesOffres(lieu, id, (offres) => (offres.some((o) => o.id === offre) ? offres.filter((o) => o.id !== offre) : undefined));
 }
 
 /** Coche ou décoche `mode` sur la route `id`. */

@@ -8,6 +8,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { OFFRES_DU_LIVRE } from './worldMap';
+import { fixtureText } from '../i18n/fixtureText';
 import { restCost, type PendingRest } from './restFlow';
 import { findTrappingById } from '../data';
 import { toBrass, priceToMoney } from '../engine/money';
@@ -16,7 +17,7 @@ import type { Combatant } from '../engine/types';
 const hero = (id: string): Combatant => ({ id, name: id, items: [], wounds: { current: 10, max: 10 }, conditions: [] } as unknown as Combatant);
 
 const basePending = (perHero: PendingRest['perHero']): PendingRest =>
-  ({ places: { auberge: true }, offres: OFFRES_DU_LIVRE, quality: 'normale', days: 1, perHero, phase: 'setup' }) as PendingRest;
+  ({ places: { auberge: true }, offres: OFFRES_DU_LIVRE, lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero, phase: 'setup' });
 
 describe('restCost (restFlow) résout les MÊMES prix que le catalogue trappings (LDB 66 l.12-16)', () => {
   it('chambre commune/nuit : restCost == price du trapping "chambre-commune-nuit"', () => {

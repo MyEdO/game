@@ -335,8 +335,13 @@ interface ServiceResolu {
 /** Une offre d'auberge de la nuit : celle d'un établissement (`OffreDAuberge`), ou du livre (`OFFRES_DU_LIVRE`). */
 export type OffreDuRepos = Omit<OffreDAuberge, 'source'>;
 
-/** Les offres d'auberge du livre, sans prix ni risque propres. LDB 66 l.12-16, l.28 */
-export const OFFRES_DU_LIVRE: readonly OffreDuRepos[] = [{ id: 'commune' }, { id: 'chambre' }, { id: 'grande' }, { id: 'repas' }];
+/** Les offres d'auberge du livre, sans prix ni risque propres, à leur source. LDB 66 l.12-16, l.28 */
+export const OFFRES_DU_LIVRE: readonly OffreDAuberge[] = [
+  { id: 'commune', source: { book: 'livre-de-base', page: 302 } },
+  { id: 'chambre', source: { book: 'livre-de-base', page: 302 } },
+  { id: 'grande', source: { book: 'livre-de-base', page: 302 } },
+  { id: 'repas', source: { book: 'livre-de-base', page: 302 } },
+];
 
 /** Le repos d'un établissement d'hébergement, résolu une fois (`placeServices`) : ses lieux de repos, sa qualité et ses
  *  offres d'auberge, RÉFÉRENCÉES depuis leur porteur. */

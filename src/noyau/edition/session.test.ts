@@ -1474,6 +1474,27 @@ describe('les points d’intérêt d’un lieu, sur le plan du lieu de la carte 
     expect(carte(jouer(retire, { geste: 'annuler' }))).toEqual(carte(vise));
   });
 
+  it('une auberge du lieu sélectionné cesse de vendre le repas du livre puis le revend, chacun sur un cran ; ses offres déclarées s’écrivent au formulaire sauf leur identifiant ; la carte écrite passe la validation, une offre doublée non (#4277)', () => {
+    const s = jouer(surLePlan(), { geste: 'ajouterEtablissement', kind: 'auberge' }, { geste: 'ajouterEtablissement', kind: 'forgeron' });
+    const sansRepas = jouer(s, { geste: 'retirerOffre', etablissement: 'auberge', offre: 'repas' });
+    expect([carte(sansRepas).places[0].services?.[0].rest?.offres?.map((o) => o.id), sansRepas.historique.passe.length]).toEqual([['commune', 'chambre', 'grande'], s.historique.passe.length + 1]);
+    const revendu = jouer(sansRepas, { geste: 'ajouterOffre', etablissement: 'auberge', offre: 'repas' });
+    expect(carte(revendu).places[0].services?.[0].rest?.offres?.map((o) => o.id)).toEqual(['commune', 'chambre', 'grande', 'repas']);
+    expect([
+      jouer(revendu, { geste: 'ajouterOffre', etablissement: 'auberge', offre: 'repas' }),
+      jouer(revendu, { geste: 'ajouterOffre', etablissement: 'forgeron', offre: 'repas' }),
+      jouer(revendu, { geste: 'retirerOffre', etablissement: 'absent', offre: 'repas' }),
+    ], 'une offre déjà vendue, un établissement qui n’héberge pas ou absent : sans objet').toEqual([revendu, revendu, revendu]);
+    const prix = jouer(revendu, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['services', 0, 'rest', 'offres', 3, 'prix'], valeur: {} });
+    expect(carte(prix).places[0].services?.[0].rest?.offres?.[3].prix).toEqual({});
+    expect(refusDeLaValeur(revendu, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['services', 0, 'rest', 'offres', 3, 'id'], valeur: 'commune' }), 'son identifiant ne s’écrit que par ses écrivains').toBe('nonOffert');
+    expect(refusDeLaValeur(revendu, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['services', 1, 'rest'], valeur: {} }), 'un forgeron n’héberge pas').toBe('nonOffert');
+    const erreurs = (m: WorldMap) => validateScene(projetEdite(revendu).scenes, m, NARRATIF_VIDE).filter((w) => w.level === 'error').map((w) => w.message);
+    expect(erreurs(carte(revendu))).toEqual([]);
+    const doublee = { ...carte(revendu), places: carte(revendu).places.map((p, i) => (i ? p : { ...p, services: p.services!.map((sv, j) => (j ? sv : { ...sv, rest: { offres: [...sv.rest!.offres!, sv.rest!.offres![0]] } })) })) };
+    expect(erreurs(doublee).length, 'témoin : la validation lit les offres').toBeGreaterThan(0);
+  });
+
   it('retirer le point d’intérêt désigné l’ôte du lieu sur un cran, la liste vidée retirée ; sans point désigné, c’est sans objet', () => {
     const s = surLePlan();
     expect(jouer(s, { geste: 'retirerPoi' })).toBe(s);

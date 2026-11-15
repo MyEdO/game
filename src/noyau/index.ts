@@ -196,7 +196,7 @@ export {
   type SessionDEdition,
 } from './edition/session';
 export { OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, type OutilDeLaCarte, type OutilDuPlanDuLieu } from './edition/pointeur';
-export { orienterRoute, typesDEtablissement } from './worldMapEdit';
+export { offresDeLEtablissement, orienterRoute, typesDEtablissement } from './worldMapEdit';
 export { refusDeForme } from './narratifEdit';
 export { FORMES_D_ETAT, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
 export { SOUS_ENTREES } from '../data/schemas/defs-scenes/ecritures-du-narratif';
