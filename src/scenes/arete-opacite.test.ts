@@ -141,7 +141,7 @@ describe('La Diligence — les six box migrées prennent le profil AA du clayonn
     // Tireur et cible de part et d'autre de l'arête (21,29,E) — le couple exact que l'arête sépare.
     const from = { x: 21, y: 29 };
     const to = { x: 22, y: 29 };
-    expect(couvertDArete(scene, from, to, cranDeCouvertEnMoins)).toBe('none');
+    expect(couvertDArete(scene, { pos: from }, { pos: to }, cranDeCouvertEnMoins)).toBe('none');
     expect(wallOnSight(scene, from, to, 0)).toBe(false);
   });
 
@@ -155,7 +155,7 @@ describe('La Diligence — les six box migrées prennent le profil AA du clayonn
     };
     const from = { x: 21, y: 29 };
     const to = { x: 22, y: 29 };
-    expect(couvertDArete(avant, from, to, cranDeCouvertEnMoins)).toBe('imparfaite');
+    expect(couvertDArete(avant, { pos: from }, { pos: to }, cranDeCouvertEnMoins)).toBe('imparfaite');
     expect(wallOnSight(avant, from, to, 0)).toBe(true);
     // Et la Structure d'avant était deux fois plus solide, avec une Limite d'Encombrement.
     const mur = findStructureById('mur-a-ossature-en-bois')!;

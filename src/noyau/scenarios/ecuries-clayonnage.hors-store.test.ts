@@ -2,7 +2,7 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { scenario } from '../../scenes/test-scenarios/ecuries-clayonnage';
 import { scenario as diligence } from '../../scenes/test-scenarios/diligence';
-import { lineOfSightCover, makeLosMemo, type LosMemo } from '../../noyau/monde/lineOfSight';
+import { couvertDuTir, lineOfSightCover, makeLosMemo, type LosMemo } from '../../noyau/monde/lineOfSight';
 import { wallBetween, areteOcculteEntre, structureAt, emptyScene, type Scene } from '../../noyau/monde/scene';
 import { parseWalledAscii, scanMarkers } from '../../noyau/monde/asciiMap';
 import { buildEncounter } from '../../noyau/monde/encounterAuthoring';
@@ -139,7 +139,7 @@ describe('carte-fixture — deux stalles, une arête qui laisse voir, une qui fe
 
   it('le couvert rendu est CELUI que la structure déclare — jamais une valeur écrite ici', () => {
     const attendu = couvertDepuisDifficulte(findStructureById(CLAYONNAGE)!.couvertPenalty!);
-    const abrites = HEROS.map((h) => lineOfSightCover(sc, h, GOBELIN_VOISIN, []).cover);
+    const abrites = HEROS.map((h) => couvertDuTir(sc, lineOfSightCover(sc, h, GOBELIN_VOISIN, []).cover, { pos: h }, { pos: GOBELIN_VOISIN }));
     expect(new Set(abrites).size, 'les deux héros voient la même cible à travers la même arête').toBe(1);
     expect(abrites[0]).toBe(attendu);
   });

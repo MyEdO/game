@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { tilesBetween, lineOfSightCover, couvertDArete, smokeZone } from './lineOfSight';
+import { tilesBetween, lineOfSightCover, couvertDArete, couvertDuTir, smokeZone } from './lineOfSight';
+import type { Pt } from './path';
 import { coverModifier, cranDeCouvertEnMoins } from '../../engine/cover';
 import { Scene, SceneEntity, WallSeg, wallBetween, doorKey, setStructureDown } from './scene';
 
@@ -210,7 +211,12 @@ describe('lineOfSightCover — fumée Z-AWARE (#805)', () => {
  * `wallOnSight`) — MÊME ÉTAGE. Le tir INTER-ÉTAGES n'en reçoit aucun : `couvertDArete` le refuse, et
  * son JSDoc dit pourquoi (aucune donnée ne porte le défenseur posté SUR une Structure).
  */
-describe('lineOfSightCover — couvert des STRUCTURES d’arête (AA 10 l.23)', () => {
+describe('couvert des STRUCTURES d’arête au tir (AA 10 l.23)', () => {
+  /** Le tir d'un corps 1×1 sur un autre : la LdV et le couvert du trajet, puis celui des arêtes (`couvertDuTir`). */
+  const tir = (s: Scene, f: Pt, t: Pt) => {
+    const r = lineOfSightCover(s, f, t, []);
+    return { blocked: r.blocked, cover: couvertDuTir(s, r.cover, { pos: f }, { pos: t }) };
+  };
   /** Tireur en (0,0), cible en (2,2) : le dernier pas est DIAGONAL et un seul de ses deux
    *  contournements est muré → la vue passe par l'extrémité, et l'arête N de la cible l'abrite. */
   const from = { x: 0, y: 0 };
@@ -219,46 +225,46 @@ describe('lineOfSightCover — couvert des STRUCTURES d’arête (AA 10 l.23)', 
     ({ ...s, walls: [{ x: 2, y: 2, side: 'N', ...seg } as WallSeg] });
 
   it('la vue PASSE par l’extrémité (sinon il n’y aurait pas de couvert à donner)', () => {
-    expect(lineOfSightCover(abriteePar({ structure: 'mur-de-chateau' }), from, to, []).blocked).toBe(false);
+    expect(tir(abriteePar({ structure: 'mur-de-chateau' }), from, to).blocked).toBe(false);
   });
 
   it('mur de château (Très Difficile) → couverture TOTALE, −30', () => {
-    const r = lineOfSightCover(abriteePar({ structure: 'mur-de-chateau' }), from, to, []);
+    const r = tir(abriteePar({ structure: 'mur-de-chateau' }), from, to);
     expect(r).toEqual({ blocked: false, cover: 'totale' });
     expect(coverModifier(r.cover)).toBe(-30);
   });
 
   it('clôture en clayonnage (Intermédiaire) → AUCUN couvert : le canon lui donne +0', () => {
-    expect(lineOfSightCover(abriteePar({ structure: 'cloture-en-clayonnage' }), from, to, []).cover).toBe('none');
+    expect(tir(abriteePar({ structure: 'cloture-en-clayonnage' }), from, to).cover).toBe('none');
   });
 
   it('Structure ADE II (table sans colonne de Couvert, ADE II 8 l.282-288) → aucun couvert supposé', () => {
-    expect(lineOfSightCover(abriteePar({ structure: 'mur-en-pierre' }), from, to, []).cover).toBe('none');
+    expect(tir(abriteePar({ structure: 'mur-en-pierre' }), from, to).cover).toBe('none');
   });
 
   it('Structure dont la colonne d’AA est N/A (Solide porte en bois, l.50) → aucun couvert', () => {
-    expect(lineOfSightCover(abriteePar({ structure: 'solide-porte-en-bois' }), from, to, []).cover).toBe('none');
+    expect(tir(abriteePar({ structure: 'solide-porte-en-bois' }), from, to).cover).toBe('none');
   });
 
   it('arête SANS structure → aucun couvert : le couvert est une propriété de la Structure', () => {
-    expect(lineOfSightCover(abriteePar({}), from, to, []).cover).toBe('none');
+    expect(tir(abriteePar({}), from, to).cover).toBe('none');
   });
 
   it('arête ABATTUE → 0 couvert (AA 10 l.127, Effondrement)', () => {
     const s = abriteePar({ structure: 'mur-de-chateau' });
     const down = setStructureDown(s, 2, 2, 'N', 0, true);
-    expect(lineOfSightCover(down, from, to, []).cover).toBe('none');
+    expect(tir(down, from, to).cover).toBe('none');
   });
 
   it('FENÊTRE : un cran de moins — mur à ossature en bois (Complexe, imparfaite) descend à aucun couvert', () => {
     const nue = abriteePar({ structure: 'mur-a-ossature-en-bois' });
-    expect(lineOfSightCover(nue, from, to, []).cover).toBe('imparfaite');
+    expect(tir(nue, from, to).cover).toBe('imparfaite');
     const fenetree = abriteePar({ structure: 'mur-a-ossature-en-bois', window: true });
-    expect(lineOfSightCover(fenetree, from, to, []).cover).toBe('none');
+    expect(tir(fenetree, from, to).cover).toBe('none');
   });
 
   it('FENÊTRE sur un mur de château : totale → moyenne, la croisée ne l’efface pas', () => {
-    expect(lineOfSightCover(abriteePar({ structure: 'mur-de-chateau', window: true }), from, to, []).cover).toBe('moyenne');
+    expect(tir(abriteePar({ structure: 'mur-de-chateau', window: true }), from, to).cover).toBe('moyenne');
   });
 
   it('tir INTER-ÉTAGES → AUCUN couvert d’arête, même contre un mur de château', () => {
@@ -267,14 +273,14 @@ describe('lineOfSightCover — couvert des STRUCTURES d’arête (AA 10 l.23)', 
     const haut = { x: 2, y: 2, z: 1 };
     // La LdV inter-étages ignore DÉJÀ les arêtes : couvrir la cible ici la protégerait derrière des
     // murs que le tir traverse. Le couvert du défenseur perché attend la donnée qui le porte.
-    expect(couvertDArete(perchee, from, haut, cranDeCouvertEnMoins)).toBe('none');
-    expect(lineOfSightCover(perchee, from, haut, [])).toEqual({ blocked: false, cover: 'none' });
+    expect(couvertDArete(perchee, { pos: from }, { pos: haut }, cranDeCouvertEnMoins)).toBe('none');
+    expect(tir(perchee, from, haut)).toEqual({ blocked: false, cover: 'none' });
   });
 
   it('l’arête qui abrite est celle du côté du TIREUR : la même arête ne couvre pas un tir venu d’en face', () => {
     const s = abriteePar({ structure: 'mur-de-chateau' });
     // Depuis le SUD-est, l'arête N de (2,2) ne regarde plus le tireur → elle n'abrite pas.
-    expect(lineOfSightCover(s, { x: 0, y: 3 }, to, []).cover).toBe('none');
+    expect(tir(s, { x: 0, y: 3 }, to).cover).toBe('none');
   });
 
   it('même étage, les DEUX arêtes du coin intactes → il n’y a plus d’extrémité à contourner : vue BLOQUÉE', () => {
@@ -282,10 +288,10 @@ describe('lineOfSightCover — couvert des STRUCTURES d’arête (AA 10 l.23)', 
       { x: 2, y: 2, side: 'N', structure: 'mur-de-chateau' } as WallSeg,
       { x: 1, y: 2, side: 'E', structure: 'mur-de-chateau' } as WallSeg,
     ] };
-    expect(lineOfSightCover(s, from, to, []).blocked).toBe(true);
+    expect(tir(s, from, to).blocked).toBe(true);
   });
 
-  /** Deux arêtes abritantes ne se rencontrent PAS via `lineOfSightCover` (l'`it` ci-dessus le montre :
+  /** Deux arêtes abritantes ne se rencontrent PAS au tir (l'`it` ci-dessus le montre :
    *  intactes toutes deux, elles bloquent le coin). La fusion se contracte donc sur `couvertDArete`
    *  lui-même, seule porte de la règle. */
   it('deux arêtes abritantes : le plus protecteur des deux l’emporte (fusion `couvertLePlusProtecteur`)', () => {
@@ -293,6 +299,6 @@ describe('lineOfSightCover — couvert des STRUCTURES d’arête (AA 10 l.23)', 
       { x: 2, y: 2, side: 'N', structure: 'cloture-en-clayonnage' } as WallSeg,
       { x: 1, y: 2, side: 'E', structure: 'mur-a-ossature-en-bois' } as WallSeg,
     ] };
-    expect(couvertDArete(s, from, to, cranDeCouvertEnMoins)).toBe('imparfaite');
+    expect(couvertDArete(s, { pos: from }, { pos: to }, cranDeCouvertEnMoins)).toBe('imparfaite');
   });
 });

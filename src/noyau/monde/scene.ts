@@ -861,8 +861,11 @@ function structureOccultante(id?: string): boolean {
  *  L’opacité n’est PAS la franchissabilité : une arête non occultante reste infranchissable
  *  (`wallBetween` ne lit jamais ce prédicat — on voit à travers une herse, on ne la traverse pas). */
 export function areteOcculte(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
-  return !wallIsOpen(scene, seg) && !(seg.window && !seg.shuttered) && structureOccultante(seg.structure);
+  return !wallIsOpen(scene, seg) && !croiseeOuverte(seg) && structureOccultante(seg.structure);
 }
+
+/** Croisée sans `shuttered` (arbitrage #1712, 2026-09-08) ; aux volets clos, l'arête est son mur. */
+export const croiseeOuverte = (seg: WallSeg): boolean => !!seg.window && !seg.shuttered;
 
 /** Arête (case, side N/E/S/O) → forme CANONIQUE de stockage (case, N|E) : le `S` de (x,y) est le `N` de (x,y+1), le `O`
  *  de (x,y) le `E` de (x-1,y). */

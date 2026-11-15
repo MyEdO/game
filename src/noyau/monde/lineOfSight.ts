@@ -7,11 +7,12 @@
  * — la classification des décors/créatures est une extrapolation des étalons ; celle des STRUCTURES
  * d'arête est authored et sourcée (`couvertPenalty`, `AA 10 l.23`).
  */
-import { Scene, tileAt, wallOnSight, heightAt, sceneMetresPerTile, edgeOf, structureIsDown } from './scene';
+import { Scene, tileAt, wallOnSight, heightAt, sceneMetresPerTile, edgeOf, structureIsDown, croiseeOuverte } from './scene';
 import { aretesA } from './wallIndex';
 import { terrainOpaque } from './terrain';
 import { findPropById, findStructureById } from '../../data';
 import { decorsEnCase } from './decorIndex';
+import { pairesEnRegard, type Corps } from './footprint';
 import { pointDeCase, type Pt } from './path';
 import type { Combatant, CoverClass } from '../../engine/types';
 import { couvertDepuisDifficulte, couvertLePlusProtecteur, cranDeCouvertEnMoins } from '../../engine/cover';
@@ -97,21 +98,31 @@ function aretesAbritantes(from: Pt, to: Pt): { x: number; y: number; side: 'N' |
  * MÊME ÉTAGE SEULEMENT (`AA 10 l.23`) : `structures.json` ne porte aucun champ du défenseur perché, et la
  * LdV inter-étages ignore les arêtes (`lineOfSightCover`).
  *
- * FENÊTRE : `croisee` dit ce que vaut une croisée, du couvert de son mur (`none` sans Structure). Au
- * tir, un cran de moins (`cranDeCouvertEnMoins`, `AA 10 l.122`, arbitrage #1712 du 2026-09-08) ; en
- * mêlée, la règle `combat-croisee-melee-difficulte` (`LDB 14 l.86`, arbitrage #4105 du 2026-11-13).
+ * FENÊTRE : `croisee` dit ce que vaut une croisée ouverte (`croiseeOuverte`), du couvert de son mur
+ * (`none` sans Structure). Au tir, un cran de moins (`cranDeCouvertEnMoins`, `AA 10 l.122`, arbitrage
+ * #1712 du 2026-09-08) ; en mêlée, la règle `combat-croisee-melee-difficulte` (`LDB 14 l.86`, arbitrage
+ * #4105 du 2026-11-13).
+ *
+ * CORPS : les arêtes abritantes de chaque paire de cases en regard (`pairesEnRegard`), le plus protecteur
+ * l'emporte, comme entre les deux arêtes d'une diagonale ; arbitrage #4105 du 2026-11-13.
  */
-export function couvertDArete(scene: Scene, from: Pt, to: Pt, croisee: (mur: CoverClass) => CoverClass): CoverClass {
-  const z = to.z ?? 0;
-  if ((from.z ?? 0) !== z) return 'none';
+export function couvertDArete(scene: Scene, de: Corps, vers: Corps, croisee: (mur: CoverClass) => CoverClass): CoverClass {
+  const z = vers.pos.z ?? 0;
+  if ((de.pos.z ?? 0) !== z) return 'none';
   let cover: CoverClass = 'none';
-  for (const e of aretesAbritantes(from, to)) for (const seg of aretesA(scene, e.x, e.y, e.side, z)) {
+  for (const [a, b] of pairesEnRegard(de, vers)) for (const e of aretesAbritantes(a, b)) for (const seg of aretesA(scene, e.x, e.y, e.side, z)) {
     if (seg.structure && structureIsDown(scene, seg)) continue;
     const pen = seg.structure ? findStructureById(seg.structure)?.couvertPenalty : undefined;
     const mur = pen ? couvertDepuisDifficulte(pen) : 'none';
-    cover = worst(cover, seg.window ? croisee(mur) : mur);
+    cover = worst(cover, croiseeOuverte(seg) ? croisee(mur) : mur);
   }
   return cover;
+}
+
+/** Couvert de la cible d'un tir : celui du `trajet` (`lineOfSightCover` vers la case visée) et celui des
+ *  arêtes qui l'abritent entre les deux corps (`couvertDArete`, croisée à un cran de moins). `AA 10 l.23`. */
+export function couvertDuTir(scene: Scene, trajet: CoverClass, tireur: Corps, cible: Corps): CoverClass {
+  return worst(trajet, couvertDArete(scene, tireur, cible, cranDeCouvertEnMoins));
 }
 
 /**
@@ -120,7 +131,8 @@ export function couvertDArete(scene: Scene, from: Pt, to: Pt, croisee: (mur: Cov
  * (Souffle (Fumée)) qui BLOQUENT entièrement la vue (RAW « bloquant les Lignes de vue ») —
  * y compris si le tireur ou la cible est DANS la fumée. `blocked:true` = pas de tir (la Ligne de Vue
  * est requise pour tirer, `13` l.114) ; un bloqueur de vue ADJACENT à la cible = couverture totale
- * −30 (« derrière un mur de pierre », `14` l.86) sans empêcher le tir.
+ * −30 (« derrière un mur de pierre », `14` l.86) sans empêcher le tir. Le couvert des arêtes qui
+ * abritent la cible se mesure entre CORPS (`couvertDuTir`), jamais ici.
  */
 export function lineOfSightCover(
   scene: Scene,
@@ -154,11 +166,7 @@ export function lineOfSightCover(
     const horizM = chebyshev(from, to) * sceneMetresPerTile(scene);
     if (dzM > horizM) return { blocked: true, cover: 'totale' };
   }
-  // Structures d'arête qui ABRITENT la cible (`AA 10 l.23`) : le contournement d'EXTRÉMITÉ, seule
-  // situation où le tir atteint une cible qu'une arête intacte abrite — `wallOnSight` vient de laisser
-  // passer le rayon par le côté ouvert du coin. `couvertDArete` se borne au MÊME étage (son JSDoc dit
-  // pourquoi) : le tir inter-étages n'en reçoit aucun.
-  let cover: CoverClass = couvertDArete(scene, from, to, cranDeCouvertEnMoins);
+  let cover: CoverClass = 'none';
   for (const t of tilesBetween(from, to)) {
     const terr = tileAt(scene, t.x, t.y);
     if (tileBlocksSight(scene, t.x, t.y)) {

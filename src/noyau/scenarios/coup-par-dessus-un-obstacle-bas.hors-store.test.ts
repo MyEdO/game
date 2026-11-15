@@ -9,6 +9,7 @@ import { edgeOf, wallBetween, type Scene } from '../monde/scene';
 import { lineOfSightCover } from '../monde/lineOfSight';
 import { attackEnv, doAttack, previewAttack, resolveAttack } from '../combatFlow';
 import { cliquerSurLeCombattant } from '../combatOrParty';
+import { combatGeomOf } from '../mount';
 import { seedBattleRng } from '../battleRng';
 import { setRule, resetRule } from '../../engine/policy';
 import { ligneDe } from '../../engine/modLine.testkit';
@@ -122,6 +123,74 @@ describe('#4105 lot 2 — le muret de l’enceinte de la-diligence', () => {
   });
 });
 
+describe('#4105 lot 2 — les corps de part et d’autre d’un muret', () => {
+  /** Grande : côté 2 (`sizes.json` `footprintSide`) ; ancrée en (29,21), elle borde le muret par (30,21) et (30,22). */
+  const ANCRE_GRANDE = { x: 29, y: 21, z: 0 };
+  it('cible Grande ancrée (29,21) : frappée de (31,21) puis de (31,22), −10', () => {
+    const { H, E, poser } = duel();
+    expect(surLArete({ x: 30, y: 22 }, { x: 31, y: 22 }).map((w) => w.structure)).toContain(MURET);
+    E.size = 'grande';
+    poser(E, ANCRE_GRANDE);
+    for (const h of [{ x: 31, y: 21, z: 0 }, { x: 31, y: 22, z: 0 }]) {
+      poser(H, h);
+      expect(contact(H, E)).toBe(1);
+      expect(couvertMelee(H, E), `attaquant en (${h.x},${h.y})`).toBe(-10);
+    }
+  });
+
+  it('cible Grande ancrée (29,21), tir à bout portant de (31,22) : −10', () => {
+    const { H, E, poser } = duel();
+    E.size = 'grande';
+    poser(E, ANCRE_GRANDE);
+    poser(H, { x: 31, y: 22, z: 0 });
+    const tir = attackEnv(banc.getState, H, E, ARC);
+    expect(tir.blocked).toBe(false);
+    expect(couvertDe(tir.env)).toBe(-10);
+  });
+
+  it('attaquant Grand ancré (13,2), cible Moyenne en (12,2), muret sous la cible seule : sa case (13,3) le regarde, −10', () => {
+    const { H, E, poser } = duel();
+    const s = scene();
+    banc.setState({ scene: { ...s, walls: [...s.walls!, { x: 12, y: 3, side: 'N', structure: MURET }] } });
+    poser(E, { x: 12, y: 2, z: 0 });
+    H.size = 'grande';
+    poser(H, { x: 13, y: 2, z: 0 });
+    expect(contact(H, E)).toBe(1);
+    expect(couvertMelee(H, E)).toBe(-10);
+  });
+
+  it('une seule arête de muret entre deux Grands, (30,21,E) ou (30,22,E) : le même −10, en mêlée et au tir', () => {
+    const { H, E, poser } = duel();
+    const s = scene();
+    /** Le relevé quand le muret de la ligne `y` est retiré. */
+    const releve = (y: number) => {
+      const retiree = surLArete({ x: 30, y }, { x: 31, y }).find((w) => w.structure === MURET)!;
+      banc.setState({ scene: { ...s, walls: s.walls!.filter((w) => w !== retiree) } });
+      E.size = 'grande';
+      H.size = 'grande';
+      poser(E, ANCRE_GRANDE);
+      poser(H, { x: 31, y: 21, z: 0 });
+      return { contact: contact(H, E), melee: couvertMelee(H, E), tir: couvertDe(attackEnv(banc.getState, H, E, ARC).env) };
+    };
+    expect(releve(22), 'muret seul en (30,21,E)').toEqual({ contact: 1, melee: -10, tir: -10 });
+    expect(releve(21), 'muret seul en (30,22,E)').toEqual({ contact: 1, melee: -10, tir: -10 });
+  });
+
+  it('chef d’un bélier derrière le muret, sa coque 2×2 au loin sur la route : le tir le couvre de −10, sur son propre corps', () => {
+    const { H, E, poser } = duel();
+    const belier = { uid: 'ram-w', trappingId: 'belier-test', name: 'Bélier', kind: 'melee', damage: { plusBF: true, flat: 10 }, qualities: [{ id: 'equipe', value: 6 }], weaponGroup: 'machine-de-guerre' };
+    const poste = { item: belier, crewIds: [E.id] } as unknown as NonNullable<Combatant['mannedPoste']>;
+    const coque = { ...E, id: 'coque', name: 'Affût', pos: { x: 12, y: 2, z: 0 }, conditions: [], postes: [poste], footprint: 2, size: undefined, bodyShape: 'engin', inert: true } as unknown as Combatant;
+    poser(E, { x: 30, y: 21, z: 0 });
+    poser(H, { x: 32, y: 21, z: 0 });
+    const b = banc.getState().battle!;
+    banc.setState({ battle: { ...b, combatants: [...b.combatants, coque] } });
+    E.mannedPoste = poste;
+    expect(combatGeomOf(banc.getState().battle!, E).id, 'la géométrie de combat du chef est sa coque').toBe('coque');
+    expect(couvertDe(attackEnv(banc.getState, H, E, ARC).env)).toBe(-10);
+  });
+});
+
 describe('#4105 lot 2 — la croisée ouverte en mêlée', () => {
   afterEach(() => resetRule('combat-croisee-melee-difficulte'));
   it('la cible prend la valeur de la règle `combat-croisee-melee-difficulte` : −30 par défaut, −20 au cran Difficile', () => {
@@ -167,6 +236,24 @@ describe('#4105 lot 2 — non-régression (verts avant et après le lot)', () =>
     poser(H, SOUS_LA_CROISEE);
     poser(E, DEVANT_LA_CROISEE);
     expect(contact(H, E)).toBe(Infinity);
+  });
+
+  it('volets clos au bout du mur (4,8,E retirée) : la croisée couvre comme son mur, en mêlée et au tir', () => {
+    const { H, E, poser } = duel();
+    const s = scene();
+    const croisee = surLArete(SOUS_LA_CROISEE, DEVANT_LA_CROISEE).find((w) => w.window)!;
+    const bout = surLArete({ x: 4, y: 8 }, { x: 5, y: 8 })[0]!;
+    const releve = (patch: Partial<typeof croisee>) => {
+      banc.setState({ scene: { ...s, walls: s.walls!.filter((w) => w !== bout).map((w) => (w === croisee ? { ...w, ...patch } : w)) } });
+      poser(E, SOUS_LA_CROISEE);
+      poser(H, { x: 4, y: 8, z: 0 });
+      const melee = { contact: contact(H, E), couvert: couvertMelee(H, E) };
+      poser(H, { x: 1, y: 6, z: 0 });
+      return { ...melee, tir: couvertDe(attackEnv(banc.getState, H, E, ARC).env) };
+    };
+    const mur = releve({ window: undefined });
+    expect(mur).toEqual({ contact: 1, couvert: -10, tir: -10 });
+    expect(releve({ shuttered: true })).toEqual(mur);
   });
 
   it('la clôture en clayonnage d’une box des écuries : contact, aucune ligne', () => {
