@@ -407,3 +407,22 @@ describe('Gratuite de talent : l’arme du coup ouvre la porte de mêlée', () =
     });
   }
 });
+
+// `grantFreeAttack.weapon` désigne l'arme de la frappe : 'mainHand' (Frappe réactive, LDB 10 l.500), 'held'
+// (Assaut féroce LDB 10 l.78, Frénésie LDB 21 l.33) — #4268.
+describe('Gratuite de talent : l’arme que désigne la donnée', () => {
+  const dague: Weapon = { name: 'Dague', label: 'Dague', uid: 'dague', type: 'melee', hand: 'main', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
+  const hache: Weapon = { name: 'Hache', label: 'Hache', uid: 'hache', type: 'melee', hand: 'secondaire', damage: { plusBF: true, flat: 6 }, qualities: [] } as unknown as Weapon;
+  const armeDeLaFenetre = (weapon: 'held' | 'mainHand') => {
+    const { enemy, hero } = setup(false);
+    enemy.weapons = [hache, dague];
+    accorderLAttaqueGratuite(banc.getState, banc.setState, enemy, { op: 'grantFreeAttack', weapon, when: 'immediate' }, { targetId: hero.id, key: 'arme', cap: 1 });
+    return banc.getState().pendingDefense?.weapon.uid;
+  };
+  it('mainHand : la frappe part avec l’arme de la main principale', () => {
+    expect(armeDeLaFenetre('mainHand')).toBe('dague');
+  });
+  it('held : la frappe part avec l’arme du coup', () => {
+    expect(armeDeLaFenetre('held')).toBe('hache');
+  });
+});
