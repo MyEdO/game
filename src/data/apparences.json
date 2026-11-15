@@ -155,6 +155,14 @@
     "label": "Amulette"
   },
   {
+    "id": "collier_a_cranes",
+    "type": "apparences",
+    "label": "Collier à crânes",
+    "forme": {
+      "id": "amulette"
+    }
+  },
+  {
     "id": "symbole_religieux",
     "type": "apparences",
     "label": "Symbole religieux"
