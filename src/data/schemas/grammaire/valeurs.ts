@@ -126,6 +126,10 @@ export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Me
 /** Le genre d'une arme, d'un Groupe d'arme ou d'une attaque : corps à corps ou à distance (LDB 62). */
 export const genreDArmeSchema = enumNomme({ melee: 'Corps à corps', distance: 'À distance' });
 
+/** Qualité d'une chambre et d'un repas (LDB 66 l.5). */
+export const qualiteDeReposSchema = enumNomme({ pietre: 'Piètre', normale: 'Normale', grande: 'Grande' });
+export type QualiteDeRepos = z.output<typeof qualiteDeReposSchema>;
+
 /** Les rôles d'animation d'ambiance d'une entité de scène. */
 export const roleAmbiantSchema = enumNomme({ repas: 'Se nourrit', priere: 'Prie', tapi: 'Se recroqueville', debout: 'Se tient debout', hurlement: 'Hurle' });
 export type RoleAmbiant = z.infer<typeof roleAmbiantSchema>;
@@ -870,7 +874,7 @@ export const weaponDamageSpecSchema = z.union([
 ]);
 
 /** `WeaponRangeSpec` : mètres fixes, ou Bonus de Force × bf (armes de jet). */
-export const weaponRangeSpecSchema = z.union([z.number(), nommerChamps(z.strictObject({ bf: z.number() }), { bf: { label: 'Bonus de Force' } })]);
+export const weaponRangeSpecSchema = z.union([nommerNoeud(z.number(), { label: 'mètres' }), nommerChamps(z.strictObject({ bf: z.number() }), { bf: { label: 'Bonus de Force' } })]);
 
 /** `AmmoRangeMod` : fraction de la Portée de l'arme, ou ± mètres. */
 export const ammoRangeModSchema = z.union([nommerChamps(z.strictObject({ mult: z.number() }), { mult: { label: 'Multiplicateur' } }), nommerChamps(z.strictObject({ add: z.number() }), { add: { label: 'Ajout' } })]);

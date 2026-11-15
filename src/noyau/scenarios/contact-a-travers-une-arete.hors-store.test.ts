@@ -4,14 +4,17 @@ import { ouvrirLeDuel } from '../combatDeTest.testkit';
 import { testScenarios } from '../../scenes/test-scenarios';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { distanceDeContact, footprintN, footprintTiles } from '../monde/footprint';
-import { areteOcculteEntre, isWalkable, porteEnJeu, setDoorOpen, wallBetween, wallOnSight, type Scene, type WallSeg } from '../monde/scene';
-import { attackPlan } from '../combatFlow';
+import { areteOcculteEntre, isWalkable, porteEnJeu, setDoorOpen, setStructureDown, wallBetween, wallOnSight, type Scene, type WallSeg } from '../monde/scene';
+import { lineOfSightCover } from '../monde/lineOfSight';
+import { attackEnv, attackPlan } from '../combatFlow';
 import { cliquerSurLeCombattant } from '../combatOrParty';
 import { effectifAuContact } from '../combat/surnombre';
 import { isStructure } from '../../engine/structures';
 import { chebyshev } from '../../engine/grid';
 import { t } from '../../i18n';
-import type { Combatant } from '../../engine/types';
+import { ligneDe } from '../../engine/modLine.testkit';
+import { RULE_REF } from '../../engine/ruleRefs';
+import type { Combatant, Weapon } from '../../engine/types';
 
 /**
  * #4105 : deux combattants qu'une arête pleine sépare ne sont pas au contact. LDB 13 l.94 ; LDB 13 l.114.
@@ -187,5 +190,61 @@ describe('#4105 — coins et arêtes que la vue traverse (ecuries-clayonnage)', 
     expect(contact(H, mur)).toBeLessThanOrEqual(1);
     poser(H, { x: mur.pos!.x, y: mur.pos!.y - 1, z: 0 });
     expect(contact(H, mur)).toBeLessThanOrEqual(1);
+  });
+});
+
+/** #4105 lot 3 : décision de Clément du 2026-11-13 (commentaire 6861489526), « Non, pas de coup ». Herse posée sur
+ *  l'arête (12,3,N) d'ecuries-clayonnage, entre (12,2) et (12,3). LDB 13 l.114 ; AA 10 l.42. */
+describe('#4105 lot 3 — la herse baissée sépare pour le corps à corps', () => {
+  const HAUT = { x: 12, y: 2, z: 0 }, BAS = { x: 12, y: 3, z: 0 };
+  const ARC = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 48, reload: 0, qualities: [], uid: 'arc', loaded: true } as unknown as Weapon;
+  /** Le duel, la herse posée sur l'arête (porte fermée par défaut : baissée), H en haut et E en bas. */
+  const herse = (patch: Partial<WallSeg> = {}) => {
+    const d = duel('ecuries-clayonnage', 'enc-clayonnage');
+    const s = banc.getState().scene!;
+    expect(barre(s, HAUT, BAS), 'l’arête (12,3,N) est libre avant la herse').toBe(false);
+    banc.setState({ scene: { ...s, walls: [...s.walls!, { x: 12, y: 3, side: 'N', structure: 'herse', door: true, closed: true, ...patch }] } });
+    d.poser(d.H, HAUT);
+    d.poser(d.E, BAS);
+    return d;
+  };
+
+  it('baissée : ni contact, ni coup sur place, ni Surnombre ; une Charge doit la contourner', () => {
+    const { H, E } = herse();
+    expect(contact(H, E)).toBe(Infinity);
+    expect(contact(E, H)).toBe(Infinity);
+    for (const [A, B] of [[H, E], [E, H]] as const) {
+      const plan = attackPlan(banc.getState, A, B);
+      expect(plan.kind, `${A.id} ne frappe pas à travers`).not.toBe('attaque');
+      if (plan.kind === 'charge') expect(plan.dest, `la Charge de ${A.id} ne s’arrête pas sur sa case`).not.toMatchObject({ x: A.pos!.x, y: A.pos!.y });
+    }
+    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, E, 'heros')).toBe(0);
+  });
+
+  it('baissée : la vue passe, et le tir à travers reste offert sans couvert', () => {
+    const { H, E } = herse();
+    expect(lineOfSightCover(banc.getState().scene!, HAUT, BAS, []).blocked).toBe(false);
+    const tir = attackEnv(banc.getState, H, E, ARC);
+    expect(tir.blocked).toBe(false);
+    expect(ligneDe(tir.env, RULE_REF['cible-sous-couverture'])).toBeUndefined();
+  });
+
+  it('posée en mur, sans porte : elle sépare de même', () => {
+    const { H, E } = herse({ door: undefined, closed: undefined });
+    expect(contact(H, E)).toBe(Infinity);
+  });
+
+  it('levée (porte ouverte) puis abattue : le contact revient', () => {
+    const { H, E } = herse();
+    banc.setState({ scene: setDoorOpen(banc.getState().scene!, 12, 3, 'N', 0, true) });
+    expect(contact(H, E)).toBe(1);
+    banc.setState({ scene: setStructureDown(setDoorOpen(banc.getState().scene!, 12, 3, 'N', 0, false), 12, 3, 'N', 0, true) });
+    expect(contact(H, E)).toBe(1);
+  });
+
+  it('en diagonale au coin de la herse, un contournement libre : le contact tient', () => {
+    const { H, E, poser } = herse();
+    poser(H, { x: 11, y: 2, z: 0 });
+    expect(contact(H, E)).toBe(1);
   });
 });

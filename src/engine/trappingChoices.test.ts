@@ -213,7 +213,7 @@ describe('valeursDeLEmplacement — le domaine d’une arme au choix', () => {
   it('aucune pièce de siège ni munition parmi les armes d’un joker, nu ou de groupe (#156)', () => {
     avecFixture(() => {
       for (const adresse of [dot([1]), dot([6]), dot([7])]) {
-        const familles = valeursDeLEmplacement(emplacement(adresse)).map((id) => findTrappingById(String(id))!.subType?.id);
+        const familles = valeursDeLEmplacement(emplacement(adresse), 'moyenne').map((id) => findTrappingById(String(id))!.subType?.id);
         expect(familles.filter((f) => FAMILLES_SERVIES.includes(f ?? '')), adresse).toEqual([]);
       }
     });
@@ -221,10 +221,10 @@ describe('valeursDeLEmplacement — le domaine d’une arme au choix', () => {
 
   it('un joker de groupe ne rend que les armes de son Groupe, et l’Atout de son joker les Atouts de Fabrication', () => {
     avecFixture(() => {
-      const armes = valeursDeLEmplacement(emplacement(dot([6])));
+      const armes = valeursDeLEmplacement(emplacement(dot([6])), 'moyenne');
       expect(armes.length).toBeGreaterThan(0);
       expect([...new Set(armes.map((id) => groupeDe(String(id))))]).toEqual(['deux-mains']);
-      expect(valeursDeLEmplacement(emplacement(dot([7, 0])))).toEqual(fabricationAtouts());
+      expect(valeursDeLEmplacement(emplacement(dot([7, 0])), 'moyenne')).toEqual(fabricationAtouts());
     });
   });
 
@@ -233,7 +233,7 @@ describe('valeursDeLEmplacement — le domaine d’une arme au choix', () => {
     const lire = (refs: readonly BrancheDeDotation[]): void => refs.forEach((r) => ('pick' in r ? lire(r.of) : 'wildcard' in r && r.groupe && groupes.add(r.groupe.id)));
     careerLevels.forEach((l) => lire(l.trappings));
     expect(groupes.size).toBeGreaterThan(0);
-    for (const g of groupes) expect(valeursDeLEmplacement({ adresse: dot([0]), chemin: [0], sorte: 'joker', ref: { wildcard: 'arme', groupe: { id: g } } }).length, g).toBeGreaterThan(0);
+    for (const g of groupes) expect(valeursDeLEmplacement({ adresse: dot([0]), chemin: [0], sorte: 'joker', ref: { wildcard: 'arme', groupe: { id: g } } }, 'moyenne').length, g).toBeGreaterThan(0);
   });
 });
 
@@ -267,13 +267,13 @@ describe('emplacement `atout` : les combinaisons d’Atouts de sa classe de qual
 
   it('de Qualité : chaque Atout de Fabrication seul, dans l’ordre de la donnée', () => {
     avecAtoutsDeFixture(() => {
-      expect(valeursDeLEmplacement(deQualite())).toEqual(['raffine', 'zeta-unique', 'alpha-indice']);
+      expect(valeursDeLEmplacement(deQualite(), 'moyenne')).toEqual(['raffine', 'zeta-unique', 'alpha-indice']);
     });
   });
 
   it('de Haute Qualité sur un objet d’Encombrement 1 : toutes les paires, un doublon pour le seul Atout qui peut être pris plusieurs fois (LDB 60 l.26 ; LDB 60 l.30)', () => {
     avecAtoutsDeFixture(() => {
-      expect(valeursDeLEmplacement(deHauteQualite())).toEqual(['raffine+raffine', 'raffine+zeta-unique', 'alpha-indice+raffine', 'alpha-indice+zeta-unique', 'alpha-indice+alpha-indice']);
+      expect(valeursDeLEmplacement(deHauteQualite(), 'moyenne')).toEqual(['raffine+raffine', 'raffine+zeta-unique', 'alpha-indice+raffine', 'alpha-indice+zeta-unique', 'alpha-indice+alpha-indice']);
     });
   });
 
@@ -319,7 +319,7 @@ describe('emplacement `atout` : les combinaisons d’Atouts de sa classe de qual
 
   it('un Habit de cour de Haute Qualité (LDB 65 l.21, Encombrement 1) offre huit paires d’Atouts, chacune de deux prises (arbitrage #4053)', () => {
     const habit: TrappingRef = { id: 'costume-de-cour', qualityChoice: 'haute' };
-    const valeurs = valeursDeLEmplacement(atoutDe(habit)).map(String);
+    const valeurs = valeursDeLEmplacement(atoutDe(habit), 'moyenne').map(String);
     expect(valeurs).toHaveLength(8);
     expect(valeurs).toEqual(expect.arrayContaining(['raffine+raffine', 'solide+solide', 'leger+pratique']));
     expect(valeurs).not.toEqual(expect.arrayContaining(['leger+leger']));

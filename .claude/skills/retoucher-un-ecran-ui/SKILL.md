@@ -1,6 +1,6 @@
 ---
 name: retoucher-un-ecran-ui
-description: À utiliser quand on crée ou retouche un écran, un panneau, une modale ou du CSS (couleurs, densité, responsive, contrôles), ou dès qu'on s'apprête à écrire un hex en dur ou un nouveau composant d'affichage. Breakpoints canon 900/700/560, mobile 360px.
+description: À utiliser quand on crée ou retouche un écran, un panneau, une modale ou du CSS (couleurs, densité, responsive, contrôles), ou dès qu'on s'apprête à écrire un hex en dur ou un nouveau composant d'affichage. Breakpoints canon 900/700/560.
 ---
 
 # Retoucher un écran UI

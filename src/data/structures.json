@@ -314,12 +314,13 @@
     },
     "traits": [],
     "occulte": false,
+    "arreteLeCoup": true,
     "taille": "enorme",
     "source": {
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "opacité maison : aucun folio ne déclare une Structure transparente (LDB 14 l.86, LDB 85 l.329). Décision maison déduite d’AA 10 l.70 : on voit à travers une grille. Elle n’a aucune Pénalité de Couvert (N/A, AA 10 l.42) et reste INFRANCHISSABLE une fois baissée. Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : grille de fer qui ferme l’entrée principale d’une forteresse, à l’échelle de la porte de ville et du rempart qu’elle défend — Énorme.",
+    "maison": "opacité maison : aucun folio ne déclare une Structure transparente (LDB 14 l.86, LDB 85 l.329). Décision maison déduite d’AA 10 l.70 : on voit à travers une grille. Elle n’a aucune Pénalité de Couvert (N/A, AA 10 l.42) et reste INFRANCHISSABLE une fois baissée. Corps à corps maison (LDB 13 l.114, décision de Clément du 2026-11-13, #4105) : « Non, pas de coup » — baissée, la herse sépare comme la meurtrière, ni mêlée ni Engagement à travers elle ; le tir passe toujours entre les barreaux. Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : grille de fer qui ferme l’entrée principale d’une forteresse, à l’échelle de la porte de ville et du rempart qu’elle défend — Énorme.",
     "desc": "Une grille de fer qui peut être abaissée pour protéger l'entrée principale d'une forteresse."
   },
   {

@@ -64,8 +64,8 @@ script au nom différent du doc est entre parenthèses.
 2. **Tout le contenu de campagne est éditable** (schéma de Scène unique) : aucune scène « en dur ».
 3. **Le moteur (`src/engine`) reste pur et testé.** Store, UI et rendu en dépendent, jamais l'inverse.
 4. **UI en français, et qui scale** : au-delà de ~2 sections → onglets ; tout écran neuf est
-   responsive dès sa création — en LARGEUR (360px, breakpoints 900 / 700 / 560) ET en HAUTEUR (vues
-   de `scripts/recette/vues-recette.json`, aucun défilement de PAGE) —, composé des primitives de
+   responsive dès sa création — en LARGEUR et en HAUTEUR aux vues de
+   `scripts/recette/vues-recette.json` (aucun défilement de PAGE) —, composé des primitives de
    `src/ui/styles.css`. Gardes : `docs/charte-ui.md`, `src/ui/ui-ratchets.test.ts`,
    `scripts/recette/hauteur-reelle.mjs`.
 5. **Aucune retranscription des textes sources dans les `.json`** : toute prose est un copié/collé

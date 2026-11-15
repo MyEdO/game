@@ -44,6 +44,7 @@ export {
   talentsDuParcours,
   type ParcoursDeCarriere,
 } from '../engine/pnjDeCarriere';
+export { entitySize } from './monde/spawn';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
 export { parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
 export {
@@ -183,6 +184,7 @@ export {
   OUVRAGES,
   PINCEAUX,
   PROFILS_DE_TOIT,
+  QUALITES_DE_REPOS,
   SORTES_D_OUVERTURE,
   groupesDuLieu,
   versLaFautive,
@@ -224,6 +226,7 @@ export {
   designeDesEntrees,
   elementDuNoeud,
   formeAuPoint,
+  identiteTenue,
   unionDuNoeud,
   varianteCourante,
   type FieldDesc,

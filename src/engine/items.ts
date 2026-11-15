@@ -167,6 +167,7 @@ export const CLES_INTRINSEQUES_D_OBJET = {
   bladed: true,
   organicProjectile: true,
   onHitEffects: true,
+  passifDArme: true,
   minRangeBand: true,
   sizeFor: true,
   requiresMastery: true,

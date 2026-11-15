@@ -153,6 +153,7 @@ const NOMMES = [
   'complet|sans-disponibilite|sans-marchandage|simplifie',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
+  'pietre|normale|grande',
   'prop|roof|relief|objet|couleur',
   // `specialSchema.effet` (#1921) : l'effet d'un Spécial de jeu de taverne (NADJ 16 l.82).
   'cran|difficulte',
@@ -338,7 +339,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'navire|navire-fluvial',
   'nuit|voyage|meteo|flux|activite|combat',
   'none|half|crawl',
-  'normale|pietre',
   'oppose|etendu',
   'groupe|ennemis',
   'groupe|heros',
@@ -356,7 +356,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'ship-criticals|river-criticals',
   'sort|rituel',
   'source|group|any',
-  'sort|priere|talent|trait|objet|qualite|maladie|symptome|mutation|etat|psychologie|manoeuvre|creature|activite|regle|jeuDeTaverne|imparfaiteMineure|imparfaiteMajeure|imparfaiteMineureVdm|imparfaiteMajeureVdm|colereDesDieux',
   'success|stupefying',
   'suppressExposure|gatherInfo|noSurprise|mapMade|reverseToken|countsAsRest|campCare|extraActivity|skipStage|fullRecovery|worsenWeather',
   'team|thrower|pot|volley',

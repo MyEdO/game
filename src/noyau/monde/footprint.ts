@@ -19,7 +19,7 @@ import type { Dir8 } from '../../geometry/dir8';
 import { effectiveSize, sizeFootprintSide, type SizeCategory } from '../../engine/size';
 import type { Combatant } from '../../engine/types';
 import type { Pt } from './path';
-import { plafondDe, wallOnSight, type Scene, type SceneEntity } from './scene';
+import { areteSepareLeCoupEntre, plafondDe, sceneMetresPerTile, wallOnSight, type Scene, type SceneEntity } from './scene';
 import { isStructure } from '../../engine/structures';
 import { chebyshev } from '../../engine/grid';
 import { verticalTiles } from './relief';
@@ -130,12 +130,13 @@ export function footprintsOverlap(aPos: Pt, an: number, bPos: Pt, bn: number): b
 
 /**
  * Distance de COMBAT, en cases, entre deux combattants : Chebyshev d'empreinte et séparation verticale
- * (`verticalTiles` sur `pos.h`) ; `Infinity` si l'un n'est pas posé. Mesure de la PORTÉE. `mpt` = m/case.
+ * (`verticalTiles` sur `pos.h`, à l'échelle `sceneMetresPerTile` de `scene`) ; `Infinity` si l'un n'est pas posé.
+ * Mesure de la PORTÉE. LDB 15 l.12.
  */
-export function distanceDeCombat(a: Combatant, b: Combatant, mpt = 2): number {
+export function distanceDeCombat(scene: Scene | null, a: Combatant, b: Combatant): number {
   if (!a.pos || !b.pos) return Infinity;
   const horizontal = footprintChebyshev(a.pos, footprintN(a), b.pos, footprintN(b));
-  const vertical = verticalTiles(a.pos.h ?? 0, b.pos.h ?? 0, mpt);
+  const vertical = verticalTiles(a.pos.h ?? 0, b.pos.h ?? 0, sceneMetresPerTile(scene));
   return Math.max(horizontal, vertical);
 }
 
@@ -164,14 +165,15 @@ export function pairesEnRegard(a: Corps, b: Corps): [Pt, Pt][] {
 }
 
 /** Distance horizontale de contact : la plus petite distance de Chebyshev entre une case de chaque empreinte que
- *  nulle arête pleine (`wallOnSight`, à la couche la plus haute des deux) ne sépare ; `Infinity` s'il n'y en a aucune.
+ *  nulle arête ne sépare pour le coup (`wallOnSight` sous `areteSepareLeCoupEntre`, à la couche la plus haute des deux) ; `Infinity` s'il n'y en a aucune.
  *  Un corps porté par la scène n'est séparé de personne par une arête. LDB 13 l.94 ; LDB 13 l.114. */
 function horizontalDeContact(scene: Scene | null, a: Combatant, b: Combatant, aPos: Pt, bPos: Pt): number {
   const an = footprintN(a), bn = footprintN(b);
   if (!scene?.walls?.length || porteParLaScene(a) || porteParLaScene(b)) return footprintChebyshev(aPos, an, bPos, bn);
   const z = Math.max(aPos.z ?? 0, bPos.z ?? 0);
   let best = Infinity;
-  for (const { ta, tb, d } of pairesDeCases(aPos, an, bPos, bn)) if (d < best && !wallOnSight(scene, ta, tb, z)) best = d;
+  const separe = (ax: number, ay: number, bx: number, by: number) => areteSepareLeCoupEntre(scene, ax, ay, bx, by, z);
+  for (const { ta, tb, d } of pairesDeCases(aPos, an, bPos, bn)) if (d < best && !wallOnSight(scene, ta, tb, z, separe)) best = d;
   return best;
 }
 
@@ -182,11 +184,11 @@ function plafondDeLEmpreinte(scene: Scene, p: Pt, n: number): number {
 
 /** Distance de CONTACT, en cases : celle de tout ce qui dit « au contact » (Allonge, adjacence, Surnombre).
  *  `Infinity` quand le plafond du plus bas (`plafondDeLEmpreinte`, lu à la scène) n'est pas plus haut que le sol du
- *  plus haut, ou quand une arête pleine sépare les deux empreintes (`horizontalDeContact`). Sans scène, ni plafond ni
- *  arête. LDB 13 l.114 ; LDB 15 l.12. */
-export function distanceDeContact(scene: Scene | null, a: Combatant, b: Combatant, mpt = 2): number {
+ *  plus haut, ou quand une arête les sépare pour le coup (`horizontalDeContact`). La séparation verticale se lit à
+ *  l'échelle `sceneMetresPerTile` de `scene`. Sans scène, ni plafond ni arête. LDB 13 l.114 ; LDB 15 l.12. */
+export function distanceDeContact(scene: Scene | null, a: Combatant, b: Combatant): number {
   if (!a.pos || !b.pos) return Infinity;
   const [bas, posBas, posHaut] = (a.pos.h ?? 0) <= (b.pos.h ?? 0) ? [a, a.pos, b.pos] : [b, b.pos, a.pos];
   if (scene && plafondDeLEmpreinte(scene, posBas, footprintN(bas)) <= (posHaut.h ?? 0)) return Infinity;
-  return Math.max(horizontalDeContact(scene, a, b, a.pos, b.pos), verticalTiles(a.pos.h ?? 0, b.pos.h ?? 0, mpt));
+  return Math.max(horizontalDeContact(scene, a, b, a.pos, b.pos), verticalTiles(a.pos.h ?? 0, b.pos.h ?? 0, sceneMetresPerTile(scene)));
 }

@@ -35,7 +35,6 @@ import {
   qualityRefLabel,
   findQualityById,
   advancementLabel,
-  armesChoisissables,
   type TrappingRef,
   estDotationDObjet,
   levelsForCareer,
@@ -55,7 +54,7 @@ import {
   fabricationAtouts,
   DEFAULT_FABRICATION_ATOUT,
 } from '../../data';
-import { SIZE_LABEL } from '../../engine/size';
+import { SIZE_LABEL, type SizeCategory } from '../../engine/size';
 import { refKey, splitLabel } from '../../engine/careerSlots';
 import { BASE_HUMAINE, CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, baseDEspece, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
@@ -68,7 +67,9 @@ import {
   estEmplacementDeDotation,
   estEmplacementRacine,
   idChoisi,
+  libelleDeLaValeur,
   sousEmplacement,
+  valeursDeLEmplacement,
   type ChoixDeDotation,
   type EmplacementDeDotation,
 } from '../../engine/trappingChoices';
@@ -123,6 +124,7 @@ import {
   CreatorDraft,
   newDraft,
   draftSpecies,
+  draftTaille,
   draftLevel,
   withSpecies,
   withCareer,
@@ -1830,10 +1832,11 @@ export function PettySpellsSection({ d, setD }: StepProps) {
   );
 }
 
-/** Picker d'arme de l'emplacement `{wildcard:'arme'}` — icône + libellé (`MediaSelect`, MÊME rendu
- *  que le Sac/`EquipmentPanel`), filtrable (`SearchFilterField`, 100+ armes). */
-function WeaponWildcardPicker({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
-  const { search, setSearch, filtered } = useFilteredList(armesChoisissables(), (w) => w.label);
+/** Picker d'arme de l'emplacement `{wildcard:'arme'}` `emplacement` parmi ses valeurs à la Taille `taille` (`valeursDeLEmplacement`) —
+ *  icône + libellé (`MediaSelect`, MÊME rendu que le Sac/`EquipmentPanel`), filtrable (`SearchFilterField`, 100+ armes). */
+function WeaponWildcardPicker({ emplacement, taille, value, onChange }: { emplacement: EmplacementDeDotation; taille: SizeCategory; value?: string; onChange: (v: string) => void }) {
+  const armes = valeursDeLEmplacement(emplacement, taille).map((v) => ({ id: String(v), label: libelleDeLaValeur(emplacement, v) }));
+  const { search, setSearch, filtered } = useFilteredList(armes, (w) => w.label);
   const options: MediaOption[] = filtered.map((w) => {
     const item = gabaritDObjet(w.id);
     return { key: w.id, media: item ? <ItemIcon item={item} size="sm" /> : undefined, label: w.label };
@@ -1848,13 +1851,14 @@ function WeaponWildcardPicker({ value, onChange }: { value?: string; onChange: (
 
 /** Un emplacement de dotation (`emplacementsDeDotation`) — rendu RÉCURSIF : `{choice}` →
  *  `OptionChooser` (une branche = un bouton ; l'emplacement que porte la branche choisie se déroule
- *  dessous) ; `{wildcard:'arme'}` → `WeaponWildcardPicker` (valeur = l'`id` d'arme) ;
+ *  dessous) ; `{wildcard:'arme'}` → `WeaponWildcardPicker` (valeur = l'`id` d'arme, à la Taille `taille` du porteur) ;
  *  `{id,qualityChoice:true}` → un Atout de Fabrication (LDB 60 l.9-32) parmi `fabricationAtouts`,
  *  libellé + effet verbatim (`QualityData.desc`) en hint — `DEFAULT_FABRICATION_ATOUT` pré-sélectionné
  *  tant qu'aucun choix n'est stocké (défaut du résolveur). Une autre catégorie de joker n'a pas de
  *  sélecteur. */
-export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
+export function TrappingChoiceSlot({ emplacement, taille, choices, onChoicesChange }: {
   emplacement: EmplacementDeDotation;
+  taille: SizeCategory;
   choices: ChoixDeDotation;
   onChoicesChange: (adresse: AdresseDeCreation, value: number | string) => void;
 }) {
@@ -1871,13 +1875,13 @@ export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
     return (
       <>
         <OptionChooser layout="grid" options={options} />
-        {sous && <TrappingChoiceSlot emplacement={sous} choices={choices} onChoicesChange={onChoicesChange} />}
+        {sous && <TrappingChoiceSlot emplacement={sous} taille={taille} choices={choices} onChoicesChange={onChoicesChange} />}
       </>
     );
   }
   const value = idChoisi(emplacement, choices);
   if (emplacement.sorte === 'joker') {
-    if (emplacement.ref.wildcard === 'arme') return <WeaponWildcardPicker value={value} onChange={(v) => onChoicesChange(adresse, v)} />;
+    if (emplacement.ref.wildcard === 'arme') return <WeaponWildcardPicker emplacement={emplacement} taille={taille} value={value} onChange={(v) => onChoicesChange(adresse, v)} />;
     return <p className="hint">Aucun catalogue d'objets pour la catégorie « {emplacement.ref.wildcard} » : cet emplacement ne peut pas être choisi.</p>;
   }
   const options = fabricationAtouts().map((atoutId) => {
@@ -2022,6 +2026,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
           <Band key={e.adresse} title={trappingRefLabel(e.ref)}>
             <TrappingChoiceSlot
               emplacement={e}
+              taille={draftTaille(d)}
               choices={d.trappingChoices ?? {}}
               onChoicesChange={(adresse, v) => setD(withTrappingChoice(d, adresse, v))}
             />

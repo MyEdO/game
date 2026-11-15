@@ -16,6 +16,9 @@ Un clip dérivé se tient à l'écart du tronc sous chaque jeu de silhouettes de
 comme l'hôte les joue : l'IK choisit le tour du coude qui écarte l'avant-bras et la main, et ce qu'elle ne peut pas
 écarter, l'arme l'écarte, translatée hors du tronc avec les deux mains qui la tiennent (`pousser`, `POUSSEE`, #4002).
 
+Le roulis de l'arme et le tour de chaque coude se choisissent sur le clip entier : le chemin retenu
+est celui qui paie le moins, poses et vitesses comprises (`chemin`, `poser_les_bras`, #3878).
+
 Repère Blender du rig : +X la gauche du personnage, −Y l'avant, +Z le haut.
 """
 import json
@@ -31,9 +34,9 @@ from anatomie import zone_de_l_os
 from animation import assign_action, meshes_for
 from noms_silhouettes import CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FEMININ
 from pistes import aller_a, sacs
-from poids import deformer, instants, peau_lineaire
+from poids import cadence, deformer, instants, peau_lineaire
 from portage import deplacements_du_manifeste, lire_os_des_silhouettes
-from seuils import ETIREMENT_EN_CLIP, POIDS_NEGLIGEABLE
+from seuils import ETIREMENT_EN_CLIP, POIDS_NEGLIGEABLE, VITESSE_DU_POIGNET
 from sol import rotations_de_peau, tetes_deplacees
 
 SECONDES = {'lourde2m': (-0.35, 0.0), 'hampe': (0.5, -90.0)}
@@ -92,6 +95,19 @@ POUSSEE = {'pas': 8, 'passes': 3, 'tolerance': 1e-4}
 le long de la normale du sommet le plus proche de la prise la plus enfoncée, ce sommet changeant d'une translation à
 l'autre ; au plus `passes` tours de poussée puis d'IK, la prise sous un jeu à os suivant la main que l'IK pose (#4002).
 Une prise encore enfoncée de plus de `tolerance` mètres, marge comprise, refuse le clip."""
+ROULIS = tuple(range(-180, 180, 15))
+"""En degrés, les roulis de l'arme autour de son manche parmi lesquels le chemin d'un clip se cherche d'abord
+(`poser_les_bras`)."""
+TOURS = tuple(range(-120, 121, 6))
+"""En degrés, les tours du coude autour de l'axe épaule-poignet parmi lesquels le chemin d'un clip se cherche d'abord."""
+AFFINAGES = (((-9, -6, -3, 0, 3, 6, 9), (-4, -2, 0, 2, 4)), ((-2, -1, 0, 1, 2), (-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5)))
+"""Par affinage du chemin, en degrés, les écarts de roulis puis de tour du coude essayés autour de l'état retenu à chaque
+image : chaque affinage couvre le pas de la recherche qui le précède, le dernier au degré de roulis et au demi-degré de
+tour."""
+CONTINUITE = {'vitesse': 3.0, 'passes': 4}
+"""`vitesse` : en degrés par image de `IMAGES_PAR_SECONDE`, la vitesse du roulis de l'arme et du tour d'un coude qui paie,
+sur une image, une unité de prix (`chemin`, #3878). `passes` : le nombre de fois où chaque affinage se rejoue autour du
+chemin qu'il vient de rendre, pour qu'un écart pris d'un coup sur le pas d'une recherche s'étale sur les images voisines."""
 
 
 def cle(u, milieu, direction, flexion=0.0, torsion=0.0, elan=False):
@@ -388,19 +404,18 @@ def hors_des_bornes(rotation, bornes):
     return sum(max(0.0, v[i] - bornes[a][1] + MARGE_DES_BORNES, bornes[a][0] + MARGE_DES_BORNES - v[i]) for i, a in enumerate('xyz'))
 
 
-def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, pronation, bornes, precedent=None,
-         peau=None, tronc=None):
-    """La pose d'un bras dont la main prend la matrice `main` : le bras tourne au plus court depuis `axes_epaule` (sa pose
+def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, pronation, bornes, peau=None, tronc=None):
+    """Les poses d'un bras dont la main prend la matrice `main` : le bras tourne au plus court depuis `axes_epaule` (sa pose
     au repos sous la clavicule), sans torsion, comme dans les clips sources ; l'avant-bras plie depuis le bras, puis tourne
     sur son axe, dans les bornes de `pronation`, pour détordre le poignet ; le coude tourne autour de l'axe
-    épaule-poignet, à partir du côté de `pole`, jusqu'à la pose qui paie le moins (`POIGNET`), au plus près du tour
-    `precedent`, dans les `bornes` de l'avant-bras puis de la main (`BORNES`, `hors_des_bornes`), sous l'étirement de
-    la peau (`PEAU`) quand `peau` porte la `PeauDuBras`, sa part fixe (`peau_fixe`),
-    et l'indice d'os et l'inverse du repos du bras puis de l'avant-bras, et à l'écart du tronc quand `tronc` porte le
-    `TroncPose`, la `ChaineDuBras` de ce côté et la prise de la main (`prix_du_tronc`). `rel_avant_bras` et `rel_main` : chaque os dans
-    le repère de son parent, au repos. Rend le prix de la pose, les axes du bras et de l'avant-bras, le coude, le tour
-    retenu, en degrés, et le détail : torsion demandée et portée par l'avant-bras, flexion du poignet, écart de charnière,
-    dépassement des bornes, étirement de la peau."""
+    épaule-poignet, à partir du côté de `pole`. Chaque tour du coude a son prix (`POIGNET`), dans les `bornes` de
+    l'avant-bras puis de la main (`BORNES`, `hors_des_bornes`), sous l'étirement de la peau (`PEAU`) quand `peau` porte
+    la `PeauDuBras`, sa part fixe (`peau_fixe`), et l'indice d'os et l'inverse du repos du bras puis de l'avant-bras, et à
+    l'écart du tronc quand `tronc` porte le `TroncPose`, la `ChaineDuBras` de ce côté et la prise de la main
+    (`prix_du_tronc`). `rel_avant_bras` et `rel_main` : chaque os dans le repère de son parent, au repos. Rend la
+    fonction qui, à des tours du coude, en degrés, donne par tour le prix de la pose, les axes du bras et de l'avant-bras,
+    le coude, le tour et le détail : torsion demandée et portée par l'avant-bras, flexion du poignet, écart de charnière,
+    dépassement des bornes, étirement et écrasement de la peau. Le tour retenu se choisit sur le clip entier (`chemin`)."""
     poignet, articulation = coude(epaule, main.translation, *longueurs, pole)
     axe = (poignet - epaule).normalized()
     centre = epaule + axe * (articulation - epaule).dot(axe)
@@ -421,7 +436,6 @@ def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, p
             + hors_des_bornes((avant_bras @ rel_main).transposed() @ axes_main, bornes[1])
         prix = ((torsion - tourne) / POIGNET['torsion']) ** 2 + (max(0.0, flexion - POIGNET['flexion']) / 10) ** 2 \
             + (max(0.0, charniere - POIGNET['charniere']) / 10) ** 2 + (tour / 45) ** 2 \
-            + (0.0 if precedent is None else ((tour - precedent) / 10) ** 2) \
             + 1e3 * (max(0.0, abs(torsion - tourne) - POIGNET['torsion_max']) + max(0.0, flexion - POIGNET['flexion_max']) + hors) ** 2
         return prix, humerus, avant_bras, coude_, tour, (round(torsion), round(tourne), round(flexion), round(charniere), round(hors, 1))
 
@@ -444,10 +458,37 @@ def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, p
                  + (max(0.0, PEAU['plancher'] - c) / PEAU['echelle_plancher']) ** 2, *g[1:5], (*g[5], float(e), float(c)))
                 for g, e, c, t in zip(gestes, etires, ecrases, troncs)]
 
-    meilleur = min(essais(range(-120, 121, 6)), key=lambda e: e[0])
-    for pas in (2, 0.5):
-        meilleur = min(essais([meilleur[4] + i * pas for i in range(-3, 4)]), key=lambda e: e[0])
-    return meilleur
+    return essais
+
+
+def chemin(prix, valeurs, durees, tours_de_l_arme):
+    """Par image, l'indice sur chaque axe de l'état du chemin qui paie le moins sur le clip entier : `prix[i]` porte le
+    prix de chaque état de l'image i, un tableau à un axe par grandeur, le roulis de l'arme puis le tour de chaque
+    coude ; `valeurs[i]` les valeurs de chaque axe, en degrés ; `durees[i]` la durée, en images, de l'image i − 1 à
+    l'image i. D'une image à la suivante, chaque grandeur paie le carré de son écart sur `CONTINUITE['vitesse']`² fois
+    la durée : l'intégrale du carré de sa vitesse. L'écart du roulis est celui de l'arme roulée, au plus court : il
+    compte `tours_de_l_arme[i]`, le tour du repère de l'arme sur son manche de l'image i − 1 à l'image i
+    (`tour_du_repere`)."""
+    def passage(i, axe):
+        ecarts = numpy.subtract.outer(numpy.asarray(valeurs[i][axe], dtype=float), numpy.asarray(valeurs[i - 1][axe], dtype=float))
+        if axe == 0:
+            ecarts = (ecarts + tours_de_l_arme[i] + 180) % 360 - 180
+        return ecarts ** 2 / (CONTINUITE['vitesse'] ** 2 * durees[i])
+
+    cumules = [numpy.asarray(prix[0], dtype=float)]
+    for i in range(1, len(prix)):
+        v = (passage(i, 0)[:, :, None, None] + cumules[-1][None]).min(axis=1)
+        v = (passage(i, 1)[None, :, :, None] + v[:, None]).min(axis=2)
+        v = (passage(i, 2)[None, None, :, :] + v[:, :, None]).min(axis=3)
+        cumules.append(v + prix[i])
+    etat = numpy.unravel_index(cumules[-1].argmin(), cumules[-1].shape)
+    etats = [etat]
+    for i in range(len(prix) - 1, 0, -1):
+        total = cumules[i - 1] + passage(i, 0)[etat[0]][:, None, None] + passage(i, 1)[etat[1]][None, :, None] \
+            + passage(i, 2)[etat[2]][None, None, :]
+        etat = numpy.unravel_index(total.argmin(), total.shape)
+        etats.append(etat)
+    return [tuple(int(k) for k in e) for e in reversed(etats)]
 
 
 def repere_de_l_arme(flanc, prise, fer):
@@ -459,15 +500,35 @@ def repere_de_l_arme(flanc, prise, fer):
     return repere
 
 
-def _poser_les_bras(bpy, rig, arme, mains, prises, cadre, longueurs, precedents, peaux, tronc):
-    """Les deux bras posés (`bras`) sur l'arme au repère `arme`, roulée autour de son manche (son +Y) du tour qui paie le
-    moins, bras compris, au plus près du roulis `precedents['roulis']` : par côté, `mains` porte la matrice de sa main
-    dans le repère de l'arme, `prises` le point qu'elle y tient, sur le manche, et `peaux` la peau que meut son bras
-    (`peau_du_bras`) ; chaque bras se tient à l'écart de la `PeauDuTronc` `tronc` sous chacun de ses jeux. Avant l'IK,
-    l'arme se translate hors du tronc avec les deux mains (`pousser`), puis de nouveau tant qu'une prise de la main que
-    l'IK pose y reste, au plus `POUSSEE['passes']` fois. Rend l'écart de position restant, les tours retenus, le détail de
-    chaque bras (`bras`), la translation de l'arme, et l'enfoncement et le jeu de la prise qui reste dans le tronc
-    (`enfoncement`), `(0.0, None)` sans elle."""
+def tour_du_repere(avant, apres):
+    """En degrés, le tour du repère d'une arme (`repere_de_l_arme`) autour de son manche, des axes `avant` aux axes
+    `apres` : l'angle, autour du +Y d'`apres`, du +X d'`avant` mené au plus court sur le nouveau manche à celui
+    d'`apres`. Le +X au plus près du flanc bascule quand le manche passe près du flanc ; le roulis qui garde l'arme
+    comme elle est tourne d'autant en sens inverse."""
+    mene = avant.col[1].rotation_difference(apres.col[1]) @ avant.col[0]
+    return math.degrees(math.atan2(apres.col[1].dot(mene.cross(apres.col[0])), mene.dot(apres.col[0])))
+
+
+class BrasDeLImage(NamedTuple):
+    """Les deux bras d'une image d'un clip dérivé (`bras_de_l_image`) : le `TroncPose` de
+    l'image ; `prix(translation, roulis, tours)`, le prix de chaque état (roulis de l'arme autour de son manche, tour du
+    coude droit, tour du coude gauche), l'arme translatée de `translation`, sur les roulis `roulis` et, par côté, les
+    tours `tours`, tous en degrés ; `poses(translation, etat)`, l'arme roulée et par côté la pose de son bras (`bras`) à
+    l'état `etat` ; `prises(translation, axes)`, par jeu, la prise de chaque main sur l'arme, la main déplacée du ΔJ que
+    lui donnent, sous ce jeu, les `axes` du bras et de l'avant-bras de son côté (`tetes_du_bras`) : (jeux, mains, 3) ;
+    `axes`, ceux de la pose de l'image avant l'IK ; `epaules`, par côté, la tête du bras."""
+    tronc: TroncPose
+    prix: object
+    poses: object
+    prises: object
+    axes: dict
+    epaules: dict
+
+
+def bras_de_l_image(rig, arme, mains, prises, cadre, longueurs, peaux, tronc):
+    """Le `BrasDeLImage` de la pose courante de `rig`, l'arme au repère `arme` : par côté, `mains` porte la matrice de sa
+    main dans le repère de l'arme, `prises` le point qu'elle y tient, sur le manche, et `peaux` la peau que meut son
+    bras (`peau_du_bras`) ; chaque bras se tient à l'écart de la `PeauDuTronc` `tronc` sous chacun de ses jeux."""
     pose, repos = rig.pose.bones, rig.data.bones
     noms = [b.name for b in repos]
     inverses = {n: repos[n].matrix_local.inverted() for n in noms}
@@ -493,59 +554,71 @@ def _poser_les_bras(bpy, rig, arme, mains, prises, cadre, longueurs, precedents,
         matrices[suivent] = relative @ courantes[suivent]
         return peaux[cote], peau_fixe(peaux[cote], matrices, [i for i, _ in libres]), *libres
 
-    def essai(arme_, roulis):
-        roule = arme_ @ Matrix.Rotation(math.radians(roulis), 4, 'Y')
-        poses_ = {c: bras(t, a, roule @ mains[c], longueurs[c], p, r[0], r[1], PRONATION[c], (BORNES[BRAS[c][1]], BORNES[BRAS[c][2]]),
-                          precedents.get(c),
-                          peau(c, roule @ mains[c], m, d, libres), (tronc_, chaines[c], roule @ prises[c]))
-                  for c, (t, a, p, r, m, d, libres) in poses.items()}
-        prix = sum(e[0] for e in poses_.values()) + (roulis / POIGNET['roulis']) ** 2 \
-            + (0.0 if precedents.get('roulis') is None else ((roulis - precedents['roulis']) / 10) ** 2)
-        return prix, roulis, roule, poses_
+    def roulee(translation, roulis):
+        return Matrix.Translation(translation) @ arme @ Matrix.Rotation(math.radians(roulis), 4, 'Y')
 
-    def choisir(arme_):
-        """Le roulis qui paie le moins (`essai`) de l'arme au repère `arme_`."""
-        meilleur_ = min((essai(arme_, r) for r in range(-180, 180, 30)), key=lambda e: e[0])
-        for pas_ in (10, 3, 1):
-            meilleur_ = min((essai(arme_, meilleur_[1] + i * pas_) for i in (-1, 0, 1)), key=lambda e: e[0])
-        return meilleur_
+    def essais(cote, roule):
+        t, a, p, r, m, d, libres = poses[cote]
+        return bras(t, a, roule @ mains[cote], longueurs[cote], p, r[0], r[1], PRONATION[cote],
+                    (BORNES[BRAS[cote][1]], BORNES[BRAS[cote][2]]), peau(cote, roule @ mains[cote], m, d, libres),
+                    (tronc_, chaines[cote], roule @ prises[cote]))
 
-    def prises_jouees(arme_, axes):
-        """Par jeu, la prise de chaque main sur l'arme au repère `arme_`, la main déplacée du ΔJ que lui donnent, sous ce
-        jeu, les `axes` du bras et de l'avant-bras de son côté (`tetes_du_bras`) : (jeux, mains, 3)."""
-        return numpy.stack([numpy.array(arme_ @ prises[c]) + tetes_du_bras(chaines[c], numpy.array([axes[c]]))[:, 0, 2]
-                            for c in mains], axis=1)
+    def prix(translation, roulis, tours):
+        table = numpy.empty((len(roulis), len(tours['r']), len(tours['l'])))
+        for i, r in enumerate(roulis):
+            roule = roulee(translation, r)
+            droit, gauche = (numpy.array([e[0] for e in essais(c, roule)(tours[c])]) for c in ('r', 'l'))
+            table[i] = (r / POIGNET['roulis']) ** 2 + droit[:, None] + gauche[None, :]
+        return table
 
-    axes = {c: [numpy.array(pose[n].matrix.to_3x3()) for n in BRAS[c][:2]] for c in mains}
-    translation, meilleur, reste = Vector(), None, (0.0, None)
+    def poses_(translation, etat):
+        roule = roulee(translation, etat[0])
+        return roule, {c: essais(c, roule)([tour])[0] for c, tour in zip(('r', 'l'), etat[1:])}
+
+    def prises_(translation, axes):
+        return numpy.stack([numpy.array(Matrix.Translation(translation) @ arme @ prises[c])
+                            + tetes_du_bras(chaines[c], numpy.array([axes[c]]))[:, 0, 2] for c in mains], axis=1)
+
+    return BrasDeLImage(tronc_, prix, poses_, prises_,
+                        {c: [numpy.array(pose[n].matrix.to_3x3()) for n in BRAS[c][:2]] for c in mains},
+                        {c: poses[c][0] for c in mains})
+
+
+def poser_les_bras(images, durees, tours_de_l_arme):
+    """Par image de `images` (`BrasDeLImage`), l'arme roulée, la pose de chaque bras (`bras`) et la translation de l'arme :
+    le roulis de l'arme et les tours des deux coudes suivent le chemin qui paie le moins sur le clip entier (`chemin`),
+    cherché sur `ROULIS` et `TOURS`, puis autour de lui à chaque pas d'`AFFINAGES`, `CONTINUITE['passes']` fois chacun ;
+    `durees` et `tours_de_l_arme` : ceux de `chemin`. Avant l'IK, l'arme de chaque image se translate hors du tronc avec les deux mains
+    (`pousser`), puis de nouveau tant qu'une prise de la main que l'IK pose y reste, au plus `POUSSEE['passes']` fois ;
+    rend aussi, par image, l'enfoncement et le jeu de la prise qui reste dans le tronc (`enfoncement`), `(0.0, None)`
+    sans elle."""
+    def choisir():
+        valeurs = [(ROULIS, TOURS, TOURS)] * len(images)
+        etats = None
+        for affinage in (None, *(a for a in AFFINAGES for _ in range(CONTINUITE['passes']))):
+            if affinage is not None:
+                valeurs = [tuple([centre + d for d in ecarts] for centre, ecarts in zip(etat, (affinage[0], affinage[1], affinage[1])))
+                           for etat in etats]
+            prix = [image.prix(t, v[0], {'r': v[1], 'l': v[2]}) for image, t, v in zip(images, translations, valeurs)]
+            etats = [tuple(v[axe][k] for axe, k in enumerate(indices)) for v, indices in zip(valeurs, chemin(prix, valeurs, durees, tours_de_l_arme))]
+        return [image.poses(t, etat) for image, t, etat in zip(images, translations, etats)]
+
+    translations = [Vector() for _ in images]
+    axes = [image.axes for image in images]
+    poses, restes = None, [(0.0, None)] * len(images)
     for _ in range(POUSSEE['passes']):
-        pas = Vector(pousser(tronc_, prises_jouees(Matrix.Translation(translation) @ arme, axes)))
-        if meilleur is not None and pas.length == 0:
+        pas = [Vector(pousser(image.tronc, image.prises(t, a))) for image, t, a in zip(images, translations, axes)]
+        if poses is not None and not any(p.length for p in pas):
             break
-        translation += pas
-        meilleur = choisir(Matrix.Translation(translation) @ arme)
-        axes = {c: [numpy.array(e[1]), numpy.array(e[2])] for c, e in meilleur[3].items()}
+        translations = [t + p for t, p in zip(translations, pas)]
+        poses = choisir()
+        axes = [{c: [numpy.array(e[1]), numpy.array(e[2])] for c, e in bras_.items()} for _, bras_ in poses]
     else:
-        profondeur, _, jeu = enfoncement(tronc_, prises_jouees(Matrix.Translation(translation) @ arme, axes))
-        if profondeur > POUSSEE['tolerance']:
-            reste = (profondeur, jeu)
-    prix_total, roulis, roule, poses_ = meilleur
-    ecart = 0.0
-    for cote, (_, humerus, axes_avant_bras, articulation, _, _) in poses_.items():
-        epaule, avant_bras, os_main = (pose[n] for n in BRAS[cote])
-        for os_, axes, origine in ((epaule, humerus, poses[cote][0]), (avant_bras, axes_avant_bras, articulation)):
-            matrice = axes.to_4x4()
-            matrice.translation = origine
-            os_.matrix = matrice
-            bpy.context.view_layer.update()
-        finale = roule @ mains[cote]
-        cible = finale.translation.copy()
-        finale.translation = os_main.matrix.translation.copy()
-        os_main.matrix = finale
-        bpy.context.view_layer.update()
-        ecart = max(ecart, (cible - os_main.matrix.translation).length)
-    return (ecart, {'roulis': roulis, **{c: e[4] for c, e in poses_.items()}}, {c: e[5] for c, e in poses_.items()},
-            translation.length, reste)
+        for i, (image, t, a) in enumerate(zip(images, translations, axes)):
+            profondeur, _, jeu = enfoncement(image.tronc, image.prises(t, a))
+            if profondeur > POUSSEE['tolerance']:
+                restes[i] = (profondeur, jeu)
+    return [(roule, bras_, t) for (roule, bras_), t in zip(poses, translations)], restes
 
 
 def deriver(bpy, rig, reperes):
@@ -553,8 +626,8 @@ def deriver(bpy, rig, reperes):
     sur la peau aux poids corrigés et les clips sources posés au sol (après le point fixe de `humanoide.construire`) ;
     `reperes` : par prise `main` et `secondaire`, son os et son repère dans celui de cet os (`anatomie.reperes_des_prises`).
     Les bras et l'arme se tiennent à l'écart du tronc sous chaque jeu de `TRONC`, os des silhouettes compris
-    (`_poser_les_bras`, #4002) ; une prise que la poussée ne sort pas refuse le clip, comme un poignet trop tordu ou une
-    peau du bras trop étirée."""
+    (`poser_les_bras`, #4002) ; une prise que la poussée ne sort pas refuse le clip, comme un poignet trop tordu, une
+    peau du bras trop étirée, ou une main qui tourne sur son avant-bras plus vite que `VITESSE_DU_POIGNET` (#3878)."""
     repos = {b.name: b.matrix_local.copy() for b in rig.data.bones}
     longueurs = {cote: ((repos[c].translation - repos[e].translation).length, (repos[m].translation - repos[c].translation).length)
                  for cote, (e, c, m) in BRAS.items()}
@@ -565,7 +638,8 @@ def deriver(bpy, rig, reperes):
                                 rig.matrix_world.inverted())
              for cote, (b, _, _) in BRAS.items()}
     tronc = peau_du_tronc(rig, meshes_for(bpy, rig))
-    animes = [n for os in BRAS.values() for n in os] + list(CLAVICULES) + list(DOS)
+    bras_animes = [n for os in BRAS.values() for n in os]
+    animes = bras_animes + list(CLAVICULES) + list(DOS)
     derivees = []
     for nom, (source_nom, os_du_cadre, maniement, cles) in CLIPS.items():
         source = bpy.data.actions[source_nom]
@@ -582,14 +656,17 @@ def deriver(bpy, rig, reperes):
             for courbe in [c for c in sac.fcurves if c.data_path.split('"')[1:2] and c.data_path.split('"')[1] in animes]:
                 sac.fcurves.remove(courbe)
         assign_action(rig, action)
-        ecart, poussee, tours, poignets = 0.0, 0.0, {}, {'torsion': 0, 'flexion': 0, 'coude': 1.0, 'bornes': 0.0}
+        cote, tour_seconde = SECONDES[maniement]
+        mains = {'r': prise_main.inverted(),
+                 'l': Matrix.Translation((0, cote, 0)) @ Matrix.Rotation(math.radians(tour_seconde), 4, 'Y') @ prise_off.inverted()}
+        prises = {'r': Vector(), 'l': Vector((0, cote, 0))}
+        bras_des_images, armes = [], []
         for image in images:
             aller_a(scene, image)
             for n in animes:
                 pose[n].rotation_quaternion = dos_source[image].get(n, Quaternion())
                 pose[n].location = Vector()
             bpy.context.view_layer.update()
-            cote, tour_seconde = SECONDES[maniement]
             prise, direction, (flexion, torsion) = interpoler(cles, (image - debut) / (fin - debut), abs(cote))
             axes = (pose[os_du_cadre].matrix @ repos[os_du_cadre].inverted()).to_3x3()
             tour = (Matrix.Rotation(math.radians(flexion / len(DOS)), 4, axes @ Vector((1, 0, 0)))
@@ -598,27 +675,55 @@ def deriver(bpy, rig, reperes):
                 tete = pose[n].matrix.translation.copy()
                 pose[n].matrix = Matrix.Translation(tete) @ tour @ Matrix.Translation(-tete) @ pose[n].matrix
                 bpy.context.view_layer.update()
+            for n in (*CLAVICULES, *DOS):
+                pose[n].keyframe_insert('rotation_quaternion', frame=image)
             cadre = pose[os_du_cadre].matrix @ repos[os_du_cadre].inverted()
             arme = repere_de_l_arme(cadre.to_3x3() @ Vector((1, 0, 0)), cadre @ prise, cadre.to_3x3() @ direction * math.copysign(1, cote))
-            mains = {'r': prise_main.inverted(),
-                     'l': Matrix.Translation((0, cote, 0)) @ Matrix.Rotation(math.radians(tour_seconde), 4, 'Y') @ prise_off.inverted()}
-            prises = {'r': Vector(), 'l': Vector((0, cote, 0))}
-            reste, tours, details, translation, (enfonce, jeu) = _poser_les_bras(bpy, rig, arme, mains, prises, cadre, longueurs,
-                                                                                  tours, peaux, tronc)
+            bras_des_images.append(bras_de_l_image(rig, arme, mains, prises, cadre, longueurs, peaux, tronc))
+            armes.append(cadre.to_3x3().inverted() @ arme.to_3x3())
+        poses, restes = poser_les_bras(bras_des_images, [0.0] + [b - a for a, b in zip(images, images[1:])],
+                                       [0.0] + [tour_du_repere(a, b) for a, b in zip(armes, armes[1:])])
+        ecart, poussee, vitesse, poignets = 0.0, 0.0, 0.0, {'torsion': 0, 'flexion': 0, 'coude': 1.0, 'bornes': 0.0}
+        precedentes = None
+        for image, bras_de_l_image_, (roule, bras_, translation), (enfonce, jeu) in zip(images, bras_des_images, poses, restes):
             if jeu is not None:
                 raise ValueError(f'{nom} image {image} : prise enfoncée de {enfonce * 100:.1f} cm dans le tronc sous '
                                  f'{"+".join(TRONC["silhouettes"][jeu]) or "le corps neutre"}')
-            ecart, poussee = max(ecart, reste), max(poussee, translation)
-            for cote_, (torsion_, tourne, flexion_, _, hors, etire, ecrase) in details.items():
+            aller_a(scene, image)
+            mains_sur_l_avant_bras = {}
+            for cote_, (_, humerus, axes_avant_bras, articulation, _, (torsion_, tourne, flexion_, _, hors, etire, ecrase)) in bras_.items():
                 if abs(torsion_ - tourne) > POIGNET['torsion_max'] or flexion_ > POIGNET['flexion_max']:
                     raise ValueError(f'{nom} image {image} : poignet {cote_} tordu de {torsion_ - tourne}°, plié de {flexion_}°')
                 if etire > ETIREMENT_EN_CLIP[1] or ecrase < ETIREMENT_EN_CLIP[0]:
                     raise ValueError(f'{nom} image {image} : peau du bras {cote_} étirée à {etire:.2f}, écrasée à {ecrase:.3f}')
                 poignets = {'torsion': max(poignets['torsion'], abs(torsion_ - tourne)), 'flexion': max(poignets['flexion'], flexion_),
                             'coude': round(max(poignets['coude'], etire), 2), 'bornes': max(poignets['bornes'], hors)}
-            for n in animes:
+                finale = roule @ mains[cote_]
+                mains_sur_l_avant_bras[cote_] = (axes_avant_bras.transposed() @ finale.to_3x3()).to_quaternion()
+                if precedentes is not None:
+                    angle = precedentes[1][cote_].rotation_difference(mains_sur_l_avant_bras[cote_]).angle
+                    tourne_de = math.degrees(min(angle, 2 * math.pi - angle))
+                    vitesse_ = tourne_de / ((image - precedentes[0]) / cadence())
+                    if vitesse_ > VITESSE_DU_POIGNET:
+                        raise ValueError(f'{nom} image {image} : main {cote_} tournée de {tourne_de:.1f}° sur son avant-bras '
+                                         f'depuis l\'image {precedentes[0]}, soit {vitesse_:.0f}°/s pour {VITESSE_DU_POIGNET}')
+                    vitesse = max(vitesse, vitesse_)
+                epaule, avant_bras, os_main = (pose[n] for n in BRAS[cote_])
+                for os_, axes, origine in ((epaule, humerus, bras_de_l_image_.epaules[cote_]), (avant_bras, axes_avant_bras, articulation)):
+                    matrice = axes.to_4x4()
+                    matrice.translation = origine
+                    os_.matrix = matrice
+                    bpy.context.view_layer.update()
+                cible = finale.translation.copy()
+                finale.translation = os_main.matrix.translation.copy()
+                os_main.matrix = finale
+                bpy.context.view_layer.update()
+                ecart = max(ecart, (cible - os_main.matrix.translation).length)
+            precedentes = (image, mains_sur_l_avant_bras)
+            poussee = max(poussee, translation.length)
+            for n in bras_animes:
                 pose[n].keyframe_insert('rotation_quaternion', frame=image)
         print('DEUX_MAINS', nom, 'de', source_nom, 'images', len(images), 'écart de main', round(ecart, 4), 'poignet',
-              poignets, 'arme poussée', round(poussee, 4), flush=True)
+              poignets, 'vitesse du poignet', round(vitesse), 'arme poussée', round(poussee, 4), flush=True)
         derivees.append(action)
     return derivees

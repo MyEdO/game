@@ -43,15 +43,13 @@ import { applyOps, gelerOpsCtx, reussiteSansObjet, type GameOp, type OpsCtxGele 
 import { isFumble } from '../engine/oups';
 import { ritualReduction } from '../engine/grimoire';
 import { focusSkillFor, consumeMalepierre } from '../engine/magic';
-import { gainCorruption, poseCorruptionPending, expositionPending } from './corruptionFlow';
+import { gainCorruption, crochetsDeCorruption } from './corruptionFlow';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { applyMiscast } from './combatFlow';
 import { acheterLeSort as partyBuySpell, depenserPx } from './partyFlow';
 import type { SupportDetail } from '../engine/skills';
 import { rule } from '../engine/policy';
 import { groupsFor } from '../engine/groups';
-import type { ChaosAlign, ExposureLevel } from '../engine/corruption';
-import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
@@ -1032,12 +1030,7 @@ function appliquerLActivite(get: Get, set: Set): void {
       if (immediate.length) {
         lines.push(...applyOps(h, immediate, { idNeuf: get().forgerUnId,
           rng: battleRng(), label: def.label, now: get().gameTime, source, sl: pa.sl,
-          onCorruption: (n: number, align?: ChaosAlign) => gainCorruption(get, set, h, n, align),
-          onCorruptionExposure: (level: ExposureLevel, nature?: NatureDInfluence) => {
-            // LA PORTE du slot (#1282) : un Test de Corruption déjà affiché ne se fait plus écraser — celui-ci prend rang.
-            poseCorruptionPending(get, set, expositionPending(h.id, level, nature));
-            return [msg('if.corruptionTest', { name: h.label, level })];
-          },
+          ...crochetsDeCorruption(get, set),
         }));
       }
       if (band.payoutPct != null && pa.depotId) lines.push(...mecenatPayout(get, set, h, pa.depotId, band.payoutPct));

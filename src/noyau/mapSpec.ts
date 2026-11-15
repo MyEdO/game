@@ -55,6 +55,7 @@ import { defautsDeCompilation } from '../data';
 // (`sceneRoofDefaultsSchema`/`roofDefaultsSchema`) — deux littéraux ici la feraient diverger en
 // silence de la porte qui refuse une scène authorée.
 import { PENTE_TOIT_DEG, sceneSchema, wallSegSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { rapportDeFautes, validerFormeVivante } from '../data/schemas/validate';
 // SOLS NUS : la primitive PARTAGÉE de l'audit de plan (`terrains.json › built`, complément) — la CLI
 // `map:check` (famille `etage-sans-appui`) et cette porte jugent le même appui sur le même ensemble.
@@ -267,7 +268,7 @@ export interface MapSpec {
   /** Départ héros : `[x,y]` ou `{x,y,z}`. */
   heroStart?: [number, number] | { x: number; y: number; z?: number };
   entryPoints?: Record<string, [number, number]>;
-  restZones?: { rect: { x: number; y: number; w: number; h: number }; places?: Scene['rest']; quality?: 'normale' | 'pietre' }[];
+  restZones?: { rect: { x: number; y: number; w: number; h: number }; places?: Scene['rest']; quality?: QualiteDeRepos }[];
   effectZones?: SceneEffectZone[];
   /** Calque de ZONES DESCRIPTIVES par étage : grille de chars aux dimensions de l'étage (` `/`.` = aucune
    *  zone), compilée en `SceneEffectZone` purement descriptives (nom de pièce, sans effet mécanique). Recale

@@ -225,7 +225,7 @@ const FILL_LITERAL_BASELINE: Record<string, number> = {
 //    composé à une autre classe (`X.panel`, ex. `.interlude-hero.panel`), modificateurs `.mod`/`:pseudo`/
 //    `[attr]` inclus jusqu'à la fin du sélecteur (`\s*[,{]`). EXCLUS : les DESCENDANTS/enfants (`.panel h3`,
 //    `.grid > .panel`) — `.panel` n'y est pas compound sur le même élément, ils scopent sans remplacer
-//    la surface — et toute classe distincte dont le nom commence par `.panel` (`.panel` suivi de `-`). La densité mobile du canon
+//    la surface — et toute classe distincte dont le nom commence par `.panel` (`.panel` suivi de `-`). La densité étroite du canon
 //    vit DANS components.css, APRÈS la base, pour gagner la cascade.
 // BASELINE nominative : les 3 spécialisations LÉGITIMES de l'interlude (world-meta.css) — carte d'Activité
 //    à liseré d'or (`.interlude-hero.panel`, densité resserrée), son état actif, et le bandeau de

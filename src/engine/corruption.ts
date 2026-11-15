@@ -76,12 +76,7 @@ export type Mutation = EntreeVivante<MutationData> & EtatDeMutation;
 // Gains de Corruption (l.30-75)
 // ---------------------------------------------------------------------------
 
-/**
- * Points de Corruption gagnés à l'issue du Test de résistance à une exposition :
- *  - mineure (l.31) : échec → 1 ; succès → 0.
- *  - modérée (l.52) : échec → 2 ; Succès Minime (0-1 DR) → 1 ; Succès (2+) → 0.
- *  - majeure (l.65) : échec → 3 ; 0-1 DR → 2 ; 2-3 DR → 1 ; Impressionnant (4+) → 0.
- */
+/** Points de Corruption gagnés à l'issue d'un Test d'Exposition. LDB 19 l.35 ; LDB 19 l.48 ; LDB 19 l.58 */
 export function corruptionGain(level: ExposureLevel, success: boolean, dr: number): number {
   if (level === 'mineure') return success ? 0 : 1;
   if (level === 'moderee') return success ? (dr <= 1 ? 1 : 0) : 2;

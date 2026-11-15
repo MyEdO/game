@@ -16,16 +16,21 @@ extends Node3D
 ## rendu de compatibilité dans la page ou en repli (`rendering/renderer/rendering_method` de `projet/project.godot`).
 ## Sous les deux, la lampe de chaque foyer porte une ombre (#3811) ; sous Forward+ seul (`Lumiere.rendu_complet`), la
 ## `Lumiere` allume l'occlusion ambiante et le brouillard volumétrique de son environnement
-## (`projet/scenes/Lumiere.tscn`, qui porte leurs valeurs). Aucune lampe ne reçoit l'ombre d'un luminaire (les
-## surfaces `luminaire` du volume, section « Monde »), et une lampe portée (sa clé, `portee/<id>`), celle d'aucun
-## corps : ce qui la porte la masquerait. La recette `projet/recettes/lumiere-des-deux-rendus.gd` le vérifie sous chaque
-## rendu.
+## (`projet/scenes/Lumiere.tscn`, qui porte leurs valeurs) ; ce brouillard, un volume de toute la scène le porte
+## (`brume`, `art/brume-de-la-vision.gdshader`), à la densité de l'environnement, que la vision voile (`VolumeDeScene`).
+## Aucune lampe ne reçoit l'ombre d'un luminaire (les surfaces `luminaire` du volume, section « Monde »), et une
+## lampe portée (sa clé, `portee/<id>`), celle d'aucun corps : ce qui la porte la masquerait. La recette
+## `projet/recettes/lumiere-des-deux-rendus.gd` le vérifie sous chaque rendu.
 
 @onready var _environnement: Environment = ($Environnement as WorldEnvironment).environment
 @onready var _soleil: DirectionalLight3D = $Soleil
 @onready var _sources: Node3D = $Sources
 
 var _brume: Dictionary = {}
+## Sous Forward+ seul (`rendu_complet`), la matière du volume de brouillard de toute la scène, qui porte la densité du
+## brouillard volumétrique de l'environnement (`_porter_la_brume`), et que la vision voile (`VolumeDeScene.brumer`) ;
+## `null` sous le rendu de compatibilité, qui ne charge pas un shader de brouillard.
+var brume: ShaderMaterial = null
 
 
 ## Si le rendu en cours est Forward+, qui porte l'occlusion ambiante et le brouillard volumétrique.
@@ -35,6 +40,21 @@ static func rendu_complet() -> bool:
 
 func _ready() -> void:
 	_environnement.ssao_enabled = rendu_complet()
+	if rendu_complet():
+		_porter_la_brume()
+
+
+## Le brouillard volumétrique de l'environnement porté par un volume de toute la scène (`brume`) : sa densité passe de
+## l'environnement à la matière du volume.
+func _porter_la_brume() -> void:
+	brume = ShaderMaterial.new()
+	brume.shader = load("res://art/brume-de-la-vision.gdshader")
+	brume.set_shader_parameter("densite", _environnement.volumetric_fog_density)
+	_environnement.volumetric_fog_density = 0.0
+	var volume := FogVolume.new()
+	volume.shape = RenderingServer.FOG_VOLUME_SHAPE_WORLD
+	volume.material = brume
+	add_child(volume)
 
 
 ## Pose `lumiere` sur un plateau de `metres_par_case` mètres par case.

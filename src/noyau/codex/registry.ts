@@ -1543,6 +1543,7 @@ const CODEX_SPECS = {
         sections: sections(
           chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel({ id: r.id, value: r.indice })))),
           props.length ? { title: tr('codex.fiche.proprietes'), layout: 'list', rows: [{ t: 'text', text: props.join(' · ') }] } : null,
+          passiveSection(t.passifDArme),
           ...reverseSections('trappings', t.id),
         ),
       });
@@ -2944,7 +2945,7 @@ const sectionDescription = (text: string, porteur: PorteurDeRangee | undefined):
 /**
  * La prose d'un combattant à fiche (#2206) : une section sans titre et l'entrée qui PORTE son texte
  * (`CodexSections`, `entree`), ou `null` sans prose. Lit le porteur de fiche, jamais `creatureId`
- * (`mergeCreatureProfile` laisse un `profil.id` l'écraser) ; lit `desc`, jamais `maison`.
+ * (celui d'un preset sans base est l'id du preset) ; lit `desc`, jamais `maison`.
  * - réf : la `desc` de la créature du catalogue ;
  * - preset : la `desc` de la fiche fusionnée. Quand elle EST la `desc` du profil du preset
  *   (`presetDe`, résolveur injecté), son porteur est le champ du document de projet

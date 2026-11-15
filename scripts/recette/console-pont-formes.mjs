@@ -26,11 +26,11 @@
 import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, VUES_RECETTE, FN_NOMMER_ELEMENT } from './lib.mjs';
 import { surfaceOcculteeParUnPont, elementsHorsFenetre } from './detecteurs-pont.mjs';
 
-/** VUES de la passe EXPLORATION : les trois vues JUGÉES (bureau, portable, mobile), lues à leur
+/** VUES de la passe EXPLORATION : les vues JUGÉES (bureau, portable), lues à leur
  *  source UNIQUE `vues-recette.json` — jamais recopiées. Le pont léger n'a qu'une forme : ce qui
  *  varie d'une vue à l'autre est la place qu'il laisse aux surfaces. */
 const VUES_EXPLORATION = VUES_RECETTE.map((v) => [v.largeur, v.hauteur]);
-/** VUES de recette : les trois vues jugées, plus les largeurs canon de la charte (900 / 700 / 560)
+/** VUES de recette : les vues jugées, plus les largeurs canon de la charte (900 / 700 / 560)
  *  et la tranche où la rangée à quatre régions est le plus serrée (1100). La HAUTEUR compte autant
  *  que la largeur : le côté d'alvéole se calcule en `vh`. */
 const VUES = [...VUES_EXPLORATION, [1100, 780], [900, 780], [700, 780], [560, 740]].sort((a, b) => b[0] - a[0]);

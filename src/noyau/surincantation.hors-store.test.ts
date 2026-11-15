@@ -163,7 +163,7 @@ describe('Surincantation — budget sur le NI effectif du jet', () => {
       const L = p.etat().party.find((c) => c.id === pc.casterId)!;
       const ennemi = { ...L, id: 'E', label: 'E', kind: 'ennemi' as const, pos: { x: 1, y: 0 } };
       const lanceurPose = { ...L, pos: { x: 0, y: 0 } };
-      const plan = (r: typeof pc.result & object) => aiOvercastPlan(lanceurPose, 'X', FIXTURES.critique, r, [lanceurPose, ennemi], undefined, false);
+      const plan = (r: typeof pc.result & object) => aiOvercastPlan(p.etat().scene, lanceurPose, 'X', FIXTURES.critique, r, [lanceurPose, ennemi], undefined, false);
       expect(plan(pc.result!), 'témoin : le jet lancé a un plan').toHaveProperty('extraTargetIds', ['E']);
       // Forme que pose l'issue d'un Contre-sort gagnant (`applyCounterspellOutcome`).
       const dissipe = { ...pc.result!, cast: false, dispelled: true };

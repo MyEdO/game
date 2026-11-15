@@ -7,7 +7,7 @@
  * — la classification des décors/créatures est une extrapolation des étalons ; celle des STRUCTURES
  * d'arête est authored et sourcée (`couvertPenalty`, `AA 10 l.23`).
  */
-import { Scene, tileAt, wallOnSight, heightAt, sceneMetresPerTile, edgeOf, structureIsDown, croiseeOuverte } from './scene';
+import { Scene, tileAt, wallOnSight, heightAt, sceneMetresPerTile, edgeOf, structureIsDown, croiseeOuverte, type WallSeg } from './scene';
 import { aretesA } from './wallIndex';
 import { terrainOpaque } from './terrain';
 import { findPropById, findStructureById } from '../../data';
@@ -107,16 +107,27 @@ function aretesAbritantes(from: Pt, to: Pt): { x: number; y: number; side: 'N' |
  * l'emporte, comme entre les deux arêtes d'une diagonale ; arbitrage #4105 du 2026-11-13.
  */
 export function couvertDArete(scene: Scene, de: Corps, vers: Corps, croisee: (mur: CoverClass) => CoverClass): CoverClass {
+  return couvertDesAretes(scene, de, vers, (seg, mur) => (croiseeOuverte(seg) ? croisee(mur) : mur));
+}
+
+/** Le plus protecteur des couverts `valeur` des arêtes debout qui abritent `vers` de `de` (`aretesAbritantes` de chaque
+ *  paire en regard, même étage) ; `mur` est le couvert de la Structure de l'arête. */
+function couvertDesAretes(scene: Scene, de: Corps, vers: Corps, valeur: (seg: WallSeg, mur: CoverClass) => CoverClass): CoverClass {
   const z = vers.pos.z ?? 0;
   if ((de.pos.z ?? 0) !== z) return 'none';
   let cover: CoverClass = 'none';
   for (const [a, b] of pairesEnRegard(de, vers)) for (const e of aretesAbritantes(a, b)) for (const seg of aretesA(scene, e.x, e.y, e.side, z)) {
     if (seg.structure && structureIsDown(scene, seg)) continue;
     const pen = seg.structure ? findStructureById(seg.structure)?.couvertPenalty : undefined;
-    const mur = pen ? couvertDepuisDifficulte(pen) : 'none';
-    cover = worst(cover, croiseeOuverte(seg) ? croisee(mur) : mur);
+    cover = worst(cover, valeur(seg, pen ? couvertDepuisDifficulte(pen) : 'none'));
   }
   return cover;
+}
+
+/** Couvert de la cible d'un coup de corps à corps : celui des arêtes qui l'abritent (`couvertDArete`), et celui de
+ *  toute croisée ouverte par laquelle passe le coup, du côté de l'attaquant compris (arbitrage #4291 du 2026-11-15). */
+export function couvertDuCoup(scene: Scene, attaquant: Corps, cible: Corps, croisee: (mur: CoverClass) => CoverClass): CoverClass {
+  return worst(couvertDArete(scene, attaquant, cible, croisee), couvertDesAretes(scene, cible, attaquant, (seg, mur) => (croiseeOuverte(seg) ? croisee(mur) : 'none')));
 }
 
 /** Couvert de la cible d'un tir : celui du `trajet` (`lineOfSightCover` vers la case visée) et celui des
