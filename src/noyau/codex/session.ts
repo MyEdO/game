@@ -132,11 +132,11 @@ export function ouvrirLeCompendium(manifeste: Manifeste | null, paquets: readonl
 const datasetDe = (categorie: string): string => editableDataset(categorie) ?? editableObjectDataset(categorie)!.ds;
 
 /** La forme du formulaire de l'atelier `a` : le nœud de son entrée (`noeudDeLEntree`), ouvert sur son cas, chacun de ses
- *  champs offerts (`champsOfferts`) hors de ce qu'une adresse de prose dérive (`estCheminDerive`), aucun retrait
- *  déclaré. */
+ *  champs offerts (`champsOfferts`) hors de son identité, que change `identifier`, et de ce qu'une adresse de prose
+ *  dérive (`estCheminDerive`), aucun retrait déclaré. */
 function formeDeLAtelier(a: AtelierDuCompendium): FormeDuFormulaire {
   const noeud = noeudDeLEntree(datasetDe(a.categorie), a.entree);
-  const champs = champsOfferts(noeud, a.entree).filter((f) => !estCheminDerive(noeud, a.entree, [f.key])).map((f) => [f.key]);
+  const champs = champsOfferts(noeud, a.entree, ['id']).filter((f) => !estCheminDerive(noeud, a.entree, [f.key])).map((f) => [f.key]);
   return { noeud, champs, retraits: [] };
 }
 

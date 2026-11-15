@@ -105,6 +105,12 @@ describe('atelier', () => {
     expect(formulaireDeLAtelier(s)!.champs.map((c) => c.key)).toContain('label');
   });
 
+  it('l’identité de l’entrée ne s’écrit pas au formulaire : seul `identifier` la change', () => {
+    const s = jouer(ouvert('careerLevels', NIVEAU.id), { geste: 'modifier' });
+    expect(formulaireDeLAtelier(s)!.champs.map((c) => c.key)).not.toContain('id');
+    expect(compendium(s, { geste: 'valeur', chemin: ['id'], valeur: 'autre' }).refus).not.toBeNull();
+  });
+
   it('une valeur s’écrit à un chemin profond du brouillon ; un chemin hors du formulaire est refusé, dit', () => {
     const autre = datasetArray('talents').find((t) => t.id !== TALENT_CITE)!.id;
     const s = jouer(ouvert('careerLevels', NIVEAU.id), { geste: 'modifier' });
