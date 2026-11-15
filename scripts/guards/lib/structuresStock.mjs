@@ -26,6 +26,9 @@ export const STRUCTURES_CIBLES = [
   // #4110
   { concept: "reference", signature: "id,qualityChoice", date: "2026-11-13" },
   { concept: "reference", signature: "id,qualityChoice,spec", date: "2026-11-13" },
+  { concept: "reference", signature: "wildcard", date: "2026-11-15" },
+  { concept: "reference", signature: "groupe,wildcard", date: "2026-11-15" },
+  { concept: "reference", signature: "qualityChoice,wildcard", date: "2026-11-15" },
   { concept: "reference", signature: "choix,id", date: "2026-08-23" },
   { concept: "reference", signature: "id,type", date: "2026-08-23" },
   { concept: "reference", signature: "count,id,type", date: "2026-08-23" },
