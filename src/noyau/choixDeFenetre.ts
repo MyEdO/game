@@ -351,7 +351,7 @@ export const OUVERTS_DU_CHOIX = {
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.lodging ?? null)),
     pitance: reglage('repos', 'pitance', (s, pid) => {
       const nuit = nuitDuDormeur(s, pid);
-      return nuit ? (nuit.dormeur ? foodOptions(nuit.p.places, nuit.dormeur) : nourrituresDeTroupe(nuit.p.places)).map((v) => duRepos(v, 'pitance')) : [];
+      return nuit ? (nuit.dormeur ? foodOptions(nuit.p, nuit.dormeur) : nourrituresDeTroupe(nuit.p)).map((v) => duRepos(v, 'pitance')) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.food ?? null)),
   },
   // LDB 17 l.25, LDB 11 l.97-103

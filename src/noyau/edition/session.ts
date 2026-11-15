@@ -1222,8 +1222,9 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'ajouterEtablissement': {
       const carte = projetEdite(s).worldMap;
       const lieu = s.sel?.type === FORMULAIRES.lieu.sel ? carte?.places.find((p) => p.id === (s.sel as { id: string }).id) : undefined;
-      if (!carte || !lieu || !typesDEtablissement().some((sv) => sv.id === g.kind)) return s;
-      return ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), majLieu(carte, lieu.id, etablissementAjoute(lieu, g.kind))), s.sel);
+      const type = typesDEtablissement().find((sv) => sv.id === g.kind);
+      if (!carte || !lieu || !type) return s;
+      return ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), majLieu(carte, lieu.id, etablissementAjoute(lieu, type.id))), s.sel);
     }
     case 'sens': {
       const carte = projetEdite(s).worldMap;

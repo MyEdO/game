@@ -1059,9 +1059,6 @@
    "flags": {},
    "desc": "L'automne rend la Mer des Griffes mauvaise et le fret précieux. Le baron Ludolf Köhler attend sur le quai, à côté du Grimm amarré. Frère Aldo bénit les départs ; Dame Kramer surveille le chargement de son fret ; Griet accorde son luth.",
    "weather": "brouillard",
-   "rest": {
-    "auberge": true
-   },
    "entryPoints": {
     "retour": {
      "x": 2,
@@ -2363,9 +2360,6 @@
    "flags": {},
    "desc": "Erengrad (Taille 4, Richesse 4, surplus Laine +1 — MDG 15 l.439-506). Négoce, rumeurs, et une nuit où le chat du bord tombe malade.",
    "weather": "neige",
-   "rest": {
-    "auberge": true
-   },
    "entryPoints": {
     "arrivee": {
      "x": 2,

@@ -15,7 +15,8 @@ import type { Scene } from './monde/scene';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { z } from 'zod';
-import type { refusRouteSchema, routePerilSchema, worldMapParamsSchema } from '../data/schemas/defs-scenes/worldmap';
+import type { offreDAubergeSchema, placeServiceSchema, refusRouteSchema, routePerilSchema, worldMapParamsSchema } from '../data/schemas/defs-scenes/worldmap';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import type { provenanceDeValeurSchema } from '../data/schemas/grammaire/route';
 import { garanti } from '../lib/garanti';
 import { normalizeScene } from './monde/scene';
@@ -55,8 +56,7 @@ export interface MapPlace {
   /** SERVICES EXTENSIBLES du lieu au-delà du port et du marché (#343) — auberge/temple/forgeron/guilde…,
    *  `kind` désigne une entrée du catalogue `lieux-services.json`. Port et marché NE sont PAS dupliqués ici : ils
    *  gardent leur propre champ riche (`port`/`market`) et `placeServices` les compose avec ceux-ci en
-   *  une liste unique. Une auberge peut porter son offre de couchage PROPRE (`rest`) ou, à défaut,
-   *  dériver de l'offre de repos de la scène liée. */
+   *  une liste unique. Un établissement d'hébergement porte sa qualité et ses offres d'auberge (`rest`). */
   services?: PlaceService[];
   /** POI (#345 phase 5, option A) : marqueurs cliquables du PLAN de ce lieu (onglet Plan du hub,
    *  `MapCanvas` en second consommateur — AUCUNE forme nouvelle, juste des marqueurs). Position en
@@ -94,14 +94,16 @@ export type PlacePoi = {
 
 /** Un ÉTABLISSEMENT attaché à un lieu (catalogue `lieux-services.json`) — hors port/marché, qui portent leur propre
  *  schéma riche. `id` STABLE, unique dans le lieu (#4277) : un lieu porte plusieurs établissements d'un même type ;
- *  `kind` désigne l'entrée du catalogue ; `label` = surcharge d'affichage facultative d'auteur ; `rest` = offre de
- *  couchage/repas PROPRE à cet établissement d'hébergement (`hebergement` du catalogue), à défaut de quoi il dérive de
- *  l'offre de repos de la scène (`placeServices`). */
-export interface PlaceService {
-  id: string;
-  kind: { id: string };
-  label?: string;
-  rest?: RestPlaces;
+ *  `kind` désigne l'entrée du catalogue ; `label` = surcharge d'affichage facultative d'auteur ; `rest` = qualité et
+ *  offres d'auberge d'un établissement d'hébergement (`hebergement` du catalogue, `estUnHebergement`). */
+export type PlaceService = z.output<typeof placeServiceSchema>;
+
+/** Une offre d'auberge d'un établissement (`offreDAubergeSchema`). */
+export type OffreDAuberge = z.output<typeof offreDAubergeSchema>;
+
+/** L'établissement `s` est-il d'hébergement (`hebergement` de son type au catalogue `lieux-services.json`) ? */
+export function estUnHebergement(s: PlaceService): boolean {
+  return findLieuServiceById(s.kind.id)?.hebergement === true;
 }
 
 /** Péripétie d'AUTEUR sur une route : tirée chaque jour de voyage à `chancePct` %. */
@@ -302,15 +304,13 @@ export function quaiDuGroupe(s: { lieu: string | null; worldMap: WorldMap | null
  *  panneau dédié ; `autre` = service de catalogue générique (temple/forgeron/guilde…). */
 export type PlaceServiceCategory = 'port' | 'marche' | 'auberge' | 'autre';
 
-/** Un service RÉSOLU d'un lieu (sortie de `placeServices`) — vocabulaire UNIQUE consommé par le hub de
- *  lieu (#343) et l'auberge. Les payloads métier sont RÉFÉRENCÉS, jamais copiés : `port`/`market`
- *  pointent la donnée existante du nœud, `rest` pointe l'offre propre au service ou celle de la scène. */
-export interface ResolvedPlaceService {
+/** Le tronc d'un service résolu (`ResolvedPlaceService`). Les payloads métier sont RÉFÉRENCÉS, jamais copiés :
+ *  `port`/`market` pointent la donnée existante du nœud. */
+interface ServiceResolu {
   /** id de routage : `'port'`, `'marche'`, l'`id` d'un établissement déclaré, ou `'auberge'` (dérivée de la scène). */
   id: string;
   /** L'entrée du catalogue `lieux-services.json` dont le service est une instance. */
   kind: string;
-  category: PlaceServiceCategory;
   label: string;
   /** Le `label` est le nom que l'auteur a donné à l'établissement (`PlaceService.label`), pas le libellé de son type. */
   nommeParLAuteur?: true;
@@ -318,8 +318,6 @@ export interface ResolvedPlaceService {
   desc?: string;
   port?: NonNullable<MapPlace['port']>;
   market?: LandMarketProfile;
-  /** Offre de couchage/repas effective d'une auberge (propre au service, sinon dérivée de la scène). */
-  rest?: RestPlaces;
   /** Réplique de boniment (catalogue `lieux-services.json`) du bandeau d'interlocuteur statique. */
   hostLine?: string;
   /** Bande d'ambiance par défaut (catalogue `lieux-services.json`, id du registre des fonds de l'hôte). */
@@ -333,6 +331,28 @@ export interface ResolvedPlaceService {
   /** Libellé du bouton d'entrée du service qui porte un `opensScreen` (catalogue). */
   enterLabel?: string;
 }
+
+/** Une offre d'auberge de la nuit : celle d'un établissement (`OffreDAuberge`), ou du livre (`OFFRES_DU_LIVRE`). */
+export type OffreDuRepos = Omit<OffreDAuberge, 'source'>;
+
+/** Les offres d'auberge du livre, sans prix ni risque propres. LDB 66 l.12-16, l.28 */
+export const OFFRES_DU_LIVRE: readonly OffreDuRepos[] = [{ id: 'commune' }, { id: 'chambre' }, { id: 'grande' }, { id: 'repas' }];
+
+/** Le repos d'un établissement d'hébergement, résolu une fois (`placeServices`) : ses lieux de repos, sa qualité et ses
+ *  offres d'auberge, RÉFÉRENCÉES depuis leur porteur. */
+export interface ReposDeLEtablissement {
+  places: RestPlaces;
+  quality: QualiteDeRepos;
+  offres: readonly OffreDuRepos[];
+}
+
+/** Un établissement d'hébergement résolu : il porte TOUJOURS son repos (celui de l'établissement déclaré, ou celui de la
+ *  scène pour l'auberge dérivée). */
+export type ServiceDHebergement = ServiceResolu & { category: 'auberge'; rest: ReposDeLEtablissement };
+
+/** Un service RÉSOLU d'un lieu (sortie de `placeServices`) — vocabulaire UNIQUE consommé par le hub de lieu (#343) et
+ *  l'auberge : un établissement d'hébergement, ou un service sans repos. */
+export type ResolvedPlaceService = ServiceDHebergement | (ServiceResolu & { category: Exclude<PlaceServiceCategory, 'auberge'>; rest?: never });
 
 /** Icône (id du registre `src/data/icons`) d'un service résolu : le catalogue (`lieux-services.json`) fournit
  *  la sienne via `placeServices`, sinon un défaut générique. PUR (id → id), source unique partagée par le
@@ -373,7 +393,7 @@ export function placeServiceMerchantId(placeId: string, serviceId: string): stri
 
 /** Offre de couchage en AUBERGE portée par une scène (`rest.auberge`, ou une `restZone` qui l'offre) —
  *  la scène reste la SOURCE de vérité, référencée jamais copiée sur le nœud. */
-function sceneAubergeOffer(scene?: Scene): RestPlaces | undefined {
+export function sceneAubergeOffer(scene?: Scene): RestPlaces | undefined {
   if (!scene) return undefined;
   if (scene.rest?.auberge) return { auberge: true, maison: scene.rest.maison, camp: scene.rest.camp };
   const zone = (scene.restZones ?? []).find((z) => z.places.auberge);
@@ -387,7 +407,7 @@ export const SERVICE_CITE = { port: 'port', marche: 'marche', auberge: 'auberge'
 /**
  * API UNIQUE des SERVICES d'un lieu (#343) : compose en UNE liste le port (`place.port`), le marché
  * (`place.market`) et les services extensibles du catalogue (`place.services`, `lieux-services.json`),
- * plus l'auberge — déclarée en service propre OU dérivée de l'offre de repos de la scène liée. Zéro
+ * plus l'auberge — l'établissement d'hébergement déclaré, OU, sans lui, dérivée de l'offre de repos de la scène liée. Zéro
  * duplication de vérité : chaque payload RÉFÉRENCE sa donnée d'origine (port/marché/offre de repos),
  * il n'en est jamais recopié une seconde source. Consommée par le hub de lieu, l'écran du lieu (`lieuEnVue`), le
  * repos (`reposDuLieu`), l'auberge (`recueillirLesRumeurs`), l'échoppe (`ouvrirLaBoutique`) et `validateScene`.
@@ -404,28 +424,29 @@ export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceServ
   }
   for (const s of place.services ?? []) {
     const def = findLieuServiceById(s.kind.id);
-    const auberge = def?.hebergement === true;
-    out.push({
+    const service: ServiceResolu = {
       id: s.id,
       kind: s.kind.id,
-      category: auberge ? 'auberge' : 'autre',
       label: s.label ?? def?.label ?? s.kind.id,
       ...(s.label !== undefined ? { nommeParLAuteur: true as const } : {}),
       icon: def?.icon,
       desc: def?.desc,
-      rest: auberge ? (s.rest ?? sceneAubergeOffer(scene)) : undefined,
       hostLine: def?.hostLine,
       backdrop: def?.backdrop?.id,
       merchantArchetype: def?.merchantArchetype?.id,
       opensScreen: def?.opensScreen,
       enterLabel: def?.enterLabel,
-    });
+    };
+    out.push(estUnHebergement(s)
+      ? { ...service, category: 'auberge', rest: { places: { auberge: true }, quality: s.rest?.quality ?? 'normale', offres: s.rest?.offres ?? OFFRES_DU_LIVRE } }
+      : { ...service, category: 'autre' });
   }
   // Auberge DÉRIVÉE de la scène si le lieu ne déclare aucun service d'hébergement mais que la scène offre
   // le couchage en auberge — source unique = la scène.
   if (!out.some((sv) => sv.category === 'auberge')) {
-    const rest = sceneAubergeOffer(scene);
-    if (rest) {
+    const places = sceneAubergeOffer(scene);
+    if (places) {
+      const rest: ReposDeLEtablissement = { places, quality: scene?.rest?.quality ?? 'normale', offres: OFFRES_DU_LIVRE };
       const def = garanti(findLieuServiceById(SERVICE_CITE.auberge), SERVICE_CITE.auberge, 'service de lieu');
       out.push({ id: 'auberge', kind: SERVICE_CITE.auberge, category: 'auberge', label: def.label, icon: def.icon, desc: def.desc, rest, hostLine: def.hostLine, backdrop: def.backdrop?.id });
     }

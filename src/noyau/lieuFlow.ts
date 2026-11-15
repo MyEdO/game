@@ -7,7 +7,7 @@ import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
-import { lieuDuGroupe, placeServices, type MapPlace, type PlacePoi, type ResolvedPlaceService } from './worldMap';
+import { lieuDuGroupe, placeServices, type MapPlace, type PlacePoi, type ResolvedPlaceService, type ServiceDHebergement } from './worldMap';
 import { sceneDuRegistre } from './monde/registreDesScenes';
 import { fenetreDuJeu } from './combatAuto';
 import type { CorpsDesChoix } from './choixDesFenetres';
@@ -39,8 +39,8 @@ export function echoppesDuLieu(s: Pick<Jeu, 'lieu' | 'worldMap'>): Echoppe[] {
 
 /** Les établissements d'hébergement du lieu où se tient le groupe : où `ouvrirLeRepos` et `recueillirLesRumeurs` se
  *  jouent. */
-export function hebergementsDuLieu(s: Pick<Jeu, 'lieu' | 'worldMap'>): ResolvedPlaceService[] {
-  return servicesDuLieu(s).filter((svc) => svc.category === 'auberge');
+export function hebergementsDuLieu(s: Pick<Jeu, 'lieu' | 'worldMap'>): ServiceDHebergement[] {
+  return servicesDuLieu(s).filter((svc): svc is ServiceDHebergement => svc.category === 'auberge');
 }
 
 /** Un point d'intérêt du plan du lieu qui mène à une scène. */

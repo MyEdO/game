@@ -121,7 +121,6 @@ const scenes = [];
 resetIds();
 scenes.push(scene({
   id: 'ls-quai-salzenmund',
-  rest: { auberge: true }, // couchage effectif du quai — `placeServices` le lit via `sceneAubergeOffer` (`worldMap.ts`)
   label: 'Salzenmund — le quai de la Seconde Flotte',
   desc:
     "L'automne rend la Mer des Griffes mauvaise et le fret précieux. Le baron Ludolf Köhler attend sur le quai, " +
@@ -451,7 +450,6 @@ scenes.push(scene({
 resetIds();
 scenes.push(scene({
   id: 'ls-quai-erengrad',
-  rest: { auberge: true }, // couchage effectif du quai — `placeServices` le lit via `sceneAubergeOffer` (`worldMap.ts`)
   label: 'Erengrad — le port kislevite',
   desc:
     "Erengrad (Taille 4, Richesse 4, surplus Laine +1 — MDG 15 l.439-506). Négoce, rumeurs, et une nuit où " +

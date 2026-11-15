@@ -121,7 +121,7 @@ export const typesDEtablissement = () => lieuxServices.filter((sv) => sv.id !== 
 
 /** Le patch du lieu `lieu` où un établissement neuf du type `kind` s'ajoute à ses services, sous un identifiant dérivé du
  *  type qu'aucun service du lieu ne porte, déclaré ou automatique (`uniqueSlugId`, `placeServices`). #4277 */
-export function etablissementAjoute(lieu: MapPlace, kind: string): PatchDeLieu {
+export function etablissementAjoute(lieu: MapPlace, kind: PlaceService['kind']['id']): PatchDeLieu {
   const pris = new Set(placeServices(lieu).map((sv) => sv.id));
   const neuf: PlaceService = { id: uniqueSlugId(kind, pris), kind: { id: kind } };
   return { services: [...(lieu.services ?? []), neuf] };

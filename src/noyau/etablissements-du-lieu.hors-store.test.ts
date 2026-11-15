@@ -1,26 +1,28 @@
 /**
  * L'IDENTITÉ DE L'ÉTABLISSEMENT (#4277 B1) : un lieu porte plusieurs établissements d'un même type, chacun désigné par
  * son `id` (`PlaceService.id`). Chaque geste du lieu porte l'id de l'établissement : le repos ouvert est celui de
- * l'auberge désignée, son nom et ses places ; l'échoppe ouverte tient son propre stock (`placeServiceMerchantId`).
+ * l'auberge désignée, son nom et ses offres ; l'échoppe ouverte tient son propre stock (`placeServiceMerchantId`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { resetSceneRegistry } from './monde/registreDesScenes';
 import { emptyScene } from './monde/scene';
-import type { WorldMap } from './worldMap';
+import { OFFRES_DU_LIVRE, type OffreDAuberge, type WorldMap } from './worldMap';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { lieuEnVue } from './lieuEnVue';
 import { DESIGNATIONS } from './designations';
 import { t } from '../i18n';
+
+const LITS_MITEUX = [{ id: 'commune', source: { book: 'livre-de-base', page: 302 } }] as const satisfies OffreDAuberge[];
 
 const worldMap: WorldMap = {
   id: 'carte', label: 'Carte', routes: [],
   places: [{
     id: 'bourg', label: 'Ubersreik', pos: { x: 0, y: 0 }, scene: { id: 'place' },
     services: [
-      { id: 'auberge-du-port', kind: { id: 'auberge' }, label: 'Auberge du Port', rest: { auberge: true } },
-      { id: 'lits-miteux', kind: { id: 'auberge' }, label: 'Les lits miteux', rest: { maison: true } },
+      { id: 'auberge-du-port', kind: { id: 'auberge' }, label: 'Auberge du Port' },
+      { id: 'lits-miteux', kind: { id: 'auberge' }, label: 'Les lits miteux', rest: { offres: [...LITS_MITEUX] } },
       { id: 'forge-nord', kind: { id: 'forgeron' }, label: 'Forge du Nord' },
       { id: 'forge-sud', kind: { id: 'forgeron' }, label: 'Forge du Sud' },
     ],
@@ -75,11 +77,11 @@ describe('deux établissements d’un même type dans un lieu', () => {
   );
 
   it.each([
-    ['auberge-du-port', 'Auberge du Port', { auberge: true }],
-    ['lits-miteux', 'Les lits miteux', { maison: true }],
-  ])('l’auberge « %s » s’ouvre par son id : le repos porte SON nom et SES places', (id, nom, places) => {
+    ['auberge-du-port', 'Auberge du Port', OFFRES_DU_LIVRE],
+    ['lits-miteux', 'Les lits miteux', LITS_MITEUX],
+  ])('l’auberge « %s » s’ouvre par son id : le repos porte SON nom et SES offres', (id, nom, offres) => {
     g().ouvrirLeRepos(id);
-    expect([g().pendingRest?.lieu, g().pendingRest?.places]).toEqual([nom, places]);
+    expect([g().pendingRest?.lieu, g().pendingRest?.places, g().pendingRest?.offres]).toEqual([nom, { auberge: true }, offres]);
   });
 
   it('un id qui n’est pas un hébergement du lieu : le repos et les rumeurs sont refusés, et le refus est dit', () => {
@@ -106,7 +108,7 @@ describe('deux établissements d’un même type dans un lieu', () => {
 
 describe('une auberge sans nom d’auteur', () => {
   const [lieu] = worldMap.places;
-  beforeEach(() => monter({ ...worldMap, places: [{ ...lieu, services: [{ id: 'chambres', kind: { id: 'auberge' }, rest: { auberge: true } }] }] }));
+  beforeEach(() => monter({ ...worldMap, places: [{ ...lieu, services: [{ id: 'chambres', kind: { id: 'auberge' } }] }] }));
 
   it('la nuit se passe au lieu, nommé par son libellé', () => {
     g().ouvrirLeRepos('chambres');

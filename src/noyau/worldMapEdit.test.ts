@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetData, setObjectDataset } from '../data/overrides';
 import { semencesDeScene } from '../data';
-import { routesFrom, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
+import { routesFrom, type MapPlace, type PlaceService, type MapRoute, type WorldMap } from './worldMap';
 import {
   BORNES_DE_CARTE, ajouterLieu, basculerMode, ciblerPoi, etablissementAjoute, etablissementRetire, lierLieux, majCarte, majLieu, majRoute, supprimerLieu, supprimerRoute, typesDEtablissement,
 } from './worldMapEdit';
@@ -152,7 +152,7 @@ describe('patchs et modes', () => {
 });
 
 describe('établissements d’un lieu (#4277)', () => {
-  const avec = (l: MapPlace, ...kinds: string[]) => kinds.reduce((x, k) => ({ ...x, ...etablissementAjoute(x, k) }), l);
+  const avec = (l: MapPlace, ...kinds: PlaceService['kind']['id'][]) => kinds.reduce((x, k) => ({ ...x, ...etablissementAjoute(x, k) }), l);
 
   it('un établissement neuf prend l’identifiant de son type, puis le premier suffixe libre, jamais celui d’un service automatique du lieu', () => {
     expect(avec(lieu('a', 10), 'auberge', 'auberge', 'temple').services).toEqual([
