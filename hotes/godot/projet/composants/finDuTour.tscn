@@ -1,8 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="2_liaison"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
-[ext_resource type="Theme" path="res://art/discret.tres" id="t_discret"]
 
 [node name="FinDuTour" type="PanelContainer"]
 theme_type_variation = &"Enveloppe"
@@ -16,14 +15,14 @@ propriete = &"tooltip_text"
 mouse_filter = 2
 theme_type_variation = &"RangeeSerree"
 
-[node name="Pastilles" type="VBoxContainer" parent="Rangee"]
+[node name="Pastilles" type="HBoxContainer" parent="Rangee"]
 size_flags_vertical = 8
-theme = ExtResource("t_discret")
-theme_type_variation = &"PileTassee"
+theme_type_variation = &"RangeeSerree"
 
 [node name="Zone" type="Node" parent="Rangee/Pastilles"]
 script = ExtResource("1_zone")
 source = "valeurs"
+formes = PackedStringArray("bouton:pastilleDeBouton")
 
 [node name="Fin" type="HBoxContainer" parent="Rangee"]
 

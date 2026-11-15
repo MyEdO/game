@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://composants/pastilleOuvrante.tscn" id="1_pastille"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+
+[node name="PastilleDeChoix" instance=ExtResource("1_pastille")]
+
+[node name="Valeurs" type="HFlowContainer" parent="Liste"]
+custom_minimum_size = Vector2(240, 0)
+
+[node name="Zone" type="Node" parent="Liste/Valeurs"]
+script = ExtResource("2_zone")
+source = "valeurs"

@@ -11,11 +11,14 @@ extends Node
 ## (`Scene`), l'espace qui reste, que la fiche ouverte rétrécit à sa gauche, où se posent la disposition, le round en
 ## cartouche en haut à gauche (`Hud/Tour`, `Cartouche`), l'ordre du tour en colonne au bord gauche, celui qui joue en bas
 ## (`Hud/Corps/Ordre`, chaque rang en `rang`, celui qui joue en `rangDeLActif`, un héros avec le bouton de sa fiche),
-## le meuble de l'actif en bas au centre (`Actif`, en `meuble` : ses Blessures en jauge, son Mouvement en jetons, un
-## losange par case, son Action en sceau de cire, son Avantage, ses États, puis son portrait et son nom), la fin du tour
-## en bas à droite (`Tour`, la part du tour de `combat.offres`, `economie/aucun`, en `finDuTour` : « Fin du tour » en
-## gros bouton rond de laiton, les autres en pastilles discrètes à sa gauche), les avis du combat (`Hud/Corps/Gauche`)
-## et le dialogue, et où se cadre le monde (`Monde.cadre`) ; rien ne recouvre le groupe ni le journal. En combat, la
+## le meuble de l'actif en bas au centre (`Actif/Meuble`, son chêne sous le portrait qui le dépasse : à gauche, en
+## `meuble`, ses Blessures en jauge, son Mouvement en jetons, un losange par case, son Action en sceau de cire, son
+## Avantage, ses États ; au milieu son portrait et son nom ; à droite ses offres, `combat.offres` : chaque autre choix
+## en pastille ronde à pictogramme qui ouvre sa liste au-dessus du meuble, puis l'Action en plaques à pictogramme et à
+## nom), la fin du tour en bas à droite (`Tour`, la part du tour de `combat.offres`, `economie/aucun`, en `finDuTour` :
+## « Fin du tour » en gros bouton rond de laiton, les autres en pastilles rondes à pictogramme à sa gauche), les avis
+## du combat en ligne au-dessus du meuble (`Actif/Avis`) et le dialogue, et où se cadre le monde (`Monde.cadre`) ;
+## rien ne recouvre le groupe ni le journal. En combat, la
 ## fenêtre générique se pose en bas au centre, au-dessus du meuble de l'actif. Le coin bas-droit
 ## de la fenêtre est réservé à la pastille du menu de la partie (`partie.menu`, `projet/scenes/MenuDeLaPartie.tscn`), qui
 ## ouvre au-dessus d'elle les gestes du groupe et de la partie (`groupe.gestes`, `partie.gestes`) : le journal s'arrête

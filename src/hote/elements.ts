@@ -82,14 +82,51 @@ export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'salon' | 'combat' | 'ate
  *  l'accueil à suivre (`accueil.ts`), le panneau du salon à ouvrir ou à fermer, le salon à quitter (`salon.ts`). */
 export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot } | { reglages: boolean } | { accueil: EntreeDeLAccueil } | { salon: boolean | 'quitter' };
 
-/** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
- *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */
-export interface Bouton { type: 'bouton'; id: string; libelle: string; jeu: Jeu; presse: boolean; focus: boolean; refus: string | null }
+/**
+ * @contrat Vue
+ * Un geste d'un clic.
+ */
+export interface Bouton {
+  /** `bouton`. */
+  type: 'bouton';
+  /** stable dans sa zone. */
+  id: string;
+  /** ce qu'il fait. */
+  libelle: string;
+  /** l'intention qu'il joue. */
+  jeu: Jeu;
+  /** la valeur courante d'un choix, ou l'offre que l'actif vise. */
+  presse: boolean;
+  /** le geste que la fenêtre joue à l'Entrée. */
+  focus: boolean;
+  /** pourquoi il ne se joue pas, `null` s'il se joue. */
+  refus: string | null;
+  /** l'id de son dessin au registre des icônes (`src/data/icons`), absent sans dessin. */
+  icone?: string;
+}
 
-/** Un choix parmi des valeurs, chacune un bouton ; `liste` quand elles sont trop nombreuses pour une rangée. `focus` :
- *  la liste que la fenêtre attend maintenant (une rangée de choix ne le prend jamais) ; `refus` : pourquoi le choix ne
- *  se joue pas, chacune de ses valeurs refusée avec lui. */
-export interface Choix { type: 'choix' | 'liste'; id: string; ton: Ton; libelle: string; focus: boolean; refus: string | null; valeurs: Bouton[] }
+/**
+ * @contrat Vue
+ * Un choix parmi des valeurs, chacune un bouton.
+ */
+export interface Choix {
+  /** `liste` quand ses valeurs sont trop nombreuses pour une rangée. */
+  type: 'choix' | 'liste';
+  /** stable dans sa zone. */
+  id: string;
+  /** la variation du thème de son libellé. */
+  ton: Ton;
+  /** ce qu'il choisit. */
+  libelle: string;
+  /** la liste que la fenêtre attend maintenant ; une rangée de choix ne le prend jamais. */
+  focus: boolean;
+  /** pourquoi il ne se joue pas, chacune de ses valeurs refusée avec lui. */
+  refus: string | null;
+  /** ses valeurs. */
+  valeurs: Bouton[];
+  /** l'id de son dessin au registre des icônes (`src/data/icons`), absent sans dessin. */
+  icone?: string;
+}
 
 /** Une valeur d'une saisie à choix : ce qu'elle dit, ce qu'elle vaut, si elle est la valeur courante, pourquoi elle
  *  est refusée. */

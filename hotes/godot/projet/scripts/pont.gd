@@ -309,16 +309,21 @@ func exposer(nom: String, rappel: Callable) -> void:
 
 
 ## Sous une recette, `republier` appelé quand une liste déroulante sous `racine`, présente ou à venir, s'ouvre, se ferme
-## ou désigne un autre article au clavier : l'écran publie l'état de ses listes (`boutons_a_l_ecran`).
+## ou désigne un autre article au clavier, ou quand une bascule d'un groupe (la liste d'une pastille) s'ouvre ou se
+## ferme : l'écran publie l'état de ses listes (`boutons_a_l_ecran`).
 func suivre_les_listes(racine: Node, republier: Callable) -> void:
 	if not en_recette:
 		return
 	var suivre := func(noeud: Node) -> void:
-		if noeud is OptionButton and racine.is_ancestor_of(noeud):
+		if not racine.is_ancestor_of(noeud):
+			return
+		if noeud is OptionButton:
 			var articles := (noeud as OptionButton).get_popup()
 			articles.visibility_changed.connect(republier)
 			articles.id_focused.connect(func(_id: int) -> void: republier.call())
-	for liste in racine.find_children("*", "OptionButton", true, false):
+		elif noeud is BaseButton and (noeud as BaseButton).button_group != null:
+			(noeud as BaseButton).toggled.connect(func(_ouverte: bool) -> void: republier.call())
+	for liste in racine.find_children("*", "BaseButton", true, false):
 		suivre.call(liste)
 	var arbre := get_tree()
 	arbre.node_added.connect(suivre)

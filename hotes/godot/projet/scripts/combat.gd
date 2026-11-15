@@ -9,11 +9,13 @@
 ## nouveau chaque fois que l'empreinte du masque change (`plateau.cleDuRetrait`), ce que le groupe en connaît
 ## (`vision`, `VolumeDeScene.voir`), à nouveau chaque fois que sa clé change (`vue.vision`), la première vision d'une
 ## scène posée sans fondu depuis celle de la scène d'avant, et ses arêtes (`aretes`), à nouveau
-## chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
-## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
-## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que les suites ont ajouté depuis le début de la
-## partie, `zones` : les lignes du journal, qu'une zone posée plus tard reçoit donc toutes) ;
-## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
+## chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa
+## lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la
+## disposition que la vue nomme (`vue.disposition`, `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène
+## `Ecran` sans script) reçoit les éléments de sa source qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce
+## que les suites ont ajouté depuis le début de la partie, `zones` : les lignes du journal, qu'une zone posée plus tard
+## reçoit donc toutes) ; le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son
+## échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
 ## (`Zone.geste` ; la fiche d'un combattant, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la
 ## méthode `creation`), un clic du champ (`vue.champ` : le verbe du clic, sur la case et le combattant qui s'y tient ;
 ## `null`, le champ ne se clique pas), ou un clic droit, qui montre la fiche du combattant de la case, le combattant
@@ -53,8 +55,10 @@ extends Node
 ## l'écran hors combat (`projet/composants/heros.tscn` : le portrait, le nom, la carrière, les Blessures en trait, puis une ligne
 ## de ce que la carte porte d'autre), « Quitter la partie » et « Nouveau héros » au pied du journal ; avant le lancement, les
 ## pré-tirés à recruter et les campagnes à lancer se rangent en deux colonnes sur la scène ; la barre du combat
-## (`combat.offres`) tient le pied, chacun de ses choix en onglet, sauf la part du tour (`economie/aucun`), en bas à
-## droite de la scène ; la création ouverte se pose au centre, sa page titrée en tête, ses rubriques défilant dessous,
+## (`combat.offres`) tient le meuble de l'actif, à droite de son portrait : l'Action (`economie/action`) en plaques
+## (`plaque`), chaque autre choix en pastille (`pastilleDeChoix`, `pastilleDeListe`) qui ouvre sa liste au-dessus du
+## meuble, sauf la part du tour (`economie/aucun`), en bas à droite de la scène ;
+## la création ouverte se pose au centre, sa page titrée en tête, ses rubriques défilant dessous,
 ## ses gestes en rangée au pied ; la conversation se pose en bas
 ## au centre, son interlocuteur en titre, sa réplique, puis ses réponses l'une sous l'autre ; la fiche ouverte se pose
 ## à gauche de la scène, qu'elle rétrécit, en statbloc au thème `art/statbloc.tres` (papier, encre), chaque section en
@@ -181,10 +185,11 @@ func _indexer_les_modeles() -> bool:
 
 
 ## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,
-## un geste sur le roster de l'hôte à `roster` (`_jouer_le_roster`), la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), le panneau des sauvegardes à ouvrir à
-## `sauvegardes` ou à fermer (`_fermer_les_sauvegardes`), l'emplacement où écrire à `sauvegarder`, celui à charger à
-## `_charger`, le panneau des réglages à ouvrir à `PanneauDesReglages.ouvrir`, le panneau du salon à ouvrir à
-## `PanneauDuSalon.ouvrir`, toute autre à `jouer`.
+## un geste sur le roster de l'hôte à `roster` (`_jouer_le_roster`), la campagne à lancer à `lancer`, la partie à
+## quitter à `quitter` (`_quitter`), le panneau des sauvegardes à ouvrir à `sauvegardes` ou à fermer
+## (`_fermer_les_sauvegardes`), l'emplacement où écrire à `sauvegarder`, celui à charger à `_charger`, le panneau des
+## réglages à ouvrir à `PanneauDesReglages.ouvrir`, le panneau du salon à ouvrir à `PanneauDuSalon.ouvrir`, toute
+## autre à `jouer`.
 func _jouer(jeu: Dictionary) -> void:
 	if jeu.has("quitter"):
 		_quitter()

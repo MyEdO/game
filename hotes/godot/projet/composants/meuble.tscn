@@ -3,85 +3,85 @@
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 
-[node name="Meuble" type="PanelContainer"]
-theme_type_variation = &"Cartouche"
-
-[node name="Rangee" type="HBoxContainer" parent="."]
+[node name="Meuble" type="HBoxContainer"]
 theme_type_variation = &"RangeeSerree"
 
-[node name="Reste" type="VBoxContainer" parent="Rangee"]
-custom_minimum_size = Vector2(280, 0)
+[node name="Gauche" type="MarginContainer" parent="."]
+theme_type_variation = &"DansLeMeuble"
+
+[node name="Reste" type="VBoxContainer" parent="Gauche"]
+custom_minimum_size = Vector2(220, 0)
 size_flags_vertical = 4
 theme_type_variation = &"PileTassee"
 
-[node name="Vie" type="HBoxContainer" parent="Rangee/Reste"]
+[node name="Vie" type="HBoxContainer" parent="Gauche/Reste"]
 
-[node name="Zone" type="Node" parent="Rangee/Reste/Vie"]
+[node name="Zone" type="Node" parent="Gauche/Reste/Vie"]
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("blessures")
 
-[node name="Mouvement" type="HBoxContainer" parent="Rangee/Reste"]
+[node name="Mouvement" type="HBoxContainer" parent="Gauche/Reste"]
 
-[node name="Zone" type="Node" parent="Rangee/Reste/Mouvement"]
+[node name="Zone" type="Node" parent="Gauche/Reste/Mouvement"]
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("mouvement")
 formes = PackedStringArray("entite:jetons")
 
-[node name="Tour" type="HBoxContainer" parent="Rangee/Reste"]
+[node name="Tour" type="HBoxContainer" parent="Gauche/Reste"]
 theme_type_variation = &"RangeeSerree"
 
-[node name="Action" type="HBoxContainer" parent="Rangee/Reste/Tour"]
+[node name="Action" type="HBoxContainer" parent="Gauche/Reste/Tour"]
 size_flags_horizontal = 3
 
-[node name="Zone" type="Node" parent="Rangee/Reste/Tour/Action"]
+[node name="Zone" type="Node" parent="Gauche/Reste/Tour/Action"]
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("action")
 formes = PackedStringArray("puce:sceau")
 
-[node name="Avantage" type="HBoxContainer" parent="Rangee/Reste/Tour"]
+[node name="Avantage" type="HBoxContainer" parent="Gauche/Reste/Tour"]
 
-[node name="Zone" type="Node" parent="Rangee/Reste/Tour/Avantage"]
+[node name="Zone" type="Node" parent="Gauche/Reste/Tour/Avantage"]
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("avantage")
 
-[node name="Etats" type="HFlowContainer" parent="Rangee/Reste"]
+[node name="Etats" type="HFlowContainer" parent="Gauche/Reste"]
 theme_type_variation = &"FluxSerre"
 
-[node name="Zone" type="Node" parent="Rangee/Reste/Etats" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Gauche/Reste/Etats" node_paths=PackedStringArray("masque")]
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("etat/")
 masque = NodePath("..")
 
-[node name="Centre" type="VBoxContainer" parent="Rangee"]
-size_flags_vertical = 4
+[node name="Centre" type="VBoxContainer" parent="."]
+size_flags_vertical = 0
 theme_type_variation = &"PileTassee"
 
-[node name="Portrait" type="HBoxContainer" parent="Rangee/Centre"]
+[node name="Portrait" type="HBoxContainer" parent="Centre"]
 alignment = 1
 
-[node name="Zone" type="Node" parent="Rangee/Centre/Portrait"]
+[node name="Zone" type="Node" parent="Centre/Portrait"]
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("portrait")
 formes = PackedStringArray("portrait:portraitDeLActif")
 
-[node name="Nom" type="Label" parent="Rangee/Centre"]
+[node name="Nom" type="Label" parent="Centre"]
 custom_minimum_size = Vector2(130, 0)
 mouse_filter = 1
 theme_type_variation = &"NomDeHeros"
 horizontal_alignment = 1
 text_overrun_behavior = 3
 
-[node name="nom" type="Node" parent="Rangee/Centre/Nom"]
+[node name="nom" type="Node" parent="Centre/Nom"]
 script = ExtResource("1_liaison")
 champ = "nom"
 
-[node name="infobulle" type="Node" parent="Rangee/Centre/Nom"]
+[node name="infobulle" type="Node" parent="Centre/Nom"]
 script = ExtResource("1_liaison")
 champ = "nom"
 propriete = &"tooltip_text"

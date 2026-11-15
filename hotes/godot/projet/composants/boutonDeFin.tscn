@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/geste.gd" id="2_geste"]
+[ext_resource type="Script" path="res://scripts/dessin.gd" id="3_dessin"]
 [ext_resource type="Theme" path="res://art/fin_du_tour.tres" id="t_fin"]
 
 [node name="Bouton" type="VBoxContainer"]
@@ -12,10 +13,16 @@ theme = ExtResource("t_fin")
 custom_minimum_size = Vector2(88, 88)
 toggle_mode = true
 autowrap_mode = 3
+icon_alignment = 1
+vertical_icon_alignment = 0
 
 [node name="libelle" type="Node" parent="Presser"]
 script = ExtResource("1_liaison")
 champ = "libelle"
+
+[node name="Dessin" type="Node" parent="Presser"]
+script = ExtResource("3_dessin")
+champ = "icone"
 
 [node name="presse" type="Node" parent="Presser"]
 script = ExtResource("1_liaison")

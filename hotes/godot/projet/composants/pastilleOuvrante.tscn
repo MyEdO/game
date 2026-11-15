@@ -1,0 +1,48 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/dessin.gd" id="2_dessin"]
+[ext_resource type="Theme" path="res://art/fin_du_tour.tres" id="t_fin"]
+
+[sub_resource type="ButtonGroup" id="Ouverte"]
+allow_unpress = true
+
+[node name="PastilleOuvrante" type="Control"]
+custom_minimum_size = Vector2(34, 34)
+size_flags_vertical = 4
+
+[node name="Presser" type="Button" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+custom_minimum_size = Vector2(34, 34)
+theme = ExtResource("t_fin")
+toggle_mode = true
+button_group = SubResource("Ouverte")
+icon_alignment = 1
+
+[node name="libelle" type="Node" parent="Presser"]
+script = ExtResource("1_liaison")
+champ = "libelle"
+propriete = &"tooltip_text"
+
+[node name="Dessin" type="Node" parent="Presser"]
+script = ExtResource("2_dessin")
+champ = "icone"
+
+[node name="refus" type="Node" parent="Presser"]
+script = ExtResource("1_liaison")
+champ = "refus"
+propriete = &"disabled"
+
+[node name="Liste" type="PanelContainer" parent="."]
+visible = false
+z_index = 1
+offset_top = -30.0
+offset_bottom = -30.0
+grow_vertical = 0
+theme_type_variation = &"Panneau"
+
+[connection signal="toggled" from="Presser" to="Liste" method="set_visible"]

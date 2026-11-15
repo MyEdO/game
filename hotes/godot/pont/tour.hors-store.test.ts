@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { corpsDe, drainer, fautesDeLaFenetre, gesteDe, gestesDessines, table, type Reponse } from './pont.testkit';
 import { clicDuCombattant, type Suite } from './pont';
-import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
+import { ACTIONS, CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton, Choix, Entite, Jet, Ligne, Puce } from '../../../src/hote/elements';
 import { t } from '../../../src/i18n';
 
@@ -96,6 +96,9 @@ describe('un tour complet par le pont', () => {
     expect(economie('charge'), 'la Charge se range sous le Mouvement qu’elle prend, nommé une fois').toMatchObject({ libelle: 'Mouvement' });
     expect(economie('charge')!.valeurs.find((v) => v.id === 'charge')?.libelle, 'chaque offre de la barre a son libellé, sans son coût').toBe('Charger');
     expect(economie('fin-de-tour'), 'la fin du tour, qui ne prend rien, se range sous le tour').toMatchObject({ libelle: 'Tour' });
+    const action = economie('attaque')!.valeurs;
+    expect(action.map((v) => [v.id, v.icone]), 'chaque offre de l’Action porte le dessin de son action en donnée').toEqual(action.map((v) => [v.id, ACTIONS.find((a) => a.id === v.id)!.icon]));
+    expect(action.every((v) => typeof v.icone === 'string'), 'chaque offre de l’Action a un dessin').toBe(true);
     expect(suite.vue.zones['combat.actif'][0]?.nom, 'le panneau nomme l’actif').toBe(heros.nom);
     expect(meubleDe(suite), 'le meuble de l’actif : son portrait, son Mouvement en jetons, pleins tant qu’il en reste, son Action entière').toEqual({
       portrait: { type: 'portrait', id: 'portrait', combattant: heros.id }, jetons: jetonsAttendus(suite), action: 'reussite',

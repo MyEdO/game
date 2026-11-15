@@ -470,14 +470,15 @@ async function designerALaListe(quoi, rang) {
     liste = await attendreLaListe(quoi, (l) => l.ouverte && l.designe !== designe, `désigne un autre article que le ${designe} après la flèche`)
   }
 }
-/** L'onglet titré du libellé du choix `choix` montré quand `quoi` n'est pas à l'écran : un choix de la barre du combat
- *  (`combat.offres`) est l'un de ses onglets. */
-async function ouvrirLOngletDe(choix, quoi) {
-  if (!trouver((await ecran()).boutons, quoi)) await cliquerBouton({ onglet: choix.libelle })
+/** La pastille du choix `choix` pressée quand `quoi` n'est pas à l'écran : un choix de la barre du combat
+ *  (`combat.offres`) hors de l'Action ouvre sa liste au-dessus du meuble ; elle se publie la première sous l'élément
+ *  du choix, sa liste cachée. */
+async function ouvrirLaPastilleDe(choix, quoi) {
+  if (!trouver((await ecran()).boutons, quoi)) await cliquerBouton({ element: `${choix.type}/${choix.id}` })
 }
-/** L'offre `b` de la barre du combat pressée, son onglet montré d'abord. */
+/** L'offre `b` de la barre du combat pressée, la liste de sa pastille ouverte d'abord. */
 async function presserLOffre(b) {
-  await ouvrirLOngletDe(zone(await vue(), 'combat.offres').find((c) => c.valeurs.some((x) => x.id === b.id)), bouton(b))
+  await ouvrirLaPastilleDe(zone(await vue(), 'combat.offres').find((c) => c.valeurs.some((x) => x.id === b.id)), bouton(b))
   await cliquerBouton(bouton(b))
 }
 /** Les points des cases de l'écran `e` une fois la caméra posée (`glisse`), où chacun est celui qu'un clic désigne. */
@@ -1466,16 +1467,16 @@ async function parcoursIncantation() {
   assert.ok(sorts, `les sorts de l’actif sont un choix : ${zone(v, 'combat.offres').map((c) => c.id).join(' | ')}`)
   noter(`« ${sorts.libelle} » : ${sorts.valeurs.length} sorts en ${sorts.type}`)
   await capturer('3328-j1-1-sorts')
-  const cle = `liste/${sorts.id}`
-  await ouvrirLOngletDe(sorts, { element: cle })
-  const liste = trouver((await ecran()).boutons, { element: cle })
-  assert.ok(liste, `la liste des sorts se dessine : ${(await ecran()).boutons.map((b) => b.element ?? b.texte).join(' | ')}`)
+  const cle = { choix: 'Fléchette' }
+  await ouvrirLaPastilleDe(sorts, cle)
+  const liste = trouver((await ecran()).boutons, cle)
+  assert.ok(liste, `la liste des sorts se dessine, Fléchette offerte : ${(await ecran()).boutons.map((b) => b.element ?? b.texte).join(' | ')}`)
   const rang = liste.choix.indexOf('Fléchette')
   assert.ok(rang >= 0, `Fléchette est offerte : ${liste.choix.join(', ')}`)
   await geste(session, { surface: 'canvas', x: liste.x, y: liste.y }, { qui: 'liste des sorts' }, clic())
-  await attendreLaListe({ element: cle }, (l) => l.ouverte, 'est ouverte au clic')
+  await attendreLaListe(cle, (l) => l.ouverte, 'est ouverte au clic')
   await capturer('3328-j1-2-liste-ouverte')
-  await designerALaListe({ element: cle }, rang)
+  await designerALaListe(cle, rang)
   await marquer()
   await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
   await nouvelEcran()
