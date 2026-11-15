@@ -228,7 +228,7 @@ export {
   type FieldDesc,
 } from './codex/editFields';
 export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
-export { type Segment } from './sceneEdit';
+export { type CheminsOfferts, type RefusDeValeur, type Segment } from './edition/formulaire';
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS, apparencesDeLOuverture } from './monde/facades';
 export { ciblesDAncreDeBataille } from './massBattleFlow';

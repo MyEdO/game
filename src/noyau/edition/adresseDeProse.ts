@@ -21,10 +21,8 @@ import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { estObjet } from '../../lib/objet.mjs';
 import type { ChoixDuContexte } from '../codex/editFields';
 import { gestesDeLaListe } from '../valeursNeuves';
+import type { Segment } from './formulaire';
 import { t } from '../../i18n';
-
-/** Un pas d'un chemin de donnée. */
-type Segment = string | number;
 
 /**
  * Ce que chaque code de refus du parseur veut dire À L'AUTEUR, et ce qu'il doit faire. La table est
@@ -62,7 +60,7 @@ export function libelleTable(t: TableDeSection, toutes: TableDeSection[]): strin
 
 /** Une section SANS titre est le PRÉAMBULE d'extraction (« Pages PDF 27-47 »), pas un passage du
  *  livre : elle se nomme comme tel et passe en fin de liste (`sectionsOrdonnees`). */
-export const libelleSection = (s: Section) => `${cleSection(s.slug, s.occ)} — ${s.title || t('ecran.editeur.adresse.preambule')}`;
+export const libelleSection = (s: Section) => `${cleSection(s.slug, s.occ)} — ${s.title || t('ecran.formulaire.adresse.preambule')}`;
 /** Sections TITRÉES d'abord, préambule en dernier — l'ordre du document est conservé dans chaque groupe. */
 export const sectionsOrdonnees = (l: Section[]): Section[] => [...l.filter((s) => s.title), ...l.filter((s) => !s.title)];
 

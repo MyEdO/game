@@ -85,9 +85,6 @@ import {
   renameEffectZone,
   avecLaValeurDuPorteur,
   avecLAdresseRescellee,
-  type EcritureDeValeur,
-  type RefusDeValeur,
-  type Segment,
   renameEntry,
   setPosteCrew,
   setPosteEngine,
@@ -103,7 +100,6 @@ import {
   DOCUMENTS,
   FORMULAIRES,
   accesDe,
-  cheminOffert,
   entiteDeLaSelection,
   formeDuPorteur,
   porteurDeLaPortee,
@@ -125,6 +121,7 @@ import {
   type Tool,
   type DocumentDuProjet,
 } from '../sceneEditLecture';
+import { cheminOffert, type EcritureDeValeur, type RefusDeValeur, type Segment } from './formulaire';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
