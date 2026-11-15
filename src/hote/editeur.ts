@@ -18,7 +18,7 @@ import {
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, cleDeLElement, retraitOffert, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, clesPosees, choixDuNoeud, designeDesEntrees, elementDuNoeud, formeAuPoint, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
+  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, cleDeLElement, retraitOffert, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, clesPosees, choixDuNoeud, designeDesEntrees, elementDuNoeud, formeAuPoint, formulaireDe, identiteTenue, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
@@ -74,7 +74,9 @@ import { tableTotale } from '../lib/tableTotale';
  * 'identifier', id }` (`renameEffectZone`, `renameScene`), refusé comme un nom vide ou déjà pris ; celui qui change
  * l'identifiant d'une action authorée du décor sélectionné, `{ type: 'identifier', args: [action, id] }`, en `{ geste:
  * 'identifier', id, element: action }` (`renameActionAuthoree`), ou d'un nœud du dialogue sélectionné, `{ type:
- * 'identifier', args: [noeud, id] }`, en `{ geste: 'identifier', id, element: noeud }` (`noeudRenomme`), refusé de même ;
+ * 'identifier', args: [noeud, id] }`, en `{ geste: 'identifier', id, element: noeud }`, ou d'une réponse d'un de ses
+ * nœuds, adressée par lui, `{ type: 'identifier', args: [noeud, reponse, id] }`, en `{ geste: 'identifier', id, element:
+ * reponse, parent: noeud }` (`elementDuDialogueRenomme`), refusé de même, le refus du dialogue dit ;
  * celui qui nomme une entrée sélectionnée du narratif lui donne cet identifiant, propagé aux scènes, à la carte et au
  * narratif sur un seul cran (`renommeAuProjet`), et celui d'un écart change son entrée vers une entrée libre ; celui qui
  * change l'identifiant d'un stade de l'indice ou d'une valeur de l'état sélectionné, `{ type: 'identifier', args:
@@ -346,7 +348,10 @@ export interface ZonesDeLEditeur {
    * D'un dialogue : le formulaire qui le renomme, de son identifiant (`renameDialogue`) ; pour chacun de ses nœuds, la
    * ligne `dialogue/noeud/<id>`, « ▶ » devant le nœud de départ, son identifiant, l'extrait de sa réplique et les nœuds
    * où mènent ses réponses (« → n2, n3 »), puis le formulaire qui change son identifiant, `{ type: 'identifier', args:
-   * [noeud, id] }`, refusé vide ou déjà porté par un autre nœud (`noeudRenomme`) ; le formulaire tiré du schéma
+   * [noeud, id] }`, refusé vide ou déjà porté par un autre nœud, et, de chacune de ses réponses, le formulaire
+   * `identifier/choix/<noeud>/<reponse>` qui change son identifiant, `{ type: 'identifier', args: [noeud, reponse, id] }`,
+   * refusé vide ou déjà porté par une autre réponse du nœud, chaque refus dit (`elementDuDialogueRenomme`,
+   * `refusDuRenommage`) ; le formulaire tiré du schéma
    * (`formulaireDe('dialogue', …)`) de son nœud de départ, de ses nœuds, chacun sous la ligne qui porte son identifiant,
    * et des entrées qu'il couvre ; le supprimer, `{ geste: 'supprimer' }`, refusé avec sa raison tant qu'une référence le
    * désigne (`refusDeRetrait`, `removeDialogue`).
@@ -360,7 +365,8 @@ export interface ZonesDeLEditeur {
    * montures, la liste des membres sans « Retirer », « Monter » ni « Ajouter » ; la supprimer, refusé avec sa raison
    * comme un dialogue, ou tant qu'une embuscade de route la lance, la route dite (`removeEncounter`, `embuscadesDeLaRencontre`).
    *
-   * La carte du monde ouverte, sans sélection : le formulaire tiré du schéma de son porteur singulier (`{ sorte: 'carte',
+   * La carte du monde ouverte, sans sélection : `identifier`, le formulaire qui change son identifiant, refusé comme
+   * celui d'une scène ; le formulaire tiré du schéma de son porteur singulier (`{ sorte: 'carte',
    * id }`), puis celui des réglages du projet (`{ sorte: 'projet', id: 'projet' }`), ses axes actifs parmi ceux du
    * catalogue, absents valant le socle, puis `carte/retirer`, « Retirer du projet », `{ geste: 'supprimer' }`, qui retire
    * la carte du projet sur un cran et rouvre la scène. D'un lieu : `lieu/plan`, « Plan du lieu », pressé quand son plan
@@ -724,18 +730,20 @@ const formulaireDeLaTroupe = (): Formulaire => ({
   champs: [{ type: 'saisieNombre', id: 'troupe/nombre', ton: 'neutre', nom: 'nombre', optionnel: false, libelle: t('ecran.editeur.troupe.nombre'), valeur: BORNES_DE_LA_TROUPE.min, ...BORNES_DE_LA_TROUPE, pas: 1 }],
 });
 
-/** Le formulaire qui change l'identifiant `id` de la sélection, ou de la scène sans elle. */
+/** Le formulaire qui change l'identifiant `id` de la sélection, ou du porteur singulier du document ouvert sans elle. */
 const formulaireDeLIdentifiant = (id: string): Formulaire =>
   formulaireAUnChamp('identifier', t('ecran.editeur.identifier'), 'id', t('ecran.editeur.identifiant'), id, false);
 
 /** Le formulaire qui change l'identifiant de chaque élément d'identifiant `ids` de la sous-collection `famille` du porteur
- *  sélectionné (`renommerElement`), l'élément désigné par son identifiant en vigueur, en saisie fixe, son champ prérempli
- *  de lui, libellé `libelle`. */
-const identifiantsDesElements = (famille: 'action' | 'noeud' | 'stade' | 'valeur' | 'repere', ids: readonly string[], libelle: (id: string) => string): Formulaire[] => ids.map((el) => {
-  const id = `identifier/${famille}/${el}`;
+ *  sélectionné (`renommerElement`), l'élément désigné par son identifiant en vigueur, précédé de son parent `parent`
+ *  quand sa clé n'est unique que dans lui (la réponse, dans son nœud), chacun en saisie fixe, son champ prérempli de
+ *  lui, libellé `libelle`. */
+const identifiantsDesElements = (famille: 'action' | 'noeud' | 'choix' | 'stade' | 'valeur' | 'repere', ids: readonly string[], libelle: (id: string) => string, parent?: string): Formulaire[] => ids.map((el) => {
+  const id = `identifier/${famille}/${parent === undefined ? '' : `${parent}/`}${el}`;
   return {
     type: 'formulaire', id, libelle: libelle(el), verbe: 'identifier', focus: false, refus: null,
     champs: [
+      ...(parent === undefined ? [] : [{ type: 'fixe' as const, id: `${id}/parent`, nom: 'parent', optionnel: false, valeur: parent }]),
       { type: 'fixe', id: `${id}/${famille}`, nom: famille, optionnel: false, valeur: el },
       { type: 'saisieTexte', id: `${id}/id`, ton: 'neutre', nom: 'id', optionnel: false, libelle: t('ecran.editeur.identifiant'), valeur: el },
     ],
@@ -1365,14 +1373,15 @@ function elementsDuFormulaire(porteur: PorteurDeValeur, champs: readonly FieldDe
 }
 
 /** Les éléments du champ `f` du porteur `porteur`, de valeur `valeur` (`undefined` : absent), au chemin `ici`, d'id
- *  `valeur/<chemin>`, chacun jouant `{ geste: 'valeur', porteur, chemin, valeur }`. Un objet (`champsDeclares`)
+ *  `valeur/<chemin>`, chacun jouant `{ geste: 'valeur', porteur, chemin, valeur }`, sans les clés `tenus` (l'identité que
+ *  tient la liste qui le porte, `identiteTenue`). Un objet (`champsDeclares`)
  *  présent : son libellé, ses champs offerts (`champsOfferts`), et « Retirer » si son absence est admise ; absent ou
  *  vide (`null`, un objet nullable) : « Ajouter » (`ajoutDeLObjet`). Une union nommée : sa variante (`elementsDeLUnion`). Une
  *  liste : ses éléments (`elementsDeLaListe`). Un record dont les clés sont posées (`clesPosees`) : ses entrées (`elementsDuRecord`). Un objet d'une union sans variantes nommées : son libellé et les champs
  *  de la branche qu'il dessine (`formeAuPoint`), et « Retirer » si son absence est admise. Tout autre champ : l'élément de sa valeur (`elementDeValeur`), puis, si
  *  son absence est admise, « Aucune » sous un choix, pressé quand il est absent, ou « Retirer » sous un champ présent.
  *  « Retirer » ne se pose que là où son contexte écrit le champ entier (`ContexteDuChamp.ecrivable`). */
-function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[]): (Choix | Ligne | Bouton | Formulaire)[] {
+function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[], tenus: readonly string[] = []): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
   const retirable = valeur !== undefined && f.nullable && (f.contexte?.ecrivable(ici, valeur) ?? true);
   const retirer = retirable ? [bouton(`${id}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: f.label }), ecrireLaValeur(porteur, ici))] : [];
@@ -1380,13 +1389,13 @@ function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown
   if (champsDeclares(f.noeud)) {
     if (valeur == null) return ajoutDeLObjet(porteur, f, ici);
     const objet = valeur as Record<string, unknown>;
-    return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsSous(f, ici, f.noeud, objet), objet, ici), ...retirer];
+    return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsSous(f, ici, f.noeud, objet, tenus), objet, ici), ...retirer];
   }
-  if (unionDuNoeud(f.noeud)) return elementsDeLUnion(porteur, f, valeur, ici);
+  if (unionDuNoeud(f.noeud)) return elementsDeLUnion(porteur, f, valeur, ici, tenus);
   if (elementDuNoeud(f.noeud) !== undefined) return elementsDeLaListe(porteur, f, valeur, ici);
   if (clesPosees(f, ici)) return elementsDuRecord(porteur, f, valeur, ici, retirer);
   const forme = formeAuPoint(f.noeud, valeur)?.noeud;
-  if (estObjet(valeur) && champsDeclares(forme)) return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsSous(f, ici, forme, valeur), valeur, ici), ...retirer];
+  if (estObjet(valeur) && champsDeclares(forme)) return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsSous(f, ici, forme, valeur, tenus), valeur, ici), ...retirer];
   const a = argumentDeValeur(f, valeur, ici);
   const aucune = a.saisie === 'choix' && f.nullable ? [bouton(`${id}/aucune`, t('ecran.editeur.valeur.aucune'), ecrireLaValeur(porteur, ici), valeur === undefined)] : [];
   return [elementDeValeur(id, porteur, ici, f, a), ...(a.saisie === 'choix' ? aucune : retirer)];
@@ -1463,7 +1472,8 @@ function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
 
 /** Les éléments du champ liste `f` (`elementDuNoeud`), de valeur `valeur`, au chemin `ici` : présente, son libellé puis
  *  chacun de ses éléments, au chemin de son rang (`champDeLElement`), la clé qui l'identifie à son libellé
- *  (`cleDeLElement`, sinon son identifiant s'il en porte un, #3606), ses éléments, « Retirer » et, hors du premier,
+ *  (`cleDeLElement`, sinon son identifiant s'il en porte un, #3606), ses éléments hors de l'identité que la liste tient
+ *  (`identiteTenue`), « Retirer » et, hors du premier,
  *  « Monter » ; puis « Ajouter » (`ajoutALaListe`). Chaque bouton écrit la liste entière (`gestesDeLaListe`). Une liste
  *  à laquelle rien ne s'ajoute (un élément récursif, sans valeur neuve ni choix) : la saisie de sa valeur entière
  *  (`argumentDeValeur`), en JSON. Une liste que son contexte n'écrit pas entière (`ContexteDuChamp.ecrivable`) : son
@@ -1477,14 +1487,14 @@ function elementsDeLaListe(porteur: PorteurDeValeur, f: FieldDesc, valeur: unkno
     const cle = cleDeLElement(f.noeud, e) ?? (estObjet(e) && typeof e.id === 'string' ? e.id : undefined);
     return cle === undefined ? rangee : { ...rangee, label: t('ecran.editeur.valeur.elementCle', { libelle: rangee.label, id: cle }) };
   };
-  if (!(f.contexte?.ecrivable(ici, valeur) ?? true)) return [ligne(id, f.label), ...liste.flatMap((e, rang) => elementsDuChamp(porteur, champ(e, rang), e, [...ici, rang])), ...ajoutAuRangNeuf(porteur, f, [...ici, liste.length])];
+  if (!(f.contexte?.ecrivable(ici, valeur) ?? true)) return [ligne(id, f.label), ...liste.flatMap((e, rang) => elementsDuChamp(porteur, champ(e, rang), e, [...ici, rang], identiteTenue(f.noeud, e))), ...ajoutAuRangNeuf(porteur, f, [...ici, liste.length])];
   const element = elementDuNoeud(f.noeud);
   const gestes = gestesDeLaListe(liste, valeurNeuveDe(element));
   const elements = liste.flatMap((e, rang) => {
     const { label } = champ(e, rang);
     const { retirer, monter } = gestes.elements[rang];
     return [
-      ...elementsDuChamp(porteur, champ(e, rang), e, [...ici, rang]),
+      ...elementsDuChamp(porteur, champ(e, rang), e, [...ici, rang], identiteTenue(f.noeud, e)),
       bouton(`${id}/${rang}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: label }), ecrireLaValeur(porteur, ici, retirer)),
       ...(monter ? [bouton(`${id}/${rang}/monter`, t('ecran.editeur.valeur.monter', { libelle: label }), ecrireLaValeur(porteur, ici, monter))] : []),
     ];
@@ -1747,7 +1757,7 @@ const LONGUEUR_DE_L_EXTRAIT = 60;
 
 /** Les éléments propres du dialogue `dlg` : pour chacun de ses nœuds, sa ligne, le marqueur du départ, son
  *  identifiant, l'extrait de sa réplique et les nœuds où mènent ses réponses, puis le formulaire qui change son
- *  identifiant (`identifiantsDesElements`). #3606 */
+ *  identifiant et celui de chacune de ses réponses, adressée par lui (`identifiantsDesElements`). #3606 #4234 */
 function noeudsDuDialogue(_s: SessionDEdition, dlg: DonneeDuPorteur['dialogue']): (Choix | Ligne | Bouton | Formulaire)[] {
   return dlg.nodes.flatMap((n) => {
     const vers = n.choices.flatMap((c) => (c.next ? [c.next.id] : []));
@@ -1759,6 +1769,7 @@ function noeudsDuDialogue(_s: SessionDEdition, dlg: DonneeDuPorteur['dialogue'])
     return [
       ligne(`dialogue/noeud/${n.id}`, texte),
       ...identifiantsDesElements('noeud', [n.id], (id) => t('ecran.editeur.noeud.identifier', { id })),
+      ...identifiantsDesElements('choix', n.choices.map((c) => c.id), (id) => t('ecran.editeur.choix.identifier', { id }), n.id),
     ];
   });
 }
@@ -1861,13 +1872,16 @@ function inspecteurDeLaLogique<S extends SorteDePorteur>(s: SessionDEdition, sor
  *  projet (ses axes actifs), que l'éditeur règle sur l'écran de la carte (#409). */
 const DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE = ['carte', 'projet'] as const;
 
-/** L'inspecteur de la carte du monde ouverte de la session `s`, sans sélection : le formulaire tiré du schéma du porteur
- *  singulier de chacun de ses documents (`DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE`, `porteurDeLaSel`). */
-const inspecteurDeLaCarte = (s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] =>
-  DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE.flatMap((document) => {
+/** L'inspecteur de la carte du monde ouverte de la session `s`, sans sélection : le formulaire qui change son
+ *  identifiant (`formulaireDeLIdentifiant`), puis le formulaire tiré du schéma du porteur singulier de chacun de ses
+ *  documents (`DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE`, `porteurDeLaSel`). */
+const inspecteurDeLaCarte = (s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] => [
+  formulaireDeLIdentifiant(projetEdite(s).worldMap!.id),
+  ...DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE.flatMap((document) => {
     const porteur = porteurDeLaSel(null, document, idDeLaSceneEditee(s))!;
     return formulaireDuPorteur(s, porteur, porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee);
-  });
+  }),
+];
 
 /** L'inspecteur de la sélection de la session `s` (`editeur.inspecteur`) : de l'entité, de l'entrée, de la zone, d'un
  *  autre porteur de formulaire du projet (`inspecteurDeLaLogique`), d'un ouvrage d'architecture ou de l'arête
@@ -2348,9 +2362,10 @@ const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.i
 
 /** Le geste du formulaire de l'inspecteur que portent les zones `z`, joué `{ type, args }` : celui qui nomme la
  *  sélection ou la scène (`formulaireDuNom`), `{ geste: 'nommer', nom }`, le nom saisi, absent s'il est laissé vide ;
- *  celui qui change l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }`, ou
+ *  celui qui change l'identifiant de la scène, de la carte du monde ou de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }`, ou
  *  d'un élément d'un porteur, l'action d'un décor ou le nœud d'un dialogue (`identifiantsDesElements`), `{ geste: 'identifier',
- *  id, element }`, l'élément, quand un formulaire des zones désigne cet élément ; celui
+ *  id, element }`, ou la réponse d'un nœud, `{ geste: 'identifier', id, element, parent }`, quand les saisies fixes d'un
+ *  formulaire des zones sont exactement les arguments qui précèdent l'identifiant ; celui
  *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui ajoute un drapeau de départ à la
  *  scène, vrai ; celui qui pose une troupe du personnage sélectionné, `{ geste: 'troupe', nombre }`, un entier entre
  *  `BORNES_DE_LA_TROUPE` ; celui qui écrit une valeur d'un formulaire tiré du schéma (`elementDeValeur`), `args` son porteur,
@@ -2369,11 +2384,13 @@ export function gesteDuFormulaire(z: Pick<ZonesDeLEditeur, 'editeur.inspecteur'>
     return offert && valeur.length <= 1 ? { geste: 'valeur', porteur: porteur as PorteurDeValeur, chemin: chemin as Segment[], ...(valeur.length ? { valeur: valeur[0] } : {}) } : undefined;
   }
   if (jeu.type === 'identifier') {
-    const [premier, second, ...reste] = jeu.args as unknown[];
-    const [element, id] = jeu.args.length === 2 ? [premier, second] : [undefined, premier];
-    const offert = formulaires.some(({ champs: [designe] }) => (designe.type === 'fixe' ? designe.valeur === element : element === undefined));
-    if (!offert || reste.length || typeof id !== 'string') return undefined;
-    return typeof element === 'string' ? { geste: 'identifier', id, element } : { geste: 'identifier', id };
+    const designe = (jeu.args as unknown[]).slice(0, -1);
+    const id: unknown = jeu.args[jeu.args.length - 1];
+    const pose = jsonCanonique(designe);
+    const offert = formulaires.some((f) => jsonCanonique(f.champs.flatMap((c) => (c.type === 'fixe' ? [c.valeur] : []))) === pose);
+    if (!offert || typeof id !== 'string') return undefined;
+    const [element, parent] = [...designe].reverse() as (string | undefined)[];
+    return { geste: 'identifier', id, ...(element === undefined ? {} : { element }), ...(parent === undefined ? {} : { parent }) };
   }
   if (jeu.type === 'troupe') {
     const [nombre, ...reste] = jeu.args as unknown[];

@@ -870,7 +870,7 @@ export const weaponDamageSpecSchema = z.union([
 ]);
 
 /** `WeaponRangeSpec` : mètres fixes, ou Bonus de Force × bf (armes de jet). */
-export const weaponRangeSpecSchema = z.union([z.number(), nommerChamps(z.strictObject({ bf: z.number() }), { bf: { label: 'Bonus de Force' } })]);
+export const weaponRangeSpecSchema = z.union([nommerNoeud(z.number(), { label: 'mètres' }), nommerChamps(z.strictObject({ bf: z.number() }), { bf: { label: 'Bonus de Force' } })]);
 
 /** `AmmoRangeMod` : fraction de la Portée de l'arme, ou ± mètres. */
 export const ammoRangeModSchema = z.union([nommerChamps(z.strictObject({ mult: z.number() }), { mult: { label: 'Multiplicateur' } }), nommerChamps(z.strictObject({ add: z.number() }), { add: { label: 'Ajout' } })]);
