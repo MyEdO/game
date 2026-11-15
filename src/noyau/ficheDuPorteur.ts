@@ -132,11 +132,14 @@ function sourceDuProfil(c: Combatant): SourceRef | undefined {
 const sortsConnus = (c: Combatant, priere: boolean): EntreeDeLaFiche[] =>
   (c.spells ?? []).flatMap((id) => {
     const sp = effectiveEntry(findSpellById(id));
-    return sp && isPrayerFamily(sp.family) === priere ? [{ libelle: sp.label, renvoi: cibleDuCodex('spells', id, sp.label), desc: sp.desc ?? null }] : [];
+    return sp && isPrayerFamily(sp.family) === priere ? [{ libelle: sp.label, renvoi: cibleDuCodex('spells', id), desc: sp.desc ?? null }] : [];
   });
 
 /** L'entrée `id` de la catégorie `categorie`, nommée `libelle`. */
-const renvoyable = (categorie: string, id: string | undefined, libelle: string): Renvoyable => ({ libelle, renvoi: cibleDuCodex(categorie, id, libelle) });
+const renvoyable = (categorie: string, id: string | undefined, libelle: string): Renvoyable => ({ libelle, renvoi: cibleDuCodex(categorie, id) });
+/** Le terme `libelle` d'une instance de l'entrée `id` de `categorie` (Spécialisation, Indice, niveau, page), qui la
+ *  renvoie sous son nom. */
+const instance = (categorie: string, id: string | undefined, libelle: string): Renvoyable => ({ libelle, renvoi: cibleDuCodex(categorie, id, libelle) });
 
 /** L'en-tête de la fiche : son porteur, sa carrière, ses Blessures et ses États, ce que la carte d'un héros montre. */
 export type EnTeteDeFiche = Pick<FicheDuPorteur, 'id' | 'nom' | 'carriere' | 'blessures' | 'etats'>;
@@ -148,7 +151,7 @@ const aUneFiche = (c: Combatant | undefined): c is Combatant => !!c && !isVehicl
 const enTeteDuCombattant = (c: Combatant): EnTeteDeFiche => ({
   id: c.id,
   nom: c.label,
-  carriere: c.career ? renvoyable('careers', c.career, careerLabelFor(c)) : null,
+  carriere: c.career ? instance('careers', c.career, careerLabelFor(c)) : null,
   blessures: [c.wounds.current, c.wounds.max],
   etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
 });
@@ -197,24 +200,24 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
     caracteristiques: CHAR_KEYS.map((cle) => ({ cle, abrege: charAbr(cle), libelle: CHAR_LABELS[cle], valeur: effectiveChar(c, cle) })),
     armes: c.weapons.map((w) => ({
       ...renvoyable('trappings', w.trappingId ?? w.builtinId, w.label), valeur: testValue(c, attackTestOf(c, w, w.type)), stats: weaponStatParts(w, force),
-      qualites: resolveQualities(w).map((q) => renvoyable('qualities', q.id, qualityRefLabel({ id: q.id, value: q.indice }))),
+      qualites: resolveQualities(w).map((q) => instance('qualities', q.id, qualityRefLabel({ id: q.id, value: q.indice }))),
     })),
     armure: LOCALISATIONS_DE_COUP.flatMap((l) => {
       const pa = effectiveArmourAt(c, l);
       return pa > 0 ? [{ localisation: locationLabel(l, c.bodyShape), pa }] : [];
     }),
-    traits: (c.traits ?? []).map((tp) => ({ ...renvoyable('traits', tp.id, traitLisible(tp, nom)), desc: effectiveEntry(findTraitById(tp.id))?.desc ?? null })),
+    traits: (c.traits ?? []).map((tp) => ({ ...instance('traits', tp.id, traitLisible(tp, nom)), desc: effectiveEntry(findTraitById(tp.id))?.desc ?? null })),
     mutations: (c.mutations ?? []).map((m) => ({ ...renvoyable('mutations', m.id, m.label), desc: m.desc ?? null })),
     competences: c.skills.map((sk) => ({
-      ...renvoyable('skills', sk.id, skillInstanceLabel(sk)), valeur: testValue(c, { skill: sk }),
+      ...instance('skills', sk.id, skillInstanceLabel(sk)), valeur: testValue(c, { skill: sk }),
       caracteristique: effectiveSkillCharKey(c, { skill: sk }), avances: sk.advances,
     })),
-    talents: effectiveTalents(c).map((tt) => ({ ...renvoyable('talents', tt.talentId, talentConcrete(tt)), fois: tt.times, desc: effectiveEntry(findTalentById(tt.talentId))?.desc ?? null })),
+    talents: effectiveTalents(c).map((tt) => ({ ...instance('talents', tt.talentId, talentConcrete(tt)), fois: tt.times, desc: effectiveEntry(findTalentById(tt.talentId))?.desc ?? null })),
     sorts: sortsConnus(c, false),
     prieres: sortsConnus(c, true),
     possessions,
     mentions: mentionsParNature(c.mentions ?? []).map(({ nature, titre, mentions }) => ({ nature, titre, mentions: mentions.map((m) => ({ libelle: m.label, nombre: m.nombre })) })),
-    source: source ? renvoyable('books', source.book, sourceRefLabel(source)) : null,
+    source: source ? instance('books', source.book, sourceRefLabel(source)) : null,
     profil: creature ? renvoyable('creatures', creature.id, creature.label) : null,
   };
 }

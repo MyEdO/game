@@ -993,7 +993,7 @@ const nombre = (n: number): string | null => (n > 1 ? t('ecran.fiche.nombre', { 
 /** Chaque État en puce, en `alerte`, qui ouvre le Compendium sur lui (`terme`). */
 const etatsEnPuces = (etats: FicheDuPorteur['etats']): Puce[] => etats.map((e) => {
   const libelle = conditionLabel(e.id);
-  return terme(puce(`etat/${e.id}`, libelle, String(e.valeur), null, 'alerte'), { libelle, renvoi: cibleDuCodex('etats', e.id, libelle) });
+  return terme(puce(`etat/${e.id}`, libelle, String(e.valeur), null, 'alerte'), { libelle, renvoi: cibleDuCodex('etats', e.id) });
 });
 
 /** Le porteur de la fiche, la tête de son statbloc : son nom ; son espèce et sa carrière, chacune en puce qui ouvre le
@@ -1020,7 +1020,7 @@ function porteurDeLaFiche(etat: Jeu, f: FicheDuPorteur): Entite {
 /** La colonne `id` du profil, d'abréviation `abrege`, de valeur `valeur`, de nom `nom` au détail : elle ouvre le
  *  Compendium sur sa règle, l'entrée `regle` des Caractéristiques (`terme`). */
 const colonne = (id: string, abrege: string, valeur: number, nom: string, regle: string): Puce =>
-  terme(puce(id, abrege, String(valeur), nom), { libelle: nom, renvoi: cibleDuCodex('characteristics', regle, nom) });
+  terme(puce(id, abrege, String(valeur), nom), { libelle: nom, renvoi: cibleDuCodex('characteristics', regle) });
 
 /** Le profil du statbloc de `f`, une puce par colonne, son nom au détail : le Mouvement, chaque Caractéristique par
  *  son abréviation, les Blessures à leur maximum. */

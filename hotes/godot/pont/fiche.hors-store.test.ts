@@ -72,10 +72,10 @@ describe('la fiche d’un combattant par le pont', () => {
     expect(profil.every((p) => Number(p.valeur) > 0), 'chacune sa valeur').toBe(true);
     expect(profil[profil.length - 1].valeur, 'ses Blessures à leur maximum').toBe(String(pb[1]));
     expect(profil.map((p) => ouvertSur(p.jeu)), 'chaque colonne ouvre le Compendium sur sa Caractéristique')
-      .toEqual(['Mouvement', 'Capacité de Combat', 'Capacité de Tir', 'Force', 'Endurance', 'Initiative', 'Agilité', 'Dextérité', 'Intelligence', 'Force Mentale', 'Sociabilité', 'Blessures']);
+      .toEqual(['Mouvement', 'Capacité de Combat', 'Capacité de Tir', 'Force', 'Endurance', 'Initiative', 'Agilité', 'Dextérité', 'Intelligence', 'Force Mentale', 'Sociabilité', 'Blessure']);
     expect(heros.elements.some((e) => e.id === 'renvoi'), 'un héros n’instancie aucune créature du bestiaire').toBe(false);
-    expect([profil[0].jeu, profil[profil.length - 1].jeu], 'le Mouvement renvoie à son entrée, les Blessures à la leur sous leur nom de colonne')
-      .toEqual([{ compendium: { geste: 'suivre', categorie: 'characteristics', id: 'mouvement' } }, { compendium: { geste: 'suivre', categorie: 'characteristics', id: 'blessure', instance: 'Blessures' } }]);
+    expect([profil[0].jeu, profil[profil.length - 1].jeu], 'le Mouvement et les Blessures renvoient chacun à son entrée')
+      .toEqual([{ compendium: { geste: 'suivre', categorie: 'characteristics', id: 'mouvement' } }, { compendium: { geste: 'suivre', categorie: 'characteristics', id: 'blessure' } }]);
 
     expect(s.vue.zones['fiche.sections'].map((e) => e.nom), 'chaque section non vide, dans l’ordre du statbloc').toEqual(['Attaques', 'Compétences', 'Talents', 'Sorts', 'Possessions']);
     const competences = puces(s, 'competences');
