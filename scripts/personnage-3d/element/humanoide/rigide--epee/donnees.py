@@ -9,9 +9,6 @@ la hauteur de la base (1,82 m), soit environ 530 px/m.
 
 Repère de la prise `main` de la base (`element/lame.py`). Mètres.
 """
-import runpy
-from pathlib import Path
-
 MANIFESTE = {
     'categorie': 'rigide',
     'cle': {'apparence': 'epee'},
@@ -26,8 +23,6 @@ MATERIAUX = {
 
 BUDGET_TRIANGLES = 1200          # procédure du skill, section 7 : rigide tenu
 
-AXE_DANS_LA_PRISE = runpy.run_path(str(Path(__file__).parent.parent / 'rigide--baton' / 'donnees.py'))['AXE_DANS_LA_PRISE']
-"""Le passage libre du poing fermé de la base, mesuré pour le bâton : la fusée y passe comme le fût."""
 
 FUSEE = {'longueur': 0.11, 'rayon': 0.012, 'segments': 8}
 """Illustration : environ 60 px de la garde au pommeau, 12 px de large ; 11 cm, 24 mm de diamètre."""
