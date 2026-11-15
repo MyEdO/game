@@ -4,10 +4,24 @@
  * Chaque écrivain rend une NOUVELLE carte ; un refus rend la carte reçue, inchangée. L'id d'un lieu ou
  * d'une route neuve vient de l'hôte (#2817).
  */
-import { semencesDeScene } from '../data';
+import { lieuxServices, semencesDeScene } from '../data';
+import { uniqueSlugId } from '../data/slug';
 import type { TravelMode } from '../engine/travel';
 import type { LandMarketProfile } from '../engine/landCargo';
-import type { MapPlace, MapRoute, MapRouteTrace, PlacePoi, Praticabilite, RoutePeril, WorldMap } from './worldMap';
+import { t } from '../i18n';
+import {
+  nomDuPoi,
+  placeServices,
+  SERVICE_CITE,
+  type MapPlace,
+  type MapRoute,
+  type MapRouteTrace,
+  type PlacePoi,
+  type PlaceService,
+  type Praticabilite,
+  type RoutePeril,
+  type WorldMap,
+} from './worldMap';
 
 type Pos = MapPlace['pos'];
 
@@ -90,6 +104,45 @@ export function deplacerPoi(map: WorldMap, lieu: string, id: string, pos: Pos): 
 /** Retire le point d'intérêt `id` du lieu `lieu`. */
 export function retirerPoi(map: WorldMap, lieu: string, id: string): WorldMap {
   return surLesPoints(map, lieu, (liste) => liste.filter((x) => x.id !== id));
+}
+
+/** La cible d'un point d'intérêt : une scène, nommée par son `label`, ou un service résolu du lieu, nommé par ce service
+ *  (`nomDuPoi`). #4277 */
+export type CibleDuPoi = Pick<Extract<PlacePoi, { sceneId: object }>, 'label' | 'sceneId'> | Pick<Extract<PlacePoi, { service: object }>, 'service'>;
+
+/** Le point d'intérêt `id` du lieu `lieu` tourné vers `cible`, son identifiant, sa position et son icône gardés. #4277 */
+export function ciblerPoi(map: WorldMap, lieu: string, id: string, cible: CibleDuPoi): WorldMap {
+  return surLesPoints(map, lieu, (liste) => liste.map((x) => (x.id === id ? { id: x.id, pos: x.pos, ...(x.icon ? { icon: x.icon } : {}), ...cible } : x)));
+}
+
+/** Les types d'établissement qu'un lieu déclare (`MapPlace.services`) : chaque entrée du catalogue `lieux-services.json`
+ *  hors du port et du marché, que le lieu porte en profil (`MapPlace.port`, `MapPlace.market`). #4277 */
+export const typesDEtablissement = () => lieuxServices.filter((sv) => sv.id !== SERVICE_CITE.port && sv.id !== SERVICE_CITE.marche);
+
+/** Le patch du lieu `lieu` où un établissement neuf du type `kind` s'ajoute à ses services, sous un identifiant dérivé du
+ *  type qu'aucun service du lieu ne porte, déclaré ou automatique (`uniqueSlugId`, `placeServices`). #4277 */
+export function etablissementAjoute(lieu: MapPlace, kind: string): PatchDeLieu {
+  const pris = new Set(placeServices(lieu).map((sv) => sv.id));
+  const neuf: PlaceService = { id: uniqueSlugId(kind, pris), kind: { id: kind } };
+  return { services: [...(lieu.services ?? []), neuf] };
+}
+
+/** Le point d'intérêt du lieu `lieu` qui vise son service `id` (`PlacePoi.service`), le premier. */
+const poiQuiVise = (lieu: MapPlace, id: string): PlacePoi | undefined => lieu.poi?.find((p) => p.service?.id === id);
+
+/** Ce qui refuse de retirer l'établissement `id` du lieu `lieu` : le point d'intérêt qui le vise (`poiQuiVise`), dit ;
+ *  `undefined` sans lui. #4277 */
+export function refusDeRetirerLEtablissement(lieu: MapPlace, id: string): string | undefined {
+  const poi = poiQuiVise(lieu, id);
+  return poi && t('ecran.editeur.lieu.etablissement.vise', { poi: nomDuPoi(poi, placeServices(lieu)) });
+}
+
+/** Le patch du lieu `lieu` où son établissement `id` est retiré, la liste vidée retirée ; refusé (`undefined`) tant
+ *  qu'un point d'intérêt le vise (`poiQuiVise`). #4277 */
+export function etablissementRetire(lieu: MapPlace, id: string): PatchDeLieu | undefined {
+  if (poiQuiVise(lieu, id)) return undefined;
+  const services = (lieu.services ?? []).filter((sv) => sv.id !== id);
+  return { services: services.length ? services : undefined };
 }
 
 /** Coche ou décoche `mode` sur la route `id`. */

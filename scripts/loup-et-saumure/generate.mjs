@@ -688,13 +688,18 @@ const worldMap = {
       port: { ref: 'salzenmund' }, // #217 — Taille/Richesse/Production/Surplus/Demande RAW coulent du catalogue
       // `temple` : `naval-ports.json#salzenmund.desc` (RAW MDG p.138) — « Grand Temple d'Ulric et temple de
       // Manann Resplendissant » — Frère Aldo (NPC de la scène) l'incarne (bénédiction du départ, #360).
-      services: [{ kind: { id: 'auberge' } }, { kind: { id: 'forgeron' } }, { kind: { id: 'temple' } }],
-      // POI (#345 phase 5, densifié #360) : onglet Plan du hub — services réels du quai, cliquables sur le plan.
+      services: [
+        { id: 'auberge', kind: { id: 'auberge' }, label: 'Auberge du Port' },
+        { id: 'forgeron', kind: { id: 'forgeron' }, label: 'Arsenal du Port' },
+        { id: 'temple', kind: { id: 'temple' }, label: 'Temple de Manann' },
+      ],
+      // POI (#345 phase 5, densifié #360) : onglet Plan du hub — services réels du quai, cliquables sur le plan, nommés par
+      // leur établissement (#4277).
       poi: [
-        { id: 'salzenmund-auberge', label: 'Auberge du Port', pos: { x: 30, y: 45 }, serviceKind: { id: 'auberge' } },
-        { id: 'salzenmund-forgeron', label: 'Arsenal du Port', pos: { x: 62, y: 60 }, serviceKind: { id: 'forgeron' } },
-        { id: 'salzenmund-temple', label: 'Temple de Manann', pos: { x: 48, y: 30 }, serviceKind: { id: 'temple' } },
-        { id: 'salzenmund-port', label: 'Le port', pos: { x: 15, y: 70 }, serviceKind: { id: 'port' } },
+        { id: 'salzenmund-auberge', pos: { x: 30, y: 45 }, service: { id: 'auberge' } },
+        { id: 'salzenmund-forgeron', pos: { x: 62, y: 60 }, service: { id: 'forgeron' } },
+        { id: 'salzenmund-temple', pos: { x: 48, y: 30 }, service: { id: 'temple' } },
+        { id: 'salzenmund-port', pos: { x: 15, y: 70 }, service: { id: 'port' } },
       ],
     },
     {
@@ -704,12 +709,16 @@ const worldMap = {
       // `guilde` : la guilde marchande d'Erengrad (dlg-rumeur-olg, prime sur Olg Blóðsalt) ; `chantier` :
       // `naval-ports.json#erengrad.surplus` (RAW MDG p.138) — surplus « pièces détachées de navire » —
       // le Charpentier de bord (NPC de la scène, réparation du Grimm) l'incarne (#360).
-      services: [{ kind: { id: 'auberge' } }, { kind: { id: 'guilde' } }, { kind: { id: 'chantier' } }],
+      services: [
+        { id: 'auberge', kind: { id: 'auberge' }, label: 'Auberge du Quai' },
+        { id: 'guilde', kind: { id: 'guilde' }, label: 'Guilde marchande' },
+        { id: 'chantier', kind: { id: 'chantier' } },
+      ],
       poi: [
-        { id: 'erengrad-auberge', label: 'Auberge du Quai', pos: { x: 40, y: 50 }, serviceKind: { id: 'auberge' } },
-        { id: 'erengrad-port', label: 'Le port', pos: { x: 20, y: 70 }, serviceKind: { id: 'port' } },
-        { id: 'erengrad-guilde', label: 'Guilde marchande', pos: { x: 60, y: 25 }, serviceKind: { id: 'guilde' } },
-        { id: 'erengrad-chantier', label: 'Chantier naval', pos: { x: 75, y: 55 }, serviceKind: { id: 'chantier' } },
+        { id: 'erengrad-auberge', pos: { x: 40, y: 50 }, service: { id: 'auberge' } },
+        { id: 'erengrad-port', pos: { x: 20, y: 70 }, service: { id: 'port' } },
+        { id: 'erengrad-guilde', pos: { x: 60, y: 25 }, service: { id: 'guilde' } },
+        { id: 'erengrad-chantier', pos: { x: 75, y: 55 }, service: { id: 'chantier' } },
       ],
     },
   ],
