@@ -1,0 +1,21 @@
+{
+  "model": "humanoide--accessoire--ecu-au-dos.glb",
+  "model_sha256": "a2dbbdcaad533f796e7f50be7afc0243a8ee46184edb685df09b56ac7711294d",
+  "importe_le": "2026-11-15",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

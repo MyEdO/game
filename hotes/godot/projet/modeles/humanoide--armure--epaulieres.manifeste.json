@@ -1,0 +1,30 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "armure",
+  "cle": {
+    "piece": "epaulieres"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "armure",
+  "couvre": [],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "acier",
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
+    }
+  ],
+  "glb": {
+    "sha256": "d80a6e3b1d671c12788421a30d5e12c7f5df2055c66fc86f918e8c4d42804985",
+    "octets": 354836
+  }
+}
