@@ -299,6 +299,23 @@
     "hint": "Tirer sur une cible Engagée : −20 au toucher ; si ce malus transforme une réussite en échec, le tir touche un allié au hasard. Désactiver retire le malus et le tir égaré."
   },
   {
+    "id": "combat-croisee-melee-difficulte",
+    "type": "reglesOptionnelles",
+    "label": "Coup de corps à corps par une croisée : couvert de la cible",
+    "ref": "LDB 14 l.86",
+    "maison": "[entériné 2026-11-13] Arbitrage utilisateur 2026-11-13 (#4105, commentaire 6849608906) : « Le coup passe par-dessus clôture, muret ou bastingage avec le malus de couvert de l'obstacle (-10 à -30) ; fenêtre -30 ; meurtrière : pas de coup. »",
+    "group": "Combat",
+    "kind": "mode",
+    "default": "tresDifficile",
+    "options": [
+      "intermediaire",
+      "complexe",
+      "difficile",
+      "tresDifficile"
+    ],
+    "hint": "La cible d’un coup de corps à corps porté par une croisée ouverte est sous ce couvert, quel que soit le mur de la croisée. Défaut Très Difficile (–30), la couverture totale (LDB 14 l.86). Le tir par une croisée n’en dépend pas."
+  },
+  {
     "id": "combat-cible-inconsciente",
     "type": "reglesOptionnelles",
     "label": "Cible Inconsciente",

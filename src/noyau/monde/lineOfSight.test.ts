@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { tilesBetween, lineOfSightCover, couvertDArete, smokeZone } from './lineOfSight';
-import { coverModifier } from '../../engine/cover';
+import { coverModifier, cranDeCouvertEnMoins } from '../../engine/cover';
 import { Scene, SceneEntity, WallSeg, wallBetween, doorKey, setStructureDown } from './scene';
 
 function scene(w: number, h: number, tiles?: Record<string, string>, entities: SceneEntity[] = []): Scene {
@@ -267,7 +267,7 @@ describe('lineOfSightCover — couvert des STRUCTURES d’arête (AA 10 l.23)', 
     const haut = { x: 2, y: 2, z: 1 };
     // La LdV inter-étages ignore DÉJÀ les arêtes : couvrir la cible ici la protégerait derrière des
     // murs que le tir traverse. Le couvert du défenseur perché attend la donnée qui le porte.
-    expect(couvertDArete(perchee, from, haut)).toBe('none');
+    expect(couvertDArete(perchee, from, haut, cranDeCouvertEnMoins)).toBe('none');
     expect(lineOfSightCover(perchee, from, haut, [])).toEqual({ blocked: false, cover: 'none' });
   });
 
@@ -293,6 +293,6 @@ describe('lineOfSightCover — couvert des STRUCTURES d’arête (AA 10 l.23)', 
       { x: 2, y: 2, side: 'N', structure: 'cloture-en-clayonnage' } as WallSeg,
       { x: 1, y: 2, side: 'E', structure: 'mur-a-ossature-en-bois' } as WallSeg,
     ] };
-    expect(couvertDArete(s, from, to)).toBe('imparfaite');
+    expect(couvertDArete(s, from, to, cranDeCouvertEnMoins)).toBe('imparfaite');
   });
 });
