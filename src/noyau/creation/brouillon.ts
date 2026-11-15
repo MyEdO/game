@@ -66,6 +66,7 @@ import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche, estEmplac
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
 import {
   findSpeciesById,
+  speciesSize,
   findCareerById,
   findTalentById,
   specPoolOf,
@@ -90,6 +91,7 @@ import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecia
 import type { Appearance } from '../../engine/authoringAppearance';
 import { generateName } from '../../engine/names';
 import { makeRNG } from '../../engine/dice';
+import { effectiveSize, type SizeCategory } from '../../engine/size';
 import { sexeSchema, type Sexe } from '../../data/schemas/grammaire/valeurs';
 
 export type CharMode = 'tire' | 'reassigne' | 'repartition';
@@ -246,6 +248,11 @@ export function draftFromHero(hero: Combatant, seed: number): CreatorDraft {
 
 /** Race du brouillon — `undefined` tant qu'aucune n'est choisie (page blanche, id vide). */
 export const draftSpecies = (d: CreatorDraft): SpeciesData | undefined => (d.speciesId ? findSpeciesById(d.speciesId) : undefined);
+/** Taille du brouillon : celle de sa race (`speciesSize`), Moyenne sans race (`effectiveSize`). */
+export const draftTaille = (d: CreatorDraft): SizeCategory => {
+  const sp = draftSpecies(d);
+  return effectiveSize(sp && speciesSize(sp));
+};
 export const draftLevel = (d: CreatorDraft): CareerLevelData | undefined =>
   levelsForCareer(d.careerId).find((l) => l.level === 1);
 /** Race choisie ET carrière choisie — la fiche vivante ne se construit qu'une fois les deux posées. */
@@ -279,8 +286,8 @@ function sansAdresse<V>(parAdresse: Record<AdresseDeCreation, V>, adresse: Adres
 
 export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
   if (id === d.speciesId) return d;
-  // Changer d'espèce invalide les choix dépendants (compétences/talents d'espèce, carrière tirée) —
-  // le geste des Talents aléatoires compris (la table des tirages appartient à l'espèce).
+  // Changer d'espèce invalide les choix dépendants (compétences/talents d'espèce, carrière tirée, dotations à la
+  // Taille de l'espèce, `draftTaille`) — le geste des Talents aléatoires compris (la table des tirages appartient à l'espèce).
   return {
     ...d,
     speciesId: id,
@@ -293,6 +300,7 @@ export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
     talentsRolled: false,
     pettySpells: [],
     careerRolls: [],
+    trappingChoices: {},
   };
 }
 

@@ -3483,63 +3483,65 @@
     },
     "services": [
      {
+      "id": "auberge",
       "kind": {
        "id": "auberge"
-      }
+      },
+      "label": "Auberge du Port"
      },
      {
+      "id": "forgeron",
       "kind": {
        "id": "forgeron"
-      }
+      },
+      "label": "Arsenal du Port"
      },
      {
+      "id": "temple",
       "kind": {
        "id": "temple"
-      }
+      },
+      "label": "Temple de Manann"
      }
     ],
     "poi": [
      {
       "id": "salzenmund-auberge",
-      "label": "Auberge du Port",
       "pos": {
        "x": 30,
        "y": 45
       },
-      "serviceKind": {
+      "service": {
        "id": "auberge"
       }
      },
      {
       "id": "salzenmund-forgeron",
-      "label": "Arsenal du Port",
       "pos": {
        "x": 62,
        "y": 60
       },
-      "serviceKind": {
+      "service": {
        "id": "forgeron"
       }
      },
      {
       "id": "salzenmund-temple",
-      "label": "Temple de Manann",
       "pos": {
        "x": 48,
        "y": 30
       },
-      "serviceKind": {
+      "service": {
        "id": "temple"
       }
      },
      {
       "id": "salzenmund-port",
-      "label": "Le port",
       "pos": {
        "x": 15,
        "y": 70
       },
-      "serviceKind": {
+      "service": {
        "id": "port"
       }
      }
@@ -3564,16 +3566,21 @@
     },
     "services": [
      {
+      "id": "auberge",
       "kind": {
        "id": "auberge"
-      }
+      },
+      "label": "Auberge du Quai"
      },
      {
+      "id": "guilde",
       "kind": {
        "id": "guilde"
-      }
+      },
+      "label": "Guilde marchande"
      },
      {
+      "id": "chantier",
       "kind": {
        "id": "chantier"
       }
@@ -3582,45 +3589,41 @@
     "poi": [
      {
       "id": "erengrad-auberge",
-      "label": "Auberge du Quai",
       "pos": {
        "x": 40,
        "y": 50
       },
-      "serviceKind": {
+      "service": {
        "id": "auberge"
       }
      },
      {
       "id": "erengrad-port",
-      "label": "Le port",
       "pos": {
        "x": 20,
        "y": 70
       },
-      "serviceKind": {
+      "service": {
        "id": "port"
       }
      },
      {
       "id": "erengrad-guilde",
-      "label": "Guilde marchande",
       "pos": {
        "x": 60,
        "y": 25
       },
-      "serviceKind": {
+      "service": {
        "id": "guilde"
       }
      },
      {
       "id": "erengrad-chantier",
-      "label": "Chantier naval",
       "pos": {
        "x": 75,
        "y": 55
       },
-      "serviceKind": {
+      "service": {
        "id": "chantier"
       }
      }

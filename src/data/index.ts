@@ -906,6 +906,9 @@ export interface TrappingData {
    *  affectée » (ADE II 8 l.243). Propagé Trapping → ItemInstance → Weapon (`onHitEffects`), dispatché
    *  par `fireTriggers('onHit')` sur la cible primaire ET les cibles de la zone d'Explosion. */
   onHitEffects?: TriggeredEffect[];
+  /** Passifs de l'ARME elle-même (vocabulaire de `weaponPassiveOps`), ≠ `passive` du PORTEUR. Propagé
+   *  Trapping → ItemInstance → Weapon (`passifDArme`). ZI 13 l.199 */
+  passifDArme?: import('../engine/ops').OpPassive[];
   /** PORTÉE MINIMALE de tir (bande) : la cible plus proche que cette bande REFUSE le tir (≠ malus). Machines
    *  de siège à distance = `'courte'` (pas de Bout Portant, ADE II 8 l.253) ; trébuchet/mortier =
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
@@ -1549,7 +1552,7 @@ export type LandCargoData = DatasetDe<typeof landCargoDef>;
 export const landCargo = datasetDe<typeof landCargoDef>(landCargoJson);
 
 /** Vocabulaire des SERVICES de lieu (#343, `lieux-services.json`) — catalogue EXTENSIBLE désigné par
- *  `ref('serviceDeLieu')` (`MapPlace.services[].kind`, `PlacePoi.serviceKind`) et résolu par `placeServices`
+ *  `ref('serviceDeLieu')` (`MapPlace.services[].kind`, et `PlacePoi.service` hors des établissements du lieu) et résolu par `placeServices`
  *  (`src/noyau/worldMap.ts`). `port`/`marche` y donnent le libellé, l'icône et le fond par défaut du port et du
  *  marché d'un lieu, qui gardent leur propre schéma riche — id STABLE → libellé/icône d'affichage du hub de lieu. */
 export type LieuServiceData = EntreeDe<typeof lieuxServicesDef>;
@@ -2278,14 +2281,14 @@ export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | n
 }
 /** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156) et les munitions. */
 const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege', 'munitions']);
-/** ARMES choisissables `{ id, label, groupe }` : toute Possession `melee`/`distance` hors « Mains nues »
+/** ARMES choisissables `{ id, label, groupe, sizeFor }` : toute Possession `melee`/`distance` hors « Mains nues »
  *  (`TrappingData.unarmed`), hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`) et hors des armes
  *  magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3), triée au libellé. `id` = `trappingId`
- *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`). */
+ *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`) ; `sizeFor`, sa Taille prévue. */
 export const armesChoisissables = memoParVersion(['trappings', 'qualities'], () => trappingsInstanciables()
   .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed && !FAMILLES_HORS_ARMES_PORTEES.has(t.subType?.id ?? ''))
   .filter((t) => !t.qualities.some((r) => estQualiteMagique(qualiteParId(r.id))))
-  .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id }))
+  .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id, sizeFor: t.sizeFor }))
   .sort((a, b) => parLibelle(a.label, b.label)));
 /** Résout une Qualité par son `id` STABLE. */
 export function findQualityById(id: string): QualityData | undefined {

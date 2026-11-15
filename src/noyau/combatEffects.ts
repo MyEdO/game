@@ -32,7 +32,7 @@ import { petitePriereAnswered } from '../engine/prayer';
 import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, nomDeSource,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
-import { gainCorruption, corruptionTarget, poseCorruptionPending, expositionPending } from './corruptionFlow';
+import { corruptionTarget, poseCorruptionPending, expositionPending, crochetsDeCorruption } from './corruptionFlow';
 import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
@@ -547,7 +547,7 @@ export function nePeutPasDifferer(applique: Applique, site: string): void {
 export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: EffectOp, base: OpsCtx): string[] | typeof OPS_DIFFEREES {
   const e = structuredClone(feuille); // #2097
   const now = base.now ?? get().gameTime;
-  const ctx = leafOpsCtx({ ...base, now }, e);
+  const ctx = leafOpsCtx({ ...base, now, ...crochetsDeCorruption(get, set) }, e);
   for (const o of e.ops) if (o.op === 'delayed') scheduleDelayedOps(get, set, c, o, { now, untilTime: ctx.defaultUntilTime, label: ctx.label });
   const rest = e.ops.filter((o) => o.op !== 'delayed');
   if (!rest.length) return [];
@@ -648,7 +648,7 @@ export function porterOpsCtx(ctx: OpsCtx): OpsCtxPorte {
  * Rend `null` quand la COQUE déclarée a disparu entre le mint et la résolution (voyage clos, cascade
  * suspendue puis reprise) : l'appelant le DIT au lieu de jouer la conséquence à moitié.
  */
-export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte, cible: Combatant): OpsCtx | null {
+export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte): OpsCtx | null {
   const hull = porte.hullId ? coqueParId(get(), porte.hullId) : undefined;
   if (porte.hullId && !hull) return null;
   const caster = porte.casterId ? actorIn(get(), porte.casterId) : undefined;
@@ -657,7 +657,7 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte, cible: Comba
     ...porte.gele,
     rng: battleRng(),
     idNeuf: get().forgerUnId,
-    onCorruption: (n, align) => gainCorruption(get, set, cible, n, align),
+    ...crochetsDeCorruption(get, set),
     ...campAdvantageHooks(get),
     ...crochetDuSol(get, set),
     ...(porte.creditAdverse && caster ? { onOpposingAdvantage: (n: number) => creditOpposingAdvantage(get, caster, n) } : {}),
@@ -1762,7 +1762,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
       const lines: string[] = [];
       for (const c of targets) {
-        const issue = applyLeafOps(env.get, env.set, c, feuille, { idNeuf: env.get().forgerUnId, ...base, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get), ...crochetDuSol(env.get, env.set) });
+        const issue = applyLeafOps(env.get, env.set, c, feuille, { idNeuf: env.get().forgerUnId, ...base, ...campAdvantageHooks(env.get), ...crochetDuSol(env.get, env.set) });
         if (issue !== OPS_DIFFEREES) lines.push(...issue);
       }
       env.set(touchActors(env.get()));
@@ -2488,7 +2488,7 @@ export const TABLES = {
       if (!ops || !step.de?.result) return;
       // Cible introuvable = conséquence PERDUE : elle se DIT, comme la coque disparue (`ctxRepris`).
       if (!hero) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-      const ctx = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} }, hero);
+      const ctx = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
       if (!ctx) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
       const groupe = groupeDe(step);
       const des = new Map<string, number>();

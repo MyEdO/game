@@ -100,10 +100,10 @@ describe('ce qu’un Talent ajoute aux carrières est de carrière dès le Nivea
   });
   const flagellant: ParcoursDeCarriere = { carrieres: { flagellant: 2, soldat: 2 }, talentsDeCarriere: { flagellant: [{ id: 'lire-ecrire' }, { id: 'flagellant' }], soldat: [{ id: 'frenesie' }] } };
   it('Frénésie, ajoutée par Flagellant, est un Talent offert des Niveaux suivants : l’auteur la choisit au Soldat', () => {
-    expect(refusDuParcours(flagellant)).toBeUndefined();
+    expect(refusDuParcours(flagellant, 'moyenne')).toBeUndefined();
     expect(talentsDuParcours(flagellant).niveaux.soldat.map((n) => n.offerts.includes('frenesie'))).toEqual([true, true]);
-    expect(refusDuParcours({ carrieres: { soldat: 2 }, talentsDeCarriere: { soldat: [{ id: 'frenesie' }] } })).toMatch(/frenesie/);
-    expect(parcoursRetouche({ ...flagellant, talentsDeCarriere: { soldat: [{ id: 'frenesie' }] } }).talentsDeCarriere).toBeUndefined();
+    expect(refusDuParcours({ carrieres: { soldat: 2 }, talentsDeCarriere: { soldat: [{ id: 'frenesie' }] } }, 'moyenne')).toMatch(/frenesie/);
+    expect(parcoursRetouche({ ...flagellant, talentsDeCarriere: { soldat: [{ id: 'frenesie' }] } }, 'moyenne').talentsDeCarriere).toBeUndefined();
     expect(porte(flagellant).talents.map((t) => t.talentId)).toContain('frenesie');
   });
   it('sans choix de l’auteur, Frénésie compte parmi les Talents tirés aux Niveaux du Soldat qui suivent Flagellant', () => {
@@ -174,8 +174,8 @@ describe('armes au choix du PNJ : joker d’un Groupe d’armes, joker à Atout 
   });
   it('refuse une arme hors du Groupe du joker, admet une arme du Groupe et un Atout de Fabrication', () => {
     avecFixture(() => {
-      expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([5])]: 'rapiere' } })).toMatch(/valeur/);
-      expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([5])]: 'grande-hache', [dot([6])]: 'rapiere', [dot([6, 0])]: 'solide' } })).toBeUndefined();
+      expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([5])]: 'rapiere' } }, 'moyenne')).toMatch(/valeur/);
+      expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([5])]: 'grande-hache', [dot([6])]: 'rapiere', [dot([6, 0])]: 'solide' } }, 'moyenne')).toBeUndefined();
     });
   });
 });
@@ -192,23 +192,23 @@ describe('Atouts au choix d’une dotation de Haute Qualité : le Noble 4 (LDB 0
   it('sans choix, les quatre Habits de cour portent une des combinaisons offertes, tirée à graine fixe', () => {
     const noble = porte({ carrieres: { noble: 4 } });
     expect(quantite(noble)).toBe(4);
-    const offertes = valeursDeLEmplacement(habits());
+    const offertes = valeursDeLEmplacement(habits(), 'moyenne');
     for (const i of habitsDeHauteQualite(noble)) expect(offertes).toContain(i.qualities.flatMap((q) => Array.from({ length: q.value ?? 1 }, () => q.id)).sort().join('+'));
   });
 });
 
 describe('refusDuParcours et parcoursRetouche', () => {
   it('refuse un Niveau absent, un Talent qu’aucun Niveau atteint n’offre, une Compétence sans emplacement, une dotation hors emplacement', () => {
-    expect(refusDuParcours({ carrieres: { medecin: 3 } })).toBeUndefined();
-    expect(refusDuParcours({ carrieres: { medecin: 5 } })).toMatch(/Niveau 5/);
-    expect(refusDuParcours({ carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }] } })).toMatch(/chirurgie/);
-    expect(refusDuParcours({ carrieres: { medecin: 1 }, competencesDeCarriere: { medecin: [{ id: 'savoir', spec: 'histoire' }] } })).toMatch(/savoir/);
-    expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [adresseDeCreation.dotation([0])]: 3 } })).toMatch(/valeur/);
-    expect(refusDuParcours({ carrieres: { medecin: 1 }, dotationsDeCarriere: { [adresseDeCreation.dotation([0])]: 0 } })).toMatch(/emplacement/);
+    expect(refusDuParcours({ carrieres: { medecin: 3 } }, 'moyenne')).toBeUndefined();
+    expect(refusDuParcours({ carrieres: { medecin: 5 } }, 'moyenne')).toMatch(/Niveau 5/);
+    expect(refusDuParcours({ carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }] } }, 'moyenne')).toMatch(/chirurgie/);
+    expect(refusDuParcours({ carrieres: { medecin: 1 }, competencesDeCarriere: { medecin: [{ id: 'savoir', spec: 'histoire' }] } }, 'moyenne')).toMatch(/savoir/);
+    expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [adresseDeCreation.dotation([0])]: 3 } }, 'moyenne')).toMatch(/valeur/);
+    expect(refusDuParcours({ carrieres: { medecin: 1 }, dotationsDeCarriere: { [adresseDeCreation.dotation([0])]: 0 } }, 'moyenne')).toMatch(/emplacement/);
   });
   it('retouché, le parcours perd ce que ses Niveaux n’offrent plus', () => {
     const p: ParcoursDeCarriere = { carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }, { id: 'lire-ecrire' }], soldat: [{ id: 'guerrier-ne' }] } };
-    expect(parcoursRetouche(p)).toEqual({ carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'lire-ecrire' }] }, competencesDeCarriere: undefined, dotationsDeCarriere: undefined });
+    expect(parcoursRetouche(p, 'moyenne')).toEqual({ carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'lire-ecrire' }] }, competencesDeCarriere: undefined, dotationsDeCarriere: undefined });
   });
 });
 

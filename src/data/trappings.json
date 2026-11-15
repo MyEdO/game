@@ -13749,6 +13749,13 @@
         }
       }
     ],
+    "passifDArme": [
+      {
+        "op": "armourPierce",
+        "amount": 0,
+        "bypass": "metal"
+      }
+    ],
     "descRef": {
       "book": "zoo-imperial",
       "ch": "13",
@@ -13766,7 +13773,7 @@
     "source": {
       "book": "zoo-imperial",
       "page": 94,
-      "note": "ZI 13 l.199 ; « Assommé » = État Sonné (VO Stunned). Groupe, Enc, Allonge et Dégâts (hallebarde, +1 Dégâts) : VO Le Rat Cornu – Compagnon, p.35."
+      "note": "ZI 13 l.199 ; « Assommé » = État Sonné (VO Stunned). Groupe, Enc, Allonge et Dégâts (hallebarde, +1 Dégâts) : VO Le Rat Cornu – Compagnon, p.35. « Peuvent libérer » lu comme permanent (passifDArme)."
     },
     "shape": {
       "id": "hallebarde"

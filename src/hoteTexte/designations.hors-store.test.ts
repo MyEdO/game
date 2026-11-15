@@ -73,11 +73,12 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   it('possession : `renommerLaPossession`, aucune ici', { timeout: 120_000 }, () => {
     refuseLId(partie('revisit'), verbe('renommerLaPossession', 'nobody', 'x'), /possessionUid : "nobody" n’est pas un id de possession \(valides : aucun ici\)/);
   });
-  it('un id du catalogue : `menerLActionDeBataille`, un id que l’état du lieu ouvre : `ouvrirLaBoutique`', { timeout: 120_000 }, () => {
+  it('un id du catalogue : `menerLActionDeBataille`, un id que l’état du lieu ouvre : `ouvrirLaBoutique`, `recueillirLesRumeurs`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
     const [heros] = refuseLId(t, verbe('creerLaPanoplie', 'nobody'), /heroId : "nobody" n’est pas un id de héros \(valides : /);
     refuseLId(t, verbe('menerLActionDeBataille', heros, 'nulle'), /activityId : "nulle" n’est pas un id d’Activité \(valides : plein-air, /);
-    refuseLId(t, verbe('ouvrirLaBoutique', 'forgeron'), /serviceId : "forgeron" n’est pas un id de service du lieu \(valides : aucun ici\)/);
+    refuseLId(t, verbe('ouvrirLaBoutique', 'forgeron'), /echoppeId : "forgeron" n’est pas un id d’échoppe du lieu \(valides : aucun ici\)/);
+    refuseLId(t, verbe('recueillirLesRumeurs', 'auberge'), /hebergementId : "auberge" n’est pas un id d’hébergement du lieu \(valides : aucun ici\)/);
   });
   it('une rangée de jet : la séquence d’entrée en scène, `jetLancer`', { timeout: 120_000 }, () => {
     const t = partie('revisit');

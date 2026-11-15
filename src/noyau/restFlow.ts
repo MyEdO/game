@@ -15,9 +15,7 @@
  * RAW :
  *  - Récupération (LDB 18 l.296) : Résistance +20 après « une bonne nuit de sommeil » → DR+BE PB,
  *    + BE/jour inconditionnel — le canon ne module PAS la récupération par la qualité du lit ;
- *  - Prix (LDB 66 l.12-16, l.28) : chambre commune par personne · privée pour 2 (grande chambre
- *    pour 4 : regrouper par paires est équivalent, coût auto) · repas ; qualité de la
- *    chambre et du repas : `QUALITE_DU_REPOS` (LDB 66 l.5) ;
+ *  - Prix et chambres : LDB 66 l.12-16, l.28 (`CHAMBRES`) ; qualité : `QUALITE_DU_REPOS` (LDB 66 l.5) ;
  *  - Dehors : Exposition (LDB 18 l.327-334 — engine/exposure) selon `activeExposureSeverity` (combatFlow) ;
  *  - Faim (LDB 18 l.337-343) : un héros sans pitance ne récupère pas (engine/provisions).
  */
@@ -80,7 +78,14 @@ import { bus, EVT } from './bus';
 import type { Jeu } from './etat';
 
 export type RestKind = 'auberge' | 'maison' | 'camp';
-export type RestLodging = 'commune' | 'privee' | 'maison' | 'dehors' | 'bord';
+/** Une offre de chambre d'auberge. */
+export type OffreDeChambre = 'chambre' | 'grande';
+/** Une chambre d'auberge de la nuit, `<offre>-<numéro>` (`lireLaChambre`). */
+export type IdDeChambre = string;
+/** Un couchage sans chambre. */
+export type CouchageSansChambre = 'commune' | 'maison' | 'dehors' | 'bord';
+/** Un couchage : une chambre d'auberge, ou un couchage sans chambre. */
+export type RestLodging = CouchageSansChambre | IdDeChambre;
 export type RestFood = 'repas' | 'ration' | 'maison' | 'rien';
 
 /** Lieux de repos OFFERTS par le contexte (scène, effet, halte de voyage) — combinables :
@@ -167,10 +172,13 @@ export interface PendingRest extends PendingBase {
 import type { Get, Set } from './flowTypes';
 import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
-import { t } from '../i18n';
-import { lieuDuGroupe, placeById, placeServices, type WorldMap } from './worldMap';
+import { listeEt, t, type MsgKey } from '../i18n';
+import { lieuDuGroupe, placeById, type WorldMap } from './worldMap';
+import { hebergementsDuLieu } from './lieuFlow';
+import { refuserGeste } from './refusVisible';
 import { sceneDuRegistre } from './monde/registreDesScenes';
 import { garanti } from '../lib/garanti';
+import { libelleDuLitteral } from './libelles';
 import { stepPrecision } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
@@ -567,10 +575,85 @@ export function restServicePrice(kind: keyof typeof PRICE_BRASS): Money {
   return fromBrass(PRICE_BRASS[kind]);
 }
 
-/** Couchages proposés par l'offre du lieu — PAR HÉROS ensuite (choix personnels). */
-export function lodgingOptions(places: RestPlaces): RestLodging[] {
-  const out: RestLodging[] = [];
-  if (places.auberge) out.push('privee', 'commune');
+/** Les lits et le prix (en chambres privées) de chaque offre de chambre. LDB 66 l.28 */
+const CHAMBRES = { chambre: { lits: 2, prix: 1 }, grande: { lits: 4, prix: 2 } } as const satisfies Record<OffreDeChambre, { lits: number; prix: number }>;
+const OFFRES_DE_CHAMBRE = Object.keys(CHAMBRES) as OffreDeChambre[];
+/** Le libellé d'une chambre prise et d'une chambre neuve, par offre. */
+const LIBELLES_DE_CHAMBRE = {
+  chambre: { prise: 'rf.chambre', neuve: 'rf.chambreNeuve' },
+  grande: { prise: 'rf.grandeChambre', neuve: 'rf.grandeChambreNeuve' },
+} as const satisfies Record<OffreDeChambre, { prise: MsgKey; neuve: MsgKey }>;
+const ID_DE_CHAMBRE = new RegExp(`^(${OFFRES_DE_CHAMBRE.join('|')})-([1-9]\\d*)$`);
+
+/** L'offre et le numéro de la chambre `id` ; `null` : `id` n'est pas une chambre. */
+function lireLaChambre(id: string): { offre: OffreDeChambre; numero: number } | null {
+  const m = ID_DE_CHAMBRE.exec(id);
+  return m ? { offre: m[1] as OffreDeChambre, numero: Number(m[2]) } : null;
+}
+const idDeChambre = (offre: OffreDeChambre, numero: number): IdDeChambre => `${offre}-${numero}`;
+
+/** Une chambre de la nuit : son id, son offre, son numéro et ses occupants. */
+export interface ChambreDuRepos { id: IdDeChambre; offre: OffreDeChambre; numero: number; occupants: string[] }
+
+/** Les chambres de la nuit, dérivées du couchage de chaque héros vivant réglé, par offre puis par numéro. PUR. */
+export function chambresDuRepos(p: PendingRest, party: Combatant[]): ChambreDuRepos[] {
+  const parId = new Map<string, ChambreDuRepos>();
+  for (const h of party) {
+    const id = !h.dead ? p.perHero[h.id]?.lodging : undefined;
+    const lue = id === undefined ? null : lireLaChambre(id);
+    if (!id || !lue) continue;
+    const c = parId.get(id) ?? { id, ...lue, occupants: [] };
+    c.occupants.push(h.id);
+    parId.set(id, c);
+  }
+  return [...parId.values()].sort((a, b) => OFFRES_DE_CHAMBRE.indexOf(a.offre) - OFFRES_DE_CHAMBRE.indexOf(b.offre) || a.numero - b.numero);
+}
+
+/** Un couchage que la nuit offre au dormeur `pid` (`undefined` : hors de toute rangée) : son id, son libellé, et sa
+ *  raison de fermeture (`refus`) ou `null`. */
+export interface CouchageDeLaNuit { id: RestLodging; libelle: string; refus: string | null }
+
+/** Les chambres que la nuit offre au dormeur `pid` : une chambre prise, fermée s'il n'y dort pas et que ses lits sont
+ *  tous occupés, ou la chambre neuve d'une offre (numéro libre suivant) ; aucune hors d'une auberge. PUR. */
+function chambresOffertes(p: PendingRest, party: Combatant[], pid?: string): CouchageDeLaNuit[] {
+  if (!p.places.auberge) return [];
+  const prises = chambresDuRepos(p, party);
+  const nom = (id: string) => party.find((h) => h.id === id)?.label ?? id;
+  const ouvertes = prises.map((c) => {
+    const lits = CHAMBRES[c.offre].lits;
+    const chambre = t(LIBELLES_DE_CHAMBRE[c.offre].prise, { n: c.numero, lits });
+    const autres = c.occupants.filter((o) => o !== pid).map(nom);
+    const pleine = c.occupants.length >= lits && !c.occupants.includes(pid ?? '');
+    return { id: c.id, libelle: autres.length ? t('rf.chambreAvec', { chambre, noms: listeEt(autres) }) : chambre, refus: pleine ? t('rf.chambrePleine') : null };
+  });
+  const neuves = OFFRES_DE_CHAMBRE.map((offre) => {
+    let numero = 1;
+    while (prises.some((c) => c.id === idDeChambre(offre, numero))) numero++;
+    return { id: idDeChambre(offre, numero), libelle: t(LIBELLES_DE_CHAMBRE[offre].neuve, { lits: CHAMBRES[offre].lits }), refus: null };
+  });
+  return [...ouvertes, ...neuves];
+}
+
+/** Les couchages que la nuit offre au dormeur `pid` : les chambres d'une auberge, puis les couchages sans chambre
+ *  (`lodgingOptions`). PUR. LDB 66 */
+export function couchagesDeLaNuit(p: PendingRest, party: Combatant[], pid?: string): CouchageDeLaNuit[] {
+  return [
+    ...chambresOffertes(p, party, pid),
+    ...lodgingOptions(p.places).map((id) => ({ id, libelle: garanti(libelleDuLitteral(id, 'couchage'), id, 'couchage sans chambre'), refus: null })),
+  ];
+}
+
+/** L'appariement par défaut en chambres : les héros vivants de `heros`, dans leur ordre, par deux, vers l'id de
+ *  leur chambre. LDB 66 l.28 PUR. */
+export function appariementEnChambres(heros: Combatant[]): Record<string, IdDeChambre> {
+  return Object.fromEntries(heros.filter((h) => !h.dead).map((h, i) => [h.id, idDeChambre('chambre', Math.floor(i / CHAMBRES.chambre.lits) + 1)]));
+}
+
+/** Couchages sans chambre que propose l'offre du lieu — PAR HÉROS ensuite (choix personnels) ; avec les chambres
+ *  d'une auberge : `couchagesDeLaNuit`. */
+export function lodgingOptions(places: RestPlaces): CouchageSansChambre[] {
+  const out: CouchageSansChambre[] = [];
+  if (places.auberge) out.push('commune');
   if (places.maison) out.push('maison');
   if (places.bord) out.push('bord'); // à bord = hamacs (MDG 03 l.71) ; par défaut si offert
   if (places.camp || places.auberge || places.maison) out.push('dehors'); // la belle étoile reste un choix
@@ -591,22 +674,20 @@ export function nourrituresDeTroupe(places: RestPlaces): RestFood[] {
   return [...pitancesDuLieu(places), 'rien'];
 }
 
-/** Part de chaque héros vivant réglé dans la note du repos, par nuit × days : une chambre privée loge 2
- *  invités (LDB 66 l.28), sa part est sa moitié (valeur d'ingénierie, la source ne partage pas la
- *  chambre) ; chambre commune et repas par convive. La somme des parts EST `restCost`. */
+/** Part de chaque héros vivant réglé dans la note du repos, par nuit × days ; d'une chambre partagée, un sou du reste
+ *  à chacun de ses premiers occupants (ingénierie). La somme des parts EST `restCost`. LDB 66 l.12-16, l.28 */
 export function partsDuRepos(p: PendingRest, party: Combatant[]): Record<string, Money> {
   const facteur = QUALITE_DU_REPOS[p.quality].prix;
-  const heroes = party.filter((h) => !h.dead && p.perHero[h.id]);
-  const enPrivee = heroes.filter((h) => p.perHero[h.id].lodging === 'privee');
+  const enChambre = new Map<string, number>();
+  for (const c of chambresDuRepos(p, party)) {
+    const prix = Math.ceil(PRICE_BRASS.privee * CHAMBRES[c.offre].prix * facteur);
+    c.occupants.forEach((id, i) => enChambre.set(id, Math.floor(prix / c.occupants.length) + (i < prix % c.occupants.length ? 1 : 0)));
+  }
   const parts: Record<string, Money> = {};
-  for (const h of heroes) {
+  for (const h of party.filter((x) => !x.dead && p.perHero[x.id])) {
     const { lodging, food } = p.perHero[h.id];
-    const i = enPrivee.indexOf(h);
-    const seul = i === enPrivee.length - 1 && i % 2 === 0;
-    const chambre = lodging === 'privee' ? (seul ? PRICE_BRASS.privee : i % 2 === 0 ? Math.ceil(PRICE_BRASS.privee / 2) : Math.floor(PRICE_BRASS.privee / 2))
-      : lodging === 'commune' ? PRICE_BRASS.commune : 0;
-    const brass = chambre + (food === 'repas' ? PRICE_BRASS.repas : 0);
-    parts[h.id] = fromBrass(Math.ceil(brass * facteur) * Math.max(1, p.days));
+    const brass = (lodging === 'commune' ? PRICE_BRASS.commune : 0) + (food === 'repas' ? PRICE_BRASS.repas : 0);
+    parts[h.id] = fromBrass(((enChambre.get(h.id) ?? 0) + Math.ceil(brass * facteur)) * Math.max(1, p.days));
   }
   return parts;
 }
@@ -642,17 +723,17 @@ export interface OpenRestOpts {
   travelMarch?: string[];
 }
 
-/** Le repos qu'offre l'endroit où se tient le groupe : à un lieu de la carte, l'auberge de ses services
- *  (`placeServices`), à la qualité de la scène du lieu ; ailleurs, la scène à la position du groupe
- *  (`restPlacesHere`) ; `null` : aucun. */
-export function reposDuLieu(get: Get): OpenRestOpts | null {
+/** Le repos qu'offre l'endroit où se tient le groupe : à un lieu de la carte, l'établissement d'hébergement
+ *  `hebergementId` (`hebergementsDuLieu`), ses places et son nom d'auteur (le nom du lieu sans lui), à la qualité de la scène
+ *  du lieu ; ailleurs, la scène à la position du groupe (`restPlacesHere`) ; `null` : aucun. */
+export function reposDuLieu(get: Get, hebergementId?: string): OpenRestOpts | null {
   const s = get();
   const ici = lieuDuGroupe(s);
   if (ici) {
-    const scene = sceneDuRegistre(ici.scene.id);
-    const auberge = placeServices(ici, scene).find((svc) => svc.category === 'auberge' && svc.rest);
-    const quality = scene?.rest?.quality;
-    return auberge?.rest ? { places: auberge.rest, lieu: libelleOuAbsence(ici, 'lieu', ici.id), ...(quality ? { quality } : {}) } : null;
+    const etablissement = hebergementsDuLieu(s).find((svc) => svc.id === hebergementId);
+    const quality = sceneDuRegistre(ici.scene.id)?.rest?.quality;
+    const lieu = etablissement?.nommeParLAuteur ? dataLabel(etablissement.label) : libelleOuAbsence(ici, 'lieu', ici.id);
+    return etablissement?.rest ? { places: etablissement.rest, lieu, ...(quality ? { quality } : {}) } : null;
   }
   const scene = restPlacesHere(s);
   return scene && { places: scene.places, lieu: sceneLieu(get), quality: scene.quality };
@@ -662,11 +743,11 @@ export function reposDuLieu(get: Get): OpenRestOpts | null {
 export function ouvrirLeRepos(get: Get, set: Set, opts: OpenRestOpts): void {
   const st = get();
   if (st.battle || st.pendingRest) return;
-  const places = opts.places ?? { maison: true, camp: true };
+  const places = { ...(opts.places ?? { maison: true, camp: true }) }; // #2097
   const perHero: PendingRest['perHero'] = {};
-  for (const h of st.party) {
-    if (h.dead) continue;
-    perHero[h.id] = { lodging: lodgingOptions(places)[0], food: foodOptions(places, h)[0] };
+  const chambres = appariementEnChambres(st.party);
+  for (const h of st.party.filter((x) => !x.dead)) {
+    perHero[h.id] = { lodging: places.auberge ? chambres[h.id] : lodgingOptions(places)[0], food: foodOptions(places, h)[0] };
   }
   // CHRONIQUE de voyage (#333) : une halte de voyage porte le jour FINALISÉ — on l'accumule sur le plan
   // (même `set` que la modale) pour que l'écran-hub (`VoyageScreen`) en tienne le journal (une carte par
@@ -750,7 +831,7 @@ export type ToitDeLaNuit = 'auberge' | 'maison' | 'bord' | 'campement';
  *  toutes les nuits d'un repos multi-jours (les choix de couchage ne changent pas en cours de séjour). */
 export function toitDeLaNuit(p: PendingRest, party: Combatant[]): ToitDeLaNuit {
   const lodgings = party.filter((h) => !h.dead && p.perHero[h.id]).map((h) => p.perHero[h.id].lodging);
-  return lodgings.some((l) => l === 'privee' || l === 'commune') ? 'auberge'
+  return lodgings.some((l) => l === 'commune' || lireLaChambre(l)) ? 'auberge'
     : lodgings.some((l) => l === 'maison') ? 'maison'
     : lodgings.some((l) => l === 'bord') ? 'bord'
     : 'campement';
@@ -807,9 +888,10 @@ export function validationsDuRepos(get: Get, set: Set) {
 
 export function creerActionsDuRepos(get: Get, set: Set) {
   return {
-    ouvrirLeRepos: () => {
-      const repos = reposDuLieu(get);
+    ouvrirLeRepos: (hebergementId) => {
+      const repos = reposDuLieu(get, hebergementId);
       if (repos) ouvrirLeRepos(get, set, repos);
+      else if (lieuDuGroupe(get())) refuserGeste(get, set, t('lieu.hebergementInconnu', { service: hebergementId ?? '' }));
     },
     offrirLeRepos: (opts) => ouvrirLeRepos(get, set, opts),
     // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).

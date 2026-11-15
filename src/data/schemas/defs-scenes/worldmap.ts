@@ -13,7 +13,7 @@ import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
 import { enumNomme, idDIconeSchema, pointDuPlanSchema } from '../grammaire/valeurs';
 import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
-import { idDe, recordDIds, ref, refs } from '../grammaire/ref';
+import { idDe, recordDIds, ref, refs, type PorteeLocale } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
 import { listeCle, marquerCollection, marqueDeRecord, ouvrirPortees } from '../grammaire/collection-cle';
 import { couvreSchema, PORTEES_DE_LA_SCENE, SCENES_DU_PROJET } from './communs';
@@ -80,9 +80,14 @@ export const landMarketProfileSchema = nommerChamps(z.strictObject({
   backdrop: ref('fond').optional(),
 }), { taille: { label: "taille" }, richesse: { label: "richesse" }, produits: { label: "produits" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, commerceRichesse: { label: "richesse commerciale" }, wineBonusEchelons: { label: "bonus du vin" }, hostLine: { label: "ligne d’accueil" , texte: { regime: "narration",horsContrat: { motif: "sans-saisie-campagne",preuve: "src/ui/editor/WorldMapPlacePanel.tsx:WorldMapPlacePanel"}} }, backdrop: { label: "fond" } });
 
-/** `PlaceService` — service extensible d'un lieu (`kind` = id de `lieux-services.json`), hors
- *  port/marché qui portent leur schéma riche. `rest` = offre de couchage PROPRE au lieu. */
+/** Les établissements d'un lieu (`MapPlace.services`), que désigne hors du catalogue le point d'intérêt de son plan
+ *  (`PlacePoi.service`) ; le lieu l'ouvre (`mapPlaceSchema`). #4277 */
+export const SERVICES_DU_LIEU = { collection: 'services', catalogue: 'établissements du lieu' } as const satisfies PorteeLocale;
+
+/** `PlaceService` — établissement d'un lieu (`id` stable, unique dans le lieu ; `kind` = id de `lieux-services.json`),
+ *  hors port/marché qui portent leur schéma riche. `rest` = offre de couchage PROPRE à l'établissement. #4277 */
 export const placeServiceSchema = nommerChamps(z.strictObject({
+  id: z.string(),
   kind: ref('serviceDeLieu'),
   label: z.string().optional(),
   rest: nommerChamps(z
@@ -93,30 +98,37 @@ export const placeServiceSchema = nommerChamps(z.strictObject({
       bord: z.boolean().optional(),
   }), { auberge: { label: "auberge" }, maison: { label: "chez soi" }, camp: { label: "camp" }, bord: { label: "bord" } })
     .optional(),
-}), { kind: { label: "type" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, rest: { label: "repos" } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, kind: { label: "type" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, rest: { label: "repos" } });
 
-/** `PlacePoi` (#345) — marqueur de PLAN, cible EXCLUSIVE `sceneId` OU `serviceKind`. */
+/** `PlacePoi` (#345) — marqueur de PLAN, cible EXCLUSIVE `sceneId`, nommée par son `label`, OU `service` (un service
+ *  RÉSOLU du lieu : établissement déclaré, ou port/marché automatique du catalogue), nommé par ce service. #4277 */
 export const placePoiSchema = nommerChamps(z
   .strictObject({
     id: z.string(),
-    label: z.string(),
+    label: z.string().optional(),
     /** Coordonnées PLAN-LOCALES, indépendantes de `MapPlace.pos`. */
     pos: pointDuPlanSchema,
     icon: idDIconeSchema.optional(),
     sceneId: ref(SCENES_DU_PROJET).optional(),
-    serviceKind: ref('serviceDeLieu').optional(),
+    service: ref(idDe('serviceDeLieu', undefined, { portee: SERVICES_DU_LIEU, nue: true })).optional(),
   })
   .superRefine((poi, ctx) => {
-    if ((poi.sceneId === undefined) === (poi.serviceKind === undefined)) {
+    if ((poi.sceneId === undefined) === (poi.service === undefined)) {
       ctx.addIssue({
         code: 'custom',
-        message: 'cible EXCLUSIVE — « sceneId » (transition) OU « serviceKind » (service résolu du lieu), jamais les deux ni aucun.',
+        message: 'cible EXCLUSIVE — « sceneId » (transition) OU « service » (service résolu du lieu), jamais les deux ni aucun.',
       });
     }
-  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, icon: { label: "icône" , texte: { regime: "technique"} }, sceneId: { label: "scène" , texte: { regime: "technique"} }, serviceKind: { label: "type de service" , texte: { regime: "technique"} } });
+    if (poi.sceneId !== undefined && !('label' in poi)) {
+      ctx.addIssue({ code: 'custom', path: ['label'], message: 'un point d’intérêt qui mène à une scène porte son « label ».' });
+    }
+    if (poi.service !== undefined && 'label' in poi) {
+      ctx.addIssue({ code: 'custom', path: ['label'], message: 'un point d’intérêt qui vise un service ne porte aucun « label » : il prend le nom du service.' });
+    }
+  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, icon: { label: "icône" , texte: { regime: "technique"} }, sceneId: { label: "scène" , texte: { regime: "technique"} }, service: { label: "service" , texte: { regime: "technique"} } });
 
 /** `MapPlace` — lieu posé sur la carte ; être dans `scene` = être à ce lieu. */
-export const mapPlaceSchema = proseNommee(nommerChamps(z.strictObject({
+export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   /** Position sur la carte du monde. */
@@ -127,7 +139,7 @@ export const mapPlaceSchema = proseNommee(nommerChamps(z.strictObject({
   icon: idDIconeSchema.optional(),
   port: portProfileSchema.optional(),
   market: landMarketProfileSchema.optional(),
-  services: z.array(placeServiceSchema).optional(),
+  services: listeCle(placeServiceSchema, 'id').optional(),
   poi: listeCle(placePoiSchema, 'id').optional(),
   /** Bande d'ambiance du hub. */
   backdrop: ref('fond').optional(),
@@ -135,7 +147,7 @@ export const mapPlaceSchema = proseNommee(nommerChamps(z.strictObject({
    *  narratif : la destination n'apparaît qu'une fois révélée. Absente = toujours visible. */
   when: conditionCondCtxSchema.optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } }), 'worldMap.places[].prose');
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } }), 'worldMap.places[].prose'), [SERVICES_DU_LIEU]);
 
 /** `RoutePeril` — péripétie d'AUTEUR tirée chaque jour de voyage à `chancePct` %. Hors de toute scène, elle en ouvre
  *  les portées VIDES (`ouvrirPortees`, source `'vide'`) : aucune référence locale de la scène n'y résout. */

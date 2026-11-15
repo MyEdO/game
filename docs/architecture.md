@@ -477,12 +477,16 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             la campagne, ids de `data/axes.json`, défaut `coreAxisIds` via `resolveActiveAxes`).
                             DONNÉES DE LIEU (#343) : le nœud `MapPlace` est LA source des services d'un lieu —
                             `port` (schéma riche + catalogue `naval-ports.json`), `market` (LandMarketProfile) et
-                            `services[]` EXTENSIBLES (catalogue `lieux-services.json` : auberge/temple/forgeron/
-                            guilde…). API UNIQUE `placeServices(place, scene?)` : compose ces trois sources +
-                            l'auberge (offre PROPRE au service OU dérivée de l'offre de repos de la scène liée) en
-                            une liste `ResolvedPlaceService[]` — payloads RÉFÉRENCÉS, jamais recopiés (zéro
-                            duplication de vérité). Consommée par le hub de lieu (#343) et l'auberge ; les
-                            consommateurs actuels (portFlow/landMarketFlow/restPlacesHere) restent inchangés.
+                            `services[]`, ses ÉTABLISSEMENTS (#4277) : `id` STABLE unique dans le lieu, `kind` =
+                            entrée du catalogue `lieux-services.json` (auberge/temple/forgeron/guilde…), plusieurs
+                            d'un même type par lieu. API UNIQUE `placeServices(place, scene?)` : compose ces trois
+                            sources + l'auberge (offre PROPRE à l'établissement OU dérivée de l'offre de repos de
+                            la scène liée) en une liste `ResolvedPlaceService[]` (`id` de routage, `kind` du
+                            catalogue) — payloads RÉFÉRENCÉS, jamais recopiés. Lue au lieu du groupe par
+                            `servicesDuLieu` (`lieuFlow.ts`) : écran du lieu, repos (`reposDuLieu`), rumeurs,
+                            échoppe ; chaque geste du lieu porte l'id de l'établissement. Un point d'intérêt du
+                            plan (`poi[]`) mène à une scène (son `label`) OU vise un service résolu du lieu par son
+                            id, dont il prend le nom (`nomDuPoi`).
   worldMapEdit.ts           ÉCRIVAINS PURS de la carte du monde (WorldMap → WorldMap) que l'éditeur appelle :
                             patchs, ajout de lieu (bornes `BORNES_DE_CARTE`, décalage, libellé de la semence),
                             liaison dédoublonnée par sens, suppressions en cascade (routes, `suite` des billets).

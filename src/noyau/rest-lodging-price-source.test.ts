@@ -26,7 +26,7 @@ describe('restCost (restFlow) résout les MÊMES prix que le catalogue trappings
 
   it('chambre privée/nuit (2 convives) : restCost == price du trapping "chambre-privee-nuit"', () => {
     const a = hero('a'); const b = hero('b');
-    const cost = restCost(basePending({ a: { lodging: 'privee', food: 'rien' }, b: { lodging: 'privee', food: 'rien' } }), [a, b]);
+    const cost = restCost(basePending({ a: { lodging: 'chambre-1', food: 'rien' }, b: { lodging: 'chambre-1', food: 'rien' } }), [a, b]);
     expect(toBrass(cost)).toBe(toBrass(priceToMoney(findTrappingById('chambre-privee-nuit')!.price)));
   });
 

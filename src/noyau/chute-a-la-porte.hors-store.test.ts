@@ -519,8 +519,16 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
       party: [marin('gabier', { kind: 'heros' } as Partial<Combatant>)] });
     const gabier = banc.getState().party[0];
-    expect(ctxRepris(banc.getState, banc.setState, porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, caster: gabier }), gabier)?.onOpposingAdvantage).toBeUndefined();
+    expect(ctxRepris(banc.getState, banc.setState, porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, caster: gabier }))?.onOpposingAdvantage).toBeUndefined();
     expect(() => porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, onOpposingAdvantage: () => [] })).toThrow(/onOpposingAdvantage/);
+  });
+
+  it('`onCorruptionExposure` se porte et se rebâtit après un aller-retour JSON : le Test d’Exposition s’ouvre chez sa cible (LDB 19 l.29)', () => {
+    banc.setState({ battle: null, pendingCascade: null, pendingCorruption: null, suspendedCascades: [], journal: [],
+      party: [marin('h1', { kind: 'heros' } as Partial<Combatant>)] });
+    const porte = JSON.parse(JSON.stringify(porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, onCorruptionExposure: () => [] })));
+    ctxRepris(banc.getState, banc.setState, porte)!.onCorruptionExposure!(banc.getState().party[0], 'mineure', 'physique');
+    expect(banc.getState().pendingCorruption).toMatchObject({ heroId: 'h1', level: 'mineure', nature: 'physique' });
   });
 
   it('rebâti après un aller-retour JSON, il crédite la réserve ADVERSE du porteur ennemi (MDG 16 l.13)', () => {
@@ -531,7 +539,7 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
       banc.setState({ battle: { combatants: [heros, porteur], advantagePools: { allies: 0, adversaires: 0 } } as unknown as BattleState,
         pendingCascade: null, suspendedCascades: [], journal: [], party: [heros] });
       const porte = JSON.parse(JSON.stringify(porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, caster: porteur, onOpposingAdvantage: () => [] })));
-      const lignes = ctxRepris(banc.getState, banc.setState, porte, heros)!.onOpposingAdvantage!(2);
+      const lignes = ctxRepris(banc.getState, banc.setState, porte)!.onOpposingAdvantage!(2);
       expect(banc.getState().battle!.advantagePools, 'les alliés, camp adverse du porteur, gagnent +2').toEqual({ allies: 2, adversaires: 0 });
       expect([heros.advantage, porteur.advantage]).toEqual([2, 0]);
       expect(lignes).toHaveLength(1);

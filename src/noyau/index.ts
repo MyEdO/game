@@ -44,6 +44,7 @@ export {
   talentsDuParcours,
   type ParcoursDeCarriere,
 } from '../engine/pnjDeCarriere';
+export { entitySize } from './monde/spawn';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
 export { parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
 export {
@@ -194,7 +195,7 @@ export {
   type SessionDEdition,
 } from './edition/session';
 export { OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, type OutilDeLaCarte, type OutilDuPlanDuLieu } from './edition/pointeur';
-export { orienterRoute } from './worldMapEdit';
+export { orienterRoute, typesDEtablissement } from './worldMapEdit';
 export { refusDeForme } from './narratifEdit';
 export { FORMES_D_ETAT, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
 export { SOUS_ENTREES } from '../data/schemas/defs-scenes/ecritures-du-narratif';
@@ -230,7 +231,7 @@ export {
   type FieldDesc,
 } from './codex/editFields';
 export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
-export { type Segment } from './sceneEdit';
+export { type CheminsOfferts, type RefusDeValeur, type Segment } from './edition/formulaire';
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS, apparencesDeLOuverture } from './monde/facades';
 export { ciblesDAncreDeBataille } from './massBattleFlow';
@@ -370,4 +371,4 @@ export {
   type EntreeListee,
   type SavedProject,
 } from './persistance/bibliotheque';
-export { ProjetRefuse, type ProjectDoc } from './worldMap';
+export { ProjetRefuse, nomDuPoi, placeServices, type ProjectDoc } from './worldMap';
