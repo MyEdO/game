@@ -4,7 +4,8 @@
  * (`corruptionFlow.crochetsDeCorruption`) sont installés aux portes qui tiennent l'état ; ce banc les joue
  * par le dispatch réel des armes du catalogue (`emitCombatEvent`, le MÊME appel que `combatFlow`), par la
  * porte d'une feuille (`applyLeafOps`) et par la reprise d'un contexte porté (`ctxRepris`).
- * Armes : ZI 13 l.205 (pistolet à malepierre) ; MDG 16 l.515 (Atout Malepierre).
+ * Armes : ZI 13 l.205 (pistolet à malepierre) ; ZI 13 l.197 (canon ratling) ; ZI 13 l.201 (lance-maleflamme) ;
+ * MDG 16 l.515 (Atout Malepierre).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -14,7 +15,8 @@ import { createHero } from '../engine/character';
 import { battleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { itemFromTrappingById, weaponFromItem } from '../engine/items';
-import type { Combatant, Weapon } from '../engine/types';
+import { DIFFICULTY_LABELS, type Combatant, type Weapon } from '../engine/types';
+import { hasCondition } from '../engine/conditions';
 import { applyLeafOps, ctxRepris, porterOpsCtx } from './combatEffects';
 import { applyOps } from '../engine/ops';
 import { corruptionGain } from '../engine/corruption';
@@ -123,5 +125,37 @@ describe('Exposition : le chemin direct et la reprise d’un contexte porté pos
     const porte = JSON.parse(JSON.stringify(porterOpsCtx({ idNeuf: idsDeTest, rng: battleRng() })));
     applyOps(combattant(H.id), [EXPOSITION], ctxRepris(get, banc.setState, porte)!);
     expect(get().pendingCorruption).toMatchObject({ heroId: H.id, ...PENDING_MINEURE });
+  });
+});
+
+describe('Exposition à la Difficulté imprimée par la source (ZI 13 l.197, l.201)', () => {
+  it('héros blessé par un canon ratling : le Test de Corruption Mineure s’ouvre Accessible (+20)', () => {
+    const { H, E } = setup();
+    frapper('onHit', E, H, arme('canon-ratling'));
+    expect(get().pendingCorruption).toMatchObject({ heroId: H.id, ...PENDING_MINEURE, difficulteFixee: 'accessible', test: { difficulty: 'accessible' } });
+  });
+
+  it('PNJ personnage sans siège blessé par un canon ratling : le Test sans pilote est Accessible (+20)', () => {
+    const { H, E } = setup();
+    Object.assign(combattant(E.id), { followsCharacterRules: true, corruption: 0 });
+    banc.setState({ journal: [] });
+    frapper('onHit', H, combattant(E.id), arme('canon-ratling'));
+    expect(get().pendingCorruption).toBeNull();
+    const trace = get().journal.find((l) => l.includes(E.label) && /Résistance/.test(l));
+    expect(trace, get().journal.join('\n')).toContain(DIFFICULTY_LABELS.accessible);
+  });
+
+  it('héros touché et blessé par un lance-maleflamme : En flammes, puis Test de Corruption Modérée à la Difficulté du Test', () => {
+    const { H, E } = setup();
+    frapper('onHit', E, H, arme('lance-maleflamme'));
+    expect(hasCondition(combattant(H.id), 'en-flammes')).toBe(true);
+    expect(get().pendingCorruption).toMatchObject({ heroId: H.id, level: 'moderee', nature: 'physique', test: { difficulty: 'intermediaire' } });
+  });
+
+  it('nature laissée au joueur : la Difficulté imposée survit à son choix', () => {
+    const { H } = setup();
+    applyLeafOps(get, banc.setState, combattant(H.id), { type: 'ops', ops: [{ op: 'corruptionExposure', level: 'mineure', difficulty: 'accessible' }] }, { idNeuf: idsDeTest, rng: battleRng() });
+    get().jetRegler('corruption', 'nature', 'spirituelle');
+    expect(get().pendingCorruption).toMatchObject({ nature: 'spirituelle', test: { skill: { id: 'calme' }, difficulty: 'accessible' } });
   });
 });

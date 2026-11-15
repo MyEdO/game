@@ -641,8 +641,10 @@ export type GameOp =
    *  (VDM 05 — Bouclier en acier doré : « réduit de 2 crans une Influence corruptrice (une Exposition
    *  Majeure en devient une Mineure par exemple) ») ; `level` est alors inutile. Sinon l'op POSE
    *  l'exposition, de niveau `level` atténué par la protection que la cible porte déjà (`easeExposure`).
-   *  Un niveau atténué sous la Mineure ne pose AUCUNE exposition. */
-  | { op: 'corruptionExposure'; level?: ExposureLevel; nature?: NatureDInfluence; easeSteps?: number }
+   *  Un niveau atténué sous la Mineure ne pose AUCUNE exposition.
+   *  `difficulty` : la Difficulté que la source imprime pour le Test (ZI 13 l.197) ; absente, celle du Test
+   *  de `influences-corruptrices`. */
+  | { op: 'corruptionExposure'; level?: ExposureLevel; nature?: NatureDInfluence; difficulty?: Difficulty; easeSteps?: number }
   /** Points de Chance OU de Destin accordés (`resource`, LDB 47 — « Les Signes d'Amul », « Que la
    *  chance persiste », « Maître du Destin », « Troisième Signe d'Amul ») : incrément immédiat (peut
    *  dépasser le maximum — c'est un grant de Sort) ; `temporary` pose un effet actif qui RETIRE les
@@ -1461,7 +1463,7 @@ export interface OpsCtx {
   conjureForm?: ConjureForm;
   /** EXPOSITION corruptrice (op `corruptionExposure`) de `cible`, au niveau déjà atténué — fourni par
    *  `noyau/corruptionFlow.crochetsDeCorruption`. Sans hook (moteur pur/tests), l'op est journalisée inerte. */
-  onCorruptionExposure?: (cible: Combatant, level: ExposureLevel, nature?: NatureDInfluence) => string[];
+  onCorruptionExposure?: (cible: Combatant, level: ExposureLevel, nature?: NatureDInfluence, difficulty?: Difficulty) => string[];
   /** Branché par la couche state : NOTIFICATION des mouvements d'État posés par ces ops (`condition` /
    *  `removeCondition`) — l'id part À CÔTÉ de la ligne, appariée 1:1 avec elle (#1330). Le moteur NOTIFIE :
    *  aucun texte n'en dépend, et sans hook les lignes rendues sont STRICTEMENT identiques. */
@@ -2399,7 +2401,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           lines.push(t('op.corruptionConjuree', { name: target.label }));
           break;
         }
-        if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(target, level, o.nature));
+        if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(target, level, o.nature, o.difficulty));
         else lines.push(ligneDExposition(target, level));
         break;
       }

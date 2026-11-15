@@ -313,8 +313,9 @@ const DECLARATIONS_D_OPS = {
     op: z.literal('corruptionExposure'),
     level: exposureLevelSchema.optional(),
     nature: natureDInfluenceSchema.optional(),
+    difficulty: difficultySchema.optional(),
     easeSteps: z.number().optional(),
-  }), { op: { label: "opération"  }, level: { label: "niveau"  }, nature: { label: "nature de l’Influence" }, easeSteps: { label: "crans de facilité" } }),
+  }), { op: { label: "opération"  }, level: { label: "niveau"  }, nature: { label: "nature de l’Influence" }, difficulty: { label: "difficulté" }, easeSteps: { label: "crans de facilité" } }),
   aggravateSymptom: nommerChamps(z.strictObject({
     op: z.literal('aggravateSymptom'),
     disease: idDe('maladie'),

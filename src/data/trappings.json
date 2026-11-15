@@ -13408,17 +13408,27 @@
     "subType": {
       "id": "ingenierie"
     },
-    "availability": "exotique",
-    "price": {
-      "gold": 0,
-      "silver": 0,
-      "brass": 0
-    },
+    "availability": null,
+    "price": null,
     "source": {
       "book": "zoo-imperial",
-      "page": 45
+      "page": 94,
+      "note": "ZI 13 l.197"
     },
-    "desc": "Machine à tuer skaven à plusieurs canons. Il faut deux skavens pour s'en servir : un pour charger, l'autre pour la maintenir tant bien que mal. Arme à distance : +10 Dégâts, portée 40 mètres, Atouts À Poudre noire, Empaleuse, Explosion 3 et Perforante, Défauts Dangereuse et Imprécise. Ses balles étant incrustées de malepierre, les cibles blessées doivent effectuer un Test de Corruption (Mineure) Accessible (+20).",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "5501bb1d60a58230"
+        }
+      ]
+    },
     "reach": null,
     "range": 40,
     "loc": null,
@@ -13446,6 +13456,10 @@
       },
       {
         "id": "imprecise"
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 2
       }
     ],
     "enc": 4,
@@ -13454,7 +13468,137 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 0
+          },
+          "alors": {
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "corruptionExposure",
+                  "level": "mineure",
+                  "nature": "physique",
+                  "difficulty": "accessible"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "lance-maleflamme",
+    "type": "trappings",
+    "label": "Lance-maleflamme",
+    "hands": 2,
+    "categorie": "distance",
+    "subType": {
+      "id": "ingenierie"
+    },
+    "availability": null,
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.201"
+    },
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 2,
+          "sum": "0d1625b597b74d14"
+        }
+      ]
+    },
+    "reach": null,
+    "range": 8,
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": false,
+      "flat": 6
+    },
+    "qualities": [
+      {
+        "id": "a-explosion",
+        "value": 4
+      },
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 2
+      }
+    ],
+    "enc": 2,
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "condition",
+                "id": {
+                  "id": "en-flammes"
+                },
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 0
+          },
+          "alors": {
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "corruptionExposure",
+                  "level": "moderee",
+                  "nature": "physique"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
   },
   {
     "id": "pistolet-a-malepierre",
