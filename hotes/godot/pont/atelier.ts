@@ -93,7 +93,9 @@ export interface ModelesDeLAtelier {
    *  est l'emplacement de palette dont il prend la couleur, l'un de `SLOTS` (`palette-inconnue`), quelle que soit la
    *  catégorie de l'élément ; `blason: true` dit qu'il reçoit l'emblème, chacune de ses primitives portant alors
    *  `TEXCOORD_0` (`uv-absente`) ; `matiere` nomme la matière de décor du monde dont il s'habille, `prop--<id>` d'une
-   *  matière du domaine `prop` de `materials.json` (`matieresDeDecor`, surface du noyau ; `matiere-inconnue`) ;
+   *  matière du domaine `prop` de `materials.json` (`matieresDeDecor`, surface du noyau ; `matiere-inconnue`), chacune
+   *  de ses primitives portant `TEXCOORD_0` sur une surface qui n'est pas `blason` d'un élément qui a une base
+   *  (`uv-absente`, #4313) ;
    *  `parSexe`, une table d'un sexe (`sexeSchema`) au nom d'un matériau du GLB, nomme le matériau qui remplace le
    *  sien sur un corps de ce sexe (#3188), la variante `KHR_materials_variants` du nom du sexe de chaque primitive de
    *  la surface (`surface-absente` sinon), que la construction recouche des UV du corps qui le peint sur celles de la

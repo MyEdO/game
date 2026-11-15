@@ -18,11 +18,12 @@
   "surfaces": [
     {
       "nom": "ruban",
-      "palette": "vet1"
+      "palette": "vet1",
+      "matiere": "prop--toile-ecrue"
     }
   ],
   "glb": {
-    "sha256": "cdbcce56cf4f65afad25779620536708741b0ddd99c149d70b0000d3ca3f17cf",
-    "octets": 206116
+    "sha256": "9ac37379e3a5cd1ecb7eb5c86939902e2c92bdc4e6edb96ff890b7e8c64d26f4",
+    "octets": 270032
   }
 }

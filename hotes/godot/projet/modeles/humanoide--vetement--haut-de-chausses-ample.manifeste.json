@@ -25,11 +25,12 @@
   "surfaces": [
     {
       "nom": "haut_de_chausses",
-      "palette": "vet2"
+      "palette": "vet2",
+      "matiere": "prop--drap-terne"
     }
   ],
   "glb": {
-    "sha256": "1e96e059cb9c28443c40abf41239875737503bc1a2c6cc94440d14aa6d412ed2",
-    "octets": 356888
+    "sha256": "085f2df6e81c88f70b7a2dd7803bad1478e8136e61ff719873cbeabb0937a3ed",
+    "octets": 487048
   }
 }

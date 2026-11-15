@@ -8,5 +8,5 @@ MANIFESTE = {
     'couche': 'tenue',
     'couvre': ['main_g', 'main_d'],
 }
-MATERIAUX = {'cuir': ('cuir', ((0.45, 0.45, 0.45), 0.0, 0.87))}
+MATERIAUX = {'cuir': ('cuir', 'cuir-tanne')}
 BUDGET_TRIANGLES = 1300

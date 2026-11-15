@@ -8,7 +8,7 @@
  *                    `session.ts::addGuest` les consomme sans rien savoir du relay.
  * - `RoomGuest`    : EST un Transport (côté invité).
  * L'ordre des messages est préservé malgré la compression async : chaînes send/recv (`enchainer`). Un client fermé ne
- * livre ni n'envoie plus rien.
+ * livre ni n'envoie plus rien ; l'invité ne ferme qu'après ses envois en vol (`RoomGuest.close`).
  */
 import type { Transport } from './transport';
 import type { VerrouDesMots } from '../../noyau/index';
@@ -324,6 +324,8 @@ export class RoomGuest implements Transport {
   private sendChain: Promise<void> = Promise.resolve();
   private recvChain: Promise<void> = Promise.resolve();
   private wasReconnecting = false;
+  /** `close()` est passé : plus rien ne se livre, et ce qui s'envoie ensuite part après la fermeture, donc jamais. */
+  private quitte = false;
 
   constructor(base: string, code: string, name: string, private readonly ports: PortsDuRelais, resumeToken?: string) {
     if (resumeToken) this.token = resumeToken;
@@ -347,6 +349,7 @@ export class RoomGuest implements Transport {
   }
 
   private handle(env: Record<string, unknown>): void {
+    if (this.quitte) return;
     if (env.evt === 'seated') {
       this.seat = Number(env.seat);
       this.token = String(env.token ?? '');
@@ -379,8 +382,16 @@ export class RoomGuest implements Transport {
     await this.sendChain;
     await this.recvChain;
   }
+  /** Plus rien ne se livre ; les envois en vol partent (le `bye` de la session, `GuestSession.close`), puis le
+   *  `ctl bye`, qui libère le siège côté DO, et la fermeture. */
   close(): void {
-    this.relay.sendRaw(JSON.stringify({ ctl: 'bye' })); // libère le siège côté DO
-    this.relay.close();
+    if (this.quitte) return;
+    this.quitte = true;
+    this.msgCb = null;
+    const fermer = (): void => {
+      this.relay.sendRaw(JSON.stringify({ ctl: 'bye' }));
+      this.relay.close();
+    };
+    this.sendChain = this.sendChain.then(fermer, fermer);
   }
 }

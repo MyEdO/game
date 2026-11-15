@@ -24,7 +24,7 @@ MANIFESTE = {
 # `couvre` vide : un manteau masque au montage chaque zone qu'il couvre, sur le corps et sur les éléments de couche
 # inférieure (`masquer_les_zones_couvertes`, `hotes/godot/projet/scripts/montage_de_composition.gd`) ; la cape, ouverte
 # devant, ne cache aucune zone entière. `chaines` : le filet de la base qui porte la cape sous `HAUT`.
-MATERIAUX = {'cape': ('accent', ((0.35, 0.37, 0.36), 0.0, 0.9))}
+MATERIAUX = {'cape': ('accent', 'laine')}
 """Illustration : drap vert-noir, de la teinte de la capuche en plus sombre ; `SLOTS` (`src/lib/palette.ts`) n'a que deux
 emplacements de vêtement, pris par la robe : `accent`, celui de la capuche (HYPOTHÈSE). Gris de construction."""
 

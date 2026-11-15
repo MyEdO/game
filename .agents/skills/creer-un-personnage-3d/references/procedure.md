@@ -185,7 +185,8 @@ lisibles à taille de jeu ; éléments indépendants et dépendances ; interface
 support, leur contact/dégagement, souplesse et poses ; grandes surfaces ; tri CONSERVER /
 SIMPLIFIER / OMETTRE. Distinguer volume, motif peint et ombre. Tracer les hypothèses du dos.
 Le modèle se compare à l'illustration directrice. Un grand revers et un foulard sont des formes ;
-coutures et usure restent du détail. Palette mate limitée, ombrage flat/smooth intentionnel.
+coutures et usure restent du détail. Chaque surface nomme sa matière (drap, laine, toile, cuir, acier, mailles,
+fourrure, bois : section 3), jamais un aplat ; ombrage flat/smooth intentionnel.
 
 Un emblème (d'unité, de province ou de culte) n'appartient pas à l'élément : la pièce garde un champ
 neutre (écu uni, lame nue, insigne vierge), dont la couleur reste celle de son emplacement de palette, et le manifeste
@@ -222,8 +223,12 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
 
 - `donnees.py` : `MANIFESTE`, les champs publiés propres à l'élément (`categorie`, `cle`, `liaison`, et pour une pièce
   skinnée `couche`, `couvre`, `chaines`) ; `MATERIAUX`, `{nom: (emplacement de palette, matière)}` (`habillage.py`,
-  section 9), en gris de construction ; `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces
-  `blason`, section 2), exportés avec leurs UV comme ceux d'un véhicule ; `BUDGET_TRIANGLES` (section 7) ; `PRISE`
+  section 9) : la matière est l'id d'une matière du domaine `prop` de `src/data/materials.json` dont le catalogue
+  `hotes/godot/projet/textures/` porte la texture, sa texture neutre (`.neutre.jpg`, que teint la palette) et son relief ;
+  à défaut de matière au catalogue (peau, poil, corne, parchemin), un gris de construction `(couleur, métal, rugosité)`.
+  Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313).
+  `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;
+  tout autre matériau reçoit du constructeur ses UV en mètres au repos (`maille.poser_les_uv_en_metres`) ; `BUDGET_TRIANGLES` (section 7) ; `PRISE`
   pour un rigide ; chaque dimension en mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE
   à trancher en revue), jamais enfouie dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et
   la coiffure) nomme ses ids.
@@ -386,7 +391,7 @@ Lire au besoin la référence diagnostics du skill.
 Exporter en interpolation LINEAR et garder les pistes cuites de la base. Graines déterministes
 tirées des codes de caractères de l'identité, jamais du hash Python variable entre processus.
 Reconstruire un échantillon et comparer les octets ; une signature égale ne remplace pas cette preuve.
-Couleur de base en niveaux de gris ; chaque surface reliée à son emplacement de palette, sans couleur cuite ni
+Chaque surface reliée à son emplacement de palette et à sa matière du catalogue, sans couleur cuite ni
 illustration en texture ; aucun emblème n'est cuit, il se pose au montage sur une surface `blason`
 (section 2). La cuisson de géométrie vers texture peut utiliser le kit.
 
@@ -430,7 +435,8 @@ provenance, captures, chemin du GLB ou décision utilisateur dans ce JSON fermé
 
 La CLI canonique appelle validerElement avec les octets du GLB pour vérifier forme, ids de clé
 contre la donnée du jeu, références à la base, noms de surfaces contre les matériaux du GLB
-(`surface-absente`), `TEXCOORD_0` sur chaque primitive d'une surface `blason` (`uv-absente`),
+(`surface-absente`), `TEXCOORD_0` sur chaque primitive d'une surface `blason`, et d'une surface à `matiere` d'un
+élément sur base, que le jeu habille aux UV (`uv-absente`),
 empreinte SHA-256 et taille. Fournir manifeste d'élément, manifeste complet de base,
 puis GLB d'élément, depuis la racine du dépôt :
 
@@ -630,7 +636,7 @@ données (le véhicule, la pièce des postes, les configurations et les vues de 
 `npm run godot:sonde` dépose sous `hotes/godot/projet/textures/` :
 
 ```sh
-node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py caraque --modeles /atelier/caraque --modeles /atelier/affut --catalogue hotes/godot/projet/textures --sortie /atelier/revue [--seules 01-nue] [--gros-plans]
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py caraque --modeles /atelier/caraque --modeles /atelier/affut --sortie /atelier/revue [--seules 01-nue] [--gros-plans]
 ```
 
 Puis la porte artistique et la revue utilisateur de la section 7, consignée avant d'entériner. Avant de montrer un

@@ -23,7 +23,7 @@ MANIFESTE = {
     'couvre': [],
 }
 """`couvre` vide : le foulard ne cache aucune zone entière (le haut du cou se voit au-dessus de lui, sous la nuque)."""
-MATERIAUX = {'foulard': ('accent', ((0.6, 0.6, 0.6), 0.0, 0.9))}   # gris de construction, sans couleur cuite
+MATERIAUX = {'foulard': ('accent', 'toile-ecrue')}   # gris de construction, sans couleur cuite
 
 BUDGET_TRIANGLES = 2500                 # procédure, section 7 : vêtement par pièce
 EPAISSEUR = 0.004                       # HYPOTHÈSE : drap de laine, double nappe

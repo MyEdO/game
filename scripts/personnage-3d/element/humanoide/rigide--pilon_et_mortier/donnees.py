@@ -22,9 +22,9 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'bois': ('bois', ((0.5, 0.5, 0.5), 0.0, 0.85)),
-    'metal': ('metal', ((0.6, 0.6, 0.6), 1.0, 0.45)),
-    'cuir': ('cuir', ((0.5, 0.5, 0.5), 0.0, 0.9)),
+    'bois': ('bois', 'bois-chene'),
+    'metal': ('metal', 'acier-battu'),
+    'cuir': ('cuir', 'cuir-tanne'),
 }
 """Le mortier et le pilon de bois tourné (`bois`), leurs cerclages de métal (`metal`), la sangle de cuir (`cuir`). Gris de
 construction."""

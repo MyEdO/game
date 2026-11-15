@@ -34,11 +34,12 @@
   "surfaces": [
     {
       "nom": "acier",
-      "palette": "metal"
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     }
   ],
   "glb": {
-    "sha256": "f6069c739ef9ea987c5c5f6b8affb6e08ca2d40cac530b0ea8702ba4e0322ced",
-    "octets": 284540
+    "sha256": "9dfeceecafeaa1f0c6970815b9b8744408e4e7e4f854d872fbcf48c564a2ff6f",
+    "octets": 345444
   }
 }

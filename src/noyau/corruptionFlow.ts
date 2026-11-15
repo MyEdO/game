@@ -19,7 +19,7 @@
  */
 import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
-import type { Combatant } from '../engine/types';
+import type { Combatant, Difficulty } from '../engine/types';
 import { battleRng } from './battleRng';
 import type { CloturesDuJet } from './rollFlowSpecs';
 import { zoneCovers } from './monde/zones';
@@ -66,16 +66,18 @@ import type { CorpsDesReglages } from './reglagesDuJet';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
-/** Le Test d'EXPOSITION de nature `nature` : la fiche `influences-corruptrices` (LDB 19 l.29). SEULE
- *  construction du Test, pour tout producteur (scène, interlude, fin de combat) et le choix du joueur. */
-export function testDExposition(nature: NatureDInfluence): Pick<PendingCorruption, 'nature' | 'test'> {
-  return { nature, test: testDeRegle('influences-corruptrices', nature) };
+/** Le Test d'EXPOSITION de nature `nature` : la fiche `influences-corruptrices` (LDB 19 l.29), à la Difficulté
+ *  `difficulty` quand la source en imprime une (ZI 13 l.197). SEULE construction du Test, pour tout producteur
+ *  (scène, interlude, fin de combat, op `corruptionExposure`) et le choix du joueur. */
+export function testDExposition(nature: NatureDInfluence, difficulty?: Difficulty): Pick<PendingCorruption, 'nature' | 'test'> {
+  const test = testDeRegle('influences-corruptrices', nature);
+  return { nature, test: difficulty ? { ...test, difficulty } : test };
 }
 
 /** Le pending d'un Test d'EXPOSITION (effet de scène, Activité d'interlude) : nature imposée par la
  *  source (`natureFixee`), ou indéterminée — le joueur tranche, la modale part de `NATURES_D_INFLUENCE[0]`. */
-export function expositionPending(heroId: string, level: PendingCorruption['level'], nature: NatureDInfluence | undefined, align?: ChaosAlign): PendingCorruption {
-  return { heroId, level, ...testDExposition(nature ?? NATURES_D_INFLUENCE[0]), natureFixee: nature != null, align, menace: 'corruption' };
+export function expositionPending(heroId: string, level: PendingCorruption['level'], nature: NatureDInfluence | undefined, align?: ChaosAlign, difficulty?: Difficulty): PendingCorruption {
+  return { heroId, level, ...testDExposition(nature ?? NATURES_D_INFLUENCE[0], difficulty), natureFixee: nature != null, difficulteFixee: difficulty, align, menace: 'corruption' };
 }
 
 /**
@@ -109,13 +111,13 @@ export function poseCorruptionPending(get: Get, set: Set, pending: PendingCorrup
 export function crochetsDeCorruption(get: Get, set: Set): Required<Pick<OpsCtx, 'onCorruption' | 'onCorruptionExposure'>> {
   return {
     onCorruption: (cible, n, align) => (followsCharacterRules(cible) ? gainCorruption(get, set, cible, n, align) : []),
-    onCorruptionExposure: (cible, level, nature) => {
+    onCorruptionExposure: (cible, level, nature, difficulty) => {
       if (!followsCharacterRules(cible)) return [];
       if (tenuParUnHumain(get(), cible.id)) {
-        poseCorruptionPending(get, set, expositionPending(cible.id, level, nature));
+        poseCorruptionPending(get, set, expositionPending(cible.id, level, nature, undefined, difficulty));
         return [ligneDExposition(cible, level)];
       }
-      const { test } = testDExposition(nature ?? NATURES_D_INFLUENCE[0]);
+      const { test } = testDExposition(nature ?? NATURES_D_INFLUENCE[0], difficulty);
       const tst = rollSansPilote(get, cible, testValue(cible, test), test.difficulty, battleRng());
       return [
         traceLineOf({ who: nomDe(cible), label: testTraceLabel(refLabel('skills', test.skill), test.difficulty), ...tst }),
@@ -399,7 +401,7 @@ export function reglagesDeCorruption(get: Get, set: Set): Pick<CorpsDesReglages,
       nature: (nature) => {
         const pc = get().pendingCorruption;
         if (!pc || pc.kind === 'seuil' || pc.natureFixee) return;
-        set({ pendingCorruption: { ...pc, ...testDExposition(nature) } });
+        set({ pendingCorruption: { ...pc, ...testDExposition(nature, pc.difficulteFixee) } });
       },
     },
   };

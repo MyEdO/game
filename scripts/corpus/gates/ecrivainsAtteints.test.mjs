@@ -889,6 +889,7 @@ const ATTENDU = {
   'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
   'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
   'godot:rendus': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
+  'godot:coop': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
   // #3945, #3412, ECRIT_LU (`scripts/gates/toutes.mjs`) : le lot écrit le journal de chaque jeu sous `dist/godot-recettes/`,
   // lit `jeuxPilotesDeFront` de `construire.mjs`, et lance `recette.mjs --natif` en sous-processus, dont `piloter`
   // (`construire.mjs`) dépose les GLB (`ecritFerme`).

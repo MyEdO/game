@@ -110,6 +110,11 @@ describe('validerElement : un manifeste valide par catégorie', () => {
     const matiere = manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', matiere: 'prop--fer-noirci' }] });
     expect(verdict(matiere)).toEqual({ ok: true, manifeste: matiere });
   });
+  it('un élément sans base projette sa matière : une surface à matière sans `TEXCOORD_0` est admise (#4313)', () => {
+    const octets = glbAvec(null, ['plaque']);
+    const decor = manifeste('decor', { surfaces: [{ nom: 'plaque', palette: 'metal', matiere: 'prop--fer-noirci' }] }, octets);
+    expect(verdict(decor, octets)).toEqual({ ok: true, manifeste: decor });
+  });
 });
 
 describe('validerElement : les surfaces se lisent sur tout nœud à mesh, pas seulement le mesh pendu', () => {
@@ -199,6 +204,7 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['surface-absente', 'surface qu’aucun matériau du GLB ne nomme', manifeste('rigide', { surfaces: [{ nom: 'bois', palette: 'bois' }] })],
   ['uv-absente', 'blason sur une surface sans `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: true }] }, glbAvec('hand_r', ['plaque']))],
   ['uv-absente', 'blason sur une surface dont une primitive sur deux a `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: true }] }, glbDElement('hand_r', MATERIAUX, [], { mixtes: ['plaque'] }))],
+  ['uv-absente', 'matière hors blason sur une surface sans `TEXCOORD_0` d’un élément qui a une base (#4313)', ...surGlb('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', matiere: 'prop--fer-noirci' }] }, glbAvec('hand_r', ['plaque']))],
   ['rigide-sans-mesh', 'rigide sans mesh', ...surGlb('rigide', { surfaces: [] }, GLB_DE_BASE)],
   ['rigide-sur-os-absent', 'rigide pendu à un os inconnu de la base', ...surGlb('rigide', {}, glbAvec('main_gauche'))],
   ['rigide-a-la-racine', 'rigide à la racine', ...surGlb('rigide', {}, glbAvec(null))],

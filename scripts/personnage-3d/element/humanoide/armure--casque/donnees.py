@@ -10,7 +10,7 @@ MANIFESTE = {
     'emplacements': {'cimier': {'os': 'Head', 'position': [0, 0.215487, -0.006071], 'rotation': [-0.02897, 0, 0]}},
 }
 MATERIAUX = {
-    'metal': ('metal', ((0.55, 0.55, 0.55), 0.0, 0.87)),
+    'metal': ('metal', 'acier-battu'),
     'fleuron': ('accent', ((0.3, 0.3, 0.3), 0.0, 0.87)),
 }
 BUDGET_TRIANGLES = 1470

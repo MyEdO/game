@@ -11,11 +11,13 @@
   "surfaces": [
     {
       "nom": "couverture",
-      "palette": "cuir"
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
     },
     {
       "nom": "plat",
       "palette": "cuir",
+      "matiere": "prop--cuir-tanne",
       "blason": true
     },
     {
@@ -24,15 +26,17 @@
     },
     {
       "nom": "metal",
-      "palette": "metal"
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     },
     {
       "nom": "cuir",
-      "palette": "cuir"
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
     }
   ],
   "glb": {
-    "sha256": "c05eb0be3567dbeb7de734cbf763f3f4e232b30212c66cafce8345a28f911b83",
-    "octets": 71484
+    "sha256": "ebd53b280854214f8e15be19ffef53514443de1dd8bafaf104122e7293977457",
+    "octets": 78344
   }
 }

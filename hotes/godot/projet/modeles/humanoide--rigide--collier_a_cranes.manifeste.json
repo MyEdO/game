@@ -11,7 +11,8 @@
   "surfaces": [
     {
       "nom": "metal",
-      "palette": "metal"
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     },
     {
       "nom": "os",
@@ -19,7 +20,7 @@
     }
   ],
   "glb": {
-    "sha256": "a702a397f67b5b33fe4136f741c904dc9b94e8e868e0fed4308c9b217bd70665",
-    "octets": 90980
+    "sha256": "768c1fa6084bafc5d0261b4aa9077da89689cd45a9572396c2f258e8b0ab7268",
+    "octets": 125204
   }
 }

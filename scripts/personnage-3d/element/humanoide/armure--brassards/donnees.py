@@ -9,8 +9,8 @@ MANIFESTE = {
     'couvre': ['avant_bras_g', 'avant_bras_d'],
 }
 MATERIAUX = {
-    'cuir': ('cuir', ((0.45, 0.45, 0.45), 0.0, 0.87)),
-    'fourrure': ('fourrure', ((0.7, 0.7, 0.7), 0.0, 0.87)),
-    'clous': ('metal', ((0.8, 0.8, 0.8), 0.6, 0.87)),
+    'cuir': ('cuir', 'cuir-tanne'),
+    'fourrure': ('fourrure', 'fourrure'),
+    'clous': ('metal', 'acier-battu'),
 }
 BUDGET_TRIANGLES = 1824

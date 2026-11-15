@@ -15,15 +15,17 @@
     },
     {
       "nom": "cuir",
-      "palette": "cuir"
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
     },
     {
       "nom": "metal",
-      "palette": "metal"
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     }
   ],
   "glb": {
-    "sha256": "98ee534b8fa5ab7d56181f7dcf1bebb49b486fed8b602c1880e9f4f81a497143",
-    "octets": 76936
+    "sha256": "f61582e3c43a8f64b03c9d506dca44c488ed72ccc52140746241ecb11f4affbe",
+    "octets": 100092
   }
 }

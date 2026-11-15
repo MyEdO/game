@@ -19,11 +19,12 @@
   "surfaces": [
     {
       "nom": "fourrure",
-      "palette": "fourrure"
+      "palette": "fourrure",
+      "matiere": "prop--fourrure"
     }
   ],
   "glb": {
-    "sha256": "261717a8e56866162d8dbd17a6340e2c9d5b274cefdcbdcf1762f7ae0796e618",
-    "octets": 406796
+    "sha256": "7a1db13248038a23b8b7431511aeb30a787101e95697af8e5c94ade0bf35c043",
+    "octets": 568380
   }
 }

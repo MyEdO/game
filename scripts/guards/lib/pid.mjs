@@ -18,6 +18,10 @@ export function estPidVivant(pid, { sonder = (p) => process.kill(p, 0) } = {}) {
   }
 }
 
+/** Le groupe de processus `pgid` (un enfant lancé `detached`) compte-t-il encore un membre ? `estPidVivant` sur `-pgid`. kill(2), #3009.
+ *  @param {unknown} pgid */
+export const estGroupeVivant = (pgid) => estPidVivant(pgid, { sonder: (p) => process.kill(-p, 0) })
+
 /** La naissance d'un pid dont la SOURCE n'en inscrit aucune : `estPidVivantDepuis` le juge sur sa seule existence (#2603). */
 export const NAISSANCE_ABSENTE = Symbol('NAISSANCE_ABSENTE')
 

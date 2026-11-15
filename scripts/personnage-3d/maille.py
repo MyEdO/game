@@ -1,6 +1,7 @@
 """Primitives de maillage des éléments rigides (#2987, #3743), communes aux modèles de `vehicule/<modele>/modele.py` et
 d'`element/<base>/<id>/modele.py` : la maille accumulée en coordonnées du monde, l'interpolation des tables de forme, les
-solides (révolution, boîte, poutre, tube, tore, roue) et l'objet Blender final.
+solides (révolution, boîte, poutre, tube, tore, roue) et l'objet Blender final ; les UV en mètres d'un élément sur base
+(`poser_les_uv_en_metres`, #4313).
 
 Repère Blender d'un véhicule : z vers le haut, l'avant vers -y, la gauche (bâbord) vers +x ; l'export glTF (y vers le
 haut) place l'avant vers +z. Un élément tenu se construit dans le repère de sa prise (`element/construire.py`).
@@ -9,7 +10,11 @@ import math
 
 import bmesh
 import bpy
+import numpy as np
 from mathutils import Vector
+
+AUTRES_AXES = np.array([[1, 2], [0, 2], [0, 1]])
+"""Par axe dominant de la normale d'une face, les deux axes qui portent ses UV (`uv_cubiques`)."""
 
 
 class Maille:
@@ -218,6 +223,46 @@ def treuil(m, T, pied):
             t = 2 * math.pi * (k + 0.5) / T["rayons"]
             poutre(m, (signe * tl, ty, tz), (signe * tl, ty + blong * math.cos(t), tz + blong * math.sin(t)), 2 * bs, 2 * bs, (1, 0, 0), "bois")
     cylindre(m, -tl - 0.04, tl + 0.04, tr, "x", (0, ty, tz), 12, "bois")
+
+
+def faces_des_coins(debuts, totaux):
+    """La face de chaque coin, chaque face portant ses `totaux` coins contigus à partir de `debuts`."""
+    n = int(totaux.sum())
+    face = np.empty(n, dtype=np.int64)
+    face[np.repeat(debuts, totaux) + np.arange(n) - np.repeat(np.cumsum(totaux) - totaux, totaux)] = np.repeat(np.arange(len(debuts)), totaux)
+    return face
+
+
+def uv_cubiques(positions, coins, debuts, totaux):
+    """Les UV en mètres de chaque coin (#4313) : chaque face projetée sur le plan de l'axe dominant de sa normale (Newell,
+    calculée de `positions`, les sommets `(n, 3)`), ses UV ses deux autres coordonnées (`AUTRES_AXES`) ; `coins` porte le
+    sommet de chaque coin (`faces_des_coins`)."""
+    p = positions[coins]
+    suivants = np.arange(len(coins)) + 1
+    suivants[debuts + totaux - 1] = debuts
+    face = faces_des_coins(debuts, totaux)
+    normales = np.zeros((len(debuts), 3))
+    np.add.at(normales, face, np.cross(p, p[suivants]))
+    return np.take_along_axis(p, AUTRES_AXES[np.abs(normales).argmax(axis=1)][face], axis=1)
+
+
+def poser_les_uv_en_metres(objet, blasons):
+    """Pose sur la première couche d'UV de `objet`, créée si absente, les UV en mètres de ses faces au repos
+    (`uv_cubiques`), hors des faces des matériaux de `blasons`, qui gardent les leurs (#4313)."""
+    me = objet.data
+
+    def lire(collection, champ, largeur, type_):
+        valeurs = np.empty(len(collection) * largeur, dtype=type_)
+        collection.foreach_get(champ, valeurs)
+        return valeurs.reshape(-1, largeur) if largeur > 1 else valeurs
+    debuts, totaux = lire(me.polygons, "loop_start", 1, np.int64), lire(me.polygons, "loop_total", 1, np.int64)
+    couche = me.uv_layers[0] if me.uv_layers else me.uv_layers.new(name="UVMap")
+    uv = lire(couche.data, "uv", 2, np.float32)
+    blason = np.array([m is not None and m.name.split(".")[0] in blasons for m in me.materials] + [False])
+    garde = blason[lire(me.polygons, "material_index", 1, np.int64)][faces_des_coins(debuts, totaux)]
+    cubiques = uv_cubiques(lire(me.vertices, "co", 3, np.float64), lire(me.loops, "vertex_index", 1, np.int64), debuts, totaux)
+    uv[~garde] = cubiques[~garde]
+    couche.data.foreach_set("uv", uv.ravel())
 
 
 def objet(nom, maille, origine, angle_lisse):
