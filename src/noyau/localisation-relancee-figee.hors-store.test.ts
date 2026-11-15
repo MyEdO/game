@@ -100,7 +100,7 @@ describe('Localisation relancée — la défense dépense +1 DR puis la Chance (
     let vus = 0;
     for (let seed = 1; seed <= 300; seed++) {
       const { enemy, hero } = duel(seed);
-      if (!maybeOpenDefense(banc.getState, banc.setState, enemy, hero)) continue;
+      if (!maybeOpenDefense(banc.getState, banc.setState, enemy, hero, enemy.weapons[0])) continue;
       const g = banc.getState;
       g().jetLancer('defense');
       const premier = g().pendingDefense!.result!.critLocation;
