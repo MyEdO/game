@@ -59,7 +59,7 @@ describe('#4105 lot 2 — le muret de l’enceinte de la-diligence', () => {
     expect(couvertDe(nomme(previewAttack(banc.getState, H, E, undefined, { weapon: MELEE })))).toBe(-10);
     expect(couvertMelee(E, H)).toBe(-10);
     seedBattleRng(1);
-    const r = resolveAttack(banc.getState, H, E, undefined, false, false, false, MELEE);
+    const r = resolveAttack(banc.getState, H, E, MELEE, undefined, false, false, false);
     expect(couvertDe(nomme(r!.res.attackerDetail!))).toBe(-10);
     expect(lineOfSightCover(scene(), DEDANS, DEHORS, []).blocked).toBe(false);
     expect(wallBetween(scene(), DEDANS.x, DEDANS.y, DEHORS.x, DEHORS.y, 0)).toBe(true);

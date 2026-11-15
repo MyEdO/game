@@ -67,9 +67,9 @@ export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engage
  *  (`importer`), puis en importer le texte (`importe`, `null` si le joueur renonce). */
 export type GesteDuRoster = { recruter: string } | { retirer: string } | { exporter: string } | { importer: true } | { importe: string | null };
 
-/** Une entrée de l'accueil de l'hôte : le jeu au groupe à composer, les sauvegardes à reprendre, le combat d'un
- *  scénario de test, l'atelier, l'éditeur de carte. */
-export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'combat' | 'atelier' | 'editeur';
+/** Une entrée de l'accueil de l'hôte : le jeu au groupe à composer, les sauvegardes à reprendre, le salon à
+ *  rejoindre, le combat d'un scénario de test, l'atelier, l'éditeur de carte. */
+export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'salon' | 'combat' | 'atelier' | 'editeur';
 
 /** L'intention qu'un geste joue : un verbe de la partie et ses arguments, celui d'une offre de l'actif compris
  *  (`Offre.geste`), une suite de verbes
@@ -79,8 +79,8 @@ export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'combat' | 'atelier' | 'e
  *  (`scenarios.ts`), le groupe composé, l'id de la campagne du jeu à lancer, la partie à quitter, un geste sur le
  *  roster de l'hôte (`groupe.ts`), le panneau des sauvegardes à ouvrir ou à fermer, l'emplacement à charger ou celui
  *  où sauvegarder (`sauvegardes.ts`), le panneau des réglages à ouvrir ou à fermer (`reglages.ts`), l'entrée de
- *  l'accueil à suivre (`accueil.ts`), le salon à quitter (`salon.ts`). */
-export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot } | { reglages: boolean } | { accueil: EntreeDeLAccueil } | { salon: 'quitter' };
+ *  l'accueil à suivre (`accueil.ts`), le panneau du salon à ouvrir ou à fermer, le salon à quitter (`salon.ts`). */
+export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot } | { reglages: boolean } | { accueil: EntreeDeLAccueil } | { salon: boolean | 'quitter' };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
  *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */

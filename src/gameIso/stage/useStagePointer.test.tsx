@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { screenToTileAtZ, tileCenter, type Dims } from '../../geometry/iso';
 import { emptyScene, isWalkable, setDoorOpen, type Scene } from '../../noyau/monde/scene';
 import { piece } from '../../noyau/pieces.fixture';
@@ -26,6 +26,7 @@ import { aretesUtilisables, type AreteUtilisable } from '../../noyau/aretes';
 import { projeterAretes } from './aretesProjetees';
 import { VH, VW } from './useStageCamera';
 import { useStagePointer, type StagePointer } from './useStagePointer';
+import { piloterLePointeurFin } from './pointeur.testkit';
 import { setSpritePicker } from './spritePicker';
 import { SENSIBILITE_DRAG_DEG_PX, getStageYaw, poserYaw, resetStageYaw } from '../../state/stageYaw';
 import { getStagePan, resetStagePan } from '../../state/stagePan';
@@ -34,14 +35,7 @@ import { REF_HORS_CATALOGUE } from '../../noyau/monde/volume/decorVolumique.test
 
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn() });
-// L'implémentation par défaut se REPOSE avant CHAQUE test : `restoreMocks: true` (vite.config.ts)
-// rend tout espion et tout `vi.fn()` à son état nu entre deux tests, y compris celui-ci. Un test qui
-// ne la pose pas lui-même lirait sinon `undefined` au lieu d'un `MediaQueryList`.
-// `matches: true` = pointeur FIN (souris) : le défaut de ce banc ; un test tactile pose `false`.
-beforeEach(() => {
-  vi.mocked(window.matchMedia).mockReturnValue({ matches: true } as unknown as MediaQueryList);
-});
+piloterLePointeurFin();
 
 const dims: Dims = { w: 8, h: 8, rot: 0, view: 'iso' };
 
@@ -856,7 +850,6 @@ describe('useStagePointer — glisser-tourner au bouton MILIEU', () => {
     // Le geste reste ABSOLU : un retour en arrière ramène l'angle, il ne s'additionne pas.
     act(() => pointer.handlers.onPointerMove(evBouton(40, 100, 1)));
     expect(getStageYaw()).toBeCloseTo(30 - 60 * SENSIBILITE_DRAG_DEG_PX, 9);
-    vi.unstubAllGlobals();
   });
 
   it('le bouton PRINCIPAL panoramique HORS du store, qui ne reçoit son commit qu’au relâchement', () => {
@@ -878,7 +871,6 @@ describe('useStagePointer — glisser-tourner au bouton MILIEU', () => {
     act(() => pointer.handlers.onPointerUp(evBouton(220, 100, 0)));
     expect(useGame.getState().camPan.x).toBeCloseTo(getStagePan().x, 9);
     expect(useGame.getState().camPan.x).not.toBe(0);
-    vi.unstubAllGlobals();
   });
 });
 

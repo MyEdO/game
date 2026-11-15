@@ -4,7 +4,7 @@ extends SceneTree
 ## (`--pont=<chemin>` après `--`, que `construire.mjs --rendus` passe) : le script commun des recettes rendues d'un
 ## navire, `voile-de-la-caraque.gd` et `voile-de-la-barge.gd`, qui déclarent `RECETTE_RENDUE` et leur scénario
 ## (`_scenario`) ; lui ne le déclare pas, `rendre` ne le joue pas seul. La partie tourne sur son pont espion
-## (`PontEspion`) et son combat (`scenes/Combat.tscn`). Le monde, le navire, les cases que couvrent ses morceaux, leur
+## (`PontDuNavire`) et son combat (`scenes/Combat.tscn`). Le monde, le navire, les cases que couvrent ses morceaux, leur
 ## sol (`monde.hauteurs`) et le masque (la réponse `vision`) viennent du pont. Calques de l'écran et combattants cachés,
 ## tonemap linéaire (la part se lit en lumière linéaire), brouillard volumétrique coupé, MSAA coupé (une arête ne mêle
 ## pas deux positions), le fondu avancé par la recette seule, sous la caméra tactique centrée sur le navire servi, dans
@@ -81,16 +81,13 @@ var _meilleurs := {}
 var _sortie := ""
 
 
-## Le pont du noyau vivant, sur la partie du scénario `scenario` : il garde la dernière réponse de chaque méthode, et
-## chaque morceau reçu.
-class PontEspion extends PontDuNoyau:
+## Le pont espion sur la partie du scénario `scenario` : il garde chaque morceau reçu.
+class PontDuNavire extends PontEspion:
 	var scenario := ""
-	var reponses := {}
 	var morceaux: Array = []
 
 	func appeler(methode: String, entree: Variant = null) -> Dictionary:
 		var reponse := super(methode, entree)
-		reponses[methode] = reponse
 		if methode == "morceaux":
 			morceaux.append_array(reponse.get("volume", []))
 		return reponse
@@ -141,7 +138,7 @@ func _recetter() -> void:
 func _demarrer(scenario: String) -> Node:
 	_nom = scenario
 	_signales.clear()
-	var pont := PontEspion.new()
+	var pont := PontDuNavire.new()
 	pont.scenario = scenario
 	PontDuNoyau.remplacer(self, pont)
 	pont.panne.connect(func(message: String) -> void: _signales.append("panne : " + message))

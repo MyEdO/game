@@ -2,7 +2,7 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { tileCenter, type Dims } from '../../geometry/iso';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { useGame } from '../../state/store';
@@ -19,6 +19,7 @@ import { props } from '../../data';
 import { setSpritePicker } from './spritePicker';
 import { VH, VW } from './useStageCamera';
 import { useStagePointer, type StagePointer } from './useStagePointer';
+import { piloterLePointeurFin } from './pointeur.testkit';
 import { useHoverTargeting } from './useHoverTargeting';
 
 /**
@@ -29,10 +30,7 @@ import { useHoverTargeting } from './useHoverTargeting';
  */
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: vi.fn() });
-beforeEach(() => {
-  vi.mocked(window.matchMedia).mockReturnValue({ matches: true } as unknown as MediaQueryList);
-});
+piloterLePointeurFin();
 
 /** Élément de stage MESURÉ au viewBox (un pixel client EST un point de viewBox), aux captures ESPIONNÉES. */
 function stageEl() {

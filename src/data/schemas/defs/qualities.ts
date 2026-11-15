@@ -59,6 +59,8 @@ export const qualityCapabilitiesSchema = nommerChamps(z.strictObject({
   unbreakable: z.boolean().optional(),
   /** Magique : attaques magiques (blesse l'Éthéré). */
   magic: z.boolean().optional(),
+  /** LDB 60 l.26 ; LDB 60 l.30 */
+  repetable: z.boolean().optional(),
   /** Retirée quand on Retient ses coups. AA 07 l.61 */
   withheldOnRestraint: z.boolean().optional(),
   /** Préséance : cette qualité l'emporte sur les `beats` présentes (Imprécise > Précise, Lente > Rapide). */
@@ -87,6 +89,7 @@ export const qualityCapabilitiesSchema = nommerChamps(z.strictObject({
   ram: { label: 'Éperonnage' },
   unbreakable: { label: 'Incassable' },
   magic: { label: 'Magique' },
+  repetable: { label: 'Peut être pris plusieurs fois' },
   withheldOnRestraint: { label: 'Neutralisé pendant la retenue' },
   beats: { label: 'Qualités supplantées' },
 });

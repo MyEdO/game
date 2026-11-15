@@ -104,7 +104,7 @@ describe('#1013 — fenêtre de DÉFENSE ouverte : les verbes `attack*` n’appa
 
   it('sonde A bis — défense RÉACTIVE (`maybeOpenDefense`) : même verdict', () => {
     const { enemy, hero } = setup();
-    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero, enemy.weapons[0])).toBe(true);
     expect(modalOwnerOf(g())).toBe(hero.id);
     for (const i of ATTACK_VERBS) expect(seats(i), i).toEqual([false, false, false]);
   });

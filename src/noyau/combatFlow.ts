@@ -672,8 +672,8 @@ import type { FragmentDeTables, PartDeTable } from './tablesPosees';
  *  (`incomingMeleeAdvantage` → `passive` `incomingAdvantage`, kind `etat`). Sonné : « +1 Avantage avant
  *  l'attaque » (LDB 16 l.125) — ce gain profite déjà au jet en cours puis persiste. À appeler une seule
  *  fois par attaque (avant le 1er jet ; pas sur une relance). L'État est lu par sa DONNÉE, jamais par son nom. */
-export function applyIncomingMeleeAdvantage(get: Get, attacker: Combatant, target: Combatant): void {
-  const adv = attacker.weapons[0]?.type === 'melee' ? incomingMeleeAdvantage(target) : 0;
+export function applyIncomingMeleeAdvantage(get: Get, attacker: Combatant, target: Combatant, weapon: Weapon): void {
+  const adv = weapon.type === 'melee' ? incomingMeleeAdvantage(target) : 0;
   if (adv > 0) {
     campGain(get, attacker, adv);
     attacker.gainedAdvThisRound = true;
@@ -1186,17 +1186,16 @@ export function resolveAttack(
   get: Get,
   attacker: Combatant,
   target: Combatant,
+  weapon: Weapon, // #1026
   location?: HitLocation,
   fromCharge?: boolean,
   dansLeTas?: boolean,
   tirImmobile?: boolean,
-  armeDuCoup?: Weapon, // arme résolue par l'appelant piloté (`attackWeaponOf`, #1026) ; absente = auto-choix
   withhold?: boolean, // LDB 18 l.30 ; AA 07 l.59
 ): { res: AttackResult; weapon: Weapon; victim?: Combatant } | null {
   // Hors bataille (série d'attaques subies, `serieSubie`), aucune file de combat.
   const battle = get().battle;
   const mpt = sceneMetresPerTile(get().scene);
-  const weapon = armeDuCoup ?? firedWeapon(get().scene, attacker, target, undefined, battle?.combatants); // arme choisie + munition + sous-effectif du poste servi
   // Restriction d'armes à distance de la rencontre (#471, `EncounterDef.banRanged`, NADJ 06 l.181) —
   // convergence UNIQUE joueur ET IA (tout tir passe par `resolveAttack`) : refus AVANT le jet, même
   // chemin de refus silencieux que la LdV bloquée ci-dessous (`blocked`). Défaut effectif : `banRangedActive`.
@@ -3555,7 +3554,7 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
     bus.emit(EVT.SCENE_DIRTY);
     const suite: SuiteDeCoup = { enchainement: { mode: 'tirRapide', faits: vus } };
     if (maybeOpenDefense(get, set, shooter, t0, weapon, suite)) return true;
-    const r = resolveAttack(get, shooter, t0);
+    const r = resolveAttack(get, shooter, t0, weapon);
     if (!r) continue;
     return applyAttackResult(get, set, shooter, r.victim ?? t0, r.weapon, r.res, { suite }) === OPS_DIFFEREES;
   }
@@ -3954,13 +3953,14 @@ export function refusDeDefenseReactive(s: Jeu, attacker: Combatant, target: Comb
 /** Ouvre la fenêtre de défense réactive quand rien ne la ferme (`verdictDeDefenseReactive` — le pilote de
  *  l'attaquant n'entre PAS dans la condition). Fige le jet d'attaque et suspend le tour de l'attaquant. Retourne true si la fenêtre s'est
  *  ouverte. Chemin d'attaque INSTANTANÉE (IA, attaques gratuites) ; le chemin d'attaque PILOTÉE (modale
- *  d'attaque) interpose sa défense à l'application, cf. `openSurfacedDefense`. */
+ *  d'attaque) interpose sa défense à l'application, cf. `openSurfacedDefense`. `weapon` : l'arme du coup, la MÊME que
+ *  l'appelant passe à `resolveAttack`. */
 export function maybeOpenDefense(
   get: Get,
   set: SetFn,
   attacker: Combatant,
   target: Combatant,
-  weapon: Weapon = attacker.weapons[0],
+  weapon: Weapon,
   suite?: SuiteDeCoup,
   fromCharge?: boolean,
 ): boolean {
@@ -3985,7 +3985,7 @@ export function maybeOpenDefense(
     });
     return openDefenseCascade(get, set, target);
   }
-  applyIncomingMeleeAdvantage(get, attacker, target); // +1 Avantage si cible Sonnée, AVANT le jet (une seule fois)
+  applyIncomingMeleeAdvantage(get, attacker, target, weapon); // +1 Avantage si cible Sonnée, AVANT le jet (une seule fois)
   // Le MÊME env que resolveAttack (météo, Flanc/dos +20, Surnombre, Combat monté) : le jet figé de la
   // défense réactive l'omettait — un cavalier IA attaquait un héros sans son +20 (LDB 14 l.180). Le
   // drapeau `flankRear` n'est PAS un champ du pending : il n'agit qu'ICI, au GEL du jet d'attaquant
@@ -4206,32 +4206,33 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   return true;
 }
 
-export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, enchainement?: EnchainementDuCoup): Applique {
+export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, enchainement?: EnchainementDuCoup, weaponUid?: string): Applique {
   // Bénédiction de Protection (LDB 41 — L13) : Test de FM Accessible (+20) pour oser attaquer le
   // béni ; échec → l'IA renonce à CE coup (simplification : pas de re-ciblage, documentée).
   const ward = attackWardGate(attacker, target, battleRng());
   const b0 = get().battle;
   if (ward.lines.length && b0) set({ battle: { ...b0, log: [...b0.log, ...evLines(ward.lines, 'information', attacker.id)] } });
   if (!ward.allowed) return undefined;
-  // Main ensanglantée (AA 07 l.117) : l'attaquant gaté joue le Test de Dextérité (+20) sur l'arme EMPLOYÉE contre
-  // cette cible ; Échec → l'arme glisse et il renonce à CE coup (une pièce servie hors loadout n'est jamais gatée).
-  if (!aiHandGate(get, set, attacker, firedWeapon(get().scene, attacker, target).uid)) return undefined;
+  // L'arme du coup, résolue une fois : `weaponUid` désigné par la décision, sinon auto-choix (`pickAttackWeaponList`).
+  // Hors bataille aussi (série subie).
+  const arme = firedWeapon(get().scene, attacker, target, weaponUid, get().battle?.combatants);
+  // Main ensanglantée (AA 07 l.117) : l'attaquant gaté joue le Test de Dextérité (+20) sur l'arme du coup ;
+  // Échec → l'arme glisse et il renonce à CE coup (une pièce servie hors loadout n'est jamais gatée).
+  if (!aiHandGate(get, set, attacker, arme.uid)) return undefined;
   // Coup PRINCIPAL : ses gratuites `onHit` (LDB 10 l.72) suivent la touche, comme celles du héros (`jetValider('attaque')`).
   const suite: SuiteDeCoup = { gratuitesALaTouche: true, ...(enchainement ? { enchainement } : {}) };
-  if (maybeOpenDefense(get, set, attacker, target, undefined, suite, attacker.chargedThisTurn)) return OPS_DIFFEREES; // suspendu : reprise via jetValider('defense')/jetAnnuler('defense') ; `chargedThisTurn` = le MÊME `fromCharge` que le `resolveAttack` ci-dessous
-  // Tir ennemi : l'annoncer dans le journal de COMBAT (battle.log → fil + tiroir) DÈS la décision — un tir
-  // n'ouvre pas de modale de défense, donc « on ne savait jamais sur qui il tirait » (#12d). Avant, l'annonce
-  // partait dans le journal du GROUPE (invisible en combat).
-  if (firedWeapon(get().scene, attacker, target).type === 'distance') {
+  if (maybeOpenDefense(get, set, attacker, target, arme, suite, attacker.chargedThisTurn)) return OPS_DIFFEREES; // suspendu : reprise via jetValider('defense')/jetAnnuler('defense') ; `chargedThisTurn` = le MÊME `fromCharge` que le `resolveAttack` ci-dessous
+  // Tir ennemi : annoncé dans le journal de COMBAT (battle.log → fil + tiroir) DÈS la décision (#12d).
+  if (arme.type === 'distance') {
     const b0 = get().battle;
     if (b0) set({ battle: { ...b0, log: [...b0.log, ev('tir', tr('cf.visee', { name: attacker.label, target: target.label }), attacker.id, target.id)] } });
   }
-  applyIncomingMeleeAdvantage(get, attacker, target); // +1 Avantage si cible Sonnée (LDB 16 l.125), avant le jet
+  applyIncomingMeleeAdvantage(get, attacker, target, arme); // +1 Avantage si cible Sonnée (LDB 16 l.125), avant le jet
   // Charge montée (LDB 14 l.183) : si l'attaquant a chargé ce tour, ses dégâts utilisent la Force + la
   // Taille de sa monture — PARITÉ avec le joueur (le proxy ne s'applique que s'il chevauche réellement).
-  const r = resolveAttack(get, attacker, target, undefined, attacker.chargedThisTurn);
+  const r = resolveAttack(get, attacker, target, arme, undefined, attacker.chargedThisTurn);
   if (!r) {
-    get().ecrireAuJournal(firedWeapon(get().scene, attacker, target).type === 'distance' ? tr('cf.ligneDeVueMasquee') : tr('cs.meleeOutOfRange'));
+    get().ecrireAuJournal(arme.type === 'distance' ? tr('cf.ligneDeVueMasquee') : tr('cs.meleeOutOfRange'));
     return undefined;
   }
   // r.victim = allié touché par un tir dévié (LDB 14 l.116) ; l'enchaînement non déclaré est le balayage
@@ -4372,8 +4373,9 @@ function runCleaveChain(get: Get, set: SetFn, attacker: Combatant, chain: Chaine
     // surfacé (qui la joue à sa fermeture) et à l'application instantanée ; la case libérée ne se lit
     // qu'APRÈS l'application (`resumeCleaveChain`).
     const suite: SuiteDeCoup = { enchainement: { mode: 'chaine', hitIds, n: n + 1, bcc: chain.bcc, fm: chain.fm }, ...(restitution ? { restitution } : {}) };
-    if (maybeOpenDefense(get, set, attacker, next, undefined, suite)) return true; // chaîne suspendue : la reprise part de `jetValider('defense')`
-    const r = resolveAttack(get, attacker, next);
+    const arme = firedWeapon(get().scene, attacker, next, undefined, battle.combatants);
+    if (maybeOpenDefense(get, set, attacker, next, arme, suite)) return true; // chaîne suspendue : la reprise part de `jetValider('defense')`
+    const r = resolveAttack(get, attacker, next, arme);
     if (!r) continue; // hors de portée (ne devrait pas : déjà filtré adjacent) — borne consommée tout de même
     // Le maillon suivant est la SUITE de ce coup : son après-coup la joue (`resumeCleaveChain`).
     return applyAttackResult(get, set, attacker, r.victim ?? next, r.weapon, r.res, { sousAttaque: true, suite }) === OPS_DIFFEREES;
@@ -4582,7 +4584,7 @@ export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant): boo
 
 // ── Attaques GRATUITES accordées par un TALENT déclenché (Assaut féroce `onHit`, Frappe réactive
 //    `onCharged`) : op `grantFreeAttack{when:'immediate'}` portée en DONNÉE par le talent. Résolution
-//    INSTANTANÉE (motif aiAvailableFreeAttack — pas de modale), arme TENUE, Action PRÉSERVÉE. La frappe est
+//    INSTANTANÉE (motif aiAvailableFreeAttack — pas de modale), arme désignée par `op.weapon`, Action PRÉSERVÉE. La frappe est
 //    OUVERTE par `accorderLAttaqueGratuite` que `runCombatFlow` appelle sur le `effet`/`grantFreeAttack` — un
 //    éventuel jet préalable (Frappe réactive : Test d'Initiative LDB 10 l.496-500) est un nœud Flow
 //    `test` EN AMONT (cadence-aware : héros manuel = jet influençable ; ennemi/auto = inline). ──
@@ -4590,13 +4592,15 @@ export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant): boo
 /** Résout UNE attaque gratuite de talent contre la cible `fa.targetId` (un TIERS : le chargeur pour Frappe
  *  réactive, la victime touchée pour Assaut féroce) : plafond /Round (`fa.cap` = niveau, via
  *  `freeAttacksThisTurn[fa.key]`) + 1× par chargeur ; coût (Avantage) ; puis frappe INSTANTANÉE à l'arme
- *  tenue, Action préservée. Le plafond borne aussi la récursion (un onHit qui touche → +1 attaque, recomptée
+ *  que désigne `op.weapon` (contexte d'arme comme `resolveDualSecond`), Action préservée. Le plafond borne aussi la récursion (un onHit qui touche → +1 attaque, recomptée
  *  → s'arrête au niveau). Appelée par `accorderLAttaqueGratuite` quand `runCombatFlow` exécute le `effet`/`grantFreeAttack`
  *  (le Test préalable a déjà réussi en amont, c'est un nœud Flow). */
 function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): Applique {
   const target = inBattleId(get().battle, fa.targetId);
   if (!target || isOutOfAction(actor) || isOutOfAction(target) || !actor.pos || !target.pos) return undefined;
-  if ((actor.weapons[0]?.type ?? 'melee') !== 'melee') return undefined; // attaque d'arme de mêlée (l'arme tenue)
+  const main = op.weapon === 'mainHand' ? armeDeMainPrincipale(actor) : null; // LDB 10 l.500
+  const arme = main ? effectiveWeapon(main, weaponContextOf(actor, main, target)) : firedWeapon(get().scene, actor, target, undefined, get().battle?.combatants);
+  if (arme.type !== 'melee') return undefined;
   const uses = actor.freeAttacksThisTurn ?? {};
   if ((uses[fa.key] ?? 0) >= fa.cap) return undefined; // plafond /Round atteint (= niveau du talent)
   const ck = `${fa.key}:${target.id}`;
@@ -4617,8 +4621,8 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
   // Défenseur SURFACÉ : la frappe passe par la MÊME couture d'ouverture que les autres gratuites
   // (patron `applyFreeAttack`) — suspendue ici, appliquée à `jetValider('defense')` (Action restaurée).
   // REND sa suspension (#1852) : l'appelant s'arrête, la frappe suivante attend la fermeture.
-  if (maybeOpenDefense(get, set, actor, target, actor.weapons[0], suite)) return OPS_DIFFEREES;
-  const r = resolveAttack(get, actor, target);
+  if (maybeOpenDefense(get, set, actor, target, arme, suite)) return OPS_DIFFEREES;
+  const r = resolveAttack(get, actor, target, arme);
   if (!r) return undefined;
   return applyAttackResult(get, set, actor, r.victim ?? target, r.weapon, r.res, { sousAttaque: true, suite });
 }
@@ -5367,11 +5371,11 @@ export function lancerLAttaque(get: Get, set: SetFn): void {
   const attacker = inBattleId(battle, pa.attackerId);
   const target = inBattleId(battle, pa.targetId);
   if (!attacker || !target) return;
-  applyIncomingMeleeAdvantage(get, attacker, target); // +1 Avantage si cible Sonnée (LDB 16 l.125), avant le jet
   // L'arme du JET est celle de l'APPLICATION (`attackWeaponOf`, #1026) : arme naturelle synthétisée
   // d'une gratuite de créature comprise.
   const weapon = attackWeaponOf(get().scene, battle, attacker, target, pa);
-  const r = resolveAttack(get, attacker, target, pa.location ?? undefined, pa.fromCharge, pa.dansLeTas, pa.tirImmobile, weapon, pa.withhold); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
+  applyIncomingMeleeAdvantage(get, attacker, target, weapon); // +1 Avantage si cible Sonnée (LDB 16 l.125), avant le jet
+  const r = resolveAttack(get, attacker, target, weapon, pa.location ?? undefined, pa.fromCharge, pa.dansLeTas, pa.tirImmobile, pa.withhold); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
   if (!r) {
     get().ecrireAuJournal(weapon.type === 'distance' ? tr('cf.ligneDeVueMasquee') : tr('cs.meleeOutOfRange'));
     set({ pendingAttack: null });
@@ -8264,7 +8268,7 @@ export function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: Ges
     const cible = inBattleId(battle, geste.cibleId);
     // Télégraphe (réticule + ligne — PLEINE en mêlée, pointillée au tir) pendant la pré-attaque :
     // même affordance que la visée du joueur, des deux côtés.
-    if (cible) set({ actorAim: { fromId: acteur.id, toId: cible.id, kind: firedWeapon(get().scene, acteur, cible).type === 'distance' ? 'tir' : acteur.chargedThisTurn ? 'charge' : 'melee' } });
+    if (cible) set({ actorAim: { fromId: acteur.id, toId: cible.id, kind: firedWeapon(get().scene, acteur, cible, geste.weaponUid, battle.combatants).type === 'distance' ? 'tir' : acteur.chargedThisTurn ? 'charge' : 'melee' } });
     bus.emit(EVT.SCENE_DIRTY);
   }
   if (delai > 0) programmer(() => jouerLaSuite(get, set, acteur.id, cle, n), delai);
@@ -8317,7 +8321,7 @@ function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: nu
     case 'frappe': {
       const cible = inBattleId(battle, geste.cibleId);
       if (!cible || isOutOfAction(cible)) { advanceTurn(get, set); return; }
-      frapperPuisAvancer(get, set, acteur, cible);
+      frapperPuisAvancer(get, set, acteur, cible, geste.weaponUid);
       return;
     }
     case 'sort': {
@@ -8343,12 +8347,12 @@ function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: nu
 }
 
 /** La frappe d'un tour d'IA, puis la fin de son tour. */
-function frapperPuisAvancer(get: Get, set: SetFn, acteur: Combatant, cible: Combatant): void {
+function frapperPuisAvancer(get: Get, set: SetFn, acteur: Combatant, cible: Combatant, weaponUid?: string): void {
   // Attaque-ACTION spéciale (Regard pétrifiant / Étreinte glaciale) à la place de l'attaque
   // normale si la créature en a le trait + l'Avantage ; sinon attaque normale (opposée). Une manœuvre
   // spéciale qui touche des HÉROS ouvre une cascade de défense influençable → tour SUSPENDU (reprise
   // via `resumeManeuverDefense` à la fermeture), détectée par `maneuverCascadePending`.
-  const suspended = aiMaybeSpecialAction(get, set, acteur) ? maneuverCascadePending(get) : doAttack(get, set, acteur, cible);
+  const suspended = aiMaybeSpecialAction(get, set, acteur) ? maneuverCascadePending(get) : doAttack(get, set, acteur, cible, undefined, weaponUid);
   // Si la modale de défense s'ouvre, la reprise est portée par jetValider('defense') → resumeEnemyTurn.
   if (suspended) return;
   // Attaques GRATUITES après l'attaque principale : d'Arme « disponibles » (Frénésie LDB 21 l.33 =
@@ -9145,7 +9149,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   const canAct = canTakeAction(enemy); // Sonné : pas d'Action — déplacement seul (LDB 16 l.125)
 
   // Attaque (mêlée ou tir, selon l'arme active) puis fin de tour, après le télégraphe — cadence préservée.
-  const attackThenAdvance = (target: Combatant) => { armerLaSuite(get, set, enemy, { kind: 'frappe', cibleId: target.id }, TEMPO.aimTelegraph); };
+  const attackThenAdvance = (target: Combatant, weaponUid?: string) => { armerLaSuite(get, set, enemy, { kind: 'frappe', cibleId: target.id, ...(weaponUid ? { weaponUid } : {}) }, TEMPO.aimTelegraph); };
 
   // Combat monté (LDB 14 l.182) : une monture MONTÉE est dirigée par son cavalier — elle ne se déplace
   // pas seule (le couple bouge au tour du cavalier). Sans le Trait Nerveux, elle peut consacrer SA propre
@@ -9224,7 +9228,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       if (!canAct) return advanceTurn(get, set);
       // Le télégraphe (réticule + ligne pointillée ~0,85 s) est porté par attackThenAdvance — même
       // affordance « qui va être frappé » que la mêlée et le sort (plus de double télégraphe).
-      attackThenAdvance(targetOf(action.targetId));
+      attackThenAdvance(targetOf(action.targetId), action.weaponUid);
       return;
     }
     case 'rechargement': {

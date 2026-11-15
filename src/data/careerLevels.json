@@ -495,7 +495,7 @@
       },
       {
         "id": "vetements",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -757,7 +757,7 @@
       },
       {
         "id": "vetements",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "label": "Grand hôtel particulier avec jardins",
@@ -1341,7 +1341,7 @@
       },
       {
         "id": "vetements",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -1841,15 +1841,15 @@
       },
       {
         "id": "chapeau",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "arme-simple",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "symbole-de-grade",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -2561,7 +2561,7 @@
     "trappings": [
       {
         "id": "vetements",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "label": "Assistant",
@@ -2621,7 +2621,7 @@
       {
         "id": "costume-de-cour",
         "spec": "costume luxueux",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "label": "Suite de Conseillers et d'Assistants",
@@ -2859,7 +2859,7 @@
       },
       {
         "id": "rapiere",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -2907,11 +2907,11 @@
     "trappings": [
       {
         "wildcard": "arme",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "wildcard": "arme",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -3110,7 +3110,7 @@
       },
       {
         "id": "vetements",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -3161,7 +3161,9 @@
         "nature": "personne"
       },
       {
-        "text": "Vêtements élégants de qualité supérieure"
+        "id": "costume-de-cour",
+        "spec": "vêtements élégants",
+        "qualityChoice": "haute"
       },
       {
         "label": "Suite de Diplomates",
@@ -3897,7 +3899,7 @@
       },
       {
         "id": "costume-de-cour",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "pick": 1,
@@ -3927,7 +3929,7 @@
           },
           {
             "id": "cape-2",
-            "qualityChoice": true
+            "qualityChoice": "qualite"
           }
         ]
       },
@@ -3992,7 +3994,7 @@
     "trappings": [
       {
         "id": "costume-de-cour",
-        "qualityChoice": true,
+        "qualityChoice": "qualite",
         "count": {
           "fixed": 2
         }
@@ -4063,17 +4065,18 @@
     ],
     "trappings": [
       {
-        "text": "Ensemble de somptueux costumes de cour",
+        "id": "costume-de-cour",
         "count": {
           "fixed": 4
-        }
+        },
+        "qualityChoice": "haute"
       },
       {
         "pick": 1,
         "of": [
           {
             "id": "fleuret",
-            "qualityChoice": true
+            "qualityChoice": "qualite"
           },
           {
             "id": "miroir-a-main"
@@ -4282,7 +4285,7 @@
       },
       {
         "id": "livree",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -4603,7 +4606,7 @@
       },
       {
         "id": "vetements",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -5423,7 +5426,7 @@
     "trappings": [
       {
         "id": "heaume",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -6206,7 +6209,7 @@
       },
       {
         "id": "uniforme",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "symbole-de-grade"
@@ -7532,19 +7535,19 @@
     "trappings": [
       {
         "id": "arc-elfique",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "veste-de-cuir",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "jambieres-en-cuir",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "calotte-de-cuir",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "fleche-elfique",
@@ -7810,7 +7813,7 @@
     "trappings": [
       {
         "id": "cape",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "chemise-de-mailles"
@@ -9481,11 +9484,11 @@
       },
       {
         "id": "chapeau",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "cape",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "label": "Unité de Patrouilleurs routiers",
@@ -9697,7 +9700,7 @@
     "trappings": [
       {
         "id": "chemise-de-mailles",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "label": "Escouade de Gardes novices",
@@ -9968,7 +9971,7 @@
     "trappings": [
       {
         "id": "vetements",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "label": "Interrogateurs subordonnés",
@@ -10019,7 +10022,9 @@
     ],
     "trappings": [
       {
-        "text": "Costume luxueux de qualité supérieure"
+        "id": "costume-de-cour",
+        "spec": "costume luxueux",
+        "qualityChoice": "haute"
       },
       {
         "label": "Répurgateurs subordonnés",
@@ -11333,7 +11338,7 @@
       },
       {
         "id": "outils-professionnels-ingenieur",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "atelier-ingenieur",
@@ -12267,7 +12272,7 @@
     "trappings": [
       {
         "id": "robes",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "relique",
@@ -14795,7 +14800,7 @@
       },
       {
         "id": "vetements",
-        "qualityChoice": true,
+        "qualityChoice": "qualite",
         "count": {
           "fixed": 2
         }
@@ -15054,7 +15059,7 @@
       },
       {
         "id": "vetements",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -15968,11 +15973,11 @@
       },
       {
         "id": "vetements",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "chapeau",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -16992,7 +16997,7 @@
       },
       {
         "id": "robes",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "cachet-grave",
@@ -20981,7 +20986,7 @@
     "trappings": [
       {
         "id": "arc",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "arme-simple"
@@ -21067,7 +21072,7 @@
       },
       {
         "id": "uniforme",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -21271,7 +21276,7 @@
     "trappings": [
       {
         "id": "hallebarde",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "heaume"
@@ -21334,7 +21339,7 @@
       },
       {
         "id": "uniforme",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -21530,7 +21535,7 @@
     "trappings": [
       {
         "id": "arquebuse",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "chapeau",
@@ -21592,7 +21597,7 @@
       },
       {
         "id": "uniforme",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -21866,7 +21871,7 @@
       },
       {
         "id": "zweihander",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -21928,7 +21933,7 @@
       },
       {
         "id": "uniforme",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -22198,7 +22203,7 @@
       },
       {
         "id": "uniforme",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "etendard",
@@ -22497,7 +22502,7 @@
       },
       {
         "id": "vetements",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -22635,7 +22640,7 @@
     "trappings": [
       {
         "id": "chapeau",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "id": "tente"
@@ -22691,7 +22696,7 @@
     "trappings": [
       {
         "id": "vetements",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -22950,7 +22955,7 @@
       {
         "id": "vetements",
         "spec": "de voyage",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -22999,7 +23004,7 @@
     "trappings": [
       {
         "id": "theodolite",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       },
       {
         "label": "Étude",
@@ -23218,7 +23223,7 @@
       },
       {
         "id": "uniforme",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -23538,7 +23543,7 @@
       },
       {
         "id": "uniforme",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -23735,7 +23740,7 @@
     "trappings": [
       {
         "id": "instrument",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -23782,7 +23787,7 @@
     "trappings": [
       {
         "id": "chapeau",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -24694,7 +24699,7 @@
       },
       {
         "id": "uniforme",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [
@@ -25020,7 +25025,7 @@
       },
       {
         "id": "robes",
-        "qualityChoice": true
+        "qualityChoice": "qualite"
       }
     ],
     "characteristics": [

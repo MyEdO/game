@@ -931,7 +931,8 @@ export type GameOp =
   /** ATTAQUE GRATUITE accordée par un talent/état (Frénésie : 1 attaque d'Arme/Round ; Assaut féroce :
    *  attaque supplémentaire à la touche ; Frappe réactive : riposte quand on est Chargé). Effet IMPUR (ouvre
    *  une frappe) RÉSOLU par la couche state (`accorderLAttaqueGratuite` de `combatFlow`, appelé par `runCombatFlow`
-   *  sur ce `do`) ; INERTE dans `applyOps`. `weapon` : arme tenue / main principale / naturelle. `when` :
+   *  sur ce `do`) ; INERTE dans `applyOps`. `weapon` : 'held' = arme du coup (`firedWeapon`), 'mainHand' = arme
+   *  de la main principale (`armeDeMainPrincipale`, LDB 10 l.500). `when` :
    *  'available' = surfacée comme OPTION du Tour (Frénésie, lue par `availableAttacks`) ou 'immediate' = résolue
    *  tout de suite (depuis un effet déclenché). `coutEnAvantage` / `avantageOuMouvement` : ce que la frappe
    *  coûte au porteur. `activeIf` : condition
@@ -939,7 +940,7 @@ export type GameOp =
    *  plafond /Round est porté par la couche state (= niveau du talent). Un éventuel jet PRÉALABLE (Frappe
    *  réactive : Test d'Initiative) est un nœud Flow `test` EN AMONT du `do`, pas un champ de l'op (cadence-aware
    *  via `resolveFlowTest`). */
-  | { op: 'grantFreeAttack'; weapon: 'held' | 'mainHand' | 'natural'; when: 'available' | 'immediate';
+  | { op: 'grantFreeAttack'; weapon: 'held' | 'mainHand'; when: 'available' | 'immediate';
       coutEnAvantage?: number; avantageOuMouvement?: boolean;
       activeIf?: 'frenzied'; perChargerOncePerRound?: boolean; label?: string }
   /** Marqueur IMPUR de la branche d'ÉCHEC du Test `interruption-de-focalisation` (LDB 46 l.144) :
