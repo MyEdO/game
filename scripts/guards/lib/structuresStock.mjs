@@ -112,6 +112,8 @@ export const STRUCTURES_CIBLES = [
   { concept: "valeur-d-identite", signature: "repere,valeur+…", date: "2026-10-17" },
   { concept: "billet-de-route", signature: "prix", date: "2026-10-16" },
   { concept: "billet-de-route", signature: "prix+…", date: "2026-10-16" },
+  { concept: "offre-d-auberge", signature: "id,prix,source", date: "2026-11-15" },
+  { concept: "offre-d-auberge", signature: "id,prix,risque,source", date: "2026-11-15" },
   // #2533 (2026-10-17) — provenance des valeurs de route : formes CIBLES de la porte de #2533, que le détecteur de la base
   // de sa plage (`scripts/guards/lib/corpusDesComptes.mts`) doit reconnaître.
   { concept: "provenance-de-valeur", signature: "source", date: "2026-10-17" },
