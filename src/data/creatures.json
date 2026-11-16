@@ -11793,7 +11793,7 @@
       {
         "id": "a-distance",
         "value": 7,
-        "arg": "Malelame",
+        "arg": "decharge-de-malelame",
         "range": 48
       },
       {
@@ -19545,8 +19545,7 @@
         }
       },
       {
-        "id": "alcool",
-        "spec": "rhum tord-boyaux"
+        "id": "rhum-tord-boyaux"
       }
     ],
     "spells": [],

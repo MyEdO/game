@@ -13,6 +13,9 @@ import { createHero } from '../engine/character';
 import { itemFromTrappingById } from '../engine/items';
 import { seedBattleRng } from './battleRng';
 import { hasCondition } from '../engine/conditions';
+import { alcoholFailures, soberUpDissipate } from '../engine/drunkenness';
+import { testValue } from '../engine/skills';
+import { hasTrait } from '../engine/traits/dispatch';
 import { applierDe } from './cascade';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './etat';
@@ -169,5 +172,42 @@ describe('racine-de-mandragore (LDB 71 l.35) — gate d’action par Round (test
     const out = applierDe('testDAgir')!(banc.getState, banc.setState, { id: 's1', kind: 'testDAgir', actorId: 'h1', result: { roll: 2, target: 30, sl: 2, success: true } } as never, h, { steps: [], index: 0 });
     expect(out?.insert).toBeUndefined();
     expect(banc.getState().battle!.acted).toBe(false);
+  });
+});
+
+describe('rhum tord-boyaux (MDG 16 l.411) — un Test, l’échec vaut deux verres (arbitrage 2026-11-16, #4202)', () => {
+  function boire(success: boolean): Combatant {
+    const h = hero('h1');
+    giveItem(h, 'rhum-tord-boyaux', 'rhum1');
+    banc.setState({ party: [h] });
+    banc.getState().utiliserLObjet('rhum1');
+    const pt = banc.getState().pendingTest!;
+    expect(pt.actorId).toBe('h1');
+    banc.setState({ pendingTest: { ...pt, roll: success ? 1 : 99, success, sl: success ? 3 : -3 } });
+    banc.getState().jetValider('test');
+    return banc.getState().party.find((c) => c.id === 'h1')!;
+  }
+
+  const charme = (c: Combatant): number => testValue(c, { skill: { id: 'charme' } });
+
+  it('Test raté : deux crans d’ivresse, −20 en Charme, Trait Perturbant ; le dessoûlage les retire', () => {
+    const sobre = charme(hero('h1'));
+    const h = boire(false);
+    expect(alcoholFailures(h)).toBe(2);
+    expect(charme(h)).toBe(sobre - 20);
+    expect(hasTrait(h.traits, 'perturbant')).toBe(true);
+
+    soberUpDissipate(h, 0);
+    expect(alcoholFailures(h)).toBe(0);
+    expect(charme(h)).toBe(sobre);
+    expect(hasTrait(h.traits, 'perturbant')).toBe(false);
+  });
+
+  it('Test réussi : ni ivresse, ni Charme, ni Trait', () => {
+    const sobre = charme(hero('h1'));
+    const h = boire(true);
+    expect(alcoholFailures(h)).toBe(0);
+    expect(charme(h)).toBe(sobre);
+    expect(hasTrait(h.traits, 'perturbant')).toBe(false);
   });
 });

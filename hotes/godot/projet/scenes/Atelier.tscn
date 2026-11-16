@@ -10,8 +10,24 @@
 [ext_resource type="PackedScene" path="res://scenes/EtatsDuCorps.tscn" id="9_etats"]
 [ext_resource type="Script" path="res://scripts/montage_des_modeles.gd" id="10_modeles"]
 
+[sub_resource type="Environment" id="Environment_studio"]
+background_mode = 1
+background_color = Color(0.11, 0.105, 0.1, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.72, 0.72, 0.76, 1)
+ambient_light_energy = 0.3
+light_cull_mask = 4294967293
+tonemap_mode = 2
+fog_enabled = true
+fog_mode = 1
+fog_light_color = Color(0.11, 0.105, 0.1, 1)
+fog_density = 1.0
+fog_depth_begin = 5.0
+fog_depth_end = 18.0
+
 [sub_resource type="StandardMaterial3D" id="Materiau_sol"]
-albedo_color = Color(0.22, 0.2, 0.18, 1)
+albedo_color = Color(0.2, 0.19, 0.18, 1)
+roughness = 1.0
 
 [sub_resource type="PlaneMesh" id="Maillage_sol"]
 material = SubResource("Materiau_sol")
@@ -35,7 +51,29 @@ script = ExtResource("1_atelier")
 
 [node name="Lumiere" parent="." instance=ExtResource("2_lumiere")]
 
+[node name="Environnement" parent="Lumiere" index="0"]
+environment = SubResource("Environment_studio")
+
+[node name="Soleil" parent="Lumiere" index="1"]
+rotation = Vector3(-0.7, 0.6, 0)
+light_energy = 1.0
+shadow_blur = 2.0
+shadow_opacity = 0.75
+
+[node name="Appoint" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.25, -0.9, 0)
+light_color = Color(0.75, 0.83, 1, 1)
+light_energy = 0.3
+light_cull_mask = 4294967293
+
+[node name="Contour" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.5, -2.5, 0)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 0.7
+light_cull_mask = 4294967293
+
 [node name="Sol" type="MeshInstance3D" parent="."]
+layers = 2
 mesh = SubResource("Maillage_sol")
 
 [node name="Modele" type="Node3D" parent="."]
@@ -533,3 +571,5 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 3
+
+[editable path="Lumiere"]

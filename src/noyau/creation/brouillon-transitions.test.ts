@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  newDraft, draftTaille, withSpecies, withCareer, withCharMode, withAssignment, withIgnoreRestrictions, withStar, withStarTalentSpec,
+  newDraft, draftPorteur, withSpecies, withCareer, withCharMode, withAssignment, withIgnoreRestrictions, withStar, withStarTalentSpec,
   withSpeciesSkillDefaults, withEvenCareerSkillAdvances, withCareerTalent, withCareerTalentSpec, careerTalentOptions,
   withPettySpellToggled, pettySpellQuota, withTrappingChoice, withEtatCivil, withSexeSuivant, rollDraftName, rollDraftDetails,
   validateStep,
@@ -115,9 +115,9 @@ describe('dotation', () => {
   it('l’option d’un emplacement se pose à son adresse', () => {
     expect(withTrappingChoice(pret(), adresseDeCreation.dotation([0]), 1).trappingChoices).toEqual({ [adresseDeCreation.dotation([0])]: 1 });
   });
-  it('changer d’espèce efface les dotations choisies, dont le domaine suit la Taille de l’espèce (`draftTaille`)', () => {
+  it('changer d’espèce efface les dotations choisies, dont le domaine suit le porteur de l’espèce (`draftPorteur`)', () => {
     const d = withTrappingChoice(pret(), adresseDeCreation.dotation([0]), 1);
-    expect([draftTaille(d), draftTaille(withSpecies(d, 'ogres'))]).toEqual(['moyenne', 'grande']);
+    expect([draftPorteur(d).size, draftPorteur(withSpecies(d, 'ogres')).size]).toEqual(['moyenne', 'grande']);
     expect(withSpecies(d, 'ogres').trappingChoices).toEqual({});
   });
 });
