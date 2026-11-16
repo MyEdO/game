@@ -3,5 +3,6 @@
 [ext_resource type="FontVariation" path="res://art/police_penchee.tres" id="1_penchee"]
 
 [resource]
+Label/constants/line_spacing = 0
 Label/font_sizes/font_size = 12
 Label/fonts/font = ExtResource("1_penchee")

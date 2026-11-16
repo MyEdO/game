@@ -114,7 +114,7 @@ script = ExtResource("1_liaison")
 champ = "resultat"
 
 [node name="Dizaine" type="TextureRect" parent="Pile/Chiffres"]
-custom_minimum_size = Vector2(32, 32)
+custom_minimum_size = Vector2(38, 38)
 size_flags_vertical = 4
 expand_mode = 1
 stretch_mode = 5
@@ -146,7 +146,7 @@ champ = "resultat"
 face = &"dizaine"
 
 [node name="Unite" type="TextureRect" parent="Pile/Chiffres"]
-custom_minimum_size = Vector2(32, 32)
+custom_minimum_size = Vector2(38, 38)
 size_flags_vertical = 4
 expand_mode = 1
 stretch_mode = 5

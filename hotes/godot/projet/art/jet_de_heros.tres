@@ -1,7 +1,7 @@
 [gd_resource type="Theme" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/cadre.gd" id="1_cadre"]
-[ext_resource type="FontVariation" path="res://art/police.tres" id="2_texte"]
+[ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="2_titres"]
 
 [sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Medaillon"]
 script = ExtResource("1_cadre")
@@ -25,15 +25,15 @@ corner_radius_bottom_left = 25
 
 [resource]
 reussite/colors/font_color = Color(0.133, 0.102, 0.067, 1)
-reussite/font_sizes/font_size = 18
-reussite/fonts/font = ExtResource("2_texte")
+reussite/font_sizes/font_size = 22
+reussite/fonts/font = ExtResource("2_titres")
 reussite/styles/panel = SubResource("Medaillon")
 echec/colors/font_color = Color(0.953, 0.902, 0.784, 1)
-echec/font_sizes/font_size = 18
-echec/fonts/font = ExtResource("2_texte")
+echec/font_sizes/font_size = 22
+echec/fonts/font = ExtResource("2_titres")
 echec/styles/panel = SubResource("Sceau")
 neutre/base_type = &"PanelContainer"
 neutre/colors/font_color = Color(0.953, 0.902, 0.784, 1)
-neutre/font_sizes/font_size = 18
-neutre/fonts/font = ExtResource("2_texte")
+neutre/font_sizes/font_size = 22
+neutre/fonts/font = ExtResource("2_titres")
 neutre/styles/panel = SubResource("Medaillon_eteint")

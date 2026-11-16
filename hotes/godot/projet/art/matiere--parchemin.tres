@@ -1,0 +1,21 @@
+[gd_resource type="NoiseTexture2D" load_steps=3 format=3]
+
+[sub_resource type="Gradient" id="Feuille"]
+offsets = PackedFloat32Array(0, 0.68)
+colors = PackedColorArray(0.42, 0.24, 0.08, 1, 0.871, 0.796, 0.616, 1)
+
+[sub_resource type="FastNoiseLite" id="Nuages"]
+noise_type = 1
+seed = 3935
+frequency = 0.0065
+fractal_octaves = 6
+fractal_lacunarity = 1.3
+fractal_gain = 1.0
+
+[resource]
+width = 1024
+height = 512
+seamless = true
+normalize = false
+color_ramp = SubResource("Feuille")
+noise = SubResource("Nuages")
