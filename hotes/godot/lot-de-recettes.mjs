@@ -5,16 +5,18 @@
 // non nul dès qu'un jeu est rouge. Joué chaque semaine par `.github/workflows/canari.yml`.
 // Avec `--rendu`, chaque jeu natif se joue en rendu réel : ses captures montrent l'écran (`npm run godot:regarder`).
 // Le jeu `planche:<nom>`, que seul `--jeux` nomme, montre et capture la planche `<nom>` (parcours `planche`) : sa capture
-// `<nom>.png` et son journal `<nom>.journal.txt` vont sous `--captures/planche/`.
+// `<nom>.png` et son journal `<nom>.journal.txt` vont sous `--captures/planche/`, et, la planche verte et sa maquette
+// déclarée (`MAQUETTES`, `planches.mjs`), son côte à côte `<nom>-cote-a-cote.png`, dont le chemin s'imprime.
 //   node hotes/godot/lot-de-recettes.mjs (--web <export> | --natif [--rendu]) --captures <dossier> [--jeux combat,planche:<nom>]
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
-import { closeSync, mkdirSync, openSync, readFileSync } from 'node:fs'
+import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { jeuxPilotesDeFront } from './construire.mjs'
+import { MAQUETTES, coteACote } from './planches.mjs'
 
 const DOSSIER = '<dossier>'
 /** Le préfixe d'un jeu de planche, `planche:<nom>`. */
@@ -127,6 +129,13 @@ if (import.meta.main) {
     closeSync(sortie)
     console.log(`${nom} : ${status === 0 ? 'vert' : 'ROUGE'} (${Math.round((Date.now() - debut) / 1000)} s)`)
     if (status !== 0) console.log(readFileSync(journal, 'utf8').trimEnd().split('\n').slice(-QUEUE).map((ligne) => `  ${ligne}`).join('\n'))
+    if (status === 0 && parcours === 'planche') {
+      const planche = nom.slice(PLANCHE.length)
+      const cote = coteACote(planche, readFileSync(resolve(dossier, `${planche}.png`)), JSON.parse(readFileSync(MAQUETTES, 'utf8')))
+      const chemin = resolve(dossier, `${planche}-cote-a-cote.png`)
+      if (cote?.image) writeFileSync(chemin, cote.image)
+      if (cote) console.log(`${nom} : ${cote.image ? `côte à côte ${chemin}` : cote.avis}`)
+    }
     return { nom, vert: status === 0 }
   }), { deFront: o.natif ? jeuxPilotesDeFront() : 1 })
   const rouges = verdicts.filter((v) => !v.vert).map((v) => v.nom)

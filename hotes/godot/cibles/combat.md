@@ -4,6 +4,7 @@ Les signes de la cible validée, un par ligne, jugés sur la capture du jeu rée
 Un juge neuf statue signe par signe ; un signe sans verdict daté est **non vérifié**. Un lot d'écran cite les
 signes qu'il ferme. Source : la cible écrite du 2026-11-13 et ses maquettes (fiche
 `user-doctrine-la-cible-prime-sur-l-ancien-ecran`).
+Les maquettes des planches, hors dépôt, se déclarent dans `maquettes.json` (`coteACote`, `hotes/godot/planches.mjs`).
 
 Verdicts : `tenu`, `pas tenu`, `non vérifié`, chacun avec sa date ; le relevé du juge et ses captures vivent au ticket.
 

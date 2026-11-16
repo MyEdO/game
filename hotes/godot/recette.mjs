@@ -290,8 +290,8 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import { crc32, deflateSync } from 'node:zlib'
 import { FIL_DE_LA_PAGE_MS } from './servir.mjs'
+import { encoderPng } from './planches.mjs'
 import { LISTAGE } from './listage.mjs'
 import { JEUX_DU_PARCOURS } from './lot-de-recettes.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
@@ -2199,23 +2199,11 @@ const boutonDeLEditeur = (e, id) => Object.values(e.zones).flat().flatMap((el) =
 /** Écrit au chemin `chemin` une planche PNG de `cote` pixels de côté : un fond clair quadrillé de sombre tous les
  *  `pas` pixels. */
 function ecrirePlanche(chemin, cote = 400, pas = 40) {
-  const rangees = Buffer.alloc(cote * (1 + cote * 3))
+  const data = Buffer.alloc(cote * cote * 4, 255)
   for (let y = 0; y < cote; y++) {
-    for (let x = 0; x < cote; x++) rangees.fill(x % pas < 2 || y % pas < 2 ? 40 : 225, y * (1 + cote * 3) + 1 + x * 3, y * (1 + cote * 3) + 4 + x * 3)
+    for (let x = 0; x < cote; x++) data.fill(x % pas < 2 || y % pas < 2 ? 40 : 225, (y * cote + x) * 4, (y * cote + x) * 4 + 3)
   }
-  const bloc = (type, donnees) => {
-    const tete = Buffer.alloc(8)
-    tete.writeUInt32BE(donnees.length)
-    tete.write(type, 4)
-    const crc = Buffer.alloc(4)
-    crc.writeUInt32BE(crc32(Buffer.concat([tete.subarray(4), donnees])))
-    return Buffer.concat([tete, donnees, crc])
-  }
-  const ihdr = Buffer.alloc(13)
-  ihdr.writeUInt32BE(cote, 0)
-  ihdr.writeUInt32BE(cote, 4)
-  ihdr.set([8, 2, 0, 0, 0], 8)
-  writeFileSync(chemin, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), bloc('IHDR', ihdr), bloc('IDAT', deflateSync(rangees)), bloc('IEND', Buffer.alloc(0))]))
+  writeFileSync(chemin, encoderPng({ w: cote, h: cote, data }))
 }
 
 async function parcoursEditeur() {
