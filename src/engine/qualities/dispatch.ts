@@ -80,8 +80,8 @@ export function hasQuality(w: QualityCarrier | undefined, id: QualityId): boolea
   return resolveQualities(w).some((r) => r.id === id);
 }
 
-/** La qualité d'`id` est-elle un Atout (≠ Défaut) ? Lu dans la DONNÉE (`qualities.json` champ `polarite`). Sert au
- *  « perd tous ses Atouts » d'une baliste tirée en solo (AA 10 l.148). Qualité inconnue → false (pas un Atout). */
+/** La qualité d'`id` est-elle un Atout (≠ Défaut) ? Lu dans la DONNÉE (`qualities.json` champ `polarite`). Qualité
+ *  inconnue → false (pas un Atout). LDB 62 l.184,188 */
 export function isAtoutQuality(id: string): boolean {
   return findQualityById(id)?.polarite === 'atout';
 }

@@ -329,9 +329,9 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  bonne famille de munition (pierrier/canon/baliste/mortier) là où `subType` seul ne le fait pas. Lu par
    *  `ammoFamilyLabel` pour le hint joueur. */
   defaultAmmo?: string;
-  /** Pièce d'artillerie « relativement simple » (la baliste, AA 10 l.148) : tirée par UN SEUL servant
-   *  valide → l'arme perd TOUS ses Atouts (conserve ses Défauts). Lu par `crewedFireWeapon`. Absent = non. */
-  soloSimple?: boolean;
+  /** Qualités que l'arme perd tirée sans équipe (`armeSansEquipe`, `WeaponContext.sansEquipe`). AA 10 l.148 ;
+   *  ZI 13 l.193 */
+  perteSansEquipe?: PerteSansEquipe;
   /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 l.169-171) : peut viser une CASE au sol
    *  (pas forcément un combattant) ; son Atout Explosion/Tir de zone frappe le rayon autour de la case. Lu
    *  par `availableAttacks` (ciblage de case vs combattant). Absent = tir DIRECT (canon, baliste, pierrier). */
@@ -449,6 +449,10 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
  *  arme invoquée — Épée ardente de Rhuin). PORTÉ PAR L'OBJET (`ItemInstance.enchants`, source de
  *  vérité) et replié dans l'arme dérivée par `recomputeLoadout` (`applyEnchants`). `id` : identité
  *  pour le retrait ciblé à l'expiration (un `ActiveEffect.enchantRef` le temporise). */
+/** Qualités perdues par une arme tirée sans équipe, au vocabulaire des retraits de `WeaponEnchant` : par id
+ *  STABLE, ou tous les Atouts (polarité lue au registre). AA 10 l.148 ; ZI 13 l.193 */
+export type PerteSansEquipe = Pick<WeaponEnchant, 'removeQualities'> & { removeType?: 'atout' };
+
 export interface WeaponEnchant {
   id: string;
   /** Atouts ajoutés en ids STABLES de qualité (`QualityRef.id` — « magique » → touche l'Éthéré ;
@@ -1092,8 +1096,8 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   /** Arme DÉRIVÉE conférée tant que l'objet est équipé (`TrappingData.derivedWeapon`, armée à la naissance
    *  par `armeDeLaDonnee`). */
   derivedWeapon?: Weapon;
-  /** Pièce « relativement simple » (baliste, cf. `Weapon.soloSimple`) — propagé à l'arme dérivée. */
-  soloSimple?: boolean;
+  /** Cf. `Weapon.perteSansEquipe` — propagé à l'arme dérivée. */
+  perteSansEquipe?: PerteSansEquipe;
   /** Pièce à TIR INDIRECT (mortier/catapulte, cf. `Weapon.indirect`) — propagé à l'arme dérivée. */
   indirect?: boolean;
   /** LDB 62 l.278 — approximation MAISON, propagé à l'arme dérivée (cf. `Weapon.bladed`). */

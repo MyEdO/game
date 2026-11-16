@@ -23,7 +23,7 @@ import {
   weaponRangeSpecSchema,
 } from '../grammaire/valeurs';
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
-import { manieAussiSchema, qualityRefSchema, weaponSchema } from '../grammaire/reference';
+import { manieAussiSchema, perteSansEquipeSchema, qualityRefSchema, weaponSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
 import { ref, refs, refusDeLEntree } from '../grammaire/ref';
 import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
@@ -72,7 +72,7 @@ const doc = document(
     weaponGroup: ref('weaponGroup').optional(),
     /** #3771 */
     rendu: ref('rendu').optional(),
-    soloSimple: z.boolean().optional(),
+    perteSansEquipe: perteSansEquipeSchema.optional(),
     /** LDB 62 l.28 */
     unarmed: z.literal(true).optional(),
     /** LDB 62 l.31 ; LDB 62 l.135 */
@@ -151,9 +151,9 @@ const doc = document(
       label: 'Rendu du coup',
       hint: 'Rendu visuel et sonore de l’arme (`rendus.json`), à la place de celui de son Groupe : un engin de siège, dont le Groupe dit qui le sert, pas ce qu’il tire',
     },
-    soloSimple: {
-      label: 'Simple en solo',
-      hint: 'Arme d’équipage relativement simple : tirée seule, elle perd le bénéfice des Atouts',
+    perteSansEquipe: {
+      label: 'Perte sans équipe',
+      hint: 'Qualités que l’arme perd quand son tireur n’a ni servant ni allié adjacent',
     },
     unarmed: {
       label: 'Est « Mains nues »',

@@ -128,7 +128,7 @@ import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalSt
 import { sizeGap } from '../engine/size';
 import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
-import { effectifAuContact } from './combat/surnombre';
+import { effectifAuContact, effectifAuContactParmi } from './combat/surnombre';
 import { corpsDe, distanceDeCombat, distanceDeContact, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
 import {
@@ -406,7 +406,15 @@ import { lireSalveMisfire, TABLE_SALVE_MISFIRE } from '../engine/artilleryMisfir
 import { artilleryMisfireDie } from '../data/artilleryMisfire';
 import { ARTILLERY_MISFIRE } from '../data/artilleryMisfire';
 import { avecSequelles, traumaById, dechirureFractureFicheId, consolidateAmputations, maxFingersLostForWeapon, reinjuryBleed } from '../engine/trauma';
-import { effectiveWeaponDamage, isThrownWeapon, solideSaveThreshold, sauvegardeImperdable, effectiveWeapon, type WeaponContext } from '../engine/weaponDamage';
+import {
+  effectiveWeaponDamage,
+  isThrownWeapon,
+  solideSaveThreshold,
+  sauvegardeImperdable,
+  effectiveWeapon,
+  sansEquipe,
+  type WeaponContext,
+} from '../engine/weaponDamage';
 import { scatter } from '../engine/scatter';
 import { TIME_COST } from '../engine/timeCost';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -751,7 +759,16 @@ export function firedWeapon(scene: Scene | null, attacker: Combatant, target: Co
   // funnel UNIQUE attaquant ⊕ arme ⊕ contexte — donc la MÊME arme transformée sert la touche/les Dégâts
   // (`resolveAttack` → `applyHit`) ET la Maladresse sur un RATÉ : `jetValider('attaque')` et l'IA RE-DÉRIVENT l'arme
   // par `firedWeapon`, si bien que `dangerousNine` voit la Dangereuse du Fléau sans compétence.
-  return effectiveWeapon(w, weaponContextOf(attacker, w, target, { harpoonRopeCut }));
+  return effectiveWeapon(w, weaponContextOf(attacker, w, target, { harpoonRopeCut, sansEquipe: !!combatants && tireSansEquipe(scene, attacker, w, combatants) }));
+}
+
+/** `attacker` tire `w` sans équipe : servants aptes de la pièce qu'il sert (`servingCrewPresent`), sinon lui et ses
+ *  alliés au contact (`effectifAuContactParmi`). Faux pour une arme sans `perteSansEquipe`. AA 10 l.148 ; ZI 13 l.193 ;
+ *  #4202 */
+export function tireSansEquipe(scene: Scene | null, attacker: Combatant, w: Weapon, combatants: Combatant[]): boolean {
+  if (!w.perteSansEquipe) return false;
+  const servants = attacker.mannedPoste?.item.uid === w.uid ? servingCrewPresent(attacker, combatants) : undefined;
+  return sansEquipe(servants ?? effectifAuContactParmi(scene, combatants, attacker, attacker.kind));
 }
 
 /** Contexte d'usage d'une arme (règles d'arme CONTEXTUELLES de Groupe, LDB 62) dérivé de l'attaquant.
@@ -759,7 +776,7 @@ export function firedWeapon(scene: Scene | null, attacker: Combatant, target: Co
  *  Maniement de deux armes) l'appellent — aucune duplication de l'inférence `charged`/`mounted`/`hasGroupSkill`.
  *  `target` (optionnel — rétro-compat) sert le combat « au contact » (LDB 62 l.176) : une arme plus longue
  *  que Courte devient improvisée quand attaquant et cible sont entrés dans la longueur d'arme l'un de l'autre. */
-export function weaponContextOf(attacker: Combatant, w: Weapon, target?: Combatant, opts?: { harpoonRopeCut?: boolean }): WeaponContext {
+export function weaponContextOf(attacker: Combatant, w: Weapon, target?: Combatant, opts?: { harpoonRopeCut?: boolean; sansEquipe?: boolean }): WeaponContext {
   const objetSource = objetSourceDeLArme(attacker, w);
   return {
     charged: !!attacker.chargedThisTurn,
@@ -772,6 +789,7 @@ export function weaponContextOf(attacker: Combatant, w: Weapon, target?: Combata
     // la capacité de l'arme (`ItemCapabilities.ropeMode`) — jamais un id d'arme en dur.
     harpoonRopeCut: !!opts?.harpoonRopeCut && !!objetSource && itemCapability(objetSource, 'ropeMode'),
     maniement: maniementRetenu(attacker, w, w.hands), // AA 08 l.190 ; AA 08 l.343
+    sansEquipe: !!opts?.sansEquipe, // AA 10 l.148 ; ZI 13 l.193
   };
 }
 
@@ -9087,9 +9105,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // hook) : c'est un CONTRÔLE DE FLUX (`return advanceTurn` saute le tour) — un hook `run(ctx):void` ne
   // peut pas exprimer « sauter le tour ». Il s'exécute APRÈS le dispatch `turnStart`, avant l'action IA.
   if (isStupid(enemy.traits) && enemy.pos) {
-    const guided = battle.combatants.some(
-      (a) => a.kind === enemy.kind && a.id !== enemy.id && !isOutOfAction(a) && !isStupid(a.traits) && distanceDeContact(get().scene, a, enemy) <= 1,
-    );
+    const guided = effectifAuContactParmi(get().scene, battle.combatants.filter((a) => a.id !== enemy.id && !isStupid(a.traits)), enemy, enemy.kind) > 0;
     if (!guided && !rollSansPilote(get, enemy, testValue(enemy, { characteristic: 'intelligence' }), 'facile', battleRng()).success) {
       battle.log.push(ev('detail', tr('cf.stupidite', { name: enemy.label }), enemy.id));
       set({ battle: { ...battle } });

@@ -1179,6 +1179,7 @@ export const fr = {
   'attaque.immobile.noteNonArme': 'Tir mobile : -10 « Tir en bougeant » (tu gardes ton Mouvement).',
   'attaque.sansLaCorde.noteCoupee': 'Corde séparée : Portée 60, mais la cible n\'est plus Immobilisée.',
   'attaque.sansLaCorde.noteTenue': 'Corde tenue : Immobilisante, Portée 20.',
+  'attaque.sansEquipe': 'Sans servant ni allié adjacent : {pertes}.',
   'attaque.retenir.noteAa': 'Non létal : Critique seulement si la cible tombe à 0 ; sans Empaleuse/Percutante/Perforante/Taille.',
   'attaque.retenir.noteLdb': 'Non létal : tout Coup Critique est ignoré.',
   'attaque.empoigner.note': 'Sur une touche : aucun Dégât ; Empoignade + Empêtré (cible).',

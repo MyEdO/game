@@ -253,6 +253,7 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
   const elements: (Element | null)[] = [
     ligne('cible', t('ecran.attaque.cible', { cible: cible ?? '' })),
     ligne('arme', a.arme),
+    a.sansEquipe === null ? null : ligne('sansEquipe', a.sansEquipe, 'alerte'),
     a.degats === null ? null : puce('degats', t('ecran.degats'), avecSigne(a.degats)),
     posture('tirDansLeTas', a.tirDansLeTas),
     posture('tirImmobile', a.tirImmobile),
