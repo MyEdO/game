@@ -204,14 +204,19 @@
     "label": "Barge fluviale",
     "icon": "voyage/barge",
     "source": {
-      "book": "mort-sur-le-reik-compagnon",
-      "page": 33
+      "book": "livre-de-base",
+      "page": 306
     },
     "alsoIn": [
       {
-        "book": "livre-de-base",
-        "page": 306,
-        "quote": "Chaland"
+        "book": "mort-sur-le-reik-compagnon",
+        "page": 33,
+        "quote": "Barge Moyenne"
+      },
+      {
+        "book": "mer-des-griffes",
+        "page": 93,
+        "quote": "Barge"
       }
     ],
     "travel": {
@@ -293,13 +298,13 @@
     "label": "Barque",
     "icon": "voyage/barque",
     "source": {
-      "book": "mort-sur-le-reik-compagnon",
-      "page": 33
+      "book": "livre-de-base",
+      "page": 306
     },
     "alsoIn": [
       {
-        "book": "livre-de-base",
-        "page": 306
+        "book": "mort-sur-le-reik-compagnon",
+        "page": 33
       }
     ],
     "hull": {
