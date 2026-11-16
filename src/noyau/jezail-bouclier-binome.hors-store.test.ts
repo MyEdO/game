@@ -16,8 +16,12 @@ import { findCreatureById, findTrappingById } from '../data';
 import { t } from '../i18n';
 import { spawnEnemy } from './monde/spawn';
 import { chooseEnemyAction, type EnemyTurnInput } from './monde/ai';
-import { aiApproachPlan, refusDeDefenseReactive, runEnemyAI } from './combatFlow';
-import { bouclierDuBinome } from './combat/surnombre';
+import { aiApproachPlan, refusDeDefenseReactive, runEnemyAI, tireSansEquipe } from './combatFlow';
+import { auContactParmi, bouclierDuBinome, effectifAuContactParmi } from './combat/surnombre';
+import { mountUp } from './mount';
+import { buildScene } from './mapSpec';
+import { buildEncounters } from './monde/encounterAuthoring';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { refusDeCourse, refusDuBinome } from './refusDuTour';
 import { peutFuir, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -95,6 +99,18 @@ describe.each([
     }
   });
 
+  it('sa propre monture n’est pas son partenaire : seul un autre allié au contact l’est — arbitrage du 2026-11-16, #4202', () => {
+    const T = tireur({ x: 5, y: 5 });
+    const monture = porteur('monture', kind, { x: 5, y: 5 }, [BOUCLIER]);
+    mountUp(T, monture);
+    const jezail = tenu(T, JEZAIL);
+    expect(tireSansEquipe(null, T, jezail, [T, monture]), 'monté, sans autre allié : sans équipe').toBe(true);
+    expect(bouclierDuBinome(null, [T, monture], T), 'le bouclier de sa monture ne forme pas le binôme').toBeUndefined();
+    const P = porteur('partenaire', kind, { x: 6, y: 5 }, [BOUCLIER]);
+    expect(tireSansEquipe(null, T, jezail, [T, monture, P]), 'un allié à pied au contact fait l’équipe').toBe(false);
+    expect(bouclierDuBinome(null, [T, monture, P], T)).toBe(tenu(P, BOUCLIER));
+  });
+
   it('le servant d’une baliste avec ce bouclier n’est pas en binôme', () => {
     const servant = porteur('servant', kind, { x: 5, y: 5 }, ['baliste']);
     const P = porteur('partenaire', kind, { x: 6, y: 5 }, [BOUCLIER]);
@@ -133,6 +149,37 @@ describe.each([
     const course = plan(25, true);
     expect(course.ran).toBeNull();
     expect(course.plan).toBe(course.action);
+  });
+});
+
+describe('le Surnombre compte un cavalier et sa monture pour un — LDB 14 l.110 ; arbitrage du 2026-11-16, #4202', () => {
+  it('cavalier + monture au contact : 1 ; + un allié à pied : 2 ; une monture libre compte', () => {
+    const cible = combattantDeTest({ id: 'cible', label: 'cible', kind: 'heros', pos: { x: 5, y: 5 } });
+    const cavalier = combattantDeTest({ id: 'cavalier', label: 'cavalier', kind: 'ennemi', pos: { x: 6, y: 5 } });
+    const monture = combattantDeTest({ id: 'monture', label: 'monture', kind: 'ennemi', pos: { x: 6, y: 5 } });
+    const libre = combattantDeTest({ id: 'libre', label: 'libre', kind: 'ennemi', pos: { x: 4, y: 4 } });
+    expect(auContactParmi(null, [cible, cavalier, monture, libre], cible, 'ennemi').map((c) => c.id), 'monture libre : un combattant').toEqual(['cavalier', 'monture', 'libre']);
+    mountUp(cavalier, monture);
+    expect(effectifAuContactParmi(null, [cible, cavalier, monture], cible, 'ennemi')).toBe(1);
+    const fantassin = combattantDeTest({ id: 'fantassin', label: 'fantassin', kind: 'ennemi', pos: { x: 5, y: 6 } });
+    expect(auContactParmi(null, [cible, cavalier, monture, fantassin], cible, 'ennemi').map((c) => c.id)).toEqual(['cavalier', 'fantassin']);
+  });
+
+  it('un PNJ allié de la rencontre (`side: \'allie\'`) compte au contact pour le camp des héros', () => {
+    const scene = buildScene({ id: 'allie-au-contact', label: 'Allié au contact', desc: 'test', size: [12, 12], terrain: 'herbe', heroStart: [1, 1] });
+    const { entities, encounters } = buildEncounters([{ id: 'enc', enemies: [
+      { creature: { id: 'brute' }, pos: { x: 8, y: 8 } },
+      { creature: { id: 'brute' }, pos: { x: 9, y: 8 }, side: 'allie' },
+    ] }]);
+    scene.entities.push(...entities);
+    scene.encounters = encounters;
+    const banc = ouvrirLeBanc();
+    banc.setState({ party: groupeDeScenario(idsDeTest, 'soldat') });
+    banc.getState().lancerLaScene(scene);
+    banc.getState().lancerLeCombat('enc');
+    const { combatants } = banc.getState().battle!;
+    const [ennemi, allie] = ['enemy-enc-0', 'enemy-enc-1'].map((id) => combatants.find((c) => c.id === id)!);
+    expect(auContactParmi(banc.getState().scene, combatants, ennemi, 'heros')).toEqual([allie]);
   });
 });
 
