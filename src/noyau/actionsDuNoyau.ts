@@ -215,10 +215,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   designerLeCreneau: (heroId: IdDeHeros, slotKey: IdDeCreneau, option: RefDesignee<IdDeCompetenceOuDeTalent>) => void;
   /** Apprentissage/mémorisation d'un sort (LDB 46/10) — coût PX via engine/grimoire. */
   acheterLeSort: (heroId: IdDeHeros, spellId: IdDeSort) => void;
-  /** Achète un composant d'incantation pour un Sort d'Arcane/Domaine connu (LDB 46 l.113 — NI pistoles). */
+  /** Achète un composant d'incantation lié à un Sort d'Arcane/Domaine connu. LDB 46 l.113 */
   acheterLaComposante: (heroId: IdDeHeros, spellId: IdDeSort) => void;
-  /** Retire un composant d'incantation possédé pour un Sort (sans remboursement). */
-  retirerLaComposante: (heroId: IdDeHeros, spellId: IdDeSort) => void;
+  /** Lie un composant d'incantation à lier à un Sort d'Arcane/Domaine connu. LDB 46 l.113 */
+  designerLeComposant: (uid: IdDObjet, spellId: IdDeSort) => void;
   /** Édite la bio mutable d'un héros hors combat (Motivation + Ambitions court/long, LDB 05) — persisté en save + roster. */
   ecrireLHistorique: (heroId: IdDeHeros, patch: { motivation?: TexteLibre; ambitionShort?: TexteLibre; ambitionLong?: TexteLibre }) => void;
   /** Ouvre la fin de séance depuis le menu de jeu : refusée et dite hors exploration et chez l'invité (`refusDeFinDeSeance`). */

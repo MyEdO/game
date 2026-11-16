@@ -51,7 +51,7 @@ describe('câblage — le moteur lit la FAMILLE, jamais un champ-drapeau', () =>
   });
 
   it('un Sort arcanique roule Langue (Magick) contre son Niveau d’Incantation', () => {
-    expect(castInfo(arcane)).toEqual({ skill: { id: 'langue', spec: 'magick' }, requireNI: true, caracDuDomaine: true });
+    expect(castInfo(arcane)).toEqual({ skill: { id: 'langue', spec: 'magick' }, requireNI: true, caracDuLanceur: true });
   });
 
   it('la dissipabilité suit la même famille', () => {
@@ -61,7 +61,7 @@ describe('câblage — le moteur lit la FAMILLE, jamais un champ-drapeau', () =>
   });
 
   it('une famille ABSENTE reste un Sort (aucun repli sur `cn: null`)', () => {
-    expect(castInfo({ label: 'Sans famille', ecole: '?', cn: null })).toEqual({ skill: { id: 'langue', spec: 'magick' }, requireNI: true, caracDuDomaine: true });
+    expect(castInfo({ label: 'Sans famille', ecole: '?', cn: null })).toEqual({ skill: { id: 'langue', spec: 'magick' }, requireNI: true, caracDuLanceur: true });
   });
 });
 
