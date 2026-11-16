@@ -94,5 +94,4 @@ export const FOLIO_LINE_ALIGN_RATCHET = [
 export const FOLIO_LINE_ALIGN_NON_JUGEABLE = [
   { fichier: 'src/data/pregens.json', ref: 'erina-eberhauer', occurrence: 1 },
   { fichier: 'src/data/pregens.json', ref: 'golthog', occurrence: 1 },
-  { fichier: 'src/data/reglesOptionnelles.json', ref: 'psycho-acquisition-optionnelle', occurrence: 1 },
 ]
