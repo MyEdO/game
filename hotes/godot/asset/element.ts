@@ -31,7 +31,8 @@ import {
   type CodeDEcartDeCle,
   type EmprisesDesCases,
   type FireArc,
-  type currentSeason,
+  saisonSchema,
+  type Season,
 } from '../../../src/noyau/index.ts';
 import { ecartsAuGlb, ecartsAuxMatieres, ecartsDesMatieresAuxUv, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import { estListeDeChaines, estRepere, estTriplet, rangDeCase, TOLERANCE_DES_POIDS, type EmplacementOffert, type Repere } from './attache.ts';
@@ -114,9 +115,9 @@ export type Montage = (typeof MONTAGES)[number];
 export const ETATS_AU_POSTE = { arme: 'ouvert', vide: 'ferme' } as const;
 
 /** Une saison du jeu, celle que lit son horloge (`currentSeason`). */
-export type Saison = ReturnType<typeof currentSeason>;
+export type Saison = Season;
 /** Les saisons, chacune une fois, dans l'ordre de l'année. */
-export const SAISONS = Object.keys({ printemps: null, ete: null, automne: null, hiver: null } satisfies Record<Saison, null>) as readonly Saison[];
+export const SAISONS = saisonSchema.options;
 
 /** Ce dont dépend ce qui change dans un élément (`selon`) : une Amélioration navale montée, ou la saison du jeu. */
 type DomaineSelon = 'ameliorations' | 'saisons';
@@ -328,7 +329,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
     else for (const [cle, effets] of Object.entries(selon)) {
       if (regle.selon === 'ameliorations') for (const e of ecartsDeCleDElement('amelioration', { amelioration: cle })) refus(e.code, `selon.${cle}`, e.detail);
       else if (!(SAISONS as readonly string[]).includes(cle)) refus('cle-inconnue', `selon.${cle}`, `${cle} : ${liste(SAISONS)} attendue`);
-      if (!estObjet(effets) || Object.keys(effets).some((champ) => !effetsAdmis.includes(champ))) refus('forme', `selon.${cle}`, `\`{${effetsAdmis.map((c) => ` ${c}?`).join(',')} }\` attendu`);
+      if (!estObjet(effets) || Object.keys(effets).some((champ) => !effetsAdmis.includes(champ))) refus('forme', `selon.${cle}`, effetsAdmis.length ? `\`{${effetsAdmis.map((c) => ` ${c}?`).join(',')} }\` attendu` : '`{}` attendu');
       else {
         if (effets.postes !== undefined) validerPostes(`selon.${cle}.postes`, effets.postes);
         if (effets.palette !== undefined) validerPalette(`selon.${cle}.palette`, effets.palette, emplacements);

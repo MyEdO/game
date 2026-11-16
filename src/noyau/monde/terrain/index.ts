@@ -18,7 +18,7 @@ import { terrains } from '../../../data/index';
 import { memoParVersion } from '../../../data/versionDataset';
 import type { TerrainDef } from '../../../data';
 import type { Terrain } from '../../../data/schemas/defs-scenes/scene';
-import { hash32 } from '../../../lib/hash';
+import { hash32, seedStream } from '../../../lib/hash';
 import { DIR4_ORDER, type Dir4 } from '../../../geometry/dir8';
 
 
@@ -152,13 +152,13 @@ export function terrainsAvecGlyphe(): Readonly<Record<string, Terrain>> {
 }
 
 /** Le décor que le terrain `terrain` pose sur la case MONDE (x, y, z) : l'un de ses `overlayProps` (id de
- *  `props.json`) et son cap cardinal, tous deux tirés de `hash32('decor', x, y, z)` — la même case rend le même
+ *  `props.json`) et son cap cardinal, tous deux tirés du flux `seedStream(hash32('decor', x, y, z))` — la même case rend le même
  *  décor dans tous les rendus, sans état. `undefined` pour un terrain qui ne pose aucun décor. */
 export function decorDuTerrain(terrain: string, x: number, y: number, z: number): { prop: string; cap: Dir4 } | undefined {
   const essences = indexDesTerrains()[terrain]?.overlayProps;
   if (!essences) return undefined;
-  const h = hash32('decor', x, y, z);
-  return { prop: essences[h % essences.length], cap: DIR4_ORDER[Math.floor(h / essences.length) % DIR4_ORDER.length] };
+  const r = seedStream(hash32('decor', x, y, z));
+  return { prop: essences[Math.floor(r() * essences.length)], cap: DIR4_ORDER[Math.floor(r() * DIR4_ORDER.length)] };
 }
 /** Hauteur (m) du BLOC PLEIN d'un terrain (rendu seulement — s'ajoute à `heightAt` pour l'AFFICHAGE), 0 sinon. */
 export function terrainSolidHeightM(id: string): number {

@@ -9,20 +9,12 @@
  * `CAPS`, son volume et ses décors servis comme la vue les sert (`DecorServi`) ; et `coiffe` : ce même échantillon
  * posé sur un bloc plein (`coiffeUnBloc`), son volume, ses décors servis, et le retrait que rend le noyau sous sa
  * couche (`retraitDuMonde`), qui retire le plan `pose` de chaque case et laisse montré son plan `sol` (`capsSolid`).
- * Pour la recette des saisons (`projet/recettes/saisons-du-decor.gd`), `saisons` : l'atelier figé sur la base
- * humanoïde et un décor saisonnier de banc (`decorSaisonnierDeTest`, un élément hors des modèles publiés, son GLB
- * `GLB_SAISONNIER` servi par le pont figé sous `octets`), et la réponse de `echantillon` sur son décor sans saison puis
- * en chacune de `SAISONS`.
  */
 import { figerLAtelier, type Listage } from './atelier';
 import { cleDEntree } from './vehicule';
 import { posesDesDecors, retraitDuMonde, sceneDEchantillon, volumeDuMonde, type Scene } from '../../../src/noyau/index';
 import type { Dir4 } from '../../../src/geometry/dir8';
 import { tableTotale } from '../../../src/lib/tableTotale';
-import { enBase64 } from '../../../src/lib/base64';
-import { decorSaisonnierDeTest, GLB_SAISONNIER } from '../asset/modeles.testkit';
-import { fichiersDuModele } from '../asset/modeles';
-import { SAISONS } from '../asset/element';
 
 /** Les entrées de `echantillon` que l'atelier envoie, dans l'ordre des gestes de la recette : un décor, la mer, une
  *  matière de relief, une matière de toit, puis un mur crénelé, dont la brèche abat la couronne et dont la case crénelée porte la crête. */
@@ -79,30 +71,5 @@ export function figerLeDecor(listage: Listage) {
     echantillon: Object.fromEntries(ENTREES.map((e) => [cleDEntree(e), appel('echantillon', e)])),
     caps,
     coiffe,
-    saisons: figerLesSaisons(listage),
-  };
-}
-
-/** Le décor dont l'échantillon porte le décor saisonnier de banc, et l'id de cet élément, hors des modèles publiés. */
-const SAISONNIER = 'buisson';
-const ELEMENT_SAISONNIER = 'banc--decor-saisonnier';
-
-/** L'atelier figé sur la base humanoïde de `listage` et le seul décor saisonnier de banc, son GLB sous `octets` (au
- *  chemin que le pont figé requête, en base64), la réponse de `echantillons` sous la clé de l'entrée absente, et par
- *  clé d'entrée (`cleDEntree`), la réponse de `echantillon` sur l'échantillon de son décor sans saison, puis en chacune
- *  de `SAISONS`. */
-function figerLesSaisons(listage: Listage) {
-  const avecLeBanc = {
-    ...listage,
-    manifestes: { ...listage.manifestes, [ELEMENT_SAISONNIER]: decorSaisonnierDeTest(SAISONNIER) },
-    osDesRigides: { ...listage.osDesRigides, [ELEMENT_SAISONNIER]: [] },
-  };
-  const { fige, appel } = figerLAtelier(avecLeBanc, (id) => id === 'humanoide' || id === ELEMENT_SAISONNIER);
-  const entrees = [null, ...SAISONS].map((saison) => ({ famille: 'decor', id: SAISONNIER, ...(saison ? { saison } : {}) }));
-  return {
-    ...fige,
-    octets: { [`modeles/${fichiersDuModele(ELEMENT_SAISONNIER).glb}`]: enBase64(GLB_SAISONNIER) },
-    echantillons: { [cleDEntree(null)]: appel('echantillons') },
-    echantillon: Object.fromEntries(entrees.map((e) => [cleDEntree(e), appel('echantillon', e)])),
   };
 }

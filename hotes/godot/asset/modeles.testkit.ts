@@ -61,7 +61,7 @@ export const decorDeTest = (prop: string) => ({
   schema: 3, categorie: 'decor', cle: { prop }, liaison: { mode: 'rigide' }, surfaces: [{ nom: 'metal', palette: 'metal' }], glb: empreinte(GLB_SANS_BASE),
 });
 
-/** Le GLB d'un décor qui change selon la saison (#4335), que Godot importe : un même triangle sous trois nœuds à mesh,
+/** Le GLB d'un décor qui change selon la saison (#4335) : un même triangle sous trois nœuds à mesh,
  *  `tronc` et `avec-hiver` du matériau `bois`, `sans-hiver` du matériau `feuillage`. */
 export const GLB_SAISONNIER = ecrireGlb({
   asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [0, 1, 2] }],

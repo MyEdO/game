@@ -91,8 +91,8 @@ import {
   famillesDEchantillons,
   posesDesDecors,
   sceneDEchantillon,
-  categoryByKey,
   currentSeason,
+  seasonLabel,
   type PoseDeDecor,
   type EchantillonDessine,
   type FamilleDEchantillons,
@@ -311,7 +311,7 @@ export interface DecorServi {
 export interface SaisonOfferte {
   /** l'id de la saison (`SAISONS`). */
   id: Saison;
-  /** son libellé, celui de sa donnée (`libelleDeSaison`). */
+  /** son libellé, celui de sa donnée (`seasonLabel`). */
   libelle: string;
 }
 
@@ -747,9 +747,6 @@ function valeurLue<T>(methode: string, champ: string, lu: LectureAuSchema<T>): T
 /** La composition `brut` de `methode`, lue par le noyau (`lireComposition`). */
 const compositionDe = (methode: string, brut: unknown): Composition => valeurLue(methode, 'composition', lireComposition(brut));
 
-/** Le libellé de la saison `id`, celui de sa donnée, que le Codex projette en une fiche par saison (`weather`). */
-const libelleDeSaison = (id: Saison): string => garanti(categoryByKey('weather')?.items.find((saison) => saison.id === id)?.label, id, 'libellé de saison');
-
 /** L'entrée d'une méthode : l'objet JSON de `json` (aucune entrée, ou `null` : `{}`), dont chaque clé est l'une de ses
  *  `cles`. */
 function entreeDe(methode: string, json: string | null | undefined, cles: readonly string[] | ((e: Record<string, unknown>) => readonly string[])): Record<string, unknown> {
@@ -928,7 +925,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   /** Chaque saison de `SAISONS`, à son libellé, dès que le `selon` d'un décor de `decors` en nomme une ; aucune sinon. */
   const saisonsOffertes = (decors: Record<string, DecorServi>): SaisonOfferte[] =>
     Object.values(decors).some(({ element }) => Object.keys((modeles!.manifestes[element] as { selon?: object }).selon ?? {}).length)
-      ? SAISONS.map((id) => ({ id, libelle: libelleDeSaison(id) }))
+      ? SAISONS.map((id) => ({ id, libelle: seasonLabel(id) }))
       : [];
 
   /** Les corps des combattants dessinés de `projection`, puis des héros du groupe de `etat` qu'elle ne dessine pas, chacun

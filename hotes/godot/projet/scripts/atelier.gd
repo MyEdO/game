@@ -53,7 +53,7 @@ const SECTIONS := [
 	{id = "saison", titre = "Saison"},
 ]
 ## Le texte du choix d'aucune saison d'un échantillon : son décor tel que bâti.
-const TELLE_QUE_BATIE := "Telle que bâtie"
+const TEL_QUE_BATI := "Tel que bâti"
 ## L'emplacement d'emblème d'un véhicule : ses voiles et son pavillon, les surfaces `blason` de son élément.
 const PAVILLON := "vehicule"
 
@@ -534,7 +534,7 @@ func _poser_les_saisons(saisons: Array) -> void:
 	_sections.clear()
 	if saisons.is_empty():
 		return
-	var choix: Array = [{id = VIDE, texte = TELLE_QUE_BATIE}]
+	var choix: Array = [{id = VIDE, texte = TEL_QUE_BATI}]
 	for saison in saisons:
 		choix.append({id = saison.id, texte = saison.libelle})
 	var liste := _liste_deroulante("saison", choix, _choisir_la_saison)

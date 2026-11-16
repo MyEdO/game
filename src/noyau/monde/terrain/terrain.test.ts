@@ -79,6 +79,12 @@ describe('terrains — `decorDuTerrain` : le décor et le cap de la case, par so
     expect(new Set(lire().map((d) => `${d!.prop}/${d!.cap}`)).size).toBeGreaterThan(ESSENCES.length);
   });
 
+  it('sur le vrai `bois`, l’essence ne se répète pas à la période 4 le long d’une rangée', () => {
+    const paires = Array.from({ length: 40 * 6 }, (_, i) => [i % 6, Math.floor(i / 6)] as const);
+    const egales = paires.filter(([x, y]) => decorDuTerrain('bois', x, y, 0)!.prop === decorDuTerrain('bois', x + 4, y, 0)!.prop);
+    expect(egales.length / paires.length, `${egales.length}/${paires.length} cases copient l’essence de x+4`).toBeLessThan(0.5);
+  });
+
   it('un terrain sans `overlayProps` ne pose aucun décor', () => {
     const sans = AVANT.find((t) => t.overlayProps === undefined)!;
     expect(decorDuTerrain(sans.id, 3, 4, 0)).toBeUndefined();

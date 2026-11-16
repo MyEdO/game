@@ -7,7 +7,8 @@
 > Conventions d'abréviation : voir [`sources.md`](../sources.md).
 >
 > **Périmètre de ce fichier** : Mouvement hors combat (règles générales), voyage entre lieux, montures
-> et véhicules, Encombrement et fatigue de voyage, poursuites, Calendrier Impérial (le compte des jours).
+> et véhicules, Encombrement et fatigue de voyage, poursuites, Calendrier Impérial (le compte des jours),
+> essences des forêts du Reikland traversées.
 > Les règles de Charge, Désengagement, Fuite, Escalade, Saut et Chute *en combat* sont dans
 > [`combat.md`](combat.md) §§ correspondants — ce fichier les renvoie sans les re-transcrire.
 > Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
@@ -18,6 +19,7 @@
 - [Course hors combat (sprint)](#course-hors-combat)
 - [Escalade, Saut, Chute — voir combat.md](#escalade-saut-chute)
 - [Voyage à pied : vitesse, durée, marche forcée](#voyage-à-pied)
+- [Forêts du Reikland (couleur locale) : les essences](#forêts-du-reikland-couleur-locale)
 - [Transports payants : Diligence, Barge, Fiacre, Ferry](#transports-payants)
 - [Montures : allures, endurance, incidents, sellerie](#montures)
 - [Véhicules tirés : conduite, incidents, tableau](#véhicules)
@@ -150,7 +152,9 @@ Ces règles s'appliquent en et hors combat.
 > « La vitesse d'une barge peut augmenter ou diminuer jusqu'à 30 % si elle est en aval ou en
 > amont, si vous jugez que c'est approprié. »
 
-### Forêts du Reikland (couleur locale)
+---
+
+## Forêts du Reikland (couleur locale)
 
 **Source :** LDB 52 l.73
 

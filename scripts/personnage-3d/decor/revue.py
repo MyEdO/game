@@ -2,11 +2,14 @@
 comme le jeu l'habille (`rendu.habiller_le_modele`, projeté : la texture de chaque `matiere` que porte le catalogue
 `rendu.CATALOGUE`, la couleur de son matériau sinon), rendus dans le même studio (`rendu.studio`) au même cadrage, celui
 du gabarit : de face, de trois-quarts et de dessus. `planche.png` les range en deux lignes, AVANT au-dessus d'APRÈS.
-Un GLB et son manifeste se cherchent par id dans chaque dossier de `--modeles` (`rendu.trouver`).
+Un GLB et son manifeste se cherchent par id dans chaque dossier de `--modeles` (`rendu.trouver`). `--saison` (une saison de
+`src/data/weather.json`) montre APRÈS comme le jeu en cette saison : ses nœuds `sans-<saison>` cachés, ses nœuds `avec-<autre saison>` aussi, teint de
+la palette que son `selon` donne à la saison ; sans elle, le décor tel que bâti, tout nœud `avec-<saison>` caché.
 
-    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/decor/revue.py <prop> --modeles <dossier> --sortie <dossier neuf>
+    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/decor/revue.py <prop> --modeles <dossier> --sortie <dossier neuf> [--saison <saison>]
 """
 import argparse
+import json
 import sys
 import time
 from pathlib import Path
@@ -67,6 +70,7 @@ def main():
     p.add_argument("prop")
     p.add_argument("--modeles", action="append", required=True, type=Path)
     p.add_argument("--sortie", required=True, type=Path)
+    p.add_argument("--saison")
     args = p.parse_args()
     sortie = args.sortie.resolve()
     if sortie.exists() and any(sortie.iterdir()):
@@ -78,9 +82,18 @@ def main():
     G = Gabarit(args.prop)
     avant, manifeste_avant = primitives(bpy, G)
     glb, manifeste = rendu.trouver([d.resolve() for d in args.modeles], f"decor--{args.prop}")
-    apres = [o for o in rendu.importer(bpy, glb) if o.type == "MESH"]
+    selon = manifeste.get("selon", {})
+    saisons = [s["id"] for s in json.loads((habillage.DEPOT / "src" / "data" / "weather.json").read_text(encoding="utf-8"))["seasons"]]
+    if args.saison is not None and args.saison not in saisons:
+        raise ValueError(f"--saison {args.saison} : {saisons} attendue")
+    caches = {f"sans-{args.saison}"} | {f"avec-{s}" for s in selon if s != args.saison}
+    importes = [o for o in rendu.importer(bpy, glb) if o.type == "MESH"]
+    apres = [o for o in importes if o.name not in caches]
+    for o in importes:
+        o.hide_render = True
+    palette = {e: habillage.couleur_lineaire(c) for e, c in selon.get(args.saison, {}).get("palette", {}).items()}
     rendu.habiller_le_modele(bpy, avant, textures_au_catalogue(manifeste_avant), None, False, {})
-    rendu.habiller_le_modele(bpy, apres, textures_au_catalogue(manifeste), None, False, {})
+    rendu.habiller_le_modele(bpy, apres, textures_au_catalogue(manifeste), None, False, palette)
     bas, hautes = rendu.bornes(bpy, avant)
     etendue = max(hautes.x - bas.x, hautes.y - bas.y, hautes.z - bas.z)
     rendre = rendu.studio(bpy, bas, (bas + hautes) / 2, etendue, sortie, debut)

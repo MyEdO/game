@@ -426,4 +426,5 @@ func _survoler(case: Variant) -> void:
 ## se voile à la vision comme un navire (`VolumeDeScene.voile`), et, quand le regard retire sa `case` (au plan `pose`
 ## de sa couche, `VolumeDeScene.posee_retiree`), ne se voit plus et porte son ombre. Recettes
 ## `projet/recettes/decor-sur-ses-primitives.gd` (coïncidence avec les primitives), `voile-du-decor.gd` (voile, rendu
-## réel) et `atelier-du-decor.gd` (l'échantillon d'un décor dans l'atelier).
+## réel), `saisons-du-decor.gd` (feuillage de saison, rendu réel) et `atelier-du-decor.gd` (l'échantillon d'un décor
+## dans l'atelier).

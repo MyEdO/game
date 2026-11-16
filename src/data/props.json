@@ -3077,6 +3077,11 @@
     "label": "Arbre",
     "solid": true,
     "cover": "imparfaite",
+    "source": {
+      "book": "livre-de-base",
+      "page": 268,
+      "note": "LDB 52 l.73 « chênes »"
+    },
     "maison": "couvert maison : un tronc ne masque qu’une part du corps et le feuillage ne masque rien — l’étalon IMPARFAIT de la haie (LDB 14 l.72)",
     "volume": {
       "capIdentite": "S",
@@ -3147,7 +3152,7 @@
       "page": 268,
       "note": "LDB 52 l.73 « hêtres »"
     },
-    "maison": "couvert maison : un tronc ne masque qu’une part du corps et le feuillage ne masque rien — l’étalon IMPARFAIT de la haie (LDB 14 l.72) ; l’essence vient des forêts du Reikland (LDB 52 l.73)",
+    "maison": "couvert maison : un tronc ne masque qu’une part du corps et le feuillage ne masque rien — l’étalon IMPARFAIT de la haie (LDB 14 l.72)",
     "volume": {
       "capIdentite": "S",
       "primitives": [
@@ -3230,7 +3235,7 @@
       "page": 268,
       "note": "LDB 52 l.73 « ormes »"
     },
-    "maison": "couvert maison : un tronc ne masque qu’une part du corps et le feuillage ne masque rien — l’étalon IMPARFAIT de la haie (LDB 14 l.72) ; l’essence vient des forêts du Reikland (LDB 52 l.73)",
+    "maison": "couvert maison : un tronc ne masque qu’une part du corps et le feuillage ne masque rien — l’étalon IMPARFAIT de la haie (LDB 14 l.72)",
     "volume": {
       "capIdentite": "S",
       "primitives": [
@@ -3313,7 +3318,7 @@
       "page": 268,
       "note": "LDB 52 l.73 « pins »"
     },
-    "maison": "couvert maison : un tronc ne masque qu’une part du corps et le feuillage ne masque rien — l’étalon IMPARFAIT de la haie (LDB 14 l.72) ; l’essence vient des forêts du Reikland (LDB 52 l.73)",
+    "maison": "couvert maison : un tronc ne masque qu’une part du corps et le feuillage ne masque rien — l’étalon IMPARFAIT de la haie (LDB 14 l.72)",
     "volume": {
       "capIdentite": "S",
       "primitives": [
