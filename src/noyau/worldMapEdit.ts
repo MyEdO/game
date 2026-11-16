@@ -6,7 +6,7 @@
  */
 import { lieuxServices, semencesDeScene } from '../data';
 import { uniqueSlugId } from '../data/slug';
-import { offreDAubergeSchema } from '../data/schemas/defs-scenes/worldmap';
+import { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import { choixDuNoeud } from './codex/editFields';
 import type { TravelMode } from '../engine/travel';
 import type { LandMarketProfile } from '../engine/landCargo';
@@ -14,7 +14,7 @@ import { t } from '../i18n';
 import {
   estUnHebergement,
   nomDuPoi,
-  OFFRES_DU_LIVRE,
+  offresDuType,
   placeServices,
   SERVICE_CITE,
   type MapPlace,
@@ -150,11 +150,11 @@ export function etablissementRetire(lieu: MapPlace, id: string): PatchDeLieu | u
   return { services: services.length ? services : undefined };
 }
 
-/** Les offres d'auberge que vend l'établissement `id` du lieu `lieu` : celles qu'il déclare, sinon celles du livre
- *  (`OFFRES_DU_LIVRE`) ; `undefined` pour un établissement absent ou qui n'héberge pas (`estUnHebergement`). */
+/** Les offres d'auberge que vend l'établissement `id` du lieu `lieu` : celles qu'il déclare, sinon celles de son type
+ *  (`offresDuType`) ; `undefined` pour un établissement absent ou qui n'héberge pas (`estUnHebergement`). */
 function offresVendues(lieu: MapPlace, id: string): readonly OffreDAuberge[] | undefined {
   const service = lieu.services?.find((sv) => sv.id === id);
-  return service && estUnHebergement(service) ? service.rest?.offres ?? OFFRES_DU_LIVRE : undefined;
+  return service && estUnHebergement(service) ? service.rest?.offres ?? offresDuType(service.kind.id) : undefined;
 }
 
 /** Chaque offre d'auberge du schéma (`offreDAubergeSchema`), à son libellé, vendue ou non par l'établissement `id` du lieu
@@ -173,11 +173,14 @@ function surLesOffres(lieu: MapPlace, id: string, f: (offres: readonly OffreDAub
   return { services: lieu.services!.map((sv) => (sv.id === id ? { ...sv, rest: { ...sv.rest, offres } } : sv)) };
 }
 
-/** Le patch du lieu `lieu` où son établissement `id` vend en plus l'offre du livre `offre`, à sa source, sans prix ni risque
- *  propres (`OFFRES_DU_LIVRE`) ; refusé pour une offre qu'il vend déjà (`surLesOffres`). #4277 */
+/** Le patch du lieu `lieu` où son établissement `id` vend en plus l'offre `offre`, à la source de cette offre de son type
+ *  (`offresDuType`), sans prix ni risque propres ; refusé pour une offre qu'il vend déjà ou que son type ne porte pas
+ *  (`surLesOffres`). #4277 */
 export function offreAjoutee(lieu: MapPlace, id: string, offre: OffreDAuberge['id']): PatchDeLieu | undefined {
-  const neuve: OffreDAuberge = { id: offre, source: OFFRES_DU_LIVRE.find((o) => o.id === offre)!.source };
-  return surLesOffres(lieu, id, (offres) => (offres.some((o) => o.id === offre) ? undefined : [...offres, neuve]));
+  const kind = lieu.services?.find((sv) => sv.id === id)?.kind.id;
+  const duType = kind === undefined ? undefined : offresDuType(kind).find((o) => o.id === offre);
+  const neuve: OffreDAuberge | undefined = duType && { id: offre, source: duType.source };
+  return surLesOffres(lieu, id, (offres) => (!neuve || offres.some((o) => o.id === offre) ? undefined : [...offres, neuve]));
 }
 
 /** Le patch du lieu `lieu` où son établissement `id` ne vend plus l'offre `offre`, une liste vidée gardée : il ne vend

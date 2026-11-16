@@ -176,7 +176,7 @@ import type { Get, Set } from './flowTypes';
 import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
 import { listeEt, t, type MsgKey } from '../i18n';
-import { lieuDuGroupe, placeById, OFFRES_DU_LIVRE, type OffreDuRepos, type WorldMap } from './worldMap';
+import { lieuDuGroupe, placeById, offresDeLAubergeDeScene, type OffreDuRepos, type WorldMap } from './worldMap';
 import { hebergementsDuLieu } from './lieuFlow';
 import { refuserGeste } from './refusVisible';
 import { garanti } from '../lib/garanti';
@@ -729,8 +729,8 @@ export interface OpenRestOpts {
   lieu: PlayerText;
   places?: RestPlaces;
   quality?: QualiteDeRepos;
-  /** Les offres d'auberge de la nuit, celles de l'établissement résolues par `placeServices` ; absentes : celles du livre
-   *  (`OFFRES_DU_LIVRE`). */
+  /** Les offres d'auberge de la nuit, celles de l'établissement résolues par `placeServices` ; absentes : celles d'une
+   *  auberge de scène (`offresDeLAubergeDeScene`). */
   offres?: readonly OffreDuRepos[];
   days?: number;
   travelHalt?: boolean;
@@ -760,7 +760,7 @@ export function ouvrirLeRepos(get: Get, set: Set, opts: OpenRestOpts): void {
   const st = get();
   if (st.battle || st.pendingRest) return;
   const places = { ...(opts.places ?? { maison: true, camp: true }) }; // #2097
-  const nuit = { places, offres: places.auberge ? structuredClone(opts.offres ?? OFFRES_DU_LIVRE) : [] };
+  const nuit = { places, offres: places.auberge ? structuredClone(opts.offres ?? offresDeLAubergeDeScene()) : [] };
   // Le couchage par défaut : la chambre de troupe si la nuit en offre une, sinon le premier couchage hors chambre.
   const offre = chambreDeTroupe(nuit);
   const chambres = offre ? appariementEnChambres(st.party, offre) : {};

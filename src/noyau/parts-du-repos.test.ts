@@ -3,7 +3,7 @@
  * occupants, la somme des parts est la note `restCost`. LDB 66 l.12-16, l.28
  */
 import { describe, it, expect } from 'vitest';
-import { OFFRES_DU_LIVRE } from './worldMap';
+import { offresDeLAubergeDeScene } from './worldMap';
 import { fixtureText } from '../i18n/fixtureText';
 import { partsDuRepos, restCost, prixDeLOffre, type PendingRest } from './restFlow';
 import { toBrass, type Money } from '../engine/money';
@@ -11,7 +11,7 @@ import type { Combatant } from '../engine/types';
 
 const hero = (id: string): Combatant => ({ id, label: id, items: [], wounds: { current: 10, max: 10 }, conditions: [] } as unknown as Combatant);
 const pending = (perHero: PendingRest['perHero'], quality: PendingRest['quality'] = 'normale'): PendingRest =>
-  ({ places: { auberge: true }, offres: OFFRES_DU_LIVRE, lieu: fixtureText('Auberge'), quality, days: 1, perHero, phase: 'setup' });
+  ({ places: { auberge: true }, offres: offresDeLAubergeDeScene(), lieu: fixtureText('Auberge'), quality, days: 1, perHero, phase: 'setup' });
 const somme = (parts: Record<string, Money>) => Object.values(parts).reduce((n, m) => n + toBrass(m), 0);
 
 describe('partsDuRepos — la chambre partagée entre ses occupants (LDB 66 l.28)', () => {

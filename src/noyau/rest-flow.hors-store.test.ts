@@ -13,7 +13,7 @@ import { itemFromTrappingById } from '../engine/items';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
-import { OFFRES_DU_LIVRE } from './worldMap';
+import { offresDeLAubergeDeScene } from './worldMap';
 import { restPlacesHere, lodgingOptions, prixDeLOffre } from './restFlow';
 import { makeRNG } from '../engine/dice';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
@@ -269,7 +269,7 @@ describe('couchage À BORD (MDG) — le navire n’est pas un bivouac', () => {
 
   it('à terre SANS navire : offre inchangée (pas de couchage `bord`)', () => {
     expect(lodgingOptions({ places: { camp: true }, offres: [] })).toEqual(['dehors']);
-    expect(lodgingOptions({ places: { auberge: true }, offres: OFFRES_DU_LIVRE })).toEqual(['commune', 'dehors']);
+    expect(lodgingOptions({ places: { auberge: true }, offres: offresDeLAubergeDeScene() })).toEqual(['commune', 'dehors']);
   });
 });
 

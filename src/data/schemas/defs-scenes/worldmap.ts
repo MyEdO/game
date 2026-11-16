@@ -11,7 +11,8 @@ import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
-import { enumNomme, idDIconeSchema, moneyPartialSchema, pointDuPlanSchema, qualiteDeReposSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { enumNomme, idDIconeSchema, pointDuPlanSchema, qualiteDeReposSchema } from '../grammaire/valeurs';
+import { offresDAubergeSchema } from '../grammaire/hebergement';
 import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
 import { idDe, recordDIds, ref, refs, type PorteeLocale } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
@@ -84,15 +85,6 @@ export const landMarketProfileSchema = nommerChamps(z.strictObject({
  *  (`PlacePoi.service`) ; le lieu l'ouvre (`mapPlaceSchema`). #4277 */
 export const SERVICES_DU_LIEU = { collection: 'services', catalogue: 'établissements du lieu' } as const satisfies PorteeLocale;
 
-/** Une offre d'auberge d'un établissement (LDB 66 l.12-16, l.28) : `prix` absolu, jamais multiplié par la qualité ; `risque`
- *  d'exposition à une maladie de qui la prend (ACE 02 l.99). #4277 */
-export const offreDAubergeSchema = nommerChamps(z.strictObject({
-  id: enumNomme({ commune: 'Chambre commune', chambre: 'Chambre', grande: 'Grande chambre', repas: 'Repas' }),
-  prix: moneyPartialSchema.optional(),
-  risque: nommerChamps(z.strictObject({ maladie: ref('maladie'), pourcent: z.number().int().min(1).max(100) }), { maladie: { label: "maladie" }, pourcent: { label: "pourcentage" } }).optional(),
-  source: sourceRefSchema,
-}), { id: { label: "offre" }, prix: { label: "prix" }, risque: { label: "risque" }, source: { label: "source" } });
-
 /** `PlaceService` — établissement d'un lieu (`id` stable, unique dans le lieu ; `kind` = id de `lieux-services.json`),
  *  hors port/marché qui portent leur schéma riche. `rest` = qualité et offres d'auberge d'un établissement
  *  d'hébergement ; `offres` absent : les offres du livre. #4277 */
@@ -103,7 +95,7 @@ export const placeServiceSchema = nommerChamps(z.strictObject({
   rest: nommerChamps(z
     .strictObject({
       quality: qualiteDeReposSchema.optional(),
-      offres: listeCle(offreDAubergeSchema, 'id').optional(),
+      offres: offresDAubergeSchema.optional(),
   }), { quality: { label: "qualité" }, offres: { label: "offres" } })
     .optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, kind: { label: "type" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, rest: { label: "repos" } });

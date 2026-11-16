@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetData, setObjectDataset } from '../data/overrides';
 import { semencesDeScene } from '../data';
-import { OFFRES_DU_LIVRE, routesFrom, type MapPlace, type OffreDAuberge, type PlaceService, type MapRoute, type WorldMap } from './worldMap';
+import { offresDuType, routesFrom, type MapPlace, type OffreDAuberge, type PlaceService, type MapRoute, type WorldMap } from './worldMap';
 import {
   BORNES_DE_CARTE, ajouterLieu, basculerMode, ciblerPoi, etablissementAjoute, etablissementRetire, lierLieux, majCarte, majLieu, majRoute, offreAjoutee, offresDeLEtablissement, offreRetiree, supprimerLieu, supprimerRoute, typesDEtablissement,
 } from './worldMapEdit';
@@ -191,7 +191,7 @@ describe('offres d’auberge d’un établissement (#4277)', () => {
 
   it('retirer le repas d’une auberge qui vend les offres du livre lui laisse les trois autres, à leur source', () => {
     const patch = offreRetiree(avec(auberge), 'auberge', 'repas');
-    expect(patch?.services?.[0].rest).toEqual({ offres: OFFRES_DU_LIVRE.filter((o) => o.id !== 'repas') });
+    expect(patch?.services?.[0].rest).toEqual({ offres: offresDuType('auberge').filter((o) => o.id !== 'repas') });
     expect(offresDe(patch, 'auberge')).toEqual(['commune', 'chambre', 'grande']);
   });
 

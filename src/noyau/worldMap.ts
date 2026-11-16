@@ -15,7 +15,8 @@ import type { Scene } from './monde/scene';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { z } from 'zod';
-import type { offreDAubergeSchema, placeServiceSchema, refusRouteSchema, routePerilSchema, worldMapParamsSchema } from '../data/schemas/defs-scenes/worldmap';
+import type { placeServiceSchema, refusRouteSchema, routePerilSchema, worldMapParamsSchema } from '../data/schemas/defs-scenes/worldmap';
+import type { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import type { provenanceDeValeurSchema } from '../data/schemas/grammaire/route';
 import { garanti } from '../lib/garanti';
@@ -104,6 +105,12 @@ export type OffreDAuberge = z.output<typeof offreDAubergeSchema>;
 /** L'établissement `s` est-il d'hébergement (`hebergement` de son type au catalogue `lieux-services.json`) ? */
 export function estUnHebergement(s: PlaceService): boolean {
   return findLieuServiceById(s.kind.id)?.hebergement === true;
+}
+
+/** Les offres d'auberge par défaut du type d'établissement `kind` (`offres` du catalogue `lieux-services.json`) ; aucune
+ *  pour un type qui n'en porte pas. */
+export function offresDuType(kind: string): readonly OffreDAuberge[] {
+  return findLieuServiceById(kind)?.offres ?? [];
 }
 
 /** Péripétie d'AUTEUR sur une route : tirée chaque jour de voyage à `chancePct` %. */
@@ -332,16 +339,11 @@ interface ServiceResolu {
   enterLabel?: string;
 }
 
-/** Une offre d'auberge de la nuit : celle d'un établissement (`OffreDAuberge`), ou du livre (`OFFRES_DU_LIVRE`). */
+/** Une offre d'auberge de la nuit : celle d'un établissement, ou celle de son type au catalogue (`offresDuType`). */
 export type OffreDuRepos = Omit<OffreDAuberge, 'source'>;
 
-/** Les offres d'auberge du livre, sans prix ni risque propres, à leur source. LDB 66 l.12-16, l.28 */
-export const OFFRES_DU_LIVRE: readonly OffreDAuberge[] = [
-  { id: 'commune', source: { book: 'livre-de-base', page: 302 } },
-  { id: 'chambre', source: { book: 'livre-de-base', page: 302 } },
-  { id: 'grande', source: { book: 'livre-de-base', page: 302 } },
-  { id: 'repas', source: { book: 'livre-de-base', page: 302 } },
-];
+/** Les offres d'une auberge de scène, hors de tout établissement déclaré : celles du type `auberge` au catalogue. */
+export const offresDeLAubergeDeScene = (): readonly OffreDAuberge[] => offresDuType(SERVICE_CITE.auberge);
 
 /** Le repos d'un établissement d'hébergement, résolu une fois (`placeServices`) : ses lieux de repos, sa qualité et ses
  *  offres d'auberge, RÉFÉRENCÉES depuis leur porteur. */
@@ -443,7 +445,7 @@ export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceServ
       enterLabel: def?.enterLabel,
     };
     out.push(estUnHebergement(s)
-      ? { ...service, category: 'auberge', rest: { places: { auberge: true }, quality: s.rest?.quality ?? 'normale', offres: s.rest?.offres ?? OFFRES_DU_LIVRE } }
+      ? { ...service, category: 'auberge', rest: { places: { auberge: true }, quality: s.rest?.quality ?? 'normale', offres: s.rest?.offres ?? offresDuType(s.kind.id) } }
       : { ...service, category: 'autre' });
   }
   // Auberge DÉRIVÉE de la scène si le lieu ne déclare aucun service d'hébergement mais que la scène offre
@@ -451,7 +453,7 @@ export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceServ
   if (!out.some((sv) => sv.category === 'auberge')) {
     const places = sceneAubergeOffer(scene);
     if (places) {
-      const rest: ReposDeLEtablissement = { places, quality: scene?.rest?.quality ?? 'normale', offres: OFFRES_DU_LIVRE };
+      const rest: ReposDeLEtablissement = { places, quality: scene?.rest?.quality ?? 'normale', offres: offresDeLAubergeDeScene() };
       const def = garanti(findLieuServiceById(SERVICE_CITE.auberge), SERVICE_CITE.auberge, 'service de lieu');
       out.push({ id: 'auberge', kind: SERVICE_CITE.auberge, category: 'auberge', label: def.label, icon: def.icon, desc: def.desc, rest, hostLine: def.hostLine, backdrop: def.backdrop?.id });
     }

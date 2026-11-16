@@ -6,7 +6,7 @@ import type { Scene } from '../noyau/monde/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
 import { prixDeLOffre } from '../noyau/restFlow';
-import { offreDAubergeSchema } from '../data/schemas/defs-scenes/worldmap';
+import { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import { findCargoEntryById } from '../engine/cargo';
 import { innGatherInfoMinutes } from '../noyau/innFlow';
 import { servicesDuLieu } from '../noyau/lieuFlow';

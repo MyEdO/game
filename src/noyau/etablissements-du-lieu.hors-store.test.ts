@@ -8,7 +8,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { resetSceneRegistry } from './monde/registreDesScenes';
 import { emptyScene } from './monde/scene';
-import { OFFRES_DU_LIVRE, type OffreDAuberge, type WorldMap } from './worldMap';
+import { offresDuType, type OffreDAuberge, type WorldMap } from './worldMap';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { lieuEnVue } from './lieuEnVue';
 import { DESIGNATIONS } from './designations';
@@ -77,7 +77,7 @@ describe('deux établissements d’un même type dans un lieu', () => {
   );
 
   it.each([
-    ['auberge-du-port', 'Auberge du Port', OFFRES_DU_LIVRE],
+    ['auberge-du-port', 'Auberge du Port', offresDuType('auberge')],
     ['lits-miteux', 'Les lits miteux', LITS_MITEUX],
   ])('l’auberge « %s » s’ouvre par son id : le repos porte SON nom et SES offres', (id, nom, offres) => {
     g().ouvrirLeRepos(id);

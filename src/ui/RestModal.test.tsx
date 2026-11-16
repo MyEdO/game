@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { RestBody } from './RestModal';
-import { OFFRES_DU_LIVRE } from '../noyau/worldMap';
+import { offresDeLAubergeDeScene } from '../noyau/worldMap';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
@@ -65,7 +65,7 @@ describe('RestBody — avertissement de récupération (LDB 18 l.338)', () => {
     const assoiffe = { ...structuredClone(hero), wounds: { ...hero.wounds, current: hero.wounds.max - 5 }, thirst: { days: 1, tests: 0, failures: 0 } } as Combatant;
     useGame.setState({
       party: [assoiffe], travelPlan: null,
-      pendingRest: { places: { auberge: true }, offres: OFFRES_DU_LIVRE, lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'commune', food: 'repas' } }, phase: 'setup' } as never,
+      pendingRest: { places: { auberge: true }, offres: structuredClone(offresDeLAubergeDeScene()), lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'commune', food: 'repas' } }, phase: 'setup' } as never,
     });
     const el = document.createElement('div');
     root = createRoot(el);
@@ -78,7 +78,7 @@ describe('RestBody — la note d’auberge que la bourse ne couvre pas (LDB 66)'
   it('bourse vide, chambre privée : le total est « over » et Dormir se ferme sur le refus du geste', () => {
     useGame.setState({
       party: [hero], travelPlan: null, net: { ...useGame.getState().net, mode: 'local' },
-      pendingRest: { places: { auberge: true }, offres: OFFRES_DU_LIVRE, lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'chambre-1', food: 'rien' } }, phase: 'setup' } as never,
+      pendingRest: { places: { auberge: true }, offres: structuredClone(offresDeLAubergeDeScene()), lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'chambre-1', food: 'rien' } }, phase: 'setup' } as never,
     });
     const el = document.createElement('div');
     root = createRoot(el);

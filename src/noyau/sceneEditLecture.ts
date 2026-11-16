@@ -38,7 +38,8 @@ import {
   type Terrain,
 } from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
-import { mapPlaceSchema, mapRouteSchema, offreDAubergeSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
+import { mapPlaceSchema, mapRouteSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
+import { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import { repereDIdentiteSchema, valeurDIdentiteSchema } from '../data/schemas/grammaire/campagne';
 import {
   affaireSchema,

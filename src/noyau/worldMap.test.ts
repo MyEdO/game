@@ -12,7 +12,7 @@ import {
   resolvePortRef,
   portVersDepot,
   placeServices,
-  OFFRES_DU_LIVRE,
+  offresDeLAubergeDeScene,
   produitsDuProfil,
   type RenderPoint,
   type MapPlace,
@@ -284,14 +284,14 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
     const scene = { id: 's1', rest: { auberge: true, camp: true } } as Scene;
     const svc = placeServices(place({}), scene);
     expect(svc.map((s) => s.category)).toEqual(['auberge']);
-    expect(svc[0].rest).toEqual({ places: { auberge: true, maison: undefined, camp: true }, quality: 'normale', offres: OFFRES_DU_LIVRE });
+    expect(svc[0].rest).toEqual({ places: { auberge: true, maison: undefined, camp: true }, quality: 'normale', offres: offresDeLAubergeDeScene() });
   });
 
   it('l\'établissement d\'hébergement l\'emporte : pas de doublon avec l\'offre de la scène, ni de ses lieux ou de sa qualité', () => {
     const scene = { id: 's1', rest: { auberge: true, maison: true, quality: 'pietre' } } as Scene;
     const svc = placeServices(place({ services: [{ id: 'auberge', kind: { id: 'auberge' } }] }), scene);
     expect(svc.filter((s) => s.category === 'auberge')).toHaveLength(1);
-    expect(svc[0].rest).toEqual({ places: { auberge: true }, quality: 'normale', offres: OFFRES_DU_LIVRE });
+    expect(svc[0].rest).toEqual({ places: { auberge: true }, quality: 'normale', offres: offresDeLAubergeDeScene() });
   });
 
   it('offre d\'auberge via une restZone de la scène (pas seulement scene.rest)', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { prixDeLOffre } from './restFlow';
-import { OFFRES_DU_LIVRE, placeServices, type MapPlace } from './worldMap';
+import { offresDuType, placeServices, type MapPlace } from './worldMap';
 import { refusAQuai } from './portFlow';
 import { t } from '../i18n';
 import { findTrappingById } from '../data';
@@ -33,7 +33,7 @@ describe('placeServices — composition des services d’un lieu au hub (#343)',
     expect(list.find((s) => s.id === 'marche')!.market).toBe(market);
     const auberge = list.find((s) => s.id === 'auberge')!;
     expect(auberge.category).toBe('auberge');
-    expect(auberge.rest).toEqual({ places: { auberge: true }, quality: 'grande', offres: OFFRES_DU_LIVRE });
+    expect(auberge.rest).toEqual({ places: { auberge: true }, quality: 'grande', offres: offresDuType('auberge') });
   });
 
   it('lieu sans service ni offre : liste vide (le hub n’a alors rien à ouvrir)', () => {
