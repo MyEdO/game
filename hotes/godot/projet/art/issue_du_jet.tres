@@ -4,5 +4,5 @@
 
 [resource]
 Label/constants/line_spacing = 0
-Label/font_sizes/font_size = 12
+Label/font_sizes/font_size = 14
 Label/fonts/font = ExtResource("1_penchee")

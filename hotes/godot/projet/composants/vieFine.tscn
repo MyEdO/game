@@ -5,4 +5,4 @@
 [node name="Vie" instance=ExtResource("1_vie")]
 
 [node name="Barre" parent="."]
-custom_minimum_size = Vector2(110, 3)
+custom_minimum_size = Vector2(86, 3)

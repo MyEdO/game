@@ -1,7 +1,10 @@
-[gd_resource type="FontVariation" load_steps=2 format=3]
+[gd_resource type="FontVariation" load_steps=5 format=3]
 
-[ext_resource type="FontVariation" path="res://art/police.tres" id="1_texte"]
+[ext_resource type="FontFile" path="res://polices/EBGaramond-Italic-wght.ttf" id="1_penchee"]
+[ext_resource type="FontFile" path="res://polices/NotoSans-SemiBold.ttf" id="2_lettres"]
+[ext_resource type="FontFile" path="res://polices/NotoSansMath-Regular.ttf" id="3_maths"]
+[ext_resource type="FontFile" path="res://polices/NotoSansSymbols2-Regular.ttf" id="4_symboles"]
 
 [resource]
-base_font = ExtResource("1_texte")
-variation_transform = Transform2D(1, 0.2, 0, 1, 0, 0)
+base_font = ExtResource("1_penchee")
+fallbacks = Array[Font]([ExtResource("2_lettres"), ExtResource("3_maths"), ExtResource("4_symboles")])

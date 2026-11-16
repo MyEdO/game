@@ -25,7 +25,7 @@ formes = PackedStringArray("jet:jetDuCamp")
 [node name="Centre" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel"]
 custom_minimum_size = Vector2(220, 0)
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.7
+size_flags_stretch_ratio = 0.74
 alignment = 1
 
 [node name="Etape" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]

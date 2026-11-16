@@ -1,8 +1,9 @@
-[gd_resource type="Theme" load_steps=9 format=3]
+[gd_resource type="Theme" load_steps=10 format=3]
 
 [ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
 [ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="2_rubriques"]
 [ext_resource type="StyleBox" path="res://art/bouton_arme.tres" id="3_arme"]
+[ext_resource type="FontVariation" path="res://art/police_a_empattements.tres" id="6_empattements"]
 [ext_resource type="Script" path="res://scripts/cadre.gd" id="4_cadre"]
 [ext_resource type="StyleBox" path="res://art/ombre_de_panneau.tres" id="5_ombre"]
 
@@ -38,7 +39,7 @@ MargeDuParchemin/constants/margin_top = 10
 MargeDuParchemin/constants/margin_right = 8
 MargeDuParchemin/constants/margin_bottom = 0
 Duel/base_type = &"HBoxContainer"
-Duel/constants/separation = 14
+Duel/constants/separation = 8
 Button/styles/focus = ExtResource("3_arme")
 SaillieDuRuban/base_type = &"MarginContainer"
 SaillieDuRuban/constants/margin_top = 3
@@ -67,7 +68,8 @@ reussite/font_sizes/font_size = 13
 reussite/fonts/font = ExtResource("2_rubriques")
 DrDuCamp/base_type = &"Label"
 DrDuCamp/colors/font_color = Color(0.133, 0.102, 0.067, 1)
-DrDuCamp/font_sizes/font_size = 14
+DrDuCamp/font_sizes/font_size = 15
+DrDuCamp/fonts/font = ExtResource("6_empattements")
 FaceDuDe/base_type = &"Label"
 FaceDuDe/colors/font_color = Color(0.133, 0.102, 0.067, 1)
 FaceDuDe/colors/font_outline_color = Color(0.133, 0.102, 0.067, 1)
