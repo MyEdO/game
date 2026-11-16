@@ -1,26 +1,26 @@
 """Géométrie de `humanoide--vetement--bandages` (`element/tissu.py`), d'après `donnees.py` (aucun nombre ici).
 
-Par bras :
-- l'avant-bras, une double nappe en colonnes d'azimut autour de l'os `lowerarm_*` : chaque colonne court de la frontière
-  de la zone `avant_bras_*` au coude à
-  celle du poignet, chacune passée du débord ; chaque sommet se pose sur l'enveloppe de la coupe du bras perpendiculaire
+Par bras, une seule double nappe en colonnes d'azimut, du coude à la base des doigts :
+- sur l'avant-bras, autour de l'os `lowerarm_*` : chaque colonne court de la frontière de la zone `avant_bras_*` au coude
+  à celle du poignet, chacune passée du débord ; chaque sommet se pose sur l'enveloppe de la coupe du bras perpendiculaire
   à l'os, plus l'aisance. Les spires : à chaque bord de bande, deux anneaux en marche, celui du tour qui finit en saillie,
   le bord posé en biais, tourné d'un bord au suivant ;
-- la main, une nappe simple : la peau du dos de la main et de la paume, décalée le long de ses normales, du bord de la
-  zone `main_*` au poignet à la ligne où la peau passe aux doigts, hors du pouce ; chaque sommet de bord glisse sur cette
-  ligne, le long de ses arêtes qui la passent ; ses poids sont ceux de la peau, tels quels.
+- sur la main, les mêmes colonnes continuent, autour de l'axe du poignet à la base du majeur : chaque sommet est visé du
+  dehors vers cet axe sur la peau de la main sans le pouce, au plus loin de sa colonne, et s'arrête au décalage ; les anneaux de la base du pouce
+  s'ouvrent d'une fente dans son azimut, ceux d'après se referment entre le pouce et l'index, le dernier droit en travers
+  de la main, avant les jointures.
 Poids empruntés à la peau sommet par sommet, lissés aux seuls anneaux du coude ; silhouettes et clés `gabarit_*`
 transférées des zones du bras.
 """
 import math
 
 import numpy as np
-from tissu import (JUMEAU, Maillage, anneau, centre_de, emprunter, joindre, lisser, maillage_skinne, poids_normalises,
-                   repere_de_plan, voisinage)
+from mathutils import Vector
+from tissu import Maillage, anneau, centre_de, emprunter, joindre, lisser, porteur_de, repere_de_plan, voisinage
 
-OS_BRAS = {'g': ('lowerarm_l', 'hand_l'), 'd': ('lowerarm_r', 'hand_r')}
+OS_BRAS = {'g': ('lowerarm_l', 'hand_l', 'middle_01_l', 'thumb_02_l'), 'd': ('lowerarm_r', 'hand_r', 'middle_01_r', 'thumb_02_r')}
 ZONES = {c: [f'bras_haut_{c}', f'avant_bras_{c}', f'main_{c}'] for c in 'gd'}
-POUCE, DOIGTS = ('thumb_',), ('index_', 'middle_', 'ring_', 'pinky_')
+POUCE = 'thumb_'
 
 
 def bornes_par_colonne(b, c, coude, axe, longueur, u, v, s, debord):
@@ -46,78 +46,23 @@ def rangs_de(D):
     return rangs + [(t, 0.0, None) for t in D['RANGS_DU_POIGNET']]
 
 
-def nappe_de(b, D, M, anneaux, poids, lissage, nom, materiau):
-    """La double nappe des `anneaux` fermés ; `lissage` : les sommets aux poids lissés."""
-    for (A, ca), (B, cb) in zip(anneaux, anneaux[1:]):
-        M.bande(A, B, (ca + cb) / 2)
-    X, orientes, normales = M.orienter()
-    W = np.array(poids)
-    W = np.where(lissage, lisser(W, voisinage(orientes, len(X)), D['LISSAGE_AU_COUDE'][1]), W)
-    return b.nappe(nom, X, normales, W, orientes, materiau, D['EPAISSEUR'])
-
-
-def bande_de_main(b, c, H, nom, materiau):
-    """La nappe simple de la main `c` : les faces de la peau de `main_c` dont aucun sommet n'est du pouce ni des doigts
-    (poids de leurs os au-delà de `H['pouce']`, `H['doigts']`), leur plus grande pièce d'un seul tenant, décalée de
-    `H['decalage']`."""
-    P0, T0, W0 = b.corps(f'main_{c}')
-    _, premier, noeud = np.unique(np.round(P0 * 1e5).astype(np.int64), axis=0, return_index=True, return_inverse=True)
-    P, W, T = P0[premier], W0[premier], noeud.ravel()[T0]
-    T = T[(T[:, 0] != T[:, 1]) & (T[:, 1] != T[:, 2]) & (T[:, 0] != T[:, 2])]
-    N = np.zeros_like(P)
-    for k, n in zip(T.T, [np.cross(P[T[:, 1]] - P[T[:, 0]], P[T[:, 2]] - P[T[:, 0]])] * 3):
-        np.add.at(N, k, n)
-    N /= np.linalg.norm(N, axis=1, keepdims=True)
-
-    def part(prefixes):
-        return W[:, [k for k, o in enumerate(b.os) if o.startswith(prefixes)]].sum(axis=1)
-    marge = np.minimum(H['pouce'] - part(POUCE), H['doigts'] - part(DOIGTS))     # positive sur la bande, nulle à son bord
-    faces = T[(marge[T] > 0).all(axis=1)]
-    piece = np.arange(len(P))                                                     # plus petit sommet de la pièce de chacun
-    while True:
-        suite = piece.copy()
-        np.minimum.at(suite, faces, suite[faces].min(axis=1, keepdims=True))
-        if (suite == piece).all():
-            break
-        piece = suite
-    tailles = np.bincount(piece[faces[:, 0]], minlength=len(P))
-    faces = faces[piece[faces[:, 0]] == int(np.argmax(tailles))]
-
-    # Chaque sommet de bord glisse sur la ligne : la moyenne des points où ses arêtes la passent.
-    coupes = {}
-    for t in T:
-        for a in t:
-            for d in t:
-                if marge[a] > 0 >= marge[d]:
-                    coupes.setdefault(int(a), {})[int(d)] = marge[a] / (marge[a] - marge[d])
-    X, Wn = P + H['decalage'] * N, W.copy()
-    for a, voisins in coupes.items():
-        pts = [(P[a] + u * (P[d] - P[a]), N[a] + u * (N[d] - N[a]), W[a] + u * (W[d] - W[a])) for d, u in sorted(voisins.items())]
-        p, n, w = (np.mean([q[k] for q in pts], axis=0) for k in range(3))
-        X[a], Wn[a] = p + H['decalage'] * n / np.linalg.norm(n), w
-
-    def endroit(Q):
-        return np.cross(Q[faces[:, 1]] - Q[faces[:, 0]], Q[faces[:, 2]] - Q[faces[:, 0]])
-    faces = faces[(endroit(X) * endroit(P)).sum(axis=1) > 0]      # sans la face qu'un sommet glissé retourne
-    gardes = np.unique(faces)
-    rang = {int(k): i for i, k in enumerate(gardes)}
-    bande = maillage_skinne(nom, [tuple(X[k]) for k in gardes], [[rang[int(k)] for k in f] for f in faces], materiau, b.rig,
-                            poids_normalises(Wn[gardes], b.os))
-    for poly in bande.data.polygons:
-        poly.use_smooth = True
-    bande.data.attributes.new(JUMEAU, 'INT', 'POINT')   # nappe simple : chaque sommet est son propre jumeau
-    return bande
+def main_sans_pouce(b, c, seuil):
+    """La peau de la zone `main_c` sans les faces d'un sommet du pouce (poids de ses os au-delà de `seuil`), en surface
+    porteuse."""
+    P, T, W = b.corps(f'main_{c}')
+    pouce = W[:, [k for k, o in enumerate(b.os) if o.startswith(POUCE)]].sum(axis=1) > seuil
+    return porteur_de(P, T[~pouce[T].any(axis=1)], W)
 
 
 def construire(D, materiaux, b):
     b.exiger(ZONES['g'] + ZONES['d'])
-    s = D['SEGMENTS']
+    s, H = D['SEGMENTS'], D['MAIN']
     azimuts = [2 * math.pi * i / s for i in range(s)]
     dirs = [np.array([math.cos(a), math.sin(a)]) for a in azimuts]
     rangs = rangs_de(D)
     pieces = []
     for c, signe in (('g', 1.0), ('d', -1.0)):
-        coude, poignet = (np.array(b.tete(o)) for o in OS_BRAS[c])
+        coude, poignet, majeur, pouce = (np.array(b.tete(o)) for o in OS_BRAS[c])
         longueur = float(np.linalg.norm(poignet - coude))
         axe = (poignet - coude) / longueur
         u, v = repere_de_plan(axe, (0.0, 0.0, 1.0), signe)
@@ -125,6 +70,8 @@ def construire(D, materiaux, b):
         porteur = b.porteur(ZONES[c])
         M = Maillage()
         poids, anneaux = [], []
+
+        # Avant-bras.
         for t, saillie, tour in rangs:
             pts = []
             for i, (f0, f1) in enumerate(bornes):
@@ -135,10 +82,52 @@ def construire(D, materiaux, b):
                 pts.append(O + p[0] * u + p[1] * v)
             anneaux.append((M.ajouter(pts, None), np.mean(pts, axis=0)))
             poids.extend(emprunter(p, porteur)[0] for p in pts)
-        au_coude = np.repeat([t <= D['LISSAGE_AU_COUDE'][0] for t, _, _ in rangs], s)[:, None]
-        pieces.append(nappe_de(b, D, M, anneaux, poids, au_coude, f'bandages_{c}', materiaux['bandages']))
+        au_coude = [t <= D['LISSAGE_AU_COUDE'][0] for t, _, _ in rangs for _ in range(s)]
 
-        pieces.append(bande_de_main(b, c, D['MAIN'], f'bandages_main_{c}', materiaux['bandages']))
+        # Main : les mêmes colonnes, visées sur la peau sans le pouce.
+        peau = main_sans_pouce(b, c, H['pouce'])
+        portee = float(np.linalg.norm(majeur - poignet))
+        axe_m = (majeur - poignet) / portee
+        um, vm = repere_de_plan(axe_m, (0.0, 0.0, 1.0), signe)
+        au_pouce = math.atan2((pouce - poignet) @ vm, (pouce - poignet) @ um)
+        fente = [abs((a - au_pouce + math.pi) % (2 * math.pi) - math.pi) <= math.radians(H['fente']) for a in azimuts]
+        for g, ouvert in H['rangs']:
+            O = poignet + g * portee * axe_m
+            visees = {}
+            for i in range(s):
+                if not (ouvert and fente[i]):
+                    d = dirs[i][0] * um + dirs[i][1] * vm
+                    rayons = []      # le plus loin de l'axe des visées de la colonne et de ses deux demi-pas voisins
+                    for pas in (-0.5, 0.0, 0.5):
+                        a = azimuts[i] + pas * 2 * math.pi / s
+                        e = math.cos(a) * um + math.sin(a) * vm
+                        touche = peau['arbre'].ray_cast(Vector((O + H['portee'] * e).tolist()), Vector((-e).tolist()), H['portee'])
+                        if touche[0] is not None:
+                            rayons.append((H['portee'] - touche[3]) * float(e @ d))
+                    visees[i] = (d, max(rayons) if rayons else None)
+            touchees = [r for _, r in visees.values() if r is not None]
+            rang, pts = [], []
+            for i in range(s):
+                if i not in visees:
+                    rang.append(None)
+                    continue
+                d, r = visees[i]      # sans peau sous la visée (le trou du pouce), le rayon moyen de l'anneau
+                p = O + ((np.mean(touchees) if r is None else r) + H['decalage']) * d
+                rang.append(M.ajouter([p], None)[0])
+                pts.append(p)
+                poids.append(emprunter(p, peau)[0])
+                au_coude.append(False)
+            anneaux.append((rang, np.mean(pts, axis=0)))
+
+        for (A, ca), (B, cb) in zip(anneaux, anneaux[1:]):
+            for i in range(s):
+                coins = (A[i], A[(i + 1) % s], B[(i + 1) % s], B[i])
+                if None not in coins:
+                    M.quad(*coins, (ca + cb) / 2)
+        X, orientes, normales = M.orienter()
+        W = np.array(poids)
+        W = np.where(np.array(au_coude)[:, None], lisser(W, voisinage(orientes, len(X)), D['LISSAGE_AU_COUDE'][1]), W)
+        pieces.append(b.nappe(f'bandages_{c}', X, normales, W, orientes, materiaux['bandages'], D['EPAISSEUR']))
     piece = joindre(pieces)
     piece.name = 'bandages'
     b.transferer(piece, ZONES['g'] + ZONES['d'])

@@ -9,11 +9,11 @@ Trois nappes jointes en une pièce :
 - `dessous`, nappe simple : la robe de dessous, jupe fermée sous la robe de dessus, aux mêmes colonnes et aux mêmes plis,
   l'ourlet plus bas, en dents profondes ; elle monte au ras du tronc jusqu'à la taille, puis en bande sous l'ouverture
   du corsage ;
-- `manches`, double nappe, l'envers en doublure : par bras, anneaux perpendiculaires à `upperarm`, de l'épaule à
-  l'avant-bras, qui s'élargissent en cloche et pendent d'un pan sous le bras, plissés en long, le bord en dents galonné ;
-  fermée à l'épaule par un cône dans le corps.
-Poids : le corsage et le raccord des manches empruntent au corps, sommet par sommet, lissés ; au-delà, la manche suit
-`upperarm` d'un bloc ; les jupes prennent les os des deux brins voisins du filet (`tissu.Filet`). Silhouettes et clés
+- `manches`, double nappe, l'envers en doublure : par bras, anneaux perpendiculaires au bras, de l'épaule à
+  l'avant-bras ; le dessus suit le bras, le dessous pend en poche sous l'avant-bras, creusée de godets depuis le coude,
+  ouverte en entonnoir, le bord en dents galonné ; fermée à l'épaule par un cône dans le corps.
+Poids : le corsage et la manche jusqu'au coude empruntent au corps, sommet par sommet, lissés ; au-delà, la manche suit
+l'avant-bras d'un bloc ; les jupes prennent les os des deux brins voisins du filet (`tissu.Filet`). Silhouettes et clés
 `gabarit_*` transférées.
 """
 import math
@@ -208,11 +208,11 @@ def construire(D, materiaux, b):
                 np.array([centre[0], centre[1], float(np.mean(zs))]))
 
     dents = lambeaux(D['LAMBEAUX_ROBE'], m + 1)
-    nominales = D['RANGEES_JUPE'] + [z_ourlet + D['GALON_DE_L_OURLET'], z_ourlet]
     jupe = []
-    for z in nominales:
-        t = angles(z)
-        zs = [niveau(z, a) + (D['LAMBEAUX_ROBE']['profondeur'] - d if z == z_ourlet else 0.0) for a, d in zip(t, dents)]
+    for k, z in enumerate(D['RANGEES_JUPE'] + [z_ourlet + D['GALON_DE_L_OURLET'], z_ourlet]):
+        t = angles(z)      # les deux dernières rangées, celles du galon de l'ourlet, suivent ses dents
+        mordu = D['LAMBEAUX_ROBE']['profondeur'] if k >= len(D['RANGEES_JUPE']) else None
+        zs = [niveau(z + (mordu - d if mordu else 0.0), a) for a, d in zip(t, dents)]
         jupe.append(rangee(robe, zs, t, plis, 0.0))
     for k, ((A, ca), (B, cb)) in enumerate(zip([corsage[0][0]] + jupe, jupe)):
         robe.relier(A, B, (ca + cb) / 2, m, range(m) if k == len(jupe) - 1 else bords)
@@ -238,47 +238,46 @@ def construire(D, materiaux, b):
 
 
 def manches(D, b, materiaux):
-    """Les deux manches, double nappe à l'envers en doublure : anneaux perpendiculaires à `upperarm` (`MANCHE`), chacun à
-    son aisance, plus le pan qui pend en lobe vers `ANGLE_DU_PAN`, plus ses plis : en long, une colonne sur deux en
-    saillie ; en travers, le pan d'un anneau sur deux poussé de côté ; le bord en dents, galonné."""
+    """Les deux manches, double nappe à l'envers en doublure : anneaux perpendiculaires à l'axe du bras (`MANCHE`), aux
+    azimuts `AZIMUTS_DE_MANCHE`, serrés dessous. Le dessus suit le bras à son aisance ; dessous, la poche pend en lobe vers
+    `ANGLE_DE_LA_POCHE`, de plus en plus bas passé le coude, ses godets creusés une colonne sur deux ; le bord en dents,
+    galonné. Jusqu'au coude, la manche emprunte ses poids au bras, sommet par sommet ; au-delà, elle suit l'avant-bras
+    d'un bloc."""
     toile = Toile()
-    s, M, R = D['SEGMENTS_MANCHE'], D['MANCHE'], D['PLIS_DE_MANCHE']
-    phis = [360.0 * i / s for i in range(s)]
+    M, G, phis = D['MANCHE'], D['GODETS'], D['AZIMUTS_DE_MANCHE']
+    s = len(phis)
     dirs = [np.array([math.cos(math.radians(t)), math.sin(math.radians(t))]) for t in phis]
-    lobe = [max(0.0, math.cos(math.radians(t - D['ANGLE_DU_PAN']))) ** D['GALBE_DU_PAN'] for t in phis]
-    radial, axial = math.sin(math.radians(D['INCLINAISON_DU_PAN'])), math.cos(math.radians(D['INCLINAISON_DU_PAN']))
-    de_cote = np.array([-math.sin(math.radians(D['ANGLE_DU_PAN'])), math.cos(math.radians(D['ANGLE_DU_PAN']))])
+    lobe = [max(0.0, math.cos(math.radians(t - D['ANGLE_DE_LA_POCHE']))) ** D['GALBE_DE_LA_POCHE'] for t in phis]
+    radial, axial = math.sin(math.radians(D['INCLINAISON_DE_LA_POCHE'])), math.cos(math.radians(D['INCLINAISON_DE_LA_POCHE']))
     for c, signe in (('g', 1.0), ('d', -1.0)):
         porteur = b.porteur(['torse'] + BRAS[c])
         o0, o1 = (np.array(b.tete(o)) for o in OS_BRAS[c])
         axe = unitaire(o1 - o0)
         u, v = repere_de_plan(axe, (0.0, 0.0, 1.0), signe)
-        hasard = tirage(R['graine'] + c)
-        saillies = [hasard.uniform(0.5, 1.0) if i % 2 else 0.0 for i in range(s)]
 
-        def anneau_de_bras(f, aisances, travers=0.0):
+        def anneau_de_bras(f, aisances):
             O = o0 + f * (o1 - o0)
             Oc = o0 + max(f, D['COUPE_MIN']) * (o1 - o0)
             P = b.coupe(BRAS[c], Oc, axe, u, v)
             P = P[np.hypot(P[:, 0], P[:, 1]) < D['RAYON_DE_COUPE_MAX']]
             milieu = centre_de(P)
-            return ([O + (p[0] + travers * l * de_cote[0]) * u + (p[1] + travers * l * de_cote[1]) * v
-                     for p, l in zip(anneau(P, milieu, dirs, aisances, D['DEGAGEMENT_MIN']), lobe)],
+            return ([O + p[0] * u + p[1] * v for p in anneau(P, milieu, dirs, aisances, D['DEGAGEMENT_MIN'])],
                     O + milieu[0] * u + milieu[1] * v, [Oc + p[0] * u + p[1] * v for p in P])
 
         peau = anneau_de_bras(D['COUPE_DES_POIDS'], [0.0] * s)[2]
-        poids_du_bras = np.mean([emprunter(q, porteur)[0] for q in peau], axis=0)
+        poids_de_l_avant_bras = np.mean([emprunter(q, porteur)[0] for q in peau], axis=0)
         dents = lambeaux(dict(D['LAMBEAUX_MANCHE'], graine=D['LAMBEAUX_MANCHE']['graine'] + c), s)
         liste = []
-        for k, (f, aisance, pan) in enumerate(M):
-            ampleur = R['amplitude'] * min(1.0, max(0.0, (f - R['debut']) / (M[-1][0] - R['debut'])))
-            pts, milieu, _ = anneau_de_bras(f, [aisance + pan * radial * l + ampleur * e for l, e in zip(lobe, saillies)],
-                                            R['travers'] * ampleur / R['amplitude'] * (1 if k % 2 else -1))
+        for k, (f, dessus, poche) in enumerate(M):
+            godet = G['creux'] * min(1.0, max(0.0, (f - G['debut']) / (M[-1][0] - G['debut'])))
+            aisances = [max(dessus, dessus + poche * radial * l - (godet if i in G['colonnes'] else 0.0))
+                        for i, l in enumerate(lobe)]
+            pts, milieu, _ = anneau_de_bras(f, aisances)
             recul = [D['LAMBEAUX_MANCHE']['profondeur'] - d if k == len(M) - 1 else 0.0 for d in dents]
-            pts = [p + (pan * axial * l - r) * axe for p, l, r in zip(pts, lobe, recul)]
-            raccord = f < D['RACCORD_EPAULE']
-            poids = [emprunter(p, porteur)[0] for p in pts] if raccord else [poids_du_bras] * s
-            liste.append((toile.poser(pts, poids, fixes=not raccord), milieu))
+            pts = [p + (poche * axial * l - r) * axe for p, l, r in zip(pts, lobe, recul)]
+            au_bras = f < D['RACCORD_AU_BRAS']
+            poids = [emprunter(p, porteur)[0] for p in pts] if au_bras else [poids_de_l_avant_bras] * s
+            liste.append((toile.poser(pts, poids, fixes=not au_bras), milieu))
         for k, ((A, ca), (B, cb)) in enumerate(zip(liste, liste[1:])):
             toile.relier(A, B, (ca + cb) / 2, s, range(s) if k == len(liste) - 2 else ())
         racine, milieu = liste[0]
@@ -287,5 +286,7 @@ def manches(D, b, materiaux):
             toile.triangle(racine[i], racine[(i + 1) % s], fond, 2 * milieu - liste[1][1])
     X, orientes, normales, W = toile.lisses(D['LISSAGE_POIDS'])
     endroits = {None: None, 'galon': materiaux['galon']}
-    return b.nappe('manches', X, normales, W, orientes, materiaux['robe'], D['EPAISSEUR'],
-                   [(endroits[matiere], materiaux['doublure']) for matiere in toile.matieres])
+    piece = b.nappe('manches', X, normales, W, orientes, materiaux['robe'], D['EPAISSEUR'],
+                    [(endroits[matiere], materiaux['doublure']) for matiere in toile.matieres])
+    piece.data.set_sharp_from_angle(angle=math.radians(D['ANGLE_VIF']))
+    return piece

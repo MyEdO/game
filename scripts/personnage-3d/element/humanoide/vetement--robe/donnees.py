@@ -40,7 +40,6 @@ COLONNES = 24                      # colonnes du corsage et de la jupe de dessus
                                    # une dent sur deux colonnes
 COLONNES_OUVERTURE = 6             # intervalles de la robe de dessous dans l'ouverture, pair : un sommet sur l'axe ;
                                    # deux plis dans le devant
-SEGMENTS_MANCHE = 16               # un pli et une dent du bord sur deux colonnes
 EPAISSEUR = 0.003                  # HYPOTHÈSE : écart de la doublure des manches à leur endroit
 DEGAGEMENT_MIN = 0.004             # HYPOTHÈSE : jeu minimal au corps, comme le pourpoint du Soldat
 LISSAGE_POIDS = 2                  # passes laplaciennes des poids du corsage et du raccord des manches
@@ -73,19 +72,19 @@ EVASEMENT = 0.25
 """Hauteur sur laquelle la jupe passe de l'aisance de la taille au jeu sur le filet. Illustration : la robe, serrée par
 la ceinture, s'évase sur les hanches sans ressaut ; base : à sa racine, le filet est déjà 6 cm hors des hanches, et la
 jupe posée sur lui dès la taille y faisait une marche (HYPOTHÈSE : 25 cm, jusqu'au haut des cuisses)."""
-OURLET_PAR_AZIMUT = [(0.0, 0.41), (50.0, 0.41), (95.0, 0.34), (140.0, 0.30), (180.0, 0.30)]
-"""L'ourlet de la robe de dessus par direction, le premier celui du devant. Illustration : court devant, à mi-mollet
-(y ~890 px), il descend sur le côté (pan droit à y ~950 px, 0,29 m) ; contrat : aux chevilles côté dos (HYPOTHÈSE du
-dos : 0,30 m, au-dessus des creux de l'ourlet de la robe de dessous)."""
-RANGEES_JUPE = [0.95, 0.85, 0.72, 0.56]
+OURLET_PAR_AZIMUT = [(0.0, 0.37), (50.0, 0.37), (95.0, 0.31), (140.0, 0.27), (180.0, 0.27)]
+"""Les pointes de l'ourlet de la robe de dessus par direction, le premier celui du devant. Illustration : court devant,
+à mi-mollet (y ~890 px, 0,41 m au milieu des dents), il descend sur le côté (pan droit à y ~950 px) ; contrat : aux
+chevilles côté dos (HYPOTHÈSE du dos : 0,27 m)."""
+RANGEES_JUPE = [0.95, 0.85, 0.74, 0.63]
 """Hauteurs nominales des rangées de la robe de dessus, m (HYPOTHÈSE de maillage). La première à 9 cm sous la taille : à
 7 cm, l'arête qui les joint devant, du tronc au filet, s'étirait à 3,58 fois sa longueur (Melee_Hook, Farm_PlantSeed,
-porte 3,51)."""
-GALON_DE_L_OURLET = 0.07
-"""Hauteur de la bande de galon de l'ourlet au-dessus de ses pointes. Illustration : ~30 px, mordue de dents."""
-LAMBEAUX_ROBE = {'profondeur': 0.04, 'creux': 0.3, 'graine': 'humanoide--vetement--robe--dessus'}
-"""Illustration : le bas du galon de l'ourlet est mordu de dents de 10 à 20 px (2 à 4 cm), larges de deux colonnes
-(~17 cm) ; elles restent 3 cm sous la rangée du galon."""
+porte 3,51) ; la dernière au-dessus du galon de l'ourlet et de ses dents."""
+GALON_DE_L_OURLET = 0.06
+"""Hauteur de la bande de galon de l'ourlet, le long de ses dents. Illustration : ~30 px."""
+LAMBEAUX_ROBE = {'profondeur': 0.10, 'creux': 0.3, 'graine': 'humanoide--vetement--robe--dessus'}
+"""Illustration : l'ourlet du drap sombre est franchement déchiqueté, en dents irrégulières (HYPOTHÈSE : jusqu'à 10 cm,
+larges de deux colonnes, ~17 cm) ; le galon de l'ourlet suit leur bord."""
 RANGEES_DESSOUS = [0.95, 0.85, 0.72, 0.56, 0.40]   # hauteurs des rangées de la robe de dessous, m (HYPOTHÈSE de maillage)
 OURLET_DESSOUS = 0.17              # illustration : les pointes de la robe de dessous à la cheville (y ~1010 px), au-dessus
                                    # du haut des bottes publiées (z 0,165 m)
@@ -101,27 +100,32 @@ deux rentre sous le filet de 50 à 100 % d'`amplitude`, atteinte `hauteur` sous 
 lisibles à taille de jeu) ; les crêtes restent au jeu sur le filet : en saillie, elles passaient devant la cape, qui
 tombe sur lui (`couche-traversee`, 22 cm en Sprint_Loop)."""
 
-# --- Manches : anneaux perpendiculaires à `upperarm` (fraction de l'os, au-delà de 1 passé le coude ; aisance ; pan) ;
-# `pan` : longueur ajoutée en lobe (cos^`GALBE_DU_PAN`) vers `ANGLE_DU_PAN` dans le plan de l'anneau, incliné de
-# `INCLINAISON_DU_PAN` sur l'axe du bras ---
+# --- Manches : anneaux perpendiculaires à l'axe du bras, (fraction de `upperarm`, au-delà de 1 passé le coude ; aisance du
+# dessus ; poche) ; `poche` : ce dont le dessous pend sous le bras, en lobe (cos^`GALBE_DE_LA_POCHE`) vers
+# `ANGLE_DE_LA_POCHE` dans le plan de l'anneau, incliné de `INCLINAISON_DE_LA_POCHE` sur l'axe du bras ---
 COUPE_MIN = 0.06                   # fraction de `upperarm` en deçà de laquelle la coupe du bras se prend là (épaule)
 RAYON_DE_COUPE_MAX = 0.12          # rayon au-delà duquel un point de la coupe n'est pas du bras (tronc)
-MANCHE = [(-0.10, 0.024, 0.0), (0.15, 0.026, 0.03), (0.40, 0.032, 0.09), (0.62, 0.040, 0.16), (0.84, 0.048, 0.23),
-          (1.06, 0.056, 0.30), (1.28, 0.064, 0.37), (1.58, 0.075, 0.44)]
-# Illustration (bras droit tendu) : la manche s'élargit dès l'épaule, pend sous le bras et s'arrête à mi-avant-bras, où
-# son ouverture fait ~230 px de haut (contrat : ~45 cm). Aisances de la cloche : HYPOTHÈSE, au moins celles qui gardent
-# l'avant-bras bandé derrière la manche au coude (mesurées au premier Sorcier, #3743 : 42 et 62 mm le laissaient passer).
-GALBE_DU_PAN = 1.5                 # HYPOTHÈSE : le pan large sur la hauteur de l'ouverture, pas une pointe
-ANGLE_DU_PAN = 170.0               # base : direction du bas du monde dans le repère de repos de `upperarm` (0 = haut du bras
-INCLINAISON_DU_PAN = 35.0          # en T, 90 = avant), moyenne sur les clips de repos et de marche (#3743) ; inclinaison :
-                                   # HYPOTHÈSE, entre le pan qui pend bras tendu (illustration) et celui qui suit le bras baissé
-RACCORD_EPAULE = 0.5               # fraction de `upperarm` sous laquelle un anneau emprunte ses poids sommet par sommet ;
-                                   # au-delà, la manche suit `upperarm` d'un bloc et l'avant-bras plié en sort (#3743)
-COUPE_DES_POIDS = 0.7              # fraction de `upperarm` dont la peau donne les poids de la manche
-PLIS_DE_MANCHE = {'amplitude': 0.03, 'travers': 0.035, 'debut': 0.2, 'graine': 'humanoide--vetement--robe--plis-de-manche-'}
-"""Illustration : la cloche tombe en plis le long du bras. Une colonne sur deux sort de 50 à 100 % d'`amplitude` au
-bord, rien avant la fraction `debut` (HYPOTHÈSE : 3 cm) ; le pan d'un anneau sur deux est poussé de `travers` vers
-l'avant, l'autre vers l'arrière : les plis du tombé, en travers du bras (HYPOTHÈSE : 3,5 cm au bord)."""
-LAMBEAUX_MANCHE = {'profondeur': 0.055, 'creux': 0.3, 'graine': 'humanoide--vetement--robe--manche-'}
-"""Illustration : le bord des cloches est déchiqueté ; contrat : dents lisibles à taille de jeu (HYPOTHÈSE : 5,5 cm, sous
-les 7,5 cm de la dernière bande de la manche, galonnée)."""
+AZIMUTS_DE_MANCHE = [0.0, 40.0, 80.0, 110.0, 132.0, 150.0, 166.0, 180.0, 194.0, 210.0, 228.0, 250.0, 280.0, 320.0]
+"""Azimuts des colonnes (0 = dessus du bras en T, 180 = dessous) : serrées dessous, où la poche pend et se plisse."""
+MANCHE = [(-0.10, 0.024, 0.0), (0.25, 0.028, 0.03), (0.55, 0.032, 0.05), (0.85, 0.036, 0.07), (1.15, 0.040, 0.10),
+          (1.34, 0.046, 0.26), (1.62, 0.055, 0.44)]
+"""Illustration (bras droit tendu) : le dessus de la manche suit le bras ; dessous, le tissu pend en poche sous
+l'avant-bras et s'ouvre au poignet sur ~230 px de haut (contrat : ~45 cm), à mi-avant-bras (1,62 fois `upperarm` aux
+pointes). La poche reste courte jusqu'au coude (10 cm à 1,15) : plus longue là, la bande qui passe le coude, du bras à
+l'avant-bras, s'étirerait au-delà de la porte coude plié (HYPOTHÈSE). Aisances du dessus : HYPOTHÈSE."""
+GALBE_DE_LA_POCHE = 1.0            # HYPOTHÈSE : en entonnoir, l'ouverture ronde sous le bras, pas une lame
+ANGLE_DE_LA_POCHE = 180.0          # le dessous du bras en T : la poche pend droit bras tendu (illustration)
+INCLINAISON_DE_LA_POCHE = 35.0
+"""Angle de la poche sur l'axe du bras : à 90°, elle pend droit sous le bras tendu (illustration) ; à 0°, elle prolonge
+la manche, comme elle tombe bras baissé. La manche suit l'avant-bras sans chaîne d'os qui la fasse tomber : à 60°, la
+poche de l'illustration, bras tendu, traverse le ventre et les hanches bras baissés (Idle_Loop, vu au rendu) ; à 25°,
+elle tombe le long du bras au repos et n'est plus qu'un pan en T. HYPOTHÈSE : 35°, entre les deux."""
+RACCORD_AU_BRAS = 1.0              # fraction sous laquelle un anneau emprunte ses poids au bras, sommet par sommet ; au-delà,
+                                   # la manche suit l'avant-bras d'un bloc
+COUPE_DES_POIDS = 1.5              # fraction dont la peau donne les poids de la manche passé le coude (l'avant-bras)
+GODETS = {'creux': 0.05, 'debut': 0.85, 'colonnes': [4, 6, 8, 10]}
+"""Illustration : la poche tombe en godets qui partent du coude. `colonnes` : les colonnes du dessous creusées (une sur
+deux), de `creux` au bord, de rien à la fraction `debut` (HYPOTHÈSE : 5 cm)."""
+LAMBEAUX_MANCHE = {'profondeur': 0.05, 'creux': 0.3, 'graine': 'humanoide--vetement--robe--manche-'}
+"""Illustration : le bord des cloches est déchiqueté ; contrat : dents lisibles à taille de jeu (HYPOTHÈSE : 5 cm, sous
+les 7 cm de la dernière bande de la manche, galonnée)."""
