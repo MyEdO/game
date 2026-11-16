@@ -4827,7 +4827,7 @@
     ],
     "trappings": [
       {
-        "text": "Caparaçon"
+        "id": "barde"
       },
       {
         "label": "Petite unité de Chevaliers",
@@ -6426,7 +6426,7 @@
     ],
     "trappings": [
       {
-        "text": "Caparaçon pour blaireau (2 PA sur la tête et le torse)"
+        "id": "caparacon-pour-blaireau"
       },
       {
         "pick": 1,
@@ -19635,7 +19635,7 @@
     ],
     "trappings": [
       {
-        "text": "Caparaçon"
+        "id": "barde"
       },
       {
         "label": "Petit contingent de suivants",
@@ -19923,7 +19923,7 @@
     ],
     "trappings": [
       {
-        "text": "Caparaçon"
+        "id": "barde"
       },
       {
         "label": "Petite unité de Chevaliers du Soleil flamboyant",
@@ -20208,7 +20208,7 @@
     ],
     "trappings": [
       {
-        "text": "Caparaçon"
+        "id": "barde"
       },
       {
         "label": "Petite unité de Chevaliers du Loup Blanc",
@@ -20511,7 +20511,7 @@
     ],
     "trappings": [
       {
-        "text": "Caparaçon"
+        "id": "barde"
       },
       {
         "label": "Petite unité de Chevaliers Panthères",

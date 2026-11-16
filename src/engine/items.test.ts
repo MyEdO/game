@@ -506,6 +506,12 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
     expect(worn.filter((id) => id === 'justaucorps-de-cuir' || id === 'veste-de-cuir')).toHaveLength(1);
   });
 
+  it('buildInventory garde au sac, sans l’équiper, l’armure de monture d’une dotation (#4135)', () => {
+    const items = buildInventory([{ id: 'justaucorps-de-cuir' }, { id: 'barde' }], makeRNG(1), idsDeTest);
+    expect(items.map((i) => [i.trappingId, i.equipped])).toEqual([['justaucorps-de-cuir', true], ['barde', false]]);
+    expect(wornArmourPoints(items)).toEqual(wornArmourPoints(buildInventory([{ id: 'justaucorps-de-cuir' }], makeRNG(1), idsDeTest)));
+  });
+
   it('buildInventory fusionne les Atouts ATTACHÉS de la ref (`qualities`) aux qualités de base du catalogue (#657 Lot 1)', () => {
     const [item] = buildInventory([{ id: 'epee-batarde', qualities: [{ id: 'solide' }] }], makeRNG(1), idsDeTest);
     const ids = item.qualities.map((q) => q.id);
