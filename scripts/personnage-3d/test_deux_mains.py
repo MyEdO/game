@@ -11,10 +11,10 @@ prise de chaque arme tourne comme celle des clips de son maniement ;
 sous une silhouette à os, les têtes déplacées sont celles du squelette déplacé explicite ; le prix du tronc compte le
 pire sommet de la peau du membre à sa marge, sur la tête d'os déplacée ; une peau dans un tronc en boîte en sort à sa
 marge en avançant, d'exactement ce qu'il faut, une peau dehors ne bouge pas, une peau que l'avancée ne sort pas, derrière
-la boîte ou au-delà de la borne, n'est pas poussée, et sa poussée requise reste l'ancienne (#4002, #3810) ; l'avancée de
-l'arme rend la poussée requise d'une seule image à cette image, y monte et en redescend en continu, nulle à `RACCORD`
-d'elle, et couvre deux images requises ; une image
-dont la translation n'a pas bougé de plus de 1e-6 m relit ses prix grossiers, et le chemin est celui du calcul complet ;
+la boîte ou au-delà de la borne, n'est pas poussée (#4002, #3810) ; l'avancée de l'arme rend la poussée requise d'une
+seule image à cette image, y monte et en redescend en continu, nulle à `RACCORD` d'elle, et couvre deux images
+requises ; l'arme n'avance que pour la peau des mains, et la peau entière que l'IK laisse dans le tronc se rend avec son
+jeu et la zone de son os dominant (#3810) ;
 le chemin d'un clip garde sa famille de poses tant qu'en changer paie plus que le prix qu'il y gagne, et en change sur
 l'intervalle le plus long, et son roulis suit le repère de l'arme qui tourne sur son manche (#3878)."""
 import json
@@ -30,9 +30,9 @@ from mathutils import Matrix, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from deux_mains import (CLIPS, CONTINUITE, ECART_DU_TRONC, IMAGES_PAR_SECONDE, MARGE_DES_BORNES, PRONATION, RACCORD,  # noqa: E402
-                        POUSSEE, ROULIS, SECONDES, TOURS, PeauDuBras, bras, chemin, choisir, cle, coude, ecarter,
-                        enfoncement, envelopper, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe, poussee_requise,
-                        prix_du_tronc, repere_de_l_arme, tour_du_repere)
+                        POUSSEE, SECONDES, TOURS, PeauDuBras, bras, chemin, cle, coude, ecarter, enfoncement,
+                        envelopper, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe, poser_les_bras,
+                        poussee_requise, prix_du_tronc, repere_de_l_arme, tour_du_repere)
 from sol import ecarts_des_os, rotations_de_peau, tetes_deplacees  # noqa: E402
 from test_sol import DEPLACEMENTS, PARENT, TETES, autour_de_l_avant, peaux  # noqa: E402
 from test_tronc import boite  # noqa: E402
@@ -226,16 +226,44 @@ class Tronc(unittest.TestCase):
         mince = tronc_en_boite(numpy.array([-0.2, -0.05, 0.8]), numpy.array([0.2, 0.05, 1.4]))
         self.assertIsNone(poussee_requise(mince, numpy.array([[[0.0, 0.045, 1.1]]])))
         self.assertIsNone(poussee_requise(tronc_en_boite(), numpy.array([[[0.0, 0.0, 1.1]]])))
-        dedans = numpy.array([[[0.0, -0.146, 1.1]]])
-        self.assertIsNotNone(poussee_requise(tronc_en_boite(), dedans, POUSSEE['borne'] - 0.02))
-        self.assertIsNone(poussee_requise(tronc_en_boite(), dedans, POUSSEE['borne'] - 0.005))
 
-    def test_la_poussee_requise_part_de_l_avancee_et_reste_l_ancienne_la_ou_l_avancee_ne_sort_pas(self):
-        tronc, dedans = tronc_en_boite(), numpy.array([[[0.0, -0.146, 1.1]]])
-        requises = ecarter([tronc] * 3, [dedans, numpy.array([[[0.0, 0.14, 1.1]]]), dedans], [0.01, 0.02, 0.03], [0.02, 0.02, 0.02],
-                           [True, True, False])
-        self.assertAlmostEqual(requises[0], 0.02 + 0.004 + ECART_DU_TRONC['marge'], delta=POUSSEE['tolerance'])
-        numpy.testing.assert_array_equal(requises[1:], [0.02, 0.03])
+    def test_la_poussee_requise_est_nulle_la_ou_l_avancee_ne_sort_pas_la_peau(self):
+        tronc = tronc_en_boite()
+        requises = ecarter([tronc] * 2, [numpy.array([[[0.0, -0.146, 1.1]]]), numpy.array([[[0.0, 0.14, 1.1]]])])
+        self.assertAlmostEqual(requises[0], 0.004 + ECART_DU_TRONC['marge'], delta=POUSSEE['tolerance'])
+        self.assertEqual(requises[1], 0.0)
+
+
+class PoserLesBras(unittest.TestCase):
+    class Image:
+        """Une image sur le tronc en boîte dont la peau des mains est `mains` et la peau entière posée `peau`, l'arme
+        translatée, chacune d'un sommet par zone de `zones` ; tout état paie le même prix."""
+        def __init__(self, mains, peau, zones):
+            self.tronc, self.zones = tronc_en_boite(), zones
+            self._mains, self._peau = numpy.array([mains], dtype=float), numpy.array([peau], dtype=float)
+
+        def prix(self, translation, roulis, tours):
+            return numpy.zeros((len(roulis), len(tours['r']), len(tours['l'])))
+
+        def poses(self, translation, etat):
+            return numpy.array(translation), {}
+
+        def peau(self, poses):
+            return self._peau + poses[0]
+
+        def mains(self, translation):
+            return self._mains + numpy.array(translation)
+
+    def test_l_arme_n_avance_que_pour_les_mains_et_la_peau_laissee_dedans_se_rend_avec_son_jeu_et_sa_zone(self):
+        dehors, dedans = (0.0, -0.2, 1.1), (0.0, -0.146, 1.1)
+        images = [self.Image([dehors], [dehors, (0.05, -0.146, 1.0)], ['main_d', 'avant_bras_g']),
+                  self.Image([dedans], [dedans, dehors], ['main_g', 'avant_bras_d'])]
+        poses, restes = poser_les_bras(images, [0.0, 1e3], [0.0, 0.0])
+        self.assertEqual(tuple(poses[0][2]), (0.0, 0.0, 0.0))
+        self.assertAlmostEqual(poses[1][2].y, -(0.004 + ECART_DU_TRONC['marge']), delta=POUSSEE['tolerance'])
+        self.assertEqual((restes[0][1], restes[0][2]), (0, 'avant_bras_g'))
+        self.assertAlmostEqual(restes[0][0], 0.004, delta=1e-3)
+        self.assertLess(restes[1][0], 0.0)
 
 
 class Enveloppe(unittest.TestCase):
@@ -261,28 +289,6 @@ class Enveloppe(unittest.TestCase):
         self.assertAlmostEqual(avancees[26], 0.05, places=12)
         self.assertTrue((avancees[20:27] >= 0.02 - 1e-12).all())
         self.assertLessEqual(numpy.abs(numpy.diff(avancees)).max(), 0.05 * math.pi / (2 * self.RACCORD_EN_IMAGES) + 1e-12)
-
-
-class Choisir(unittest.TestCase):
-    class Image:
-        """Une image dont l'état qui paie le moins suit la translation de l'arme ; compte ses tables de prix grossiers."""
-        def __init__(self):
-            self.grossieres = 0
-
-        def prix(self, translation, roulis, tours):
-            self.grossieres += len(roulis) == len(ROULIS)
-            r, a, b = numpy.ix_(numpy.asarray(roulis, dtype=float), numpy.asarray(tours['r'], dtype=float), numpy.asarray(tours['l'], dtype=float))
-            return ((r - 100 * translation[0]) / 15) ** 2 + ((a - 100 * translation[1]) / 6) ** 2 + ((b - 100 * translation[2]) / 6) ** 2
-
-    def test_une_image_dont_la_translation_n_a_pas_change_relit_ses_prix_grossiers_sans_changer_le_chemin(self):
-        images = [self.Image() for _ in range(3)]
-        avant = [Vector((0.0, 0.1, -0.1))] * 3
-        apres = [avant[0] + Vector((4e-7, 0.0, -4e-7)), Vector((0.9, -0.5, 0.4)), avant[2]]
-        grossiers = {}
-        choisir(images, avant, [0.0, 1.0, 1.0], [0.0] * 3, grossiers)
-        memoire = choisir(images, apres, [0.0, 1.0, 1.0], [0.0] * 3, grossiers)
-        self.assertEqual(memoire, choisir([self.Image() for _ in range(3)], apres, [0.0, 1.0, 1.0], [0.0] * 3, {}))
-        self.assertEqual([i.grossieres for i in images], [1, 2, 1])
 
 
 class Interpolation(unittest.TestCase):
