@@ -563,11 +563,11 @@ export const ECRIT_LU = {
       'scripts/personnage-3d/__pycache__/':
         'le bytecode que CPython écrit à l’import des modules de la chaîne 3D, ignoré par `__pycache__/` (.gitignore) : ' +
         'absent des listes que les gates tirent de git (`listerImage`, `git ls-files`) et du step « Arbre inchangé » ; ' +
-        'les constructions que `test_vehicule.py` et `test_element.py` lancent en sous-processus n’en écrivent pas ' +
+        'les constructions que `test_vehicule.py`, `test_decor.py` et `test_element.py` lancent en sous-processus n’en écrivent pas ' +
         '(`PYTHONDONTWRITEBYTECODE`)',
     },
     lit: ['scripts/personnage-3d/', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json',
-      'src/data/materials.json', 'src/data/vehicles.json'],
+      'src/data/materials.json', 'src/data/props.json', 'src/data/vehicles.json'],
     raison:
       '`tests.py` (#3145) dans le venv épinglé d’`environnement.mjs`, qui vit hors de l’arbre ' +
       '(`~/.cache/wfrp-personnage-3d/`) ; les tests écrivent leurs GLB sous `tempfile.TemporaryDirectory()`. LIT ' +
@@ -576,8 +576,9 @@ export const ECRIT_LU = {
       '`seuils.py`) ; `test_vehicule.py` reconstruit les véhicules ' +
       'de `vehicule/` sous `tempfile.TemporaryDirectory()`, d’après les matières de `src/data/materials.json` et les ponts ' +
       'de la caraque (`ponts` de sa fiche dans `src/data/vehicles.json`) et mesure les écarts entre la caraque bâtie et ses ' +
-      'ponts, et `test_element.py` les éléments sur base d’`element/`, sur les GLB épinglés lus dans le cache ' +
-      '`~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle dans la lane) ; les deux comparent ' +
+      'ponts, `test_decor.py` les décors de `decor/` dans le gabarit de leur recette (`volume.primitives` de leur fiche ' +
+      'dans `src/data/props.json`), et `test_element.py` les éléments sur base d’`element/`, sur les GLB épinglés lus dans le cache ' +
+      '`~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle dans la lane) ; les trois comparent ' +
       'leurs manifestes à ceux commités sous hotes/godot/projet/modeles/',
     delegueeAuPerimetre:
       'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation) : ' +

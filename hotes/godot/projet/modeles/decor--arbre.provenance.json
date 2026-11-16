@@ -1,0 +1,13 @@
+{
+  "model": "decor--arbre.glb",
+  "model_sha256": "890bcc5d918c114eab64fd8389ae6ea2c6ae4d23027fcf8bd228427e440442b9",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

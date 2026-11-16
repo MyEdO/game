@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/atelier.gd" id="1_atelier"]
 [ext_resource type="PackedScene" path="res://scenes/Lumiere.tscn" id="2_lumiere"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/effets.gd" id="7_effets"]
 [ext_resource type="PackedScene" path="res://scenes/VolumeDeScene.tscn" id="8_volume"]
 [ext_resource type="PackedScene" path="res://scenes/EtatsDuCorps.tscn" id="9_etats"]
+[ext_resource type="Script" path="res://scripts/montage_des_modeles.gd" id="10_modeles"]
 
 [sub_resource type="StandardMaterial3D" id="Materiau_sol"]
 albedo_color = Color(0.22, 0.2, 0.18, 1)
@@ -48,6 +49,11 @@ script = ExtResource("6_vehicule")
 [node name="Echantillon" type="Node3D" parent="."]
 
 [node name="Scene" parent="Echantillon" instance=ExtResource("8_volume")]
+
+[node name="Modeles" type="Node3D" parent="Echantillon/Scene" node_paths=PackedStringArray("volume", "chargeur")]
+script = ExtResource("10_modeles")
+volume = NodePath("..")
+chargeur = NodePath("../../../Modele")
 
 [node name="Effets" type="Node3D" parent="."]
 script = ExtResource("7_effets")

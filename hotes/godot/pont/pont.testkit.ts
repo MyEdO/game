@@ -7,6 +7,7 @@
 import { expect } from 'vitest';
 import { listage } from '../listage.mjs';
 import { DOSSIER_DES_MODELES, recupererModeles } from '../asset/release';
+import { decorDeTest } from '../asset/modeles.testkit.ts';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import type { Stockage } from '../../../src/lib/stockage';
 import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
@@ -74,6 +75,13 @@ let commites: Promise<ReturnType<typeof listage>> | undefined;
 /** Le listage des modèles commités du projet Godot, tel que `GET modeles/listage.json` le sert, le GLB épinglé de
  *  chacun déposé d'abord (`recupererModeles`) ; lu une fois par graphe de modules. */
 export const modelesCommites = () => (commites ??= recupererModeles({ dossier: DOSSIER_DES_MODELES, journal: () => {} }).then(() => listage(DOSSIER_DES_MODELES)));
+
+/** Les manifestes du listage commité `commites`, ceux des éléments `decor` retirés, plus l'élément `decor` de test
+ *  `decor--<prop>` (`decorDeTest`) de chaque type de `props` : les seuls décors qu'ils servent. */
+export const avecLesSeulsDecors = (commites: ReturnType<typeof listage>, ...props: string[]): Record<string, unknown> => ({
+  ...Object.fromEntries(Object.entries(commites.manifestes).filter(([, m]) => (m as { categorie?: string }).categorie !== 'decor')),
+  ...Object.fromEntries(props.map((prop) => [`decor--${prop}`, decorDeTest(prop)])),
+});
 
 /** `modeles` par `appel` sur `manifestes`, chacun avec les os de ses meshes rigides au listage commité `commites`. */
 export function servirLesModeles(appel: ReturnType<typeof table>['appel'], commites: ReturnType<typeof listage>, manifestes = commites.manifestes): void {

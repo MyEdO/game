@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "arbre"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "ecorce",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    },
+    {
+      "nom": "feuillage",
+      "palette": "vegetal",
+      "matiere": "prop--feuillage"
+    }
+  ],
+  "glb": {
+    "sha256": "890bcc5d918c114eab64fd8389ae6ea2c6ae4d23027fcf8bd228427e440442b9",
+    "octets": 230780
+  }
+}

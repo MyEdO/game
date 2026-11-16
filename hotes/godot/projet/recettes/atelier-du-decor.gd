@@ -3,15 +3,17 @@ extends SceneTree
 ## Les échantillons dans l'atelier (#3802, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») : l'atelier ouvert sur un
 ## pont figé (`PontFige`, `pont_fige.gd`, sur les échantillons figés par la sonde, `hotes/godot/recettes/decor.ts`,
 ## `figerLeDecor`). Chaque famille servie a sa liste de tête, de clé `modele/<famille>`, qui offre chacune de ses entrées
-## dans l'ordre servi. Un décor, la mer, une matière de relief, une matière de toit et un mur crénelé choisis tour à
-## tour : à chaque geste, l'atelier envoie l'entrée attendue, et sa scène (`VolumeDeScene`) pose autant de triangles que
-## le volume servi (la crête du mur crénelé comprise), chaque arête et chaque nappe de toit servies, et chaque couronne sauf celles que sa brèche abat ;
+## dans l'ordre servi. Un décor sans modèle, un décor servi par son modèle, la mer, une matière de relief, une matière de
+## toit et un mur crénelé choisis tour à tour : à chaque geste, l'atelier envoie l'entrée attendue, et sa scène
+## (`VolumeDeScene`) pose autant de triangles que le volume servi hors des surfaces des décors servis (`decors`, la crête
+## du mur crénelé comprise), et le modèle de chaque pose de chaque décor servi (`MontageDesModeles.poses`), chaque
+## arête et chaque nappe de toit servies, et chaque couronne sauf celles que sa brèche abat ;
 ## seuls les onglets Effets et Outils sont offerts, et aucune erreur ne se signale. « Recharger » garde l'échantillon
 ## posé.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/decor.json"
-## Les images au plus qu'attend la base posée à l'ouverture.
+## Les images au plus qu'attend la base posée à l'ouverture, et chaque modèle d'un échantillon.
 const IMAGES_DE_L_OUVERTURE := 600
 var _fautes: Array[String] = []
 
@@ -44,21 +46,48 @@ func _recetter() -> void:
 		var entree: Dictionary = JSON.parse_string(cle)
 		_choisir(atelier, "modele/%s" % entree.famille, entree.id)
 		await _images(2)
-		_conforme(pont, cle, decor.echantillon[cle], "%s %s" % [entree.famille, entree.id])
+		await _modeles_poses(atelier, decor.echantillon[cle])
+		_conforme(atelier, pont, cle, decor.echantillon[cle], "%s %s" % [entree.famille, entree.id])
 		derniere = cle
 	atelier._recharger()
 	await _images(4)
-	_conforme(pont, derniere, decor.echantillon[derniere], "après « Recharger »")
+	_conforme(atelier, pont, derniere, decor.echantillon[derniere], "après « Recharger »")
 	for faute in _fautes:
 		push_error("[atelier-du-decor] " + faute)
 	print("[atelier-du-decor] %d échantillons posés, erreurs=%d" % [decor.echantillon.size(), _fautes.size()])
 	quit(0 if _fautes.is_empty() else 1)
 
 
+## Les poses de chaque décor servi par `reponse` (`decors`), dont l'atelier attend les modèles (`IMAGES_DE_L_OUVERTURE`
+## images au plus).
+func _modeles_poses(atelier: Node, reponse: Dictionary) -> void:
+	var modeles: MontageDesModeles = atelier.get_node("Echantillon/Scene/Modeles")
+	for image in IMAGES_DE_L_OUVERTURE:
+		if modeles.poses().size() == _poses_servies(reponse):
+			return
+		await process_frame
+
+
+## Le nombre de poses des décors que `reponse` sert (`decors`).
+static func _poses_servies(reponse: Dictionary) -> int:
+	return reponse.decors.values().reduce(func(somme: int, servi: Dictionary) -> int: return somme + servi.poses.size(), 0)
+
+
+## Les triangles du volume servi de `reponse` que la scène peint : ceux de chaque surface hors des décors servis
+## (`decors`), que leurs modèles montrent.
+static func _triangles_peints(reponse: Dictionary) -> int:
+	var triangles := 0
+	for morceau: Dictionary in reponse.monde.morceaux:
+		for surface: Dictionary in morceau.surfaces:
+			if not reponse.decors.has(surface.get("decor")):
+				triangles += (int(surface.fin) - int(surface.debut)) / 3
+	return triangles
+
+
 ## L'entrée de clé `cle` envoyée en dernier, et l'échantillon que l'écran publie conforme à la réponse `reponse` de
-## `echantillon` : ses triangles, ses arêtes, ses nappes de toit et ses couronnes montrées, sous les seuls onglets Effets
-## et Outils, sans erreur.
-func _conforme(pont: PontFige, cle: String, reponse: Dictionary, geste: String) -> void:
+## `echantillon` : ses triangles peints (`_triangles_peints`), le modèle de chaque pose de ses décors servis, ses arêtes,
+## ses nappes de toit et ses couronnes montrées, sous les seuls onglets Effets et Outils, sans erreur.
+func _conforme(ouvert: Node, pont: PontFige, cle: String, reponse: Dictionary, geste: String) -> void:
 	_verifier(not pont.entrees.is_empty() and pont.entrees.back() == cle, "%s : entrée %s, attendu %s" % [geste, "aucune" if pont.entrees.is_empty() else pont.entrees.back(), cle])
 	var atelier: Dictionary = pont.ecran.get("atelier", {})
 	var publie: Variant = atelier.get("echantillon")
@@ -66,12 +95,14 @@ func _conforme(pont: PontFige, cle: String, reponse: Dictionary, geste: String) 
 	var attendu := {
 		famille = entree.famille,
 		id = entree.id,
-		triangles = reponse.monde.morceaux.reduce(func(somme: int, morceau: Dictionary) -> int: return somme + PackedFloat32Array(morceau.cases).to_byte_array().to_vector3_array().size(), 0),
+		triangles = _triangles_peints(reponse),
 		aretes = reponse.aretes.size(),
 		toits = reponse.toits.size(),
 		couronnes = reponse.couronnes.size() - reponse.couronnesAbattues.size(),
 	}
 	_verifier(publie is Dictionary and attendu.keys().all(func(k: String) -> bool: return int(publie[k]) == attendu[k] if attendu[k] is int else publie[k] == attendu[k]), "%s : échantillon publié %s, attendu %s" % [geste, publie, attendu])
+	var poses := (ouvert.get_node("Echantillon/Scene/Modeles") as MontageDesModeles).poses().size()
+	_verifier(poses == _poses_servies(reponse), "%s : %d modèles de décor posés, attendu les %d poses servies" % [geste, poses, _poses_servies(reponse)])
 	_verifier(atelier.get("onglets") == ["effets", "outils"], "%s : onglets offerts %s, attendu Effets et Outils" % [geste, atelier.get("onglets")])
 	_verifier(atelier.get("erreurs", []).is_empty(), "%s : erreurs %s" % [geste, atelier.get("erreurs")])
 	print("[atelier-du-decor] %s : %s" % [geste, JSON.stringify(publie)])

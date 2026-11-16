@@ -1,6 +1,7 @@
 ## Ce que les recettes rendues du voile de la vision lisent aux pixels de l'image (`voile-du-bati.gd`,
 ## `voile-de-la-vision.gd`, `voile-du-navire.gd`) : l'image rendue, la luminance linéaire d'un pixel, les pixels d'un
-## objet, la part de lumière d'une image voilée rapportée au témoin, et l'éclairage d'un extérieur du jeu.
+## objet, la part de lumière d'une image voilée rapportée au témoin, sa borne haute sous le pilote de compatibilité, la
+## vision servie uniforme ou case par case, et l'éclairage d'un extérieur du jeu.
 extends RefCounted
 
 ## La luminance (linéaire) d'un pixel du témoin sous laquelle sa part ne se lit pas.
@@ -74,3 +75,38 @@ static func interieur(pixels: Array[Vector2i]) -> Array[Vector2i]:
 	for pixel in pixels:
 		dedans[pixel] = true
 	return pixels.filter(func(pixel: Vector2i) -> bool: return [Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2)].all(func(pas: Vector2i) -> bool: return dedans.has(pixel + pas)))
+
+
+## La borne haute de la part lue d'un pixel de luminance linéaire `x` voilé à la part `part` : le pilote de
+## compatibilité mélange après l'encodage sRGB (`OUTPUT_IS_SRGB`, `art/voile.gdshader`), le voile y multiplie srgb(x)
+## par srgb(part), qui rend lin(srgb(x)·srgb(part)) / x de la lumière ; sous Forward+, la part est exacte.
+static func borne_du_pilote(x: float, part: float) -> float:
+	var melange := Color(x, x, x).linear_to_srgb().r * Color(part, part, part).linear_to_srgb().r
+	return Color(melange, melange, melange).srgb_to_linear().r / x
+
+
+## La médiane de la luminance linéaire de `image` aux pixels `pixels`.
+static func luminance_mediane(image: Image, pixels: Array[Vector2i]) -> float:
+	var luminances := PackedFloat32Array()
+	for pixel in pixels:
+		luminances.append(luminance(image.get_pixelv(pixel)))
+	luminances.sort()
+	return luminances[luminances.size() / 2]
+
+
+## La vision servie `servie` (`VisionDuMonde`), chaque octet à `octet`.
+static func uniforme(servie: Dictionary, octet: int) -> Dictionary:
+	var octets := PackedByteArray()
+	octets.resize(Marshalls.base64_to_raw(servie.masque).size())
+	octets.fill(octet)
+	return servie.merged({masque = Marshalls.raw_to_base64(octets)}, true)
+
+
+## La vision servie `servie`, l'octet de chaque case (`x`, `y`, couche d'indice `couche`) que `etat` rend.
+static func masque_de_vision(servie: Dictionary, etat: Callable) -> Dictionary:
+	var octets := Marshalls.base64_to_raw(servie.masque)
+	var largeur := int(servie.largeur)
+	var rangees := int(servie.rangeesParPlan)
+	for i in octets.size():
+		octets[i] = etat.call(i % largeur, (i / largeur) % rangees, i / (largeur * rangees))
+	return servie.merged({masque = Marshalls.raw_to_base64(octets)}, true)

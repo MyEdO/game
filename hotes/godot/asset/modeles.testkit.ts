@@ -56,6 +56,11 @@ export const vehiculeDeTest = (definition = 'caraque') => ({
   schema: 3, categorie: 'vehicule', cle: { definition }, liaison: { mode: 'rigide' }, surfaces: [{ nom: 'metal', palette: 'metal' }], glb: empreinte(GLB_SANS_BASE),
 });
 
+/** Le manifeste d'un décor, élément sans base, du type de décor `prop` (`props.json`), pour `GLB_SANS_BASE`. */
+export const decorDeTest = (prop = 'tonneau') => ({
+  schema: 3, categorie: 'decor', cle: { prop }, liaison: { mode: 'rigide' }, surfaces: [{ nom: 'metal', palette: 'metal' }], glb: empreinte(GLB_SANS_BASE),
+});
+
 /** Le texte de licence de pack que `productionDeTest` dépose : une production importable établit sa licence. */
 export const LICENCE_DE_PRODUCTION = 'LICENSE-Pack.txt';
 /** Le contenu de `LICENCE_DE_PRODUCTION`. */

@@ -3,7 +3,8 @@
 ## par case, chacun un nœud nommé par sa clé, gardé tant que son empreinte ne bouge pas (`poser`, `manquants`), une
 ## instance vue sans ombre portée, habillée du shader de monde (`art/monde.gdshader`), et une instance en ombre seule du
 ## même maillage, dans une matière standard, une surface par matière, texturée ou colorée par sommet, rendue des deux
-## côtés hors des surfaces d'un navire, la mer de chaque navire bordée par sa coque (`border_la_mer`) ; ce que le regard
+## côtés hors des surfaces d'un navire et de celles des décors que leur modèle montre (`peindre_sans`), la mer de chaque
+## navire bordée par sa coque (`border_la_mer`) ; ce que le regard
 ## en retire, masqué case par case dans le shader sans toucher ni aux maillages ni à leur ombre (`retirer`) ; ce que le
 ## groupe en voit, voilé de même case par case et fondu d'une vision à la suivante (`voir`) ; le voile de cette vision
 ## sur chaque navire (`voile`, jusqu'à `oublier_le_voile`, `art/voile.gdshader`), lié au sol de chaque case des morceaux
@@ -18,10 +19,14 @@ extends Node3D
 
 ## Le fondu de la vision (`voir`) est parvenu à sa fin, aucune vision n'attendant plus (`part_du_fondu`).
 signal fondu_fini
+## Le masque du retrait a été posé (`retirer`).
+signal retire
 
 ## La couche de rendu de l'ombre des luminaires (`_morceau`), la deuxième (`VisualInstance3D.layers`), que la lampe d'un
 ## foyer exclut de son ombre (`Foyer`).
 const COUCHE_DES_LUMINAIRES := 2
+## La couche de rendu de tout ce qui n'est pas un luminaire, la première.
+const COUCHE_DU_MONDE := 1
 ## Netteté de la projection d'une texture de matière sur les trois axes (`texturer`, `_matiere`).
 const NETTETE_DU_MOTIF := 4.0
 ## Le kit des arêtes (`CONTRAT.md`, méthode `aretes`) : une pièce par nœud racine, `<famille>--<pièce>`.
@@ -57,6 +62,8 @@ const SANS_CASE := INF
 var metres_par_case := 1.0
 ## Par id de navire, le contour de sa coque à sa flottaison dans le plan du volume (`border_la_mer`).
 var _coques := {}
+## Les ids des types de décor dont le modèle montre les surfaces, chacun à `true` (`peindre_sans`).
+var _decors_montres := {}
 ## Par nom de matière, la matière de rendu des surfaces des morceaux, que le masque lie (`retirer`), et celle des
 ## nappes et des couronnes, qu'il ne lie jamais : le retrait d'une nappe est par nœud (`cacher`).
 var _matieres_masquees := {}
@@ -166,11 +173,18 @@ func retirer(retrait: Variant) -> void:
 	_retrait = null if _masque == null else ImageTexture.create_from_image(_masque)
 	for matiere: ShaderMaterial in _matieres_masquees.values():
 		matiere.set_shader_parameter("retrait", _retrait)
+	retire.emit()
 
 
 ## Si le masque posé (`retirer`) retire la case `case` du plan de première rangée `rangee` (`MorceauDuMonde.rangee`).
 func retiree(case: Vector2i, rangee: int) -> bool:
 	return _masque != null and _masque.get_pixelv(MiseEnPage.texel_du_masque(case, rangee)).r8 != 0
+
+
+## Si le masque posé (`retirer`) retire la case `case` (sa couche en `z`) du plan `pose` de sa couche
+## (`MiseEnPage.rangee_de_pose`), celui où se rangent les faces d'un décor (`PoseDeDecor.case`).
+func posee_retiree(case: Vector3i) -> bool:
+	return _masque != null and retiree(Vector2i(case.x, case.y), int(MiseEnPage.rangee_de_pose(_couches[case.z], _rangees_d_une_couche)))
 
 
 ## La vision du groupe (`vision`, `CONTRAT.md`, section « Monde », `VisionDuMonde` : `{ masque, largeur, rangees,
@@ -347,6 +361,26 @@ func vider() -> void:
 		reconcilier(parent, [], {}, Callable())
 
 
+## Les surfaces des décors `decors` (ids de `props.json`, `decor` d'une surface, `CONTRAT.md`, section « Monde ») ni
+## vues ni en ombre, leur modèle les montrant (`decors` de la vue, `MontageDesModeles`), à la place de celles d'avant :
+## chaque morceau posé qui porte un décor entré ou sorti se remaille, et chaque morceau à poser les laisse.
+func peindre_sans(decors: Array) -> void:
+	var montres := {}
+	for decor: String in decors:
+		montres[decor] = true
+	if montres == _decors_montres:
+		return
+	var changes := {}
+	for parmi: Dictionary in [montres, _decors_montres]:
+		for decor: String in parmi:
+			if montres.has(decor) != _decors_montres.has(decor):
+				changes[decor] = true
+	_decors_montres = montres
+	for morceau: Node3D in _morceaux.get_children():
+		if morceau.get_meta("decors").any(func(decor: String) -> bool: return changes.has(decor)):
+			_mailler(morceau, morceau.get_meta("geometrie"))
+
+
 ## La mer du navire `navire` (les surfaces `flottaison` du volume, `CONTRAT.md`, section « Monde ») bordée par sa coque,
 ## de contour `contour` dans le plan horizontal du repère global (`MontageDeVehicule.contour_sous`) : chaque morceau
 ## posé qui la porte se remaille, peint hors d'elle seulement.
@@ -409,8 +443,9 @@ static func _manquants_sous(parent: Node, voulus: Array) -> Array:
 
 ## Le nœud du morceau `morceau` (`MorceauDuMonde`, `_vu_et_ombre`) maillé (`_mailler`) ; s'il porte un luminaire
 ## (surfaces `luminaire`, #3811), `Ombre` sans ses surfaces et `OmbreDesLuminaires`, en ombre seule sur
-## `COUCHE_DES_LUMINAIRES`, avec elles seules ; les navires dont il porte la mer (`flottaison`), et sa géométrie s'il en
-## porte, que `border_la_mer` remaille.
+## `COUCHE_DES_LUMINAIRES`, avec elles seules ; les navires dont il porte la mer (`flottaison`) et les décors dont il
+## porte des surfaces (`decor`), et sa géométrie s'il porte l'un ou l'autre, que `border_la_mer` et `peindre_sans`
+## remaillent.
 func _morceau(morceau: Dictionary) -> Node3D:
 	var noeud := _vu_et_ombre()
 	if morceau.surfaces.any(_est_d_un_luminaire):
@@ -419,11 +454,16 @@ func _morceau(morceau: Dictionary) -> Node3D:
 		noeud.add_child(des_luminaires)
 	var flottaisons: Array = morceau.surfaces.filter(func(surface: Dictionary) -> bool: return surface.has("flottaison")).map(func(surface: Dictionary) -> String: return surface.flottaison)
 	noeud.set_meta("flottaisons", flottaisons)
+	var decors := {}
+	for surface: Dictionary in morceau.surfaces:
+		if surface.has("decor"):
+			decors[surface.decor] = true
+	noeud.set_meta("decors", decors.keys())
 	var cases := {}
 	for c in PackedFloat32Array(morceau.cases).to_byte_array().to_vector3_array():
 		cases[Vector3i(c)] = true
 	noeud.set_meta("cases", cases.keys())
-	if not flottaisons.is_empty():
+	if not flottaisons.is_empty() or not decors.is_empty():
 		noeud.set_meta("geometrie", morceau)
 	_mailler(noeud, morceau)
 	return noeud
@@ -548,7 +588,8 @@ func _cacher_sous(parent: Node3D, cles: Array) -> void:
 ## matière, texturée ou colorée par sommet (`_matiere`, liée au masque si `masquee`), chaque sommet portant en `UV2` le
 ## texel au masque de la case de son triangle que `texel_de` rend (la case de chaque triangle lue en `x, y, z` à plat
 ## dans `cases`), chaque tableau retourné en entier (`_retournes`) ;
-## sans les surfaces d'un navire (`navire`), que le rayon du pointeur touche et que le modèle du navire montre ; la mer
+## sans les surfaces d'un navire (`navire`), que le rayon du pointeur touche et que le modèle du navire montre, ni celles
+## d'un décor que son modèle montre (`decor`, `peindre_sans`), que le rayon touche de même ; la mer
 ## d'un navire (`flottaison`) hors du contour de sa coque (`border_la_mer`, `_hors_du_contour`), entière tant qu'il
 ## n'est pas connu ; de ses seules surfaces que `retenue` retient, s'il est donné. Godot tient pour face avant le sens
 ## horaire, le volume le sens trigonométrique : chaque tableau retourné en entier retourne chaque triangle.
@@ -563,7 +604,7 @@ func _maillage_de(geometrie: Dictionary, texel_de: Callable, masquee: bool, rete
 	var rangs := [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_COLOR, Mesh.ARRAY_TEX_UV2]
 	var maillage := ArrayMesh.new()
 	for surface: Dictionary in geometrie.surfaces:
-		if surface.has("navire") or (retenue.is_valid() and not retenue.call(surface)):
+		if surface.has("navire") or _decors_montres.has(surface.get("decor")) or (retenue.is_valid() and not retenue.call(surface)):
 			continue
 		var tableaux := []
 		tableaux.resize(Mesh.ARRAY_MAX)

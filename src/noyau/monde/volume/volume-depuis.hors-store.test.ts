@@ -90,8 +90,8 @@ describe('volumeDepuis : la reprise rend le calcul entier (#3993)', () => {
     reprendEgal(moveEntityTo(s, 'tonneau-1', { x: 5, y: 10 }), avant.etat, 'tonneau déplacé');
     reprendEgal(moveEntityTo(s, 'table-1', { x: 12, y: 3 }), avant.etat, 'table déplacée');
     const releve = paintHeight(s, { x: 10, y: 5 }, 0.8, 1, 0);
-    const lettre = (e: EtatDuVolume) => e.decorsDEntite.get('lettre-1')!;
-    expect(lettre(entier(releve).etat).pied, 'le pied de la lettre suit son support').not.toBe(lettre(avant.etat).pied);
+    const lettre = (e: EtatDuVolume) => e.decors.get('entite/lettre-1')!.pose;
+    expect(lettre(entier(releve).etat).piedM, 'le pied de la lettre suit son support').not.toBe(lettre(avant.etat).piedM);
     reprendEgal(releve, avant.etat, 'support relevé');
   });
 

@@ -273,6 +273,12 @@ static func texel_de_nappe(case: Vector2i, couche: int, rangees_par_plan: int) -
 	return texel_du_masque(case, 2 * couche * rangees_par_plan)
 
 
+## La première rangée, dans le masque du retrait (`RetraitDuMonde`, deux plans de `rangees_par_plan` rangées par
+## couche), du plan `pose` de la couche d'indice `couche`, celui qui suit son plan `sol` (`texel_de_nappe`).
+static func rangee_de_pose(couche: int, rangees_par_plan: int) -> float:
+	return (2 * couche + 1) * rangees_par_plan
+
+
 ## Le texel, dans le masque de la vision (`VisionDuMonde`, un plan de `rangees_par_plan` rangées par couche), de la case
 ## `case` de la couche d'indice `couche`.
 static func texel_de_vision(case: Vector2i, couche: int, rangees_par_plan: int) -> Vector2i:
