@@ -239,10 +239,9 @@ def champ(sommets):
     return Champ(origine, numpy.where(dedans, plat, -numpy.minimum(plat, portee)))
 
 
-def lire_le_champ(champ_, points, gradient=False):
+def lire_le_champ(champ_, points):
     """L'enfoncement de chaque point de `points` (…, 3), donnés dans le repère du tronc au repos, dans le `Champ`
-    `champ_`, interpolé en trilinéaire, `-CHAMP['portee']` hors de sa grille ; avec `gradient`, aussi son gradient
-    (…, 3)."""
+    `champ_`, interpolé en trilinéaire, `-CHAMP['portee']` hors de sa grille."""
     forme = numpy.array(champ_.valeurs.shape)
     g = (points - champ_.origine) / CHAMP['pas']
     i = numpy.floor(g).astype(numpy.int64)
@@ -256,16 +255,7 @@ def lire_le_champ(champ_, points, gradient=False):
     x00, x01 = v[0, 0, 0] + fx * (v[1, 0, 0] - v[0, 0, 0]), v[0, 0, 1] + fx * (v[1, 0, 1] - v[0, 0, 1])
     x10, x11 = v[0, 1, 0] + fx * (v[1, 1, 0] - v[0, 1, 0]), v[0, 1, 1] + fx * (v[1, 1, 1] - v[0, 1, 1])
     y0, y1 = x00 + fy * (x10 - x00), x01 + fy * (x11 - x01)
-    valeur = numpy.where(dans, y0 + fz * (y1 - y0), -CHAMP['portee'])
-    if not gradient:
-        return valeur
-    pente = numpy.zeros(points.shape)
-    for coin, vu in v.items():
-        poids = [f if c else 1 - f for c, f in zip(coin, (fx, fy, fz))]
-        for axe in range(3):
-            autres = numpy.prod([p for k, p in enumerate(poids) if k != axe], axis=0)
-            pente[..., axe] += vu * autres * (1 if coin[axe] else -1) / CHAMP['pas']
-    return valeur, numpy.where(dans[..., None], pente, 0.0)
+    return numpy.where(dans, y0 + fz * (y1 - y0), -CHAMP['portee'])
 
 
 class TroncPose(NamedTuple):
@@ -286,13 +276,16 @@ def tronc_pose(tronc, matrices):
     return TroncPose(positions, tetes, [champ((p @ retour.T)[tronc.triangles]) for p in positions], retour)
 
 
-def profondeurs(tronc, points, gradient=False):
+def profondeurs(tronc, points):
     """Par jeu, l'enfoncement dans le `TroncPose` `tronc` de chaque point de `points` (jeux, …, 3), dans le repère du
-    rig (`lire_le_champ`) ; avec `gradient`, aussi son gradient dans le repère du rig."""
-    vus = [lire_le_champ(c, p @ tronc.retour.T, gradient) for c, p in zip(tronc.champs, points)]
-    if not gradient:
-        return numpy.stack(vus)
-    return numpy.stack([v for v, _ in vus]), numpy.stack([g for _, g in vus]) @ tronc.retour
+    rig (`lire_le_champ`)."""
+    return numpy.stack([lire_le_champ(c, p @ tronc.retour.T) for c, p in zip(tronc.champs, points)])
+
+
+def avant(tronc):
+    """L'avant (3,) du `TroncPose` `tronc` dans le repère du rig : sa posture (`posture_du_tronc`) appliquée à l'avant
+    du repos, −Y du rig."""
+    return -tronc.retour[AXE]
 
 
 class ChaineDuBras(NamedTuple):

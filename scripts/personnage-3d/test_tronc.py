@@ -1,6 +1,7 @@
 """tronc (#3810) : la posture du tronc est la moyenne pondérée des rotations de ses os ; le champ d'une boîte fermée porte
-son enfoncement, tournée ou non, signé et à 2 mm près, profond compris, son gradient vers sa face la plus proche ; un tube ouvert en haut et en bas contient son axe et non le dessus de son
-ouverture, couché par ses os comme debout ; un point loin du tronc est dehors ; sous une silhouette à os, le tronc posé
+son enfoncement, tournée ou non, signé et à 2 mm près, profond compris ; un tube ouvert en haut et en bas contient son axe et
+non le dessus de son ouverture, couché par ses os comme debout, et son avant suit sa posture ; un point loin du tronc est
+dehors ; sous une silhouette à os, le tronc posé
 et la peau du membre posée sous une autre pose de la chaîne sont ceux du squelette déplacé explicite (#4002)."""
 import math
 import sys
@@ -14,8 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from sol import tetes_deplacees  # noqa: E402
 from test_sol import DECALAGE, DEPLACEMENTS, PARENT, POIDS, PROPRE, SOMMET, autour_de_l_avant, peaux  # noqa: E402
-from tronc import (CHAMP, MembrePose, PeauDuMembre, PeauDuTronc, champ, lire_le_champ, membre_pose, posture_du_tronc,  # noqa: E402
-                   poser_le_membre, profondeurs, tronc_pose)
+from tronc import (CHAMP, MembrePose, PeauDuMembre, PeauDuTronc, avant, champ, lire_le_champ, membre_pose,  # noqa: E402
+                   posture_du_tronc, poser_le_membre, profondeurs, tronc_pose)
 
 BAS, HAUT = numpy.array([-0.2, -0.15, 0.8]), numpy.array([0.2, 0.15, 1.4])
 
@@ -79,10 +80,8 @@ class ChampDUneBoite(unittest.TestCase):
                               [0.0, 0.0, 1.4 + 0.005], [0.0, -0.15 - 0.012, 1.1], [0.2 + 0.003, 0.03, 1.0]])
         numpy.testing.assert_allclose(lire_le_champ(c, points @ tour.T), [0.004, 0.01, 0.007, -0.005, -0.012, -0.003], atol=0.002)
 
-    def test_un_point_profond_lit_sa_profondeur_et_un_gradient_vers_la_face_la_plus_proche(self):
-        valeur, pente = lire_le_champ(champ(boite()), numpy.array([[0.01, -0.15 + 0.08, 1.1]]), gradient=True)
-        self.assertAlmostEqual(valeur[0], 0.08, delta=0.002)
-        numpy.testing.assert_allclose(pente[0] / numpy.linalg.norm(pente[0]), (0.0, 1.0, 0.0), atol=0.01)
+    def test_un_point_profond_lit_sa_profondeur(self):
+        self.assertAlmostEqual(lire_le_champ(champ(boite()), numpy.array([[0.01, -0.15 + 0.08, 1.1]]))[0], 0.08, delta=0.002)
 
     def test_un_point_loin_du_tronc_est_dehors(self):
         self.assertEqual(lire_le_champ(champ(boite()), numpy.array([[0.0, -0.9, 1.1]]))[0], -CHAMP['portee'])
@@ -106,6 +105,11 @@ class ChampDUnTube(unittest.TestCase):
         vus = profondeurs(self.tronc(couche), points[None])[0]
         self.assertGreater(vus[0], 0)
         self.assertLess(vus[1], 0)
+
+    def test_son_avant_suit_sa_posture(self):
+        numpy.testing.assert_allclose(avant(self.tronc(numpy.eye(4))), (0.0, -1.0, 0.0), atol=1e-12)
+        couche = autour_de_x(math.radians(90))
+        numpy.testing.assert_allclose(avant(self.tronc(couche)), couche[:3, :3] @ (0.0, -1.0, 0.0), atol=1e-12)
 
 
 LOCALES = [numpy.eye(4), autour_de_l_avant(numpy.pi / 2), autour_de_l_avant(-numpy.pi / 3)]
