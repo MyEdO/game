@@ -5575,7 +5575,7 @@
     "talents": [],
     "trappings": [
       {
-        "text": "barde"
+        "id": "barde"
       }
     ],
     "spells": [],
@@ -13462,6 +13462,12 @@
       },
       {
         "id": "arme-simple"
+      },
+      {
+        "id": "composant-d-incantation",
+        "count": {
+          "fixed": 4
+        }
       }
     ],
     "spells": [
@@ -13484,7 +13490,8 @@
     "grantGroups": [
       "skaven",
       "nurgle"
-    ]
+    ],
+    "maison": "Quatre composants pour les « composants pour des sorts » (Middenheim 02 l.2568) : un par Sort d'Arcane ou de Domaine connu. Valeur d'adaptation du ticket #4132 (https://github.com/MyEdO/game/issues/4132)."
   },
   {
     "id": "maitre-moulder-skree",

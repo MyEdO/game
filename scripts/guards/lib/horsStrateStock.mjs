@@ -489,7 +489,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/scenes#projet', ref: '.worldMap.routes[].billets{}.marchandage.paliers[]', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.worldMap.routes[].perils[]', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.worldMap.routes[].provenances', occurrence: 1 },
-  { fichier: 'src/scenes#projet', ref: '.worldMap.routes[].provenances.km', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.worldMap.routes[].refus', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.worldMap.routes[].riverExposure', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.worldMap.routes[].riverPerils[]', occurrence: 1 },

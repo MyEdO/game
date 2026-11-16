@@ -8,6 +8,7 @@ import { Coins } from './Coins';
 import { OptionChooser } from './OptionChooser';
 import {
   appariementEnChambres,
+  chambreDeTroupe,
   lodgingOptions,
   foodOptions,
   nourrituresDeTroupe,
@@ -114,9 +115,10 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const commonFood = followers.length && followers.every((h) => cfgOf(h).food === cfgOf(followers[0]).food) ? cfgOf(followers[0]).food : undefined;
   // Menu de troupe : Couchage = les chambres appariées (`appariementEnChambres`) d'une auberge, puis l'offre sans chambre du
   // lieu ; Nourriture = `nourrituresDeTroupe`.
-  const masterFood = nourrituresDeTroupe(p.places);
+  const masterFood = nourrituresDeTroupe(p);
   const applyTroupe = (patch: Partial<{ lodging: RestLodging; food: RestFood }>) => { for (const h of followers) regler(h.id, patch); };
-  const chambresDeTroupe = appariementEnChambres(followers);
+  const offreDeTroupe = chambreDeTroupe(p);
+  const chambresDeTroupe = offreDeTroupe ? appariementEnChambres(followers, offreDeTroupe) : {};
   const enChambres = followers.length > 0 && followers.every((h) => cfgOf(h).lodging === chambresDeTroupe[h.id]);
   // Part de chaque héros dans la note (`partsDuRepos`, dont `restCost` est la somme).
   const parts = partsDuRepos(p, party);
@@ -140,8 +142,8 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
               layout="seg"
               groupLabel="Couchage"
               options={[
-                ...(p.places.auberge ? [{ key: 'chambres', label: <><Icon id="repos/lit" size="sm" /> {t('rf.chambres')}</>, selected: enChambres, onSelect: () => { for (const h of followers) regler(h.id, { lodging: chambresDeTroupe[h.id] }); } }] : []),
-                ...lodgingOptions(p.places).map((l) => ({ key: l, label: <><Icon id={LODGING_META[l].icon} size="sm" /> {t(LODGING_META[l].labelKey)}</>, selected: commonLodging === l, onSelect: () => applyTroupe({ lodging: l }) })),
+                ...(offreDeTroupe ? [{ key: 'chambres', label: <><Icon id="repos/lit" size="sm" /> {t('rf.chambres')}</>, selected: enChambres, onSelect: () => { for (const h of followers) regler(h.id, { lodging: chambresDeTroupe[h.id] }); } }] : []),
+                ...lodgingOptions(p).map((l) => ({ key: l, label: <><Icon id={LODGING_META[l].icon} size="sm" /> {t(LODGING_META[l].labelKey)}</>, selected: commonLodging === l, onSelect: () => applyTroupe({ lodging: l }) })),
               ]}
             />
             <OptionChooser
@@ -193,7 +195,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
                   <OptionChooser
                     layout="seg"
                     groupLabel="Nourriture"
-                    options={foodOptions(p.places, h).map((f) => ({ key: f, label: <><Icon id={FOOD_META[f].icon} size="sm" /> {t(FOOD_META[f].labelKey)}</>, selected: cfg.food === f, onSelect: () => regler(h.id, { food: f }) }))}
+                    options={foodOptions(p, h).map((f) => ({ key: f, label: <><Icon id={FOOD_META[f].icon} size="sm" /> {t(FOOD_META[f].labelKey)}</>, selected: cfg.food === f, onSelect: () => regler(h.id, { food: f }) }))}
                   />
                 </Row>
               )}

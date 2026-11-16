@@ -15,7 +15,10 @@ import type { Scene } from './monde/scene';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { z } from 'zod';
-import type { refusRouteSchema, routePerilSchema, worldMapParamsSchema } from '../data/schemas/defs-scenes/worldmap';
+import type { placeServiceSchema, routePerilSchema, worldMapParamsSchema } from '../data/schemas/defs-scenes/worldmap';
+import type { refusDAccesSchema } from '../data/schemas/grammaire/acces';
+import type { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import type { provenanceDeValeurSchema } from '../data/schemas/grammaire/route';
 import { garanti } from '../lib/garanti';
 import { normalizeScene } from './monde/scene';
@@ -27,6 +30,11 @@ import { isTradeHubEntry } from '../engine/cargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
 import { findNavalPortById, findLieuServiceById, coreAxisIds, semencesDeScene } from '../data';
+import { colonneDeLaTaille } from '../engine/disponibilite';
+import type { Settlement } from '../data/schemas/grammaire/valeurs';
+
+/** Le marché qu'un auteur pose sur un lieu : le profil du moteur sans sa Taille, que porte le lieu (`tailleDuLieu`). */
+export type MarcheDAuteur = Omit<LandMarketProfile, 'taille'>;
 
 /** Lieu posé sur la carte. On y arrive par un trajet (`arriverAuLieu`) ; « Explorer » entre dans sa `scene`. */
 export interface MapPlace {
@@ -48,15 +56,16 @@ export interface MapPlace {
    *  par `resolvePortRef`, `parseProject`) ; le type reste NON-partiel car tout consommateur aval lit
    *  `place.port` APRÈS résolution (jamais la forme sparse brute). */
   port?: { ref?: string } & import('../engine/seaVoyage').PortProfile & { lighthouse?: boolean };
+  /** Taille d'un lieu SANS port (`tailleDuLieu`), MSRC 13 l.44-50 ; absente : le lieu n'est pas une agglomération. */
+  taille?: number;
   /** Indices de COMMERCE TERRESTRE/FLUVIAL (Index géographique, MSRC 13 l.183-278) — présent = ce Lieu
-   *  offre des opportunités de commerce de cargaison (achat/vente/rumeurs). Taille + Richesse + colonne
-   *  Produits, éditables par l'auteur (aucun index codé en dur). */
-  market?: import('../engine/landCargo').LandMarketProfile;
+   *  offre des opportunités de commerce de cargaison (achat/vente/rumeurs). Richesse + colonne Produits,
+   *  éditables par l'auteur ; la Taille est celle du lieu (`marcheDuLieu`). */
+  market?: MarcheDAuteur;
   /** SERVICES EXTENSIBLES du lieu au-delà du port et du marché (#343) — auberge/temple/forgeron/guilde…,
    *  `kind` désigne une entrée du catalogue `lieux-services.json`. Port et marché NE sont PAS dupliqués ici : ils
    *  gardent leur propre champ riche (`port`/`market`) et `placeServices` les compose avec ceux-ci en
-   *  une liste unique. Une auberge peut porter son offre de couchage PROPRE (`rest`) ou, à défaut,
-   *  dériver de l'offre de repos de la scène liée. */
+   *  une liste unique. Un établissement d'hébergement porte sa qualité et ses offres d'auberge (`rest`). */
   services?: PlaceService[];
   /** POI (#345 phase 5, option A) : marqueurs cliquables du PLAN de ce lieu (onglet Plan du hub,
    *  `MapCanvas` en second consommateur — AUCUNE forme nouvelle, juste des marqueurs). Position en
@@ -94,30 +103,44 @@ export type PlacePoi = {
 
 /** Un ÉTABLISSEMENT attaché à un lieu (catalogue `lieux-services.json`) — hors port/marché, qui portent leur propre
  *  schéma riche. `id` STABLE, unique dans le lieu (#4277) : un lieu porte plusieurs établissements d'un même type ;
- *  `kind` désigne l'entrée du catalogue ; `label` = surcharge d'affichage facultative d'auteur ; `rest` = offre de
- *  couchage/repas PROPRE à cet établissement d'hébergement (`hebergement` du catalogue), à défaut de quoi il dérive de
- *  l'offre de repos de la scène (`placeServices`). */
-export interface PlaceService {
-  id: string;
-  kind: { id: string };
-  label?: string;
-  rest?: RestPlaces;
+ *  `kind` désigne l'entrée du catalogue ; `label` = surcharge d'affichage facultative d'auteur ; `rest` = qualité et
+ *  offres d'auberge d'un établissement d'hébergement (`hebergement` du catalogue, `estUnHebergement`) ; son accès réservé
+ *  (`Acces`). */
+export type PlaceService = Omit<z.output<typeof placeServiceSchema>, 'when' | 'refus'> & Acces;
+
+/** Une offre d'auberge d'un établissement (`offreDAubergeSchema`). */
+export type OffreDAuberge = z.output<typeof offreDAubergeSchema>;
+
+/** L'établissement `s` est-il d'hébergement (`hebergement` de son type au catalogue `lieux-services.json`) ? */
+export function estUnHebergement(s: PlaceService): boolean {
+  return findLieuServiceById(s.kind.id)?.hebergement === true;
+}
+
+/** Les offres d'auberge par défaut du type d'établissement `kind` (`offres` du catalogue `lieux-services.json`) ; aucune
+ *  pour un type qui n'en porte pas. */
+export function offresDuType(kind: string): readonly OffreDAuberge[] {
+  return findLieuServiceById(kind)?.offres ?? [];
 }
 
 /** Péripétie d'AUTEUR sur une route : tirée chaque jour de voyage à `chancePct` %. */
 export type RoutePeril = z.infer<typeof routePerilSchema>;
 
 /** Route entre deux lieux (`a` ↔ `b`, bidirectionnelle par défaut), praticable ou fermable. */
-export type MapRoute = MapRouteTrace & Praticabilite;
+export type MapRoute = MapRouteTrace & Acces;
 
-/** Le trajet est-il PRATICABLE (algèbre `Condition`, cf. `evalCondition`) — axe ARÊTE du gating
- *  narratif, indépendant de `MapPlace.when` : un tronçon se ferme sans que le lieu déjà visité
- *  cesse d'exister sur la carte. `when` absent = toujours praticable ; posé, il vient avec `refus`, la
- *  raison JOUEUR de l'indisponibilité portée par `GatedAction` (infobulle — arbitrage 2026-08-24, jamais
- *  inline par défaut). Lue par `routesFrom`. */
-export type Praticabilite =
-  | { when?: undefined; refus?: z.infer<typeof refusRouteSchema> }
-  | { when: Condition; refus: z.infer<typeof refusRouteSchema> };
+/** L'ACCÈS RÉSERVÉ d'une route ou d'un établissement (`champsDAcces`, algèbre `Condition`) — pour la route, axe ARÊTE du
+ *  gating narratif, indépendant de `MapPlace.when` : un tronçon se ferme sans que le lieu déjà visité cesse d'exister
+ *  sur la carte. `when` absent = toujours ouvert ; posé, il vient avec `refus`, la raison JOUEUR de la fermeture
+ *  (infobulle — arbitrage 2026-08-24, jamais inline par défaut). Jugé par `refusDAcces`. */
+export type Acces =
+  | { when?: undefined; refus?: z.infer<typeof refusDAccesSchema> }
+  | { when: Condition; refus: z.infer<typeof refusDAccesSchema> };
+
+/** La raison de la fermeture de l'accès `acces` sous `ctx`, ou `null` : il est ouvert. Source unique du verdict d'un
+ *  accès réservé, route et établissement. PUR. */
+export function refusDAcces(acces: Acces, ctx: ConditionCtx): string | null {
+  return acces.when !== undefined && !evalCondition(acces.when, ctx) ? acces.refus.texte : null;
+}
 
 /** Billet d'auteur d'un passage payant (EDO 01 l.142) : un forfait par place, payé une fois, d'avance,
  *  au départ de la route qui le porte, valable pour elle et pour sa `suite`. */
@@ -282,8 +305,37 @@ export function placeOfScene(map: WorldMap | null | undefined, sceneId: string |
   return map.places.find((p) => p.scene.id === sceneId);
 }
 
+/** Le lieu où se tient la scène `sceneId` : celui dont elle est la scène (`placeOfScene`), sinon celui dont un point
+ *  d'intérêt y mène (`PlacePoi.sceneId`). */
+export function lieuDeLaScene(map: WorldMap | null | undefined, sceneId: string | undefined): MapPlace | undefined {
+  if (!map || !sceneId) return undefined;
+  return placeOfScene(map, sceneId) ?? map.places.find((p) => p.poi?.some((poi) => poi.sceneId?.id === sceneId));
+}
+
 export function placeById(map: WorldMap, id: string): MapPlace | undefined {
   return map.places.find((p) => p.id === id);
+}
+
+/** La Taille du lieu `place`, MSRC 13 l.44-50 : celle de son port résolu, sinon la sienne ; `undefined` hors
+ *  agglomération. SEUL lecteur de la Taille d'un lieu. */
+export function tailleDuLieu(place: Pick<MapPlace, 'port' | 'taille'>): number | undefined {
+  return place.port?.taille ?? place.taille;
+}
+
+/** La colonne de Disponibilité d'un marchand, LDB 59 l.25-34 : la `surcharge` de son entité, sinon la colonne de la Taille
+ *  du `lieu` où il se tient (`colonneDeLaTaille`) ; `undefined` hors de tout lieu de taille connue, la faute d'auteur que
+ *  refuse `validateScene`. SEULE résolution, du hub comme de la scène. */
+export function colonneDeDisponibiliteDuMarchand(surcharge: Settlement | undefined, lieu: Pick<MapPlace, 'port' | 'taille'> | undefined): Settlement | undefined {
+  if (surcharge) return surcharge;
+  const taille = lieu && tailleDuLieu(lieu);
+  return taille === undefined ? undefined : colonneDeLaTaille(taille);
+}
+
+/** Le profil de marché que le moteur reçoit du lieu `place` : son marché d'auteur à la Taille du lieu (`tailleDuLieu`) ;
+ *  `undefined` sans marché, ou sans Taille, le document en cours d'édition que refuse `mapPlaceSchema`. */
+export function marcheDuLieu(place: MapPlace): LandMarketProfile | undefined {
+  const taille = tailleDuLieu(place);
+  return place.market && taille !== undefined ? { ...place.market, taille } : undefined;
 }
 
 /** Le lieu où se tient le groupe (`lieu`), `undefined` en route ou hors carte. */
@@ -302,15 +354,13 @@ export function quaiDuGroupe(s: { lieu: string | null; worldMap: WorldMap | null
  *  panneau dédié ; `autre` = service de catalogue générique (temple/forgeron/guilde…). */
 export type PlaceServiceCategory = 'port' | 'marche' | 'auberge' | 'autre';
 
-/** Un service RÉSOLU d'un lieu (sortie de `placeServices`) — vocabulaire UNIQUE consommé par le hub de
- *  lieu (#343) et l'auberge. Les payloads métier sont RÉFÉRENCÉS, jamais copiés : `port`/`market`
- *  pointent la donnée existante du nœud, `rest` pointe l'offre propre au service ou celle de la scène. */
-export interface ResolvedPlaceService {
+/** Le tronc d'un service résolu (`ResolvedPlaceService`). `port` pointe la donnée existante du nœud ; `market` est le
+ *  profil que le moteur reçoit du lieu (`marcheDuLieu`). */
+interface ServiceResolu {
   /** id de routage : `'port'`, `'marche'`, l'`id` d'un établissement déclaré, ou `'auberge'` (dérivée de la scène). */
   id: string;
   /** L'entrée du catalogue `lieux-services.json` dont le service est une instance. */
   kind: string;
-  category: PlaceServiceCategory;
   label: string;
   /** Le `label` est le nom que l'auteur a donné à l'établissement (`PlaceService.label`), pas le libellé de son type. */
   nommeParLAuteur?: true;
@@ -318,8 +368,6 @@ export interface ResolvedPlaceService {
   desc?: string;
   port?: NonNullable<MapPlace['port']>;
   market?: LandMarketProfile;
-  /** Offre de couchage/repas effective d'une auberge (propre au service, sinon dérivée de la scène). */
-  rest?: RestPlaces;
   /** Réplique de boniment (catalogue `lieux-services.json`) du bandeau d'interlocuteur statique. */
   hostLine?: string;
   /** Bande d'ambiance par défaut (catalogue `lieux-services.json`, id du registre des fonds de l'hôte). */
@@ -332,7 +380,31 @@ export interface ResolvedPlaceService {
   opensScreen?: 'port';
   /** Libellé du bouton d'entrée du service qui porte un `opensScreen` (catalogue). */
   enterLabel?: string;
+  /** L'accès réservé de l'établissement déclaré (`PlaceService`), référencé ; absent : toujours ouvert. */
+  acces?: Acces;
 }
+
+/** Une offre d'auberge de la nuit : celle d'un établissement, ou celle de son type au catalogue (`offresDuType`). */
+export type OffreDuRepos = Omit<OffreDAuberge, 'source'>;
+
+/** Les offres d'une auberge de scène, hors de tout établissement déclaré : celles du type `auberge` au catalogue. */
+export const offresDeLAubergeDeScene = (): readonly OffreDAuberge[] => offresDuType(SERVICE_CITE.auberge);
+
+/** Le repos d'un établissement d'hébergement, résolu une fois (`placeServices`) : ses lieux de repos, sa qualité et ses
+ *  offres d'auberge, RÉFÉRENCÉES depuis leur porteur. */
+export interface ReposDeLEtablissement {
+  places: RestPlaces;
+  quality: QualiteDeRepos;
+  offres: readonly OffreDuRepos[];
+}
+
+/** Un établissement d'hébergement résolu : il porte TOUJOURS son repos (celui de l'établissement déclaré, ou celui de la
+ *  scène pour l'auberge dérivée). */
+export type ServiceDHebergement = ServiceResolu & { category: 'auberge'; rest: ReposDeLEtablissement };
+
+/** Un service RÉSOLU d'un lieu (sortie de `placeServices`) — vocabulaire UNIQUE consommé par le hub de lieu (#343) et
+ *  l'auberge : un établissement d'hébergement, ou un service sans repos. */
+export type ResolvedPlaceService = ServiceDHebergement | (ServiceResolu & { category: Exclude<PlaceServiceCategory, 'auberge'>; rest?: never });
 
 /** Icône (id du registre `src/data/icons`) d'un service résolu : le catalogue (`lieux-services.json`) fournit
  *  la sienne via `placeServices`, sinon un défaut générique. PUR (id → id), source unique partagée par le
@@ -373,7 +445,7 @@ export function placeServiceMerchantId(placeId: string, serviceId: string): stri
 
 /** Offre de couchage en AUBERGE portée par une scène (`rest.auberge`, ou une `restZone` qui l'offre) —
  *  la scène reste la SOURCE de vérité, référencée jamais copiée sur le nœud. */
-function sceneAubergeOffer(scene?: Scene): RestPlaces | undefined {
+export function sceneAubergeOffer(scene?: Scene): RestPlaces | undefined {
   if (!scene) return undefined;
   if (scene.rest?.auberge) return { auberge: true, maison: scene.rest.maison, camp: scene.rest.camp };
   const zone = (scene.restZones ?? []).find((z) => z.places.auberge);
@@ -386,10 +458,10 @@ export const SERVICE_CITE = { port: 'port', marche: 'marche', auberge: 'auberge'
 
 /**
  * API UNIQUE des SERVICES d'un lieu (#343) : compose en UNE liste le port (`place.port`), le marché
- * (`place.market`) et les services extensibles du catalogue (`place.services`, `lieux-services.json`),
- * plus l'auberge — déclarée en service propre OU dérivée de l'offre de repos de la scène liée. Zéro
- * duplication de vérité : chaque payload RÉFÉRENCE sa donnée d'origine (port/marché/offre de repos),
- * il n'en est jamais recopié une seconde source. Consommée par le hub de lieu, l'écran du lieu (`lieuEnVue`), le
+ * (`marcheDuLieu`) et les services extensibles du catalogue (`place.services`, `lieux-services.json`),
+ * plus l'auberge — l'établissement d'hébergement déclaré, OU, sans lui, dérivée de l'offre de repos de la scène liée. Zéro
+ * duplication de vérité : chaque payload RÉFÉRENCE sa donnée d'origine (port/offre de repos), le marché se composant
+ * à la Taille du lieu ; il n'en est jamais recopié une seconde source. Consommée par le hub de lieu, l'écran du lieu (`lieuEnVue`), le
  * repos (`reposDuLieu`), l'auberge (`recueillirLesRumeurs`), l'échoppe (`ouvrirLaBoutique`) et `validateScene`.
  */
 export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceService[] {
@@ -398,34 +470,37 @@ export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceServ
     const def = garanti(findLieuServiceById(SERVICE_CITE.port), SERVICE_CITE.port, 'service de lieu');
     out.push({ id: 'port', kind: SERVICE_CITE.port, category: 'port', label: def.label, icon: def.icon, desc: def.desc, port: place.port, hostLine: def.hostLine, backdrop: def.backdrop?.id });
   }
-  if (place.market) {
+  const market = marcheDuLieu(place);
+  if (market) {
     const def = garanti(findLieuServiceById(SERVICE_CITE.marche), SERVICE_CITE.marche, 'service de lieu');
-    out.push({ id: 'marche', kind: SERVICE_CITE.marche, category: 'marche', label: def.label, icon: def.icon, desc: def.desc, market: place.market, hostLine: def.hostLine, backdrop: def.backdrop?.id });
+    out.push({ id: 'marche', kind: SERVICE_CITE.marche, category: 'marche', label: def.label, icon: def.icon, desc: def.desc, market, hostLine: def.hostLine, backdrop: def.backdrop?.id });
   }
   for (const s of place.services ?? []) {
     const def = findLieuServiceById(s.kind.id);
-    const auberge = def?.hebergement === true;
-    out.push({
+    const service: ServiceResolu = {
       id: s.id,
       kind: s.kind.id,
-      category: auberge ? 'auberge' : 'autre',
       label: s.label ?? def?.label ?? s.kind.id,
       ...(s.label !== undefined ? { nommeParLAuteur: true as const } : {}),
       icon: def?.icon,
       desc: def?.desc,
-      rest: auberge ? (s.rest ?? sceneAubergeOffer(scene)) : undefined,
       hostLine: def?.hostLine,
       backdrop: def?.backdrop?.id,
       merchantArchetype: def?.merchantArchetype?.id,
       opensScreen: def?.opensScreen,
       enterLabel: def?.enterLabel,
-    });
+      acces: s,
+    };
+    out.push(estUnHebergement(s)
+      ? { ...service, category: 'auberge', rest: { places: { auberge: true }, quality: s.rest?.quality ?? 'normale', offres: s.rest?.offres ?? offresDuType(s.kind.id) } }
+      : { ...service, category: 'autre' });
   }
   // Auberge DÉRIVÉE de la scène si le lieu ne déclare aucun service d'hébergement mais que la scène offre
   // le couchage en auberge — source unique = la scène.
   if (!out.some((sv) => sv.category === 'auberge')) {
-    const rest = sceneAubergeOffer(scene);
-    if (rest) {
+    const places = sceneAubergeOffer(scene);
+    if (places) {
+      const rest: ReposDeLEtablissement = { places, quality: scene?.rest?.quality ?? 'normale', offres: offresDeLAubergeDeScene() };
       const def = garanti(findLieuServiceById(SERVICE_CITE.auberge), SERVICE_CITE.auberge, 'service de lieu');
       out.push({ id: 'auberge', kind: SERVICE_CITE.auberge, category: 'auberge', label: def.label, icon: def.icon, desc: def.desc, rest, hostLine: def.hostLine, backdrop: def.backdrop?.id });
     }
@@ -462,7 +537,7 @@ export function routesFrom(map: WorldMap, placeId: string, ctx?: ConditionCtx): 
     (r) =>
       (r.a.id === placeId || r.b.id === placeId) &&
       (r.from == null || r.from.id === placeId) &&
-      (r.when == null || ctx == null || evalCondition(r.when, ctx)),
+      (ctx == null || refusDAcces(r, ctx) === null),
   );
 }
 
@@ -477,7 +552,7 @@ export function routesEtat(
 ): { route: MapRoute; ouverte: boolean }[] {
   return map.routes
     .filter((r) => (r.a.id === placeId || r.b.id === placeId) && (r.from == null || r.from.id === placeId))
-    .map((r) => ({ route: r, ouverte: r.when == null || ctx == null || evalCondition(r.when, ctx) }));
+    .map((r) => ({ route: r, ouverte: ctx == null || refusDAcces(r, ctx) === null }));
 }
 
 /** Lieux EXISTANTS de la carte (`MapPlace.when`) — frère NŒUD de `routesFrom` : source unique de la

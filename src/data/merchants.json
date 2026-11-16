@@ -11,7 +11,6 @@
         "ammunition"
       ]
     },
-    "settlement": "ville",
     "resaleRate": 0.5,
     "bargainSkill": 45,
     "boniment": "Acier trempé, fil qui ne rend jamais — regardez-moi cette allonge avant de partir vous battre à mains nues."
@@ -27,7 +26,6 @@
         "munition-de-siege"
       ]
     },
-    "settlement": "ville",
     "resaleRate": 0.5,
     "bargainSkill": 40,
     "curated": [
@@ -51,7 +49,6 @@
         "drogues-et-poisons"
       ]
     },
-    "settlement": "village",
     "resaleRate": 0.5,
     "bargainSkill": 40,
     "boniment": "Racines fraîches, décoctions bien dosées — la forêt donne, il suffit de savoir cueillir."
@@ -65,7 +62,6 @@
         "animaux-et-vehicules"
       ]
     },
-    "settlement": "ville",
     "resaleRate": 0.5,
     "bargainSkill": 40,
     "boniment": "Une bonne bête vaut mieux qu’une mauvaise charrette — et moi je vends les deux, l’ami.",
@@ -84,7 +80,6 @@
         "protheses"
       ]
     },
-    "settlement": "ville",
     "resaleRate": 0.5,
     "bargainSkill": 40,
     "curated": [
@@ -107,7 +102,6 @@
         "nourriture-boisson-et-hebergement"
       ]
     },
-    "settlement": "village",
     "resaleRate": 0.5,
     "bargainSkill": 45,
     "curated": [

@@ -154,10 +154,21 @@ import {
   type GesteEnCours,
   type PointDeCarte,
 } from './pointeur';
-import { ciblerPoi, etablissementAjoute, type CibleDuPoi, majLieu, orienterRoute, retirerPoi, typesDEtablissement } from '../worldMapEdit';
+import {
+  ciblerPoi,
+  etablissementAjoute,
+  type CibleDuPoi,
+  majLieu,
+  offreAjoutee,
+  offreRetiree,
+  orienterRoute,
+  type PatchDeLieu,
+  retirerPoi,
+  typesDEtablissement,
+} from '../worldMapEdit';
 import { formeChangee } from '../narratifEdit';
 import type { FormeDEtatKind } from '../../data/schemas/defs-scenes/formes-d-etat';
-import { placeServices, type MapPlace, type WorldMap } from '../worldMap';
+import { placeServices, type MapPlace, type OffreDAuberge, type WorldMap } from '../worldMap';
 import type { CalibProgress } from './calage';
 import type { Manifeste } from '../../data/source/chapitres';
 import { adressesDe, avecLeChapitreDemande, avecLeChapitreRecu, sourceServie, type SourceServie } from './adresseDeProse';
@@ -519,7 +530,8 @@ export interface SessionDEdition {
  *  table offre (`avecs`), sélectionné ; orienter la route sélectionnée depuis l'une de ses extrémités, ou dans les deux
  *  sens (`null`, `orienterRoute`) ; donner à l'état sélectionné du narratif la forme neuve `kind` (`formeChangee`) ; ouvrir le plan du lieu `lieu` de la carte du monde ouverte, sélectionné, ou le fermer (`null`, `planDuLieu`) ; retirer le point
  *  d'intérêt désigné sur ce plan (`retirerPoi`), ou le faire viser la scène `scene` ou le service `service` du lieu (`ciblerPoi`) ; ajouter au lieu
- *  sélectionné un établissement du type `kind` (`typesDEtablissement`, `etablissementAjoute`) ; ouvrir le document `document` du projet (`ouvrirLeDocument`) ; écrire
+ *  sélectionné un établissement du type `kind` (`typesDEtablissement`, `etablissementAjoute`), faire vendre à son établissement
+ *  d'hébergement `etablissement` l'offre du livre `offre` ou la lui retirer (`offreAjoutee`, `offreRetiree`) ; ouvrir le document `document` du projet (`ouvrirLeDocument`) ; écrire
  *  une valeur au chemin `chemin` du formulaire du porteur `porteur` (`formulaireDe`, `undefined`
  *  retire le champ, ou l'objet ou l'élément d'un retrait déclaré, `retraitsDuPorteur`), ou y resceller l'adresse de prose au chemin `chemin` après relecture (`avecLAdresseRescellee`) ; nommer l'entité, l'entrée, le
  *  déclencheur, le dialogue, la rencontre, la zone d'effet ou le corps sélectionné, ou sans sélection le porteur singulier du
@@ -562,6 +574,7 @@ export type GesteDEdition =
   | { geste: 'retirerPoi' }
   | { geste: 'ciblerPoi'; cible: { scene: string } | { service: string } }
   | { geste: 'ajouterEtablissement'; kind: string }
+  | { geste: 'ajouterOffre' | 'retirerOffre'; etablissement: string; offre: OffreDAuberge['id'] }
   | { geste: 'document'; document: SorteDeDocument }
   | { geste: 'valeur'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[]; valeur?: unknown }
   | { geste: 'resceller'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[] }
@@ -613,6 +626,15 @@ export const vueDeLaScene = (s: SessionDEdition): Scene => poserLesNavires(scene
 
 /** La couche `z` est-elle l'une de la vue de `scene` (`poserLesNavires`) ? */
 const coucheVue = (scene: Scene, z: number): boolean => poserLesNavires(scene).layers.some((l) => l.z === z);
+
+/** La session `s` où le lieu sélectionné de la carte du monde reçoit le patch `patch(lieu)` (`majLieu`), telle quelle sans
+ *  lieu sélectionné ou quand `patch` refuse (`undefined`). */
+function avecLeLieuPatche(s: SessionDEdition, patch: (lieu: MapPlace) => PatchDeLieu | undefined): SessionDEdition {
+  const carte = projetEdite(s).worldMap;
+  const lieu = s.sel?.type === FORMULAIRES.lieu.sel ? carte?.places.find((p) => p.id === (s.sel as { id: string }).id) : undefined;
+  const patche = lieu && patch(lieu);
+  return carte && lieu && patche ? ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), majLieu(carte, lieu.id, patche)), s.sel) : s;
+}
 
 /** La session qui édite la première scène du projet `projet`, à l'outil de sélection, sur la couche 0 ; `duDepot` :
  *  le projet est celui que le dépôt porte, où il s'enregistre ; `gardes`, s'il est donné, les calques que l'hôte
@@ -1220,11 +1242,13 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return jsonCanonique(ecrite) === jsonCanonique(carte) ? s : ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), ecrite), s.sel);
     }
     case 'ajouterEtablissement': {
-      const carte = projetEdite(s).worldMap;
-      const lieu = s.sel?.type === FORMULAIRES.lieu.sel ? carte?.places.find((p) => p.id === (s.sel as { id: string }).id) : undefined;
-      if (!carte || !lieu || !typesDEtablissement().some((sv) => sv.id === g.kind)) return s;
-      return ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), majLieu(carte, lieu.id, etablissementAjoute(lieu, g.kind))), s.sel);
+      const type = typesDEtablissement().find((sv) => sv.id === g.kind);
+      return type ? avecLeLieuPatche(s, (lieu) => etablissementAjoute(lieu, type.id)) : s;
     }
+    case 'ajouterOffre':
+      return avecLeLieuPatche(s, (lieu) => offreAjoutee(lieu, g.etablissement, g.offre));
+    case 'retirerOffre':
+      return avecLeLieuPatche(s, (lieu) => offreRetiree(lieu, g.etablissement, g.offre));
     case 'sens': {
       const carte = projetEdite(s).worldMap;
       const route = s.sel && 'id' in s.sel && s.sel.type === FORMULAIRES.route.sel ? s.sel.id : undefined;

@@ -3115,7 +3115,9 @@
     },
     "capabilities": {
       "encumbranceFactor": 2,
-      "consumptionFactor": 2
+      "consumptionFactor": 2,
+      "castingChar": "endurance",
+      "castingHunger": true
     }
   },
   {

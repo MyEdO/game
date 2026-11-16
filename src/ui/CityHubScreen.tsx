@@ -5,7 +5,8 @@ import { produitsDuProfil, lieuAUnPlan, serviceIcon, poiIcon, nomDuPoi, type Res
 import type { Scene } from '../noyau/monde/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
-import { restServicePrice } from '../noyau/restFlow';
+import { prixDeLOffre } from '../noyau/restFlow';
+import { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import { findCargoEntryById } from '../engine/cargo';
 import { innGatherInfoMinutes } from '../noyau/innFlow';
 import { servicesDuLieu } from '../noyau/lieuFlow';
@@ -34,7 +35,7 @@ import { refusAQuai } from '../noyau/portFlow';
  * Port/Marché ont leur propre écran plein-champ (`PortView`/`LandMarketView`) : leur carte de synthèse
  * porte une action « Entrer » qui FERME le hub puis ouvre cet écran (on n'incruste pas un ScreenShell
  * dans un ScreenShell). L'auberge est le panneau RICHE : prix RÉELS du catalogue (source unique
- * `restServicePrice`), action Dormir (flux de repos existant), rumeurs déjà glanées.
+ * `prixDeLOffre`), action Dormir (flux de repos existant), rumeurs déjà glanées.
  */
 
 /** Carte de synthèse d'un profil commercial (port/marché) : Taille/Richesse + colonne Produits. */
@@ -112,25 +113,18 @@ export function CityHubScreen({
           porteur={porteurSvc}
           actions={
             <>
-              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => ouvrirLeRepos(svc.id)}>Dormir</button>}
+              <button type="button" className="btn btn-primary" onClick={() => ouvrirLeRepos(svc.id)}>Dormir</button>
               <button type="button" className="btn btn-primary" onClick={() => recueillirLesRumeurs(svc.id)}>
                 Recueillir des informations (≈{Math.round(innGatherInfoMinutes() / 60)} h)
               </button>
             </>
           }
         >
-          {/* Jamais une promesse d'action impossible (cf. `refusAQuai`) : sans offre de
-              couchage effective (`svc.rest`), les prix de chambre/repas ne s'affichent pas — ils ne
-              mènent nulle part ici (recette 2026-07-12). */}
-          {svc.rest
-            ? (
-              <ul className="city-hub-prices">
-                <li><span>Chambre privée / nuit</span><b><Coins money={restServicePrice('privee')} /></b></li>
-                <li><span>Chambre commune / nuit</span><b><Coins money={restServicePrice('commune')} /></b></li>
-                <li><span>Repas</span><b><Coins money={restServicePrice('repas')} /></b></li>
-              </ul>
-            )
-            : <p className="city-hub-empty">Aucun couchage proposé ici pour l’instant.</p>}
+          <ul className="city-hub-prices">
+            {svc.rest.offres.map((o) => (
+              <li key={o.id}><span>{libelleDeValeur(offreDAubergeSchema.shape.id, o.id)}</span><b><Coins money={prixDeLOffre(o, svc.rest.quality)} /></b></li>
+            ))}
+          </ul>
           <section className="city-hub-rumours">
             <h4>Rumeurs déjà glanées</h4>
             {tradeRumours.length === 0

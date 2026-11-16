@@ -47,7 +47,7 @@ import { nomDuSiege } from '../../noyau/sieges';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { hotbar } from '../../state/hotbarBridge';
 import { jouerLOffreDeLEcran } from '../../state/registreOffres';
-import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, resoudreDisposition } from '../../state/dispositionConsole';
+import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, resoudreDisposition } from '../../noyau/dispositionConsole';
 import { type EntreeBarre, type ZoneBarre } from '../../engine/types';
 import { charIcon, type EffectChip } from '../../gameIso/effectIcons';
 import { ENEMY_TINT, hpColor } from '../../gameIso/teamColors';

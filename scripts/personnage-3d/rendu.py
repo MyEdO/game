@@ -19,10 +19,13 @@ surface d'un élément qui déclare une `matiere` s'habille comme le jeu l'habil
 `CATALOGUE` (`habiller_le_modele`, aux UV du mesh, #4313), teinte de cette couleur ; `--clip`
 pose la base à l'image `--image` d'un de ses clips, sans quoi elle reste au repos. `--illustration` pose l'illustration
 directrice à gauche des vues de face, de trois-quarts et de dos dans `planche.png` : un rendu se montre à côté d'elle.
+`--cadre x,y,z,étendue` (mètres, repère de `bounds` du rapport, Z haut) vise ce centre et cadre cette étendue dans les vues
+de face, de trois-quarts, de dos, d'échelle et isométriques au lieu de celles du modèle ; l'éclairage reste celui du
+modèle (#4338).
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <fichier.glb> --output <dossier vide> [--isometric-only] [--silhouettes feminin=1,corpulence=0.5]
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <base.glb> --element <a.glb> [--element <b.glb>] \\
-        --preset sorcier [--clip Hampe_Repos_Loop --image 20] [--illustration <illustration.png>] --output <dossier vide>
+        --preset sorcier [--clip Hampe_Repos_Loop --image 20] [--illustration <illustration.png>] [--cadre 0,0.02,0.62,1.2] --output <dossier vide>
 """
 import argparse
 import hashlib
@@ -62,6 +65,17 @@ def lire_silhouettes(texte):
             raise argparse.ArgumentTypeError(f'« {paire} » ; attendu nom=<nombre>[,nom=<nombre>]')
         poids[nom] = nombre
     return poids
+
+
+def lire_cadre(texte):
+    """Le cadre de `--cadre`, `x,y,z,étendue` en mètres, l'étendue positive : (x, y, z, étendue)."""
+    try:
+        cadre = tuple(float(v) for v in texte.split(','))
+    except ValueError:
+        cadre = ()
+    if len(cadre) != 4 or not all(math.isfinite(v) for v in cadre) or cadre[3] <= 0:
+        raise argparse.ArgumentTypeError(f'« {texte} » ; attendu x,y,z,étendue en mètres, l\'étendue positive')
+    return cadre
 
 
 def poser_les_silhouettes(bpy, poids):
@@ -423,6 +437,7 @@ def main():
     parser.add_argument('--clip', help='clip de la base posé avant le rendu')
     parser.add_argument('--image', type=int, default=1, help='image du clip posée')
     parser.add_argument('--illustration', type=Path, help='illustration directrice posée à gauche de planche.png')
+    parser.add_argument('--cadre', type=lire_cadre, help='x,y,z,étendue : centre et étendue cadrés au lieu de ceux du modèle')
     args = parser.parse_args()
     source = Path(args.input).resolve(strict=True)
     output = Path(args.output).resolve()
@@ -491,24 +506,25 @@ def main():
         materials.append({'name': material.name, 'surface_render_method': material.surface_render_method, 'images': images, 'inputs': inputs})
     report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height, 'extent': extent}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in actors], 'materials': materials, 'silhouettes': {nom: {'poids': args.silhouettes[nom], 'meshes': objets} for nom, objets in silhouettes.items()}, 'render_engine': 'CYCLES', 'samples': 16}
     render = studio(bpy, low, center, extent, output, start)
+    cible, etendue = (Vector(args.cadre[:3]), args.cadre[3]) if args.cadre else (center, extent)
     if args.isometric_only:
         report['camera_elevation_degrees'] = 45
         report['camera_direction'] = [1, -1, 2 ** 0.5]
         for size in (512, 40, 64, 128):
-            render('isometrique-' + str(size) + 'px.png', (1, -1, 2 ** 0.5), center, extent * 1.12, size, size)
+            render('isometrique-' + str(size) + 'px.png', (1, -1, 2 ** 0.5), cible, etendue * 1.12, size, size)
     else:
-        render('face-trois-quarts.png', (0.65, -1, 0.17), center, extent * 1.12, 1000, 1200)
-        render('dos-trois-quarts.png', (-0.65, 1, 0.17), center, extent * 1.12, 1000, 1200)
+        render('face-trois-quarts.png', (0.65, -1, 0.17), cible, etendue * 1.12, 1000, 1200)
+        render('dos-trois-quarts.png', (-0.65, 1, 0.17), cible, etendue * 1.12, 1000, 1200)
         if skinned:
-            render('face.png', (0, -1, 0.05), center, extent * 1.12, 1000, 1200)
-            render('dos.png', (0, 1, 0.05), center, extent * 1.12, 1000, 1200)
+            render('face.png', (0, -1, 0.05), cible, etendue * 1.12, 1000, 1200)
+            render('dos.png', (0, 1, 0.05), cible, etendue * 1.12, 1000, 1200)
             if args.illustration:
                 planche(bpy, [args.illustration.resolve(strict=True)] + [output / v for v in ('face.png', 'face-trois-quarts.png', 'dos.png')],
                         output / 'planche.png')
             portrait_target = Vector((center.x, center.y, low.z + height * 0.86))
             render('portrait.png', (0.3, -1, 0.05), portrait_target, height * 0.32, 768, 768)
         for size in (40, 64, 128):
-            render('echelle-' + str(size) + 'px.png', (0.65, -1, 0.17), center, extent * 1.12, round(size * 1000 / 1200), size)
+            render('echelle-' + str(size) + 'px.png', (0.65, -1, 0.17), cible, etendue * 1.12, round(size * 1000 / 1200), size)
     report['elapsed_seconds'] = time.monotonic() - start
     report['sha256_after'] = hashlib.sha256(source.read_bytes()).hexdigest()
     if digest != report['sha256_after']:

@@ -99,6 +99,7 @@ import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
+import { retraitsDits } from './weaponDamage';
 import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction, type PsychType } from './psychology';
 import { cibleDeRef, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
 import { traitOctroye } from './psych/opsPsy';
@@ -949,14 +950,14 @@ export type GameOp =
    *  la cible perd tous les DR focalisés (couverts par son composant) et subit une Incantation Imparfaite
    *  Mineure. Résolu par la couche state (combatFlow : `applyFocusInterruption` via le hook injecté
    *  `focusInterrupt` appelé par `runCombatFlow`), qui détient get/set et le combattant. `applyOps` (moteur
-   *  pur) le laisse INERTE — comme `grantFreeAttack`/`summon`/`zone`. */
+   *  pur) le laisse INERTE — comme `grantFreeAttack`/`summon`. */
   | { op: 'interruptFocus' }
   /** Marqueur IMPUR de la branche de VICTOIRE d'un Test opposé de Piège-lame (LDB 62 l.280) : l'adversaire
    *  est désarmé (sa lame arrachée) et, sur un Succès Stupéfiant (marge nette ≥ 6 DR), sa lame est BRISÉE à
    *  moins qu'elle ne possède l'Atout Incassable. Résolu par la couche state (combatFlow : `applyBladeTrap`
    *  via le hook injecté `piegeALame` appelé par `runCombatFlow`), qui détient get/set, l'attaquant ciblé et
    *  l'arme visée (contexte sérialisé `ctx.piegeALame`). `applyOps` (moteur pur) le laisse INERTE — comme
-   *  `grantFreeAttack`/`interruptFocus`/`summon`/`zone`. */
+   *  `grantFreeAttack`/`interruptFocus`/`summon`. */
   | { op: 'breakBlade' }
   /** CHUTE (`LDB 15 l.80`, `l.84`) : la cible tombe de la hauteur que dit une TABLE (`hauteur.table`,
    *  `ship-criticals.json` → `tablesDeChute`), lue par (Taille de la coque `ctx.hull` × station du
@@ -1034,9 +1035,9 @@ export type GameOp =
    *  `resolveTriggerImpureOps` au décès, déclenché par `fireScheduledEffects` à l'échéance ; INERTE dans
    *  `applyOps` (moteur pur), comme `summon`. */
   | { op: 'scheduleRespawn'; ref: string; delayDays: Formula; count?: Formula; allyOfCaster?: boolean; cancelFlag?: string }
-  /** ZONE PERSISTANTE posée par le sort (Mur de feu, Grands feux d'U'Zhul, Vol du Destin). Effet IMPUR
-   *  (pose une zone dans la scène/bataille) RÉSOLU par la couche state (`noyau/combatEffects`) ; INERTE
-   *  dans `applyOps`. `shape` disc/wall ; `radiusMeters` (disque) ou `lengthMeters` (mur, +`lengthPerSL`
+  /** ZONE PERSISTANTE posée par un sort (Mur de feu, Grands feux d'U'Zhul, Vol du Destin : `placeSpellZone`) ou
+   *  par un effet déclenché qui porte sa durée (`durationRounds`, Bombe fumigène : crochet `OpsCtx.onZone`). Effet
+   *  IMPUR (pose une zone dans la scène/bataille) RÉSOLU par la couche state ; INERTE dans `applyOps` sans crochet. `shape` disc/wall ; `radiusMeters` (disque) ou `lengthMeters` (mur, +`lengthPerSL`
    *  « +N m par +2 DR ») ; `blocksLoS` ; `onCross`/`perRound` = effets de zone (traversée / fin de Round). */
   | { op: 'zone'; shape: 'disc' | 'wall'; radiusMeters?: Formula; lengthMeters?: Formula;
       lengthPerSL?: { every: number; metersFormula: Formula }; blocksLoS?: boolean;
@@ -1051,7 +1052,12 @@ export type GameOp =
       /** BARRIÈRE infranchissable (Protection de Phâ : « ne peuvent pas entrer ») ; `gate:'profane'`
        *  restreint barrière + `perRound` aux créatures profanes ; `noCorruption` : nul gain de Corruption
        *  pour les occupants tant que la zone dure (LDB 48 l.393). */
-      barrier?: boolean; gate?: 'profane'; noCorruption?: boolean }
+      barrier?: boolean; gate?: 'profane'; noCorruption?: boolean;
+      /** Durée en Rounds d'une zone posée HORS sort (#4202) — dé ouvert à la porte (`DES_DUNE_OP`). Interdite sur
+       *  l'op d'un sort : sa durée est celle du sort (`placeSpellZone`, LDB 47 l.15). */
+      durationRounds?: Formula;
+      /** Le rendu qui montre la zone tant qu'elle dure (`BattleZone.rendu`). */
+      rendu?: { id: string } }
   /** MÉTAMORPHOSE en créature (Forme bestiale, LDB 48) : remplace F/E/Ag/Dex (charMod différentiel) et
    *  accorde les Traits de la créature sauf Bestial (grantTrait), auto-restitués à l'expiration. `ref` =
    *  créature du bestiaire (forme LIBRE — « les Bêtes du Reikland », pas l'Ours seul). Pure : expansée
@@ -1582,6 +1588,13 @@ export interface OpsCtx {
    *  retiré de lui (`laisserTomber`), pour le déposer au sol à sa case. Sans crochet (moteur pur, hors combat), l'arme
    *  quitte la main et reste à son porteur (`lacherLArme`). */
   onLacher?: (c: Combatant, objet: ItemInstance) => void;
+  /** Branché par la couche state (`noyau/combatFlow.crochetDeZone`) : POSE la zone d'une op `zone` qui porte sa durée
+   *  (`durationRounds`, déjà tirée en `rounds`) sur `cible`, ou au point `centreDeZone`. Sans crochet (moteur pur), l'op
+   *  reste inerte. */
+  onZone?: (op: Extract<GameOp, { op: 'zone' }>, rounds: number, cible: Combatant, ctx: OpsCtx) => string[];
+  /** Point où se pose la zone d'une op `zone` quand ce n'est pas la case de sa cible : le point d'arrivée d'une arme
+   *  lancée qui manque (LDB 14 l.142 ; #4202). */
+  centreDeZone?: { x: number; y: number; z?: number };
   /** Clause d'Avantage de groupe (AA) du Trait Redoutable (`MDG 16 l.13`) : branché par le store
    *  (`noyau/combat/advantagePool.ts` `creditOpposingAdvantage`, fourni par `turnHooks.fireTurnEdgeTriggers`
    *  pour `onTurnStart`) sur l'op `topUpAdvantage{feedOpposingPool:true}` — crédite `n` (l'Indice PLEIN) à la
@@ -1759,6 +1772,7 @@ export interface DemandeDe {
  */
 interface ChampsDOp {
   fall: 'hauteur' | 'degats';
+  zone: 'duree';
 }
 
 /** UN dé DÉCLARÉ par une op, avant que son rang ne lui donne sa clé — la forme AUTEUR de `DemandeDe`. */
@@ -1815,6 +1829,10 @@ const DES_DUNE_OP: { [K in keyof ChampsDOp]: (o: Extract<GameOp, { op: K }>, tar
       { champ: 'degats' as const, spec: D10_CHUTE, libelle: t('op.chute.deDegats') },
     ];
   },
+  // #4202
+  zone: (o): DeDeclare<ChampsDOp['zone']>[] => (typeof o.durationRounds === 'object' && 'dice' in o.durationRounds
+    ? [{ champ: 'duree' as const, spec: o.durationRounds.dice, libelle: t('op.zone.deDuree'), unite: 'Rounds' }]
+    : []),
 };
 
 /**
@@ -1873,7 +1891,7 @@ export const OPS_CTX_GELES = [
   'defaultDurationRounds', 'defaultUntilTime', 'now', 'sl', 'overcastDurationSteps', 'chosenTableRolls',
   'noReentryOwnTestFailed', 'woundsDealt', 'rolled', 'indice', 'stacks', 'engagedAdvantageGap',
   'engagedAdvantageLead', 'location', 'attackKind', 'startleCause', 'foeInLoS', 'affliction', 'cibleEnVue',
-  'hiddenFromFoes', 'engaged', 'nearestFoeDist', 'weapon',
+  'hiddenFromFoes', 'engaged', 'nearestFoeDist', 'weapon', 'centreDeZone',
 ] as const;
 /** PAR RÉFÉRENCE : des Combattants — leur ID voyage, l'état les redonne (`actorIn`/`coqueParId`). */
 export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
@@ -1881,7 +1899,7 @@ export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
  *  les hooks de Corruption (`noyau/corruptionFlow.crochetsDeCorruption`), d'Avantage et du sol, qui reçoivent leur
  *  cible en argument (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur les étapes
  *  sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'des'] as const;
+export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE dans un contexte PORTÉ
  *  (`noyau/combatEffects.porterOpsCtx` : feuille à dé, Test ou choix surfacé) est un fail-fast NOMMÉ,
  *  jamais une perte muette. Ils ne sont posés que par des appels directs à `applyOps`, qui ne portent
@@ -2547,8 +2565,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           ...(o.addQualities ?? []).map((id) => qualityRefLabel({ id })), // id stable → libellé affiché
           ...(dmg ? [`+${dmg} Dégâts`] : []),
           ...(o.onHitEffects?.length ? ['effet à la touche'] : []),
-          ...(o.removeQualities ?? []).map((id) => `−${qualityRefLabel({ id })}`),
-          ...(o.removeType ? [t(o.removeType === 'atout' ? 'op.frag.atoutsPerdus' : 'op.frag.defautsPerdus')] : []),
+          ...retraitsDits(o),
           ...(o.suppressEnchants ? [t('op.frag.enchantementsSuspendus')] : []),
           ...(o.passive?.length ? [t('op.frag.passifDArme')] : []),
         ];
@@ -3097,9 +3114,16 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         }));
         break;
       }
+      case 'zone': {
+        // Zone d'un sort (sans `durationRounds`) : posée par `placeSpellZone`, à la durée du sort (LDB 47 l.15).
+        if (o.durationRounds === undefined || !ctx.onZone) break;
+        const declares = DES_DUNE_OP.zone(o, target, ctx);
+        const rounds = declares.length ? lecteurDe(iOp, declares)('duree') : formuleDuCtx(o.durationRounds, ref, ctx);
+        lines.push(...ctx.onZone(o, rounds, target, ctx));
+        break;
+      }
       case 'summon':
       case 'scheduleRespawn':
-      case 'zone':
       case 'grantFreeAttack':
       case 'interruptFocus':
       case 'breakBlade':
@@ -3124,10 +3148,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'rationsDEscale':
       case 'marcheDuPort':
       case 'attaquesSubies':
-        // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
+        // Effets IMPURS (grille + initiative / reconstitution programmée / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
         // téléportation / rebond de Projectile / ops différées à échéance d'horloge) — résolus par la
-        // couche state (combatFlow : applySummon / scheduleRespawn → file horloge / placeSpellZone ; les
+        // couche state (combatFlow : applySummon / scheduleRespawn → file horloge ; les
         // hooks `freeAttack`/`focusInterrupt`/`piegeALame` appelés par `runCombatFlow` ; `applyCast` scanne
         // push/teleport/chain ; `delayed` → `scheduleDelayedOps` aux points d'application d'un EffectOp ;
         // les ops de navire → `noyau/navireOps.ts` ; l'op du marché d'un port → `noyau/portFlow.ts` ; les
@@ -3283,7 +3307,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         } else if (tenue) {
           if (!ctx.onLacher) lacherLArme(target, tenue);
           else {
-            const tombe = laisserTomber(target, tenue);
+            const tombe = laisserTomber(target, tenue, ctx.idNeuf);
             if (tombe) ctx.onLacher(target, tombe);
           }
           lines.push(t('op.desarmement', { name: target.label, item: tenue.label }));

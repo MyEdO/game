@@ -240,7 +240,7 @@ const marche = (id: string, label: string) => buildScene({ id, label, desc: '.',
 function carte(): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
-    places: [{ id: 'B', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'marche-b' }, market: profile() }],
+    places: [{ id: 'B', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'marche-b' }, taille: 4, market: { richesse: 4, produits: ['commerce-terre', 'vin-eau-de-vie'] } }],
     routes: [],
   };
 }

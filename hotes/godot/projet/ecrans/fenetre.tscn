@@ -5,6 +5,7 @@
 
 [node name="Cadre" type="PanelContainer"]
 visible = false
+custom_minimum_size = Vector2(440, 0)
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 8.0

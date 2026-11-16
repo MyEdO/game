@@ -198,8 +198,8 @@ describe('la description de la condition d’entrée d’un déclencheur', () =>
     const champs = formulaireDe('declencheur', d, CADRE_VIDE);
     expect(champs.map((c) => [c.key, c.nullable]), 'la condition d’entrée, absente admise, puis le flux, requis').toEqual([['when', true], ['flow', false]]);
     const variantes = variantesAChoisir(champs[0].noeud, when)!;
-    expect(variantes).toHaveLength(35);
-    expect(new Set(variantes.map((v) => v.libelle)).size, 'chacune nommée par son schéma, d’un nom propre').toBe(35);
+    expect(new Set(variantes.map((v) => v.cle)).size, 'une variante par sorte de Condition').toBe(variantes.length);
+    expect(new Set(variantes.map((v) => v.libelle)).size, 'chacune nommée par son schéma, d’un nom propre').toBe(variantes.length);
     expect(['all', 'any', 'not'].map((k) => variantes.find((v) => v.cle === k)?.libelle)).toEqual(['TOUS (ET)', 'AU MOINS UN (OU)', 'NON']);
     expect(variantes.find((v) => v.cle === 'not')!.valeur, 'NON enveloppe la courante (`recast`)').toEqual({ kind: 'not', of: when });
     expect(variantes.find((v) => v.courante)?.cle).toBe('all');
@@ -889,7 +889,7 @@ describe('les porteurs de la carte du monde : lieu, route et carte (#3606 M5)', 
   });
 
   it('le lieu offre chaque champ de son schéma hors de son identifiant, de sa position, de ses établissements et de ses points d’intérêt ; d’un établissement, son nom et son repos ; d’un point d’intérêt, son icône et, vers une scène, son nom', () => {
-    expect(cles(formulaireDe('lieu', CARTE.places[0], cadre))).toEqual(['label', 'scene', 'entry', 'icon', 'port', 'market', 'backdrop', 'when', 'couvre', 'prose', 'source', 'adapteDe', 'poi']);
+    expect(cles(formulaireDe('lieu', CARTE.places[0], cadre))).toEqual(['label', 'scene', 'entry', 'icon', 'taille', 'port', 'market', 'backdrop', 'when', 'couvre', 'prose', 'source', 'adapteDe', 'poi']);
     const lieu: MapPlace = { ...CARTE.places[0], services: [{ id: 'auberge', kind: { id: 'auberge' } }], poi: [POI, { id: 'forge', pos: { x: 2, y: 2 }, service: { id: 'auberge' } }] };
     const offert = (c: Segment[], v: unknown) => avecLaValeurDuPorteur('lieu', lieu, c, v, cadre).ok;
     expect([offert(['poi', 0, 'label'], 'Chapelle'), offert(['poi', 1, 'label'], 'Forge'), offert(['poi', 0, 'pos'], { x: 2, y: 2 }), offert(['poi', 0, 'id'], 'x'), offert(['poi', 0, 'sceneId'], { id: 'salle' }), offert(['poi'], [])]).toEqual([true, false, false, false, false, false]);

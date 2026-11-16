@@ -134,7 +134,7 @@ import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
 import { champAttendSaFenetre } from './targetingHolder';
 import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir } from './refusDuTour';
-import { mountMovement, movementRemaining, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
+import { mountMovement, movementRemaining, mountUp, harnacher, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
 import type { FateSaveSource } from '../engine/fortune';
@@ -143,7 +143,7 @@ import { libelleDeTest, libelleDuTestNomme } from './jetsEnVue';
 import { courseArmee, intentionDuClic, intentionDuProprietaire } from './localIntent';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refuseSi } from './verrousDeFiche';
-import { crochetDuSol, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
+import { crochetDuSol, lacherLeBouclierDuBinome, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
 import {
   nePeutPasDifferer,
   jouerFlowEntier,
@@ -207,6 +207,7 @@ import {
   syncDerivedConditions,
   isConditionLocked,
   soinDeDetermination,
+  isActionLocked,
 } from '../engine/conditions';
 import {
   modesDOuverture,
@@ -935,6 +936,7 @@ export function createCombatSlice(get: Get, set: Set) {
         (battle.movementUsed ?? 0) === 0 ? captureMoveSnapshot(battle, get().facing) : battle.moveSnapshot ?? null;
       const path = movement.path;
       const fromPos = { ...active.pos! };
+      if (isActionLocked(active)) lacherLeBouclierDuBinome(get, set, active); // fuite forcée : ZI 13 l.193
       placeCombatant(active, scene, dest);
       if (geom !== active) placeCombatant(geom, scene, dest); // déplace la monture sous le cavalier (couple solidaire)
       displaceSmaller(get, geom); // un grand « dégage » les plus petits sous son empreinte (85 l.373-374)
@@ -1092,8 +1094,9 @@ export function createCombatSlice(get: Get, set: Set) {
       const barre = barreDuGeste(get());
       if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
       const { active, battle } = barre;
-      const refus = refusDeCourse(battle, active);
+      const refus = refusDeCourse(get().scene, battle, active);
       if (refus) return void refuserGesteDuSiege(get, set, refus);
+      if (isActionLocked(active)) lacherLeBouclierDuBinome(get, set, active); // fuite forcée : ZI 13 l.193
       const resolved = dest && !movement ? resolveMovement(get, dest) : null;
       if (resolved?.status === 'bloque') return;
       const plan = movement ?? (resolved?.status === 'possible' ? { path: resolved.path, cost: resolved.cost } : undefined);
@@ -1670,6 +1673,7 @@ export function createCombatSlice(get: Get, set: Set) {
         if (!mount) return;
         mount.mountable = true;
         mountUp(enemies[i], mount); // partage la position/empreinte de la monture (LDB 14 l.179)
+        harnacher(enemies[i], mount);
       });
       // Structures destructibles de siège (AA 10 l.94-127) : chaque arête portant une `structure` INTACTE devient
       // un Combattant inerte à PV (kind 'pnj' → ne fausse pas la fin de combat, cf. checkBattleOver qui ne
@@ -2440,6 +2444,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const mover = inBattleId(battle, pd.moverId);
         const foe = inBattleId(battle, pd.foeId);
         if (!mover || !foe) return set({ pendingDisengage: null, pendingCascade: null });
+        if (isActionLocked(mover)) lacherLeBouclierDuBinome(get, set, mover); // fuite forcée : ZI 13 l.193
         campGain(get, foe); // l'adversaire gagne immédiatement +1 Avantage (l.63)
         foe.gainedAdvThisRound = true;
         // `interactive` = le slot est-il JOUÉ (héros du groupe, quel que soit le SIÈGE qui le possède) —

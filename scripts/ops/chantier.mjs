@@ -16,10 +16,14 @@
 //
 // Le principal se synchronise d'abord (`ouvrirChantier`, #2187).
 //
+// En conteneur cloud (`estConteneurDistant`), le worktree se pose sans hooks et ses `node_modules` se lient
+// en dur depuis le principal (`EQUIPEMENTS_DU_CONTENEUR`, #4339).
+//
 // Usage : `npm run ops:chantier -- <nom> [--sans-ci]`, `nom` = numéro de ticket + slug optionnel.
 import { spawnSync } from 'node:child_process'
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
 import { etapeProfilee } from '../etape-profilee.mjs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import { GitIndisponible, TIMEOUT_DU_HOOK_MS, TRONC, ajouterWorktree, arbrePrincipal, depotDe, fetchOrigin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
@@ -30,6 +34,7 @@ import { annonceEspacee, synchroniserPrincipal, verrouDuConsommateur } from './s
 import { attendreLibre } from '../test/verrou.mjs'
 import { GENERATORS, NON_GENERATOR_CHECKS, SOURCES_LUES, ciblesPures, ciblesSurDisque, estCiblePure, generateurDe } from '../docs/build-all.mjs'
 import { copierDocsFrais } from '../docs/lib/fraicheur-docs.mjs'
+import { estConteneurDistant } from '../hooks/memoire-du-depot.mjs'
 
 /** Racine de l'arbre qui porte CE script. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -83,7 +88,10 @@ const FLAGS_CI = ['--no-audit', '--no-fund']
 
 /** L'équipement de la RACINE, fixe : aucune gate ne déclare `node_modules` racine en prérequis
  *  (c'est `resoudreOutilLocal` qui le mesure), et il précède tout sous-projet. */
-const EQUIPEMENT_RACINE = { args: ['ci', ...FLAGS_CI], ou: '', relance: 'npm ci' }
+const EQUIPEMENT_RACINE = { args: ['ci', ...FLAGS_CI], ou: '', relance: 'npm ci', chemin: 'node_modules' }
+
+/** Les cibles de code que le `postinstall` du `npm ci` racine pose : à rejouer quand `node_modules` est lié. */
+const EQUIPEMENT_GEN = { args: ['run', 'gen'], ou: ' (cibles de code)', relance: 'npm run gen' }
 
 /** Les docs DÉRIVÉS, produits là où on les lit (#2203) : en DERNIER, sur un arbre équipé — les cibles de
  *  code sont déjà posées par le `postinstall` du `npm ci` racine. */
@@ -94,10 +102,10 @@ const EQUIPEMENT_DOCS = { args: ['run', 'docs:build'], ou: ' (docs dérivés)', 
  * Un `pose` est une commande `npm …` : ses mots après `npm` deviennent l'`args` (plus `FLAGS_CI`),
  * `ou` se déduit de `--prefix <dossier>`, et `relance` est le `pose` VERBATIM — ce que le refus dit
  * de rejouer. Deux gates qui déclarent le MÊME `pose` ne posent qu'UNE fois, dans l'ordre
- * d'apparition. Un `pose` qui ne commence pas par `npm ` JETTE : l'équipement ne sait jouer que npm,
+ * d'apparition ; `chemin` est celui du prérequis. Un `pose` qui ne commence pas par `npm ` JETTE : l'équipement ne sait jouer que npm,
  * et une commande normalisée en silence poserait autre chose que ce que la gate exige.
  * @param {Record<string, {prerequis?: {chemin: string, pose: string}[]}>} ecritLu table mesurée
- * @returns {{args: string[], ou: string, relance: string}[]}
+ * @returns {{args: string[], ou: string, relance: string, chemin: string}[]}
  */
 export function equipementsDesPrerequis(ecritLu) {
   const parPose = new Map()
@@ -116,6 +124,7 @@ export function equipementsDesPrerequis(ecritLu) {
         args: [...mots, ...FLAGS_CI],
         ou: prefixe >= 0 && mots[prefixe + 1] ? ` dans ${mots[prefixe + 1]}/` : '',
         relance: pose,
+        chemin: prerequis.chemin,
       })
     }
   }
@@ -134,6 +143,25 @@ export function equipementsDesPrerequis(ecritLu) {
  * `server/node_modules` absent, après 881 s de gates en série).
  */
 export const EQUIPEMENTS = [EQUIPEMENT_RACINE, ...equipementsDesPrerequis(ECRIT_LU), EQUIPEMENT_DOCS]
+
+/** L'équipement en conteneur cloud : les mêmes, plus `npm run gen` avant les docs, car un `node_modules`
+ *  lié (`lierNodeModules`) ne joue pas le `postinstall`. */
+export const EQUIPEMENTS_DU_CONTENEUR = [...EQUIPEMENTS.slice(0, -1), EQUIPEMENT_GEN, EQUIPEMENT_DOCS]
+
+/** Les entrées cachées qu'npm pose dans un `node_modules` (docs.npmjs.com, « package-lock.json » : lockfile
+ *  caché ; `.bin`) : toute autre entrée cachée est le cache d'un outil (`.cache`, `.vite`…), réécrit en place. */
+const CACHEES_DE_NPM = new Set(['.bin', '.package-lock.json'])
+
+/** Les entrées de `de` liées EN DUR sous `vers` (`cp -al`), jamais par lien symbolique, caches d'outils exclus : un
+ *  fichier lié qu'un outil réécrit en place change aussi dans le principal. */
+export function lierNodeModules(de, vers) {
+  const entrees = readdirSync(de).filter((e) => !e.startsWith('.') || CACHEES_DE_NPM.has(e))
+  mkdirSync(vers)
+  return spawnSync('cp', ['-al', '--', ...entrees.map((e) => join(de, e)), vers], { stdio: 'inherit' })
+}
+
+/** Les octets de `fichier`, `null` s'il manque. */
+const octetsDe = (fichier) => (existsSync(fichier) ? readFileSync(fichier) : null)
 
 /**
  * Ce que l'ouverture IMPRIME en fin : les quatre faits dont la session a besoin tout de suite. PURE.
@@ -159,7 +187,8 @@ export const GESTES_DU_CHANTIER = Object.freeze({ arbrePrincipal, shaDe, fetchOr
  * @returns {{ok: true, cible: string, branche: string, base: string, resume: string, npmJoue: boolean}
  *   | {ok: false, refus: string, cible?: string, branche?: string}}
  */
-export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = GESTES_DU_CHANTIER, npm = spawnSync, annoncer, horloge, copierDocs = copierDocsFrais }) {
+export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = GESTES_DU_CHANTIER, npm = spawnSync, annoncer, horloge, copierDocs = copierDocsFrais, env = process.env, lier = lierNodeModules }) {
+  const conteneur = estConteneurDistant(env)
   const etape = (nomEtape, geste) => etapeProfilee(`[chantier] ${nomEtape}`, geste, { annoncer, horloge })
   if (!nomValide(nom)) {
     return { ok: false, refus: `nom de chantier invalide : « ${nom} » — forme attendue : ${FORME_DITE}` }
@@ -191,7 +220,7 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
     return { ok: false, refus: `origin non consultable, le chantier ne peut pas partir d'origin/main : ${vuFetch.raison}` }
   }
 
-  const vuAdd = etape('git worktree add', () => gestes.ajouterWorktree(depot, { chemin: cible, branche, depuis: TRONC.suivi }))
+  const vuAdd = etape('git worktree add', () => gestes.ajouterWorktree(depot, { chemin: cible, branche, depuis: TRONC.suivi, sansHooks: conteneur }))
   if (!vuAdd.disponible) return { ok: false, refus: `git worktree add a échoué : ${vuAdd.raison}`, cible, branche }
   if (!reussi(vuAdd)) {
     return { ok: false, refus: `git worktree add a échoué (code ${vuAdd.absent ? 'objet absent' : vuAdd.valeur.status})`, cible, branche }
@@ -205,7 +234,30 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
   // `shell: true` MESURÉ nécessaire : `spawnSync('npm.cmd', …, { shell: false })` rend
   // `EINVAL` sous Node v22.20.0 / win32 (mesure du 2026-09-14). Aucun argument ne porte d'espace,
   // et le `cwd` ne passe pas par la ligne de commande — il n'y a donc rien à citer.
-  for (const { args: argsEquipe, ou, relance } of EQUIPEMENTS) {
+  for (const { args: argsEquipe, ou, relance, chemin } of conteneur ? EQUIPEMENTS_DU_CONTENEUR : EQUIPEMENTS) {
+    // En conteneur, un `node_modules` RÉPERTOIRE du principal (jamais un lien symbolique) se lie en dur, si son
+    // `package-lock.json` est celui de la cible ; absent du principal, l'équipement normal le pose.
+    if (conteneur && chemin && lstatSync(join(principal, chemin), { throwIfNoEntry: false })?.isDirectory()) {
+      const lock = join(dirname(chemin), 'package-lock.json')
+      const duPrincipal = octetsDe(join(principal, lock))
+      const deLaCible = octetsDe(join(cible, lock))
+      if (!duPrincipal || !deLaCible || !duPrincipal.equals(deLaCible)) {
+        return {
+          ok: false, cible, branche,
+          refus: `worktree posé, ${chemin} non lié : ${lock} du principal diffère de celui de la cible — ` +
+            `relancer \`${relance}\` dans ${cible}, ou synchroniser le principal et rouvrir`,
+        }
+      }
+      const vuLien = etape(`cp -al ${chemin}`, () => lier(join(principal, chemin), join(cible, chemin)))
+      if (vuLien?.error || vuLien?.status !== 0) {
+        return {
+          ok: false, cible, branche,
+          refus: `worktree posé, cp -al ${chemin} rouge — relancer \`${relance}\` dans ${cible}` +
+            (vuLien?.error ? ` (${vuLien.error.message})` : ` (code ${vuLien?.status})`),
+        }
+      }
+      continue
+    }
     let args = argsEquipe
     if (args.includes('docs:build')) {
       const copie = etape('copie des docs dérivés', () => copierDocs({

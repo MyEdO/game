@@ -15,9 +15,10 @@ import { sceneMetresPerTile } from './monde/scene';
 import { inBattleId } from './monde/combatants';
 import {
   attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense,
-  surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock,
+  surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock, tireSansEquipe,
 } from './combatFlow';
 import { defenseDodgeMods } from './mount';
+import { bouclierDuBinomeEnJeu } from './combat/surnombre';
 import { LOCALISATIONS_DE_COUP, type Combatant, type Difficulty, type HitLocation, type ModLine, type Weapon } from '../engine/types';
 import type { RollBreakdown } from '../engine/combat';
 import {
@@ -37,6 +38,7 @@ import { isInanimate } from '../engine/structures';
 import { peutEtreEmpoigne } from '../engine/grapple';
 import { itemCapability } from '../engine/capabilities';
 import { objetSourceDeLArme } from '../engine/weaponLoad';
+import { retraitsDits } from '../engine/weaponDamage';
 import { attackModesFor } from '../engine/combatFeatures/dispatch';
 import { testSkillLabel } from '../data';
 import { t } from '../i18n';
@@ -93,6 +95,8 @@ export interface FenetreDAttaque {
   tirDansLeTas: PostureDeTir | null;
   tirImmobile: PostureDeTir | null;
   sansLaCorde: BasculeNommee | null;
+  /** Ce que l'arme perd, tirée sans équipe (`tireSansEquipe`), `null` sinon. AA 10 l.148 ; ZI 13 l.193 */
+  sansEquipe: string | null;
   retenirSesCoups: BasculeNommee | null;
   empoigner: BasculeNommee | null;
   /** Pourquoi aucun jet n'est possible (ligne de vue, portée), `null` sinon. */
@@ -182,7 +186,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const empoigne = !res && arme.type === 'melee' && isUnarmed(arme) && heros && peutEtreEmpoigne(cible);
   const apercu = !res ? previewAttack(get, attaquant, cible, pa.location ?? undefined, { dansLeTas: pa.dansLeTas, tirImmobile: pa.tirImmobile, weaponUid: pa.weaponUid, harpoonRopeCut: pa.harpoonRopeCut, weapon: arme }) : null;
   // LDB 13 l.135
-  const defenseAuTir = !res && tir ? bestRangedDefense(attaquant, cible, arme, distanceDeCombat(s.scene, attaquant, cible), true, sceneMetresPerTile(s.scene)) : undefined;
+  const defenseAuTir = !res && tir ? bestRangedDefense(attaquant, cible, arme, distanceDeCombat(s.scene, attaquant, cible), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, cible)) : undefined;
   const esquive = defenseDodgeMods(s, cible);
   const annonce = res
     ? undefined
@@ -239,6 +243,9 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
       : null,
     sansLaCorde: corde
       ? bascule('sansLaCorde', !!pa.harpoonRopeCut, t(pa.harpoonRopeCut ? 'attaque.sansLaCorde.noteCoupee' : 'attaque.sansLaCorde.noteTenue'))
+      : null,
+    sansEquipe: !res && arme.perteSansEquipe && tireSansEquipe(s.scene, attaquant, arme, battle.combatants)
+      ? t('attaque.sansEquipe', { pertes: retraitsDits(arme.perteSansEquipe).join(', ') })
       : null,
     retenirSesCoups: retenir
       ? bascule('retenirSesCoups', !!pa.withhold, pa.withhold ? t(rule('combat-aa-blessures') === 'aa' ? 'attaque.retenir.noteAa' : 'attaque.retenir.noteLdb') : null)

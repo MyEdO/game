@@ -3,15 +3,18 @@ import { nommerChamps } from '../grammaire/meta';
  * Schémas zod de la CARTE DU MONDE d'un projet (`src/noyau/worldMap.ts`) — lieux, routes, services.
  *
  * ORDRE DU SEAM : le schéma voit `places[].port` AVANT `resolvePortRef` (`parseProject`), donc
- * sous ses DEUX formes documentées (`worldMap.ts:181-183`) — la forme SPARSE par référence
+ * sous ses DEUX formes — la forme SPARSE par référence
  * (`{ ref, lighthouse }`, le catalogue `naval-ports.json` fournissant les défauts) et la forme
- * CONCRÈTE à plat (`PortProfile` complet). Un port sans `ref` porte donc son profil en entier.
+ * CONCRÈTE à plat (`PortProfile` complet), que documente `MapPlace.port`. Un port sans `ref` porte donc son
+ * profil en entier.
  */
 import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
+import { champsDAcces, META_DE_L_ACCES, refuserLAccesMuet } from '../grammaire/acces';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
-import { enumNomme, idDIconeSchema, pointDuPlanSchema } from '../grammaire/valeurs';
+import { enumNomme, idDIconeSchema, pointDuPlanSchema, qualiteDeReposSchema } from '../grammaire/valeurs';
+import { offresDAubergeSchema } from '../grammaire/hebergement';
 import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
 import { idDe, recordDIds, ref, refs, type PorteeLocale } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
@@ -21,20 +24,24 @@ import { findVehicleById } from '../../index';
 
 /** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */
 export const travelModeSchema = z.string();
-export const refusRouteSchema = proseNommee(nommerChamps(z.strictObject({}), {}), 'worldMap.routes[].refus.texte');
 /** `WindDirection` (`engine/seaWeather.ts`) — cap dominant d'une route maritime (`MDG 13 l.262-270`). */
 export const windDirectionSchema = enumNomme({ nord: 'Nord', sud: 'Sud', est: 'Est', ouest: 'Ouest' });
 
-/** `PortProfile` (`engine/seaVoyage.ts:217`) en forme AUTHORÉE : SPARSE quand `ref` désigne une
+/** Libellé de chaque indice de Taille d'un lieu. MSRC 13 l.44-50 */
+export const LIBELLES_DE_TAILLE: Readonly<Record<number, string>> = { 1: 'Hameau', 2: 'Village', 3: 'Ville', 4: 'Grande ville' };
+
+/** Indice de Taille d'un lieu (`LIBELLES_DE_TAILLE`), MSRC 13 l.44-50 : un nœud pour ses deux porteurs, le port
+ *  (`portProfileSchema`) et le lieu sans port (`mapPlaceSchema`). Le MDG n'imprime AUCUNE échelle : son Index des ports
+ *  emploie celle-ci — mesuré 2026-09-01, 39/39 ports de `naval-ports.json` dans 1..4 ; `MDG 15 l.249`. */
+export const tailleDuLieuSchema = z.number().int().min(1).max(4);
+
+/** `PortProfile` (`engine/seaVoyage.ts`) en forme AUTHORÉE : SPARSE quand `ref` désigne une
  *  entrée de `naval-ports.json` (les champs présents sont des SURCHARGES locales), COMPLET sinon.
  *  `lighthouse` (hors catalogue) : un phare veille sur l'approche (`MDG 13 l.333-351`). */
 export const portProfileSchema = nommerChamps(z
   .strictObject({
     ref: idDe('navalPort').optional(),
-    /** Indice de Taille du Lieu. Le MDG n'imprime AUCUNE échelle : c'est celle de `MSRC 13 l.44-50`
-     *  (1 Hameau … 4 Grande ville) que son Index des ports emploie — mesuré 2026-09-01, 39/39 ports de
-     *  `naval-ports.json` dans 1..4, et `MDG 15 l.249` nomme « hameau ou petit village (Taille 1 ou 2) ». */
-    taille: z.number().int().min(1).max(4).optional(),
+    taille: tailleDuLieuSchema.optional(),
     /** Indice de Richesse du Lieu, `MSRC 13 l.52-60` (1 à 5). Même mesure : 39/39 ports dans 1..5.
      *  Le domaine est FERMÉ aux deux bouts — c'est lui qui entre dans le tableau du Prix d'offre
      *  (`MDG 15 l.378-383`), dont la première bande commence à 1. */
@@ -55,16 +62,15 @@ export const portProfileSchema = nommerChamps(z
         ctx.addIssue({
           code: 'custom',
           path: [champ],
-          message: `port sans « ref » : le profil est authoré EN ENTIER, « ${champ} » manque (forme concrète, worldMap.ts:181-183).`,
+          message: `port sans « ref » : le profil est authoré EN ENTIER, « ${champ} » manque.`,
         });
       }
     }
   }), { ref: { label: "référence" , texte: { regime: "technique"} }, taille: { label: "taille" }, richesse: { label: "richesse" }, production: { label: "production" , texte: { regime: "technique"} }, surplus: { label: "surplus" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, cosmopolite: { label: "cosmopolite" }, lighthouse: { label: "phare" } });
 
-/** `LandMarketProfile` (`engine/landCargo.ts:62`) — indices de commerce terrestre/fluvial (`MSRC 13`). */
+/** `LandMarketProfile` (`engine/landCargo.ts`) sans sa Taille, que porte le lieu (`tailleDuLieu`) — indices de commerce
+ *  terrestre/fluvial (`MSRC 13`). */
 export const landMarketProfileSchema = nommerChamps(z.strictObject({
-  /** Indice de Taille de la communauté (1 Hameau … 4 Grande ville, `MSRC 13 l.44-50`). */
-  taille: z.number().int().min(1).max(4),
   /** Indice de Richesse, `MSRC 13 l.52-60` : la colonne n'imprime QUE 1 à 5 — « Misérable » y porte
    *  « - », donc aucun indice, et n'est pas authorable. Domaine FERMÉ : c'est la colonne d'entrée du
    *  tableau de la Mise à prix (`MSRC 13 l.150-156`), qui donne une ligne par indice de 1 à 5. */
@@ -78,27 +84,27 @@ export const landMarketProfileSchema = nommerChamps(z.strictObject({
   wineBonusEchelons: z.number().optional(),
   hostLine: z.string().optional(),
   backdrop: ref('fond').optional(),
-}), { taille: { label: "taille" }, richesse: { label: "richesse" }, produits: { label: "produits" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, commerceRichesse: { label: "richesse commerciale" }, wineBonusEchelons: { label: "bonus du vin" }, hostLine: { label: "ligne d’accueil" , texte: { regime: "narration",horsContrat: { motif: "sans-saisie-campagne",preuve: "src/ui/editor/WorldMapPlacePanel.tsx:WorldMapPlacePanel"}} }, backdrop: { label: "fond" } });
+}), { richesse: { label: "richesse" }, produits: { label: "produits" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, commerceRichesse: { label: "richesse commerciale" }, wineBonusEchelons: { label: "bonus du vin" }, hostLine: { label: "ligne d’accueil" , texte: { regime: "narration",horsContrat: { motif: "sans-saisie-campagne",preuve: "src/ui/editor/WorldMapPlacePanel.tsx:WorldMapPlacePanel"}} }, backdrop: { label: "fond" } });
 
 /** Les établissements d'un lieu (`MapPlace.services`), que désigne hors du catalogue le point d'intérêt de son plan
  *  (`PlacePoi.service`) ; le lieu l'ouvre (`mapPlaceSchema`). #4277 */
 export const SERVICES_DU_LIEU = { collection: 'services', catalogue: 'établissements du lieu' } as const satisfies PorteeLocale;
 
 /** `PlaceService` — établissement d'un lieu (`id` stable, unique dans le lieu ; `kind` = id de `lieux-services.json`),
- *  hors port/marché qui portent leur schéma riche. `rest` = offre de couchage PROPRE à l'établissement. #4277 */
+ *  hors port/marché qui portent leur schéma riche. `rest` = qualité et offres d'auberge d'un établissement
+ *  d'hébergement ; `offres` absent : les offres du livre ; `when`/`refus` : son accès réservé (`champsDAcces`). #4277 */
 export const placeServiceSchema = nommerChamps(z.strictObject({
   id: z.string(),
   kind: ref('serviceDeLieu'),
   label: z.string().optional(),
   rest: nommerChamps(z
     .strictObject({
-      auberge: z.boolean().optional(),
-      maison: z.boolean().optional(),
-      camp: z.boolean().optional(),
-      bord: z.boolean().optional(),
-  }), { auberge: { label: "auberge" }, maison: { label: "chez soi" }, camp: { label: "camp" }, bord: { label: "bord" } })
+      quality: qualiteDeReposSchema.optional(),
+      offres: offresDAubergeSchema.optional(),
+  }), { quality: { label: "qualité" }, offres: { label: "offres" } })
     .optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, kind: { label: "type" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, rest: { label: "repos" } });
+  ...champsDAcces,
+}).superRefine((service, ctx) => refuserLAccesMuet(service, ctx, 'un établissement')), { id: { label: "identifiant" , texte: { regime: "technique"} }, kind: { label: "type" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, rest: { label: "repos" }, ...META_DE_L_ACCES });
 
 /** `PlacePoi` (#345) — marqueur de PLAN, cible EXCLUSIVE `sceneId`, nommée par son `label`, OU `service` (un service
  *  RÉSOLU du lieu : établissement déclaré, ou port/marché automatique du catalogue), nommé par ce service. #4277 */
@@ -127,7 +133,8 @@ export const placePoiSchema = nommerChamps(z
     }
   }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, icon: { label: "icône" , texte: { regime: "technique"} }, sceneId: { label: "scène" , texte: { regime: "technique"} }, service: { label: "service" , texte: { regime: "technique"} } });
 
-/** `MapPlace` — lieu posé sur la carte ; être dans `scene` = être à ce lieu. */
+/** `MapPlace` — lieu posé sur la carte ; être dans `scene` = être à ce lieu. Sa Taille a UN porteur (`tailleDuLieu`) :
+ *  son port, sinon `taille` ; un marché exige l'un des deux. MSRC 13 l.44-50 */
 export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
@@ -137,6 +144,8 @@ export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObj
   entry: z.string().optional(),
   /** Icône du médaillon (id du registre `src/data/icons`), défaut `navigation/point-d-entree`. */
   icon: idDIconeSchema.optional(),
+  /** Taille d'un lieu SANS port ; absente : le lieu n'est pas une agglomération. */
+  taille: tailleDuLieuSchema.optional(),
   port: portProfileSchema.optional(),
   market: landMarketProfileSchema.optional(),
   services: listeCle(placeServiceSchema, 'id').optional(),
@@ -147,7 +156,12 @@ export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObj
    *  narratif : la destination n'apparaît qu'une fois révélée. Absente = toujours visible. */
   when: conditionCondCtxSchema.optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } }), 'worldMap.places[].prose'), [SERVICES_DU_LIEU]);
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, taille: { label: "taille" }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } }), 'worldMap.places[].prose').superRefine((lieu, ctx) => {
+  if (lieu.taille !== undefined && lieu.port !== undefined)
+    ctx.addIssue({ code: 'custom', path: ['taille'], message: 'un lieu à port tient sa taille de son port : « taille » ne s’y pose pas.' });
+  if (lieu.market !== undefined && lieu.taille === undefined && lieu.port === undefined)
+    ctx.addIssue({ code: 'custom', path: ['market'], message: 'un marché exige la taille du lieu : posez « taille », ou un port.' });
+}), [SERVICES_DU_LIEU]);
 
 /** `RoutePeril` — péripétie d'AUTEUR tirée chaque jour de voyage à `chancePct` %. Hors de toute scène, elle en ouvre
  *  les portées VIDES (`ouvrirPortees`, source `'vide'`) : aucune référence locale de la scène n'y résout. */
@@ -209,12 +223,8 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
   river: z.boolean().optional(),
   /** Périls de rivière tirés chaque jour (`MSRC 7 l.119-166`, `river-perils.json`). */
   riverPerils: z.array(nommerChamps(z.strictObject({ perilId: z.string(), chancePct: z.number() }), { perilId: { label: "péril" , texte: { regime: "technique"} }, chancePct: { label: "probabilité" } })).optional(),
-  /** PRATICABILITÉ du trajet (algèbre `Condition`, cf. `evalCondition`) — axe ARÊTE du gating
-   *  narratif, indépendant de `mapPlaceSchema.when`. Absente = toujours praticable. */
-  when: conditionCondCtxSchema.optional(),
-  /** Raison JOUEUR de l'indisponibilité, rendue par `GatedAction` en infobulle — EXIGÉE dès que
-   *  `when` est posé (superRefine ci-dessous) : un trajet fermé MUET est un cul-de-sac inexplicable. */
-  refus: refusRouteSchema.optional(),
+  /** PRATICABILITÉ du trajet (`champsDAcces`) — axe ARÊTE du gating narratif, indépendant de `mapPlaceSchema.when`. */
+  ...champsDAcces,
   /** Exposition HYDRIQUE de la descente (`MSRC 16 l.5-13`) — déclenche l'Effet `waterExposure`. */
   riverExposure: nommerChamps(z
     .strictObject({
@@ -233,15 +243,10 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
         ctx.addIssue({ code: 'custom', path: ['provenances', cle], message: `provenance manquante : cite le livre et la page, ou dis la raison maison ${PROVENANCE_EXIGEE[cle]}.` });
       }
     }
-    if (route.when !== undefined && !route.refus?.texte.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        message: "« when » posé sans « refus » — un trajet fermable doit dire au JOUEUR pourquoi il l'est (infobulle « GatedAction »).",
-      });
-    }
+    refuserLAccesMuet(route, ctx, 'un trajet');
     for (const [mode, billet] of Object.entries(route.billets ?? {}))
       for (const message of fautesDuBillet(route, mode, billet)) ctx.addIssue({ code: 'custom', path: ['billets', mode], message });
-  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, billets: { label: "billets" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, when: { label: "condition" }, refus: { label: "refus" }, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, provenances: { label: "provenances" } });
+  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, billets: { label: "billets" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, ...META_DE_L_ACCES, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, provenances: { label: "provenances" } });
 
 /** `WorldMapParams` — réglages RAW de voyage au niveau CARTE, tous paramétrables. */
 export const worldMapParamsSchema = nommerChamps(z.strictObject({

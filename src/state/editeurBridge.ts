@@ -76,7 +76,7 @@ export interface CommandesEditeur {
 }
 
 /** Ce que `lireCarteDuMonde` rend : lieux et routes par id, avec leur `when` (et le `refus` d'une
- *  route gatée, `Praticabilite`). */
+ *  route gatée, `Acces`). */
 export interface CarteDuMondeLue {
   id: string;
   label: string;

@@ -24,8 +24,12 @@ matériau s'exporte aux UV en mètres de `maille.poser_les_uv_en_metres`, #4313)
   `emplacements` recopiés du manifeste publié), `MATERIAUX` (valeurs lues dans les matériaux du GLB publié) et
   `BUDGET_TRIANGLES`.
 
+`--local <id>=<glb>` (répétable) lit l'élément publié `<id>` (un élément contourné, ou l'élément même d'une reprise) au
+GLB local au lieu du cache épinglé (`entrees.glb_locaux`, #4338) : la construction n'est alors pas reproductible depuis le
+dépôt, la sortie le dit, et elle ne s'importe pas.
+
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/construire.py humanoide/rigide--baton \\
-        --sortie <dossier neuf hors du dépôt>
+        --sortie <dossier neuf hors du dépôt> [--local humanoide--armure--plastron=<plastron.glb>]
 """
 import argparse
 import hashlib
@@ -46,6 +50,7 @@ from mathutils import Euler, Matrix, Quaternion, Vector  # noqa: E402
 import habillage  # noqa: E402
 import maille  # noqa: E402
 import tissu  # noqa: E402
+from entrees import glb_locaux  # noqa: E402
 from glb import lire_glb  # noqa: E402
 from production import CACHE_DES_MODELES, MODELES, dossier_de_sortie, ecrire_le_dossier  # noqa: E402
 
@@ -208,13 +213,13 @@ def construire_rigide(D, modele, manifeste_de_base, glb_de_base, temporaire):
     return octets, objets, {}, triangles
 
 
-def construire_squelette(D, modele, manifeste_de_base, glb_de_base, cache, id_, temporaire):
+def construire_squelette(D, modele, manifeste_de_base, glb_de_base, publie, id_, temporaire):
     """La pièce du modèle, ses clés transférées, découpée par zone, ou les objets repris du GLB publié de `id_`
-    (`reprendre`), exportés avec l'armature de la base."""
-    base = tissu.Base(glb_de_base, manifeste_de_base, lambda id_: epingle(id_, cache))
+    (`reprendre`), exportés avec l'armature de la base ; `publie(id)` rend le GLB d'un élément publié."""
+    base = tissu.Base(glb_de_base, manifeste_de_base, publie)
     materiaux = habillage.materiaux(D["MATERIAUX"])
     if hasattr(modele, "reprendre"):
-        objets = modele.reprendre(materiaux, base, epingle(id_, cache))
+        objets = modele.reprendre(materiaux, base, publie(id_))
         triangles = triangles_de(objets, D["BUDGET_TRIANGLES"])
     else:
         piece = modele.construire(D, materiaux, base)
@@ -230,6 +235,8 @@ def main():
     p.add_argument("element", choices=elements())
     p.add_argument("--cache", type=Path, default=CACHE_DES_MODELES, help="cache des modèles, GLB nommés par empreinte")
     p.add_argument("--sortie", required=True)
+    p.add_argument("--local", action="append", default=[], metavar="ID=GLB",
+                   help="élément lu à ce GLB local au lieu du cache épinglé : construction non reproductible")
     args = p.parse_args()
     base, dossier = args.element.split("/")
     D = runpy.run_path(str(ICI / base / dossier / "donnees.py"))
@@ -241,13 +248,17 @@ def main():
     glb_de_base = epingle(base, args.cache)
     sortie = dossier_de_sortie(args.sortie)
     id_ = identifiant(base, M)
+    try:
+        locaux = glb_locaux(args.local, {*D.get("CONTOURNE", {}).values(), *([id_] if hasattr(modele, "reprendre") else [])})
+    except ValueError as erreur:
+        p.error(str(erreur))
     temporaire = sortie / f"{id_}.tmp.glb"
     mode = M["liaison"]["mode"]
     if mode == "rigide":
         octets, objets, propres, triangles = construire_rigide(D, modele, manifeste_de_base, glb_de_base, temporaire)
     elif mode in ("squelette", "surface"):
-        octets, objets, propres, triangles = construire_squelette(D, modele, manifeste_de_base, glb_de_base, args.cache,
-                                                                  id_, temporaire)
+        octets, objets, propres, triangles = construire_squelette(D, modele, manifeste_de_base, glb_de_base,
+                                                                  lambda i: locaux.get(i) or epingle(i, args.cache), id_, temporaire)
     else:
         raise ValueError(f"{args.element} : liaison {mode} sans constructeur")
     temporaire.unlink()
@@ -257,6 +268,8 @@ def main():
     licences = {l["fichier"]: MODELES / l["fichier"] for l in lire(MODELES / f"{base}.provenance.json")["licences_de_pack"]}
     ecrit = ecrire_le_dossier(sortie / id_, id_, octets, manifeste, licences)
     print("GLB", id_, ecrit["glb"]["octets"], ecrit["glb"]["sha256"], "TRIANGLES", triangles)
+    for i, glb in locaux.items():
+        print("LOCAL", i, glb, ": hors du cache épinglé, construction non reproductible depuis le dépôt, à ne pas importer")
 
 
 if __name__ == "__main__":

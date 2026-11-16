@@ -39,6 +39,7 @@ import {
 } from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { mapPlaceSchema, mapRouteSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
+import { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import { repereDIdentiteSchema, valeurDIdentiteSchema } from '../data/schemas/grammaire/campagne';
 import {
   affaireSchema,
@@ -114,7 +115,7 @@ import { entreesDeStades, entreesNarratives, type CleDeReferenceNarrative } from
 import { REFERENCES_NARRATIVES } from '../data/schemas/defs-scenes/registres-narratifs';
 import { SOUS_REFERENCES, type CleDeSousReference } from '../data/schemas/defs-scenes/refs-narratives';
 import { marcheNeuf, peripetieNeuve, portNeuf } from './worldMapEdit';
-import { emptyWorldMap, resolvePortRef, type MapPlace, type MapRoute, type ProjectDoc, type WorldMap } from './worldMap';
+import { emptyWorldMap, estUnHebergement, resolvePortRef, type MapPlace, type MapRoute, type ProjectDoc, type WorldMap } from './worldMap';
 import type { Warning } from './validateScene';
 import { emptyStatblock, statblockDeLaCreature } from '../data/valeursNeuves';
 import { customStatblockSchema } from '../data/schemas/defs-scenes/communs';
@@ -821,13 +822,22 @@ const champsSauf = (schema: unknown, exclues: readonly string[]): CheminsOfferts
 
 /** Les champs qu'offre le formulaire d'un lieu : chacun de son schéma, hors de son identifiant, de sa position sur la
  *  carte (`pos`, donnée spatiale), de ses établissements et de ses points d'intérêt ; de chacun de ses établissements, à
- *  son rang, son nom et son repos, son type et son identifiant posés à sa création (`etablissementAjoute`) ; de chacun de
+ *  son rang, son nom et son accès réservé (`champsDAcces`), son type et son identifiant posés à sa création
+ *  (`etablissementAjoute`), et, s'il héberge
+ *  (`estUnHebergement`), la qualité de son repos et, de chacune de ses offres déclarées, à son rang, chaque champ hors de
+ *  son identifiant, l'offre s'ajoutant et se retirant par ses écrivains (`offreAjoutee`, `offreRetiree`) ; de chacun de
  *  ses points d'intérêt, à son rang, son icône et, s'il mène à une scène, son nom, sa position posée au plan, sa cible
  *  par son écrivain (`ciblerPoi`). #3606 #4277 */
 const CHAMPS_DU_LIEU = champsSauf(mapPlaceSchema, ['id', 'pos', 'services', 'poi']);
+const CHAMPS_DE_L_OFFRE = champsSauf(offreDAubergeSchema, ['id']);
 const champsDuLieu = (lieu: MapPlace): CheminsOfferts => [
   ...CHAMPS_DU_LIEU,
-  ...(lieu.services ?? []).flatMap((_, i) => [['services', i, 'label'], ['services', i, 'rest']]),
+  ...(lieu.services ?? []).flatMap((sv, i) => [
+    ['services', i, 'label'],
+    ['services', i, 'when'],
+    ['services', i, 'refus'],
+    ...(estUnHebergement(sv) ? [['services', i, 'rest', 'quality'], ...(sv.rest?.offres ?? []).flatMap((_, j) => CHAMPS_DE_L_OFFRE.map(([cle]) => ['services', i, 'rest', 'offres', j, cle]))] : []),
+  ]),
   ...(lieu.poi ?? []).flatMap((p, i) => [...(p.sceneId ? [['poi', i, 'label']] : []), ['poi', i, 'icon']]),
 ];
 

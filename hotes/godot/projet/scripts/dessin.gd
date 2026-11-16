@@ -3,7 +3,7 @@
 ## lu au catalogue des dessins (`CATALOGUE`, déposé à la construction, `hotes/godot/asset/dessins.ts`), tracé aux
 ## couleurs du thème (`Dessin` : `encre` pour `currentColor`, puis la couleur du nom de chaque jeton `var(--<jeton>)`,
 ## ses tirets en soulignés) et posé en texture sur l'image qui le porte, son parent, à la finesse de sa taille
-## (`MiseEnPage.echelle_de_dessin`). Un dessin tracé à une taille ne se retrace pas. Le catalogue et les tracés servent
+## (`MiseEnPage.echelle_de_dessin`), ou en icône du bouton qui le porte, à la taille de son icône (`icon_max_width`). Un dessin tracé à une taille ne se retrace pas. Le catalogue et les tracés servent
 ## aussi les cadres de panneau (`cadre.gd`).
 class_name Dessin
 extends Node
@@ -15,13 +15,26 @@ static var _catalogue := {}
 static var _traces := {}
 
 
+## Le champ de l'élément qui nomme son dessin, et la famille du catalogue qui le tient : celui du nom de son type, ou
+## `icone` pour un bouton ou un choix, dont l'icône est facultative (absente : sans dessin).
+@export var champ := ""
+
+
 func poser(element: Dictionary) -> void:
-	var cible := get_parent() as TextureRect
-	var famille := famille_du_catalogue(element.type)
-	var nommes: Variant = element[element.type]
-	var couches: Array = nommes if nommes is Array else [nommes]
-	var echelle := MiseEnPage.echelle_de_dessin(cible.custom_minimum_size.x, cible.custom_minimum_size.y, famille.largeur, famille.hauteur)
-	cible.texture = trace(element.type, couches, echelle)
+	var cible := get_parent() as Control
+	var type: String = champ if champ != "" else element.type
+	var nommes: Variant = element.get(type)
+	var texture: ImageTexture = null
+	if nommes != null:
+		var famille := famille_du_catalogue(type)
+		var cote := float(cible.get_theme_constant(&"icon_max_width", &"Button"))
+		var taille := cible.custom_minimum_size if cible is TextureRect else Vector2(cote, cote)
+		var couches: Array = nommes if nommes is Array else [nommes]
+		texture = trace(type, couches, MiseEnPage.echelle_de_dessin(taille.x, taille.y, famille.largeur, famille.hauteur))
+	if cible is Button:
+		(cible as Button).icon = texture
+	else:
+		(cible as TextureRect).texture = texture
 
 
 ## Les dessins `couches` de la famille `type` tracés l'un sur l'autre à `echelle`, tracés une fois.

@@ -56,7 +56,7 @@ const recursif = (chemin: readonly Segment[]): boolean => {
 };
 
 /** Au plus autant de gestes joués : la boucle se termine même si un formulaire en ouvrait sans fin. */
-const GESTES_AU_PLUS = 400;
+const GESTES_AU_PLUS = 800;
 
 /** La valeur à jouer dans la saisie `s` d'un formulaire `valeur` : un nombre autre que le courant, dans ses bornes ; un
  *  texte ; une liste vide pour du JSON. */
@@ -601,6 +601,7 @@ export function ecrituresDeLaCarte(): EcritureJouee[] {
   out.push({ avant: documentDu(sansPoi, 'lieu'), apres: documentDu(s, 'lieu'), chemin: [...lieu.chemin, 'poi'], valeur: (lieu.donnee as { poi?: unknown }).poi, saisie: 'bouton' });
   s = consigner(consigner(s, 'lieu/etablissement/ajouter/auberge', ['services'], out), 'lieu/etablissement/ajouter/auberge', ['services'], out);
   s = consigner(consigner(s, 'lieu/poi/cible/service/auberge', ['poi'], out), 'lieu/etablissement/auberge-2/retirer', ['services'], out);
+  s = consigner(consigner(s, 'lieu/etablissement/auberge/offre/repas/retirer', ['services'], out), 'lieu/etablissement/auberge/offre/ajouter/repas', ['services'], out);
   s = presser(jouerLInspecteur(presser(presser(s, 'outil/select'), `logique/lieu/${neuf}`), out), 'lieu/plan');
   const tiree = jouer(jouer(jouer(presser(s, 'outil/chemin'), { geste: 'appui', point: point(depart.pos.x, depart.pos.y) }), { geste: 'glisse', point: point(70, 20) }), { geste: 'relache', point: point(85, 15) });
   s = cree(s, tiree, 'route', out);

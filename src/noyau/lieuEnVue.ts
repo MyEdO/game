@@ -11,7 +11,7 @@ import type { GesteDuNoyau } from './actionsDuNoyau';
 import { lieuDuGroupe, serviceIcon, type ResolvedPlaceService } from './worldMap';
 import { planDepuis, trajetsDepuis, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
 import { refusAQuai } from './portFlow';
-import { entreesDuLieu, refusDEntrerAuPoint, servicesDuLieu } from './lieuFlow';
+import { entreesDuLieu, refusDEntrerAuPoint, refusDuService, servicesDuLieu } from './lieuFlow';
 import { identitesResolues, nommer } from './monde/identites';
 import { fenetreDuJeu } from './combatAuto';
 import { VERBE_DE_CHOIX } from './choixDesFenetres';
@@ -31,13 +31,19 @@ export interface PointDInteretEnVue { id: string; nom: string; geste: GesteDuSer
  *  la carte, ses services, ses points d'intérêt, ses trajets. */
 export interface LieuEnVue { nom: string; prose: string | null; plan: PlanDeLaCarte; carte: GesteDuService; services: ServiceEnVue[]; pointsDInteret: PointDInteretEnVue[]; trajets: TrajetEnVue[] }
 
+/** Ce qu'on fait au service `svc` du lieu (`gestesOfferts`), chaque geste refusé par la raison de sa fermeture tant que
+ *  son accès réservé le ferme (`refusDuService`). */
+function gestesDuService(s: Jeu, svc: ResolvedPlaceService): GesteDuService[] {
+  const ferme = refusDuService(s, svc);
+  return gestesOfferts(s, svc).map((g) => ({ ...g, refus: ferme ?? g.refus }));
+}
+
 /** Ce qu'on fait au service `svc` du lieu : y dormir et y recueillir des informations à l'auberge, y entrer
  *  ailleurs (le port, le marché, l'échoppe de son marchand) ; rien pour un service sans écran. */
-function gestesDuService(s: Jeu, svc: ResolvedPlaceService): GesteDuService[] {
+function gestesOfferts(s: Jeu, svc: ResolvedPlaceService): GesteDuService[] {
   const entrer = (geste: GesteDuNoyau, refus: string | null = null): GesteDuService[] => [{ id: 'entrer', libelle: svc.enterLabel ?? t('lieu.entrer'), geste, refus }];
   if (svc.category === 'auberge') {
-    const dormir: GesteDuService[] = svc.rest ? [{ id: 'dormir', libelle: t('lieu.dormir'), geste: { verbe: 'ouvrirLeRepos', args: [svc.id] }, refus: null }] : [];
-    return [...dormir, { id: 'informations', libelle: t('lieu.informations'), geste: { verbe: 'recueillirLesRumeurs', args: [svc.id] }, refus: null }];
+    return [{ id: 'dormir', libelle: t('lieu.dormir'), geste: { verbe: 'ouvrirLeRepos', args: [svc.id] }, refus: null }, { id: 'informations', libelle: t('lieu.informations'), geste: { verbe: 'recueillirLesRumeurs', args: [svc.id] }, refus: null }];
   }
   if (svc.category === 'port' || svc.opensScreen === 'port') return entrer({ verbe: 'ouvrirLePort', args: [] }, refusAQuai(s));
   if (svc.category === 'marche') return entrer({ verbe: 'ouvrirLeMarche', args: [] });

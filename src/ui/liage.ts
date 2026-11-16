@@ -134,7 +134,7 @@ export const SITES_PROSE: SiteProse[] = [
 
   // ── Texte brut (`mdToText`) : tooltips, titres, raisons de refus ──────────────────────────────
   { cle: 'src/ui/compendium/CodexRef.tsx#mdToText#1', origine: 'S', paquet: [], note: 'aperçu tronqué de la description d’une entrée de catalogue : texte brut, rien à lier' },
-  { cle: 'src/ui/WorldMapView.tsx#mdToText#1', origine: 'S', paquet: ['worldMap.routes[].refus.texte'], note: 'raison d’un trajet fermé, en texte brut de refus' },
+  { cle: 'src/ui/WorldMapView.tsx#mdToText#1', origine: 'S', paquet: ['acces.refus.texte'], note: 'raison d’un trajet fermé, en texte brut de refus' },
   { cle: 'src/ui/MerchantPanel.tsx#mdToText#1', origine: 'R', paquet: [], note: '`ItemInstance.desc` en aperçu — snapshot d’instance' },
   { cle: 'src/ui/creator/CharacterCreator.tsx#mdToText#1', origine: 'S', paquet: [], note: 'aperçu tronqué d’une description de catalogue du créateur (espèce, carrière, signe)' },
   { cle: 'src/ui/creator/CharacterCreator.tsx#mdToText#2', origine: 'S', paquet: [], note: 'infobulle de la description d’une demeure du catalogue' },

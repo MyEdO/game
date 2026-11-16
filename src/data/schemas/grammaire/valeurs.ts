@@ -861,7 +861,7 @@ export const surchargePaletteSchema = z.partialRecord(slotSchema, couleurHexSche
  *  cette liste, `reachIdOf` ne rendrait aucun rang et toute règle d'Allonge se tairait en silence. */
 export const reachSchema = z.enum([REACH_VARIABLE, ...Object.values(REACH_LABELS)]);
 
-/** `WeaponDamageSpec` (`src/engine/types.ts`) — Dégâts d'arme : littéral, ou Bonus de Force + valeur fixe.
+/** `WeaponDamageSpec` (`src/engine/types.ts`) — Dégâts d'arme : littéral, « – », ou Bonus de Force + valeur fixe.
  *  Lu par les armes du catalogue (`trappings`) et les manœuvres qui portent leurs Dégâts (`maneuvers`). ZI */
 export const weaponDamageSpecSchema = z.union([
   nommerChamps(z.strictObject({ literal: z.string() }), { literal: { label: 'Valeur littérale' } }),
@@ -871,6 +871,7 @@ export const weaponDamageSpecSchema = z.union([
     bare: { label: 'Mains nues' },
     bfInclus: { label: 'Indice BF inclus' },
   }),
+  nommerChamps(z.strictObject({ aucun: z.literal(true) }), { aucun: { label: 'Sans Dégâts' } }),
 ]);
 
 /** `WeaponRangeSpec` : mètres fixes, ou Bonus de Force × bf (armes de jet). */
@@ -886,11 +887,14 @@ export const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   isShelter: z.boolean().optional(),
   isRations: z.boolean().optional(),
   isGrimoire: z.boolean().optional(),
+  isSpellComponent: z.boolean().optional(),
   lockpicks: z.boolean().optional(),
   scurvyGuard: z.boolean().optional(),
   sealskin: z.boolean().optional(),
   shipParts: z.boolean().optional(),
   disarmImmune: z.boolean().optional(),
+  detruitAuLancer: z.boolean().optional(),
+  armureDeMonture: z.boolean().optional(),
   ropeMode: z.boolean().optional(),
   waterContainer: z.boolean().optional(),
   improvisedWithoutCharge: z.boolean().optional(),
@@ -900,11 +904,14 @@ export const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   isShelter: { label: 'Abri' },
   isRations: { label: 'Rations' },
   isGrimoire: { label: 'Grimoire' },
+  isSpellComponent: { label: 'Composant d’incantation' },
   lockpicks: { label: 'Crochets' },
   scurvyGuard: { label: 'Protection contre le scorbut' },
   sealskin: { label: 'Peau de phoque' },
   shipParts: { label: 'Pièces de navire' },
   disarmImmune: { label: 'Immunité au désarmement' },
+  detruitAuLancer: { label: 'Détruit au lancer' },
+  armureDeMonture: { label: 'Armure de monture' },
   ropeMode: { label: 'Usage de la corde' },
   waterContainer: { label: 'Récipient d’eau' },
   improvisedWithoutCharge: { label: 'Improvisée sans Charge' },

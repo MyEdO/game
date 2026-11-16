@@ -22,6 +22,7 @@
  * save qui en porterait un autre est d'un autre `FORMAT_SAVE`, refusée au chargement (#2404).
  * ÉCRITURE = porte UNIQUE et FAIL-FAST : rang hors borne, zone inconnue, arsenal sans set → `throw`.
  */
+import { isConsumable } from '../engine/consumables';
 import type { Combatant, DispositionConsole, EntreeBarre, ZoneBarre } from '../engine/types';
 
 
@@ -148,4 +149,37 @@ export function poserDansBarre(c: Combatant, adresse: AdresseBarre, entree: Entr
 /** VIDER une case : elle reste dessinée à sa place, la déduction ne la reprend pas. */
 export function retirerDeBarre(c: Combatant, adresse: AdresseBarre): Combatant {
   return poserDansBarre(c, adresse, null);
+}
+
+/** Les EMPLACEMENTS RAPIDES : les premiers rangs de la zone `capacites` (variante B de #3935, 2026-11-15). */
+export const RANGS_RAPIDES = 6;
+
+/** Les préfixes de clé d'un sort et d'un modèle d'objet (`EntreeBarre.cle`). */
+export const CLE_DE_SORT = 'sort-';
+export const CLE_D_OBJET = 'q-objet-';
+
+/** Ce que le porteur POSSÈDE de quoi garnir ses emplacements rapides, dans l'ordre : ses sorts (`Combatant.spells`),
+ *  puis un modèle de consommable par `trappingId`, dans l'ordre de ses `items`. */
+function entreesPossedees(c: Combatant): EntreeBarre[] {
+  const sorts = (c.spells ?? []).map((id): EntreeBarre => ({ actionId: 'incantation', cle: `${CLE_DE_SORT}${id}` }));
+  const modeles = [...new Set((c.items ?? []).filter(isConsumable).flatMap((i) => (i.trappingId ? [i.trappingId] : [])))];
+  return [...sorts, ...modeles.map((id): EntreeBarre => ({ actionId: 'usage-objet', cle: `${CLE_D_OBJET}${id}` }))];
+}
+
+/** MATÉRIALISE la barre (fiche `user-arbitrage-barre-materialisee-et-sans-pages`) : chaque entrée possédée absente
+ *  de la zone `capacites` s'écrit au premier rang LIBRE (clé absente) des emplacements rapides, par `poserDansBarre` ;
+ *  une case posée ou vidée (`null`) n'est jamais réécrite, et sans rang libre, rien ne s'écrit. Rend le porteur tel
+ *  quel quand rien ne s'écrit. */
+export function materialiserLaBarre(c: Combatant): Combatant {
+  const presentes = new Set(Object.values(c.barre?.capacites ?? {}).flatMap((e) => (e ? [cleEntree(e)] : [])));
+  let porteur = c;
+  for (const e of entreesPossedees(c)) {
+    if (presentes.has(cleEntree(e))) continue;
+    const posees = porteur.barre?.capacites ?? {};
+    const rang = Array.from({ length: RANGS_RAPIDES }, (_, i) => i).find((i) => !Object.prototype.hasOwnProperty.call(posees, i));
+    if (rang === undefined) break;
+    porteur = poserDansBarre(porteur, { zone: 'capacites', index: rang }, e);
+    presentes.add(cleEntree(e));
+  }
+  return porteur;
 }

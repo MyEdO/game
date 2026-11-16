@@ -38,7 +38,7 @@ describe('#3646 — unité du prix de base d’une cargaison, par voie', () => {
   it('terre : un lot complet de 10 Enc d’un bien à P CO au livre coûte P CO avant Marchandage (MSRC 13 l.91)', () => {
     const p = partie({
       id: 'm', label: 'Reikland', routes: [],
-      places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'lieu-a' }, market: { taille: 4, richesse: 4, produits: ['metal', 'vivres', 'laine-terre'] } }],
+      places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'lieu-a' }, taille: 4, market: { richesse: 4, produits: ['metal', 'vivres', 'laine-terre'] } }],
     }, { possessions: [{ uid: 'convoi', ownerId: tousLesHerosDeScenario(idsDeTest)[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }] });
     try {
       p.envoyer({ type: 'ouvrirLeMarche', args: [] });

@@ -5,7 +5,10 @@
  */
 import { Combatant, CharKey, CHAR_LABELS, ItemInstance, type Main } from '../engine/types';
 import {
+  avecObjet,
   choisirApparenceDObjet,
+  contexteDeNaissanceDObjet,
+  itemFromTrappingById,
   recomputeLoadout,
   loadoutCreate,
   loadoutDelete,
@@ -60,7 +63,9 @@ import { nextProsthesisTier, grantProsthesisTier } from '../engine/trauma';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { castingKindOf } from '../engine/combatFeatures/dispatch';
 import { toMoney, Money, formatMoney } from '../engine/money';
-import { isArcaneSpell } from '../engine/magic';
+import { prendUnComposant } from '../engine/magic';
+import { isSorceryDomain } from '../engine/domainAttributes';
+import { itemCapability } from '../engine/capabilities';
 import { eligibleTalent, spellCost, verdictApprentissage } from '../engine/grimoire';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { levelsForCareer, byId, careerLabelFor, findSpellById, findTrappingById, refLabel, type SpellData } from '../data/index';
@@ -570,28 +575,29 @@ export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: strin
   return result;
 }
 
-/** Composant d'incantation (LDB 46 l.107-113, règle optionnelle `magie-composant`) : achète un
- *  composant pour un Sort d'Arcane/Domaine CONNU du héros — coût = NI pistoles d'argent (l.113),
- *  prélevé sur la Bourse de l'incantateur. « acheté pour un Sort spécifique […], ne marche que pour ce
- *  Sort. » Le composant absorbe le contrecoup à l'incantation (consumé) — cf. applyMiscast. */
+/** Achète un composant d'incantation lié à un Sort d'Arcane/Domaine CONNU du héros, payé sur sa Bourse
+ *  (`coutDuComposant`). LDB 46 l.107-113 */
 export function acheterLaComposante(get: Get, set: Set, heroId: string, spellId: string): void {
   const hero = actorIn(get(), heroId);
   const refus = refusAchatDeComposant(hero, spellId);
   if (refus) return void refuserGeste(get, set, refus);
   const sp = findSpellById(spellId)!;
   const cost = coutDuComposant(sp);
+  const objet = garanti(itemFromTrappingById(COMPOSANT_D_INCANTATION, get().forgerUnId, undefined, contexteDeNaissanceDObjet(hero!)), COMPOSANT_D_INCANTATION, 'composant d’incantation');
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'Composant d’incantation' });
-  set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, componentSpells: [...(h.componentSpells ?? []), spellId] })));
+  set((s) => ecrireActeur(s, heroId, (h) => avecObjet(h, { ...objet, sortLie: spellId })));
   get().ecrireAuJournal(t('pf.componentBought', { name: hero!.label, spell: sp.label, money: formatMoney(cost) }));
 }
 
-/** Coût d'un composant d'incantation. LDB 46 l.113 */
-export function coutDuComposant(sp: Pick<SpellData, 'cn'>): Money {
-  return toMoney({ silver: sp.cn ?? 0 });
-}
+/** L'entrée de catalogue que crée l'achat d'un composant. LDB 46 l.113 */
+const COMPOSANT_D_INCANTATION = 'composant-d-incantation';
 
-/** Un composant s'achète pour ce Sort : d'Arcane ou de Domaine, à NI. LDB 46 l.107-113 */
-const prendUnComposant = (sp: SpellData): boolean => isArcaneSpell(sp) && sp.cn != null;
+/** Coût d'un composant d'incantation : NI en pistoles d'argent, en sous de cuivre pour la Sorcellerie.
+ *  LDB 46 l.113 ; LDB 49 l.5 */
+export function coutDuComposant(sp: SpellData): Money {
+  const ni = sp.cn ?? 0;
+  return toMoney(isSorceryDomain(sp) ? { brass: ni } : { silver: ni });
+}
 
 /** Sorts CONNUS du héros pour lesquels la fiche offre un composant : ceux que `refusAchatDeComposant`
  *  ne refuse que par la bourse. LDB 46 l.107-113 */
@@ -599,15 +605,44 @@ export function composantsOfferts(hero: Combatant): SpellData[] {
   return (hero.spells ?? []).map((id) => findSpellById(id)).filter((sp): sp is SpellData => !!sp && prendUnComposant(sp));
 }
 
-/** Refus d'acheter un composant pour `spellId` : la raison affichée, ou `null`. Verdict UNIQUE du geste
- *  `acheterLaComposante` et de la fiche. LDB 46 l.107-113 */
-export function refusAchatDeComposant(hero: Combatant | undefined, spellId: string): string | null {
+/** Refus de lier un composant au Sort `spellId` : introuvable, hors Arcane/Domaine, inconnu du héros. LDB 46 l.113 */
+function refusDuSortDuComposant(hero: Combatant | undefined, spellId: string): string | null {
   const sp = findSpellById(spellId);
   if (!hero || !sp) return t('pf.componentSpellNotFound');
   if (!prendUnComposant(sp)) return t('pf.componentArcaneOnly', { spell: sp.label });
   if (!(hero.spells ?? []).includes(spellId)) return t('pf.spellUnknown', { name: hero.label, spell: sp.label });
-  const cost = coutDuComposant(sp);
-  return refusDeBourse(hero, cost, 'pf.componentTooExpensive', { spell: sp.label });
+  return null;
+}
+
+/** Refus d'acheter un composant pour `spellId` : la raison affichée, ou `null`. Verdict UNIQUE du geste
+ *  `acheterLaComposante` et de la fiche. LDB 46 l.107-113 */
+export function refusAchatDeComposant(hero: Combatant | undefined, spellId: string): string | null {
+  const refus = refusDuSortDuComposant(hero, spellId);
+  if (refus) return refus;
+  const sp = findSpellById(spellId)!;
+  return refusDeBourse(hero!, coutDuComposant(sp), 'pf.componentTooExpensive', { spell: sp.label });
+}
+
+/** Refus de lier le composant `uid` du héros au Sort `spellId` : la raison affichée, ou `null`. Verdict UNIQUE
+ *  du geste `designerLeComposant` et de la fiche. LDB 46 l.113 */
+export function refusDeDesignation(hero: Combatant, uid: string, spellId: string): string | null {
+  const it = garanti(hero.items?.find((i) => i.uid === uid), uid, 'objet du héros');
+  if (!itemCapability(it, 'isSpellComponent')) return t('pf.componentNotAComponent', { item: it.label });
+  if (it.sortLie) return t('pf.componentAlreadyBound', { item: it.label, spell: findSpellById(it.sortLie)?.label ?? it.sortLie });
+  return refusDuSortDuComposant(hero, spellId);
+}
+
+/** Lie un composant d'incantation à LIER du héros à un de ses Sorts. LDB 46 l.113 */
+export function designerLeComposant(get: Get, set: Set, uid: string, spellId: string): void {
+  const heroId = herosPorteur(get, set, uid);
+  if (!heroId) return;
+  const hero = get().party.find((h) => h.id === heroId)!;
+  const refus = refusDeDesignation(hero, uid, spellId);
+  if (refus) return void refuserGeste(get, set, refus);
+  mutLoadout(set, heroId, (c) => {
+    c.items!.find((i) => i.uid === uid)!.sortLie = spellId;
+  });
+  get().ecrireAuJournal(t('pf.componentBound', { name: hero.label, spell: findSpellById(spellId)!.label }));
 }
 
 /** Édite la bio MUTABLE d'un héros (hors combat) : Motivation + Ambitions court/long terme (LDB 05).
@@ -678,17 +713,6 @@ export function terminerLaSeance(get: Get, set: Set): void {
   for (const l of [...lines.values()].flat()) get().ecrireAuJournal(l);
   set({ finDeSeance: null });
   get().restaurerLaFortune(); // Chance restaurée pour la prochaine séance (LDB 17 l.41)
-}
-
-/** Retire UN composant d'incantation possédé pour un Sort (sans remboursement). */
-export function retirerLaComposante(_get: Get, set: Set, heroId: string, spellId: string): void {
-  set((s) => ecrireActeur(s, heroId, (h) => {
-    const list = [...(h.componentSpells ?? [])];
-    const i = list.indexOf(spellId);
-    if (i < 0) return h;
-    list.splice(i, 1); // retire une seule occurrence
-    return { ...h, componentSpells: list };
-  }));
 }
 
 /** Rachat PX d'une prothèse (LDB 73) : les PALIERS sont DÉCLARÉS sur l'entrée de catalogue
@@ -957,7 +981,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
       }
     },
     acheterLaComposante: (heroId, spellId) => acheterLaComposante(get, set, heroId, spellId),
-    retirerLaComposante: (heroId, spellId) => retirerLaComposante(get, set, heroId, spellId),
+    designerLeComposant: (uid, spellId) => designerLeComposant(get, set, uid, spellId),
     ecrireLHistorique: (heroId, patch) => ecrireLHistorique(get, set, heroId, patch),
     ouvrirLaFinDeSeance: () => {
       const refus = refusDeFinDeSeance(get());
