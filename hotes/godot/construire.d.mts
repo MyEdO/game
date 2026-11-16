@@ -13,3 +13,7 @@ export function piloter(options: {
   lance: (tuer: () => void) => void;
   encore: () => boolean;
 }): Promise<{ lignes: string[]; erreurs: string[] }>;
+
+export function signaturesDu(dossier: string): Record<string, string>;
+
+export function ecartsDeLaCopie(avant: Readonly<Record<string, string>>, apres: Readonly<Record<string, string>>): { copier: string[]; retirer: string[] };

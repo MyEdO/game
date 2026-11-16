@@ -893,15 +893,16 @@ const ATTENDU = {
     "scripts/test/verrou.mjs",
   ],
   'test:noyau': ['scripts/guards/lib/protectionWorktree.mjs'],
-  // #2928, #2948, #3778, #3935, #3951, #3009, #4063, ECRIT_LU (`scripts/gates/toutes.mjs`).
-  'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
-  'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
-  'godot:rendus': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
-  'godot:coop': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
+  // #2928, #2948, #3778, #3935, #3951, #3009, #4063, ECRIT_LU (`scripts/gates/toutes.mjs`) : la copie importée du projet
+  // (`surUneCopie`, son marqueur `ecrireTexteAtomique` et son verrou `verrou.mjs`) n'écrit que sous `~/.cache/wfrp-godot-copies/`.
+  'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  'godot:rendus': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  'godot:coop': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
   // #3945, #3412, ECRIT_LU (`scripts/gates/toutes.mjs`) : le lot écrit le journal de chaque jeu sous `dist/godot-recettes/`,
   // lit `jeuxPilotesDeFront` de `construire.mjs`, et lance `recette.mjs --natif` en sous-processus, dont `piloter`
   // (`construire.mjs`) dépose les GLB (`ecritFerme`).
-  'godot:recette': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/lot-de-recettes.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
+  'godot:recette': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/lot-de-recettes.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
   // #3145, ECRIT_LU (`scripts/gates/toutes.mjs`) : `environnement.mjs` écrit le venv et son témoin sous
   // `~/.cache/wfrp-personnage-3d/`, hors de l'arbre.
   'personnage-3d:tests': ['scripts/personnage-3d/environnement.mjs'],

@@ -6,7 +6,7 @@
  */
 import { execFile } from 'node:child_process';
 import { Console } from 'node:console';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
@@ -16,6 +16,7 @@ import { RELAY_URL_PROD } from '../../src/hote/coop/page';
 import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs';
 import { sansModeNiRelais } from './processus.testkit';
 import { stockageDuProcessus } from './stockage.mjs';
+import { ecartsDeLaCopie, signaturesDu } from './construire.mjs';
 
 /** Deux bundles bâtis, l'un lu par `lecturesDuBundle`, puis `--pont-seul` : ~55 s. */
 const CONSTRUCTION_MS = 180_000;
@@ -123,5 +124,29 @@ describe('D2 — `--pont-seul --sortie` écrit un bundle de production', () => {
   it('sort en 0, et le bundle écrit porte l’adresse de prod, ni l’adresse locale ni la branche de développement', () => {
     expect(pontSeul.code, pontSeul.stderr).toBe(0);
     expect(marques(code)).toEqual({ prod: true, local: false, developpement: false });
+  });
+});
+
+describe('la copie importée du projet, mise à jour des seuls fichiers changés', () => {
+  /** Un projet d'essai : un script, une texture, un `.godot` et un `.godot` imbriqué que la signature ignore. */
+  const projet = () => {
+    const d = join(dossier, `projet-${Math.random().toString(36).slice(2)}`);
+    for (const rel of ['scripts/a.gd', 'textures/herbe.jpg', '.godot/imported/x', 'sous/.godot/y']) {
+      mkdirSync(join(d, rel, '..'), { recursive: true });
+      writeFileSync(join(d, rel), rel);
+    }
+    return d;
+  };
+  it('signe chaque fichier par sa taille et sa date, hors de tout `.godot`', () => {
+    expect(Object.keys(signaturesDu(projet())).sort()).toEqual([join('scripts', 'a.gd'), join('textures', 'herbe.jpg')]);
+  });
+  it('copie le neuf et le changé en taille ou en date, retire le parti, laisse l’inchangé', () => {
+    const d = projet();
+    const avant = signaturesDu(d);
+    writeFileSync(join(d, 'scripts', 'b.gd'), 'neuf');
+    utimesSync(join(d, 'scripts', 'a.gd'), 1, 1);
+    rmSync(join(d, 'textures', 'herbe.jpg'));
+    expect(ecartsDeLaCopie(avant, signaturesDu(d))).toEqual({ copier: [join('scripts', 'a.gd'), join('scripts', 'b.gd')], retirer: [join('textures', 'herbe.jpg')] });
+    expect(ecartsDeLaCopie(signaturesDu(d), signaturesDu(d))).toEqual({ copier: [], retirer: [] });
   });
 });
