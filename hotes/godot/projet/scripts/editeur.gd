@@ -183,7 +183,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_calque = reponse.calque
 	_monde.poser_le_calque(_calque, null if _calque == null else _planche(_calque.image))
 	Zone.montrer_toutes(_zones, _vue.zones)
-	_publier_l_ecran.call_deferred()
+	_publier_l_ecran()
 	if reponse.has("depot"):
 		_deposer(reponse.depot)
 	if reponse.has("memoire"):
