@@ -838,6 +838,8 @@ export interface ItemCapabilities {
   isRations?: boolean;
   /** Grimoire / livre de Sorts (LDB 47 l.21) — un Sort non mémorisé du Domaine peut y être lu (NON gaté). */
   isGrimoire?: boolean;
+  /** Composant d'incantation (LDB 46 l.107-113), lié à un Sort par `ItemInstance.sortLie` (NON gaté). */
+  isSpellComponent?: boolean;
   /** Outils de crochetage (LDB 67 l.66 : « nécessaire pour utiliser la Compétence Crochetage sans
    *  pénalité ») — consommé par `SkillData.tool` (crochetage → −10 sans outil, LDB 09 l.168). NON gaté
    *  sur le port : les posséder suffit (on les sort pour s'en servir, comme `isRations`). */
@@ -857,6 +859,8 @@ export interface ItemCapabilities {
    *  période avec pénalité de -20). Lue par-objet (`itemCapability`), pas gatée sur le port : l'arme est
    *  fixée à la main qui la tient. */
   disarmImmune?: boolean;
+  /** Objet lancé détruit, qui ne tombe pas au sol (`appliquerLaTouche`, `noyau/combatFlow.ts`). #4330 */
+  detruitAuLancer?: boolean;
   /** Arme à corde séparable (Lance-harpon, ADE II 02 l.677 : « Si la corde est séparée de la flèche, la
    *  portée passe à 60 et l'arme ne possède plus l'Atout Immobilisante ») — active le mode de tir
    *  `WeaponContext.harpoonRopeCut` (`effectiveWeapon`, `noyau/combatFlow.ts` `weaponContextOf`), choisi
@@ -891,6 +895,8 @@ export interface TrappingData {
   rendu?: { id: string };
   /** Cf. `Weapon.perteSansEquipe`. AA 10 l.148 ; ZI 13 l.193 */
   perteSansEquipe?: PerteSansEquipe;
+  /** Cf. `Weapon.bouclierDEquipe`. ZI 13 l.193 */
+  bouclierDEquipe?: { id: string };
   /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 l.169/171) : peut viser une CASE au sol.
    *  Propagé Trapping → ItemInstance → Weapon (`indirect`) ; lu par `availableAttacks`. Canon/baliste = direct. */
   indirect?: boolean;

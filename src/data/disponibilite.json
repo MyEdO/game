@@ -135,5 +135,14 @@
         "note": "RATIOS DE TROC, LDB 59 « Faire son marché » l.68-76"
       }
     }
-  ]
+  ],
+  "colonneParTaille": {
+    "1": "village",
+    "2": "village",
+    "3": "ville",
+    "4": "cite"
+  },
+  "provenanceDeColonneParTaille": {
+    "maison": "« Village » et « Ville » sont communs aux deux échelles, la Disponibilité n’a pas de colonne sous le village : Hameau et Village lisent Village, Ville lit Ville, Grande ville lit Cité."
+  }
 }

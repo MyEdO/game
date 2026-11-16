@@ -18,6 +18,7 @@ import {
   surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock, tireSansEquipe,
 } from './combatFlow';
 import { defenseDodgeMods } from './mount';
+import { bouclierDuBinomeEnJeu } from './combat/surnombre';
 import { LOCALISATIONS_DE_COUP, type Combatant, type Difficulty, type HitLocation, type ModLine, type Weapon } from '../engine/types';
 import type { RollBreakdown } from '../engine/combat';
 import {
@@ -185,7 +186,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const empoigne = !res && arme.type === 'melee' && isUnarmed(arme) && heros && peutEtreEmpoigne(cible);
   const apercu = !res ? previewAttack(get, attaquant, cible, pa.location ?? undefined, { dansLeTas: pa.dansLeTas, tirImmobile: pa.tirImmobile, weaponUid: pa.weaponUid, harpoonRopeCut: pa.harpoonRopeCut, weapon: arme }) : null;
   // LDB 13 l.135
-  const defenseAuTir = !res && tir ? bestRangedDefense(attaquant, cible, arme, distanceDeCombat(s.scene, attaquant, cible), true, sceneMetresPerTile(s.scene)) : undefined;
+  const defenseAuTir = !res && tir ? bestRangedDefense(attaquant, cible, arme, distanceDeCombat(s.scene, attaquant, cible), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, cible)) : undefined;
   const esquive = defenseDodgeMods(s, cible);
   const annonce = res
     ? undefined

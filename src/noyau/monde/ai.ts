@@ -28,7 +28,7 @@ import { positionPosee } from './spawn';
 import { reachable, flyReachable, distancesDeMarcheVers, manhattan, pointDeCase, Pt, tileKey, tileFromKey, type TraverseCapability } from './path';
 import { chebyshev } from '../../engine/grid';
 import { corpsDe, footprintChebyshev, footprintN, distanceDeContact } from './footprint';
-import { effectifAuContactParmi } from '../combat/surnombre';
+import { bouclierDuBinome, effectifAuContactParmi } from '../combat/surnombre';
 import { couvertDuTir, makeLosMemo, type LosMemo } from './lineOfSight';
 import { COVER_ORDER } from '../../engine/cover';
 import { rangeBandModifier, outnumberMod, canFireWhileEngaged, type ModLine } from '../../engine/combat';
@@ -95,7 +95,7 @@ export type EnemyAction =
   | { kind: 'tir'; targetId: string; weaponUid?: string } // tir depuis la position courante, avec l'arme évaluée (`pickAttackWeaponList`)
   | { kind: 'rechargement' } // recharge une arme à Recharge déchargée (Test étendu de Projectiles, LDB 62 l.333)
   | { kind: 'melee'; targetId: string } // attaque de mêlée (cible adjacente)
-  | { kind: 'deplacement'; to: Pt; thenTargetId: string } // approche ; attaque après si adjacent
+  | { kind: 'deplacement'; to: Pt; thenTargetId: string; fuite?: true } // approche ; attaque après si adjacent ; `fuite` : fuite forcée (`fleeMove`)
   | { kind: 'liberation'; state: 'empetre' | 'en-flammes' } // se libérer / se rouler au sol (LDB 16 l.66/84)
   | { kind: 'depenseDeRessource'; resource: 'determination'; via: 'retirerEtat'; id: string } // dépense PROACTIVE de Détermination pour retirer un État verrouillant (Brisé) et se ressaisir (LDB 17 l.57-61)
   | { kind: 'empoignade'; targetId: string; resolution: 'briser' | 'test' } // Empoigné à son tour (LDB 14 l.161) : son Action EST le Test opposé de Force, OU « Briser » (Avantage supérieur) pour regagner sa liberté d'action puis re-décider
@@ -730,7 +730,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       const d = distOf(t);
       if (d > bestDist) { bestDist = d; best = t; }
     }
-    return tileKey(best.x, best.y, best.z ?? 0) === hereKey ? { kind: 'fin' } : { kind: 'deplacement', to: best, thenTargetId: heroes[0].id };
+    return tileKey(best.x, best.y, best.z ?? 0) === hereKey ? { kind: 'fin' } : { kind: 'deplacement', to: best, thenTargetId: heroes[0].id, fuite: true };
   };
   // Dépense PROACTIVE de Détermination (LDB 17 l.57-61) pour se RESSAISIR : un acteur VERROUILLÉ
   // (`restrictsAction`, ex. Brisé) peut dépenser 1 Détermination/pion pour RETIRER l'État (sans Test, même
@@ -777,7 +777,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // un Empêtré : le cœur discrétionnaire ne produira aucun candidat (Mouvement 0) et le fallback final
   // l'enverra sur `recover empetre` (se libérer) — le bon comportement, plutôt que passer son tour.
   if (macro?.retreatBelow != null && !isBestial(enemy.traits) && !isFrenzied(enemy) && !isEngaged(enemy)
-      && !hasCondition(enemy, 'empetre')
+      && !hasCondition(enemy, 'empetre') && !bouclierDuBinome(input.scene, [enemy, ...squad], enemy) // ZI 13 l.193
       && enemy.wounds.current < enemy.wounds.max * macro.retreatBelow) {
     return forced(fleeMove());
   }

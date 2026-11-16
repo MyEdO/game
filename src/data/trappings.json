@@ -1741,6 +1741,9 @@
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "capabilities": {
+      "detruitAuLancer": true
     }
   },
   {
@@ -1786,6 +1789,9 @@
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "capabilities": {
+      "detruitAuLancer": true
     }
   },
   {
@@ -6875,6 +6881,32 @@
     "source": {
       "book": "livre-de-base",
       "page": 304
+    }
+  },
+  {
+    "id": "composant-d-incantation",
+    "type": "trappings",
+    "label": "Composant d’incantation",
+    "capabilities": {
+      "isSpellComponent": true
+    },
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Encombrement 0 : arbitrage utilisateur du 2026-11-16 (« 0, négligeable », ticket #4132, https://github.com/MyEdO/game/issues/4132). Aucun prix de catalogue : le composant coûte le NI du Sort qu'il favorise (LDB 46 l.113, LDB 49 l.5), payé à l'achat.",
+    "source": {
+      "book": "livre-de-base",
+      "page": 236,
+      "note": "LDB 46 l.107-113"
     }
   },
   {
@@ -13325,6 +13357,9 @@
         "precise"
       ]
     },
+    "bouclierDEquipe": {
+      "id": "bouclier-de-jezail"
+    },
     "availability": null,
     "price": null,
     "source": {
@@ -13406,6 +13441,43 @@
     "enc": 3,
     "shape": {
       "id": "jezail"
+    },
+    "rangement": {
+      "id": "dos"
+    }
+  },
+  {
+    "id": "bouclier-de-jezail",
+    "type": "trappings",
+    "label": "Bouclier de jezaïl",
+    "categorie": "melee",
+    "subType": {
+      "id": "base"
+    },
+    "shield": true,
+    "enc": 1,
+    "availability": null,
+    "reach": "Très courte",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 2
+    },
+    "qualities": [
+      {
+        "id": "protectrice",
+        "value": 2
+      }
+    ],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.193"
+    },
+    "shape": {
+      "id": "rond"
     },
     "rangement": {
       "id": "dos"
@@ -14202,6 +14274,9 @@
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "capabilities": {
+      "detruitAuLancer": true
     }
   },
   {

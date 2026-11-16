@@ -1545,12 +1545,12 @@ function EntityPanel({
             {ent.merchant && (
               <>
                 <label className="ed-field">
-                  ↳ Bourg (override Disponibilité)
+                  ↳ Colonne de Disponibilité hors lieu
                   <select
                     value={ent.merchant.settlement ?? ''}
                     onChange={(e) => updateSel({ merchant: { ...ent.merchant!, settlement: (e.target.value || undefined) as Settlement | undefined } })}
                   >
-                    <option value="">— défaut (archétype) —</option>
+                    <option value="">— celle du lieu —</option>
                     <option value="village">Village</option>
                     <option value="ville">Ville</option>
                     <option value="cite">Cité</option>

@@ -1,12 +1,15 @@
 /**
  * Les REFUS ÉLÉMENTAIRES du tour, purs : chacun rend `null` (ouvert) ou sa raison. Les gates du registre
  * (`actionRegistry.ts`) et les verdicts de geste (`refusDeCourse`, `combat/desengagement.ts`) les composent :
- * chaque condition n'a qu'un site. Purs, ils ne lisent que l'acteur et son combat ; seul import du noyau :
- * `mount.ts` (`mountMovement`).
+ * chaque condition n'a qu'un site. Purs, ils ne lisent que l'acteur, son combat et sa scène ; imports du noyau :
+ * `mount.ts` (`mountMovement`), `combat/surnombre.ts` (`bouclierDuBinome`).
  */
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './etat';
-import { canTakeAction, conditionGating } from '../engine/conditions';
+import type { Scene } from './monde/scene';
+import { canTakeAction, conditionGating, isActionLocked } from '../engine/conditions';
+import { hasNoRun } from '../engine/traits/dispatch';
+import { bouclierDuBinome } from './combat/surnombre';
 import { isVehicle } from '../engine/coque';
 import { isEngaged } from '../engine/engagement';
 import { prayerForActionBy } from '../engine/magic';
@@ -55,15 +58,28 @@ export function refusRampe(c: Combatant): string | null {
   return conditionGating(c).movement === 'crawl' ? t('agate.prone') : null;
 }
 
+/** Un trait interdit la Course (`hasNoRun`, Rampant : MSRC 15 l.171). */
+export function refusSansCourse(c: Combatant): string | null {
+  return hasNoRun(c.traits) ? t('agate.cannotRun') : null;
+}
+
+/** Le porteur est en binôme au bouclier (`bouclierDuBinome`) : ni Course ni Fuite volontaires, sauf fuite forcée par un
+ *  État (`isActionLocked`, LDB 16 l.52). ZI 13 l.193 ; #4202 */
+export function refusDuBinome(scene: Scene | null, battle: Pick<BattleState, 'combatants'>, c: Combatant): string | null {
+  const bouclier = bouclierDuBinome(scene, battle.combatants, c);
+  if (!bouclier || isActionLocked(c)) return null;
+  return t(c.weapons.includes(bouclier) ? 'agate.binomeTientLeBouclier' : 'agate.binomeCouvert', { bouclier: bouclier.label });
+}
+
 /** Ce que la Course exige du PORTEUR (LDB 15 l.41 ; Brisé : LDB 16 l.52), hors de l'économie du Tour : lu tel quel
  *  par le plan d'approche de l'IA (`aiApproachPlan`), qui décide avant d'avoir agi. */
 export function refusDeCourseDuPorteur(c: Combatant): string | null {
-  return refusCoque(c) ?? refusHorsDEtatDAgir(c) ?? refusPriereImposee(c) ?? refusEngage(c) ?? refusRampe(c);
+  return refusCoque(c) ?? refusHorsDEtatDAgir(c) ?? refusPriereImposee(c) ?? refusEngage(c) ?? refusRampe(c) ?? refusSansCourse(c);
 }
 
 /** Verdict de la Course (LDB 15 l.41), lu par le gate `course-possible`, `ouvrirLaCourse` et `computeRunReach`. */
-export function refusDeCourse(battle: BattleState, c: Combatant): string | null {
-  return refusActionDepensee(battle) ?? refusDeCourseDuPorteur(c) ?? refusSansMouvement(battle, c);
+export function refusDeCourse(scene: Scene | null, battle: BattleState, c: Combatant): string | null {
+  return refusActionDepensee(battle) ?? refusDeCourseDuPorteur(c) ?? refusDuBinome(scene, battle, c) ?? refusSansMouvement(battle, c);
 }
 
 /** Verdict de la Charge (LDB 15 l.35-37), lu par le gate `charge-possible`, `computeChargeReach` et `attackPlan`. */

@@ -369,7 +369,7 @@ export function hasClimbFullSpeed(traits: TraitList | undefined): boolean {
 }
 
 /** Rampant (MSRC 15 l.171) : « Elle ne peut pas réaliser d'Action de Course. » Capacité NON exprimable
- *  en GameOp → drapeau `capabilities.noRun`, interrogé par `runMultiplier`. */
+ *  en GameOp → drapeau `capabilities.noRun`, interrogé par `runMultiplier` et `refusSansCourse` (noyau). */
 export function hasNoRun(traits: TraitList | undefined): boolean {
   return (traits ?? []).some((t) => !!findTraitById(t.id)?.capabilities?.noRun);
 }

@@ -1278,6 +1278,20 @@ describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses r
     expect(carte(annule)).toEqual(RELIEE);
   });
 
+  it('un lieu écrit sa taille, de 1 à 4, et l’écriture s’annule', () => {
+    // MSRC 13 l.44-50
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } });
+    const ecrit = jouer(s, valeur('lieu', 'x', ['taille'], 3));
+    expect([carte(ecrit).places[0].taille, ecrit.historique.passe.length]).toEqual([3, s.historique.passe.length + 1]);
+    expect(carte(jouer(ecrit, { geste: 'annuler' }))).toEqual(RELIEE);
+    expect([0, 5, 2.5].map((n) => refusDeLaValeur(s, valeur('lieu', 'x', ['taille'], n)))).toEqual(['horsSorte', 'horsSorte', 'horsSorte']);
+    expect(carte(jouer(ecrit, valeur('lieu', 'x', ['taille']))).places[0].taille, 'un lieu sans marché la retire').toBeUndefined();
+    const marchand = { ...RELIEE, places: [{ ...RELIEE.places[0], taille: 3, market: { richesse: 3, produits: [] } }, RELIEE.places[1]] };
+    const surMarche = jouer(ouvert(marchand), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } });
+    expect(refusDeLaValeur(surMarche, valeur('lieu', 'x', ['taille'])), 'un marché garde la taille de son lieu').toEqual({ regle: 'un marché exige la taille du lieu : posez « taille », ou un port.' });
+    expect(jouer(surMarche, valeur('lieu', 'x', ['taille']))).toBe(surMarche);
+  });
+
   it('relier deux lieux pose une route depuis le lieu sélectionné vers l’un de ceux qu’il rejoint, sélectionnée sur un cran ; sans lieu offert, c’est sans objet', () => {
     const s = jouer(ouvert(), { geste: 'document', document: 'carte' }, { geste: 'ajouter', sorte: 'lieu' }, { geste: 'ajouter', sorte: 'lieu' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'lieu-0' } });
     expect(ECRITURES_DES_PORTEURS.route.avecs!(projetEdite(s), idDeLaSceneEditee(s), s.sel, s.entreesDeFiche)).toEqual(['lieu-1']);
@@ -1476,7 +1490,7 @@ describe('les points d’intérêt d’un lieu, sur le plan du lieu de la carte 
   });
 
   it('une auberge du lieu sélectionné cesse de vendre le repas du livre puis le revend, chacun sur un cran ; ses offres déclarées s’écrivent au formulaire sauf leur identifiant ; la carte écrite passe la validation, une offre doublée non (#4277)', () => {
-    const s = jouer(surLePlan(), { geste: 'ajouterEtablissement', kind: 'auberge' }, { geste: 'ajouterEtablissement', kind: 'forgeron' });
+    const s = jouer(surLePlan(), { geste: 'ajouterEtablissement', kind: 'auberge' }, { geste: 'ajouterEtablissement', kind: 'forgeron' }, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['taille'], valeur: 3 });
     const sansRepas = jouer(s, { geste: 'retirerOffre', etablissement: 'auberge', offre: 'repas' });
     expect([carte(sansRepas).places[0].services?.[0].rest?.offres?.map((o) => o.id), sansRepas.historique.passe.length]).toEqual([['commune', 'chambre', 'grande'], s.historique.passe.length + 1]);
     const revendu = jouer(sansRepas, { geste: 'ajouterOffre', etablissement: 'auberge', offre: 'repas' });

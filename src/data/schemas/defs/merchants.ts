@@ -6,7 +6,6 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { refs } from '../grammaire/ref';
-import { settlementSchema } from '../grammaire/valeurs';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
 import { trappingCategorieSchema } from './trappings';
@@ -32,7 +31,6 @@ const doc = document(
       /** Groupes d'objet vendus (`TrappingData.subType`) — axe DISTINCT des catégories. */
       subTypes: refs('weaponGroup').optional(),
     }), { categories: { label: 'catégories' }, subTypes: { label: 'groupes d’objets' } }),
-    settlement: settlementSchema,
     resaleRate: tauxDeRachatSchema,
     buyMarkup: majorationDAchatSchema.optional(),
     bargainSkill: z.number(),
@@ -45,10 +43,6 @@ const doc = document(
   },
   {
     category: { label: 'Familles vendues', hint: 'Filtre le catalogue vendu par type/sous-type de possession' },
-    settlement: {
-      label: 'Taille d’agglomération',
-      hint: 'Taille de colonie par défaut de ce marchand, surchargeable en Scène',
-    },
     resaleRate: { label: 'Taux de rachat', hint: 'Part du prix listé payée sur un Marchandage de vente gagné' },
     buyMarkup: { label: 'Majoration d’achat', hint: 'Multiplicateur du prix listé à l’achat (1 = prix normal)' },
     bargainSkill: { label: 'Valeur de Marchandage', hint: 'Valeur opposée au Test de Marchandage du client' },

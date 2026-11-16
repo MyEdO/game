@@ -19,7 +19,7 @@ const PARRAINE = 'Votre parrain attend à la porte de la forge.';
 const worldMap: WorldMap = {
   id: 'carte', label: 'Carte', routes: [],
   places: [{
-    id: 'bourg', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'place' },
+    id: 'bourg', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'place' }, taille: 4,
     services: [
       { id: 'club', kind: { id: 'auberge' }, label: 'Le Club des Gentilshommes', when: { kind: 'flag', expr: MEMBRE }, refus: { texte: REFUS } },
       { id: 'forge', kind: { id: 'forgeron' }, label: 'La Forge des Pairs', when: { kind: 'flag', expr: MEMBRE }, refus: { texte: PARRAINE } },

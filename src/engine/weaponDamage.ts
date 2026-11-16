@@ -57,13 +57,6 @@ export function effectiveWeaponRange(weapon: { range?: WeaponRangeSpec | null },
   return applyAmmoMod(effectiveRange(weapon.range, strBonus), ammoMod);
 }
 
-/** Arme de JET (javelot, couteau de lancer, bombe…) : sa Portée est une SPEC `{ bf }` (BF × N mètres,
- *  LDB 62) — par opposition à une Portée fixe en mètres (arc/arbalète/poudre). C'est le classifieur des
- *  armes lancées, seules concernées par la Dispersion d'un Test de Projectiles (Lancer) raté (LDB 14). */
-export function isThrownWeapon(weapon: { type?: string; range?: WeaponRangeSpec | null }): boolean {
-  return weapon.type === 'distance' && typeof weapon.range === 'object' && weapon.range != null && 'bf' in weapon.range;
-}
-
 /**
  * Replie les ALTÉRATIONS d'une arme (op `augmentWeapon` / arme invoquée) dans son profil de combat :
  * Atouts ajoutés (Magique → `isMagicWeapon` → touche l'Éthéré ; Percutante…), bonus de Dégâts (ajouté

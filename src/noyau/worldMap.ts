@@ -30,6 +30,11 @@ import { isTradeHubEntry } from '../engine/cargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
 import { findNavalPortById, findLieuServiceById, coreAxisIds, semencesDeScene } from '../data';
+import { colonneDeLaTaille } from '../engine/disponibilite';
+import type { Settlement } from '../data/schemas/grammaire/valeurs';
+
+/** Le marché qu'un auteur pose sur un lieu : le profil du moteur sans sa Taille, que porte le lieu (`tailleDuLieu`). */
+export type MarcheDAuteur = Omit<LandMarketProfile, 'taille'>;
 
 /** Lieu posé sur la carte. On y arrive par un trajet (`arriverAuLieu`) ; « Explorer » entre dans sa `scene`. */
 export interface MapPlace {
@@ -51,10 +56,12 @@ export interface MapPlace {
    *  par `resolvePortRef`, `parseProject`) ; le type reste NON-partiel car tout consommateur aval lit
    *  `place.port` APRÈS résolution (jamais la forme sparse brute). */
   port?: { ref?: string } & import('../engine/seaVoyage').PortProfile & { lighthouse?: boolean };
+  /** Taille d'un lieu SANS port (`tailleDuLieu`), MSRC 13 l.44-50 ; absente : le lieu n'est pas une agglomération. */
+  taille?: number;
   /** Indices de COMMERCE TERRESTRE/FLUVIAL (Index géographique, MSRC 13 l.183-278) — présent = ce Lieu
-   *  offre des opportunités de commerce de cargaison (achat/vente/rumeurs). Taille + Richesse + colonne
-   *  Produits, éditables par l'auteur (aucun index codé en dur). */
-  market?: import('../engine/landCargo').LandMarketProfile;
+   *  offre des opportunités de commerce de cargaison (achat/vente/rumeurs). Richesse + colonne Produits,
+   *  éditables par l'auteur ; la Taille est celle du lieu (`marcheDuLieu`). */
+  market?: MarcheDAuteur;
   /** SERVICES EXTENSIBLES du lieu au-delà du port et du marché (#343) — auberge/temple/forgeron/guilde…,
    *  `kind` désigne une entrée du catalogue `lieux-services.json`. Port et marché NE sont PAS dupliqués ici : ils
    *  gardent leur propre champ riche (`port`/`market`) et `placeServices` les compose avec ceux-ci en
@@ -298,8 +305,37 @@ export function placeOfScene(map: WorldMap | null | undefined, sceneId: string |
   return map.places.find((p) => p.scene.id === sceneId);
 }
 
+/** Le lieu où se tient la scène `sceneId` : celui dont elle est la scène (`placeOfScene`), sinon celui dont un point
+ *  d'intérêt y mène (`PlacePoi.sceneId`). */
+export function lieuDeLaScene(map: WorldMap | null | undefined, sceneId: string | undefined): MapPlace | undefined {
+  if (!map || !sceneId) return undefined;
+  return placeOfScene(map, sceneId) ?? map.places.find((p) => p.poi?.some((poi) => poi.sceneId?.id === sceneId));
+}
+
 export function placeById(map: WorldMap, id: string): MapPlace | undefined {
   return map.places.find((p) => p.id === id);
+}
+
+/** La Taille du lieu `place`, MSRC 13 l.44-50 : celle de son port résolu, sinon la sienne ; `undefined` hors
+ *  agglomération. SEUL lecteur de la Taille d'un lieu. */
+export function tailleDuLieu(place: Pick<MapPlace, 'port' | 'taille'>): number | undefined {
+  return place.port?.taille ?? place.taille;
+}
+
+/** La colonne de Disponibilité d'un marchand, LDB 59 l.25-34 : la `surcharge` de son entité, sinon la colonne de la Taille
+ *  du `lieu` où il se tient (`colonneDeLaTaille`) ; `undefined` hors de tout lieu de taille connue, la faute d'auteur que
+ *  refuse `validateScene`. SEULE résolution, du hub comme de la scène. */
+export function colonneDeDisponibiliteDuMarchand(surcharge: Settlement | undefined, lieu: Pick<MapPlace, 'port' | 'taille'> | undefined): Settlement | undefined {
+  if (surcharge) return surcharge;
+  const taille = lieu && tailleDuLieu(lieu);
+  return taille === undefined ? undefined : colonneDeLaTaille(taille);
+}
+
+/** Le profil de marché que le moteur reçoit du lieu `place` : son marché d'auteur à la Taille du lieu (`tailleDuLieu`) ;
+ *  `undefined` sans marché, ou sans Taille, le document en cours d'édition que refuse `mapPlaceSchema`. */
+export function marcheDuLieu(place: MapPlace): LandMarketProfile | undefined {
+  const taille = tailleDuLieu(place);
+  return place.market && taille !== undefined ? { ...place.market, taille } : undefined;
 }
 
 /** Le lieu où se tient le groupe (`lieu`), `undefined` en route ou hors carte. */
@@ -318,8 +354,8 @@ export function quaiDuGroupe(s: { lieu: string | null; worldMap: WorldMap | null
  *  panneau dédié ; `autre` = service de catalogue générique (temple/forgeron/guilde…). */
 export type PlaceServiceCategory = 'port' | 'marche' | 'auberge' | 'autre';
 
-/** Le tronc d'un service résolu (`ResolvedPlaceService`). Les payloads métier sont RÉFÉRENCÉS, jamais copiés :
- *  `port`/`market` pointent la donnée existante du nœud. */
+/** Le tronc d'un service résolu (`ResolvedPlaceService`). `port` pointe la donnée existante du nœud ; `market` est le
+ *  profil que le moteur reçoit du lieu (`marcheDuLieu`). */
 interface ServiceResolu {
   /** id de routage : `'port'`, `'marche'`, l'`id` d'un établissement déclaré, ou `'auberge'` (dérivée de la scène). */
   id: string;
@@ -422,10 +458,10 @@ export const SERVICE_CITE = { port: 'port', marche: 'marche', auberge: 'auberge'
 
 /**
  * API UNIQUE des SERVICES d'un lieu (#343) : compose en UNE liste le port (`place.port`), le marché
- * (`place.market`) et les services extensibles du catalogue (`place.services`, `lieux-services.json`),
+ * (`marcheDuLieu`) et les services extensibles du catalogue (`place.services`, `lieux-services.json`),
  * plus l'auberge — l'établissement d'hébergement déclaré, OU, sans lui, dérivée de l'offre de repos de la scène liée. Zéro
- * duplication de vérité : chaque payload RÉFÉRENCE sa donnée d'origine (port/marché/offre de repos),
- * il n'en est jamais recopié une seconde source. Consommée par le hub de lieu, l'écran du lieu (`lieuEnVue`), le
+ * duplication de vérité : chaque payload RÉFÉRENCE sa donnée d'origine (port/offre de repos), le marché se composant
+ * à la Taille du lieu ; il n'en est jamais recopié une seconde source. Consommée par le hub de lieu, l'écran du lieu (`lieuEnVue`), le
  * repos (`reposDuLieu`), l'auberge (`recueillirLesRumeurs`), l'échoppe (`ouvrirLaBoutique`) et `validateScene`.
  */
 export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceService[] {
@@ -434,9 +470,10 @@ export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceServ
     const def = garanti(findLieuServiceById(SERVICE_CITE.port), SERVICE_CITE.port, 'service de lieu');
     out.push({ id: 'port', kind: SERVICE_CITE.port, category: 'port', label: def.label, icon: def.icon, desc: def.desc, port: place.port, hostLine: def.hostLine, backdrop: def.backdrop?.id });
   }
-  if (place.market) {
+  const market = marcheDuLieu(place);
+  if (market) {
     const def = garanti(findLieuServiceById(SERVICE_CITE.marche), SERVICE_CITE.marche, 'service de lieu');
-    out.push({ id: 'marche', kind: SERVICE_CITE.marche, category: 'marche', label: def.label, icon: def.icon, desc: def.desc, market: place.market, hostLine: def.hostLine, backdrop: def.backdrop?.id });
+    out.push({ id: 'marche', kind: SERVICE_CITE.marche, category: 'marche', label: def.label, icon: def.icon, desc: def.desc, market, hostLine: def.hostLine, backdrop: def.backdrop?.id });
   }
   for (const s of place.services ?? []) {
     const def = findLieuServiceById(s.kind.id);

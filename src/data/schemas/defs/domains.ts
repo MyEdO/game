@@ -77,8 +77,6 @@ const doc = document(
       bonus: { label: 'bonus' },
     }).optional(),
 
-    castingChar: charKeySchema.optional(),
-
     environmentBonus: nommerChamps(z.strictObject({ environments: z.array(z.string()), mod: z.number() }), { environments: { label: 'environnements' }, mod: { label: 'modificateur' } }).optional(),
     /** LDB 49. */
     sorcery: z.boolean().optional(),
@@ -156,10 +154,6 @@ const doc = document(
     },
     casterOps: { label: 'Effets appliqués au lanceur', hint: 'Ops appliquées au lanceur après une incantation réussie' },
     castBonus: { label: 'Bonus d’incantation conditionnel', hint: 'Bonus lié à un État porté à portée' },
-    castingChar: {
-      label: 'Caractéristique d’incantation',
-      hint: 'Remplace la Caractéristique par défaut des Tests d’Incantation',
-    },
     environmentBonus: {
       label: 'Bonus d’environnement',
       hint: 'Bonus d’incantation lié à l’environnement de Scène',
